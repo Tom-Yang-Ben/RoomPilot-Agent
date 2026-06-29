@@ -6,7 +6,7 @@
 
 目前專案來源 GitHub：
 
-https://github.com/Tom-Yang-Ben/RoomPilot-Agent
+[https://github.com/Tom-Yang-Ben/RoomPilot-Agent](https://github.com/apinanaivot/IKEA-3d-model-batch-downloader)
 
 ## 專案內容
 
