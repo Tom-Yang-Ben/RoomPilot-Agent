@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react'
+import React, { useMemo, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Bounds, Grid } from '@react-three/drei'
 import * as THREE from 'three'
@@ -28,7 +28,7 @@ function makeWallMaterial(color) {
     shader.uniforms.uFade = { value: 0 } // 0 = off (zoomed out), 1 = zoomed in
     shader.uniforms.uMargin = { value: 0.3 } // keep walls at/behind the focus opaque
     shader.uniforms.uBand = { value: 1.0 } // softness of the fade boundary
-    shader.uniforms.uMinAlpha = { value: 0.12 } // faded walls keep a faint ghost
+    shader.uniforms.uMinAlpha = { value: 0.4 } // faded walls stay a clear ghost, not invisible
     shader.vertexShader =
       'varying vec3 vWorldPos;\n' +
       shader.vertexShader.replace(
@@ -75,7 +75,6 @@ function Walls({ polys, height, color, xray, span }) {
   useEffect(() => () => mat.dispose(), [mat])
   useEffect(() => () => geos.forEach((g) => g.dispose()), [geos])
 
-  const groupRef = useRef()
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls)
 
@@ -83,8 +82,8 @@ function Walls({ polys, height, color, xray, span }) {
     const shader = mat.userData.shader
     if (!shader) return // not compiled yet
     const u = shader.uniforms
-    const near = Math.max(2, span * 0.55) // fully faded once this close to focus
-    const far = Math.max(near + 1, span * 1.3) // no fade beyond this (whole-plan view)
+    const near = Math.max(2, span * 0.45) // fully faded once this close to focus
+    const far = Math.max(near + 1, span * 1.05) // only engages once you zoom past this
     _camPos.copy(camera.position)
     _target.copy(controls?.target ?? _DEFAULT_TARGET)
     _viewDir.copy(_target).sub(_camPos)
@@ -101,20 +100,19 @@ function Walls({ polys, height, color, xray, span }) {
     u.uViewDir.value.copy(_viewDir)
     u.uCamDist.value = dist
     u.uMargin.value = Math.max(0.15, span * 0.04)
-    u.uBand.value = Math.max(0.6, span * 0.22)
-    // Keep the mesh writing depth and casting shadows until it's genuinely see-
-    // through: near walls should still occlude (and not drop phantom shadows on
-    // the revealed interior) while they're only slightly faded.
-    const solid = u.uFade.value < 0.5
-    mat.depthWrite = solid
-    if (groupRef.current) for (const m of groupRef.current.children) m.castShadow = solid
+    u.uBand.value = Math.max(0.5, span * 0.16)
+    // depthWrite stays ON. The walls are one big self-overlapping mesh, so
+    // turning depth off to "see the far wall through the near one" made its faces
+    // (and its shadow) blend in submission order and shimmer as the camera moved.
+    // With depth on, a faded near wall simply blends its uMinAlpha over the room
+    // interior (floor/furniture, drawn opaque first) — stable, and enough to see in.
   })
 
   return (
-    <group ref={groupRef} rotation={[-Math.PI / 2, 0, 0]}>
+    <group rotation={[-Math.PI / 2, 0, 0]}>
       {geos.map((g, i) => (
         // renderOrder -1: draw the wall before the transparent windows/doors so
-        // they composite over it correctly while it's still opaque.
+        // they composite over it correctly.
         <mesh key={i} geometry={g} material={mat} renderOrder={-1} castShadow receiveShadow />
       ))}
     </group>
