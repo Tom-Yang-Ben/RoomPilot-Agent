@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo, useEffect, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Bounds, Grid } from '@react-three/drei'
 import * as THREE from 'three'
@@ -68,8 +68,14 @@ function Walls({ polys, height, color, xray, span }) {
   )
 
   const mat = useMemo(() => makeWallMaterial(color), [color])
-  useEffect(() => () => { mat.dispose(); geos.forEach((g) => g.dispose()) }, [mat, geos])
+  // Dispose on different cadences: the shared material only on color change /
+  // unmount, the geometries whenever they're rebuilt. Coupling them would
+  // dispose the still-in-use material on every slider tweak — a shader recompile
+  // that resets the uniforms and flashes the x-ray fade back on.
+  useEffect(() => () => mat.dispose(), [mat])
+  useEffect(() => () => geos.forEach((g) => g.dispose()), [geos])
 
+  const groupRef = useRef()
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls)
 
@@ -83,21 +89,33 @@ function Walls({ polys, height, color, xray, span }) {
     _target.copy(controls?.target ?? _DEFAULT_TARGET)
     _viewDir.copy(_target).sub(_camPos)
     const dist = _viewDir.length() || 1
-    _viewDir.divideScalar(dist)
-    const want = xray ? 1 - THREE.MathUtils.smoothstep(dist, near, far) : 0
+    _viewDir.divideScalar(dist) // unit view direction
+    let want = xray ? 1 - THREE.MathUtils.smoothstep(dist, near, far) : 0
+    // Near top-down the proj test degenerates to a height test (near vs far
+    // walls become indistinguishable) and the effect isn't needed — you already
+    // see into the rooms from above — so fade it out as the view turns vertical.
+    want *= Math.min(1, Math.hypot(_viewDir.x, _viewDir.z) / 0.35)
+    if (want < 0.12) want = 0 // deadzone: the whole-plan view stays exactly opaque
     u.uFade.value = THREE.MathUtils.damp(u.uFade.value, want, 6, dt) // ease in/out
     u.uCamPos.value.copy(_camPos)
     u.uViewDir.value.copy(_viewDir)
     u.uCamDist.value = dist
     u.uMargin.value = Math.max(0.15, span * 0.04)
     u.uBand.value = Math.max(0.6, span * 0.22)
-    mat.depthWrite = u.uFade.value <= 0.02 // stop occluding the interior while faded
+    // Keep the mesh writing depth and casting shadows until it's genuinely see-
+    // through: near walls should still occlude (and not drop phantom shadows on
+    // the revealed interior) while they're only slightly faded.
+    const solid = u.uFade.value < 0.5
+    mat.depthWrite = solid
+    if (groupRef.current) for (const m of groupRef.current.children) m.castShadow = solid
   })
 
   return (
-    <group rotation={[-Math.PI / 2, 0, 0]}>
+    <group ref={groupRef} rotation={[-Math.PI / 2, 0, 0]}>
       {geos.map((g, i) => (
-        <mesh key={i} geometry={g} material={mat} castShadow receiveShadow />
+        // renderOrder -1: draw the wall before the transparent windows/doors so
+        // they composite over it correctly while it's still opaque.
+        <mesh key={i} geometry={g} material={mat} renderOrder={-1} castShadow receiveShadow />
       ))}
     </group>
   )
