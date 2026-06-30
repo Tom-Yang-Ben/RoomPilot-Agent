@@ -471,11 +471,158 @@ def load_existing_metadata(metadata_json):
     if not metadata_json.exists():
         return []
     with metadata_json.open("r", encoding="utf-8") as file:
-        rows = json.load(file)
-    return rows if isinstance(rows, list) else []
+        data = json.load(file)
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        return metadata_rows_from_project(data)
+    return []
 
 
-def write_metadata(rows, metadata_csv, metadata_json):
+def metadata_rows_from_project(data):
+    """從新版專案 JSON 取回家具列資料，讓程式可以接續下載。"""
+    rows = []
+    for item in data.get("scene", {}).get("objects", []):
+        source = item.get("source", {})
+        rows.append(
+            {
+                "index": source.get("index") or parse_object_index(item.get("id")),
+                "name": item.get("name", ""),
+                "color": item.get("color", ""),
+                "dimensions": source.get("dimensions") or item.get("size_cm", {}),
+                "filename": item.get("glb_path", ""),
+                "product_url": source.get("product_url", ""),
+                "glb_url": source.get("glb_url", ""),
+            }
+        )
+    return rows
+
+
+def parse_object_index(object_id):
+    match = re.search(r"(\d+)$", object_id or "")
+    return int(match.group(1)) if match else 0
+
+
+def dimension_to_cm(value):
+    if isinstance(value, (int, float)):
+        return round(float(value), 2)
+    match = re.search(r"([0-9]+(?:[.,][0-9]+)?)\s*(cm|mm|m|in|\"|kg|lb)?", str(value), flags=re.I)
+    if not match:
+        return None
+    number = float(match.group(1).replace(",", "."))
+    unit = (match.group(2) or "cm").lower()
+    if unit == "mm":
+        return round(number / 10, 2)
+    if unit == "m":
+        return round(number * 100, 2)
+    if unit in {"in", '"'}:
+        return round(number * 2.54, 2)
+    if unit in {"kg", "lb"}:
+        return None
+    return round(number, 2)
+
+
+def size_cm_from_dimensions(dimensions):
+    return {
+        "width": dimension_to_cm(dimensions.get("width", "")),
+        "depth": dimension_to_cm(dimensions.get("depth", "")),
+        "height": dimension_to_cm(dimensions.get("height", "")),
+    }
+
+
+def furniture_type_from_category(category_name):
+    category = category_name.split("-", 1)[-1]
+    return category.rstrip("s") or "furniture"
+
+
+def build_scene_object(row, category_name):
+    index = row.get("index") or 0
+    dimensions = row.get("dimensions") or {}
+    size_cm = size_cm_from_dimensions(dimensions)
+    return {
+        "id": f"furn_{int(index):03d}" if index else "furn_000",
+        "sku": f"IKEA_{int(index):03d}" if index else "IKEA_000",
+        "name": row.get("name", ""),
+        "type": furniture_type_from_category(category_name),
+        "position": [0, 0],
+        "rotation": 0,
+        "size_cm": size_cm,
+        "collision_box_cm": size_cm,
+        "glb_path": row.get("filename", ""),
+        "material": "",
+        "color": row.get("color", ""),
+        "can_rotate": True,
+        "must_against_wall": False,
+        "source": {
+            "index": index,
+            "dimensions": dimensions,
+            "product_url": row.get("product_url", ""),
+            "glb_url": row.get("glb_url", ""),
+        },
+    }
+
+
+def build_project_metadata(rows, category_name, category_url, site_base, output_dir, metadata_csv, metadata_json):
+    """輸出成接近 RoomPilot 專案資料的 JSON 結構。"""
+    return {
+        "project_id": slugify(category_name),
+        "title": f"IKEA {category_name} GLB Dataset",
+        "input_type": "ikea_category",
+        "status": "draft",
+        "user_input": {
+            "style": "",
+            "requirements": [
+                "download_ikea_glb_models",
+                "collect_product_metadata",
+            ],
+            "budget": None,
+            "preferred_colors": [],
+            "preferred_furniture": [category_name],
+        },
+        "floorplan": {
+            "image_path": "",
+            "width_cm": None,
+            "depth_cm": None,
+            "scale_ratio": "",
+            "grid_size_cm": None,
+            "walls": [],
+            "doors": [],
+            "windows": [],
+        },
+        "scene": {
+            "mode": "ikea_glb_dataset",
+            "objects": [build_scene_object(row, category_name) for row in rows],
+        },
+        "ai_plan": {
+            "understanding": [],
+            "recommendations": [],
+        },
+        "validation": {
+            "passed": True,
+            "issues": [],
+        },
+        "manual_adjustment": {
+            "enabled": True,
+            "actions": [
+                "drag",
+                "rotate",
+                "resize_small_range",
+                "text_tune",
+            ],
+        },
+        "output": {
+            "category_url": category_url,
+            "site_base": site_base,
+            "asset_dir": str(output_dir),
+            "metadata_csv": str(metadata_csv),
+            "metadata_json": str(metadata_json),
+            "final_status": "draft",
+        },
+        "version": 1,
+    }
+
+
+def write_metadata(rows, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir):
     """把已下載商品資料同時寫成 CSV 和 JSON。"""
     fieldnames = [
         "index",
@@ -493,7 +640,12 @@ def write_metadata(rows, metadata_csv, metadata_json):
             writer.writerow({**row, "dimensions": json.dumps(row["dimensions"], ensure_ascii=False)})
 
     with metadata_json.open("w", encoding="utf-8") as file:
-        json.dump(rows, file, ensure_ascii=False, indent=2)
+        json.dump(
+            build_project_metadata(rows, category_name, category_url, site_base, output_dir, metadata_csv, metadata_json),
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
 
 
 def main():
@@ -557,9 +709,10 @@ def main():
             downloaded.append(row)
             seen_products.add(details["product_url"])
             seen_glbs.add(details["glb_url"])
-            write_metadata(downloaded, metadata_csv, metadata_json)
+            write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir)
             print(f"已儲存 metadata，目前共有 {len(downloaded)} 個 GLB 檔。", flush=True)
 
+        write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir)
         print(f"\n下載完成，目前共有 {len(downloaded)} 個 GLB 檔。", flush=True)
         print(f"輸出資料夾：{output_dir}", flush=True)
         print(f"Metadata CSV：{metadata_csv}", flush=True)
