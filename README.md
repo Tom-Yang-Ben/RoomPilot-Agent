@@ -1,166 +1,36 @@
-# IKEA GLB 下載工具簡易說明書
+# IKEA GLB 下載器
 
-這個工具可以從 IKEA 商品頁尋找可下載的 3D 模型檔案，也就是 `.glb` 檔，並把下載結果整理成 metadata。
+這個專案使用 `ikea_category_glb_downloader.py` 從 IKEA 商品分類頁尋找可用的 3D 模型，並下載 `.glb` 檔案，同時產生 CSV / JSON metadata。
 
-目前程式支援的 IKEA 網站：
+目前支援的 IKEA 站點：
 
-| 代碼 | 國家 | 網址 |
+| 代碼 | 站點 | Base URL |
 | --- | --- | --- |
-| `fi` | 芬蘭 | https://www.ikea.com/fi/en |
-| `jp` | 日本 | https://www.ikea.com/jp/en |
+| `fi` | Finland | `https://www.ikea.com/fi/en` |
+| `jp` | Japan | `https://www.ikea.com/jp/en` |
 
-## 1. 安裝套件
-
-第一次使用前，請在專案資料夾執行：
+## 安裝
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 2. 執行程式
-
-在專案資料夾執行：
+## 互動式下載
 
 ```bash
 python ikea_category_glb_downloader.py
 ```
 
-## 3. 使用流程
+互動模式會依序詢問：
 
-程式會依序問你三件事。
+1. IKEA 站點，例如 `fi` 或 `jp`
+2. 家具分類或細分類代碼，例如 `office-chairs`、`desks`、`rugs`
+3. 要下載的 GLB 數量
 
-### 第一步：選 IKEA 網站
-
-畫面會顯示：
-
-```text
-請選擇 IKEA 網站：
-  fi  = 芬蘭 - https://www.ikea.com/fi/en（預設）
-  jp  = 日本 - https://www.ikea.com/jp/en
-```
-
-想抓芬蘭就輸入：
+輸出會放在：
 
 ```text
-fi
-```
-
-想抓日本就輸入：
-
-```text
-jp
-```
-
-直接按 Enter 會使用預設的芬蘭 `fi`。
-
-### 第二步：選家具分類或細分類
-
-程式會顯示家具分類清單，格式是：
-
-```text
-英文代碼 = 中文家具名稱
-```
-
-左邊英文代碼是你要輸入的內容，右邊中文是說明。
-
-例如椅子分類會像這樣：
-
-```text
-chairs = 椅子 / 扶手椅 / 凳子
-  * chairs             = 全部椅子
-  - dining-chairs      = 餐椅
-  - office-chairs      = 辦公椅
-  - armchairs          = 扶手椅
-  - stools-benches     = 凳子 / 長凳
-  - gaming-chairs      = 電競椅
-```
-
-如果你想找辦公椅，就輸入：
-
-```text
-office-chairs
-```
-
-也可以直接輸入大分類，例如：
-
-```text
-chairs
-```
-
-但大分類裡面很多商品可能沒有 GLB，所以通常建議先用細分類，會比較容易找到。
-
-## 4. 家具分類表
-
-輸入時請使用「輸入代碼」欄位。中文名稱只是幫你辨認家具種類。
-
-| 大分類 | 輸入代碼 | 中文名稱 |
-| --- | --- | --- |
-| 書櫃 / 層架 | `bookcases` | 書櫃 |
-| 書櫃 / 層架 | `shelving-units` | 層架 / 置物架 |
-| 書櫃 / 層架 | `wall-shelves` | 壁架 |
-| 沙發 | `sofas` | 全部沙發 |
-| 沙發 | `fabric-sofas` | 布沙發 |
-| 沙發 | `leather-sofas` | 皮沙發 / 仿皮沙發 |
-| 沙發 | `sofa-beds` | 沙發床 |
-| 沙發 | `modular-sofas` | 模組沙發 |
-| 沙發 | `armchairs` | 扶手椅 |
-| 椅子 / 扶手椅 / 凳子 | `chairs` | 全部椅子 |
-| 椅子 / 扶手椅 / 凳子 | `dining-chairs` | 餐椅 |
-| 椅子 / 扶手椅 / 凳子 | `office-chairs` | 辦公椅 |
-| 椅子 / 扶手椅 / 凳子 | `armchairs` | 扶手椅 |
-| 椅子 / 扶手椅 / 凳子 | `stools-benches` | 凳子 / 長凳 |
-| 椅子 / 扶手椅 / 凳子 | `gaming-chairs` | 電競椅 |
-| 桌子 / 書桌 | `tables` | 全部桌子 |
-| 桌子 / 書桌 | `dining-tables` | 餐桌 |
-| 桌子 / 書桌 | `desks` | 書桌 / 電腦桌 |
-| 桌子 / 書桌 | `coffee-tables` | 茶几 |
-| 桌子 / 書桌 | `bedside-tables` | 床邊桌 |
-| 桌子 / 書桌 | `bar-tables` | 吧台桌 |
-| 床 / 床架 | `beds` | 全部床具 |
-| 床 / 床架 | `bed-frames` | 床架 |
-| 床 / 床架 | `sofa-beds` | 沙發床 |
-| 床 / 床架 | `mattresses` | 床墊 |
-| 床 / 床架 | `bedside-tables` | 床邊桌 |
-| 衣櫃 | `wardrobes` | 全部衣櫃 |
-| 衣櫃 | `pax-wardrobes` | PAX 衣櫃系統 |
-| 衣櫃 | `open-wardrobes` | 開放式衣櫃 |
-| 衣櫃 | `clothes-racks` | 衣架 / 掛衣架 |
-| 地毯 | `rugs` | 全部地毯 |
-| 地毯 | `large-medium-rugs` | 大型 / 中型地毯 |
-| 地毯 | `small-rugs` | 小地毯 |
-| 地毯 | `door-mats` | 門墊 |
-| 桌燈 / 燈具 | `table-lamps` | 桌燈 |
-| 桌燈 / 燈具 | `floor-lamps` | 立燈 |
-| 桌燈 / 燈具 | `work-lamps` | 工作燈 |
-| 桌燈 / 燈具 | `lamp-shades-bases` | 燈罩 / 燈座 |
-| 櫃子 / 收納系統 | `cabinets` | 全部收納系統 |
-| 櫃子 / 收納系統 | `cabinets-cupboards` | 櫃子 / 碗櫃 |
-| 櫃子 / 收納系統 | `tv-benches` | 電視櫃 |
-| 櫃子 / 收納系統 | `chests-of-drawers` | 抽屜櫃 |
-| 櫃子 / 收納系統 | `sideboards` | 餐邊櫃 / 玄關桌 |
-
-## 5. 輸入下載數量
-
-程式會問：
-
-```text
-請輸入要下載幾個 GLB 模型：
-```
-
-建議第一次測試先輸入：
-
-```text
-1
-```
-
-確認可以成功下載後，再增加數量。
-
-## 6. 下載結果在哪裡
-
-下載完成後，檔案會放在：
-
-```text
-downloaded-files/<網站代碼>-<分類代碼>/
+downloaded-files/<site>-<category>/
 ```
 
 例如：
@@ -170,35 +40,186 @@ downloaded-files/fi-office-chairs/
 downloaded-files/jp-bookcases/
 ```
 
-資料夾裡會有：
+## 批次下載
+
+腳本也包含幾個批次模式，會依分類逐一搜尋，並用 registry 避免重複下載。
+
+```bash
+python ikea_category_glb_downloader.py --table-batch
+python ikea_category_glb_downloader.py --bed-batch
+python ikea_category_glb_downloader.py --wardrobe-batch
+python ikea_category_glb_downloader.py --rug-batch
+```
+
+地毯也支援單一分類補跑：
+
+```bash
+python ikea_category_glb_downloader.py --rug-category=sheepskins-cowhides
+```
+
+## 輸出檔案
 
 | 檔案 | 說明 |
 | --- | --- |
-| `.glb` | 下載到的 3D 模型 |
-| `*_glb_metadata.csv` | 商品資料 CSV |
-| `*_glb_metadata.json` | 商品資料 JSON |
+| `.glb` | IKEA 商品 3D 模型 |
+| `*_glb_metadata.csv` | 下載商品 metadata CSV |
+| `*_glb_metadata.json` | 下載商品 metadata JSON |
+| `_registry.json` | 批次模式用的去重紀錄 |
 
-## 7. 注意事項
+## 家具與細分類清單
 
-不是每一個 IKEA 商品都有 GLB。程式會逐一檢查商品，如果沒有 GLB，就會跳過。
+以下分類可作為互動式下載的輸入代碼。下載器會用「細分類代碼」對應 IKEA Finland 的 `/cat/.../` 分類頁。
 
-大分類通常商品很多，但沒有 GLB 的商品也很多。想更快找到模型，建議優先輸入細分類，例如：
+## Bookcases and shelving / 書櫃與層架
 
-```text
-office-chairs
-desks
-bookcases
-sofa-beds
-```
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `bookcases` | Bookcases | 書櫃 | `bookcases-10382` |
+| `shelving-units` | Shelving units | 層架組 | `shelving-units-10397` |
+| `wall-shelves` | Wall shelves | 壁架 | `wall-shelves-10398` |
 
-如果 PowerShell 顯示中文亂碼，通常是終端機編碼問題，不一定是檔案壞掉。
+## Sofas and armchairs / 沙發與扶手椅
 
-## 授權與來源
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `sofas` | All sofas | 所有沙發 | `sofas-fu003` |
+| `fabric-sofas` | Fabric sofas | 布沙發 | `fabric-sofas-10661` |
+| `leather-sofas` | Leather and coated fabric sofas | 皮革與塗層布沙發 | `leather-coated-fabric-sofas-10662` |
+| `sofa-beds` | Sofa beds | 沙發床 | `sofa-beds-10663` |
+| `modular-sofas` | Modular sofas | 模組沙發 | `modular-sofas-31786` |
+| `armchairs` | Armchairs | 扶手椅 | `armchairs-16239` |
 
-本專案基於 apinanaivot/IKEA-3d-model-batch-downloader 修改：
+## Chairs, stools and benches / 椅子、凳子與長凳
 
-https://github.com/apinanaivot/IKEA-3d-model-batch-downloader
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `chairs` | All chairs | 所有椅子 | `tables-chairs-fu002` |
+| `dining-chairs` | Dining chairs | 餐椅 | `dining-chairs-25219` |
+| `office-chairs` | Office and desk chairs | 辦公椅與書桌椅 | `desk-chairs-20652` |
+| `armchairs` | Armchairs | 扶手椅 | `armchairs-16239` |
+| `stools-benches` | Stools and benches | 凳子與長凳 | `stools-benches-16244` |
+| `gaming-chairs` | Gaming chairs | 電競椅 | `gaming-chairs-47067` |
 
-原專案使用 GPL-3.0 授權，因此本專案也保留 GPL-3.0 授權。詳細授權內容請查看 `LICENSE` 檔案。
+## Tables and desks / 桌子與書桌
 
-如果你要把這個專案上傳到自己的 GitHub，請保留 `LICENSE` 檔案，並保留本段來源說明。
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `tables` | All tables and desks | 所有桌子與書桌 | `tables-desks-fu004` |
+| `dining-tables` | Dining tables | 餐桌 | `dining-tables-21825` |
+| `desks` | Desks and computer desks | 書桌與電腦桌 | `desks-computer-desks-20649` |
+| `coffee-tables` | Coffee tables | 咖啡桌 / 茶几 | `coffee-tables-10705` |
+| `bedside-tables` | Bedside tables | 床邊桌 | `bedside-tables-20656` |
+| `bar-tables` | Bar tables | 吧台桌 | `bar-tables-20862` |
+
+## Beds and mattresses / 床與床墊
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `beds` | All beds | 所有床 | `beds-bm003` |
+| `bed-frames` | Bed frames | 床架 | `beds-16284` |
+| `sofa-beds` | Sofa beds | 沙發床 | `sofa-beds-10663` |
+| `mattresses` | Mattresses | 床墊 | `mattresses-bm002` |
+| `bedside-tables` | Bedside tables | 床邊桌 | `bedside-tables-20656` |
+
+## Wardrobes and clothes storage / 衣櫃與衣物收納
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `wardrobes` | All wardrobes | 所有衣櫃 | `wardrobes-19053` |
+| `pax-wardrobes` | PAX wardrobes | PAX 衣櫃 | `pax-wardrobes-19086` |
+| `open-wardrobes` | Open wardrobes | 開放式衣櫃 | `open-wardrobes-11480` |
+| `clothes-racks` | Clothes racks and shoe racks | 衣架與鞋架 | `clothes-stands-shoe-racks-10456` |
+| `shoe-cabinets` | Shoe cabinets | 鞋櫃 | `shoe-cabinets-10456` |
+
+## Storage furniture / 收納家具
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `storage-furniture` | All storage furniture | 所有收納家具 | `storage-furniture-st001` |
+| `storage-solution-systems` | Storage solution systems | 收納系統 | `storage-solution-systems-46052` |
+| `cabinets-cupboards` | Cabinets and cupboards | 櫃子與櫥櫃 | `cabinets-cupboards-st003` |
+| `display-cabinets` | Display cabinets | 展示櫃 | `display-cabinets-10410` |
+| `chests-of-drawers` | Chests of drawers and drawer units | 抽屜櫃與抽屜組 | `chest-of-drawers-drawer-units-st004` |
+| `sideboards` | Sideboards, buffets and console tables | 邊櫃、餐邊櫃與玄關桌 | `sideboards-buffets-console-tables-30454` |
+| `trolleys` | Trolleys | 推車 | `trolleys-fu005` |
+| `room-dividers` | Room dividers | 屏風 / 空間隔間 | `room-dividers-46080` |
+
+## TV and media furniture / 電視與影音家具
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `tv-media-furniture` | All TV and media furniture | 所有電視與影音家具 | `tv-media-furniture-10475` |
+| `tv-benches` | TV benches | 電視櫃 | `tv-benches-10810` |
+
+## Outdoor furniture / 戶外家具
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `outdoor-furniture` | All outdoor furniture | 所有戶外家具 | `garden-furniture-od003` |
+| `outdoor-seating` | Outdoor seating | 戶外座椅 | `outdoor-seating-700350` |
+| `outdoor-dining` | Outdoor dining | 戶外餐桌椅 | `outdoor-dining-700351` |
+| `sun-loungers-hammocks` | Sun loungers and hammocks | 躺椅與吊床 | `sun-loungers-hammocks-21963` |
+| `outdoor-coffee-side-tables` | Outdoor coffee and side tables | 戶外咖啡桌與邊桌 | `garden-coffee-side-tables-700192` |
+
+## Children's furniture / 兒童家具
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `childrens-furniture` | Children's small furniture | 兒童小型家具 | `childrens-small-furniture-18767` |
+| `kids-chairs-stools` | Kids chairs and stools | 兒童椅與凳子 | `kids-chairs-stools-18769` |
+| `childrens-tables` | Children's tables | 兒童桌 | `childrens-tables-18768` |
+| `childrens-stools-benches` | Children's stools and benches | 兒童凳與長凳 | `childrens-stools-benches-45816` |
+| `kids-armchairs` | Kids armchairs | 兒童扶手椅 | `kids-armchairs-20483` |
+
+## Mirrors / 鏡子
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `mirrors` | All mirrors | 所有鏡子 | `mirrors-20489` |
+| `wall-mirrors` | Wall mirrors | 壁鏡 | `wall-mirrors-20490` |
+| `large-mirrors` | Large mirrors | 大型鏡子 | `large-mirrors-24858` |
+| `standing-mirrors` | Standing mirrors | 立鏡 | `standing-mirrors-20491` |
+| `mirror-cabinets` | Mirror cabinets | 鏡櫃 | `mirror-cabinets-20820` |
+
+## Rugs and mats / 地毯與踏墊
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `rugs` | All rugs | 所有地毯 | `rugs-10653` |
+| `large-medium-rugs` | Large and medium rugs | 大型與中型地毯 | `large-medium-rugs-10692` |
+| `runner-small-rugs` | Runners and small rugs | 走道毯與小地毯 | `runner-small-rugs-10689` |
+| `round-rugs` | Round rugs | 圓形地毯 | `round-rugs-20543` |
+| `outdoor-rugs` | Outdoor rugs | 戶外地毯 | `outdoor-rugs-34204` |
+| `door-mats` | Door mats | 門墊 | `door-mats-10698` |
+| `handmade-rugs` | Handmade rugs | 手工地毯 | `handmade-rugs-39267` |
+| `anti-slip-rug-underlays` | Anti-slip and rug underlays | 止滑墊與地毯底墊 | `anti-slip-rug-underlays-10699` |
+| `sheepskins-cowhides` | Cowhides, sheepskins and faux fur rugs | 牛皮、羊皮與仿毛地毯 | `sheepskins-cowhides-20544` |
+| `childrens-rugs-curtains` | Children's rugs and curtains | 兒童地毯與窗簾 | `childrens-rugs-curtains-18774` |
+| `nursery-rugs-and-curtains` | Nursery rugs and curtains | 嬰幼兒房地毯與窗簾 | `nursery-rugs-and-curtains-18699` |
+
+## Lighting / 燈具
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `lamps` | All lamps | 所有燈具 | `lamps-li002` |
+| `table-lamps` | Table lamps | 桌燈 | `table-lamps-10732` |
+| `floor-lamps` | Floor lamps | 立燈 | `floor-lamps-10731` |
+| `work-lamps` | Work lamps | 工作燈 | `work-lamps-20502` |
+| `lamp-shades-bases` | Lamp shades, bases and cords | 燈罩、燈座與電線 | `lamp-shades-bases-cords-10728` |
+
+## Decor and small storage / 裝飾與小型收納
+
+| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
+| --- | --- | --- | --- |
+| `storage-boxes-baskets` | Storage boxes and baskets | 收納盒與籃子 | `storage-boxes-baskets-10550` |
+| `flower-pots-planters` | Flower pots and planters | 花盆與植栽盆 | `flower-pots-planters-pp004` |
+
+## 注意事項
+
+不是每個 IKEA 商品頁都有 GLB。腳本會跳過沒有 3D 模型的商品，並繼續搜尋下一個商品。
+
+批次模式會用 `_registry.json` 依照 product id、product URL、GLB URL 和檔案 hash 去重，避免重複下載。
+
+## License
+
+本專案參考 `apinanaivot/IKEA-3d-model-batch-downloader`，並沿用 GPL-3.0 授權。詳見 [LICENSE](LICENSE)。
