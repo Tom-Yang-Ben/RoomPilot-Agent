@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# uv
+.python-version
+
+# 環境變數 / 金鑰
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# OS
+.DS_Store
+
+# 前端(之後若接 node)
+node_modules/
