@@ -1,3 +1,4 @@
+import argparse
 import csv
 import html
 import json
@@ -136,6 +137,66 @@ CATEGORY_PRESETS = {
     for category_key, (_, category_path) in group["items"].items()
 }
 
+PROJECT_JSON_KEYS = [
+    "project_id",
+    "title",
+    "input_type",
+    "status",
+    "user_input",
+    "floorplan",
+    "scene",
+    "ai_plan",
+    "validation",
+    "manual_adjustment",
+    "output",
+    "version",
+]
+SCENE_OBJECT_KEYS = [
+    "id",
+    "sku",
+    "name",
+    "type",
+    "position",
+    "rotation",
+    "size_cm",
+    "collision_box_cm",
+    "glb_path",
+    "material",
+    "color",
+    "can_rotate",
+    "must_against_wall",
+]
+USER_INPUT_KEYS = ["style", "requirements", "budget", "preferred_colors", "preferred_furniture"]
+FLOORPLAN_KEYS = [
+    "image_path",
+    "width_cm",
+    "depth_cm",
+    "scale_ratio",
+    "grid_size_cm",
+    "walls",
+    "doors",
+    "windows",
+]
+SCENE_KEYS = ["mode", "objects"]
+AI_PLAN_KEYS = ["understanding", "recommendations"]
+VALIDATION_KEYS = ["passed", "issues"]
+MANUAL_ADJUSTMENT_KEYS = ["enabled", "actions"]
+OUTPUT_KEYS = ["preview_2d", "preview_3d", "report", "final_status"]
+
+STORAGE_FURNITURE_CATEGORIES = [
+    ("storage-solution-systems", "Storage solution systems", "storage-solution-systems-46052"),
+    ("cabinets-cupboards", "Cabinets and cupboards", "cabinets-cupboards-st003"),
+    ("display-cabinets", "Display cabinets", "display-cabinets-10410"),
+    ("chests-of-drawers", "Chests of drawers and drawer units", "chest-of-drawers-drawer-units-st004"),
+    ("sideboards", "Sideboards, buffets and console tables", "sideboards-buffets-console-tables-30454"),
+    ("trolleys", "Trolleys", "trolleys-fu005"),
+    ("room-dividers", "Room dividers", "room-dividers-46080"),
+    ("storage-furniture", "All storage furniture", "storage-furniture-st001"),
+]
+
+for storage_key, _, storage_path in STORAGE_FURNITURE_CATEGORIES:
+    CATEGORY_PRESETS.setdefault(storage_key, storage_path)
+
 FURNITURE_INPUT_EXAMPLES = [
     (group_key, group_data["label"])
     for group_key, group_data in CATEGORY_GROUPS.items()
@@ -263,7 +324,7 @@ def ask_target_count():
     return count
 
 
-def collect_product_links(driver, category_url, target_count, site_base):
+def collect_product_links(driver, category_url, target_count, site_base, deadline=None):
     """開啟分類頁並捲動頁面，收集商品頁連結。"""
     print(f"\n正在開啟分類頁：{category_url}", flush=True)
     try:
@@ -279,9 +340,12 @@ def collect_product_links(driver, category_url, target_count, site_base):
     seen = set()
     last_height = 0
     stable_scrolls = 0
-    desired_candidates = max(target_count * 25, target_count + 80)
+    desired_candidates = None if target_count is None else max(target_count * 25, target_count + 80)
 
-    while len(links) < desired_candidates:
+    while desired_candidates is None or len(links) < desired_candidates:
+        if deadline is not None and time.monotonic() >= deadline:
+            print("Category search timeout reached while collecting product links.", flush=True)
+            break
         anchors = driver.find_elements(
             By.CSS_SELECTOR,
             ".plp-fragment-wrapper a.plp-product__image-link, a[href*='/p/']",
@@ -440,6 +504,7 @@ def extract_product_details(driver, product_url):
 
 def download_file(url, destination):
     """串流下載 GLB 檔案，並顯示下載進度。"""
+    destination.parent.mkdir(parents=True, exist_ok=True)
     response = requests.get(url, headers=HEADERS, stream=True, timeout=60)
     response.raise_for_status()
     total_size = int(response.headers.get("content-length", 0))
@@ -466,8 +531,29 @@ def metadata_paths(output_dir, category_name):
     )
 
 
-def load_existing_metadata(metadata_json):
+def load_existing_metadata(metadata_json, metadata_csv=None):
     """讀取已存在的 metadata，讓程式可以接續下載並避免重複。"""
+    if metadata_csv is not None and metadata_csv.exists():
+        rows = []
+        with metadata_csv.open("r", encoding="utf-8-sig", newline="") as file:
+            for row in csv.DictReader(file):
+                try:
+                    dimensions = json.loads(row.get("dimensions") or "{}")
+                except json.JSONDecodeError:
+                    dimensions = {}
+                rows.append(
+                    {
+                        "index": int(row.get("index") or len(rows) + 1),
+                        "name": row.get("name", ""),
+                        "color": row.get("color", ""),
+                        "dimensions": dimensions,
+                        "filename": row.get("filename", ""),
+                        "product_url": row.get("product_url", ""),
+                        "glb_url": row.get("glb_url", ""),
+                    }
+                )
+        if rows:
+            return rows
     if not metadata_json.exists():
         return []
     with metadata_json.open("r", encoding="utf-8") as file:
@@ -483,16 +569,15 @@ def metadata_rows_from_project(data):
     """從新版專案 JSON 取回家具列資料，讓程式可以接續下載。"""
     rows = []
     for item in data.get("scene", {}).get("objects", []):
-        source = item.get("source", {})
         rows.append(
             {
-                "index": source.get("index") or parse_object_index(item.get("id")),
+                "index": parse_object_index(item.get("id")),
                 "name": item.get("name", ""),
                 "color": item.get("color", ""),
-                "dimensions": source.get("dimensions") or item.get("size_cm", {}),
+                "dimensions": item.get("size_cm", {}),
                 "filename": item.get("glb_path", ""),
-                "product_url": source.get("product_url", ""),
-                "glb_url": source.get("glb_url", ""),
+                "product_url": "",
+                "glb_url": "",
             }
         )
     return rows
@@ -535,13 +620,29 @@ def furniture_type_from_category(category_name):
     return category.rstrip("s") or "furniture"
 
 
+def category_key_from_category_name(category_name):
+    parts = category_name.split("-", 1)
+    if len(parts) == 2 and parts[0] in IKEA_SITES:
+        return parts[1]
+    return category_name
+
+
+def furniture_group_from_category_key(category_key):
+    storage_keys = {item_key for item_key, _, _ in STORAGE_FURNITURE_CATEGORIES}
+    if category_key in storage_keys:
+        return "Storage furniture"
+    return category_key.replace("-", " ").title()
+
+
 def build_scene_object(row, category_name):
     index = row.get("index") or 0
+    category_key = category_key_from_category_name(category_name)
+    furniture_group = furniture_group_from_category_key(category_key)
     dimensions = row.get("dimensions") or {}
     size_cm = size_cm_from_dimensions(dimensions)
     return {
-        "id": f"furn_{int(index):03d}" if index else "furn_000",
-        "sku": f"IKEA_{int(index):03d}" if index else "IKEA_000",
+        "id": f"{furniture_group}_{int(index):03d}" if index else f"{furniture_group}_000",
+        "sku": f"{category_key}_{int(index)}" if index else f"{category_key}_0",
         "name": row.get("name", ""),
         "type": furniture_type_from_category(category_name),
         "position": [0, 0],
@@ -553,12 +654,6 @@ def build_scene_object(row, category_name):
         "color": row.get("color", ""),
         "can_rotate": True,
         "must_against_wall": False,
-        "source": {
-            "index": index,
-            "dimensions": dimensions,
-            "product_url": row.get("product_url", ""),
-            "glb_url": row.get("glb_url", ""),
-        },
     }
 
 
@@ -567,7 +662,7 @@ def build_project_metadata(rows, category_name, category_url, site_base, output_
     return {
         "project_id": slugify(category_name),
         "title": f"IKEA {category_name} GLB Dataset",
-        "input_type": "ikea_category",
+        "input_type": "floorplan",
         "status": "draft",
         "user_input": {
             "style": "",
@@ -590,7 +685,7 @@ def build_project_metadata(rows, category_name, category_url, site_base, output_
             "windows": [],
         },
         "scene": {
-            "mode": "ikea_glb_dataset",
+            "mode": "2d_to_3d",
             "objects": [build_scene_object(row, category_name) for row in rows],
         },
         "ai_plan": {
@@ -611,15 +706,38 @@ def build_project_metadata(rows, category_name, category_url, site_base, output_
             ],
         },
         "output": {
-            "category_url": category_url,
-            "site_base": site_base,
-            "asset_dir": str(output_dir),
-            "metadata_csv": str(metadata_csv),
-            "metadata_json": str(metadata_json),
+            "preview_2d": "",
+            "preview_3d": "",
+            "report": "",
             "final_status": "draft",
         },
         "version": 1,
     }
+
+
+def validate_project_metadata_schema(data):
+    if list(data.keys()) != PROJECT_JSON_KEYS:
+        raise ValueError(f"Project JSON keys changed: {list(data.keys())}")
+    if list(data.get("user_input", {}).keys()) != USER_INPUT_KEYS:
+        raise ValueError(f"User input JSON keys changed: {list(data.get('user_input', {}).keys())}")
+    if list(data.get("floorplan", {}).keys()) != FLOORPLAN_KEYS:
+        raise ValueError(f"Floorplan JSON keys changed: {list(data.get('floorplan', {}).keys())}")
+    if list(data.get("scene", {}).keys()) != SCENE_KEYS:
+        raise ValueError(f"Scene JSON keys changed: {list(data.get('scene', {}).keys())}")
+    if list(data.get("ai_plan", {}).keys()) != AI_PLAN_KEYS:
+        raise ValueError(f"AI plan JSON keys changed: {list(data.get('ai_plan', {}).keys())}")
+    if list(data.get("validation", {}).keys()) != VALIDATION_KEYS:
+        raise ValueError(f"Validation JSON keys changed: {list(data.get('validation', {}).keys())}")
+    if list(data.get("manual_adjustment", {}).keys()) != MANUAL_ADJUSTMENT_KEYS:
+        raise ValueError(
+            f"Manual adjustment JSON keys changed: {list(data.get('manual_adjustment', {}).keys())}"
+        )
+    if list(data.get("output", {}).keys()) != OUTPUT_KEYS:
+        raise ValueError(f"Output JSON keys changed: {list(data.get('output', {}).keys())}")
+    for item in data.get("scene", {}).get("objects", []):
+        if list(item.keys()) != SCENE_OBJECT_KEYS:
+            raise ValueError(f"Scene object JSON keys changed: {list(item.keys())}")
+    return data
 
 
 def write_metadata(rows, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir):
@@ -639,16 +757,214 @@ def write_metadata(rows, metadata_csv, metadata_json, category_name, category_ur
         for row in rows:
             writer.writerow({**row, "dimensions": json.dumps(row["dimensions"], ensure_ascii=False)})
 
+    project_metadata = validate_project_metadata_schema(
+        build_project_metadata(rows, category_name, category_url, site_base, output_dir, metadata_csv, metadata_json)
+    )
     with metadata_json.open("w", encoding="utf-8") as file:
-        json.dump(
-            build_project_metadata(rows, category_name, category_url, site_base, output_dir, metadata_csv, metadata_json),
-            file,
-            ensure_ascii=False,
-            indent=2,
-        )
+        json.dump(project_metadata, file, ensure_ascii=False, indent=2)
 
 
-def main():
+def load_registry(registry_path):
+    if not registry_path.exists():
+        return {"version": 1, "items": []}
+    with registry_path.open("r", encoding="utf-8") as file:
+        data = json.load(file)
+    if isinstance(data, dict) and isinstance(data.get("items"), list):
+        return data
+    return {"version": 1, "items": []}
+
+
+def save_registry(registry, registry_path):
+    registry["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    with registry_path.open("w", encoding="utf-8") as file:
+        json.dump(registry, file, ensure_ascii=False, indent=2)
+
+
+def registry_sets(registry):
+    product_urls = set()
+    glb_urls = set()
+    for item in registry.get("items", []):
+        if item.get("product_url"):
+            product_urls.add(item["product_url"])
+        if item.get("glb_url"):
+            glb_urls.add(item["glb_url"])
+    return product_urls, glb_urls
+
+
+def add_registry_item(registry, row, category_name):
+    _, glb_urls = registry_sets(registry)
+    if row.get("glb_url") in glb_urls:
+        return
+    registry.setdefault("items", []).append(
+        {
+            "category": category_name,
+            "name": row.get("name", ""),
+            "filename": row.get("filename", ""),
+            "product_url": row.get("product_url", ""),
+            "glb_url": row.get("glb_url", ""),
+        }
+    )
+
+
+def category_info(site_key, site_base, category_key):
+    if category_key.startswith("http://") or category_key.startswith("https://"):
+        category_url = category_key
+        category_name = f"{site_key}-{category_name_from_url(category_key)}"
+        return category_name, category_url
+    clean_key = slugify(category_key)
+    category_url = category_url_from_key(site_base, clean_key)
+    category_name = f"{site_key}-{clean_key}"
+    return category_name, category_url
+
+
+def download_category(
+    driver,
+    site_key,
+    site_base,
+    category_key,
+    target_count,
+    output_root,
+    registry=None,
+    registry_path=None,
+    category_timeout_seconds=600,
+):
+    category_name, category_url = category_info(site_key, site_base, category_key)
+    output_dir = output_root / slugify(category_name)
+    metadata_csv, metadata_json = metadata_paths(output_dir, category_name)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    downloaded = load_existing_metadata(metadata_json, metadata_csv)
+    seen_products = {row.get("product_url") for row in downloaded}
+    seen_glbs = {row.get("glb_url") for row in downloaded}
+    if registry is not None:
+        registry_products, registry_glbs = registry_sets(registry)
+        seen_products.update(registry_products)
+        seen_glbs.update(registry_glbs)
+
+    starting_count = len(downloaded)
+    first_find_deadline = time.monotonic() + category_timeout_seconds
+    product_links = collect_product_links(
+        driver,
+        category_url,
+        target_count,
+        site_base,
+        deadline=first_find_deadline,
+    )
+    print(f"Found {len(product_links)} candidate product links for {category_name}.", flush=True)
+
+    for product_url in product_links:
+        if target_count is not None and len(downloaded) - starting_count >= target_count:
+            break
+        if len(downloaded) == starting_count and time.monotonic() >= first_find_deadline:
+            print(f"No GLB found within {category_timeout_seconds} seconds for {category_name}; skipping.", flush=True)
+            break
+        if product_url in seen_products:
+            continue
+
+        try:
+            details = extract_product_details(driver, product_url)
+        except Exception as exc:
+            print(f"Failed to inspect product {product_url}: {exc}", flush=True)
+            continue
+
+        if not details["glb_url"]:
+            print(f"No GLB: {details['name']} ({product_url})", flush=True)
+            seen_products.add(product_url)
+            continue
+        if details["glb_url"] in seen_glbs:
+            print(f"Duplicate GLB skipped: {details['name']} ({product_url})", flush=True)
+            seen_products.add(product_url)
+            continue
+
+        index = len(downloaded) + 1
+        filename = f"{index:02d} - {safe_filename(details['name'])}.glb"
+        destination = output_dir / filename
+
+        if not destination.exists():
+            print(f"Downloading {index}: {details['name']}", flush=True)
+            download_file(details["glb_url"], destination)
+        else:
+            print(f"File already exists: {destination}", flush=True)
+
+        row = {
+            "index": index,
+            "name": details["name"],
+            "color": details["color"],
+            "dimensions": details["dimensions"],
+            "filename": str(destination),
+            "product_url": details["product_url"],
+            "glb_url": details["glb_url"],
+        }
+        downloaded.append(row)
+        seen_products.add(details["product_url"])
+        seen_glbs.add(details["glb_url"])
+        if registry is not None:
+            add_registry_item(registry, row, category_name)
+            if registry_path is not None:
+                save_registry(registry, registry_path)
+        write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir)
+        print(f"Saved metadata; category total is now {len(downloaded)} GLB files.", flush=True)
+
+    write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir)
+    return {
+        "category_name": category_name,
+        "category_url": category_url,
+        "output_dir": str(output_dir),
+        "metadata_csv": str(metadata_csv),
+        "metadata_json": str(metadata_json),
+        "new_downloads": len(downloaded) - starting_count,
+        "total_downloads": len(downloaded),
+    }
+
+
+def run_storage_batch(args):
+    site = IKEA_SITES[args.site]
+    output_root = Path(args.output_root)
+    registry_path = output_root / f"{args.site}-storage-furniture-registry.json"
+    registry = load_registry(registry_path)
+    target_count = 1 if args.storage_sample else None
+
+    driver = get_chrome_driver()
+    results = []
+    try:
+        for category_key, category_label, _ in STORAGE_FURNITURE_CATEGORIES:
+            print(f"\n=== {category_key}: {category_label} ===", flush=True)
+            result = download_category(
+                driver=driver,
+                site_key=args.site,
+                site_base=site["base_url"],
+                category_key=category_key,
+                target_count=target_count,
+                output_root=output_root,
+                registry=registry,
+                registry_path=registry_path,
+                category_timeout_seconds=args.category_timeout_seconds,
+            )
+            results.append(result)
+            if args.storage_sample and result["new_downloads"] > 0:
+                break
+    finally:
+        driver.quit()
+
+    save_registry(registry, registry_path)
+    return results
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Download IKEA category GLB files and metadata.")
+    parser.add_argument("--site", default=DEFAULT_IKEA_SITE, choices=sorted(IKEA_SITES))
+    parser.add_argument("--category", help="IKEA category key or full category URL.")
+    parser.add_argument("--target-count", type=int, help="Maximum new GLB files to download.")
+    parser.add_argument("--all", action="store_true", help="Download every GLB found in the category.")
+    parser.add_argument("--storage-batch", action="store_true", help="Download storage furniture subcategories, then the all-storage category last.")
+    parser.add_argument("--storage-sample", action="store_true", help="Download one storage furniture GLB and JSON sample.")
+    parser.add_argument("--category-timeout-seconds", type=int, default=600)
+    parser.add_argument("--output-root", default=str(OUTPUT_ROOT))
+    return parser.parse_args(argv)
+
+
+def interactive_main():
     """主流程：詢問使用者輸入、收集商品、下載 GLB，最後輸出 metadata。"""
     site_key, site_base = choose_site()
     category_name, category_url = choose_category(site_key, site_base)
@@ -657,7 +973,7 @@ def main():
     metadata_csv, metadata_json = metadata_paths(output_dir, category_name)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    downloaded = load_existing_metadata(metadata_json)
+    downloaded = load_existing_metadata(metadata_json, metadata_csv)
     seen_products = {row.get("product_url") for row in downloaded}
     seen_glbs = {row.get("glb_url") for row in downloaded}
 
@@ -719,6 +1035,52 @@ def main():
         print(f"Metadata JSON：{metadata_json}", flush=True)
     finally:
         driver.quit()
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    if len(sys.argv) == 1:
+        interactive_main()
+        return
+
+    if args.storage_batch or args.storage_sample:
+        results = run_storage_batch(args)
+        print("\nBatch results:")
+        for result in results:
+            print(
+                f"- {result['category_name']}: "
+                f"{result['new_downloads']} new, {result['total_downloads']} total; "
+                f"json={result['metadata_json']}"
+            )
+        return
+
+    if args.category:
+        site = IKEA_SITES[args.site]
+        if args.all:
+            target_count = None
+        elif args.target_count is not None:
+            target_count = args.target_count
+        else:
+            raise ValueError("Use --target-count N or --all with --category.")
+
+        driver = get_chrome_driver()
+        try:
+            result = download_category(
+                driver=driver,
+                site_key=args.site,
+                site_base=site["base_url"],
+                category_key=args.category,
+                target_count=target_count,
+                output_root=Path(args.output_root),
+                category_timeout_seconds=args.category_timeout_seconds,
+            )
+        finally:
+            driver.quit()
+        print("\nDone:")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
+
+    raise ValueError("No action selected. Use --storage-sample, --storage-batch, or --category.")
 
 
 if __name__ == "__main__":
