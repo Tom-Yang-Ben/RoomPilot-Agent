@@ -6,8 +6,7 @@ adjust_furniture:依 Agent 已拆解好的結構化指令,調整家具位置/角
 這裡只吃結構化參數,例如 {"action": "move", "target": "sofa_1", "dx": 0.5, "dy": 0}
 """
 from furniture_engine.models import Room, PlacedFurniture
-from furniture_engine.geometry import check_placement
-
+from furniture_engine.clearance import check_placement_with_clearance as check_placement
 
 def move_furniture(
     room: Room,

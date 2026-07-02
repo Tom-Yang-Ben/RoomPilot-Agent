@@ -4,8 +4,7 @@ place_furniture:依需求把家具自動放進房間,回傳合法座標。
 對應 SSOT 文件 F3:「依需求放真實尺寸軟裝;尺寸正確、不超出空間」
 """
 from furniture_engine.models import Room, PlacedFurniture, FurnitureCatalogItem
-from furniture_engine.geometry import check_placement
-
+from furniture_engine.clearance import check_placement_with_clearance as check_placement
 
 def place_furniture(
     room: Room,
