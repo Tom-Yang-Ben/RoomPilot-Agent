@@ -1,9 +1,10 @@
 """
-資料結構定義:Room、Wall、FurnitureCatalogItem、PlacedFurniture
+資料結構定義:Room、Wall、ClearanceZone、FurnitureCatalogItem、PlacedFurniture
 
 對應 SSOT 文件第 8 節「資料結構」:
 - 型錄屬性(type/name/size/color/style/price)
 - 擺放屬性(pos_x/pos_y/rotation) —— 這是 place_furniture / adjust_furniture 算出來要存的東西
+- 淨空屬性(clearance)—— 開合家具(衣櫃/冰箱/五斗櫃)所需的保留空間
 """
 from dataclasses import dataclass, field
 
@@ -27,6 +28,18 @@ class Room:
 
 
 @dataclass
+class ClearanceZone:
+    """開合淨空需求:家具的哪一面需要保留多少空間
+
+    side 以「未旋轉時家具自己的方向」為準:
+      front = +y 方向(面向房間)、back = -y、left = -x、right = +x
+    家具旋轉時,淨空範圍會跟著 rotation 一起轉(在 clearance.py 處理)。
+    """
+    side: str          # "front" / "back" / "left" / "right"
+    depth: float       # 開合所需額外深度(公尺),如抽屜拉出 0.5、門扇打開 0.6
+
+
+@dataclass
 class FurnitureCatalogItem:
     """型錄屬性:描述「這是什麼家具」,不含座標"""
     type: str          # e.g. "sofa", "bed", "table"
@@ -37,6 +50,7 @@ class FurnitureCatalogItem:
     style: str | None = None
     price: float | None = None
     glb_path: str | None = None
+    clearance: ClearanceZone | None = None   # None = 此家具無開合淨空需求(如沙發、茶几)
 
 
 @dataclass
