@@ -291,15 +291,17 @@ def _has_door_swing(thin, orient, c, a, b, T, arc_pct):
         return False
     thr = max(0.9, arc_pct / 100.0)
 
-    def hinge_arc(hinge, r):
-        leaf = 1 if hinge == a else -1       # 門扇閉合時沿開口指向另一端
-        for side in (1, -1):                 # 房間可能在牆的任一側
-            if orient == "v":
-                if _arc_run(thin, c, hinge, r, 0, side, leaf, 0) >= thr:
-                    return True
-            else:
-                if _arc_run(thin, hinge, c, r, leaf, 0, 0, side) >= thr:
-                    return True
+    def hinge_arc(end, r):
+        leaf = 1 if end == a else -1         # 門扇閉合時沿開口指向另一端
+        for off in (0.0, 0.5 * T, 1.0 * T):  # 鉸鏈可能被牆垛往外偏移一點
+            hinge = end - leaf * off
+            for side in (1, -1):             # 房間可能在牆的任一側
+                if orient == "v":
+                    if _arc_run(thin, c, hinge, r + off, 0, side, leaf, 0) >= thr:
+                        return True
+                else:
+                    if _arc_run(thin, hinge, c, r + off, leaf, 0, 0, side) >= thr:
+                        return True
         return False
 
     if 1.2 * T <= gap <= 8.0 * T and (hinge_arc(a, gap) or hinge_arc(b, gap)):
@@ -392,11 +394,19 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         return groups
 
     def covered(band, along_axis):
-        """開口有沒有被玻璃線覆蓋：cover 過門檻，且至少一條線貫穿開口全長。
-        推拉門是兩片各蓋半長的錯位線，沒有任何一條線貫穿全長 → 擋掉。"""
+        """開口有沒有被玻璃線覆蓋：cover 過門檻，且線的結構要像窗——
+        兩群以上分開的貫穿線(玻璃畫法)；或一條貫穿線＋其他部分覆蓋的線(梳齒窗的
+        邊框+齒)。推拉門(兩片各半、無貫穿線)和門檻線(孤零零一條)都不像 → 擋掉。"""
         if not band.size or (band.max(axis=1 - along_axis) > 0).mean() < thr:
             return False
-        return line_groups(band, along_axis) >= 1
+        groups = line_groups(band, along_axis)
+        if groups >= 2:
+            return True
+        if groups == 0:
+            return False
+        line_cov = (band > 0).mean(axis=along_axis)
+        partial = int(((line_cov >= 0.15) & (line_cov < 0.8)).sum())
+        return partial >= 2
 
     def covered_soft(y0, y1, x0, x1, along_axis, edge_hug=False):
         """orig 上是空的 → 用寬鬆二值化重測。要長得像窗才放行：
@@ -451,8 +461,9 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
             y0, y1 = int(min(a[1], b[1])), int(max(a[3], b[3]))
             if (y1 - y0) < min_w:            # 跨牆寬度太薄 → 不是窗
                 continue
-            band = orig_bw[max(0, y0):min(Himg, y1), max(0, x0):min(Wimg, x1)]
-            if not covered(band, 1) and not covered_soft(y0, y1, x0, x1, 1):
+            pad = max(2, int(round(0.25 * T)))   # 窗符號比蝕刻後的牆塊略寬,帶朝兩側擴一點
+            band = orig_bw[max(0, y0 - pad):min(Himg, y1 + pad), max(0, x0):min(Wimg, x1)]
+            if not covered(band, 1) and not covered_soft(y0 - pad, y1 + pad, x0, x1, 1):
                 continue
             cy_ = (y0 + y1) / 2.0
             if _near_door((x0 + x1) / 2.0, cy_, gap, doors, ((x0, cy_), (x1, cy_)), T):
@@ -471,8 +482,9 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
             x0, x1 = int(min(a[0], b[0])), int(max(a[2], b[2]))
             if (x1 - x0) < min_w:            # 跨牆寬度太薄 → 不是窗
                 continue
-            band = orig_bw[max(0, y0):min(Himg, y1), max(0, x0):min(Wimg, x1)]
-            if not covered(band, 0) and not covered_soft(y0, y1, x0, x1, 0):
+            pad = max(2, int(round(0.25 * T)))   # 窗符號比蝕刻後的牆塊略寬,帶朝兩側擴一點
+            band = orig_bw[max(0, y0):min(Himg, y1), max(0, x0 - pad):min(Wimg, x1 + pad)]
+            if not covered(band, 0) and not covered_soft(y0, y1, x0 - pad, x1 + pad, 0):
                 continue
             cx_ = (x0 + x1) / 2.0
             if _near_door(cx_, (y0 + y1) / 2.0, gap, doors, ((cx_, y0), (cx_, y1)), T):
