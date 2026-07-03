@@ -29,6 +29,45 @@ IKEA_SITES = {
         "base_url": "https://www.ikea.com/jp/en",
     },
 }
+IKEA_SITES.update(
+    {
+        "fi": {"label": "Finland", "base_url": "https://www.ikea.com/fi/en", "country": "fi", "locale": "en"},
+        "tw": {"label": "Taiwan", "base_url": "https://www.ikea.com.tw/zh", "country": "tw", "locale": "zh"},
+        "cn": {"label": "China", "base_url": "https://www.ikea.cn/cn/zh", "country": "cn", "locale": "zh"},
+        "hk": {"label": "Hong Kong", "base_url": "https://www.ikea.com.hk/en", "country": "hk", "locale": "en"},
+        "jp": {"label": "Japan", "base_url": "https://www.ikea.com/jp/en", "country": "jp", "locale": "en"},
+        "kr": {"label": "South Korea", "base_url": "https://www.ikea.com/kr/en", "country": "kr", "locale": "en"},
+        "sg": {"label": "Singapore", "base_url": "https://www.ikea.com/sg/en", "country": "sg", "locale": "en"},
+        "my": {"label": "Malaysia", "base_url": "https://www.ikea.com/my/en", "country": "my", "locale": "en"},
+        "ph": {"label": "Philippines", "base_url": "https://www.ikea.com/ph/en", "country": "ph", "locale": "en"},
+        "id": {"label": "Indonesia", "base_url": "https://www.ikea.co.id/en", "country": "id", "locale": "en"},
+        "th": {"label": "Thailand", "base_url": "https://www.ikea.com/th/en", "country": "th", "locale": "en"},
+        "in": {"label": "India", "base_url": "https://www.ikea.com/in/en", "country": "in", "locale": "en"},
+        "au": {"label": "Australia", "base_url": "https://www.ikea.com/au/en", "country": "au", "locale": "en"},
+        "nz": {"label": "New Zealand", "base_url": "https://www.ikea.com/nz/en", "country": "nz", "locale": "en"},
+        "se": {"label": "Sweden", "base_url": "https://www.ikea.com/se/en", "country": "se", "locale": "en"},
+        "gb": {"label": "United Kingdom", "base_url": "https://www.ikea.com/gb/en", "country": "gb", "locale": "en"},
+        "de": {"label": "Germany", "base_url": "https://www.ikea.com/de/en", "country": "de", "locale": "en"},
+        "fr": {"label": "France", "base_url": "https://www.ikea.com/fr/fr", "country": "fr", "locale": "fr"},
+        "es": {"label": "Spain", "base_url": "https://www.ikea.com/es/en", "country": "es", "locale": "en"},
+        "it": {"label": "Italy", "base_url": "https://www.ikea.com/it/it", "country": "it", "locale": "it"},
+        "nl": {"label": "Netherlands", "base_url": "https://www.ikea.com/nl/en", "country": "nl", "locale": "en"},
+        "ch": {"label": "Switzerland", "base_url": "https://www.ikea.com/ch/en", "country": "ch", "locale": "en"},
+        "us": {"label": "United States", "base_url": "https://www.ikea.com/us/en", "country": "us", "locale": "en"},
+        "ca": {"label": "Canada", "base_url": "https://www.ikea.com/ca/en", "country": "ca", "locale": "en"},
+        "mx": {"label": "Mexico", "base_url": "https://www.ikea.com/mx/en", "country": "mx", "locale": "en"},
+        "cl": {"label": "Chile", "base_url": "https://www.ikea.com/cl/es", "country": "cl", "locale": "es"},
+        "co": {"label": "Colombia", "base_url": "https://www.ikea.com/co/es", "country": "co", "locale": "es"},
+        "pr": {"label": "Puerto Rico", "base_url": "https://www.ikea.pr/puertorico/es", "country": "pr", "locale": "es"},
+        "do": {"label": "Dominican Republic", "base_url": "https://www.ikea.com.do/es", "country": "do", "locale": "es"},
+        "sa": {"label": "Saudi Arabia", "base_url": "https://www.ikea.com/sa/en", "country": "sa", "locale": "en"},
+        "ae": {"label": "United Arab Emirates", "base_url": "https://www.ikea.com/ae/en", "country": "ae", "locale": "en"},
+        "kw": {"label": "Kuwait", "base_url": "https://www.ikea.com/kw/en", "country": "kw", "locale": "en"},
+        "qa": {"label": "Qatar", "base_url": "https://www.ikea.com/qa/en", "country": "qa", "locale": "en"},
+        "bh": {"label": "Bahrain", "base_url": "https://www.ikea.com/bh/en", "country": "bh", "locale": "en"},
+        "jo": {"label": "Jordan", "base_url": "https://www.ikea.com/jo/en", "country": "jo", "locale": "en"},
+    }
+)
 DEFAULT_IKEA_SITE = "fi"
 IKEA_SITE_BASE = IKEA_SITES[DEFAULT_IKEA_SITE]["base_url"]
 OUTPUT_ROOT = Path("downloaded-files")
@@ -293,6 +332,116 @@ STORAGE_FURNITURE_CATEGORIES = [
 for storage_key, _, storage_path in STORAGE_FURNITURE_CATEGORIES:
     CATEGORY_PRESETS[storage_key] = storage_path
 
+SITE_CATEGORY_PRESETS = {
+    "tw": {
+        "bookcases": "/zh/products/bookcases-and-box/bookcases",
+        "shelving-units": "/zh/products/shelving-units/open-storage",
+        "wall-shelves": "/zh/products/wall-shelves/wall-shelves-and-storage",
+        "sofas": "/zh/products/sofas/sofas",
+        "fabric-sofas": "/zh/products/sofas/fabric-sofas",
+        "leather-sofas": "/zh/products/sofas/leather-sofas",
+        "sofa-beds": "/zh/products/sofas/sofa-beds",
+        "modular-sofas": "/zh/products/sofas/sofas",
+        "armchairs": "/zh/products/sofas/armchairs",
+        "chairs": [
+            "/zh/products/work-chairs",
+            "/zh/products/dining-seating/non-upholstered-chairs",
+            "/zh/products/dining-seating/upholstered-chairs",
+            "/zh/products/dining-seating/stools",
+            "/zh/products/dining-seating/benches",
+            "/zh/products/dining-seating/bar-stools",
+        ],
+        "dining-chairs": [
+            "/zh/products/dining-seating/non-upholstered-chairs",
+            "/zh/products/dining-seating/upholstered-chairs",
+        ],
+        "office-chairs": "/zh/products/work-chairs/office-chairs",
+        "stools-benches": [
+            "/zh/products/dining-seating/stools",
+            "/zh/products/dining-seating/benches",
+            "/zh/products/dining-seating/bar-stools",
+        ],
+        "gaming-chairs": "/zh/products/work-chairs/gaming-chairs-and-gaming-lounge-chairs",
+        "tables": "/zh/products/dining-tables/tables",
+        "dining-tables": "/zh/products/dining-tables/tables",
+        "desks": [
+            "/zh/products/work-desks/home-desks",
+            "/zh/products/work-desks/office-desks-and-tables",
+            "/zh/products/work-desks/gaming-desks",
+            "/zh/products/work-desks/laptop-tables",
+            "/zh/products/work-desks/conference-tables",
+            "/zh/products/work-desks/build-your-own-desk",
+        ],
+        "coffee-tables": "/zh/products/coffee-and-side-table/sofa-tables",
+        "bedside-tables": "/zh/products/beds/bedside-tables",
+        "bar-tables": "/zh/products/dining-tables/high-tables",
+        "beds": [
+            "/zh/products/beds/double-beds",
+            "/zh/products/beds/single-beds",
+            "/zh/products/beds/day-beds",
+            "/zh/products/beds/loft-beds-and-bunk-beds",
+            "/zh/products/beds/bed-with-upholstered-headboard",
+        ],
+        "bed-frames": [
+            "/zh/products/beds/double-beds",
+            "/zh/products/beds/single-beds",
+            "/zh/products/beds/day-beds",
+            "/zh/products/beds/loft-beds-and-bunk-beds",
+            "/zh/products/beds/bed-with-upholstered-headboard",
+        ],
+        "mattresses": "/zh/products/mattresses-and-accessories",
+        "wardrobes": "/zh/products/wardrobes",
+        "pax-wardrobes": "/zh/products/wardrobes/wardrobe-pax-system",
+        "open-wardrobes": "/zh/products/wardrobes/solitaire-wardrobes",
+        "clothes-racks": "/zh/products/clothes-and-shoe-organisers-and-accessories/clothes-stands",
+        "shoe-cabinets": "/zh/products/clothes-and-shoe-organisers-and-accessories/clothes-and-shoe-organisers",
+        "storage-furniture": "/zh/products/secondary-storage",
+        "storage-solution-systems": "/zh/products/open-storage-system",
+        "cabinets-cupboards": "/zh/products/sideboard-cabinets",
+        "display-cabinets": "/zh/products/display-furniture/display-cabinets",
+        "chests-of-drawers": "/zh/products/wardrobes/chest-of-drawers",
+        "sideboards": "/zh/products/sideboard-cabinets/sideboards",
+        "trolleys": "/zh/products/kitchen-organisers/kitchen-trolley",
+        "room-dividers": "/zh/products/office-desk-organisers-and-office-partition/office-partitions-and-office-screens",
+        "tv-media-furniture": "/zh/products/media-furniture/tv-and-media-furniture",
+        "tv-benches": "/zh/products/media-furniture/tv-and-media-furniture",
+        "outdoor-furniture": "/zh/products/outdoor-furniture",
+        "outdoor-seating": "/zh/products/outdoor-furniture/outdoor-relax-furniture",
+        "outdoor-dining": "/zh/products/outdoor-furniture/outdoor-dining-tables-seating",
+        "sun-loungers-hammocks": "/zh/products/outdoor-furniture/outdoor-relax-furniture",
+        "outdoor-coffee-side-tables": "/zh/products/outdoor-furniture/outdoor-dining-tables-seating",
+        "childrens-furniture": "/zh/products/kids-storage-and-study",
+        "kids-chairs-stools": "/zh/products/work-chairs/childrens-desk-chairs",
+        "childrens-tables": "/zh/products/work-desks/kids-study-furniture-and-accessories",
+        "childrens-stools-benches": "/zh/products/kids-storage-and-study/kids-study-furniture-and-accessories",
+        "kids-armchairs": "/zh/products/kids-bedroom-furniture-and-accessories",
+        "mirrors": "/zh/products/home-decoration/mirrors",
+        "wall-mirrors": "/zh/products/home-decoration/mirrors",
+        "large-mirrors": "/zh/products/home-decoration/mirrors",
+        "standing-mirrors": "/zh/products/home-decoration/mirrors",
+        "mirror-cabinets": "/zh/products/bathroom-furniture/cabinets-and-mirror-cabinets",
+        "rugs": "/zh/products/home-furnishing-rugs",
+        "large-medium-rugs": "/zh/products/home-furnishing-rugs/home-rugs",
+        "runner-small-rugs": "/zh/products/home-furnishing-rugs/home-rugs",
+        "round-rugs": "/zh/products/home-furnishing-rugs/home-rugs",
+        "outdoor-rugs": "/zh/products/home-furnishing-rugs/outdoor-rugs",
+        "door-mats": "/zh/products/home-furnishing-rugs/doormats",
+        "handmade-rugs": "/zh/products/home-furnishing-rugs/home-rugs",
+        "anti-slip-rug-underlays": "/zh/products/home-furnishing-rugs/mat",
+        "sheepskins-cowhides": "/zh/products/home-furnishing-rugs/home-rugs",
+        "childrens-rugs-curtains": "/zh/products/kids-bedroom-furniture-and-accessories/childrens-rugs",
+        "nursery-rugs-and-curtains": "/zh/products/kids-bedroom-furniture-and-accessories/childrens-rugs",
+        "lamps": "/zh/products/luminaires",
+        "table-lamps": "/zh/products/luminaires/table-lamps",
+        "floor-lamps": "/zh/products/luminaires/floor-lamps",
+        "work-lamps": "/zh/products/luminaires/desk-lamps-and-clamp-lamps",
+        "lamp-shades-bases": "/zh/products/luminaires/shades-bases-and-cord-sets",
+        "decoration": "/zh/products/home-decoration",
+        "storage-boxes-baskets": "/zh/products/boxes-and-organisers/storage-boxes-and-baskets",
+        "flower-pots-planters": "/zh/products/home-decoration/plant-pots",
+    },
+}
+
 FURNITURE_GROUP_NAMES = {
     "bookcases": "Bookcases and shelving",
     "sofas": "Sofas and armchairs",
@@ -324,6 +473,8 @@ FURNITURE_INPUT_EXAMPLES = [
     (group_key, group_data["label"])
     for group_key, group_data in CATEGORY_GROUPS.items()
 ]
+
+ALL_NEEDED_GROUP_KEYS = list(CATEGORY_GROUPS)
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -395,8 +546,19 @@ def choose_site():
     return site_key, IKEA_SITES[site_key]["base_url"]
 
 
-def category_url_from_key(site_base, category_key):
-    category_path = CATEGORY_PRESETS.get(category_key, category_key)
+def category_url_from_key(site_base, category_key, site_key=None):
+    site_presets = SITE_CATEGORY_PRESETS.get(site_key, {})
+    category_path = site_presets.get(category_key, CATEGORY_PRESETS.get(category_key, category_key))
+    if isinstance(category_path, (list, tuple)):
+        return [category_url_from_path(site_base, path) for path in category_path]
+    return category_url_from_path(site_base, category_path)
+
+
+def category_url_from_path(site_base, category_path):
+    if category_path.startswith("http://") or category_path.startswith("https://"):
+        return category_path
+    if category_path.startswith("/"):
+        return urljoin(site_base, category_path)
     return f"{site_base}/cat/{category_path}/"
 
 
@@ -427,8 +589,8 @@ def choose_category(site_key, site_base):
         category_name = f"{site_key}-{category_name_from_url(raw_category)}"
     else:
         category_key = slugify(raw_category)
-        category_url = category_url_from_key(site_base, category_key)
-        if category_key not in CATEGORY_PRESETS:
+        category_url = category_url_from_key(site_base, category_key, site_key)
+        if category_key not in CATEGORY_PRESETS and category_key not in SITE_CATEGORY_PRESETS.get(site_key, {}):
             print(f"找不到預設分類，改試這個分類網址：{category_url}")
         category_name = f"{site_key}-{category_key}"
 
@@ -447,7 +609,21 @@ def ask_target_count():
     return count
 
 
-def collect_product_links(driver, category_url, target_count, site_base, deadline=None):
+def is_product_url(url, site_key=None):
+    if not url:
+        return False
+    if site_key == "tw":
+        return bool(re.search(r"/(?:zh/)?products/.+-(?:art|spr)-[0-9]{8}(?:[/?#]|$)", url))
+    return "/p/" in url
+
+
+def normalize_product_url(url, site_key=None):
+    if site_key == "tw":
+        return url.replace("https://www.ikea.com.tw/products/", "https://www.ikea.com.tw/zh/products/")
+    return url
+
+
+def collect_product_links(driver, category_url, target_count, site_base, site_key=None, deadline=None):
     """開啟分類頁並捲動頁面，收集商品頁連結。"""
     print(f"\n正在開啟分類頁：{category_url}", flush=True)
     try:
@@ -469,20 +645,25 @@ def collect_product_links(driver, category_url, target_count, site_base, deadlin
         if deadline is not None and time.monotonic() >= deadline:
             print("Category search timeout reached while collecting product links.", flush=True)
             break
-        anchors = driver.find_elements(
-            By.CSS_SELECTOR,
-            ".plp-fragment-wrapper a.plp-product__image-link, a[href*='/p/']",
-        )
+        if site_key == "tw":
+            selector = (
+                ".row.productList.product-list-component a[href*='-art-'], "
+                ".row.productList.product-list-component a[href*='-spr-']"
+            )
+        else:
+            selector = ".plp-fragment-wrapper a.plp-product__image-link, a[href*='/p/']"
+        anchors = driver.find_elements(By.CSS_SELECTOR, selector)
         for anchor in anchors:
             try:
                 href = anchor.get_attribute("href")
             except StaleElementReferenceException:
                 continue
-            if not href or "/p/" not in href:
+            if not is_product_url(href, site_key):
                 continue
-            clean_url = urljoin(site_base, href).split("?")[0]
-            if clean_url not in seen:
-                seen.add(clean_url)
+            clean_url = normalize_product_url(urljoin(site_base, href).split("?")[0], site_key)
+            seen_key = product_item_id_from_url(clean_url) or clean_url
+            if seen_key not in seen:
+                seen.add(seen_key)
                 links.append(clean_url)
 
         print(f"已收集 {len(links)} 個商品連結...", flush=True)
@@ -520,6 +701,65 @@ def find_glb_urls(text):
         for hit in re.findall(pattern, decoded):
             hits.append(hit.replace("\\/", "/"))
     return sorted(set(hits))
+
+
+def product_item_id_from_url(product_url):
+    """Extract the numeric IKEA item id from a product URL."""
+    match = re.search(r"-(?:art-|spr-|s?)([0-9]{8})(?:[/?#]|$)", product_url)
+    return match.group(1) if match else None
+
+
+def rotera_market_from_product_url(product_url, site_key=None):
+    """Return the country/locale pair used by the public rotera GLB endpoint."""
+    if site_key in IKEA_SITES:
+        site = IKEA_SITES[site_key]
+        return site.get("country", site_key), site.get("locale", "en")
+
+    match = re.search(r"ikea\.com/([a-z]{2})/([a-z]{2})(?:/|$)", product_url)
+    if match:
+        return match.group(1), match.group(2)
+    match = re.search(r"ikea\.cn/cn/([a-z]{2})(?:/|$)", product_url)
+    if match:
+        return "cn", match.group(1)
+    if "ikea.com.tw" in product_url:
+        return "tw", "zh"
+    if "ikea.com.hk" in product_url:
+        return "hk", "en" if "/en/" in product_url else "zh"
+    if "ikea.co.id" in product_url:
+        return "id", "en" if "/en/" in product_url else "id"
+    if "ikea.pr" in product_url:
+        return "pr", "es"
+    if "ikea.com.do" in product_url:
+        return "do", "es"
+    return None, None
+
+
+def rotera_glb_url_for_product(product_url, site_key=None):
+    """Build the public rotera mini GLB URL for an IKEA product URL."""
+    item_id = product_item_id_from_url(product_url)
+    country, locale = rotera_market_from_product_url(product_url, site_key)
+    if not item_id or not country or not locale:
+        return None
+    return f"https://web-api.ikea.com/{country}/{locale}/rotera/static/models/{item_id}-mini.glb"
+
+
+def verified_rotera_glb_url(product_url, site_key=None):
+    """Return a rotera GLB URL only when the endpoint responds like a GLB asset."""
+    glb_url = rotera_glb_url_for_product(product_url, site_key)
+    if not glb_url:
+        return None
+    response = None
+    try:
+        response = requests.get(glb_url, headers=HEADERS, stream=True, timeout=15)
+        content_type = response.headers.get("content-type", "").lower()
+        if response.status_code == 200 and ("gltf" in content_type or "octet-stream" in content_type):
+            return glb_url
+    except requests.RequestException:
+        return None
+    finally:
+        if response is not None:
+            response.close()
+    return None
 
 
 def page_title(text):
@@ -596,13 +836,16 @@ def details_from_page_text(text, product_url, glb_url):
     }
 
 
-def extract_product_details(driver, product_url):
+def extract_product_details(driver, product_url, site_key=None):
     """取得單一商品的完整資訊；先用 requests，找不到 GLB 時再改用瀏覽器。"""
     try:
         text = fetch_product_page_with_requests(product_url)
         glb_urls = find_glb_urls(text)
         if glb_urls:
             return details_from_page_text(text, product_url, glb_urls[0])
+        rotera_url = verified_rotera_glb_url(product_url, site_key)
+        if rotera_url:
+            return details_from_page_text(text, product_url, rotera_url)
     except Exception as exc:
         print(f"用 requests 檢查失敗，改用瀏覽器檢查：{exc}", flush=True)
 
@@ -624,6 +867,8 @@ def extract_product_details(driver, product_url):
     except Exception:
         glb_urls = find_glb_urls(text)
         glb_url = glb_urls[0] if glb_urls else None
+    if not glb_url:
+        glb_url = verified_rotera_glb_url(product_url, site_key)
 
     return details_from_page_text(text, product_url, glb_url)
 
@@ -952,9 +1197,53 @@ def category_info(site_key, site_base, category_key):
         category_name = f"{site_key}-{category_name_from_url(category_key)}"
         return category_name, category_url
     clean_key = slugify(category_key)
-    category_url = category_url_from_key(site_base, clean_key)
+    category_url = category_url_from_key(site_base, clean_key, site_key)
     category_name = f"{site_key}-{clean_key}"
     return category_name, category_url
+
+
+def group_output_root(output_root, site_key, group_key):
+    group_name = FURNITURE_GROUP_NAMES.get(group_key, group_key)
+    return output_root / f"{site_key}-{slugify(group_name)}"
+
+
+def category_url_label(category_url):
+    if isinstance(category_url, (list, tuple)):
+        return "; ".join(category_url)
+    return category_url
+
+
+def collect_category_product_links(driver, category_url, target_count, site_base, site_key=None, deadline=None):
+    category_urls = category_url if isinstance(category_url, (list, tuple)) else [category_url]
+    product_links = []
+    seen_link_keys = set()
+
+    for one_category_url in category_urls:
+        if deadline is not None and time.monotonic() >= deadline and not product_links:
+            break
+        remaining_target = None
+        if target_count is not None:
+            remaining_target = max(target_count - len(product_links), 0)
+            if remaining_target == 0:
+                break
+        links = collect_product_links(
+            driver,
+            one_category_url,
+            remaining_target,
+            site_base,
+            site_key=site_key,
+            deadline=deadline,
+        )
+        for link in links:
+            seen_key = product_item_id_from_url(link) or link
+            if seen_key in seen_link_keys:
+                continue
+            seen_link_keys.add(seen_key)
+            product_links.append(link)
+            if target_count is not None and len(product_links) >= target_count:
+                break
+
+    return product_links
 
 
 def download_category(
@@ -969,6 +1258,7 @@ def download_category(
     category_timeout_seconds=600,
 ):
     category_name, category_url = category_info(site_key, site_base, category_key)
+    category_url_text = category_url_label(category_url)
     output_dir = output_root / slugify(category_name)
     metadata_csv, metadata_json = metadata_paths(output_dir, category_name)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -983,11 +1273,12 @@ def download_category(
 
     starting_count = len(downloaded)
     first_find_deadline = time.monotonic() + category_timeout_seconds
-    product_links = collect_product_links(
+    product_links = collect_category_product_links(
         driver,
         category_url,
         target_count,
         site_base,
+        site_key=site_key,
         deadline=first_find_deadline,
     )
     print(f"Found {len(product_links)} candidate product links for {category_name}.", flush=True)
@@ -1002,7 +1293,7 @@ def download_category(
             continue
 
         try:
-            details = extract_product_details(driver, product_url)
+            details = extract_product_details(driver, product_url, site_key)
         except Exception as exc:
             print(f"Failed to inspect product {product_url}: {exc}", flush=True)
             continue
@@ -1048,13 +1339,89 @@ def download_category(
             add_registry_item(registry, row, category_name)
             if registry_path is not None:
                 save_registry(registry, registry_path)
-        write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir)
+        write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url_text, site_base, output_dir)
         print(f"Saved metadata; category total is now {len(downloaded)} GLB files.", flush=True)
 
-    write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir)
+    write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url_text, site_base, output_dir)
     return {
         "category_name": category_name,
-        "category_url": category_url,
+        "category_url": category_url_text,
+        "output_dir": str(output_dir),
+        "metadata_csv": str(metadata_csv),
+        "metadata_json": str(metadata_json),
+        "new_downloads": len(downloaded) - starting_count,
+        "total_downloads": len(downloaded),
+    }
+
+
+def download_product_urls(driver, site_key, site_base, product_urls, category_key, output_root):
+    category_name = f"{site_key}-{slugify(category_key)}"
+    category_url = category_url_from_key(site_base, category_key, site_key)
+    category_url_text = category_url_label(category_url)
+    output_dir = output_root / slugify(category_name)
+    metadata_csv, metadata_json = metadata_paths(output_dir, category_name)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    downloaded = load_existing_metadata(metadata_json, metadata_csv)
+    seen_products = {row.get("product_url") for row in downloaded}
+    seen_glbs = {row.get("glb_url") for row in downloaded}
+    starting_count = len(downloaded)
+
+    for product_url in product_urls:
+        product_url = product_url.strip()
+        if not product_url or product_url in seen_products:
+            continue
+
+        try:
+            details = extract_product_details(driver, product_url, site_key)
+        except Exception as exc:
+            print(f"Failed to inspect product {product_url}: {exc}", flush=True)
+            continue
+
+        if not details["glb_url"]:
+            print(f"No GLB: {details['name']} ({product_url})", flush=True)
+            seen_products.add(product_url)
+            continue
+        if details["glb_url"] in seen_glbs:
+            print(f"Duplicate GLB skipped: {details['name']} ({product_url})", flush=True)
+            seen_products.add(product_url)
+            continue
+
+        index = len(downloaded) + 1
+        filename = f"{index:02d} - {safe_filename(details['name'])}.glb"
+        destination = output_dir / filename
+
+        if not destination.exists():
+            print(f"Downloading {index}: {details['name']}", flush=True)
+            try:
+                download_file(details["glb_url"], destination)
+            except requests.RequestException as exc:
+                print(f"Failed to download GLB for {details['name']}: {exc}", flush=True)
+                if destination.exists() and destination.stat().st_size == 0:
+                    destination.unlink()
+                continue
+        else:
+            print(f"File already exists: {destination}", flush=True)
+
+        row = {
+            "index": index,
+            "name": details["name"],
+            "color": details["color"],
+            "dimensions": details["dimensions"],
+            "filename": str(destination),
+            "product_url": details["product_url"],
+            "glb_url": details["glb_url"],
+        }
+        downloaded.append(row)
+        seen_products.add(details["product_url"])
+        seen_glbs.add(details["glb_url"])
+        write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url_text, site_base, output_dir)
+        print(f"Saved metadata; category total is now {len(downloaded)} GLB files.", flush=True)
+
+    write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url_text, site_base, output_dir)
+    return {
+        "category_name": category_name,
+        "category_url": category_url_text,
         "output_dir": str(output_dir),
         "metadata_csv": str(metadata_csv),
         "metadata_json": str(metadata_json),
@@ -1120,29 +1487,55 @@ def group_batch_categories(group_key):
     return child_items
 
 
-def run_group_batch(args, group_key):
+def run_group_batch_with_driver(args, group_key, driver, registry, registry_path):
     site = IKEA_SITES[args.site]
-    output_root = Path(args.output_root)
+    output_root = group_output_root(Path(args.output_root), args.site, group_key)
+
+    results = []
+    for category_key, category_label, _ in group_batch_categories(group_key):
+        print(f"\n=== {group_key} / {category_key}: {category_label} ===", flush=True)
+        result = download_category(
+            driver=driver,
+            site_key=args.site,
+            site_base=site["base_url"],
+            category_key=category_key,
+            target_count=None,
+            output_root=output_root,
+            registry=registry,
+            registry_path=registry_path,
+            category_timeout_seconds=args.category_timeout_seconds,
+        )
+        results.append(result)
+    return results
+
+
+def run_group_batch(args, group_key):
+    output_root = group_output_root(Path(args.output_root), args.site, group_key)
     registry_path = output_root / f"{args.site}-{group_key}-registry.json"
+    registry = load_registry(registry_path)
+
+    driver = get_chrome_driver()
+    try:
+        results = run_group_batch_with_driver(args, group_key, driver, registry, registry_path)
+    finally:
+        driver.quit()
+
+    save_registry(registry, registry_path)
+    return results
+
+
+def run_all_needed_batch(args):
+    output_root = Path(args.output_root)
+    registry_path = output_root / f"{args.site}-all-needed-registry.json"
     registry = load_registry(registry_path)
 
     driver = get_chrome_driver()
     results = []
     try:
-        for category_key, category_label, _ in group_batch_categories(group_key):
-            print(f"\n=== {category_key}: {category_label} ===", flush=True)
-            result = download_category(
-                driver=driver,
-                site_key=args.site,
-                site_base=site["base_url"],
-                category_key=category_key,
-                target_count=None,
-                output_root=output_root,
-                registry=registry,
-                registry_path=registry_path,
-                category_timeout_seconds=args.category_timeout_seconds,
-            )
-            results.append(result)
+        for group_key in ALL_NEEDED_GROUP_KEYS:
+            print(f"\n##### {group_key}: {FURNITURE_GROUP_NAMES.get(group_key, group_key)} #####", flush=True)
+            results.extend(run_group_batch_with_driver(args, group_key, driver, registry, registry_path))
+            save_registry(registry, registry_path)
     finally:
         driver.quit()
 
@@ -1154,8 +1547,11 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Download IKEA category GLB files and metadata.")
     parser.add_argument("--site", default=DEFAULT_IKEA_SITE, choices=sorted(IKEA_SITES))
     parser.add_argument("--category", help="IKEA category key or full category URL.")
+    parser.add_argument("--product-url", action="append", help="Direct IKEA product URL to download. Can be repeated.")
+    parser.add_argument("--product-category", default="manual-products", help="Category folder key for --product-url downloads.")
     parser.add_argument("--target-count", type=int, help="Maximum new GLB files to download.")
     parser.add_argument("--all", action="store_true", help="Download every GLB found in the category.")
+    parser.add_argument("--all-needed-batch", action="store_true", help="Download every needed furniture group, with each group's total category last.")
     parser.add_argument("--group-batch", choices=sorted(CATEGORY_GROUPS), help="Download a category group, with the group total category last.")
     parser.add_argument("--storage-batch", action="store_true", help="Download storage furniture subcategories, then the all-storage category last.")
     parser.add_argument("--storage-sample", action="store_true", help="Download one storage furniture GLB and JSON sample.")
@@ -1168,6 +1564,7 @@ def interactive_main():
     """主流程：詢問使用者輸入、收集商品、下載 GLB，最後輸出 metadata。"""
     site_key, site_base = choose_site()
     category_name, category_url = choose_category(site_key, site_base)
+    category_url_text = category_url_label(category_url)
     target_count = ask_target_count()
     output_dir = OUTPUT_ROOT / slugify(category_name)
     metadata_csv, metadata_json = metadata_paths(output_dir, category_name)
@@ -1179,7 +1576,7 @@ def interactive_main():
 
     driver = get_chrome_driver()
     try:
-        product_links = collect_product_links(driver, category_url, target_count, site_base)
+        product_links = collect_category_product_links(driver, category_url, target_count, site_base, site_key=site_key)
         print(f"找到 {len(product_links)} 個候選商品連結。", flush=True)
 
         for product_url in product_links:
@@ -1189,7 +1586,7 @@ def interactive_main():
                 continue
 
             try:
-                details = extract_product_details(driver, product_url)
+                details = extract_product_details(driver, product_url, site_key)
             except Exception as exc:
                 print(f"檢查商品失敗：{product_url}，原因：{exc}", flush=True)
                 continue
@@ -1225,10 +1622,10 @@ def interactive_main():
             downloaded.append(row)
             seen_products.add(details["product_url"])
             seen_glbs.add(details["glb_url"])
-            write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir)
+            write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url_text, site_base, output_dir)
             print(f"已儲存 metadata，目前共有 {len(downloaded)} 個 GLB 檔。", flush=True)
 
-        write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url, site_base, output_dir)
+        write_metadata(downloaded, metadata_csv, metadata_json, category_name, category_url_text, site_base, output_dir)
         print(f"\n下載完成，目前共有 {len(downloaded)} 個 GLB 檔。", flush=True)
         print(f"輸出資料夾：{output_dir}", flush=True)
         print(f"Metadata CSV：{metadata_csv}", flush=True)
@@ -1254,6 +1651,17 @@ def main(argv=None):
             )
         return
 
+    if args.all_needed_batch:
+        results = run_all_needed_batch(args)
+        print("\nBatch results:")
+        for result in results:
+            print(
+                f"- {result['category_name']}: "
+                f"{result['new_downloads']} new, {result['total_downloads']} total; "
+                f"json={result['metadata_json']}"
+            )
+        return
+
     if args.group_batch:
         results = run_group_batch(args, args.group_batch)
         print("\nBatch results:")
@@ -1263,6 +1671,24 @@ def main(argv=None):
                 f"{result['new_downloads']} new, {result['total_downloads']} total; "
                 f"json={result['metadata_json']}"
             )
+        return
+
+    if args.product_url:
+        site = IKEA_SITES[args.site]
+        driver = get_chrome_driver()
+        try:
+            result = download_product_urls(
+                driver=driver,
+                site_key=args.site,
+                site_base=site["base_url"],
+                product_urls=args.product_url,
+                category_key=args.product_category,
+                output_root=Path(args.output_root),
+            )
+        finally:
+            driver.quit()
+        print("\nDone:")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return
 
     if args.category:

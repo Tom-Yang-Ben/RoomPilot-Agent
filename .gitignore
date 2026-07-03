@@ -1,15 +1,30 @@
-/.venv/
+# Python virtual env
+.venv/
 venv/
 env/
+
+# Python cache
 __pycache__/
 **/__pycache__/
 *.py[cod]
-.env
-.env.*
 
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+!.env.example
+
+# Browser / webdriver cache
 .wdm/
 
+# Logs
 run-logs/
 
-/downloaded-files/
-/舊的翻譯資料/
+# Large GLB model files
+downloaded-files/
+
+# Old backup data
+舊的翻譯資料/
+
+needed.md
