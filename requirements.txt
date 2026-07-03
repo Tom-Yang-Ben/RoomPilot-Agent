@@ -27,3 +27,10 @@ wsproto==1.3.2
 numpy>=2.0
 opencv-python>=4.10
 ezdxf>=1.3
+requests==2.34.2  # 發送 HTTP 請求，抓取 IKEA 商品頁與下載 GLB 檔案
+selenium==4.45.0  # 控制 Chrome 瀏覽器，載入與捲動 IKEA 商品列表頁
+tqdm==4.68.3  # 顯示 GLB 檔案下載進度條
+webdriver-manager==4.1.2  # 自動下載與管理 ChromeDriver
+sqlalchemy>=2.0.0  # 建立資料表並將家具 catalog 匯入 PostgreSQL
+psycopg2-binary>=2.9.0  # SQLAlchemy 連線 PostgreSQL 需要的驅動
+python-dotenv>=1.0.0  # 從 .env 讀取 DATABASE_URL

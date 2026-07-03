@@ -1,68 +1,57 @@
 # RoomPilot Agent
 
-這個專題用來從 IKEA 網站收集家具商品資訊，並下載可用的 3D GLB 模型檔，方便組員用於 RoomPilot 相關的空間、家具或室內配置實作。
+RoomPilot Agent 是用來整理 IKEA GLB 家具資料的 Python 專案。主要流程是先整理原始 JSON，再驗證資料格式，合併成家具 catalog，最後匯入 PostgreSQL，提供後端 API 查詢使用。
 
-## 來源 GitHub
-
-目前專案來源 GitHub：
-
-[https://github.com/Tom-Yang-Ben/RoomPilot-Agent](https://github.com/apinanaivot/IKEA-3d-model-batch-downloader)
-
-## 專案內容
-
-- `download_ikea_bookcases_10.py`：下載 IKEA 書櫃類商品的前 10 個 GLB 模型，並輸出 metadata。
-- `download_ikea_sofas_10.py`：使用 Selenium 下載 IKEA 沙發類商品的前 10 個 GLB 模型，並輸出 metadata。
-- `find_one_sofa_glb.py`：測試下載單一沙發 GLB 模型。
-- `ikea-glb-downloader.py`：較早期的通用 IKEA GLB 下載腳本。
-- `downloaded-files/`：已下載的 GLB 模型與 CSV/JSON metadata，可提供組員直接查看與使用。
-- `sample.jpg`：專案範例圖片。
-- `requirements.txt`：Python 套件需求。
-
-## 安裝環境
-
-建議使用 Python 虛擬環境：
+## 安裝
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## 使用方式
+如果要匯入 PostgreSQL，請在專案根目錄建立 `.env`：
 
-下載書櫃模型：
-
-```bash
-python download_ikea_bookcases_10.py
+```env
+DATABASE_URL=postgresql+psycopg2://postgres:password@localhost:5432/roompilot
 ```
 
-下載沙發模型：
-
-```bash
-python download_ikea_sofas_10.py
-```
-
-下載完成後，檔案會放在：
+## 資料夾用途
 
 ```text
-downloaded-files/
+data/
+├── raw_json/
+├── processed/
+└── reports/
 ```
 
-## 版本控管說明
+| 資料夾 | 用途 |
+| --- | --- |
+| `data/raw_json/` | 放原始家具分類 JSON，可以有子資料夾，腳本會遞迴掃描。 |
+| `data/processed/` | 放合併後的輸出檔，例如 `furniture_catalog.jsonl` 和 `furniture_catalog.json`。 |
+| `data/reports/` | 放驗證或匯入時產生的報告，例如錯誤 CSV、驗證 summary。 |
 
-會上傳：
+## Python 檔案用途
 
-- Python 腳本
-- `requirements.txt`
-- README
-- 已下載的 GLB 模型與 metadata
-- 範例圖片
+| 檔案 | 功用 |
+| --- | --- |
+| `scripts/ikea_category_glb_downloader.py` | 從 IKEA 分類頁尋找可用的 GLB 3D 模型，下載 `.glb` 並產生 metadata CSV / JSON。 |
+| `scripts/clean_metadata_json.py` | 清理舊 metadata，例如把 `chinese name` 改成 `chinese_name`、修正 `glb_path` 斜線。 |
+| `scripts/validate_json.py` | 檢查 `data/raw_json/` 裡的 JSON 是否符合後端與資料庫需求。 |
+| `scripts/merge_json_to_catalog.py` | 把多個分類 JSON 的 `scene.objects` 合併成總家具 catalog。 |
+| `scripts/import_furniture_to_db.py` | 把 `furniture_catalog.jsonl` 匯入 PostgreSQL 的 `furniture_items` 資料表。 |
 
-不會上傳：
+## 不上傳到 GitHub 的資料夾
 
-- `.venv/`、`venv/`、`env/`
-- `__pycache__/`
-- `.pyc` 快取檔
-- `.env` 環境設定檔
-- `ikea_products.db` 本機資料庫狀態檔
+以下資料夾已加入 `.gitignore`，不會上傳到 GitHub：
 
+```text
+.venv/
+__pycache__/
+downloaded-files/
+舊的翻譯資料/
+```
+
+這些通常是本機環境、快取檔、大型 GLB 檔案或舊資料備份，不適合放進 GitHub。
+
+## License
+
+本專案參考 `apinanaivot/IKEA-3d-model-batch-downloader`，並沿用 GPL-3.0 授權。詳見 [LICENSE](LICENSE)。

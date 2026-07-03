@@ -1,12 +1,21 @@
+# Python virtual env
 .venv/
 venv/
 env/
-__pycache__/
-*.py[cod]
-.env
-.env.*
 
-ikea_products.db
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+!.env.example
+
+# Browser / webdriver cache
 .wdm/
 # Python
 __pycache__/
@@ -34,3 +43,16 @@ __pycache__/
 # 前端(之後若接 node)
 node_modules/
 __pycache__/
+
+# Logs
+run-logs/
+
+# Large GLB model files
+downloaded-files/
+
+# Old backup data
+舊的翻譯資料/
+
+needed.md
+
+data/
