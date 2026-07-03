@@ -293,15 +293,16 @@ def _has_door_swing(thin, orient, c, a, b, T, arc_pct):
 
     def hinge_arc(end, r):
         leaf = 1 if end == a else -1         # 門扇閉合時沿開口指向另一端
-        for off in (0.0, 0.5 * T, 1.0 * T):  # 鉸鏈可能被牆垛往外偏移一點
+        for off in (0.0, -0.5 * T, 0.5 * T, 1.0 * T):  # 鉸鏈與蝕刻後的開口端可能有小錯位(內外皆可能)
             hinge = end - leaf * off
-            for side in (1, -1):             # 房間可能在牆的任一側
-                if orient == "v":
-                    if _arc_run(thin, c, hinge, r + off, 0, side, leaf, 0) >= thr:
-                        return True
-                else:
-                    if _arc_run(thin, hinge, c, r + off, leaf, 0, 0, side) >= thr:
-                        return True
+            for rr in (r, r + off) if off > 0 else (r,):   # 外移時門寬可能連著一起變大
+                for side in (1, -1):         # 房間可能在牆的任一側
+                    if orient == "v":
+                        if _arc_run(thin, c, hinge, rr, 0, side, leaf, 0) >= thr:
+                            return True
+                    else:
+                        if _arc_run(thin, hinge, c, rr, leaf, 0, 0, side) >= thr:
+                            return True
         return False
 
     if 1.2 * T <= gap <= 8.0 * T and (hinge_arc(a, gap) or hinge_arc(b, gap)):
@@ -451,6 +452,94 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
                 g.append([c, [r]])
         return g
 
+    def sub_window(orient, band_lo, band_hi, g_lo, g_hi):
+        """整個開口的覆蓋率不夠時，找其中「有線的連續子段」：窗常跟門洞共用同一個
+        開口(中間的牆垛被蝕刻掉)，有線的那段是窗、全空的那段留開。回傳 (s0, s1) 或 None。"""
+        if soft is None:
+            return None
+        def profile(img):
+            if orient == "h":
+                bd = img[max(0, int(band_lo)):min(Himg, int(band_hi)), max(0, int(g_lo)):min(Wimg, int(g_hi))]
+                return (bd.max(axis=0) > 0) if bd.size else None
+            bd = img[max(0, int(g_lo)):min(Himg, int(g_hi)), max(0, int(band_lo)):min(Wimg, int(band_hi))]
+            return (bd.max(axis=1) > 0) if bd.size else None
+
+        def find_runs(prof):                 # 找允許小斷點(毛邊)的覆蓋連續段
+            runs, i = [], 0
+            tol = max(2, int(round(0.15 * T)))
+            while i < len(prof):
+                if not prof[i]:
+                    i += 1
+                    continue
+                j, miss = i, 0
+                for k in range(i, len(prof)):
+                    if prof[k]:
+                        j, miss = k, 0
+                    else:
+                        miss += 1
+                        if miss > tol:
+                            break
+                runs.append((i, j + 1))
+                i = j + 1 + tol + 1
+            return runs
+
+        # 先用一般二值化找段(斜線填充/淺灰裝飾在這裡常是斷續的,能把窗跟它切開)，
+        # 一般二值化上空空如也(淺灰玻璃線)才用寬鬆二值化。
+        runs = []
+        p_orig = profile(orig_bw)
+        if p_orig is not None and p_orig.any():
+            runs += find_runs(p_orig)
+        p_soft = profile(soft)
+        if p_soft is not None and p_soft.any():
+            runs += [r for r in find_runs(p_soft) if r not in runs]
+        if not runs:
+            return None
+        def anchor_count(p0, p1):
+            """數子段兩端外側有幾端貼著實心墨(牆垛)。窗至少一端貼牆垛(另一端可能直接
+            連門洞)；隔屏/家具(沙發)的線末端是自由端或小端蓋,兩端都沒實牆。"""
+            d = max(3, int(round(0.8 * T)))
+            n = 0
+            for lo, hi in ((p0 - d, p0), (p1, p1 + d)):
+                if orient == "h":
+                    blk = orig_bw[max(0, int(band_lo)):min(Himg, int(band_hi)),
+                                  max(0, lo):min(Wimg, hi)]
+                else:
+                    blk = orig_bw[max(0, lo):min(Himg, hi),
+                                  max(0, int(band_lo)):min(Wimg, int(band_hi))]
+                if blk.size and (blk > 0).mean() >= 0.3:
+                    n += 1
+            return n
+
+        for s in sorted(runs, key=lambda r: r[0] - r[1]):    # 由長到短試每個連續段
+            s0, s1 = int(g_lo) + s[0], int(g_lo) + s[1]
+            if (s1 - s0) < max(gmin, 1.5 * T) or (s1 - s0) >= 0.9 * (g_hi - g_lo):
+                continue                     # 太短不算；幾乎佔滿整段就不是「子段」情況
+            if anchor_count(s0, s1) < 1:
+                continue
+            # 子段用「貼緣」結構把關：窗線畫在牆的兩個面上(貼牆帶兩緣)，
+            # 隔屏/沙發比牆薄,線落在帶中間 → 擋掉
+            if orient == "h":
+                ok = covered_soft(int(band_lo), int(band_hi), s0, s1, 1, edge_hug=True)
+            else:
+                ok = covered_soft(s0, s1, int(band_lo), int(band_hi), 0, edge_hug=True)
+            if ok:
+                return (s0, s1)
+        return None
+
+    def try_window(orient, x0, y0, x1, y1):
+        """開口通過覆蓋/結構檢查後的最後一關：門過濾(原則3——有弧就是門)。過了就收錄。"""
+        if orient == "h":
+            g0, g1, c_ = x0, x1, (y0 + y1) / 2.0
+            ends = ((x0, c_), (x1, c_))
+        else:
+            g0, g1, c_ = y0, y1, (x0 + x1) / 2.0
+            ends = ((c_, y0), (c_, y1))
+        if _near_door((x0 + x1) / 2.0, (y0 + y1) / 2.0, g1 - g0, doors, ends, T):
+            return                           # 開口處是門(鉸鏈貼端點) → 留開，不畫窗
+        if thin is not None and _has_door_swing(thin, orient, c_, g0, g1, T, cfg.door_arc_pct):
+            return                           # 端點掃到開闔弧線 → 門，不是窗
+        wins.append((orient, float(x0), float(y0), float(x1), float(y1)))
+
     for _, grp in group(horiz, lambda r: (r[1] + r[3]) / 2):
         grp.sort(key=lambda r: r[0])
         for a, b in zip(grp, grp[1:]):
@@ -463,14 +552,13 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
                 continue
             pad = max(2, int(round(0.25 * T)))   # 窗符號比蝕刻後的牆塊略寬,帶朝兩側擴一點
             band = orig_bw[max(0, y0 - pad):min(Himg, y1 + pad), max(0, x0):min(Wimg, x1)]
-            if not covered(band, 1) and not covered_soft(y0 - pad, y1 + pad, x0, x1, 1):
-                continue
-            cy_ = (y0 + y1) / 2.0
-            if _near_door((x0 + x1) / 2.0, cy_, gap, doors, ((x0, cy_), (x1, cy_)), T):
-                continue                     # 開口處是門(鉸鏈貼端點) → 留開，不畫窗
-            if thin is not None and _has_door_swing(thin, "h", cy_, x0, x1, T, cfg.door_arc_pct):
-                continue                     # 端點掃到開闔弧線 → 閉合門扇，不是窗
-            wins.append(("h", float(x0), float(y0), float(x1), float(y1)))
+            if covered(band, 1) or covered_soft(y0 - pad, y1 + pad, x0, x1, 1):
+                try_window("h", x0, y0, x1, y1)
+            elif not (band.size and (band.max(axis=0) > 0).mean() >= thr):
+                # 整段覆蓋率真的低(有大片空白)才找子段；覆蓋高但結構不像窗=推拉門/門檻,直接擋
+                s = sub_window("h", y0 - pad, y1 + pad, x0, x1)
+                if s:                        # 開口只有一部分有線 → 那段是窗,其餘留開
+                    try_window("h", s[0], y0, s[1], y1)
 
     for _, grp in group(vert, lambda r: (r[0] + r[2]) / 2):
         grp.sort(key=lambda r: r[1])
@@ -484,14 +572,13 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
                 continue
             pad = max(2, int(round(0.25 * T)))   # 窗符號比蝕刻後的牆塊略寬,帶朝兩側擴一點
             band = orig_bw[max(0, y0):min(Himg, y1), max(0, x0 - pad):min(Wimg, x1 + pad)]
-            if not covered(band, 0) and not covered_soft(y0, y1, x0 - pad, x1 + pad, 0):
-                continue
-            cx_ = (x0 + x1) / 2.0
-            if _near_door(cx_, (y0 + y1) / 2.0, gap, doors, ((cx_, y0), (cx_, y1)), T):
-                continue                     # 開口處是門(鉸鏈貼端點) → 留開，不畫窗
-            if thin is not None and _has_door_swing(thin, "v", cx_, y0, y1, T, cfg.door_arc_pct):
-                continue                     # 端點掃到開闔弧線 → 閉合門扇，不是窗
-            wins.append(("v", float(x0), float(y0), float(x1), float(y1)))
+            if covered(band, 0) or covered_soft(y0, y1, x0 - pad, x1 + pad, 0):
+                try_window("v", x0, y0, x1, y1)
+            elif not (band.size and (band.max(axis=1) > 0).mean() >= thr):
+                # 整段覆蓋率真的低(有大片空白)才找子段；覆蓋高但結構不像窗=推拉門/門檻,直接擋
+                s = sub_window("v", x0 - pad, x1 + pad, y0, y1)
+                if s:                        # 開口只有一部分有線 → 那段是窗,其餘留開
+                    try_window("v", x0, s[0], x1, s[1])
 
     # ── 補找「牆段跟垂直牆之間」與「整條被抹除的牆線上」的窗 ──
     # 細線畫的窗(甚至整條細線牆)會被 solid 開運算抹光，上面的成對牆段邏輯拿它沒轍：
