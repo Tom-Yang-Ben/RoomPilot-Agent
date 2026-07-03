@@ -39,60 +39,6 @@ data/
 | `scripts/merge_json_to_catalog.py` | 把多個分類 JSON 的 `scene.objects` 合併成總家具 catalog。 |
 | `scripts/import_furniture_to_db.py` | 把 `furniture_catalog.jsonl` 匯入 PostgreSQL 的 `furniture_items` 資料表。 |
 
-## 建議執行順序
-
-### 0. 下載 IKEA GLB 與 metadata
-
-如果還沒有原始資料，可以先執行下載器：
-
-```bash
-python scripts/ikea_category_glb_downloader.py
-```
-
-下載完成後，請把要處理的 metadata JSON 放到 `data/raw_json/`。
-
-### 1. 驗證 JSON
-
-```bash
-python scripts/validate_json.py --input data/raw_json
-```
-
-成功後會產生：
-
-```text
-data/reports/validation_report.json
-data/reports/validation_errors.csv
-```
-
-如果錯誤數是 `0`，代表資料可以進入下一步。
-
-### 2. 合併家具 catalog
-
-```bash
-python scripts/merge_json_to_catalog.py --input data/raw_json --output data/processed/furniture_catalog.jsonl
-```
-
-成功後會產生：
-
-```text
-data/processed/furniture_catalog.jsonl
-data/processed/furniture_catalog.json
-```
-
-`jsonl` 適合匯入資料庫，一行一筆資料。`json` 適合人工查看或給前端測試。
-
-### 3. 匯入 PostgreSQL
-
-```bash
-python scripts/import_furniture_to_db.py --input data/processed/furniture_catalog.jsonl
-```
-
-成功後會在 PostgreSQL 建立或更新 `furniture_items` 資料表。匯入失敗的資料會輸出到：
-
-```text
-data/reports/import_errors.csv
-```
-
 ## 不上傳到 GitHub 的資料夾
 
 以下資料夾已加入 `.gitignore`，不會上傳到 GitHub：
