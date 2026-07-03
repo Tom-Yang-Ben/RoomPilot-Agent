@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>家具資料庫</title>
+    <link rel="stylesheet" href="/static/site.css" />
+  </head>
+  <body data-page="library">
+    <canvas id="fx-canvas" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+      <a class="brand" href="/">AI 室內風格與家具配置展示系統</a>
+      <nav class="topnav">
+        <a href="/">首頁</a>
+        <a href="/styles">查看風格類型</a>
+        <a href="/library" class="active">家具資料庫</a>
+        <a href="/scene">3D 場景展示</a>
+      </nav>
+    </header>
+
+    <main class="page-shell two-column-shell">
+      <section class="page-panel">
+        <div class="page-heading compact">
+          <p class="eyebrow">FURNITURE DATABASE</p>
+          <h1>家具資料庫</h1>
+          <p>這一頁只看家具資料與模型狀態。`缺 GLB` 代表資料存在，但目前專案資料夾找不到可載入的模型檔。</p>
+        </div>
+
+        <div class="toolbar">
+          <label class="field">
+            <span>搜尋家具</span>
+            <input id="search-input" type="search" placeholder="輸入家具名稱、類型、顏色" />
+          </label>
+          <label class="field">
+            <span>風格篩選</span>
+            <select id="style-filter">
+              <option value="">全部風格</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>類型篩選</span>
+            <select id="type-filter">
+              <option value="">全部類型</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="list-summary">
+          <span id="library-count">0 筆家具</span>
+          <span id="missing-summary">-</span>
+        </div>
+
+        <section id="library-grid" class="library-grid-page"></section>
+      </section>
+
+      <aside class="page-panel viewer-side">
+        <div class="page-heading compact">
+          <p class="eyebrow">MODEL VIEWER</p>
+          <h2>家具 3D 檢視</h2>
+        </div>
+
+        <div class="viewer-meta">
+          <div><span>目前家具</span><strong id="viewer-title">尚未選擇家具</strong></div>
+          <div><span>主風格</span><strong id="viewer-style">-</strong></div>
+          <div><span>類型</span><strong id="viewer-type">-</strong></div>
+          <div><span>尺寸</span><strong id="viewer-size">-</strong></div>
+        </div>
+
+        <div class="axis-note">
+          <span class="axis x">+X / -X 左右</span>
+          <span class="axis y">+Y / -Y 上下</span>
+          <span class="axis z">+Z / -Z 前後</span>
+        </div>
+
+        <div id="viewer-canvas" class="viewer-canvas" aria-label="Three.js 家具模型檢視器"></div>
+
+        <div class="viewer-actions">
+          <button type="button" id="reset-viewer">重設視角</button>
+          <button type="button" id="spin-model">模型旋轉展示</button>
+        </div>
+
+        <div id="viewer-status" class="viewer-status">請從左側點選一件家具，右側會同步顯示對應的模型或狀態。</div>
+      </aside>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/static/library.js?v=20260703c"></script>
+  </body>
+</html>
