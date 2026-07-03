@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D 場景展示</title>
+    <link rel="stylesheet" href="/static/site.css" />
+  </head>
+  <body data-page="scene">
+    <canvas id="fx-canvas" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+      <a class="brand" href="/">AI 室內風格與家具配置展示系統</a>
+      <nav class="topnav">
+        <a href="/">首頁</a>
+        <a href="/styles">查看風格類型</a>
+        <a href="/library">家具資料庫</a>
+        <a href="/scene" class="active">3D 場景展示</a>
+      </nav>
+    </header>
+
+    <main class="page-shell two-column-shell">
+      <section class="page-panel">
+        <div class="page-heading compact">
+          <p class="eyebrow">SCENE DEMO</p>
+          <h1>3D 場景展示</h1>
+          <p>這一頁專門保留給未來的「平面圖輸入 -> 風格條件 -> 家具配置 -> 3D 場景輸出」流程，不跟資料庫總表混在一起。</p>
+        </div>
+
+        <div class="workflow-grid large">
+          <article class="workflow-card">
+            <span>01</span>
+            <h3>輸入平面圖</h3>
+            <p>上傳平面圖、房間尺寸、門窗位置與基本動線限制。</p>
+          </article>
+          <article class="workflow-card">
+            <span>02</span>
+            <h3>輸入風格與需求</h3>
+            <p>例如北歐風、不要擋窗、沙發遠離門口、低彩度與自然採光。</p>
+          </article>
+          <article class="workflow-card">
+            <span>03</span>
+            <h3>LLM 轉規則</h3>
+            <p>把自然語言需求轉成結構化條件，再從既有 GLB 資料庫挑家具。</p>
+          </article>
+          <article class="workflow-card">
+            <span>04</span>
+            <h3>輸出 3D 場景</h3>
+            <p>依配置結果生成牆面、地板、家具位置與最終 Three.js 場景。</p>
+          </article>
+        </div>
+
+        <section class="page-panel nested-panel">
+          <div class="field">
+            <span>使用者需求範例</span>
+            <div class="prompt-box">沙發離門遠一點、不要擋窗、北歐風、牆面暖白、地板淺木色、優先使用現有 GLB 家具資料庫。</div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="page-panel viewer-side">
+        <div class="page-heading compact">
+          <p class="eyebrow">REPRESENTATIVE MODEL</p>
+          <h2>代表家具檢視</h2>
+        </div>
+
+        <div class="viewer-meta">
+          <div><span>家具</span><strong id="viewer-title">載入中...</strong></div>
+          <div><span>主風格</span><strong id="viewer-style">-</strong></div>
+          <div><span>類型</span><strong id="viewer-type">-</strong></div>
+          <div><span>尺寸</span><strong id="viewer-size">-</strong></div>
+        </div>
+
+        <div id="viewer-canvas" class="viewer-canvas" aria-label="Three.js 家具模型檢視區"></div>
+
+        <div class="viewer-actions">
+          <button type="button" id="reset-viewer">重設視角</button>
+          <button type="button" id="spin-model">模型旋轉展示</button>
+        </div>
+
+        <div id="scene-style-chips" class="chip-row"></div>
+        <div id="viewer-status" class="viewer-status">將自動載入一件可用的代表家具。</div>
+      </aside>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/static/scene.js"></script>
+  </body>
+</html>

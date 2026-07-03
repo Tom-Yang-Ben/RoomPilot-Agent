@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>查看風格類型</title>
+    <link rel="stylesheet" href="/static/site.css" />
+  </head>
+  <body data-page="styles">
+    <canvas id="fx-canvas" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+      <a class="brand" href="/">AI 室內風格與家具配置展示系統</a>
+      <nav class="topnav">
+        <a href="/">首頁</a>
+        <a href="/styles" class="active">查看風格類型</a>
+        <a href="/library">家具資料庫</a>
+        <a href="/scene">3D 場景展示</a>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      <section class="page-panel page-heading">
+        <p class="eyebrow">MOODBOARD / STYLE RULES / FURNITURE GROUPING</p>
+        <h1>查看風格類型</h1>
+        <p>這一頁聚焦 12 種風格本身，包含風格規則、空間背景設定，以及資料庫中目前對應到哪些家具分類與代表家具。</p>
+      </section>
+
+      <section class="page-panel style-tabs-shell">
+        <div id="style-tab-row" class="style-tab-row" aria-label="12 種風格切換"></div>
+        <div class="style-detail-layout">
+          <section id="style-detail-panel" class="style-detail-panel"></section>
+          <aside id="style-side-panel" class="style-side-panel">
+            <div class="side-panel-heading">
+              <p class="eyebrow">DATABASE GROUPING</p>
+              <h2>資料庫對應家具分類</h2>
+            </div>
+            <div id="style-furniture-panel" class="style-furniture-panel"></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/static/styles.js"></script>
+  </body>
+</html>

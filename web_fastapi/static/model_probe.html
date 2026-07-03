@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>模型載入探針</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: "Noto Sans TC", sans-serif;
+        background: #f4efe8;
+        color: #2d2d2d;
+      }
+      .panel {
+        max-width: 980px;
+        margin: 0 auto;
+        background: #fffdfa;
+        border: 1px solid #d8c9b8;
+        border-radius: 24px;
+        padding: 24px;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: #fbf7f2;
+        border-radius: 16px;
+        padding: 16px;
+        border: 1px solid #e2d4c4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <h1>模型載入探針</h1>
+      <p id="probe-status">準備中...</p>
+      <pre id="probe-results">尚未執行</pre>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/static/model_probe.js"></script>
+  </body>
+</html>

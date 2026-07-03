@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 室內風格與家具配置展示系統</title>
+    <link rel="stylesheet" href="/static/site.css" />
+  </head>
+  <body data-page="home">
+    <canvas id="fx-canvas" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+      <div class="topbar-spacer" aria-hidden="true"></div>
+      <a class="brand" href="/">AI 室內風格與家具配置展示系統</a>
+      <nav class="topnav">
+        <a href="/">首頁</a>
+        <a href="/styles">查看風格類型</a>
+        <a href="/library">家具資料庫</a>
+        <a href="/scene">3D 場景展示</a>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      <section class="hero-panel page-panel home-hero-panel">
+        <div class="hero-copy home-hero-copy">
+          <div class="purpose-card">
+            <span class="purpose-label">專題宗旨</span>
+            <h1 id="project-subtitle" class="hero-purpose"></h1>
+          </div>
+
+          <div class="metric-strip">
+            <article class="metric-chip">
+              <span>家具總數</span>
+              <strong id="metric-furniture">-</strong>
+            </article>
+            <article class="metric-chip">
+              <span>風格數量</span>
+              <strong id="metric-styles">-</strong>
+            </article>
+            <article class="metric-chip">
+              <span>展示方式</span>
+              <strong>GLB 資料庫配置</strong>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="page-panel workflow-panel">
+        <div class="workflow-heading">
+          <p class="workflow-kicker">SYSTEM FLOW</p>
+          <h2>從平面圖輸入到 3D 場景展示</h2>
+        </div>
+        <div id="scope-list" class="scope-grid home-scope-grid"></div>
+      </section>
+    </main>
+
+    <footer class="page-footer">
+      <p id="footer-line">把風格、家具資料庫與 3D 場景生成流程清楚展示給使用者。</p>
+    </footer>
+
+    <script type="module" src="/static/home.js"></script>
+  </body>
+</html>
