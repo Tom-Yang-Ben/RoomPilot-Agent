@@ -33,3 +33,4 @@ __pycache__/
 
 # 前端(之後若接 node)
 node_modules/
+__pycache__/
