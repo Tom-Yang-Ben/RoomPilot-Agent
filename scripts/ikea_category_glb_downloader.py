@@ -10,7 +10,7 @@ from urllib.parse import unquote, urljoin
 
 import requests
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -42,91 +42,187 @@ HEADERS = {
 
 CATEGORY_GROUPS = {
     "bookcases": {
-        "label": "書櫃 / 層架",
+        "label": "Bookcases and shelving / 書櫃與層架",
         "items": {
-            "bookcases": ("書櫃", "bookcases-10382"),
-            "shelving-units": ("層架 / 置物架", "shelving-units-10397"),
-            "wall-shelves": ("壁架", "wall-shelves-10398"),
+            "bookcases": ("Bookcases / 書櫃", "bookcases-10382"),
+            "shelving-units": ("Shelving units / 層架組", "shelving-units-10397"),
+            "wall-shelves": ("Wall shelves / 壁架", "wall-shelves-10398"),
         },
     },
     "sofas": {
-        "label": "沙發",
+        "label": "Sofas and armchairs / 沙發與扶手椅",
         "items": {
-            "sofas": ("全部沙發", "sofas-fu003"),
-            "fabric-sofas": ("布沙發", "fabric-sofas-10661"),
-            "leather-sofas": ("皮沙發 / 仿皮沙發", "leather-coated-fabric-sofas-10662"),
-            "sofa-beds": ("沙發床", "sofa-beds-10663"),
-            "modular-sofas": ("模組沙發", "modular-sofas-31786"),
-            "armchairs": ("扶手椅", "armchairs-16239"),
+            "sofas": ("All sofas / 所有沙發", "sofas-fu003"),
+            "fabric-sofas": ("Fabric sofas / 布沙發", "fabric-sofas-10661"),
+            "leather-sofas": (
+                "Leather and coated fabric sofas / 皮革與塗層布沙發",
+                "leather-coated-fabric-sofas-10662",
+            ),
+            "sofa-beds": ("Sofa beds / 沙發床", "sofa-beds-10663"),
+            "modular-sofas": ("Modular sofas / 模組沙發", "modular-sofas-31786"),
+            "armchairs": ("Armchairs / 扶手椅", "armchairs-16239"),
         },
     },
     "chairs": {
-        "label": "椅子 / 扶手椅 / 凳子",
+        "label": "Chairs, stools and benches / 椅子、凳子與長凳",
         "items": {
-            "chairs": ("全部椅子", "tables-chairs-fu002"),
-            "dining-chairs": ("餐椅", "dining-chairs-25219"),
-            "office-chairs": ("辦公椅", "office-chairs-20652"),
-            "armchairs": ("扶手椅", "armchairs-16239"),
-            "stools-benches": ("凳子 / 長凳", "stools-benches-16244"),
-            "gaming-chairs": ("電競椅", "gaming-chairs-47067"),
+            "chairs": ("All chairs / 所有椅子", "tables-chairs-fu002"),
+            "dining-chairs": ("Dining chairs / 餐椅", "dining-chairs-25219"),
+            "office-chairs": ("Office and desk chairs / 辦公椅與書桌椅", "desk-chairs-20652"),
+            "armchairs": ("Armchairs / 扶手椅", "armchairs-16239"),
+            "stools-benches": ("Stools and benches / 凳子與長凳", "stools-benches-16244"),
+            "gaming-chairs": ("Gaming chairs / 電競椅", "gaming-chairs-47067"),
         },
     },
     "tables": {
-        "label": "桌子 / 書桌",
+        "label": "Tables and desks / 桌子與書桌",
         "items": {
-            "tables": ("全部桌子", "tables-desks-fu004"),
-            "dining-tables": ("餐桌", "dining-tables-21825"),
-            "desks": ("書桌 / 電腦桌", "desks-20649"),
-            "coffee-tables": ("茶几", "coffee-tables-10705"),
-            "bedside-tables": ("床邊桌", "bedside-tables-20656"),
-            "bar-tables": ("吧台桌", "bar-tables-20862"),
+            "tables": ("All tables and desks / 所有桌子與書桌", "tables-desks-fu004"),
+            "dining-tables": ("Dining tables / 餐桌", "dining-tables-21825"),
+            "desks": ("Desks and computer desks / 書桌與電腦桌", "desks-computer-desks-20649"),
+            "coffee-tables": ("Coffee tables / 咖啡桌、茶几", "coffee-tables-10705"),
+            "bedside-tables": ("Bedside tables / 床邊桌", "bedside-tables-20656"),
+            "bar-tables": ("Bar tables / 吧台桌", "bar-tables-20862"),
         },
     },
     "beds": {
-        "label": "床 / 床架",
+        "label": "Beds and mattresses / 床與床墊",
         "items": {
-            "beds": ("全部床具", "beds-bm003"),
-            "bed-frames": ("床架", "beds-16284"),
-            "sofa-beds": ("沙發床", "sofa-beds-10663"),
-            "mattresses": ("床墊", "mattresses-bm002"),
-            "bedside-tables": ("床邊桌", "bedside-tables-20656"),
+            "beds": ("All beds / 所有床", "beds-bm003"),
+            "bed-frames": ("Bed frames / 床架", "beds-16284"),
+            "sofa-beds": ("Sofa beds / 沙發床", "sofa-beds-10663"),
+            "mattresses": ("Mattresses / 床墊", "mattresses-bm002"),
+            "bedside-tables": ("Bedside tables / 床邊桌", "bedside-tables-20656"),
         },
     },
     "wardrobes": {
-        "label": "衣櫃",
+        "label": "Wardrobes and clothes storage / 衣櫃與衣物收納",
         "items": {
-            "wardrobes": ("全部衣櫃", "wardrobes-19053"),
-            "pax-wardrobes": ("PAX 衣櫃系統", "pax-wardrobes-19086"),
-            "open-wardrobes": ("開放式衣櫃", "open-wardrobes-11480"),
-            "clothes-racks": ("衣架 / 掛衣架", "clothes-stands-shoe-racks-10456"),
+            "wardrobes": ("All wardrobes / 所有衣櫃", "wardrobes-19053"),
+            "pax-wardrobes": ("PAX wardrobes / PAX 衣櫃", "pax-wardrobes-19086"),
+            "open-wardrobes": ("Open wardrobes / 開放式衣櫃", "open-wardrobes-11480"),
+            "clothes-racks": ("Clothes racks and shoe racks / 衣架與鞋架", "clothes-stands-shoe-racks-10456"),
+            "shoe-cabinets": ("Shoe cabinets / 鞋櫃", "shoe-cabinets-10456"),
+        },
+    },
+    "storage-furniture": {
+        "label": "Storage furniture / 收納家具",
+        "items": {
+            "storage-furniture": ("All storage furniture / 所有收納家具", "storage-furniture-st001"),
+            "storage-solution-systems": ("Storage solution systems / 收納系統", "storage-solution-systems-46052"),
+            "cabinets-cupboards": ("Cabinets and cupboards / 櫃子與櫥櫃", "cabinets-cupboards-st003"),
+            "display-cabinets": ("Display cabinets / 展示櫃", "display-cabinets-10410"),
+            "chests-of-drawers": (
+                "Chests of drawers and drawer units / 抽屜櫃與抽屜組",
+                "chest-of-drawers-drawer-units-st004",
+            ),
+            "sideboards": (
+                "Sideboards, buffets and console tables / 邊櫃、餐邊櫃與玄關桌",
+                "sideboards-buffets-console-tables-30454",
+            ),
+            "trolleys": ("Trolleys / 推車", "trolleys-fu005"),
+            "room-dividers": ("Room dividers / 屏風、空間隔間", "room-dividers-46080"),
+        },
+    },
+    "tv-media-furniture": {
+        "label": "TV and media furniture / 電視與影音家具",
+        "items": {
+            "tv-media-furniture": ("All TV and media furniture / 所有電視與影音家具", "tv-media-furniture-10475"),
+            "tv-benches": ("TV benches / 電視櫃", "tv-benches-10810"),
+        },
+    },
+    "outdoor-furniture": {
+        "label": "Outdoor furniture / 戶外家具",
+        "items": {
+            "outdoor-furniture": ("All outdoor furniture / 所有戶外家具", "garden-furniture-od003"),
+            "outdoor-seating": ("Outdoor seating / 戶外座椅", "outdoor-seating-700350"),
+            "outdoor-dining": ("Outdoor dining / 戶外餐桌椅", "outdoor-dining-700351"),
+            "sun-loungers-hammocks": ("Sun loungers and hammocks / 躺椅與吊床", "sun-loungers-hammocks-21963"),
+            "outdoor-coffee-side-tables": (
+                "Outdoor coffee and side tables / 戶外咖啡桌與邊桌",
+                "garden-coffee-side-tables-700192",
+            ),
+        },
+    },
+    "childrens-furniture": {
+        "label": "Children's furniture / 兒童家具",
+        "items": {
+            "childrens-furniture": (
+                "Children's small furniture / 兒童小型家具",
+                "childrens-small-furniture-18767",
+            ),
+            "kids-chairs-stools": ("Kids chairs and stools / 兒童椅與凳子", "kids-chairs-stools-18769"),
+            "childrens-tables": ("Children's tables / 兒童桌", "childrens-tables-18768"),
+            "childrens-stools-benches": (
+                "Children's stools and benches / 兒童凳與長凳",
+                "childrens-stools-benches-45816",
+            ),
+            "kids-armchairs": ("Kids armchairs / 兒童扶手椅", "kids-armchairs-20483"),
+        },
+    },
+    "mirrors": {
+        "label": "Mirrors / 鏡子",
+        "items": {
+            "mirrors": ("All mirrors / 所有鏡子", "mirrors-20489"),
+            "wall-mirrors": ("Wall mirrors / 壁鏡", "wall-mirrors-20490"),
+            "large-mirrors": ("Large mirrors / 大型鏡子", "large-mirrors-24858"),
+            "standing-mirrors": ("Standing mirrors / 立鏡", "standing-mirrors-20491"),
+            "mirror-cabinets": ("Mirror cabinets / 鏡櫃", "mirror-cabinets-20820"),
         },
     },
     "rugs": {
-        "label": "地毯",
+        "label": "Rugs and mats / 地毯與踏墊",
         "items": {
-            "rugs": ("全部地毯", "rugs-10653"),
-            "large-medium-rugs": ("大型 / 中型地毯", "large-medium-rugs-10654"),
-            "small-rugs": ("小地毯", "small-rugs-10659"),
-            "door-mats": ("門墊", "door-mats-10656"),
+            "rugs": ("All rugs / 所有地毯", "rugs-10653"),
+            "large-medium-rugs": ("Large and medium rugs / 大型與中型地毯", "large-medium-rugs-10692"),
+            "runner-small-rugs": ("Runners and small rugs / 走道毯與小地毯", "runner-small-rugs-10689"),
+            "round-rugs": ("Round rugs / 圓形地毯", "round-rugs-20543"),
+            "outdoor-rugs": ("Outdoor rugs / 戶外地毯", "outdoor-rugs-34204"),
+            "door-mats": ("Door mats / 門墊", "door-mats-10698"),
+            "handmade-rugs": ("Handmade rugs / 手工地毯", "handmade-rugs-39267"),
+            "anti-slip-rug-underlays": (
+                "Anti-slip and rug underlays / 止滑墊與地毯底墊",
+                "anti-slip-rug-underlays-10699",
+            ),
+            "sheepskins-cowhides": (
+                "Cowhides, sheepskins and faux fur rugs / 牛皮、羊皮與仿毛地毯",
+                "sheepskins-cowhides-20544",
+            ),
+            "childrens-rugs-curtains": (
+                "Children's rugs and curtains / 兒童地毯與窗簾",
+                "childrens-rugs-curtains-18774",
+            ),
+            "nursery-rugs-and-curtains": (
+                "Nursery rugs and curtains / 嬰幼兒房地毯與窗簾",
+                "nursery-rugs-and-curtains-18699",
+            ),
         },
     },
-    "table-lamps": {
-        "label": "桌燈 / 燈具",
+    "lamps": {
+        "label": "Lighting / 燈具",
         "items": {
-            "table-lamps": ("桌燈", "table-lamps-10732"),
-            "floor-lamps": ("立燈", "floor-lamps-10731"),
-            "work-lamps": ("工作燈", "work-lamps-20502"),
-            "lamp-shades-bases": ("燈罩 / 燈座", "lamp-shades-bases-cords-10728"),
+            "lamps": ("All lamps / 所有燈具", "lamps-li002"),
+            "table-lamps": ("Table lamps / 桌燈", "table-lamps-10732"),
+            "floor-lamps": ("Floor lamps / 立燈", "floor-lamps-10731"),
+            "work-lamps": ("Work lamps / 工作燈", "work-lamps-20502"),
+            "lamp-shades-bases": (
+                "Lamp shades, bases and cords / 燈罩、燈座與電線",
+                "lamp-shades-bases-cords-10728",
+            ),
         },
     },
-    "cabinets": {
-        "label": "櫃子 / 收納系統",
+    "decor-small-storage": {
+        "label": "Decor and small storage / 裝飾與小型收納",
         "items": {
-            "cabinets": ("全部收納系統", "storage-solution-systems-46052"),
-            "cabinets-cupboards": ("櫃子 / 碗櫃", "cabinets-cupboards-10409"),
-            "tv-benches": ("電視櫃", "tv-benches-10810"),
-            "chests-of-drawers": ("抽屜櫃", "chests-of-drawers-10451"),
-            "sideboards": ("餐邊櫃 / 玄關桌", "sideboards-buffets-console-tables-30454"),
+            "decoration": ("All decor and small storage / 所有裝飾與小型收納", "decoration-de001"),
+            "storage-boxes-baskets": (
+                "Storage boxes and baskets / 收納盒與籃子",
+                "storage-boxes-baskets-10550",
+            ),
+            "flower-pots-planters": (
+                "Flower pots and planters / 花盆與植栽盆",
+                "flower-pots-planters-pp004",
+            ),
         },
     },
 }
@@ -195,7 +291,34 @@ STORAGE_FURNITURE_CATEGORIES = [
 ]
 
 for storage_key, _, storage_path in STORAGE_FURNITURE_CATEGORIES:
-    CATEGORY_PRESETS.setdefault(storage_key, storage_path)
+    CATEGORY_PRESETS[storage_key] = storage_path
+
+FURNITURE_GROUP_NAMES = {
+    "bookcases": "Bookcases and shelving",
+    "sofas": "Sofas and armchairs",
+    "chairs": "Chairs stools and benches",
+    "tables": "Tables and desks",
+    "beds": "Beds and mattresses",
+    "wardrobes": "Wardrobes and clothes storage",
+    "storage-furniture": "Storage furniture",
+    "rugs": "Rugs and mats",
+    "lamps": "Lighting",
+    "tv-media-furniture": "TV and media furniture",
+    "outdoor-furniture": "Outdoor furniture",
+    "childrens-furniture": "Children's furniture",
+    "decor-small-storage": "Decor and small storage",
+    "mirrors": "Mirrors",
+}
+
+GROUP_TOTAL_CATEGORY_KEYS = {
+    "bookcases": "bookcases",
+    "decor-small-storage": "decoration",
+}
+
+GROUP_SKIP_CATEGORY_KEYS = {
+    "chairs": {"armchairs"},
+    "beds": {"sofa-beds", "bedside-tables"},
+}
 
 FURNITURE_INPUT_EXAMPLES = [
     (group_key, group_data["label"])
@@ -351,7 +474,10 @@ def collect_product_links(driver, category_url, target_count, site_base, deadlin
             ".plp-fragment-wrapper a.plp-product__image-link, a[href*='/p/']",
         )
         for anchor in anchors:
-            href = anchor.get_attribute("href")
+            try:
+                href = anchor.get_attribute("href")
+            except StaleElementReferenceException:
+                continue
             if not href or "/p/" not in href:
                 continue
             clean_url = urljoin(site_base, href).split("?")[0]
@@ -502,11 +628,21 @@ def extract_product_details(driver, product_url):
     return details_from_page_text(text, product_url, glb_url)
 
 
-def download_file(url, destination):
+def download_file(url, destination, attempts=3):
     """串流下載 GLB 檔案，並顯示下載進度。"""
     destination.parent.mkdir(parents=True, exist_ok=True)
-    response = requests.get(url, headers=HEADERS, stream=True, timeout=60)
-    response.raise_for_status()
+    response = None
+    for attempt in range(1, attempts + 1):
+        try:
+            response = requests.get(url, headers=HEADERS, stream=True, timeout=60)
+            response.raise_for_status()
+            break
+        except requests.RequestException:
+            if response is not None:
+                response.close()
+            if attempt >= attempts:
+                raise
+            time.sleep(attempt * 2)
     total_size = int(response.headers.get("content-length", 0))
 
     with destination.open("wb") as file, tqdm(
@@ -631,6 +767,9 @@ def furniture_group_from_category_key(category_key):
     storage_keys = {item_key for item_key, _, _ in STORAGE_FURNITURE_CATEGORIES}
     if category_key in storage_keys:
         return "Storage furniture"
+    for group_key, group_data in CATEGORY_GROUPS.items():
+        if category_key in group_data.get("items", {}):
+            return FURNITURE_GROUP_NAMES.get(group_key, group_key.replace("-", " ").title())
     return category_key.replace("-", " ").title()
 
 
@@ -767,7 +906,7 @@ def write_metadata(rows, metadata_csv, metadata_json, category_name, category_ur
 def load_registry(registry_path):
     if not registry_path.exists():
         return {"version": 1, "items": []}
-    with registry_path.open("r", encoding="utf-8") as file:
+    with registry_path.open("r", encoding="utf-8-sig") as file:
         data = json.load(file)
     if isinstance(data, dict) and isinstance(data.get("items"), list):
         return data
@@ -883,7 +1022,13 @@ def download_category(
 
         if not destination.exists():
             print(f"Downloading {index}: {details['name']}", flush=True)
-            download_file(details["glb_url"], destination)
+            try:
+                download_file(details["glb_url"], destination)
+            except requests.RequestException as exc:
+                print(f"Failed to download GLB for {details['name']}: {exc}", flush=True)
+                if destination.exists() and destination.stat().st_size == 0:
+                    destination.unlink()
+                continue
         else:
             print(f"File already exists: {destination}", flush=True)
 
@@ -951,12 +1096,67 @@ def run_storage_batch(args):
     return results
 
 
+def group_batch_categories(group_key):
+    if group_key not in CATEGORY_GROUPS:
+        valid_groups = ", ".join(sorted(CATEGORY_GROUPS))
+        raise ValueError(f"Unknown group '{group_key}'. Valid groups: {valid_groups}")
+
+    group_data = CATEGORY_GROUPS[group_key]
+    total_key = GROUP_TOTAL_CATEGORY_KEYS.get(group_key, group_key)
+    child_items = []
+    total_item = None
+    skip_keys = GROUP_SKIP_CATEGORY_KEYS.get(group_key, set())
+    for category_key, (category_label, category_path) in group_data["items"].items():
+        if category_key in skip_keys:
+            continue
+        item = (category_key, category_label, category_path)
+        if category_key == total_key:
+            total_item = item
+        else:
+            child_items.append(item)
+
+    if total_item is not None:
+        child_items.append(total_item)
+    return child_items
+
+
+def run_group_batch(args, group_key):
+    site = IKEA_SITES[args.site]
+    output_root = Path(args.output_root)
+    registry_path = output_root / f"{args.site}-{group_key}-registry.json"
+    registry = load_registry(registry_path)
+
+    driver = get_chrome_driver()
+    results = []
+    try:
+        for category_key, category_label, _ in group_batch_categories(group_key):
+            print(f"\n=== {category_key}: {category_label} ===", flush=True)
+            result = download_category(
+                driver=driver,
+                site_key=args.site,
+                site_base=site["base_url"],
+                category_key=category_key,
+                target_count=None,
+                output_root=output_root,
+                registry=registry,
+                registry_path=registry_path,
+                category_timeout_seconds=args.category_timeout_seconds,
+            )
+            results.append(result)
+    finally:
+        driver.quit()
+
+    save_registry(registry, registry_path)
+    return results
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Download IKEA category GLB files and metadata.")
     parser.add_argument("--site", default=DEFAULT_IKEA_SITE, choices=sorted(IKEA_SITES))
     parser.add_argument("--category", help="IKEA category key or full category URL.")
     parser.add_argument("--target-count", type=int, help="Maximum new GLB files to download.")
     parser.add_argument("--all", action="store_true", help="Download every GLB found in the category.")
+    parser.add_argument("--group-batch", choices=sorted(CATEGORY_GROUPS), help="Download a category group, with the group total category last.")
     parser.add_argument("--storage-batch", action="store_true", help="Download storage furniture subcategories, then the all-storage category last.")
     parser.add_argument("--storage-sample", action="store_true", help="Download one storage furniture GLB and JSON sample.")
     parser.add_argument("--category-timeout-seconds", type=int, default=600)
@@ -1045,6 +1245,17 @@ def main(argv=None):
 
     if args.storage_batch or args.storage_sample:
         results = run_storage_batch(args)
+        print("\nBatch results:")
+        for result in results:
+            print(
+                f"- {result['category_name']}: "
+                f"{result['new_downloads']} new, {result['total_downloads']} total; "
+                f"json={result['metadata_json']}"
+            )
+        return
+
+    if args.group_batch:
+        results = run_group_batch(args, args.group_batch)
         print("\nBatch results:")
         for result in results:
             print(

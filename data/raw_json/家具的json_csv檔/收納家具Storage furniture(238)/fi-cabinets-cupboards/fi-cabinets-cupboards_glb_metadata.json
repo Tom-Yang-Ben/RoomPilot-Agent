@@ -1,0 +1,1364 @@
+{
+    "project_id":  "fi-cabinets-cupboards",
+    "category":  "fi-cabinets-cupboards",
+    "category_name_zh":  "櫃子與櫥櫃",
+    "category_name_en":  "Cabinets and cupboards",
+    "title":  "IKEA fi-cabinets-cupboards GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-cabinets-cupboards"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Storage furniture_001",
+                                      "sku":  "cabinets-cupboards_1",
+                                      "name":  "HEMNES Glass-door cabinet with 3 drawers - grey-green/light brown stained 90x197 cm",
+                                      "chinese_name":  "HEMNES 附3抽屜玻璃門櫃，灰綠色/淺棕色染色，90x197 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  90.0,
+                                                      "depth":  37.0,
+                                                      "height":  197.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  90.0,
+                                                               "depth":  37.0,
+                                                               "height":  197.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/01 - HEMNES Glass-door cabinet with 3 drawers - grey-greenlight brown stained 90x197 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_002",
+                                      "sku":  "cabinets-cupboards_2",
+                                      "name":  "HEMNES Glass-door cabinet with 3 drawers - white stain/light brown 90x197 cm",
+                                      "chinese_name":  "HEMNES 附3抽屜玻璃門櫃，白色染色/淺棕色，90x197 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  90.0,
+                                                      "depth":  37.0,
+                                                      "height":  197.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  90.0,
+                                                               "depth":  37.0,
+                                                               "height":  197.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/02 - HEMNES Glass-door cabinet with 3 drawers - white stainlight brown 90x197 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_003",
+                                      "sku":  "cabinets-cupboards_3",
+                                      "name":  "HEMNES Glass-door cabinet with 3 drawers - black-brown/light brown 90x197 cm",
+                                      "chinese_name":  "HEMNES 附3抽屜玻璃門櫃，黑棕色/淺棕色，90x197 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  90.0,
+                                                      "depth":  37.0,
+                                                      "height":  197.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  90.0,
+                                                               "depth":  37.0,
+                                                               "height":  197.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/03 - HEMNES Glass-door cabinet with 3 drawers - black-brownlight brown 90x197 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_004",
+                                      "sku":  "cabinets-cupboards_4",
+                                      "name":  "BAGGEBO Cabinet with door - white 50x30x80 cm",
+                                      "chinese_name":  "BAGGEBO 附門收納櫃，白色，50x30x80 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  50.0,
+                                                      "depth":  30.0,
+                                                      "height":  80.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  50.0,
+                                                               "depth":  30.0,
+                                                               "height":  80.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/04 - BAGGEBO Cabinet with door - white 50x30x80 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_005",
+                                      "sku":  "cabinets-cupboards_5",
+                                      "name":  "BILLY / OXBERG Bookcase with glass doors - brown walnut effect/clear glass 80x30x237 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附玻璃門書櫃，棕色胡桃木紋/透明玻璃，80x30x237 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  237.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  237.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/05 - BILLY OXBERG Bookcase with glass doors - brown walnut effectclear glass 80x30x237 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_006",
+                                      "sku":  "cabinets-cupboards_6",
+                                      "name":  "BILLY / OXBERG Bookcase with glass doors - oak effect/clear glass 80x30x237 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附玻璃門書櫃，橡木紋/透明玻璃，80x30x237 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  237.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  237.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/06 - BILLY OXBERG Bookcase with glass doors - oak effectclear glass 80x30x237 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_007",
+                                      "sku":  "cabinets-cupboards_7",
+                                      "name":  "BILLY / OXBERG Bookcase w glass doors/ext unit - oak effect/clear glass 80x30x237 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附玻璃門/延伸組件書櫃，橡木紋/透明玻璃，80x30x237 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  237.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  237.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/07 - BILLY OXBERG Bookcase w glass doorsext unit - oak effectclear glass 80x30x237 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_008",
+                                      "sku":  "cabinets-cupboards_8",
+                                      "name":  "BILLY / OXBERG Bookcase w hght ext ut/pnl/glss drs - white 80x30x237 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附加高延伸組件/面板/玻璃門書櫃，白色，80x30x237 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  237.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  237.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/08 - BILLY OXBERG Bookcase w hght ext utpnlglss drs - white 80x30x237 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_009",
+                                      "sku":  "cabinets-cupboards_9",
+                                      "name":  "SKRUVBY Cabinet with doors - white 70x90 cm",
+                                      "chinese_name":  "SKRUVBY 附門收納櫃，白色，70x90 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  37.5,
+                                                      "height":  90.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  37.5,
+                                                               "height":  90.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/09 - SKRUVBY Cabinet with doors - white 70x90 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_010",
+                                      "sku":  "cabinets-cupboards_10",
+                                      "name":  "SKRUVBY Cabinet with doors - black-blue 70x90 cm",
+                                      "chinese_name":  "SKRUVBY 附門收納櫃，黑藍色，70x90 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  38.0,
+                                                      "height":  90.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  38.0,
+                                                               "height":  90.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/10 - SKRUVBY Cabinet with doors - black-blue 70x90 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_011",
+                                      "sku":  "cabinets-cupboards_11",
+                                      "name":  "BILLY / OXBERG Bookcase with doors - white 80x30x106 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附門書櫃，白色，80x30x106 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  106.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  106.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/11 - BILLY OXBERG Bookcase with doors - white 80x30x106 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_012",
+                                      "sku":  "cabinets-cupboards_12",
+                                      "name":  "BILLY / OXBERG Bookcase with doors - brown walnut effect 80x30x106 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附門書櫃，棕色胡桃木紋，80x30x106 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  106.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  106.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/12 - BILLY OXBERG Bookcase with doors - brown walnut effect 80x30x106 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_013",
+                                      "sku":  "cabinets-cupboards_13",
+                                      "name":  "BILLY / OXBERG Bookcase with doors - black oak effect 80x30x106 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附門書櫃，黑色橡木紋，80x30x106 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  106.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  106.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/13 - BILLY OXBERG Bookcase with doors - black oak effect 80x30x106 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_014",
+                                      "sku":  "cabinets-cupboards_14",
+                                      "name":  "RUDSTA Glass-door cabinet - anthracite 80x37x120 cm",
+                                      "chinese_name":  "RUDSTA 玻璃門櫃，炭灰色，80x37x120 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  37.0,
+                                                      "height":  120.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  37.0,
+                                                               "height":  120.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/14 - RUDSTA Glass-door cabinet - anthracite 80x37x120 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_015",
+                                      "sku":  "cabinets-cupboards_15",
+                                      "name":  "SÅGMÄSTARE Cabinet - light grey-blue 83x36x128 cm",
+                                      "chinese_name":  "SÅGMÄSTARE 收納櫃，淺灰藍色，83x36x128 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  83.2,
+                                                      "depth":  36.2,
+                                                      "height":  127.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  83.2,
+                                                               "depth":  36.2,
+                                                               "height":  127.5
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/15 - SÅGMÄSTARE Cabinet - light grey-blue 83x36x128 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_016",
+                                      "sku":  "cabinets-cupboards_16",
+                                      "name":  "FÄRJKARL Cabinet - off-white 77x45x116 cm",
+                                      "chinese_name":  "FÄRJKARL 收納櫃，米白色，77x45x116 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  77.4,
+                                                      "depth":  44.5,
+                                                      "height":  115.6
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  77.4,
+                                                               "depth":  44.5,
+                                                               "height":  115.6
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/16 - FÄRJKARL Cabinet - off-white 77x45x116 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_017",
+                                      "sku":  "cabinets-cupboards_17",
+                                      "name":  "BAGGEBO Glass-door cabinet - metal/white 34x30x116 cm",
+                                      "chinese_name":  "BAGGEBO 玻璃門櫃，金屬/白色，34x30x116 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  34.0,
+                                                      "depth":  30.0,
+                                                      "height":  116.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  34.0,
+                                                               "depth":  30.0,
+                                                               "height":  116.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/17 - BAGGEBO Glass-door cabinet - metalwhite 34x30x116 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_018",
+                                      "sku":  "cabinets-cupboards_18",
+                                      "name":  "HAVSTA Storage combination w glass-doors - white 81x47x212 cm",
+                                      "chinese_name":  "HAVSTA 附玻璃門收納組合，白色，81x47x212 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  81.0,
+                                                      "depth":  47.0,
+                                                      "height":  212.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  81.0,
+                                                               "depth":  47.0,
+                                                               "height":  212.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/18 - HAVSTA Storage combination w glass-doors - white 81x47x212 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_019",
+                                      "sku":  "cabinets-cupboards_19",
+                                      "name":  "HAVSTA Storage combination w glass-doors - grey-beige 81x47x212 cm",
+                                      "chinese_name":  "HAVSTA 附玻璃門收納組合，灰米色，81x47x212 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  81.0,
+                                                      "depth":  47.0,
+                                                      "height":  212.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  81.0,
+                                                               "depth":  47.0,
+                                                               "height":  212.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/19 - HAVSTA Storage combination w glass-doors - grey-beige 81x47x212 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_020",
+                                      "sku":  "cabinets-cupboards_20",
+                                      "name":  "LEDAMOT Cabinet - light grey-beige 150x42x75 cm",
+                                      "chinese_name":  "LEDAMOT 收納櫃，淺灰米色，150x42x75 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.2,
+                                                      "depth":  42.2,
+                                                      "height":  74.8
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.2,
+                                                               "depth":  42.2,
+                                                               "height":  74.8
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/20 - LEDAMOT Cabinet - light grey-beige 150x42x75 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_021",
+                                      "sku":  "cabinets-cupboards_21",
+                                      "name":  "LOMMARP Cabinet - dark blue-green 102x101 cm",
+                                      "chinese_name":  "LOMMARP 收納櫃，深藍綠色，102x101 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  102.0,
+                                                      "depth":  50.0,
+                                                      "height":  101.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  102.0,
+                                                               "depth":  50.0,
+                                                               "height":  101.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/21 - LOMMARP Cabinet - dark blue-green 102x101 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_022",
+                                      "sku":  "cabinets-cupboards_22",
+                                      "name":  "STOCKHOLM 2025 Glass-door cabinet - oak veneer 100x40x86 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 玻璃門櫃，橡木實木貼皮，100x40x86 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  100.0,
+                                                      "depth":  40.0,
+                                                      "height":  85.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  100.0,
+                                                               "depth":  40.0,
+                                                               "height":  85.5
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/22 - STOCKHOLM 2025 Glass-door cabinet - oak veneer 100x40x86 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_023",
+                                      "sku":  "cabinets-cupboards_23",
+                                      "name":  "FRYKSÅS Cabinet - rattan 81x124 cm",
+                                      "chinese_name":  "FRYKSÅS 收納櫃，藤，81x124 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  81.0,
+                                                      "depth":  41.0,
+                                                      "height":  124.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  81.0,
+                                                               "depth":  41.0,
+                                                               "height":  124.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/23 - FRYKSÅS Cabinet - rattan 81x124 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_024",
+                                      "sku":  "cabinets-cupboards_24",
+                                      "name":  "EKET Cabinet combination with legs - white/wood 70x35x80 cm",
+                                      "chinese_name":  "EKET 附腳收納櫃組合，白色/木，70x35x80 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  35.0,
+                                                      "height":  80.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  35.0,
+                                                               "height":  80.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/24 - EKET Cabinet combination with legs - whitewood 70x35x80 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_025",
+                                      "sku":  "cabinets-cupboards_25",
+                                      "name":  "EKET Cabinet combination with legs - dark grey/wood 70x35x80 cm",
+                                      "chinese_name":  "EKET 附腳收納櫃組合，深灰色/木，70x35x80 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  35.0,
+                                                      "height":  80.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  35.0,
+                                                               "height":  80.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/25 - EKET Cabinet combination with legs - dark greywood 70x35x80 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_026",
+                                      "sku":  "cabinets-cupboards_26",
+                                      "name":  "EKET Cabinet w 2 doors and 1 shelf - brown walnut effect 70x35x70 cm",
+                                      "chinese_name":  "EKET 附2門1層板收納櫃，棕色胡桃木紋，70x35x70 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  35.0,
+                                                      "height":  70.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  35.0,
+                                                               "height":  70.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/26 - EKET Cabinet w 2 doors and 1 shelf - brown walnut effect 70x35x70 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_027",
+                                      "sku":  "cabinets-cupboards_27",
+                                      "name":  "EKET Cabinet w 2 doors and 1 shelf - white 70x35x70 cm",
+                                      "chinese_name":  "EKET 附2門1層板收納櫃，白色，70x35x70 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  35.0,
+                                                      "height":  70.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  35.0,
+                                                               "height":  70.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/27 - EKET Cabinet w 2 doors and 1 shelf - white 70x35x70 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_028",
+                                      "sku":  "cabinets-cupboards_28",
+                                      "name":  "EKET Cabinet w 2 doors and 1 shelf - dark grey 70x35x70 cm",
+                                      "chinese_name":  "EKET 附2門1層板收納櫃，深灰色，70x35x70 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  35.0,
+                                                      "height":  70.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  35.0,
+                                                               "height":  70.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/28 - EKET Cabinet w 2 doors and 1 shelf - dark grey 70x35x70 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_029",
+                                      "sku":  "cabinets-cupboards_29",
+                                      "name":  "TONSTAD Storage comb w sliding glass doors - oak veneer/clear glass 82x47x201 cm",
+                                      "chinese_name":  "TONSTAD 附滑動玻璃門收納組合，橡木實木貼皮/透明玻璃，82x47x201 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  81.7,
+                                                      "depth":  47.2,
+                                                      "height":  200.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  81.7,
+                                                               "depth":  47.2,
+                                                               "height":  200.5
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/29 - TONSTAD Storage comb w sliding glass doors - oak veneerclear glass 82x47x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_030",
+                                      "sku":  "cabinets-cupboards_30",
+                                      "name":  "TONSTAD Storage comb w sliding glass doors - brown stained oak veneer/clear glass 82x47x201 cm",
+                                      "chinese_name":  "TONSTAD 附滑動玻璃門收納組合，棕色染色橡木實木貼皮/透明玻璃，82x47x201 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  81.7,
+                                                      "depth":  47.2,
+                                                      "height":  200.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  81.7,
+                                                               "depth":  47.2,
+                                                               "height":  200.5
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/30 - TONSTAD Storage comb w sliding glass doors - brown stained oak veneerclear glass 82x47x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_031",
+                                      "sku":  "cabinets-cupboards_31",
+                                      "name":  "BILLY / OXBERG Bookcase - white 80x30x202 cm",
+                                      "chinese_name":  "BILLY / OXBERG 書櫃，白色，80x30x202 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  202.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  202.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/31 - BILLY OXBERG Bookcase - white 80x30x202 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_032",
+                                      "sku":  "cabinets-cupboards_32",
+                                      "name":  "BILLY / OXBERG Bookcase with glass doors - brown walnut effect 80x30x202 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附玻璃門書櫃，棕色胡桃木紋，80x30x202 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  202.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  202.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/32 - BILLY OXBERG Bookcase with glass doors - brown walnut effect 80x30x202 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_033",
+                                      "sku":  "cabinets-cupboards_33",
+                                      "name":  "BILLY / OXBERG Bookcase with glass doors - black oak effect 80x30x202 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附玻璃門書櫃，黑色橡木紋，80x30x202 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  202.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  202.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/33 - BILLY OXBERG Bookcase with glass doors - black oak effect 80x30x202 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_034",
+                                      "sku":  "cabinets-cupboards_34",
+                                      "name":  "BILLY / OXBERG Bookcase with glass doors - oak effect 80x30x202 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附玻璃門書櫃，橡木紋，80x30x202 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  30.0,
+                                                      "height":  202.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  30.0,
+                                                               "height":  202.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/34 - BILLY OXBERG Bookcase with glass doors - oak effect 80x30x202 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_035",
+                                      "sku":  "cabinets-cupboards_35",
+                                      "name":  "IDANÄS Cabinet with bi-folding doors - white 121x135 cm",
+                                      "chinese_name":  "IDANÄS 附雙折門收納櫃，白色，121x135 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  121.0,
+                                                      "depth":  50.0,
+                                                      "height":  135.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  121.0,
+                                                               "depth":  50.0,
+                                                               "height":  135.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/35 - IDANÄS Cabinet with bi-folding doors - white 121x135 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_036",
+                                      "sku":  "cabinets-cupboards_36",
+                                      "name":  "IDANÄS Cabinet with bi-folding doors - dark brown stained 121x135 cm",
+                                      "chinese_name":  "IDANÄS 附雙折門收納櫃，深棕色染色，121x135 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  121.0,
+                                                      "depth":  50.0,
+                                                      "height":  135.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  121.0,
+                                                               "depth":  50.0,
+                                                               "height":  135.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/36 - IDANÄS Cabinet with bi-folding doors - dark brown stained 121x135 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_037",
+                                      "sku":  "cabinets-cupboards_37",
+                                      "name":  "BESTÅ Shelf unit with doors - white Lappviken/white 60x42x193 cm",
+                                      "chinese_name":  "BESTÅ 附門層架組，白色 Lappviken/白色，60x42x193 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  42.0,
+                                                      "height":  193.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  42.0,
+                                                               "height":  193.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/37 - BESTÅ Shelf unit with doors - white Lappvikenwhite 60x42x193 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_038",
+                                      "sku":  "cabinets-cupboards_38",
+                                      "name":  "BESTÅ Shelf unit with doors - white stained oak effect/Lappviken white stained oak effect 60x42x193 cm",
+                                      "chinese_name":  "BESTÅ 附門層架組，白色染色橡木紋/Lappviken 白色染色橡木紋，60x42x193 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  42.0,
+                                                      "height":  193.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  42.0,
+                                                               "height":  193.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/38 - BESTÅ Shelf unit with doors - white stained oak effectLappviken white stained oak effect 60x42x193 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_039",
+                                      "sku":  "cabinets-cupboards_39",
+                                      "name":  "BESTÅ Shelf unit with doors - black-brown/Lappviken black-brown 60x42x193 cm",
+                                      "chinese_name":  "BESTÅ 附門層架組，黑棕色/Lappviken 黑棕色，60x42x193 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  42.0,
+                                                      "height":  193.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  42.0,
+                                                               "height":  193.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/39 - BESTÅ Shelf unit with doors - black-brownLappviken black-brown 60x42x193 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_040",
+                                      "sku":  "cabinets-cupboards_40",
+                                      "name":  "BESTÅ Shelf unit with doors - dark grey/Lappviken dark grey 60x42x193 cm",
+                                      "chinese_name":  "BESTÅ 附門層架組，深灰色/Lappviken 深灰色，60x42x193 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  42.0,
+                                                      "height":  193.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  42.0,
+                                                               "height":  193.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/40 - BESTÅ Shelf unit with doors - dark greyLappviken dark grey 60x42x193 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_041",
+                                      "sku":  "cabinets-cupboards_41",
+                                      "name":  "BILLY / OXBERG Bookcase with door - white 40x30x106 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附門書櫃，白色，40x30x106 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  40.0,
+                                                      "depth":  30.0,
+                                                      "height":  106.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  40.0,
+                                                               "depth":  30.0,
+                                                               "height":  106.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/41 - BILLY OXBERG Bookcase with door - white 40x30x106 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_042",
+                                      "sku":  "cabinets-cupboards_42",
+                                      "name":  "BILLY / OXBERG Bookcase with door - brown walnut effect 40x30x106 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附門書櫃，棕色胡桃木紋，40x30x106 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  40.0,
+                                                      "depth":  30.0,
+                                                      "height":  106.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  40.0,
+                                                               "depth":  30.0,
+                                                               "height":  106.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/42 - BILLY OXBERG Bookcase with door - brown walnut effect 40x30x106 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_043",
+                                      "sku":  "cabinets-cupboards_43",
+                                      "name":  "BILLY / OXBERG Bookcase with door - oak effect 40x30x106 cm",
+                                      "chinese_name":  "BILLY / OXBERG 附門書櫃，橡木紋，40x30x106 公分",
+                                      "type":  "cabinets-cupboard",
+                                      "category":  "fi-cabinets-cupboards",
+                                      "category_name_zh":  "櫃子與櫥櫃",
+                                      "category_name_en":  "Cabinets and cupboards",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  40.0,
+                                                      "depth":  30.0,
+                                                      "height":  106.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  40.0,
+                                                               "depth":  30.0,
+                                                               "height":  106.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-cabinets-cupboards/43 - BILLY OXBERG Bookcase with door - oak effect 40x30x106 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

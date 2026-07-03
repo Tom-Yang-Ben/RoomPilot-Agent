@@ -1,0 +1,1184 @@
+{
+    "project_id":  "fi-desks",
+    "category":  "fi-desks",
+    "category_name_zh":  "書桌",
+    "category_name_en":  "Desks",
+    "title":  "IKEA fi-desks GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-desks"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Tables and desks_001",
+                                      "sku":  "desks_1",
+                                      "name":  "MICKE Desk - white/anthracite 105x50 cm",
+                                      "chinese_name":  "MICKE 書桌，白色/炭灰色，105x50 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  105.0,
+                                                      "depth":  50.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  105.0,
+                                                               "depth":  50.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/01 - MICKE Desk - whiteanthracite 105x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_002",
+                                      "sku":  "desks_2",
+                                      "name":  "MICKE Desk - anthracite/red 105x50 cm",
+                                      "chinese_name":  "MICKE 書桌，炭灰色/紅色，105x50 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  105.0,
+                                                      "depth":  50.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  105.0,
+                                                               "depth":  50.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/02 - MICKE Desk - anthracitered 105x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_003",
+                                      "sku":  "desks_3",
+                                      "name":  "MICKE Desk - white 105x50 cm",
+                                      "chinese_name":  "MICKE 書桌，白色，105x50 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  105.0,
+                                                      "depth":  50.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  105.0,
+                                                               "depth":  50.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/03 - MICKE Desk - white 105x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_004",
+                                      "sku":  "desks_4",
+                                      "name":  "MICKE Desk - black-brown 105x50 cm",
+                                      "chinese_name":  "MICKE 書桌，黑棕色，105x50 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  105.0,
+                                                      "depth":  50.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  105.0,
+                                                               "depth":  50.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/04 - MICKE Desk - black-brown 105x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_005",
+                                      "sku":  "desks_5",
+                                      "name":  "TORALD Desk - white 65x40 cm",
+                                      "chinese_name":  "TORALD 書桌，白色，65x40 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  65.0,
+                                                      "depth":  40.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  65.0,
+                                                               "depth":  40.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/05 - TORALD Desk - white 65x40 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_006",
+                                      "sku":  "desks_6",
+                                      "name":  "MICKE Desk - white 73x50 cm",
+                                      "chinese_name":  "MICKE 書桌，白色，73x50 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  73.0,
+                                                      "depth":  50.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  73.0,
+                                                               "depth":  50.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/06 - MICKE Desk - white 73x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_007",
+                                      "sku":  "desks_7",
+                                      "name":  "MICKE Desk - black-brown 73x50 cm",
+                                      "chinese_name":  "MICKE 書桌，黑棕色，73x50 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  73.0,
+                                                      "depth":  50.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  73.0,
+                                                               "depth":  50.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/07 - MICKE Desk - black-brown 73x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_008",
+                                      "sku":  "desks_8",
+                                      "name":  "LAGKAPTEN / ALEX Desk - white 120x60 cm",
+                                      "chinese_name":  "LAGKAPTEN / ALEX 書桌，白色，120x60 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  73.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  73.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/08 - LAGKAPTEN ALEX Desk - white 120x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_009",
+                                      "sku":  "desks_9",
+                                      "name":  "LAGKAPTEN / ALEX Desk - black-brown/white 120x60 cm",
+                                      "chinese_name":  "LAGKAPTEN / ALEX 書桌，黑棕色/白色，120x60 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  73.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  73.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/09 - LAGKAPTEN ALEX Desk - black-brownwhite 120x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_010",
+                                      "sku":  "desks_10",
+                                      "name":  "MICKE Desk - white 105x50 cm",
+                                      "chinese_name":  "MICKE 書桌，白色，105x50 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  105.0,
+                                                      "depth":  50.0,
+                                                      "height":  140.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  105.0,
+                                                               "depth":  50.0,
+                                                               "height":  140.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/10 - MICKE Desk - white 105x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_011",
+                                      "sku":  "desks_11",
+                                      "name":  "KALLAX Desk - white 111x39 cm",
+                                      "chinese_name":  "KALLAX 書桌，白色，111x39 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  111.0,
+                                                      "depth":  39.0,
+                                                      "height":  77.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  111.0,
+                                                               "depth":  39.0,
+                                                               "height":  77.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/11 - KALLAX Desk - white 111x39 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_012",
+                                      "sku":  "desks_12",
+                                      "name":  "KALLAX Desk - black-brown 111x39 cm",
+                                      "chinese_name":  "KALLAX 書桌，黑棕色，111x39 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  111.0,
+                                                      "depth":  39.0,
+                                                      "height":  77.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  111.0,
+                                                               "depth":  39.0,
+                                                               "height":  77.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/12 - KALLAX Desk - black-brown 111x39 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_013",
+                                      "sku":  "desks_13",
+                                      "name":  "LAGKAPTEN / ADILS Desk - black-brown/dark grey 140x60 cm",
+                                      "chinese_name":  "LAGKAPTEN / ADILS 書桌，黑棕色/深灰色，140x60 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  73.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  73.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/13 - LAGKAPTEN ADILS Desk - black-browndark grey 140x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, grey, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_014",
+                                      "sku":  "desks_14",
+                                      "name":  "MALM Dressing table - white 120x41 cm",
+                                      "chinese_name":  "MALM 梳妝台，白色，120x41 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  41.0,
+                                                      "height":  78.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  41.0,
+                                                               "height":  78.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/14 - MALM Dressing table - white 120x41 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_015",
+                                      "sku":  "desks_15",
+                                      "name":  "MICKE Desk - white 142x50 cm",
+                                      "chinese_name":  "MICKE 書桌，白色，142x50 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  142.0,
+                                                      "depth":  50.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  142.0,
+                                                               "depth":  50.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/15 - MICKE Desk - white 142x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_016",
+                                      "sku":  "desks_16",
+                                      "name":  "MICKE Desk - black-brown 142x50 cm",
+                                      "chinese_name":  "MICKE 書桌，黑棕色，142x50 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  142.0,
+                                                      "depth":  50.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  142.0,
+                                                               "depth":  50.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/16 - MICKE Desk - black-brown 142x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_017",
+                                      "sku":  "desks_17",
+                                      "name":  "LÄNGDHOPP Pull-out desk - white 90x39/71 cm",
+                                      "chinese_name":  "LÄNGDHOPP 抽拉式書桌，白色 90x39/71，公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  90.0,
+                                                      "depth":  39.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  90.0,
+                                                               "depth":  39.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/17 - LÄNGDHOPP Pull-out desk - white 90x3971 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_018",
+                                      "sku":  "desks_18",
+                                      "name":  "HEMNES Desk - white stain/light brown 155x65 cm",
+                                      "chinese_name":  "HEMNES 書桌，白色染色/淺棕色，155x65 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  155.0,
+                                                      "depth":  65.0,
+                                                      "height":  74.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  155.0,
+                                                               "depth":  65.0,
+                                                               "height":  74.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/18 - HEMNES Desk - white stainlight brown 155x65 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_019",
+                                      "sku":  "desks_19",
+                                      "name":  "LINNMON Table top - white 100x45 cm",
+                                      "chinese_name":  "LINNMON 桌面板，白色，100x45 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  3.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  3.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/19 - LINNMON Table top - white 100x45 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_020",
+                                      "sku":  "desks_20",
+                                      "name":  "LINNMON Table top - black-brown 100x45 cm",
+                                      "chinese_name":  "LINNMON 桌面板，黑棕色，100x45 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  3.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  3.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/20 - LINNMON Table top - black-brown 100x45 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_021",
+                                      "sku":  "desks_21",
+                                      "name":  "LINNMON Table top - dark grey 100x45 cm",
+                                      "chinese_name":  "LINNMON 桌面板，深灰色，100x45 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  3.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  3.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/21 - LINNMON Table top - dark grey 100x45 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_022",
+                                      "sku":  "desks_22",
+                                      "name":  "LINNMON / ADILS Table - dark grey/black 100x45 cm",
+                                      "chinese_name":  "LINNMON / ADILS 桌子，深灰色/黑色，100x45 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  74.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  74.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/22 - LINNMON ADILS Table - dark greyblack 100x45 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_023",
+                                      "sku":  "desks_23",
+                                      "name":  "LINNMON / ADILS Desk - black-brown 100x60 cm",
+                                      "chinese_name":  "LINNMON / ADILS 書桌，黑棕色，100x60 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  74.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  74.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/23 - LINNMON ADILS Desk - black-brown 100x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_024",
+                                      "sku":  "desks_24",
+                                      "name":  "LINNMON / ADILS Table - white/black 100x60 cm",
+                                      "chinese_name":  "LINNMON / ADILS 桌子，白色/黑色，100x60 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  74.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  74.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/24 - LINNMON ADILS Table - whiteblack 100x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_025",
+                                      "sku":  "desks_25",
+                                      "name":  "MULLSJÖ Desk - oak veneer 135x70 cm",
+                                      "chinese_name":  "MULLSJÖ 書桌，橡木實木貼皮，135x70 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  135.0,
+                                                      "depth":  70.0,
+                                                      "height":  76.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  135.0,
+                                                               "depth":  70.0,
+                                                               "height":  76.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/25 - MULLSJÖ Desk - oak veneer 135x70 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_026",
+                                      "sku":  "desks_26",
+                                      "name":  "BRYTNING Desk - white 110x53x75 cm",
+                                      "chinese_name":  "BRYTNING 書桌，白色，110x53x75 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  110.0,
+                                                      "depth":  53.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  110.0,
+                                                               "depth":  53.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/26 - BRYTNING Desk - white 110x53x75 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_027",
+                                      "sku":  "desks_27",
+                                      "name":  "LAGKAPTEN / LINNMON L-shaped desk - white 120x160 cm",
+                                      "chinese_name":  "LAGKAPTEN / LINNMON L形書桌，白色，120x160 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  160.0,
+                                                      "depth":  null,
+                                                      "height":  73.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  160.0,
+                                                               "depth":  null,
+                                                               "height":  73.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/27 - LAGKAPTEN LINNMON L-shaped desk - white 120x160 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_028",
+                                      "sku":  "desks_28",
+                                      "name":  "TONSTAD Desk - oak veneer 120x47 cm",
+                                      "chinese_name":  "TONSTAD 書桌，橡木實木貼皮，120x47 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  47.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  47.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/28 - TONSTAD Desk - oak veneer 120x47 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_029",
+                                      "sku":  "desks_29",
+                                      "name":  "TONSTAD Desk - off-white 120x47 cm",
+                                      "chinese_name":  "TONSTAD 書桌，米白色，120x47 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  47.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  47.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/29 - TONSTAD Desk - off-white 120x47 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_030",
+                                      "sku":  "desks_30",
+                                      "name":  "TONSTAD Desk - brown stained oak veneer 120x47 cm",
+                                      "chinese_name":  "TONSTAD 書桌，棕色染色橡木實木貼皮，120x47 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  47.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  47.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/30 - TONSTAD Desk - brown stained oak veneer 120x47 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_031",
+                                      "sku":  "desks_31",
+                                      "name":  "KALLAX / LAGKAPTEN Desk combination - white 77x159x147 cm",
+                                      "chinese_name":  "KALLAX / LAGKAPTEN 書桌組合，白色，77x159x147 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  76.5,
+                                                      "depth":  159.0,
+                                                      "height":  146.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  76.5,
+                                                               "depth":  159.0,
+                                                               "height":  146.5
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/31 - KALLAX LAGKAPTEN Desk combination - white 77x159x147 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_032",
+                                      "sku":  "desks_32",
+                                      "name":  "TROTTEN Desk - white 120x70 cm",
+                                      "chinese_name":  "TROTTEN 書桌，白色，120x70 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  70.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  70.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/32 - TROTTEN Desk - white 120x70 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_033",
+                                      "sku":  "desks_33",
+                                      "name":  "TROTTEN Desk - white/anthracite 120x70 cm",
+                                      "chinese_name":  "TROTTEN 書桌，白色/炭灰色，120x70 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  70.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  70.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/33 - TROTTEN Desk - whiteanthracite 120x70 cm.glb",
+                                      "material":  "",
+                                      "color":  "black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_034",
+                                      "sku":  "desks_34",
+                                      "name":  "UTVISNING Gaming desk with shelf - black 120x60 cm",
+                                      "chinese_name":  "UTVISNING 附層板電競桌，黑色，120x60 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  60.0,
+                                                      "height":  92.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  60.0,
+                                                               "height":  92.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/34 - UTVISNING Gaming desk with shelf - black 120x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_035",
+                                      "sku":  "desks_35",
+                                      "name":  "MITTZON Desk - oak veneer/white 140x80 cm",
+                                      "chinese_name":  "MITTZON 書桌，橡木實木貼皮/白色，140x80 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  140.0,
+                                                      "depth":  80.0,
+                                                      "height":  85.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  140.0,
+                                                               "depth":  80.0,
+                                                               "height":  85.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/35 - MITTZON Desk - oak veneerwhite 140x80 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_036",
+                                      "sku":  "desks_36",
+                                      "name":  "MITTZON Desk - oak veneer/black 140x60 cm",
+                                      "chinese_name":  "MITTZON 書桌，橡木實木貼皮/黑色，140x60 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  140.0,
+                                                      "depth":  60.0,
+                                                      "height":  85.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  140.0,
+                                                               "depth":  60.0,
+                                                               "height":  85.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/36 - MITTZON Desk - oak veneerblack 140x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Tables and desks_037",
+                                      "sku":  "desks_37",
+                                      "name":  "MITTZON Desk - black stained ash veneer/black 140x80 cm",
+                                      "chinese_name":  "MITTZON 書桌，黑色染色梣木實木貼皮/黑色，140x80 公分",
+                                      "type":  "desk",
+                                      "category":  "fi-desks",
+                                      "category_name_zh":  "書桌",
+                                      "category_name_en":  "Desks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  140.0,
+                                                      "depth":  80.0,
+                                                      "height":  85.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  140.0,
+                                                               "depth":  80.0,
+                                                               "height":  85.0
+                                                           },
+                                      "glb_path":  "downloaded-files/桌子書桌/fi-desks/37 - MITTZON Desk - black stained ash veneerblack 140x80 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

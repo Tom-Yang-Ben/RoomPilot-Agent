@@ -1,0 +1,794 @@
+{
+    "project_id":  "fi-large-mirrors",
+    "category":  "fi-large-mirrors",
+    "category_name_zh":  "大型鏡子",
+    "category_name_en":  "Large mirrors",
+    "title":  "IKEA fi-large-mirrors GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-large-mirrors"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Mirrors_001",
+                                      "sku":  "large-mirrors_1",
+                                      "name":  "BLODLÖNN Mirror 30x30 cm",
+                                      "chinese_name":  "BLODLÖNN 鏡子，30x30 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  30.0,
+                                                      "depth":  null,
+                                                      "height":  1.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  30.0,
+                                                               "depth":  null,
+                                                               "height":  1.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/01 - BLODLÖNN Mirror 30x30 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_002",
+                                      "sku":  "large-mirrors_2",
+                                      "name":  "HOVET Mirror - oak effect/brown 78x196 cm",
+                                      "chinese_name":  "HOVET 鏡子，橡木紋/棕色，78x196 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  78.0,
+                                                      "depth":  null,
+                                                      "height":  196.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  78.0,
+                                                               "depth":  null,
+                                                               "height":  196.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/02 - HOVET Mirror - oak effectbrown 78x196 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_003",
+                                      "sku":  "large-mirrors_3",
+                                      "name":  "HOVET Mirror - black 78x196 cm",
+                                      "chinese_name":  "HOVET 鏡子，黑色，78x196 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  78.0,
+                                                      "depth":  null,
+                                                      "height":  196.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  78.0,
+                                                               "depth":  null,
+                                                               "height":  196.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/03 - HOVET Mirror - black 78x196 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_004",
+                                      "sku":  "large-mirrors_4",
+                                      "name":  "HOVET Mirror - aluminium 78x196 cm",
+                                      "chinese_name":  "HOVET 鏡子，鋁，78x196 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  78.0,
+                                                      "depth":  null,
+                                                      "height":  196.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  78.0,
+                                                               "depth":  null,
+                                                               "height":  196.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/04 - HOVET Mirror - aluminium 78x196 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_005",
+                                      "sku":  "large-mirrors_5",
+                                      "name":  "LÄRBRO Mirror 48x120 cm",
+                                      "chinese_name":  "LÄRBRO 鏡子，48x120 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  48.0,
+                                                      "depth":  null,
+                                                      "height":  120.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  48.0,
+                                                               "depth":  null,
+                                                               "height":  120.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/05 - LÄRBRO Mirror 48x120 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_006",
+                                      "sku":  "large-mirrors_6",
+                                      "name":  "LINDBYN Mirror - gold-colour 60x170 cm",
+                                      "chinese_name":  "LINDBYN 鏡子，金色，60x170 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  170.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  170.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/06 - LINDBYN Mirror - gold-colour 60x170 cm.glb",
+                                      "material":  "",
+                                      "color":  "yellow",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_007",
+                                      "sku":  "large-mirrors_7",
+                                      "name":  "NISSEDAL Mirror - black 65x150 cm",
+                                      "chinese_name":  "NISSEDAL 鏡子，黑色，65x150 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  65.0,
+                                                      "depth":  null,
+                                                      "height":  150.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  65.0,
+                                                               "depth":  null,
+                                                               "height":  150.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/07 - NISSEDAL Mirror - black 65x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_008",
+                                      "sku":  "large-mirrors_8",
+                                      "name":  "DVÄRGSYREN Mirror - oak veneer 40x50 cm",
+                                      "chinese_name":  "DVÄRGSYREN 鏡子，橡木實木貼皮，40x50 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  40.0,
+                                                      "depth":  8.0,
+                                                      "height":  50.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  40.0,
+                                                               "depth":  8.0,
+                                                               "height":  50.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/08 - DVÄRGSYREN Mirror - oak veneer 40x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_009",
+                                      "sku":  "large-mirrors_9",
+                                      "name":  "DVÄRGSYREN Mirror - walnut veneer 40x50 cm",
+                                      "chinese_name":  "DVÄRGSYREN 鏡子，胡桃木實木貼皮，40x50 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  40.0,
+                                                      "depth":  8.0,
+                                                      "height":  50.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  40.0,
+                                                               "depth":  8.0,
+                                                               "height":  50.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/09 - DVÄRGSYREN Mirror - walnut veneer 40x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_010",
+                                      "sku":  "large-mirrors_10",
+                                      "name":  "LÖNSÅS Mirror 21x30 cm",
+                                      "chinese_name":  "LÖNSÅS 鏡子，21x30 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  21.0,
+                                                      "depth":  null,
+                                                      "height":  30.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  21.0,
+                                                               "depth":  null,
+                                                               "height":  30.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/10 - LÖNSÅS Mirror 21x30 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_011",
+                                      "sku":  "large-mirrors_11",
+                                      "name":  "LÄRBRO Mirror 20x120 cm",
+                                      "chinese_name":  "LÄRBRO 鏡子，20x120 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  20.0,
+                                                      "depth":  null,
+                                                      "height":  120.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  20.0,
+                                                               "depth":  null,
+                                                               "height":  120.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/11 - LÄRBRO Mirror 20x120 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_012",
+                                      "sku":  "large-mirrors_12",
+                                      "name":  "RUNDOXEL Mirror - white 30x40 cm",
+                                      "chinese_name":  "RUNDOXEL 鏡子，白色，30x40 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  30.0,
+                                                      "depth":  null,
+                                                      "height":  40.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  30.0,
+                                                               "depth":  null,
+                                                               "height":  40.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/12 - RUNDOXEL Mirror - white 30x40 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_013",
+                                      "sku":  "large-mirrors_13",
+                                      "name":  "DVÄRGSYREN Mirror - oak veneer 28x37 cm",
+                                      "chinese_name":  "DVÄRGSYREN 鏡子，橡木實木貼皮，28x37 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  28.0,
+                                                      "depth":  7.0,
+                                                      "height":  37.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  28.0,
+                                                               "depth":  7.0,
+                                                               "height":  37.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/13 - DVÄRGSYREN Mirror - oak veneer 28x37 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_014",
+                                      "sku":  "large-mirrors_14",
+                                      "name":  "DVÄRGSYREN Mirror - walnut veneer 28x37 cm",
+                                      "chinese_name":  "DVÄRGSYREN 鏡子，胡桃木實木貼皮，28x37 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  28.0,
+                                                      "depth":  null,
+                                                      "height":  37.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  28.0,
+                                                               "depth":  null,
+                                                               "height":  37.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/14 - DVÄRGSYREN Mirror - walnut veneer 28x37 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_015",
+                                      "sku":  "large-mirrors_15",
+                                      "name":  "LINDBYN Mirror - white 40x130 cm",
+                                      "chinese_name":  "LINDBYN 鏡子，白色，40x130 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  40.0,
+                                                      "depth":  null,
+                                                      "height":  130.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  40.0,
+                                                               "depth":  null,
+                                                               "height":  130.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/15 - LINDBYN Mirror - white 40x130 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_016",
+                                      "sku":  "large-mirrors_16",
+                                      "name":  "LINDBYN Mirror - black 40x130 cm",
+                                      "chinese_name":  "LINDBYN 鏡子，黑色，40x130 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  40.0,
+                                                      "depth":  null,
+                                                      "height":  130.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  40.0,
+                                                               "depth":  null,
+                                                               "height":  130.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/16 - LINDBYN Mirror - black 40x130 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_017",
+                                      "sku":  "large-mirrors_17",
+                                      "name":  "GRINSBOL Mirror - rattan 55 cm",
+                                      "chinese_name":  "GRINSBOL 鏡子，藤，55 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  55.0,
+                                                      "depth":  null,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  55.0,
+                                                               "depth":  null,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/17 - GRINSBOL Mirror - rattan 55 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_018",
+                                      "sku":  "large-mirrors_18",
+                                      "name":  "SVANSELE Mirror - gold-colour 78x78 cm",
+                                      "chinese_name":  "SVANSELE 鏡子，金色，78x78 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  78.0,
+                                                      "depth":  null,
+                                                      "height":  78.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  78.0,
+                                                               "depth":  null,
+                                                               "height":  78.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/18 - SVANSELE Mirror - gold-colour 78x78 cm.glb",
+                                      "material":  "",
+                                      "color":  "yellow",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_019",
+                                      "sku":  "large-mirrors_19",
+                                      "name":  "LÄRBRO Mirror 48x60 cm",
+                                      "chinese_name":  "LÄRBRO 鏡子，48x60 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  48.0,
+                                                      "depth":  null,
+                                                      "height":  60.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  48.0,
+                                                               "depth":  null,
+                                                               "height":  60.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/19 - LÄRBRO Mirror 48x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_020",
+                                      "sku":  "large-mirrors_20",
+                                      "name":  "KANDLENÖT Mirror - rattan 60x140 cm",
+                                      "chinese_name":  "KANDLENÖT 鏡子，藤，60x140 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  2.0,
+                                                      "height":  140.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  2.0,
+                                                               "height":  140.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/20 - KANDLENÖT Mirror - rattan 60x140 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_021",
+                                      "sku":  "large-mirrors_21",
+                                      "name":  "PINGSTSYREN Mirror - white 60x80 cm",
+                                      "chinese_name":  "PINGSTSYREN 鏡子，白色，60x80 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  4.0,
+                                                      "height":  80.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  4.0,
+                                                               "height":  80.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/21 - PINGSTSYREN Mirror - white 60x80 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_022",
+                                      "sku":  "large-mirrors_22",
+                                      "name":  "PINGSTSYREN Mirror - light yellow-beige 60x80 cm",
+                                      "chinese_name":  "PINGSTSYREN 鏡子，淺黃米色，60x80 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  4.0,
+                                                      "height":  80.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  4.0,
+                                                               "height":  80.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/22 - PINGSTSYREN Mirror - light yellow-beige 60x80 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, yellow",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_023",
+                                      "sku":  "large-mirrors_23",
+                                      "name":  "LINDBYN Mirror - black 80x80 cm",
+                                      "chinese_name":  "LINDBYN 鏡子，黑色，80x80 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  80.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  80.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/23 - LINDBYN Mirror - black 80x80 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_024",
+                                      "sku":  "large-mirrors_24",
+                                      "name":  "IKORNNES Table mirror - ash 27x40 cm",
+                                      "chinese_name":  "IKORNNES 桌鏡，梣木，27x40 公分",
+                                      "type":  "large-mirror",
+                                      "category":  "fi-large-mirrors",
+                                      "category_name_zh":  "大型鏡子",
+                                      "category_name_en":  "Large mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  27.0,
+                                                      "depth":  null,
+                                                      "height":  40.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  27.0,
+                                                               "depth":  null,
+                                                               "height":  40.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-large-mirrors/24 - IKORNNES Table mirror - ash 27x40 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

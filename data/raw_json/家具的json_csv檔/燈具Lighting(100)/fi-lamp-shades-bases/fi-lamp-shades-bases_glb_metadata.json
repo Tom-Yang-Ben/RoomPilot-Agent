@@ -1,0 +1,614 @@
+{
+    "project_id":  "fi-lamp-shades-bases",
+    "category":  "fi-lamp-shades-bases",
+    "category_name_zh":  "燈罩與燈座",
+    "category_name_en":  "Lamp shades and bases",
+    "title":  "IKEA fi-lamp-shades-bases GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-lamp-shades-bases"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Lighting_001",
+                                      "sku":  "lamp-shades-bases_1",
+                                      "name":  "NYMÖ Lamp shade - black/brass-colour 44 cm",
+                                      "chinese_name":  "NYMÖ 燈罩，黑色/黃銅色，44 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  33.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  33.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/01 - NYMÖ Lamp shade - blackbrass-colour 44 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_002",
+                                      "sku":  "lamp-shades-bases_2",
+                                      "name":  "HAVSDJUP Cord set - white 1.4 m",
+                                      "chinese_name":  "HAVSDJUP 電線組，白色，1.4 公尺",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  null,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  null,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/02 - HAVSDJUP Cord set - white 1.4 m.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_003",
+                                      "sku":  "lamp-shades-bases_3",
+                                      "name":  "HAVSDJUP Cord set - black 1.4 m",
+                                      "chinese_name":  "HAVSDJUP 電線組，黑色，1.4 公尺",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  null,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  null,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/03 - HAVSDJUP Cord set - black 1.4 m.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_004",
+                                      "sku":  "lamp-shades-bases_4",
+                                      "name":  "SUNNEBY Cord set - white textile 1.8 m",
+                                      "chinese_name":  "SUNNEBY 電線組，白色織品，1.8 公尺",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  null,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  null,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/04 - SUNNEBY Cord set - white textile 1.8 m.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_005",
+                                      "sku":  "lamp-shades-bases_5",
+                                      "name":  "RINGSTA Lamp shade - white 42 cm",
+                                      "chinese_name":  "RINGSTA 燈罩，白色，42 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  42.0,
+                                                      "depth":  null,
+                                                      "height":  31.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  42.0,
+                                                               "depth":  null,
+                                                               "height":  31.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/05 - RINGSTA Lamp shade - white 42 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_006",
+                                      "sku":  "lamp-shades-bases_6",
+                                      "name":  "RINGSTA Lamp shade - white 33 cm",
+                                      "chinese_name":  "RINGSTA 燈罩，白色，33 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  33.0,
+                                                      "depth":  null,
+                                                      "height":  24.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  33.0,
+                                                               "depth":  null,
+                                                               "height":  24.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/06 - RINGSTA Lamp shade - white 33 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_007",
+                                      "sku":  "lamp-shades-bases_7",
+                                      "name":  "SKOTTORP Lamp shade - light grey 42 cm",
+                                      "chinese_name":  "SKOTTORP 燈罩，淺灰色，42 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  42.0,
+                                                      "depth":  null,
+                                                      "height":  31.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  42.0,
+                                                               "depth":  null,
+                                                               "height":  31.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/07 - SKOTTORP Lamp shade - light grey 42 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_008",
+                                      "sku":  "lamp-shades-bases_8",
+                                      "name":  "GRÅVACKA Cord set for bulb - beige 1.8 m",
+                                      "chinese_name":  "GRÅVACKA 燈泡電線組，米色，1.8 公尺",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  null,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  null,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/08 - GRÅVACKA Cord set for bulb - beige 1.8 m.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_009",
+                                      "sku":  "lamp-shades-bases_9",
+                                      "name":  "GULLSUDARE Pendant lamp shade - white/handmade 70 cm",
+                                      "chinese_name":  "GULLSUDARE 吊燈燈罩，白色/手工，70 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  null,
+                                                      "height":  1.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  null,
+                                                               "height":  1.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/09 - GULLSUDARE Pendant lamp shade - whitehandmade 70 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_010",
+                                      "sku":  "lamp-shades-bases_10",
+                                      "name":  "IKEA PS 2026 Pendant lamp shade - handmade/white 90 cm",
+                                      "chinese_name":  "IKEA PS 2026 吊燈燈罩，手工/白色，90 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  92.0,
+                                                      "depth":  null,
+                                                      "height":  33.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  92.0,
+                                                               "depth":  null,
+                                                               "height":  33.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/10 - IKEA PS 2026 Pendant lamp shade - handmadewhite 90 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_011",
+                                      "sku":  "lamp-shades-bases_11",
+                                      "name":  "JÄLLBY Cord set - textile nickel-plated 1.4 m",
+                                      "chinese_name":  "JÄLLBY 電線組，織品鍍鎳，1.4 公尺",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  null,
+                                                      "depth":  null,
+                                                      "height":  9.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  null,
+                                                               "depth":  null,
+                                                               "height":  9.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/11 - JÄLLBY Cord set - textile nickel-plated 1.4 m.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_012",
+                                      "sku":  "lamp-shades-bases_12",
+                                      "name":  "JÄLLBY Cord set - textile brass-plated 1.4 m",
+                                      "chinese_name":  "JÄLLBY 電線組，織品鍍黃銅，1.4 公尺",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  null,
+                                                      "depth":  null,
+                                                      "height":  9.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  null,
+                                                               "depth":  null,
+                                                               "height":  9.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/12 - JÄLLBY Cord set - textile brass-plated 1.4 m.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_013",
+                                      "sku":  "lamp-shades-bases_13",
+                                      "name":  "BRUNSTA Pendant lamp shade - black 30 cm",
+                                      "chinese_name":  "BRUNSTA 吊燈燈罩，黑色，30 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  30.0,
+                                                      "depth":  null,
+                                                      "height":  35.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  30.0,
+                                                               "depth":  null,
+                                                               "height":  35.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/13 - BRUNSTA Pendant lamp shade - black 30 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_014",
+                                      "sku":  "lamp-shades-bases_14",
+                                      "name":  "BRUNSTA Pendant lamp shade - black 20 cm",
+                                      "chinese_name":  "BRUNSTA 吊燈燈罩，黑色，20 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  19.0,
+                                                      "depth":  null,
+                                                      "height":  18.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  19.0,
+                                                               "depth":  null,
+                                                               "height":  18.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/14 - BRUNSTA Pendant lamp shade - black 20 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_015",
+                                      "sku":  "lamp-shades-bases_15",
+                                      "name":  "GULLSUDARE Pendant lamp shade - white/handmade 45 cm",
+                                      "chinese_name":  "GULLSUDARE 吊燈燈罩，白色/手工，45 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  49.0,
+                                                      "depth":  null,
+                                                      "height":  1.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  49.0,
+                                                               "depth":  null,
+                                                               "height":  1.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/15 - GULLSUDARE Pendant lamp shade - whitehandmade 45 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_016",
+                                      "sku":  "lamp-shades-bases_16",
+                                      "name":  "SKAFTET Floor lamp base - nickel-plated",
+                                      "chinese_name":  "SKAFTET 落地燈底座，鍍鎳",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  29.0,
+                                                      "depth":  null,
+                                                      "height":  130.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  29.0,
+                                                               "depth":  null,
+                                                               "height":  130.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/16 - SKAFTET Floor lamp base - nickel-plated.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_017",
+                                      "sku":  "lamp-shades-bases_17",
+                                      "name":  "MYRHULT Lamp shade - white 33 cm",
+                                      "chinese_name":  "MYRHULT 燈罩，白色，33 公分",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  null,
+                                                      "depth":  null,
+                                                      "height":  24.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  null,
+                                                               "depth":  null,
+                                                               "height":  24.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/17 - MYRHULT Lamp shade - white 33 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_018",
+                                      "sku":  "lamp-shades-bases_18",
+                                      "name":  "SKAFTET Floor lamp base, arched - black",
+                                      "chinese_name":  "SKAFTET 落地燈底座，拱形，黑色",
+                                      "type":  "lamp-shades-base",
+                                      "category":  "fi-lamp-shades-bases",
+                                      "category_name_zh":  "燈罩與燈座",
+                                      "category_name_en":  "Lamp shades and bases",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  143.0,
+                                                      "depth":  null,
+                                                      "height":  214.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  143.0,
+                                                               "depth":  null,
+                                                               "height":  214.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-lamp-shades-bases/18 - SKAFTET Floor lamp base, arched - black.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

@@ -1,7 +1,8 @@
-.venv/
+/.venv/
 venv/
 env/
 __pycache__/
+**/__pycache__/
 *.py[cod]
 .env
 .env.*
@@ -10,4 +11,5 @@ __pycache__/
 
 run-logs/
 
-downloaded-files/
+/downloaded-files/
+/舊的翻譯資料/

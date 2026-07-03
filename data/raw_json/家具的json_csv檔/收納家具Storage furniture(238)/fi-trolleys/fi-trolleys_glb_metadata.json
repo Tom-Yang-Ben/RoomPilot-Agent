@@ -1,0 +1,1034 @@
+{
+    "project_id":  "fi-trolleys",
+    "category":  "fi-trolleys",
+    "category_name_zh":  "推車",
+    "category_name_en":  "Trolleys",
+    "title":  "IKEA fi-trolleys GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-trolleys"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Storage furniture_001",
+                                      "sku":  "trolleys_1",
+                                      "name":  "NISSAFORS Trolley - black 50.5x19x67 cm",
+                                      "chinese_name":  "NISSAFORS 推車，黑色，50.5x19x67 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  19.0,
+                                                      "depth":  null,
+                                                      "height":  67.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  19.0,
+                                                               "depth":  null,
+                                                               "height":  67.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/01 - NISSAFORS Trolley - black 50.5x19x67 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_002",
+                                      "sku":  "trolleys_2",
+                                      "name":  "NISSAFORS Trolley - white 50.5x19x67 cm",
+                                      "chinese_name":  "NISSAFORS 推車，白色，50.5x19x67 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  19.0,
+                                                      "depth":  null,
+                                                      "height":  67.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  19.0,
+                                                               "depth":  null,
+                                                               "height":  67.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/02 - NISSAFORS Trolley - white 50.5x19x67 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_003",
+                                      "sku":  "trolleys_3",
+                                      "name":  "VESKEN Trolley - white 54x18x71 cm",
+                                      "chinese_name":  "VESKEN 推車，白色，54x18x71 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  54.0,
+                                                      "depth":  18.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  54.0,
+                                                               "depth":  18.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/03 - VESKEN Trolley - white 54x18x71 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_004",
+                                      "sku":  "trolleys_4",
+                                      "name":  "VESKEN Trolley - black 54x18x71 cm",
+                                      "chinese_name":  "VESKEN 推車，黑色，54x18x71 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  54.0,
+                                                      "depth":  18.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  54.0,
+                                                               "depth":  18.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/04 - VESKEN Trolley - black 54x18x71 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_005",
+                                      "sku":  "trolleys_5",
+                                      "name":  "RÅSKOG Trolley - black 28x38x61 cm",
+                                      "chinese_name":  "RÅSKOG 推車，黑色，28x38x61 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  38.0,
+                                                      "depth":  null,
+                                                      "height":  61.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  38.0,
+                                                               "depth":  null,
+                                                               "height":  61.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/05 - RÅSKOG Trolley - black 28x38x61 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_006",
+                                      "sku":  "trolleys_6",
+                                      "name":  "RÅSKOG Trolley - white 28x38x61 cm",
+                                      "chinese_name":  "RÅSKOG 推車，白色，28x38x61 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  38.0,
+                                                      "depth":  null,
+                                                      "height":  61.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  38.0,
+                                                               "depth":  null,
+                                                               "height":  61.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/06 - RÅSKOG Trolley - white 28x38x61 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_007",
+                                      "sku":  "trolleys_7",
+                                      "name":  "RÅSKOG Trolley - white 35x45x77 cm",
+                                      "chinese_name":  "RÅSKOG 推車，白色，35x45x77 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  77.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  77.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/07 - RÅSKOG Trolley - white 35x45x77 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_008",
+                                      "sku":  "trolleys_8",
+                                      "name":  "RÅSKOG Trolley - grey-blue 35x45x77 cm",
+                                      "chinese_name":  "RÅSKOG 推車，灰藍色，35x45x77 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  77.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  77.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/08 - RÅSKOG Trolley - grey-blue 35x45x77 cm.glb",
+                                      "material":  "",
+                                      "color":  "blue",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_009",
+                                      "sku":  "trolleys_9",
+                                      "name":  "RÅSKOG Trolley - black 35x45x77 cm",
+                                      "chinese_name":  "RÅSKOG 推車，黑色，35x45x77 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  77.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  77.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/09 - RÅSKOG Trolley - black 35x45x77 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_010",
+                                      "sku":  "trolleys_10",
+                                      "name":  "NISSAFORS Trolley - black 50.5x30x83 cm",
+                                      "chinese_name":  "NISSAFORS 推車，黑色，50.5x30x83 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  30.0,
+                                                      "depth":  null,
+                                                      "height":  83.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  30.0,
+                                                               "depth":  null,
+                                                               "height":  83.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/10 - NISSAFORS Trolley - black 50.5x30x83 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_011",
+                                      "sku":  "trolleys_11",
+                                      "name":  "NISSAFORS Trolley - white 50.5x30x83 cm",
+                                      "chinese_name":  "NISSAFORS 推車，白色，50.5x30x83 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  30.0,
+                                                      "depth":  null,
+                                                      "height":  83.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  30.0,
+                                                               "depth":  null,
+                                                               "height":  83.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/11 - NISSAFORS Trolley - white 50.5x30x83 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_012",
+                                      "sku":  "trolleys_12",
+                                      "name":  "NISSAFORS Trolley - light green 50.5x30x83 cm",
+                                      "chinese_name":  "NISSAFORS 推車，淺綠色，50.5x30x83 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  30.0,
+                                                      "depth":  null,
+                                                      "height":  83.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  30.0,
+                                                               "depth":  null,
+                                                               "height":  83.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/12 - NISSAFORS Trolley - light green 50.5x30x83 cm.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_013",
+                                      "sku":  "trolleys_13",
+                                      "name":  "NISSAFORS Trolley - beige 50.5x30x83 cm",
+                                      "chinese_name":  "NISSAFORS 推車，米色，50.5x30x83 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  30.0,
+                                                      "depth":  null,
+                                                      "height":  83.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  30.0,
+                                                               "depth":  null,
+                                                               "height":  83.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/13 - NISSAFORS Trolley - beige 50.5x30x83 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_014",
+                                      "sku":  "trolleys_14",
+                                      "name":  "ÖVNING Trolley - white/grey-green 54x33 cm",
+                                      "chinese_name":  "ÖVNING 推車，白色/灰綠色，54x33 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  33.0,
+                                                      "depth":  null,
+                                                      "height":  70.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  33.0,
+                                                               "depth":  null,
+                                                               "height":  70.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/14 - ÖVNING Trolley - whitegrey-green 54x33 cm.glb",
+                                      "material":  "",
+                                      "color":  "green, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_015",
+                                      "sku":  "trolleys_15",
+                                      "name":  "HORNAVAN Trolley - white 26x48x77 cm",
+                                      "chinese_name":  "HORNAVAN 推車，白色，26x48x77 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  48.0,
+                                                      "depth":  null,
+                                                      "height":  77.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  48.0,
+                                                               "depth":  null,
+                                                               "height":  77.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/15 - HORNAVAN Trolley - white 26x48x77 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_016",
+                                      "sku":  "trolleys_16",
+                                      "name":  "FÖRHÖJA Kitchen trolley - birch 100x43 cm",
+                                      "chinese_name":  "FÖRHÖJA 廚房推車，樺木，100x43 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  43.0,
+                                                      "depth":  null,
+                                                      "height":  90.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  43.0,
+                                                               "depth":  null,
+                                                               "height":  90.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/16 - FÖRHÖJA Kitchen trolley - birch 100x43 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_017",
+                                      "sku":  "trolleys_17",
+                                      "name":  "BROR Trolley - black/pine plywood 85x55 cm",
+                                      "chinese_name":  "BROR 推車，黑色/松木合板，85x55 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  55.0,
+                                                      "depth":  null,
+                                                      "height":  88.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  55.0,
+                                                               "depth":  null,
+                                                               "height":  88.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/17 - BROR Trolley - blackpine plywood 85x55 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_018",
+                                      "sku":  "trolleys_18",
+                                      "name":  "BROR Trolley - grey-green/pine plywood 85x55 cm",
+                                      "chinese_name":  "BROR 推車，灰綠色/松木合板，85x55 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  55.0,
+                                                      "depth":  null,
+                                                      "height":  88.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  55.0,
+                                                               "depth":  null,
+                                                               "height":  88.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/18 - BROR Trolley - grey-greenpine plywood 85x55 cm.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_019",
+                                      "sku":  "trolleys_19",
+                                      "name":  "RÅSKOG / NORRÅVA Trolley with lid - grey-blue 35x45x77 cm",
+                                      "chinese_name":  "RÅSKOG / NORRÅVA 附蓋推車，灰藍色，35x45x77 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  77.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  77.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/19 - RÅSKOG NORRÅVA Trolley with lid - grey-blue 35x45x77 cm.glb",
+                                      "material":  "",
+                                      "color":  "blue",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_020",
+                                      "sku":  "trolleys_20",
+                                      "name":  "KUNGSFORS Kitchen trolley - stainless steel 60x40 cm",
+                                      "chinese_name":  "KUNGSFORS 廚房推車，不鏽鋼，60x40 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  40.0,
+                                                      "depth":  null,
+                                                      "height":  90.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  40.0,
+                                                               "depth":  null,
+                                                               "height":  90.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/20 - KUNGSFORS Kitchen trolley - stainless steel 60x40 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_021",
+                                      "sku":  "trolleys_21",
+                                      "name":  "LOSHULT Trolley - pine 38x38x82 cm",
+                                      "chinese_name":  "LOSHULT 推車，松木，38x38x82 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  38.0,
+                                                      "depth":  null,
+                                                      "height":  82.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  38.0,
+                                                               "depth":  null,
+                                                               "height":  82.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/21 - LOSHULT Trolley - pine 38x38x82 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_022",
+                                      "sku":  "trolleys_22",
+                                      "name":  "BEKVÄM Kitchen trolley - beech 58x50 cm",
+                                      "chinese_name":  "BEKVÄM 廚房推車，山毛櫸，58x50 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  50.0,
+                                                      "depth":  null,
+                                                      "height":  85.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  50.0,
+                                                               "depth":  null,
+                                                               "height":  85.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/22 - BEKVÄM Kitchen trolley - beech 58x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_023",
+                                      "sku":  "trolleys_23",
+                                      "name":  "RESARÖ Mobile drop-leaf table w storage - pine",
+                                      "chinese_name":  "RESARÖ 附收納移動式折疊桌，松木",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  64.0,
+                                                      "depth":  null,
+                                                      "height":  91.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  64.0,
+                                                               "depth":  null,
+                                                               "height":  91.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/23 - RESARÖ Mobile drop-leaf table w storage - pine.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_024",
+                                      "sku":  "trolleys_24",
+                                      "name":  "TORNVIKEN Kitchen island - off-white/oak 126x77 cm",
+                                      "chinese_name":  "TORNVIKEN 廚房中島，米白色/橡木，126x77 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  77.0,
+                                                      "depth":  null,
+                                                      "height":  90.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  77.0,
+                                                               "depth":  null,
+                                                               "height":  90.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/24 - TORNVIKEN Kitchen island - off-whiteoak 126x77 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_025",
+                                      "sku":  "trolleys_25",
+                                      "name":  "TORNVIKEN Kitchen island - off-white/oak 72x52 cm",
+                                      "chinese_name":  "TORNVIKEN 廚房中島，米白色/橡木，72x52 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  72.0,
+                                                      "depth":  52.0,
+                                                      "height":  90.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  72.0,
+                                                               "depth":  52.0,
+                                                               "height":  90.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/25 - TORNVIKEN Kitchen island - off-whiteoak 72x52 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_026",
+                                      "sku":  "trolleys_26",
+                                      "name":  "RÖNNINGE Trolley - birch 78x39 cm",
+                                      "chinese_name":  "RÖNNINGE 推車，樺木，78x39 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  39.0,
+                                                      "depth":  29.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  39.0,
+                                                               "depth":  29.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/26 - RÖNNINGE Trolley - birch 78x39 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_027",
+                                      "sku":  "trolleys_27",
+                                      "name":  "RÅGRUND Trolley - bamboo 42x33x76 cm",
+                                      "chinese_name":  "RÅGRUND 推車，竹，42x33x76 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  42.0,
+                                                      "depth":  33.0,
+                                                      "height":  76.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  42.0,
+                                                               "depth":  33.0,
+                                                               "height":  76.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/27 - RÅGRUND Trolley - bamboo 42x33x76 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_028",
+                                      "sku":  "trolleys_28",
+                                      "name":  "VADHOLMA Kitchen island - black/oak 126x79x90 cm",
+                                      "chinese_name":  "VADHOLMA 廚房中島，黑色/橡木，126x79x90 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  126.0,
+                                                      "depth":  79.0,
+                                                      "height":  63.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  126.0,
+                                                               "depth":  79.0,
+                                                               "height":  63.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/28 - VADHOLMA Kitchen island - blackoak 126x79x90 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_029",
+                                      "sku":  "trolleys_29",
+                                      "name":  "FRÖSJÖN Trolley - black 55x35 cm",
+                                      "chinese_name":  "FRÖSJÖN 推車，黑色，55x35 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  35.0,
+                                                      "depth":  null,
+                                                      "height":  55.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  35.0,
+                                                               "depth":  null,
+                                                               "height":  55.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/29 - FRÖSJÖN Trolley - black 55x35 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_030",
+                                      "sku":  "trolleys_30",
+                                      "name":  "NORRÅVA Lid - bamboo 42x31 cm",
+                                      "chinese_name":  "NORRÅVA 蓋子，竹，42x31 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  31.0,
+                                                      "depth":  null,
+                                                      "height":  1.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  31.0,
+                                                               "depth":  null,
+                                                               "height":  1.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/30 - NORRÅVA Lid - bamboo 42x31 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_031",
+                                      "sku":  "trolleys_31",
+                                      "name":  "NORRÅVA Lid - bamboo 36x26 cm",
+                                      "chinese_name":  "NORRÅVA 蓋子，竹，36x26 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  25.5,
+                                                      "depth":  null,
+                                                      "height":  1.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  25.5,
+                                                               "depth":  null,
+                                                               "height":  1.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/31 - NORRÅVA Lid - bamboo 36x26 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_032",
+                                      "sku":  "trolleys_32",
+                                      "name":  "RIMFORSA Work bench - stainless steel/bamboo 120x63.5x92 cm",
+                                      "chinese_name":  "RIMFORSA 工作台，不鏽鋼/竹，120x63.5x92 公分",
+                                      "type":  "trolley",
+                                      "category":  "fi-trolleys",
+                                      "category_name_zh":  "推車",
+                                      "category_name_en":  "Trolleys",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  63.5,
+                                                      "depth":  null,
+                                                      "height":  92.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  63.5,
+                                                               "depth":  null,
+                                                               "height":  92.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-trolleys/32 - RIMFORSA Work bench - stainless steelbamboo 120x63.5x92 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

@@ -1,0 +1,494 @@
+{
+    "project_id":  "fi-childrens-rugs-curtains",
+    "category":  "fi-childrens-rugs-curtains",
+    "category_name_zh":  "兒童地毯與窗簾",
+    "category_name_en":  "Children\u0027s rugs and curtains",
+    "title":  "IKEA fi-childrens-rugs-curtains GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-childrens-rugs-curtains"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Rugs and mats_001",
+                                      "sku":  "childrens-rugs-curtains_1",
+                                      "name":  "VALLABY Rug - green 100x133 cm",
+                                      "chinese_name":  "VALLABY 地毯，綠色，100x133 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  100.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  100.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/01 - VALLABY Rug - green 100x133 cm.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_002",
+                                      "sku":  "childrens-rugs-curtains_2",
+                                      "name":  "STÄPPSPARV Rug - beige 100x160 cm",
+                                      "chinese_name":  "STÄPPSPARV 地毯，米色，100x160 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  100.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  100.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/02 - STÄPPSPARV Rug - beige 100x160 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, multicolour",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_003",
+                                      "sku":  "childrens-rugs-curtains_3",
+                                      "name":  "SKOGSDUVA Rug, high pile - green 133x160 cm",
+                                      "chinese_name":  "SKOGSDUVA 長毛地毯，綠色，133x160 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  133.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  133.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/03 - SKOGSDUVA Rug, high pile - green 133x160 cm.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_004",
+                                      "sku":  "childrens-rugs-curtains_4",
+                                      "name":  "NATTHÄGER Rug, low pile - blue orange/toucan 83x125 cm",
+                                      "chinese_name":  "NATTHÄGER 短毛地毯，藍色橘色/巨嘴鳥，83x125 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  83.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  83.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/04 - NATTHÄGER Rug, low pile - blue orangetoucan 83x125 cm.glb",
+                                      "material":  "",
+                                      "color":  "blue, orange",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_005",
+                                      "sku":  "childrens-rugs-curtains_5",
+                                      "name":  "LEN Rug, low pile - beige/dot pattern 133x160 cm",
+                                      "chinese_name":  "LEN 短毛地毯，米色/圓點圖案，133x160 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  133.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  133.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/05 - LEN Rug, low pile - beigedot pattern 133x160 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_006",
+                                      "sku":  "childrens-rugs-curtains_6",
+                                      "name":  "BUSENKEL Rug - harlequin pattern/multicolour 130x160 cm",
+                                      "chinese_name":  "BUSENKEL 地毯，菱格紋圖案/多色，130x160 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  130.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  130.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/06 - BUSENKEL Rug - harlequin patternmulticolour 130x160 cm.glb",
+                                      "material":  "",
+                                      "color":  "multicolour",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_007",
+                                      "sku":  "childrens-rugs-curtains_7",
+                                      "name":  "LILLABO Rug - green 75x133 cm",
+                                      "chinese_name":  "LILLABO 地毯，綠色，75x133 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  75.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  75.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/07 - LILLABO Rug - green 75x133 cm.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_008",
+                                      "sku":  "childrens-rugs-curtains_8",
+                                      "name":  "GREJSIMOJS Rug, high pile - green 153x215 cm",
+                                      "chinese_name":  "GREJSIMOJS 長毛地毯，綠色，153x215 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  153.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  153.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/08 - GREJSIMOJS Rug, high pile - green 153x215 cm.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_009",
+                                      "sku":  "childrens-rugs-curtains_9",
+                                      "name":  "BRUMMIG Rug - hedgehog shaped/brown 94x150 cm",
+                                      "chinese_name":  "BRUMMIG 地毯，刺蝟造型/棕色，94x150 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  94.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  94.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/09 - BRUMMIG Rug - hedgehog shapedbrown 94x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_010",
+                                      "sku":  "childrens-rugs-curtains_10",
+                                      "name":  "LEN Rug - dotted/grey 133x160 cm",
+                                      "chinese_name":  "LEN 地毯，圓點/灰色，133x160 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  133.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  133.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/10 - LEN Rug - dottedgrey 133x160 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_011",
+                                      "sku":  "childrens-rugs-curtains_11",
+                                      "name":  "HUSSPARV Rug - green 100x133 cm",
+                                      "chinese_name":  "HUSSPARV 地毯，綠色，100x133 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  100.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  100.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/11 - HUSSPARV Rug - green 100x133 cm.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_012",
+                                      "sku":  "childrens-rugs-curtains_12",
+                                      "name":  "BLÅSKATA Rug - black/grey 105x160 cm",
+                                      "chinese_name":  "BLÅSKATA 地毯，黑色/灰色，105x160 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  105.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  105.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/12 - BLÅSKATA Rug - blackgrey 105x160 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_013",
+                                      "sku":  "childrens-rugs-curtains_13",
+                                      "name":  "MARKKRYPARE Rug - dark grey 74x100 cm",
+                                      "chinese_name":  "MARKKRYPARE 地毯，深灰色，74x100 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  74.0,
+                                                      "depth":  null,
+                                                      "height":  0.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  74.0,
+                                                               "depth":  null,
+                                                               "height":  0.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/13 - MARKKRYPARE Rug - dark grey 74x100 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_014",
+                                      "sku":  "childrens-rugs-curtains_14",
+                                      "name":  "DRÖMSLOTT Rug - dog-shaped off-white/grey 66x110 cm",
+                                      "chinese_name":  "DRÖMSLOTT 地毯，狗造型米白色/灰色，66x110 公分",
+                                      "type":  "childrens-rugs-curtain",
+                                      "category":  "fi-childrens-rugs-curtains",
+                                      "category_name_zh":  "兒童地毯與窗簾",
+                                      "category_name_en":  "Children\u0027s rugs and curtains",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  66.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  66.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-childrens-rugs-curtains/14 - DRÖMSLOTT Rug - dog-shaped off-whitegrey 66x110 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

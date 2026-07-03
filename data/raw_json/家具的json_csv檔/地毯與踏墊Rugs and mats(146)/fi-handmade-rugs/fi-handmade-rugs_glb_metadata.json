@@ -1,0 +1,884 @@
+{
+    "project_id":  "fi-handmade-rugs",
+    "category":  "fi-handmade-rugs",
+    "category_name_zh":  "手工地毯",
+    "category_name_en":  "Handmade rugs",
+    "title":  "IKEA fi-handmade-rugs GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-handmade-rugs"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Rugs and mats_001",
+                                      "sku":  "handmade-rugs_1",
+                                      "name":  "STOCKHOLM 2025 Rug, flatwoven - green/white/black handwoven 240x300 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 平織地毯，綠色/白色/黑色手工編織，240x300 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  240.0,
+                                                      "depth":  null,
+                                                      "height":  18.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  240.0,
+                                                               "depth":  null,
+                                                               "height":  18.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/01 - STOCKHOLM 2025 Rug, flatwoven - greenwhiteblack handwoven 240x300 cm.glb",
+                                      "material":  "",
+                                      "color":  "green, black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_002",
+                                      "sku":  "handmade-rugs_2",
+                                      "name":  "STOCKHOLM 2025 Rug, flatwoven - grey/white/black handwoven 170x240 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 平織地毯，灰色/白色/黑色手工編織，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  12.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  12.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/02 - STOCKHOLM 2025 Rug, flatwoven - greywhiteblack handwoven 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey, black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_003",
+                                      "sku":  "handmade-rugs_3",
+                                      "name":  "STOCKHOLM 2025 Rug, flatwoven - green/white/black handwoven 170x240 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 平織地毯，綠色/白色/黑色手工編織，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  12.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  12.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/03 - STOCKHOLM 2025 Rug, flatwoven - greenwhiteblack handwoven 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "green, black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_004",
+                                      "sku":  "handmade-rugs_4",
+                                      "name":  "STOCKHOLM 2025 Rug, flatwoven - grey/white/black handwoven 240x300 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 平織地毯，灰色/白色/黑色手工編織，240x300 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  240.0,
+                                                      "depth":  null,
+                                                      "height":  18.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  240.0,
+                                                               "depth":  null,
+                                                               "height":  18.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/04 - STOCKHOLM 2025 Rug, flatwoven - greywhiteblack handwoven 240x300 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey, black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_005",
+                                      "sku":  "handmade-rugs_5",
+                                      "name":  "UNDERVISNING Rug, low pile - off-white black/handmade 170x240 cm",
+                                      "chinese_name":  "UNDERVISNING 短毛地毯，米白色黑色/手工，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/05 - UNDERVISNING Rug, low pile - off-white blackhandmade 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_006",
+                                      "sku":  "handmade-rugs_6",
+                                      "name":  "RAKLEV Rug, flatwoven - handwoven/natural multicolour 170x240 cm",
+                                      "chinese_name":  "RAKLEV 平織地毯，手工編織/原色多色，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/06 - RAKLEV Rug, flatwoven - handwovennatural multicolour 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, multicolour",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_007",
+                                      "sku":  "handmade-rugs_7",
+                                      "name":  "STOCKHOLM 2025 Rug, flatwoven - white/brown/light blue handwoven 240x350 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 平織地毯，白色/棕色/淺藍色手工編織，240x350 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  240.0,
+                                                      "depth":  null,
+                                                      "height":  18.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  240.0,
+                                                               "depth":  null,
+                                                               "height":  18.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/07 - STOCKHOLM 2025 Rug, flatwoven - whitebrownlight blue handwoven 240x350 cm.glb",
+                                      "material":  "",
+                                      "color":  "blue, brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_008",
+                                      "sku":  "handmade-rugs_8",
+                                      "name":  "STOCKHOLM 2025 Rug, flatwoven - white/brown/light blue handwoven 170x240 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 平織地毯，白色/棕色/淺藍色手工編織，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  10.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  10.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/08 - STOCKHOLM 2025 Rug, flatwoven - whitebrownlight blue handwoven 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "blue, brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_009",
+                                      "sku":  "handmade-rugs_9",
+                                      "name":  "BLÅLJUS Rug, flatwoven - handwoven natural/grey/brown check 170x240 cm",
+                                      "chinese_name":  "BLÅLJUS 平織地毯，手工編織原色/灰色/棕色格紋，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/09 - BLÅLJUS Rug, flatwoven - handwoven naturalgreybrown check 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown, grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_010",
+                                      "sku":  "handmade-rugs_10",
+                                      "name":  "RAKLEV Rug, flatwoven - handmade natural/multicolour 70x160 cm",
+                                      "chinese_name":  "RAKLEV 平織地毯，手工原色/多色，70x160 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  null,
+                                                      "height":  4.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  null,
+                                                               "height":  4.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/10 - RAKLEV Rug, flatwoven - handmade naturalmulticolour 70x160 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, multicolour",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_011",
+                                      "sku":  "handmade-rugs_11",
+                                      "name":  "RÅVAROR Rug, flatwoven - handwoven black/brown grey 170x240 cm",
+                                      "chinese_name":  "RÅVAROR 平織地毯，手工編織黑色/棕色灰色，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  6.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  6.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/11 - RÅVAROR Rug, flatwoven - handwoven blackbrown grey 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, grey, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_012",
+                                      "sku":  "handmade-rugs_12",
+                                      "name":  "VÄGNÄT Rug, flatwoven - off-white grey/handmade 170x240 cm",
+                                      "chinese_name":  "VÄGNÄT 平織地毯，米白色灰色/手工，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  11.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  11.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/12 - VÄGNÄT Rug, flatwoven - off-white greyhandmade 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, grey, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_013",
+                                      "sku":  "handmade-rugs_13",
+                                      "name":  "VÄGNÄT Rug, flatwoven - off-white grey/handmade 200x300 cm",
+                                      "chinese_name":  "VÄGNÄT 平織地毯，米白色灰色/手工，200x300 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  200.0,
+                                                      "depth":  null,
+                                                      "height":  18.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  200.0,
+                                                               "depth":  null,
+                                                               "height":  18.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/13 - VÄGNÄT Rug, flatwoven - off-white greyhandmade 200x300 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, grey, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_014",
+                                      "sku":  "handmade-rugs_14",
+                                      "name":  "TANNISBY Rug, flatwoven - handmade/grey black 160x230 cm",
+                                      "chinese_name":  "TANNISBY 平織地毯，手工/灰色黑色，160x230 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  160.0,
+                                                      "depth":  null,
+                                                      "height":  10.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  160.0,
+                                                               "depth":  null,
+                                                               "height":  10.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/14 - TANNISBY Rug, flatwoven - handmadegrey black 160x230 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_015",
+                                      "sku":  "handmade-rugs_15",
+                                      "name":  "HARSVANS Rug, flatwoven - multicoloured, dark 170x240 cm",
+                                      "chinese_name":  "HARSVANS 平織地毯，多色，深，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  12.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  12.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/15 - HARSVANS Rug, flatwoven - multicoloured, dark 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "multicolour",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_016",
+                                      "sku":  "handmade-rugs_16",
+                                      "name":  "STOCKHOLM Rug, flatwoven - handmade/striped black/off-white 170x240 cm",
+                                      "chinese_name":  "STOCKHOLM 平織地毯，手工/條紋黑色/米白色，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  10.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  10.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/16 - STOCKHOLM Rug, flatwoven - handmadestriped blackoff-white 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_017",
+                                      "sku":  "handmade-rugs_17",
+                                      "name":  "HJORTSVANG Rug - handmade/off-white 160x230 cm",
+                                      "chinese_name":  "HJORTSVANG 地毯，手工/米白色，160x230 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  160.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  160.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/17 - HJORTSVANG Rug - handmadeoff-white 160x230 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_018",
+                                      "sku":  "handmade-rugs_18",
+                                      "name":  "STOCKHOLM 2025 Rug, flatwoven - black/white/light green handwoven 240x350 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 平織地毯，黑色/白色/淺綠色手工編織，240x350 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  240.0,
+                                                      "depth":  null,
+                                                      "height":  18.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  240.0,
+                                                               "depth":  null,
+                                                               "height":  18.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/18 - STOCKHOLM 2025 Rug, flatwoven - blackwhitelight green handwoven 240x350 cm.glb",
+                                      "material":  "",
+                                      "color":  "green, black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_019",
+                                      "sku":  "handmade-rugs_19",
+                                      "name":  "STOCKHOLM 2025 Rug, flatwoven - black/white/light green handwoven 170x240 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 平織地毯，黑色/白色/淺綠色手工編織，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  10.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  10.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/19 - STOCKHOLM 2025 Rug, flatwoven - blackwhitelight green handwoven 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "green, black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_020",
+                                      "sku":  "handmade-rugs_20",
+                                      "name":  "IBSKER Rug - handmade off-white 170x240 cm",
+                                      "chinese_name":  "IBSKER 地毯，手工米白色，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/20 - IBSKER Rug - handmade off-white 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_021",
+                                      "sku":  "handmade-rugs_21",
+                                      "name":  "BANKKONTOR Rug, high pile - beige/handmade 170x240 cm",
+                                      "chinese_name":  "BANKKONTOR 長毛地毯，米色/手工，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/21 - BANKKONTOR Rug, high pile - beigehandmade 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_022",
+                                      "sku":  "handmade-rugs_22",
+                                      "name":  "MÄVINN Rug - beige/green 170x240 cm",
+                                      "chinese_name":  "MÄVINN 地毯，米色/綠色，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  9.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  9.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/22 - MÄVINN Rug - beigegreen 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_023",
+                                      "sku":  "handmade-rugs_23",
+                                      "name":  "BRÖNDEN Rug, low pile - handmade multicolour/red 170x240 cm",
+                                      "chinese_name":  "BRÖNDEN 短毛地毯，手工多色/紅色，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/23 - BRÖNDEN Rug, low pile - handmade multicolourred 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "multicolour",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_024",
+                                      "sku":  "handmade-rugs_24",
+                                      "name":  "BRÖNDEN Rug, low pile - handmade beige 170x240 cm",
+                                      "chinese_name":  "BRÖNDEN 短毛地毯，手工米色，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/24 - BRÖNDEN Rug, low pile - handmade beige 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_025",
+                                      "sku":  "handmade-rugs_25",
+                                      "name":  "BRÖNDEN Rug, low pile - handmade beige 200x300 cm",
+                                      "chinese_name":  "BRÖNDEN 短毛地毯，手工米色，200x300 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  200.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  200.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/25 - BRÖNDEN Rug, low pile - handmade beige 200x300 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_026",
+                                      "sku":  "handmade-rugs_26",
+                                      "name":  "BRÖNDEN Rug, low pile - handmade beige 133x195 cm",
+                                      "chinese_name":  "BRÖNDEN 短毛地毯，手工米色，133x195 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  133.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  133.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/26 - BRÖNDEN Rug, low pile - handmade beige 133x195 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_027",
+                                      "sku":  "handmade-rugs_27",
+                                      "name":  "TÅRGRÄS Rug, flatwoven - dark grey/handmade 170x240 cm",
+                                      "chinese_name":  "TÅRGRÄS 平織地毯，深灰色/手工，170x240 公分",
+                                      "type":  "handmade-rug",
+                                      "category":  "fi-handmade-rugs",
+                                      "category_name_zh":  "手工地毯",
+                                      "category_name_en":  "Handmade rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  10.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  10.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-handmade-rugs/27 - TÅRGRÄS Rug, flatwoven - dark greyhandmade 170x240 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

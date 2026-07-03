@@ -1,0 +1,1124 @@
+{
+    "project_id":  "fi-runner-small-rugs",
+    "category":  "fi-runner-small-rugs",
+    "category_name_zh":  "走道地毯與小地毯",
+    "category_name_en":  "Runner and small rugs",
+    "title":  "IKEA fi-runner-small-rugs GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-runner-small-rugs"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Rugs and mats_001",
+                                      "sku":  "runner-small-rugs_1",
+                                      "name":  "MORUM Rug flatwoven, in/outdoor - dark grey 80x200 cm",
+                                      "chinese_name":  "MORUM 平織地毯，室內外，深灰色，80x200 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/01 - MORUM Rug flatwoven, inoutdoor - dark grey 80x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_002",
+                                      "sku":  "runner-small-rugs_2",
+                                      "name":  "MORUM Rug flatwoven, in/outdoor - beige 80x250 cm",
+                                      "chinese_name":  "MORUM 平織地毯，室內外，米色，80x250 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/02 - MORUM Rug flatwoven, inoutdoor - beige 80x250 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_003",
+                                      "sku":  "runner-small-rugs_3",
+                                      "name":  "MORUM Rug flatwoven, in/outdoor - dark green 80x250 cm",
+                                      "chinese_name":  "MORUM 平織地毯，室內外，深綠色，80x250 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/03 - MORUM Rug flatwoven, inoutdoor - dark green 80x250 cm.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_004",
+                                      "sku":  "runner-small-rugs_4",
+                                      "name":  "LOHALS Rug, flatwoven - natural 80x150 cm",
+                                      "chinese_name":  "LOHALS 平織地毯，原色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/04 - LOHALS Rug, flatwoven - natural 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_005",
+                                      "sku":  "runner-small-rugs_5",
+                                      "name":  "TIPHEDE Rug, flatwoven - natural/black 50x80 cm",
+                                      "chinese_name":  "TIPHEDE 平織地毯，原色/黑色，50x80 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  50.0,
+                                                      "depth":  null,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  50.0,
+                                                               "depth":  null,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/05 - TIPHEDE Rug, flatwoven - naturalblack 50x80 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_006",
+                                      "sku":  "runner-small-rugs_6",
+                                      "name":  "TIPHEDE Rug, flatwoven - black/natural 80x150 cm",
+                                      "chinese_name":  "TIPHEDE 平織地毯，黑色/原色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  8.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  8.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/06 - TIPHEDE Rug, flatwoven - blacknatural 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_007",
+                                      "sku":  "runner-small-rugs_7",
+                                      "name":  "KÖRFÄLT Kitchen mat - light grey 45x180 cm",
+                                      "chinese_name":  "KÖRFÄLT 廚房地墊，淺灰色，45x180 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/07 - KÖRFÄLT Kitchen mat - light grey 45x180 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_008",
+                                      "sku":  "runner-small-rugs_8",
+                                      "name":  "TÅNUM Rug, flatwoven - assorted colours 60x90 cm",
+                                      "chinese_name":  "TÅNUM 平織地毯，隨機色彩，60x90 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/08 - TÅNUM Rug, flatwoven - assorted colours 60x90 cm.glb",
+                                      "material":  "",
+                                      "color":  "multicolour",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_009",
+                                      "sku":  "runner-small-rugs_9",
+                                      "name":  "RIDSTIG Rug, flatwoven - grey/off-white 80x180 cm",
+                                      "chinese_name":  "RIDSTIG 平織地毯，灰色/米白色，80x180 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  7.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  7.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/09 - RIDSTIG Rug, flatwoven - greyoff-white 80x180 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_010",
+                                      "sku":  "runner-small-rugs_10",
+                                      "name":  "VEDBÄK Rug, low pile - light grey 80x180 cm",
+                                      "chinese_name":  "VEDBÄK 短毛地毯，淺灰色，80x180 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/10 - VEDBÄK Rug, low pile - light grey 80x180 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_011",
+                                      "sku":  "runner-small-rugs_11",
+                                      "name":  "TIDTABELL Rug, flatwoven - grey 80x150 cm",
+                                      "chinese_name":  "TIDTABELL 平織地毯，灰色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  8.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  8.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/11 - TIDTABELL Rug, flatwoven - grey 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_012",
+                                      "sku":  "runner-small-rugs_12",
+                                      "name":  "TIDTABELL Rug, flatwoven - beige 80x150 cm",
+                                      "chinese_name":  "TIDTABELL 平織地毯，米色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  8.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  8.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/12 - TIDTABELL Rug, flatwoven - beige 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_013",
+                                      "sku":  "runner-small-rugs_13",
+                                      "name":  "TIDTABELL Rug, flatwoven - beige 80x200 cm",
+                                      "chinese_name":  "TIDTABELL 平織地毯，米色，80x200 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  9.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  9.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/13 - TIDTABELL Rug, flatwoven - beige 80x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_014",
+                                      "sku":  "runner-small-rugs_14",
+                                      "name":  "TIDTABELL Rug, flatwoven - grey-blue 80x200 cm",
+                                      "chinese_name":  "TIDTABELL 平織地毯，灰藍色，80x200 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  3.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  3.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/14 - TIDTABELL Rug, flatwoven - grey-blue 80x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "blue, grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_015",
+                                      "sku":  "runner-small-rugs_15",
+                                      "name":  "FULLMAKT Rug flatwoven, in/outdoor - beige/mélange 80x200 cm",
+                                      "chinese_name":  "FULLMAKT 平織地毯，室內外，米色/混色，80x200 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/15 - FULLMAKT Rug flatwoven, inoutdoor - beigemélange 80x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_016",
+                                      "sku":  "runner-small-rugs_16",
+                                      "name":  "STOENSE Rug, low pile - medium grey 80x150 cm",
+                                      "chinese_name":  "STOENSE 短毛地毯，中灰色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/16 - STOENSE Rug, low pile - medium grey 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_017",
+                                      "sku":  "runner-small-rugs_17",
+                                      "name":  "STOENSE Rug, low pile - off-white 80x150 cm",
+                                      "chinese_name":  "STOENSE 短毛地毯，米白色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/17 - STOENSE Rug, low pile - off-white 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_018",
+                                      "sku":  "runner-small-rugs_18",
+                                      "name":  "STOENSE Rug, low pile - beige 80x150 cm",
+                                      "chinese_name":  "STOENSE 短毛地毯，米色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/18 - STOENSE Rug, low pile - beige 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_019",
+                                      "sku":  "runner-small-rugs_19",
+                                      "name":  "LINDKNUD Rug, high pile - pink 60x90 cm",
+                                      "chinese_name":  "LINDKNUD 長毛地毯，粉紅色，60x90 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/19 - LINDKNUD Rug, high pile - pink 60x90 cm.glb",
+                                      "material":  "",
+                                      "color":  "pink",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_020",
+                                      "sku":  "runner-small-rugs_20",
+                                      "name":  "LINDKNUD Rug, high pile - beige 60x90 cm",
+                                      "chinese_name":  "LINDKNUD 長毛地毯，米色，60x90 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/20 - LINDKNUD Rug, high pile - beige 60x90 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_021",
+                                      "sku":  "runner-small-rugs_21",
+                                      "name":  "LINDKNUD Rug, high pile - dark grey 80x150 cm",
+                                      "chinese_name":  "LINDKNUD 長毛地毯，深灰色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/21 - LINDKNUD Rug, high pile - dark grey 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_022",
+                                      "sku":  "runner-small-rugs_22",
+                                      "name":  "LINDKNUD Rug, high pile - beige 80x150 cm",
+                                      "chinese_name":  "LINDKNUD 長毛地毯，米色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/22 - LINDKNUD Rug, high pile - beige 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_023",
+                                      "sku":  "runner-small-rugs_23",
+                                      "name":  "JÄRNVÄG Rug, low pile - ornament pattern pink/beige 80x250 cm",
+                                      "chinese_name":  "JÄRNVÄG 短毛地毯，裝飾圖案粉紅色/米色，80x250 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/23 - JÄRNVÄG Rug, low pile - ornament pattern pinkbeige 80x250 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_024",
+                                      "sku":  "runner-small-rugs_24",
+                                      "name":  "JÄRNVÄG Rug, low pile - ornament pattern pink/beige 80x150 cm",
+                                      "chinese_name":  "JÄRNVÄG 短毛地毯，裝飾圖案粉紅色/米色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/24 - JÄRNVÄG Rug, low pile - ornament pattern pinkbeige 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_025",
+                                      "sku":  "runner-small-rugs_25",
+                                      "name":  "SORTSÖ Rug, flatwoven - unbleached 55x85 cm",
+                                      "chinese_name":  "SORTSÖ 平織地毯，未漂白，55x85 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  55.0,
+                                                      "depth":  null,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  55.0,
+                                                               "depth":  null,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/25 - SORTSÖ Rug, flatwoven - unbleached 55x85 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_026",
+                                      "sku":  "runner-small-rugs_26",
+                                      "name":  "SORTSÖ Rug, flatwoven - light blue 55x85 cm",
+                                      "chinese_name":  "SORTSÖ 平織地毯，淺藍色，55x85 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  55.0,
+                                                      "depth":  null,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  55.0,
+                                                               "depth":  null,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/26 - SORTSÖ Rug, flatwoven - light blue 55x85 cm.glb",
+                                      "material":  "",
+                                      "color":  "blue",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_027",
+                                      "sku":  "runner-small-rugs_27",
+                                      "name":  "VÄGOMRÅDE Rug, flatwoven - light orange-pink 80x150 cm",
+                                      "chinese_name":  "VÄGOMRÅDE 平織地毯，淺橘粉色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  8.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  8.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/27 - VÄGOMRÅDE Rug, flatwoven - light orange-pink 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_028",
+                                      "sku":  "runner-small-rugs_28",
+                                      "name":  "TVERSTED Rug, low pile - beige 80x150 cm",
+                                      "chinese_name":  "TVERSTED 短毛地毯，米色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/28 - TVERSTED Rug, low pile - beige 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_029",
+                                      "sku":  "runner-small-rugs_29",
+                                      "name":  "VÄGSKYLT Rug, flatwoven - pink/orange 80x250 cm",
+                                      "chinese_name":  "VÄGSKYLT 平織地毯，粉紅色/橘色，80x250 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/29 - VÄGSKYLT Rug, flatwoven - pinkorange 80x250 cm.glb",
+                                      "material":  "",
+                                      "color":  "orange, pink",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_030",
+                                      "sku":  "runner-small-rugs_30",
+                                      "name":  "VÄGSKYLT Rug, flatwoven - blue-green/black 80x250 cm",
+                                      "chinese_name":  "VÄGSKYLT 平織地毯，藍綠色/黑色，80x250 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/30 - VÄGSKYLT Rug, flatwoven - blue-greenblack 80x250 cm.glb",
+                                      "material":  "",
+                                      "color":  "blue, green, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_031",
+                                      "sku":  "runner-small-rugs_31",
+                                      "name":  "STRÖG Rug, flatwoven - natural 120x180 cm",
+                                      "chinese_name":  "STRÖG 平織地毯，原色，120x180 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  null,
+                                                      "height":  9.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  null,
+                                                               "height":  9.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/31 - STRÖG Rug, flatwoven - natural 120x180 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_032",
+                                      "sku":  "runner-small-rugs_32",
+                                      "name":  "STRÖG Rug, flatwoven - natural 155x220 cm",
+                                      "chinese_name":  "STRÖG 平織地毯，原色，155x220 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  155.0,
+                                                      "depth":  null,
+                                                      "height":  9.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  155.0,
+                                                               "depth":  null,
+                                                               "height":  9.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/32 - STRÖG Rug, flatwoven - natural 155x220 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_033",
+                                      "sku":  "runner-small-rugs_33",
+                                      "name":  "LYDERSHOLM Rug flatwoven, in/outdoor - medium brown 80x150 cm",
+                                      "chinese_name":  "LYDERSHOLM 平織地毯，室內外，中棕色，80x150 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/33 - LYDERSHOLM Rug flatwoven, inoutdoor - medium brown 80x150 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_034",
+                                      "sku":  "runner-small-rugs_34",
+                                      "name":  "ELSYSTEM Rug, low pile - black/white/stripe 80x200 cm",
+                                      "chinese_name":  "ELSYSTEM 短毛地毯，黑色/白色/條紋，80x200 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  null,
+                                                      "height":  null
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  null,
+                                                               "height":  null
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/34 - ELSYSTEM Rug, low pile - blackwhitestripe 80x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Rugs and mats_035",
+                                      "sku":  "runner-small-rugs_35",
+                                      "name":  "TOFTLUND Rug - grey 55x85 cm",
+                                      "chinese_name":  "TOFTLUND 地毯，灰色，55x85 公分",
+                                      "type":  "runner-small-rug",
+                                      "category":  "fi-runner-small-rugs",
+                                      "category_name_zh":  "走道地毯與小地毯",
+                                      "category_name_en":  "Runner and small rugs",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  55.0,
+                                                      "depth":  null,
+                                                      "height":  1.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  55.0,
+                                                               "depth":  null,
+                                                               "height":  1.0
+                                                           },
+                                      "glb_path":  "downloaded-files/地毯與踏墊/fi-runner-small-rugs/35 - TOFTLUND Rug - grey 55x85 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

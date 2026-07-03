@@ -1,0 +1,314 @@
+{
+    "project_id":  "fi-sun-loungers-hammocks",
+    "category":  "fi-sun-loungers-hammocks",
+    "category_name_zh":  "日光躺椅與吊床",
+    "category_name_en":  "Sun loungers and hammocks",
+    "title":  "IKEA fi-sun-loungers-hammocks GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-sun-loungers-hammocks"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Outdoor furniture_001",
+                                      "sku":  "sun-loungers-hammocks_1",
+                                      "name":  "NÄMMARÖ Sun lounger - outdoor light brown stained",
+                                      "chinese_name":  "NÄMMARÖ 日光躺椅，戶外淺棕色染色",
+                                      "type":  "sun-loungers-hammock",
+                                      "category":  "fi-sun-loungers-hammocks",
+                                      "category_name_zh":  "日光躺椅與吊床",
+                                      "category_name_en":  "Sun loungers and hammocks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  67.0,
+                                                      "depth":  null,
+                                                      "height":  78.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  67.0,
+                                                               "depth":  null,
+                                                               "height":  78.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-sun-loungers-hammocks/01 - NÄMMARÖ Sun lounger - outdoor light brown stained.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_002",
+                                      "sku":  "sun-loungers-hammocks_2",
+                                      "name":  "NÄMMARÖ Sun lounger - outdoor light brown stained/Frösön/Duvholmen beige",
+                                      "chinese_name":  "NÄMMARÖ 日光躺椅，戶外淺棕色染色/Frösön/Duvholmen 米色",
+                                      "type":  "sun-loungers-hammock",
+                                      "category":  "fi-sun-loungers-hammocks",
+                                      "category_name_zh":  "日光躺椅與吊床",
+                                      "category_name_en":  "Sun loungers and hammocks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  67.0,
+                                                      "depth":  null,
+                                                      "height":  78.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  67.0,
+                                                               "depth":  null,
+                                                               "height":  78.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-sun-loungers-hammocks/02 - NÄMMARÖ Sun lounger - outdoor light brown stainedFrösönDuvholmen beige.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_003",
+                                      "sku":  "sun-loungers-hammocks_3",
+                                      "name":  "BOCKÖN / HAMNÖN Hammock with stand - black/anthracite white",
+                                      "chinese_name":  "BOCKÖN / HAMNÖN 附支架吊床，黑色/炭灰色白色",
+                                      "type":  "sun-loungers-hammock",
+                                      "category":  "fi-sun-loungers-hammocks",
+                                      "category_name_zh":  "日光躺椅與吊床",
+                                      "category_name_en":  "Sun loungers and hammocks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  100.0,
+                                                      "depth":  null,
+                                                      "height":  123.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  100.0,
+                                                               "depth":  null,
+                                                               "height":  123.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-sun-loungers-hammocks/03 - BOCKÖN HAMNÖN Hammock with stand - blackanthracite white.glb",
+                                      "material":  "",
+                                      "color":  "grey, black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_004",
+                                      "sku":  "sun-loungers-hammocks_4",
+                                      "name":  "SEGERÖN Sun lounger - outdoor white/beige/Frösön/Duvholmen beige",
+                                      "chinese_name":  "SEGERÖN 日光躺椅，戶外白色/米色/Frösön/Duvholmen 米色",
+                                      "type":  "sun-loungers-hammock",
+                                      "category":  "fi-sun-loungers-hammocks",
+                                      "category_name_zh":  "日光躺椅與吊床",
+                                      "category_name_en":  "Sun loungers and hammocks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  64.0,
+                                                      "depth":  79.0,
+                                                      "height":  73.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  64.0,
+                                                               "depth":  79.0,
+                                                               "height":  73.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-sun-loungers-hammocks/04 - SEGERÖN Sun lounger - outdoor whitebeigeFrösönDuvholmen beige.glb",
+                                      "material":  "",
+                                      "color":  "beige, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_005",
+                                      "sku":  "sun-loungers-hammocks_5",
+                                      "name":  "STRANDÖN Beach chair - bright orange",
+                                      "chinese_name":  "STRANDÖN 沙灘椅，亮橘色",
+                                      "type":  "sun-loungers-hammock",
+                                      "category":  "fi-sun-loungers-hammocks",
+                                      "category_name_zh":  "日光躺椅與吊床",
+                                      "category_name_en":  "Sun loungers and hammocks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  52.0,
+                                                      "depth":  74.0,
+                                                      "height":  79.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  52.0,
+                                                               "depth":  74.0,
+                                                               "height":  79.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-sun-loungers-hammocks/05 - STRANDÖN Beach chair - bright orange.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_006",
+                                      "sku":  "sun-loungers-hammocks_6",
+                                      "name":  "SEGERÖN Sun lounger - white/beige",
+                                      "chinese_name":  "SEGERÖN 日光躺椅，白色/米色",
+                                      "type":  "sun-loungers-hammock",
+                                      "category":  "fi-sun-loungers-hammocks",
+                                      "category_name_zh":  "日光躺椅與吊床",
+                                      "category_name_en":  "Sun loungers and hammocks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  72.0,
+                                                      "depth":  null,
+                                                      "height":  38.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  72.0,
+                                                               "depth":  null,
+                                                               "height":  38.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-sun-loungers-hammocks/06 - SEGERÖN Sun lounger - whitebeige.glb",
+                                      "material":  "",
+                                      "color":  "beige, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_007",
+                                      "sku":  "sun-loungers-hammocks_7",
+                                      "name":  "STRANDÖN Sun lounger - multicolour",
+                                      "chinese_name":  "STRANDÖN 日光躺椅，多色",
+                                      "type":  "sun-loungers-hammock",
+                                      "category":  "fi-sun-loungers-hammocks",
+                                      "category_name_zh":  "日光躺椅與吊床",
+                                      "category_name_en":  "Sun loungers and hammocks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  49.0,
+                                                      "depth":  null,
+                                                      "height":  66.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  49.0,
+                                                               "depth":  null,
+                                                               "height":  66.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-sun-loungers-hammocks/07 - STRANDÖN Sun lounger - multicolour.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_008",
+                                      "sku":  "sun-loungers-hammocks_8",
+                                      "name":  "STRANDÖN Sun lounger - blue/white",
+                                      "chinese_name":  "STRANDÖN 日光躺椅，藍色/白色",
+                                      "type":  "sun-loungers-hammock",
+                                      "category":  "fi-sun-loungers-hammocks",
+                                      "category_name_zh":  "日光躺椅與吊床",
+                                      "category_name_en":  "Sun loungers and hammocks",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  50.0,
+                                                      "depth":  null,
+                                                      "height":  47.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  50.0,
+                                                               "depth":  null,
+                                                               "height":  47.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-sun-loungers-hammocks/08 - STRANDÖN Sun lounger - bluewhite.glb",
+                                      "material":  "",
+                                      "color":  "blue, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

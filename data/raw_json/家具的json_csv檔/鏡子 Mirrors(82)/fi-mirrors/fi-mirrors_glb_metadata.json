@@ -1,0 +1,344 @@
+{
+    "project_id":  "fi-mirrors",
+    "category":  "fi-mirrors",
+    "category_name_zh":  "鏡子",
+    "category_name_en":  "Mirrors",
+    "title":  "IKEA fi-mirrors GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-mirrors"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Mirrors_001",
+                                      "sku":  "mirrors_1",
+                                      "name":  "LILJETRÄD Mirror - white 30x115 cm",
+                                      "chinese_name":  "LILJETRÄD 鏡子，白色，30x115 公分",
+                                      "type":  "mirror",
+                                      "category":  "fi-mirrors",
+                                      "category_name_zh":  "鏡子",
+                                      "category_name_en":  "Mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  30.0,
+                                                      "depth":  null,
+                                                      "height":  115.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  30.0,
+                                                               "depth":  null,
+                                                               "height":  115.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirrors/01 - LILJETRÄD Mirror - white 30x115 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_002",
+                                      "sku":  "mirrors_2",
+                                      "name":  "LILJETRÄD Mirror - black 30x115 cm",
+                                      "chinese_name":  "LILJETRÄD 鏡子，黑色，30x115 公分",
+                                      "type":  "mirror",
+                                      "category":  "fi-mirrors",
+                                      "category_name_zh":  "鏡子",
+                                      "category_name_en":  "Mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  30.0,
+                                                      "depth":  null,
+                                                      "height":  115.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  30.0,
+                                                               "depth":  null,
+                                                               "height":  115.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirrors/02 - LILJETRÄD Mirror - black 30x115 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_003",
+                                      "sku":  "mirrors_3",
+                                      "name":  "KNAPPER Standing mirror - white 48x160 cm",
+                                      "chinese_name":  "KNAPPER 立鏡，白色，48x160 公分",
+                                      "type":  "mirror",
+                                      "category":  "fi-mirrors",
+                                      "category_name_zh":  "鏡子",
+                                      "category_name_en":  "Mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  48.0,
+                                                      "depth":  53.0,
+                                                      "height":  160.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  48.0,
+                                                               "depth":  53.0,
+                                                               "height":  160.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirrors/03 - KNAPPER Standing mirror - white 48x160 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_004",
+                                      "sku":  "mirrors_4",
+                                      "name":  "IKORNNES Standing mirror - ash 52x167 cm",
+                                      "chinese_name":  "IKORNNES 立鏡，梣木，52x167 公分",
+                                      "type":  "mirror",
+                                      "category":  "fi-mirrors",
+                                      "category_name_zh":  "鏡子",
+                                      "category_name_en":  "Mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  52.0,
+                                                      "depth":  52.0,
+                                                      "height":  167.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  52.0,
+                                                               "depth":  52.0,
+                                                               "height":  167.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirrors/04 - IKORNNES Standing mirror - ash 52x167 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_005",
+                                      "sku":  "mirrors_5",
+                                      "name":  "STOCKHOLM Mirror - oak veneer 80 cm",
+                                      "chinese_name":  "STOCKHOLM 鏡子，橡木實木貼皮，80 公分",
+                                      "type":  "mirror",
+                                      "category":  "fi-mirrors",
+                                      "category_name_zh":  "鏡子",
+                                      "category_name_en":  "Mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  83.0,
+                                                      "depth":  10.0,
+                                                      "height":  11.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  83.0,
+                                                               "depth":  10.0,
+                                                               "height":  11.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirrors/05 - STOCKHOLM Mirror - oak veneer 80 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_006",
+                                      "sku":  "mirrors_6",
+                                      "name":  "HOLMÖARNA Mirror - heart-shaped 27x27 cm",
+                                      "chinese_name":  "HOLMÖARNA 鏡子，心形，27x27 公分",
+                                      "type":  "mirror",
+                                      "category":  "fi-mirrors",
+                                      "category_name_zh":  "鏡子",
+                                      "category_name_en":  "Mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  27.0,
+                                                      "depth":  null,
+                                                      "height":  27.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  27.0,
+                                                               "depth":  null,
+                                                               "height":  27.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirrors/06 - HOLMÖARNA Mirror - heart-shaped 27x27 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_007",
+                                      "sku":  "mirrors_7",
+                                      "name":  "SVARTBJÖRK Decorative convex mirror - black 41 cm",
+                                      "chinese_name":  "SVARTBJÖRK 裝飾凸面鏡，黑色，41 公分",
+                                      "type":  "mirror",
+                                      "category":  "fi-mirrors",
+                                      "category_name_zh":  "鏡子",
+                                      "category_name_en":  "Mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  42.0,
+                                                      "depth":  5.0,
+                                                      "height":  5.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  42.0,
+                                                               "depth":  5.0,
+                                                               "height":  5.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirrors/07 - SVARTBJÖRK Decorative convex mirror - black 41 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_008",
+                                      "sku":  "mirrors_8",
+                                      "name":  "NYPONBUSKE Mirror - grey-beige 65x135 cm",
+                                      "chinese_name":  "NYPONBUSKE 鏡子，灰米色，65x135 公分",
+                                      "type":  "mirror",
+                                      "category":  "fi-mirrors",
+                                      "category_name_zh":  "鏡子",
+                                      "category_name_en":  "Mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  65.0,
+                                                      "depth":  3.5,
+                                                      "height":  135.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  65.0,
+                                                               "depth":  3.5,
+                                                               "height":  135.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirrors/08 - NYPONBUSKE Mirror - grey-beige 65x135 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_009",
+                                      "sku":  "mirrors_9",
+                                      "name":  "NYPONBUSKE Mirror - black 65x135 cm",
+                                      "chinese_name":  "NYPONBUSKE 鏡子，黑色，65x135 公分",
+                                      "type":  "mirror",
+                                      "category":  "fi-mirrors",
+                                      "category_name_zh":  "鏡子",
+                                      "category_name_en":  "Mirrors",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  65.0,
+                                                      "depth":  3.5,
+                                                      "height":  135.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  65.0,
+                                                               "depth":  3.5,
+                                                               "height":  135.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirrors/09 - NYPONBUSKE Mirror - black 65x135 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

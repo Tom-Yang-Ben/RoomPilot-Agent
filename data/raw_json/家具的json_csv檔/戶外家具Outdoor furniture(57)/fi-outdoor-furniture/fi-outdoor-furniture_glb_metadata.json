@@ -1,0 +1,164 @@
+{
+    "project_id":  "fi-outdoor-furniture",
+    "category":  "fi-outdoor-furniture",
+    "category_name_zh":  "戶外家具",
+    "category_name_en":  "Outdoor furniture",
+    "title":  "IKEA fi-outdoor-furniture GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-outdoor-furniture"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Outdoor furniture_001",
+                                      "sku":  "outdoor-furniture_1",
+                                      "name":  "ASKHOLMEN Table, outdoor - foldable dark brown 60x62 cm",
+                                      "chinese_name":  "ASKHOLMEN 戶外桌，可折疊深棕色，60x62 公分",
+                                      "type":  "outdoor-furniture",
+                                      "category":  "fi-outdoor-furniture",
+                                      "category_name_zh":  "戶外家具",
+                                      "category_name_en":  "Outdoor furniture",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  null,
+                                                      "height":  73.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  null,
+                                                               "height":  73.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-furniture/01 - ASKHOLMEN Table, outdoor - foldable dark brown 60x62 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_002",
+                                      "sku":  "outdoor-furniture_2",
+                                      "name":  "NÄMMARÖ Bench, outdoor - light brown stained 120 cm",
+                                      "chinese_name":  "NÄMMARÖ 戶外長凳，淺棕色染色，120 公分",
+                                      "type":  "outdoor-furniture",
+                                      "category":  "fi-outdoor-furniture",
+                                      "category_name_zh":  "戶外家具",
+                                      "category_name_en":  "Outdoor furniture",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  40.0,
+                                                      "height":  45.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  40.0,
+                                                               "height":  45.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-furniture/02 - NÄMMARÖ Bench, outdoor - light brown stained 120 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_003",
+                                      "sku":  "outdoor-furniture_3",
+                                      "name":  "KUDDARNA Bench cushion, outdoor - light grey-beige 120x40 cm",
+                                      "chinese_name":  "KUDDARNA 長凳墊，戶外，淺灰米色，120x40 公分",
+                                      "type":  "outdoor-furniture",
+                                      "category":  "fi-outdoor-furniture",
+                                      "category_name_zh":  "戶外家具",
+                                      "category_name_en":  "Outdoor furniture",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  40.0,
+                                                      "height":  7.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  40.0,
+                                                               "height":  7.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-furniture/03 - KUDDARNA Bench cushion, outdoor - light grey-beige 120x40 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

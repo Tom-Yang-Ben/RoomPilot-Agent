@@ -1,0 +1,404 @@
+{
+    "project_id":  "fi-outdoor-coffee-side-tables",
+    "category":  "fi-outdoor-coffee-side-tables",
+    "category_name_zh":  "戶外咖啡桌與邊桌",
+    "category_name_en":  "Outdoor coffee and side tables",
+    "title":  "IKEA fi-outdoor-coffee-side-tables GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-outdoor-coffee-side-tables"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Outdoor furniture_001",
+                                      "sku":  "outdoor-coffee-side-tables_1",
+                                      "name":  "KROKHOLMEN Coffee table, outdoor - beige 73 cm",
+                                      "chinese_name":  "KROKHOLMEN 戶外咖啡桌，米色，73 公分",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  75.0,
+                                                      "depth":  null,
+                                                      "height":  44.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  75.0,
+                                                               "depth":  null,
+                                                               "height":  44.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/01 - KROKHOLMEN Coffee table, outdoor - beige 73 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_002",
+                                      "sku":  "outdoor-coffee-side-tables_2",
+                                      "name":  "NÄMMARÖ Stool, outdoor - foldable/light brown stained 37x45 cm",
+                                      "chinese_name":  "NÄMMARÖ 戶外凳，可折疊/淺棕色染色，37x45 公分",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  37.0,
+                                                      "depth":  37.0,
+                                                      "height":  45.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  37.0,
+                                                               "depth":  37.0,
+                                                               "height":  45.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/02 - NÄMMARÖ Stool, outdoor - foldablelight brown stained 37x45 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_003",
+                                      "sku":  "outdoor-coffee-side-tables_3",
+                                      "name":  "MÅBÄRSSKÄR Coffee table - outdoor indoor/white 61x41 cm",
+                                      "chinese_name":  "MÅBÄRSSKÄR 咖啡桌，戶外室內/白色，61x41 公分",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  41.0,
+                                                      "depth":  null,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  41.0,
+                                                               "depth":  null,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/03 - MÅBÄRSSKÄR Coffee table - outdoor indoorwhite 61x41 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_004",
+                                      "sku":  "outdoor-coffee-side-tables_4",
+                                      "name":  "HÅKANSKÄR Coffee table - outdoor/light brown stained 80x64 cm",
+                                      "chinese_name":  "HÅKANSKÄR 咖啡桌，戶外/淺棕色染色，80x64 公分",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  64.0,
+                                                      "depth":  null,
+                                                      "height":  43.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  64.0,
+                                                               "depth":  null,
+                                                               "height":  43.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/04 - HÅKANSKÄR Coffee table - outdoorlight brown stained 80x64 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_005",
+                                      "sku":  "outdoor-coffee-side-tables_5",
+                                      "name":  "TÅNEBRO Side table - in/outdoor/light grey-beige 46 cm",
+                                      "chinese_name":  "TÅNEBRO 邊桌，室內外/淺灰米色，46 公分",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  47.0,
+                                                      "depth":  null,
+                                                      "height":  60.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  47.0,
+                                                               "depth":  null,
+                                                               "height":  60.5
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/05 - TÅNEBRO Side table - inoutdoorlight grey-beige 46 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_006",
+                                      "sku":  "outdoor-coffee-side-tables_6",
+                                      "name":  "TÅNEBRO Side table - in/outdoor/anthracite 46 cm",
+                                      "chinese_name":  "TÅNEBRO 邊桌，室內外/炭灰色，46 公分",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  47.0,
+                                                      "depth":  null,
+                                                      "height":  60.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  47.0,
+                                                               "depth":  null,
+                                                               "height":  60.5
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/06 - TÅNEBRO Side table - inoutdooranthracite 46 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_007",
+                                      "sku":  "outdoor-coffee-side-tables_7",
+                                      "name":  "TÅNEBRO Side table - in/outdoor/pale yellow 46 cm",
+                                      "chinese_name":  "TÅNEBRO 邊桌，室內外/淺黃色，46 公分",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  47.0,
+                                                      "depth":  null,
+                                                      "height":  60.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  47.0,
+                                                               "depth":  null,
+                                                               "height":  60.5
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/07 - TÅNEBRO Side table - inoutdoorpale yellow 46 cm.glb",
+                                      "material":  "",
+                                      "color":  "yellow",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_008",
+                                      "sku":  "outdoor-coffee-side-tables_8",
+                                      "name":  "GRYTSHOLM Nest of tables, set of 2 - outdoor/black-blue",
+                                      "chinese_name":  "GRYTSHOLM 子母桌，2件組，戶外/黑藍色",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  41.0,
+                                                      "depth":  null,
+                                                      "height":  9.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  41.0,
+                                                               "depth":  null,
+                                                               "height":  9.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/08 - GRYTSHOLM Nest of tables, set of 2 - outdoorblack-blue.glb",
+                                      "material":  "",
+                                      "color":  "blue",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_009",
+                                      "sku":  "outdoor-coffee-side-tables_9",
+                                      "name":  "ÖRSKÄR Nest of tables, set of 2 - in/outdoor dark grey",
+                                      "chinese_name":  "ÖRSKÄR 子母桌，2件組，室內外深灰色",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  57.0,
+                                                      "depth":  null,
+                                                      "height":  8.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  57.0,
+                                                               "depth":  null,
+                                                               "height":  8.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/09 - ÖRSKÄR Nest of tables, set of 2 - inoutdoor dark grey.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_010",
+                                      "sku":  "outdoor-coffee-side-tables_10",
+                                      "name":  "SEGERÖN Coffee table, outdoor - white/beige 73x73 cm",
+                                      "chinese_name":  "SEGERÖN 戶外咖啡桌，白色/米色，73x73 公分",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  73.0,
+                                                      "depth":  null,
+                                                      "height":  30.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  73.0,
+                                                               "depth":  null,
+                                                               "height":  30.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/10 - SEGERÖN Coffee table, outdoor - whitebeige 73x73 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Outdoor furniture_011",
+                                      "sku":  "outdoor-coffee-side-tables_11",
+                                      "name":  "VITTSKÄR Coffee table - plastic rattan outdoor/dark grey 110x58 cm",
+                                      "chinese_name":  "VITTSKÄR 咖啡桌，塑膠藤戶外/深灰色，110x58 公分",
+                                      "type":  "outdoor-coffee-side-table",
+                                      "category":  "fi-outdoor-coffee-side-tables",
+                                      "category_name_zh":  "戶外咖啡桌與邊桌",
+                                      "category_name_en":  "Outdoor coffee and side tables",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  58.0,
+                                                      "depth":  null,
+                                                      "height":  44.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  58.0,
+                                                               "depth":  null,
+                                                               "height":  44.0
+                                                           },
+                                      "glb_path":  "downloaded-files/戶外家具/fi-outdoor-coffee-side-tables/11 - VITTSKÄR Coffee table - plastic rattan outdoordark grey 110x58 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

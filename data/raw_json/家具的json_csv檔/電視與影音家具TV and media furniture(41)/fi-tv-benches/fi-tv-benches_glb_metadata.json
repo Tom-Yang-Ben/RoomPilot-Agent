@@ -1,0 +1,1094 @@
+{
+    "project_id":  "fi-tv-benches",
+    "category":  "fi-tv-benches",
+    "category_name_zh":  "電視櫃",
+    "category_name_en":  "TV benches",
+    "title":  "IKEA fi-tv-benches GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-tv-benches"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Storage furniture_001",
+                                      "sku":  "tv-benches_1",
+                                      "name":  "BYÅS TV bench - high-gloss white 160x42x45 cm",
+                                      "chinese_name":  "BYÅS 電視櫃，高光澤白色，160x42x45 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  160.0,
+                                                      "depth":  42.0,
+                                                      "height":  45.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  160.0,
+                                                               "depth":  42.0,
+                                                               "height":  45.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/01 - BYÅS TV bench - high-gloss white 160x42x45 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_002",
+                                      "sku":  "tv-benches_2",
+                                      "name":  "BESTÅ TV bench with doors - white/Lappviken/Stubbarp white 120x42x48 cm",
+                                      "chinese_name":  "BESTÅ 附門電視櫃，白色/Lappviken/Stubbarp 白色，120x42x48 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  42.0,
+                                                      "height":  48.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  42.0,
+                                                               "height":  48.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/02 - BESTÅ TV bench with doors - whiteLappvikenStubbarp white 120x42x48 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_003",
+                                      "sku":  "tv-benches_3",
+                                      "name":  "BESTÅ TV bench with doors - black-brown/Lappviken walnut effect 180x42x38 cm",
+                                      "chinese_name":  "BESTÅ 附門電視櫃，黑棕色/Lappviken 胡桃木紋，180x42x38 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  180.0,
+                                                      "depth":  42.0,
+                                                      "height":  38.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  180.0,
+                                                               "depth":  42.0,
+                                                               "height":  38.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/03 - BESTÅ TV bench with doors - black-brownLappviken walnut effect 180x42x38 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_004",
+                                      "sku":  "tv-benches_4",
+                                      "name":  "LACK TV bench - white 120x35x36 cm",
+                                      "chinese_name":  "LACK 電視櫃，白色，120x35x36 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  35.0,
+                                                      "height":  36.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  35.0,
+                                                               "height":  36.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/04 - LACK TV bench - white 120x35x36 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_005",
+                                      "sku":  "tv-benches_5",
+                                      "name":  "LACK TV bench - black-brown 120x35x36 cm",
+                                      "chinese_name":  "LACK 電視櫃，黑棕色，120x35x36 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  35.0,
+                                                      "height":  36.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  35.0,
+                                                               "height":  36.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/05 - LACK TV bench - black-brown 120x35x36 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_006",
+                                      "sku":  "tv-benches_6",
+                                      "name":  "STOCKHOLM 2025 TV bench with sliding doors - oak veneer 179x42x56 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 附滑門電視櫃，橡木實木貼皮，179x42x56 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  178.8,
+                                                      "depth":  42.0,
+                                                      "height":  56.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  178.8,
+                                                               "depth":  42.0,
+                                                               "height":  56.2
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/06 - STOCKHOLM 2025 TV bench with sliding doors - oak veneer 179x42x56 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_007",
+                                      "sku":  "tv-benches_7",
+                                      "name":  "BESTÅ TV bench - white 180x40x38 cm",
+                                      "chinese_name":  "BESTÅ 電視櫃，白色，180x40x38 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  180.0,
+                                                      "depth":  40.0,
+                                                      "height":  38.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  180.0,
+                                                               "depth":  40.0,
+                                                               "height":  38.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/07 - BESTÅ TV bench - white 180x40x38 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_008",
+                                      "sku":  "tv-benches_8",
+                                      "name":  "BESTÅ TV bench - white 180x40x64 cm",
+                                      "chinese_name":  "BESTÅ 電視櫃，白色，180x40x64 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  180.0,
+                                                      "depth":  40.0,
+                                                      "height":  64.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  180.0,
+                                                               "depth":  40.0,
+                                                               "height":  64.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/08 - BESTÅ TV bench - white 180x40x64 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_009",
+                                      "sku":  "tv-benches_9",
+                                      "name":  "BESTÅ TV bench - white 120x40x64 cm",
+                                      "chinese_name":  "BESTÅ 電視櫃，白色，120x40x64 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  40.0,
+                                                      "height":  64.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  40.0,
+                                                               "height":  64.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/09 - BESTÅ TV bench - white 120x40x64 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_010",
+                                      "sku":  "tv-benches_10",
+                                      "name":  "BRIMNES TV bench - black 180x41x53 cm",
+                                      "chinese_name":  "BRIMNES 電視櫃，黑色，180x41x53 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  180.0,
+                                                      "depth":  41.0,
+                                                      "height":  53.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  180.0,
+                                                               "depth":  41.0,
+                                                               "height":  53.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/10 - BRIMNES TV bench - black 180x41x53 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_011",
+                                      "sku":  "tv-benches_11",
+                                      "name":  "BESTÅ TV bench with doors - white/Krukmakare beige 120x42x74 cm",
+                                      "chinese_name":  "BESTÅ 附門電視櫃，白色/Krukmakare 米色，120x42x74 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  42.0,
+                                                      "height":  74.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  42.0,
+                                                               "height":  74.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/11 - BESTÅ TV bench with doors - whiteKrukmakare beige 120x42x74 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_012",
+                                      "sku":  "tv-benches_12",
+                                      "name":  "LACK TV bench - white 90x36x45 cm",
+                                      "chinese_name":  "LACK 電視櫃，白色，90x36x45 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  90.0,
+                                                      "depth":  36.0,
+                                                      "height":  45.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  90.0,
+                                                               "depth":  36.0,
+                                                               "height":  45.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/12 - LACK TV bench - white 90x36x45 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_013",
+                                      "sku":  "tv-benches_13",
+                                      "name":  "LACK TV bench - white 160x35x36 cm",
+                                      "chinese_name":  "LACK 電視櫃，白色，160x35x36 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  160.0,
+                                                      "depth":  35.0,
+                                                      "height":  36.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  160.0,
+                                                               "depth":  35.0,
+                                                               "height":  36.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/13 - LACK TV bench - white 160x35x36 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_014",
+                                      "sku":  "tv-benches_14",
+                                      "name":  "LACK TV bench - black-brown 160x35x36 cm",
+                                      "chinese_name":  "LACK 電視櫃，黑棕色，160x35x36 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  160.0,
+                                                      "depth":  35.0,
+                                                      "height":  36.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  160.0,
+                                                               "depth":  35.0,
+                                                               "height":  36.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/14 - LACK TV bench - black-brown 160x35x36 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_015",
+                                      "sku":  "tv-benches_15",
+                                      "name":  "BRIMNES TV bench - black 120x41x53 cm",
+                                      "chinese_name":  "BRIMNES 電視櫃，黑色，120x41x53 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  41.0,
+                                                      "height":  53.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  41.0,
+                                                               "height":  53.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/15 - BRIMNES TV bench - black 120x41x53 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_016",
+                                      "sku":  "tv-benches_16",
+                                      "name":  "KALLAX TV bench - white 147x60 cm",
+                                      "chinese_name":  "KALLAX 電視櫃，白色，147x60 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  146.6,
+                                                      "depth":  39.2,
+                                                      "height":  59.6
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  146.6,
+                                                               "depth":  39.2,
+                                                               "height":  59.6
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/16 - KALLAX TV bench - white 147x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_017",
+                                      "sku":  "tv-benches_17",
+                                      "name":  "KALLAX TV bench - black-brown 147x60 cm",
+                                      "chinese_name":  "KALLAX 電視櫃，黑棕色，147x60 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  146.6,
+                                                      "depth":  39.2,
+                                                      "height":  59.6
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  146.6,
+                                                               "depth":  39.2,
+                                                               "height":  59.6
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/17 - KALLAX TV bench - black-brown 147x60 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_018",
+                                      "sku":  "tv-benches_18",
+                                      "name":  "LACK TV bench - white 90x26x45 cm",
+                                      "chinese_name":  "LACK 電視櫃，白色，90x26x45 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  90.0,
+                                                      "depth":  26.0,
+                                                      "height":  45.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  90.0,
+                                                               "depth":  26.0,
+                                                               "height":  45.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/18 - LACK TV bench - white 90x26x45 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_019",
+                                      "sku":  "tv-benches_19",
+                                      "name":  "LACK TV bench - black 90x26x45 cm",
+                                      "chinese_name":  "LACK 電視櫃，黑色，90x26x45 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  90.0,
+                                                      "depth":  26.0,
+                                                      "height":  45.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  90.0,
+                                                               "depth":  26.0,
+                                                               "height":  45.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/19 - LACK TV bench - black 90x26x45 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_020",
+                                      "sku":  "tv-benches_20",
+                                      "name":  "FJÄLLBO TV bench - black 150x36x54 cm",
+                                      "chinese_name":  "FJÄLLBO 電視櫃，黑色，150x36x54 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.0,
+                                                      "depth":  36.0,
+                                                      "height":  54.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.0,
+                                                               "depth":  36.0,
+                                                               "height":  54.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/20 - FJÄLLBO TV bench - black 150x36x54 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_021",
+                                      "sku":  "tv-benches_21",
+                                      "name":  "FJÄLLBO TV bench - black 198x45x54 cm",
+                                      "chinese_name":  "FJÄLLBO 電視櫃，黑色，198x45x54 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  198.0,
+                                                      "depth":  45.0,
+                                                      "height":  54.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  198.0,
+                                                               "depth":  45.0,
+                                                               "height":  54.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/21 - FJÄLLBO TV bench - black 198x45x54 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_022",
+                                      "sku":  "tv-benches_22",
+                                      "name":  "BRIMNES TV bench - black 216x41x54 cm",
+                                      "chinese_name":  "BRIMNES 電視櫃，黑色，216x41x54 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  216.0,
+                                                      "depth":  41.0,
+                                                      "height":  54.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  216.0,
+                                                               "depth":  41.0,
+                                                               "height":  54.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/22 - BRIMNES TV bench - black 216x41x54 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_023",
+                                      "sku":  "tv-benches_23",
+                                      "name":  "BESTÅ TV bench with drawers - white/Lappviken/Stubbarp white 120x42x48 cm",
+                                      "chinese_name":  "BESTÅ 附抽屜電視櫃，白色/Lappviken/Stubbarp 白色，120x42x48 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  42.0,
+                                                      "height":  48.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  42.0,
+                                                               "height":  48.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/23 - BESTÅ TV bench with drawers - whiteLappvikenStubbarp white 120x42x48 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_024",
+                                      "sku":  "tv-benches_24",
+                                      "name":  "BESTÅ TV bench with drawers - white/Krukmakare beige 120x42x48 cm",
+                                      "chinese_name":  "BESTÅ 附抽屜電視櫃，白色/Krukmakare 米色，120x42x48 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  42.0,
+                                                      "height":  48.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  42.0,
+                                                               "height":  48.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/24 - BESTÅ TV bench with drawers - whiteKrukmakare beige 120x42x48 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_025",
+                                      "sku":  "tv-benches_25",
+                                      "name":  "VIHALS TV bench - dark grey 146x37x50 cm",
+                                      "chinese_name":  "VIHALS 電視櫃，深灰色，146x37x50 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  146.0,
+                                                      "depth":  37.0,
+                                                      "height":  50.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  146.0,
+                                                               "depth":  37.0,
+                                                               "height":  50.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/25 - VIHALS TV bench - dark grey 146x37x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_026",
+                                      "sku":  "tv-benches_26",
+                                      "name":  "VIHALS TV bench - white 146x37x50 cm",
+                                      "chinese_name":  "VIHALS 電視櫃，白色，146x37x50 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  146.0,
+                                                      "depth":  37.0,
+                                                      "height":  50.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  146.0,
+                                                               "depth":  37.0,
+                                                               "height":  50.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/26 - VIHALS TV bench - white 146x37x50 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_027",
+                                      "sku":  "tv-benches_27",
+                                      "name":  "BESTÅ TV bench - white 120x40x48 cm",
+                                      "chinese_name":  "BESTÅ 電視櫃，白色，120x40x48 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  40.0,
+                                                      "height":  48.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  40.0,
+                                                               "height":  48.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/27 - BESTÅ TV bench - white 120x40x48 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_028",
+                                      "sku":  "tv-benches_28",
+                                      "name":  "BESTÅ TV bench - white stained oak effect 120x40x48 cm",
+                                      "chinese_name":  "BESTÅ 電視櫃，白色染色橡木紋，120x40x48 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  40.0,
+                                                      "height":  48.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  40.0,
+                                                               "height":  48.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/28 - BESTÅ TV bench - white stained oak effect 120x40x48 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_029",
+                                      "sku":  "tv-benches_29",
+                                      "name":  "BESTÅ TV bench - black-brown 120x40x48 cm",
+                                      "chinese_name":  "BESTÅ 電視櫃，黑棕色，120x40x48 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  40.0,
+                                                      "height":  48.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  40.0,
+                                                               "height":  48.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/29 - BESTÅ TV bench - black-brown 120x40x48 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_030",
+                                      "sku":  "tv-benches_30",
+                                      "name":  "BESTÅ TV bench - dark grey 120x40x48 cm",
+                                      "chinese_name":  "BESTÅ 電視櫃，深灰色，120x40x48 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  120.0,
+                                                      "depth":  40.0,
+                                                      "height":  48.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  120.0,
+                                                               "depth":  40.0,
+                                                               "height":  48.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/30 - BESTÅ TV bench - dark grey 120x40x48 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_031",
+                                      "sku":  "tv-benches_31",
+                                      "name":  "HAUGA TV bench - white 206x46x54 cm",
+                                      "chinese_name":  "HAUGA 電視櫃，白色，206x46x54 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  206.0,
+                                                      "depth":  46.0,
+                                                      "height":  54.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  206.0,
+                                                               "depth":  46.0,
+                                                               "height":  54.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/31 - HAUGA TV bench - white 206x46x54 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_032",
+                                      "sku":  "tv-benches_32",
+                                      "name":  "HAUGA TV bench - grey 206x46x54 cm",
+                                      "chinese_name":  "HAUGA 電視櫃，灰色，206x46x54 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  206.0,
+                                                      "depth":  46.0,
+                                                      "height":  54.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  206.0,
+                                                               "depth":  46.0,
+                                                               "height":  54.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/32 - HAUGA TV bench - grey 206x46x54 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_033",
+                                      "sku":  "tv-benches_33",
+                                      "name":  "HEMNES TV bench - white stain/light brown 148x47x57 cm",
+                                      "chinese_name":  "HEMNES 電視櫃，白色染色/淺棕色，148x47x57 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  148.0,
+                                                      "depth":  47.0,
+                                                      "height":  57.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  148.0,
+                                                               "depth":  47.0,
+                                                               "height":  57.0
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/33 - HEMNES TV bench - white stainlight brown 148x47x57 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Storage furniture_034",
+                                      "sku":  "tv-benches_34",
+                                      "name":  "TONSTAD TV bench - oak veneer 178x37x55 cm",
+                                      "chinese_name":  "TONSTAD 電視櫃，橡木實木貼皮，178x37x55 公分",
+                                      "type":  "tv-benche",
+                                      "category":  "fi-tv-benches",
+                                      "category_name_zh":  "電視櫃",
+                                      "category_name_en":  "TV benches",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  178.4,
+                                                      "depth":  37.2,
+                                                      "height":  54.9
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  178.4,
+                                                               "depth":  37.2,
+                                                               "height":  54.9
+                                                           },
+                                      "glb_path":  "downloaded-files/電視影音家具/fi-tv-benches/34 - TONSTAD TV bench - oak veneer 178x37x55 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

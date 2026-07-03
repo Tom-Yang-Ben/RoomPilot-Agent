@@ -1,0 +1,404 @@
+{
+    "project_id":  "fi-beds",
+    "category":  "fi-beds",
+    "category_name_zh":  "床",
+    "category_name_en":  "Beds",
+    "title":  "IKEA fi-beds GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-beds"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Beds and mattresses_001",
+                                      "sku":  "beds_1",
+                                      "name":  "NEIDEN Bed frame - pine 90x200 cm",
+                                      "chinese_name":  "NEIDEN 床架，松木，90x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  94.0,
+                                                      "depth":  null,
+                                                      "height":  30.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  94.0,
+                                                               "depth":  null,
+                                                               "height":  30.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/01 - NEIDEN Bed frame - pine 90x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_002",
+                                      "sku":  "beds_2",
+                                      "name":  "IDANÄS Upholstered storage bed - Naggen beige 160x200 cm",
+                                      "chinese_name":  "IDANÄS 布面收納床，Naggen 米色，160x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  170.0,
+                                                      "depth":  null,
+                                                      "height":  49.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  170.0,
+                                                               "depth":  null,
+                                                               "height":  49.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/02 - IDANÄS Upholstered storage bed - Naggen beige 160x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_003",
+                                      "sku":  "beds_3",
+                                      "name":  "RAMNEFJÄLL Upholstered bed frame - Kilanda light beige/Luröy 160x200 cm",
+                                      "chinese_name":  "RAMNEFJÄLL 布面床架，Kilanda 淺米色/Luröy，160x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  160.0,
+                                                      "depth":  null,
+                                                      "height":  43.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  160.0,
+                                                               "depth":  null,
+                                                               "height":  43.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/03 - RAMNEFJÄLL Upholstered bed frame - Kilanda light beigeLuröy 160x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_004",
+                                      "sku":  "beds_4",
+                                      "name":  "SLATTUM Upholstered bed frame - Vissle dark grey 90x200 cm",
+                                      "chinese_name":  "SLATTUM 布面床架，Vissle 深灰色，90x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  94.0,
+                                                      "depth":  null,
+                                                      "height":  40.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  94.0,
+                                                               "depth":  null,
+                                                               "height":  40.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/04 - SLATTUM Upholstered bed frame - Vissle dark grey 90x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_005",
+                                      "sku":  "beds_5",
+                                      "name":  "MALM Bed frame, high - white stained oak veneer/Lönset 160x200 cm",
+                                      "chinese_name":  "MALM 高床架，白色染色橡木實木貼皮/Lönset，160x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  176.0,
+                                                      "depth":  null,
+                                                      "height":  38.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  176.0,
+                                                               "depth":  null,
+                                                               "height":  38.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/05 - MALM Bed frame, high - white stained oak veneerLönset 160x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_006",
+                                      "sku":  "beds_6",
+                                      "name":  "VIHALS Bed frame with 2 storage boxes - white/Luröy 140x200 cm",
+                                      "chinese_name":  "VIHALS 附2收納箱床架，白色/Luröy，140x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  140.0,
+                                                      "depth":  null,
+                                                      "height":  5.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  140.0,
+                                                               "depth":  null,
+                                                               "height":  5.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/06 - VIHALS Bed frame with 2 storage boxes - whiteLuröy 140x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_007",
+                                      "sku":  "beds_7",
+                                      "name":  "VIHALS Bed frame with 2 storage boxes - white/Luröy 90x200 cm",
+                                      "chinese_name":  "VIHALS 附2收納箱床架，白色/Luröy，90x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  90.0,
+                                                      "depth":  null,
+                                                      "height":  5.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  90.0,
+                                                               "depth":  null,
+                                                               "height":  5.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/07 - VIHALS Bed frame with 2 storage boxes - whiteLuröy 90x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_008",
+                                      "sku":  "beds_8",
+                                      "name":  "SONGESAND Bed frame with 4 storage boxes - white/Lönset 140x200 cm",
+                                      "chinese_name":  "SONGESAND 附4收納箱床架，白色/Lönset，140x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  153.0,
+                                                      "depth":  null,
+                                                      "height":  41.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  153.0,
+                                                               "depth":  null,
+                                                               "height":  41.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/08 - SONGESAND Bed frame with 4 storage boxes - whiteLönset 140x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_009",
+                                      "sku":  "beds_9",
+                                      "name":  "BRIMNES Bed frame with storage - white/Lönset 160x200 cm",
+                                      "chinese_name":  "BRIMNES 附收納床架，白色/Lönset，160x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  166.0,
+                                                      "depth":  null,
+                                                      "height":  47.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  166.0,
+                                                               "depth":  null,
+                                                               "height":  47.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/09 - BRIMNES Bed frame with storage - whiteLönset 160x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_010",
+                                      "sku":  "beds_10",
+                                      "name":  "MALM Bed frame, high - white 90x200 cm",
+                                      "chinese_name":  "MALM 高床架，白色，90x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  105.0,
+                                                      "depth":  null,
+                                                      "height":  38.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  105.0,
+                                                               "depth":  null,
+                                                               "height":  38.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/10 - MALM Bed frame, high - white 90x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Beds and mattresses_011",
+                                      "sku":  "beds_11",
+                                      "name":  "VIHALS Bed frame - white 90x200 cm",
+                                      "chinese_name":  "VIHALS 床架，白色，90x200 公分",
+                                      "type":  "bed",
+                                      "category":  "fi-beds",
+                                      "category_name_zh":  "床",
+                                      "category_name_en":  "Beds",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  90.0,
+                                                      "depth":  null,
+                                                      "height":  41.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  90.0,
+                                                               "depth":  null,
+                                                               "height":  41.0
+                                                           },
+                                      "glb_path":  "downloaded-files/床與床墊/fi-beds/11 - VIHALS Bed frame - white 90x200 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

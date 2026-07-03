@@ -1,0 +1,674 @@
+{
+    "project_id":  "fi-wardrobes",
+    "category":  "fi-wardrobes",
+    "category_name_zh":  "衣櫃",
+    "category_name_en":  "Wardrobes",
+    "title":  "IKEA fi-wardrobes GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-wardrobes"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Wardrobes and clothes storage_001",
+                                      "sku":  "wardrobes_1",
+                                      "name":  "BRIMNES Wardrobe with 3 doors - white 117x50x190 cm",
+                                      "chinese_name":  "BRIMNES 3門衣櫃，白色，117x50x190 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  117.0,
+                                                      "depth":  50.0,
+                                                      "height":  190.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  117.0,
+                                                               "depth":  50.0,
+                                                               "height":  190.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/01 - BRIMNES Wardrobe with 3 doors - white 117x50x190 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_002",
+                                      "sku":  "wardrobes_2",
+                                      "name":  "KLEPPSTAD Wardrobe with 3 doors - white 117x55x176 cm",
+                                      "chinese_name":  "KLEPPSTAD 3門衣櫃，白色，117x55x176 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  117.0,
+                                                      "depth":  55.0,
+                                                      "height":  176.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  117.0,
+                                                               "depth":  55.0,
+                                                               "height":  176.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/02 - KLEPPSTAD Wardrobe with 3 doors - white 117x55x176 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_003",
+                                      "sku":  "wardrobes_3",
+                                      "name":  "BRIMNES Wardrobe with 2 doors - white 78x50x190 cm",
+                                      "chinese_name":  "BRIMNES 2門衣櫃，白色，78x50x190 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  78.0,
+                                                      "depth":  50.0,
+                                                      "height":  190.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  78.0,
+                                                               "depth":  50.0,
+                                                               "height":  190.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/03 - BRIMNES Wardrobe with 2 doors - white 78x50x190 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_004",
+                                      "sku":  "wardrobes_4",
+                                      "name":  "KLEPPSTAD Wardrobe with 2 doors - white 79x55x176 cm",
+                                      "chinese_name":  "KLEPPSTAD 2門衣櫃，白色，79x55x176 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  79.0,
+                                                      "depth":  55.0,
+                                                      "height":  176.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  79.0,
+                                                               "depth":  55.0,
+                                                               "height":  176.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/04 - KLEPPSTAD Wardrobe with 2 doors - white 79x55x176 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_005",
+                                      "sku":  "wardrobes_5",
+                                      "name":  "RAKKESTAD Wardrobe with 3 doors - black-brown 117x176 cm",
+                                      "chinese_name":  "RAKKESTAD 3門衣櫃，黑棕色，117x176 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  117.0,
+                                                      "depth":  55.0,
+                                                      "height":  176.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  117.0,
+                                                               "depth":  55.0,
+                                                               "height":  176.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/05 - RAKKESTAD Wardrobe with 3 doors - black-brown 117x176 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_006",
+                                      "sku":  "wardrobes_6",
+                                      "name":  "SUNDVIK Wardrobe - white 80x50x171 cm",
+                                      "chinese_name":  "SUNDVIK 衣櫃，白色，80x50x171 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  80.0,
+                                                      "depth":  50.0,
+                                                      "height":  171.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  80.0,
+                                                               "depth":  50.0,
+                                                               "height":  171.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/06 - SUNDVIK Wardrobe - white 80x50x171 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_007",
+                                      "sku":  "wardrobes_7",
+                                      "name":  "KLEPPSTAD Wardrobe with sliding doors - white 117x55x176 cm",
+                                      "chinese_name":  "KLEPPSTAD 滑門衣櫃，白色，117x55x176 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  117.0,
+                                                      "depth":  55.0,
+                                                      "height":  176.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  117.0,
+                                                               "depth":  55.0,
+                                                               "height":  176.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/07 - KLEPPSTAD Wardrobe with sliding doors - white 117x55x176 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_008",
+                                      "sku":  "wardrobes_8",
+                                      "name":  "PAX / BERGSBO Wardrobe - dark grey/dark grey 150x60x201 cm",
+                                      "chinese_name":  "PAX / BERGSBO 衣櫃，深灰色/深灰色，150x60x201 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.0,
+                                                      "depth":  60.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.0,
+                                                               "depth":  60.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/08 - PAX BERGSBO Wardrobe - dark greydark grey 150x60x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_009",
+                                      "sku":  "wardrobes_9",
+                                      "name":  "PAX / BERGSBO Wardrobe - white/white 150x60x236 cm",
+                                      "chinese_name":  "PAX / BERGSBO 衣櫃，白色/白色，150x60x236 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.0,
+                                                      "depth":  60.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.0,
+                                                               "depth":  60.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/09 - PAX BERGSBO Wardrobe - whitewhite 150x60x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_010",
+                                      "sku":  "wardrobes_10",
+                                      "name":  "PAX / BERGSBO Wardrobe - dark grey/dark grey 150x60x236 cm",
+                                      "chinese_name":  "PAX / BERGSBO 衣櫃，深灰色/深灰色，150x60x236 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.0,
+                                                      "depth":  60.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.0,
+                                                               "depth":  60.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/10 - PAX BERGSBO Wardrobe - dark greydark grey 150x60x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_011",
+                                      "sku":  "wardrobes_11",
+                                      "name":  "LASTARE Wardrobe combination - white 60x42x201 cm",
+                                      "chinese_name":  "LASTARE 衣櫃組合，白色，60x42x201 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  42.0,
+                                                      "height":  201.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  42.0,
+                                                               "height":  201.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/11 - LASTARE Wardrobe combination - white 60x42x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_012",
+                                      "sku":  "wardrobes_12",
+                                      "name":  "GÖMPYSSLING LED lighting with sensor - white/battery-operated 7 cm",
+                                      "chinese_name":  "GÖMPYSSLING 附感應器LED照明，白色/電池供電，7 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  7.0,
+                                                      "depth":  1.9,
+                                                      "height":  1.9
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  7.0,
+                                                               "depth":  1.9,
+                                                               "height":  1.9
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/12 - GÖMPYSSLING LED lighting with sensor - whitebattery-operated 7 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_013",
+                                      "sku":  "wardrobes_13",
+                                      "name":  "ANKARUDDEN Wardrobe with sliding doors - oak effect 98x60x190 cm",
+                                      "chinese_name":  "ANKARUDDEN 滑門衣櫃，橡木紋，98x60x190 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  98.0,
+                                                      "depth":  60.0,
+                                                      "height":  190.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  98.0,
+                                                               "depth":  60.0,
+                                                               "height":  190.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/13 - ANKARUDDEN Wardrobe with sliding doors - oak effect 98x60x190 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_014",
+                                      "sku":  "wardrobes_14",
+                                      "name":  "PAX / FORSAND Wardrobe combination - white/white 150x60x236 cm",
+                                      "chinese_name":  "PAX / FORSAND 衣櫃組合，白色/白色，150x60x236 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.0,
+                                                      "depth":  60.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.0,
+                                                               "depth":  60.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/14 - PAX FORSAND Wardrobe combination - whitewhite 150x60x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_015",
+                                      "sku":  "wardrobes_15",
+                                      "name":  "PAX / FORSAND Wardrobe combination - white/white stained oak effect 150x60x201 cm",
+                                      "chinese_name":  "PAX / FORSAND 衣櫃組合，白色/白色染色橡木紋，150x60x201 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.0,
+                                                      "depth":  60.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.0,
+                                                               "depth":  60.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/15 - PAX FORSAND Wardrobe combination - whitewhite stained oak effect 150x60x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_016",
+                                      "sku":  "wardrobes_16",
+                                      "name":  "PAX / FORSAND Wardrobe combination - white stained oak effect/white stained oak effect 150x60x236 cm",
+                                      "chinese_name":  "PAX / FORSAND 衣櫃組合，白色染色橡木紋/白色染色橡木紋，150x60x236 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.0,
+                                                      "depth":  60.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.0,
+                                                               "depth":  60.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/16 - PAX FORSAND Wardrobe combination - white stained oak effectwhite stained oak effect 150x60x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_017",
+                                      "sku":  "wardrobes_17",
+                                      "name":  "RÅDMANSÖ Wardrobe - brown walnut effect 118x64x190 cm",
+                                      "chinese_name":  "RÅDMANSÖ 衣櫃，棕色胡桃木紋，118x64x190 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  118.0,
+                                                      "depth":  64.0,
+                                                      "height":  190.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  118.0,
+                                                               "depth":  64.0,
+                                                               "height":  190.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/17 - RÅDMANSÖ Wardrobe - brown walnut effect 118x64x190 cm.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_018",
+                                      "sku":  "wardrobes_18",
+                                      "name":  "VISTHUS Wardrobe - grey/white 122x59x216 cm",
+                                      "chinese_name":  "VISTHUS 衣櫃，灰色/白色，122x59x216 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  122.0,
+                                                      "depth":  59.0,
+                                                      "height":  216.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  122.0,
+                                                               "depth":  59.0,
+                                                               "height":  216.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/18 - VISTHUS Wardrobe - greywhite 122x59x216 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_019",
+                                      "sku":  "wardrobes_19",
+                                      "name":  "JONAXEL Storage combination - white 25x51x70 cm",
+                                      "chinese_name":  "JONAXEL 收納組合，白色，25x51x70 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  25.0,
+                                                      "depth":  51.0,
+                                                      "height":  70.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  25.0,
+                                                               "depth":  51.0,
+                                                               "height":  70.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/19 - JONAXEL Storage combination - white 25x51x70 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_020",
+                                      "sku":  "wardrobes_20",
+                                      "name":  "JONAXEL Storage combination - white 50x51x70 cm",
+                                      "chinese_name":  "JONAXEL 收納組合，白色，50x51x70 公分",
+                                      "type":  "wardrobe",
+                                      "category":  "fi-wardrobes",
+                                      "category_name_zh":  "衣櫃",
+                                      "category_name_en":  "Wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  50.0,
+                                                      "depth":  51.0,
+                                                      "height":  70.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  50.0,
+                                                               "depth":  51.0,
+                                                               "height":  70.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-wardrobes/20 - JONAXEL Storage combination - white 50x51x70 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

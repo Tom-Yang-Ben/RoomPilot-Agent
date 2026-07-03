@@ -1,13 +1,6 @@
-# IKEA GLB 下載器
+# RoomPilot Agent
 
-這個專案使用 `ikea_category_glb_downloader.py` 從 IKEA 商品分類頁尋找可用的 3D 模型，並下載 `.glb` 檔案，同時產生 CSV / JSON metadata。
-
-目前支援的 IKEA 站點：
-
-| 代碼 | 站點 | Base URL |
-| --- | --- | --- |
-| `fi` | Finland | `https://www.ikea.com/fi/en` |
-| `jp` | Japan | `https://www.ikea.com/jp/en` |
+RoomPilot Agent 是用來整理 IKEA GLB 家具資料的 Python 專案。主要流程是先整理原始 JSON，再驗證資料格式，合併成家具 catalog，最後匯入 PostgreSQL，提供後端 API 查詢使用。
 
 ## 安裝
 
@@ -15,210 +8,103 @@
 pip install -r requirements.txt
 ```
 
-## 互動式下載
+如果要匯入 PostgreSQL，請在專案根目錄建立 `.env`：
 
-```bash
-python ikea_category_glb_downloader.py
+```env
+DATABASE_URL=postgresql+psycopg2://postgres:password@localhost:5432/roompilot
 ```
 
-互動模式會依序詢問：
-
-1. IKEA 站點，例如 `fi` 或 `jp`
-2. 家具分類或細分類代碼，例如 `office-chairs`、`desks`、`rugs`
-3. 要下載的 GLB 數量
-
-輸出會放在：
+## 資料夾用途
 
 ```text
-downloaded-files/<site>-<category>/
+data/
+├── raw_json/
+├── processed/
+└── reports/
 ```
 
-例如：
-
-```text
-downloaded-files/fi-office-chairs/
-downloaded-files/jp-bookcases/
-```
-
-## 批次下載
-
-腳本也包含幾個批次模式，會依分類逐一搜尋，並用 registry 避免重複下載。
-
-```bash
-python ikea_category_glb_downloader.py --table-batch
-python ikea_category_glb_downloader.py --bed-batch
-python ikea_category_glb_downloader.py --wardrobe-batch
-python ikea_category_glb_downloader.py --rug-batch
-```
-
-地毯也支援單一分類補跑：
-
-```bash
-python ikea_category_glb_downloader.py --rug-category=sheepskins-cowhides
-```
-
-## 輸出檔案
-
-| 檔案 | 說明 |
+| 資料夾 | 用途 |
 | --- | --- |
-| `.glb` | IKEA 商品 3D 模型 |
-| `*_glb_metadata.csv` | 下載商品 metadata CSV |
-| `*_glb_metadata.json` | 下載商品 metadata JSON |
-| `_registry.json` | 批次模式用的去重紀錄 |
+| `data/raw_json/` | 放原始家具分類 JSON，可以有子資料夾，腳本會遞迴掃描。 |
+| `data/processed/` | 放合併後的輸出檔，例如 `furniture_catalog.jsonl` 和 `furniture_catalog.json`。 |
+| `data/reports/` | 放驗證或匯入時產生的報告，例如錯誤 CSV、驗證 summary。 |
 
-## 家具與細分類清單
+## Python 檔案用途
 
-以下分類可作為互動式下載的輸入代碼。下載器會用「細分類代碼」對應 IKEA Finland 的 `/cat/.../` 分類頁。
+| 檔案 | 功用 |
+| --- | --- |
+| `scripts/ikea_category_glb_downloader.py` | 從 IKEA 分類頁尋找可用的 GLB 3D 模型，下載 `.glb` 並產生 metadata CSV / JSON。 |
+| `scripts/clean_metadata_json.py` | 清理舊 metadata，例如把 `chinese name` 改成 `chinese_name`、修正 `glb_path` 斜線。 |
+| `scripts/validate_json.py` | 檢查 `data/raw_json/` 裡的 JSON 是否符合後端與資料庫需求。 |
+| `scripts/merge_json_to_catalog.py` | 把多個分類 JSON 的 `scene.objects` 合併成總家具 catalog。 |
+| `scripts/import_furniture_to_db.py` | 把 `furniture_catalog.jsonl` 匯入 PostgreSQL 的 `furniture_items` 資料表。 |
 
-## Bookcases and shelving / 書櫃與層架
+## 建議執行順序
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `bookcases` | Bookcases | 書櫃 | `bookcases-10382` |
-| `shelving-units` | Shelving units | 層架組 | `shelving-units-10397` |
-| `wall-shelves` | Wall shelves | 壁架 | `wall-shelves-10398` |
+### 0. 下載 IKEA GLB 與 metadata
 
-## Sofas and armchairs / 沙發與扶手椅
+如果還沒有原始資料，可以先執行下載器：
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `sofas` | All sofas | 所有沙發 | `sofas-fu003` |
-| `fabric-sofas` | Fabric sofas | 布沙發 | `fabric-sofas-10661` |
-| `leather-sofas` | Leather and coated fabric sofas | 皮革與塗層布沙發 | `leather-coated-fabric-sofas-10662` |
-| `sofa-beds` | Sofa beds | 沙發床 | `sofa-beds-10663` |
-| `modular-sofas` | Modular sofas | 模組沙發 | `modular-sofas-31786` |
-| `armchairs` | Armchairs | 扶手椅 | `armchairs-16239` |
+```bash
+python scripts/ikea_category_glb_downloader.py
+```
 
-## Chairs, stools and benches / 椅子、凳子與長凳
+下載完成後，請把要處理的 metadata JSON 放到 `data/raw_json/`。
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `chairs` | All chairs | 所有椅子 | `tables-chairs-fu002` |
-| `dining-chairs` | Dining chairs | 餐椅 | `dining-chairs-25219` |
-| `office-chairs` | Office and desk chairs | 辦公椅與書桌椅 | `desk-chairs-20652` |
-| `armchairs` | Armchairs | 扶手椅 | `armchairs-16239` |
-| `stools-benches` | Stools and benches | 凳子與長凳 | `stools-benches-16244` |
-| `gaming-chairs` | Gaming chairs | 電競椅 | `gaming-chairs-47067` |
+### 1. 驗證 JSON
 
-## Tables and desks / 桌子與書桌
+```bash
+python scripts/validate_json.py --input data/raw_json
+```
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `tables` | All tables and desks | 所有桌子與書桌 | `tables-desks-fu004` |
-| `dining-tables` | Dining tables | 餐桌 | `dining-tables-21825` |
-| `desks` | Desks and computer desks | 書桌與電腦桌 | `desks-computer-desks-20649` |
-| `coffee-tables` | Coffee tables | 咖啡桌 / 茶几 | `coffee-tables-10705` |
-| `bedside-tables` | Bedside tables | 床邊桌 | `bedside-tables-20656` |
-| `bar-tables` | Bar tables | 吧台桌 | `bar-tables-20862` |
+成功後會產生：
 
-## Beds and mattresses / 床與床墊
+```text
+data/reports/validation_report.json
+data/reports/validation_errors.csv
+```
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `beds` | All beds | 所有床 | `beds-bm003` |
-| `bed-frames` | Bed frames | 床架 | `beds-16284` |
-| `sofa-beds` | Sofa beds | 沙發床 | `sofa-beds-10663` |
-| `mattresses` | Mattresses | 床墊 | `mattresses-bm002` |
-| `bedside-tables` | Bedside tables | 床邊桌 | `bedside-tables-20656` |
+如果錯誤數是 `0`，代表資料可以進入下一步。
 
-## Wardrobes and clothes storage / 衣櫃與衣物收納
+### 2. 合併家具 catalog
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `wardrobes` | All wardrobes | 所有衣櫃 | `wardrobes-19053` |
-| `pax-wardrobes` | PAX wardrobes | PAX 衣櫃 | `pax-wardrobes-19086` |
-| `open-wardrobes` | Open wardrobes | 開放式衣櫃 | `open-wardrobes-11480` |
-| `clothes-racks` | Clothes racks and shoe racks | 衣架與鞋架 | `clothes-stands-shoe-racks-10456` |
-| `shoe-cabinets` | Shoe cabinets | 鞋櫃 | `shoe-cabinets-10456` |
+```bash
+python scripts/merge_json_to_catalog.py --input data/raw_json --output data/processed/furniture_catalog.jsonl
+```
 
-## Storage furniture / 收納家具
+成功後會產生：
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `storage-furniture` | All storage furniture | 所有收納家具 | `storage-furniture-st001` |
-| `storage-solution-systems` | Storage solution systems | 收納系統 | `storage-solution-systems-46052` |
-| `cabinets-cupboards` | Cabinets and cupboards | 櫃子與櫥櫃 | `cabinets-cupboards-st003` |
-| `display-cabinets` | Display cabinets | 展示櫃 | `display-cabinets-10410` |
-| `chests-of-drawers` | Chests of drawers and drawer units | 抽屜櫃與抽屜組 | `chest-of-drawers-drawer-units-st004` |
-| `sideboards` | Sideboards, buffets and console tables | 邊櫃、餐邊櫃與玄關桌 | `sideboards-buffets-console-tables-30454` |
-| `trolleys` | Trolleys | 推車 | `trolleys-fu005` |
-| `room-dividers` | Room dividers | 屏風 / 空間隔間 | `room-dividers-46080` |
+```text
+data/processed/furniture_catalog.jsonl
+data/processed/furniture_catalog.json
+```
 
-## TV and media furniture / 電視與影音家具
+`jsonl` 適合匯入資料庫，一行一筆資料。`json` 適合人工查看或給前端測試。
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `tv-media-furniture` | All TV and media furniture | 所有電視與影音家具 | `tv-media-furniture-10475` |
-| `tv-benches` | TV benches | 電視櫃 | `tv-benches-10810` |
+### 3. 匯入 PostgreSQL
 
-## Outdoor furniture / 戶外家具
+```bash
+python scripts/import_furniture_to_db.py --input data/processed/furniture_catalog.jsonl
+```
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `outdoor-furniture` | All outdoor furniture | 所有戶外家具 | `garden-furniture-od003` |
-| `outdoor-seating` | Outdoor seating | 戶外座椅 | `outdoor-seating-700350` |
-| `outdoor-dining` | Outdoor dining | 戶外餐桌椅 | `outdoor-dining-700351` |
-| `sun-loungers-hammocks` | Sun loungers and hammocks | 躺椅與吊床 | `sun-loungers-hammocks-21963` |
-| `outdoor-coffee-side-tables` | Outdoor coffee and side tables | 戶外咖啡桌與邊桌 | `garden-coffee-side-tables-700192` |
+成功後會在 PostgreSQL 建立或更新 `furniture_items` 資料表。匯入失敗的資料會輸出到：
 
-## Children's furniture / 兒童家具
+```text
+data/reports/import_errors.csv
+```
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `childrens-furniture` | Children's small furniture | 兒童小型家具 | `childrens-small-furniture-18767` |
-| `kids-chairs-stools` | Kids chairs and stools | 兒童椅與凳子 | `kids-chairs-stools-18769` |
-| `childrens-tables` | Children's tables | 兒童桌 | `childrens-tables-18768` |
-| `childrens-stools-benches` | Children's stools and benches | 兒童凳與長凳 | `childrens-stools-benches-45816` |
-| `kids-armchairs` | Kids armchairs | 兒童扶手椅 | `kids-armchairs-20483` |
+## 不上傳到 GitHub 的資料夾
 
-## Mirrors / 鏡子
+以下資料夾已加入 `.gitignore`，不會上傳到 GitHub：
 
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `mirrors` | All mirrors | 所有鏡子 | `mirrors-20489` |
-| `wall-mirrors` | Wall mirrors | 壁鏡 | `wall-mirrors-20490` |
-| `large-mirrors` | Large mirrors | 大型鏡子 | `large-mirrors-24858` |
-| `standing-mirrors` | Standing mirrors | 立鏡 | `standing-mirrors-20491` |
-| `mirror-cabinets` | Mirror cabinets | 鏡櫃 | `mirror-cabinets-20820` |
+```text
+.venv/
+__pycache__/
+downloaded-files/
+舊的翻譯資料/
+```
 
-## Rugs and mats / 地毯與踏墊
-
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `rugs` | All rugs | 所有地毯 | `rugs-10653` |
-| `large-medium-rugs` | Large and medium rugs | 大型與中型地毯 | `large-medium-rugs-10692` |
-| `runner-small-rugs` | Runners and small rugs | 走道毯與小地毯 | `runner-small-rugs-10689` |
-| `round-rugs` | Round rugs | 圓形地毯 | `round-rugs-20543` |
-| `outdoor-rugs` | Outdoor rugs | 戶外地毯 | `outdoor-rugs-34204` |
-| `door-mats` | Door mats | 門墊 | `door-mats-10698` |
-| `handmade-rugs` | Handmade rugs | 手工地毯 | `handmade-rugs-39267` |
-| `anti-slip-rug-underlays` | Anti-slip and rug underlays | 止滑墊與地毯底墊 | `anti-slip-rug-underlays-10699` |
-| `sheepskins-cowhides` | Cowhides, sheepskins and faux fur rugs | 牛皮、羊皮與仿毛地毯 | `sheepskins-cowhides-20544` |
-| `childrens-rugs-curtains` | Children's rugs and curtains | 兒童地毯與窗簾 | `childrens-rugs-curtains-18774` |
-| `nursery-rugs-and-curtains` | Nursery rugs and curtains | 嬰幼兒房地毯與窗簾 | `nursery-rugs-and-curtains-18699` |
-
-## Lighting / 燈具
-
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `lamps` | All lamps | 所有燈具 | `lamps-li002` |
-| `table-lamps` | Table lamps | 桌燈 | `table-lamps-10732` |
-| `floor-lamps` | Floor lamps | 立燈 | `floor-lamps-10731` |
-| `work-lamps` | Work lamps | 工作燈 | `work-lamps-20502` |
-| `lamp-shades-bases` | Lamp shades, bases and cords | 燈罩、燈座與電線 | `lamp-shades-bases-cords-10728` |
-
-## Decor and small storage / 裝飾與小型收納
-
-| 細分類代碼 | 英文名稱 | 中文名稱 | IKEA category path |
-| --- | --- | --- | --- |
-| `storage-boxes-baskets` | Storage boxes and baskets | 收納盒與籃子 | `storage-boxes-baskets-10550` |
-| `flower-pots-planters` | Flower pots and planters | 花盆與植栽盆 | `flower-pots-planters-pp004` |
-
-## 注意事項
-
-不是每個 IKEA 商品頁都有 GLB。腳本會跳過沒有 3D 模型的商品，並繼續搜尋下一個商品。
-
-批次模式會用 `_registry.json` 依照 product id、product URL、GLB URL 和檔案 hash 去重，避免重複下載。
+這些通常是本機環境、快取檔、大型 GLB 檔案或舊資料備份，不適合放進 GitHub。
 
 ## License
 

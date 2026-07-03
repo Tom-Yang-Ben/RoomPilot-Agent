@@ -1,0 +1,944 @@
+{
+    "project_id":  "fi-modular-sofas",
+    "category":  "fi-modular-sofas",
+    "category_name_zh":  "模組沙發",
+    "category_name_en":  "Modular sofas",
+    "title":  "IKEA fi-modular-sofas GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-modular-sofas"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Sofas and armchairs_001",
+                                      "sku":  "modular-sofas_1",
+                                      "name":  "JÄTTEBO 4-seat mod sofa w chaise longue - right/Samsala dark yellow-green",
+                                      "chinese_name":  "JÄTTEBO 4人座模組沙發附躺椅，右/Samsala 深黃綠色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  310.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  310.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/01 - JÄTTEBO 4-seat mod sofa w chaise longue - rightSamsala dark yellow-green.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_002",
+                                      "sku":  "modular-sofas_2",
+                                      "name":  "JÄTTEBO 4-seat mod sofa w chaise longue - right/Johanneshov dark green",
+                                      "chinese_name":  "JÄTTEBO 4人座模組沙發附躺椅，右/Johanneshov 深綠色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  310.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  310.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/02 - JÄTTEBO 4-seat mod sofa w chaise longue - rightJohanneshov dark green.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_003",
+                                      "sku":  "modular-sofas_3",
+                                      "name":  "JÄTTEBO 4-seat mod sofa w chaise longue - right/Samsala yellow-brown",
+                                      "chinese_name":  "JÄTTEBO 4人座模組沙發附躺椅，右/Samsala 黃棕色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  310.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  310.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/03 - JÄTTEBO 4-seat mod sofa w chaise longue - rightSamsala yellow-brown.glb",
+                                      "material":  "",
+                                      "color":  "brown, yellow",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_004",
+                                      "sku":  "modular-sofas_4",
+                                      "name":  "JÄTTEBO 2,5-seat mod sofa w chaise longue - left with headrest/Samsala dark blue",
+                                      "chinese_name":  "JÄTTEBO 2.5人座模組沙發附躺椅，左附頭枕/Samsala 深藍色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  190.0,
+                                                      "depth":  160.0,
+                                                      "height":  87.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  190.0,
+                                                               "depth":  160.0,
+                                                               "height":  87.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/04 - JÄTTEBO 2,5-seat mod sofa w chaise longue - left with headrestSamsala dark blue.glb",
+                                      "material":  "",
+                                      "color":  "blue",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_005",
+                                      "sku":  "modular-sofas_5",
+                                      "name":  "JÄTTEBO 2,5-seat mod sofa w chaise longue - left with headrest/Tonerud grey",
+                                      "chinese_name":  "JÄTTEBO 2.5人座模組沙發附躺椅，左附頭枕/Tonerud 灰色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  190.0,
+                                                      "depth":  160.0,
+                                                      "height":  87.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  190.0,
+                                                               "depth":  160.0,
+                                                               "height":  87.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/05 - JÄTTEBO 2,5-seat mod sofa w chaise longue - left with headrestTonerud grey.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_006",
+                                      "sku":  "modular-sofas_6",
+                                      "name":  "LILLEHEM 2-seat module - Gunnared/dark grey metal",
+                                      "chinese_name":  "LILLEHEM 雙人座模組，Gunnared/深灰色金屬",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  144.0,
+                                                      "depth":  76.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  144.0,
+                                                               "depth":  76.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/06 - LILLEHEM 2-seat module - Gunnareddark grey metal.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_007",
+                                      "sku":  "modular-sofas_7",
+                                      "name":  "LILLEHEM 2-seat module - Gunnared/dark grey wood",
+                                      "chinese_name":  "LILLEHEM 雙人座模組，Gunnared/深灰色木",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  144.0,
+                                                      "depth":  76.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  144.0,
+                                                               "depth":  76.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/07 - LILLEHEM 2-seat module - Gunnareddark grey wood.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_008",
+                                      "sku":  "modular-sofas_8",
+                                      "name":  "LILLEHEM 2-seat module - Vissle/beige metal",
+                                      "chinese_name":  "LILLEHEM 雙人座模組，Vissle/米色金屬",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  144.0,
+                                                      "depth":  76.0,
+                                                      "height":  75.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  144.0,
+                                                               "depth":  76.0,
+                                                               "height":  75.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/08 - LILLEHEM 2-seat module - Visslebeige metal.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_009",
+                                      "sku":  "modular-sofas_9",
+                                      "name":  "SÖDERHAMN 1-seat section - Kelinge dark blue",
+                                      "chinese_name":  "SÖDERHAMN 單人座組件，Kelinge 深藍色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  93.0,
+                                                      "depth":  99.0,
+                                                      "height":  83.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  93.0,
+                                                               "depth":  99.0,
+                                                               "height":  83.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/09 - SÖDERHAMN 1-seat section - Kelinge dark blue.glb",
+                                      "material":  "",
+                                      "color":  "",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_010",
+                                      "sku":  "modular-sofas_10",
+                                      "name":  "JÄTTEBO Chaise longue modules - Samsala dark yellow-green",
+                                      "chinese_name":  "JÄTTEBO 躺椅模組，Samsala 深黃綠色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  229.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  229.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/10 - JÄTTEBO Chaise longue modules - Samsala dark yellow-green.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_011",
+                                      "sku":  "modular-sofas_11",
+                                      "name":  "JÄTTEBO Chaise longue modules - Tonerud grey",
+                                      "chinese_name":  "JÄTTEBO 躺椅模組，Tonerud 灰色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  229.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  229.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/11 - JÄTTEBO Chaise longue modules - Tonerud grey.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_012",
+                                      "sku":  "modular-sofas_12",
+                                      "name":  "JÄTTEBO Chaise longue modules - Axvall dark grey-blue",
+                                      "chinese_name":  "JÄTTEBO 躺椅模組，Axvall 深灰藍色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  229.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  229.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/12 - JÄTTEBO Chaise longue modules - Axvall dark grey-blue.glb",
+                                      "material":  "",
+                                      "color":  "blue",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_013",
+                                      "sku":  "modular-sofas_13",
+                                      "name":  "LILLEHEM Modular corner sofa, 4 seat - Vissle beige/metal",
+                                      "chinese_name":  "LILLEHEM 四人座模組轉角沙發，Vissle 米色/金屬",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  74.0,
+                                                      "depth":  76.0,
+                                                      "height":  73.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  74.0,
+                                                               "depth":  76.0,
+                                                               "height":  73.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/13 - LILLEHEM Modular corner sofa, 4 seat - Vissle beigemetal.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_014",
+                                      "sku":  "modular-sofas_14",
+                                      "name":  "LILLEHEM Modular corner sofa, 4 seat - Gunnared/brown-red wood",
+                                      "chinese_name":  "LILLEHEM 四人座模組轉角沙發，Gunnared/棕紅色木",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  74.0,
+                                                      "depth":  76.0,
+                                                      "height":  73.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  74.0,
+                                                               "depth":  76.0,
+                                                               "height":  73.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/14 - LILLEHEM Modular corner sofa, 4 seat - Gunnaredbrown-red wood.glb",
+                                      "material":  "",
+                                      "color":  "red",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_015",
+                                      "sku":  "modular-sofas_15",
+                                      "name":  "UPPÅKRA 1.5-seat module - Samsala yellow-brown",
+                                      "chinese_name":  "UPPÅKRA 1.5人座模組，Samsala 黃棕色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  110.0,
+                                                      "depth":  107.0,
+                                                      "height":  95.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  110.0,
+                                                               "depth":  107.0,
+                                                               "height":  95.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/15 - UPPÅKRA 1.5-seat module - Samsala yellow-brown.glb",
+                                      "material":  "",
+                                      "color":  "brown, yellow",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_016",
+                                      "sku":  "modular-sofas_16",
+                                      "name":  "UPPÅKRA 1.5-seat module - Johanneshov brown-beige",
+                                      "chinese_name":  "UPPÅKRA 1.5人座模組，Johanneshov 棕米色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  110.0,
+                                                      "depth":  107.0,
+                                                      "height":  95.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  110.0,
+                                                               "depth":  107.0,
+                                                               "height":  95.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/16 - UPPÅKRA 1.5-seat module - Johanneshov brown-beige.glb",
+                                      "material":  "",
+                                      "color":  "beige, brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_017",
+                                      "sku":  "modular-sofas_17",
+                                      "name":  "UPPÅKRA 1.5-seat module - Samsala brown-red",
+                                      "chinese_name":  "UPPÅKRA 1.5人座模組，Samsala 棕紅色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  110.0,
+                                                      "depth":  107.0,
+                                                      "height":  95.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  110.0,
+                                                               "depth":  107.0,
+                                                               "height":  95.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/17 - UPPÅKRA 1.5-seat module - Samsala brown-red.glb",
+                                      "material":  "",
+                                      "color":  "brown, red",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_018",
+                                      "sku":  "modular-sofas_18",
+                                      "name":  "JÄTTEBO 3,5-seat mod sofa w chaise longues - armrests Johanneshov/brown-beige",
+                                      "chinese_name":  "JÄTTEBO 3.5人座模組沙發附躺椅，扶手 Johanneshov/棕米色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  285.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  285.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/18 - JÄTTEBO 3,5-seat mod sofa w chaise longues - armrests Johanneshovbrown-beige.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_019",
+                                      "sku":  "modular-sofas_19",
+                                      "name":  "JÄTTEBO 3,5-seat mod sofa w chaise longues - armrests Samsala/yellow-brown",
+                                      "chinese_name":  "JÄTTEBO 3.5人座模組沙發附躺椅，扶手 Samsala/黃棕色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  285.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  285.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/19 - JÄTTEBO 3,5-seat mod sofa w chaise longues - armrests Samsalayellow-brown.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_020",
+                                      "sku":  "modular-sofas_20",
+                                      "name":  "JÄTTEBO 3,5-seat mod sofa w chaise longues - armrests Johanneshov/dark green",
+                                      "chinese_name":  "JÄTTEBO 3.5人座模組沙發附躺椅，扶手 Johanneshov/深綠色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  285.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  285.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/20 - JÄTTEBO 3,5-seat mod sofa w chaise longues - armrests Johanneshovdark green.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_021",
+                                      "sku":  "modular-sofas_21",
+                                      "name":  "JÄTTEBO 1-seat module with storage - Samsala dark yellow-green",
+                                      "chinese_name":  "JÄTTEBO 附收納單人座模組，Samsala 深黃綠色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  95.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  95.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/21 - JÄTTEBO 1-seat module with storage - Samsala dark yellow-green.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_022",
+                                      "sku":  "modular-sofas_22",
+                                      "name":  "JÄTTEBO 1-seat module with storage - Samsala dark brown",
+                                      "chinese_name":  "JÄTTEBO 附收納單人座模組，Samsala 深棕色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  95.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  95.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/22 - JÄTTEBO 1-seat module with storage - Samsala dark brown.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_023",
+                                      "sku":  "modular-sofas_23",
+                                      "name":  "JÄTTEBO 1-seat module with storage - Axvall dark grey-blue",
+                                      "chinese_name":  "JÄTTEBO 附收納單人座模組，Axvall 深灰藍色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  95.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  95.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/23 - JÄTTEBO 1-seat module with storage - Axvall dark grey-blue.glb",
+                                      "material":  "",
+                                      "color":  "blue",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_024",
+                                      "sku":  "modular-sofas_24",
+                                      "name":  "JÄTTEBO 2,5-seat mod sofa w chaise longue - left/Samsala dark yellow-green",
+                                      "chinese_name":  "JÄTTEBO 2.5人座模組沙發附躺椅，左/Samsala 深黃綠色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  190.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  190.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/24 - JÄTTEBO 2,5-seat mod sofa w chaise longue - leftSamsala dark yellow-green.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_025",
+                                      "sku":  "modular-sofas_25",
+                                      "name":  "JÄTTEBO 2,5-seat mod sofa w chaise longue - left/Samsala dark brown",
+                                      "chinese_name":  "JÄTTEBO 2.5人座模組沙發附躺椅，左/Samsala 深棕色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  190.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  190.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/25 - JÄTTEBO 2,5-seat mod sofa w chaise longue - leftSamsala dark brown.glb",
+                                      "material":  "",
+                                      "color":  "brown",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_026",
+                                      "sku":  "modular-sofas_26",
+                                      "name":  "JÄTTEBO 2,5-seat mod sofa w chaise longue - left/Samsala grey-beige",
+                                      "chinese_name":  "JÄTTEBO 2.5人座模組沙發附躺椅，左/Samsala 灰米色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  190.0,
+                                                      "depth":  160.0,
+                                                      "height":  71.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  190.0,
+                                                               "depth":  160.0,
+                                                               "height":  71.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/26 - JÄTTEBO 2,5-seat mod sofa w chaise longue - leftSamsala grey-beige.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_027",
+                                      "sku":  "modular-sofas_27",
+                                      "name":  "JÄTTEBO U-shaped sofa, 7-seat - with chaise longue, right with headrests/Axvall off-white",
+                                      "chinese_name":  "JÄTTEBO 七人座U形沙發，附躺椅，右附頭枕/Axvall 米白色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  25.0,
+                                                      "depth":  69.0,
+                                                      "height":  87.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  25.0,
+                                                               "depth":  69.0,
+                                                               "height":  87.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/27 - JÄTTEBO U-shaped sofa, 7-seat - with chaise longue, right with headrestsAxvall off-white.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_028",
+                                      "sku":  "modular-sofas_28",
+                                      "name":  "JÄTTEBO U-shaped sofa, 7-seat - with chaise longue, right with headrests/Samsala dark blue",
+                                      "chinese_name":  "JÄTTEBO 七人座U形沙發，附躺椅，右附頭枕/Samsala 深藍色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  25.0,
+                                                      "depth":  69.0,
+                                                      "height":  87.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  25.0,
+                                                               "depth":  69.0,
+                                                               "height":  87.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/28 - JÄTTEBO U-shaped sofa, 7-seat - with chaise longue, right with headrestsSamsala dark blue.glb",
+                                      "material":  "",
+                                      "color":  "blue",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Sofas and armchairs_029",
+                                      "sku":  "modular-sofas_29",
+                                      "name":  "JÄTTEBO U-shaped sofa, 7-seat - with chaise longue, right with headrests/Samsala dark yellow-green",
+                                      "chinese_name":  "JÄTTEBO 七人座U形沙發，附躺椅，右附頭枕/Samsala 深黃綠色",
+                                      "type":  "modular-sofa",
+                                      "category":  "fi-modular-sofas",
+                                      "category_name_zh":  "模組沙發",
+                                      "category_name_en":  "Modular sofas",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  25.0,
+                                                      "depth":  69.0,
+                                                      "height":  87.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  25.0,
+                                                               "depth":  69.0,
+                                                               "height":  87.0
+                                                           },
+                                      "glb_path":  "downloaded-files/fi-modular-sofas/29 - JÄTTEBO U-shaped sofa, 7-seat - with chaise longue, right with headrestsSamsala dark yellow-green.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

@@ -1,0 +1,164 @@
+{
+    "project_id":  "fi-decoration",
+    "category":  "fi-decoration",
+    "category_name_zh":  "裝飾品",
+    "category_name_en":  "Decoration",
+    "title":  "IKEA fi-decoration GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-decoration"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Decor and small storage_001",
+                                      "sku":  "decoration_1",
+                                      "name":  "LUSTIGKURRE Basket - natural water hyacinth/seagrass 32x33x32 cm",
+                                      "chinese_name":  "LUSTIGKURRE 籃子，原色水葫蘆/海草，32x33x32 公分",
+                                      "type":  "decoration",
+                                      "category":  "fi-decoration",
+                                      "category_name_zh":  "裝飾品",
+                                      "category_name_en":  "Decoration",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  32.0,
+                                                      "depth":  33.0,
+                                                      "height":  32.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  32.0,
+                                                               "depth":  33.0,
+                                                               "height":  32.0
+                                                           },
+                                      "glb_path":  "downloaded-files/裝飾與小型收納/fi-decoration/01 - LUSTIGKURRE Basket - natural water hyacinthseagrass 32x33x32 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Decor and small storage_002",
+                                      "sku":  "decoration_2",
+                                      "name":  "MOSSLANDA Picture ledge - white 55 cm",
+                                      "chinese_name":  "MOSSLANDA 相框壁架，白色，55 公分",
+                                      "type":  "decoration",
+                                      "category":  "fi-decoration",
+                                      "category_name_zh":  "裝飾品",
+                                      "category_name_en":  "Decoration",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  12.0,
+                                                      "depth":  12.0,
+                                                      "height":  8.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  12.0,
+                                                               "depth":  12.0,
+                                                               "height":  8.0
+                                                           },
+                                      "glb_path":  "downloaded-files/裝飾與小型收納/fi-decoration/02 - MOSSLANDA Picture ledge - white 55 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Decor and small storage_003",
+                                      "sku":  "decoration_3",
+                                      "name":  "MOSSLANDA Picture ledge - white 115 cm",
+                                      "chinese_name":  "MOSSLANDA 相框壁架，白色，115 公分",
+                                      "type":  "decoration",
+                                      "category":  "fi-decoration",
+                                      "category_name_zh":  "裝飾品",
+                                      "category_name_en":  "Decoration",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  12.0,
+                                                      "depth":  12.0,
+                                                      "height":  8.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  12.0,
+                                                               "depth":  12.0,
+                                                               "height":  8.0
+                                                           },
+                                      "glb_path":  "downloaded-files/裝飾與小型收納/fi-decoration/03 - MOSSLANDA Picture ledge - white 115 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

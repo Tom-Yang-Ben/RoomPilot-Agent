@@ -1,0 +1,194 @@
+{
+    "project_id":  "fi-mirror-cabinets",
+    "category":  "fi-mirror-cabinets",
+    "category_name_zh":  "鏡櫃",
+    "category_name_en":  "Mirror cabinets",
+    "title":  "IKEA fi-mirror-cabinets GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-mirror-cabinets"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Mirrors_001",
+                                      "sku":  "mirror-cabinets_1",
+                                      "name":  "UTDRAG Built-in extractor hood - stainless steel 60 cm",
+                                      "chinese_name":  "UTDRAG 嵌入式抽油煙機，不鏽鋼，60 公分",
+                                      "type":  "mirror-cabinet",
+                                      "category":  "fi-mirror-cabinets",
+                                      "category_name_zh":  "鏡櫃",
+                                      "category_name_en":  "Mirror cabinets",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  38.7,
+                                                      "height":  21.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  38.7,
+                                                               "height":  21.5
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirror-cabinets/01 - UTDRAG Built-in extractor hood - stainless steel 60 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_002",
+                                      "sku":  "mirror-cabinets_2",
+                                      "name":  "MÅNGSBO Built-in extractor hood - IKEA 700 60 cm",
+                                      "chinese_name":  "MÅNGSBO 嵌入式抽油煙機，IKEA 700，60 公分",
+                                      "type":  "mirror-cabinet",
+                                      "category":  "fi-mirror-cabinets",
+                                      "category_name_zh":  "鏡櫃",
+                                      "category_name_en":  "Mirror cabinets",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  60.0,
+                                                      "depth":  35.8,
+                                                      "height":  29.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  60.0,
+                                                               "depth":  35.8,
+                                                               "height":  29.0
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirror-cabinets/02 - MÅNGSBO Built-in extractor hood - IKEA 700 60 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_003",
+                                      "sku":  "mirror-cabinets_3",
+                                      "name":  "UNDERVERK Built-in extractor hood - stainless steel 60 cm",
+                                      "chinese_name":  "UNDERVERK 嵌入式抽油煙機，不鏽鋼，60 公分",
+                                      "type":  "mirror-cabinet",
+                                      "category":  "fi-mirror-cabinets",
+                                      "category_name_zh":  "鏡櫃",
+                                      "category_name_en":  "Mirror cabinets",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  59.9,
+                                                      "depth":  35.8,
+                                                      "height":  24.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  59.9,
+                                                               "depth":  35.8,
+                                                               "height":  24.5
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirror-cabinets/03 - UNDERVERK Built-in extractor hood - stainless steel 60 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Mirrors_004",
+                                      "sku":  "mirror-cabinets_4",
+                                      "name":  "UNDERVERK Built-in extractor hood - stainless steel 80 cm",
+                                      "chinese_name":  "UNDERVERK 嵌入式抽油煙機，不鏽鋼，80 公分",
+                                      "type":  "mirror-cabinet",
+                                      "category":  "fi-mirror-cabinets",
+                                      "category_name_zh":  "鏡櫃",
+                                      "category_name_en":  "Mirror cabinets",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  79.9,
+                                                      "depth":  35.8,
+                                                      "height":  24.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  79.9,
+                                                               "depth":  35.8,
+                                                               "height":  24.5
+                                                           },
+                                      "glb_path":  "downloaded-files/鏡子/fi-mirror-cabinets/04 - UNDERVERK Built-in extractor hood - stainless steel 80 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

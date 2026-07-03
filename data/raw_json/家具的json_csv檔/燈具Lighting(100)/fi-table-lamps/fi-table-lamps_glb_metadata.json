@@ -1,0 +1,1064 @@
+{
+    "project_id":  "fi-table-lamps",
+    "category":  "fi-table-lamps",
+    "category_name_zh":  "桌燈",
+    "category_name_en":  "Table lamps",
+    "title":  "IKEA fi-table-lamps GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-table-lamps"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Lighting_001",
+                                      "sku":  "table-lamps_1",
+                                      "name":  "ÅRSTID Table lamp - nickel-plated/white",
+                                      "chinese_name":  "ÅRSTID 桌燈，鍍鎳/白色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  24.0,
+                                                      "depth":  null,
+                                                      "height":  55.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  24.0,
+                                                               "depth":  null,
+                                                               "height":  55.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/01 - ÅRSTID Table lamp - nickel-platedwhite.glb",
+                                      "material":  "",
+                                      "color":  "grey, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_002",
+                                      "sku":  "table-lamps_2",
+                                      "name":  "SVALLET Work lamp - dark grey/white",
+                                      "chinese_name":  "SVALLET 工作燈，深灰色/白色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  16.0,
+                                                      "depth":  null,
+                                                      "height":  35.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  16.0,
+                                                               "depth":  null,
+                                                               "height":  35.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/02 - SVALLET Work lamp - dark greywhite.glb",
+                                      "material":  "",
+                                      "color":  "grey, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_003",
+                                      "sku":  "table-lamps_3",
+                                      "name":  "FADO Table lamp - white 25 cm",
+                                      "chinese_name":  "FADO 桌燈，白色，25 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  28.0,
+                                                      "depth":  null,
+                                                      "height":  24.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  28.0,
+                                                               "depth":  null,
+                                                               "height":  24.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/03 - FADO Table lamp - white 25 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_004",
+                                      "sku":  "table-lamps_4",
+                                      "name":  "SPETSBOJ Table lamp - dimmable/green 22 cm",
+                                      "chinese_name":  "SPETSBOJ 桌燈，可調光/綠色，22 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  13.0,
+                                                      "depth":  null,
+                                                      "height":  22.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  13.0,
+                                                               "depth":  null,
+                                                               "height":  22.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/04 - SPETSBOJ Table lamp - dimmablegreen 22 cm.glb",
+                                      "material":  "",
+                                      "color":  "green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_005",
+                                      "sku":  "table-lamps_5",
+                                      "name":  "SPETSBOJ Table lamp - dimmable/yellow 22 cm",
+                                      "chinese_name":  "SPETSBOJ 桌燈，可調光/黃色，22 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  13.0,
+                                                      "depth":  null,
+                                                      "height":  22.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  13.0,
+                                                               "depth":  null,
+                                                               "height":  22.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/05 - SPETSBOJ Table lamp - dimmableyellow 22 cm.glb",
+                                      "material":  "",
+                                      "color":  "yellow",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_006",
+                                      "sku":  "table-lamps_6",
+                                      "name":  "SPETSBOJ Table lamp - dimmable/white 22 cm",
+                                      "chinese_name":  "SPETSBOJ 桌燈，可調光/白色，22 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  13.0,
+                                                      "depth":  null,
+                                                      "height":  22.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  13.0,
+                                                               "depth":  null,
+                                                               "height":  22.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/06 - SPETSBOJ Table lamp - dimmablewhite 22 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_007",
+                                      "sku":  "table-lamps_7",
+                                      "name":  "NÄVLINGE LED work lamp - white",
+                                      "chinese_name":  "NÄVLINGE LED工作燈，白色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  13.0,
+                                                      "depth":  null,
+                                                      "height":  52.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  13.0,
+                                                               "depth":  null,
+                                                               "height":  52.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/07 - NÄVLINGE LED work lamp - white.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_008",
+                                      "sku":  "table-lamps_8",
+                                      "name":  "NÄVLINGE LED desk lamp - yellow/white",
+                                      "chinese_name":  "NÄVLINGE LED桌燈，黃色/白色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  13.0,
+                                                      "depth":  null,
+                                                      "height":  52.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  13.0,
+                                                               "depth":  null,
+                                                               "height":  52.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/08 - NÄVLINGE LED desk lamp - yellowwhite.glb",
+                                      "material":  "",
+                                      "color":  "yellow, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_009",
+                                      "sku":  "table-lamps_9",
+                                      "name":  "NÄVLINGE LED work lamp - black",
+                                      "chinese_name":  "NÄVLINGE LED工作燈，黑色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  13.0,
+                                                      "depth":  null,
+                                                      "height":  52.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  13.0,
+                                                               "depth":  null,
+                                                               "height":  52.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/09 - NÄVLINGE LED work lamp - black.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_010",
+                                      "sku":  "table-lamps_10",
+                                      "name":  "RÖDFLIK Desk lamp - grey-green",
+                                      "chinese_name":  "RÖDFLIK 桌燈，灰綠色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  18.0,
+                                                      "depth":  null,
+                                                      "height":  43.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  18.0,
+                                                               "depth":  null,
+                                                               "height":  43.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/10 - RÖDFLIK Desk lamp - grey-green.glb",
+                                      "material":  "",
+                                      "color":  "grey, green",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_011",
+                                      "sku":  "table-lamps_11",
+                                      "name":  "RÖDFLIK Desk lamp - light beige",
+                                      "chinese_name":  "RÖDFLIK 桌燈，淺米色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  18.0,
+                                                      "depth":  null,
+                                                      "height":  43.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  18.0,
+                                                               "depth":  null,
+                                                               "height":  43.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/11 - RÖDFLIK Desk lamp - light beige.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_012",
+                                      "sku":  "table-lamps_12",
+                                      "name":  "VARMBLIXT LED table/wall lamp - orange glass/round 30 cm",
+                                      "chinese_name":  "VARMBLIXT LED桌燈/壁燈，橘色玻璃/圓形，30 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  34.0,
+                                                      "depth":  null,
+                                                      "height":  11.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  34.0,
+                                                               "depth":  null,
+                                                               "height":  11.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/12 - VARMBLIXT LED tablewall lamp - orange glassround 30 cm.glb",
+                                      "material":  "",
+                                      "color":  "orange",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_013",
+                                      "sku":  "table-lamps_13",
+                                      "name":  "SNÖBYAR Table lamp - grey-turquoise ceramic/grey 52 cm",
+                                      "chinese_name":  "SNÖBYAR 桌燈，灰土耳其藍陶瓷/灰色，52 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  33.0,
+                                                      "depth":  null,
+                                                      "height":  52.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  33.0,
+                                                               "depth":  null,
+                                                               "height":  52.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/13 - SNÖBYAR Table lamp - grey-turquoise ceramicgrey 52 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, grey, turquoise",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_014",
+                                      "sku":  "table-lamps_14",
+                                      "name":  "TVÄRHAND Table lamp - black/bamboo",
+                                      "chinese_name":  "TVÄRHAND 桌燈，黑色/竹",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  12.0,
+                                                      "depth":  null,
+                                                      "height":  47.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  12.0,
+                                                               "depth":  null,
+                                                               "height":  47.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/14 - TVÄRHAND Table lamp - blackbamboo.glb",
+                                      "material":  "",
+                                      "color":  "beige, black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_015",
+                                      "sku":  "table-lamps_15",
+                                      "name":  "FORSÅ Work lamp - nickel-plated",
+                                      "chinese_name":  "FORSÅ 工作燈，鍍鎳",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  18.0,
+                                                      "depth":  null,
+                                                      "height":  35.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  18.0,
+                                                               "depth":  null,
+                                                               "height":  35.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/15 - FORSÅ Work lamp - nickel-plated.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_016",
+                                      "sku":  "table-lamps_16",
+                                      "name":  "FORSÅ Work lamp - white",
+                                      "chinese_name":  "FORSÅ 工作燈，白色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  18.0,
+                                                      "depth":  null,
+                                                      "height":  35.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  18.0,
+                                                               "depth":  null,
+                                                               "height":  35.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/16 - FORSÅ Work lamp - white.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_017",
+                                      "sku":  "table-lamps_17",
+                                      "name":  "STRANDAD Table lamp - white/black 29 cm",
+                                      "chinese_name":  "STRANDAD 桌燈，白色/黑色，29 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  16.0,
+                                                      "depth":  null,
+                                                      "height":  29.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  16.0,
+                                                               "depth":  null,
+                                                               "height":  29.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/17 - STRANDAD Table lamp - whiteblack 29 cm.glb",
+                                      "material":  "",
+                                      "color":  "black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_018",
+                                      "sku":  "table-lamps_18",
+                                      "name":  "NYMÅNE Table lamp - anthracite 33 cm",
+                                      "chinese_name":  "NYMÅNE 桌燈，炭灰色，33 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  18.0,
+                                                      "depth":  null,
+                                                      "height":  33.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  18.0,
+                                                               "depth":  null,
+                                                               "height":  33.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/18 - NYMÅNE Table lamp - anthracite 33 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_019",
+                                      "sku":  "table-lamps_19",
+                                      "name":  "NYMÅNE Table lamp - white 33 cm",
+                                      "chinese_name":  "NYMÅNE 桌燈，白色，33 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  18.0,
+                                                      "depth":  null,
+                                                      "height":  33.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  18.0,
+                                                               "depth":  null,
+                                                               "height":  33.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/19 - NYMÅNE Table lamp - white 33 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_020",
+                                      "sku":  "table-lamps_20",
+                                      "name":  "TÄRNABY Table lamp - dimmable beige 25 cm",
+                                      "chinese_name":  "TÄRNABY 桌燈，可調光米色，25 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  10.0,
+                                                      "depth":  null,
+                                                      "height":  25.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  10.0,
+                                                               "depth":  null,
+                                                               "height":  25.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/20 - TÄRNABY Table lamp - dimmable beige 25 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_021",
+                                      "sku":  "table-lamps_21",
+                                      "name":  "TÄRNABY Table lamp - dimmable anthracite 25 cm",
+                                      "chinese_name":  "TÄRNABY 桌燈，可調光炭灰色，25 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  10.0,
+                                                      "depth":  null,
+                                                      "height":  25.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  10.0,
+                                                               "depth":  null,
+                                                               "height":  25.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/21 - TÄRNABY Table lamp - dimmable anthracite 25 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_022",
+                                      "sku":  "table-lamps_22",
+                                      "name":  "TÄRNABY Table lamp - dimmable dark yellow 25 cm",
+                                      "chinese_name":  "TÄRNABY 桌燈，可調光深黃色，25 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  10.0,
+                                                      "depth":  null,
+                                                      "height":  25.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  10.0,
+                                                               "depth":  null,
+                                                               "height":  25.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/22 - TÄRNABY Table lamp - dimmable dark yellow 25 cm.glb",
+                                      "material":  "",
+                                      "color":  "yellow",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_023",
+                                      "sku":  "table-lamps_23",
+                                      "name":  "AKTERSPRING Table lamp - opal white glass/brass-plated 39 cm",
+                                      "chinese_name":  "AKTERSPRING 桌燈，乳白白色玻璃/鍍黃銅，39 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  21.0,
+                                                      "depth":  null,
+                                                      "height":  39.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  21.0,
+                                                               "depth":  null,
+                                                               "height":  39.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/23 - AKTERSPRING Table lamp - opal white glassbrass-plated 39 cm.glb",
+                                      "material":  "",
+                                      "color":  "yellow, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_024",
+                                      "sku":  "table-lamps_24",
+                                      "name":  "KORVSNÖRE LED desk lamp - dimmable/orange",
+                                      "chinese_name":  "KORVSNÖRE LED桌燈，可調光/橘色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  12.0,
+                                                      "depth":  null,
+                                                      "height":  34.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  12.0,
+                                                               "depth":  null,
+                                                               "height":  34.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/24 - KORVSNÖRE LED desk lamp - dimmableorange.glb",
+                                      "material":  "",
+                                      "color":  "orange",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_025",
+                                      "sku":  "table-lamps_25",
+                                      "name":  "KORVSNÖRE LED desk lamp - dimmable/white",
+                                      "chinese_name":  "KORVSNÖRE LED桌燈，可調光/白色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  21.0,
+                                                      "depth":  null,
+                                                      "height":  34.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  21.0,
+                                                               "depth":  null,
+                                                               "height":  34.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/25 - KORVSNÖRE LED desk lamp - dimmablewhite.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_026",
+                                      "sku":  "table-lamps_26",
+                                      "name":  "VARPTROSS Table lamp - bamboo 26 cm",
+                                      "chinese_name":  "VARPTROSS 桌燈，竹，26 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  15.0,
+                                                      "depth":  null,
+                                                      "height":  26.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  15.0,
+                                                               "depth":  null,
+                                                               "height":  26.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/26 - VARPTROSS Table lamp - bamboo 26 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_027",
+                                      "sku":  "table-lamps_27",
+                                      "name":  "STOCKHOLM 2025 Table lamp - white textile/brass-plated 65 cm",
+                                      "chinese_name":  "STOCKHOLM 2025 桌燈，白色織品/鍍黃銅，65 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  43.0,
+                                                      "depth":  null,
+                                                      "height":  65.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  43.0,
+                                                               "depth":  null,
+                                                               "height":  65.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/27 - STOCKHOLM 2025 Table lamp - white textilebrass-plated 65 cm.glb",
+                                      "material":  "",
+                                      "color":  "yellow, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_028",
+                                      "sku":  "table-lamps_28",
+                                      "name":  "TVÄRFOT Table lamp - black/white",
+                                      "chinese_name":  "TVÄRFOT 桌燈，黑色/白色",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  15.0,
+                                                      "depth":  null,
+                                                      "height":  22.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  15.0,
+                                                               "depth":  null,
+                                                               "height":  22.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/28 - TVÄRFOT Table lamp - blackwhite.glb",
+                                      "material":  "",
+                                      "color":  "black, white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_029",
+                                      "sku":  "table-lamps_29",
+                                      "name":  "BLÅSVERK Table lamp - beige 36 cm",
+                                      "chinese_name":  "BLÅSVERK 桌燈，米色，36 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  20.0,
+                                                      "depth":  null,
+                                                      "height":  36.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  20.0,
+                                                               "depth":  null,
+                                                               "height":  36.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/29 - BLÅSVERK Table lamp - beige 36 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_030",
+                                      "sku":  "table-lamps_30",
+                                      "name":  "BLÅSVERK Table lamp - yellow 36 cm",
+                                      "chinese_name":  "BLÅSVERK 桌燈，黃色，36 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  20.0,
+                                                      "depth":  null,
+                                                      "height":  36.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  20.0,
+                                                               "depth":  null,
+                                                               "height":  36.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/30 - BLÅSVERK Table lamp - yellow 36 cm.glb",
+                                      "material":  "",
+                                      "color":  "yellow",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_031",
+                                      "sku":  "table-lamps_31",
+                                      "name":  "BLÅSVERK Table lamp - red 36 cm",
+                                      "chinese_name":  "BLÅSVERK 桌燈，紅色，36 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  20.0,
+                                                      "depth":  null,
+                                                      "height":  36.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  20.0,
+                                                               "depth":  null,
+                                                               "height":  36.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/31 - BLÅSVERK Table lamp - red 36 cm.glb",
+                                      "material":  "",
+                                      "color":  "red",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_032",
+                                      "sku":  "table-lamps_32",
+                                      "name":  "AVHÅLL LED portable lamp - battery-operated dimmable/nickel-plated outdoor 29 cm",
+                                      "chinese_name":  "AVHÅLL LED手提燈，電池供電可調光/鍍鎳戶外，29 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  14.0,
+                                                      "depth":  null,
+                                                      "height":  29.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  14.0,
+                                                               "depth":  null,
+                                                               "height":  29.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/32 - AVHÅLL LED portable lamp - battery-operated dimmablenickel-plated outdoor 29 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Lighting_033",
+                                      "sku":  "table-lamps_33",
+                                      "name":  "AVHÅLL LED portable lamp - battery-operated dimmable/black outdoor 29 cm",
+                                      "chinese_name":  "AVHÅLL LED手提燈，電池供電可調光/黑色戶外，29 公分",
+                                      "type":  "table-lamp",
+                                      "category":  "fi-table-lamps",
+                                      "category_name_zh":  "桌燈",
+                                      "category_name_en":  "Table lamps",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  14.0,
+                                                      "depth":  null,
+                                                      "height":  29.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  14.0,
+                                                               "depth":  null,
+                                                               "height":  29.0
+                                                           },
+                                      "glb_path":  "downloaded-files/燈具/fi-table-lamps/33 - AVHÅLL LED portable lamp - battery-operated dimmableblack outdoor 29 cm.glb",
+                                      "material":  "",
+                                      "color":  "black",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}

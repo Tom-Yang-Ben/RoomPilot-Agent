@@ -1,0 +1,1244 @@
+{
+    "project_id":  "fi-pax-wardrobes",
+    "category":  "fi-pax-wardrobes",
+    "category_name_zh":  "PAX 衣櫃",
+    "category_name_en":  "PAX wardrobes",
+    "title":  "IKEA fi-pax-wardrobes GLB Dataset",
+    "input_type":  "floorplan",
+    "status":  "draft",
+    "user_input":  {
+                       "style":  "",
+                       "requirements":  [
+                                            "download_ikea_glb_models",
+                                            "collect_product_metadata"
+                                        ],
+                       "budget":  null,
+                       "preferred_colors":  [
+
+                                            ],
+                       "preferred_furniture":  [
+                                                   "fi-pax-wardrobes"
+                                               ]
+                   },
+    "floorplan":  {
+                      "image_path":  "",
+                      "width_cm":  null,
+                      "depth_cm":  null,
+                      "scale_ratio":  "",
+                      "grid_size_cm":  null,
+                      "walls":  [
+
+                                ],
+                      "doors":  [
+
+                                ],
+                      "windows":  [
+
+                                  ]
+                  },
+    "scene":  {
+                  "mode":  "2d_to_3d",
+                  "objects":  [
+                                  {
+                                      "id":  "Wardrobes and clothes storage_001",
+                                      "sku":  "pax-wardrobes_1",
+                                      "name":  "PAX Wardrobe frame - white 100x58x236 cm",
+                                      "chinese_name":  "PAX 衣櫃框架，白色，100x58x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  99.8,
+                                                      "depth":  58.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  99.8,
+                                                               "depth":  58.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/01 - PAX Wardrobe frame - white 100x58x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_002",
+                                      "sku":  "pax-wardrobes_2",
+                                      "name":  "PAX Wardrobe frame - white 100x35x236 cm",
+                                      "chinese_name":  "PAX 衣櫃框架，白色，100x35x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  99.8,
+                                                      "depth":  35.5,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  99.8,
+                                                               "depth":  35.5,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/02 - PAX Wardrobe frame - white 100x35x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_003",
+                                      "sku":  "pax-wardrobes_3",
+                                      "name":  "PAX Wardrobe frame - white 100x35x201 cm",
+                                      "chinese_name":  "PAX 衣櫃框架，白色，100x35x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  99.8,
+                                                      "depth":  35.5,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  99.8,
+                                                               "depth":  35.5,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/03 - PAX Wardrobe frame - white 100x35x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_004",
+                                      "sku":  "pax-wardrobes_4",
+                                      "name":  "PAX Wardrobe frame - white 50x58x201 cm",
+                                      "chinese_name":  "PAX 衣櫃框架，白色，50x58x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  49.8,
+                                                      "depth":  58.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  49.8,
+                                                               "depth":  58.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/04 - PAX Wardrobe frame - white 50x58x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_005",
+                                      "sku":  "pax-wardrobes_5",
+                                      "name":  "PAX Wardrobe frame - white stained oak effect 50x35x236 cm",
+                                      "chinese_name":  "PAX 衣櫃框架，白色染色橡木紋，50x35x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  49.8,
+                                                      "depth":  35.5,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  49.8,
+                                                               "depth":  35.5,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/05 - PAX Wardrobe frame - white stained oak effect 50x35x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_006",
+                                      "sku":  "pax-wardrobes_6",
+                                      "name":  "PAX Wardrobe frame - white 75x58x236 cm",
+                                      "chinese_name":  "PAX 衣櫃框架，白色，75x58x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  74.8,
+                                                      "depth":  58.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  74.8,
+                                                               "depth":  58.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/06 - PAX Wardrobe frame - white 75x58x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_007",
+                                      "sku":  "pax-wardrobes_7",
+                                      "name":  "PAX Wardrobe frame - white stained oak effect 75x58x236 cm",
+                                      "chinese_name":  "PAX 衣櫃框架，白色染色橡木紋，75x58x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  74.8,
+                                                      "depth":  58.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  74.8,
+                                                               "depth":  58.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/07 - PAX Wardrobe frame - white stained oak effect 75x58x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_008",
+                                      "sku":  "pax-wardrobes_8",
+                                      "name":  "KOMPLEMENT Drawer - white stained oak effect 100x58 cm",
+                                      "chinese_name":  "KOMPLEMENT 抽屜，白色染色橡木紋，100x58 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  100.0,
+                                                      "depth":  58.0,
+                                                      "height":  16.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  100.0,
+                                                               "depth":  58.0,
+                                                               "height":  16.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/08 - KOMPLEMENT Drawer - white stained oak effect 100x58 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_009",
+                                      "sku":  "pax-wardrobes_9",
+                                      "name":  "KOMPLEMENT Drawer - white 100x58 cm",
+                                      "chinese_name":  "KOMPLEMENT 抽屜，白色，100x58 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  100.0,
+                                                      "depth":  58.0,
+                                                      "height":  16.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  100.0,
+                                                               "depth":  58.0,
+                                                               "height":  16.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/09 - KOMPLEMENT Drawer - white 100x58 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_010",
+                                      "sku":  "pax-wardrobes_10",
+                                      "name":  "PAX Wardrobe combination - white 200x58x201 cm",
+                                      "chinese_name":  "PAX 衣櫃組合，白色，200x58x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  200.0,
+                                                      "depth":  58.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  200.0,
+                                                               "depth":  58.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/10 - PAX Wardrobe combination - white 200x58x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_011",
+                                      "sku":  "pax-wardrobes_11",
+                                      "name":  "PAX Wardrobe combination - white 200x58x236 cm",
+                                      "chinese_name":  "PAX 衣櫃組合，白色，200x58x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  200.0,
+                                                      "depth":  58.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  200.0,
+                                                               "depth":  58.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/11 - PAX Wardrobe combination - white 200x58x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_012",
+                                      "sku":  "pax-wardrobes_12",
+                                      "name":  "KOMPLEMENT Shelf - white stained oak effect 75x35 cm",
+                                      "chinese_name":  "KOMPLEMENT 層板，白色染色橡木紋，75x35 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  71.1,
+                                                      "depth":  34.8,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  71.1,
+                                                               "depth":  34.8,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/12 - KOMPLEMENT Shelf - white stained oak effect 75x35 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_013",
+                                      "sku":  "pax-wardrobes_13",
+                                      "name":  "KOMPLEMENT Shelf - white 50x58 cm",
+                                      "chinese_name":  "KOMPLEMENT 層板，白色，50x58 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  46.1,
+                                                      "depth":  57.3,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  46.1,
+                                                               "depth":  57.3,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/13 - KOMPLEMENT Shelf - white 50x58 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_014",
+                                      "sku":  "pax-wardrobes_14",
+                                      "name":  "KOMPLEMENT Shelf - white 100x58 cm",
+                                      "chinese_name":  "KOMPLEMENT 層板，白色，100x58 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  96.1,
+                                                      "depth":  57.3,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  96.1,
+                                                               "depth":  57.3,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/14 - KOMPLEMENT Shelf - white 100x58 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_015",
+                                      "sku":  "pax-wardrobes_15",
+                                      "name":  "KOMPLEMENT Clothes rail - white 75 cm",
+                                      "chinese_name":  "KOMPLEMENT 掛衣桿，白色，75 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  70.0,
+                                                      "depth":  58.0,
+                                                      "height":  4.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  70.0,
+                                                               "depth":  58.0,
+                                                               "height":  4.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/15 - KOMPLEMENT Clothes rail - white 75 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_016",
+                                      "sku":  "pax-wardrobes_16",
+                                      "name":  "KOMPLEMENT Clothes rail - white 50 cm",
+                                      "chinese_name":  "KOMPLEMENT 掛衣桿，白色，50 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  45.0,
+                                                      "depth":  58.0,
+                                                      "height":  5.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  45.0,
+                                                               "depth":  58.0,
+                                                               "height":  5.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/16 - KOMPLEMENT Clothes rail - white 50 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_017",
+                                      "sku":  "pax-wardrobes_17",
+                                      "name":  "KOMPLEMENT Glass shelf - white 75x58 cm",
+                                      "chinese_name":  "KOMPLEMENT 玻璃層板，白色，75x58 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  71.1,
+                                                      "depth":  57.3,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  71.1,
+                                                               "depth":  57.3,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/17 - KOMPLEMENT Glass shelf - white 75x58 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_018",
+                                      "sku":  "pax-wardrobes_18",
+                                      "name":  "KOMPLEMENT Glass shelf - white stained oak effect 100x58 cm",
+                                      "chinese_name":  "KOMPLEMENT 玻璃層板，白色染色橡木紋，100x58 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  96.1,
+                                                      "depth":  57.3,
+                                                      "height":  2.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  96.1,
+                                                               "depth":  57.3,
+                                                               "height":  2.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/18 - KOMPLEMENT Glass shelf - white stained oak effect 100x58 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_019",
+                                      "sku":  "pax-wardrobes_19",
+                                      "name":  "PAX 2 wardrobe frames - dark grey 150x58x236 cm",
+                                      "chinese_name":  "PAX 2件衣櫃框架，深灰色，150x58x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  149.6,
+                                                      "depth":  58.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  149.6,
+                                                               "depth":  58.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/19 - PAX 2 wardrobe frames - dark grey 150x58x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_020",
+                                      "sku":  "pax-wardrobes_20",
+                                      "name":  "PAX 2 wardrobe frames - white 150x58x201 cm",
+                                      "chinese_name":  "PAX 2件衣櫃框架，白色，150x58x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  149.6,
+                                                      "depth":  58.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  149.6,
+                                                               "depth":  58.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/20 - PAX 2 wardrobe frames - white 150x58x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_021",
+                                      "sku":  "pax-wardrobes_21",
+                                      "name":  "PAX Wardrobe - white 175x58x201 cm",
+                                      "chinese_name":  "PAX 衣櫃，白色，175x58x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  175.0,
+                                                      "depth":  58.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  175.0,
+                                                               "depth":  58.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/21 - PAX Wardrobe - white 175x58x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_022",
+                                      "sku":  "pax-wardrobes_22",
+                                      "name":  "PAX Wardrobe - white 175x58x236 cm",
+                                      "chinese_name":  "PAX 衣櫃，白色，175x58x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  175.0,
+                                                      "depth":  58.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  175.0,
+                                                               "depth":  58.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/22 - PAX Wardrobe - white 175x58x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_023",
+                                      "sku":  "pax-wardrobes_23",
+                                      "name":  "PAX Add-on mid-unit - oak effect 35x35x236 cm",
+                                      "chinese_name":  "PAX 加購中段組件，橡木紋，35x35x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  35.0,
+                                                      "depth":  35.0,
+                                                      "height":  236.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  35.0,
+                                                               "depth":  35.0,
+                                                               "height":  236.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/23 - PAX Add-on mid-unit - oak effect 35x35x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_024",
+                                      "sku":  "pax-wardrobes_24",
+                                      "name":  "PAX Add-on mid-unit - white 35x35x236 cm",
+                                      "chinese_name":  "PAX 加購中段組件，白色，35x35x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  35.0,
+                                                      "depth":  35.0,
+                                                      "height":  236.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  35.0,
+                                                               "depth":  35.0,
+                                                               "height":  236.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/24 - PAX Add-on mid-unit - white 35x35x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_025",
+                                      "sku":  "pax-wardrobes_25",
+                                      "name":  "PAX Add-on mid-unit - white 35x35x201 cm",
+                                      "chinese_name":  "PAX 加購中段組件，白色，35x35x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  35.0,
+                                                      "depth":  35.0,
+                                                      "height":  201.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  35.0,
+                                                               "depth":  35.0,
+                                                               "height":  201.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/25 - PAX Add-on mid-unit - white 35x35x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_026",
+                                      "sku":  "pax-wardrobes_26",
+                                      "name":  "PAX / FORSAND Wardrobe combination - dark grey/dark grey 100x60x201 cm",
+                                      "chinese_name":  "PAX / FORSAND 衣櫃組合，深灰色/深灰色，100x60x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  100.0,
+                                                      "depth":  60.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  100.0,
+                                                               "depth":  60.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/26 - PAX FORSAND Wardrobe combination - dark greydark grey 100x60x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_027",
+                                      "sku":  "pax-wardrobes_27",
+                                      "name":  "PAX / FORSAND Wardrobe combination - white stained oak effect/white stained oak effect 100x60x236 cm",
+                                      "chinese_name":  "PAX / FORSAND 衣櫃組合，白色染色橡木紋/白色染色橡木紋，100x60x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  100.0,
+                                                      "depth":  60.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  100.0,
+                                                               "depth":  60.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/27 - PAX FORSAND Wardrobe combination - white stained oak effectwhite stained oak effect 100x60x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_028",
+                                      "sku":  "pax-wardrobes_28",
+                                      "name":  "PAX / FORSAND Wardrobe combination - dark grey/white stained oak effect dark grey 250x60x236 cm",
+                                      "chinese_name":  "PAX / FORSAND 衣櫃組合，深灰色/白色染色橡木紋深灰色，250x60x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  250.0,
+                                                      "depth":  60.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  250.0,
+                                                               "depth":  60.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/28 - PAX FORSAND Wardrobe combination - dark greywhite stained oak effect dark grey 250x60x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_029",
+                                      "sku":  "pax-wardrobes_29",
+                                      "name":  "PAX / FORSAND Wardrobe combination - dark grey/white stained oak effect dark grey 250x60x201 cm",
+                                      "chinese_name":  "PAX / FORSAND 衣櫃組合，深灰色/白色染色橡木紋深灰色，250x60x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  250.0,
+                                                      "depth":  60.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  250.0,
+                                                               "depth":  60.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/29 - PAX FORSAND Wardrobe combination - dark greywhite stained oak effect dark grey 250x60x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige, grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_030",
+                                      "sku":  "pax-wardrobes_30",
+                                      "name":  "KOMPLEMENT Pull-out multi-use hanger - white 58 cm",
+                                      "chinese_name":  "KOMPLEMENT 抽拉式多用途掛架，白色，58 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  4.5,
+                                                      "depth":  56.4,
+                                                      "height":  5.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  4.5,
+                                                               "depth":  56.4,
+                                                               "height":  5.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/30 - KOMPLEMENT Pull-out multi-use hanger - white 58 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_031",
+                                      "sku":  "pax-wardrobes_31",
+                                      "name":  "KOMPLEMENT Pull-out multi-use hanger - dark grey 35 cm",
+                                      "chinese_name":  "KOMPLEMENT 抽拉式多用途掛架，深灰色，35 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  4.5,
+                                                      "depth":  33.9,
+                                                      "height":  5.0
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  4.5,
+                                                               "depth":  33.9,
+                                                               "height":  5.0
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/31 - KOMPLEMENT Pull-out multi-use hanger - dark grey 35 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_032",
+                                      "sku":  "pax-wardrobes_32",
+                                      "name":  "PAX 3 wardrobe frames - white 200x35x201 cm",
+                                      "chinese_name":  "PAX 3件衣櫃框架，白色，200x35x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  199.6,
+                                                      "depth":  35.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  199.6,
+                                                               "depth":  35.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/32 - PAX 3 wardrobe frames - white 200x35x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_033",
+                                      "sku":  "pax-wardrobes_33",
+                                      "name":  "PAX 3 wardrobe frames - dark grey 200x58x236 cm",
+                                      "chinese_name":  "PAX 3件衣櫃框架，深灰色，200x58x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  199.6,
+                                                      "depth":  58.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  199.6,
+                                                               "depth":  58.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/33 - PAX 3 wardrobe frames - dark grey 200x58x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "grey",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_034",
+                                      "sku":  "pax-wardrobes_34",
+                                      "name":  "FORSAND Door - white 50x229 cm",
+                                      "chinese_name":  "FORSAND 門片，白色，50x229 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  49.5,
+                                                      "depth":  null,
+                                                      "height":  229.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  49.5,
+                                                               "depth":  null,
+                                                               "height":  229.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/34 - FORSAND Door - white 50x229 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_035",
+                                      "sku":  "pax-wardrobes_35",
+                                      "name":  "FORSAND Door - white 50x195 cm",
+                                      "chinese_name":  "FORSAND 門片，白色，50x195 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  49.5,
+                                                      "depth":  null,
+                                                      "height":  194.6
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  49.5,
+                                                               "depth":  null,
+                                                               "height":  194.6
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/35 - FORSAND Door - white 50x195 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_036",
+                                      "sku":  "pax-wardrobes_36",
+                                      "name":  "KOMPLEMENT Pull-out tray - white 75x58 cm",
+                                      "chinese_name":  "KOMPLEMENT 抽拉式托盤，白色，75x58 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  67.6,
+                                                      "depth":  56.3,
+                                                      "height":  3.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  67.6,
+                                                               "depth":  56.3,
+                                                               "height":  3.5
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/36 - KOMPLEMENT Pull-out tray - white 75x58 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_037",
+                                      "sku":  "pax-wardrobes_37",
+                                      "name":  "KOMPLEMENT Pull-out tray - white stained oak effect 100x58 cm",
+                                      "chinese_name":  "KOMPLEMENT 抽拉式托盤，白色染色橡木紋，100x58 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  92.6,
+                                                      "depth":  56.3,
+                                                      "height":  3.5
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  92.6,
+                                                               "depth":  56.3,
+                                                               "height":  3.5
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/37 - KOMPLEMENT Pull-out tray - white stained oak effect 100x58 cm.glb",
+                                      "material":  "",
+                                      "color":  "beige",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_038",
+                                      "sku":  "pax-wardrobes_38",
+                                      "name":  "PAX / GRIMO Wardrobe - white/white 150x66x236 cm",
+                                      "chinese_name":  "PAX / GRIMO 衣櫃，白色/白色，150x66x236 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.0,
+                                                      "depth":  66.0,
+                                                      "height":  236.4
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.0,
+                                                               "depth":  66.0,
+                                                               "height":  236.4
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/38 - PAX GRIMO Wardrobe - whitewhite 150x66x236 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  },
+                                  {
+                                      "id":  "Wardrobes and clothes storage_039",
+                                      "sku":  "pax-wardrobes_39",
+                                      "name":  "PAX / GRIMO Wardrobe - white/white 150x66x201 cm",
+                                      "chinese_name":  "PAX / GRIMO 衣櫃，白色/白色，150x66x201 公分",
+                                      "type":  "pax-wardrobe",
+                                      "category":  "fi-pax-wardrobes",
+                                      "category_name_zh":  "PAX 衣櫃",
+                                      "category_name_en":  "PAX wardrobes",
+                                      "position":  [
+                                                       0,
+                                                       0
+                                                   ],
+                                      "rotation":  0,
+                                      "size_cm":  {
+                                                      "width":  150.0,
+                                                      "depth":  66.0,
+                                                      "height":  201.2
+                                                  },
+                                      "collision_box_cm":  {
+                                                               "width":  150.0,
+                                                               "depth":  66.0,
+                                                               "height":  201.2
+                                                           },
+                                      "glb_path":  "downloaded-files/衣櫃衣物收納/fi-pax-wardrobes/39 - PAX GRIMO Wardrobe - whitewhite 150x66x201 cm.glb",
+                                      "material":  "",
+                                      "color":  "white",
+                                      "can_rotate":  true,
+                                      "must_against_wall":  false
+                                  }
+                              ]
+              },
+    "ai_plan":  {
+                    "understanding":  [
+
+                                      ],
+                    "recommendations":  [
+
+                                        ]
+                },
+    "validation":  {
+                       "passed":  true,
+                       "issues":  [
+
+                                  ]
+                   },
+    "manual_adjustment":  {
+                              "enabled":  true,
+                              "actions":  [
+                                              "drag",
+                                              "rotate",
+                                              "resize_small_range",
+                                              "text_tune"
+                                          ]
+                          },
+    "output":  {
+                   "preview_2d":  "",
+                   "preview_3d":  "",
+                   "report":  "",
+                   "final_status":  "draft"
+               },
+    "version":  1
+}
