@@ -397,7 +397,11 @@ SITE_CATEGORY_PRESETS = {
         "shoe-cabinets": "/zh/products/clothes-and-shoe-organisers-and-accessories/clothes-and-shoe-organisers",
         "storage-furniture": "/zh/products/secondary-storage",
         "storage-solution-systems": "/zh/products/open-storage-system",
-        "cabinets-cupboards": "/zh/products/sideboard-cabinets",
+        "cabinets-cupboards": [
+            "/zh/products/sideboard-cabinets/besta-sideboards",
+            "/zh/products/sideboard-cabinets/sideboards",
+            "/zh/products/sideboard-cabinets/solitaire-cabinets",
+        ],
         "display-cabinets": "/zh/products/display-furniture/display-cabinets",
         "chests-of-drawers": "/zh/products/wardrobes/chest-of-drawers",
         "sideboards": "/zh/products/sideboard-cabinets/sideboards",
