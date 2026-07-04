@@ -15,12 +15,28 @@ export default function App() {
   const [error, setError] = useState(null)
   const [show, setShow] = useState({ walls: true, windows: true, doors: true, floor: true, xray: true })
 
+  // furniture library + placed instances
+  const [furn, setFurn] = useState([])
+  const [items, setItems] = useState([])
+  const [placing, setPlacing] = useState(null)     // file name while placing
+  const [selectedId, setSelectedId] = useState(null)
+  const [snapOn, setSnapOn] = useState(true)
+
   useEffect(() => {
     fetch('/api/plans')
       .then((r) => r.json())
       .then((d) => { setPlans(d.plans); if (d.plans[0]) setName(d.plans[0]) })
       .catch((e) => setError('無法連線後端 (/api/plans)：' + e.message))
+    fetch('/api/furniture')
+      .then((r) => r.json())
+      .then((d) => setFurn(d.furniture || []))
+      .catch(() => {})
   }, [])
+
+  // switching to another plan invalidates the placed layout
+  useEffect(() => {
+    setItems([]); setSelectedId(null); setPlacing(null)
+  }, [name, upload])
 
   // (re)fetch geometry whenever the source or a knob changes (debounced)
   useEffect(() => {
@@ -53,6 +69,8 @@ export default function App() {
 
   const s = data?.stats
   const sliderScale = scaleM ?? data?.scale_m ?? 12
+  const selectedItem = items.find((it) => it.id === selectedId)
+  const short = (f) => f.replace(/\.glb$/i, '')
 
   return (
     <>
@@ -119,6 +137,51 @@ export default function App() {
           ))}
         </div>
 
+        {furn.length > 0 && (
+          <div className="field">
+            <label>家具庫{items.length > 0 && <b>已放 {items.length} 件</b>}</label>
+            <div className="furn-list">
+              {furn.map((f) => (
+                <button
+                  key={f}
+                  className={placing === f ? 'active' : ''}
+                  onClick={() => setPlacing(placing === f ? null : f)}
+                >
+                  {short(f)}
+                </button>
+              ))}
+            </div>
+            <label className="snaprow">
+              <input type="checkbox" checked={snapOn} onChange={() => setSnapOn((v) => !v)} />
+              吸附（牆面 / 家具 / 格點）
+            </label>
+            {placing ? (
+              <div className="hint">
+                在 3D 地面點擊放置「{short(placing)}」；R 旋轉、Shift+點擊連續放置、Esc 取消。
+              </div>
+            ) : (
+              <div className="hint">
+                點選家具後移到 3D 地面放置；拖曳移動（自動吸附牆面與家具）、R 旋轉、Del 刪除。
+              </div>
+            )}
+          </div>
+        )}
+
+        {selectedItem && (
+          <div className="field">
+            <label>選取中 <b>{short(selectedItem.file)}</b></label>
+            <div className="row2">
+              <button onClick={() => setItems((arr) => arr.map((it) =>
+                it.id === selectedId ? { ...it, yaw: it.yaw + Math.PI / 2 } : it))}>
+                旋轉 90°
+              </button>
+              <button onClick={() => { setItems((arr) => arr.filter((it) => it.id !== selectedId)); setSelectedId(null) }}>
+                刪除
+              </button>
+            </div>
+          </div>
+        )}
+
         {error && <div className="err">⚠ {error}</div>}
         {s && (
           <div className="stats">
@@ -135,7 +198,11 @@ export default function App() {
 
       <div className="canvas-wrap">
         {loading && <div className="loading">解析中…</div>}
-        <Scene data={data} show={show} />
+        <Scene
+          data={data}
+          show={show}
+          furniture={{ items, setItems, placing, setPlacing, selectedId, setSelectedId, snapOn }}
+        />
       </div>
     </>
   )

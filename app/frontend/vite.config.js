@@ -5,5 +5,5 @@ import react from '@vitejs/plugin-react'
 // same-origin path and no CORS handling is needed in the browser.
 export default defineConfig({
   plugins: [react()],
-  server: { proxy: { '/api': 'http://localhost:8000' } },
+  server: { proxy: { '/api': 'http://localhost:8080' } },
 })

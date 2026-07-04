@@ -2,6 +2,7 @@ import React, { useMemo, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Bounds, Grid } from '@react-three/drei'
 import * as THREE from 'three'
+import FurnitureLayer from './Furniture.jsx'
 
 // Mapping plan(x,z) -> world: worldX = x, worldZ = -z, height = world Y (up).
 // Walls get -z for free from the [-PI/2, 0, 0] extrude rotation; segment meshes
@@ -161,7 +162,7 @@ function Floor({ bbox }) {
   )
 }
 
-export default function Scene({ data, show }) {
+export default function Scene({ data, show, furniture }) {
   const H = data?.wall_height ?? 2.7
   const t = data?.wall_thickness ?? 0.18
   const winH = Math.min(1.3, Math.max(0.6, H - 1.1))
@@ -227,6 +228,8 @@ export default function Scene({ data, show }) {
           )}
         </Bounds>
       )}
+      {/* outside <Bounds> so placing furniture never refits the camera */}
+      {data && <FurnitureLayer data={data} {...furniture} />}
       <OrbitControls makeDefault enableDamping target={[0, 1, 0]} />
     </Canvas>
   )

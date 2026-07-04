@@ -7,9 +7,11 @@ CORS is left open anyway so the built frontend can be served from anywhere.
 import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from dxf_parser import parse_dxf_file, parse_dxf_bytes, list_plans
 
 PIC_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "pic", "temp"))
+FURN_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "furniture"))
 
 app = FastAPI(title="Room 3D")
 app.add_middleware(CORSMiddleware, allow_origins=["*"],
@@ -33,6 +35,23 @@ def plan(name: str,
         return parse_dxf_file(path, scale_m, thickness, height)
     except Exception as e:
         raise HTTPException(422, f"parse failed: {e}")
+
+
+@app.get("/api/furniture")
+def furniture():
+    files = (sorted(f for f in os.listdir(FURN_DIR) if f.lower().endswith(".glb"))
+             if os.path.isdir(FURN_DIR) else [])
+    return {"furniture": files}
+
+
+@app.get("/api/furniture/{name}")
+def furniture_file(name: str):
+    if not name.lower().endswith(".glb"):
+        raise HTTPException(404, f"not a glb: {name}")
+    path = os.path.join(FURN_DIR, os.path.basename(name))  # basename: no traversal
+    if not os.path.isfile(path):
+        raise HTTPException(404, f"furniture not found: {name}")
+    return FileResponse(path, media_type="model/gltf-binary")
 
 
 @app.post("/api/upload")
