@@ -1,0 +1,867 @@
+{
+  "project_id": "fi-wall-mirrors",
+  "title": "IKEA fi-wall-mirrors GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-wall-mirrors"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Mirrors_001",
+        "sku": "wall-mirrors_1",
+        "name": "NYSJÖN Mirror cabinet - white 50x60 cm",
+        "chinese name": "NYSJÖN 鏡櫃，白色，50x60 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 50.0,
+          "depth": 13.0,
+          "height": 60.0
+        },
+        "collision_box_cm": {
+          "width": 50.0,
+          "depth": 13.0,
+          "height": 60.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\01 - NYSJÖN Mirror cabinet - white 50x60 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_002",
+        "sku": "wall-mirrors_2",
+        "name": "LETTAN Mirror cabinet with doors - mirror effect/mirror glass 60x15x95 cm",
+        "chinese name": "LETTAN 附門鏡櫃，鏡面紋/鏡面玻璃，60x15x95 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\02 - LETTAN Mirror cabinet with doors - mirror effectmirror glass 60x15x95 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_003",
+        "sku": "wall-mirrors_3",
+        "name": "LETTAN Mirror cabinet with doors - mirror effect/mirror glass 100x15x95 cm",
+        "chinese name": "LETTAN 附門鏡櫃，鏡面紋/鏡面玻璃，100x15x95 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 100.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 100.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\03 - LETTAN Mirror cabinet with doors - mirror effectmirror glass 100x15x95 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_004",
+        "sku": "wall-mirrors_4",
+        "name": "LETTAN Mirror cabinet with doors - mirror effect/mirror glass 80x15x95 cm",
+        "chinese name": "LETTAN 附門鏡櫃，鏡面紋/鏡面玻璃，80x15x95 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\04 - LETTAN Mirror cabinet with doors - mirror effectmirror glass 80x15x95 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_005",
+        "sku": "wall-mirrors_5",
+        "name": "TREASJÖN Mirror cab 2 door/built-in lighting 80x17x75 cm",
+        "chinese name": "TREASJÖN 鏡櫃，2門/內建照明，80x17x75 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 17.0,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 17.0,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\05 - TREASJÖN Mirror cab 2 doorbuilt-in lighting 80x17x75 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_006",
+        "sku": "wall-mirrors_6",
+        "name": "FRÄCK Mirror - stainless steel",
+        "chinese name": "FRÄCK 鏡子，不鏽鋼",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 19.0,
+          "depth": null,
+          "height": 4.0
+        },
+        "collision_box_cm": {
+          "width": 19.0,
+          "depth": null,
+          "height": 4.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\06 - FRÄCK Mirror - stainless steel.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_007",
+        "sku": "wall-mirrors_7",
+        "name": "EKFÄNN Table mirror w integrated lighting - dimmable/black",
+        "chinese name": "EKFÄNN 附整合照明桌鏡，可調光/黑色",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 21.0,
+          "depth": null,
+          "height": 3.0
+        },
+        "collision_box_cm": {
+          "width": 21.0,
+          "depth": null,
+          "height": 3.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\07 - EKFÄNN Table mirror w integrated lighting - dimmableblack.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_008",
+        "sku": "wall-mirrors_8",
+        "name": "FAXÄLVEN Mirror cabinet w built-in lighting - oak effect 60x15x95 cm",
+        "chinese name": "FAXÄLVEN 附內建照明鏡櫃，橡木紋，60x15x95 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\08 - FAXÄLVEN Mirror cabinet w built-in lighting - oak effect 60x15x95 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_009",
+        "sku": "wall-mirrors_9",
+        "name": "TRENSUM Mirror - stainless steel",
+        "chinese name": "TRENSUM 鏡子，不鏽鋼",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 19.0,
+          "depth": null,
+          "height": 33.0
+        },
+        "collision_box_cm": {
+          "width": 19.0,
+          "depth": null,
+          "height": 33.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\09 - TRENSUM Mirror - stainless steel.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_010",
+        "sku": "wall-mirrors_10",
+        "name": "NYSJÖN Mirror with shelf - white 50x60 cm",
+        "chinese name": "NYSJÖN 附層板鏡子，白色，50x60 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 50.0,
+          "depth": 14.0,
+          "height": 60.0
+        },
+        "collision_box_cm": {
+          "width": 50.0,
+          "depth": 14.0,
+          "height": 60.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\10 - NYSJÖN Mirror with shelf - white 50x60 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_011",
+        "sku": "wall-mirrors_11",
+        "name": "LINDBYN Mirror - black 80 cm",
+        "chinese name": "LINDBYN 鏡子，黑色，80 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 89.0,
+          "depth": null,
+          "height": 3.0
+        },
+        "collision_box_cm": {
+          "width": 89.0,
+          "depth": null,
+          "height": 3.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\11 - LINDBYN Mirror - black 80 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_012",
+        "sku": "wall-mirrors_12",
+        "name": "IVÖSJÖN Mirror cabinet with 1 door - blue 44x15x59 cm",
+        "chinese name": "IVÖSJÖN 附1門鏡櫃，藍色，44x15x59 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": 15.0,
+          "height": 59.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": 15.0,
+          "height": 59.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\12 - IVÖSJÖN Mirror cabinet with 1 door - blue 44x15x59 cm.glb",
+        "material": "",
+        "color": "green",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_013",
+        "sku": "wall-mirrors_13",
+        "name": "KÄRRSJÖN Mirror with integrated lighting - anti-fog 60x80 cm",
+        "chinese name": "KÄRRSJÖN 附整合照明鏡子，防霧，60x80 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": null,
+          "height": 80.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": null,
+          "height": 80.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\13 - KÄRRSJÖN Mirror with integrated lighting - anti-fog 60x80 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_014",
+        "sku": "wall-mirrors_14",
+        "name": "FAXÄLVEN Mirror with built-in lighting 80 cm",
+        "chinese name": "FAXÄLVEN 附內建照明鏡子，80 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 85.0,
+          "depth": 13.5,
+          "height": 13.0
+        },
+        "collision_box_cm": {
+          "width": 85.0,
+          "depth": 13.5,
+          "height": 13.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\14 - FAXÄLVEN Mirror with built-in lighting 80 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_015",
+        "sku": "wall-mirrors_15",
+        "name": "FAXÄLVEN Mirror with built-in lighting 100 cm",
+        "chinese name": "FAXÄLVEN 附內建照明鏡子，100 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 105.0,
+          "depth": 13.5,
+          "height": 13.0
+        },
+        "collision_box_cm": {
+          "width": 105.0,
+          "depth": 13.5,
+          "height": 13.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\15 - FAXÄLVEN Mirror with built-in lighting 100 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_016",
+        "sku": "wall-mirrors_16",
+        "name": "TREASJÖN Mirror cab 1 door/built-in lighting 50x17x75 cm",
+        "chinese name": "TREASJÖN 鏡櫃，1門/內建照明，50x17x75 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 50.0,
+          "depth": 17.0,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 50.0,
+          "depth": 17.0,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\16 - TREASJÖN Mirror cab 1 doorbuilt-in lighting 50x17x75 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_017",
+        "sku": "wall-mirrors_17",
+        "name": "LINDBYN Mirror - black 50 cm",
+        "chinese name": "LINDBYN 鏡子，黑色，50 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 54.0,
+          "depth": 2.0,
+          "height": 3.0
+        },
+        "collision_box_cm": {
+          "width": 54.0,
+          "depth": 2.0,
+          "height": 3.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\17 - LINDBYN Mirror - black 50 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_018",
+        "sku": "wall-mirrors_18",
+        "name": "FAXÄLVEN Mirror with built-in lighting 60x95 cm",
+        "chinese name": "FAXÄLVEN 附內建照明鏡子，60x95 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": 8.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": 8.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\18 - FAXÄLVEN Mirror with built-in lighting 60x95 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_019",
+        "sku": "wall-mirrors_19",
+        "name": "FAXÄLVEN Mirror with built-in lighting 80x95 cm",
+        "chinese name": "FAXÄLVEN 附內建照明鏡子，80x95 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 8.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 8.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\19 - FAXÄLVEN Mirror with built-in lighting 80x95 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_020",
+        "sku": "wall-mirrors_20",
+        "name": "TÄNNFORSEN Mirror cabinet with doors - white 80x15x95 cm",
+        "chinese name": "TÄNNFORSEN 附門鏡櫃，白色，80x15x95 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\20 - TÄNNFORSEN Mirror cabinet with doors - white 80x15x95 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_021",
+        "sku": "wall-mirrors_21",
+        "name": "TÄNNFORSEN Mirror cabinet with doors - light grey 80x15x95 cm",
+        "chinese name": "TÄNNFORSEN 附門鏡櫃，淺灰色，80x15x95 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\21 - TÄNNFORSEN Mirror cabinet with doors - light grey 80x15x95 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_022",
+        "sku": "wall-mirrors_22",
+        "name": "BLÅSER Mirror 38 cm",
+        "chinese name": "BLÅSER 鏡子，38 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 39.0,
+          "depth": null,
+          "height": 1.0
+        },
+        "collision_box_cm": {
+          "width": 39.0,
+          "depth": null,
+          "height": 1.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\22 - BLÅSER Mirror 38 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_023",
+        "sku": "wall-mirrors_23",
+        "name": "LINDBYN Mirror - black 28x60 cm",
+        "chinese name": "LINDBYN 鏡子，黑色，28x60 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 28.0,
+          "depth": 2.0,
+          "height": 60.0
+        },
+        "collision_box_cm": {
+          "width": 28.0,
+          "depth": 2.0,
+          "height": 60.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\23 - LINDBYN Mirror - black 28x60 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_024",
+        "sku": "wall-mirrors_24",
+        "name": "LETTAN Mirror cabinet with door - mirror effect/mirror glass 40x15x95 cm",
+        "chinese name": "LETTAN 附門鏡櫃，鏡面紋/鏡面玻璃，40x15x95 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 15.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\24 - LETTAN Mirror cabinet with door - mirror effectmirror glass 40x15x95 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_025",
+        "sku": "wall-mirrors_25",
+        "name": "EKFÄNN Mirror with integrated lighting - dimmable wall mounted/black",
+        "chinese name": "EKFÄNN 附整合照明鏡子，可調光壁掛/黑色",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 23.0,
+          "depth": null,
+          "height": 3.0
+        },
+        "collision_box_cm": {
+          "width": 23.0,
+          "depth": null,
+          "height": 3.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\25 - EKFÄNN Mirror with integrated lighting - dimmable wall mountedblack.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_026",
+        "sku": "wall-mirrors_26",
+        "name": "NISSEDAL Mirror - black 65x65 cm",
+        "chinese name": "NISSEDAL 鏡子，黑色，65x65 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 65.0
+        },
+        "collision_box_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 65.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\26 - NISSEDAL Mirror - black 65x65 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_027",
+        "sku": "wall-mirrors_27",
+        "name": "NISSEDAL Mirror - white 65x65 cm",
+        "chinese name": "NISSEDAL 鏡子，白色，65x65 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 65.0
+        },
+        "collision_box_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 65.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\27 - NISSEDAL Mirror - white 65x65 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_028",
+        "sku": "wall-mirrors_28",
+        "name": "LINDBYN Mirror - white 60x120 cm",
+        "chinese name": "LINDBYN 鏡子，白色，60x120 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": null,
+          "height": 120.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": null,
+          "height": 120.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\28 - LINDBYN Mirror - white 60x120 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_029",
+        "sku": "wall-mirrors_29",
+        "name": "LINDBYN Mirror - gold-colour 60x120 cm",
+        "chinese name": "LINDBYN 鏡子，金色，60x120 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": null,
+          "height": 120.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": null,
+          "height": 120.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\29 - LINDBYN Mirror - gold-colour 60x120 cm.glb",
+        "material": "",
+        "color": "yellow",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_030",
+        "sku": "wall-mirrors_30",
+        "name": "LINDBYN Mirror - black 60x120 cm",
+        "chinese name": "LINDBYN 鏡子，黑色，60x120 公分",
+        "type": "wall-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": null,
+          "height": 120.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": null,
+          "height": 120.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-wall-mirrors\\30 - LINDBYN Mirror - black 60x120 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

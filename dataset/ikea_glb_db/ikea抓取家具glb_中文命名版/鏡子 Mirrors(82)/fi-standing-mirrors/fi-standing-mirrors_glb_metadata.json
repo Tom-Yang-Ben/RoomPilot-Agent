@@ -1,0 +1,462 @@
+{
+  "project_id": "fi-standing-mirrors",
+  "title": "IKEA fi-standing-mirrors GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-standing-mirrors"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Mirrors_001",
+        "sku": "standing-mirrors_1",
+        "name": "BORRBY Lantern for tealight - in/outdoor black 20 cm",
+        "chinese name": "BORRBY 茶燈燈籠，室內外黑色，20 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 11.0,
+          "depth": null,
+          "height": 20.0
+        },
+        "collision_box_cm": {
+          "width": 11.0,
+          "depth": null,
+          "height": 20.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\01 - BORRBY Lantern for tealight - inoutdoor black 20 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_002",
+        "sku": "standing-mirrors_2",
+        "name": "BERGGRAN Lantern for pillar candle - in/outdoor anthracite 34 cm",
+        "chinese name": "BERGGRAN 柱狀蠟燭燈籠，室內外炭灰色，34 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 12.5,
+          "depth": null,
+          "height": 34.0
+        },
+        "collision_box_cm": {
+          "width": 12.5,
+          "depth": null,
+          "height": 34.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\02 - BERGGRAN Lantern for pillar candle - inoutdoor anthracite 34 cm.glb",
+        "material": "",
+        "color": "grey, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_003",
+        "sku": "standing-mirrors_3",
+        "name": "POMP Vase/lantern - clear glass 18 cm",
+        "chinese name": "POMP 花瓶/燈籠，透明玻璃，18 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 18.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 18.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\03 - POMP Vaselantern - clear glass 18 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_004",
+        "sku": "standing-mirrors_4",
+        "name": "KRINGSYNT Lantern for tealight, in/outdoor - white 21 cm",
+        "chinese name": "KRINGSYNT 茶燈燈籠，室內外，白色，21 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 11.0,
+          "depth": null,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": 11.0,
+          "depth": null,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\04 - KRINGSYNT Lantern for tealight, inoutdoor - white 21 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_005",
+        "sku": "standing-mirrors_5",
+        "name": "FLODSVALA Lantern for tealight, in/outdoor - off-white 21 cm",
+        "chinese name": "FLODSVALA 茶燈燈籠，室內外，米白色，21 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 11.0,
+          "depth": null,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": 11.0,
+          "depth": null,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\05 - FLODSVALA Lantern for tealight, inoutdoor - off-white 21 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_006",
+        "sku": "standing-mirrors_6",
+        "name": "PÅVEFINK Lantern for pillar candle - bamboo 33 cm",
+        "chinese name": "PÅVEFINK 柱狀蠟燭燈籠，竹，33 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 33.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 33.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\06 - PÅVEFINK Lantern for pillar candle - bamboo 33 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_007",
+        "sku": "standing-mirrors_7",
+        "name": "TOFSAND Lantern for tealight, in/outdoor - yellow 21 cm",
+        "chinese name": "TOFSAND 茶燈燈籠，室內外，黃色，21 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\07 - TOFSAND Lantern for tealight, inoutdoor - yellow 21 cm.glb",
+        "material": "",
+        "color": "yellow",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_008",
+        "sku": "standing-mirrors_8",
+        "name": "SOLUPPGÅNG LED lantern - outdoor battery-operated/dimmable",
+        "chinese name": "SOLUPPGÅNG LED燈籠，戶外電池供電/可調光",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 13.0,
+          "depth": null,
+          "height": 23.5
+        },
+        "collision_box_cm": {
+          "width": 13.0,
+          "depth": null,
+          "height": 23.5
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\08 - SOLUPPGÅNG LED lantern - outdoor battery-operateddimmable.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_009",
+        "sku": "standing-mirrors_9",
+        "name": "PÅVEFINK Lantern for pillar candle - bamboo 25 cm",
+        "chinese name": "PÅVEFINK 柱狀蠟燭燈籠，竹，25 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 25.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 25.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\09 - PÅVEFINK Lantern for pillar candle - bamboo 25 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_010",
+        "sku": "standing-mirrors_10",
+        "name": "BORRBY Lantern for tealight - in/outdoor white 20 cm",
+        "chinese name": "BORRBY 茶燈燈籠，室內外白色，20 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 11.0,
+          "depth": null,
+          "height": 20.0
+        },
+        "collision_box_cm": {
+          "width": 11.0,
+          "depth": null,
+          "height": 20.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\10 - BORRBY Lantern for tealight - inoutdoor white 20 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_011",
+        "sku": "standing-mirrors_11",
+        "name": "HÖVISK Lantern for block candle - handmade bamboo 36 cm",
+        "chinese name": "HÖVISK 塊狀蠟燭燈籠，手工竹，36 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 30.0,
+          "depth": null,
+          "height": 36.0
+        },
+        "collision_box_cm": {
+          "width": 30.0,
+          "depth": null,
+          "height": 36.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\11 - HÖVISK Lantern for block candle - handmade bamboo 36 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_012",
+        "sku": "standing-mirrors_12",
+        "name": "VÅRSYREN Lantern for tealight - brown-orange 12 cm",
+        "chinese name": "VÅRSYREN 茶燈燈籠，棕橘色，12 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 9.0,
+          "depth": null,
+          "height": 12.0
+        },
+        "collision_box_cm": {
+          "width": 9.0,
+          "depth": null,
+          "height": 12.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\12 - VÅRSYREN Lantern for tealight - brown-orange 12 cm.glb",
+        "material": "",
+        "color": "brown, orange",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_013",
+        "sku": "standing-mirrors_13",
+        "name": "VÅRSYREN Lantern for tealight - white 12 cm",
+        "chinese name": "VÅRSYREN 茶燈燈籠，白色，12 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 9.0,
+          "depth": null,
+          "height": 12.0
+        },
+        "collision_box_cm": {
+          "width": 9.0,
+          "depth": null,
+          "height": 12.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\13 - VÅRSYREN Lantern for tealight - white 12 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_014",
+        "sku": "standing-mirrors_14",
+        "name": "ENRUM Lantern for tealight, in/outdoor - white 22 cm",
+        "chinese name": "ENRUM 茶燈燈籠，室內外，白色，22 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 10.0,
+          "depth": null,
+          "height": 22.0
+        },
+        "collision_box_cm": {
+          "width": 10.0,
+          "depth": null,
+          "height": 22.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\14 - ENRUM Lantern for tealight, inoutdoor - white 22 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Mirrors_015",
+        "sku": "standing-mirrors_15",
+        "name": "TOFSAND Lantern for pillar candle, in/out - white 44 cm",
+        "chinese name": "TOFSAND 柱狀蠟燭燈籠，室內外，白色，44 公分",
+        "type": "standing-mirror",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 44.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 44.0
+        },
+        "glb_path": "downloaded-files\\鏡子\\fi-standing-mirrors\\15 - TOFSAND Lantern for pillar candle, inout - white 44 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

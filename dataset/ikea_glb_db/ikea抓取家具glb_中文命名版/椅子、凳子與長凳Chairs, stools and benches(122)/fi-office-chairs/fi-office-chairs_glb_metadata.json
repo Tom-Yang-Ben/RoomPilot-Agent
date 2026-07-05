@@ -1,0 +1,1191 @@
+{
+  "project_id": "fi-office-chairs",
+  "title": "IKEA fi-office-chairs GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-office-chairs"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Chairs stools and benches_001",
+        "sku": "office-chairs_1",
+        "name": "HUVUDSPELARE Gaming chair - black",
+        "chinese name": "HUVUDSPELARE 電競椅，黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": 54.0,
+          "height": 123.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": 54.0,
+          "height": 123.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\01 - HUVUDSPELARE Gaming chair - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_002",
+        "sku": "office-chairs_2",
+        "name": "MILLBERGET Swivel chair - Murum black",
+        "chinese name": "MILLBERGET 旋轉椅，Murum 黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 70.0,
+          "depth": 70.0,
+          "height": 123.0
+        },
+        "collision_box_cm": {
+          "width": 70.0,
+          "depth": 70.0,
+          "height": 123.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\02 - MILLBERGET Swivel chair - Murum black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_003",
+        "sku": "office-chairs_3",
+        "name": "MILLBERGET Swivel chair - Murum beige",
+        "chinese name": "MILLBERGET 旋轉椅，Murum 米色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 70.0,
+          "depth": 70.0,
+          "height": 123.0
+        },
+        "collision_box_cm": {
+          "width": 70.0,
+          "depth": 70.0,
+          "height": 123.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\03 - MILLBERGET Swivel chair - Murum beige.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_004",
+        "sku": "office-chairs_4",
+        "name": "LOBERGET / MALSKÄR Swivel chair - white",
+        "chinese name": "LOBERGET / MALSKÄR 旋轉椅，白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\04 - LOBERGET MALSKÄR Swivel chair - white.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_005",
+        "sku": "office-chairs_5",
+        "name": "LOBERGET / MALSKÄR Swivel chair - white/black",
+        "chinese name": "LOBERGET / MALSKÄR 旋轉椅，白色/黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\05 - LOBERGET MALSKÄR Swivel chair - whiteblack.glb",
+        "material": "",
+        "color": "black, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_006",
+        "sku": "office-chairs_6",
+        "name": "MARKUS Office chair - Vissle dark grey Medium",
+        "chinese name": "MARKUS 辦公椅，Vissle 深灰色中",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 62.0,
+          "depth": 60.0,
+          "height": 129.0
+        },
+        "collision_box_cm": {
+          "width": 62.0,
+          "depth": 60.0,
+          "height": 129.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\06 - MARKUS Office chair - Vissle dark grey Medium.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_007",
+        "sku": "office-chairs_7",
+        "name": "MARKUS Office chair - Vissle light grey Medium",
+        "chinese name": "MARKUS 辦公椅，Vissle 淺灰色中",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 62.0,
+          "depth": 60.0,
+          "height": 129.0
+        },
+        "collision_box_cm": {
+          "width": 62.0,
+          "depth": 60.0,
+          "height": 129.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\07 - MARKUS Office chair - Vissle light grey Medium.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_008",
+        "sku": "office-chairs_8",
+        "name": "RENBERGET Swivel chair - Bomstad black",
+        "chinese name": "RENBERGET 旋轉椅，Bomstad 黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 111.0
+        },
+        "collision_box_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 111.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\08 - RENBERGET Swivel chair - Bomstad black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_009",
+        "sku": "office-chairs_9",
+        "name": "FLINTAN Office chair with armrests - black",
+        "chinese name": "FLINTAN 附扶手辦公椅，黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 71.0,
+          "depth": 71.0,
+          "height": 114.0
+        },
+        "collision_box_cm": {
+          "width": 71.0,
+          "depth": 71.0,
+          "height": 114.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\09 - FLINTAN Office chair with armrests - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_010",
+        "sku": "office-chairs_10",
+        "name": "FLINTAN Office chair - beige",
+        "chinese name": "FLINTAN 辦公椅，米色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 71.0,
+          "height": 114.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 71.0,
+          "height": 114.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\10 - FLINTAN Office chair - beige.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_011",
+        "sku": "office-chairs_11",
+        "name": "TOSSBERG / MALSKÄR Swivel chair - Gunnared beige/white",
+        "chinese name": "TOSSBERG / MALSKÄR 旋轉椅，Gunnared 米色/白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 45.0
+        },
+        "collision_box_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 45.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\11 - TOSSBERG MALSKÄR Swivel chair - Gunnared beigewhite.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_012",
+        "sku": "office-chairs_12",
+        "name": "TOSSBERG / MALSKÄR Swivel chair - Gunnared beige/black",
+        "chinese name": "TOSSBERG / MALSKÄR 旋轉椅，Gunnared 米色/黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 45.0
+        },
+        "collision_box_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 45.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\12 - TOSSBERG MALSKÄR Swivel chair - Gunnared beigeblack.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_013",
+        "sku": "office-chairs_13",
+        "name": "TOSSBERG / MALSKÄR Swivel chair - Grann light brown/black",
+        "chinese name": "TOSSBERG / MALSKÄR 旋轉椅，Grann 淺棕色/黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 45.0
+        },
+        "collision_box_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 45.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\13 - TOSSBERG MALSKÄR Swivel chair - Grann light brownblack.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_014",
+        "sku": "office-chairs_14",
+        "name": "SMÄLLEN Swivel chair - black",
+        "chinese name": "SMÄLLEN 旋轉椅，黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 65.0,
+          "depth": 65.0,
+          "height": 85.0
+        },
+        "collision_box_cm": {
+          "width": 65.0,
+          "depth": 65.0,
+          "height": 85.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\14 - SMÄLLEN Swivel chair - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_015",
+        "sku": "office-chairs_15",
+        "name": "SKRUVSTA Swivel chair - Vissle grey",
+        "chinese name": "SKRUVSTA 旋轉椅，Vissle 灰色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 69.0,
+          "depth": 69.0,
+          "height": 86.0
+        },
+        "collision_box_cm": {
+          "width": 69.0,
+          "depth": 69.0,
+          "height": 86.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\15 - SKRUVSTA Swivel chair - Vissle grey.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_016",
+        "sku": "office-chairs_16",
+        "name": "SKRUVSTA Swivel chair - Ysane white",
+        "chinese name": "SKRUVSTA 旋轉椅，Ysane 白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 69.0,
+          "depth": 69.0,
+          "height": 86.0
+        },
+        "collision_box_cm": {
+          "width": 69.0,
+          "depth": 69.0,
+          "height": 86.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\16 - SKRUVSTA Swivel chair - Ysane white.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_017",
+        "sku": "office-chairs_17",
+        "name": "LÖPARBANA Gaming chair - Vissle dark grey",
+        "chinese name": "LÖPARBANA 電競椅，Vissle 深灰色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 66.0,
+          "depth": 66.0,
+          "height": 129.0
+        },
+        "collision_box_cm": {
+          "width": 66.0,
+          "depth": 66.0,
+          "height": 129.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\17 - LÖPARBANA Gaming chair - Vissle dark grey.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_018",
+        "sku": "office-chairs_18",
+        "name": "LÖPARBANA Gaming chair - Vissle green",
+        "chinese name": "LÖPARBANA 電競椅，Vissle 綠色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 66.0,
+          "depth": 66.0,
+          "height": 129.0
+        },
+        "collision_box_cm": {
+          "width": 66.0,
+          "depth": 66.0,
+          "height": 129.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\18 - LÖPARBANA Gaming chair - Vissle green.glb",
+        "material": "",
+        "color": "green",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_019",
+        "sku": "office-chairs_19",
+        "name": "ÖRFJÄLL Swivel chair - white/Vissle light grey",
+        "chinese name": "ÖRFJÄLL 旋轉椅，白色/Vissle 淺灰色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 93.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 93.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\19 - ÖRFJÄLL Swivel chair - whiteVissle light grey.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_020",
+        "sku": "office-chairs_20",
+        "name": "ÖRFJÄLL Swivel chair - black/Vissle red",
+        "chinese name": "ÖRFJÄLL 旋轉椅，黑色/Vissle 紅色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 93.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 93.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\20 - ÖRFJÄLL Swivel chair - blackVissle red.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_021",
+        "sku": "office-chairs_21",
+        "name": "ALEFJÄLL Office chair - Grann golden-brown",
+        "chinese name": "ALEFJÄLL 辦公椅，Grann 金棕色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 64.0,
+          "depth": 64.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 64.0,
+          "depth": 64.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\21 - ALEFJÄLL Office chair - Grann golden-brown.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_022",
+        "sku": "office-chairs_22",
+        "name": "ALEFJÄLL Office chair - Glose black",
+        "chinese name": "ALEFJÄLL 辦公椅，Glose 黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 64.0,
+          "depth": 64.0,
+          "height": 95.0
+        },
+        "collision_box_cm": {
+          "width": 64.0,
+          "depth": 64.0,
+          "height": 95.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\22 - ALEFJÄLL Office chair - Glose black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_023",
+        "sku": "office-chairs_23",
+        "name": "VALLFJÄLLET Office chair with arm/headrest - Gunnared grey",
+        "chinese name": "VALLFJÄLLET 附扶手/頭枕辦公椅，Gunnared 灰色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 69.0,
+          "depth": null,
+          "height": 29.0
+        },
+        "collision_box_cm": {
+          "width": 69.0,
+          "depth": null,
+          "height": 29.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\23 - VALLFJÄLLET Office chair with armheadrest - Gunnared grey.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_024",
+        "sku": "office-chairs_24",
+        "name": "MATCHSPEL Gaming chair - Bomstad light grey",
+        "chinese name": "MATCHSPEL 電競椅，Bomstad 淺灰色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 66.0,
+          "depth": 66.0,
+          "height": 132.0
+        },
+        "collision_box_cm": {
+          "width": 66.0,
+          "depth": 66.0,
+          "height": 132.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\24 - MATCHSPEL Gaming chair - Bomstad light grey.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_025",
+        "sku": "office-chairs_25",
+        "name": "MATCHSPEL Gaming chair - Bomstad black",
+        "chinese name": "MATCHSPEL 電競椅，Bomstad 黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 66.0,
+          "depth": 66.0,
+          "height": 132.0
+        },
+        "collision_box_cm": {
+          "width": 66.0,
+          "depth": 66.0,
+          "height": 132.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\25 - MATCHSPEL Gaming chair - Bomstad black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_026",
+        "sku": "office-chairs_26",
+        "name": "HATTEFJÄLL Office chair with armrests - Gunnared beige/white",
+        "chinese name": "HATTEFJÄLL 附扶手辦公椅，Gunnared 米色/白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 114.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 114.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\26 - HATTEFJÄLL Office chair with armrests - Gunnared beigewhite.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_027",
+        "sku": "office-chairs_27",
+        "name": "HATTEFJÄLL Office chair with armrests - Gunnared medium grey/white",
+        "chinese name": "HATTEFJÄLL 附扶手辦公椅，Gunnared 中灰色/白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 114.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 114.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\27 - HATTEFJÄLL Office chair with armrests - Gunnared medium greywhite.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_028",
+        "sku": "office-chairs_28",
+        "name": "HATTEFJÄLL Office chair with armrests - Smidig black/black",
+        "chinese name": "HATTEFJÄLL 附扶手辦公椅，Smidig 黑色/黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 114.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 114.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\28 - HATTEFJÄLL Office chair with armrests - Smidig blackblack.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_029",
+        "sku": "office-chairs_29",
+        "name": "HATTEFJÄLL Office chair with armrests - Gunnared dark grey/black",
+        "chinese name": "HATTEFJÄLL 附扶手辦公椅，Gunnared 深灰色/黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 114.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 114.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\29 - HATTEFJÄLL Office chair with armrests - Gunnared dark greyblack.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_030",
+        "sku": "office-chairs_30",
+        "name": "STYRSPEL Gaming chair - red",
+        "chinese name": "STYRSPEL 電競椅，紅色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 71.0,
+          "depth": 69.0,
+          "height": 142.0
+        },
+        "collision_box_cm": {
+          "width": 71.0,
+          "depth": 69.0,
+          "height": 142.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\30 - STYRSPEL Gaming chair - red.glb",
+        "material": "",
+        "color": "grey, red",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_031",
+        "sku": "office-chairs_31",
+        "name": "LÅNGFJÄLL Conference chair - Gunnared beige/white",
+        "chinese name": "LÅNGFJÄLL 會議椅，Gunnared 米色/白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 92.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 92.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\31 - LÅNGFJÄLL Conference chair - Gunnared beigewhite.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_032",
+        "sku": "office-chairs_32",
+        "name": "LÅNGFJÄLL Conference chair - Gunnared green-grey/black",
+        "chinese name": "LÅNGFJÄLL 會議椅，Gunnared 綠灰色/黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 92.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 92.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\32 - LÅNGFJÄLL Conference chair - Gunnared green-greyblack.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_033",
+        "sku": "office-chairs_33",
+        "name": "LÅNGFJÄLL Conference chair - Gunnared green-grey/white",
+        "chinese name": "LÅNGFJÄLL 會議椅，Gunnared 綠灰色/白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 92.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 92.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\33 - LÅNGFJÄLL Conference chair - Gunnared green-greywhite.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_034",
+        "sku": "office-chairs_34",
+        "name": "LÅNGFJÄLL Conference chair - Gunnared dark grey/black",
+        "chinese name": "LÅNGFJÄLL 會議椅，Gunnared 深灰色/黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 104.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 104.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\34 - LÅNGFJÄLL Conference chair - Gunnared dark greyblack.glb",
+        "material": "",
+        "color": "grey, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_035",
+        "sku": "office-chairs_35",
+        "name": "LÅNGFJÄLL Conference chair - Gunnared beige/white",
+        "chinese name": "LÅNGFJÄLL 會議椅，Gunnared 米色/白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 104.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 104.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\35 - LÅNGFJÄLL Conference chair - Gunnared beigewhite.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_036",
+        "sku": "office-chairs_36",
+        "name": "LÅNGFJÄLL Conference chair - Gunnared beige/black",
+        "chinese name": "LÅNGFJÄLL 會議椅，Gunnared 米色/黑色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 104.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 104.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\36 - LÅNGFJÄLL Conference chair - Gunnared beigeblack.glb",
+        "material": "",
+        "color": "beige, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_037",
+        "sku": "office-chairs_37",
+        "name": "LÅNGFJÄLL Conference chair - Gunnared dark grey/white",
+        "chinese name": "LÅNGFJÄLL 會議椅，Gunnared 深灰色/白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 104.0
+        },
+        "collision_box_cm": {
+          "width": 68.0,
+          "depth": 68.0,
+          "height": 104.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\37 - LÅNGFJÄLL Conference chair - Gunnared dark greywhite.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_038",
+        "sku": "office-chairs_38",
+        "name": "ÖRFJÄLL Children's desk chair - white/Vissle pink",
+        "chinese name": "ÖRFJÄLL 兒童書桌椅，白色/Vissle 粉紅色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 53.0,
+          "depth": 53.0,
+          "height": 83.0
+        },
+        "collision_box_cm": {
+          "width": 53.0,
+          "depth": 53.0,
+          "height": 83.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\38 - ÖRFJÄLL Children's desk chair - whiteVissle pink.glb",
+        "material": "",
+        "color": "pink, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_039",
+        "sku": "office-chairs_39",
+        "name": "ÖRFJÄLL Children's desk chair - white/Vissle light green",
+        "chinese name": "ÖRFJÄLL 兒童書桌椅，白色/Vissle 淺綠色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 53.0,
+          "depth": 53.0,
+          "height": 83.0
+        },
+        "collision_box_cm": {
+          "width": 53.0,
+          "depth": 53.0,
+          "height": 83.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\39 - ÖRFJÄLL Children's desk chair - whiteVissle light green.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_040",
+        "sku": "office-chairs_40",
+        "name": "ÖRFJÄLL Children's desk chair - white/Vissle light grey",
+        "chinese name": "ÖRFJÄLL 兒童書桌椅，白色/Vissle 淺灰色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 53.0,
+          "depth": 53.0,
+          "height": 83.0
+        },
+        "collision_box_cm": {
+          "width": 53.0,
+          "depth": 53.0,
+          "height": 83.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\40 - ÖRFJÄLL Children's desk chair - whiteVissle light grey.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_041",
+        "sku": "office-chairs_41",
+        "name": "STIGBYGEL Swivel chair with armrests - beige/white",
+        "chinese name": "STIGBYGEL 附扶手旋轉椅，米色/白色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 65.0,
+          "depth": 70.0,
+          "height": 103.0
+        },
+        "collision_box_cm": {
+          "width": 65.0,
+          "depth": 70.0,
+          "height": 103.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\41 - STIGBYGEL Swivel chair with armrests - beigewhite.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_042",
+        "sku": "office-chairs_42",
+        "name": "ROSENTORP Swivel chair - white/Kilanda light beige",
+        "chinese name": "ROSENTORP 旋轉椅，白色/Kilanda 淺米色",
+        "type": "office-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 97.0
+        },
+        "collision_box_cm": {
+          "width": 67.0,
+          "depth": 67.0,
+          "height": 97.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-office-chairs\\42 - ROSENTORP Swivel chair - whiteKilanda light beige.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

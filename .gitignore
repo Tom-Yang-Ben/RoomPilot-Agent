@@ -1,0 +1,44 @@
+.env
+web_fastapi/.env
+.venv/
+.venv_triposr/
+__pycache__/
+*.pyc
+tmp/
+web_fastapi/uploads/
+web_fastapi/__pycache__/
+Miniconda3-latest-Windows-x86_64.exe
+
+# Local-only archives / cleanup holding area
+_local_archive_not_for_push/
+*_local_archive_not_for_push*/
+
+# Old experiments and reference repos, not required by the current FastAPI website
+.agents/
+external/
+TripoSR/
+test_3Dfurniture/
+scripts/
+
+# Non-runtime generated/intermediate model artifacts
+dataset/decoded_glb_cache/
+dataset/ikea/
+sf3d/inputs/
+sf3d/models/
+sf3d/official_repo/
+sf3d/outputs_normalized/
+sf3d/outputs_raw/
+sf3d/scripts/
+sf3d/README.md
+
+# Old diagnostic pages not used by the current website flow
+web_fastapi/static/compare.*
+web_fastapi/static/model_probe.*
+
+# Only docs/moodboard_assets is required for the current website.
+docs/*
+!docs/moodboard_assets/
+!docs/moodboard_assets/**
+
+AGENTS.md
+PROJECT_CONTEXT.md

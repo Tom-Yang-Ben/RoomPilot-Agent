@@ -1,0 +1,1515 @@
+{
+  "project_id": "fi-bookcases",
+  "title": "IKEA fi-bookcases GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-bookcases"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Bookcases and shelving_001",
+        "sku": "bookcases_1",
+        "name": "BILLY Bookcase - brown walnut effect 40x28x202 cm",
+        "chinese name": "BILLY 書櫃，棕色胡桃木紋，40x28x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\01 - BILLY Bookcase - brown walnut effect 40x28x202 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_002",
+        "sku": "bookcases_2",
+        "name": "BILLY Bookcase - brown walnut effect 80x28x202 cm",
+        "chinese name": "BILLY 書櫃，棕色胡桃木紋，80x28x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\02 - BILLY Bookcase - brown walnut effect 80x28x202 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_003",
+        "sku": "bookcases_3",
+        "name": "BILLY Bookcase - white 80x28x202 cm",
+        "chinese name": "BILLY 書櫃，白色，80x28x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\03 - BILLY Bookcase - white 80x28x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_004",
+        "sku": "bookcases_4",
+        "name": "BILLY Bookcase - brown walnut effect 40x28x106 cm",
+        "chinese name": "BILLY 書櫃，棕色胡桃木紋，40x28x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\04 - BILLY Bookcase - brown walnut effect 40x28x106 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_005",
+        "sku": "bookcases_5",
+        "name": "BILLY Bookcase - white 40x28x106 cm",
+        "chinese name": "BILLY 書櫃，白色，40x28x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\05 - BILLY Bookcase - white 40x28x106 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_006",
+        "sku": "bookcases_6",
+        "name": "BILLY Bookcase - oak effect 40x28x106 cm",
+        "chinese name": "BILLY 書櫃，橡木紋，40x28x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\06 - BILLY Bookcase - oak effect 40x28x106 cm.glb",
+        "material": "",
+        "color": "beige, brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_007",
+        "sku": "bookcases_7",
+        "name": "BILLY Bookcase - black oak effect 40x28x106 cm",
+        "chinese name": "BILLY 書櫃，黑色橡木紋，40x28x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\07 - BILLY Bookcase - black oak effect 40x28x106 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_008",
+        "sku": "bookcases_8",
+        "name": "BILLY / OXBERG Bookcase with doors - brown walnut effect 80x30x106 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，棕色胡桃木紋，80x30x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\08 - BILLY OXBERG Bookcase with doors - brown walnut effect 80x30x106 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_009",
+        "sku": "bookcases_9",
+        "name": "BILLY / OXBERG Bookcase with doors - white 80x30x106 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，白色，80x30x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\09 - BILLY OXBERG Bookcase with doors - white 80x30x106 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_010",
+        "sku": "bookcases_10",
+        "name": "BILLY / OXBERG Bookcase with doors - black oak effect 80x30x106 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，黑色橡木紋，80x30x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\10 - BILLY OXBERG Bookcase with doors - black oak effect 80x30x106 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_011",
+        "sku": "bookcases_11",
+        "name": "BAGGEBO Bookcase - white 50x25x160 cm",
+        "chinese name": "BAGGEBO 書櫃，白色，50x25x160 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 50.0,
+          "depth": 25.0,
+          "height": 160.0
+        },
+        "collision_box_cm": {
+          "width": 50.0,
+          "depth": 25.0,
+          "height": 160.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\11 - BAGGEBO Bookcase - white 50x25x160 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_012",
+        "sku": "bookcases_12",
+        "name": "BRIMNES Bookcase - black 60x190 cm",
+        "chinese name": "BRIMNES 書櫃，黑色，60x190 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": 35.0,
+          "height": 190.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": 35.0,
+          "height": 190.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\12 - BRIMNES Bookcase - black 60x190 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_013",
+        "sku": "bookcases_13",
+        "name": "BILLY Bookcase with height extension unit - brown walnut effect 80x28x237 cm",
+        "chinese name": "BILLY 附加高延伸組件書櫃，棕色胡桃木紋，80x28x237 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 237.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 237.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\13 - BILLY Bookcase with height extension unit - brown walnut effect 80x28x237 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_014",
+        "sku": "bookcases_14",
+        "name": "BILLY Bookcase - white 80x28x237 cm",
+        "chinese name": "BILLY 書櫃，白色，80x28x237 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 237.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 237.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\14 - BILLY Bookcase - white 80x28x237 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_015",
+        "sku": "bookcases_15",
+        "name": "BILLY Bookcase with height extension unit - oak effect 80x28x237 cm",
+        "chinese name": "BILLY 附加高延伸組件書櫃，橡木紋，80x28x237 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 237.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 237.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\15 - BILLY Bookcase with height extension unit - oak effect 80x28x237 cm.glb",
+        "material": "",
+        "color": "beige, brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_016",
+        "sku": "bookcases_16",
+        "name": "BILLY Bookcase - brown walnut effect 80x28x106 cm",
+        "chinese name": "BILLY 書櫃，棕色胡桃木紋，80x28x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\16 - BILLY Bookcase - brown walnut effect 80x28x106 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_017",
+        "sku": "bookcases_17",
+        "name": "BILLY Bookcase - oak effect 80x28x106 cm",
+        "chinese name": "BILLY 書櫃，橡木紋，80x28x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\17 - BILLY Bookcase - oak effect 80x28x106 cm.glb",
+        "material": "",
+        "color": "beige, brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_018",
+        "sku": "bookcases_18",
+        "name": "BILLY Bookcase - black oak effect 80x28x106 cm",
+        "chinese name": "BILLY 書櫃，黑色橡木紋，80x28x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 28.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\18 - BILLY Bookcase - black oak effect 80x28x106 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_019",
+        "sku": "bookcases_19",
+        "name": "BILLY Shelf - brown walnut effect 76x26 cm",
+        "chinese name": "BILLY 層板，棕色胡桃木紋，76x26 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 76.0,
+          "depth": 26.0,
+          "height": 3.0
+        },
+        "collision_box_cm": {
+          "width": 76.0,
+          "depth": 26.0,
+          "height": 3.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\19 - BILLY Shelf - brown walnut effect 76x26 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_020",
+        "sku": "bookcases_20",
+        "name": "BILLY Extra shelf - white 76x26 cm",
+        "chinese name": "BILLY 加購層板，白色，76x26 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 76.0,
+          "depth": 26.0,
+          "height": 2.0
+        },
+        "collision_box_cm": {
+          "width": 76.0,
+          "depth": 26.0,
+          "height": 2.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\20 - BILLY Extra shelf - white 76x26 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_021",
+        "sku": "bookcases_21",
+        "name": "BILLY Shelf - oak effect 76x26 cm",
+        "chinese name": "BILLY 層板，橡木紋，76x26 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 76.0,
+          "depth": 26.0,
+          "height": 3.0
+        },
+        "collision_box_cm": {
+          "width": 76.0,
+          "depth": 26.0,
+          "height": 3.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\21 - BILLY Shelf - oak effect 76x26 cm.glb",
+        "material": "",
+        "color": "beige, brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_022",
+        "sku": "bookcases_22",
+        "name": "BILLY Shelf - black oak effect 76x26 cm",
+        "chinese name": "BILLY 層板，黑色橡木紋，76x26 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 76.0,
+          "depth": 26.0,
+          "height": 3.0
+        },
+        "collision_box_cm": {
+          "width": 76.0,
+          "depth": 26.0,
+          "height": 3.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\22 - BILLY Shelf - black oak effect 76x26 cm.glb",
+        "material": "",
+        "color": "beige, brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_023",
+        "sku": "bookcases_23",
+        "name": "BILLY Bookcase comb w foldable table - white 120x202 cm",
+        "chinese name": "BILLY 附折疊桌書櫃組合，白色，120x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 120.0,
+          "depth": null,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 120.0,
+          "depth": null,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\23 - BILLY Bookcase comb w foldable table - white 120x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_024",
+        "sku": "bookcases_24",
+        "name": "BILLY / OXBERG Bookcase with panel/glass doors - brown walnut effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，棕色胡桃木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\24 - BILLY OXBERG Bookcase with panelglass doors - brown walnut effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_025",
+        "sku": "bookcases_25",
+        "name": "BILLY / OXBERG Bookcase with panel/glass doors - white 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，白色，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\25 - BILLY OXBERG Bookcase with panelglass doors - white 80x30x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_026",
+        "sku": "bookcases_26",
+        "name": "BILLY / OXBERG Bookcase with panel/glass doors - oak effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，橡木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\26 - BILLY OXBERG Bookcase with panelglass doors - oak effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_027",
+        "sku": "bookcases_27",
+        "name": "BILLY / OXBERG Bookcase with panel/glass doors - black oak effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，黑色橡木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\27 - BILLY OXBERG Bookcase with panelglass doors - black oak effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_028",
+        "sku": "bookcases_28",
+        "name": "BILLY / OXBERG Bookcase with glass doors - brown walnut effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，棕色胡桃木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\28 - BILLY OXBERG Bookcase with glass doors - brown walnut effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_029",
+        "sku": "bookcases_29",
+        "name": "BILLY / OXBERG Bookcase - white 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 書櫃，白色，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\29 - BILLY OXBERG Bookcase - white 80x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_030",
+        "sku": "bookcases_30",
+        "name": "BILLY / OXBERG Bookcase with glass doors - black oak effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，黑色橡木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\30 - BILLY OXBERG Bookcase with glass doors - black oak effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_031",
+        "sku": "bookcases_31",
+        "name": "BILLY / OXBERG Bookcase with glass doors - oak effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，橡木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\31 - BILLY OXBERG Bookcase with glass doors - oak effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_032",
+        "sku": "bookcases_32",
+        "name": "GERSBY Bookcase - white 60x180 cm",
+        "chinese name": "GERSBY 書櫃，白色，60x180 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": 24.0,
+          "height": 180.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": 24.0,
+          "height": 180.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\32 - GERSBY Bookcase - white 60x180 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_033",
+        "sku": "bookcases_33",
+        "name": "BILLY / OXBERG Bookcase with doors - white 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，白色，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\33 - BILLY OXBERG Bookcase with doors - white 80x30x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_034",
+        "sku": "bookcases_34",
+        "name": "BILLY / OXBERG Bookcase with doors - oak effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，橡木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\34 - BILLY OXBERG Bookcase with doors - oak effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_035",
+        "sku": "bookcases_35",
+        "name": "BILLY / OXBERG Bookcase with doors - black oak effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，黑色橡木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\35 - BILLY OXBERG Bookcase with doors - black oak effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_036",
+        "sku": "bookcases_36",
+        "name": "BILLY / OXBERG Bookcase with glass-doors - white 80x30x106 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，白色，80x30x106 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\36 - BILLY OXBERG Bookcase with glass-doors - white 80x30x106 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_037",
+        "sku": "bookcases_37",
+        "name": "BILLY Bookcase combination/crnr solution - white 95/95x28x202 cm",
+        "chinese name": "BILLY 書櫃組合/轉角方案，白色 95/95x28x202，公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 39.0,
+          "depth": 28.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 39.0,
+          "depth": 28.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\37 - BILLY Bookcase combinationcrnr solution - white 9595x28x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_038",
+        "sku": "bookcases_38",
+        "name": "BILLY / OXBERG Bookcase with doors - brown walnut effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，棕色胡桃木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\38 - BILLY OXBERG Bookcase with doors - brown walnut effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_039",
+        "sku": "bookcases_39",
+        "name": "BILLY / OXBERG Bookcase with doors - white 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，白色，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\39 - BILLY OXBERG Bookcase with doors - white 80x30x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_040",
+        "sku": "bookcases_40",
+        "name": "BILLY / OXBERG Bookcase with doors - black oak effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，黑色橡木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\40 - BILLY OXBERG Bookcase with doors - black oak effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "beige, brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_041",
+        "sku": "bookcases_41",
+        "name": "BILLY / OXBERG Bookcase with doors - oak effect 80x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附門書櫃，橡木紋，80x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\41 - BILLY OXBERG Bookcase with doors - oak effect 80x30x202 cm.glb",
+        "material": "",
+        "color": "beige, brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_042",
+        "sku": "bookcases_42",
+        "name": "BILLY / OXBERG Bookcase with panel/glass door - brown walnut effect 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，棕色胡桃木紋，40x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\42 - BILLY OXBERG Bookcase with panelglass door - brown walnut effect 40x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_043",
+        "sku": "bookcases_43",
+        "name": "BILLY / OXBERG Bookcase with panel/glass door - white/glass 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，白色/玻璃，40x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\43 - BILLY OXBERG Bookcase with panelglass door - whiteglass 40x30x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_044",
+        "sku": "bookcases_44",
+        "name": "BILLY / OXBERG Bookcase with panel/glass door - oak effect 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，橡木紋，40x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\44 - BILLY OXBERG Bookcase with panelglass door - oak effect 40x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_045",
+        "sku": "bookcases_45",
+        "name": "BILLY / OXBERG Bookcase with panel/glass door - black oak effect 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，黑色橡木紋，40x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\45 - BILLY OXBERG Bookcase with panelglass door - black oak effect 40x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_046",
+        "sku": "bookcases_46",
+        "name": "EKET Cabinet combination with feet - white 70x35x72 cm",
+        "chinese name": "EKET 附腳收納櫃組合，白色，70x35x72 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 70.0,
+          "depth": 35.0,
+          "height": 72.0
+        },
+        "collision_box_cm": {
+          "width": 70.0,
+          "depth": 35.0,
+          "height": 72.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\46 - EKET Cabinet combination with feet - white 70x35x72 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_047",
+        "sku": "bookcases_47",
+        "name": "EKET Cabinet combination with feet - dark grey 70x35x72 cm",
+        "chinese name": "EKET 附腳收納櫃組合，深灰色，70x35x72 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 70.0,
+          "depth": 35.0,
+          "height": 72.0
+        },
+        "collision_box_cm": {
+          "width": 70.0,
+          "depth": 35.0,
+          "height": 72.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\47 - EKET Cabinet combination with feet - dark grey 70x35x72 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_048",
+        "sku": "bookcases_48",
+        "name": "HEMNES Bookcase - white stain/light brown 90x197 cm",
+        "chinese name": "HEMNES 書櫃，白色染色/淺棕色，90x197 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 90.0,
+          "depth": 37.0,
+          "height": 197.0
+        },
+        "collision_box_cm": {
+          "width": 90.0,
+          "depth": 37.0,
+          "height": 197.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\48 - HEMNES Bookcase - white stainlight brown 90x197 cm.glb",
+        "material": "",
+        "color": "brown, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_049",
+        "sku": "bookcases_49",
+        "name": "HEMNES Bookcase - black-brown/light brown 90x197 cm",
+        "chinese name": "HEMNES 書櫃，黑棕色/淺棕色，90x197 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 90.0,
+          "depth": 37.0,
+          "height": 197.0
+        },
+        "collision_box_cm": {
+          "width": 90.0,
+          "depth": 37.0,
+          "height": 197.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\49 - HEMNES Bookcase - black-brownlight brown 90x197 cm.glb",
+        "material": "",
+        "color": "brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_050",
+        "sku": "bookcases_50",
+        "name": "HEMNES Bookcase - grey-green/light brown stained 90x197 cm",
+        "chinese name": "HEMNES 書櫃，灰綠色/淺棕色染色，90x197 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 90.0,
+          "depth": 37.0,
+          "height": 197.0
+        },
+        "collision_box_cm": {
+          "width": 90.0,
+          "depth": 37.0,
+          "height": 197.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\50 - HEMNES Bookcase - grey-greenlight brown stained 90x197 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_051",
+        "sku": "bookcases_51",
+        "name": "BILLY / OXBERG Bookcase with panel/glass doors - white/glass 120x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，白色/玻璃，120x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 120.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 120.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\51 - BILLY OXBERG Bookcase with panelglass doors - whiteglass 120x30x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_052",
+        "sku": "bookcases_52",
+        "name": "BILLY / OXBERG Bookcase with glass door - brown walnut effect/clear glass 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，棕色胡桃木紋/透明玻璃，40x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\52 - BILLY OXBERG Bookcase with glass door - brown walnut effectclear glass 40x30x202 cm.glb",
+        "material": "",
+        "color": "brown, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_053",
+        "sku": "bookcases_53",
+        "name": "BILLY / OXBERG Bookcase with glass door - white/glass 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，白色/玻璃，40x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\53 - BILLY OXBERG Bookcase with glass door - whiteglass 40x30x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Bookcases and shelving_054",
+        "sku": "bookcases_54",
+        "name": "BILLY / OXBERG Bookcase with glass door - oak effect/clear glass 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，橡木紋/透明玻璃，40x30x202 公分",
+        "type": "bookcase",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-bookcases\\54 - BILLY OXBERG Bookcase with glass door - oak effectclear glass 40x30x202 cm.glb",
+        "material": "",
+        "color": "beige, brown, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

@@ -1,0 +1,894 @@
+{
+  "project_id": "fi-flower-pots-planters",
+  "title": "IKEA fi-flower-pots-planters GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-flower-pots-planters"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Decor and small storage_001",
+        "sku": "flower-pots-planters_1",
+        "name": "FRIDFULL Plant pot - water hyacinth 19 cm",
+        "chinese name": "FRIDFULL 花盆，水葫蘆，19 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\01 - FRIDFULL Plant pot - water hyacinth 19 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_002",
+        "sku": "flower-pots-planters_2",
+        "name": "FRIDFULL Plant pot - water hyacinth 12 cm",
+        "chinese name": "FRIDFULL 花盆，水葫蘆，12 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\02 - FRIDFULL Plant pot - water hyacinth 12 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_003",
+        "sku": "flower-pots-planters_3",
+        "name": "FRIDFULL Plant pot - water hyacinth 24 cm",
+        "chinese name": "FRIDFULL 花盆，水葫蘆，24 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 25.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 25.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\03 - FRIDFULL Plant pot - water hyacinth 24 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_004",
+        "sku": "flower-pots-planters_4",
+        "name": "LÅNGNÄBB Plant stand - in/outdoor/white 26 cm",
+        "chinese name": "LÅNGNÄBB 花架，室內外/白色，26 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 26.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 26.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\04 - LÅNGNÄBB Plant stand - inoutdoorwhite 26 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_005",
+        "sku": "flower-pots-planters_5",
+        "name": "HASSELBUKETT Plant pot - in/outdoor/green/brown 15 cm",
+        "chinese name": "HASSELBUKETT 花盆，室內外/綠色/棕色，15 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 18.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 18.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\05 - HASSELBUKETT Plant pot - inoutdoorgreenbrown 15 cm.glb",
+        "material": "",
+        "color": "brown, green",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_006",
+        "sku": "flower-pots-planters_6",
+        "name": "KLOTLÖNN Plant pot with saucer - in/outdoor/black-blue 19 cm",
+        "chinese name": "KLOTLÖNN 附底盤花盆，室內外/黑藍色，19 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 22.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 22.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\06 - KLOTLÖNN Plant pot with saucer - inoutdoorblack-blue 19 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_007",
+        "sku": "flower-pots-planters_7",
+        "name": "KLOTLÖNN Plant pot with saucer - in/outdoor/black-blue 15 cm",
+        "chinese name": "KLOTLÖNN 附底盤花盆，室內外/黑藍色，15 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 16.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 16.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\07 - KLOTLÖNN Plant pot with saucer - inoutdoorblack-blue 15 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_008",
+        "sku": "flower-pots-planters_8",
+        "name": "KLOTLÖNN Plant pot with saucer - in/outdoor/black-blue 12 cm",
+        "chinese name": "KLOTLÖNN 附底盤花盆，室內外/黑藍色，12 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\08 - KLOTLÖNN Plant pot with saucer - inoutdoorblack-blue 12 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_009",
+        "sku": "flower-pots-planters_9",
+        "name": "CHIAFRÖN Plant pot - white 9 cm",
+        "chinese name": "CHIAFRÖN 花盆，白色，9 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\09 - CHIAFRÖN Plant pot - white 9 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_010",
+        "sku": "flower-pots-planters_10",
+        "name": "GRADVIS Plant pot - pink 12 cm",
+        "chinese name": "GRADVIS 花盆，粉紅色，12 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 12.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 12.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\10 - GRADVIS Plant pot - pink 12 cm.glb",
+        "material": "",
+        "color": "pink",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_011",
+        "sku": "flower-pots-planters_11",
+        "name": "GRADVIS Plant pot - grey 15 cm",
+        "chinese name": "GRADVIS 花盆，灰色，15 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 15.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 15.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\11 - GRADVIS Plant pot - grey 15 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_012",
+        "sku": "flower-pots-planters_12",
+        "name": "HASSELBUKETT Plant pot - in/outdoor/brown-yellow 12 cm",
+        "chinese name": "HASSELBUKETT 花盆，室內外/棕黃色，12 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\12 - HASSELBUKETT Plant pot - inoutdoorbrown-yellow 12 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_013",
+        "sku": "flower-pots-planters_13",
+        "name": "TÄRNMÅS Plant pot - indoor/beige/black 15 cm",
+        "chinese name": "TÄRNMÅS 花盆，室內/米色/黑色，15 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 18.0,
+          "depth": null,
+          "height": 18.0
+        },
+        "collision_box_cm": {
+          "width": 18.0,
+          "depth": null,
+          "height": 18.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\13 - TÄRNMÅS Plant pot - indoorbeigeblack 15 cm.glb",
+        "material": "",
+        "color": "beige, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_014",
+        "sku": "flower-pots-planters_14",
+        "name": "KLYNNON Plant pot - handmade bamboo 24 cm",
+        "chinese name": "KLYNNON 花盆，手工竹，24 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 26.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 26.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\14 - KLYNNON Plant pot - handmade bamboo 24 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_015",
+        "sku": "flower-pots-planters_15",
+        "name": "KLYNNON Plant pot - handmade bamboo 9 cm",
+        "chinese name": "KLYNNON 花盆，手工竹，9 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 11.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 11.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\15 - KLYNNON Plant pot - handmade bamboo 9 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_016",
+        "sku": "flower-pots-planters_16",
+        "name": "KLYNNON Plant pot - handmade bamboo 32 cm",
+        "chinese name": "KLYNNON 花盆，手工竹，32 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 33.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 33.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\16 - KLYNNON Plant pot - handmade bamboo 32 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_017",
+        "sku": "flower-pots-planters_17",
+        "name": "SOJABÖNA Plant pot - white 12 cm",
+        "chinese name": "SOJABÖNA 花盆，白色，12 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\17 - SOJABÖNA Plant pot - white 12 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_018",
+        "sku": "flower-pots-planters_18",
+        "name": "SOJABÖNA Plant pot - white 32 cm",
+        "chinese name": "SOJABÖNA 花盆，白色，32 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 33.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 33.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\18 - SOJABÖNA Plant pot - white 32 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_019",
+        "sku": "flower-pots-planters_19",
+        "name": "SOJABÖNA Plant pot - white 19 cm",
+        "chinese name": "SOJABÖNA 花盆，白色，19 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\19 - SOJABÖNA Plant pot - white 19 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_020",
+        "sku": "flower-pots-planters_20",
+        "name": "MUSKOTBLOMMA Plant pot with saucer - in/outdoor terracotta 15 cm",
+        "chinese name": "MUSKOTBLOMMA 附底盤花盆，室內外赤陶色，15 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 16.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 16.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\20 - MUSKOTBLOMMA Plant pot with saucer - inoutdoor terracotta 15 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_021",
+        "sku": "flower-pots-planters_21",
+        "name": "MUSKOTBLOMMA Plant pot with saucer - in/outdoor terracotta 12 cm",
+        "chinese name": "MUSKOTBLOMMA 附底盤花盆，室內外赤陶色，12 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 13.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\21 - MUSKOTBLOMMA Plant pot with saucer - inoutdoor terracotta 12 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_022",
+        "sku": "flower-pots-planters_22",
+        "name": "GLACIÄRBJÖRN Plant pot - white 9 cm",
+        "chinese name": "GLACIÄRBJÖRN 花盆，白色，9 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\22 - GLACIÄRBJÖRN Plant pot - white 9 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_023",
+        "sku": "flower-pots-planters_23",
+        "name": "HASSELBUKETT Plant pot - in/outdoor/beige 19 cm",
+        "chinese name": "HASSELBUKETT 花盆，室內外/米色，19 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\23 - HASSELBUKETT Plant pot - inoutdoorbeige 19 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_024",
+        "sku": "flower-pots-planters_24",
+        "name": "OLIVBLAD Plant stand - in/outdoor black 35 cm",
+        "chinese name": "OLIVBLAD 花架，室內外黑色，35 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 24.0,
+          "depth": null,
+          "height": 35.0
+        },
+        "collision_box_cm": {
+          "width": 24.0,
+          "depth": null,
+          "height": 35.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\24 - OLIVBLAD Plant stand - inoutdoor black 35 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_025",
+        "sku": "flower-pots-planters_25",
+        "name": "FÖRENLIG Plant pot - in/outdoor white 12 cm",
+        "chinese name": "FÖRENLIG 花盆，室內外白色，12 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 12.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 12.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\25 - FÖRENLIG Plant pot - inoutdoor white 12 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_026",
+        "sku": "flower-pots-planters_26",
+        "name": "FÖRENLIG Plant pot - in/outdoor white 9 cm",
+        "chinese name": "FÖRENLIG 花盆，室內外白色，9 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\26 - FÖRENLIG Plant pot - inoutdoor white 9 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_027",
+        "sku": "flower-pots-planters_27",
+        "name": "SKUGGRÖNA Wall mounted plant stand - black 78 cm",
+        "chinese name": "SKUGGRÖNA 壁掛花架，黑色，78 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 14.0,
+          "depth": null,
+          "height": 78.0
+        },
+        "collision_box_cm": {
+          "width": 14.0,
+          "depth": null,
+          "height": 78.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\27 - SKUGGRÖNA Wall mounted plant stand - black 78 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_028",
+        "sku": "flower-pots-planters_28",
+        "name": "PERSILLADE Plant pot - light beige 19 cm",
+        "chinese name": "PERSILLADE 花盆，淺米色，19 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 23.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 23.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\28 - PERSILLADE Plant pot - light beige 19 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_029",
+        "sku": "flower-pots-planters_29",
+        "name": "SATSUMAS Plant stand - bamboo/white 36 cm",
+        "chinese name": "SATSUMAS 花架，竹/白色，36 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 36.0,
+          "depth": null,
+          "height": 36.0
+        },
+        "collision_box_cm": {
+          "width": 36.0,
+          "depth": null,
+          "height": 36.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\29 - SATSUMAS Plant stand - bamboowhite 36 cm.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_030",
+        "sku": "flower-pots-planters_30",
+        "name": "GRADVIS Plant pot - in/outdoor/light brown 12 cm",
+        "chinese name": "GRADVIS 花盆，室內外/淺棕色，12 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 15.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 15.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\30 - GRADVIS Plant pot - inoutdoorlight brown 12 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_031",
+        "sku": "flower-pots-planters_31",
+        "name": "SOJABÖNA Plant pot - light yellow 15 cm",
+        "chinese name": "SOJABÖNA 花盆，淺黃色，15 公分",
+        "type": "flower-pots-planter",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": null,
+          "depth": null,
+          "height": 15.0
+        },
+        "collision_box_cm": {
+          "width": null,
+          "depth": null,
+          "height": 15.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-flower-pots-planters\\31 - SOJABÖNA Plant pot - light yellow 15 cm.glb",
+        "material": "",
+        "color": "yellow",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

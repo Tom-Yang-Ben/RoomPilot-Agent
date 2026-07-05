@@ -1,0 +1,219 @@
+{
+  "project_id": "fi-lamps",
+  "title": "IKEA fi-lamps GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-lamps"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Lighting_001",
+        "sku": "lamps_1",
+        "name": "STOCKHOLM 2025 Pendant lamp - glass/brass-plated 54 cm",
+        "chinese name": "STOCKHOLM 2025 吊燈，玻璃/鍍黃銅，54 公分",
+        "type": "lamp",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 53.0,
+          "depth": null,
+          "height": 50.0
+        },
+        "collision_box_cm": {
+          "width": 53.0,
+          "depth": null,
+          "height": 50.0
+        },
+        "glb_path": "downloaded-files\\燈具\\fi-lamps\\01 - STOCKHOLM 2025 Pendant lamp - glassbrass-plated 54 cm.glb",
+        "material": "",
+        "color": "yellow",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Lighting_002",
+        "sku": "lamps_2",
+        "name": "SOLKLINT Ceiling lamp - brass/grey clear glass 27 cm",
+        "chinese name": "SOLKLINT 吸頂燈，黃銅/灰色透明玻璃，27 公分",
+        "type": "lamp",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 29.0,
+          "depth": null,
+          "height": 20.0
+        },
+        "collision_box_cm": {
+          "width": 29.0,
+          "depth": null,
+          "height": 20.0
+        },
+        "glb_path": "downloaded-files\\燈具\\fi-lamps\\02 - SOLKLINT Ceiling lamp - brassgrey clear glass 27 cm.glb",
+        "material": "",
+        "color": "grey, yellow, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Lighting_003",
+        "sku": "lamps_3",
+        "name": "SIMRISHAMN Pendant lamp, 3-armed - chrome-plated/opal white glass 55 cm",
+        "chinese name": "SIMRISHAMN 吊燈，三臂，鍍鉻/乳白白色玻璃，55 公分",
+        "type": "lamp",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 37.0,
+          "depth": null,
+          "height": 55.0
+        },
+        "collision_box_cm": {
+          "width": 37.0,
+          "depth": null,
+          "height": 55.0
+        },
+        "glb_path": "downloaded-files\\燈具\\fi-lamps\\03 - SIMRISHAMN Pendant lamp, 3-armed - chrome-platedopal white glass 55 cm.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Lighting_004",
+        "sku": "lamps_4",
+        "name": "FYRTIOFYRA Pendant lamp - chrome effect/white 38 cm",
+        "chinese name": "FYRTIOFYRA 吊燈，鉻紋/白色，38 公分",
+        "type": "lamp",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 38.0,
+          "depth": null,
+          "height": 19.0
+        },
+        "collision_box_cm": {
+          "width": 38.0,
+          "depth": null,
+          "height": 19.0
+        },
+        "glb_path": "downloaded-files\\燈具\\fi-lamps\\04 - FYRTIOFYRA Pendant lamp - chrome effectwhite 38 cm.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Lighting_005",
+        "sku": "lamps_5",
+        "name": "HÖGVIND Table lamp - nickel-plated/grey glass",
+        "chinese name": "HÖGVIND 桌燈，鍍鎳/灰色玻璃",
+        "type": "lamp",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 23.0,
+          "depth": null,
+          "height": 25.0
+        },
+        "collision_box_cm": {
+          "width": 23.0,
+          "depth": null,
+          "height": 25.0
+        },
+        "glb_path": "downloaded-files\\燈具\\fi-lamps\\05 - HÖGVIND Table lamp - nickel-platedgrey glass.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Lighting_006",
+        "sku": "lamps_6",
+        "name": "SINNERLIG Floor lamp - bamboo/handmade",
+        "chinese name": "SINNERLIG 落地燈，竹/手工",
+        "type": "lamp",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 29.0,
+          "depth": null,
+          "height": 127.0
+        },
+        "collision_box_cm": {
+          "width": 29.0,
+          "depth": null,
+          "height": 127.0
+        },
+        "glb_path": "downloaded-files\\燈具\\fi-lamps\\06 - SINNERLIG Floor lamp - bamboohandmade.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

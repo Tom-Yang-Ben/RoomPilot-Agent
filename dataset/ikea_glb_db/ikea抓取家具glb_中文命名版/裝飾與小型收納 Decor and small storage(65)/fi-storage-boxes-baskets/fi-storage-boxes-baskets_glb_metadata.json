@@ -1,0 +1,894 @@
+{
+  "project_id": "fi-storage-boxes-baskets",
+  "title": "IKEA fi-storage-boxes-baskets GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-storage-boxes-baskets"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Decor and small storage_001",
+        "sku": "storage-boxes-baskets_1",
+        "name": "DRÖNA Box - dark grey 33x38x33 cm",
+        "chinese name": "DRÖNA 收納盒，深灰色，33x38x33 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 33.0,
+          "depth": 38.0,
+          "height": 33.0
+        },
+        "collision_box_cm": {
+          "width": 33.0,
+          "depth": 38.0,
+          "height": 33.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\01 - DRÖNA Box - dark grey 33x38x33 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_002",
+        "sku": "storage-boxes-baskets_2",
+        "name": "DRÖNA Box - black 33x38x33 cm",
+        "chinese name": "DRÖNA 收納盒，黑色，33x38x33 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 33.0,
+          "depth": 38.0,
+          "height": 33.0
+        },
+        "collision_box_cm": {
+          "width": 33.0,
+          "depth": 38.0,
+          "height": 33.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\02 - DRÖNA Box - black 33x38x33 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_003",
+        "sku": "storage-boxes-baskets_3",
+        "name": "DRÖNA Box - white 33x38x33 cm",
+        "chinese name": "DRÖNA 收納盒，白色，33x38x33 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 33.0,
+          "depth": 38.0,
+          "height": 33.0
+        },
+        "collision_box_cm": {
+          "width": 33.0,
+          "depth": 38.0,
+          "height": 33.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\03 - DRÖNA Box - white 33x38x33 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_004",
+        "sku": "storage-boxes-baskets_4",
+        "name": "UPPDATERA Box - white 24x17 cm",
+        "chinese name": "UPPDATERA 收納盒，白色，24x17 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 24.0,
+          "depth": 17.0,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": 24.0,
+          "depth": 17.0,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\04 - UPPDATERA Box - white 24x17 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_005",
+        "sku": "storage-boxes-baskets_5",
+        "name": "UPPDATERA Box - grey-blue 24x17 cm",
+        "chinese name": "UPPDATERA 收納盒，灰藍色，24x17 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 24.0,
+          "depth": 17.0,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": 24.0,
+          "depth": 17.0,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\05 - UPPDATERA Box - grey-blue 24x17 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_006",
+        "sku": "storage-boxes-baskets_6",
+        "name": "UPPDATERA Box - anthracite 24x17 cm",
+        "chinese name": "UPPDATERA 收納盒，炭灰色，24x17 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 24.0,
+          "depth": 17.0,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": 24.0,
+          "depth": 17.0,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\06 - UPPDATERA Box - anthracite 24x17 cm.glb",
+        "material": "",
+        "color": "grey, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_007",
+        "sku": "storage-boxes-baskets_7",
+        "name": "UPPDATERA Box - red-brown 24x17 cm",
+        "chinese name": "UPPDATERA 收納盒，紅棕色，24x17 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 24.0,
+          "depth": 17.0,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": 24.0,
+          "depth": 17.0,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\07 - UPPDATERA Box - red-brown 24x17 cm.glb",
+        "material": "",
+        "color": "brown, red",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_008",
+        "sku": "storage-boxes-baskets_8",
+        "name": "SKUBB Box, set of 6 - white",
+        "chinese name": "SKUBB 收納盒，6件組，白色",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 14.0,
+          "depth": null,
+          "height": 5.0
+        },
+        "collision_box_cm": {
+          "width": 14.0,
+          "depth": null,
+          "height": 5.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\08 - SKUBB Box, set of 6 - white.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_009",
+        "sku": "storage-boxes-baskets_9",
+        "name": "SKUBB Box, set of 6 - dark grey",
+        "chinese name": "SKUBB 收納盒，6件組，深灰色",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 15.0,
+          "depth": null,
+          "height": 5.0
+        },
+        "collision_box_cm": {
+          "width": 15.0,
+          "depth": null,
+          "height": 5.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\09 - SKUBB Box, set of 6 - dark grey.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_010",
+        "sku": "storage-boxes-baskets_10",
+        "name": "SKUBB Storage case - white 90x53x19 cm",
+        "chinese name": "SKUBB 收納箱，白色，90x53x19 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 90.0,
+          "depth": 53.0,
+          "height": 19.0
+        },
+        "collision_box_cm": {
+          "width": 90.0,
+          "depth": 53.0,
+          "height": 19.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\10 - SKUBB Storage case - white 90x53x19 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_011",
+        "sku": "storage-boxes-baskets_11",
+        "name": "BEKNA Basket - plastic rattan 25x35x20 cm",
+        "chinese name": "BEKNA 籃子，塑膠藤，25x35x20 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 25.0,
+          "depth": 35.0,
+          "height": 20.0
+        },
+        "collision_box_cm": {
+          "width": 25.0,
+          "depth": 35.0,
+          "height": 20.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\11 - BEKNA Basket - plastic rattan 25x35x20 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_012",
+        "sku": "storage-boxes-baskets_12",
+        "name": "LJUNGAN Basket with lid 20x10 cm",
+        "chinese name": "LJUNGAN 附蓋籃子，20x10 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 22.0,
+          "depth": null,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": 22.0,
+          "depth": null,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\12 - LJUNGAN Basket with lid 20x10 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_013",
+        "sku": "storage-boxes-baskets_13",
+        "name": "KUGGIS Box - white 37x54x21 cm",
+        "chinese name": "KUGGIS 收納盒，白色，37x54x21 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 37.0,
+          "depth": 54.0,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": 37.0,
+          "depth": 54.0,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\13 - KUGGIS Box - white 37x54x21 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_014",
+        "sku": "storage-boxes-baskets_14",
+        "name": "PLOGSVÄNG Storage basket - white 15x20x10 cm",
+        "chinese name": "PLOGSVÄNG 收納籃，白色，15x20x10 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 15.0,
+          "depth": null,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": 15.0,
+          "depth": null,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\14 - PLOGSVÄNG Storage basket - white 15x20x10 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_015",
+        "sku": "storage-boxes-baskets_15",
+        "name": "DRAGAN 4-piece bathroom set - bamboo",
+        "chinese name": "DRAGAN 4件式浴室組，竹",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 12.0,
+          "depth": null,
+          "height": 12.0
+        },
+        "collision_box_cm": {
+          "width": 12.0,
+          "depth": null,
+          "height": 12.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\15 - DRAGAN 4-piece bathroom set - bamboo.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_016",
+        "sku": "storage-boxes-baskets_16",
+        "name": "SKUBB Box with compartments - white 44x34x11 cm",
+        "chinese name": "SKUBB 附隔層收納盒，白色，44x34x11 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": 35.0,
+          "height": 11.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": 35.0,
+          "height": 11.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\16 - SKUBB Box with compartments - white 44x34x11 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_017",
+        "sku": "storage-boxes-baskets_17",
+        "name": "SKUBB Box with compartments - dark grey 44x34x11 cm",
+        "chinese name": "SKUBB 附隔層收納盒，深灰色，44x34x11 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": 35.0,
+          "height": 11.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": 35.0,
+          "height": 11.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\17 - SKUBB Box with compartments - dark grey 44x34x11 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_018",
+        "sku": "storage-boxes-baskets_18",
+        "name": "SLÅTTERVALL Storage basket - textile 32x35x32 cm",
+        "chinese name": "SLÅTTERVALL 收納籃，織品，32x35x32 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 32.0,
+          "depth": null,
+          "height": 32.0
+        },
+        "collision_box_cm": {
+          "width": 32.0,
+          "depth": null,
+          "height": 32.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\18 - SLÅTTERVALL Storage basket - textile 32x35x32 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_019",
+        "sku": "storage-boxes-baskets_19",
+        "name": "PÄRKLA Storage case 55x49x19 cm",
+        "chinese name": "PÄRKLA 收納箱，55x49x19 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 55.0,
+          "depth": 49.0,
+          "height": 19.0
+        },
+        "collision_box_cm": {
+          "width": 55.0,
+          "depth": 49.0,
+          "height": 19.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\19 - PÄRKLA Storage case 55x49x19 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_020",
+        "sku": "storage-boxes-baskets_20",
+        "name": "SAMLA Box with lid - transparent 57x39x28 cm/45 l",
+        "chinese name": "SAMLA 附蓋收納盒，透明，57x39x28 公分/45 公升",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 57.0,
+          "depth": 39.0,
+          "height": 28.0
+        },
+        "collision_box_cm": {
+          "width": 57.0,
+          "depth": 39.0,
+          "height": 28.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\20 - SAMLA Box with lid - transparent 57x39x28 cm45 l.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_021",
+        "sku": "storage-boxes-baskets_21",
+        "name": "KNAGGLIG Box - pine 46x31x25 cm",
+        "chinese name": "KNAGGLIG 收納盒，松木，46x31x25 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 50.0,
+          "height": 25.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 50.0,
+          "height": 25.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\21 - KNAGGLIG Box - pine 46x31x25 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_022",
+        "sku": "storage-boxes-baskets_22",
+        "name": "NOJIG Organiser - plastic/beige 20x25x10 cm",
+        "chinese name": "NOJIG 收納架，塑膠/米色，20x25x10 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 20.0,
+          "depth": 25.0,
+          "height": 10.0
+        },
+        "collision_box_cm": {
+          "width": 20.0,
+          "depth": 25.0,
+          "height": 10.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\22 - NOJIG Organiser - plasticbeige 20x25x10 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_023",
+        "sku": "storage-boxes-baskets_23",
+        "name": "KUGGIS Box with lid - black-blue 26x35x15 cm",
+        "chinese name": "KUGGIS 附蓋收納盒，黑藍色，26x35x15 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 26.0,
+          "depth": 28.0,
+          "height": 15.0
+        },
+        "collision_box_cm": {
+          "width": 26.0,
+          "depth": 28.0,
+          "height": 15.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\23 - KUGGIS Box with lid - black-blue 26x35x15 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_024",
+        "sku": "storage-boxes-baskets_24",
+        "name": "BRANÄS Basket - rattan 32x34x32 cm",
+        "chinese name": "BRANÄS 籃子，藤，32x34x32 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 32.0,
+          "depth": 34.0,
+          "height": 32.0
+        },
+        "collision_box_cm": {
+          "width": 32.0,
+          "depth": 34.0,
+          "height": 32.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\24 - BRANÄS Basket - rattan 32x34x32 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_025",
+        "sku": "storage-boxes-baskets_25",
+        "name": "DRÖNA Box - white 25x35x25 cm",
+        "chinese name": "DRÖNA 收納盒，白色，25x35x25 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 25.0,
+          "depth": 28.0,
+          "height": 25.0
+        },
+        "collision_box_cm": {
+          "width": 25.0,
+          "depth": 28.0,
+          "height": 25.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\25 - DRÖNA Box - white 25x35x25 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_026",
+        "sku": "storage-boxes-baskets_26",
+        "name": "DRÖNA Box - black 25x35x25 cm",
+        "chinese name": "DRÖNA 收納盒，黑色，25x35x25 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 25.0,
+          "depth": 28.0,
+          "height": 25.0
+        },
+        "collision_box_cm": {
+          "width": 25.0,
+          "depth": 28.0,
+          "height": 25.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\26 - DRÖNA Box - black 25x35x25 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_027",
+        "sku": "storage-boxes-baskets_27",
+        "name": "DRÖNA Box - blue 25x35x25 cm",
+        "chinese name": "DRÖNA 收納盒，藍色，25x35x25 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 25.0,
+          "depth": 28.0,
+          "height": 25.0
+        },
+        "collision_box_cm": {
+          "width": 25.0,
+          "depth": 28.0,
+          "height": 25.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\27 - DRÖNA Box - blue 25x35x25 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_028",
+        "sku": "storage-boxes-baskets_28",
+        "name": "KOSINGEN Box - light grey 33x38x33 cm",
+        "chinese name": "KOSINGEN 收納盒，淺灰色，33x38x33 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 33.0,
+          "depth": null,
+          "height": 33.0
+        },
+        "collision_box_cm": {
+          "width": 33.0,
+          "depth": null,
+          "height": 33.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\28 - KOSINGEN Box - light grey 33x38x33 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_029",
+        "sku": "storage-boxes-baskets_29",
+        "name": "KUGGIS Box with lid - white/bamboo 37x54x21 cm",
+        "chinese name": "KUGGIS 附蓋收納盒，白色/竹，37x54x21 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 37.0,
+          "depth": 54.0,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": 37.0,
+          "depth": 54.0,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\29 - KUGGIS Box with lid - whitebamboo 37x54x21 cm.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_030",
+        "sku": "storage-boxes-baskets_30",
+        "name": "KUGGIS Box with lid - light grey 37x54x21 cm",
+        "chinese name": "KUGGIS 附蓋收納盒，淺灰色，37x54x21 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 37.0,
+          "depth": 54.0,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": 37.0,
+          "depth": 54.0,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\30 - KUGGIS Box with lid - light grey 37x54x21 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Decor and small storage_031",
+        "sku": "storage-boxes-baskets_31",
+        "name": "KUGGIS Box with lid - light grey/bamboo 37x54x21 cm",
+        "chinese name": "KUGGIS 附蓋收納盒，淺灰色/竹，37x54x21 公分",
+        "type": "storage-boxes-basket",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 37.0,
+          "depth": 54.0,
+          "height": 21.0
+        },
+        "collision_box_cm": {
+          "width": 37.0,
+          "depth": 54.0,
+          "height": 21.0
+        },
+        "glb_path": "downloaded-files\\裝飾與小型收納\\fi-storage-boxes-baskets\\31 - KUGGIS Box with lid - light greybamboo 37x54x21 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}
