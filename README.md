@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # RoomPilot-Agent
 
 RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四組 ・ Demo:2026-08-20)。
@@ -65,8 +64,7 @@ cd app/frontend && npm install && npm run dev   # Vite + React Three Fiber
 
 ```bash
 pip install -r requirements.txt
-# 匯入 PostgreSQL 前,在專案根目錄建立 .env:
-# DATABASE_URL=postgresql+psycopg2://postgres:password@localhost:5432/roompilot
+# 匯入 PostgreSQL 前,複製 .env.example 為 .env 並填入 DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASSWORD
 python scripts/validate_json.py
 python scripts/merge_json_to_catalog.py
 python scripts/import_catalog_to_postgres.py
@@ -81,56 +79,3 @@ python scripts/import_catalog_to_postgres.py
 ## License
 
 IKEA 下載器參考 `apinanaivot/IKEA-3d-model-batch-downloader`,沿用 GPL-3.0 授權,詳見 [LICENSE](LICENSE)。
-=======
-### 後端環境設定 (Frontend)
-
-1. **開啟新的終端機，進入 backend 目錄**：
-
-    ```bash
-    cd d:\app\backend
-    ```
-
-2. **建立虛擬環境及安裝套件**：
-
-    ```
-    python -m venv .venv
-
-    .venv\\Scripts\\activate
-
-    pip install -r requirements.txt
-    ```
-
-3. **啟動後端**：
-
-    ```
-    python -m uvicorn main:app --reload --port 8000
-    ```
-
-### 前端環境設定 (Frontend)
-
-## 安裝 Node.js
-
-前端使用 React + Vite，需要安裝 [Node.js](https://nodejs.org/) (建議 v18 以上版本)。
-
-1. **開啟新的終端機，進入 frontend 目錄**：
-
-    ```bash
-    cd d:\app\frontend
-    ```
-
-2. **安裝 npm 套件**：
-
-   ```bash
-   npm install
-   ```
-
-3. **啟動前端**：
-
-    ```bash
-    npm run dev
-    ```
-
-### 開啟網頁
-
-**於網址列輸入 localhost:5173**
->>>>>>> origin/yen

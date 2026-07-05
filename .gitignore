@@ -1,36 +1,25 @@
-# Python virtual env
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
 .venv/
 venv/
 env/
+.python-version
 
-# Python cache
-__pycache__/
-**/__pycache__/
-*.py[cod]
-
-# Environment variables
+# 環境變數 / 金鑰
 .env
 .env.local
 .env.development
 .env.production
 !.env.example
 
-# Browser / webdriver cache
-.wdm/
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-*.egg-info/
-.pytest_cache/
-
-# uv
-.python-version
-
-# 環境變數 / 金鑰
-.env
-.env.local
+# Node / Vite
+node_modules/
+dist/
+.vite/
+*.log
 
 # IDE
 .vscode/
@@ -39,35 +28,16 @@ __pycache__/
 
 # OS
 .DS_Store
+Thumbs.db
 
-# 前端(之後若接 node)
-node_modules/
-__pycache__/
+# Browser / webdriver cache
+.wdm/
 
 # Logs
 run-logs/
 
-# Large GLB model files
-downloaded-files/
-
-# Old backup data
-舊的翻譯資料/
-
-needed.md
-
+# 大型資料(不上傳)
 data/
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-
-# Node / Vite
-node_modules/
-dist/
-.vite/
-*.log
-
-# OS / editor
-.DS_Store
-Thumbs.db
+downloaded-files/
+舊的翻譯資料/
+needed.md

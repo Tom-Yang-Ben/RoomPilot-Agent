@@ -1,50 +1,39 @@
-# 
-    CLAUDE.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this is
 
-`2Dto3D.html` — a single self-contained HTML file ("AI Interior Copilot", Traditional Chinese UI). It ingests a 2D CAD floor plan (DXF) and renders it as an editable 3D white-model room with furniture placement. There is no build system, no backend, no package manager, and no tests. Everything (HTML/CSS/JS) lives in that one file.
+RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四組,Demo 死線 2026-08-20)。主線流程:上傳平面圖(DXF)→ 升維 3D 白模 → 自動配置家具 → 自然語言/拖曳微調 → 風格化提案 → 匯出檔案。
 
-`2Dto3D.html` is currently staged-but-deleted in the working tree. Restore it before editing: `git restore 2Dto3D.html` (or `git checkout 2Dto3D.html`).
+Multi-module Python/FastAPI monorepo. Each member develops on their own branch; `ben` is the integration branch and `main` is protected. The team SSOT is `RoomPilot_現行版本總覽.md` — read it for scope decisions, P0 priorities, and ownership. When docs conflict, the SSOT wins.
 
-## Run / develop
+## Modules
 
-Open `2Dto3D.html` directly in a browser. It needs an internet connection — Three.js 0.149.0 and its addons load from a CDN via an `<script type="importmap">`, and fonts from Google Fonts. No install, no dev server. Edit the file and refresh.
+| Path | What it is | How to run |
+|---|---|---|
+| `furniture_engine/` | 家具擺放引擎(Shapely):`place_furniture` / `adjust_furniture`,碰撞 + 淨空檢查。`schema.py` 是 LLM tool schema 介面契約(v0.1);`dxf_room.py` 是 dxf_parser JSON → 引擎 `Room` 的轉接層(F2 整合接點) | `uv run pytest tests/ -v`(25 cases)、`uv run python demo_agent_flow.py` |
+| `floorplan2dxf.py` + `config.ini` | 平面圖 PNG → DXF(牆體強制正交,含門/窗偵測)。輸出圖層只有 `WALL` 與 `WINDOW` — 門用於過濾、不寫入 DXF | `python3 floorplan2dxf.py png`;評測:`eval_windows.py`、`eval_doors.py`(需先跑批次產生 `chk/`) |
+| `app/` | 升維:`backend/dxf_parser.py` DXF → 3D 樓面 JSON(ezdxf+shapely 牆體聯集,FastAPI :8001)+ `frontend/` React Three Fiber(擠出牆、X-ray、家具拖曳與吸附,Vite :5173) | 見 `app/README.md` |
+| `demo_app/` | 走通骨架 demo:一句話 → stub Agent → 真引擎配置 → stub 風格圖(FastAPI :8000)。房間目前寫死 5×4 m,待接 `dxf_room.py` | `cd demo_app && uvicorn main:app --port 8000` |
+| `web_fastapi/` | 網站前端(家具庫/風格展示/GLB 檢視器)。⚠️ 目前啟動即掛:依賴不在 repo 的 `sf3d/metadata/*.json` 與 `docs/moodboard_assets/` | 需先補資料才能啟動 |
+| `scripts/` | IKEA 型錄管線:下載 GLB → 清洗 → 驗證 → 合併 → 匯入 PostgreSQL。依賴 gitignore 掉的 `data/`、`downloaded-files/` 與 `.env`(見 `.env.example`) | 見 README「家具型錄管線」 |
+| `png/` `pngans/` `chk/` `door/` `dxf/` `pic/` | 測試圖、人工答案、輸出預覽、門樣式、DXF 樣本 | 資料 |
+| `furniture/` | GLB 家具模型,`app/` 後端的 `/api/furniture` 來源 | 素材 |
+| `2Dto3D.html` | 早期單檔 three.js 原型(AI Interior Copilot)。依 SSOT 定位為「3D 直接操作 UX 的靈感來源」,**非 code 主線** | 瀏覽器直接開(需連網載 CDN) |
 
-A fallback script shows a "3D engine failed to load" message if `window.__copilotReady` isn't set within 6s (e.g. CDN blocked).
+## Dependencies
 
-## Architecture
+Two separate dependency worlds — don't mix them:
 
-Two phases, toggled by `setStep("upload"|"editor")` which swaps CSS grid layouts via `body` classes:
+- `pyproject.toml` + `uv.lock`(Python ≥3.12):furniture_engine 與 tests。用 `uv sync`。
+- `requirements.txt`:平面辨識 + scripts 型錄管線(opencv / ezdxf / selenium / psycopg2 等)。
 
-1. **Upload** (`uploadModule`) — drag/drop or pick a `.dxf`, read it into the global `uploadedDxfText`, then `gotoEditor()` lazily runs `initEditor()` once (`editorInited` guard) and exposes `editorAPI = {resize, rebuild}`.
-2. **Editor** (`initEditor`) — the whole Three.js app, defined in one big closure. Mutable module-level state (e.g. `ROOM`, `objects`, `selected`, `wallMeshes`, `WALL_SEGS`, `selectedCells`, `history`) is shared across all inner functions.
+## Conventions & pitfalls
 
-### DXF → 3D pipeline
-
-`tokenizeDxf` (DXF group-code/value pairs) → `parseDxfSegments` (flattens LINE / LWPOLYLINE / POLYLINE / ARC / CIRCLE / MLINE into 2D segments tagged by layer) → `addDxfRoom`:
-
-- Detects wall/window layers by keyword match (`WALL_KW`, `WIN_KW`, multilingual incl. CJK). If no wall-named layer exists, treats all segments as walls.
-- Normalizes the longest plan edge to `dxfTargetSpan` to guess real-world meters; `manualW`/`manualD` override this (the "scale" panel, 1–200 m) — this is the calibration knob for DXF files with unknown units.
-- Extrudes each wall segment into a box mesh, adds glass window panels.
-- Falls back to `addDemoRoom` (a hardcoded 5×4 m room) if parsing yields too few segments.
-
-`buildRoom()` orchestrates the above and resets all room state; `rebuild()` additionally clears furniture, re-seeds, and refreshes the UI — call it after `uploadedDxfText` or scale changes.
-
-### Editor mechanics
-
-- **Furniture**: `CATALOG` defines types; `buildFurniture`/`addObject` create grouped meshes. GLB import via `addGlbModel` (three GLTFLoader addon).
-- **Grid + placement**: world is a `CELL = 0.5 m` grid; `snap`, `cellAtCursor`, etc. Placement validity via `badAt` → `hitsWall` / `hitsFurniture` / `outOfBounds` (AABB overlap on XZ). Doors snap to the nearest wall (`nearestWall`/`placeDoor`).
-- **Style brushing**: `cells` tool rectangle-selects floor cells (`selectedCells`); `applyStyleToCells` recolors floor/walls/windows near the selection from a `STYLES` palette.
-- **Camera**: a custom orbit object (`orbit.apply()` with az/pol/dist), not OrbitControls.
-- **Undo**: command stack in `history` (cap 50), popped by `undoLast`.
-- **Render loop**: `loop()` rAF-renders; `resize()` syncs canvas to its CSS box (called on window resize and panel collapse).
-
-### Conventions
-
-- UI strings, comments, and toasts are Traditional Chinese — match that when touching UI text.
-- DOM is wired by `document.getElementById` against the static markup; element IDs are the contract between markup and the JS closure.
-- Dimensions are meters internally; the inspector inputs are centimeters (divide by 100).
-
+- **單位**:引擎與 dxf_parser 內部都是**公尺**;`layout.json` 是早期契約草稿、用公分 — 以引擎格式(`schema.py` 的 `placed_to_dict`)為準。
+- **座標系**:引擎用 `(x, y)`、角落原點,`pos_y` 是平面第二軸(**不是高度**);dxf_parser 輸出 `(x, z)`、中心原點。`furniture_engine/dxf_room.py` 負責兩者轉換。
+- **`check_placement` 命名陷阱**:`placement.py` / `adjustment.py` 把 `check_placement_with_clearance`(含淨空)以 `as check_placement` 別名匯入;`geometry.check_placement` 只查本體碰撞。
+- **三個 FastAPI app 並存**(demo_app :8000、app/backend :8001、web_fastapi):port 不要撞;它們互不對接。
+- 「找不到目標家具」等錯誤處理在呼叫端(見 `demo_agent_flow.py` 的 `run_adjust`),不在引擎內。
+- UI 字串、註解、toast 一律**繁體中文** — 修改 UI 文字時保持一致。
