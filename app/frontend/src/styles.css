@@ -53,3 +53,16 @@ button:hover, .filebtn:hover { background: #28384a; }
   background: #0d1218cc; padding: 6px 12px; border-radius: 20px; font-size: 12px;
 }
 .hint { font-size: 11px; color: #6f7f90; }
+
+.furn-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.furn-list button {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.furn-list button.active {
+  background: #274257; border-color: #4ea1ff; color: #dff0ff;
+}
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.snaprow {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: #cfe0f0; cursor: pointer;
+}
