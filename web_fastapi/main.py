@@ -10,6 +10,8 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
+from .scene_pipeline import build_scene_payload, get_openrouter_status
+
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent
@@ -108,12 +110,12 @@ def _gltf_payload_for_web(model_path_text: str, furniture_id: str) -> dict:
     gltf_copy = json.loads(json.dumps(gltf_json))
 
     if gltf_copy.get("buffers"):
-        gltf_copy["buffers"][0]["uri"] = f"/api/furniture/{furniture_id}/buffer.bin"
+        gltf_copy["buffers"][0]["uri"] = "buffer.bin"
         gltf_copy["buffers"][0]["byteLength"] = len(binary_payload)
 
     for index, image in enumerate(gltf_copy.get("images", [])):
         if image.get("bufferView") is not None:
-            image["uri"] = f"/api/furniture/{furniture_id}/images/{index}"
+            image["uri"] = f"images/{index}"
             image.pop("bufferView", None)
             image.pop("mimeType", None)
 
@@ -217,6 +219,9 @@ def build_site_payload() -> dict:
                 "shape_features_zh": style.get("shape_features_zh", []),
                 "avoid_elements_zh": style.get("avoid_elements_zh", []),
                 "scene_background": style.get("scene_background", {}),
+                "wall_recommendations": style.get("wall_recommendations", []),
+                "floor_recommendations": style.get("floor_recommendations", []),
+                "recommended_wall_floor_pairs_zh": style.get("recommended_wall_floor_pairs_zh", []),
                 "visual_theme": style.get("visual_theme", {}),
                 "palette_hex": style.get("palette_hex", []),
                 "stats": style.get("stats", {}),
@@ -298,14 +303,46 @@ def scene_page() -> FileResponse:
     return _page("scene.html")
 
 
-@app.get("/compare")
-def compare_page() -> FileResponse:
-    return _page("scene.html")
-
-
 @app.get("/api/site-data")
 def site_data() -> dict:
     return build_site_payload()
+
+
+@app.get("/api/scene/provider-status")
+def scene_provider_status() -> dict:
+    return get_openrouter_status()
+
+
+@app.post("/api/scene/generate")
+async def generate_scene(payload: dict) -> dict:
+    site_payload = build_site_payload()
+
+    questionnaire = {
+        "space_type": payload.get("space_type", "living_room"),
+        "style_preference": payload.get("style_preference", "auto"),
+        "required_furniture": payload.get("required_furniture", []),
+        "custom_furniture": payload.get("custom_furniture", []),
+        "preferred_colors": payload.get("preferred_colors", []),
+        "custom_colors": payload.get("custom_colors", []),
+        "personal_notes": payload.get("personal_notes", ""),
+        "keep_window_clear": bool(payload.get("keep_window_clear", False)),
+        "keep_door_clear": bool(payload.get("keep_door_clear", False)),
+        "need_storage": bool(payload.get("need_storage", False)),
+        "prefer_low_saturation": bool(payload.get("prefer_low_saturation", False)),
+        "floorplan_filename": payload.get("floorplan_filename"),
+        "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
+        "wall_option": payload.get("wall_option", "auto"),
+        "floor_option": payload.get("floor_option", "auto"),
+        "furniture_random_seed": payload.get("furniture_random_seed"),
+    }
+
+    return build_scene_payload(
+        site_payload=site_payload,
+        questionnaire=questionnaire,
+        floorplan_path=payload.get("floorplan_filename"),
+        room_width_cm=float(payload.get("room_width_cm", 420)),
+        room_depth_cm=float(payload.get("room_depth_cm", 360)),
+    )
 
 
 @app.get("/api/furniture/{furniture_id}/model")

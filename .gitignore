@@ -38,6 +38,7 @@ run-logs/
 
 # 大型資料(不上傳)
 data/
+dataset/
 downloaded-files/
 舊的翻譯資料/
 needed.md

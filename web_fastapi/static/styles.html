@@ -1,46 +1,45 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>查看風格類型</title>
-    <link rel="stylesheet" href="/static/site.css" />
+    <link rel="stylesheet" href="/static/site.css?v=20260705j" />
   </head>
   <body data-page="styles">
     <canvas id="fx-canvas" aria-hidden="true"></canvas>
 
-    <header class="topbar">
-      <a class="brand" href="/">AI 室內風格與家具配置展示系統</a>
-      <nav class="topnav">
-        <a href="/">首頁</a>
-        <a href="/styles" class="active">查看風格類型</a>
+    <header class="topbar app-topbar">
+      <a class="brand app-brand" href="/" aria-label="RoomPilot 首頁">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>RoomPilot</span>
+      </a>
+      <nav class="topnav" aria-label="主要導覽">
+        <a href="/">探索功能</a>
+        <a href="/styles" class="active">風格類型</a>
         <a href="/library">家具資料庫</a>
         <a href="/scene">3D 場景展示</a>
       </nav>
+      <a class="topbar-cta" href="/scene">開始設計</a>
     </header>
 
     <main class="page-shell">
-      <section class="page-panel page-heading">
-        <p class="eyebrow">MOODBOARD / STYLE RULES / FURNITURE GROUPING</p>
-        <h1>查看風格類型</h1>
-        <p>這一頁聚焦 12 種風格本身，包含風格規則、空間背景設定，以及資料庫中目前對應到哪些家具分類與代表家具。</p>
-      </section>
+      <section class="page-panel style-tabs-shell style-overview-shell">
+        <div class="style-overview-copy">
+          <p class="eyebrow">MOODBOARD / STYLE RULES / INTERIOR VISUAL</p>
+          <p class="style-overview-text">
+            以實際室內設計風格圖搭配圖內標註、關鍵字、主色、材質、造型特徵與空間背景，讓使用者快速比對整體視覺方向。
+          </p>
+        </div>
 
-      <section class="page-panel style-tabs-shell">
         <div id="style-tab-row" class="style-tab-row" aria-label="12 種風格切換"></div>
+
         <div class="style-detail-layout">
           <section id="style-detail-panel" class="style-detail-panel"></section>
-          <aside id="style-side-panel" class="style-side-panel">
-            <div class="side-panel-heading">
-              <p class="eyebrow">DATABASE GROUPING</p>
-              <h2>資料庫對應家具分類</h2>
-            </div>
-            <div id="style-furniture-panel" class="style-furniture-panel"></div>
-          </aside>
         </div>
       </section>
     </main>
 
-    <script type="module" src="/static/styles.js"></script>
+    <script type="module" src="/static/styles.js?v=20260705c"></script>
   </body>
 </html>
