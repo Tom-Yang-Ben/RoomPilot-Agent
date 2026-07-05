@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoomPilot · 走通骨架 Demo</title>
+<style>
+  :root{--ink:#232a36;--muted:#6b7688;--line:#e4e8f0;--accent:#5b9cff;--green:#10b981;--amber:#f59e0b;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;color:var(--ink);
+    background:#eef1f7;padding:22px;}
+  h1{margin:0;font-size:22px;}h1 b{color:#ec4899;}
+  .sub{color:var(--muted);font-size:13px;margin:5px 0 14px;}
+  .pipe{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;margin-bottom:16px;}
+  .node{padding:5px 11px;border-radius:20px;border:1px solid var(--line);background:#fff;}
+  .node.real{border-color:var(--green);color:#0a7d54;background:#eafaf3;font-weight:700;}
+  .node.stub{border-color:var(--amber);color:#a76a00;background:#fff8ec;font-weight:700;}
+  .arr{color:#b9c1cf;}
+  .wrap{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 3px 12px rgba(30,45,80,.05);}
+  .card h3{margin:0 0 10px;font-size:14px;}
+  .tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px;}
+  .tag.real{background:#eafaf3;color:#0a7d54;}.tag.stub{background:#fff8ec;color:#a76a00;}
+  textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:14px;resize:vertical;min-height:64px;outline:none;}
+  textarea:focus{border-color:var(--accent);}
+  .row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  button{border:0;border-radius:9px;padding:9px 14px;font:inherit;font-size:13px;cursor:pointer;background:var(--ink);color:#fff;}
+  button.ghost{background:#fff;border:1px solid var(--line);color:var(--ink);}
+  button:hover{opacity:.92;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .chip{font-size:12px;background:#f1f4f9;border:1px solid var(--line);border-radius:16px;padding:5px 10px;cursor:pointer;}
+  .chip:hover{border-color:var(--accent);}
+  .log{margin-top:12px;font-size:13px;color:var(--muted);max-height:130px;overflow:auto;}
+  .log .me{color:var(--ink);}
+  select{border:1.5px solid var(--line);border-radius:9px;padding:8px;font:inherit;}
+  canvas,#styleImg{width:100%;border:1px solid var(--line);border-radius:10px;background:#fafbfd;display:block;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .note{font-size:11.5px;color:var(--muted);margin-top:7px;}
+  @media(max-width:820px){.wrap,.two{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+  <h1>RoomPilot <b>走通骨架</b> Demo</h1>
+  <div class="sub">一句話 → Agent 解析 → 家具引擎算座標 → 風格化示意。綠色=已完成的真功能,黃色=先用 stub 頂著、之後接上。</div>
+
+  <div class="pipe">
+    <span class="node">使用者一句話</span><span class="arr">→</span>
+    <span class="node stub">Agent 解析(stub·柏彥)</span><span class="arr">→</span>
+    <span class="node real">furniture_engine 配置(真·ancai)</span><span class="arr">→</span>
+    <span class="node stub">render_style 風格化(stub·舒媁)</span>
+  </div>
+
+  <div class="wrap">
+    <!-- 左:輸入 -->
+    <div class="card">
+      <h3>① 跟系統說你要什麼</h3>
+      <textarea id="text" placeholder="例:放三人沙發、茶几、電視櫃,想要北歐風"></textarea>
+      <div class="row">
+        <button id="send">送出</button>
+        <button class="ghost" id="clear">清空</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="log" id="log"></div>
+    </div>
+
+    <!-- 右:輸出 -->
+    <div class="card">
+      <div class="two">
+        <div>
+          <h3>② 配置結果 <span class="tag real">真引擎</span></h3>
+          <canvas id="cv" width="360" height="300"></canvas>
+          <div class="note" id="placedNote">furniture_engine 算出的家具座標(俯視)。</div>
+        </div>
+        <div>
+          <h3>③ 風格化 <span class="tag stub">stub</span></h3>
+          <div class="row" style="margin:0 0 8px">
+            <select id="style">
+              <option>北歐</option><option>日式</option><option>無印</option><option>工業</option><option>現代</option>
+            </select>
+            <button id="applyStyle">套用風格</button>
+          </div>
+          <img id="styleImg" alt="風格化示意" style="min-height:200px">
+          <div class="note">render_style 尚未接 ControlNet,先用示意圖(P0 保底)。舒媁之後把 <code>render_style_stub.py</code> 換成真生成即可。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const $ = s => document.querySelector(s);
+let lastRoom = {width:5, depth:4}, lastPlaced = [];
+
+const EXAMPLES = ["放三人沙發、茶几、電視櫃,北歐風", "我要一張雙人床跟書桌,日式", "放餐桌跟兩張單椅,工業風"];
+EXAMPLES.forEach(t=>{ const c=document.createElement("span"); c.className="chip"; c.textContent=t;
+  c.onclick=()=>{ $("#text").value=t; sendChat(); }; $("#chips").appendChild(c); });
+
+function logLine(who, msg){ const d=document.createElement("div");
+  d.innerHTML = (who==="me"?'<span class="me">你:</span> ':'<span>🤖 </span>')+msg; $("#log").prepend(d); }
+
+function drawScene(room, placed){
+  const cv=$("#cv"), ctx=cv.getContext("2d"); const W=cv.width,H=cv.height,PAD=18;
+  ctx.clearRect(0,0,W,H);
+  const sc=Math.min((W-2*PAD)/room.width,(H-2*PAD)/room.depth);
+  const ox=(W-room.width*sc)/2, oy=(H-room.depth*sc)/2;
+  const m2p=(x,y)=>[ox+x*sc,oy+y*sc];
+  // 房間
+  ctx.fillStyle="#f3f1ec"; ctx.strokeStyle="#3a4048"; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.rect(...m2p(0,0),room.width*sc,room.depth*sc); ctx.fill(); ctx.stroke();
+  // 家具
+  ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  placed.forEach(p=>{
+    const [cx,cy]=m2p(p.pos_x,p.pos_y);
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate((p.rotation||0)*Math.PI/180);
+    const w=p.width*sc,d=p.depth*sc;
+    ctx.fillStyle="#c7d3e6"; ctx.strokeStyle="#5b9cff"; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.rect(-w/2,-d/2,w,d); ctx.fill(); ctx.stroke();
+    ctx.fillStyle="#2a3340"; ctx.fillText(p.name, 0, 0);
+    ctx.restore();
+  });
+}
+
+async function sendChat(){
+  const text=$("#text").value.trim(); if(!text) return;
+  logLine("me", text);
+  const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
+  const data=await r.json();
+  logLine("bot", data.reply);
+  lastRoom=data.room; lastPlaced=data.placed||[];
+  drawScene(lastRoom,lastPlaced);
+  $("#placedNote").textContent = `furniture_engine 擺了 ${lastPlaced.length} 件家具(俯視)。`;
+  if(data.style){ $("#style").value=data.style; if(lastPlaced.length) applyStyle(); }
+}
+
+async function applyStyle(){
+  const style=$("#style").value;
+  const r=await fetch("/api/render_style",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({room:lastRoom,placed:lastPlaced,style})});
+  const data=await r.json();
+  $("#styleImg").src=data.image_base64;
+}
+
+$("#send").onclick=sendChat;
+$("#applyStyle").onclick=applyStyle;
+$("#clear").onclick=()=>{ $("#text").value=""; $("#log").innerHTML=""; };
+</script>
+</body>
+</html>
