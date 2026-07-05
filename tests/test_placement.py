@@ -7,10 +7,10 @@ furniture_engine 核心邏輯測試
 """
 import pytest
 
-from furniture_engine.models import Room, Wall, FurnitureCatalogItem, PlacedFurniture
-from furniture_engine.geometry import check_placement
-from furniture_engine.placement import place_furniture, place_furniture_batch
-from furniture_engine.adjustment import adjust_furniture
+from roompilot.engine.models import Room, Wall, FurnitureCatalogItem, PlacedFurniture
+from roompilot.engine.geometry import check_placement
+from roompilot.engine.placement import place_furniture, place_furniture_batch
+from roompilot.engine.adjustment import adjust_furniture
 
 
 # ---------- 共用測資 ----------

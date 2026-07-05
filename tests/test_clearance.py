@@ -6,8 +6,8 @@ clearance.py 淨空運算測試
 """
 import pytest
 
-from furniture_engine.models import Room, Wall, FurnitureCatalogItem, PlacedFurniture, ClearanceZone
-from furniture_engine.clearance import clearance_polygon, clearance_conflict, check_placement_with_clearance
+from roompilot.engine.models import Room, Wall, FurnitureCatalogItem, PlacedFurniture, ClearanceZone
+from roompilot.engine.clearance import clearance_polygon, clearance_conflict, check_placement_with_clearance
 
 
 @pytest.fixture

@@ -4,36 +4,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四組,Demo 死線 2026-08-20)。主線流程:上傳平面圖(DXF)→ 升維 3D 白模 → 自動配置家具 → 自然語言/拖曳微調 → 風格化提案 → 匯出檔案。
+RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四組,Demo 死線 2026-08-20)。主線:上傳平面圖(DXF)→ 升維 3D 白模 → 自動配置家具 → 自然語言/拖曳微調 → 風格化提案 → 匯出。
 
-Multi-module Python/FastAPI monorepo. Each member develops on their own branch; `ben` is the integration branch and `main` is protected. The team SSOT is `RoomPilot_現行版本總覽.md` — read it for scope decisions, P0 priorities, and ownership. When docs conflict, the SSOT wins.
+Team SSOT is `docs/RoomPilot_現行版本總覽.md` — read it for scope, P0 priorities, ownership. `main` is protected; `ben` is the integration branch. Repo was reorganized 2026-07-06 into a single Python package (`roompilot/`) with the "B 殼 A 內臟" integration: 舒媁's web UI is the shell, the team's real engines are the internals.
 
-## Modules
+## Layout
 
-| Path | What it is | How to run |
+| Path | What | Run |
 |---|---|---|
-| `furniture_engine/` | 家具擺放引擎(Shapely):`place_furniture` / `adjust_furniture`,碰撞 + 淨空檢查。`schema.py` 是 LLM tool schema 介面契約(v0.1);`dxf_room.py` 是 dxf_parser JSON → 引擎 `Room` 的轉接層(F2 整合接點) | `uv run pytest tests/ -v`(25 cases)、`uv run python demo_agent_flow.py` |
-| `floorplan2dxf.py` + `config.ini` | 平面圖 PNG → DXF(牆體強制正交,含門/窗偵測)。輸出圖層只有 `WALL` 與 `WINDOW` — 門用於過濾、不寫入 DXF | `python3 floorplan2dxf.py png`;評測:`eval_windows.py`、`eval_doors.py`(需先跑批次產生 `chk/`) |
-| `app/` | 升維:`backend/dxf_parser.py` DXF → 3D 樓面 JSON(ezdxf+shapely 牆體聯集,FastAPI :8001)+ `frontend/` React Three Fiber(擠出牆、X-ray、家具拖曳與吸附,Vite :5173) | 見 `app/README.md` |
-| `demo_app/` | 走通骨架 demo:一句話 → stub Agent → 真引擎配置 → stub 風格圖(FastAPI :8000)。房間目前寫死 5×4 m,待接 `dxf_room.py` | `cd demo_app && uvicorn main:app --port 8000` |
-| `web_fastapi/` | 網站前端(家具庫/風格展示/GLB 檢視器)。⚠️ 目前啟動即掛:依賴不在 repo 的 `sf3d/metadata/*.json` 與 `docs/moodboard_assets/` | 需先補資料才能啟動 |
-| `scripts/` | IKEA 型錄管線:下載 GLB → 清洗 → 驗證 → 合併 → 匯入 PostgreSQL。依賴 gitignore 掉的 `data/`、`downloaded-files/` 與 `.env`(見 `.env.example`) | 見 README「家具型錄管線」 |
-| `png/` `pngans/` `chk/` `door/` `dxf/` `pic/` | 測試圖、人工答案、輸出預覽、門樣式、DXF 樣本 | 資料 |
-| `furniture/` | GLB 家具模型,`app/` 後端的 `/api/furniture` 來源 | 素材 |
-| `2Dto3D.html` | 早期單檔 three.js 原型(AI Interior Copilot)。依 SSOT 定位為「3D 直接操作 UX 的靈感來源」,**非 code 主線** | 瀏覽器直接開(需連網載 CDN) |
+| `roompilot/engine/` | 家具擺放引擎(Shapely 碰撞+淨空)。`schema.py` = LLM tool schema 契約;`dxf_room.py` = 樓面 JSON → `Room` 轉接 | `uv run pytest tests/ -v` |
+| `roompilot/upgrade3d/dxf_parser.py` | DXF → 3D 樓面 JSON(ezdxf,牆體聯集,房間=孔洞) | — |
+| `roompilot/floorplan/` | PNG → DXF(牆正交化+門窗偵測)+ eval。輸出圖層只有 WALL/WINDOW | `uv run python roompilot/floorplan/floorplan2dxf.py testdata/png testdata/dxf` |
+| `roompilot/catalog/` | `style_db.py`(型錄→引擎轉接,cm→m 在這裡)+ `data/` 風格資料庫 JSON | — |
+| `roompilot/server/` | 唯一 FastAPI:四頁展示 + `/api/scene/generate`、`/api/scene/layout`(擺放走 engine)+ frontend3d 用的 `/api/plan`、`/api/upload` | `uv run uvicorn roompilot.server.main:app --port 8002`(必須在 repo 根目錄跑,相對 import) |
+| `frontend3d/` | R3F 3D 編輯器,F6 拖曳邏輯來源(`Furniture.jsx`、`snap.js`)。與 server 前端的收斂待 F6 決策 | `npm run dev`(proxy → :8002) |
+| `scripts/` | IKEA 型錄管線(下載/清洗/驗證/合併/匯入 Postgres) | 見 README |
+| `examples/` | 退役參考:`demo_app`(走通骨架)、`demo_agent_flow.py`(Agent↔引擎介面範例+失敗詞彙表) | — |
+| `testdata/` | dxf/ png/ pngans/ chk/ door/ pic/ sample_glb/ | 資料 |
+| `dataset/` | (gitignored)IKEA GLB — 沒有它網站可跑但家具無 3D 模型 | 向舒媁要雲端連結 |
+| `docs/archive/` | `2Dto3D.html`(早期原型,非主線)、`layout.json`(作廢的公分契約) | — |
 
-## Dependencies
+Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras: `server` / `vision` / `catalog`。
 
-Two separate dependency worlds — don't mix them:
+## Architecture invariants(違反前先想清楚)
 
-- `pyproject.toml` + `uv.lock`(Python ≥3.12):furniture_engine 與 tests。用 `uv sync`。
-- `requirements.txt`:平面辨識 + scripts 型錄管線(opencv / ezdxf / selenium / psycopg2 等)。
+- **家具座標只有 `roompilot.engine` 能算。** `scene_service.generate_layout` 的類型錨點只是候選順序,合法性由 `check_placement_with_clearance` 把關;放不下回報 `placement.failed`,不硬塞。前端 `scene.js` 的 `reflowSceneObjects` 打 `/api/scene/layout`,不做本地擺放。
+- **單位**:Python 一律公尺。公分只在兩個邊界:`catalog/style_db.py`(資料庫 cm→m)與 payload 的 `position_cm`/`size_cm`(前端契約)。
+- **座標系**:引擎 `(x, y)` 角落原點,`pos_y` 是平面第二軸非高度;payload `position_cm` 是房間中心原點;`rotation_y_deg`(three.js)與引擎 rotation 方向相反,進出引擎取負號。轉換都在 `scene_service.py`。
+- **`check_placement` 命名陷阱**:`placement.py`/`adjustment.py` 把含淨空的 `check_placement_with_clearance` 別名成 `check_placement`;`geometry.check_placement` 只查本體。
+- 淨空(clearance)語意是「開門/抽拉空間」,只給收納類(見 `style_db.CLEARANCE_BY_TYPE` 的註解,沙發設淨空會誤殺茶几)。
 
-## Conventions & pitfalls
+## Conventions
 
-- **單位**:引擎與 dxf_parser 內部都是**公尺**;`layout.json` 是早期契約草稿、用公分 — 以引擎格式(`schema.py` 的 `placed_to_dict`)為準。
-- **座標系**:引擎用 `(x, y)`、角落原點,`pos_y` 是平面第二軸(**不是高度**);dxf_parser 輸出 `(x, z)`、中心原點。`furniture_engine/dxf_room.py` 負責兩者轉換。
-- **`check_placement` 命名陷阱**:`placement.py` / `adjustment.py` 把 `check_placement_with_clearance`(含淨空)以 `as check_placement` 別名匯入;`geometry.check_placement` 只查本體碰撞。
-- **三個 FastAPI app 並存**(demo_app :8000、app/backend :8001、web_fastapi):port 不要撞;它們互不對接。
-- 「找不到目標家具」等錯誤處理在呼叫端(見 `demo_agent_flow.py` 的 `run_adjust`),不在引擎內。
-- UI 字串、註解、toast 一律**繁體中文** — 修改 UI 文字時保持一致。
+- UI 字串、註解、toast 一律繁體中文。
+- 大檔案(GLB/資料集)不進 git,走雲端;`dataset/`、`data/` 已 gitignore。
+- 尚未完成(P0):F3 LLM Agent(tool schema 已備妥於 `engine/schema.py`)、F4 `render_style`、F6 3D 拖曳、F9 匯出。
