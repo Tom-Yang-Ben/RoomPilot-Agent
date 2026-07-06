@@ -547,8 +547,13 @@ def generate_layout(
     if room is None:
         room = _four_wall_room(max(room_width_cm, 240) / 100, max(room_depth_cm, 240) / 100)
 
-    # 房間邊界多邊形:非矩形(DXF)房間必備,矩形房等價於 bbox
+    # 房間邊界多邊形:非矩形(DXF)房間必備,矩形房等價於 bbox。
+    # 內縮 8cm 當擺放邊距 —— 引擎只保證「不相交」,貼零距離視覺上會陷進有厚度的牆。
     boundary = _room_boundary_polygon(room)
+    if boundary is not None:
+        shrunk = boundary.buffer(-0.08)
+        if not shrunk.is_empty:
+            boundary = shrunk
 
     room_w_cm = room.width * 100
     room_d_cm = room.depth * 100
