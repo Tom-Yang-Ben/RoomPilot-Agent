@@ -749,6 +749,40 @@ def generate_layout(
     return [results[i] for i in range(len(items))]
 
 
+def _flip_parsed_z(parsed: dict[str, Any]) -> dict[str, Any]:
+    """把 dxf_parser 輸出的 z 軸取負。
+
+    DXF 的 y 軸朝北(俯視圖),three.js 的 +z 軸朝向觀察者(南)——
+    不翻轉的話畫面等於從地板下方往上看(鏡像/下視圖)。
+    在來源處翻轉一次,下游(Room/引擎/payload)全部同一座標框。
+    """
+    def flip_ring(ring: list) -> list:
+        return [[p[0], -p[1]] for p in ring]
+
+    out = dict(parsed)
+    out["wall_polys"] = [
+        {
+            "exterior": flip_ring(poly.get("exterior") or []),
+            "holes": [flip_ring(hole) for hole in poly.get("holes") or []],
+        }
+        for poly in parsed.get("wall_polys") or []
+    ]
+    for key in ("windows", "doors"):
+        out[key] = [
+            {"x1": s["x1"], "z1": -s["z1"], "x2": s["x2"], "z2": -s["z2"]}
+            for s in parsed.get(key) or []
+        ]
+    bbox = parsed.get("bbox") or {}
+    if bbox:
+        out["bbox"] = {
+            "minx": bbox["minx"],
+            "maxx": bbox["maxx"],
+            "minz": -bbox["maxz"],
+            "maxz": -bbox["minz"],
+        }
+    return out
+
+
 def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, Room | None]:
     """DXF 文字 → (payload 的 floorplan 區塊, 引擎 Room)。
 
@@ -757,7 +791,7 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
     回傳的線段座標一律換算成「房間中心原點、公尺」,維持前端 viewer 契約。
     """
     try:
-        parsed = parse_dxf_bytes(dxf_text.encode("utf-8", errors="ignore"), "upload.dxf")
+        parsed = _flip_parsed_z(parse_dxf_bytes(dxf_text.encode("utf-8", errors="ignore"), "upload.dxf"))
         build = build_room_from_dxf(parsed)
     except Exception:
         return None, None
