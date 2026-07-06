@@ -779,8 +779,17 @@ export function createSceneViewer(container, statusElement) {
     }
   }
 
+  renderer.domElement.addEventListener("contextmenu", (event) => {
+    // 右鍵按在家具上時是拖曳,不要跳出瀏覽器選單
+    pointerToNdc(event);
+    dragRaycaster.setFromCamera(pointerNdc, camera);
+    if (dragRaycaster.intersectObjects(furnitureGroup.children, true).length) {
+      event.preventDefault();
+    }
+  });
+
   renderer.domElement.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || !lastSceneData || dragState) return;
+    if ((event.button !== 0 && event.button !== 2) || !lastSceneData || dragState) return;
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, camera);
     const hits = dragRaycaster.intersectObjects(furnitureGroup.children, true);
