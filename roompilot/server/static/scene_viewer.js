@@ -694,6 +694,10 @@ export function createSceneViewer(container, statusElement) {
 
     await Promise.all(
       objects.map(async (item, index) => {
+        if (item.placement_failed) {
+          failures.push(`${item.name_zh_raw || item.normalized_type}（空間放不下，未擺入）`);
+          return;
+        }
         if (!item.model_url) {
           failures.push(`${item.name_zh_raw || item.normalized_type} 無模型`);
           return;
@@ -822,13 +826,78 @@ export function createSceneViewer(container, statusElement) {
     renderer.domElement.style.cursor = "grabbing";
   });
 
+  // ── 拖曳吸附:靠近牆段時貼齊(留 10cm,大於後端 8cm 邊距故吸附後必過驗證),平時 5cm 格點 ──
+  const SNAP_RANGE = 0.3;
+  const WALL_GAP = 0.1;
+  const DRAG_GRID = 0.05;
+
+  function wallSegmentsForSnap() {
+    const floorplan = lastSceneData?.floorplan || {};
+    const segments = floorplan.wall_segments || [];
+    if (segments.length) return segments;
+    // 手動矩形模式沒有牆段資料,用房間四邊當虛擬牆
+    const widthM = Math.max((Number(floorplan.width_cm) || 420) / 100, 2.4);
+    const depthM = Math.max((Number(floorplan.depth_cm) || 360) / 100, 2.4);
+    const hw = widthM / 2;
+    const hd = depthM / 2;
+    return [
+      { start: { x: -hw, z: -hd }, end: { x: hw, z: -hd } },
+      { start: { x: hw, z: -hd }, end: { x: hw, z: hd } },
+      { start: { x: hw, z: hd }, end: { x: -hw, z: hd } },
+      { start: { x: -hw, z: hd }, end: { x: -hw, z: -hd } },
+    ];
+  }
+
+  function snapDragPosition(item, x, z) {
+    const size = item.size_cm || {};
+    const radians = (Math.abs((item.rotation_y_deg || 0) % 180) * Math.PI) / 180;
+    const w = (Number(size.width) || 120) / 100;
+    const d = (Number(size.depth) || 60) / 100;
+    const halfW = (w * Math.abs(Math.cos(radians)) + d * Math.abs(Math.sin(radians))) / 2;
+    const halfD = (w * Math.abs(Math.sin(radians)) + d * Math.abs(Math.cos(radians))) / 2;
+
+    let bestX = null;
+    let bestZ = null;
+    for (const seg of wallSegmentsForSnap()) {
+      const isVertical = Math.abs(seg.start.x - seg.end.x) < 0.02;   // 沿 z 的牆
+      const isHorizontal = Math.abs(seg.start.z - seg.end.z) < 0.02; // 沿 x 的牆
+      if (isVertical) {
+        const zLo = Math.min(seg.start.z, seg.end.z);
+        const zHi = Math.max(seg.start.z, seg.end.z);
+        if (z < zLo - halfD || z > zHi + halfD) continue;  // 沒對到這段牆的側向範圍
+        for (const candidate of [seg.start.x + halfW + WALL_GAP, seg.start.x - halfW - WALL_GAP]) {
+          const dist = Math.abs(x - candidate);
+          if (dist < SNAP_RANGE && (!bestX || dist < bestX.dist)) bestX = { value: candidate, dist };
+        }
+      } else if (isHorizontal) {
+        const xLo = Math.min(seg.start.x, seg.end.x);
+        const xHi = Math.max(seg.start.x, seg.end.x);
+        if (x < xLo - halfW || x > xHi + halfW) continue;
+        for (const candidate of [seg.start.z + halfD + WALL_GAP, seg.start.z - halfD - WALL_GAP]) {
+          const dist = Math.abs(z - candidate);
+          if (dist < SNAP_RANGE && (!bestZ || dist < bestZ.dist)) bestZ = { value: candidate, dist };
+        }
+      }
+    }
+
+    return {
+      x: bestX ? bestX.value : Math.round(x / DRAG_GRID) * DRAG_GRID,
+      z: bestZ ? bestZ.value : Math.round(z / DRAG_GRID) * DRAG_GRID,
+    };
+  }
+
   window.addEventListener("pointermove", (event) => {
     if (!dragState) return;
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, camera);
     if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
-      dragState.wrapper.position.x = planeHit.x - dragState.grabOffset.x;
-      dragState.wrapper.position.z = planeHit.z - dragState.grabOffset.z;
+      const snapped = snapDragPosition(
+        dragState.item,
+        planeHit.x - dragState.grabOffset.x,
+        planeHit.z - dragState.grabOffset.z
+      );
+      dragState.wrapper.position.x = snapped.x;
+      dragState.wrapper.position.z = snapped.z;
     }
   });
 

@@ -1,6 +1,6 @@
 import { fetchSiteData, formatSize, initBackgroundFx, styleNameMap } from "./common.js?v=20260704e";
 import { createViewer } from "./viewer.js?v=20260704c";
-import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260705a";
+import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260706c";
 
 const data = await fetchSiteData();
 const styleNames = styleNameMap(data.styles);
@@ -133,8 +133,6 @@ function createFallbackSvg(item) {
 }
 
 function populateFilters() {
-  const typeSet = new Set();
-
   data.styles.forEach((style) => {
     const option = document.createElement("option");
     option.value = style.style_id;
@@ -142,16 +140,32 @@ function populateFilters() {
     elements.styleFilter.appendChild(option);
   });
 
+  refreshTypeOptions();
+}
+
+function refreshTypeOptions() {
+  // 類型清單依「目前選的風格」連動:只列該風格實際有家具的類型,
+  // 避免選到「古典風 × 扶手椅」這種必定零結果的組合
+  const styleId = elements.styleFilter.value;
+  const available = new Set();
   data.furniture.forEach((item) => {
-    if (item.normalized_type) typeSet.add(item.normalized_type);
+    if (!item.normalized_type) return;
+    if (!styleId || item.primary_style === styleId) available.add(item.normalized_type);
   });
 
-  [...typeSet].sort().forEach((typeName) => {
+  const previous = elements.typeFilter.value;
+  const allOption = elements.typeFilter.querySelector('option[value=""]');
+  elements.typeFilter.innerHTML = "";
+  if (allOption) elements.typeFilter.appendChild(allOption);
+
+  [...available].sort().forEach((typeName) => {
     const option = document.createElement("option");
     option.value = typeName;
     option.textContent = formatType(typeName);
     elements.typeFilter.appendChild(option);
   });
+
+  elements.typeFilter.value = available.has(previous) ? previous : "";
 }
 
 function syncActiveCard() {
@@ -171,7 +185,7 @@ function setActiveFurniture(item) {
   state.activeFurnitureId = item.furniture_id;
   syncActiveCard();
   setViewerText(item);
-  viewer.setTheme(isDarkFurniture(item) ? "light-stage" : "dark-stage");
+  viewer.setTheme("light-stage");  // 與縮圖一致,固定淺色舞台
 
   if (!item.has_model) {
     viewer.clear();
@@ -346,7 +360,10 @@ function applyLibraryFilters() {
 }
 
 elements.searchInput.addEventListener("input", applyLibraryFilters);
-elements.styleFilter.addEventListener("change", applyLibraryFilters);
+elements.styleFilter.addEventListener("change", () => {
+  refreshTypeOptions();
+  applyLibraryFilters();
+});
 elements.typeFilter.addEventListener("change", applyLibraryFilters);
 elements.resetViewer.addEventListener("click", () => viewer.resetCamera());
 elements.spinModel.addEventListener("click", () => {

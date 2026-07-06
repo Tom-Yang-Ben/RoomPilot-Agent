@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
+from ..catalog.style_db import sanitize_size_cm
 from ..upgrade3d.dxf_parser import list_plans, parse_dxf_bytes, parse_dxf_file
 from .scene_service import (
     _largest_region_boundary,
@@ -225,7 +226,7 @@ def build_site_payload() -> dict:
                     "primary_style": furniture.get("primary_style"),
                     "color": furniture.get("color"),
                     "material": furniture.get("material"),
-                    "size_cm": furniture.get("size_cm"),
+                    "size_cm": sanitize_size_cm(furniture),
                     "card_image_url": _safe_relative_url(
                         card_path.replace("docs/moodboard_assets/", "", 1)
                         if card_path.startswith("docs/moodboard_assets/")
@@ -280,7 +281,7 @@ def build_site_payload() -> dict:
                 "style_assignment_source": item.get("style_assignment_source"),
                 "color": item.get("color"),
                 "material": item.get("material"),
-                "size_cm": item.get("size_cm"),
+                "size_cm": sanitize_size_cm(item),
                 "must_against_wall": item.get("must_against_wall"),
                 "can_rotate": item.get("can_rotate"),
                 "has_model": has_model,

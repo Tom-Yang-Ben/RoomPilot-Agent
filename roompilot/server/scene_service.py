@@ -261,9 +261,14 @@ def choose_furniture_items(
     room_width_cm: float | None = None,
     room_depth_cm: float | None = None,
     preferred_colors: list[str] | None = None,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """回傳 (選中的家具, 找不到可用型號的類型清單)。
+
+    找不到型號的類型必須回報 —— 使用者勾了「已選」卻默默消失,體驗上像 bug。
+    """
     style_id = plan["style_id"]
     chosen: list[dict[str, Any]] = []
+    unavailable: list[str] = []
     used_ids: set[str] = set()
     preferred_colors = preferred_colors or []
 
@@ -353,6 +358,7 @@ def choose_furniture_items(
         ]
 
         if not candidates:
+            unavailable.append(required_type)
             continue
 
         rng = random.Random(f"{random_seed}:{style_id}:{required_type}:{index}") if random_seed not in (None, "") else random.Random(f"{style_id}:{required_type}:{index}")
@@ -366,7 +372,7 @@ def choose_furniture_items(
         used_ids.add(selected["furniture_id"])
         chosen.append(selected)
 
-    return chosen
+    return chosen, unavailable
 
 
 def _clamp_axis(value: float, room_min: float, room_max: float, item_size: float, margin: float = 18) -> float:
@@ -942,7 +948,7 @@ def build_scene_payload(
     effective_depth_cm = parsed_floorplan["depth_cm"] if parsed_floorplan else room_depth_cm
 
     llm_mode, plan = build_scene_plan(questionnaire, site_payload["styles"])
-    selected_items = choose_furniture_items(
+    selected_items, unavailable_types = choose_furniture_items(
         plan,
         site_payload["furniture"],
         questionnaire.get("furniture_random_seed"),
@@ -1005,10 +1011,16 @@ def build_scene_payload(
         "placement": {
             "engine": "furniture_engine",
             "failed": [
-                {"furniture_id": obj["furniture_id"], "reason": obj["placement_reason"]}
+                {
+                    "furniture_id": obj["furniture_id"],
+                    "type": obj.get("normalized_type"),
+                    "name": obj.get("name_zh_raw"),
+                    "reason": obj["placement_reason"],
+                }
                 for obj in objects
                 if obj.get("placement_failed")
             ],
+            "unavailable_types": unavailable_types,
         },
     }
 

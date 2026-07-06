@@ -144,7 +144,7 @@ function fitModel(group, camera, floor, grid) {
 }
 
 async function renderThumbnail(item) {
-  const theme = isDarkFurniture(item) ? "light-stage" : "dark-stage";
+  const theme = "light-stage";  // 統一淺色舞台,縮圖背景一致(深色家具在淺底對比也更好)
   const cacheKey = `${item.model_url}::${theme}`;
 
   if (cache.has(cacheKey)) {
