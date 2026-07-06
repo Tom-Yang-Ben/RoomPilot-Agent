@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box as shapely_box
+from shapely.ops import unary_union
 
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
@@ -587,6 +588,47 @@ def _shrunk_boundary(room: Room) -> Polygon | None:
     return boundary if shrunk.is_empty else shrunk
 
 
+def _regions_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon | None:
+    """全部房間的聯集多邊形(角落原點)——拖曳可放進任何一間,跨牆自動不合法。
+
+    floorplan["room_regions"] 是房間中心原點的環;沒有(手動矩形模式)回 None。
+    """
+    polys = _region_polygons(floorplan, room)
+    if not polys:
+        return None
+    union = unary_union(polys)
+    shrunk = union.buffer(-0.08)
+    return union if shrunk.is_empty else shrunk
+
+
+def _region_polygons(floorplan: dict[str, Any] | None, room: Room) -> list[Polygon]:
+    """payload 的 room_regions({exterior, holes},房間中心原點)→ 角落原點多邊形。"""
+    polys: list[Polygon] = []
+    for region in (floorplan or {}).get("room_regions") or []:
+        try:
+            def _shift(ring):
+                return [(p[0] + room.width / 2, p[1] + room.depth / 2) for p in ring]
+
+            poly = Polygon(_shift(region["exterior"]), [_shift(h) for h in region.get("holes") or []])
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+            if not poly.is_empty:
+                polys.append(poly)
+        except Exception:
+            continue
+    return polys
+
+
+def _largest_region_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon | None:
+    """最大一塊自由空間(角落原點,內縮 8cm)——自動配置集中在主要區域用。"""
+    polys = _region_polygons(floorplan, room)
+    if not polys:
+        return None
+    best = max(polys, key=lambda p: p.area)
+    shrunk = best.buffer(-0.08)
+    return best if shrunk.is_empty else shrunk
+
+
 def validate_single_placement(
     floorplan: dict[str, Any] | None,
     item: dict[str, Any],
@@ -594,13 +636,14 @@ def validate_single_placement(
 ) -> dict[str, Any]:
     """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
     room = room_from_payload(floorplan)
-    boundary = _shrunk_boundary(room)
+    # 拖曳可放進「任何一間房」(聯集);沒有房間資訊才退回最大房間環
+    boundary = _regions_boundary(floorplan, room) or _shrunk_boundary(room)
     half_w_cm = room.width * 50
     half_d_cm = room.depth * 50
 
     moving = _scene_object_to_placed(item, half_w_cm, half_d_cm)
     if not _inside_boundary(moving, boundary):
-        return {"ok": False, "reason": "超出房間範圍"}
+        return {"ok": False, "reason": "超出房間範圍(需完整放在某一間房內,不能跨牆)"}
 
     if item.get("normalized_type") in _IGNORE_COLLISION_TYPES:
         return {"ok": True, "reason": None}
@@ -619,6 +662,8 @@ def generate_layout(
     room_depth_cm: float,
     items: list[dict[str, Any]],
     room: Room | None = None,
+    regions_boundary: Polygon | None = None,
+    place_boundary: Polygon | None = None,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
@@ -632,8 +677,10 @@ def generate_layout(
     if room is None:
         room = _four_wall_room(max(room_width_cm, 240) / 100, max(room_depth_cm, 240) / 100)
 
-    # 房間邊界多邊形(內縮 8cm 邊距):非矩形(DXF)房間必備,矩形房等價於 bbox。
-    boundary = _shrunk_boundary(room)
+    # 擺放搜尋邊界(內縮 8cm 邊距):DXF 模式傳入最大自由空間;
+    # 矩形房由牆環重建(等價於 bbox)。注意 DXF fallback 模式的 Room.walls
+    # 是多個獨立環,不能拿去重建多邊形 —— 所以 DXF 一律走傳入的 place_boundary。
+    boundary = place_boundary if place_boundary is not None else _shrunk_boundary(room)
 
     room_w_cm = room.width * 100
     room_d_cm = room.depth * 100
@@ -664,9 +711,10 @@ def generate_layout(
         locked = False
 
         if item.get("position_locked") and item.get("position_cm"):
-            # 使用者手動擺過:位置仍合法就保留,不重排
+            # 使用者手動擺過:位置仍合法就保留,不重排。
+            # 驗證用「所有房間聯集」—— 使用者可能把家具拖到別的房間,重排不能把它踢掉
             candidate = _scene_object_to_placed(item, half_w_cm, half_d_cm)
-            ok = _inside_boundary(candidate, boundary) and (
+            ok = _inside_boundary(candidate, regions_boundary or boundary) and (
                 item_type in _IGNORE_COLLISION_TYPES
                 or check_placement_with_clearance(candidate, room, placed) is None
             )
@@ -822,6 +870,40 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
     windows = _convert(parsed.get("windows", []))
     stats = parsed.get("stats", {})
 
+    # 可擺放區域 = bbox 減去牆體實心區(自由空間),面積 ≥1m² 的每一塊當一個 region。
+    # 這對「有封閉房間」與「開放式牆線(如 floor01,沒有 holes)」兩種 DXF 都成立;
+    # 不能用 Room.walls 重建多邊形 —— fallback 模式下那是多個獨立環串接,會得到垃圾幾何。
+    room_regions = []
+    try:
+        solids = []
+        for poly in parsed.get("wall_polys") or []:
+            shell = poly.get("exterior") or []
+            if len(shell) < 3:
+                continue
+            solid = Polygon(shell, [h for h in (poly.get("holes") or []) if len(h) >= 3])
+            if not solid.is_valid:
+                solid = solid.buffer(0)
+            if not solid.is_empty:
+                solids.append(solid)
+        bb = parsed["bbox"]
+        free = shapely_box(bb["minx"], bb["minz"], bb["maxx"], bb["maxz"]).difference(unary_union(solids))
+        pieces = list(free.geoms) if free.geom_type == "MultiPolygon" else [free]
+        def _ring_to_payload(coords) -> list:
+            return [[round(p[0] - room_center_x, 3), round(p[1] - room_center_z, 3)] for p in coords]
+
+        for piece in pieces:
+            if piece.is_empty or piece.area < 1.0:
+                continue
+            # 必須保留 interiors:牆體在自由空間裡是「洞」,丟掉洞家具就能疊在牆上
+            room_regions.append(
+                {
+                    "exterior": _ring_to_payload(piece.exterior.coords),
+                    "holes": [_ring_to_payload(ring.coords) for ring in piece.interiors],
+                }
+            )
+    except Exception:
+        room_regions = []
+
     floorplan = {
         "width_cm": round(room.width * 100, 1),
         "depth_cm": round(room.depth * 100, 1),
@@ -838,6 +920,7 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
         "plan_segments": wall_segments,
         "door_segments": doors,
         "window_segments": windows,
+        "room_regions": room_regions,
     }
     return floorplan, room
 
@@ -867,7 +950,14 @@ def build_scene_payload(
         effective_depth_cm,
         plan.get("preferred_colors", []) + questionnaire.get("custom_colors", []),
     )
-    objects = generate_layout(effective_width_cm, effective_depth_cm, selected_items, room=engine_room)
+    objects = generate_layout(
+        effective_width_cm,
+        effective_depth_cm,
+        selected_items,
+        room=engine_room,
+        regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
+        place_boundary=_largest_region_boundary(parsed_floorplan, engine_room) if engine_room else None,
+    )
 
     style = next(
         (style for style in site_payload["styles"] if style.get("style_id") == plan["style_id"]),
@@ -896,6 +986,7 @@ def build_scene_payload(
             "plan_segments": parsed_floorplan.get("plan_segments", []) if parsed_floorplan else [],
             "door_segments": parsed_floorplan.get("door_segments", []) if parsed_floorplan else [],
             "window_segments": parsed_floorplan["window_segments"] if parsed_floorplan else [],
+            "room_regions": parsed_floorplan.get("room_regions", []) if parsed_floorplan else [],
         },
         "style": {
             "style_id": style.get("style_id"),

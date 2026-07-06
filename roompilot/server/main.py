@@ -12,6 +12,8 @@ from PIL import Image
 
 from ..upgrade3d.dxf_parser import list_plans, parse_dxf_bytes, parse_dxf_file
 from .scene_service import (
+    _largest_region_boundary,
+    _regions_boundary,
     build_scene_payload,
     generate_layout,
     get_openrouter_status,
@@ -385,7 +387,14 @@ async def scene_layout(payload: dict) -> dict:
     floorplan = payload.get("floorplan") or {}
     room = room_from_payload(floorplan)
     return {
-        "scene_objects": generate_layout(room.width * 100, room.depth * 100, objects, room=room)
+        "scene_objects": generate_layout(
+            room.width * 100,
+            room.depth * 100,
+            objects,
+            room=room,
+            regions_boundary=_regions_boundary(floorplan, room),
+            place_boundary=_largest_region_boundary(floorplan, room),
+        )
     }
 
 
