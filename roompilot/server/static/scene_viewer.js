@@ -682,6 +682,9 @@ export function createSceneViewer(container, statusElement) {
   }
 
   async function loadScene(sceneData) {
+    lastSceneData = sceneData;
+    dragState = null;
+    selectedWrapper = null;
     clearGroup(furnitureGroup);
     createRoom(sceneData);
     setStatus("正在生成 3D 場景...");
@@ -730,9 +733,147 @@ export function createSceneViewer(container, statusElement) {
     if (failures.length) {
       setStatus(`場景已生成，但部分家具未載入：${failures.join("、")}`);
     } else {
-      setStatus("場景已生成，可拖曳查看家具配置。");
+      setStatus("場景已生成：拖曳家具可移動（放手時檢查碰撞），點選後按 R 旋轉。");
     }
   }
+
+  // ── F6 自由拖曳：前端只負責拖，落點合法性由後端 furniture_engine 驗證 ──
+  let lastSceneData = null;
+  let dragState = null;
+  let selectedWrapper = null;
+
+  const dragRaycaster = new THREE.Raycaster();
+  const pointerNdc = new THREE.Vector2();
+  const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const planeHit = new THREE.Vector3();
+
+  function pointerToNdc(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointerNdc.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNdc.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  function wrapperFromObject(object) {
+    let node = object;
+    while (node && node.parent !== furnitureGroup) node = node.parent;
+    return node;
+  }
+
+  async function validatePlacement(item, positionCm, rotationDeg) {
+    if (!lastSceneData) return { ok: false, reason: "場景未載入" };
+    try {
+      const response = await fetch("/api/scene/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          floorplan: lastSceneData.floorplan || null,
+          item: { ...item, position_cm: positionCm, rotation_y_deg: rotationDeg },
+          others: (lastSceneData.scene_objects || []).filter((other) => other !== item),
+        }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.warn("擺放驗證失敗", error);
+      return { ok: false, reason: "驗證服務未回應" };
+    }
+  }
+
+  renderer.domElement.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !lastSceneData || dragState) return;
+    pointerToNdc(event);
+    dragRaycaster.setFromCamera(pointerNdc, camera);
+    const hits = dragRaycaster.intersectObjects(furnitureGroup.children, true);
+    if (!hits.length) {
+      selectedWrapper = null;
+      return;
+    }
+    const wrapper = wrapperFromObject(hits[0].object);
+    if (!wrapper || !wrapper.userData.sceneObject) return;
+
+    selectedWrapper = wrapper;
+    dragRaycaster.ray.intersectPlane(floorPlane, planeHit);
+    dragState = {
+      wrapper,
+      item: wrapper.userData.sceneObject,
+      startPosition: wrapper.position.clone(),
+      grabOffset: planeHit.clone().sub(wrapper.position),
+      materials: [],
+    };
+    wrapper.traverse((node) => {
+      if (!node.isMesh && !node.isSprite) return;
+      const materials = Array.isArray(node.material) ? node.material : [node.material];
+      materials.filter(Boolean).forEach((material) => {
+        dragState.materials.push({ material, opacity: material.opacity, transparent: material.transparent });
+        material.transparent = true;
+        material.opacity = 0.6;
+      });
+    });
+    controls.enabled = false;  // OrbitControls 的 move handler 會檢查 enabled,拖家具時不轉鏡頭
+    renderer.domElement.style.cursor = "grabbing";
+  });
+
+  window.addEventListener("pointermove", (event) => {
+    if (!dragState) return;
+    pointerToNdc(event);
+    dragRaycaster.setFromCamera(pointerNdc, camera);
+    if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
+      dragState.wrapper.position.x = planeHit.x - dragState.grabOffset.x;
+      dragState.wrapper.position.z = planeHit.z - dragState.grabOffset.z;
+    }
+  });
+
+  window.addEventListener("pointerup", async () => {
+    if (!dragState) return;
+    const { wrapper, item, startPosition, materials } = dragState;
+    dragState = null;
+    materials.forEach(({ material, opacity, transparent }) => {
+      material.opacity = opacity;
+      material.transparent = transparent;
+    });
+    controls.enabled = true;
+    renderer.domElement.style.cursor = "";
+
+    const movedM = Math.hypot(wrapper.position.x - startPosition.x, wrapper.position.z - startPosition.z);
+    if (movedM < 0.01) return;  // 只是點選,沒有拖
+
+    const label = item.name_zh_raw || item.normalized_type || "家具";
+    const newPositionCm = {
+      x: Math.round(wrapper.position.x * 100 * 100) / 100,
+      z: Math.round(wrapper.position.z * 100 * 100) / 100,
+    };
+    setStatus(`正在檢查「${label}」的新位置...`);
+    const verdict = await validatePlacement(item, newPositionCm, item.rotation_y_deg || 0);
+    if (verdict.ok) {
+      item.position_cm = newPositionCm;
+      item.position_locked = true;  // 之後的重排/替換不會沖掉手動位置
+      setStatus(`已移動「${label}」。`);
+    } else {
+      wrapper.position.copy(startPosition);
+      setStatus(`⚠ 「${label}」無法放在那裡：${verdict.reason || "位置不合法"}，已彈回原位。`);
+    }
+  });
+
+  window.addEventListener("keydown", async (event) => {
+    if (event.key !== "r" && event.key !== "R") return;
+    const tag = event.target?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (!selectedWrapper || dragState) return;
+    const item = selectedWrapper.userData.sceneObject;
+    if (!item) return;
+
+    const label = item.name_zh_raw || item.normalized_type || "家具";
+    const nextRotation = ((item.rotation_y_deg || 0) + 90) % 360;
+    const verdict = await validatePlacement(item, item.position_cm || { x: 0, z: 0 }, nextRotation);
+    if (verdict.ok) {
+      item.rotation_y_deg = nextRotation;
+      item.position_locked = true;
+      selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
+      setStatus(`已旋轉「${label}」至 ${nextRotation}°。`);
+    } else {
+      setStatus(`⚠ 旋轉「${label}」會造成：${verdict.reason || "位置不合法"}，未套用。`);
+    }
+  });
 
   function updateWallVisibility() {
     const targetVector = new THREE.Vector3().subVectors(controls.target, camera.position);

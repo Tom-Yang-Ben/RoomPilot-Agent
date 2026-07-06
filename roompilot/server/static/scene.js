@@ -244,6 +244,7 @@ async function reflowSceneObjects(sceneData) {
       body: JSON.stringify({
         room_width_cm: Number(sceneData.floorplan?.width_cm) || 420,
         room_depth_cm: Number(sceneData.floorplan?.depth_cm) || 360,
+        floorplan: sceneData.floorplan || null,
         scene_objects: sceneData.scene_objects,
       }),
     });

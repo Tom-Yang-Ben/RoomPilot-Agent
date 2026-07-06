@@ -529,6 +529,91 @@ def _four_wall_room(width_m: float, depth_m: float) -> Room:
     )
 
 
+def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
+    """由 payload 的 floorplan 區塊重建引擎 Room(拖曳驗證/重排都是無狀態請求)。
+
+    wall_segments 是房間中心原點、公尺;引擎要角落原點 → 平移 half。
+    沒有牆段(手動模式)就退回矩形房。
+    """
+    floorplan = floorplan or {}
+    width = max(float(floorplan.get("width_cm") or 420), 240) / 100
+    depth = max(float(floorplan.get("depth_cm") or 360), 240) / 100
+
+    walls: list[Wall] = []
+    for seg in floorplan.get("wall_segments") or []:
+        try:
+            walls.append(
+                Wall(
+                    float(seg["start"]["x"]) + width / 2,
+                    float(seg["start"]["z"]) + depth / 2,
+                    float(seg["end"]["x"]) + width / 2,
+                    float(seg["end"]["z"]) + depth / 2,
+                    thickness=0.06,
+                )
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
+
+    if len(walls) < 3:
+        return _four_wall_room(width, depth)
+    return Room(width=width, depth=depth, walls=walls)
+
+
+def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: float) -> PlacedFurniture:
+    """payload 場景物件(公分、中心原點、three 旋轉) → 引擎 PlacedFurniture。"""
+    size = obj.get("size_cm") or {}
+    catalog = catalog_item_from_scene_object(
+        obj.get("normalized_type"),
+        obj.get("name_zh_raw") or obj.get("furniture_id"),
+        float(size.get("width") or 120),
+        float(size.get("depth") or 60),
+        float(size.get("height") or 80),
+    )
+    pos = obj.get("position_cm") or {}
+    return PlacedFurniture(
+        id=str(obj.get("furniture_id") or "item"),
+        catalog=catalog,
+        pos_x=(float(pos.get("x") or 0) + half_w_cm) / 100,
+        pos_y=(float(pos.get("z") or 0) + half_d_cm) / 100,
+        rotation=(-float(obj.get("rotation_y_deg") or 0)) % 360,
+    )
+
+
+def _shrunk_boundary(room: Room) -> Polygon | None:
+    boundary = _room_boundary_polygon(room)
+    if boundary is None:
+        return None
+    shrunk = boundary.buffer(-0.08)
+    return boundary if shrunk.is_empty else shrunk
+
+
+def validate_single_placement(
+    floorplan: dict[str, Any] | None,
+    item: dict[str, Any],
+    others: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
+    room = room_from_payload(floorplan)
+    boundary = _shrunk_boundary(room)
+    half_w_cm = room.width * 50
+    half_d_cm = room.depth * 50
+
+    moving = _scene_object_to_placed(item, half_w_cm, half_d_cm)
+    if not _inside_boundary(moving, boundary):
+        return {"ok": False, "reason": "超出房間範圍"}
+
+    if item.get("normalized_type") in _IGNORE_COLLISION_TYPES:
+        return {"ok": True, "reason": None}
+
+    placed_others = [
+        _scene_object_to_placed(o, half_w_cm, half_d_cm)
+        for o in others
+        if o.get("normalized_type") not in _IGNORE_COLLISION_TYPES and not o.get("placement_failed")
+    ]
+    reason = check_placement_with_clearance(moving, room, placed_others)
+    return {"ok": reason is None, "reason": reason}
+
+
 def generate_layout(
     room_width_cm: float,
     room_depth_cm: float,
@@ -547,13 +632,8 @@ def generate_layout(
     if room is None:
         room = _four_wall_room(max(room_width_cm, 240) / 100, max(room_depth_cm, 240) / 100)
 
-    # 房間邊界多邊形:非矩形(DXF)房間必備,矩形房等價於 bbox。
-    # 內縮 8cm 當擺放邊距 —— 引擎只保證「不相交」,貼零距離視覺上會陷進有厚度的牆。
-    boundary = _room_boundary_polygon(room)
-    if boundary is not None:
-        shrunk = boundary.buffer(-0.08)
-        if not shrunk.is_empty:
-            boundary = shrunk
+    # 房間邊界多邊形(內縮 8cm 邊距):非矩形(DXF)房間必備,矩形房等價於 bbox。
+    boundary = _shrunk_boundary(room)
 
     room_w_cm = room.width * 100
     room_d_cm = room.depth * 100
@@ -561,9 +641,13 @@ def generate_layout(
     half_d_cm = room_d_cm / 2
 
     placed: list[PlacedFurniture] = []
-    placements: list[dict[str, Any]] = []
+    results: dict[int, dict[str, Any]] = {}
 
-    for index, item in enumerate(items, start=1):
+    # 鎖定位置(使用者拖曳過)的先處理,避免被後放的家具擠掉
+    order = sorted(range(len(items)), key=lambda i: 0 if items[i].get("position_locked") else 1)
+
+    for index in order:
+        item = items[index]
         item_type = item.get("normalized_type")
         width = _size_cm(item, "width", 120)
         depth = _size_cm(item, "depth", 60)
@@ -571,14 +655,32 @@ def generate_layout(
         catalog = catalog_item_from_scene_object(
             item_type, item.get("name_zh_raw") or item.get("furniture_id"), width, depth, height
         )
-        item_id = f"{item_type or 'item'}_{index}"
+        item_id = f"{item_type or 'item'}_{index + 1}"
 
         x_cm: float | None = None
         z_cm: float | None = None
         rotation = 0.0
         failed_reason: str | None = None
+        locked = False
 
-        if item_type in _IGNORE_COLLISION_TYPES:
+        if item.get("position_locked") and item.get("position_cm"):
+            # 使用者手動擺過:位置仍合法就保留,不重排
+            candidate = _scene_object_to_placed(item, half_w_cm, half_d_cm)
+            ok = _inside_boundary(candidate, boundary) and (
+                item_type in _IGNORE_COLLISION_TYPES
+                or check_placement_with_clearance(candidate, room, placed) is None
+            )
+            if ok:
+                x_cm = float(item["position_cm"].get("x") or 0)
+                z_cm = float(item["position_cm"].get("z") or 0)
+                rotation = float(item.get("rotation_y_deg") or 0)
+                locked = True
+                if item_type not in _IGNORE_COLLISION_TYPES:
+                    placed.append(candidate)
+
+        if locked:
+            pass
+        elif item_type in _IGNORE_COLLISION_TYPES:
             if item_type == "wall-shelf":
                 x_cm = -half_w_cm + width / 2 + 15
                 z_cm = -half_d_cm + depth / 2 + 12
@@ -629,23 +731,22 @@ def generate_layout(
                     x_cm, z_cm = 0.0, 0.0
 
         fp_w, fp_d = _rotated_footprint(width, depth, rotation)
-        placements.append(
-            {
-                "furniture_id": item["furniture_id"],
-                "name_zh_raw": item.get("name_zh_raw"),
-                "normalized_type": item_type,
-                "model_url": item.get("model_url"),
-                "primary_style": item.get("primary_style"),
-                "size_cm": {"width": width, "depth": depth, "height": height},
-                "footprint_cm": {"width": round(fp_w, 2), "depth": round(fp_d, 2)},
-                "position_cm": {"x": round(x_cm, 2), "z": round(z_cm, 2)},
-                "rotation_y_deg": rotation,
-                "placement_failed": bool(failed_reason),
-                "placement_reason": failed_reason,
-            }
-        )
+        results[index] = {
+            "furniture_id": item["furniture_id"],
+            "name_zh_raw": item.get("name_zh_raw"),
+            "normalized_type": item_type,
+            "model_url": item.get("model_url"),
+            "primary_style": item.get("primary_style"),
+            "size_cm": {"width": width, "depth": depth, "height": height},
+            "footprint_cm": {"width": round(fp_w, 2), "depth": round(fp_d, 2)},
+            "position_cm": {"x": round(x_cm, 2), "z": round(z_cm, 2)},
+            "rotation_y_deg": rotation,
+            "position_locked": locked,
+            "placement_failed": bool(failed_reason),
+            "placement_reason": failed_reason,
+        }
 
-    return placements
+    return [results[i] for i in range(len(items))]
 
 
 def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, Room | None]:
