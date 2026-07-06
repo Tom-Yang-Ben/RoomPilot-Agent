@@ -9,9 +9,12 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
+from shapely.geometry import Polygon
+
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
+from ..engine.geometry import furniture_polygon
 from ..engine.models import PlacedFurniture, Room, Wall
 from ..engine.placement import place_furniture
 from ..upgrade3d.dxf_parser import parse_dxf_bytes
@@ -450,6 +453,68 @@ def _placement_candidates(
 _IGNORE_COLLISION_TYPES = {"large-medium-rug", "runner-small-rug", "wall-shelf"}
 
 
+def _room_boundary_polygon(room: Room) -> Polygon | None:
+    """由 Room.walls(依序的房間邊界環段)重建房間多邊形。
+
+    DXF 房間不是矩形:引擎的 out_of_bounds 只檢查 bbox,細牆段(6cm)又擋不住
+    「整件家具落在厚實牆體內部」的候選點 —— 必須額外用這個多邊形做包含檢查,
+    否則家具會被放進 bbox 內、實際房間外的區域(視覺上卡在牆裡)。
+    """
+    if len(room.walls) < 3:
+        return None
+    points = [(w.x1, w.y1) for w in room.walls]
+    try:
+        poly = Polygon(points)
+        if not poly.is_valid:
+            poly = poly.buffer(0)  # 自交環 → 可能拆成 MultiPolygon
+        if poly.is_empty:
+            return None
+        if poly.geom_type == "MultiPolygon":
+            poly = max(poly.geoms, key=lambda g: g.area)  # 取主要區域,自交碎片捨棄
+        return poly
+    except Exception:
+        return None
+
+
+def _inside_boundary(candidate: PlacedFurniture, boundary: Polygon | None) -> bool:
+    if boundary is None:
+        return True
+    return boundary.contains(furniture_polygon(candidate))
+
+
+def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
+    """非矩形房間的最後防線:沿房間多邊形內部以 0.5m 網格搜尋(由質心向外)。
+
+    錨點與引擎網格都以 bbox 為座標基準,房間只佔 bbox 一角時全會撲空,
+    這裡改以房間多邊形自己的範圍掃描。
+    """
+    from shapely.geometry import Point
+    from shapely.prepared import prep
+
+    prepared = prep(boundary)
+    minx, miny, maxx, maxy = boundary.bounds
+    cx, cy = boundary.centroid.x, boundary.centroid.y
+    step = 0.5
+
+    cands = []
+    y = miny + step / 2
+    while y < maxy:
+        x = minx + step / 2
+        while x < maxx:
+            if prepared.contains(Point(x, y)):  # 便宜的預篩,只留房間內的點
+                cands.append((x, y))
+            x += step
+        y += step
+    cands.sort(key=lambda p: (p[0] - cx) ** 2 + (p[1] - cy) ** 2)
+
+    for rotation in (0, 90, 180, 270):
+        for x, y in cands:
+            cand = PlacedFurniture(id=item_id, catalog=catalog, pos_x=x, pos_y=y, rotation=rotation)
+            if _inside_boundary(cand, boundary) and check_placement_with_clearance(cand, room, placed) is None:
+                return cand
+    return None
+
+
 def _four_wall_room(width_m: float, depth_m: float) -> Room:
     """手動輸入尺寸時的矩形房間(引擎座標:角落原點、公尺)。"""
     return Room(
@@ -482,6 +547,9 @@ def generate_layout(
     if room is None:
         room = _four_wall_room(max(room_width_cm, 240) / 100, max(room_depth_cm, 240) / 100)
 
+    # 房間邊界多邊形:非矩形(DXF)房間必備,矩形房等價於 bbox
+    boundary = _room_boundary_polygon(room)
+
     room_w_cm = room.width * 100
     room_d_cm = room.depth * 100
     half_w_cm = room_w_cm / 2
@@ -511,6 +579,15 @@ def generate_layout(
                 z_cm = -half_d_cm + depth / 2 + 12
             else:
                 x_cm, z_cm = 0.0, 0.0
+            # 非矩形房間:固定點可能落在房間多邊形外(牆體裡),退到多邊形內部代表點
+            probe = PlacedFurniture(
+                id=item_id, catalog=catalog,
+                pos_x=(x_cm + half_w_cm) / 100, pos_y=(z_cm + half_d_cm) / 100,
+            )
+            if boundary is not None and not _inside_boundary(probe, boundary):
+                inner = boundary.representative_point()
+                x_cm = inner.x * 100 - half_w_cm
+                z_cm = inner.y * 100 - half_d_cm
         else:
             for raw_x, raw_z, rot in _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm):
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
@@ -523,20 +600,27 @@ def generate_layout(
                     pos_y=(cand_z + half_d_cm) / 100,
                     rotation=(-rot) % 360,
                 )
-                if check_placement_with_clearance(candidate, room, placed) is None:
+                if (
+                    _inside_boundary(candidate, boundary)
+                    and check_placement_with_clearance(candidate, room, placed) is None
+                ):
                     x_cm, z_cm, rotation = cand_x, cand_z, rot
                     placed.append(candidate)
                     break
             else:
                 result = place_furniture(room, catalog, item_id, placed)
-                if result["success"]:
-                    engine_item = result["placed"]
+                engine_item = result["placed"] if result["success"] else None
+                if engine_item is not None and not _inside_boundary(engine_item, boundary):
+                    engine_item = None
+                if engine_item is None and boundary is not None:
+                    engine_item = _grid_place_in_boundary(catalog, item_id, room, placed, boundary)
+                if engine_item is not None:
                     placed.append(engine_item)
                     x_cm = engine_item.pos_x * 100 - half_w_cm
                     z_cm = engine_item.pos_y * 100 - half_d_cm
                     rotation = (-engine_item.rotation) % 360
                 else:
-                    failed_reason = result["reason"]
+                    failed_reason = result["reason"] or "找不到落在房間形狀內的合法位置"
                     x_cm, z_cm = 0.0, 0.0
 
         fp_w, fp_d = _rotated_footprint(width, depth, rotation)
