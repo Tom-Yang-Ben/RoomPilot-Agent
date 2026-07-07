@@ -10,8 +10,17 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
+from ..catalog.style_db import sanitize_size_cm
 from ..upgrade3d.dxf_parser import list_plans, parse_dxf_bytes, parse_dxf_file
-from .scene_service import build_scene_payload, generate_layout, get_openrouter_status
+from .scene_service import (
+    _largest_region_boundary,
+    _regions_boundary,
+    build_scene_payload,
+    generate_layout,
+    get_openrouter_status,
+    room_from_payload,
+    validate_single_placement,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -217,7 +226,7 @@ def build_site_payload() -> dict:
                     "primary_style": furniture.get("primary_style"),
                     "color": furniture.get("color"),
                     "material": furniture.get("material"),
-                    "size_cm": furniture.get("size_cm"),
+                    "size_cm": sanitize_size_cm(furniture),
                     "card_image_url": _safe_relative_url(
                         card_path.replace("docs/moodboard_assets/", "", 1)
                         if card_path.startswith("docs/moodboard_assets/")
@@ -272,7 +281,7 @@ def build_site_payload() -> dict:
                 "style_assignment_source": item.get("style_assignment_source"),
                 "color": item.get("color"),
                 "material": item.get("material"),
-                "size_cm": item.get("size_cm"),
+                "size_cm": sanitize_size_cm(item),
                 "must_against_wall": item.get("must_against_wall"),
                 "can_rotate": item.get("can_rotate"),
                 "has_model": has_model,
@@ -370,11 +379,34 @@ async def generate_scene(payload: dict) -> dict:
 
 @app.post("/api/scene/layout")
 async def scene_layout(payload: dict) -> dict:
-    """前端本地操作(替換/移除/新增/重抽)後,由 furniture_engine 重算全場座標。"""
+    """前端本地操作(替換/移除/新增/重抽)後,由 furniture_engine 重算全場座標。
+
+    傳 floorplan(含 wall_segments)可重建 DXF 房間形狀;
+    scene_objects 帶 position_locked 的項目(使用者拖曳過)位置仍合法就不重排。
+    """
     objects = payload.get("scene_objects", [])
-    width_cm = float(payload.get("room_width_cm", 420))
-    depth_cm = float(payload.get("room_depth_cm", 360))
-    return {"scene_objects": generate_layout(width_cm, depth_cm, objects)}
+    floorplan = payload.get("floorplan") or {}
+    room = room_from_payload(floorplan)
+    return {
+        "scene_objects": generate_layout(
+            room.width * 100,
+            room.depth * 100,
+            objects,
+            room=room,
+            regions_boundary=_regions_boundary(floorplan, room),
+            place_boundary=_largest_region_boundary(floorplan, room),
+        )
+    }
+
+
+@app.post("/api/scene/validate")
+async def scene_validate(payload: dict) -> dict:
+    """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
+    return validate_single_placement(
+        payload.get("floorplan"),
+        payload.get("item") or {},
+        payload.get("others") or [],
+    )
 
 
 @app.get("/api/furniture/{furniture_id}/model")

@@ -1,0 +1,624 @@
+{
+  "project_id": "fi-outdoor-dining",
+  "title": "IKEA fi-outdoor-dining GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-outdoor-dining"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Outdoor furniture_001",
+        "sku": "outdoor-dining_1",
+        "name": "TÄRNÖ Table+2 chairs, outdoor - black/light brown stained",
+        "chinese name": "TÄRNÖ 桌子+2椅，戶外，黑色/淺棕色染色",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 54.0,
+          "depth": 40.0,
+          "height": 70.0
+        },
+        "collision_box_cm": {
+          "width": 54.0,
+          "depth": 40.0,
+          "height": 70.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\01 - TÄRNÖ Table+2 chairs, outdoor - blacklight brown stained.glb",
+        "material": "",
+        "color": "brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_002",
+        "sku": "outdoor-dining_2",
+        "name": "SEGERÖN Table, outdoor - dark green/light grey 91x147 cm",
+        "chinese name": "SEGERÖN 戶外桌，深綠色/淺灰色，91x147 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 91.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 91.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\02 - SEGERÖN Table, outdoor - dark greenlight grey 91x147 cm.glb",
+        "material": "",
+        "color": "grey, green",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_003",
+        "sku": "outdoor-dining_3",
+        "name": "SEGERÖN Table, outdoor - white/beige 91x147 cm",
+        "chinese name": "SEGERÖN 戶外桌，白色/米色，91x147 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 91.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 91.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\03 - SEGERÖN Table, outdoor - whitebeige 91x147 cm.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_004",
+        "sku": "outdoor-dining_4",
+        "name": "NÄMMARÖ Table, outdoor - light brown stained 75x63 cm",
+        "chinese name": "NÄMMARÖ 戶外桌，淺棕色染色，75x63 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 63.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 63.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\04 - NÄMMARÖ Table, outdoor - light brown stained 75x63 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_005",
+        "sku": "outdoor-dining_5",
+        "name": "SOLUPPGÅNG Folding table - eucalyptus 82 cm",
+        "chinese name": "SOLUPPGÅNG 折疊桌，尤加利木，82 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 60.0,
+          "depth": 45.0,
+          "height": 42.0
+        },
+        "collision_box_cm": {
+          "width": 60.0,
+          "depth": 45.0,
+          "height": 42.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\05 - SOLUPPGÅNG Folding table - eucalyptus 82 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_006",
+        "sku": "outdoor-dining_6",
+        "name": "NÄMMARÖ / ENSHOLM Table and 2 chairs - outdoor light brown stained/green 75 cm",
+        "chinese name": "NÄMMARÖ / ENSHOLM 桌子與2椅，戶外淺棕色染色/綠色，75 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 63.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 63.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\06 - NÄMMARÖ ENSHOLM Table and 2 chairs - outdoor light brown stainedgreen 75 cm.glb",
+        "material": "",
+        "color": "brown, green",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_007",
+        "sku": "outdoor-dining_7",
+        "name": "ASKHOLMEN Table, outdoor - dark brown 143x75 cm",
+        "chinese name": "ASKHOLMEN 戶外桌，深棕色，143x75 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 75.0,
+          "depth": null,
+          "height": 73.0
+        },
+        "collision_box_cm": {
+          "width": 75.0,
+          "depth": null,
+          "height": 73.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\07 - ASKHOLMEN Table, outdoor - dark brown 143x75 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_008",
+        "sku": "outdoor-dining_8",
+        "name": "VÄRMANSÖ Table, outdoor - dark grey 161x93 cm",
+        "chinese name": "VÄRMANSÖ 戶外桌，深灰色，161x93 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 93.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 93.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\08 - VÄRMANSÖ Table, outdoor - dark grey 161x93 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_009",
+        "sku": "outdoor-dining_9",
+        "name": "FEJAN Table+2 folding chairs, outdoor - white/white",
+        "chinese name": "FEJAN 桌子+2張折疊椅，戶外，白色/白色",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": null,
+          "height": 7.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": null,
+          "height": 7.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\09 - FEJAN Table+2 folding chairs, outdoor - whitewhite.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_010",
+        "sku": "outdoor-dining_10",
+        "name": "SUNDSÖ Table - bright red outdoor 65x65 cm",
+        "chinese name": "SUNDSÖ 桌子，亮紅色戶外，65x65 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "collision_box_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\10 - SUNDSÖ Table - bright red outdoor 65x65 cm.glb",
+        "material": "",
+        "color": "red",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_011",
+        "sku": "outdoor-dining_11",
+        "name": "SUNDSÖ Table - dark blue outdoor 65x65 cm",
+        "chinese name": "SUNDSÖ 桌子，深藍色戶外，65x65 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "collision_box_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\11 - SUNDSÖ Table - dark blue outdoor 65x65 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_012",
+        "sku": "outdoor-dining_12",
+        "name": "SUNDSÖ Table - bright orange outdoor 65x65 cm",
+        "chinese name": "SUNDSÖ 桌子，亮橘色戶外，65x65 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "collision_box_cm": {
+          "width": 65.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\12 - SUNDSÖ Table - bright orange outdoor 65x65 cm.glb",
+        "material": "",
+        "color": "orange",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_013",
+        "sku": "outdoor-dining_13",
+        "name": "TEGELÖN Table, outdoor - dark grey/black 216x86 cm",
+        "chinese name": "TEGELÖN 戶外桌，深灰色/黑色，216x86 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 86.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 86.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\13 - TEGELÖN Table, outdoor - dark greyblack 216x86 cm.glb",
+        "material": "",
+        "color": "grey, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_014",
+        "sku": "outdoor-dining_14",
+        "name": "HELGEÖ Decorating rod for table - black adjustable/outdoor indoor 115/235x116 cm",
+        "chinese name": "HELGEÖ 桌用裝飾桿，黑色可調式/戶外室內 115/235x116，公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 6.0,
+          "depth": null,
+          "height": 116.0
+        },
+        "collision_box_cm": {
+          "width": 6.0,
+          "depth": null,
+          "height": 116.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\14 - HELGEÖ Decorating rod for table - black adjustableoutdoor indoor 115235x116 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_015",
+        "sku": "outdoor-dining_15",
+        "name": "TÄRNÖ Table, outdoor - black/light brown stained 100x54 cm",
+        "chinese name": "TÄRNÖ 戶外桌，黑色/淺棕色染色，100x54 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 54.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "collision_box_cm": {
+          "width": 54.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\15 - TÄRNÖ Table, outdoor - blacklight brown stained 100x54 cm.glb",
+        "material": "",
+        "color": "brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_016",
+        "sku": "outdoor-dining_16",
+        "name": "TÄRNÖ Table, outdoor - black/light brown stained 55x54 cm",
+        "chinese name": "TÄRNÖ 戶外桌，黑色/淺棕色染色，55x54 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 54.0,
+          "depth": null,
+          "height": 70.0
+        },
+        "collision_box_cm": {
+          "width": 54.0,
+          "depth": null,
+          "height": 70.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\16 - TÄRNÖ Table, outdoor - blacklight brown stained 55x54 cm.glb",
+        "material": "",
+        "color": "brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_017",
+        "sku": "outdoor-dining_17",
+        "name": "VÄSMAN Extendable table, outdoor - light brown stained 135/190x74 cm",
+        "chinese name": "VÄSMAN 戶外延伸桌，淺棕色染色 135/190x74，公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 74.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 74.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\17 - VÄSMAN Extendable table, outdoor - light brown stained 135190x74 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_018",
+        "sku": "outdoor-dining_18",
+        "name": "FEJAN Table, outdoor - white 50x44 cm",
+        "chinese name": "FEJAN 戶外桌，白色，50x44 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\18 - FEJAN Table, outdoor - white 50x44 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_019",
+        "sku": "outdoor-dining_19",
+        "name": "TORPARÖ Table, outdoor - white/foldable 130x74 cm",
+        "chinese name": "TORPARÖ 戶外桌，白色/可折疊，130x74 公分",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 74.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 74.0,
+          "depth": null,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\19 - TORPARÖ Table, outdoor - whitefoldable 130x74 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_020",
+        "sku": "outdoor-dining_20",
+        "name": "ASKHOLMEN Gateleg table, outdoor - dark brown",
+        "chinese name": "ASKHOLMEN 戶外折疊翼桌，深棕色",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 70.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "collision_box_cm": {
+          "width": 70.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\20 - ASKHOLMEN Gateleg table, outdoor - dark brown.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Outdoor furniture_021",
+        "sku": "outdoor-dining_21",
+        "name": "ASKHOLMEN Gateleg table, outdoor - acacia",
+        "chinese name": "ASKHOLMEN 戶外折疊翼桌，相思木",
+        "type": "outdoor-dining",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 70.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "collision_box_cm": {
+          "width": 70.0,
+          "depth": null,
+          "height": 71.0
+        },
+        "glb_path": "downloaded-files\\戶外家具\\fi-outdoor-dining\\21 - ASKHOLMEN Gateleg table, outdoor - acacia.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

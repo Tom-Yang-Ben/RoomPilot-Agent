@@ -682,6 +682,9 @@ export function createSceneViewer(container, statusElement) {
   }
 
   async function loadScene(sceneData) {
+    lastSceneData = sceneData;
+    dragState = null;
+    selectedWrapper = null;
     clearGroup(furnitureGroup);
     createRoom(sceneData);
     setStatus("正在生成 3D 場景...");
@@ -691,6 +694,10 @@ export function createSceneViewer(container, statusElement) {
 
     await Promise.all(
       objects.map(async (item, index) => {
+        if (item.placement_failed) {
+          failures.push(`${item.name_zh_raw || item.normalized_type}（空間放不下，未擺入）`);
+          return;
+        }
         if (!item.model_url) {
           failures.push(`${item.name_zh_raw || item.normalized_type} 無模型`);
           return;
@@ -730,9 +737,221 @@ export function createSceneViewer(container, statusElement) {
     if (failures.length) {
       setStatus(`場景已生成，但部分家具未載入：${failures.join("、")}`);
     } else {
-      setStatus("場景已生成，可拖曳查看家具配置。");
+      setStatus("場景已生成：拖曳家具可移動（放手時檢查碰撞），點選後按 R 旋轉。");
     }
   }
+
+  // ── F6 自由拖曳：前端只負責拖，落點合法性由後端 furniture_engine 驗證 ──
+  let lastSceneData = null;
+  let dragState = null;
+  let selectedWrapper = null;
+
+  const dragRaycaster = new THREE.Raycaster();
+  const pointerNdc = new THREE.Vector2();
+  const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const planeHit = new THREE.Vector3();
+
+  function pointerToNdc(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointerNdc.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNdc.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  function wrapperFromObject(object) {
+    let node = object;
+    while (node && node.parent !== furnitureGroup) node = node.parent;
+    return node;
+  }
+
+  async function validatePlacement(item, positionCm, rotationDeg) {
+    if (!lastSceneData) return { ok: false, reason: "場景未載入" };
+    try {
+      const response = await fetch("/api/scene/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          floorplan: lastSceneData.floorplan || null,
+          item: { ...item, position_cm: positionCm, rotation_y_deg: rotationDeg },
+          others: (lastSceneData.scene_objects || []).filter((other) => other !== item),
+        }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.warn("擺放驗證失敗", error);
+      return { ok: false, reason: "驗證服務未回應" };
+    }
+  }
+
+  renderer.domElement.addEventListener("contextmenu", (event) => {
+    // 右鍵按在家具上時是拖曳,不要跳出瀏覽器選單
+    pointerToNdc(event);
+    dragRaycaster.setFromCamera(pointerNdc, camera);
+    if (dragRaycaster.intersectObjects(furnitureGroup.children, true).length) {
+      event.preventDefault();
+    }
+  });
+
+  renderer.domElement.addEventListener("pointerdown", (event) => {
+    if ((event.button !== 0 && event.button !== 2) || !lastSceneData || dragState) return;
+    pointerToNdc(event);
+    dragRaycaster.setFromCamera(pointerNdc, camera);
+    const hits = dragRaycaster.intersectObjects(furnitureGroup.children, true);
+    if (!hits.length) {
+      selectedWrapper = null;
+      return;
+    }
+    const wrapper = wrapperFromObject(hits[0].object);
+    if (!wrapper || !wrapper.userData.sceneObject) return;
+
+    selectedWrapper = wrapper;
+    dragRaycaster.ray.intersectPlane(floorPlane, planeHit);
+    dragState = {
+      wrapper,
+      item: wrapper.userData.sceneObject,
+      startPosition: wrapper.position.clone(),
+      grabOffset: planeHit.clone().sub(wrapper.position),
+      materials: [],
+    };
+    wrapper.traverse((node) => {
+      if (!node.isMesh && !node.isSprite) return;
+      const materials = Array.isArray(node.material) ? node.material : [node.material];
+      materials.filter(Boolean).forEach((material) => {
+        dragState.materials.push({ material, opacity: material.opacity, transparent: material.transparent });
+        material.transparent = true;
+        material.opacity = 0.6;
+      });
+    });
+    controls.enabled = false;  // OrbitControls 的 move handler 會檢查 enabled,拖家具時不轉鏡頭
+    renderer.domElement.style.cursor = "grabbing";
+  });
+
+  // ── 拖曳吸附:靠近牆段時貼齊(留 10cm,大於後端 8cm 邊距故吸附後必過驗證),平時 5cm 格點 ──
+  const SNAP_RANGE = 0.3;
+  const WALL_GAP = 0.1;
+  const DRAG_GRID = 0.05;
+
+  function wallSegmentsForSnap() {
+    const floorplan = lastSceneData?.floorplan || {};
+    const segments = floorplan.wall_segments || [];
+    if (segments.length) return segments;
+    // 手動矩形模式沒有牆段資料,用房間四邊當虛擬牆
+    const widthM = Math.max((Number(floorplan.width_cm) || 420) / 100, 2.4);
+    const depthM = Math.max((Number(floorplan.depth_cm) || 360) / 100, 2.4);
+    const hw = widthM / 2;
+    const hd = depthM / 2;
+    return [
+      { start: { x: -hw, z: -hd }, end: { x: hw, z: -hd } },
+      { start: { x: hw, z: -hd }, end: { x: hw, z: hd } },
+      { start: { x: hw, z: hd }, end: { x: -hw, z: hd } },
+      { start: { x: -hw, z: hd }, end: { x: -hw, z: -hd } },
+    ];
+  }
+
+  function snapDragPosition(item, x, z) {
+    const size = item.size_cm || {};
+    const radians = (Math.abs((item.rotation_y_deg || 0) % 180) * Math.PI) / 180;
+    const w = (Number(size.width) || 120) / 100;
+    const d = (Number(size.depth) || 60) / 100;
+    const halfW = (w * Math.abs(Math.cos(radians)) + d * Math.abs(Math.sin(radians))) / 2;
+    const halfD = (w * Math.abs(Math.sin(radians)) + d * Math.abs(Math.cos(radians))) / 2;
+
+    let bestX = null;
+    let bestZ = null;
+    for (const seg of wallSegmentsForSnap()) {
+      const isVertical = Math.abs(seg.start.x - seg.end.x) < 0.02;   // 沿 z 的牆
+      const isHorizontal = Math.abs(seg.start.z - seg.end.z) < 0.02; // 沿 x 的牆
+      if (isVertical) {
+        const zLo = Math.min(seg.start.z, seg.end.z);
+        const zHi = Math.max(seg.start.z, seg.end.z);
+        if (z < zLo - halfD || z > zHi + halfD) continue;  // 沒對到這段牆的側向範圍
+        for (const candidate of [seg.start.x + halfW + WALL_GAP, seg.start.x - halfW - WALL_GAP]) {
+          const dist = Math.abs(x - candidate);
+          if (dist < SNAP_RANGE && (!bestX || dist < bestX.dist)) bestX = { value: candidate, dist };
+        }
+      } else if (isHorizontal) {
+        const xLo = Math.min(seg.start.x, seg.end.x);
+        const xHi = Math.max(seg.start.x, seg.end.x);
+        if (x < xLo - halfW || x > xHi + halfW) continue;
+        for (const candidate of [seg.start.z + halfD + WALL_GAP, seg.start.z - halfD - WALL_GAP]) {
+          const dist = Math.abs(z - candidate);
+          if (dist < SNAP_RANGE && (!bestZ || dist < bestZ.dist)) bestZ = { value: candidate, dist };
+        }
+      }
+    }
+
+    return {
+      x: bestX ? bestX.value : Math.round(x / DRAG_GRID) * DRAG_GRID,
+      z: bestZ ? bestZ.value : Math.round(z / DRAG_GRID) * DRAG_GRID,
+    };
+  }
+
+  window.addEventListener("pointermove", (event) => {
+    if (!dragState) return;
+    pointerToNdc(event);
+    dragRaycaster.setFromCamera(pointerNdc, camera);
+    if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
+      const snapped = snapDragPosition(
+        dragState.item,
+        planeHit.x - dragState.grabOffset.x,
+        planeHit.z - dragState.grabOffset.z
+      );
+      dragState.wrapper.position.x = snapped.x;
+      dragState.wrapper.position.z = snapped.z;
+    }
+  });
+
+  window.addEventListener("pointerup", async () => {
+    if (!dragState) return;
+    const { wrapper, item, startPosition, materials } = dragState;
+    dragState = null;
+    materials.forEach(({ material, opacity, transparent }) => {
+      material.opacity = opacity;
+      material.transparent = transparent;
+    });
+    controls.enabled = true;
+    renderer.domElement.style.cursor = "";
+
+    const movedM = Math.hypot(wrapper.position.x - startPosition.x, wrapper.position.z - startPosition.z);
+    if (movedM < 0.01) return;  // 只是點選,沒有拖
+
+    const label = item.name_zh_raw || item.normalized_type || "家具";
+    const newPositionCm = {
+      x: Math.round(wrapper.position.x * 100 * 100) / 100,
+      z: Math.round(wrapper.position.z * 100 * 100) / 100,
+    };
+    setStatus(`正在檢查「${label}」的新位置...`);
+    const verdict = await validatePlacement(item, newPositionCm, item.rotation_y_deg || 0);
+    if (verdict.ok) {
+      item.position_cm = newPositionCm;
+      item.position_locked = true;  // 之後的重排/替換不會沖掉手動位置
+      setStatus(`已移動「${label}」。`);
+    } else {
+      wrapper.position.copy(startPosition);
+      setStatus(`⚠ 「${label}」無法放在那裡：${verdict.reason || "位置不合法"}，已彈回原位。`);
+    }
+  });
+
+  window.addEventListener("keydown", async (event) => {
+    if (event.key !== "r" && event.key !== "R") return;
+    const tag = event.target?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (!selectedWrapper || dragState) return;
+    const item = selectedWrapper.userData.sceneObject;
+    if (!item) return;
+
+    const label = item.name_zh_raw || item.normalized_type || "家具";
+    const nextRotation = ((item.rotation_y_deg || 0) + 90) % 360;
+    const verdict = await validatePlacement(item, item.position_cm || { x: 0, z: 0 }, nextRotation);
+    if (verdict.ok) {
+      item.rotation_y_deg = nextRotation;
+      item.position_locked = true;
+      selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
+      setStatus(`已旋轉「${label}」至 ${nextRotation}°。`);
+    } else {
+      setStatus(`⚠ 旋轉「${label}」會造成：${verdict.reason || "位置不合法"}，未套用。`);
+    }
+  });
 
   function updateWallVisibility() {
     const targetVector = new THREE.Vector3().subVectors(controls.target, camera.position);

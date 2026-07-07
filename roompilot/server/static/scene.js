@@ -1,5 +1,5 @@
 import { fetchSiteData, initBackgroundFx } from "./common.js?v=20260704e";
-import { createSceneViewer } from "./scene_viewer.js?v=20260705m";
+import { createSceneViewer } from "./scene_viewer.js?v=20260706c";
 
 const siteData = await fetchSiteData();
 const providerStatus = await fetch("/api/scene/provider-status").then((response) => response.json());
@@ -244,6 +244,7 @@ async function reflowSceneObjects(sceneData) {
       body: JSON.stringify({
         room_width_cm: Number(sceneData.floorplan?.width_cm) || 420,
         room_depth_cm: Number(sceneData.floorplan?.depth_cm) || 360,
+        floorplan: sceneData.floorplan || null,
         scene_objects: sceneData.scene_objects,
       }),
     });
@@ -443,6 +444,19 @@ async function generateScene(event) {
     const sceneData = await response.json();
     currentSceneData = sceneData;
     await refreshCurrentScene();
+
+    // 勾了卻沒出現的家具要說清楚:型號缺貨(該風格無模型)或空間放不下
+    const placement = sceneData.placement || {};
+    const notes = [];
+    if (placement.unavailable_types?.length) {
+      notes.push(`此風格找不到可用模型：${placement.unavailable_types.map(getTypeLabel).join("、")}`);
+    }
+    if (placement.failed?.length) {
+      notes.push(`空間放不下：${placement.failed.map((f) => f.name || getTypeLabel(f.type)).join("、")}`);
+    }
+    if (notes.length) {
+      elements.sceneStatus.textContent = `${elements.sceneStatus.textContent} ⚠ ${notes.join("；")}`;
+    }
   } catch (error) {
     console.error(error);
     elements.sceneStatus.textContent = "場景生成失敗，請檢查欄位或稍後再試。";

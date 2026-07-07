@@ -1,0 +1,543 @@
+{
+  "project_id": "fi-clothes-racks",
+  "title": "IKEA fi-clothes-racks GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-clothes-racks"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Wardrobes and clothes storage_001",
+        "sku": "clothes-racks_1",
+        "name": "BISSA Shoe cabinet with 3 compartments - white 49x28x135 cm",
+        "chinese name": "BISSA 3格鞋櫃，白色，49x28x135 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 49.0,
+          "depth": 28.0,
+          "height": 135.0
+        },
+        "collision_box_cm": {
+          "width": 49.0,
+          "depth": 28.0,
+          "height": 135.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\01 - BISSA Shoe cabinet with 3 compartments - white 49x28x135 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_002",
+        "sku": "clothes-racks_2",
+        "name": "STÄLL Shoe cabinet with 4 compartments - white 96x17x90 cm",
+        "chinese name": "STÄLL 4格鞋櫃，白色，96x17x90 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 96.0,
+          "depth": 17.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 96.0,
+          "depth": 17.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\02 - STÄLL Shoe cabinet with 4 compartments - white 96x17x90 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_003",
+        "sku": "clothes-racks_3",
+        "name": "BRUSALI Shoe cabinet with 3 compartments - white 61x30x130 cm",
+        "chinese name": "BRUSALI 3格鞋櫃，白色，61x30x130 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 61.0,
+          "depth": 30.0,
+          "height": 130.0
+        },
+        "collision_box_cm": {
+          "width": 61.0,
+          "depth": 30.0,
+          "height": 130.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\03 - BRUSALI Shoe cabinet with 3 compartments - white 61x30x130 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_004",
+        "sku": "clothes-racks_4",
+        "name": "BISSA Shoe cabinet with 2 compartments - white 49x28x93 cm",
+        "chinese name": "BISSA 2格鞋櫃，白色，49x28x93 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 49.0,
+          "depth": 28.0,
+          "height": 93.0
+        },
+        "collision_box_cm": {
+          "width": 49.0,
+          "depth": 28.0,
+          "height": 93.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\04 - BISSA Shoe cabinet with 2 compartments - white 49x28x93 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_005",
+        "sku": "clothes-racks_5",
+        "name": "GULLABERG Shoe cabinet with 4 compartments - white 105x22x107 cm",
+        "chinese name": "GULLABERG 4格鞋櫃，白色，105x22x107 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 105.0,
+          "depth": 22.0,
+          "height": 107.0
+        },
+        "collision_box_cm": {
+          "width": 105.0,
+          "depth": 22.0,
+          "height": 107.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\05 - GULLABERG Shoe cabinet with 4 compartments - white 105x22x107 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_006",
+        "sku": "clothes-racks_6",
+        "name": "GULLABERG Shoe cabinet with 4 compartments - grey 105x22x107 cm",
+        "chinese name": "GULLABERG 4格鞋櫃，灰色，105x22x107 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 105.0,
+          "depth": 22.0,
+          "height": 107.0
+        },
+        "collision_box_cm": {
+          "width": 105.0,
+          "depth": 22.0,
+          "height": 107.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\06 - GULLABERG Shoe cabinet with 4 compartments - grey 105x22x107 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_007",
+        "sku": "clothes-racks_7",
+        "name": "BISSA Shoe cabinet with 2 compartments - black-brown 49x28x93 cm",
+        "chinese name": "BISSA 2格鞋櫃，黑棕色，49x28x93 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 49.0,
+          "depth": 28.0,
+          "height": 93.0
+        },
+        "collision_box_cm": {
+          "width": 49.0,
+          "depth": 28.0,
+          "height": 93.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\07 - BISSA Shoe cabinet with 2 compartments - black-brown 49x28x93 cm.glb",
+        "material": "",
+        "color": "brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_008",
+        "sku": "clothes-racks_8",
+        "name": "MACKAPÄR Shoe cabinet/storage - white 80x35x102 cm",
+        "chinese name": "MACKAPÄR 鞋櫃/收納櫃，白色，80x35x102 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 35.0,
+          "height": 102.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 35.0,
+          "height": 102.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\08 - MACKAPÄR Shoe cabinetstorage - white 80x35x102 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_009",
+        "sku": "clothes-racks_9",
+        "name": "MURVEL Shoehorn - grey 61 cm",
+        "chinese name": "MURVEL 鞋拔，灰色，61 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 5.0,
+          "depth": 8.0,
+          "height": 5.0
+        },
+        "collision_box_cm": {
+          "width": 5.0,
+          "depth": 8.0,
+          "height": 5.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\09 - MURVEL Shoehorn - grey 61 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_010",
+        "sku": "clothes-racks_10",
+        "name": "STÄLL Shoe cabinet with 3 compartments - white 79x29x148 cm",
+        "chinese name": "STÄLL 3格鞋櫃，白色，79x29x148 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 79.0,
+          "depth": 29.0,
+          "height": 148.0
+        },
+        "collision_box_cm": {
+          "width": 79.0,
+          "depth": 29.0,
+          "height": 148.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\10 - STÄLL Shoe cabinet with 3 compartments - white 79x29x148 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_011",
+        "sku": "clothes-racks_11",
+        "name": "GULLABERG Shoe cabinet with 2 compartments - white 88x30x122 cm",
+        "chinese name": "GULLABERG 2格鞋櫃，白色，88x30x122 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 88.0,
+          "depth": 30.0,
+          "height": 122.0
+        },
+        "collision_box_cm": {
+          "width": 88.0,
+          "depth": 30.0,
+          "height": 122.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\11 - GULLABERG Shoe cabinet with 2 compartments - white 88x30x122 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_012",
+        "sku": "clothes-racks_12",
+        "name": "GULLABERG Shoe cabinet with 2 compartments - grey 88x30x122 cm",
+        "chinese name": "GULLABERG 2格鞋櫃，灰色，88x30x122 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 88.0,
+          "depth": 30.0,
+          "height": 122.0
+        },
+        "collision_box_cm": {
+          "width": 88.0,
+          "depth": 30.0,
+          "height": 122.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\12 - GULLABERG Shoe cabinet with 2 compartments - grey 88x30x122 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_013",
+        "sku": "clothes-racks_13",
+        "name": "OMTÄNKSAM Shoehorn - anthracite",
+        "chinese name": "OMTÄNKSAM 鞋拔，炭灰色",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 6.0,
+          "depth": null,
+          "height": 5.0
+        },
+        "collision_box_cm": {
+          "width": 6.0,
+          "depth": null,
+          "height": 5.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\13 - OMTÄNKSAM Shoehorn - anthracite.glb",
+        "material": "",
+        "color": "grey, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_014",
+        "sku": "clothes-racks_14",
+        "name": "TRONES Shoe cabinet/storage - black 52x18x39 cm",
+        "chinese name": "TRONES 鞋櫃/收納櫃，黑色，52x18x39 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 52.0,
+          "depth": 18.0,
+          "height": 39.0
+        },
+        "collision_box_cm": {
+          "width": 52.0,
+          "depth": 18.0,
+          "height": 39.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\14 - TRONES Shoe cabinetstorage - black 52x18x39 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_015",
+        "sku": "clothes-racks_15",
+        "name": "BISSA Shoe cabinet with 3 compartments - black-brown 49x28x135 cm",
+        "chinese name": "BISSA 3格鞋櫃，黑棕色，49x28x135 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 49.0,
+          "depth": 28.0,
+          "height": 135.0
+        },
+        "collision_box_cm": {
+          "width": 49.0,
+          "depth": 28.0,
+          "height": 135.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\15 - BISSA Shoe cabinet with 3 compartments - black-brown 49x28x135 cm.glb",
+        "material": "",
+        "color": "brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_016",
+        "sku": "clothes-racks_16",
+        "name": "GREJIG Hallway furniture, set of 4 - grey",
+        "chinese name": "GREJIG 玄關家具，4件組，灰色",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 59.0,
+          "depth": null,
+          "height": 9.0
+        },
+        "collision_box_cm": {
+          "width": 59.0,
+          "depth": null,
+          "height": 9.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\16 - GREJIG Hallway furniture, set of 4 - grey.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_017",
+        "sku": "clothes-racks_17",
+        "name": "HÖSVANS Shoehorn - bamboo 40.0 cm",
+        "chinese name": "HÖSVANS 鞋拔，竹，40.0 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 3.5,
+          "depth": 0.6,
+          "height": 1.0
+        },
+        "collision_box_cm": {
+          "width": 3.5,
+          "depth": 0.6,
+          "height": 1.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\17 - HÖSVANS Shoehorn - bamboo 40.0 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Wardrobes and clothes storage_018",
+        "sku": "clothes-racks_18",
+        "name": "SNÖSKYFFEL Shoehorn - bright red 18 cm",
+        "chinese name": "SNÖSKYFFEL 鞋拔，亮紅色，18 公分",
+        "type": "clothes-rack",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 4.0,
+          "depth": null,
+          "height": 1.0
+        },
+        "collision_box_cm": {
+          "width": 4.0,
+          "depth": null,
+          "height": 1.0
+        },
+        "glb_path": "downloaded-files\\衣櫃衣物收納\\fi-clothes-racks\\18 - SNÖSKYFFEL Shoehorn - bright red 18 cm.glb",
+        "material": "",
+        "color": "red",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

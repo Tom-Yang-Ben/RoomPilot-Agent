@@ -1,0 +1,786 @@
+{
+  "project_id": "fi-display-cabinets",
+  "title": "IKEA fi-display-cabinets GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-display-cabinets"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Storage furniture_001",
+        "sku": "display-cabinets_1",
+        "name": "BILLY / OXBERG Bookcase with panel/glass doors - white/glass 120x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，白色/玻璃，120x30x202 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 120.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 120.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\01 - BILLY OXBERG Bookcase with panelglass doors - whiteglass 120x30x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_002",
+        "sku": "display-cabinets_2",
+        "name": "BLÅLIDEN / STRIMSÄV Glass-door cabinet with lighting - white",
+        "chinese name": "BLÅLIDEN / STRIMSÄV 附照明玻璃門櫃，白色",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 35.0,
+          "depth": 32.0,
+          "height": 151.0
+        },
+        "collision_box_cm": {
+          "width": 35.0,
+          "depth": 32.0,
+          "height": 151.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\02 - BLÅLIDEN STRIMSÄV Glass-door cabinet with lighting - white.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_003",
+        "sku": "display-cabinets_3",
+        "name": "BLÅLIDEN / STRIMSÄV Glass-door cabinet with lighting - black",
+        "chinese name": "BLÅLIDEN / STRIMSÄV 附照明玻璃門櫃，黑色",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 35.0,
+          "depth": 32.0,
+          "height": 151.0
+        },
+        "collision_box_cm": {
+          "width": 35.0,
+          "depth": 32.0,
+          "height": 151.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\03 - BLÅLIDEN STRIMSÄV Glass-door cabinet with lighting - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_004",
+        "sku": "display-cabinets_4",
+        "name": "BILLY / OXBERG Bookcase with glass-doors - white 80x30x106 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，白色，80x30x106 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 30.0,
+          "height": 106.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\04 - BILLY OXBERG Bookcase with glass-doors - white 80x30x106 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_005",
+        "sku": "display-cabinets_5",
+        "name": "RUDSTA Glass-door cabinet - anthracite 42x37x155 cm",
+        "chinese name": "RUDSTA 玻璃門櫃，炭灰色，42x37x155 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": 37.0,
+          "height": 155.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": 37.0,
+          "height": 155.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\05 - RUDSTA Glass-door cabinet - anthracite 42x37x155 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_006",
+        "sku": "display-cabinets_6",
+        "name": "RUDSTA Glass-door cabinet - blue 42x37x155 cm",
+        "chinese name": "RUDSTA 玻璃門櫃，藍色，42x37x155 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": 37.0,
+          "height": 155.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": 37.0,
+          "height": 155.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\06 - RUDSTA Glass-door cabinet - blue 42x37x155 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_007",
+        "sku": "display-cabinets_7",
+        "name": "BLÅLIDEN Glass-door cabinet - black 35x32x151 cm",
+        "chinese name": "BLÅLIDEN 玻璃門櫃，黑色，35x32x151 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 35.0,
+          "depth": 32.0,
+          "height": 151.0
+        },
+        "collision_box_cm": {
+          "width": 35.0,
+          "depth": 32.0,
+          "height": 151.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\07 - BLÅLIDEN Glass-door cabinet - black 35x32x151 cm.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_008",
+        "sku": "display-cabinets_8",
+        "name": "BLÅLIDEN Glass-door cabinet - white 35x32x151 cm",
+        "chinese name": "BLÅLIDEN 玻璃門櫃，白色，35x32x151 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 35.0,
+          "depth": 32.0,
+          "height": 151.0
+        },
+        "collision_box_cm": {
+          "width": 35.0,
+          "depth": 32.0,
+          "height": 151.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\08 - BLÅLIDEN Glass-door cabinet - white 35x32x151 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_009",
+        "sku": "display-cabinets_9",
+        "name": "LOMMARP Cabinet with glass doors - dark blue-green 86x199 cm",
+        "chinese name": "LOMMARP 附玻璃門收納櫃，深藍綠色，86x199 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 86.0,
+          "depth": 49.0,
+          "height": 199.0
+        },
+        "collision_box_cm": {
+          "width": 86.0,
+          "depth": 49.0,
+          "height": 199.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\09 - LOMMARP Cabinet with glass doors - dark blue-green 86x199 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_010",
+        "sku": "display-cabinets_10",
+        "name": "BILLY / OXBERG Bookcase with glass door - brown walnut effect/clear glass 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，棕色胡桃木紋/透明玻璃，40x30x202 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\10 - BILLY OXBERG Bookcase with glass door - brown walnut effectclear glass 40x30x202 cm.glb",
+        "material": "",
+        "color": "brown, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_011",
+        "sku": "display-cabinets_11",
+        "name": "BILLY / OXBERG Bookcase with glass door - oak effect/clear glass 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，橡木紋/透明玻璃，40x30x202 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\11 - BILLY OXBERG Bookcase with glass door - oak effectclear glass 40x30x202 cm.glb",
+        "material": "",
+        "color": "beige, brown, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_012",
+        "sku": "display-cabinets_12",
+        "name": "BILLY / OXBERG Bookcase with glass door - white/glass 40x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，白色/玻璃，40x30x202 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\12 - BILLY OXBERG Bookcase with glass door - whiteglass 40x30x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_013",
+        "sku": "display-cabinets_13",
+        "name": "TONSTAD Storage comb w sliding glass doors - oak veneer/clear glass 121x47x201 cm",
+        "chinese name": "TONSTAD 附滑動玻璃門收納組合，橡木實木貼皮/透明玻璃，121x47x201 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 120.6,
+          "depth": 47.2,
+          "height": 200.5
+        },
+        "collision_box_cm": {
+          "width": 120.6,
+          "depth": 47.2,
+          "height": 200.5
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\13 - TONSTAD Storage comb w sliding glass doors - oak veneerclear glass 121x47x201 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_014",
+        "sku": "display-cabinets_14",
+        "name": "TONSTAD Storage comb w sliding glass doors - brown stained oak veneer/clear glass 121x47x201 cm",
+        "chinese name": "TONSTAD 附滑動玻璃門收納組合，棕色染色橡木實木貼皮/透明玻璃，121x47x201 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 120.6,
+          "depth": 47.2,
+          "height": 200.5
+        },
+        "collision_box_cm": {
+          "width": 120.6,
+          "depth": 47.2,
+          "height": 200.5
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\14 - TONSTAD Storage comb w sliding glass doors - brown stained oak veneerclear glass 121x47x201 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_015",
+        "sku": "display-cabinets_15",
+        "name": "MILSBO Glass-door cabinet - white 101x100 cm",
+        "chinese name": "MILSBO 玻璃門櫃，白色，101x100 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 101.0,
+          "depth": 38.0,
+          "height": 100.0
+        },
+        "collision_box_cm": {
+          "width": 101.0,
+          "depth": 38.0,
+          "height": 100.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\15 - MILSBO Glass-door cabinet - white 101x100 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_016",
+        "sku": "display-cabinets_16",
+        "name": "MILSBO Glass-door cabinet - anthracite 101x100 cm",
+        "chinese name": "MILSBO 玻璃門櫃，炭灰色，101x100 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 101.0,
+          "depth": 38.0,
+          "height": 100.0
+        },
+        "collision_box_cm": {
+          "width": 101.0,
+          "depth": 38.0,
+          "height": 100.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\16 - MILSBO Glass-door cabinet - anthracite 101x100 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_017",
+        "sku": "display-cabinets_17",
+        "name": "VIHALS Cabinet with sliding glass doors - white 95x37x90 cm",
+        "chinese name": "VIHALS 附滑動玻璃門收納櫃，白色，95x37x90 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 95.2,
+          "depth": 37.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 95.2,
+          "depth": 37.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\17 - VIHALS Cabinet with sliding glass doors - white 95x37x90 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_018",
+        "sku": "display-cabinets_18",
+        "name": "VIHALS Cabinet with sliding glass doors - dark grey 95x37x90 cm",
+        "chinese name": "VIHALS 附滑動玻璃門收納櫃，深灰色，95x37x90 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 95.2,
+          "depth": 37.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 95.2,
+          "depth": 37.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\18 - VIHALS Cabinet with sliding glass doors - dark grey 95x37x90 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_019",
+        "sku": "display-cabinets_19",
+        "name": "BILLY / OXBERG Bookcase with glass-doors - white 120x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附玻璃門書櫃，白色，120x30x202 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 120.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 120.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\19 - BILLY OXBERG Bookcase with glass-doors - white 120x30x202 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_020",
+        "sku": "display-cabinets_20",
+        "name": "MILSBO Glass-door cabinet - white 73x175 cm",
+        "chinese name": "MILSBO 玻璃門櫃，白色，73x175 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 73.0,
+          "depth": 42.0,
+          "height": 175.0
+        },
+        "collision_box_cm": {
+          "width": 73.0,
+          "depth": 42.0,
+          "height": 175.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\20 - MILSBO Glass-door cabinet - white 73x175 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_021",
+        "sku": "display-cabinets_21",
+        "name": "MILSBO Glass-door cabinet - anthracite 73x175 cm",
+        "chinese name": "MILSBO 玻璃門櫃，炭灰色，73x175 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 73.0,
+          "depth": 42.0,
+          "height": 175.0
+        },
+        "collision_box_cm": {
+          "width": 73.0,
+          "depth": 42.0,
+          "height": 175.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\21 - MILSBO Glass-door cabinet - anthracite 73x175 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_022",
+        "sku": "display-cabinets_22",
+        "name": "SKRUVBY Cabinet with glass doors - white 70x90 cm",
+        "chinese name": "SKRUVBY 附玻璃門收納櫃，白色，70x90 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 70.0,
+          "depth": 37.5,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 70.0,
+          "depth": 37.5,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\22 - SKRUVBY Cabinet with glass doors - white 70x90 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_023",
+        "sku": "display-cabinets_23",
+        "name": "SKRUVBY Cabinet with glass doors - black-blue 70x90 cm",
+        "chinese name": "SKRUVBY 附玻璃門收納櫃，黑藍色，70x90 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 70.0,
+          "depth": 37.5,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 70.0,
+          "depth": 37.5,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\23 - SKRUVBY Cabinet with glass doors - black-blue 70x90 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_024",
+        "sku": "display-cabinets_24",
+        "name": "HAUGA Glass-door cabinet - white 105x116 cm",
+        "chinese name": "HAUGA 玻璃門櫃，白色，105x116 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 105.0,
+          "depth": 36.0,
+          "height": 116.0
+        },
+        "collision_box_cm": {
+          "width": 105.0,
+          "depth": 36.0,
+          "height": 116.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\24 - HAUGA Glass-door cabinet - white 105x116 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_025",
+        "sku": "display-cabinets_25",
+        "name": "HAUGA Glass-door cabinet - grey 105x116 cm",
+        "chinese name": "HAUGA 玻璃門櫃，灰色，105x116 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 105.0,
+          "depth": 36.0,
+          "height": 116.0
+        },
+        "collision_box_cm": {
+          "width": 105.0,
+          "depth": 36.0,
+          "height": 116.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\25 - HAUGA Glass-door cabinet - grey 105x116 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_026",
+        "sku": "display-cabinets_26",
+        "name": "TONSTAD Cabinet with sliding glass doors - off-white 120x37x116 cm",
+        "chinese name": "TONSTAD 附滑動玻璃門收納櫃，米白色，120x37x116 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 119.6,
+          "depth": 37.1,
+          "height": 115.5
+        },
+        "collision_box_cm": {
+          "width": 119.6,
+          "depth": 37.1,
+          "height": 115.5
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\26 - TONSTAD Cabinet with sliding glass doors - off-white 120x37x116 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_027",
+        "sku": "display-cabinets_27",
+        "name": "BILLY / OXBERG Bookcase with panel/glass doors - white/glass 160x30x202 cm",
+        "chinese name": "BILLY / OXBERG 附面板/玻璃門書櫃，白色/玻璃，160x30x202 公分",
+        "type": "display-cabinet",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 160.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "collision_box_cm": {
+          "width": 160.0,
+          "depth": 30.0,
+          "height": 202.0
+        },
+        "glb_path": "downloaded-files\\fi-display-cabinets\\27 - BILLY OXBERG Bookcase with panelglass doors - whiteglass 160x30x202 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}
