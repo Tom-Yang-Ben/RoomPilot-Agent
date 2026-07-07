@@ -1,147 +1,124 @@
-# RoomPilot AI 室內風格與家具配置展示系統
+# RoomPilot-Agent
 
-這是一個以 FastAPI + Three.js 製作的室內風格與家具配置展示網站。  
-目前主線不是重新訓練模型、也不是直接生成全新 3D 家具，而是使用既有 IKEA GLB 家具資料庫，依照平面圖、使用者問卷、風格規則、牆面與地板選擇，自動挑選家具並在網頁中呈現 3D 場景。
+RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四組 ・ Demo:2026-08-20)。
 
-## 目前網站功能
+把使用者的平面圖與需求,在幾分鐘內變成可即時換風格、調軟裝的 3D 提案畫面。主線流程:
 
-- `首頁 /`：展示專題定位、功能流程與入口。
-- `風格類型 /styles`：整理 12 種室內風格、Moodboard 圖、關鍵字、主色、材質、造型特徵、牆面與地板推薦。
-- `家具資料庫 /library`：瀏覽家具資料、依風格與類型篩選，並用 Three.js 檢視 GLB 家具。
-- `3D 場景展示 /scene`：上傳平面圖、填寫問卷、選擇風格、牆面、地板、家具需求，產生單房間 3D 家具配置預覽，並支援家具替換、移除、新增、整組重抽與視角切換。
-- OpenRouter LLM：可選配。沒有 API key 時，後端會使用本地 fallback 規則生成場景。
-
-## 必須 push 的資料夾與檔案
-
-以下是目前網站版本運作需要的核心內容：
-
-| 路徑 | 是否必須 | 用途 |
-| --- | --- | --- |
-| `web_fastapi/` | 必須 | FastAPI 後端、HTML、CSS、JS、Three.js viewer、靜態圖片與 Draco 解碼器 |
-| `sf3d/metadata/` | 必須 | 家具資料庫 JSON、風格 JSON、Moodboard JSON |
-| `dataset/ikea_glb_db/` | 必須 | 真實 IKEA GLB 家具模型，3D 檢視與場景生成會用到 |
-| `docs/moodboard_assets/` | 必須 | Moodboard、代表家具圖與文件用圖片資產 |
-| `requirements.txt` | 必須 | Python 套件安裝清單 |
-| `README.md` | 必須 | 本網站專用說明文件 |
-| `.env.example` | 建議 | OpenRouter API key 範例設定 |
-| `PROJECT_CONTEXT.md` | 建議 | 專題交接紀錄與目前決策 |
-| `docs/*.md` | 建議 | 補充規格、資料整理與開發紀錄 |
-| `scripts/` | 建議 | 資料修復、圖檔生成、家具 JSON 維護工具 |
-
-如果 GitHub 上傳容量太大，`dataset/ikea_glb_db/` 建議使用 Git LFS、雲端硬碟或 release asset 管理。  
-但要注意：沒有這個資料夾，網站仍可開啟，家具資料也會顯示，但 3D 模型無法完整載入。
-
-## 不建議 push 的內容
-
-以下內容通常是本機環境、暫存檔或舊方案，不建議放進正式網站版 repository：
-
-- `.env`
-- `web_fastapi/.env`
-- `.venv/`
-- `.venv_triposr/`
-- `tmp/`
-- `web_fastapi/uploads/`
-- `web_fastapi/__pycache__/`
-- `__pycache__/`
-- `Miniconda3-latest-Windows-x86_64.exe`
-- `TripoSR/`，除非要另外保存過去測試紀錄
-- `test_3Dfurniture/`，除非要另外保存舊版 demo
-
-## 安裝環境
-
-建議使用 Python 3.10 以上版本。
-
-```powershell
-cd D:\產業新兵計畫\期末專題\test_furniture
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+```
+上傳平面圖(DXF)→ 升維 3D 白模 → 自動配置家具 → 自然語言/拖曳微調 → 風格化提案 → 匯出檔案
 ```
 
-`requirements.txt` 目前包含：
+> 詳細規劃、分工與時程以團隊 SSOT《[RoomPilot_現行版本總覽](docs/RoomPilot_現行版本總覽.md)》為準。
 
-- `fastapi`：建立網站 API 與靜態頁面服務。
-- `uvicorn[standard]`：啟動 FastAPI server。
-- `pillow`：讀取 GLB 內嵌圖片或產生家具預覽圖時使用。
+## 專案結構(2026-07-06 重整後)
 
-## 啟動網站
+```
+roompilot/            後端主套件(唯一的 Python 套件)
+├── engine/           家具擺放引擎:place/adjust、碰撞+淨空(Shapely)、LLM tool schema、
+│                     dxf_room.py(DXF 樓面 JSON → Room 轉接層)
+├── upgrade3d/        dxf_parser.py:DXF → 3D 樓面 JSON(ezdxf+shapely)
+├── floorplan/        floorplan2dxf.py:PNG → DXF(牆體正交化、門窗偵測)+ eval 腳本
+├── catalog/          style_db.py(型錄→引擎轉接,公分→公尺)+ data/(12 風格資料庫 JSON)
+└── server/           唯一的 FastAPI 網站:四頁展示 + 場景生成(擺放一律走 engine)
+    └── static/       前端頁面(首頁/風格/家具庫/3D 場景)+ moodboard + DRACO
 
-請在專案根目錄執行：
-
-```powershell
-python -m uvicorn web_fastapi.main:app --reload
+frontend3d/           React Three Fiber 3D 編輯器(F6 拖曳來源;與 server 的收斂待 F6 決策)
+scripts/              IKEA 型錄管線:下載 → 清洗 → 驗證 → 合併 → 匯入 PostgreSQL
+tests/                pytest(引擎 25 案例)
+testdata/             測試素材:dxf/ png/ pngans/ chk/ door/ pic/ sample_glb/
+dataset/              IKEA GLB 1,662 檔(已進版控,clone 即用)
+examples/             退役參考:demo_app(走通骨架)、demo_agent_flow.py(Agent↔引擎介面範例)
+docs/                 SSOT、changelog、archive/(2Dto3D.html 原型、layout.json 舊契約)
 ```
 
-啟動後開啟：
+## 新機器上手(第一次 clone 必讀)
 
-```text
-http://127.0.0.1:8000/
+```bash
+# 0. 裝 uv(唯一前置;Python 3.12 不用另裝,uv 會自動抓)
+#    macOS:
+brew install uv
+#    Windows(PowerShell):
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# 1. Clone + 裝依賴(⚠️ 一定要 --extra server:純 uv sync 只裝引擎最小依賴,網站起不來)
+git clone https://github.com/Tom-Yang-Ben/RoomPilot-Agent.git
+cd RoomPilot-Agent
+uv sync --extra server
+
+# 2. 驗證環境(應該 25 passed)
+uv run pytest tests/ -v
+
+# 3. 啟動網站(必須在 repo 根目錄跑)
+uv run uvicorn roompilot.server.main:app --port 8002   # 開 http://127.0.0.1:8002
 ```
 
-常用頁面：
+一個不在 git 裡的東西:
 
-```text
-http://127.0.0.1:8000/
-http://127.0.0.1:8000/styles
-http://127.0.0.1:8000/library
-http://127.0.0.1:8000/scene
+- **`.env`**:`cp .env.example .env`。兩組變數皆選配 — `OPENROUTER_API_KEY` 沒填走本地規則 fallback;DB 變數只有型錄匯入 script 用到。
+
+(家具 GLB `dataset/` 已在 repo 裡,clone 完直接有 3D 模型,不用另外下載。)
+
+按角色加裝(不是人人需要):
+
+| 誰 | 額外步驟 |
+|---|---|
+| 平面辨識 | `uv sync --extra vision`(OpenCV,見下方指令) |
+| 型錄 / DB | `uv sync --extra catalog` + 本機 PostgreSQL + `.env` 填 DB 變數 |
+| R3F 編輯器 | Node.js 18+,`cd frontend3d && npm install && npm run dev` |
+| 其他人 | 上面 0–3 就夠 |
+
+## 快速開始
+
+```bash
+uv sync --extra server               # 引擎 + 網站後端依賴
+uv run pytest tests/ -v              # 25 cases
+uv run uvicorn roompilot.server.main:app --port 8002   # 開 http://127.0.0.1:8002
 ```
 
-## OpenRouter 設定
+網站四頁:`/` 首頁、`/styles` 風格、`/library` 家具庫、`/scene` 3D 場景(上傳 DXF + 問卷 → 引擎配置)。
+家具 3D 模型在 `dataset/`(已進版控,clone 即用)。
+LLM 挑家具為選配:複製 `.env.example` 為 `.env` 填 `OPENROUTER_API_KEY`;沒填走本地規則 fallback。
 
-如果要讓 `/scene` 使用 LLM 產生 JSON 規劃，請建立 `.env` 或 `web_fastapi/.env`，並參考 `.env.example` 填入：
+### 平面辨識(PNG → DXF)
 
-```env
-OPENROUTER_API_KEY=你的_api_key
-OPENROUTER_MODEL=可用的_openrouter_model
-OPENROUTER_SITE_URL=http://127.0.0.1:8000
-OPENROUTER_APP_NAME=RoomPilot
+```bash
+uv sync --extra vision    # 或 pip install opencv-python ezdxf numpy
+uv run python roompilot/floorplan/floorplan2dxf.py testdata/png testdata/dxf
+uv run python roompilot/floorplan/eval_windows.py && uv run python roompilot/floorplan/eval_doors.py
 ```
 
-如果沒有設定 API key，系統會使用本地 fallback 規則，仍可做基本場景生成展示。
+### R3F 3D 編輯器(frontend3d/)
 
-## GLB 模型路徑注意事項
-
-家具資料庫位於：
-
-```text
-sf3d/metadata/ikea_furniture_style_database.json
+```bash
+uv run uvicorn roompilot.server.main:app --port 8002   # 後端(/api/plan、/api/upload 已併入)
+cd frontend3d && npm install && npm run dev             # Vite,/api 代理到 :8002
 ```
 
-其中家具會記錄 GLB 模型路徑。若專案搬到其他電腦，可能需要確認下列項目：
+### 家具型錄管線(scripts/)
 
-- `dataset/ikea_glb_db/` 是否存在。
-- `.glb` 檔案是否真的在資料夾內。
-- JSON 中的模型路徑是否指向目前電腦的正確位置。
-
-如果模型卡片顯示有資料但 3D 無法出現，通常是 GLB 檔案缺失、路徑失效、模型過大、材質解碼失敗或瀏覽器尚未完成載入。
-
-## 推送前檢查清單
-
-推送前建議確認：
-
-- `requirements.txt` 已存在。
-- `web_fastapi/static/vendor/draco/` 已存在，否則部分壓縮 GLB 可能無法載入。
-- `web_fastapi/static/style_images/` 有 12 種風格圖。
-- `sf3d/metadata/ikea_furniture_style_database.json` 已存在。
-- `sf3d/metadata/style_moodboard.json` 已存在。
-- `dataset/ikea_glb_db/` 已包含實際 `.glb` 模型。
-- `.env` 沒有被加入 git。
-- 網站可正常開啟 `/`、`/styles`、`/library`、`/scene`。
-
-## 專題定位
-
-本專題目標是：
-
-```text
-平面圖輸入 -> 使用者風格與家具需求 -> LLM/規則整理 JSON -> 從既有 GLB 家具資料庫挑選 -> 生成可瀏覽的 3D 室內場景
+```bash
+uv sync --extra catalog
+# 匯入 PostgreSQL 前,複製 .env.example 為 .env 並填入 DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASSWORD
+python scripts/validate_json.py && python scripts/merge_json_to_catalog.py
+python scripts/import_catalog_to_postgres.py
 ```
 
-因此，目前最重要的交付不是模型訓練，而是：
+## 架構重點(2026-07-06「B 殼 A 內臟」整合)
 
-- 風格規則資料化。
-- 家具資料庫可被查詢與篩選。
-- GLB 模型可被正確載入。
-- 使用者問卷能轉成後端 JSON。
-- 3D 場景能依照牆面、地板、家具與風格產生可視化結果。
+- **家具座標只有引擎能算**:`/api/scene/generate` 與 `/api/scene/layout` 的擺放一律走
+  `roompilot.engine`(Shapely 碰撞 + 淨空);LLM/問卷只決定「放什麼」,不決定「放哪裡」。
+  放不下的家具誠實回報在 `payload.placement.failed`,不硬塞。
+- **DXF 升維單一路徑**:`upgrade3d/dxf_parser` 解析 → `engine/dxf_room` 取最大封閉房間轉 `Room`。
+- **單位契約**:Python 端一律公尺;公分只出現在資料庫讀入(`catalog/style_db.py` ÷100)與
+  前端 payload 邊界(`position_cm`、`size_cm`)。
+- 尚未完成(P0):F3 LLM Agent 編排、F4 風格生成 `render_style`、F8 Demo Mode、F9 檔案匯出
+  (F6 3D 直接拖曳已於 2026-07-06 完成)。
+
+## 分支
+
+`main` 受保護;各自從最新 `ben`(整合分支)開分支 → PR 合併。
+`dataset/` 的 GLB 已進版控(2026-07-07,blob 本就在 git 歷史中,去重後零額外成本);其他新的大型資料集進 git 前先問組長。
+
+## License
+
+IKEA 下載器參考 `apinanaivot/IKEA-3d-model-batch-downloader`,沿用 GPL-3.0 授權,詳見 [LICENSE](LICENSE)。

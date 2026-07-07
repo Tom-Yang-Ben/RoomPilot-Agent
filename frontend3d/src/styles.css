@@ -1,0 +1,68 @@
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: "Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #e8edf2;
+  background: #11161c;
+}
+#root { display: grid; grid-template-columns: 320px 1fr; }
+
+.panel {
+  padding: 18px 16px;
+  overflow-y: auto;
+  background: #161d26;
+  border-right: 1px solid #232d3a;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.panel h1 { font-size: 17px; margin: 0; }
+.panel .sub { font-size: 12px; color: #8a98a8; margin-top: -8px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 12px; color: #9fb0c2; display: flex; justify-content: space-between; }
+.field label b { color: #cfe0f0; font-weight: 600; }
+select, input[type="range"], button, .filebtn {
+  width: 100%; font-size: 13px;
+}
+select {
+  background: #0e141b; color: #e8edf2; border: 1px solid #2b3848;
+  border-radius: 7px; padding: 7px 8px;
+}
+input[type="range"] { accent-color: #4ea1ff; }
+button, .filebtn {
+  background: #1f2a37; color: #dbe7f3; border: 1px solid #2f3f52;
+  border-radius: 7px; padding: 8px; cursor: pointer; text-align: center;
+}
+button:hover, .filebtn:hover { background: #28384a; }
+.filebtn input { display: none; }
+
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; }
+.checks label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+.stats {
+  font-size: 12px; line-height: 1.7; color: #b6c4d4;
+  background: #0e141b; border: 1px solid #232d3a; border-radius: 8px; padding: 10px 12px;
+}
+.stats b { color: #eaf2fa; }
+.warn { color: #ffcf7a; font-size: 12px; }
+.err  { color: #ff8a8a; font-size: 12px; white-space: pre-wrap; }
+.canvas-wrap { position: relative; }
+.loading {
+  position: absolute; top: 12px; left: 12px; z-index: 5;
+  background: #0d1218cc; padding: 6px 12px; border-radius: 20px; font-size: 12px;
+}
+.hint { font-size: 11px; color: #6f7f90; }
+
+.furn-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.furn-list button {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.furn-list button.active {
+  background: #274257; border-color: #4ea1ff; color: #dff0ff;
+}
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.snaprow {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: #cfe0f0; cursor: pointer;
+}
