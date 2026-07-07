@@ -922,11 +922,15 @@ def run(cfg: Config):
     print(f"輸出   : {cfg.output}" + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
 
 
+IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
+
+
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png → out_dir/*.dxf，每張另存疊圖到 chk/ 供快速檢視。"""
-    pngs = sorted(glob.glob(os.path.join(in_dir, "*.png")))
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf，每張另存疊圖到 chk/ 供快速檢視。"""
+    pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
+                  if p.lower().endswith(IMG_EXTS))
     if not pngs:
-        sys.exit(f"{in_dir}/ 裡找不到 .png")
+        sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
     chk_dir = "chk"
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(chk_dir, exist_ok=True)
@@ -951,23 +955,24 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
 
 def main():
     p = argparse.ArgumentParser(
-        description="平面圖 PNG → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
-                    "批次：python3 floorplan2dxf.py png  (跑 png/*.png → dxf/*.dxf)")
+        description="平面圖 PNG/JPG/BMP → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
+                    "不帶參數 = 批次跑 png/ 目錄下所有圖檔 → dxf/ + chk/")
     p.add_argument("input", nargs="?",
-                   help="輸入 PNG；或目錄(或字面 'png')進批次模式")
+                   help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
-                   help="輸出 DXF/目錄（不給就用「輸入同檔名換 .dxf」或 dxf/）")
+                   help="輸出 DXF/目錄（不給就自動輸出到 dxf/同檔名.dxf）")
     p.add_argument("--config", default="config.ini", help="設定檔（預設 config.ini）")
     p.add_argument("--preview", help="疊圖輸出路徑（覆蓋 config）")
     a = p.parse_args()
 
     cfg = load_config(a.config)
 
-    # 批次模式：第一參數是目錄，或字面 'png'
-    if a.input and (os.path.isdir(a.input) or a.input.lower() == "png"):
-        in_dir = a.input if os.path.isdir(a.input) else "png"
+    # 批次模式：不帶參數(且 config 沒鎖單張)、第一參數是目錄、或字面 'png'
+    if (not a.input and not cfg.input) or \
+       (a.input and (os.path.isdir(a.input) or a.input.lower() == "png")):
+        in_dir = a.input if (a.input and os.path.isdir(a.input)) else "png"
         if not os.path.isdir(in_dir):
-            sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的 png 放進去)")
+            sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去)")
         run_batch(in_dir, (a.output or "dxf"), cfg)
         return
 
@@ -977,13 +982,21 @@ def main():
         cfg.preview = a.preview
     if a.output:
         cfg.output = a.output
-    elif a.input:
-        cfg.output = os.path.splitext(a.input)[0] + ".dxf"
 
     if not cfg.input:
         sys.exit("缺輸入：用 floorplan2dxf.py 圖.png，或 floorplan2dxf.py png 批次，或在 config.ini 設 input")
-    if not cfg.output:
-        cfg.output = os.path.splitext(cfg.input)[0] + ".dxf"
+    # 慣例：輸入放 png/ —— 給的路徑讀不到時自動去 png/ 找
+    if not os.path.isfile(cfg.input):
+        alt = os.path.join("png", cfg.input)
+        if os.path.isfile(alt):
+            cfg.input = alt
+    base = os.path.splitext(os.path.basename(cfg.input))[0]
+    if not cfg.output:                       # 慣例：DXF → dxf/
+        os.makedirs("dxf", exist_ok=True)
+        cfg.output = os.path.join("dxf", base + ".dxf")
+    if not cfg.preview:                      # 慣例：疊圖 → chk/
+        os.makedirs("chk", exist_ok=True)
+        cfg.preview = os.path.join("chk", base + "_chk.png")
     run(cfg)
 
 
