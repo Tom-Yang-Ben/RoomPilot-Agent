@@ -1,10 +1,10 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3D 場景展示</title>
-    <link rel="stylesheet" href="/static/site.css?v=20260705m" />
+    <link rel="stylesheet" href="/static/site.css?v=20260707a" />
   </head>
   <body data-page="scene">
     <canvas id="fx-canvas" aria-hidden="true"></canvas>
@@ -28,11 +28,11 @@
         <div class="page-heading compact">
           <p class="eyebrow">SCENE FLOW</p>
           <h1>固定風格生成家具</h1>
-          <p>先鎖定一個房間與設計風格，再隨機替換同風格家具，最後直接生成可瀏覽的 3D 場景。</p>
+          <p>上方先選房間、風格、牆面、地板與家具組合，下方直接生成並預覽 3D 場景。</p>
         </div>
 
-        <form id="scene-form" class="scene-form">
-          <div class="scene-form-grid">
+        <form id="scene-form" class="scene-form scene-direct-form">
+          <div class="scene-direct-grid">
             <label class="scene-field scene-field-full">
               <span>平面圖輸入</span>
               <input id="floorplan" name="floorplan" type="file" accept=".png,.jpg,.jpeg,.webp,.dxf,.dwg" />
@@ -51,11 +51,38 @@
 
             <label class="scene-field">
               <span>固定風格</span>
-              <div class="scene-style-control">
-                <select id="style-preference" name="style_preference"></select>
-                <button id="random-furniture" type="button" class="secondary-action prominent">隨機換家具</button>
-              </div>
-              <small class="scene-helper">家具會限制在目前風格內挑選，不會跳到其他風格。</small>
+              <select id="style-preference" name="style_preference"></select>
+            </label>
+
+            <label class="scene-field">
+              <span>家具組合</span>
+              <select id="furniture-preset" name="furniture_preset"></select>
+              <small id="furniture-preset-hint" class="scene-helper">會依房間類型帶出預設家具組合。</small>
+            </label>
+
+            <label class="scene-field">
+              <span>偏好色系</span>
+              <select id="color-preference" name="color_preference"></select>
+            </label>
+
+            <label class="scene-field">
+              <span>牆面風格</span>
+              <select id="wall-option-select" name="wall_option"></select>
+            </label>
+
+            <label class="scene-field">
+              <span>地板材質</span>
+              <select id="floor-option-select" name="floor_option"></select>
+            </label>
+
+            <label class="scene-field">
+              <span>配置規則</span>
+              <select id="rule-profile" name="rule_profile">
+                <option value="balanced">平衡配置</option>
+                <option value="storage">收納優先</option>
+                <option value="calm">安靜留白</option>
+                <option value="open">開放通透</option>
+              </select>
             </label>
 
             <label class="scene-field">
@@ -68,62 +95,34 @@
               <input id="room-depth" name="room_depth_cm" type="number" min="200" step="10" value="360" />
             </label>
 
-            <div class="scene-field scene-field-full">
-              <div class="scene-field-header">
-                <span>希望出現的家具</span>
-                <small>可自行勾選類型，或用上方按鈕依風格重抽家具組合。</small>
-              </div>
-              <div id="furniture-options" class="scene-option-grid"></div>
-            </div>
-
             <label class="scene-field scene-field-full">
               <span>自填家具需求</span>
-              <input id="custom-furniture" type="text" placeholder="例如：落地燈、玄關櫃、閱讀椅，使用逗號分隔" />
+              <input
+                id="custom-furniture"
+                type="text"
+                placeholder="例如：落地燈、玄關櫃、閱讀椅，使用逗號分隔"
+              />
             </label>
-
-            <div class="scene-field scene-field-full">
-              <span>偏好色系</span>
-              <div id="color-options" class="scene-option-grid compact"></div>
-            </div>
 
             <label class="scene-field scene-field-full">
-              <span>自填顏色需求</span>
-              <input id="custom-colors" type="text" placeholder="例如：奶油白、淺橡木、石墨灰，使用逗號分隔" />
-            </label>
-
-            <div class="scene-field scene-field-full">
-              <span>牆面材質與顏色</span>
-              <div id="wall-options" class="scene-visual-grid"></div>
-            </div>
-
-            <div class="scene-field scene-field-full">
-              <span>地板材質與質感</span>
-              <div id="floor-options" class="scene-visual-grid"></div>
-            </div>
-
-            <div class="scene-field scene-field-full">
               <span>個人化需求</span>
-              <textarea id="personal-notes" name="personal_notes" rows="4" placeholder="例如：不要擋窗、沙發靠牆、需要展示櫃、想保留走道動線"></textarea>
-            </div>
-
-            <div class="scene-field scene-field-full">
-              <span>場景限制</span>
-              <div class="scene-checklist">
-                <label><input id="keep-window-clear" type="checkbox" checked /> 不要擋窗</label>
-                <label><input id="keep-door-clear" type="checkbox" checked /> 保持出入口動線</label>
-                <label><input id="need-storage" type="checkbox" /> 需要額外收納</label>
-                <label><input id="prefer-low-saturation" type="checkbox" /> 偏好低彩度</label>
-              </div>
-            </div>
+              <textarea
+                id="personal-notes"
+                name="personal_notes"
+                rows="3"
+                placeholder="例如：沙發靠牆、保留走道、不要擋窗、需要展示櫃、希望空間更明亮。"
+              ></textarea>
+            </label>
           </div>
 
-          <div class="scene-action-row">
-            <button id="generate-scene" type="submit" class="primary-action">生成 3D 場景</button>
+          <div class="scene-action-row scene-action-bar">
+            <button id="random-furniture" type="button" class="secondary-action prominent">重抽家具組合</button>
+            <button id="generate-scene" type="submit" class="primary-action">直接生成 3D 場景</button>
           </div>
         </form>
       </section>
 
-      <aside class="page-panel viewer-side scene-viewer-side">
+      <section id="scene-viewer-panel" class="page-panel scene-viewer-side scene-viewer-panel">
         <div class="page-heading compact">
           <p class="eyebrow">SCENE VIEWER</p>
           <h2>家具配置預覽</h2>
@@ -136,40 +135,46 @@
           <div><span>房間尺寸</span><strong id="scene-room-size">-</strong></div>
         </div>
 
+        <div id="scene-viewer-canvas" class="viewer-canvas scene-canvas" aria-label="3D 場景預覽"></div>
+        <div id="scene-status" class="viewer-status">請先選擇條件，再直接生成 3D 場景。</div>
+
         <div class="viewer-control-row">
-          <div class="scene-view-preset-group" aria-label="視角切換">
+          <div class="scene-view-preset-group" aria-label="鏡頭視角">
             <button type="button" class="secondary-action" data-view-preset="overview">俯視</button>
             <button type="button" class="secondary-action" data-view-preset="entrance">入口視角</button>
             <button type="button" class="secondary-action" data-view-preset="corner">角落視角</button>
             <button type="button" class="secondary-action" data-view-preset="inside">室內視角</button>
-            <button id="reset-scene-view" type="button" class="secondary-action">重設</button>
+            <button id="reset-scene-view" type="button" class="secondary-action">重設視角</button>
           </div>
-          <span class="viewer-wall-hint">旋轉視角時，擋住畫面的牆面會自動淡出。</span>
+          <span class="viewer-wall-hint">旋轉視角時，擋住畫面的牆面會自動淡出，方便查看室內配置。</span>
         </div>
 
-        <div id="scene-viewer-canvas" class="viewer-canvas scene-canvas" aria-label="場景 3D 預覽"></div>
-
-        <div class="scene-meta-block">
-          <div class="scene-meta-card">
-            <span>空間背景</span>
-            <strong id="scene-background">-</strong>
-          </div>
-          <div class="scene-meta-card">
-            <span>已選家具</span>
-            <div class="scene-furniture-tools" aria-label="家具增減工具">
+        <div class="scene-workbench">
+          <div class="scene-workbench-main">
+            <div class="scene-furniture-tools" aria-label="家具操作">
               <label>
                 <span>新增家具</span>
                 <select id="add-furniture-type"></select>
               </label>
-              <button id="add-furniture" type="button" class="secondary-action">加入</button>
-              <button id="reshuffle-scene" type="button" class="secondary-action prominent">整組重抽</button>
+              <button id="add-furniture" type="button" class="secondary-action">加入家具</button>
+              <button id="reshuffle-scene" type="button" class="secondary-action prominent">同風格替換全部</button>
             </div>
+
             <div id="scene-selected-items" class="scene-selected-list"></div>
           </div>
-        </div>
 
-        <div id="scene-status" class="viewer-status">填完條件後，這裡會顯示生成結果與 3D 場景狀態。</div>
-      </aside>
+          <aside class="scene-workbench-side">
+            <div class="scene-meta-card scene-background-card">
+              <span>空間背景與用材</span>
+              <strong id="scene-background">-</strong>
+              <small id="scene-background-detail" class="scene-background-detail">
+                生成後會在這裡顯示目前牆面、地板與整體氛圍。
+              </small>
+              <div id="scene-background-surfaces" class="scene-background-surfaces"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
     </main>
 
     <script type="importmap">
@@ -180,6 +185,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene.js?v=20260705m"></script>
+    <script type="module" src="/static/scene.js?v=20260707a"></script>
   </body>
 </html>

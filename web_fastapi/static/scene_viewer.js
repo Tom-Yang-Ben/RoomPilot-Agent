@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-export function createSceneViewer(container, statusElement) {
+export function createSceneViewer(container, statusElement, options = {}) {
   if ("createImageBitmap" in globalThis) {
     globalThis.createImageBitmap = undefined;
   }
@@ -65,12 +65,30 @@ export function createSceneViewer(container, statusElement) {
   const loader = new GLTFLoader();
   loader.setDRACOLoader(dracoLoader);
 
+  const surfaceCatalog = options.surfaceCatalog || { walls: [], floors: [] };
+  const wallSurfaceMap = new Map((surfaceCatalog.walls || []).map((item) => [item.surface_id, item]));
+  const floorSurfaceMap = new Map((surfaceCatalog.floors || []).map((item) => [item.surface_id, item]));
+  const textureLoader = new THREE.TextureLoader();
+  const textureTemplateCache = new Map();
+
   const wallMeshes = [];
+  const wallRaycaster = new THREE.Raycaster();
+  let currentSceneLoadToken = 0;
 
   function setStatus(message) {
     if (statusElement) {
       statusElement.textContent = message;
     }
+  }
+
+  function disposeMaterialResources(material) {
+    if (!material) return;
+    ["map", "normalMap", "roughnessMap", "metalnessMap", "alphaMap", "aoMap", "emissiveMap"].forEach((key) => {
+      if (material[key]) {
+        material[key].dispose();
+      }
+    });
+    material.dispose();
   }
 
   function clearGroup(group) {
@@ -83,14 +101,7 @@ export function createSceneViewer(container, statusElement) {
           object.geometry.dispose();
         }
         const materials = Array.isArray(object.material) ? object.material : [object.material];
-        materials.filter(Boolean).forEach((material) => {
-          ["map", "normalMap", "roughnessMap", "metalnessMap", "alphaMap", "aoMap", "emissiveMap"].forEach((key) => {
-            if (material[key]) {
-              material[key].dispose();
-            }
-          });
-          material.dispose();
-        });
+        materials.filter(Boolean).forEach(disposeMaterialResources);
       });
     }
   }
@@ -172,15 +183,30 @@ export function createSceneViewer(container, statusElement) {
         context.fillStyle = base;
         context.fillRect(0, 0, width, height);
 
-        const plankWidth = width / 6;
+        const plankWidth = width / 7;
         for (let x = 0; x < width; x += plankWidth) {
-          context.fillStyle = seam;
-          context.fillRect(x, 0, 2, height);
+          context.fillStyle = x / plankWidth % 2 === 0 ? base : `${base}ee`;
+          context.fillRect(x, 0, plankWidth, height);
 
-          for (let line = 0; line < 14; line += 1) {
+          context.fillStyle = seam;
+          context.fillRect(x, 0, 4, height);
+
+          let boardY = 0;
+          let stitch = 0;
+          while (boardY < height) {
+            const boardLength = 120 + ((stitch + x / plankWidth) % 3) * 48;
+            context.fillStyle = "rgba(92, 63, 38, 0.18)";
+            context.fillRect(x + 1, boardY, plankWidth - 2, 2.4);
+            context.fillStyle = "rgba(255, 255, 255, 0.08)";
+            context.fillRect(x + 1, boardY + 2.4, plankWidth - 2, 1);
+            boardY += boardLength;
+            stitch += 1;
+          }
+
+          for (let line = 0; line < 18; line += 1) {
             context.strokeStyle = grain;
-            context.globalAlpha = 0.08 + Math.random() * 0.06;
-            context.lineWidth = 1 + Math.random() * 2;
+            context.globalAlpha = 0.1 + Math.random() * 0.08;
+            context.lineWidth = 1 + Math.random() * 2.4;
             context.beginPath();
             const startY = Math.random() * height;
             context.moveTo(x, startY);
@@ -194,6 +220,20 @@ export function createSceneViewer(container, statusElement) {
             );
             context.stroke();
           }
+
+          context.fillStyle = grain;
+          context.globalAlpha = 0.12;
+          context.beginPath();
+          context.ellipse(
+            x + plankWidth * (0.3 + Math.random() * 0.4),
+            height * (0.2 + Math.random() * 0.6),
+            8 + Math.random() * 10,
+            2 + Math.random() * 4,
+            Math.random() * Math.PI,
+            0,
+            Math.PI * 2
+          );
+          context.fill();
         }
 
         context.globalAlpha = 1;
@@ -247,8 +287,21 @@ export function createSceneViewer(container, statusElement) {
         context.fillRect(0, 0, width, height);
 
         const tileSize = width / 4;
+        for (let row = 0; row < 4; row += 1) {
+          for (let col = 0; col < 4; col += 1) {
+            const tileX = col * tileSize;
+            const tileY = row * tileSize;
+            context.fillStyle = row % 2 === col % 2 ? `${base}` : "#cec8c1";
+            context.globalAlpha = 0.24;
+            context.fillRect(tileX, tileY, tileSize, tileSize);
+            context.fillStyle = "rgba(255,255,255,0.14)";
+            context.fillRect(tileX + 6, tileY + 6, tileSize - 12, tileSize * 0.18);
+            context.fillStyle = "rgba(88,82,77,0.08)";
+            context.fillRect(tileX + 6, tileY + tileSize * 0.72, tileSize - 12, tileSize * 0.16);
+          }
+        }
         context.strokeStyle = seam;
-        context.lineWidth = 3;
+        context.lineWidth = 5;
         for (let x = 0; x <= width; x += tileSize) {
           context.beginPath();
           context.moveTo(x, 0);
@@ -262,9 +315,9 @@ export function createSceneViewer(container, statusElement) {
           context.stroke();
         }
 
-        for (let i = 0; i < 24; i += 1) {
+        for (let i = 0; i < 30; i += 1) {
           context.strokeStyle = vein;
-          context.globalAlpha = 0.06 + Math.random() * 0.04;
+          context.globalAlpha = 0.07 + Math.random() * 0.05;
           context.lineWidth = 1 + Math.random() * 1.5;
           context.beginPath();
           const startX = Math.random() * width;
@@ -293,13 +346,13 @@ export function createSceneViewer(container, statusElement) {
         const gradient = context.createLinearGradient(0, 0, width, height);
         gradient.addColorStop(0, base);
         gradient.addColorStop(0.52, "#eee8df");
-        gradient.addColorStop(1, "#fbf7ef");
+        gradient.addColorStop(1, "#f7efe3");
         context.fillStyle = gradient;
         context.fillRect(0, 0, width, height);
 
         const tileSize = width / 3;
         context.strokeStyle = seam;
-        context.lineWidth = 3;
+        context.lineWidth = 4;
         for (let x = 0; x <= width; x += tileSize) {
           context.beginPath();
           context.moveTo(x, 0);
@@ -313,10 +366,10 @@ export function createSceneViewer(container, statusElement) {
           context.stroke();
         }
 
-        for (let i = 0; i < 36; i += 1) {
+        for (let i = 0; i < 42; i += 1) {
           context.strokeStyle = i % 5 === 0 ? accent : vein;
-          context.globalAlpha = i % 5 === 0 ? 0.16 : 0.08;
-          context.lineWidth = i % 5 === 0 ? 2.2 : 1.1;
+          context.globalAlpha = i % 5 === 0 ? 0.32 : 0.14;
+          context.lineWidth = i % 5 === 0 ? 3.2 : 1.4;
           context.beginPath();
           const startX = Math.random() * width;
           const startY = Math.random() * height;
@@ -330,6 +383,14 @@ export function createSceneViewer(container, statusElement) {
             startY + Math.random() * 120 - 60
           );
           context.stroke();
+        }
+
+        for (let i = 0; i < 18; i += 1) {
+          context.fillStyle = i % 2 === 0 ? accent : "#d9c5ac";
+          context.globalAlpha = 0.08;
+          context.beginPath();
+          context.arc(Math.random() * width, Math.random() * height, 24 + Math.random() * 42, 0, Math.PI * 2);
+          context.fill();
         }
         context.globalAlpha = 1;
       },
@@ -381,7 +442,7 @@ export function createSceneViewer(container, statusElement) {
 
         for (let i = 0; i < 60; i += 1) {
           context.strokeStyle = accent;
-          context.globalAlpha = 0.03 + Math.random() * 0.03;
+          context.globalAlpha = 0.04 + Math.random() * 0.04;
           context.lineWidth = 10 + Math.random() * 18;
           const x = Math.random() * width;
           context.beginPath();
@@ -390,9 +451,9 @@ export function createSceneViewer(container, statusElement) {
           context.stroke();
         }
 
-        for (let i = 0; i < 18; i += 1) {
+        for (let i = 0; i < 28; i += 1) {
           context.fillStyle = accent;
-          context.globalAlpha = 0.02 + Math.random() * 0.03;
+          context.globalAlpha = 0.03 + Math.random() * 0.04;
           context.beginPath();
           context.arc(Math.random() * width, Math.random() * height, 24 + Math.random() * 72, 0, Math.PI * 2);
           context.fill();
@@ -402,130 +463,121 @@ export function createSceneViewer(container, statusElement) {
     });
   }
 
-  function createFloorMaterial(floorOption) {
-    const presets = {
-      auto: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xe6d1ae,
-          map: createWoodTexture("#e3c99f", "#b48d63", "#cfb288", 4, 4),
-          roughness: 0.9,
-          metalness: 0.01,
-        }),
-      light_oak: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xe0c18d,
-          map: createWoodTexture("#e7cca1", "#be9871", "#d7b58c", 4, 4),
-          roughness: 0.88,
-          metalness: 0.01,
-        }),
-      herringbone_oak: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xe4c395,
-          map: createHerringboneTexture("#e9cda3", "#ad8054", "#d0ad82", 3.4, 3.4),
-          roughness: 0.82,
-          metalness: 0.01,
-        }),
-      walnut: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0x6f4d34,
-          map: createWoodTexture("#7b563a", "#4d3221", "#8f694a", 4, 4),
-          roughness: 0.84,
-          metalness: 0.02,
-        }),
-      stone_gray: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xd7d3cf,
-          map: createStoneTexture("#d6d2cd", "#bdb7b2", "#f0ece7", 3, 3),
-          roughness: 0.92,
-          metalness: 0.01,
-        }),
-      marble: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xf2eee7,
-          map: createMarbleTexture("#f8f5ef", "#9d968d", "#c6aa82", "#efe7dc", 2.2, 2.2),
-          roughness: 0.38,
-          metalness: 0.02,
-        }),
-      microcement: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xbcb3aa,
-          map: createMicrocementTexture("#beb4aa", "#948a80", 3, 3),
-          roughness: 0.96,
-          metalness: 0.01,
-        }),
+  function getSurfaceRecord(kind, surfaceId) {
+    const map = kind === "wall" ? wallSurfaceMap : floorSurfaceMap;
+    return map.get(surfaceId) || map.get("auto") || null;
+  }
+
+  async function loadTextureTemplate(textureUrl) {
+    if (!textureUrl) return null;
+
+    if (!textureTemplateCache.has(textureUrl)) {
+      textureTemplateCache.set(
+        textureUrl,
+        textureLoader.loadAsync(textureUrl).then((texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+          return texture;
+        })
+      );
+    }
+
+    return textureTemplateCache.get(textureUrl);
+  }
+
+  async function createRepeatedTexture(textureUrl, repeatX = 4, repeatY = 4) {
+    const template = await loadTextureTemplate(textureUrl);
+    if (!template) return null;
+
+    const texture = template.clone();
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  async function createFloorMaterial(floorOption) {
+    const surface = getSurfaceRecord("floor", floorOption) || getSurfaceRecord("floor", "auto");
+    const repeatX = surface?.repeat_x ?? 4;
+    const repeatY = surface?.repeat_y ?? 4;
+    const hasTexture = Boolean(surface?.texture_url);
+    const materialConfig = {
+      color: new THREE.Color(hasTexture ? "#ffffff" : surface?.base_hex || surface?.preview_hex || "#e6d1ae"),
+      roughness: surface?.roughness ?? 0.9,
+      metalness: surface?.metalness ?? 0.01,
     };
 
-    return (presets[floorOption] ?? presets.auto)();
+    if (hasTexture) {
+      const map = await createRepeatedTexture(surface.texture_url, repeatX, repeatY);
+      if (map) {
+        return new THREE.MeshStandardMaterial({
+          ...materialConfig,
+          map,
+        });
+      }
+    }
+
+    const presets = {
+      auto: () => createWoodTexture("#e3c99f", "#b48d63", "#cfb288", repeatX, repeatY),
+      light_oak: () => createWoodTexture("#e7cca1", "#be9871", "#d7b58c", repeatX, repeatY),
+      medium_oak: () => createWoodTexture("#c9aa84", "#9c7756", "#e0c29b", repeatX, repeatY),
+      herringbone_oak: () => createHerringboneTexture("#e9cda3", "#ad8054", "#d0ad82", repeatX, repeatY),
+      walnut: () => createWoodTexture("#7b563a", "#4d3221", "#8f694a", repeatX, repeatY),
+      white_oak_tile: () => createWoodTexture("#ddc79f", "#b69368", "#e7d1ac", repeatX, repeatY),
+      smoked_walnut_tile: () => createWoodTexture("#8d6545", "#5b3a27", "#a37c58", repeatX, repeatY),
+      stone_gray: () => createStoneTexture("#d6d2cd", "#bdb7b2", "#f0ece7", repeatX, repeatY),
+      stone_beige: () => createStoneTexture("#d5c3ab", "#b49a7f", "#efe1cf", repeatX, repeatY),
+      marble: () => createMarbleTexture("#f8f5ef", "#9d968d", "#c6aa82", "#efe7dc", repeatX, repeatY),
+      marble_gray: () => createMarbleTexture("#ddd7d1", "#9b958f", "#bfb5ad", "#f1eeea", repeatX, repeatY),
+      microcement: () => createMicrocementTexture("#beb4aa", "#948a80", repeatX, repeatY),
+    };
+
+    return new THREE.MeshStandardMaterial({
+      ...materialConfig,
+      map: (presets[floorOption] ?? presets.auto)(),
+    });
   }
 
   function createWallMaterial(wallOption) {
-    const presets = {
-      auto: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xf7f2eb,
-          map: createWallTexture("#f5efe7", "#d8cebf", 2.2, 1.6),
-          roughness: 0.98,
-          metalness: 0.01,
-          side: THREE.DoubleSide,
-        }),
-      warm_white: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xf8f3eb,
-          map: createWallTexture("#f8f2ea", "#ddd3c4", 2.2, 1.6),
-          roughness: 0.97,
-          metalness: 0.01,
-          side: THREE.DoubleSide,
-        }),
-      mineral_beige: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xd2bea6,
-          map: createWallTexture("#d0baa0", "#b59a7d", 2.1, 1.5),
-          roughness: 0.99,
-          metalness: 0.01,
-          side: THREE.DoubleSide,
-        }),
-      light_gray: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xe0e2e5,
-          map: createWallTexture("#dfe2e5", "#c7cbd1", 2.2, 1.6),
-          roughness: 0.98,
-          metalness: 0.01,
-          side: THREE.DoubleSide,
-        }),
-      limewash: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xded1bd,
-          map: createWallTexture("#e6dac8", "#bfa98e", 2.4, 1.7),
-          roughness: 1,
-          metalness: 0,
-          side: THREE.DoubleSide,
-        }),
-      charcoal: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0x5a5550,
-          map: createWallTexture("#59544f", "#77706a", 2.2, 1.6),
-          roughness: 0.94,
-          metalness: 0.02,
-          side: THREE.DoubleSide,
-        }),
-    };
-
-    const material = (presets[wallOption] ?? presets.auto)();
+    const surface = getSurfaceRecord("wall", wallOption) || getSurfaceRecord("wall", "auto");
+    const base = surface?.base_hex || surface?.preview_hex || "#f5efe7";
+    const accent = surface?.accent_hex || "#d8cebf";
+    const material = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(base),
+      map: createWallTexture(base, accent, 2.2, 1.6),
+      roughness: surface?.surface_id === "charcoal" || surface?.surface_id === "graphite_gray" ? 0.94 : 0.98,
+      metalness: 0.01,
+      side: THREE.DoubleSide,
+    });
     material.transparent = true;
     material.opacity = 0.92;
     material.depthWrite = true;
     return material;
   }
 
-  function registerWall(wallMesh) {
+  function registerWall(wallMesh, options = {}) {
+    const baseOpacity = options.baseOpacity ?? 0.92;
+    const fadeOpacity = options.fadeOpacity ?? 0.16;
+
     wallMesh.castShadow = true;
     wallMesh.receiveShadow = true;
-    wallMesh.userData.baseOpacity = 0.92;
+    wallMesh.userData.baseOpacity = baseOpacity;
+    wallMesh.userData.fadeOpacity = fadeOpacity;
+    wallMesh.userData.isDxfWall = Boolean(options.isDxfWall);
+
+    const materials = Array.isArray(wallMesh.material) ? wallMesh.material : [wallMesh.material];
+    materials.filter(Boolean).forEach((material) => {
+      material.transparent = true;
+      material.opacity = baseOpacity;
+      material.depthWrite = baseOpacity > 0.34;
+    });
+
     wallMeshes.push(wallMesh);
     return wallMesh;
   }
 
-  function buildSegmentWalls(roomGroupRef, segments, wallMaterial, wallHeight, wallThickness) {
+  function buildSegmentWalls(roomGroupRef, segments, wallMaterial, wallHeight, wallThickness, options = {}) {
     segments.forEach((segment) => {
       const start = segment.start;
       const end = segment.end;
@@ -539,7 +591,7 @@ export function createSceneViewer(container, statusElement) {
       const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(length, wallHeight, wallThickness), wallMaterial.clone());
       wallMesh.position.set((start.x + end.x) / 2, wallHeight / 2, (start.z + end.z) / 2);
       wallMesh.rotation.y = Math.atan2(-dz, dx);
-      roomGroupRef.add(registerWall(wallMesh));
+      roomGroupRef.add(registerWall(wallMesh, options));
     });
   }
 
@@ -569,7 +621,7 @@ export function createSceneViewer(container, statusElement) {
     roomGroupRef.add(lines);
   }
 
-  function createRoom(sceneData) {
+  async function createRoom(sceneData, loadToken) {
     clearGroup(roomGroup);
     wallMeshes.length = 0;
 
@@ -579,10 +631,13 @@ export function createSceneViewer(container, statusElement) {
     const floorOption = sceneData.design_choices?.floor_option || "auto";
     const wallOption = sceneData.design_choices?.wall_option || "auto";
 
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(widthM, depthM),
-      createFloorMaterial(floorOption)
-    );
+    const floorMaterial = await createFloorMaterial(floorOption);
+    if (loadToken !== currentSceneLoadToken) {
+      disposeMaterialResources(floorMaterial);
+      return false;
+    }
+
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(widthM, depthM), floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
     floor.receiveShadow = true;
@@ -597,9 +652,15 @@ export function createSceneViewer(container, statusElement) {
     const singleRoomMode = sceneData.design_choices?.single_room_mode !== false;
     roomGroup.userData.roomSize = { widthM, depthM, wallHeight };
 
-    const wallThickness = 0.04;
-    if (!singleRoomMode && wallSegments.length >= 2) {
-      buildSegmentWalls(roomGroup, wallSegments, wallMaterial, wallHeight, wallThickness);
+    const wallThickness = isDxfFloorplan ? 0.12 : 0.04;
+    const dxfWallSegments = wallSegments.length >= 2 ? wallSegments : planSegments;
+    const shouldUseDxfWalls = isDxfFloorplan && dxfWallSegments.length >= 2;
+    if (shouldUseDxfWalls) {
+      buildSegmentWalls(roomGroup, dxfWallSegments, wallMaterial, wallHeight, wallThickness, {
+        isDxfWall: true,
+        baseOpacity: 0.98,
+        fadeOpacity: 0.32,
+      });
     } else {
       const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthM, wallHeight, wallThickness), wallMaterial.clone());
       backWall.position.set(0, wallHeight / 2, -depthM / 2);
@@ -629,6 +690,7 @@ export function createSceneViewer(container, statusElement) {
 
     controls.target.set(0, 0.9, 0);
     setCameraPreset("corner");
+    return true;
   }
 
   function fitToTargetSize(root, targetSizeCm) {
@@ -682,8 +744,14 @@ export function createSceneViewer(container, statusElement) {
   }
 
   async function loadScene(sceneData) {
+    const loadToken = ++currentSceneLoadToken;
     clearGroup(furnitureGroup);
-    createRoom(sceneData);
+    setStatus("載入 3D 場景中...");
+
+    const roomCreated = await createRoom(sceneData, loadToken);
+    if (!roomCreated || loadToken !== currentSceneLoadToken) {
+      return;
+    }
     setStatus("正在生成 3D 場景...");
 
     const objects = sceneData.scene_objects || [];
@@ -691,6 +759,8 @@ export function createSceneViewer(container, statusElement) {
 
     await Promise.all(
       objects.map(async (item, index) => {
+        if (loadToken !== currentSceneLoadToken) return;
+
         if (!item.model_url) {
           failures.push(`${item.name_zh_raw || item.normalized_type} 無模型`);
           return;
@@ -698,6 +768,7 @@ export function createSceneViewer(container, statusElement) {
 
         try {
           const gltf = await loader.loadAsync(item.model_url);
+          if (loadToken !== currentSceneLoadToken) return;
           gltf.scene.traverse((object) => {
             if (object.isMesh) {
               object.castShadow = true;
@@ -721,16 +792,26 @@ export function createSceneViewer(container, statusElement) {
           wrapper.add(marker);
           furnitureGroup.add(wrapper);
         } catch (error) {
+          if (loadToken !== currentSceneLoadToken) return;
           console.error(error);
           failures.push(item.name_zh_raw || item.normalized_type || "未知家具");
         }
       })
     );
 
+    if (loadToken !== currentSceneLoadToken) {
+      return;
+    }
+
     if (failures.length) {
       setStatus(`場景已生成，但部分家具未載入：${failures.join("、")}`);
     } else {
       setStatus("場景已生成，可拖曳查看家具配置。");
+    }
+    if (failures.length) {
+      statusElement && (statusElement.textContent = `場景已更新，但以下家具載入失敗：${failures.join("、")}`);
+    } else {
+      statusElement && (statusElement.textContent = "場景已更新，可直接拖曳、縮放與旋轉視角。");
     }
   }
 
@@ -740,6 +821,12 @@ export function createSceneViewer(container, statusElement) {
     if (targetDistance < 0.001) return;
 
     const viewDirection = targetVector.normalize();
+    wallRaycaster.set(camera.position, viewDirection);
+    wallRaycaster.far = targetDistance;
+    const blockingWalls = new Set(
+      wallRaycaster.intersectObjects(wallMeshes, false).map((hit) => hit.object)
+    );
+
     wallMeshes.forEach((wall) => {
       const wallCenter = new THREE.Vector3();
       wall.getWorldPosition(wallCenter);
@@ -748,15 +835,17 @@ export function createSceneViewer(container, statusElement) {
       if (wallDistance < 0.001) return;
 
       const alignment = wallVector.normalize().dot(viewDirection);
-      const wallBlocksRoom = alignment > 0.88 && wallDistance < targetDistance + 0.35;
-      const wallTooClose = wallDistance < 1.65;
-      const targetOpacity = wallBlocksRoom || wallTooClose ? 0.16 : wall.userData.baseOpacity || 0.92;
+      const wallBlocksRoom = blockingWalls.has(wall);
+      const closeInFront = alignment > 0.35 && wallDistance < (wall.userData.isDxfWall ? 0.75 : 1.25);
+      const targetOpacity = wallBlocksRoom || closeInFront
+        ? wall.userData.fadeOpacity || 0.16
+        : wall.userData.baseOpacity || 0.92;
       const materials = Array.isArray(wall.material) ? wall.material : [wall.material];
 
       materials.filter(Boolean).forEach((material) => {
         material.transparent = true;
-        material.opacity += (targetOpacity - material.opacity) * 0.14;
-        material.depthWrite = material.opacity > 0.38;
+        material.opacity += (targetOpacity - material.opacity) * 0.18;
+        material.depthWrite = material.opacity > (wall.userData.isDxfWall ? 0.28 : 0.38);
       });
     });
   }

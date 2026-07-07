@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
+from furniture_engine.clearance import check_placement_with_clearance
+from furniture_engine.models import ClearanceZone, FurnitureCatalogItem, PlacedFurniture, Room, Wall
+from furniture_engine.placement import place_furniture
+
 from .dxf_floorplan import parse_dxf_floorplan
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -82,6 +86,14 @@ FURNITURE_ALIASES = {
     "收納櫃": "cabinets-cupboard",
 }
 
+ENGINE_SPECIAL_TYPES = {"large-medium-rug", "runner-small-rug", "wall-shelf"}
+
+CLEARANCE_PRESETS: dict[str, tuple[str, float]] = {
+    "cabinets-cupboard": ("front", 0.55),
+    "wardrobe": ("front", 0.6),
+    "pax-wardrobe": ("front", 0.65),
+}
+
 
 def normalize_style_id(style_id: str | None, styles: list[dict[str, Any]]) -> str:
     if not style_id:
@@ -106,6 +118,158 @@ def normalize_required_furniture(raw_items: list[str], space_type: str) -> list[
         return normalized
 
     return SPACE_DEFAULTS.get(space_type, SPACE_DEFAULTS["living_room"]).copy()
+
+
+def _candidate_matches_style(item: dict[str, Any], style_id: str) -> bool:
+    if item.get("primary_style") == style_id:
+        return True
+    return any(style.get("style_id") == style_id for style in item.get("style_candidates", []))
+
+
+def _candidate_style_score(item: dict[str, Any], style_id: str) -> float:
+    if item.get("primary_style") == style_id:
+        return 120
+
+    for style in item.get("style_candidates", []):
+        if style.get("style_id") == style_id:
+            try:
+                return 76 + float(style.get("score", 0)) * 18
+            except (TypeError, ValueError):
+                return 76
+
+    return 0
+
+
+def _candidate_color_score(item: dict[str, Any], preferred_colors: list[str] | None) -> float:
+    if not preferred_colors:
+        return 0
+
+    color_text = str(item.get("color") or "").lower()
+    name_text = f"{item.get('name_zh_raw') or ''} {item.get('name_en') or ''}".lower()
+    score = 0.0
+    for color in preferred_colors:
+        token = str(color).lower()
+        if token and (token in color_text or token in name_text):
+            score += 12
+    return score
+
+
+def _candidate_scale_score(
+    item: dict[str, Any],
+    room_width_cm: float | None,
+    room_depth_cm: float | None,
+) -> float:
+    if not room_width_cm or not room_depth_cm:
+        return 0
+
+    width = _size_cm(item, "width", 120)
+    depth = _size_cm(item, "depth", 60)
+    largest_room_side = max(room_width_cm, room_depth_cm)
+    shortest_room_side = min(room_width_cm, room_depth_cm)
+
+    if width > largest_room_side * 0.92 or depth > largest_room_side * 0.92:
+        return -48
+    if max(width, depth) > shortest_room_side * 0.82:
+        return -18
+    return 8
+
+
+def _candidate_harmony_penalty(item: dict[str, Any], style_id: str) -> float:
+    text = f"{item.get('color') or ''} {item.get('name_zh_raw') or ''} {item.get('name_en') or ''}".lower()
+    loud_tokens = {
+        "multicolour",
+        "multi-colour",
+        "red",
+        "orange",
+        "yellow",
+        "pink",
+        "turquoise",
+        "pattern",
+        "stripe",
+        "animal",
+    }
+    calm_styles = {"scandinavian", "minimalist_muji", "wabi_sabi", "nordic_modern"}
+    if style_id in calm_styles and any(token in text for token in loud_tokens):
+        return -36
+    return 0
+
+
+def _candidate_total_score(
+    item: dict[str, Any],
+    style_id: str,
+    preferred_colors: list[str] | None,
+    room_width_cm: float | None,
+    room_depth_cm: float | None,
+    rng: random.Random,
+) -> float:
+    confidence = item.get("style_confidence") or 0
+    try:
+        confidence_score = float(confidence) * 12
+    except (TypeError, ValueError):
+        confidence_score = 0
+
+    return (
+        _candidate_style_score(item, style_id)
+        + _candidate_color_score(item, preferred_colors)
+        + _candidate_scale_score(item, room_width_cm, room_depth_cm)
+        + _candidate_harmony_penalty(item, style_id)
+        + confidence_score
+        + rng.random() * 8
+    )
+
+
+def pick_furniture_candidate(
+    furniture: list[dict[str, Any]],
+    item_type: str,
+    style_id: str,
+    used_ids: set[str] | None = None,
+    preferred_colors: list[str] | None = None,
+    room_width_cm: float | None = None,
+    room_depth_cm: float | None = None,
+    random_seed: str | int | None = None,
+    index_hint: int = 0,
+    require_style: bool = False,
+    exclude_ids: set[str] | None = None,
+) -> dict[str, Any] | None:
+    used_ids = used_ids or set()
+    exclude_ids = exclude_ids or set()
+
+    candidates = [
+        item
+        for item in furniture
+        if item.get("has_model")
+        and item.get("normalized_type") == item_type
+        and item.get("furniture_id") not in used_ids
+        and item.get("furniture_id") not in exclude_ids
+    ]
+    if not candidates:
+        return None
+
+    scene_style_candidates = [item for item in candidates if _candidate_matches_style(item, style_id)]
+    if scene_style_candidates:
+        candidates = scene_style_candidates
+    elif require_style:
+        return None
+
+    seed_prefix = f"{random_seed}:{style_id}:{item_type}:{index_hint}" if random_seed not in (None, "") else f"{style_id}:{item_type}:{index_hint}"
+    rng = random.Random(seed_prefix)
+    ranked = sorted(
+        candidates,
+        key=lambda item: _candidate_total_score(
+            item,
+            style_id,
+            preferred_colors,
+            room_width_cm,
+            room_depth_cm,
+            rng,
+        ),
+        reverse=True,
+    )
+
+    if random_seed not in (None, ""):
+        top_pool = ranked[: min(len(ranked), 14)]
+        return rng.choice(top_pool)
+    return ranked[0]
 
 
 def _openrouter_request(messages: list[dict[str, str]]) -> dict[str, Any] | None:
@@ -258,104 +422,21 @@ def choose_furniture_items(
     used_ids: set[str] = set()
     preferred_colors = preferred_colors or []
 
-    def style_score(item: dict[str, Any]) -> float:
-        if item.get("primary_style") == style_id:
-            return 120
-
-        for style in item.get("style_candidates", []):
-            if style.get("style_id") == style_id:
-                try:
-                    return 76 + float(style.get("score", 0)) * 18
-                except (TypeError, ValueError):
-                    return 76
-
-        return 0
-
-    def color_score(item: dict[str, Any]) -> float:
-        if not preferred_colors:
-            return 0
-
-        color_text = str(item.get("color") or "").lower()
-        name_text = f"{item.get('name_zh_raw') or ''} {item.get('name_en') or ''}".lower()
-        score = 0.0
-        for color in preferred_colors:
-            token = str(color).lower()
-            if token and (token in color_text or token in name_text):
-                score += 12
-        return score
-
-    def scale_score(item: dict[str, Any]) -> float:
-        if not room_width_cm or not room_depth_cm:
-            return 0
-
-        width = _size_cm(item, "width", 120)
-        depth = _size_cm(item, "depth", 60)
-        largest_room_side = max(room_width_cm, room_depth_cm)
-        shortest_room_side = min(room_width_cm, room_depth_cm)
-
-        if width > largest_room_side * 0.92 or depth > largest_room_side * 0.92:
-            return -48
-        if max(width, depth) > shortest_room_side * 0.82:
-            return -18
-        return 8
-
-    def harmony_penalty(item: dict[str, Any]) -> float:
-        text = f"{item.get('color') or ''} {item.get('name_zh_raw') or ''} {item.get('name_en') or ''}".lower()
-        loud_tokens = {
-            "multicolour",
-            "multi-colour",
-            "red",
-            "orange",
-            "yellow",
-            "pink",
-            "turquoise",
-            "pattern",
-            "stripe",
-            "animal",
-        }
-        calm_styles = {"scandinavian", "minimalist_muji", "wabi_sabi", "nordic_modern"}
-        if style_id in calm_styles and any(token in text for token in loud_tokens):
-            return -36
-        return 0
-
-    def total_score(item: dict[str, Any], rng: random.Random) -> float:
-        confidence = item.get("style_confidence") or 0
-        try:
-            confidence_score = float(confidence) * 12
-        except (TypeError, ValueError):
-            confidence_score = 0
-
-        return (
-            style_score(item)
-            + color_score(item)
-            + scale_score(item)
-            + harmony_penalty(item)
-            + confidence_score
-            + rng.random() * 8
-        )
-
     for index, required_type in enumerate(plan.get("required_furniture", [])):
-        candidates = [
-            item
-            for item in furniture
-            if item.get("has_model")
-            and item.get("furniture_id") not in used_ids
-            and item.get("normalized_type") == required_type
-        ]
-
-        if not candidates:
-            continue
-
-        rng = random.Random(f"{random_seed}:{style_id}:{required_type}:{index}") if random_seed not in (None, "") else random.Random(f"{style_id}:{required_type}:{index}")
-        ranked = sorted(candidates, key=lambda item: total_score(item, rng), reverse=True)
-        if random_seed not in (None, ""):
-            top_pool = ranked[: min(len(ranked), 14)]
-            selected = rng.choice(top_pool)
-        else:
-            selected = ranked[0]
-
-        used_ids.add(selected["furniture_id"])
-        chosen.append(selected)
+        selected = pick_furniture_candidate(
+            furniture=furniture,
+            item_type=required_type,
+            style_id=style_id,
+            used_ids=used_ids,
+            preferred_colors=preferred_colors,
+            room_width_cm=room_width_cm,
+            room_depth_cm=room_depth_cm,
+            random_seed=random_seed,
+            index_hint=index,
+        )
+        if selected:
+            used_ids.add(selected["furniture_id"])
+            chosen.append(selected)
 
     return chosen
 
@@ -497,49 +578,269 @@ def _resolve_collision_safe_position(
     return 0, 0, 0, fallback_box
 
 
-def generate_layout(room_width_cm: float, room_depth_cm: float, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _scene_cm_to_engine_m(
+    x_cm: float,
+    z_cm: float,
+    room_width_cm: float,
+    room_depth_cm: float,
+) -> tuple[float, float]:
+    return x_cm / 100 + room_width_cm / 200, z_cm / 100 + room_depth_cm / 200
+
+
+def _engine_m_to_scene_cm(
+    pos_x_m: float,
+    pos_y_m: float,
+    room_width_cm: float,
+    room_depth_cm: float,
+) -> tuple[float, float]:
+    return round((pos_x_m - room_width_cm / 200) * 100, 2), round((pos_y_m - room_depth_cm / 200) * 100, 2)
+
+
+def _build_engine_room(
+    room_width_cm: float,
+    room_depth_cm: float,
+    parsed_floorplan: dict[str, Any] | None,
+) -> Room:
+    width_m = room_width_cm / 100
+    depth_m = room_depth_cm / 100
+    walls: list[Wall] = []
+
+    if parsed_floorplan and parsed_floorplan.get("wall_segments"):
+        for segment in parsed_floorplan.get("wall_segments", []):
+            start = segment.get("start") or {}
+            end = segment.get("end") or {}
+            try:
+                start_x = float(start.get("x", 0.0)) + width_m / 2
+                start_y = float(start.get("z", 0.0)) + depth_m / 2
+                end_x = float(end.get("x", 0.0)) + width_m / 2
+                end_y = float(end.get("z", 0.0)) + depth_m / 2
+            except (TypeError, ValueError):
+                continue
+
+            walls.append(Wall(start_x, start_y, end_x, end_y, thickness=0.12))
+
+    if len(walls) < 2:
+        walls = [
+            Wall(0, 0, width_m, 0, thickness=0.12),
+            Wall(width_m, 0, width_m, depth_m, thickness=0.12),
+            Wall(width_m, depth_m, 0, depth_m, thickness=0.12),
+            Wall(0, depth_m, 0, 0, thickness=0.12),
+        ]
+
+    return Room(width=width_m, depth=depth_m, walls=walls)
+
+
+def _clearance_for_type(item_type: str | None) -> ClearanceZone | None:
+    if not item_type:
+        return None
+    preset = CLEARANCE_PRESETS.get(item_type)
+    if not preset:
+        return None
+    side, depth = preset
+    return ClearanceZone(side=side, depth=depth)
+
+
+def _build_catalog_item(item: dict[str, Any]) -> FurnitureCatalogItem:
+    item_type = item.get("normalized_type") or "furniture"
+    return FurnitureCatalogItem(
+        type=item_type,
+        name=item.get("name_zh_raw") or item.get("name_en") or item_type,
+        width=_size_cm(item, "width", 120) / 100,
+        depth=_size_cm(item, "depth", 60) / 100,
+        height=_size_cm(item, "height", 80) / 100,
+        style=item.get("primary_style"),
+        glb_path=item.get("glb_absolute_path"),
+        clearance=_clearance_for_type(item_type),
+    )
+
+
+def _scene_object_from_engine(
+    source_item: dict[str, Any],
+    placed: PlacedFurniture,
+    room_width_cm: float,
+    room_depth_cm: float,
+) -> tuple[dict[str, Any], dict[str, float]]:
+    width = _size_cm(source_item, "width", 120)
+    depth = _size_cm(source_item, "depth", 60)
+    height = _size_cm(source_item, "height", 80)
+    scene_x_cm, scene_z_cm = _engine_m_to_scene_cm(
+        placed.pos_x,
+        placed.pos_y,
+        room_width_cm,
+        room_depth_cm,
+    )
+    footprint_width, footprint_depth = _rotated_footprint(width, depth, placed.rotation)
+    footprint_box = _box_for(scene_x_cm, scene_z_cm, footprint_width, footprint_depth)
+
+    return (
+        {
+            "furniture_id": source_item["furniture_id"],
+            "name_zh_raw": source_item.get("name_zh_raw"),
+            "normalized_type": source_item.get("normalized_type"),
+            "model_url": source_item.get("model_url"),
+            "primary_style": source_item.get("primary_style"),
+            "size_cm": {
+                "width": width,
+                "depth": depth,
+                "height": height,
+            },
+            "footprint_cm": {
+                "width": round(footprint_width, 2),
+                "depth": round(footprint_depth, 2),
+            },
+            "position_cm": {"x": scene_x_cm, "z": scene_z_cm},
+            "rotation_y_deg": placed.rotation,
+            "placement_engine": "furniture_engine",
+        },
+        footprint_box,
+    )
+
+
+def _manual_scene_object(
+    item: dict[str, Any],
+    room_width_cm: float,
+    room_depth_cm: float,
+    placed_boxes: list[dict[str, float]],
+    warning: str | None = None,
+) -> tuple[dict[str, Any], dict[str, float]]:
+    item_type = item.get("normalized_type")
+    width = _size_cm(item, "width", 120)
+    depth = _size_cm(item, "depth", 60)
+    height = _size_cm(item, "height", 80)
+    x, z, rotation, footprint_box = _resolve_collision_safe_position(
+        item_type,
+        width,
+        depth,
+        room_width_cm,
+        room_depth_cm,
+        placed_boxes,
+    )
+
+    return (
+        {
+            "furniture_id": item["furniture_id"],
+            "name_zh_raw": item.get("name_zh_raw"),
+            "normalized_type": item_type,
+            "model_url": item.get("model_url"),
+            "primary_style": item.get("primary_style"),
+            "size_cm": {
+                "width": width,
+                "depth": depth,
+                "height": height,
+            },
+            "footprint_cm": {
+                "width": round(footprint_box["right"] - footprint_box["left"], 2),
+                "depth": round(footprint_box["bottom"] - footprint_box["top"], 2),
+            },
+            "position_cm": {"x": round(x, 2), "z": round(z, 2)},
+            "rotation_y_deg": rotation,
+            "placement_engine": "manual_fallback",
+            "placement_warning": warning,
+        },
+        footprint_box,
+    )
+
+
+def _place_with_engine(
+    item: dict[str, Any],
+    engine_room: Room,
+    room_width_cm: float,
+    room_depth_cm: float,
+    existing: list[PlacedFurniture],
+) -> tuple[PlacedFurniture | None, str | None]:
+    item_type = item.get("normalized_type")
+    width = _size_cm(item, "width", 120)
+    depth = _size_cm(item, "depth", 60)
+    catalog_item = _build_catalog_item(item)
+
+    for raw_x, raw_z, rotation in _placement_candidates(
+        item_type,
+        width,
+        depth,
+        room_width_cm,
+        room_depth_cm,
+    ):
+        footprint_width, footprint_depth = _rotated_footprint(width, depth, rotation)
+        x_cm = _clamp_axis(raw_x, -room_width_cm / 2, room_width_cm / 2, footprint_width)
+        z_cm = _clamp_axis(raw_z, -room_depth_cm / 2, room_depth_cm / 2, footprint_depth)
+        pos_x_m, pos_y_m = _scene_cm_to_engine_m(x_cm, z_cm, room_width_cm, room_depth_cm)
+        candidate = PlacedFurniture(
+            id=item["furniture_id"],
+            catalog=catalog_item,
+            pos_x=pos_x_m,
+            pos_y=pos_y_m,
+            rotation=rotation,
+        )
+        reason = check_placement_with_clearance(candidate, engine_room, existing)
+        if reason is None:
+            return candidate, None
+
+    fallback = place_furniture(
+        engine_room,
+        catalog_item,
+        item["furniture_id"],
+        existing,
+    )
+    return fallback["placed"], fallback["reason"]
+
+
+def generate_layout(
+    room_width_cm: float,
+    room_depth_cm: float,
+    items: list[dict[str, Any]],
+    parsed_floorplan: dict[str, Any] | None = None,
+) -> tuple[list[dict[str, Any]], list[str]]:
     placements: list[dict[str, Any]] = []
+    warnings: list[str] = []
     placed_boxes: list[dict[str, float]] = []
+    engine_room = _build_engine_room(room_width_cm, room_depth_cm, parsed_floorplan)
+    engine_placed: list[PlacedFurniture] = []
 
     for item in items:
         item_type = item.get("normalized_type")
-        width = _size_cm(item, "width", 120)
-        depth = _size_cm(item, "depth", 60)
-        height = _size_cm(item, "height", 80)
-        x, z, rotation, footprint_box = _resolve_collision_safe_position(
-            item_type,
-            width,
-            depth,
+        if item_type in ENGINE_SPECIAL_TYPES:
+            scene_object, footprint_box = _manual_scene_object(
+                item,
+                room_width_cm,
+                room_depth_cm,
+                placed_boxes,
+            )
+            placements.append(scene_object)
+            continue
+
+        placed, reason = _place_with_engine(
+            item,
+            engine_room,
+            room_width_cm,
+            room_depth_cm,
+            engine_placed,
+        )
+        if placed is not None:
+            scene_object, footprint_box = _scene_object_from_engine(
+                item,
+                placed,
+                room_width_cm,
+                room_depth_cm,
+            )
+            placements.append(scene_object)
+            engine_placed.append(placed)
+            placed_boxes.append(footprint_box)
+            continue
+
+        scene_object, footprint_box = _manual_scene_object(
+            item,
             room_width_cm,
             room_depth_cm,
             placed_boxes,
+            warning=reason or "furniture_engine 無法找到合法位置，已退回簡化擺位",
+        )
+        placements.append(scene_object)
+        placed_boxes.append(footprint_box)
+        warnings.append(
+            f"{item.get('name_zh_raw') or item_type or '家具'}：{scene_object.get('placement_warning')}"
         )
 
-        if item_type not in {"large-medium-rug", "runner-small-rug", "wall-shelf"}:
-            placed_boxes.append(footprint_box)
-
-        placements.append(
-            {
-                "furniture_id": item["furniture_id"],
-                "name_zh_raw": item.get("name_zh_raw"),
-                "normalized_type": item_type,
-                "model_url": item.get("model_url"),
-                "primary_style": item.get("primary_style"),
-                "size_cm": {
-                    "width": width,
-                    "depth": depth,
-                    "height": height,
-                },
-                "footprint_cm": {
-                    "width": round(footprint_box["right"] - footprint_box["left"], 2),
-                    "depth": round(footprint_box["bottom"] - footprint_box["top"], 2),
-                },
-                "position_cm": {"x": round(x, 2), "z": round(z, 2)},
-                "rotation_y_deg": rotation,
-            }
-        )
-
-    return placements
+    return placements, warnings
 
 
 def build_scene_payload(
@@ -569,7 +870,12 @@ def build_scene_payload(
         effective_depth_cm,
         plan.get("preferred_colors", []) + questionnaire.get("custom_colors", []),
     )
-    objects = generate_layout(effective_width_cm, effective_depth_cm, selected_items)
+    objects, layout_warnings = generate_layout(
+        effective_width_cm,
+        effective_depth_cm,
+        selected_items,
+        parsed_floorplan,
+    )
 
     style = next(
         (style for style in site_payload["styles"] if style.get("style_id") == plan["style_id"]),
@@ -611,9 +917,149 @@ def build_scene_payload(
             "single_room_mode": not bool(parsed_floorplan),
             "accurate_dxf_mode": bool(parsed_floorplan),
         },
+        "placement_engine": "furniture_engine",
+        "layout_warnings": layout_warnings,
         "selected_furniture": selected_items,
         "scene_objects": objects,
     }
+
+
+def mutate_scene_payload(
+    site_payload: dict[str, Any],
+    scene_data: dict[str, Any],
+    action: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    selected_items = [dict(item) for item in scene_data.get("selected_furniture", [])]
+    style_id = (
+        scene_data.get("style", {}).get("style_id")
+        or scene_data.get("plan_json", {}).get("style_id")
+        or "scandinavian"
+    )
+    room_width_cm = float(scene_data.get("floorplan", {}).get("width_cm") or 420)
+    room_depth_cm = float(scene_data.get("floorplan", {}).get("depth_cm") or 360)
+    preferred_colors = (
+        list(scene_data.get("plan_json", {}).get("preferred_colors") or [])
+        + list(scene_data.get("questionnaire", {}).get("custom_colors") or [])
+    )
+    furniture_db = site_payload["furniture"]
+    scene_floorplan = scene_data.get("floorplan", {})
+    parsed_floorplan = scene_floorplan if scene_floorplan.get("source") == "dxf" else None
+    random_seed = payload.get("random_seed", payload.get("furniture_random_seed", random.randint(1, 10_000_000)))
+    used_ids = {item.get("furniture_id") for item in selected_items if item.get("furniture_id")}
+    mutation_message = ""
+
+    if action == "replace":
+        index = int(payload.get("index", -1))
+        if index < 0 or index >= len(selected_items):
+            raise ValueError("找不到要替換的家具編號。")
+        current_item = selected_items[index]
+        replacement = pick_furniture_candidate(
+            furniture=furniture_db,
+            item_type=current_item.get("normalized_type"),
+            style_id=style_id,
+            used_ids={item.get("furniture_id") for i, item in enumerate(selected_items) if i != index},
+            preferred_colors=preferred_colors,
+            room_width_cm=room_width_cm,
+            room_depth_cm=room_depth_cm,
+            random_seed=random_seed,
+            index_hint=index,
+            require_style=True,
+            exclude_ids={current_item.get("furniture_id")},
+        )
+        if replacement is None:
+            raise ValueError("目前找不到同風格、同類型可替換的家具。")
+        selected_items[index] = replacement
+        mutation_message = f"已替換家具編號 {index + 1}，並重新套用正式配置引擎。"
+
+    elif action == "remove":
+        index = int(payload.get("index", -1))
+        if index < 0 or index >= len(selected_items):
+            raise ValueError("找不到要移除的家具編號。")
+        removed = selected_items.pop(index)
+        mutation_message = f"已移除「{removed.get('name_zh_raw') or removed.get('normalized_type') or '家具'}」，並重新配置場景。"
+
+    elif action == "add":
+        item_type = str(payload.get("item_type") or "").strip()
+        if not item_type:
+            raise ValueError("缺少要新增的家具類型。")
+        candidate = pick_furniture_candidate(
+            furniture=furniture_db,
+            item_type=item_type,
+            style_id=style_id,
+            used_ids=used_ids,
+            preferred_colors=preferred_colors,
+            room_width_cm=room_width_cm,
+            room_depth_cm=room_depth_cm,
+            random_seed=random_seed,
+            index_hint=len(selected_items),
+            require_style=True,
+        )
+        if candidate is None:
+            raise ValueError("目前資料庫找不到同風格可加入的家具。")
+        selected_items.append(candidate)
+        mutation_message = f"已新增「{candidate.get('name_zh_raw') or item_type}」，並重新配置場景。"
+
+    elif action == "reshuffle":
+        reshuffled: list[dict[str, Any]] = []
+        used_ids = set()
+        for index, current_item in enumerate(selected_items):
+            replacement = pick_furniture_candidate(
+                furniture=furniture_db,
+                item_type=current_item.get("normalized_type"),
+                style_id=style_id,
+                used_ids=used_ids,
+                preferred_colors=preferred_colors,
+                room_width_cm=room_width_cm,
+                room_depth_cm=room_depth_cm,
+                random_seed=random_seed,
+                index_hint=index,
+                require_style=True,
+                exclude_ids={current_item.get("furniture_id")},
+            )
+            if replacement is None:
+                replacement = current_item
+            reshuffled.append(replacement)
+            if replacement.get("furniture_id"):
+                used_ids.add(replacement["furniture_id"])
+        selected_items = reshuffled
+        mutation_message = "已依目前風格重新抽換家具，並重新配置整個房間。"
+
+    else:
+        raise ValueError(f"不支援的場景動作：{action}")
+
+    objects, layout_warnings = generate_layout(
+        room_width_cm,
+        room_depth_cm,
+        selected_items,
+        parsed_floorplan,
+    )
+
+    updated = {
+        **scene_data,
+        "scene_id": f"scene_{uuid.uuid4().hex[:10]}",
+        "placement_engine": "furniture_engine",
+        "layout_warnings": layout_warnings,
+        "selected_furniture": selected_items,
+        "scene_objects": objects,
+        "mutation_message": mutation_message,
+    }
+
+    questionnaire = dict(updated.get("questionnaire") or {})
+    questionnaire["required_furniture"] = list(
+        dict.fromkeys(
+            item.get("normalized_type")
+            for item in selected_items
+            if item.get("normalized_type")
+        )
+    )
+    updated["questionnaire"] = questionnaire
+
+    plan_json = dict(updated.get("plan_json") or {})
+    plan_json["required_furniture"] = questionnaire["required_furniture"]
+    updated["plan_json"] = plan_json
+
+    return updated
 
 
 def save_uploaded_floorplan(upload_dir: Path, upload) -> str | None:

@@ -1,40 +1,16 @@
-import { fetchSiteData, formatSize, initBackgroundFx, styleNameMap } from "./common.js?v=20260704e";
-import { createViewer } from "./viewer.js?v=20260704c";
-import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260705a";
+import {
+  fetchSiteData,
+  formatSize,
+  formatTypeLabel,
+  initBackgroundFx,
+  scrollPageTop,
+  styleNameMap,
+} from "./common.js?v=20260707a";
+import { createViewer } from "./viewer.js?v=20260707a";
+import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260707a";
 
 const data = await fetchSiteData();
 const styleNames = styleNameMap(data.styles);
-
-const TYPE_LABELS = {
-  armchair: "扶手椅",
-  "bar-table": "吧台桌",
-  bed: "床",
-  "bed-frame": "床架",
-  "bedside-table": "床頭櫃",
-  bookcase: "書櫃",
-  "cabinets-cupboard": "櫃體",
-  "childrens-furniture": "兒童家具",
-  "childrens-stools-benche": "兒童椅凳",
-  "coffee-table": "茶几",
-  desk: "書桌",
-  "dining-chair": "餐椅",
-  "dining-table": "餐桌",
-  "large-medium-rug": "地毯",
-  "office-chair": "辦公椅",
-  "pax-wardrobe": "衣櫃",
-  "runner-small-rug": "長型地毯",
-  sideboard: "邊櫃",
-  sofa: "沙發",
-  "sofa-bed": "沙發床",
-  "storage-boxes-basket": "收納盒",
-  "storage-solution-system": "收納系統",
-  "stool-bench": "凳子 / 長凳",
-  "table-lamp": "桌燈",
-  trolley: "推車",
-  "tv-bench": "電視櫃",
-  "wall-mirror": "壁鏡",
-  "wall-shelf": "壁架",
-};
 
 const COLOR_LABELS = {
   black: "黑色",
@@ -63,6 +39,12 @@ const state = {
   itemsPerPage: 21,
 };
 
+const libraryTopAnchor = document.querySelector(".page-shell.two-column-shell > section.page-panel");
+
+function scrollLibraryTop() {
+  scrollPageTop(libraryTopAnchor, 18);
+}
+
 const elements = {
   searchInput: document.getElementById("search-input"),
   styleFilter: document.getElementById("style-filter"),
@@ -88,7 +70,7 @@ function formatStyleName(styleId) {
 }
 
 function formatType(typeName) {
-  return TYPE_LABELS[typeName] || typeName || "未分類";
+  return formatTypeLabel(typeName);
 }
 
 function formatColor(colorText) {
@@ -207,11 +189,16 @@ function renderPagination(totalPages) {
     elements.libraryPagination.appendChild(button);
   };
 
-  addButton("上一頁", () => {
-    state.currentPage -= 1;
-    renderLibrary();
-    syncActiveCard();
-  }, state.currentPage === 1);
+  addButton(
+    "上一頁",
+    () => {
+      state.currentPage -= 1;
+      renderLibrary();
+      syncActiveCard();
+      scrollLibraryTop();
+    },
+    state.currentPage === 1
+  );
 
   const visiblePages = buildVisiblePages(totalPages);
   let previousPage = 0;
@@ -221,20 +208,31 @@ function renderPagination(totalPages) {
       addButton("...", () => {}, true, false, true);
     }
 
-    addButton(String(page), () => {
-      state.currentPage = page;
-      renderLibrary();
-      syncActiveCard();
-    }, false, page === state.currentPage);
+    addButton(
+      String(page),
+      () => {
+        state.currentPage = page;
+        renderLibrary();
+        syncActiveCard();
+        scrollLibraryTop();
+      },
+      false,
+      page === state.currentPage
+    );
 
     previousPage = page;
   });
 
-  addButton("下一頁", () => {
-    state.currentPage += 1;
-    renderLibrary();
-    syncActiveCard();
-  }, state.currentPage === totalPages);
+  addButton(
+    "下一頁",
+    () => {
+      state.currentPage += 1;
+      renderLibrary();
+      syncActiveCard();
+      scrollLibraryTop();
+    },
+    state.currentPage === totalPages
+  );
 }
 
 function renderLibrary() {

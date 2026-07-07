@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -10,19 +11,188 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
-from .scene_pipeline import build_scene_payload, get_openrouter_status
+from .scene_pipeline import build_scene_payload, get_openrouter_status, mutate_scene_payload
 
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent
 STATIC_DIR = BASE_DIR / "static"
 MOODBOARD_DIR = PROJECT_DIR / "docs" / "moodboard_assets"
+SURFACE_ASSET_DIR = PROJECT_DIR / "dataset" / "floor_materials_pack_1"
 STYLE_DB_PATH = PROJECT_DIR / "sf3d" / "metadata" / "ikea_furniture_style_database.json"
+
+SURFACE_CATALOG_PATCHES = {
+    "walls": {
+        "auto": {
+            "name_zh": "依風格自動",
+            "category_zh": "牆面",
+            "material_zh": "系統推薦",
+            "finish_zh": "依風格自動",
+        },
+        "warm_white": {
+            "name_zh": "暖白牆面",
+            "category_zh": "乳膠漆",
+            "material_zh": "漆面",
+            "finish_zh": "暖白霧面",
+        },
+        "milk_tea": {
+            "name_zh": "暖白奶茶牆",
+            "category_zh": "乳膠漆",
+            "material_zh": "漆面",
+            "finish_zh": "奶茶低彩",
+        },
+        "light_gray": {
+            "name_zh": "冷灰牆面",
+            "category_zh": "乳膠漆",
+            "material_zh": "漆面",
+            "finish_zh": "霧面冷灰",
+        },
+        "graphite_gray": {
+            "name_zh": "石墨灰牆面",
+            "category_zh": "主題牆",
+            "material_zh": "漆面",
+            "finish_zh": "深灰平滑",
+        },
+        "blue_gray": {
+            "name_zh": "灰藍牆面",
+            "category_zh": "主題牆",
+            "material_zh": "漆面",
+            "finish_zh": "灰藍霧面",
+        },
+        "mineral_beige": {
+            "name_zh": "礦物米灰牆",
+            "category_zh": "礦物塗料",
+            "material_zh": "礦物塗層",
+            "finish_zh": "礦物肌理",
+        },
+        "limewash": {
+            "name_zh": "暖白礦物漆",
+            "category_zh": "礦物塗料",
+            "material_zh": "礦物塗層",
+            "finish_zh": "手刷紋理",
+        },
+        "charcoal": {
+            "name_zh": "深灰牆面",
+            "category_zh": "主題牆",
+            "material_zh": "漆面",
+            "finish_zh": "深炭灰",
+        },
+        "concrete_gray": {
+            "name_zh": "礦物水泥牆",
+            "category_zh": "清水模",
+            "material_zh": "礦物塗層",
+            "finish_zh": "冷灰水泥感",
+        },
+        "brick_rust": {
+            "name_zh": "紅磚鏽棕牆",
+            "category_zh": "仿磚牆",
+            "material_zh": "磚紋塗層",
+            "finish_zh": "粗獷磚感",
+        },
+        "greige_panel": {
+            "name_zh": "暖米灰線板牆",
+            "category_zh": "線板牆",
+            "material_zh": "木作線板",
+            "finish_zh": "暖米灰線板",
+        },
+        "caramel_beige": {
+            "name_zh": "焦糖米棕牆",
+            "category_zh": "主題牆",
+            "material_zh": "漆面",
+            "finish_zh": "焦糖霧面",
+        },
+    },
+    "floors": {
+        "auto": {
+            "name_zh": "依風格推薦",
+            "category_zh": "地坪",
+            "material_zh": "系統推薦",
+            "finish_zh": "依風格自動",
+        },
+        "light_oak": {
+            "name_zh": "淺橡木地板",
+            "category_zh": "木地板",
+            "material_zh": "實木紋",
+            "finish_zh": "淺木直鋪",
+        },
+        "medium_oak": {
+            "name_zh": "中橡木地板",
+            "category_zh": "木地板",
+            "material_zh": "實木紋",
+            "finish_zh": "中木直鋪",
+        },
+        "herringbone_oak": {
+            "name_zh": "人字拼淺木地板",
+            "category_zh": "拼花木地板",
+            "material_zh": "實木紋",
+            "finish_zh": "人字拼",
+        },
+        "walnut": {
+            "name_zh": "胡桃木地板",
+            "category_zh": "木地板",
+            "material_zh": "深木紋",
+            "finish_zh": "胡桃木直鋪",
+        },
+        "white_oak_tile": {
+            "name_zh": "淺木紋地磚",
+            "category_zh": "木紋磚",
+            "material_zh": "瓷磚",
+            "finish_zh": "淺木紋拼貼",
+        },
+        "smoked_walnut_tile": {
+            "name_zh": "煙燻胡桃木紋磚",
+            "category_zh": "木紋磚",
+            "material_zh": "瓷磚",
+            "finish_zh": "深木紋拼貼",
+        },
+        "stone_gray": {
+            "name_zh": "霧面石紋灰磚",
+            "category_zh": "石紋磚",
+            "material_zh": "瓷磚",
+            "finish_zh": "灰石紋",
+        },
+        "stone_beige": {
+            "name_zh": "暖米石紋磚",
+            "category_zh": "石紋磚",
+            "material_zh": "瓷磚",
+            "finish_zh": "米色石紋",
+        },
+        "marble": {
+            "name_zh": "亮面大理石地磚",
+            "category_zh": "大理石磚",
+            "material_zh": "瓷磚",
+            "finish_zh": "暖白大理石",
+        },
+        "marble_gray": {
+            "name_zh": "灰紋大理石地磚",
+            "category_zh": "大理石磚",
+            "material_zh": "瓷磚",
+            "finish_zh": "冷灰大理石",
+        },
+        "microcement": {
+            "name_zh": "微水泥無縫地坪",
+            "category_zh": "無縫地坪",
+            "material_zh": "微水泥",
+            "finish_zh": "霧面礦物感",
+        },
+    },
+}
+
+DIMENSION_PATTERN = re.compile(
+    r"(?P<width>\d+(?:\.\d+)?)\s*[x×]\s*(?P<depth>\d+(?:\.\d+)?)(?:\s*[x×]\s*(?P<height>\d+(?:\.\d+)?))?",
+    re.IGNORECASE,
+)
+SINGLE_DIMENSION_PATTERN = re.compile(
+    r"(?:直徑\s*)?(?P<value>\d+(?:\.\d+)?)\s*(?:cm|公分|厘米)\b",
+    re.IGNORECASE,
+)
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/docs-assets", StaticFiles(directory=MOODBOARD_DIR), name="docs-assets")
+if SURFACE_ASSET_DIR.exists():
+    app.mount("/surface-assets", StaticFiles(directory=SURFACE_ASSET_DIR), name="surface-assets")
 
 
 def _normalize_posix_path(path_text: str) -> str:
@@ -48,6 +218,113 @@ def _model_status(model_path_text: str | None) -> tuple[bool, str]:
 
 def load_style_database() -> dict:
     return json.loads(STYLE_DB_PATH.read_text(encoding="utf-8"))
+
+
+def _looks_broken_text(value: str | None) -> bool:
+    text = str(value or "").strip()
+    return not text or "?" in text
+
+
+def _extract_dimensions_from_text(*candidates: str | None) -> dict:
+    for candidate in candidates:
+        if not candidate:
+            continue
+        match = DIMENSION_PATTERN.search(str(candidate))
+        if not match:
+            continue
+
+        extracted = {}
+        for key in ("width", "depth", "height"):
+            value = match.group(key)
+            if not value:
+                continue
+            numeric = float(value)
+            if numeric > 0:
+                extracted[key] = numeric
+        if extracted:
+            return extracted
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+        match = SINGLE_DIMENSION_PATTERN.search(str(candidate))
+        if not match:
+            continue
+
+        numeric = float(match.group("value"))
+        if numeric > 0:
+            return {"width": numeric}
+
+    return {}
+
+
+def _normalize_size_cm(raw_size: dict | None, *text_candidates: str | None) -> dict | None:
+    normalized: dict[str, float] = {}
+    if isinstance(raw_size, dict):
+        for source_key, target_key in (
+            ("width", "width"),
+            ("w", "width"),
+            ("depth", "depth"),
+            ("d", "depth"),
+            ("height", "height"),
+            ("h", "height"),
+        ):
+            value = raw_size.get(source_key)
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                continue
+            if numeric > 0:
+                normalized[target_key] = numeric
+
+    for key, value in _extract_dimensions_from_text(*text_candidates).items():
+        normalized.setdefault(key, value)
+
+    return normalized or None
+
+
+def _normalize_surface_catalog(raw_catalog: dict | None) -> dict:
+    catalog = raw_catalog or {"walls": [], "floors": []}
+    normalized = {"walls": [], "floors": []}
+
+    for kind in ("walls", "floors"):
+        for item in catalog.get(kind, []):
+            surface_id = item.get("surface_id")
+            patch = SURFACE_CATALOG_PATCHES.get(kind, {}).get(surface_id, {})
+            record = {**item, **patch}
+            normalized[kind].append(record)
+
+    return normalized
+
+
+def _normalize_surface_recommendations(items: list[dict] | None, surface_map: dict[str, dict]) -> list[dict]:
+    normalized = []
+    for item in items or []:
+        surface_id = item.get("surface_id")
+        surface = surface_map.get(surface_id, {})
+        record = dict(item)
+
+        for key in ("name_zh", "category_zh", "material_zh", "finish_zh", "preview_url", "texture_url", "base_hex", "accent_hex"):
+            if _looks_broken_text(record.get(key)) or record.get(key) is None:
+                if surface.get(key) is not None:
+                    record[key] = surface.get(key)
+
+        normalized.append(record)
+
+    return normalized
+
+
+def _normalize_scene_background(background: dict | None, wall_map: dict[str, dict], floor_map: dict[str, dict]) -> dict:
+    normalized = dict(background or {})
+    wall_surface = wall_map.get(normalized.get("wall_surface_id"), {})
+    floor_surface = floor_map.get(normalized.get("floor_surface_id"), {})
+
+    if _looks_broken_text(normalized.get("wall_zh")):
+        normalized["wall_zh"] = wall_surface.get("name_zh", "未指定牆面")
+    if _looks_broken_text(normalized.get("floor_zh")):
+        normalized["floor_zh"] = floor_surface.get("name_zh", "未指定地板")
+
+    return normalized
 
 
 @lru_cache(maxsize=2048)
@@ -172,6 +449,9 @@ def build_site_payload() -> dict:
     raw = load_style_database()
     furniture_items = raw.get("furniture", [])
     furniture_by_id = {item["furniture_id"]: item for item in furniture_items}
+    surface_catalog = _normalize_surface_catalog(raw.get("surface_catalog", {"walls": [], "floors": []}))
+    wall_surface_map = {item.get("surface_id"): item for item in surface_catalog.get("walls", [])}
+    floor_surface_map = {item.get("surface_id"): item for item in surface_catalog.get("floors", [])}
 
     styles = []
     for style in raw.get("styles", []):
@@ -185,6 +465,11 @@ def build_site_payload() -> dict:
                 continue
 
             has_model, model_reason = _model_status(furniture.get("glb_absolute_path"))
+            normalized_size = _normalize_size_cm(
+                furniture.get("size_cm"),
+                furniture.get("name_zh_raw"),
+                furniture.get("name_en"),
+            )
             representative_cards.append(
                 {
                     "furniture_id": furniture_id,
@@ -194,7 +479,7 @@ def build_site_payload() -> dict:
                     "primary_style": furniture.get("primary_style"),
                     "color": furniture.get("color"),
                     "material": furniture.get("material"),
-                    "size_cm": furniture.get("size_cm"),
+                    "size_cm": normalized_size,
                     "card_image_url": _safe_relative_url(
                         card_path.replace("docs/moodboard_assets/", "", 1)
                         if card_path.startswith("docs/moodboard_assets/")
@@ -218,9 +503,9 @@ def build_site_payload() -> dict:
                 "materials_zh": style.get("materials_zh", []),
                 "shape_features_zh": style.get("shape_features_zh", []),
                 "avoid_elements_zh": style.get("avoid_elements_zh", []),
-                "scene_background": style.get("scene_background", {}),
-                "wall_recommendations": style.get("wall_recommendations", []),
-                "floor_recommendations": style.get("floor_recommendations", []),
+                "scene_background": _normalize_scene_background(style.get("scene_background", {}), wall_surface_map, floor_surface_map),
+                "wall_recommendations": _normalize_surface_recommendations(style.get("wall_recommendations", []), wall_surface_map),
+                "floor_recommendations": _normalize_surface_recommendations(style.get("floor_recommendations", []), floor_surface_map),
                 "recommended_wall_floor_pairs_zh": style.get("recommended_wall_floor_pairs_zh", []),
                 "visual_theme": style.get("visual_theme", {}),
                 "palette_hex": style.get("palette_hex", []),
@@ -236,6 +521,11 @@ def build_site_payload() -> dict:
     furniture_payload = []
     for item in furniture_items:
         has_model, model_reason = _model_status(item.get("glb_absolute_path"))
+        normalized_size = _normalize_size_cm(
+            item.get("size_cm"),
+            item.get("name_zh_raw"),
+            item.get("name_en"),
+        )
         furniture_payload.append(
             {
                 "furniture_id": item.get("furniture_id"),
@@ -249,7 +539,7 @@ def build_site_payload() -> dict:
                 "style_assignment_source": item.get("style_assignment_source"),
                 "color": item.get("color"),
                 "material": item.get("material"),
-                "size_cm": item.get("size_cm"),
+                "size_cm": normalized_size,
                 "must_against_wall": item.get("must_against_wall"),
                 "can_rotate": item.get("can_rotate"),
                 "has_model": has_model,
@@ -274,6 +564,7 @@ def build_site_payload() -> dict:
         "summary": raw.get("summary", {}),
         "styles": styles,
         "furniture": furniture_payload,
+        "surface_catalog": surface_catalog,
         "featured_models": featured_models,
         "missing_model_count": sum(1 for item in furniture_payload if not item["has_model"]),
     }
@@ -348,6 +639,18 @@ async def generate_scene(payload: dict) -> dict:
         room_width_cm=float(payload.get("room_width_cm", 420)),
         room_depth_cm=float(payload.get("room_depth_cm", 360)),
     )
+
+
+@app.post("/api/scene/mutate")
+async def mutate_scene(payload: dict) -> dict:
+    site_payload = build_site_payload()
+    scene_data = payload.get("scene_data") or {}
+    action = payload.get("action")
+
+    try:
+        return mutate_scene_payload(site_payload, scene_data, action, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/furniture/{furniture_id}/model")

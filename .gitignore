@@ -37,8 +37,8 @@ web_fastapi/static/model_probe.*
 
 # Only docs/moodboard_assets is required for the current website.
 docs/*
+!docs/*.md
 !docs/moodboard_assets/
 !docs/moodboard_assets/**
 
 AGENTS.md
-PROJECT_CONTEXT.md

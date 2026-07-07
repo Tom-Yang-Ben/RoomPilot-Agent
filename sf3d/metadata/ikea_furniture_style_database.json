@@ -219,7 +219,12 @@
     "source_root": "D:\\產業新兵計畫\\期末專題\\test_furniture\\dataset\\ikea_glb_db\\ikea抓取家具glb_中文命名版",
     "moodboard_docx": "docs/ikea_style_moodboard.docx",
     "distribution_csv": "docs/furniture_style_distribution_by_type.csv",
-    "distribution_xlsx": "docs/furniture_style_distribution.xlsx"
+    "distribution_xlsx": "docs/furniture_style_distribution.xlsx",
+    "surface_catalog": {
+      "walls": 13,
+      "floors": 12,
+      "note_zh": "????????? 12 ???????? catalog?? styles ? scene ?????"
+    }
   },
   "styles": [
     {
@@ -265,9 +270,11 @@
         "高彩度撞色"
       ],
       "scene_background": {
-        "wall_zh": "暖白或奶白牆面",
-        "floor_zh": "淺木地板",
-        "overall_zh": "明亮、自然、乾淨、舒適"
+        "wall_zh": "暖白或奶茶色牆面",
+        "floor_zh": "淺橡木地板或白橡木紋磚",
+        "overall_zh": "明亮、自然、乾淨、舒適，避免明顯跳色。",
+        "wall_surface_id": "warm_white",
+        "floor_surface_id": "light_oak"
       },
       "visual_theme": {
         "background_start": "#FCFAF5",
@@ -277,7 +284,9 @@
         "title_color": "#324761",
         "body_color": "#4E5357",
         "accent_fill": "#E1E9F3",
-        "accent_text": "#315F8C"
+        "accent_text": "#315F8C",
+        "default_wall_surface_id": "warm_white",
+        "default_floor_surface_id": "light_oak"
       },
       "rule": {
         "positive": [
@@ -377,53 +386,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "warm_white_paint",
-          "name_zh": "?????",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "?????????????????????????"
+          "surface_id": "warm_white",
+          "name_zh": "暖白牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+          "base_hex": "#f8f2ea",
+          "accent_hex": "#ddd3c4",
+          "tone_zh": "暖白",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "soft_greige_paint",
-          "name_zh": "?????",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "??????????????????"
+          "surface_id": "milk_tea",
+          "name_zh": "奶茶色牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "比白色更柔和，能增加居家溫度與包覆感。",
+          "base_hex": "#e0c9ad",
+          "accent_hex": "#baa081",
+          "tone_zh": "奶茶色",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "mist_gray_paint",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "?????????????????????"
+          "surface_id": "greige_panel",
+          "name_zh": "米灰線板牆",
+          "finish_zh": "線板 / 乳膠漆",
+          "why_zh": "有精緻線條但不厚重，適合台灣居家的美式與古典風。",
+          "base_hex": "#efe6d9",
+          "accent_hex": "#d8cabc",
+          "tone_zh": "米灰線板",
+          "material_zh": "線板 / 乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "light_oak_floor",
-          "name_zh": "?????",
-          "material_zh": "??? / SPC ??",
-          "finish_zh": "????",
-          "why_zh": "???????????????????"
+          "surface_id": "light_oak",
+          "name_zh": "淺橡木地板",
+          "finish_zh": "淺木紋、霧面",
+          "why_zh": "明亮、自然、低壓，適合北歐、無印與清爽居家風格。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+          "base_hex": "#e7cca1",
+          "accent_hex": "#be9871",
+          "material_zh": "木紋材質"
         },
         {
-          "id": "ash_wood_floor",
-          "name_zh": "?????",
-          "material_zh": "??????",
-          "finish_zh": "???",
-          "why_zh": "????????????????????"
+          "surface_id": "white_oak_plank",
+          "name_zh": "白橡木長板地板",
+          "finish_zh": "長板拼接、自然木紋",
+          "why_zh": "比一般淺木更有拼接線條，適合需要質感但不要太花的空間。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor007.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor007.jpg",
+          "base_hex": "#e5c796",
+          "accent_hex": "#c19866",
+          "material_zh": "實木 / 木紋材質"
         },
         {
-          "id": "beige_stone_floor",
-          "name_zh": "??????",
-          "material_zh": "??? / SPC ??",
-          "finish_zh": "????",
-          "why_zh": "?????????????????????"
+          "surface_id": "white_oak_tile",
+          "name_zh": "白橡木紋磚",
+          "finish_zh": "白橡木紋、霧面",
+          "why_zh": "保留木紋但更耐磨，適合台灣住宅與好清潔需求。",
+          "preview_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+          "texture_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+          "base_hex": "#ddc79f",
+          "accent_hex": "#b69368",
+          "material_zh": "木紋磚"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "????? + ?????",
-        "????? + ?????"
+        "暖白牆面 + 淺橡木地板",
+        "奶茶色牆面 + 白橡木長板地板",
+        "米灰線板牆 + 白橡木紋磚"
+      ],
+      "default_wall_surface_id": "warm_white",
+      "default_floor_surface_id": "light_oak",
+      "wall_surface_ids": [
+        "warm_white",
+        "milk_tea"
+      ],
+      "floor_surface_ids": [
+        "light_oak",
+        "white_oak_tile"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "????? + ?????",
+          "wall_surface_id": "warm_white",
+          "floor_surface_id": "light_oak"
+        },
+        {
+          "label_zh": "????? + ?????",
+          "wall_surface_id": "milk_tea",
+          "floor_surface_id": "white_oak_tile"
+        }
       ]
     },
     {
@@ -467,9 +520,11 @@
         "過度復古"
       ],
       "scene_background": {
-        "wall_zh": "冷白或霧灰牆面",
-        "floor_zh": "石紋地坪或深灰木地板",
-        "overall_zh": "簡潔、理性、通透、都會"
+        "wall_zh": "冷灰或石墨灰牆面",
+        "floor_zh": "煙燻灰清水模磚或灰紋大理石地磚",
+        "overall_zh": "俐落、中性、理性，強調線條與機能。",
+        "wall_surface_id": "light_gray",
+        "floor_surface_id": "concrete_gray_tile"
       },
       "visual_theme": {
         "background_start": "#F5F7FA",
@@ -479,7 +534,9 @@
         "title_color": "#1F2F45",
         "body_color": "#48515D",
         "accent_fill": "#DCE7F3",
-        "accent_text": "#294D73"
+        "accent_text": "#294D73",
+        "default_wall_surface_id": "light_gray",
+        "default_floor_surface_id": "stone_gray"
       },
       "rule": {
         "positive": [
@@ -571,53 +628,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "cool_white_paint",
-          "name_zh": "????",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "?????????????????????"
+          "surface_id": "light_gray",
+          "name_zh": "冷灰牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "俐落中性，適合現代與北歐現代風格。",
+          "base_hex": "#dfe2e5",
+          "accent_hex": "#c7cbd1",
+          "tone_zh": "冷灰",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "light_gray_paint",
-          "name_zh": "????",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "????????????????????"
+          "surface_id": "graphite_gray",
+          "name_zh": "石墨灰牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "深色低彩度牆面，能突顯金屬、玻璃與線條感。",
+          "base_hex": "#65676c",
+          "accent_hex": "#8a8d92",
+          "tone_zh": "石墨灰",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "graphite_accent_wall",
-          "name_zh": "??????",
-          "tone_zh": "??",
-          "finish_zh": "???",
-          "why_zh": "??? TV ????????????"
+          "surface_id": "warm_white",
+          "name_zh": "暖白牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+          "base_hex": "#f8f2ea",
+          "accent_hex": "#ddd3c4",
+          "tone_zh": "暖白",
+          "material_zh": "乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "stone_gray_floor",
-          "name_zh": "?????",
-          "material_zh": "??? / SPC ??",
-          "finish_zh": "???",
-          "why_zh": "?????????????"
+          "surface_id": "concrete_gray_tile",
+          "name_zh": "煙燻灰清水模磚",
+          "finish_zh": "霧面、水泥質感",
+          "why_zh": "牆地一致性強，適合現代、工業與低彩度場景。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+          "base_hex": "#c4bbb1",
+          "accent_hex": "#928a82",
+          "material_zh": "清水模磁磚"
         },
         {
-          "id": "microcement_floor",
-          "name_zh": "?????",
-          "material_zh": "??? / ????",
-          "finish_zh": "??",
-          "why_zh": "????????????????"
+          "surface_id": "stone_gray",
+          "name_zh": "霧面石紋灰磚",
+          "finish_zh": "灰階霧面、石紋",
+          "why_zh": "中性、乾淨且有磁磚分割感，適合現代簡約。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+          "base_hex": "#d6d2cd",
+          "accent_hex": "#bdb7b2",
+          "material_zh": "磁磚"
         },
         {
-          "id": "light_oak_floor",
-          "name_zh": "?????",
-          "material_zh": "??? / SPC ??",
-          "finish_zh": "????",
-          "why_zh": "??????????????"
+          "surface_id": "marble_gray",
+          "name_zh": "灰紋大理石地磚",
+          "finish_zh": "亮面、灰階紋理",
+          "why_zh": "比暖白大理石更沉穩，適合古典與現代奢華。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CTU128089.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CTU128089.png",
+          "base_hex": "#dcd7d1",
+          "accent_hex": "#a39a93",
+          "material_zh": "磁磚"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "???? + ?????",
-        "???? + ?????"
+        "冷灰牆面 + 煙燻灰清水模磚",
+        "石墨灰牆面 + 灰紋大理石地磚",
+        "暖白牆面 + 霧面石紋灰磚"
+      ],
+      "default_wall_surface_id": "light_gray",
+      "default_floor_surface_id": "concrete_gray_tile",
+      "wall_surface_ids": [
+        "light_gray",
+        "graphite_gray"
+      ],
+      "floor_surface_ids": [
+        "stone_gray",
+        "microcement"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "????? + ?????",
+          "wall_surface_id": "light_gray",
+          "floor_surface_id": "stone_gray"
+        },
+        {
+          "label_zh": "?????? + ???????",
+          "wall_surface_id": "graphite_gray",
+          "floor_surface_id": "microcement"
+        }
       ]
     },
     {
@@ -661,9 +762,11 @@
         "過度裝飾"
       ],
       "scene_background": {
-        "wall_zh": "淡色牆面",
-        "floor_zh": "自然木地板",
-        "overall_zh": "平和、柔和、輕鬆、回歸本質"
+        "wall_zh": "暖白或礦物米灰牆面",
+        "floor_zh": "白橡木長板地板或杏白木紋磚",
+        "overall_zh": "留白、木質、安靜、生活感，避免過度裝飾。",
+        "wall_surface_id": "warm_white",
+        "floor_surface_id": "white_oak_plank"
       },
       "visual_theme": {
         "background_start": "#FBF6EE",
@@ -673,7 +776,9 @@
         "title_color": "#4B5A4D",
         "body_color": "#5A5854",
         "accent_fill": "#E8E0D4",
-        "accent_text": "#6C6A55"
+        "accent_text": "#6C6A55",
+        "default_wall_surface_id": "warm_white",
+        "default_floor_surface_id": "light_oak"
       },
       "rule": {
         "positive": [
@@ -748,53 +853,97 @@
       "representative_furniture_cards": [],
       "wall_recommendations": [
         {
-          "id": "cream_white_paint",
-          "name_zh": "????",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "??????????????????"
+          "surface_id": "warm_white",
+          "name_zh": "暖白牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+          "base_hex": "#f8f2ea",
+          "accent_hex": "#ddd3c4",
+          "tone_zh": "暖白",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "linen_beige_paint",
-          "name_zh": "?????",
-          "tone_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "??????????????"
+          "surface_id": "mineral_beige",
+          "name_zh": "礦物米灰牆",
+          "finish_zh": "礦物塗料",
+          "why_zh": "低飽和米灰質感，適合侘寂、輕奢與自然系空間。",
+          "base_hex": "#d0baa0",
+          "accent_hex": "#b59a7d",
+          "tone_zh": "礦物米灰",
+          "material_zh": "礦物塗料"
         },
         {
-          "id": "pale_gray_paint",
-          "name_zh": "????",
-          "tone_zh": "??",
-          "finish_zh": "???",
-          "why_zh": "??????????????"
+          "surface_id": "limewash",
+          "name_zh": "灰泥刷紋牆",
+          "finish_zh": "礦物塗料",
+          "why_zh": "帶手刷紋理與陰影層次，能呈現樸質、慢生活感。",
+          "base_hex": "#e6dac8",
+          "accent_hex": "#bfa98e",
+          "tone_zh": "灰泥刷紋",
+          "material_zh": "礦物塗料"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "natural_oak_floor",
-          "name_zh": "?????",
-          "material_zh": "??? / SPC ??",
-          "finish_zh": "??",
-          "why_zh": "?????????????????"
+          "surface_id": "white_oak_plank",
+          "name_zh": "白橡木長板地板",
+          "finish_zh": "長板拼接、自然木紋",
+          "why_zh": "比一般淺木更有拼接線條，適合需要質感但不要太花的空間。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor007.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor007.jpg",
+          "base_hex": "#e5c796",
+          "accent_hex": "#c19866",
+          "material_zh": "實木 / 木紋材質"
         },
         {
-          "id": "ash_wood_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "????????????"
+          "surface_id": "light_oak",
+          "name_zh": "淺橡木地板",
+          "finish_zh": "淺木紋、霧面",
+          "why_zh": "明亮、自然、低壓，適合北歐、無印與清爽居家風格。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+          "base_hex": "#e7cca1",
+          "accent_hex": "#be9871",
+          "material_zh": "木紋材質"
         },
         {
-          "id": "light_microcement_floor",
-          "name_zh": "?????",
-          "material_zh": "??? / ????",
-          "finish_zh": "??",
-          "why_zh": "????????????????"
+          "surface_id": "white_wood_look_tile",
+          "name_zh": "杏白木紋磚",
+          "finish_zh": "杏白、霧面",
+          "why_zh": "更淡雅乾淨，適合無印、北歐與小坪數放大感。",
+          "preview_url": "/surface-assets/ccity-wood-look-tiles/ccity-CAL288001.png",
+          "texture_url": "/surface-assets/ccity-wood-look-tiles/ccity-CAL288001.png",
+          "base_hex": "#eadcc8",
+          "accent_hex": "#cdb99b",
+          "material_zh": "白橡木紋磚"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "???? + ?????",
-        "????? + ??????"
+        "暖白牆面 + 白橡木長板地板",
+        "礦物米灰牆 + 杏白木紋磚",
+        "灰泥刷紋牆 + 淺橡木地板"
+      ],
+      "default_wall_surface_id": "warm_white",
+      "default_floor_surface_id": "white_oak_plank",
+      "wall_surface_ids": [
+        "warm_white",
+        "mineral_beige"
+      ],
+      "floor_surface_ids": [
+        "light_oak",
+        "white_oak_tile"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "????? + ??????",
+          "wall_surface_id": "warm_white",
+          "floor_surface_id": "light_oak"
+        },
+        {
+          "label_zh": "?????? + ??????",
+          "wall_surface_id": "mineral_beige",
+          "floor_surface_id": "white_oak_tile"
+        }
       ]
     },
     {
@@ -838,9 +987,11 @@
         "過度宮廷裝飾"
       ],
       "scene_background": {
-        "wall_zh": "白色、灰白或奶茶色牆面",
-        "floor_zh": "淺木地板",
-        "overall_zh": "明亮、乾淨、舒適、帶現代感"
+        "wall_zh": "冷灰、灰藍或暖白牆面",
+        "floor_zh": "白橡木紋磚或淺橡木地板",
+        "overall_zh": "明亮基底搭配灰藍點綴，保留北歐自然感並加入現代線條。",
+        "wall_surface_id": "light_gray",
+        "floor_surface_id": "white_oak_tile"
       },
       "visual_theme": {
         "background_start": "#FAF8F4",
@@ -850,7 +1001,9 @@
         "title_color": "#314455",
         "body_color": "#55606A",
         "accent_fill": "#DCE5ED",
-        "accent_text": "#49657E"
+        "accent_text": "#49657E",
+        "default_wall_surface_id": "light_gray",
+        "default_floor_surface_id": "light_oak"
       },
       "rule": {
         "positive": [
@@ -939,53 +1092,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "warm_white_paint",
-          "name_zh": "????",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "?????????????????"
+          "surface_id": "light_gray",
+          "name_zh": "冷灰牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "俐落中性，適合現代與北歐現代風格。",
+          "base_hex": "#dfe2e5",
+          "accent_hex": "#c7cbd1",
+          "tone_zh": "冷灰",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "blue_gray_paint",
-          "name_zh": "????",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "???????????????"
+          "surface_id": "blue_gray",
+          "name_zh": "灰藍牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "帶一點藍色的冷灰，適合作為北歐現代或混搭風點綴。",
+          "base_hex": "#a9b6c3",
+          "accent_hex": "#8796a5",
+          "tone_zh": "灰藍",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "soft_gray_paint",
-          "name_zh": "????",
-          "tone_zh": "??",
-          "finish_zh": "???",
-          "why_zh": "???????????????"
+          "surface_id": "warm_white",
+          "name_zh": "暖白牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+          "base_hex": "#f8f2ea",
+          "accent_hex": "#ddd3c4",
+          "tone_zh": "暖白",
+          "material_zh": "乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "light_oak_floor",
-          "name_zh": "????",
-          "material_zh": "??? / SPC ??",
-          "finish_zh": "??",
-          "why_zh": "?????????????????"
+          "surface_id": "white_oak_tile",
+          "name_zh": "白橡木紋磚",
+          "finish_zh": "白橡木紋、霧面",
+          "why_zh": "保留木紋但更耐磨，適合台灣住宅與好清潔需求。",
+          "preview_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+          "texture_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+          "base_hex": "#ddc79f",
+          "accent_hex": "#b69368",
+          "material_zh": "木紋磚"
         },
         {
-          "id": "greige_stone_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "??????????????"
+          "surface_id": "light_oak",
+          "name_zh": "淺橡木地板",
+          "finish_zh": "淺木紋、霧面",
+          "why_zh": "明亮、自然、低壓，適合北歐、無印與清爽居家風格。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+          "base_hex": "#e7cca1",
+          "accent_hex": "#be9871",
+          "material_zh": "木紋材質"
         },
         {
-          "id": "smoked_oak_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "????????????????"
+          "surface_id": "stone_gray",
+          "name_zh": "霧面石紋灰磚",
+          "finish_zh": "灰階霧面、石紋",
+          "why_zh": "中性、乾淨且有磁磚分割感，適合現代簡約。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+          "base_hex": "#d6d2cd",
+          "accent_hex": "#bdb7b2",
+          "material_zh": "磁磚"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "???? + ????",
-        "???? + ??????"
+        "冷灰牆面 + 白橡木紋磚",
+        "灰藍牆面 + 淺橡木地板",
+        "暖白牆面 + 霧面石紋灰磚"
+      ],
+      "default_wall_surface_id": "light_gray",
+      "default_floor_surface_id": "white_oak_tile",
+      "wall_surface_ids": [
+        "light_gray",
+        "blue_gray"
+      ],
+      "floor_surface_ids": [
+        "light_oak",
+        "stone_gray"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "???? + ?????",
+          "wall_surface_id": "light_gray",
+          "floor_surface_id": "light_oak"
+        },
+        {
+          "label_zh": "???? + ??????",
+          "wall_surface_id": "blue_gray",
+          "floor_surface_id": "stone_gray"
+        }
       ]
     },
     {
@@ -1029,9 +1226,11 @@
         "宮廷裝飾"
       ],
       "scene_background": {
-        "wall_zh": "裸露磚牆或水泥灰牆",
-        "floor_zh": "深木地板或清水模地坪",
-        "overall_zh": "粗獷、真實、沉穩、對比強"
+        "wall_zh": "水泥灰牆或鏽紅磚牆",
+        "floor_zh": "微水泥無縫地坪或深胡桃木長板",
+        "overall_zh": "粗獷、真實、沉穩，重點放在材質原始感。",
+        "wall_surface_id": "concrete_gray",
+        "floor_surface_id": "microcement"
       },
       "visual_theme": {
         "background_start": "#2A2A2A",
@@ -1041,7 +1240,9 @@
         "title_color": "#EEE4D8",
         "body_color": "#D9D0C5",
         "accent_fill": "#54463D",
-        "accent_text": "#F0D7BC"
+        "accent_text": "#F0D7BC",
+        "default_wall_surface_id": "concrete_gray",
+        "default_floor_surface_id": "microcement"
       },
       "rule": {
         "positive": [
@@ -1130,53 +1331,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "cement_gray_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "????",
-          "why_zh": "??????????????????"
+          "surface_id": "concrete_gray",
+          "name_zh": "水泥灰牆",
+          "finish_zh": "微水泥 / 清水模",
+          "why_zh": "粗獷但乾淨的灰階表情，適合工業與現代風。",
+          "base_hex": "#968c83",
+          "accent_hex": "#b0a69c",
+          "tone_zh": "水泥灰",
+          "material_zh": "微水泥 / 清水模"
         },
         {
-          "id": "charcoal_wall",
-          "name_zh": "?????",
-          "tone_zh": "??",
-          "finish_zh": "???",
-          "why_zh": "???????????????"
+          "surface_id": "brick_rust",
+          "name_zh": "鏽紅磚牆",
+          "finish_zh": "文化石 / 磚牆",
+          "why_zh": "保留粗獷復古感，適合工業風局部牆面。",
+          "base_hex": "#87553d",
+          "accent_hex": "#ad7c63",
+          "tone_zh": "鏽紅磚",
+          "material_zh": "文化石 / 磚牆"
         },
         {
-          "id": "aged_beige_wall",
-          "name_zh": "?????",
-          "tone_zh": "????",
-          "finish_zh": "???",
-          "why_zh": "???????????"
+          "surface_id": "charcoal",
+          "name_zh": "炭灰牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "深沉視覺焦點，適合工業、古典與局部主牆。",
+          "base_hex": "#59544f",
+          "accent_hex": "#77706a",
+          "tone_zh": "炭灰",
+          "material_zh": "乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "microcement_floor",
-          "name_zh": "?????",
-          "material_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "???????????????"
+          "surface_id": "microcement",
+          "name_zh": "微水泥無縫地坪",
+          "finish_zh": "霧面、低接縫",
+          "why_zh": "連續、安靜、低彩度，適合侘寂與工業風。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220015.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220015.png",
+          "base_hex": "#beb4aa",
+          "accent_hex": "#948a80",
+          "material_zh": "微水泥"
         },
         {
-          "id": "dark_wood_floor",
-          "name_zh": "????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "????????????"
+          "surface_id": "concrete_gray_tile",
+          "name_zh": "煙燻灰清水模磚",
+          "finish_zh": "霧面、水泥質感",
+          "why_zh": "牆地一致性強，適合現代、工業與低彩度場景。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+          "base_hex": "#c4bbb1",
+          "accent_hex": "#928a82",
+          "material_zh": "清水模磁磚"
         },
         {
-          "id": "stone_tile_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "???????????"
+          "surface_id": "dark_walnut_plank",
+          "name_zh": "深胡桃木長板",
+          "finish_zh": "深色長板、粗獷木紋",
+          "why_zh": "更有存在感，適合工業、古典或需要沉穩底色的配置。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor067B.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor067B.jpg",
+          "base_hex": "#67452f",
+          "accent_hex": "#3e281b",
+          "material_zh": "實木地板"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "???? + ?????",
-        "????? + ????"
+        "水泥灰牆 + 微水泥無縫地坪",
+        "鏽紅磚牆 + 深胡桃木長板",
+        "炭灰牆面 + 煙燻灰清水模磚"
+      ],
+      "default_wall_surface_id": "concrete_gray",
+      "default_floor_surface_id": "microcement",
+      "wall_surface_ids": [
+        "concrete_gray",
+        "brick_rust"
+      ],
+      "floor_surface_ids": [
+        "walnut",
+        "microcement"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "???? + ?????",
+          "wall_surface_id": "concrete_gray",
+          "floor_surface_id": "walnut"
+        },
+        {
+          "label_zh": "????? + ????",
+          "wall_surface_id": "brick_rust",
+          "floor_surface_id": "microcement"
+        }
       ]
     },
     {
@@ -1220,9 +1465,11 @@
         "過度時尚感"
       ],
       "scene_background": {
-        "wall_zh": "礦物塗料或微水泥牆面",
-        "floor_zh": "霧面木地板或石材地坪",
-        "overall_zh": "安靜、內斂、沉穩、原始質地"
+        "wall_zh": "礦物米灰或灰泥刷紋牆",
+        "floor_zh": "微水泥無縫地坪或米色石紋地磚",
+        "overall_zh": "低飽和、樸質、留白，讓不完美的材質紋理成為主角。",
+        "wall_surface_id": "mineral_beige",
+        "floor_surface_id": "microcement"
       },
       "visual_theme": {
         "background_start": "#F1E8DE",
@@ -1232,7 +1479,9 @@
         "title_color": "#68594F",
         "body_color": "#655D57",
         "accent_fill": "#E5D7C7",
-        "accent_text": "#7D6755"
+        "accent_text": "#7D6755",
+        "default_wall_surface_id": "mineral_beige",
+        "default_floor_surface_id": "microcement"
       },
       "rule": {
         "positive": [
@@ -1322,53 +1571,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "limewash_beige_wall",
-          "name_zh": "?????",
-          "tone_zh": "????",
-          "finish_zh": "????",
-          "why_zh": "????????????????"
+          "surface_id": "mineral_beige",
+          "name_zh": "礦物米灰牆",
+          "finish_zh": "礦物塗料",
+          "why_zh": "低飽和米灰質感，適合侘寂、輕奢與自然系空間。",
+          "base_hex": "#d0baa0",
+          "accent_hex": "#b59a7d",
+          "tone_zh": "礦物米灰",
+          "material_zh": "礦物塗料"
         },
         {
-          "id": "clay_beige_wall",
-          "name_zh": "?????",
-          "tone_zh": "???",
-          "finish_zh": "????",
-          "why_zh": "?????????"
+          "surface_id": "limewash",
+          "name_zh": "灰泥刷紋牆",
+          "finish_zh": "礦物塗料",
+          "why_zh": "帶手刷紋理與陰影層次，能呈現樸質、慢生活感。",
+          "base_hex": "#e6dac8",
+          "accent_hex": "#bfa98e",
+          "tone_zh": "灰泥刷紋",
+          "material_zh": "礦物塗料"
         },
         {
-          "id": "warm_taupe_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "???????????????"
+          "surface_id": "warm_white",
+          "name_zh": "暖白牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+          "base_hex": "#f8f2ea",
+          "accent_hex": "#ddd3c4",
+          "tone_zh": "暖白",
+          "material_zh": "乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "microcement_floor",
-          "name_zh": "?????",
-          "material_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "????????????????"
+          "surface_id": "microcement",
+          "name_zh": "微水泥無縫地坪",
+          "finish_zh": "霧面、低接縫",
+          "why_zh": "連續、安靜、低彩度，適合侘寂與工業風。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220015.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220015.png",
+          "base_hex": "#beb4aa",
+          "accent_hex": "#948a80",
+          "material_zh": "微水泥"
         },
         {
-          "id": "natural_wood_floor",
-          "name_zh": "?????",
-          "material_zh": "???",
-          "finish_zh": "????",
-          "why_zh": "???????????????"
+          "surface_id": "stone_beige",
+          "name_zh": "米色石紋地磚",
+          "finish_zh": "米色石紋、霧面",
+          "why_zh": "比灰磚更溫暖，適合侘寂、混搭與自然感空間。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CRD612656.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CRD612656.png",
+          "base_hex": "#d5c3ab",
+          "accent_hex": "#b49a7f",
+          "material_zh": "磁磚"
         },
         {
-          "id": "stone_beige_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "????????????????"
+          "surface_id": "light_oak",
+          "name_zh": "淺橡木地板",
+          "finish_zh": "淺木紋、霧面",
+          "why_zh": "明亮、自然、低壓，適合北歐、無印與清爽居家風格。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+          "base_hex": "#e7cca1",
+          "accent_hex": "#be9871",
+          "material_zh": "木紋材質"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "????? + ?????",
-        "????? + ?????"
+        "礦物米灰牆 + 微水泥無縫地坪",
+        "灰泥刷紋牆 + 米色石紋地磚",
+        "暖白牆面 + 淺橡木地板"
+      ],
+      "default_wall_surface_id": "mineral_beige",
+      "default_floor_surface_id": "microcement",
+      "wall_surface_ids": [
+        "mineral_beige",
+        "limewash"
+      ],
+      "floor_surface_ids": [
+        "microcement",
+        "light_oak"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "????? + ?????",
+          "wall_surface_id": "mineral_beige",
+          "floor_surface_id": "microcement"
+        },
+        {
+          "label_zh": "????? + ??????",
+          "wall_surface_id": "limewash",
+          "floor_surface_id": "light_oak"
+        }
       ]
     },
     {
@@ -1412,9 +1705,11 @@
         "大面積黑白對比"
       ],
       "scene_background": {
-        "wall_zh": "米白或奶茶色牆面",
-        "floor_zh": "暖棕木地板或人字拼木地板",
-        "overall_zh": "溫潤、沉穩、復古、舒適"
+        "wall_zh": "焦糖米棕或奶茶色牆面",
+        "floor_zh": "胡桃木地板或焦糖可可清水模磚",
+        "overall_zh": "咖棕、焦糖、奶茶色層次，溫暖厚實但避免過暗。",
+        "wall_surface_id": "caramel_beige",
+        "floor_surface_id": "walnut"
       },
       "visual_theme": {
         "background_start": "#F8EEDF",
@@ -1424,7 +1719,9 @@
         "title_color": "#6D4730",
         "body_color": "#6A5A4D",
         "accent_fill": "#E7C8AB",
-        "accent_text": "#8A5B39"
+        "accent_text": "#8A5B39",
+        "default_wall_surface_id": "caramel_beige",
+        "default_floor_surface_id": "walnut"
       },
       "rule": {
         "positive": [
@@ -1513,53 +1810,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "caramel_beige_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "?????????????????????"
+          "surface_id": "caramel_beige",
+          "name_zh": "焦糖米棕牆",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖咖灰色調，適合美拉德與溫潤居家感。",
+          "base_hex": "#c7a887",
+          "accent_hex": "#9f7c59",
+          "tone_zh": "焦糖米棕",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "taupe_brown_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "???????????????"
+          "surface_id": "milk_tea",
+          "name_zh": "奶茶色牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "比白色更柔和，能增加居家溫度與包覆感。",
+          "base_hex": "#e0c9ad",
+          "accent_hex": "#baa081",
+          "tone_zh": "奶茶色",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "warm_cream_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "??????????"
+          "surface_id": "mineral_beige",
+          "name_zh": "礦物米灰牆",
+          "finish_zh": "礦物塗料",
+          "why_zh": "低飽和米灰質感，適合侘寂、輕奢與自然系空間。",
+          "base_hex": "#d0baa0",
+          "accent_hex": "#b59a7d",
+          "tone_zh": "礦物米灰",
+          "material_zh": "礦物塗料"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "walnut_floor",
-          "name_zh": "?????",
-          "material_zh": "???",
-          "finish_zh": "????",
-          "why_zh": "?????????????"
+          "surface_id": "walnut",
+          "name_zh": "胡桃木地板",
+          "finish_zh": "深木色、霧面",
+          "why_zh": "咖棕色調穩重，適合美拉德、古典與沉穩空間。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood051.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood051.jpg",
+          "base_hex": "#7b563a",
+          "accent_hex": "#4d3221",
+          "material_zh": "實木地板"
         },
         {
-          "id": "smoked_wood_floor",
-          "name_zh": "?????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "????????"
+          "surface_id": "dark_walnut_plank",
+          "name_zh": "深胡桃木長板",
+          "finish_zh": "深色長板、粗獷木紋",
+          "why_zh": "更有存在感，適合工業、古典或需要沉穩底色的配置。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor067B.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor067B.jpg",
+          "base_hex": "#67452f",
+          "accent_hex": "#3e281b",
+          "material_zh": "實木地板"
         },
         {
-          "id": "beige_stone_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "????????????????"
+          "surface_id": "cocoa_concrete_tile",
+          "name_zh": "焦糖可可清水模磚",
+          "finish_zh": "霧面、咖灰色",
+          "why_zh": "咖棕調帶現代感，適合美拉德與沉穩溫暖風格。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220026.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220026.png",
+          "base_hex": "#8a6546",
+          "accent_hex": "#5c3f2b",
+          "material_zh": "清水模磁磚"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "???? + ?????",
-        "???? + ?????"
+        "焦糖米棕牆 + 胡桃木地板",
+        "奶茶色牆面 + 深胡桃木長板",
+        "礦物米灰牆 + 焦糖可可清水模磚"
+      ],
+      "default_wall_surface_id": "caramel_beige",
+      "default_floor_surface_id": "walnut",
+      "wall_surface_ids": [
+        "warm_white",
+        "caramel_beige"
+      ],
+      "floor_surface_ids": [
+        "walnut",
+        "smoked_walnut_tile"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "????? + ?????",
+          "wall_surface_id": "warm_white",
+          "floor_surface_id": "walnut"
+        },
+        {
+          "label_zh": "????? + ?????",
+          "wall_surface_id": "caramel_beige",
+          "floor_surface_id": "smoked_walnut_tile"
+        }
       ]
     },
     {
@@ -1603,9 +1944,11 @@
         "過薄線條"
       ],
       "scene_background": {
-        "wall_zh": "奶油白或線板牆面",
-        "floor_zh": "中深木地板",
-        "overall_zh": "溫馨、舒適、完整、有生活感"
+        "wall_zh": "米灰線板牆或暖白牆面",
+        "floor_zh": "中橡木地板或鄉村刷色木地板",
+        "overall_zh": "台灣住宅適用的美式舒適感，不以壁爐為核心，改用線板、厚實家具與溫潤木地板。",
+        "wall_surface_id": "greige_panel",
+        "floor_surface_id": "medium_oak"
       },
       "visual_theme": {
         "background_start": "#F7E8D7",
@@ -1615,7 +1958,9 @@
         "title_color": "#5F4033",
         "body_color": "#5E544C",
         "accent_fill": "#E8D4BE",
-        "accent_text": "#7D533B"
+        "accent_text": "#7D533B",
+        "default_wall_surface_id": "greige_panel",
+        "default_floor_surface_id": "medium_oak"
       },
       "rule": {
         "positive": [
@@ -1702,53 +2047,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "ivory_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "????????????????????"
+          "surface_id": "greige_panel",
+          "name_zh": "米灰線板牆",
+          "finish_zh": "線板 / 乳膠漆",
+          "why_zh": "有精緻線條但不厚重，適合台灣居家的美式與古典風。",
+          "base_hex": "#efe6d9",
+          "accent_hex": "#d8cabc",
+          "tone_zh": "米灰線板",
+          "material_zh": "線板 / 乳膠漆"
         },
         {
-          "id": "greige_wall",
-          "name_zh": "???",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "??????????????"
+          "surface_id": "warm_white",
+          "name_zh": "暖白牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+          "base_hex": "#f8f2ea",
+          "accent_hex": "#ddd3c4",
+          "tone_zh": "暖白",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "muted_blue_wall",
-          "name_zh": "?????",
-          "tone_zh": "??",
-          "finish_zh": "???",
-          "why_zh": "?????????????????"
+          "surface_id": "milk_tea",
+          "name_zh": "奶茶色牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "比白色更柔和，能增加居家溫度與包覆感。",
+          "base_hex": "#e0c9ad",
+          "accent_hex": "#baa081",
+          "tone_zh": "奶茶色",
+          "material_zh": "乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "walnut_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "??????????????????"
+          "surface_id": "medium_oak",
+          "name_zh": "中橡木地板",
+          "finish_zh": "中木色、溫潤拼接",
+          "why_zh": "保留木質厚度與家庭感，適合美式、混搭與北歐現代。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor062.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor062.jpg",
+          "base_hex": "#c9aa84",
+          "accent_hex": "#9c7756",
+          "material_zh": "拼花木地板"
         },
         {
-          "id": "oak_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "???????????????"
+          "surface_id": "rustic_oak_plank",
+          "name_zh": "鄉村刷色木地板",
+          "finish_zh": "自然刷紋、溫潤木色",
+          "why_zh": "有手感與木節變化，適合美式鄉村與溫暖居家。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor070.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor070.jpg",
+          "base_hex": "#d7b27c",
+          "accent_hex": "#a87946",
+          "material_zh": "拼花木地板"
         },
         {
-          "id": "stone_tile_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "??????????????"
+          "surface_id": "white_oak_tile",
+          "name_zh": "白橡木紋磚",
+          "finish_zh": "白橡木紋、霧面",
+          "why_zh": "保留木紋但更耐磨，適合台灣住宅與好清潔需求。",
+          "preview_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+          "texture_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+          "base_hex": "#ddc79f",
+          "accent_hex": "#b69368",
+          "material_zh": "木紋磚"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "???? + ??????",
-        "??? + ??????"
+        "米灰線板牆 + 中橡木地板",
+        "暖白牆面 + 鄉村刷色木地板",
+        "奶茶色牆面 + 白橡木紋磚"
+      ],
+      "default_wall_surface_id": "greige_panel",
+      "default_floor_surface_id": "medium_oak",
+      "wall_surface_ids": [
+        "greige_panel",
+        "warm_white"
+      ],
+      "floor_surface_ids": [
+        "medium_oak",
+        "white_oak_tile"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "?????? + ?????",
+          "wall_surface_id": "greige_panel",
+          "floor_surface_id": "medium_oak"
+        },
+        {
+          "label_zh": "???? + ????",
+          "wall_surface_id": "warm_white",
+          "floor_surface_id": "white_oak_tile"
+        }
       ]
     },
     {
@@ -1792,9 +2181,11 @@
         "極黑極簡"
       ],
       "scene_background": {
-        "wall_zh": "米白、奶油色或灰藍牆面",
-        "floor_zh": "中淺木地板",
-        "overall_zh": "樸實、溫暖、輕鬆、居家感"
+        "wall_zh": "暖白、奶茶或局部線板牆",
+        "floor_zh": "鄉村刷色木地板或中橡木地板",
+        "overall_zh": "溫暖、自然、生活感，強調木紋與布料的樸實感。",
+        "wall_surface_id": "warm_white",
+        "floor_surface_id": "rustic_oak_plank"
       },
       "visual_theme": {
         "background_start": "#FAF2E8",
@@ -1804,7 +2195,9 @@
         "title_color": "#685244",
         "body_color": "#5F564F",
         "accent_fill": "#E8DDCF",
-        "accent_text": "#7D6452"
+        "accent_text": "#7D6452",
+        "default_wall_surface_id": "warm_white",
+        "default_floor_surface_id": "light_oak"
       },
       "rule": {
         "positive": [
@@ -1893,53 +2286,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "milk_white_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "??????????????"
+          "surface_id": "warm_white",
+          "name_zh": "暖白牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+          "base_hex": "#f8f2ea",
+          "accent_hex": "#ddd3c4",
+          "tone_zh": "暖白",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "sage_green_wall",
-          "name_zh": "?????",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "???????????????"
+          "surface_id": "milk_tea",
+          "name_zh": "奶茶色牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "比白色更柔和，能增加居家溫度與包覆感。",
+          "base_hex": "#e0c9ad",
+          "accent_hex": "#baa081",
+          "tone_zh": "奶茶色",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "warm_beige_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "??????????"
+          "surface_id": "greige_panel",
+          "name_zh": "米灰線板牆",
+          "finish_zh": "線板 / 乳膠漆",
+          "why_zh": "有精緻線條但不厚重，適合台灣居家的美式與古典風。",
+          "base_hex": "#efe6d9",
+          "accent_hex": "#d8cabc",
+          "tone_zh": "米灰線板",
+          "material_zh": "線板 / 乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "oak_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "????",
-          "why_zh": "??????????????"
+          "surface_id": "rustic_oak_plank",
+          "name_zh": "鄉村刷色木地板",
+          "finish_zh": "自然刷紋、溫潤木色",
+          "why_zh": "有手感與木節變化，適合美式鄉村與溫暖居家。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor070.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor070.jpg",
+          "base_hex": "#d7b27c",
+          "accent_hex": "#a87946",
+          "material_zh": "拼花木地板"
         },
         {
-          "id": "distressed_wood_floor",
-          "name_zh": "?????",
-          "material_zh": "???",
-          "finish_zh": "????",
-          "why_zh": "????????????"
+          "surface_id": "medium_oak",
+          "name_zh": "中橡木地板",
+          "finish_zh": "中木色、溫潤拼接",
+          "why_zh": "保留木質厚度與家庭感，適合美式、混搭與北歐現代。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor062.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor062.jpg",
+          "base_hex": "#c9aa84",
+          "accent_hex": "#9c7756",
+          "material_zh": "拼花木地板"
         },
         {
-          "id": "warm_tile_floor",
-          "name_zh": "????",
-          "material_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "???????????"
+          "surface_id": "herringbone_oak",
+          "name_zh": "人字拼淺木地板",
+          "finish_zh": "人字拼、淺木色",
+          "why_zh": "拼接感明顯，能讓簡約空間更有層次。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor051.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor051.jpg",
+          "base_hex": "#e9cda3",
+          "accent_hex": "#ad8054",
+          "material_zh": "拼花木地板"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "???? + ??????",
-        "????? + ?????"
+        "暖白牆面 + 鄉村刷色木地板",
+        "奶茶色牆面 + 中橡木地板",
+        "米灰線板牆 + 人字拼淺木地板"
+      ],
+      "default_wall_surface_id": "warm_white",
+      "default_floor_surface_id": "rustic_oak_plank",
+      "wall_surface_ids": [
+        "warm_white",
+        "milk_tea"
+      ],
+      "floor_surface_ids": [
+        "light_oak",
+        "medium_oak"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "????? + ????",
+          "wall_surface_id": "warm_white",
+          "floor_surface_id": "light_oak"
+        },
+        {
+          "label_zh": "???? + ??????",
+          "wall_surface_id": "milk_tea",
+          "floor_surface_id": "medium_oak"
+        }
       ]
     },
     {
@@ -1983,9 +2420,11 @@
         "過度混亂"
       ],
       "scene_background": {
-        "wall_zh": "米色、灰色或奶茶色牆面",
-        "floor_zh": "淺石紋或淺木地板",
-        "overall_zh": "精緻、雅緻、通透、低調發光"
+        "wall_zh": "冷灰或礦物米灰牆面",
+        "floor_zh": "亮面大理石或灰紋大理石地磚",
+        "overall_zh": "低調奢華、精緻反光、金屬與石材點綴。",
+        "wall_surface_id": "light_gray",
+        "floor_surface_id": "marble"
       },
       "visual_theme": {
         "background_start": "#F7F0EB",
@@ -1995,7 +2434,9 @@
         "title_color": "#5A4250",
         "body_color": "#5A5558",
         "accent_fill": "#EEDFCF",
-        "accent_text": "#8A6650"
+        "accent_text": "#8A6650",
+        "default_wall_surface_id": "light_gray",
+        "default_floor_surface_id": "marble"
       },
       "rule": {
         "positive": [
@@ -2071,53 +2512,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "pearl_white_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "????",
-          "why_zh": "??????????????"
+          "surface_id": "light_gray",
+          "name_zh": "冷灰牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "俐落中性，適合現代與北歐現代風格。",
+          "base_hex": "#dfe2e5",
+          "accent_hex": "#c7cbd1",
+          "tone_zh": "冷灰",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "smoky_beige_wall",
-          "name_zh": "?????",
-          "tone_zh": "????",
-          "finish_zh": "???",
-          "why_zh": "????????"
+          "surface_id": "mineral_beige",
+          "name_zh": "礦物米灰牆",
+          "finish_zh": "礦物塗料",
+          "why_zh": "低飽和米灰質感，適合侘寂、輕奢與自然系空間。",
+          "base_hex": "#d0baa0",
+          "accent_hex": "#b59a7d",
+          "tone_zh": "礦物米灰",
+          "material_zh": "礦物塗料"
         },
         {
-          "id": "soft_taupe_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "????????????"
+          "surface_id": "warm_white",
+          "name_zh": "暖白牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+          "base_hex": "#f8f2ea",
+          "accent_hex": "#ddd3c4",
+          "tone_zh": "暖白",
+          "material_zh": "乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "marble_tile_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "?????",
-          "why_zh": "?????????????"
+          "surface_id": "marble",
+          "name_zh": "亮面大理石地磚",
+          "finish_zh": "亮面、暖白大理石紋",
+          "why_zh": "反射與紋理能提升精緻感，適合輕奢風。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CCI12610.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CCI12610.png",
+          "base_hex": "#f8f5ef",
+          "accent_hex": "#c6aa82",
+          "material_zh": "磁磚"
         },
         {
-          "id": "dark_wood_floor",
-          "name_zh": "????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "??????????????"
+          "surface_id": "marble_gray",
+          "name_zh": "灰紋大理石地磚",
+          "finish_zh": "亮面、灰階紋理",
+          "why_zh": "比暖白大理石更沉穩，適合古典與現代奢華。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CTU128089.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CTU128089.png",
+          "base_hex": "#dcd7d1",
+          "accent_hex": "#a39a93",
+          "material_zh": "磁磚"
         },
         {
-          "id": "greige_stone_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "????????"
+          "surface_id": "stone_beige",
+          "name_zh": "米色石紋地磚",
+          "finish_zh": "米色石紋、霧面",
+          "why_zh": "比灰磚更溫暖，適合侘寂、混搭與自然感空間。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CRD612656.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CRD612656.png",
+          "base_hex": "#d5c3ab",
+          "accent_hex": "#b49a7f",
+          "material_zh": "磁磚"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "???? + ??????",
-        "????? + ????"
+        "冷灰牆面 + 亮面大理石地磚",
+        "礦物米灰牆 + 灰紋大理石地磚",
+        "暖白牆面 + 米色石紋地磚"
+      ],
+      "default_wall_surface_id": "light_gray",
+      "default_floor_surface_id": "marble",
+      "wall_surface_ids": [
+        "light_gray",
+        "mineral_beige"
+      ],
+      "floor_surface_ids": [
+        "marble",
+        "marble_gray"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "???? + ?????",
+          "wall_surface_id": "light_gray",
+          "floor_surface_id": "marble"
+        },
+        {
+          "label_zh": "????? + ?????",
+          "wall_surface_id": "mineral_beige",
+          "floor_surface_id": "marble_gray"
+        }
       ]
     },
     {
@@ -2161,9 +2646,11 @@
         "粗獷工業風"
       ],
       "scene_background": {
-        "wall_zh": "線板、雕花或典雅灰牆面",
-        "floor_zh": "石材地坪或深木地板",
-        "overall_zh": "尊貴、華麗、厚實、正式"
+        "wall_zh": "米灰線板牆或奶茶色牆面",
+        "floor_zh": "胡桃木地板或灰紋大理石地磚",
+        "overall_zh": "沉穩、對稱、細節精緻，以線板與深木色建立古典感。",
+        "wall_surface_id": "greige_panel",
+        "floor_surface_id": "walnut"
       },
       "visual_theme": {
         "background_start": "#F2ECE7",
@@ -2173,7 +2660,9 @@
         "title_color": "#5E433A",
         "body_color": "#5D5751",
         "accent_fill": "#E6D7C4",
-        "accent_text": "#86674F"
+        "accent_text": "#86674F",
+        "default_wall_surface_id": "greige_panel",
+        "default_floor_surface_id": "walnut"
       },
       "rule": {
         "positive": [
@@ -2233,53 +2722,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "ivory_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "??????????????????"
+          "surface_id": "greige_panel",
+          "name_zh": "米灰線板牆",
+          "finish_zh": "線板 / 乳膠漆",
+          "why_zh": "有精緻線條但不厚重，適合台灣居家的美式與古典風。",
+          "base_hex": "#efe6d9",
+          "accent_hex": "#d8cabc",
+          "tone_zh": "米灰線板",
+          "material_zh": "線板 / 乳膠漆"
         },
         {
-          "id": "champagne_beige_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "??????????"
+          "surface_id": "milk_tea",
+          "name_zh": "奶茶色牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "比白色更柔和，能增加居家溫度與包覆感。",
+          "base_hex": "#e0c9ad",
+          "accent_hex": "#baa081",
+          "tone_zh": "奶茶色",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "taupe_wall",
-          "name_zh": "???",
-          "tone_zh": "??",
-          "finish_zh": "????",
-          "why_zh": "?????????????"
+          "surface_id": "charcoal",
+          "name_zh": "炭灰牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "深沉視覺焦點，適合工業、古典與局部主牆。",
+          "base_hex": "#59544f",
+          "accent_hex": "#77706a",
+          "tone_zh": "炭灰",
+          "material_zh": "乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "marble_tile_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "????",
-          "why_zh": "???????????"
+          "surface_id": "walnut",
+          "name_zh": "胡桃木地板",
+          "finish_zh": "深木色、霧面",
+          "why_zh": "咖棕色調穩重，適合美拉德、古典與沉穩空間。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood051.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood051.jpg",
+          "base_hex": "#7b563a",
+          "accent_hex": "#4d3221",
+          "material_zh": "實木地板"
         },
         {
-          "id": "walnut_parquet_floor",
-          "name_zh": "???????",
-          "material_zh": "???",
-          "finish_zh": "???",
-          "why_zh": "??????????????"
+          "surface_id": "dark_walnut_plank",
+          "name_zh": "深胡桃木長板",
+          "finish_zh": "深色長板、粗獷木紋",
+          "why_zh": "更有存在感，適合工業、古典或需要沉穩底色的配置。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor067B.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor067B.jpg",
+          "base_hex": "#67452f",
+          "accent_hex": "#3e281b",
+          "material_zh": "實木地板"
         },
         {
-          "id": "stone_beige_floor",
-          "name_zh": "??????",
-          "material_zh": "?? / ???",
-          "finish_zh": "???",
-          "why_zh": "??????????"
+          "surface_id": "marble_gray",
+          "name_zh": "灰紋大理石地磚",
+          "finish_zh": "亮面、灰階紋理",
+          "why_zh": "比暖白大理石更沉穩，適合古典與現代奢華。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CTU128089.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CTU128089.png",
+          "base_hex": "#dcd7d1",
+          "accent_hex": "#a39a93",
+          "material_zh": "磁磚"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "???? + ???????",
-        "???? + ??????"
+        "米灰線板牆 + 胡桃木地板",
+        "奶茶色牆面 + 深胡桃木長板",
+        "炭灰牆面 + 灰紋大理石地磚"
+      ],
+      "default_wall_surface_id": "greige_panel",
+      "default_floor_surface_id": "walnut",
+      "wall_surface_ids": [
+        "greige_panel",
+        "milk_tea"
+      ],
+      "floor_surface_ids": [
+        "walnut",
+        "marble_gray"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "??????? + ????",
+          "wall_surface_id": "greige_panel",
+          "floor_surface_id": "walnut"
+        },
+        {
+          "label_zh": "????? + ?????",
+          "wall_surface_id": "milk_tea",
+          "floor_surface_id": "marble_gray"
+        }
       ]
     },
     {
@@ -2323,9 +2856,11 @@
         "過度制式化"
       ],
       "scene_background": {
-        "wall_zh": "中性色牆面搭配局部特色色",
-        "floor_zh": "木地板或混合材質地坪",
-        "overall_zh": "自由、豐富、有趣、個性鮮明"
+        "wall_zh": "暖白、冷灰或灰藍牆面",
+        "floor_zh": "中橡木地板或米色石紋地磚",
+        "overall_zh": "保留中性底色，讓不同材質與家具可混搭但不混亂。",
+        "wall_surface_id": "warm_white",
+        "floor_surface_id": "medium_oak"
       },
       "visual_theme": {
         "background_start": "#FCF8F2",
@@ -2335,7 +2870,9 @@
         "title_color": "#4E4A55",
         "body_color": "#57555B",
         "accent_fill": "#F0DCCF",
-        "accent_text": "#9A5A3D"
+        "accent_text": "#9A5A3D",
+        "default_wall_surface_id": "warm_white",
+        "default_floor_surface_id": "medium_oak"
       },
       "rule": {
         "positive": [
@@ -2423,53 +2960,97 @@
       ],
       "wall_recommendations": [
         {
-          "id": "off_white_wall",
-          "name_zh": "?????",
-          "tone_zh": "??",
-          "finish_zh": "??",
-          "why_zh": "?????????????????"
+          "surface_id": "warm_white",
+          "name_zh": "暖白牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+          "base_hex": "#f8f2ea",
+          "accent_hex": "#ddd3c4",
+          "tone_zh": "暖白",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "color_block_wall",
-          "name_zh": "?????",
-          "tone_zh": "?????",
-          "finish_zh": "??",
-          "why_zh": "????????????????"
+          "surface_id": "light_gray",
+          "name_zh": "冷灰牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "俐落中性，適合現代與北歐現代風格。",
+          "base_hex": "#dfe2e5",
+          "accent_hex": "#c7cbd1",
+          "tone_zh": "冷灰",
+          "material_zh": "乳膠漆"
         },
         {
-          "id": "concrete_gray_wall",
-          "name_zh": "????",
-          "tone_zh": "???",
-          "finish_zh": "????",
-          "why_zh": "???????????????"
+          "surface_id": "blue_gray",
+          "name_zh": "灰藍牆面",
+          "finish_zh": "乳膠漆",
+          "why_zh": "帶一點藍色的冷灰，適合作為北歐現代或混搭風點綴。",
+          "base_hex": "#a9b6c3",
+          "accent_hex": "#8796a5",
+          "tone_zh": "灰藍",
+          "material_zh": "乳膠漆"
         }
       ],
       "floor_recommendations": [
         {
-          "id": "walnut_floor",
-          "name_zh": "?????",
-          "material_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "????????????"
+          "surface_id": "medium_oak",
+          "name_zh": "中橡木地板",
+          "finish_zh": "中木色、溫潤拼接",
+          "why_zh": "保留木質厚度與家庭感，適合美式、混搭與北歐現代。",
+          "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor062.jpg",
+          "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor062.jpg",
+          "base_hex": "#c9aa84",
+          "accent_hex": "#9c7756",
+          "material_zh": "拼花木地板"
         },
         {
-          "id": "terrazzo_floor",
-          "name_zh": "?????",
-          "material_zh": "??? / ??",
-          "finish_zh": "???",
-          "why_zh": "?????????????"
+          "surface_id": "stone_beige",
+          "name_zh": "米色石紋地磚",
+          "finish_zh": "米色石紋、霧面",
+          "why_zh": "比灰磚更溫暖，適合侘寂、混搭與自然感空間。",
+          "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CRD612656.png",
+          "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CRD612656.png",
+          "base_hex": "#d5c3ab",
+          "accent_hex": "#b49a7f",
+          "material_zh": "磁磚"
         },
         {
-          "id": "stone_gray_floor",
-          "name_zh": "??????",
-          "material_zh": "???",
-          "finish_zh": "??",
-          "why_zh": "??????????????"
+          "surface_id": "white_oak_tile",
+          "name_zh": "白橡木紋磚",
+          "finish_zh": "白橡木紋、霧面",
+          "why_zh": "保留木紋但更耐磨，適合台灣住宅與好清潔需求。",
+          "preview_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+          "texture_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+          "base_hex": "#ddc79f",
+          "accent_hex": "#b69368",
+          "material_zh": "木紋磚"
         }
       ],
       "recommended_wall_floor_pairs_zh": [
-        "????? + ?????",
-        "????? + ?????"
+        "暖白牆面 + 中橡木地板",
+        "冷灰牆面 + 米色石紋地磚",
+        "灰藍牆面 + 白橡木紋磚"
+      ],
+      "default_wall_surface_id": "warm_white",
+      "default_floor_surface_id": "medium_oak",
+      "wall_surface_ids": [
+        "warm_white",
+        "light_gray"
+      ],
+      "floor_surface_ids": [
+        "medium_oak",
+        "stone_beige"
+      ],
+      "recommended_wall_floor_pairs": [
+        {
+          "label_zh": "????? + ?????",
+          "wall_surface_id": "warm_white",
+          "floor_surface_id": "medium_oak"
+        },
+        {
+          "label_zh": "???? + ?????",
+          "wall_surface_id": "light_gray",
+          "floor_surface_id": "stone_beige"
+        }
       ]
     }
   ],
@@ -4690,8 +5271,8 @@
       "color": "grey",
       "material": "",
       "size_cm": {
-        "width": 50,
-        "depth": null,
+        "width": 90,
+        "depth": 50,
         "height": 3
       },
       "collision_box_cm": {
@@ -4829,8 +5410,8 @@
       "color": "beige, white",
       "material": "",
       "size_cm": {
-        "width": 58,
-        "depth": null,
+        "width": 83,
+        "depth": 58,
         "height": 48
       },
       "collision_box_cm": {
@@ -4896,8 +5477,8 @@
       "color": "",
       "material": "",
       "size_cm": {
-        "width": 42,
-        "depth": null,
+        "width": 84,
+        "depth": 42,
         "height": 45
       },
       "collision_box_cm": {
@@ -5093,8 +5674,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 77,
+        "depth": 55,
         "height": 48
       },
       "collision_box_cm": {
@@ -5157,8 +5738,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 50,
-        "depth": null,
+        "width": 59,
+        "depth": 50,
         "height": 50
       },
       "collision_box_cm": {
@@ -5221,8 +5802,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 50,
-        "depth": null,
+        "width": 76,
+        "depth": 50,
         "height": 50
       },
       "collision_box_cm": {
@@ -5418,7 +5999,7 @@
       "material": "",
       "size_cm": {
         "width": 62,
-        "depth": null,
+        "depth": 62,
         "height": 35
       },
       "collision_box_cm": {
@@ -7235,7 +7816,7 @@
       "material": "",
       "size_cm": {
         "width": 100,
-        "depth": null,
+        "depth": 133,
         "height": null
       },
       "collision_box_cm": {
@@ -7278,7 +7859,7 @@
       "material": "",
       "size_cm": {
         "width": 100,
-        "depth": null,
+        "depth": 160,
         "height": null
       },
       "collision_box_cm": {
@@ -7348,7 +7929,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 160,
         "height": null
       },
       "collision_box_cm": {
@@ -7391,7 +7972,7 @@
       "material": "",
       "size_cm": {
         "width": 83,
-        "depth": null,
+        "depth": 125,
         "height": null
       },
       "collision_box_cm": {
@@ -7457,7 +8038,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 160,
         "height": null
       },
       "collision_box_cm": {
@@ -7525,7 +8106,7 @@
       "material": "",
       "size_cm": {
         "width": 130,
-        "depth": null,
+        "depth": 160,
         "height": null
       },
       "collision_box_cm": {
@@ -7596,7 +8177,7 @@
       "material": "",
       "size_cm": {
         "width": 75,
-        "depth": null,
+        "depth": 133,
         "height": null
       },
       "collision_box_cm": {
@@ -7639,7 +8220,7 @@
       "material": "",
       "size_cm": {
         "width": 153,
-        "depth": null,
+        "depth": 215,
         "height": null
       },
       "collision_box_cm": {
@@ -7682,7 +8263,7 @@
       "material": "",
       "size_cm": {
         "width": 94,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -7742,7 +8323,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 160,
         "height": null
       },
       "collision_box_cm": {
@@ -7802,7 +8383,7 @@
       "material": "",
       "size_cm": {
         "width": 100,
-        "depth": null,
+        "depth": 133,
         "height": null
       },
       "collision_box_cm": {
@@ -7845,7 +8426,7 @@
       "material": "",
       "size_cm": {
         "width": 105,
-        "depth": null,
+        "depth": 160,
         "height": null
       },
       "collision_box_cm": {
@@ -7908,7 +8489,7 @@
       "material": "",
       "size_cm": {
         "width": 74,
-        "depth": null,
+        "depth": 100,
         "height": 0
       },
       "collision_box_cm": {
@@ -7974,7 +8555,7 @@
       "material": "",
       "size_cm": {
         "width": 66,
-        "depth": null,
+        "depth": 110,
         "height": null
       },
       "collision_box_cm": {
@@ -8043,7 +8624,7 @@
       "material": "",
       "size_cm": {
         "width": 100,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -8105,7 +8686,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 1
       },
       "collision_box_cm": {
@@ -8167,7 +8748,7 @@
       "material": "",
       "size_cm": {
         "width": 50,
-        "depth": null,
+        "depth": 80,
         "height": 1
       },
       "collision_box_cm": {
@@ -8231,7 +8812,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 1
       },
       "collision_box_cm": {
@@ -8295,7 +8876,7 @@
       "material": "",
       "size_cm": {
         "width": 69,
-        "depth": null,
+        "depth": 90,
         "height": 1
       },
       "collision_box_cm": {
@@ -8356,7 +8937,7 @@
       "material": "",
       "size_cm": {
         "width": 102,
-        "depth": null,
+        "depth": 152,
         "height": null
       },
       "collision_box_cm": {
@@ -8417,7 +8998,7 @@
       "material": "",
       "size_cm": {
         "width": 82,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -8478,7 +9059,7 @@
       "material": "",
       "size_cm": {
         "width": 38,
-        "depth": null,
+        "depth": 58,
         "height": 1
       },
       "collision_box_cm": {
@@ -8536,7 +9117,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 2
       },
       "collision_box_cm": {
@@ -8605,7 +9186,7 @@
       "material": "",
       "size_cm": {
         "width": 50,
-        "depth": null,
+        "depth": 80,
         "height": 1
       },
       "collision_box_cm": {
@@ -8663,7 +9244,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 1
       },
       "collision_box_cm": {
@@ -8725,7 +9306,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 1
       },
       "collision_box_cm": {
@@ -8789,7 +9370,7 @@
       "material": "",
       "size_cm": {
         "width": 40,
-        "depth": null,
+        "depth": 60,
         "height": 2
       },
       "collision_box_cm": {
@@ -8854,7 +9435,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 0
       },
       "collision_box_cm": {
@@ -8920,7 +9501,7 @@
       "material": "",
       "size_cm": {
         "width": 40,
-        "depth": null,
+        "depth": 60,
         "height": 2
       },
       "collision_box_cm": {
@@ -8985,7 +9566,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 0
       },
       "collision_box_cm": {
@@ -9051,7 +9632,7 @@
       "material": "",
       "size_cm": {
         "width": 40,
-        "depth": null,
+        "depth": 60,
         "height": 1
       },
       "collision_box_cm": {
@@ -9121,7 +9702,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 1
       },
       "collision_box_cm": {
@@ -9186,7 +9767,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 1
       },
       "collision_box_cm": {
@@ -9250,7 +9831,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 1
       },
       "collision_box_cm": {
@@ -9315,7 +9896,7 @@
       "material": "",
       "size_cm": {
         "width": 240,
-        "depth": null,
+        "depth": 300,
         "height": 18
       },
       "collision_box_cm": {
@@ -9379,7 +9960,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 12
       },
       "collision_box_cm": {
@@ -9445,7 +10026,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 12
       },
       "collision_box_cm": {
@@ -9509,7 +10090,7 @@
       "material": "",
       "size_cm": {
         "width": 240,
-        "depth": null,
+        "depth": 300,
         "height": 18
       },
       "collision_box_cm": {
@@ -9575,7 +10156,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -9641,7 +10222,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -9710,7 +10291,7 @@
       "material": "",
       "size_cm": {
         "width": 240,
-        "depth": null,
+        "depth": 350,
         "height": 18
       },
       "collision_box_cm": {
@@ -9777,7 +10358,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 10
       },
       "collision_box_cm": {
@@ -9844,7 +10425,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -9911,7 +10492,7 @@
       "material": "",
       "size_cm": {
         "width": 70,
-        "depth": null,
+        "depth": 160,
         "height": 4
       },
       "collision_box_cm": {
@@ -9980,7 +10561,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 6
       },
       "collision_box_cm": {
@@ -10044,7 +10625,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 11
       },
       "collision_box_cm": {
@@ -10111,7 +10692,7 @@
       "material": "",
       "size_cm": {
         "width": 200,
-        "depth": null,
+        "depth": 300,
         "height": 18
       },
       "collision_box_cm": {
@@ -10178,7 +10759,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": 10
       },
       "collision_box_cm": {
@@ -10242,7 +10823,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 12
       },
       "collision_box_cm": {
@@ -10315,7 +10896,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 10
       },
       "collision_box_cm": {
@@ -10379,7 +10960,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -10441,7 +11022,7 @@
       "material": "",
       "size_cm": {
         "width": 240,
-        "depth": null,
+        "depth": 350,
         "height": 18
       },
       "collision_box_cm": {
@@ -10506,7 +11087,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 10
       },
       "collision_box_cm": {
@@ -10571,7 +11152,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -10633,7 +11214,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -10696,7 +11277,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 9
       },
       "collision_box_cm": {
@@ -10759,7 +11340,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -10832,7 +11413,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -10895,7 +11476,7 @@
       "material": "",
       "size_cm": {
         "width": 200,
-        "depth": null,
+        "depth": 300,
         "height": null
       },
       "collision_box_cm": {
@@ -10958,7 +11539,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": null
       },
       "collision_box_cm": {
@@ -11021,7 +11602,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 10
       },
       "collision_box_cm": {
@@ -11084,7 +11665,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -11148,7 +11729,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": null
       },
       "collision_box_cm": {
@@ -11212,7 +11793,7 @@
       "material": "",
       "size_cm": {
         "width": 120,
-        "depth": null,
+        "depth": 180,
         "height": null
       },
       "collision_box_cm": {
@@ -11277,7 +11858,7 @@
       "material": "",
       "size_cm": {
         "width": 120,
-        "depth": null,
+        "depth": 180,
         "height": null
       },
       "collision_box_cm": {
@@ -11342,7 +11923,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -11402,7 +11983,7 @@
       "material": "",
       "size_cm": {
         "width": 120,
-        "depth": null,
+        "depth": 180,
         "height": 9
       },
       "collision_box_cm": {
@@ -11469,7 +12050,7 @@
       "material": "",
       "size_cm": {
         "width": 155,
-        "depth": null,
+        "depth": 220,
         "height": 9
       },
       "collision_box_cm": {
@@ -11535,7 +12116,7 @@
       "material": "",
       "size_cm": {
         "width": 200,
-        "depth": null,
+        "depth": 300,
         "height": null
       },
       "collision_box_cm": {
@@ -11601,7 +12182,7 @@
       "material": "",
       "size_cm": {
         "width": 200,
-        "depth": null,
+        "depth": 300,
         "height": null
       },
       "collision_box_cm": {
@@ -11669,7 +12250,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -11737,7 +12318,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": null
       },
       "collision_box_cm": {
@@ -11801,7 +12382,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -11863,7 +12444,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": null
       },
       "collision_box_cm": {
@@ -11927,7 +12508,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -12057,7 +12638,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -12119,7 +12700,7 @@
       "material": "",
       "size_cm": {
         "width": 120,
-        "depth": null,
+        "depth": 180,
         "height": null
       },
       "collision_box_cm": {
@@ -12181,7 +12762,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -12237,7 +12818,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -12296,7 +12877,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -12358,7 +12939,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -12423,7 +13004,7 @@
       "material": "",
       "size_cm": {
         "width": 200,
-        "depth": null,
+        "depth": 300,
         "height": 17
       },
       "collision_box_cm": {
@@ -12486,7 +13067,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": 8
       },
       "collision_box_cm": {
@@ -12549,7 +13130,7 @@
       "material": "",
       "size_cm": {
         "width": 200,
-        "depth": null,
+        "depth": 300,
         "height": null
       },
       "collision_box_cm": {
@@ -12611,7 +13192,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -12673,7 +13254,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": null
       },
       "collision_box_cm": {
@@ -12735,7 +13316,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -12804,7 +13385,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": 12
       },
       "collision_box_cm": {
@@ -12866,7 +13447,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": 12
       },
       "collision_box_cm": {
@@ -12928,7 +13509,7 @@
       "material": "",
       "size_cm": {
         "width": 200,
-        "depth": null,
+        "depth": 300,
         "height": 12
       },
       "collision_box_cm": {
@@ -12990,7 +13571,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": null
       },
       "collision_box_cm": {
@@ -13052,7 +13633,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -13114,7 +13695,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -13178,7 +13759,7 @@
       "material": "",
       "size_cm": {
         "width": 200,
-        "depth": null,
+        "depth": 300,
         "height": 13
       },
       "collision_box_cm": {
@@ -13243,7 +13824,7 @@
       "material": "",
       "size_cm": {
         "width": 200,
-        "depth": null,
+        "depth": 300,
         "height": null
       },
       "collision_box_cm": {
@@ -13305,7 +13886,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": null
       },
       "collision_box_cm": {
@@ -13365,7 +13946,7 @@
       "material": "",
       "size_cm": {
         "width": 120,
-        "depth": null,
+        "depth": 180,
         "height": 8
       },
       "collision_box_cm": {
@@ -13429,7 +14010,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": 12
       },
       "collision_box_cm": {
@@ -13748,7 +14329,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 240,
         "height": null
       },
       "collision_box_cm": {
@@ -13938,7 +14519,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 230,
         "height": null
       },
       "collision_box_cm": {
@@ -14006,7 +14587,7 @@
       "material": "",
       "size_cm": {
         "width": 133,
-        "depth": null,
+        "depth": 195,
         "height": null
       },
       "collision_box_cm": {
@@ -14074,7 +14655,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -14136,7 +14717,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 250,
         "height": null
       },
       "collision_box_cm": {
@@ -14198,7 +14779,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 250,
         "height": null
       },
       "collision_box_cm": {
@@ -14239,7 +14820,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -14303,7 +14884,7 @@
       "material": "",
       "size_cm": {
         "width": 50,
-        "depth": null,
+        "depth": 80,
         "height": 2
       },
       "collision_box_cm": {
@@ -14367,7 +14948,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": 8
       },
       "collision_box_cm": {
@@ -14431,7 +15012,7 @@
       "material": "",
       "size_cm": {
         "width": 45,
-        "depth": null,
+        "depth": 180,
         "height": null
       },
       "collision_box_cm": {
@@ -14491,7 +15072,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 2
       },
       "collision_box_cm": {
@@ -14561,7 +15142,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 180,
         "height": 7
       },
       "collision_box_cm": {
@@ -14625,7 +15206,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 180,
         "height": null
       },
       "collision_box_cm": {
@@ -14685,7 +15266,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": 8
       },
       "collision_box_cm": {
@@ -14743,7 +15324,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": 8
       },
       "collision_box_cm": {
@@ -14805,7 +15386,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 200,
         "height": 9
       },
       "collision_box_cm": {
@@ -14867,7 +15448,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 200,
         "height": 3
       },
       "collision_box_cm": {
@@ -14934,7 +15515,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -14996,7 +15577,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -15054,7 +15635,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -15119,7 +15700,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -15181,7 +15762,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 2
       },
       "collision_box_cm": {
@@ -15245,7 +15826,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 90,
         "height": 2
       },
       "collision_box_cm": {
@@ -15307,7 +15888,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -15369,7 +15950,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -15431,7 +16012,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 250,
         "height": null
       },
       "collision_box_cm": {
@@ -15501,7 +16082,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -15571,7 +16152,7 @@
       "material": "",
       "size_cm": {
         "width": 55,
-        "depth": null,
+        "depth": 85,
         "height": 2
       },
       "collision_box_cm": {
@@ -15633,7 +16214,7 @@
       "material": "",
       "size_cm": {
         "width": 55,
-        "depth": null,
+        "depth": 85,
         "height": 2
       },
       "collision_box_cm": {
@@ -15699,7 +16280,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": 8
       },
       "collision_box_cm": {
@@ -15764,7 +16345,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -15826,7 +16407,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 250,
         "height": null
       },
       "collision_box_cm": {
@@ -15890,7 +16471,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 250,
         "height": null
       },
       "collision_box_cm": {
@@ -15955,7 +16536,7 @@
       "material": "",
       "size_cm": {
         "width": 120,
-        "depth": null,
+        "depth": 180,
         "height": 9
       },
       "collision_box_cm": {
@@ -16020,7 +16601,7 @@
       "material": "",
       "size_cm": {
         "width": 155,
-        "depth": null,
+        "depth": 220,
         "height": 9
       },
       "collision_box_cm": {
@@ -16085,7 +16666,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": null
       },
       "collision_box_cm": {
@@ -16143,7 +16724,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -16207,7 +16788,7 @@
       "material": "",
       "size_cm": {
         "width": 55,
-        "depth": null,
+        "depth": 85,
         "height": 1
       },
       "collision_box_cm": {
@@ -16385,7 +16966,7 @@
       "material": "",
       "size_cm": {
         "width": 55,
-        "depth": null,
+        "depth": 85,
         "height": 2
       },
       "collision_box_cm": {
@@ -16447,7 +17028,7 @@
       "material": "",
       "size_cm": {
         "width": 164,
-        "depth": null,
+        "depth": 200,
         "height": 40
       },
       "collision_box_cm": {
@@ -16514,7 +17095,7 @@
       "material": "",
       "size_cm": {
         "width": 144,
-        "depth": null,
+        "depth": 200,
         "height": 30
       },
       "collision_box_cm": {
@@ -16580,7 +17161,7 @@
       "material": "",
       "size_cm": {
         "width": 156,
-        "depth": null,
+        "depth": 200,
         "height": 38
       },
       "collision_box_cm": {
@@ -16646,7 +17227,7 @@
       "material": "",
       "size_cm": {
         "width": 140,
-        "depth": null,
+        "depth": 200,
         "height": 41
       },
       "collision_box_cm": {
@@ -16710,7 +17291,7 @@
       "material": "",
       "size_cm": {
         "width": 176,
-        "depth": null,
+        "depth": 200,
         "height": 38
       },
       "collision_box_cm": {
@@ -16780,7 +17361,7 @@
       "material": "",
       "size_cm": {
         "width": 146,
-        "depth": null,
+        "depth": 200,
         "height": 27
       },
       "collision_box_cm": {
@@ -16844,7 +17425,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 200,
         "height": 74
       },
       "collision_box_cm": {
@@ -16906,7 +17487,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 200,
         "height": 43
       },
       "collision_box_cm": {
@@ -16974,7 +17555,7 @@
       "material": "",
       "size_cm": {
         "width": 140,
-        "depth": null,
+        "depth": 200,
         "height": 90
       },
       "collision_box_cm": {
@@ -17036,7 +17617,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 200,
         "height": 90
       },
       "collision_box_cm": {
@@ -17098,7 +17679,7 @@
       "material": "",
       "size_cm": {
         "width": 166,
-        "depth": null,
+        "depth": 200,
         "height": 86
       },
       "collision_box_cm": {
@@ -17165,7 +17746,7 @@
       "material": "",
       "size_cm": {
         "width": 146,
-        "depth": null,
+        "depth": 200,
         "height": 199
       },
       "collision_box_cm": {
@@ -17229,7 +17810,7 @@
       "material": "",
       "size_cm": {
         "width": 180,
-        "depth": null,
+        "depth": 200,
         "height": 30
       },
       "collision_box_cm": {
@@ -17295,7 +17876,7 @@
       "material": "",
       "size_cm": {
         "width": 140,
-        "depth": null,
+        "depth": 200,
         "height": 33
       },
       "collision_box_cm": {
@@ -17363,7 +17944,7 @@
       "material": "",
       "size_cm": {
         "width": 187,
-        "depth": null,
+        "depth": 200,
         "height": 42
       },
       "collision_box_cm": {
@@ -17430,7 +18011,7 @@
       "material": "",
       "size_cm": {
         "width": 195,
-        "depth": null,
+        "depth": 200,
         "height": 38
       },
       "collision_box_cm": {
@@ -17497,7 +18078,7 @@
       "material": "",
       "size_cm": {
         "width": 191,
-        "depth": null,
+        "depth": 200,
         "height": 63
       },
       "collision_box_cm": {
@@ -17563,7 +18144,7 @@
       "material": "",
       "size_cm": {
         "width": 180,
-        "depth": null,
+        "depth": 200,
         "height": 43
       },
       "collision_box_cm": {
@@ -17627,7 +18208,7 @@
       "material": "",
       "size_cm": {
         "width": 173,
-        "depth": null,
+        "depth": 200,
         "height": 41
       },
       "collision_box_cm": {
@@ -17691,7 +18272,7 @@
       "material": "",
       "size_cm": {
         "width": 180,
-        "depth": null,
+        "depth": 200,
         "height": 41
       },
       "collision_box_cm": {
@@ -17759,7 +18340,7 @@
       "material": "",
       "size_cm": {
         "width": 94,
-        "depth": null,
+        "depth": 200,
         "height": 30
       },
       "collision_box_cm": {
@@ -17825,7 +18406,7 @@
       "material": "",
       "size_cm": {
         "width": 170,
-        "depth": null,
+        "depth": 200,
         "height": 49
       },
       "collision_box_cm": {
@@ -17891,7 +18472,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 200,
         "height": 43
       },
       "collision_box_cm": {
@@ -17959,7 +18540,7 @@
       "material": "",
       "size_cm": {
         "width": 94,
-        "depth": null,
+        "depth": 200,
         "height": 40
       },
       "collision_box_cm": {
@@ -18026,7 +18607,7 @@
       "material": "",
       "size_cm": {
         "width": 176,
-        "depth": null,
+        "depth": 200,
         "height": 38
       },
       "collision_box_cm": {
@@ -18096,7 +18677,7 @@
       "material": "",
       "size_cm": {
         "width": 140,
-        "depth": null,
+        "depth": 200,
         "height": 5
       },
       "collision_box_cm": {
@@ -18162,7 +18743,7 @@
       "material": "",
       "size_cm": {
         "width": 90,
-        "depth": null,
+        "depth": 200,
         "height": 5
       },
       "collision_box_cm": {
@@ -18228,7 +18809,7 @@
       "material": "",
       "size_cm": {
         "width": 153,
-        "depth": null,
+        "depth": 200,
         "height": 41
       },
       "collision_box_cm": {
@@ -18294,7 +18875,7 @@
       "material": "",
       "size_cm": {
         "width": 166,
-        "depth": null,
+        "depth": 200,
         "height": 47
       },
       "collision_box_cm": {
@@ -18360,7 +18941,7 @@
       "material": "",
       "size_cm": {
         "width": 105,
-        "depth": null,
+        "depth": 200,
         "height": 38
       },
       "collision_box_cm": {
@@ -18424,7 +19005,7 @@
       "material": "",
       "size_cm": {
         "width": 90,
-        "depth": null,
+        "depth": 200,
         "height": 41
       },
       "collision_box_cm": {
@@ -18488,7 +19069,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -18556,7 +19137,7 @@
       "material": "",
       "size_cm": {
         "width": 140,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -18622,7 +19203,7 @@
       "material": "",
       "size_cm": {
         "width": 140,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -18688,7 +19269,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -18750,7 +19331,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -18818,7 +19399,7 @@
       "material": "",
       "size_cm": {
         "width": 140,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -18886,7 +19467,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -18948,7 +19529,7 @@
       "material": "",
       "size_cm": {
         "width": 90,
-        "depth": null,
+        "depth": 200,
         "height": 28
       },
       "collision_box_cm": {
@@ -19012,7 +19593,7 @@
       "material": "",
       "size_cm": {
         "width": 90,
-        "depth": null,
+        "depth": 200,
         "height": 24
       },
       "collision_box_cm": {
@@ -19070,7 +19651,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -19132,7 +19713,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -19173,7 +19754,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -19214,7 +19795,7 @@
       "material": "",
       "size_cm": {
         "width": 160,
-        "depth": null,
+        "depth": 200,
         "height": null
       },
       "collision_box_cm": {
@@ -19403,8 +19984,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 41,
-        "depth": null,
+        "width": 61,
+        "depth": 41,
         "height": 71
       },
       "collision_box_cm": {
@@ -19468,8 +20049,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 64,
-        "depth": null,
+        "width": 80,
+        "depth": 64,
         "height": 43
       },
       "collision_box_cm": {
@@ -19858,7 +20439,7 @@
       "material": "",
       "size_cm": {
         "width": 73,
-        "depth": null,
+        "depth": 73,
         "height": 30
       },
       "collision_box_cm": {
@@ -19926,8 +20507,8 @@
       "color": "grey",
       "material": "",
       "size_cm": {
-        "width": 58,
-        "depth": null,
+        "width": 110,
+        "depth": 58,
         "height": 44
       },
       "collision_box_cm": {
@@ -20056,7 +20637,7 @@
       "material": "",
       "size_cm": {
         "width": 91,
-        "depth": null,
+        "depth": 147,
         "height": 75
       },
       "collision_box_cm": {
@@ -20116,7 +20697,7 @@
       "material": "",
       "size_cm": {
         "width": 91,
-        "depth": null,
+        "depth": 147,
         "height": 75
       },
       "collision_box_cm": {
@@ -20180,8 +20761,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 63,
-        "depth": null,
+        "width": 75,
+        "depth": 63,
         "height": 75
       },
       "collision_box_cm": {
@@ -20345,8 +20926,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 75,
-        "depth": null,
+        "width": 143,
+        "depth": 75,
         "height": 73
       },
       "collision_box_cm": {
@@ -20405,8 +20986,8 @@
       "color": "grey",
       "material": "",
       "size_cm": {
-        "width": 93,
-        "depth": null,
+        "width": 161,
+        "depth": 93,
         "height": 75
       },
       "collision_box_cm": {
@@ -20530,7 +21111,7 @@
       "material": "",
       "size_cm": {
         "width": 65,
-        "depth": null,
+        "depth": 65,
         "height": 71
       },
       "collision_box_cm": {
@@ -20597,7 +21178,7 @@
       "material": "",
       "size_cm": {
         "width": 65,
-        "depth": null,
+        "depth": 65,
         "height": 71
       },
       "collision_box_cm": {
@@ -20662,7 +21243,7 @@
       "material": "",
       "size_cm": {
         "width": 65,
-        "depth": null,
+        "depth": 65,
         "height": 71
       },
       "collision_box_cm": {
@@ -20726,8 +21307,8 @@
       "color": "grey, black",
       "material": "",
       "size_cm": {
-        "width": 86,
-        "depth": null,
+        "width": 216,
+        "depth": 86,
         "height": 75
       },
       "collision_box_cm": {
@@ -20791,7 +21372,7 @@
       "material": "",
       "size_cm": {
         "width": 6,
-        "depth": null,
+        "depth": 116,
         "height": 116
       },
       "collision_box_cm": {
@@ -20848,8 +21429,8 @@
       "color": "brown, black",
       "material": "",
       "size_cm": {
-        "width": 54,
-        "depth": null,
+        "width": 100,
+        "depth": 54,
         "height": 71
       },
       "collision_box_cm": {
@@ -20910,8 +21491,8 @@
       "color": "brown, black",
       "material": "",
       "size_cm": {
-        "width": 54,
-        "depth": null,
+        "width": 55,
+        "depth": 54,
         "height": 70
       },
       "collision_box_cm": {
@@ -20972,8 +21553,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 74,
-        "depth": null,
+        "width": 190,
+        "depth": 74,
         "height": 75
       },
       "collision_box_cm": {
@@ -21034,8 +21615,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 44,
-        "depth": null,
+        "width": 50,
+        "depth": 44,
         "height": 71
       },
       "collision_box_cm": {
@@ -21096,8 +21677,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 74,
-        "depth": null,
+        "width": 130,
+        "depth": 74,
         "height": 75
       },
       "collision_box_cm": {
@@ -21277,7 +21858,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 62,
         "height": 73
       },
       "collision_box_cm": {
@@ -22062,7 +22643,7 @@
       "material": "",
       "size_cm": {
         "width": 62,
-        "depth": null,
+        "depth": 44,
         "height": 7
       },
       "collision_box_cm": {
@@ -22261,8 +22842,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 35,
-        "depth": null,
+        "width": 48,
+        "depth": 35,
         "height": 43
       },
       "collision_box_cm": {
@@ -29392,7 +29973,7 @@
       "material": "",
       "size_cm": {
         "width": 216,
-        "depth": null,
+        "depth": 185,
         "height": 185
       },
       "collision_box_cm": {
@@ -29457,7 +30038,7 @@
       "material": "",
       "size_cm": {
         "width": 150,
-        "depth": null,
+        "depth": 170,
         "height": 170
       },
       "collision_box_cm": {
@@ -29654,7 +30235,7 @@
       "material": "",
       "size_cm": {
         "width": 150,
-        "depth": null,
+        "depth": 150,
         "height": 150
       },
       "collision_box_cm": {
@@ -29783,7 +30364,7 @@
       "material": "",
       "size_cm": {
         "width": 150,
-        "depth": null,
+        "depth": 175,
         "height": 175
       },
       "collision_box_cm": {
@@ -29847,7 +30428,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 150,
         "height": 150
       },
       "collision_box_cm": {
@@ -30496,8 +31077,8 @@
       "color": "beige, brown",
       "material": "",
       "size_cm": {
-        "width": 31,
-        "depth": null,
+        "width": 80,
+        "depth": 31,
         "height": 52
       },
       "collision_box_cm": {
@@ -30564,8 +31145,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 31,
-        "depth": null,
+        "width": 80,
+        "depth": 31,
         "height": 52
       },
       "collision_box_cm": {
@@ -31214,8 +31795,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 38,
-        "depth": null,
+        "width": 92,
+        "depth": 38,
         "height": 71
       },
       "collision_box_cm": {
@@ -32764,7 +33345,7 @@
       "material": "",
       "size_cm": {
         "width": 50,
-        "depth": null,
+        "depth": 229,
         "height": 229
       },
       "collision_box_cm": {
@@ -32832,7 +33413,7 @@
       "material": "",
       "size_cm": {
         "width": 49.5,
-        "depth": null,
+        "depth": 195,
         "height": 194.6
       },
       "collision_box_cm": {
@@ -33024,7 +33605,7 @@
       "material": "",
       "size_cm": {
         "width": 50,
-        "depth": null,
+        "depth": 195,
         "height": 195
       },
       "collision_box_cm": {
@@ -33415,7 +33996,7 @@
       "material": "",
       "size_cm": {
         "width": 49.5,
-        "depth": null,
+        "depth": 229,
         "height": 229.4
       },
       "collision_box_cm": {
@@ -33735,7 +34316,7 @@
       "material": "",
       "size_cm": {
         "width": 49.5,
-        "depth": null,
+        "depth": 229,
         "height": 229.4
       },
       "collision_box_cm": {
@@ -34726,7 +35307,7 @@
       "material": "",
       "size_cm": {
         "width": 25,
-        "depth": null,
+        "depth": 35,
         "height": 16
       },
       "collision_box_cm": {
@@ -35781,8 +36362,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 19,
-        "depth": null,
+        "width": 50.5,
+        "depth": 19,
         "height": 67
       },
       "collision_box_cm": {
@@ -35842,8 +36423,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 19,
-        "depth": null,
+        "width": 50.5,
+        "depth": 19,
         "height": 67
       },
       "collision_box_cm": {
@@ -36031,8 +36612,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 38,
-        "depth": null,
+        "width": 28,
+        "depth": 38,
         "height": 61
       },
       "collision_box_cm": {
@@ -36092,8 +36673,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 38,
-        "depth": null,
+        "width": 28,
+        "depth": 38,
         "height": 61
       },
       "collision_box_cm": {
@@ -36156,8 +36737,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 45,
-        "depth": null,
+        "width": 35,
+        "depth": 45,
         "height": 77
       },
       "collision_box_cm": {
@@ -36220,8 +36801,8 @@
       "color": "blue",
       "material": "",
       "size_cm": {
-        "width": 45,
-        "depth": null,
+        "width": 35,
+        "depth": 45,
         "height": 77
       },
       "collision_box_cm": {
@@ -36288,8 +36869,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 45,
-        "depth": null,
+        "width": 35,
+        "depth": 45,
         "height": 77
       },
       "collision_box_cm": {
@@ -36349,8 +36930,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 30,
-        "depth": null,
+        "width": 50.5,
+        "depth": 30,
         "height": 83
       },
       "collision_box_cm": {
@@ -36410,8 +36991,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 30,
-        "depth": null,
+        "width": 50.5,
+        "depth": 30,
         "height": 83
       },
       "collision_box_cm": {
@@ -36474,8 +37055,8 @@
       "color": "green",
       "material": "",
       "size_cm": {
-        "width": 30,
-        "depth": null,
+        "width": 50.5,
+        "depth": 30,
         "height": 83
       },
       "collision_box_cm": {
@@ -36534,8 +37115,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 30,
-        "depth": null,
+        "width": 50.5,
+        "depth": 30,
         "height": 83
       },
       "collision_box_cm": {
@@ -36597,8 +37178,8 @@
       "color": "green, white",
       "material": "",
       "size_cm": {
-        "width": 33,
-        "depth": null,
+        "width": 54,
+        "depth": 33,
         "height": 70
       },
       "collision_box_cm": {
@@ -36663,8 +37244,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 48,
-        "depth": null,
+        "width": 26,
+        "depth": 48,
         "height": 77
       },
       "collision_box_cm": {
@@ -36727,8 +37308,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 43,
-        "depth": null,
+        "width": 100,
+        "depth": 43,
         "height": 90
       },
       "collision_box_cm": {
@@ -36791,8 +37372,8 @@
       "color": "beige, black",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 85,
+        "depth": 55,
         "height": 88
       },
       "collision_box_cm": {
@@ -36859,8 +37440,8 @@
       "color": "green",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 85,
+        "depth": 55,
         "height": 88
       },
       "collision_box_cm": {
@@ -36925,8 +37506,8 @@
       "color": "blue",
       "material": "",
       "size_cm": {
-        "width": 45,
-        "depth": null,
+        "width": 35,
+        "depth": 45,
         "height": 77
       },
       "collision_box_cm": {
@@ -36993,8 +37574,8 @@
       "color": "grey",
       "material": "",
       "size_cm": {
-        "width": 40,
-        "depth": null,
+        "width": 60,
+        "depth": 40,
         "height": 90
       },
       "collision_box_cm": {
@@ -37056,7 +37637,7 @@
       "material": "",
       "size_cm": {
         "width": 38,
-        "depth": null,
+        "depth": 38,
         "height": 82
       },
       "collision_box_cm": {
@@ -37120,8 +37701,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 50,
-        "depth": null,
+        "width": 58,
+        "depth": 50,
         "height": 85
       },
       "collision_box_cm": {
@@ -37248,8 +37829,8 @@
       "color": "brown, white",
       "material": "",
       "size_cm": {
-        "width": 77,
-        "depth": null,
+        "width": 126,
+        "depth": 77,
         "height": 90
       },
       "collision_box_cm": {
@@ -37573,8 +38154,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 35,
-        "depth": null,
+        "width": 55,
+        "depth": 35,
         "height": 55
       },
       "collision_box_cm": {
@@ -37634,8 +38215,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 31,
-        "depth": null,
+        "width": 42,
+        "depth": 31,
         "height": 1
       },
       "collision_box_cm": {
@@ -37700,7 +38281,7 @@
       "material": "",
       "size_cm": {
         "width": 25.5,
-        "depth": null,
+        "depth": 26,
         "height": 1
       },
       "collision_box_cm": {
@@ -37764,8 +38345,8 @@
       "color": "beige, grey",
       "material": "",
       "size_cm": {
-        "width": 63.5,
-        "depth": null,
+        "width": 120,
+        "depth": 63.5,
         "height": 92
       },
       "collision_box_cm": {
@@ -39262,7 +39843,7 @@
       "material": "",
       "size_cm": {
         "width": 120,
-        "depth": null,
+        "depth": 202,
         "height": 202
       },
       "collision_box_cm": {
@@ -41737,8 +42318,8 @@
       "color": "beige, black",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 110,
+        "depth": 55,
         "height": 88
       },
       "collision_box_cm": {
@@ -41869,8 +42450,8 @@
       "color": "beige, black",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 85,
+        "depth": 55,
         "height": 88
       },
       "collision_box_cm": {
@@ -41936,8 +42517,8 @@
       "color": "green",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 85,
+        "depth": 55,
         "height": 88
       },
       "collision_box_cm": {
@@ -45372,8 +45953,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 105
       },
       "collision_box_cm": {
@@ -45436,8 +46017,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 105
       },
       "collision_box_cm": {
@@ -45498,7 +46079,7 @@
       "material": "",
       "size_cm": {
         "width": 75,
-        "depth": null,
+        "depth": 75,
         "height": 105
       },
       "collision_box_cm": {
@@ -45563,7 +46144,7 @@
       "material": "",
       "size_cm": {
         "width": 70,
-        "depth": null,
+        "depth": 70,
         "height": 104
       },
       "collision_box_cm": {
@@ -47264,7 +47845,7 @@
       "material": "",
       "size_cm": {
         "width": 51,
-        "depth": null,
+        "depth": 53,
         "height": 53
       },
       "collision_box_cm": {
@@ -47975,8 +48556,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 90,
+        "depth": 55,
         "height": 45
       },
       "collision_box_cm": {
@@ -48040,8 +48621,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 90,
+        "depth": 55,
         "height": 45
       },
       "collision_box_cm": {
@@ -48104,8 +48685,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 90,
+        "depth": 55,
         "height": 45
       },
       "collision_box_cm": {
@@ -48176,7 +48757,7 @@
       "material": "",
       "size_cm": {
         "width": 51,
-        "depth": null,
+        "depth": 53,
         "height": 53
       },
       "collision_box_cm": {
@@ -48238,7 +48819,7 @@
       "material": "",
       "size_cm": {
         "width": 51,
-        "depth": null,
+        "depth": 53,
         "height": 53
       },
       "collision_box_cm": {
@@ -48303,7 +48884,7 @@
       "material": "",
       "size_cm": {
         "width": 51,
-        "depth": null,
+        "depth": 53,
         "height": 53
       },
       "collision_box_cm": {
@@ -48365,8 +48946,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 90,
+        "depth": 55,
         "height": 40
       },
       "collision_box_cm": {
@@ -48428,8 +49009,8 @@
       "color": "beige, brown",
       "material": "",
       "size_cm": {
-        "width": 55,
-        "depth": null,
+        "width": 90,
+        "depth": 55,
         "height": 40
       },
       "collision_box_cm": {
@@ -48632,8 +49213,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 50,
-        "depth": null,
+        "width": 71,
+        "depth": 50,
         "height": 47
       },
       "collision_box_cm": {
@@ -48826,8 +49407,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 82,
-        "depth": null,
+        "width": 84,
+        "depth": 82,
         "height": 35
       },
       "collision_box_cm": {
@@ -48891,8 +49472,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 82,
-        "depth": null,
+        "width": 84,
+        "depth": 82,
         "height": 35
       },
       "collision_box_cm": {
@@ -48957,8 +49538,8 @@
       "color": "beige, brown",
       "material": "",
       "size_cm": {
-        "width": 82,
-        "depth": null,
+        "width": 84,
+        "depth": 82,
         "height": 35
       },
       "collision_box_cm": {
@@ -49026,8 +49607,8 @@
       "color": "red",
       "material": "",
       "size_cm": {
-        "width": 40,
-        "depth": null,
+        "width": 50,
+        "depth": 40,
         "height": 51
       },
       "collision_box_cm": {
@@ -49164,8 +49745,8 @@
       "color": "",
       "material": "",
       "size_cm": {
-        "width": 59,
-        "depth": null,
+        "width": 180,
+        "depth": 59,
         "height": 40
       },
       "collision_box_cm": {
@@ -49228,7 +49809,7 @@
       "material": "",
       "size_cm": {
         "width": 35,
-        "depth": null,
+        "depth": 35,
         "height": 35
       },
       "collision_box_cm": {
@@ -49292,8 +49873,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 30,
-        "depth": null,
+        "width": 50.5,
+        "depth": 30,
         "height": 83
       },
       "collision_box_cm": {
@@ -49354,8 +49935,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 30,
-        "depth": null,
+        "width": 50.5,
+        "depth": 30,
         "height": 83
       },
       "collision_box_cm": {
@@ -49419,8 +50000,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 30,
-        "depth": null,
+        "width": 50.5,
+        "depth": 30,
         "height": 83
       },
       "collision_box_cm": {
@@ -49485,8 +50066,8 @@
       "color": "green",
       "material": "",
       "size_cm": {
-        "width": 30,
-        "depth": null,
+        "width": 50.5,
+        "depth": 30,
         "height": 83
       },
       "collision_box_cm": {
@@ -49803,8 +50384,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 39,
-        "depth": null,
+        "width": 77,
+        "depth": 39,
         "height": 51
       },
       "collision_box_cm": {
@@ -49867,7 +50448,7 @@
       "material": "",
       "size_cm": {
         "width": 55,
-        "depth": null,
+        "depth": 55,
         "height": 45
       },
       "collision_box_cm": {
@@ -49932,7 +50513,7 @@
       "material": "",
       "size_cm": {
         "width": 55,
-        "depth": null,
+        "depth": 55,
         "height": 45
       },
       "collision_box_cm": {
@@ -50003,7 +50584,7 @@
       "material": "",
       "size_cm": {
         "width": 55,
-        "depth": null,
+        "depth": 55,
         "height": 45
       },
       "collision_box_cm": {
@@ -50066,8 +50647,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 78,
-        "depth": null,
+        "width": 118,
+        "depth": 78,
         "height": 45
       },
       "collision_box_cm": {
@@ -50130,8 +50711,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 78,
-        "depth": null,
+        "width": 118,
+        "depth": 78,
         "height": 45
       },
       "collision_box_cm": {
@@ -50195,8 +50776,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 78,
-        "depth": null,
+        "width": 118,
+        "depth": 78,
         "height": 45
       },
       "collision_box_cm": {
@@ -50267,8 +50848,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 60,
-        "depth": null,
+        "width": 140,
+        "depth": 60,
         "height": 37
       },
       "collision_box_cm": {
@@ -50398,8 +50979,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 50,
-        "depth": null,
+        "width": 90,
+        "depth": 50,
         "height": 50
       },
       "collision_box_cm": {
@@ -50464,8 +51045,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 50,
-        "depth": null,
+        "width": 90,
+        "depth": 50,
         "height": 50
       },
       "collision_box_cm": {
@@ -51118,8 +51699,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 60,
-        "depth": null,
+        "width": 120,
+        "depth": 60,
         "height": 73
       },
       "collision_box_cm": {
@@ -51181,8 +51762,8 @@
       "color": "brown, black, white",
       "material": "",
       "size_cm": {
-        "width": 60,
-        "depth": null,
+        "width": 120,
+        "depth": 60,
         "height": 73
       },
       "collision_box_cm": {
@@ -51439,8 +52020,8 @@
       "color": "brown, grey, black",
       "material": "",
       "size_cm": {
-        "width": 60,
-        "depth": null,
+        "width": 140,
+        "depth": 60,
         "height": 73
       },
       "collision_box_cm": {
@@ -51825,8 +52406,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 45,
-        "depth": null,
+        "width": 100,
+        "depth": 45,
         "height": 3
       },
       "collision_box_cm": {
@@ -51888,8 +52469,8 @@
       "color": "brown, black",
       "material": "",
       "size_cm": {
-        "width": 45,
-        "depth": null,
+        "width": 100,
+        "depth": 45,
         "height": 3
       },
       "collision_box_cm": {
@@ -51953,8 +52534,8 @@
       "color": "grey",
       "material": "",
       "size_cm": {
-        "width": 45,
-        "depth": null,
+        "width": 100,
+        "depth": 45,
         "height": 3
       },
       "collision_box_cm": {
@@ -52017,8 +52598,8 @@
       "color": "grey, black",
       "material": "",
       "size_cm": {
-        "width": 45,
-        "depth": null,
+        "width": 100,
+        "depth": 45,
         "height": 74
       },
       "collision_box_cm": {
@@ -52083,8 +52664,8 @@
       "color": "brown, black",
       "material": "",
       "size_cm": {
-        "width": 60,
-        "depth": null,
+        "width": 100,
+        "depth": 60,
         "height": 74
       },
       "collision_box_cm": {
@@ -52148,8 +52729,8 @@
       "color": "black, white",
       "material": "",
       "size_cm": {
-        "width": 60,
-        "depth": null,
+        "width": 100,
+        "depth": 60,
         "height": 74
       },
       "collision_box_cm": {
@@ -52343,8 +52924,8 @@
       "color": "",
       "material": "",
       "size_cm": {
-        "width": 160,
-        "depth": null,
+        "width": 120,
+        "depth": 160,
         "height": 73
       },
       "collision_box_cm": {
@@ -53054,8 +53635,8 @@
       "color": "brown, black",
       "material": "",
       "size_cm": {
-        "width": 67,
-        "depth": null,
+        "width": 110,
+        "depth": 67,
         "height": 75
       },
       "collision_box_cm": {
@@ -53313,7 +53894,7 @@
       "material": "",
       "size_cm": {
         "width": 74,
-        "depth": null,
+        "depth": 74,
         "height": 75
       },
       "collision_box_cm": {
@@ -53375,8 +53956,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 60,
-        "depth": null,
+        "width": 80,
+        "depth": 60,
         "height": 75
       },
       "collision_box_cm": {
@@ -53438,8 +54019,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 74,
-        "depth": null,
+        "width": 125,
+        "depth": 74,
         "height": 75
       },
       "collision_box_cm": {
@@ -53501,8 +54082,8 @@
       "color": "green",
       "material": "",
       "size_cm": {
-        "width": 74,
-        "depth": null,
+        "width": 125,
+        "depth": 74,
         "height": 75
       },
       "collision_box_cm": {
@@ -53559,8 +54140,8 @@
       "color": "green, white",
       "material": "",
       "size_cm": {
-        "width": 74,
-        "depth": null,
+        "width": 125,
+        "depth": 74,
         "height": 75
       },
       "collision_box_cm": {
@@ -53622,8 +54203,8 @@
       "color": "brown, grey, black",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 75
       },
       "collision_box_cm": {
@@ -53750,8 +54331,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 78,
-        "depth": null,
+        "width": 140,
+        "depth": 78,
         "height": 74
       },
       "collision_box_cm": {
@@ -53814,8 +54395,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 78,
-        "depth": null,
+        "width": 140,
+        "depth": 78,
         "height": 74
       },
       "collision_box_cm": {
@@ -53876,8 +54457,8 @@
       "color": "beige, brown",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 120,
+        "depth": 80,
         "height": 75
       },
       "collision_box_cm": {
@@ -53939,8 +54520,8 @@
       "color": "brown, black",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 120,
+        "depth": 80,
         "height": 75
       },
       "collision_box_cm": {
@@ -54001,8 +54582,8 @@
       "color": "brown, grey, black",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 75
       },
       "collision_box_cm": {
@@ -54065,8 +54646,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 152,
+        "depth": 80,
         "height": 74
       },
       "collision_box_cm": {
@@ -54128,8 +54709,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 152,
+        "depth": 80,
         "height": 74
       },
       "collision_box_cm": {
@@ -54192,7 +54773,7 @@
       "material": "",
       "size_cm": {
         "width": 67,
-        "depth": null,
+        "depth": 67,
         "height": 73
       },
       "collision_box_cm": {
@@ -54253,8 +54834,8 @@
       "color": "brown, black",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 170,
+        "depth": 80,
         "height": 75
       },
       "collision_box_cm": {
@@ -54315,8 +54896,8 @@
       "color": "beige, brown",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 170,
+        "depth": 80,
         "height": 75
       },
       "collision_box_cm": {
@@ -54505,8 +55086,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 150,
+        "depth": 80,
         "height": 75
       },
       "collision_box_cm": {
@@ -54568,8 +55149,8 @@
       "color": "beige, brown",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 150,
+        "depth": 80,
         "height": 75
       },
       "collision_box_cm": {
@@ -54634,8 +55215,8 @@
       "color": "beige, brown",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 150,
+        "depth": 80,
         "height": 75
       },
       "collision_box_cm": {
@@ -54700,8 +55281,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 100,
-        "depth": null,
+        "width": 220,
+        "depth": 100,
         "height": 74
       },
       "collision_box_cm": {
@@ -54764,8 +55345,8 @@
       "color": "brown, white",
       "material": "",
       "size_cm": {
-        "width": 75,
-        "depth": null,
+        "width": 124,
+        "depth": 75,
         "height": 75
       },
       "collision_box_cm": {
@@ -54958,8 +55539,8 @@
       "color": "beige, brown",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 4
       },
       "collision_box_cm": {
@@ -55023,8 +55604,8 @@
       "color": "brown",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 4
       },
       "collision_box_cm": {
@@ -55086,8 +55667,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 4
       },
       "collision_box_cm": {
@@ -55150,8 +55731,8 @@
       "color": "green",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 4
       },
       "collision_box_cm": {
@@ -55212,8 +55793,8 @@
       "color": "beige",
       "material": "",
       "size_cm": {
-        "width": 78,
-        "depth": null,
+        "width": 88,
+        "depth": 78,
         "height": 74
       },
       "collision_box_cm": {
@@ -55276,8 +55857,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 78,
-        "depth": null,
+        "width": 88,
+        "depth": 78,
         "height": 74
       },
       "collision_box_cm": {
@@ -55598,7 +56179,7 @@
       "material": "",
       "size_cm": {
         "width": 18,
-        "depth": null,
+        "depth": 24,
         "height": 12
       },
       "collision_box_cm": {
@@ -56630,7 +57211,7 @@
       "material": "",
       "size_cm": {
         "width": 50,
-        "depth": null,
+        "depth": 70,
         "height": 70
       },
       "collision_box_cm": {
@@ -56686,7 +57267,7 @@
       "material": "",
       "size_cm": {
         "width": 16,
-        "depth": null,
+        "depth": 13,
         "height": 13
       },
       "collision_box_cm": {
@@ -59676,8 +60257,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 100,
-        "depth": null,
+        "width": 110,
+        "depth": 100,
         "height": 0
       },
       "collision_box_cm": {
@@ -63615,7 +64196,7 @@
       "material": "",
       "size_cm": {
         "width": 75,
-        "depth": null,
+        "depth": 75,
         "height": 105
       },
       "collision_box_cm": {
@@ -63927,8 +64508,8 @@
       "color": "white",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 105
       },
       "collision_box_cm": {
@@ -63990,8 +64571,8 @@
       "color": "black",
       "material": "",
       "size_cm": {
-        "width": 80,
-        "depth": null,
+        "width": 140,
+        "depth": 80,
         "height": 105
       },
       "collision_box_cm": {
@@ -64306,7 +64887,7 @@
       "material": "",
       "size_cm": {
         "width": 70,
-        "depth": null,
+        "depth": 70,
         "height": 104
       },
       "collision_box_cm": {
@@ -67063,8 +67644,8 @@
       "color": "brown, black",
       "material": "",
       "size_cm": {
-        "width": 67,
-        "depth": null,
+        "width": 110,
+        "depth": 67,
         "height": 75
       },
       "collision_box_cm": {
@@ -76326,7 +76907,7 @@
       "material": "",
       "size_cm": {
         "width": 88,
-        "depth": null,
+        "depth": 200,
         "height": 94
       },
       "collision_box_cm": {
@@ -76699,7 +77280,7 @@
       "material": "",
       "size_cm": {
         "width": 88,
-        "depth": null,
+        "depth": 200,
         "height": 94
       },
       "collision_box_cm": {
@@ -76757,7 +77338,7 @@
       "material": "",
       "size_cm": {
         "width": 88,
-        "depth": null,
+        "depth": 200,
         "height": 94
       },
       "collision_box_cm": {
@@ -77196,7 +77777,7 @@
       "material": "",
       "size_cm": {
         "width": 86,
-        "depth": null,
+        "depth": 200,
         "height": 57
       },
       "collision_box_cm": {
@@ -77258,7 +77839,7 @@
       "material": "",
       "size_cm": {
         "width": 86,
-        "depth": null,
+        "depth": 200,
         "height": 57
       },
       "collision_box_cm": {
@@ -77320,7 +77901,7 @@
       "material": "",
       "size_cm": {
         "width": 86,
-        "depth": null,
+        "depth": 200,
         "height": 57
       },
       "collision_box_cm": {
@@ -77382,7 +77963,7 @@
       "material": "",
       "size_cm": {
         "width": 89,
-        "depth": null,
+        "depth": 200,
         "height": 83
       },
       "collision_box_cm": {
@@ -87813,7 +88394,7 @@
       "material": "",
       "size_cm": {
         "width": 49.5,
-        "depth": null,
+        "depth": 229,
         "height": 229.4
       },
       "collision_box_cm": {
@@ -87877,7 +88458,7 @@
       "material": "",
       "size_cm": {
         "width": 49.5,
-        "depth": null,
+        "depth": 195,
         "height": 194.6
       },
       "collision_box_cm": {
@@ -92388,7 +92969,7 @@
       "material": "",
       "size_cm": {
         "width": 22,
-        "depth": null,
+        "depth": 10,
         "height": 10
       },
       "collision_box_cm": {
@@ -92516,7 +93097,7 @@
       "material": "",
       "size_cm": {
         "width": 15,
-        "depth": null,
+        "depth": 20,
         "height": 10
       },
       "collision_box_cm": {
@@ -92774,7 +93355,7 @@
       "material": "",
       "size_cm": {
         "width": 32,
-        "depth": null,
+        "depth": 35,
         "height": 32
       },
       "collision_box_cm": {
@@ -93423,7 +94004,7 @@
       "material": "",
       "size_cm": {
         "width": 33,
-        "depth": null,
+        "depth": 38,
         "height": 33
       },
       "collision_box_cm": {
@@ -93685,7 +94266,7 @@
       "material": "",
       "size_cm": {
         "width": 30,
-        "depth": null,
+        "depth": 30,
         "height": 1
       },
       "collision_box_cm": {
@@ -93747,7 +94328,7 @@
       "material": "",
       "size_cm": {
         "width": 78,
-        "depth": null,
+        "depth": 196,
         "height": 196
       },
       "collision_box_cm": {
@@ -93810,7 +94391,7 @@
       "material": "",
       "size_cm": {
         "width": 78,
-        "depth": null,
+        "depth": 196,
         "height": 196
       },
       "collision_box_cm": {
@@ -93870,7 +94451,7 @@
       "material": "",
       "size_cm": {
         "width": 78,
-        "depth": null,
+        "depth": 196,
         "height": 196
       },
       "collision_box_cm": {
@@ -93930,7 +94511,7 @@
       "material": "",
       "size_cm": {
         "width": 48,
-        "depth": null,
+        "depth": 120,
         "height": 120
       },
       "collision_box_cm": {
@@ -93986,7 +94567,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 170,
         "height": 170
       },
       "collision_box_cm": {
@@ -94051,7 +94632,7 @@
       "material": "",
       "size_cm": {
         "width": 65,
-        "depth": null,
+        "depth": 150,
         "height": 150
       },
       "collision_box_cm": {
@@ -94238,7 +94819,7 @@
       "material": "",
       "size_cm": {
         "width": 21,
-        "depth": null,
+        "depth": 30,
         "height": 30
       },
       "collision_box_cm": {
@@ -94300,7 +94881,7 @@
       "material": "",
       "size_cm": {
         "width": 20,
-        "depth": null,
+        "depth": 120,
         "height": 120
       },
       "collision_box_cm": {
@@ -94356,7 +94937,7 @@
       "material": "",
       "size_cm": {
         "width": 30,
-        "depth": null,
+        "depth": 40,
         "height": 40
       },
       "collision_box_cm": {
@@ -94485,7 +95066,7 @@
       "material": "",
       "size_cm": {
         "width": 28,
-        "depth": null,
+        "depth": 37,
         "height": 37
       },
       "collision_box_cm": {
@@ -94545,7 +95126,7 @@
       "material": "",
       "size_cm": {
         "width": 40,
-        "depth": null,
+        "depth": 130,
         "height": 130
       },
       "collision_box_cm": {
@@ -94607,7 +95188,7 @@
       "material": "",
       "size_cm": {
         "width": 40,
-        "depth": null,
+        "depth": 130,
         "height": 130
       },
       "collision_box_cm": {
@@ -94732,7 +95313,7 @@
       "material": "",
       "size_cm": {
         "width": 78,
-        "depth": null,
+        "depth": 78,
         "height": 78
       },
       "collision_box_cm": {
@@ -94797,7 +95378,7 @@
       "material": "",
       "size_cm": {
         "width": 48,
-        "depth": null,
+        "depth": 60,
         "height": 60
       },
       "collision_box_cm": {
@@ -95041,7 +95622,7 @@
       "material": "",
       "size_cm": {
         "width": 80,
-        "depth": null,
+        "depth": 80,
         "height": 80
       },
       "collision_box_cm": {
@@ -95101,7 +95682,7 @@
       "material": "",
       "size_cm": {
         "width": 27,
-        "depth": null,
+        "depth": 40,
         "height": 40
       },
       "collision_box_cm": {
@@ -95403,7 +95984,7 @@
       "material": "",
       "size_cm": {
         "width": 30,
-        "depth": null,
+        "depth": 115,
         "height": 115
       },
       "collision_box_cm": {
@@ -95465,7 +96046,7 @@
       "material": "",
       "size_cm": {
         "width": 30,
-        "depth": null,
+        "depth": 115,
         "height": 115
       },
       "collision_box_cm": {
@@ -95716,7 +96297,7 @@
       "material": "",
       "size_cm": {
         "width": 27,
-        "depth": null,
+        "depth": 27,
         "height": 27
       },
       "collision_box_cm": {
@@ -97618,7 +98199,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 80,
         "height": 80
       },
       "collision_box_cm": {
@@ -98400,7 +98981,7 @@
       "material": "",
       "size_cm": {
         "width": 65,
-        "depth": null,
+        "depth": 65,
         "height": 65
       },
       "collision_box_cm": {
@@ -98458,7 +99039,7 @@
       "material": "",
       "size_cm": {
         "width": 65,
-        "depth": null,
+        "depth": 65,
         "height": 65
       },
       "collision_box_cm": {
@@ -98520,7 +99101,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 120,
         "height": 120
       },
       "collision_box_cm": {
@@ -98582,7 +99163,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 120,
         "height": 120
       },
       "collision_box_cm": {
@@ -98647,7 +99228,7 @@
       "material": "",
       "size_cm": {
         "width": 60,
-        "depth": null,
+        "depth": 120,
         "height": 120
       },
       "collision_box_cm": {
@@ -101430,5 +102011,454 @@
       "style_assignment_source": "scored",
       "style_rule_flags": []
     }
-  ]
+  ],
+  "surface_catalog": {
+    "walls": [
+      {
+        "surface_id": "auto",
+        "name_zh": "依風格自動",
+        "category_zh": "自動",
+        "material_zh": "自動",
+        "tone_zh": "依風格自動",
+        "finish_zh": "自動",
+        "why_zh": "系統依選擇風格套用最適合的牆面。",
+        "preview_hex": "#efe7dd",
+        "base_hex": "#f5efe7",
+        "accent_hex": "#d8cebf"
+      },
+      {
+        "surface_id": "warm_white",
+        "name_zh": "暖白牆面",
+        "category_zh": "牆面",
+        "material_zh": "乳膠漆",
+        "tone_zh": "暖白",
+        "finish_zh": "乳膠漆",
+        "why_zh": "溫暖低彩度白色，適合明亮、自然、耐看的空間基底。",
+        "preview_hex": "#f4ede3",
+        "base_hex": "#f8f2ea",
+        "accent_hex": "#ddd3c4"
+      },
+      {
+        "surface_id": "milk_tea",
+        "name_zh": "奶茶色牆面",
+        "category_zh": "牆面",
+        "material_zh": "乳膠漆",
+        "tone_zh": "奶茶色",
+        "finish_zh": "乳膠漆",
+        "why_zh": "比白色更柔和，能增加居家溫度與包覆感。",
+        "preview_hex": "#dbc4aa",
+        "base_hex": "#e0c9ad",
+        "accent_hex": "#baa081"
+      },
+      {
+        "surface_id": "light_gray",
+        "name_zh": "冷灰牆面",
+        "category_zh": "牆面",
+        "material_zh": "乳膠漆",
+        "tone_zh": "冷灰",
+        "finish_zh": "乳膠漆",
+        "why_zh": "俐落中性，適合現代與北歐現代風格。",
+        "preview_hex": "#dde1e4",
+        "base_hex": "#dfe2e5",
+        "accent_hex": "#c7cbd1"
+      },
+      {
+        "surface_id": "graphite_gray",
+        "name_zh": "石墨灰牆面",
+        "category_zh": "牆面",
+        "material_zh": "乳膠漆",
+        "tone_zh": "石墨灰",
+        "finish_zh": "乳膠漆",
+        "why_zh": "深色低彩度牆面，能突顯金屬、玻璃與線條感。",
+        "preview_hex": "#6e7075",
+        "base_hex": "#65676c",
+        "accent_hex": "#8a8d92"
+      },
+      {
+        "surface_id": "blue_gray",
+        "name_zh": "灰藍牆面",
+        "category_zh": "牆面",
+        "material_zh": "乳膠漆",
+        "tone_zh": "灰藍",
+        "finish_zh": "乳膠漆",
+        "why_zh": "帶一點藍色的冷灰，適合作為北歐現代或混搭風點綴。",
+        "preview_hex": "#aab6c2",
+        "base_hex": "#a9b6c3",
+        "accent_hex": "#8796a5"
+      },
+      {
+        "surface_id": "mineral_beige",
+        "name_zh": "礦物米灰牆",
+        "category_zh": "牆面",
+        "material_zh": "礦物塗料",
+        "tone_zh": "礦物米灰",
+        "finish_zh": "礦物塗料",
+        "why_zh": "低飽和米灰質感，適合侘寂、輕奢與自然系空間。",
+        "preview_hex": "#cbb79d",
+        "base_hex": "#d0baa0",
+        "accent_hex": "#b59a7d"
+      },
+      {
+        "surface_id": "limewash",
+        "name_zh": "灰泥刷紋牆",
+        "category_zh": "牆面",
+        "material_zh": "礦物塗料",
+        "tone_zh": "灰泥刷紋",
+        "finish_zh": "礦物塗料",
+        "why_zh": "帶手刷紋理與陰影層次，能呈現樸質、慢生活感。",
+        "preview_hex": "#d7c8b7",
+        "base_hex": "#e6dac8",
+        "accent_hex": "#bfa98e"
+      },
+      {
+        "surface_id": "charcoal",
+        "name_zh": "炭灰牆面",
+        "category_zh": "牆面",
+        "material_zh": "乳膠漆",
+        "tone_zh": "炭灰",
+        "finish_zh": "乳膠漆",
+        "why_zh": "深沉視覺焦點，適合工業、古典與局部主牆。",
+        "preview_hex": "#5b5550",
+        "base_hex": "#59544f",
+        "accent_hex": "#77706a"
+      },
+      {
+        "surface_id": "concrete_gray",
+        "name_zh": "水泥灰牆",
+        "category_zh": "牆面",
+        "material_zh": "微水泥 / 清水模",
+        "tone_zh": "水泥灰",
+        "finish_zh": "微水泥 / 清水模",
+        "why_zh": "粗獷但乾淨的灰階表情，適合工業與現代風。",
+        "preview_hex": "#958c83",
+        "base_hex": "#968c83",
+        "accent_hex": "#b0a69c"
+      },
+      {
+        "surface_id": "brick_rust",
+        "name_zh": "鏽紅磚牆",
+        "category_zh": "牆面",
+        "material_zh": "文化石 / 磚牆",
+        "tone_zh": "鏽紅磚",
+        "finish_zh": "文化石 / 磚牆",
+        "why_zh": "保留粗獷復古感，適合工業風局部牆面。",
+        "preview_hex": "#8f6046",
+        "base_hex": "#87553d",
+        "accent_hex": "#ad7c63"
+      },
+      {
+        "surface_id": "greige_panel",
+        "name_zh": "米灰線板牆",
+        "category_zh": "牆面",
+        "material_zh": "線板 / 乳膠漆",
+        "tone_zh": "米灰線板",
+        "finish_zh": "線板 / 乳膠漆",
+        "why_zh": "有精緻線條但不厚重，適合台灣居家的美式與古典風。",
+        "preview_hex": "#ede4d7",
+        "base_hex": "#efe6d9",
+        "accent_hex": "#d8cabc"
+      },
+      {
+        "surface_id": "caramel_beige",
+        "name_zh": "焦糖米棕牆",
+        "category_zh": "牆面",
+        "material_zh": "乳膠漆",
+        "tone_zh": "焦糖米棕",
+        "finish_zh": "乳膠漆",
+        "why_zh": "溫暖咖灰色調，適合美拉德與溫潤居家感。",
+        "preview_hex": "#c7a987",
+        "base_hex": "#c7a887",
+        "accent_hex": "#9f7c59"
+      }
+    ],
+    "floors": [
+      {
+        "surface_id": "auto",
+        "name_zh": "依風格推薦",
+        "category_zh": "自動",
+        "material_zh": "系統推薦",
+        "finish_zh": "依風格套用",
+        "why_zh": "依照目前風格自動選擇最適合的地板。",
+        "preview_hex": "#dcc09b",
+        "base_hex": "#e3c99f",
+        "accent_hex": "#b48d63",
+        "repeat_x": 4,
+        "repeat_y": 4,
+        "roughness": 0.9,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "light_oak",
+        "name_zh": "淺橡木地板",
+        "category_zh": "木地板",
+        "material_zh": "木紋材質",
+        "finish_zh": "淺木紋、霧面",
+        "why_zh": "明亮、自然、低壓，適合北歐、無印與清爽居家風格。",
+        "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+        "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood095.jpg",
+        "base_hex": "#e7cca1",
+        "accent_hex": "#be9871",
+        "repeat_x": 4.5,
+        "repeat_y": 4.5,
+        "roughness": 0.88,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "white_oak_plank",
+        "name_zh": "白橡木長板地板",
+        "category_zh": "木地板",
+        "material_zh": "實木 / 木紋材質",
+        "finish_zh": "長板拼接、自然木紋",
+        "why_zh": "比一般淺木更有拼接線條，適合需要質感但不要太花的空間。",
+        "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor007.jpg",
+        "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor007.jpg",
+        "base_hex": "#e5c796",
+        "accent_hex": "#c19866",
+        "repeat_x": 4.6,
+        "repeat_y": 4.6,
+        "roughness": 0.86,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "medium_oak",
+        "name_zh": "中橡木地板",
+        "category_zh": "木地板",
+        "material_zh": "拼花木地板",
+        "finish_zh": "中木色、溫潤拼接",
+        "why_zh": "保留木質厚度與家庭感，適合美式、混搭與北歐現代。",
+        "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor062.jpg",
+        "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor062.jpg",
+        "base_hex": "#c9aa84",
+        "accent_hex": "#9c7756",
+        "repeat_x": 4.2,
+        "repeat_y": 4.2,
+        "roughness": 0.86,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "herringbone_oak",
+        "name_zh": "人字拼淺木地板",
+        "category_zh": "拼花木地板",
+        "material_zh": "拼花木地板",
+        "finish_zh": "人字拼、淺木色",
+        "why_zh": "拼接感明顯，能讓簡約空間更有層次。",
+        "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor051.jpg",
+        "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor051.jpg",
+        "base_hex": "#e9cda3",
+        "accent_hex": "#ad8054",
+        "repeat_x": 3.2,
+        "repeat_y": 3.2,
+        "roughness": 0.82,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "rustic_oak_plank",
+        "name_zh": "鄉村刷色木地板",
+        "category_zh": "木地板",
+        "material_zh": "拼花木地板",
+        "finish_zh": "自然刷紋、溫潤木色",
+        "why_zh": "有手感與木節變化，適合美式鄉村與溫暖居家。",
+        "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor070.jpg",
+        "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor070.jpg",
+        "base_hex": "#d7b27c",
+        "accent_hex": "#a87946",
+        "repeat_x": 4,
+        "repeat_y": 4,
+        "roughness": 0.9,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "walnut",
+        "name_zh": "胡桃木地板",
+        "category_zh": "木地板",
+        "material_zh": "實木地板",
+        "finish_zh": "深木色、霧面",
+        "why_zh": "咖棕色調穩重，適合美拉德、古典與沉穩空間。",
+        "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood051.jpg",
+        "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-Wood051.jpg",
+        "base_hex": "#7b563a",
+        "accent_hex": "#4d3221",
+        "repeat_x": 4,
+        "repeat_y": 4,
+        "roughness": 0.84,
+        "metalness": 0.02
+      },
+      {
+        "surface_id": "dark_walnut_plank",
+        "name_zh": "深胡桃木長板",
+        "category_zh": "木地板",
+        "material_zh": "實木地板",
+        "finish_zh": "深色長板、粗獷木紋",
+        "why_zh": "更有存在感，適合工業、古典或需要沉穩底色的配置。",
+        "preview_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor067B.jpg",
+        "texture_url": "/surface-assets/cc0-wood-textures/ambientcg-WoodFloor067B.jpg",
+        "base_hex": "#67452f",
+        "accent_hex": "#3e281b",
+        "repeat_x": 4,
+        "repeat_y": 4,
+        "roughness": 0.9,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "white_oak_tile",
+        "name_zh": "白橡木紋磚",
+        "category_zh": "木紋磚",
+        "material_zh": "木紋磚",
+        "finish_zh": "白橡木紋、霧面",
+        "why_zh": "保留木紋但更耐磨，適合台灣住宅與好清潔需求。",
+        "preview_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+        "texture_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212141.png",
+        "base_hex": "#ddc79f",
+        "accent_hex": "#b69368",
+        "repeat_x": 5.8,
+        "repeat_y": 5.8,
+        "roughness": 0.9,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "white_wood_look_tile",
+        "name_zh": "杏白木紋磚",
+        "category_zh": "木紋磚",
+        "material_zh": "白橡木紋磚",
+        "finish_zh": "杏白、霧面",
+        "why_zh": "更淡雅乾淨，適合無印、北歐與小坪數放大感。",
+        "preview_url": "/surface-assets/ccity-wood-look-tiles/ccity-CAL288001.png",
+        "texture_url": "/surface-assets/ccity-wood-look-tiles/ccity-CAL288001.png",
+        "base_hex": "#eadcc8",
+        "accent_hex": "#cdb99b",
+        "repeat_x": 5.8,
+        "repeat_y": 5.8,
+        "roughness": 0.9,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "smoked_walnut_tile",
+        "name_zh": "煙燻胡桃木紋磚",
+        "category_zh": "木紋磚",
+        "material_zh": "胡桃木紋磚",
+        "finish_zh": "深棕、霧面",
+        "why_zh": "深色木紋但比實木更耐用，適合美拉德與工業風。",
+        "preview_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212143.png",
+        "texture_url": "/surface-assets/ccity-wood-look-tiles/ccity-CCD212143.png",
+        "base_hex": "#8d6545",
+        "accent_hex": "#5b3a27",
+        "repeat_x": 5.8,
+        "repeat_y": 5.8,
+        "roughness": 0.88,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "stone_gray",
+        "name_zh": "霧面石紋灰磚",
+        "category_zh": "石紋磚",
+        "material_zh": "磁磚",
+        "finish_zh": "灰階霧面、石紋",
+        "why_zh": "中性、乾淨且有磁磚分割感，適合現代簡約。",
+        "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+        "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+        "base_hex": "#d6d2cd",
+        "accent_hex": "#bdb7b2",
+        "repeat_x": 5.6,
+        "repeat_y": 5.6,
+        "roughness": 0.92,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "concrete_gray_tile",
+        "name_zh": "煙燻灰清水模磚",
+        "category_zh": "清水模磁磚",
+        "material_zh": "清水模磁磚",
+        "finish_zh": "霧面、水泥質感",
+        "why_zh": "牆地一致性強，適合現代、工業與低彩度場景。",
+        "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+        "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220017.png",
+        "base_hex": "#c4bbb1",
+        "accent_hex": "#928a82",
+        "repeat_x": 6,
+        "repeat_y": 6,
+        "roughness": 0.95,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "cocoa_concrete_tile",
+        "name_zh": "焦糖可可清水模磚",
+        "category_zh": "清水模磁磚",
+        "material_zh": "清水模磁磚",
+        "finish_zh": "霧面、咖灰色",
+        "why_zh": "咖棕調帶現代感，適合美拉德與沉穩溫暖風格。",
+        "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220026.png",
+        "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220026.png",
+        "base_hex": "#8a6546",
+        "accent_hex": "#5c3f2b",
+        "repeat_x": 6,
+        "repeat_y": 6,
+        "roughness": 0.94,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "stone_beige",
+        "name_zh": "米色石紋地磚",
+        "category_zh": "石紋磚",
+        "material_zh": "磁磚",
+        "finish_zh": "米色石紋、霧面",
+        "why_zh": "比灰磚更溫暖，適合侘寂、混搭與自然感空間。",
+        "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CRD612656.png",
+        "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CRD612656.png",
+        "base_hex": "#d5c3ab",
+        "accent_hex": "#b49a7f",
+        "repeat_x": 5.2,
+        "repeat_y": 5.2,
+        "roughness": 0.9,
+        "metalness": 0.01
+      },
+      {
+        "surface_id": "marble",
+        "name_zh": "亮面大理石地磚",
+        "category_zh": "大理石紋磚",
+        "material_zh": "磁磚",
+        "finish_zh": "亮面、暖白大理石紋",
+        "why_zh": "反射與紋理能提升精緻感，適合輕奢風。",
+        "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CCI12610.png",
+        "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CCI12610.png",
+        "base_hex": "#f8f5ef",
+        "accent_hex": "#c6aa82",
+        "repeat_x": 4.2,
+        "repeat_y": 4.2,
+        "roughness": 0.42,
+        "metalness": 0.02
+      },
+      {
+        "surface_id": "marble_gray",
+        "name_zh": "灰紋大理石地磚",
+        "category_zh": "大理石紋磚",
+        "material_zh": "磁磚",
+        "finish_zh": "亮面、灰階紋理",
+        "why_zh": "比暖白大理石更沉穩，適合古典與現代奢華。",
+        "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CTU128089.png",
+        "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CTU128089.png",
+        "base_hex": "#dcd7d1",
+        "accent_hex": "#a39a93",
+        "repeat_x": 4.4,
+        "repeat_y": 4.4,
+        "roughness": 0.48,
+        "metalness": 0.02
+      },
+      {
+        "surface_id": "microcement",
+        "name_zh": "微水泥無縫地坪",
+        "category_zh": "微水泥",
+        "material_zh": "微水泥",
+        "finish_zh": "霧面、低接縫",
+        "why_zh": "連續、安靜、低彩度，適合侘寂與工業風。",
+        "preview_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220015.png",
+        "texture_url": "/surface-assets/ccity-tile-flooring/ccity-CAL220015.png",
+        "base_hex": "#beb4aa",
+        "accent_hex": "#948a80",
+        "repeat_x": 5,
+        "repeat_y": 5,
+        "roughness": 0.96,
+        "metalness": 0.01
+      }
+    ]
+  }
 }

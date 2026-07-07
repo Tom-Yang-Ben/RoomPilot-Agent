@@ -1,647 +1,719 @@
-import { fetchSiteData, initBackgroundFx } from "./common.js?v=20260704e";
-import { createSceneViewer } from "./scene_viewer.js?v=20260705m";
+import { fetchSiteData, formatSize, formatTypeLabel, initBackgroundFx } from "./common.js?v=20260707a";
+import { createSceneViewer } from "./scene_viewer.js?v=20260707a";
 
 const siteData = await fetchSiteData();
-const providerStatus = await fetch("/api/scene/provider-status").then((response) => response.json());
+const providerStatus = await fetch("/api/scene/provider-status")
+  .then((response) => (response.ok ? response.json() : { enabled: false, model: null }))
+  .catch(() => ({ enabled: false, model: null }));
 
-const furnitureOptions = [
-  { label: "沙發", value: "sofa" },
-  { label: "茶几", value: "coffee-table" },
-  { label: "電視櫃", value: "tv-bench" },
-  { label: "單椅", value: "armchair" },
-  { label: "書櫃", value: "bookcase" },
-  { label: "床", value: "bed" },
-  { label: "床頭櫃", value: "bedside-table" },
-  { label: "書桌", value: "desk" },
-  { label: "辦公椅", value: "office-chair" },
-  { label: "餐桌", value: "dining-table" },
-  { label: "餐椅", value: "dining-chair" },
-  { label: "邊櫃", value: "sideboard" },
-];
+const surfaceCatalog = siteData.surface_catalog || { walls: [], floors: [] };
+const wallSurfaces = surfaceCatalog.walls || [];
+const floorSurfaces = surfaceCatalog.floors || [];
+const wallSurfaceMap = new Map(wallSurfaces.map((item) => [item.surface_id, item]));
+const floorSurfaceMap = new Map(floorSurfaces.map((item) => [item.surface_id, item]));
 
-const colorOptions = ["米白", "奶茶色", "淺木色", "淺灰", "黑色", "綠色", "胡桃木", "黃銅"];
-
-const wallOptions = [
-  { id: "auto", label: "依風格推薦", preview: "linear-gradient(135deg, #f5efe6, #dfd3c4)" },
-  { id: "warm_white", label: "暖白礦物漆", preview: "linear-gradient(135deg, #fbf6ef, #ece0d2)" },
-  { id: "mineral_beige", label: "礦物米灰牆", preview: "linear-gradient(135deg, #d8c6b2, #bca58a)" },
-  { id: "light_gray", label: "霧面冷灰牆", preview: "linear-gradient(135deg, #ececee, #d2d4d8)" },
-  { id: "limewash", label: "手刷石灰感牆", preview: "linear-gradient(135deg, #ede3d2, #cdbba4)" },
-  { id: "charcoal", label: "深灰微水泥牆", preview: "linear-gradient(135deg, #686159, #3f3a36)" },
-];
-
-const floorOptions = [
-  { id: "auto", label: "依風格推薦", preview: "linear-gradient(135deg, #eadbc6, #c9a77a)" },
-  { id: "light_oak", label: "淺橡木木地板", preview: "linear-gradient(135deg, #ead4af, #d3b07f)" },
-  { id: "herringbone_oak", label: "人字拼淺木地板", preview: "linear-gradient(135deg, #efd8b3, #bf9566)" },
-  { id: "walnut", label: "深胡桃木地板", preview: "linear-gradient(135deg, #9b7452, #5b3e28)" },
-  { id: "stone_gray", label: "霧面石紋灰磚", preview: "linear-gradient(135deg, #ddd7d2, #b7b3b0)" },
-  { id: "marble", label: "亮面大理石地磚", preview: "linear-gradient(135deg, #f7f5ef, #cfc8bd 52%, #f4efe7)" },
-  { id: "microcement", label: "微水泥無縫地坪", preview: "linear-gradient(135deg, #d1cbc3, #a39c93)" },
-];
-
-const DEFAULT_FURNITURE_BY_SPACE = {
-  living_room: ["sofa", "coffee-table", "tv-bench", "armchair"],
-  bedroom: ["bed", "bedside-table", "bookcase"],
-  workspace: ["desk", "office-chair", "bookcase"],
-  dining_room: ["dining-table", "dining-chair", "sideboard"],
-  studio: ["sofa", "coffee-table", "desk", "bookcase"],
-};
-
-const wallOptionLabelMap = new Map(wallOptions.map((option) => [option.id, option.label]));
-const floorOptionLabelMap = new Map(floorOptions.map((option) => [option.id, option.label]));
-const furnitureLabelMap = new Map(furnitureOptions.map((option) => [option.value, option.label]));
-
-const elements = {
-  sceneForm: document.getElementById("scene-form"),
-  stylePreference: document.getElementById("style-preference"),
-  furnitureOptions: document.getElementById("furniture-options"),
-  colorOptions: document.getElementById("color-options"),
-  wallOptions: document.getElementById("wall-options"),
-  floorOptions: document.getElementById("floor-options"),
-  customFurniture: document.getElementById("custom-furniture"),
-  customColors: document.getElementById("custom-colors"),
-  roomWidth: document.getElementById("room-width"),
-  roomDepth: document.getElementById("room-depth"),
-  spaceType: document.getElementById("space-type"),
-  floorplan: document.getElementById("floorplan"),
-  personalNotes: document.getElementById("personal-notes"),
-  keepWindowClear: document.getElementById("keep-window-clear"),
-  keepDoorClear: document.getElementById("keep-door-clear"),
-  needStorage: document.getElementById("need-storage"),
-  preferLowSaturation: document.getElementById("prefer-low-saturation"),
-  generateScene: document.getElementById("generate-scene"),
-  randomFurniture: document.getElementById("random-furniture"),
-  resetSceneView: document.getElementById("reset-scene-view"),
-  addFurnitureType: document.getElementById("add-furniture-type"),
-  addFurniture: document.getElementById("add-furniture"),
-  reshuffleScene: document.getElementById("reshuffle-scene"),
-  viewPresetButtons: document.querySelectorAll("[data-view-preset]"),
-  sceneStyleName: document.getElementById("scene-style-name"),
-  sceneLlmMode: document.getElementById("scene-llm-mode"),
-  sceneItemCount: document.getElementById("scene-item-count"),
-  sceneRoomSize: document.getElementById("scene-room-size"),
-  sceneBackground: document.getElementById("scene-background"),
-  sceneSelectedItems: document.getElementById("scene-selected-items"),
-  sceneStatus: document.getElementById("scene-status"),
-  sceneViewerCanvas: document.getElementById("scene-viewer-canvas"),
-};
-
-const viewer = createSceneViewer(elements.sceneViewerCanvas, elements.sceneStatus);
-let uploadedDxfText = null;
-let furnitureRandomSeed = Date.now();
-let currentSceneData = null;
-
-const STYLE_SCENE_LOOKS = {
+const STYLE_SURFACE_FALLBACKS = {
   scandinavian: { wall: "warm_white", floor: "light_oak" },
   modern: { wall: "light_gray", floor: "stone_gray" },
   minimalist_muji: { wall: "warm_white", floor: "light_oak" },
   nordic_modern: { wall: "light_gray", floor: "light_oak" },
-  industrial: { wall: "charcoal", floor: "microcement" },
-  wabi_sabi: { wall: "limewash", floor: "microcement" },
-  melad: { wall: "mineral_beige", floor: "walnut" },
-  american: { wall: "warm_white", floor: "walnut" },
+  industrial: { wall: "concrete_gray", floor: "microcement" },
+  wabi_sabi: { wall: "mineral_beige", floor: "microcement" },
+  japanese: { wall: "warm_white", floor: "light_oak" },
+  melad: { wall: "caramel_beige", floor: "walnut" },
+  american: { wall: "greige_panel", floor: "medium_oak" },
   american_country: { wall: "warm_white", floor: "light_oak" },
   light_luxury: { wall: "light_gray", floor: "marble" },
-  classical: { wall: "mineral_beige", floor: "walnut" },
-  eclectic: { wall: "warm_white", floor: "light_oak" },
+  classical: { wall: "greige_panel", floor: "walnut" },
+  eclectic: { wall: "warm_white", floor: "medium_oak" },
 };
 
-function renderStyleOptions() {
-  elements.stylePreference.innerHTML = siteData.styles
-    .map((style) => `<option value="${style.style_id}">${style.style_name_zh}</option>`)
-    .join("");
+const COLOR_OPTIONS = [
+  { value: "auto", label: "依風格自動" },
+  { value: "米白", label: "米白" },
+  { value: "奶茶色", label: "奶茶色" },
+  { value: "淺木色", label: "淺木色" },
+  { value: "淺灰", label: "淺灰" },
+  { value: "黑色", label: "黑色" },
+  { value: "綠色", label: "綠色" },
+  { value: "胡桃木", label: "胡桃木" },
+  { value: "黃銅", label: "黃銅" },
+];
 
-  if (siteData.styles.some((style) => style.style_id === "scandinavian")) {
-    elements.stylePreference.value = "scandinavian";
+const RULE_PROFILES = {
+  balanced: {
+    keep_window_clear: true,
+    keep_door_clear: true,
+    need_storage: false,
+    prefer_low_saturation: false,
+    helper: "平衡風格、動線與家具數量。",
+  },
+  storage: {
+    keep_window_clear: true,
+    keep_door_clear: true,
+    need_storage: true,
+    prefer_low_saturation: false,
+    helper: "提高收納家具優先度。",
+  },
+  calm: {
+    keep_window_clear: true,
+    keep_door_clear: true,
+    need_storage: false,
+    prefer_low_saturation: true,
+    helper: "傾向留白、低彩度與較安靜的配置。",
+  },
+  open: {
+    keep_window_clear: true,
+    keep_door_clear: true,
+    need_storage: false,
+    prefer_low_saturation: false,
+    helper: "保留更多通道與視覺開闊感。",
+  },
+};
+
+const FURNITURE_PRESETS_BY_SPACE = {
+  living_room: [
+    { value: "living_basic", label: "客廳基本組合", items: ["sofa", "coffee-table", "tv-bench", "armchair"] },
+    { value: "living_storage", label: "客廳收納組合", items: ["sofa", "coffee-table", "tv-bench", "sideboard", "bookcase"] },
+    { value: "living_reading", label: "客廳閱讀角", items: ["sofa", "coffee-table", "armchair", "bookcase"] },
+  ],
+  bedroom: [
+    { value: "bedroom_basic", label: "臥室基本組合", items: ["bed", "bedside-table", "bookcase"] },
+    { value: "bedroom_storage", label: "臥室收納組合", items: ["bed", "bedside-table", "sideboard", "bookcase"] },
+    { value: "bedroom_work", label: "臥室工作組合", items: ["bed", "bedside-table", "desk", "office-chair"] },
+  ],
+  workspace: [
+    { value: "workspace_basic", label: "工作空間基本組合", items: ["desk", "office-chair", "bookcase"] },
+    { value: "workspace_meeting", label: "工作空間會客組合", items: ["desk", "office-chair", "armchair", "coffee-table"] },
+    { value: "workspace_storage", label: "工作空間收納組合", items: ["desk", "office-chair", "sideboard", "bookcase"] },
+  ],
+  dining_room: [
+    { value: "dining_basic", label: "餐廳基本組合", items: ["dining-table", "dining-chair", "sideboard"] },
+    { value: "dining_light", label: "餐廳輕量組合", items: ["dining-table", "dining-chair"] },
+    { value: "dining_storage", label: "餐廳收納組合", items: ["dining-table", "dining-chair", "sideboard", "bookcase"] },
+  ],
+  studio: [
+    { value: "studio_basic", label: "套房基本組合", items: ["sofa", "coffee-table", "desk", "bookcase"] },
+    { value: "studio_sleep", label: "套房睡眠組合", items: ["bed", "bedside-table", "desk"] },
+    { value: "studio_storage", label: "套房收納組合", items: ["sofa", "coffee-table", "sideboard", "bookcase"] },
+  ],
+};
+
+function getStyleById(styleId) {
+  return siteData.styles.find((style) => style.style_id === styleId) || null;
+}
+
+function getSurfaceCatalogList(kind) {
+  return kind === "wall" ? wallSurfaces : floorSurfaces;
+}
+
+function getSurfaceMap(kind) {
+  return kind === "wall" ? wallSurfaceMap : floorSurfaceMap;
+}
+
+function getSurfaceById(kind, surfaceId) {
+  return getSurfaceMap(kind).get(surfaceId) || null;
+}
+
+function formatSurfaceLabel(kind, surface) {
+  if (!surface) return "未指定";
+
+  if (surface.surface_id === "auto") {
+    return "依風格自動";
+  }
+
+  const detail = kind === "wall" ? surface.finish_zh : surface.material_zh || surface.finish_zh;
+  return [surface.name_zh, detail].filter(Boolean).join("｜");
+}
+
+function buildSurfaceOptions(kind) {
+  return getSurfaceCatalogList(kind).map((surface) => ({
+    value: surface.surface_id,
+    label: formatSurfaceLabel(kind, surface),
+  }));
+}
+
+function getDefaultSurfaceChoice(styleId, kind) {
+  const style = getStyleById(styleId);
+  const surfaceIdField = kind === "wall" ? "wall_surface_id" : "floor_surface_id";
+  const defaultField = kind === "wall" ? "default_wall_surface_id" : "default_floor_surface_id";
+  const fallback = STYLE_SURFACE_FALLBACKS[styleId] || STYLE_SURFACE_FALLBACKS.scandinavian;
+  const surfaceId =
+    style?.scene_background?.[surfaceIdField] ||
+    style?.[defaultField] ||
+    fallback?.[kind] ||
+    "auto";
+
+  return getSurfaceById(kind, surfaceId) ? surfaceId : "auto";
+}
+
+function buildSurfacePreviewStyle(surface) {
+  if (!surface) return "";
+  const imageUrl = surface.preview_url || surface.texture_url;
+  if (imageUrl) {
+    return [
+      `background-image:url('${imageUrl}')`,
+      "background-size:cover",
+      "background-position:center",
+    ].join(";");
+  }
+
+  const base = surface.preview_hex || surface.base_hex || "#e7dccf";
+  const accent = surface.accent_hex || base;
+  return `background:linear-gradient(135deg, ${base}, ${accent});`;
+}
+
+function renderBackgroundSurfaceCard(kind, surface) {
+  if (!surface) return "";
+
+  const title = kind === "wall" ? "牆面" : "地板";
+  const detail = kind === "wall" ? [surface.tone_zh, surface.finish_zh] : [surface.material_zh, surface.finish_zh];
+
+  return `
+    <article class="scene-surface-card">
+      <div class="scene-surface-preview" style="${buildSurfacePreviewStyle(surface)}"></div>
+      <div class="scene-surface-copy">
+        <span>${title}</span>
+        <strong>${surface.name_zh || "未指定"}</strong>
+        <small>${detail.filter(Boolean).join(" / ") || "依風格推薦"}</small>
+      </div>
+    </article>
+  `;
+}
+
+const elements = {
+  sceneForm: document.getElementById("scene-form"),
+  sceneViewerPanel: document.getElementById("scene-viewer-panel"),
+  floorplan: document.getElementById("floorplan"),
+  spaceType: document.getElementById("space-type"),
+  stylePreference: document.getElementById("style-preference"),
+  furniturePreset: document.getElementById("furniture-preset"),
+  furniturePresetHint: document.getElementById("furniture-preset-hint"),
+  colorPreference: document.getElementById("color-preference"),
+  wallOptionSelect: document.getElementById("wall-option-select"),
+  floorOptionSelect: document.getElementById("floor-option-select"),
+  ruleProfile: document.getElementById("rule-profile"),
+  roomWidth: document.getElementById("room-width"),
+  roomDepth: document.getElementById("room-depth"),
+  customFurniture: document.getElementById("custom-furniture"),
+  personalNotes: document.getElementById("personal-notes"),
+  generateScene: document.getElementById("generate-scene"),
+  randomFurniture: document.getElementById("random-furniture"),
+  sceneViewerCanvas: document.getElementById("scene-viewer-canvas"),
+  sceneStatus: document.getElementById("scene-status"),
+  sceneStyleName: document.getElementById("scene-style-name"),
+  sceneLlmMode: document.getElementById("scene-llm-mode"),
+  sceneItemCount: document.getElementById("scene-item-count"),
+  sceneRoomSize: document.getElementById("scene-room-size"),
+  resetSceneView: document.getElementById("reset-scene-view"),
+  addFurnitureType: document.getElementById("add-furniture-type"),
+  addFurniture: document.getElementById("add-furniture"),
+  reshuffleScene: document.getElementById("reshuffle-scene"),
+  sceneBackground: document.getElementById("scene-background"),
+  sceneBackgroundDetail: document.getElementById("scene-background-detail"),
+  sceneBackgroundSurfaces: document.getElementById("scene-background-surfaces"),
+  sceneSelectedItems: document.getElementById("scene-selected-items"),
+  viewPresetButtons: Array.from(document.querySelectorAll("[data-view-preset]")),
+};
+
+const viewer = createSceneViewer(elements.sceneViewerCanvas, elements.sceneStatus, {
+  surfaceCatalog,
+});
+
+let currentSceneData = null;
+let uploadedDxfText = null;
+let sceneBusy = false;
+let furnitureRandomSeed = Date.now();
+
+function populateSelect(select, options, selectedValue = "") {
+  select.innerHTML = "";
+
+  options.forEach((option) => {
+    const element = document.createElement("option");
+    element.value = option.value;
+    element.textContent = option.label;
+    select.appendChild(element);
+  });
+
+  if (selectedValue && options.some((option) => option.value === selectedValue)) {
+    select.value = selectedValue;
+    return;
+  }
+
+  if (options.length) {
+    select.value = options[0].value;
   }
 }
 
-function renderToggleOptions(container, options, name) {
-  container.innerHTML = options
-    .map(
-      (option) => `
-        <label class="scene-option">
-          <input type="checkbox" name="${name}" value="${option.value || option}" />
-          <span>${option.label || option}</span>
-        </label>
-      `
-    )
-    .join("");
+function getStyleOptions() {
+  return siteData.styles.map((style) => ({
+    value: style.style_id,
+    label: style.style_name_zh,
+  }));
 }
 
-function renderAddFurnitureSelect() {
-  elements.addFurnitureType.innerHTML = furnitureOptions
-    .map((option) => `<option value="${option.value}">${option.label}</option>`)
-    .join("");
-}
-
-function renderVisualOptions(container, options, name) {
-  container.innerHTML = options
-    .map(
-      (option, index) => `
-        <label class="scene-visual-option">
-          <input type="radio" name="${name}" value="${option.id}" ${index === 0 ? "checked" : ""} />
-          <span class="scene-visual-swatch" style="background:${option.preview}"></span>
-          <span class="scene-visual-label">${option.label}</span>
-        </label>
-      `
-    )
-    .join("");
-}
-
-function selectedValues(container) {
-  return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
-}
-
-function selectedRadio(container, name) {
-  return container.querySelector(`input[name="${name}"]:checked`)?.value || "auto";
-}
-
-function getTypeLabel(type) {
-  return furnitureLabelMap.get(type) || type || "家具";
-}
-
-function setRadioValue(container, name, value) {
-  const target = container.querySelector(`input[name="${name}"][value="${value}"]`);
-  if (target) target.checked = true;
-}
-
-function getStyleSceneLook(styleId = elements.stylePreference.value) {
-  return STYLE_SCENE_LOOKS[styleId] || STYLE_SCENE_LOOKS.scandinavian;
-}
-
-function getResolvedSurfaceChoice(container, name, fallbackValue) {
-  const value = selectedRadio(container, name);
-  return value === "auto" ? fallbackValue : value;
-}
-
-function syncSurfaceChoicesToStyle() {
-  const sceneLook = getStyleSceneLook();
-  setRadioValue(elements.wallOptions, "wall-option", sceneLook.wall);
-  setRadioValue(elements.floorOptions, "floor-option", sceneLook.floor);
-}
-
-function setFurnitureSelection(values) {
-  const wanted = new Set(values);
-  elements.furnitureOptions.querySelectorAll('input[type="checkbox"]').forEach((input) => {
-    input.checked = wanted.has(input.value);
+function getFurnitureTypeOptions() {
+  const seen = new Map();
+  siteData.furniture.forEach((item) => {
+    const type = item.normalized_type;
+    if (!type || seen.has(type)) return;
+    seen.set(type, {
+      value: type,
+      label: formatTypeLabel(type),
+    });
   });
+
+  return Array.from(seen.values()).sort((left, right) => left.label.localeCompare(right.label, "zh-Hant"));
 }
 
-function setDefaultFurnitureBySpace() {
-  setFurnitureSelection(DEFAULT_FURNITURE_BY_SPACE[elements.spaceType.value] || DEFAULT_FURNITURE_BY_SPACE.living_room);
+function getDefaultStyleId() {
+  return siteData.styles.find((style) => style.style_id === "scandinavian")?.style_id || siteData.styles[0]?.style_id || "";
 }
 
-function splitCustomText(value) {
-  return value
-    .split(/[,\u3001\uff0c]/)
+function resolveSurfaceChoice(selectedValue, fallbackValue) {
+  return selectedValue === "auto" ? fallbackValue : selectedValue;
+}
+
+function splitCustomList(rawValue) {
+  return String(rawValue || "")
+    .split(/[,\n，、]/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
-function sizeValue(size, key, fallback) {
-  const value = Number(size?.[key]);
-  return Number.isFinite(value) && value > 0 ? value : fallback;
+function furniturePresetsForSpace(spaceType) {
+  return FURNITURE_PRESETS_BY_SPACE[spaceType] || FURNITURE_PRESETS_BY_SPACE.living_room;
 }
 
-function normalizeSizeCm(size = {}) {
-  return {
-    width: sizeValue(size, "width", 120),
-    depth: sizeValue(size, "depth", 60),
-    height: sizeValue(size, "height", 80),
-  };
+function getCurrentFurniturePreset() {
+  return furniturePresetsForSpace(elements.spaceType.value).find((preset) => preset.value === elements.furniturePreset.value) || null;
 }
 
-function styleMatchesFurniture(item, styleId) {
-  return (
-    item.primary_style === styleId ||
-    item.style_candidates?.some((style) => style.style_id === styleId)
-  );
+function getStyleName(styleId) {
+  return getStyleById(styleId)?.style_name_zh || styleId || "未指定";
 }
 
-function pickFurnitureCandidate(type, usedIds = new Set()) {
-  if (!currentSceneData) return null;
-  const styleId = currentSceneData.style.style_id;
-  const sameType = siteData.furniture.filter(
-    (item) => item.has_model && item.normalized_type === type && !usedIds.has(item.furniture_id)
-  );
-  const stylePool = sameType.filter((item) => styleMatchesFurniture(item, styleId));
-  const pool = stylePool.length ? stylePool : sameType;
-  if (!pool.length) return null;
-
-  const topPool = pool.slice(0, Math.min(pool.length, 28));
-  return topPool[Math.floor(Math.random() * topPool.length)];
+function setStatus(message) {
+  elements.sceneStatus.textContent = message;
 }
 
-function rotatedFootprint(width, depth, rotation) {
-  const radians = Math.abs(rotation % 180) * Math.PI / 180;
-  const cosValue = Math.abs(Math.cos(radians));
-  const sinValue = Math.abs(Math.sin(radians));
-  return {
-    width: width * cosValue + depth * sinValue,
-    depth: width * sinValue + depth * cosValue,
-  };
-}
+function setBusyState(nextBusy, buttonText = "直接生成 3D 場景") {
+  sceneBusy = nextBusy;
 
-function clampAxis(value, roomMin, roomMax, itemSize, margin = 18) {
-  const low = roomMin + itemSize / 2 + margin;
-  const high = roomMax - itemSize / 2 - margin;
-  if (low > high) return (roomMin + roomMax) / 2;
-  return Math.min(Math.max(value, low), high);
-}
-
-function boxFor(x, z, width, depth, clearance = 14) {
-  return {
-    left: x - width / 2 - clearance,
-    right: x + width / 2 + clearance,
-    top: z - depth / 2 - clearance,
-    bottom: z + depth / 2 + clearance,
-  };
-}
-
-function overlapArea(a, b) {
-  const overlapX = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
-  const overlapZ = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
-  return overlapX * overlapZ;
-}
-
-function placementCandidates(type, size, room) {
-  const left = -room.width / 2;
-  const right = room.width / 2;
-  const top = -room.depth / 2;
-  const bottom = room.depth / 2;
-  const candidates = [];
-  const width = size.width;
-  const depth = size.depth;
-
-  if (type === "tv-bench") candidates.push([0, top + depth / 2 + 24, 0], [-room.width * 0.22, top + depth / 2 + 24, 0]);
-  else if (type === "sofa") candidates.push([0, bottom - depth / 2 - 36, 180], [-room.width * 0.18, bottom - depth / 2 - 36, 180]);
-  else if (type === "coffee-table") candidates.push([0, 12, 0], [0, -18, 0]);
-  else if (type === "armchair") candidates.push([right - width / 2 - 30, 35, -35], [left + width / 2 + 30, 35, 35]);
-  else if (type === "bookcase") candidates.push([left + width / 2 + 20, top + depth / 2 + 20, 90], [right - width / 2 - 20, top + depth / 2 + 20, -90]);
-  else if (["bed", "bed-frame", "sofa-bed"].includes(type)) candidates.push([0, bottom - depth / 2 - 32, 180], [left + width / 2 + 28, 0, 90]);
-  else if (type === "bedside-table") candidates.push([right - width / 2 - 22, bottom - depth / 2 - 34, 0], [left + width / 2 + 22, bottom - depth / 2 - 34, 0]);
-  else if (type === "desk") candidates.push([0, top + depth / 2 + 30, 0], [left + width / 2 + 24, 0, 90]);
-  else if (type === "office-chair") candidates.push([0, top + depth + 88, 180], [left + width / 2 + 80, 0, 90]);
-  else if (type === "dining-table") candidates.push([0, 0, 0], [0, 36, 0]);
-  else if (type === "dining-chair") candidates.push([right - width / 2 - 40, 0, 90], [left + width / 2 + 40, 0, -90], [0, 80, 180]);
-  else if (type === "sideboard") candidates.push([right - width / 2 - 24, top + depth / 2 + 24, 0], [left + width / 2 + 24, top + depth / 2 + 24, 0]);
-  else candidates.push([0, 0, 0]);
-
-  [0.25, 0.5, 0.75].forEach((xRatio) => {
-    [0.28, 0.5, 0.72].forEach((zRatio) => {
-      candidates.push([left + room.width * xRatio, top + room.depth * zRatio, 0]);
-    });
+  elements.generateScene.disabled = nextBusy;
+  elements.randomFurniture.disabled = nextBusy;
+  elements.addFurniture.disabled = nextBusy;
+  elements.reshuffleScene.disabled = nextBusy;
+  elements.resetSceneView.disabled = nextBusy;
+  elements.viewPresetButtons.forEach((button) => {
+    button.disabled = nextBusy;
   });
 
-  return candidates;
-}
+  elements.generateScene.textContent = nextBusy ? buttonText : "直接生成 3D 場景";
 
-function resolvePlacementForObject(object, placedBoxes, room) {
-  const type = object.normalized_type;
-  const size = normalizeSizeCm(object.size_cm);
-  const ignoresCollision = ["large-medium-rug", "runner-small-rug", "wall-shelf"].includes(type);
-  const left = -room.width / 2;
-  const right = room.width / 2;
-  const top = -room.depth / 2;
-  const bottom = room.depth / 2;
-  let best = null;
-
-  for (const [rawX, rawZ, rotation] of placementCandidates(type, size, room)) {
-    const footprint = rotatedFootprint(size.width, size.depth, rotation);
-    const x = clampAxis(rawX, left, right, footprint.width);
-    const z = clampAxis(rawZ, top, bottom, footprint.depth);
-    const candidateBox = boxFor(x, z, footprint.width, footprint.depth);
-    const overlapScore = placedBoxes.reduce((sum, box) => sum + overlapArea(candidateBox, box), 0);
-
-    if (ignoresCollision || overlapScore <= 0) {
-      return { x, z, rotation, box: candidateBox };
-    }
-
-    if (!best || overlapScore < best.score) {
-      best = { x, z, rotation, box: candidateBox, score: overlapScore };
-    }
-  }
-
-  return best || { x: 0, z: 0, rotation: 0, box: boxFor(0, 0, size.width, size.depth) };
-}
-
-function reflowSceneObjects(sceneData) {
-  const room = {
-    width: Math.max(Number(sceneData.floorplan.width_cm) || 420, 240),
-    depth: Math.max(Number(sceneData.floorplan.depth_cm) || 360, 240),
-  };
-  const placedBoxes = [];
-
-  sceneData.scene_objects.forEach((object) => {
-    const placement = resolvePlacementForObject(object, placedBoxes, room);
-    object.position_cm = { x: Math.round(placement.x * 100) / 100, z: Math.round(placement.z * 100) / 100 };
-    object.rotation_y_deg = placement.rotation;
-    object.footprint_cm = {
-      width: Math.round((placement.box.right - placement.box.left) * 100) / 100,
-      depth: Math.round((placement.box.bottom - placement.box.top) * 100) / 100,
-    };
-
-    if (!["large-medium-rug", "runner-small-rug", "wall-shelf"].includes(object.normalized_type)) {
-      placedBoxes.push(placement.box);
-    }
+  elements.sceneSelectedItems.querySelectorAll("button").forEach((button) => {
+    button.disabled = nextBusy;
   });
 }
 
-function sceneObjectFromFurniture(item) {
-  return {
-    furniture_id: item.furniture_id,
-    name_zh_raw: item.name_zh_raw,
-    normalized_type: item.normalized_type,
-    model_url: item.model_url,
-    primary_style: item.primary_style,
-    size_cm: normalizeSizeCm(item.size_cm),
-    position_cm: { x: 0, z: 0 },
-    rotation_y_deg: 0,
-  };
+function renderStyleSelect() {
+  populateSelect(elements.stylePreference, getStyleOptions(), getDefaultStyleId());
 }
 
-async function refreshCurrentScene(statusMessage = "") {
-  if (!currentSceneData) return;
-  updateSummary(currentSceneData);
-  await viewer.loadScene(currentSceneData);
-  if (statusMessage) {
-    elements.sceneStatus.textContent = statusMessage;
-  }
+function renderColorSelect() {
+  populateSelect(elements.colorPreference, COLOR_OPTIONS, "auto");
 }
 
-function setGeneratingState(active) {
-  elements.generateScene.disabled = active;
-  elements.generateScene.textContent = active ? "生成中..." : "直接生成 3D 場景";
+function renderWallSelect() {
+  populateSelect(elements.wallOptionSelect, buildSurfaceOptions("wall"), "auto");
 }
 
-function sampleRandom(items, count) {
-  const pool = [...items];
-  const picked = [];
-  while (pool.length && picked.length < count) {
-    const index = Math.floor(Math.random() * pool.length);
-    picked.push(pool.splice(index, 1)[0]);
-  }
-  return picked;
+function renderFloorSelect() {
+  populateSelect(elements.floorOptionSelect, buildSurfaceOptions("floor"), "auto");
 }
 
-function randomizeFurnitureSelection() {
-  furnitureRandomSeed = Date.now();
-  const allInputs = Array.from(elements.furnitureOptions.querySelectorAll('input[type="checkbox"]'));
-  allInputs.forEach((input) => {
-    input.checked = false;
-  });
-
-  const currentStyleId = elements.stylePreference.value;
-  const currentStyle = siteData.styles.find((style) => style.style_id === currentStyleId);
-  const preferredTypes = (currentStyle?.stats?.top_types ?? [])
-    .map(([typeName]) => typeName)
-    .filter((typeName) => allInputs.some((input) => input.value === typeName));
-
-  const primaryPool = preferredTypes.length
-    ? allInputs.filter((input) => preferredTypes.includes(input.value))
-    : allInputs;
-
-  const desiredCount = Math.min(Math.max(3, Math.floor(Math.random() * 4) + 3), allInputs.length);
-  const picked = sampleRandom(primaryPool, Math.min(desiredCount, primaryPool.length));
-
-  if (picked.length < desiredCount) {
-    const remaining = allInputs.filter((input) => !picked.includes(input));
-    picked.push(...sampleRandom(remaining, desiredCount - picked.length));
-  }
-
-  picked.forEach((input) => {
-    input.checked = true;
-  });
-
-  const currentStyleName = siteData.styles.find((style) => style.style_id === currentStyleId)?.style_name_zh || "目前風格";
-  elements.sceneStatus.textContent = `已在「${currentStyleName}」內隨機挑選 ${picked.length} 項家具。再次生成會更換同風格候選模型。`;
+function renderAddFurnitureSelect() {
+  populateSelect(elements.addFurnitureType, getFurnitureTypeOptions());
 }
 
-function renderSelectedItems(sceneData) {
-  elements.sceneSelectedItems.innerHTML = "";
-  if (!sceneData.scene_objects.length) {
-    elements.sceneSelectedItems.innerHTML = `<p class="scene-selected-empty">目前尚未選入家具。</p>`;
+function updateFurniturePresetHint() {
+  const preset = getCurrentFurniturePreset();
+  if (!preset) {
+    elements.furniturePresetHint.textContent = "目前空間類型尚未設定家具組合。";
     return;
   }
 
-  sceneData.scene_objects.forEach((item, index) => {
-    const row = document.createElement("div");
-    row.className = "scene-selected-item";
-    row.innerHTML = `
-      <span class="scene-selected-index">${index + 1}</span>
-      <div class="scene-selected-copy">
-        <strong>${item.name_zh_raw || item.normalized_type}</strong>
-        <small>${getTypeLabel(item.normalized_type)} · ${item.size_cm?.width || "-"} × ${item.size_cm?.depth || "-"} × ${item.size_cm?.height || "-"} cm</small>
-      </div>
-      <div class="scene-selected-actions">
-        <button type="button" data-furniture-action="replace" data-index="${index}">替換</button>
-        <button type="button" data-furniture-action="remove" data-index="${index}">移除</button>
-      </div>
-    `;
-    elements.sceneSelectedItems.appendChild(row);
-  });
+  const labels = preset.items.map((item) => formatTypeLabel(item)).join("、");
+  elements.furniturePresetHint.textContent = `目前組合：${labels}`;
 }
 
-function updateSummary(sceneData) {
-  elements.sceneStyleName.textContent = sceneData.style.style_name_zh;
-  elements.sceneLlmMode.textContent = sceneData.llm_mode === "openrouter" ? "OpenRouter" : "本地規則";
-  elements.sceneItemCount.textContent = String(sceneData.scene_objects.length);
-  elements.sceneRoomSize.textContent = `${sceneData.floorplan.width_cm} × ${sceneData.floorplan.depth_cm} cm`;
+function renderFurniturePresetSelect() {
+  const presets = furniturePresetsForSpace(elements.spaceType.value);
+  const currentValue = elements.furniturePreset.value;
+  const selectedValue = presets.some((preset) => preset.value === currentValue) ? currentValue : presets[0]?.value || "";
 
-  const background = sceneData.style.scene_background || {};
-  const wallChoice = sceneData.design_choices?.wall_option || getResolvedSurfaceChoice(
-    elements.wallOptions,
-    "wall-option",
-    getStyleSceneLook(sceneData.style.style_id).wall
+  populateSelect(
+    elements.furniturePreset,
+    presets.map((preset) => ({ value: preset.value, label: preset.label })),
+    selectedValue
   );
-  const floorChoice = sceneData.design_choices?.floor_option || getResolvedSurfaceChoice(
-    elements.floorOptions,
-    "floor-option",
-    getStyleSceneLook(sceneData.style.style_id).floor
-  );
-  elements.sceneBackground.textContent = [
-    `牆面：${wallOptionLabelMap.get(wallChoice) || background.wall_zh || "依風格推薦"}`,
-    `地板：${floorOptionLabelMap.get(floorChoice) || background.floor_zh || "依風格推薦"}`,
-    background.overall_zh ? `整體：${background.overall_zh}` : "",
-  ]
-    .filter(Boolean)
-    .join(" / ");
 
-  renderSelectedItems(sceneData);
-  if (sceneData.floorplan?.source === "dxf") {
-    const wallCount = sceneData.floorplan.wall_count || 0;
-    const doorCount = sceneData.floorplan.door_count || 0;
-    const windowCount = sceneData.floorplan.window_count || 0;
-    const rawCount = sceneData.floorplan.raw_segment_count || 0;
-    elements.sceneStatus.textContent = `DXF 精準模式：已讀取 ${rawCount} 條 CAD 線段，轉成 ${wallCount} 道牆、${doorCount} 組門線、${windowCount} 組窗線並生成場景。`;
-  }
+  updateFurniturePresetHint();
 }
 
-function renderInitialProviderStatus() {
+function renderProviderStatus() {
   if (providerStatus.enabled) {
-    elements.sceneLlmMode.textContent = providerStatus.model
-      ? `OpenRouter / ${providerStatus.model}`
-      : "OpenRouter";
-    elements.sceneStatus.textContent = "已偵測到 OpenRouter 設定，現在會優先使用 LLM 生成場景規劃。";
+    elements.sceneLlmMode.textContent = providerStatus.model ? `OpenRouter / ${providerStatus.model}` : "OpenRouter";
+    setStatus("目前可使用 OpenRouter；生成時會先嘗試 LLM，再回退到本地規則。");
     return;
   }
 
   elements.sceneLlmMode.textContent = "本地規則 fallback";
-  elements.sceneStatus.textContent = "尚未設定 OpenRouter 金鑰，現在先使用本地規則生成場景。";
+  setStatus("目前未接上 OpenRouter，會以本地規則先完成家具配置。");
+}
+
+function updateRandomButtonLabel() {
+  elements.randomFurniture.textContent = currentSceneData?.scene_objects?.length ? "同風格替換全部" : "重抽家具組合";
+}
+
+function renderSelectedItems(sceneData) {
+  const items = sceneData?.selected_furniture || [];
+  if (!items.length) {
+    elements.sceneSelectedItems.innerHTML = `
+      <div class="scene-selected-empty">
+        <strong>尚未生成家具配置</strong>
+        <p>請先在上方選好條件，再按「直接生成 3D 場景」。</p>
+      </div>
+    `;
+    return;
+  }
+
+  elements.sceneSelectedItems.innerHTML = items
+    .map((item, index) => {
+      const displayName = item.name_zh_raw || formatTypeLabel(item.normalized_type);
+      const typeLabel = formatTypeLabel(item.normalized_type);
+      const itemCode = String(index + 1).padStart(2, "0");
+
+      return `
+        <article class="scene-selected-item">
+          <span class="scene-selected-index">${index + 1}</span>
+          <div class="scene-selected-copy">
+            <strong>${displayName}</strong>
+            <small>家具編號 ${itemCode} ・ ${typeLabel} ・ ${formatSize(item.size_cm)}</small>
+          </div>
+          <div class="scene-selected-actions">
+            <button type="button" class="scene-item-btn scene-item-btn-primary" data-scene-item-action="replace" data-index="${index}">
+              同風格替換
+            </button>
+            <button type="button" class="scene-item-btn" data-scene-item-action="remove" data-index="${index}">
+              移除
+            </button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderSummary(sceneData) {
+  if (!sceneData) {
+    elements.sceneStyleName.textContent = "-";
+    elements.sceneItemCount.textContent = "0";
+    elements.sceneRoomSize.textContent = "-";
+    return;
+  }
+
+  elements.sceneStyleName.textContent = sceneData.style?.style_name_zh || getStyleName(sceneData.plan_json?.style_id);
+  elements.sceneItemCount.textContent = String(sceneData.scene_objects?.length || 0);
+  elements.sceneRoomSize.textContent = `${sceneData.floorplan?.width_cm || "-"} × ${sceneData.floorplan?.depth_cm || "-"} cm`;
+}
+
+function renderBackground(sceneData) {
+  if (!sceneData) {
+    elements.sceneBackground.textContent = "-";
+    elements.sceneBackgroundDetail.textContent = "生成後會在這裡顯示目前牆面、地板與整體氛圍。";
+    elements.sceneBackgroundSurfaces.innerHTML = "";
+    return;
+  }
+
+  const styleId = sceneData.style?.style_id || elements.stylePreference.value || getDefaultStyleId();
+  const wallChoice =
+    sceneData.design_choices?.wall_option ||
+    resolveSurfaceChoice(elements.wallOptionSelect.value, getDefaultSurfaceChoice(styleId, "wall"));
+  const floorChoice =
+    sceneData.design_choices?.floor_option ||
+    resolveSurfaceChoice(elements.floorOptionSelect.value, getDefaultSurfaceChoice(styleId, "floor"));
+  const background = sceneData.style?.scene_background || {};
+  const wallSurface = getSurfaceById("wall", wallChoice) || getSurfaceById("wall", background.wall_surface_id);
+  const floorSurface = getSurfaceById("floor", floorChoice) || getSurfaceById("floor", background.floor_surface_id);
+
+  elements.sceneBackground.textContent = `牆面：${wallSurface?.name_zh || "未指定"} / 地板：${floorSurface?.name_zh || "未指定"} / 整體：${background.overall_zh || "未指定"}`;
+  elements.sceneBackgroundDetail.textContent = background.overall_zh
+    ? `整體氛圍：${background.overall_zh}`
+    : "會依照你選的風格與用材，套用到目前 3D 預覽。";
+  elements.sceneBackgroundSurfaces.innerHTML = [renderBackgroundSurfaceCard("wall", wallSurface), renderBackgroundSurfaceCard("floor", floorSurface)].join("");
+}
+
+function buildSuccessMessage(sceneData) {
+  if (!sceneData) return "已更新 3D 場景。";
+
+  if (sceneData.floorplan?.source === "dxf") {
+    const wallCount = sceneData.floorplan.wall_count || 0;
+    const doorCount = sceneData.floorplan.door_count || 0;
+    const windowCount = sceneData.floorplan.window_count || 0;
+    return `DXF 已解析：${wallCount} 面牆、${doorCount} 道門、${windowCount} 扇窗，並完成 3D 場景生成。`;
+  }
+
+  return `已生成 ${sceneData.scene_objects?.length || 0} 件家具的 3D 場景。`;
+}
+
+async function syncScene(sceneData, statusMessage = "") {
+  currentSceneData = sceneData;
+  updateRandomButtonLabel();
+  renderSummary(sceneData);
+  renderBackground(sceneData);
+  renderSelectedItems(sceneData);
+  await viewer.loadScene(sceneData);
+  setStatus(statusMessage || buildSuccessMessage(sceneData));
+}
+
+function buildQuestionnairePayload() {
+  const styleId = elements.stylePreference.value || getDefaultStyleId();
+  const defaultWall = getDefaultSurfaceChoice(styleId, "wall");
+  const defaultFloor = getDefaultSurfaceChoice(styleId, "floor");
+  const ruleProfile = RULE_PROFILES[elements.ruleProfile.value] || RULE_PROFILES.balanced;
+  const presetItems = getCurrentFurniturePreset()?.items || [];
+  const preferredColor = elements.colorPreference.value;
+
+  return {
+    room_width_cm: Number(elements.roomWidth.value),
+    room_depth_cm: Number(elements.roomDepth.value),
+    space_type: elements.spaceType.value,
+    style_preference: styleId,
+    required_furniture: presetItems,
+    custom_furniture: splitCustomList(elements.customFurniture.value),
+    preferred_colors: preferredColor === "auto" ? [] : [preferredColor],
+    custom_colors: [],
+    personal_notes: elements.personalNotes.value.trim(),
+    keep_window_clear: ruleProfile.keep_window_clear,
+    keep_door_clear: ruleProfile.keep_door_clear,
+    need_storage: ruleProfile.need_storage,
+    prefer_low_saturation: ruleProfile.prefer_low_saturation,
+    wall_option: resolveSurfaceChoice(elements.wallOptionSelect.value, defaultWall),
+    floor_option: resolveSurfaceChoice(elements.floorOptionSelect.value, defaultFloor),
+    furniture_random_seed: furnitureRandomSeed,
+    floorplan_filename: elements.floorplan.files?.[0]?.name || null,
+    floorplan_dxf_text: uploadedDxfText,
+  };
 }
 
 async function generateScene(event) {
   event.preventDefault();
-  setGeneratingState(true);
+  if (sceneBusy) return;
+
+  setBusyState(true, "生成中...");
 
   try {
     const floorplanFile = elements.floorplan.files?.[0];
-    if (floorplanFile && floorplanFile.name.toLowerCase().endsWith(".dxf")) {
-      uploadedDxfText = await floorplanFile.text();
-    } else {
-      uploadedDxfText = null;
-    }
-    const payload = {
-      room_width_cm: Number(elements.roomWidth.value),
-      room_depth_cm: Number(elements.roomDepth.value),
-      space_type: elements.spaceType.value,
-      style_preference: elements.stylePreference.value,
-      required_furniture: selectedValues(elements.furnitureOptions),
-      custom_furniture: splitCustomText(elements.customFurniture.value),
-      preferred_colors: selectedValues(elements.colorOptions),
-      custom_colors: splitCustomText(elements.customColors.value),
-      personal_notes: elements.personalNotes.value,
-      keep_window_clear: elements.keepWindowClear.checked,
-      keep_door_clear: elements.keepDoorClear.checked,
-      need_storage: elements.needStorage.checked,
-      prefer_low_saturation: elements.preferLowSaturation.checked,
-      floorplan_filename: floorplanFile ? floorplanFile.name : null,
-      floorplan_dxf_text: uploadedDxfText,
-      wall_option: getResolvedSurfaceChoice(elements.wallOptions, "wall-option", getStyleSceneLook().wall),
-      floor_option: getResolvedSurfaceChoice(elements.floorOptions, "floor-option", getStyleSceneLook().floor),
-      furniture_random_seed: furnitureRandomSeed,
-    };
+    uploadedDxfText = floorplanFile && floorplanFile.name.toLowerCase().endsWith(".dxf")
+      ? await floorplanFile.text()
+      : null;
 
     const response = await fetch("/api/scene/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(buildQuestionnairePayload()),
     });
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result?.detail || `HTTP ${response.status}`);
+    }
 
-    const sceneData = await response.json();
-    currentSceneData = sceneData;
-    reflowSceneObjects(currentSceneData);
-    await refreshCurrentScene();
+    await syncScene(result, buildSuccessMessage(result));
+    elements.sceneViewerPanel.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     console.error(error);
-    elements.sceneStatus.textContent = "場景生成失敗，請檢查欄位或稍後再試。";
+    setStatus(`生成失敗：${error.message || "請稍後再試。"}`);
   } finally {
-    setGeneratingState(false);
+    setBusyState(false);
   }
+}
+
+async function mutateScene(action, payload = {}, successMessage = "") {
+  if (sceneBusy) return false;
+
+  if (!currentSceneData) {
+    setStatus("請先生成 3D 場景，再進行家具替換或移除。");
+    return false;
+  }
+
+  setBusyState(true, "更新中...");
+
+  try {
+    const response = await fetch("/api/scene/mutate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        scene_data: currentSceneData,
+        random_seed: Date.now(),
+        ...payload,
+      }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result?.detail || `HTTP ${response.status}`);
+    }
+
+    await syncScene(result, successMessage || buildSuccessMessage(result));
+    return true;
+  } catch (error) {
+    console.error(error);
+    setStatus(`更新失敗：${error.message || "請稍後再試。"}`);
+    return false;
+  } finally {
+    setBusyState(false);
+  }
+}
+
+function randomizeFurniturePreset() {
+  const presets = furniturePresetsForSpace(elements.spaceType.value);
+  if (presets.length <= 1) {
+    setStatus("目前只有一組可用家具組合。");
+    return;
+  }
+
+  const currentIndex = presets.findIndex((preset) => preset.value === elements.furniturePreset.value);
+  const candidates = presets.filter((_, index) => index !== currentIndex);
+  const nextPreset = candidates[Math.floor(Math.random() * candidates.length)];
+  if (!nextPreset) return;
+
+  furnitureRandomSeed = Date.now();
+  elements.furniturePreset.value = nextPreset.value;
+  updateFurniturePresetHint();
+  setStatus(`已切換為「${nextPreset.label}」，按下生成後會重新配置家具。`);
 }
 
 async function replaceSceneItem(index) {
-  if (!currentSceneData?.scene_objects?.[index]) return;
-  const currentItem = currentSceneData.scene_objects[index];
-  const usedIds = new Set(currentSceneData.scene_objects.map((item, itemIndex) => itemIndex === index ? null : item.furniture_id).filter(Boolean));
-  const replacement = pickFurnitureCandidate(currentItem.normalized_type, usedIds);
+  const item = currentSceneData?.selected_furniture?.[index];
+  if (!item) return;
 
-  if (!replacement) {
-    elements.sceneStatus.textContent = `目前找不到可替換的「${getTypeLabel(currentItem.normalized_type)}」模型。`;
-    return;
-  }
-
-  currentSceneData.scene_objects[index] = sceneObjectFromFurniture(replacement);
-  reflowSceneObjects(currentSceneData);
-  await refreshCurrentScene(`已替換第 ${index + 1} 件家具，並重新整理擺放位置避免穿牆或重疊。`);
+  await mutateScene(
+    "replace",
+    { index },
+    `已替換家具編號 ${String(index + 1).padStart(2, "0")}，並更新 3D 場景。`
+  );
 }
 
 async function removeSceneItem(index) {
-  if (!currentSceneData?.scene_objects?.[index]) return;
-  const removed = currentSceneData.scene_objects.splice(index, 1)[0];
-  reflowSceneObjects(currentSceneData);
-  await refreshCurrentScene(`已移除「${removed.name_zh_raw || getTypeLabel(removed.normalized_type)}」。`);
+  const item = currentSceneData?.selected_furniture?.[index];
+  if (!item) return;
+
+  await mutateScene(
+    "remove",
+    { index },
+    `已移除「${item.name_zh_raw || formatTypeLabel(item.normalized_type)}」，並重新更新場景。`
+  );
 }
 
 async function addFurnitureToScene() {
-  if (!currentSceneData) {
-    elements.sceneStatus.textContent = "請先生成一次 3D 場景，再新增家具。";
+  const selectedType = elements.addFurnitureType.value;
+  if (!selectedType) {
+    setStatus("請先選擇要加入的家具類型。");
     return;
   }
 
-  const type = elements.addFurnitureType.value;
-  const usedIds = new Set(currentSceneData.scene_objects.map((item) => item.furniture_id));
-  const candidate = pickFurnitureCandidate(type, usedIds);
-
-  if (!candidate) {
-    elements.sceneStatus.textContent = `目前資料庫找不到可加入的「${getTypeLabel(type)}」模型。`;
-    return;
-  }
-
-  currentSceneData.scene_objects.push(sceneObjectFromFurniture(candidate));
-  reflowSceneObjects(currentSceneData);
-  await refreshCurrentScene(`已加入「${getTypeLabel(type)}」，並重新分配位置。`);
+  await mutateScene(
+    "add",
+    { item_type: selectedType },
+    `已加入 ${formatTypeLabel(selectedType)}，並重新更新 3D 場景。`
+  );
 }
 
 async function reshuffleCurrentScene() {
-  if (!currentSceneData?.scene_objects?.length) {
-    randomizeFurnitureSelection();
+  if (currentSceneData?.scene_objects?.length) {
+    furnitureRandomSeed = Date.now();
+    await mutateScene(
+      "reshuffle",
+      { random_seed: furnitureRandomSeed },
+      `已依 ${getStyleName(currentSceneData.style?.style_id)} 重新抽換同風格家具。`
+    );
     return;
   }
 
-  const usedIds = new Set();
-  currentSceneData.scene_objects = currentSceneData.scene_objects.map((item) => {
-    const candidate = pickFurnitureCandidate(item.normalized_type, usedIds);
-    if (!candidate) return item;
-    usedIds.add(candidate.furniture_id);
-    return sceneObjectFromFurniture(candidate);
-  });
-
-  furnitureRandomSeed = Date.now();
-  reflowSceneObjects(currentSceneData);
-  await refreshCurrentScene("已在目前風格內整組重抽家具，並重新避牆避重疊。");
+  randomizeFurniturePreset();
 }
 
-renderStyleOptions();
-renderToggleOptions(elements.furnitureOptions, furnitureOptions, "furniture");
-renderToggleOptions(elements.colorOptions, colorOptions, "color");
-renderVisualOptions(elements.wallOptions, wallOptions, "wall-option");
-renderVisualOptions(elements.floorOptions, floorOptions, "floor-option");
-renderAddFurnitureSelect();
-syncSurfaceChoicesToStyle();
-setDefaultFurnitureBySpace();
-renderInitialProviderStatus();
+function handleStyleChange() {
+  const styleId = elements.stylePreference.value;
+  const styleName = getStyleName(styleId);
+  const wallSurface = getSurfaceById("wall", getDefaultSurfaceChoice(styleId, "wall"));
+  const floorSurface = getSurfaceById("floor", getDefaultSurfaceChoice(styleId, "floor"));
+  setStatus(`已切換為 ${styleName}。目前預設牆面為 ${wallSurface?.name_zh || "未指定"}，地板為 ${floorSurface?.name_zh || "未指定"}。`);
+}
 
-elements.sceneForm.addEventListener("submit", generateScene);
-elements.randomFurniture.addEventListener("click", randomizeFurnitureSelection);
-elements.addFurniture.addEventListener("click", addFurnitureToScene);
-elements.reshuffleScene.addEventListener("click", reshuffleCurrentScene);
-elements.sceneSelectedItems.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-furniture-action]");
-  if (!button) return;
+function handleRuleProfileChange() {
+  const ruleProfile = RULE_PROFILES[elements.ruleProfile.value] || RULE_PROFILES.balanced;
+  setStatus(ruleProfile.helper);
+}
 
-  const index = Number(button.dataset.index);
-  if (!Number.isInteger(index)) return;
+function bindEvents() {
+  elements.sceneForm.addEventListener("submit", generateScene);
+  elements.spaceType.addEventListener("change", () => {
+    renderFurniturePresetSelect();
+    setStatus("已切換空間類型，請確認新的家具組合。");
+  });
+  elements.stylePreference.addEventListener("change", handleStyleChange);
+  elements.ruleProfile.addEventListener("change", handleRuleProfileChange);
+  elements.furniturePreset.addEventListener("change", () => {
+    updateFurniturePresetHint();
+    setStatus("已更新家具組合，按下生成後會套用到場景。");
+  });
 
-  if (button.dataset.furnitureAction === "replace") {
-    replaceSceneItem(index);
-  } else if (button.dataset.furnitureAction === "remove") {
-    removeSceneItem(index);
-  }
-});
-elements.stylePreference.addEventListener("change", () => {
-  syncSurfaceChoicesToStyle();
-  furnitureRandomSeed = Date.now();
-  elements.sceneStatus.textContent = `已固定為「${elements.stylePreference.selectedOptions[0]?.textContent || "目前風格"}」，牆面與地板已套用推薦組合。`;
-});
-elements.spaceType.addEventListener("change", setDefaultFurnitureBySpace);
-elements.resetSceneView.addEventListener("click", () => viewer.resetCamera());
-elements.viewPresetButtons.forEach((button) => {
-  button.addEventListener("click", () => viewer.setCameraPreset(button.dataset.viewPreset));
-});
+  elements.randomFurniture.addEventListener("click", reshuffleCurrentScene);
+  elements.addFurniture.addEventListener("click", addFurnitureToScene);
+  elements.reshuffleScene.addEventListener("click", reshuffleCurrentScene);
+  elements.resetSceneView.addEventListener("click", () => viewer.resetCamera());
 
-initBackgroundFx();
+  elements.viewPresetButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      viewer.setCameraPreset(button.dataset.viewPreset);
+    });
+  });
+
+  elements.sceneSelectedItems.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-scene-item-action]");
+    if (!button) return;
+
+    const index = Number(button.dataset.index);
+    if (!Number.isInteger(index)) return;
+
+    if (button.dataset.sceneItemAction === "replace") {
+      await replaceSceneItem(index);
+      return;
+    }
+
+    if (button.dataset.sceneItemAction === "remove") {
+      await removeSceneItem(index);
+    }
+  });
+}
+
+function init() {
+  renderStyleSelect();
+  renderColorSelect();
+  renderWallSelect();
+  renderFloorSelect();
+  renderAddFurnitureSelect();
+  renderFurniturePresetSelect();
+  renderProviderStatus();
+  renderSelectedItems(null);
+  renderBackground(null);
+  updateRandomButtonLabel();
+  bindEvents();
+  initBackgroundFx();
+}
+
+init();
