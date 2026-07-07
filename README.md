@@ -26,7 +26,7 @@ frontend3d/           React Three Fiber 3D 編輯器(F6 拖曳來源;與 server 
 scripts/              IKEA 型錄管線:下載 → 清洗 → 驗證 → 合併 → 匯入 PostgreSQL
 tests/                pytest(引擎 25 案例)
 testdata/             測試素材:dxf/ png/ pngans/ chk/ door/ pic/ sample_glb/
-dataset/              (gitignore)IKEA GLB 1,517 檔 —— 找舒媁拿雲端連結,放到這裡
+dataset/              IKEA GLB 1,662 檔(已進版控,clone 即用)
 examples/             退役參考:demo_app(走通骨架)、demo_agent_flow.py(Agent↔引擎介面範例)
 docs/                 SSOT、changelog、archive/(2Dto3D.html 原型、layout.json 舊契約)
 ```
@@ -52,10 +52,11 @@ uv run pytest tests/ -v
 uv run uvicorn roompilot.server.main:app --port 8002   # 開 http://127.0.0.1:8002
 ```
 
-兩個不在 git 裡的東西:
+一個不在 git 裡的東西:
 
-- **`dataset/`**:IKEA GLB 模型,向舒媁拿雲端連結解壓到 repo 根目錄。沒有它網站照跑,只是家具無 3D 模型。
 - **`.env`**:`cp .env.example .env`。兩組變數皆選配 — `OPENROUTER_API_KEY` 沒填走本地規則 fallback;DB 變數只有型錄匯入 script 用到。
+
+(家具 GLB `dataset/` 已在 repo 裡,clone 完直接有 3D 模型,不用另外下載。)
 
 按角色加裝(不是人人需要):
 
@@ -75,7 +76,7 @@ uv run uvicorn roompilot.server.main:app --port 8002   # 開 http://127.0.0.1:80
 ```
 
 網站四頁:`/` 首頁、`/styles` 風格、`/library` 家具庫、`/scene` 3D 場景(上傳 DXF + 問卷 → 引擎配置)。
-家具 3D 模型需要 `dataset/`(不在 git,向舒媁要雲端連結);沒有 dataset 時網站可跑、家具無模型。
+家具 3D 模型在 `dataset/`(已進版控,clone 即用)。
 LLM 挑家具為選配:複製 `.env.example` 為 `.env` 填 `OPENROUTER_API_KEY`;沒填走本地規則 fallback。
 
 ### 平面辨識(PNG → DXF)
@@ -116,7 +117,7 @@ python scripts/import_catalog_to_postgres.py
 ## 分支
 
 `main` 受保護;各自從最新 `ben`(整合分支)開分支 → PR 合併。
-大檔案(GLB、資料集)一律走雲端硬碟,不進 git。
+`dataset/` 的 GLB 已進版控(2026-07-07,blob 本就在 git 歷史中,去重後零額外成本);其他新的大型資料集進 git 前先問組長。
 
 ## License
 

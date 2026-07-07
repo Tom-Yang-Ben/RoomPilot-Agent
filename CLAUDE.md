@@ -21,7 +21,7 @@ Team SSOT is `docs/RoomPilot_現行版本總覽.md` — read it for scope, P0 pr
 | `scripts/` | IKEA 型錄管線(下載/清洗/驗證/合併/匯入 Postgres) | 見 README |
 | `examples/` | 退役參考:`demo_app`(走通骨架)、`demo_agent_flow.py`(Agent↔引擎介面範例+失敗詞彙表) | — |
 | `testdata/` | dxf/ png/ pngans/ chk/ door/ pic/ sample_glb/ | 資料 |
-| `dataset/` | (gitignored)IKEA GLB — 沒有它網站可跑但家具無 3D 模型 | 向舒媁要雲端連結 |
+| `dataset/` | IKEA GLB 1,662 檔(2026-07-07 起進版控,clone 即用) | 資料 |
 | `docs/archive/` | `2Dto3D.html`(早期原型,非主線)、`layout.json`(作廢的公分契約) | — |
 
 Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras: `server` / `vision` / `catalog`。
@@ -37,5 +37,5 @@ Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras:
 ## Conventions
 
 - UI 字串、註解、toast 一律繁體中文。
-- 大檔案(GLB/資料集)不進 git,走雲端;`dataset/`、`data/` 已 gitignore。
+- `dataset/` GLB 已進版控(2026-07-07;blob 本就在 git 歷史,去重零成本);`data/` 仍 gitignore,其他新大檔案進 git 前先問組長。
 - 尚未完成(P0):F3 LLM Agent(tool schema 已備妥於 `engine/schema.py`)、F4 `render_style`(已拍板走 OpenRouter 託管 API)、F8 Demo Mode、F9 匯出。F6 3D 拖曳已完成(2026-07-06)。

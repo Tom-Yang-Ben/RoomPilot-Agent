@@ -1,0 +1,408 @@
+{
+  "project_id": "fi-mattresses",
+  "title": "IKEA fi-mattresses GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-mattresses"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Beds and mattresses_001",
+        "sku": "mattresses_1",
+        "name": "VESTERÖY Pocket sprung mattress - firm/light blue 160x200 cm",
+        "chinese name": "VESTERÖY 獨立筒彈簧床墊，偏硬/淺藍色，160x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\01 - VESTERÖY Pocket sprung mattress - firmlight blue 160x200 cm.glb",
+        "material": "",
+        "color": "blue, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_002",
+        "sku": "mattresses_2",
+        "name": "ÅGOTNES Foam mattress - firm/light blue 140x200 cm",
+        "chinese name": "ÅGOTNES 泡棉床墊，偏硬/淺藍色，140x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 140.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 140.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\02 - ÅGOTNES Foam mattress - firmlight blue 140x200 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_003",
+        "sku": "mattresses_3",
+        "name": "VADSÖ Sprung mattress - firm/light blue 140x200 cm",
+        "chinese name": "VADSÖ 彈簧床墊，偏硬/淺藍色，140x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 140.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 140.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\03 - VADSÖ Sprung mattress - firmlight blue 140x200 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_004",
+        "sku": "mattresses_4",
+        "name": "ÅNNELAND Hybrid mattress - firm/white 160x200 cm",
+        "chinese name": "ÅNNELAND 混合式床墊，偏硬/白色，160x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\04 - ÅNNELAND Hybrid mattress - firmwhite 160x200 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_005",
+        "sku": "mattresses_5",
+        "name": "VALEVÅG Pocket sprung mattress - firm/light blue 160x200 cm",
+        "chinese name": "VALEVÅG 獨立筒彈簧床墊，偏硬/淺藍色，160x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\05 - VALEVÅG Pocket sprung mattress - firmlight blue 160x200 cm.glb",
+        "material": "",
+        "color": "blue, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_006",
+        "sku": "mattresses_6",
+        "name": "VESTMARKA Sprung mattress - firm/light blue 140x200 cm",
+        "chinese name": "VESTMARKA 彈簧床墊，偏硬/淺藍色，140x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 140.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 140.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\06 - VESTMARKA Sprung mattress - firmlight blue 140x200 cm.glb",
+        "material": "",
+        "color": "blue, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_007",
+        "sku": "mattresses_7",
+        "name": "VANNAREID Pocket sprung mattress - firm/beige 80x200 cm",
+        "chinese name": "VANNAREID 獨立筒彈簧床墊，偏硬/米色，80x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\07 - VANNAREID Pocket sprung mattress - firmbeige 80x200 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_008",
+        "sku": "mattresses_8",
+        "name": "VATNESTRÖM Pocket sprung mattress - firm/natural 90x200 cm",
+        "chinese name": "VATNESTRÖM 獨立筒彈簧床墊，偏硬/原色，90x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 90.0,
+          "depth": null,
+          "height": 28.0
+        },
+        "collision_box_cm": {
+          "width": 90.0,
+          "depth": null,
+          "height": 28.0
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\08 - VATNESTRÖM Pocket sprung mattress - firmnatural 90x200 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_009",
+        "sku": "mattresses_9",
+        "name": "RANDÅSEN Bonnell spring mattress base - medium firm/Bremanger grey 90x200x23 cm",
+        "chinese name": "RANDÅSEN 連結式彈簧床墊底座，中偏硬/Bremanger 灰色，90x200x23 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 90.0,
+          "depth": null,
+          "height": 24.0
+        },
+        "collision_box_cm": {
+          "width": 90.0,
+          "depth": null,
+          "height": 24.0
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\09 - RANDÅSEN Bonnell spring mattress base - medium firmBremanger grey 90x200x23 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_010",
+        "sku": "mattresses_10",
+        "name": "NORDBERGET Mattress pad - white 160x200 cm",
+        "chinese name": "NORDBERGET 床墊墊，白色，160x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\10 - NORDBERGET Mattress pad - white 160x200 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_011",
+        "sku": "mattresses_11",
+        "name": "INNERLIG Spring mattress for extendable bed 80x200 cm",
+        "chinese name": "INNERLIG 延伸床用彈簧床墊，80x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\11 - INNERLIG Spring mattress for extendable bed 80x200 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_012",
+        "sku": "mattresses_12",
+        "name": "PLUTTEN Foam mattress for extendable bed 80x200 cm",
+        "chinese name": "PLUTTEN 延伸床用泡棉床墊，80x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\12 - PLUTTEN Foam mattress for extendable bed 80x200 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Beds and mattresses_013",
+        "sku": "mattresses_13",
+        "name": "NYLÄGET Mattress pad - white 160x200 cm",
+        "chinese name": "NYLÄGET 床墊墊，白色，160x200 公分",
+        "type": "mattresse",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\床與床墊\\fi-mattresses\\13 - NYLÄGET Mattress pad - white 160x200 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

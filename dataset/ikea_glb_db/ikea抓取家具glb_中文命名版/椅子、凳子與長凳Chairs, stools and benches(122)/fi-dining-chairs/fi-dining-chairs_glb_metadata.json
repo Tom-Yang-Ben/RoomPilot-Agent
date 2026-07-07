@@ -1,0 +1,1245 @@
+{
+  "project_id": "fi-dining-chairs",
+  "title": "IKEA fi-dining-chairs GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-dining-chairs"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Chairs stools and benches_001",
+        "sku": "dining-chairs_1",
+        "name": "VIHALS Chair - white/Tibbleby beige-grey",
+        "chinese name": "VIHALS 椅子，白色/Tibbleby 米灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 45.0,
+          "depth": 55.0,
+          "height": 81.0
+        },
+        "collision_box_cm": {
+          "width": 45.0,
+          "depth": 55.0,
+          "height": 81.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\01 - VIHALS Chair - whiteTibbleby beige-grey.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_002",
+        "sku": "dining-chairs_2",
+        "name": "VIHALS Chair - green/Tibbleby grey-green",
+        "chinese name": "VIHALS 椅子，綠色/Tibbleby 灰綠色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 45.0,
+          "depth": 55.0,
+          "height": 81.0
+        },
+        "collision_box_cm": {
+          "width": 45.0,
+          "depth": 55.0,
+          "height": 81.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\02 - VIHALS Chair - greenTibbleby grey-green.glb",
+        "material": "",
+        "color": "green",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_003",
+        "sku": "dining-chairs_3",
+        "name": "LISABO Chair - ash/Tallmyra white/black",
+        "chinese name": "LISABO 椅子，梣木/Tallmyra 白色/黑色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 51.0,
+          "height": 80.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 51.0,
+          "height": 80.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\03 - LISABO Chair - ashTallmyra whiteblack.glb",
+        "material": "",
+        "color": "black, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_004",
+        "sku": "dining-chairs_4",
+        "name": "LISABO Chair - black/Tallmyra black/grey",
+        "chinese name": "LISABO 椅子，黑色/Tallmyra 黑色/灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 51.0,
+          "height": 80.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 51.0,
+          "height": 80.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\04 - LISABO Chair - blackTallmyra blackgrey.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_005",
+        "sku": "dining-chairs_5",
+        "name": "PINNTORP Chair - blue stained/pine",
+        "chinese name": "PINNTORP 椅子，藍色染色/松木",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": 49.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": 49.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\05 - PINNTORP Chair - blue stainedpine.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_006",
+        "sku": "dining-chairs_6",
+        "name": "PINNTORP Chair - black stained/pine",
+        "chinese name": "PINNTORP 椅子，黑色染色/松木",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": 49.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": 49.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\06 - PINNTORP Chair - black stainedpine.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_007",
+        "sku": "dining-chairs_7",
+        "name": "PINNTORP Chair - white stained/pine",
+        "chinese name": "PINNTORP 椅子，白色染色/松木",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": 49.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": 49.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\07 - PINNTORP Chair - white stainedpine.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_008",
+        "sku": "dining-chairs_8",
+        "name": "PINNTORP Chair - light brown stained/pine",
+        "chinese name": "PINNTORP 椅子，淺棕色染色/松木",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": 49.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": 49.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\08 - PINNTORP Chair - light brown stainedpine.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_009",
+        "sku": "dining-chairs_9",
+        "name": "SKÅLSTA Chair - Knäbäck beige/tubular metal/light grey-beige",
+        "chinese name": "SKÅLSTA 椅子，Knäbäck 米色/管狀金屬/淺灰米色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 52.0,
+          "depth": 50.0,
+          "height": 80.0
+        },
+        "collision_box_cm": {
+          "width": 52.0,
+          "depth": 50.0,
+          "height": 80.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\09 - SKÅLSTA Chair - Knäbäck beigetubular metallight grey-beige.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_010",
+        "sku": "dining-chairs_10",
+        "name": "SANDSBERG Chair - anthracite/Remmarn anthracite",
+        "chinese name": "SANDSBERG 椅子，炭灰色/Remmarn 炭灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 45.0,
+          "depth": 45.0,
+          "height": 76.0
+        },
+        "collision_box_cm": {
+          "width": 45.0,
+          "depth": 45.0,
+          "height": 76.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\10 - SANDSBERG Chair - anthraciteRemmarn anthracite.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_011",
+        "sku": "dining-chairs_11",
+        "name": "SANDSBERG Chair - dark blue/Remmarn dark blue",
+        "chinese name": "SANDSBERG 椅子，深藍色/Remmarn 深藍色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 39.0,
+          "depth": 45.0,
+          "height": 76.0
+        },
+        "collision_box_cm": {
+          "width": 39.0,
+          "depth": 45.0,
+          "height": 76.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\11 - SANDSBERG Chair - dark blueRemmarn dark blue.glb",
+        "material": "",
+        "color": "blue, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_012",
+        "sku": "dining-chairs_12",
+        "name": "LISABO Chair - black",
+        "chinese name": "LISABO 椅子，黑色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 51.0,
+          "height": 80.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 51.0,
+          "height": 80.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\12 - LISABO Chair - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_013",
+        "sku": "dining-chairs_13",
+        "name": "LISABO Chair - ash",
+        "chinese name": "LISABO 椅子，梣木",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 51.0,
+          "height": 80.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 51.0,
+          "height": 80.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\13 - LISABO Chair - ash.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_014",
+        "sku": "dining-chairs_14",
+        "name": "NÄSINGE Chair - white/Tibbleby beige-grey",
+        "chinese name": "NÄSINGE 椅子，白色/Tibbleby 米灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": 54.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": 54.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\14 - NÄSINGE Chair - whiteTibbleby beige-grey.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_015",
+        "sku": "dining-chairs_15",
+        "name": "NÄSINGE Chair - dark brown stained/Kilanda light beige",
+        "chinese name": "NÄSINGE 椅子，深棕色染色/Kilanda 淺米色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": 54.0,
+          "height": 90.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": 54.0,
+          "height": 90.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\15 - NÄSINGE Chair - dark brown stainedKilanda light beige.glb",
+        "material": "",
+        "color": "beige, brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_016",
+        "sku": "dining-chairs_16",
+        "name": "NORDMANSSKÄR Chair - black/Tonerud grey",
+        "chinese name": "NORDMANSSKÄR 椅子，黑色/Tonerud 灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": 58.0,
+          "height": 85.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": 58.0,
+          "height": 85.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\16 - NORDMANSSKÄR Chair - blackTonerud grey.glb",
+        "material": "",
+        "color": "grey, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_017",
+        "sku": "dining-chairs_17",
+        "name": "NORDMANSSKÄR Chair - black/Letafors yellow-beige",
+        "chinese name": "NORDMANSSKÄR 椅子，黑色/Letafors 黃米色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": 58.0,
+          "height": 85.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": 58.0,
+          "height": 85.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\17 - NORDMANSSKÄR Chair - blackLetafors yellow-beige.glb",
+        "material": "",
+        "color": "yellow, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_018",
+        "sku": "dining-chairs_18",
+        "name": "NORDMANSSKÄR Chair - black/Bomstad black",
+        "chinese name": "NORDMANSSKÄR 椅子，黑色/Bomstad 黑色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": 58.0,
+          "height": 85.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": 58.0,
+          "height": 85.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\18 - NORDMANSSKÄR Chair - blackBomstad black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_019",
+        "sku": "dining-chairs_19",
+        "name": "TEODORES Chair - black",
+        "chinese name": "TEODORES 椅子，黑色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 54.0,
+          "height": 80.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 54.0,
+          "height": 80.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\19 - TEODORES Chair - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_020",
+        "sku": "dining-chairs_20",
+        "name": "TEODORES Chair - blue",
+        "chinese name": "TEODORES 椅子，藍色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 54.0,
+          "height": 80.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 54.0,
+          "height": 80.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\20 - TEODORES Chair - blue.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_021",
+        "sku": "dining-chairs_21",
+        "name": "SKOGSTA Chair - black",
+        "chinese name": "SKOGSTA 椅子，黑色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 55.0,
+          "height": 94.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 55.0,
+          "height": 94.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\21 - SKOGSTA Chair - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_022",
+        "sku": "dining-chairs_22",
+        "name": "SKOGSTA Chair - acacia",
+        "chinese name": "SKOGSTA 椅子，相思木",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 55.0,
+          "height": 94.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 55.0,
+          "height": 94.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\22 - SKOGSTA Chair - acacia.glb",
+        "material": "",
+        "color": "beige, brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_023",
+        "sku": "dining-chairs_23",
+        "name": "KÄTTIL Chair - white/Knisa light grey",
+        "chinese name": "KÄTTIL 椅子，白色/Knisa 淺灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 52.0,
+          "height": 89.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 52.0,
+          "height": 89.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\23 - KÄTTIL Chair - whiteKnisa light grey.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_024",
+        "sku": "dining-chairs_24",
+        "name": "BUSLÄTT Chair - white/pine",
+        "chinese name": "BUSLÄTT 椅子，白色/松木",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 39.0,
+          "depth": 47.0,
+          "height": 79.0
+        },
+        "collision_box_cm": {
+          "width": 39.0,
+          "depth": 47.0,
+          "height": 79.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\24 - BUSLÄTT Chair - whitepine.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_025",
+        "sku": "dining-chairs_25",
+        "name": "ROSENTORP Chair - white",
+        "chinese name": "ROSENTORP 椅子，白色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": 53.0,
+          "height": 91.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": 53.0,
+          "height": 91.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\25 - ROSENTORP Chair - white.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_026",
+        "sku": "dining-chairs_26",
+        "name": "ROSENTORP Chair - black",
+        "chinese name": "ROSENTORP 椅子，黑色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 44.0,
+          "depth": 53.0,
+          "height": 91.0
+        },
+        "collision_box_cm": {
+          "width": 44.0,
+          "depth": 53.0,
+          "height": 91.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\26 - ROSENTORP Chair - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_027",
+        "sku": "dining-chairs_27",
+        "name": "HAUGA Chair - white",
+        "chinese name": "HAUGA 椅子，白色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 49.0,
+          "height": 87.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 49.0,
+          "height": 87.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\27 - HAUGA Chair - white.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_028",
+        "sku": "dining-chairs_28",
+        "name": "HAUGA Chair - grey",
+        "chinese name": "HAUGA 椅子，灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 40.0,
+          "depth": 49.0,
+          "height": 87.0
+        },
+        "collision_box_cm": {
+          "width": 40.0,
+          "depth": 49.0,
+          "height": 87.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\28 - HAUGA Chair - grey.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_029",
+        "sku": "dining-chairs_29",
+        "name": "SANDSBERG Chair - white",
+        "chinese name": "SANDSBERG 椅子，白色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 39.0,
+          "depth": 47.0,
+          "height": 77.0
+        },
+        "collision_box_cm": {
+          "width": 39.0,
+          "depth": 47.0,
+          "height": 77.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\29 - SANDSBERG Chair - white.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_030",
+        "sku": "dining-chairs_30",
+        "name": "SANDSBERG Chair - black",
+        "chinese name": "SANDSBERG 椅子，黑色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 39.0,
+          "depth": 47.0,
+          "height": 77.0
+        },
+        "collision_box_cm": {
+          "width": 39.0,
+          "depth": 47.0,
+          "height": 77.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\30 - SANDSBERG Chair - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_031",
+        "sku": "dining-chairs_31",
+        "name": "SKÅLSTA Chair - walnut veneer/tubular metal/black-grey",
+        "chinese name": "SKÅLSTA 椅子，胡桃木實木貼皮/管狀金屬/黑灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 52.0,
+          "depth": 50.0,
+          "height": 82.0
+        },
+        "collision_box_cm": {
+          "width": 52.0,
+          "depth": 50.0,
+          "height": 82.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\31 - SKÅLSTA Chair - walnut veneertubular metalblack-grey.glb",
+        "material": "",
+        "color": "brown, grey, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_032",
+        "sku": "dining-chairs_32",
+        "name": "ÅLHULT Chair - black/Bomstad black",
+        "chinese name": "ÅLHULT 椅子，黑色/Bomstad 黑色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 45.0,
+          "depth": 54.0,
+          "height": 94.0
+        },
+        "collision_box_cm": {
+          "width": 45.0,
+          "depth": 54.0,
+          "height": 94.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\32 - ÅLHULT Chair - blackBomstad black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_033",
+        "sku": "dining-chairs_33",
+        "name": "ÅLHULT Chair - beige/Kabusa light beige",
+        "chinese name": "ÅLHULT 椅子，米色/Kabusa 淺米色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 45.0,
+          "depth": 54.0,
+          "height": 94.0
+        },
+        "collision_box_cm": {
+          "width": 45.0,
+          "depth": 54.0,
+          "height": 94.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\33 - ÅLHULT Chair - beigeKabusa light beige.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_034",
+        "sku": "dining-chairs_34",
+        "name": "TOBIAS Chair - brown-red/chrome-plated",
+        "chinese name": "TOBIAS 椅子，棕紅色/鍍鉻",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 55.0,
+          "depth": 56.0,
+          "height": 82.0
+        },
+        "collision_box_cm": {
+          "width": 55.0,
+          "depth": 56.0,
+          "height": 82.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\34 - TOBIAS Chair - brown-redchrome-plated.glb",
+        "material": "",
+        "color": "red",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_035",
+        "sku": "dining-chairs_35",
+        "name": "TOBIAS Chair - transparent/chrome-plated",
+        "chinese name": "TOBIAS 椅子，透明/鍍鉻",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 55.0,
+          "depth": 56.0,
+          "height": 82.0
+        },
+        "collision_box_cm": {
+          "width": 55.0,
+          "depth": 56.0,
+          "height": 82.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\35 - TOBIAS Chair - transparentchrome-plated.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_036",
+        "sku": "dining-chairs_36",
+        "name": "VIHALS Chair - white",
+        "chinese name": "VIHALS 椅子，白色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 39.0,
+          "depth": 47.0,
+          "height": 79.0
+        },
+        "collision_box_cm": {
+          "width": 39.0,
+          "depth": 47.0,
+          "height": 79.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\36 - VIHALS Chair - white.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_037",
+        "sku": "dining-chairs_37",
+        "name": "KRYLBO Chair - Tonerud dark beige",
+        "chinese name": "KRYLBO 椅子，Tonerud 深米色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 49.0,
+          "depth": 51.0,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 49.0,
+          "depth": 51.0,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\37 - KRYLBO Chair - Tonerud dark beige.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_038",
+        "sku": "dining-chairs_38",
+        "name": "KRYLBO Chair - Tonerud blue",
+        "chinese name": "KRYLBO 椅子，Tonerud 藍色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 49.0,
+          "depth": 51.0,
+          "height": 75.0
+        },
+        "collision_box_cm": {
+          "width": 49.0,
+          "depth": 51.0,
+          "height": 75.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\38 - KRYLBO Chair - Tonerud blue.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_039",
+        "sku": "dining-chairs_39",
+        "name": "BERGMUND Chair cover - Orrsta light grey",
+        "chinese name": "BERGMUND 椅套，Orrsta 淺灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 18.0,
+          "depth": null,
+          "height": 4.0
+        },
+        "collision_box_cm": {
+          "width": 18.0,
+          "depth": null,
+          "height": 4.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\39 - BERGMUND Chair cover - Orrsta light grey.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_040",
+        "sku": "dining-chairs_40",
+        "name": "BERGMUND Chair cover - Gunnared medium grey",
+        "chinese name": "BERGMUND 椅套，Gunnared 中灰色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 18.0,
+          "depth": null,
+          "height": 5.0
+        },
+        "collision_box_cm": {
+          "width": 18.0,
+          "depth": null,
+          "height": 5.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\40 - BERGMUND Chair cover - Gunnared medium grey.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_041",
+        "sku": "dining-chairs_41",
+        "name": "RÖNNINGE Chair - green",
+        "chinese name": "RÖNNINGE 椅子，綠色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 49.0,
+          "height": 79.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 49.0,
+          "height": 79.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\41 - RÖNNINGE Chair - green.glb",
+        "material": "",
+        "color": "green",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_042",
+        "sku": "dining-chairs_42",
+        "name": "RÖNNINGE Chair - black",
+        "chinese name": "RÖNNINGE 椅子，黑色",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 49.0,
+          "height": 79.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 49.0,
+          "height": 79.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\42 - RÖNNINGE Chair - black.glb",
+        "material": "",
+        "color": "black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_043",
+        "sku": "dining-chairs_43",
+        "name": "RÖNNINGE Chair - birch",
+        "chinese name": "RÖNNINGE 椅子，樺木",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 46.0,
+          "depth": 49.0,
+          "height": 79.0
+        },
+        "collision_box_cm": {
+          "width": 46.0,
+          "depth": 49.0,
+          "height": 79.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\43 - RÖNNINGE Chair - birch.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Chairs stools and benches_044",
+        "sku": "dining-chairs_44",
+        "name": "VOXLÖV Chair - light bamboo",
+        "chinese name": "VOXLÖV 椅子，淺竹",
+        "type": "dining-chair",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 43.0,
+          "depth": 53.0,
+          "height": 85.0
+        },
+        "collision_box_cm": {
+          "width": 43.0,
+          "depth": 53.0,
+          "height": 85.0
+        },
+        "glb_path": "downloaded-files\\椅子凳子長凳\\fi-dining-chairs\\44 - VOXLÖV Chair - light bamboo.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}
