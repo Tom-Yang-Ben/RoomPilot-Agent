@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import configparser
 import glob
+import json
 import math
 import os
 import sys
@@ -54,6 +55,7 @@ class Config:
     win_cover_pct: float    # 開口長度被細線覆蓋超過此 % = 窗；其餘是門/空，留開
     win_min_pct: float      # 窗的跨牆寬度需 ≥ 牆厚的(100-此值)%；太薄的不算窗
     door_arc_pct: float     # 門偵測:L形等長線兩端連接弧的吻合度門檻(%)
+    door_width_cm: float    # 假設的標準門寬(cm)，用門寬中位數反推每張圖的比例
     win_layer: str
     hough_thresh: int
     hough_min_len: int
@@ -130,6 +132,7 @@ def load_config(path: str) -> Config:
         windows=b("windows", True), win_cover_pct=f("win_cover_pct", 70.0),
         win_min_pct=f("win_min_pct", 20.0),
         door_arc_pct=f("door_arc_pct", 50.0),
+        door_width_cm=f("door_width_cm", 90.0),
         win_layer=s("win_layer", "WINDOW"),
         hough_thresh=i("hough_thresh", 50), hough_min_len=i("hough_min_len", 25),
         hough_max_gap=i("hough_max_gap", 5), angle_tol=f("angle_tol", 8.0),
@@ -761,6 +764,60 @@ def postprocess(H, V, cfg: Config):
     return H, V
 
 
+# ─────────────────────────── 比例尺(門寬推算) ───────────────────────────
+def derive_door_scale(doors, T, cfg: Config):
+    """由門寬推每張圖的比例：取高信心門(弧吻合≥0.85，同 _near_door 的門檻)寬度中位數
+    = door_width_cm。推出的比例要通過牆厚合理性檢查(T=最厚外牆，8~40cm)——擋掉家具弧線
+    拼出的假門造成的災難性錯誤；沒門或檢查不過就退回 config 的比例。
+    回傳 (mm_per_px, info)；info 進 JSON 讓前端知道這個比例能不能信。"""
+    fallback = (25.4 / cfg.dpi) if cfg.dpi else cfg.mm_per_px
+    widths = [d[2] for d in doors if d[3] >= 0.85]
+    info = {"method": "config_fallback", "confidence": "none",
+            "doors_used": 0, "assumed_door_width_cm": cfg.door_width_cm}
+    if not widths:
+        return fallback, info
+    med = float(np.median(widths))
+    mm_per_px = cfg.door_width_cm * 10.0 / med
+    wall_cm = T * mm_per_px / 10.0
+    info.update(doors_used=len(widths), median_door_px=round(med, 1),
+                wall_thickness_cm=round(wall_cm, 1))
+    if 8.0 <= wall_cm <= 40.0:
+        info.update(method="door_median", confidence="high")
+        return mm_per_px, info
+    info["confidence"] = "low"                   # 牆厚不合理 → 不信門，退回 config
+    return fallback, info
+
+
+def write_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info, cfg: Config,
+               dxf_scale_path):
+    """前端交接 JSON：cm 座標與 dxf_scale/ 完全一致(原點左下、y 向上)，
+    px 座標為影像座標(原點左上、y 向下)，方便前端疊回原圖。"""
+    cm = mm_per_px / 10.0
+
+    def box_cm(x0, y0, x1, y1):                  # 影像bbox → DXF座標bbox(y翻轉)
+        return [round(x0 * cm, 2), round((img_h - y1) * cm, 2),
+                round(x1 * cm, 2), round((img_h - y0) * cm, 2)]
+
+    data = {
+        "image": {"file": os.path.basename(cfg.input),
+                  "width_px": img_w, "height_px": img_h},
+        "scale": {"cm_per_px": round(cm, 4), "mm_per_px": round(mm_per_px, 4), **info},
+        "units": {"cm": "同 dxf_scale：原點左下、y 向上",
+                  "px": "影像座標：原點左上、y 向下"},
+        "walls": [{"px": [int(x0), int(y0), int(x1), int(y1)],
+                   "cm": box_cm(x0, y0, x1, y1)} for x0, y0, x1, y1 in rects],
+        "windows": [{"orient": o, "px": [int(x0), int(y0), int(x1), int(y1)],
+                     "cm": box_cm(x0, y0, x1, y1)} for o, x0, y0, x1, y1 in wins],
+        "doors": [{"px": {"cx": round(dx, 1), "cy": round(dy, 1), "width": round(dw, 1)},
+                   "cm": {"cx": round(dx * cm, 2), "cy": round((img_h - dy) * cm, 2),
+                          "width": round(dw * cm, 2)},
+                   "score": round(sc, 3)} for dx, dy, dw, sc in doors],
+        "dxf": cfg.output, "dxf_scale": dxf_scale_path,
+    }
+    with open(path, "w", encoding="utf-8") as fp:
+        json.dump(data, fp, ensure_ascii=False, indent=2)
+
+
 # ─────────────────────────── 輸出 ───────────────────────────
 def write_dxf(H, V, img_h, scale, cfg: Config):
     doc = ezdxf.new("R2010")
@@ -788,10 +845,11 @@ def preview(bgr, H, V, path):
     cv2.imwrite(path, vis)
 
 
-def write_solid_dxf(rects, wins, img_h, scale, cfg: Config):
-    """牆：封閉矩形 + SOLID HATCH。窗：開口矩形 + 4 條玻璃線 + 兩端封口(照正規檔)。"""
+def write_solid_dxf(rects, wins, img_h, scale, cfg: Config, out=None, insunits=4):
+    """牆：封閉矩形 + SOLID HATCH。窗：開口矩形 + 4 條玻璃線 + 兩端封口(照正規檔)。
+    out/insunits 給 dxf_scale/ 用：另存一份門寬比例、公分單位(insunits=5)的檔。"""
     doc = ezdxf.new("R2010")
-    doc.header["$INSUNITS"] = 4
+    doc.header["$INSUNITS"] = insunits
     msp = doc.modelspace()
     if cfg.layer not in doc.layers:
         doc.layers.add(cfg.layer, color=7)
@@ -822,7 +880,7 @@ def write_solid_dxf(rects, wins, img_h, scale, cfg: Config):
                 msp.add_line(P(x, y0), P(x, y1), dxfattribs=L)
             msp.add_line(P(x0, y0), P(x1, y0), dxfattribs=L)
             msp.add_line(P(x0, y1), P(x1, y1), dxfattribs=L)
-    doc.saveas(cfg.output)
+    doc.saveas(out or cfg.output)
 
 
 def preview_solid(bgr, rects, wins, path):
@@ -891,7 +949,7 @@ def run(cfg: Config):
 
     if cfg.style == "solid":                 # 實心牆：矩形 + SOLID HATCH；窗：符號
         rects = detect_solid(bw_open, cfg, T)
-        wins = []
+        wins, doors = [], []
         if cfg.windows:
             thin = cv2.subtract(orig, cv2.dilate(bw_open, np.ones((3, 3), np.uint8)))
             doors = detect_doors(thin, T, cfg.door_arc_pct)
@@ -903,9 +961,23 @@ def run(cfg: Config):
         write_solid_dxf(rects, wins, img_h, scale, cfg)
         if cfg.preview:
             preview_solid(bgr, rects, wins, cfg.preview)
+
+        # 門寬推比例 → 另存公分單位的 dxf_scale/ + 前端交接 json/（不動原本 dxf/）
+        mmpp, sinfo = derive_door_scale(doors, T, cfg)
+        base = os.path.splitext(os.path.basename(cfg.output))[0]
+        os.makedirs("dxf_scale", exist_ok=True)
+        os.makedirs("json", exist_ok=True)
+        scale_out = os.path.join("dxf_scale", base + ".dxf")
+        json_out = os.path.join("json", base + ".json")
+        write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
+        write_json(json_out, img_w, img_h, rects, wins, doors, mmpp, sinfo, cfg, scale_out)
+
         print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid")
         print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個 (門洞留開)")
+        print(f"比例尺 : {mmpp / 10.0:.4f} cm/px  ({sinfo['method']}, 信心 {sinfo['confidence']}, "
+              f"高信心門 {sinfo['doors_used']} 扇)")
         print(f"輸出   : {cfg.output}" + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
+        print(f"         {scale_out} (cm)   {json_out}")
         return
     bw = bw_open
 
@@ -951,6 +1023,7 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
     print(f"\n批次完成: 成功 {ok} / 失敗 {fail}")
     print(f"  DXF  → {out_dir}/")
     print(f"  疊圖 → {chk_dir}/  (原圖 + 紅實心牆 + 綠窗，一次翻完抓問題)")
+    print(f"  比例尺DXF → dxf_scale/ (門寬推算、公分單位)   JSON → json/ (前端交接)")
 
 
 def main():

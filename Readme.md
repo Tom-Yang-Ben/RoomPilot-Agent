@@ -1,6 +1,18 @@
+2026/7/7 v.1.4 變更
 
+門寬推比例尺 + 前端交接 JSON（原本的 dxf/ 輸出完全不動）：
 
+- derive_door_scale()：取弧吻合度 ≥0.85 的高信心門，門寬 px 中位數 = door_width_cm（config 可調，預設 90cm）反推每張圖的比例；推出的比例要通過牆厚合理性檢查（最厚外牆 8~40cm）才採用，否則退回 config 的 mm_per_px 並標 confidence: low/none
+- dxf_scale/：每張圖另存一份門寬比例的 DXF，單位公分（$INSUNITS=5），幾何與 dxf/ 相同只有比例不同
+- json/：每張圖一份前端交接 JSON——scale 區塊（cm_per_px、method、confidence、doors_used、推算牆厚），walls/windows/doors 同時給 px（影像座標）與 cm（同 dxf_scale，原點左下 y 向上）兩套座標
 
+批次實測 21 張：10 張門推比例（全標 high），2 張假門被牆厚檢查正確擋掉，9 張沒抓到高信心門走 fallback。後續改進方向：把閉合門扇（_has_door_swing 抓到的）也納入比例計算，提高門推比例的覆蓋率。
+
+2026/7/6 v.1.3 變更
+
+- floorplan2dxf.py:925 新增 IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")，run_batch 改成列出目錄後用副檔名（不分大小寫）過濾，所以 .JPG、.PNG 這種大寫也抓得到
+
+提醒：批次輸出是以檔名（去掉副檔名）命名，如果目錄裡同時有 floor01.png 和 floor01.jpg，兩者的 DXF 會互相覆蓋，只留最後處理的那張。
 
 2026/7/3 v.1.2 變更
 
@@ -13,7 +25,6 @@
 窗戶精準率	89%	93%
 窗戶召回率	91%	90%
 牆偵測	—	完全沒動，不受影響
-
 
 2026/7/2 v.1.0 變更
 
