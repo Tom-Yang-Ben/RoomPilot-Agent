@@ -38,4 +38,4 @@ Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras:
 
 - UI 字串、註解、toast 一律繁體中文。
 - 大檔案(GLB/資料集)不進 git,走雲端;`dataset/`、`data/` 已 gitignore。
-- 尚未完成(P0):F3 LLM Agent(tool schema 已備妥於 `engine/schema.py`)、F4 `render_style`、F6 3D 拖曳、F9 匯出。
+- 尚未完成(P0):F3 LLM Agent(tool schema 已備妥於 `engine/schema.py`)、F4 `render_style`(已拍板走 OpenRouter 託管 API)、F8 Demo Mode、F9 匯出。F6 3D 拖曳已完成(2026-07-06)。
