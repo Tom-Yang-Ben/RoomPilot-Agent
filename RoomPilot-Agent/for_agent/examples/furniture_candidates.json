@@ -1,0 +1,61 @@
+{
+  "room_type": "客廳",
+  "style": "日式風格",
+  "candidates": [
+    {
+      "catalog_id": "cushion_001",
+      "name": "亞麻和室坐墊",
+      "category": "坐墊",
+      "style": "日式",
+      "color": "米白",
+      "dimensions": {"width": 60, "depth": 60, "height": 12},
+      "glb_path": "assets/cushion_001.glb",
+      "role": "主要座位",
+      "match_reason": "以坐墊承接沙發座位功能，亞麻米白貼合日式與主色調"
+    },
+    {
+      "catalog_id": "table_low_004",
+      "name": "橡木和室矮桌",
+      "category": "茶几",
+      "style": "日式",
+      "color": "淺木色",
+      "dimensions": {"width": 100, "depth": 60, "height": 35},
+      "glb_path": "assets/table_low_004.glb",
+      "role": "中心矮桌",
+      "match_reason": "低矮桌面符合和室席地而坐，淺木色協調米白"
+    },
+    {
+      "catalog_id": "rug_natural_002",
+      "name": "米白編織地毯",
+      "category": "地毯",
+      "style": "日式",
+      "color": "米白",
+      "dimensions": {"width": 200, "depth": 140, "height": 2},
+      "glb_path": "assets/rug_natural_002.glb",
+      "role": "座位組視覺錨點",
+      "match_reason": "界定坐墊與矮桌的座位區，米白統一色調"
+    },
+    {
+      "catalog_id": "cabinet_low_007",
+      "name": "橡木電視矮櫃",
+      "category": "電視櫃",
+      "style": "日式",
+      "color": "淺木色",
+      "dimensions": {"width": 120, "depth": 40, "height": 45},
+      "glb_path": "assets/cabinet_low_007.glb",
+      "role": "收納 / 電視擺放",
+      "match_reason": "低矮線條呼應和室，淺木色一致"
+    },
+    {
+      "catalog_id": "floorlamp_003",
+      "name": "和紙落地燈",
+      "category": "落地燈",
+      "style": "日式",
+      "color": "米白",
+      "dimensions": {"width": 30, "depth": 30, "height": 150},
+      "glb_path": "assets/floorlamp_003.glb",
+      "role": "氛圍照明",
+      "match_reason": "和紙燈罩柔光，米白融入整體"
+    }
+  ]
+}

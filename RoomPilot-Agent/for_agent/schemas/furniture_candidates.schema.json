@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "furniture_candidates.json",
+  "description": "Agent 2 產出:符合需求的候選家具清單",
+  "type": "object",
+  "required": ["candidates"],
+  "properties": {
+    "room_type": {"type": "string"},
+    "style": {"type": "string"},
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["catalog_id", "name", "category", "dimensions", "glb_path"],
+        "properties": {
+          "catalog_id": {"type": "string", "description": "資料庫主鍵，勿捏造"},
+          "name": {"type": "string"},
+          "category": {"type": "string", "description": "家具大類，如 坐墊 / 茶几 / 床"},
+          "style": {"type": "string"},
+          "color": {"type": "string"},
+          "dimensions": {"$ref": "#/$defs/dims"},
+          "glb_path": {"type": "string", "description": "3D 模型路徑，供最終場景載入"},
+          "role": {"type": "string", "description": "在空間中承接的功能，如 主要座位"},
+          "match_reason": {"type": "string", "description": "入選理由一句話"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "dims": {
+      "type": "object",
+      "required": ["width", "depth", "height"],
+      "properties": {
+        "width": {"type": "number", "description": "本地 X(cm)"},
+        "depth": {"type": "number", "description": "本地 Y(cm)"},
+        "height": {"type": "number", "description": "Z(cm)"}
+      }
+    }
+  }
+}

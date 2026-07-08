@@ -1,0 +1,16 @@
+{
+  "units": "cm",
+  "room_polygon": [[0, 0], [400, 0], [400, 300], [0, 300]],
+  "walls": [
+    {"id": "wall_bottom", "position": {"x": 200, "y": 0},   "rotation": 0,  "width": 400, "thickness": 15, "height": 280},
+    {"id": "wall_right",  "position": {"x": 400, "y": 150}, "rotation": 90, "width": 300, "thickness": 15, "height": 280},
+    {"id": "wall_top",    "position": {"x": 200, "y": 300}, "rotation": 0,  "width": 400, "thickness": 15, "height": 280},
+    {"id": "wall_left",   "position": {"x": 0, "y": 150},   "rotation": 90, "width": 300, "thickness": 15, "height": 280}
+  ],
+  "windows": [
+    {"id": "win_1", "position": {"x": 200, "y": 300}, "rotation": 0, "width": 120, "height": 120, "sill_height": 90, "host_wall": "wall_top"}
+  ],
+  "doors": [
+    {"id": "door_1", "position": {"x": 60, "y": 0}, "rotation": 0, "width": 90, "host_wall": "wall_bottom", "hinge": "left", "swing_in": true}
+  ]
+}

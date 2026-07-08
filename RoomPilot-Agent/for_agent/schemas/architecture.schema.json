@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "architecture.json",
+  "description": "parse_dxf.py 產出:平面圖的牆/窗/門幾何與房間多邊形",
+  "type": "object",
+  "required": ["units", "walls", "windows", "doors"],
+  "properties": {
+    "units": {"type": "string", "enum": ["cm"], "description": "全管線單位一律 cm"},
+    "room_polygon": {
+      "type": "array",
+      "description": "房間可用區域外框頂點（依序，閉合）；用於 within-room 驗證",
+      "items": {
+        "type": "array",
+        "items": {"type": "number"},
+        "minItems": 2, "maxItems": 2
+      }
+    },
+    "walls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "position", "rotation", "width"],
+        "properties": {
+          "id": {"type": "string"},
+          "position": {"$ref": "#/$defs/point"},
+          "rotation": {"type": "number", "description": "牆中心線方向，逆時針度"},
+          "width": {"type": "number", "description": "牆長度(cm)"},
+          "thickness": {"type": "number", "description": "牆厚(cm)"},
+          "height": {"type": "number", "description": "牆高(cm)"}
+        }
+      }
+    },
+    "windows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "position", "rotation", "width"],
+        "properties": {
+          "id": {"type": "string"},
+          "position": {"$ref": "#/$defs/point"},
+          "rotation": {"type": "number"},
+          "width": {"type": "number"},
+          "height": {"type": "number"},
+          "sill_height": {"type": "number", "description": "窗台離地高(cm)"},
+          "host_wall": {"type": "string", "description": "所在牆 id"}
+        }
+      }
+    },
+    "doors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "position", "rotation", "width"],
+        "properties": {
+          "id": {"type": "string"},
+          "position": {"$ref": "#/$defs/point"},
+          "rotation": {"type": "number", "description": "門面法線方向，逆時針度"},
+          "width": {"type": "number", "description": "門洞寬(cm)，等於開合半徑"},
+          "host_wall": {"type": "string"},
+          "hinge": {"type": "string", "enum": ["left", "right"], "description": "鉸鏈側"},
+          "swing_in": {"type": "boolean", "description": "true=向房間內開"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {"x": {"type": "number"}, "y": {"type": "number"}}
+    }
+  }
+}
