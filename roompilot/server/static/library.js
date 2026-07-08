@@ -1,40 +1,18 @@
-import { fetchSiteData, formatSize, initBackgroundFx, styleNameMap } from "./common.js?v=20260704e";
-import { createViewer } from "./viewer.js?v=20260704c";
-import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260706c";
+import {
+  fetchSiteData,
+  formatFurnitureName,
+  formatSize,
+  formatTypeLabel,
+  initBackgroundFx,
+  shouldUseDarkFurnitureStage,
+  scrollPageTop,
+  styleNameMap,
+} from "./common.js?v=20260708e";
+import { createViewer } from "./viewer.js?v=20260708a";
+import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260708c";
 
 const data = await fetchSiteData();
 const styleNames = styleNameMap(data.styles);
-
-const TYPE_LABELS = {
-  armchair: "扶手椅",
-  "bar-table": "吧台桌",
-  bed: "床",
-  "bed-frame": "床架",
-  "bedside-table": "床頭櫃",
-  bookcase: "書櫃",
-  "cabinets-cupboard": "櫃體",
-  "childrens-furniture": "兒童家具",
-  "childrens-stools-benche": "兒童椅凳",
-  "coffee-table": "茶几",
-  desk: "書桌",
-  "dining-chair": "餐椅",
-  "dining-table": "餐桌",
-  "large-medium-rug": "地毯",
-  "office-chair": "辦公椅",
-  "pax-wardrobe": "衣櫃",
-  "runner-small-rug": "長型地毯",
-  sideboard: "邊櫃",
-  sofa: "沙發",
-  "sofa-bed": "沙發床",
-  "storage-boxes-basket": "收納盒",
-  "storage-solution-system": "收納系統",
-  "stool-bench": "凳子 / 長凳",
-  "table-lamp": "桌燈",
-  trolley: "推車",
-  "tv-bench": "電視櫃",
-  "wall-mirror": "壁鏡",
-  "wall-shelf": "壁架",
-};
 
 const COLOR_LABELS = {
   black: "黑色",
@@ -51,7 +29,7 @@ const COLOR_LABELS = {
   pink: "粉色",
   natural: "自然色",
   oak: "橡木色",
-  walnut: "胡桃木色",
+  walnut: "胡桃色",
   brass: "黃銅色",
 };
 
@@ -62,6 +40,8 @@ const state = {
   currentPage: 1,
   itemsPerPage: 21,
 };
+
+const libraryTopAnchor = document.querySelector(".page-shell.two-column-shell > section.page-panel");
 
 const elements = {
   searchInput: document.getElementById("search-input"),
@@ -83,17 +63,21 @@ const elements = {
 
 const viewer = createViewer(elements.viewerCanvas, elements.viewerStatus);
 
+function scrollLibraryTop() {
+  scrollPageTop(libraryTopAnchor, 18);
+}
+
 function formatStyleName(styleId) {
   return styleNames.get(styleId) || styleId || "未分類";
 }
 
 function formatType(typeName) {
-  return TYPE_LABELS[typeName] || typeName || "未分類";
+  return formatTypeLabel(typeName);
 }
 
 function formatColor(colorText) {
-  if (!colorText) return "未提供";
-  return colorText
+  if (!colorText) return "尚未整理";
+  return String(colorText)
     .split(",")
     .map((token) => token.trim())
     .filter(Boolean)
@@ -103,30 +87,26 @@ function formatColor(colorText) {
 
 function modelBadge(item) {
   return item.has_model
-    ? '<span class="badge success">GLB 可看</span>'
-    : '<span class="badge warning">缺 GLB</span>';
-}
-
-function isDarkFurniture(item) {
-  const tokens = [item.color, item.name_en, item.name_zh_raw, item.material]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return ["black", "dark", "anthracite", "charcoal", "brown", "黑", "深灰", "深色"].some((keyword) =>
-    tokens.includes(keyword)
-  );
+    ? '<span class="badge success">GLB 可檢視</span>'
+    : '<span class="badge warning">缺少 GLB</span>';
 }
 
 function createFallbackSvg(item) {
   const color = formatColor(item.color);
   const type = formatType(item.normalized_type);
+  const isLight = shouldUseDarkFurnitureStage(item);
+  const bg = isLight ? "#171311" : "#fffaf4";
+  const panel = isLight ? "#241f1b" : "#f7efe6";
+  const stroke = isLight ? "#5d5147" : "#d9cab9";
+  const title = isLight ? "#fff7ef" : "#4f4439";
+  const meta = isLight ? "#d6c6b7" : "#725f4e";
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320">
-      <rect width="480" height="320" rx="28" fill="#fffaf4"/>
-      <rect x="24" y="24" width="432" height="272" rx="22" fill="#f7efe6" stroke="#d9cab9"/>
-      <text x="36" y="72" fill="#7a6653" font-size="20" font-family="Noto Sans TC, Microsoft JhengHei, sans-serif">預覽載入中</text>
-      <text x="36" y="120" fill="#4f4439" font-size="34" font-weight="700" font-family="Noto Sans TC, Microsoft JhengHei, sans-serif">${type}</text>
-      <text x="36" y="164" fill="#725f4e" font-size="24" font-family="Noto Sans TC, Microsoft JhengHei, sans-serif">${color}</text>
+      <rect width="480" height="320" rx="28" fill="${bg}"/>
+      <rect x="24" y="24" width="432" height="272" rx="22" fill="${panel}" stroke="${stroke}"/>
+      <text x="36" y="72" fill="${meta}" font-size="20" font-family="Noto Sans TC, Microsoft JhengHei, sans-serif">資料庫模型預覽</text>
+      <text x="36" y="120" fill="${title}" font-size="34" font-weight="700" font-family="Noto Sans TC, Microsoft JhengHei, sans-serif">${type}</text>
+      <text x="36" y="164" fill="${meta}" font-size="24" font-family="Noto Sans TC, Microsoft JhengHei, sans-serif">${color}</text>
     </svg>
   `;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -144,8 +124,6 @@ function populateFilters() {
 }
 
 function refreshTypeOptions() {
-  // 類型清單依「目前選的風格」連動:只列該風格實際有家具的類型,
-  // 避免選到「古典風 × 扶手椅」這種必定零結果的組合
   const styleId = elements.styleFilter.value;
   const available = new Set();
   data.furniture.forEach((item) => {
@@ -158,7 +136,7 @@ function refreshTypeOptions() {
   elements.typeFilter.innerHTML = "";
   if (allOption) elements.typeFilter.appendChild(allOption);
 
-  [...available].sort().forEach((typeName) => {
+  [...available].sort((a, b) => formatType(a).localeCompare(formatType(b), "zh-Hant")).forEach((typeName) => {
     const option = document.createElement("option");
     option.value = typeName;
     option.textContent = formatType(typeName);
@@ -175,21 +153,21 @@ function syncActiveCard() {
 }
 
 function setViewerText(item) {
-  elements.viewerTitle.textContent = item.name_zh_raw || "未命名家具";
+  elements.viewerTitle.textContent = formatFurnitureName(item);
   elements.viewerStyle.textContent = formatStyleName(item.primary_style);
   elements.viewerType.textContent = formatType(item.normalized_type);
-  elements.viewerSize.textContent = formatSize(item.size_cm);
+  elements.viewerSize.textContent = formatSize(item.size_cm, item);
 }
 
 function setActiveFurniture(item) {
   state.activeFurnitureId = item.furniture_id;
   syncActiveCard();
   setViewerText(item);
-  viewer.setTheme("light-stage");  // 與縮圖一致,固定淺色舞台
+  viewer.setTheme(shouldUseDarkFurnitureStage(item) ? "dark-stage" : "light-stage");
 
   if (!item.has_model) {
     viewer.clear();
-    elements.viewerStatus.textContent = item.missing_model_reason || "這件家具目前沒有可載入的 GLB。";
+    elements.viewerStatus.textContent = item.missing_model_reason || "這筆家具目前沒有可檢視的 GLB 模型。";
     return;
   }
 
@@ -225,6 +203,7 @@ function renderPagination(totalPages) {
     state.currentPage -= 1;
     renderLibrary();
     syncActiveCard();
+    scrollLibraryTop();
   }, state.currentPage === 1);
 
   const visiblePages = buildVisiblePages(totalPages);
@@ -239,6 +218,7 @@ function renderPagination(totalPages) {
       state.currentPage = page;
       renderLibrary();
       syncActiveCard();
+      scrollLibraryTop();
     }, false, page === state.currentPage);
 
     previousPage = page;
@@ -248,6 +228,7 @@ function renderPagination(totalPages) {
     state.currentPage += 1;
     renderLibrary();
     syncActiveCard();
+    scrollLibraryTop();
   }, state.currentPage === totalPages);
 }
 
@@ -269,7 +250,11 @@ function renderLibrary() {
     if (item.furniture_id === state.activeFurnitureId) card.classList.add("is-active");
 
     const candidateNames = item.style_candidates
-      ?.slice(0, 3)
+      ?.filter((candidate) => {
+        const score = Array.isArray(candidate) ? Number(candidate[1] ?? 1) : Number(candidate?.score ?? 1);
+        return score > 0;
+      })
+      .slice(0, 3)
       .map((candidate) => {
         const styleId = Array.isArray(candidate) ? candidate[0] : candidate.style_id ?? candidate;
         return formatStyleName(styleId);
@@ -284,15 +269,15 @@ function renderLibrary() {
       <img
         class="library-preview-image"
         src="${createFallbackSvg(item)}"
-        alt="${item.name_zh_raw || "家具"} 預覽圖"
+        alt="${item.name_zh_raw || item.name_en || "家具"} 模型預覽"
         loading="lazy"
       />
-      <h3>${item.name_zh_raw || "未命名家具"}</h3>
+      <h3>${formatFurnitureName(item)}</h3>
       <dl>
         <div><dt>類型</dt><dd>${formatType(item.normalized_type)}</dd></div>
         <div><dt>顏色</dt><dd>${formatColor(item.color)}</dd></div>
-        <div><dt>尺寸</dt><dd>${formatSize(item.size_cm)}</dd></div>
-        <div><dt>候選風格</dt><dd>${candidateNames || "未提供"}</dd></div>
+        <div><dt>尺寸</dt><dd>${formatSize(item.size_cm, item)}</dd></div>
+        <div><dt>風格候選</dt><dd>${candidateNames || "尚未整理"}</dd></div>
       </dl>
     `;
 
@@ -324,11 +309,11 @@ function ensureActiveFurnitureStillVisible() {
 
   state.activeFurnitureId = null;
   viewer.clear();
-  elements.viewerTitle.textContent = "目前沒有可顯示的家具";
+  elements.viewerTitle.textContent = "沒有符合篩選的家具";
   elements.viewerStyle.textContent = "-";
   elements.viewerType.textContent = "-";
   elements.viewerSize.textContent = "-";
-  elements.viewerStatus.textContent = "請重新調整篩選條件。";
+  elements.viewerStatus.textContent = "請調整搜尋、風格或類型篩選。";
 }
 
 function applyLibraryFilters() {
@@ -373,4 +358,5 @@ elements.spinModel.addEventListener("click", () => {
 
 populateFilters();
 initBackgroundFx();
-applyLibraryFilters();
+renderLibrary();
+ensureActiveFurnitureStillVisible();

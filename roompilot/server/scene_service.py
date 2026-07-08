@@ -26,6 +26,15 @@ DOTENV_CANDIDATES = [
     PROJECT_DIR / "roompilot" / "server" / ".env",
 ]
 
+DEFAULT_OPENROUTER_MODELS = [
+    "tencent/hy3:free",
+    "google/gemma-3-27b-it:free",
+    "qwen/qwen3-32b:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "mistralai/devstral-small:free",
+    "cohere/north-mini-code:free",
+]
+
 
 def load_local_env() -> None:
     for env_path in DOTENV_CANDIDATES:
@@ -40,21 +49,40 @@ def load_local_env() -> None:
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip().strip('"').strip("'")
-            if key and key not in os.environ:
+            if key and not os.environ.get(key):
                 os.environ[key] = value
+
+
+def get_openrouter_models() -> list[str]:
+    load_local_env()
+
+    raw_models = os.getenv("OPENROUTER_MODELS", "").strip()
+    if raw_models:
+        models = [item.strip() for item in raw_models.split(",") if item.strip()]
+        if models:
+            return models
+
+    single_model = os.getenv("OPENROUTER_MODEL", "").strip()
+    if single_model:
+        return [single_model]
+
+    return DEFAULT_OPENROUTER_MODELS.copy()
 
 
 def get_openrouter_status() -> dict[str, Any]:
     load_local_env()
     api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-    model = os.getenv("OPENROUTER_MODEL", "").strip()
+    models = get_openrouter_models()
+    model = models[0] if models else ""
 
     return {
-        "enabled": bool(api_key and model),
+        "enabled": bool(api_key and models),
         "has_api_key": bool(api_key),
-        "has_model": bool(model),
+        "has_model": bool(models),
         "model": model or None,
-        "provider": "openrouter" if api_key and model else "fallback",
+        "models": models,
+        "model_count": len(models),
+        "provider": "openrouter" if api_key and models else "fallback",
     }
 
 
@@ -117,46 +145,161 @@ def normalize_required_furniture(raw_items: list[str], space_type: str) -> list[
     return SPACE_DEFAULTS.get(space_type, SPACE_DEFAULTS["living_room"]).copy()
 
 
-def _openrouter_request(messages: list[dict[str, str]]) -> dict[str, Any] | None:
-    status = get_openrouter_status()
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    model = status["model"]
-    site_url = os.getenv("OPENROUTER_SITE_URL", "http://127.0.0.1:8000")
-    app_name = os.getenv("OPENROUTER_APP_NAME", "test_furniture scene planner")
-
-    if not api_key or not model:
+def _extract_openrouter_message_content(body: dict[str, Any]) -> str | None:
+    try:
+        content = body["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError):
         return None
 
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.2,
-        "response_format": {"type": "json_object"},
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        text_parts = []
+        for part in content:
+            if isinstance(part, dict) and part.get("type") == "text":
+                text = part.get("text")
+                if isinstance(text, str):
+                    text_parts.append(text)
+        return "".join(text_parts) if text_parts else None
+
+    return None
+
+
+def _load_json_response(body: dict[str, Any]) -> dict[str, Any] | None:
+    content = _extract_openrouter_message_content(body)
+    if not content:
+        return None
+
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError:
+        return None
+
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _normalize_openrouter_plan(
+    raw_plan: dict[str, Any] | None,
+    questionnaire: dict[str, Any],
+    styles: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    if not isinstance(raw_plan, dict):
+        return None
+
+    requested_style = normalize_style_id(questionnaire.get("style_preference"), styles)
+    fixed_style_requested = questionnaire.get("style_preference") not in STYLE_FALLBACKS
+
+    normalized_required = normalize_required_furniture(
+        raw_plan.get("required_furniture", []),
+        raw_plan.get("space_type", questionnaire.get("space_type", "living_room")),
+    )
+    if not normalized_required:
+        return None
+
+    layout_rules = raw_plan.get("layout_rules", [])
+    if not isinstance(layout_rules, list):
+        layout_rules = []
+
+    preferred_colors = raw_plan.get("preferred_colors", questionnaire.get("preferred_colors", []))
+    if not isinstance(preferred_colors, list):
+        preferred_colors = questionnaire.get("preferred_colors", [])
+
+    personal_requirements = raw_plan.get("personal_requirements", questionnaire.get("personal_notes", ""))
+    if personal_requirements is None:
+        personal_requirements = ""
+
+    summary = raw_plan.get("summary_zh")
+    if not isinstance(summary, str) or not summary.strip():
+        summary = "已依問卷整理風格方向與家具需求。"
+
+    plan = {
+        "style_id": requested_style if fixed_style_requested else normalize_style_id(raw_plan.get("style_id"), styles),
+        "space_type": raw_plan.get("space_type", questionnaire.get("space_type", "living_room")),
+        "preferred_colors": preferred_colors,
+        "required_furniture": normalized_required,
+        "personal_requirements": str(personal_requirements).strip(),
+        "layout_rules": layout_rules,
+        "summary_zh": summary.strip(),
     }
 
+    for item in normalize_required_furniture(
+        questionnaire.get("custom_furniture", []),
+        questionnaire.get("space_type", "living_room"),
+    ):
+        if item not in plan["required_furniture"]:
+            plan["required_furniture"].append(item)
+
+    return plan
+
+
+def _post_openrouter_chat(payload: dict[str, Any], headers: dict[str, str]) -> dict[str, Any] | None:
     req = request.Request(
         "https://openrouter.ai/api/v1/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": site_url,
-            "X-Title": app_name,
-        },
+        headers=headers,
         method="POST",
     )
 
     try:
         with request.urlopen(req, timeout=25) as response:
-            body = json.loads(response.read().decode("utf-8"))
+            return json.loads(response.read().decode("utf-8"))
     except (error.URLError, TimeoutError, json.JSONDecodeError):
         return None
 
-    try:
-        content = body["choices"][0]["message"]["content"]
-        return json.loads(content)
-    except (KeyError, IndexError, TypeError, json.JSONDecodeError):
+
+def _openrouter_request(
+    messages: list[dict[str, str]],
+    questionnaire: dict[str, Any],
+    styles: list[dict[str, Any]],
+) -> tuple[str, dict[str, Any]] | None:
+    status = get_openrouter_status()
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    models = status["models"]
+    site_url = os.getenv("OPENROUTER_SITE_URL", "http://127.0.0.1:8000")
+    app_name = os.getenv("OPENROUTER_APP_NAME", "test_furniture scene planner")
+
+    if not api_key or not models:
         return None
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": site_url,
+        "X-Title": app_name,
+    }
+
+    for model in models:
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.2,
+            "response_format": {"type": "json_object"},
+        }
+        body = _post_openrouter_chat(payload, headers)
+        parsed = _normalize_openrouter_plan(
+            _load_json_response(body) if body else None,
+            questionnaire,
+            styles,
+        ) if body else None
+        if parsed:
+            return model, parsed
+
+        fallback_payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.2,
+        }
+        fallback_body = _post_openrouter_chat(fallback_payload, headers)
+        fallback_parsed = _normalize_openrouter_plan(
+            _load_json_response(fallback_body) if fallback_body else None,
+            questionnaire,
+            styles,
+        ) if fallback_body else None
+        if fallback_parsed:
+            return model, fallback_parsed
+
+    return None
 
 
 def build_questionnaire_prompt(questionnaire: dict[str, Any], styles: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -232,26 +375,20 @@ def fallback_plan(questionnaire: dict[str, Any], styles: list[dict[str, Any]]) -
     }
 
 
-def build_scene_plan(questionnaire: dict[str, Any], styles: list[dict[str, Any]]) -> tuple[str, dict[str, Any]]:
-    requested_style = normalize_style_id(questionnaire.get("style_preference"), styles)
-    fixed_style_requested = questionnaire.get("style_preference") not in STYLE_FALLBACKS
-    openrouter_output = _openrouter_request(build_questionnaire_prompt(questionnaire, styles))
-    if openrouter_output:
-        # The user selects a fixed style in the UI; LLM may explain choices, but should not switch style.
-        openrouter_output["style_id"] = requested_style if fixed_style_requested else normalize_style_id(openrouter_output.get("style_id"), styles)
-        openrouter_output["required_furniture"] = normalize_required_furniture(
-            openrouter_output.get("required_furniture", []),
-            openrouter_output.get("space_type", questionnaire.get("space_type", "living_room")),
-        )
-        for item in normalize_required_furniture(
-            questionnaire.get("custom_furniture", []),
-            questionnaire.get("space_type", "living_room"),
-        ):
-            if item not in openrouter_output["required_furniture"]:
-                openrouter_output["required_furniture"].append(item)
-        return "openrouter", openrouter_output
+def build_scene_plan(
+    questionnaire: dict[str, Any],
+    styles: list[dict[str, Any]],
+) -> tuple[str, dict[str, Any], str | None]:
+    openrouter_result = _openrouter_request(
+        build_questionnaire_prompt(questionnaire, styles),
+        questionnaire,
+        styles,
+    )
+    if openrouter_result:
+        model, plan = openrouter_result
+        return "openrouter", plan, model
 
-    return "fallback", fallback_plan(questionnaire, styles)
+    return "fallback", fallback_plan(questionnaire, styles), None
 
 
 def choose_furniture_items(
@@ -279,9 +416,12 @@ def choose_furniture_items(
         for style in item.get("style_candidates", []):
             if style.get("style_id") == style_id:
                 try:
-                    return 76 + float(style.get("score", 0)) * 18
+                    score = float(style.get("score", 0))
                 except (TypeError, ValueError):
-                    return 76
+                    score = 0
+                if score <= 0:
+                    return 0
+                return 76 + score * 18
 
         return 0
 
@@ -947,7 +1087,7 @@ def build_scene_payload(
     effective_width_cm = parsed_floorplan["width_cm"] if parsed_floorplan else room_width_cm
     effective_depth_cm = parsed_floorplan["depth_cm"] if parsed_floorplan else room_depth_cm
 
-    llm_mode, plan = build_scene_plan(questionnaire, site_payload["styles"])
+    llm_mode, plan, llm_model = build_scene_plan(questionnaire, site_payload["styles"])
     selected_items, unavailable_types = choose_furniture_items(
         plan,
         site_payload["furniture"],
@@ -969,11 +1109,31 @@ def build_scene_payload(
         (style for style in site_payload["styles"] if style.get("style_id") == plan["style_id"]),
         site_payload["styles"][0],
     )
+    surface_catalog = site_payload.get("surface_catalog", {})
 
     return {
         "scene_id": f"scene_{uuid.uuid4().hex[:10]}",
         "llm_mode": llm_mode,
+        "llm_model": llm_model,
         "questionnaire": questionnaire,
+        "requirement": {
+            "schema_version": "1.0",
+            "room_type": plan.get("space_type"),
+            "style": plan.get("style_id"),
+            "prefer_color": plan.get("preferred_colors", []),
+            "requirements": plan.get("required_furniture", []),
+            "constraints": {
+                "must_keep": [
+                    rule.get("message")
+                    for rule in plan.get("layout_rules", [])
+                    if rule.get("message")
+                ],
+                "priority_order": [],
+                "preferred_layout_pattern": "",
+                "style_strictness": "high",
+                "notes": [plan.get("personal_requirements")] if plan.get("personal_requirements") else [],
+            },
+        },
         "plan_json": plan,
         "floorplan": {
             "image_path": floorplan_path,
@@ -999,12 +1159,21 @@ def build_scene_payload(
             "style_name_zh": style.get("style_name_zh"),
             "scene_background": style.get("scene_background", {}),
             "palette_hex": style.get("palette_hex", []),
+            "surface_profile": style.get("surface_profile", {}),
         },
         "design_choices": {
             "wall_option": questionnaire.get("wall_option", "auto"),
             "floor_option": questionnaire.get("floor_option", "auto"),
             "single_room_mode": not bool(parsed_floorplan),
             "accurate_dxf_mode": bool(parsed_floorplan),
+        },
+        "surface_catalog": surface_catalog,
+        "furniture_candidates": {
+            "schema_version": "1.0",
+            "room_type": plan.get("space_type"),
+            "style": plan.get("style_id"),
+            "candidates": selected_items,
+            "layout_relations": [],
         },
         "selected_furniture": selected_items,
         "scene_objects": objects,

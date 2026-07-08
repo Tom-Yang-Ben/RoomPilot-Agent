@@ -1034,12 +1034,12 @@
         "overall_zh": "粗獷、真實、沉穩、對比強"
       },
       "visual_theme": {
-        "background_start": "#2A2A2A",
-        "background_end": "#6A5445",
-        "panel_fill": "#343434",
-        "panel_outline": "#85715F",
-        "title_color": "#EEE4D8",
-        "body_color": "#D9D0C5",
+        "background_start": "#F7F3EE",
+        "background_end": "#E6DDD4",
+        "panel_fill": "#FFFDFC",
+        "panel_outline": "#D4C4B5",
+        "title_color": "#3F3A35",
+        "body_color": "#58504A",
         "accent_fill": "#54463D",
         "accent_text": "#F0D7BC"
       },

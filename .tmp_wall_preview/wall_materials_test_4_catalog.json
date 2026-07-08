@@ -1,0 +1,364 @@
+﻿[
+    {
+        "material_id":  "ambientcg-wall-clean-Plaster006",
+        "source":  "ambientcg",
+        "source_name":  "ambientCG",
+        "license_status":  "cc0",
+        "license_note":  "ambientCG assets are provided as CC0 public-domain materials. Keep source attribution for traceability.",
+        "name":  "白色均質塗料牆",
+        "sku":  "Plaster006",
+        "parent_sku":  "",
+        "variant_name":  "Plaster 006",
+        "category":  "牆面材質_乾淨油漆塗料_ambientCG_CC0",
+        "material_family":  "painted_plaster",
+        "color":  "白色",
+        "material":  "油漆 / 塗料",
+        "finish":  "霧面 / 均質",
+        "usage":  "牆面 / 住宅 / 辦公空間",
+        "origin":  "CC0素材庫",
+        "space":  "室內牆面",
+        "size":  "",
+        "width_cm":  "",
+        "height_cm":  "",
+        "price_sale":  "",
+        "price_original":  "",
+        "price_unit":  "",
+        "product_id":  "Plaster006",
+        "product_url":  "https://ambientcg.com/a/Plaster006",
+        "list_url":  "https://ambientcg.com/list?category=Plaster",
+        "image_url":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Plaster006/Plaster006_SQ_Color.jpg?64366",
+        "image_path":  "downloaded-files/materials/wall-materials/images/一/ambientcg-wall-clean-Plaster006.jpg",
+        "thumbnail_url":  "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Plaster006.png",
+        "gallery_image_urls":  [
+                                   "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Plaster006/Plaster006_SQ_Color.jpg?64366",
+                                   "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Plaster006.png"
+                               ],
+        "variant_image_urls":  [
+                                   "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Plaster006/Plaster006_SQ_Color.jpg?64366"
+                               ],
+        "fetched_at":  "2026-07-08T06:16:51.4792690Z",
+        "categories":  [
+                           "牆面材質_乾淨油漆塗料_ambientCG_CC0",
+                           "Plaster",
+                           "現代簡約"
+                       ],
+        "list_urls":  [
+                          "https://ambientcg.com/list?category=Plaster"
+                      ],
+        "product_urls":  [
+                             "https://ambientcg.com/a/Plaster006"
+                         ],
+        "product_ids":  [
+                            "Plaster006"
+                        ],
+        "parent_skus":  [
+
+                        ],
+        "names":  [
+                      "白色均質塗料牆",
+                      "Plaster 006"
+                  ],
+        "image_urls":  [
+                           "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Plaster006/Plaster006_SQ_Color.jpg?64366"
+                       ],
+        "thumbnail_urls":  [
+                               "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Plaster006.png"
+                           ],
+        "duplicate_count":  0,
+        "merged_source_rows":  1,
+        "deduplicated_at":  "2026-07-08T06:16:51.4792690Z",
+        "material_composition":  "塗料、灰泥",
+        "material_label_source":  "ambientcg_displayCategory_tags_manual_clean_wall_design_label",
+        "material_normalized_at":  "2026-07-08T06:16:51.4792690Z",
+        "pbr_maps":  {
+                         "color":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Plaster006/Plaster006_SQ_Color.jpg?64366",
+                         "displacement":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Plaster006/Plaster006_SQ_Displacement.jpg?15441",
+                         "normal":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Plaster006/Plaster006_SQ_NormalDX.jpg?45115",
+                         "roughness":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Plaster006/Plaster006_SQ_Roughness.jpg?35800",
+                         "texture":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Plaster006/Plaster006_SQ_Color.jpg?64366"
+                     },
+        "tags":  [
+                     "6",
+                     "plaster",
+                     "wall",
+                     "white"
+                 ],
+        "wall_material_group":  "paint",
+        "style":  "現代簡約",
+        "preview_type":  "flat_sq_color_texture"
+    },
+    {
+        "material_id":  "ambientcg-wall-clean-Tiles006",
+        "source":  "ambientcg",
+        "source_name":  "ambientCG",
+        "license_status":  "cc0",
+        "license_note":  "ambientCG assets are provided as CC0 public-domain materials. Keep source attribution for traceability.",
+        "name":  "藍綠色泳池壁磚",
+        "sku":  "Tiles006",
+        "parent_sku":  "",
+        "variant_name":  "Tiles 006",
+        "category":  "牆面材質_乾淨磁磚_ambientCG_CC0",
+        "material_family":  "wall_tile",
+        "color":  "藍綠色",
+        "material":  "磁磚",
+        "finish":  "亮面 / 清爽",
+        "usage":  "牆面 / 浴室 / 泳池風格牆",
+        "origin":  "CC0素材庫",
+        "space":  "室內牆面",
+        "size":  "",
+        "width_cm":  "",
+        "height_cm":  "",
+        "price_sale":  "",
+        "price_original":  "",
+        "price_unit":  "",
+        "product_id":  "Tiles006",
+        "product_url":  "https://ambientcg.com/a/Tiles006",
+        "list_url":  "https://ambientcg.com/list?category=Tiles",
+        "image_url":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles006/Tiles006_SQ_Color.jpg?73635",
+        "image_path":  "downloaded-files/materials/wall-materials/images/一/ambientcg-wall-clean-Tiles006.jpg",
+        "thumbnail_url":  "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Tiles006.png",
+        "gallery_image_urls":  [
+                                   "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles006/Tiles006_SQ_Color.jpg?73635",
+                                   "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Tiles006.png"
+                               ],
+        "variant_image_urls":  [
+                                   "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles006/Tiles006_SQ_Color.jpg?73635"
+                               ],
+        "fetched_at":  "2026-07-08T06:16:51.4792690Z",
+        "categories":  [
+                           "牆面材質_乾淨磁磚_ambientCG_CC0",
+                           "Tiles",
+                           "度假風 / 活潑風格"
+                       ],
+        "list_urls":  [
+                          "https://ambientcg.com/list?category=Tiles"
+                      ],
+        "product_urls":  [
+                             "https://ambientcg.com/a/Tiles006"
+                         ],
+        "product_ids":  [
+                            "Tiles006"
+                        ],
+        "parent_skus":  [
+
+                        ],
+        "names":  [
+                      "藍綠色泳池壁磚",
+                      "Tiles 006"
+                  ],
+        "image_urls":  [
+                           "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles006/Tiles006_SQ_Color.jpg?73635"
+                       ],
+        "thumbnail_urls":  [
+                               "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Tiles006.png"
+                           ],
+        "duplicate_count":  0,
+        "merged_source_rows":  1,
+        "deduplicated_at":  "2026-07-08T06:16:51.4792690Z",
+        "material_composition":  "陶瓷磁磚",
+        "material_label_source":  "ambientcg_displayCategory_tags_manual_clean_wall_design_label",
+        "material_normalized_at":  "2026-07-08T06:16:51.4792690Z",
+        "pbr_maps":  {
+                         "color":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles006/Tiles006_SQ_Color.jpg?73635",
+                         "displacement":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles006/Tiles006_SQ_Displacement.jpg?45514",
+                         "normal":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles006/Tiles006_SQ_NormalDX.jpg?78387",
+                         "roughness":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles006/Tiles006_SQ_Roughness.jpg?29596",
+                         "texture":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles006/Tiles006_SQ_Color.jpg?73635"
+                     },
+        "tags":  [
+                     "6",
+                     "blue",
+                     "cyan",
+                     "green",
+                     "pool",
+                     "round",
+                     "tiles",
+                     "wall"
+                 ],
+        "wall_material_group":  "tile",
+        "style":  "度假風 / 活潑風格",
+        "preview_type":  "flat_sq_color_texture"
+    },
+    {
+        "material_id":  "ambientcg-wall-clean-Tiles008",
+        "source":  "ambientcg",
+        "source_name":  "ambientCG",
+        "license_status":  "cc0",
+        "license_note":  "ambientCG assets are provided as CC0 public-domain materials. Keep source attribution for traceability.",
+        "name":  "白色工字壁磚",
+        "sku":  "Tiles008",
+        "parent_sku":  "",
+        "variant_name":  "Tiles 008",
+        "category":  "牆面材質_乾淨磁磚_ambientCG_CC0",
+        "material_family":  "wall_tile",
+        "color":  "白色",
+        "material":  "磁磚",
+        "finish":  "亮面 / 平整",
+        "usage":  "牆面 / 廚房 / 浴室",
+        "origin":  "CC0素材庫",
+        "space":  "室內牆面",
+        "size":  "",
+        "width_cm":  "",
+        "height_cm":  "",
+        "price_sale":  "",
+        "price_original":  "",
+        "price_unit":  "",
+        "product_id":  "Tiles008",
+        "product_url":  "https://ambientcg.com/a/Tiles008",
+        "list_url":  "https://ambientcg.com/list?category=Tiles",
+        "image_url":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles008/Tiles008_SQ_Color.jpg?35193",
+        "image_path":  "downloaded-files/materials/wall-materials/images/一/ambientcg-wall-clean-Tiles008.jpg",
+        "thumbnail_url":  "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Tiles008.png",
+        "gallery_image_urls":  [
+                                   "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles008/Tiles008_SQ_Color.jpg?35193",
+                                   "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Tiles008.png"
+                               ],
+        "variant_image_urls":  [
+                                   "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles008/Tiles008_SQ_Color.jpg?35193"
+                               ],
+        "fetched_at":  "2026-07-08T06:16:51.4792690Z",
+        "categories":  [
+                           "牆面材質_乾淨磁磚_ambientCG_CC0",
+                           "Tiles",
+                           "美式 / 現代簡約"
+                       ],
+        "list_urls":  [
+                          "https://ambientcg.com/list?category=Tiles"
+                      ],
+        "product_urls":  [
+                             "https://ambientcg.com/a/Tiles008"
+                         ],
+        "product_ids":  [
+                            "Tiles008"
+                        ],
+        "parent_skus":  [
+
+                        ],
+        "names":  [
+                      "白色工字壁磚",
+                      "Tiles 008"
+                  ],
+        "image_urls":  [
+                           "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles008/Tiles008_SQ_Color.jpg?35193"
+                       ],
+        "thumbnail_urls":  [
+                               "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Tiles008.png"
+                           ],
+        "duplicate_count":  0,
+        "merged_source_rows":  1,
+        "deduplicated_at":  "2026-07-08T06:16:51.4792690Z",
+        "material_composition":  "陶瓷磁磚",
+        "material_label_source":  "ambientcg_displayCategory_tags_manual_clean_wall_design_label",
+        "material_normalized_at":  "2026-07-08T06:16:51.4792690Z",
+        "pbr_maps":  {
+                         "color":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles008/Tiles008_SQ_Color.jpg?35193",
+                         "displacement":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles008/Tiles008_SQ_Displacement.jpg?70604",
+                         "normal":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles008/Tiles008_SQ_NormalDX.jpg?95651",
+                         "roughness":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles008/Tiles008_SQ_Roughness.jpg?32357",
+                         "texture":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles008/Tiles008_SQ_Color.jpg?35193"
+                     },
+        "tags":  [
+                     "8",
+                     "clean",
+                     "kitchen",
+                     "subway",
+                     "tiles",
+                     "wall",
+                     "white"
+                 ],
+        "wall_material_group":  "tile",
+        "style":  "美式 / 現代簡約",
+        "preview_type":  "flat_sq_color_texture"
+    },
+    {
+        "material_id":  "ambientcg-wall-clean-Tiles009",
+        "source":  "ambientcg",
+        "source_name":  "ambientCG",
+        "license_status":  "cc0",
+        "license_note":  "ambientCG assets are provided as CC0 public-domain materials. Keep source attribution for traceability.",
+        "name":  "白色方格壁磚",
+        "sku":  "Tiles009",
+        "parent_sku":  "",
+        "variant_name":  "Tiles 009",
+        "category":  "牆面材質_乾淨磁磚_ambientCG_CC0",
+        "material_family":  "wall_tile",
+        "color":  "白色",
+        "material":  "磁磚",
+        "finish":  "亮面 / 方格",
+        "usage":  "牆面 / 浴室 / 廚房",
+        "origin":  "CC0素材庫",
+        "space":  "室內牆面",
+        "size":  "",
+        "width_cm":  "",
+        "height_cm":  "",
+        "price_sale":  "",
+        "price_original":  "",
+        "price_unit":  "",
+        "product_id":  "Tiles009",
+        "product_url":  "https://ambientcg.com/a/Tiles009",
+        "list_url":  "https://ambientcg.com/list?category=Tiles",
+        "image_url":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles009/Tiles009_SQ_Color.jpg?4929",
+        "image_path":  "downloaded-files/materials/wall-materials/images/一/ambientcg-wall-clean-Tiles009.jpg",
+        "thumbnail_url":  "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Tiles009.png",
+        "gallery_image_urls":  [
+                                   "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles009/Tiles009_SQ_Color.jpg?4929",
+                                   "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Tiles009.png"
+                               ],
+        "variant_image_urls":  [
+                                   "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles009/Tiles009_SQ_Color.jpg?4929"
+                               ],
+        "fetched_at":  "2026-07-08T06:16:51.4792690Z",
+        "categories":  [
+                           "牆面材質_乾淨磁磚_ambientCG_CC0",
+                           "Tiles",
+                           "極簡風 / 日系"
+                       ],
+        "list_urls":  [
+                          "https://ambientcg.com/list?category=Tiles"
+                      ],
+        "product_urls":  [
+                             "https://ambientcg.com/a/Tiles009"
+                         ],
+        "product_ids":  [
+                            "Tiles009"
+                        ],
+        "parent_skus":  [
+
+                        ],
+        "names":  [
+                      "白色方格壁磚",
+                      "Tiles 009"
+                  ],
+        "image_urls":  [
+                           "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles009/Tiles009_SQ_Color.jpg?4929"
+                       ],
+        "thumbnail_urls":  [
+                               "https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/1024-PNG/Tiles009.png"
+                           ],
+        "duplicate_count":  0,
+        "merged_source_rows":  1,
+        "deduplicated_at":  "2026-07-08T06:16:51.4792690Z",
+        "material_composition":  "陶瓷磁磚",
+        "material_label_source":  "ambientcg_displayCategory_tags_manual_clean_wall_design_label",
+        "material_normalized_at":  "2026-07-08T06:16:51.4792690Z",
+        "pbr_maps":  {
+                         "color":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles009/Tiles009_SQ_Color.jpg?4929",
+                         "displacement":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles009/Tiles009_SQ_Displacement.jpg?76972",
+                         "normal":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles009/Tiles009_SQ_NormalDX.jpg?65221",
+                         "roughness":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles009/Tiles009_SQ_Roughness.jpg?12061",
+                         "texture":  "https://f003.backblazeb2.com/file/ambientCG-Web/media/surface-preview/Tiles009/Tiles009_SQ_Color.jpg?4929"
+                     },
+        "tags":  [
+                     "9",
+                     "clean",
+                     "kitchen",
+                     "subway",
+                     "tiles",
+                     "wall",
+                     "white"
+                 ],
+        "wall_material_group":  "tile",
+        "style":  "極簡風 / 日系",
+        "preview_type":  "flat_sq_color_texture"
+    }
+]

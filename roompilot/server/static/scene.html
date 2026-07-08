@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3D 場景展示</title>
-    <link rel="stylesheet" href="/static/site.css?v=20260705m" />
+    <link rel="stylesheet" href="/static/site.css?v=20260708y" />
   </head>
   <body data-page="scene">
     <canvas id="fx-canvas" aria-hidden="true"></canvas>
@@ -53,7 +53,7 @@
               <span>固定風格</span>
               <div class="scene-style-control">
                 <select id="style-preference" name="style_preference"></select>
-                <button id="random-furniture" type="button" class="secondary-action prominent">隨機換家具</button>
+                <button id="random-furniture" type="button" class="secondary-action prominent" title="依目前風格隨機家具" aria-label="依目前風格隨機家具">隨機家具</button>
               </div>
               <small class="scene-helper">家具會限制在目前風格內挑選，不會跳到其他風格。</small>
             </label>
@@ -117,6 +117,8 @@
             </div>
           </div>
 
+          <div id="scene-status" class="viewer-status scene-form-status">填完條件後，這裡會顯示生成結果與 3D 場景狀態。</div>
+
           <div class="scene-action-row">
             <button id="generate-scene" type="submit" class="primary-action">生成 3D 場景</button>
           </div>
@@ -144,13 +146,23 @@
             <button type="button" class="secondary-action" data-view-preset="inside">室內視角</button>
             <button id="reset-scene-view" type="button" class="secondary-action">重設</button>
           </div>
-          <span class="viewer-wall-hint">旋轉視角時，擋住畫面的牆面會自動淡出。</span>
+          <div class="scene-edit-control-group" aria-label="家具微調">
+            <button id="rotate-furniture-left" type="button" class="secondary-action">左轉 90°</button>
+            <button id="rotate-furniture-right" type="button" class="secondary-action">右轉 90°</button>
+          </div>
+          <span class="viewer-wall-hint">點家具會出現地板小框；拖曳可精準移動，靠近牆會吸附，按 R 也能右轉。</span>
+        </div>
+
+        <div class="scene-axis-note color-only" aria-label="XYZ 方向顏色">
+          <span class="axis-chip axis-x" aria-label="X 軸顏色">X</span>
+          <span class="axis-chip axis-y" aria-label="Y 軸顏色">Y</span>
+          <span class="axis-chip axis-z" aria-label="Z 軸顏色">Z</span>
         </div>
 
         <div id="scene-viewer-canvas" class="viewer-canvas scene-canvas" aria-label="場景 3D 預覽"></div>
 
         <div class="scene-meta-block">
-          <div class="scene-meta-card">
+          <div class="scene-meta-card scene-meta-card-wide">
             <span>空間背景</span>
             <strong id="scene-background">-</strong>
           </div>
@@ -168,7 +180,6 @@
           </div>
         </div>
 
-        <div id="scene-status" class="viewer-status">填完條件後，這裡會顯示生成結果與 3D 場景狀態。</div>
       </aside>
     </main>
 
@@ -180,6 +191,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene.js?v=20260706c"></script>
+    <script type="module" src="/static/scene.js?v=20260708ab"></script>
   </body>
 </html>

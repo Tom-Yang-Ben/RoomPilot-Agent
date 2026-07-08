@@ -1,4 +1,4 @@
-import { fetchSiteData, initBackgroundFx } from "./common.js?v=20260705f";
+import { fetchSiteData, initBackgroundFx } from "./common.js?v=20260708a";
 
 const workflowMeta = [
   {
@@ -31,7 +31,7 @@ const workflowMeta = [
 const data = await fetchSiteData();
 const furnitureMetric = document.getElementById("metric-furniture");
 if (furnitureMetric) {
-  furnitureMetric.textContent = String(data.summary.total_furniture ?? "-");
+  furnitureMetric.textContent = String(data.furniture?.length || data.summary?.total_furniture || "-");
 }
 
 const scopeList = document.getElementById("scope-list");
@@ -39,6 +39,8 @@ if (scopeList) {
   workflowMeta.forEach((item, index) => {
     const card = document.createElement("article");
     card.className = "home-flow-step";
+    card.dataset.homeStep = String(index);
+    card.tabIndex = 0;
     card.innerHTML = `
       <span class="home-step-number">${String(index + 1).padStart(2, "0")}</span>
       <span class="home-step-icon ${item.iconClass}" aria-hidden="true"></span>
@@ -47,6 +49,60 @@ if (scopeList) {
     `;
     scopeList.appendChild(card);
   });
+}
+
+const featureCards = Array.from(document.querySelectorAll(".home-feature-strip article"));
+const flowCards = Array.from(document.querySelectorAll(".home-flow-step"));
+const flowSection = document.querySelector(".home-flow-section");
+let flowCloseTimer = null;
+
+function openFlowPanel() {
+  window.clearTimeout(flowCloseTimer);
+  document.body.classList.add("is-home-flow-open");
+}
+
+function scheduleCloseFlowPanel() {
+  window.clearTimeout(flowCloseTimer);
+  flowCloseTimer = window.setTimeout(() => {
+    document.body.classList.remove("is-home-flow-open");
+  }, 160);
+}
+
+function setLinkedStep(activeIndex) {
+  openFlowPanel();
+  [...featureCards, ...flowCards].forEach((card) => {
+    card.classList.toggle("is-linked-active", card.dataset.homeStep === String(activeIndex));
+  });
+}
+
+function clearLinkedStep() {
+  [...featureCards, ...flowCards].forEach((card) => {
+    card.classList.remove("is-linked-active");
+  });
+  scheduleCloseFlowPanel();
+}
+
+featureCards.forEach((card, index) => {
+  card.dataset.homeStep = String(index);
+  card.tabIndex = 0;
+});
+
+[featureCards, flowCards].forEach((cards) => {
+  cards.forEach((card, index) => {
+    card.addEventListener("mouseenter", () => setLinkedStep(index));
+    card.addEventListener("mouseover", () => setLinkedStep(index));
+    card.addEventListener("focusin", () => setLinkedStep(index));
+    card.addEventListener("mouseleave", clearLinkedStep);
+    card.addEventListener("mouseout", clearLinkedStep);
+    card.addEventListener("focusout", clearLinkedStep);
+  });
+});
+
+if (flowSection) {
+  flowSection.addEventListener("mouseenter", openFlowPanel);
+  flowSection.addEventListener("focusin", openFlowPanel);
+  flowSection.addEventListener("mouseleave", scheduleCloseFlowPanel);
+  flowSection.addEventListener("focusout", scheduleCloseFlowPanel);
 }
 
 initBackgroundFx();
