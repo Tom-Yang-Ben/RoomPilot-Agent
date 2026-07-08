@@ -41,4 +41,18 @@ docs/*
 !docs/moodboard_assets/
 !docs/moodboard_assets/**
 
+# Local/personal generated Markdown, not for bella uploads
+PROJECT_CONTEXT.md
+CODEX_PROJECT_RULES.md
+LOCAL_*.md
+PRIVATE_*.md
+PERSONAL_*.md
+*_LOCAL.md
+*_PRIVATE.md
+*_PERSONAL.md
+*_local.md
+*_private.md
+*_personal.md
+docs/MISSING_*_AUDIT_*.md
+
 AGENTS.md

@@ -4,6 +4,8 @@ import io
 import json
 import re
 import unicodedata
+import urllib.error
+import urllib.request
 import zipfile
 from functools import lru_cache
 from pathlib import Path
@@ -53,6 +55,64 @@ def _normalize_posix_path(path_text: str) -> str:
     return path_text.replace("\\", "/").lstrip("/")
 
 
+def _is_remote_glb_url(path_text: object) -> bool:
+    text = str(path_text or "").strip()
+    return text.startswith(("https://", "http://")) and (
+        ".glb" in text.lower()
+        or "/glb/" in text.lower()
+        or "/glb_draco/" in text.lower()
+        or "/simple/" in text.lower()
+    )
+
+
+def _remote_glb_url(furniture: dict) -> str | None:
+    url = str(furniture.get("glb_absolute_path") or "").strip()
+    return url if _is_remote_glb_url(url) else None
+
+
+def _glb_lookup_keys(path_text: str) -> list[str]:
+    normalized = unicodedata.normalize("NFKC", _normalize_posix_path(path_text)).casefold()
+    parts = [part for part in normalized.split("/") if part]
+    keys: list[str] = []
+    for count in (5, 4, 3, 2, 1):
+        if len(parts) >= count:
+            keys.append("/".join(parts[-count:]))
+    keys.append(normalized)
+    return list(dict.fromkeys(keys))
+
+
+@lru_cache(maxsize=1)
+def _dataset_glb_lookup() -> dict[str, Path]:
+    lookup: dict[str, Path] = {}
+    conflicts: set[str] = set()
+    if not DATASET_DIR.exists():
+        return lookup
+
+    def remember(key: str, path: Path) -> None:
+        existing = lookup.get(key)
+        if existing is not None and existing != path:
+            conflicts.add(key)
+            return
+        lookup[key] = path
+
+    for path in DATASET_DIR.rglob("*.glb"):
+        if not path.is_file():
+            continue
+        for key in _glb_lookup_keys(path.name):
+            remember(key, path)
+        for root in _DATASET_GLB_ROOTS:
+            try:
+                relative = path.relative_to(root)
+            except ValueError:
+                continue
+            for key in _glb_lookup_keys(relative.as_posix()):
+                remember(key, path)
+
+    for key in conflicts:
+        lookup.pop(key, None)
+    return lookup
+
+
 def _safe_relative_url(path_text: str | None, mount_prefix: str) -> str | None:
     if not path_text:
         return None
@@ -72,6 +132,11 @@ def _resolve_glb_path(furniture: dict) -> Path | None:
             candidate = root / relative
             if candidate.exists():
                 return candidate
+        lookup = _dataset_glb_lookup()
+        for key in _glb_lookup_keys(relative):
+            candidate = lookup.get(key)
+            if candidate is not None and candidate.exists():
+                return candidate
 
     return None
 
@@ -82,6 +147,9 @@ def _model_status(furniture: dict) -> tuple[bool, str]:
 
     if _resolve_glb_path(furniture) is not None:
         return True, "GLB 可用"
+
+    if _remote_glb_url(furniture):
+        return True, "遠端 GLB URL 可用"
 
     return False, "資料有記錄，但 dataset/ 中找不到對應的 GLB 檔案(請先從雲端下載 dataset)。"
 
@@ -486,6 +554,26 @@ def _external_glb_bytes(furniture: dict) -> bytes:
         raise HTTPException(status_code=422, detail="外部匯入 zip 無法讀取。")
 
 
+def _remote_glb_response(url: str) -> Response:
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "RoomPilot/1.0",
+            "Accept": "model/gltf-binary,application/octet-stream,*/*",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            payload = response.read()
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise HTTPException(status_code=502, detail=f"遠端 GLB 讀取失敗：{exc}") from exc
+
+    if payload[:4] != b"glTF":
+        raise HTTPException(status_code=502, detail="遠端模型不是可用的 GLB 檔案。")
+
+    return Response(content=payload, media_type="model/gltf-binary")
+
+
 def _model_response_for_merged_furniture(furniture: dict):
     aliases = list(furniture.get("model_priority_ids") or [])
     aliases.extend(furniture.get("merged_furniture_ids") or [])
@@ -512,6 +600,19 @@ def _model_response_for_merged_furniture(furniture: dict):
             return FileResponse(model_path, media_type="model/gltf-binary", filename=model_path.name)
         except (HTTPException, ValueError, OSError, json.JSONDecodeError):
             pass
+
+    for candidate_id in aliases:
+        try:
+            catalog_item = _get_furniture_by_id(candidate_id)
+            remote_url = _remote_glb_url(catalog_item)
+            if remote_url:
+                return _remote_glb_response(remote_url)
+        except HTTPException:
+            pass
+
+    remote_url = _remote_glb_url(furniture)
+    if remote_url:
+        return _remote_glb_response(remote_url)
 
     raise HTTPException(status_code=404, detail="Merged furniture has no usable GLB model.")
 
@@ -699,6 +800,24 @@ def build_site_payload() -> dict:
         )
 
     featured_models = [item for item in furniture_payload if item["has_model"]][:24]
+    type_counts: dict[str, int] = {}
+    category_counts: dict[str, int] = {}
+    styled_count = 0
+    for item in furniture_payload:
+        item_type = item.get("normalized_type") or "unknown"
+        category = item.get("category_label") or item_type
+        type_counts[item_type] = type_counts.get(item_type, 0) + 1
+        category_counts[category] = category_counts.get(category, 0) + 1
+        if item.get("style_candidates"):
+            styled_count += 1
+    summary = {
+        **(raw.get("summary", {}) or {}),
+        "total_furniture": len(furniture_payload),
+        "styled_furniture": styled_count,
+        "fallback_furniture": sum(1 for item in furniture_payload if not item.get("style_candidates")),
+        "top_types": sorted(type_counts.items(), key=lambda pair: pair[1], reverse=True)[:25],
+        "top_categories": sorted(category_counts.items(), key=lambda pair: pair[1], reverse=True)[:25],
+    }
 
     return {
         "project": {
@@ -711,7 +830,7 @@ def build_site_payload() -> dict:
             ],
             "not_scope": "本專題不是直接生成全新 3D 家具模型，而是用既有 GLB 資料庫做風格化配置。",
         },
-        "summary": raw.get("summary", {}),
+        "summary": summary,
         "styles": styles,
         "furniture": furniture_payload,
         "surface_catalog": surface_catalog,

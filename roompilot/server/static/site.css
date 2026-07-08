@@ -2165,6 +2165,7 @@ body[data-page="home"] .purpose-card::after {
 }
 
 body[data-page="styles"] .generated-wall-row,
+body[data-page="styles"] .wall-material-row,
 body[data-page="styles"] .floor-material-row {
   display: flex;
   gap: 14px;
@@ -2295,6 +2296,15 @@ body[data-page="styles"] .generated-wall-row .generated-wall-swatch {
   min-height: 108px;
 }
 
+body[data-page="styles"] .wall-material-row .wall-db-card,
+body[data-page="styles"] .wall-material-row .generated-wall-card {
+  flex: 0 0 min(340px, 78vw);
+  grid-template-columns: 104px minmax(0, 1fr);
+  min-height: 188px;
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+
 body[data-page="styles"] .floor-material-row .floor-db-card {
   flex: 0 0 min(340px, 78vw);
   grid-template-columns: 104px minmax(0, 1fr);
@@ -2339,8 +2349,29 @@ body[data-page="styles"] .floor-material-row .surface-recommendation-head strong
   -webkit-line-clamp: 2;
 }
 
+body[data-page="styles"] .wall-material-row .surface-recommendation-head strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body[data-page="styles"] .wall-material-row .surface-recommendation-preview,
+body[data-page="styles"] .wall-material-row .generated-wall-swatch {
+  min-height: 132px;
+}
+
 body[data-page="styles"] .floor-material-row .surface-recommendation-preview {
   min-height: 132px;
+}
+
+body[data-page="styles"] .wall-material-row .wall-db-card.is-recommended {
+  border-color: rgba(80, 111, 80, 0.28);
+  background: rgba(247, 252, 244, 0.88);
+}
+
+body[data-page="styles"] .wall-material-row .wall-db-card.is-pool {
+  background: rgba(255, 250, 244, 0.72);
 }
 
 body[data-page="styles"] .floor-material-row .floor-db-card.is-recommended {

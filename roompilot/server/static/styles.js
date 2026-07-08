@@ -582,7 +582,7 @@ function renderGeneratedWallRecommendations(style) {
     <div class="surface-carousel" data-surface-carousel="wall">
       <button type="button" class="surface-carousel-auto-toggle" data-carousel-auto-toggle aria-pressed="false">自動播放</button>
       <button type="button" class="surface-carousel-button prev" data-carousel-step="-1" aria-label="\u4e0a\u4e00\u500b\u7246\u9762\u6750\u8cea">&lsaquo;</button>
-      <div class="surface-recommendation-list generated-wall-list generated-wall-row surface-carousel-track">
+      <div class="surface-recommendation-list generated-wall-list wall-material-row surface-carousel-track">
         ${walls
           .map(
             ([name, color, reason]) => `
@@ -794,7 +794,7 @@ function renderGeneratedWallCarousel(style) {
     <div class="surface-carousel" data-surface-carousel="wall">
       <button type="button" class="surface-carousel-auto-toggle" data-carousel-auto-toggle aria-pressed="false">&#33258;&#21205;&#25773;&#25918;</button>
       <button type="button" class="surface-carousel-button prev" data-carousel-step="-1" aria-label="上一個牆面顏色">&lsaquo;</button>
-      <div class="surface-recommendation-list generated-wall-list generated-wall-row surface-carousel-track">
+      <div class="surface-recommendation-list wall-material-row surface-carousel-track">
         ${walls
           .map(
             ([name, color, reason]) => `
@@ -834,7 +834,7 @@ function renderWallCarousel(style) {
     <div class="surface-carousel" data-surface-carousel="wall">
       <button type="button" class="surface-carousel-auto-toggle" data-carousel-auto-toggle aria-pressed="false">&#33258;&#21205;&#25773;&#25918;</button>
       <button type="button" class="surface-carousel-button prev" data-carousel-step="-1" aria-label="上一個牆面材質">&lsaquo;</button>
-      <div class="surface-recommendation-list generated-wall-list generated-wall-row surface-carousel-track">
+      <div class="surface-recommendation-list wall-material-row surface-carousel-track">
         ${surfaces
           .map(
             (surface) => `
