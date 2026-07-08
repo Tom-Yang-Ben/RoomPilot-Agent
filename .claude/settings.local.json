@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c ' *)",
+      "Bash(python -c \"import openpyxl; print\\('openpyxl', openpyxl.__version__\\)\")",
+      "Bash(python -c \"import pandas; print\\('pandas', pandas.__version__\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -m pip install openpyxl)",
+      "Bash(uv run *)",
+      "Bash(PYTHONIOENCODING=utf-8 python build_rag_skills.py)",
+      "Bash(PYTHONIOENCODING=utf-8 uv run --with openpyxl python build_excel.py)",
+      "Bash(PYTHONIOENCODING=utf-8 uv run --with openpyxl python -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 python \"C:/Users/student/AppData/Local/Temp/claude/C--Users-student-Desktop----RoomPilot-Agent/4f524623-7757-465b-b9c0-9e0682d76a61/scratchpad/glbcheck.py\")",
+      "Bash(PYTHONIOENCODING=utf-8 python \"C:/Users/student/AppData/Local/Temp/claude/C--Users-student-Desktop----RoomPilot-Agent/4f524623-7757-465b-b9c0-9e0682d76a61/scratchpad/idcheck.py\")",
+      "Bash(PYTHONIOENCODING=utf-8 uv run python -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 uv run --with httpx python -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 uv run pytest tests/ -q)",
+      "Bash(ls -la)",
+      "Bash(cat MEMORY.md)",
+      "Bash(export PYTHONIOENCODING=utf-8)",
+      "Bash(python -X utf8 -c ' *)",
+      "Bash(python -X utf8 build_rag_skills.py)",
+      "Bash(python -X utf8 make_size_report.py)",
+      "Bash(cp \"RAG_風格Skills_合併.json\" \"RAG_風格Skills_合併.prespec.bak\")",
+      "Bash(python -X utf8 build_rag_skills_spec.py)",
+      "Bash(rm -f _styledefs_probe.json)"
+    ]
+  }
+}
