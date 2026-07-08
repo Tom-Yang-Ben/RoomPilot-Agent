@@ -1,6 +1,6 @@
 import { fetchSiteData, formatSize, initBackgroundFx, styleNameMap } from "./common.js?v=20260704e";
 import { createViewer } from "./viewer.js?v=20260704c";
-import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260706c";
+import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260708a";
 
 const data = await fetchSiteData();
 const styleNames = styleNameMap(data.styles);

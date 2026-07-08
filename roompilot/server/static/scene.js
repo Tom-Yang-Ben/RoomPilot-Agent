@@ -1,5 +1,5 @@
 import { fetchSiteData, initBackgroundFx } from "./common.js?v=20260704e";
-import { createSceneViewer } from "./scene_viewer.js?v=20260706c";
+import { createSceneViewer } from "./scene_viewer.js?v=20260708a";
 
 const siteData = await fetchSiteData();
 const providerStatus = await fetch("/api/scene/provider-status").then((response) => response.json());

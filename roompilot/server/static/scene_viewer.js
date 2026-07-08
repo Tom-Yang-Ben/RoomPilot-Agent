@@ -569,6 +569,35 @@ export function createSceneViewer(container, statusElement) {
     roomGroupRef.add(lines);
   }
 
+  function buildWindowBoxes(roomGroupRef, segments, wallHeight) {
+    // 立體窗:半透明藍盒,與 frontend3d 的畫法一致。平面圖沒有離地高度資訊,
+    // 先用標準值(窗台 0.9m、窗高 1.3m);之後若開放使用者輸入再參數化。
+    if (!segments?.length) return;
+    const winH = Math.min(1.3, Math.max(0.6, wallHeight - 1.1));
+    const sill = Math.min(0.9, wallHeight - winH - 0.1);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x6f9eb4,
+      transparent: true,
+      opacity: 0.45,
+      roughness: 0.2,
+      depthWrite: false,
+    });
+    segments.forEach((segment) => {
+      const start = segment.start;
+      const end = segment.end;
+      if (!start || !end) return;
+      const dx = end.x - start.x;
+      const dz = end.z - start.z;
+      const len = Math.hypot(dx, dz);
+      if (len < 1e-3) return;
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(len, winH, 0.12), material);
+      mesh.position.set((start.x + end.x) / 2, sill + winH / 2, (start.z + end.z) / 2);
+      mesh.rotation.y = -Math.atan2(dz, dx);
+      mesh.renderOrder = 21;
+      roomGroupRef.add(mesh);
+    });
+  }
+
   function createRoom(sceneData) {
     clearGroup(roomGroup);
     wallMeshes.length = 0;
@@ -617,7 +646,7 @@ export function createSceneViewer(container, statusElement) {
     if (isDxfFloorplan) {
       buildFloorPlanOverlay(roomGroup, planSegments.length ? planSegments : wallSegments, 0x6b513b, 0.32, 0.022);
       buildFloorPlanOverlay(roomGroup, doorSegments, 0xb9773f, 0.82, 0.038);
-      buildFloorPlanOverlay(roomGroup, windowSegments, 0x6f9eb4, 0.9, 0.044);
+      buildWindowBoxes(roomGroup, windowSegments, wallHeight);
     } else {
       const outline = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(widthM, wallHeight, depthM)),
