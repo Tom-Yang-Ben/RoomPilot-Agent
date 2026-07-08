@@ -1,0 +1,111 @@
+{
+  "project_id": "fi-rugs",
+  "title": "IKEA fi-rugs GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-rugs"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Rugs and mats_001",
+        "sku": "rugs_1",
+        "name": "PELARKÖRSBÄR Rug, low pile - light beige/leaf pattern 160x230 cm",
+        "chinese name": "PELARKÖRSBÄR 短毛地毯，淺米色/葉片圖案，160x230 公分",
+        "type": "rug",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 160.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\地毯與踏墊\\fi-rugs\\01 - PELARKÖRSBÄR Rug, low pile - light beigeleaf pattern 160x230 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Rugs and mats_002",
+        "sku": "rugs_2",
+        "name": "PELARKÖRSBÄR Rug, low pile - light beige/leaf pattern 133x195 cm",
+        "chinese name": "PELARKÖRSBÄR 短毛地毯，淺米色/葉片圖案，133x195 公分",
+        "type": "rug",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 133.0,
+          "depth": null,
+          "height": null
+        },
+        "collision_box_cm": {
+          "width": 133.0,
+          "depth": null,
+          "height": null
+        },
+        "glb_path": "downloaded-files\\地毯與踏墊\\fi-rugs\\02 - PELARKÖRSBÄR Rug, low pile - light beigeleaf pattern 133x195 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

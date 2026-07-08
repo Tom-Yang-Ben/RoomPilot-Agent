@@ -1,0 +1,354 @@
+{
+  "project_id": "fi-childrens-tables",
+  "title": "IKEA fi-childrens-tables GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-childrens-tables"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Children's furniture_001",
+        "sku": "childrens-tables_1",
+        "name": "LÄTT Children's table with 2 chairs - white/pine",
+        "chinese name": "LÄTT 兒童桌附2椅，白色/松木",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 48.0,
+          "depth": 28.0,
+          "height": 45.0
+        },
+        "collision_box_cm": {
+          "width": 48.0,
+          "depth": 28.0,
+          "height": 45.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\01 - LÄTT Children's table with 2 chairs - whitepine.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_002",
+        "sku": "childrens-tables_2",
+        "name": "FLISAT Children's table 83x58 cm",
+        "chinese name": "FLISAT 兒童桌，83x58 公分",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 58.0,
+          "depth": null,
+          "height": 48.0
+        },
+        "collision_box_cm": {
+          "width": 58.0,
+          "depth": null,
+          "height": 48.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\02 - FLISAT Children's table 83x58 cm.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_003",
+        "sku": "childrens-tables_3",
+        "name": "GREJSIMOJS Children's table - wood/orange 84x42 cm",
+        "chinese name": "GREJSIMOJS 兒童桌，木/橘色，84x42 公分",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": null,
+          "height": 45.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": null,
+          "height": 45.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\03 - GREJSIMOJS Children's table - woodorange 84x42 cm.glb",
+        "material": "",
+        "color": "",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_004",
+        "sku": "childrens-tables_4",
+        "name": "UTTER Children's table - in/outdoor/white",
+        "chinese name": "UTTER 兒童桌，室內外/白色",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 42.0,
+          "depth": null,
+          "height": 43.0
+        },
+        "collision_box_cm": {
+          "width": 42.0,
+          "depth": null,
+          "height": 43.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\04 - UTTER Children's table - inoutdoorwhite.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_005",
+        "sku": "childrens-tables_5",
+        "name": "MAMMUT Children's table - in/outdoor/light blue 85 cm",
+        "chinese name": "MAMMUT 兒童桌，室內外/淺藍色，85 公分",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 10.0,
+          "depth": null,
+          "height": 48.0
+        },
+        "collision_box_cm": {
+          "width": 10.0,
+          "depth": null,
+          "height": 48.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\05 - MAMMUT Children's table - inoutdoorlight blue 85 cm.glb",
+        "material": "",
+        "color": "blue",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_006",
+        "sku": "childrens-tables_6",
+        "name": "MAMMUT Children's table - in/outdoor white 77x55 cm",
+        "chinese name": "MAMMUT 兒童桌，室內外白色，77x55 公分",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 55.0,
+          "depth": null,
+          "height": 48.0
+        },
+        "collision_box_cm": {
+          "width": 55.0,
+          "depth": null,
+          "height": 48.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\06 - MAMMUT Children's table - inoutdoor white 77x55 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_007",
+        "sku": "childrens-tables_7",
+        "name": "KRITTER Children's table - white 59x50 cm",
+        "chinese name": "KRITTER 兒童桌，白色，59x50 公分",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 50.0,
+          "depth": null,
+          "height": 50.0
+        },
+        "collision_box_cm": {
+          "width": 50.0,
+          "depth": null,
+          "height": 50.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\07 - KRITTER Children's table - white 59x50 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_008",
+        "sku": "childrens-tables_8",
+        "name": "SUNDVIK Children's table - white 76x50 cm",
+        "chinese name": "SUNDVIK 兒童桌，白色，76x50 公分",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 50.0,
+          "depth": null,
+          "height": 50.0
+        },
+        "collision_box_cm": {
+          "width": 50.0,
+          "depth": null,
+          "height": 50.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\08 - SUNDVIK Children's table - white 76x50 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_009",
+        "sku": "childrens-tables_9",
+        "name": "DUNDRA Activity table with storage - white/grey",
+        "chinese name": "DUNDRA 附收納遊戲桌，白色/灰色",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 119.0,
+          "depth": 57.0,
+          "height": 52.0
+        },
+        "collision_box_cm": {
+          "width": 119.0,
+          "depth": 57.0,
+          "height": 52.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\09 - DUNDRA Activity table with storage - whitegrey.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_010",
+        "sku": "childrens-tables_10",
+        "name": "RESÖ Children's picnic table - light brown stained",
+        "chinese name": "RESÖ 兒童野餐桌，淺棕色染色",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 89.0,
+          "depth": null,
+          "height": 49.0
+        },
+        "collision_box_cm": {
+          "width": 89.0,
+          "depth": null,
+          "height": 49.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\10 - RESÖ Children's picnic table - light brown stained.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Children's furniture_011",
+        "sku": "childrens-tables_11",
+        "name": "SLÄKT Storage box with castors - white 62x62x35 cm",
+        "chinese name": "SLÄKT 附滾輪收納箱，白色，62x62x35 公分",
+        "type": "childrens-table",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 62.0,
+          "depth": null,
+          "height": 35.0
+        },
+        "collision_box_cm": {
+          "width": 62.0,
+          "depth": null,
+          "height": 35.0
+        },
+        "glb_path": "downloaded-files\\兒童家具\\fi-childrens-tables\\11 - SLÄKT Storage box with castors - white 62x62x35 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}

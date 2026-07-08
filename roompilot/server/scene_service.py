@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
+from ..agent import design_layout_intent, run_recovery
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
@@ -397,6 +398,7 @@ def _placement_candidates(
     depth: float,
     room_width_cm: float,
     room_depth_cm: float,
+    hint: dict[str, Any] | None = None,
 ) -> list[tuple[float, float, float]]:
     left = -room_width_cm / 2
     right = room_width_cm / 2
@@ -405,6 +407,25 @@ def _placement_candidates(
     center_x = 0.0
     center_z = 0.0
     candidates: list[tuple[float, float, float]] = []
+
+    # Agent 3 提示:指定靠牆側時,把一組靠該牆的候選 prepend 到最前面優先試放。
+    # 只影響「試放順序」,合法性仍由 check_placement_with_clearance 把關(鐵律不變)。
+    anchor = (hint or {}).get("anchor")
+    anchored: list[tuple[float, float, float]] = []
+    if anchor == "top":
+        z = top + depth / 2 + 24
+        anchored = [(center_x, z, 0), (-room_width_cm * 0.22, z, 0), (room_width_cm * 0.22, z, 0)]
+    elif anchor == "bottom":
+        z = bottom - depth / 2 - 36
+        anchored = [(center_x, z, 180), (-room_width_cm * 0.18, z, 180), (room_width_cm * 0.18, z, 180)]
+    elif anchor == "left":
+        x = left + width / 2 + 20
+        anchored = [(x, center_z, 90), (x, -room_depth_cm * 0.2, 90), (x, room_depth_cm * 0.2, 90)]
+    elif anchor == "right":
+        x = right - width / 2 - 20
+        anchored = [(x, center_z, -90), (x, -room_depth_cm * 0.2, -90), (x, room_depth_cm * 0.2, -90)]
+    elif anchor == "center":
+        anchored = [(center_x, center_z, 0)]
 
     if item_type == "tv-bench":
         candidates.extend([(center_x, top + depth / 2 + 24, 0), (-room_width_cm * 0.22, top + depth / 2 + 24, 0)])
@@ -443,7 +464,7 @@ def _placement_candidates(
         for x in grid_x:
             candidates.append((x, z, 0))
 
-    return candidates
+    return anchored + candidates
 
 
 # 這些類型沿用舊行為,不參與碰撞(地毯在家具下方、壁架掛牆面)
@@ -469,12 +490,17 @@ def generate_layout(
     room_depth_cm: float,
     items: list[dict[str, Any]],
     room: Room | None = None,
+    hints: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
     類型錨點(_placement_candidates)只提供「視覺上合理」的候選順序;
     合法性由引擎的 check_placement_with_clearance 把關,錨點全數不合法時
     退回引擎的網格搜尋(place_furniture),再不行就標記 placement_failed。
+
+    hints(選填):Agent 3 的擺放語意提示,以 furniture_id 為鍵。只影響「試放
+    順序」——priority 決定先擺誰、anchor 決定優先靠哪面牆;hints=None 時行為與
+    整合前完全一致(/api/scene/layout 的呼叫不受影響)。座標仍 100% 由引擎算。
 
     座標契約(對前端不變):position_cm 為房間中心原點、公分;rotation_y_deg
     為 three.js 的 Y 軸旋轉(與引擎旋轉方向相反,進出引擎時取負號)。
@@ -487,10 +513,23 @@ def generate_layout(
     half_w_cm = room_w_cm / 2
     half_d_cm = room_d_cm / 2
 
-    placed: list[PlacedFurniture] = []
-    placements: list[dict[str, Any]] = []
+    # 擺放順序:有 priority 提示的先擺(升冪),其餘維持原始順序;
+    # 但輸出仍照原始 items 順序(以 results 對應),不動前端拿到的清單順序。
+    if hints:
+        def _order_key(i: int) -> tuple:
+            hint = hints.get(items[i].get("furniture_id")) or {}
+            priority = hint.get("priority")
+            return (0, priority, i) if isinstance(priority, int) else (1, i)
 
-    for index, item in enumerate(items, start=1):
+        order = sorted(range(len(items)), key=_order_key)
+    else:
+        order = list(range(len(items)))
+
+    placed: list[PlacedFurniture] = []
+    results: dict[int, dict[str, Any]] = {}
+
+    for index in order:
+        item = items[index]
         item_type = item.get("normalized_type")
         width = _size_cm(item, "width", 120)
         depth = _size_cm(item, "depth", 60)
@@ -498,7 +537,8 @@ def generate_layout(
         catalog = catalog_item_from_scene_object(
             item_type, item.get("name_zh_raw") or item.get("furniture_id"), width, depth, height
         )
-        item_id = f"{item_type or 'item'}_{index}"
+        item_id = f"{item_type or 'item'}_{index + 1}"
+        hint = (hints or {}).get(item.get("furniture_id"))
 
         x_cm: float | None = None
         z_cm: float | None = None
@@ -512,7 +552,7 @@ def generate_layout(
             else:
                 x_cm, z_cm = 0.0, 0.0
         else:
-            for raw_x, raw_z, rot in _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm):
+            for raw_x, raw_z, rot in _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm, hint=hint):
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
                 cand_x = _clamp_axis(raw_x, -half_w_cm, half_w_cm, fp_w)
                 cand_z = _clamp_axis(raw_z, -half_d_cm, half_d_cm, fp_d)
@@ -540,23 +580,21 @@ def generate_layout(
                     x_cm, z_cm = 0.0, 0.0
 
         fp_w, fp_d = _rotated_footprint(width, depth, rotation)
-        placements.append(
-            {
-                "furniture_id": item["furniture_id"],
-                "name_zh_raw": item.get("name_zh_raw"),
-                "normalized_type": item_type,
-                "model_url": item.get("model_url"),
-                "primary_style": item.get("primary_style"),
-                "size_cm": {"width": width, "depth": depth, "height": height},
-                "footprint_cm": {"width": round(fp_w, 2), "depth": round(fp_d, 2)},
-                "position_cm": {"x": round(x_cm, 2), "z": round(z_cm, 2)},
-                "rotation_y_deg": rotation,
-                "placement_failed": bool(failed_reason),
-                "placement_reason": failed_reason,
-            }
-        )
+        results[index] = {
+            "furniture_id": item["furniture_id"],
+            "name_zh_raw": item.get("name_zh_raw"),
+            "normalized_type": item_type,
+            "model_url": item.get("model_url"),
+            "primary_style": item.get("primary_style"),
+            "size_cm": {"width": width, "depth": depth, "height": height},
+            "footprint_cm": {"width": round(fp_w, 2), "depth": round(fp_d, 2)},
+            "position_cm": {"x": round(x_cm, 2), "z": round(z_cm, 2)},
+            "rotation_y_deg": rotation,
+            "placement_failed": bool(failed_reason),
+            "placement_reason": failed_reason,
+        }
 
-    return placements
+    return [results[i] for i in range(len(items))]
 
 
 def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, Room | None]:
@@ -643,7 +681,36 @@ def build_scene_payload(
         effective_depth_cm,
         plan.get("preferred_colors", []) + questionnaire.get("custom_colors", []),
     )
-    objects = generate_layout(effective_width_cm, effective_depth_cm, selected_items, room=engine_room)
+
+    # Agent 3:擺放語意提示(靠牆側/朝向/成組/優先序,不出座標)。
+    # 無 LLM 或呼叫失敗 → 回 {},引擎沿用預設候選順序,行為與整合前一致。
+    hints = design_layout_intent(
+        plan,
+        selected_items,
+        {"width_cm": effective_width_cm, "depth_cm": effective_depth_cm},
+        {
+            "windows": parsed_floorplan.get("window_segments", []) if parsed_floorplan else [],
+            "doors": parsed_floorplan.get("door_segments", []) if parsed_floorplan else [],
+        },
+        complete=_openrouter_request,
+    )
+    objects = generate_layout(
+        effective_width_cm, effective_depth_cm, selected_items, room=engine_room, hints=hints
+    )
+
+    # Agent 4:引擎放不下的家具 → 換更小同型號 / 移除 / 升級,重擺至收斂。
+    # 座標仍 100% 由引擎(place_fn)算;無 LLM 時走確定性換小/移除。
+    def _place(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return generate_layout(effective_width_cm, effective_depth_cm, items, room=engine_room, hints=hints)
+
+    objects, selected_items, recovery = run_recovery(
+        objects,
+        selected_items,
+        plan,
+        site_payload["furniture"],
+        place_fn=_place,
+        complete=_openrouter_request,
+    )
 
     style = next(
         (style for style in site_payload["styles"] if style.get("style_id") == plan["style_id"]),
@@ -694,6 +761,7 @@ def build_scene_payload(
                 for obj in objects
                 if obj.get("placement_failed")
             ],
+            "recovery": recovery,
         },
     }
 

@@ -1,0 +1,516 @@
+{
+  "project_id": "fi-room-dividers",
+  "title": "IKEA fi-room-dividers GLB Dataset",
+  "input_type": "floorplan",
+  "status": "draft",
+  "user_input": {
+    "style": "",
+    "requirements": [
+      "download_ikea_glb_models",
+      "collect_product_metadata"
+    ],
+    "budget": null,
+    "preferred_colors": [],
+    "preferred_furniture": [
+      "fi-room-dividers"
+    ]
+  },
+  "floorplan": {
+    "image_path": "",
+    "width_cm": null,
+    "depth_cm": null,
+    "scale_ratio": "",
+    "grid_size_cm": null,
+    "walls": [],
+    "doors": [],
+    "windows": []
+  },
+  "scene": {
+    "mode": "2d_to_3d",
+    "objects": [
+      {
+        "id": "Storage furniture_001",
+        "sku": "room-dividers_1",
+        "name": "RISÖR Room divider - white/black 216x185 cm",
+        "chinese name": "RISÖR 房間隔屏，白色/黑色，216x185 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 216.0,
+          "depth": null,
+          "height": 185.0
+        },
+        "collision_box_cm": {
+          "width": 216.0,
+          "depth": null,
+          "height": 185.0
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\01 - RISÖR Room divider - whiteblack 216x185 cm.glb",
+        "material": "",
+        "color": "black, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_002",
+        "sku": "room-dividers_2",
+        "name": "TOLKNING Room divider - handmade rattan 150x170 cm",
+        "chinese name": "TOLKNING 房間隔屏，手工藤，150x170 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 150.0,
+          "depth": null,
+          "height": 170.0
+        },
+        "collision_box_cm": {
+          "width": 150.0,
+          "depth": null,
+          "height": 170.0
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\02 - TOLKNING Room divider - handmade rattan 150x170 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_003",
+        "sku": "room-dividers_3",
+        "name": "KALLAX Shelving unit - white 147x147 cm",
+        "chinese name": "KALLAX 層架組，白色，147x147 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "collision_box_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\03 - KALLAX Shelving unit - white 147x147 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_004",
+        "sku": "room-dividers_4",
+        "name": "KALLAX Shelving unit - black-brown 147x147 cm",
+        "chinese name": "KALLAX 層架組，黑棕色，147x147 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "collision_box_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\04 - KALLAX Shelving unit - black-brown 147x147 cm.glb",
+        "material": "",
+        "color": "brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_005",
+        "sku": "room-dividers_5",
+        "name": "GLAMBERGET Room divider - pine/Katorp beige 150x150 cm",
+        "chinese name": "GLAMBERGET 房間隔屏，松木/Katorp 米色，150x150 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 150.0,
+          "depth": null,
+          "height": 150.0
+        },
+        "collision_box_cm": {
+          "width": 150.0,
+          "depth": null,
+          "height": 150.0
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\05 - GLAMBERGET Room divider - pineKatorp beige 150x150 cm.glb",
+        "material": "",
+        "color": "beige",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_006",
+        "sku": "room-dividers_6",
+        "name": "NÄMMARÖ Privacy screen - light brown stained indoor/outdoor 140x80x50 cm",
+        "chinese name": "NÄMMARÖ 隱私屏風，淺棕色染色室內外，140x80x50 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": 50.0,
+          "height": 140.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": 50.0,
+          "height": 140.0
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\06 - NÄMMARÖ Privacy screen - light brown stained indooroutdoor 140x80x50 cm.glb",
+        "material": "",
+        "color": "brown",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_007",
+        "sku": "room-dividers_7",
+        "name": "GRÅFJÄLLET Room divider - anthracite 150x175 cm",
+        "chinese name": "GRÅFJÄLLET 房間隔屏，炭灰色，150x175 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 150.0,
+          "depth": null,
+          "height": 175.0
+        },
+        "collision_box_cm": {
+          "width": 150.0,
+          "depth": null,
+          "height": 175.0
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\07 - GRÅFJÄLLET Room divider - anthracite 150x175 cm.glb",
+        "material": "",
+        "color": "grey",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_008",
+        "sku": "room-dividers_8",
+        "name": "EILIF Screen, freestanding - grey/white 80x150 cm",
+        "chinese name": "EILIF 屏風，落地式，灰色/白色，80x150 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 80.0,
+          "depth": null,
+          "height": 150.0
+        },
+        "collision_box_cm": {
+          "width": 80.0,
+          "depth": null,
+          "height": 150.0
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\08 - EILIF Screen, freestanding - greywhite 80x150 cm.glb",
+        "material": "",
+        "color": "grey, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_009",
+        "sku": "room-dividers_9",
+        "name": "KALLAX Shelving unit - white 182x182 cm",
+        "chinese name": "KALLAX 層架組，白色，182x182 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 182.0,
+          "depth": 39.0,
+          "height": 182.0
+        },
+        "collision_box_cm": {
+          "width": 182.0,
+          "depth": 39.0,
+          "height": 182.0
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\09 - KALLAX Shelving unit - white 182x182 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_010",
+        "sku": "room-dividers_10",
+        "name": "KALLAX Shelving unit with 10 inserts - white 182x182 cm",
+        "chinese name": "KALLAX 附10格插件層架組，白色，182x182 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 182.0,
+          "depth": 39.0,
+          "height": 182.0
+        },
+        "collision_box_cm": {
+          "width": 182.0,
+          "depth": 39.0,
+          "height": 182.0
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\10 - KALLAX Shelving unit with 10 inserts - white 182x182 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_011",
+        "sku": "room-dividers_11",
+        "name": "KALLAX Shelving unit with 4 inserts - black-brown 147x147 cm",
+        "chinese name": "KALLAX 附4格插件層架組，黑棕色，147x147 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "collision_box_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\11 - KALLAX Shelving unit with 4 inserts - black-brown 147x147 cm.glb",
+        "material": "",
+        "color": "brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_012",
+        "sku": "room-dividers_12",
+        "name": "KALLAX Shelving unit with 4 inserts - white 147x147 cm",
+        "chinese name": "KALLAX 附4格插件層架組，白色，147x147 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "collision_box_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\12 - KALLAX Shelving unit with 4 inserts - white 147x147 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_013",
+        "sku": "room-dividers_13",
+        "name": "MITTZON Frame w cstrs/acoustic screen - Gunnared beige/white 85x205 cm",
+        "chinese name": "MITTZON 附滾輪框架/隔音屏，Gunnared 米色/白色，85x205 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 85.0,
+          "depth": 50.0,
+          "height": 205.0
+        },
+        "collision_box_cm": {
+          "width": 85.0,
+          "depth": 50.0,
+          "height": 205.0
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\13 - MITTZON Frame w cstrsacoustic screen - Gunnared beigewhite 85x205 cm.glb",
+        "material": "",
+        "color": "beige, white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_014",
+        "sku": "room-dividers_14",
+        "name": "KALLAX Shelving unit with 8 inserts - white 147x147 cm",
+        "chinese name": "KALLAX 附8格插件層架組，白色，147x147 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "collision_box_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\14 - KALLAX Shelving unit with 8 inserts - white 147x147 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_015",
+        "sku": "room-dividers_15",
+        "name": "KALLAX Shelving unit with 4 inserts - white 147x147 cm",
+        "chinese name": "KALLAX 附4格插件層架組，白色，147x147 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "collision_box_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\15 - KALLAX Shelving unit with 4 inserts - white 147x147 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_016",
+        "sku": "room-dividers_16",
+        "name": "KALLAX Shelving unit with 4 inserts - black-brown 147x147 cm",
+        "chinese name": "KALLAX 附4格插件層架組，黑棕色，147x147 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "collision_box_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\16 - KALLAX Shelving unit with 4 inserts - black-brown 147x147 cm.glb",
+        "material": "",
+        "color": "brown, black",
+        "can_rotate": true,
+        "must_against_wall": false
+      },
+      {
+        "id": "Storage furniture_017",
+        "sku": "room-dividers_17",
+        "name": "KALLAX Shelving unit with 4 inserts - white/glass 147x147 cm",
+        "chinese name": "KALLAX 附4格插件層架組，白色/玻璃，147x147 公分",
+        "type": "room-divider",
+        "position": [
+          0,
+          0
+        ],
+        "rotation": 0,
+        "size_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "collision_box_cm": {
+          "width": 147.0,
+          "depth": 39.0,
+          "height": 146.5
+        },
+        "glb_path": "downloaded-files\\fi-room-dividers\\17 - KALLAX Shelving unit with 4 inserts - whiteglass 147x147 cm.glb",
+        "material": "",
+        "color": "white",
+        "can_rotate": true,
+        "must_against_wall": false
+      }
+    ]
+  },
+  "ai_plan": {
+    "understanding": [],
+    "recommendations": []
+  },
+  "validation": {
+    "passed": true,
+    "issues": []
+  },
+  "manual_adjustment": {
+    "enabled": true,
+    "actions": [
+      "drag",
+      "rotate",
+      "resize_small_range",
+      "text_tune"
+    ]
+  },
+  "output": {
+    "preview_2d": "",
+    "preview_3d": "",
+    "report": "",
+    "final_status": "draft"
+  },
+  "version": 1
+}
