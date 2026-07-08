@@ -29,7 +29,7 @@ def place_furniture(
                   (1, 1), (-1, 1), (1, -1), (-1, -1),
                   (2, 0), (-2, 0), (0, 2), (0, -2)]
 
-    step = 0.95
+    step = 95.0
     for rotation in (0, 90, 180, 270):  # 也嘗試不同角度
         for sx, sz in candidates:
             candidate = PlacedFurniture(
