@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import configparser
 import glob
+import json
 import math
 import os
 import sys
@@ -54,6 +55,7 @@ class Config:
     win_cover_pct: float    # 開口長度被細線覆蓋超過此 % = 窗；其餘是門/空，留開
     win_min_pct: float      # 窗的跨牆寬度需 ≥ 牆厚的(100-此值)%；太薄的不算窗
     door_arc_pct: float     # 門偵測:L形等長線兩端連接弧的吻合度門檻(%)
+    door_width_cm: float    # 假設的標準門寬(cm)，用門寬中位數反推每張圖的比例
     win_layer: str
     hough_thresh: int
     hough_min_len: int
@@ -130,6 +132,7 @@ def load_config(path: str) -> Config:
         windows=b("windows", True), win_cover_pct=f("win_cover_pct", 70.0),
         win_min_pct=f("win_min_pct", 20.0),
         door_arc_pct=f("door_arc_pct", 50.0),
+        door_width_cm=f("door_width_cm", 90.0),
         win_layer=s("win_layer", "WINDOW"),
         hough_thresh=i("hough_thresh", 50), hough_min_len=i("hough_min_len", 25),
         hough_max_gap=i("hough_max_gap", 5), angle_tol=f("angle_tol", 8.0),
@@ -322,7 +325,7 @@ def detect_doors(thin, T: int, arc_pct: float):
     if segs is None:
         return []
     Hs, Vs = [], []
-    for x1, y1, x2, y2 in segs[:, 0]:
+    for x1, y1, x2, y2 in segs.reshape(-1, 4):  # OpenCV 4 回傳 (N,1,4)、5 回傳 (N,4)，統一攤平
         ln = math.hypot(x2 - x1, y2 - y1)
         ang = abs(math.degrees(math.atan2(y2 - y1, x2 - x1)))
         if ang < 12 or ang > 168:
@@ -761,6 +764,87 @@ def postprocess(H, V, cfg: Config):
     return H, V
 
 
+# ─────────────────────────── 比例尺(門寬推算) ───────────────────────────
+WALL_MIN_CM = 15.0                               # 外圍牆厚下限：周界牆一定 ≥ 15cm
+WALL_MAX_CM = 40.0
+
+
+def outer_wall_thickness(rects, T):
+    """外圍牆厚(px)：取「貼著全圖外框、且沿外框方向延伸」的牆矩形短邊中位數。
+    比 T(全圖最厚線)可靠——T 會被室內厚牆/樓梯等實心塊撐大，不代表外牆。
+    只算沿邊延伸的牆段，避免把端點碰到外框的室內牆(可以比 15cm 薄)算進來。"""
+    if not rects:
+        return float(T)
+    X0 = min(r[0] for r in rects); Y0 = min(r[1] for r in rects)
+    X1 = max(r[2] for r in rects); Y1 = max(r[3] for r in rects)
+    tol = max(3.0, 0.5 * T)
+    t_min = max(3.0, 0.35 * T)                   # 太細的長條是標註/尺寸線，不是牆
+    th = []
+    for x0, y0, x1, y1 in rects:
+        w, h = x1 - x0, y1 - y0
+        t = min(w, h)
+        if t < t_min or max(w, h) < 2 * t:       # 不夠細長的塊不算牆段
+            continue
+        if ((w >= h and (abs(y0 - Y0) <= tol or abs(y1 - Y1) <= tol)) or
+                (h >= w and (abs(x0 - X0) <= tol or abs(x1 - X1) <= tol))):
+            th.append(t)
+    return float(np.median(th)) if th else float(T)
+
+
+def derive_door_scale(doors, T_out, cfg: Config):
+    """定每張圖的比例：以 config 比例為基準，強制外圍牆厚 ≥ 15cm——config 比例讓
+    外牆不足 15cm 時，把比例撐到剛好 15cm(method=wall_min)。門寬偵測系統性不可靠
+    (常抓到家具弧線拼成的假門，比例會被撐大 1.3~2 倍)，不再當錨點；只把偵測到的
+    門寬用最終比例換算後寫進 info 給前端交叉檢核：落在 70~110cm → 信心 high，
+    偏離 → low(比例或門偵測至少一個有問題)，沒門 → medium。
+    回傳 (mm_per_px, info)。"""
+    mm_per_px = (25.4 / cfg.dpi) if cfg.dpi else cfg.mm_per_px
+    info = {"method": "config", "confidence": "medium",
+            "doors_used": 0, "wall_min_cm": WALL_MIN_CM}
+    wall_cm = T_out * mm_per_px / 10.0
+    if wall_cm < WALL_MIN_CM:                    # 外牆 <15cm → 比例太小，撐到下限
+        mm_per_px = WALL_MIN_CM * 10.0 / T_out
+        wall_cm = WALL_MIN_CM
+        info["method"] = "wall_min"
+    info["outer_wall_cm"] = round(wall_cm, 1)
+    widths = [d[2] for d in doors if d[3] >= 0.85]
+    if widths:                                   # 門只做檢核，不回推比例
+        door_cm = float(np.median(widths)) * mm_per_px / 10.0
+        info.update(doors_used=len(widths), median_door_cm=round(door_cm, 1),
+                    confidence="high" if 70.0 <= door_cm <= 110.0 else "low")
+    return mm_per_px, info
+
+
+def write_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info, cfg: Config,
+               dxf_scale_path):
+    """前端交接 JSON：cm 座標與 dxf_scale/ 完全一致(原點左下、y 向上)，
+    px 座標為影像座標(原點左上、y 向下)，方便前端疊回原圖。"""
+    cm = mm_per_px / 10.0
+
+    def box_cm(x0, y0, x1, y1):                  # 影像bbox → DXF座標bbox(y翻轉)
+        return [round(x0 * cm, 2), round((img_h - y1) * cm, 2),
+                round(x1 * cm, 2), round((img_h - y0) * cm, 2)]
+
+    data = {
+        "image": {"file": os.path.basename(cfg.input),
+                  "width_px": img_w, "height_px": img_h},
+        "scale": {"cm_per_px": round(cm, 4), "mm_per_px": round(mm_per_px, 4), **info},
+        "units": {"cm": "同 dxf_scale：原點左下、y 向上",
+                  "px": "影像座標：原點左上、y 向下"},
+        "walls": [{"px": [int(x0), int(y0), int(x1), int(y1)],
+                   "cm": box_cm(x0, y0, x1, y1)} for x0, y0, x1, y1 in rects],
+        "windows": [{"orient": o, "px": [int(x0), int(y0), int(x1), int(y1)],
+                     "cm": box_cm(x0, y0, x1, y1)} for o, x0, y0, x1, y1 in wins],
+        "doors": [{"px": {"cx": round(dx, 1), "cy": round(dy, 1), "width": round(dw, 1)},
+                   "cm": {"cx": round(dx * cm, 2), "cy": round((img_h - dy) * cm, 2),
+                          "width": round(dw * cm, 2)},
+                   "score": round(sc, 3)} for dx, dy, dw, sc in doors],
+        "dxf": cfg.output, "dxf_scale": dxf_scale_path,
+    }
+    with open(path, "w", encoding="utf-8") as fp:
+        json.dump(data, fp, ensure_ascii=False, indent=2)
+
+
 # ─────────────────────────── 輸出 ───────────────────────────
 def write_dxf(H, V, img_h, scale, cfg: Config):
     doc = ezdxf.new("R2010")
@@ -788,10 +872,11 @@ def preview(bgr, H, V, path):
     cv2.imwrite(path, vis)
 
 
-def write_solid_dxf(rects, wins, img_h, scale, cfg: Config):
-    """牆：封閉矩形 + SOLID HATCH。窗：開口矩形 + 4 條玻璃線 + 兩端封口(照正規檔)。"""
+def write_solid_dxf(rects, wins, img_h, scale, cfg: Config, out=None, insunits=4):
+    """牆：封閉矩形 + SOLID HATCH。窗：開口矩形 + 4 條玻璃線 + 兩端封口(照正規檔)。
+    out/insunits 給 dxf_scale/ 用：另存一份門寬比例、公分單位(insunits=5)的檔。"""
     doc = ezdxf.new("R2010")
-    doc.header["$INSUNITS"] = 4
+    doc.header["$INSUNITS"] = insunits
     msp = doc.modelspace()
     if cfg.layer not in doc.layers:
         doc.layers.add(cfg.layer, color=7)
@@ -822,7 +907,7 @@ def write_solid_dxf(rects, wins, img_h, scale, cfg: Config):
                 msp.add_line(P(x, y0), P(x, y1), dxfattribs=L)
             msp.add_line(P(x0, y0), P(x1, y0), dxfattribs=L)
             msp.add_line(P(x0, y1), P(x1, y1), dxfattribs=L)
-    doc.saveas(cfg.output)
+    doc.saveas(out or cfg.output)
 
 
 def preview_solid(bgr, rects, wins, path):
@@ -891,7 +976,7 @@ def run(cfg: Config):
 
     if cfg.style == "solid":                 # 實心牆：矩形 + SOLID HATCH；窗：符號
         rects = detect_solid(bw_open, cfg, T)
-        wins = []
+        wins, doors = [], []
         if cfg.windows:
             thin = cv2.subtract(orig, cv2.dilate(bw_open, np.ones((3, 3), np.uint8)))
             doors = detect_doors(thin, T, cfg.door_arc_pct)
@@ -903,9 +988,28 @@ def run(cfg: Config):
         write_solid_dxf(rects, wins, img_h, scale, cfg)
         if cfg.preview:
             preview_solid(bgr, rects, wins, cfg.preview)
+
+        # 門寬推比例(外圍牆厚≥15cm 把關) → 另存公分單位的 dxf_scale/ + 前端交接 json/
+        T_out = outer_wall_thickness(rects, T)
+        mmpp, sinfo = derive_door_scale(doors, T_out, cfg)
+        sinfo["outer_wall_px"] = round(T_out, 1)
+        base = os.path.splitext(os.path.basename(cfg.output))[0]
+        root = os.path.dirname(os.path.dirname(cfg.output)) or "."  # 跟輸出目錄同層(testdata/dxf_scale、testdata/json)
+        scale_dir = os.path.join(root, "dxf_scale")
+        json_dir = os.path.join(root, "json")
+        os.makedirs(scale_dir, exist_ok=True)
+        os.makedirs(json_dir, exist_ok=True)
+        scale_out = os.path.join(scale_dir, base + ".dxf")
+        json_out = os.path.join(json_dir, base + ".json")
+        write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
+        write_json(json_out, img_w, img_h, rects, wins, doors, mmpp, sinfo, cfg, scale_out)
+
         print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid")
         print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個 (門洞留開)")
+        print(f"比例尺 : {mmpp / 10.0:.4f} cm/px  ({sinfo['method']}, 信心 {sinfo['confidence']}, "
+              f"高信心門 {sinfo['doors_used']} 扇)")
         print(f"輸出   : {cfg.output}" + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
+        print(f"         {scale_out} (cm)   {json_out}")
         return
     bw = bw_open
 
@@ -922,11 +1026,15 @@ def run(cfg: Config):
     print(f"輸出   : {cfg.output}" + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
 
 
+IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
+
+
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png → out_dir/*.dxf，每張另存疊圖到 chk/ 供快速檢視。"""
-    pngs = sorted(glob.glob(os.path.join(in_dir, "*.png")))
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf，每張另存疊圖到 chk/ 供快速檢視。"""
+    pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
+                  if p.lower().endswith(IMG_EXTS))
     if not pngs:
-        sys.exit(f"{in_dir}/ 裡找不到 .png")
+        sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
     chk_dir = os.path.join(os.path.dirname(out_dir) or ".", "chk")  # 跟輸出目錄同層(testdata/chk)
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(chk_dir, exist_ok=True)
@@ -947,27 +1055,30 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
     print(f"\n批次完成: 成功 {ok} / 失敗 {fail}")
     print(f"  DXF  → {out_dir}/")
     print(f"  疊圖 → {chk_dir}/  (原圖 + 紅實心牆 + 綠窗，一次翻完抓問題)")
+    root = os.path.dirname(out_dir) or "."
+    print(f"  比例尺DXF → {os.path.join(root, 'dxf_scale')}/ (公分單位)   JSON → {os.path.join(root, 'json')}/ (前端交接)")
 
 
 def main():
     p = argparse.ArgumentParser(
-        description="平面圖 PNG → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
-                    "批次：python3 floorplan2dxf.py png  (跑 png/*.png → dxf/*.dxf)")
+        description="平面圖 PNG/JPG/BMP → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
+                    "不帶參數 = 批次跑 png/ 目錄下所有圖檔 → dxf/ + chk/")
     p.add_argument("input", nargs="?",
-                   help="輸入 PNG；或目錄(或字面 'png')進批次模式")
+                   help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
-                   help="輸出 DXF/目錄（不給就用「輸入同檔名換 .dxf」或 dxf/）")
+                   help="輸出 DXF/目錄（不給就自動輸出到 dxf/同檔名.dxf）")
     p.add_argument("--config", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.ini"), help="設定檔（預設同目錄的 config.ini）")
     p.add_argument("--preview", help="疊圖輸出路徑（覆蓋 config）")
     a = p.parse_args()
 
     cfg = load_config(a.config)
 
-    # 批次模式：第一參數是目錄，或字面 'png'
-    if a.input and (os.path.isdir(a.input) or a.input.lower() == "png"):
-        in_dir = a.input if os.path.isdir(a.input) else "png"
+    # 批次模式：不帶參數(且 config 沒鎖單張)、第一參數是目錄、或字面 'png'
+    if (not a.input and not cfg.input) or \
+       (a.input and (os.path.isdir(a.input) or a.input.lower() == "png")):
+        in_dir = a.input if (a.input and os.path.isdir(a.input)) else "png"
         if not os.path.isdir(in_dir):
-            sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的 png 放進去)")
+            sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去)")
         run_batch(in_dir, (a.output or "dxf"), cfg)
         return
 
@@ -977,13 +1088,21 @@ def main():
         cfg.preview = a.preview
     if a.output:
         cfg.output = a.output
-    elif a.input:
-        cfg.output = os.path.splitext(a.input)[0] + ".dxf"
 
     if not cfg.input:
         sys.exit("缺輸入：用 floorplan2dxf.py 圖.png，或 floorplan2dxf.py png 批次，或在 config.ini 設 input")
-    if not cfg.output:
-        cfg.output = os.path.splitext(cfg.input)[0] + ".dxf"
+    # 慣例：輸入放 png/ —— 給的路徑讀不到時自動去 png/ 找
+    if not os.path.isfile(cfg.input):
+        alt = os.path.join("png", cfg.input)
+        if os.path.isfile(alt):
+            cfg.input = alt
+    base = os.path.splitext(os.path.basename(cfg.input))[0]
+    if not cfg.output:                       # 慣例：DXF → dxf/
+        os.makedirs("dxf", exist_ok=True)
+        cfg.output = os.path.join("dxf", base + ".dxf")
+    if not cfg.preview:                      # 慣例：疊圖 → chk/
+        os.makedirs("chk", exist_ok=True)
+        cfg.preview = os.path.join("chk", base + "_chk.png")
     run(cfg)
 
 

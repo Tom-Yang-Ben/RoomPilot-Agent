@@ -1,0 +1,83 @@
+{
+  "image": {
+    "file": "floor08.png",
+    "width_px": 529,
+    "height_px": 663
+  },
+  "scale": {
+    "cm_per_px": 3.75,
+    "mm_per_px": 37.5,
+    "method": "wall_min",
+    "confidence": "low",
+    "doors_used": 2,
+    "wall_min_cm": 15.0,
+    "outer_wall_cm": 15.0,
+    "median_door_cm": 16.9,
+    "outer_wall_px": 4.0
+  },
+  "units": {
+    "cm": "同 dxf_scale：原點左下、y 向上",
+    "px": "影像座標：原點左上、y 向下"
+  },
+  "walls": [
+    {
+      "px": [
+        60,
+        435,
+        67,
+        436
+      ],
+      "cm": [
+        225.0,
+        851.25,
+        251.25,
+        855.0
+      ]
+    },
+    {
+      "px": [
+        324,
+        198,
+        325,
+        205
+      ],
+      "cm": [
+        1215.0,
+        1717.5,
+        1218.75,
+        1743.75
+      ]
+    }
+  ],
+  "windows": [],
+  "doors": [
+    {
+      "px": {
+        "cx": 142.0,
+        "cy": 170.5,
+        "width": 4.5
+      },
+      "cm": {
+        "cx": 532.5,
+        "cy": 1846.88,
+        "width": 16.88
+      },
+      "score": 1.0
+    },
+    {
+      "px": {
+        "cx": 151.5,
+        "cy": 175.0,
+        "width": 4.5
+      },
+      "cm": {
+        "cx": 568.12,
+        "cy": 1830.0,
+        "width": 16.88
+      },
+      "score": 1.0
+    }
+  ],
+  "dxf": "testdata/dxf/floor08.dxf",
+  "dxf_scale": "testdata/dxf_scale/floor08.dxf"
+}
