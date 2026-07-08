@@ -765,27 +765,54 @@ def postprocess(H, V, cfg: Config):
 
 
 # ─────────────────────────── 比例尺(門寬推算) ───────────────────────────
-def derive_door_scale(doors, T, cfg: Config):
-    """由門寬推每張圖的比例：取高信心門(弧吻合≥0.85，同 _near_door 的門檻)寬度中位數
-    = door_width_cm。推出的比例要通過牆厚合理性檢查(T=最厚外牆，8~40cm)——擋掉家具弧線
-    拼出的假門造成的災難性錯誤；沒門或檢查不過就退回 config 的比例。
-    回傳 (mm_per_px, info)；info 進 JSON 讓前端知道這個比例能不能信。"""
-    fallback = (25.4 / cfg.dpi) if cfg.dpi else cfg.mm_per_px
+WALL_MIN_CM = 15.0                               # 外圍牆厚下限：周界牆一定 ≥ 15cm
+WALL_MAX_CM = 40.0
+
+
+def outer_wall_thickness(rects, T):
+    """外圍牆厚(px)：取「貼著全圖外框、且沿外框方向延伸」的牆矩形短邊中位數。
+    比 T(全圖最厚線)可靠——T 會被室內厚牆/樓梯等實心塊撐大，不代表外牆。
+    只算沿邊延伸的牆段，避免把端點碰到外框的室內牆(可以比 15cm 薄)算進來。"""
+    if not rects:
+        return float(T)
+    X0 = min(r[0] for r in rects); Y0 = min(r[1] for r in rects)
+    X1 = max(r[2] for r in rects); Y1 = max(r[3] for r in rects)
+    tol = max(3.0, 0.5 * T)
+    t_min = max(3.0, 0.35 * T)                   # 太細的長條是標註/尺寸線，不是牆
+    th = []
+    for x0, y0, x1, y1 in rects:
+        w, h = x1 - x0, y1 - y0
+        t = min(w, h)
+        if t < t_min or max(w, h) < 2 * t:       # 不夠細長的塊不算牆段
+            continue
+        if ((w >= h and (abs(y0 - Y0) <= tol or abs(y1 - Y1) <= tol)) or
+                (h >= w and (abs(x0 - X0) <= tol or abs(x1 - X1) <= tol))):
+            th.append(t)
+    return float(np.median(th)) if th else float(T)
+
+
+def derive_door_scale(doors, T_out, cfg: Config):
+    """定每張圖的比例：以 config 比例為基準，強制外圍牆厚 ≥ 15cm——config 比例讓
+    外牆不足 15cm 時，把比例撐到剛好 15cm(method=wall_min)。門寬偵測系統性不可靠
+    (常抓到家具弧線拼成的假門，比例會被撐大 1.3~2 倍)，不再當錨點；只把偵測到的
+    門寬用最終比例換算後寫進 info 給前端交叉檢核：落在 70~110cm → 信心 high，
+    偏離 → low(比例或門偵測至少一個有問題)，沒門 → medium。
+    回傳 (mm_per_px, info)。"""
+    mm_per_px = (25.4 / cfg.dpi) if cfg.dpi else cfg.mm_per_px
+    info = {"method": "config", "confidence": "medium",
+            "doors_used": 0, "wall_min_cm": WALL_MIN_CM}
+    wall_cm = T_out * mm_per_px / 10.0
+    if wall_cm < WALL_MIN_CM:                    # 外牆 <15cm → 比例太小，撐到下限
+        mm_per_px = WALL_MIN_CM * 10.0 / T_out
+        wall_cm = WALL_MIN_CM
+        info["method"] = "wall_min"
+    info["outer_wall_cm"] = round(wall_cm, 1)
     widths = [d[2] for d in doors if d[3] >= 0.85]
-    info = {"method": "config_fallback", "confidence": "none",
-            "doors_used": 0, "assumed_door_width_cm": cfg.door_width_cm}
-    if not widths:
-        return fallback, info
-    med = float(np.median(widths))
-    mm_per_px = cfg.door_width_cm * 10.0 / med
-    wall_cm = T * mm_per_px / 10.0
-    info.update(doors_used=len(widths), median_door_px=round(med, 1),
-                wall_thickness_cm=round(wall_cm, 1))
-    if 8.0 <= wall_cm <= 40.0:
-        info.update(method="door_median", confidence="high")
-        return mm_per_px, info
-    info["confidence"] = "low"                   # 牆厚不合理 → 不信門，退回 config
-    return fallback, info
+    if widths:                                   # 門只做檢核，不回推比例
+        door_cm = float(np.median(widths)) * mm_per_px / 10.0
+        info.update(doors_used=len(widths), median_door_cm=round(door_cm, 1),
+                    confidence="high" if 70.0 <= door_cm <= 110.0 else "low")
+    return mm_per_px, info
 
 
 def write_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info, cfg: Config,
@@ -962,8 +989,10 @@ def run(cfg: Config):
         if cfg.preview:
             preview_solid(bgr, rects, wins, cfg.preview)
 
-        # 門寬推比例 → 另存公分單位的 dxf_scale/ + 前端交接 json/（不動原本 dxf/）
-        mmpp, sinfo = derive_door_scale(doors, T, cfg)
+        # 門寬推比例(外圍牆厚≥15cm 把關) → 另存公分單位的 dxf_scale/ + 前端交接 json/
+        T_out = outer_wall_thickness(rects, T)
+        mmpp, sinfo = derive_door_scale(doors, T_out, cfg)
+        sinfo["outer_wall_px"] = round(T_out, 1)
         base = os.path.splitext(os.path.basename(cfg.output))[0]
         os.makedirs("dxf_scale", exist_ok=True)
         os.makedirs("json", exist_ok=True)
