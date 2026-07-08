@@ -111,6 +111,52 @@ def _collect(msp, dist):
     return segs, rings
 
 
+def _merge_window_segs(segs, thickness):
+    """一扇窗在 CAD 裡常是多條平行玻璃線+端封口(PNG 管線輸出固定為 4+2 條),
+    逐段各畫一個盒會重疊 z-fighting。以「膨脹外包框相交」聚類,每群(=一扇窗)
+    輸出一條沿長邊的中心線段。單段自成一群 → 原樣輸出,原生單線窗不受影響。"""
+    if not segs:
+        return segs
+    tol = max(0.75 * thickness, 0.06)        # 玻璃線間距 ≈ thickness/3,封口貼兩端
+    boxes = []
+    for s in segs:
+        x0, x1 = sorted((s["x1"], s["x2"]))
+        z0, z1 = sorted((s["z1"], s["z2"]))
+        boxes.append((x0 - tol, z0 - tol, x1 + tol, z1 + tol))
+
+    def hits(a, b):
+        return not (a[2] < b[0] or b[2] < a[0] or a[3] < b[1] or b[3] < a[1])
+
+    n = len(segs)
+    seen = [False] * n
+    out = []
+    for i in range(n):
+        if seen[i]:
+            continue
+        stack, grp = [i], []
+        seen[i] = True
+        while stack:
+            k = stack.pop()
+            grp.append(k)
+            for j in range(n):
+                if not seen[j] and hits(boxes[k], boxes[j]):
+                    seen[j] = True
+                    stack.append(j)
+        if len(grp) == 1:
+            out.append(segs[grp[0]])         # 單段窗(含斜窗)原樣保留
+            continue
+        xs = [v for k in grp for v in (segs[k]["x1"], segs[k]["x2"])]
+        zs = [v for k in grp for v in (segs[k]["z1"], segs[k]["z2"])]
+        x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
+        if (x1 - x0) >= (z1 - z0):           # 群外包框長邊 = 窗方向
+            zc = (z0 + z1) / 2
+            out.append({"x1": x0, "z1": zc, "x2": x1, "z2": zc})
+        else:
+            xc = (x0 + x1) / 2
+            out.append({"x1": xc, "z1": z0, "x2": xc, "z2": z1})
+    return out
+
+
 def _process(doc, name, scale_m, thickness, height):
     msp = doc.modelspace()
 
@@ -167,7 +213,8 @@ def _process(doc, name, scale_m, thickness, height):
         return out
 
     walls   = to_m(wall_segs)
-    windows = to_m(segs["window"] + group_segs(rings["window"]))
+    windows = _merge_window_segs(
+        to_m(segs["window"] + group_segs(rings["window"])), thickness)
     doors   = to_m(segs["door"] + group_segs(rings["door"]))
 
     def ring(coords):
