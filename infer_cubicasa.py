@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""CubiCasa5k 推論：png 平面圖 → 牆/窗/門 mask(原圖尺寸) + 疊圖。
+只用 floortrans 的模型定義，不碰它的 loader(lmdb/svg 相依太舊)。
+輸出: <out>/<名>_mask.npz (wall/window/door bool mask) 與 <名>_cc.png 疊圖。
+用法: python infer_cubicasa.py <weights.pkl> <out_dir> <img1> [img2 ...]
+"""
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "CubiCasa5k"))
+import cv2
+import numpy as np
+import torch
+import torch.nn.functional as F
+from floortrans.models import get_model
+
+WEIGHTS, OUT = sys.argv[1], sys.argv[2]
+IMGS = sys.argv[3:]
+MAX_SIDE = 1100          # CPU 推論限制邊長，mask 再放回原尺寸
+N_CLASSES = 44           # 21 junction + 12 room + 11 icon
+ROOM0 = 21
+WALL_CH = ROOM0 + 2      # room class 2 = Wall
+ICON0 = 33
+# icon class 1 = Window, 2 = Door
+
+os.makedirs(OUT, exist_ok=True)
+model = get_model('hg_furukawa_original', 51)
+model.conv4_ = torch.nn.Conv2d(256, N_CLASSES, bias=True, kernel_size=1)
+model.upsample = torch.nn.ConvTranspose2d(N_CLASSES, N_CLASSES, kernel_size=4, stride=4)
+ckpt = torch.load(WEIGHTS, map_location='cpu', weights_only=False)
+model.load_state_dict(ckpt['model_state'])
+model.eval()
+torch.set_num_threads(os.cpu_count() or 4)
+
+for path in IMGS:
+    base = os.path.splitext(os.path.basename(path))[0]
+    bgr = cv2.imread(path, cv2.IMREAD_COLOR)
+    if bgr is None:
+        print(f"{base}: 讀不到", flush=True); continue
+    H0, W0 = bgr.shape[:2]
+    sc = min(1.0, MAX_SIDE / max(H0, W0))
+    img = cv2.resize(bgr, (int(W0 * sc), int(H0 * sc))) if sc < 1.0 else bgr
+    h, w = img.shape[:2]
+    h4, w4 = (h + 3) // 4 * 4, (w + 3) // 4 * 4      # 補到 4 的倍數
+    pad = cv2.copyMakeBorder(img, 0, h4 - h, 0, w4 - w,
+                             cv2.BORDER_CONSTANT, value=(255, 255, 255))
+    rgb = cv2.cvtColor(pad, cv2.COLOR_BGR2RGB).astype(np.float32)
+    ten = torch.from_numpy(2.0 * (rgb / 255.0) - 1.0).permute(2, 0, 1)[None]
+    with torch.no_grad():                            # 4 方向旋轉平均(照官方 eval)
+        acc = torch.zeros(1, N_CLASSES, h4, w4)
+        for k in range(4):
+            t = torch.rot90(ten, k, dims=(2, 3))
+            p = model(t)
+            p = F.interpolate(p, size=t.shape[2:], mode='bilinear', align_corners=True)
+            acc += torch.rot90(p, -k, dims=(2, 3))
+        pred = acc / 4
+    rooms = F.softmax(pred[0, ROOM0:ROOM0 + 12], 0).argmax(0).numpy()[:h, :w]
+    icons = F.softmax(pred[0, ICON0:ICON0 + 11], 0).argmax(0).numpy()[:h, :w]
+    wall = (rooms == 2).astype(np.uint8)
+    win = (icons == 1).astype(np.uint8)
+    door = (icons == 2).astype(np.uint8)
+    if sc < 1.0:                                     # 放回原尺寸
+        wall = cv2.resize(wall, (W0, H0), interpolation=cv2.INTER_NEAREST)
+        win = cv2.resize(win, (W0, H0), interpolation=cv2.INTER_NEAREST)
+        door = cv2.resize(door, (W0, H0), interpolation=cv2.INTER_NEAREST)
+    np.savez_compressed(os.path.join(OUT, base + "_mask.npz"),
+                        wall=wall.astype(bool), window=win.astype(bool),
+                        door=door.astype(bool))
+    vis = bgr.copy()
+    vis[wall > 0] = (0, 0, 255)                      # 紅=牆
+    vis[win > 0] = (0, 200, 0)                       # 綠=窗
+    vis[door > 0] = (0, 165, 255)                    # 橘=門
+    cv2.imwrite(os.path.join(OUT, base + "_cc.png"), vis)
+    print(f"{base}: 牆 {int(wall.sum())}px 窗 {int(win.sum())}px 門 {int(door.sum())}px",
+          flush=True)

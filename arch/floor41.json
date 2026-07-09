@@ -1,0 +1,119 @@
+{
+  "units": "cm",
+  "room_polygon": [
+    [
+      125.22,
+      817.83
+    ],
+    [
+      125.22,
+      126.52
+    ],
+    [
+      1181.74,
+      126.52
+    ],
+    [
+      1181.74,
+      817.83
+    ]
+  ],
+  "walls": [
+    {
+      "id": "wall_1",
+      "position": {
+        "x": 656.74,
+        "y": 933.26
+      },
+      "rotation": 0,
+      "width": 1110.0,
+      "thickness": 14.35,
+      "height": 280.0
+    },
+    {
+      "id": "wall_2",
+      "position": {
+        "x": 245.22,
+        "y": 7.17
+      },
+      "rotation": 0,
+      "width": 289.57,
+      "thickness": 14.35,
+      "height": 280.0
+    },
+    {
+      "id": "wall_3",
+      "position": {
+        "x": 658.04,
+        "y": 7.17
+      },
+      "rotation": 0,
+      "width": 131.74,
+      "thickness": 14.35,
+      "height": 280.0
+    },
+    {
+      "id": "wall_4",
+      "position": {
+        "x": 1068.26,
+        "y": 7.17
+      },
+      "rotation": 0,
+      "width": 289.57,
+      "thickness": 14.35,
+      "height": 280.0
+    },
+    {
+      "id": "wall_5",
+      "position": {
+        "x": 108.26,
+        "y": 872.61
+      },
+      "rotation": 90,
+      "width": 133.04,
+      "thickness": 15.65,
+      "height": 280.0
+    },
+    {
+      "id": "wall_6",
+      "position": {
+        "x": 1202.61,
+        "y": 872.61
+      },
+      "rotation": 90,
+      "width": 133.04,
+      "thickness": 15.65,
+      "height": 280.0
+    },
+    {
+      "id": "wall_7",
+      "position": {
+        "x": 107.61,
+        "y": 300.0
+      },
+      "rotation": 90,
+      "width": 600.0,
+      "thickness": 16.96,
+      "height": 280.0
+    },
+    {
+      "id": "wall_8",
+      "position": {
+        "x": 1203.26,
+        "y": 299.35
+      },
+      "rotation": 90,
+      "width": 598.7,
+      "thickness": 16.96,
+      "height": 280.0
+    }
+  ],
+  "windows": [],
+  "doors": [],
+  "meta": {
+    "image": "floor41.png",
+    "cm_per_px": 1.3043,
+    "scale_method": "wall_min",
+    "scale_confidence": "medium"
+  }
+}

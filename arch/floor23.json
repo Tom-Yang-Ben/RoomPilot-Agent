@@ -1,0 +1,419 @@
+{
+  "units": "cm",
+  "room_polygon": [
+    [
+      160.31,
+      117.19
+    ],
+    [
+      408.75,
+      117.19
+    ],
+    [
+      408.75,
+      187.5
+    ],
+    [
+      457.5,
+      188.44
+    ],
+    [
+      458.44,
+      505.31
+    ],
+    [
+      581.25,
+      504.38
+    ],
+    [
+      581.25,
+      342.19
+    ],
+    [
+      655.31,
+      341.25
+    ],
+    [
+      655.31,
+      118.12
+    ],
+    [
+      751.88,
+      118.12
+    ],
+    [
+      751.88,
+      358.12
+    ],
+    [
+      979.69,
+      359.06
+    ],
+    [
+      979.69,
+      563.44
+    ],
+    [
+      161.25,
+      563.44
+    ]
+  ],
+  "walls": [
+    {
+      "id": "wall_1",
+      "position": {
+        "x": 570.94,
+        "y": 570.94
+      },
+      "rotation": 0,
+      "width": 849.38,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_2",
+      "position": {
+        "x": 557.34,
+        "y": 497.81
+      },
+      "rotation": 0,
+      "width": 197.81,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_3",
+      "position": {
+        "x": 613.12,
+        "y": 422.81
+      },
+      "rotation": 0,
+      "width": 91.88,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_4",
+      "position": {
+        "x": 775.31,
+        "y": 351.56
+      },
+      "rotation": 0,
+      "width": 45.0,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_5",
+      "position": {
+        "x": 875.62,
+        "y": 351.56
+      },
+      "rotation": 0,
+      "width": 41.25,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_6",
+      "position": {
+        "x": 975.0,
+        "y": 351.56
+      },
+      "rotation": 0,
+      "width": 41.25,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_7",
+      "position": {
+        "x": 613.12,
+        "y": 335.62
+      },
+      "rotation": 0,
+      "width": 91.88,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_8",
+      "position": {
+        "x": 441.09,
+        "y": 181.88
+      },
+      "rotation": 0,
+      "width": 64.69,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_9",
+      "position": {
+        "x": 704.53,
+        "y": 110.62
+      },
+      "rotation": 0,
+      "width": 126.56,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_10",
+      "position": {
+        "x": 285.0,
+        "y": 109.69
+      },
+      "rotation": 0,
+      "width": 277.5,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_11",
+      "position": {
+        "x": 152.81,
+        "y": 548.44
+      },
+      "rotation": 90,
+      "width": 58.12,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_12",
+      "position": {
+        "x": 759.38,
+        "y": 559.69
+      },
+      "rotation": 90,
+      "width": 35.62,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_13",
+      "position": {
+        "x": 987.19,
+        "y": 460.31
+      },
+      "rotation": 90,
+      "width": 234.38,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_14",
+      "position": {
+        "x": 465.0,
+        "y": 437.34
+      },
+      "rotation": 90,
+      "width": 150.94,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_15",
+      "position": {
+        "x": 759.84,
+        "y": 455.62
+      },
+      "rotation": 90,
+      "width": 103.12,
+      "thickness": 15.94,
+      "height": 280.0
+    },
+    {
+      "id": "wall_16",
+      "position": {
+        "x": 647.81,
+        "y": 459.38
+      },
+      "rotation": 90,
+      "width": 90.0,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_17",
+      "position": {
+        "x": 152.81,
+        "y": 415.78
+      },
+      "rotation": 90,
+      "width": 62.81,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_18",
+      "position": {
+        "x": 573.75,
+        "y": 378.28
+      },
+      "rotation": 90,
+      "width": 102.19,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_19",
+      "position": {
+        "x": 759.38,
+        "y": 314.06
+      },
+      "rotation": 90,
+      "width": 88.12,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_20",
+      "position": {
+        "x": 647.81,
+        "y": 222.19
+      },
+      "rotation": 90,
+      "width": 240.0,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_21",
+      "position": {
+        "x": 465.0,
+        "y": 246.56
+      },
+      "rotation": 90,
+      "width": 146.25,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_22",
+      "position": {
+        "x": 152.81,
+        "y": 269.06
+      },
+      "rotation": 90,
+      "width": 71.25,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_23",
+      "position": {
+        "x": 759.38,
+        "y": 153.75
+      },
+      "rotation": 90,
+      "width": 103.12,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_24",
+      "position": {
+        "x": 415.31,
+        "y": 145.78
+      },
+      "rotation": 90,
+      "width": 89.06,
+      "thickness": 15.0,
+      "height": 280.0
+    },
+    {
+      "id": "wall_25",
+      "position": {
+        "x": 152.81,
+        "y": 131.25
+      },
+      "rotation": 90,
+      "width": 60.0,
+      "thickness": 15.0,
+      "height": 280.0
+    }
+  ],
+  "windows": [
+    {
+      "id": "win_1",
+      "position": {
+        "x": 826.41,
+        "y": 351.56
+      },
+      "rotation": 0,
+      "width": 57.19,
+      "height": 120.0,
+      "sill_height": 90.0,
+      "host_wall": "wall_4"
+    },
+    {
+      "id": "win_2",
+      "position": {
+        "x": 925.31,
+        "y": 351.56
+      },
+      "rotation": 0,
+      "width": 58.12,
+      "height": 120.0,
+      "sill_height": 90.0,
+      "host_wall": "wall_5"
+    },
+    {
+      "id": "win_3",
+      "position": {
+        "x": 152.81,
+        "y": 483.28
+      },
+      "rotation": 90,
+      "width": 72.19,
+      "height": 120.0,
+      "sill_height": 90.0,
+      "host_wall": "wall_11"
+    },
+    {
+      "id": "win_4",
+      "position": {
+        "x": 152.81,
+        "y": 344.53
+      },
+      "rotation": 90,
+      "width": 79.69,
+      "height": 120.0,
+      "sill_height": 90.0,
+      "host_wall": "wall_17"
+    },
+    {
+      "id": "win_5",
+      "position": {
+        "x": 152.81,
+        "y": 197.34
+      },
+      "rotation": 90,
+      "width": 72.19,
+      "height": 120.0,
+      "sill_height": 90.0,
+      "host_wall": "wall_22"
+    },
+    {
+      "id": "win_6",
+      "position": {
+        "x": 759.38,
+        "y": 237.66
+      },
+      "rotation": 90,
+      "width": 64.69,
+      "height": 120.0,
+      "sill_height": 90.0,
+      "host_wall": "wall_19"
+    }
+  ],
+  "doors": [],
+  "meta": {
+    "image": "floor23.png",
+    "cm_per_px": 0.9375,
+    "scale_method": "wall_min",
+    "scale_confidence": "medium"
+  }
+}
