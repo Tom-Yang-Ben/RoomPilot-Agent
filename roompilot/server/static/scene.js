@@ -1,5 +1,5 @@
 import { fetchSiteData, initBackgroundFx } from "./common.js?v=20260704e";
-import { createSceneViewer } from "./scene_viewer.js?v=20260708a";
+import { createSceneViewer } from "./scene_viewer.js?v=20260709a";
 
 const siteData = await fetchSiteData();
 const providerStatus = await fetch("/api/scene/provider-status").then((response) => response.json());
@@ -73,6 +73,7 @@ const elements = {
   generateScene: document.getElementById("generate-scene"),
   randomFurniture: document.getElementById("random-furniture"),
   resetSceneView: document.getElementById("reset-scene-view"),
+  openPanorama: document.getElementById("open-panorama"),
   addFurnitureType: document.getElementById("add-furniture-type"),
   addFurniture: document.getElementById("add-furniture"),
   reshuffleScene: document.getElementById("reshuffle-scene"),
@@ -561,6 +562,15 @@ elements.stylePreference.addEventListener("change", () => {
 });
 elements.spaceType.addEventListener("change", setDefaultFurnitureBySpace);
 elements.resetSceneView.addEventListener("click", () => viewer.resetCamera());
+elements.openPanorama.addEventListener("click", () => {
+  // 交棒目前場景給環景頁;沒生成過就讓環景頁自己做示範場景
+  if (currentSceneData) {
+    sessionStorage.setItem("roompilot.panorama.scene", JSON.stringify(currentSceneData));
+  } else {
+    sessionStorage.removeItem("roompilot.panorama.scene");
+  }
+  window.open("/panorama", "_blank");
+});
 elements.viewPresetButtons.forEach((button) => {
   button.addEventListener("click", () => viewer.setCameraPreset(button.dataset.viewPreset));
 });

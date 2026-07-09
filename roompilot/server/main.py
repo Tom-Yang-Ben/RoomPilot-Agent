@@ -335,6 +335,11 @@ def scene_page() -> FileResponse:
     return _page("scene.html")
 
 
+@app.get("/panorama")
+def panorama_page() -> FileResponse:
+    return _page("panorama/panorama.html")
+
+
 @app.get("/api/site-data")
 def site_data() -> dict:
     return build_site_payload()
