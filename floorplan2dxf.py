@@ -56,6 +56,10 @@ class Config:
     win_min_pct: float      # 窗的跨牆寬度需 ≥ 牆厚的(100-此值)%；太薄的不算窗
     door_arc_pct: float     # 門偵測:L形等長線兩端連接弧的吻合度門檻(%)
     door_width_cm: float    # 假設的標準門寬(cm)，用門寬中位數反推每張圖的比例
+    # architecture.json(白模交接)用的立面預設值——2D 平面圖量不到,只能用預設
+    wall_height_cm: float
+    window_height_cm: float
+    sill_height_cm: float
     win_layer: str
     hough_thresh: int
     hough_min_len: int
@@ -133,6 +137,9 @@ def load_config(path: str) -> Config:
         win_min_pct=f("win_min_pct", 20.0),
         door_arc_pct=f("door_arc_pct", 50.0),
         door_width_cm=f("door_width_cm", 90.0),
+        wall_height_cm=f("wall_height_cm", 280.0),
+        window_height_cm=f("window_height_cm", 120.0),
+        sill_height_cm=f("sill_height_cm", 90.0),
         win_layer=s("win_layer", "WINDOW"),
         hough_thresh=i("hough_thresh", 50), hough_min_len=i("hough_min_len", 25),
         hough_max_gap=i("hough_max_gap", 5), angle_tol=f("angle_tol", 8.0),
@@ -318,7 +325,9 @@ def _has_door_swing(thin, orient, c, a, b, T, arc_pct):
 
 def detect_doors(thin, T: int, arc_pct: float):
     """依規則找門:一條垂直線 + 一條水平線(等長、垂直、共用一個角=鉸鏈)，
-    兩自由端用半徑=門寬的弧連接(門的開闔動線)。回傳 [(cx, cy, width)] 鉸鏈與門寬。
+    兩自由端用半徑=門寬的弧連接(門的開闔動線)。
+    回傳 [(cx, cy, width, score, ux, vy)]:鉸鏈、門寬、弧吻合度、
+    水平/垂直線自由端相對鉸鏈的方向(±1，影像座標)——architecture.json 判開門側用。
     用 HoughLinesP 找實際線段，不靠假設，圓形家具沒有這對等長直線→不會中。"""
     segs = cv2.HoughLinesP(thin, 1, np.pi / 180, threshold=max(15, int(0.9 * T)),
                            minLineLength=int(1.2 * T), maxLineGap=int(0.4 * T))
@@ -353,7 +362,7 @@ def detect_doors(thin, T: int, arc_pct: float):
                         r = (hl + vl) / 2.0
                         score = arc_run(cx, cy, r, ux, 0, 0, vy_)
                         if score >= thr:
-                            doors.append((cx, cy, r, score))
+                            doors.append((cx, cy, r, score, ux, vy_))
     uniq = []
     for d in sorted(doors, key=lambda d: -d[3]):
         if not any(math.hypot(d[0] - u[0], d[1] - u[1]) < T for u in uniq):
@@ -365,7 +374,7 @@ def _near_door(cx, cy, gap, doors, ends=None, T=0):
     """開口是否對應到一扇偵測到的門：鉸鏈必須貼在開口其中一端(不能只是在附近，
     免得窗戶旁邊剛好有門/假門就整個被誤殺)，且門寬要與開口寬相符。
     只信弧線吻合度很高的門(≥0.85)——家具/淋浴間的曲線拼出來的假門分數較低，不拿來殺窗。"""
-    for dx, dy, dw, score in doors:
+    for dx, dy, dw, score, *_ in doors:
         if score < 0.85 or not (0.65 * gap <= dw <= 1.4 * gap):
             continue
         if ends is not None:
@@ -838,9 +847,186 @@ def write_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info, cfg: Con
         "doors": [{"px": {"cx": round(dx, 1), "cy": round(dy, 1), "width": round(dw, 1)},
                    "cm": {"cx": round(dx * cm, 2), "cy": round((img_h - dy) * cm, 2),
                           "width": round(dw * cm, 2)},
-                   "score": round(sc, 3)} for dx, dy, dw, sc in doors],
+                   "score": round(sc, 3)} for dx, dy, dw, sc, *_ in doors],
         "dxf": cfg.output, "dxf_scale": dxf_scale_path,
     }
+    with open(path, "w", encoding="utf-8") as fp:
+        json.dump(data, fp, ensure_ascii=False, indent=2)
+
+
+# ──────────────── architecture.json（白模交接格式） ────────────────
+def _nearest_wall(px, py, rects):
+    """點到牆矩形的最短距離，回傳 (最近牆的索引, 距離)。"""
+    best, best_d = None, float("inf")
+    for i, (x0, y0, x1, y1) in enumerate(rects):
+        dx = max(x0 - px, 0.0, px - x1)
+        dy = max(y0 - py, 0.0, py - y1)
+        d = math.hypot(dx, dy)
+        if d < best_d:
+            best, best_d = i, d
+    return best, best_d
+
+
+def _host_wall_for_window(win, rects, T):
+    """窗吸附的牆：同方向、跨牆範圍有重疊、沿牆軸最貼近的那段。
+    窗是牆上的開口，兩側必貼牆——取沿牆軸間距最小者(重疊算負距離)。"""
+    o, x0, y0, x1, y1 = win
+    best, best_d = None, 2.5 * T
+    for i, (wx0, wy0, wx1, wy1) in enumerate(rects):
+        horiz = (wx1 - wx0) >= (wy1 - wy0)
+        if horiz != (o == "h"):
+            continue
+        if horiz:
+            cross = min(y1, wy1) - max(y0, wy0)
+            d = max(wx0 - x1, x0 - wx1)
+        else:
+            cross = min(x1, wx1) - max(x0, wx0)
+            d = max(wy0 - y1, y0 - wy1)
+        if cross > 0 and d < best_d:
+            best, best_d = i, d
+    return best
+
+
+def _door_geometry(door, rects, T):
+    """由鉸鏈位置、L 形兩自由端方向與最近的牆，決定門的沿牆方向與開門側。
+    回傳 (host牆索引|None, 門洞中心, 沿牆方向, 開門側方向)，皆影像座標。"""
+    cx, cy, r, _sc, ux, vy = door
+    idx, d = _nearest_wall(cx, cy, rects)
+    horiz = True
+    if idx is not None:
+        x0, y0, x1, y1 = rects[idx]
+        horiz = (x1 - x0) >= (y1 - y0)
+    if horiz:                                    # 牆水平→門洞沿x、往y側開
+        along, swing = (float(ux), 0.0), (0.0, float(vy))
+    else:
+        along, swing = (0.0, float(vy)), (float(ux), 0.0)
+    center = (cx + r / 2.0 * along[0], cy + r / 2.0 * along[1])
+    host = idx if (idx is not None and d <= 3.0 * T) else None
+    return host, center, along, swing
+
+
+def _room_polygon(rects, wins, doors, img_w, img_h, T, T_out):
+    """房間可用區域外框(px)：牆+窗+門洞畫成實心遮罩 → 膨脹把沒偵測到的門洞封起來 →
+    從影像邊界灌水,灌不進的區域=建物(含牆) → 同核侵蝕還原邊界(膨脹誤差互相抵銷) →
+    最大連通塊再內縮外圍牆厚 = 可用區域內緣。膨脹半徑逐步放大;面積太小或只圈到
+    局部(寬/高涵蓋不足)視為殼漏水,放大重試;仍失敗回傳 None 讓欄位留空。"""
+    if not rects:
+        return None
+    mask = np.zeros((img_h, img_w), np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(mask, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for _o, x0, y0, x1, y1 in wins:
+        cv2.rectangle(mask, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for d in doors:                              # 偵測到的門洞沿牆補回
+        _h, _c, along, _s = _door_geometry(d, rects, T)
+        cx, cy, r = d[0], d[1], d[2]
+        p2 = (int(round(cx + r * along[0])), int(round(cy + r * along[1])))
+        cv2.line(mask, (int(round(cx)), int(round(cy))), p2, 255, max(2, int(T)))
+    X0 = min(r_[0] for r_ in rects); Y0 = min(r_[1] for r_ in rects)
+    X1 = max(r_[2] for r_ in rects); Y1 = max(r_[3] for r_ in rects)
+    bbox_area = (X1 - X0) * (Y1 - Y0)
+    for g in (1.5, 2.5, 3.5):                    # 膨脹半徑(×T)，可封 2 倍寬的洞
+        k = 2 * max(2, int(round(g * T))) + 1
+        ker = np.ones((k, k), np.uint8)
+        ff = np.pad(cv2.dilate(mask, ker), 1).copy()
+        cv2.floodFill(ff, None, (0, 0), 128)     # 外部自由區→128；封閉孔洞=室內
+        filled = ((ff[1:-1, 1:-1] != 128).astype(np.uint8)) * 255
+        fp = cv2.erode(filled, ker, borderValue=0)
+        ero = 2 * max(2, int(round(T_out))) + 1  # 內縮 T_out → 外牆內緣
+        blk = cv2.erode(fp, np.ones((ero, ero), np.uint8), borderValue=0)
+        # 沒封住的房間會漏到室外、內縮後整塊消失——所以驗收要做在「內縮後的
+        # 最大連通塊」上：面積夠大且寬高涵蓋整個牆 bbox，才代表殼真的封起來了
+        n, lab, stats, _ = cv2.connectedComponentsWithStats(blk)
+        if n < 2:
+            continue
+        i_max = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+        s = stats[i_max]
+        if (s[cv2.CC_STAT_AREA] < 0.25 * bbox_area or
+                s[cv2.CC_STAT_WIDTH] < 0.55 * (X1 - X0) or
+                s[cv2.CC_STAT_HEIGHT] < 0.55 * (Y1 - Y0)):
+            continue                             # 漏水/只圈到局部 → 加大封口再試
+        blk = (lab == i_max).astype(np.uint8) * 255
+        cnts, _ = cv2.findContours(blk, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not cnts:
+            continue
+        c = max(cnts, key=cv2.contourArea)
+        poly = cv2.approxPolyDP(c, max(2.0, 0.4 * T), True)[:, 0, :]
+        if len(poly) >= 4:
+            return poly.astype(float)
+    return None
+
+
+def write_arch_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info,
+                    cfg: Config, T, T_out):
+    """白模交接 architecture.json：units/walls/windows/doors 必填，cm、原點左下 y 向上。
+    2D 平面圖沒有立面資訊——牆高/窗高/窗台高用 config [arch] 預設值。
+    門的 position=門洞中心、rotation=門面法線(指向開門側)、
+    hinge=站在開門側面對門時鉸鏈在左/右。swing_in=開闔弧中點落在可用區域內。"""
+    cm = mm_per_px / 10.0
+
+    def pt(x, y):                                # 影像座標 → cm(y 翻轉)
+        return {"x": round(x * cm, 2), "y": round((img_h - y) * cm, 2)}
+
+    walls = []
+    for i, (x0, y0, x1, y1) in enumerate(rects, 1):
+        w, h = x1 - x0, y1 - y0
+        walls.append({"id": f"wall_{i}",
+                      "position": pt((x0 + x1) / 2.0, (y0 + y1) / 2.0),
+                      "rotation": 0 if w >= h else 90,
+                      "width": round(max(w, h) * cm, 2),
+                      "thickness": round(min(w, h) * cm, 2),
+                      "height": cfg.wall_height_cm})
+
+    windows = []
+    for i, (o, x0, y0, x1, y1) in enumerate(wins, 1):
+        entry = {"id": f"win_{i}",
+                 "position": pt((x0 + x1) / 2.0, (y0 + y1) / 2.0),
+                 "rotation": 0 if o == "h" else 90,
+                 "width": round(((x1 - x0) if o == "h" else (y1 - y0)) * cm, 2),
+                 "height": cfg.window_height_cm,
+                 "sill_height": cfg.sill_height_cm}
+        hw = _host_wall_for_window((o, x0, y0, x1, y1), rects, T)
+        if hw is not None:
+            entry["host_wall"] = f"wall_{hw + 1}"
+        windows.append(entry)
+
+    poly = _room_polygon(rects, wins, doors, img_w, img_h, T, T_out)
+    cnt = poly.reshape(-1, 1, 2).astype(np.float32) if poly is not None else None
+
+    # json/ 保留全部門(帶 score 給前端過濾)；arch/ 直接蓋白模：只收高信心門，
+    # 且換算後門寬要合理(50~250cm)——高分小弧多半是櫃門/雙開門的半扇
+    good = [d for d in doors if d[3] >= 0.85 and 50.0 <= d[2] * cm <= 250.0]
+    door_list = []
+    for i, d in enumerate(good, 1):
+        cx, cy, r = d[0], d[1], d[2]
+        host, (mx, my), along, swing = _door_geometry(d, rects, T)
+        nx, ny = swing[0], -swing[1]             # 開門側方向：影像→cm(y 翻轉)
+        rot = int(round(math.degrees(math.atan2(ny, nx)))) % 360
+        fx, fy = -nx, -ny                        # 站在開門側面對門
+        lx, ly = -fy, fx                         # 面向方向逆時針90° = 左手邊
+        vx = cx * cm - mx * cm                   # 門洞中心→鉸鏈(cm，x 分量)
+        vy_cm = (img_h - cy) * cm - (img_h - my) * cm
+        entry = {"id": f"door_{i}", "position": pt(mx, my), "rotation": rot,
+                 "width": round(r * cm, 2),
+                 "hinge": "left" if vx * lx + vy_cm * ly > 0 else "right"}
+        if host is not None:
+            entry["host_wall"] = f"wall_{host + 1}"
+        if cnt is not None:                      # 開闔弧中點在可用區域內=向內開
+            ax = cx + r * 0.7071 * (along[0] + swing[0])
+            ay = cy + r * 0.7071 * (along[1] + swing[1])
+            entry["swing_in"] = bool(
+                cv2.pointPolygonTest(cnt, (float(ax), float(ay)), False) >= 0)
+        door_list.append(entry)
+
+    data = {"units": "cm"}
+    if poly is not None:
+        data["room_polygon"] = [[round(float(x) * cm, 2),
+                                 round((img_h - float(y)) * cm, 2)] for x, y in poly]
+    data.update(walls=walls, windows=windows, doors=door_list,
+                meta={"image": os.path.basename(cfg.input),
+                      "cm_per_px": round(cm, 4),
+                      "scale_method": info.get("method"),
+                      "scale_confidence": info.get("confidence")})
     with open(path, "w", encoding="utf-8") as fp:
         json.dump(data, fp, ensure_ascii=False, indent=2)
 
@@ -996,17 +1182,21 @@ def run(cfg: Config):
         base = os.path.splitext(os.path.basename(cfg.output))[0]
         os.makedirs("dxf_scale", exist_ok=True)
         os.makedirs("json", exist_ok=True)
+        os.makedirs("arch", exist_ok=True)
         scale_out = os.path.join("dxf_scale", base + ".dxf")
         json_out = os.path.join("json", base + ".json")
+        arch_out = os.path.join("arch", base + ".json")
         write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
         write_json(json_out, img_w, img_h, rects, wins, doors, mmpp, sinfo, cfg, scale_out)
+        write_arch_json(arch_out, img_w, img_h, rects, wins, doors, mmpp, sinfo,
+                        cfg, T, T_out)
 
         print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid")
         print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個 (門洞留開)")
         print(f"比例尺 : {mmpp / 10.0:.4f} cm/px  ({sinfo['method']}, 信心 {sinfo['confidence']}, "
               f"高信心門 {sinfo['doors_used']} 扇)")
         print(f"輸出   : {cfg.output}" + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
-        print(f"         {scale_out} (cm)   {json_out}")
+        print(f"         {scale_out} (cm)   {json_out}   {arch_out}")
         return
     bw = bw_open
 

@@ -1,0 +1,35 @@
+{
+  "units": "cm",
+  "walls": [
+    {
+      "id": "wall_1",
+      "position": {
+        "x": 238.12,
+        "y": 853.12
+      },
+      "rotation": 0,
+      "width": 26.25,
+      "thickness": 3.75,
+      "height": 280.0
+    },
+    {
+      "id": "wall_2",
+      "position": {
+        "x": 1216.88,
+        "y": 1730.62
+      },
+      "rotation": 90,
+      "width": 26.25,
+      "thickness": 3.75,
+      "height": 280.0
+    }
+  ],
+  "windows": [],
+  "doors": [],
+  "meta": {
+    "image": "floor08.png",
+    "cm_per_px": 3.75,
+    "scale_method": "wall_min",
+    "scale_confidence": "low"
+  }
+}
