@@ -1,0 +1,26 @@
+{
+  "style": "日式風格",
+  "room_type": "客廳",
+  "prefer_color": [
+    "米白色"
+  ],
+  "requirement": [
+    "日式風格客廳",
+    "主色調米白色",
+    "不要沙發",
+    "以坐墊替代沙發"
+  ],
+  "constraints": {
+    "exclude_categories": [
+      "沙發"
+    ],
+    "include_categories": [
+      "坐墊",
+      "茶几"
+    ],
+    "must_keep": [],
+    "notes": [
+      "以坐墊承接沙發的座位功能，圍繞茶几成組"
+    ]
+  }
+}

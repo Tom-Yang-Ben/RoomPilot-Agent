@@ -1,0 +1,130 @@
+{
+  "room_type": "客廳",
+  "furniture": [
+    {
+      "id": "f_1",
+      "catalog_id": "cushion_001",
+      "name": "亞麻和室坐墊",
+      "category": "坐墊",
+      "position": {
+        "x": 200,
+        "y": 95
+      },
+      "rotation": 0,
+      "dimensions": {
+        "width": 60,
+        "depth": 60,
+        "height": 12
+      },
+      "glb_path": "assets/cushion_001.glb"
+    },
+    {
+      "id": "f_2",
+      "catalog_id": "cushion_001",
+      "name": "亞麻和室坐墊",
+      "category": "坐墊",
+      "position": {
+        "x": 110,
+        "y": 160
+      },
+      "rotation": 270,
+      "dimensions": {
+        "width": 60,
+        "depth": 60,
+        "height": 12
+      },
+      "glb_path": "assets/cushion_001.glb"
+    },
+    {
+      "id": "f_3",
+      "catalog_id": "cushion_001",
+      "name": "亞麻和室坐墊",
+      "category": "坐墊",
+      "position": {
+        "x": 290,
+        "y": 160
+      },
+      "rotation": 90,
+      "dimensions": {
+        "width": 60,
+        "depth": 60,
+        "height": 12
+      },
+      "glb_path": "assets/cushion_001.glb"
+    },
+    {
+      "id": "f_4",
+      "catalog_id": "table_low_004",
+      "name": "橡木和室矮桌",
+      "category": "茶几",
+      "position": {
+        "x": 200,
+        "y": 160
+      },
+      "rotation": 0,
+      "dimensions": {
+        "width": 100,
+        "depth": 60,
+        "height": 35
+      },
+      "glb_path": "assets/table_low_004.glb"
+    },
+    {
+      "id": "f_5",
+      "catalog_id": "rug_natural_002",
+      "name": "米白編織地毯",
+      "category": "地毯",
+      "position": {
+        "x": 200,
+        "y": 160
+      },
+      "rotation": 0,
+      "dimensions": {
+        "width": 200,
+        "depth": 140,
+        "height": 2
+      },
+      "glb_path": "assets/rug_natural_002.glb"
+    },
+    {
+      "id": "f_6",
+      "catalog_id": "cabinet_low_007",
+      "name": "橡木電視矮櫃",
+      "category": "電視櫃",
+      "position": {
+        "x": 378,
+        "y": 160
+      },
+      "rotation": 90,
+      "dimensions": {
+        "width": 120,
+        "depth": 40,
+        "height": 45
+      },
+      "glb_path": "assets/cabinet_low_007.glb",
+      "clearance_zones": [
+        {
+          "anchor": "front",
+          "depth": 30
+        }
+      ]
+    },
+    {
+      "id": "f_7",
+      "catalog_id": "floorlamp_003",
+      "name": "和紙落地燈",
+      "category": "落地燈",
+      "position": {
+        "x": 360,
+        "y": 260
+      },
+      "rotation": 0,
+      "dimensions": {
+        "width": 30,
+        "depth": 30,
+        "height": 150
+      },
+      "glb_path": "assets/floorlamp_003.glb"
+    }
+  ]
+}

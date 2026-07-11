@@ -12,6 +12,7 @@ from urllib import error, request
 from shapely.geometry import Polygon, box as shapely_box
 from shapely.ops import unary_union
 
+from ..agent import design_layout_intent, run_recovery
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
@@ -407,6 +408,7 @@ def _placement_candidates(
     depth: float,
     room_width_cm: float,
     room_depth_cm: float,
+    hint: dict[str, Any] | None = None,
 ) -> list[tuple[float, float, float]]:
     left = -room_width_cm / 2
     right = room_width_cm / 2
@@ -415,6 +417,25 @@ def _placement_candidates(
     center_x = 0.0
     center_z = 0.0
     candidates: list[tuple[float, float, float]] = []
+
+    # Agent 3 提示:指定靠牆側時,把一組靠該牆的候選 prepend 到最前面優先試放。
+    # 只影響「試放順序」,合法性仍由 check_placement_with_clearance 把關(鐵律不變)。
+    anchor = (hint or {}).get("anchor")
+    anchored: list[tuple[float, float, float]] = []
+    if anchor == "top":
+        z = top + depth / 2 + 24
+        anchored = [(center_x, z, 0), (-room_width_cm * 0.22, z, 0), (room_width_cm * 0.22, z, 0)]
+    elif anchor == "bottom":
+        z = bottom - depth / 2 - 36
+        anchored = [(center_x, z, 180), (-room_width_cm * 0.18, z, 180), (room_width_cm * 0.18, z, 180)]
+    elif anchor == "left":
+        x = left + width / 2 + 20
+        anchored = [(x, center_z, 90), (x, -room_depth_cm * 0.2, 90), (x, room_depth_cm * 0.2, 90)]
+    elif anchor == "right":
+        x = right - width / 2 - 20
+        anchored = [(x, center_z, -90), (x, -room_depth_cm * 0.2, -90), (x, room_depth_cm * 0.2, -90)]
+    elif anchor == "center":
+        anchored = [(center_x, center_z, 0)]
 
     if item_type == "tv-bench":
         candidates.extend([(center_x, top + depth / 2 + 24, 0), (-room_width_cm * 0.22, top + depth / 2 + 24, 0)])
@@ -453,7 +474,7 @@ def _placement_candidates(
         for x in grid_x:
             candidates.append((x, z, 0))
 
-    return candidates
+    return anchored + candidates
 
 
 # 這些類型沿用舊行為,不參與碰撞(地毯在家具下方、壁架掛牆面)
@@ -490,7 +511,7 @@ def _inside_boundary(candidate: PlacedFurniture, boundary: Polygon | None) -> bo
 
 
 def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
-    """非矩形房間的最後防線:沿房間多邊形內部以 0.5m 網格搜尋(由質心向外)。
+    """非矩形房間的最後防線:沿房間多邊形內部以 50cm 網格搜尋(由質心向外)。
 
     錨點與引擎網格都以 bbox 為座標基準,房間只佔 bbox 一角時全會撲空,
     這裡改以房間多邊形自己的範圍掃描。
@@ -501,7 +522,7 @@ def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
     prepared = prep(boundary)
     minx, miny, maxx, maxy = boundary.bounds
     cx, cy = boundary.centroid.x, boundary.centroid.y
-    step = 0.5
+    step = 50.0
 
     cands = []
     y = miny + step / 2
@@ -522,16 +543,16 @@ def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
     return None
 
 
-def _four_wall_room(width_m: float, depth_m: float) -> Room:
-    """手動輸入尺寸時的矩形房間(引擎座標:角落原點、公尺)。"""
+def _four_wall_room(width_cm: float, depth_cm: float) -> Room:
+    """手動輸入尺寸時的矩形房間(引擎座標:角落原點、公分)。"""
     return Room(
-        width=width_m,
-        depth=depth_m,
+        width=width_cm,
+        depth=depth_cm,
         walls=[
-            Wall(0, 0, width_m, 0),
-            Wall(width_m, 0, width_m, depth_m),
-            Wall(width_m, depth_m, 0, depth_m),
-            Wall(0, depth_m, 0, 0),
+            Wall(0, 0, width_cm, 0),
+            Wall(width_cm, 0, width_cm, depth_cm),
+            Wall(width_cm, depth_cm, 0, depth_cm),
+            Wall(0, depth_cm, 0, 0),
         ],
     )
 
@@ -539,23 +560,23 @@ def _four_wall_room(width_m: float, depth_m: float) -> Room:
 def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
     """由 payload 的 floorplan 區塊重建引擎 Room(拖曳驗證/重排都是無狀態請求)。
 
-    wall_segments 是房間中心原點、公尺;引擎要角落原點 → 平移 half。
-    沒有牆段(手動模式)就退回矩形房。
+    wall_segments 是房間中心原點、公尺(three.js 契約);引擎公分、角落原點
+    → ×100 再平移 half。沒有牆段(手動模式)就退回矩形房。
     """
     floorplan = floorplan or {}
-    width = max(float(floorplan.get("width_cm") or 420), 240) / 100
-    depth = max(float(floorplan.get("depth_cm") or 360), 240) / 100
+    width = max(float(floorplan.get("width_cm") or 420), 240)
+    depth = max(float(floorplan.get("depth_cm") or 360), 240)
 
     walls: list[Wall] = []
     for seg in floorplan.get("wall_segments") or []:
         try:
             walls.append(
                 Wall(
-                    float(seg["start"]["x"]) + width / 2,
-                    float(seg["start"]["z"]) + depth / 2,
-                    float(seg["end"]["x"]) + width / 2,
-                    float(seg["end"]["z"]) + depth / 2,
-                    thickness=0.06,
+                    float(seg["start"]["x"]) * 100 + width / 2,
+                    float(seg["start"]["z"]) * 100 + depth / 2,
+                    float(seg["end"]["x"]) * 100 + width / 2,
+                    float(seg["end"]["z"]) * 100 + depth / 2,
+                    thickness=6.0,
                 )
             )
         except (KeyError, TypeError, ValueError):
@@ -580,8 +601,8 @@ def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: fl
     return PlacedFurniture(
         id=str(obj.get("furniture_id") or "item"),
         catalog=catalog,
-        pos_x=(float(pos.get("x") or 0) + half_w_cm) / 100,
-        pos_y=(float(pos.get("z") or 0) + half_d_cm) / 100,
+        pos_x=float(pos.get("x") or 0) + half_w_cm,
+        pos_y=float(pos.get("z") or 0) + half_d_cm,
         rotation=(-float(obj.get("rotation_y_deg") or 0)) % 360,
     )
 
@@ -590,7 +611,7 @@ def _shrunk_boundary(room: Room) -> Polygon | None:
     boundary = _room_boundary_polygon(room)
     if boundary is None:
         return None
-    shrunk = boundary.buffer(-0.08)
+    shrunk = boundary.buffer(-8.0)
     return boundary if shrunk.is_empty else shrunk
 
 
@@ -603,17 +624,17 @@ def _regions_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon |
     if not polys:
         return None
     union = unary_union(polys)
-    shrunk = union.buffer(-0.08)
+    shrunk = union.buffer(-8.0)
     return union if shrunk.is_empty else shrunk
 
 
 def _region_polygons(floorplan: dict[str, Any] | None, room: Room) -> list[Polygon]:
-    """payload 的 room_regions({exterior, holes},房間中心原點)→ 角落原點多邊形。"""
+    """payload 的 room_regions({exterior, holes},房間中心原點、公尺)→ 角落原點公分多邊形。"""
     polys: list[Polygon] = []
     for region in (floorplan or {}).get("room_regions") or []:
         try:
             def _shift(ring):
-                return [(p[0] + room.width / 2, p[1] + room.depth / 2) for p in ring]
+                return [(p[0] * 100 + room.width / 2, p[1] * 100 + room.depth / 2) for p in ring]
 
             poly = Polygon(_shift(region["exterior"]), [_shift(h) for h in region.get("holes") or []])
             if not poly.is_valid:
@@ -631,7 +652,7 @@ def _largest_region_boundary(floorplan: dict[str, Any] | None, room: Room) -> Po
     if not polys:
         return None
     best = max(polys, key=lambda p: p.area)
-    shrunk = best.buffer(-0.08)
+    shrunk = best.buffer(-8.0)
     return best if shrunk.is_empty else shrunk
 
 
@@ -670,6 +691,7 @@ def generate_layout(
     room: Room | None = None,
     regions_boundary: Polygon | None = None,
     place_boundary: Polygon | None = None,
+    hints: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
@@ -677,27 +699,41 @@ def generate_layout(
     合法性由引擎的 check_placement_with_clearance 把關,錨點全數不合法時
     退回引擎的網格搜尋(place_furniture),再不行就標記 placement_failed。
 
+    hints(選填):Agent 3 的擺放語意提示,以 furniture_id 為鍵。只影響「試放
+    順序」——priority 決定先擺誰、anchor 決定優先靠哪面牆;hints=None 時行為與
+    整合前完全一致(/api/scene/layout 的呼叫不受影響)。座標仍 100% 由引擎算。
+
     座標契約(對前端不變):position_cm 為房間中心原點、公分;rotation_y_deg
     為 three.js 的 Y 軸旋轉(與引擎旋轉方向相反,進出引擎時取負號)。
     """
     if room is None:
-        room = _four_wall_room(max(room_width_cm, 240) / 100, max(room_depth_cm, 240) / 100)
+        room = _four_wall_room(max(room_width_cm, 240), max(room_depth_cm, 240))
 
     # 擺放搜尋邊界(內縮 8cm 邊距):DXF 模式傳入最大自由空間;
     # 矩形房由牆環重建(等價於 bbox)。注意 DXF fallback 模式的 Room.walls
     # 是多個獨立環,不能拿去重建多邊形 —— 所以 DXF 一律走傳入的 place_boundary。
     boundary = place_boundary if place_boundary is not None else _shrunk_boundary(room)
 
-    room_w_cm = room.width * 100
-    room_d_cm = room.depth * 100
+    room_w_cm = room.width
+    room_d_cm = room.depth
     half_w_cm = room_w_cm / 2
     half_d_cm = room_d_cm / 2
 
+    # 擺放順序:鎖定位置(使用者拖曳過)最先,避免被後放的家具擠掉;
+    # 其次 Agent priority 提示(升冪),其餘維持原始順序。
+    # 輸出仍照原始 items 順序(以 results 對應),不動前端拿到的清單順序。
+    def _order_key(i: int) -> tuple:
+        locked_rank = 0 if items[i].get("position_locked") else 1
+        hint = (hints or {}).get(items[i].get("furniture_id")) or {}
+        priority = hint.get("priority")
+        if isinstance(priority, int):
+            return (locked_rank, 0, priority, i)
+        return (locked_rank, 1, 0, i)
+
+    order = sorted(range(len(items)), key=_order_key)
+
     placed: list[PlacedFurniture] = []
     results: dict[int, dict[str, Any]] = {}
-
-    # 鎖定位置(使用者拖曳過)的先處理,避免被後放的家具擠掉
-    order = sorted(range(len(items)), key=lambda i: 0 if items[i].get("position_locked") else 1)
 
     for index in order:
         item = items[index]
@@ -709,6 +745,7 @@ def generate_layout(
             item_type, item.get("name_zh_raw") or item.get("furniture_id"), width, depth, height
         )
         item_id = f"{item_type or 'item'}_{index + 1}"
+        hint = (hints or {}).get(item.get("furniture_id"))
 
         x_cm: float | None = None
         z_cm: float | None = None
@@ -743,22 +780,22 @@ def generate_layout(
             # 非矩形房間:固定點可能落在房間多邊形外(牆體裡),退到多邊形內部代表點
             probe = PlacedFurniture(
                 id=item_id, catalog=catalog,
-                pos_x=(x_cm + half_w_cm) / 100, pos_y=(z_cm + half_d_cm) / 100,
+                pos_x=x_cm + half_w_cm, pos_y=z_cm + half_d_cm,
             )
             if boundary is not None and not _inside_boundary(probe, boundary):
                 inner = boundary.representative_point()
-                x_cm = inner.x * 100 - half_w_cm
-                z_cm = inner.y * 100 - half_d_cm
+                x_cm = inner.x - half_w_cm
+                z_cm = inner.y - half_d_cm
         else:
-            for raw_x, raw_z, rot in _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm):
+            for raw_x, raw_z, rot in _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm, hint=hint):
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
                 cand_x = _clamp_axis(raw_x, -half_w_cm, half_w_cm, fp_w)
                 cand_z = _clamp_axis(raw_z, -half_d_cm, half_d_cm, fp_d)
                 candidate = PlacedFurniture(
                     id=item_id,
                     catalog=catalog,
-                    pos_x=(cand_x + half_w_cm) / 100,
-                    pos_y=(cand_z + half_d_cm) / 100,
+                    pos_x=cand_x + half_w_cm,
+                    pos_y=cand_z + half_d_cm,
                     rotation=(-rot) % 360,
                 )
                 if (
@@ -777,8 +814,8 @@ def generate_layout(
                     engine_item = _grid_place_in_boundary(catalog, item_id, room, placed, boundary)
                 if engine_item is not None:
                     placed.append(engine_item)
-                    x_cm = engine_item.pos_x * 100 - half_w_cm
-                    z_cm = engine_item.pos_y * 100 - half_d_cm
+                    x_cm = engine_item.pos_x - half_w_cm
+                    z_cm = engine_item.pos_y - half_d_cm
                     rotation = (-engine_item.rotation) % 360
                 else:
                     failed_reason = result["reason"] or "找不到落在房間形狀內的合法位置"
@@ -837,28 +874,35 @@ def _flip_parsed_z(parsed: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, Room | None]:
+def parse_floorplan_with_engine(
+    dxf_text: str,
+    scale_m: float | None = None,
+) -> tuple[dict[str, Any] | None, Room | None]:
     """DXF 文字 → (payload 的 floorplan 區塊, 引擎 Room)。
 
     解析走 upgrade3d.dxf_parser(ezdxf,平面中心原點、公尺),
     再由 engine.dxf_room 取最大封閉房間轉成 Room(角落原點)。
     回傳的線段座標一律換算成「房間中心原點、公尺」,維持前端 viewer 契約。
+    scale_m 是 F2a 手動拉比例的校正結果(全圖長邊的實際公尺數),覆寫自動猜測。
     """
     try:
-        parsed = _flip_parsed_z(parse_dxf_bytes(dxf_text.encode("utf-8", errors="ignore"), "upload.dxf"))
+        parsed = _flip_parsed_z(
+            parse_dxf_bytes(dxf_text.encode("utf-8", errors="ignore"), "upload.dxf", scale_m=scale_m)
+        )
         build = build_room_from_dxf(parsed)
     except Exception:
         return None, None
 
     room = build.room
     ox, oz = build.offset
-    room_center_x = ox + room.width / 2   # 房間中心(平面座標)
-    room_center_z = oz + room.depth / 2
+    # 房間中心(平面座標、公尺)—— room/offset 是公分,parsed 線段與 payload 線段是公尺
+    room_center_x = (ox + room.width / 2) / 100
+    room_center_z = (oz + room.depth / 2) / 100
 
     wall_segments = [
         {
-            "start": {"x": round(w.x1 - room.width / 2, 3), "z": round(w.y1 - room.depth / 2, 3)},
-            "end": {"x": round(w.x2 - room.width / 2, 3), "z": round(w.y2 - room.depth / 2, 3)},
+            "start": {"x": round((w.x1 - room.width / 2) / 100, 3), "z": round((w.y1 - room.depth / 2) / 100, 3)},
+            "end": {"x": round((w.x2 - room.width / 2) / 100, 3), "z": round((w.y2 - room.depth / 2) / 100, 3)},
         }
         for w in room.walls
     ]
@@ -911,8 +955,8 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
         room_regions = []
 
     floorplan = {
-        "width_cm": round(room.width * 100, 1),
-        "depth_cm": round(room.depth * 100, 1),
+        "width_cm": round(room.width, 1),
+        "depth_cm": round(room.depth, 1),
         "source": "dxf",
         "wall_count": len(room.walls),
         "door_count": len(doors),
@@ -942,7 +986,13 @@ def build_scene_payload(
     engine_room = None
     dxf_text = questionnaire.get("floorplan_dxf_text")
     if dxf_text:
-        parsed_floorplan, engine_room = parse_floorplan_with_engine(dxf_text)
+        # F2a 手動拉比例:前端兩點標定算出的全圖跨距(公尺),沒有就交給解析器自動猜
+        raw_scale = questionnaire.get("floorplan_scale_m")
+        try:
+            scale_m = float(raw_scale) if raw_scale else None
+        except (TypeError, ValueError):
+            scale_m = None
+        parsed_floorplan, engine_room = parse_floorplan_with_engine(dxf_text, scale_m=scale_m)
 
     effective_width_cm = parsed_floorplan["width_cm"] if parsed_floorplan else room_width_cm
     effective_depth_cm = parsed_floorplan["depth_cm"] if parsed_floorplan else room_depth_cm
@@ -956,13 +1006,51 @@ def build_scene_payload(
         effective_depth_cm,
         plan.get("preferred_colors", []) + questionnaire.get("custom_colors", []),
     )
+
+    # Agent 3:擺放語意提示(靠牆側/朝向/成組/優先序,不出座標)。
+    # 無 LLM 或呼叫失敗 → 回 {},引擎沿用預設候選順序,行為與整合前一致。
+    hints = design_layout_intent(
+        plan,
+        selected_items,
+        {"width_cm": effective_width_cm, "depth_cm": effective_depth_cm},
+        {
+            "windows": parsed_floorplan.get("window_segments", []) if parsed_floorplan else [],
+            "doors": parsed_floorplan.get("door_segments", []) if parsed_floorplan else [],
+        },
+        complete=_openrouter_request,
+    )
+    _regions = _regions_boundary(parsed_floorplan, engine_room) if engine_room else None
+    _place_bound = _largest_region_boundary(parsed_floorplan, engine_room) if engine_room else None
     objects = generate_layout(
         effective_width_cm,
         effective_depth_cm,
         selected_items,
         room=engine_room,
-        regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
-        place_boundary=_largest_region_boundary(parsed_floorplan, engine_room) if engine_room else None,
+        regions_boundary=_regions,
+        place_boundary=_place_bound,
+        hints=hints,
+    )
+
+    # Agent 4:引擎放不下的家具 → 換更小同型號 / 移除 / 升級,重擺至收斂。
+    # 座標仍 100% 由引擎(place_fn)算;無 LLM 時走確定性換小/移除。
+    def _place(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return generate_layout(
+            effective_width_cm,
+            effective_depth_cm,
+            items,
+            room=engine_room,
+            regions_boundary=_regions,
+            place_boundary=_place_bound,
+            hints=hints,
+        )
+
+    objects, selected_items, recovery = run_recovery(
+        objects,
+        selected_items,
+        plan,
+        site_payload["furniture"],
+        place_fn=_place,
+        complete=_openrouter_request,
     )
 
     style = next(
@@ -1021,6 +1109,7 @@ def build_scene_payload(
                 if obj.get("placement_failed")
             ],
             "unavailable_types": unavailable_types,
+            "recovery": recovery,
         },
     }
 

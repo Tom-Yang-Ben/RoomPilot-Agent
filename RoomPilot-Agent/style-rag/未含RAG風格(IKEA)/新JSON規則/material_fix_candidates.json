@@ -1,0 +1,4277 @@
+{
+  "generated_note": "由名稱關鍵字抽材質的補值候選；confidence=keyword_match。",
+  "rule": "掃描名稱的材質關鍵字（wood/oak/velvet/metal…），僅補原本為空者。",
+  "count": 610,
+  "candidates": [
+    {
+      "furniture_id": "fi-air-purifiers-12-starkvind-table-with-air-purifier-stained-oak-veneer-white-smart",
+      "normalized_type": "air-purifier",
+      "name": "STARKVIND Table with air purifier - stained oak veneer/white smart",
+      "material": "oak, wood veneer",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-air-purifiers-13-starkvind-table-with-air-purifier-stained-oak-veneer-dark-brown-smart",
+      "normalized_type": "air-purifier",
+      "name": "STARKVIND Table with air purifier - stained oak veneer/dark brown smart",
+      "material": "oak, wood veneer",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-extractor-hoods-01-underverk-built-in-extractor-hood-stainless-steel-60-cm",
+      "normalized_type": "extractor-hood",
+      "name": "UNDERVERK Built-in extractor hood - stainless steel 60 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-extractor-hoods-03-mat-lskare-wall-mounted-extractor-hood-stainless-steel-60-cm",
+      "normalized_type": "extractor-hood",
+      "name": "MATÄLSKARE Wall mounted extractor hood - stainless steel 60 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-extractor-hoods-05-r-fsebo-wall-mounted-extractor-hood-ikea-500-stainless-steel-colour-80-cm",
+      "normalized_type": "extractor-hood",
+      "name": "RÄFSEBO Wall mounted extractor hood - IKEA 500 stainless steel colour 80 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-extractor-hoods-07-rytmisk-wall-mounted-extractor-hood-stainless-steel-60-cm",
+      "normalized_type": "extractor-hood",
+      "name": "RYTMISK Wall mounted extractor hood - stainless steel 60 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-extractor-hoods-11-underverk-built-in-extractor-hood-stainless-steel-80-cm",
+      "normalized_type": "extractor-hood",
+      "name": "UNDERVERK Built-in extractor hood - stainless steel 80 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-extractor-hoods-12-utdrag-built-in-extractor-hood-stainless-steel-60-cm",
+      "normalized_type": "extractor-hood",
+      "name": "UTDRAG Built-in extractor hood - stainless steel 60 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-extractor-hoods-18-nilsbyn-wall-mounted-extractor-hood-ikea-300-stainless-steel-colour-60-cm",
+      "normalized_type": "extractor-hood",
+      "name": "NILSBYN Wall mounted extractor hood - IKEA 300 stainless steel colour 60 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-extractor-hoods-19-kulinarisk-wall-mounted-extractor-hood-stainless-steel-glass-90-cm",
+      "normalized_type": "extractor-hood",
+      "name": "KULINARISK Wall mounted extractor hood - stainless steel/glass 90 cm",
+      "material": "stainless steel, steel, glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-fridges-freezers-03-ribben-s-french-door-fridge-freezer-ikea-700-freestanding-stainless-steel-347-169-l",
+      "normalized_type": "fridge-freezer",
+      "name": "RIBBENÅS French door fridge/freezer - IKEA 700 freestanding/stainless steel 347/169 l",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-fridges-freezers-04-ribben-s-french-door-fridge-freezer-ikea-700-freestanding-black-stainless-steel-347-169-l",
+      "normalized_type": "fridge-freezer",
+      "name": "RIBBENÅS French door fridge/freezer - IKEA 700 freestanding/black stainless steel 347/169 l",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-fridges-freezers-10-m-ln-s-fridge-freezer-ikea-700-freestanding-stainless-steel-colour-249-106-l",
+      "normalized_type": "fridge-freezer",
+      "name": "MÖLNÅS Fridge/freezer - IKEA 700 freestanding/stainless steel colour 249/106 l",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-fridges-freezers-13-alings-s-fridge-freezer-ikea-500-freestanding-stainless-steel-210-106-l",
+      "normalized_type": "fridge-freezer",
+      "name": "ALINGSÅS Fridge/freezer - IKEA 500 freestanding/stainless steel 210/106 l",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-fridges-freezers-15-tynner-s-fridge-ikea-500-freestanding-stainless-steel-365-l",
+      "normalized_type": "fridge-freezer",
+      "name": "TYNNERÅS Fridge - IKEA 500 freestanding/stainless steel 365 l",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-fridges-freezers-22-tynner-s-freezer-ikea-500-freestanding-stainless-steel-286-l",
+      "normalized_type": "fridge-freezer",
+      "name": "TYNNERÅS Freezer - IKEA 500 freestanding/stainless steel 286 l",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-ovens-02-mat-lskare-forced-air-oven-ikea-300-stainless-steel",
+      "normalized_type": "oven",
+      "name": "MATÄLSKARE Forced air oven - IKEA 300 stainless steel",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-childrens-stools-benches-01-skogsduva-stool-cover-toadstool-shaped-red-white",
+      "normalized_type": "childrens-stools-benche",
+      "name": "SKOGSDUVA Stool cover - toadstool shaped/red white",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-childrens-tables-01-l-tt-children-s-table-with-2-chairs-white-pine",
+      "normalized_type": "childrens-table",
+      "name": "LÄTT Children's table with 2 chairs - white/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-childrens-tables-03-grejsimojs-children-s-table-wood-orange-84x42-cm",
+      "normalized_type": "childrens-table",
+      "name": "GREJSIMOJS Children's table - wood/orange 84x42 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-kids-chairs-stools-05-grejsimojs-cover-for-children-s-chair-faux-fur-pink",
+      "normalized_type": "kids-chairs-stool",
+      "name": "GREJSIMOJS Cover for children's chair - faux fur/pink",
+      "material": "faux fur, leather, fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-kids-chairs-stools-06-grejsimojs-cover-for-children-s-chair-faux-fur-blue",
+      "normalized_type": "kids-chairs-stool",
+      "name": "GREJSIMOJS Cover for children's chair - faux fur/blue",
+      "material": "faux fur, leather, fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-kids-chairs-stools-09-flisat-children-s-stool-pine",
+      "normalized_type": "kids-chairs-stool",
+      "name": "FLISAT Children's stool - pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-kids-chairs-stools-13-sandl-pare-stool-cover-black-white-zebra-pattern-38-cm",
+      "normalized_type": "kids-chairs-stool",
+      "name": "SANDLÖPARE Stool cover - black white/zebra pattern 38 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-kids-chairs-stools-16-sandl-pare-stool-cover-beige-brown-giraffe-pattern-38-cm",
+      "normalized_type": "kids-chairs-stool",
+      "name": "SANDLÖPARE Stool cover - beige brown/giraffe pattern 38 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-kids-chairs-stools-18-po-ng-children-s-armchair-birch-veneer-skogbo-animal-pattern",
+      "normalized_type": "kids-chairs-stool",
+      "name": "POÄNG Children's armchair - birch veneer/Skogbo animal pattern",
+      "material": "birch, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-kids-chairs-stools-19-po-ng-children-s-armchair-birch-veneer-knisa-light-beige",
+      "normalized_type": "kids-chairs-stool",
+      "name": "POÄNG Children's armchair - birch veneer/Knisa light beige",
+      "material": "birch, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-kids-chairs-stools-24-po-ng-children-s-armchair-frame-birch-veneer",
+      "normalized_type": "kids-chairs-stool",
+      "name": "POÄNG Children's armchair frame - birch veneer",
+      "material": "birch, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sheepskins-cowhides-01-ullerslev-sheepskin-light-brown-85-cm",
+      "normalized_type": "sheepskins-cowhide",
+      "name": "ULLERSLEV Sheepskin - light brown 85 cm",
+      "material": "sheepskin, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sheepskins-cowhides-02-ullerslev-sheepskin-light-grey-85-cm",
+      "normalized_type": "sheepskins-cowhide",
+      "name": "ULLERSLEV Sheepskin - light grey 85 cm",
+      "material": "sheepskin, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bed-frames-01-slattum-upholstered-bed-frame-vissle-dark-grey-160x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "SLATTUM Upholstered bed frame - Vissle dark grey 160x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bed-frames-02-neiden-bed-frame-pine-140x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "NEIDEN Bed frame - pine 140x200 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bed-frames-05-malm-bed-frame-high-white-stained-oak-veneer-160x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "MALM Bed frame, high - white stained oak veneer 160x200 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bed-frames-08-ramnefj-ll-upholstered-bed-frame-kilanda-light-beige-160x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "RAMNEFJÄLL Upholstered bed frame - Kilanda light beige 160x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bed-frames-14-gladstad-upholstered-bed-2-storage-boxes-kabusa-light-grey-140x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "GLADSTAD Upholstered bed, 2 storage boxes - Kabusa light grey 140x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bed-frames-15-idan-s-upholstered-bed-frame-gunnared-dark-grey-180x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "IDANÄS Upholstered bed frame - Gunnared dark grey 180x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bed-frames-16-t-ll-sen-upholstered-bed-frame-kulsta-grey-green-180x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "TÄLLÅSEN Upholstered bed frame - Kulsta grey-green 180x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bed-frames-18-bj-rksn-s-bed-frame-birch-birch-veneer-l-nset-160x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "BJÖRKSNÄS Bed frame - birch/birch veneer/Lönset 160x200 cm",
+      "material": "birch, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bed-frames-20-t-rnkullen-upholstered-bed-frame-tibbleby-beige-grey-180x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "TÄRNKULLEN Upholstered bed frame - Tibbleby beige/grey 180x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-beds-01-neiden-bed-frame-pine-90x200-cm",
+      "normalized_type": "bed",
+      "name": "NEIDEN Bed frame - pine 90x200 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-beds-02-idan-s-upholstered-storage-bed-naggen-beige-160x200-cm",
+      "normalized_type": "bed",
+      "name": "IDANÄS Upholstered storage bed - Naggen beige 160x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-beds-03-ramnefj-ll-upholstered-bed-frame-kilanda-light-beige-lur-y-160x200-cm",
+      "normalized_type": "bed",
+      "name": "RAMNEFJÄLL Upholstered bed frame - Kilanda light beige/Luröy 160x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-beds-04-slattum-upholstered-bed-frame-vissle-dark-grey-90x200-cm",
+      "normalized_type": "bed",
+      "name": "SLATTUM Upholstered bed frame - Vissle dark grey 90x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-beds-05-malm-bed-frame-high-white-stained-oak-veneer-l-nset-160x200-cm",
+      "normalized_type": "bed",
+      "name": "MALM Bed frame, high - white stained oak veneer/Lönset 160x200 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-mattresses-02-gotnes-foam-mattress-firm-light-blue-140x200-cm",
+      "normalized_type": "mattress",
+      "name": "ÅGOTNES Foam mattress - firm/light blue 140x200 cm",
+      "material": "foam, cotton",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-mattresses-12-plutten-foam-mattress-for-extendable-bed-80x200-cm",
+      "normalized_type": "mattress",
+      "name": "PLUTTEN Foam mattress for extendable bed 80x200 cm",
+      "material": "foam, cotton",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-outdoor-coffee-side-tables-11-vittsk-r-coffee-table-plastic-rattan-outdoor-dark-grey-110x58-cm",
+      "normalized_type": "outdoor-coffee-side-table",
+      "name": "VITTSKÄR Coffee table - plastic rattan outdoor/dark grey 110x58 cm",
+      "material": "rattan, plastic",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-outdoor-dining-05-soluppg-ng-folding-table-eucalyptus-82-cm",
+      "normalized_type": "outdoor-dining",
+      "name": "SOLUPPGÅNG Folding table - eucalyptus 82 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-outdoor-dining-21-askholmen-gateleg-table-outdoor-acacia",
+      "normalized_type": "outdoor-dining",
+      "name": "ASKHOLMEN Gateleg table, outdoor - acacia",
+      "material": "acacia, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-outdoor-seating-06-vittsk-r-2-seat-modular-sofa-outdoor-plastic-rattan-dark-grey",
+      "normalized_type": "outdoor-seating",
+      "name": "VITTSKÄR 2-seat modular sofa - outdoor/plastic rattan dark grey",
+      "material": "rattan, plastic",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-outdoor-seating-07-vittsk-r-2-seat-sofa-outdoor-plastic-rattan-dark-grey-fr-s-n-duvholmen-beige",
+      "normalized_type": "outdoor-seating",
+      "name": "VITTSKÄR 2-seat sofa - outdoor plastic rattan dark grey/Frösön/Duvholmen beige",
+      "material": "rattan, plastic",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-outdoor-seating-08-vittsk-r-2-seat-sofa-outdoor-plastic-rattan-dark-grey",
+      "normalized_type": "outdoor-seating",
+      "name": "VITTSKÄR 2-seat sofa - outdoor/plastic rattan dark grey",
+      "material": "rattan, plastic",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-01-hemnes-glass-door-cabinet-with-3-drawers-grey-green-light-brown-stained-90x197-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "HEMNES Glass-door cabinet with 3 drawers - grey-green/light brown stained 90x197 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-02-hemnes-glass-door-cabinet-with-3-drawers-white-stain-light-brown-90x197-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "HEMNES Glass-door cabinet with 3 drawers - white stain/light brown 90x197 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-03-hemnes-glass-door-cabinet-with-3-drawers-black-brown-light-brown-90x197-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "HEMNES Glass-door cabinet with 3 drawers - black-brown/light brown 90x197 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-05-billy-oxberg-bookcase-with-glass-doors-brown-walnut-effect-clear-glass-80x30x237-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase with glass doors - brown walnut effect/clear glass 80x30x237 cm",
+      "material": "walnut, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-06-billy-oxberg-bookcase-with-glass-doors-oak-effect-clear-glass-80x30x237-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase with glass doors - oak effect/clear glass 80x30x237 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-07-billy-oxberg-bookcase-w-glass-doors-ext-unit-oak-effect-clear-glass-80x30x237-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase w glass doors/ext unit - oak effect/clear glass 80x30x237 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-08-billy-oxberg-bookcase-w-hght-ext-ut-pnl-glss-drs-white-80x30x237-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase w hght ext ut/pnl/glss drs - white 80x30x237 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-12-billy-oxberg-bookcase-with-doors-brown-walnut-effect-80x30x106-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase with doors - brown walnut effect 80x30x106 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-13-billy-oxberg-bookcase-with-doors-black-oak-effect-80x30x106-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase with doors - black oak effect 80x30x106 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-14-rudsta-glass-door-cabinet-anthracite-80x37x120-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "RUDSTA Glass-door cabinet - anthracite 80x37x120 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-17-baggebo-glass-door-cabinet-metal-white-34x30x116-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BAGGEBO Glass-door cabinet - metal/white 34x30x116 cm",
+      "material": "metal, glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-18-havsta-storage-combination-w-glass-doors-white-81x47x212-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "HAVSTA Storage combination w glass-doors - white 81x47x212 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-19-havsta-storage-combination-w-glass-doors-grey-beige-81x47x212-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "HAVSTA Storage combination w glass-doors - grey-beige 81x47x212 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-22-stockholm-2025-glass-door-cabinet-oak-veneer-100x40x86-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "STOCKHOLM 2025 Glass-door cabinet - oak veneer 100x40x86 cm",
+      "material": "oak, wood veneer, glass, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-23-fryks-s-cabinet-rattan-81x124-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "FRYKSÅS Cabinet - rattan 81x124 cm",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-24-eket-cabinet-combination-with-legs-white-wood-70x35x80-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "EKET Cabinet combination with legs - white/wood 70x35x80 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-25-eket-cabinet-combination-with-legs-dark-grey-wood-70x35x80-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "EKET Cabinet combination with legs - dark grey/wood 70x35x80 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-26-eket-cabinet-w-2-doors-and-1-shelf-brown-walnut-effect-70x35x70-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "EKET Cabinet w 2 doors and 1 shelf - brown walnut effect 70x35x70 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-29-tonstad-storage-comb-w-sliding-glass-doors-oak-veneer-clear-glass-82x47x201-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "TONSTAD Storage comb w sliding glass doors - oak veneer/clear glass 82x47x201 cm",
+      "material": "oak, wood veneer, glass, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-30-tonstad-storage-comb-w-sliding-glass-doors-brown-stained-oak-veneer-clear-glass-82x47x201-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "TONSTAD Storage comb w sliding glass doors - brown stained oak veneer/clear glass 82x47x201 cm",
+      "material": "oak, wood veneer, glass, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-32-billy-oxberg-bookcase-with-glass-doors-brown-walnut-effect-80x30x202-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase with glass doors - brown walnut effect 80x30x202 cm",
+      "material": "walnut, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-33-billy-oxberg-bookcase-with-glass-doors-black-oak-effect-80x30x202-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase with glass doors - black oak effect 80x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-34-billy-oxberg-bookcase-with-glass-doors-oak-effect-80x30x202-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase with glass doors - oak effect 80x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-38-best-shelf-unit-with-doors-white-stained-oak-effect-lappviken-white-stained-oak-effect-60x42x193-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BESTÅ Shelf unit with doors - white stained oak effect/Lappviken white stained oak effect 60x42x193 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-42-billy-oxberg-bookcase-with-door-brown-walnut-effect-40x30x106-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase with door - brown walnut effect 40x30x106 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-cabinets-cupboards-43-billy-oxberg-bookcase-with-door-oak-effect-40x30x106-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BILLY / OXBERG Bookcase with door - oak effect 40x30x106 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-chests-of-drawers-02-malm-chest-of-4-drawers-white-stained-oak-veneer-80x100-cm",
+      "normalized_type": "chests-of-drawer",
+      "name": "MALM Chest of 4 drawers - white stained oak veneer 80x100 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-chests-of-drawers-04-malm-chest-of-6-drawers-white-stained-oak-veneer-160x78-cm",
+      "normalized_type": "chests-of-drawer",
+      "name": "MALM Chest of 6 drawers - white stained oak veneer 160x78 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-chests-of-drawers-06-rast-chest-of-3-drawers-pine-60x35x59-cm",
+      "normalized_type": "chests-of-drawer",
+      "name": "RAST Chest of 3 drawers - pine 60x35x59 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-chests-of-drawers-08-r-dmans-chest-of-3-drawers-brown-walnut-effect-90x48x81-cm",
+      "normalized_type": "chests-of-drawer",
+      "name": "RÅDMANSÖ Chest of 3 drawers - brown walnut effect 90x48x81 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-chests-of-drawers-12-malm-chest-of-6-drawers-white-stained-oak-veneer-80x123-cm",
+      "normalized_type": "chests-of-drawer",
+      "name": "MALM Chest of 6 drawers - white stained oak veneer 80x123 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-chests-of-drawers-27-kron-ren-chest-of-2-drawers-pine-76x48x55-cm",
+      "normalized_type": "chests-of-drawer",
+      "name": "KRONÖREN Chest of 2 drawers - pine 76x48x55 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-01-billy-oxberg-bookcase-with-panel-glass-doors-white-glass-120x30x202-cm",
+      "normalized_type": "display-cabinet",
+      "name": "BILLY / OXBERG Bookcase with panel/glass doors - white/glass 120x30x202 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-02-bl-liden-strims-v-glass-door-cabinet-with-lighting-white",
+      "normalized_type": "display-cabinet",
+      "name": "BLÅLIDEN / STRIMSÄV Glass-door cabinet with lighting - white",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-03-bl-liden-strims-v-glass-door-cabinet-with-lighting-black",
+      "normalized_type": "display-cabinet",
+      "name": "BLÅLIDEN / STRIMSÄV Glass-door cabinet with lighting - black",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-04-billy-oxberg-bookcase-with-glass-doors-white-80x30x106-cm",
+      "normalized_type": "display-cabinet",
+      "name": "BILLY / OXBERG Bookcase with glass-doors - white 80x30x106 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-05-rudsta-glass-door-cabinet-anthracite-42x37x155-cm",
+      "normalized_type": "display-cabinet",
+      "name": "RUDSTA Glass-door cabinet - anthracite 42x37x155 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-06-rudsta-glass-door-cabinet-blue-42x37x155-cm",
+      "normalized_type": "display-cabinet",
+      "name": "RUDSTA Glass-door cabinet - blue 42x37x155 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-07-bl-liden-glass-door-cabinet-black-35x32x151-cm",
+      "normalized_type": "display-cabinet",
+      "name": "BLÅLIDEN Glass-door cabinet - black 35x32x151 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-08-bl-liden-glass-door-cabinet-white-35x32x151-cm",
+      "normalized_type": "display-cabinet",
+      "name": "BLÅLIDEN Glass-door cabinet - white 35x32x151 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-09-lommarp-cabinet-with-glass-doors-dark-blue-green-86x199-cm",
+      "normalized_type": "display-cabinet",
+      "name": "LOMMARP Cabinet with glass doors - dark blue-green 86x199 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-10-billy-oxberg-bookcase-with-glass-door-brown-walnut-effect-clear-glass-40x30x202-cm",
+      "normalized_type": "display-cabinet",
+      "name": "BILLY / OXBERG Bookcase with glass door - brown walnut effect/clear glass 40x30x202 cm",
+      "material": "walnut, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-11-billy-oxberg-bookcase-with-glass-door-oak-effect-clear-glass-40x30x202-cm",
+      "normalized_type": "display-cabinet",
+      "name": "BILLY / OXBERG Bookcase with glass door - oak effect/clear glass 40x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-12-billy-oxberg-bookcase-with-glass-door-white-glass-40x30x202-cm",
+      "normalized_type": "display-cabinet",
+      "name": "BILLY / OXBERG Bookcase with glass door - white/glass 40x30x202 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-13-tonstad-storage-comb-w-sliding-glass-doors-oak-veneer-clear-glass-121x47x201-cm",
+      "normalized_type": "display-cabinet",
+      "name": "TONSTAD Storage comb w sliding glass doors - oak veneer/clear glass 121x47x201 cm",
+      "material": "oak, wood veneer, glass, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-14-tonstad-storage-comb-w-sliding-glass-doors-brown-stained-oak-veneer-clear-glass-121x47x201-cm",
+      "normalized_type": "display-cabinet",
+      "name": "TONSTAD Storage comb w sliding glass doors - brown stained oak veneer/clear glass 121x47x201 cm",
+      "material": "oak, wood veneer, glass, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-15-milsbo-glass-door-cabinet-white-101x100-cm",
+      "normalized_type": "display-cabinet",
+      "name": "MILSBO Glass-door cabinet - white 101x100 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-16-milsbo-glass-door-cabinet-anthracite-101x100-cm",
+      "normalized_type": "display-cabinet",
+      "name": "MILSBO Glass-door cabinet - anthracite 101x100 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-17-vihals-cabinet-with-sliding-glass-doors-white-95x37x90-cm",
+      "normalized_type": "display-cabinet",
+      "name": "VIHALS Cabinet with sliding glass doors - white 95x37x90 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-18-vihals-cabinet-with-sliding-glass-doors-dark-grey-95x37x90-cm",
+      "normalized_type": "display-cabinet",
+      "name": "VIHALS Cabinet with sliding glass doors - dark grey 95x37x90 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-19-billy-oxberg-bookcase-with-glass-doors-white-120x30x202-cm",
+      "normalized_type": "display-cabinet",
+      "name": "BILLY / OXBERG Bookcase with glass-doors - white 120x30x202 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-20-milsbo-glass-door-cabinet-white-73x175-cm",
+      "normalized_type": "display-cabinet",
+      "name": "MILSBO Glass-door cabinet - white 73x175 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-21-milsbo-glass-door-cabinet-anthracite-73x175-cm",
+      "normalized_type": "display-cabinet",
+      "name": "MILSBO Glass-door cabinet - anthracite 73x175 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-22-skruvby-cabinet-with-glass-doors-white-70x90-cm",
+      "normalized_type": "display-cabinet",
+      "name": "SKRUVBY Cabinet with glass doors - white 70x90 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-23-skruvby-cabinet-with-glass-doors-black-blue-70x90-cm",
+      "normalized_type": "display-cabinet",
+      "name": "SKRUVBY Cabinet with glass doors - black-blue 70x90 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-24-hauga-glass-door-cabinet-white-105x116-cm",
+      "normalized_type": "display-cabinet",
+      "name": "HAUGA Glass-door cabinet - white 105x116 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-25-hauga-glass-door-cabinet-grey-105x116-cm",
+      "normalized_type": "display-cabinet",
+      "name": "HAUGA Glass-door cabinet - grey 105x116 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-26-tonstad-cabinet-with-sliding-glass-doors-off-white-120x37x116-cm",
+      "normalized_type": "display-cabinet",
+      "name": "TONSTAD Cabinet with sliding glass doors - off-white 120x37x116 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-display-cabinets-27-billy-oxberg-bookcase-with-panel-glass-doors-white-glass-160x30x202-cm",
+      "normalized_type": "display-cabinet",
+      "name": "BILLY / OXBERG Bookcase with panel/glass doors - white/glass 160x30x202 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-room-dividers-02-tolkning-room-divider-handmade-rattan-150x170-cm",
+      "normalized_type": "room-divider",
+      "name": "TOLKNING Room divider - handmade rattan 150x170 cm",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-room-dividers-05-glamberget-room-divider-pine-katorp-beige-150x150-cm",
+      "normalized_type": "room-divider",
+      "name": "GLAMBERGET Room divider - pine/Katorp beige 150x150 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-room-dividers-17-kallax-shelving-unit-with-4-inserts-white-glass-147x147-cm",
+      "normalized_type": "room-divider",
+      "name": "KALLAX Shelving unit with 4 inserts - white/glass 147x147 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-01-holmerud-side-table-oak-effect-80x31-cm",
+      "normalized_type": "sideboard",
+      "name": "HOLMERUD Side table - oak effect 80x31 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-12-listerby-console-table-dark-brown-beech-veneer-92x38x71-cm",
+      "normalized_type": "sideboard",
+      "name": "LISTERBY Console table - dark brown beech veneer 92x38x71 cm",
+      "material": "beech, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-13-stockholm-2025-sideboard-oak-veneer-161x42x83-cm",
+      "normalized_type": "sideboard",
+      "name": "STOCKHOLM 2025 Sideboard - oak veneer 161x42x83 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-18-r-dmans-cabinet-brown-walnut-effect-118x49x103-cm",
+      "normalized_type": "sideboard",
+      "name": "RÅDMANSÖ Cabinet - brown walnut effect 118x49x103 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-24-f-rs-ljare-sideboard-dark-beige-wood-light-beige-140x46x78-cm",
+      "normalized_type": "sideboard",
+      "name": "FÖRSÄLJARE Sideboard - dark beige wood/light beige 140x46x78 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-26-klacken-s-sideboard-black-oak-veneer-brown-stained-120x97-cm",
+      "normalized_type": "sideboard",
+      "name": "KLACKENÄS Sideboard - black/oak veneer brown stained 120x97 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-28-best-storage-combination-with-drawers-white-stained-oak-effect-lappviken-white-180x42x74-cm",
+      "normalized_type": "sideboard",
+      "name": "BESTÅ Storage combination with drawers - white stained oak effect/Lappviken white 180x42x74 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-30-boastad-sideboard-black-oak-veneer-161x52x75-cm",
+      "normalized_type": "sideboard",
+      "name": "BOASTAD Sideboard - black/oak veneer 161x52x75 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-31-tonstad-cabinet-with-sliding-doors-oak-veneer-82x37x120-cm",
+      "normalized_type": "sideboard",
+      "name": "TONSTAD Cabinet with sliding doors - oak veneer 82x37x120 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sideboards-32-tonstad-cabinet-with-sliding-doors-brown-stained-oak-veneer-82x37x120-cm",
+      "normalized_type": "sideboard",
+      "name": "TONSTAD Cabinet with sliding doors - brown stained oak veneer 82x37x120 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-furniture-01-tonstad-door-oak-veneer-glass-50x229-cm",
+      "normalized_type": "storage-furniture",
+      "name": "TONSTAD Door - oak/veneer glass 50x229 cm",
+      "material": "oak, wood veneer, glass, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-furniture-02-storklinta-door-oak-effect-50x195-cm",
+      "normalized_type": "storage-furniture",
+      "name": "STORKLINTA Door - oak effect 50x195 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-furniture-06-beg-vning-glass-dome-with-base-19-cm",
+      "normalized_type": "storage-furniture",
+      "name": "BEGÅVNING Glass dome with base 19 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-furniture-08-p-sk-tr-d-vase-glass-light-brown-13-5-cm",
+      "normalized_type": "storage-furniture",
+      "name": "PÅSKÖTRÄD Vase - glass/light brown 13.5 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-furniture-09-p-sk-tr-d-vase-glass-light-brown-20-cm",
+      "normalized_type": "storage-furniture",
+      "name": "PÅSKÖTRÄD Vase - glass/light brown 20 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-furniture-16-tonstad-door-brown-stained-oak-veneer-50x229-cm",
+      "normalized_type": "storage-furniture",
+      "name": "TONSTAD Door - brown stained oak veneer 50x229 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-solution-systems-16-ivar-cabinet-pine-80x50x83-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "IVAR Cabinet - pine 80x50x83 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-solution-systems-17-ivar-cabinet-pine-80x30x83-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "IVAR Cabinet - pine 80x30x83 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-solution-systems-18-best-storage-combination-with-doors-black-brown-hedeviken-stubbarp-oak-veneer-120x42x74-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "BESTÅ Storage combination with doors - black-brown/Hedeviken/Stubbarp oak veneer 120x42x74 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-solution-systems-20-best-storage-combination-with-doors-white-stained-oak-effect-laxviken-stubbarp-white-120x42x74-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "BESTÅ Storage combination with doors - white stained oak effect/Laxviken/Stubbarp white 120x42x74 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-solution-systems-21-eket-cabinet-with-4-compartments-brown-walnut-effect-70x35x70-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "EKET Cabinet with 4 compartments - brown walnut effect 70x35x70 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-solution-systems-23-trofast-storage-combination-with-boxes-room-divider-light-white-stained-pine-dark-grey-93x44x91-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "TROFAST Storage combination with boxes - room divider/light white stained pine dark grey 93x44x91 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-16-f-rh-ja-kitchen-trolley-birch-100x43-cm",
+      "normalized_type": "trolley",
+      "name": "FÖRHÖJA Kitchen trolley - birch 100x43 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-17-bror-trolley-black-pine-plywood-85x55-cm",
+      "normalized_type": "trolley",
+      "name": "BROR Trolley - black/pine plywood 85x55 cm",
+      "material": "plywood, pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-18-bror-trolley-grey-green-pine-plywood-85x55-cm",
+      "normalized_type": "trolley",
+      "name": "BROR Trolley - grey-green/pine plywood 85x55 cm",
+      "material": "plywood, pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-20-kungsfors-kitchen-trolley-stainless-steel-60x40-cm",
+      "normalized_type": "trolley",
+      "name": "KUNGSFORS Kitchen trolley - stainless steel 60x40 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-21-loshult-trolley-pine-38x38x82-cm",
+      "normalized_type": "trolley",
+      "name": "LOSHULT Trolley - pine 38x38x82 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-22-bekv-m-kitchen-trolley-beech-58x50-cm",
+      "normalized_type": "trolley",
+      "name": "BEKVÄM Kitchen trolley - beech 58x50 cm",
+      "material": "beech",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-23-resar-mobile-drop-leaf-table-w-storage-pine",
+      "normalized_type": "trolley",
+      "name": "RESARÖ Mobile drop-leaf table w storage - pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-24-tornviken-kitchen-island-off-white-oak-126x77-cm",
+      "normalized_type": "trolley",
+      "name": "TORNVIKEN Kitchen island - off-white/oak 126x77 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-25-tornviken-kitchen-island-off-white-oak-72x52-cm",
+      "normalized_type": "trolley",
+      "name": "TORNVIKEN Kitchen island - off-white/oak 72x52 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-26-r-nninge-trolley-birch-78x39-cm",
+      "normalized_type": "trolley",
+      "name": "RÖNNINGE Trolley - birch 78x39 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-27-r-grund-trolley-bamboo-42x33x76-cm",
+      "normalized_type": "trolley",
+      "name": "RÅGRUND Trolley - bamboo 42x33x76 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-28-vadholma-kitchen-island-black-oak-126x79x90-cm",
+      "normalized_type": "trolley",
+      "name": "VADHOLMA Kitchen island - black/oak 126x79x90 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-30-norr-va-lid-bamboo-42x31-cm",
+      "normalized_type": "trolley",
+      "name": "NORRÅVA Lid - bamboo 42x31 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-31-norr-va-lid-bamboo-36x26-cm",
+      "normalized_type": "trolley",
+      "name": "NORRÅVA Lid - bamboo 36x26 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-trolleys-32-rimforsa-work-bench-stainless-steel-bamboo-120x63-5x92-cm",
+      "normalized_type": "trolley",
+      "name": "RIMFORSA Work bench - stainless steel/bamboo 120x63.5x92 cm",
+      "material": "bamboo, stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-01-billy-bookcase-brown-walnut-effect-40x28x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase - brown walnut effect 40x28x202 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-02-billy-bookcase-brown-walnut-effect-80x28x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase - brown walnut effect 80x28x202 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-04-billy-bookcase-brown-walnut-effect-40x28x106-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase - brown walnut effect 40x28x106 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-06-billy-bookcase-oak-effect-40x28x106-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase - oak effect 40x28x106 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-07-billy-bookcase-black-oak-effect-40x28x106-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase - black oak effect 40x28x106 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-08-billy-oxberg-bookcase-with-doors-brown-walnut-effect-80x30x106-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with doors - brown walnut effect 80x30x106 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-10-billy-oxberg-bookcase-with-doors-black-oak-effect-80x30x106-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with doors - black oak effect 80x30x106 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-13-billy-bookcase-with-height-extension-unit-brown-walnut-effect-80x28x237-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase with height extension unit - brown walnut effect 80x28x237 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-15-billy-bookcase-with-height-extension-unit-oak-effect-80x28x237-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase with height extension unit - oak effect 80x28x237 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-16-billy-bookcase-brown-walnut-effect-80x28x106-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase - brown walnut effect 80x28x106 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-17-billy-bookcase-oak-effect-80x28x106-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase - oak effect 80x28x106 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-18-billy-bookcase-black-oak-effect-80x28x106-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase - black oak effect 80x28x106 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-19-billy-shelf-brown-walnut-effect-76x26-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Shelf - brown walnut effect 76x26 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-21-billy-shelf-oak-effect-76x26-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Shelf - oak effect 76x26 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-22-billy-shelf-black-oak-effect-76x26-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Shelf - black oak effect 76x26 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-24-billy-oxberg-bookcase-with-panel-glass-doors-brown-walnut-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with panel/glass doors - brown walnut effect 80x30x202 cm",
+      "material": "walnut, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-25-billy-oxberg-bookcase-with-panel-glass-doors-white-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with panel/glass doors - white 80x30x202 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-26-billy-oxberg-bookcase-with-panel-glass-doors-oak-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with panel/glass doors - oak effect 80x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-27-billy-oxberg-bookcase-with-panel-glass-doors-black-oak-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with panel/glass doors - black oak effect 80x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-28-billy-oxberg-bookcase-with-glass-doors-brown-walnut-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with glass doors - brown walnut effect 80x30x202 cm",
+      "material": "walnut, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-30-billy-oxberg-bookcase-with-glass-doors-black-oak-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with glass doors - black oak effect 80x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-31-billy-oxberg-bookcase-with-glass-doors-oak-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with glass doors - oak effect 80x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-34-billy-oxberg-bookcase-with-doors-oak-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with doors - oak effect 80x30x202 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-35-billy-oxberg-bookcase-with-doors-black-oak-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with doors - black oak effect 80x30x202 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-36-billy-oxberg-bookcase-with-glass-doors-white-80x30x106-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with glass-doors - white 80x30x106 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-38-billy-oxberg-bookcase-with-doors-brown-walnut-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with doors - brown walnut effect 80x30x202 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-40-billy-oxberg-bookcase-with-doors-black-oak-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with doors - black oak effect 80x30x202 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-41-billy-oxberg-bookcase-with-doors-oak-effect-80x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with doors - oak effect 80x30x202 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-42-billy-oxberg-bookcase-with-panel-glass-door-brown-walnut-effect-40x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with panel/glass door - brown walnut effect 40x30x202 cm",
+      "material": "walnut, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-43-billy-oxberg-bookcase-with-panel-glass-door-white-glass-40x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with panel/glass door - white/glass 40x30x202 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-44-billy-oxberg-bookcase-with-panel-glass-door-oak-effect-40x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with panel/glass door - oak effect 40x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-45-billy-oxberg-bookcase-with-panel-glass-door-black-oak-effect-40x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with panel/glass door - black oak effect 40x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-51-billy-oxberg-bookcase-with-panel-glass-doors-white-glass-120x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with panel/glass doors - white/glass 120x30x202 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-52-billy-oxberg-bookcase-with-glass-door-brown-walnut-effect-clear-glass-40x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with glass door - brown walnut effect/clear glass 40x30x202 cm",
+      "material": "walnut, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-53-billy-oxberg-bookcase-with-glass-door-white-glass-40x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with glass door - white/glass 40x30x202 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bookcases-54-billy-oxberg-bookcase-with-glass-door-oak-effect-clear-glass-40x30x202-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY / OXBERG Bookcase with glass door - oak effect/clear glass 40x30x202 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-01-hejne-4-sections-shelves-softwood-307x50x171-cm",
+      "normalized_type": "shelving-unit",
+      "name": "HEJNE 4 sections/shelves - softwood 307x50x171 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-04-hejne-1-section-softwood-78x50x171-cm",
+      "normalized_type": "shelving-unit",
+      "name": "HEJNE 1 section - softwood 78x50x171 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-07-bror-work-bench-black-pine-plywood-110x55-cm",
+      "normalized_type": "shelving-unit",
+      "name": "BROR Work bench - black/pine plywood 110x55 cm",
+      "material": "plywood, pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-08-hejne-post-softwood-171-cm",
+      "normalized_type": "shelving-unit",
+      "name": "HEJNE Post - softwood 171 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-09-bror-trolley-black-pine-plywood-85x55-cm",
+      "normalized_type": "shelving-unit",
+      "name": "BROR Trolley - black/pine plywood 85x55 cm",
+      "material": "plywood, pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-10-bror-trolley-grey-green-pine-plywood-85x55-cm",
+      "normalized_type": "shelving-unit",
+      "name": "BROR Trolley - grey-green/pine plywood 85x55 cm",
+      "material": "plywood, pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-14-hejne-3-sections-shelves-softwood-230x50x171-cm",
+      "normalized_type": "shelving-unit",
+      "name": "HEJNE 3 sections/shelves - softwood 230x50x171 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-15-hyllis-shelving-units-with-covers-transparent-180x27x74-140-cm",
+      "normalized_type": "shelving-unit",
+      "name": "HYLLIS Shelving units with covers - transparent 180x27x74-140 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-16-hyllis-shelving-unit-with-cover-transparent-60x27x74-cm",
+      "normalized_type": "shelving-unit",
+      "name": "HYLLIS Shelving unit with cover - transparent 60x27x74 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-17-hyllis-shelving-unit-with-cover-transparent-60x27x140-cm",
+      "normalized_type": "shelving-unit",
+      "name": "HYLLIS Shelving unit with cover - transparent 60x27x140 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-19-ivar-shelving-unit-pine-89x30x124-cm",
+      "normalized_type": "shelving-unit",
+      "name": "IVAR Shelving unit - pine 89x30x124 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-20-ivar-1-section-shelves-pine-89x30x179-cm",
+      "normalized_type": "shelving-unit",
+      "name": "IVAR 1 section/shelves - pine 89x30x179 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-24-hejne-shelf-softwood-77x28-cm",
+      "normalized_type": "shelving-unit",
+      "name": "HEJNE Shelf - softwood 77x28 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-shelving-units-25-hejne-shelf-softwood-77x47-cm",
+      "normalized_type": "shelving-unit",
+      "name": "HEJNE Shelf - softwood 77x47 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-04-mosslanda-picture-ledge-walnut-effect-55-cm",
+      "normalized_type": "wall-shelf",
+      "name": "MOSSLANDA Picture ledge - walnut effect 55 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-05-mosslanda-picture-ledge-walnut-effect-115-cm",
+      "normalized_type": "wall-shelf",
+      "name": "MOSSLANDA Picture ledge - walnut effect 115 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-18-boaxel-shelf-oak-effect-60x40-cm",
+      "normalized_type": "wall-shelf",
+      "name": "BOAXEL Shelf - oak effect 60x40 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-19-boaxel-shelf-oak-effect-80x40-cm",
+      "normalized_type": "wall-shelf",
+      "name": "BOAXEL Shelf - oak effect 80x40 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-21-eket-cabinet-brown-walnut-effect-35x35x35-cm",
+      "normalized_type": "wall-shelf",
+      "name": "EKET Cabinet - brown walnut effect 35x35x35 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-23-fryks-s-wall-shelf-rattan-60x20-cm",
+      "normalized_type": "wall-shelf",
+      "name": "FRYKSÅS Wall shelf - rattan 60x20 cm",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-24-mosslanda-picture-ledge-oak-effect-115-cm",
+      "normalized_type": "wall-shelf",
+      "name": "MOSSLANDA Picture ledge - oak effect 115 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-25-mosslanda-picture-ledge-oak-effect-55-cm",
+      "normalized_type": "wall-shelf",
+      "name": "MOSSLANDA Picture ledge - oak effect 55 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-26-granhult-bracket-nickel-plated-30x12-cm",
+      "normalized_type": "wall-shelf",
+      "name": "GRANHULT Bracket - nickel-plated 30x12 cm",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-shelves-27-granhult-bracket-nickel-plated-20x12-cm",
+      "normalized_type": "wall-shelf",
+      "name": "GRANHULT Bracket - nickel-plated 20x12 cm",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bar-tables-05-r-nninge-bar-table-birch-75x75-cm",
+      "normalized_type": "bar-table",
+      "name": "RÖNNINGE Bar table - birch 75x75 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-03-nordkisa-bedside-table-bamboo-40x40-cm",
+      "normalized_type": "bedside-table",
+      "name": "NORDKISA Bedside table - bamboo 40x40 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-04-tonstad-bedside-table-oak-veneer-40x40x59-cm",
+      "normalized_type": "bedside-table",
+      "name": "TONSTAD Bedside table - oak veneer 40x40x59 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-05-tonstad-bedside-table-brown-stained-oak-veneer-40x40x59-cm",
+      "normalized_type": "bedside-table",
+      "name": "TONSTAD Bedside table - brown stained oak veneer 40x40x59 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-08-r-dmans-bedside-table-brown-walnut-effect-54x38x58-cm",
+      "normalized_type": "bedside-table",
+      "name": "RÅDMANSÖ Bedside table - brown walnut effect 54x38x58 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-09-kron-ren-bedside-table-pine-39x32x55-cm",
+      "normalized_type": "bedside-table",
+      "name": "KRONÖREN Bedside table - pine 39x32x55 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-10-eket-cabinet-white-stained-oak-effect-35x25x35-cm",
+      "normalized_type": "bedside-table",
+      "name": "EKET Cabinet - white stained oak effect 35x25x35 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-14-stoms-wall-mounted-bedside-table-birch-effect-white-blue-36x29x20-cm",
+      "normalized_type": "bedside-table",
+      "name": "STOMSÖ Wall-mounted bedside table - birch effect white/blue 36x29x20 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-16-eket-wall-cabinet-with-2-drawers-walnut-effect-35x35x35-cm",
+      "normalized_type": "bedside-table",
+      "name": "EKET Wall cabinet with 2 drawers - walnut effect 35x35x35 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-19-ikea-ps-2026-bedside-table-pine-with-flip-down-door-30x30x50-cm",
+      "normalized_type": "bedside-table",
+      "name": "IKEA PS 2026 Bedside table - pine with flip-down door 30x30x50 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-32-eket-cabinet-combination-with-legs-white-wood-35x35x80-cm",
+      "normalized_type": "bedside-table",
+      "name": "EKET Cabinet combination with legs - white/wood 35x35x80 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-33-eket-cabinet-combination-with-legs-white-white-stained-oak-effect-35x35x80-cm",
+      "normalized_type": "bedside-table",
+      "name": "EKET Cabinet combination with legs - white/white stained oak effect 35x35x80 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-34-eket-cabinet-combination-with-legs-white-dark-grey-wood-35x35x80-cm",
+      "normalized_type": "bedside-table",
+      "name": "EKET Cabinet combination with legs - white dark grey/wood 35x35x80 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-bedside-tables-35-lixhult-cabinet-metal-anthracite-35x60-cm",
+      "normalized_type": "bedside-table",
+      "name": "LIXHULT Cabinet - metal/anthracite 35x60 cm",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-01-vittsj-coffee-table-black-brown-glass-75-cm",
+      "normalized_type": "coffee-table",
+      "name": "VITTSJÖ Coffee table - black-brown/glass 75 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-02-vittsj-coffee-table-light-beige-glass-75-cm",
+      "normalized_type": "coffee-table",
+      "name": "VITTSJÖ Coffee table - light beige/glass 75 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-05-lack-coffee-table-white-stained-oak-effect-90x55-cm",
+      "normalized_type": "coffee-table",
+      "name": "LACK Coffee table - white stained oak effect 90x55 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-10-holmerud-coffee-table-oak-effect-90x55-cm",
+      "normalized_type": "coffee-table",
+      "name": "HOLMERUD Coffee table - oak effect 90x55 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-11-jakobsfors-coffee-table-dark-brown-stained-oak-veneer-80-cm",
+      "normalized_type": "coffee-table",
+      "name": "JAKOBSFORS Coffee table - dark brown stained oak veneer 80 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-12-jakobsfors-coffee-table-oak-veneer-80-cm",
+      "normalized_type": "coffee-table",
+      "name": "JAKOBSFORS Coffee table - oak veneer 80 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-14-borgeby-coffee-table-birch-veneer-70-cm",
+      "normalized_type": "coffee-table",
+      "name": "BORGEBY Coffee table - birch veneer 70 cm",
+      "material": "birch, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-17-tonstad-coffee-table-brown-stained-oak-veneer-84x82-cm",
+      "normalized_type": "coffee-table",
+      "name": "TONSTAD Coffee table - brown stained oak veneer 84x82 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-18-tonstad-coffee-table-oak-veneer-84x82-cm",
+      "normalized_type": "coffee-table",
+      "name": "TONSTAD Coffee table - oak veneer 84x82 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-20-torsj-coffee-table-gold-effect-glass-88-cm",
+      "normalized_type": "coffee-table",
+      "name": "TORSJÖ Coffee table - gold effect/glass 88 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-21-stockholm-coffee-table-walnut-veneer-180x59-cm",
+      "normalized_type": "coffee-table",
+      "name": "STOCKHOLM Coffee table - walnut veneer 180x59 cm",
+      "material": "walnut, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-29-listerby-coffee-table-dark-brown-beech-veneer-90-cm",
+      "normalized_type": "coffee-table",
+      "name": "LISTERBY Coffee table - dark brown beech veneer 90 cm",
+      "material": "beech, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-33-lack-side-table-white-stained-oak-effect-55x55-cm",
+      "normalized_type": "coffee-table",
+      "name": "LACK Side table - white stained oak effect 55x55 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-37-lack-coffee-table-white-stained-oak-effect-118x78-cm",
+      "normalized_type": "coffee-table",
+      "name": "LACK Coffee table - white stained oak effect 118x78 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-38-listerby-coffee-table-dark-brown-beech-veneer-140x60-cm",
+      "normalized_type": "coffee-table",
+      "name": "LISTERBY Coffee table - dark brown beech veneer 140x60 cm",
+      "material": "beech, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-40-vittsj-nest-of-tables-set-of-2-black-brown-glass-90x50-cm",
+      "normalized_type": "coffee-table",
+      "name": "VITTSJÖ Nest of tables, set of 2 - black-brown/glass 90x50 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-41-vittsj-nest-of-tables-set-of-2-light-beige-glass-90x50-cm",
+      "normalized_type": "coffee-table",
+      "name": "VITTSJÖ Nest of tables, set of 2 - light beige/glass 90x50 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-42-sonhult-nest-of-tables-set-of-2-grey-walnut-effect",
+      "normalized_type": "coffee-table",
+      "name": "SONHULT Nest of tables, set of 2 - grey/walnut effect",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-coffee-tables-43-sonhult-nest-of-tables-set-of-2-yellow-birch-effect",
+      "normalized_type": "coffee-table",
+      "name": "SONHULT Nest of tables, set of 2 - yellow/birch effect",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-desks-25-mullsj-desk-oak-veneer-135x70-cm",
+      "normalized_type": "desk",
+      "name": "MULLSJÖ Desk - oak veneer 135x70 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-desks-28-tonstad-desk-oak-veneer-120x47-cm",
+      "normalized_type": "desk",
+      "name": "TONSTAD Desk - oak veneer 120x47 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-desks-30-tonstad-desk-brown-stained-oak-veneer-120x47-cm",
+      "normalized_type": "desk",
+      "name": "TONSTAD Desk - brown stained oak veneer 120x47 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-desks-35-mittzon-desk-oak-veneer-white-140x80-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON Desk - oak veneer/white 140x80 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-desks-36-mittzon-desk-oak-veneer-black-140x60-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON Desk - oak veneer/black 140x60 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-desks-37-mittzon-desk-black-stained-ash-veneer-black-140x80-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON Desk - black stained ash veneer/black 140x80 cm",
+      "material": "wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-02-lisabo-table-ash-veneer-105-cm",
+      "normalized_type": "dining-table",
+      "name": "LISABO Table - ash veneer 105 cm",
+      "material": "wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-04-pinntorp-table-light-brown-stained-white-stained-pine-85-cm",
+      "normalized_type": "dining-table",
+      "name": "PINNTORP Table - light brown stained/white stained pine 85 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-10-sk-lsta-table-walnut-effect-u-shaped-black-grey-140x80-cm",
+      "normalized_type": "dining-table",
+      "name": "SKÅLSTA Table - walnut effect/U-shaped black-grey 140x80 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-11-stockholm-2025-table-oak-veneer-oak-veneer-115-cm",
+      "normalized_type": "dining-table",
+      "name": "STOCKHOLM 2025 Table - oak veneer/oak veneer 115 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-12-lisabo-table-ash-veneer-140x78-cm",
+      "normalized_type": "dining-table",
+      "name": "LISABO Table - ash veneer 140x78 cm",
+      "material": "wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-13-lisabo-table-black-ash-veneer-140x78-cm",
+      "normalized_type": "dining-table",
+      "name": "LISABO Table - black/ash veneer 140x78 cm",
+      "material": "wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-16-sk-lsta-table-oak-effect-u-shaped-black-grey-140x80-cm",
+      "normalized_type": "dining-table",
+      "name": "SKÅLSTA Table - oak effect/U-shaped black-grey 140x80 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-18-norden-gateleg-table-birch-26-89-152x80-cm",
+      "normalized_type": "dining-table",
+      "name": "NORDEN Gateleg table - birch 26/89/152x80 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-23-n-singe-table-dark-brown-stained-beech-veneer-120-cm",
+      "normalized_type": "dining-table",
+      "name": "NÄSINGE Table - dark brown stained/beech veneer 120 cm",
+      "material": "beech, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-25-tonstad-table-brown-stained-oak-veneer-150x80-cm",
+      "normalized_type": "dining-table",
+      "name": "TONSTAD Table - brown stained oak veneer 150x80 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-26-tonstad-table-oak-veneer-150x80-cm",
+      "normalized_type": "dining-table",
+      "name": "TONSTAD Table - oak veneer 150x80 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-27-m-rbyl-nga-table-oak-veneer-brown-stained-220x100-cm",
+      "normalized_type": "dining-table",
+      "name": "MÖRBYLÅNGA Table - oak veneer brown stained 220x100 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-28-pinntorp-gateleg-table-light-brown-stained-white-stained-pine-67-124x75-cm",
+      "normalized_type": "dining-table",
+      "name": "PINNTORP Gateleg table - light brown stained/white stained pine 67/124x75 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-31-sk-lsta-table-top-oak-effect-140x80-cm",
+      "normalized_type": "dining-table",
+      "name": "SKÅLSTA Table top - oak effect 140x80 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-32-sk-lsta-table-top-walnut-effect-140x80-cm",
+      "normalized_type": "dining-table",
+      "name": "SKÅLSTA Table top - walnut effect 140x80 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-34-sk-lsta-table-top-dark-grey-green-marble-effect-140x80-cm",
+      "normalized_type": "dining-table",
+      "name": "SKÅLSTA Table top - dark grey-green marble effect 140x80 cm",
+      "material": "marble, stone",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-35-lisabo-table-ash-veneer-88x78-cm",
+      "normalized_type": "dining-table",
+      "name": "LISABO Table - ash veneer 88x78 cm",
+      "material": "wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-tables-36-lisabo-table-black-ash-veneer-88x78-cm",
+      "normalized_type": "dining-table",
+      "name": "LISABO Table - black/ash veneer 88x78 cm",
+      "material": "wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tables-03-ekenabben-open-shelving-unit-aspen-blue-70x34x86-cm",
+      "normalized_type": "table",
+      "name": "EKENABBEN Open shelving unit - aspen/blue 70x34x86 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tables-14-isn-len-led-work-lamp-red-brass-colour",
+      "normalized_type": "table",
+      "name": "ISNÅLEN LED work lamp - red/brass-colour",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tables-19-utespelare-gaming-desk-ash-effect-grey-160x80-cm",
+      "normalized_type": "table",
+      "name": "UTESPELARE Gaming desk - ash effect/grey 160x80 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tables-20-nereby-rail-birch-60-cm",
+      "normalized_type": "table",
+      "name": "NEREBY Rail - birch 60 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tables-23-ivar-cabinet-pine-80x30x83-cm",
+      "normalized_type": "table",
+      "name": "IVAR Cabinet - pine 80x30x83 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-03-lisabo-chair-ash-tallmyra-white-black",
+      "normalized_type": "dining-chair",
+      "name": "LISABO Chair - ash/Tallmyra white/black",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-05-pinntorp-chair-blue-stained-pine",
+      "normalized_type": "dining-chair",
+      "name": "PINNTORP Chair - blue stained/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-06-pinntorp-chair-black-stained-pine",
+      "normalized_type": "dining-chair",
+      "name": "PINNTORP Chair - black stained/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-07-pinntorp-chair-white-stained-pine",
+      "normalized_type": "dining-chair",
+      "name": "PINNTORP Chair - white stained/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-08-pinntorp-chair-light-brown-stained-pine",
+      "normalized_type": "dining-chair",
+      "name": "PINNTORP Chair - light brown stained/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-09-sk-lsta-chair-kn-b-ck-beige-tubular-metal-light-grey-beige",
+      "normalized_type": "dining-chair",
+      "name": "SKÅLSTA Chair - Knäbäck beige/tubular metal/light grey-beige",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-13-lisabo-chair-ash",
+      "normalized_type": "dining-chair",
+      "name": "LISABO Chair - ash",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-22-skogsta-chair-acacia",
+      "normalized_type": "dining-chair",
+      "name": "SKOGSTA Chair - acacia",
+      "material": "acacia, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-24-busl-tt-chair-white-pine",
+      "normalized_type": "dining-chair",
+      "name": "BUSLÄTT Chair - white/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-31-sk-lsta-chair-walnut-veneer-tubular-metal-black-grey",
+      "normalized_type": "dining-chair",
+      "name": "SKÅLSTA Chair - walnut veneer/tubular metal/black-grey",
+      "material": "walnut, wood veneer, metal, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-34-tobias-chair-brown-red-chrome-plated",
+      "normalized_type": "dining-chair",
+      "name": "TOBIAS Chair - brown-red/chrome-plated",
+      "material": "chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-35-tobias-chair-transparent-chrome-plated",
+      "normalized_type": "dining-chair",
+      "name": "TOBIAS Chair - transparent/chrome-plated",
+      "material": "chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-43-r-nninge-chair-birch",
+      "normalized_type": "dining-chair",
+      "name": "RÖNNINGE Chair - birch",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-dining-chairs-44-voxl-v-chair-light-bamboo",
+      "normalized_type": "dining-chair",
+      "name": "VOXLÖV Chair - light bamboo",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-stools-benches-01-r-vsten-bar-stool-counter-height-rubberwood-62-cm",
+      "normalized_type": "stool-bench",
+      "name": "RÄVSTEN Bar stool - counter height rubberwood 62 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-stools-benches-10-lill-n-s-bar-stool-chrome-plated-gunnared-dark-grey-76-cm",
+      "normalized_type": "stool-bench",
+      "name": "LILLÅNÄS Bar stool - chrome-plated/Gunnared dark grey 76 cm",
+      "material": "chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-stools-benches-13-bergmund-bar-stool-with-backrest-counter-height-oak-effect-gunnared-medium-grey-62-cm",
+      "normalized_type": "stool-bench",
+      "name": "BERGMUND Bar stool with backrest - counter height oak effect/Gunnared medium grey 62 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-stools-benches-16-r-nninge-bar-table-birch-75x75-cm",
+      "normalized_type": "stool-bench",
+      "name": "RÖNNINGE Bar table - birch 75x75 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-stools-benches-17-r-nninge-bar-stool-birch-75-cm",
+      "normalized_type": "stool-bench",
+      "name": "RÖNNINGE Bar stool - birch 75 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-stools-benches-20-r-nninge-r-nninge-bar-table-and-2-bar-stools-birch-birch",
+      "normalized_type": "stool-bench",
+      "name": "RÖNNINGE / RÖNNINGE Bar table and 2 bar stools - birch/birch",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-stools-benches-23-glenn-bar-stool-counter-height-white-chrome-plated-66-cm",
+      "normalized_type": "stool-bench",
+      "name": "GLENN Bar stool - counter height white/chrome-plated 66 cm",
+      "material": "chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-stools-benches-29-lill-n-s-bar-stool-chrome-plated-gunnared-dark-grey-63-cm",
+      "normalized_type": "stool-bench",
+      "name": "LILLÅNÄS Bar stool - chrome-plated/Gunnared dark grey 63 cm",
+      "material": "chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-armchairs-05-eken-set-armchair-oak-gunnared-beige",
+      "normalized_type": "armchair",
+      "name": "EKENÄSET Armchair - oak/Gunnared beige",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-armchairs-26-po-ng-armchair-birch-veneer-hillared-dark-blue",
+      "normalized_type": "armchair",
+      "name": "POÄNG Armchair - birch veneer/Hillared dark blue",
+      "material": "birch, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-armchairs-27-ulriksberg-armchair-rattan-anthracite",
+      "normalized_type": "armchair",
+      "name": "ULRIKSBERG Armchair - rattan/anthracite",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-armchairs-30-po-ng-rocking-chair-white-stained-oak-veneer-gunnared-light-green",
+      "normalized_type": "armchair",
+      "name": "POÄNG Rocking-chair - white stained oak veneer/Gunnared light green",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-armchairs-31-po-ng-rocking-chair-white-stained-oak-veneer-gunnared-beige",
+      "normalized_type": "armchair",
+      "name": "POÄNG Rocking-chair - white stained oak veneer/Gunnared beige",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-armchairs-34-persbol-armchair-birch-tibbleby-beige-grey",
+      "normalized_type": "armchair",
+      "name": "PERSBOL Armchair - birch/Tibbleby beige/grey",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-fabric-sofas-38-landskrona-2-seat-sofa-gunnared-dark-grey-metal",
+      "normalized_type": "fabric-sofa",
+      "name": "LANDSKRONA 2-seat sofa - Gunnared dark grey/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-fabric-sofas-39-landskrona-2-seat-sofa-gunnared-light-green-metal",
+      "normalized_type": "fabric-sofa",
+      "name": "LANDSKRONA 2-seat sofa - Gunnared light green/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-fabric-sofas-40-landskrona-2-seat-sofa-gunnared-light-green-wood",
+      "normalized_type": "fabric-sofa",
+      "name": "LANDSKRONA 2-seat sofa - Gunnared light green/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-02-landskrona-3-seat-sofa-grann-bomstad-golden-brown-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 3-seat sofa - Grann/Bomstad golden-brown/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-03-landskrona-three-seat-sofa-grann-bomstad-black-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Three-seat sofa - Grann/Bomstad black/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-04-landskrona-3-seat-sofa-grann-bomstad-golden-brown-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 3-seat sofa - Grann/Bomstad golden-brown/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-05-landskrona-three-seat-sofa-grann-bomstad-black-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Three-seat sofa - Grann/Bomstad black/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-06-landskrona-2-seat-sofa-grann-bomstad-golden-brown-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 2-seat sofa - Grann/Bomstad golden-brown/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-07-landskrona-two-seat-sofa-grann-bomstad-black-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Two-seat sofa - Grann/Bomstad black/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-08-landskrona-two-seat-sofa-grann-bomstad-black-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Two-seat sofa - Grann/Bomstad black/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-09-landskrona-2-seat-sofa-grann-bomstad-golden-brown-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 2-seat sofa - Grann/Bomstad golden-brown/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-10-viskafors-3-seat-sofa-h-galid-brown-birch",
+      "normalized_type": "leather-sofa",
+      "name": "VISKAFORS 3-seat sofa - Högalid brown/birch",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-12-landskrona-corner-sofa-6-seat-with-chaise-longue-grann-bomstad-golden-brown-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Corner sofa, 6-seat - with chaise longue/Grann/Bomstad golden-brown/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-13-landskrona-corner-sofa-6-seat-with-chaise-longue-grann-bomstad-black-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Corner sofa, 6-seat - with chaise longue/Grann/Bomstad black/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-14-landskrona-corner-sofa-6-seat-with-chaise-longue-grann-bomstad-golden-brown-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Corner sofa, 6-seat - with chaise longue/Grann/Bomstad golden-brown/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-15-landskrona-corner-sofa-6-seat-with-chaise-longue-grann-bomstad-black-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Corner sofa, 6-seat - with chaise longue/Grann/Bomstad black/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-17-landskrona-5-seat-sofa-with-chaise-longues-grann-bomstad-golden-brown-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 5-seat sofa - with chaise longues/Grann/Bomstad golden-brown/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-18-landskrona-5-seat-sofa-with-chaise-longues-grann-bomstad-golden-brown-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 5-seat sofa - with chaise longues/Grann/Bomstad golden-brown/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-29-landskrona-corner-sofa-5-seat-grann-bomstad-golden-brown-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Corner sofa, 5-seat - Grann/Bomstad golden-brown/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-30-landskrona-corner-sofa-5-seat-grann-bomstad-black-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Corner sofa, 5-seat - Grann/Bomstad black/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-31-landskrona-corner-sofa-5-seat-grann-bomstad-black-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Corner sofa, 5-seat - Grann/Bomstad black/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-32-landskrona-corner-sofa-5-seat-grann-bomstad-golden-brown-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA Corner sofa, 5-seat - Grann/Bomstad golden-brown/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-34-landskrona-4-seat-sofa-with-chaise-longue-grann-bomstad-golden-brown-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 4-seat sofa - with chaise longue/Grann/Bomstad golden-brown/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-35-landskrona-4-seat-sofa-with-chaise-longue-grann-bomstad-golden-brown-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 4-seat sofa - with chaise longue/Grann/Bomstad golden-brown/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-36-landskrona-4-seat-sofa-with-chaise-longue-grann-bomstad-black-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 4-seat sofa - with chaise longue/Grann/Bomstad black/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-37-landskrona-4-seat-sofa-with-chaise-longue-grann-bomstad-black-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 4-seat sofa - with chaise longue/Grann/Bomstad black/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-38-landskrona-3-seat-sofa-with-chaise-longue-grann-bomstad-golden-brown-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 3-seat sofa - with chaise longue/Grann/Bomstad golden-brown/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-39-landskrona-3-seat-sofa-with-chaise-longue-grann-bomstad-black-wood",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 3-seat sofa - with chaise longue/Grann/Bomstad black/wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-40-landskrona-3-seat-sofa-with-chaise-longue-grann-bomstad-black-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 3-seat sofa - with chaise longue/Grann/Bomstad black/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-leather-sofas-41-landskrona-3-seat-sofa-with-chaise-longue-grann-bomstad-golden-brown-metal",
+      "normalized_type": "leather-sofa",
+      "name": "LANDSKRONA 3-seat sofa - with chaise longue/Grann/Bomstad golden-brown/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-modular-sofas-06-lillehem-2-seat-module-gunnared-dark-grey-metal",
+      "normalized_type": "modular-sofa",
+      "name": "LILLEHEM 2-seat module - Gunnared/dark grey metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-modular-sofas-07-lillehem-2-seat-module-gunnared-dark-grey-wood",
+      "normalized_type": "modular-sofa",
+      "name": "LILLEHEM 2-seat module - Gunnared/dark grey wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-modular-sofas-08-lillehem-2-seat-module-vissle-beige-metal",
+      "normalized_type": "modular-sofa",
+      "name": "LILLEHEM 2-seat module - Vissle/beige metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-modular-sofas-13-lillehem-modular-corner-sofa-4-seat-vissle-beige-metal",
+      "normalized_type": "modular-sofa",
+      "name": "LILLEHEM Modular corner sofa, 4 seat - Vissle beige/metal",
+      "material": "metal",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-modular-sofas-14-lillehem-modular-corner-sofa-4-seat-gunnared-brown-red-wood",
+      "normalized_type": "modular-sofa",
+      "name": "LILLEHEM Modular corner sofa, 4 seat - Gunnared/brown-red wood",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-sofa-beds-05-tornsborg-2-seat-sofa-bed-naggen-beige-pine",
+      "normalized_type": "sofa-bed",
+      "name": "TORNSBORG 2-seat sofa-bed - Naggen beige/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-02-sj-makt-floor-lamp-with-2-spot-beige-ash",
+      "normalized_type": "floor-lamp",
+      "name": "SJÖMAKT Floor lamp with 2-spot - beige/ash",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-06-rstid-floor-lamp-brass-white",
+      "normalized_type": "floor-lamp",
+      "name": "ÅRSTID Floor lamp - brass/white",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-07-rstid-floor-lamp-nickel-plated-white",
+      "normalized_type": "floor-lamp",
+      "name": "ÅRSTID Floor lamp - nickel-plated/white",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-11-lauters-floor-lamp-ash-white",
+      "normalized_type": "floor-lamp",
+      "name": "LAUTERS Floor lamp - ash/white",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-18-kensand-floor-lamp-beech-white",
+      "normalized_type": "floor-lamp",
+      "name": "ÖKENSAND Floor lamp - beech/white",
+      "material": "beech",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-21-flygh-jd-floor-lamp-brass-green-grey",
+      "normalized_type": "floor-lamp",
+      "name": "FLYGHÖJD Floor lamp - brass/green-grey",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-22-flygh-jd-floor-lamp-brass-beige",
+      "normalized_type": "floor-lamp",
+      "name": "FLYGHÖJD Floor lamp - brass/beige",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-23-ringsta-skaftet-floor-lamp-white-nickel-plated",
+      "normalized_type": "floor-lamp",
+      "name": "RINGSTA / SKAFTET Floor lamp - white/nickel-plated",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-24-simrishamn-floor-lamp-chrome-plated-opal-white-glass",
+      "normalized_type": "floor-lamp",
+      "name": "SIMRISHAMN Floor lamp - chrome-plated/opal white glass",
+      "material": "chrome, glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-25-stockholm-2025-floor-lamp-white-textile-brass-plated-159-cm",
+      "normalized_type": "floor-lamp",
+      "name": "STOCKHOLM 2025 Floor lamp - white textile/brass-plated 159 cm",
+      "material": "fabric, brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-floor-lamps-26-isjakt-led-floor-uplighter-reading-lamp-dimmable-nickel-plated-180-cm",
+      "normalized_type": "floor-lamp",
+      "name": "ISJAKT LED floor uplighter/reading lamp - dimmable/nickel-plated 180 cm",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamp-shades-bases-01-nym-lamp-shade-black-brass-colour-44-cm",
+      "normalized_type": "lamp-shades-base",
+      "name": "NYMÖ Lamp shade - black/brass-colour 44 cm",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamp-shades-bases-04-sunneby-cord-set-white-textile-1-8-m",
+      "normalized_type": "lamp-shades-base",
+      "name": "SUNNEBY Cord set - white textile 1.8 m",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamp-shades-bases-11-j-llby-cord-set-textile-nickel-plated-1-4-m",
+      "normalized_type": "lamp-shades-base",
+      "name": "JÄLLBY Cord set - textile nickel-plated 1.4 m",
+      "material": "fabric, nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamp-shades-bases-12-j-llby-cord-set-textile-brass-plated-1-4-m",
+      "normalized_type": "lamp-shades-base",
+      "name": "JÄLLBY Cord set - textile brass-plated 1.4 m",
+      "material": "fabric, brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamp-shades-bases-16-skaftet-floor-lamp-base-nickel-plated",
+      "normalized_type": "lamp-shades-base",
+      "name": "SKAFTET Floor lamp base - nickel-plated",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamps-01-stockholm-2025-pendant-lamp-glass-brass-plated-54-cm",
+      "normalized_type": "lamp",
+      "name": "STOCKHOLM 2025 Pendant lamp - glass/brass-plated 54 cm",
+      "material": "brass, glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamps-02-solklint-ceiling-lamp-brass-grey-clear-glass-27-cm",
+      "normalized_type": "lamp",
+      "name": "SOLKLINT Ceiling lamp - brass/grey clear glass 27 cm",
+      "material": "brass, glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamps-03-simrishamn-pendant-lamp-3-armed-chrome-plated-opal-white-glass-55-cm",
+      "normalized_type": "lamp",
+      "name": "SIMRISHAMN Pendant lamp, 3-armed - chrome-plated/opal white glass 55 cm",
+      "material": "chrome, glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamps-04-fyrtiofyra-pendant-lamp-chrome-effect-white-38-cm",
+      "normalized_type": "lamp",
+      "name": "FYRTIOFYRA Pendant lamp - chrome effect/white 38 cm",
+      "material": "chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamps-05-h-gvind-table-lamp-nickel-plated-grey-glass",
+      "normalized_type": "lamp",
+      "name": "HÖGVIND Table lamp - nickel-plated/grey glass",
+      "material": "nickel, glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-lamps-06-sinnerlig-floor-lamp-bamboo-handmade",
+      "normalized_type": "lamp",
+      "name": "SINNERLIG Floor lamp - bamboo/handmade",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-table-lamps-01-rstid-table-lamp-nickel-plated-white",
+      "normalized_type": "table-lamp",
+      "name": "ÅRSTID Table lamp - nickel-plated/white",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-table-lamps-12-varmblixt-led-table-wall-lamp-orange-glass-round-30-cm",
+      "normalized_type": "table-lamp",
+      "name": "VARMBLIXT LED table/wall lamp - orange glass/round 30 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-table-lamps-13-sn-byar-table-lamp-grey-turquoise-ceramic-grey-52-cm",
+      "normalized_type": "table-lamp",
+      "name": "SNÖBYAR Table lamp - grey-turquoise ceramic/grey 52 cm",
+      "material": "ceramic",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-table-lamps-14-tv-rhand-table-lamp-black-bamboo",
+      "normalized_type": "table-lamp",
+      "name": "TVÄRHAND Table lamp - black/bamboo",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-table-lamps-15-fors-work-lamp-nickel-plated",
+      "normalized_type": "table-lamp",
+      "name": "FORSÅ Work lamp - nickel-plated",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-table-lamps-23-akterspring-table-lamp-opal-white-glass-brass-plated-39-cm",
+      "normalized_type": "table-lamp",
+      "name": "AKTERSPRING Table lamp - opal white glass/brass-plated 39 cm",
+      "material": "brass, glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-table-lamps-26-varptross-table-lamp-bamboo-26-cm",
+      "normalized_type": "table-lamp",
+      "name": "VARPTROSS Table lamp - bamboo 26 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-table-lamps-27-stockholm-2025-table-lamp-white-textile-brass-plated-65-cm",
+      "normalized_type": "table-lamp",
+      "name": "STOCKHOLM 2025 Table lamp - white textile/brass-plated 65 cm",
+      "material": "fabric, brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-table-lamps-32-avh-ll-led-portable-lamp-battery-operated-dimmable-nickel-plated-outdoor-29-cm",
+      "normalized_type": "table-lamp",
+      "name": "AVHÅLL LED portable lamp - battery-operated dimmable/nickel-plated outdoor 29 cm",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-work-lamps-10-isn-len-led-work-lamp-red-brass-colour",
+      "normalized_type": "work-lamp",
+      "name": "ISNÅLEN LED work lamp - red/brass-colour",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-work-lamps-11-isn-len-led-work-lamp-white-brass-colour",
+      "normalized_type": "work-lamp",
+      "name": "ISNÅLEN LED work lamp - white/brass-colour",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-work-lamps-16-modermoln-work-lamp-chrome-plated",
+      "normalized_type": "work-lamp",
+      "name": "MODERMOLN Work lamp - chrome-plated",
+      "material": "chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-clothes-racks-17-h-svans-shoehorn-bamboo-40-0-cm",
+      "normalized_type": "clothes-rack",
+      "name": "HÖSVANS Shoehorn - bamboo 40.0 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-05-pax-wardrobe-frame-white-stained-oak-effect-50x35x236-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "PAX Wardrobe frame - white stained oak effect 50x35x236 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-07-pax-wardrobe-frame-white-stained-oak-effect-75x58x236-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "PAX Wardrobe frame - white stained oak effect 75x58x236 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-08-komplement-drawer-white-stained-oak-effect-100x58-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "KOMPLEMENT Drawer - white stained oak effect 100x58 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-12-komplement-shelf-white-stained-oak-effect-75x35-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "KOMPLEMENT Shelf - white stained oak effect 75x35 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-17-komplement-glass-shelf-white-75x58-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "KOMPLEMENT Glass shelf - white 75x58 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-18-komplement-glass-shelf-white-stained-oak-effect-100x58-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "KOMPLEMENT Glass shelf - white stained oak effect 100x58 cm",
+      "material": "oak, glass, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-23-pax-add-on-mid-unit-oak-effect-35x35x236-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "PAX Add-on mid-unit - oak effect 35x35x236 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-27-pax-forsand-wardrobe-combination-white-stained-oak-effect-white-stained-oak-effect-100x60x236-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "PAX / FORSAND Wardrobe combination - white stained oak effect/white stained oak effect 100x60x236 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-28-pax-forsand-wardrobe-combination-dark-grey-white-stained-oak-effect-dark-grey-250x60x236-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "PAX / FORSAND Wardrobe combination - dark grey/white stained oak effect dark grey 250x60x236 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-29-pax-forsand-wardrobe-combination-dark-grey-white-stained-oak-effect-dark-grey-250x60x201-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "PAX / FORSAND Wardrobe combination - dark grey/white stained oak effect dark grey 250x60x201 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-pax-wardrobes-37-komplement-pull-out-tray-white-stained-oak-effect-100x58-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "KOMPLEMENT Pull-out tray - white stained oak effect 100x58 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wardrobes-13-ankarudden-wardrobe-with-sliding-doors-oak-effect-98x60x190-cm",
+      "normalized_type": "wardrobe",
+      "name": "ANKARUDDEN Wardrobe with sliding doors - oak effect 98x60x190 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wardrobes-15-pax-forsand-wardrobe-combination-white-white-stained-oak-effect-150x60x201-cm",
+      "normalized_type": "wardrobe",
+      "name": "PAX / FORSAND Wardrobe combination - white/white stained oak effect 150x60x201 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wardrobes-16-pax-forsand-wardrobe-combination-white-stained-oak-effect-white-stained-oak-effect-150x60x236-cm",
+      "normalized_type": "wardrobe",
+      "name": "PAX / FORSAND Wardrobe combination - white stained oak effect/white stained oak effect 150x60x236 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wardrobes-17-r-dmans-wardrobe-brown-walnut-effect-118x64x190-cm",
+      "normalized_type": "wardrobe",
+      "name": "RÅDMANSÖ Wardrobe - brown walnut effect 118x64x190 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-decoration-01-lustigkurre-basket-natural-water-hyacinth-seagrass-32x33x32-cm",
+      "normalized_type": "decoration",
+      "name": "LUSTIGKURRE Basket - natural water hyacinth/seagrass 32x33x32 cm",
+      "material": "seagrass, water hyacinth",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-flower-pots-planters-01-fridfull-plant-pot-water-hyacinth-19-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "FRIDFULL Plant pot - water hyacinth 19 cm",
+      "material": "water hyacinth",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-flower-pots-planters-02-fridfull-plant-pot-water-hyacinth-12-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "FRIDFULL Plant pot - water hyacinth 12 cm",
+      "material": "water hyacinth",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-flower-pots-planters-03-fridfull-plant-pot-water-hyacinth-24-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "FRIDFULL Plant pot - water hyacinth 24 cm",
+      "material": "water hyacinth",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-flower-pots-planters-14-klynnon-plant-pot-handmade-bamboo-24-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "KLYNNON Plant pot - handmade bamboo 24 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-flower-pots-planters-15-klynnon-plant-pot-handmade-bamboo-9-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "KLYNNON Plant pot - handmade bamboo 9 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-flower-pots-planters-16-klynnon-plant-pot-handmade-bamboo-32-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "KLYNNON Plant pot - handmade bamboo 32 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-flower-pots-planters-20-muskotblomma-plant-pot-with-saucer-in-outdoor-terracotta-15-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "MUSKOTBLOMMA Plant pot with saucer - in/outdoor terracotta 15 cm",
+      "material": "terracotta, ceramic",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-flower-pots-planters-21-muskotblomma-plant-pot-with-saucer-in-outdoor-terracotta-12-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "MUSKOTBLOMMA Plant pot with saucer - in/outdoor terracotta 12 cm",
+      "material": "terracotta, ceramic",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-flower-pots-planters-29-satsumas-plant-stand-bamboo-white-36-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "SATSUMAS Plant stand - bamboo/white 36 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-boxes-baskets-11-bekna-basket-plastic-rattan-25x35x20-cm",
+      "normalized_type": "storage-boxes-basket",
+      "name": "BEKNA Basket - plastic rattan 25x35x20 cm",
+      "material": "rattan, plastic",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-boxes-baskets-15-dragan-4-piece-bathroom-set-bamboo",
+      "normalized_type": "storage-boxes-basket",
+      "name": "DRAGAN 4-piece bathroom set - bamboo",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-boxes-baskets-18-sl-ttervall-storage-basket-textile-32x35x32-cm",
+      "normalized_type": "storage-boxes-basket",
+      "name": "SLÅTTERVALL Storage basket - textile 32x35x32 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-boxes-baskets-21-knagglig-box-pine-46x31x25-cm",
+      "normalized_type": "storage-boxes-basket",
+      "name": "KNAGGLIG Box - pine 46x31x25 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-boxes-baskets-22-nojig-organiser-plastic-beige-20x25x10-cm",
+      "normalized_type": "storage-boxes-basket",
+      "name": "NOJIG Organiser - plastic/beige 20x25x10 cm",
+      "material": "plastic",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-boxes-baskets-24-bran-s-basket-rattan-32x34x32-cm",
+      "normalized_type": "storage-boxes-basket",
+      "name": "BRANÄS Basket - rattan 32x34x32 cm",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-boxes-baskets-29-kuggis-box-with-lid-white-bamboo-37x54x21-cm",
+      "normalized_type": "storage-boxes-basket",
+      "name": "KUGGIS Box with lid - white/bamboo 37x54x21 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-storage-boxes-baskets-31-kuggis-box-with-lid-light-grey-bamboo-37x54x21-cm",
+      "normalized_type": "storage-boxes-basket",
+      "name": "KUGGIS Box with lid - light grey/bamboo 37x54x21 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-large-mirrors-02-hovet-mirror-oak-effect-brown-78x196-cm",
+      "normalized_type": "large-mirror",
+      "name": "HOVET Mirror - oak effect/brown 78x196 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-large-mirrors-04-hovet-mirror-aluminium-78x196-cm",
+      "normalized_type": "large-mirror",
+      "name": "HOVET Mirror - aluminium 78x196 cm",
+      "material": "aluminium",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-large-mirrors-08-dv-rgsyren-mirror-oak-veneer-40x50-cm",
+      "normalized_type": "large-mirror",
+      "name": "DVÄRGSYREN Mirror - oak veneer 40x50 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-large-mirrors-09-dv-rgsyren-mirror-walnut-veneer-40x50-cm",
+      "normalized_type": "large-mirror",
+      "name": "DVÄRGSYREN Mirror - walnut veneer 40x50 cm",
+      "material": "walnut, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-large-mirrors-13-dv-rgsyren-mirror-oak-veneer-28x37-cm",
+      "normalized_type": "large-mirror",
+      "name": "DVÄRGSYREN Mirror - oak veneer 28x37 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-large-mirrors-14-dv-rgsyren-mirror-walnut-veneer-28x37-cm",
+      "normalized_type": "large-mirror",
+      "name": "DVÄRGSYREN Mirror - walnut veneer 28x37 cm",
+      "material": "walnut, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-large-mirrors-17-grinsbol-mirror-rattan-55-cm",
+      "normalized_type": "large-mirror",
+      "name": "GRINSBOL Mirror - rattan 55 cm",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-large-mirrors-20-kandlen-t-mirror-rattan-60x140-cm",
+      "normalized_type": "large-mirror",
+      "name": "KANDLENÖT Mirror - rattan 60x140 cm",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-large-mirrors-24-ikornnes-table-mirror-ash-27x40-cm",
+      "normalized_type": "large-mirror",
+      "name": "IKORNNES Table mirror - ash 27x40 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-mirror-cabinets-01-utdrag-built-in-extractor-hood-stainless-steel-60-cm",
+      "normalized_type": "mirror-cabinet",
+      "name": "UTDRAG Built-in extractor hood - stainless steel 60 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-mirror-cabinets-03-underverk-built-in-extractor-hood-stainless-steel-60-cm",
+      "normalized_type": "mirror-cabinet",
+      "name": "UNDERVERK Built-in extractor hood - stainless steel 60 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-mirror-cabinets-04-underverk-built-in-extractor-hood-stainless-steel-80-cm",
+      "normalized_type": "mirror-cabinet",
+      "name": "UNDERVERK Built-in extractor hood - stainless steel 80 cm",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-mirrors-04-ikornnes-standing-mirror-ash-52x167-cm",
+      "normalized_type": "mirror",
+      "name": "IKORNNES Standing mirror - ash 52x167 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-mirrors-05-stockholm-mirror-oak-veneer-80-cm",
+      "normalized_type": "mirror",
+      "name": "STOCKHOLM Mirror - oak veneer 80 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-standing-mirrors-03-pomp-vase-lantern-clear-glass-18-cm",
+      "normalized_type": "standing-mirror",
+      "name": "POMP Vase/lantern - clear glass 18 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-standing-mirrors-06-p-vefink-lantern-for-pillar-candle-bamboo-33-cm",
+      "normalized_type": "standing-mirror",
+      "name": "PÅVEFINK Lantern for pillar candle - bamboo 33 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-standing-mirrors-09-p-vefink-lantern-for-pillar-candle-bamboo-25-cm",
+      "normalized_type": "standing-mirror",
+      "name": "PÅVEFINK Lantern for pillar candle - bamboo 25 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-standing-mirrors-11-h-visk-lantern-for-block-candle-handmade-bamboo-36-cm",
+      "normalized_type": "standing-mirror",
+      "name": "HÖVISK Lantern for block candle - handmade bamboo 36 cm",
+      "material": "bamboo",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-mirrors-02-lettan-mirror-cabinet-with-doors-mirror-effect-mirror-glass-60x15x95-cm",
+      "normalized_type": "wall-mirror",
+      "name": "LETTAN Mirror cabinet with doors - mirror effect/mirror glass 60x15x95 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-mirrors-03-lettan-mirror-cabinet-with-doors-mirror-effect-mirror-glass-100x15x95-cm",
+      "normalized_type": "wall-mirror",
+      "name": "LETTAN Mirror cabinet with doors - mirror effect/mirror glass 100x15x95 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-mirrors-04-lettan-mirror-cabinet-with-doors-mirror-effect-mirror-glass-80x15x95-cm",
+      "normalized_type": "wall-mirror",
+      "name": "LETTAN Mirror cabinet with doors - mirror effect/mirror glass 80x15x95 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-mirrors-06-fr-ck-mirror-stainless-steel",
+      "normalized_type": "wall-mirror",
+      "name": "FRÄCK Mirror - stainless steel",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-mirrors-08-fax-lven-mirror-cabinet-w-built-in-lighting-oak-effect-60x15x95-cm",
+      "normalized_type": "wall-mirror",
+      "name": "FAXÄLVEN Mirror cabinet w built-in lighting - oak effect 60x15x95 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-mirrors-09-trensum-mirror-stainless-steel",
+      "normalized_type": "wall-mirror",
+      "name": "TRENSUM Mirror - stainless steel",
+      "material": "stainless steel, steel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-wall-mirrors-24-lettan-mirror-cabinet-with-door-mirror-effect-mirror-glass-40x15x95-cm",
+      "normalized_type": "wall-mirror",
+      "name": "LETTAN Mirror cabinet with door - mirror effect/mirror glass 40x15x95 cm",
+      "material": "glass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tv-benches-03-best-tv-bench-with-doors-black-brown-lappviken-walnut-effect-180x42x38-cm",
+      "normalized_type": "tv-bench",
+      "name": "BESTÅ TV bench with doors - black-brown/Lappviken walnut effect 180x42x38 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tv-benches-06-stockholm-2025-tv-bench-with-sliding-doors-oak-veneer-179x42x56-cm",
+      "normalized_type": "tv-bench",
+      "name": "STOCKHOLM 2025 TV bench with sliding doors - oak veneer 179x42x56 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tv-benches-28-best-tv-bench-white-stained-oak-effect-120x40x48-cm",
+      "normalized_type": "tv-bench",
+      "name": "BESTÅ TV bench - white stained oak effect 120x40x48 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tv-benches-34-tonstad-tv-bench-oak-veneer-178x37x55-cm",
+      "normalized_type": "tv-bench",
+      "name": "TONSTAD TV bench - oak veneer 178x37x55 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tv-media-furniture-01-best-tv-bench-with-doors-black-brown-hedeviken-oak-veneer-180x42x38-cm",
+      "normalized_type": "tv-media-furniture",
+      "name": "BESTÅ TV bench with doors - black-brown/Hedeviken oak veneer 180x42x38 cm",
+      "material": "oak, wood veneer, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tv-media-furniture-03-fryks-s-tv-bench-rattan-157x41x49-cm",
+      "normalized_type": "tv-media-furniture",
+      "name": "FRYKSÅS TV bench - rattan 157x41x49 cm",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "fi-tv-media-furniture-06-tonstad-tv-storage-comb-with-sliding-doors-oak-veneer-clear-glass-342x37x120-cm",
+      "normalized_type": "tv-media-furniture",
+      "name": "TONSTAD TV/storage comb with sliding doors - oak veneer/clear glass 342x37x120 cm",
+      "material": "oak, wood veneer, glass, solid wood, leather, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-bed-frames-01-slattum-upholstered-bed-frame-vissle-dark-grey-140x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "SLATTUM Upholstered bed frame - Vissle dark grey 140x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-bed-frames-06-mandal-bed-frame-with-storage-birch-white-140x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "MANDAL Bed frame with storage - birch/white 140x200 cm",
+      "material": "birch",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-bed-frames-09-slattum-upholstered-bed-frame-vissle-dark-grey-incl-slipcover-for-headboard-reryd-grey-beige-140x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "SLATTUM Upholstered bed frame - Vissle dark grey/incl slipcover for headboard Öreryd grey/beige 140x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-bed-frames-12-t-rnkullen-upholstered-bed-frame-tibbleby-beige-grey-140x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "TÄRNKULLEN Upholstered bed frame - Tibbleby beige/grey 140x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-bed-frames-14-mandal-bed-frame-with-headboard-birch-white-160x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "MANDAL Bed frame with headboard - birch/white 160x200 cm",
+      "material": "birch",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-bed-frames-15-sagesund-upholstered-bed-frame-diser-d-brown-140x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "SAGESUND Upholstered bed frame - Diseröd brown 140x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-beds-03-mandal-bed-frame-with-storage-birch-white-90x200-cm",
+      "normalized_type": "bed",
+      "name": "MANDAL Bed frame with storage - birch/white 90x200 cm",
+      "material": "birch",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-beds-04-slattum-upholstered-bed-frame-vissle-dark-grey-120x200-cm",
+      "normalized_type": "bed",
+      "name": "SLATTUM Upholstered bed frame - Vissle dark grey 120x200 cm",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-beds-14-markfrost-table-lamp-marble-black",
+      "normalized_type": "bed",
+      "name": "MARKFROST Table lamp - marble black",
+      "material": "marble",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-beds-15-sunneby-cord-set-black-textile-1-0-m",
+      "normalized_type": "bed",
+      "name": "SUNNEBY Cord set - black textile 1.0 m",
+      "material": "fabric",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-mattresses-02-bygda-foam-mattress-firm-white-90x200-cm",
+      "normalized_type": "mattress",
+      "name": "ÅBYGDA Foam mattress - firm/white 90x200 cm",
+      "material": "foam",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-mattresses-04-krehamn-foam-mattress-firm-white-90x200-cm",
+      "normalized_type": "mattress",
+      "name": "ÅKREHAMN Foam mattress - firm/white 90x200 cm",
+      "material": "foam",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-bookcases-24-billy-bookcase-with-height-extension-unit-brown-walnut-effect-40x28x237-cm",
+      "normalized_type": "bookcase",
+      "name": "BILLY Bookcase with height extension unit - brown walnut effect 40x28x237 cm",
+      "material": "walnut",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-dining-chairs-07-skansn-s-chair-light-beech",
+      "normalized_type": "dining-chair",
+      "name": "SKANSNÄS Chair - light beech",
+      "material": "beech",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-dining-chairs-08-skansn-s-chair-brown-beech",
+      "normalized_type": "dining-chair",
+      "name": "SKANSNÄS Chair - brown beech",
+      "material": "beech",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-dining-chairs-38-ombonad-tray-walnut-42-cm",
+      "normalized_type": "dining-chair",
+      "name": "OMBONAD Tray - walnut 42 cm",
+      "material": "walnut",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-stools-benches-03-dalfred-bar-stool-birch-63-74-cm",
+      "normalized_type": "stool-bench",
+      "name": "DALFRED Bar stool - birch 63-74 cm",
+      "material": "birch",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-stools-benches-06-skogsta-table-counter-height-acacia-black-150x74-cm",
+      "normalized_type": "stool-bench",
+      "name": "SKOGSTA Table - counter height acacia/black 150x74 cm",
+      "material": "acacia",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-childrens-furniture-12-fl-dis-basket-seagrass-25-cm",
+      "normalized_type": "childrens-furniture",
+      "name": "FLÅDIS Basket - seagrass 25 cm",
+      "material": "seagrass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-decoration-01-svartg-k-wall-clock-cork-38-cm",
+      "normalized_type": "decoration",
+      "name": "SVARTGÖK Wall clock - cork 38 cm",
+      "material": "cork",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-flower-pots-planters-01-mannaask-plant-stand-with-hanger-indoor-outdoor-acacia-140-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "MANNAASK Plant stand with hanger - indoor/outdoor acacia 140 cm",
+      "material": "acacia",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-flower-pots-planters-22-kaktusfikon-plant-pot-rattan-12-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "KAKTUSFIKON Plant pot - rattan 12 cm",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-floor-lamps-01-lersta-floor-reading-lamp-aluminium-chrome-effect",
+      "normalized_type": "floor-lamp",
+      "name": "LERSTA Floor/reading lamp - aluminium chrome effect",
+      "material": "aluminium, chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-lamp-shades-bases-03-kyrre-stool-birch",
+      "normalized_type": "lamp-shades-base",
+      "name": "KYRRE Stool - birch",
+      "material": "birch",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-lamp-shades-bases-05-skogsta-stool-acacia-45-cm",
+      "normalized_type": "lamp-shades-base",
+      "name": "SKOGSTA Stool - acacia 45 cm",
+      "material": "acacia",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-lamp-shades-bases-10-kyrre-stool-set-of-2-birch",
+      "normalized_type": "lamp-shades-base",
+      "name": "KYRRE Stool, set of 2 - birch",
+      "material": "birch",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-table-lamps-02-rstid-table-lamp-brass-white",
+      "normalized_type": "table-lamp",
+      "name": "ÅRSTID Table lamp - brass/white",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-table-lamps-23-fors-work-lamp-brass-colour",
+      "normalized_type": "table-lamp",
+      "name": "FORSÅ Work lamp - brass-colour",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-rugs-09-stockholm-2025-bowl-and-dish-brass-colour",
+      "normalized_type": "rug",
+      "name": "STOCKHOLM 2025 Bowl and dish - brass-colour",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-rugs-10-stockholm-2025-tray-brass-colour-28x20-cm",
+      "normalized_type": "rug",
+      "name": "STOCKHOLM 2025 Tray - brass-colour 28x20 cm",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-rugs-11-stockholm-2025-candlestick-tealight-holder-brass-colour-6-cm",
+      "normalized_type": "rug",
+      "name": "STOCKHOLM 2025 Candlestick/tealight holder - brass-colour 6 cm",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-armchairs-18-ikea-ps-2026-easy-chair-birch",
+      "normalized_type": "armchair",
+      "name": "IKEA PS 2026 Easy chair - birch",
+      "material": "birch",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-sofa-beds-01-billy-height-extension-unit-brown-walnut-effect-80x28x35-cm",
+      "normalized_type": "sofa-bed",
+      "name": "BILLY Height extension unit - brown walnut effect 80x28x35 cm",
+      "material": "walnut",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-storage-solution-systems-01-best-storage-combination-with-drawers-black-brown-lappviken-stubbarp-walnut-effect-180x42x75-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "BESTÅ Storage combination with drawers - black-brown/Lappviken/Stubbarp walnut effect 180x42x75 cm",
+      "material": "walnut",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-coffee-tables-05-uppvind-floor-lamp-nickel-plated-white-150-cm",
+      "normalized_type": "coffee-table",
+      "name": "UPPVIND Floor lamp - nickel-plated/white 150 cm",
+      "material": "nickel",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-coffee-tables-19-olser-d-side-table-anthracite-birch-effect-dark-yellow-53x50-cm",
+      "normalized_type": "coffee-table",
+      "name": "OLSERÖD Side table - anthracite/birch effect dark yellow 53x50 cm",
+      "material": "birch",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-dining-tables-15-skogsta-table-acacia-160x81-cm",
+      "normalized_type": "dining-table",
+      "name": "SKOGSTA Table - acacia 160x81 cm",
+      "material": "acacia",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "jp-tv-benches-26-r-dmans-tv-bench-brown-walnut-effect-176x48x66-cm",
+      "normalized_type": "tv-bench",
+      "name": "RÅDMANSÖ TV bench - brown walnut effect 176x48x66 cm",
+      "material": "walnut",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-04-malm-highbedframewith2storage-box-solid-wood-veneer-white-stained-oak-150x200",
+      "normalized_type": "bed-frame",
+      "name": "MALM - highbedframewith2storage box, solid wood veneer, white-stained oak/150x200",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-17-malm-highbedframewith2storage-box-solid-wood-veneer-white-stained-oak-l-nset",
+      "normalized_type": "bed-frame",
+      "name": "MALM - highbedframewith2storage box, solid wood veneer, white-stained oak/Lönset",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-21-glamberget-extendablebedwith-drawers-pine-80-160x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "GLAMBERGET - extendablebedwith drawers, pine, 80-160x200 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-23-tarva-singlebedframe-pine-lur-y-90x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "TARVA - singlebedframe, pine/Luröy, 90x200 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-28-ut-ker-stackablebed-pine-80x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "UTÅKER - stackablebed, pine, 80x200 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-36-malm-highbedframewith2storage-box-solid-wood-veneer-white-stained-oak-lur-y",
+      "normalized_type": "bed-frame",
+      "name": "MALM - highbedframewith2storage box, solid wood veneer, white-stained oak/Luröy",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-37-malm-bedframe-highbedheadboard-solid-wood-veneer-white-stained-oak-l-nset",
+      "normalized_type": "bed-frame",
+      "name": "MALM - bedframe highbedheadboard, solid wood veneer, white-stained oak/Lönset",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-40-malm-bedframe-highbedheadboard-solid-wood-veneer-white-stained-oak-lur-y",
+      "normalized_type": "bed-frame",
+      "name": "MALM - bedframe highbedheadboard, solid wood veneer, white-stained oak/Luröy",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-43-malm-bedframe-highbedheadboard-solid-wood-veneer-white-stained-oak-l-nset",
+      "normalized_type": "bed-frame",
+      "name": "MALM - bedframe highbedheadboard, solid wood veneer, white-stained oak/Lönset",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-55-ut-ker-stackablebedwith2mattress-pine-fj-ll-medium-firm-80x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "UTÅKER - stackablebedwith2mattress, pine/Åfjäll medium-firm, 80x200 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-64-mydal-bunkbedframe-pine-90x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "MYDAL - bunkbedframe, pine, 90x200 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-65-kura-detailchildren-s-bed-white-pine-90x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "KURA - detailchildren's bed, white/pine, 90x200 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bed-frames-69-sm-stad-loftbed-white-birch-withtable-with3drawers-90x200-cm",
+      "normalized_type": "bed-frame",
+      "name": "SMÅSTAD - loftbed, white birch/withtable with3drawers, 90x200 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bookcases-34-tonstad-bookcase-solid-wood-veneer-oak",
+      "normalized_type": "bookcase",
+      "name": "TONSTAD - bookcase, solid wood veneer, oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-02-kallax-shelving-unit-white-stained-oak-effect-77x112-cm",
+      "normalized_type": "shelving-unit",
+      "name": "KALLAX - shelving unit, white-stained oak effect, 77x112 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-06-kallax-shelving-unit-white-stained-oak-effect-112x147-cm",
+      "normalized_type": "shelving-unit",
+      "name": "KALLAX - shelving unit, white-stained oak effect, 112x147 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-18-l-dmakare-storage-combination-withshelf-oak-effect-159x35x212-cm",
+      "normalized_type": "shelving-unit",
+      "name": "LÅDMAKARE - storage combination, withshelf/oak effect, 159x35x212 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-19-ekenabben-detailshelving-unit-whitedetail-white-70x34x154-cm",
+      "normalized_type": "shelving-unit",
+      "name": "EKENABBEN - detailshelving unit, whitedetail/white, 70x34x154 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-20-l-dmakare-sliding-door-storage-combination-with6detail-oak-effect-159x35x212-cm",
+      "normalized_type": "shelving-unit",
+      "name": "LÅDMAKARE - sliding-door storage combination, with6detail/oak effect, 159x35x212 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-21-l-dmakare-sliding-door-storage-combination-withshelf-oak-effect-158x35x212-cm",
+      "normalized_type": "shelving-unit",
+      "name": "LÅDMAKARE - sliding-door storage combination, withshelf/oak effect, 158x35x212 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-40-kallax-shelving-unitwith4storage-inserts-white-stained-oak-effect-147x112-cm",
+      "normalized_type": "shelving-unit",
+      "name": "KALLAX - shelving unitwith4storage inserts, white-stained oak effect, 147x112 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-47-tonstad-shelving-unit-solid-wood-veneer-oak",
+      "normalized_type": "shelving-unit",
+      "name": "TONSTAD - shelving unit, solid wood veneer, oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-48-kallax-shelving-unit-white-stained-oak-effect-77x77-cm",
+      "normalized_type": "shelving-unit",
+      "name": "KALLAX - shelving unit, white-stained oak effect, 77x77 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-shelving-units-52-kallax-shelving-unitdetailwithbasedetail-white-stained-oak-effect-black-147x94-cm",
+      "normalized_type": "shelving-unit",
+      "name": "KALLAX - shelving unitdetailwithbasedetail, white-stained oak effect/black, 147x94 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-wall-shelves-05-lack-wall-mountedshelving-unit-white-stained-oak-effect-30x190-cm",
+      "normalized_type": "wall-shelf",
+      "name": "LACK - wall-mountedshelving unit, white-stained oak effect, 30x190 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-wall-shelves-18-tranhult-sandshult-wall-mountedshelving-unit-stainedwhitewhitedetail-80x20-cm",
+      "normalized_type": "wall-shelf",
+      "name": "TRANHULT/SANDSHULT - wall-mountedshelving unit, stainedwhitewhitedetail, 80x20 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-08-r-nninge-dining-chair-birch",
+      "normalized_type": "dining-chair",
+      "name": "RÖNNINGE - dining chair, birch",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-11-lisabo-dining-chair-ash",
+      "normalized_type": "dining-chair",
+      "name": "LISABO - dining chair, ash",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-16-pinntorp-dining-chair-lightbrown-pine-45-cm",
+      "normalized_type": "dining-chair",
+      "name": "PINNTORP - dining chair - lightbrown/pine - 45 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-17-fr-svi-folding-chair-detail",
+      "normalized_type": "dining-chair",
+      "name": "FRÖSVI - folding chair, detail",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-18-skogsta-dining-chair-acacia",
+      "normalized_type": "dining-chair",
+      "name": "SKOGSTA - dining chair, acacia",
+      "material": "acacia, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-21-tobias-dining-chair-transparent-chrome-plated",
+      "normalized_type": "dining-chair",
+      "name": "TOBIAS - dining chair, transparent/chrome-plated",
+      "material": "chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-22-tobias-dining-chair-brownred-chrome-plated",
+      "normalized_type": "dining-chair",
+      "name": "TOBIAS - dining chair, brownred/chrome-plated",
+      "material": "chrome",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-25-pinntorp-table-lightbrown-stainedwhite-pine-65x65-cm",
+      "normalized_type": "dining-chair",
+      "name": "PINNTORP - table - lightbrown/stainedwhite pine - 65x65 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-30-lisabo-dining-chair-ash-tallmyra-white-black",
+      "normalized_type": "dining-chair",
+      "name": "LISABO - dining chair, ash/Tallmyra white/black",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-32-tonstad-dining-chair-fridtuna-light-beige-oak-effect",
+      "normalized_type": "dining-chair",
+      "name": "TONSTAD - dining chair, Fridtuna light beige/oak effect",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-36-bergmund-dining-chair-oak-effect-orrsta-light-grey",
+      "normalized_type": "dining-chair",
+      "name": "BERGMUND - dining chair, oak effect/Orrsta light grey",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-38-bergmund-dining-chair-oak-effect-gunnared-medium-grey",
+      "normalized_type": "dining-chair",
+      "name": "BERGMUND - dining chair, oak effect/Gunnared medium grey",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-dining-chairs-40-tonstad-dining-chair-fridtuna-light-beige-brown-oak-effect",
+      "normalized_type": "dining-chair",
+      "name": "TONSTAD - dining chair, Fridtuna light beige/brown oak effect",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-office-chairs-25-fj-llberget-conference-chair-solid-wood-veneer-white-stained-oak-gunnared-beige-white-stained-oak-gunnared-beige",
+      "normalized_type": "office-chair",
+      "name": "FJÄLLBERGET - conference chair, solid wood veneer, white-stained oak/Gunnared beige, white-stained oak/Gunnared beige",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-stools-benches-01-kyrre-stool-birch",
+      "normalized_type": "stool-bench",
+      "name": "KYRRE - stool, birch",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-stools-benches-02-kyrre-stool-2pack-birch",
+      "normalized_type": "stool-bench",
+      "name": "KYRRE - stool 2pack, birch",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-stools-benches-03-perjohan-storagestool-pine",
+      "normalized_type": "stool-bench",
+      "name": "PERJOHAN - storagestool, pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-stools-benches-08-domsten-stool-orange-pine",
+      "normalized_type": "stool-bench",
+      "name": "DOMSTEN - stool, orange/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-stools-benches-09-domsten-stool-purple-pine",
+      "normalized_type": "stool-bench",
+      "name": "DOMSTEN - stool, purple/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-stools-benches-13-skogsta-storagebench-acacia-black-120-cm",
+      "normalized_type": "stool-bench",
+      "name": "SKOGSTA - storagebench, acacia/black, 120 cm",
+      "material": "acacia, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-stools-benches-14-perjohan-storagebench-pine-100-cm",
+      "normalized_type": "stool-bench",
+      "name": "PERJOHAN - storagebench, pine, 100 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-childrens-tables-10-po-ng-children-sarmchair-solid-wood-veneer-birch-knisa-light-beige",
+      "normalized_type": "childrens-table",
+      "name": "POÄNG - children'sarmchair, solid wood veneer, birch/Knisa light beige",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-childrens-tables-16-grejsimojs-children-s-chairchairdetail-detail-blue",
+      "normalized_type": "childrens-table",
+      "name": "GREJSIMOJS - children's chairchairdetail, detail/blue",
+      "material": "leather, faux fur",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-flower-pots-planters-17-daidai-flower-pot-yellowdetail-9-cm",
+      "normalized_type": "flower-pots-planter",
+      "name": "DAIDAI - flower pot - yellowdetail - 9 cm",
+      "material": "brass",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-storage-boxes-baskets-42-knagglig-storage-box-pine-23x31x15-cm",
+      "normalized_type": "storage-boxes-basket",
+      "name": "KNAGGLIG - storage box, pine, 23x31x15 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-lamp-shades-bases-04-molnskikt-lamp-shade-darkred-detail-33-cm",
+      "normalized_type": "lamp-shades-base",
+      "name": "MOLNSKIKT - lamp shade, darkred detail, 33 cm",
+      "material": "velvet",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-mirror-cabinets-08-ngsj-n-with-doorshighcabinet-oak-effect-40x35x195-cm",
+      "normalized_type": "mirror-cabinet",
+      "name": "ÄNGSJÖN - with doorshighcabinet, oak effect, 40x35x195 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-mirror-cabinets-14-haga-n-detailwallcabinet-oak-effect-40x15x95-cm",
+      "normalized_type": "mirror-cabinet",
+      "name": "HAGAÅN - detailwallcabinet, oak effect, 40x15x95 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-mirror-cabinets-15-ngsj-n-with-doorswallcabinet-oak-effect-40x15x95-cm",
+      "normalized_type": "mirror-cabinet",
+      "name": "ÄNGSJÖN - with doorswallcabinet, oak effect, 40x15x95 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-wall-mirrors-15-grinsbol-mirror-rattan-55-cm",
+      "normalized_type": "wall-mirror",
+      "name": "GRINSBOL - mirror - rattan - 55 cm",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-armchairs-07-po-ng-armchair-solid-wood-veneer-birch-knisa-light-beige",
+      "normalized_type": "armchair",
+      "name": "POÄNG - armchair - solid wood veneer, birch/Knisa light beige",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-armchairs-08-po-ng-armchair-solid-wood-veneer-birch-knisa-black",
+      "normalized_type": "armchair",
+      "name": "POÄNG - armchair - solid wood veneer, birch/Knisa black",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-armchairs-18-fr-set-easy-chair-solid-wood-veneer-white-stained-oak",
+      "normalized_type": "armchair",
+      "name": "FRÖSET - easy chair - solid wood veneer, white-stained oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-armchairs-19-fr-set-easy-chair-black-solid-wood-veneer-oak",
+      "normalized_type": "armchair",
+      "name": "FRÖSET - easy chair - black solid wood veneer, oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-armchairs-20-fr-set-easy-chair-red-solid-wood-veneer-oak",
+      "normalized_type": "armchair",
+      "name": "FRÖSET - easy chair - red solid wood veneer, oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-armchairs-25-agen-armchairwith-cushion-rattan-norna-natural",
+      "normalized_type": "armchair",
+      "name": "AGEN - armchairwith cushion - rattan/Norna natural",
+      "material": "rattan",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-armchairs-27-po-ng-armchairwithstool-solid-wood-veneer-birch-knisa-light-beige",
+      "normalized_type": "armchair",
+      "name": "POÄNG - armchairwithstool - solid wood veneer, birch/Knisa light beige",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-sofa-beds-20-tornsborg-2-seat-sofa-bed-naggen-beige-pine",
+      "normalized_type": "sofa-bed",
+      "name": "TORNSBORG - 2-seat sofa-bed - Naggen beige/pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-cabinets-cupboards-17-best-wall-mountedstorage-cabinetcombination-white-hedeviken-solid-wood-veneer-oak",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BESTÅ - wall-mountedstorage cabinetcombination, white Hedeviken/solid wood veneer, oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-cabinets-cupboards-33-best-shelving-unitwith-doorsdetail-white-hedeviken-solid-wood-veneer-oak",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BESTÅ - shelving unitwith doorsdetail, white/Hedeviken solid wood veneer, oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-cabinets-cupboards-41-best-wall-mountedstorage-cabinetcombination-white-f-nrik-ash-180x42x64-cm",
+      "normalized_type": "cabinets-cupboard",
+      "name": "BESTÅ - wall-mountedstorage cabinetcombination, white/Fänrik ash, 180x42x64 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-cabinets-cupboards-50-tonstad-with-doorsstorage-cabinet-solid-wood-veneer-oak",
+      "normalized_type": "cabinets-cupboard",
+      "name": "TONSTAD - with doorsstorage cabinet, solid wood veneer, oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-chests-of-drawers-02-malm-chest-of-drawers-4drawer-solid-wood-veneer-white-stained-oak",
+      "normalized_type": "chests-of-drawer",
+      "name": "MALM - chest of drawers/4drawer, solid wood veneer, white-stained oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-chests-of-drawers-04-malm-chest-of-drawers-6drawer-solid-wood-veneer-white-stained-oak",
+      "normalized_type": "chests-of-drawer",
+      "name": "MALM - chest of drawers/6drawer, solid wood veneer, white-stained oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-chests-of-drawers-05-malm-chest-of-drawers-6drawer-solid-wood-veneer-white-stained-oak",
+      "normalized_type": "chests-of-drawer",
+      "name": "MALM - chest of drawers/6drawer, solid wood veneer, white-stained oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-chests-of-drawers-07-malm-chest-of-drawers-3drawer-solid-wood-veneer-white-stained-oak",
+      "normalized_type": "chests-of-drawer",
+      "name": "MALM - chest of drawers/3drawer, solid wood veneer, white-stained oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-chests-of-drawers-15-tonstad-chest-of-drawers-6drawer-solid-wood-veneer-oak-120x47x90-cm",
+      "normalized_type": "chests-of-drawer",
+      "name": "TONSTAD - chest of drawers/6drawer, solid wood veneer, oak, 120x47x90 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-sideboards-08-tonstad-sideboard-solid-wood-veneer-oak",
+      "normalized_type": "sideboard",
+      "name": "TONSTAD - sideboard, solid wood veneer, oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-sideboards-09-klacken-s-sideboard-black-solid-wood-veneer-oak-brown",
+      "normalized_type": "sideboard",
+      "name": "KLACKENÄS - sideboard, black/solid wood veneer, oak brown",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-storage-solution-systems-08-ivar-shelf-pine-83x30-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "IVAR - shelf, pine, 83x30 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-storage-solution-systems-10-ivar-shelf-pine-83x50-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "IVAR - shelf, pine, 83x50 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-storage-solution-systems-11-ivar-shelf-pine-42x30-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "IVAR - shelf, pine, 42x30 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-storage-solution-systems-30-ivar-shelf-pine-42x50-cm",
+      "normalized_type": "storage-solution-system",
+      "name": "IVAR - shelf, pine, 42x50 cm",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-trolleys-17-resar-detailfoldingdetailwith-storage-pine",
+      "normalized_type": "trolley",
+      "name": "RESARÖ - detailfoldingdetailwith storage, pine",
+      "material": "pine, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bar-tables-03-mittzon-conference-table-solid-wood-veneer-birch-white-140x68x105-cm",
+      "normalized_type": "bar-table",
+      "name": "MITTZON - conference table, solid wood veneer, birch/white 140x68x105 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bar-tables-04-mittzon-conference-table-solid-wood-veneer-walnut-white-140x68x105-cm",
+      "normalized_type": "bar-table",
+      "name": "MITTZON - conference table, solid wood veneer, walnut/white 140x68x105 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bar-tables-05-mittzon-conference-table-solid-wood-veneer-oak-white-140x68x105-cm",
+      "normalized_type": "bar-table",
+      "name": "MITTZON - conference table, solid wood veneer, oak/white 140x68x105 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bar-tables-08-mittzon-conference-table-solid-wood-veneer-walnut-black-140x68x105-cm",
+      "normalized_type": "bar-table",
+      "name": "MITTZON - conference table, solid wood veneer, walnut/black 140x68x105 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bar-tables-09-mittzon-conference-table-black-solid-wood-veneer-ash-black-140x68x105-cm",
+      "normalized_type": "bar-table",
+      "name": "MITTZON - conference table, black/solid wood veneer ash/black, 140x68x105 cm",
+      "material": "solid wood, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bar-tables-10-mittzon-conference-table-black-solid-wood-veneer-ash-white-140x68x105-cm",
+      "normalized_type": "bar-table",
+      "name": "MITTZON - conference table, black/solid wood veneer ash/white, 140x68x105 cm",
+      "material": "solid wood, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bar-tables-11-mittzon-conference-table-solid-wood-veneer-oak-black-140x68x105-cm",
+      "normalized_type": "bar-table",
+      "name": "MITTZON - conference table, solid wood veneer, oak/black 140x68x105 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bar-tables-12-mittzon-conference-table-solid-wood-veneer-birch-black-140x68x105-cm",
+      "normalized_type": "bar-table",
+      "name": "MITTZON - conference table, solid wood veneer, birch/black 140x68x105 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bedside-tables-02-malm-chest-of-drawers-2drawer-solid-wood-veneer-white-stained-oak",
+      "normalized_type": "bedside-table",
+      "name": "MALM - chest of drawers/2drawer, solid wood veneer, white-stained oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bedside-tables-19-bj-rksn-s-bedside-table-birch-48x38-cm",
+      "normalized_type": "bedside-table",
+      "name": "BJÖRKSNÄS - bedside table, birch, 48x38 cm",
+      "material": "birch, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-bedside-tables-24-tonstad-bedside-table-solid-wood-veneer-oak",
+      "normalized_type": "bedside-table",
+      "name": "TONSTAD - bedside table, solid wood veneer, oak",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-coffee-tables-01-borgeby-coffee-table-solid-wood-veneer-birch-70-cm",
+      "normalized_type": "coffee-table",
+      "name": "BORGEBY - coffee table - solid wood veneer, birch - 70 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-coffee-tables-04-olser-d-side-table-charcoalblack-birchdetail-darkyellow-53x50-cm",
+      "normalized_type": "coffee-table",
+      "name": "OLSERÖD - side table - charcoalblack/birchdetail darkyellow - 53x50 cm",
+      "material": "wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-coffee-tables-06-borgeby-side-table-solid-wood-veneer-birch-46-cm",
+      "normalized_type": "coffee-table",
+      "name": "BORGEBY - side table - solid wood veneer, birch - 46 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-coffee-tables-18-sonhult-detail-2pack-grey-walnutdetail",
+      "normalized_type": "coffee-table",
+      "name": "SONHULT - detail 2pack - grey/walnutdetail",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-coffee-tables-22-hol-side-table-acacia-50x50-cm",
+      "normalized_type": "coffee-table",
+      "name": "HOL - side table - acacia - 50x50 cm",
+      "material": "acacia, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-36-alex-desk-work-desk-stainedwhite-oak-effect-100x48-cm",
+      "normalized_type": "desk",
+      "name": "ALEX - desk/work desk - stainedwhite/oak effect - 100x48 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-47-mittzon-desk-work-desk-solid-wood-veneer-oak-white-120x60-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - desk/work desk, solid wood veneer, oak/white, 120x60 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-48-mittzon-desk-work-desk-solid-wood-veneer-birch-black-120x60-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - desk/work desk, solid wood veneer, birch/black, 120x60 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-49-mittzon-desk-work-desk-solid-wood-veneer-oak-black-120x60-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - desk/work desk, solid wood veneer, oak/black, 120x60 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-53-mittzon-desk-work-desk-solid-wood-veneer-birch-white-120x60-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - desk/work desk, solid wood veneer, birch/white, 120x60 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-55-mittzon-desk-work-desk-black-solid-wood-veneer-ash-black-120x60-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - desk/work desk, black solid wood veneer ash/black, 120x60 cm",
+      "material": "solid wood, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-56-mittzon-desk-work-desk-solid-wood-veneer-walnut-black-120x60-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - desk/work desk, solid wood veneer, walnut/black, 120x60 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-57-mittzon-desk-work-desk-solid-wood-veneer-walnut-white-120x60-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - desk/work desk, solid wood veneer, walnut/white, 120x60 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-83-mittzon-conference-table-black-solid-wood-veneer-ash-white-140x108x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, black/solid wood veneer ash/white, 140x108x75 cm",
+      "material": "solid wood, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-84-mittzon-conference-table-solid-wood-veneer-oak-white-140x108x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, oak/white, 140x108x75 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-85-mittzon-conference-table-solid-wood-veneer-walnut-black-140x108x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, walnut/black, 140x108x75 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-86-mittzon-conference-table-solid-wood-veneer-walnut-white-140x108x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, walnut/white, 140x108x75 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-88-mittzon-conference-table-solid-wood-veneer-oak-black-140x108x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, oak/black, 140x108x75 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-89-mittzon-conference-table-black-solid-wood-veneer-ash-black-140x108x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, black/solid wood veneer ash/black, 140x108x75 cm",
+      "material": "solid wood, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-90-mittzon-conference-table-solid-wood-veneer-birch-white-140x108x105-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, birch/white 140x108x105 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-91-mittzon-conference-table-solid-wood-veneer-birch-white-140x108x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, birch/white, 140x108x75 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-92-mittzon-conference-table-solid-wood-veneer-birch-black-140x108x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, birch/black, 140x108x75 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-93-mittzon-conference-table-solid-wood-veneer-walnut-black-140x68x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, walnut/black, 140x68x75 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-94-mittzon-conference-table-black-solid-wood-veneer-ash-white-140x68x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, black/solid wood veneer ash/white, 140x68x75 cm",
+      "material": "solid wood, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-95-mittzon-conference-table-solid-wood-veneer-walnut-white-140x68x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, walnut/white, 140x68x75 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-96-mittzon-conference-table-black-solid-wood-veneer-ash-black-140x68x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, black/solid wood veneer ash/black, 140x68x75 cm",
+      "material": "solid wood, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-97-mittzon-conference-table-solid-wood-veneer-oak-white-140x68x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, oak/white, 140x68x75 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-99-mittzon-conference-table-solid-wood-veneer-oak-black-140x68x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, oak/black, 140x68x75 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-100-mittzon-conference-table-solid-wood-veneer-birch-black-140x68x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, birch/black, 140x68x75 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-101-mittzon-conference-table-solid-wood-veneer-birch-white-140x68x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, birch/white, 140x68x75 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-102-mittzon-conference-table-round-solid-wood-veneer-walnut-black-120x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, round solid wood veneer, walnut/black, 120x75 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-103-mittzon-conference-table-round-solid-wood-veneer-walnut-white-120x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, round solid wood veneer, walnut/white, 120x75 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-104-mittzon-conference-table-round-solid-wood-veneer-birch-white-120x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, round solid wood veneer, birch/white, 120x75 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-106-mittzon-conference-table-round-solid-wood-veneer-birch-black-120x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, round solid wood veneer, birch/black, 120x75 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-108-mittzon-conference-table-solid-wood-veneer-oak-black-140x108x105-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, oak/black 140x108x105 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-109-mittzon-conference-table-black-solid-wood-veneer-ash-black-140x108x105-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, black/solid wood veneer ash/black, 140x108x105 cm",
+      "material": "solid wood, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-110-mittzon-conference-table-solid-wood-veneer-birch-black-140x108x105-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, birch/black 140x108x105 cm",
+      "material": "solid wood, birch, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-111-mittzon-conference-table-solid-wood-veneer-walnut-black-140x108x105-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, solid wood veneer, walnut/black 140x108x105 cm",
+      "material": "solid wood, walnut, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-113-mittzon-conference-table-round-solid-wood-veneer-oak-black-120x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, round solid wood veneer, oak/black, 120x75 cm",
+      "material": "solid wood, oak, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-114-mittzon-conference-table-round-black-solid-wood-veneer-ash-black-120x75-cm",
+      "normalized_type": "desk",
+      "name": "MITTZON - conference table, round black/solid wood veneer ash/black, 120x75 cm",
+      "material": "solid wood, wood veneer, wood, leather",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-desks-121-lagkapten-alex-desk-work-desk-white-stained-oak-white-200x60-cm",
+      "normalized_type": "desk",
+      "name": "LAGKAPTEN/ALEX - desk/work desk - white-stained oak/white - 200x60 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-tv-benches-26-r-dmans-tv-bench-brown-walnutdetail-176x48x66-cm",
+      "normalized_type": "tv-bench",
+      "name": "RÅDMANSÖ - TV bench, brown walnutdetail, 176x48x66 cm",
+      "material": "walnut, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-open-wardrobes-08-vilhatten-2door2drawerwardrobe-wardrobe-oak-effect-98x57x190-cm",
+      "normalized_type": "wardrobe",
+      "name": "VILHATTEN - 2door2drawerwardrobe/wardrobe, oak effect, 98x57x190 cm",
+      "material": "oak, wood",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "tw-pax-wardrobes-13-tonstad-door-panel-brown-staineddetailoak-veneer-50x195-cm",
+      "normalized_type": "pax-wardrobe",
+      "name": "TONSTAD - door panel, brown/staineddetailoak veneer, 50x195 cm",
+      "material": "wood veneer, oak, leather, wood",
+      "confidence": "keyword_match"
+    }
+  ]
+}

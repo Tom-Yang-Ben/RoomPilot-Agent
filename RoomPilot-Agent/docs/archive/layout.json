@@ -1,0 +1,149 @@
+{
+    "_project_id": "proj_001",
+    "title": "Living Room Design",
+    "_input_type": "floorplan",
+    "_status": "draft",
+    "user_input": {
+        "style": "北歐風",
+        "room_type": "客廳",
+        "requirements": [
+            "沙發離門口遠一點",
+            "床靠牆",
+            "不要擋窗戶"
+        ],
+        "budget": 30000,
+        "preferred_colors": [
+            "白色",
+            "淺木色"
+        ],
+        "preferred_furniture": [
+            "沙發",
+            "茶几",
+            "電視櫃"
+        ]
+    },
+    "floorplan": {
+        "image_path": "/uploads/floorplan_001.png",
+        "width_cm": 420,
+        "depth_cm": 360,
+        "scale_ratio": "1:50",
+        "grid_size_cm": 10,
+        "walls": [
+            {
+                "id": "wall_01",
+                "width_cm": 10,
+                "start": [
+                    0,
+                    0
+                ],
+                "end": [
+                    420,
+                    0
+                ],
+                "color": "white"
+            }
+        ],
+        "_doors": [
+            {
+                "id": "door_01",
+                "position": [
+                    0,
+                    120
+                ],
+                "width_cm": 90
+            }
+        ],
+        "_windows": [
+            {
+                "id": "window_01",
+                "position": [
+                    180,
+                    0
+                ],
+                "width_cm": 120
+            }
+        ]
+    },
+    "scene": {
+        "_mode": "2d_to_3d",
+        "objects": [
+            {
+                "id": "furn_001",
+                "sku": "SOFA_001",
+                "name": "三人沙發",
+                "type": "sofa",
+                "style": "北歐風",
+                "position": [
+                    120,
+                    80
+                ],
+                "rotation": 90,
+                "size_cm": {
+                    "width": 180,
+                    "depth": 85,
+                    "height": 78
+                },
+                "collision_box_cm": {
+                    "width": 180,
+                    "depth": 85,
+                    "height": 78
+                },
+                "glb_path": "/assets/sofa_001.glb",
+                "material": "布料",
+                "color": "米白",
+                "can_rotate": true,
+                "must_against_wall": false
+            }
+        ]
+    },
+    "ai_plan": {
+        "understanding": [
+            {
+                "text": "沙發離門口遠一點",
+                "rule": "sofa_away_from_door",
+                "target": "door_01",
+                "distance_rule_cm": 80
+            }
+        ],
+        "recommendations": [
+            {
+                "sku": "SOFA_001",
+                "reason": "尺寸符合房間比例，風格符合北歐風"
+            }
+        ]
+    },
+    "validation": {
+        "passed": false,
+        "issues": [
+            {
+                "rule": "walkway_clearance",
+                "message": "走道寬度不足",
+                "severity": "medium"
+            }
+        ]
+    },
+    "manual_adjustment": {
+        "enabled": true,
+        "actions": [
+            "drag",
+            "rotate",
+            "resize_small_range",
+            "text_tune"
+        ]
+    },
+    "output": {
+        "preview_2d": "/outputs/scene_001_2d.png",
+        "preview_3d": "/outputs/scene_001.glb",
+        "report": "/outputs/scene_001_report.pdf",
+        "_final_status": "draft"
+    },
+    "_version": 1
+}
+你們這份 JSON 的重點是：
+user_input：使用者講的需求
+floorplan：平面圖和房間資訊
+scene：實際家具擺位
+ai_plan：AI 理解後的規則與推薦
+validation：驗證結果
+manual_adjustment：拖移、旋轉、文字微調
+output：最後輸出結果

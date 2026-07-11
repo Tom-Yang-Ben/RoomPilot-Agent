@@ -2,6 +2,15 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import {
+  buildFloorPlanOverlay,
+  buildSegmentWalls,
+  buildWindowBoxes,
+  clearGroup,
+  createFloorMaterial,
+  createWallMaterial,
+  fitToTargetSize,
+} from "./scene_builders.js?v=20260709a";
 
 export function createSceneViewer(container, statusElement) {
   if ("createImageBitmap" in globalThis) {
@@ -73,28 +82,6 @@ export function createSceneViewer(container, statusElement) {
     }
   }
 
-  function clearGroup(group) {
-    while (group.children.length) {
-      const child = group.children.pop();
-      if (!child) break;
-      group.remove(child);
-      child.traverse?.((object) => {
-        if (object.geometry) {
-          object.geometry.dispose();
-        }
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
-        materials.filter(Boolean).forEach((material) => {
-          ["map", "normalMap", "roughnessMap", "metalnessMap", "alphaMap", "aoMap", "emissiveMap"].forEach((key) => {
-            if (material[key]) {
-              material[key].dispose();
-            }
-          });
-          material.dispose();
-        });
-      });
-    }
-  }
-
   function resetCamera() {
     setCameraPreset("corner");
   }
@@ -126,18 +113,6 @@ export function createSceneViewer(container, statusElement) {
     controls.update();
   }
 
-  function moveModelToFootprintCenter(root) {
-    root.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(root);
-    const center = box.getCenter(new THREE.Vector3());
-    const scale = root.scale.x || 1;
-    const localOffset = new THREE.Vector3(-center.x / scale, -box.min.y / scale, -center.z / scale);
-    root.children.forEach((child) => {
-      child.position.add(localOffset);
-    });
-    root.updateMatrixWorld(true);
-  }
-
   function focusObject(object) {
     const box = new THREE.Box3().setFromObject(object);
     const center = box.getCenter(new THREE.Vector3());
@@ -148,425 +123,12 @@ export function createSceneViewer(container, statusElement) {
     controls.update();
   }
 
-  function makeCanvasTexture({ width = 1024, height = 1024, repeatX = 1, repeatY = 1, draw }) {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d");
-    draw(context, width, height);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(repeatX, repeatY);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    return texture;
-  }
-
-  function createWoodTexture(base, grain, seam, repeatX, repeatY) {
-    return makeCanvasTexture({
-      repeatX,
-      repeatY,
-      draw(context, width, height) {
-        context.fillStyle = base;
-        context.fillRect(0, 0, width, height);
-
-        const plankWidth = width / 6;
-        for (let x = 0; x < width; x += plankWidth) {
-          context.fillStyle = seam;
-          context.fillRect(x, 0, 2, height);
-
-          for (let line = 0; line < 14; line += 1) {
-            context.strokeStyle = grain;
-            context.globalAlpha = 0.08 + Math.random() * 0.06;
-            context.lineWidth = 1 + Math.random() * 2;
-            context.beginPath();
-            const startY = Math.random() * height;
-            context.moveTo(x, startY);
-            context.bezierCurveTo(
-              x + plankWidth * 0.25,
-              startY + Math.random() * 16 - 8,
-              x + plankWidth * 0.75,
-              startY + Math.random() * 16 - 8,
-              x + plankWidth,
-              startY + Math.random() * 16 - 8
-            );
-            context.stroke();
-          }
-        }
-
-        context.globalAlpha = 1;
-      },
-    });
-  }
-
-  function createHerringboneTexture(base, grain, seam, repeatX, repeatY) {
-    return makeCanvasTexture({
-      repeatX,
-      repeatY,
-      draw(context, width, height) {
-        context.fillStyle = base;
-        context.fillRect(0, 0, width, height);
-        context.strokeStyle = seam;
-        context.lineWidth = 3;
-
-        const block = width / 8;
-        for (let y = -block; y < height + block; y += block) {
-          for (let x = -block; x < width + block; x += block) {
-            context.save();
-            context.translate(x + block / 2, y + block / 2);
-            context.rotate(((x / block + y / block) % 2 === 0 ? 1 : -1) * Math.PI / 4);
-            context.fillStyle = base;
-            context.strokeStyle = seam;
-            context.globalAlpha = 0.92;
-            context.fillRect(-block * 0.52, -block * 0.18, block * 1.04, block * 0.36);
-            context.strokeRect(-block * 0.52, -block * 0.18, block * 1.04, block * 0.36);
-            context.strokeStyle = grain;
-            context.globalAlpha = 0.18;
-            for (let line = -2; line <= 2; line += 1) {
-              context.beginPath();
-              context.moveTo(-block * 0.42, line * 5);
-              context.lineTo(block * 0.42, line * 5 + Math.sin(x + y + line) * 3);
-              context.stroke();
-            }
-            context.restore();
-          }
-        }
-        context.globalAlpha = 1;
-      },
-    });
-  }
-
-  function createStoneTexture(base, vein, seam, repeatX, repeatY) {
-    return makeCanvasTexture({
-      repeatX,
-      repeatY,
-      draw(context, width, height) {
-        context.fillStyle = base;
-        context.fillRect(0, 0, width, height);
-
-        const tileSize = width / 4;
-        context.strokeStyle = seam;
-        context.lineWidth = 3;
-        for (let x = 0; x <= width; x += tileSize) {
-          context.beginPath();
-          context.moveTo(x, 0);
-          context.lineTo(x, height);
-          context.stroke();
-        }
-        for (let y = 0; y <= height; y += tileSize) {
-          context.beginPath();
-          context.moveTo(0, y);
-          context.lineTo(width, y);
-          context.stroke();
-        }
-
-        for (let i = 0; i < 24; i += 1) {
-          context.strokeStyle = vein;
-          context.globalAlpha = 0.06 + Math.random() * 0.04;
-          context.lineWidth = 1 + Math.random() * 1.5;
-          context.beginPath();
-          const startX = Math.random() * width;
-          const startY = Math.random() * height;
-          context.moveTo(startX, startY);
-          context.bezierCurveTo(
-            startX + 50,
-            startY + Math.random() * 30 - 15,
-            startX + 120,
-            startY + Math.random() * 30 - 15,
-            startX + 180,
-            startY + Math.random() * 30 - 15
-          );
-          context.stroke();
-        }
-        context.globalAlpha = 1;
-      },
-    });
-  }
-
-  function createMarbleTexture(base, vein, accent, seam, repeatX, repeatY) {
-    return makeCanvasTexture({
-      repeatX,
-      repeatY,
-      draw(context, width, height) {
-        const gradient = context.createLinearGradient(0, 0, width, height);
-        gradient.addColorStop(0, base);
-        gradient.addColorStop(0.52, "#eee8df");
-        gradient.addColorStop(1, "#fbf7ef");
-        context.fillStyle = gradient;
-        context.fillRect(0, 0, width, height);
-
-        const tileSize = width / 3;
-        context.strokeStyle = seam;
-        context.lineWidth = 3;
-        for (let x = 0; x <= width; x += tileSize) {
-          context.beginPath();
-          context.moveTo(x, 0);
-          context.lineTo(x, height);
-          context.stroke();
-        }
-        for (let y = 0; y <= height; y += tileSize) {
-          context.beginPath();
-          context.moveTo(0, y);
-          context.lineTo(width, y);
-          context.stroke();
-        }
-
-        for (let i = 0; i < 36; i += 1) {
-          context.strokeStyle = i % 5 === 0 ? accent : vein;
-          context.globalAlpha = i % 5 === 0 ? 0.16 : 0.08;
-          context.lineWidth = i % 5 === 0 ? 2.2 : 1.1;
-          context.beginPath();
-          const startX = Math.random() * width;
-          const startY = Math.random() * height;
-          context.moveTo(startX, startY);
-          context.bezierCurveTo(
-            startX + Math.random() * 110,
-            startY + Math.random() * 80 - 40,
-            startX + Math.random() * 220,
-            startY + Math.random() * 100 - 50,
-            startX + Math.random() * 340,
-            startY + Math.random() * 120 - 60
-          );
-          context.stroke();
-        }
-        context.globalAlpha = 1;
-      },
-    });
-  }
-
-  function createMicrocementTexture(base, cloud, repeatX, repeatY) {
-    return makeCanvasTexture({
-      repeatX,
-      repeatY,
-      draw(context, width, height) {
-        context.fillStyle = base;
-        context.fillRect(0, 0, width, height);
-
-        for (let i = 0; i < 48; i += 1) {
-          context.fillStyle = cloud;
-          context.globalAlpha = 0.035 + Math.random() * 0.04;
-          const radius = 40 + Math.random() * 120;
-          const x = Math.random() * width;
-          const y = Math.random() * height;
-          context.beginPath();
-          context.arc(x, y, radius, 0, Math.PI * 2);
-          context.fill();
-        }
-
-        for (let i = 0; i < 18; i += 1) {
-          context.strokeStyle = cloud;
-          context.globalAlpha = 0.05;
-          context.lineWidth = 8 + Math.random() * 12;
-          context.beginPath();
-          const startX = Math.random() * width;
-          const startY = Math.random() * height;
-          context.moveTo(startX, startY);
-          context.quadraticCurveTo(startX + 60, startY + 20, startX + 140, startY - 10);
-          context.stroke();
-        }
-        context.globalAlpha = 1;
-      },
-    });
-  }
-
-  function createWallTexture(base, accent, repeatX, repeatY) {
-    return makeCanvasTexture({
-      repeatX,
-      repeatY,
-      draw(context, width, height) {
-        context.fillStyle = base;
-        context.fillRect(0, 0, width, height);
-
-        for (let i = 0; i < 60; i += 1) {
-          context.strokeStyle = accent;
-          context.globalAlpha = 0.03 + Math.random() * 0.03;
-          context.lineWidth = 10 + Math.random() * 18;
-          const x = Math.random() * width;
-          context.beginPath();
-          context.moveTo(x, 0);
-          context.lineTo(x + Math.random() * 18 - 9, height);
-          context.stroke();
-        }
-
-        for (let i = 0; i < 18; i += 1) {
-          context.fillStyle = accent;
-          context.globalAlpha = 0.02 + Math.random() * 0.03;
-          context.beginPath();
-          context.arc(Math.random() * width, Math.random() * height, 24 + Math.random() * 72, 0, Math.PI * 2);
-          context.fill();
-        }
-        context.globalAlpha = 1;
-      },
-    });
-  }
-
-  function createFloorMaterial(floorOption) {
-    const presets = {
-      auto: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xe6d1ae,
-          map: createWoodTexture("#e3c99f", "#b48d63", "#cfb288", 4, 4),
-          roughness: 0.9,
-          metalness: 0.01,
-        }),
-      light_oak: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xe0c18d,
-          map: createWoodTexture("#e7cca1", "#be9871", "#d7b58c", 4, 4),
-          roughness: 0.88,
-          metalness: 0.01,
-        }),
-      herringbone_oak: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xe4c395,
-          map: createHerringboneTexture("#e9cda3", "#ad8054", "#d0ad82", 3.4, 3.4),
-          roughness: 0.82,
-          metalness: 0.01,
-        }),
-      walnut: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0x6f4d34,
-          map: createWoodTexture("#7b563a", "#4d3221", "#8f694a", 4, 4),
-          roughness: 0.84,
-          metalness: 0.02,
-        }),
-      stone_gray: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xd7d3cf,
-          map: createStoneTexture("#d6d2cd", "#bdb7b2", "#f0ece7", 3, 3),
-          roughness: 0.92,
-          metalness: 0.01,
-        }),
-      marble: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xf2eee7,
-          map: createMarbleTexture("#f8f5ef", "#9d968d", "#c6aa82", "#efe7dc", 2.2, 2.2),
-          roughness: 0.38,
-          metalness: 0.02,
-        }),
-      microcement: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xbcb3aa,
-          map: createMicrocementTexture("#beb4aa", "#948a80", 3, 3),
-          roughness: 0.96,
-          metalness: 0.01,
-        }),
-    };
-
-    return (presets[floorOption] ?? presets.auto)();
-  }
-
-  function createWallMaterial(wallOption) {
-    const presets = {
-      auto: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xf7f2eb,
-          map: createWallTexture("#f5efe7", "#d8cebf", 2.2, 1.6),
-          roughness: 0.98,
-          metalness: 0.01,
-          side: THREE.DoubleSide,
-        }),
-      warm_white: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xf8f3eb,
-          map: createWallTexture("#f8f2ea", "#ddd3c4", 2.2, 1.6),
-          roughness: 0.97,
-          metalness: 0.01,
-          side: THREE.DoubleSide,
-        }),
-      mineral_beige: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xd2bea6,
-          map: createWallTexture("#d0baa0", "#b59a7d", 2.1, 1.5),
-          roughness: 0.99,
-          metalness: 0.01,
-          side: THREE.DoubleSide,
-        }),
-      light_gray: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xe0e2e5,
-          map: createWallTexture("#dfe2e5", "#c7cbd1", 2.2, 1.6),
-          roughness: 0.98,
-          metalness: 0.01,
-          side: THREE.DoubleSide,
-        }),
-      limewash: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0xded1bd,
-          map: createWallTexture("#e6dac8", "#bfa98e", 2.4, 1.7),
-          roughness: 1,
-          metalness: 0,
-          side: THREE.DoubleSide,
-        }),
-      charcoal: () =>
-        new THREE.MeshStandardMaterial({
-          color: 0x5a5550,
-          map: createWallTexture("#59544f", "#77706a", 2.2, 1.6),
-          roughness: 0.94,
-          metalness: 0.02,
-          side: THREE.DoubleSide,
-        }),
-    };
-
-    const material = (presets[wallOption] ?? presets.auto)();
-    material.transparent = true;
-    material.opacity = 0.92;
-    material.depthWrite = true;
-    return material;
-  }
-
   function registerWall(wallMesh) {
     wallMesh.castShadow = true;
     wallMesh.receiveShadow = true;
     wallMesh.userData.baseOpacity = 0.92;
     wallMeshes.push(wallMesh);
     return wallMesh;
-  }
-
-  function buildSegmentWalls(roomGroupRef, segments, wallMaterial, wallHeight, wallThickness) {
-    segments.forEach((segment) => {
-      const start = segment.start;
-      const end = segment.end;
-      if (!start || !end) return;
-
-      const dx = end.x - start.x;
-      const dz = end.z - start.z;
-      const length = Math.hypot(dx, dz);
-      if (length < 0.04) return;
-
-      const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(length, wallHeight, wallThickness), wallMaterial.clone());
-      wallMesh.position.set((start.x + end.x) / 2, wallHeight / 2, (start.z + end.z) / 2);
-      wallMesh.rotation.y = Math.atan2(-dz, dx);
-      roomGroupRef.add(registerWall(wallMesh));
-    });
-  }
-
-  function buildFloorPlanOverlay(roomGroupRef, segments, color, opacity = 0.55, yOffset = 0.025) {
-    if (!segments?.length) return;
-
-    const points = [];
-    segments.forEach((segment) => {
-      const start = segment.start;
-      const end = segment.end;
-      if (!start || !end) return;
-      points.push(new THREE.Vector3(start.x, yOffset, start.z));
-      points.push(new THREE.Vector3(end.x, yOffset, end.z));
-    });
-
-    if (!points.length) return;
-
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({
-      color,
-      transparent: true,
-      opacity,
-      depthWrite: false,
-    });
-    const lines = new THREE.LineSegments(geometry, material);
-    lines.renderOrder = 20;
-    roomGroupRef.add(lines);
   }
 
   function createRoom(sceneData) {
@@ -581,14 +143,18 @@ export function createSceneViewer(container, statusElement) {
 
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(widthM, depthM),
-      createFloorMaterial(floorOption)
+      createFloorMaterial(renderer, floorOption)
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
     floor.receiveShadow = true;
     roomGroup.add(floor);
 
-    const wallMaterial = createWallMaterial(wallOption);
+    // 編輯視角的牆維持半透明,配合鏡頭遮擋自動淡出;環景頁另外用全實心牆
+    const wallMaterial = createWallMaterial(renderer, wallOption);
+    wallMaterial.transparent = true;
+    wallMaterial.opacity = 0.92;
+    wallMaterial.depthWrite = true;
     const wallSegments = sceneData.floorplan?.wall_segments || [];
     const planSegments = sceneData.floorplan?.plan_segments || [];
     const doorSegments = sceneData.floorplan?.door_segments || [];
@@ -599,7 +165,7 @@ export function createSceneViewer(container, statusElement) {
 
     const wallThickness = 0.04;
     if (!singleRoomMode && wallSegments.length >= 2) {
-      buildSegmentWalls(roomGroup, wallSegments, wallMaterial, wallHeight, wallThickness);
+      buildSegmentWalls(roomGroup, wallSegments, wallMaterial, wallHeight, wallThickness, registerWall);
     } else {
       const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthM, wallHeight, wallThickness), wallMaterial.clone());
       backWall.position.set(0, wallHeight / 2, -depthM / 2);
@@ -617,7 +183,7 @@ export function createSceneViewer(container, statusElement) {
     if (isDxfFloorplan) {
       buildFloorPlanOverlay(roomGroup, planSegments.length ? planSegments : wallSegments, 0x6b513b, 0.32, 0.022);
       buildFloorPlanOverlay(roomGroup, doorSegments, 0xb9773f, 0.82, 0.038);
-      buildFloorPlanOverlay(roomGroup, windowSegments, 0x6f9eb4, 0.9, 0.044);
+      buildWindowBoxes(roomGroup, windowSegments, wallHeight);
     } else {
       const outline = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(widthM, wallHeight, depthM)),
@@ -629,27 +195,6 @@ export function createSceneViewer(container, statusElement) {
 
     controls.target.set(0, 0.9, 0);
     setCameraPreset("corner");
-  }
-
-  function fitToTargetSize(root, targetSizeCm) {
-    root.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(root);
-    const size = box.getSize(new THREE.Vector3());
-    const target = {
-      width: (targetSizeCm.width || 120) / 100,
-      depth: (targetSizeCm.depth || 60) / 100,
-      height: (targetSizeCm.height || 80) / 100,
-    };
-
-    const ratios = [];
-    if (size.x > 0.001) ratios.push(target.width / size.x);
-    if (size.z > 0.001) ratios.push(target.depth / size.z);
-    if (size.y > 0.001) ratios.push(target.height / size.y);
-
-    const scale = Math.min(...ratios.filter((value) => Number.isFinite(value) && value > 0), 1);
-    root.scale.setScalar(scale);
-    root.updateMatrixWorld(true);
-    moveModelToFootprintCenter(root);
   }
 
   function createNumberMarker(label) {

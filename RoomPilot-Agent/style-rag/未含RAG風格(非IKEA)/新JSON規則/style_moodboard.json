@@ -1,0 +1,931 @@
+{
+  "version": 1,
+  "catalog_name": "非IKEA（ABO / Sketchfab）家具風格 Moodboard 與 LLM 實體映射表",
+  "key_naming_rule": "key 用英文，value 以中文為主，方便程式讀取與團隊維護。",
+  "styles": [
+    {
+      "style_id": "scandinavian",
+      "style_name_zh": "北歐風",
+      "style_name_en": "Scandinavian",
+      "keywords_zh": [
+        "自然",
+        "採光",
+        "留白",
+        "溫暖",
+        "輕量"
+      ],
+      "main_colors_zh": [
+        "奶白",
+        "淺灰",
+        "原木色"
+      ],
+      "materials_zh": [
+        "實木",
+        "棉麻",
+        "玻璃",
+        "羊毛"
+      ],
+      "shape_features_zh": [
+        "圓潤線條",
+        "低裝飾",
+        "輕量家具",
+        "溫和輪廓"
+      ],
+      "avoid_elements_zh": [
+        "厚重雕花",
+        "亮面皮革",
+        "過度金屬感",
+        "明顯跳色",
+        "高彩度撞色"
+      ],
+      "scene_background": {
+        "wall_zh": "暖白或奶白牆面",
+        "floor_zh": "淺木地板",
+        "overall_zh": "明亮、自然、乾淨、舒適"
+      },
+      "furniture_mapping_zh": {
+        "fabric_sofa": [
+          "灰色為主",
+          "石材材質",
+          "圓潤線條",
+          "低裝飾"
+        ],
+        "sofa": [
+          "灰色為主",
+          "木材材質",
+          "圓潤線條",
+          "低裝飾"
+        ],
+        "bookcase": [
+          "白色為主",
+          "木材材質",
+          "圓潤線條",
+          "低裝飾"
+        ],
+        "pillow_cushion": [
+          "藍色為主",
+          "石材材質",
+          "圓潤線條",
+          "低裝飾"
+        ],
+        "coffee_table": [
+          "橡木色、木色為主",
+          "木材材質",
+          "圓潤線條",
+          "低裝飾"
+        ],
+        "dining_chair": [
+          "白色為主",
+          "木材材質",
+          "圓潤線條",
+          "低裝飾"
+        ]
+      }
+    },
+    {
+      "style_id": "modern",
+      "style_name_zh": "現代簡約風",
+      "style_name_en": "Modern Minimal",
+      "keywords_zh": [
+        "俐落",
+        "幾何",
+        "機能",
+        "中性色",
+        "都會"
+      ],
+      "main_colors_zh": [
+        "白色",
+        "石墨灰",
+        "黑色"
+      ],
+      "materials_zh": [
+        "玻璃",
+        "金屬",
+        "烤漆",
+        "大理石紋"
+      ],
+      "shape_features_zh": [
+        "直線",
+        "平整面",
+        "嵌入式收納",
+        "低裝飾"
+      ],
+      "avoid_elements_zh": [
+        "手作鄉村感",
+        "繁複雕花",
+        "過度復古"
+      ],
+      "scene_background": {
+        "wall_zh": "冷白或霧灰牆面",
+        "floor_zh": "石紋地坪或深灰木地板",
+        "overall_zh": "簡潔、理性、通透、都會"
+      },
+      "furniture_mapping_zh": {
+        "desk": [
+          "白色為主",
+          "木材材質",
+          "直線",
+          "平整面"
+        ],
+        "lamp": [
+          "黑色為主",
+          "金屬材質",
+          "直線",
+          "平整面"
+        ],
+        "decoration": [
+          "黑色為主",
+          "金屬材質",
+          "直線",
+          "平整面"
+        ],
+        "sofa": [
+          "灰色為主",
+          "木材材質",
+          "直線",
+          "平整面"
+        ],
+        "large_medium_rug": [
+          "灰色為主",
+          "羊毛材質",
+          "直線",
+          "平整面"
+        ],
+        "table_lamp": [
+          "白色為主",
+          "陶瓷、陶材質",
+          "直線",
+          "平整面"
+        ]
+      }
+    },
+    {
+      "style_id": "american_country",
+      "style_name_zh": "美式鄉村風",
+      "style_name_en": "American Country",
+      "keywords_zh": [
+        "懷舊",
+        "鄉村",
+        "手作感",
+        "溫馨",
+        "慢活"
+      ],
+      "main_colors_zh": [
+        "米白",
+        "奶油色",
+        "灰藍色"
+      ],
+      "materials_zh": [
+        "厚實木材",
+        "棉麻",
+        "磚牆感",
+        "絨毛地毯"
+      ],
+      "shape_features_zh": [
+        "碎花細節",
+        "白色百葉窗感",
+        "厚桌板",
+        "柔軟布面"
+      ],
+      "avoid_elements_zh": [
+        "過度科技感",
+        "鏡面金屬",
+        "極黑極簡"
+      ],
+      "scene_background": {
+        "wall_zh": "米白、奶油色或灰藍牆面",
+        "floor_zh": "中淺木地板",
+        "overall_zh": "樸實、溫暖、輕鬆、居家感"
+      },
+      "furniture_mapping_zh": {
+        "stool_bench": [
+          "灰色為主",
+          "石材材質",
+          "碎花細節",
+          "白色百葉窗感"
+        ],
+        "dining_table": [
+          "棕色、木色為主",
+          "木材材質",
+          "碎花細節",
+          "白色百葉窗感"
+        ],
+        "bed_frame": [
+          "奶油色為主",
+          "石材材質",
+          "碎花細節",
+          "白色百葉窗感"
+        ],
+        "sofa": [
+          "奶油色為主",
+          "石材材質",
+          "碎花細節",
+          "白色百葉窗感"
+        ],
+        "outdoor_furniture": [
+          "藍色為主",
+          "羊毛材質",
+          "碎花細節",
+          "白色百葉窗感"
+        ],
+        "planter": [
+          "藍色為主",
+          "石材材質",
+          "碎花細節",
+          "白色百葉窗感"
+        ]
+      }
+    },
+    {
+      "style_id": "eclectic",
+      "style_name_zh": "混搭風",
+      "style_name_en": "Eclectic",
+      "keywords_zh": [
+        "混搭",
+        "撞色",
+        "個性",
+        "趣味",
+        "故事感"
+      ],
+      "main_colors_zh": [
+        "白色",
+        "灰色",
+        "跳色點綴"
+      ],
+      "materials_zh": [
+        "木質",
+        "織品",
+        "金屬",
+        "磚牆感"
+      ],
+      "shape_features_zh": [
+        "異材質混合",
+        "個性燈飾",
+        "自由比例",
+        "局部亮色"
+      ],
+      "avoid_elements_zh": [
+        "全部同材質",
+        "完全無個性",
+        "過度制式化"
+      ],
+      "scene_background": {
+        "wall_zh": "中性色牆面搭配局部特色色",
+        "floor_zh": "木地板或混合材質地坪",
+        "overall_zh": "自由、豐富、有趣、個性鮮明"
+      },
+      "furniture_mapping_zh": {
+        "large_medium_rug": [
+          "藍色為主",
+          "羊毛材質",
+          "異材質混合",
+          "個性燈飾"
+        ],
+        "fabric_sofa": [
+          "綠色為主",
+          "木材材質",
+          "異材質混合",
+          "個性燈飾"
+        ],
+        "pillow_cushion": [
+          "紅色為主",
+          "石材材質",
+          "異材質混合",
+          "個性燈飾"
+        ],
+        "wall_art": [
+          "木色為主",
+          "木材材質",
+          "異材質混合",
+          "個性燈飾"
+        ],
+        "stool_bench": [
+          "紅色為主",
+          "木材材質",
+          "異材質混合",
+          "個性燈飾"
+        ],
+        "planter": [
+          "白色、灰色為主",
+          "石材材質",
+          "異材質混合",
+          "個性燈飾"
+        ]
+      }
+    },
+    {
+      "style_id": "american",
+      "style_name_zh": "美式風",
+      "style_name_en": "American",
+      "keywords_zh": [
+        "厚實",
+        "家庭感",
+        "舒適",
+        "溫暖",
+        "大地色"
+      ],
+      "main_colors_zh": [
+        "奶油白",
+        "木色棕",
+        "皮革色"
+      ],
+      "materials_zh": [
+        "實木",
+        "皮革",
+        "厚布料",
+        "磚牆感"
+      ],
+      "shape_features_zh": [
+        "厚靠背",
+        "大比例",
+        "穩重輪廓",
+        "完整量體"
+      ],
+      "avoid_elements_zh": [
+        "太極簡",
+        "過冷金屬感",
+        "過薄線條"
+      ],
+      "scene_background": {
+        "wall_zh": "奶油白或線板牆面",
+        "floor_zh": "中深木地板",
+        "overall_zh": "溫馨、舒適、完整、有生活感"
+      },
+      "furniture_mapping_zh": {
+        "large_medium_rug": [
+          "藍色為主",
+          "羊毛材質",
+          "厚靠背",
+          "大比例"
+        ],
+        "sofa": [
+          "米色為主",
+          "布料材質",
+          "厚靠背",
+          "大比例"
+        ],
+        "bed": [
+          "原木色、木色為主",
+          "棉材質",
+          "厚靠背",
+          "大比例"
+        ],
+        "dining_chair": [
+          "藍色為主",
+          "布料、石材材質",
+          "厚靠背",
+          "大比例"
+        ],
+        "fabric_sofa": [
+          "藍色為主",
+          "布料、木材材質",
+          "厚靠背",
+          "大比例"
+        ],
+        "bed_frame": [
+          "棕色為主",
+          "木材材質",
+          "厚靠背",
+          "大比例"
+        ]
+      }
+    },
+    {
+      "style_id": "melad",
+      "style_name_zh": "美拉德風",
+      "style_name_en": "Melaired",
+      "keywords_zh": [
+        "暖棕",
+        "焦糖",
+        "復古",
+        "秋日",
+        "視覺連貫"
+      ],
+      "main_colors_zh": [
+        "米白",
+        "焦糖棕",
+        "奶茶色"
+      ],
+      "materials_zh": [
+        "木質",
+        "皮革",
+        "藤編",
+        "布沙發"
+      ],
+      "shape_features_zh": [
+        "厚布感",
+        "暖光源",
+        "低彩度撞色",
+        "復古紋理"
+      ],
+      "avoid_elements_zh": [
+        "冷調極簡白灰",
+        "高冷金屬感",
+        "大面積黑白對比"
+      ],
+      "scene_background": {
+        "wall_zh": "米白或奶茶色牆面",
+        "floor_zh": "暖棕木地板或人字拼木地板",
+        "overall_zh": "溫潤、沉穩、復古、舒適"
+      },
+      "furniture_mapping_zh": {
+        "leather_sofa": [
+          "棕色為主",
+          "皮革材質",
+          "厚布感",
+          "暖光源"
+        ],
+        "stool_bench": [
+          "棕色為主",
+          "皮革材質",
+          "厚布感",
+          "暖光源"
+        ],
+        "sofa": [
+          "棕色為主",
+          "皮革材質",
+          "厚布感",
+          "暖光源"
+        ],
+        "rug": [
+          "灰色為主",
+          "羊毛材質",
+          "厚布感",
+          "暖光源"
+        ],
+        "fabric_sofa": [
+          "棕色為主",
+          "皮革材質",
+          "厚布感",
+          "暖光源"
+        ],
+        "large_medium_rug": [
+          "米色為主",
+          "棉材質",
+          "厚布感",
+          "暖光源"
+        ]
+      }
+    },
+    {
+      "style_id": "minimalist_muji",
+      "style_name_zh": "日系簡約 / 無印風",
+      "style_name_en": "Minimalist / MUJI",
+      "keywords_zh": [
+        "留白",
+        "木質",
+        "收納",
+        "安靜",
+        "生活感"
+      ],
+      "main_colors_zh": [
+        "米白",
+        "淺木色",
+        "淡灰"
+      ],
+      "materials_zh": [
+        "原木",
+        "棉麻",
+        "藤竹",
+        "霧面材質"
+      ],
+      "shape_features_zh": [
+        "簡單直線",
+        "薄邊量體",
+        "不張揚",
+        "低視覺壓力"
+      ],
+      "avoid_elements_zh": [
+        "高反光",
+        "誇張金屬",
+        "過度裝飾"
+      ],
+      "scene_background": {
+        "wall_zh": "淡色牆面",
+        "floor_zh": "自然木地板",
+        "overall_zh": "平和、柔和、輕鬆、回歸本質"
+      },
+      "furniture_mapping_zh": {
+        "bed_frame": [
+          "灰色為主",
+          "石材材質",
+          "簡單直線",
+          "薄邊量體"
+        ],
+        "sofa": [
+          "原木色、木色為主",
+          "石材材質",
+          "簡單直線",
+          "薄邊量體"
+        ],
+        "coffee_table": [
+          "原木色、木色為主",
+          "木材材質",
+          "簡單直線",
+          "薄邊量體"
+        ],
+        "lamp": [
+          "原木色、木色為主",
+          "石材材質",
+          "簡單直線",
+          "薄邊量體"
+        ],
+        "large_medium_rug": [
+          "米色為主",
+          "羊毛材質",
+          "簡單直線",
+          "薄邊量體"
+        ],
+        "decoration": [
+          "原木色、木色為主",
+          "木材材質",
+          "簡單直線",
+          "薄邊量體"
+        ]
+      }
+    },
+    {
+      "style_id": "industrial",
+      "style_name_zh": "工業風",
+      "style_name_en": "Industrial",
+      "keywords_zh": [
+        "粗獷",
+        "深色",
+        "鐵件",
+        "水泥",
+        "復古"
+      ],
+      "main_colors_zh": [
+        "黑色",
+        "灰色",
+        "鏽紅棕"
+      ],
+      "materials_zh": [
+        "鐵件",
+        "水泥",
+        "舊木",
+        "皮革"
+      ],
+      "shape_features_zh": [
+        "外露結構",
+        "厚重線條",
+        "金屬框架",
+        "深色家具"
+      ],
+      "avoid_elements_zh": [
+        "奶油白夢幻感",
+        "過度圓潤",
+        "宮廷裝飾"
+      ],
+      "scene_background": {
+        "wall_zh": "裸露磚牆或水泥灰牆",
+        "floor_zh": "深木地板或清水模地坪",
+        "overall_zh": "粗獷、真實、沉穩、對比強"
+      },
+      "furniture_mapping_zh": {
+        "dining_chair": [
+          "灰色為主",
+          "石材材質",
+          "外露結構",
+          "厚重線條"
+        ],
+        "stool_bench": [
+          "黑色為主",
+          "金屬材質",
+          "外露結構",
+          "厚重線條"
+        ],
+        "desk": [
+          "棕色為主",
+          "金屬材質",
+          "外露結構",
+          "厚重線條"
+        ],
+        "lamp": [
+          "多色為主",
+          "羊毛材質",
+          "外露結構",
+          "厚重線條"
+        ],
+        "decoration": [
+          "灰色為主",
+          "金屬材質",
+          "外露結構",
+          "厚重線條"
+        ],
+        "pillow_cushion": [
+          "黑色為主",
+          "棉材質",
+          "外露結構",
+          "厚重線條"
+        ]
+      }
+    },
+    {
+      "style_id": "nordic_modern",
+      "style_name_zh": "北歐現代風",
+      "style_name_en": "Nordic Modern",
+      "keywords_zh": [
+        "清新",
+        "俐落",
+        "層次",
+        "機能",
+        "柔和都會感"
+      ],
+      "main_colors_zh": [
+        "白色",
+        "奶茶色",
+        "灰藍色"
+      ],
+      "materials_zh": [
+        "木質",
+        "玻璃",
+        "金屬",
+        "大理石紋"
+      ],
+      "shape_features_zh": [
+        "幾何燈具",
+        "乾淨櫃體",
+        "輕盈量體",
+        "收納整合"
+      ],
+      "avoid_elements_zh": [
+        "厚重復古感",
+        "粗獷工業感",
+        "過度宮廷裝飾"
+      ],
+      "scene_background": {
+        "wall_zh": "白色、灰白或奶茶色牆面",
+        "floor_zh": "淺木地板",
+        "overall_zh": "明亮、乾淨、舒適、帶現代感"
+      },
+      "furniture_mapping_zh": {
+        "large_medium_rug": [
+          "米色為主",
+          "羊毛材質",
+          "幾何燈具",
+          "乾淨櫃體"
+        ],
+        "sofa": [
+          "藍色為主",
+          "絲絨、絨布材質",
+          "幾何燈具",
+          "乾淨櫃體"
+        ],
+        "pillow_cushion": [
+          "藍色為主",
+          "石材材質",
+          "幾何燈具",
+          "乾淨櫃體"
+        ],
+        "wall_art": [
+          "黑色為主",
+          "紙材質",
+          "幾何燈具",
+          "乾淨櫃體"
+        ],
+        "coffee_table": [
+          "灰色為主",
+          "金屬材質",
+          "幾何燈具",
+          "乾淨櫃體"
+        ],
+        "runner_small_rug": [
+          "藍色為主",
+          "羊毛材質",
+          "幾何燈具",
+          "乾淨櫃體"
+        ]
+      }
+    },
+    {
+      "style_id": "light_luxury",
+      "style_name_zh": "輕奢風",
+      "style_name_en": "Light Luxury",
+      "keywords_zh": [
+        "精緻",
+        "低調奢華",
+        "金屬",
+        "玻璃",
+        "弧形"
+      ],
+      "main_colors_zh": [
+        "米色",
+        "灰色",
+        "霧金"
+      ],
+      "materials_zh": [
+        "大理石",
+        "玻璃",
+        "金屬",
+        "精工家具"
+      ],
+      "shape_features_zh": [
+        "弧形扶手",
+        "細金屬線條",
+        "平衡線條",
+        "雅緻輪廓"
+      ],
+      "avoid_elements_zh": [
+        "粗獷工業感",
+        "廉價塑膠感",
+        "過度混亂"
+      ],
+      "scene_background": {
+        "wall_zh": "米色、灰色或奶茶色牆面",
+        "floor_zh": "淺石紋或淺木地板",
+        "overall_zh": "精緻、雅緻、通透、低調發光"
+      },
+      "furniture_mapping_zh": {
+        "lamp": [
+          "灰色為主",
+          "金屬材質",
+          "弧形扶手",
+          "細金屬線條"
+        ],
+        "stool_bench": [
+          "米色為主",
+          "石材材質",
+          "弧形扶手",
+          "細金屬線條"
+        ],
+        "dining_chair": [
+          "灰色為主",
+          "石材材質",
+          "弧形扶手",
+          "細金屬線條"
+        ],
+        "office_chair": [
+          "灰色為主",
+          "金屬材質",
+          "弧形扶手",
+          "細金屬線條"
+        ],
+        "table_lamp": [
+          "金色為主",
+          "布料、金屬材質",
+          "弧形扶手",
+          "細金屬線條"
+        ],
+        "fabric_sofa": [
+          "黃銅色、黃色為主",
+          "實木、絲絨、絨布、金屬、木材材質",
+          "弧形扶手",
+          "細金屬線條"
+        ]
+      }
+    },
+    {
+      "style_id": "wabi_sabi",
+      "style_name_zh": "日式侘寂風",
+      "style_name_en": "Wabi-Sabi",
+      "keywords_zh": [
+        "不完美",
+        "留白",
+        "陶器",
+        "低飽和",
+        "禪意"
+      ],
+      "main_colors_zh": [
+        "泥土色",
+        "米白",
+        "灰棕"
+      ],
+      "materials_zh": [
+        "未加工木",
+        "石材",
+        "混凝土",
+        "陶器"
+      ],
+      "shape_features_zh": [
+        "粗細並存",
+        "弧形",
+        "低飽和",
+        "手作感"
+      ],
+      "avoid_elements_zh": [
+        "鏡面金屬",
+        "鮮豔色塊",
+        "過度時尚感"
+      ],
+      "scene_background": {
+        "wall_zh": "礦物塗料或微水泥牆面",
+        "floor_zh": "霧面木地板或石材地坪",
+        "overall_zh": "安靜、內斂、沉穩、原始質地"
+      },
+      "furniture_mapping_zh": {
+        "vase": [
+          "白色為主",
+          "石材材質",
+          "粗細並存",
+          "弧形"
+        ],
+        "room_divider": [
+          "棕色為主",
+          "金屬材質",
+          "粗細並存",
+          "弧形"
+        ],
+        "planter": [
+          "藍色為主",
+          "陶瓷、陶材質",
+          "粗細並存",
+          "弧形"
+        ],
+        "decoration": [
+          "銀色為主",
+          "金屬材質",
+          "粗細並存",
+          "弧形"
+        ],
+        "dining_chair": [
+          "原木色、木色為主",
+          "木材材質",
+          "粗細並存",
+          "弧形"
+        ],
+        "outdoor_furniture": [
+          "金色為主",
+          "粗細並存",
+          "弧形"
+        ]
+      }
+    },
+    {
+      "style_id": "classical",
+      "style_name_zh": "古典風",
+      "style_name_en": "Classical",
+      "keywords_zh": [
+        "典雅",
+        "華麗",
+        "對稱",
+        "雕花",
+        "宮廷感"
+      ],
+      "main_colors_zh": [
+        "棕紅色",
+        "金色",
+        "大理石灰"
+      ],
+      "materials_zh": [
+        "皮革",
+        "大理石",
+        "高級布飾",
+        "深木色家具"
+      ],
+      "shape_features_zh": [
+        "對稱構圖",
+        "雕花輪廓",
+        "華麗燈具",
+        "厚重家具"
+      ],
+      "avoid_elements_zh": [
+        "極簡留白",
+        "塑膠感",
+        "粗獷工業風"
+      ],
+      "scene_background": {
+        "wall_zh": "線板、雕花或典雅灰牆面",
+        "floor_zh": "石材地坪或深木地板",
+        "overall_zh": "尊貴、華麗、厚實、正式"
+      },
+      "furniture_mapping_zh": {
+        "wall_art": [
+          "金色為主",
+          "石材材質",
+          "對稱構圖",
+          "雕花輪廓"
+        ],
+        "wall_mirror": [
+          "金色為主",
+          "玻璃材質",
+          "對稱構圖",
+          "雕花輪廓"
+        ],
+        "pillow_cushion": [
+          "棕色為主",
+          "石材材質",
+          "對稱構圖",
+          "雕花輪廓"
+        ],
+        "mirror": [
+          "金色為主",
+          "玻璃材質",
+          "對稱構圖",
+          "雕花輪廓"
+        ],
+        "bookcase": [
+          "金色為主",
+          "玻璃材質",
+          "對稱構圖",
+          "雕花輪廓"
+        ],
+        "decoration": [
+          "金色為主",
+          "對稱構圖",
+          "雕花輪廓"
+        ]
+      }
+    }
+  ]
+}

@@ -5,6 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3D 場景展示</title>
     <link rel="stylesheet" href="/static/site.css?v=20260705m" />
+    <style>
+      /* F2a 手動拉比例 + 多方案/風格套系(AiHouse 對標功能)的局部樣式 */
+      #calibration-canvas {
+        width: 100%;
+        border: 1px solid #d9cbb8;
+        border-radius: 8px;
+        background: #fbf8f3;
+        cursor: crosshair;
+        display: block;
+      }
+      .calibration-controls {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .calibration-controls label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+      .calibration-controls input { width: 130px; }
+      #proposal-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+      .style-chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+      .style-chip {
+        border: 1px solid #d9cbb8;
+        background: #fffdf9;
+        border-radius: 999px;
+        padding: 5px 12px;
+        font-size: 12.5px;
+        cursor: pointer;
+      }
+      .style-chip.active { background: #b9773f; border-color: #8a5a30; color: #fff; font-weight: 700; }
+    </style>
   </head>
   <body data-page="scene">
     <canvas id="fx-canvas" aria-hidden="true"></canvas>
@@ -37,6 +68,23 @@
               <span>平面圖輸入</span>
               <input id="floorplan" name="floorplan" type="file" accept=".png,.jpg,.jpeg,.webp,.dxf,.dwg" />
             </label>
+
+            <div id="scale-calibration" class="scene-field scene-field-full" hidden>
+              <div class="scene-field-header">
+                <span>手動拉比例 / 校尺寸(F2a)</span>
+                <small>在預覽圖上點兩個點(如一面已知長度的牆兩端),輸入實際距離後套用,升維尺寸才會準。</small>
+              </div>
+              <canvas id="calibration-canvas" width="720" height="460"></canvas>
+              <div class="calibration-controls">
+                <label>
+                  兩點實際距離(公分)
+                  <input id="calibration-length" type="number" min="10" step="1" placeholder="例如 360" />
+                </label>
+                <button id="apply-calibration" type="button" class="secondary-action prominent">套用比例</button>
+                <button id="reset-calibration" type="button" class="secondary-action">重新標定</button>
+              </div>
+              <small id="calibration-status" class="scene-helper">尚未標定:目前使用自動推測比例。</small>
+            </div>
 
             <label class="scene-field">
               <span>空間類型</span>
@@ -113,6 +161,7 @@
                 <label><input id="keep-door-clear" type="checkbox" checked /> 保持出入口動線</label>
                 <label><input id="need-storage" type="checkbox" /> 需要額外收納</label>
                 <label><input id="prefer-low-saturation" type="checkbox" /> 偏好低彩度</label>
+                <label><input id="multi-proposal" type="checkbox" checked /> AI 佈局多方案(一次 3 案)</label>
               </div>
             </div>
           </div>
@@ -136,6 +185,16 @@
           <div><span>房間尺寸</span><strong id="scene-room-size">-</strong></div>
         </div>
 
+        <div class="viewer-control-row" id="proposal-row" hidden>
+          <div id="proposal-tabs" aria-label="方案切換"></div>
+        </div>
+
+        <div class="scene-field-header">
+          <span>風格套系一鍵切換</span>
+          <small>點一下換風格,同一張戶型立刻重新擺位。</small>
+        </div>
+        <div id="style-chips" class="style-chip-row" aria-label="風格套系"></div>
+
         <div class="viewer-control-row">
           <div class="scene-view-preset-group" aria-label="視角切換">
             <button type="button" class="secondary-action" data-view-preset="overview">俯視</button>
@@ -143,6 +202,7 @@
             <button type="button" class="secondary-action" data-view-preset="corner">角落視角</button>
             <button type="button" class="secondary-action" data-view-preset="inside">室內視角</button>
             <button id="reset-scene-view" type="button" class="secondary-action">重設</button>
+            <button id="open-panorama" type="button" class="secondary-action prominent">720° 環景漫遊</button>
           </div>
           <span class="viewer-wall-hint">旋轉視角時，擋住畫面的牆面會自動淡出。</span>
         </div>
@@ -180,6 +240,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene.js?v=20260706c"></script>
+    <script type="module" src="/static/scene.js?v=20260711a"></script>
   </body>
 </html>

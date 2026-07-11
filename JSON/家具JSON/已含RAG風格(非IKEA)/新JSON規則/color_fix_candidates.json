@@ -1,0 +1,2786 @@
+{
+  "generated_note": "由名稱關鍵字抽色的補值候選；confidence=keyword_match。",
+  "rule": "掃描 name_en / name_zh 的顏色關鍵字（white→白色…），僅補原本為空者。",
+  "count": 397,
+  "candidates": [
+    {
+      "furniture_id": "abo-bed-frames-19-amazon-brand-rivet-a8910-dresser",
+      "normalized_type": "chests-of-drawer",
+      "name": "Amazon Brand – Rivet A8910 Dresser",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bed-frames-25-amazon-brand-rivet-modern-solid-pine-wood-platform-bed-king-75-91-w-antique-espresso",
+      "normalized_type": "bed-frame",
+      "name": "Amazon Brand – Rivet Modern Solid Pine Wood Platform Bed, King, 75.91\"W, Antique Espresso",
+      "color": "松木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bed-frames-65-amazon-brand-rivet-modern-solid-pine-wood-platform-bed-full-53-9-w-antique-espresso",
+      "normalized_type": "bed-frame",
+      "name": "Amazon Brand – Rivet Modern Solid Pine Wood Platform Bed, Full, 53.9\"W, Antique Espresso",
+      "color": "松木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bed-frames-93-amazon-brand-rivet-modern-solid-pine-wood-platform-bed-twin-38-39-w-antique-espresso",
+      "normalized_type": "bed-frame",
+      "name": "Amazon Brand – Rivet Modern Solid Pine Wood Platform Bed, Twin, 38.39\"W, Antique Espresso",
+      "color": "松木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bed-frames-96-rivet-a8910-chest-of-drawers",
+      "normalized_type": "chests-of-drawer",
+      "name": "Rivet A8910 Chest of Drawers",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bed-frames-141-amazon-brand-movian-corona-double-bed-4-ft-6-high-foot-end-bed-frame-solid-pine-wood",
+      "normalized_type": "bed-frame",
+      "name": "Amazon Brand - Movian Corona Double Bed, 4 ft 6, High Foot End Bed Frame, Solid Pine Wood",
+      "color": "松木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bed-frames-150-amazon-brand-rivet-modern-solid-pine-wood-platform-bed-queen-59-92-w-antique-espresso",
+      "normalized_type": "bed-frame",
+      "name": "Amazon Brand – Rivet Modern Solid Pine Wood Platform Bed, Queen, 59.92\"W, Antique Espresso",
+      "color": "松木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-07-amazon-brand-stone-beam-southwestern-transitional-area-rug-4-x-6-foot-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Southwestern Transitional Area Rug, 4 x 6 Foot, Multi",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-10-amazon-brand-rivet-contemporary-thick-texture-print-with-gold-leaf-on-canvas-30-x-30-red-white-gold",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Thick-Texture Print with Gold Leaf on Canvas, 30\" x 30\", Red, White, Gold",
+      "color": "白色、紅色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-30-amazon-brand-rivet-polyester-area-rug-1-8-x-2-10-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Polyester Area Rug, 1' 8\" x 2' 10\", Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-36-amazon-brand-stone-beam-modern-distressed-vintage-persian-area-rug-5-x-8-foot-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Distressed Vintage Persian Area Rug, 5 x 8 Foot, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-34-amazon-brand-stone-beam-modern-left-facing-bird-line-drawing-24-w-black-white",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Stone & Beam Modern Left-Facing Bird Line Drawing, 24\"W, Black & White",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-61-amazon-brand-stone-beam-lottie-traditional-wool-area-rug-8-x-10-foot-beige",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Lottie Traditional Wool Area Rug, 8 x 10 Foot, Beige",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-beds-13-dcraft-berdine-metal-loft-bed-full-size-midnight-black",
+      "normalized_type": "bed",
+      "name": "Dcraft Berdine Metal Loft Bed, Full Size - Midnight Black",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-117-amazon-brand-rivet-polyester-area-rug-8-x-11-foot-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Polyester Area Rug, 8 x 11 Foot, Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-65-stone-beam-modern-still-life-plant-on-canvas-48-w-green-white-grey",
+      "normalized_type": "wall-art",
+      "name": "Stone & Beam Modern Still Life Plant on Canvas, 48\"W, Green, White, Grey",
+      "color": "白色、灰色、綠色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-75-amazon-brand-stone-beam-modern-ceramic-spotted-decor-planter-pot-11-inch-white-and-terra-cotta",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Stone & Beam Modern Ceramic Spotted Decor Planter Pot - 11 Inch, White and Terra Cotta",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-156-amazon-brand-rivet-contemporary-polypropylene-area-rug-7-10-x-10-ivory",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polypropylene Area Rug, 7'10\" x 10', Ivory",
+      "color": "象牙白",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-159-amazon-brand-rivet-polyester-area-rug-1-8-x-2-10-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Polyester Area Rug, 1' 8\" x 2' 10\", Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-197-amazon-brand-stone-beam-new-england-tassled-wool-farmhouse-area-rug-8-x-10-foot-blue-and-cream",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam New England Tassled Wool Farmhouse Area Rug, 8 x 10 Foot, Blue and Cream",
+      "color": "奶油色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-185-amazon-brand-rivet-mid-century-stoneware-planter-with-wood-stand-8-27-h-light-green-ombre",
+      "normalized_type": "lamp",
+      "name": "Amazon Brand – Rivet Mid-Century Stoneware Planter with Wood Stand, 8.27\"H, Light Green Ombre",
+      "color": "綠色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-218-amazon-brand-stone-beam-new-england-tassled-wool-farmhouse-area-rug-5-x-8-foot-blue-and-cream",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam New England Tassled Wool Farmhouse Area Rug, 5 x 8 Foot, Blue and Cream",
+      "color": "奶油色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-225-amazon-brand-rivet-modern-distressed-persian-area-rug-4-x-6-foot-blue-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Distressed Persian Area Rug, 4 x 6 Foot, Blue Multicolor",
+      "color": "藍色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-236-amazon-brand-stone-beam-modern-persian-area-rug-5-x-8-foot-blue-and-red-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Persian Area Rug, 5 x 8 Foot, Blue and Red Multicolor",
+      "color": "藍色、紅色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-250-amazon-brand-rivet-modern-abstract-geometric-area-rug-4-x-6-foot-blue",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Abstract Geometric Area Rug, 4 x 6 Foot, Blue",
+      "color": "藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-256-amazon-brand-rivet-modern-abstract-geometric-area-rug-5-x-8-foot-blue",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Abstract Geometric Area Rug, 5 x 8 Foot, Blue",
+      "color": "藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-117-amazon-brand-rivet-contemporary-print-with-sand-texture-wall-art-decor-on-canvas-30-x-40-inch-peach-and-purple",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Sand Texture Wall Art Decor on Canvas - 30 x 40 Inch, Peach and Purple",
+      "color": "紫色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-118-amazon-brand-rivet-contemporary-print-with-gold-leaf-wall-art-decor-on-canvas-40-x-30-inch-blue-and-gold",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Gold Leaf Wall Art Decor on Canvas - 40 x 30 Inch, Blue and Gold",
+      "color": "藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-home-decor-54-amazon-brand-stone-beam-vintage-airplane-propeller-46-5-w-brown",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Stone & Beam Vintage Airplane Propeller, 46.5\"W, Brown",
+      "color": "棕色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-125-amazon-brand-rivet-contemporary-city-print-wall-art-decor-on-canvas-24-x-24-multicolor",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary City Print Wall Art Decor on Canvas - 24\" x 24\", Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-319-amazon-brand-rivet-modern-abstract-area-rug-5-x-8-foot-blue-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Abstract Area Rug, 5 x 8 Foot, Blue, White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-127-rivet-modern-party-birds-on-canvas-36-w-red-and-orange",
+      "normalized_type": "wall-art",
+      "name": "Rivet Modern Party Birds on Canvas, 36\"W, Red and Orange",
+      "color": "紅色、橘色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-128-amazon-brand-rivet-contemporary-print-with-gold-leaf-wall-artwork-decor-on-canvas-18-x-24-inch-blue-and-grey",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Gold Leaf Wall Artwork Decor on Canvas - 18 x 24 Inch, Blue and Grey",
+      "color": "灰色、藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-129-amazon-brand-rivet-contemporary-print-with-gold-leaf-wall-artwork-decor-on-canvas-18-x-24-inch-pink-and-grey",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Gold Leaf Wall Artwork Decor on Canvas - 18 x 24 Inch, Pink and Grey",
+      "color": "灰色、粉色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-133-amazon-brand-rivet-contemporary-thick-texture-print-with-gold-leaf-wall-art-decor-on-canvas-35-x-35-inch-orange-and-white",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Thick-Texture Print with Gold Leaf Wall Art Decor on Canvas - 35 x 35 Inch, Orange and White",
+      "color": "白色、橘色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-135-amazon-brand-rivet-contemporary-print-with-gold-leaf-wall-artwork-decor-on-canvas-24-x-36-inch-blue-and-grey",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Gold Leaf Wall Artwork Decor on Canvas - 24 x 36 Inch, Blue and Grey",
+      "color": "灰色、藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-349-amazon-brand-rivet-modern-geometric-area-rug-5-x-8-foot-blue-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Geometric Area Rug, 5 x 8 Foot, Blue Multicolor",
+      "color": "藍色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-118-amazon-brand-rivet-mid-century-modern-ceramic-stoneware-indoor-planter-flower-pot-8-h-red-and-orange",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Modern Ceramic Stoneware Indoor Planter Flower Pot, 8\"H, Red and Orange",
+      "color": "紅色、橘色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-357-amazon-brand-rivet-modern-color-block-area-rug-5-x-8-foot-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Color-Block Area Rug, 5 x 8 Foot, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-365-amazon-brand-stone-beam-lottie-traditional-wool-area-rug-4-x-6-foot-beige",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Lottie Traditional Wool Area Rug, 4 x 6 Foot, Beige",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-384-amazon-brand-rivet-modern-abstract-area-rug-4-x-6-foot-blue-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Abstract Area Rug, 4 x 6 Foot, Blue, White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-386-amazon-brand-rivet-modern-geometric-area-rug-4-x-6-foot-blue-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Geometric Area Rug, 4 x 6 Foot, Blue Multicolor",
+      "color": "藍色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-388-amazon-brand-stone-beam-lottie-traditional-wool-area-rug-5-x-8-foot-beige",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Lottie Traditional Wool Area Rug, 5 x 8 Foot, Beige",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-139-amazon-brand-rivet-contemporary-city-print-wall-art-decor-on-canvas-30-x-30-multicolor",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary City Print Wall Art Decor on Canvas - 30\" x 30\", Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-410-amazon-brand-stone-beam-modern-persian-area-rug-4-x-6-foot-blue-and-red-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Persian Area Rug, 4 x 6 Foot, Blue and Red Multicolor",
+      "color": "藍色、紅色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-129-amazon-brand-stone-beam-vintage-farmhouse-raised-outdoor-garden-planter-with-art-deco-design-and-iron-legs-set-of-2-bla",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Stone & Beam Vintage Farmhouse Raised Outdoor Garden Planter with Art Deco Design and Iron Legs - Set of 2, Black and White",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-417-amazon-brand-rivet-modern-color-block-area-rug-4-x-6-foot-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Color-Block Area Rug, 4 x 6 Foot, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-418-amazon-brand-stone-beam-modern-distressed-vintage-persian-area-rug-4-x-6-foot-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Distressed Vintage Persian Area Rug, 4 x 6 Foot, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-145-amazon-brand-rivet-contemporary-print-with-gold-leaf-wall-art-decor-on-canvas-36-x-24-inch-blue-and-gold",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Gold Leaf Wall Art Decor on Canvas - 36 x 24 Inch, Blue and Gold",
+      "color": "藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-449-amazon-brand-rivet-modern-distressed-persian-area-rug-5-x-8-foot-blue-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Distressed Persian Area Rug, 5 x 8 Foot, Blue Multicolor",
+      "color": "藍色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-148-amazon-brand-rivet-contemporary-bridge-print-with-gold-leaf-wall-art-decor-on-canvas-24-x-36-inch-blue-and-gold",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Bridge Print with Gold Leaf Wall Art Decor on Canvas - 24 x 36 Inch, Blue and Gold",
+      "color": "藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-150-amazon-brand-rivet-contemporary-bridge-print-with-gold-leaf-wall-art-decor-on-canvas-30-x-40-inch-blue-and-gold",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Bridge Print with Gold Leaf Wall Art Decor on Canvas - 30 x 40 Inch, Blue and Gold",
+      "color": "藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bookcases-19-amazon-brand-rivet-stevens-modern-wood-tv-media-center-cabinet-51-18-w-brushed-tundra-gray",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Stevens Modern Wood TV Media Center Cabinet, 51.18\"W, Brushed Tundra Gray",
+      "color": "灰色、木色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bookcases-22-amazon-brand-rivet-stevens-modern-2-drawer-bookcase-27-56-w-brushed-tundra-gray",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Stevens Modern 2-Drawer Bookcase, 27.56\"W, Brushed Tundra Gray",
+      "color": "灰色、木色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bookcases-26-stone-beam-rylee-modern-bookcase-39-4-wx76-8-h-mixed-gray",
+      "normalized_type": "bookcase",
+      "name": "Stone & Beam Rylee Modern Bookcase 39.4\"Wx76.8”H, Mixed Gray",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bookcases-27-amazon-brand-stone-beam-industrial-bookcase-72-inch-height-natural-wood-black-metal-frame",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Stone & Beam Industrial Bookcase, 72 Inch Height, Natural Wood, Black Metal Frame",
+      "color": "黑色、原木色、木色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bookcases-28-stone-beam-rylee-modern-bookcase-27-6-w-x-76-8-h-mixed-gray",
+      "normalized_type": "bookcase",
+      "name": "Stone & Beam Rylee Modern Bookcase 27.6\"W x 76.8”H, Mixed Gray",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bookcases-37-amazon-brand-stone-beam-arlington-contemporary-bookcase-31-49-w-wood-and-dark-metal",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Stone & Beam Arlington Contemporary Bookcase, 31.49\"W, Wood and Dark Metal",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-blanket-01-amazon-brand-rivet-contemporary-fir-decorative-blanket-ladder-with-iron-rungs-71-65-h-black-and-natural-wood",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Rivet Contemporary Fir Decorative Blanket Ladder with Iron Rungs - 71.65\"H, Black and Natural Wood",
+      "color": "黑色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bookcases-52-amazon-brand-stone-beam-arlington-contemporary-bookcase-31-49-w-wood-and-dark-metal",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Stone & Beam Arlington Contemporary Bookcase, 31.49\"W, Wood and Dark Metal",
+      "color": "木色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bookcases-53-amazon-brand-rivet-modern-2-tier-floating-bookcase-shelf-unit-18-x-32-x-6-inch-natural-wood-and-gold",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Modern 2-Tier Floating Bookcase Shelf Unit - 18 x 32 x 6 Inch, Natural Wood and Gold",
+      "color": "金色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bookcases-62-amazon-brand-rivet-modern-cabinet-with-inner-shelf-15-w-walnut",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Modern Cabinet with Inner Shelf, 15\"W, Walnut",
+      "color": "胡桃色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-storage-furniture-18-amazon-brand-rivet-pieced-wood-reclaimed-fir-storage-media-console-63-w-natural-stain",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Rivet Pieced-Wood Reclaimed-Fir Storage Media Console, 63\"W, Natural Stain",
+      "color": "原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-03-amazon-brand-rivet-modern-corner-floating-triangle-5-shelf-wall-unit-decor-36-inch-natural-wood-and-gold",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Modern Corner Floating Triangle 5 Shelf Wall Unit Decor - 36 Inch, Natural Wood and Gold",
+      "color": "金色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-22-amazon-brand-rivet-rustic-round-wood-2-tier-shelf-floating-hanging-wall-unit-30-inch-whitewashed-fir-veneer",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Rustic Round Wood 2-Tier Shelf Floating Hanging Wall Unit- 30 Inch, Whitewashed Fir Veneer",
+      "color": "木色、白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-26-amazon-brand-rivet-contemporary-cubic-iron-3-shelf-floating-unit-18-11-h-black-and-natural-wood",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Contemporary Cubic Iron 3-Shelf Floating Unit - 18.11\"H, Black and Natural Wood",
+      "color": "黑色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-27-amazon-brand-rivet-contemporary-round-floating-iron-4-shelf-wall-unit-29-72-w-natural-wood-and-silver",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Contemporary Round Floating Iron 4 Shelf Wall Unit - 29.72\" W, Natural Wood and Silver",
+      "color": "銀色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-32-amazon-brand-rivet-modern-hexagon-honeycomb-floating-wall-shelf-unit-with-glass-shelves-28-x-28-x-6-inch-gold",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Modern Hexagon Honeycomb Floating Wall Shelf Unit with Glass Shelves - 28 x 28 x 6 Inch, Gold",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-33-amazon-brand-stone-beam-rustic-ladder-display-rack-storage-shelf-63-inches-white-and-natural-wood",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Stone & Beam Rustic Ladder Display Rack Storage Shelf - 63 Inches, White and Natural Wood",
+      "color": "白色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-35-amazon-brand-rivet-modern-curved-frame-floating-wall-shelf-25-w-gold-and-natural-wood",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Modern Curved Frame Floating Wall Shelf, 25\"W, Gold and Natural Wood",
+      "color": "金色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-37-amazon-brand-rivet-modern-wood-and-metal-floating-wall-storage-shelves-37-25-w-x-36-25-h-natural-and-black",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Modern Wood and Metal Floating Wall Storage Shelves - 37.25\"W x 36.25\"H, Natural and Black",
+      "color": "黑色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-45-amazon-brand-rivet-modern-floating-wall-mounted-shelving-decor-9-inch-natural-wood-and-gold",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Modern Floating Wall Mounted Shelving Decor - 9 Inch, Natural Wood and Gold",
+      "color": "金色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-47-amazon-brand-rivet-tinted-glass-and-metal-round-coffee-table-with-storage-shelf-36-9-w-brown-gold-and-walnut-finish",
+      "normalized_type": "coffee-table",
+      "name": "Amazon Brand – Rivet Tinted-Glass and Metal Round Coffee Table with Storage Shelf, 36.9\"W, Brown, Gold and Walnut Finish",
+      "color": "棕色、胡桃色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-shelves-01-amazon-brand-rivet-mirror-wall-shelf-21-75-h-natural",
+      "normalized_type": "mirror",
+      "name": "Amazon Brand – Rivet Mirror Wall Shelf, 21.75\"H, Natural",
+      "color": "原木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-shelves-03-amazon-brand-rivet-rustic-mirror-wall-shelf-24-h-white",
+      "normalized_type": "mirror",
+      "name": "Amazon Brand – Rivet Rustic Mirror Wall Shelf, 24\"H, White",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-01-amazon-brand-rivet-modern-end-table-19-3-inch-width-natural-and-gold",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Rivet Modern End Table, 19.3 Inch Width, Natural and Gold",
+      "color": "金色、原木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-38-amazonbasics-sporting-goods-storage-organizer-shelf-black",
+      "normalized_type": "bookcase",
+      "name": "AmazonBasics Sporting Goods Storage Organizer Shelf - Black",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-175-amazon-brand-stone-beam-commodore-casual-wood-side-end-table-17-w-new-whitewash",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Stone & Beam Commodore Casual Wood Side End Table, 17\"W, New Whitewash",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-03-stone-beam-rylee-modern-coffee-table-19-69-h-mixed-gray",
+      "normalized_type": "coffee-table",
+      "name": "Stone & Beam Rylee Modern Coffee Table 19.69\"H, Mixed Gray",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-tables-37-amazon-brand-stone-beam-industrial-mango-wood-rectangle-dining-table-71-l-black-metal-legs",
+      "normalized_type": "dining-table",
+      "name": "Amazon Brand – Stone & Beam Industrial Mango Wood Rectangle Dining Table, 71\"L, Black Metal Legs",
+      "color": "黑色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-chairs-67-amazon-brand-ravenna-home-modern-counter-stool-with-back-38-inch-height-beige-set-of-2",
+      "normalized_type": "dining-chair",
+      "name": "Amazon Brand – Ravenna Home Modern Counter Stool with Back, 38 Inch Height, Beige, Set of 2",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-chairs-76-amazon-brand-ravenna-home-modern-upholstery-bar-stool-with-back-30-seat-height-beige-set-of-2",
+      "normalized_type": "dining-chair",
+      "name": "Amazon Brand – Ravenna Home Modern upholstery Bar Stool with Back, 30\" seat Height, Beige, Set of 2",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-chairs-82-amazon-brand-ravenna-home-modern-dining-chair-36-inch-height-white-set-of-2",
+      "normalized_type": "dining-chair",
+      "name": "Amazon Brand – Ravenna Home Modern Dining Chair, 36 Inch Height, White, Set of 2",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-chairs-91-amazon-brand-stone-beam-bentley-dining-chair-38-h-black-legs-set-of-2-flax",
+      "normalized_type": "dining-chair",
+      "name": "Amazon Brand – Stone & Beam Bentley Dining Chair 38\"H, Black Legs, Set of 2, Flax",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-chairs-112-amazon-brand-ravenna-home-modern-bar-stool-with-back-44-inch-height-grey-set-of-2",
+      "normalized_type": "dining-chair",
+      "name": "Amazon Brand – Ravenna Home Modern Bar Stool with Back, 44 Inch Height, Grey, Set of 2",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-chairs-156-amazon-brand-ravenna-home-modern-dining-chair-36-inch-height-grey-set-of-2",
+      "normalized_type": "dining-chair",
+      "name": "Amazon Brand – Ravenna Home Modern Dining Chair, 36 Inch Height, Grey, Set of 2",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-tables-82-amazon-brand-stone-beam-industrial-mango-wood-round-dining-table-48-w-gunmetal-finish",
+      "normalized_type": "dining-table",
+      "name": "Amazon Brand – Stone & Beam Industrial Mango Wood Round Dining Table, 48\"W, Gunmetal Finish",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-226-stone-beam-aire-rustic-octagonal-fir-wood-table-collection",
+      "normalized_type": "desk",
+      "name": "Stone & Beam Aire Rustic Octagonal Fir Wood Table Collection",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-chairs-227-amazon-brand-ravenna-home-modern-counter-stool-with-back-38-inch-height-grey-set-of-2",
+      "normalized_type": "dining-chair",
+      "name": "Amazon Brand – Ravenna Home Modern Counter Stool with Back, 38 Inch Height, Grey, Set of 2",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-tables-87-amazon-brand-stone-beam-rylee-modern-acacia-wood-dining-table-71-102-l-gray-wash-acacia",
+      "normalized_type": "dining-table",
+      "name": "Amazon Brand – Stone & Beam Rylee Modern Acacia Wood Dining Table, 71\"-102\"L, Gray-Wash Acacia",
+      "color": "灰色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-08-amazon-brand-rivet-mid-century-modern-wood-media-tv-console-coffee-table-47-d-walnut-amp-black",
+      "normalized_type": "coffee-table",
+      "name": "Amazon Brand – Rivet Mid-Century Modern Wood Media TV Console Coffee Table, 47\"D, Walnut &amp; Black",
+      "color": "黑色、胡桃色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-22-amazon-brand-rivet-bowlyn-mid-century-modern-wood-tv-media-table-stand-64-walnut",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Rivet Bowlyn Mid-Century Modern Wood TV Media Table Stand, 64\", Walnut",
+      "color": "胡桃色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-40-amazon-brand-rivet-mid-century-modern-wood-media-tv-console-stand-table-59-h-white-amp-gray",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Rivet Mid-Century Modern Wood Media TV Console Stand Table, 59\"H, White &amp; Gray",
+      "color": "白色、灰色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-53-amazon-brand-rivet-bowlyn-mid-century-modern-wood-tv-media-table-stand-54-walnut",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Rivet Bowlyn Mid-Century Modern Wood TV Media Table Stand, 54\", Walnut",
+      "color": "胡桃色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-25-amazon-brand-ravenna-home-modern-counter-stool-with-back-38-25-inch-height-beige-set-of-2",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Brand – Ravenna Home Modern Counter Stool with Back, 38.25 Inch Height, Beige, Set of 2",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-54-amazon-brand-ravenna-home-modern-bar-stool-with-back-44-25-inch-height-beige-set-of-2",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Brand – Ravenna Home Modern Bar Stool with Back, 44.25 Inch Height, Beige, Set of 2",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-office-chairs-39-rivet-modern-swivel-desk-chair-25-7-h-adjustable-height-gray",
+      "normalized_type": "office-chair",
+      "name": "Rivet Modern Swivel Desk Chair 25.7”H, Adjustable Height, Gray",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-103-amazon-brand-ravenna-home-modern-bar-stool-with-back-44-25-inch-height-white-set-of-2",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Brand – Ravenna Home Modern Bar Stool with Back, 44.25 Inch Height, White, Set of 2",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-97-amazon-brand-ravenna-home-wood-and-metal-end-table-44-w-dark-oak-black-metal",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Ravenna Home Wood and Metal End Table, 44\"W, Dark Oak, Black Metal",
+      "color": "黑色、橡木色、木色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-home-decor-28-rockpoint-bisenzio-58-inch-floating-wall-mounted-tv-stand-pure-white",
+      "normalized_type": "decoration",
+      "name": "Rockpoint Bisenzio 58-Inch Floating Wall-Mounted TV Stand, Pure White",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-office-chairs-44-amazon-brand-rivet-modern-leather-swivel-desk-armless-office-chair-30-6-inch-height-adjustable-height-grey",
+      "normalized_type": "office-chair",
+      "name": "Amazon Brand – Rivet Modern Leather Swivel Desk Armless Office Chair 30.6 Inch Height, Adjustable Height, Grey",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-183-amazon-brand-ravenna-home-modern-counter-stool-with-back-38-25-inch-height-white-set-of-2",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Brand – Ravenna Home Modern Counter Stool with Back, 38.25 Inch Height, White, Set of 2",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-09-ravenna-home-luna-rustic-wood-stool-2-pack",
+      "normalized_type": "stool-bench",
+      "name": "Ravenna Home Luna Rustic Wood Stool, 2-Pack",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-20-amazon-brand-rivet-modern-lattice-patterned-stoneware-planter-6-3-h-gray-and-white",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Modern Lattice-Patterned Stoneware Planter, 6.3\"H, Gray and White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-21-amazon-basics-step-stool-2-step-sturdy-steel-and-wide-pedal-200-pound-capacity-white",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Basics Step Stool - 2-Step, Sturdy Steel and Wide Pedal, 200-Pound Capacity, White",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-ladder-01-amazonbasics-folding-step-ladder-5-step-aluminum-with-wide-pedal-silver-and-black",
+      "normalized_type": "decoration",
+      "name": "AmazonBasics Folding Step Ladder - 5-Step, Aluminum with Wide Pedal, Silver and Black",
+      "color": "黑色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-92-red-hook-tedera-wood-and-upholstered-storage-ottoman-bench-graphite-grey",
+      "normalized_type": "stool-bench",
+      "name": "Red Hook Tedera Wood and Upholstered Storage Ottoman Bench - Graphite Grey",
+      "color": "灰色、紅色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-110-amazon-basics-step-stool-1-step-steel-and-aluminum-200-pound-capacity-silver-and-white",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Basics Step Stool - 1-Step, Steel and Aluminum, 200-Pound Capacity, Silver and White",
+      "color": "白色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-128-amazonbasics-modern-adjustable-swivel-bar-island-stools-pu-with-chrome-air-lift-set-of-2-espresso",
+      "normalized_type": "stool-bench",
+      "name": "AmazonBasics Modern Adjustable Swivel Bar/Island Stools - PU with Chrome Air Lift - Set of 2, Espresso",
+      "color": "鉻色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-80-amazon-brand-rivet-rustic-cross-patterned-stoneware-planter-8-85-h-white-and-gray",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Rustic Cross-Patterned Stoneware Planter, 8.85\"H, White and Gray",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-83-amazon-brand-rivet-rustic-chevron-patterned-stoneware-planter-6-3-h-white-and-gray",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Rustic Chevron-Patterned Stoneware Planter, 6.3\"H, White and Gray",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-200-amazon-basics-lightweight-step-stool-3-step-aluminum-200-pound-capacity-sliver",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Basics Lightweight Step Stool - 3-Step, Aluminum, 200-Pound Capacity, Sliver",
+      "color": "銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-89-amazon-brand-rivet-rustic-circle-patterned-stoneware-planter-8-85-h-white-and-gray",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Rustic Circle-Patterned Stoneware Planter, 8.85\"H, White and Gray",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-90-amazon-brand-rivet-rustic-circle-patterned-stoneware-planter-6-3-h-white-and-gray",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Rustic Circle-Patterned Stoneware Planter, 6.3\"H, White and Gray",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-ladder-02-amazonbasics-folding-step-ladder-4-step-aluminum-with-wide-pedal-silver-and-black",
+      "normalized_type": "decoration",
+      "name": "AmazonBasics Folding Step Ladder - 4-Step, Aluminum with Wide Pedal, Silver and Black",
+      "color": "黑色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-190-amazon-brand-rivet-mid-century-stoneware-planter-with-wood-stand-15-94-h-light-green-ombre",
+      "normalized_type": "lamp",
+      "name": "Amazon Brand – Rivet Mid-Century Stoneware Planter with Wood Stand, 15.94\"H, Light Green Ombre",
+      "color": "綠色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-95-amazon-brand-rivet-mid-century-stoneware-planter-with-wood-stand-10-43-h-gray-and-beige",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Stoneware Planter with Wood Stand, 10.43\"H, Gray and Beige",
+      "color": "灰色、米色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-97-amazon-brand-rivet-rustic-cross-patterned-stoneware-planter-6-3-h-white-and-gray",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Rustic Cross-Patterned Stoneware Planter, 6.3\"H, White and Gray",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-256-amazon-basics-folding-step-stool-2-step-steel-200-pound-capacity-grey",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Basics Folding Step Stool - 2-Step, Steel, 200-Pound Capacity, Grey",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-272-amazon-basics-step-stool-3-step-sturdy-steel-and-wide-pedal-200-pound-capacity-white",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Basics Step Stool - 3-Step, Sturdy Steel and Wide Pedal, 200-Pound Capacity, White",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-102-amazon-brand-rivet-mid-century-2-toned-stoneware-planter-4-13-h-gray-and-white",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century 2-Toned Stoneware Planter, 4.13\"H, Gray and White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-105-amazon-brand-rivet-industrial-hexagonal-planter-9-06-h-gold",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Industrial Hexagonal Planter, 9.06\"H, Gold",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-109-amazon-brand-rivet-mid-century-stoneware-planter-with-wood-stand-13-98-h-gray-and-beige",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Stoneware Planter with Wood Stand, 13.98\"H, Gray and Beige",
+      "color": "灰色、米色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-111-amazon-brand-rivet-mid-century-stoneware-planter-with-wood-stand-10-43-h-royal-blue",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Stoneware Planter with Wood Stand, 10.43\"H, Royal Blue",
+      "color": "藍色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-337-amazon-basics-lightweight-step-stool-2-step-aluminum-200-pound-capacity-silver",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Basics Lightweight Step Stool - 2-Step, Aluminum, 200-Pound Capacity, Silver",
+      "color": "銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-340-amazonbasics-step-stool-2-step-steel-with-anti-slip-mat-and-handgrip-white",
+      "normalized_type": "stool-bench",
+      "name": "AmazonBasics Step Stool - 2-Step, Steel with Anti-slip Mat and Handgrip, White",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sideboards-15-amazon-brand-stone-beam-rustic-kitchen-island-butcher-block-buffet-cart-with-wheels-natural-wood-finish",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Stone & Beam Rustic Kitchen Island Butcher Block Buffet Cart with Wheels, Natural Wood Finish",
+      "color": "原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-116-amazon-brand-rivet-mid-century-stoneware-planter-with-wood-stand-13-98-h-royal-blue",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Stoneware Planter with Wood Stand, 13.98\"H, Royal Blue",
+      "color": "藍色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-348-amazonbasics-modern-adjustable-swivel-bar-island-stools-pu-with-chrome-air-lift-set-of-2-white",
+      "normalized_type": "stool-bench",
+      "name": "AmazonBasics Modern Adjustable Swivel Bar/Island Stools - PU with Chrome Air Lift - Set of 2, White",
+      "color": "白色、鉻色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-117-amazon-brand-rivet-mid-century-2-toned-stoneware-planter-6-3-h-gray-and-white",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century 2-Toned Stoneware Planter, 6.3\"H, Gray and White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-362-amazon-basics-step-stool-1-step-steel-with-anti-slip-mat-and-handgrip-200-pound-capacity-white",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Basics Step Stool - 1-Step, Steel with Anti-slip Mat and Handgrip, 200-Pound Capacity, White",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-375-amazonbasics-modern-adjustable-swivel-bar-island-stools-pu-with-chrome-air-lift-set-of-2-black",
+      "normalized_type": "stool-bench",
+      "name": "AmazonBasics Modern Adjustable Swivel Bar/Island Stools - PU with Chrome Air Lift - Set of 2, Black",
+      "color": "黑色、鉻色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-376-amazon-brand-rivet-modern-barstool-33-46-h-set-of-2-black-and-oak",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Brand – Rivet Modern Barstool 33.46\"H, Set of 2, Black and Oak",
+      "color": "黑色、橡木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-386-amazonbasics-flat-weight-workout-exercise-bench-41-x-20-x-11-inches-black",
+      "normalized_type": "stool-bench",
+      "name": "AmazonBasics Flat Weight Workout Exercise Bench - 41 x 20 x 11 Inches, Black",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-399-ravenna-home-decorah-stackable-metal-kitchen-counter-bar-stools-24-h-set-of-4",
+      "normalized_type": "stool-bench",
+      "name": "Ravenna Home Decorah Stackable Metal Kitchen Counter Bar Stools, 24\"H, Set of 4",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-402-ravenna-home-high-back-bistro-metal-bar-stool",
+      "normalized_type": "stool-bench",
+      "name": "Ravenna Home High Back Bistro Metal Bar Stool",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-133-amazon-brand-rivet-mid-century-stoneware-planter-with-wood-stand-12-99-h-green-ombre",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Stoneware Planter with Wood Stand, 12.99\"H, Green Ombre",
+      "color": "綠色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-433-amazon-brand-stone-beam-classic-spindle-back-wood-counter-height-barstool-37-5-h-set-of-2-black",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Brand – Stone & Beam Classic Spindle-Back Wood Counter-Height Barstool, 37.5\"H, Set of 2, Black",
+      "color": "黑色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-135-amazon-brand-rivet-modern-colorful-stoneware-garden-planter-flower-pot-set-set-of-6-2-95-inch-multicolor",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Modern Colorful Stoneware Garden Planter Flower Pot Set - Set of 6, 2.95 Inch, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-ladder-03-amazonbasics-folding-step-ladder-3-step-aluminum-with-wide-pedal-silver-and-black",
+      "normalized_type": "decoration",
+      "name": "AmazonBasics Folding Step Ladder - 3-Step, Aluminum with Wide Pedal, Silver and Black",
+      "color": "黑色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-139-amazon-brand-rivet-mid-century-diamond-patterned-stoneware-planter-6-5-h-blue-and-white",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Diamond-Patterned Stoneware Planter, 6.5\"H, Blue and White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-467-amazonbasics-modern-adjustable-swivel-bar-island-stools-pu-with-chrome-air-lift-set-of-2-cognac",
+      "normalized_type": "stool-bench",
+      "name": "AmazonBasics Modern Adjustable Swivel Bar/Island Stools - PU with Chrome Air Lift - Set of 2, Cognac",
+      "color": "鉻色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-472-amazon-basics-folding-step-stool-3-step-with-tooltray-steel-200-pound-capacity-grey",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Basics Folding Step Stool - 3-Step with Tooltray, Steel, 200-Pound Capacity, Grey",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-486-amazonbasics-dual-side-step-stool-2-step-aluminum-silver",
+      "normalized_type": "stool-bench",
+      "name": "AmazonBasics Dual Side Step Stool - 2-Step, Aluminum, Silver",
+      "color": "銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-144-amazon-brand-rivet-industrial-hexagonal-planter-7-87-h-gold",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Industrial Hexagonal Planter, 7.87\"H, Gold",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-146-amazon-brand-stone-beam-emerick-rustic-stoneware-planter-pot-6-inch-brown-and-white",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Stone & Beam Emerick Rustic Stoneware Planter Pot - 6 Inch, Brown and White",
+      "color": "白色、棕色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-148-amazon-brand-rivet-mid-century-diamond-patterned-stoneware-planter-5-7-h-blue-and-white",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Diamond-Patterned Stoneware Planter, 5.7\"H, Blue and White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-506-first-hill-genova-fabric-upholstery-pillow-top-storage-ottoman-bench-breezy-beige",
+      "normalized_type": "stool-bench",
+      "name": "First Hill Genova Fabric-Upholstery Pillow-Top Storage Ottoman Bench, Breezy Beige",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-510-amazon-basics-folding-step-stool-3-step-steel-200-pound-capacity-grey",
+      "normalized_type": "stool-bench",
+      "name": "Amazon Basics Folding Step Stool - 3-Step, Steel, 200-Pound Capacity, Grey",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-150-amazon-brand-rivet-mid-century-diamond-patterned-stoneware-planter-7-67-h-blue-and-white",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Diamond-Patterned Stoneware Planter, 7.67\"H, Blue and White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-129-amazon-brand-rivet-stevens-modern-storage-coffee-table-47-24-w-brushed-tundra-gray",
+      "normalized_type": "coffee-table",
+      "name": "Amazon Brand – Rivet Stevens Modern Storage Coffee Table, 47.24\"W, Brushed Tundra Gray",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-152-amazon-brand-rivet-mid-century-stoneware-planter-with-wood-stand-7-08-h-gray-and-beige",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Stoneware Planter with Wood Stand, 7.08\"H, Gray and Beige",
+      "color": "灰色、米色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-545-amazonbasics-dual-side-step-stool-3-step-aluminum-silver",
+      "normalized_type": "stool-bench",
+      "name": "AmazonBasics Dual Side Step Stool - 3-Step, Aluminum, Silver",
+      "color": "銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-162-amazon-brand-rivet-rustic-chevron-patterned-stoneware-planter-8-85-h-white-and-gray",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Rustic Chevron-Patterned Stoneware Planter, 8.85\"H, White and Gray",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-163-amazon-brand-rivet-mid-century-stoneware-planter-with-wood-stand-11-02-h-green-ombre",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Mid-Century Stoneware Planter with Wood Stand, 11.02\"H, Green Ombre",
+      "color": "綠色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-164-amazon-brand-rivet-modern-lattice-patterned-stoneware-planter-8-85-h-gray-and-white",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Rivet Modern Lattice-Patterned Stoneware Planter, 8.85\"H, Gray and White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-flower-pots-planters-02-amazon-brand-stone-beam-modern-ceramic-triangle-decor-planter-pot-5-inch-white-and-terra-cotta",
+      "normalized_type": "planter",
+      "name": "Amazon Brand – Stone & Beam Modern Ceramic Triangle Decor Planter Pot, 5 Inch, White and Terra Cotta",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-storage-boxes-baskets-01-amazon-brand-rivet-modern-geometric-handwoven-round-basket-set-set-of-3-white-black",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Rivet Modern Geometric Handwoven Round Basket Set - Set of 3, White / Black",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-storage-boxes-baskets-02-amazon-brand-rivet-modern-ceramic-indoor-window-sill-planter-box-pot-3-x-12-x-3-inch-green-and-blue",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Rivet Modern Ceramic Indoor Window Sill Planter Box Pot - 3 x 12 x 3 Inch, Green and Blue",
+      "color": "藍色、綠色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-storage-boxes-baskets-03-amazon-brand-stone-beam-modern-farmhouse-wood-and-galvanized-metal-decor-storage-bin-basket-15-75-inch-white-washed",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Stone & Beam Modern Farmhouse Wood and Galvanized Metal Decor Storage Bin Basket - 15.75 Inch, White Washed",
+      "color": "白色、木色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-62-amazon-brand-stone-beam-modern-farmhouse-decorative-candle-holder-lantern-with-cutouts-set-of-2-cream-and-blue",
+      "normalized_type": "lamp",
+      "name": "Amazon Brand – Stone & Beam Modern Farmhouse Decorative Candle Holder Lantern with Cutouts - Set of 2, Cream and Blue",
+      "color": "奶油色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-69-amazon-brand-stone-beam-modern-decorative-stoneware-container-with-strap-8-66-h-beige-and-white",
+      "normalized_type": "lamp",
+      "name": "Amazon Brand – Stone & Beam Modern Decorative Stoneware Container with Strap, 8.66\"H, Beige and White",
+      "color": "白色、米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-98-amazon-brand-rivet-modern-cylindrical-stoneware-candle-holder-lantern-home-decor-set-set-of-2-gray-and-cream",
+      "normalized_type": "lamp",
+      "name": "Amazon Brand – Rivet Modern Cylindrical Stoneware Candle Holder Lantern Home Decor Set - Set of 2, Gray and Cream",
+      "color": "奶油色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-120-amazonbasics-folding-step-ladder-5-step-aluminum-lightweight-silver",
+      "normalized_type": "lamp",
+      "name": "AmazonBasics Folding Step Ladder - 5-Step, Aluminum, Lightweight, Silver",
+      "color": "銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-153-amazon-brand-stone-beam-modern-decorative-stoneware-container-with-strap-10-43-h-beige-and-white",
+      "normalized_type": "lamp",
+      "name": "Amazon Brand – Stone & Beam Modern Decorative Stoneware Container with Strap, 10.43\"H, Beige and White",
+      "color": "白色、米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-mirrors-01-amazon-brand-ravenna-home-vintage-wooden-accent-mirror-27-75-h-natural",
+      "normalized_type": "mirror",
+      "name": "Amazon Brand – Ravenna Home Vintage Wooden Accent Mirror, 27.75\"H, Natural",
+      "color": "原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-mirrors-02-amazon-brand-ravenna-home-vintage-arched-whitewashed-wooden-mantel-mirror-31-h-whitewash",
+      "normalized_type": "mirror",
+      "name": "Amazon Brand - Ravenna Home Vintage Arched Whitewashed Wooden Mantel Mirror, 31\"H, Whitewash",
+      "color": "白色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-07-amazon-brand-stone-beam-iron-sun-wall-art-decor-23-inch-bronze-metal-finish",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Stone & Beam Iron Sun Wall Art Decor - 23 Inch, Bronze Metal Finish",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-07-stone-beam-classic-serving-cart-40-98-h-bronze-natural",
+      "normalized_type": "trolley",
+      "name": "Stone & Beam Classic Serving Cart 40.98\"H, Bronze, Natural",
+      "color": "原木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-mirrors-14-amazon-brand-stone-beam-vintage-window-mirror-28-inch-antique-grey-blue",
+      "normalized_type": "mirror",
+      "name": "Amazon Brand – Stone & Beam Vintage Window Mirror -28 Inch, Antique Grey Blue",
+      "color": "灰色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-mirrors-21-amazon-brand-ravenna-home-vintage-windowpane-metal-mantel-mirror-25-h-gold",
+      "normalized_type": "mirror",
+      "name": "Amazon Brand - Ravenna Home Vintage Windowpane Metal Mantel Mirror, 25\"H, Gold",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-mirrors-22-amazon-brand-rivet-industrial-framed-bathroom-wall-vanity-mirror-33-2-x-27-2-x-0-88-inch-whitewash",
+      "normalized_type": "mirror",
+      "name": "Amazon Brand – Rivet Industrial Framed Bathroom Wall Vanity Mirror - 33.2 x 27.2 x 0.88 Inch, Whitewash",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-21-amazon-brand-stone-beam-cooper-vintage-farmhouse-motif-wool-area-rug-4-x-6-foot-charcoal-and-beige",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Cooper Vintage Farmhouse Motif Wool Area Rug, 4 x 6 Foot, Charcoal and Beige",
+      "color": "炭灰色、米色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-33-amazon-brand-stone-beam-tassled-criss-cross-wool-area-rug-8-x-10-foot-blue-and-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Tassled Criss-Cross Wool Area Rug, 8 x 10 Foot, Blue and White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-12-amazon-brand-stone-beam-modern-global-ikat-wool-runner-rug-2-6-x-8-blue",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Global Ikat Wool Runner Rug, 2' 6\" x 8', Blue",
+      "color": "藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-51-amazon-brand-stone-beam-garrison-vintage-pattern-wool-area-rug-8-x-10-foot-grey-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Garrison Vintage Pattern Wool Area Rug, 8 x 10 Foot, Grey Multi",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-64-amazon-brand-stone-beam-heidi-floral-farmhouse-wool-area-rug-8-x-10-foot-beige",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Heidi Floral Farmhouse Wool Area Rug, 8 x 10 Foot, Beige",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-76-amazon-brand-rivet-contemporary-area-rug-1-8-x-2-10-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Area Rug, 1' 8\" x 2' 10\", Silver, Grey White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-91-amazon-brand-stone-beam-swirling-paisley-farmhouse-motif-wool-area-rug-5-x-8-foot-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Swirling Paisley Farmhouse Motif Wool Area Rug, 5 x 8 Foot, Multi",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-128-amazon-brand-stone-beam-cooper-vintage-farmhouse-motif-wool-area-rug-8-x-10-foot-charcoal-and-beige",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Cooper Vintage Farmhouse Motif Wool Area Rug, 8 x 10 Foot, Charcoal and Beige",
+      "color": "炭灰色、米色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-129-stone-beam-contemporary-floral-medallion-rug-5-x-8-grey",
+      "normalized_type": "large-medium-rug",
+      "name": "Stone & Beam Contemporary Floral Medallion Rug, 5' x 8', Grey",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-154-amazon-brand-stone-beam-heidi-floral-farmhouse-wool-area-rug-5-x-8-foot-beige",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Heidi Floral Farmhouse Wool Area Rug, 5 x 8 Foot, Beige",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-164-amazon-brand-stone-beam-tassled-criss-cross-wool-area-rug-4-x-6-foot-blue-and-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Tassled Criss-Cross Wool Area Rug, 4 x 6 Foot, Blue and White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-27-amazon-brand-stone-beam-heidi-floral-farmhouse-wool-runner-rug-2-6-x-8-beige",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Stone & Beam Heidi Floral Farmhouse Wool Runner Rug, 2' 6\" x 8', Beige",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-199-amazon-brand-rivet-geometric-criss-cross-woven-wool-area-rug-8-x-10-foot-cream",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Geometric Criss-Cross Woven Wool Area Rug, 8 x 10 Foot, Cream",
+      "color": "奶油色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-201-amazon-brand-stone-beam-heidi-floral-farmhouse-wool-area-rug-4-x-6-foot-beige",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Heidi Floral Farmhouse Wool Area Rug, 4 x 6 Foot, Beige",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-30-amazon-brand-stone-beam-lottie-traditional-wool-runner-rug-2-6-x-8-beige",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Stone & Beam Lottie Traditional Wool Runner Rug, 2' 6\" x 8', Beige",
+      "color": "米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-224-amazon-brand-stone-beam-shooting-star-modern-diamond-pattern-wool-area-rug-5-x-8-taupe",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Shooting Star Modern Diamond Pattern Wool Area Rug, 5' x 8', Taupe",
+      "color": "灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-outdoor-furniture-47-amazon-brand-rivet-modern-concrete-indoor-outdoor-planter-pot-with-painted-accents-5-inch-grey-and-white",
+      "normalized_type": "outdoor-furniture",
+      "name": "Amazon Brand – Rivet Modern Concrete Indoor Outdoor Planter Pot With Painted Accents - 5 Inch, Grey and White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-251-amazon-brand-stone-beam-modern-global-ikat-wool-area-rug-4-x-6-foot-blue",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Global Ikat Wool Area Rug, 4 x 6 Foot, Blue",
+      "color": "藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-205-amazon-brand-stone-beam-polyester-rug-2-6-x-8-light-green-dark-green-white",
+      "normalized_type": "rug",
+      "name": "Amazon Brand – Stone & Beam Polyester Rug, 2'6\" x 8', Light Green, Dark Green, White",
+      "color": "白色、綠色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-38-amazon-brand-stone-beam-swirling-paisley-farmhouse-motif-wool-runner-rug-2-6-x-8-multi",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Stone & Beam Swirling Paisley Farmhouse Motif Wool Runner Rug, 2' 6\" x 8', Multi",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-287-amazon-brand-stone-beam-shooting-star-modern-diamond-pattern-wool-area-rug-8-x-10-taupe",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Shooting Star Modern Diamond Pattern Wool Area Rug, 8' x 10', Taupe",
+      "color": "灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-302-amazon-brand-stone-beam-kelsea-vintage-inspired-tassled-wool-area-rug-5-x-8-foot-beige-and-grey",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Kelsea Vintage-Inspired, Tassled Wool Area Rug, 5 x 8 Foot, Beige and Grey",
+      "color": "灰色、米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-307-amazon-brand-stone-beam-garrison-vintage-pattern-wool-area-rug-5-x-8-foot-grey-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Garrison Vintage Pattern Wool Area Rug, 5 x 8 Foot, Grey Multi",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-outdoor-furniture-60-amazon-brand-rivet-modern-concrete-indoor-outdoor-planter-pot-with-painted-accents-5-inch-grey-and-white",
+      "normalized_type": "outdoor-furniture",
+      "name": "Amazon Brand – Rivet Modern Concrete Indoor Outdoor Planter Pot With Painted Accents - 5 Inch, Grey and White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-326-amazon-brand-stone-beam-kelsea-vintage-inspired-tassled-wool-area-rug-8-x-10-foot-beige-and-grey",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Kelsea Vintage-Inspired, Tassled Wool Area Rug, 8 x 10 Foot, Beige and Grey",
+      "color": "灰色、米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-331-amazon-brand-rivet-contemporary-area-rug-1-8-x-2-10-taupe-and-grey",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Area Rug, 1' 8\" x 2' 10\", Taupe and Grey",
+      "color": "灰色、灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-outdoor-furniture-68-amazon-brand-stone-beam-vintage-rustic-farmhouse-galvanized-metal-milk-jug-home-decor-planter-vase-12-75-inches-grey",
+      "normalized_type": "outdoor-furniture",
+      "name": "Amazon Brand – Stone & Beam Vintage Rustic Farmhouse Galvanized Metal Milk Jug Home Decor Planter Vase - 12.75 Inches, Grey",
+      "color": "灰色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-52-amazon-brand-stone-beam-shooting-star-modern-diamond-pattern-wool-runner-rug-2-6-x-8-taupe",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Stone & Beam Shooting Star Modern Diamond Pattern Wool Runner Rug, 2'6\" x 8', Taupe",
+      "color": "灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-387-amazon-brand-rivet-geometric-criss-cross-woven-wool-area-rug-5-x-8-foot-cream",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Geometric Criss-Cross Woven Wool Area Rug, 5 x 8 Foot, Cream",
+      "color": "奶油色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-394-amazon-brand-rivet-sunset-textured-geo-pattern-wool-area-rug-8-x-10-foot-pink",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Sunset Textured Geo Pattern Wool Area Rug, 8 x 10 Foot, Pink",
+      "color": "粉色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-397-amazon-brand-stone-beam-swirling-paisley-farmhouse-motif-wool-area-rug-8-x-10-foot-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Swirling Paisley Farmhouse Motif Wool Area Rug, 8 x 10 Foot, Multi",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-60-amazon-brand-rivet-geometric-criss-cross-woven-wool-runner-rug-2-6-x-8-cream",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Rivet Geometric Criss-Cross Woven Wool Runner Rug, 2'6\" x 8' Cream",
+      "color": "奶油色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-63-amazon-brand-stone-beam-kelsea-vintage-inspired-tassled-wool-runner-rug-2-6-x-8-foot-beige-and-grey",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Stone & Beam Kelsea Vintage-Inspired, Tassled Wool Runner Rug, 2' 6\" x 8' Foot, Beige and Grey",
+      "color": "灰色、米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-439-amazon-brand-stone-beam-swirling-paisley-farmhouse-motif-wool-area-rug-4-x-6-foot-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Swirling Paisley Farmhouse Motif Wool Area Rug, 4 x 6 Foot, Multi",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-440-stone-beam-medallion-patterned-rug-5-x-8-red-and-steel-blue",
+      "normalized_type": "large-medium-rug",
+      "name": "Stone & Beam Medallion-Patterned Rug, 5' x 8', Red and Steel Blue",
+      "color": "藍色、紅色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-447-amazon-brand-stone-beam-barnstead-floral-wool-area-rug-5-x-8-foot-charcoal-and-beige",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Barnstead Floral Wool Area Rug, 5 x 8 Foot, Charcoal and Beige",
+      "color": "炭灰色、米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-72-amazon-brand-stone-beam-tassled-criss-cross-wool-runner-rug-2-6-x-8-blue-and-white",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Stone & Beam Tassled Criss-Cross Wool Runner Rug, 2' 6\" x 8', Blue and White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-outdoor-furniture-111-amazonbasics-wooden-birdhouse",
+      "normalized_type": "outdoor-furniture",
+      "name": "AmazonBasics Wooden Birdhouse",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-76-amazon-brand-stone-beam-new-england-tassled-wool-runner-rug-2-6-x-8-blue-and-cream",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Stone & Beam New England Tassled Wool Runner Rug, 2' 6\" x 8', Blue and Cream",
+      "color": "奶油色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-501-amazon-brand-stone-beam-garrison-vintage-pattern-wool-area-rug-4-x-6-foot-grey-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Garrison Vintage Pattern Wool Area Rug, 4 x 6 Foot, Grey Multi",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-502-amazon-brand-stone-beam-kelsea-vintage-inspired-tassled-wool-area-rug-4-x-6-foot-beige-and-grey",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Kelsea Vintage-Inspired, Tassled Wool Area Rug, 4 x 6 Foot, Beige and Grey",
+      "color": "灰色、米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-505-amazon-brand-stone-beam-shooting-star-modern-diamond-pattern-wool-area-rug-4-x-6-taupe",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Shooting Star Modern Diamond Pattern Wool Area Rug, 4' x 6', Taupe",
+      "color": "灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-511-amazon-brand-stone-beam-tassled-criss-cross-wool-area-rug-5-x-8-foot-blue-and-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Tassled Criss-Cross Wool Area Rug, 5 x 8 Foot, Blue and White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-516-amazon-brand-rivet-geometric-criss-cross-woven-wool-area-rug-4-x-6-foot-cream",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Geometric Criss-Cross Woven Wool Area Rug, 4 x 6 Foot, Cream",
+      "color": "奶油色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-02-amazon-brand-rivet-modern-lattice-patterned-rug-5-x-8-beige-and-cream",
+      "normalized_type": "rug",
+      "name": "Amazon Brand – Rivet Modern Lattice-Patterned Rug, 5' x 8', Beige and Cream",
+      "color": "奶油色、米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-11-amazon-brand-stone-beam-medallion-patterned-rug-4-x-6-red-and-steel-blue",
+      "normalized_type": "rug",
+      "name": "Amazon Brand – Stone & Beam Medallion-Patterned Rug, 4' x 6', Red and Steel Blue",
+      "color": "藍色、紅色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-24-rivet-wool-rug-5-x-8-gray-charcoal",
+      "normalized_type": "rug",
+      "name": "Rivet Wool Rug, 5' x 8', Gray, Charcoal",
+      "color": "炭灰色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-25-rivet-wool-rug-5-x-8-gray-charcoal",
+      "normalized_type": "rug",
+      "name": "Rivet Wool Rug, 5' x 8', Gray, Charcoal",
+      "color": "炭灰色、灰色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-28-rivet-flatwoven-cubist-inspired-rug-4-x-6-cream-and-gray-with-orange",
+      "normalized_type": "rug",
+      "name": "Rivet Flatwoven Cubist-Inspired Rug, 4' x 6', Cream and Gray with Orange",
+      "color": "奶油色、灰色、橘色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-37-rivet-wool-rug-2-6-x-8-gray-charcoal",
+      "normalized_type": "rug",
+      "name": "Rivet Wool Rug, 2'6\" x 8', Gray, Charcoal",
+      "color": "炭灰色、灰色、深灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-40-rivet-handcrafted-wool-and-cotton-rug-with-undulating-stripes-8-x-10-cream-and-taupe",
+      "normalized_type": "rug",
+      "name": "Rivet Handcrafted Wool-and-Cotton Rug with Undulating Stripes, 8' x 10', Cream and Taupe",
+      "color": "奶油色、灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-47-amazon-brand-stone-beam-modern-global-bohemian-kilim-rug-4-x-6-foot-multicolor",
+      "normalized_type": "rug",
+      "name": "Amazon Brand – Stone & Beam Modern Global Bohemian Kilim Rug, 4 x 6 Foot, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-56-amazon-brand-rivet-modern-flatwoven-rug-with-intersecting-diamonds-4-x-6-blue-and-gray-with-gold",
+      "normalized_type": "rug",
+      "name": "Amazon Brand – Rivet Modern Flatwoven Rug with Intersecting Diamonds, 4' x 6', Blue and Gray with Gold",
+      "color": "灰色、藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-61-rivet-modern-flatwoven-rug-with-intersecting-diamonds-5-x-8-blue-and-gray-with-gold",
+      "normalized_type": "rug",
+      "name": "Rivet Modern Flatwoven Rug with Intersecting Diamonds, 5' x 8', Blue and Gray with Gold",
+      "color": "灰色、藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-63-amazon-brand-stone-beam-modern-global-bohemian-kilim-rug-5-x-8-foot-multicolor",
+      "normalized_type": "rug",
+      "name": "Amazon Brand – Stone & Beam Modern Global Bohemian Kilim Rug, 5 x 8 Foot, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-67-amazon-brand-stone-beam-polyester-rug-5-x-8-light-green-dark-green-white",
+      "normalized_type": "rug",
+      "name": "Amazon Brand – Stone & Beam Polyester Rug, 5' x 8', Light Green, Dark Green, White",
+      "color": "白色、綠色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-68-rivet-wool-rug-2-6-x-8-gray-charcoal",
+      "normalized_type": "rug",
+      "name": "Rivet Wool Rug, 2'6\" x 8', Gray, Charcoal",
+      "color": "炭灰色、灰色、深灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-77-rivet-modern-lattice-patterned-rug-4-x-6-beige-and-cream",
+      "normalized_type": "rug",
+      "name": "Rivet Modern Lattice-Patterned Rug, 4' x 6', Beige and Cream",
+      "color": "奶油色、米色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-82-rivet-handcrafted-wool-and-cotton-rug-with-undulating-stripes-4-x-6-cream-and-gray",
+      "normalized_type": "rug",
+      "name": "Rivet Handcrafted Wool-and-Cotton Rug with Undulating Stripes, 4' x 6', Cream and Gray",
+      "color": "奶油色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-anti-slip-rug-underlays-92-amazon-brand-rivet-handcrafted-wool-and-cotton-rug-with-undulating-stripes-5-x-8-cream-and-taupe",
+      "normalized_type": "rug",
+      "name": "Amazon Brand – Rivet Handcrafted Wool-and-Cotton Rug with Undulating Stripes, 5' x 8', Cream and Taupe",
+      "color": "奶油色、灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-03-amazon-brand-rivet-contemporary-area-rug-1-8-x-2-10-grey-and-taupe",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Area Rug, 1' 8\" x 2' 10\", Grey and Taupe",
+      "color": "灰色、灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-06-amazon-brand-rivet-contemporary-area-rug-5-3-x-7-7-off-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Area Rug, 5' 3\" x 7' 7\", Off White",
+      "color": "白色、米白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-07-amazon-brand-stone-beam-southwestern-vintage-area-rug-7-10-x-11-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Southwestern Vintage Area Rug, 7' 10\" x 11', Multi",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-15-amazon-brand-stone-beam-modern-jute-area-rug-3-x-5-foot-nuetral-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Jute Area Rug, 3 x 5 Foot, Nuetral Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-16-amazon-brand-rivet-contemporary-wool-area-rug-4-x-6-foot-grey-and-charcoal",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Wool Area Rug, 4 x 6 Foot, Grey and Charcoal",
+      "color": "炭灰色、灰色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-18-rivet-wool-rug-8-x-10-gray-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Rivet Wool Rug, 8' x 10', Gray, White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-22-amazon-brand-rivet-contemporary-wool-area-rug-4-x-6-foot-grey-and-charcoal",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Wool Area Rug, 4 x 6 Foot, Grey and Charcoal",
+      "color": "炭灰色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-23-amazon-brand-rivet-wool-runner-rug-2-6-x-8-black-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Wool Runner Rug, 2' 6\" x 8', Black, White",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-28-amazon-brand-rivet-contemporary-polyester-area-rug-5-x-8-foot-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polyester Area Rug, 5 x 8 Foot, Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-30-amazon-brand-stone-beam-southwestern-contemporary-area-rug-5-x-8-foot-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Southwestern Contemporary Area Rug, 5 x 8 Foot, Multi",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-34-amazon-brand-rivet-contemporary-polypropylene-area-rug-7-10-x-10-ivory",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polypropylene Area Rug, 7' 10\" x 10', Ivory",
+      "color": "象牙白",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-35-amazon-brand-stone-beam-modern-textured-subtle-bohemian-area-rug-4-x-6-foot-grey-and-white-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Textured Subtle Bohemian Area Rug, 4 x 6 Foot, Grey and White Multicolor",
+      "color": "白色、灰色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-42-amazon-brand-rivet-contemporary-area-rug-8-x-11-foot-grey-and-taupe",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Area Rug, 8 x 11 Foot, Grey and Taupe",
+      "color": "灰色、灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-45-amazon-brand-stone-beam-casual-handwoven-area-rug-8-x-10-ivory",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Casual Handwoven Area Rug 8' x 10', Ivory",
+      "color": "象牙白",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-47-amazon-brand-rivet-wool-rug-8-x-10-black-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Wool Rug, 8' x 10', Black, White",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-51-amazon-brand-rivet-wool-rug-8-x-10-gray-charcoal",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Wool Rug, 8' x 10', Gray, Charcoal",
+      "color": "炭灰色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-52-amazon-brand-stone-beam-casual-handwoven-area-rug-5-x-8-ivory",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Casual Handwoven Area Rug 5' x 8', Ivory",
+      "color": "象牙白",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-58-amazon-brand-stone-beam-modern-jute-area-rug-3-x-5-foot-natural-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Jute Area Rug, 3 x 5 Foot, Natural Multicolor",
+      "color": "原木色、多色、黃色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-61-amazon-brand-rivet-contemporary-polyester-area-rug-5-x-8-foot-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polyester Area Rug, 5 x 8 Foot, Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-63-amazon-brand-rivet-contemporary-wool-area-rug-4-x-6-foot-black-and-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Wool Area Rug, 4 x 6 Foot, Black and White",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-64-amazon-brand-stone-beam-southwestern-transitional-area-rug-4-x-6-foot-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Southwestern Transitional Area Rug, 4 x 6 Foot, Multi",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-67-rivet-wool-rug-5-x-8-black-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Rivet Wool Rug, 5' x 8', Black, White",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-70-amazon-brand-rivet-modern-textured-area-rug-5-x-8-foot-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Textured Area Rug, 5 x 8 Foot, Grey, White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-72-amazon-brand-rivet-contemporary-wool-area-rug-4-x-6-foot-grey-and-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Wool Area Rug, 4 x 6 Foot, Grey and White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-76-amazon-brand-rivet-polyester-runner-rug-2-10-x-7-10-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Polyester Runner Rug, 2' 10\" x 7' 10\", Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-82-amazon-brand-rivet-wool-area-rug-5-x-8-foot-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Wool Area Rug, 5 x 8 Foot, Grey, White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-86-amazon-brand-stone-beam-modern-vintage-look-area-rug-4-x-6-foot-ivory",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Vintage-Look Area Rug, 4 x 6 Foot, Ivory",
+      "color": "象牙白",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-89-rivet-wool-rug-8-x-10-gray-charcoal",
+      "normalized_type": "large-medium-rug",
+      "name": "Rivet Wool Rug, 8' x 10', Gray, Charcoal",
+      "color": "炭灰色、灰色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-90-amazon-brand-rivet-modern-moroccan-inspired-area-rug-4-x-6-foot-multicolor-yellow-accent",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Moroccan Inspired Area Rug, 4 x 6 Foot, Multicolor Yellow Accent",
+      "color": "黃色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-96-amazon-brand-rivet-contemporary-polyester-area-rug-8-x-11-foot-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polyester Area Rug, 8 x 11 Foot, Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-97-amazon-brand-rivet-contemporary-wool-blend-area-rug-5-x-8-grey-charcoal",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Wool Blend Area Rug, 5' x 8', Grey & Charcoal",
+      "color": "炭灰色、灰色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-101-amazon-brand-stone-beam-modern-vintage-look-runner-rug-7-6-x-9-6-ivory",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Vintage-Look Runner Rug, 7' 6\" x 9' 6\", Ivory",
+      "color": "象牙白、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-104-amazon-brand-rivet-contemporary-polyester-area-rug-5-x-8-foot-taupe-and-grey",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polyester Area Rug, 5 x 8 Foot, Taupe and Grey",
+      "color": "灰色、灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-107-amazon-brand-rivet-wool-rug-8-x-10-gray-charcoal",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Wool Rug, 8' x 10', Gray, Charcoal",
+      "color": "炭灰色、灰色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-108-amazon-brand-rivet-contemporary-area-rug-8-x-11-foot-taupe-and-grey",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Area Rug, 8 x 11 Foot, Taupe and Grey",
+      "color": "灰色、灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-112-amazon-brand-rivet-polyester-area-rug-8-x-11-foot-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Polyester Area Rug, 8 x 11 Foot, Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-113-amazon-brand-rivet-modern-moroccan-inspired-area-rug-5-x-8-foot-multicolor-red-accent",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Moroccan Inspired Area Rug, 5 x 8 Foot, Multicolor Red Accent",
+      "color": "紅色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-115-amazon-brand-rivet-modern-moroccan-inspired-area-rug-4-x-6-foot-multicolor-red-accent",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Moroccan Inspired Area Rug, 4 x 6 Foot, Multicolor Red Accent",
+      "color": "紅色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-117-amazon-brand-stone-beam-modern-jute-area-rug-4-x-6-foot-nuetral-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Jute Area Rug, 4 x 6 Foot, Nuetral Multicolor",
+      "color": "多色、黃色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-122-amazon-brand-stone-beam-polyester-area-rug-8-x-10-foot-light-green-dark-green-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Polyester Area Rug, 8 x 10 Foot, Light Green, Dark Green, White",
+      "color": "白色、綠色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-125-amazon-brand-rivet-modern-moroccan-inspired-area-rug-5-x-8-foot-multicolor-yellow-accent",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Moroccan Inspired Area Rug, 5 x 8 Foot, Multicolor Yellow Accent",
+      "color": "黃色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-129-amazon-brand-stone-beam-modern-jute-area-rug-4-x-6-foot-nuetral-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Jute Area Rug, 4 x 6 Foot, Nuetral Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-143-amazon-brand-rivet-modern-textured-area-rug-4-x-6-foot-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Textured Area Rug, 4 x 6 Foot, Grey, White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-145-amazon-brand-stone-beam-southwestern-polypropylene-area-rug-5-3-x-7-7-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Southwestern Polypropylene Area Rug, 5' 3\" x 7' 7\", Multi",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-147-amazon-brand-rivet-contemporary-polypropylene-area-rug-7-10-x-10-ivory",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polypropylene Area Rug, 7' 10\" x 10', Ivory",
+      "color": "象牙白",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-148-amazon-brand-stone-beam-southwestern-contemporary-area-rug-4-x-6-foot-multi",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Southwestern Contemporary Area Rug, 4 x 6 Foot, Multi",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-149-amazon-brand-rivet-contemporary-area-rug-5-3-x-7-7-off-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Area Rug, 5' 3\" x 7' 7\", Off White",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-large-medium-rugs-152-amazon-brand-rivet-contemporary-polypropylene-area-rug-5-3-x-7-7-ivory",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polypropylene Area Rug, 5' 3\" x 7' 7\", Ivory",
+      "color": "象牙白",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-vases-01-amazon-brand-ravenna-home-mid-century-stoneware-vase-10-9-h-black",
+      "normalized_type": "vase",
+      "name": "Amazon Brand – Ravenna Home Mid-Century Stoneware Vase, 10.9\"H, Black",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-16-amazon-brand-rivet-contemporary-print-with-sand-texture-wall-art-decor-on-canvas-24-x-24-inch-blue-and-black",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Sand Texture Wall Art Decor on Canvas - 24 x 24 Inch, Blue and Black",
+      "color": "黑色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-20-amazon-brand-rivet-contemporary-striped-print-with-sand-texture-wall-art-decor-on-canvas-30-x-40-inch-pink-and-blue",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Striped Print with Sand Texture Wall Art Decor on Canvas - 30 x 40 Inch, Pink and Blue",
+      "color": "藍色、粉色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-21-amazon-brand-rivet-modern-sketch-of-woman-with-t-shirt-on-white-background-framed-wall-art-home-decor-39-42-x-31-42-x-2-27-inch-maple",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Modern Sketch of Woman with T-Shirt on White Background Framed Wall Art Home Decor - 39.42 x 31.42 x 2.27 Inch, Maple",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-30-amazon-brand-stone-beam-framed-rustic-circle-wall-art-decor-22-x-22-inches-brown-and-white",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Stone & Beam Framed Rustic Circle Wall Art Decor - 22 x 22 Inches, Brown and White",
+      "color": "白色、棕色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-31-amazon-brand-stone-beam-framed-rustic-geometric-wall-art-decor-22-x-22-inches-brown-and-white",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Stone & Beam Framed Rustic Geometric Wall Art Decor - 22 x 22 Inches, Brown and White",
+      "color": "白色、棕色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-storage-boxes-baskets-06-amazon-brand-rivet-modern-braided-stripe-round-basket-set-set-of-3-natural",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Rivet Modern Braided Stripe Round Basket Set - Set of 3, Natural",
+      "color": "原木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-41-amazon-brand-rivet-contemporary-thick-texture-geometric-print-wall-art-decor-on-canvas-34-x-36-inch-black-and-white",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Thick-Texture Geometric Print Wall Art Decor on Canvas - 34 x 36 Inch, Black and White",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tools-01-amazonbasics-4-step-aluminium-lightweight-folding-step-ladder-silver",
+      "normalized_type": "decoration",
+      "name": "AmazonBasics 4 Step Aluminium Lightweight Folding Step Ladder Silver",
+      "color": "銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-50-amazon-brand-rivet-contemporary-print-with-gold-leaf-on-canvas-40-x-40",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Gold Leaf on Canvas, 40\" x 40\"",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-53-amazon-brand-rivet-modern-fashion-sketch-of-model-on-white-background-framed-wall-art-home-decor-39-42-x-31-42-x-2-27-inch-maple",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Modern Fashion Sketch of Model on White Background Framed Wall Art Home Decor - 39.42 x 31.42 x 2.27 Inch, Maple",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-115-amazon-brand-rivet-remote-controlled-ceiling-fan-with-light-52-diameter-matte-black",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Remote-Controlled Ceiling Fan with Light, 52\" Diameter, Matte Black",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-60-amazon-brand-rivet-contemporary-print-with-sand-texture-wall-art-decor-on-canvas-24-x-36-inch-peach-and-purple",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Sand Texture Wall Art Decor on Canvas - 24 x 36 Inch, Peach and Purple",
+      "color": "紫色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-63-amazon-brand-rivet-contemporary-striped-print-with-sand-texture-wall-art-decor-on-canvas-36-x-24-inch-pink-and-blue",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Striped Print with Sand Texture Wall Art Decor on Canvas - 36 x 24 Inch, Pink and Blue",
+      "color": "藍色、粉色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-77-amazon-brand-rivet-contemporary-thick-texture-geometric-print-on-canvas-30-x-40",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Thick Texture Geometric Print on Canvas, 30\" x 40\"",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-79-amazon-brand-rivet-contemporary-print-with-sand-texture-on-canvas-30-x-30-multicolor",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Sand Texture on Canvas, 30\" x 30\", Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-82-amazon-brand-rivet-contemporary-print-with-gold-leaf-wall-art-decor-on-canvas-35-x-35-inch-blue-and-beige",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Gold Leaf Wall Art Decor on Canvas - 35 x 35 Inch, Blue and Beige",
+      "color": "藍色、米色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-85-rivet-modern-abstract-city-skyscrapers-on-canvas-30-w-multicolor",
+      "normalized_type": "wall-art",
+      "name": "Rivet Modern Abstract City Skyscrapers on Canvas, 30\"W, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-92-amazon-brand-rivet-contemporary-print-with-sand-texture-wall-art-decor-on-canvas-40-x-40-inch-multicolor",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Sand Texture Wall Art Decor on Canvas - 40 x 40 Inch, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-95-amazon-brand-stone-beam-abstract-print-with-copper-leaf-wall-art-on-canvas-35-h-x-35-w-gold-and-red",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Stone & Beam Abstract Print with Copper Leaf Wall Art on Canvas - 35\"H x 35\"W, Gold and Red",
+      "color": "紅色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-105-amazon-brand-rivet-contemporary-print-with-sand-texture-on-canvas-35-x-35-blue-white-gold",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Contemporary Print with Sand Texture on Canvas, 35\" x 35\", Blue, White, Gold",
+      "color": "白色、藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-108-amazon-brand-rivet-modern-sketch-of-ballet-dancer-on-white-background-framed-wall-art-home-decor-39-42-x-31-42-x-2-27-inch-maple",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Modern Sketch of Ballet Dancer on White Background Framed Wall Art Home Decor - 39.42 x 31.42 x 2.27 Inch, Maple",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-01-amazon-brand-rivet-polyester-runner-rug-2-10-x-7-10-silver-grey-white",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Rivet Polyester Runner Rug, 2' 10\" x 7' 10\", Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-02-amazon-brand-rivet-contemporary-runner-rug-2-10-x-7-10-grey-and-taupe",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Rivet Contemporary Runner Rug, 2' 10\" x 7' 10\", Grey and Taupe",
+      "color": "灰色、灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-04-amazon-brand-stone-beam-modern-vintage-look-runner-rug-7-6-x-9-6-ivory",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Vintage-Look Runner Rug, 7' 6\" x 9' 6\", Ivory",
+      "color": "象牙白、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-05-amazon-brand-rivet-contemporary-runner-rug-2-10-x-7-10-silver-grey-white",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Rivet Contemporary Runner Rug, 2' 10\" x 7' 10\", Silver, Grey White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-06-amazon-brand-rivet-contemporary-runner-rug-2-10-x-7-10-taupe-and-grey",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Rivet Contemporary Runner Rug, 2' 10\" x 7' 10\", Taupe and Grey",
+      "color": "灰色、灰褐色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-runner-small-rugs-07-amazon-brand-rivet-wool-runner-rug-2-6-x-8-grey-white",
+      "normalized_type": "runner-small-rug",
+      "name": "Amazon Brand – Rivet Wool Runner Rug, 2' 6\" x 8', Grey, White",
+      "color": "白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-stools-benches-165-first-hill-damara-lift-top-storage-ottoman-bench-with-faux-leather-upholstery-mocha-brown",
+      "normalized_type": "stool-bench",
+      "name": "First Hill Damara Lift-Top Storage Ottoman Bench with Faux-Leather Upholstery, Mocha Brown",
+      "color": "棕色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-fabric-sofas-09-ravenna-home-classic-plank-top-console-table-with-large-drawer-42-w-black-wood",
+      "normalized_type": "fabric-sofa",
+      "name": "Ravenna Home Classic Plank-Top Console Table with Large Drawer, 42\"W, Black Wood",
+      "color": "黑色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-chests-of-drawers-44-amazon-brand-stone-beam-cabernet-slatted-2-drawer-cabinet-23-6-w-ash",
+      "normalized_type": "chests-of-drawer",
+      "name": "Amazon Brand – Stone & Beam Cabernet Slatted 2-Drawer Cabinet, 23.6\"W, Ash",
+      "color": "梣木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-fabric-sofas-244-ravenna-home-classic-console-end-table-with-side-cutouts-42-w-black-wood",
+      "normalized_type": "fabric-sofa",
+      "name": "Ravenna Home Classic Console End Table with Side Cutouts, 42\"W, Black Wood",
+      "color": "黑色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-fabric-sofas-284-amazon-brand-ravenna-home-classic-console-end-table-with-side-cutouts-42-w-white-wood",
+      "normalized_type": "fabric-sofa",
+      "name": "Amazon Brand – Ravenna Home Classic Console End Table with Side Cutouts, 42\"W, White Wood",
+      "color": "白色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-fabric-sofas-413-amazon-brand-rivet-eastport-modern-industrial-entertainment-center-console-tv-stand-table-59-w-oak",
+      "normalized_type": "fabric-sofa",
+      "name": "Amazon Brand – Rivet Eastport Modern Industrial Entertainment Center Console TV Stand Table, 59\"W, Oak",
+      "color": "橡木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-fabric-sofas-442-amazon-brand-ravenna-home-classic-plank-top-console-table-with-large-drawer-42-w-white-wood",
+      "normalized_type": "fabric-sofa",
+      "name": "Amazon Brand – Ravenna Home Classic Plank-Top Console Table with Large Drawer, 42\"W, White Wood",
+      "color": "白色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-armchairs-237-amazon-brand-stone-beam-dawn-slipcover-accent-chair-47-w-gray",
+      "normalized_type": "sofa",
+      "name": "Amazon Brand – Stone & Beam Dawn Slipcover Accent Chair, 47\"W, Gray",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-133-amazon-brand-stone-beam-commodore-casual-round-coffee-table-23-6-w-whitewash-mango-wood",
+      "normalized_type": "coffee-table",
+      "name": "Amazon Brand – Stone & Beam Commodore Casual Round Coffee Table, 23.6\"W, Whitewash Mango Wood",
+      "color": "木色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bedside-tables-131-amazon-brand-stone-beam-cabernet-slatted-3-drawer-side-end-table-nightstand-18-9-w-ash",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Stone & Beam Cabernet Slatted 3-Drawer Side End Table Nightstand, 18.9\"W, Ash",
+      "color": "梣木色、白色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-39-amazon-brand-stone-beam-industrial-round-coffee-table-48-w-wood-dark-metal",
+      "normalized_type": "coffee-table",
+      "name": "Amazon Brand – Stone & Beam Industrial Round Coffee Table, 48\"W, Wood & Dark Metal",
+      "color": "木色、咖啡色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sofas-09-amazonbasics-step-stool-2-step-steel-with-anti-slip-mat-200-pound-capacity-white-and-black",
+      "normalized_type": "sofa",
+      "name": "AmazonBasics Step Stool - 2-Step, Steel with Anti-slip Mat, 200-Pound Capacity, White and Black",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sofas-24-amazonbasics-step-stool-4-step-steel-with-anti-slip-mat-200-pound-capacity-white-and-black",
+      "normalized_type": "sofa",
+      "name": "AmazonBasics Step Stool - 4-Step, Steel with Anti-slip Mat, 200-Pound Capacity, White and Black",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-112-amazon-brand-stone-beam-2-tier-rustic-accent-end-table-26-w-light-wood-and-dark-metal",
+      "normalized_type": "lamp",
+      "name": "Amazon Brand – Stone & Beam 2-Tier Rustic Accent End Table, 26\"W, Light Wood and Dark Metal",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sofas-37-amazonbasics-step-stool-3-step-steel-with-anti-slip-mat-200-pound-capacity-white-and-black",
+      "normalized_type": "sofa",
+      "name": "AmazonBasics Step Stool - 3-Step, Steel with Anti-slip Mat, 200-Pound Capacity, White and Black",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sofas-41-amazonbasics-folding-step-stool-3-step-steel-200-pound-capacity-grey-and-black",
+      "normalized_type": "sofa",
+      "name": "AmazonBasics Folding Step Stool - 3-Step, Steel, 200-Pound Capacity, Grey and Black",
+      "color": "黑色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-87-amazon-brand-rivet-modern-round-metal-coffee-table-18-5-h-gold-and-glass",
+      "normalized_type": "coffee-table",
+      "name": "Amazon Brand – Rivet Modern Round Metal Coffee Table, 18.5\"H, Gold and Glass",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sofas-50-amazonbasics-step-stool-2-step-aluminum-lightweight-200-pound-capacity-silver",
+      "normalized_type": "sofa",
+      "name": "AmazonBasics Step Stool - 2-Step, Aluminum, Lightweight, 200-Pound Capacity, Silver",
+      "color": "銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sofas-70-amazon-brand-stone-beam-casual-narrow-console-table-47-83-w-natural",
+      "normalized_type": "sofa",
+      "name": "Amazon Brand – Stone & Beam Casual Narrow Console Table 47.83\"W, Natural",
+      "color": "原木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sofas-74-amazonbasics-folding-step-stool-2-step-steel-200-pound-capacity-grey-and-black",
+      "normalized_type": "sofa",
+      "name": "AmazonBasics Folding Step Stool - 2-Step, Steel, 200-Pound Capacity, Grey and Black",
+      "color": "黑色、灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-239-rivet-mid-century-modern-end-table-15-75-w-walnut-stain",
+      "normalized_type": "desk",
+      "name": "Rivet Mid-Century Modern End Table, 15.75\"W, Walnut Stain",
+      "color": "胡桃色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sofas-95-amazonbasics-step-stool-4-step-aluminum-lightweight-200-pound-capacity-silver",
+      "normalized_type": "sofa",
+      "name": "AmazonBasics Step Stool - 4-Step, Aluminum, Lightweight, 200-Pound Capacity, Silver",
+      "color": "銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-253-amazon-brand-rivet-mid-century-modern-wood-media-tv-console-table-47-w-walnut-amp-black",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Rivet Mid-Century Modern Wood Media TV Console Table, 47\"W, Walnut &amp; Black",
+      "color": "黑色、胡桃色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-sofas-126-amazonbasics-step-stool-3-step-aluminum-lightweight-200-pound-capacity-silver",
+      "normalized_type": "sofa",
+      "name": "AmazonBasics Step Stool - 3-Step, Aluminum, Lightweight, 200-Pound Capacity, Silver",
+      "color": "銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-chests-of-drawers-18-ravenna-home-1-drawer-kitchen-cart-36-5-h-black-with-wood-top",
+      "normalized_type": "chests-of-drawer",
+      "name": "Ravenna Home 1-Drawer Kitchen Cart, 36.5\"H, Black with Wood Top",
+      "color": "黑色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-storage-furniture-11-amazon-brand-rivet-roxmere-modern-media-center-49-2-w-acacia-wood-and-dark-metal",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Rivet Roxmere Modern Media Center, 49.2\"W, Acacia Wood and Dark Metal",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-33-amazon-brand-stone-beam-contemporary-rolling-serving-bar-cart-20-08-w-natural-dark-metal",
+      "normalized_type": "trolley",
+      "name": "Amazon Brand – Stone & Beam Contemporary Rolling Serving Bar Cart, 20.08\"W, Natural & Dark Metal",
+      "color": "原木色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-chests-of-drawers-25-ravenna-home-1-drawer-kitchen-cart-36-5-h-white-with-wood-top",
+      "normalized_type": "chests-of-drawer",
+      "name": "Ravenna Home 1-Drawer Kitchen Cart, 36.5\"H, White with Wood Top",
+      "color": "白色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-storage-furniture-13-amazon-brand-rivet-roxmere-mid-century-modern-tv-media-console-center-stand-59-w-acacia-wood-amp-dark-metal",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Rivet Roxmere Mid-Century Modern TV Media Console Center Stand, 59\"W, Acacia Wood &amp; Dark Metal",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-chests-of-drawers-27-ravenna-home-1-drawer-kitchen-cart-36-5-h-denim-blue-with-wood-top",
+      "normalized_type": "chests-of-drawer",
+      "name": "Ravenna Home 1-Drawer Kitchen Cart, 36.5\"H, Denim Blue with Wood Top",
+      "color": "藍色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-01-ravenna-home-2-drawer-kitchen-cart-36-5-h-denim-wood",
+      "normalized_type": "trolley",
+      "name": "Ravenna Home 2-Drawer Kitchen Cart, 36.5\"H, Denim Wood",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-04-amazon-brand-stone-beam-industrial-rolling-bar-cart-20-67-w-natural-and-black",
+      "normalized_type": "trolley",
+      "name": "Amazon Brand – Stone & Beam Industrial Rolling Bar Cart, 20.67\"W, Natural and Black",
+      "color": "黑色、原木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-15-ravenna-home-kitchen-cart-33-75-h-denim-blue-with-wood-top",
+      "normalized_type": "trolley",
+      "name": "Ravenna Home Kitchen Cart, 33.75\"H, Denim Blue with Wood Top",
+      "color": "藍色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-18-ravenna-home-kitchen-cart-33-75-h-black-with-wood-top",
+      "normalized_type": "trolley",
+      "name": "Ravenna Home Kitchen Cart, 33.75\"H, Black with Wood Top",
+      "color": "黑色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-22-amazon-brand-ravenna-home-kitchen-cart-33-75-h-white-with-wood-top",
+      "normalized_type": "trolley",
+      "name": "Amazon Brand – Ravenna Home Kitchen Cart, 33.75\"H, White with Wood Top",
+      "color": "白色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-23-amazon-brand-ravenna-home-2-drawer-kitchen-cart-36-5-h-white-wood",
+      "normalized_type": "trolley",
+      "name": "Amazon Brand – Ravenna Home 2-Drawer Kitchen Cart, 36.5\"H, White Wood",
+      "color": "白色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-chests-of-drawers-26-amazon-brand-rivet-modern-chest-of-drawers-with-diamond-pattern-17-7-inch-width-natural",
+      "normalized_type": "chests-of-drawer",
+      "name": "Amazon Brand – Rivet Modern Chest of Drawers with Diamond Pattern, 17.7 Inch Width, Natural",
+      "color": "原木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-18-ravenna-home-classic-plank-top-coffee-table-42-w-white-wood",
+      "normalized_type": "coffee-table",
+      "name": "Ravenna Home Classic Plank-Top Coffee Table, 42\"W, White Wood",
+      "color": "白色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-28-ravenna-home-dora-table-collection",
+      "normalized_type": "coffee-table",
+      "name": "Ravenna Home Dora Table Collection",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-37-ravenna-home-classic-coffee-table-with-side-cutouts-42-w-white-wood",
+      "normalized_type": "coffee-table",
+      "name": "Ravenna Home Classic Coffee Table with Side Cutouts, 42\"W, White Wood",
+      "color": "白色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-46-ravenna-home-classic-coffee-table-with-side-cutouts-42-w-black-wood",
+      "normalized_type": "coffee-table",
+      "name": "Ravenna Home Classic Coffee Table with Side Cutouts, 42\"W, Black Wood",
+      "color": "黑色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-53-ravenna-home-classic-plank-top-coffee-table-42-w-black-wood",
+      "normalized_type": "coffee-table",
+      "name": "Ravenna Home Classic Plank-Top Coffee Table, 42\"W, Black Wood",
+      "color": "黑色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-59-amazon-brand-ravenna-home-classic-coffee-table-with-side-cutouts-42-w-merlot-wood",
+      "normalized_type": "coffee-table",
+      "name": "Amazon Brand – Ravenna Home Classic Coffee Table with Side Cutouts, 42\"W, Merlot Wood",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-coffee-tables-62-ravenna-home-classic-plank-top-coffee-table-42-w-espresso-wood",
+      "normalized_type": "coffee-table",
+      "name": "Ravenna Home Classic Plank-Top Coffee Table, 42\"W, Espresso Wood",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-desks-15-rivet-mid-century-modern-desk-31-5-h-walnut-stain",
+      "normalized_type": "desk",
+      "name": "Rivet Mid-Century Modern Desk 31.5\"H, Walnut Stain",
+      "color": "胡桃色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-desks-185-amazon-brand-rivet-mid-century-desk-35-inch-natural",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Rivet Mid-Century Desk - 35 Inch, Natural",
+      "color": "原木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-18-amazon-brand-stone-beam-modern-textured-subtle-bohemian-area-rug-5-x-8-foot-grey-and-white-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Stone & Beam Modern Textured Subtle Bohemian Area Rug, 5 x 8 Foot, Grey and White Multicolor",
+      "color": "白色、灰色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-home-decor-10-amazon-brand-rivet-mid-century-modern-glam-serving-tray-3-5-x-11-x-11-inch-gold-and-blue",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Rivet Mid Century Modern Glam Serving Tray - 3.5 x 11 x 11 Inch, Gold and Blue",
+      "color": "藍色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-tables-17-rivet-mid-century-modern-rubberwood-living-room-table-lamp-with-light-bulb-19-inches-black-with-linen-white-shade",
+      "normalized_type": "table-lamp",
+      "name": "Rivet Mid Century Modern Rubberwood Living Room Table Lamp With Light Bulb - 19 Inches, Black with Linen White Shade",
+      "color": "白色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-lamps-39-amazon-brand-stone-beam-contemporary-polyester-area-rug-4-x-6-foot-light-green-dark-green-white",
+      "normalized_type": "rug",
+      "name": "Amazon Brand – Stone & Beam Contemporary Polyester Area Rug, 4 x 6 Foot, Light Green, Dark Green, White",
+      "color": "白色、綠色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-29-amazon-brand-stone-beam-rustic-serving-bar-cart-with-wheels-22-83-w-black-natural-and-dark-metal",
+      "normalized_type": "trolley",
+      "name": "Amazon Brand – Stone & Beam Rustic Serving Bar Cart with Wheels, 22.83\"W, Black, Natural and Dark Metal",
+      "color": "黑色、原木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-home-decor-17-amazon-brand-rivet-modern-stone-and-birch-natural-edge-serving-decor-tray-15-5-x-9-x-2-5-inch-black-and-wood",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Rivet Modern Stone and Birch Natural Edge Serving Decor Tray - 15.5 x 9 x 2.5 Inch, Black and Wood",
+      "color": "黑色、樺木色、原木色、木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-dining-tables-31-amazon-brand-ravenna-home-archer-outdoor-patio-firepit-table-with-panel-top-36-w-gray",
+      "normalized_type": "dining-table",
+      "name": "Amazon Brand - Ravenna Home Archer Outdoor Patio Firepit Table with Panel Top, 36\"W, Gray",
+      "color": "灰色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-67-amazon-brand-rivet-contemporary-polyester-area-rug-5-x-8-foot-silver-grey-white",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polyester Area Rug, 5 x 8 Foot, Silver, Grey, White",
+      "color": "白色、灰色、銀色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-85-amazon-brand-rivet-modern-color-block-area-rug-5-x-8-foot-round-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Color-Block Area Rug, 5 x 8 Foot, Round, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-90-amazon-brand-rivet-modern-geometric-area-rug-5-x-8-foot-round-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Geometric Area Rug, 5 x 8 Foot, Round, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-bottle-racks-05-amazon-brand-stone-beam-contemporary-farmhouse-standing-floor-wine-rack-27-inch-iron-and-wood",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Stone & Beam Contemporary Farmhouse Standing Floor Wine Rack - 27 Inch, Iron and Wood",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-140-amazon-brand-rivet-modern-texture-and-hide-rug-4-x-6-foot-multicolor",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Modern Texture and Hide Rug, 4 x 6 Foot, Multicolor",
+      "color": "多色、黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-rugs-143-amazon-brand-rivet-contemporary-polypropylene-area-rug-5-3-x-7-7-ivory",
+      "normalized_type": "large-medium-rug",
+      "name": "Amazon Brand – Rivet Contemporary Polypropylene Area Rug, 5' 3\" x 7' 7\", Ivory",
+      "color": "象牙白",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-cabinets-cupboards-72-amazon-brand-rivet-mid-century-cabinet-29-53-h-walnut",
+      "normalized_type": "cabinet-cupboard",
+      "name": "Amazon Brand – Rivet Mid-Century Cabinet 29.53\"H, Walnut",
+      "color": "胡桃色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-08-amazon-brand-stone-beam-contemporary-cracked-glass-geometric-mosaic-ii-with-maple-frame-20-x-16-x-2-blue-and-white",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Stone & Beam Contemporary Cracked Glass Geometric Mosaic II with Maple Frame- 20 x 16 x 2, Blue and White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-09-amazon-brand-stone-beam-contemporary-cracked-glass-geometric-mosaic-i-with-maple-frame-20-x-16-x-2-blue-and-white",
+      "normalized_type": "desk",
+      "name": "Amazon Brand – Stone & Beam Contemporary Cracked Glass Geometric Mosaic I with Maple Frame- 20 x 16 x 2, Blue and White",
+      "color": "白色、藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-11-amazon-brand-rivet-modern-serving-cart-33-88-h-bronze-and-walnut",
+      "normalized_type": "trolley",
+      "name": "Amazon Brand – Rivet Modern Serving Cart 33.88\"H, Bronze and Walnut",
+      "color": "胡桃色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-trolleys-16-amazon-basics-3-tier-utility-cart-plastic-black",
+      "normalized_type": "trolley",
+      "name": "Amazon Basics 3-Tier Utility Cart - Plastic, Black",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-26-ravenna-home-classic-console-end-table-with-side-cutouts-42-w-merlot-wood",
+      "normalized_type": "desk",
+      "name": "Ravenna Home Classic Console End Table with Side Cutouts, 42\"W, Merlot Wood",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-wall-art-24-amazon-brand-rivet-abstract-multicolor-stripes-framed-wall-art-decor-25-x-21-inch-frame-gold",
+      "normalized_type": "wall-art",
+      "name": "Amazon Brand – Rivet Abstract Multicolor Stripes Framed Wall Art Decor - 25 x 21 Inch Frame, Gold",
+      "color": "金色、多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-home-decor-26-amazon-brand-stone-beam-digital-coffee-tea-decorative-sign-9-25-x-39-x-1-inches-black-and-white",
+      "normalized_type": "decoration",
+      "name": "Amazon Brand – Stone & Beam Digital Coffee + Tea Decorative Sign - 9.25 x 39 x 1 Inches, Black and White",
+      "color": "白色、黑色、咖啡色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-vases-07-amazon-brand-rivet-mid-century-metallic-stoneware-vase-11-8-h-gold",
+      "normalized_type": "vase",
+      "name": "Amazon Brand – Rivet Mid-Century Metallic Stoneware Vase, 11.8\"H, Gold",
+      "color": "金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-vases-11-amazon-brand-rivet-modern-stoneware-vases-2-piece-set-5-2-h-white-and-blue-green",
+      "normalized_type": "vase",
+      "name": "Amazon Brand – Rivet Modern Stoneware Vases, 2-Piece Set, 5.2\"H, White and Blue-Green",
+      "color": "白色、藍色、綠色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-shelving-units-52-amazon-brand-rivet-modern-glass-shelf-rolling-serving-bar-cart-32-28-h-black-amp-gold",
+      "normalized_type": "bookcase",
+      "name": "Amazon Brand – Rivet Modern Glass Shelf Rolling Serving Bar Cart, 32.28\"H, Black &amp; Gold",
+      "color": "黑色、金色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-vases-16-amazon-brand-stone-beam-emerick-rustic-tall-stoneware-decor-vase-with-geometric-pattern-12-inch-brown-and-white",
+      "normalized_type": "vase",
+      "name": "Amazon Brand – Stone & Beam Emerick Rustic Tall Stoneware Decor Vase with Geometric Pattern - 12 Inch, Brown and White",
+      "color": "白色、棕色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-tables-149-ravenna-home-classic-plank-top-end-table-with-large-drawer-42-w-espresso-wood",
+      "normalized_type": "desk",
+      "name": "Ravenna Home Classic Plank-Top End Table with Large Drawer, 42\"W, Espresso Wood",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-vases-17-amazon-brand-stone-beam-modern-stoneware-vase-10-51-h-blue-and-sand",
+      "normalized_type": "vase",
+      "name": "Amazon Brand – Stone & Beam Modern Stoneware Vase, 10.51\"H, Blue and Sand",
+      "color": "藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-vases-19-amazon-brand-rivet-modern-cylinder-stoneware-watering-can-vase-set-pack-of-2-multicolor",
+      "normalized_type": "vase",
+      "name": "Amazon Brand – Rivet Modern Cylinder Stoneware Watering Can Vase Set - Pack of 2, Multicolor",
+      "color": "多色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-vases-22-amazon-brand-stone-beam-emerick-rustic-tall-stoneware-decor-vase-with-geometric-pattern-15-inch-brown-and-white",
+      "normalized_type": "vase",
+      "name": "Amazon Brand – Stone & Beam Emerick Rustic Tall Stoneware Decor Vase with Geometric Pattern - 15 Inch, Brown and White",
+      "color": "白色、棕色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-cabinets-cupboards-75-amazon-brand-rivet-emerly-contemporary-media-console-center-storage-cabinet-57-w-wood",
+      "normalized_type": "cabinet-cupboard",
+      "name": "Amazon Brand – Rivet Emerly Contemporary Media Console Center Storage Cabinet, 57\"W, Wood",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-vases-23-amazon-brand-stone-beam-modern-stoneware-vase-13-78-h-dark-blue-and-sand",
+      "normalized_type": "vase",
+      "name": "Amazon Brand – Stone & Beam Modern Stoneware Vase, 13.78\"H, Dark Blue and Sand",
+      "color": "藍色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-vases-25-amazon-brand-rivet-modern-textured-stoneware-vase-13-9-h-white",
+      "normalized_type": "vase",
+      "name": "Amazon Brand – Rivet Modern Textured Stoneware Vase, 13.9\"H, White",
+      "color": "白色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "abo-clothes-racks-03-ravenna-home-sobaski-wood-shoe-storage-rack-organizer-48-w",
+      "normalized_type": "decoration",
+      "name": "Ravenna Home Sobaski Wood Shoe Storage Rack Organizer, 48\"W",
+      "color": "木色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-coffee-machines-01-old-caffee-vending-machine",
+      "normalized_type": "small-kitchen-appliance",
+      "name": "Old Caffee Vending Machine",
+      "color": "咖啡色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-coffee-machines-02-coffee-maker",
+      "normalized_type": "small-kitchen-appliance",
+      "name": "Coffee maker",
+      "color": "咖啡色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-coffee-machines-03-stylized-vintage-coffee-machine",
+      "normalized_type": "small-kitchen-appliance",
+      "name": "Stylized Vintage Coffee Machine",
+      "color": "咖啡色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-coffee-machines-04-canarian-cafe-coffee-machine",
+      "normalized_type": "small-kitchen-appliance",
+      "name": "Canarian Cafe - Coffee Machine",
+      "color": "咖啡色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-coffee-machines-05-willoughsby-espresso-machine",
+      "normalized_type": "small-kitchen-appliance",
+      "name": "Willoughsby Espresso Machine",
+      "color": "咖啡色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-coffee-machines-06-italian-coffee-machine",
+      "normalized_type": "small-kitchen-appliance",
+      "name": "Italian Coffee Machine",
+      "color": "咖啡色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-coffee-machines-07-commercial-coffee-machine",
+      "normalized_type": "small-kitchen-appliance",
+      "name": "Commercial Coffee Machine",
+      "color": "咖啡色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-electric-fans-13-cs-ascend-sit-stand-workstation-black",
+      "normalized_type": "electric-fan",
+      "name": "(CS) Ascend - Sit-stand, Workstation, Black",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-electric-kettles-14-black-electric-kettle-water-boiler",
+      "normalized_type": "small-kitchen-appliance",
+      "name": "Black electric kettle | Water boiler",
+      "color": "黑色",
+      "confidence": "keyword_match"
+    },
+    {
+      "furniture_id": "sf-heaters-09-moa-blue-electric-heating-element",
+      "normalized_type": "decoration",
+      "name": "MOA BLUE electric heating element",
+      "color": "藍色",
+      "confidence": "keyword_match"
+    }
+  ]
+}

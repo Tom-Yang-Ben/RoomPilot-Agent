@@ -84,14 +84,14 @@ def sanitize_size_cm(item: dict) -> dict:
 
     return {"width": round(width, 1), "depth": round(depth, 1), "height": round(height, 1)}
 
-# 開合淨空的類型預設(公尺)——語意是「開門/抽拉需要的空間」,只給收納類。
+# 開合淨空的類型預設(公分,2026-07-11 隨引擎公分化)——語意是「開門/抽拉需要的空間」,只給收納類。
 # 沙發/床/電視櫃刻意不設:茶几本來就該放在沙發前、床頭櫃貼床,
 # 設了前方淨空會把正常配置誤判成違規(2026-07-06 實測踩過這個坑)。
 CLEARANCE_BY_TYPE: dict[str, ClearanceZone] = {
-    "bookcase": ClearanceZone(side="front", depth=0.4),
-    "sideboard": ClearanceZone(side="front", depth=0.4),
-    "wardrobe": ClearanceZone(side="front", depth=0.5),
-    "desk": ClearanceZone(side="front", depth=0.5),
+    "bookcase": ClearanceZone(side="front", depth=40.0),
+    "sideboard": ClearanceZone(side="front", depth=40.0),
+    "wardrobe": ClearanceZone(side="front", depth=50.0),
+    "desk": ClearanceZone(side="front", depth=50.0),
 }
 
 
@@ -102,12 +102,12 @@ def catalog_item_from_scene_object(
     depth_cm: float,
     height_cm: float,
 ) -> FurnitureCatalogItem:
-    """場景物件(公分) → 引擎型錄物件(公尺,含類型預設淨空)。"""
+    """場景物件(公分) → 引擎型錄物件(公分,含類型預設淨空)。引擎已公分化,不再換算。"""
     return FurnitureCatalogItem(
         type=item_type or "furniture",
         name=name or item_type or "家具",
-        width=width_cm / 100,
-        depth=depth_cm / 100,
-        height=height_cm / 100,
+        width=width_cm,
+        depth=depth_cm,
+        height=height_cm,
         clearance=CLEARANCE_BY_TYPE.get(item_type or ""),
     )

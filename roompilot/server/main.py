@@ -335,6 +335,11 @@ def scene_page() -> FileResponse:
     return _page("scene.html")
 
 
+@app.get("/panorama")
+def panorama_page() -> FileResponse:
+    return _page("panorama/panorama.html")
+
+
 @app.get("/api/site-data")
 def site_data() -> dict:
     return build_site_payload()
@@ -363,6 +368,7 @@ async def generate_scene(payload: dict) -> dict:
         "prefer_low_saturation": bool(payload.get("prefer_low_saturation", False)),
         "floorplan_filename": payload.get("floorplan_filename"),
         "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
+        "floorplan_scale_m": payload.get("floorplan_scale_m"),
         "wall_option": payload.get("wall_option", "auto"),
         "floor_option": payload.get("floor_option", "auto"),
         "furniture_random_seed": payload.get("furniture_random_seed"),
@@ -389,8 +395,8 @@ async def scene_layout(payload: dict) -> dict:
     room = room_from_payload(floorplan)
     return {
         "scene_objects": generate_layout(
-            room.width * 100,
-            room.depth * 100,
+            room.width,
+            room.depth,
             objects,
             room=room,
             regions_boundary=_regions_boundary(floorplan, room),
