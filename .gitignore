@@ -2,3 +2,10 @@
 __pycache__/
 .claude/settings.local.json
 *Zone.Identifier
+
+# MCP 設定（含 API keys，不可提交）
+.mcp.json
+!.mcp.json.*.example
+
+# 編譯後二進位（無原始碼，不進版控）
+*.exe
