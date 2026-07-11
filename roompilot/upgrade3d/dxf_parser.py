@@ -268,6 +268,24 @@ def _process(doc, name, scale_m, thickness, height):
 
     bx0, bz0, bx1, bz1 = ((minx - cx) * unit, (miny - cy) * unit,
                           (maxx - cx) * unit, (maxy - cy) * unit)
+
+    # The upload-preview API consumes centimetres and the browser draws
+    # segments with `{ start: { x, z }, end: { x, z } }`.  Keep the parser's
+    # internal metres-based representation, but expose a canonical client
+    # representation here so `/api/upload` cannot silently fall back to a
+    # default square when these fields are absent.
+    def client_segments(seglist):
+        return [
+            {
+                "start": {"x": round(s["x1"] * 100, 2), "z": round(s["z1"] * 100, 2)},
+                "end": {"x": round(s["x2"] * 100, 2), "z": round(s["z2"] * 100, 2)},
+            }
+            for s in seglist
+        ]
+
+    wall_segments = client_segments(walls)
+    door_segments = client_segments(doors)
+    window_segments = client_segments(windows)
     # ponytail: floor is the bbox ground slab the frontend draws from `bbox`.
     # No room/footprint segmentation — robust per-room extraction from gappy CAD
     # needs a wall-graph solver, out of scope. `extent_area` is the plan's
@@ -279,6 +297,12 @@ def _process(doc, name, scale_m, thickness, height):
         "wall_height": height,
         "wall_thickness": thickness,
         "fallback_all_walls": fallback,
+        "width_cm": round((bx1 - bx0) * 100, 1),
+        "depth_cm": round((bz1 - bz0) * 100, 1),
+        "wall_segments": wall_segments,
+        "plan_segments": wall_segments,
+        "door_segments": door_segments,
+        "window_segments": window_segments,
         "bbox": {"minx": bx0, "minz": bz0, "maxx": bx1, "maxz": bz1},
         "wall_polys": wall_polys,
         "windows": windows,

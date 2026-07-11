@@ -1,40 +1,45 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-.venv/
-venv/
-env/
-.python-version
-
-# 環境變數 / 金鑰
 .env
-.env.local
-.env.development
-.env.production
-!.env.example
+web_fastapi/.env
+.venv/
+.venv_triposr/
+__pycache__/
+*.pyc
+tmp/
+web_fastapi/uploads/
+web_fastapi/__pycache__/
+Miniconda3-latest-Windows-x86_64.exe
 
-# Node / Vite
-node_modules/
-dist/
-.vite/
-*.log
+# Local-only archives / cleanup holding area
+_local_archive_not_for_push/
+*_local_archive_not_for_push*/
 
-# IDE
-.vscode/
-.idea/
-.cursor/
+# Old experiments and reference repos, not required by the current FastAPI website
+.agents/
+external/
+TripoSR/
+test_3Dfurniture/
+scripts/
 
-# OS
-.DS_Store
-Thumbs.db
+# Non-runtime generated/intermediate model artifacts
+dataset/decoded_glb_cache/
+dataset/ikea/
+sf3d/inputs/
+sf3d/models/
+sf3d/official_repo/
+sf3d/outputs_normalized/
+sf3d/outputs_raw/
+sf3d/scripts/
+sf3d/README.md
 
-# Browser / webdriver cache
-.wdm/
+# Old diagnostic pages not used by the current website flow
+web_fastapi/static/compare.*
+web_fastapi/static/model_probe.*
 
-# Logs
-run-logs/
+# Only docs/moodboard_assets is required for the current website.
+docs/*
+!docs/*.md
+!docs/moodboard_assets/
+!docs/moodboard_assets/**
 
 # 大型資料(不上傳)
 data/
@@ -47,3 +52,21 @@ needed.md
 docs/02_復刻研究/
 docs/03_個人學習/
 docs/README.md
+# Local/personal generated Markdown, not for bella uploads
+PROJECT_CONTEXT.md
+CODEX_PROJECT_RULES.md
+LOCAL_*.md
+PRIVATE_*.md
+PERSONAL_*.md
+*_LOCAL.md
+*_PRIVATE.md
+*_PERSONAL.md
+*_local.md
+*_private.md
+*_personal.md
+docs/MISSING_*_AUDIT_*.md
+
+AGENTS.md
+
+# 3D 模型屬於本機或外部資產，不從 bella 分支上傳。
+*.glb

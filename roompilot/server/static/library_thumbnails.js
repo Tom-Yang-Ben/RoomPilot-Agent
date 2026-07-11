@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { shouldUseDarkFurnitureStage } from "./common.js?v=20260708e";
 
 const cache = new Map();
 let renderQueue = Promise.resolve();
@@ -144,7 +145,7 @@ function fitModel(group, camera, floor, grid) {
 }
 
 async function renderThumbnail(item) {
-  const theme = "light-stage";  // 統一淺色舞台,縮圖背景一致(深色家具在淺底對比也更好)
+  const theme = shouldUseDarkFurnitureStage(item) ? "dark-stage" : "light-stage";
   const cacheKey = `${item.model_url}::${theme}`;
 
   if (cache.has(cacheKey)) {

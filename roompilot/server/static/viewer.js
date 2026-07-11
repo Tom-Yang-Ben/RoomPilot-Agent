@@ -22,6 +22,7 @@ export function createViewer(container, statusElement) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.target.set(0, 0.8, 0);
+  renderer.domElement.addEventListener("wheel", (event) => event.preventDefault(), { passive: false });
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 2.1);
   scene.add(ambientLight);
