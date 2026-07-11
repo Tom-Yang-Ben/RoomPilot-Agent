@@ -1,0 +1,234 @@
+{
+  "schema_version": "2.0",
+  "title": "RoomPilot 六風格色卡",
+  "styles": [
+    {
+      "style_id": "scandinavian",
+      "style_name_zh": "北歐風",
+      "scene_style_id": "scandinavian",
+      "description_zh": "北歐風的色彩與材質提案。",
+      "cards": [
+        {
+          "card_id": "scandinavian_1",
+          "name_zh": "自然木質",
+          "image_file": "01_北歐/01_北歐_自然木質.png",
+          "palette_hex": [
+            "#F3EBDD",
+            "#D3B48A",
+            "#8B684B"
+          ]
+        },
+        {
+          "card_id": "scandinavian_2",
+          "name_zh": "清新明亮",
+          "image_file": "01_北歐/02_北歐_清新明亮.png",
+          "palette_hex": [
+            "#F7F5ED",
+            "#DCE7DF",
+            "#A5C0B0"
+          ]
+        },
+        {
+          "card_id": "scandinavian_3",
+          "name_zh": "低彩度質感",
+          "image_file": "01_北歐/03_北歐_低彩度質感.png",
+          "palette_hex": [
+            "#E8E6DF",
+            "#B9B5A9",
+            "#6E706D"
+          ]
+        }
+      ]
+    },
+    {
+      "style_id": "japanese",
+      "style_name_zh": "日式",
+      "scene_style_id": "japanese",
+      "description_zh": "日式的色彩與材質提案。",
+      "cards": [
+        {
+          "card_id": "japanese_1",
+          "name_zh": "侘寂自然",
+          "image_file": "02_日式/01_日式_侘寂自然.png",
+          "palette_hex": [
+            "#D8D0C1",
+            "#A89B87",
+            "#625B50"
+          ]
+        },
+        {
+          "card_id": "japanese_2",
+          "name_zh": "茶室禪意",
+          "image_file": "02_日式/02_日式_茶室禪意.png",
+          "palette_hex": [
+            "#D8D0C1",
+            "#A89B87",
+            "#625B50"
+          ]
+        },
+        {
+          "card_id": "japanese_3",
+          "name_zh": "現代和風",
+          "image_file": "02_日式/03_日式_現代和風.png",
+          "palette_hex": [
+            "#D8D0C1",
+            "#A89B87",
+            "#625B50"
+          ]
+        }
+      ]
+    },
+    {
+      "style_id": "modern_minimal",
+      "style_name_zh": "現代簡約",
+      "scene_style_id": "modern_minimal",
+      "description_zh": "現代簡約的色彩與材質提案。",
+      "cards": [
+        {
+          "card_id": "modern_minimal_1",
+          "name_zh": "黑白俐落",
+          "image_file": "03_現代簡約/01_現代簡約_黑白俐落.png",
+          "palette_hex": [
+            "#F4F3F0",
+            "#969696",
+            "#252525"
+          ]
+        },
+        {
+          "card_id": "modern_minimal_2",
+          "name_zh": "暖灰質感",
+          "image_file": "03_現代簡約/02_現代簡約_暖灰質感.png",
+          "palette_hex": [
+            "#E4DED5",
+            "#A69C91",
+            "#5A534D"
+          ]
+        },
+        {
+          "card_id": "modern_minimal_3",
+          "name_zh": "自然留白",
+          "image_file": "03_現代簡約/03_現代簡約_自然留白.png",
+          "palette_hex": [
+            "#F5F2EB",
+            "#D3C7B5",
+            "#77736B"
+          ]
+        }
+      ]
+    },
+    {
+      "style_id": "cream",
+      "style_name_zh": "奶油風",
+      "scene_style_id": "cream",
+      "description_zh": "奶油風的色彩與材質提案。",
+      "cards": [
+        {
+          "card_id": "cream_1",
+          "name_zh": "奶油米白",
+          "image_file": "04_奶油風/01_奶油風_奶油米白.png",
+          "palette_hex": [
+            "#F5EBDD",
+            "#DCC4A8",
+            "#A98568"
+          ]
+        },
+        {
+          "card_id": "cream_2",
+          "name_zh": "法式柔霧",
+          "image_file": "04_奶油風/02_奶油風_法式柔霧.png",
+          "palette_hex": [
+            "#F5EBDD",
+            "#DCC4A8",
+            "#A98568"
+          ]
+        },
+        {
+          "card_id": "cream_3",
+          "name_zh": "奶茶木質",
+          "image_file": "04_奶油風/03_奶油風_奶茶木質.png",
+          "palette_hex": [
+            "#F5EBDD",
+            "#DCC4A8",
+            "#A98568"
+          ]
+        }
+      ]
+    },
+    {
+      "style_id": "industrial",
+      "style_name_zh": "工業風",
+      "scene_style_id": "industrial",
+      "description_zh": "工業風的色彩與材質提案。",
+      "cards": [
+        {
+          "card_id": "industrial_1",
+          "name_zh": "黑鐵水泥",
+          "image_file": "05_工業風/01_工業風_黑鐵水泥.png",
+          "palette_hex": [
+            "#3D403F",
+            "#858078",
+            "#A56F4E"
+          ]
+        },
+        {
+          "card_id": "industrial_2",
+          "name_zh": "復古工坊",
+          "image_file": "05_工業風/02_工業風_復古工坊.png",
+          "palette_hex": [
+            "#4A4038",
+            "#9A6A46",
+            "#C19B72"
+          ]
+        },
+        {
+          "card_id": "industrial_3",
+          "name_zh": "極簡冷調",
+          "image_file": "05_工業風/03_工業風_極簡冷調.png",
+          "palette_hex": [
+            "#D5D6D2",
+            "#697078",
+            "#252A2D"
+          ]
+        }
+      ]
+    },
+    {
+      "style_id": "american",
+      "style_name_zh": "美式",
+      "scene_style_id": "american",
+      "description_zh": "美式的色彩與材質提案。",
+      "cards": [
+        {
+          "card_id": "american_1",
+          "name_zh": "鄉村溫馨",
+          "image_file": "06_美式/01_美式_鄉村溫馨.png",
+          "palette_hex": [
+            "#F0E5D4",
+            "#B58D67",
+            "#6C513F"
+          ]
+        },
+        {
+          "card_id": "american_2",
+          "name_zh": "經典優雅",
+          "image_file": "06_美式/02_美式_經典優雅.png",
+          "palette_hex": [
+            "#F0E5D4",
+            "#B58D67",
+            "#6C513F"
+          ]
+        },
+        {
+          "card_id": "american_3",
+          "name_zh": "現代輕奢",
+          "image_file": "06_美式/03_美式_現代輕奢.png",
+          "palette_hex": [
+            "#F0E5D4",
+            "#B58D67",
+            "#6C513F"
+          ]
+        }
+      ]
+    }
+  ]
+}

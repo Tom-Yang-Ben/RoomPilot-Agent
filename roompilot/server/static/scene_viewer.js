@@ -33,6 +33,7 @@ export function createSceneViewer(container, statusElement) {
   function applyCameraControlMode(preset) {
     activeCameraPreset = preset;
     const isInside = preset === "inside";
+    controls.enableRotate = true;
     controls.enablePan = !isInside;
     controls.enableZoom = !isInside;
     controls.minDistance = isInside ? 1.25 : 1.4;
@@ -85,6 +86,12 @@ export function createSceneViewer(container, statusElement) {
 
   const furnitureGroup = new THREE.Group();
   scene.add(furnitureGroup);
+
+  const ceilingGroup = new THREE.Group();
+  scene.add(ceilingGroup);
+
+  const hangingLightGroup = new THREE.Group();
+  scene.add(hangingLightGroup);
 
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath("/static/vendor/draco/");
@@ -740,6 +747,8 @@ export function createSceneViewer(container, statusElement) {
 
   function createRoom(sceneData) {
     clearGroup(roomGroup);
+    clearGroup(ceilingGroup);
+    clearGroup(hangingLightGroup);
     wallMeshes.length = 0;
 
     const widthM = Math.max(sceneData.floorplan.width_cm / 100, 2.4);
@@ -765,6 +774,17 @@ export function createSceneViewer(container, statusElement) {
     const isDxfFloorplan = sceneData.floorplan?.source === "dxf";
     const singleRoomMode = sceneData.design_choices?.single_room_mode !== false;
     roomGroup.userData.roomSize = { widthM, depthM, wallHeight };
+
+    const ceiling = new THREE.Mesh(
+      new THREE.PlaneGeometry(widthM, depthM),
+      new THREE.MeshStandardMaterial({ color: 0xf3eee6, roughness: 0.86, side: THREE.DoubleSide })
+    );
+    ceiling.rotation.x = Math.PI / 2;
+    ceiling.position.y = wallHeight;
+    ceiling.receiveShadow = true;
+    ceilingGroup.add(ceiling);
+    ceilingGroup.visible = false;
+    createHangingLights({ widthM, depthM, wallHeight }, sceneData.style_card || sceneData.style);
 
     const wallThickness = 0.04;
     if (!singleRoomMode && wallSegments.length >= 2) {
@@ -800,6 +820,72 @@ export function createSceneViewer(container, statusElement) {
     setCameraPreset("corner");
   }
 
+  function createHangingLights(room, style = {}) {
+    const palette = style.palette_hex || ["#F3EBDD", "#D3B48A", "#8B684B"];
+    const lightColor = new THREE.Color(palette[1] || "#D3B48A");
+    const positions = room.widthM >= 4.8 ? [-0.9, 0, 0.9] : [-0.62, 0.62];
+
+    positions.forEach((x, index) => {
+      const pendant = new THREE.Group();
+      pendant.position.set(x, room.wallHeight - 0.08, 0);
+
+      const cord = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.012, 0.72, 8),
+        new THREE.MeshStandardMaterial({ color: 0x332b25, roughness: 0.7 })
+      );
+      cord.position.y = -0.36;
+      pendant.add(cord);
+
+      const shade = new THREE.Mesh(
+        new THREE.ConeGeometry(0.19, 0.18, 32, 1, true),
+        new THREE.MeshStandardMaterial({
+          color: lightColor,
+          roughness: 0.36,
+          metalness: 0.2,
+          side: THREE.DoubleSide,
+        })
+      );
+      shade.position.y = -0.78;
+      shade.rotation.y = index % 2 ? Math.PI : 0;
+      pendant.add(shade);
+
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.055, 16, 10),
+        new THREE.MeshStandardMaterial({ color: 0xfff1ce, emissive: 0xffb45c, emissiveIntensity: 1.8 })
+      );
+      bulb.position.y = -0.82;
+      pendant.add(bulb);
+
+      const pointLight = new THREE.PointLight(0xffd6a0, 1.15, 4.8, 2);
+      pointLight.position.y = -0.86;
+      pointLight.castShadow = true;
+      pendant.add(pointLight);
+      hangingLightGroup.add(pendant);
+    });
+  }
+
+  function applyStyleSkin(root, sceneData) {
+    const palette = sceneData.style_card?.palette_hex || sceneData.style?.palette_hex || [];
+    if (!palette.length) return;
+
+    const colors = palette.map((value) => new THREE.Color(value));
+    root.traverse((object) => {
+      if (!object.isMesh || !object.material) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      object.material = materials.map((sourceMaterial, index) => {
+        const material = sourceMaterial.clone();
+        if (material.color) {
+          const label = `${object.name} ${material.name}`.toLowerCase();
+          const colorIndex = /metal|steel|brass|gold|chrome/.test(label) ? 2 : /wood|oak|walnut/.test(label) ? 1 : index % colors.length;
+          material.color.lerp(colors[colorIndex] || colors[0], 0.34);
+        }
+        if ("roughness" in material) material.roughness = Math.min(0.92, Math.max(0.28, material.roughness || 0.6));
+        object.userData.roompilotSkinApplied = true;
+        return material;
+      });
+    });
+  }
+
   function fitToTargetSize(root, targetSizeCm) {
     root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root);
@@ -819,6 +905,11 @@ export function createSceneViewer(container, statusElement) {
     root.scale.setScalar(scale);
     root.updateMatrixWorld(true);
     moveModelToFootprintCenter(root);
+  }
+
+  function toggleCeiling() {
+    ceilingGroup.visible = !ceilingGroup.visible;
+    return ceilingGroup.visible;
   }
 
   function createNumberMarker(label) {
@@ -876,6 +967,7 @@ export function createSceneViewer(container, statusElement) {
 
         try {
           const gltf = await loader.loadAsync(item.model_url);
+          applyStyleSkin(gltf.scene, sceneData);
           gltf.scene.traverse((object) => {
             if (object.isMesh) {
               object.castShadow = true;
@@ -1844,5 +1936,5 @@ export function createSceneViewer(container, statusElement) {
     renderer.render(scene, camera);
   });
 
-  return { loadScene, resetCamera, setCameraPreset, focusObject, rotateSelected: rotateSelectedFromControls };
+  return { loadScene, resetCamera, setCameraPreset, focusObject, rotateSelected: rotateSelectedFromControls, toggleCeiling };
 }

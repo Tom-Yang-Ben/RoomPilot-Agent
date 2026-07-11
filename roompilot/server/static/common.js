@@ -3,6 +3,44 @@ export async function fetchSiteData() {
   return response.json();
 }
 
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${url}`);
+  }
+  return response.json();
+}
+
+export async function fetchHomeData() {
+  return fetchJson("/api/home-data");
+}
+
+export async function fetchStylesData() {
+  try {
+    return await fetchJson("/api/styles");
+  } catch (error) {
+    if (String(error?.message || "").startsWith("HTTP 404")) {
+      console.warn("找不到 /api/styles，暫時退回 /api/site-data。請重啟後端以使用快速拆分 API。");
+      return fetchSiteData();
+    }
+    throw error;
+  }
+}
+
+export async function fetchSceneBootstrap() {
+  return fetchJson("/api/scene/bootstrap");
+}
+
+export async function fetchFurniturePage(params = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    query.set(key, String(value));
+  });
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return fetchJson(`/api/furniture${suffix}`);
+}
+
 export function formatList(items = []) {
   return items.filter(Boolean).join(" / ");
 }

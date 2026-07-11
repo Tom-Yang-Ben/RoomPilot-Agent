@@ -1,4 +1,4 @@
-import { fetchSiteData, initBackgroundFx } from "./common.js?v=20260708a";
+import { fetchHomeData, initBackgroundFx } from "./common.js?v=20260711g";
 
 const workflowMeta = [
   {
@@ -28,10 +28,10 @@ const workflowMeta = [
   },
 ];
 
-const data = await fetchSiteData();
+const data = await fetchHomeData();
 const furnitureMetric = document.getElementById("metric-furniture");
 if (furnitureMetric) {
-  furnitureMetric.textContent = String(data.furniture?.length || data.summary?.total_furniture || "-");
+  furnitureMetric.textContent = String(data.summary?.total_furniture || "-");
 }
 
 const scopeList = document.getElementById("scope-list");

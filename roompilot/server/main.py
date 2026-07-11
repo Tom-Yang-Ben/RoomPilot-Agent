@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import re
 import unicodedata
 import urllib.error
@@ -26,18 +27,32 @@ from .scene_service import (
     room_from_payload,
     validate_single_placement,
 )
+from .intake_service import advance_intake, start_intake
+from .style_cards import load_taiwan_style_cards
 
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent.parent
 STATIC_DIR = BASE_DIR / "static"
 MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
-STYLE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "ikea_furniture_style_database.json"
+STYLE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
-EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "external_furniture_import_index.json"
+EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風格與JSON" / "external_furniture_import_index.json"
 DATASET_DIR = PROJECT_DIR / "dataset"
 PLAN_DIR = PROJECT_DIR / "testdata" / "pic" / "temp"
 SAMPLE_GLB_DIR = PROJECT_DIR / "testdata" / "sample_glb"
+_EXTERNAL_GLB_ZIP_SEARCH_DIRS = (
+    DATASET_DIR,
+    PROJECT_DIR / "style-rag",
+    Path.home() / "Downloads",
+)
+_EXTERNAL_GLB_ZIP_PATTERNS = (
+    "downloaded-files*.zip",
+    "ABO*.zip",
+    "補缺的GLB*.zip",
+    "ikea抓取家具glb_中文命名版*.zip",
+    "drive-download-202607*.zip",
+)
 
 # GLB 實檔可能在 dataset/ 的不同層(依組員從雲端下載後的擺法)
 _DATASET_GLB_ROOTS = [
@@ -66,8 +81,11 @@ def _is_remote_glb_url(path_text: object) -> bool:
 
 
 def _remote_glb_url(furniture: dict) -> str | None:
-    url = str(furniture.get("glb_absolute_path") or "").strip()
-    return url if _is_remote_glb_url(url) else None
+    for key in ("glb_absolute_path", "model_url", "glb_url", "model_path", "glb_path"):
+        url = str(furniture.get(key) or "").strip()
+        if _is_remote_glb_url(url):
+            return url
+    return None
 
 
 def _glb_lookup_keys(path_text: str) -> list[str]:
@@ -119,6 +137,117 @@ def _safe_relative_url(path_text: str | None, mount_prefix: str) -> str | None:
     return f"{mount_prefix}/{_normalize_posix_path(path_text)}"
 
 
+def _iter_external_zip_paths() -> list[Path]:
+    roots: list[Path] = []
+    env_roots = os.environ.get("ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS", "")
+    for raw_root in env_roots.split(os.pathsep):
+        raw_root = raw_root.strip()
+        if raw_root:
+            roots.append(Path(raw_root))
+    roots.extend(_EXTERNAL_GLB_ZIP_SEARCH_DIRS)
+
+    found: list[Path] = []
+    seen: set[str] = set()
+    for root in roots:
+        candidates: list[Path] = []
+        if root.is_file() and root.suffix.lower() == ".zip":
+            candidates = [root]
+        elif root.is_dir():
+            for pattern in _EXTERNAL_GLB_ZIP_PATTERNS:
+                candidates.extend(root.glob(pattern))
+
+        for candidate in candidates:
+            key = str(candidate.resolve()).casefold()
+            if key in seen or not candidate.is_file():
+                continue
+            seen.add(key)
+            found.append(candidate)
+    return found
+
+
+@lru_cache(maxsize=1)
+def _external_zip_entry_lookup() -> dict[str, tuple[Path, str]]:
+    lookup: dict[str, tuple[Path, str]] = {}
+    conflicts: set[str] = set()
+
+    def remember(key: str, archive_path: Path, entry_name: str) -> None:
+        existing = lookup.get(key)
+        if existing is not None and existing[1] != entry_name:
+            conflicts.add(key)
+            return
+        lookup[key] = (archive_path, entry_name)
+
+    for archive_path in _iter_external_zip_paths():
+        try:
+            with zipfile.ZipFile(archive_path) as archive:
+                for entry_name in archive.namelist():
+                    if not entry_name.lower().endswith(".glb"):
+                        continue
+                    for key in _glb_lookup_keys(entry_name):
+                        remember(key, archive_path, entry_name)
+        except (OSError, zipfile.BadZipFile):
+            continue
+
+    for key in conflicts:
+        lookup.pop(key, None)
+    return lookup
+
+
+def _external_zip_entry_variants(entry_name: object) -> list[str]:
+    entry = _normalize_posix_path(str(entry_name or "").strip())
+    if not entry:
+        return []
+
+    variants = [entry]
+    if entry.startswith("downloaded-files/ABO/"):
+        variants.append(entry.replace("downloaded-files/ABO/", "downloaded-files(furniture)/ABO/", 1))
+    if entry.startswith("downloaded-files/"):
+        variants.append(entry.replace("downloaded-files/", "downloaded-files(furniture)/", 1))
+        variants.append(entry.replace("downloaded-files/", "downloaded-files(home apppliances)/", 1))
+    if entry.startswith("ABO/"):
+        variants.append(f"downloaded-files(furniture)/{entry}")
+    variants.append(f"downloaded-files(furniture)/{entry}")
+    variants.append(f"downloaded-files(home apppliances)/{entry}")
+    return list(dict.fromkeys(variants))
+
+
+def _resolve_external_zip_entry(furniture: dict) -> tuple[Path, str] | None:
+    entry_name = furniture.get("zip_entry")
+    if not entry_name:
+        return None
+
+    direct_archive = Path(str(furniture.get("source_archive_path") or ""))
+    direct_candidates = [direct_archive]
+    if not direct_archive.is_absolute():
+        direct_candidates.extend(
+            [
+                PROJECT_DIR / direct_archive,
+                DATASET_DIR / direct_archive,
+                Path.home() / "Downloads" / direct_archive.name,
+            ]
+        )
+
+    for archive_path in direct_candidates:
+        if not (archive_path.is_file() and archive_path.suffix.lower() == ".zip"):
+            continue
+        try:
+            with zipfile.ZipFile(archive_path) as archive:
+                names = set(archive.namelist())
+                for variant in _external_zip_entry_variants(entry_name):
+                    if variant in names:
+                        return archive_path, variant
+        except (OSError, zipfile.BadZipFile):
+            continue
+
+    lookup = _external_zip_entry_lookup()
+    for variant in _external_zip_entry_variants(entry_name):
+        for key in _glb_lookup_keys(variant):
+            resolved = lookup.get(key)
+            if resolved is not None and resolved[0].exists():
+                return resolved
+    return None
+
+
 def _resolve_glb_path(furniture: dict) -> Path | None:
     """依序嘗試:metadata 的絕對路徑 → 專案 dataset/ 下的相對路徑。"""
     absolute_text = furniture.get("glb_absolute_path")
@@ -142,6 +271,11 @@ def _resolve_glb_path(furniture: dict) -> Path | None:
 
 
 def _model_status(furniture: dict) -> tuple[bool, str]:
+    if furniture.get("zip_entry"):
+        if _resolve_external_zip_entry(furniture) is not None:
+            return True, "外部 GLB zip 可用"
+        return False, "外部家具有 zip_entry，但目前找不到對應 GLB zip 或 zip 內 entry。"
+
     if not furniture.get("glb_absolute_path") and not furniture.get("glb_relative_path"):
         return False, "這件家具沒有設定 GLB 路徑。"
 
@@ -149,21 +283,24 @@ def _model_status(furniture: dict) -> tuple[bool, str]:
         return True, "GLB 可用"
 
     if _remote_glb_url(furniture):
-        return True, "遠端 GLB URL 可用"
+        return False, "遠端 GLB 尚未驗證，暫不提供載入。"
 
     return False, "資料有記錄，但 dataset/ 中找不到對應的 GLB 檔案(請先從雲端下載 dataset)。"
 
 
+@lru_cache(maxsize=1)
 def load_style_database() -> dict:
     return json.loads(STYLE_DB_PATH.read_text(encoding="utf-8"))
 
 
+@lru_cache(maxsize=1)
 def load_surface_catalog() -> dict:
     if not SURFACE_DB_PATH.exists():
         return {"schema_version": "1.0", "surfaces": [], "style_surface_profiles": {}}
     return json.loads(SURFACE_DB_PATH.read_text(encoding="utf-8"))
 
 
+@lru_cache(maxsize=1)
 def load_external_import_index() -> dict:
     if not EXTERNAL_IMPORT_PATH.exists():
         return {"schema_version": "1.0", "items": [], "archives": []}
@@ -348,7 +485,9 @@ def _model_priority_ids(items: list[dict]) -> list[str]:
     import_ids = [
         str(entry.get("furniture_id"))
         for entry in items
-        if entry.get("_catalog_origin") == "import" and entry.get("furniture_id")
+        if entry.get("_catalog_origin") == "import"
+        and entry.get("furniture_id")
+        and _model_status(entry)[0]
     ]
     catalog_ids = [
         str(entry.get("furniture_id"))
@@ -418,6 +557,23 @@ def _merge_furniture_catalog(furniture_items: list[dict], external_items: list[d
     return sorted(merged_items, key=lambda item: (item.get("normalized_type") or "", item.get("name_zh_raw") or item.get("name_en") or ""))
 
 
+@lru_cache(maxsize=1)
+def _merged_furniture_catalog_cached() -> tuple[dict, ...]:
+    raw = load_style_database()
+    active_items: list[dict] = []
+    for source in raw.get("furniture", []):
+        item = dict(source)
+        item["merged_furniture_ids"] = [str(item.get("furniture_id"))]
+        item["model_priority_ids"] = []
+        item["catalog_merge_key"] = str(item.get("furniture_id") or "")
+        item["source_count"] = 1
+        item["has_model"], reason = _model_status(item)
+        item["missing_model_reason"] = None if item["has_model"] else reason
+        item["model_url"] = _model_url_for_merged_item(item)
+        active_items.append(item)
+    return tuple(active_items)
+
+
 _FURNITURE_ROLE_BY_TYPE = {
     "sofa": "主要座位",
     "sofa-bed": "主要座位 / 臨時睡眠",
@@ -476,6 +632,69 @@ def _candidate_schema_fields(item: dict, has_model: bool) -> dict:
     }
 
 
+def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
+    has_model, model_reason = (
+        (bool(item.get("has_model")), item.get("missing_model_reason"))
+        if "has_model" in item
+        else _model_status(item)
+    )
+    payload = {
+        "furniture_id": item.get("furniture_id"),
+        "name_en": item.get("name_en"),
+        "name_zh": item.get("name_zh") or item.get("name_zh_raw"),
+        "name_zh_raw": item.get("name_zh_raw"),
+        "category_label": item.get("category_label"),
+        "taxonomy_group": item.get("taxonomy_group"),
+        "taxonomy_group_zh": item.get("taxonomy_group_zh"),
+        "taxonomy_type_zh": item.get("taxonomy_type_zh"),
+        "catalog_scope": item.get("catalog_scope"),
+        "normalized_type": item.get("normalized_type"),
+        "primary_style": item.get("primary_style"),
+        "style_candidates": item.get("style_candidates", []),
+        "style_confidence": item.get("style_confidence"),
+        "style_assignment_source": item.get("style_assignment_source"),
+        "color": item.get("color"),
+        "material": item.get("material"),
+        "size_cm": sanitize_size_cm(item),
+        "must_against_wall": item.get("must_against_wall"),
+        "can_rotate": item.get("can_rotate"),
+        "has_model": has_model,
+        "missing_model_reason": None if has_model else model_reason,
+        **_candidate_schema_fields(item, has_model),
+    }
+    if include_model_url:
+        payload["model_url"] = _model_url_for_merged_item(item) if has_model else None
+    return payload
+
+
+def _furniture_card_payload(item: dict) -> dict:
+    return {
+        "furniture_id": item.get("furniture_id"),
+        "name_en": item.get("name_en"),
+        "name_zh": item.get("name_zh") or item.get("name_zh_raw"),
+        "name_zh_raw": item.get("name_zh_raw"),
+        "category_label": item.get("category_label"),
+        "taxonomy_group": item.get("taxonomy_group"),
+        "taxonomy_group_zh": item.get("taxonomy_group_zh"),
+        "taxonomy_type_zh": item.get("taxonomy_type_zh"),
+        "catalog_scope": item.get("catalog_scope"),
+        "normalized_type": item.get("normalized_type"),
+        "primary_style": item.get("primary_style"),
+        "style_candidates": item.get("style_candidates", []),
+        "color": item.get("color"),
+        "material": item.get("material"),
+        "size_cm": item.get("size_cm"),
+        "has_model": item.get("has_model"),
+        "missing_model_reason": item.get("missing_model_reason"),
+        "model_url": item.get("model_url"),
+    }
+
+
+@lru_cache(maxsize=1)
+def _furniture_payload_cache() -> tuple[dict, ...]:
+    return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
+
+
 @lru_cache(maxsize=2048)
 def _parse_glb(model_path_text: str) -> tuple[dict, bytes]:
     model_path = Path(model_path_text)
@@ -529,10 +748,7 @@ def _get_external_furniture_by_id(furniture_id: str) -> dict:
 
 
 def _get_merged_furniture_by_id(furniture_id: str) -> dict:
-    raw = load_style_database()
-    external_import = load_external_import_index()
-    merged = _merge_furniture_catalog(raw.get("furniture", []), external_import.get("items", []))
-    for item in merged:
+    for item in _merged_furniture_catalog_cached():
         aliases = set(item.get("merged_furniture_ids") or [])
         aliases.add(str(item.get("furniture_id")))
         if furniture_id in aliases:
@@ -541,10 +757,10 @@ def _get_merged_furniture_by_id(furniture_id: str) -> dict:
 
 
 def _external_glb_bytes(furniture: dict) -> bytes:
-    archive_path = Path(furniture.get("source_archive_path") or "")
-    entry_name = furniture.get("zip_entry")
-    if not archive_path.exists() or not entry_name:
+    resolved = _resolve_external_zip_entry(furniture)
+    if resolved is None:
         raise HTTPException(status_code=404, detail="外部匯入模型來源不存在。")
+    archive_path, entry_name = resolved
     try:
         with zipfile.ZipFile(archive_path) as archive:
             return archive.read(entry_name)
@@ -575,46 +791,21 @@ def _remote_glb_response(url: str) -> Response:
 
 
 def _model_response_for_merged_furniture(furniture: dict):
-    aliases = list(furniture.get("model_priority_ids") or [])
-    aliases.extend(furniture.get("merged_furniture_ids") or [])
-    if furniture.get("furniture_id") not in aliases:
-        aliases.insert(0, furniture.get("furniture_id"))
-    aliases = list(dict.fromkeys(alias for alias in aliases if alias))
-
-    for candidate_id in aliases:
-        try:
-            external = _get_external_furniture_by_id(candidate_id)
-            payload = _external_glb_bytes(external)
-            if payload[:4] != b"glTF":
-                continue
+    if furniture.get("zip_entry"):
+        payload = _external_glb_bytes(furniture)
+        if payload[:4] == b"glTF":
             return Response(content=payload, media_type="model/gltf-binary")
-        except HTTPException:
-            pass
 
-    for candidate_id in aliases:
-        try:
-            catalog_item = _get_furniture_by_id(candidate_id)
-            model_path_text = _get_model_path_for_furniture(catalog_item)
-            _parse_glb(model_path_text)
-            model_path = Path(model_path_text)
-            return FileResponse(model_path, media_type="model/gltf-binary", filename=model_path.name)
-        except (HTTPException, ValueError, OSError, json.JSONDecodeError):
-            pass
-
-    for candidate_id in aliases:
-        try:
-            catalog_item = _get_furniture_by_id(candidate_id)
-            remote_url = _remote_glb_url(catalog_item)
-            if remote_url:
-                return _remote_glb_response(remote_url)
-        except HTTPException:
-            pass
-
-    remote_url = _remote_glb_url(furniture)
-    if remote_url:
-        return _remote_glb_response(remote_url)
-
-    raise HTTPException(status_code=404, detail="Merged furniture has no usable GLB model.")
+    model_path_text = _get_model_path_for_furniture(furniture)
+    try:
+        _parse_glb(model_path_text)
+        model_path = Path(model_path_text)
+        return FileResponse(model_path, media_type="model/gltf-binary", filename=model_path.name)
+    except (HTTPException, ValueError, OSError, json.JSONDecodeError):
+        remote_url = _remote_glb_url(furniture)
+        if remote_url:
+            return _remote_glb_response(remote_url)
+        raise HTTPException(status_code=404, detail="找不到可載入的 GLB 模型。")
 
 
 def _get_model_path_for_furniture(furniture: dict) -> str:
@@ -688,11 +879,301 @@ def _image_bytes_from_glb(model_path_text: str, image_index: int) -> tuple[bytes
     return payload, mime_type
 
 
+def _style_payloads(raw: dict | None = None, surface_catalog: dict | None = None) -> list[dict]:
+    raw = raw or load_style_database()
+    surface_catalog = surface_catalog or load_surface_catalog()
+    styles = []
+    for style in raw.get("styles", []):
+        surface_profile = _style_surface_profile(surface_catalog, style.get("style_id"))
+        styles.append(
+            {
+                "style_id": style.get("style_id"),
+                "style_name_zh": style.get("style_name_zh"),
+                "style_name_en": style.get("style_name_en"),
+                "core_description_zh": style.get("core_description_zh"),
+                "keywords_zh": style.get("keywords_zh", []),
+                "main_colors_zh": style.get("main_colors_zh", []),
+                "materials_zh": style.get("materials_zh", []),
+                "shape_features_zh": style.get("shape_features_zh", []),
+                "avoid_elements_zh": style.get("avoid_elements_zh", []),
+                "scene_background": style.get("scene_background", {}),
+                "wall_recommendations": style.get("wall_recommendations", []),
+                "floor_recommendations": style.get("floor_recommendations", []),
+                "recommended_wall_floor_pairs_zh": style.get("recommended_wall_floor_pairs_zh", []),
+                "surface_profile": surface_profile,
+                "wall_surface_ids": surface_profile.get("wall_surface_ids", []),
+                "floor_surface_ids": surface_profile.get("floor_surface_ids", []),
+                "surface_pairings": surface_profile.get("surface_pairings", []),
+                "visual_theme": style.get("visual_theme", {}),
+                "palette_hex": style.get("palette_hex", []),
+                "stats": style.get("stats", {}),
+                "moodboard_image_url": _safe_relative_url(
+                    (style.get("moodboard_card_path") or "").replace("docs/moodboard_assets/", "", 1),
+                    "/docs-assets",
+                ),
+            }
+        )
+    return styles
+
+
+def _style_ids_for_count(item: dict) -> set[str]:
+    style_ids: set[str] = set()
+    if item.get("primary_style"):
+        style_ids.add(str(item.get("primary_style")))
+    for candidate in item.get("style_candidates", []) or []:
+        style_id = _candidate_style_id(candidate)
+        if style_id and _candidate_score(candidate) > 0:
+            style_ids.add(style_id)
+    return style_ids
+
+
+@lru_cache(maxsize=1)
+def _catalog_count_summary() -> dict:
+    raw = load_style_database()
+    items = list(raw.get("furniture", []))
+    style_counts: dict[str, int] = {}
+    style_type_counts: dict[str, dict[str, int]] = {}
+    styled_count = 0
+
+    for item in items:
+        style_ids = _style_ids_for_count(item)
+        if style_ids:
+            styled_count += 1
+        item_type = item.get("normalized_type") or "unknown"
+        for style_id in style_ids:
+            style_counts[style_id] = style_counts.get(style_id, 0) + 1
+            type_counts = style_type_counts.setdefault(style_id, {})
+            type_counts[item_type] = type_counts.get(item_type, 0) + 1
+
+    return {
+        "total_furniture": len(items),
+        "styled_furniture": styled_count,
+        "fallback_furniture": len(items) - styled_count,
+        "style_furniture_counts": style_counts,
+        "style_type_counts": {
+            style_id: sorted(type_counts.items(), key=lambda pair: pair[1], reverse=True)
+            for style_id, type_counts in style_type_counts.items()
+        },
+    }
+
+
+def _furniture_matches_style(item: dict, style_id: str | None) -> bool:
+    if not style_id:
+        return True
+    if item.get("primary_style") == style_id:
+        return True
+    for candidate in item.get("style_candidates", []) or []:
+        if _candidate_style_id(candidate) == style_id and _candidate_score(candidate) > 0:
+            return True
+    return False
+
+
+def _furniture_search_text(item: dict) -> str:
+    return " ".join(
+        str(value or "")
+        for value in (
+            item.get("furniture_id"),
+            item.get("name_en"),
+            item.get("name_zh"),
+            item.get("name_zh_raw"),
+            item.get("category_label"),
+            item.get("taxonomy_group_zh"),
+            item.get("taxonomy_type_zh"),
+            item.get("normalized_type"),
+            item.get("color"),
+            item.get("material"),
+            item.get("primary_style"),
+        )
+    ).casefold()
+
+
+_FURNITURE_FACET_TRANSLATIONS = {
+    "color": {
+        "white": "白色",
+        "black": "黑色",
+        "grey": "灰色",
+        "gray": "灰色",
+        "beige": "米色",
+        "brown": "棕色",
+        "green": "綠色",
+        "blue": "藍色",
+        "red": "紅色",
+        "silver": "銀色",
+        "gold": "金色",
+        "yellow": "黃色",
+        "wood": "木色",
+        "walnut": "胡桃木色",
+        "navy": "海軍藍",
+    },
+    "material": {
+        "wood": "木材",
+        "oak": "橡木",
+        "metal": "金屬",
+        "fabric": "布料",
+        "textile": "織物",
+        "leather": "皮革",
+        "glass": "玻璃",
+        "steel": "鋼材",
+        "birch": "樺木",
+        "walnut": "胡桃木",
+        "wood veneer": "木皮",
+        "solid wood": "實木",
+        "plywood": "夾板",
+        "plastic": "塑膠",
+    },
+}
+
+
+def _normalize_furniture_facet_value(value: object, key: str) -> str:
+    translations = _FURNITURE_FACET_TRANSLATIONS.get(key, {})
+    parts = [part.strip() for part in re.split(r"[,/、]+", str(value or "")) if part.strip()]
+    return "、".join(translations.get(part.casefold(), part) for part in parts)
+
+
+def _filter_furniture_payload(
+    *,
+    style: str | None = None,
+    group: str | None = None,
+    item_type: str | None = None,
+    q: str | None = None,
+    has_model: bool | None = None,
+    color: str | None = None,
+    material: str | None = None,
+    size: str | None = None,
+) -> list[dict]:
+    query = (q or "").strip().casefold()
+    color_query = _normalize_furniture_facet_value(color, "color").casefold()
+    material_query = _normalize_furniture_facet_value(material, "material").casefold()
+    items = []
+    for item in _furniture_payload_cache():
+        if style and not _furniture_matches_style(item, style):
+            continue
+        if group and item.get("taxonomy_group") != group:
+            continue
+        if item_type and item.get("normalized_type") != item_type:
+            continue
+        if has_model is not None and bool(item.get("has_model")) is not has_model:
+            continue
+        if color_query and _normalize_furniture_facet_value(item.get("color"), "color").casefold() != color_query:
+            continue
+        if material_query and _normalize_furniture_facet_value(item.get("material"), "material").casefold() != material_query:
+            continue
+        if size and _furniture_size_bucket(item) != size:
+            continue
+        if query and query not in _furniture_search_text(item):
+            continue
+        items.append(item)
+    return items
+
+
+def _furniture_size_bucket(item: dict) -> str | None:
+    size_cm = item.get("size_cm") or {}
+    footprint = [size_cm.get("width"), size_cm.get("depth")]
+    dimensions = []
+    for value in footprint:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            continue
+        if numeric > 0:
+            dimensions.append(numeric)
+    if not dimensions:
+        return None
+    longest_side = max(dimensions)
+    if longest_side <= 80:
+        return "small"
+    if longest_side <= 160:
+        return "medium"
+    return "large"
+
+
+def _furniture_filter_options(items: list[dict]) -> dict:
+    ignored_values = {"", "尚未整理", "未整理", "unknown", "none", "null", "-"}
+
+    def counted_options(key: str, limit: int = 18) -> list[dict]:
+        counts: dict[str, int] = {}
+        for item in items:
+            value = _normalize_furniture_facet_value(item.get(key), key)
+            if value.casefold() in ignored_values or "�" in value:
+                continue
+            counts[value] = counts.get(value, 0) + 1
+        return [
+            {"value": value, "label": value, "count": count}
+            for value, count in sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))[:limit]
+        ]
+
+    return {
+        "sizes": [
+            {"value": "small", "label": "小型（80 cm 以下）"},
+            {"value": "medium", "label": "中型（81–160 cm）"},
+            {"value": "large", "label": "大型（161 cm 以上）"},
+        ],
+        "colors": counted_options("color"),
+        "materials": counted_options("material"),
+    }
+
+
+def _type_options_for(
+    style: str | None = None,
+    group: str | None = None,
+    has_model: bool | None = None,
+) -> list[dict]:
+    counts: dict[str, int] = {}
+    for item in _filter_furniture_payload(style=style, group=group, has_model=has_model):
+        item_type = item.get("normalized_type")
+        if not item_type:
+            continue
+        counts[item_type] = counts.get(item_type, 0) + 1
+    return [
+        {
+            "type": item_type,
+            "count": count,
+            "type_name_zh": next(
+                (item.get("taxonomy_type_zh") for item in _furniture_payload_cache() if item.get("normalized_type") == item_type),
+                item_type,
+            ),
+        }
+        for item_type, count in sorted(counts.items(), key=lambda pair: pair[1], reverse=True)
+    ]
+
+
+def _category_groups_for(style: str | None = None, has_model: bool | None = None) -> list[dict]:
+    groups: dict[str, dict] = {}
+    for item in _filter_furniture_payload(style=style, has_model=has_model):
+        group_id = item.get("taxonomy_group") or "soft_decor"
+        group = groups.setdefault(
+            group_id,
+            {"group_id": group_id, "group_name_zh": item.get("taxonomy_group_zh") or "軟裝配件", "types": {}},
+        )
+        item_type = item.get("normalized_type")
+        if not item_type:
+            continue
+        current = group["types"].setdefault(
+            item_type,
+            {"type": item_type, "type_name_zh": item.get("taxonomy_type_zh") or item_type, "count": 0},
+        )
+        current["count"] += 1
+    return [
+        {**group, "types": sorted(group["types"].values(), key=lambda entry: entry["type_name_zh"])}
+        for group in sorted(groups.values(), key=lambda entry: entry["group_name_zh"])
+    ]
+
+
+def _style_filter_options() -> list[dict]:
+    return [
+        {
+            "style_id": style.get("style_id"),
+            "style_name_zh": style.get("style_name_zh"),
+        }
+        for style in _style_payloads()
+    ]
+
+
+@lru_cache(maxsize=1)
 def build_site_payload() -> dict:
     raw = load_style_database()
     surface_catalog = load_surface_catalog()
-    external_import = load_external_import_index()
-    furniture_items = _merge_furniture_catalog(raw.get("furniture", []), external_import.get("items", []))
+    furniture_items = list(_merged_furniture_catalog_cached())
     furniture_by_id = {}
     for item in furniture_items:
         furniture_by_id[item.get("furniture_id")] = item
@@ -769,35 +1250,7 @@ def build_site_payload() -> dict:
             }
         )
 
-    furniture_payload = []
-    for item in furniture_items:
-        has_model, model_reason = (
-            (bool(item.get("has_model")), item.get("missing_model_reason"))
-            if "has_model" in item
-            else _model_status(item)
-        )
-        furniture_payload.append(
-            {
-                "furniture_id": item.get("furniture_id"),
-                "name_en": item.get("name_en"),
-                "name_zh_raw": item.get("name_zh_raw"),
-                "category_label": item.get("category_label"),
-                "normalized_type": item.get("normalized_type"),
-                "primary_style": item.get("primary_style"),
-                "style_candidates": item.get("style_candidates", []),
-                "style_confidence": item.get("style_confidence"),
-                "style_assignment_source": item.get("style_assignment_source"),
-                "color": item.get("color"),
-                "material": item.get("material"),
-                "size_cm": sanitize_size_cm(item),
-                "must_against_wall": item.get("must_against_wall"),
-                "can_rotate": item.get("can_rotate"),
-                "has_model": has_model,
-                "missing_model_reason": None if has_model else model_reason,
-                "model_url": _model_url_for_merged_item(item) if has_model else None,
-                **_candidate_schema_fields(item, has_model),
-            }
-        )
+    furniture_payload = list(_furniture_payload_cache())
 
     featured_models = [item for item in furniture_payload if item["has_model"]][:24]
     type_counts: dict[str, int] = {}
@@ -832,12 +1285,13 @@ def build_site_payload() -> dict:
         },
         "summary": summary,
         "styles": styles,
+        "taiwan_style_cards": load_taiwan_style_cards(),
         "furniture": furniture_payload,
         "surface_catalog": surface_catalog,
         "catalog_merge_summary": {
-            "input_item_count": len(raw.get("furniture", [])) + len(external_import.get("items", [])),
+            "input_item_count": len(raw.get("furniture", [])),
             "merged_count": len(furniture_payload),
-            "same_item_merged_count": sum(1 for item in furniture_items if len(item.get("merged_furniture_ids", [])) > 1),
+            "same_item_merged_count": 0,
         },
         "featured_models": featured_models,
         "missing_model_count": sum(1 for item in furniture_payload if not item["has_model"]),
@@ -870,7 +1324,136 @@ def scene_page() -> FileResponse:
 
 @app.get("/api/site-data")
 def site_data() -> dict:
-    return build_site_payload()
+    payload = dict(build_site_payload())
+    payload["furniture"] = []
+    payload["featured_models"] = []
+    payload["catalog_merge_summary"] = {
+        **payload.get("catalog_merge_summary", {}),
+        "delivery": "請使用 /api/furniture 分頁取得家具資料。",
+    }
+    return payload
+
+
+@app.get("/api/home-data")
+def home_data() -> dict:
+    summary = _catalog_count_summary()
+    return {
+        "project": {
+            "title": "RoomPilot",
+            "subtitle": "AI 室內配置與 3D 場景提案",
+        },
+        "summary": {
+            "total_furniture": summary.get("total_furniture", 0),
+            "styled_furniture": summary.get("styled_furniture", 0),
+        },
+        "styles": _style_payloads()[:6],
+        "taiwan_style_cards": load_taiwan_style_cards()[:6],
+    }
+
+
+@app.get("/api/styles")
+def styles_data() -> dict:
+    summary = _catalog_count_summary()
+    return {
+        "styles": _style_payloads(),
+        "taiwan_style_cards": load_taiwan_style_cards(),
+        "surface_catalog": load_surface_catalog(),
+        "summary": {
+            "total_furniture": summary.get("total_furniture", 0),
+            "styled_furniture": summary.get("styled_furniture", 0),
+            "fallback_furniture": summary.get("fallback_furniture", 0),
+        },
+        "style_furniture_counts": summary.get("style_furniture_counts", {}),
+        "style_type_counts": summary.get("style_type_counts", {}),
+    }
+
+
+@app.get("/api/scene/bootstrap")
+def scene_bootstrap() -> dict:
+    return {
+        "styles": _style_payloads(),
+        "taiwan_style_cards": load_taiwan_style_cards(),
+        "surface_catalog": load_surface_catalog(),
+    }
+
+
+@app.get("/api/furniture")
+def furniture_catalog(
+    style: str | None = Query(None),
+    group: str | None = Query(None),
+    item_type: str | None = Query(None, alias="type"),
+    q: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(24, ge=1, le=80),
+    has_model: bool | None = Query(None),
+    detail: str = Query("card"),
+    color: str | None = None,
+    material: str | None = None,
+    size: str | None = None,
+) -> dict:
+    facet_items = _filter_furniture_payload(
+        style=style,
+        group=group,
+        item_type=item_type,
+        q=q,
+        has_model=has_model,
+    )
+    filtered = _filter_furniture_payload(
+        style=style,
+        group=group,
+        item_type=item_type,
+        q=q,
+        has_model=has_model,
+        color=color,
+        material=material,
+        size=size,
+    )
+    total = len(filtered)
+    start = (page - 1) * page_size
+    end = start + page_size
+    sample_files = (
+        sorted(f.name for f in SAMPLE_GLB_DIR.iterdir() if f.suffix.lower() == ".glb")
+        if SAMPLE_GLB_DIR.is_dir()
+        else []
+    )
+    return {
+        "items": [
+            item if detail == "scene" else _furniture_card_payload(item)
+            for item in filtered[start:end]
+        ],
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "has_next_page": end < total,
+        "styles": _style_filter_options(),
+        "type_options": _type_options_for(style, group, has_model),
+        "category_groups": _category_groups_for(style, has_model),
+        "filter_options": _furniture_filter_options(facet_items),
+        "furniture": sample_files,
+    }
+
+
+def _furniture_detail_payload(furniture_id: str) -> dict:
+    item = _get_merged_furniture_by_id(furniture_id)
+    payload = _furniture_payload_item(item)
+    payload.update(
+        {
+            "merged_furniture_ids": item.get("merged_furniture_ids", []),
+            "model_priority_ids": item.get("model_priority_ids", []),
+            "catalog_merge_key": item.get("catalog_merge_key"),
+            "source_count": item.get("source_count"),
+        }
+    )
+    return payload
+
+
+@app.on_event("startup")
+def warm_catalog_cache() -> None:
+    try:
+        _furniture_payload_cache()
+        build_site_payload()
+    except Exception as exc:
+        print(f"[RoomPilot] catalog cache warmup skipped: {exc}")
 
 
 @app.get("/api/scene/provider-status")
@@ -878,22 +1461,55 @@ def scene_provider_status() -> dict:
     return get_openrouter_status()
 
 
+@app.post("/api/agent/intake/start")
+async def agent_intake_start(payload: dict | None = None) -> dict:
+    """Start the Agent-ready intake contract without calling an LLM yet."""
+    payload = payload or {}
+    return start_intake(str(payload.get("session_id") or "roompilot-local"))
+
+
+@app.post("/api/agent/intake/answer")
+async def agent_intake_answer(payload: dict) -> dict:
+    """Advance one guided intake turn; future LLM adapters keep this shape."""
+    step = str(payload.get("step") or "")
+    answer = str(payload.get("answer") or "").strip()
+    if not step or not answer:
+        raise HTTPException(status_code=422, detail="step 與 answer 皆為必要欄位。")
+    return advance_intake(
+        session_id=str(payload.get("session_id") or "roompilot-local"),
+        step=step,
+        answer=answer,
+        brief=payload.get("client_brief"),
+    )
+
+
 @app.post("/api/scene/generate")
 async def generate_scene(payload: dict) -> dict:
     site_payload = build_site_payload()
 
+    client_brief = payload.get("client_brief") or {}
+    brief_space = client_brief.get("space") or {}
+    brief_style = client_brief.get("style") or {}
+    brief_occupants = client_brief.get("occupants") or {}
+
     questionnaire = {
-        "space_type": payload.get("space_type", "living_room"),
-        "style_preference": payload.get("style_preference", "auto"),
+        "space_type": payload.get("space_type") or brief_space.get("type") or "living_room",
+        "style_preference": payload.get("style_preference") or (brief_style.get("preferred") or ["auto"])[0],
+        "style_card_id": payload.get("style_card_id"),
+        "style_card_id": payload.get("style_card_id"),
         "required_furniture": payload.get("required_furniture", []),
+        "selected_furniture": payload.get("selected_furniture", []),
         "custom_furniture": payload.get("custom_furniture", []),
-        "preferred_colors": payload.get("preferred_colors", []),
+        "preferred_colors": payload.get("preferred_colors") or brief_style.get("colors", []),
         "custom_colors": payload.get("custom_colors", []),
         "personal_notes": payload.get("personal_notes", ""),
-        "keep_window_clear": bool(payload.get("keep_window_clear", False)),
-        "keep_door_clear": bool(payload.get("keep_door_clear", False)),
-        "need_storage": bool(payload.get("need_storage", False)),
-        "prefer_low_saturation": bool(payload.get("prefer_low_saturation", False)),
+        "keep_window_clear": bool(payload.get("keep_window_clear", "keep_window_clear" in client_brief.get("constraints", []))),
+        "keep_door_clear": bool(payload.get("keep_door_clear", "keep_door_clear" in client_brief.get("constraints", []))),
+        "need_storage": bool(payload.get("need_storage", "storage" in client_brief.get("needs", []))),
+        "prefer_low_saturation": bool(payload.get("prefer_low_saturation", "low_saturation" in brief_style.get("colors", []))),
+        "client_brief": client_brief,
+        "occupants": brief_occupants,
+        "preferred_materials": brief_style.get("materials", []),
         "floorplan_filename": payload.get("floorplan_filename"),
         "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
         "wall_option": payload.get("wall_option", "auto"),
@@ -905,8 +1521,8 @@ async def generate_scene(payload: dict) -> dict:
         site_payload=site_payload,
         questionnaire=questionnaire,
         floorplan_path=payload.get("floorplan_filename"),
-        room_width_cm=float(payload.get("room_width_cm", 420)),
-        room_depth_cm=float(payload.get("room_depth_cm", 360)),
+        room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
+        room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
     )
 
 
@@ -1011,7 +1627,7 @@ async def upload(
         raise HTTPException(422, f"parse failed: {e}")
 
 
-@app.get("/api/furniture")
+@app.get("/api/sample-furniture")
 def sample_furniture() -> dict:
     files = (
         sorted(f for f in SAMPLE_GLB_DIR.iterdir() if f.suffix.lower() == ".glb")
@@ -1022,9 +1638,9 @@ def sample_furniture() -> dict:
 
 
 @app.get("/api/furniture/{name}")
-def sample_furniture_file(name: str) -> FileResponse:
+def sample_furniture_file(name: str):
     if not name.lower().endswith(".glb"):
-        raise HTTPException(404, f"not a glb: {name}")
+        return _furniture_detail_payload(name)
     path = SAMPLE_GLB_DIR / Path(name).name
     if not path.is_file():
         raise HTTPException(404, f"furniture not found: {name}")

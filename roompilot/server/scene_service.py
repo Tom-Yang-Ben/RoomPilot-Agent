@@ -19,6 +19,7 @@ from ..engine.geometry import furniture_polygon
 from ..engine.models import PlacedFurniture, Room, Wall
 from ..engine.placement import place_furniture
 from ..upgrade3d.dxf_parser import parse_dxf_bytes
+from .style_cards import find_taiwan_style_card
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 DOTENV_CANDIDATES = [
@@ -27,12 +28,7 @@ DOTENV_CANDIDATES = [
 ]
 
 DEFAULT_OPENROUTER_MODELS = [
-    "tencent/hy3:free",
-    "google/gemma-3-27b-it:free",
     "qwen/qwen3-32b:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "mistralai/devstral-small:free",
-    "cohere/north-mini-code:free",
 ]
 
 
@@ -76,13 +72,14 @@ def get_openrouter_status() -> dict[str, Any]:
     model = models[0] if models else ""
 
     return {
-        "enabled": bool(api_key and models),
+        "enabled": bool(api_key and models and os.getenv("OPENROUTER_SCENE_PLANNING_ENABLED") == "1"),
         "has_api_key": bool(api_key),
         "has_model": bool(models),
         "model": model or None,
         "models": models,
         "model_count": len(models),
         "provider": "openrouter" if api_key and models else "fallback",
+        "scene_planning_enabled": os.getenv("OPENROUTER_SCENE_PLANNING_ENABLED") == "1",
     }
 
 
@@ -242,7 +239,7 @@ def _post_openrouter_chat(payload: dict[str, Any], headers: dict[str, str]) -> d
     )
 
     try:
-        with request.urlopen(req, timeout=25) as response:
+        with request.urlopen(req, timeout=8) as response:
             return json.loads(response.read().decode("utf-8"))
     except (error.URLError, TimeoutError, json.JSONDecodeError):
         return None
@@ -259,7 +256,7 @@ def _openrouter_request(
     site_url = os.getenv("OPENROUTER_SITE_URL", "http://127.0.0.1:8000")
     app_name = os.getenv("OPENROUTER_APP_NAME", "test_furniture scene planner")
 
-    if not api_key or not models:
+    if not api_key or not models or os.getenv("OPENROUTER_SCENE_PLANNING_ENABLED") != "1":
         return None
 
     headers = {
@@ -284,20 +281,6 @@ def _openrouter_request(
         ) if body else None
         if parsed:
             return model, parsed
-
-        fallback_payload = {
-            "model": model,
-            "messages": messages,
-            "temperature": 0.2,
-        }
-        fallback_body = _post_openrouter_chat(fallback_payload, headers)
-        fallback_parsed = _normalize_openrouter_plan(
-            _load_json_response(fallback_body) if fallback_body else None,
-            questionnaire,
-            styles,
-        ) if fallback_body else None
-        if fallback_parsed:
-            return model, fallback_parsed
 
     return None
 
@@ -513,6 +496,60 @@ def choose_furniture_items(
         chosen.append(selected)
 
     return chosen, unavailable
+
+
+def selected_furniture_items_from_questionnaire(
+    questionnaire: dict[str, Any],
+    furniture: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return exact furniture chosen in /library, using catalog data when available."""
+    raw_items = questionnaire.get("selected_furniture") or []
+    if not isinstance(raw_items, list):
+        return []
+
+    catalog_by_id = {
+        item.get("furniture_id"): item
+        for item in furniture
+        if item.get("furniture_id")
+    }
+    selected: list[dict[str, Any]] = []
+    used_ids: set[str] = set()
+
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+        furniture_id = raw.get("furniture_id")
+        if not furniture_id or furniture_id in used_ids:
+            continue
+
+        catalog_item = catalog_by_id.get(furniture_id, {})
+        merged = {**catalog_item, **raw}
+        size = raw.get("size_cm") or raw.get("dimensions") or catalog_item.get("size_cm") or {}
+        merged["size_cm"] = {
+            "width": size.get("width") or size.get("w"),
+            "depth": size.get("depth") or size.get("d"),
+            "height": size.get("height") or size.get("h"),
+        }
+        merged["name_zh_raw"] = (
+            raw.get("name_zh_raw")
+            or raw.get("name_zh")
+            or catalog_item.get("name_zh_raw")
+            or catalog_item.get("name_zh")
+            or catalog_item.get("name_en")
+            or furniture_id
+        )
+        merged["normalized_type"] = raw.get("normalized_type") or catalog_item.get("normalized_type")
+        merged["model_url"] = raw.get("model_url") or catalog_item.get("model_url")
+        merged["primary_style"] = raw.get("primary_style") or catalog_item.get("primary_style")
+        merged["has_model"] = bool(raw.get("has_model") or catalog_item.get("has_model") or merged.get("model_url"))
+
+        if not merged["normalized_type"] or not merged["has_model"]:
+            continue
+
+        selected.append(merged)
+        used_ids.add(furniture_id)
+
+    return selected
 
 
 def _clamp_axis(value: float, room_min: float, room_max: float, item_size: float, margin: float = 18) -> float:
@@ -1096,6 +1133,22 @@ def build_scene_payload(
         effective_depth_cm,
         plan.get("preferred_colors", []) + questionnaire.get("custom_colors", []),
     )
+    exact_selected_items = selected_furniture_items_from_questionnaire(
+        questionnaire,
+        site_payload["furniture"],
+    )
+    if exact_selected_items:
+        exact_ids = {item.get("furniture_id") for item in exact_selected_items}
+        exact_types = {item.get("normalized_type") for item in exact_selected_items}
+        selected_items = [
+            *exact_selected_items,
+            *[
+                item
+                for item in selected_items
+                if item.get("furniture_id") not in exact_ids
+                and item.get("normalized_type") not in exact_types
+            ],
+        ]
     objects = generate_layout(
         effective_width_cm,
         effective_depth_cm,
@@ -1108,6 +1161,10 @@ def build_scene_payload(
     style = next(
         (style for style in site_payload["styles"] if style.get("style_id") == plan["style_id"]),
         site_payload["styles"][0],
+    )
+    style_card = find_taiwan_style_card(
+        site_payload.get("taiwan_style_cards", []),
+        questionnaire.get("style_card_id"),
     )
     surface_catalog = site_payload.get("surface_catalog", {})
 
@@ -1161,7 +1218,9 @@ def build_scene_payload(
             "palette_hex": style.get("palette_hex", []),
             "surface_profile": style.get("surface_profile", {}),
         },
+        "style_card": style_card or {},
         "design_choices": {
+            "style_card_id": questionnaire.get("style_card_id"),
             "wall_option": questionnaire.get("wall_option", "auto"),
             "floor_option": questionnaire.get("floor_option", "auto"),
             "single_room_mode": not bool(parsed_floorplan),

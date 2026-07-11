@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>查看風格類型</title>
-    <link rel="stylesheet" href="/static/site.css?v=20260708z" />
+    <link rel="stylesheet" href="/static/site.css?v=20260711i" />
   </head>
   <body data-page="styles">
     <canvas id="fx-canvas" aria-hidden="true"></canvas>
@@ -26,20 +26,27 @@
     <main class="page-shell">
       <section class="page-panel style-tabs-shell style-overview-shell">
         <div class="style-overview-copy">
-          <p class="eyebrow">MOODBOARD / STYLE RULES / INTERIOR VISUAL</p>
+          <p class="eyebrow">台灣住宅風格選擇器</p>
+          <h1>6 種風格，18 組生活色卡</h1>
           <p class="style-overview-text">
-            以實際室內設計風格圖搭配圖內標註、關鍵字、主色、材質、造型特徵與空間背景，讓使用者快速比對整體視覺方向。
+            直接從住宅情境圖與色卡開始，選定方向後即可帶入 3D 場景，縮短設計師與客戶的溝通時間。
           </p>
         </div>
 
-        <div id="style-tab-row" class="style-tab-row" aria-label="12 種風格切換"></div>
+        <div id="style-tab-row" class="style-tab-row" aria-label="6 種台灣住宅風格切換"></div>
 
-        <div class="style-detail-layout">
-          <section id="style-detail-panel" class="style-detail-panel"></section>
-        </div>
+        <section class="taiwan-style-gallery-shell" aria-labelledby="taiwan-style-gallery-title">
+          <div class="style-gallery-heading">
+            <div>
+              <h1 id="taiwan-style-gallery-title">先選一張你喜歡的生活色調</h1>
+            </div>
+          </div>
+          <div id="taiwan-style-gallery" class="taiwan-style-gallery"></div>
+        </section>
+
       </section>
     </main>
 
-    <script type="module" src="/static/styles.js?v=20260708x"></script>
+    <script type="module" src="/static/styles.js?v=20260711j"></script>
   </body>
 </html>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3D 場景展示</title>
-    <link rel="stylesheet" href="/static/site.css?v=20260708y" />
+    <link rel="stylesheet" href="/static/site.css?v=20260711k" />
   </head>
   <body data-page="scene">
     <canvas id="fx-canvas" aria-hidden="true"></canvas>
@@ -25,22 +25,177 @@
 
     <main class="page-shell scene-shell">
       <section class="page-panel scene-form-panel">
-        <div class="page-heading compact">
-          <p class="eyebrow">SCENE FLOW</p>
-          <h1>固定風格生成家具</h1>
-          <p>先鎖定一個房間與設計風格，再隨機替換同風格家具，最後直接生成可瀏覽的 3D 場景。</p>
-        </div>
+        <section class="scene-hero-banner" aria-label="RoomPilot 空間提案介紹">
+          <div class="scene-hero-copy">
+            <span class="scene-hero-step">STEP 1 / 5</span>
+            <h1>把你的需求告訴我們<span class="hero-sparkle" aria-hidden="true">✦</span></h1>
+            <p>上傳平面圖，選擇你喜歡的風格與功能，RoomPilot 會自動生成最適合你的 3D 空間提案。</p>
+          </div>
+          <div class="scene-hero-room" aria-hidden="true">
+            <img src="/static/scene-step1-reference.png" alt="" />
+          </div>
+        </section>
+
+        <nav class="scene-progress" aria-label="空間提案步驟">
+          <span class="scene-progress-item is-active" data-wizard-step="floorplan"><b>1</b><strong>上傳平面圖</strong></span>
+          <i aria-hidden="true"></i>
+          <span class="scene-progress-item" data-wizard-step="chat"><b>2</b><strong>空間需求</strong></span>
+          <i aria-hidden="true"></i>
+          <span class="scene-progress-item" data-wizard-step="style"><b>✦</b><strong>風格選擇</strong></span>
+          <i aria-hidden="true"></i>
+          <span class="scene-progress-item" data-wizard-step="brief"><b>3</b><strong>家具偏好</strong></span>
+          <i aria-hidden="true"></i>
+          <span class="scene-progress-item" data-wizard-step="final"><b>↗</b><strong>生成 3D 場景</strong></span>
+        </nav>
 
         <form id="scene-form" class="scene-form">
-          <div class="scene-form-grid">
-            <label class="scene-field scene-field-full">
-              <span>平面圖輸入</span>
+          <section id="scene-welcome-panel" class="scene-welcome-panel" hidden aria-label="開始使用 RoomPilot">
+            <div class="scene-welcome-copy">
+              <span class="scene-welcome-kicker">ROOMPILOT DESIGN GUIDE</span>
+              <h2>把一張平面圖，變成你看得懂的家。</h2>
+              <p>我們會先確認空間，再用簡單的對話了解你的生活方式，最後一起完成 3D 提案。</p>
+              <button id="scene-start-flow" type="button" class="primary-action">開始我的空間提案</button>
+            </div>
+            <div class="scene-welcome-steps" aria-label="使用流程">
+              <span><b>01</b> 上傳空間</span>
+              <span><b>02</b> 說說你的生活</span>
+              <span><b>03</b> 看見 3D 提案</span>
+            </div>
+          </section>
+
+          <section id="scene-floorplan-step" class="scene-floorplan-step" aria-label="上傳平面圖">
+            <div class="scene-step-heading">
+              <span class="scene-step-number">01</span>
+              <div>
+                <span class="eyebrow">YOUR SPACE</span>
+                <h2>先讓我看看你的空間</h2>
+                <p>上傳平面圖後，畫面會立即顯示預覽。支援 PNG、JPG 或 DXF。</p>
+              </div>
+            </div>
+            <label class="scene-upload-zone" for="floorplan">
+              <span class="scene-upload-icon" aria-hidden="true">⇧</span>
+              <strong>上傳你的平面圖</strong>
+              <small>拖曳檔案到這裡，或點擊下方按鈕</small>
+              <button id="pick-floorplan" type="button" class="upload-file-button">從裝置上傳</button>
               <input id="floorplan" name="floorplan" type="file" accept=".png,.jpg,.jpeg,.webp,.dxf,.dwg" />
             </label>
+            <div id="floorplan-preview" class="floorplan-preview">
+              <div class="floorplan-preview-heading">
+                <strong>已上傳的平面圖</strong>
+                <span class="floorplan-file-meta"><span id="floorplan-filename">尚未上傳</span><span id="floorplan-status">等待上傳</span></span>
+              </div>
+              <div class="floorplan-legend" aria-label="平面圖辨識圖例">
+                <span><i class="legend-swatch legend-wall"></i>牆</span>
+                <span><i class="legend-swatch legend-door"></i>門</span>
+                <span><i class="legend-swatch legend-window"></i>窗</span>
+              </div>
+              <div id="floorplan-preview-content" class="floorplan-preview-content">
+                <span class="floorplan-empty-state">上傳後，平面圖會立即顯示在這裡</span>
+              </div>
+            </div>
+            <aside class="scene-floorplan-tip">
+              <span class="scene-tip-icon">♧</span>
+              <strong>小提醒</strong>
+              <p>越清楚的平面圖，生成結果會更貼近你的真實空間喔！</p>
+              <span class="scene-tip-line" aria-hidden="true"></span>
+            </aside>
+            <div class="scene-floorplan-actions">
+              <a class="secondary-action" href="/">← 返回首頁</a>
+              <button id="continue-to-chat" type="button" class="primary-action" disabled>下一步：空間需求　→</button>
+            </div>
+          </section>
 
+          <section id="scene-chat-panel" class="scene-chat-panel" hidden aria-label="AI 房間需求訪談">
+            <div class="scene-step-heading compact-step">
+              <span class="scene-step-number">02</span>
+              <div><span class="eyebrow">YOUR LIFESTYLE</span><h2>接下來，告訴我你怎麼使用這個空間</h2></div>
+            </div>
+            <div id="scene-selected-style-card" class="scene-selected-style-card" hidden></div>
+            <section id="scene-proposal-card" class="scene-proposal-card" hidden>
+              <div class="scene-field-header">
+                <span>你已選的家具清單</span>
+                <small id="scene-proposal-summary">從家具資料庫帶入的家具會先列在這裡。</small>
+              </div>
+              <ul id="scene-proposal-list" class="scene-proposal-list"></ul>
+              <div class="scene-proposal-actions">
+                <button id="scene-filter-proposal" type="button" class="secondary-action">系統保留主家具</button>
+                <small>家具太多時，可先讓系統依主家具優先縮減清單。</small>
+              </div>
+              <p id="scene-proposal-fit-warning" class="scene-chat-hint" role="status"></p>
+            </section>
+            <section id="scene-intake-panel" class="scene-intake-panel" aria-label="空間資料補充">
+              <div id="scene-room-type-question" class="scene-intake-question">
+                <div>
+                  <span class="eyebrow">QUESTION 1</span>
+                  <strong>這些家具要放在哪一種空間？</strong>
+                </div>
+                <div class="scene-intake-options" data-intake-target="space-type">
+                  <button type="button" data-space-type="living_room">客廳</button>
+                  <button type="button" data-space-type="bedroom">臥室</button>
+                  <button type="button" data-space-type="workspace">工作空間</button>
+                  <button type="button" data-space-type="dining_room">餐廳</button>
+                  <button type="button" data-space-type="studio">套房</button>
+                </div>
+              </div>
+              <div id="scene-room-size-question" class="scene-intake-question">
+                <div>
+                  <span class="eyebrow">QUESTION 2</span>
+                  <strong>房間寬度與深度是多少？</strong>
+                </div>
+                <div class="scene-intake-size-grid">
+                  <label>
+                    <span>寬度 CM</span>
+                    <input id="scene-intake-width" type="number" min="200" step="10" placeholder="例如 420" />
+                  </label>
+                  <label>
+                    <span>深度 CM</span>
+                    <input id="scene-intake-depth" type="number" min="200" step="10" placeholder="例如 360" />
+                  </label>
+                </div>
+                <label class="scene-default-room-toggle">
+                  <input id="scene-use-default-room" type="checkbox" />
+                  <span>如果還不確定，先使用預設客廳 420 x 360 cm</span>
+                </label>
+              </div>
+            </section>
+            <div id="scene-chat-messages" class="scene-chat-messages" aria-live="polite"></div>
+            <div class="scene-chat-compose">
+              <label class="sr-only" for="scene-chat-input">回答 AI 問題</label>
+              <textarea id="scene-chat-input" rows="2" placeholder="請輸入你的想法，例如：兩位大人，需要收納，也希望保留窗邊採光"></textarea>
+              <button id="scene-chat-send" type="button" class="primary-action">下一步</button>
+            </div>
+            <p id="scene-chat-hint" class="scene-chat-hint" role="status"></p>
+            <div class="scene-chat-actions">
+              <button id="scene-chat-back" type="button" class="secondary-action">上一步</button>
+              <button id="scene-chat-confirm" type="button" class="secondary-action prominent" disabled hidden>確認需求</button>
+            </div>
+          </section>
+
+          <section id="scene-brief-panel" class="scene-brief-panel" hidden>
+            <div class="scene-field-header">
+              <span>你的空間需求摘要</span>
+              <small>請確認以下內容，系統會在背景整理成需求資料提供 3D 生成使用。</small>
+            </div>
+            <div id="scene-brief-summary" class="scene-brief-summary"></div>
+            <div class="scene-action-row">
+              <button id="generate-scene" type="submit" class="primary-action" disabled>確認需求，開始生成</button>
+            </div>
+          </section>
+
+          <section id="style-card-panel" class="style-card-panel" hidden>
+            <div class="scene-field-header">
+              <span>請選擇一組風格提案</span>
+              <small>每組方案包含地端配色圖卡與室內情境圖，確認後才會套用到 GLB 場景。</small>
+            </div>
+            <div id="style-card-grid" class="style-card-grid"></div>
+            <button id="confirm-style-card" type="button" class="primary-action" disabled>確認風格方案</button>
+          </section>
+
+          <div class="scene-form-grid scene-legacy-fields" aria-hidden="true">
             <label class="scene-field">
               <span>空間類型</span>
               <select id="space-type" name="space_type">
+                <option value="">請選擇空間類型</option>
                 <option value="living_room">客廳</option>
                 <option value="bedroom">臥室</option>
                 <option value="workspace">工作空間</option>
@@ -60,12 +215,12 @@
 
             <label class="scene-field">
               <span>房間寬度 CM</span>
-              <input id="room-width" name="room_width_cm" type="number" min="200" step="10" value="420" />
+              <input id="room-width" name="room_width_cm" type="number" min="200" step="10" />
             </label>
 
             <label class="scene-field">
               <span>房間深度 CM</span>
-              <input id="room-depth" name="room_depth_cm" type="number" min="200" step="10" value="360" />
+              <input id="room-depth" name="room_depth_cm" type="number" min="200" step="10" />
             </label>
 
             <div class="scene-field scene-field-full">
@@ -117,15 +272,11 @@
             </div>
           </div>
 
-          <div id="scene-status" class="viewer-status scene-form-status">填完條件後，這裡會顯示生成結果與 3D 場景狀態。</div>
-
-          <div class="scene-action-row">
-            <button id="generate-scene" type="submit" class="primary-action">生成 3D 場景</button>
-          </div>
+          <div id="scene-status" class="viewer-status scene-form-status">AI 正在準備需求訪談。</div>
         </form>
       </section>
 
-      <aside class="page-panel viewer-side scene-viewer-side">
+      <aside id="scene-viewer-side" class="page-panel viewer-side scene-viewer-side" hidden>
         <div class="page-heading compact">
           <p class="eyebrow">SCENE VIEWER</p>
           <h2>家具配置預覽</h2>
@@ -149,6 +300,10 @@
           <div class="scene-edit-control-group" aria-label="家具微調">
             <button id="rotate-furniture-left" type="button" class="secondary-action">左轉 90°</button>
             <button id="rotate-furniture-right" type="button" class="secondary-action">右轉 90°</button>
+          </div>
+          <div class="scene-edit-control-group" aria-label="空間觀看模式">
+            <button id="toggle-ceiling" type="button" class="secondary-action">隱藏天花板</button>
+            <button id="toggle-walk-mode" type="button" class="secondary-action prominent">進入室內觀看</button>
           </div>
           <span class="viewer-wall-hint">點家具會出現地板小框；拖曳可精準移動，靠近牆會吸附，按 R 也能右轉。</span>
         </div>
@@ -191,6 +346,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene.js?v=20260708ab"></script>
+    <script type="module" src="/static/scene.js?v=20260711k"></script>
   </body>
 </html>
