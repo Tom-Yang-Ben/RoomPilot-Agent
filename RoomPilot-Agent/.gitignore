@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+.python-version
+
+# 環境變數 / 金鑰
+.env
+.env.local
+.env.development
+.env.production
+!.env.example
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+*.log
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Browser / webdriver cache
+.wdm/
+
+# Logs
+run-logs/
+
+# 大型資料(不上傳)
+data/
+# dataset/ 已於 2026-07-07 進版控(blob 早已在 origin 歷史中,git 去重後零額外成本)
+downloaded-files/
+舊的翻譯資料/
+needed.md
