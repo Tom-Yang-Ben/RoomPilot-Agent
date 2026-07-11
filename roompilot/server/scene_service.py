@@ -490,7 +490,7 @@ def _inside_boundary(candidate: PlacedFurniture, boundary: Polygon | None) -> bo
 
 
 def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
-    """非矩形房間的最後防線:沿房間多邊形內部以 0.5m 網格搜尋(由質心向外)。
+    """非矩形房間的最後防線:沿房間多邊形內部以 50cm 網格搜尋(由質心向外)。
 
     錨點與引擎網格都以 bbox 為座標基準,房間只佔 bbox 一角時全會撲空,
     這裡改以房間多邊形自己的範圍掃描。
@@ -501,7 +501,7 @@ def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
     prepared = prep(boundary)
     minx, miny, maxx, maxy = boundary.bounds
     cx, cy = boundary.centroid.x, boundary.centroid.y
-    step = 0.5
+    step = 50.0
 
     cands = []
     y = miny + step / 2
@@ -522,16 +522,16 @@ def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
     return None
 
 
-def _four_wall_room(width_m: float, depth_m: float) -> Room:
-    """手動輸入尺寸時的矩形房間(引擎座標:角落原點、公尺)。"""
+def _four_wall_room(width_cm: float, depth_cm: float) -> Room:
+    """手動輸入尺寸時的矩形房間(引擎座標:角落原點、公分)。"""
     return Room(
-        width=width_m,
-        depth=depth_m,
+        width=width_cm,
+        depth=depth_cm,
         walls=[
-            Wall(0, 0, width_m, 0),
-            Wall(width_m, 0, width_m, depth_m),
-            Wall(width_m, depth_m, 0, depth_m),
-            Wall(0, depth_m, 0, 0),
+            Wall(0, 0, width_cm, 0),
+            Wall(width_cm, 0, width_cm, depth_cm),
+            Wall(width_cm, depth_cm, 0, depth_cm),
+            Wall(0, depth_cm, 0, 0),
         ],
     )
 
@@ -539,23 +539,23 @@ def _four_wall_room(width_m: float, depth_m: float) -> Room:
 def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
     """由 payload 的 floorplan 區塊重建引擎 Room(拖曳驗證/重排都是無狀態請求)。
 
-    wall_segments 是房間中心原點、公尺;引擎要角落原點 → 平移 half。
-    沒有牆段(手動模式)就退回矩形房。
+    wall_segments 是房間中心原點、公尺(three.js 契約);引擎公分、角落原點
+    → ×100 再平移 half。沒有牆段(手動模式)就退回矩形房。
     """
     floorplan = floorplan or {}
-    width = max(float(floorplan.get("width_cm") or 420), 240) / 100
-    depth = max(float(floorplan.get("depth_cm") or 360), 240) / 100
+    width = max(float(floorplan.get("width_cm") or 420), 240)
+    depth = max(float(floorplan.get("depth_cm") or 360), 240)
 
     walls: list[Wall] = []
     for seg in floorplan.get("wall_segments") or []:
         try:
             walls.append(
                 Wall(
-                    float(seg["start"]["x"]) + width / 2,
-                    float(seg["start"]["z"]) + depth / 2,
-                    float(seg["end"]["x"]) + width / 2,
-                    float(seg["end"]["z"]) + depth / 2,
-                    thickness=0.06,
+                    float(seg["start"]["x"]) * 100 + width / 2,
+                    float(seg["start"]["z"]) * 100 + depth / 2,
+                    float(seg["end"]["x"]) * 100 + width / 2,
+                    float(seg["end"]["z"]) * 100 + depth / 2,
+                    thickness=6.0,
                 )
             )
         except (KeyError, TypeError, ValueError):
@@ -580,8 +580,8 @@ def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: fl
     return PlacedFurniture(
         id=str(obj.get("furniture_id") or "item"),
         catalog=catalog,
-        pos_x=(float(pos.get("x") or 0) + half_w_cm) / 100,
-        pos_y=(float(pos.get("z") or 0) + half_d_cm) / 100,
+        pos_x=float(pos.get("x") or 0) + half_w_cm,
+        pos_y=float(pos.get("z") or 0) + half_d_cm,
         rotation=(-float(obj.get("rotation_y_deg") or 0)) % 360,
     )
 
@@ -590,7 +590,7 @@ def _shrunk_boundary(room: Room) -> Polygon | None:
     boundary = _room_boundary_polygon(room)
     if boundary is None:
         return None
-    shrunk = boundary.buffer(-0.08)
+    shrunk = boundary.buffer(-8.0)
     return boundary if shrunk.is_empty else shrunk
 
 
@@ -603,17 +603,17 @@ def _regions_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon |
     if not polys:
         return None
     union = unary_union(polys)
-    shrunk = union.buffer(-0.08)
+    shrunk = union.buffer(-8.0)
     return union if shrunk.is_empty else shrunk
 
 
 def _region_polygons(floorplan: dict[str, Any] | None, room: Room) -> list[Polygon]:
-    """payload 的 room_regions({exterior, holes},房間中心原點)→ 角落原點多邊形。"""
+    """payload 的 room_regions({exterior, holes},房間中心原點、公尺)→ 角落原點公分多邊形。"""
     polys: list[Polygon] = []
     for region in (floorplan or {}).get("room_regions") or []:
         try:
             def _shift(ring):
-                return [(p[0] + room.width / 2, p[1] + room.depth / 2) for p in ring]
+                return [(p[0] * 100 + room.width / 2, p[1] * 100 + room.depth / 2) for p in ring]
 
             poly = Polygon(_shift(region["exterior"]), [_shift(h) for h in region.get("holes") or []])
             if not poly.is_valid:
@@ -631,7 +631,7 @@ def _largest_region_boundary(floorplan: dict[str, Any] | None, room: Room) -> Po
     if not polys:
         return None
     best = max(polys, key=lambda p: p.area)
-    shrunk = best.buffer(-0.08)
+    shrunk = best.buffer(-8.0)
     return best if shrunk.is_empty else shrunk
 
 
@@ -681,15 +681,15 @@ def generate_layout(
     為 three.js 的 Y 軸旋轉(與引擎旋轉方向相反,進出引擎時取負號)。
     """
     if room is None:
-        room = _four_wall_room(max(room_width_cm, 240) / 100, max(room_depth_cm, 240) / 100)
+        room = _four_wall_room(max(room_width_cm, 240), max(room_depth_cm, 240))
 
     # 擺放搜尋邊界(內縮 8cm 邊距):DXF 模式傳入最大自由空間;
     # 矩形房由牆環重建(等價於 bbox)。注意 DXF fallback 模式的 Room.walls
     # 是多個獨立環,不能拿去重建多邊形 —— 所以 DXF 一律走傳入的 place_boundary。
     boundary = place_boundary if place_boundary is not None else _shrunk_boundary(room)
 
-    room_w_cm = room.width * 100
-    room_d_cm = room.depth * 100
+    room_w_cm = room.width
+    room_d_cm = room.depth
     half_w_cm = room_w_cm / 2
     half_d_cm = room_d_cm / 2
 
@@ -743,12 +743,12 @@ def generate_layout(
             # 非矩形房間:固定點可能落在房間多邊形外(牆體裡),退到多邊形內部代表點
             probe = PlacedFurniture(
                 id=item_id, catalog=catalog,
-                pos_x=(x_cm + half_w_cm) / 100, pos_y=(z_cm + half_d_cm) / 100,
+                pos_x=x_cm + half_w_cm, pos_y=z_cm + half_d_cm,
             )
             if boundary is not None and not _inside_boundary(probe, boundary):
                 inner = boundary.representative_point()
-                x_cm = inner.x * 100 - half_w_cm
-                z_cm = inner.y * 100 - half_d_cm
+                x_cm = inner.x - half_w_cm
+                z_cm = inner.y - half_d_cm
         else:
             for raw_x, raw_z, rot in _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm):
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
@@ -757,8 +757,8 @@ def generate_layout(
                 candidate = PlacedFurniture(
                     id=item_id,
                     catalog=catalog,
-                    pos_x=(cand_x + half_w_cm) / 100,
-                    pos_y=(cand_z + half_d_cm) / 100,
+                    pos_x=cand_x + half_w_cm,
+                    pos_y=cand_z + half_d_cm,
                     rotation=(-rot) % 360,
                 )
                 if (
@@ -777,8 +777,8 @@ def generate_layout(
                     engine_item = _grid_place_in_boundary(catalog, item_id, room, placed, boundary)
                 if engine_item is not None:
                     placed.append(engine_item)
-                    x_cm = engine_item.pos_x * 100 - half_w_cm
-                    z_cm = engine_item.pos_y * 100 - half_d_cm
+                    x_cm = engine_item.pos_x - half_w_cm
+                    z_cm = engine_item.pos_y - half_d_cm
                     rotation = (-engine_item.rotation) % 360
                 else:
                     failed_reason = result["reason"] or "找不到落在房間形狀內的合法位置"
@@ -858,13 +858,14 @@ def parse_floorplan_with_engine(
 
     room = build.room
     ox, oz = build.offset
-    room_center_x = ox + room.width / 2   # 房間中心(平面座標)
-    room_center_z = oz + room.depth / 2
+    # 房間中心(平面座標、公尺)—— room/offset 是公分,parsed 線段與 payload 線段是公尺
+    room_center_x = (ox + room.width / 2) / 100
+    room_center_z = (oz + room.depth / 2) / 100
 
     wall_segments = [
         {
-            "start": {"x": round(w.x1 - room.width / 2, 3), "z": round(w.y1 - room.depth / 2, 3)},
-            "end": {"x": round(w.x2 - room.width / 2, 3), "z": round(w.y2 - room.depth / 2, 3)},
+            "start": {"x": round((w.x1 - room.width / 2) / 100, 3), "z": round((w.y1 - room.depth / 2) / 100, 3)},
+            "end": {"x": round((w.x2 - room.width / 2) / 100, 3), "z": round((w.y2 - room.depth / 2) / 100, 3)},
         }
         for w in room.walls
     ]
@@ -917,8 +918,8 @@ def parse_floorplan_with_engine(
         room_regions = []
 
     floorplan = {
-        "width_cm": round(room.width * 100, 1),
-        "depth_cm": round(room.depth * 100, 1),
+        "width_cm": round(room.width, 1),
+        "depth_cm": round(room.depth, 1),
         "source": "dxf",
         "wall_count": len(room.walls),
         "door_count": len(doors),

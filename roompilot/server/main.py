@@ -395,8 +395,8 @@ async def scene_layout(payload: dict) -> dict:
     room = room_from_payload(floorplan)
     return {
         "scene_objects": generate_layout(
-            room.width * 100,
-            room.depth * 100,
+            room.width,
+            room.depth,
             objects,
             room=room,
             regions_boundary=_regions_boundary(floorplan, room),
