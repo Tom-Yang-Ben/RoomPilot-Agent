@@ -3,12 +3,11 @@ import os
 from pathlib import Path
 
 import psycopg2
-from psycopg2.extras import execute_values, Json
 from dotenv import load_dotenv
+from psycopg2.extras import Json, execute_values
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
 ENV_PATH = PROJECT_ROOT / ".env"
 CATALOG_PATH = PROJECT_ROOT / "data" / "processed" / "furniture_catalog.json"
 
@@ -16,11 +15,7 @@ load_dotenv(dotenv_path=ENV_PATH)
 
 
 def get_num(obj, *keys):
-    """
-    安全讀取巢狀數字欄位。
-    例如：
-    get_num(item, "size_cm", "width")
-    """
+    """從巢狀 dict 安全取出數值欄位；任一路徑不存在或不是 dict 就回傳 None。"""
     current = obj
 
     for key in keys:
@@ -32,10 +27,7 @@ def get_num(obj, *keys):
 
 
 def build_search_text(item):
-    """
-    建立之後 FastAPI / RAG 可以搜尋用的文字。
-    先把英文名、中文名、分類、顏色、材質串起來。
-    """
+    """把名稱、分類、顏色、材質等欄位串成搜尋文字，供 API/RAG 查詢使用。"""
     parts = [
         item.get("name", ""),
         item.get("chinese_name", ""),
@@ -50,6 +42,7 @@ def build_search_text(item):
 
 
 def connect_db():
+    """讀取 .env 裡的 PostgreSQL 設定並建立資料庫連線。"""
     conn = psycopg2.connect(
         host=os.getenv("DB_HOST", "localhost"),
         port=os.getenv("DB_PORT", "5432"),
@@ -62,14 +55,15 @@ def connect_db():
 
 
 def main():
+    """讀取 furniture_catalog.json，整理欄位後批次 upsert 到 furniture_items 資料表。"""
     if not CATALOG_PATH.exists():
-        raise FileNotFoundError(f"找不到檔案：{CATALOG_PATH}")
+        raise FileNotFoundError(f"找不到 catalog 檔案：{CATALOG_PATH}")
 
-    with open(CATALOG_PATH, "r", encoding="utf-8") as f:
-        items = json.load(f)
+    with CATALOG_PATH.open("r", encoding="utf-8") as file:
+        items = json.load(file)
 
     if not isinstance(items, list):
-        raise ValueError("furniture_catalog.json 最外層應該要是 list，也就是 []")
+        raise ValueError("furniture_catalog.json 必須是 list，也就是最外層要是 []。")
 
     rows = []
 
@@ -80,45 +74,33 @@ def main():
             item.get("sku"),
             item.get("catalog_id"),
             item.get("raw_id"),
-
             item.get("name"),
             item.get("chinese_name"),
-
             item.get("type"),
             item.get("category"),
             item.get("category_name_zh"),
             item.get("category_name_en"),
-
             get_num(item, "size_cm", "width"),
             get_num(item, "size_cm", "depth"),
             get_num(item, "size_cm", "height"),
-
             get_num(item, "collision_box_cm", "width"),
             get_num(item, "collision_box_cm", "depth"),
             get_num(item, "collision_box_cm", "height"),
-
             item.get("glb_path"),
-
             item.get("material"),
             item.get("color"),
-
             item.get("can_rotate", True),
             item.get("must_against_wall", False),
-
             position[0] if len(position) > 0 else 0,
             position[1] if len(position) > 1 else 0,
             item.get("rotation", 0),
-
             item.get("project_id"),
             item.get("dataset_title"),
             item.get("source_json"),
-
-            [],  # style_tags：之後再補，例如 ["北歐風", "簡約風"]
-            [],  # room_tags：之後再補，例如 ["客廳", "臥室"]
-
+            [],
+            [],
             build_search_text(item),
-
-            Json(item),  # raw_data：完整保留原始 JSON
+            Json(item),
         )
 
         rows.append(row)
@@ -216,23 +198,12 @@ def main():
     try:
         with conn:
             with conn.cursor() as cur:
-                execute_values(
-                    cur,
-                    insert_sql,
-                    rows,
-                    page_size=500
-                )
-
+                execute_values(cur, insert_sql, rows, page_size=500)
                 cur.execute("SELECT COUNT(*) FROM furniture_items;")
                 count = cur.fetchone()[0]
 
         print(f"匯入完成：{len(rows)} 筆")
-        print(f"資料庫 furniture_items 目前總筆數：{count}")
-
-        if count == 1508:
-            print("確認成功：SELECT COUNT(*) = 1508")
-        else:
-            print("注意：筆數不是 1508，請檢查是否有舊資料或匯入檔案不同。")
+        print(f"furniture_items 目前總筆數：{count}")
 
     finally:
         conn.close()

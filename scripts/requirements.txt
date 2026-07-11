@@ -1,0 +1,6 @@
+# Python 3.10+ is required.
+# The scripts below otherwise use only the Python standard library.
+
+# import_catalog_to_postgres.py
+psycopg2-binary>=2.9,<3
+python-dotenv>=1.0,<2

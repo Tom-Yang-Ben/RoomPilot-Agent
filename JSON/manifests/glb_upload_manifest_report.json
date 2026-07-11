@@ -1,0 +1,60 @@
+{
+  "manifest_version": "1.0",
+  "project_root": "D:\\個人抓抓",
+  "json_root": "D:\\個人抓抓\\JSON",
+  "output": "D:\\個人抓抓\\JSON\\glb_upload_manifest.csv",
+  "s3_prefix": "models",
+  "calculate_sha256": false,
+  "total_rows": 10550,
+  "validation_status_counts": {
+    "ready": 10550
+  },
+  "source_counts": {
+    "ikea": 3055,
+    "abo": 7363,
+    "sf": 132
+  },
+  "catalog_counts": {
+    "ikea_appliance": 113,
+    "ikea_furniture": 2942,
+    "abo_furniture": 7363,
+    "sketchfab_appliance": 132
+  },
+  "ready_file_size_bytes": 165404807620,
+  "duplicate_counts": {
+    "item_id": 0,
+    "original_glb_path": 0,
+    "object_key": 0
+  },
+  "catalog_checks": [
+    {
+      "file": "D:\\個人抓抓\\JSON\\家具JSON\\已含RAG風格(IKEA)\\新JSON\\IKEA_fi_appliance_catalog.normalized.json",
+      "catalog": "ikea_appliance",
+      "declared_count": 113,
+      "actual_count": 113,
+      "count_matches": true
+    },
+    {
+      "file": "D:\\個人抓抓\\JSON\\家具JSON\\已含RAG風格(IKEA)\\新JSON\\IKEA_fi_jp_tw_furniture_catalog.normalized.json",
+      "catalog": "ikea_furniture",
+      "declared_count": 2942,
+      "actual_count": 2942,
+      "count_matches": true
+    },
+    {
+      "file": "D:\\個人抓抓\\JSON\\家具JSON\\已含RAG風格(非IKEA)\\新JSON\\ABO_furniture_catalog.normalized.json",
+      "catalog": "abo_furniture",
+      "declared_count": 7363,
+      "actual_count": 7363,
+      "count_matches": true
+    },
+    {
+      "file": "D:\\個人抓抓\\JSON\\家具JSON\\已含RAG風格(非IKEA)\\新JSON\\Sketchfab_appliance_catalog.normalized.json",
+      "catalog": "sketchfab_appliance",
+      "declared_count": 132,
+      "actual_count": 132,
+      "count_matches": true
+    }
+  ],
+  "error_examples": {}
+}

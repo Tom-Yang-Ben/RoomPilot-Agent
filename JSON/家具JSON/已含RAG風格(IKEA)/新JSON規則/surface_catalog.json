@@ -1,0 +1,2182 @@
+{
+  "schema_version": "1.1",
+  "version": "2026-07-08-material-surface-from-furniture",
+  "notes_zh": "牆面／地板維持程式生成；本 catalog 由 未含RAG風格(IKEA)/原JSON 家具用料歸納出的材質面板，依 12 種風格規則配置 suitable_styles，供風格材質搭配參考。",
+  "surfaces": [
+    {
+      "surface_id": "mat_wood__1",
+      "name_zh": "木材",
+      "material_group": "木材",
+      "category": "wood",
+      "color_zh": "米色",
+      "color_hex": "#bd8a5d",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "木材材質，常見於北歐風、日系簡約 / 無印風、美式鄉村風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_wood",
+      "source_material_family": "wood",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 157"
+    },
+    {
+      "surface_id": "mat_glass__1",
+      "name_zh": "玻璃",
+      "material_group": "玻璃",
+      "category": "glass",
+      "color_zh": "白色",
+      "color_hex": "#cfe0e6",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "modern",
+        "nordic_modern",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "玻璃材質，常見於現代簡約風、北歐現代風、輕奢風、古典風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_glass",
+      "source_material_family": "glass",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 90"
+    },
+    {
+      "surface_id": "mat_oak-wood",
+      "name_zh": "橡木、木材",
+      "material_group": "橡木、木材",
+      "category": "other",
+      "color_zh": "米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "nordic_modern",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "橡木、木材材質，常見於北歐風、日系簡約 / 無印風、北歐現代風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_oak-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 70"
+    },
+    {
+      "surface_id": "mat_solid-wood-oak-leather-wood",
+      "name_zh": "實木、橡木、木皮、木材、皮革",
+      "material_group": "實木、橡木、木皮、木材、皮革",
+      "category": "other",
+      "color_zh": "白色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "nordic_modern",
+        "melad",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "實木、橡木、木皮、木材、皮革材質，常見於北歐風、日系簡約 / 無印風、北歐現代風、美拉德風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_solid-wood-oak-leather-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 69"
+    },
+    {
+      "surface_id": "mat_metal",
+      "name_zh": "金屬",
+      "material_group": "金屬",
+      "category": "metal",
+      "color_zh": "棕色",
+      "color_hex": "#9aa0a6",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "modern",
+        "nordic_modern",
+        "industrial",
+        "eclectic"
+      ],
+      "style_notes_zh": "金屬材質，常見於現代簡約風、北歐現代風、工業風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_metal",
+      "source_material_family": "metal",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 57"
+    },
+    {
+      "surface_id": "mat_pine-wood__1",
+      "name_zh": "松木、木材",
+      "material_group": "松木、木材",
+      "category": "other",
+      "color_zh": "松木色、木色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "松木、木材材質，常見於北歐風、日系簡約 / 無印風、美式鄉村風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_pine-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 45"
+    },
+    {
+      "surface_id": "mat_fabric__1",
+      "name_zh": "布料",
+      "material_group": "布料",
+      "category": "fabric",
+      "color_zh": "灰色",
+      "color_hex": "#c8bdae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian"
+      ],
+      "style_notes_zh": "布料材質，常見於北歐風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_fabric",
+      "source_material_family": "fabric",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 28"
+    },
+    {
+      "surface_id": "mat_walnut-wood__1",
+      "name_zh": "胡桃木、木材",
+      "material_group": "胡桃木、木材",
+      "category": "other",
+      "color_zh": "棕色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "melad",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "胡桃木、木材材質，常見於北歐風、日系簡約 / 無印風、美拉德風、美式鄉村風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_walnut-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 26"
+    },
+    {
+      "surface_id": "mat_solid-wood-leather-wood__1",
+      "name_zh": "實木、樺木、木皮、木材、皮革",
+      "material_group": "實木、樺木、木皮、木材、皮革",
+      "category": "other",
+      "color_zh": "米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "melad",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "實木、樺木、木皮、木材、皮革材質，常見於北歐風、日系簡約 / 無印風、美拉德風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_solid-wood-leather-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 24"
+    },
+    {
+      "surface_id": "mat_stainless-steel-steel__1",
+      "name_zh": "不鏽鋼、鋼",
+      "material_group": "不鏽鋼、鋼",
+      "category": "other",
+      "color_zh": "灰色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "industrial"
+      ],
+      "style_notes_zh": "不鏽鋼、鋼材質，常見於工業風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_stainless-steel-steel",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 20"
+    },
+    {
+      "surface_id": "mat_bamboo",
+      "name_zh": "竹",
+      "material_group": "竹",
+      "category": "wood",
+      "color_zh": "米色",
+      "color_hex": "#bd8a5d",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "竹材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_",
+      "source_material_family": "wood",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 19"
+    },
+    {
+      "surface_id": "mat_wood__2",
+      "name_zh": "樺木、木材",
+      "material_group": "樺木、木材",
+      "category": "other",
+      "color_zh": "米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "樺木、木材材質，常見於北歐風、日系簡約 / 無印風、美式鄉村風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 18"
+    },
+    {
+      "surface_id": "mat_solid-wood-leather-wood__2",
+      "name_zh": "實木、木皮、木材、皮革",
+      "material_group": "實木、木皮、木材、皮革",
+      "category": "other",
+      "color_zh": "黑色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "melad",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "實木、木皮、木材、皮革材質，常見於北歐風、日系簡約 / 無印風、美拉德風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_solid-wood-leather-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 15"
+    },
+    {
+      "surface_id": "mat_solid-wood-walnut-leather-wood",
+      "name_zh": "實木、胡桃木、木皮、木材、皮革",
+      "material_group": "實木、胡桃木、木皮、木材、皮革",
+      "category": "other",
+      "color_zh": "黑色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "melad",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "實木、胡桃木、木皮、木材、皮革材質，常見於北歐風、日系簡約 / 無印風、美拉德風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_solid-wood-walnut-leather-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 14"
+    },
+    {
+      "surface_id": "mat_oak-glass-wood",
+      "name_zh": "橡木、木材、玻璃",
+      "material_group": "橡木、木材、玻璃",
+      "category": "other",
+      "color_zh": "白色、棕色、米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "modern",
+        "minimalist_muji",
+        "nordic_modern",
+        "american",
+        "american_country",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "橡木、木材、玻璃材質，常見於北歐風、現代簡約風、日系簡約 / 無印風、北歐現代風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_oak-glass-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 13"
+    },
+    {
+      "surface_id": "mat_brass",
+      "name_zh": "黃銅",
+      "material_group": "黃銅",
+      "category": "metal",
+      "color_zh": "黃色",
+      "color_hex": "#9aa0a6",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "light_luxury"
+      ],
+      "style_notes_zh": "黃銅材質，常見於輕奢風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_brass",
+      "source_material_family": "metal",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 13"
+    },
+    {
+      "surface_id": "mat_rattan",
+      "name_zh": "藤",
+      "material_group": "藤",
+      "category": "rattan",
+      "color_zh": "米色",
+      "color_hex": "#c9a56a",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "wabi_sabi",
+        "melad"
+      ],
+      "style_notes_zh": "藤材質，常見於日式侘寂風、美拉德風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_rattan",
+      "source_material_family": "rattan",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 11"
+    },
+    {
+      "surface_id": "mat_nickel",
+      "name_zh": "鎳",
+      "material_group": "鎳",
+      "category": "metal",
+      "color_zh": "灰色",
+      "color_hex": "#9aa0a6",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "鎳材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_",
+      "source_material_family": "metal",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 10"
+    },
+    {
+      "surface_id": "mat_chrome",
+      "name_zh": "鍍鉻",
+      "material_group": "鍍鉻",
+      "category": "metal",
+      "color_zh": "灰色",
+      "color_hex": "#9aa0a6",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "鍍鉻材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_",
+      "source_material_family": "metal",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 9"
+    },
+    {
+      "surface_id": "mat_wood__3",
+      "name_zh": "樺木",
+      "material_group": "樺木",
+      "category": "wood",
+      "color_zh": "米色",
+      "color_hex": "#bd8a5d",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "樺木材質，常見於北歐風、日系簡約 / 無印風、美式鄉村風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_wood",
+      "source_material_family": "wood",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 8"
+    },
+    {
+      "surface_id": "mat_walnut-glass-wood",
+      "name_zh": "胡桃木、木材、玻璃",
+      "material_group": "胡桃木、木材、玻璃",
+      "category": "other",
+      "color_zh": "棕色、胡桃色、木色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "modern",
+        "minimalist_muji",
+        "nordic_modern",
+        "melad",
+        "american_country",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "胡桃木、木材、玻璃材質，常見於北歐風、現代簡約風、日系簡約 / 無印風、北歐現代風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_walnut-glass-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 7"
+    },
+    {
+      "surface_id": "mat_solid-wood-oak-leather-glass-wood",
+      "name_zh": "實木、橡木、木皮、木材、皮革、玻璃",
+      "material_group": "實木、橡木、木皮、木材、皮革、玻璃",
+      "category": "other",
+      "color_zh": "橡木色、木色、透明",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "modern",
+        "minimalist_muji",
+        "nordic_modern",
+        "melad",
+        "american",
+        "american_country",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "實木、橡木、木皮、木材、皮革、玻璃材質，常見於北歐風、現代簡約風、日系簡約 / 無印風、北歐現代風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_solid-wood-oak-leather-glass-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 7"
+    },
+    {
+      "surface_id": "mat_rattan-plastic",
+      "name_zh": "藤、塑膠",
+      "material_group": "藤、塑膠",
+      "category": "other",
+      "color_zh": "深灰色、灰色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "wabi_sabi",
+        "melad"
+      ],
+      "style_notes_zh": "藤、塑膠材質，常見於日式侘寂風、美拉德風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_rattan-plastic",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 5"
+    },
+    {
+      "surface_id": "mat_wood__4",
+      "name_zh": "相思木、木材",
+      "material_group": "相思木、木材",
+      "category": "other",
+      "color_zh": "木色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "相思木、木材材質，常見於北歐風、日系簡約 / 無印風、美式鄉村風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 5"
+    },
+    {
+      "surface_id": "mat_pine-wood__2",
+      "name_zh": "夾板、松木、木材",
+      "material_group": "夾板、松木、木材",
+      "category": "other",
+      "color_zh": "黑色、米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "夾板、松木、木材材質，常見於北歐風、日系簡約 / 無印風、美式鄉村風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_pine-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 5"
+    },
+    {
+      "surface_id": "mat_walnut-wood__2",
+      "name_zh": "胡桃木",
+      "material_group": "胡桃木",
+      "category": "wood",
+      "color_zh": "棕色",
+      "color_hex": "#bd8a5d",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "melad",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "胡桃木材質，常見於北歐風、日系簡約 / 無印風、美拉德風、美式鄉村風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_walnut-wood",
+      "source_material_family": "wood",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 5"
+    },
+    {
+      "surface_id": "mat_solid-wood-leather-wood__3",
+      "name_zh": "實木、櫸木、木皮、木材、皮革",
+      "material_group": "實木、櫸木、木皮、木材、皮革",
+      "category": "other",
+      "color_zh": "棕色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "melad",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "實木、櫸木、木皮、木材、皮革材質，常見於北歐風、日系簡約 / 無印風、美拉德風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_solid-wood-leather-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 4"
+    },
+    {
+      "surface_id": "mat_wood__5",
+      "name_zh": "櫸木",
+      "material_group": "櫸木",
+      "category": "wood",
+      "color_zh": "米色",
+      "color_hex": "#bd8a5d",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "櫸木材質，常見於北歐風、日系簡約 / 無印風、美式鄉村風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_wood",
+      "source_material_family": "wood",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 4"
+    },
+    {
+      "surface_id": "mat_wood__6",
+      "name_zh": "相思木",
+      "material_group": "相思木",
+      "category": "wood",
+      "color_zh": "棕色",
+      "color_hex": "#bd8a5d",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "相思木材質，常見於北歐風、日系簡約 / 無印風、美式鄉村風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_wood",
+      "source_material_family": "wood",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 4"
+    },
+    {
+      "surface_id": "mat_fabric-brass",
+      "name_zh": "布料、黃銅",
+      "material_group": "布料、黃銅",
+      "category": "other",
+      "color_zh": "白色、黃色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "light_luxury"
+      ],
+      "style_notes_zh": "布料、黃銅材質，常見於北歐風、輕奢風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_fabric-brass",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 3"
+    },
+    {
+      "surface_id": "mat_brass-glass",
+      "name_zh": "黃銅、玻璃",
+      "material_group": "黃銅、玻璃",
+      "category": "other",
+      "color_zh": "黃色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "modern",
+        "nordic_modern",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "黃銅、玻璃材質，常見於現代簡約風、北歐現代風、輕奢風、古典風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_brass-glass",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 3"
+    },
+    {
+      "surface_id": "mat_ceramic__1",
+      "name_zh": "陶瓷",
+      "material_group": "陶瓷",
+      "category": "ceramic",
+      "color_zh": "灰色、米色、青綠色",
+      "color_hex": "#d8cfc4",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "陶瓷材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_ceramic",
+      "source_material_family": "ceramic",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 3"
+    },
+    {
+      "surface_id": "mat_water_hyacinth",
+      "name_zh": "水葫蘆",
+      "material_group": "水葫蘆",
+      "category": "rattan",
+      "color_zh": "米色",
+      "color_hex": "#c9a56a",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "水葫蘆材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_",
+      "source_material_family": "rattan",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 3"
+    },
+    {
+      "surface_id": "mat_oak-leather-wood__1",
+      "name_zh": "橡木、木皮、木材",
+      "material_group": "橡木、木皮、木材",
+      "category": "other",
+      "color_zh": "白色、棕色、米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "nordic_modern",
+        "melad",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "橡木、木皮、木材材質，常見於北歐風、日系簡約 / 無印風、北歐現代風、美拉德風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_oak-leather-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_leather-fabric-faux-fur",
+      "name_zh": "皮革、布料、人造毛皮",
+      "material_group": "皮革、布料、人造毛皮",
+      "category": "other",
+      "color_zh": "紅色、粉色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "melad",
+        "american"
+      ],
+      "style_notes_zh": "皮革、布料、人造毛皮材質，常見於北歐風、美拉德風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_leather-fabric-faux-fur",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_leather__1",
+      "name_zh": "皮革、羊皮",
+      "material_group": "皮革、羊皮",
+      "category": "other",
+      "color_zh": "棕色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "melad",
+        "american"
+      ],
+      "style_notes_zh": "皮革、羊皮材質，常見於美拉德風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_leather",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_cotton__1",
+      "name_zh": "棉、泡棉",
+      "material_group": "棉、泡棉",
+      "category": "other",
+      "color_zh": "藍色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "棉、泡棉材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_cotton",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_glass__2",
+      "name_zh": "鍍鉻、玻璃",
+      "material_group": "鍍鉻、玻璃",
+      "category": "other",
+      "color_zh": "白色、灰色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "modern",
+        "nordic_modern",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "鍍鉻、玻璃材質，常見於現代簡約風、北歐現代風、輕奢風、古典風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_glass",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_ceramic__2",
+      "name_zh": "陶瓷、陶土",
+      "material_group": "陶瓷、陶土",
+      "category": "other",
+      "color_zh": "棕色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "陶瓷、陶土材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_ceramic",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_cotton__2",
+      "name_zh": "泡棉",
+      "material_group": "泡棉",
+      "category": "fabric",
+      "color_zh": "白色",
+      "color_hex": "#c8bdae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "泡棉材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_cotton",
+      "source_material_family": "fabric",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_metal-wood",
+      "name_zh": "木材、金屬",
+      "material_group": "木材、金屬",
+      "category": "other",
+      "color_zh": "棕色、米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "modern",
+        "minimalist_muji",
+        "nordic_modern",
+        "industrial",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "木材、金屬材質，常見於北歐風、現代簡約風、日系簡約 / 無印風、北歐現代風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_metal-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_glass-wood",
+      "name_zh": "木材、玻璃",
+      "material_group": "木材、玻璃",
+      "category": "other",
+      "color_zh": "白色、棕色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "modern",
+        "minimalist_muji",
+        "nordic_modern",
+        "american_country",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "木材、玻璃材質，常見於北歐風、現代簡約風、日系簡約 / 無印風、北歐現代風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_glass-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_metal-plastic",
+      "name_zh": "金屬、塑膠",
+      "material_group": "金屬、塑膠",
+      "category": "other",
+      "color_zh": "黑色、灰色、米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "modern",
+        "nordic_modern",
+        "industrial",
+        "eclectic"
+      ],
+      "style_notes_zh": "金屬、塑膠材質，常見於現代簡約風、北歐現代風、工業風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_metal-plastic",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_leather__2",
+      "name_zh": "皮革",
+      "material_group": "皮革",
+      "category": "leather",
+      "color_zh": "橡木色、木色",
+      "color_hex": "#8a5a3c",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "melad",
+        "american"
+      ],
+      "style_notes_zh": "皮革材質，常見於美拉德風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_leather",
+      "source_material_family": "leather",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 2"
+    },
+    {
+      "surface_id": "mat_stainless-steel-steel-glass",
+      "name_zh": "不鏽鋼、鋼、玻璃",
+      "material_group": "不鏽鋼、鋼、玻璃",
+      "category": "other",
+      "color_zh": "灰色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "modern",
+        "nordic_modern",
+        "industrial",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "不鏽鋼、鋼、玻璃材質，常見於現代簡約風、北歐現代風、工業風、輕奢風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_stainless-steel-steel-glass",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_metal-glass",
+      "name_zh": "金屬、玻璃",
+      "material_group": "金屬、玻璃",
+      "category": "other",
+      "color_zh": "白色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "modern",
+        "nordic_modern",
+        "industrial",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "金屬、玻璃材質，常見於現代簡約風、北歐現代風、工業風、輕奢風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_metal-glass",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_stainless-steel-steel__2",
+      "name_zh": "竹、不鏽鋼、鋼",
+      "material_group": "竹、不鏽鋼、鋼",
+      "category": "other",
+      "color_zh": "灰色、米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "industrial"
+      ],
+      "style_notes_zh": "竹、不鏽鋼、鋼材質，常見於工業風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_stainless-steel-steel",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_marble-stone__1",
+      "name_zh": "大理石、石材",
+      "material_group": "大理石、石材",
+      "category": "other",
+      "color_zh": "綠色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "大理石、石材材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_marble-stone",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_solid-wood-walnut-leather-metal-wood",
+      "name_zh": "實木、胡桃木、木皮、木材、皮革、金屬",
+      "material_group": "實木、胡桃木、木皮、木材、皮革、金屬",
+      "category": "other",
+      "color_zh": "黑色、灰色、棕色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "modern",
+        "minimalist_muji",
+        "nordic_modern",
+        "industrial",
+        "melad",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "實木、胡桃木、木皮、木材、皮革、金屬材質，常見於北歐風、現代簡約風、日系簡約 / 無印風、北歐現代風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_solid-wood-walnut-leather-metal-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_fabric__2",
+      "name_zh": "布料、鎳",
+      "material_group": "布料、鎳",
+      "category": "other",
+      "color_zh": "鎳色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian"
+      ],
+      "style_notes_zh": "布料、鎳材質，常見於北歐風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_fabric",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_glass__3",
+      "name_zh": "鎳、玻璃",
+      "material_group": "鎳、玻璃",
+      "category": "other",
+      "color_zh": "灰色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "modern",
+        "nordic_modern",
+        "light_luxury",
+        "classical",
+        "eclectic"
+      ],
+      "style_notes_zh": "鎳、玻璃材質，常見於現代簡約風、北歐現代風、輕奢風、古典風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_glass",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_seagrass_water_hyacinth",
+      "name_zh": "海草、水葫蘆",
+      "material_group": "海草、水葫蘆",
+      "category": "other",
+      "color_zh": "米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "海草、水葫蘆材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_plastic",
+      "name_zh": "塑膠",
+      "material_group": "塑膠",
+      "category": "plastic",
+      "color_zh": "米色",
+      "color_hex": "#d0d0d0",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "塑膠材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_plastic",
+      "source_material_family": "plastic",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_aluminium__1",
+      "name_zh": "鋁",
+      "material_group": "鋁",
+      "category": "metal",
+      "color_zh": "灰色",
+      "color_hex": "#9aa0a6",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "鋁材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_aluminium",
+      "source_material_family": "metal",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_marble-stone__2",
+      "name_zh": "大理石",
+      "material_group": "大理石",
+      "category": "stone",
+      "color_zh": "黑色",
+      "color_hex": "#b9b2a7",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "大理石材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_marble-stone",
+      "source_material_family": "stone",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_seagrass",
+      "name_zh": "海草",
+      "material_group": "海草",
+      "category": "rattan",
+      "color_zh": "米色",
+      "color_hex": "#c9a56a",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "海草材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_",
+      "source_material_family": "rattan",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_wood__7",
+      "name_zh": "軟木",
+      "material_group": "軟木",
+      "category": "wood",
+      "color_zh": "棕色",
+      "color_hex": "#bd8a5d",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "軟木材質，常見於北歐風、日系簡約 / 無印風、美式鄉村風、混搭風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_wood",
+      "source_material_family": "wood",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_aluminium__2",
+      "name_zh": "鋁、鍍鉻",
+      "material_group": "鋁、鍍鉻",
+      "category": "other",
+      "color_zh": "灰色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "鋁、鍍鉻材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_aluminium",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_leather-wood",
+      "name_zh": "木材、皮革",
+      "material_group": "木材、皮革",
+      "category": "other",
+      "color_zh": "棕色、米色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "melad",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "木材、皮革材質，常見於北歐風、日系簡約 / 無印風、美拉德風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_leather-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_leather-faux-fur",
+      "name_zh": "皮革、人造毛皮",
+      "material_group": "皮革、人造毛皮",
+      "category": "other",
+      "color_zh": "藍色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "melad",
+        "american"
+      ],
+      "style_notes_zh": "皮革、人造毛皮材質，常見於美拉德風、美式風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_leather-faux-fur",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_velvet",
+      "name_zh": "絲絨",
+      "material_group": "絲絨",
+      "category": "fabric",
+      "color_zh": "紅色",
+      "color_hex": "#c8bdae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [],
+      "style_notes_zh": "絲絨材質，常見於多種等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_velvet",
+      "source_material_family": "fabric",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    },
+    {
+      "surface_id": "mat_oak-leather-wood__2",
+      "name_zh": "橡木、木皮、木材、皮革",
+      "material_group": "橡木、木皮、木材、皮革",
+      "category": "other",
+      "color_zh": "棕色",
+      "color_hex": "#c4bcae",
+      "usage": [
+        "furniture_material"
+      ],
+      "texture_url": "",
+      "preview_url": "",
+      "repeat": {},
+      "suitable_styles": [
+        "scandinavian",
+        "minimalist_muji",
+        "nordic_modern",
+        "melad",
+        "american",
+        "american_country",
+        "eclectic"
+      ],
+      "style_notes_zh": "橡木、木皮、木材、皮革材質，常見於北歐風、日系簡約 / 無印風、北歐現代風、美拉德風等風格的家具用料。",
+      "source_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_json_zip": "未含RAG風格(IKEA)/原JSON",
+      "source_path": "",
+      "source_material_id": "mat_oak-leather-wood",
+      "source_material_family": "other",
+      "source_license_status": "catalog_derived",
+      "source_product_url": "",
+      "source_size": "樣本數 1"
+    }
+  ],
+  "style_surface_profiles": {
+    "scandinavian": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_wood__1",
+        "mat_wood__2",
+        "mat_wood__3",
+        "mat_wood__4",
+        "mat_wood__5",
+        "mat_wood__6",
+        "mat_wood__7",
+        "mat_oak-wood",
+        "mat_solid-wood-oak-leather-wood",
+        "mat_pine-wood__1",
+        "mat_pine-wood__2",
+        "mat_fabric__1",
+        "mat_fabric__2",
+        "mat_walnut-wood__1",
+        "mat_walnut-wood__2",
+        "mat_solid-wood-leather-wood__1",
+        "mat_solid-wood-leather-wood__2",
+        "mat_solid-wood-leather-wood__3",
+        "mat_solid-wood-walnut-leather-wood",
+        "mat_oak-glass-wood",
+        "mat_walnut-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_fabric-brass",
+        "mat_oak-leather-wood__1",
+        "mat_oak-leather-wood__2",
+        "mat_leather-fabric-faux-fur",
+        "mat_metal-wood",
+        "mat_glass-wood",
+        "mat_solid-wood-walnut-leather-metal-wood",
+        "mat_leather-wood"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 北歐風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "modern": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_glass__1",
+        "mat_glass__2",
+        "mat_glass__3",
+        "mat_metal",
+        "mat_oak-glass-wood",
+        "mat_walnut-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_brass-glass",
+        "mat_metal-wood",
+        "mat_glass-wood",
+        "mat_metal-plastic",
+        "mat_stainless-steel-steel-glass",
+        "mat_metal-glass",
+        "mat_solid-wood-walnut-leather-metal-wood"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 現代簡約風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "eclectic": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_wood__1",
+        "mat_wood__2",
+        "mat_wood__3",
+        "mat_wood__4",
+        "mat_wood__5",
+        "mat_wood__6",
+        "mat_wood__7",
+        "mat_glass__1",
+        "mat_glass__2",
+        "mat_glass__3",
+        "mat_oak-wood",
+        "mat_solid-wood-oak-leather-wood",
+        "mat_metal",
+        "mat_pine-wood__1",
+        "mat_pine-wood__2",
+        "mat_walnut-wood__1",
+        "mat_walnut-wood__2",
+        "mat_solid-wood-leather-wood__1",
+        "mat_solid-wood-leather-wood__2",
+        "mat_solid-wood-leather-wood__3",
+        "mat_solid-wood-walnut-leather-wood",
+        "mat_oak-glass-wood",
+        "mat_walnut-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_brass-glass",
+        "mat_oak-leather-wood__1",
+        "mat_oak-leather-wood__2",
+        "mat_metal-wood",
+        "mat_glass-wood",
+        "mat_metal-plastic",
+        "mat_stainless-steel-steel-glass",
+        "mat_metal-glass",
+        "mat_solid-wood-walnut-leather-metal-wood",
+        "mat_leather-wood"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 混搭風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "nordic_modern": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_glass__1",
+        "mat_glass__2",
+        "mat_glass__3",
+        "mat_oak-wood",
+        "mat_solid-wood-oak-leather-wood",
+        "mat_metal",
+        "mat_oak-glass-wood",
+        "mat_walnut-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_brass-glass",
+        "mat_oak-leather-wood__1",
+        "mat_oak-leather-wood__2",
+        "mat_metal-wood",
+        "mat_glass-wood",
+        "mat_metal-plastic",
+        "mat_stainless-steel-steel-glass",
+        "mat_metal-glass",
+        "mat_solid-wood-walnut-leather-metal-wood"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 北歐現代風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "melad": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_solid-wood-oak-leather-wood",
+        "mat_walnut-wood__1",
+        "mat_walnut-wood__2",
+        "mat_solid-wood-leather-wood__1",
+        "mat_solid-wood-leather-wood__2",
+        "mat_solid-wood-leather-wood__3",
+        "mat_solid-wood-walnut-leather-wood",
+        "mat_rattan",
+        "mat_walnut-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_rattan-plastic",
+        "mat_oak-leather-wood__1",
+        "mat_oak-leather-wood__2",
+        "mat_leather-fabric-faux-fur",
+        "mat_leather__1",
+        "mat_leather__2",
+        "mat_solid-wood-walnut-leather-metal-wood",
+        "mat_leather-wood",
+        "mat_leather-faux-fur"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 美拉德風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "minimalist_muji": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_wood__1",
+        "mat_wood__2",
+        "mat_wood__3",
+        "mat_wood__4",
+        "mat_wood__5",
+        "mat_wood__6",
+        "mat_wood__7",
+        "mat_oak-wood",
+        "mat_solid-wood-oak-leather-wood",
+        "mat_pine-wood__1",
+        "mat_pine-wood__2",
+        "mat_walnut-wood__1",
+        "mat_walnut-wood__2",
+        "mat_solid-wood-leather-wood__1",
+        "mat_solid-wood-leather-wood__2",
+        "mat_solid-wood-leather-wood__3",
+        "mat_solid-wood-walnut-leather-wood",
+        "mat_oak-glass-wood",
+        "mat_walnut-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_oak-leather-wood__1",
+        "mat_oak-leather-wood__2",
+        "mat_metal-wood",
+        "mat_glass-wood",
+        "mat_solid-wood-walnut-leather-metal-wood",
+        "mat_leather-wood"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 日系簡約 / 無印風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "american_country": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_wood__1",
+        "mat_wood__2",
+        "mat_wood__3",
+        "mat_wood__4",
+        "mat_wood__5",
+        "mat_wood__6",
+        "mat_wood__7",
+        "mat_oak-wood",
+        "mat_solid-wood-oak-leather-wood",
+        "mat_pine-wood__1",
+        "mat_pine-wood__2",
+        "mat_walnut-wood__1",
+        "mat_walnut-wood__2",
+        "mat_solid-wood-leather-wood__1",
+        "mat_solid-wood-leather-wood__2",
+        "mat_solid-wood-leather-wood__3",
+        "mat_solid-wood-walnut-leather-wood",
+        "mat_oak-glass-wood",
+        "mat_walnut-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_oak-leather-wood__1",
+        "mat_oak-leather-wood__2",
+        "mat_metal-wood",
+        "mat_glass-wood",
+        "mat_solid-wood-walnut-leather-metal-wood",
+        "mat_leather-wood"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 美式鄉村風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "industrial": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_metal",
+        "mat_stainless-steel-steel__1",
+        "mat_stainless-steel-steel__2",
+        "mat_metal-wood",
+        "mat_metal-plastic",
+        "mat_stainless-steel-steel-glass",
+        "mat_metal-glass",
+        "mat_solid-wood-walnut-leather-metal-wood"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 工業風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "american": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_oak-wood",
+        "mat_solid-wood-oak-leather-wood",
+        "mat_solid-wood-leather-wood__1",
+        "mat_solid-wood-leather-wood__2",
+        "mat_solid-wood-leather-wood__3",
+        "mat_solid-wood-walnut-leather-wood",
+        "mat_oak-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_oak-leather-wood__1",
+        "mat_oak-leather-wood__2",
+        "mat_leather-fabric-faux-fur",
+        "mat_leather__1",
+        "mat_leather__2",
+        "mat_solid-wood-walnut-leather-metal-wood",
+        "mat_leather-wood",
+        "mat_leather-faux-fur"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 美式風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "wabi_sabi": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_rattan",
+        "mat_rattan-plastic"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 日式侘寂風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "light_luxury": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_glass__1",
+        "mat_glass__2",
+        "mat_glass__3",
+        "mat_oak-glass-wood",
+        "mat_brass",
+        "mat_walnut-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_fabric-brass",
+        "mat_brass-glass",
+        "mat_glass-wood",
+        "mat_stainless-steel-steel-glass",
+        "mat_metal-glass"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 輕奢風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    },
+    "classical": {
+      "default_wall_surface_id": "auto",
+      "default_floor_surface_id": "auto",
+      "wall_surface_ids": [],
+      "floor_surface_ids": [],
+      "material_surface_ids": [
+        "mat_glass__1",
+        "mat_glass__2",
+        "mat_glass__3",
+        "mat_oak-glass-wood",
+        "mat_walnut-glass-wood",
+        "mat_solid-wood-oak-leather-glass-wood",
+        "mat_brass-glass",
+        "mat_glass-wood",
+        "mat_stainless-steel-steel-glass",
+        "mat_metal-glass"
+      ],
+      "surface_pairings": [
+        {
+          "label_zh": "程式牆面 + 古典風建議材質",
+          "wall": "auto",
+          "floor": "auto"
+        }
+      ]
+    }
+  },
+  "stats": {
+    "surface_count": 62,
+    "by_category": {
+      "other": 39,
+      "wood": 7,
+      "metal": 5,
+      "fabric": 3,
+      "rattan": 3,
+      "glass": 1,
+      "ceramic": 1,
+      "leather": 1,
+      "plastic": 1,
+      "stone": 1
+    },
+    "style_pool_counts": {
+      "scandinavian": 30,
+      "modern": 14,
+      "eclectic": 34,
+      "nordic_modern": 18,
+      "melad": 19,
+      "minimalist_muji": 26,
+      "american_country": 26,
+      "industrial": 8,
+      "american": 16,
+      "wabi_sabi": 2,
+      "light_luxury": 12,
+      "classical": 10
+    }
+  }
+}
