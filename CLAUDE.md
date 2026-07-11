@@ -29,7 +29,7 @@ Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras:
 ## Architecture invariants(違反前先想清楚)
 
 - **家具座標只有 `roompilot.engine` 能算。** `scene_service.generate_layout` 的類型錨點只是候選順序,合法性由 `check_placement_with_clearance` 把關;放不下回報 `placement.failed`,不硬塞。前端 `scene.js` 的 `reflowSceneObjects` 打 `/api/scene/layout`,不做本地擺放。
-- **單位**:Python 一律公尺。公分只在兩個邊界:`catalog/style_db.py`(資料庫 cm→m)與 payload 的 `position_cm`/`size_cm`(前端契約)。
+- **單位**(2026-07-11 公分化):引擎與 Python 業務層一律**公分**;`engine/dxf_room.py` 是「公尺→公分」的唯一邊界(上游 `dxf_parser` 維持公尺)。payload 的 `position_cm`/`size_cm` 公分;但 payload 的 `wall/window/door segments` 與 `room_regions` 維持**公尺**(three.js 契約),轉換集中在 `scene_service.py`。
 - **座標系**:引擎 `(x, y)` 角落原點,`pos_y` 是平面第二軸非高度;payload `position_cm` 是房間中心原點;`rotation_y_deg`(three.js)與引擎 rotation 方向相反,進出引擎取負號。轉換都在 `scene_service.py`。`testdata/json/` 的 cm 座標又是另一套(原點左下、y 向上,同 dxf_scale)——接前端時別直接混用。
 - **`check_placement` 命名陷阱**:`placement.py`/`adjustment.py` 把含淨空的 `check_placement_with_clearance` 別名成 `check_placement`;`geometry.check_placement` 只查本體。
 - 淨空(clearance)語意是「開門/抽拉空間」,只給收納類(見 `style_db.CLEARANCE_BY_TYPE` 的註解,沙發設淨空會誤殺茶几)。
