@@ -368,6 +368,7 @@ async def generate_scene(payload: dict) -> dict:
         "prefer_low_saturation": bool(payload.get("prefer_low_saturation", False)),
         "floorplan_filename": payload.get("floorplan_filename"),
         "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
+        "floorplan_scale_m": payload.get("floorplan_scale_m"),
         "wall_option": payload.get("wall_option", "auto"),
         "floor_option": payload.get("floor_option", "auto"),
         "furniture_random_seed": payload.get("furniture_random_seed"),

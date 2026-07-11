@@ -67,6 +67,16 @@ const elements = {
   floorplan: document.getElementById("floorplan"),
   personalNotes: document.getElementById("personal-notes"),
   keepWindowClear: document.getElementById("keep-window-clear"),
+  multiProposal: document.getElementById("multi-proposal"),
+  scaleCalibration: document.getElementById("scale-calibration"),
+  calibrationCanvas: document.getElementById("calibration-canvas"),
+  calibrationLength: document.getElementById("calibration-length"),
+  applyCalibration: document.getElementById("apply-calibration"),
+  resetCalibration: document.getElementById("reset-calibration"),
+  calibrationStatus: document.getElementById("calibration-status"),
+  proposalRow: document.getElementById("proposal-row"),
+  proposalTabs: document.getElementById("proposal-tabs"),
+  styleChips: document.getElementById("style-chips"),
   keepDoorClear: document.getElementById("keep-door-clear"),
   needStorage: document.getElementById("need-storage"),
   preferLowSaturation: document.getElementById("prefer-low-saturation"),
@@ -92,6 +102,14 @@ const viewer = createSceneViewer(elements.sceneViewerCanvas, elements.sceneStatu
 let uploadedDxfText = null;
 let furnitureRandomSeed = Date.now();
 let currentSceneData = null;
+
+// ── F2a 手動拉比例(兩點標定)+ 多方案 狀態 ──
+let floorplanScaleM = null;      // 校正後的全圖跨距(公尺);null = 交給解析器自動猜
+let calibrationParsed = null;    // /api/upload 回來的解析結果(目前比例下的公尺座標)
+let calibrationPoints = [];      // 使用者點的兩個世界座標點
+let calibrationTransform = null; // 畫布 ↔ 世界座標轉換
+let proposals = [];              // 多方案:同條件不同 seed 的場景陣列
+let activeProposalIndex = 0;
 
 const STYLE_SCENE_LOOKS = {
   scandinavian: { wall: "warm_white", floor: "light_oak" },
@@ -389,6 +407,228 @@ function updateSummary(sceneData) {
   }
 }
 
+// ── F2a 手動拉比例:上傳 DXF → 預覽 → 點兩點 → 輸入實際公分 → 覆寫比例 ──
+
+function drawCalibrationPreview() {
+  const canvas = elements.calibrationCanvas;
+  const context = canvas.getContext("2d");
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  if (!calibrationParsed) return;
+
+  const bbox = calibrationParsed.bbox;
+  const pad = 30;
+  const spanX = Math.max(bbox.maxx - bbox.minx, 0.01);
+  const spanZ = Math.max(bbox.maxz - bbox.minz, 0.01);
+  const scale = Math.min((canvas.width - pad * 2) / spanX, (canvas.height - pad * 2) / spanZ);
+  const originX = (canvas.width - spanX * scale) / 2;
+  const originY = (canvas.height - spanZ * scale) / 2;
+  calibrationTransform = {
+    toCanvas(x, z) {
+      return [originX + (x - bbox.minx) * scale, originY + (bbox.maxz - z) * scale];
+    },
+    toWorld(canvasX, canvasY) {
+      return {
+        x: bbox.minx + (canvasX - originX) / scale,
+        z: bbox.maxz - (canvasY - originY) / scale,
+      };
+    },
+  };
+
+  // 牆體(多邊形外環+洞)
+  context.strokeStyle = "#6b513b";
+  context.lineWidth = 1.6;
+  (calibrationParsed.wall_polys || []).forEach((poly) => {
+    [poly.exterior, ...(poly.holes || [])].filter(Boolean).forEach((ring) => {
+      if (ring.length < 2) return;
+      context.beginPath();
+      ring.forEach(([x, z], index) => {
+        const [cx, cy] = calibrationTransform.toCanvas(x, z);
+        if (index === 0) context.moveTo(cx, cy);
+        else context.lineTo(cx, cy);
+      });
+      context.closePath();
+      context.stroke();
+    });
+  });
+
+  const drawSegments = (segments, color) => {
+    context.strokeStyle = color;
+    context.lineWidth = 2.4;
+    (segments || []).forEach((segment) => {
+      context.beginPath();
+      context.moveTo(...calibrationTransform.toCanvas(segment.x1, segment.z1));
+      context.lineTo(...calibrationTransform.toCanvas(segment.x2, segment.z2));
+      context.stroke();
+    });
+  };
+  drawSegments(calibrationParsed.doors, "#b9773f");
+  drawSegments(calibrationParsed.windows, "#5b8aa6");
+
+  // 標定點與連線
+  calibrationPoints.forEach((point, index) => {
+    const [cx, cy] = calibrationTransform.toCanvas(point.x, point.z);
+    context.beginPath();
+    context.arc(cx, cy, 6, 0, Math.PI * 2);
+    context.fillStyle = "#b9773f";
+    context.fill();
+    context.strokeStyle = "#fff";
+    context.lineWidth = 2;
+    context.stroke();
+    context.fillStyle = "#3a2c22";
+    context.font = "bold 12px 'Noto Sans TC', sans-serif";
+    context.fillText(String(index + 1), cx + 9, cy - 8);
+  });
+  if (calibrationPoints.length === 2) {
+    const [a, b] = calibrationPoints;
+    context.beginPath();
+    context.moveTo(...calibrationTransform.toCanvas(a.x, a.z));
+    context.lineTo(...calibrationTransform.toCanvas(b.x, b.z));
+    context.strokeStyle = "#b9773f";
+    context.lineWidth = 2;
+    context.setLineDash([6, 4]);
+    context.stroke();
+    context.setLineDash([]);
+  }
+}
+
+function calibrationMeasuredMeters() {
+  if (calibrationPoints.length !== 2) return null;
+  const [a, b] = calibrationPoints;
+  return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
+function updateCalibrationStatus() {
+  const stats = calibrationParsed?.stats;
+  const measured = calibrationMeasuredMeters();
+  const dims = stats ? `目前解析寬 ${stats.width_m} m × 深 ${stats.depth_m} m(${calibrationParsed.scale_basis === "manual" ? "已手動校正" : "自動推測"})。` : "";
+  if (measured) {
+    elements.calibrationStatus.textContent =
+      `${dims} 兩點在目前比例下距離 ${(measured * 100).toFixed(1)} 公分 — 輸入實際公分後按「套用比例」。`;
+  } else {
+    elements.calibrationStatus.textContent =
+      `${dims} 請在圖上點兩個點(已點 ${calibrationPoints.length}/2)。`;
+  }
+}
+
+async function parseFloorplanPreview(file, scaleM = null) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const query = scaleM ? `?scale_m=${encodeURIComponent(scaleM)}` : "";
+  const response = await fetch(`/api/upload${query}`, { method: "POST", body: formData });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+async function onFloorplanFileChanged() {
+  const file = elements.floorplan.files?.[0];
+  calibrationPoints = [];
+  floorplanScaleM = null;
+  calibrationParsed = null;
+
+  if (!file || !file.name.toLowerCase().endsWith(".dxf")) {
+    elements.scaleCalibration.hidden = true;
+    return;
+  }
+
+  try {
+    uploadedDxfText = await file.text();
+    calibrationParsed = await parseFloorplanPreview(file);
+    elements.scaleCalibration.hidden = false;
+    drawCalibrationPreview();
+    updateCalibrationStatus();
+  } catch (error) {
+    console.error(error);
+    elements.scaleCalibration.hidden = true;
+    elements.sceneStatus.textContent = "DXF 預覽解析失敗,仍可直接生成(比例採自動推測)。";
+  }
+}
+
+async function applyCalibrationScale() {
+  const measured = calibrationMeasuredMeters();
+  const realCm = Number(elements.calibrationLength.value);
+  if (!calibrationParsed || !measured) {
+    elements.calibrationStatus.textContent = "請先在圖上點兩個點。";
+    return;
+  }
+  if (!Number.isFinite(realCm) || realCm < 10) {
+    elements.calibrationStatus.textContent = "請輸入合理的實際距離(至少 10 公分)。";
+    return;
+  }
+
+  // 距離校正因子 → 換算全圖長邊跨距,交給解析器的 scale_m 覆寫
+  const factor = realCm / 100 / measured;
+  floorplanScaleM = Math.round(calibrationParsed.scale_m * factor * 1000) / 1000;
+
+  try {
+    const file = elements.floorplan.files?.[0];
+    calibrationParsed = await parseFloorplanPreview(file, floorplanScaleM);
+    calibrationPoints = calibrationPoints.map((point) => ({ x: point.x * factor, z: point.z * factor }));
+    drawCalibrationPreview();
+    const stats = calibrationParsed.stats;
+    elements.calibrationStatus.textContent =
+      `✅ 已套用比例:全圖跨距 ${floorplanScaleM} m,寬 ${stats.width_m} m × 深 ${stats.depth_m} m。生成 3D 場景會用這個尺寸。`;
+  } catch (error) {
+    console.error(error);
+    elements.calibrationStatus.textContent = "套用比例後重新解析失敗,請重試。";
+  }
+}
+
+function resetCalibrationState() {
+  calibrationPoints = [];
+  floorplanScaleM = null;
+  elements.calibrationLength.value = "";
+  onFloorplanFileChanged();
+}
+
+// ── 多方案(方案 A/B/C)與風格套系切換 ──
+
+const PROPOSAL_LABELS = ["方案 A", "方案 B", "方案 C"];
+
+function renderProposalTabs() {
+  elements.proposalTabs.innerHTML = "";
+  elements.proposalRow.hidden = proposals.length <= 1;
+  proposals.forEach((_, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `secondary-action${index === activeProposalIndex ? " prominent" : ""}`;
+    button.textContent = PROPOSAL_LABELS[index] || `方案 ${index + 1}`;
+    button.addEventListener("click", () => switchProposal(index));
+    elements.proposalTabs.appendChild(button);
+  });
+}
+
+async function switchProposal(index) {
+  if (!proposals[index]) return;
+  activeProposalIndex = index;
+  currentSceneData = proposals[index];
+  renderProposalTabs();
+  await refreshCurrentScene(`已切換到${PROPOSAL_LABELS[index] || `方案 ${index + 1}`}。`);
+}
+
+function renderStyleChips() {
+  elements.styleChips.innerHTML = "";
+  siteData.styles.forEach((style) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `style-chip${style.style_id === elements.stylePreference.value ? " active" : ""}`;
+    button.textContent = style.style_name_zh;
+    button.addEventListener("click", () => switchStyle(style.style_id));
+    elements.styleChips.appendChild(button);
+  });
+}
+
+async function switchStyle(styleId) {
+  elements.stylePreference.value = styleId;
+  syncSurfaceChoicesToStyle();
+  renderStyleChips();
+  if (!currentSceneData) {
+    elements.sceneStatus.textContent = `已選「${siteData.styles.find((style) => style.style_id === styleId)?.style_name_zh || styleId}」,按生成即可看擺位。`;
+    return;
+  }
+  // 同一張戶型、同一組 seed,只換風格 → 展示「不同風格、不同擺位」
+  await runGenerate({ keepSeed: true });
+}
+
 function renderInitialProviderStatus() {
   if (providerStatus.enabled) {
     elements.sceneLlmMode.textContent = providerStatus.model
@@ -402,52 +642,69 @@ function renderInitialProviderStatus() {
   elements.sceneStatus.textContent = "尚未設定 OpenRouter 金鑰，現在先使用本地規則生成場景。";
 }
 
-async function generateScene(event) {
-  event.preventDefault();
+async function collectGeneratePayload() {
+  const floorplanFile = elements.floorplan.files?.[0];
+  if (floorplanFile && floorplanFile.name.toLowerCase().endsWith(".dxf")) {
+    if (!uploadedDxfText) uploadedDxfText = await floorplanFile.text();
+  } else {
+    uploadedDxfText = null;
+  }
+  return {
+    room_width_cm: Number(elements.roomWidth.value),
+    room_depth_cm: Number(elements.roomDepth.value),
+    space_type: elements.spaceType.value,
+    style_preference: elements.stylePreference.value,
+    required_furniture: selectedValues(elements.furnitureOptions),
+    custom_furniture: splitCustomText(elements.customFurniture.value),
+    preferred_colors: selectedValues(elements.colorOptions),
+    custom_colors: splitCustomText(elements.customColors.value),
+    personal_notes: elements.personalNotes.value,
+    keep_window_clear: elements.keepWindowClear.checked,
+    keep_door_clear: elements.keepDoorClear.checked,
+    need_storage: elements.needStorage.checked,
+    prefer_low_saturation: elements.preferLowSaturation.checked,
+    floorplan_filename: floorplanFile ? floorplanFile.name : null,
+    floorplan_dxf_text: uploadedDxfText,
+    floorplan_scale_m: floorplanScaleM,
+    wall_option: getResolvedSurfaceChoice(elements.wallOptions, "wall-option", getStyleSceneLook().wall),
+    floor_option: getResolvedSurfaceChoice(elements.floorOptions, "floor-option", getStyleSceneLook().floor),
+    furniture_random_seed: furnitureRandomSeed,
+  };
+}
+
+async function fetchScene(payload) {
+  const response = await fetch("/api/scene/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+async function runGenerate({ keepSeed = false } = {}) {
   setGeneratingState(true);
-
   try {
-    const floorplanFile = elements.floorplan.files?.[0];
-    if (floorplanFile && floorplanFile.name.toLowerCase().endsWith(".dxf")) {
-      uploadedDxfText = await floorplanFile.text();
-    } else {
-      uploadedDxfText = null;
-    }
-    const payload = {
-      room_width_cm: Number(elements.roomWidth.value),
-      room_depth_cm: Number(elements.roomDepth.value),
-      space_type: elements.spaceType.value,
-      style_preference: elements.stylePreference.value,
-      required_furniture: selectedValues(elements.furnitureOptions),
-      custom_furniture: splitCustomText(elements.customFurniture.value),
-      preferred_colors: selectedValues(elements.colorOptions),
-      custom_colors: splitCustomText(elements.customColors.value),
-      personal_notes: elements.personalNotes.value,
-      keep_window_clear: elements.keepWindowClear.checked,
-      keep_door_clear: elements.keepDoorClear.checked,
-      need_storage: elements.needStorage.checked,
-      prefer_low_saturation: elements.preferLowSaturation.checked,
-      floorplan_filename: floorplanFile ? floorplanFile.name : null,
-      floorplan_dxf_text: uploadedDxfText,
-      wall_option: getResolvedSurfaceChoice(elements.wallOptions, "wall-option", getStyleSceneLook().wall),
-      floor_option: getResolvedSurfaceChoice(elements.floorOptions, "floor-option", getStyleSceneLook().floor),
-      furniture_random_seed: furnitureRandomSeed,
-    };
+    if (!keepSeed) furnitureRandomSeed = furnitureRandomSeed || Date.now();
+    const basePayload = await collectGeneratePayload();
 
-    const response = await fetch("/api/scene/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    // 多方案:同條件不同 seed,對標 AiHouse「AI 佈局候選」;關掉就是單方案
+    const seeds = elements.multiProposal.checked
+      ? [furnitureRandomSeed, furnitureRandomSeed + 1, furnitureRandomSeed + 2]
+      : [furnitureRandomSeed];
+    const results = await Promise.all(
+      seeds.map((seed) => fetchScene({ ...basePayload, furniture_random_seed: seed }))
+    );
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const sceneData = await response.json();
-    currentSceneData = sceneData;
+    proposals = results;
+    activeProposalIndex = 0;
+    currentSceneData = proposals[0];
+    renderProposalTabs();
+    renderStyleChips();
     await refreshCurrentScene();
 
     // 勾了卻沒出現的家具要說清楚:型號缺貨(該風格無模型)或空間放不下
-    const placement = sceneData.placement || {};
+    const placement = currentSceneData.placement || {};
     const notes = [];
     if (placement.unavailable_types?.length) {
       notes.push(`此風格找不到可用模型：${placement.unavailable_types.map(getTypeLabel).join("、")}`);
@@ -455,8 +712,11 @@ async function generateScene(event) {
     if (placement.failed?.length) {
       notes.push(`空間放不下：${placement.failed.map((f) => f.name || getTypeLabel(f.type)).join("、")}`);
     }
+    if (proposals.length > 1) {
+      notes.unshift(`已生成 ${proposals.length} 個佈局方案,上方分頁可切換比較`);
+    }
     if (notes.length) {
-      elements.sceneStatus.textContent = `${elements.sceneStatus.textContent} ⚠ ${notes.join("；")}`;
+      elements.sceneStatus.textContent = `${elements.sceneStatus.textContent} ${notes.join("；")}`;
     }
   } catch (error) {
     console.error(error);
@@ -464,6 +724,11 @@ async function generateScene(event) {
   } finally {
     setGeneratingState(false);
   }
+}
+
+async function generateScene(event) {
+  event.preventDefault();
+  await runGenerate();
 }
 
 async function replaceSceneItem(index) {
@@ -529,6 +794,7 @@ async function reshuffleCurrentScene() {
 }
 
 renderStyleOptions();
+renderStyleChips();
 renderToggleOptions(elements.furnitureOptions, furnitureOptions, "furniture");
 renderToggleOptions(elements.colorOptions, colorOptions, "color");
 renderVisualOptions(elements.wallOptions, wallOptions, "wall-option");
@@ -539,6 +805,19 @@ setDefaultFurnitureBySpace();
 renderInitialProviderStatus();
 
 elements.sceneForm.addEventListener("submit", generateScene);
+elements.floorplan.addEventListener("change", onFloorplanFileChanged);
+elements.applyCalibration.addEventListener("click", applyCalibrationScale);
+elements.resetCalibration.addEventListener("click", resetCalibrationState);
+elements.calibrationCanvas.addEventListener("click", (event) => {
+  if (!calibrationTransform) return;
+  const rect = elements.calibrationCanvas.getBoundingClientRect();
+  const canvasX = ((event.clientX - rect.left) / rect.width) * elements.calibrationCanvas.width;
+  const canvasY = ((event.clientY - rect.top) / rect.height) * elements.calibrationCanvas.height;
+  if (calibrationPoints.length >= 2) calibrationPoints = [];
+  calibrationPoints.push(calibrationTransform.toWorld(canvasX, canvasY));
+  drawCalibrationPreview();
+  updateCalibrationStatus();
+});
 elements.randomFurniture.addEventListener("click", randomizeFurnitureSelection);
 elements.addFurniture.addEventListener("click", addFurnitureToScene);
 elements.reshuffleScene.addEventListener("click", reshuffleCurrentScene);
@@ -557,6 +836,7 @@ elements.sceneSelectedItems.addEventListener("click", (event) => {
 });
 elements.stylePreference.addEventListener("change", () => {
   syncSurfaceChoicesToStyle();
+  renderStyleChips();
   furnitureRandomSeed = Date.now();
   elements.sceneStatus.textContent = `已固定為「${elements.stylePreference.selectedOptions[0]?.textContent || "目前風格"}」，牆面與地板已套用推薦組合。`;
 });

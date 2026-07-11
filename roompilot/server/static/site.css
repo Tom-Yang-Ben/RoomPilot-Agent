@@ -2046,6 +2046,11 @@ body[data-page="scene"] .secondary-action {
   background: rgba(255, 252, 247, 0.96);
 }
 
+/* 上面那條特異度較高,會蓋掉 .secondary-action.prominent 的漸層底 → 這裡補回 */
+body[data-page="scene"] .secondary-action.prominent {
+  background: linear-gradient(135deg, #7d6047, #a98563);
+}
+
 body[data-page="scene"] .scene-option,
 body[data-page="scene"] .scene-field input,
 body[data-page="scene"] .scene-field select,

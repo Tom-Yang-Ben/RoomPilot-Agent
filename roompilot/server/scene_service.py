@@ -837,15 +837,21 @@ def _flip_parsed_z(parsed: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, Room | None]:
+def parse_floorplan_with_engine(
+    dxf_text: str,
+    scale_m: float | None = None,
+) -> tuple[dict[str, Any] | None, Room | None]:
     """DXF 文字 → (payload 的 floorplan 區塊, 引擎 Room)。
 
     解析走 upgrade3d.dxf_parser(ezdxf,平面中心原點、公尺),
     再由 engine.dxf_room 取最大封閉房間轉成 Room(角落原點)。
     回傳的線段座標一律換算成「房間中心原點、公尺」,維持前端 viewer 契約。
+    scale_m 是 F2a 手動拉比例的校正結果(全圖長邊的實際公尺數),覆寫自動猜測。
     """
     try:
-        parsed = _flip_parsed_z(parse_dxf_bytes(dxf_text.encode("utf-8", errors="ignore"), "upload.dxf"))
+        parsed = _flip_parsed_z(
+            parse_dxf_bytes(dxf_text.encode("utf-8", errors="ignore"), "upload.dxf", scale_m=scale_m)
+        )
         build = build_room_from_dxf(parsed)
     except Exception:
         return None, None
@@ -942,7 +948,13 @@ def build_scene_payload(
     engine_room = None
     dxf_text = questionnaire.get("floorplan_dxf_text")
     if dxf_text:
-        parsed_floorplan, engine_room = parse_floorplan_with_engine(dxf_text)
+        # F2a 手動拉比例:前端兩點標定算出的全圖跨距(公尺),沒有就交給解析器自動猜
+        raw_scale = questionnaire.get("floorplan_scale_m")
+        try:
+            scale_m = float(raw_scale) if raw_scale else None
+        except (TypeError, ValueError):
+            scale_m = None
+        parsed_floorplan, engine_room = parse_floorplan_with_engine(dxf_text, scale_m=scale_m)
 
     effective_width_cm = parsed_floorplan["width_cm"] if parsed_floorplan else room_width_cm
     effective_depth_cm = parsed_floorplan["depth_cm"] if parsed_floorplan else room_depth_cm
