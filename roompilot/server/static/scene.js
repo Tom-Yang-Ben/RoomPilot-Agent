@@ -1,5 +1,5 @@
 import { fetchFurniturePage, fetchSceneBootstrap, formatFurnitureName, formatSize, formatTypeLabel, initBackgroundFx } from "./common.js?v=20260711g";
-import { createSceneViewer } from "./scene_viewer.js?v=20260711m";
+import { createSceneViewer } from "./scene_viewer.js?v=20260711n";
 
 const siteData = await fetchSceneBootstrap();
 const providerStatus = await fetch("/api/scene/provider-status").then((response) => response.json());

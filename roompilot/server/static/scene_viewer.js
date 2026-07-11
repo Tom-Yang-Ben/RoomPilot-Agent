@@ -971,6 +971,7 @@ export function createSceneViewer(container, statusElement) {
   }
 
   async function loadScene(sceneData) {
+    onResize();                      // 容器可能剛從 hidden 亮出來,先補一次尺寸
     lastSceneData = sceneData;
     dragState = null;
     selectedWrapper = null;
@@ -1952,12 +1953,18 @@ export function createSceneViewer(container, statusElement) {
   function onResize() {
     const width = container.clientWidth;
     const height = container.clientHeight;
+    if (!width || !height) return;   // 容器還隱藏(0×0)時不動,等亮出來再補
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
   }
 
   window.addEventListener("resize", onResize);
+  // 精靈流程的檢視器容器初始為 hidden,renderer 會以 0×0 建立;
+  // 容器亮出來(佈局改變)時由 ResizeObserver 補正尺寸,否則畫面永遠空白。
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(() => onResize()).observe(container);
+  }
 
   renderer.setAnimationLoop(() => {
     controls.update();
