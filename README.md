@@ -1,124 +1,113 @@
 # RoomPilot-Agent
 
-RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四組 ・ Demo:2026-08-20)。
+RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案把平面圖、住宅風格、家具資料與 Three.js 3D 場景串成一套可操作的網頁流程，協助設計師快速和使用者確認空間方向。
 
-把使用者的平面圖與需求,在幾分鐘內變成可即時換風格、調軟裝的 3D 提案畫面。主線流程:
+目前 `bella` 分支著重於網頁版展示、六種住宅風格、家具挑選、需求問答與 3D 場景互動。
 
-```
-上傳平面圖(DXF)→ 升維 3D 白模 → 自動配置家具 → 自然語言/拖曳微調 → 風格化提案 → 匯出檔案
-```
+## 現行流程
 
-> 詳細規劃、分工與時程以團隊 SSOT《[RoomPilot_現行版本總覽](docs/RoomPilot_現行版本總覽.md)》為準。
-
-## 專案結構(2026-07-06 重整後)
-
-```
-roompilot/            後端主套件(唯一的 Python 套件)
-├── engine/           家具擺放引擎:place/adjust、碰撞+淨空(Shapely)、LLM tool schema、
-│                     dxf_room.py(DXF 樓面 JSON → Room 轉接層)
-├── upgrade3d/        dxf_parser.py:DXF → 3D 樓面 JSON(ezdxf+shapely)
-├── floorplan/        floorplan2dxf.py:PNG → DXF(牆體正交化、門窗偵測)+ eval 腳本
-├── catalog/          style_db.py(型錄→引擎轉接,公分→公尺)+ data/(12 風格資料庫 JSON)
-└── server/           唯一的 FastAPI 網站:四頁展示 + 場景生成(擺放一律走 engine)
-    └── static/       前端頁面(首頁/風格/家具庫/3D 場景)+ moodboard + DRACO
-
-frontend3d/           React Three Fiber 3D 編輯器(F6 拖曳來源;與 server 的收斂待 F6 決策)
-scripts/              IKEA 型錄管線:下載 → 清洗 → 驗證 → 合併 → 匯入 PostgreSQL
-tests/                pytest(引擎 25 案例)
-testdata/             測試素材:dxf/ png/ pngans/ chk/ door/ pic/ sample_glb/
-dataset/              IKEA GLB 1,662 檔(已進版控,clone 即用)
-examples/             退役參考:demo_app(走通骨架)、demo_agent_flow.py(Agent↔引擎介面範例)
-docs/                 SSOT、changelog、archive/(2Dto3D.html 原型、layout.json 舊契約)
+```text
+首頁與功能介紹
+→ 選擇風格與生活色調
+→ 從家具資料庫建立本次方案清單
+→ 在 3D 場景補充空間資料與特殊需求
+→ 生成並微調室內配置
 ```
 
-## 新機器上手(第一次 clone 必讀)
+## 主要功能
 
-```bash
-# 0. 裝 uv(唯一前置;Python 3.12 不用另裝,uv 會自動抓)
-#    macOS:
-brew install uv
-#    Windows(PowerShell):
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+### 六種住宅風格
 
-# 1. Clone + 裝依賴(⚠️ 一定要 --extra server:純 uv sync 只裝引擎最小依賴,網站起不來)
-git clone https://github.com/Tom-Yang-Ben/RoomPilot-Agent.git
-cd RoomPilot-Agent
-uv sync --extra server
+目前網站提供北歐、日式、現代簡約、奶油、工業與美式六種風格，每種風格包含三組生活情境色調。使用者選定色調後，可把風格、主色與材質方向帶入 3D 場景。
 
-# 2. 驗證環境(應該 25 passed)
-uv run pytest tests/ -v
+### 家具資料庫
 
-# 3. 啟動網站(必須在 repo 根目錄跑)
-uv run uvicorn roompilot.server.main:app --port 8002   # 開 http://127.0.0.1:8002
-```
+- 左側依空間、類型、風格、尺寸、顏色、材質與關鍵字篩選家具。
+- 家具資料由後端搜尋及分頁，每次只回傳目前頁面需要的資料。
+- 右側顯示單件家具資訊與 Three.js 模型預覽。
+- 家具可加入本次方案清單，再一起帶入 3D 場景。
+- 家具中文名稱、尺寸、顏色、材質、風格候選與模型來源由統一 catalog 管理。
 
-一個不在 git 裡的東西:
+### 3D 場景與需求問答
 
-- **`.env`**:`cp .env.example .env`。兩組變數皆選配 — `OPENROUTER_API_KEY` 沒填走本地規則 fallback;DB 變數只有型錄匯入 script 用到。
+- 支援上傳平面圖、填寫空間類型與房間尺寸。
+- 固定選項與聊天補充欄位會隨問題一起顯示。
+- 可承接風格頁選定的色調，以及家具資料庫建立的方案清單。
+- 生成前會檢查空間資料與家具需求，避免只顯示空白場景。
+- 支援家具選取、前後左右微調、旋轉、貼牆與房間邊界限制。
+- 牆面與地板使用不同資料來源，可套用連續木紋或磁磚材質。
 
-(家具 GLB `dataset/` 已在 repo 裡,clone 完直接有 3D 模型,不用另外下載。)
+## 載入效能
 
-按角色加裝(不是人人需要):
+前端不再讓所有頁面共同下載完整家具 catalog，而是依頁面取得必要資料：
 
-| 誰 | 額外步驟 |
+| 頁面 | API | 回傳內容 |
+|---|---|---|
+| 首頁 | `/api/home-data` | 專案摘要與首頁資訊 |
+| 風格頁 | `/api/styles` | 風格、色卡、示意圖與說明 |
+| 家具庫 | `/api/furniture` | 篩選後的分頁家具 |
+| 家具詳情 | `/api/furniture/{id}` | 單件家具完整資料 |
+| 3D 場景 | `/api/scene/bootstrap` | 問卷、風格與材質必要資料 |
+
+家具 catalog 會在伺服器端建立記憶體快取，API 再從快取結果進行搜尋、篩選與分頁，避免每次換頁重新合併全部家具。
+
+## 專案結構
+
+| 路徑 | 用途 |
 |---|---|
-| 平面辨識 | `uv sync --extra vision`(OpenCV,見下方指令) |
-| 型錄 / DB | `uv sync --extra catalog` + 本機 PostgreSQL + `.env` 填 DB 變數 |
-| R3F 編輯器 | Node.js 18+,`cd frontend3d && npm install && npm run dev` |
-| 其他人 | 上面 0–3 就夠 |
+| `roompilot/engine/` | 家具擺放、碰撞與淨空檢查 |
+| `roompilot/upgrade3d/` | DXF 轉 3D 樓面資料 |
+| `roompilot/floorplan/` | PNG 平面圖轉 DXF |
+| `roompilot/catalog/` | 家具 catalog、風格與資料轉接 |
+| `roompilot/server/` | FastAPI、頁面 API 與靜態前端 |
+| `frontend3d/` | React Three Fiber 3D 編輯器 |
+| `tests/` | 自動化測試 |
+| `docs/` | 現行文件、摘要與資料契約 |
 
-## 快速開始
+## 啟動方式
 
-```bash
-uv sync --extra server               # 引擎 + 網站後端依賴
-uv run pytest tests/ -v              # 25 cases
-uv run uvicorn roompilot.server.main:app --port 8002   # 開 http://127.0.0.1:8002
+請在 repo 根目錄執行。
+
+### 使用 uv
+
+```powershell
+uv sync --extra server
+uv run uvicorn roompilot.server.main:app --port 8002
 ```
 
-網站四頁:`/` 首頁、`/styles` 風格、`/library` 家具庫、`/scene` 3D 場景(上傳 DXF + 問卷 → 引擎配置)。
-家具 3D 模型在 `dataset/`(已進版控,clone 即用)。
-LLM 挑家具為選配:複製 `.env.example` 為 `.env` 填 `OPENROUTER_API_KEY`;沒填走本地規則 fallback。
+### Windows 已有虛擬環境
 
-### 平面辨識(PNG → DXF)
-
-```bash
-uv sync --extra vision    # 或 pip install opencv-python ezdxf numpy
-uv run python roompilot/floorplan/floorplan2dxf.py testdata/png testdata/dxf
-uv run python roompilot/floorplan/eval_windows.py && uv run python roompilot/floorplan/eval_doors.py
+```powershell
+.venv\Scripts\python.exe -m uvicorn roompilot.server.main:app --port 8002
 ```
 
-### R3F 3D 編輯器(frontend3d/)
+啟動後開啟：<http://127.0.0.1:8002>
 
-```bash
-uv run uvicorn roompilot.server.main:app --port 8002   # 後端(/api/plan、/api/upload 已併入)
-cd frontend3d && npm install && npm run dev             # Vite,/api 代理到 :8002
+如果 `8002` 已被占用，可改用其他連接埠，例如 `--port 8010`。
+
+## 測試
+
+```powershell
+uv run pytest tests/ -v
 ```
 
-### 家具型錄管線(scripts/)
+目前完整測試基準為 `49 passed`。
 
-```bash
-uv sync --extra catalog
-# 匯入 PostgreSQL 前,複製 .env.example 為 .env 並填入 DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASSWORD
-python scripts/validate_json.py && python scripts/merge_json_to_catalog.py
-python scripts/import_catalog_to_postgres.py
-```
+## 模型與私密檔案
 
-## 架構重點(2026-07-06「B 殼 A 內臟」整合)
+- `.glb` 模型屬於本機或外部資料資產，不納入 `bella` 分支版本控制。
+- `.env` 不得提交；請由 `.env.example` 建立本機設定。
+- `PROJECT_CONTEXT.md` 與 `CODEX_PROJECT_RULES.md` 屬於本機工作規則，不上傳 GitHub；`AGENTS.md` 不由 `bella` 修改。
+- 前端透過 `/api/furniture/{id}/model` 取得後端解析的家具模型。
 
-- **家具座標只有引擎能算**:`/api/scene/generate` 與 `/api/scene/layout` 的擺放一律走
-  `roompilot.engine`(Shapely 碰撞 + 淨空);LLM/問卷只決定「放什麼」,不決定「放哪裡」。
-  放不下的家具誠實回報在 `payload.placement.failed`,不硬塞。
-- **DXF 升維單一路徑**:`upgrade3d/dxf_parser` 解析 → `engine/dxf_room` 取最大封閉房間轉 `Room`。
-- **單位契約**:Python 端一律公尺;公分只出現在資料庫讀入(`catalog/style_db.py` ÷100)與
-  前端 payload 邊界(`position_cm`、`size_cm`)。
-- 尚未完成(P0):F3 LLM Agent 編排、F4 風格生成 `render_style`、F8 Demo Mode、F9 檔案匯出
-  (F6 3D 直接拖曳已於 2026-07-06 完成)。
+## 目前待辦
 
-## 分支
+- 家具類型名稱與圖示要依使用者選擇的空間動態更換。
+- 裝飾品排除燈具，燈具維持獨立分類。
+- 家電不顯示於家具資料庫，只在 3D 場景依空間與需求配置。
+- 3D 場景 Step 2 提供更換已選風格，並保留已填空間資料與特殊需求。
+- 持續依模型與資料欄位稽核結果補齊 catalog。
 
-`main` 受保護;各自從最新 `ben`(整合分支)開分支 → PR 合併。
-`dataset/` 的 GLB 已進版控(2026-07-07,blob 本就在 git 歷史中,去重後零額外成本);其他新的大型資料集進 git 前先問組長。
+## 詳細改動
 
-## License
-
-IKEA 下載器參考 `apinanaivot/IKEA-3d-model-batch-downloader`,沿用 GPL-3.0 授權,詳見 [LICENSE](LICENSE)。
+本次 `bella` 分支的完整改動內容請見 [Bella 分支目前改動摘要](docs/BELLA_CHANGE_SUMMARY_2026-07-11.md)。

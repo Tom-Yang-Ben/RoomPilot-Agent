@@ -56,3 +56,6 @@ PERSONAL_*.md
 docs/MISSING_*_AUDIT_*.md
 
 AGENTS.md
+
+# 3D 模型屬於本機或外部資產，不從 bella 分支上傳。
+*.glb
