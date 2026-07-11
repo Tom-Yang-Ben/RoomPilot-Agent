@@ -8,7 +8,7 @@ RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四組 ・ Demo:202
 上傳平面圖(DXF)→ 升維 3D 白模 → 自動配置家具 → 自然語言/拖曳微調 → 風格化提案 → 匯出檔案
 ```
 
-> 詳細規劃、分工與時程以團隊 SSOT《[RoomPilot_現行版本總覽](docs/RoomPilot_現行版本總覽.md)》為準。
+> 詳細規劃、分工與時程以團隊 SSOT《[RoomPilot_現行版本總覽](docs/01_專題進度/RoomPilot_現行版本總覽.md)》為準。
 
 ## 專案結構(2026-07-06 重整後)
 
@@ -28,7 +28,8 @@ tests/                pytest(引擎 25 案例)
 testdata/             測試素材:dxf/ png/ pngans/ chk/ door/ pic/ sample_glb/
 dataset/              IKEA GLB 1,662 檔(已進版控,clone 即用)
 examples/             退役參考:demo_app(走通骨架)、demo_agent_flow.py(Agent↔引擎介面範例)
-docs/                 SSOT、changelog、archive/(2Dto3D.html 原型、layout.json 舊契約)
+docs/                 01_專題進度/(SSOT、changelog、判斷尺規格)、archive/(2Dto3D.html 原型、
+                      layout.json 舊契約);02_復刻研究/ 與 03_個人學習/ 為組長本地筆記,不進版控
 ```
 
 ## 新機器上手(第一次 clone 必讀)
