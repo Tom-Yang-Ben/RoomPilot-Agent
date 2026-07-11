@@ -62,6 +62,16 @@ _DATASET_GLB_ROOTS = [
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
 
+# 本機開發跨埠存取(復刻原型 :8030、frontend3d dev server 等)
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"http://(127\.0\.0\.1|localhost):\d+",
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/docs-assets", StaticFiles(directory=MOODBOARD_DIR), name="docs-assets")
 
@@ -1631,6 +1641,79 @@ async def upload(
         return parse_dxf_bytes(data, file.filename or "upload.dxf", scale_m, thickness, height)
     except Exception as e:
         raise HTTPException(422, f"parse failed: {e}")
+
+
+@app.post("/api/floorplan/recognize")
+async def recognize_floorplan(
+    file: UploadFile = File(...),
+    scale_m: float | None = Query(None, gt=0, le=500),
+):
+    """平面圖影像(PNG/JPG/BMP)→ 牆/門/窗辨識(floorplan2dxf 管線)→ 3D 樓面 JSON。
+
+    回傳:floorplan(dxf_parser 輸出,公尺、平面中心原點)、dxf_text(可直接餵
+    /api/scene/generate 的 floorplan_dxf_text)、scale(比例尺推斷資訊)。
+    DXF 檔直接解析不走影像管線。需要 vision extra(cv2);未安裝回 503。
+    """
+    import tempfile
+
+    raw = await file.read()
+    name = file.filename or "upload.png"
+    suffix = Path(name).suffix.lower()
+
+    if suffix == ".dxf":
+        dxf_text = raw.decode("utf-8", errors="ignore")
+        try:
+            floorplan = parse_dxf_bytes(raw, name, scale_m)
+        except Exception as e:
+            raise HTTPException(422, f"DXF 解析失敗: {e}")
+        return {"floorplan": floorplan, "dxf_text": dxf_text, "scale": None, "source": "dxf"}
+
+    try:
+        from ..floorplan import floorplan2dxf as fp
+    except Exception:
+        raise HTTPException(503, "影像辨識需要 vision 依賴:請以 `uv run --extra vision uvicorn ...` 啟動")
+
+    with tempfile.TemporaryDirectory(prefix="rp_recognize_") as tmp:
+        tmp_dir = Path(tmp)
+        img_path = tmp_dir / f"input{suffix or '.png'}"
+        img_path.write_bytes(raw)
+        out_dxf = tmp_dir / "dxf" / "input.dxf"
+        out_dxf.parent.mkdir(parents=True)
+        cfg = fp.load_config(str(Path(fp.__file__).parent / "config.ini"))
+        cfg.input = str(img_path)
+        cfg.output = str(out_dxf)
+        cfg.preview = str(tmp_dir / "chk.png")
+        try:
+            fp.run(cfg)
+        except SystemExit as e:  # 管線內部以 sys.exit 報錯
+            raise HTTPException(422, f"影像辨識失敗: {e}")
+        except Exception as e:
+            raise HTTPException(422, f"影像辨識失敗: {e}")
+
+        dxf_text = out_dxf.read_text(encoding="utf-8", errors="ignore")
+        scale_info = None
+        handoff = tmp_dir / "json" / "input.json"
+        if handoff.is_file():
+            try:
+                scale_info = json.loads(handoff.read_text(encoding="utf-8")).get("scale")
+            except Exception:
+                scale_info = None
+        preview_b64 = None
+        preview_path = Path(cfg.preview)
+        if preview_path.is_file():
+            import base64
+            preview_b64 = base64.b64encode(preview_path.read_bytes()).decode("ascii")
+        try:
+            floorplan = parse_dxf_bytes(dxf_text.encode("utf-8"), name, scale_m)
+        except Exception as e:
+            raise HTTPException(422, f"辨識結果升維失敗: {e}")
+        return {
+            "floorplan": floorplan,
+            "dxf_text": dxf_text,
+            "scale": scale_info,
+            "source": "image",
+            "preview_png_base64": preview_b64,
+        }
 
 
 @app.get("/api/sample-furniture")
