@@ -10,16 +10,15 @@
 兩個終端機：
 
 ```bash
-# 1) 後端（在 app/backend/）
-pip install -r requirements.txt
-python -m uvicorn main:app --reload --port 8000
+# 1) 後端（在 repo 根目錄跑，相對 import）
+uv run uvicorn roompilot.server.main:app --port 8002
 
-# 2) 前端（在 app/frontend/）
+# 2) 前端（在 frontend3d/）
 npm install
 npm run dev          # 開 http://localhost:5173
 ```
 
-Vite 會把 `/api` 代理到 8000，所以瀏覽器不需處理 CORS。
+Vite 會把 `/api` 代理到 8002，所以瀏覽器不需處理 CORS。
 
 ## 用法
 

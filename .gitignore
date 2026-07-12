@@ -8,6 +8,8 @@ tmp/
 web_fastapi/uploads/
 web_fastapi/__pycache__/
 Miniconda3-latest-Windows-x86_64.exe
+# floorplan2dxf 單檔模式的疊圖輸出(在 cwd 下產生;批次模式輸出在 testdata/chk/)
+/chk/
 
 # Local-only archives / cleanup holding area
 _local_archive_not_for_push/

@@ -16,12 +16,14 @@ Team SSOT is `docs/01_專題進度/RoomPilot_現行版本總覽.md` — read it 
 | `roompilot/upgrade3d/dxf_parser.py` | DXF → 3D 樓面 JSON(ezdxf,牆體聯集,房間=孔洞);窗段聚類合併(一扇窗=一段) | 窗 eval:`uv run python roompilot/upgrade3d/eval_window_merge.py` |
 | `roompilot/floorplan/` | PNG/JPG/BMP → DXF(牆正交化+門窗偵測)+ eval。輸出圖層只有 WALL/WINDOW;批次另產 `testdata/dxf_scale/`(公分 DXF,外圍牆厚錨定比例)與 `testdata/json/`(前端交接,px+cm 雙座標+scale 信心度)。變更史見 `roompilot/floorplan/README.md` | `uv run --extra vision python roompilot/floorplan/floorplan2dxf.py testdata/png testdata/dxf` |
 | `roompilot/catalog/` | `style_db.py`(型錄→引擎轉接,cm→m 在這裡)+ `data/` 風格資料庫 JSON | — |
+| `roompilot/agent/` | Agent 擺放提示鏈:擺位前用 `layout_intent` 給引擎語意提示,放不下時用 `recovery` 換小款或移除。只出提示不出座標,`scene_service` 已接線;具體怎麼做見各檔 docstring 與 `prompts.py` | `uv run pytest tests/test_agent_layout_intent.py tests/test_agent_recovery.py -v` |
+| `roompilot/skills/` | `roompilot-llm/SKILL.md`:對話式 intake/風格推薦的 LLM 行為契約。純規格文件,尚未被程式引用 | — |
 | `roompilot/server/` | 唯一 FastAPI:四頁展示 + `/api/scene/generate`、`/api/scene/layout`(擺放走 engine)+ frontend3d 用的 `/api/plan`、`/api/upload` | `uv run uvicorn roompilot.server.main:app --port 8002`(必須在 repo 根目錄跑,相對 import) |
 | `frontend3d/` | R3F 3D 編輯器,F6 拖曳邏輯來源(`Furniture.jsx`、`snap.js`)。與 server 前端的收斂待 F6 決策 | `npm run dev`(proxy → :8002) |
 | `scripts/` | IKEA 型錄管線(下載/清洗/驗證/合併/匯入 Postgres) | 見 README |
 | `examples/` | 退役參考:`demo_app`(走通骨架)、`demo_agent_flow.py`(Agent↔引擎介面範例+失敗詞彙表) | — |
-| `testdata/` | dxf/ dxf_scale/ json/ png/ pngans/ chk/ door/ pic/ sample_glb/;floor21 = Demo 基準圖 | 資料 |
-| `dataset/` | IKEA GLB 1,662 檔(2026-07-07 起進版控,clone 即用) | 資料 |
+| `testdata/` | dxf/ dxf_scale/ json/ png/ pngans/ chk/ door/ pic/;floor21 = Demo 基準圖 | 資料 |
+| `dataset/` | IKEA GLB 1,808 檔(2026-07-07 起進版控,clone 即用) | 資料 |
 | `docs/archive/` | `2Dto3D.html`(早期原型,非主線)、`layout.json`(作廢的公分契約) | — |
 
 Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras: `server` / `vision` / `catalog`。
