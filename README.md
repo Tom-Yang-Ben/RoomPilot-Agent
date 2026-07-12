@@ -2,7 +2,28 @@
 
 RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案把平面圖、住宅風格、家具資料與 Three.js 3D 場景串成一套可操作的網頁流程，協助設計師快速和使用者確認空間方向。
 
-目前 `bella` 分支著重於網頁版展示、六種住宅風格、家具挑選、需求問答與 3D 場景互動。
+## 快速上手(先看這裡)
+
+```bash
+# 0. 需求:Python 3.12+、uv、Node.js(只有 frontend3d 需要)
+# 1. 安裝依賴(第一次或依賴變動後)
+uv sync --extra server --extra vision
+
+# 2. 啟動主網站 —— 必須在 repo 根目錄執行
+uv run --extra vision uvicorn roompilot.server.main:app --port 8002
+# 開 http://127.0.0.1:8002 → 首頁 /styles /library /scene /panorama
+# (--extra vision 供 PNG/JPG 平面圖辨識;省略也能跑,但 /api/floorplan/recognize 會回 503)
+
+# 3.(可選)R3F 3D 編輯器
+cd frontend3d && npm install && npm run dev   # 會 proxy 到 :8002
+
+# 4.(可選)驗證安裝
+uv run pytest tests/ -q                                  # 引擎與資料契約測試
+uv run python roompilot/upgrade3d/eval_window_merge.py   # 窗辨識 eval
+```
+
+Windows 已有虛擬環境:`.venv\Scripts\python.exe -m uvicorn roompilot.server.main:app --port 8002`。
+連接埠被占用時換 `--port 8010` 即可。
 
 ## 現行流程
 
@@ -61,31 +82,16 @@ RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案�
 | `roompilot/upgrade3d/` | DXF 轉 3D 樓面資料 |
 | `roompilot/floorplan/` | PNG 平面圖轉 DXF |
 | `roompilot/catalog/` | 家具 catalog、風格與資料轉接 |
+| `roompilot/agent/` | Agent 擺放語意提示與失敗修復 |
 | `roompilot/server/` | FastAPI、頁面 API 與靜態前端 |
 | `frontend3d/` | React Three Fiber 3D 編輯器 |
+| `scripts/` | IKEA 型錄管線(下載/清洗/匯入) |
+| `dataset/` | 素材與資料原料:IKEA GLB、`catalog_json/`、`style_rag/`、材質包 |
+| `testdata/` | 測試圖資:dxf / dxf_scale / json / png / pngans 等,floor21 為 Demo 基準 |
 | `tests/` | 自動化測試 |
-| `docs/` | 現行文件、摘要與資料契約 |
+| `docs/` | `01_專題進度/`(SSOT)、`04_契約與規格/`、`05_狀態與稽核/`、`archive/` |
 
-## 啟動方式
-
-請在 repo 根目錄執行。
-
-### 使用 uv
-
-```powershell
-uv sync --extra server
-uv run uvicorn roompilot.server.main:app --port 8002
-```
-
-### Windows 已有虛擬環境
-
-```powershell
-.venv\Scripts\python.exe -m uvicorn roompilot.server.main:app --port 8002
-```
-
-啟動後開啟：<http://127.0.0.1:8002>
-
-如果 `8002` 已被占用，可改用其他連接埠，例如 `--port 8010`。
+> 啟動方式見最上方「快速上手」。詳細規劃與分工以 `docs/01_專題進度/RoomPilot_現行版本總覽.md` 為準。
 
 ## 測試
 
