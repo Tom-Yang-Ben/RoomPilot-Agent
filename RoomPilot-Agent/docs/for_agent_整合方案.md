@@ -15,13 +15,13 @@
 
 ## 1. for_agent 對應到專案哪個缺口
 
-| for_agent 提供 | 對應 SSOT 待辦 | 專案現況 |
-|---|---|---|
-| `agents/agent1~4.md`(需求解析／選家具／排版／驗證修復) | **F3 LLM Agent**(P0,林柏彥主責) | 只有 `engine/schema.py` 的 tool schema 骨架 |
-| `scripts/build_glb_scene.py`(牆+家具 → `scene.glb`) | **F9 匯出**(P0) | 完全沒有;server 只發單件 GLB |
-| `scripts/render_plan.py`(俯視 PNG 給 agent 看) | 無(F3 多模態自檢可用) | 專案沒有等價物 |
-| `scripts/validate_layout.py` + `validation_report.json` | — | 引擎在**擺放當下**驗證,無獨立報告/修復迴圈 |
-| `schemas/*.json` + `examples/*.json` | Agent↔引擎 JSON 契約 | `engine/schema.py` 已有部分,可對齊 |
+| for_agent 提供                                              | 對應 SSOT 待辦                        | 專案現況                                         |
+| ----------------------------------------------------------- | ------------------------------------- | ------------------------------------------------ |
+| `agents/agent1~4.md`(需求解析／選家具／排版／驗證修復)    | **F3 LLM Agent**(P0,林柏彥主責) | 只有`engine/schema.py` 的 tool schema 骨架     |
+| `scripts/build_glb_scene.py`(牆+家具 → `scene.glb`)    | **F9 匯出**(P0)                 | 完全沒有;server 只發單件 GLB                     |
+| `scripts/render_plan.py`(俯視 PNG 給 agent 看)            | 無(F3 多模態自檢可用)                 | 專案沒有等價物                                   |
+| `scripts/validate_layout.py` + `validation_report.json` | —                                    | 引擎在**擺放當下**驗證,無獨立報告/修復迴圈 |
+| `schemas/*.json` + `examples/*.json`                    | Agent↔引擎 JSON 契約                 | `engine/schema.py` 已有部分,可對齊             |
 
 ---
 
@@ -43,13 +43,13 @@ CLAUDE.md「Architecture invariants」第一條:
 
 `check_placement_with_clearance` 是用 **Shapely 多邊形交集**做的、可重現的幾何判斷,不是估算:
 
-| 檢查 | 位置 | 內容 |
-|---|---|---|
-| 出界 | `geometry.py:62` `out_of_bounds` | 家具旋轉後多邊形必須完整 `within` 房間 |
-| 穿牆 | `geometry.py:44` `hits_wall` | 家具多邊形不得與**有厚度的牆多邊形**相交 |
-| 家具重疊 | `geometry.py:52` `hits_furniture` | 兩兩本體多邊形不得相交 |
+| 檢查                     | 位置                                       | 內容                                                                  |
+| ------------------------ | ------------------------------------------ | --------------------------------------------------------------------- |
+| 出界                     | `geometry.py:62` `out_of_bounds`       | 家具旋轉後多邊形必須完整`within` 房間                               |
+| 穿牆                     | `geometry.py:44` `hits_wall`           | 家具多邊形不得與**有厚度的牆多邊形**相交                        |
+| 家具重疊                 | `geometry.py:52` `hits_furniture`      | 兩兩本體多邊形不得相交                                                |
 | 開合淨空撞牆/撞家具/互撞 | `clearance.py:56` `clearance_conflict` | 抽屜/門的開合矩形(跟著 rotation 轉)不得撞牆、撞別人本體、撞別人的淨空 |
-| 反向淨空 | `clearance.py:105` | 我的本體不得壓到**別人**的開合淨空 |
+| 反向淨空                 | `clearance.py:105`                       | 我的本體不得壓到**別人**的開合淨空                              |
 
 `scene_service` 還在此之上加了非矩形房間的多邊形包含檢查(`_inside_boundary`、`_grid_place_in_boundary`,`scene_service.py:486/492`),擋掉「落在 bbox 內但實際在牆體裡」的假合法點。
 
@@ -79,24 +79,24 @@ Agent 3(LLM 決定每件家具 position/rotation) → 腳本事後 validate → 
 
 ### 🟢 採用(補專案空缺,不與引擎衝突)
 
-| 項目 | 用途 | 落點 |
-|---|---|---|
-| `agents/agent1_requirement_parser.md` | F3 需求解析 system prompt | 併/取代 `scene_service.build_questionnaire_prompt` |
-| `agents/agent2_furniture_selector.md` | F3 選家具 system prompt | 新 `roompilot/agent/` 模組;查型錄走 `catalog/style_db.py` |
-| `agents/agent3_layout_designer.md` | **改寫**:只輸出「要哪些家具+語意約束」,不輸出座標 | 新 `roompilot/agent/`,座標交 `generate_layout` |
-| `agents/agent4_validator.md` | **改寫**:把引擎的 `placement.failed`/淨空違規轉成自然語言或「換更小家具」指令 | 新 `roompilot/agent/` |
-| `scripts/build_glb_scene.py` | **F9 匯出**(淨新增,零衝突) | 包成 `POST /api/scene/export` |
-| `scripts/render_plan.py` | (可選)agent 多模態自檢的俯視 PNG | F3 走多模態才需要,可延後 |
-| `schemas/*.json`(修正後) | Agent↔引擎 JSON 契約 | 對齊 `engine/schema.py`;套用 §3.1 修正 |
+| 項目                                    | 用途                                                                                  | 落點                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `agents/agent1_requirement_parser.md` | F3 需求解析 system prompt                                                             | 併/取代`scene_service.build_questionnaire_prompt`          |
+| `agents/agent2_furniture_selector.md` | F3 選家具 system prompt                                                               | 新`roompilot/agent/` 模組;查型錄走 `catalog/style_db.py` |
+| `agents/agent3_layout_designer.md`    | **改寫**:只輸出「要哪些家具+語意約束」,不輸出座標                               | 新`roompilot/agent/`,座標交 `generate_layout`            |
+| `agents/agent4_validator.md`          | **改寫**:把引擎的 `placement.failed`/淨空違規轉成自然語言或「換更小家具」指令 | 新`roompilot/agent/`                                       |
+| `scripts/build_glb_scene.py`          | **F9 匯出**(淨新增,零衝突)                                                      | 包成`POST /api/scene/export`                               |
+| `scripts/render_plan.py`              | (可選)agent 多模態自檢的俯視 PNG                                                      | F3 走多模態才需要,可延後                                     |
+| `schemas/*.json`(修正後)              | Agent↔引擎 JSON 契約                                                                 | 對齊`engine/schema.py`;套用 §3.1 修正                     |
 
 ### 🔴 丟棄(與引擎重工,用專案既有的)
 
-| for_agent 檔 | 用專案的什麼取代 |
-|---|---|
-| `scripts/parse_dxf.py` | `upgrade3d/dxf_parser.py` + `engine/dxf_room.py`(已聯集牆體、取最大房間) |
-| `scripts/geometry.py` | `engine/geometry.py` + `engine/clearance.py`(已是驗證真值,支援旋轉/淨空) |
-| `scripts/validate_layout.py` | `check_placement_with_clearance`(擺放當下已驗)。若真要獨立報告,讓它**包引擎**,不要自帶第二套幾何 |
-| for_agent 的座標約定(cm/左下/CCW) | 專案約定(m/角落/中心原點/three 旋轉);只在轉接器邊界短暫用 for_agent 座標 |
+| for_agent 檔                      | 用專案的什麼取代                                                                                         |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `scripts/parse_dxf.py`          | `upgrade3d/dxf_parser.py` + `engine/dxf_room.py`(已聯集牆體、取最大房間)                             |
+| `scripts/geometry.py`           | `engine/geometry.py` + `engine/clearance.py`(已是驗證真值,支援旋轉/淨空)                             |
+| `scripts/validate_layout.py`    | `check_placement_with_clearance`(擺放當下已驗)。若真要獨立報告,讓它**包引擎**,不要自帶第二套幾何 |
+| for_agent 的座標約定(cm/左下/CCW) | 專案約定(m/角落/中心原點/three 旋轉);只在轉接器邊界短暫用 for_agent 座標                                 |
 
 ### 3.1 採用 schema 前必先修正(來自 `SCHEMA_審查_V1.md`)
 
@@ -114,12 +114,12 @@ Agent 3(LLM 決定每件家具 position/rotation) → 腳本事後 validate → 
 
 ### 4.1 三套座標系對照
 
-| | for_agent | 專案 payload(`scene_objects`) | 專案引擎(`PlacedFurniture`) |
-|---|---|---|---|
-| 單位 | 公分 | 公分(`position_cm`/`size_cm`) | **公尺** |
-| 原點 | 平面**左下角** | 房間**中心** | **角落**(0,0) |
-| 平面第二軸 | Y 朝上(北,數學慣例) | z(three,+z 朝南/觀察者) | pos_y(第二軸,非高度) |
-| 旋轉 | 逆時針度,0°朝 +Y | `rotation_y_deg`(three) | 與 three **相反**(取負) |
+|            | for_agent            | 專案 payload(`scene_objects`)   | 專案引擎(`PlacedFurniture`) |
+| ---------- | -------------------- | --------------------------------- | ----------------------------- |
+| 單位       | 公分                 | 公分(`position_cm`/`size_cm`) | **公尺**                |
+| 原點       | 平面**左下角** | 房間**中心**                | **角落**(0,0)           |
+| 平面第二軸 | Y 朝上(北,數學慣例)  | z(three,+z 朝南/觀察者)           | pos_y(第二軸,非高度)          |
+| 旋轉       | 逆時針度,0°朝 +Y    | `rotation_y_deg`(three)         | 與 three**相反**(取負)  |
 
 已知的專案內換算(payload ⇄ 引擎)在 `scene_service._scene_object_to_placed`(`scene_service.py:569`):
 
@@ -194,5 +194,3 @@ furniture.rotation = (rotation_y_deg + ROT_OFFSET) * ROT_SIGN  (mod 360)
 - 鐵律「引擎算座標」要保留:已做、穩、可測、不震盪;LLM 只做選家具與語意約束。
 - 座標三宇宙,轉接器獨立成檔寫測試;**旋轉零點靠 `render_plan` 校準,不憑空寫常數**。
 - 丟棄 for_agent 的 parse_dxf/geometry/validate(與引擎重工);採用 agent 提示/build_glb/render_plan。
-</content>
-</invoke>
