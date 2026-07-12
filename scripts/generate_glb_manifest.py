@@ -74,7 +74,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
     "--output",
     type=Path,
-    default=Path("JSON/manifests/glb_upload_manifest.csv"),
+    default=Path("dataset/catalog_json/manifests/glb_upload_manifest.csv"),
     help="Manifest CSV 輸出位置。",
 )
     parser.add_argument(

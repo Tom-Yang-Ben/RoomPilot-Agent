@@ -214,7 +214,7 @@ def check_glb_action(argv: list[str]) -> int:
     parser.add_argument("--input", type=Path, default=PROJECT_ROOT / "JSON", help="JSON 檔或資料夾；預設 JSON。")
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT, help="glb_path 的基準資料夾。")
     parser.add_argument("--pattern", default="*.normalized.json", help="資料夾搜尋樣式。")
-    parser.add_argument("--report", type=Path, default=PROJECT_ROOT / "JSON/reports/json_glb_consistency_report.json")
+    parser.add_argument("--report", type=Path, default=PROJECT_ROOT / "dataset/catalog_json/reports/json_glb_consistency_report.json")
     args = parser.parse_args(argv)
 
     results, _ = glb_scan(args.input.resolve(), args.project_root.resolve(), args.pattern)
@@ -241,7 +241,7 @@ def prune_missing_action(argv: list[str]) -> int:
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT, help="glb_path 的基準資料夾。")
     parser.add_argument("--pattern", default="*.normalized.json", help="資料夾搜尋樣式。")
     parser.add_argument("--backup-dir", type=Path, help="備份資料夾；未指定時自動建立時間戳目錄。")
-    parser.add_argument("--report", type=Path, default=PROJECT_ROOT / "JSON/reports/prune_missing_report.json")
+    parser.add_argument("--report", type=Path, default=PROJECT_ROOT / "dataset/catalog_json/reports/prune_missing_report.json")
     parser.add_argument("--apply", action="store_true", help="實際備份並修改檔案；未加時只預覽。")
     args = parser.parse_args(argv)
 
@@ -250,7 +250,7 @@ def prune_missing_action(argv: list[str]) -> int:
     removal_count = sum(len(indexes) for indexes in missing_indexes.values())
     changed_files: list[dict[str, Any]] = []
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_dir = (args.backup_dir or PROJECT_ROOT / "JSON/backups" / f"prune_missing_{timestamp}").resolve()
+    backup_dir = (args.backup_dir or PROJECT_ROOT / "dataset/catalog_json/backups" / f"prune_missing_{timestamp}").resolve()
 
     if args.apply:
         for path, indexes in missing_indexes.items():

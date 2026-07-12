@@ -21,8 +21,8 @@ Team SSOT is `docs/01_專題進度/RoomPilot_現行版本總覽.md` — read it 
 | `scripts/` | IKEA 型錄管線(下載/清洗/驗證/合併/匯入 Postgres) | 見 README |
 | `examples/` | 退役參考:`demo_app`(走通骨架)、`demo_agent_flow.py`(Agent↔引擎介面範例+失敗詞彙表) | — |
 | `testdata/` | dxf/ dxf_scale/ json/ png/ pngans/ chk/ door/ pic/ sample_glb/;floor21 = Demo 基準圖 | 資料 |
-| `dataset/` | IKEA GLB 1,662 檔(2026-07-07 起進版控,clone 即用) | 資料 |
-| `docs/archive/` | `2Dto3D.html`(早期原型,非主線)、`layout.json`(作廢的公分契約) | — |
+| `dataset/` | 素材與資料原料:IKEA GLB 1,517 檔、`catalog_json/`(kai 型錄 JSON 池+manifests)、`style_rag/`(django 風格池)、地板材質包(2026-07-12 歸位) | 資料 |
+| `docs/` | `01_專題進度/`(SSOT)、`04_契約與規格/`(schema/契約)、`05_狀態與稽核/`(各人狀態文件)、`archive/`;02/03 為組長本地筆記不進版控 | — |
 
 Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras: `server` / `vision` / `catalog`。
 
@@ -38,4 +38,6 @@ Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras:
 
 - UI 字串、註解、toast 一律繁體中文。
 - `dataset/` GLB 已進版控(2026-07-07;blob 本就在 git 歷史,去重零成本);`data/` 仍 gitignore,其他新大檔案進 git 前先問組長。
+- **入倉三規則(2026-07-12,合併他人分支時把關)**:①新增「頂層目錄」需組長同意——資料原料進 `dataset/`、引擎讀的正式資料進 `roompilot/catalog/data/`、網站資產進 `server/static/`;②禁止把整包 repo 副本 / 個人工作區直接 commit;③檔名禁止空格結尾與「 2」副本(macOS 複製殘留)。
+- `server/static/surface_assets/_import_all/` 名字像原料但**是活資產**(surface_catalog.json 引用全部 299 檔),勿搬勿刪。
 - 尚未完成(P0,7/7 改版後):手動拉比例 F2a、3D 窗戶修正、特殊需求 LLM→JSON、Agent 風格擺位(柏彥,tool schema 在 `engine/schema.py`)、風格界定 JSON(舒媁)、F6 手動微調修復、合法重疊/擋門/動線規則(承安)。F8/F9 已移出 P0;前端主線已決定改用 `frontend3d/`(柏彥 R3F)。詳見 SSOT v3.0。

@@ -43,7 +43,7 @@ PLAN_DIR = PROJECT_DIR / "testdata" / "pic" / "temp"
 SAMPLE_GLB_DIR = PROJECT_DIR / "testdata" / "sample_glb"
 _EXTERNAL_GLB_ZIP_SEARCH_DIRS = (
     DATASET_DIR,
-    PROJECT_DIR / "style-rag",
+    PROJECT_DIR / "dataset" / "style_rag",
     Path.home() / "Downloads",
 )
 _EXTERNAL_GLB_ZIP_PATTERNS = (
