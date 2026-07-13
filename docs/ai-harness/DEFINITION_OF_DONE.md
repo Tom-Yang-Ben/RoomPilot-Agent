@@ -41,7 +41,7 @@ v1.0(2026-07-13,制度架構 session 產出)。回答一件事:**每一層「什
 |---|---|
 | 輸入 | `testdata/dxf/*.dxf` |
 | 輸出 | 樓面 JSON(牆體聯集、房間=孔洞、窗段聚類合併;**單位公尺**——公尺→公分的唯一邊界在 `engine/dxf_room.py`) |
-| 驗證 | ① `uv run python roompilot/upgrade3d/eval_window_merge.py` — **門檻:precision/recall ≥90%/90%**(現基準 100/100,自帶 PASS/FAIL 退出碼)② 自檢:`python roompilot/upgrade3d/dxf_parser.py`(逐檔斷言牆體與比例)③ `uv run pytest tests/test_roompilot_quality_guardrails.py -v`(前端預覽契約) |
+| 驗證 | ① `uv run python roompilot/upgrade3d/eval_window_merge.py` — **門檻:precision/recall ≥90%/90%**(現基準 100/100,自帶 PASS/FAIL 退出碼)② 自檢:`uv run python roompilot/upgrade3d/dxf_parser.py`(逐檔斷言牆體與比例;需 uv 環境的 ezdxf,勿用裸 `python`)③ `uv run pytest tests/test_roompilot_quality_guardrails.py -v`(前端預覽契約) |
 | 交下一層證據 | eval PASS + 樓面 JSON 中房間數/牆段數與 chk 疊圖一致 |
 | 已知缺口 | 樓面 JSON **無欄位契約文件**(只有 code docstring);3D 窗戶顯示問題未解(SSOT §14) |
 
