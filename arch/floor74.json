@@ -245,11 +245,35 @@
     {
       "id": "win_2",
       "position": {
+        "x": 7.5,
+        "y": 603.75
+      },
+      "rotation": 90,
+      "width": 122.5,
+      "height": 120.0,
+      "sill_height": 90.0,
+      "host_wall": "wall_14"
+    },
+    {
+      "id": "win_3",
+      "position": {
         "x": 1369.38,
         "y": 626.25
       },
       "rotation": 90,
       "width": 122.5,
+      "height": 120.0,
+      "sill_height": 90.0,
+      "host_wall": "wall_15"
+    },
+    {
+      "id": "win_4",
+      "position": {
+        "x": 1369.38,
+        "y": 923.12
+      },
+      "rotation": 90,
+      "width": 246.25,
       "height": 120.0,
       "sill_height": 90.0,
       "host_wall": "wall_15"

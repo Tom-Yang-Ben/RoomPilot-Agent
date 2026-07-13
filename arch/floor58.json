@@ -96,11 +96,11 @@
     {
       "id": "wall_7",
       "position": {
-        "x": 727.5,
+        "x": 728.18,
         "y": 322.5
       },
       "rotation": 0,
-      "width": 301.36,
+      "width": 300.0,
       "thickness": 15.0,
       "height": 280.0
     },
@@ -211,6 +211,6 @@
     "image": "floor58.png",
     "cm_per_px": 1.3636,
     "scale_method": "wall_min",
-    "scale_confidence": "medium"
+    "scale_confidence": "low"
   }
 }

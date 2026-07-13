@@ -263,10 +263,10 @@
       "id": "win_4",
       "position": {
         "x": 928.12,
-        "y": 486.56
+        "y": 564.38
       },
       "rotation": 90,
-      "width": 283.12,
+      "width": 127.5,
       "height": 120.0,
       "sill_height": 90.0,
       "host_wall": "wall_16"
@@ -274,14 +274,14 @@
     {
       "id": "win_5",
       "position": {
-        "x": 152.34,
-        "y": 34.69
+        "x": 928.12,
+        "y": 415.31
       },
-      "rotation": 0,
-      "width": 75.94,
+      "rotation": 90,
+      "width": 140.62,
       "height": 120.0,
       "sill_height": 90.0,
-      "host_wall": "wall_8"
+      "host_wall": "wall_20"
     }
   ],
   "doors": [

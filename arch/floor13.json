@@ -270,18 +270,6 @@
     {
       "id": "win_5",
       "position": {
-        "x": 482.05,
-        "y": 13.64
-      },
-      "rotation": 0,
-      "width": 36.82,
-      "height": 120.0,
-      "sill_height": 90.0,
-      "host_wall": "wall_10"
-    },
-    {
-      "id": "win_6",
-      "position": {
         "x": 630.0,
         "y": 13.64
       },
@@ -292,19 +280,7 @@
       "host_wall": "wall_11"
     },
     {
-      "id": "win_7",
-      "position": {
-        "x": 259.77,
-        "y": 396.14
-      },
-      "rotation": 90,
-      "width": 94.09,
-      "height": 120.0,
-      "sill_height": 90.0,
-      "host_wall": "wall_14"
-    },
-    {
-      "id": "win_8",
+      "id": "win_6",
       "position": {
         "x": 761.59,
         "y": 295.91
