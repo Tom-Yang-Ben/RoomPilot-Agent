@@ -43,3 +43,15 @@ Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras:
 - **入倉三規則(2026-07-12,合併他人分支時把關)**:①新增「頂層目錄」需組長同意——資料原料進 `dataset/`、引擎讀的正式資料進 `roompilot/catalog/data/`、網站資產進 `server/static/`;②禁止把整包 repo 副本 / 個人工作區直接 commit;③檔名禁止空格結尾與「 2」副本(macOS 複製殘留)。
 - `server/static/surface_assets/_import_all/` 名字像原料但**是活資產**(surface_catalog.json 引用全部 299 檔),勿搬勿刪。
 - 尚未完成(P0,7/7 改版後):手動拉比例 F2a、3D 窗戶修正、特殊需求 LLM→JSON、Agent 風格擺位(柏彥,tool schema 在 `engine/schema.py`)、風格界定 JSON(舒媁)、F6 手動微調修復、合法重疊/擋門/動線規則(承安)。F8/F9 已移出 P0;前端主線已決定改用 `frontend3d/`(柏彥 R3F)。詳見 SSOT v3.0。
+
+## AI Harness 制度路由(2026-07-13)
+
+| 情境 | 先讀 |
+|---|---|
+| 要說「完成/修好了」之前 | `.claude/rules/verification.md` + `docs/ai-harness/DEFINITION_OF_DONE.md` 對應層 |
+| 接任務 / 交辦任務 | `docs/ai-harness/TASK_TEMPLATES.md` |
+| 開工前查前車之鑑、犯錯後記帳 | `docs/ai-harness/FAILURE_LOG.md` |
+| 任何 git 寫入操作前 | `.claude/rules/git-safety.md` |
+| 讀狀態文件前 | DoD §0.1 文件可信度指引(05 的三份 STATUS 已過時,勿當現況) |
+
+模型分工(**本段給交辦的人讀**,session 內模型無法自行切換;AI 讀到此段時的義務只有一條:同一子任務重試兩輪仍失敗就停下,保存完整失敗軌跡並回報建議升級):搜尋/整理/機械修改用低成本模型;一般實作與除錯用中階;模糊架構、根因不明、重試兩輪失敗才升級高階;高階解出模式後,批次套用降回便宜模型。
