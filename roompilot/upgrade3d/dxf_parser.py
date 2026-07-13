@@ -111,13 +111,16 @@ def _collect(msp, dist):
     return segs, rings
 
 
-def _merge_window_segs(segs, thickness):
-    """一扇窗在 CAD 裡常是多條平行玻璃線+端封口(PNG 管線輸出固定為 4+2 條),
-    逐段各畫一個盒會重疊 z-fighting。以「膨脹外包框相交」聚類,每群(=一扇窗)
-    輸出一條沿長邊的中心線段。單段自成一群 → 原樣輸出,原生單線窗不受影響。"""
-    if not segs:
-        return segs
-    tol = max(0.75 * thickness, 0.06)        # 玻璃線間距 ≈ thickness/3,封口貼兩端
+def _symbol_tol(thickness, span_m=None):
+    """符號聚類容差。窗/門符號的內部線距隨「圖的整體比例」縮放——固定容差在
+    小跨距模型(如 mm 版 config 比例的 4m 圖)會把相鄰兩個符號黏成一個。
+    以跨距/60 近似該圖的實際牆厚(典型 10~12m 圖 ≈ 0.18m 牆),與 thickness 取小。"""
+    t_eff = thickness if not span_m else min(thickness, span_m / 60.0)
+    return max(0.75 * t_eff, 0.02)
+
+
+def _cluster_seg_groups(segs, tol):
+    """以「膨脹外包框相交」把線段聚類成群,回傳 index 群清單。"""
     boxes = []
     for s in segs:
         x0, x1 = sorted((s["x1"], s["x2"]))
@@ -129,7 +132,7 @@ def _merge_window_segs(segs, thickness):
 
     n = len(segs)
     seen = [False] * n
-    out = []
+    groups = []
     for i in range(n):
         if seen[i]:
             continue
@@ -142,6 +145,18 @@ def _merge_window_segs(segs, thickness):
                 if not seen[j] and hits(boxes[k], boxes[j]):
                     seen[j] = True
                     stack.append(j)
+        groups.append(grp)
+    return groups
+
+
+def _merge_window_segs(segs, thickness, span_m=None):
+    """一扇窗在 CAD 裡常是多條平行玻璃線+端封口(PNG 管線輸出固定為 4+2 條),
+    逐段各畫一個盒會重疊 z-fighting。聚類後每群(=一扇窗)輸出一條沿長邊的
+    中心線段。單段自成一群 → 原樣輸出,原生單線窗不受影響。"""
+    if not segs:
+        return segs
+    out = []
+    for grp in _cluster_seg_groups(segs, _symbol_tol(thickness, span_m)):
         if len(grp) == 1:
             out.append(segs[grp[0]])         # 單段窗(含斜窗)原樣保留
             continue
@@ -214,8 +229,11 @@ def _process(doc, name, scale_m, thickness, height):
 
     walls   = to_m(wall_segs)
     windows = _merge_window_segs(
-        to_m(segs["window"] + group_segs(rings["window"])), thickness)
+        to_m(segs["window"] + group_segs(rings["window"])), thickness, span_m)
     doors   = to_m(segs["door"] + group_segs(rings["door"]))
+    # 門符號(弧攤平後常是數十段)聚類成「幾組門」——stats 報組數才有意義,
+    # doors 線段清單保留原樣供繪圖
+    door_groups = len(_cluster_seg_groups(doors, _symbol_tol(thickness, span_m))) if doors else 0
 
     def ring(coords):
         return [[round(x, 3), round(z, 3)] for x, z in coords]
@@ -309,7 +327,8 @@ def _process(doc, name, scale_m, thickness, height):
         "doors": doors,
         "stats": {"wall_segments": len(walls), "wall_hatches": len(wall_rings),
                   "wall_polys": len(wall_polys),
-                  "windows": len(windows), "doors": len(doors),
+                  "windows": len(windows), "doors": door_groups,
+                  "door_segments": len(doors),
                   "width_m": round(bx1 - bx0, 2), "depth_m": round(bz1 - bz0, 2),
                   "extent_area": round((bx1 - bx0) * (bz1 - bz0), 1)},
     }

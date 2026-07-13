@@ -377,7 +377,7 @@ def _near_door(cx, cy, gap, doors, ends=None, T=0):
     return False
 
 
-def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, soft=None):
+def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, soft=None, bgr=None):
     """在牆的開口偵測窗:開口長度被細線高度覆蓋=窗(玻璃線沿牆跨整段)；
     空的=門/通道，留開；落在偵測到的門附近=門，留開。回傳 [(orient, x0, y0, x1, y1)]。
     soft = 寬鬆二值化(灰<200)。玻璃線畫成淺灰時 Otsu 會把它消掉，開口在 orig_bw 上
@@ -529,7 +529,24 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
                 return (s0, s1)
         return None
 
-    def try_window(orient, x0, y0, x1, y1):
+    debug = bool(os.environ.get("FP2DXF_DEBUG"))
+    killed = []                              # 已判定為門的開口:補掃路徑不得復活
+    win_meta = []                            # 與 wins 對齊:(path,) —— VLM 風險分級用
+
+    def overlaps_killed(orient, x0, y0, x1, y1):
+        return any(k[0] == orient and not (x1 <= k[1] or x0 >= k[3] or y1 <= k[2] or y0 >= k[4])
+                   for k in killed)
+
+    def band_groups(orient, x0, y0, x1, y1):
+        """收錄後補算開口帶的貫穿線群數(空心牆=2、正常窗≥3)——VLM 風險標記用。"""
+        pad = max(2, int(round(0.25 * T)))
+        if orient == "h":
+            band = orig_bw[max(0, int(y0) - pad):min(Himg, int(y1) + pad), max(0, int(x0)):min(Wimg, int(x1))]
+            return line_groups(band, 1) if band.size else 0
+        band = orig_bw[max(0, int(y0)):min(Himg, int(y1)), max(0, int(x0) - pad):min(Wimg, int(x1) + pad)]
+        return line_groups(band, 0) if band.size else 0
+
+    def try_window(orient, x0, y0, x1, y1, path=""):
         """開口通過覆蓋/結構檢查後的最後一關：門過濾(原則3——有弧就是門)。過了就收錄。"""
         if orient == "h":
             g0, g1, c_ = x0, x1, (y0 + y1) / 2.0
@@ -538,10 +555,19 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
             g0, g1, c_ = y0, y1, (x0 + x1) / 2.0
             ends = ((c_, y0), (c_, y1))
         if _near_door((x0 + x1) / 2.0, (y0 + y1) / 2.0, g1 - g0, doors, ends, T):
+            killed.append((orient, float(x0), float(y0), float(x1), float(y1)))
+            if debug:
+                print(f"    [debug] {orient} ({x0:.0f},{y0:.0f})-({x1:.0f},{y1:.0f}) path={path} → 殺:near_door")
             return                           # 開口處是門(鉸鏈貼端點) → 留開，不畫窗
         if thin is not None and _has_door_swing(thin, orient, c_, g0, g1, T, cfg.door_arc_pct):
+            killed.append((orient, float(x0), float(y0), float(x1), float(y1)))
+            if debug:
+                print(f"    [debug] {orient} ({x0:.0f},{y0:.0f})-({x1:.0f},{y1:.0f}) path={path} → 殺:door_swing")
             return                           # 端點掃到開闔弧線 → 門，不是窗
+        if debug:
+            print(f"    [debug] {orient} ({x0:.0f},{y0:.0f})-({x1:.0f},{y1:.0f}) path={path} → 收錄")
         wins.append((orient, float(x0), float(y0), float(x1), float(y1)))
+        win_meta.append((path,))
 
     for _, grp in group(horiz, lambda r: (r[1] + r[3]) / 2):
         grp.sort(key=lambda r: r[0])
@@ -555,13 +581,15 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
                 continue
             pad = max(2, int(round(0.25 * T)))   # 窗符號比蝕刻後的牆塊略寬,帶朝兩側擴一點
             band = orig_bw[max(0, y0 - pad):min(Himg, y1 + pad), max(0, x0):min(Wimg, x1)]
-            if covered(band, 1) or covered_soft(y0 - pad, y1 + pad, x0, x1, 1):
-                try_window("h", x0, y0, x1, y1)
+            if covered(band, 1):
+                try_window("h", x0, y0, x1, y1, "covered")
+            elif covered_soft(y0 - pad, y1 + pad, x0, x1, 1):
+                try_window("h", x0, y0, x1, y1, "soft")
             elif not (band.size and (band.max(axis=0) > 0).mean() >= thr):
                 # 整段覆蓋率真的低(有大片空白)才找子段；覆蓋高但結構不像窗=推拉門/門檻,直接擋
                 s = sub_window("h", y0 - pad, y1 + pad, x0, x1)
                 if s:                        # 開口只有一部分有線 → 那段是窗,其餘留開
-                    try_window("h", s[0], y0, s[1], y1)
+                    try_window("h", s[0], y0, s[1], y1, "sub")
 
     for _, grp in group(vert, lambda r: (r[0] + r[2]) / 2):
         grp.sort(key=lambda r: r[1])
@@ -575,13 +603,15 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
                 continue
             pad = max(2, int(round(0.25 * T)))   # 窗符號比蝕刻後的牆塊略寬,帶朝兩側擴一點
             band = orig_bw[max(0, y0):min(Himg, y1), max(0, x0 - pad):min(Wimg, x1 + pad)]
-            if covered(band, 0) or covered_soft(y0, y1, x0 - pad, x1 + pad, 0):
-                try_window("v", x0, y0, x1, y1)
+            if covered(band, 0):
+                try_window("v", x0, y0, x1, y1, "covered")
+            elif covered_soft(y0, y1, x0 - pad, x1 + pad, 0):
+                try_window("v", x0, y0, x1, y1, "soft")
             elif not (band.size and (band.max(axis=1) > 0).mean() >= thr):
                 # 整段覆蓋率真的低(有大片空白)才找子段；覆蓋高但結構不像窗=推拉門/門檻,直接擋
                 s = sub_window("v", x0 - pad, x1 + pad, y0, y1)
                 if s:                        # 開口只有一部分有線 → 那段是窗,其餘留開
-                    try_window("v", x0, s[0], x1, s[1])
+                    try_window("v", x0, s[0], x1, s[1], "sub")
 
     # ── 補找「牆段跟垂直牆之間」與「整條被抹除的牆線上」的窗 ──
     # 細線畫的窗(甚至整條細線牆)會被 solid 開運算抹光，上面的成對牆段邏輯拿它沒轍：
@@ -601,6 +631,8 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
             ax, ends = 0, ((c, y0), (c, y1))
         if not covered_soft(y0, y1, x0, x1, ax, edge_hug=True):
             return None
+        if overlaps_killed(orient, x0, y0, x1, y1):
+            return None                      # 主掃已判定為門的開口,補掃不得復活
         if _near_door((x0 + x1) / 2.0, (y0 + y1) / 2.0, gap, doors, ends, T):
             return None
         if thin is not None and _has_door_swing(thin, orient, c, g_lo, g_hi, T, cfg.door_arc_pct):
@@ -635,7 +667,10 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
                 continue                     # 兩邊都是實體牆段 → 上面已測過
             w = strict_window(orient, c, t, a[1], b[0])
             if w:
+                if debug:
+                    print(f"    [debug] {orient} ({w[1]:.0f},{w[2]:.0f})-({w[3]:.0f},{w[4]:.0f}) path=strict → 收錄")
                 wins.append(w)
+                win_meta.append(("strict",))
 
     h_groups = [(np.mean([(r[1] + r[3]) / 2 for r in grp]),
                  float(np.median([r[3] - r[1] for r in grp])),
@@ -660,6 +695,59 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         c = min(max(c, wall_t / 2), (Himg if orient == "h" else Wimg) - wall_t / 2)
         scan_extra(orient, c, wall_t, [], vert if orient == "h" else horiz)
 
+    # ── 仲裁層:CV 規則天花板案例的第二意見 ──
+    # 候選總表(收錄/被門弧殺/牆內窗提案)交仲裁者判「窗 or 非窗」:
+    #   收錄 + 判非窗 → 否決(空心牆/檯面/門檻誤抓)
+    #   被殺 + 判窗   → 平反(窗簾弧被當門弧的誤殺)
+    #   提案 + 判窗   → 收錄(窗符號被吸進牆塊、開口配對沒觸發)
+    # 仲裁者優先序:本地 HOG+SVM 分類器(訓練自標注資料,毫秒級、確定性)
+    # > VLM(FP2DXF_VLM=1 且有金鑰才啟用;免費視覺模型實測誤判率高,僅實驗用)
+    # > 無仲裁者 → 全部沿用 CV 原判。候選總表同時存到 LAST_CANDIDATES 供訓練收集。
+    global LAST_CANDIDATES
+    proposals = _inwall_proposals(orig_bw, rects, T, wins, killed)
+    kill_boxes = sorted({(k[0], k[1], k[2], k[3], k[4]) for k in killed})
+    LAST_CANDIDATES = (
+        [{"kind": "accepted", "path": win_meta[i][0] if i < len(win_meta) else "?",
+          "orient": w[0], "box": [w[1], w[2], w[3], w[4]],
+          "groups": band_groups(*w)} for i, w in enumerate(wins)]
+        + [{"kind": "killed", "orient": k[0], "box": list(k[1:])} for k in kill_boxes]
+        + [{"kind": "proposal", "orient": p[0], "box": list(p[1:])} for p in proposals]
+    )
+
+    judge = None
+    try:
+        from . import opening_classifier, vlm_judge
+    except ImportError:
+        import opening_classifier
+        import vlm_judge                     # 以腳本直接執行(非套件)時
+    if opening_classifier.available():
+        judge = lambda boxes: opening_classifier.judge_openings(orig_bw, thin, T, boxes)
+    elif bgr is not None and os.environ.get("FP2DXF_VLM") == "1" and vlm_judge.vlm_enabled():
+        judge = lambda boxes: vlm_judge.judge_openings(bgr, [b[1:] for b in boxes])
+
+    if judge is not None:
+        batch = ([(w[0], w[1], w[2], w[3], w[4]) for w in wins]
+                 + list(kill_boxes) + list(proposals))
+        verdicts = judge(batch) if batch else {}
+        n_w, n_k = len(wins), len(kill_boxes)
+        drop = set()
+        for i in range(n_w):
+            if verdicts.get(i) in ("door", "other"):
+                drop.add(i)
+                if debug:
+                    print(f"    [debug] 仲裁否決收錄 {wins[i]} → {verdicts[i]}")
+        wins = [w for i, w in enumerate(wins) if i not in drop]
+        for j, k in enumerate(kill_boxes):
+            if verdicts.get(n_w + j) == "window":
+                wins.append(k)
+                if debug:
+                    print(f"    [debug] 仲裁平反誤殺 {k}")
+        for j, p in enumerate(proposals):
+            if verdicts.get(n_w + n_k + j) == "window":
+                wins.append(p)
+                if debug:
+                    print(f"    [debug] 仲裁確認牆內窗 {p}")
+
     # 去重(不同來源可能疊到同一個開口)
     uniq = []
     for w in wins:
@@ -671,6 +759,64 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         if not dup:
             uniq.append(w)
     return uniq
+
+
+# 最近一次 detect_windows 的候選總表(accepted/killed/proposal)——訓練資料收集用
+LAST_CANDIDATES: list[dict] = []
+
+
+def _inwall_proposals(orig_bw, rects, T, wins, killed):
+    """牆內窗提案:窗符號線太粗被 solid 開運算吸進牆塊時,成對牆段的開口配對
+    根本不會觸發(floor02/03/08 的漏抓)。改掃「牆矩形內部」的非實心段:
+    沿牆軸的填墨率介於 0.1~0.85、長度 ≥1.2T、且跨牆向有 ≥2 條線群(玻璃線),
+    兩端至少一側接實心牆。純提案——一律交 VLM 確認才收錄。"""
+    Himg, Wimg = orig_bw.shape
+    occupied = [(w[1], w[2], w[3], w[4]) for w in wins] + [(k[1], k[2], k[3], k[4]) for k in killed]
+
+    def overlaps(b):
+        return any(not (b[2] <= o[0] or b[0] >= o[2] or b[3] <= o[1] or b[1] >= o[3]) for o in occupied)
+
+    out = []
+    for x0, y0, x1, y1 in rects:
+        w, h = x1 - x0, y1 - y0
+        if max(w, h) < 3 * T or min(w, h) > 3 * T:   # 太短的牆/太厚的實心塊不掃
+            continue
+        horiz = w >= h
+        band = orig_bw[int(y0):int(y1), int(x0):int(x1)]
+        if not band.size:
+            continue
+        fill = (band > 0).mean(axis=0 if horiz else 1)   # 沿牆軸的每行/列填墨率
+        n = len(fill)
+        min_run = max(8, int(1.2 * T))
+        i = 0
+        while i < n:
+            if not (0.1 <= fill[i] <= 0.85):
+                i += 1
+                continue
+            j = i
+            while j < n and 0.1 <= fill[j] <= 0.85:
+                j += 1
+            if (j - i) >= min_run:
+                sub = band[:, i:j] if horiz else band[i:j, :]
+                cov = (sub > 0).mean(axis=1 if horiz else 0)  # 跨牆向的每條線覆蓋率
+                groups = prev = 0
+                for v in cov:
+                    cur = v >= 0.7
+                    if cur and not prev:
+                        groups += 1
+                    prev = cur
+                solid_l = i >= 2 and fill[max(0, i - int(0.8 * T)):i].max(initial=0) > 0.85
+                solid_r = j < n - 2 and fill[j:min(n, j + int(0.8 * T))].max(initial=0) > 0.85
+                if groups >= 2 and (solid_l or solid_r):
+                    if horiz:
+                        box = ("h", x0 + i, y0, x0 + j, y1)
+                    else:
+                        box = ("v", x0, y0 + i, x1, y0 + j)
+                    if not overlaps(box[1:]):
+                        out.append((box, j - i))
+            i = j
+    out.sort(key=lambda t: -t[1])
+    return [b for b, _ in out[:8]]           # 每張圖最多 8 個提案,避免蒙太奇爆量
 
 
 def _infer_lines(horiz, vert, T):
@@ -923,24 +1069,22 @@ def preview_solid(bgr, rects, wins, path):
 
 # ─────────────────────────── main ───────────────────────────
 def remove_solid_blobs(bw):
-    """移除大面積實心填充塊(緊湊、非細長，如被塗實的房間/井)。
-    它們不是牆，又會把自動牆厚 T 撐爆，導致細牆被侵蝕掉。
-    牆網是細長結構(面積遠大於內切圓)，緊湊度高的才移除。"""
+    """移除大面積實心填充塊(如被塗實的房間/井)。它們不是牆，又會把自動牆厚 T 撐爆。
+
+    逐像素做,不做整個連通元件級的刪除:實心塊常跟牆網相連,整件刪會把全圖的牆
+    一起清空(floor08 就是這樣全滅的)。做法:距離變換 ≥16px(即厚度 >32px)的
+    像素是實心塊核心,把核心膨脹回塊的邊界(√2×16 蓋住直角角落)後只挖掉那一塊;
+    細牆網即使與塊相連也保留,代價只是塊周邊 ~7px 的牆緣可能被多刮掉。"""
+    R = 16                                         # 核心半徑:牆厚超過 32px 視為實心塊
     dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
-    n, lab, st, _ = cv2.connectedComponentsWithStats(bw, 8)
-    out = bw.copy()
-    removed = 0
-    for i in range(1, n):
-        if st[i, cv2.CC_STAT_AREA] < 50:
-            continue
-        r = float(dt[lab == i].max())
-        if r < 16:                                 # 只清掉很厚的實心塊(>32px)，不動一般牆/家具
-            continue
-        area = st[i, cv2.CC_STAT_AREA]
-        if area / (math.pi * r * r) < 3.0:         # 緊湊 = 實心塊，非牆
-            out[lab == i] = 0
-            removed += 1
-    return out, removed
+    core = (dt >= R).astype(np.uint8) * 255
+    if not core.any():
+        return bw, 0
+    n_core, _, _, _ = cv2.connectedComponentsWithStats(core, 8)
+    grow = int(math.ceil(R * math.sqrt(2)))        # 蓋回矩形塊的角落
+    body = cv2.dilate(core, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * grow + 1, 2 * grow + 1)))
+    out = cv2.bitwise_and(bw, cv2.bitwise_not(body))
+    return out, int(n_core - 1)
 
 
 def run(cfg: Config):
@@ -984,7 +1128,7 @@ def run(cfg: Config):
                 soft = orig                  # 亮線稿抓不到「淺灰」,退回一般二值
             else:
                 _, soft = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
-            wins = detect_windows(orig, rects, cfg, T, doors, thin, soft)
+            wins = detect_windows(orig, rects, cfg, T, doors, thin, soft, bgr=bgr)
         write_solid_dxf(rects, wins, img_h, scale, cfg)
         if cfg.preview:
             preview_solid(bgr, rects, wins, cfg.preview)

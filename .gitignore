@@ -72,3 +72,6 @@ AGENTS.md
 
 # 3D 模型屬於本機或外部資產，不從 bella 分支上傳。
 *.glb
+
+# macOS 系統殘留(入倉三規則:禁止提交)
+.DS_Store

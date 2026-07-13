@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
-from shapely.geometry import Polygon, box as shapely_box
+from shapely.geometry import LineString, Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
 from ..agent import design_layout_intent, run_recovery
-from ..catalog.style_db import catalog_item_from_scene_object
+from ..catalog.style_db import CLEARANCE_BY_TYPE, catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
 from ..engine.geometry import furniture_polygon
@@ -482,6 +482,16 @@ def choose_furniture_items(
         ]
 
         if not candidates:
+            # 型錄沒有這個泛型類型時退到同族系(例:sofa → fabric-sofa/leather-sofa)
+            candidates = [
+                item
+                for item in furniture
+                if item.get("has_model")
+                and item.get("furniture_id") not in used_ids
+                and _TYPE_FAMILY.get(item.get("normalized_type") or "") == required_type
+            ]
+
+        if not candidates:
             unavailable.append(required_type)
             continue
 
@@ -579,6 +589,25 @@ def _rotated_footprint(width: float, depth: float, rotation: float) -> tuple[flo
     return width * cos_v + depth * sin_v, width * sin_v + depth * cos_v
 
 
+# 家具「族系」:型錄的具體類型 → 擺位語意上的同一種東西
+_TYPE_FAMILY = {
+    "fabric-sofa": "sofa",
+    "leather-sofa": "sofa",
+    "sofa-bed": "sofa",
+    "bed-frame": "bed",
+    "pax-wardrobe": "wardrobe",
+    "cabinets-cupboard": "wardrobe",
+    "chests-of-drawer": "sideboard",
+    "storage-solution-system": "wardrobe",
+}
+
+
+def _facing(rot_deg: float) -> tuple[float, float]:
+    """候選旋轉角 → 家具正面朝向單位向量(rot 0=+z、90=+x、180=-z、270=-x)。"""
+    rad = math.radians(rot_deg)
+    return (math.sin(rad), math.cos(rad))
+
+
 def _placement_candidates(
     item_type: str | None,
     width: float,
@@ -586,76 +615,175 @@ def _placement_candidates(
     room_width_cm: float,
     room_depth_cm: float,
     hint: dict[str, Any] | None = None,
+    inner: tuple[float, float, float, float] | None = None,
+    neighbors: dict[str, dict[str, float]] | None = None,
 ) -> list[tuple[float, float, float]]:
-    left = -room_width_cm / 2
-    right = room_width_cm / 2
-    top = -room_depth_cm / 2
-    bottom = room_depth_cm / 2
-    center_x = 0.0
-    center_z = 0.0
+    """候選試放順序(合法性仍 100% 由引擎把關,這裡只影響「先試哪裡」)。
+
+    inner:實際可擺區域的 (left, top, right, bottom),房間中心原點公分。
+    DXF 房間的牆是厚實牆體、邊界又內縮 8cm,靠牆錨點必須以可擺區域邊緣計算;
+    用 bbox±固定位移會整組卡進牆裡,全滅後退化成房中央網格(家具漂浮成因)。
+    neighbors:已擺好的家具(依族系),用來把「椅子貼書桌、床頭櫃貼床、
+    茶几對沙發、電視櫃對沙發」的成組候選排到最前。
+    """
+    if inner is not None:
+        left, top, right, bottom = inner
+    else:
+        left = -room_width_cm / 2
+        top = -room_depth_cm / 2
+        right = room_width_cm / 2
+        bottom = room_depth_cm / 2
+    gap = 2.0                                    # 與可擺邊界的貼牆縫隙
+    center_x = (left + right) / 2
+    center_z = (top + bottom) / 2
+    family = _TYPE_FAMILY.get(item_type or "", item_type)
+    neighbors = neighbors or {}
     candidates: list[tuple[float, float, float]] = []
+
+    # ── 成組候選:先貼著已擺好的夥伴家具 ──
+    paired: list[tuple[float, float, float]] = []
+
+    def _partner(fam: str) -> dict[str, float] | None:
+        return neighbors.get(fam)
+
+    if family == "office-chair":
+        desk = _partner("desk")
+        if desk:
+            fx, fz = _facing(desk["rot"])
+            # 書桌有前方淨空(抽拉椅子的空間),椅子要放在淨空外緣才過得了引擎檢查
+            desk_clear = CLEARANCE_BY_TYPE.get("desk")
+            base = (desk_clear.depth if desk_clear else 50.0) + 4.0
+            for extra in (base, base + 18.0):
+                dist = desk["depth"] / 2 + depth / 2 + extra
+                paired.append((desk["x"] + fx * dist, desk["z"] + fz * dist,
+                               (desk["rot"] + 180) % 360))
+    elif family == "bedside-table":
+        bed = _partner("bed")
+        if bed:
+            fx, fz = _facing(bed["rot"])
+            px, pz = fz, -fx                     # 床的側向
+            ax = bed["x"] - fx * (bed["depth"] / 2 - depth / 2)  # 對齊床頭端
+            az = bed["z"] - fz * (bed["depth"] / 2 - depth / 2)
+            side = bed["width"] / 2 + width / 2 + 4
+            paired.append((ax + px * side, az + pz * side, bed["rot"]))
+            paired.append((ax - px * side, az - pz * side, bed["rot"]))
+    elif family == "coffee-table":
+        sofa = _partner("sofa")
+        if sofa:
+            fx, fz = _facing(sofa["rot"])
+            for knee in (45.0, 65.0):            # 沙發前緣與茶几間留膝蓋活動距
+                dist = sofa["depth"] / 2 + depth / 2 + knee
+                paired.append((sofa["x"] + fx * dist, sofa["z"] + fz * dist, sofa["rot"]))
+    elif family == "tv-bench":
+        sofa = _partner("sofa")
+        if sofa:                                 # 電視櫃靠沙發正對面的牆
+            fx, fz = _facing(sofa["rot"])
+            if abs(fx) >= abs(fz):
+                x = right - depth / 2 - gap if fx > 0 else left + depth / 2 + gap
+                paired.append((x, sofa["z"], 270.0 if fx > 0 else 90.0))
+            else:
+                z = bottom - depth / 2 - gap if fz > 0 else top + depth / 2 + gap
+                paired.append((sofa["x"], z, 180.0 if fz > 0 else 0.0))
 
     # Agent 3 提示:指定靠牆側時,把一組靠該牆的候選 prepend 到最前面優先試放。
     # 只影響「試放順序」,合法性仍由 check_placement_with_clearance 把關(鐵律不變)。
     anchor = (hint or {}).get("anchor")
     anchored: list[tuple[float, float, float]] = []
+
+    # Agent 3 提示:指定靠牆側時,把一組靠該牆的候選 prepend 到最前面優先試放。
+    # 只影響「試放順序」,合法性仍由 check_placement_with_clearance 把關(鐵律不變)。
+    anchor = (hint or {}).get("anchor")
+    anchored: list[tuple[float, float, float]] = []
+    inner_w = right - left
+    inner_d = bottom - top
     if anchor == "top":
-        z = top + depth / 2 + 24
-        anchored = [(center_x, z, 0), (-room_width_cm * 0.22, z, 0), (room_width_cm * 0.22, z, 0)]
+        z = top + depth / 2 + gap
+        anchored = [(center_x, z, 0), (center_x - inner_w * 0.22, z, 0), (center_x + inner_w * 0.22, z, 0)]
     elif anchor == "bottom":
-        z = bottom - depth / 2 - 36
-        anchored = [(center_x, z, 180), (-room_width_cm * 0.18, z, 180), (room_width_cm * 0.18, z, 180)]
+        z = bottom - depth / 2 - gap
+        anchored = [(center_x, z, 180), (center_x - inner_w * 0.18, z, 180), (center_x + inner_w * 0.18, z, 180)]
     elif anchor == "left":
-        x = left + width / 2 + 20
-        anchored = [(x, center_z, 90), (x, -room_depth_cm * 0.2, 90), (x, room_depth_cm * 0.2, 90)]
+        x = left + depth / 2 + gap
+        anchored = [(x, center_z, 90), (x, center_z - inner_d * 0.2, 90), (x, center_z + inner_d * 0.2, 90)]
     elif anchor == "right":
-        x = right - width / 2 - 20
-        anchored = [(x, center_z, -90), (x, -room_depth_cm * 0.2, -90), (x, room_depth_cm * 0.2, -90)]
+        x = right - depth / 2 - gap
+        anchored = [(x, center_z, -90), (x, center_z - inner_d * 0.2, -90), (x, center_z + inner_d * 0.2, -90)]
     elif anchor == "center":
         anchored = [(center_x, center_z, 0)]
 
-    if item_type == "tv-bench":
-        candidates.extend([(center_x, top + depth / 2 + 24, 0), (-room_width_cm * 0.22, top + depth / 2 + 24, 0)])
-    elif item_type == "sofa":
-        candidates.extend([(center_x, bottom - depth / 2 - 36, 180), (-room_width_cm * 0.18, bottom - depth / 2 - 36, 180)])
-    elif item_type == "coffee-table":
+    # 靠牆家具的四面牆候選(背貼牆、面向房內;rot 90/270 時佔地寬深互換,
+    # 貼牆距離用 depth 旋轉後的實際進深)
+    def wall_slots(offsets=(0.0, -0.25, 0.25)) -> list[tuple[float, float, float]]:
+        slots = []
+        for off in offsets:
+            slots.append((center_x + inner_w * off, top + depth / 2 + gap, 0))
+            slots.append((center_x + inner_w * off, bottom - depth / 2 - gap, 180))
+            slots.append((left + depth / 2 + gap, center_z + inner_d * off, 90))
+            slots.append((right - depth / 2 - gap, center_z + inner_d * off, 270))
+        return slots
+
+    if family == "tv-bench":
+        candidates.extend(wall_slots())
+    elif family == "sofa":
+        candidates.extend([(center_x, bottom - depth / 2 - gap, 180),
+                           (center_x - inner_w * 0.18, bottom - depth / 2 - gap, 180),
+                           (left + depth / 2 + gap, center_z, 90),
+                           (right - depth / 2 - gap, center_z, 270)])
+    elif family == "coffee-table":
         candidates.extend([(center_x, center_z + 12, 0), (center_x, center_z - 18, 0)])
-    elif item_type == "armchair":
+    elif family == "armchair":
         candidates.extend([(right - width / 2 - 30, center_z + 35, -35), (left + width / 2 + 30, center_z + 35, 35)])
-    elif item_type == "bookcase":
-        candidates.extend([(left + width / 2 + 20, top + depth / 2 + 20, 90), (right - width / 2 - 20, top + depth / 2 + 20, -90)])
-    elif item_type in {"bed", "bed-frame", "sofa-bed"}:
-        candidates.extend([(center_x, bottom - depth / 2 - 32, 180), (left + width / 2 + 28, center_z, 90)])
-    elif item_type == "bedside-table":
-        candidates.extend([(right - width / 2 - 22, bottom - depth / 2 - 34, 0), (left + width / 2 + 22, bottom - depth / 2 - 34, 0)])
-    elif item_type == "desk":
-        candidates.extend([(center_x, top + depth / 2 + 30, 0), (left + width / 2 + 24, center_z, 90)])
-    elif item_type == "office-chair":
+    elif family in {"bookcase", "sideboard", "wardrobe"}:
+        candidates.extend(wall_slots())
+    elif family == "bed":
+        candidates.extend([(center_x, bottom - depth / 2 - gap, 180),
+                           (center_x, top + depth / 2 + gap, 0),
+                           (left + depth / 2 + gap, center_z, 90),
+                           (right - depth / 2 - gap, center_z, 270)])
+    elif family == "bedside-table":
+        candidates.extend([(right - width / 2 - gap, bottom - depth / 2 - gap, 0), (left + width / 2 + gap, bottom - depth / 2 - gap, 0)])
+    elif family == "desk":
+        candidates.extend(wall_slots(offsets=(0.0, -0.3, 0.3)))
+    elif family == "office-chair":
         candidates.extend([(center_x, top + depth + 88, 180), (left + width / 2 + 80, center_z, 90)])
-    elif item_type == "dining-table":
-        candidates.extend([(center_x, center_z, 0), (center_x, center_z + 36, 0)])
-    elif item_type == "dining-chair":
+    elif family == "dining-table":
+        candidates.extend([(center_x, center_z, 0), (center_x, center_z + 36, 0),
+                           (center_x + inner_w * 0.25, center_z, 0), (center_x - inner_w * 0.25, center_z, 0)])
+    elif family == "dining-chair":
         candidates.extend([(right - width / 2 - 40, center_z, 90), (left + width / 2 + 40, center_z, -90), (center_x, center_z + 80, 180)])
-    elif item_type == "sideboard":
-        candidates.extend([(right - width / 2 - 24, top + depth / 2 + 24, 0), (left + width / 2 + 24, top + depth / 2 + 24, 0)])
-    elif item_type == "wall-shelf":
+    elif family == "wall-shelf":
         candidates.extend([(left + width / 2 + 15, top + depth / 2 + 12, 0), (right - width / 2 - 15, top + depth / 2 + 12, 0)])
-    elif item_type in {"large-medium-rug", "runner-small-rug"}:
+    elif family in {"large-medium-rug", "runner-small-rug"}:
         candidates.extend([(center_x, center_z, 0), (center_x, center_z + 24, 0)])
     else:
         candidates.append((center_x, center_z, 0))
 
-    grid_x = [left + room_width_cm * ratio for ratio in (0.25, 0.5, 0.75)]
-    grid_z = [top + room_depth_cm * ratio for ratio in (0.28, 0.5, 0.72)]
+    grid_x = [left + inner_w * ratio for ratio in (0.25, 0.5, 0.75)]
+    grid_z = [top + inner_d * ratio for ratio in (0.28, 0.5, 0.72)]
     for z in grid_z:
         for x in grid_x:
             candidates.append((x, z, 0))
 
-    return anchored + candidates
+    return paired + anchored + candidates
 
 
 # 這些類型沿用舊行為,不參與碰撞(地毯在家具下方、壁架掛牆面)
 _IGNORE_COLLISION_TYPES = {"large-medium-rug", "runner-small-rug", "wall-shelf"}
+
+# 這些族系「背要貼牆」:沙發/床頭不靠牆、櫃背懸空都是設計錯誤;
+# 背後是牆開口(門洞)時更不能擋 —— 用背後探針排除這類槽位
+_WALL_BACKED_FAMILIES = {"sofa", "tv-bench", "bed", "wardrobe", "bookcase", "sideboard", "desk"}
+
+
+def _backed_by_wall(boundary: Polygon | None, cand_x: float, cand_z: float,
+                    rot: float, depth: float, half_w: float, half_d: float) -> bool:
+    """家具背後(反面向 6cm)是否為牆體/區域外。背後還是自由空間 = 沒靠牆或擋在開口前。"""
+    if boundary is None:
+        return True
+    fx, fz = _facing(rot)
+    px = cand_x - fx * (depth / 2 + 6.0) + half_w
+    pz = cand_z - fz * (depth / 2 + 6.0) + half_d
+    return not boundary.contains(Point(px, pz))
 
 
 def _room_boundary_polygon(room: Room) -> Polygon | None:
@@ -869,6 +997,7 @@ def generate_layout(
     regions_boundary: Polygon | None = None,
     place_boundary: Polygon | None = None,
     hints: dict[str, dict[str, Any]] | None = None,
+    window_segments: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
@@ -896,21 +1025,42 @@ def generate_layout(
     half_w_cm = room_w_cm / 2
     half_d_cm = room_d_cm / 2
 
+    # 實際可擺區域的內接範圍(房間中心原點、公分)—— 靠牆錨點以此計算。
+    # DXF 房間的牆是厚實牆體+邊界內縮 8cm,用 bbox 邊緣當牆會整組卡進牆裡。
+    inner: tuple[float, float, float, float] | None = None
+    if boundary is not None:
+        bx0, bz0, bx1, bz1 = boundary.bounds     # 角落原點
+        inner = (bx0 - half_w_cm, bz0 - half_d_cm, bx1 - half_w_cm, bz1 - half_d_cm)
+
     # 擺放順序:鎖定位置(使用者拖曳過)最先,避免被後放的家具擠掉;
-    # 其次 Agent priority 提示(升冪),其餘維持原始順序。
+    # 其次 Agent priority 提示(升冪);沒有提示的照佔地面積大到小
+    # (床/沙發/衣櫃先卡好牆位,小件再見縫插針,而不是反過來把大件擠到房中央)。
     # 輸出仍照原始 items 順序(以 results 對應),不動前端拿到的清單順序。
     def _order_key(i: int) -> tuple:
         locked_rank = 0 if items[i].get("position_locked") else 1
         hint = (hints or {}).get(items[i].get("furniture_id")) or {}
         priority = hint.get("priority")
         if isinstance(priority, int):
-            return (locked_rank, 0, priority, i)
-        return (locked_rank, 1, 0, i)
+            return (locked_rank, 0, priority, 0.0, i)
+        area = _size_cm(items[i], "width", 120) * _size_cm(items[i], "depth", 60)
+        return (locked_rank, 1, 0, -area, i)
 
     order = sorted(range(len(items)), key=_order_key)
 
     placed: list[PlacedFurniture] = []
+    neighbors: dict[str, dict[str, float]] = {}  # 族系 → 已擺好的代表家具(成組用)
     results: dict[int, dict[str, Any]] = {}
+
+    # 窗段(公尺、房間中心原點)→ 角落原點公分 LineString,靠牆家具背貼窗時跳過該槽位
+    window_lines: list[LineString] = []
+    for seg in window_segments or []:
+        try:
+            window_lines.append(LineString([
+                (float(seg["start"]["x"]) * 100 + half_w_cm, float(seg["start"]["z"]) * 100 + half_d_cm),
+                (float(seg["end"]["x"]) * 100 + half_w_cm, float(seg["end"]["z"]) * 100 + half_d_cm),
+            ]))
+        except (KeyError, TypeError, ValueError):
+            continue
 
     for index in order:
         item = items[index]
@@ -964,24 +1114,47 @@ def generate_layout(
                 x_cm = inner.x - half_w_cm
                 z_cm = inner.y - half_d_cm
         else:
-            for raw_x, raw_z, rot in _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm, hint=hint):
+            found = None
+            for raw_x, raw_z, rot in _placement_candidates(
+                item_type, width, depth, room_w_cm, room_d_cm,
+                hint=hint, inner=inner, neighbors=neighbors,
+            ):
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
-                cand_x = _clamp_axis(raw_x, -half_w_cm, half_w_cm, fp_w)
-                cand_z = _clamp_axis(raw_z, -half_d_cm, half_d_cm, fp_d)
-                candidate = PlacedFurniture(
-                    id=item_id,
-                    catalog=catalog,
-                    pos_x=cand_x + half_w_cm,
-                    pos_y=cand_z + half_d_cm,
-                    rotation=(-rot) % 360,
-                )
-                if (
-                    _inside_boundary(candidate, boundary)
-                    and check_placement_with_clearance(candidate, room, placed) is None
-                ):
-                    x_cm, z_cm, rotation = cand_x, cand_z, rot
-                    placed.append(candidate)
+                fx, fz = _facing(rot)
+                # 貼牆候選以可擺區域 bounds 計算,但區域有缺角(牆開口)時 bounds
+                # 會頂到牆帶上 —— 沿家具面向逐步往房內推,推到剛好落在區域內
+                # 為止(= 貼住實際室內邊緣),推太遠就放棄換下一個候選。
+                for step in range(0, 13):
+                    cand_x = _clamp_axis(raw_x + fx * 4 * step, -half_w_cm, half_w_cm, fp_w, margin=4)
+                    cand_z = _clamp_axis(raw_z + fz * 4 * step, -half_d_cm, half_d_cm, fp_d, margin=4)
+                    candidate = PlacedFurniture(
+                        id=item_id,
+                        catalog=catalog,
+                        pos_x=cand_x + half_w_cm,
+                        pos_y=cand_z + half_d_cm,
+                        rotation=(-rot) % 360,
+                    )
+                    if not _inside_boundary(candidate, boundary):
+                        continue                 # 還卡在牆帶/區域外 → 再往房內推
+                    fam_ = _TYPE_FAMILY.get(item_type or "", item_type)
+                    if fam_ in _WALL_BACKED_FAMILIES:
+                        if not _backed_by_wall(
+                            boundary, cand_x, cand_z, rot, depth, half_w_cm, half_d_cm
+                        ):
+                            break                # 背後是開口/自由空間 → 不貼牆不擋門,換候選
+                        if window_lines:
+                            bp = Point(cand_x - fx * (depth / 2 + 6.0) + half_w_cm,
+                                       cand_z - fz * (depth / 2 + 6.0) + half_d_cm)
+                            if any(line.distance(bp) <= 15.0 for line in window_lines):
+                                break            # 背貼窗 → 擋採光,換下一面牆
+                    if check_placement_with_clearance(candidate, room, placed) is None:
+                        found = (cand_x, cand_z, rot, candidate)
+                    break                        # 已在區域內:合法收下,不合法換候選
+                if found:
                     break
+            if found:
+                x_cm, z_cm, rotation, candidate = found
+                placed.append(candidate)
             else:
                 result = place_furniture(room, catalog, item_id, placed)
                 engine_item = result["placed"] if result["success"] else None
@@ -997,6 +1170,12 @@ def generate_layout(
                 else:
                     failed_reason = result["reason"] or "找不到落在房間形狀內的合法位置"
                     x_cm, z_cm = 0.0, 0.0
+
+        if failed_reason is None and item_type not in _IGNORE_COLLISION_TYPES:
+            fam = _TYPE_FAMILY.get(item_type or "", item_type)
+            if fam and fam not in neighbors:     # 同族取第一件當成組定位參考
+                neighbors[fam] = {"x": float(x_cm or 0), "z": float(z_cm or 0),
+                                  "rot": float(rotation), "width": width, "depth": depth}
 
         fp_w, fp_d = _rotated_footprint(width, depth, rotation)
         results[index] = {
@@ -1040,6 +1219,16 @@ def _flip_parsed_z(parsed: dict[str, Any]) -> dict[str, Any]:
             {"x1": s["x1"], "z1": -s["z1"], "x2": s["x2"], "z2": -s["z2"]}
             for s in parsed.get(key) or []
         ]
+    # client 形式的線段({start:{x,z}, end:{x,z}},公分)一併翻轉,
+    # /api/floorplan/recognize 直接把 parser 輸出回給前端畫圖時才不會鏡像
+    for key in ("wall_segments", "plan_segments", "door_segments", "window_segments"):
+        out[key] = [
+            {
+                "start": {"x": s["start"]["x"], "z": -s["start"]["z"]},
+                "end": {"x": s["end"]["x"], "z": -s["end"]["z"]},
+            }
+            for s in parsed.get(key) or []
+        ]
     bbox = parsed.get("bbox") or {}
     if bbox:
         out["bbox"] = {
@@ -1051,9 +1240,24 @@ def _flip_parsed_z(parsed: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _sanitize_override_segs(raw: Any) -> list[dict[str, float]] | None:
+    """人工確認修正的窗/門段(辨識框架:牆 bbox 中心原點、公尺、z 已翻轉)。"""
+    if not isinstance(raw, list):
+        return None
+    out = []
+    for s in raw:
+        try:
+            out.append({"x1": float(s["x1"]), "z1": float(s["z1"]),
+                        "x2": float(s["x2"]), "z2": float(s["z2"])})
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
 def parse_floorplan_with_engine(
     dxf_text: str,
     scale_m: float | None = None,
+    override: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any] | None, Room | None]:
     """DXF 文字 → (payload 的 floorplan 區塊, 引擎 Room)。
 
@@ -1066,6 +1270,14 @@ def parse_floorplan_with_engine(
         parsed = _flip_parsed_z(
             parse_dxf_bytes(dxf_text.encode("utf-8", errors="ignore"), "upload.dxf", scale_m=scale_m)
         )
+        # 人工確認修正(F2/回到補資料迴圈):使用者在辨識確認畫面改過的窗/門段
+        # 覆寫機器判讀。座標框架與 /api/floorplan/recognize 回傳一致(牆 bbox 中心、
+        # 公尺、z 已翻轉)= 這裡 parsed 的框架,直接替換再走後續轉換。
+        if override:
+            for key in ("windows", "doors"):
+                segs = _sanitize_override_segs(override.get(key))
+                if segs is not None:
+                    parsed[key] = segs
         build = build_room_from_dxf(parsed)
     except Exception:
         return None, None
@@ -1169,7 +1381,11 @@ def build_scene_payload(
             scale_m = float(raw_scale) if raw_scale else None
         except (TypeError, ValueError):
             scale_m = None
-        parsed_floorplan, engine_room = parse_floorplan_with_engine(dxf_text, scale_m=scale_m)
+        _override = questionnaire.get("floorplan_override")
+        parsed_floorplan, engine_room = parse_floorplan_with_engine(
+            dxf_text, scale_m=scale_m,
+            override=_override if isinstance(_override, dict) else None,
+        )
 
     effective_width_cm = parsed_floorplan["width_cm"] if parsed_floorplan else room_width_cm
     effective_depth_cm = parsed_floorplan["depth_cm"] if parsed_floorplan else room_depth_cm
@@ -1215,6 +1431,7 @@ def build_scene_payload(
     )
     _regions = _regions_boundary(parsed_floorplan, engine_room) if engine_room else None
     _place_bound = _largest_region_boundary(parsed_floorplan, engine_room) if engine_room else None
+    _windows = parsed_floorplan.get("window_segments", []) if parsed_floorplan else []
     objects = generate_layout(
         effective_width_cm,
         effective_depth_cm,
@@ -1223,6 +1440,7 @@ def build_scene_payload(
         regions_boundary=_regions,
         place_boundary=_place_bound,
         hints=hints,
+        window_segments=_windows if questionnaire.get("keep_window_clear") else None,
     )
 
     # Agent 4:引擎放不下的家具 → 換更小同型號 / 移除 / 升級,重擺至收斂。
@@ -1236,6 +1454,7 @@ def build_scene_payload(
             regions_boundary=_regions,
             place_boundary=_place_bound,
             hints=hints,
+            window_segments=_windows if questionnaire.get("keep_window_clear") else None,
         )
 
     objects, selected_items, recovery = run_recovery(
