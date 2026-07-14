@@ -3,13 +3,13 @@
 """
 floorplan2dxf_color.py — 彩色平面圖 PNG → DXF（floorplan2dxf.py 的彩色實驗版）
 
-參數全部寫在 config.ini，執行只要：
-    python3 floorplan2dxf_color.py              (批次 color_png/ → color_dxf/)
+參數全部寫在 config_color.ini（彩色管線專用，與黑白管線的 config.ini 分離），執行只要：
+    python3 floorplan2dxf_color.py              (批次 color_png/ → color_dxf_scale/)
 指定別的設定檔：
     python3 floorplan2dxf_color.py 別的.ini
 
-輸出一律進 color_* 目錄（color_dxf/ color_chk/ color_dxf_scale/ color_json/
-color_arch/），與主程式 floorplan2dxf.py 的 dxf/ chk/ dxf_scale/ json/ arch/
+輸出一律進 color_* 目錄（color_chk/ color_dxf_scale/ color_json/
+color_arch/），與主程式 floorplan2dxf.py 的 chk/ dxf_scale/ json/ arch/
 完全分開，不互相覆蓋。
 
 核心：不描輪廓（會歪），改成偵測線條後把每條「建構」成純水平或純垂直，
@@ -49,6 +49,9 @@ class Config:
     adaptive_block: int
     adaptive_c: int
     deskew: bool
+    fade_levels: int     # 彩色→灰階後淡化(色調分離)的層次數
+    fade_keep: int       # 保留最深的幾層當牆，其餘淡化成白
+    chroma_max: int      # 絕對色度(max-min通道差)低於此值才算牆(排除深色彩色家具/草皮)
     # 以下 px 類參數：None = 依自動量到的牆厚 T 推導(換圖免調)；給值則鎖定
     solid: int | None       # 去細線的開運算核
     style: str              # center=中線 | outline=兩面 | solid=實心牆
@@ -134,6 +137,8 @@ def load_config(path: str) -> Config:
         thresh=s("thresh", "otsu"), thresh_value=i("thresh_value", 128),
         adaptive_block=i("adaptive_block", 31), adaptive_c=i("adaptive_c", 5),
         deskew=b("deskew", False),
+        fade_levels=i("fade_levels", 5), fade_keep=i("fade_keep", 2),
+        chroma_max=i("chroma_max", 40),
         solid=io_("solid"), style=s("style", "center"),
         h_len=io_("h_len"), v_len=io_("v_len"),
         wall_min_pct=f("wall_min_pct", 3.0),
@@ -153,34 +158,42 @@ def load_config(path: str) -> Config:
 
 
 # ─────────────────────────── 前處理 ───────────────────────────
-COLOR_V_MAX = 140   # 彩色圖牆萃取：亮度上限(越大抓越多深灰牆，也越多陰影雜訊)
-COLOR_S_MAX = 110    # 飽和度上限(排除彩色家具/地板)
-
-
-def color_to_bw(bgr, force=False):
-    """彩色平面圖 → 黑白預處理：彩色渲染圖(家具/地板/磁磚上色)直接灰階+Otsu
-    會把大片色塊當牆。牆的特徵是「深色且低飽和」的黑線——用 HSV 抽出來，
-    其餘一律變白。force=檔名含 color 時強制(淡彩圖彩色比例可能 <8%)。
+def color_to_bw(bgr, force=False, levels=5, keep=2, chroma_max=40):
+    """彩色平面圖 → 黑白 → 淡化 levels 個層次 + 色度過濾：
+    轉灰階、百分位拉伸對比(min-max 會被單一噪點毀掉)，把亮度等分成
+    levels 層(0=最深)，保留最深 keep 層且「絕對色度低」(灰黑無色)的像素當牆。
+    色度 = max(B,G,R)-min(B,G,R)：黑/灰牆三通道相近(色度<20)，深色彩色家具
+    (深紫棉被/綠草皮)色度高；HSV 飽和度在近黑像素會被 JPEG 噪點撐爆，不可用。
+    灰色沙發等灰家具比牆淺 1~2 層，由層次門檻擋掉。
+    force=檔名含 color 時強制(淡彩圖彩色比例可能 <8%)。
     回傳 (合成灰階, 彩色比例)；不是彩色圖回傳 (None, 比例)。"""
     hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
     _h, s, v = cv2.split(hsv)
     colorful = float(np.count_nonzero((s > 60) & (v > 60))) / s.size
     if not force and colorful < 0.08:
         return None, colorful                    # 黑白/線稿圖，不處理
-    wallish = (v < COLOR_V_MAX) & (s < COLOR_S_MAX)   # 暗 + 不彩色 = 黑線/牆
-    gray = np.where(wallish, 0, 255).astype(np.uint8)
-    return gray, colorful
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    lo, hi = np.percentile(gray, (1, 99))
+    gray = np.clip((gray - lo) * (255.0 / max(hi - lo, 1.0)), 0, 255)
+    lvl = np.minimum(gray.astype(np.int32) * levels // 256, levels - 1)
+    chroma = (bgr.max(axis=2).astype(np.int16) - bgr.min(axis=2).astype(np.int16))
+    wall = (lvl < keep) & (chroma < chroma_max)
+    out = np.where(wall, 0, 255).astype(np.uint8)
+    return out, colorful
 
 
-def remove_pillars(bw, T):
-    """彩色圖的房屋柱：黑色實心正方/長方塊，局部厚度遠大於牆厚——
-    這些要先過濾掉再找牆(柱貼著牆時 remove_solid_blobs 的緊湊度判斷會失效)。
-    做法：距離變換 > 0.7×1.6T 的「粗核心」＝柱身，測地膨脹還原柱全身後移除。"""
+def split_pillars(bw, T):
+    """建築基柱：厚度遠大於牆厚(>2×牆厚)的實心塊。黑色實心務必 100% 判出——
+    基柱要當牆輸出給後端生成 3D 空間。先從 bw 切出來、再以自己的 bbox 回填，
+    避免柱貼牆時 detect_solid 的 bbox 被撐爆成大面積假牆。
+    (深色彩色家具已被色度濾掉、灰家具比牆淺已被層次濾掉，走到這的厚塊即基柱)
+    做法：距離變換 > 0.8×1.6T/2 的「粗核心」＝柱身，測地膨脹還原全身。
+    回傳 (剩餘牆體, 基柱bbox清單)。"""
     dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
     core = ((dt > 0.8 * 1.6 * T / 2.0) * 255).astype(np.uint8)
     n, _lab = cv2.connectedComponents(core)
     if n <= 1:
-        return bw, 0
+        return bw, []
     grown = core.copy()                          # 測地膨脹：只在 bw 內長回柱身
     ker = np.ones((3, 3), np.uint8)
     for _ in range(int(round(T))):
@@ -188,7 +201,13 @@ def remove_pillars(bw, T):
         if (nxt == grown).all():
             break
         grown = nxt
-    return cv2.subtract(bw, grown), n - 1
+    n2, lab2, st, _ = cv2.connectedComponentsWithStats(grown, 8)
+    pillars = []
+    out = cv2.subtract(bw, grown)
+    for i in range(1, n2):
+        x, y, w, h, _area = st[i]
+        pillars.append((float(x), float(y), float(x + w), float(y + h)))
+    return out, pillars
 
 
 def load_gray(cfg: Config):
@@ -207,7 +226,8 @@ def load_gray(cfg: Config):
     else:
         gray, bgr = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), img
     force = "color" in os.path.basename(cfg.input).lower()   # 彩色圖檔名都含 color
-    g2, colorful = color_to_bw(bgr, force)
+    g2, colorful = color_to_bw(bgr, force, cfg.fade_levels, cfg.fade_keep,
+                               cfg.chroma_max)
     is_color = g2 is not None
     if is_color:
         gray = g2
@@ -218,7 +238,8 @@ def load_gray(cfg: Config):
             note = "、放大2倍"
         print(f"彩色圖  : 彩色比例 {colorful:.0%}"
               f"{'(檔名含color強制)' if force and colorful < 0.08 else ''}"
-              f" → 先二值化(暗+低飽和=牆){note}再辨識")
+              f" → 轉灰階淡化{cfg.fade_levels}層、留最深{cfg.fade_keep}層"
+              f"且色度<{cfg.chroma_max}(灰黑){note}再辨識")
     return gray, bgr, is_color
 
 
@@ -903,7 +924,7 @@ def write_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info, cfg: Con
                    "cm": {"cx": round(dx * cm, 2), "cy": round((img_h - dy) * cm, 2),
                           "width": round(dw * cm, 2)},
                    "score": round(sc, 3)} for dx, dy, dw, sc, *_ in doors],
-        "dxf": cfg.output, "dxf_scale": dxf_scale_path,
+        "dxf_scale": dxf_scale_path,
     }
     if rooms:                                    # v1.9 空間標籤
         data["rooms"] = [{
@@ -1576,15 +1597,19 @@ def remove_solid_blobs(bw):
     return out, removed
 
 
-def run(cfg: Config):
-    scale = (25.4 / cfg.dpi) if cfg.dpi else cfg.mm_per_px
+def detect_walls(cfg: Config):
+    """共用偵測流程：讀圖→淡化→二值化→自動牆厚→基柱切分→去細線→牆矩形。
+    rects 含建築基柱 bbox。run() 與 eval_color_walls.py 都走這條，
+    評分與正式輸出零漂移。
+    回傳 (rects, bgr, bw, bw_open, T, img_w, img_h, is_color)。"""
     gray, bgr, is_color = load_gray(cfg)
     if cfg.deskew:
         gray, a = deskew(gray)
         print(f"deskew : 轉正 {a:+.2f}°")
     bw = binarize(gray, cfg)
     img_h, img_w = bw.shape[:2]
-    bw, nblob = remove_solid_blobs(bw)           # 去掉大實心填充塊(非牆)
+    # 黑色實心(牆/建築基柱)務必 100% 保留——不做實心塊移除；
+    # 基柱(黑方塊 >2×牆厚)也要當牆輸出，給後端生成 3D 空間用
 
     # 自動量牆厚 T：距離變換「脊線」(局部極大)值的 P90×2——
     # 用 max 會被實心柱/黑塊撐爆(彩色圖的角柱 T 直接變 56~102px 全毀)，
@@ -1596,10 +1621,13 @@ def run(cfg: Config):
         T = max(2, int(round(2.0 * float(np.percentile(vals, 90)))))
     else:
         T = max(2, int(round(2.0 * float(dt.max()))))
-    if is_color:                                 # 彩色圖：先濾掉黑色實心柱再找牆
-        bw, npil = remove_pillars(bw, T)
-        if npil:
-            print(f"柱過濾 : 移除 {npil} 支黑色實心柱(厚度遠大於牆厚)")
+    # 建築基柱切出來單獨回填 bbox——先從 bw 拿掉才不會讓貼牆的柱
+    # 把 detect_solid 的 bbox 撐爆成大面積假牆
+    pillar_rects = []
+    if is_color:
+        bw, pillar_rects = split_pillars(bw, T)
+        if pillar_rects:
+            print(f"建築基柱 : {len(pillar_rects)} 支(黑色實心→當牆保留)")
     pick = lambda v, d: (v if v not in (None, 0) else d)
     cfg.solid = pick(cfg.solid, max(3, int(round(0.35 * T))))
     cfg.h_len = pick(cfg.h_len, max(int(round(1.5 * T)), cfg.solid + 2))
@@ -1616,82 +1644,40 @@ def run(cfg: Config):
         bw_open = cv2.morphologyEx(bw, cv2.MORPH_OPEN, ker)
     else:
         bw_open = bw
-    orig = bw                                # 含細線的原始二值(判窗用)
 
-    if cfg.style == "solid":                 # 實心牆：矩形 + SOLID HATCH；窗：符號
-        rects = detect_solid(bw_open, cfg, T)
-        wins, doors, thin = [], [], None
-        if cfg.windows:
-            thin = cv2.subtract(orig, cv2.dilate(bw_open, np.ones((3, 3), np.uint8)))
-            doors = detect_doors(thin, T, cfg.door_arc_pct)
-            if cfg.invert:
-                soft = orig                  # 亮線稿抓不到「淺灰」,退回一般二值
-            else:
-                _, soft = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
-            wins = detect_windows(orig, rects, cfg, T, doors, thin, soft)
-        write_solid_dxf(rects, wins, img_h, scale, cfg)
+    # 現階段只抓牆：門/窗/空間標籤(客廳/陽台/房間)/門位框全部停用，
+    # 牆抓穩後再逐步接回 detect_doors / detect_windows / segment_rooms
+    rects = detect_solid(bw_open, cfg, T) + pillar_rects
+    return rects, bgr, bw, bw_open, T, img_w, img_h, is_color
 
-        # 門寬推比例(外圍牆厚≥15cm 把關) → 另存公分單位的 dxf_scale/ + 前端交接 json/
-        T_out = outer_wall_thickness(rects, T)
-        mmpp, sinfo = derive_door_scale(doors, T_out, cfg)
-        sinfo["outer_wall_px"] = round(T_out, 1)
 
-        # v1.9 空間標籤：牆圍出的方塊空間 → 分割/分類 + 門位黃框 + 客廳連通檢查
-        cm = mmpp / 10.0
-        lab_img, rooms, outside = segment_rooms(rects, wins, doors, img_w, img_h,
-                                                T, T_out, cm)
-        zones = door_zones(doors, rects, T, cm)
-        for gz in gap_openings(rects, wins, T, cm):   # 牆縫開口補進來(去重)
-            gx, gy = gz[1][0] + gz[1][2] / 2.0, gz[1][1]
-            if not any(math.hypot(z[1][0] - gx, z[1][1] - gy) < max(z[1][2], gz[1][2])
-                       for z in zones):
-                zones.append(gz)
-        if rooms:
-            classify_rooms(rooms, cm, thin, lab_img)
-            _edges, zones = room_graph(lab_img, outside, rooms, zones, rects,
-                                       wins, T,
-                                       max_doors=6 if is_color else None)
-        else:                                    # 沒房間圖可驗證 → 退回高分門
-            zones = [z for z in zones if z[1][3] >= 0.85]
+def run(cfg: Config):
+    scale = (25.4 / cfg.dpi) if cfg.dpi else cfg.mm_per_px
+    rects, bgr, bw, bw_open, T, img_w, img_h, is_color = detect_walls(cfg)
+
+    if cfg.style == "solid":                 # 實心牆：矩形 + SOLID HATCH
         if cfg.preview:
-            preview_solid(bgr, rects, wins, cfg.preview, rooms, lab_img, zones)
+            preview_solid(bgr, rects, [], cfg.preview)
 
-        base = os.path.splitext(os.path.basename(cfg.output))[0]
-        os.makedirs("color_dxf_scale", exist_ok=True)
-        os.makedirs("color_json", exist_ok=True)
-        os.makedirs("color_arch", exist_ok=True)
-        scale_out = os.path.join("color_dxf_scale", base + ".dxf")
-        json_out = os.path.join("color_json", base + ".json")
-        arch_out = os.path.join("color_arch", base + ".json")
-        write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out,
-                        insunits=5, zones=zones)
-        write_json(json_out, img_w, img_h, rects, wins, doors, mmpp, sinfo, cfg,
-                   scale_out, rooms=rooms, zones=zones)
-        write_arch_json(arch_out, img_w, img_h, rects, wins, doors, mmpp, sinfo,
-                        cfg, T, T_out,
-                        rooms_info=(lab_img, rooms) if rooms else None)
+        base = os.path.splitext(os.path.basename(cfg.input))[0]
+        if cfg.output:                       # 指令/config 有指定輸出就照用
+            scale_out = cfg.output
+        else:                                # 慣例：DXF(cm) → color_dxf_scale/
+            os.makedirs("color_dxf_scale", exist_ok=True)
+            scale_out = os.path.join("color_dxf_scale", base + ".dxf")
+        write_solid_dxf(rects, [], img_h, scale / 10.0, cfg, out=scale_out, insunits=5)
 
-        print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid")
-        print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個 (門洞留開)")
-        print(f"比例尺 : {mmpp / 10.0:.4f} cm/px  ({sinfo['method']}, 信心 {sinfo['confidence']}, "
-              f"高信心門 {sinfo['doors_used']} 扇)")
-        if rooms:
-            cnt = {}
-            for r in rooms:
-                cnt[r["label_zh"]] = cnt.get(r["label_zh"], 0) + 1
-            nodoor = [f"room_{r['id']}({r['label_zh']})" for r in rooms
-                      if not r.get("has_door")]
-            print(f"空間   : {len(rooms)} 間  "
-                  + "  ".join(f"{k}×{v}" for k, v in sorted(cnt.items()))
-                  + f"   門位框 {len(zones)} 處")
-            if nodoor:
-                print(f"⚠ 無門空間(有問題): {', '.join(nodoor)}")
-        else:
-            print("空間   : 分割失敗(殼封不住)，本張不輸出空間標籤")
-        print(f"輸出   : {cfg.output}" + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
-        print(f"         {scale_out} (cm)   {json_out}   {arch_out}")
+        print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid (只抓牆)")
+        print(f"實心牆塊 : {len(rects)} 個")
+        print(f"輸出   : {scale_out} (cm)"
+              + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
         return
     bw = bw_open
+
+    if not cfg.output:                       # 慣例：DXF → color_dxf_scale/
+        os.makedirs("color_dxf_scale", exist_ok=True)
+        cfg.output = os.path.join(
+            "color_dxf_scale", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
 
     H, V = detect_hough(bw, cfg) if cfg.method == "hough" else detect_morph(bw, cfg)
     raw = len(H) + len(V)
@@ -1710,7 +1696,7 @@ IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf，每張另存疊圖到 color_chk/ 供快速檢視。"""
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 color_chk/ 供快速檢視。"""
     pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
                   if p.lower().endswith(IMG_EXTS))
     if not pngs:
@@ -1733,20 +1719,21 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
             print(f"  ✗ 失敗: {e}")
             fail += 1
     print(f"\n批次完成: 成功 {ok} / 失敗 {fail}")
-    print(f"  DXF  → {out_dir}/")
+    print(f"  DXF(cm) → {out_dir}/  (門寬推算比例、公分單位)")
     print(f"  疊圖 → {chk_dir}/  (原圖 + 紅實心牆 + 綠窗，一次翻完抓問題)")
-    print(f"  比例尺DXF → color_dxf_scale/ (門寬推算、公分單位)   JSON → color_json/ (前端交接)")
+    print(f"  JSON → color_json/ (前端交接)   白模 → color_arch/")
 
 
 def main():
     p = argparse.ArgumentParser(
-        description="彩色平面圖 PNG/JPG/BMP → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
-                    "不帶參數 = 批次跑 color_png/ 目錄下所有圖檔 → color_dxf/ + color_chk/")
+        description="彩色平面圖 PNG/JPG/BMP → DXF。參數見 config_color.ini；輸入/輸出可用指令覆蓋。\n"
+                    "不帶參數 = 批次跑 color_png/ 目錄下所有圖檔 → color_dxf_scale/ + color_chk/")
     p.add_argument("input", nargs="?",
                    help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
-                   help="輸出 DXF/目錄（不給就自動輸出到 color_dxf/同檔名.dxf）")
-    p.add_argument("--config", default="config.ini", help="設定檔（預設 config.ini）")
+                   help="輸出 DXF/目錄（不給就自動輸出到 color_dxf_scale/同檔名.dxf）")
+    p.add_argument("--config", default="config_color.ini",
+                   help="設定檔（預設 config_color.ini）")
     p.add_argument("--preview", help="疊圖輸出路徑（覆蓋 config）")
     a = p.parse_args()
 
@@ -1758,7 +1745,7 @@ def main():
         in_dir = a.input if (a.input and os.path.isdir(a.input)) else "color_png"
         if not os.path.isdir(in_dir):
             sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去)")
-        run_batch(in_dir, (a.output or "color_dxf"), cfg)
+        run_batch(in_dir, (a.output or "color_dxf_scale"), cfg)
         return
 
     if a.input:
@@ -1769,16 +1756,13 @@ def main():
         cfg.output = a.output
 
     if not cfg.input:
-        sys.exit("缺輸入：用 floorplan2dxf_color.py 圖.png，或 floorplan2dxf_color.py color_png 批次，或在 config.ini 設 input")
+        sys.exit("缺輸入：用 floorplan2dxf_color.py 圖.png，或 floorplan2dxf_color.py color_png 批次，或在 config_color.ini 設 input")
     # 慣例：輸入放 color_png/ —— 給的路徑讀不到時自動去 color_png/ 找
     if not os.path.isfile(cfg.input):
         alt = os.path.join("color_png", cfg.input)
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]
-    if not cfg.output:                       # 慣例：DXF → color_dxf/
-        os.makedirs("color_dxf", exist_ok=True)
-        cfg.output = os.path.join("color_dxf", base + ".dxf")
     if not cfg.preview:                      # 慣例：疊圖 → color_chk/
         os.makedirs("color_chk", exist_ok=True)
         cfg.preview = os.path.join("color_chk", base + "_chk.png")
