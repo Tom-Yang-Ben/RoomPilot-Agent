@@ -25,7 +25,7 @@ os.makedirs(OUT, exist_ok=True)
 model = get_model('hg_furukawa_original', 51)
 model.conv4_ = torch.nn.Conv2d(256, N_CLASSES, bias=True, kernel_size=1)
 model.upsample = torch.nn.ConvTranspose2d(N_CLASSES, N_CLASSES, kernel_size=4, stride=4)
-ckpt = torch.load(WEIGHTS, map_location='cpu', weights_only=False)
+ckpt = torch.load(WEIGHTS, map_location='cpu', weights_only=True)  # 安全載入:只收張量，杜絕 pickle 任意程式碼
 model.load_state_dict(ckpt['model_state'])
 model.eval()
 torch.set_num_threads(os.cpu_count() or 4)
