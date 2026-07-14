@@ -1513,7 +1513,6 @@ async def generate_scene(payload: dict) -> dict:
         "space_type": payload.get("space_type") or brief_space.get("type") or "living_room",
         "style_preference": payload.get("style_preference") or (brief_style.get("preferred") or ["auto"])[0],
         "style_card_id": payload.get("style_card_id"),
-        "style_card_id": payload.get("style_card_id"),
         "required_furniture": payload.get("required_furniture", []),
         "selected_furniture": payload.get("selected_furniture", []),
         "custom_furniture": payload.get("custom_furniture", []),

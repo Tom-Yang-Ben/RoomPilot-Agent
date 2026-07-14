@@ -689,11 +689,6 @@ def _placement_candidates(
     # 只影響「試放順序」,合法性仍由 check_placement_with_clearance 把關(鐵律不變)。
     anchor = (hint or {}).get("anchor")
     anchored: list[tuple[float, float, float]] = []
-
-    # Agent 3 提示:指定靠牆側時,把一組靠該牆的候選 prepend 到最前面優先試放。
-    # 只影響「試放順序」,合法性仍由 check_placement_with_clearance 把關(鐵律不變)。
-    anchor = (hint or {}).get("anchor")
-    anchored: list[tuple[float, float, float]] = []
     inner_w = right - left
     inner_d = bottom - top
     if anchor == "top":
@@ -970,8 +965,8 @@ def validate_single_placement(
     room = room_from_payload(floorplan)
     # 拖曳可放進「任何一間房」(聯集);沒有房間資訊才退回最大房間環
     boundary = _regions_boundary(floorplan, room) or _shrunk_boundary(room)
-    half_w_cm = room.width * 50
-    half_d_cm = room.depth * 50
+    half_w_cm = room.width / 2
+    half_d_cm = room.depth / 2
 
     moving = _scene_object_to_placed(item, half_w_cm, half_d_cm)
     if not _inside_boundary(moving, boundary):
