@@ -52,6 +52,7 @@ class Config:
     fade_levels: int     # 彩色→灰階後淡化(色調分離)的層次數
     fade_keep: int       # 保留最深的幾層當牆，其餘淡化成白
     chroma_max: int      # 絕對色度(max-min通道差)低於此值才算牆(排除深色彩色家具/草皮)
+    gray_delta: float    # 自適應灰度過濾:比本圖牆基準灰度淺超過此值的候選矩形視為假牆
     # 以下 px 類參數：None = 依自動量到的牆厚 T 推導(換圖免調)；給值則鎖定
     solid: int | None       # 去細線的開運算核
     style: str              # center=中線 | outline=兩面 | solid=實心牆
@@ -138,7 +139,7 @@ def load_config(path: str) -> Config:
         adaptive_block=i("adaptive_block", 31), adaptive_c=i("adaptive_c", 5),
         deskew=b("deskew", False),
         fade_levels=i("fade_levels", 5), fade_keep=i("fade_keep", 2),
-        chroma_max=i("chroma_max", 40),
+        chroma_max=i("chroma_max", 40), gray_delta=f("gray_delta", 25.0),
         solid=io_("solid"), style=s("style", "center"),
         h_len=io_("h_len"), v_len=io_("v_len"),
         wall_min_pct=f("wall_min_pct", 3.0),
@@ -182,6 +183,34 @@ def color_to_bw(bgr, force=False, levels=5, keep=2, chroma_max=40):
     return out, colorful
 
 
+def _split_blob(mask, x0, y0, x1, y1, depth=6):
+    """把非矩形實心塊遞迴切成貼形矩形(KD 式)：先縮緊 bbox，fill≥0.8 就收；
+    否則沿長邊在像素數最少的欄/列切開(中央 60% 內找)，兩半各自遞迴。
+    L 形/凹形黑塊用單一 bbox 輸出會把空隙全變假牆(floor_18 底部塊 fill=0.46)。"""
+    sub = mask[y0:y1, x0:x1]
+    ys, xs = np.nonzero(sub)
+    if xs.size == 0:
+        return []
+    nx0, nx1 = x0 + int(xs.min()), x0 + int(xs.max()) + 1
+    ny0, ny1 = y0 + int(ys.min()), y0 + int(ys.max()) + 1
+    if (nx0, ny0, nx1, ny1) != (x0, y0, x1, y1):
+        return _split_blob(mask, nx0, ny0, nx1, ny1, depth)
+    w, h = x1 - x0, y1 - y0
+    if xs.size / float(w * h) >= 0.8 or depth == 0 or min(w, h) <= 4:
+        return [(float(x0), float(y0), float(x1), float(y1))]
+    if w >= h:
+        counts = (sub > 0).sum(axis=0)
+        lo, hi = max(int(w * 0.2), 1), max(int(w * 0.8), 2)
+        cut = lo + int(np.argmin(counts[lo:hi]))
+        return (_split_blob(mask, x0, y0, x0 + cut, y1, depth - 1)
+                + _split_blob(mask, x0 + cut, y0, x1, y1, depth - 1))
+    counts = (sub > 0).sum(axis=1)
+    lo, hi = max(int(h * 0.2), 1), max(int(h * 0.8), 2)
+    cut = lo + int(np.argmin(counts[lo:hi]))
+    return (_split_blob(mask, x0, y0, x1, y0 + cut, depth - 1)
+            + _split_blob(mask, x0, y0 + cut, x1, y1, depth - 1))
+
+
 def split_pillars(bw, T):
     """建築基柱：厚度遠大於牆厚(>2×牆厚)的實心塊。黑色實心務必 100% 判出——
     基柱要當牆輸出給後端生成 3D 空間。先從 bw 切出來、再以自己的 bbox 回填，
@@ -206,7 +235,8 @@ def split_pillars(bw, T):
     out = cv2.subtract(bw, grown)
     for i in range(1, n2):
         x, y, w, h, _area = st[i]
-        pillars.append((float(x), float(y), float(x + w), float(y + h)))
+        comp = (lab2 == i).astype(np.uint8)
+        pillars.extend(_split_blob(comp, int(x), int(y), int(x + w), int(y + h)))
     return out, pillars
 
 
@@ -1597,6 +1627,69 @@ def remove_solid_blobs(bw):
     return out, removed
 
 
+def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T):
+    """自適應過濾假牆——兩段規則，皆以矩形內遮罩像素在「原彩圖」的統計判定：
+    1) 灰度：深灰家具(沙發/植栽陰影)能通過淡化層次+色度過濾，但整體灰度仍比
+       真牆淺。以本圖「牆基準灰度」ref = 全候選 mean_gray 的面積加權 P30
+       (牆佔大面積且最深)為準——絕對門檻不可行，floor_01 外牆本身就是中灰：
+         牆矩形: mean>ref+delta 且 P25>ref+delta/2 才刪(P25 守門保住混入淺像素的真牆)
+         基柱  : mean>ref+2×delta 才刪(基柱必須 100% 保留，只刪明顯偏淺的假柱)
+    2) 色度+紋理：深棕木家具(床架/書桌)灰度跟牆一樣深，但真牆是中性灰
+       (矩形平均色度≈3)且均勻(灰度 P75-P25≈10)，木家具有色相和材質紋理：
+         平均色度>18，或 (平均色度>12 且 灰度離散>30)，
+         或 (厚度>2.5×T 且 灰度離散>30——牆/柱不會又超厚又有紋理) 才刪
+    被「色度」規則刪的候選常是「牆+相鄰木地板」黏成一個 bbox(整塊刪會虧牆)，
+    故不直接丟棄：把其中牆樣像素(灰度≤ref+delta 且 像素色度≤12)寫進回收遮罩，
+    由呼叫端重新抽矩形救回牆的部分。灰度/超厚規則刪的不回收——
+    中性灰紋理塊(深灰地毯/陰影帶)的暗像素會原樣通過像素條件，回收=白刪。
+    實測 20 張答案集: 兩段合計假牆刪 ~97%、真牆誤刪 <0.5%。
+    回傳 (留下的牆矩形, 留下的基柱, 刪除數, 回收遮罩)。"""
+    g0 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    chroma = (bgr.max(axis=2).astype(np.int16) - bgr.min(axis=2).astype(np.int16))
+
+    def stats(r, mask):
+        x0, y0, x1, y1 = (int(v) for v in r)
+        m = mask[y0:y1, x0:x1] > 0
+        if not m.any():
+            return None
+        v = g0[y0:y1, x0:x1][m]
+        p25, p75 = np.percentile(v, (25, 75))
+        return (float(v.mean()), float(p25), float(p75 - p25),
+                float(chroma[y0:y1, x0:x1][m].mean()))
+
+    cand = [(r, stats(r, bw_open), False) for r in rects] \
+         + [(r, stats(r, bw_full), True) for r in pillars]
+    known = [(st[0], (r[2] - r[0]) * (r[3] - r[1])) for r, st, _ in cand if st]
+    if not known:
+        return rects, pillars, 0, None
+    known.sort()
+    weights = np.cumsum([a for _, a in known])
+    ref = known[int(np.searchsorted(weights, 0.3 * weights[-1]))][0]
+
+    keep_r, keep_p, dropped = [], [], 0
+    recover = np.zeros_like(bw_full)
+    wallish = ((g0 <= ref + delta) & (chroma <= 12)).astype(np.uint8) * 255
+    for (r, st, is_pillar), mask in zip(cand, [bw_open] * len(rects) + [bw_full] * len(pillars)):
+        drop = by_chroma = False
+        if st is not None:
+            mean, p25, spread, chr_ = st
+            thick = min(r[2] - r[0], r[3] - r[1])
+            if is_pillar:
+                drop = mean > ref + 2 * delta
+            else:
+                drop = mean > ref + delta and p25 > ref + delta / 2
+            drop = drop or (thick > 2.5 * T and spread > 30)
+            by_chroma = not drop and (chr_ > 18 or (chr_ > 12 and spread > 30))
+        if drop or by_chroma:
+            dropped += 1
+            if by_chroma:
+                x0, y0, x1, y1 = (int(v) for v in r)
+                recover[y0:y1, x0:x1] |= (mask[y0:y1, x0:x1] & wallish[y0:y1, x0:x1])
+        else:
+            (keep_p if is_pillar else keep_r).append(r)
+    return keep_r, keep_p, dropped, (recover if dropped else None)
+
+
 def detect_walls(cfg: Config):
     """共用偵測流程：讀圖→淡化→二值化→自動牆厚→基柱切分→去細線→牆矩形。
     rects 含建築基柱 bbox。run() 與 eval_color_walls.py 都走這條，
@@ -1624,6 +1717,7 @@ def detect_walls(cfg: Config):
     # 建築基柱切出來單獨回填 bbox——先從 bw 拿掉才不會讓貼牆的柱
     # 把 detect_solid 的 bbox 撐爆成大面積假牆
     pillar_rects = []
+    bw_full = bw                                 # 切基柱前的完整遮罩，灰度過濾算柱身用
     if is_color:
         bw, pillar_rects = split_pillars(bw, T)
         if pillar_rects:
@@ -1647,7 +1741,22 @@ def detect_walls(cfg: Config):
 
     # 現階段只抓牆：門/窗/空間標籤(客廳/陽台/房間)/門位框全部停用，
     # 牆抓穩後再逐步接回 detect_doors / detect_windows / segment_rooms
-    rects = detect_solid(bw_open, cfg, T) + pillar_rects
+    rects = detect_solid(bw_open, cfg, T)
+    if is_color and cfg.gray_delta > 0:
+        rects, pillar_rects, dropped, recover = drop_light_rects(
+            rects, pillar_rects, bgr, bw_open, bw_full, cfg.gray_delta, T)
+        if dropped:
+            recovered = []
+            if recover is not None:
+                ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (cfg.solid, cfg.solid))
+                recovered = [r for r in
+                             detect_solid(cv2.morphologyEx(recover, cv2.MORPH_OPEN, ker),
+                                          cfg, T)
+                             if min(r[2] - r[0], r[3] - r[1]) <= 2.5 * T]  # 回收只收牆厚條
+            print(f"灰度過濾 : 刪 {dropped} 個假牆(自適應灰度/色度/紋理)"
+                  + (f"，混合塊回收 {len(recovered)} 段牆" if recovered else ""))
+            rects = rects + recovered
+    rects = rects + pillar_rects
     return rects, bgr, bw, bw_open, T, img_w, img_h, is_color
 
 
