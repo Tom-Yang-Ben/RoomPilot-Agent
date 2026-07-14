@@ -979,7 +979,7 @@ def write_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info, cfg: Con
                    "cm": {"cx": round(dx * cm, 2), "cy": round((img_h - dy) * cm, 2),
                           "width": round(dw * cm, 2)},
                    "score": round(sc, 3)} for dx, dy, dw, sc, *_ in doors],
-        "dxf": cfg.output, "dxf_scale": dxf_scale_path,
+        "dxf_scale": dxf_scale_path,
     }
     with open(path, "w", encoding="utf-8") as fp:
         json.dump(data, fp, ensure_ascii=False, indent=2)
@@ -1302,19 +1302,21 @@ def run(cfg: Config):
             else:
                 _, soft = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
             wins = detect_windows(orig, rects, cfg, T, doors, thin, soft)
-        write_solid_dxf(rects, wins, img_h, scale, cfg)
         if cfg.preview:
             preview_solid(bgr, rects, wins, cfg.preview)
 
-        # 門寬推比例(外圍牆厚≥15cm 把關) → 另存公分單位的 dxf_scale/ + 前端交接 json/
+        # 門寬推比例(外圍牆厚≥15cm 把關) → 公分單位的 dxf_scale/ + 前端交接 json/
         T_out = outer_wall_thickness(rects, T)
         mmpp, sinfo = derive_door_scale(doors, T_out, cfg)
         sinfo["outer_wall_px"] = round(T_out, 1)
-        base = os.path.splitext(os.path.basename(cfg.output))[0]
-        os.makedirs("dxf_scale", exist_ok=True)
+        base = os.path.splitext(os.path.basename(cfg.input))[0]
         os.makedirs("json", exist_ok=True)
         os.makedirs("arch", exist_ok=True)
-        scale_out = os.path.join("dxf_scale", base + ".dxf")
+        if cfg.output:                       # 指令/config 有指定輸出就照用
+            scale_out = cfg.output
+        else:                                # 慣例：DXF(cm) → dxf_scale/
+            os.makedirs("dxf_scale", exist_ok=True)
+            scale_out = os.path.join("dxf_scale", base + ".dxf")
         json_out = os.path.join("json", base + ".json")
         arch_out = os.path.join("arch", base + ".json")
         write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
@@ -1326,10 +1328,15 @@ def run(cfg: Config):
         print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個 (門洞留開)")
         print(f"比例尺 : {mmpp / 10.0:.4f} cm/px  ({sinfo['method']}, 信心 {sinfo['confidence']}, "
               f"高信心門 {sinfo['doors_used']} 扇)")
-        print(f"輸出   : {cfg.output}" + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
-        print(f"         {scale_out} (cm)   {json_out}   {arch_out}")
+        print(f"輸出   : {scale_out} (cm)   {json_out}   {arch_out}"
+              + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
         return
     bw = bw_open
+
+    if not cfg.output:                       # 慣例：DXF → dxf_scale/
+        os.makedirs("dxf_scale", exist_ok=True)
+        cfg.output = os.path.join(
+            "dxf_scale", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
 
     H, V = detect_hough(bw, cfg) if cfg.method == "hough" else detect_morph(bw, cfg)
     raw = len(H) + len(V)
@@ -1348,7 +1355,7 @@ IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf，每張另存疊圖到 chk/ 供快速檢視。"""
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 chk/ 供快速檢視。"""
     pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
                   if p.lower().endswith(IMG_EXTS))
     if not pngs:
@@ -1371,19 +1378,19 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
             print(f"  ✗ 失敗: {e}")
             fail += 1
     print(f"\n批次完成: 成功 {ok} / 失敗 {fail}")
-    print(f"  DXF  → {out_dir}/")
+    print(f"  DXF(cm) → {out_dir}/  (門寬推算比例、公分單位)")
     print(f"  疊圖 → {chk_dir}/  (原圖 + 紅實心牆 + 綠窗，一次翻完抓問題)")
-    print(f"  比例尺DXF → dxf_scale/ (門寬推算、公分單位)   JSON → json/ (前端交接)")
+    print(f"  JSON → json/ (前端交接)   白模 → arch/")
 
 
 def main():
     p = argparse.ArgumentParser(
         description="平面圖 PNG/JPG/BMP → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
-                    "不帶參數 = 批次跑 png/ 目錄下所有圖檔 → dxf/ + chk/")
+                    "不帶參數 = 批次跑 png/ 目錄下所有圖檔 → dxf_scale/ + chk/")
     p.add_argument("input", nargs="?",
                    help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
-                   help="輸出 DXF/目錄（不給就自動輸出到 dxf/同檔名.dxf）")
+                   help="輸出 DXF/目錄（不給就自動輸出到 dxf_scale/同檔名.dxf）")
     p.add_argument("--config", default="config.ini", help="設定檔（預設 config.ini）")
     p.add_argument("--preview", help="疊圖輸出路徑（覆蓋 config）")
     a = p.parse_args()
@@ -1396,7 +1403,7 @@ def main():
         in_dir = a.input if (a.input and os.path.isdir(a.input)) else "png"
         if not os.path.isdir(in_dir):
             sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去)")
-        run_batch(in_dir, (a.output or "dxf"), cfg)
+        run_batch(in_dir, (a.output or "dxf_scale"), cfg)
         return
 
     if a.input:
@@ -1414,9 +1421,6 @@ def main():
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]
-    if not cfg.output:                       # 慣例：DXF → dxf/
-        os.makedirs("dxf", exist_ok=True)
-        cfg.output = os.path.join("dxf", base + ".dxf")
     if not cfg.preview:                      # 慣例：疊圖 → chk/
         os.makedirs("chk", exist_ok=True)
         cfg.preview = os.path.join("chk", base + "_chk.png")
