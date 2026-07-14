@@ -53,6 +53,7 @@ class Config:
     fade_keep: int       # 保留最深的幾層當牆，其餘淡化成白
     chroma_max: int      # 絕對色度(max-min通道差)低於此值才算牆(排除深色彩色家具/草皮)
     gray_delta: float    # 自適應灰度過濾:比本圖牆基準灰度淺超過此值的候選矩形視為假牆
+    cc_mask_dir: str     # CubiCasa 牆遮罩快取目錄(<名>_mask.npz)；有檔就融合，空字串=停用
     # 以下 px 類參數：None = 依自動量到的牆厚 T 推導(換圖免調)；給值則鎖定
     solid: int | None       # 去細線的開運算核
     style: str              # center=中線 | outline=兩面 | solid=實心牆
@@ -140,6 +141,7 @@ def load_config(path: str) -> Config:
         deskew=b("deskew", False),
         fade_levels=i("fade_levels", 5), fade_keep=i("fade_keep", 2),
         chroma_max=i("chroma_max", 40), gray_delta=f("gray_delta", 25.0),
+        cc_mask_dir=s("cc_mask_dir", "cubicasa_color"),
         solid=io_("solid"), style=s("style", "center"),
         h_len=io_("h_len"), v_len=io_("v_len"),
         wall_min_pct=f("wall_min_pct", 3.0),
@@ -1627,7 +1629,7 @@ def remove_solid_blobs(bw):
     return out, removed
 
 
-def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T):
+def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T, cc=None):
     """自適應過濾假牆——兩段規則，皆以矩形內遮罩像素在「原彩圖」的統計判定：
     1) 灰度：深灰家具(沙發/植栽陰影)能通過淡化層次+色度過濾，但整體灰度仍比
        真牆淺。以本圖「牆基準灰度」ref = 全候選 mean_gray 的面積加權 P30
@@ -1638,6 +1640,10 @@ def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T):
        (矩形平均色度≈3)且均勻(灰度 P75-P25≈10)，木家具有色相和材質紋理：
          平均色度>18，或 (平均色度>12 且 灰度離散>30)，
          或 (厚度>2.5×T 且 灰度離散>30——牆/柱不會又超厚又有紋理) 才刪
+    3) CubiCasa 語意否決(cc 遮罩存在才啟用)：CC 對「家具不是牆」的全域語意
+       判斷比像素統計準(存活假牆 cc_cov 中位數 0.00、真牆 0.90)。
+       cc_cov<0.15 且有任一弱訊號(灰度偏淺/微色度/微紋理)才刪——
+       弱訊號守門保住 CC 漏抓的真牆(CC 召回僅 75%，不能單票定生死)
     被「色度」規則刪的候選常是「牆+相鄰木地板」黏成一個 bbox(整塊刪會虧牆)，
     故不直接丟棄：把其中牆樣像素(灰度≤ref+delta 且 像素色度≤12)寫進回收遮罩，
     由呼叫端重新抽矩形救回牆的部分。灰度/超厚規則刪的不回收——
@@ -1654,8 +1660,9 @@ def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T):
             return None
         v = g0[y0:y1, x0:x1][m]
         p25, p75 = np.percentile(v, (25, 75))
+        cov = float(cc[y0:y1, x0:x1][m].mean()) if cc is not None else None
         return (float(v.mean()), float(p25), float(p75 - p25),
-                float(chroma[y0:y1, x0:x1][m].mean()))
+                float(chroma[y0:y1, x0:x1][m].mean()), cov)
 
     cand = [(r, stats(r, bw_open), False) for r in rects] \
          + [(r, stats(r, bw_full), True) for r in pillars]
@@ -1672,13 +1679,16 @@ def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T):
     for (r, st, is_pillar), mask in zip(cand, [bw_open] * len(rects) + [bw_full] * len(pillars)):
         drop = by_chroma = False
         if st is not None:
-            mean, p25, spread, chr_ = st
+            mean, p25, spread, chr_, cov = st
             thick = min(r[2] - r[0], r[3] - r[1])
             if is_pillar:
                 drop = mean > ref + 2 * delta
             else:
                 drop = mean > ref + delta and p25 > ref + delta / 2
             drop = drop or (thick > 2.5 * T and spread > 30)
+            if not drop and cov is not None and cov < 0.15 and \
+                    (mean > ref + 10 or chr_ > 8 or spread > 20):
+                drop = True
             by_chroma = not drop and (chr_ > 18 or (chr_ > 12 and spread > 30))
         if drop or by_chroma:
             dropped += 1
@@ -1741,10 +1751,21 @@ def detect_walls(cfg: Config):
 
     # 現階段只抓牆：門/窗/空間標籤(客廳/陽台/房間)/門位框全部停用，
     # 牆抓穩後再逐步接回 detect_doors / detect_windows / segment_rooms
+    # CubiCasa 語意遮罩(選配)：快取檔在才融合——否決假牆 + 救回漏牆。
+    # 遮罩由 infer_cubicasa.py 離線產生(CPU 約 1 分/張)，沒有快取則行為同純古典管線
+    cc = None
+    if is_color and cfg.cc_mask_dir:
+        ccf = os.path.join(cfg.cc_mask_dir,
+                           os.path.splitext(os.path.basename(cfg.input))[0] + "_mask.npz")
+        if os.path.isfile(ccf):
+            cc = np.load(ccf)["wall"].astype(np.uint8)
+            if cc.shape != (img_h, img_w):
+                cc = cv2.resize(cc, (img_w, img_h), interpolation=cv2.INTER_NEAREST)
+
     rects = detect_solid(bw_open, cfg, T)
     if is_color and cfg.gray_delta > 0:
         rects, pillar_rects, dropped, recover = drop_light_rects(
-            rects, pillar_rects, bgr, bw_open, bw_full, cfg.gray_delta, T)
+            rects, pillar_rects, bgr, bw_open, bw_full, cfg.gray_delta, T, cc)
         if dropped:
             recovered = []
             if recover is not None:
@@ -1753,7 +1774,8 @@ def detect_walls(cfg: Config):
                              detect_solid(cv2.morphologyEx(recover, cv2.MORPH_OPEN, ker),
                                           cfg, T)
                              if min(r[2] - r[0], r[3] - r[1]) <= 2.5 * T]  # 回收只收牆厚條
-            print(f"灰度過濾 : 刪 {dropped} 個假牆(自適應灰度/色度/紋理)"
+            print(f"灰度過濾 : 刪 {dropped} 個假牆(自適應灰度/色度/紋理"
+                  + ("/CC語意" if cc is not None else "") + ")"
                   + (f"，混合塊回收 {len(recovered)} 段牆" if recovered else ""))
             rects = rects + recovered
     rects = rects + pillar_rects
