@@ -53,7 +53,9 @@ class Config:
     fade_keep: int       # 保留最深的幾層當牆，其餘淡化成白
     chroma_max: int      # 絕對色度(max-min通道差)低於此值才算牆(排除深色彩色家具/草皮)
     gray_delta: float    # 自適應灰度過濾:比本圖牆基準灰度淺超過此值的候選矩形視為假牆
-    cc_mask_dir: str     # CubiCasa 牆遮罩快取目錄(<名>_mask.npz)；有檔就融合，空字串=停用
+    cc_mask_dir: str     # 語意牆遮罩快取目錄(<名>_mask.npz)；有檔就融合，空字串=停用
+    cc_veto_cov: float   # 否決票門檻:候選遮罩覆蓋率低於此值(且有弱訊號)判假牆
+    cc_rescue: bool      # 漏牆救回開關(僅高精準遮罩如 MitUNet 可開;CubiCasa 純度不足)
     # 以下 px 類參數：None = 依自動量到的牆厚 T 推導(換圖免調)；給值則鎖定
     solid: int | None       # 去細線的開運算核
     style: str              # center=中線 | outline=兩面 | solid=實心牆
@@ -141,7 +143,8 @@ def load_config(path: str) -> Config:
         deskew=b("deskew", False),
         fade_levels=i("fade_levels", 5), fade_keep=i("fade_keep", 2),
         chroma_max=i("chroma_max", 40), gray_delta=f("gray_delta", 25.0),
-        cc_mask_dir=s("cc_mask_dir", "cubicasa_color"),
+        cc_mask_dir=s("cc_mask_dir", "mitunet_color"),
+        cc_veto_cov=f("cc_veto_cov", 0.3), cc_rescue=b("cc_rescue", True),
         solid=io_("solid"), style=s("style", "center"),
         h_len=io_("h_len"), v_len=io_("v_len"),
         wall_min_pct=f("wall_min_pct", 3.0),
@@ -1629,7 +1632,8 @@ def remove_solid_blobs(bw):
     return out, removed
 
 
-def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T, cc=None):
+def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T,
+                     cc=None, cc_veto_cov=0.3):
     """自適應過濾假牆——兩段規則，皆以矩形內遮罩像素在「原彩圖」的統計判定：
     1) 灰度：深灰家具(沙發/植栽陰影)能通過淡化層次+色度過濾，但整體灰度仍比
        真牆淺。以本圖「牆基準灰度」ref = 全候選 mean_gray 的面積加權 P30
@@ -1640,10 +1644,11 @@ def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T, cc=None):
        (矩形平均色度≈3)且均勻(灰度 P75-P25≈10)，木家具有色相和材質紋理：
          平均色度>18，或 (平均色度>12 且 灰度離散>30)，
          或 (厚度>2.5×T 且 灰度離散>30——牆/柱不會又超厚又有紋理) 才刪
-    3) CubiCasa 語意否決(cc 遮罩存在才啟用)：CC 對「家具不是牆」的全域語意
-       判斷比像素統計準(存活假牆 cc_cov 中位數 0.00、真牆 0.90)。
-       cc_cov<0.15 且有任一弱訊號(灰度偏淺/微色度/微紋理)才刪——
-       弱訊號守門保住 CC 漏抓的真牆(CC 召回僅 75%，不能單票定生死)
+    3) 語意否決(cc 遮罩存在才啟用)：分割模型對「家具不是牆」的全域語意
+       判斷比像素統計準(存活假牆 cc_cov 中位數 0.00、真牆 0.86~0.90)。
+       cc_cov<cc_veto_cov 且有任一弱訊號(灰度偏淺/微色度/微紋理)才刪——
+       弱訊號守門保住遮罩漏抓的真牆(遮罩召回 75~84%，不能單票定生死)。
+       門檻依遮罩品質定：MitUNet=0.30(假刪94%/真誤刪0.02%)、CubiCasa=0.15
     被「色度」規則刪的候選常是「牆+相鄰木地板」黏成一個 bbox(整塊刪會虧牆)，
     故不直接丟棄：把其中牆樣像素(灰度≤ref+delta 且 像素色度≤12)寫進回收遮罩，
     由呼叫端重新抽矩形救回牆的部分。灰度/超厚規則刪的不回收——
@@ -1686,7 +1691,7 @@ def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T, cc=None):
             else:
                 drop = mean > ref + delta and p25 > ref + delta / 2
             drop = drop or (thick > 2.5 * T and spread > 30)
-            if not drop and cov is not None and cov < 0.15 and \
+            if not drop and cov is not None and cov < cc_veto_cov and \
                     (mean > ref + 10 or chr_ > 8 or spread > 20):
                 drop = True
             by_chroma = not drop and (chr_ > 18 or (chr_ > 12 and spread > 30))
@@ -1765,7 +1770,8 @@ def detect_walls(cfg: Config):
     rects = detect_solid(bw_open, cfg, T)
     if is_color and cfg.gray_delta > 0:
         rects, pillar_rects, dropped, recover = drop_light_rects(
-            rects, pillar_rects, bgr, bw_open, bw_full, cfg.gray_delta, T, cc)
+            rects, pillar_rects, bgr, bw_open, bw_full, cfg.gray_delta, T,
+            cc, cfg.cc_veto_cov)
         if dropped:
             recovered = []
             if recover is not None:
@@ -1778,6 +1784,36 @@ def detect_walls(cfg: Config):
                   + ("/CC語意" if cc is not None else "") + ")"
                   + (f"，混合塊回收 {len(recovered)} 段牆" if recovered else ""))
             rects = rects + recovered
+    if cc is not None and cfg.cc_rescue:
+        # 漏牆救回：語意遮罩有、我們沒蓋到的區域。四重門檻(答案集掃描純度 96%)：
+        # 貼牆(牆網相連，隔絕室內家具塊)、牆厚條(≤2.5T)、深色(gray<100)、
+        # 中性色(chroma<15)——遮罩多標的淺色區/彩色區全被擋掉。
+        # 僅高精準遮罩可開：MitUNet(精準率 90%)純度 96%；
+        # CubiCasa(65%)同條件純度僅 37%，用它時 cc_rescue 必須關
+        covered = np.zeros((img_h, img_w), np.uint8)
+        for x0, y0, x1, y1 in rects + pillar_rects:
+            cv2.rectangle(covered, (int(x0), int(y0)),
+                          (max(int(x1) - 1, 0), max(int(y1) - 1, 0)), 1, -1)
+        miss = (cc & (covered == 0)) * 255
+        near = cv2.dilate(covered, np.ones((int(T) | 1, int(T) | 1), np.uint8))
+        g0 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+        chroma = (bgr.max(axis=2).astype(np.int16) - bgr.min(axis=2).astype(np.int16))
+        ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (cfg.solid, cfg.solid))
+        rescued = []
+        for r in detect_solid(cv2.morphologyEx(miss, cv2.MORPH_OPEN, ker), cfg, T):
+            x0, y0, x1, y1 = (int(v) for v in r)
+            if min(x1 - x0, y1 - y0) > 2.5 * T:
+                continue
+            m = miss[y0:y1, x0:x1] > 0
+            if not m.any() or not near[y0:y1, x0:x1][m].any():
+                continue
+            if g0[y0:y1, x0:x1][m].mean() >= 100 or \
+                    chroma[y0:y1, x0:x1][m].mean() >= 15:
+                continue
+            rescued.append(r)
+        if rescued:
+            print(f"語意救回 : 補 {len(rescued)} 段遮罩有偵測、古典管線漏抓的牆")
+        rects = rects + rescued
     rects = rects + pillar_rects
     return rects, bgr, bw, bw_open, T, img_w, img_h, is_color
 

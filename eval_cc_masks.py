@@ -27,16 +27,17 @@ TOL = 40
 def main():
     p = argparse.ArgumentParser(description="CubiCasa 牆遮罩評分")
     p.add_argument("names", nargs="*")
+    p.add_argument("--dir", default=MASK_DIR, help="遮罩目錄(預設 cubicasa_color)")
     p.add_argument("--vis", action="store_true")
     a = p.parse_args()
 
-    files = sorted(glob.glob(os.path.join(MASK_DIR, "*_mask.npz")))
+    files = sorted(glob.glob(os.path.join(a.dir, "*_mask.npz")))
     if a.names:
         want = set(a.names)
         files = [f for f in files
                  if os.path.basename(f)[:-len("_mask.npz")] in want]
     if not files:
-        sys.exit(f"{MASK_DIR}/ 裡找不到 *_mask.npz")
+        sys.exit(f"{a.dir}/ 裡找不到 *_mask.npz")
 
     tot_tp = tot_fp = tot_fn = 0
     rows = []

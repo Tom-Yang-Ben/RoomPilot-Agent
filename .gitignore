@@ -13,3 +13,6 @@ __pycache__/
 # CubiCasa5k 外部程式庫與權重（infer_cubicasa.py 用；重建：git clone CubiCasa/CubiCasa5k + README 的 Google Drive 權重）
 CubiCasa5k/
 model_best_val_loss_var.pkl
+
+# MitUNet 外部程式庫與權重（infer_mitunet.py 用；重建：git clone aliasstudio/mitunet + LFS 權重。權重 CC-BY-NC 禁商用）
+mitunet/

@@ -1,3 +1,18 @@
+2026/7/15 v.2.5 變更（語意遮罩換 MitUNet：救回路線復活，IoU 83.5% → 83.8%）
+
+一、MitUNet（github.com/aliasstudio/mitunet，2025/12 發表）取代 CubiCasa 為預設語意遮罩來源：
+
+- infer_mitunet.py：照官方組法（smp.Unet mit_b4 + scSE、Segformer 編碼器移植、512×512 推論），weights_only=True 安全載入；輸出與 infer_cubicasa.py 同格式 npz 到 mitunet_color/（已提交 20 張快取）。權重與 mitunet/ 程式庫不進版控（.gitignore 註記重建方式）
+- 遮罩單獨評分（eval_cc_masks.py --dir）：MitUNet 90.3%/83.9%/77.0 vs CubiCasa 65.1%/75.4%/53.7——精準率高 25pp，逐圖無一輸
+- **授權注意**：MitUNet 程式碼 MIT，但權重 CC-BY-NC 4.0 禁商用。評估/研發可用；正式商用部署要嘛聯繫作者授權，要嘛用其 MIT 訓練碼+CubiCasa5k 資料自行重訓
+
+二、融合升級（config_color.ini 新參數 cc_veto_cov / cc_rescue，依遮罩品質調）：
+
+- 否決票門檻放大到 cc_veto_cov=0.3（MitUNet 覆蓋率分辨力更乾淨：存活假牆 P90=0.00；假刪 94%/真誤刪 0.02%）；用 CubiCasa 遮罩時應改 0.15
+- 「漏牆救回」用 MitUNet 復活：v2.4 用 CubiCasa 救回純度僅 1.7% 而棄用，換 MitUNet 後加四重門檻（貼牆網+牆厚條≤2.5T+深色 gray<100+中性色 chroma<15）純度達 96%；CubiCasa 同條件僅 37%，故 cc_rescue 僅高精準遮罩可開
+- 20 張全量：精準率 87.6%→87.7%、召回率 94.7%→94.9%、IoU 83.5%→83.8%；受益最大 floor_20（IoU 83.5%→85.9%）、floor_18（76.9%→78.6%）
+- 今日累計（v2.2→v2.5）：精準率 79.1%→87.7%、IoU 76.0%→83.8%，召回率 95.2%→94.9% 幾乎持平
+
 2026/7/15 v.2.4 變更（CubiCasa 語意否決融合：IoU 82.9% → 83.5%）
 
 一、重建 CubiCasa5K 推論環境並對彩圖評分（環境與權重不進版控，見 .gitignore 註記）：
