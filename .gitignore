@@ -20,7 +20,6 @@ _local_archive_not_for_push/
 external/
 TripoSR/
 test_3Dfurniture/
-scripts/
 
 # Non-runtime generated/intermediate model artifacts
 dataset/decoded_glb_cache/
@@ -78,3 +77,5 @@ AGENTS.md
 
 # macOS 系統殘留(入倉三規則:禁止提交)
 .DS_Store
+# 分割模型權重 93MB — 進 git 前組長決定
+roompilot/floorplan/models/*.onnx

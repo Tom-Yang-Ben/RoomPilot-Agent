@@ -758,7 +758,60 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
                 break
         if not dup:
             uniq.append(w)
-    return uniq
+
+    # ── 分割模型融合(FP2DXF_SEG,有 floorseg.onnx + onnxruntime 才啟用)──
+    # 「只增不減」:規則窗全數保留(基準 94/92 當地板),模型獨有的窗只在
+    # 分割模型自己的 softmax 信心 ≥0.90 時追加。實測召回 92→95%、精準持平 94%
+    # (見 README 2026-07-14)。模型不可用 → 原樣回傳規則結果。
+    return _fuse_with_seg(uniq, bgr, debug)
+
+
+def _win_overlap(a, b) -> bool:
+    """兩窗框是否為同一扇(交集 ≥ 較小框 30%,或中心互含)——同 eval_windows.matched。"""
+    ax0, ay0, ax1, ay1 = a[1], a[2], a[3], a[4]
+    bx0, by0, bx1, by1 = b[1], b[2], b[3], b[4]
+    ix = max(0.0, min(ax1, bx1) - max(ax0, bx0))
+    iy = max(0.0, min(ay1, by1) - max(ay0, by0))
+    inter = ix * iy
+    if inter > 0:
+        area_a = (ax1 - ax0) * (ay1 - ay0)
+        area_b = (bx1 - bx0) * (by1 - by0)
+        if inter >= 0.3 * min(area_a, area_b):
+            return True
+    acx, acy = (ax0 + ax1) / 2, (ay0 + ay1) / 2
+    bcx, bcy = (bx0 + bx1) / 2, (by0 + by1) / 2
+    return (bx0 <= acx <= bx1 and by0 <= acy <= by1) or (ax0 <= bcx <= ax1 and ay0 <= bcy <= ay1)
+
+
+SEG_CONF_THRESHOLD = 0.90                          # 追加模型獨有窗的信心門檻(評測掃出)
+
+
+def _fuse_with_seg(uniq, bgr, debug):
+    """規則窗全保留 + 分割模型獨有(信心 ≥門檻)的窗追加。只增不減 → 基準不退步。"""
+    if bgr is None:
+        return uniq
+    try:
+        from . import seg_infer
+    except ImportError:
+        import seg_infer
+    if not seg_infer.available():
+        return uniq
+    model_wins = seg_infer.detect_windows(bgr)
+    if not model_wins:
+        return uniq
+
+    out = list(uniq)
+    for orient, x0, y0, x1, y1, conf in model_wins:
+        m = (orient, x0, y0, x1, y1)
+        if any(_win_overlap(m, w) for w in uniq):
+            continue                             # 規則已偵測到 → 共識,不重複加
+        if conf >= SEG_CONF_THRESHOLD:
+            out.append(m)
+            if debug:
+                print(f"    [debug] 融合追加模型獨有窗 {m} (信心 {conf:.2f})")
+        elif debug:
+            print(f"    [debug] 融合略過模型獨有窗 {m} (信心 {conf:.2f} < {SEG_CONF_THRESHOLD})")
+    return out
 
 
 # 最近一次 detect_windows 的候選總表(accepted/killed/proposal)——訓練資料收集用

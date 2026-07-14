@@ -22,6 +22,8 @@ vision = [
     "numpy>=2.0",
     "opencv-python>=4.10",
     "ezdxf>=1.3",
+    "onnxruntime>=1.20",   # 分割模型融合(floorseg.onnx);缺這個管線自動退回純規則
+    "certifi>=2024",       # VLM 選配呼叫的 SSL 憑證鏈
 ]
 # 型錄管線(scripts/):IKEA 下載 + 清洗 + 匯入 PostgreSQL
 catalog = [
