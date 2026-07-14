@@ -1,3 +1,24 @@
+2026/7/14 v.2.2 變更（彩色管線改走「先抓牆」策略 + 牆體評分基準 + 兩管線徹底分離）
+
+一、兩管線輸出與設定徹底分離，取消 px 單位 DXF：
+
+- floorplan2dxf.py 取消 dxf/ 目錄：px 單位 DXF 與 cm 單位的 dxf_scale/ 幾何相同只差比例，留一份就夠。唯一 DXF 輸出＝dxf_scale/（門寬推比例、公分、$INSUNITS=5），批次預設 png/ → dxf_scale/ + chk/；json/ 的 "dxf" 欄位移除（前端請改讀 "dxf_scale"）
+- floorplan2dxf_color.py 同樣取消 color_dxf/，輸出只剩 color_dxf_scale/ + color_chk/
+- 設定檔分離：彩色管線預設讀 config_color.ini（新增），黑白管線維持 config.ini——兩邊調參互不影響（本次分離的主要動機：接下來要單獨調彩色的辨識度）
+
+二、彩色管線（floorplan2dxf_color.py）改走「先把牆抓穩」策略：
+
+- 門/窗/空間標籤（客廳/陽台/房間）/門位框判斷全部停用（函式保留，牆穩了再逐步接回）；color_json/ color_arch/ 暫停輸出。現階段輸出＝牆矩形（含建築基柱）的 DXF + 疊圖
+- 前處理 color_to_bw() 重寫「淡化 5 層次」：彩色 → 灰階 → P1~P99 百分位拉伸（min-max 會被單一噪點毀掉；褪色掃描圖牆灰值 87~131 也能拉回深層）→ 亮度等分 5 層(0=最深) → 保留最深 2 層「且」絕對色度 <40 的像素當牆。色度＝max(B,G,R)−min(B,G,R)：黑/灰牆三通道相近(色度 6~9)，深紫棉被/綠草皮等深色彩色家具色度高；HSV 飽和度在近黑像素會被 JPEG 噪點撐爆(實測黑牆 S=86~150)不可用。灰色沙發等灰家具比牆淺 1~2 層，由層次門檻擋掉（floor_05 實測沙發正規化後在第 3 層）。參數 fade_levels/fade_keep/chroma_max 皆在 config_color.ini
+- 建築基柱（>2×牆厚的黑色實心方塊）改為 100% 保留當牆輸出——後端要拿去生成 3D 空間。split_pillars() 取代舊 remove_pillars()：厚實心塊一樣用「距離變換粗核心＋測地膨脹」找，但找到後不再丟棄，先從 bw 切出（避免柱貼牆時把 detect_solid 的 bbox 撐爆成大面積假牆）再以自身 bbox 回填進牆矩形清單；remove_solid_blobs 的大實心塊移除也一併取消（黑色實心務必全留）
+- 偵測流程抽成 detect_walls() 供 run() 與評分腳本共用，調參時評分與正式輸出零漂移
+
+三、新增牆體評分 eval_color_walls.py + 答案集 color_pngans/（起步 3 張，持續擴充）：
+
+- 答案格式：在原圖（或管線的 2 倍放大圖）上用純色 RGB(136,0,21) 實心塗出牆＋基柱；腳本以 ±40 容差抽取遮罩，ans 與處理尺寸不同時自動縮放
+- 指標＝像素級精準率/召回率/IoU；`--vis` 輸出差異圖到 color_chk/eval_*.png（白=抓對、紅=多抓、綠=漏抓）
+- 首次基準（3 張）：精準率 84.3%、召回率 96.1%、IoU 81.5%——牆幾乎不漏，主要失分是家具邊緣/盆栽等小塊假牆，為後續調參方向
+
 2026/7/13 v.2.1 變更（主程式窗偵測調校 + 彩色實驗版改名隔離）
 
 一、floorplan2dxf_test.py 改名 floorplan2dxf_color.py，輸出完全隔離：
