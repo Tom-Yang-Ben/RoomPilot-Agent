@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="706" height="677" viewBox="0 0 706 677">
+ <g id="Model" class="Model">
+  <g id="Wall" class="Wall">
+   <polygon points="122.0,2.0 394.0,2.0 394.0,14.0 122.0,14.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="2.0,84.0 133.0,84.0 133.0,95.0 2.0,95.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="308.0,226.0 706.0,226.0 706.0,238.0 308.0,238.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="385.0,564.0 706.0,564.0 706.0,575.0 385.0,575.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="122.0,2.0 134.0,2.0 134.0,95.0 122.0,95.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="383.0,2.0 394.0,2.0 394.0,148.0 383.0,148.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="2.0,84.0 13.0,84.0 13.0,677.0 2.0,677.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="696.0,227.0 706.0,227.0 706.0,499.0 696.0,499.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="385.0,564.0 396.0,564.0 396.0,677.0 385.0,677.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="696.0,499.0 706.0,499.0 706.0,564.0 696.0,564.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="13.0,666.0 385.0,666.0 385.0,677.0 13.0,677.0 "/>
+  </g>
+  <g id="Door" class="Door">
+   <polygon points="310.5,148.0 310.5,226.0 466.5,226.0 466.5,148.0 "/>
+  </g>
+  <g class="Space Undefined">
+   <polygon points="14.0,96.0 14.0,665.0 384.0,665.0 385.0,563.0 695.0,563.0 695.0,239.0 307.0,238.0 308.0,225.0 382.0,225.0 382.0,15.0 135.0,15.0 135.0,108.0 223.0,109.0 231.0,120.0 229.0,126.0 219.0,132.0 92.0,132.0 81.0,124.0 80.0,96.0 "/>
+  </g>
+  <g class="FixedFurniture Bathtub" transform="matrix(1,0,0,1,163.0,405.5)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 75,0 75,160 0,160"/>
+   </g>
+  </g>
+  <g class="FixedFurniture Bathtub" transform="matrix(1,0,0,1,288.0,282.5)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 75,0 75,160 0,160"/>
+   </g>
+  </g>
+ </g>
+</svg>

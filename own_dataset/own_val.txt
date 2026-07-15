@@ -1,0 +1,4 @@
+/floor01/
+/floor20/
+/floor30/
+/floor40/

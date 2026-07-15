@@ -1,0 +1,82 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="802" height="612" viewBox="0 0 802 612">
+ <g id="Model" class="Model">
+  <g id="Wall" class="Wall">
+   <polygon points="2.0,1.0 529.0,1.0 529.0,12.0 2.0,12.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="628.0,1.0 802.0,1.0 802.0,13.0 628.0,13.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="628.0,149.0 802.0,149.0 802.0,162.0 628.0,162.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="337.0,359.0 549.0,359.0 549.0,370.0 337.0,370.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="628.0,358.0 802.0,358.0 802.0,370.0 628.0,370.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1.0,600.0 802.0,600.0 802.0,611.0 1.0,611.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="2.0,1.0 13.0,1.0 13.0,171.0 2.0,171.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="338.0,1.0 349.0,1.0 349.0,171.0 338.0,171.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="790.0,1.0 802.0,1.0 802.0,611.0 790.0,611.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="628.0,116.0 639.0,116.0 639.0,162.0 628.0,162.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="337.0,178.0 349.0,178.0 349.0,489.0 337.0,489.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1.0,257.0 12.0,257.0 12.0,361.0 1.0,361.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="628.0,264.0 639.0,264.0 639.0,370.0 628.0,370.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1.0,458.0 12.0,458.0 12.0,611.0 1.0,611.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="529.0,1.0 628.0,1.0 628.0,13.0 529.0,13.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="1.0,361.0 12.0,361.0 12.0,458.0 1.0,458.0 "/>
+  </g>
+  <g id="Door" class="Door">
+   <polygon points="549.0,285.5 628.0,285.5 628.0,443.5 549.0,443.5 "/>
+  </g>
+  <g id="Door" class="Door">
+   <polygon points="-78.5,171.0 -78.5,257.0 93.5,257.0 93.5,171.0 "/>
+  </g>
+  <g class="Space Undefined">
+   <polygon points="14.0,13.0 16.0,260.0 13.0,267.0 13.0,599.0 336.0,599.0 336.0,299.0 329.0,294.0 326.0,286.0 329.0,278.0 336.0,273.0 336.0,101.0 329.0,96.0 326.0,88.0 326.0,13.0 "/>
+  </g>
+  <g class="Space Bedroom">
+   <polygon points="350.0,102.0 350.0,272.0 533.0,273.0 539.0,278.0 542.0,286.0 542.0,350.0 627.0,350.0 627.0,14.0 542.0,14.0 542.0,88.0 539.0,96.0 533.0,101.0 "/>
+  </g>
+  <g class="Space Undefined">
+   <polygon points="640.0,14.0 640.0,148.0 789.0,148.0 789.0,14.0 "/>
+  </g>
+  <g class="Space Kitchen">
+   <polygon points="640.0,163.0 640.0,357.0 789.0,357.0 789.0,163.0 "/>
+  </g>
+  <g class="Space Undefined">
+   <polygon points="350.0,371.0 350.0,599.0 627.0,599.0 627.0,378.0 548.0,378.0 537.0,371.0 "/>
+  </g>
+  <g class="Space Undefined">
+   <polygon points="640.0,371.0 640.0,599.0 789.0,599.0 789.0,371.0 "/>
+  </g>
+  <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,654.5,308.0)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 58,0 58,58 0,58"/>
+   </g>
+  </g>
+ </g>
+</svg>

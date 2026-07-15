@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="810" height="731" viewBox="0 0 810 731">
+ <g id="Model" class="Model">
+  <g id="Wall" class="Wall">
+   <polygon points="0.0,2.0 237.0,2.0 237.0,14.0 0.0,14.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="335.0,2.0 643.0,2.0 643.0,14.0 335.0,14.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="631.0,439.0 810.0,439.0 810.0,452.0 631.0,452.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="0.0,645.0 643.0,645.0 643.0,656.0 0.0,656.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="631.0,721.0 810.0,721.0 810.0,731.0 631.0,731.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="0.0,3.0 13.0,3.0 13.0,453.0 0.0,453.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="630.0,3.0 642.0,3.0 642.0,453.0 630.0,453.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="799.0,440.0 810.0,440.0 810.0,731.0 799.0,731.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="0.0,530.0 13.0,530.0 13.0,657.0 0.0,657.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="630.0,530.0 642.0,530.0 642.0,731.0 630.0,731.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="237.0,2.0 335.0,2.0 335.0,14.0 237.0,14.0 "/>
+  </g>
+  <g id="Door" class="Door">
+   <polygon points="643.0,494.5 799.0,494.5 799.0,806.5 643.0,806.5 "/>
+  </g>
+  <g id="Door" class="Door">
+   <polygon points="-70.5,453.0 -70.5,530.0 83.5,530.0 83.5,453.0 "/>
+  </g>
+  <g id="Door" class="Door">
+   <polygon points="559.0,453.0 559.0,530.0 713.0,530.0 713.0,453.0 "/>
+  </g>
+  <g class="Space Bedroom">
+   <polygon points="14.0,15.0 14.0,440.0 21.0,451.0 21.0,525.0 14.0,536.0 14.0,644.0 629.0,644.0 629.0,15.0 "/>
+  </g>
+  <g class="Space Bath">
+   <polygon points="643.0,453.0 643.0,644.0 798.0,644.0 798.0,453.0 "/>
+  </g>
+  <g class="FixedFurniture Toilet" transform="matrix(1,0,0,1,667.5,644.5)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 40,0 40,70 0,70"/>
+   </g>
+  </g>
+ </g>
+</svg>

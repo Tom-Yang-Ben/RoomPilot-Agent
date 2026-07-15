@@ -1,3 +1,18 @@
+2026/7/15 v.2.9 變更（路線圖 C 準備完成：43 題標注初稿＋Colab 微調環境——只差人工修正與按下訓練）
+
+一、標注初稿（make_annotation_drafts.py → own_dataset/，43/43 成功）：
+
+- **格式＝CubiCasa model.svg**：FloorplanSVG loader 支援 format='txt' 現場解析，訓練端只需 sed 一行（lmdb→txt）；junction heatmap 由 House 從 SVG 自動推導不必手標；人工修正用 Inkscape
+- 草稿內容全來自管線輸出：牆矩形/窗/門位（高品質）→ id=Wall/Window/Door；房間方塊+房型 → Space 多邊形（38% 有名，餘 Undefined 待人工）；符號命中 → FixedFurniture 提示。floor01 疊圖目測：三臥/浴/開放客餐廚/儲藏全對——訓練可用等級
+- 兩個上游陷阱已埋補丁：PolygonWall 的 points 屬性必須尾隨空格（split(' ')[:-1] 會吃掉最後一頂點）；**svg_utils 的 np.matrix 在 numpy 2.x 直接 ValueError（任何含圖示樣本都掛）→ apply_cubicasa_patches.py**（可重複執行，re-clone 後必跑，Colab cell 已含）
+- 43 張全數 House round-trip 驗證通過；CubiCasa 圖示分類法沒有床（bedrect 不輸出，床訊息在房間類別）
+
+二、Colab 微調環境：
+
+- colab/finetune_cubicasa.ipynb（nbformat 驗證）：T4 檢查→clone+補丁→Drive 解壓→sed txt 格式→微調（lr 1e-4/20 epoch/batch 8 起步值）→checkpoint 回 Drive→sanity 推論疊圖；尾註本機驗收流程（換權重重算快取→eval_rooms_cc --gt-seg 對比 v2.7 基線）
+- pack_finetune_data.py：own 43×3 過採樣＋hq_arch train 前 300（防災難性遺忘）→ finetune_data.zip 418MB；own_val 4 張僅訓練監控，**正式驗收永遠走 val/test 評分集**
+- 剩餘人工步驟：修正 own_dataset/*/model.svg（重點：Undefined 房補名、漏牆補畫）→ 重跑 pack → 上傳 Drive → 執行 notebook
+
 2026/7/15 v.2.8 變更（路線圖 B：符號模板庫建成＋比對機制接入；命中歸零的誠實記錄——表示法落差是下一關）
 
 一、交付（基礎設施完成，管線零回歸）：
@@ -37,6 +52,7 @@
 - CubiCasa5k/ 程式庫、model_best_val_loss_var.pkl 權重、mitunet/：重建方式見 .gitignore 註記
 - **.venv 重建**：`pip install -r requirements.txt`。opencv 已釘 `<5`——OpenCV 5.0 把 HoughLinesP 回傳 shape 從 (N,1,4) 改 (N,4)，兩支管線的門偵測會當場掛掉；torch 生態會拉進 opencv-python-headless（後裝者蓋掉 cv2），**兩顆都必須 <5**（本次事故：headless 5.0.0 蓋掉 4.13）
 - **推論/評分另需**（主管線不用，requirements.txt 不收）：`pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu` ＋ `pip install lmdb scikit-image svgpathtools pytest`——infer_cubicasa.py 重算語意快取、eval_rooms_cc.py 解析 model.svg（floortrans.loaders 連帶依賴）時才需要
+- **CubiCasa5k/ re-clone 後必跑 `python apply_cubicasa_patches.py`**：上游 svg_utils 的 np.matrix 在 numpy 2.x 會 ValueError，任何含圖示的樣本都無法解析（訓練/round-trip 都會中招）
 - GPU 現況：本機只有 GTX 980M（Maxwell、Windows 驅動未裝、新版 torch 已不支援），訓練不切實際；微調一律走 Colab（免費 T4 即可，幾小時級）
 
 一、新增 floorplan2room.py（房間方塊管線，不出 DXF；批次 `python3 floorplan2room.py` = png/ → room_chk/ + json/）：
@@ -64,7 +80,7 @@
 
 - **A. 房型答案集評分（CPU，~半天，先做）✅ v2.7 已完成**：eval_rooms_cc.py，基線見 v2.7 章節。後續調參迭代：改權重 → 重跑 --gt-seg（快取全熱，分鐘級）→ diff report_gtseg.json
 - **B. 符號模板庫（CPU）⚠️ v2.8 基礎設施完成、比對暫停**：庫與比對機制已建（symbol_lib.npz＋symbol_match.py，零回歸），但三個實測根因（表示法落差/美式域差距/嵌入式符號）令命中歸零——見 v2.8 章節。形狀比對等表示法突破，符號救援併入路線 C
-- **C. 微調模型（Colab GPU）**：自標 30~50 張 png/ 的圖＋混 high_quality_architectural 子集防災難性遺忘。注意：黑白建築線稿「已在」預訓練集內、模型仍對美式符號（床頭板/W-D/X 圈爐台）沒把握——單純用原資料重訓無效，必須混自家標注。A 的工具可半自動產標注初稿（管線輸出→人工修正）
+- **C. 微調模型（Colab GPU）🔧 v2.9 準備完成**：43 題標注初稿已產（own_dataset/，House round-trip 通過）、Colab notebook 與打包腳本就緒。剩人工修正 model.svg（Undefined 房補名）→ pack → 上傳 → 訓練。注意：單純用原資料重訓無效，必須混自家標注（own×3 已配比）
 - **D. 房型相鄰統計先驗（小補）**：5000 張統計浴室貼臥室/廚房貼客廳等關係，當同分 tie-breaker
 
 已知剩餘問題：floor17 分割失敗（單一大空間）；X 圈爐台不採證（放寬 HoughCircles param2 會在植栽/臥室爆出 14 組假爐台，實測不可行）；無馬桶同室的浴缸間、單人床（90~100cm 與沙發縱深重疊）精準優先設計放掉——以上皆由路線 A/B 接手。

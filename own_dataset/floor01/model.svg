@@ -1,0 +1,204 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="1908" viewBox="0 0 2732 1908">
+ <g id="Model" class="Model">
+  <g id="Wall" class="Wall">
+   <polygon points="218.0,44.0 779.0,44.0 779.0,70.0 218.0,70.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="958.0,44.0 1371.0,44.0 1371.0,72.0 958.0,72.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1606.0,44.0 1739.0,44.0 1739.0,70.0 1606.0,70.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="582.0,282.0 703.0,282.0 703.0,301.0 582.0,301.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="218.0,528.0 473.0,528.0 473.0,547.0 218.0,547.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="563.0,528.0 913.0,528.0 913.0,547.0 563.0,547.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1003.0,528.0 1140.0,528.0 1140.0,547.0 1003.0,547.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1366.0,528.0 1573.0,528.0 1573.0,547.0 1366.0,547.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1642.0,528.0 1739.0,528.0 1739.0,547.0 1642.0,547.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1479.0,801.0 1739.0,801.0 1739.0,819.0 1479.0,819.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1479.0,1068.0 1541.0,1068.0 1541.0,1087.0 1479.0,1087.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1687.0,1068.0 1739.0,1068.0 1739.0,1087.0 1687.0,1087.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="218.0,1156.0 433.0,1156.0 433.0,1182.0 218.0,1182.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="573.0,1156.0 716.0,1156.0 716.0,1182.0 573.0,1182.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="825.0,1156.0 908.0,1156.0 908.0,1182.0 825.0,1182.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1048.0,1156.0 1270.0,1156.0 1270.0,1182.0 1048.0,1182.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1391.0,1156.0 1739.0,1156.0 1739.0,1182.0 1391.0,1182.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="218.0,44.0 243.0,44.0 243.0,112.0 218.0,112.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="582.0,44.0 601.0,44.0 601.0,114.0 582.0,114.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="684.0,44.0 703.0,44.0 703.0,348.0 684.0,348.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1036.0,44.0 1055.0,44.0 1055.0,547.0 1036.0,547.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1230.0,44.0 1249.0,44.0 1249.0,547.0 1230.0,547.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1714.0,44.0 1739.0,44.0 1739.0,109.0 1714.0,109.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="582.0,252.0 601.0,252.0 601.0,547.0 582.0,547.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1714.0,467.0 1739.0,467.0 1739.0,933.0 1714.0,933.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="218.0,470.0 243.0,470.0 243.0,682.0 218.0,682.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="684.0,487.0 703.0,487.0 703.0,547.0 684.0,547.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1479.0,528.0 1498.0,528.0 1498.0,954.0 1479.0,954.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1714.0,1036.0 1739.0,1036.0 1739.0,1182.0 1714.0,1182.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="218.0,1039.0 243.0,1039.0 243.0,1182.0 218.0,1182.0 "/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="1479.0,1045.0 1498.0,1045.0 1498.0,1182.0 1479.0,1182.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="779.0,44.0 958.0,44.0 958.0,72.0 779.0,72.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="1371.0,44.0 1606.0,44.0 1606.0,72.0 1371.0,72.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="433.0,1156.0 573.0,1156.0 573.0,1182.0 433.0,1182.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="908.0,1156.0 1048.0,1156.0 1048.0,1182.0 908.0,1182.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="1270.0,1156.0 1391.0,1156.0 1391.0,1182.0 1270.0,1182.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="218.0,112.0 243.0,112.0 243.0,470.0 218.0,470.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="218.0,682.0 243.0,682.0 243.0,1039.0 218.0,1039.0 "/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="1714.0,109.0 1739.0,109.0 1739.0,467.0 1714.0,467.0 "/>
+  </g>
+  <g id="Door" class="Door">
+   <polygon points="716.0,1060.0 825.0,1060.0 825.0,1278.0 716.0,1278.0 "/>
+  </g>
+  <g id="Door" class="Door">
+   <polygon points="1623.5,933.0 1623.5,1036.0 1829.5,1036.0 1829.5,933.0 "/>
+  </g>
+  <g class="Space Bedroom">
+   <polygon points="244.0,71.0 244.0,527.0 581.0,527.0 581.0,71.0 "/>
+  </g>
+  <g class="Space Bedroom">
+   <polygon points="724.0,73.0 723.0,129.0 717.0,137.0 704.0,140.0 704.0,527.0 1035.0,527.0 1035.0,73.0 "/>
+  </g>
+  <g class="Space Bath">
+   <polygon points="1056.0,73.0 1056.0,384.0 1108.0,387.0 1118.0,397.0 1121.0,414.0 1121.0,527.0 1229.0,527.0 1229.0,73.0 "/>
+  </g>
+  <g class="Space Bedroom">
+   <polygon points="1310.0,73.0 1310.0,120.0 1307.0,129.0 1294.0,136.0 1250.0,136.0 1250.0,527.0 1713.0,527.0 1713.0,137.0 1623.0,137.0 1614.0,134.0 1607.0,121.0 1607.0,73.0 "/>
+  </g>
+  <g class="Space LivingRoom">
+   <polygon points="244.0,548.0 244.0,1155.0 1265.0,1155.0 1265.0,1100.0 1268.0,1091.0 1279.0,1081.0 1375.0,1080.0 1384.0,1083.0 1388.0,1088.0 1478.0,1088.0 1478.0,872.0 1405.0,871.0 1397.0,865.0 1394.0,851.0 1386.0,845.0 1383.0,836.0 1383.0,758.0 1386.0,749.0 1399.0,742.0 1466.0,742.0 1478.0,739.0 1478.0,548.0 "/>
+  </g>
+  <g class="Space Storage">
+   <polygon points="1499.0,548.0 1499.0,800.0 1713.0,800.0 1713.0,548.0 "/>
+  </g>
+  <g class="Space Kitchen">
+   <polygon points="1499.0,820.0 1499.0,1067.0 1713.0,1067.0 1713.0,820.0 "/>
+  </g>
+  <g class="FixedFurniture Toilet" transform="matrix(1,0,0,1,936.0,1368.0)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 40,0 40,70 0,70"/>
+   </g>
+  </g>
+  <g class="FixedFurniture Toilet" transform="matrix(1,0,0,1,881.0,1368.0)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 40,0 40,70 0,70"/>
+   </g>
+  </g>
+  <g class="FixedFurniture Bathtub" transform="matrix(1,0,0,1,1566.0,786.0)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 75,0 75,160 0,160"/>
+   </g>
+  </g>
+  <g class="FixedFurniture Bathtub" transform="matrix(1,0,0,1,1187.5,724.0)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 75,0 75,160 0,160"/>
+   </g>
+  </g>
+  <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,1015.0,1362.5)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 58,0 58,58 0,58"/>
+   </g>
+  </g>
+  <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,852.0,324.0)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 58,0 58,58 0,58"/>
+   </g>
+  </g>
+  <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,1558.0,343.5)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 58,0 58,58 0,58"/>
+   </g>
+  </g>
+  <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,1631.5,950.5)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 58,0 58,58 0,58"/>
+   </g>
+  </g>
+  <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,380.8,324.5)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 58,0 58,58 0,58"/>
+   </g>
+  </g>
+  <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,522.5,766.5)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 58,0 58,58 0,58"/>
+   </g>
+  </g>
+  <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,1545.0,635.5)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 58,0 58,58 0,58"/>
+   </g>
+  </g>
+ </g>
+</svg>
