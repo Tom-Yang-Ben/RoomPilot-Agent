@@ -1,6 +1,8 @@
 .venv/
 __pycache__/
-.claude/settings.local.json
+
+# Claude Code 本機設定與工作流（每台機器自行維護，不進版控）
+.claude/
 *Zone.Identifier
 
 # MCP 設定（含 API keys，不可提交）
