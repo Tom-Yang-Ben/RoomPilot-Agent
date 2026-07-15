@@ -163,32 +163,32 @@
    <text x="1173" y="106" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text>
   </g>
   <g class="Space Undefined">
-   <polygon points="567.0,178.0 567.0,568.0 874.0,568.0 874.0,178.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
-   <text x="720" y="373" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
+   <polygon points="567.0,178.0 567.0,474.0 576.0,476.0 584.0,489.0 584.0,568.0 874.0,568.0 874.0,178.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
+   <text x="661" y="419" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
   </g>
   <g class="Space Bath">
    <polygon points="890.0,179.0 890.0,308.0 1059.0,308.0 1059.0,179.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2"/>
    <text x="974" y="244" font-size="22" text-anchor="middle" fill="#000000">Bath</text>
   </g>
   <g class="Space Kitchen">
-   <polygon points="1085.0,179.0 1085.0,303.0 1328.0,303.0 1328.0,192.0 1276.0,192.0 1269.0,190.0 1262.0,179.0 " fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2"/>
-   <text x="1233" y="220" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text>
+   <polygon points="1085.0,179.0 1085.0,272.0 1141.0,273.0 1150.0,282.0 1151.0,303.0 1329.0,303.0 1329.0,194.0 1271.0,193.0 1263.0,186.0 1261.0,179.0 " fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2"/>
+   <text x="1206" y="236" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text>
   </g>
   <g class="Space Undefined">
-   <polygon points="950.0,408.0 950.0,553.0 1059.0,553.0 1059.0,408.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
-   <text x="1004" y="480" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
+   <polygon points="950.0,408.0 950.0,568.0 1069.0,568.0 1069.0,483.0 1059.0,482.0 1059.0,408.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
+   <text x="1026" y="486" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
   </g>
   <g class="Space Undefined">
    <polygon points="1085.0,408.0 1085.0,679.0 1250.0,679.0 1250.0,409.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
    <text x="1168" y="544" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
   </g>
   <g class="Space Undefined">
-   <polygon points="1312.0,417.0 1312.0,679.0 1483.0,679.0 1483.0,422.0 1406.0,422.0 1396.0,417.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
-   <text x="1399" y="506" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
+   <polygon points="1312.0,418.0 1312.0,664.0 1483.0,664.0 1483.0,422.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
+   <text x="1398" y="542" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
   </g>
   <g class="Space Undefined">
-   <polygon points="769.0,585.0 767.0,678.0 754.0,686.0 704.0,686.0 704.0,980.0 1060.0,980.0 1060.0,921.0 1069.0,920.0 1069.0,585.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
-   <text x="884" y="780" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
+   <polygon points="704.0,616.0 704.0,980.0 1053.0,980.0 1053.0,850.0 1061.0,837.0 1069.0,835.0 1069.0,585.0 756.0,585.0 755.0,616.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
+   <text x="914" y="765" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
   </g>
   <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,1084.2,222.5)">
    <g class="BoundaryPolygon">

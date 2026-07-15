@@ -107,16 +107,16 @@
    <text x="379" y="152" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text>
   </g>
   <g class="Space LivingRoom">
-   <polygon points="249.0,269.0 248.0,635.0 534.0,635.0 534.0,269.0 " fill="#7dc37d" fill-opacity="0.35" stroke="#7dc37d" stroke-width="2"/>
-   <text x="391" y="452" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text>
+   <polygon points="249.0,269.0 248.0,635.0 534.0,635.0 534.0,339.0 529.0,337.0 525.0,330.0 525.0,269.0 " fill="#7dc37d" fill-opacity="0.35" stroke="#7dc37d" stroke-width="2"/>
+   <text x="449" y="402" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text>
   </g>
   <g class="Space Bath">
    <polygon points="156.0,347.0 156.0,468.0 237.0,468.0 237.0,347.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2"/>
    <text x="196" y="408" font-size="22" text-anchor="middle" fill="#000000">Bath</text>
   </g>
   <g class="Space Kitchen">
-   <polygon points="88.0,479.0 88.0,635.0 237.0,635.0 237.0,478.0 " fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2"/>
-   <text x="162" y="557" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text>
+   <polygon points="46.0,478.0 46.0,635.0 237.0,635.0 237.0,478.0 " fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2"/>
+   <text x="142" y="556" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text>
   </g>
  </g>
 </svg>

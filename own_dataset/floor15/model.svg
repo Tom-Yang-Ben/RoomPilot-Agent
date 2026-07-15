@@ -82,8 +82,8 @@
    <text x="517" y="427" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
   </g>
   <g class="Space Undefined">
-   <polygon points="14.0,259.0 14.0,380.0 284.0,380.0 284.0,285.0 229.0,284.0 223.0,276.0 223.0,259.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
-   <text x="182" y="303" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
+   <polygon points="14.0,259.0 14.0,380.0 284.0,380.0 284.0,301.0 256.0,299.0 252.0,292.0 252.0,281.0 235.0,281.0 228.0,277.0 226.0,259.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
+   <text x="204" y="301" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
   </g>
   <g class="Space Undefined">
    <polygon points="15.0,393.0 15.0,771.0 283.0,771.0 284.0,393.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>

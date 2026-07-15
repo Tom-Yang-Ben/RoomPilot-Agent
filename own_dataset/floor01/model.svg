@@ -130,20 +130,20 @@
    <text x="412" y="299" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text>
   </g>
   <g class="Space Bedroom">
-   <polygon points="724.0,73.0 723.0,129.0 717.0,137.0 704.0,140.0 704.0,527.0 1035.0,527.0 1035.0,73.0 " fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2"/>
-   <text x="806" y="229" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text>
+   <polygon points="704.0,73.0 704.0,527.0 1035.0,527.0 1035.0,73.0 " fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2"/>
+   <text x="870" y="300" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text>
   </g>
   <g class="Space Bath">
-   <polygon points="1056.0,73.0 1056.0,384.0 1108.0,387.0 1118.0,397.0 1121.0,414.0 1121.0,527.0 1229.0,527.0 1229.0,73.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2"/>
-   <text x="1130" y="348" font-size="22" text-anchor="middle" fill="#000000">Bath</text>
+   <polygon points="1056.0,73.0 1056.0,386.0 1104.0,386.0 1113.0,389.0 1119.0,397.0 1120.0,527.0 1229.0,527.0 1229.0,73.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2"/>
+   <text x="1128" y="345" font-size="22" text-anchor="middle" fill="#000000">Bath</text>
   </g>
   <g class="Space Bedroom">
-   <polygon points="1310.0,73.0 1310.0,120.0 1307.0,129.0 1294.0,136.0 1250.0,136.0 1250.0,527.0 1713.0,527.0 1713.0,137.0 1623.0,137.0 1614.0,134.0 1607.0,121.0 1607.0,73.0 " fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2"/>
-   <text x="1466" y="188" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text>
+   <polygon points="1250.0,136.0 1250.0,527.0 1713.0,527.0 1713.0,134.0 1623.0,134.0 1614.0,131.0 1607.0,118.0 1607.0,73.0 1365.0,73.0 1365.0,120.0 1358.0,133.0 1349.0,136.0 " fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2"/>
+   <text x="1484" y="187" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text>
   </g>
   <g class="Space LivingRoom">
-   <polygon points="244.0,548.0 244.0,1155.0 1265.0,1155.0 1265.0,1100.0 1268.0,1091.0 1279.0,1081.0 1375.0,1080.0 1384.0,1083.0 1388.0,1088.0 1478.0,1088.0 1478.0,872.0 1405.0,871.0 1397.0,865.0 1394.0,851.0 1386.0,845.0 1383.0,836.0 1383.0,758.0 1386.0,749.0 1399.0,742.0 1466.0,742.0 1478.0,739.0 1478.0,548.0 " fill="#7dc37d" fill-opacity="0.35" stroke="#7dc37d" stroke-width="2"/>
-   <text x="1283" y="904" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text>
+   <polygon points="244.0,548.0 244.0,1155.0 1266.0,1155.0 1267.0,1093.0 1273.0,1085.0 1282.0,1082.0 1344.0,1082.0 1353.0,1085.0 1360.0,1098.0 1360.0,1128.0 1478.0,1128.0 1478.0,859.0 1463.0,856.0 1398.0,856.0 1389.0,853.0 1382.0,840.0 1382.0,762.0 1385.0,753.0 1398.0,746.0 1461.0,746.0 1469.0,740.0 1478.0,739.0 1478.0,548.0 " fill="#7dc37d" fill-opacity="0.35" stroke="#7dc37d" stroke-width="2"/>
+   <text x="1288" y="910" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text>
   </g>
   <g class="Space Storage">
    <polygon points="1499.0,548.0 1499.0,800.0 1713.0,800.0 1713.0,548.0 " fill="#b8a06a" fill-opacity="0.35" stroke="#b8a06a" stroke-width="2"/>
@@ -153,16 +153,6 @@
    <polygon points="1499.0,820.0 1499.0,1067.0 1713.0,1067.0 1713.0,820.0 " fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2"/>
    <text x="1606" y="944" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text>
   </g>
-  <g class="FixedFurniture Toilet" transform="matrix(1,0,0,1,936.0,1368.0)">
-   <g class="BoundaryPolygon">
-    <polygon points="0,0 40,0 40,70 0,70" fill="#8844cc" fill-opacity="0.4" stroke="#8844cc" stroke-width="2"/>
-   </g>
-  </g>
-  <g class="FixedFurniture Toilet" transform="matrix(1,0,0,1,881.0,1368.0)">
-   <g class="BoundaryPolygon">
-    <polygon points="0,0 40,0 40,70 0,70" fill="#8844cc" fill-opacity="0.4" stroke="#8844cc" stroke-width="2"/>
-   </g>
-  </g>
   <g class="FixedFurniture Bathtub" transform="matrix(1,0,0,1,1566.0,786.0)">
    <g class="BoundaryPolygon">
     <polygon points="0,0 75,0 75,160 0,160" fill="#8844cc" fill-opacity="0.4" stroke="#8844cc" stroke-width="2"/>
@@ -171,11 +161,6 @@
   <g class="FixedFurniture Bathtub" transform="matrix(1,0,0,1,1187.5,724.0)">
    <g class="BoundaryPolygon">
     <polygon points="0,0 75,0 75,160 0,160" fill="#8844cc" fill-opacity="0.4" stroke="#8844cc" stroke-width="2"/>
-   </g>
-  </g>
-  <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,1015.0,1362.5)">
-   <g class="BoundaryPolygon">
-    <polygon points="0,0 58,0 58,58 0,58" fill="#8844cc" fill-opacity="0.4" stroke="#8844cc" stroke-width="2"/>
    </g>
   </g>
   <g class="FixedFurniture ElectricalAppliance IntegratedStove" transform="matrix(1,0,0,1,852.0,324.0)">

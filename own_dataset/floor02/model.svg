@@ -3,13 +3,19 @@
  <image xlink:href="F1_scaled.png" x="0" y="0" width="736" height="552"/>
  <g id="Model" class="Model">
   <g id="Wall" class="Wall">
-   <polygon points="56.0,51.0 112.0,51.0 112.0,68.0 56.0,68.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="219.0,74.0 361.0,74.0 361.0,84.0 219.0,84.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+   <polygon points="219.0,74.0 360.0,74.0 360.0,84.0 219.0,84.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
   </g>
   <g id="Wall" class="Wall">
    <polygon points="401.0,74.0 556.0,74.0 556.0,84.0 401.0,84.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="219.0,166.0 262.0,166.0 262.0,171.0 219.0,171.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="304.0,166.0 357.0,166.0 357.0,171.0 304.0,171.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="516.0,211.0 556.0,211.0 556.0,216.0 516.0,216.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
   </g>
   <g id="Wall" class="Wall">
    <polygon points="138.0,214.0 229.0,214.0 229.0,224.0 138.0,224.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
@@ -27,27 +33,31 @@
    <polygon points="456.0,370.0 556.0,370.0 556.0,379.0 456.0,379.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
   </g>
   <g id="Wall" class="Wall">
-   <polygon points="218.0,75.0 228.0,75.0 228.0,317.0 218.0,317.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+   <polygon points="218.0,75.0 228.0,75.0 228.0,316.0 218.0,316.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="351.0,75.0 356.0,75.0 356.0,123.0 351.0,123.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
   </g>
   <g id="Wall" class="Wall">
    <polygon points="545.0,75.0 555.0,75.0 555.0,380.0 545.0,380.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
   </g>
   <g id="Wall" class="Wall">
+   <polygon points="351.0,161.0 356.0,161.0 356.0,217.0 351.0,217.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
    <polygon points="137.0,215.0 147.0,215.0 147.0,365.0 137.0,365.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="351.0,255.0 356.0,255.0 356.0,318.0 351.0,318.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
   </g>
   <g id="Window" class="Window">
    <polygon points="260.0,304.0 311.0,304.0 311.0,314.0 260.0,314.0 " fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2"/>
   </g>
-  <g id="Window" class="Window">
-   <polygon points="346.0,370.0 456.0,370.0 456.0,379.0 346.0,379.0 " fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2"/>
+  <g id="Door" class="Door">
+   <polygon points="360.0,38.0 401.0,38.0 401.0,120.0 360.0,120.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
   </g>
-  <g class="Space Bath">
-   <polygon points="229.0,85.0 229.0,303.0 357.0,303.0 358.0,369.0 544.0,369.0 544.0,85.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2"/>
-   <text x="377" y="252" font-size="22" text-anchor="middle" fill="#000000">Bath</text>
-  </g>
-  <g class="Space Storage">
-   <polygon points="148.0,225.0 148.0,303.0 217.0,303.0 217.0,225.0 " fill="#b8a06a" fill-opacity="0.35" stroke="#b8a06a" stroke-width="2"/>
-   <text x="182" y="264" font-size="22" text-anchor="middle" fill="#000000">Storage</text>
+  <g id="Door" class="Door">
+   <polygon points="262.0,126.5 304.0,126.5 304.0,210.5 262.0,210.5 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
   </g>
  </g>
 </svg>
