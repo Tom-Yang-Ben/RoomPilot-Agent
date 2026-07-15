@@ -97,6 +97,21 @@ def render_polylines(polys, canvas=CANVAS):
     return img
 
 
+def crop_to_canvas(img, x, y, w, h, canvas=CANVAS):
+    """二值線稿圖的 bbox 裁切 → 等比縮放置中到 canvas（與模板同正規化）。"""
+    crop = img[y:y + h, x:x + w]
+    if crop.size == 0 or not crop.any():
+        return None
+    s = (canvas - 4) / max(w, h)
+    nw, nh = max(1, int(round(w * s))), max(1, int(round(h * s)))
+    small = cv2.resize(crop, (nw, nh), interpolation=cv2.INTER_AREA)
+    small = (small > 40).astype(np.uint8) * 255   # 降採樣後回二值，線寬≈1px
+    out = np.zeros((canvas, canvas), np.uint8)
+    ox, oy = (canvas - nw) // 2, (canvas - nh) // 2
+    out[oy:oy + nh, ox:ox + nw] = small
+    return out
+
+
 def hu_of(raster):
     """raster 全部線條像素的 log-Hu 向量 (7,)。
     用整張線稿的矩（非單一輪廓）——多部件符號（爐台四圈）才不會漏訊息。"""
@@ -170,7 +185,9 @@ def match_symbols(det, lib=None):
                     if s5 * 0.8 <= lo <= s95 * 1.2 and l5 * 0.8 <= hi <= l95 * 1.2]
         if not ok_kinds:
             continue
-        cand = render_polylines([c[:, 0, :].astype(float)])
+        # 候選 = bbox 內整個細線層裁切（含巢狀圓圈/X 線等所有部件）——
+        # 符號是多部件複合圖，單一輪廓（只有外框或只有一個圈）比不上模板
+        cand = crop_to_canvas(closed, x, y, w, h)
         if cand is None:
             continue
         hc = hu_of(cand)
