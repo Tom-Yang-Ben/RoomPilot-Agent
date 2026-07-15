@@ -1,4 +1,4 @@
 numpy>=2.0
-opencv-python>=4.10,<5        ; 5.0 把 HoughLinesP 回傳 shape (N,1,4) 改成 (N,4)，門偵測會掛
-opencv-python-headless<5      ; torch 生態會拉進 headless 版，後裝者蓋掉 cv2，同樣要擋 5.0
+opencv-python>=4.10,<5        # 5.0 把 HoughLinesP 回傳 shape (N,1,4) 改成 (N,4)，門偵測會掛
+opencv-python-headless<5      # torch 生態會拉進 headless 版，後裝者蓋掉 cv2，同樣要擋 5.0
 ezdxf>=1.3
