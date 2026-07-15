@@ -1,0 +1,281 @@
+{
+  "image": {
+    "w": 933,
+    "h": 755
+  },
+  "is_color": false,
+  "color_ratio": 0.0,
+  "pipeline": "floorplan2dxf",
+  "cm_per_px": 1.0759,
+  "scale_info": {
+    "method": "door_single",
+    "gaps_used": 1,
+    "cm_per_px_initial": 1.3636,
+    "outer_wall_cm": 11.8,
+    "door_anchor_cm": 85.0
+  },
+  "walls": 15,
+  "windows": 1,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        173.0,
+        -71.5,
+        252.0,
+        86.5
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 5.11,
+      "bbox": [
+        14,
+        14,
+        161,
+        314
+      ],
+      "center": [
+        87.0,
+        163.5
+      ],
+      "aspect": 2.04,
+      "has_door": false,
+      "reach": true,
+      "cc_share": {},
+      "icons_cm2": {
+        "sink": 827
+      },
+      "symbols": {}
+    },
+    {
+      "id": 2,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 2.42,
+      "bbox": [
+        173,
+        14,
+        288,
+        196
+      ],
+      "center": [
+        230.0,
+        104.5
+      ],
+      "aspect": 1.58,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 3,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 6.59,
+      "bbox": [
+        300,
+        14,
+        630,
+        196
+      ],
+      "center": [
+        471.8,
+        108.3
+      ],
+      "aspect": 1.81,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "closet": 223
+      },
+      "symbols": {}
+    },
+    {
+      "id": 4,
+      "label": "bed",
+      "label_zh": "臥室",
+      "area_m2": 11.26,
+      "bbox": [
+        644,
+        14,
+        922,
+        513
+      ],
+      "center": [
+        761.9,
+        221.9
+      ],
+      "aspect": 1.79,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {
+        "bed": 0.5
+      },
+      "icons_cm2": {},
+      "symbols": {
+        "bedrect": 2
+      }
+    },
+    {
+      "id": 5,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 1.41,
+      "bbox": [
+        173,
+        208,
+        288,
+        314
+      ],
+      "center": [
+        230.0,
+        260.5
+      ],
+      "aspect": 1.08,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 6,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 11.25,
+      "bbox": [
+        300,
+        208,
+        630,
+        513
+      ],
+      "center": [
+        459.3,
+        363.5
+      ],
+      "aspect": 1.08,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "sink": 1113,
+        "fireplace": 108
+      },
+      "symbols": {}
+    },
+    {
+      "id": 7,
+      "label": "bed",
+      "label_zh": "臥室",
+      "area_m2": 8.89,
+      "bbox": [
+        14,
+        326,
+        288,
+        629
+      ],
+      "center": [
+        154.2,
+        466.0
+      ],
+      "aspect": 1.11,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {
+        "bed": 0.5
+      },
+      "icons_cm2": {},
+      "symbols": {
+        "bedrect": 2
+      }
+    },
+    {
+      "id": 8,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 5.83,
+      "bbox": [
+        754,
+        328,
+        922,
+        628
+      ],
+      "center": [
+        837.5,
+        477.5
+      ],
+      "aspect": 1.79,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "sink": 1074
+      },
+      "symbols": {}
+    },
+    {
+      "id": 9,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 8.29,
+      "bbox": [
+        300,
+        525,
+        630,
+        742
+      ],
+      "center": [
+        464.5,
+        633.0
+      ],
+      "aspect": 1.52,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 10,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 1.17,
+      "bbox": [
+        644,
+        525,
+        742,
+        628
+      ],
+      "center": [
+        692.5,
+        576.0
+      ],
+      "aspect": 1.05,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    }
+  ],
+  "adjacency": []
+}

@@ -1,0 +1,73 @@
+{
+  "image": {
+    "w": 706,
+    "h": 677
+  },
+  "is_color": false,
+  "color_ratio": 0.0,
+  "pipeline": "floorplan2dxf",
+  "cm_per_px": 1.0897,
+  "scale_info": {
+    "method": "door_single",
+    "gaps_used": 1,
+    "cm_per_px_initial": 1.3636,
+    "outer_wall_cm": 12.0,
+    "door_anchor_cm": 85.0
+  },
+  "walls": 9,
+  "windows": 2,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        310.5,
+        148.0,
+        466.5,
+        226.0
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 38.87,
+      "bbox": [
+        14,
+        15,
+        696,
+        666
+      ],
+      "center": [
+        308.0,
+        370.7
+      ],
+      "aspect": 1.05,
+      "has_door": true,
+      "reach": true,
+      "cc_share": {},
+      "icons_cm2": {
+        "closet": 2832,
+        "appliance": 157,
+        "sink": 1302,
+        "fireplace": 627
+      },
+      "symbols": {
+        "tubrect": 2
+      }
+    }
+  ],
+  "adjacency": []
+}

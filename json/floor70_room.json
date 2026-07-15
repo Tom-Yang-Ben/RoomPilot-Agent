@@ -1,0 +1,126 @@
+{
+  "image": {
+    "w": 810,
+    "h": 731
+  },
+  "is_color": false,
+  "color_ratio": 0.0,
+  "pipeline": "floorplan2dxf",
+  "cm_per_px": 1.1039,
+  "scale_info": {
+    "method": "door_single",
+    "gaps_used": 2,
+    "cm_per_px_initial": 1.25,
+    "outer_wall_cm": 13.2,
+    "door_anchor_cm": 85.0
+  },
+  "walls": 10,
+  "windows": 1,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [
+    {
+      "length_cm": 172.2,
+      "type": "double",
+      "bbox": [
+        643.0,
+        494.5,
+        799.0,
+        806.5
+      ]
+    },
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        -70.5,
+        453.0,
+        83.5,
+        530.0
+      ]
+    },
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        559.0,
+        453.0,
+        713.0,
+        530.0
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "bed",
+      "label_zh": "臥室",
+      "area_m2": 47.22,
+      "bbox": [
+        14,
+        15,
+        630,
+        645
+      ],
+      "center": [
+        322.0,
+        329.2
+      ],
+      "aspect": 1.02,
+      "has_door": true,
+      "reach": true,
+      "cc_share": {
+        "bed": 0.5
+      },
+      "icons_cm2": {
+        "closet": 5096,
+        "appliance": 262,
+        "sink": 2416
+      },
+      "symbols": {
+        "bedrect": 1
+      }
+    },
+    {
+      "id": 2,
+      "label": "bath",
+      "label_zh": "浴廁",
+      "area_m2": 3.65,
+      "bbox": [
+        643,
+        453,
+        799,
+        645
+      ],
+      "center": [
+        720.5,
+        548.5
+      ],
+      "aspect": 1.23,
+      "has_door": true,
+      "reach": true,
+      "cc_share": {
+        "bath": 0.5
+      },
+      "icons_cm2": {
+        "sink": 1293,
+        "bathtub": 790
+      },
+      "symbols": {}
+    }
+  ],
+  "adjacency": [
+    [
+      1,
+      2
+    ]
+  ]
+}

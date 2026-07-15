@@ -1,0 +1,157 @@
+{
+  "image": {
+    "w": 757,
+    "h": 677
+  },
+  "is_color": false,
+  "color_ratio": 0.0,
+  "pipeline": "floorplan2dxf",
+  "cm_per_px": 1.4583,
+  "scale_info": {
+    "method": "wall_mid",
+    "gaps_used": 0,
+    "cm_per_px_initial": 1.25,
+    "outer_wall_cm": 17.5,
+    "door_anchor_cm": null
+  },
+  "walls": 14,
+  "windows": 3,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 26.47,
+      "bbox": [
+        492,
+        13,
+        745,
+        505
+      ],
+      "center": [
+        618.0,
+        258.5
+      ],
+      "aspect": 1.94,
+      "has_door": false,
+      "reach": true,
+      "cc_share": {},
+      "icons_cm2": {
+        "closet": 6267
+      },
+      "symbols": {}
+    },
+    {
+      "id": 2,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 18.34,
+      "bbox": [
+        13,
+        14,
+        239,
+        426
+      ],
+      "center": [
+        125.0,
+        222.4
+      ],
+      "aspect": 1.82,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 3,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 19.21,
+      "bbox": [
+        252,
+        14,
+        479,
+        426
+      ],
+      "center": [
+        368.6,
+        214.3
+      ],
+      "aspect": 1.81,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "fireplace": 666
+      },
+      "symbols": {}
+    },
+    {
+      "id": 4,
+      "label": "bath",
+      "label_zh": "浴廁",
+      "area_m2": 9.01,
+      "bbox": [
+        13,
+        517,
+        320,
+        664
+      ],
+      "center": [
+        160.3,
+        585.8
+      ],
+      "aspect": 2.09,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {
+        "bath": 0.45
+      },
+      "icons_cm2": {
+        "sink": 1555
+      },
+      "symbols": {
+        "oval": 1
+      }
+    },
+    {
+      "id": 5,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 12.79,
+      "bbox": [
+        333,
+        518,
+        745,
+        664
+      ],
+      "center": [
+        538.5,
+        590.5
+      ],
+      "aspect": 2.82,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "appliance": 57,
+        "sink": 2631,
+        "fireplace": 1727
+      },
+      "symbols": {}
+    }
+  ],
+  "adjacency": []
+}

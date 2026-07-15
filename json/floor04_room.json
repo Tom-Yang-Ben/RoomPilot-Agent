@@ -1,0 +1,237 @@
+{
+  "image": {
+    "w": 1079,
+    "h": 1173
+  },
+  "is_color": false,
+  "color_ratio": 0.0035,
+  "pipeline": "floorplan2dxf",
+  "cm_per_px": 0.8252,
+  "scale_info": {
+    "method": "door_single",
+    "gaps_used": 7,
+    "cm_per_px_initial": 0.88,
+    "outer_wall_cm": 15.7,
+    "door_anchor_cm": 85.0
+  },
+  "walls": 19,
+  "windows": 5,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        537.0,
+        435.5,
+        640.0,
+        641.5
+      ]
+    },
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        537.0,
+        596.0,
+        640.0,
+        802.0
+      ]
+    },
+    {
+      "length_cm": 88.3,
+      "type": "single",
+      "bbox": [
+        542.0,
+        583.0,
+        756.0,
+        690.0
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 9.36,
+      "bbox": [
+        131,
+        174,
+        518,
+        529
+      ],
+      "center": [
+        324.0,
+        351.0
+      ],
+      "aspect": 1.09,
+      "has_door": false,
+      "reach": true,
+      "cc_share": {
+        "bed": 0.026
+      },
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 2,
+      "label": "kitchen",
+      "label_zh": "廚房",
+      "area_m2": 2.47,
+      "bbox": [
+        538,
+        174,
+        640,
+        529
+      ],
+      "center": [
+        588.5,
+        351.0
+      ],
+      "aspect": 3.48,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "kitchen": 0.361
+      },
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 3,
+      "label": "kitchen",
+      "label_zh": "廚房",
+      "area_m2": 6.44,
+      "bbox": [
+        659,
+        174,
+        926,
+        529
+      ],
+      "center": [
+        791.7,
+        350.8
+      ],
+      "aspect": 1.33,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {
+        "kitchen": 0.192
+      },
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 4,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 9.05,
+      "bbox": [
+        131,
+        549,
+        519,
+        892
+      ],
+      "center": [
+        324.2,
+        719.9
+      ],
+      "aspect": 1.13,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 5,
+      "label": "entry",
+      "label_zh": "玄關",
+      "area_m2": 0.99,
+      "bbox": [
+        537,
+        549,
+        640,
+        690
+      ],
+      "center": [
+        588.1,
+        618.9
+      ],
+      "aspect": 1.37,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "entry": 0.176
+      },
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 6,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 2.55,
+      "bbox": [
+        659,
+        549,
+        925,
+        690
+      ],
+      "center": [
+        791.5,
+        619.0
+      ],
+      "aspect": 1.89,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 7,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 9.04,
+      "bbox": [
+        538,
+        709,
+        925,
+        1052
+      ],
+      "center": [
+        731.0,
+        880.0
+      ],
+      "aspect": 1.13,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {
+        "outdoor": 0.024
+      },
+      "icons_cm2": {},
+      "symbols": {}
+    }
+  ],
+  "adjacency": [
+    [
+      2,
+      5
+    ],
+    [
+      5,
+      6
+    ]
+  ]
+}

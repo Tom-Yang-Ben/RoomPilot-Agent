@@ -1,0 +1,52 @@
+{
+  "image": {
+    "w": 706,
+    "h": 677
+  },
+  "is_color": false,
+  "color_ratio": 0.0,
+  "pipeline": "floorplan2dxf",
+  "cm_per_px": 1.3636,
+  "scale_info": {
+    "method": "wall_min",
+    "confidence": "medium",
+    "doors_used": 0,
+    "wall_min_cm": 15.0,
+    "outer_wall_cm": 15.0
+  },
+  "walls": 9,
+  "windows": 2,
+  "door_ranges_cm": [
+    [
+      80.0,
+      100.0
+    ],
+    [
+      170.0,
+      190.0
+    ]
+  ],
+  "doors": [],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "living",
+      "label_zh": "客廳",
+      "area_m2": 60.87,
+      "bbox": [
+        14,
+        15,
+        696,
+        666
+      ],
+      "center": [
+        308.0,
+        370.7
+      ],
+      "aspect": 1.05,
+      "has_door": false,
+      "reach": true
+    }
+  ],
+  "adjacency": []
+}

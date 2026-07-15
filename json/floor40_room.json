@@ -1,0 +1,236 @@
+{
+  "image": {
+    "w": 850,
+    "h": 1102
+  },
+  "is_color": false,
+  "color_ratio": 0.0,
+  "pipeline": "floorplan2dxf",
+  "cm_per_px": 1.0897,
+  "scale_info": {
+    "method": "door_single",
+    "gaps_used": 3,
+    "cm_per_px_initial": 1.3636,
+    "outer_wall_cm": 12.0,
+    "door_anchor_cm": 85.0
+  },
+  "walls": 15,
+  "windows": 0,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [
+    {
+      "length_cm": 88.3,
+      "type": "single",
+      "bbox": [
+        382.0,
+        193.5,
+        463.0,
+        355.5
+      ]
+    },
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        759.0,
+        196.5,
+        837.0,
+        352.5
+      ]
+    },
+    {
+      "length_cm": 170.0,
+      "type": "double",
+      "bbox": [
+        183.5,
+        861.0,
+        495.5,
+        1017.0
+      ]
+    },
+    {
+      "length_cm": 82.8,
+      "type": "single",
+      "bbox": [
+        429.5,
+        848.0,
+        581.5,
+        924.0
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 3.07,
+      "bbox": [
+        13,
+        13,
+        114,
+        269
+      ],
+      "center": [
+        63.0,
+        140.5
+      ],
+      "aspect": 2.53,
+      "has_door": false,
+      "reach": true,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 2,
+      "label": "bath",
+      "label_zh": "浴廁",
+      "area_m2": 10.25,
+      "bbox": [
+        126,
+        13,
+        463,
+        269
+      ],
+      "center": [
+        294.0,
+        140.5
+      ],
+      "aspect": 1.32,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "bath": 0.8
+      },
+      "icons_cm2": {
+        "appliance": 295,
+        "toilet": 166,
+        "sink": 2282,
+        "bathtub": 24
+      },
+      "symbols": {}
+    },
+    {
+      "id": 3,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 10.88,
+      "bbox": [
+        475,
+        13,
+        837,
+        269
+      ],
+      "center": [
+        657.4,
+        140.7
+      ],
+      "aspect": 1.41,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "closet": 2585,
+        "fireplace": 825
+      },
+      "symbols": {}
+    },
+    {
+      "id": 4,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 34.86,
+      "bbox": [
+        13,
+        281,
+        463,
+        1090
+      ],
+      "center": [
+        196.3,
+        661.5
+      ],
+      "aspect": 1.8,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {
+        "tubrect": 1
+      }
+    },
+    {
+      "id": 5,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 25.38,
+      "bbox": [
+        395,
+        281,
+        837,
+        792
+      ],
+      "center": [
+        625.2,
+        545.7
+      ],
+      "aspect": 1.16,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "kitchen": 0.023
+      },
+      "icons_cm2": {
+        "sink": 3408,
+        "fireplace": 741
+      },
+      "symbols": {}
+    },
+    {
+      "id": 6,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 5.05,
+      "bbox": [
+        345,
+        804,
+        500,
+        1090
+      ],
+      "center": [
+        424.0,
+        950.5
+      ],
+      "aspect": 1.85,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    }
+  ],
+  "adjacency": [
+    [
+      2,
+      4
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      4,
+      6
+    ]
+  ]
+}

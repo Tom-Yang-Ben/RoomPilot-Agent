@@ -1,0 +1,136 @@
+{
+  "image": {
+    "w": 650,
+    "h": 860
+  },
+  "is_color": false,
+  "color_ratio": 0.0,
+  "pipeline": "floorplan2dxf",
+  "cm_per_px": 1.1644,
+  "scale_info": {
+    "method": "door_single",
+    "gaps_used": 6,
+    "cm_per_px_initial": 1.25,
+    "outer_wall_cm": 14.0,
+    "door_anchor_cm": 85.0
+  },
+  "walls": 18,
+  "windows": 6,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        264.0,
+        278.0,
+        337.0,
+        424.0
+      ]
+    },
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        264.0,
+        378.0,
+        337.0,
+        524.0
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "bed",
+      "label_zh": "臥室",
+      "area_m2": 6.56,
+      "bbox": [
+        117,
+        125,
+        337,
+        345
+      ],
+      "center": [
+        226.5,
+        234.5
+      ],
+      "aspect": 1.0,
+      "has_door": true,
+      "reach": true,
+      "cc_share": {
+        "bed": 0.99
+      },
+      "icons_cm2": {
+        "closet": 4711
+      },
+      "symbols": {}
+    },
+    {
+      "id": 2,
+      "label": "kitchen",
+      "label_zh": "廚房",
+      "area_m2": 16.42,
+      "bbox": [
+        350,
+        125,
+        569,
+        678
+      ],
+      "center": [
+        459.0,
+        401.0
+      ],
+      "aspect": 2.53,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {
+        "kitchen": 1.616
+      },
+      "icons_cm2": {
+        "closet": 2621,
+        "appliance": 4128,
+        "sink": 832
+      },
+      "symbols": {
+        "stove": 1
+      }
+    },
+    {
+      "id": 3,
+      "label": "bed",
+      "label_zh": "臥室",
+      "area_m2": 6.55,
+      "bbox": [
+        117,
+        458,
+        337,
+        678
+      ],
+      "center": [
+        226.4,
+        567.7
+      ],
+      "aspect": 1.0,
+      "has_door": true,
+      "reach": true,
+      "cc_share": {
+        "bed": 0.957
+      },
+      "icons_cm2": {
+        "closet": 4968
+      },
+      "symbols": {}
+    }
+  ],
+  "adjacency": []
+}

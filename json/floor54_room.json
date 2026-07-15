@@ -1,0 +1,261 @@
+{
+  "image": {
+    "w": 828,
+    "h": 683
+  },
+  "is_color": false,
+  "color_ratio": 0.0,
+  "pipeline": "floorplan2dxf",
+  "cm_per_px": 1.699,
+  "scale_info": {
+    "method": "door_double",
+    "gaps_used": 4,
+    "cm_per_px_initial": 1.3636,
+    "outer_wall_cm": 18.7,
+    "door_anchor_cm": 175.0
+  },
+  "walls": 15,
+  "windows": 2,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [
+    {
+      "length_cm": 173.3,
+      "type": "double",
+      "bbox": [
+        378.0,
+        106.5,
+        480.0,
+        310.5
+      ]
+    },
+    {
+      "length_cm": 173.3,
+      "type": "double",
+      "bbox": [
+        71.0,
+        106.5,
+        173.0,
+        310.5
+      ]
+    },
+    {
+      "length_cm": 175.0,
+      "type": "double",
+      "bbox": [
+        385.0,
+        363.5,
+        488.0,
+        569.5
+      ]
+    },
+    {
+      "length_cm": 175.0,
+      "type": "double",
+      "bbox": [
+        386.0,
+        575.0,
+        489.0,
+        781.0
+      ]
+    },
+    {
+      "length_cm": 175.0,
+      "type": "double",
+      "bbox": [
+        276.5,
+        570.0,
+        482.5,
+        673.0
+      ]
+    },
+    {
+      "length_cm": 173.3,
+      "type": "double",
+      "bbox": [
+        392.5,
+        472.0,
+        596.5,
+        574.0
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 12.33,
+      "bbox": [
+        72,
+        14,
+        298,
+        203
+      ],
+      "center": [
+        184.5,
+        108.0
+      ],
+      "aspect": 1.2,
+      "has_door": false,
+      "reach": true,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 2,
+      "label": "bath",
+      "label_zh": "浴廁",
+      "area_m2": 9.22,
+      "bbox": [
+        311,
+        14,
+        480,
+        203
+      ],
+      "center": [
+        395.0,
+        108.0
+      ],
+      "aspect": 1.12,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "bath": 1.25
+      },
+      "icons_cm2": {
+        "toilet": 320,
+        "sink": 2820,
+        "bathtub": 1360
+      },
+      "symbols": {
+        "oval": 1
+      }
+    },
+    {
+      "id": 3,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 69.77,
+      "bbox": [
+        72,
+        14,
+        803,
+        461
+      ],
+      "center": [
+        490.9,
+        279.9
+      ],
+      "aspect": 1.64,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "appliance": 43,
+        "sink": 5121,
+        "fireplace": 196
+      },
+      "symbols": {
+        "tubrect": 1
+      }
+    },
+    {
+      "id": 4,
+      "label": "bed",
+      "label_zh": "臥室",
+      "area_m2": 16.36,
+      "bbox": [
+        73,
+        473,
+        374,
+        673
+      ],
+      "center": [
+        231.1,
+        576.2
+      ],
+      "aspect": 1.5,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "bed": 0.5
+      },
+      "icons_cm2": {},
+      "symbols": {
+        "bedrect": 1
+      }
+    },
+    {
+      "id": 5,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 5.95,
+      "bbox": [
+        386,
+        473,
+        489,
+        673
+      ],
+      "center": [
+        437.0,
+        572.5
+      ],
+      "aspect": 1.94,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 6,
+      "label": "bed",
+      "label_zh": "臥室",
+      "area_m2": 17.38,
+      "bbox": [
+        501,
+        473,
+        802,
+        673
+      ],
+      "center": [
+        651.0,
+        572.5
+      ],
+      "aspect": 1.5,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {
+        "bed": 0.5
+      },
+      "icons_cm2": {},
+      "symbols": {
+        "bedrect": 1
+      }
+    }
+  ],
+  "adjacency": [
+    [
+      2,
+      3
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      4,
+      5
+    ]
+  ]
+}

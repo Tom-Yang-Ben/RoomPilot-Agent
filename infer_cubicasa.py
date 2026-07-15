@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""CubiCasa5k 推論：png 平面圖 → 牆/窗/門 mask(原圖尺寸) + 疊圖。
+"""CubiCasa5k 推論：png 平面圖 → 牆/窗/門 mask + 房間語意/圖示類別圖(原圖尺寸) + 疊圖。
 只用 floortrans 的模型定義，不碰它的 loader(lmdb/svg 相依太舊)。
-輸出: <out>/<名>_mask.npz (wall/window/door bool mask) 與 <名>_cc.png 疊圖。
+輸出: <out>/<名>_mask.npz 與 <名>_cc.png 疊圖。npz 欄位：
+  wall/window/door  bool mask（既有欄位，讀取端向下相容）
+  room  uint8 房間語意 argmax：0背景 1戶外 2牆 3廚房 4客廳 5臥室 6浴室
+                              7玄關 8欄杆 9儲藏 10車庫 11未定義
+  icon  uint8 圖示 argmax：0無 1窗 2門 3衣櫃 4電器 5馬桶 6水槽
+                          7桑拿椅 8壁爐 9浴缸 10煙囪
 用法: python infer_cubicasa.py <weights.pkl> <out_dir> <img1> [img2 ...]
 """
 import sys, os
@@ -22,7 +27,10 @@ ICON0 = 33
 # icon class 1 = Window, 2 = Door
 
 os.makedirs(OUT, exist_ok=True)
+_cwd = os.getcwd()                # floortrans 以相對路徑載入 floortrans/models/model_1427.pth
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "CubiCasa5k"))
 model = get_model('hg_furukawa_original', 51)
+os.chdir(_cwd)
 model.conv4_ = torch.nn.Conv2d(256, N_CLASSES, bias=True, kernel_size=1)
 model.upsample = torch.nn.ConvTranspose2d(N_CLASSES, N_CLASSES, kernel_size=4, stride=4)
 ckpt = torch.load(WEIGHTS, map_location='cpu', weights_only=True)  # 安全載入:只收張量，杜絕 pickle 任意程式碼
@@ -57,13 +65,17 @@ for path in IMGS:
     wall = (rooms == 2).astype(np.uint8)
     win = (icons == 1).astype(np.uint8)
     door = (icons == 2).astype(np.uint8)
+    rooms = rooms.astype(np.uint8)
+    icons = icons.astype(np.uint8)
     if sc < 1.0:                                     # 放回原尺寸
         wall = cv2.resize(wall, (W0, H0), interpolation=cv2.INTER_NEAREST)
         win = cv2.resize(win, (W0, H0), interpolation=cv2.INTER_NEAREST)
         door = cv2.resize(door, (W0, H0), interpolation=cv2.INTER_NEAREST)
+        rooms = cv2.resize(rooms, (W0, H0), interpolation=cv2.INTER_NEAREST)
+        icons = cv2.resize(icons, (W0, H0), interpolation=cv2.INTER_NEAREST)
     np.savez_compressed(os.path.join(OUT, base + "_mask.npz"),
                         wall=wall.astype(bool), window=win.astype(bool),
-                        door=door.astype(bool))
+                        door=door.astype(bool), room=rooms, icon=icons)
     vis = bgr.copy()
     vis[wall > 0] = (0, 0, 255)                      # 紅=牆
     vis[win > 0] = (0, 200, 0)                       # 綠=窗
