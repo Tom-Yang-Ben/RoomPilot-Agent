@@ -161,8 +161,9 @@ def main():
     ap.add_argument("--out", default="own_dataset")
     a = ap.parse_args()
 
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                    "CubiCasa5k"))
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(_root, "CubiCasa5k"))
+    sys.path.insert(0, _root)          # floorplan2room 在專案根目錄
     from floortrans.loaders.house import House
     import floorplan2dxf as fp_bw
     import floorplan2dxf_color as fp_c

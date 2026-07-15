@@ -1,3 +1,9 @@
+2026/7/16 v.2.10 變更（目錄重整：入口 floorplan2room.py 留根目錄，其餘 16 支 .py 統一移入 scripts/）
+
+- 所有非入口腳本改為 `python scripts/<名>.py` 執行（工作目錄仍是專案根）；入口 `python floorplan2room.py` 用法不變
+- 路徑接線：floorplan2room 把 scripts/ 加進 sys.path 並以絕對路徑呼叫 scripts/infer_cubicasa.py；scripts 內 `__file__` 相對路徑（CubiCasa5k/、symbol_lib.npz、os.chdir）全部上調一層；tests/conftest.py 統一補 root＋scripts 兩個 sys.path
+- 驗證：pytest 13 綠；floor05 重跑 json/room_chk 與版控逐位元一致；16 支 CLI import 煙霧測試全過。歷史 changelog 中的舊路徑不回改
+
 2026/7/15 v.2.9 變更（路線圖 C 準備完成：43 題標注初稿＋Colab 微調環境——只差人工修正與按下訓練）
 
 一、標注初稿（make_annotation_drafts.py → own_dataset/，43/43 成功）：
@@ -52,7 +58,7 @@
 - CubiCasa5k/ 程式庫、model_best_val_loss_var.pkl 權重、mitunet/：重建方式見 .gitignore 註記
 - **.venv 重建**：`pip install -r requirements.txt`。opencv 已釘 `<5`——OpenCV 5.0 把 HoughLinesP 回傳 shape 從 (N,1,4) 改 (N,4)，兩支管線的門偵測會當場掛掉；torch 生態會拉進 opencv-python-headless（後裝者蓋掉 cv2），**兩顆都必須 <5**（本次事故：headless 5.0.0 蓋掉 4.13）
 - **推論/評分另需**（主管線不用，requirements.txt 不收）：`pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu` ＋ `pip install lmdb scikit-image svgpathtools pytest`——infer_cubicasa.py 重算語意快取、eval_rooms_cc.py 解析 model.svg（floortrans.loaders 連帶依賴）時才需要
-- **CubiCasa5k/ re-clone 後必跑 `python apply_cubicasa_patches.py`**：上游 svg_utils 的 np.matrix 在 numpy 2.x 會 ValueError，任何含圖示的樣本都無法解析（訓練/round-trip 都會中招）
+- **CubiCasa5k/ re-clone 後必跑 `python scripts/apply_cubicasa_patches.py`**：上游 svg_utils 的 np.matrix 在 numpy 2.x 會 ValueError，任何含圖示的樣本都無法解析（訓練/round-trip 都會中招）
 - GPU 現況（2026/7/15 換機後更新）：**RTX 3060 Laptop 6GB，本機可訓練**——torch 2.13+cu126 已裝（WSL nvidia-smi 通、CubiCasa 模型 batch 8 @256px 實測 0.37s/step、VRAM 峰值 2.3GB）。路線 C 微調可本機跑，Colab notebook 仍保留作備援。注意：WSL 記憶體僅分到 7GB、/tmp 是 3.7G tmpfs（pip 裝大套件要 `TMPDIR=~/piptmp`，訓練 dataloader worker 數別開太大，必要時調 .wslconfig）
 
 一、新增 floorplan2room.py（房間方塊管線，不出 DXF；批次 `python3 floorplan2room.py` = png/ → room_chk/ + json/）：

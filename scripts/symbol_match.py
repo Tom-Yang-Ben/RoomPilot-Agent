@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 
 CANVAS = 48
-LIB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+LIB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         "symbol_lib.npz")
 # SVG class token → 證據 kind（oval/tubrect/stove 沿用既有計分；
 # shower/sinkicon 為新 kind，classify_rooms_cc 給保守小權重）

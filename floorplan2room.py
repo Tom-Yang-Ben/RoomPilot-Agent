@@ -34,6 +34,9 @@ from dataclasses import replace
 import cv2
 import numpy as np
 
+_SCRIPTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts")
+sys.path.insert(0, _SCRIPTS_DIR)       # 管線模組統一放 scripts/
+
 import floorplan2dxf as fp_bw          # 黑白線稿管線（凍結，只 import 不改）
 import floorplan2dxf_color as fp_c     # 彩色管線（牆偵測 + 房間分割/分類工具）
 import symbol_match                    # 符號模板庫比對（庫檔缺失＝不啟用）
@@ -281,8 +284,9 @@ def ensure_cc_masks(paths):
         print(f"⚠ 找不到 {CC_WEIGHTS}，跳過語意辨識（房型退回面積規則）")
         return
     print(f"CubiCasa 語意推論 : {len(miss)} 張（CPU 約 1 分/張 → {CC_CACHE_DIR}/）")
-    subprocess.run([sys.executable, "infer_cubicasa.py", CC_WEIGHTS,
-                    CC_CACHE_DIR, *miss], check=True)
+    subprocess.run([sys.executable,
+                    os.path.join(_SCRIPTS_DIR, "infer_cubicasa.py"),
+                    CC_WEIGHTS, CC_CACHE_DIR, *miss], check=True)
 
 
 def classify_rooms_cc(det, labels, rooms, cc_file):

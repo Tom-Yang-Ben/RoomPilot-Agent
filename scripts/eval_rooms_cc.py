@@ -19,8 +19,9 @@ from xml.dom import minidom
 import cv2
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "CubiCasa5k"))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(_ROOT, "CubiCasa5k"))
+sys.path.insert(0, _ROOT)              # floorplan2room 在專案根目錄
 
 DATA = "CubiCasa5k/data/cubicasa5k"
 SUBSET = "high_quality_architectural"
