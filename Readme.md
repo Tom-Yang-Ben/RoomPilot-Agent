@@ -1,3 +1,42 @@
+2026/7/15 v.2.6 變更（房間方塊管線 floorplan2room.py：判色調度＋牆端封口切房間＋辨識式房型；輸出目錄重整；換機交接）
+
+〇、換機交接（重要）——不在版控、新機器要手動搬運/重建的東西：
+
+- **cubicasa5k.zip**（5.5GB 官方資料集）：解壓到 `CubiCasa5k/data/`，得 `CubiCasa5k/data/cubicasa5k/{colorful, high_quality, high_quality_architectural}` 5000 樣本＋train/val/test.txt。每樣本含原圖與 model.svg 向量標註——`Space <房型>` 房間多邊形與 `FixedFurniture <設備>`（Toilet/IntegratedStove/Bathtub…）多邊形，是下方路線圖 A/B/C 的原料
+- CubiCasa5k/ 程式庫、model_best_val_loss_var.pkl 權重、mitunet/：重建方式見 .gitignore 註記
+- **.venv 重建**：`pip install -r requirements.txt`。opencv 已釘 `<5`——OpenCV 5.0 把 HoughLinesP 回傳 shape 從 (N,1,4) 改 (N,4)，兩支管線的門偵測會當場掛掉；torch 生態會拉進 opencv-python-headless（後裝者蓋掉 cv2），**兩顆都必須 <5**（本次事故：headless 5.0.0 蓋掉 4.13）
+- GPU 現況：本機只有 GTX 980M（Maxwell、Windows 驅動未裝、新版 torch 已不支援），訓練不切實際；微調一律走 Colab（免費 T4 即可，幾小時級）
+
+一、新增 floorplan2room.py（房間方塊管線，不出 DXF；批次 `python3 floorplan2room.py` = png/ → room_chk/ + json/）：
+
+- 自動判黑白/彩色（與 color_to_bw 同準則：HSV 彩色比例 ≥8% 或檔名含 color）→ 各自調用 floorplan2dxf / floorplan2dxf_color 的偵測函式（只 import 不修改）
+- 牆端連線封口：_wall_gaps 找 40~260cm 牆縫開口全封 → segment_rooms 灌水切出房間方塊
+- **比例尺改門寬鐵律校正 refine_scale()**：單門候選群（60~130cm）中位數錨定 85cm；無單門用雙門群錨 175cm；再無退外牆厚 17.5cm；外牆換算掉出 10~25cm 也回退。動機：上游 wall_min 比例系統性偏大 5~8%，真門被量成 100~108cm
+- 門位規則（user spec）：牆端連線長 80~95cm（單門）/ 160~190cm（雙開門）才算門；json 記 length_cm/type/bbox
+- **房型改辨識決定（放棄 v1.9 面積規則）**，四層證據計分（classify_rooms_cc + detect_symbols）：
+  1. CubiCasa 房間語意像素投票（乾淨渲染圖 share 0.9+，直接命中）
+  2. 已分類像素內相對多數票（美式極簡線稿 75~93% 像素被標「未定義」，殘存訊號仍可用）
+  3. 圖示絕對面積 cm²（馬桶≥150/浴缸≥500=浴室鐵證、爐具+水槽=廚房、衣櫃密度≥8%且無臥室票=儲藏；設備尺寸是物理常數，不被大房間稀釋；桑拿=芬蘭訓練集誤報不採證；開放式客廳不被角落爐台搶名）
+  4. 古典符號偵測（模型盲區補洞）：衛浴橢圓用「輪廓對擬合橢圓徑向偏差 ≤4%」鑑別（實測馬桶 1.6% vs 圓角矩形家具 7%+，鑑別度極高）；雙人床矩形 120~230×180~235cm（下限 120 排除沙發縱深）；浴缸矩形 70~100×150~190 須同室有橢圓；爐台=≥2 個燃燒圈（r5~14cm）聚 80cm 內
+  - 證據總分 <0.15 誠實標「空間」；每間房 json 記 cc_share / icons_cm2 / symbols 可追溯
+- 輸出：room_chk/<名>_room.png（房型色塊+房名+橘色牆端連線）、room_chk/<名>_door.png（門位黃框+門寬 cm 標註，獨立圖避免太亂）、json/<名>_room.json
+- infer_cubicasa.py 擴充：npz 新增 room（12 類語意）/ icon（11 類圖示）argmax 通道（wall/window/door 欄位不動，讀取端向下相容）；修好只能從 CubiCasa5k/ 目錄執行的相對路徑問題；語意快取 cubicasa_room/ 43 張已提交（重算 CPU 約 1 分/張）
+- 43 張批次成績：42 張成功切出房間（floor17 單一大空間開口 >260cm 封不住殼）；219 個房間 38% 有辨識命名（臥室 27/浴廁 22/廚房 22/客廳 5/儲藏 4/陽台戶外 2/玄關 1），全部無命名的圖只剩 5 張（floor13/15/34/35/46，家具符號模型不認得）
+
+二、輸出目錄重整（巢狀化；png/、color_png/ 題目目錄不動）：
+
+- `chk/gray|color/`、`dxf_scale/gray|color/`、`pngans/gray|color/`（原 chk、color_chk、dxf_scale、color_dxf_scale、pngans、color_pngans 六個目錄 git mv 保留歷史）
+- 兩支管線與 eval_windows / eval_color_walls / eval_cc_masks / score_compare 的預設路徑同步更新（floorplan2dxf.py 僅動路徑字串，偵測邏輯零改動）；搬移後 eval_windows 重驗 **99%/94% 無回歸**
+
+三、CubiCasa5k 資料庫套用路線圖（交接 TODO，按投報率排序）：
+
+- **A. 房型答案集評分（CPU，~半天，先做）**：解析 model.svg 的 Space 多邊形當 ground truth，挑 high_quality_architectural 數十張，對 floorplan2room 的方塊算「分割 IoU＋房型混淆矩陣」——房型權重（0.15 門檻/圖示/符號加權）從拍腦袋變可量測，複製窗偵測 75%→99% 的方法論
+- **B. 符號模板庫（CPU）**：從 FixedFurniture 多邊形萃取上千個馬桶/爐台/浴缸真實輪廓變體 → 形狀比對（Hu moments/chamfer）取代手寫幾何規則，目標救回 X 圈爐台（floor44）與 5 張全空間圖
+- **C. 微調模型（Colab GPU）**：自標 30~50 張 png/ 的圖＋混 high_quality_architectural 子集防災難性遺忘。注意：黑白建築線稿「已在」預訓練集內、模型仍對美式符號（床頭板/W-D/X 圈爐台）沒把握——單純用原資料重訓無效，必須混自家標注。A 的工具可半自動產標注初稿（管線輸出→人工修正）
+- **D. 房型相鄰統計先驗（小補）**：5000 張統計浴室貼臥室/廚房貼客廳等關係，當同分 tie-breaker
+
+已知剩餘問題：floor17 分割失敗（單一大空間）；X 圈爐台不採證（放寬 HoughCircles param2 會在植栽/臥室爆出 14 組假爐台，實測不可行）；無馬桶同室的浴缸間、單人床（90~100cm 與沙發縱深重疊）精準優先設計放掉——以上皆由路線 A/B 接手。
+
 2026/7/15 v.2.5 變更（語意遮罩換 MitUNet：救回路線復活，IoU 83.5% → 83.8%）
 
 一、MitUNet（github.com/aliasstudio/mitunet，2025/12 發表）取代 CubiCasa 為預設語意遮罩來源：
