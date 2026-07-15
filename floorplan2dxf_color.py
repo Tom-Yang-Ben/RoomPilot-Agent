@@ -4,11 +4,11 @@
 floorplan2dxf_color.py — 彩色平面圖 PNG → DXF（floorplan2dxf.py 的彩色實驗版）
 
 參數全部寫在 config_color.ini（彩色管線專用，與黑白管線的 config.ini 分離），執行只要：
-    python3 floorplan2dxf_color.py              (批次 color_png/ → color_dxf_scale/)
+    python3 floorplan2dxf_color.py              (批次 color_png/ → dxf_scale/color/)
 指定別的設定檔：
     python3 floorplan2dxf_color.py 別的.ini
 
-輸出一律進 color_* 目錄（color_chk/ color_dxf_scale/ color_json/
+輸出一律進 color_* 目錄（chk/color/ dxf_scale/color/ color_json/
 color_arch/），與主程式 floorplan2dxf.py 的 chk/ dxf_scale/ json/ arch/
 完全分開，不互相覆蓋。
 
@@ -1829,9 +1829,9 @@ def run(cfg: Config):
         base = os.path.splitext(os.path.basename(cfg.input))[0]
         if cfg.output:                       # 指令/config 有指定輸出就照用
             scale_out = cfg.output
-        else:                                # 慣例：DXF(cm) → color_dxf_scale/
-            os.makedirs("color_dxf_scale", exist_ok=True)
-            scale_out = os.path.join("color_dxf_scale", base + ".dxf")
+        else:                                # 慣例：DXF(cm) → dxf_scale/color/
+            os.makedirs("dxf_scale/color", exist_ok=True)
+            scale_out = os.path.join("dxf_scale/color", base + ".dxf")
         write_solid_dxf(rects, [], img_h, scale / 10.0, cfg, out=scale_out, insunits=5)
 
         print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid (只抓牆)")
@@ -1841,10 +1841,10 @@ def run(cfg: Config):
         return
     bw = bw_open
 
-    if not cfg.output:                       # 慣例：DXF → color_dxf_scale/
-        os.makedirs("color_dxf_scale", exist_ok=True)
+    if not cfg.output:                       # 慣例：DXF → dxf_scale/color/
+        os.makedirs("dxf_scale/color", exist_ok=True)
         cfg.output = os.path.join(
-            "color_dxf_scale", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
+            "dxf_scale/color", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
 
     H, V = detect_hough(bw, cfg) if cfg.method == "hough" else detect_morph(bw, cfg)
     raw = len(H) + len(V)
@@ -1863,12 +1863,12 @@ IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 color_chk/ 供快速檢視。"""
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 chk/color/ 供快速檢視。"""
     pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
                   if p.lower().endswith(IMG_EXTS))
     if not pngs:
         sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
-    chk_dir = "color_chk"
+    chk_dir = "chk/color"
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(chk_dir, exist_ok=True)
     ok = fail = 0
@@ -1894,11 +1894,11 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
 def main():
     p = argparse.ArgumentParser(
         description="彩色平面圖 PNG/JPG/BMP → DXF。參數見 config_color.ini；輸入/輸出可用指令覆蓋。\n"
-                    "不帶參數 = 批次跑 color_png/ 目錄下所有圖檔 → color_dxf_scale/ + color_chk/")
+                    "不帶參數 = 批次跑 color_png/ 目錄下所有圖檔 → dxf_scale/color/ + chk/color/")
     p.add_argument("input", nargs="?",
                    help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
-                   help="輸出 DXF/目錄（不給就自動輸出到 color_dxf_scale/同檔名.dxf）")
+                   help="輸出 DXF/目錄（不給就自動輸出到 dxf_scale/color/同檔名.dxf）")
     p.add_argument("--config", default="config_color.ini",
                    help="設定檔（預設 config_color.ini）")
     p.add_argument("--preview", help="疊圖輸出路徑（覆蓋 config）")
@@ -1912,7 +1912,7 @@ def main():
         in_dir = a.input if (a.input and os.path.isdir(a.input)) else "color_png"
         if not os.path.isdir(in_dir):
             sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去)")
-        run_batch(in_dir, (a.output or "color_dxf_scale"), cfg)
+        run_batch(in_dir, (a.output or "dxf_scale/color"), cfg)
         return
 
     if a.input:
@@ -1930,9 +1930,9 @@ def main():
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]
-    if not cfg.preview:                      # 慣例：疊圖 → color_chk/
-        os.makedirs("color_chk", exist_ok=True)
-        cfg.preview = os.path.join("color_chk", base + "_chk.png")
+    if not cfg.preview:                      # 慣例：疊圖 → chk/color/
+        os.makedirs("chk/color", exist_ok=True)
+        cfg.preview = os.path.join("chk/color", base + "_chk.png")
     run(cfg)
 
 

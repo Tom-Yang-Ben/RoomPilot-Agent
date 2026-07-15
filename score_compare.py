@@ -62,7 +62,7 @@ def wall_pix(pred, gt):
     return p, r, f
 
 rows, agg = [], {}
-for ans in sorted(glob.glob(os.path.join(REPO, 'pngans', '*_ans.png'))):
+for ans in sorted(glob.glob(os.path.join(REPO, 'pngans/gray', '*_ans.png'))):
     base = os.path.basename(ans).replace('_ans.png', '')
     A = cv2.imread(ans)
     gt_wall = red_mask(A)

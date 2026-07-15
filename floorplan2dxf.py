@@ -1314,9 +1314,9 @@ def run(cfg: Config):
         os.makedirs("arch", exist_ok=True)
         if cfg.output:                       # 指令/config 有指定輸出就照用
             scale_out = cfg.output
-        else:                                # 慣例：DXF(cm) → dxf_scale/
-            os.makedirs("dxf_scale", exist_ok=True)
-            scale_out = os.path.join("dxf_scale", base + ".dxf")
+        else:                                # 慣例：DXF(cm) → dxf_scale/gray/
+            os.makedirs("dxf_scale/gray", exist_ok=True)
+            scale_out = os.path.join("dxf_scale/gray", base + ".dxf")
         json_out = os.path.join("json", base + ".json")
         arch_out = os.path.join("arch", base + ".json")
         write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
@@ -1333,10 +1333,10 @@ def run(cfg: Config):
         return
     bw = bw_open
 
-    if not cfg.output:                       # 慣例：DXF → dxf_scale/
-        os.makedirs("dxf_scale", exist_ok=True)
+    if not cfg.output:                       # 慣例：DXF → dxf_scale/gray/
+        os.makedirs("dxf_scale/gray", exist_ok=True)
         cfg.output = os.path.join(
-            "dxf_scale", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
+            "dxf_scale/gray", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
 
     H, V = detect_hough(bw, cfg) if cfg.method == "hough" else detect_morph(bw, cfg)
     raw = len(H) + len(V)
@@ -1355,12 +1355,12 @@ IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 chk/ 供快速檢視。"""
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 chk/gray/ 供快速檢視。"""
     pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
                   if p.lower().endswith(IMG_EXTS))
     if not pngs:
         sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
-    chk_dir = "chk"
+    chk_dir = "chk/gray"
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(chk_dir, exist_ok=True)
     ok = fail = 0
@@ -1386,11 +1386,11 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
 def main():
     p = argparse.ArgumentParser(
         description="平面圖 PNG/JPG/BMP → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
-                    "不帶參數 = 批次跑 png/ 目錄下所有圖檔 → dxf_scale/ + chk/")
+                    "不帶參數 = 批次跑 png/ 目錄下所有圖檔 → dxf_scale/gray/ + chk/gray/")
     p.add_argument("input", nargs="?",
                    help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
-                   help="輸出 DXF/目錄（不給就自動輸出到 dxf_scale/同檔名.dxf）")
+                   help="輸出 DXF/目錄（不給就自動輸出到 dxf_scale/gray/同檔名.dxf）")
     p.add_argument("--config", default="config.ini", help="設定檔（預設 config.ini）")
     p.add_argument("--preview", help="疊圖輸出路徑（覆蓋 config）")
     a = p.parse_args()
@@ -1403,7 +1403,7 @@ def main():
         in_dir = a.input if (a.input and os.path.isdir(a.input)) else "png"
         if not os.path.isdir(in_dir):
             sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去)")
-        run_batch(in_dir, (a.output or "dxf_scale"), cfg)
+        run_batch(in_dir, (a.output or "dxf_scale/gray"), cfg)
         return
 
     if a.input:
@@ -1421,9 +1421,9 @@ def main():
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]
-    if not cfg.preview:                      # 慣例：疊圖 → chk/
-        os.makedirs("chk", exist_ok=True)
-        cfg.preview = os.path.join("chk", base + "_chk.png")
+    if not cfg.preview:                      # 慣例：疊圖 → chk/gray/
+        os.makedirs("chk/gray", exist_ok=True)
+        cfg.preview = os.path.join("chk/gray", base + "_chk.png")
     run(cfg)
 
 

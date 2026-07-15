@@ -3,15 +3,15 @@
 """
 eval_color_walls.py — 彩色管線「牆體(含建築基柱)」偵測評分
 
-答案集 color_pngans/{名稱}_ans.png：在原圖(或管線的 2 倍放大圖)上，
+答案集 pngans/color/{名稱}_ans.png：在原圖(或管線的 2 倍放大圖)上，
 用純色 RGB(136, 0, 21) 實心塗出牆與建築基柱。
 本腳本抽出標註遮罩，與 floorplan2dxf_color.detect_walls() 輸出的牆矩形
 (含基柱) rasterize 後做像素級比對；ans 與管線處理尺寸不同時自動縮放。
 
 用法:
-    python3 eval_color_walls.py                    (跑 color_pngans/ 全部)
+    python3 eval_color_walls.py                    (跑 pngans/color/ 全部)
     python3 eval_color_walls.py color_floor_01     (只跑指定幾張)
-    python3 eval_color_walls.py --vis              (另存差異圖 color_chk/eval_*.png)
+    python3 eval_color_walls.py --vis              (另存差異圖 chk/color/eval_*.png)
 
 指標(像素級):
     精準率 = 預測牆中真的是牆的比例   (低 = 多抓假牆)
@@ -29,7 +29,7 @@ import numpy as np
 
 import floorplan2dxf_color as fc
 
-ANS_DIR = "color_pngans"
+ANS_DIR = "pngans/color"
 PNG_DIR = "color_png"
 ANS_BGR = np.array([21, 0, 136], np.int16)   # 標註純色 RGB(136,0,21) 的 BGR
 TOL = 40                                     # 每通道容差(防壓縮/重存色偏)
@@ -62,8 +62,8 @@ def save_vis(name, ans_bgr, gt, pr):
     vis[(gt == 1) & (pr == 1)] = (255, 255, 255)
     vis[(gt == 0) & (pr == 1)] = (0, 0, 255)
     vis[(gt == 1) & (pr == 0)] = (0, 200, 0)
-    os.makedirs("color_chk", exist_ok=True)
-    out = os.path.join("color_chk", f"eval_{name}.png")
+    os.makedirs("chk/color", exist_ok=True)
+    out = os.path.join("chk/color", f"eval_{name}.png")
     cv2.imwrite(out, vis)
     return out
 
@@ -72,7 +72,7 @@ def main():
     p = argparse.ArgumentParser(description="彩色管線牆體偵測評分")
     p.add_argument("names", nargs="*", help="指定圖名(如 color_floor_01)；不給就全部")
     p.add_argument("--config", default="config_color.ini")
-    p.add_argument("--vis", action="store_true", help="另存差異圖到 color_chk/")
+    p.add_argument("--vis", action="store_true", help="另存差異圖到 chk/color/")
     a = p.parse_args()
 
     ans_files = sorted(glob.glob(os.path.join(ANS_DIR, "*_ans.png")))
