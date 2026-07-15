@@ -1,3 +1,18 @@
+2026/7/15 v.2.7 變更（路線圖 A 完成：房型答案集評分工具 eval_rooms_cc.py——房型權重從拍腦袋變可量測）
+
+一、新增 eval_rooms_cc.py（model.svg Space 多邊形當 ground truth，房間貪婪 IoU 配對 ≥0.5＋9 類房型混淆矩陣）：
+
+- 樣本：val/test 的 high_quality_architectural 單層樓各 30/40 張（train 永不沾——路線 C 微調後評分不被污染）；圖先複製 eval_rooms/input/<id>.png 避開語意快取以檔名為 key 的撞名（樣本全叫 F1_scaled.png）
+- **對位陷阱（實證）**：SVG 的 width/height 宣告與圖面尺寸全資料集普遍不符（比例還非均勻），不可拿來驗對位；多邊形座標實為 F1_scaled.png 像素（疊圖驗證嚴絲合縫）——守門改用「多邊形範圍不得超出圖面 2%」
+- 兩種模式：端對端（量整條管線）＋ --gt-seg 解耦（GT 多邊形直當房間方塊，只跑房型辨識層——牆偵測失敗不遮蔽房型評分）；報表 eval_rooms/report[_gtseg].json 供調參前後 diff；配對/正規化/混淆純函式附 pytest（tests/）
+- 依賴：torch CPU＋lmdb/scikit-image/svgpathtools（見〇交接）；語意快取新增 73 張 npz 已提交（cc 預覽 png 改不進版控，同 eval_rooms/chk/ 疊圖——分鐘級可重生）
+
+二、首輪基線成績（調參靶子就位）：
+
+- **端對端**：70 張僅 10 張可評（59 張分割失敗）——真實掃描圖的牆多為斜線填充/細線輪廓，detect_solid 幾乎全漏（實心牆假設不成立）、比例尺被圖框/標註線帶偏（T=72px、0.24cm/px 之類怪值）。可評張內配對 IoU 0.769、GT 房間命中率 19.4%。**牆偵測是最大瓶頸，量化證據直接支持路線 B/C 的優先序**
+- **GT 解耦（786 間房全進混淆矩陣）**：具名房型 recall 0.82~0.99（kitchen .985 / living .957 / bed .947 / bath .960 / entry .950 / outdoor .958 / storage .838 / garage .818）——辨識系統對「有名字的房間」很強。**最大破口：GT「空間」（未定義，183 間）僅 23% 守住，51 間被誤名廚房**（kitchen precision 掉到 0.537）→ 爐具/水槽圖示加分＋0.15 門檻對未定義空間過於激進，第一個調參靶子
+- 注意：解耦模式的 cm 比例尺仍取自管線（常偏差），圖示 cm² 證據層受其影響、語意投票層不受——調參時先修比例尺來源或加大語意層權重皆可實驗
+
 2026/7/15 v.2.6 變更（房間方塊管線 floorplan2room.py：判色調度＋牆端封口切房間＋辨識式房型；輸出目錄重整；換機交接）
 
 〇、換機交接（重要）——不在版控、新機器要手動搬運/重建的東西：
@@ -5,6 +20,7 @@
 - **cubicasa5k.zip**（5.5GB 官方資料集）：解壓到 `CubiCasa5k/data/`，得 `CubiCasa5k/data/cubicasa5k/{colorful, high_quality, high_quality_architectural}` 5000 樣本＋train/val/test.txt。每樣本含原圖與 model.svg 向量標註——`Space <房型>` 房間多邊形與 `FixedFurniture <設備>`（Toilet/IntegratedStove/Bathtub…）多邊形，是下方路線圖 A/B/C 的原料
 - CubiCasa5k/ 程式庫、model_best_val_loss_var.pkl 權重、mitunet/：重建方式見 .gitignore 註記
 - **.venv 重建**：`pip install -r requirements.txt`。opencv 已釘 `<5`——OpenCV 5.0 把 HoughLinesP 回傳 shape 從 (N,1,4) 改 (N,4)，兩支管線的門偵測會當場掛掉；torch 生態會拉進 opencv-python-headless（後裝者蓋掉 cv2），**兩顆都必須 <5**（本次事故：headless 5.0.0 蓋掉 4.13）
+- **推論/評分另需**（主管線不用，requirements.txt 不收）：`pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu` ＋ `pip install lmdb scikit-image svgpathtools pytest`——infer_cubicasa.py 重算語意快取、eval_rooms_cc.py 解析 model.svg（floortrans.loaders 連帶依賴）時才需要
 - GPU 現況：本機只有 GTX 980M（Maxwell、Windows 驅動未裝、新版 torch 已不支援），訓練不切實際；微調一律走 Colab（免費 T4 即可，幾小時級）
 
 一、新增 floorplan2room.py（房間方塊管線，不出 DXF；批次 `python3 floorplan2room.py` = png/ → room_chk/ + json/）：
@@ -30,7 +46,7 @@
 
 三、CubiCasa5k 資料庫套用路線圖（交接 TODO，按投報率排序）：
 
-- **A. 房型答案集評分（CPU，~半天，先做）**：解析 model.svg 的 Space 多邊形當 ground truth，挑 high_quality_architectural 數十張，對 floorplan2room 的方塊算「分割 IoU＋房型混淆矩陣」——房型權重（0.15 門檻/圖示/符號加權）從拍腦袋變可量測，複製窗偵測 75%→99% 的方法論
+- **A. 房型答案集評分（CPU，~半天，先做）✅ v2.7 已完成**：eval_rooms_cc.py，基線見 v2.7 章節。後續調參迭代：改權重 → 重跑 --gt-seg（快取全熱，分鐘級）→ diff report_gtseg.json
 - **B. 符號模板庫（CPU）**：從 FixedFurniture 多邊形萃取上千個馬桶/爐台/浴缸真實輪廓變體 → 形狀比對（Hu moments/chamfer）取代手寫幾何規則，目標救回 X 圈爐台（floor44）與 5 張全空間圖
 - **C. 微調模型（Colab GPU）**：自標 30~50 張 png/ 的圖＋混 high_quality_architectural 子集防災難性遺忘。注意：黑白建築線稿「已在」預訓練集內、模型仍對美式符號（床頭板/W-D/X 圈爐台）沒把握——單純用原資料重訓無效，必須混自家標注。A 的工具可半自動產標注初稿（管線輸出→人工修正）
 - **D. 房型相鄰統計先驗（小補）**：5000 張統計浴室貼臥室/廚房貼客廳等關係，當同分 tie-breaker

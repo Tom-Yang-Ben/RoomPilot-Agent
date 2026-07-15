@@ -1,0 +1,742 @@
+{
+ "summary": {
+  "n_images": 70,
+  "n_ok": 10,
+  "n_seg_fail": 59,
+  "n_skip": 1,
+  "gt_rooms": 93,
+  "pred_rooms": 35,
+  "matched": 18,
+  "hit_rate": 0.1935,
+  "overseg": 0.3763,
+  "mean_iou": 0.7688,
+  "confusion": {
+   "kitchen": {
+    "kitchen": 1,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "living": {
+    "kitchen": 0,
+    "living": 3,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 1
+   },
+   "bed": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 3,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "bath": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 2,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "entry": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 3,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "storage": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 1,
+    "storage": 1,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "garage": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "outdoor": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 1,
+    "outdoor": 0,
+    "space": 0
+   },
+   "space": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 2
+   }
+  },
+  "iou_thr": 0.5,
+  "per_class": {
+   "kitchen": {
+    "gt": 1,
+    "precision": 1.0,
+    "recall": 1.0
+   },
+   "living": {
+    "gt": 4,
+    "precision": 1.0,
+    "recall": 0.75
+   },
+   "bed": {
+    "gt": 3,
+    "precision": 1.0,
+    "recall": 1.0
+   },
+   "bath": {
+    "gt": 2,
+    "precision": 1.0,
+    "recall": 1.0
+   },
+   "entry": {
+    "gt": 3,
+    "precision": 0.75,
+    "recall": 1.0
+   },
+   "storage": {
+    "gt": 2,
+    "precision": 1.0,
+    "recall": 0.5
+   },
+   "garage": {
+    "gt": 0,
+    "precision": 0.0,
+    "recall": null
+   },
+   "outdoor": {
+    "gt": 1,
+    "precision": null,
+    "recall": 0.0
+   },
+   "space": {
+    "gt": 2,
+    "precision": 0.667,
+    "recall": 1.0
+   }
+  }
+ },
+ "images": [
+  {
+   "id": "18",
+   "status": "seg_fail",
+   "n_gt": 8,
+   "split": "test"
+  },
+  {
+   "id": "22",
+   "status": "seg_fail",
+   "n_gt": 16,
+   "split": "test"
+  },
+  {
+   "id": "32",
+   "status": "seg_fail",
+   "n_gt": 20,
+   "split": "test"
+  },
+  {
+   "id": "52",
+   "status": "seg_fail",
+   "n_gt": 12,
+   "split": "test"
+  },
+  {
+   "id": "84",
+   "status": "seg_fail",
+   "n_gt": 8,
+   "split": "test"
+  },
+  {
+   "id": "141",
+   "status": "seg_fail",
+   "n_gt": 14,
+   "split": "test"
+  },
+  {
+   "id": "145",
+   "status": "seg_fail",
+   "n_gt": 7,
+   "split": "test"
+  },
+  {
+   "id": "165",
+   "status": "seg_fail",
+   "n_gt": 8,
+   "split": "test"
+  },
+  {
+   "id": "172",
+   "status": "ok",
+   "n_gt": 10,
+   "n_pred": 2,
+   "n_match": 1,
+   "mean_iou": 0.9028,
+   "pairs": [
+    [
+     "space",
+     "space"
+    ]
+   ],
+   "ious": [
+    0.9028
+   ],
+   "split": "test"
+  },
+  {
+   "id": "199",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 2,
+   "n_match": 1,
+   "mean_iou": 0.5155,
+   "pairs": [
+    [
+     "entry",
+     "entry"
+    ]
+   ],
+   "ious": [
+    0.5155
+   ],
+   "split": "test"
+  },
+  {
+   "id": "207",
+   "status": "seg_fail",
+   "n_gt": 19,
+   "split": "test"
+  },
+  {
+   "id": "211",
+   "status": "seg_fail",
+   "n_gt": 13,
+   "split": "test"
+  },
+  {
+   "id": "225",
+   "status": "seg_fail",
+   "n_gt": 15,
+   "split": "test"
+  },
+  {
+   "id": "239",
+   "status": "ok",
+   "n_gt": 5,
+   "n_pred": 2,
+   "n_match": 2,
+   "mean_iou": 0.7158,
+   "pairs": [
+    [
+     "living",
+     "space"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ]
+   ],
+   "ious": [
+    0.8915,
+    0.54
+   ],
+   "split": "test"
+  },
+  {
+   "id": "287",
+   "status": "seg_fail",
+   "n_gt": 18,
+   "split": "test"
+  },
+  {
+   "id": "366",
+   "status": "seg_fail",
+   "n_gt": 18,
+   "split": "test"
+  },
+  {
+   "id": "392",
+   "status": "seg_fail",
+   "n_gt": 7,
+   "split": "test"
+  },
+  {
+   "id": "416",
+   "status": "ok",
+   "n_gt": 15,
+   "n_pred": 9,
+   "n_match": 2,
+   "mean_iou": 0.7925,
+   "pairs": [
+    [
+     "storage",
+     "storage"
+    ],
+    [
+     "outdoor",
+     "garage"
+    ]
+   ],
+   "ious": [
+    0.8869,
+    0.6981
+   ],
+   "split": "test"
+  },
+  {
+   "id": "435",
+   "status": "seg_fail",
+   "n_gt": 7,
+   "split": "test"
+  },
+  {
+   "id": "479",
+   "status": "ok",
+   "n_gt": 9,
+   "n_pred": 4,
+   "n_match": 1,
+   "mean_iou": 0.6284,
+   "pairs": [
+    [
+     "living",
+     "living"
+    ]
+   ],
+   "ious": [
+    0.6284
+   ],
+   "split": "test"
+  },
+  {
+   "id": "481",
+   "status": "seg_fail",
+   "n_gt": 12,
+   "split": "test"
+  },
+  {
+   "id": "521",
+   "status": "seg_fail",
+   "n_gt": 15,
+   "split": "test"
+  },
+  {
+   "id": "541",
+   "status": "seg_fail",
+   "n_gt": 11,
+   "split": "test"
+  },
+  {
+   "id": "546",
+   "status": "seg_fail",
+   "n_gt": 5,
+   "split": "test"
+  },
+  {
+   "id": "552",
+   "status": "seg_fail",
+   "n_gt": 7,
+   "split": "test"
+  },
+  {
+   "id": "591",
+   "status": "seg_fail",
+   "n_gt": 11,
+   "split": "test"
+  },
+  {
+   "id": "772",
+   "status": "seg_fail",
+   "n_gt": 8,
+   "split": "test"
+  },
+  {
+   "id": "774",
+   "status": "seg_fail",
+   "n_gt": 13,
+   "split": "test"
+  },
+  {
+   "id": "789",
+   "status": "seg_fail",
+   "n_gt": 6,
+   "split": "test"
+  },
+  {
+   "id": "812",
+   "status": "seg_fail",
+   "n_gt": 10,
+   "split": "test"
+  },
+  {
+   "id": "875",
+   "status": "seg_fail",
+   "n_gt": 10,
+   "split": "test"
+  },
+  {
+   "id": "900",
+   "status": "seg_fail",
+   "n_gt": 11,
+   "split": "test"
+  },
+  {
+   "id": "1041",
+   "status": "seg_fail",
+   "n_gt": 8,
+   "split": "test"
+  },
+  {
+   "id": "1141",
+   "status": "seg_fail",
+   "n_gt": 8,
+   "split": "test"
+  },
+  {
+   "id": "1165",
+   "status": "seg_fail",
+   "n_gt": 6,
+   "split": "test"
+  },
+  {
+   "id": "1191",
+   "status": "seg_fail",
+   "n_gt": 18,
+   "split": "test"
+  },
+  {
+   "id": "1228",
+   "status": "seg_fail",
+   "n_gt": 9,
+   "split": "test"
+  },
+  {
+   "id": "1235",
+   "status": "seg_fail",
+   "n_gt": 15,
+   "split": "test"
+  },
+  {
+   "id": "1242",
+   "status": "seg_fail",
+   "n_gt": 15,
+   "split": "test"
+  },
+  {
+   "id": "1264",
+   "status": "seg_fail",
+   "n_gt": 18,
+   "split": "test"
+  },
+  {
+   "id": "154",
+   "status": "ok",
+   "n_gt": 14,
+   "n_pred": 4,
+   "n_match": 3,
+   "mean_iou": 0.9047,
+   "pairs": [
+    [
+     "storage",
+     "entry"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "bath",
+     "bath"
+    ]
+   ],
+   "ious": [
+    0.9658,
+    0.8789,
+    0.8695
+   ],
+   "split": "val"
+  },
+  {
+   "id": "174",
+   "status": "seg_fail",
+   "n_gt": 20,
+   "split": "val"
+  },
+  {
+   "id": "242",
+   "status": "seg_fail",
+   "n_gt": 6,
+   "split": "val"
+  },
+  {
+   "id": "282",
+   "status": "seg_fail",
+   "n_gt": 11,
+   "split": "val"
+  },
+  {
+   "id": "303",
+   "status": "seg_fail",
+   "n_gt": 15,
+   "split": "val"
+  },
+  {
+   "id": "313",
+   "status": "seg_fail",
+   "n_gt": 7,
+   "split": "val"
+  },
+  {
+   "id": "333",
+   "status": "seg_fail",
+   "n_gt": 10,
+   "split": "val"
+  },
+  {
+   "id": "375",
+   "status": "seg_fail",
+   "n_gt": 17,
+   "split": "val"
+  },
+  {
+   "id": "555",
+   "status": "seg_fail",
+   "n_gt": 16,
+   "split": "val"
+  },
+  {
+   "id": "562",
+   "status": "seg_fail",
+   "n_gt": 13,
+   "split": "val"
+  },
+  {
+   "id": "566",
+   "status": "seg_fail",
+   "n_gt": 12,
+   "split": "val"
+  },
+  {
+   "id": "575",
+   "status": "svg_mismatch",
+   "split": "val"
+  },
+  {
+   "id": "590",
+   "status": "ok",
+   "n_gt": 9,
+   "n_pred": 1,
+   "n_match": 0,
+   "mean_iou": 0.0,
+   "pairs": [],
+   "ious": [],
+   "split": "val"
+  },
+  {
+   "id": "638",
+   "status": "seg_fail",
+   "n_gt": 10,
+   "split": "val"
+  },
+  {
+   "id": "642",
+   "status": "seg_fail",
+   "n_gt": 21,
+   "split": "val"
+  },
+  {
+   "id": "651",
+   "status": "seg_fail",
+   "n_gt": 6,
+   "split": "val"
+  },
+  {
+   "id": "702",
+   "status": "ok",
+   "n_gt": 12,
+   "n_pred": 5,
+   "n_match": 5,
+   "mean_iou": 0.712,
+   "pairs": [
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "space",
+     "space"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "living",
+     "living"
+    ]
+   ],
+   "ious": [
+    0.896,
+    0.7123,
+    0.7023,
+    0.6604,
+    0.5889
+   ],
+   "split": "val"
+  },
+  {
+   "id": "756",
+   "status": "seg_fail",
+   "n_gt": 7,
+   "split": "val"
+  },
+  {
+   "id": "801",
+   "status": "seg_fail",
+   "n_gt": 9,
+   "split": "val"
+  },
+  {
+   "id": "834",
+   "status": "seg_fail",
+   "n_gt": 13,
+   "split": "val"
+  },
+  {
+   "id": "858",
+   "status": "seg_fail",
+   "n_gt": 5,
+   "split": "val"
+  },
+  {
+   "id": "865",
+   "status": "ok",
+   "n_gt": 5,
+   "n_pred": 2,
+   "n_match": 2,
+   "mean_iou": 0.7785,
+   "pairs": [
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "living",
+     "living"
+    ]
+   ],
+   "ious": [
+    0.7887,
+    0.7683
+   ],
+   "split": "val"
+  },
+  {
+   "id": "938",
+   "status": "seg_fail",
+   "n_gt": 18,
+   "split": "val"
+  },
+  {
+   "id": "1061",
+   "status": "seg_fail",
+   "n_gt": 16,
+   "split": "val"
+  },
+  {
+   "id": "1066",
+   "status": "seg_fail",
+   "n_gt": 12,
+   "split": "val"
+  },
+  {
+   "id": "1067",
+   "status": "seg_fail",
+   "n_gt": 9,
+   "split": "val"
+  },
+  {
+   "id": "1089",
+   "status": "ok",
+   "n_gt": 8,
+   "n_pred": 4,
+   "n_match": 1,
+   "mean_iou": 0.9434,
+   "pairs": [
+    [
+     "bed",
+     "bed"
+    ]
+   ],
+   "ious": [
+    0.9434
+   ],
+   "split": "val"
+  },
+  {
+   "id": "1101",
+   "status": "seg_fail",
+   "n_gt": 8,
+   "split": "val"
+  },
+  {
+   "id": "1162",
+   "status": "seg_fail",
+   "n_gt": 21,
+   "split": "val"
+  },
+  {
+   "id": "1168",
+   "status": "seg_fail",
+   "n_gt": 5,
+   "split": "val"
+  }
+ ]
+}

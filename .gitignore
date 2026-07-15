@@ -24,3 +24,7 @@ cubicasa5k.zip
 
 # 房型評分：資料集圖複本（來源在 CubiCasa5k/data/，不重複進版控）
 eval_rooms/input/
+
+# 語意快取預覽圖與評分疊圖（分鐘級可重生，只提交 npz 與 report）
+cubicasa_room/*_cc.png
+eval_rooms/chk/
