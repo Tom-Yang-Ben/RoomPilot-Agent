@@ -40,7 +40,16 @@ def _pts(points):
     return "".join(f"{float(x):.1f},{float(y):.1f} " for x, y in points)
 
 
-def _g_poly(doc, points, gid=None, cls=None):
+# 顯示樣式（人工修正用；House 訓練解析只讀 g/polygon 結構，不受影響）
+FILL = {"Wall": ("#cc2222", 0.45), "Window": ("#22aa22", 0.6),
+        "Door": ("#ddaa00", 0.6)}
+SPACE_FILL = {"Bedroom": "#4a90d9", "Bath": "#3dbdbd", "Kitchen": "#e8843c",
+              "LivingRoom": "#7dc37d", "Entry": "#c9a0dc", "Storage": "#b8a06a",
+              "Garage": "#909090", "Outdoor": "#c77dbb", "Undefined": "#d9d9d9"}
+
+
+def _g_poly(doc, points, gid=None, cls=None, fill=None, opacity=0.4,
+            label=None):
     g = doc.createElement("g")
     if gid:
         g.setAttribute("id", gid)
@@ -48,7 +57,23 @@ def _g_poly(doc, points, gid=None, cls=None):
         g.setAttribute("class", cls)
     p = doc.createElement("polygon")
     p.setAttribute("points", _pts(points))
+    if fill:
+        p.setAttribute("fill", fill)
+        p.setAttribute("fill-opacity", str(opacity))
+        p.setAttribute("stroke", fill)
+        p.setAttribute("stroke-width", "2")
     g.appendChild(p)
+    if label:                                    # 房型文字（修正時一眼可辨）
+        pts_arr = np.asarray(points, float)
+        cx, cy = pts_arr.mean(0)
+        t = doc.createElement("text")
+        t.setAttribute("x", f"{cx:.0f}")
+        t.setAttribute("y", f"{cy:.0f}")
+        t.setAttribute("font-size", "22")
+        t.setAttribute("text-anchor", "middle")
+        t.setAttribute("fill", "#000000")
+        t.appendChild(doc.createTextNode(label))
+        g.appendChild(t)
     return g
 
 
@@ -75,24 +100,39 @@ def build_svg(w, h, rects, wins, zones, spaces, symbols):
     doc = imp.createDocument(None, "svg", None)
     svg = doc.documentElement
     svg.setAttribute("xmlns", "http://www.w3.org/2000/svg")
+    svg.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink")
     svg.setAttribute("width", str(w))
     svg.setAttribute("height", str(h))
     svg.setAttribute("viewBox", f"0 0 {w} {h}")
+    img = doc.createElement("image")             # 底圖（人工修正的參照）
+    img.setAttribute("href", "F1_scaled.png")
+    img.setAttribute("xlink:href", "F1_scaled.png")
+    img.setAttribute("x", "0")
+    img.setAttribute("y", "0")
+    img.setAttribute("width", str(w))
+    img.setAttribute("height", str(h))
+    svg.appendChild(img)
     model = doc.createElement("g")
     model.setAttribute("id", "Model")
     model.setAttribute("class", "Model")
     svg.appendChild(model)
     for x0, y0, x1, y1 in rects:
         model.appendChild(_g_poly(doc, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)],
-                                  gid="Wall", cls="Wall"))
+                                  gid="Wall", cls="Wall", fill=FILL["Wall"][0],
+                                  opacity=FILL["Wall"][1]))
     for _o, x0, y0, x1, y1 in wins:
         model.appendChild(_g_poly(doc, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)],
-                                  gid="Window", cls="Window"))
+                                  gid="Window", cls="Window",
+                                  fill=FILL["Window"][0],
+                                  opacity=FILL["Window"][1]))
     for quad, _d in zones:
-        model.appendChild(_g_poly(doc, quad, gid="Door", cls="Door"))
+        model.appendChild(_g_poly(doc, quad, gid="Door", cls="Door",
+                                  fill=FILL["Door"][0], opacity=FILL["Door"][1]))
     for label, pts in spaces:
-        model.appendChild(_g_poly(doc, pts,
-                                  cls=f"Space {to_cubicasa_class(label)}"))
+        cc = to_cubicasa_class(label)
+        model.appendChild(_g_poly(doc, pts, cls=f"Space {cc}",
+                                  fill=SPACE_FILL.get(cc, "#d9d9d9"),
+                                  opacity=0.35, label=cc))
     for kind, cx, cy in symbols:
         cls, sw, sh = SYM_CLASS.get(kind, (None, 0, 0))
         if not cls:
@@ -105,6 +145,10 @@ def build_svg(w, h, rects, wins, zones, spaces, symbols):
         b.setAttribute("class", "BoundaryPolygon")
         p = doc.createElement("polygon")
         p.setAttribute("points", f"0,0 {sw},0 {sw},{sh} 0,{sh}")
+        p.setAttribute("fill", "#8844cc")
+        p.setAttribute("fill-opacity", "0.4")
+        p.setAttribute("stroke", "#8844cc")
+        p.setAttribute("stroke-width", "2")
         b.appendChild(p)
         g.appendChild(b)
         model.appendChild(g)
