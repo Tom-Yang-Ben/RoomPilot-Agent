@@ -36,6 +36,7 @@ import numpy as np
 
 import floorplan2dxf as fp_bw          # 黑白線稿管線（凍結，只 import 不改）
 import floorplan2dxf_color as fp_c     # 彩色管線（牆偵測 + 房間分割/分類工具）
+import symbol_match                    # 符號模板庫比對（庫檔缺失＝不啟用）
 
 IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 COLOR_RATIO = 0.08                     # 與 fp_c.color_to_bw 同門檻：彩色像素比例
@@ -236,6 +237,12 @@ def detect_symbols(det):
                 gx = sum(pts[j][0] for j in grp) / len(grp)
                 gy = sum(pts[j][1] for j in grp) / len(grp)
                 syms.append(("stove", gx, gy))
+    # 模板庫比對（路線 B）：與上述手寫規則並行互補——規則命中的不動，
+    # 模板只補漏網（同 kind 20cm 內視為已有）。庫檔缺失＝回空清單，行為不變。
+    for kind, sx, sy in symbol_match.match_symbols(det):
+        if not any(k == kind and abs(sx - ux) * cm < 20 and abs(sy - uy) * cm < 20
+                   for k, ux, uy in syms):
+            syms.append((kind, sx, sy))
     return syms
 
 
@@ -324,7 +331,8 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
                 and icx["closet"] / area_cm2 >= 0.08:
             score["storage"] += 0.2
         # 古典符號證據（層 4）：模型圖示沒抓到時的補充（美式極簡線稿）
-        n = {"oval": 0, "tubrect": 0, "bedrect": 0, "stove": 0}
+        n = {"oval": 0, "tubrect": 0, "bedrect": 0, "stove": 0,
+             "shower": 0, "sinkicon": 0}
         for kind, sx, sy in det.get("symbols", ()):
             iy, ix = int(round(sy)), int(round(sx))
             if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
@@ -338,6 +346,10 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
             score["kitchen"] += 0.5
         if n["bedrect"]:                             # 雙人床矩形
             score["bed"] += 0.5
+        if n["shower"]:                              # 模板：淋浴間（保守權重）
+            score["bath"] += 0.3
+        if n["sinkicon"] and not open_living:        # 模板：水槽（保守權重）
+            score["kitchen"] += 0.15
         r["symbols"] = {k: v for k, v in n.items() if v}
         lab, val = max(score.items(), key=lambda kv: kv[1])
         r["label"] = lab if val >= 0.15 else "room"
