@@ -53,7 +53,7 @@
 - **.venv 重建**：`pip install -r requirements.txt`。opencv 已釘 `<5`——OpenCV 5.0 把 HoughLinesP 回傳 shape 從 (N,1,4) 改 (N,4)，兩支管線的門偵測會當場掛掉；torch 生態會拉進 opencv-python-headless（後裝者蓋掉 cv2），**兩顆都必須 <5**（本次事故：headless 5.0.0 蓋掉 4.13）
 - **推論/評分另需**（主管線不用，requirements.txt 不收）：`pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu` ＋ `pip install lmdb scikit-image svgpathtools pytest`——infer_cubicasa.py 重算語意快取、eval_rooms_cc.py 解析 model.svg（floortrans.loaders 連帶依賴）時才需要
 - **CubiCasa5k/ re-clone 後必跑 `python apply_cubicasa_patches.py`**：上游 svg_utils 的 np.matrix 在 numpy 2.x 會 ValueError，任何含圖示的樣本都無法解析（訓練/round-trip 都會中招）
-- GPU 現況：本機只有 GTX 980M（Maxwell、Windows 驅動未裝、新版 torch 已不支援），訓練不切實際；微調一律走 Colab（免費 T4 即可，幾小時級）
+- GPU 現況（2026/7/15 換機後更新）：**RTX 3060 Laptop 6GB，本機可訓練**——torch 2.13+cu126 已裝（WSL nvidia-smi 通、CubiCasa 模型 batch 8 @256px 實測 0.37s/step、VRAM 峰值 2.3GB）。路線 C 微調可本機跑，Colab notebook 仍保留作備援。注意：WSL 記憶體僅分到 7GB、/tmp 是 3.7G tmpfs（pip 裝大套件要 `TMPDIR=~/piptmp`，訓練 dataloader worker 數別開太大，必要時調 .wslconfig）
 
 一、新增 floorplan2room.py（房間方塊管線，不出 DXF；批次 `python3 floorplan2room.py` = png/ → room_chk/ + json/）：
 
