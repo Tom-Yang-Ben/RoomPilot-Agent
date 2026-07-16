@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四組,Demo 死線 2026-08-20)。主線(7/7 改版):需求問卷+特殊需求(LLM→JSON)→ 上傳平面圖(DXF/PNG)→ 手動拉比例(公分)→ 升維 3D 白模 → Agent 依風格擺位家具 → 手動拖曳微調(自然語言微調為 P1)→ 提案畫面。不做 ControlNet 圖像生成、不做自然語言換風格。
+RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四組,Demo 死線 2026-08-20)。主線(7/7 改版;順序 7/16 組長確認):上傳平面圖(DXF/PNG)→ 手動拉比例(公分)→ 需求問卷+特殊需求(LLM→JSON)→ 升維 3D 白模 → Agent 依風格擺位家具 → 手動拖曳微調(自然語言微調為 P1)→ 提案畫面。不做 ControlNet 圖像生成、不做自然語言換風格。
 
 Team SSOT is `docs/01_專題進度/RoomPilot_現行版本總覽.md` — read it for scope, P0 priorities, ownership. `main` is protected; `ben` is the integration branch. Repo was reorganized 2026-07-06 into a single Python package (`roompilot/`) with the "B 殼 A 內臟" integration: 舒媁's web UI is the shell, the team's real engines are the internals.
 
