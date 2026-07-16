@@ -1,5 +1,7 @@
 # RoomPilot · 走通骨架 Demo(demo_app)
 
+> **⚠️ 已退役(2026-07-16 封存標記)**:本骨架的功能已被 `roompilot/server/`(真實 B 殼)完全取代,僅供追溯早期架構;內文提到的 ControlNet/render_style 已於 7/7 改版廢除。同層的 `demo_agent_flow.py` 仍是活文件(被 `engine/README.md` 引用為 Agent↔引擎介面範例),與本目錄退役狀態無關。
+
 給老師看的「端到端最小可跑版」。目的:展示**架構 + 真進度 + 清楚的待補點**,不是完成品。
 
 ## 這條線在做什麼

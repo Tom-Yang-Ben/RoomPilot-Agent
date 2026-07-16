@@ -1,18 +1,16 @@
 # Scripts 使用說明
 
-此資料夾提供 RoomPilot 的 GLB 驗證、模型下載、JSON 維護與資料庫匯入工具。請在專案根目錄 `D:\個人抓抓` 執行指令，避免相對路徑指向錯誤位置。
+此資料夾提供 RoomPilot 的 GLB 驗證、模型下載、JSON 維護與資料庫匯入工具。請在**專案根目錄**執行指令，避免相對路徑指向錯誤位置。
 
-> 本次先跳過 `collect_luxdoors_wood_panel_50.py`（木門圖片蒐集）。因此本說明與 `requirements.txt` 不涵蓋該工具，也不安裝它所需的 `Pillow`。
+> 本次先跳過 `collect_luxdoors_wood_panel_50.py`（木門圖片蒐集）。因此本說明不涵蓋該工具，也不安裝它所需的 `Pillow`。
 
-## 安裝環境
+## 安裝環境（2026-07-16 起改用 uv，`scripts/requirements.txt` 已移除）
 
-需要 Python 3.10 以上版本。建立虛擬環境並安裝外部套件：
+依賴由根目錄 `pyproject.toml` 統一管理，資料庫工具所需套件（`psycopg2-binary`、`python-dotenv`）在 `catalog` extra：
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r scripts\requirements.txt
+```bash
+uv sync --extra catalog        # 安裝含資料庫工具的環境
+uv run python scripts/import_catalog_to_postgres.py   # 執行方式一律 uv run
 ```
 
 | 套件 | 使用的程式 | 用途 |
