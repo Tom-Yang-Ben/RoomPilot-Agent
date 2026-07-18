@@ -5,6 +5,7 @@ web_fastapi/.env
 __pycache__/
 *.pyc
 tmp/
+.runtime/
 web_fastapi/uploads/
 web_fastapi/__pycache__/
 Miniconda3-latest-Windows-x86_64.exe

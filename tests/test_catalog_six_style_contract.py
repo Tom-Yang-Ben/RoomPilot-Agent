@@ -2,7 +2,15 @@ from pathlib import Path
 import re
 
 from roompilot.server import intake_service
-from roompilot.server.main import _get_merged_furniture_by_id, _model_response_for_merged_furniture, _model_status, furniture_catalog, load_style_database, site_data
+from roompilot.server.main import (
+    _merged_furniture_catalog_cached,
+    _model_response_for_merged_furniture,
+    _model_status,
+    _resolve_external_zip_entry,
+    furniture_catalog,
+    load_style_database,
+    site_data,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,8 +68,12 @@ def test_library_exposes_hierarchical_category_options():
     assert all(group["group_name_zh"] and group["types"] for group in groups)
 
 
-def test_known_external_model_resolves_to_a_real_glb_response():
-    furniture = _get_merged_furniture_by_id("ext_ae38fbb0527bdf")
+def test_an_available_external_model_resolves_to_a_real_glb_response():
+    furniture = next(
+        item
+        for item in _merged_furniture_catalog_cached()
+        if _resolve_external_zip_entry(item) is not None
+    )
     response = _model_response_for_merged_furniture(furniture)
     assert response.body[:4] == b"glTF"
 
@@ -72,8 +84,11 @@ def test_site_data_is_a_small_bootstrap_payload_not_the_full_catalog():
     assert payload["catalog_merge_summary"]["delivery"] == "請使用 /api/furniture 分頁取得家具資料。"
 
 
-def test_unverified_remote_glb_is_not_advertised_as_available():
-    assert _model_status({"glb_url": "https://example.test/furniture.glb"})[0] is False
+def test_remote_glb_is_advertised_when_the_server_proxy_can_load_it():
+    available, reason = _model_status({"glb_url": "https://example.test/furniture.glb"})
+
+    assert available is True
+    assert "代理" in reason
 
 
 def test_intake_has_a_single_short_default_llm_attempt():

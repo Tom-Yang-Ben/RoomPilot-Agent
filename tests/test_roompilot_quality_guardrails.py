@@ -8,23 +8,19 @@ ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "roompilot" / "server" / "static"
 
 
-def test_scene_starts_on_real_floorplan_step_with_visible_upload_contract():
+def test_scene_starts_with_project_creation_and_exposes_the_strict_upload_contract():
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    javascript = (STATIC / "scene.js").read_text(encoding="utf-8")
+    javascript = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert 'id="scene-floorplan-step" class="scene-floorplan-step" aria-label="上傳平面圖"' in html
-    assert 'id="scene-welcome-panel" class="scene-welcome-panel" hidden' in html
-    assert 'id="pick-floorplan"' in html
-    assert 'id="floorplan"' in html
-    assert 'id="floorplan-filename"' in html
-    assert 'floorplan-legend' in html
-    assert 'acceptDroppedFloorplan' in javascript
-    assert 'elements.pickFloorplan?.addEventListener("click"' in javascript
-    assert 'elements.floorplanFilename' in javascript
-    assert 'wall_polys' in javascript
-    assert 'doorSegments' in javascript
-    assert 'windowSegments' in javascript
-    assert 'showWizardSection("floorplan")' in javascript
+    assert 'id="project-step" class="rp-step-panel is-active"' in html
+    assert 'id="upload-step"' in html
+    assert 'id="floorplan-file"' in html
+    assert 'accept=".dxf,.png,.jpg,.jpeg,image/png,image/jpeg,application/dxf"' in html
+    assert 'id="project-privacy-consent"' in html
+    assert "floorplanExtension" in javascript
+    assert "selectFloorplanFile" in javascript
+    assert "只支援 DXF、PNG、JPG 或 JPEG" in javascript
+    assert 'goTo("upload")' in javascript
 
 
 def test_dxf_parser_exposes_frontend_preview_contract():
@@ -40,20 +36,22 @@ def test_dxf_parser_exposes_frontend_preview_contract():
     assert set(segment["end"]) == {"x", "z"}
 
 
-def test_scene_accepts_library_proposal_and_requires_room_inputs_before_generation():
+def test_scene_exposes_requirements_2d_library_and_visible_furniture_gate():
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    javascript = (STATIC / "scene.js").read_text(encoding="utf-8")
+    javascript = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert 'id="scene-proposal-card"' in html
-    assert 'id="scene-intake-panel"' in html
-    assert 'id="scene-room-type-question"' in html
-    assert 'id="scene-room-size-question"' in html
-    assert 'id="scene-use-default-room"' in html
-    assert "ROOMPILOT_PROPOSAL_STORAGE_KEY" in javascript
-    assert "readLibraryProposal" in javascript
-    assert "renderLibraryProposalSummary" in javascript
-    assert "validateScenePrerequisites" in javascript
-    assert "sceneData.scene_objects.length === 0" in javascript
+    assert 'id="whole-house-fields"' in html
+    assert 'id="room-question-nav"' in html
+    assert 'id="keep-room-existing"' in html
+    assert 'id="keep-unfilled-rooms-existing"' in html
+    assert 'id="furniture-icon-library"' in html
+    assert 'id="selected-2d-width"' in html
+    assert 'id="selected-2d-depth"' in html
+    assert 'id="confirm-layout-2d"' in html
+    assert "confirmRequirements" in javascript
+    assert "itemCollision" in javascript
+    assert "resolveCatalogFurniture" in javascript
+    assert "visibleFurnitureCount <= 0" in javascript
 
 
 def test_scene_payload_prioritizes_library_selected_furniture():

@@ -11,23 +11,36 @@ import zipfile
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
 from ..catalog.style_db import sanitize_size_cm
+from ..floorplan.vision import (
+    analyze_floorplan_image,
+    confirm_floorplan_analysis,
+    infer_room_requirements,
+)
 from ..upgrade3d.dxf_parser import list_plans, parse_dxf_bytes, parse_dxf_file
 from .scene_service import (
     _largest_region_boundary,
+    _region_boundary_by_id,
     _regions_boundary,
     build_scene_payload,
+    curtain_window_hint,
+    floorplan_from_editor_payload,
     generate_layout,
     get_openrouter_status,
+    parse_floorplan_with_engine,
     room_from_payload,
+    scene_object_in_boundary,
     validate_single_placement,
 )
 from .intake_service import advance_intake, start_intake
+from .cost_estimation import estimate_project_cost, load_default_cost_catalog
+from .project_store import ProjectStore
+from .runtime_paths import legacy_runtime_dirs, project_runtime_dir
 from .style_cards import load_taiwan_style_cards
 
 
@@ -41,6 +54,11 @@ EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風
 DATASET_DIR = PROJECT_DIR / "dataset"
 PLAN_DIR = PROJECT_DIR / "testdata" / "pic" / "temp"
 SAMPLE_GLB_DIR = PROJECT_DIR / "testdata" / "sample_glb"
+SAMPLE_FLOORPLAN_630 = PROJECT_DIR / "testdata" / "png" / "builder_plan_630.png"
+PROJECT_STORE = ProjectStore(project_runtime_dir(PROJECT_DIR))
+for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
+    PROJECT_STORE.import_runtime(legacy_runtime)
+FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
 _EXTERNAL_GLB_ZIP_SEARCH_DIRS = (
     DATASET_DIR,
     PROJECT_DIR / "style-rag",
@@ -212,8 +230,13 @@ def _external_zip_entry_variants(entry_name: object) -> list[str]:
 
 
 def _resolve_external_zip_entry(furniture: dict) -> tuple[Path, str] | None:
-    entry_name = furniture.get("zip_entry")
-    if not entry_name:
+    entry_names: list[str] = []
+    for key in ("zip_entry", "glb_relative_path", "glb_absolute_path", "model_path", "glb_path"):
+        value = str(furniture.get(key) or "").strip()
+        if value and not _is_remote_glb_url(value):
+            entry_names.extend(_external_zip_entry_variants(value))
+    entry_names = list(dict.fromkeys(entry_names))
+    if not entry_names:
         return None
 
     direct_archive = Path(str(furniture.get("source_archive_path") or ""))
@@ -233,14 +256,14 @@ def _resolve_external_zip_entry(furniture: dict) -> tuple[Path, str] | None:
         try:
             with zipfile.ZipFile(archive_path) as archive:
                 names = set(archive.namelist())
-                for variant in _external_zip_entry_variants(entry_name):
+                for variant in entry_names:
                     if variant in names:
                         return archive_path, variant
         except (OSError, zipfile.BadZipFile):
             continue
 
     lookup = _external_zip_entry_lookup()
-    for variant in _external_zip_entry_variants(entry_name):
+    for variant in entry_names:
         for key in _glb_lookup_keys(variant):
             resolved = lookup.get(key)
             if resolved is not None and resolved[0].exists():
@@ -271,9 +294,13 @@ def _resolve_glb_path(furniture: dict) -> Path | None:
 
 
 def _model_status(furniture: dict) -> tuple[bool, str]:
+    if _remote_glb_url(furniture):
+        return True, "遠端 GLB 可由伺服器代理載入。"
+
+    if _resolve_external_zip_entry(furniture) is not None:
+        return True, "外部 GLB zip 可用"
+
     if furniture.get("zip_entry"):
-        if _resolve_external_zip_entry(furniture) is not None:
-            return True, "外部 GLB zip 可用"
         return False, "外部家具有 zip_entry，但目前找不到對應 GLB zip 或 zip 內 entry。"
 
     if not furniture.get("glb_absolute_path") and not furniture.get("glb_relative_path"):
@@ -281,9 +308,6 @@ def _model_status(furniture: dict) -> tuple[bool, str]:
 
     if _resolve_glb_path(furniture) is not None:
         return True, "GLB 可用"
-
-    if _remote_glb_url(furniture):
-        return False, "遠端 GLB 尚未驗證，暫不提供載入。"
 
     return False, "資料有記錄，但 dataset/ 中找不到對應的 GLB 檔案(請先從雲端下載 dataset)。"
 
@@ -791,7 +815,7 @@ def _remote_glb_response(url: str) -> Response:
 
 
 def _model_response_for_merged_furniture(furniture: dict):
-    if furniture.get("zip_entry"):
+    if _resolve_external_zip_entry(furniture) is not None:
         payload = _external_glb_bytes(furniture)
         if payload[:4] == b"glTF":
             return Response(content=payload, media_type="model/gltf-binary")
@@ -1322,6 +1346,250 @@ def scene_page() -> FileResponse:
     return _page("scene.html")
 
 
+def _stored_project(project_id: str) -> dict:
+    try:
+        return PROJECT_STORE.get_project(project_id)
+    except KeyError as exc:
+        raise HTTPException(
+            404,
+            {
+                "code": "project_not_found",
+                "message": "找不到這個專案，請返回專案列表重新選擇。",
+            },
+        ) from exc
+
+
+def _stored_floorplan(project_id: str) -> dict:
+    _stored_project(project_id)
+    try:
+        upload = PROJECT_STORE.get_upload(project_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            409,
+            {
+                "code": "floorplan_missing",
+                "message": "尚未上傳平面圖，請先選擇 DXF、PNG、JPG 或 JPEG 檔案。",
+                "focus": "floorplan-file",
+            },
+        ) from exc
+    if not upload["path"].is_file():
+        raise HTTPException(
+            410,
+            {
+                "code": "floorplan_source_missing",
+                "message": "原始平面圖已遺失，請重新上傳。",
+                "focus": "floorplan-file",
+            },
+        )
+    return upload
+
+
+def _validate_floorplan_bytes(extension: str, content: bytes) -> str:
+    if not content:
+        raise HTTPException(
+            422,
+            {
+                "code": "empty_floorplan",
+                "message": "檔案沒有內容，請重新選擇平面圖。",
+                "focus": "floorplan-file",
+            },
+        )
+    if extension == ".dxf":
+        return "application/dxf"
+    try:
+        with Image.open(io.BytesIO(content)) as image:
+            image.verify()
+    except (OSError, ValueError) as exc:
+        raise HTTPException(
+            422,
+            {
+                "code": "invalid_floorplan_image",
+                "message": "檔案副檔名正確，但內容不是可讀取的 PNG 或 JPG 圖片。",
+                "focus": "floorplan-file",
+            },
+        ) from exc
+    return "image/png" if extension == ".png" else "image/jpeg"
+
+
+@app.post("/api/projects", status_code=201)
+def create_project(payload: dict) -> dict:
+    name = str(payload.get("name") or "").strip()
+    if not name:
+        raise HTTPException(
+            422,
+            {
+                "code": "project_name_required",
+                "message": "請輸入專案名稱。",
+                "focus": "project-name",
+            },
+        )
+    notes = str(payload.get("notes") or "").strip()
+    return {"project": PROJECT_STORE.create_project(name=name, notes=notes)}
+
+
+@app.get("/api/projects/{project_id}")
+def get_project(project_id: str) -> dict:
+    return {"project": _stored_project(project_id)}
+
+
+@app.put("/api/projects/{project_id}/workflow")
+def save_project_workflow(project_id: str, payload: dict) -> dict:
+    _stored_project(project_id)
+    current_step = str(payload.get("current_step") or "").strip() or None
+    if current_step and current_step not in {
+        "project",
+        "upload",
+        "recognition",
+        "calibration",
+        "space_confirmation",
+        "requirements",
+        "layout_2d",
+        "white_model_3d",
+        "realistic_3d",
+    }:
+        raise HTTPException(422, "invalid_workflow_step")
+    workflow = payload.get("workflow")
+    if workflow is not None and not isinstance(workflow, dict):
+        raise HTTPException(422, "workflow_must_be_an_object")
+    project = PROJECT_STORE.update_workflow(
+        project_id,
+        current_step=current_step,
+        workflow=workflow or {},
+    )
+    return {"project": project}
+
+
+@app.post("/api/projects/{project_id}/floorplan", status_code=201)
+async def save_project_floorplan(
+    project_id: str,
+    file: UploadFile = File(...),
+) -> dict:
+    _stored_project(project_id)
+    filename = Path(file.filename or "").name
+    extension = Path(filename).suffix.lower()
+    if extension not in FLOORPLAN_EXTENSIONS:
+        raise HTTPException(
+            415,
+            {
+                "code": "unsupported_floorplan_type",
+                "message": "只支援 DXF、PNG、JPG 或 JPEG 平面圖。",
+                "allowed_extensions": list(FLOORPLAN_EXTENSIONS),
+            },
+        )
+    content = await file.read()
+    mime_type = _validate_floorplan_bytes(extension, content)
+    upload = PROJECT_STORE.save_upload(
+        project_id,
+        filename=filename,
+        extension=extension,
+        mime_type=mime_type,
+        content=content,
+    )
+    return {
+        "upload": {
+            "filename": upload["filename"],
+            "extension": upload["extension"],
+            "mime_type": upload["mime_type"],
+            "source_url": f"/api/projects/{project_id}/floorplan/source",
+        }
+    }
+
+
+@app.get("/api/projects/{project_id}/floorplan/source")
+def get_project_floorplan_source(project_id: str) -> FileResponse:
+    upload = _stored_floorplan(project_id)
+    return FileResponse(
+        upload["path"],
+        media_type=upload["mime_type"],
+        filename=upload["filename"],
+    )
+
+
+def _privacy_is_accepted(project: dict) -> bool:
+    privacy = project.get("workflow", {}).get("privacy", {})
+    return (
+        privacy.get("accepted") is True
+        and (privacy.get("project_only") is True or privacy.get("projectOnly") is True)
+        and (privacy.get("no_training") is True or privacy.get("noTraining") is True)
+    )
+
+
+@app.post("/api/projects/{project_id}/floorplan/analyze")
+def analyze_project_floorplan(project_id: str) -> dict:
+    project = _stored_project(project_id)
+    upload = _stored_floorplan(project_id)
+    if not _privacy_is_accepted(project):
+        raise HTTPException(
+            409,
+            {
+                "code": "floorplan_consent_required",
+                "message": "請先同意本專案的平面圖分析條款，才能開始 AI 辨識。",
+                "focus": "project-privacy-consent",
+            },
+        )
+
+    content = upload["path"].read_bytes()
+    if upload["extension"] == ".dxf":
+        try:
+            parsed, _ = parse_floorplan_with_engine(
+                content.decode("utf-8", errors="ignore")
+            )
+            if not parsed:
+                raise ValueError("DXF 中沒有可建立房間的牆體幾何")
+        except Exception as exc:
+            raise HTTPException(
+                422,
+                {
+                    "code": "dxf_parse_failed",
+                    "message": f"DXF 無法解析：{exc}",
+                    "focus": "floorplan-file",
+                },
+            ) from exc
+        analysis = {
+            "recognition_engine": "dxf",
+            "source_type": "dxf",
+            "floorplan": parsed,
+        }
+        geometry_engine = "dxf"
+    else:
+        try:
+            analysis = analyze_floorplan_image(
+                content,
+                filename=upload["filename"],
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                422,
+                {
+                    "code": "cody_recognition_failed",
+                    "message": f"Cody 無法辨識這張平面圖：{exc}",
+                    "focus": "floorplan-file",
+                },
+            ) from exc
+        geometry_engine = "cody"
+
+    PROJECT_STORE.update_workflow(
+        project_id,
+        current_step="recognition",
+        workflow={"recognition": analysis},
+    )
+    return {
+        "analysis": analysis,
+        "geometry_engine": geometry_engine,
+    }
+
+
+@app.get("/api/floorplan/sample/630")
+def floorplan_sample_630() -> FileResponse:
+    if not SAMPLE_FLOORPLAN_630.is_file():
+        raise HTTPException(404, "sample_floorplan_not_found")
+    return FileResponse(
+        SAMPLE_FLOORPLAN_630,
+        media_type="image/png",
+        filename="builder_plan_630.png",
+    )
+
+
 @app.get("/api/site-data")
 def site_data() -> dict:
     payload = dict(build_site_payload())
@@ -1499,6 +1767,7 @@ async def generate_scene(payload: dict) -> dict:
         "style_card_id": payload.get("style_card_id"),
         "required_furniture": payload.get("required_furniture", []),
         "selected_furniture": payload.get("selected_furniture", []),
+        "selected_furniture_exact": payload.get("selected_furniture_exact") is True,
         "custom_furniture": payload.get("custom_furniture", []),
         "preferred_colors": payload.get("preferred_colors") or brief_style.get("colors", []),
         "custom_colors": payload.get("custom_colors", []),
@@ -1512,6 +1781,7 @@ async def generate_scene(payload: dict) -> dict:
         "preferred_materials": brief_style.get("materials", []),
         "floorplan_filename": payload.get("floorplan_filename"),
         "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
+        "floorplan_editor": payload.get("floorplan_editor"),
         "wall_option": payload.get("wall_option", "auto"),
         "floor_option": payload.get("floor_option", "auto"),
         "furniture_random_seed": payload.get("furniture_random_seed"),
@@ -1534,8 +1804,17 @@ async def scene_layout(payload: dict) -> dict:
     scene_objects 帶 position_locked 的項目(使用者拖曳過)位置仍合法就不重排。
     """
     objects = payload.get("scene_objects", [])
-    floorplan = payload.get("floorplan") or {}
-    room = room_from_payload(floorplan)
+    editor_floorplan = payload.get("floorplan_editor")
+    if isinstance(editor_floorplan, dict) and editor_floorplan:
+        floorplan, room = floorplan_from_editor_payload(editor_floorplan)
+    else:
+        floorplan = payload.get("floorplan") or {}
+        room = room_from_payload(floorplan)
+    placement_room_id = payload.get("placement_room_id")
+    place_boundary = (
+        _region_boundary_by_id(floorplan, room, placement_room_id)
+        or _largest_region_boundary(floorplan, room)
+    )
     return {
         "scene_objects": generate_layout(
             room.width * 100,
@@ -1543,16 +1822,262 @@ async def scene_layout(payload: dict) -> dict:
             objects,
             room=room,
             regions_boundary=_regions_boundary(floorplan, room),
-            place_boundary=_largest_region_boundary(floorplan, room),
+            place_boundary=place_boundary,
+            floorplan=floorplan,
         )
+    }
+
+
+_AUTO_DECOR_TYPES = {
+    "rug": ("large-medium-rug", "runner-small-rug"),
+    "plant": ("flower-pots-planter",),
+    "light": ("floor-lamp",),
+}
+
+
+_AUTO_DECOR_LABELS = {
+    "rug": "地毯",
+    "plant": "植栽",
+    "light": "燈具",
+}
+
+
+def _auto_decor_catalog_item(
+    role: str,
+    style_id: str | None,
+    excluded_ids: set[str] | None = None,
+    max_footprint_cm: tuple[float, float] | None = None,
+) -> dict:
+    requested_types = _AUTO_DECOR_TYPES[role]
+    excluded_ids = excluded_ids or set()
+    candidates = [
+        item
+        for item in _furniture_payload_cache()
+        if item.get("normalized_type") in requested_types
+        and item.get("has_model")
+        and item.get("model_url")
+        and str(item.get("furniture_id")) not in excluded_ids
+    ]
+    if role == "rug" and max_footprint_cm:
+        max_width, max_depth = sorted(max_footprint_cm, reverse=True)
+        fitting = []
+        for item in candidates:
+            size = item.get("size_cm") or {}
+            item_width, item_depth = sorted(
+                (float(size.get("width") or 0), float(size.get("depth") or 0)),
+                reverse=True,
+            )
+            if item_width <= max_width and item_depth <= max_depth:
+                fitting.append(item)
+        if fitting:
+            candidates = fitting
+    if not candidates:
+        raise HTTPException(
+            409,
+            {
+                "code": "decor_model_missing",
+                "message": f"型錄中找不到可用的{_AUTO_DECOR_LABELS[role]} GLB，已停止自動配置。",
+            },
+        )
+
+    def score(item: dict) -> tuple[int, float]:
+        style_match = item.get("primary_style") == style_id or any(
+            candidate.get("style_id") == style_id
+            for candidate in item.get("style_candidates", [])
+            if isinstance(candidate, dict)
+        )
+        return (1 if style_match else 0, float(item.get("style_confidence") or 0))
+
+    selected = dict(
+        max(
+            candidates,
+            key=lambda item: (
+                *score(item),
+                str(item.get("furniture_id") or ""),
+            ),
+        )
+    )
+    selected["auto_decor_role"] = role
+    selected["position_locked"] = False
+    return selected
+
+
+def _curtain_catalog_item() -> dict:
+    return {
+        "furniture_id": "roompilot-auto-curtain",
+        "normalized_type": "curtain",
+        "name_zh_raw": "自動配置布簾",
+        "size_cm": {"width": 240, "depth": 12, "height": 240},
+        "model_url": "/static/models/roompilot-curtain.glb",
+        "has_model": True,
+        "auto_decor_role": "curtain",
+        "position_locked": False,
+    }
+
+
+@app.post("/api/scene/decorate")
+async def scene_decorate(payload: dict) -> dict:
+    """依風格加入軟裝，所有最終座標仍由家具引擎決定。"""
+    editor_floorplan = payload.get("floorplan_editor")
+    if isinstance(editor_floorplan, dict) and editor_floorplan:
+        floorplan, room = floorplan_from_editor_payload(editor_floorplan)
+    else:
+        floorplan = payload.get("floorplan") or {}
+        room = room_from_payload(floorplan)
+
+    placement_room_id = payload.get("placement_room_id")
+    place_boundary = (
+        _region_boundary_by_id(floorplan, room, placement_room_id)
+        or _largest_region_boundary(floorplan, room)
+    )
+    region = next(
+        (
+            item
+            for item in floorplan.get("room_regions", [])
+            if str(item.get("room_id")) == str(placement_room_id)
+        ),
+        {},
+    )
+    confirmed_room = payload.get("room") if isinstance(payload.get("room"), dict) else {}
+    room_type = str(
+        region.get("room_type")
+        or confirmed_room.get("type")
+        or confirmed_room.get("room_type")
+        or "default"
+    )
+    existing = [dict(item) for item in payload.get("scene_objects", [])]
+    room_id = str(placement_room_id or "default")
+    # 舊版本的 default 軟裝與目前房間的軟裝都先移除，確保每次重跑是重算而非累加。
+    existing = [
+        item
+        for item in existing
+        if not item.get("auto_decor_role")
+        or str(item.get("auto_decor_room_id") or "default") not in {room_id, "default"}
+    ]
+    room_items = []
+    for item in existing:
+        assigned_room_id = item.get("placement_room_id") or item.get("auto_decor_room_id")
+        if assigned_room_id:
+            if str(assigned_room_id) == room_id:
+                room_items.append(item)
+            continue
+        if scene_object_in_boundary(item, room, place_boundary):
+            room_items.append(item)
+    room_types = {
+        str(item.get("normalized_type") or "")
+        for item in room_items
+    }
+    rug_anchors = {"sofa", "sofa-bed", "bed", "bed-frame", "dining-table"}
+    companion_anchors = rug_anchors | {"desk", "armchair"}
+    requested_roles = []
+    if room_types & companion_anchors:
+        requested_roles.append("light")
+    if room_types & rug_anchors:
+        requested_roles.append("rug")
+    if room_type == "balcony" or (
+        room_type in {"living_room", "dining_room", "default"}
+        and room_types & companion_anchors
+    ):
+        requested_roles.append("plant")
+    if curtain_window_hint(
+        floorplan,
+        room_width_cm=room.width * 100,
+        room_depth_cm=room.depth * 100,
+        boundary=place_boundary,
+    ) and room_type in {"living_room", "bedroom", "dining_room", "default"}:
+        requested_roles.append("curtain")
+
+    additions: list[dict] = []
+    if "curtain" in requested_roles:
+        additions.append(_curtain_catalog_item())
+    used_ids = {str(item.get("furniture_id")) for item in existing}
+    boundary_width_cm = boundary_depth_cm = 0.0
+    if place_boundary is not None:
+        min_x, min_y, max_x, max_y = place_boundary.bounds
+        boundary_width_cm = max((max_x - min_x) * 100 - 20, 0)
+        boundary_depth_cm = max((max_y - min_y) * 100 - 20, 0)
+    rug_anchor = next(
+        (
+            item
+            for item in room_items
+            if str(item.get("normalized_type") or "") in rug_anchors
+        ),
+        None,
+    )
+    rug_anchor_size = (rug_anchor or {}).get("size_cm") or {}
+    rug_max_footprint = (
+        min(boundary_width_cm, float(rug_anchor_size.get("width") or boundary_width_cm)),
+        min(boundary_depth_cm, float(rug_anchor_size.get("depth") or boundary_depth_cm)),
+    )
+    for role in ("rug", "plant", "light"):
+        if role in requested_roles:
+            addition = _auto_decor_catalog_item(
+                role,
+                payload.get("style"),
+                used_ids,
+                rug_max_footprint if role == "rug" else None,
+            )
+            additions.append(addition)
+            used_ids.add(str(addition.get("furniture_id")))
+    for item in additions:
+        item["auto_decor_room_id"] = room_id
+    rug = next((item for item in additions if item["auto_decor_role"] == "rug"), None)
+    if rug is not None:
+        rug["placement_relation"] = {
+            "kind": "under",
+            "target_types": ["sofa", "sofa-bed", "bed", "bed-frame", "dining-table"],
+        }
+    for item in additions:
+        if item["auto_decor_role"] in {"plant", "light"} and not (
+            room_type == "balcony" and item["auto_decor_role"] == "plant"
+        ):
+            item["placement_relation"] = {
+                "kind": "adjacent",
+                "target_types": [
+                    "sofa", "sofa-bed", "bed", "bed-frame", "desk",
+                    "dining-table", "armchair",
+                ],
+            }
+
+    scene_objects = generate_layout(
+        room.width * 100,
+        room.depth * 100,
+        [*existing, *additions],
+        room=room,
+        regions_boundary=_regions_boundary(floorplan, room),
+        place_boundary=place_boundary,
+        floorplan=floorplan,
+        preserve_existing_count=len(existing),
+    )
+    # 自動軟裝放不下就不硬塞，也不把失敗標記留在 3D 場景裡。
+    scene_objects = [
+        item
+        for item in scene_objects
+        if not (item.get("auto_decor_role") and item.get("placement_failed"))
+    ]
+    return {
+        "scene_objects": scene_objects,
+        "decor_summary": {
+            "requested": requested_roles,
+            "placed": [
+                item["auto_decor_role"]
+                for item in scene_objects
+                if item.get("auto_decor_role") and not item.get("placement_failed")
+            ],
+            "engine": "furniture_engine",
+        },
     }
 
 
 @app.post("/api/scene/validate")
 async def scene_validate(payload: dict) -> dict:
     """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
+    editor_floorplan = payload.get("floorplan_editor")
+    floorplan = payload.get("floorplan")
+    if isinstance(editor_floorplan, dict) and editor_floorplan:
+        floorplan, _ = floorplan_from_editor_payload(editor_floorplan)
     return validate_single_placement(
-        payload.get("floorplan"),
+        floorplan,
         payload.get("item") or {},
         payload.get("others") or [],
     )
@@ -1625,6 +2150,81 @@ async def upload(
         return parse_dxf_bytes(data, file.filename or "upload.dxf", scale_m, thickness, height)
     except Exception as e:
         raise HTTPException(422, f"parse failed: {e}")
+
+
+def _floorplan_json_field(raw: str | None, field: str, default):
+    if not raw:
+        return default
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(422, f"invalid_{field}_json") from exc
+
+
+@app.post("/api/floorplan/analyze")
+async def floorplan_analyze(
+    file: UploadFile = File(...),
+    calibration_json: str | None = Form(None),
+    ocr_json: str | None = Form(None),
+    geometry_json: str | None = Form(None),
+    observed_utilities_json: str | None = Form(None),
+    brief_json: str | None = Form(None),
+):
+    """PNG/JPG → 尺度、幾何、房間與初步機電需求；不確定時不得進設計。"""
+    extension = Path(file.filename or "").suffix.lower()
+    if extension not in {".png", ".jpg", ".jpeg"}:
+        raise HTTPException(415, "floorplan_image_required")
+    data = await file.read()
+    calibration = _floorplan_json_field(calibration_json, "calibration", None)
+    observations = _floorplan_json_field(ocr_json, "ocr", [])
+    geometry = _floorplan_json_field(geometry_json, "geometry", [])
+    observed_utilities = _floorplan_json_field(observed_utilities_json, "observed_utilities", [])
+    brief = _floorplan_json_field(brief_json, "brief", {})
+    provider = None
+    try:
+        analysis = analyze_floorplan_image(
+            data,
+            filename=file.filename or "floorplan.png",
+            calibration_hint=calibration,
+            ocr_observations=observations,
+            ocr_provider=provider,
+            geometry_observations=geometry,
+        )
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    analysis["observed_utilities"] = observed_utilities
+    analysis["requirement_brief"] = brief
+    return {
+        "analysis": analysis,
+        "requirements": infer_room_requirements(analysis, brief),
+        "geometry_engine": "cody" if not geometry else "manual",
+        "ocr_provider": "provided_or_reference_semantics",
+    }
+
+
+@app.post("/api/floorplan/confirm")
+def floorplan_confirm(payload: dict):
+    """套用使用者確認／修正並輸出可供既有 3D 與家具引擎使用的契約。"""
+    analysis = payload.get("analysis") if isinstance(payload, dict) else None
+    corrections = payload.get("corrections") if isinstance(payload, dict) else None
+    if not isinstance(analysis, dict):
+        raise HTTPException(422, "analysis_required")
+    try:
+        return confirm_floorplan_analysis(analysis, corrections)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.post("/api/cost/estimate")
+def cost_estimate(payload: dict):
+    """以版控內的台灣公開網路行情，產生可追溯的概念工程概算。"""
+    items = payload.get("items") if isinstance(payload, dict) else None
+    if not isinstance(items, list):
+        raise HTTPException(422, "cost_items_required")
+    try:
+        return estimate_project_cost(items, catalog=load_default_cost_catalog())
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 @app.get("/api/sample-furniture")

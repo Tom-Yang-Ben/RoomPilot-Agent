@@ -2,6 +2,15 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { classifyMaterialSlot } from "./scene_material_schemes.js?v=20260712b";
+import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
+import { clampWalkPosition, computeExactModelScale, fallbackMaterialRole, viewPresentation } from "./scene_visual_contracts.js?v=20260718d";
 
 export function createSceneViewer(container, statusElement) {
   if ("createImageBitmap" in globalThis) {
@@ -11,16 +20,68 @@ export function createSceneViewer(container, statusElement) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf8f4ef);
 
-  const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
-  camera.position.set(5.5, 4.6, 6.8);
+  const initialWidth = Math.max(container.clientWidth, 1);
+  const initialHeight = Math.max(container.clientHeight, 1);
+  const perspectiveCamera = new THREE.PerspectiveCamera(45, initialWidth / initialHeight, 0.1, 200);
+  perspectiveCamera.position.set(5.5, 4.6, 6.8);
+  const orthographicCamera = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.01, 200);
+  let camera = perspectiveCamera;
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(container.clientWidth, container.clientHeight);
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    preserveDrawingBuffer: true,
+    powerPreference: "high-performance",
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setSize(initialWidth, initialHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
+
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  const roomEnvironment = new RoomEnvironment();
+  const environmentTarget = pmremGenerator.fromScene(roomEnvironment, 0.04);
+  scene.environment = environmentTarget.texture;
+  scene.environmentIntensity = 1;
+  roomEnvironment.dispose();
+  const environmentCache = new Map([["room-default", environmentTarget]]);
+  let activeHdrProfile = "room-default";
+
+  const usePostProcessing = container.id === "realistic-viewer";
+  const renderPass = usePostProcessing ? new RenderPass(scene, camera) : null;
+  const gtaoPass = usePostProcessing
+    ? new GTAOPass(scene, camera, initialWidth, initialHeight)
+    : null;
+  const outputPass = usePostProcessing ? new OutputPass() : null;
+  const composer = usePostProcessing ? new EffectComposer(renderer) : null;
+  const performanceElement = usePostProcessing
+    ? container.parentElement?.querySelector("#render-performance")
+    : null;
+  let lastMeasuredFps = 0;
+  let performanceWindowStart = globalThis.performance.now();
+  let performanceFrames = 0;
+  let reducedPixelRatio = false;
+  if (composer) {
+    gtaoPass.output = GTAOPass.OUTPUT.Default;
+    gtaoPass.blendIntensity = 1.1;
+    gtaoPass.updateGtaoMaterial({
+      radius: 0.35,
+      distanceExponent: 1.5,
+      thickness: 1,
+      distanceFallOff: 1,
+      scale: 1,
+      samples: 8,
+      screenSpaceRadius: true,
+    });
+    gtaoPass.updatePdMaterial({ rings: 2, radiusExponent: 2, samples: 8 });
+    composer.addPass(renderPass);
+    composer.addPass(gtaoPass);
+    composer.addPass(outputPass);
+  }
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -28,7 +89,13 @@ export function createSceneViewer(container, statusElement) {
   controls.maxDistance = 18;
   controls.zoomSpeed = 0.85;
   controls.target.set(0, 0.8, 0);
-  let activeCameraPreset = "corner";
+  let activeCameraPreset = "dollhouse";
+  const viewMode = createViewModeState("dollhouse");
+  let cameraLocked = false;
+  const walkKeys = new Set();
+  let walkDestination = null;
+  let walkLookState = null;
+  const WALK_MAX_PITCH_RAD = THREE.MathUtils.degToRad(18);
 
   function applyCameraControlMode(preset) {
     activeCameraPreset = preset;
@@ -40,6 +107,17 @@ export function createSceneViewer(container, statusElement) {
     controls.maxDistance = isInside ? 3.4 : 18;
     controls.minPolarAngle = isInside ? Math.PI * 0.38 : 0;
     controls.maxPolarAngle = isInside ? Math.PI * 0.62 : Math.PI;
+  }
+
+  function syncPostProcessingCamera() {
+    if (!composer) return;
+    renderPass.camera = camera;
+    gtaoPass.camera = camera;
+    const perspectiveFlag = camera.isPerspectiveCamera ? 1 : 0;
+    if (gtaoPass.gtaoMaterial.defines.PERSPECTIVE_CAMERA !== perspectiveFlag) {
+      gtaoPass.gtaoMaterial.defines.PERSPECTIVE_CAMERA = perspectiveFlag;
+      gtaoPass.gtaoMaterial.needsUpdate = true;
+    }
   }
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
@@ -59,14 +137,142 @@ export function createSceneViewer(container, statusElement) {
   fillLight.position.set(-5, 5, -4);
   scene.add(fillLight);
 
+  function lightColorForTemperature(temperatureK) {
+    const temperature = Number(temperatureK) || 4200;
+    if (temperature <= 3300) return new THREE.Color(0xffd7ad);
+    if (temperature <= 3900) return new THREE.Color(0xffe5c8);
+    return new THREE.Color(0xfff2e2);
+  }
+
+  function generatedHdrEnvironment(profile) {
+    const environmentScene = new THREE.Scene();
+    const shellMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(profile.sky).multiplyScalar(profile.skyEnergy),
+      side: THREE.BackSide,
+    });
+    const shell = new THREE.Mesh(
+      new THREE.SphereGeometry(12, 48, 24),
+      shellMaterial,
+    );
+    environmentScene.add(shell);
+
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(11, 48),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(profile.ground).multiplyScalar(profile.groundEnergy),
+        side: THREE.DoubleSide,
+      }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -2.2;
+    environmentScene.add(ground);
+
+    const sun = new THREE.Mesh(
+      new THREE.SphereGeometry(0.7, 24, 12),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(profile.sun).multiplyScalar(profile.sunEnergy),
+      }),
+    );
+    sun.position.set(...profile.sunPosition);
+    environmentScene.add(sun);
+    const target = pmremGenerator.fromScene(environmentScene, 0.04);
+    shell.geometry.dispose();
+    shellMaterial.dispose();
+    ground.geometry.dispose();
+    ground.material.dispose();
+    sun.geometry.dispose();
+    sun.material.dispose();
+    return target;
+  }
+
+  function applyRenderingProfile(sceneData) {
+    const lighting = sceneData?.style?.lighting || {};
+    const rendering = sceneData?.style?.rendering || {};
+    const lightColor = lightColorForTemperature(lighting.colorTemperatureK);
+    const environmentIntensity = Number(lighting.environmentIntensity) || 1;
+    const hdrProfiles = {
+      "studio-industrial": {
+        background: 0xd8d7d3,
+        key: [5.5, 7.5, 3.5],
+        sky: 0x9ca6aa,
+        ground: 0x4f4b45,
+        sun: 0xffd2a0,
+        skyEnergy: 0.7,
+        groundEnergy: 0.35,
+        sunEnergy: 7.5,
+        sunPosition: [4.5, 5.8, 2.5],
+      },
+      "soft-overcast": {
+        background: 0xe8eceb,
+        key: [-4.5, 8, 5.5],
+        sky: 0xdce8ec,
+        ground: 0xb7b2a8,
+        sun: 0xe9f2ff,
+        skyEnergy: 1.15,
+        groundEnergy: 0.55,
+        sunEnergy: 2.2,
+        sunPosition: [-4, 6.5, 4],
+      },
+      "apartment-daylight": {
+        background: 0xf0eee9,
+        key: [6, 8, 5],
+        sky: 0xc8dcf2,
+        ground: 0xb99f7d,
+        sun: 0xffe2b6,
+        skyEnergy: 0.95,
+        groundEnergy: 0.48,
+        sunEnergy: 5.4,
+        sunPosition: [5.2, 6.2, 4.2],
+      },
+    };
+    const hdrProfileId = hdrProfiles[lighting.hdr]
+      ? lighting.hdr
+      : "apartment-daylight";
+    const hdrProfile = hdrProfiles[hdrProfileId];
+    if (activeHdrProfile !== hdrProfileId) {
+      if (!environmentCache.has(hdrProfileId)) {
+        environmentCache.set(hdrProfileId, generatedHdrEnvironment(hdrProfile));
+      }
+      scene.environment = environmentCache.get(hdrProfileId).texture;
+      activeHdrProfile = hdrProfileId;
+    }
+    scene.background = new THREE.Color(hdrProfile.background);
+    keyLight.position.set(...hdrProfile.key);
+    scene.environmentIntensity = environmentIntensity;
+    ambientLight.intensity = 0.75 * environmentIntensity;
+    hemiLight.intensity = 0.85 * environmentIntensity;
+    keyLight.color.copy(lightColor);
+    keyLight.intensity = Math.max(1.2, Number(lighting.keyLightLux || 360) / 220);
+    fillLight.color.copy(lightColor).lerp(new THREE.Color(0xffffff), 0.35);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = Number(rendering.exposure) || 1.05;
+    const shadowProfile = rendering.shadow || {};
+    const shadowMapSize = Math.max(512, Number(shadowProfile.mapSize) || 1024);
+    keyLight.shadow.mapSize.set(shadowMapSize, shadowMapSize);
+    keyLight.shadow.radius = Math.max(1, Number(shadowProfile.radius) || 3);
+    keyLight.shadow.bias = Number(shadowProfile.bias) || -0.0008;
+    keyLight.shadow.normalBias = Number(shadowProfile.normalBias) || 0.018;
+    if (gtaoPass) {
+      gtaoPass.enabled = rendering.gtao?.enabled !== false;
+      gtaoPass.blendIntensity = Number(rendering.gtao?.intensity) || 1.1;
+      gtaoPass.updateGtaoMaterial({
+        radius: Number(rendering.gtao?.radius) || 0.35,
+        samples: 8,
+        screenSpaceRadius: true,
+      });
+    }
+  }
+
   const grid = new THREE.GridHelper(12, 48, 0xc6ad8e, 0xe8ddcf);
   grid.position.y = -0.01;
   grid.material.transparent = true;
   grid.material.opacity = 0.16;
+  grid.visible = false;
   scene.add(grid);
 
   const axes = new THREE.AxesHelper(1.4);
   axes.position.set(-4.7, 0.02, 4.7);
+  axes.visible = false;
   scene.add(axes);
   [
     ["+X 右", "#d94b3d", [-3.05, 0.08, 4.7]],
@@ -78,6 +284,7 @@ export function createSceneViewer(container, statusElement) {
   ].filter(([label]) => !String(label).startsWith("-")).forEach(([label, color, position]) => {
     const sprite = createAxisLabel(label, color);
     sprite.position.set(...position);
+    sprite.visible = false;
     scene.add(sprite);
   });
 
@@ -132,10 +339,16 @@ export function createSceneViewer(container, statusElement) {
   }
 
   function resetCamera() {
-    setCameraPreset("corner");
+    setViewMode("dollhouse");
   }
 
   function setCameraPreset(preset = "corner") {
+    if (camera !== perspectiveCamera) {
+      camera = perspectiveCamera;
+      controls.object = perspectiveCamera;
+      viewMode.setMode(preset === "inside" ? "walk" : "orbit");
+      configureWallsForView("orbit");
+    }
     const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6, wallHeight: 2.7 };
     const presets = {
       overview: {
@@ -169,8 +382,12 @@ export function createSceneViewer(container, statusElement) {
     root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root);
     const center = box.getCenter(new THREE.Vector3());
-    const scale = root.scale.x || 1;
-    const localOffset = new THREE.Vector3(-center.x / scale, -box.min.y / scale, -center.z / scale);
+    const scale = root.scale;
+    const localOffset = new THREE.Vector3(
+      -center.x / (scale.x || 1),
+      -box.min.y / (scale.y || 1),
+      -center.z / (scale.z || 1),
+    );
     root.children.forEach((child) => {
       child.position.add(localOffset);
     });
@@ -269,13 +486,23 @@ export function createSceneViewer(container, statusElement) {
   }
 
   function createSurfaceImageMaterial(surface, usage, options = {}) {
+    const colorMap = createImageTexture(surface, usage, options.repeat);
+    const bumpMap = usage === "floor"
+      ? createImageTexture(surface, usage, options.repeat)
+      : null;
+    if (bumpMap) bumpMap.colorSpace = THREE.NoColorSpace;
     const material = new THREE.MeshStandardMaterial({
       color: options.color ?? 0xffffff,
-      map: createImageTexture(surface, usage, options.repeat),
+      map: colorMap,
+      ...(bumpMap ? {
+        bumpMap,
+        bumpScale: 0.035,
+      } : {}),
       roughness: options.roughness ?? 0.9,
       metalness: options.metalness ?? 0.01,
       side: options.side ?? THREE.FrontSide,
     });
+    material.userData.roompilotImageSurface = true;
     if (options.transparent) {
       material.transparent = true;
       material.opacity = options.opacity ?? 0.92;
@@ -697,6 +924,8 @@ export function createSceneViewer(container, statusElement) {
     wallMesh.castShadow = true;
     wallMesh.receiveShadow = true;
     wallMesh.userData.baseOpacity = 1;
+    wallMesh.userData.fullPositionY = wallMesh.position.y;
+    wallMesh.userData.fullScaleY = wallMesh.scale.y;
     wallMeshes.push(wallMesh);
     return wallMesh;
   }
@@ -712,10 +941,82 @@ export function createSceneViewer(container, statusElement) {
       const length = Math.hypot(dx, dz);
       if (length < 0.04) return;
 
-      const wallMesh = new THREE.Mesh(new THREE.BoxGeometry(length, wallHeight, wallThickness), wallMaterial.clone());
+      const material = typeof wallMaterial === "function"
+        ? wallMaterial(segment)
+        : wallMaterial;
+      const wallMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(length + wallThickness, wallHeight, wallThickness),
+        material.clone(),
+      );
       wallMesh.position.set((start.x + end.x) / 2, wallHeight / 2, (start.z + end.z) / 2);
       wallMesh.rotation.y = Math.atan2(-dz, dx);
       roomGroupRef.add(registerWall(wallMesh));
+
+      /*
+      // 平面圖牆段在轉角處不一定精準相交；頂部封板同時遮住牆頂接縫。
+      */
+      const topCap = new THREE.Mesh(
+        new THREE.BoxGeometry(length + wallThickness, 0.025, wallThickness),
+        material.clone(),
+      );
+      topCap.position.set(
+        (start.x + end.x) / 2,
+        wallHeight + 0.0125,
+        (start.z + end.z) / 2,
+      );
+      topCap.rotation.y = wallMesh.rotation.y;
+      topCap.castShadow = true;
+      topCap.receiveShadow = true;
+      roomGroupRef.add(topCap);
+    });
+  }
+
+  function buildStructuralMembers(roomGroupRef, floorplan, wallHeight) {
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xb9b3aa,
+      roughness: 0.88,
+      metalness: 0.02,
+    });
+    (floorplan.beam_segments || []).forEach((segment) => {
+      const start = segment.start;
+      const end = segment.end;
+      if (!start || !end) return;
+      const dx = Number(end.x) - Number(start.x);
+      const dz = Number(end.z) - Number(start.z);
+      const length = Math.hypot(dx, dz);
+      if (length < 0.04) return;
+      const width = Math.max(Number(segment.width_m || segment.thickness_m || 0.3), 0.12);
+      const height = Math.max(Number(segment.height_m || 0.35), 0.12);
+      const top = Math.min(Number(segment.top_m || wallHeight), wallHeight);
+      const beam = new THREE.Mesh(
+        new THREE.BoxGeometry(length, height, width),
+        material.clone(),
+      );
+      beam.position.set(
+        (Number(start.x) + Number(end.x)) / 2,
+        Math.max(height / 2, top - height / 2),
+        (Number(start.z) + Number(end.z)) / 2,
+      );
+      beam.rotation.y = Math.atan2(-dz, dx);
+      beam.castShadow = true;
+      beam.receiveShadow = true;
+      beam.userData.roompilotStructure = "beam";
+      roomGroupRef.add(beam);
+    });
+    (floorplan.columns || []).forEach((column) => {
+      const center = column.center;
+      if (!center) return;
+      const size = Math.max(Number(column.size_m || 0.35), 0.12);
+      const height = Math.max(Number(column.height_m || wallHeight), 0.12);
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(size, height, size),
+        material.clone(),
+      );
+      mesh.position.set(Number(center.x), height / 2, Number(center.z));
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.roompilotStructure = "column";
+      roomGroupRef.add(mesh);
     });
   }
 
@@ -745,6 +1046,385 @@ export function createSceneViewer(container, statusElement) {
     roomGroupRef.add(lines);
   }
 
+  function segmentMidpoint(segment) {
+    return {
+      x: (Number(segment.start?.x) + Number(segment.end?.x)) / 2,
+      z: (Number(segment.start?.z) + Number(segment.end?.z)) / 2,
+    };
+  }
+
+  function circulationAccessPoint(segment, reference, clearanceM = 0.38) {
+    const midpoint = segmentMidpoint(segment);
+    const dx = Number(segment.end?.x) - Number(segment.start?.x);
+    const dz = Number(segment.end?.z) - Number(segment.start?.z);
+    const length = Math.hypot(dx, dz) || 1;
+    const normal = { x: -dz / length, z: dx / length };
+    const candidates = [1, -1].map((side) => ({
+      x: midpoint.x + normal.x * clearanceM * side,
+      z: midpoint.z + normal.z * clearanceM * side,
+    })).filter(
+      (point) => walkPositionInsideFloor(point) && !walkPositionBlocked(point, 0.17),
+    );
+    if (!candidates.length) return midpoint;
+    return candidates.sort(
+      (left, right) => Math.hypot(left.x - reference.x, left.z - reference.z)
+        - Math.hypot(right.x - reference.x, right.z - reference.z),
+    )[0];
+  }
+
+  function findCirculationPath(start, goal, floorplan, cellSize = 0.2) {
+    const widthM = Math.max(Number(floorplan.width_cm) / 100, 2.4);
+    const depthM = Math.max(Number(floorplan.depth_cm) / 100, 2.4);
+    const minX = -widthM / 2;
+    const minZ = -depthM / 2;
+    const columns = Math.ceil(widthM / cellSize) + 1;
+    const rows = Math.ceil(depthM / cellSize) + 1;
+    const toCell = (point) => ({
+      x: THREE.MathUtils.clamp(Math.round((point.x - minX) / cellSize), 0, columns - 1),
+      z: THREE.MathUtils.clamp(Math.round((point.z - minZ) / cellSize), 0, rows - 1),
+    });
+    const toPoint = (cell) => ({
+      x: minX + cell.x * cellSize,
+      z: minZ + cell.z * cellSize,
+    });
+    const keyOf = (cell) => `${cell.x}:${cell.z}`;
+    const isWalkable = (cell) => {
+      const point = toPoint(cell);
+      return walkPositionInsideFloor(point) && !walkPositionBlocked(point, 0.17);
+    };
+    const nearestWalkable = (point) => {
+      const origin = toCell(point);
+      if (isWalkable(origin)) return origin;
+      for (let radius = 1; radius <= 5; radius += 1) {
+        for (let x = -radius; x <= radius; x += 1) {
+          for (let z = -radius; z <= radius; z += 1) {
+            const candidate = { x: origin.x + x, z: origin.z + z };
+            if (
+              candidate.x >= 0 && candidate.x < columns
+              && candidate.z >= 0 && candidate.z < rows
+              && isWalkable(candidate)
+            ) return candidate;
+          }
+        }
+      }
+      return null;
+    };
+
+    const startCell = nearestWalkable(start);
+    const goalCell = nearestWalkable(goal);
+    if (!startCell || !goalCell) return [];
+    const goalKey = keyOf(goalCell);
+    const open = [{ cell: startCell, score: 0 }];
+    const cameFrom = new Map();
+    const distance = new Map([[keyOf(startCell), 0]]);
+    const closed = new Set();
+    const directions = [
+      [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
+      [1, 1, Math.SQRT2], [1, -1, Math.SQRT2],
+      [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2],
+    ];
+
+    while (open.length) {
+      open.sort((left, right) => left.score - right.score);
+      const current = open.shift().cell;
+      const currentKey = keyOf(current);
+      if (closed.has(currentKey)) continue;
+      if (currentKey === goalKey) {
+        const cells = [current];
+        let cursor = currentKey;
+        while (cameFrom.has(cursor)) {
+          const previous = cameFrom.get(cursor);
+          cells.push(previous);
+          cursor = keyOf(previous);
+        }
+        return simplifyCirculationPath(cells.reverse().map(toPoint));
+      }
+      closed.add(currentKey);
+
+      directions.forEach(([stepX, stepZ, stepCost]) => {
+        const next = { x: current.x + stepX, z: current.z + stepZ };
+        if (
+          next.x < 0 || next.x >= columns || next.z < 0 || next.z >= rows
+          || !isWalkable(next)
+        ) return;
+        const nextKey = keyOf(next);
+        const nextDistance = (distance.get(currentKey) || 0) + stepCost;
+        if (nextDistance >= (distance.get(nextKey) ?? Infinity)) return;
+        distance.set(nextKey, nextDistance);
+        cameFrom.set(nextKey, current);
+        const heuristic = Math.hypot(next.x - goalCell.x, next.z - goalCell.z);
+        open.push({ cell: next, score: nextDistance + heuristic });
+      });
+    }
+    return [];
+  }
+
+  function circulationSegmentWalkable(start, end) {
+    const distance = Math.hypot(end.x - start.x, end.z - start.z);
+    const steps = Math.max(Math.ceil(distance / 0.1), 1);
+    for (let index = 0; index <= steps; index += 1) {
+      const progress = index / steps;
+      const point = {
+        x: THREE.MathUtils.lerp(start.x, end.x, progress),
+        z: THREE.MathUtils.lerp(start.z, end.z, progress),
+      };
+      if (!walkPositionInsideFloor(point) || walkPositionBlocked(point, 0.17)) return false;
+    }
+    return true;
+  }
+
+  function simplifyCirculationPath(points) {
+    if (points.length <= 2) return points;
+    const simplified = [points[0]];
+    let anchor = 0;
+    while (anchor < points.length - 1) {
+      let next = points.length - 1;
+      while (next > anchor + 1 && !circulationSegmentWalkable(points[anchor], points[next])) {
+        next -= 1;
+      }
+      simplified.push(points[next]);
+      anchor = next;
+    }
+    return simplified;
+  }
+
+  function addCirculationStrip(roomGroupRef, points, color = 0x2f7d64) {
+    const material = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.82,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    points.slice(1).forEach((point, index) => {
+      const previous = points[index];
+      const dx = point.x - previous.x;
+      const dz = point.z - previous.z;
+      const length = Math.hypot(dx, dz);
+      if (length < 0.02) return;
+      const strip = new THREE.Mesh(
+        new THREE.BoxGeometry(length + 0.03, 0.012, 0.11),
+        material,
+      );
+      strip.position.set((point.x + previous.x) / 2, 0.038, (point.z + previous.z) / 2);
+      strip.rotation.y = Math.atan2(-dz, dx);
+      strip.renderOrder = 24;
+      strip.userData.roompilotCirculation = true;
+      roomGroupRef.add(strip);
+    });
+
+    for (let index = 1; index < points.length; index += 2) {
+      const previous = points[index - 1];
+      const point = points[index];
+      const direction = new THREE.Vector3(point.x - previous.x, 0, point.z - previous.z).normalize();
+      const arrow = new THREE.Mesh(
+        new THREE.ConeGeometry(0.11, 0.24, 3),
+        material.clone(),
+      );
+      arrow.position.set(point.x, 0.052, point.z);
+      arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+      arrow.renderOrder = 25;
+      arrow.userData.roompilotCirculation = true;
+      roomGroupRef.add(arrow);
+    }
+  }
+
+  function createCirculationLabel(text) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 96;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "rgba(255,255,255,0.94)";
+    context.strokeStyle = "#2f7d64";
+    context.lineWidth = 5;
+    context.beginPath();
+    context.roundRect(8, 8, 240, 80, 18);
+    context.fill();
+    context.stroke();
+    context.fillStyle = "#214f42";
+    context.font = "700 40px sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(text, 128, 50);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(canvas),
+      transparent: true,
+      depthTest: false,
+    }));
+    sprite.scale.set(1.1, 0.42, 1);
+    sprite.renderOrder = 30;
+    sprite.userData.roompilotCirculation = true;
+    return sprite;
+  }
+
+  function buildCirculationRoute(roomGroupRef, floorplan) {
+    const doors = (floorplan.door_segments || []).filter(
+      (segment) => segment.start && segment.end,
+    );
+    if (doors.length < 2) return;
+    const widthM = Math.max(Number(floorplan.width_cm) / 100, 2.4);
+    const depthM = Math.max(Number(floorplan.depth_cm) / 100, 2.4);
+    const edgeDistance = (point) => Math.min(
+      Math.abs(point.x + widthM / 2),
+      Math.abs(point.x - widthM / 2),
+      Math.abs(point.z + depthM / 2),
+      Math.abs(point.z - depthM / 2),
+    );
+    const entrance = [...doors].sort((left, right) => {
+      const leftMidpoint = segmentMidpoint(left);
+      const rightMidpoint = segmentMidpoint(right);
+      const edgeDifference = edgeDistance(leftMidpoint) - edgeDistance(rightMidpoint);
+      return Math.abs(edgeDifference) > 0.08
+        ? edgeDifference
+        : rightMidpoint.z - leftMidpoint.z;
+    })[0];
+    const entranceMidpoint = segmentMidpoint(entrance);
+    const entranceAccess = circulationAccessPoint(entrance, { x: 0, z: 0 });
+    const startMarker = new THREE.Mesh(
+      new THREE.CircleGeometry(0.23, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0x2f7d64,
+        transparent: true,
+        opacity: 0.92,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    startMarker.rotation.x = -Math.PI / 2;
+    startMarker.position.set(entranceAccess.x, 0.04, entranceAccess.z);
+    startMarker.renderOrder = 26;
+    startMarker.userData.roompilotCirculation = true;
+    roomGroupRef.add(startMarker);
+    const label = createCirculationLabel("玄關");
+    label.position.set(entranceAccess.x, 0.42, entranceAccess.z);
+    label.userData = { ...label.userData, label: "玄關" };
+    roomGroupRef.add(label);
+
+    doors.filter((door) => door !== entrance).forEach((door) => {
+      const goal = circulationAccessPoint(door, entranceAccess);
+      const path = findCirculationPath(entranceAccess, goal, floorplan);
+      if (path.length > 1) addCirculationStrip(roomGroupRef, path);
+    });
+    addCirculationStrip(roomGroupRef, [entranceMidpoint, entranceAccess]);
+  }
+
+  function createMaterialBoundarySurfaces(roomGroupRef, boundary, floorMaterial, sceneData) {
+    const bounds = boundary?.room_bounds_m;
+    const line = boundary?.line_m;
+    if (!bounds || !Array.isArray(line) || line.length < 2) return;
+    const minX = Number(bounds.minX);
+    const maxX = Number(bounds.maxX);
+    const minZ = Number(bounds.minZ);
+    const maxZ = Number(bounds.maxZ);
+    const vertical = Math.abs(Number(line[1].x) - Number(line[0].x))
+      <= Math.abs(Number(line[1].y) - Number(line[0].y));
+    const split = vertical
+      ? Math.max(minX, Math.min(maxX, (Number(line[0].x) + Number(line[1].x)) / 2))
+      : Math.max(minZ, Math.min(maxZ, (Number(line[0].y) + Number(line[1].y)) / 2));
+    const palette = sceneData.style_card?.palette_hex || sceneData.style?.palette_hex || [];
+    const materials = [floorMaterial.clone(), floorMaterial.clone()];
+    if (materials[0].color) materials[0].color.set(palette[1] || 0xc9a77d);
+    if (materials[1].color) materials[1].color.set(palette[3] || 0x8b684b);
+    const parts = vertical
+      ? [
+          { width: split - minX, depth: maxZ - minZ, x: (minX + split) / 2, z: (minZ + maxZ) / 2 },
+          { width: maxX - split, depth: maxZ - minZ, x: (split + maxX) / 2, z: (minZ + maxZ) / 2 },
+        ]
+      : [
+          { width: maxX - minX, depth: split - minZ, x: (minX + maxX) / 2, z: (minZ + split) / 2 },
+          { width: maxX - minX, depth: maxZ - split, x: (minX + maxX) / 2, z: (split + maxZ) / 2 },
+        ];
+    parts.forEach((part, index) => {
+      if (part.width < 0.02 || part.depth < 0.02) return;
+      const surface = new THREE.Mesh(
+        new THREE.PlaneGeometry(part.width, part.depth),
+        materials[index],
+      );
+      surface.rotation.x = -Math.PI / 2;
+      surface.position.set(part.x, 0.006 + index * 0.001, part.z);
+      surface.receiveShadow = true;
+      surface.userData.roompilotMaterialZone = index + 1;
+      roomGroupRef.add(surface);
+    });
+  }
+
+  function pointInBounds(point, bounds, padding = 0) {
+    return point.x >= Number(bounds.minX) - padding
+      && point.x <= Number(bounds.maxX) + padding
+      && point.z >= Number(bounds.minZ) - padding
+      && point.z <= Number(bounds.maxZ) + padding;
+  }
+
+  function createRoomSurfaceOverrides(roomGroupRef, sceneData) {
+    (sceneData.surface_overrides || []).forEach((override, index) => {
+      const bounds = override.room_bounds_m;
+      if (!bounds) return;
+      const width = Number(bounds.maxX) - Number(bounds.minX);
+      const depth = Number(bounds.maxZ) - Number(bounds.minZ);
+      if (width < 0.02 || depth < 0.02) return;
+      const material = createFloorMaterial(
+        override.floor_option || "auto",
+        sceneData.surface_catalog,
+        { widthM: width, depthM: depth },
+      );
+      if (override.floor_color_hex && material.color) {
+        material.color.set(override.floor_color_hex);
+      }
+      const polygon = override.room_polygon_m || [];
+      let geometry;
+      if (polygon.length >= 3) {
+        const shape = new THREE.Shape();
+        polygon.forEach((point, pointIndex) => {
+          const x = Number(point.x);
+          const y = -Number(point.z);
+          if (pointIndex === 0) shape.moveTo(x, y);
+          else shape.lineTo(x, y);
+        });
+        shape.closePath();
+        geometry = new THREE.ShapeGeometry(shape);
+      } else {
+        geometry = new THREE.PlaneGeometry(width, depth);
+      }
+      const surface = new THREE.Mesh(geometry, material);
+      surface.rotation.x = -Math.PI / 2;
+      surface.position.y = 0.004 + index * 0.001;
+      if (polygon.length < 3) {
+        surface.position.x = (Number(bounds.minX) + Number(bounds.maxX)) / 2;
+        surface.position.z = (Number(bounds.minZ) + Number(bounds.maxZ)) / 2;
+      }
+      surface.receiveShadow = true;
+      surface.userData.roompilotSurfaceOverride = override.room_id;
+      roomGroupRef.add(surface);
+    });
+  }
+
+  function wallMaterialResolver(sceneData, defaultMaterial) {
+    const overrides = sceneData.surface_overrides || [];
+    const cache = new Map();
+    return (segment) => {
+      const midpoint = {
+        x: (Number(segment.start?.x || 0) + Number(segment.end?.x || 0)) / 2,
+        z: (Number(segment.start?.z || 0) + Number(segment.end?.z || 0)) / 2,
+      };
+      const override = overrides.findLast(
+        (item) => item.room_bounds_m
+          && pointInBounds(midpoint, item.room_bounds_m, 0.18),
+      );
+      if (!override) return defaultMaterial;
+      if (!cache.has(override.room_id)) {
+        const material = createWallMaterial(
+          override.wall_option || "auto",
+          sceneData.surface_catalog,
+        );
+        if (override.wall_color_hex && material.color) {
+          material.color.set(override.wall_color_hex);
+        }
+        cache.set(override.room_id, material);
+      }
+      return cache.get(override.room_id);
+    };
+  }
+
   function createRoom(sceneData) {
     clearGroup(roomGroup);
     clearGroup(ceilingGroup);
@@ -753,42 +1433,76 @@ export function createSceneViewer(container, statusElement) {
 
     const widthM = Math.max(sceneData.floorplan.width_cm / 100, 2.4);
     const depthM = Math.max(sceneData.floorplan.depth_cm / 100, 2.4);
-    const wallHeight = 2.7;
+    const wallHeight = Math.max(
+      Number(sceneData.floorplan.room_height_cm || 270) / 100,
+      2.1,
+    );
     const floorOption = sceneData.design_choices?.floor_option || "auto";
     const wallOption = sceneData.design_choices?.wall_option || "auto";
 
+    const floorMaterial = createFloorMaterial(
+      floorOption,
+      sceneData.surface_catalog,
+      { widthM, depthM },
+    );
+    const floorPbr = sceneData.style?.pbr?.floor || {};
+    const floorColor = sceneData.design_choices?.floor_color_hex
+      || sceneData.style_card?.palette_hex?.[1];
+    if (floorColor && floorMaterial.color) floorMaterial.color.set(floorColor);
+    if (floorPbr.roughness != null) floorMaterial.roughness = floorPbr.roughness;
+    if (floorPbr.metalness != null) floorMaterial.metalness = floorPbr.metalness;
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(widthM, depthM),
-      createFloorMaterial(floorOption, sceneData.surface_catalog, { widthM, depthM })
+      floorMaterial,
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
     floor.receiveShadow = true;
     roomGroup.add(floor);
+    createRoomSurfaceOverrides(roomGroup, sceneData);
+    createMaterialBoundarySurfaces(
+      roomGroup,
+      sceneData.material_boundary,
+      floorMaterial,
+      sceneData,
+    );
 
     const wallMaterial = createWallMaterial(wallOption, sceneData.surface_catalog);
+    const wallPbr = sceneData.style?.pbr?.wall || {};
+    const wallColor = sceneData.design_choices?.wall_color_hex
+      || sceneData.style_card?.palette_hex?.[0];
+    if (wallColor && wallMaterial.color) wallMaterial.color.set(wallColor);
+    if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
+    if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
     const wallSegments = sceneData.floorplan?.wall_segments || [];
-    const planSegments = sceneData.floorplan?.plan_segments || [];
     const doorSegments = sceneData.floorplan?.door_segments || [];
     const windowSegments = sceneData.floorplan?.window_segments || [];
-    const isDxfFloorplan = sceneData.floorplan?.source === "dxf";
+    const hasAccurateFloorplan = ["dxf", "user_confirmed"].includes(
+      sceneData.floorplan?.source,
+    );
     const singleRoomMode = sceneData.design_choices?.single_room_mode !== false;
     roomGroup.userData.roomSize = { widthM, depthM, wallHeight };
+    roomGroup.userData.ceilingStyle = sceneData.design_choices?.ceiling_style || "exposed";
 
-    const ceiling = new THREE.Mesh(
-      new THREE.PlaneGeometry(widthM, depthM),
-      new THREE.MeshStandardMaterial({ color: 0xf3eee6, roughness: 0.86, side: THREE.DoubleSide })
+    const ceilingDropCm = Number(sceneData.design_choices?.ceiling_drop_cm) || 0;
+    const ceilingHeight = wallHeight - ceilingDropCm / 100;
+    createCeilingGeometry(
+      { widthM, depthM, wallHeight, ceilingHeight },
+      roomGroup.userData.ceilingStyle,
+      sceneData.style_card || sceneData.style || {},
     );
-    ceiling.rotation.x = Math.PI / 2;
-    ceiling.position.y = wallHeight;
-    ceiling.receiveShadow = true;
-    ceilingGroup.add(ceiling);
     ceilingGroup.visible = false;
-    createHangingLights({ widthM, depthM, wallHeight }, sceneData.style_card || sceneData.style);
 
-    const wallThickness = 0.04;
+    // 12 cm 接近住宅隔間牆；原先 4 cm 會讓雙線牆與轉角看起來像中空。
+    const wallThickness = 0.12;
     if (!singleRoomMode && wallSegments.length >= 2) {
-      buildSegmentWalls(roomGroup, wallSegments, wallMaterial, wallHeight, wallThickness);
+      buildSegmentWalls(
+        roomGroup,
+        wallSegments,
+        wallMaterialResolver(sceneData, wallMaterial),
+        wallHeight,
+        wallThickness,
+      );
     } else {
       const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthM, wallHeight, wallThickness), wallMaterial.clone());
       backWall.position.set(0, wallHeight / 2, -depthM / 2);
@@ -803,10 +1517,10 @@ export function createSceneViewer(container, statusElement) {
       roomGroup.add(registerWall(rightWall));
     }
 
-    if (isDxfFloorplan) {
-      buildFloorPlanOverlay(roomGroup, planSegments.length ? planSegments : wallSegments, 0x6b513b, 0.32, 0.022);
+    if (hasAccurateFloorplan) {
       buildFloorPlanOverlay(roomGroup, doorSegments, 0xb9773f, 0.82, 0.038);
       buildFloorPlanOverlay(roomGroup, windowSegments, 0x6f9eb4, 0.9, 0.044);
+      buildCirculationRoute(roomGroup, sceneData.floorplan);
     } else {
       const outline = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(widthM, wallHeight, depthM)),
@@ -815,16 +1529,167 @@ export function createSceneViewer(container, statusElement) {
       outline.position.set(0, wallHeight / 2, 0);
       roomGroup.add(outline);
     }
+    buildStructuralMembers(roomGroup, sceneData.floorplan || {}, wallHeight);
 
-    controls.target.set(0, 0.9, 0);
-    setCameraPreset("corner");
+    const boundary = sceneData.material_boundary?.line_m;
+    if (Array.isArray(boundary) && boundary.length >= 2) {
+      buildFloorPlanOverlay(roomGroup, [{
+        start: { x: Number(boundary[0].x) || 0, z: Number(boundary[0].y) || 0 },
+        end: { x: Number(boundary[1].x) || 0, z: Number(boundary[1].y) || 0 },
+      }], 0x7b56b3, 0.96, 0.052);
+    }
+
+    if (sceneData.design_choices?.light_style) {
+      createStyleLights(
+        { widthM, depthM, wallHeight: ceilingHeight },
+        sceneData.style_card || sceneData.style || {},
+        sceneData.design_choices.light_style,
+      );
+    }
+
+    if (!cameraLocked) {
+      controls.target.set(0, 0.9, 0);
+      setViewMode("dollhouse");
+    }
   }
 
-  function createHangingLights(room, style = {}) {
+  function createCeilingGeometry(room, ceilingStyle, style = {}) {
+    if (ceilingStyle === "exposed") return;
+    const palette = style.palette_hex || ["#F3EBDD", "#D3B48A", "#8B684B"];
+    const baseMaterial = new THREE.MeshStandardMaterial({
+      color: palette[0] || "#f3eee6",
+      roughness: 0.86,
+      side: THREE.DoubleSide,
+    });
+    const accentMaterial = new THREE.MeshStandardMaterial({
+      color: palette[2] || "#8B684B",
+      roughness: 0.55,
+      metalness: ceilingStyle === "linear" ? 0.45 : 0.05,
+    });
+    const addPanel = (width, depth, y, material = baseMaterial, thickness = 0.04) => {
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(Math.max(width, 0.08), thickness, Math.max(depth, 0.08)),
+        material,
+      );
+      panel.position.y = y;
+      panel.receiveShadow = true;
+      panel.castShadow = true;
+      panel.userData.ceilingStyle = ceilingStyle;
+      ceilingGroup.add(panel);
+      return panel;
+    };
+
+    if (ceilingStyle === "flat" || ceilingStyle === "no-main-light") {
+      addPanel(room.widthM, room.depthM, room.ceilingHeight);
+      return;
+    }
+    if (ceilingStyle === "cove") {
+      const band = Math.min(0.42, room.widthM / 6, room.depthM / 6);
+      addPanel(room.widthM, band, room.ceilingHeight, baseMaterial, 0.1).position.z = -(room.depthM - band) / 2;
+      addPanel(room.widthM, band, room.ceilingHeight, baseMaterial, 0.1).position.z = (room.depthM - band) / 2;
+      addPanel(band, Math.max(room.depthM - band * 2, 0.1), room.ceilingHeight, baseMaterial, 0.1).position.x = -(room.widthM - band) / 2;
+      addPanel(band, Math.max(room.depthM - band * 2, 0.1), room.ceilingHeight, baseMaterial, 0.1).position.x = (room.widthM - band) / 2;
+      addPanel(
+        Math.max(room.widthM - band * 2, 0.1),
+        Math.max(room.depthM - band * 2, 0.1),
+        room.ceilingHeight + 0.1,
+        baseMaterial,
+      );
+      return;
+    }
+    if (ceilingStyle === "floating") {
+      addPanel(
+        Math.max(room.widthM - 0.7, 0.5),
+        Math.max(room.depthM - 0.7, 0.5),
+        room.ceilingHeight,
+        baseMaterial,
+        0.12,
+      );
+      return;
+    }
+    if (ceilingStyle === "linear") {
+      addPanel(room.widthM, room.depthM, room.ceilingHeight);
+      [-0.55, 0.55].forEach((x) => {
+        const strip = addPanel(0.055, Math.max(room.depthM - 0.5, 0.4), room.ceilingHeight - 0.035, accentMaterial, 0.018);
+        strip.position.x = THREE.MathUtils.clamp(x, -room.widthM / 3, room.widthM / 3);
+      });
+      return;
+    }
+    if (ceilingStyle === "wood-grid") {
+      const spacing = 0.24;
+      const count = Math.max(3, Math.floor(room.widthM / spacing));
+      for (let index = 0; index <= count; index += 1) {
+        const x = -room.widthM / 2 + index * room.widthM / count;
+        const slat = addPanel(0.055, room.depthM, room.ceilingHeight, accentMaterial, 0.08);
+        slat.position.x = x;
+      }
+      return;
+    }
+    addPanel(room.widthM, room.depthM, room.ceilingHeight);
+  }
+
+  function createStyleLights(room, style = {}, lightStyle = "pendant") {
     const palette = style.palette_hex || ["#F3EBDD", "#D3B48A", "#8B684B"];
     const lightColor = new THREE.Color(palette[1] || "#D3B48A");
     const positions = room.widthM >= 4.8 ? [-0.9, 0, 0.9] : [-0.62, 0.62];
 
+    if (lightStyle === "track") {
+      const rail = new THREE.Mesh(
+        new THREE.BoxGeometry(Math.min(room.widthM * 0.58, 3.4), 0.045, 0.055),
+        new THREE.MeshStandardMaterial({ color: 0x292724, roughness: 0.34, metalness: 0.7 }),
+      );
+      rail.position.y = room.wallHeight - 0.08;
+      hangingLightGroup.add(rail);
+      positions.forEach((x, index) => {
+        const spot = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.065, 0.09, 0.16, 18),
+          new THREE.MeshStandardMaterial({ color: 0x34312e, roughness: 0.3, metalness: 0.65 }),
+        );
+        spot.position.set(x, room.wallHeight - 0.19, 0);
+        spot.rotation.z = index % 2 ? -0.28 : 0.28;
+        hangingLightGroup.add(spot);
+        const light = new THREE.SpotLight(0xffdfb0, 2.2, 5.5, Math.PI / 5.5, 0.45, 1.7);
+        light.position.copy(spot.position);
+        light.target.position.set(x + (index % 2 ? 0.7 : -0.7), 0, 0.5);
+        hangingLightGroup.add(light, light.target);
+      });
+      return;
+    }
+    if (lightStyle === "downlight") {
+      const zPositions = room.depthM > 4.2 ? [-0.8, 0.8] : [0];
+      positions.forEach((x) => zPositions.forEach((z) => {
+        const trim = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.095, 0.095, 0.035, 24),
+          new THREE.MeshStandardMaterial({ color: 0xf8f5ee, roughness: 0.42, metalness: 0.12 }),
+        );
+        trim.position.set(x, room.wallHeight - 0.025, z);
+        hangingLightGroup.add(trim);
+        const light = new THREE.PointLight(0xffe4bd, 0.78, 3.5, 2);
+        light.position.set(x, room.wallHeight - 0.12, z);
+        hangingLightGroup.add(light);
+      }));
+      return;
+    }
+    if (lightStyle === "paper") {
+      const paper = new THREE.Mesh(
+        new THREE.SphereGeometry(0.34, 32, 20),
+        new THREE.MeshStandardMaterial({
+          color: 0xfff0cf,
+          emissive: 0xffc36f,
+          emissiveIntensity: 0.35,
+          roughness: 0.94,
+          transparent: true,
+          opacity: 0.88,
+        }),
+      );
+      paper.scale.y = 1.18;
+      paper.position.set(0, room.wallHeight - 0.65, 0);
+      hangingLightGroup.add(paper);
+      const light = new THREE.PointLight(0xffd9a0, 1.8, 5.2, 2);
+      light.position.copy(paper.position);
+      hangingLightGroup.add(light);
+      return;
+    }
     positions.forEach((x, index) => {
       const pendant = new THREE.Group();
       pendant.position.set(x, room.wallHeight - 0.08, 0);
@@ -864,25 +1729,57 @@ export function createSceneViewer(container, statusElement) {
     });
   }
 
-  function applyStyleSkin(root, sceneData) {
+  function applyStyleSkin(root, sceneData, sceneObject = {}) {
+    if (
+      sceneData.use_original_materials
+      || (sceneObject.user_specified && !sceneObject.material_locked)
+    ) return;
     const palette = sceneData.style_card?.palette_hex || sceneData.style?.palette_hex || [];
-    if (!palette.length) return;
+    if (!palette.length && !sceneData.material_role_overrides) return;
 
-    const colors = palette.map((value) => new THREE.Color(value));
+    const colors = (palette.length ? palette : ["#f3eee7", "#b58b63", "#59636a", "#d7c9b8"]).map((value) => new THREE.Color(value));
     root.traverse((object) => {
       if (!object.isMesh || !object.material) return;
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      object.material = materials.map((sourceMaterial, index) => {
+      const sourceWasArray = Array.isArray(object.material);
+      const materials = sourceWasArray ? object.material : [object.material];
+      const styledMaterials = materials.map((sourceMaterial, index) => {
         const material = sourceMaterial.clone();
+        const slotName = `${object.name || ""} ${material.name || ""}`.trim();
+        const classifiedRole = classifyMaterialSlot(slotName);
+        const role = classifiedRole === "unknown" ? fallbackMaterialRole(sceneObject.normalized_type) || "unknown" : classifiedRole;
+        const packMaterial = sceneObject.material_override;
+        const packRoughness = role === "wood"
+          ? packMaterial?.pbr?.woodRoughness
+          : role === "fabric"
+            ? packMaterial?.pbr?.fabricRoughness
+            : undefined;
+        const override = sceneObject.material_overrides?.[material.name]
+          || sceneObject.material_overrides?.[object.name]
+          || sceneObject.material_overrides?.[`role:${role}`]
+          || sceneData.material_role_overrides?.[role]
+          || (packMaterial ? {
+            colorHex: packMaterial.color,
+            roughness: packMaterial.pbr?.roughness ?? packRoughness,
+            metalness: packMaterial.pbr?.metalness,
+          } : null);
+        if (role === "unknown" && !override) return material;
+        if (override?.preserveOriginal) return material;
         if (material.color) {
-          const label = `${object.name} ${material.name}`.toLowerCase();
+          const label = slotName.toLowerCase();
           const colorIndex = /metal|steel|brass|gold|chrome/.test(label) ? 2 : /wood|oak|walnut/.test(label) ? 1 : index % colors.length;
-          material.color.lerp(colors[colorIndex] || colors[0], 0.34);
+          if (override?.colorHex) material.color.set(override.colorHex);
+          else material.color.lerp(colors[colorIndex] || colors[0], 0.34);
         }
-        if ("roughness" in material) material.roughness = Math.min(0.92, Math.max(0.28, material.roughness || 0.6));
+        if ("roughness" in material) material.roughness = override?.roughness ?? Math.min(0.92, Math.max(0.28, material.roughness || 0.6));
+        if ("metalness" in material && override?.metalness != null) material.metalness = override.metalness;
+        if (override?.transparent) {
+          material.transparent = true;
+          material.opacity = override.opacity ?? 0.32;
+        }
         object.userData.roompilotSkinApplied = true;
         return material;
       });
+      object.material = sourceWasArray ? styledMaterials : styledMaterials[0];
     });
   }
 
@@ -896,13 +1793,8 @@ export function createSceneViewer(container, statusElement) {
       height: (targetSizeCm.height || 80) / 100,
     };
 
-    const ratios = [];
-    if (size.x > 0.001) ratios.push(target.width / size.x);
-    if (size.z > 0.001) ratios.push(target.depth / size.z);
-    if (size.y > 0.001) ratios.push(target.height / size.y);
-
-    const scale = Math.min(...ratios.filter((value) => Number.isFinite(value) && value > 0), 1);
-    root.scale.setScalar(scale);
+    const scale = computeExactModelScale(size, target);
+    root.scale.set(scale.x, scale.y, scale.z);
     root.updateMatrixWorld(true);
     moveModelToFootprintCenter(root);
   }
@@ -910,6 +1802,176 @@ export function createSceneViewer(container, statusElement) {
   function toggleCeiling() {
     ceilingGroup.visible = !ceilingGroup.visible;
     return ceilingGroup.visible;
+  }
+
+  function configureWallsForView(mode) {
+    wallMeshes.forEach((wall) => {
+      if (mode === "topdown") {
+        wall.scale.y = 0.04;
+        wall.position.y = 0.06;
+      } else {
+        wall.scale.y = wall.userData.fullScaleY || 1;
+        wall.position.y = wall.userData.fullPositionY ?? wall.position.y;
+      }
+    });
+    ceilingGroup.visible = mode === "walk"
+      && roomGroup.userData.ceilingStyle !== "exposed";
+  }
+
+  function configurePlanLabels(mode) {
+    const visible = viewPresentation(mode).showFurniturePlanLabels;
+    furnitureGroup.traverse((object) => {
+      if (object.userData.roompilotPlanLabel) object.visible = visible;
+    });
+  }
+
+  function setViewMode(mode) {
+    cameraLocked = false;
+    const config = viewMode.setMode(mode);
+    controls.object = config.camera === "orthographic" ? orthographicCamera : perspectiveCamera;
+    camera = controls.object;
+    controls.enabled = true;
+    configureWallsForView(mode);
+    configurePlanLabels(mode);
+    renderer.domElement.style.cursor = mode === "walk" ? "grab" : "";
+    if (mode !== "walk") {
+      walkDestination = null;
+      walkMarker.visible = false;
+    }
+    if (mode === "walk") {
+      setCameraPreset("inside");
+      activeCameraPreset = "walk";
+      perspectiveCamera.up.set(0, 1, 0);
+      controls.enabled = false;
+      controls.enablePan = false;
+      controls.enableZoom = false;
+      const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6, wallHeight: 2.7 };
+      const clamped = clampWalkPosition(perspectiveCamera.position, room);
+      perspectiveCamera.position.set(clamped.x, clamped.y, clamped.z);
+    } else if (mode === "topdown") {
+      const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6 };
+      const extent = Math.max(room.widthM, room.depthM) * 0.62 + 0.8;
+      orthographicCamera.left = -extent;
+      orthographicCamera.right = extent;
+      orthographicCamera.top = extent;
+      orthographicCamera.bottom = -extent;
+      orthographicCamera.position.set(0, 18, 0.001);
+      orthographicCamera.up.set(0, 0, -1);
+      orthographicCamera.lookAt(0, 0, 0);
+      orthographicCamera.updateProjectionMatrix();
+      controls.target.set(0, 0, 0);
+      controls.enableRotate = false;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+      controls.update();
+    } else if (mode === "dollhouse") {
+      const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6 };
+      const extent = Math.max(room.widthM, room.depthM) * 0.68 + 0.9;
+      orthographicCamera.left = -extent;
+      orthographicCamera.right = extent;
+      orthographicCamera.top = extent;
+      orthographicCamera.bottom = -extent;
+      orthographicCamera.position.set(extent, extent * 0.92, extent);
+      orthographicCamera.up.set(0, 1, 0);
+      orthographicCamera.lookAt(0, 0.45, 0);
+      orthographicCamera.updateProjectionMatrix();
+      controls.target.set(0, 0.45, 0);
+      controls.enabled = true;
+      controls.enableRotate = true;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+      controls.screenSpacePanning = true;
+      controls.update();
+      activeCameraPreset = "dollhouse";
+    } else {
+      setCameraPreset("corner");
+      activeCameraPreset = "corner";
+    }
+    syncPostProcessingCamera();
+    onResize();
+    return config;
+  }
+
+  function toggleCameraLock(force) {
+    cameraLocked = typeof force === "boolean" ? force : !cameraLocked;
+    controls.enabled = true;
+    if (cameraLocked) {
+      controls.enableRotate = false;
+      controls.enablePan = false;
+      controls.enableZoom = true;
+    }
+    if (!cameraLocked) {
+      setViewMode(viewMode.mode);
+    }
+    return cameraLocked;
+  }
+
+  function getDiagnostics() {
+    return {
+      ...JSON.parse(JSON.stringify(lastDiagnostics)),
+      rendering: {
+        gtaoEnabled: Boolean(gtaoPass?.enabled),
+        toneMapping: "ACESFilmic",
+        antialias: "MSAA",
+        fps: lastMeasuredFps,
+      },
+    };
+  }
+
+  function updateWalkMovement() {
+    if (viewMode.mode !== "walk") return;
+    const forward = new THREE.Vector3();
+    perspectiveCamera.getWorldDirection(forward);
+    forward.y = 0;
+    forward.normalize();
+    const right = new THREE.Vector3().crossVectors(forward, perspectiveCamera.up).normalize();
+    const movement = new THREE.Vector3();
+    if (walkKeys.has("w") || walkKeys.has("arrowup")) movement.add(forward);
+    if (walkKeys.has("s") || walkKeys.has("arrowdown")) movement.sub(forward);
+    if (walkKeys.has("a") || walkKeys.has("arrowleft")) movement.sub(right);
+    if (walkKeys.has("d") || walkKeys.has("arrowright")) movement.add(right);
+    if (movement.lengthSq()) {
+      walkDestination = null;
+      walkMarker.visible = false;
+      movement.normalize().multiplyScalar(0.045);
+    } else if (walkDestination) {
+      movement.copy(walkDestination).sub(perspectiveCamera.position);
+      movement.y = 0;
+      if (movement.length() < 0.08) {
+        walkDestination = null;
+        walkMarker.visible = false;
+        return;
+      }
+      movement.clampLength(0, 0.055);
+    } else {
+      return;
+    }
+    const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6, wallHeight: 2.7 };
+    const proposed = perspectiveCamera.position.clone().add(movement);
+    const clamped = clampWalkPosition(proposed, room);
+    if (!walkPositionInsideFloor(clamped) || walkPositionBlocked(clamped)) {
+      walkDestination = null;
+      walkMarker.visible = false;
+      setStatus("前方是牆面；請從門洞通過，或點選同一空間內的地板位置。");
+      return;
+    }
+    const actualMovement = new THREE.Vector3(clamped.x, clamped.y, clamped.z).sub(perspectiveCamera.position);
+    perspectiveCamera.position.add(actualMovement);
+    controls.target.add(actualMovement);
+  }
+
+  function capturePng() {
+    if (composer) composer.render();
+    else renderer.render(scene, camera);
+    return renderer.domElement.toDataURL("image/png");
+  }
+
+  async function exportGlb() {
+    const exportRoot = new THREE.Group();
+    exportRoot.add(roomGroup.clone(true));
+    exportRoot.add(furnitureGroup.clone(true));
+    const exporter = new GLTFExporter();
+    return exporter.parseAsync(exportRoot, { binary: true, onlyVisible: true });
   }
 
   function createNumberMarker(label) {
@@ -941,18 +2003,103 @@ export function createSceneViewer(container, statusElement) {
     return sprite;
   }
 
+  function createFurniturePlanLabel(label) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 112;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "rgba(255, 250, 242, 0.94)";
+    context.strokeStyle = "#76563e";
+    context.lineWidth = 6;
+    context.beginPath();
+    context.roundRect(8, 8, 496, 96, 22);
+    context.fill();
+    context.stroke();
+    context.fillStyle = "#33271f";
+    context.font = "bold 38px 'Segoe UI', 'Noto Sans TC', sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    const text = String(label || "家具");
+    context.fillText(text.length > 14 ? `${text.slice(0, 13)}…` : text, 256, 58);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false }));
+    sprite.scale.set(1.7, 0.38, 1);
+    sprite.renderOrder = 1001;
+    sprite.userData.roompilotPlanLabel = true;
+    sprite.visible = false;
+    return sprite;
+  }
+
+  let lastDiagnostics = {
+    requestedFurnitureCount: 0,
+    visibleFurnitureCount: 0,
+    fallbackFurnitureCount: 0,
+    failedFurniture: [],
+  };
+
+  function createFallbackFurnitureProxy(item, index, reason) {
+    const width = Math.max(Number(item.size_cm?.width || 120) / 100, 0.25);
+    const depth = Math.max(Number(item.size_cm?.depth || 60) / 100, 0.25);
+    const height = Math.max(Number(item.size_cm?.height || 80) / 100, 0.25);
+    const wrapper = new THREE.Group();
+    const material = new THREE.MeshStandardMaterial({
+      color: item.material_override?.color
+        || lastSceneData?.style_card?.palette_hex?.[2]
+        || 0xf4f1ec,
+      roughness: item.material_override?.pbr?.fabricRoughness || 0.84,
+      metalness: 0,
+    });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
+    body.position.y = height / 2;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    wrapper.add(body);
+
+    const outline = new THREE.LineSegments(
+      new THREE.EdgesGeometry(body.geometry),
+      new THREE.LineBasicMaterial({ color: 0x8b6b52, transparent: true, opacity: 0.72 }),
+    );
+    outline.position.copy(body.position);
+    wrapper.add(outline);
+    wrapper.position.x = Number(item.position_cm?.x || ((index % 4) - 1.5) * 130) / 100;
+    wrapper.position.z = Number(item.position_cm?.z || Math.floor(index / 4) * 110) / 100;
+    wrapper.rotation.y = THREE.MathUtils.degToRad(item.rotation_y_deg || 0);
+    wrapper.userData.sceneIndex = index + 1;
+    wrapper.userData.sceneObject = item;
+    wrapper.userData.fallbackFurniture = true;
+    wrapper.userData.fallbackReason = reason;
+
+    const marker = createNumberMarker(index + 1);
+    marker.position.set(0, height + 0.48, 0);
+    wrapper.add(marker);
+    const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
+    planLabel.position.set(0, height + 0.15, 0);
+    wrapper.add(planLabel);
+    furnitureGroup.add(wrapper);
+    return wrapper;
+  }
+
   async function loadScene(sceneData) {
+    onResize();
     lastSceneData = sceneData;
     dragState = null;
     selectedWrapper = null;
     selectedControls.hidden = true;
     disposeGuide();
     clearGroup(furnitureGroup);
+    applyRenderingProfile(sceneData);
     createRoom(sceneData);
     setStatus("正在生成 3D 場景...");
 
     const objects = sceneData.scene_objects || [];
     const failures = [];
+    lastDiagnostics = {
+      requestedFurnitureCount: objects.length,
+      visibleFurnitureCount: 0,
+      fallbackFurnitureCount: 0,
+      failedFurniture: [],
+    };
 
     await Promise.all(
       objects.map(async (item, index) => {
@@ -967,7 +2114,7 @@ export function createSceneViewer(container, statusElement) {
 
         try {
           const gltf = await loader.loadAsync(item.model_url);
-          applyStyleSkin(gltf.scene, sceneData);
+          applyStyleSkin(gltf.scene, sceneData, item);
           gltf.scene.traverse((object) => {
             if (object.isMesh) {
               object.castShadow = true;
@@ -989,6 +2136,9 @@ export function createSceneViewer(container, statusElement) {
           const marker = createNumberMarker(index + 1);
           marker.position.set(0, Math.max(itemSize.y + 0.48, 0.72), 0);
           wrapper.add(marker);
+          const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
+          planLabel.position.set(0, Math.max(itemSize.y + 0.15, 0.35), 0);
+          wrapper.add(planLabel);
           furnitureGroup.add(wrapper);
         } catch (error) {
           console.error(error);
@@ -996,6 +2146,32 @@ export function createSceneViewer(container, statusElement) {
         }
       })
     );
+
+    objects.forEach((item, index) => {
+      const visible = furnitureGroup.children.some(
+        (wrapper) => wrapper.userData.sceneObject === item,
+      );
+      if (visible) return;
+      if (item.placement_failed) {
+        lastDiagnostics.failedFurniture.push({
+          id: item.furniture_id,
+          reason: item.placement_reason || "家具位置無法通過碰撞與淨空檢查",
+        });
+        return;
+      }
+      const reason = item.model_url
+          ? "GLB 載入失敗，已顯示同尺寸白色替代物"
+          : "資料庫找不到 GLB，已顯示同尺寸白色替代物";
+      createFallbackFurnitureProxy(item, index, reason);
+      lastDiagnostics.failedFurniture.push({
+        id: item.furniture_id,
+        reason,
+      });
+    });
+    lastDiagnostics.visibleFurnitureCount = furnitureGroup.children.length;
+    lastDiagnostics.fallbackFurnitureCount = furnitureGroup.children.filter(
+      (wrapper) => wrapper.userData.fallbackFurniture === true,
+    ).length;
 
     if (failures.length) {
       setStatus(`場景已生成，但部分家具未載入：${failures.join("、")}`);
@@ -1010,11 +2186,26 @@ export function createSceneViewer(container, statusElement) {
   let selectedWrapper = null;
   let footprintGuide = null;
   let snapHint = null;
+  let placementRequest = null;
 
   const dragRaycaster = new THREE.Raycaster();
   const pointerNdc = new THREE.Vector2();
   const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const planeHit = new THREE.Vector3();
+  const walkMarker = new THREE.Mesh(
+    new THREE.RingGeometry(0.09, 0.14, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0x2f7d64,
+      transparent: true,
+      opacity: 0.86,
+      depthTest: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  walkMarker.rotation.x = -Math.PI / 2;
+  walkMarker.position.y = 0.025;
+  walkMarker.visible = false;
+  scene.add(walkMarker);
   const selectedControls = document.createElement("div");
   selectedControls.className = "scene-object-controls";
   selectedControls.hidden = true;
@@ -1022,8 +2213,8 @@ export function createSceneViewer(container, statusElement) {
     <div class="scene-object-controls-title">單件家具微調</div>
     <div class="scene-object-controls-grid">
       <button type="button" data-object-move="forward">前</button>
-      <button type="button" data-object-rotate="-90">左轉</button>
-      <button type="button" data-object-rotate="90">右轉</button>
+      <button type="button" data-object-rotate="-15" title="Shift+R 反向 15 度">左轉 15°</button>
+      <button type="button" data-object-rotate="15" title="R 旋轉 15 度">右轉 15°</button>
       <button type="button" data-object-move="left">左</button>
       <button type="button" data-object-move="back">後</button>
       <button type="button" data-object-move="right">右</button>
@@ -1038,6 +2229,136 @@ export function createSceneViewer(container, statusElement) {
     const rect = renderer.domElement.getBoundingClientRect();
     pointerNdc.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     pointerNdc.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  function setWalkDestinationFromPointer(event) {
+    if (viewMode.mode !== "walk") return false;
+    pointerToNdc(event);
+    dragRaycaster.setFromCamera(pointerNdc, perspectiveCamera);
+    if (!dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) return false;
+    const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6, wallHeight: 2.7 };
+    const destination = clampWalkPosition(
+      { x: planeHit.x, y: perspectiveCamera.position.y, z: planeHit.z },
+      room,
+    );
+    if (!walkPositionInsideFloor(destination)) {
+      walkDestination = null;
+      walkMarker.visible = false;
+      setStatus("請點選室內地板；室外與牆體範圍不能作為移動目的地。");
+      return false;
+    }
+    walkDestination = new THREE.Vector3(
+      destination.x,
+      perspectiveCamera.position.y,
+      destination.z,
+    );
+    walkMarker.position.set(destination.x, 0.025, destination.z);
+    walkMarker.visible = true;
+    setStatus("已設定室內移動位置；可拖曳畫面轉頭，或使用 WASD／方向鍵移動。");
+    return true;
+  }
+
+  function pointInRing(position, ring) {
+    if (!Array.isArray(ring) || ring.length < 3) return false;
+    let inside = false;
+    for (let current = 0, previous = ring.length - 1; current < ring.length; previous = current++) {
+      const currentPoint = ring[current];
+      const previousPoint = ring[previous];
+      const currentX = Number(Array.isArray(currentPoint) ? currentPoint[0] : currentPoint?.x);
+      const currentZ = Number(Array.isArray(currentPoint) ? currentPoint[1] : currentPoint?.z);
+      const previousX = Number(Array.isArray(previousPoint) ? previousPoint[0] : previousPoint?.x);
+      const previousZ = Number(Array.isArray(previousPoint) ? previousPoint[1] : previousPoint?.z);
+      if (![currentX, currentZ, previousX, previousZ].every(Number.isFinite)) continue;
+      const crosses = (currentZ > position.z) !== (previousZ > position.z);
+      const edgeX = ((previousX - currentX) * (position.z - currentZ))
+        / ((previousZ - currentZ) || Number.EPSILON) + currentX;
+      if (crosses && position.x < edgeX) inside = !inside;
+    }
+    return inside;
+  }
+
+  function walkPositionInsideFloor(position) {
+    const regions = lastSceneData?.floorplan?.room_regions || [];
+    if (!regions.length) return true;
+    return regions.some((region) => {
+      const exterior = region.exterior || region.polygon_m || [];
+      if (!pointInRing(position, exterior)) return false;
+      return !(region.holes || []).some((hole) => pointInRing(position, hole));
+    });
+  }
+
+  function walkPositionBlocked(position, clearanceM = 0.2) {
+    return (lastSceneData?.floorplan?.wall_segments || []).some((segment) => {
+      const start = segment.start;
+      const end = segment.end;
+      if (!start || !end) return false;
+      const dx = Number(end.x) - Number(start.x);
+      const dz = Number(end.z) - Number(start.z);
+      const lengthSquared = dx * dx + dz * dz;
+      if (lengthSquared < 0.0001) return false;
+      const projection = THREE.MathUtils.clamp(
+        ((position.x - Number(start.x)) * dx + (position.z - Number(start.z)) * dz)
+          / lengthSquared,
+        0,
+        1,
+      );
+      const closestX = Number(start.x) + projection * dx;
+      const closestZ = Number(start.z) + projection * dz;
+      return Math.hypot(position.x - closestX, position.z - closestZ) < clearanceM;
+    });
+  }
+
+  function beginWalkLook(event) {
+    if (viewMode.mode !== "walk" || event.button !== 0 || dragState || placementRequest) return;
+    pointerToNdc(event);
+    dragRaycaster.setFromCamera(pointerNdc, perspectiveCamera);
+    if (dragRaycaster.intersectObjects(furnitureGroup.children, true).length) return;
+    walkDestination = null;
+    walkMarker.visible = false;
+    const direction = controls.target.clone().sub(perspectiveCamera.position).normalize();
+    walkLookState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      anchorPosition: perspectiveCamera.position.clone(),
+      yaw: Math.atan2(direction.x, -direction.z),
+      pitch: Math.asin(THREE.MathUtils.clamp(direction.y, -1, 1)),
+      dragged: false,
+    };
+    renderer.domElement.setPointerCapture?.(event.pointerId);
+    renderer.domElement.style.cursor = "grabbing";
+  }
+
+  function updateWalkLook(event) {
+    if (!walkLookState || event.pointerId !== walkLookState.pointerId) return;
+    perspectiveCamera.position.copy(walkLookState.anchorPosition);
+    const deltaX = event.clientX - walkLookState.startX;
+    const deltaY = event.clientY - walkLookState.startY;
+    if (Math.hypot(deltaX, deltaY) > 5) walkLookState.dragged = true;
+    if (!walkLookState.dragged) return;
+    const yaw = walkLookState.yaw - deltaX * 0.005;
+    const pitch = THREE.MathUtils.clamp(
+      walkLookState.pitch - deltaY * 0.004,
+      -WALK_MAX_PITCH_RAD,
+      WALK_MAX_PITCH_RAD,
+    );
+    const cosPitch = Math.cos(pitch);
+    const direction = new THREE.Vector3(
+      Math.sin(yaw) * cosPitch,
+      Math.sin(pitch),
+      -Math.cos(yaw) * cosPitch,
+    );
+    controls.target.copy(perspectiveCamera.position).addScaledVector(direction, 2);
+  }
+
+  function finishWalkLook(event) {
+    if (!walkLookState || event.pointerId !== walkLookState.pointerId) return;
+    const wasDragged = walkLookState.dragged;
+    perspectiveCamera.position.copy(walkLookState.anchorPosition);
+    walkLookState = null;
+    renderer.domElement.releasePointerCapture?.(event.pointerId);
+    renderer.domElement.style.cursor = "grab";
+    if (!wasDragged) setWalkDestinationFromPointer(event);
   }
 
   function wrapperFromObject(object) {
@@ -1212,6 +2533,17 @@ export function createSceneViewer(container, statusElement) {
     }
   }
 
+  function selectObjectByIndex(index, { focus = true } = {}) {
+    const sceneIndex = Number(index) + 1;
+    const wrapper = furnitureGroup.children.find(
+      (candidate) => candidate.userData.sceneIndex === sceneIndex,
+    );
+    if (!wrapper) return false;
+    selectWrapper(wrapper);
+    if (focus) focusObject(wrapper);
+    return true;
+  }
+
   async function validatePlacement(item, positionCm, rotationDeg) {
     if (!lastSceneData) return { ok: false, reason: "場景未載入" };
     try {
@@ -1245,6 +2577,22 @@ export function createSceneViewer(container, statusElement) {
     if ((event.button !== 0 && event.button !== 2) || !lastSceneData || dragState) return;
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, camera);
+    if (placementRequest && event.button === 0) {
+      const callback = placementRequest;
+      placementRequest = null;
+      renderer.domElement.style.cursor = "";
+      if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
+        callback({
+          x: Math.round(planeHit.x * 10000) / 100,
+          z: Math.round(planeHit.z * 10000) / 100,
+        });
+      } else {
+        setStatus("沒有點到可擺放的地板，請重新選擇「新增到 3D」。");
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     const hits = dragRaycaster.intersectObjects(furnitureGroup.children, true);
     if (!hits.length) {
       selectWrapper(null);
@@ -1254,6 +2602,10 @@ export function createSceneViewer(container, statusElement) {
     if (!wrapper || !wrapper.userData.sceneObject) return;
 
     selectWrapper(wrapper);
+    if (!cameraLocked) {
+      setStatus("已選取家具；請先按「鎖定視角並編輯家具」再拖曳。");
+      return;
+    }
     dragRaycaster.ray.intersectPlane(floorPlane, planeHit);
     dragState = {
       wrapper,
@@ -1606,6 +2958,11 @@ export function createSceneViewer(container, statusElement) {
       material.transparent = transparent;
     });
     controls.enabled = true;
+    if (cameraLocked) {
+      controls.enableRotate = false;
+      controls.enablePan = false;
+      controls.enableZoom = true;
+    }
     renderer.domElement.style.cursor = selectedWrapper ? "grab" : "";
 
     const movedM = Math.hypot(wrapper.position.x - startPosition.x, wrapper.position.z - startPosition.z);
@@ -1767,7 +3124,7 @@ export function createSceneViewer(container, statusElement) {
     };
   }
 
-  async function rotateSelectedFromControls(deltaDeg = 90) {
+  async function rotateSelectedFromControls(deltaDeg = 15) {
     if (!selectedWrapper || dragState) {
       setStatus("請先點選一件家具。");
       return false;
@@ -1865,7 +3222,7 @@ export function createSceneViewer(container, statusElement) {
     }
     const rotateButton = event.target.closest("[data-object-rotate]");
     if (rotateButton) {
-      await rotateSelectedFromControls(Number(rotateButton.dataset.objectRotate) || 90);
+      await rotateSelectedFromControls(Number(rotateButton.dataset.objectRotate) || 15);
     }
   });
 
@@ -1874,7 +3231,7 @@ export function createSceneViewer(container, statusElement) {
     const tag = event.target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     event.preventDefault();
-    await rotateSelectedFromControls(event.shiftKey ? -90 : 90);
+    await rotateSelectedFromControls(event.shiftKey ? -15 : 15);
     return;
     if (!selectedWrapper || dragState) return;
     const item = selectedWrapper.userData.sceneObject;
@@ -1894,6 +3251,19 @@ export function createSceneViewer(container, statusElement) {
   });
 
   function updateWallVisibility() {
+    const presentation = viewPresentation(viewMode.mode);
+    if (!presentation.hideOccludingWalls) {
+      wallMeshes.forEach((wall) => {
+        wall.visible = true;
+        const materials = Array.isArray(wall.material) ? wall.material : [wall.material];
+        materials.filter(Boolean).forEach((material) => {
+          material.transparent = false;
+          material.opacity = 1;
+          material.depthWrite = true;
+        });
+      });
+      return;
+    }
     const targetVector = new THREE.Vector3().subVectors(controls.target, camera.position);
     const targetDistance = targetVector.length();
     if (targetDistance < 0.001) return;
@@ -1909,13 +3279,14 @@ export function createSceneViewer(container, statusElement) {
       const alignment = wallVector.normalize().dot(viewDirection);
       const wallBlocksRoom = alignment > 0.88 && wallDistance < targetDistance + 0.35;
       const wallTooClose = wallDistance < 1.65;
-      const targetOpacity = wallBlocksRoom || wallTooClose ? 0.16 : wall.userData.baseOpacity || 0.92;
+      const shouldHide = wallBlocksRoom || wallTooClose;
+      wall.visible = !shouldHide;
       const materials = Array.isArray(wall.material) ? wall.material : [wall.material];
 
       materials.filter(Boolean).forEach((material) => {
-        material.transparent = true;
-        material.opacity += (targetOpacity - material.opacity) * 0.14;
-        material.depthWrite = material.opacity > 0.38;
+        material.transparent = false;
+        material.opacity = wall.userData.baseOpacity || 1;
+        material.depthWrite = true;
       });
     });
   }
@@ -1923,18 +3294,99 @@ export function createSceneViewer(container, statusElement) {
   function onResize() {
     const width = container.clientWidth;
     const height = container.clientHeight;
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
+    if (width <= 0 || height <= 0) return;
+    perspectiveCamera.aspect = width / height;
+    perspectiveCamera.updateProjectionMatrix();
+    if (camera === orthographicCamera) {
+      const vertical = orthographicCamera.top - orthographicCamera.bottom;
+      orthographicCamera.left = -(vertical * width / height) / 2;
+      orthographicCamera.right = (vertical * width / height) / 2;
+      orthographicCamera.updateProjectionMatrix();
+    }
     renderer.setSize(width, height);
+    composer?.setSize(width, height);
   }
 
-  window.addEventListener("resize", onResize);
+  function beginPlacement(callback) {
+    if (typeof callback !== "function" || !lastSceneData) return false;
+    placementRequest = callback;
+    selectWrapper(null);
+    renderer.domElement.style.cursor = "crosshair";
+    setStatus("新增模式：請在 3D 地板上點選家具位置。");
+    return true;
+  }
 
-  renderer.setAnimationLoop(() => {
+  function cancelPlacement() {
+    placementRequest = null;
+    renderer.domElement.style.cursor = "";
+  }
+
+  renderer.domElement.addEventListener("pointerdown", beginWalkLook);
+  window.addEventListener("pointermove", updateWalkLook);
+  window.addEventListener("pointerup", finishWalkLook);
+  renderer.domElement.addEventListener("wheel", (event) => {
+    if (viewMode.mode !== "walk") return;
+    event.preventDefault();
+    perspectiveCamera.fov = THREE.MathUtils.clamp(
+      perspectiveCamera.fov + Math.sign(event.deltaY) * 3,
+      42,
+      75,
+    );
+    perspectiveCamera.updateProjectionMatrix();
+  }, { passive: false });
+
+  window.addEventListener("resize", onResize);
+  const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(onResize);
+  resizeObserver?.observe(container);
+  onResize();
+
+  window.addEventListener("keydown", (event) => {
+    if (viewMode.mode !== "walk") return;
+    const tag = document.activeElement?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    event.preventDefault();
+    walkKeys.add(event.key.toLowerCase());
+  });
+  window.addEventListener("keyup", (event) => walkKeys.delete(event.key.toLowerCase()));
+
+  renderer.setAnimationLoop((time) => {
+    updateWalkMovement();
     controls.update();
     updateWallVisibility();
-    renderer.render(scene, camera);
+    if (composer) composer.render();
+    else renderer.render(scene, camera);
+    if (performanceElement) {
+      performanceFrames += 1;
+      const elapsed = time - performanceWindowStart;
+      if (elapsed >= 1000) {
+        lastMeasuredFps = Math.round((performanceFrames * 1000) / elapsed);
+        performanceElement.textContent = `${lastMeasuredFps} FPS · HDR／GTAO／ACES`;
+        if (lastMeasuredFps < 30 && !reducedPixelRatio) {
+          reducedPixelRatio = true;
+          renderer.setPixelRatio(1);
+          onResize();
+          performanceElement.textContent = `${lastMeasuredFps} FPS · 已自動降低解析度維持互動`;
+        }
+        performanceFrames = 0;
+        performanceWindowStart = time;
+      }
+    }
   });
 
-  return { loadScene, resetCamera, setCameraPreset, focusObject, rotateSelected: rotateSelectedFromControls, toggleCeiling };
+  return {
+    loadScene,
+    resetCamera,
+    setCameraPreset,
+    setViewMode,
+    toggleCameraLock,
+    capturePng,
+    exportGlb,
+    focusObject,
+    selectObjectByIndex,
+    rotateSelected: rotateSelectedFromControls,
+    beginPlacement,
+    cancelPlacement,
+    toggleCeiling,
+    getDiagnostics,
+  };
 }

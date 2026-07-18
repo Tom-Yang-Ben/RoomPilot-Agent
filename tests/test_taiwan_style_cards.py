@@ -68,7 +68,7 @@ def test_scene_viewer_exposes_skin_lighting_and_interior_rotation_contract():
     viewer = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(encoding="utf-8")
     assert "applyStyleSkin" in viewer
     assert "style_card" in viewer
-    assert "createHangingLights" in viewer
+    assert "createStyleLights" in viewer
     assert "PointLight" in viewer
     assert "ceilingGroup.visible = false" in viewer
     assert "controls.enableRotate = true" in viewer

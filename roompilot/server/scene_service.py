@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
-from shapely.geometry import Polygon, box as shapely_box
+from shapely.geometry import Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
 from ..catalog.style_db import catalog_item_from_scene_object
@@ -17,7 +17,11 @@ from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
 from ..engine.geometry import furniture_polygon
 from ..engine.models import PlacedFurniture, Room, Wall
-from ..engine.placement import place_furniture
+from ..engine.placement import (
+    place_adjacent_to_furniture,
+    place_furniture,
+    place_overlay_on_furniture,
+)
 from ..upgrade3d.dxf_parser import parse_dxf_bytes
 from .style_cards import find_taiwan_style_card
 
@@ -478,6 +482,7 @@ def choose_furniture_items(
             if item.get("has_model")
             and item.get("furniture_id") not in used_ids
             and item.get("normalized_type") == required_type
+            and catalog_item_matches_type_semantics(item, required_type)
         ]
 
         if not candidates:
@@ -496,6 +501,60 @@ def choose_furniture_items(
         chosen.append(selected)
 
     return chosen, unavailable
+
+
+_BED_CONFLICT_TOKENS = (
+    "wardrobe",
+    "chest of",
+    "drawer",
+    "cabinet",
+    "cupboard",
+    "tv stand",
+    "bookcase",
+    "shelving",
+    "mirror",
+    "table",
+    "chair",
+    "sofa",
+    "stool",
+    "lamp",
+    "衣櫃",
+    "抽屜",
+    "櫃體",
+    "書櫃",
+)
+_BED_IDENTITY_TOKENS = (
+    "bed frame",
+    "double bed",
+    "single bed",
+    "king size bed",
+    "queen size bed",
+    "base para cama",
+    "床架",
+)
+
+
+def catalog_item_matches_type_semantics(item: dict[str, Any], requested_type: str) -> bool:
+    """阻擋型錄分類與模型語意明顯矛盾的候選，避免櫃體被當成床。"""
+    if requested_type not in {"bed", "bed-frame"}:
+        return True
+    name_text = " ".join(str(item.get(key) or "") for key in ("name_en", "name_zh_raw")).casefold()
+    evidence_text = " ".join(
+        str(item.get(key) or "")
+        for key in ("name_en", "name_zh_raw", "category_label", "source_archive", "source_archive_path", "zip_entry")
+    ).casefold()
+    has_conflict = any(token in evidence_text for token in _BED_CONFLICT_TOKENS)
+    has_bed_identity = any(token in name_text for token in _BED_IDENTITY_TOKENS)
+    if has_conflict and not has_bed_identity:
+        return False
+    if not has_bed_identity:
+        return False
+    size = item.get("size_cm") or {}
+    try:
+        height = float(size.get("height") or 0)
+    except (TypeError, ValueError):
+        height = 0
+    return height <= 150
 
 
 def selected_furniture_items_from_questionnaire(
@@ -543,7 +602,19 @@ def selected_furniture_items_from_questionnaire(
         merged["primary_style"] = raw.get("primary_style") or catalog_item.get("primary_style")
         merged["has_model"] = bool(raw.get("has_model") or catalog_item.get("has_model") or merged.get("model_url"))
 
-        if not merged["normalized_type"] or not merged["has_model"]:
+        user_confirmed_without_model = bool(
+            raw.get("position_locked")
+            or raw.get("user_specified")
+            or raw.get("source") == "roompilot_2d"
+        )
+        if (
+            not merged["normalized_type"]
+            or (not merged["has_model"] and not user_confirmed_without_model)
+            or (
+                merged["has_model"]
+                and not catalog_item_matches_type_semantics(merged, merged["normalized_type"])
+            )
+        ):
             continue
 
         selected.append(merged)
@@ -601,10 +672,14 @@ def _placement_candidates(
         candidates.extend([(center_x, center_z + 12, 0), (center_x, center_z - 18, 0)])
     elif item_type == "armchair":
         candidates.extend([(right - width / 2 - 30, center_z + 35, -35), (left + width / 2 + 30, center_z + 35, 35)])
-    elif item_type == "bookcase":
-        candidates.extend([(left + width / 2 + 20, top + depth / 2 + 20, 90), (right - width / 2 - 20, top + depth / 2 + 20, -90)])
+    elif item_type in {"bookcase", "wardrobe", "cabinet", "storage-cabinet"}:
+        candidates.extend([
+            (left + depth / 2 + 10, center_z, 90),
+            (right - depth / 2 - 10, center_z, -90),
+            (center_x, top + depth / 2 + 10, 0),
+        ])
     elif item_type in {"bed", "bed-frame", "sofa-bed"}:
-        candidates.extend([(center_x, bottom - depth / 2 - 32, 180), (left + width / 2 + 28, center_z, 90)])
+        candidates.extend([(center_x, bottom - depth / 2 - 10, 180), (left + width / 2 + 10, center_z, 90)])
     elif item_type == "bedside-table":
         candidates.extend([(right - width / 2 - 22, bottom - depth / 2 - 34, 0), (left + width / 2 + 22, bottom - depth / 2 - 34, 0)])
     elif item_type == "desk":
@@ -619,6 +694,18 @@ def _placement_candidates(
         candidates.extend([(right - width / 2 - 24, top + depth / 2 + 24, 0), (left + width / 2 + 24, top + depth / 2 + 24, 0)])
     elif item_type == "wall-shelf":
         candidates.extend([(left + width / 2 + 15, top + depth / 2 + 12, 0), (right - width / 2 - 15, top + depth / 2 + 12, 0)])
+    elif item_type == "curtain":
+        candidates.extend([(center_x, top + depth / 2 + 14, 0), (right - width / 2 - 14, center_z, 90)])
+    elif item_type == "flower-pots-planter":
+        candidates.extend([
+            (right - width / 2 - 24, top + depth / 2 + 24, 0),
+            (left + width / 2 + 24, bottom - depth / 2 - 24, 0),
+        ])
+    elif item_type == "floor-lamp":
+        candidates.extend([
+            (left + width / 2 + 28, top + depth / 2 + 28, 0),
+            (right - width / 2 - 28, bottom - depth / 2 - 28, 0),
+        ])
     elif item_type in {"large-medium-rug", "runner-small-rug"}:
         candidates.extend([(center_x, center_z, 0), (center_x, center_z + 24, 0)])
     else:
@@ -633,8 +720,66 @@ def _placement_candidates(
     return candidates
 
 
-# 這些類型沿用舊行為,不參與碰撞(地毯在家具下方、壁架掛牆面)
-_IGNORE_COLLISION_TYPES = {"large-medium-rug", "runner-small-rug", "wall-shelf"}
+# 地毯可與目標家具重疊，但仍須由引擎驗證牆與房間邊界。
+_OVERLAY_TYPES = {"large-medium-rug", "runner-small-rug"}
+_IGNORE_COLLISION_TYPES = {"wall-shelf"}
+
+
+def curtain_window_hint(
+    floorplan: dict[str, Any] | None,
+    *,
+    room_width_cm: float,
+    room_depth_cm: float,
+    boundary: Polygon | None = None,
+) -> tuple[float, float, float, float] | None:
+    windows = (floorplan or {}).get("window_segments") or []
+    if not windows:
+        return None
+    selected = None
+    for window in windows:
+        start = window.get("start") or {}
+        end = window.get("end") or {}
+        midpoint = Point(
+            (float(start.get("x") or 0) + float(end.get("x") or 0)) / 2
+            + room_width_cm / 200,
+            (float(start.get("z") or 0) + float(end.get("z") or 0)) / 2
+            + room_depth_cm / 200,
+        )
+        if boundary is None or boundary.buffer(0.3).contains(midpoint):
+            selected = window
+            break
+    if selected is None:
+        return None
+
+    start = selected.get("start") or {}
+    end = selected.get("end") or {}
+    sx, sz = float(start.get("x") or 0), float(start.get("z") or 0)
+    ex, ez = float(end.get("x") or 0), float(end.get("z") or 0)
+    dx, dz = ex - sx, ez - sz
+    length_m = math.hypot(dx, dz)
+    if length_m < 0.1:
+        return None
+
+    midpoint_x, midpoint_z = (sx + ex) / 2, (sz + ez) / 2
+    inset_m = 0.14
+    normal_x, normal_z = -dz / length_m, dx / length_m
+    inward_point = None
+    for direction in (1, -1):
+        centered_x = midpoint_x + normal_x * inset_m * direction
+        centered_z = midpoint_z + normal_z * inset_m * direction
+        engine_point = Point(
+            centered_x + room_width_cm / 200,
+            centered_z + room_depth_cm / 200,
+        )
+        if boundary is None or boundary.buffer(0.02).contains(engine_point):
+            inward_point = centered_x, centered_z
+            break
+    if inward_point is None:
+        return None
+    x_cm, z_cm = inward_point[0] * 100, inward_point[1] * 100
+    rotation = math.degrees(math.atan2(dz, dx))
+    width_cm = min(max(length_m * 100 + 30, 80), max(room_width_cm, room_depth_cm), 500)
+    return x_cm, z_cm, rotation, width_cm
 
 
 def _room_boundary_polygon(room: Room) -> Polygon | None:
@@ -743,6 +888,91 @@ def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
     return Room(width=width, depth=depth, walls=walls)
 
 
+def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any], Room]:
+    """Convert the step-5 corner-origin editor state into the canonical 3D contract."""
+    width_cm = max(float(editor.get("width_cm") or 420), 240)
+    depth_cm = max(float(editor.get("depth_cm") or 360), 240)
+    width_m = width_cm / 100
+    depth_m = depth_cm / 100
+    half_width = width_m / 2
+    half_depth = depth_m / 2
+    structures = editor.get("structures") or {}
+
+    def centered_point(point: dict[str, Any] | None) -> dict[str, float]:
+        point = point or {}
+        return {
+            "x": round(float(point.get("x") or 0) - half_width, 4),
+            "z": round(float(point.get("y") or 0) - half_depth, 4),
+        }
+
+    def segment(item: dict[str, Any]) -> dict[str, Any]:
+        return {
+            **{
+                key: value
+                for key, value in item.items()
+                if key not in {"start", "end"}
+            },
+            "start": centered_point(item.get("start")),
+            "end": centered_point(item.get("end")),
+        }
+
+    wall_segments = [segment(item) for item in structures.get("walls") or []]
+    door_segments = [segment(item) for item in structures.get("doors") or []]
+    window_segments = [segment(item) for item in structures.get("windows") or []]
+    beam_segments = [segment(item) for item in structures.get("beams") or []]
+    columns = [
+        {
+            **{
+                key: value
+                for key, value in item.items()
+                if key != "center"
+            },
+            "center": centered_point(item.get("center")),
+        }
+        for item in structures.get("columns") or []
+    ]
+    room_regions = []
+    for room_data in editor.get("rooms") or []:
+        ring = []
+        for point in room_data.get("polygon_m") or []:
+            centered = centered_point(point)
+            ring.append([centered["x"], centered["z"]])
+        if len(ring) < 3:
+            continue
+        room_regions.append(
+            {
+                "room_id": str(room_data.get("id") or f"room-{len(room_regions) + 1}"),
+                "label": str(room_data.get("label") or "未命名空間"),
+                "room_type": str(room_data.get("type") or "default"),
+                "exterior": ring,
+                "holes": [],
+            }
+        )
+
+    floorplan = {
+        "width_cm": round(width_cm, 2),
+        "depth_cm": round(depth_cm, 2),
+        "room_height_cm": round(float(editor.get("room_height_cm") or 270), 2),
+        "source": "user_confirmed",
+        "wall_count": len(wall_segments),
+        "door_count": len(door_segments),
+        "window_count": len(window_segments),
+        "raw_segment_count": len(wall_segments),
+        "layers": [],
+        "wall_layers": [],
+        "door_layers": [],
+        "window_layers": [],
+        "wall_segments": wall_segments,
+        "plan_segments": wall_segments,
+        "door_segments": door_segments,
+        "window_segments": window_segments,
+        "beam_segments": beam_segments,
+        "columns": columns,
+        "room_regions": room_regions,
+    }
+    return floorplan, room_from_payload(floorplan)
+
+
 def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: float) -> PlacedFurniture:
     """payload 場景物件(公分、中心原點、three 旋轉) → 引擎 PlacedFurniture。"""
     size = obj.get("size_cm") or {}
@@ -812,6 +1042,55 @@ def _largest_region_boundary(floorplan: dict[str, Any] | None, room: Room) -> Po
     return best if shrunk.is_empty else shrunk
 
 
+def _region_boundary_by_id(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+    room_id: str | None,
+) -> Polygon | None:
+    """取得指定房間的可擺放邊界，避免修改小房間時誤用最大房間。"""
+    if not room_id:
+        return None
+    for region in (floorplan or {}).get("room_regions") or []:
+        if str(region.get("room_id")) != str(room_id):
+            continue
+        try:
+            def _shift(ring):
+                return [(p[0] + room.width / 2, p[1] + room.depth / 2) for p in ring]
+
+            polygon = Polygon(
+                _shift(region["exterior"]),
+                [_shift(hole) for hole in region.get("holes") or []],
+            )
+            if not polygon.is_valid:
+                polygon = polygon.buffer(0)
+            if polygon.is_empty:
+                return None
+            shrunk = polygon.buffer(-0.08)
+            return polygon if shrunk.is_empty else shrunk
+        except (KeyError, TypeError, ValueError):
+            return None
+    return None
+
+
+def scene_object_in_boundary(
+    item: dict[str, Any],
+    room: Room,
+    boundary: Polygon | None,
+) -> bool:
+    """以家具中心判斷所屬房間；貼牆家具可略跨內縮後的房間邊界。"""
+    if not item.get("position_cm") or item.get("placement_failed"):
+        return False
+    if boundary is None:
+        return True
+    position = item.get("position_cm") or {}
+    return boundary.buffer(0.12).contains(
+        Point(
+            (float(position.get("x") or 0) + room.width * 50) / 100,
+            (float(position.get("z") or 0) + room.depth * 50) / 100,
+        )
+    )
+
+
 def validate_single_placement(
     floorplan: dict[str, Any] | None,
     item: dict[str, Any],
@@ -828,6 +1107,9 @@ def validate_single_placement(
     if not _inside_boundary(moving, boundary):
         return {"ok": False, "reason": "超出房間範圍(需完整放在某一間房內,不能跨牆)"}
 
+    if item.get("normalized_type") in _OVERLAY_TYPES:
+        reason = check_placement_with_clearance(moving, room, [])
+        return {"ok": reason is None, "reason": reason}
     if item.get("normalized_type") in _IGNORE_COLLISION_TYPES:
         return {"ok": True, "reason": None}
 
@@ -847,6 +1129,8 @@ def generate_layout(
     room: Room | None = None,
     regions_boundary: Polygon | None = None,
     place_boundary: Polygon | None = None,
+    floorplan: dict[str, Any] | None = None,
+    preserve_existing_count: int = 0,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
@@ -871,6 +1155,7 @@ def generate_layout(
     half_d_cm = room_d_cm / 2
 
     placed: list[PlacedFurniture] = []
+    placed_by_type: dict[str, list[PlacedFurniture]] = {}
     results: dict[int, dict[str, Any]] = {}
 
     # 鎖定位置(使用者拖曳過)的先處理,避免被後放的家具擠掉
@@ -882,6 +1167,16 @@ def generate_layout(
         width = _size_cm(item, "width", 120)
         depth = _size_cm(item, "depth", 60)
         height = _size_cm(item, "height", 80)
+        curtain_hint = None
+        if item_type == "curtain":
+            curtain_hint = curtain_window_hint(
+                floorplan,
+                room_width_cm=room_w_cm,
+                room_depth_cm=room_d_cm,
+                boundary=boundary,
+            )
+            if curtain_hint:
+                width = curtain_hint[3]
         catalog = catalog_item_from_scene_object(
             item_type, item.get("name_zh_raw") or item.get("furniture_id"), width, depth, height
         )
@@ -892,25 +1187,111 @@ def generate_layout(
         rotation = 0.0
         failed_reason: str | None = None
         locked = False
+        kept_position = False
 
-        if item.get("position_locked") and item.get("position_cm"):
+        preserve_position = index < preserve_existing_count and item.get("position_cm")
+        if (item.get("position_locked") or preserve_position) and item.get("position_cm"):
             # 使用者手動擺過:位置仍合法就保留,不重排。
             # 驗證用「所有房間聯集」—— 使用者可能把家具拖到別的房間,重排不能把它踢掉
             candidate = _scene_object_to_placed(item, half_w_cm, half_d_cm)
-            ok = _inside_boundary(candidate, regions_boundary or boundary) and (
+            locked_boundary = regions_boundary or boundary
+            # 2D 貼牆家具允許落在房間內縮邊界的 12cm 容差內，否則換 GLB
+            # 後會被誤判超界並跳到其他房間。
+            if locked_boundary is not None:
+                locked_boundary = locked_boundary.buffer(0.12)
+            ok = _inside_boundary(candidate, locked_boundary) and (
                 item_type in _IGNORE_COLLISION_TYPES
+                or (
+                    item_type in _OVERLAY_TYPES
+                    and check_placement_with_clearance(candidate, room, []) is None
+                )
                 or check_placement_with_clearance(candidate, room, placed) is None
             )
             if ok:
                 x_cm = float(item["position_cm"].get("x") or 0)
                 z_cm = float(item["position_cm"].get("z") or 0)
                 rotation = float(item.get("rotation_y_deg") or 0)
-                locked = True
-                if item_type not in _IGNORE_COLLISION_TYPES:
+                locked = bool(item.get("position_locked"))
+                kept_position = True
+                if item_type not in _IGNORE_COLLISION_TYPES and item_type not in _OVERLAY_TYPES:
                     placed.append(candidate)
+                    placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
 
-        if locked:
+        if kept_position:
             pass
+        elif item_type in _OVERLAY_TYPES:
+            relation = item.get("placement_relation") or {}
+            target_types = relation.get("target_types") or ["sofa", "sofa-bed", "bed", "bed-frame"]
+            target = next(
+                (
+                    placed_by_type[target_type][-1]
+                    for target_type in target_types
+                    if placed_by_type.get(target_type)
+                    and _inside_boundary(
+                        placed_by_type[target_type][-1],
+                        boundary.buffer(0.12) if boundary is not None else None,
+                    )
+                ),
+                None,
+            )
+            if target is not None:
+                overlay = place_overlay_on_furniture(room, catalog, item_id, target)
+                engine_item = overlay["placed"] if overlay["success"] else None
+                if engine_item is not None and _inside_boundary(engine_item, boundary):
+                    x_cm = engine_item.pos_x * 100 - half_w_cm
+                    z_cm = engine_item.pos_y * 100 - half_d_cm
+                    rotation = (-engine_item.rotation) % 360
+                else:
+                    failed_reason = overlay["reason"] or "地毯超出房間或碰到牆面"
+                    x_cm, z_cm = 0.0, 0.0
+            else:
+                overlay = place_furniture(room, catalog, item_id, [])
+                engine_item = overlay["placed"] if overlay["success"] else None
+                if engine_item is not None and _inside_boundary(engine_item, boundary):
+                    x_cm = engine_item.pos_x * 100 - half_w_cm
+                    z_cm = engine_item.pos_y * 100 - half_d_cm
+                    rotation = (-engine_item.rotation) % 360
+                else:
+                    engine_item = _grid_place_in_boundary(catalog, item_id, room, [], boundary)
+                    if engine_item is not None:
+                        x_cm = engine_item.pos_x * 100 - half_w_cm
+                        z_cm = engine_item.pos_y * 100 - half_d_cm
+                        rotation = (-engine_item.rotation) % 360
+                    else:
+                        failed_reason = overlay["reason"] or "地毯找不到合法位置"
+                        x_cm, z_cm = 0.0, 0.0
+        elif (item.get("placement_relation") or {}).get("kind") == "adjacent":
+            relation = item.get("placement_relation") or {}
+            target_types = relation.get("target_types") or [
+                "sofa", "sofa-bed", "bed", "bed-frame", "desk", "dining-table",
+            ]
+            target = next(
+                (
+                    placed_by_type[target_type][-1]
+                    for target_type in target_types
+                    if placed_by_type.get(target_type)
+                    and _inside_boundary(
+                        placed_by_type[target_type][-1],
+                        boundary.buffer(0.12) if boundary is not None else None,
+                    )
+                ),
+                None,
+            )
+            adjacent = (
+                place_adjacent_to_furniture(room, catalog, item_id, target, placed)
+                if target is not None
+                else {"success": False, "placed": None, "reason": "房間內沒有可依附的主家具"}
+            )
+            engine_item = adjacent["placed"] if adjacent["success"] else None
+            if engine_item is not None and _inside_boundary(engine_item, boundary):
+                placed.append(engine_item)
+                placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
+                x_cm = engine_item.pos_x * 100 - half_w_cm
+                z_cm = engine_item.pos_y * 100 - half_d_cm
+                rotation = (-engine_item.rotation) % 360
+            else:
+                failed_reason = adjacent["reason"] or "主家具旁沒有合法位置"
+                x_cm, z_cm = 0.0, 0.0
         elif item_type in _IGNORE_COLLISION_TYPES:
             if item_type == "wall-shelf":
                 x_cm = -half_w_cm + width / 2 + 15
@@ -927,10 +1308,19 @@ def generate_layout(
                 x_cm = inner.x * 100 - half_w_cm
                 z_cm = inner.y * 100 - half_d_cm
         else:
-            for raw_x, raw_z, rot in _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm):
+            candidates = _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm)
+            if curtain_hint:
+                candidates.insert(0, curtain_hint[:3])
+            for raw_x, raw_z, rot in candidates:
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
-                cand_x = _clamp_axis(raw_x, -half_w_cm, half_w_cm, fp_w)
-                cand_z = _clamp_axis(raw_z, -half_d_cm, half_d_cm, fp_d)
+                wall_anchored = item_type in {
+                    "bed", "bed-frame", "sofa-bed", "sofa", "tv-bench",
+                    "bookcase", "wardrobe", "cabinet", "storage-cabinet",
+                    "sideboard", "desk",
+                }
+                clamp_margin = 10 if wall_anchored else 18
+                cand_x = _clamp_axis(raw_x, -half_w_cm, half_w_cm, fp_w, clamp_margin)
+                cand_z = _clamp_axis(raw_z, -half_d_cm, half_d_cm, fp_d, clamp_margin)
                 candidate = PlacedFurniture(
                     id=item_id,
                     catalog=catalog,
@@ -944,6 +1334,7 @@ def generate_layout(
                 ):
                     x_cm, z_cm, rotation = cand_x, cand_z, rot
                     placed.append(candidate)
+                    placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
                     break
             else:
                 result = place_furniture(room, catalog, item_id, placed)
@@ -954,6 +1345,7 @@ def generate_layout(
                     engine_item = _grid_place_in_boundary(catalog, item_id, room, placed, boundary)
                 if engine_item is not None:
                     placed.append(engine_item)
+                    placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
                     x_cm = engine_item.pos_x * 100 - half_w_cm
                     z_cm = engine_item.pos_y * 100 - half_d_cm
                     rotation = (-engine_item.rotation) % 360
@@ -968,6 +1360,10 @@ def generate_layout(
             "normalized_type": item_type,
             "model_url": item.get("model_url"),
             "primary_style": item.get("primary_style"),
+            "material": item.get("material"),
+            "price": item.get("price"),
+            "price_twd": item.get("price_twd"),
+            "price_ntd": item.get("price_ntd"),
             "size_cm": {"width": width, "depth": depth, "height": height},
             "footprint_cm": {"width": round(fp_w, 2), "depth": round(fp_d, 2)},
             "position_cm": {"x": round(x_cm, 2), "z": round(z_cm, 2)},
@@ -975,6 +1371,15 @@ def generate_layout(
             "position_locked": locked,
             "placement_failed": bool(failed_reason),
             "placement_reason": failed_reason,
+            "placement_engine": (
+                "boundary_rule"
+                if item_type in _IGNORE_COLLISION_TYPES
+                else "furniture_engine"
+            ),
+            "auto_decor_role": item.get("auto_decor_role"),
+            "auto_decor_room_id": item.get("auto_decor_room_id"),
+            "placement_relation": item.get("placement_relation"),
+            "placement_room_id": item.get("placement_room_id"),
         }
 
     return [results[i] for i in range(len(items))]
@@ -1024,6 +1429,15 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
     try:
         parsed = _flip_parsed_z(parse_dxf_bytes(dxf_text.encode("utf-8", errors="ignore"), "upload.dxf"))
         build = build_room_from_dxf(parsed)
+        bbox = parsed.get("bbox") or {}
+        plan_area = max(
+            (float(bbox.get("maxx", 0)) - float(bbox.get("minx", 0)))
+            * (float(bbox.get("maxz", 0)) - float(bbox.get("minz", 0))),
+            0.0,
+        )
+        selected_area = build.room.width * build.room.depth
+        if build.mode == "largest" and plan_area and selected_area / plan_area < 0.25:
+            build = build_room_from_dxf(parsed, mode="plan")
     except Exception:
         return None, None
 
@@ -1117,8 +1531,11 @@ def build_scene_payload(
 ) -> dict[str, Any]:
     parsed_floorplan = None
     engine_room = None
+    editor_floorplan = questionnaire.get("floorplan_editor")
     dxf_text = questionnaire.get("floorplan_dxf_text")
-    if dxf_text:
+    if isinstance(editor_floorplan, dict) and editor_floorplan:
+        parsed_floorplan, engine_room = floorplan_from_editor_payload(editor_floorplan)
+    elif dxf_text:
         parsed_floorplan, engine_room = parse_floorplan_with_engine(dxf_text)
 
     effective_width_cm = parsed_floorplan["width_cm"] if parsed_floorplan else room_width_cm
@@ -1137,7 +1554,10 @@ def build_scene_payload(
         questionnaire,
         site_payload["furniture"],
     )
-    if exact_selected_items:
+    if questionnaire.get("selected_furniture_exact") is True:
+        selected_items = exact_selected_items
+        unavailable_types = []
+    elif exact_selected_items:
         exact_ids = {item.get("furniture_id") for item in exact_selected_items}
         exact_types = {item.get("normalized_type") for item in exact_selected_items}
         selected_items = [
@@ -1196,6 +1616,7 @@ def build_scene_payload(
             "image_path": floorplan_path,
             "width_cm": effective_width_cm,
             "depth_cm": effective_depth_cm,
+            "room_height_cm": parsed_floorplan.get("room_height_cm", 270) if parsed_floorplan else 270,
             "source": parsed_floorplan["source"] if parsed_floorplan else "manual",
             "wall_count": parsed_floorplan["wall_count"] if parsed_floorplan else 0,
             "door_count": parsed_floorplan.get("door_count", 0) if parsed_floorplan else 0,
@@ -1209,6 +1630,8 @@ def build_scene_payload(
             "plan_segments": parsed_floorplan.get("plan_segments", []) if parsed_floorplan else [],
             "door_segments": parsed_floorplan.get("door_segments", []) if parsed_floorplan else [],
             "window_segments": parsed_floorplan["window_segments"] if parsed_floorplan else [],
+            "beam_segments": parsed_floorplan.get("beam_segments", []) if parsed_floorplan else [],
+            "columns": parsed_floorplan.get("columns", []) if parsed_floorplan else [],
             "room_regions": parsed_floorplan.get("room_regions", []) if parsed_floorplan else [],
         },
         "style": {

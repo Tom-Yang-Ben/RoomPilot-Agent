@@ -38,3 +38,19 @@ def test_external_furniture_zip_entry_uses_home_appliance_download_prefix(tmp_pa
     assert main._external_glb_bytes(item) == b"glTF-test-payload"
 
     main._external_zip_entry_lookup.cache_clear()
+
+
+def test_catalog_relative_glb_path_can_resolve_from_an_external_zip(tmp_path, monkeypatch):
+    zip_path = tmp_path / "downloaded-files-catalog.zip"
+    entry_name = "downloaded-files/tw/tw-beds/01 - Sample bed.glb"
+    _write_glb_zip(zip_path, entry_name)
+
+    monkeypatch.setattr(main, "_EXTERNAL_GLB_ZIP_SEARCH_DIRS", (tmp_path,))
+    main._external_zip_entry_lookup.cache_clear()
+
+    item = {"glb_relative_path": entry_name}
+
+    assert main._model_status(item)[0] is True
+    assert main._external_glb_bytes(item) == b"glTF-test-payload"
+
+    main._external_zip_entry_lookup.cache_clear()
