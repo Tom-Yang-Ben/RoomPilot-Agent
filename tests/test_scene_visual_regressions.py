@@ -65,7 +65,7 @@ def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation
     assert "walkKeys.add" in source
 
 
-def test_segment_walls_overlap_at_joints_and_create_real_top_caps() -> None:
+def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
     source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
@@ -73,7 +73,10 @@ def test_segment_walls_overlap_at_joints_and_create_real_top_caps() -> None:
         "function buildStructuralMembers", 1
     )[0]
 
-    assert "new THREE.BoxGeometry(length + wallThickness, wallHeight, wallThickness)" in wall_builder
+    assert "const openingIntervals" in wall_builder
+    assert "addWallSection(cursor, interval.from, 0, wallHeight)" in wall_builder
+    assert "buildOpeningAssembly" in wall_builder
+    assert 'roompilotArchitecturalDetail = "baseboard"' in wall_builder
     assert "const topCap = new THREE.Mesh(" in wall_builder
     assert "roomGroupRef.add(topCap)" in wall_builder
 
@@ -127,7 +130,7 @@ def test_generic_glb_material_gets_a_safe_furniture_role_fallback() -> None:
     assert result == {"bed": "fabric", "bookcase": "wood", "lamp": "metal", "unknown": None}
 
 
-def test_style_pack_tints_real_wall_and_floor_textures_without_removing_maps() -> None:
+def test_style_pack_preserves_real_texture_color_detail_with_subtle_tint() -> None:
     source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
@@ -138,8 +141,9 @@ def test_style_pack_tints_real_wall_and_floor_textures_without_removing_maps() -
     assert "map: colorMap" in source
     assert "!floorMaterial.userData.roompilotImageSurface" not in room_creation
     assert "!wallMaterial.userData.roompilotImageSurface" not in room_creation
-    assert "floorMaterial.color.set(floorColor)" in room_creation
-    assert "wallMaterial.color.set(wallColor)" in room_creation
+    assert "applySurfaceTint(floorMaterial, floorColor)" in room_creation
+    assert "applySurfaceTint(wallMaterial, wallColor)" in room_creation
+    assert "surfaceTint(" in source
 
 
 def test_material_schemes_explain_surface_and_furniture_changes() -> None:

@@ -9,6 +9,11 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { classifyMaterialSlot } from "./scene_material_schemes.js?v=20260712b";
+import {
+  furniturePbrProfile,
+  surfacePbrProfile,
+  surfaceTint,
+} from "./scene_pbr_contracts.js?v=20260719-real3d2";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { clampWalkPosition, computeExactModelScale, fallbackMaterialRole, viewPresentation } from "./scene_visual_contracts.js?v=20260718d";
 
@@ -65,6 +70,7 @@ export function createSceneViewer(container, statusElement) {
   let performanceWindowStart = globalThis.performance.now();
   let performanceFrames = 0;
   let reducedPixelRatio = false;
+  let gtaoRequested = true;
   if (composer) {
     gtaoPass.output = GTAOPass.OUTPUT.Default;
     gtaoPass.blendIntensity = 1.1;
@@ -74,10 +80,10 @@ export function createSceneViewer(container, statusElement) {
       thickness: 1,
       distanceFallOff: 1,
       scale: 1,
-      samples: 8,
+      samples: 6,
       screenSpaceRadius: true,
     });
-    gtaoPass.updatePdMaterial({ rings: 2, radiusExponent: 2, samples: 8 });
+    gtaoPass.updatePdMaterial({ rings: 2, radiusExponent: 2, samples: 6 });
     composer.addPass(renderPass);
     composer.addPass(gtaoPass);
     composer.addPass(outputPass);
@@ -224,6 +230,28 @@ export function createSceneViewer(container, statusElement) {
         sunEnergy: 5.4,
         sunPosition: [5.2, 6.2, 4.2],
       },
+      "warm-interior": {
+        background: 0xe9dfd2,
+        key: [4.5, 6.5, 3.2],
+        sky: 0xe8c9a6,
+        ground: 0x8b684d,
+        sun: 0xffc47d,
+        skyEnergy: 0.72,
+        groundEnergy: 0.42,
+        sunEnergy: 6.2,
+        sunPosition: [3.8, 4.8, 2.4],
+      },
+      "neutral-studio": {
+        background: 0xe5e6e4,
+        key: [-5.5, 8.5, 4.8],
+        sky: 0xdce4e8,
+        ground: 0xaaa49c,
+        sun: 0xfff1dc,
+        skyEnergy: 1.02,
+        groundEnergy: 0.46,
+        sunEnergy: 4.4,
+        sunPosition: [-4.2, 6.8, 3.6],
+      },
     };
     const hdrProfileId = hdrProfiles[lighting.hdr]
       ? lighting.hdr
@@ -241,9 +269,12 @@ export function createSceneViewer(container, statusElement) {
     scene.environmentIntensity = environmentIntensity;
     ambientLight.intensity = 0.75 * environmentIntensity;
     hemiLight.intensity = 0.85 * environmentIntensity;
+    hemiLight.color.set(hdrProfile.sky);
+    hemiLight.groundColor.set(hdrProfile.ground);
     keyLight.color.copy(lightColor);
     keyLight.intensity = Math.max(1.2, Number(lighting.keyLightLux || 360) / 220);
     fillLight.color.copy(lightColor).lerp(new THREE.Color(0xffffff), 0.35);
+    fillLight.intensity = Math.max(0.32, environmentIntensity * 0.62);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = Number(rendering.exposure) || 1.05;
     const shadowProfile = rendering.shadow || {};
@@ -253,11 +284,12 @@ export function createSceneViewer(container, statusElement) {
     keyLight.shadow.bias = Number(shadowProfile.bias) || -0.0008;
     keyLight.shadow.normalBias = Number(shadowProfile.normalBias) || 0.018;
     if (gtaoPass) {
-      gtaoPass.enabled = rendering.gtao?.enabled !== false;
+      gtaoRequested = rendering.gtao?.enabled !== false;
+      gtaoPass.enabled = gtaoRequested && ["walk", "orbit"].includes(viewMode.mode);
       gtaoPass.blendIntensity = Number(rendering.gtao?.intensity) || 1.1;
       gtaoPass.updateGtaoMaterial({
         radius: Number(rendering.gtao?.radius) || 0.35,
-        samples: 8,
+        samples: 6,
         screenSpaceRadius: true,
       });
     }
@@ -457,9 +489,17 @@ export function createSceneViewer(container, statusElement) {
 
   function getSurfaceModuleSize(surface, usage) {
     if (usage !== "floor") return { x: 1.8, y: 1.8 };
+    const physicalSize = String(surface.source_size || "")
+      .match(/([\d.]+)\s*x\s*([\d.]+)\s*cm/i);
+    if (physicalSize) {
+      return {
+        x: Math.max(0.45, Number(physicalSize[1]) / 100),
+        y: Math.max(0.45, Number(physicalSize[2]) / 100),
+      };
+    }
     if (surface.category === "tile") return { x: 0.6, y: 0.6 };
     if (surface.category === "wood_tile") return { x: 0.9, y: 0.9 };
-    return { x: 1.2, y: 1.2 };
+    return { x: 2.4, y: 2.4 };
   }
 
   function getContinuousSurfaceRepeat(surface, usage, spanX = 3, spanY = 3) {
@@ -487,19 +527,19 @@ export function createSceneViewer(container, statusElement) {
 
   function createSurfaceImageMaterial(surface, usage, options = {}) {
     const colorMap = createImageTexture(surface, usage, options.repeat);
-    const bumpMap = usage === "floor"
-      ? createImageTexture(surface, usage, options.repeat)
-      : null;
-    if (bumpMap) bumpMap.colorSpace = THREE.NoColorSpace;
-    const material = new THREE.MeshStandardMaterial({
-      color: options.color ?? 0xffffff,
+    const bumpMap = createImageTexture(surface, usage, options.repeat);
+    bumpMap.colorSpace = THREE.NoColorSpace;
+    const profile = surfacePbrProfile(surface, usage);
+    const material = new THREE.MeshPhysicalMaterial({
+      color: surfaceTint(options.color ?? "#ffffff", true),
       map: colorMap,
-      ...(bumpMap ? {
-        bumpMap,
-        bumpScale: 0.035,
-      } : {}),
-      roughness: options.roughness ?? 0.9,
-      metalness: options.metalness ?? 0.01,
+      bumpMap,
+      bumpScale: options.bumpScale ?? profile.bumpScale,
+      roughness: options.roughness ?? profile.roughness,
+      metalness: options.metalness ?? profile.metalness,
+      clearcoat: options.clearcoat ?? profile.clearcoat,
+      clearcoatRoughness: options.clearcoatRoughness ?? profile.clearcoatRoughness,
+      envMapIntensity: options.envMapIntensity ?? profile.envMapIntensity,
       side: options.side ?? THREE.FrontSide,
     });
     material.userData.roompilotImageSurface = true;
@@ -509,6 +549,14 @@ export function createSceneViewer(container, statusElement) {
       material.depthWrite = true;
     }
     return material;
+  }
+
+  function applySurfaceTint(material, color) {
+    if (!color || !material?.color) return;
+    material.color.set(surfaceTint(
+      color,
+      material.userData.roompilotImageSurface === true,
+    ));
   }
 
   function createWoodTexture(base, grain, seam, repeatX, repeatY) {
@@ -930,45 +978,223 @@ export function createSceneViewer(container, statusElement) {
     return wallMesh;
   }
 
-  function buildSegmentWalls(roomGroupRef, segments, wallMaterial, wallHeight, wallThickness) {
+  function buildSegmentWalls(
+    roomGroupRef,
+    segments,
+    wallMaterial,
+    wallHeight,
+    wallThickness,
+    doorSegments = [],
+    windowSegments = [],
+  ) {
+    const renderedOpenings = new Set();
+
     segments.forEach((segment) => {
       const start = segment.start;
       const end = segment.end;
       if (!start || !end) return;
 
-      const dx = end.x - start.x;
-      const dz = end.z - start.z;
+      const dx = Number(end.x) - Number(start.x);
+      const dz = Number(end.z) - Number(start.z);
       const length = Math.hypot(dx, dz);
       if (length < 0.04) return;
+      const unitX = dx / length;
+      const unitZ = dz / length;
+      const rotationY = Math.atan2(-dz, dx);
 
       const material = typeof wallMaterial === "function"
         ? wallMaterial(segment)
         : wallMaterial;
-      const wallMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(length + wallThickness, wallHeight, wallThickness),
-        material.clone(),
-      );
-      wallMesh.position.set((start.x + end.x) / 2, wallHeight / 2, (start.z + end.z) / 2);
-      wallMesh.rotation.y = Math.atan2(-dz, dx);
-      roomGroupRef.add(registerWall(wallMesh));
+      const openingIntervals = [...doorSegments.map((opening) => ({ opening, kind: "door" })),
+        ...windowSegments.map((opening) => ({ opening, kind: "window" }))]
+        .map(({ opening, kind }, index) => {
+          const openingStart = opening.start || {};
+          const openingEnd = opening.end || {};
+          const centerX = (Number(openingStart.x || 0) + Number(openingEnd.x || 0)) / 2;
+          const centerZ = (Number(openingStart.z || 0) + Number(openingEnd.z || 0)) / 2;
+          const relX = centerX - Number(start.x);
+          const relZ = centerZ - Number(start.z);
+          const along = relX * unitX + relZ * unitZ;
+          const perpendicular = Math.abs(relX * -unitZ + relZ * unitX);
+          if (perpendicular > Math.max(0.28, wallThickness * 2.4)) return null;
+          const measuredWidth = Math.hypot(
+            Number(openingEnd.x || 0) - Number(openingStart.x || 0),
+            Number(openingEnd.z || 0) - Number(openingStart.z || 0),
+          );
+          const width = Math.max(
+            Number(opening.width_m || opening.width || measuredWidth)
+              || (kind === "door" ? 0.9 : 1.2),
+            kind === "door" ? 0.68 : 0.5,
+          );
+          const from = Math.max(0, along - width / 2);
+          const to = Math.min(length, along + width / 2);
+          if (to - from < 0.24) return null;
+          return {
+            from,
+            to,
+            kind,
+            width: to - from,
+            opening,
+            key: opening.id || `${kind}-${index}-${centerX.toFixed(2)}-${centerZ.toFixed(2)}`,
+          };
+        })
+        .filter(Boolean)
+        .sort((left, right) => left.from - right.from);
 
-      /*
-      // 平面圖牆段在轉角處不一定精準相交；頂部封板同時遮住牆頂接縫。
-      */
+      const addWallSection = (from, to, bottom, height, sectionMaterial = material) => {
+        if (to - from < 0.025 || height < 0.025) return;
+        const center = (from + to) / 2;
+        const wallMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(to - from + 0.012, height, wallThickness),
+          sectionMaterial.clone(),
+        );
+        wallMesh.position.set(
+          Number(start.x) + unitX * center,
+          bottom + height / 2,
+          Number(start.z) + unitZ * center,
+        );
+        wallMesh.rotation.y = rotationY;
+        roomGroupRef.add(registerWall(wallMesh));
+      };
+
+      const trimMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xf5f1ea,
+        roughness: 0.62,
+        metalness: 0,
+        clearcoat: 0.08,
+        clearcoatRoughness: 0.68,
+      });
+      const addBaseboard = (from, to) => {
+        if (to - from < 0.04) return;
+        const center = (from + to) / 2;
+        const trim = new THREE.Mesh(
+          new THREE.BoxGeometry(to - from, 0.075, wallThickness + 0.022),
+          trimMaterial,
+        );
+        trim.position.set(
+          Number(start.x) + unitX * center,
+          0.038,
+          Number(start.z) + unitZ * center,
+        );
+        trim.rotation.y = rotationY;
+        trim.castShadow = true;
+        trim.receiveShadow = true;
+        trim.userData.roompilotArchitecturalDetail = "baseboard";
+        roomGroupRef.add(trim);
+      };
+
+      let cursor = 0;
+      openingIntervals.forEach((interval) => {
+        addWallSection(cursor, interval.from, 0, wallHeight);
+        addBaseboard(cursor, interval.from);
+        const openingHeight = interval.kind === "door"
+          ? Math.min(Number(interval.opening.height_m || 2.1), wallHeight - 0.08)
+          : Math.min(Number(interval.opening.head_height_m || 2.12), wallHeight - 0.08);
+        if (interval.kind === "window") {
+          const sillHeight = Math.min(Number(interval.opening.sill_height_m || 0.88), openingHeight - 0.35);
+          addWallSection(interval.from, interval.to, 0, sillHeight);
+          addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
+        } else {
+          addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
+        }
+        if (!renderedOpenings.has(interval.key)) {
+          buildOpeningAssembly(
+            roomGroupRef,
+            interval,
+            {
+              x: Number(start.x) + unitX * ((interval.from + interval.to) / 2),
+              z: Number(start.z) + unitZ * ((interval.from + interval.to) / 2),
+              rotationY,
+            },
+          );
+          renderedOpenings.add(interval.key);
+        }
+        cursor = Math.max(cursor, interval.to);
+      });
+      addWallSection(cursor, length, 0, wallHeight);
+      addBaseboard(cursor, length);
+
       const topCap = new THREE.Mesh(
         new THREE.BoxGeometry(length + wallThickness, 0.025, wallThickness),
         material.clone(),
       );
       topCap.position.set(
-        (start.x + end.x) / 2,
+        (Number(start.x) + Number(end.x)) / 2,
         wallHeight + 0.0125,
-        (start.z + end.z) / 2,
+        (Number(start.z) + Number(end.z)) / 2,
       );
-      topCap.rotation.y = wallMesh.rotation.y;
+      topCap.rotation.y = rotationY;
       topCap.castShadow = true;
       topCap.receiveShadow = true;
       roomGroupRef.add(topCap);
     });
+  }
+
+  function buildOpeningAssembly(roomGroupRef, interval, anchor) {
+    const isWindow = interval.kind === "window";
+    const frameMaterial = new THREE.MeshPhysicalMaterial({
+      color: isWindow ? 0xe9ecec : 0xb98c62,
+      roughness: isWindow ? 0.34 : 0.46,
+      metalness: isWindow ? 0.18 : 0,
+      clearcoat: 0.28,
+      clearcoatRoughness: 0.34,
+      envMapIntensity: 1,
+    });
+    const height = isWindow ? 1.18 : 2.05;
+    const centerY = isWindow ? 1.48 : height / 2;
+    const assembly = new THREE.Group();
+    assembly.position.set(anchor.x, 0, anchor.z);
+    assembly.rotation.y = anchor.rotationY;
+    assembly.userData.roompilotArchitecturalDetail = interval.kind;
+
+    if (isWindow) {
+      const glass = new THREE.Mesh(
+        new THREE.PlaneGeometry(interval.width * 0.92, height * 0.9),
+        new THREE.MeshPhysicalMaterial({
+          color: 0xd9edf2,
+          roughness: 0.08,
+          metalness: 0,
+          transmission: 0.88,
+          thickness: 0.01,
+          ior: 1.48,
+          transparent: true,
+          opacity: 0.34,
+          side: THREE.DoubleSide,
+          envMapIntensity: 1.35,
+        }),
+      );
+      glass.position.y = centerY;
+      glass.castShadow = false;
+      assembly.add(glass);
+      [
+        [interval.width, 0.045, 0, centerY - height / 2],
+        [interval.width, 0.045, 0, centerY + height / 2],
+        [0.045, height, -interval.width / 2, centerY],
+        [0.045, height, interval.width / 2, centerY],
+        [0.035, height, 0, centerY],
+      ].forEach(([width, frameHeight, x, y]) => {
+        const frame = new THREE.Mesh(
+          new THREE.BoxGeometry(width, frameHeight, 0.045),
+          frameMaterial,
+        );
+        frame.position.set(x, y, 0);
+        frame.castShadow = true;
+        assembly.add(frame);
+      });
+    } else {
+      const leaf = new THREE.Mesh(
+        new THREE.BoxGeometry(interval.width * 0.94, height, 0.045),
+        frameMaterial,
+      );
+      leaf.position.y = centerY;
+      leaf.rotation.y = THREE.MathUtils.degToRad(
+        interval.opening.opening_direction === "right" ? -58 : 58,
+      );
+      leaf.castShadow = true;
+      leaf.receiveShadow = true;
+      assembly.add(leaf);
+    }
+    roomGroupRef.add(assembly);
   }
 
   function buildStructuralMembers(roomGroupRef, floorplan, wallHeight) {
@@ -1323,8 +1549,8 @@ export function createSceneViewer(container, statusElement) {
       : Math.max(minZ, Math.min(maxZ, (Number(line[0].y) + Number(line[1].y)) / 2));
     const palette = sceneData.style_card?.palette_hex || sceneData.style?.palette_hex || [];
     const materials = [floorMaterial.clone(), floorMaterial.clone()];
-    if (materials[0].color) materials[0].color.set(palette[1] || 0xc9a77d);
-    if (materials[1].color) materials[1].color.set(palette[3] || 0x8b684b);
+    applySurfaceTint(materials[0], palette[1] || "#c9a77d");
+    applySurfaceTint(materials[1], palette[3] || "#8b684b");
     const parts = vertical
       ? [
           { width: split - minX, depth: maxZ - minZ, x: (minX + split) / 2, z: (minZ + maxZ) / 2 },
@@ -1367,9 +1593,7 @@ export function createSceneViewer(container, statusElement) {
         sceneData.surface_catalog,
         { widthM: width, depthM: depth },
       );
-      if (override.floor_color_hex && material.color) {
-        material.color.set(override.floor_color_hex);
-      }
+      applySurfaceTint(material, override.floor_color_hex);
       const polygon = override.room_polygon_m || [];
       let geometry;
       if (polygon.length >= 3) {
@@ -1416,13 +1640,30 @@ export function createSceneViewer(container, statusElement) {
           override.wall_option || "auto",
           sceneData.surface_catalog,
         );
-        if (override.wall_color_hex && material.color) {
-          material.color.set(override.wall_color_hex);
-        }
+        applySurfaceTint(material, override.wall_color_hex);
         cache.set(override.room_id, material);
       }
       return cache.get(override.room_id);
     };
+  }
+
+  function createFloorGeometry(floorplan, widthM, depthM) {
+    const exterior = floorplan?.room_regions?.[0]?.exterior || [];
+    if (exterior.length < 3) {
+      return new THREE.PlaneGeometry(widthM, depthM);
+    }
+    const shape = new THREE.Shape();
+    exterior.forEach((point, index) => {
+      const x = Number(Array.isArray(point) ? point[0] : point.x);
+      const z = Number(Array.isArray(point) ? point[1] : point.z);
+      if (!Number.isFinite(x) || !Number.isFinite(z)) return;
+      if (index === 0) shape.moveTo(x, -z);
+      else shape.lineTo(x, -z);
+    });
+    shape.closePath();
+    const geometry = new THREE.ShapeGeometry(shape);
+    geometry.computeVertexNormals();
+    return geometry;
   }
 
   function createRoom(sceneData) {
@@ -1448,17 +1689,39 @@ export function createSceneViewer(container, statusElement) {
     const floorPbr = sceneData.style?.pbr?.floor || {};
     const floorColor = sceneData.design_choices?.floor_color_hex
       || sceneData.style_card?.palette_hex?.[1];
-    if (floorColor && floorMaterial.color) floorMaterial.color.set(floorColor);
+    applySurfaceTint(floorMaterial, floorColor);
     if (floorPbr.roughness != null) floorMaterial.roughness = floorPbr.roughness;
     if (floorPbr.metalness != null) floorMaterial.metalness = floorPbr.metalness;
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(widthM, depthM),
+      createFloorGeometry(sceneData.floorplan, widthM, depthM),
       floorMaterial,
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
     floor.receiveShadow = true;
     roomGroup.add(floor);
+    const presentationGround = new THREE.Mesh(
+      new THREE.CircleGeometry(Math.max(widthM, depthM) * 1.15, 96),
+      new THREE.MeshPhysicalMaterial({
+        color: 0xe8e5df,
+        roughness: 0.96,
+        metalness: 0,
+        envMapIntensity: 0.28,
+      }),
+    );
+    presentationGround.rotation.x = -Math.PI / 2;
+    presentationGround.position.y = -0.032;
+    presentationGround.receiveShadow = true;
+    presentationGround.userData.roompilotArchitecturalDetail = "shadow-ground";
+    roomGroup.add(presentationGround);
+    const shadowExtent = Math.max(widthM, depthM) * 0.72 + 1;
+    keyLight.shadow.camera.left = -shadowExtent;
+    keyLight.shadow.camera.right = shadowExtent;
+    keyLight.shadow.camera.top = shadowExtent;
+    keyLight.shadow.camera.bottom = -shadowExtent;
+    keyLight.shadow.camera.near = 0.2;
+    keyLight.shadow.camera.far = 35;
+    keyLight.shadow.camera.updateProjectionMatrix();
     createRoomSurfaceOverrides(roomGroup, sceneData);
     createMaterialBoundarySurfaces(
       roomGroup,
@@ -1471,7 +1734,7 @@ export function createSceneViewer(container, statusElement) {
     const wallPbr = sceneData.style?.pbr?.wall || {};
     const wallColor = sceneData.design_choices?.wall_color_hex
       || sceneData.style_card?.palette_hex?.[0];
-    if (wallColor && wallMaterial.color) wallMaterial.color.set(wallColor);
+    applySurfaceTint(wallMaterial, wallColor);
     if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
     const wallSegments = sceneData.floorplan?.wall_segments || [];
@@ -1502,6 +1765,8 @@ export function createSceneViewer(container, statusElement) {
         wallMaterialResolver(sceneData, wallMaterial),
         wallHeight,
         wallThickness,
+        doorSegments,
+        windowSegments,
       );
     } else {
       const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthM, wallHeight, wallThickness), wallMaterial.clone());
@@ -1729,6 +1994,44 @@ export function createSceneViewer(container, statusElement) {
     });
   }
 
+  function physicalMaterialFrom(sourceMaterial) {
+    if (sourceMaterial.isMeshPhysicalMaterial) return sourceMaterial.clone();
+    const material = new THREE.MeshPhysicalMaterial({
+      color: sourceMaterial.color?.clone() || new THREE.Color(0xffffff),
+      map: sourceMaterial.map || null,
+      normalMap: sourceMaterial.normalMap || null,
+      normalScale: sourceMaterial.normalScale?.clone() || new THREE.Vector2(1, 1),
+      bumpMap: sourceMaterial.bumpMap || null,
+      bumpScale: sourceMaterial.bumpScale || 1,
+      roughnessMap: sourceMaterial.roughnessMap || null,
+      metalnessMap: sourceMaterial.metalnessMap || null,
+      aoMap: sourceMaterial.aoMap || null,
+      aoMapIntensity: sourceMaterial.aoMapIntensity || 1,
+      emissive: sourceMaterial.emissive?.clone() || new THREE.Color(0x000000),
+      emissiveMap: sourceMaterial.emissiveMap || null,
+      emissiveIntensity: sourceMaterial.emissiveIntensity || 1,
+      alphaMap: sourceMaterial.alphaMap || null,
+      transparent: sourceMaterial.transparent,
+      opacity: sourceMaterial.opacity,
+      side: sourceMaterial.side,
+      depthWrite: sourceMaterial.depthWrite,
+      roughness: sourceMaterial.roughness ?? 0.62,
+      metalness: sourceMaterial.metalness ?? 0,
+    });
+    material.name = sourceMaterial.name;
+    return material;
+  }
+
+  function applyPhysicalFurnitureProfile(material, role) {
+    const profile = furniturePbrProfile(role);
+    Object.entries(profile).forEach(([key, value]) => {
+      if (key in material && value != null) material[key] = value;
+    });
+    if (role === "fabric" && material.sheenColor) {
+      material.sheenColor.copy(material.color || new THREE.Color(0xffffff));
+    }
+  }
+
   function applyStyleSkin(root, sceneData, sceneObject = {}) {
     if (
       sceneData.use_original_materials
@@ -1743,10 +2046,11 @@ export function createSceneViewer(container, statusElement) {
       const sourceWasArray = Array.isArray(object.material);
       const materials = sourceWasArray ? object.material : [object.material];
       const styledMaterials = materials.map((sourceMaterial, index) => {
-        const material = sourceMaterial.clone();
+        const material = physicalMaterialFrom(sourceMaterial);
         const slotName = `${object.name || ""} ${material.name || ""}`.trim();
         const classifiedRole = classifyMaterialSlot(slotName);
         const role = classifiedRole === "unknown" ? fallbackMaterialRole(sceneObject.normalized_type) || "unknown" : classifiedRole;
+        applyPhysicalFurnitureProfile(material, role);
         const packMaterial = sceneObject.material_override;
         const packRoughness = role === "wood"
           ? packMaterial?.pbr?.woodRoughness
@@ -1776,6 +2080,7 @@ export function createSceneViewer(container, statusElement) {
           material.transparent = true;
           material.opacity = override.opacity ?? 0.32;
         }
+        material.needsUpdate = true;
         object.userData.roompilotSkinApplied = true;
         return material;
       });
@@ -1825,6 +2130,14 @@ export function createSceneViewer(container, statusElement) {
     });
   }
 
+  function configureCirculationForView(mode) {
+    roomGroup.traverse((object) => {
+      if (object.userData.roompilotCirculation) {
+        object.visible = mode === "topdown";
+      }
+    });
+  }
+
   function setViewMode(mode) {
     cameraLocked = false;
     const config = viewMode.setMode(mode);
@@ -1833,6 +2146,7 @@ export function createSceneViewer(container, statusElement) {
     controls.enabled = true;
     configureWallsForView(mode);
     configurePlanLabels(mode);
+    configureCirculationForView(mode);
     renderer.domElement.style.cursor = mode === "walk" ? "grab" : "";
     if (mode !== "walk") {
       walkDestination = null;
@@ -1888,6 +2202,11 @@ export function createSceneViewer(container, statusElement) {
       activeCameraPreset = "corner";
     }
     syncPostProcessingCamera();
+    if (gtaoPass) {
+      // Orthographic GTAO creates dark projection wedges; contact shadows cover
+      // the dollhouse while perspective modes retain full ambient occlusion.
+      gtaoPass.enabled = gtaoRequested && ["walk", "orbit"].includes(mode);
+    }
     onResize();
     return config;
   }
@@ -2038,6 +2357,45 @@ export function createSceneViewer(container, statusElement) {
     failedFurniture: [],
   };
 
+  let contactShadowTexture = null;
+
+  function getContactShadowTexture() {
+    if (contactShadowTexture) return contactShadowTexture;
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 256;
+    const context = canvas.getContext("2d");
+    const gradient = context.createRadialGradient(128, 128, 16, 128, 128, 126);
+    gradient.addColorStop(0, "rgba(0, 0, 0, 0.64)");
+    gradient.addColorStop(0.46, "rgba(0, 0, 0, 0.27)");
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 256, 256);
+    contactShadowTexture = new THREE.CanvasTexture(canvas);
+    contactShadowTexture.colorSpace = THREE.NoColorSpace;
+    return contactShadowTexture;
+  }
+
+  function addFurnitureContactShadow(wrapper, sizeCm = {}) {
+    const width = Math.max(Number(sizeCm.width || 80) / 100, 0.25);
+    const depth = Math.max(Number(sizeCm.depth || 60) / 100, 0.25);
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(width * 1.08, depth * 1.08),
+      new THREE.MeshBasicMaterial({
+        map: getContactShadowTexture(),
+        transparent: true,
+        opacity: 0.34,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.008;
+    shadow.renderOrder = 2;
+    shadow.userData.roompilotContactShadow = true;
+    wrapper.add(shadow);
+  }
+
   function createFallbackFurnitureProxy(item, index, reason) {
     const width = Math.max(Number(item.size_cm?.width || 120) / 100, 0.25);
     const depth = Math.max(Number(item.size_cm?.depth || 60) / 100, 0.25);
@@ -2069,6 +2427,7 @@ export function createSceneViewer(container, statusElement) {
     wrapper.userData.sceneObject = item;
     wrapper.userData.fallbackFurniture = true;
     wrapper.userData.fallbackReason = reason;
+    addFurnitureContactShadow(wrapper, item.size_cm || {});
 
     const marker = createNumberMarker(index + 1);
     marker.position.set(0, height + 0.48, 0);
@@ -2133,6 +2492,7 @@ export function createSceneViewer(container, statusElement) {
 
           const itemBox = new THREE.Box3().setFromObject(wrapper);
           const itemSize = itemBox.getSize(new THREE.Vector3());
+          addFurnitureContactShadow(wrapper, item.size_cm || {});
           const marker = createNumberMarker(index + 1);
           marker.position.set(0, Math.max(itemSize.y + 0.48, 0.72), 0);
           wrapper.add(marker);
@@ -3361,6 +3721,8 @@ export function createSceneViewer(container, statusElement) {
       if (elapsed >= 1000) {
         lastMeasuredFps = Math.round((performanceFrames * 1000) / elapsed);
         performanceElement.textContent = `${lastMeasuredFps} FPS · HDR／GTAO／ACES`;
+        const occlusionLabel = gtaoPass?.enabled ? "GTAO" : "接觸陰影";
+        performanceElement.textContent = `${lastMeasuredFps} FPS · HDR／${occlusionLabel}／ACES`;
         if (lastMeasuredFps < 30 && !reducedPixelRatio) {
           reducedPixelRatio = true;
           renderer.setPixelRatio(1);

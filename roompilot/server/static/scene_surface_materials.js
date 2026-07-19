@@ -12,8 +12,8 @@ const PRESET_SURFACE_IDS = Object.freeze({
     charcoal: "wall_ambientcg_tiles009",
   },
   floor: {
-    auto: "wood_cc0_wood_textures_planks039",
-    light_oak: "wood_cc0_wood_textures_planks039",
+    auto: "wood_cc0_wood_textures_woodfloor051",
+    light_oak: "wood_cc0_wood_textures_woodfloor051",
     herringbone_oak: "wood_cc0_wood_textures_planks033b",
     walnut: "wood_cc0_wood_textures_woodfloor039",
     stone_gray: "tile_ccity_tile_flooring_cwo111101",

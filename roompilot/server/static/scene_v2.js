@@ -1,5 +1,5 @@
-import { createSceneViewer } from "./scene_viewer.js?v=20260718-route2";
-import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260718-real-textures1";
+import { createSceneViewer } from "./scene_viewer.js?v=20260719-real3d5";
+import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   createWorkflow,
   restoreWorkflow,

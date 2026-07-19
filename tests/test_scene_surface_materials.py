@@ -33,11 +33,11 @@ def test_style_presets_resolve_to_real_catalog_textures() -> None:
     )
 
     assert result == {
-        "floorId": "wood_cc0_wood_textures_planks039",
+        "floorId": "wood_cc0_wood_textures_woodfloor051",
         "wallId": "wall_ambientcg_plaster006",
         "floorTexture": (
             "/static/surface_assets/_import_all/cc0-wood-textures/"
-            "ambientcg-Planks039.jpg"
+            "ambientcg-WoodFloor051.jpg"
         ),
         "wallTexture": (
             "/static/surface_assets/wall_materials_20260708/"
@@ -51,7 +51,15 @@ def test_scene_viewer_uses_image_texture_as_color_and_relief_maps() -> None:
 
     assert "map: colorMap" in source
     assert "bumpMap" in source
-    assert 'const bumpMap = usage === "floor"' in source
-    assert "bumpMap ? {" in source
+    assert "const bumpMap = createImageTexture" in source
+    assert "bumpScale: options.bumpScale ?? profile.bumpScale" in source
     assert "colorMap.clone()" not in source
     assert "roompilotImageSurface" in source
+
+
+def test_floor_texture_repeat_uses_catalog_physical_size() -> None:
+    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "surface.source_size" in source
+    assert "Number(physicalSize[1]) / 100" in source
+    assert "return { x: 2.4, y: 2.4 }" in source
