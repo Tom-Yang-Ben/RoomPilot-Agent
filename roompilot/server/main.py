@@ -86,7 +86,9 @@ STYLE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6style
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
 EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風格與JSON" / "external_furniture_import_index.json"
 DATASET_DIR = PROJECT_DIR / "dataset"
-PLAN_DIR = PROJECT_DIR / "testdata" / "pic" / "temp"
+# 樣品平面圖清單:testdata/dxf 含 floor01–21(floor21 = Demo 基準圖);
+# 舊值 testdata/pic/temp 只有 7 張外來圖,選單裡挑不到 Demo 基準圖
+PLAN_DIR = PROJECT_DIR / "testdata" / "dxf"
 SAMPLE_GLB_DIR = PROJECT_DIR / "testdata" / "sample_glb"
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
 MAX_FLOORPLAN_BYTES = 20 * 1024 * 1024
