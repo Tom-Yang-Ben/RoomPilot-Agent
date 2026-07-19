@@ -138,6 +138,7 @@ def run_recovery(
     place_fn: PlaceFn,
     complete: Optional[Complete] = None,
     max_iter: int = 3,
+    protected_ids: set[str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Agent 4 主入口。讀引擎的 placement_failed → 換小/移除/升級 → 重擺至收斂或到上限。
 
@@ -147,6 +148,7 @@ def run_recovery(
     - report:每筆修復動作 {furniture_id, type, action, from, to, message_zh}。
     """
     working = [dict(it) for it in selected_items]
+    protected_ids = protected_ids or set()
     report: list[dict[str, Any]] = []
     fail_counts: dict[Any, int] = {}
 
@@ -162,6 +164,16 @@ def run_recovery(
             fid = obj.get("furniture_id")
             item = next((it for it in working if it.get("furniture_id") == fid), None)
             if item is None:
+                continue
+            if fid in protected_ids:
+                report.append({
+                    "furniture_id": fid,
+                    "type": obj.get("normalized_type"),
+                    "action": "escalate",
+                    "from": _name(item),
+                    "to": None,
+                    "message_zh": f"使用者指定的「{_name(item)}」目前放不下，需由使用者調整位置或需求。",
+                })
                 continue
             fail_counts[fid] = fail_counts.get(fid, 0) + 1
             used_ids = {it.get("furniture_id") for it in working}

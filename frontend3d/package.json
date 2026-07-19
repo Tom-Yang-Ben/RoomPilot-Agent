@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "node --test src/*.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -15,7 +16,7 @@
     "three": "^0.160.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.0.3",
     "vite": "^8.1.0"
   }
 }

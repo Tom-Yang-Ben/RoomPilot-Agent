@@ -39,6 +39,7 @@ catalog = [
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.7",
     "pytest>=9.1.1",
 ]
 

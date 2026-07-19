@@ -36,3 +36,41 @@ def find_taiwan_style_card(cards: list[dict[str, Any]], card_id: str | None) -> 
         (card for style in cards for card in style.get("cards", []) if card.get("card_id") == card_id),
         None,
     )
+
+
+def style_card_render_intent(
+    styles: list[dict[str, Any]],
+    card_id: str,
+) -> dict[str, Any] | None:
+    """把展示色卡轉成穩定的場景契約；外部渲染器日後只需轉接此格式。"""
+    for style in styles:
+        for card in style.get("cards", []):
+            if card.get("card_id") != card_id:
+                continue
+            palette = list(card.get("palette_hex") or [])[:3]
+            if len(palette) != 3:
+                return None
+            return {
+                "schema_version": 1,
+                "card_id": card_id,
+                "style_id": style.get("scene_style_id") or style.get("style_id"),
+                "style_name_zh": style.get("style_name_zh"),
+                "card_name_zh": card.get("name_zh"),
+                "image_url": card.get("image_url"),
+                "palette_hex": palette,
+                "surfaces": {
+                    "wall_hex": palette[0],
+                    "floor_hex": palette[1],
+                    "accent_hex": palette[2],
+                },
+                "lighting": {
+                    "profile": "warm_residential",
+                    "temperature_k": 4000,
+                    "exposure": 1.0,
+                },
+                "renderer": {
+                    "provider": "browser_capture",
+                    "output": "png",
+                },
+            }
+    return None

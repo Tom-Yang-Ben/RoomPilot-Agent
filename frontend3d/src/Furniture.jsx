@@ -4,7 +4,12 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { snapPlacement, wallSegments } from './snap.js'
 
-export const furnitureUrl = (file) => `/api/furniture/${encodeURIComponent(file)}`
+export const furnitureUrl = (file) => {
+  const value = String(file || '')
+  return value.startsWith('/') || /^https?:\/\//i.test(value)
+    ? value
+    : `/api/furniture/${encodeURIComponent(value)}`
+}
 
 let SEQ = 1 // placed-item ids, unique for the page's lifetime
 
@@ -52,12 +57,95 @@ const Item = React.memo(function Item({ it, selected, onDown, onClick, onHover, 
   )
 })
 
+class FurnitureModelBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { failed: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children
+  }
+}
+
 const GHOST_FREE = new THREE.MeshStandardMaterial({
   color: '#6db4ff', transparent: true, opacity: 0.55, depthWrite: false,
 })
 const GHOST_SNAP = new THREE.MeshStandardMaterial({
   color: '#7fe0a0', transparent: true, opacity: 0.6, depthWrite: false,
 })
+
+function whiteSizeMetres(item) {
+  const width = Number(item?.sizeCm?.width) / 100
+  const depth = Number(item?.sizeCm?.depth) / 100
+  const height = Number(item?.sizeCm?.height) / 100
+  if (![width, depth, height].every((value) => Number.isFinite(value) && value > 0)) return null
+  return { width, depth, height }
+}
+
+function WhiteFurnitureItem({ item }) {
+  const size = whiteSizeMetres(item)
+  if (!size) return null
+  return (
+    <group position={[item.x, 0, item.z]} rotation={[0, item.yaw, 0]}>
+      <mesh position-y={size.height / 2} castShadow receiveShadow>
+        <boxGeometry args={[size.width, size.height, size.depth]} />
+        <meshStandardMaterial color="#f7f7f5" roughness={0.96} metalness={0} />
+      </mesh>
+    </group>
+  )
+}
+
+function MissingFurnitureItem({ item, selected = false, onDown, onClick, onHover }) {
+  const size = whiteSizeMetres(item) || { width: 0.8, depth: 0.8, height: 0.8 }
+  return (
+    <group
+      position={[item.x, 0, item.z]}
+      rotation={[0, item.yaw, 0]}
+      onPointerDown={(event) => onDown?.(event, item.id)}
+      onClick={(event) => onClick?.(event, item.id)}
+      onPointerOver={(event) => onHover?.(event, true)}
+      onPointerOut={(event) => onHover?.(event, false)}
+    >
+      <mesh position-y={size.height / 2} castShadow receiveShadow>
+        <boxGeometry args={[size.width, size.height, size.depth]} />
+        <meshStandardMaterial color="#d4a054" roughness={0.9} />
+      </mesh>
+      {selected && (
+        <mesh rotation-x={-Math.PI / 2} position-y={0.02}>
+          <planeGeometry args={[size.width + 0.15, size.depth + 0.15]} />
+          <meshBasicMaterial color="#4ea1ff" transparent opacity={0.35} depthWrite={false} />
+        </mesh>
+      )}
+    </group>
+  )
+}
+
+// 白模刻意不載入 GLB：型錄缺檔、材質或原始模型比例都不能影響第 ⑧ 步。
+// 只有具備合法公分尺寸、確實建立中性幾何的家具才回報為 visible。
+export function WhiteFurnitureLayer({ items = [], onDiagnostics }) {
+  const diagnostics = useMemo(() => {
+    const expectedInstanceIds = items.map((item) => String(item.id))
+    const visibleInstanceIds = items
+      .filter((item) => whiteSizeMetres(item))
+      .map((item) => String(item.id))
+    return { expectedInstanceIds, visibleInstanceIds }
+  }, [items])
+
+  useEffect(() => {
+    onDiagnostics?.(diagnostics)
+  }, [diagnostics, onDiagnostics])
+
+  return (
+    <group name="white-model-furniture">
+      {items.map((item) => <WhiteFurnitureItem key={item.id} item={item} />)}
+    </group>
+  )
+}
 
 function Ghost({ file, ghost, reportSize }) {
   const { node, size } = useFurnitureNode(file)
@@ -198,6 +286,7 @@ export default function FurnitureLayer({
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedRef.current != null) {
           const id = selectedRef.current
+          if (itemsRef.current.find((it) => it.id === id)?.userRequired) return
           setItems((arr) => arr.filter((it) => it.id !== id))
           setSelectedId(null)
         }
@@ -277,23 +366,41 @@ export default function FurnitureLayer({
           ? { ...it, x: drag.x, z: drag.z, yaw: drag.yaw }
           : it
         return (
-          <Suspense key={it.id} fallback={null}>
-            <Item
-              it={live}
-              selected={it.id === selectedId}
-              onDown={onItemDown}
-              onClick={onItemClick}
-              onHover={onItemHover}
-              reportSize={reportSize}
-            />
-          </Suspense>
+          <FurnitureModelBoundary
+            key={`${it.id}:${it.file}`}
+            fallback={(
+              <MissingFurnitureItem
+                item={live}
+                selected={it.id === selectedId}
+                onDown={onItemDown}
+                onClick={onItemClick}
+                onHover={onItemHover}
+              />
+            )}
+          >
+            <Suspense fallback={null}>
+              <Item
+                it={live}
+                selected={it.id === selectedId}
+                onDown={onItemDown}
+                onClick={onItemClick}
+                onHover={onItemHover}
+                reportSize={reportSize}
+              />
+            </Suspense>
+          </FurnitureModelBoundary>
         )
       })}
 
       {placing && ghost && (
-        <Suspense fallback={null}>
-          <Ghost key={placing} file={placing} ghost={ghost} reportSize={reportSize} />
-        </Suspense>
+        <FurnitureModelBoundary
+          key={`ghost:${placing}`}
+          fallback={null}
+        >
+          <Suspense fallback={null}>
+            <Ghost file={placing} ghost={ghost} reportSize={reportSize} />
+          </Suspense>
+        </FurnitureModelBoundary>
       )}
     </group>
   )

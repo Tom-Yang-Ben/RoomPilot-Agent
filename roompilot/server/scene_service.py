@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
-from shapely.geometry import LineString, Point, Polygon, box as shapely_box
+from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import unary_union
 
 from ..agent import design_layout_intent, run_recovery
@@ -17,8 +17,9 @@ from ..catalog.style_db import CLEARANCE_BY_TYPE, catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
 from ..engine.geometry import furniture_polygon
-from ..engine.models import PlacedFurniture, Room, Wall
+from ..engine.models import FurnitureCatalogItem, PlacedFurniture, Room, Wall
 from ..engine.placement import place_furniture
+from ..floorplan.room_analysis import derive_room_regions
 from ..upgrade3d.dxf_parser import parse_dxf_bytes
 from .style_cards import find_taiwan_style_card
 
@@ -867,15 +868,17 @@ def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
     width = max(float(floorplan.get("width_cm") or 420), 240)
     depth = max(float(floorplan.get("depth_cm") or 360), 240)
 
+    raw_walls = floorplan.get("wall_segments") or []
+    segment_factor = _segment_coordinate_factor(floorplan, raw_walls)
     walls: list[Wall] = []
-    for seg in floorplan.get("wall_segments") or []:
+    for seg in raw_walls:
         try:
             walls.append(
                 Wall(
-                    float(seg["start"]["x"]) * 100 + width / 2,
-                    float(seg["start"]["z"]) * 100 + depth / 2,
-                    float(seg["end"]["x"]) * 100 + width / 2,
-                    float(seg["end"]["z"]) * 100 + depth / 2,
+                    float(seg["start"]["x"]) * segment_factor + width / 2,
+                    float(seg["start"]["z"]) * segment_factor + depth / 2,
+                    float(seg["end"]["x"]) * segment_factor + width / 2,
+                    float(seg["end"]["z"]) * segment_factor + depth / 2,
                     thickness=6.0,
                 )
             )
@@ -885,6 +888,46 @@ def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
     if len(walls) < 3:
         return _four_wall_room(width, depth)
     return Room(width=width, depth=depth, walls=walls)
+
+
+def _segment_coordinate_factor(
+    floorplan: dict[str, Any] | None,
+    segments: list[dict[str, Any]],
+) -> float:
+    """歷史 client segments 可能是公尺或公分；統一回傳轉成公分的倍率。
+
+    正式契約是公尺（倍率 100）。2026-07 的部分辨識結果曾把同一欄位輸出成
+    公分；若座標跨度明顯大於公尺 bbox，就視為相容格式（倍率 1）。判斷集中在
+    Python/engine 邊界，避免前端或各功能各自猜單位。
+    """
+    if not segments:
+        return 100.0
+    bbox = (floorplan or {}).get("bbox") or {}
+    try:
+        bbox_span_m = max(
+            abs(float(bbox["maxx"]) - float(bbox["minx"])),
+            abs(float(bbox["maxz"]) - float(bbox["minz"])),
+        )
+        coordinates = [
+            abs(float(point[axis]))
+            for segment in segments
+            for point in (segment["start"], segment["end"])
+            for axis in ("x", "z")
+        ]
+        segment_lengths = [
+            math.hypot(
+                float(segment["end"]["x"]) - float(segment["start"]["x"]),
+                float(segment["end"]["z"]) - float(segment["start"]["z"]),
+            )
+            for segment in segments
+        ]
+    except (KeyError, TypeError, ValueError):
+        return 100.0
+    centimetre_shape = (
+        max(coordinates, default=0.0) > bbox_span_m * 10
+        or max(segment_lengths, default=0.0) > bbox_span_m * 2
+    )
+    return 1.0 if bbox_span_m > 0 and centimetre_shape else 100.0
 
 
 def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: float) -> PlacedFurniture:
@@ -956,15 +999,87 @@ def _largest_region_boundary(floorplan: dict[str, Any] | None, room: Room) -> Po
     return best if shrunk.is_empty else shrunk
 
 
+def _region_boundary_by_id(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+    room_id: str,
+) -> Polygon | None:
+    """指定 stable room_id 的可擺區域（引擎角落原點、公分、內縮 8 cm）。"""
+    for region in (floorplan or {}).get("room_regions") or []:
+        if str(region.get("room_id") or "") != str(room_id):
+            continue
+        try:
+            def _shift(ring):
+                return [
+                    (float(point[0]) * 100 + room.width / 2, float(point[1]) * 100 + room.depth / 2)
+                    for point in ring
+                ]
+
+            polygon = Polygon(
+                _shift(region["exterior"]),
+                [_shift(hole) for hole in region.get("holes") or []],
+            )
+            if not polygon.is_valid:
+                polygon = polygon.buffer(0)
+            if polygon.is_empty:
+                return None
+            shrunk = polygon.buffer(-8.0)
+            return polygon if shrunk.is_empty else shrunk
+        except (KeyError, TypeError, ValueError):
+            return None
+    return None
+
+
+def _door_clearance_obstacles(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+    door_segments: list[dict[str, Any]] | None,
+) -> list[PlacedFurniture]:
+    """把門線轉成不輸出的 90 cm 保守淨空障礙，供引擎防止家具擋門。"""
+    segments = door_segments or []
+    factor = _segment_coordinate_factor(floorplan, segments)
+    obstacles: list[PlacedFurniture] = []
+    for index, segment in enumerate(segments):
+        try:
+            x1 = float(segment["start"]["x"]) * factor + room.width / 2
+            z1 = float(segment["start"]["z"]) * factor + room.depth / 2
+            x2 = float(segment["end"]["x"]) * factor + room.width / 2
+            z2 = float(segment["end"]["z"]) * factor + room.depth / 2
+        except (KeyError, TypeError, ValueError):
+            continue
+        length = math.hypot(x2 - x1, z2 - z1)
+        if length < 20:
+            continue
+        obstacles.append(
+            PlacedFurniture(
+                id=f"__door_clearance_{index}",
+                catalog=FurnitureCatalogItem(
+                    type="door-clearance",
+                    name="門口淨空",
+                    width=max(length, 75.0),
+                    depth=90.0,
+                    height=1.0,
+                ),
+                pos_x=(x1 + x2) / 2,
+                pos_y=(z1 + z2) / 2,
+                rotation=math.degrees(math.atan2(z2 - z1, x2 - x1)),
+            )
+        )
+    return obstacles
+
+
 def validate_single_placement(
     floorplan: dict[str, Any] | None,
     item: dict[str, Any],
     others: list[dict[str, Any]],
+    *,
+    place_boundary: Polygon | None = None,
+    keep_door_clear: bool = False,
 ) -> dict[str, Any]:
     """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
     room = room_from_payload(floorplan)
     # 拖曳可放進「任何一間房」(聯集);沒有房間資訊才退回最大房間環
-    boundary = _regions_boundary(floorplan, room) or _shrunk_boundary(room)
+    boundary = place_boundary or _regions_boundary(floorplan, room) or _shrunk_boundary(room)
     half_w_cm = room.width / 2
     half_d_cm = room.depth / 2
 
@@ -980,6 +1095,10 @@ def validate_single_placement(
         for o in others
         if o.get("normalized_type") not in _IGNORE_COLLISION_TYPES and not o.get("placement_failed")
     ]
+    if keep_door_clear:
+        placed_others.extend(
+            _door_clearance_obstacles(floorplan, room, (floorplan or {}).get("door_segments"))
+        )
     reason = check_placement_with_clearance(moving, room, placed_others)
     return {"ok": reason is None, "reason": reason}
 
@@ -993,6 +1112,8 @@ def generate_layout(
     place_boundary: Polygon | None = None,
     hints: dict[str, dict[str, Any]] | None = None,
     window_segments: list[dict[str, Any]] | None = None,
+    door_segments: list[dict[str, Any]] | None = None,
+    floorplan: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
@@ -1033,7 +1154,11 @@ def generate_layout(
     # 輸出仍照原始 items 順序(以 results 對應),不動前端拿到的清單順序。
     def _order_key(i: int) -> tuple:
         locked_rank = 0 if items[i].get("position_locked") else 1
-        hint = (hints or {}).get(items[i].get("furniture_id")) or {}
+        hint = (
+            (hints or {}).get(items[i].get("instance_id"))
+            or (hints or {}).get(items[i].get("furniture_id"))
+            or {}
+        )
         priority = hint.get("priority")
         if isinstance(priority, int):
             return (locked_rank, 0, priority, 0.0, i)
@@ -1042,17 +1167,24 @@ def generate_layout(
 
     order = sorted(range(len(items)), key=_order_key)
 
-    placed: list[PlacedFurniture] = []
+    placed: list[PlacedFurniture] = _door_clearance_obstacles(
+        floorplan,
+        room,
+        door_segments,
+    )
     neighbors: dict[str, dict[str, float]] = {}  # 族系 → 已擺好的代表家具(成組用)
     results: dict[int, dict[str, Any]] = {}
 
     # 窗段(公尺、房間中心原點)→ 角落原點公分 LineString,靠牆家具背貼窗時跳過該槽位
     window_lines: list[LineString] = []
+    window_factor = _segment_coordinate_factor(floorplan, window_segments or [])
     for seg in window_segments or []:
         try:
             window_lines.append(LineString([
-                (float(seg["start"]["x"]) * 100 + half_w_cm, float(seg["start"]["z"]) * 100 + half_d_cm),
-                (float(seg["end"]["x"]) * 100 + half_w_cm, float(seg["end"]["z"]) * 100 + half_d_cm),
+                (float(seg["start"]["x"]) * window_factor + half_w_cm,
+                 float(seg["start"]["z"]) * window_factor + half_d_cm),
+                (float(seg["end"]["x"]) * window_factor + half_w_cm,
+                 float(seg["end"]["z"]) * window_factor + half_d_cm),
             ]))
         except (KeyError, TypeError, ValueError):
             continue
@@ -1066,8 +1198,11 @@ def generate_layout(
         catalog = catalog_item_from_scene_object(
             item_type, item.get("name_zh_raw") or item.get("furniture_id"), width, depth, height
         )
-        item_id = f"{item_type or 'item'}_{index + 1}"
-        hint = (hints or {}).get(item.get("furniture_id"))
+        item_id = str(item.get("instance_id") or f"{item_type or 'item'}_{index + 1}")
+        hint = (
+            (hints or {}).get(item.get("instance_id"))
+            or (hints or {}).get(item.get("furniture_id"))
+        )
 
         x_cm: float | None = None
         z_cm: float | None = None
@@ -1088,6 +1223,15 @@ def generate_layout(
                 z_cm = float(item["position_cm"].get("z") or 0)
                 rotation = float(item.get("rotation_y_deg") or 0)
                 locked = True
+                if item_type not in _IGNORE_COLLISION_TYPES:
+                    placed.append(candidate)
+            elif item.get("mobility") == "fixed":
+                # 既有固定家具不能被演算法偷偷移走；保留原位並明確回報衝突。
+                x_cm = float(item["position_cm"].get("x") or 0)
+                z_cm = float(item["position_cm"].get("z") or 0)
+                rotation = float(item.get("rotation_y_deg") or 0)
+                locked = True
+                failed_reason = "固定家具位置與房間邊界、門口淨空或其他家具衝突"
                 if item_type not in _IGNORE_COLLISION_TYPES:
                     placed.append(candidate)
 
@@ -1174,11 +1318,16 @@ def generate_layout(
 
         fp_w, fp_d = _rotated_footprint(width, depth, rotation)
         results[index] = {
+            "instance_id": item_id,
             "furniture_id": item["furniture_id"],
             "name_zh_raw": item.get("name_zh_raw"),
             "normalized_type": item_type,
             "model_url": item.get("model_url"),
             "primary_style": item.get("primary_style"),
+            "placement_room_id": item.get("placement_room_id"),
+            "user_required": bool(item.get("user_required")),
+            "selection_source": item.get("selection_source") or "rules",
+            "mobility": item.get("mobility") or "movable",
             "size_cm": {"width": width, "depth": depth, "height": height},
             "footprint_cm": {"width": round(fp_w, 2), "depth": round(fp_d, 2)},
             "position_cm": {"x": round(x_cm, 2), "z": round(z_cm, 2)},
@@ -1209,11 +1358,29 @@ def _flip_parsed_z(parsed: dict[str, Any]) -> dict[str, Any]:
         }
         for poly in parsed.get("wall_polys") or []
     ]
+    out["wall_solids"] = [
+        {
+            **solid,
+            "polys": [
+                {
+                    "exterior": flip_ring(poly.get("exterior") or []),
+                    "holes": [flip_ring(hole) for hole in poly.get("holes") or []],
+                }
+                for poly in solid.get("polys") or []
+            ],
+        }
+        for solid in parsed.get("wall_solids") or []
+    ]
     for key in ("windows", "doors"):
         out[key] = [
             {"x1": s["x1"], "z1": -s["z1"], "x2": s["x2"], "z2": -s["z2"]}
             for s in parsed.get(key) or []
         ]
+    out["texts"] = [
+        {**item, "x": item["x"], "z": -item["z"]}
+        for item in parsed.get("texts") or []
+        if "x" in item and "z" in item
+    ]
     # client 形式的線段({start:{x,z}, end:{x,z}},公分)一併翻轉,
     # /api/floorplan/recognize 直接把 parser 輸出回給前端畫圖時才不會鏡像
     for key in ("wall_segments", "plan_segments", "door_segments", "window_segments"):
@@ -1304,35 +1471,37 @@ def parse_floorplan_with_engine(
     windows = _convert(parsed.get("windows", []))
     stats = parsed.get("stats", {})
 
-    # 可擺放區域 = bbox 減去牆體實心區(自由空間),面積 ≥1m² 的每一塊當一個 region。
-    # 這對「有封閉房間」與「開放式牆線(如 floor01,沒有 holes)」兩種 DXF 都成立;
-    # 不能用 Room.walls 重建多邊形 —— fallback 模式下那是多個獨立環串接,會得到垃圾幾何。
+    # 房間拓樸統一走 floorplan.room_analysis；此處只把 parser 中心原點轉成
+    # 引擎選定房間的中心原點，避免辨識 API 與場景生成各算一套結果。
     room_regions = []
     try:
-        solids = []
-        for poly in parsed.get("wall_polys") or []:
-            shell = poly.get("exterior") or []
-            if len(shell) < 3:
-                continue
-            solid = Polygon(shell, [h for h in (poly.get("holes") or []) if len(h) >= 3])
-            if not solid.is_valid:
-                solid = solid.buffer(0)
-            if not solid.is_empty:
-                solids.append(solid)
-        bb = parsed["bbox"]
-        free = shapely_box(bb["minx"], bb["minz"], bb["maxx"], bb["maxz"]).difference(unary_union(solids))
-        pieces = list(free.geoms) if free.geom_type == "MultiPolygon" else [free]
         def _ring_to_payload(coords) -> list:
-            return [[round(p[0] - room_center_x, 3), round(p[1] - room_center_z, 3)] for p in coords]
+            return [
+                [round(point[0] - room_center_x, 3), round(point[1] - room_center_z, 3)]
+                for point in coords
+            ]
 
-        for piece in pieces:
-            if piece.is_empty or piece.area < 1.0:
-                continue
-            # 必須保留 interiors:牆體在自由空間裡是「洞」,丟掉洞家具就能疊在牆上
+        for region in derive_room_regions(parsed):
             room_regions.append(
                 {
-                    "exterior": _ring_to_payload(piece.exterior.coords),
-                    "holes": [_ring_to_payload(ring.coords) for ring in piece.interiors],
+                    **region,
+                    "exterior": _ring_to_payload(region.get("exterior") or []),
+                    "holes": [
+                        _ring_to_payload(ring)
+                        for ring in region.get("holes") or []
+                    ],
+                    "centroid": {
+                        "x": round(
+                            float(region.get("centroid", {}).get("x", 0))
+                            - room_center_x,
+                            3,
+                        ),
+                        "z": round(
+                            float(region.get("centroid", {}).get("z", 0))
+                            - room_center_z,
+                            3,
+                        ),
+                    },
                 }
             )
     except Exception:
@@ -1436,6 +1605,9 @@ def build_scene_payload(
         place_boundary=_place_bound,
         hints=hints,
         window_segments=_windows if questionnaire.get("keep_window_clear") else None,
+        door_segments=(parsed_floorplan or {}).get("door_segments")
+        if questionnaire.get("keep_door_clear") else None,
+        floorplan=parsed_floorplan,
     )
 
     # Agent 4:引擎放不下的家具 → 換更小同型號 / 移除 / 升級,重擺至收斂。
@@ -1450,6 +1622,9 @@ def build_scene_payload(
             place_boundary=_place_bound,
             hints=hints,
             window_segments=_windows if questionnaire.get("keep_window_clear") else None,
+            door_segments=(parsed_floorplan or {}).get("door_segments")
+            if questionnaire.get("keep_door_clear") else None,
+            floorplan=parsed_floorplan,
         )
 
     objects, selected_items, recovery = run_recovery(

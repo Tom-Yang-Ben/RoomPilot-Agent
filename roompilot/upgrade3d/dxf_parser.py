@@ -16,6 +16,11 @@ from ezdxf import path as ez_path
 from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
+try:  # package import; fallback keeps the documented direct self-check runnable
+    from .wall_openings import build_opening_wall_geometry
+except ImportError:  # pragma: no cover - exercised by ``python dxf_parser.py``
+    from wall_openings import build_opening_wall_geometry
+
 # Layer-name keyword classifiers (multilingual incl. CJK), matched as substrings
 # of the lowercased layer name. Order matters: window/door checked before wall.
 WIN_KW  = ("window", "win", "glaz", "glass", "窗", "fenetre", "fenster", "ventana")
@@ -111,6 +116,45 @@ def _collect(msp, dist):
     return segs, rings
 
 
+def _collect_texts(msp):
+    """收集 TEXT/MTEXT/ATTRIB 的文字與插入點，供房間語意標註使用。
+
+    幾何解析不依賴文字；任何壞掉的 block 或字型資料都只會略過，不會讓 DXF
+    主流程失敗。INSERT 內的虛擬實體已套用 block transform，可直接取座標。
+    """
+    texts = []
+
+    def leaf(entity):
+        entity_type = entity.dxftype()
+        if entity_type not in ("TEXT", "MTEXT", "ATTRIB", "ATTDEF"):
+            return
+        try:
+            value = entity.plain_text() if entity_type == "MTEXT" else entity.dxf.text
+            value = " ".join(str(value or "").split())
+            insert = entity.dxf.insert
+            if value:
+                texts.append({"text": value[:160], "x": float(insert.x), "y": float(insert.y)})
+        except Exception:
+            pass
+
+    def walk(entity):
+        if entity.dxftype() in ("INSERT", "POLYLINE", "MLINE"):
+            if entity.dxftype() == "INSERT":
+                for attrib in getattr(entity, "attribs", ()):
+                    leaf(attrib)
+            try:
+                for virtual in entity.virtual_entities():
+                    walk(virtual)
+            except Exception:
+                pass
+        else:
+            leaf(entity)
+
+    for entity in msp:
+        walk(entity)
+    return texts
+
+
 def _symbol_tol(thickness, span_m=None):
     """符號聚類容差。窗/門符號的內部線距隨「圖的整體比例」縮放——固定容差在
     小跨距模型(如 mm 版 config 比例的 4m 圖)會把相鄰兩個符號黏成一個。
@@ -184,6 +228,7 @@ def _process(doc, name, scale_m, thickness, height):
     dist = min(max(rough / 2000.0, 0.02), 5.0)
 
     segs, rings = _collect(msp, dist)
+    raw_texts = _collect_texts(msp)
     wall_segs = [s for s in (segs["wall"] or segs["all"]) if s[0] != s[1]]
     wall_rings = rings["wall"]
     fallback = not (segs["wall"] or wall_rings)
@@ -231,6 +276,14 @@ def _process(doc, name, scale_m, thickness, height):
     windows = _merge_window_segs(
         to_m(segs["window"] + group_segs(rings["window"])), thickness, span_m)
     doors   = to_m(segs["door"] + group_segs(rings["door"]))
+    texts = [
+        {
+            "text": item["text"],
+            "x": round((item["x"] - cx) * unit, 3),
+            "z": round((item["y"] - cy) * unit, 3),
+        }
+        for item in raw_texts
+    ]
     # 門符號(弧攤平後常是數十段)聚類成「幾組門」——stats 報組數才有意義,
     # doors 線段清單保留原樣供繪圖
     door_groups = len(_cluster_seg_groups(doors, _symbol_tol(thickness, span_m))) if doors else 0
@@ -308,7 +361,7 @@ def _process(doc, name, scale_m, thickness, height):
     # No room/footprint segmentation — robust per-room extraction from gappy CAD
     # needs a wall-graph solver, out of scope. `extent_area` is the plan's
     # bounding extent, not interior floor area.
-    return {
+    payload = {
         "name": name,
         "scale_basis": basis,
         "scale_m": round(span_m, 3),
@@ -323,15 +376,19 @@ def _process(doc, name, scale_m, thickness, height):
         "window_segments": window_segments,
         "bbox": {"minx": bx0, "minz": bz0, "maxx": bx1, "maxz": bz1},
         "wall_polys": wall_polys,
+        "texts": texts,
         "windows": windows,
         "doors": doors,
         "stats": {"wall_segments": len(walls), "wall_hatches": len(wall_rings),
                   "wall_polys": len(wall_polys),
                   "windows": len(windows), "doors": door_groups,
                   "door_segments": len(doors),
+                  "texts": len(texts),
                   "width_m": round(bx1 - bx0, 2), "depth_m": round(bz1 - bz0, 2),
                   "extent_area": round((bx1 - bx0) * (bz1 - bz0), 1)},
     }
+    payload.update(build_opening_wall_geometry(payload))
+    return payload
 
 
 def parse_dxf_file(path, scale_m=None, thickness=WALL_THICK, height=WALL_HEIGHT):
