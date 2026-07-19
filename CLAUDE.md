@@ -23,7 +23,7 @@ Team SSOT is `docs/01_專題進度/RoomPilot_現行版本總覽.md` — read it 
 | `scripts/` | IKEA 型錄管線(下載/清洗/驗證/合併/匯入 Postgres) | 見 README |
 | `examples/` | 退役參考:`demo_app`(走通骨架)、`demo_agent_flow.py`(Agent↔引擎介面範例+失敗詞彙表) | — |
 | `testdata/` | dxf/ dxf_scale/ json/ png/ pngans/ chk/ door/ pic/;floor21 = Demo 基準圖 | 資料 |
-| `dataset/` | 素材與資料原料:IKEA GLB 1,808 檔、`catalog_json/`(kai 型錄 JSON 池+manifests)、`style_rag/`(django 風格池)、地板材質包(2026-07-12 歸位) | 資料 |
+| `dataset/` | 素材與資料原料:IKEA GLB 1,517 檔(2026-07-19 實數,`git ls-files "*.glb" | wc -l`)、`catalog_json/`(kai 型錄 JSON 池+manifests)、`style_rag/`(django 風格池)、地板材質包(2026-07-12 歸位) | 資料 |
 | `docs/` | `01_專題進度/`(SSOT)、`04_契約與規格/`(schema/契約)、`05_狀態與稽核/`(各人狀態文件)、`archive/`;02/03 為組長本地筆記不進版控 | — |
 
 Dependencies: `pyproject.toml` + uv only(`requirements.txt` 已廢除)。Extras: `server` / `vision` / `catalog`。
