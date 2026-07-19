@@ -13,7 +13,8 @@ import {
   furniturePbrProfile,
   surfacePbrProfile,
   surfaceTint,
-} from "./scene_pbr_contracts.js?v=20260719-real3d2";
+} from "./scene_pbr_contracts.js?v=20260719-real3d14";
+import { openingBelongsToWall } from "./scene_architecture.js?v=20260719-real3d6";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { clampWalkPosition, computeExactModelScale, fallbackMaterialRole, viewPresentation } from "./scene_visual_contracts.js?v=20260718d";
 
@@ -531,7 +532,7 @@ export function createSceneViewer(container, statusElement) {
     bumpMap.colorSpace = THREE.NoColorSpace;
     const profile = surfacePbrProfile(surface, usage);
     const material = new THREE.MeshPhysicalMaterial({
-      color: surfaceTint(options.color ?? "#ffffff", true),
+      color: surfaceTint(options.color ?? "#ffffff", true, usage),
       map: colorMap,
       bumpMap,
       bumpScale: options.bumpScale ?? profile.bumpScale,
@@ -543,6 +544,7 @@ export function createSceneViewer(container, statusElement) {
       side: options.side ?? THREE.FrontSide,
     });
     material.userData.roompilotImageSurface = true;
+    material.userData.roompilotSurfaceUsage = usage;
     if (options.transparent) {
       material.transparent = true;
       material.opacity = options.opacity ?? 0.92;
@@ -556,6 +558,7 @@ export function createSceneViewer(container, statusElement) {
     material.color.set(surfaceTint(
       color,
       material.userData.roompilotImageSurface === true,
+      material.userData.roompilotSurfaceUsage || "generic",
     ));
   }
 
@@ -988,6 +991,7 @@ export function createSceneViewer(container, statusElement) {
     windowSegments = [],
   ) {
     const renderedOpenings = new Set();
+    const renderedJunctions = new Set();
 
     segments.forEach((segment) => {
       const start = segment.start;
@@ -1008,6 +1012,7 @@ export function createSceneViewer(container, statusElement) {
       const openingIntervals = [...doorSegments.map((opening) => ({ opening, kind: "door" })),
         ...windowSegments.map((opening) => ({ opening, kind: "window" }))]
         .map(({ opening, kind }, index) => {
+          if (!openingBelongsToWall(segment, opening, wallThickness)) return null;
           const openingStart = opening.start || {};
           const openingEnd = opening.end || {};
           const centerX = (Number(openingStart.x || 0) + Number(openingEnd.x || 0)) / 2;
@@ -1043,9 +1048,16 @@ export function createSceneViewer(container, statusElement) {
 
       const addWallSection = (from, to, bottom, height, sectionMaterial = material) => {
         if (to - from < 0.025 || height < 0.025) return;
-        const center = (from + to) / 2;
+        const seamOverlap = 0.006;
+        const sectionFrom = from <= 0.001
+          ? from - wallThickness * 0.52
+          : from - seamOverlap;
+        const sectionTo = to >= length - 0.001
+          ? to + wallThickness * 0.52
+          : to + seamOverlap;
+        const center = (sectionFrom + sectionTo) / 2;
         const wallMesh = new THREE.Mesh(
-          new THREE.BoxGeometry(to - from + 0.012, height, wallThickness),
+          new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness),
           sectionMaterial.clone(),
         );
         wallMesh.position.set(
@@ -1055,6 +1067,19 @@ export function createSceneViewer(container, statusElement) {
         );
         wallMesh.rotation.y = rotationY;
         roomGroupRef.add(registerWall(wallMesh));
+      };
+
+      const addJunctionCap = (endpoint) => {
+        const key = `${Number(endpoint.x).toFixed(2)}:${Number(endpoint.z).toFixed(2)}`;
+        if (renderedJunctions.has(key)) return;
+        renderedJunctions.add(key);
+        const cap = new THREE.Mesh(
+          new THREE.BoxGeometry(wallThickness * 1.08, wallHeight, wallThickness * 1.08),
+          material.clone(),
+        );
+        cap.position.set(Number(endpoint.x), wallHeight / 2, Number(endpoint.z));
+        cap.userData.roompilotArchitecturalDetail = "wall-junction-seal";
+        roomGroupRef.add(registerWall(cap));
       };
 
       const trimMaterial = new THREE.MeshPhysicalMaterial({
@@ -1113,6 +1138,8 @@ export function createSceneViewer(container, statusElement) {
       });
       addWallSection(cursor, length, 0, wallHeight);
       addBaseboard(cursor, length);
+      addJunctionCap(start);
+      addJunctionCap(end);
 
       const topCap = new THREE.Mesh(
         new THREE.BoxGeometry(length + wallThickness, 0.025, wallThickness),
@@ -1195,6 +1222,78 @@ export function createSceneViewer(container, statusElement) {
       assembly.add(leaf);
     }
     roomGroupRef.add(assembly);
+  }
+
+  function buildStandaloneOpeningAssemblies(
+    roomGroupRef,
+    doorSegments,
+    windowSegments,
+    wallMaterial,
+    wallHeight,
+    wallThickness,
+  ) {
+    [
+      ...doorSegments.map((opening) => ({ opening, kind: "door" })),
+      ...windowSegments.map((opening) => ({ opening, kind: "window" })),
+    ].forEach(({ opening, kind }) => {
+      const start = opening.start || {};
+      const end = opening.end || {};
+      const dx = Number(end.x || 0) - Number(start.x || 0);
+      const dz = Number(end.z || 0) - Number(start.z || 0);
+      const measuredWidth = Math.hypot(dx, dz);
+      if (measuredWidth < 0.04) return;
+      const openingWidth = Math.max(
+        Number(opening.width_m || opening.width || measuredWidth),
+        kind === "door" ? 0.68 : 0.5,
+      );
+      buildOpeningAssembly(
+        roomGroupRef,
+        {
+          kind,
+          width: openingWidth,
+          opening,
+        },
+        {
+          x: (Number(start.x || 0) + Number(end.x || 0)) / 2,
+          z: (Number(start.z || 0) + Number(end.z || 0)) / 2,
+          rotationY: Math.atan2(-dz, dx),
+        },
+      );
+      const isWindow = kind === "window";
+      const openingHeight = isWindow
+        ? Math.min(Number(opening.head_height_m || 2.12), wallHeight - 0.08)
+        : Math.min(Number(opening.height_m || 2.1), wallHeight - 0.08);
+      const sillHeight = isWindow
+        ? Math.min(Number(opening.sill_height_m || 0.88), openingHeight - 0.35)
+        : 0;
+      const addOpeningWallSection = (bottom, height, detail) => {
+        if (height < 0.025) return;
+        const section = new THREE.Mesh(
+          new THREE.BoxGeometry(
+            openingWidth + wallThickness * 2.1,
+            height,
+            wallThickness,
+          ),
+          wallMaterial.clone(),
+        );
+        section.position.set(
+          (Number(start.x || 0) + Number(end.x || 0)) / 2,
+          bottom + height / 2,
+          (Number(start.z || 0) + Number(end.z || 0)) / 2,
+        );
+        section.rotation.y = Math.atan2(-dz, dx);
+        section.userData.roompilotArchitecturalDetail = detail;
+        roomGroupRef.add(registerWall(section));
+      };
+      if (isWindow) {
+        addOpeningWallSection(0, sillHeight, "window-wall-sill");
+      }
+      addOpeningWallSection(
+        openingHeight,
+        wallHeight - openingHeight,
+        isWindow ? "window-wall-header" : "door-wall-header",
+      );
+    });
   }
 
   function buildStructuralMembers(roomGroupRef, floorplan, wallHeight) {
@@ -1647,11 +1746,9 @@ export function createSceneViewer(container, statusElement) {
     };
   }
 
-  function createFloorGeometry(floorplan, widthM, depthM) {
-    const exterior = floorplan?.room_regions?.[0]?.exterior || [];
-    if (exterior.length < 3) {
-      return new THREE.PlaneGeometry(widthM, depthM);
-    }
+  function polygonShape(region = {}, includeHoles = true) {
+    const exterior = region.exterior || [];
+    if (exterior.length < 3) return null;
     const shape = new THREE.Shape();
     exterior.forEach((point, index) => {
       const x = Number(Array.isArray(point) ? point[0] : point.x);
@@ -1661,6 +1758,118 @@ export function createSceneViewer(container, statusElement) {
       else shape.lineTo(x, -z);
     });
     shape.closePath();
+    if (includeHoles) {
+      (region.holes || []).forEach((ring) => {
+        if (!Array.isArray(ring) || ring.length < 3) return;
+        const hole = new THREE.Path();
+        ring.forEach((point, index) => {
+          const x = Number(Array.isArray(point) ? point[0] : point.x);
+          const z = Number(Array.isArray(point) ? point[1] : point.z);
+          if (!Number.isFinite(x) || !Number.isFinite(z)) return;
+          if (index === 0) hole.moveTo(x, -z);
+          else hole.lineTo(x, -z);
+        });
+        hole.closePath();
+        shape.holes.push(hole);
+      });
+    }
+    return shape;
+  }
+
+  function buildWallMass(roomGroupRef, floorplan, material, wallHeight) {
+    const wallMassRegions = (floorplan?.wall_polys || []).filter(
+      (region) => region?.exterior?.length >= 3,
+    );
+    if (!wallMassRegions.length) return false;
+
+    wallMassRegions.forEach((region) => {
+      const shape = polygonShape(region, true);
+      if (!shape) return;
+      const geometry = new THREE.ExtrudeGeometry(shape, {
+        depth: wallHeight,
+        bevelEnabled: false,
+        curveSegments: 1,
+      });
+      geometry.computeVertexNormals();
+      const wallMass = new THREE.Mesh(geometry, material.clone());
+      wallMass.rotation.x = -Math.PI / 2;
+      wallMass.userData.roompilotArchitecturalDetail = "continuous-wall-mass";
+      wallMass.userData.roompilotWallHeightAxis = "z";
+      wallMass.userData.fullScaleZ = wallMass.scale.z;
+      roomGroupRef.add(registerWall(wallMass));
+    });
+    return true;
+  }
+
+  function buildContinuousWallTopCaps(
+    roomGroupRef,
+    segments,
+    material,
+    wallHeight,
+    wallThickness,
+  ) {
+    const groups = new Map();
+    segments.forEach((segment) => {
+      const start = segment.start || {};
+      const end = segment.end || {};
+      const dx = Number(end.x || 0) - Number(start.x || 0);
+      const dz = Number(end.z || 0) - Number(start.z || 0);
+      const horizontal = Math.abs(dx) >= Math.abs(dz);
+      const fixed = horizontal
+        ? (Number(start.z || 0) + Number(end.z || 0)) / 2
+        : (Number(start.x || 0) + Number(end.x || 0)) / 2;
+      const from = horizontal
+        ? Math.min(Number(start.x || 0), Number(end.x || 0))
+        : Math.min(Number(start.z || 0), Number(end.z || 0));
+      const to = horizontal
+        ? Math.max(Number(start.x || 0), Number(end.x || 0))
+        : Math.max(Number(start.z || 0), Number(end.z || 0));
+      if (to - from < 0.04) return;
+      const key = `${horizontal ? "h" : "v"}:${(Math.round(fixed / 0.08) * 0.08).toFixed(2)}`;
+      if (!groups.has(key)) groups.set(key, { horizontal, fixed, intervals: [] });
+      groups.get(key).intervals.push({ from, to });
+    });
+
+    groups.forEach(({ horizontal, fixed, intervals }) => {
+      intervals.sort((left, right) => left.from - right.from);
+      const merged = [];
+      intervals.forEach((interval) => {
+        const current = merged.at(-1);
+        if (!current || interval.from - current.to > 1.25) {
+          merged.push({ ...interval });
+        } else {
+          current.to = Math.max(current.to, interval.to);
+        }
+      });
+      merged.forEach(({ from, to }) => {
+        const span = to - from + wallThickness;
+        const cap = new THREE.Mesh(
+          new THREE.BoxGeometry(
+            horizontal ? span : wallThickness,
+            0.028,
+            horizontal ? wallThickness : span,
+          ),
+          material.clone(),
+        );
+        cap.position.set(
+          horizontal ? (from + to) / 2 : fixed,
+          wallHeight + 0.014,
+          horizontal ? fixed : (from + to) / 2,
+        );
+        cap.userData.roompilotArchitecturalDetail = "continuous-wall-top-cap";
+        cap.castShadow = true;
+        cap.receiveShadow = true;
+        roomGroupRef.add(cap);
+      });
+    });
+  }
+
+  function createFloorGeometry(floorplan, widthM, depthM) {
+    const exterior = floorplan?.room_regions?.[0]?.exterior || [];
+    if (exterior.length < 3) {
+      return new THREE.PlaneGeometry(widthM, depthM);
+    }
+    const shape = polygonShape({ exterior }, false);
     const geometry = new THREE.ShapeGeometry(shape);
     geometry.computeVertexNormals();
     return geometry;
@@ -1758,7 +1967,31 @@ export function createSceneViewer(container, statusElement) {
 
     // 12 cm 接近住宅隔間牆；原先 4 cm 會讓雙線牆與轉角看起來像中空。
     const wallThickness = 0.12;
-    if (!singleRoomMode && wallSegments.length >= 2) {
+    const builtWallMass = !singleRoomMode && hasAccurateFloorplan
+      ? buildWallMass(
+        roomGroup,
+        sceneData.floorplan,
+        wallMaterial,
+        wallHeight,
+      )
+      : false;
+    if (builtWallMass) {
+      buildContinuousWallTopCaps(
+        roomGroup,
+        wallSegments,
+        wallMaterial,
+        wallHeight,
+        wallThickness,
+      );
+      buildStandaloneOpeningAssemblies(
+        roomGroup,
+        doorSegments,
+        windowSegments,
+        wallMaterial,
+        wallHeight,
+        wallThickness,
+      );
+    } else if (!builtWallMass && !singleRoomMode && wallSegments.length >= 2) {
       buildSegmentWalls(
         roomGroup,
         wallSegments,
@@ -1786,7 +2019,7 @@ export function createSceneViewer(container, statusElement) {
       buildFloorPlanOverlay(roomGroup, doorSegments, 0xb9773f, 0.82, 0.038);
       buildFloorPlanOverlay(roomGroup, windowSegments, 0x6f9eb4, 0.9, 0.044);
       buildCirculationRoute(roomGroup, sceneData.floorplan);
-    } else {
+    } else if (!builtWallMass) {
       const outline = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(widthM, wallHeight, depthM)),
         new THREE.LineBasicMaterial({ color: 0xb89264, transparent: true, opacity: 0.35 })
@@ -2111,11 +2344,14 @@ export function createSceneViewer(container, statusElement) {
 
   function configureWallsForView(mode) {
     wallMeshes.forEach((wall) => {
+      const heightAxis = wall.userData.roompilotWallHeightAxis || "y";
       if (mode === "topdown") {
-        wall.scale.y = 0.04;
+        if (heightAxis === "z") wall.scale.z = 0.04;
+        else wall.scale.y = 0.04;
         wall.position.y = 0.06;
       } else {
-        wall.scale.y = wall.userData.fullScaleY || 1;
+        if (heightAxis === "z") wall.scale.z = wall.userData.fullScaleZ || 1;
+        else wall.scale.y = wall.userData.fullScaleY || 1;
         wall.position.y = wall.userData.fullPositionY ?? wall.position.y;
       }
     });

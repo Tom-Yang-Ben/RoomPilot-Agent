@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=20260719-real3d5";
+import { createSceneViewer } from "./scene_viewer.js?v=20260719-real3d14";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   createWorkflow,
@@ -27,7 +27,7 @@ import {
   LIGHT_STYLES,
   STYLE_MATERIAL_OPTIONS,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=20260718-stylelive1";
+} from "./scene_style_packs.js?v=20260719-actual-palettes";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -839,6 +839,14 @@ function confirmedFloorplanEditor() {
     rooms: JSON.parse(JSON.stringify(state.rooms)),
     structures: JSON.parse(JSON.stringify(state.structures)),
   };
+}
+
+function hydrateSceneWallMass() {
+  if (!state.sceneData?.floorplan) return;
+  const confirmedPolys = state.confirmedFloorplan?.floorplan?.wall_polys || [];
+  if (!state.sceneData.floorplan.wall_polys?.length && confirmedPolys.length) {
+    state.sceneData.floorplan.wall_polys = JSON.parse(JSON.stringify(confirmedPolys));
+  }
 }
 
 function meterToPixel(point) {
@@ -3192,6 +3200,7 @@ async function restoreProject() {
       name: state.analysis?.filename || state.workflow.data.upload?.filename || "",
     });
     await recoverConfirmedFloorplan();
+    hydrateSceneWallMass();
     state.sourceUrl = state.sourceExtension === ".dxf"
       ? configureDxfPreview(state.analysis)
       : `/api/projects/${state.projectId}/floorplan/source?v=${Date.now()}`;

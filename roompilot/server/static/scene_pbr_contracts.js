@@ -28,10 +28,17 @@ function mixHex(from, to, amount) {
     channel + (end[index] - channel) * ratio));
 }
 
-export function surfaceTint(color, imageSurface) {
+function distanceFromWhite(color) {
+  const channels = parseHex(color);
+  return Math.hypot(...channels.map((channel) => 255 - channel)) / Math.sqrt(3 * 255 ** 2);
+}
+
+export function surfaceTint(color, imageSurface, usage = "generic") {
   if (!imageSurface) return String(color || "#ffffff");
-  // Keep the photographed albedo dominant while allowing a subtle StylePack cast.
-  return mixHex("#ffffff", color || "#ffffff", 0.05);
+  const contrast = distanceFromWhite(color || "#ffffff");
+  const base = usage === "wall" ? 0.52 : usage === "floor" ? 0.68 : 0.56;
+  const strength = base + contrast * (usage === "wall" ? 0.28 : 0.2);
+  return mixHex("#ffffff", color || "#ffffff", strength);
 }
 
 export function surfacePbrProfile(surface = {}, usage = "floor") {

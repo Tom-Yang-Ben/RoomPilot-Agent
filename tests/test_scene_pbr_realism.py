@@ -7,7 +7,9 @@ from test_scene_workflow import ROOT, run_workflow_script
 
 STATIC = ROOT / "roompilot" / "server" / "static"
 PBR_MODULE = STATIC / "scene_pbr_contracts.js"
+ARCHITECTURE_MODULE = STATIC / "scene_architecture.js"
 VIEWER = STATIC / "scene_viewer.js"
+STYLE_PACKS_MODULE = STATIC / "scene_style_packs.js"
 
 
 def test_image_surfaces_keep_texture_detail_and_use_physical_profiles() -> None:
@@ -32,6 +34,84 @@ def test_image_surfaces_keep_texture_detail_and_use_physical_profiles() -> None:
     assert result["wood"]["bumpScale"] > result["plaster"]["bumpScale"]
     assert result["tinted"].upper() != "#8B684B"
     assert result["procedural"].upper() == "#8B684B"
+
+
+def test_style_card_tints_remain_visibly_distinct_on_photographed_surfaces() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ surfaceTint }} from {json.dumps(PBR_MODULE.as_uri())};
+        const rgb = (hex) => [1, 3, 5].map((index) =>
+          Number.parseInt(hex.slice(index, index + 2), 16));
+        const distance = (left, right) => Math.hypot(
+          ...rgb(left).map((channel, index) => channel - rgb(right)[index])
+        );
+        const milkWhite = surfaceTint("#F8F0E5", true, "wall");
+        const milkTea = surfaceTint("#AA8062", true, "wall");
+        const paleOak = surfaceTint("#C3A17F", true, "floor");
+        const darkWalnut = surfaceTint("#6F5140", true, "floor");
+        console.log(JSON.stringify({{
+          wallDistance: distance(milkWhite, milkTea),
+          floorDistance: distance(paleOak, darkWalnut),
+        }}));
+        """
+    )
+
+    assert result["wallDistance"] >= 70
+    assert result["floorDistance"] >= 70
+
+
+def test_style_pack_palette_roles_match_the_reference_material_tiles() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ STYLE_PACKS }} from {json.dumps(STYLE_PACKS_MODULE.as_uri())};
+        const card = STYLE_PACKS.find((pack) => pack.id === "cream_3");
+        console.log(JSON.stringify({{
+          palette: card.palette,
+          wall: card.wall.color,
+          floor: card.floor.color,
+          furniture: card.furniture.color,
+          accent: card.furniture.accent,
+        }}));
+        """
+    )
+
+    assert result == {
+        "palette": ["#C4AC96", "#E5D9CD", "#B97E44", "#89572A"],
+        "wall": "#C4AC96",
+        "floor": "#B97E44",
+        "furniture": "#E5D9CD",
+        "accent": "#89572A",
+    }
+
+
+def test_openings_only_cut_their_confirmed_host_wall() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ openingBelongsToWall }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const host = {{
+          id: "wall-main",
+          start: {{ x: 0, z: 0 }},
+          end: {{ x: 4, z: 0 }},
+        }};
+        const adjacent = {{
+          id: "wall-adjacent",
+          start: {{ x: 2, z: -2 }},
+          end: {{ x: 2, z: 2 }},
+        }};
+        const door = {{
+          id: "door-1",
+          host_wall_id: "wall-main",
+          start: {{ x: 1.6, z: 0 }},
+          end: {{ x: 2.4, z: 0 }},
+        }};
+        console.log(JSON.stringify({{
+          host: openingBelongsToWall(host, door, 0.12),
+          adjacent: openingBelongsToWall(adjacent, door, 0.12),
+        }}));
+        """
+    )
+
+    assert result == {"host": True, "adjacent": False}
 
 
 def test_furniture_roles_receive_distinct_realistic_pbr_parameters() -> None:
@@ -80,6 +160,24 @@ def test_floor_is_clipped_to_cody_floorplan_exterior() -> None:
     assert "floorplan?.room_regions?.[0]?.exterior" in source
     assert "new THREE.ShapeGeometry(shape)" in source
     assert "createFloorGeometry(sceneData.floorplan, widthM, depthM)" in source
+
+
+def test_dxf_wall_mass_is_extruded_before_segment_fallback() -> None:
+    source = VIEWER.read_text(encoding="utf-8")
+
+    assert "function buildWallMass" in source
+    assert "new THREE.ExtrudeGeometry" in source
+    assert "floorplan?.wall_polys || []" in source
+    assert "const builtWallMass =" in source
+    assert "? buildWallMass(" in source
+    assert "if (!builtWallMass && !singleRoomMode" in source
+    assert 'roompilotWallHeightAxis = "z"' in source
+    assert 'heightAxis === "z"' in source
+    assert '"door-wall-header"' in source
+    assert '"window-wall-sill"' in source
+    assert '"window-wall-header"' in source
+    assert "function buildContinuousWallTopCaps" in source
+    assert '"continuous-wall-top-cap"' in source
 
 
 def test_orthographic_dollhouse_avoids_gtao_projection_artifacts() -> None:
