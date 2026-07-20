@@ -138,7 +138,7 @@ def _call_openrouter(brief: dict[str, Any], answer: str) -> dict[str, Any] | Non
     if not key or os.getenv("OPENROUTER_INTAKE_ENABLED") != "1": return None
     for model in _models():
         payload = {"model": model, "messages": _llm_messages(brief, answer), "temperature": 0.1, "max_tokens": 900}
-        request = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=json.dumps(payload, ensure_ascii=False).encode("utf-8"), headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json", "HTTP-Referer": "http://127.0.0.1:8000", "X-Title": "RoomPilot"}, method="POST")
+        request = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=json.dumps(payload, ensure_ascii=False).encode("utf-8"), headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json", "HTTP-Referer": "http://127.0.0.1:8002", "X-Title": "RoomPilot"}, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=8) as response:
                 body = json.loads(response.read().decode("utf-8"))

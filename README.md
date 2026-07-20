@@ -5,17 +5,18 @@ RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案�
 ## 快速上手(先看這裡)
 
 ```bash
-# 0. 需求:Python 3.12+、uv、Node.js(只有 frontend3d 需要)
+# 0. 需求:Python 3.12+、uv；只有修改 React 原始碼時需要 Node.js
 # 1. 安裝依賴(第一次或依賴變動後)
 uv sync --extra server --extra vision
 
 # 2. 啟動主網站 —— 必須在 repo 根目錄執行
 uv run --extra vision uvicorn roompilot.server.main:app --port 8002
 # 開 http://127.0.0.1:8002 → 首頁 /styles /library /scene /panorama
+# /scene 已是完整 React/R3F 流程，不必另開 5173
 # (--extra vision 供 PNG/JPG 平面圖辨識;省略也能跑,但 /api/floorplan/recognize 會回 503)
 
-# 3.(可選)R3F 3D 編輯器
-cd frontend3d && npm ci && npm run dev   # 會 proxy 到 :8002
+# 3.(只有修改前端時)重建由 FastAPI 交付的 R3F 產品頁
+cd frontend3d && npm ci && npm run build
 
 # 4.(可選)驗證安裝
 uv run pytest tests/ -q                                  # 引擎與資料契約測試
@@ -36,7 +37,8 @@ Windows 已有虛擬環境:`.venv\Scripts\python.exe -m uvicorn roompilot.server
 → 本機規則／OpenRouter 整理 JSON，再由使用者明確確認
 → Agent／本機規則逐房選件，家具引擎以公分計算單一 2D 配置
 → 使用者在 2D 拖曳／旋轉並經引擎驗證，確認後進入 3D 白模
-→ 在 3D 場景檢視並微調室內配置
+→ 在 3D 場景檢視並微調室內配置、鎖定視角
+→ 選擇色卡並儲存最終 PNG
 ```
 
 > 詳細規劃、分工與時程以團隊 SSOT《[RoomPilot_現行版本總覽](docs/01_專題進度/RoomPilot_現行版本總覽.md)》為準。
@@ -66,7 +68,7 @@ Windows 已有虛擬環境:`.venv\Scripts\python.exe -m uvicorn roompilot.server
 
 ### 專案建立與續作
 
-- `frontend3d` 第一次開啟會先要求建立專案，成功後進入上傳平面圖。
+- 8002 的 `/scene` 第一次開啟會先要求建立專案，成功後進入上傳平面圖；不需要另開 Vite 網頁。
 - 專案以 SQLite 儲存在 `.runtime/projects.sqlite3`；原始平面圖放在 `.runtime/uploads/`，兩者皆不進 Git。
 - 瀏覽器網址使用 `?project_id=...` 載入同一專案，`localStorage` 只作離線快取，伺服器資料才是正式版本。
 - 可用 `ROOMPILOT_RUNTIME_DIR=/absolute/path` 指定執行資料目錄；啟動不會自動掃描或匯入其他 worktree。
@@ -107,7 +109,7 @@ Windows 已有虛擬環境:`.venv\Scripts\python.exe -m uvicorn roompilot.server
 | `roompilot/catalog/` | 家具 catalog、風格與資料轉接 |
 | `roompilot/agent/` | Agent 擺放語意提示與失敗修復 |
 | `roompilot/server/` | FastAPI、專案 API、嚴格選件與 2D 配置協調 |
-| `frontend3d/` | React 2D 配置編輯器與 React Three Fiber 3D 編輯器 |
+| `frontend3d/` | `/scene` 的 React 全流程與 React Three Fiber 3D 編輯器；建置產物由 FastAPI 交付 |
 | `scripts/` | IKEA 型錄管線(下載/清洗/匯入) |
 | `dataset/` | 素材與資料原料:IKEA GLB、`catalog_json/`、`style_rag/`、材質包 |
 | `testdata/` | 測試圖資:dxf / dxf_scale / json / png / pngans 等,floor21 為 Demo 基準 |
@@ -122,7 +124,7 @@ Windows 已有虛擬環境:`.venv\Scripts\python.exe -m uvicorn roompilot.server
 uv run pytest tests/ -v
 ```
 
-目前完整測試基準為 `88 passed, 1 skipped`；`frontend3d` 另有 `21 passed`，驗證專案快取、上傳／校正／確認 revision、房型修正、門窗草稿與需求問卷契約。
+`frontend3d` 另以 `npm test` 驗證專案快取、上傳／同牆校尺／確認 revision、房型修正、門窗草稿、需求問卷與 2D 配置契約。
 
 ## 模型與私密檔案
 

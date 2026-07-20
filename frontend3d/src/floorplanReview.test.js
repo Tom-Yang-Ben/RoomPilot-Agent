@@ -92,6 +92,25 @@ test('scale endpoints snap to the nearest recognized wall line', () => {
   assert.equal(snapPointToWall(draft, { x: 0.75, z: 1.5 }, 0.1), null)
 })
 
+test('second scale endpoint is constrained to the wall selected by the first endpoint', () => {
+  const draft = makeFloorplanReviewDraft({
+    ...floorplan(),
+    wall_segments: [
+      { start: { x: -2, z: 1 }, end: { x: 2, z: 1 } },
+      { start: { x: 1, z: -1 }, end: { x: 1, z: 2 } },
+    ],
+  })
+  const start = snapPointToWall(draft, { x: 0.7, z: 1.04 }, 0.1)
+
+  const unconstrained = snapPointToWall(draft, { x: 1.02, z: 1.7 }, 0.1)
+  const constrained = snapPointToWall(draft, { x: 1.02, z: 1.7 }, 1, start.wall_index)
+
+  assert.equal(unconstrained.wall_index, 1)
+  assert.equal(constrained.wall_index, 0)
+  assert.equal(constrained.z, 1)
+  assert.equal(constrained.x, 1.02)
+})
+
 test('legacy centimetre wall segments are normalized against the metre bbox', () => {
   const draft = makeFloorplanReviewDraft({
     ...floorplan(),

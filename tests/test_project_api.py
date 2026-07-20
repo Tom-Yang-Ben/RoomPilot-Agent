@@ -27,6 +27,14 @@ def _create_project(client: TestClient, name: str = "王小姐住宅案") -> dic
     return response.json()["project"]
 
 
+def test_scene_route_delivers_the_single_built_react_workflow(client: TestClient) -> None:
+    response = client.get("/scene")
+
+    assert response.status_code == 200
+    assert "RoomPilot Studio｜AI 室內配置與 3D 提案" in response.text
+    assert '/static/frontend3d/assets/' in response.text
+
+
 def _png_bytes() -> bytes:
     output = io.BytesIO()
     Image.new("RGB", (8, 8), "white").save(output, format="PNG")

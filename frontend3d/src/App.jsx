@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import FloorplanReview from './FloorplanReview.jsx'
 import RequirementsQuestionnaire from './RequirementsQuestionnaire.jsx'
 import Layout2DReview from './Layout2DReview.jsx'
-import Scene from './Scene.jsx'
 import {
   calibrationPayload,
   confirmationPayload,
@@ -49,10 +48,177 @@ import {
 } from './project.js'
 import { flattenStyleCards, viewpointConfirmationPayload } from './proposal.js'
 
+const Scene = React.lazy(() => import('./Scene.jsx'))
+
 const DEFAULTS = { thickness: 0.18, height: 2.7 }
 const SHOW_DEFAULTS = { walls: true, windows: true, doors: true, floor: true, xray: true }
 const P0_FLOORPLAN_EXTENSIONS = ['.dxf', '.png']
 const MAX_FLOORPLAN_BYTES = 20 * 1024 * 1024
+
+const WORKFLOW_STEPS = [
+  { key: 'project', number: '01', label: '建立專案' },
+  { key: 'floorplan', number: '02', label: '辨識與比例' },
+  { key: 'requirements', number: '03', label: '需求問卷' },
+  { key: 'layout', number: '04', label: '2D 配置' },
+  { key: 'white', number: '05', label: '3D 白模' },
+  { key: 'viewpoint', number: '06', label: '微調與視角' },
+  { key: 'proposal', number: '07', label: '風格提案' },
+]
+
+function ProductHeader({ project = null, saveStatus = null, onNew = null }) {
+  return (
+    <header className="studio-topbar">
+      <a className="studio-brand" href="/" aria-label="RoomPilot 首頁">
+        <span className="studio-brand-mark" aria-hidden="true" />
+        <span>RoomPilot</span>
+      </a>
+      <nav className="studio-nav" aria-label="主要導覽">
+        <a href="/">探索功能</a>
+        <a href="/styles">風格類型</a>
+        <a href="/library">家具資料庫</a>
+        <a className="active" href="/scene">3D 場景展示</a>
+      </nav>
+      {project ? (
+        <div className="studio-project-pill" aria-label="目前專案">
+          <span><small>目前專案</small><strong>{project.name}</strong></span>
+          <i>{saveStatus}</i>
+          <button type="button" onClick={onNew}>＋ 新專案</button>
+        </div>
+      ) : (
+        <a className="studio-topbar-cta" href="#project-title">建立新專案</a>
+      )}
+    </header>
+  )
+}
+
+function WorkflowProgress({ current }) {
+  const currentIndex = Math.max(0, WORKFLOW_STEPS.findIndex((step) => step.key === current))
+  return (
+    <nav className="workflow-progress" aria-label="RoomPilot 使用者流程">
+      <ol>
+        {WORKFLOW_STEPS.map((step, index) => (
+          <li
+            key={step.key}
+            className={index < currentIndex ? 'complete' : index === currentIndex ? 'current' : ''}
+            aria-current={index === currentIndex ? 'step' : undefined}
+          >
+            <span>{index < currentIndex ? '✓' : step.number}</span>
+            <strong>{step.label}</strong>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}
+
+function UploadWorkspace({
+  uploadStage,
+  uploadStatus,
+  uploadBusy,
+  storedUploadName,
+  openrouterConsent,
+  setOpenrouterConsent,
+  thickness,
+  setThickness,
+  height,
+  setHeight,
+  onUpload,
+  error,
+}) {
+  const recognitionActive = uploadStage === 'uploading' || uploadStage === 'analyzing'
+  const sourceSaved = ['analyzing', 'review', 'ready'].includes(uploadStage)
+  const milestones = [
+    { label: '保存原始檔', detail: storedUploadName || '等待 DXF／PNG', state: sourceSaved ? 'done' : uploadStage === 'uploading' ? 'active' : 'pending' },
+    { label: '解析牆體', detail: '建立可編輯的牆線與空間邊界', state: uploadStage === 'analyzing' ? 'active' : ['review', 'ready'].includes(uploadStage) ? 'done' : 'pending' },
+    { label: '辨識門窗', detail: '標記開口並保留人工修正', state: uploadStage === 'analyzing' ? 'active' : ['review', 'ready'].includes(uploadStage) ? 'done' : 'pending' },
+    { label: '空間分區', detail: '提出房型與空間屬性建議', state: uploadStage === 'analyzing' ? 'active' : ['review', 'ready'].includes(uploadStage) ? 'done' : 'pending' },
+  ]
+
+  return (
+    <main className="upload-shell">
+      <header className="stage-intro">
+        <div>
+          <p className="eyebrow">ROOMPILOT · FLOOR PLAN INTAKE</p>
+          <h1>先讓空間被正確理解，<br />再開始設計。</h1>
+        </div>
+        <p>上傳後會清楚呈現辨識結果；你必須沿著一面已辨識的牆拉線並輸入真實距離，確認後才會進入需求問卷。</p>
+      </header>
+
+      <section className="upload-workspace">
+        <div className="upload-drop-card">
+          <div className="upload-card-heading">
+            <span className="upload-icon" aria-hidden="true">⌁</span>
+            <div><small>STEP 02</small><h2>上傳平面圖</h2></div>
+          </div>
+          <p>支援 DXF 與 PNG，單檔上限 20 MB。原始檔會綁定目前專案，重新開啟網址仍可續作。</p>
+          <label className={`upload-dropzone${uploadBusy ? ' disabled' : ''}`}>
+            <input
+              type="file"
+              accept=".dxf,.png,image/png,application/dxf"
+              disabled={uploadBusy}
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                event.target.value = ''
+                onUpload(file)
+              }}
+            />
+            <span className="upload-drop-graphic" aria-hidden="true"><i /><i /><i /></span>
+            <strong>{uploadBusy ? '正在處理平面圖…' : '選擇 DXF 或 PNG 平面圖'}</strong>
+            <small>{storedUploadName || '點擊選擇檔案，辨識完成前不會跳過任何確認步驟'}</small>
+          </label>
+
+          <label className="upload-ai-consent">
+            <input
+              type="checkbox"
+              checked={openrouterConsent}
+              disabled={uploadBusy}
+              onChange={(event) => setOpenrouterConsent(event.target.checked)}
+            />
+            <span><strong>允許 PNG 房型辨識使用 OpenRouter</strong><small>DXF 不會外送；AI 只提建議，牆、門、窗與房型仍由你確認。</small></span>
+          </label>
+
+          <details className="upload-advanced">
+            <summary>進階建模設定</summary>
+            <label>預估牆厚 <b>{Math.round(thickness * 100)} cm</b>
+              <input disabled={uploadBusy} type="range" min="5" max="50" step="1" value={thickness * 100}
+                onChange={(event) => setThickness(+event.target.value / 100)} />
+            </label>
+            <label>樓高 <b>{Math.round(height * 100)} cm</b>
+              <input disabled={uploadBusy} type="range" min="200" max="400" step="5" value={height * 100}
+                onChange={(event) => setHeight(+event.target.value / 100)} />
+            </label>
+          </details>
+          {error && <div className="stage-error" role="alert">{error}</div>}
+        </div>
+
+        <div className={`recognition-board${recognitionActive ? ' is-scanning' : ''}`} aria-live="polite">
+          <div className="recognition-visual" aria-hidden="true">
+            <div className="blueprint-room room-a" />
+            <div className="blueprint-room room-b" />
+            <div className="blueprint-room room-c" />
+            <div className="blueprint-door" />
+            <div className="blueprint-window" />
+            <div className="scan-line" />
+            <span>WALL</span><span>WINDOW</span><span>ROOM</span>
+          </div>
+          <div className="recognition-copy">
+            <small>辨識流程</small>
+            <h2>{recognitionActive ? '正在讀懂你的空間' : '辨識過程會顯示在這裡'}</h2>
+            <p>{uploadStatus}</p>
+          </div>
+          <ol className="recognition-milestones">
+            {milestones.map((milestone) => (
+              <li key={milestone.label} className={milestone.state}>
+                <span>{milestone.state === 'done' ? '✓' : ''}</span>
+                <div><strong>{milestone.label}</strong><small>{milestone.detail}</small></div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+    </main>
+  )
+}
 
 function floorplanExtension(file) {
   const filename = String(file?.name || '').toLowerCase()
@@ -69,45 +235,57 @@ function ProjectSetup({ busy, error, onCreate, onCancel }) {
   }
 
   return (
-    <main className="project-start">
-      <section className="project-card" aria-labelledby="project-title">
-        <div className="project-mark">RP</div>
-        <p className="eyebrow">ROOMPILOT · 01</p>
-        <h1 id="project-title">建立新專案</h1>
-        <p className="project-lead">先為這次提案命名。建立後會進入上傳平面圖，專案進度可用網址重新開啟。</p>
-        <form onSubmit={submit}>
-          <label htmlFor="project-name">專案名稱 *</label>
-          <input
-            id="project-name"
-            autoFocus
-            maxLength={120}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="例如：王小姐住宅提案"
-            disabled={busy}
-          />
-          <label htmlFor="project-notes">備註</label>
-          <textarea
-            id="project-notes"
-            maxLength={2000}
-            rows={3}
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="例如：三房兩廳、8 月前完成概念提案"
-            disabled={busy}
-          />
-          {error && <div className="project-error" role="alert">{error}</div>}
-          <button className="project-primary" type="submit" disabled={busy || !name.trim()}>
-            {busy ? '建立中…' : '建立專案並上傳平面圖'}
-          </button>
-          {onCancel && (
-            <button className="project-secondary" type="button" onClick={onCancel} disabled={busy}>
-              返回目前專案
-            </button>
-          )}
-        </form>
-      </section>
-    </main>
+    <div className="studio-app project-mode">
+      <ProductHeader />
+      <WorkflowProgress current="project" />
+      <main className="project-start">
+        <section className="project-card" aria-labelledby="project-title">
+          <div className="project-form-side">
+            <div className="project-mark">RP</div>
+            <p className="eyebrow">ROOMPILOT · 01</p>
+            <h1 id="project-title">為下一個空間<br />建立設計專案</h1>
+            <p className="project-lead">每一份平面圖、需求、配置與提案版本都會留在同一個專案網址，不再分散到另一個網頁。</p>
+            <form onSubmit={submit}>
+              <label htmlFor="project-name">專案名稱 *</label>
+              <input
+                id="project-name"
+                autoFocus
+                maxLength={120}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="例如：王小姐住宅提案"
+                disabled={busy}
+              />
+              <label htmlFor="project-notes">提案備註</label>
+              <textarea
+                id="project-notes"
+                maxLength={2000}
+                rows={3}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="例如：三房兩廳，希望保留明亮木質調"
+                disabled={busy}
+              />
+              {error && <div className="project-error" role="alert">{error}</div>}
+              <button className="project-primary" type="submit" disabled={busy || !name.trim()}>
+                {busy ? '正在建立專案…' : '建立專案，下一步上傳平面圖 →'}
+              </button>
+              {onCancel && (
+                <button className="project-secondary" type="button" onClick={onCancel} disabled={busy}>
+                  返回目前專案
+                </button>
+              )}
+            </form>
+          </div>
+          <aside className="project-visual-side" aria-hidden="true">
+            <img src="/static/style_images/scandinavian.png" alt="" />
+            <div className="project-visual-overlay" />
+            <div className="project-visual-copy"><span>ROOMPILOT STUDIO</span><strong>從一條牆線，<br />走到完整提案。</strong></div>
+            <ol><li>辨識與比例確認</li><li>AI 2D 合法配置</li><li>3D 白模與風格提案</li></ol>
+          </aside>
+        </section>
+      </main>
+    </div>
   )
 }
 
@@ -126,7 +304,7 @@ function projectSnapshot({ name, upload, storedUploadName, scaleM, thickness, he
 }
 
 export default function App() {
-  const [plans, setPlans] = useState([])
+  const plans = []
   const [name, setName] = useState('')
   const [upload, setUpload] = useState(null)
   const [storedUploadName, setStoredUploadName] = useState(null)
@@ -201,14 +379,6 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    fetch('/api/plans')
-      .then((response) => response.json())
-      .then((payload) => {
-        const available = payload.plans || []
-        setPlans(available)
-        setName((current) => current || available[0] || '')
-      })
-      .catch((reason) => setError(`無法連線後端 (/api/plans)：${reason.message}`))
     fetch('/api/furniture?has_model=true&page_size=80')
       .then((response) => response.json())
       .then((payload) => {
@@ -478,7 +648,8 @@ export default function App() {
       lastSavedSnapshot.current = null
       setUpload(null)
       setStoredUploadName(null)
-      setName(plans[0] || '')
+      // 新專案一律先停在上傳站，不偷偷載入示範圖跳過使用者流程。
+      setName('')
       setScaleM(null)
       setThickness(DEFAULTS.thickness)
       setHeight(DEFAULTS.height)
@@ -975,7 +1146,12 @@ export default function App() {
   }
 
   if (projectLoading) {
-    return <main className="project-start"><div className="project-loading">正在載入專案…</div></main>
+    return (
+      <div className="studio-app project-mode">
+        <ProductHeader />
+        <main className="project-start"><div className="project-loading">正在載入專案…</div></main>
+      </div>
+    )
   }
   if (!project) {
     return (
@@ -1060,6 +1236,28 @@ export default function App() {
     && whiteModelRecord?.status === 'confirmed'
     && viewpointRecord?.status === 'locked'
     && !cameraEditing
+  const floorplanVisible = !reviewing && spaceConfirmation?.status !== 'confirmed'
+  const currentStage = floorplanVisible || reviewing
+    ? 'floorplan'
+    : requirementsVisible
+      ? 'requirements'
+      : layoutVisible
+        ? 'layout'
+        : whiteModelActive
+          ? 'white'
+          : viewpointActive
+            ? 'viewpoint'
+            : 'proposal'
+  const sceneTitle = whiteModelActive
+    ? '確認空間升維與家具白模'
+    : viewpointActive
+      ? '在場景裡微調家具，鎖定提案視角'
+      : '選擇風格色卡，完成提案畫面'
+  const sceneDescription = whiteModelActive
+    ? '牆、窗洞、實體門與家具比例都來自已確認資料；這一步只驗收幾何，不用材質掩飾問題。'
+    : viewpointActive
+      ? '直接拖曳家具做最後微調；左鍵旋轉視角、右鍵平移、滾輪縮放，滿意後鎖定。'
+      : '色卡與風格在 3D 畫面下方選擇，不離開目前專案，也不再開第二個網站。'
   const whiteDiagnostics = whiteModelDiagnostics(items, whiteModelRender.visibleInstanceIds)
   const expectedWindows = data?.windows?.length || 0
   const matchedWindows = Number(data?.opening_geometry?.window_opening_count || 0)
@@ -1069,8 +1267,12 @@ export default function App() {
   const whiteModelReady = whiteDiagnostics.ready && windowOpeningsReady && whiteGeometryVisible
 
   return (
-    <>
-      <div className="panel">
+    <div className={`studio-app stage-${currentStage}`}>
+      <ProductHeader project={project} saveStatus={saveStatus} onNew={startNewProject} />
+      <WorkflowProgress current={currentStage} />
+      <div className="studio-workarea">
+      {false && (
+      <div className="panel legacy-panel" aria-hidden="true">
         <section className="active-project" aria-label="目前專案">
           <div><span>目前專案</span><strong>{project.name}</strong><small>{saveStatus}</small></div>
           <button type="button" onClick={startNewProject}>建立新專案</button>
@@ -1362,10 +1564,26 @@ export default function App() {
         )}
         <div className="hint">滑鼠左鍵旋轉、右鍵平移、滾輪縮放。</div>
       </div>
+      )}
 
       <div className="canvas-wrap">
         {loading && <div className="loading">{uploadBusy ? uploadStatus : '解析中…'}</div>}
-        {reviewing ? (
+        {floorplanVisible ? (
+          <UploadWorkspace
+            uploadStage={uploadStage}
+            uploadStatus={uploadStatus}
+            uploadBusy={uploadBusy}
+            storedUploadName={storedUploadName}
+            openrouterConsent={openrouterConsent}
+            setOpenrouterConsent={setOpenrouterConsent}
+            thickness={thickness}
+            setThickness={setThickness}
+            height={height}
+            setHeight={setHeight}
+            onUpload={chooseUpload}
+            error={error}
+          />
+        ) : reviewing ? (
           <FloorplanReview
             draft={reviewDraft}
             onChange={setReviewDraft}
@@ -1399,20 +1617,174 @@ export default function App() {
             onBack={() => { setLayoutEditing(false); setRequirementsEditing(true) }}
           />
         ) : (
-          <Scene
-            ref={viewerRef}
-            data={data}
-            show={styleRenderActive ? { ...show, xray: false } : show}
-            whiteModel={whiteModelActive}
-            onWhiteModelDiagnostics={handleWhiteModelDiagnostics}
-            cameraLocked={styleRenderActive}
-            renderIntent={styleRenderRecord?.status === 'configured'
-              ? styleRenderRecord.render_intent
-              : null}
-            furniture={{ items, setItems, placing, setPlacing, selectedId, setSelectedId, snapOn }}
-          />
+          <main className="scene-workspace">
+            <div className="scene-viewport">
+              <React.Suspense fallback={<div className="scene-module-loading">正在準備 3D 場景…</div>}>
+                <Scene
+                  ref={viewerRef}
+                  data={data}
+                  show={styleRenderActive ? { ...show, xray: false } : show}
+                  whiteModel={whiteModelActive}
+                  onWhiteModelDiagnostics={handleWhiteModelDiagnostics}
+                  cameraLocked={styleRenderActive}
+                  renderIntent={styleRenderRecord?.status === 'configured'
+                    ? styleRenderRecord.render_intent
+                    : null}
+                  furniture={{ items, setItems, placing, setPlacing, selectedId, setSelectedId, snapOn }}
+                />
+              </React.Suspense>
+
+              <header className="scene-overlay-heading">
+                <p>ROOMPILOT · {whiteModelActive ? '3D WHITE MODEL' : viewpointActive ? 'SCENE EDITOR' : 'PROPOSAL'}</p>
+                <h1>{sceneTitle}</h1>
+                <span>{sceneDescription}</span>
+              </header>
+
+              <div className="scene-metrics" aria-label="場景資料摘要">
+                <span><small>空間</small><b>{data?.room_regions?.length || 0}</b></span>
+                <span><small>家具</small><b>{items.length}</b></span>
+                <span><small>門／窗</small><b>{data?.doors?.length || 0}／{data?.windows?.length || 0}</b></span>
+                {stats && <span><small>範圍</small><b>{Math.round(Number(stats.width_m) * 100)} × {Math.round(Number(stats.depth_m) * 100)} cm</b></span>}
+              </div>
+
+              <div className="scene-layer-controls" aria-label="場景圖層">
+                {['walls', 'windows', 'doors', 'floor', 'xray'].map((key) => (
+                  <label key={key} className={show[key] ? 'active' : ''}>
+                    <input
+                      type="checkbox"
+                      checked={key === 'xray' && styleRenderActive ? false : show[key]}
+                      disabled={key === 'xray' && styleRenderActive}
+                      onChange={() => setShow((value) => ({ ...value, [key]: !value[key] }))}
+                    />
+                    {{ walls: '牆體', windows: '窗', doors: '實體門', floor: '地板', xray: '近景穿牆' }[key]}
+                  </label>
+                ))}
+              </div>
+
+              {whiteModelActive && (
+                <aside className="scene-action-card white-model-action" aria-live="polite">
+                  <div className="scene-action-number">05</div>
+                  <div><small>幾何驗收</small><h2>3D 白模</h2></div>
+                  <ul>
+                    <li className={whiteDiagnostics.ready ? 'pass' : 'warn'}>
+                      <span>{whiteDiagnostics.ready ? '✓' : '!'}</span>
+                      家具白模 {whiteDiagnostics.visibleFurnitureCount}/{whiteDiagnostics.expectedFurnitureCount}
+                    </li>
+                    <li className={windowOpeningsReady ? 'pass' : 'warn'}>
+                      <span>{windowOpeningsReady ? '✓' : '!'}</span>
+                      真實窗洞 {matchedWindows}/{expectedWindows}
+                    </li>
+                    <li className={show.doors ? 'pass' : 'warn'}>
+                      <span>{show.doors ? '✓' : '!'}</span>
+                      門片與門框已顯示
+                    </li>
+                  </ul>
+                  <button
+                    className="studio-primary-action"
+                    type="button"
+                    disabled={!whiteModelReady || whiteModelBusy}
+                    onClick={confirmWhiteModel}
+                  >
+                    {whiteModelBusy ? '正在確認白模…' : '確認白模，進入場景微調 →'}
+                  </button>
+                  <button className="studio-link-action" type="button" onClick={() => setLayoutEditing(true)}>返回 2D 配置</button>
+                </aside>
+              )}
+
+              {viewpointActive && (
+                <aside className="scene-action-card viewpoint-action" aria-live="polite">
+                  <div className="scene-action-number">06</div>
+                  <div><small>場景編輯</small><h2>微調家具與視角</h2></div>
+                  <p>拖曳家具後再調整鏡頭。家具座標會沿用引擎配置；問卷指定型號不可刪除。</p>
+                  <label className="scene-snap-toggle">
+                    <input type="checkbox" checked={snapOn} onChange={() => setSnapOn((value) => !value)} />
+                    家具吸附牆面、家具與格點
+                  </label>
+                  {selectedItem && (
+                    <div className="scene-selected-item">
+                      <span>選取中<strong>{selectedItem.name || short(selectedItem.file)}</strong></span>
+                      <button type="button" onClick={() => setItems((current) => current.map((item) =>
+                        item.id === selectedId ? { ...item, yaw: item.yaw + Math.PI / 2 } : item))}>旋轉 90°</button>
+                      <button type="button" disabled={selectedItem.userRequired} onClick={() => {
+                        if (selectedItem.userRequired) return
+                        setItems((current) => current.filter((item) => item.id !== selectedId))
+                        setSelectedId(null)
+                      }}>移除</button>
+                    </div>
+                  )}
+                  <details className="scene-furniture-drawer">
+                    <summary>需要時才展開家具庫（{furn.length}）</summary>
+                    <div>
+                      {furn.slice(0, 80).map((file) => (
+                        <button key={file} type="button" className={placing === file ? 'active' : ''}
+                          onClick={() => setPlacing(placing === file ? null : file)}>{short(file)}</button>
+                      ))}
+                    </div>
+                  </details>
+                  <button className="studio-primary-action" type="button" disabled={viewpointBusy} onClick={confirmViewpoint}>
+                    {viewpointBusy ? '正在鎖定視角…' : viewpointRecord?.status === 'locked' ? '重新鎖定目前視角' : '完成微調並鎖定視角 →'}
+                  </button>
+                  <button className="studio-link-action" type="button" onClick={() => setLayoutEditing(true)}>返回 2D 配置</button>
+                </aside>
+              )}
+
+              {styleRenderActive && (
+                <section className="proposal-tray" aria-live="polite">
+                  <header>
+                    <div><small>STEP 07 · STYLE &amp; DELIVERY</small><h2>讓空間長出最後的氣質</h2></div>
+                    <div className="proposal-tray-actions">
+                      <button type="button" onClick={() => setCameraEditing(true)}>重新調整視角</button>
+                      <button
+                        className="studio-primary-action"
+                        type="button"
+                        disabled={renderBusy || styleBusy || styleRenderRecord?.status !== 'configured'}
+                        onClick={createFinalPng}
+                      >{renderBusy ? '正在產生 PNG…' : '儲存最終 PNG'}</button>
+                    </div>
+                  </header>
+                  <div className="proposal-style-scroll">
+                    {styleCards.map((card) => (
+                      <button
+                        key={card.card_id}
+                        type="button"
+                        className={styleRenderRecord?.card_id === card.card_id ? 'proposal-style-card active' : 'proposal-style-card'}
+                        aria-pressed={styleRenderRecord?.card_id === card.card_id}
+                        disabled={styleBusy}
+                        onClick={() => applyStyleCard(card.card_id)}
+                      >
+                        <span className="proposal-style-image">
+                          {card.image_url ? <img src={card.image_url} alt="" /> : <i />}
+                          <em>{card.style_name_zh}</em>
+                        </span>
+                        <strong>{card.name_zh}</strong>
+                        <i className="proposal-palette">
+                          {(card.palette_hex || []).map((color) => <b key={color} style={{ backgroundColor: color }} />)}
+                        </i>
+                      </button>
+                    ))}
+                  </div>
+                  {styleBusy && <p className="proposal-status">正在重新選型，並由後端引擎驗證合法位置…</p>}
+                  {styleRenderRecord?.status === 'configured' && (
+                    <p className="proposal-status pass">已套用「{styleRenderRecord.render_intent?.style_name_zh} · {styleRenderRecord.render_intent?.card_name_zh}」；指定家具仍保持鎖定。</p>
+                  )}
+                  {renderHistory.length > 0 && (
+                    <details className="proposal-history">
+                      <summary>已儲存的 PNG 版本（{renderHistory.length}）</summary>
+                      <div>{renderHistory.slice(0, 6).map((render) => (
+                        <a key={render.render_id} href={render.download_url} download={render.filename}>
+                          {new Date(render.created_at).toLocaleString('zh-TW')} · {render.style_card_id}
+                        </a>
+                      ))}</div>
+                    </details>
+                  )}
+                </section>
+              )}
+            </div>
+          </main>
         )}
+        {error && !floorplanVisible && <button className="stage-error-toast" type="button" onClick={() => setError(null)}>⚠ {error}<span>關閉</span></button>}
       </div>
-    </>
+      </div>
+    </div>
   )
 }

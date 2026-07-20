@@ -5,6 +5,7 @@ import {
   removeDraftSegment,
   snapPointToWall,
   updateDraftRoomType,
+  wallSnapSegments,
 } from './floorplanReview.js'
 
 const SOURCE_LABELS = {
@@ -44,6 +45,7 @@ export default function FloorplanReview({
   const [draggingScaleEndpoint, setDraggingScaleEndpoint] = useState(null)
   const [scaleNotice, setScaleNotice] = useState('比例線端點只會吸附在已辨識的牆線上。')
   const bbox = draft?.bbox
+  const snapSegments = useMemo(() => wallSnapSegments(draft || {}), [draft])
   const view = useMemo(() => {
     if (!bbox) return null
     const width = Math.max(0.1, bbox.maxx - bbox.minx)
@@ -79,13 +81,16 @@ export default function FloorplanReview({
         draft,
         rawPoint,
         Math.max(0.08, Math.max(view.width, view.depth) * 0.04),
+        pendingPoint?.wall_index ?? null,
       )
       : null
     if (drawMode === 'scale' && !snapped) {
       setScaleNotice('沒有吸附到牆線，請靠近已辨識的牆再點一次。')
       return
     }
-    const point = snapped ? { x: snapped.x, z: snapped.z } : rawPoint
+    const point = snapped
+      ? { x: snapped.x, z: snapped.z, wall_index: snapped.wall_index }
+      : rawPoint
     if (!pendingPoint) {
       setPendingPoint(point)
       if (drawMode === 'scale') setScaleNotice('起點已吸附牆線，請沿同一面牆選擇終點。')
@@ -96,7 +101,7 @@ export default function FloorplanReview({
         setScaleNotice('比例線至少需要 5 公分，請把終點拉得更遠。')
         return
       }
-      setScaleLine({ start: pendingPoint, end: point })
+      setScaleLine({ start: pendingPoint, end: point, wall_index: pendingPoint.wall_index })
       setPendingPoint(null)
       setDrawMode(null)
       setScaleNotice('兩端已吸附牆線；可拖曳紅色端點微調，再輸入實際公分。')
@@ -134,7 +139,7 @@ export default function FloorplanReview({
     event.stopPropagation()
     event.currentTarget.ownerSVGElement?.setPointerCapture?.(event.pointerId)
     setDraggingScaleEndpoint(endpoint)
-    setScaleNotice('拖曳中：端點會持續吸附在最近的已辨識牆線。')
+    setScaleNotice('拖曳中：端點只會留在這一面已選定的牆上。')
   }
 
   const dragScaleEndpoint = (event) => {
@@ -143,9 +148,10 @@ export default function FloorplanReview({
       draft,
       svgPoint(event),
       Math.max(0.12, Math.max(view.width, view.depth) * 0.07),
+      scaleLine.wall_index,
     )
     if (!snapped) return
-    const point = { x: snapped.x, z: snapped.z }
+    const point = { x: snapped.x, z: snapped.z, wall_index: snapped.wall_index }
     setScaleLine((current) => draggingScaleEndpoint === 'start'
       ? { ...current, start: point }
       : { ...current, end: point })
@@ -179,12 +185,19 @@ export default function FloorplanReview({
     <main className="review-shell">
       <header className="review-header">
         <div>
-          <p className="eyebrow">ROOMPILOT · 03</p>
-          <h2>確認牆壁、門窗與空間屬性</h2>
-          <p>彩色空間與 AI 標籤都是建議。請逐房確認，必要時補畫或刪除門窗，再送出定稿。</p>
+          <p className="eyebrow">ROOMPILOT · 02</p>
+          <h2>辨識結果與真實比例確認</h2>
+          <p>先檢查牆壁、門窗與空間分區，再選定一面牆完成比例校正；沒有完成校尺就不能跳到問卷。</p>
         </div>
         <div className={`ai-review-status ${openrouter?.status || 'offline'}`}>{aiStatus}</div>
       </header>
+
+      <section className="recognition-summary" aria-label="辨識結果摘要">
+        <article><small>封閉空間</small><strong>{draft.rooms.length}</strong><span>等待逐房確認</span></article>
+        <article><small>辨識門</small><strong>{draft.doors.length}</strong><span>可補畫或刪除</span></article>
+        <article><small>辨識窗</small><strong>{draft.windows.length}</strong><span>將形成真實窗洞</span></article>
+        <article className={calibrationReady ? 'complete' : ''}><small>真實比例</small><strong>{calibrationReady ? '已設定' : '待校尺'}</strong><span>端點限同一面牆</span></article>
+      </section>
 
       <section className="review-layout">
         <div className="review-plan-card">
@@ -263,15 +276,17 @@ export default function FloorplanReview({
             {draft.wall_polys.map((wall, index) => (
               <path key={`wall-${index}`} d={polygonPath(wall)} className="review-wall" fillRule="evenodd" />
             ))}
-            {draft.wall_segments.map((segment, index) => (
-              <circle
+            {snapSegments.map((segment, index) => (
+              <line
                 key={`wall-snap-${index}`}
                 data-wall-snap-index={index}
                 aria-hidden="true"
-                cx={(segment.x1 + segment.x2) / 2}
-                cy={(segment.z1 + segment.z2) / 2}
-                r={view.stroke * 1.2}
-                className="review-wall-hit"
+                x1={segment.x1}
+                y1={segment.z1}
+                x2={segment.x2}
+                y2={segment.z2}
+                style={{ strokeWidth: view.stroke * 3.4 }}
+                className={`review-wall-hit${(pendingPoint?.wall_index ?? scaleLine?.wall_index) === index ? ' selected' : ''}`}
               />
             ))}
             {draft.windows.map((segment, index) => (
@@ -365,7 +380,7 @@ export default function FloorplanReview({
             disabled={busy || calibrationBusy || draft.rooms.length === 0 || !calibrationReady}
             onClick={onConfirm}
           >
-            {busy ? '正在儲存確認結果…' : calibrationReady ? '我已確認，進入 3D 白模' : '請先拉線設定比例'}
+            {busy ? '正在儲存確認結果…' : calibrationReady ? '確認空間，進入需求問卷 →' : '請先沿牆拉線設定比例'}
           </button>
           <p className="review-privacy">送出後，人工確認版本才會成為後續流程的正式資料；原始 AI 建議仍保留供稽核。</p>
         </aside>

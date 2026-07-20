@@ -13,29 +13,53 @@ export const furnitureUrl = (file) => {
 
 let SEQ = 1 // placed-item ids, unique for the page's lifetime
 
-// The bundled GLBs come from trimesh, which exports Z-up geometry with no
-// correcting node — stand them upright, centre XZ on the origin and rest the
-// bottom on y=0, so a placed item is just position[x,0,z] + rotation.y.
-function useFurnitureNode(file) {
+function targetSizeMetres(sizeCm) {
+  const target = {
+    width: Number(sizeCm?.width) / 100,
+    depth: Number(sizeCm?.depth) / 100,
+    height: Number(sizeCm?.height) / 100,
+  }
+  return Object.values(target).every((value) => Number.isFinite(value) && value > 0)
+    ? target
+    : null
+}
+
+// glTF 的標準上軸是 Y；舊版額外轉 -90° 會把正常 IKEA 模型放倒。
+// 保留模型自己的節點轉換，並用型錄公分尺寸校正 XYZ 後落到地面。
+function useFurnitureNode(file, sizeCm = null) {
   const { scene } = useGLTF(furnitureUrl(file))
+  const target = targetSizeMetres(sizeCm)
   return useMemo(() => {
     const obj = scene.clone(true)
-    obj.rotation.x = -Math.PI / 2
     const root = new THREE.Group()
-    root.add(obj)
-    const box = new THREE.Box3().setFromObject(root)
-    const c = box.getCenter(new THREE.Vector3())
-    obj.position.set(-c.x, -box.min.y, -c.z)
-    const size = box.getSize(new THREE.Vector3())
+    const fitted = new THREE.Group()
+    fitted.add(obj)
+    root.add(fitted)
+    root.updateMatrixWorld(true)
+    let box = new THREE.Box3().setFromObject(root)
+    const rawSize = box.getSize(new THREE.Vector3())
+    if (target && rawSize.x > 1e-5 && rawSize.y > 1e-5 && rawSize.z > 1e-5) {
+      fitted.scale.set(
+        target.width / rawSize.x,
+        target.height / rawSize.y,
+        target.depth / rawSize.z,
+      )
+      root.updateMatrixWorld(true)
+      box = new THREE.Box3().setFromObject(root)
+    }
+    const centre = box.getCenter(new THREE.Vector3())
+    fitted.position.add(new THREE.Vector3(-centre.x, -box.min.y, -centre.z))
+    root.updateMatrixWorld(true)
+    const size = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3())
     root.traverse((m) => {
       if (m.isMesh) { m.castShadow = true; m.receiveShadow = true }
     })
     return { node: root, size }
-  }, [scene])
+  }, [scene, target?.width, target?.depth, target?.height])
 }
 
 const Item = React.memo(function Item({ it, selected, onDown, onClick, onHover, reportSize }) {
-  const { node, size } = useFurnitureNode(it.file)
+  const { node, size } = useFurnitureNode(it.file, it.sizeCm)
   useEffect(() => reportSize(it.file, size), [it.file, size, reportSize])
   return (
     <group

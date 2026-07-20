@@ -91,12 +91,18 @@ export function wallSnapSegments(draft = {}) {
   ]
 }
 
-export function snapPointToWall(draft, point, maxDistanceM = Number.POSITIVE_INFINITY) {
+export function snapPointToWall(
+  draft,
+  point,
+  maxDistanceM = Number.POSITIVE_INFINITY,
+  requiredWallIndex = null,
+) {
   const target = { x: Number(point?.x), z: Number(point?.z) }
   if (!Number.isFinite(target.x) || !Number.isFinite(target.z)) return null
 
   let nearest = null
   wallSnapSegments(draft).forEach((segment, wallIndex) => {
+    if (requiredWallIndex != null && wallIndex !== Number(requiredWallIndex)) return
     const dx = segment.x2 - segment.x1
     const dz = segment.z2 - segment.z1
     const squaredLength = dx * dx + dz * dz

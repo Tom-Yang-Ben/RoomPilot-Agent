@@ -3016,7 +3016,8 @@ def library_page() -> FileResponse:
 
 @app.get("/scene")
 def scene_page() -> FileResponse:
-    return _page("scene.html")
+    # 單一入口：FastAPI 直接交付已建置的 React/R3F 完整工作流。
+    return _page("frontend3d/index.html")
 
 
 @app.get("/panorama")

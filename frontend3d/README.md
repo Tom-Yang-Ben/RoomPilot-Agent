@@ -7,18 +7,19 @@
 
 ## 跑起來
 
-兩個終端機：
+正式操作只有一個網址與一個後端程序：
 
 ```bash
-# 1) 後端（在 repo 根目錄跑，相對 import）
-uv run uvicorn roompilot.server.main:app --port 8002
-
-# 2) 前端（在 frontend3d/）
+# 修改前端後先建置（在 frontend3d/）
 npm ci
-npm run dev          # 開 http://localhost:5173
+npm run build
+
+# 後端（回 repo 根目錄跑，相對 import）
+uv run --extra vision uvicorn roompilot.server.main:app --port 8002
+# 開 http://127.0.0.1:8002/scene
 ```
 
-Vite 會把 `/api` 代理到 8002，所以瀏覽器不需處理 CORS。
+建置產物會進入 `roompilot/server/static/frontend3d/`，由 FastAPI 的 `/scene` 直接交付。`npm run dev` 只供開發熱更新，會把 `/api` 代理到 8002，不是使用者需要開啟的第二個產品網站。
 
 ## 用法
 
@@ -26,7 +27,7 @@ Vite 會把 `/api` 代理到 8002，所以瀏覽器不需處理 CORS。
 - **續作**：重新開啟含 `project_id` 的網址；伺服器 SQLite 是正式資料，瀏覽器快取只在斷線時備援。
 - **選擇平面圖**：下拉選 `testdata/pic/temp/` 既有的 DXF，或上傳 **DXF／PNG**（P0，20 MB 以內）。原檔與辨識結果都會綁定專案；JPG/JPEG/BMP 暫不列入 P0 UI。
 - **OpenRouter 建議**：PNG 上傳前可勾選同意；伺服器另須設定 `OPENROUTER_API_KEY`。AI 只補房型、固定機能空間與門窗數第二意見，牆體幾何仍由離線管線產生。DXF 不送 OpenRouter，房名取自 TEXT／MTEXT。
-- **沿牆拉線設定比例**：分析後在辨識完成的 2D 牆線上選兩個端點，端點會吸附牆線並可拖曳微調；輸入這段牆的實際公分數後，後端以公分重算全圖。比例未確認前不能送出空間定稿，原始圖片不作校尺底圖。
+- **沿牆拉線設定比例**：分析後先選定一面辨識牆；第二端點與後續拖曳都被限制在同一面牆上。輸入這段牆的實際公分數後，後端以公分重算全圖。比例未確認前不能送出空間定稿，原始圖片不作校尺底圖。
 - **2D 人工定稿**：房間多邊形先由離線牆體拓樸產生，右側可逐房改房型；圖上可補畫、選取與刪除門窗線段。只有按下「我已確認」後的版本會進入 3D，AI 原始建議保留在專案供稽核。
 - **針對性需求問卷**：空間確認後先填風格方向與居住人數；一般案件可直接採用房型預設值，需要客製時才展開逐房機能、材質、指定 GLB 家具與自由文字。
 - **特殊需求確認**：勾選欄位直接轉 JSON。只有使用者同意時才把進階自由文字送到 OpenRouter；畫面會顯示 AI 或本機規則建議，使用者勾選「已檢查」並確認後才進入後續佈局。

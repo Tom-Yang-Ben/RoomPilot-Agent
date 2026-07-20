@@ -142,28 +142,93 @@ function Walls({ polys = [], solids = [], height, color, xray, span }) {
   )
 }
 
-// boxes laid along each segment (windows, doors)
-function SegBoxes({ segs, h, y, depth, color, opacity = 1 }) {
+function WindowAssemblies({ segs = [], sill, height, depth, wallColor, showWallBelow = true }) {
+  const frame = Math.max(0.035, Math.min(0.065, depth * 0.28))
   return (
-    <group>
-      {segs.map((s, i) => {
-        const dx = s.x2 - s.x1, dz = s.z2 - s.z1
-        const len = Math.hypot(dx, dz)
-        if (len < 1e-3) return null
+    <group name="window-assemblies">
+      {segs.map((segment, index) => {
+        const dx = segment.x2 - segment.x1
+        const dz = segment.z2 - segment.z1
+        const length = Math.hypot(dx, dz)
+        if (length < 1e-3) return null
+        const localSill = Math.max(0, Number(segment.sill_m ?? sill))
+        const localHeight = Math.max(0.1, Number(segment.height_m ?? height))
         return (
-          <mesh
-            key={i}
-            position={[(s.x1 + s.x2) / 2, y, -(s.z1 + s.z2) / 2]}
+          <group
+            key={index}
+            position={[(segment.x1 + segment.x2) / 2, 0, -(segment.z1 + segment.z2) / 2]}
             rotation={[0, Math.atan2(dz, dx), 0]}
           >
-            <boxGeometry args={[len, h, depth]} />
-            <meshStandardMaterial
-              color={color}
-              transparent={opacity < 1}
-              opacity={opacity}
-              roughness={0.2}
-            />
-          </mesh>
+            {/* 明確補出窗台下的實牆，避免白模只剩懸空玻璃的錯覺。 */}
+            {showWallBelow && localSill > 0.02 && (
+              <mesh position={[0, localSill / 2, 0]} castShadow receiveShadow>
+                <boxGeometry args={[length + frame * 2, localSill, depth * 0.94]} />
+                <meshStandardMaterial color={wallColor} roughness={0.94} />
+              </mesh>
+            )}
+            <mesh position={[0, localSill + localHeight / 2, 0]} renderOrder={1}>
+              <boxGeometry args={[Math.max(0.02, length - frame * 2), Math.max(0.04, localHeight - frame * 2), frame * 0.42]} />
+              <meshPhysicalMaterial color="#bcd9df" transparent opacity={0.42} roughness={0.08} transmission={0.18} />
+            </mesh>
+            {[-1, 1].map((side) => (
+              <mesh key={side} position={[side * (length / 2 - frame / 2), localSill + localHeight / 2, 0]} castShadow>
+                <boxGeometry args={[frame, localHeight + frame, depth * 1.08]} />
+                <meshStandardMaterial color="#8a8277" roughness={0.58} metalness={0.08} />
+              </mesh>
+            ))}
+            {[localSill, localSill + localHeight].map((y) => (
+              <mesh key={y} position={[0, y, 0]} castShadow>
+                <boxGeometry args={[length, frame, depth * 1.08]} />
+                <meshStandardMaterial color="#8a8277" roughness={0.58} metalness={0.08} />
+              </mesh>
+            ))}
+            <mesh position={[0, localSill + localHeight / 2, 0]} castShadow>
+              <boxGeometry args={[frame * 0.72, localHeight - frame, depth * 1.02]} />
+              <meshStandardMaterial color="#8a8277" roughness={0.58} metalness={0.08} />
+            </mesh>
+          </group>
+        )
+      })}
+    </group>
+  )
+}
+
+function DoorAssemblies({ segs = [], height, depth, whiteModel = false }) {
+  const frame = Math.max(0.045, Math.min(0.08, depth * 0.34))
+  const panelColor = whiteModel ? '#d9cbbb' : '#8b6244'
+  return (
+    <group name="door-assemblies">
+      {segs.map((segment, index) => {
+        const dx = segment.x2 - segment.x1
+        const dz = segment.z2 - segment.z1
+        const length = Math.hypot(dx, dz)
+        if (length < 1e-3) return null
+        const doorHeight = Math.max(0.4, Number(segment.height_m ?? height))
+        return (
+          <group
+            key={index}
+            position={[(segment.x1 + segment.x2) / 2, 0, -(segment.z1 + segment.z2) / 2]}
+            rotation={[0, Math.atan2(dz, dx), 0]}
+          >
+            <mesh position={[0, doorHeight / 2, 0]} castShadow receiveShadow>
+              <boxGeometry args={[Math.max(0.1, length - frame * 1.8), doorHeight - frame, Math.max(0.035, depth * 0.24)]} />
+              <meshStandardMaterial color={panelColor} roughness={0.76} />
+            </mesh>
+            {[-1, 1].map((side) => (
+              <mesh key={side} position={[side * (length / 2 - frame / 2), doorHeight / 2, 0]} castShadow>
+                <boxGeometry args={[frame, doorHeight + frame, depth * 1.12]} />
+                <meshStandardMaterial color="#6e5542" roughness={0.72} />
+              </mesh>
+            ))}
+            <mesh position={[0, doorHeight, 0]} castShadow>
+              <boxGeometry args={[length, frame, depth * 1.12]} />
+              <meshStandardMaterial color="#6e5542" roughness={0.72} />
+            </mesh>
+            <mesh position={[length * 0.3, doorHeight * 0.52, depth * 0.17]} castShadow>
+              <sphereGeometry args={[Math.max(0.025, frame * 0.42), 14, 10]} />
+              <meshStandardMaterial color="#c7a56c" roughness={0.3} metalness={0.58} />
+            </mesh>
+          </group>
         )
       })}
     </group>
@@ -258,6 +323,7 @@ const Scene = React.forwardRef(function Scene(
   const openingGeometry = data?.opening_geometry || {}
   const sill = Math.max(0, Number(openingGeometry.window_sill_m ?? 0.9))
   const winH = Math.max(0.1, Number(openingGeometry.window_height_m ?? Math.min(1.3, H - sill)))
+  const doorH = Math.max(0.4, Number(openingGeometry.door_height_m ?? Math.min(2.1, H)))
   // plan diagonal (m): scales the x-ray zoom thresholds to the model's size
   const span = data
     ? Math.hypot(data.bbox.maxx - data.bbox.minx, data.bbox.maxz - data.bbox.minz) || 10
@@ -309,23 +375,21 @@ const Scene = React.forwardRef(function Scene(
             />
           )}
           {show.windows && (
-            <SegBoxes
+            <WindowAssemblies
               segs={data.windows}
-              h={winH}
-              y={sill + winH / 2}
-              depth={t * 1.4}
-              color="#6fb3ff"
-              opacity={0.4}
+              height={winH}
+              sill={sill}
+              depth={t}
+              wallColor={wallColor}
+              showWallBelow={show.walls}
             />
           )}
           {show.doors && (
-            <SegBoxes
+            <DoorAssemblies
               segs={data.doors}
-              h={0.08}
-              y={0.05}
-              depth={t * 1.1}
-              color="#c2884a"
-              opacity={0.95}
+              height={doorH}
+              depth={t}
+              whiteModel={whiteModel}
             />
           )}
         </Bounds>

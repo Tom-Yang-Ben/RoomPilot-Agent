@@ -255,7 +255,7 @@ def _openrouter_request(
     status = get_openrouter_status()
     api_key = os.getenv("OPENROUTER_API_KEY")
     models = status["models"]
-    site_url = os.getenv("OPENROUTER_SITE_URL", "http://127.0.0.1:8000")
+    site_url = os.getenv("OPENROUTER_SITE_URL", "http://127.0.0.1:8002")
     app_name = os.getenv("OPENROUTER_APP_NAME", "test_furniture scene planner")
 
     if not api_key or not models or os.getenv("OPENROUTER_SCENE_PLANNING_ENABLED") != "1":
