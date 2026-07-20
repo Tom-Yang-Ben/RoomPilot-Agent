@@ -1,0 +1,29 @@
+# 虛擬環境（各人自行建立，勿進版控）
+env/
+venv/
+.venv/
+
+# Python 快取
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 測試產物
+response.json
+auto.json
+dt2.json
+dimtest*.json
+floor58_result.svg
+floor58_struct.svg
+_warn.txt
+
+# 家具辨識：訓練模型快取與自動收割樣本（由系統自動重建，勿進版控）
+room_recognition/.cache/
+room_recognition/.autolabel/
+
+# 編輯器／作業系統
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
