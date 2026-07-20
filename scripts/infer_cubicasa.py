@@ -33,10 +33,28 @@ model = get_model('hg_furukawa_original', 51)
 os.chdir(_cwd)
 model.conv4_ = torch.nn.Conv2d(256, N_CLASSES, bias=True, kernel_size=1)
 model.upsample = torch.nn.ConvTranspose2d(N_CLASSES, N_CLASSES, kernel_size=4, stride=4)
-ckpt = torch.load(WEIGHTS, map_location='cpu', weights_only=True)  # 安全載入:只收張量，杜絕 pickle 任意程式碼
+# 安全載入:只收張量與 numpy 標量(微調 checkpoint 的 best_loss 統計)，杜絕 pickle 任意程式碼
+torch.serialization.add_safe_globals(
+    [np._core.multiarray.scalar, np.dtype]
+    + [getattr(np.dtypes, n) for n in dir(np.dtypes) if n.endswith('DType')])
+ckpt = torch.load(WEIGHTS, map_location='cpu', weights_only=True)
 model.load_state_dict(ckpt['model_state'])
 model.eval()
 torch.set_num_threads(os.cpu_count() or 4)
+DEV = 'cuda' if torch.cuda.is_available() else 'cpu'
+model.to(DEV)
+
+
+def _predict(ten, dev):
+    """4 方向旋轉平均(照官方 eval)；回傳 CPU 張量。"""
+    with torch.no_grad():
+        acc = torch.zeros(1, N_CLASSES, *ten.shape[2:], device=dev)
+        for k in range(4):
+            t = torch.rot90(ten.to(dev), k, dims=(2, 3))
+            p = model(t)
+            p = F.interpolate(p, size=t.shape[2:], mode='bilinear', align_corners=True)
+            acc += torch.rot90(p, -k, dims=(2, 3))
+        return (acc / 4).cpu()
 
 for path in IMGS:
     base = os.path.splitext(os.path.basename(path))[0]
@@ -52,14 +70,13 @@ for path in IMGS:
                              cv2.BORDER_CONSTANT, value=(255, 255, 255))
     rgb = cv2.cvtColor(pad, cv2.COLOR_BGR2RGB).astype(np.float32)
     ten = torch.from_numpy(2.0 * (rgb / 255.0) - 1.0).permute(2, 0, 1)[None]
-    with torch.no_grad():                            # 4 方向旋轉平均(照官方 eval)
-        acc = torch.zeros(1, N_CLASSES, h4, w4)
-        for k in range(4):
-            t = torch.rot90(ten, k, dims=(2, 3))
-            p = model(t)
-            p = F.interpolate(p, size=t.shape[2:], mode='bilinear', align_corners=True)
-            acc += torch.rot90(p, -k, dims=(2, 3))
-        pred = acc / 4
+    try:
+        pred = _predict(ten, DEV)
+    except torch.cuda.OutOfMemoryError:              # 大圖爆 VRAM → 單張退回 CPU
+        torch.cuda.empty_cache()
+        model.to('cpu')
+        pred = _predict(ten, 'cpu')
+        model.to(DEV)
     rooms = F.softmax(pred[0, ROOM0:ROOM0 + 12], 0).argmax(0).numpy()[:h, :w]
     icons = F.softmax(pred[0, ICON0:ICON0 + 11], 0).argmax(0).numpy()[:h, :w]
     wall = (rooms == 2).astype(np.uint8)

@@ -1,3 +1,20 @@
+2026/7/21 v.2.11 變更（路線圖 C 首輪微調：26 題本機 RTX 3060 訓練完成；驗收未達標——廚房精準率+10pp 但具名房型 recall 倒退，預設權重維持基線）
+
+一、資料審定與訓練：
+
+- 人工審定 43→26 題（17 題品質不足整組移除，含對應 png/ 掃描圖）；own_train.txt 重建 26 題、own_val.txt 3 題（floor01/20/40）
+- **scripts/fix_annotation_paths.py**：Inkscape 手修把 37 個房間 `<polygon>` 存成 `<path>`（矩形工具/路徑編輯的預設輸出），House 解析直接 StopIteration，26 題中 17 題進不了訓練——僅直線段（M/L/H/V/Z）的閉合 path 無損轉回絕對座標 polygon；`--check` 供每輪人工修正後預檢
+- 本機訓練取代 Colab（RTX 3060 6GB）：378 樣本/epoch（own 26×3＋hq_arch 300）、20 epochs 約 33 分（≈100s/epoch）、VRAM 峰值 5.9GB（驗證期整圖推論）。環境補齊：matplotlib/shapely/tensorboard(X)；pandas 2.x 相容兩處——train.py `DataFrame.append`→`pd.concat`、uncertainty_loss 統計轉 float（0 維 tensor 進 DataFrame 後 `mean()` 會 TypeError，epoch 結尾才爆）
+
+二、驗收（eval_rooms_cc --gt-seg，70 題 786 房，vs v2.7 基線）：
+
+- 改善面：kitchen P 0.537→0.640、space→kitchen 誤名 51→27（v2.7 最大破口砍半）、space R 0.230→0.273、living P 0.817→0.873
+- 倒退面：整體正確率 0.776→0.749；具名房型 recall 多數下滑（storage 0.838→0.706、garage 0.818→0.364、living 0.957→0.886、outdoor 0.958→0.896）——26 題答案仍有 94 處 Undefined，疑似教模型把具名房讓給未定義類
+- **判定：未達「具名 recall 不得倒退」門檻，預設權重維持基線**。微調權重 model_finetuned_v1.pkl（gitignore）、報告快照 eval_rooms/report_gtseg_ft_v1.json 留檔
+- 基礎設施沉澱：infer_cubicasa.py GPU 化（CUDA 9.4s/張 vs CPU ~60s；大圖 OOM 單張退回 CPU；safe_globals 白名單載入含 numpy 標量的微調 checkpoint）；CC_WEIGHTS/CC_CACHE_DIR 改可環境變數覆寫——A/B 驗收不動基線快取（`CC_WEIGHTS=... CC_CACHE_DIR=cubicasa_room_ft python scripts/eval_rooms_cc.py --gt-seg`）
+
+下一輪方向：Undefined 補名（23 題 94 處）優先；再訓時考慮 lr 降半或 epoch 減半、own 過採樣配比下修，盯 storage/garage recall。
+
 2026/7/16 v.2.10 變更（目錄重整：入口 floorplan2room.py 留根目錄，其餘 16 支 .py 統一移入 scripts/）
 
 - 所有非入口腳本改為 `python scripts/<名>.py` 執行（工作目錄仍是專案根）；入口 `python floorplan2room.py` 用法不變
@@ -86,7 +103,7 @@
 
 - **A. 房型答案集評分（CPU，~半天，先做）✅ v2.7 已完成**：eval_rooms_cc.py，基線見 v2.7 章節。後續調參迭代：改權重 → 重跑 --gt-seg（快取全熱，分鐘級）→ diff report_gtseg.json
 - **B. 符號模板庫（CPU）⚠️ v2.8 基礎設施完成、比對暫停**：庫與比對機制已建（symbol_lib.npz＋symbol_match.py，零回歸），但三個實測根因（表示法落差/美式域差距/嵌入式符號）令命中歸零——見 v2.8 章節。形狀比對等表示法突破，符號救援併入路線 C
-- **C. 微調模型（Colab GPU）🔧 v2.9 準備完成**：43 題標注初稿已產（own_dataset/，House round-trip 通過）、Colab notebook 與打包腳本就緒。剩人工修正 model.svg（Undefined 房補名）→ pack → 上傳 → 訓練。注意：單純用原資料重訓無效，必須混自家標注（own×3 已配比）
+- **C. 微調模型（本機 RTX 3060）⚠️ v2.11 首輪已訓、驗收未達標**：26 題（43 題人工審定後）混 hq_arch 300 訓 20 epochs——kitchen P +10pp、space→kitchen 誤名砍半，但具名 recall 倒退（storage/garage/living），預設權重維持基線。下一輪：Undefined 補名（94 處）→ `--check` 預檢 → 再訓（lr/epoch/配比調降）。注意：單純用原資料重訓無效，必須混自家標注（own×3 已配比）
 - **D. 房型相鄰統計先驗（小補）**：5000 張統計浴室貼臥室/廚房貼客廳等關係，當同分 tie-breaker
 
 已知剩餘問題：floor17 分割失敗（單一大空間）；X 圈爐台不採證（放寬 HoughCircles param2 會在植栽/臥室爆出 14 組假爐台，實測不可行）；無馬桶同室的浴缸間、單人床（90~100cm 與沙發縱深重疊）精準優先設計放掉——以上皆由路線 A/B 接手。
