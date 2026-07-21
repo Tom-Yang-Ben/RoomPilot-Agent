@@ -143,7 +143,7 @@ def load_config(path: str) -> Config:
         deskew=b("deskew", False),
         fade_levels=i("fade_levels", 5), fade_keep=i("fade_keep", 2),
         chroma_max=i("chroma_max", 40), gray_delta=f("gray_delta", 25.0),
-        cc_mask_dir=s("cc_mask_dir", "mitunet_color"),
+        cc_mask_dir=s("cc_mask_dir", "mitunet/color"),
         cc_veto_cov=f("cc_veto_cov", 0.3), cc_rescue=b("cc_rescue", True),
         solid=io_("solid"), style=s("style", "center"),
         h_len=io_("h_len"), v_len=io_("v_len"),
