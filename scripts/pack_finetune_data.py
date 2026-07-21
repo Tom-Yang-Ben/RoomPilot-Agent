@@ -1,11 +1,11 @@
-"""pack_finetune_data.py — 路線圖 C：打包 Colab 微調資料 zip。
+"""pack_finetune_data.py — 路線圖 C：打包微調資料 zip。
 
 內容：own_dataset 43 張（管線草稿→人工修正後）＋ hq_arch train 前 300
 樣本（防災難性遺忘）＋混合清單（own 行 ×3 過採樣，直混會被 300 張淹沒）。
 own_val.txt 僅作訓練監控；正式驗收永遠走路線 A 的 val/test 評分集。
 
 用法：python pack_finetune_data.py [--n-hq 300] [--oversample 3]
-產出：finetune_data.zip（上傳 Google Drive 供 notebook 解壓）
+產出：finetune_data.zip（本機訓練解壓用；亦可上傳雲端環境）
 """
 import argparse
 import os

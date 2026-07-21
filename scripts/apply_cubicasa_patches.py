@@ -2,11 +2,10 @@
 
 上游 svg_utils.get_icon 用 np.matrix 拆行指派（X[i] = 1x1 matrix），
 numpy 2.x 直接 ValueError——任何含 FixedFurniture 圖示的樣本都無法
-被 House 解析（本機 round-trip 與 Colab 訓練都會中招）。
+被 House 解析（round-trip 與訓練都會中招）。
 
 CubiCasa5k/ 不進版控（.gitignore 註記 re-clone 重建），故補丁做成
-可重複執行腳本：clone 後跑一次即可，已補丁則跳過。Colab notebook
-的環境 cell 同樣呼叫本腳本。
+可重複執行腳本：clone 後跑一次即可，已補丁則跳過。
 
 用法：python apply_cubicasa_patches.py [--dir CubiCasa5k]
 """
