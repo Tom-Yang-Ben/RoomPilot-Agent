@@ -1,0 +1,82 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="757" height="677" viewBox="0 0 757 677">
+ <image xlink:href="F1_scaled.png" x="0" y="0" width="757" height="677"/>
+ <g id="Model" class="Model">
+  <g id="Wall" class="Wall">
+   <polygon points="0.0,1.0 141.0,1.0 141.0,13.0 0.0,13.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="239.0,1.0 380.0,1.0 380.0,13.0 239.0,13.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="478.0,1.0 583.0,1.0 583.0,12.0 478.0,12.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="681.0,1.0 757.0,1.0 757.0,12.0 681.0,12.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="0.0,426.0 137.0,426.0 137.0,438.0 0.0,438.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="239.0,426.0 376.0,426.0 376.0,438.0 239.0,438.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="0.0,505.0 217.0,505.0 217.0,516.0 0.0,516.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="435.0,505.0 757.0,505.0 757.0,517.0 435.0,517.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="0.0,664.0 757.0,664.0 757.0,676.0 0.0,676.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="0.0,1.0 12.0,1.0 12.0,676.0 0.0,676.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="239.0,1.0 251.0,1.0 251.0,438.0 239.0,438.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="479.0,1.0 491.0,1.0 491.0,438.0 479.0,438.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="745.0,1.0 757.0,1.0 757.0,676.0 745.0,676.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Wall" class="Wall">
+   <polygon points="320.0,505.0 332.0,505.0 332.0,676.0 320.0,676.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="141.0,1.0 239.0,1.0 239.0,13.0 141.0,13.0 " fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2"/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="380.0,1.0 478.0,1.0 478.0,13.0 380.0,13.0 " fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2"/>
+  </g>
+  <g id="Window" class="Window">
+   <polygon points="583.0,1.0 681.0,1.0 681.0,12.0 583.0,12.0 " fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2"/>
+  </g>
+  <g class="Space Undefined">
+   <polygon points="492.0,13.0 492.0,504.0 744.0,504.0 744.0,13.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
+   <text x="618" y="258" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
+  </g>
+  <g class="Space Undefined">
+   <polygon points="13.0,14.0 13.0,306.0 29.0,307.0 37.0,315.0 38.0,425.0 238.0,425.0 238.0,83.0 194.0,83.0 183.0,77.0 180.0,69.0 180.0,14.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
+   <text x="122" y="193" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
+  </g>
+  <g class="Space Undefined">
+   <polygon points="252.0,14.0 252.0,304.0 270.0,305.0 278.0,313.0 279.0,425.0 478.0,425.0 478.0,14.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
+   <text x="327" y="257" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
+  </g>
+  <g class="Space Bath">
+   <polygon points="13.0,517.0 13.0,663.0 184.0,663.0 185.0,651.0 190.0,645.0 198.0,642.0 319.0,642.0 319.0,517.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2"/>
+   <text x="178" y="618" font-size="22" text-anchor="middle" fill="#000000">Bath</text>
+  </g>
+  <g class="Space Undefined">
+   <polygon points="333.0,518.0 333.0,663.0 744.0,663.0 744.0,518.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
+   <text x="538" y="590" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
+  </g>
+  <g class="FixedFurniture Toilet" transform="matrix(1,0,0,1,32.0,520.0)">
+   <g class="BoundaryPolygon">
+    <polygon points="0,0 40,0 40,70 0,70" fill="#8844cc" fill-opacity="0.4" stroke="#8844cc" stroke-width="2"/>
+   </g>
+  </g>
+ </g>
+</svg>
