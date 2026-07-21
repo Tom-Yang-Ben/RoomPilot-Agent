@@ -34,3 +34,9 @@ eval_rooms/chk/
 finetune_data/
 finetune_data.zip
 cubicasa/room_ft/
+
+# 微調驗收獨立語意快取（CC_CACHE_DIR 指定，重算即可重生）
+cubicasa_room_ft*/
+
+# 工作暫存（漏門裁圖、未標房間標示圖等除錯產物）
+temp/
