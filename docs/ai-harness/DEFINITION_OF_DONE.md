@@ -1,6 +1,6 @@
 # RoomPilot Definition of Done — 逐層驗收條件
 
-v1.0(2026-07-13,制度架構 session 產出)。回答一件事:**每一層「什麼叫完成」,以及「憑什麼證據」。**
+v1.1(2026-07-21 文件清整)。回答一件事:**每一層「什麼叫完成」,以及「憑什麼證據」。**
 
 制度母文件:`docs/04_契約與規格/IMPLEMENTATION_QUALITY_GUARDRAILS.md`(功能四要件:畫面/互動/資料/驗收;交付前 6 步固定檢查)。本檔是它的逐層具體化;通用原則不在此重複,先讀它。
 
@@ -14,14 +14,15 @@ v1.0(2026-07-13,制度架構 session 產出)。回答一件事:**每一層「什
 
 ## 0.1 文件可信度指引(先讀對的正本)
 
-> 本表是 **2026-07-13 的快照**,列出的「落後事項」不完備(例:SSOT 的窗數字 89/91 也已落後實跑的 94/92)。原則:狀態數字以「實跑對應驗證指令」為準,文件落差回報組長,不要拿快照當永久事實。
+> 狀態數字以實跑對應驗證指令為準；文件、索引與歷史提交都不能取代程式輸出。2026-07-21 已把個人研究、舊狀態稽核與過時契約移出現行 repo。
 
 | 文件 | 可信度 |
 |---|---|
-| `docs/01_專題進度/RoomPilot_現行版本總覽.md` | **最高(SSOT)**,但尚未反映 7/11 兩件事:6 風格改動、GLB 實缺 4100 |
-| `docs/04_契約與規格/` 五份 | 高;注意 `AI_AGENT_JSON_SCHEMA_V1.md` 是**目標格式**非現況(它自承外部規則檔驅動還沒做到) |
-| `docs/05.../BELLA_CHANGE_SUMMARY_2026-07-11.md`、`EXTERNAL_GLB_SOURCE_AUDIT_2026-07-11.md` | 高(最新) |
-| `docs/05.../MODEL_PIPELINE_STATUS.md`、`SCENE_SYSTEM_STATUS.md`、`WEB_UI_STATUS.md` | **已過時**(描述舊 `web_fastapi/` 架構)——只當事故史料,不當現況讀 |
+| `docs/01_專題進度/RoomPilot_現行版本總覽.md` | **最高(SSOT)**；仍須以 code、tests 與實跑結果交叉驗證 |
+| `docs/資料夾功能總覽.md` | 現行 repo 地圖；只描述檔案用途，不宣稱功能完成 |
+| `docs/04_契約與規格/IMPLEMENTATION_QUALITY_GUARDRAILS.md` | 現行品質與互動驗收原則 |
+| `docs/01_專題進度/RoomPilot_ben-dev_功能整合來源報告_2026-07-19.md` | 整合來源與歸屬快照，不取代 SSOT |
+| `docs/archive/` | 歷史證據；內容可過時、連結可失效，不當現況讀 |
 
 ---
 
@@ -61,7 +62,7 @@ v1.0(2026-07-13,制度架構 session 產出)。回答一件事:**每一層「什
 |---|---|
 | 輸入 | 樓面 JSON + 需求 + 型錄 |
 | 輸出 | scene payload(`position_cm`/`size_cm`=公分;`wall/window/door segments`、`room_regions`=**公尺**;`rotation_y_deg` 與引擎反向)——契約正本=CLAUDE.md invariants |
-| 驗證 | ① `uv run pytest tests/test_agent_layout_intent.py tests/test_agent_recovery.py -v`(19 測試,間接覆蓋)② 端到端:啟動 server 後 `curl -X POST localhost:8002/api/scene/generate -H "Content-Type: application/json" -d '{}'`(payload 為必填 body,空請求會 422;正式欄位見 `docs/04/AI_AGENT_FRONTEND_BACKEND_CONTRACT.md`),回應 JSON 的座標與單位人工抽查 |
+| 驗證 | ① `uv run pytest tests/test_agent_layout_intent.py tests/test_agent_recovery.py tests/test_layout_api.py -v`② 端到端依 FastAPI OpenAPI／`project_models.py` 的現行欄位呼叫專案配置 API，人工抽查回應座標與單位 |
 | 交下一層證據 | curl 回應存檔 + frontend3d 或 /scene 頁實際渲染截圖 |
 | 已知缺口 | `generate_layout` 主流程與 `choose_furniture_items` 評分**無直接單元測試**;OpenRouter 呼叫與降級路徑無 mock 測試——動這兩處必須做端到端驗證,不能只跑 pytest |
 
@@ -69,10 +70,10 @@ v1.0(2026-07-13,制度架構 session 產出)。回答一件事:**每一層「什
 
 | | 內容 |
 |---|---|
-| 輸入/輸出 | 路由清單以 `grep "@app" roompilot/server/main.py` 為準(注意扣掉 `@app.on_event`,那不是路由);契約文件只覆蓋 intake 兩支+`/api/scene/generate` 輸入(`docs/04/AI_AGENT_FRONTEND_BACKEND_CONTRACT.md`) |
-| 驗證 | ① 在 **repo 根目錄**跑 `uv run uvicorn roompilot.server.main:app --port 8002`(相對 import,別處跑必炸)② 對動過的每支路由 `curl` 實測並保留輸出;上傳類路由用真實檔案測 |
+| 輸入/輸出 | 路由以 `roompilot/server/main.py`、Pydantic `project_models.py` 與 FastAPI OpenAPI 為準 |
+| 驗證 | ① 在 **repo 根目錄**跑 `uv run --extra vision uvicorn roompilot.server.main:app --port 8002`② 跑受影響的 `tests/test_project_api.py`、`test_requirements_api.py`、`test_layout_api.py`③ 對上傳或瀏覽器流程仍以真實檔案端到端實測 |
 | 交下一層證據 | curl 輸出(狀態碼+body 摘要) |
-| 已知缺口 | **28 支路由零 TestClient 測試**(現有測試測的是被呼叫的函式,不是路由)——動路由簽章/參數解析必須 curl 實測 |
+| 已知缺口 | TestClient 已覆蓋主要專案流程，但外部 OpenRouter、瀏覽器截圖與真實 GLB 載入仍需端到端驗證 |
 
 ## 6. frontend3d(R3F 顯示與手動微調)
 
@@ -80,9 +81,9 @@ v1.0(2026-07-13,制度架構 session 產出)。回答一件事:**每一層「什
 |---|---|
 | 輸入 | scene payload(經 proxy → :8002) |
 | 輸出 | 3D 場景渲染 + 拖曳/吸附(`Furniture.jsx`、`snap.js`) |
-| 驗證 | **零自動測試(無框架)**——唯一驗證方式是 GUARDRAILS §三的 6 步:`npm run dev` 後瀏覽器實際操作,逐狀態驗(初始/載入中/成功/失敗),截圖存證 |
+| 驗證 | `cd frontend3d && npm test` 驗證資料與狀態 helper；`npm run build` 驗證建置；真正 UI 完成仍須在 `:8002/scene` 逐步操作並截圖存證 |
 | 交下一層證據 | 操作截圖或錄影 + 瀏覽器 console 無紅字 |
-| 已知缺口 | 整層無測試是全專案最高風險區;F6 手動微調未修好(SSOT);歷史教訓:容器隱藏時初始化 0×0 導致全空白(FAILURE_LOG #2) |
+| 已知缺口 | helper 測試不能證明 R3F 畫面、拖曳與門窗實物正確；互動與視覺仍是最高風險區 |
 
 ## 7. Git 分支整合
 
@@ -94,10 +95,9 @@ v1.0(2026-07-13,制度架構 session 產出)。回答一件事:**每一層「什
 
 ---
 
-## 8. 尚無契約覆蓋的介面縫隙(2026-07-13 盤點,補契約的優先序)
+## 8. 尚需持續驗證的介面縫隙
 
-1. **scene payload → frontend3d**(混合單位+rotation 反向,只在 CLAUDE.md 口述)——最優先,F6/F7 都踩在上面
-2. **floorplan 交接 JSON → 前端 F2a**(第三套座標系,無文件)——F2a 開工前必補
-3. **dxf_parser 樓面 JSON → engine**(公尺/公分邊界,無 schema)
-4. `/api/scene/layout`、`/api/plan`、`/api/upload` 請求/回應
-5. `engine/schema.py` LLM tool schema(柏彥 Agent 的 P0 依賴,現只有 docstring)
+1. **scene payload → frontend3d**:混合單位與 rotation 反向仍由 CLAUDE.md invariants 約束，改動必須搭配 3D 實測。
+2. **floorplan 交接 JSON → 校尺 UI**:第三套座標系，須同時驗證同牆吸附與公分換算。
+3. **dxf_parser 樓面 JSON → engine**:公尺／公分邊界集中在 `dxf_room.py`，改動須跑升維與配置測試。
+4. **外部服務**:OpenRouter 與未定案的照片級渲染供應商，必須保留明確降級與失敗回報。

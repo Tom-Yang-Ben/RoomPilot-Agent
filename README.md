@@ -114,7 +114,7 @@ Windows 已有虛擬環境:`.venv\Scripts\python.exe -m uvicorn roompilot.server
 | `dataset/` | 素材與資料原料:IKEA GLB、`catalog_json/`、`style_rag/`、材質包 |
 | `testdata/` | 測試圖資:dxf / dxf_scale / json / png / pngans 等,floor21 為 Demo 基準 |
 | `tests/` | 自動化測試 |
-| `docs/` | `01_專題進度/`(SSOT)、`04_契約與規格/`、`05_狀態與稽核/`、`archive/` |
+| `docs/` | 現行資料夾總覽、`01_專題進度/`(SSOT)、`04_契約與規格/`(品質契約)、`ai-harness/`、`archive/` |
 
 > 啟動方式見最上方「快速上手」。詳細規劃與分工以 `docs/01_專題進度/RoomPilot_現行版本總覽.md` 為準。
 
@@ -128,9 +128,9 @@ uv run pytest tests/ -v
 
 ## 模型與私密檔案
 
-- `.glb` 模型屬於本機或外部資料資產，不納入 `bella` 分支版本控制。
+- 既有 `dataset/` GLB 是專案資料資產；新增大型模型前先由組長確認，不要直接整批加入。
 - `.env` 不得提交；請由 `.env.example` 建立本機設定。
-- `PROJECT_CONTEXT.md` 與 `CODEX_PROJECT_RULES.md` 屬於本機工作規則，不上傳 GitHub；`AGENTS.md` 不由 `bella` 修改。
+- `.claude/settings.local.json`、runtime 專案、個人筆記與暫存輸出不進版控；`AGENTS.md`、`CLAUDE.md` 是正式協作規則。
 - 前端透過 `/api/furniture/{id}/model` 取得後端解析的家具模型。
 
 ## 目前待辦
@@ -141,6 +141,8 @@ uv run pytest tests/ -v
 - 3D 場景 Step 2 提供更換已選風格，並保留已填空間資料與特殊需求。
 - 持續依模型與資料欄位稽核結果補齊 catalog。
 
-## 詳細改動
+## 進一步閱讀
 
-本次 `bella` 分支的完整改動內容請見 [Bella 分支目前改動摘要](docs/BELLA_CHANGE_SUMMARY_2026-07-11.md)。
+- [資料夾功能總覽](docs/資料夾功能總覽.md)
+- [現行版本 SSOT](docs/01_專題進度/RoomPilot_現行版本總覽.md)
+- [ben-dev 功能整合來源報告](docs/01_專題進度/RoomPilot_ben-dev_功能整合來源報告_2026-07-19.md)

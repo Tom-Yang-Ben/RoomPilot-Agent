@@ -2,12 +2,15 @@
 web_fastapi/.env
 .venv/
 .venv_triposr/
+.pytest_cache/
 frontend3d/node_modules/
 frontend3d/dist/
 __pycache__/
 *.pyc
 tmp/
 .runtime/
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
 web_fastapi/uploads/
 web_fastapi/__pycache__/
 Miniconda3-latest-Windows-x86_64.exe
@@ -39,18 +42,8 @@ sf3d/README.md
 web_fastapi/static/compare.*
 web_fastapi/static/model_probe.*
 
-# Only docs/moodboard_assets is required for the current website.
-docs/*
-!docs/*.md
-# 允許追蹤本次 ben-dev 功能整合來源報告，其他專題進度文件仍維持原規則。
-!docs/01_專題進度/
-docs/01_專題進度/*
-!docs/01_專題進度/RoomPilot_ben-dev_功能整合來源報告_2026-07-19.md
-!docs/moodboard_assets/
-!docs/moodboard_assets/**
-# AI Harness 制度正本(2026-07-13):docs/* 會吃掉新子目錄,必須豁免
-!docs/ai-harness/
-!docs/ai-harness/**
+# docs/ 只保留團隊專案文件，一律納入版控。
+# 個人筆記、復刻研究與過時狀態稿已於 2026-07-21 移出 repo 封存。
 
 # 大型資料(不上傳)
 data/
@@ -59,10 +52,6 @@ downloaded-files/
 舊的翻譯資料/
 needed.md
 
-# 本顥個人筆記(不進版控;團隊文件在 docs/01_專題進度/)
-docs/02_復刻研究/
-docs/03_個人學習/
-docs/README.md
 # Local/personal generated Markdown, not for bella uploads
 PROJECT_CONTEXT.md
 CODEX_PROJECT_RULES.md
@@ -75,11 +64,8 @@ PERSONAL_*.md
 *_local.md
 *_private.md
 *_personal.md
-docs/MISSING_*_AUDIT_*.md
 
-AGENTS.md
-
-# 3D 模型屬於本機或外部資產，不從 bella 分支上傳。
+# 新增 3D 模型屬大型資產，進版控前先由組長確認。
 *.glb
 
 # macOS 系統殘留(入倉三規則:禁止提交)
