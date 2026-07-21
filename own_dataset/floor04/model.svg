@@ -43,7 +43,7 @@
      id="Model"
      class="Model">
     <g
-       class="Space Entry"
+       class="Space HallWay"
        id="g34">
       <polygon
          points="537.0,549.0 538.0,689.0 639.0,689.0 639.0,549.0 "
@@ -387,7 +387,7 @@
          id="polygon29-1-5" />
     </g>
     <g
-       class="Space Undefined"
+       class="Space Bedroom"
        id="g30">
       <polygon
          points="131.0,174.0 131.0,528.0 517.0,528.0 517.0,174.0 "
@@ -409,7 +409,7 @@
            id="tspan41">Bedroom</tspan></text>
     </g>
     <g
-       class="Space Kitchen"
+       class="Space HallWay"
        id="g31">
       <polygon
          points="538.0,174.0 538.0,528.0 639.0,528.0 639.0,174.0 "
@@ -449,7 +449,7 @@
          id="text32">Kitchen</text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space Bedroom"
        id="g33">
       <polygon
          points="131.0,549.0 131.0,891.0 517.0,891.0 518.0,549.0 "
@@ -471,7 +471,7 @@
            id="tspan39">Bedroom</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space Bath"
        id="g35">
       <polygon
          points="659.0,549.0 659.0,689.0 924.0,689.0 924.0,549.0 "
@@ -493,7 +493,7 @@
            id="tspan37">Bathroom</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space LivingRoom"
        id="g36"
        transform="translate(-0.5607356,0.8785274)">
       <polygon

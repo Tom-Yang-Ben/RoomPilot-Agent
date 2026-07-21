@@ -255,7 +255,7 @@
          id="polygon18-4" />
     </g>
     <g
-       class="Space Outdoor"
+       class="Space Bath"
        id="g19">
       <polygon
          points="29.0,32.0 29.0,92.0 212.0,92.0 212.0,32.0 "
@@ -276,7 +276,7 @@
            id="tspan28">Washroom</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space Bedroom"
        id="g20"
        transform="matrix(0.99660033,0,0,1.0000115,2.337257,-0.79417982)">
       <polygon
@@ -319,7 +319,7 @@
          id="text21">Kitchen</text>
     </g>
     <g
-       class="Space Kitchen"
+       class="Space LivingRoom"
        id="g22">
       <polygon
          points="29.0,273.0 29.0,459.0 224.0,457.0 225.0,604.0 454.0,604.0 454.0,335.0 214.0,335.0 212.0,273.0 "
@@ -341,7 +341,7 @@
            id="tspan26">Living room</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space Storage"
        id="g23">
       <polygon
          points="29.0,467.0 29.0,604.0 215.0,604.0 212.0,467.0 "

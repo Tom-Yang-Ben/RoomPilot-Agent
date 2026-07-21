@@ -83,7 +83,7 @@
          style="stroke-width:0.61641">Bath</text>
     </g>
     <g
-       class="Space Kitchen"
+       class="Space Bedroom"
        id="g33"
        transform="matrix(1.5933924,0,0,0.99754016,-168.78418,0.37389561)">
       <polygon
@@ -110,7 +110,7 @@
            style="stroke-width:0.818811">Bedroom</tspan></text>
     </g>
     <g
-       class="Space Kitchen"
+       class="Space Bedroom"
        id="g34"
        transform="matrix(1.4077784,0,0,0.99825038,-119.7014,0.2659426)">
       <polygon

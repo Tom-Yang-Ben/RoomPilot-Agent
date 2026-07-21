@@ -418,7 +418,7 @@
          id="text34">Bedroom</text>
     </g>
     <g
-       class="Space Kitchen"
+       class="Space LivingRoom"
        id="g35"
        transform="matrix(1.0030324,0,0,0.44682754,-1.3949211,375.38146)">
       <polygon
@@ -472,7 +472,7 @@
            style="stroke-width:1.34323">Kitchen</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space HallWay"
        id="g37">
       <polygon
          points="258.0,359.0 258.0,445.0 337.0,445.0 337.0,359.0 "

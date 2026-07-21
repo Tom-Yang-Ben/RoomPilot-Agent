@@ -60,7 +60,7 @@
     <g id="g18-2-4" class="Door" transform="matrix(0.44682352,0,0,0.44996347,-268.71575,219.23302)">
       <polygon points="909,220.5 1088,220.5 1088,578.5 909,578.5 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon18-3-1"/>
     </g>
-    <g class="Space Undefined" id="g19" transform="matrix(0.66528059,0,0,1.0009668,-491.59726,-268.89547)">
+    <g class="Space Bedroom" id="g19" transform="matrix(0.66528059,0,0,1.0009668,-491.59726,-268.89547)">
       <text x="619.51172" y="446.20044" font-size="22px" text-anchor="middle" fill="#000000" id="text20-7" transform="translate(349.56236,57.52292)" inkscape:label="text19">Bedroom</text>
       <polygon points="412,223 855.959,223 855.959,603.536 412,603.536" style="fill:#4a8ed9;fill-opacity:0.35;stroke:#4a8ed9;stroke-width:2;stroke-opacity:1"/>
     </g>
@@ -68,15 +68,15 @@
       <text x="-302.81982" y="158.30278" font-size="22px" text-anchor="middle" fill="#000000" id="text20">Bedroom</text>
       <polygon points="-510.332,-64.8977 -66.3725,-64.8977 -66.3725,315.639 -510.332,315.639" style="fill:#4a8ed9;fill-opacity:0.35;stroke:#4a8ed9;stroke-width:2;stroke-opacity:1"/>
     </g>
-    <g class="Space Undefined" id="g21" transform="matrix(1.5079281,0,0,2.2854055,-552.96429,-15.849087)">
+    <g class="Space Bath" id="g21" transform="matrix(1.5079281,0,0,2.2854055,-552.96429,-15.849087)">
       <polygon points="1087,13 885,13 885,179 1087,179 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon21" style="fill:#3ebbbb;fill-opacity:0.35;stroke:#3ebbbb;stroke-opacity:1"/>
       <text x="898.70007" y="124.18416" font-size="22px" text-anchor="middle" fill="#000000" id="text21" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20.1334px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:0.915153" transform="scale(1.0927132,0.91515322)"><tspan sodipodi:role="line" id="tspan27" x="898.70007" y="124.18416" style="stroke-width:0.915153">Bath</tspan></text>
     </g>
-    <g class="Space Undefined" id="g23" transform="translate(-390.86086,-228.61673)">
+    <g class="Space Kitchen" id="g23" transform="translate(-390.86086,-228.61673)">
       <text x="572.76068" y="957.19189" font-size="22px" text-anchor="middle" fill="#000000" id="text23" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan28" x="572.76068" y="957.19189">Kitchen</tspan></text>
       <polygon points="404.559,633.801 755.599,633.801 755.599,1068.91 404.559,1068.91" style="fill:#3ebbbb;fill-opacity:0.35;stroke:#3ebbbb;stroke-width:1.99664"/>
     </g>
-    <g class="Space Undefined" id="g24" transform="translate(-1214.9447,-545.48774)">
+    <g class="Space LivingRoom" id="g24" transform="translate(-1214.9447,-545.48774)">
       <text x="2013.6346" y="1150.9473" font-size="22" text-anchor="middle" fill="#000000" id="text24" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:34.2335px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:1.55607" transform="scale(0.96880571,1.0321987)"><tspan sodipodi:role="line" id="tspan26" x="2013.6346" y="1150.9473" style="stroke-width:1.55607">Living Room</tspan></text>
       <polygon points="1586.31,950.399 2301.79,950.399 2301.79,1382.2 1586.31,1382.2" style="fill:#7ec37e;fill-opacity:0.35;stroke:#7ec37e;stroke-width:1.98102"/>
     </g>

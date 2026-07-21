@@ -382,7 +382,7 @@
          inkscape:label="polygon29" />
     </g>
     <g
-       class="Space Storage"
+       class="Space Bedroom"
        id="g30">
       <polygon
          points="44.0,47.0 44.0,381.0 348.0,379.0 348.0,47.0 "
@@ -423,7 +423,7 @@
          inkscape:label="rect43" />
     </g>
     <g
-       class="Space Storage"
+       class="Space Bedroom"
        id="g33">
       <polygon
          points="645.0,47.0 645.0,456.0 981.0,456.0 981.0,47.0 "
@@ -445,7 +445,7 @@
            id="tspan41">Bedroom</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space HallWay"
        id="g34">
       <polygon
          points="366.0,289.0 366.0,379.0 627.0,379.0 627.0,289.0 "

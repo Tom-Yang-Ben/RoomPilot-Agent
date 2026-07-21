@@ -421,7 +421,7 @@
          inkscape:label="polygon30" />
     </g>
     <g
-       class="Space Undefined"
+       class="Space LivingRoom"
        id="g26">
       <polygon
          points="245.0,58.0 245.0,205.0 261.0,206.0 270.0,213.0 273.0,222.0 273.0,252.0 611.0,252.0 611.0,26.0 413.0,25.0 412.0,58.0 "
@@ -445,7 +445,7 @@
            y="158.17921">Living Room</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space Storage"
        id="g27">
       <polygon
          points="13.0,230.0 13.0,419.0 112.0,419.0 112.0,230.0 "
@@ -466,7 +466,7 @@
            id="tspan29">Storage</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space HallWay"
        id="g27-1"
        transform="matrix(0.89161366,0,0,0.55089532,131.82672,102.57676)"
        inkscape:label="g35">
@@ -495,7 +495,7 @@
            style="stroke-width:1.20089">Hallway</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space Outdoor"
        id="g27-1-6"
        transform="matrix(0.78415865,0,0,0.18292518,76.284201,-31.321005)"
        inkscape:label="g36">
@@ -524,7 +524,7 @@
            style="stroke-width:2.13198">Terrace</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space LivingRoom"
        id="g28">
       <polygon
          points="412.0,266.0 412.0,419.0 611.0,419.0 611.0,265.0 "
@@ -546,7 +546,7 @@
            id="tspan28">Living Room</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space Entry"
        id="g28-9"
        transform="matrix(0.75291018,0,0,1.0017106,-64.160753,-1.8308833)"
        inkscape:label="g29">
@@ -573,7 +573,7 @@
            id="tspan31">Entrance</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space Bath"
        id="g28-9-14"
        transform="matrix(0.52856176,0,0,0.47250703,-93.397964,220.91369)"
        inkscape:label="g34">
@@ -603,7 +603,7 @@
            style="stroke-width:1.62917">Bath</tspan></text>
     </g>
     <g
-       class="Space Undefined"
+       class="Space Kitchen"
        id="g28-9-1"
        transform="matrix(1.0827363,0,0,1.0327115,-430.4341,-215.60911)"
        inkscape:label="g33">

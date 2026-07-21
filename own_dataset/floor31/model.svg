@@ -51,11 +51,11 @@
     <g id="g16" class="Door">
       <polygon points="449.5,683.0 449.5,759.0 601.5,759.0 601.5,683.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon16"/>
     </g>
-    <g class="Space Undefined" id="g17" transform="translate(-352.62472,-63.522823)">
+    <g class="Space Kitchen" id="g17" transform="translate(-352.62472,-63.522823)">
       <text x="592.82928" y="255" font-size="22px" text-anchor="middle" fill="#000000" id="text17" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan1" x="592.82928" y="255">Kitchen</tspan></text>
       <polygon points="363.739,73.9491 743.604,73.9491 743.604,408.797 363.739,408.797" style="fill:#e8833b;fill-opacity:0.35;stroke:#e8833b;stroke-width:1.35224;stroke-opacity:1"/>
     </g>
-    <g class="Space Undefined" id="g17-2" transform="translate(-353.14834,-63.954313)" inkscape:label="g21">
+    <g class="Space LivingRoom" id="g17-2" transform="translate(-353.14834,-63.954313)" inkscape:label="g21">
       <text x="1012.1992" y="322.80185" font-size="22px" text-anchor="middle" fill="#000000" id="text17-7-3" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" inkscape:label="text21"><tspan sodipodi:role="line" id="tspan2">Living Room</tspan></text>
       <polygon points="747.503,76.1452 1296.05,76.1452 1296.05,657.227 747.503,657.227" style="fill:#7ec47e;fill-opacity:0.34999999;stroke:#7ec47e;stroke-width:2.14062;stroke-opacity:1"/>
     </g>
@@ -63,19 +63,19 @@
       <polygon points="12.0,359.0 12.0,622.0 306.0,622.0 306.0,359.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2" id="polygon18"/>
       <text x="159" y="490" font-size="22" text-anchor="middle" fill="#000000" id="text18">Bath</text>
     </g>
-    <g class="Space Undefined" id="g19">
+    <g class="Space Office" id="g19">
       <polygon points="743.0,607.0 743.0,839.0 1088.0,839.0 1088.0,611.0 984.0,611.0 974.0,607.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon19"/>
       <text x="937" y="686" font-size="22" text-anchor="middle" fill="#000000" id="text19" style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:22px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan3">Study</tspan></text>
     </g>
-    <g class="Space Undefined" id="g19-1" transform="matrix(0.29452665,0,0,1.2992624,726.94621,-703.39022)" inkscape:label="g23">
+    <g class="Space StairWell" id="g19-1" transform="matrix(0.29452665,0,0,1.2992624,726.94621,-703.39022)" inkscape:label="g23">
       <polygon points="1088,611 984,611 974,607 743,607 743,839 1088,839 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon19-8" inkscape:label="polygon23"/>
       <text x="486.36475" y="1340.6788" font-size="22" text-anchor="middle" fill="#000000" id="text19-9" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:42.9956px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:1.95434" inkscape:label="text23" transform="scale(1.9543424,0.51168107)"><tspan sodipodi:role="line" id="tspan4">Stair</tspan></text>
     </g>
-    <g class="Space Undefined" id="g20" transform="matrix(1.0699667,0,0,1.1913977,-51.204691,-160.70993)">
+    <g class="Space HallWay" id="g20" transform="matrix(1.0699667,0,0,1.1913977,-51.204691,-160.70993)">
       <polygon points="730,839 730,635 545,635 545,839 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon20"/>
       <text x="638" y="737" font-size="22px" text-anchor="middle" fill="#000000" id="text20" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan24" x="638" y="737">Hallway</tspan></text>
     </g>
-    <g class="Space Undefined" id="g20-6" transform="matrix(0.39081886,0,0,1.3286043,105.43437,-494.64441)" inkscape:label="g22">
+    <g class="Space HallWay" id="g20-6" transform="matrix(0.39081886,0,0,1.3286043,105.43437,-494.64441)" inkscape:label="g22">
       <polygon points="730,635 545,635 545,839 730,839 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon20-8" inkscape:label="polygon22"/>
       <text x="342.89462" y="1341.6069" font-size="22px" text-anchor="middle" fill="#000000" id="text20-5" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:24.0364px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:1.09256" transform="scale(1.8488432,0.54087875)" inkscape:label="text22"><tspan sodipodi:role="line" id="tspan24-7" x="342.89462" y="1341.6069" style="stroke-width:1.09256">Hallway</tspan></text>
     </g>

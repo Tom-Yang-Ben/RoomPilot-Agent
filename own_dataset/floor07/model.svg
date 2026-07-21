@@ -3,7 +3,7 @@
   <sodipodi:namedview id="namedview42" pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:zoom="0.71565704" inkscape:cx="354.21995" inkscape:cy="505.13022" inkscape:window-width="1920" inkscape:window-height="1017" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Model"/>
   <image xlink:href="F1_scaled.png" x="0" y="0" width="1188" height="827" id="image1"/>
   <g id="Model" class="Model">
-    <g class="Space Undefined" id="g34" transform="translate(-1296.9112,80.342219)">
+    <g class="Space Bedroom" id="g34" transform="translate(-1296.9112,80.342219)">
       <text x="2286.8044" y="139.88199" font-size="22" text-anchor="middle" fill="#000000" id="text34" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:21.6156px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:0.982526" transform="scale(1.0046694,0.99535231)"><tspan sodipodi:role="line" id="tspan42" x="2286.8044" y="139.88199" style="stroke-width:0.982526">Bedroom</tspan></text>
       <polygon points="2133.87,-48.2382 2449.73,-48.2382 2449.73,320.722 2133.87,320.722" style="fill:#498ed9;fill-opacity:0.35;stroke:#498ed9;stroke-width:3.84954"/>
     </g>
@@ -108,11 +108,11 @@
       <polygon points="406.0,30.0 406.0,132.0 422.0,134.0 428.0,144.0 428.0,224.0 631.0,224.0 631.0,92.0 622.0,91.0 615.0,84.0 614.0,33.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2" id="polygon33"/>
       <text x="520" y="119" font-size="22" text-anchor="middle" fill="#000000" id="text33">Bath</text>
     </g>
-    <g class="Space Undefined" id="g35">
+    <g class="Space Bedroom" id="g35">
       <polygon points="817.0,33.0 739.0,33.0 737.0,40.0 729.0,48.0 729.0,80.0 723.0,90.0 649.0,91.0 649.0,224.0 799.0,224.0 800.0,175.0 807.0,168.0 817.0,167.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon35"/>
-      <text x="750" y="114" font-size="22" text-anchor="middle" fill="#000000" id="text35">Undefined</text>
+      <text x="750" y="114" font-size="22" text-anchor="middle" fill="#000000" id="text35">Bedroom</text>
     </g>
-    <g class="Space Undefined" id="g36" transform="translate(-857.95285,-33.535616)">
+    <g class="Space LivingRoom" id="g36" transform="translate(-857.95285,-33.535616)">
       <polygon points="406,339 409,380 333,381 333,673 359,675 365,685 365,709 380,710 387,717 388,792 714,792 714,588 604,588 593,596 527,596 521,594 515,584 515,546 439,545 440,528 631,528 631,242 406,244 " fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon36" style="fill:#7ec37e;fill-opacity:0.35;stroke:#7ec37e;stroke-opacity:1" fill="#d9d9d9"/>
       <text x="477" y="567" font-size="22" text-anchor="middle" fill="#000000" id="text36" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan43" x="477" y="567">Livingroom</tspan></text>
     </g>
@@ -120,9 +120,9 @@
       <polygon points="649.0,242.0 649.0,528.0 732.0,529.0 732.0,792.0 1155.0,792.0 1155.0,421.0 818.0,421.0 817.0,243.0 " fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2" id="polygon37"/>
       <text x="838" y="496" font-size="22" text-anchor="middle" fill="#000000" id="text37">Kitchen</text>
     </g>
-    <g class="Space Undefined" id="g38">
+    <g class="Space Entry" id="g38">
       <polygon points="191.0,381.0 191.0,637.0 313.0,637.0 313.0,381.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon38"/>
-      <text x="252" y="509" font-size="22" text-anchor="middle" fill="#000000" id="text38">Undefined</text>
+      <text x="252" y="509" font-size="22" text-anchor="middle" fill="#000000" id="text38">Entry</text>
     </g>
   </g>
 </svg>
