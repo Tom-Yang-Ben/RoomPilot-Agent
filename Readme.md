@@ -96,7 +96,7 @@
 〇、換機交接（重要）——不在版控、新機器要手動搬運/重建的東西：
 
 - **cubicasa5k.zip**（5.5GB 官方資料集）：解壓到 `CubiCasa5k/data/`，得 `CubiCasa5k/data/cubicasa5k/{colorful, high_quality, high_quality_architectural}` 5000 樣本＋train/val/test.txt。每樣本含原圖與 model.svg 向量標註——`Space <房型>` 房間多邊形與 `FixedFurniture <設備>`（Toilet/IntegratedStove/Bathtub…）多邊形，是下方路線圖 A/B/C 的原料
-- CubiCasa5k/ 程式庫、model_best_val_loss_var.pkl 權重、mitunet/：重建方式見 .gitignore 註記
+- CubiCasa5k/ 程式庫、model_best_val_loss_var.pkl 權重：重建方式見 .gitignore 註記
 - **.venv 重建**：`pip install -r requirements.txt`。opencv 已釘 `<5`——OpenCV 5.0 把 HoughLinesP 回傳 shape 從 (N,1,4) 改 (N,4)，兩支管線的門偵測會當場掛掉；torch 生態會拉進 opencv-python-headless（後裝者蓋掉 cv2），**兩顆都必須 <5**（本次事故：headless 5.0.0 蓋掉 4.13）
 - **推論/評分另需**（主管線不用，requirements.txt 不收）：torch（兩台機器皆有 GPU，裝 cu126 版即可，見下方 GPU 現況）＋ `pip install lmdb scikit-image svgpathtools pytest`——infer_cubicasa.py 重算語意快取、eval_rooms_cc.py 解析 model.svg（floortrans.loaders 連帶依賴）時才需要
 - **CubiCasa5k/ re-clone 後必跑 `python scripts/apply_cubicasa_patches.py`**：上游 svg_utils 的 np.matrix 在 numpy 2.x 會 ValueError，任何含圖示的樣本都無法解析（訓練/round-trip 都會中招）

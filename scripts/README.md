@@ -1,6 +1,6 @@
 # scripts/ 腳本說明
 
-本目錄共 21 個 Python 腳本，依功能分為六組。整體工作流：
+本目錄共 20 個 Python 腳本，依功能分為六組。整體工作流：
 
 **主管線**（floorplan2dxf_color）產出 → **eval 系列**守門評分 → **infer 系列**提供 DL 證據融合 → **路線圖 B/C 腳本**建符號庫與微調資料。
 
@@ -36,15 +36,6 @@ CubiCasa5k 模型推論：PNG → 牆/窗/門 bool mask ＋ 房間語意/圖示�
 
 ```bash
 python infer_cubicasa.py <weights.pkl> <out_dir> <img1> [img2 ...]
-```
-
-### infer_mitunet.py
-MitUNet（smp.Unet + mit_b4 編碼器 + scSE）牆體分割推論。輸出格式與 infer_cubicasa.py 一致，可直接餵 `eval_cc_masks.py` 評分，或設 `config_color.ini` 的 `cc_mask_dir` 做融合。
-
-**權重為 CC-BY-NC 4.0（禁商用），僅供評估比較。**
-
-```bash
-python3 infer_mitunet.py <weights.pth> <out_dir> <img1> [img2 ...] [--size 512]
 ```
 
 ### apply_cubicasa_patches.py

@@ -17,8 +17,6 @@ CubiCasa5k/
 model_best_val_loss_var.pkl
 model_finetuned_*.pkl
 
-# MitUNet 外部程式庫與權重（infer_mitunet.py 用；重建：git clone aliasstudio/mitunet 到 mitunet/repo + LFS 權重。權重 CC-BY-NC 禁商用）
-mitunet/repo/
 
 # CubiCasa5k 資料集（5.5GB，換機時手動搬運 zip 再解壓到 CubiCasa5k/data/）
 cubicasa5k.zip
