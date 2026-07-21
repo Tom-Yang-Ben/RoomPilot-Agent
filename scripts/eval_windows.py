@@ -21,12 +21,16 @@ import cv2
 import numpy as np
 
 
-def green_boxes(path):
+def green_boxes(path, size=None):
     """抽出圖中所有綠色框的 bbox 清單 [(x0,y0,x1,y1)]。
-    同時吃程式畫的 (0,170,0) 與小畫家綠 (34,177,76)，含反鋸齒容差。"""
+    同時吃程式畫的 (0,170,0) 與小畫家綠 (34,177,76)，含反鋸齒容差。
+    size=(w,h) 時先把圖縮放到該尺寸再抽框——彩色管線可能以 2 倍圖處理，
+    chk 疊圖與答案圖尺寸不同（灰階管線兩邊同尺寸，縮放係數=1 不影響）。"""
     img = cv2.imread(path)
     if img is None:
         sys.exit(f"讀不到 {path}")
+    if size is not None and (img.shape[1], img.shape[0]) != size:
+        img = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
     b, g, r = img[:, :, 0].astype(int), img[:, :, 1].astype(int), img[:, :, 2].astype(int)
     mask = ((g >= 110) & (g - b >= 45) & (g - r >= 45)).astype(np.uint8) * 255
     mask = cv2.dilate(mask, np.ones((5, 5), np.uint8))   # 把 2px 框線黏成一塊
@@ -72,7 +76,8 @@ def main():
             print(f"{base:<10} (缺 {cp}，跳過)")
             continue
         ans = green_boxes(ap)
-        pred = green_boxes(cp)
+        a_img = cv2.imread(ap)
+        pred = green_boxes(cp, size=(a_img.shape[1], a_img.shape[0]))
         hit_ans = [any(matched(a, p) for p in pred) for a in ans]
         fp_boxes = [p for p in pred if not any(matched(a, p) for a in ans)]
         fn_boxes = [a for a, h in zip(ans, hit_ans) if not h]

@@ -1823,8 +1823,30 @@ def run(cfg: Config):
     rects, bgr, bw, bw_open, T, img_w, img_h, is_color = detect_walls(cfg)
 
     if cfg.style == "solid":                 # 實心牆：矩形 + SOLID HATCH
+        # 接回窗偵測（v2.12 牆穩定後）：作法同黑白管線 solid 分支——
+        # thin=細線層(全二值減膨脹後的牆)、soft=寬鬆二值(淺灰玻璃線)、
+        # doors 先抓供 _near_door 抑制門弧誤判成窗
+        wins, doors = [], []
+        if cfg.windows:
+            # 彩色渲染圖的窗是「淺灰細線描邊的白條」，牆二值化(留最深2層)
+            # 會整條濾掉——窗用二值層獨立做：淺灰門檻＋色度過濾
+            # (中性灰線稿留下、彩色家具/色塊排除)，比照牆前處理的 chroma<40
+            gray0 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+            chroma0 = (bgr.max(axis=2).astype(np.int16)
+                       - bgr.min(axis=2).astype(np.int16)).astype(np.uint8)
+            if gray0.shape != bw.shape:      # 彩圖管線可能 2 倍放大
+                gray0 = cv2.resize(gray0, (bw.shape[1], bw.shape[0]),
+                                   interpolation=cv2.INTER_LINEAR)
+                chroma0 = cv2.resize(chroma0, (bw.shape[1], bw.shape[0]),
+                                     interpolation=cv2.INTER_LINEAR)
+            neutral = chroma0 < 40
+            orig_win = (((gray0 < 215) & neutral).astype(np.uint8)) * 255
+            soft = (((gray0 < 235) & neutral).astype(np.uint8)) * 255
+            thin = cv2.subtract(orig_win, cv2.dilate(bw_open, np.ones((3, 3), np.uint8)))
+            doors = detect_doors(thin, T, cfg.door_arc_pct)
+            wins = detect_windows(orig_win, rects, cfg, T, doors, thin, soft)
         if cfg.preview:
-            preview_solid(bgr, rects, [], cfg.preview)
+            preview_solid(bgr, rects, wins, cfg.preview)
 
         base = os.path.splitext(os.path.basename(cfg.input))[0]
         if cfg.output:                       # 指令/config 有指定輸出就照用
@@ -1832,10 +1854,10 @@ def run(cfg: Config):
         else:                                # 慣例：DXF(cm) → dxf_scale/color/
             os.makedirs("dxf_scale/color", exist_ok=True)
             scale_out = os.path.join("dxf_scale/color", base + ".dxf")
-        write_solid_dxf(rects, [], img_h, scale / 10.0, cfg, out=scale_out, insunits=5)
+        write_solid_dxf(rects, wins, img_h, scale / 10.0, cfg, out=scale_out, insunits=5)
 
-        print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid (只抓牆)")
-        print(f"實心牆塊 : {len(rects)} 個")
+        print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid")
+        print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個   門候選 : {len(doors)} 個")
         print(f"輸出   : {scale_out} (cm)"
               + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
         return
