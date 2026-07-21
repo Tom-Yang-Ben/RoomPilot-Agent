@@ -66,7 +66,7 @@ python3 eval_windows.py [答案目錄] [chk目錄]
 ```
 
 ### eval_doors.py
-用 `door/` 的門樣式圖驗證「門不會被誤判成窗」——只要輸出任何窗框就算漏過濾。過濾率目標 ≥ 95%。
+用 `Asset/door/` 的門樣式圖驗證「門不會被誤判成窗」——只要輸出任何窗框就算漏過濾。過濾率目標 ≥ 95%。
 
 ```bash
 python3 eval_doors.py [door目錄]

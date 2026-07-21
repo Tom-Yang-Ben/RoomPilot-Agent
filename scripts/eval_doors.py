@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-eval_doors.py — 用 door/ 的門樣式圖驗證「門不會被誤判成窗」
+eval_doors.py — 用 Asset/door/ 的門樣式圖驗證「門不會被誤判成窗」
 
-    python3 eval_doors.py [door目錄]        (預設 door/)
+    python3 eval_doors.py [door目錄]        (預設 Asset/door/)
 
 每張樣式圖直接跑跟主程式相同的偵測管線；只要輸出任何窗框就算「漏過濾」。
 過濾率 = 沒被誤判成窗的樣式數 / 總樣式數，目標 ≥ 95%。
@@ -46,7 +46,7 @@ def detect_on(path):
 
 
 def main():
-    door_dir = sys.argv[1] if len(sys.argv) > 1 else "door"
+    door_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join("Asset", "door")
     files = sorted(glob.glob(os.path.join(door_dir, "*.png")))
     if not files:
         sys.exit(f"{door_dir}/ 裡找不到 .png")
