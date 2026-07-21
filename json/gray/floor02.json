@@ -218,7 +218,40 @@
         "cy": 47.25,
         "width": 876.0
       },
-      "score": 0.63
+      "score": 0.63,
+      "tpl_chamfer": 2.88,
+      "tpl_kind": "door08",
+      "score_fused": 0.63
+    },
+    {
+      "px": {
+        "cx": 380.5,
+        "cy": 79.0,
+        "width": 82.0
+      },
+      "cm": {
+        "cx": 570.75,
+        "cy": 709.5,
+        "width": 123.0
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 283.0,
+        "cy": 168.5,
+        "width": 84.0
+      },
+      "cm": {
+        "cx": 424.5,
+        "cy": 575.25,
+        "width": 126.0
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
     }
   ],
   "dxf_scale": "dxf_scale/floor02.dxf"

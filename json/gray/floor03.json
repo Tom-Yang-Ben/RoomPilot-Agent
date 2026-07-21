@@ -377,7 +377,10 @@
         "cy": 524.69,
         "width": 45.67
       },
-      "score": 1.0
+      "score": 1.0,
+      "tpl_chamfer": 2.24,
+      "tpl_kind": "door12",
+      "score_fused": 1.0
     },
     {
       "px": {
@@ -390,7 +393,10 @@
         "cy": 527.81,
         "width": 47.51
       },
-      "score": 1.0
+      "score": 1.0,
+      "tpl_chamfer": 1.98,
+      "tpl_kind": "door02",
+      "score_fused": 1.0
     },
     {
       "px": {
@@ -403,7 +409,10 @@
         "cy": 780.0,
         "width": 39.38
       },
-      "score": 1.0
+      "score": 1.0,
+      "tpl_chamfer": 2.16,
+      "tpl_kind": "door02",
+      "score_fused": 1.0
     },
     {
       "px": {
@@ -416,7 +425,10 @@
         "cy": 391.25,
         "width": 36.0
       },
-      "score": 0.963
+      "score": 0.963,
+      "tpl_chamfer": 2.21,
+      "tpl_kind": "door02",
+      "score_fused": 0.963
     },
     {
       "px": {
@@ -429,7 +441,10 @@
         "cy": 591.88,
         "width": 48.75
       },
-      "score": 0.815
+      "score": 0.815,
+      "tpl_chamfer": 1.68,
+      "tpl_kind": "door08",
+      "score_fused": 0.815
     },
     {
       "px": {
@@ -442,7 +457,10 @@
         "cy": 816.88,
         "width": 37.54
       },
-      "score": 0.815
+      "score": 0.815,
+      "tpl_chamfer": 2.59,
+      "tpl_kind": "door02",
+      "score_fused": 0.815
     },
     {
       "px": {
@@ -455,7 +473,10 @@
         "cy": 814.69,
         "width": 44.61
       },
-      "score": 0.741
+      "score": 0.741,
+      "tpl_chamfer": 1.83,
+      "tpl_kind": "door08",
+      "score_fused": 0.741
     },
     {
       "px": {
@@ -468,7 +489,10 @@
         "cy": 575.62,
         "width": 60.01
       },
-      "score": 0.704
+      "score": 0.704,
+      "tpl_chamfer": 2.91,
+      "tpl_kind": "door02",
+      "score_fused": 0.704
     },
     {
       "px": {
@@ -481,7 +505,10 @@
         "cy": 580.0,
         "width": 54.41
       },
-      "score": 0.704
+      "score": 0.704,
+      "tpl_chamfer": 2.3,
+      "tpl_kind": "door12",
+      "score_fused": 0.704
     },
     {
       "px": {
@@ -494,7 +521,10 @@
         "cy": 779.38,
         "width": 37.67
       },
-      "score": 0.667
+      "score": 0.667,
+      "tpl_chamfer": 2.37,
+      "tpl_kind": "door02",
+      "score_fused": 0.667
     },
     {
       "px": {
@@ -507,7 +537,10 @@
         "cy": 528.12,
         "width": 60.0
       },
-      "score": 0.63
+      "score": 0.63,
+      "tpl_chamfer": 2.44,
+      "tpl_kind": "door02",
+      "score_fused": 0.63
     },
     {
       "px": {
@@ -520,7 +553,10 @@
         "cy": 619.06,
         "width": 40.7
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 2.63,
+      "tpl_kind": "door02",
+      "score_fused": 0.593
     },
     {
       "px": {
@@ -533,7 +569,70 @@
         "cy": 591.25,
         "width": 67.52
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 2.34,
+      "tpl_kind": "door01",
+      "score_fused": 0.593
+    },
+    {
+      "px": {
+        "cx": 393.0,
+        "cy": 119.0,
+        "width": 124.0
+      },
+      "cm": {
+        "cx": 491.25,
+        "cy": 926.25,
+        "width": 155.0
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 296.0,
+        "cy": 352.0,
+        "width": 124.0
+      },
+      "cm": {
+        "cx": 370.0,
+        "cy": 635.0,
+        "width": 155.0
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 296.0,
+        "cy": 351.0,
+        "width": 124.0
+      },
+      "cm": {
+        "cx": 370.0,
+        "cy": 636.25,
+        "width": 155.0
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 519.5,
+        "cy": 684.5,
+        "width": 138.0
+      },
+      "cm": {
+        "cx": 649.38,
+        "cy": 219.38,
+        "width": 172.5
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
     }
   ],
   "dxf_scale": "dxf_scale/floor03.dxf"

@@ -260,7 +260,10 @@
         "cy": 566.88,
         "width": 94.38
       },
-      "score": 1.0
+      "score": 1.0,
+      "tpl_chamfer": 1.18,
+      "tpl_kind": "door08",
+      "score_fused": 1.0
     },
     {
       "px": {
@@ -273,7 +276,10 @@
         "cy": 9.38,
         "width": 94.38
       },
-      "score": 1.0
+      "score": 1.0,
+      "tpl_chamfer": 1.35,
+      "tpl_kind": "door08",
+      "score_fused": 1.0
     },
     {
       "px": {
@@ -286,7 +292,10 @@
         "cy": 815.0,
         "width": 55.09
       },
-      "score": 0.963
+      "score": 0.963,
+      "tpl_chamfer": 2.89,
+      "tpl_kind": "door02",
+      "score_fused": 0.963
     },
     {
       "px": {
@@ -299,7 +308,10 @@
         "cy": 815.62,
         "width": 55.06
       },
-      "score": 0.926
+      "score": 0.926,
+      "tpl_chamfer": 2.87,
+      "tpl_kind": "door02",
+      "score_fused": 0.926
     },
     {
       "px": {
@@ -312,7 +324,10 @@
         "cy": 785.0,
         "width": 71.25
       },
-      "score": 0.667
+      "score": 0.667,
+      "tpl_chamfer": 2.61,
+      "tpl_kind": "door08",
+      "score_fused": 0.667
     },
     {
       "px": {
@@ -325,7 +340,10 @@
         "cy": 715.62,
         "width": 58.12
       },
-      "score": 0.63
+      "score": 0.63,
+      "tpl_chamfer": 2.04,
+      "tpl_kind": "door12",
+      "score_fused": 0.63
     },
     {
       "px": {
@@ -338,7 +356,10 @@
         "cy": 93.44,
         "width": 81.25
       },
-      "score": 0.63
+      "score": 0.63,
+      "tpl_chamfer": 1.94,
+      "tpl_kind": "door09",
+      "score_fused": 0.63
     },
     {
       "px": {
@@ -351,7 +372,10 @@
         "cy": 18.12,
         "width": 84.38
       },
-      "score": 0.63
+      "score": 0.63,
+      "tpl_chamfer": 2.43,
+      "tpl_kind": "door02",
+      "score_fused": 0.63
     },
     {
       "px": {
@@ -364,7 +388,10 @@
         "cy": 824.38,
         "width": 235.62
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 2.36,
+      "tpl_kind": "door02",
+      "score_fused": 0.593
     },
     {
       "px": {
@@ -377,7 +404,10 @@
         "cy": 824.38,
         "width": 235.62
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 2.17,
+      "tpl_kind": "door12",
+      "score_fused": 0.593
     },
     {
       "px": {
@@ -390,7 +420,10 @@
         "cy": 231.25,
         "width": 95.0
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 1.85,
+      "tpl_kind": "door05",
+      "score_fused": 0.593
     },
     {
       "px": {
@@ -403,7 +436,10 @@
         "cy": 94.06,
         "width": 80.63
       },
-      "score": 0.556
+      "score": 0.556,
+      "tpl_chamfer": 2.0,
+      "tpl_kind": "door11",
+      "score_fused": 0.556
     },
     {
       "px": {
@@ -416,7 +452,40 @@
         "cy": 18.75,
         "width": 82.51
       },
-      "score": 0.556
+      "score": 0.556,
+      "tpl_chamfer": 2.24,
+      "tpl_kind": "door11",
+      "score_fused": 0.556
+    },
+    {
+      "px": {
+        "cx": 828.0,
+        "cy": 185.5,
+        "width": 188.0
+      },
+      "cm": {
+        "cx": 1035.0,
+        "cy": 830.62,
+        "width": 235.0
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 998.5,
+        "cy": 399.5,
+        "width": 358.0
+      },
+      "cm": {
+        "cx": 1248.12,
+        "cy": 563.12,
+        "width": 447.5
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
     }
   ],
   "dxf_scale": "dxf_scale/floor44.dxf"

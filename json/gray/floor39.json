@@ -233,7 +233,10 @@
         "cy": 437.05,
         "width": 101.59
       },
-      "score": 1.0
+      "score": 1.0,
+      "tpl_chamfer": 1.02,
+      "tpl_kind": "door12",
+      "score_fused": 1.0
     },
     {
       "px": {
@@ -246,7 +249,10 @@
         "cy": 260.45,
         "width": 256.36
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 2.49,
+      "tpl_kind": "door12",
+      "score_fused": 0.593
     },
     {
       "px": {
@@ -259,7 +265,40 @@
         "cy": 260.45,
         "width": 256.36
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 2.64,
+      "tpl_kind": "door02",
+      "score_fused": 0.593
+    },
+    {
+      "px": {
+        "cx": 407.5,
+        "cy": 286.5,
+        "width": 158.0
+      },
+      "cm": {
+        "cx": 555.67,
+        "cy": 415.22,
+        "width": 215.4
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 407.5,
+        "cy": 586.0,
+        "width": 158.0
+      },
+      "cm": {
+        "cx": 555.67,
+        "cy": 6.82,
+        "width": 215.4
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
     }
   ],
   "dxf_scale": "dxf_scale/floor39.dxf"

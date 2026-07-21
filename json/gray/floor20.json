@@ -247,7 +247,10 @@
         "cy": 491.59,
         "width": 102.95
       },
-      "score": 0.963
+      "score": 0.963,
+      "tpl_chamfer": 1.04,
+      "tpl_kind": "door08",
+      "score_fused": 0.963
     },
     {
       "px": {
@@ -260,7 +263,10 @@
         "cy": 718.3,
         "width": 60.7
       },
-      "score": 0.704
+      "score": 0.704,
+      "tpl_chamfer": 2.63,
+      "tpl_kind": "door08",
+      "score_fused": 0.704
     },
     {
       "px": {
@@ -273,7 +279,10 @@
         "cy": 816.82,
         "width": 257.05
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 2.5,
+      "tpl_kind": "door08",
+      "score_fused": 0.593
     },
     {
       "px": {
@@ -286,7 +295,10 @@
         "cy": 561.14,
         "width": 170.58
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 1.58,
+      "tpl_kind": "door08",
+      "score_fused": 0.593
     },
     {
       "px": {
@@ -299,7 +311,10 @@
         "cy": 1089.55,
         "width": 257.05
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 2.0,
+      "tpl_kind": "door08",
+      "score_fused": 0.593
     },
     {
       "px": {
@@ -312,7 +327,10 @@
         "cy": 794.32,
         "width": 67.51
       },
-      "score": 0.593
+      "score": 0.593,
+      "tpl_chamfer": 1.69,
+      "tpl_kind": "door11",
+      "score_fused": 0.593
     },
     {
       "px": {
@@ -325,7 +343,40 @@
         "cy": 790.23,
         "width": 59.32
       },
-      "score": 0.556
+      "score": 0.556,
+      "tpl_chamfer": 2.41,
+      "tpl_kind": "door11",
+      "score_fused": 0.556
+    },
+    {
+      "px": {
+        "cx": 569.5,
+        "cy": 630.0,
+        "width": 344.0
+      },
+      "cm": {
+        "cx": 776.57,
+        "cy": 287.72,
+        "width": 469.1
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 243.5,
+        "cy": 636.0,
+        "width": 168.0
+      },
+      "cm": {
+        "cx": 332.04,
+        "cy": 279.54,
+        "width": 229.1
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
     }
   ],
   "dxf_scale": "dxf_scale/floor20.dxf"

@@ -363,6 +363,52 @@
       ]
     }
   ],
-  "doors": [],
+  "doors": [
+    {
+      "px": {
+        "cx": 588.5,
+        "cy": 538.5,
+        "width": 206.0
+      },
+      "cm": {
+        "cx": 517.88,
+        "cy": 558.36,
+        "width": 181.3
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 588.5,
+        "cy": 699.0,
+        "width": 206.0
+      },
+      "cm": {
+        "cx": 517.88,
+        "cy": 417.12,
+        "width": 181.3
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 649.0,
+        "cy": 636.5,
+        "width": 214.0
+      },
+      "cm": {
+        "cx": 571.12,
+        "cy": 472.12,
+        "width": 188.3
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    }
+  ],
   "dxf_scale": "dxf_scale/floor04.dxf"
 }

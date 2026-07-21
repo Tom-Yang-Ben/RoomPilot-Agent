@@ -364,6 +364,37 @@
       ]
     }
   ],
-  "doors": [],
+  "doors": [
+    {
+      "px": {
+        "cx": 191.0,
+        "cy": 53.0,
+        "width": 92.0
+      },
+      "cm": {
+        "cx": 260.45,
+        "cy": 411.81,
+        "width": 125.5
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 305.0,
+        "cy": 187.0,
+        "width": 92.0
+      },
+      "cm": {
+        "cx": 415.9,
+        "cy": 229.08,
+        "width": 125.5
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    }
+  ],
   "dxf_scale": "dxf_scale/floor13.dxf"
 }
