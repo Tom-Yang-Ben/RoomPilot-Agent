@@ -1124,7 +1124,7 @@ def write_arch_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info,
     poly = _room_polygon(rects, wins, doors, img_w, img_h, T, T_out)
     cnt = poly.reshape(-1, 1, 2).astype(np.float32) if poly is not None else None
 
-    # json/ 保留全部門(帶 score 給前端過濾)；arch/ 直接蓋白模：只收高信心門，
+    # json/gray/ 保留全部門(帶 score 給前端過濾)；json/arch/ 直接蓋白模：只收高信心門，
     # 且換算後門寬要合理(50~250cm)——高分小弧多半是櫃門/雙開門的半扇
     good = [d for d in doors if d[3] >= 0.85 and 50.0 <= d[2] * cm <= 250.0]
     door_list = []
@@ -1305,20 +1305,20 @@ def run(cfg: Config):
         if cfg.preview:
             preview_solid(bgr, rects, wins, cfg.preview)
 
-        # 門寬推比例(外圍牆厚≥15cm 把關) → 公分單位的 dxf_scale/ + 前端交接 json/
+        # 門寬推比例(外圍牆厚≥15cm 把關) → 公分單位的 dxf_scale/ + 前端交接 json/gray/
         T_out = outer_wall_thickness(rects, T)
         mmpp, sinfo = derive_door_scale(doors, T_out, cfg)
         sinfo["outer_wall_px"] = round(T_out, 1)
         base = os.path.splitext(os.path.basename(cfg.input))[0]
-        os.makedirs("json", exist_ok=True)
-        os.makedirs("arch", exist_ok=True)
+        os.makedirs("json/gray", exist_ok=True)
+        os.makedirs("json/arch", exist_ok=True)
         if cfg.output:                       # 指令/config 有指定輸出就照用
             scale_out = cfg.output
         else:                                # 慣例：DXF(cm) → dxf_scale/gray/
             os.makedirs("dxf_scale/gray", exist_ok=True)
             scale_out = os.path.join("dxf_scale/gray", base + ".dxf")
-        json_out = os.path.join("json", base + ".json")
-        arch_out = os.path.join("arch", base + ".json")
+        json_out = os.path.join("json/gray", base + ".json")
+        arch_out = os.path.join("json/arch", base + ".json")
         write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
         write_json(json_out, img_w, img_h, rects, wins, doors, mmpp, sinfo, cfg, scale_out)
         write_arch_json(arch_out, img_w, img_h, rects, wins, doors, mmpp, sinfo,
@@ -1380,7 +1380,7 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
     print(f"\n批次完成: 成功 {ok} / 失敗 {fail}")
     print(f"  DXF(cm) → {out_dir}/  (門寬推算比例、公分單位)")
     print(f"  疊圖 → {chk_dir}/  (原圖 + 紅實心牆 + 綠窗，一次翻完抓問題)")
-    print(f"  JSON → json/ (前端交接)   白模 → arch/")
+    print(f"  JSON → json/gray/ (前端交接)   白模 → json/arch/")
 
 
 def main():

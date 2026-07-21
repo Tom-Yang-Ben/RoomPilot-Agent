@@ -13,7 +13,7 @@
   chk/room/<名>_room.png   房間疊圖：紅=牆、橘=牆端連線(封口)、綠=窗、房型色塊+房名
   chk/room/<名>_door.png   門位檢查圖（獨立）：黃框=門位+門寬標註；
                            連線長度 80~95(單門) 或 160~190(雙開門) cm 才算門
-  json/<名>_room.json      房間清單（房型/面積/bbox/有無門/辨識證據）＋門位＋比例資訊
+  json/room/<名>_room.json 房間清單（房型/面積/bbox/有無門/辨識證據）＋門位＋比例資訊
 
 比例尺以門寬鐵律校正（refine_scale）：單門 85cm / 雙門 175cm / 牆厚 17.5cm。
 房型以辨識決定（放棄面積規則）：CubiCasa 語意投票 + 圖示 + 古典符號偵測。
@@ -509,8 +509,8 @@ def process(path, out_dir, cfg_bw, cfg_color):
     labels, rooms, bridges, zones, edges = build_rooms(det)
     png_out = os.path.join(out_dir, base + "_room.png")
     door_out = os.path.join(out_dir, base + "_door.png")
-    os.makedirs("json", exist_ok=True)
-    json_out = os.path.join("json", base + "_room.json")
+    os.makedirs("json/room", exist_ok=True)
+    json_out = os.path.join("json/room", base + "_room.json")
     preview_rooms(det, labels, rooms, bridges, png_out)
     preview_doors(det, zones, door_out)
     write_rooms_json(json_out, det, rooms, zones, edges, is_color, colorful)
@@ -566,7 +566,7 @@ def main():
             fail += 1
     print(f"\n批次完成: 成功 {ok} / 分割失敗 {no_room} / 錯誤 {fail}")
     print(f"  疊圖 → {out_dir}/  (紅牆、橘=牆端連線、黃=門位80~95/160~190cm、房型色塊)")
-    print(f"  JSON → json/  (<名>_room.json：房間+門位清單)")
+    print(f"  JSON → json/room/  (<名>_room.json：房間+門位清單)")
 
 
 if __name__ == "__main__":

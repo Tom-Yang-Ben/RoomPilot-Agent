@@ -67,8 +67,8 @@ for ans in sorted(glob.glob(os.path.join(REPO, 'pngans/gray', '*_ans.png'))):
     A = cv2.imread(ans)
     gt_wall = red_mask(A)
     gt_win = green_boxes_img(A)
-    # ── 我們的管線:json/ 的牆矩形 + 窗矩形
-    d = json.load(open(os.path.join(REPO, 'json', base + '.json')))
+    # ── 我們的管線:json/gray/ 的牆矩形 + 窗矩形
+    d = json.load(open(os.path.join(REPO, 'json/gray', base + '.json')))
     ours_wall = np.zeros(gt_wall.shape, np.uint8)
     for w in d['walls']:
         x0, y0, x1, y1 = w['px']

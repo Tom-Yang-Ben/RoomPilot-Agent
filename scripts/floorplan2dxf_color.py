@@ -8,9 +8,9 @@ floorplan2dxf_color.py — 彩色平面圖 PNG → DXF（floorplan2dxf.py 的彩
 指定別的設定檔：
     python3 floorplan2dxf_color.py 別的.ini
 
-輸出一律進 color_* 目錄（chk/color/ dxf_scale/color/ color_json/
-color_arch/），與主程式 floorplan2dxf.py 的 chk/ dxf_scale/ json/ arch/
-完全分開，不互相覆蓋。
+輸出一律進 color 子目錄（chk/color/ dxf_scale/color/ json/color/
+json/color_arch/），與主程式 floorplan2dxf.py 的 chk/gray/ dxf_scale/gray/
+json/gray/ json/arch/ 完全分開，不互相覆蓋。
 
 核心：不描輪廓（會歪），改成偵測線條後把每條「建構」成純水平或純垂直，
       H 線兩端共用同一個 y、V 線兩端共用同一個 x，數學上不可能歪。
@@ -1457,7 +1457,7 @@ def write_arch_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info,
     poly = _room_polygon(rects, wins, doors, img_w, img_h, T, T_out)
     cnt = poly.reshape(-1, 1, 2).astype(np.float32) if poly is not None else None
 
-    # json/ 保留全部門(帶 score 給前端過濾)；arch/ 直接蓋白模：只收高信心門，
+    # json/color/ 保留全部門(帶 score 給前端過濾)；json/color_arch/ 直接蓋白模：只收高信心門，
     # 且換算後門寬要合理(50~250cm)——高分小弧多半是櫃門/雙開門的半扇
     good = [d for d in doors if d[3] >= 0.85 and 50.0 <= d[2] * cm <= 250.0]
     door_list = []
@@ -1888,7 +1888,7 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
     print(f"\n批次完成: 成功 {ok} / 失敗 {fail}")
     print(f"  DXF(cm) → {out_dir}/  (門寬推算比例、公分單位)")
     print(f"  疊圖 → {chk_dir}/  (原圖 + 紅實心牆 + 綠窗，一次翻完抓問題)")
-    print(f"  JSON → color_json/ (前端交接)   白模 → color_arch/")
+    print(f"  JSON → json/color/ (前端交接)   白模 → json/color_arch/")
 
 
 def main():
