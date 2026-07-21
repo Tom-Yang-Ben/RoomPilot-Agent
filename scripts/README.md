@@ -91,7 +91,7 @@ python3 eval_cc_masks.py [名稱 ...] [--dir 目錄] [--vis]
 
 ```bash
 python eval_rooms_cc.py [--n-test 40] [--n-val 30] [--smoke N] [--thr 0.5] [--gt-seg]
-# 輸出：eval_rooms/report[_gtseg].json、eval_rooms/chk/<id>_{gt,pred,gtpred}.png
+# 輸出：json/eval_rooms/report[_gtseg].json、eval_rooms/chk/<id>_{gt,pred,gtpred}.png
 ```
 
 ### score_compare.py

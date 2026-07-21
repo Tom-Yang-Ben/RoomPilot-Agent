@@ -6,7 +6,7 @@ CubiCasa5k model.svg 的 Space 多邊形當 ground truth，對 floorplan2room
 樣本：val/test 的 high_quality_architectural 單層樓樣本（train 留給微調）。
 用法：python eval_rooms_cc.py [--n-test 40] [--n-val 30] [--smoke N] [--thr 0.5]
       [--gt-seg]（GT 分割解耦：GT 多邊形當房間，只評房型辨識層）
-輸出：eval_rooms/report[_gtseg].json、eval_rooms/chk/<id>_{gt,pred,gtpred}.png
+輸出：json/eval_rooms/report[_gtseg].json、eval_rooms/chk/<id>_{gt,pred,gtpred}.png
 """
 import argparse
 import json
@@ -27,7 +27,7 @@ DATA = "CubiCasa5k/data/cubicasa5k"
 SUBSET = "high_quality_architectural"
 IN_DIR = "eval_rooms/input"
 CHK_DIR = "eval_rooms/chk"
-REPORT = "eval_rooms/report.json"
+REPORT = "json/eval_rooms/report.json"
 CLASSES = ["kitchen", "living", "bed", "bath", "entry",
            "storage", "garage", "outdoor", "space"]
 
@@ -226,6 +226,7 @@ def main():
         samples = samples[:a.smoke]
     os.makedirs(IN_DIR, exist_ok=True)
     os.makedirs(CHK_DIR, exist_ok=True)
+    os.makedirs(os.path.dirname(REPORT), exist_ok=True)
     staged = []
     for _, sid in samples:
         dst = os.path.join(IN_DIR, sid + ".png")
