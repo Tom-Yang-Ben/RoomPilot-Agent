@@ -3,11 +3,11 @@
 """eval_cc_masks.py — CubiCasa 牆遮罩對 pngans/color/ 答案的像素級評分。
 
 與 eval_color_walls.py 同一套指標(精準率/召回率/IoU)，但評的是
-cubicasa_color/<名>_mask.npz 的 wall 遮罩(原圖尺寸)，不經過矩形化——
+cubicasa/color/<名>_mask.npz 的 wall 遮罩(原圖尺寸)，不經過矩形化——
 用來判斷 DL 遮罩本身的實力，決定融合策略。
 
 用法:
-    python3 eval_cc_masks.py            (跑 cubicasa_color/ 裡全部)
+    python3 eval_cc_masks.py            (跑 cubicasa/color/ 裡全部)
     python3 eval_cc_masks.py --vis      (另存差異圖 chk/color/evalcc_*.png)
 """
 import argparse
@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 
 ANS_DIR = "pngans/color"
-MASK_DIR = "cubicasa_color"
+MASK_DIR = "cubicasa/color"
 ANS_BGR = np.array([21, 0, 136], np.int16)
 TOL = 40
 
@@ -27,7 +27,7 @@ TOL = 40
 def main():
     p = argparse.ArgumentParser(description="CubiCasa 牆遮罩評分")
     p.add_argument("names", nargs="*")
-    p.add_argument("--dir", default=MASK_DIR, help="遮罩目錄(預設 cubicasa_color)")
+    p.add_argument("--dir", default=MASK_DIR, help="遮罩目錄(預設 cubicasa/color)")
     p.add_argument("--vis", action="store_true")
     a = p.parse_args()
 

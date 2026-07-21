@@ -250,7 +250,7 @@ def detect_symbols(det):
 
 
 # ─────────────────────────── 語意辨識房型 ───────────────────────────
-CC_CACHE_DIR = os.environ.get("CC_CACHE_DIR", "cubicasa_room")  # CubiCasa 語意快取（含 room/icon 通道）
+CC_CACHE_DIR = os.environ.get("CC_CACHE_DIR", "cubicasa/room")  # CubiCasa 語意快取（含 room/icon 通道）
 CC_WEIGHTS = os.environ.get("CC_WEIGHTS", "model_best_val_loss_var.pkl")  # 環境變數可換微調權重 A/B 驗收
 CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
                  7: "entry", 9: "storage", 10: "garage", 1: "outdoor"}

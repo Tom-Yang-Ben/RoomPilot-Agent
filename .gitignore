@@ -27,10 +27,10 @@ cubicasa5k.zip
 eval_rooms/input/
 
 # 語意快取預覽圖與評分疊圖（分鐘級可重生，只提交 npz 與 report）
-cubicasa_room/*_cc.png
+cubicasa/room/*_cc.png
 eval_rooms/chk/
 
 # 微調資料打包產物（own_dataset/ 原始碼進版控，打包件與 zip 可重生）
 finetune_data/
 finetune_data.zip
-cubicasa_room_ft/
+cubicasa/room_ft/
