@@ -10,8 +10,8 @@
 牆縫開口），平面就閉合成一塊塊方塊＝房間，再依規則分類房型。
 
 輸出：
-  room_chk/<名>_room.png   房間疊圖：紅=牆、橘=牆端連線(封口)、綠=窗、房型色塊+房名
-  room_chk/<名>_door.png   門位檢查圖（獨立）：黃框=門位+門寬標註；
+  chk/room/<名>_room.png   房間疊圖：紅=牆、橘=牆端連線(封口)、綠=窗、房型色塊+房名
+  chk/room/<名>_door.png   門位檢查圖（獨立）：黃框=門位+門寬標註；
                            連線長度 80~95(單門) 或 160~190(雙開門) cm 才算門
   json/<名>_room.json      房間清單（房型/面積/bbox/有無門/辨識證據）＋門位＋比例資訊
 
@@ -19,7 +19,7 @@
 房型以辨識決定（放棄面積規則）：CubiCasa 語意投票 + 圖示 + 古典符號偵測。
 
 用法：
-  python floorplan2room.py              # 批次 png/ → room_chk/
+  python floorplan2room.py              # 批次 png/ → chk/room/
   python floorplan2room.py 圖.png       # 單張
   python floorplan2room.py 目錄 [輸出]  # 批次指定目錄
 """
@@ -528,16 +528,16 @@ def process(path, out_dir, cfg_bw, cfg_color):
 def main():
     p = argparse.ArgumentParser(
         description="平面圖 → 房間方塊（自動判黑白/彩色，調用對應管線，不出 DXF）。\n"
-                    "不帶參數 = 批次跑 png/ 目錄 → room_chk/")
+                    "不帶參數 = 批次跑 png/ 目錄 → chk/room/")
     p.add_argument("input", nargs="?", help="輸入圖檔(單張)或目錄(批次)；預設 png/")
-    p.add_argument("output", nargs="?", help="輸出目錄（預設 room_chk/）")
+    p.add_argument("output", nargs="?", help="輸出目錄（預設 chk/room/）")
     p.add_argument("--config", default="config.ini", help="黑白管線設定檔")
     p.add_argument("--config-color", default="config_color.ini", help="彩色管線設定檔")
     a = p.parse_args()
 
     cfg_bw = fp_bw.load_config(a.config)
     cfg_color = fp_c.load_config(a.config_color)
-    out_dir = a.output or "room_chk"
+    out_dir = a.output or os.path.join("chk", "room")
     os.makedirs(out_dir, exist_ok=True)
 
     if a.input and os.path.isfile(a.input):
