@@ -1,3 +1,22 @@
+2026/7/21 v.2.12 變更（標注修正 105 處＋微調二、三輪仍未達標維持基線；門偵測 zone 提名 recall 0.132→0.858；GTX 1650 4GB 機訓練鏈重建）
+
+一、標注修正（v1 未達標的真根因）：
+
+- Inkscape 一般介面只能改 `<text>`，看不到解析器實際讀的 `<g>` class——人工其實已標 86 處文字但 class 全是 Undefined；另 15 處 class 已標而文字被人工改掉（class=Kitchen 文字=Bedroom），會直接教壞模型
+- **scripts/sync_room_labels.py**：文字→class 同步（寫法正規化進 CubiCasa 詞彙；逐 g-id 定點替換；House 回讀驗證）。與 fix_annotation_paths.py 同屬「Inkscape 手修後必跑」。同步 101＋人工補判 4，Undefined 歸零
+
+二、微調二、三輪（v2＝修正標注同 v1 超參；v3＝lr 減半 5e-5）：
+
+- v2 全面優於 v1（整體 0.749→0.757、kitchen P 0.640→0.729、garage R 0.364→0.545）——證實錯標即 v1 主因；v3 部分 recall 回拉但整體 0.753 不如 v2
+- **判定：均未過「具名 recall 不得倒退」門檻（基線具名 macro-F1 0.838 vs v2 0.794），預設權重維持基線**。26 題資料量的取捨曲線已現形：能買到的是「kitchen 精準率（F1 0.695→0.821）＋space 辨識」換「具名 recall 若干」，調 lr 只是沿線滑動。下一槓桿＝擴充 own_dataset（50-100 題）或融合側只採信微調模型的 kitchen 判斷
+- apply_cubicasa_patches.py 擴成 9 項冪等補丁；新增 B 機（4GB 卡）專屬陷阱：**WSL 鎖頁記憶體與 GPU 位址空間共用，VRAM 吃滿後 dataloader pin 執行緒 CUDA OOM**——兩 loader 關 pin_memory 解，訓練兩次中途陣亡的根因
+
+三、門偵測（Asset/door/ 剪裁圖引發的調查）：
+
+- 診斷：detect_doors 弧偵測天花板 recall 僅 0.189（26 題 GT 106 門有 86 門無候選）；build_rooms 門位 zones（標注草稿 Door quad 的來源）實測 R 0.877/P 0.798 卻從未接進 doors
+- 四支後處理腳本（凍結檔零接觸）：extract_door_lib.py（19 剪裁圖→door_lib.npz 152 模板）、door_match.py（弧候選 chamfer 重評分，真門中位 1.02 vs 非門 2.16）、door_propose.py（zone 提名 score_fused=0.88）、eval_door_match.py（A/B）
+- 結果（門檻 0.85）：P=0.361/R=0.132 → **P=0.588/R=0.858**（不採模板救回 P=0.619/R=0.811）；原 score 不動，下游自選讀 score 或 score_fused。其餘 54 題與白模端採用待決
+
 2026/7/21 v.2.11 變更（路線圖 C 首輪微調：26 題本機 RTX 3060 訓練完成；驗收未達標——廚房精準率+10pp 但具名房型 recall 倒退，預設權重維持基線）
 
 一、資料審定與訓練：
@@ -74,9 +93,12 @@
 - **cubicasa5k.zip**（5.5GB 官方資料集）：解壓到 `CubiCasa5k/data/`，得 `CubiCasa5k/data/cubicasa5k/{colorful, high_quality, high_quality_architectural}` 5000 樣本＋train/val/test.txt。每樣本含原圖與 model.svg 向量標註——`Space <房型>` 房間多邊形與 `FixedFurniture <設備>`（Toilet/IntegratedStove/Bathtub…）多邊形，是下方路線圖 A/B/C 的原料
 - CubiCasa5k/ 程式庫、model_best_val_loss_var.pkl 權重、mitunet/：重建方式見 .gitignore 註記
 - **.venv 重建**：`pip install -r requirements.txt`。opencv 已釘 `<5`——OpenCV 5.0 把 HoughLinesP 回傳 shape 從 (N,1,4) 改 (N,4)，兩支管線的門偵測會當場掛掉；torch 生態會拉進 opencv-python-headless（後裝者蓋掉 cv2），**兩顆都必須 <5**（本次事故：headless 5.0.0 蓋掉 4.13）
-- **推論/評分另需**（主管線不用，requirements.txt 不收）：`pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu` ＋ `pip install lmdb scikit-image svgpathtools pytest`——infer_cubicasa.py 重算語意快取、eval_rooms_cc.py 解析 model.svg（floortrans.loaders 連帶依賴）時才需要
+- **推論/評分另需**（主管線不用，requirements.txt 不收）：torch（兩台機器皆有 GPU，裝 cu126 版即可，見下方 GPU 現況）＋ `pip install lmdb scikit-image svgpathtools pytest`——infer_cubicasa.py 重算語意快取、eval_rooms_cc.py 解析 model.svg（floortrans.loaders 連帶依賴）時才需要
 - **CubiCasa5k/ re-clone 後必跑 `python scripts/apply_cubicasa_patches.py`**：上游 svg_utils 的 np.matrix 在 numpy 2.x 會 ValueError，任何含圖示的樣本都無法解析（訓練/round-trip 都會中招）
-- GPU 現況（2026/7/15 換機後更新）：**RTX 3060 Laptop 6GB，本機可訓練**——torch 2.13+cu126 已裝（WSL nvidia-smi 通、CubiCasa 模型 batch 8 @256px 實測 0.37s/step、VRAM 峰值 2.3GB）。路線 C 微調可本機跑，Colab notebook 仍保留作備援。注意：WSL 記憶體僅分到 7GB、/tmp 是 3.7G tmpfs（pip 裝大套件要 `TMPDIR=~/piptmp`，訓練 dataloader worker 數別開太大，必要時調 .wslconfig）
+- GPU 現況（2026/7/21 更新，工作在兩台機器間切換，**兩台皆可本機訓練**，Colab notebook 保留作備援）。基準測試同設定：CubiCasa 模型 batch 8 @256px、torch 2.13+cu126：
+  - **機器 A：RTX 3060 Laptop 6GB**——0.37s/step、VRAM 峰值 2.3GB。WSL 記憶體僅分到 7GB（dataloader worker 數別開太大，必要時調 .wslconfig）、/tmp 是 3.7G tmpfs
+  - **機器 B：GTX 1650 4GB**（compute 7.5）——0.46s/step、VRAM 峰值 2.17GB（含快取保留 2.62GB；桌面另佔約 500MB，仍有餘裕）。WSL 記憶體 19GB、/tmp 是 9.8G tmpfs
+  - 兩台 pip 裝大套件都走 `TMPDIR=~/piptmp` 保險；換機後 `.venv` 重建順序：requirements.txt → torch cu126（`--index-url https://download.pytorch.org/whl/cu126`）→ lmdb/scikit-image/svgpathtools/pytest → clone CubiCasa5k/ 並跑補丁 → `pytest tests/` 應 13 全綠
 
 一、新增 floorplan2room.py（房間方塊管線，不出 DXF；批次 `python3 floorplan2room.py` = png/ → room_chk/ + json/）：
 

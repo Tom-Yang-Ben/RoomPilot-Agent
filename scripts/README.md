@@ -1,6 +1,6 @@
 # scripts/ 腳本說明
 
-本目錄共 16 個 Python 腳本，依功能分為五組。整體工作流：
+本目錄共 21 個 Python 腳本，依功能分為六組。整體工作流：
 
 **主管線**（floorplan2dxf_color）產出 → **eval 系列**守門評分 → **infer 系列**提供 DL 證據融合 → **路線圖 B/C 腳本**建符號庫與微調資料。
 
@@ -133,10 +133,51 @@ python make_annotation_drafts.py [--png-dir png] [--out own_dataset]
 python scripts/fix_annotation_paths.py [--check]   # --check 只掃描回報，不寫檔
 ```
 
+### sync_room_labels.py
+把 Inkscape 人工改的房型「文字標籤」同步回 `class` 屬性（Inkscape 一般介面看不到 class，人工標注後兩者必脫節；解析器只讀 class）。文字寫法正規化映射進 CubiCasa 詞彙（Living Room→LivingRoom、Study→Office…），逐 g-id 定點替換不重排版，改完 House 回讀驗證。與 fix_annotation_paths.py 同屬「Inkscape 手修後必跑」工序。
+
+```bash
+python scripts/sync_room_labels.py [--dry-run] [--no-validate]
+```
+
 ### pack_finetune_data.py
 打包微調資料 zip：own_dataset 43 張（人工修正後）＋ hq_arch train 前 300 張（防災難性遺忘），own 樣本 ×3 過採樣混合。own_val.txt 僅作訓練監控，正式驗收永遠走路線 A 的 val/test 評分集。
 
 ```bash
 python pack_finetune_data.py [--n-hq 300] [--oversample 3]
 # 產出：finetune_data.zip（本機訓練解壓用；亦可上傳雲端環境）
+```
+
+---
+
+## 門偵測增強
+
+四支後處理腳本，全部只讀寫 `json/gray`（凍結的主管線零接觸）、可重複執行。背景：弧偵測（detect_doors）在 26 題 own GT 上候選天花板 recall 僅 0.189；`build_rooms` 的門位 zones 實測 R 0.877/P 0.798。融合結果（門檻 0.85）：P 0.361/R 0.132 → **P 0.588/R 0.858**。
+
+### extract_door_lib.py
+`Asset/door/` 人工剪裁門樣式圖 → `door_lib.npz`（48×48、8 向展開去重，與 symbol_lib 同規格；實心牆段 erode-subtract 轉輪廓與查詢側同正規化）。
+
+```bash
+python scripts/extract_door_lib.py [--src Asset/door] [--out door_lib.npz]
+```
+
+### door_match.py
+弧候選鉸鏈四象限窗 × 模板對稱 chamfer 重評分：命中（≤1.5，真門中位 1.02 vs 非門 2.16）把 `score_fused` 保底到 0.90，絕不降分；原 `score` 不動。
+
+```bash
+python scripts/door_match.py [名 ...]        # 預設掃 json/gray 全部
+```
+
+### door_propose.py
+門位 zone 提名器：跑偵測（不切房間）＋ `build_rooms` 取 zones，去重後以 `score_fused=0.88`、`src="zone"` 追加進 doors。模板對 zone 真假無區分力（門扇窗被牆線污染），故不摻模板分數。**先 door_match 再 door_propose**（提名對已入選候選去重）。
+
+```bash
+python scripts/door_propose.py [名 ...]
+```
+
+### eval_door_match.py
+A/B 評分器：GT = own_dataset 26 題人工校正 Door quad；比 `score` 與 `score_fused` 兩種門檻策略的 P/R。
+
+```bash
+python scripts/eval_door_match.py [--thr 0.85] [--tol 12]
 ```
