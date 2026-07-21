@@ -1,0 +1,166 @@
+{
+  "image": {
+    "w": 1162,
+    "h": 992
+  },
+  "is_color": true,
+  "color_ratio": 0.2281,
+  "pipeline": "floorplan2dxf_color",
+  "cm_per_px": 0.7798,
+  "scale_info": {
+    "method": "door_single",
+    "gaps_used": 7,
+    "cm_per_px_initial": 0.88,
+    "outer_wall_cm": 14.0,
+    "door_anchor_cm": 85.0
+  },
+  "walls": 33,
+  "windows": 0,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [
+    {
+      "length_cm": 188.7,
+      "type": "double",
+      "bbox": [
+        163.0,
+        -205.0,
+        405.0,
+        279.0
+      ]
+    },
+    {
+      "length_cm": 92.0,
+      "type": "single",
+      "bbox": [
+        829.0,
+        828.0,
+        947.0,
+        1064.0
+      ]
+    },
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        211.0,
+        788.0,
+        429.0,
+        897.0
+      ]
+    },
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        210.0,
+        788.0,
+        428.0,
+        897.0
+      ]
+    },
+    {
+      "length_cm": 184.0,
+      "type": "double",
+      "bbox": [
+        764.0,
+        -190.0,
+        1000.0,
+        282.0
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "outdoor",
+      "label_zh": "陽台/戶外",
+      "area_m2": 1.51,
+      "bbox": [
+        164,
+        46,
+        405,
+        149
+      ],
+      "center": [
+        284.0,
+        97.0
+      ],
+      "aspect": 2.34,
+      "has_door": false,
+      "reach": true,
+      "cc_share": {
+        "outdoor": 0.474
+      },
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 2,
+      "label": "bath",
+      "label_zh": "浴廁",
+      "area_m2": 40.31,
+      "bbox": [
+        142,
+        53,
+        1059,
+        909
+      ],
+      "center": [
+        642.3,
+        479.9
+      ],
+      "aspect": 1.07,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "bath": 0.808
+      },
+      "icons_cm2": {
+        "appliance": 112,
+        "toilet": 2228,
+        "sink": 6548,
+        "sauna": 12182
+      },
+      "symbols": {}
+    },
+    {
+      "id": 3,
+      "label": "outdoor",
+      "label_zh": "陽台/戶外",
+      "area_m2": 3.29,
+      "bbox": [
+        142,
+        578,
+        311,
+        909
+      ],
+      "center": [
+        228.6,
+        738.6
+      ],
+      "aspect": 1.96,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "outdoor": 0.976
+      },
+      "icons_cm2": {},
+      "symbols": {}
+    }
+  ],
+  "adjacency": [
+    [
+      2,
+      3
+    ]
+  ]
+}

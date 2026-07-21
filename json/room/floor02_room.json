@@ -4,18 +4,18 @@
     "h": 552
   },
   "is_color": false,
-  "color_ratio": 0.0049,
+  "color_ratio": 0.0,
   "pipeline": "floorplan2dxf",
-  "cm_per_px": 1.5179,
+  "cm_per_px": 2.0238,
   "scale_info": {
     "method": "door_single",
-    "gaps_used": 2,
+    "gaps_used": 3,
     "cm_per_px_initial": 1.5,
-    "outer_wall_cm": 15.2,
+    "outer_wall_cm": 20.2,
     "door_anchor_cm": 85.0
   },
-  "walls": 11,
-  "windows": 2,
+  "walls": 16,
+  "windows": 1,
   "door_ranges_cm": [
     [
       80.0,
@@ -26,63 +26,28 @@
       190.0
     ]
   ],
-  "doors": [],
-  "rooms": [
+  "doors": [
     {
-      "id": 1,
-      "label": "bath",
-      "label_zh": "浴廁",
-      "area_m2": 18.78,
+      "length_cm": 83.0,
+      "type": "single",
       "bbox": [
-        229,
-        85,
-        545,
-        370
-      ],
-      "center": [
-        396.3,
-        215.6
-      ],
-      "aspect": 1.11,
-      "has_door": false,
-      "reach": true,
-      "cc_share": {
-        "kitchen": 0.714,
-        "living": 0.389,
-        "bath": 0.917
-      },
-      "icons_cm2": {
-        "closet": 7743,
-        "appliance": 3421,
-        "toilet": 1776,
-        "sink": 4069
-      },
-      "symbols": {}
+        360.0,
+        38.0,
+        401.0,
+        120.0
+      ]
     },
     {
-      "id": 2,
-      "label": "storage",
-      "label_zh": "儲藏室",
-      "area_m2": 1.27,
+      "length_cm": 85.0,
+      "type": "single",
       "bbox": [
-        148,
-        225,
-        218,
-        304
-      ],
-      "center": [
-        182.5,
-        264.0
-      ],
-      "aspect": 1.13,
-      "has_door": false,
-      "reach": false,
-      "cc_share": {
-        "storage": 1.063
-      },
-      "icons_cm2": {},
-      "symbols": {}
+        262.0,
+        126.5,
+        304.0,
+        210.5
+      ]
     }
   ],
+  "rooms": [],
   "adjacency": []
 }

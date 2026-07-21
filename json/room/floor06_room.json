@@ -125,7 +125,7 @@
       "id": 3,
       "label": "living",
       "label_zh": "客廳",
-      "area_m2": 14.69,
+      "area_m2": 14.61,
       "bbox": [
         248,
         268,
@@ -133,15 +133,15 @@
         636
       ],
       "center": [
-        391.1,
-        451.8
+        390.3,
+        452.7
       ],
       "aspect": 1.28,
       "has_door": true,
       "reach": true,
       "cc_share": {
         "kitchen": 0.04,
-        "living": 0.182
+        "living": 0.183
       },
       "icons_cm2": {},
       "symbols": {}
@@ -176,26 +176,27 @@
       "id": 5,
       "label": "kitchen",
       "label_zh": "廚房",
-      "area_m2": 3.29,
+      "area_m2": 4.23,
       "bbox": [
-        88,
+        46,
         478,
         238,
         636
       ],
       "center": [
-        162.6,
-        556.7
+        141.5,
+        556.5
       ],
-      "aspect": 1.05,
+      "aspect": 1.22,
       "has_door": true,
       "reach": true,
       "cc_share": {
-        "kitchen": 1.37
+        "kitchen": 1.52
       },
       "icons_cm2": {
         "closet": 1171,
-        "appliance": 3024
+        "appliance": 3083,
+        "sink": 2180
       },
       "symbols": {}
     }

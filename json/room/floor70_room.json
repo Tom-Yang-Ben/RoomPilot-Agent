@@ -9,12 +9,12 @@
   "cm_per_px": 1.1039,
   "scale_info": {
     "method": "door_single",
-    "gaps_used": 2,
+    "gaps_used": 3,
     "cm_per_px_initial": 1.25,
     "outer_wall_cm": 13.2,
     "door_anchor_cm": 85.0
   },
-  "walls": 10,
+  "walls": 11,
   "windows": 1,
   "door_ranges_cm": [
     [
@@ -61,36 +61,82 @@
   "rooms": [
     {
       "id": 1,
-      "label": "bed",
-      "label_zh": "臥室",
-      "area_m2": 47.22,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 24.66,
       "bbox": [
         14,
         15,
-        630,
+        336,
         645
       ],
       "center": [
-        322.0,
-        329.2
+        174.9,
+        329.1
       ],
-      "aspect": 1.02,
+      "aspect": 1.96,
       "has_door": true,
       "reach": true,
+      "cc_share": {},
+      "icons_cm2": {
+        "sink": 2416
+      },
+      "symbols": {}
+    },
+    {
+      "id": 2,
+      "label": "bed",
+      "label_zh": "臥室",
+      "area_m2": 14.57,
+      "bbox": [
+        348,
+        15,
+        630,
+        439
+      ],
+      "center": [
+        488.5,
+        226.5
+      ],
+      "aspect": 1.5,
+      "has_door": false,
+      "reach": false,
       "cc_share": {
         "bed": 0.5
       },
       "icons_cm2": {
-        "closet": 5096,
-        "appliance": 262,
-        "sink": 2416
+        "closet": 5096
       },
       "symbols": {
         "bedrect": 1
       }
     },
     {
-      "id": 2,
+      "id": 3,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 6.6,
+      "bbox": [
+        348,
+        453,
+        630,
+        645
+      ],
+      "center": [
+        488.5,
+        548.5
+      ],
+      "aspect": 1.47,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "appliance": 262
+      },
+      "symbols": {}
+    },
+    {
+      "id": 4,
       "label": "bath",
       "label_zh": "浴廁",
       "area_m2": 3.65,
@@ -106,7 +152,7 @@
       ],
       "aspect": 1.23,
       "has_door": true,
-      "reach": true,
+      "reach": false,
       "cc_share": {
         "bath": 0.5
       },
@@ -119,8 +165,8 @@
   ],
   "adjacency": [
     [
-      1,
-      2
+      3,
+      4
     ]
   ]
 }

@@ -1,0 +1,386 @@
+{
+  "image": {
+    "w": 1042,
+    "h": 1004
+  },
+  "is_color": true,
+  "color_ratio": 0.1141,
+  "pipeline": "floorplan2dxf_color",
+  "cm_per_px": 0.914,
+  "scale_info": {
+    "method": "door_single",
+    "gaps_used": 9,
+    "cm_per_px_initial": 0.88,
+    "outer_wall_cm": 16.5,
+    "door_anchor_cm": 85.0
+  },
+  "walls": 33,
+  "windows": 0,
+  "door_ranges_cm": [
+    [
+      80.0,
+      95.0
+    ],
+    [
+      160.0,
+      190.0
+    ]
+  ],
+  "doors": [
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        369.0,
+        172.0,
+        462.0,
+        358.0
+      ]
+    },
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        368.0,
+        244.0,
+        461.0,
+        430.0
+      ]
+    },
+    {
+      "length_cm": 93.2,
+      "type": "single",
+      "bbox": [
+        730.0,
+        324.0,
+        832.0,
+        528.0
+      ]
+    },
+    {
+      "length_cm": 179.1,
+      "type": "double",
+      "bbox": [
+        634.0,
+        696.0,
+        830.0,
+        1088.0
+      ]
+    },
+    {
+      "length_cm": 81.3,
+      "type": "single",
+      "bbox": [
+        636.0,
+        170.0,
+        814.0,
+        259.0
+      ]
+    },
+    {
+      "length_cm": 178.2,
+      "type": "double",
+      "bbox": [
+        641.0,
+        95.0,
+        1031.0,
+        290.0
+      ]
+    },
+    {
+      "length_cm": 85.0,
+      "type": "single",
+      "bbox": [
+        375.0,
+        519.0,
+        468.0,
+        705.0
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "label": "storage",
+      "label_zh": "儲藏室",
+      "area_m2": 1.23,
+      "bbox": [
+        370,
+        96,
+        461,
+        259
+      ],
+      "center": [
+        415.3,
+        177.5
+      ],
+      "aspect": 1.79,
+      "has_door": false,
+      "reach": true,
+      "cc_share": {
+        "storage": 0.2
+      },
+      "icons_cm2": {
+        "closet": 3214,
+        "appliance": 546
+      },
+      "symbols": {}
+    },
+    {
+      "id": 2,
+      "label": "kitchen",
+      "label_zh": "廚房",
+      "area_m2": 3.31,
+      "bbox": [
+        474,
+        96,
+        717,
+        259
+      ],
+      "center": [
+        595.0,
+        177.0
+      ],
+      "aspect": 1.49,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "kitchen": 0.4
+      },
+      "icons_cm2": {
+        "appliance": 1223,
+        "sink": 2212
+      },
+      "symbols": {}
+    },
+    {
+      "id": 3,
+      "label": "outdoor",
+      "label_zh": "陽台/戶外",
+      "area_m2": 1.64,
+      "bbox": [
+        730,
+        96,
+        819,
+        325
+      ],
+      "center": [
+        775.5,
+        210.9
+      ],
+      "aspect": 2.57,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "outdoor": 0.854
+      },
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 4,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 0.43,
+      "bbox": [
+        370,
+        272,
+        461,
+        329
+      ],
+      "center": [
+        415.0,
+        300.0
+      ],
+      "aspect": 1.6,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 5,
+      "label": "bath",
+      "label_zh": "浴廁",
+      "area_m2": 1.08,
+      "bbox": [
+        474,
+        272,
+        717,
+        325
+      ],
+      "center": [
+        595.0,
+        298.0
+      ],
+      "aspect": 4.58,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {
+        "bath": 0.8
+      },
+      "icons_cm2": {
+        "toilet": 1676,
+        "sink": 1808
+      },
+      "symbols": {}
+    },
+    {
+      "id": 6,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 1.68,
+      "bbox": [
+        474,
+        342,
+        717,
+        425
+      ],
+      "center": [
+        595.0,
+        383.0
+      ],
+      "aspect": 2.93,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "toilet": 47
+      },
+      "symbols": {}
+    },
+    {
+      "id": 7,
+      "label": "bath",
+      "label_zh": "浴廁",
+      "area_m2": 0.59,
+      "bbox": [
+        730,
+        342,
+        819,
+        421
+      ],
+      "center": [
+        774.0,
+        381.0
+      ],
+      "aspect": 1.13,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "bath": 0.631
+      },
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 8,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 13.1,
+      "bbox": [
+        70,
+        346,
+        361,
+        885
+      ],
+      "center": [
+        215.0,
+        615.0
+      ],
+      "aspect": 1.85,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    },
+    {
+      "id": 9,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 3.56,
+      "bbox": [
+        376,
+        346,
+        587,
+        608
+      ],
+      "center": [
+        469.8,
+        499.6
+      ],
+      "aspect": 1.24,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {
+        "closet": 40
+      },
+      "symbols": {}
+    },
+    {
+      "id": 10,
+      "label": "bath",
+      "label_zh": "浴廁",
+      "area_m2": 9.46,
+      "bbox": [
+        600,
+        432,
+        881,
+        883
+      ],
+      "center": [
+        729.7,
+        672.4
+      ],
+      "aspect": 1.6,
+      "has_door": true,
+      "reach": false,
+      "cc_share": {
+        "bath": 0.5
+      },
+      "icons_cm2": {
+        "toilet": 351
+      },
+      "symbols": {}
+    },
+    {
+      "id": 11,
+      "label": "room",
+      "label_zh": "空間",
+      "area_m2": 4.72,
+      "bbox": [
+        376,
+        617,
+        587,
+        885
+      ],
+      "center": [
+        481.0,
+        750.5
+      ],
+      "aspect": 1.27,
+      "has_door": false,
+      "reach": false,
+      "cc_share": {},
+      "icons_cm2": {},
+      "symbols": {}
+    }
+  ],
+  "adjacency": [
+    [
+      2,
+      3
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      7,
+      10
+    ]
+  ]
+}
