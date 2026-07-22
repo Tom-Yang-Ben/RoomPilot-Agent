@@ -538,6 +538,10 @@ def test_room_editor_is_embedded_in_the_plan_heading() -> None:
     assert 'id="room-editor"' not in html[stage_start:]
     assert ".rp-room-floating-editor" not in css
     assert "#space-step .rp-plan-heading-tools" in css
+    assert "#space-step .rp-room-editor-summary" in css
+    assert "display: contents" in css
+    assert "#space-step #show-all-rooms" in css
+    assert "height: 38px" in css
 
 
 def test_all_structure_kinds_share_numbering_sizing_and_crud_contract() -> None:

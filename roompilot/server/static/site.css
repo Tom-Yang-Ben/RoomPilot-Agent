@@ -6555,7 +6555,7 @@ body.rp-workflow-page .danger-action {
 
 .rp-plan-heading-tools {
   display: grid;
-  width: min(430px, 54%);
+  width: 100%;
   justify-items: end;
   gap: 8px;
 }
@@ -6563,6 +6563,7 @@ body.rp-workflow-page .danger-action {
 .rp-room-toolbar-editor {
   width: 100%;
   grid-template-columns: minmax(150px, 0.8fr) minmax(210px, 1.2fr);
+  align-items: start;
   gap: 8px 12px;
   padding: 12px;
   border-color: rgba(78, 75, 70, 0.22);
@@ -6607,14 +6608,62 @@ body.rp-workflow-page .danger-action {
 
 .rp-room-toolbar-editor .rp-room-node-tools {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-self: start;
   margin: 0;
 }
 
 .rp-room-toolbar-editor .primary-action,
 .rp-room-toolbar-editor .secondary-action {
+  height: 38px;
   min-height: 38px;
   padding: 7px 9px;
   font-size: 13px;
+}
+
+#space-step .rp-pane-heading {
+  position: relative;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 1121px) {
+  #space-step .rp-plan-heading-tools {
+    min-height: 0;
+  }
+
+  #space-step #show-all-rooms {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  #space-step .rp-room-toolbar-editor {
+    grid-template-columns: auto minmax(210px, 1fr) minmax(170px, 0.8fr) minmax(230px, 1fr);
+    align-items: center;
+  }
+
+  #space-step .rp-room-editor-summary {
+    display: contents;
+  }
+
+  #space-step .rp-room-toolbar-editor label {
+    grid-column: 1;
+  }
+
+  #space-step .rp-room-name-control {
+    grid-column: 2;
+  }
+
+  #space-step .rp-room-toolbar-editor #room-area {
+    grid-column: 3;
+  }
+
+  #space-step .rp-room-toolbar-editor .rp-room-node-tools {
+    grid-column: 4;
+  }
+
+  #space-step .rp-room-toolbar-editor .rp-control-hint {
+    grid-column: 1 / -1;
+  }
 }
 
 .rp-space-proportion-review {
