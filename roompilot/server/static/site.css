@@ -6553,52 +6553,67 @@ body.rp-workflow-page .danger-action {
   font-size: 16px;
 }
 
-.rp-room-floating-editor {
-  position: fixed;
-  top: 284px;
-  right: 22px;
-  z-index: 8;
-  width: min(340px, calc(100vw - 44px));
-  max-height: calc(100vh - 308px);
-  overflow: auto;
-  gap: 10px;
-  padding: 14px;
-  border-color: rgba(78, 75, 70, 0.22);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 16px 34px rgba(39, 36, 32, 0.16);
-  backdrop-filter: blur(10px);
-  pointer-events: auto;
+.rp-plan-heading-tools {
+  display: grid;
+  width: min(430px, 54%);
+  justify-items: end;
+  gap: 8px;
 }
 
-.rp-room-floating-editor[hidden] {
+.rp-room-toolbar-editor {
+  width: 100%;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(210px, 1.2fr);
+  gap: 8px 12px;
+  padding: 12px;
+  border-color: rgba(78, 75, 70, 0.22);
+  background: #f8faf8;
+  box-shadow: none;
+}
+
+.rp-room-toolbar-editor[hidden] {
   display: none;
 }
 
-.rp-room-floating-editor label {
+.rp-room-editor-summary {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.rp-room-toolbar-editor label {
   margin: 0;
 }
 
-.rp-room-floating-editor #room-area {
+.rp-room-name-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.rp-room-toolbar-editor #room-area {
   margin: 0;
   font-weight: 700;
   color: #2f453c;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
-.rp-room-floating-editor .rp-control-hint {
+.rp-room-toolbar-editor .rp-control-hint {
+  grid-column: 1 / -1;
   margin: 0;
   font-size: 12px;
   line-height: 1.45;
 }
 
-.rp-room-floating-editor .rp-room-node-tools {
+.rp-room-toolbar-editor .rp-room-node-tools {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
 }
 
-.rp-room-floating-editor .primary-action,
-.rp-room-floating-editor .secondary-action {
-  min-height: 42px;
-  padding: 9px 10px;
+.rp-room-toolbar-editor .primary-action,
+.rp-room-toolbar-editor .secondary-action {
+  min-height: 38px;
+  padding: 7px 9px;
   font-size: 13px;
 }
 
@@ -7036,6 +7051,14 @@ body.rp-workflow-page .danger-action {
 }
 
 @media (max-width: 1120px) {
+  #space-step .rp-pane-heading {
+    flex-wrap: wrap;
+  }
+
+  #space-step .rp-plan-heading-tools {
+    width: 100%;
+  }
+
   .rp-split-workspace,
   .rp-3d-workspace {
     grid-template-columns: minmax(0, 1fr) 340px;
@@ -7047,13 +7070,12 @@ body.rp-workflow-page .danger-action {
 }
 
 @media (max-width: 820px) {
-  .rp-room-floating-editor {
-    top: auto;
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
-    width: auto;
-    max-height: min(46vh, 360px);
+  #space-step .rp-room-toolbar-editor {
+    grid-template-columns: 1fr;
+  }
+
+  #space-step .rp-room-toolbar-editor .rp-control-hint {
+    grid-column: 1;
   }
 
   .rp-guidance-band {

@@ -10,6 +10,12 @@ from test_scene_workflow import ROOT, run_workflow_script
 STATIC = ROOT / "roompilot" / "server" / "static"
 
 
+def _space_heading_html(html: str) -> str:
+    heading_start = html.index('class="rp-pane-heading"', html.index('id="space-step"'))
+    stage_start = html.index('id="space-plan-stage"')
+    return html[heading_start:stage_start]
+
+
 def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     bundle = (STATIC / "scene_v2.js").read_bytes()
@@ -456,10 +462,9 @@ def test_selected_window_has_drag_handles_wall_snap_and_live_width_control() -> 
 def test_structure_legend_uses_heading_space_and_window_markers_match_review_numbers() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    heading_start = html.index('class="rp-pane-heading"', html.index('id="space-step"'))
     stage_start = html.index('id="space-plan-stage"')
     stage_end = html.index('id="space-plan-caption"')
-    heading_html = html[heading_start:stage_start]
+    heading_html = _space_heading_html(html)
     stage_html = html[stage_start:stage_end]
 
     assert 'id="plan-structure-legend"' in heading_html
@@ -467,6 +472,20 @@ def test_structure_legend_uses_heading_space_and_window_markers_match_review_num
     assert 'id="plan-structure-legend"' not in stage_html
     assert 'data-window-number="${index + 1}"' in source
     assert '$("#plan-structure-legend").hidden = rooms;' in source
+
+
+def test_room_editor_is_embedded_in_the_plan_heading() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    stage_start = html.index('id="space-plan-stage"')
+    heading_html = _space_heading_html(html)
+
+    assert 'class="rp-plan-heading-tools"' in heading_html
+    assert 'id="room-editor"' in heading_html
+    assert 'class="rp-editor-box rp-room-toolbar-editor"' in heading_html
+    assert 'id="room-editor"' not in html[stage_start:]
+    assert ".rp-room-floating-editor" not in css
+    assert "#space-step .rp-plan-heading-tools" in css
 
 
 def test_all_structure_kinds_share_numbering_sizing_and_crud_contract() -> None:

@@ -132,7 +132,26 @@
           <div class="rp-plan-pane">
             <div class="rp-pane-heading">
               <div><span class="eyebrow">4 空間與結構</span><h2>確認房間，再確認牆、門、窗、樑、柱</h2></div>
-              <button id="show-all-rooms" type="button" class="secondary-action">查看全部空間框選</button>
+              <div class="rp-plan-heading-tools">
+                <button id="show-all-rooms" type="button" class="secondary-action">查看全部空間框選</button>
+                <div id="room-editor" class="rp-editor-box rp-room-toolbar-editor" hidden>
+                  <div class="rp-room-editor-summary">
+                    <label for="room-name">空間名稱</label>
+                    <div class="rp-room-name-control">
+                      <input id="room-name" type="text" />
+                      <button id="save-room" type="button" class="secondary-action">套用名稱</button>
+                    </div>
+                    <p id="room-area"></p>
+                  </div>
+                  <div class="rp-room-node-tools">
+                    <button type="button" data-room-node-mode="merge" class="secondary-action">合併節點</button>
+                    <button type="button" data-room-node-mode="split" class="secondary-action">切割邊線新增節點</button>
+                    <button id="apply-node-merge" type="button" class="primary-action" hidden>合併所選兩個節點</button>
+                    <button id="cancel-node-edit" type="button" class="secondary-action" hidden>取消節點編輯</button>
+                  </div>
+                  <p id="room-node-guidance" class="rp-control-hint">拖曳左圖紫色節點後，尺寸與面積會自動重新計算。也可合併節點或在邊線新增節點。</p>
+                </div>
+              </div>
               <div id="plan-structure-legend" class="rp-structure-legend rp-plan-structure-legend" aria-label="結構標示說明" hidden>
                 <span><i class="rp-legend-line is-selected"></i>橘黃＝目前選取</span>
                 <span><i class="rp-legend-line is-door"></i>橘色門弧＝門</span>
@@ -143,19 +162,6 @@
             <div id="space-plan-stage" class="rp-plan-stage rp-editable-plan" aria-label="空間與結構確認圖">
               <img id="space-plan-image" alt="辨識後的平面圖" />
               <svg id="space-plan-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
-              <div id="room-editor" class="rp-editor-box rp-room-floating-editor" hidden>
-                <label><span>空間名稱</span><input id="room-name" type="text" /></label>
-                <p id="room-area"></p>
-                <p class="rp-control-hint">拖曳左圖紫色節點後，尺寸與面積會自動重新計算。</p>
-                <div class="rp-room-node-tools">
-                  <button type="button" data-room-node-mode="merge" class="secondary-action">合併節點</button>
-                  <button type="button" data-room-node-mode="split" class="secondary-action">切割邊線新增節點</button>
-                  <button id="apply-node-merge" type="button" class="primary-action" hidden>合併所選兩個節點</button>
-                  <button id="cancel-node-edit" type="button" class="secondary-action" hidden>取消節點編輯</button>
-                </div>
-                <p id="room-node-guidance" class="rp-control-hint">需要微調輪廓時，可合併相鄰節點或在邊線新增節點。</p>
-                <button id="save-room" type="button" class="secondary-action">套用空間名稱</button>
-              </div>
             </div>
             <p id="space-plan-caption" class="rp-plan-caption">點房間框或右側名稱可定位；紫色節點可拖曳調整範圍。</p>
           </div>
