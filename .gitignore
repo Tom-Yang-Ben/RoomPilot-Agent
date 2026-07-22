@@ -14,9 +14,6 @@ __pycache__/
 
 
 
-# CubiCasa5k 資料集（5.5GB，換機時手動搬運 zip 再解壓到 training/CubiCasa5k/data/）
-cubicasa5k.zip
-
 # 語意快取預覽圖（分鐘級可重生，只提交 npz 與 report）
 cubicasa/room/*_cc.png
 
