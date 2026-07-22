@@ -424,20 +424,20 @@ def test_scene_wizard_exposes_one_panel_for_each_confirmed_step() -> None:
     assert "我已確認是否有指定家具需求" in html
 
 
-def test_scene_exposes_the_final_nine_step_workflow() -> None:
+def test_scene_exposes_the_final_eight_step_workflow() -> None:
     html = SCENE_HTML.read_text(encoding="utf-8")
     labels = [
         "1 建立專案",
         "2 上傳平面圖",
-        "3–4 確定尺寸",
-        "5 空間與結構",
-        "6 需求問卷",
-        "7 2D 家具配置",
-        "8 3D 白模",
-        "9 即時寫實",
+        "3 確定尺寸",
+        "4 空間與結構",
+        "5 需求問卷",
+        "6 2D 家具配置",
+        "7 3D 白模",
+        "8 即時寫實",
     ]
 
-    assert 'data-workflow-count="9"' in html
+    assert 'data-workflow-count="8"' in html
     for label in labels:
         assert label in html
     assert "進入 RoomPilot" not in html
