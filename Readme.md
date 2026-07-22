@@ -1,9 +1,10 @@
-2026/7/22 v.2.14 變更（目錄重整：Identify_ans/ 人工答案集中、training/ 本機自管不 push；own_wip 撈回 5 題；own 量尺房型 10 類定案）
+2026/7/22 v.2.14 變更（目錄重整：Identify_ans/ 人工答案集中、training/ 本機自管不 push；own_wip 5 題定案淘汰；own_eval 12 題審定完成維持保留集；own 量尺房型 10 類定案）
 
 一、Identify_ans/——人工答案總目錄（進版控）：
 
-- 集中四區：`pngans/`（牆窗像素答案 gray 21＋color 28）、`own_dataset/`（26 題微調訓練＋門位 GT）、`own_eval/`（12 題房型保留評分集，永不進訓練）、`own_wip/`（未完成標注）
-- own_wip 撈回：40ec85e「43→26 精選」剔除的並非淘汰而是未改完——其中 12 題（floor55~79）已於 v2.13 轉生 own_eval 不回收，真正懸置的 **floor17/24/30/34/46 共 5 題**自 git 歷史還原。工序：Inkscape 改完 → 搬入 own_dataset/ → 補 own_train/val 清單（26→31 題）
+- 集中三區：`pngans/`（牆窗像素答案 gray 38＋color 28）、`own_dataset/`（26 題微調訓練＋門位 GT）、`own_eval/`（12 題房型保留評分集，永不進訓練）
+- own_wip 定案淘汰：40ec85e「43→26 精選」剔除中真正懸置的 **floor17/24/30/34/46 共 5 題**曾自 git 歷史還原（原計畫 Inkscape 改完搬入 own_dataset），本輪定案整批淘汰刪除，對應 `pngans/gray/` 答案圖（floor30/34/46 共 3 張，gray 41→38）一併移除
+- own_eval 審定完成：v2.13 的 12 題草稿（floor55~79）人工 Inkscape 修正完畢，**維持保留評分集身分、永不進訓練**；期間曾誤併入 own_dataset 與 own_train.txt（26→38 題），已回退至 26 題
 - 命名釐清（本輪困惑點）：own_dataset 從未改名，own_eval 是 v2.13 新建的另一批題目；「答案」的分野在用途——教材（own_dataset）vs 考卷標準答案（own_eval），考卷本體＝原始 png
 - **own 量尺房型類別定案 10 類**：既有 8 類＋office（書房；CubiCasa 原歸 Undefined）＋stair（樓梯；**硬需求——樓梯區不可擺設，管線輸出必須辨識**），走道標 Undefined 併 space（注意與 CubiCasa 慣例不同，其 HallWay→entry）。標注詞彙：`StairWell`/`Office`/走道留 `Undefined`
 
