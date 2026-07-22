@@ -251,7 +251,7 @@ def detect_symbols(det):
 
 # ─────────────────────────── 語意辨識房型 ───────────────────────────
 CC_CACHE_DIR = os.environ.get("CC_CACHE_DIR", "cubicasa/room")  # CubiCasa 語意快取（含 room/icon 通道）
-CC_WEIGHTS = os.environ.get("CC_WEIGHTS", "model_best_val_loss_var.pkl")  # 環境變數可換微調權重 A/B 驗收
+CC_WEIGHTS = os.environ.get("CC_WEIGHTS", "training/model_best_val_loss_var.pkl")  # 環境變數可換微調權重 A/B 驗收
 CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
                  7: "entry", 9: "storage", 10: "garage", 1: "outdoor"}
 CC_ICON = {"closet": 3, "appliance": 4, "toilet": 5, "sink": 6,
@@ -537,7 +537,7 @@ def main():
 
     cfg_bw = fp_bw.load_config(a.config)
     cfg_color = fp_c.load_config(a.config_color)
-    out_dir = a.output or os.path.join("chk", "room")
+    out_dir = a.output or os.path.join("training/chk", "room")
     os.makedirs(out_dir, exist_ok=True)
 
     if a.input and os.path.isfile(a.input):

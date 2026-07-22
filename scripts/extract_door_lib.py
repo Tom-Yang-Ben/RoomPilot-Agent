@@ -55,7 +55,7 @@ def variants(t):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--src", default="Asset/door")
-    ap.add_argument("--out", default="door_lib.npz")
+    ap.add_argument("--out", default="training/door_lib.npz")
     a = ap.parse_args()
 
     rasters, kinds, srcs = [], [], []

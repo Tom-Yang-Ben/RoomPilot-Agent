@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""我們的 CV 管線 vs CubiCasa5k，在 pngans/ 21 張人工答案上比分。
+"""我們的 CV 管線 vs CubiCasa5k，在 Identify_ans/pngans/ 21 張人工答案上比分。
 牆:像素級 P/R/F1(±3px 容差:precision 對膨脹GT算、recall 對膨脹預測算)。
 窗:綠框配對(交集/較小框 ≥0.3 或中心落框內)，同 eval_windows.py 規則。
 用法: python score_compare.py <repo_dir> <cc_out_dir>
@@ -62,7 +62,7 @@ def wall_pix(pred, gt):
     return p, r, f
 
 rows, agg = [], {}
-for ans in sorted(glob.glob(os.path.join(REPO, 'pngans/gray', '*_ans.png'))):
+for ans in sorted(glob.glob(os.path.join(REPO, 'Identify_ans/pngans/gray', '*_ans.png'))):
     base = os.path.basename(ans).replace('_ans.png', '')
     A = cv2.imread(ans)
     gt_wall = red_mask(A)

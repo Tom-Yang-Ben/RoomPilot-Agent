@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-eval_windows.py — 用 pngans/gray/ 的人工標準答案評分 chk/gray/ 的窗戶偵測結果
+eval_windows.py — 用 Identify_ans/pngans/gray/ 的人工標準答案評分 training/chk/gray/ 的窗戶偵測結果
 
-    python3 eval_windows.py [答案目錄] [chk目錄]     (預設 pngans/gray/ chk/gray/)
+    python3 eval_windows.py [答案目錄] [chk目錄]     (預設 Identify_ans/pngans/gray/ training/chk/gray/)
 
 兩邊都抽「綠色框」再互相配對：
   TP = chk 的綠框有對到答案的綠框(抓對)
@@ -61,8 +61,8 @@ def matched(a, b):
 
 
 def main():
-    ans_dir = sys.argv[1] if len(sys.argv) > 1 else "pngans/gray"
-    chk_dir = sys.argv[2] if len(sys.argv) > 2 else "chk/gray"
+    ans_dir = sys.argv[1] if len(sys.argv) > 1 else "Identify_ans/pngans/gray"
+    chk_dir = sys.argv[2] if len(sys.argv) > 2 else "training/chk/gray"
     ans_files = sorted(glob.glob(os.path.join(ans_dir, "*_ans.png")))
     if not ans_files:
         sys.exit(f"{ans_dir}/ 裡找不到 *_ans.png")

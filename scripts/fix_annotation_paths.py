@@ -1,6 +1,6 @@
 """fix_annotation_paths.py — 修復 Inkscape 編輯後的標注 SVG。
 
-Inkscape 手修 own_dataset/*/model.svg 時，房間（Space）或牆（Wall/Railing）
+Inkscape 手修 Identify_ans/own_dataset/*/model.svg 時，房間（Space）或牆（Wall/Railing）
 群組裡的 <polygon> 可能被改存成 <path>（矩形工具、路徑編輯都會）。
 CubiCasa 的 House 解析器只認 <polygon> 子節點，遇到 path 直接
 StopIteration。本腳本把「僅含直線段的閉合 path」無損轉回 polygon。
@@ -101,7 +101,7 @@ def main():
     a = ap.parse_args()
 
     total, bad = 0, 0
-    for svg in sorted(glob.glob("own_dataset/floor*/model.svg")):
+    for svg in sorted(glob.glob("Identify_ans/own_dataset/floor*/model.svg")):
         converted, errors = fix_svg(svg, a.check)
         if converted:
             total += len(converted)

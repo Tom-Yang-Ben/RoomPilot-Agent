@@ -1,21 +1,21 @@
 """pack_finetune_data.py — 路線圖 C：打包微調資料 zip。
 
-內容：own_dataset 43 張（管線草稿→人工修正後）＋ hq_arch train 前 300
+內容：Identify_ans/own_dataset 43 張（管線草稿→人工修正後）＋ hq_arch train 前 300
 樣本（防災難性遺忘）＋混合清單（own 行 ×3 過採樣，直混會被 300 張淹沒）。
 own_val.txt 僅作訓練監控；正式驗收永遠走路線 A 的 val/test 評分集。
 
 用法：python pack_finetune_data.py [--n-hq 300] [--oversample 3]
-產出：finetune_data.zip（本機訓練解壓用；亦可上傳雲端環境）
+產出：training/finetune_data.zip（本機訓練解壓用；亦可上傳雲端環境）
 """
 import argparse
 import os
 import shutil
 import zipfile
 
-DATA = "CubiCasa5k/data/cubicasa5k"
+DATA = "training/CubiCasa5k/data/cubicasa5k"
 SUBSET = "high_quality_architectural"
-OWN = "own_dataset"
-STAGE = "finetune_data"
+OWN = "Identify_ans/own_dataset"
+STAGE = "training/finetune_data"
 
 
 def main():
@@ -54,7 +54,7 @@ def main():
     with open(os.path.join(STAGE, "val.txt"), "w") as f:
         f.writelines(f"/own/{n}/\n" for n in own_val)
 
-    zip_path = "finetune_data.zip"
+    zip_path = "training/finetune_data.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
         for root, _dirs, files in os.walk(STAGE):
             for fn in files:

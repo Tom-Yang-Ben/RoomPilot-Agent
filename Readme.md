@@ -1,3 +1,20 @@
+2026/7/22 v.2.14 變更（目錄重整：Identify_ans/ 人工答案集中、training/ 本機自管不 push；own_wip 撈回 5 題；own 量尺房型 10 類定案）
+
+一、Identify_ans/——人工答案總目錄（進版控）：
+
+- 集中四區：`pngans/`（牆窗像素答案 gray 21＋color 28）、`own_dataset/`（26 題微調訓練＋門位 GT）、`own_eval/`（12 題房型保留評分集，永不進訓練）、`own_wip/`（未完成標注）
+- own_wip 撈回：40ec85e「43→26 精選」剔除的並非淘汰而是未改完——其中 12 題（floor55~79）已於 v2.13 轉生 own_eval 不回收，真正懸置的 **floor17/24/30/34/46 共 5 題**自 git 歷史還原。工序：Inkscape 改完 → 搬入 own_dataset/ → 補 own_train/val 清單（26→31 題）
+- 命名釐清（本輪困惑點）：own_dataset 從未改名，own_eval 是 v2.13 新建的另一批題目；「答案」的分野在用途——教材（own_dataset）vs 考卷標準答案（own_eval），考卷本體＝原始 png
+- **own 量尺房型類別定案 10 類**：既有 8 類＋office（書房；CubiCasa 原歸 Undefined）＋stair（樓梯；**硬需求——樓梯區不可擺設，管線輸出必須辨識**），走道標 Undefined 併 space（注意與 CubiCasa 慣例不同，其 HallWay→entry）。標注詞彙：`StairWell`/`Office`/走道留 `Undefined`
+
+二、training/——本機自管總目錄（gitignore 不 push，換機整包 training.zip 搬運）：
+
+- 收：CubiCasa5k/（6.6G 程式庫＋資料集）、chk/（管線預覽輸出，148M 解除追蹤）、eval_rooms/（房型評分工作區）、finetune_data(+zip)、cubicasa_room_ft2/3、model_finetuned_v1~3.pkl、官方權重 model_best_val_loss_var.pkl、door_lib/symbol_lib.npz（後兩者解除追蹤，可由 extract 腳本重生）
+- 確認留原地進版控：tests/（單元測試是程式碼）、cubicasa/（語意快取 npz，雙機 git 同步的依據）
+- 路徑更新 16 檔（floorplan2room CC_WEIGHTS 預設、symbol_match LIB_PATH、eval/extract/打包各腳本、tests、.gitignore、scripts/README.md）；sed 曾產生 `Identify_ans/Identify_ans/` 重複前綴 bug 已修
+- 遷移驗證全綠且數字與搬移前一致：pytest 13/13、窗評分 P 99%/R 95%、門評分 fused P 0.588/R 0.858
+- 雜項：png/floor10.png 補納版控；**training/ 從此只存本機，須自行排備份**
+
 2026/7/21 v.2.13 變更（彩色管線接回窗偵測 P 63%/R 38%；own 風格保留評分集 12 題草稿；MitUNet 移除）
 
 一、彩色管線窗偵測（v2.9 施工缺口補完）：

@@ -1355,12 +1355,12 @@ IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 chk/gray/ 供快速檢視。"""
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 training/chk/gray/ 供快速檢視。"""
     pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
                   if p.lower().endswith(IMG_EXTS))
     if not pngs:
         sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
-    chk_dir = "chk/gray"
+    chk_dir = "training/chk/gray"
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(chk_dir, exist_ok=True)
     ok = fail = 0
@@ -1386,7 +1386,7 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
 def main():
     p = argparse.ArgumentParser(
         description="平面圖 PNG/JPG/BMP → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
-                    "不帶參數 = 批次跑 png/ 目錄下所有圖檔 → dxf_scale/gray/ + chk/gray/")
+                    "不帶參數 = 批次跑 png/ 目錄下所有圖檔 → dxf_scale/gray/ + training/chk/gray/")
     p.add_argument("input", nargs="?",
                    help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
@@ -1421,9 +1421,9 @@ def main():
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]
-    if not cfg.preview:                      # 慣例：疊圖 → chk/gray/
-        os.makedirs("chk/gray", exist_ok=True)
-        cfg.preview = os.path.join("chk/gray", base + "_chk.png")
+    if not cfg.preview:                      # 慣例：疊圖 → training/chk/gray/
+        os.makedirs("training/chk/gray", exist_ok=True)
+        cfg.preview = os.path.join("training/chk/gray", base + "_chk.png")
     run(cfg)
 
 

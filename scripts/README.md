@@ -21,7 +21,7 @@ python3 floorplan2dxf.py 別的.ini
 **注意：此檔已凍結，不再修改。**
 
 ### floorplan2dxf_color.py（約 1900 行）
-彩色平面圖版本，目前的開發主力。用獨立的 `config_color.ini`，輸出一律進 `chk/color/`、`dxf_scale/color/`、`json/color/`、`json/color_arch/` 等 color 子目錄，與黑白管線（`chk/gray/`、`dxf_scale/gray/`、`json/gray/`、`json/arch/`）完全隔離、不互相覆蓋。
+彩色平面圖版本，目前的開發主力。用獨立的 `config_color.ini`，輸出一律進 `training/chk/color/`、`dxf_scale/color/`、`json/color/`、`json/color_arch/` 等 color 子目錄，與黑白管線（`training/chk/gray/`、`dxf_scale/gray/`、`json/gray/`、`json/arch/`）完全隔離、不互相覆蓋。
 
 ```bash
 python3 floorplan2dxf_color.py      # 批次 color_png/ → dxf_scale/color/
@@ -39,7 +39,7 @@ python infer_cubicasa.py <weights.pkl> <out_dir> <img1> [img2 ...]
 ```
 
 ### apply_cubicasa_patches.py
-CubiCasa5k 程式庫的 numpy 2.x 相容補丁（上游 `np.matrix` 拆行指派會 ValueError）。因 `CubiCasa5k/` 不進版控，clone 後跑一次即可；已補丁則自動跳過，可重複執行。
+CubiCasa5k 程式庫的 numpy 2.x 相容補丁（上游 `np.matrix` 拆行指派會 ValueError）。因 `training/CubiCasa5k/` 不進版控，clone 後跑一次即可；已補丁則自動跳過，可重複執行。
 
 ```bash
 python apply_cubicasa_patches.py [--dir CubiCasa5k]
@@ -50,7 +50,7 @@ python apply_cubicasa_patches.py [--dir CubiCasa5k]
 ## 評分／驗證（eval 系列）
 
 ### eval_windows.py
-用 `pngans/gray/` 人工答案評 `chk/gray/` 的窗戶偵測：兩邊抽綠框互相配對算 TP/FP/FN（交集/較小框 ≥ 0.3 或中心落框內）。**覆蓋 chk/dxf 前必跑的守門腳本。**
+用 `Identify_ans/pngans/gray/` 人工答案評 `training/chk/gray/` 的窗戶偵測：兩邊抽綠框互相配對算 TP/FP/FN（交集/較小框 ≥ 0.3 或中心落框內）。**覆蓋 chk/dxf 前必跑的守門腳本。**
 
 ```bash
 python3 eval_windows.py [答案目錄] [chk目錄]
@@ -64,7 +64,7 @@ python3 eval_doors.py [door目錄]
 ```
 
 ### eval_color_walls.py
-彩色管線牆體（含建築基柱）偵測評分：`pngans/color/` 的純色 RGB(136,0,21) 標註 vs `detect_walls()` 矩形化輸出，算像素級精準率/召回率/IoU。`--vis` 另存差異圖（白=TP、紅=FP、綠=FN）。
+彩色管線牆體（含建築基柱）偵測評分：`Identify_ans/pngans/color/` 的純色 RGB(136,0,21) 標註 vs `detect_walls()` 矩形化輸出，算像素級精準率/召回率/IoU。`--vis` 另存差異圖（白=TP、紅=FP、綠=FN）。
 
 ```bash
 python3 eval_color_walls.py [名稱 ...] [--vis]
@@ -82,11 +82,11 @@ python3 eval_cc_masks.py [名稱 ...] [--dir 目錄] [--vis]
 
 ```bash
 python eval_rooms_cc.py [--n-test 40] [--n-val 30] [--smoke N] [--thr 0.5] [--gt-seg]
-# 輸出：json/eval_rooms/report[_gtseg].json、eval_rooms/chk/<id>_{gt,pred,gtpred}.png
+# 輸出：json/eval_rooms/report[_gtseg].json、training/eval_rooms/chk/<id>_{gt,pred,gtpred}.png
 ```
 
 ### score_compare.py
-我們的 CV 管線 vs CubiCasa5k 正面對決：在 `pngans/` 21 張人工答案上比牆（像素級 P/R/F1，±3px 容差）與窗（綠框配對，同 eval_windows.py 規則）。
+我們的 CV 管線 vs CubiCasa5k 正面對決：在 `Identify_ans/pngans/` 21 張人工答案上比牆（像素級 P/R/F1，±3px 容差）與窗（綠框配對，同 eval_windows.py 規則）。
 
 ```bash
 python score_compare.py <repo_dir> <cc_out_dir>
@@ -97,24 +97,24 @@ python score_compare.py <repo_dir> <cc_out_dir>
 ## 符號比對（路線圖 B）
 
 ### extract_symbol_lib.py
-一次性腳本：走訪 CubiCasa5k train.txt 全部樣本的 model.svg，萃取六類 FixedFurniture（Toilet/Bathtub/BathtubRound/IntegratedStove/Sink/Shower）向量線稿，渲染成 48×48 標準模板（方向標準化、零污染），去重後存 `symbol_lib.npz`。val/test 樣本完全不碰（評分集衛生）。
+一次性腳本：走訪 CubiCasa5k train.txt 全部樣本的 model.svg，萃取六類 FixedFurniture（Toilet/Bathtub/BathtubRound/IntegratedStove/Sink/Shower）向量線稿，渲染成 48×48 標準模板（方向標準化、零污染），去重後存 `training/symbol_lib.npz`。val/test 樣本完全不碰（評分集衛生）。
 
 ```bash
 python extract_symbol_lib.py [--out symbol_lib.npz]
 ```
 
 ### symbol_match.py
-模板庫的渲染與比對引擎：查詢圖細線層輪廓以 Hu moments 預篩 ＋ chamfer 距離驗證兩階段比對，作為手寫幾何規則（`floorplan2room.detect_symbols`）的並行互補證據來源。`symbol_lib.npz` 缺失時回空清單，管線行為不變。
+模板庫的渲染與比對引擎：查詢圖細線層輪廓以 Hu moments 預篩 ＋ chamfer 距離驗證兩階段比對，作為手寫幾何規則（`floorplan2room.detect_symbols`）的並行互補證據來源。`training/symbol_lib.npz` 缺失時回空清單，管線行為不變。
 
 ---
 
 ## 微調資料製作（路線圖 C）
 
 ### make_annotation_drafts.py
-把 `png/` 每張圖的管線輸出（牆矩形/窗/門位/房間方塊+房型/符號命中）組成 CubiCasa model.svg 格式標注初稿，存 `own_dataset/<名>/`，供人工用 Inkscape 修正。產出後逐張以 `House()` 回讀驗證。
+把 `png/` 每張圖的管線輸出（牆矩形/窗/門位/房間方塊+房型/符號命中）組成 CubiCasa model.svg 格式標注初稿，存 `Identify_ans/own_dataset/<名>/`，供人工用 Inkscape 修正。產出後逐張以 `House()` 回讀驗證。
 
 ```bash
-python make_annotation_drafts.py [--png-dir png] [--out own_dataset]
+python make_annotation_drafts.py [--png-dir png] [--out Identify_ans/own_dataset]
 ```
 
 ### fix_annotation_paths.py
@@ -132,11 +132,11 @@ python scripts/sync_room_labels.py [--dry-run] [--no-validate]
 ```
 
 ### pack_finetune_data.py
-打包微調資料 zip：own_dataset 43 張（人工修正後）＋ hq_arch train 前 300 張（防災難性遺忘），own 樣本 ×3 過採樣混合。own_val.txt 僅作訓練監控，正式驗收永遠走路線 A 的 val/test 評分集。
+打包微調資料 zip：Identify_ans/own_dataset 43 張（人工修正後）＋ hq_arch train 前 300 張（防災難性遺忘），own 樣本 ×3 過採樣混合。own_val.txt 僅作訓練監控，正式驗收永遠走路線 A 的 val/test 評分集。
 
 ```bash
 python pack_finetune_data.py [--n-hq 300] [--oversample 3]
-# 產出：finetune_data.zip（本機訓練解壓用；亦可上傳雲端環境）
+# 產出：training/finetune_data.zip（本機訓練解壓用；亦可上傳雲端環境）
 ```
 
 ---
@@ -146,7 +146,7 @@ python pack_finetune_data.py [--n-hq 300] [--oversample 3]
 四支後處理腳本，全部只讀寫 `json/gray`（凍結的主管線零接觸）、可重複執行。背景：弧偵測（detect_doors）在 26 題 own GT 上候選天花板 recall 僅 0.189；`build_rooms` 的門位 zones 實測 R 0.877/P 0.798。融合結果（門檻 0.85）：P 0.361/R 0.132 → **P 0.588/R 0.858**。
 
 ### extract_door_lib.py
-`Asset/door/` 人工剪裁門樣式圖 → `door_lib.npz`（48×48、8 向展開去重，與 symbol_lib 同規格；實心牆段 erode-subtract 轉輪廓與查詢側同正規化）。
+`Asset/door/` 人工剪裁門樣式圖 → `training/door_lib.npz`（48×48、8 向展開去重，與 symbol_lib 同規格；實心牆段 erode-subtract 轉輪廓與查詢側同正規化）。
 
 ```bash
 python scripts/extract_door_lib.py [--src Asset/door] [--out door_lib.npz]
@@ -167,7 +167,7 @@ python scripts/door_propose.py [名 ...]
 ```
 
 ### eval_door_match.py
-A/B 評分器：GT = own_dataset 26 題人工校正 Door quad；比 `score` 與 `score_fused` 兩種門檻策略的 P/R。
+A/B 評分器：GT = Identify_ans/own_dataset 26 題人工校正 Door quad；比 `score` 與 `score_fused` 兩種門檻策略的 P/R。
 
 ```bash
 python scripts/eval_door_match.py [--thr 0.85] [--tol 12]

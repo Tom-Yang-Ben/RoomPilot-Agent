@@ -12,29 +12,22 @@ __pycache__/
 # 編譯後二進位（無原始碼，不進版控）
 *.exe
 
-# CubiCasa5k 外部程式庫與權重（infer_cubicasa.py 用；重建：git clone CubiCasa/CubiCasa5k + README 的 Google Drive 權重）
-CubiCasa5k/
-model_best_val_loss_var.pkl
-model_finetuned_*.pkl
 
 
-# CubiCasa5k 資料集（5.5GB，換機時手動搬運 zip 再解壓到 CubiCasa5k/data/）
+# CubiCasa5k 資料集（5.5GB，換機時手動搬運 zip 再解壓到 training/CubiCasa5k/data/）
 cubicasa5k.zip
 
-# 房型評分：資料集圖複本（來源在 CubiCasa5k/data/，不重複進版控）
-eval_rooms/input/
-
-# 語意快取預覽圖與評分疊圖（分鐘級可重生，只提交 npz 與 report）
+# 語意快取預覽圖（分鐘級可重生，只提交 npz 與 report）
 cubicasa/room/*_cc.png
-eval_rooms/chk/
 
-# 微調資料打包產物（own_dataset/ 原始碼進版控，打包件與 zip 可重生）
-finetune_data/
-finetune_data.zip
+# 本機自管總目錄，不 push：訓練產物（打包件/微調模型/驗收快取）＋
+# CubiCasa5k 程式庫與資料集＋官方權重 model_best_val_loss_var.pkl＋
+# 門/符號模板庫 npz＋管線預覽輸出 chk/＋房型評分工作區 eval_rooms/
+# 換機：整包 training.zip 搬運解壓即可
+# （人工答案在 Identify_ans/ 進版控；語意快取 cubicasa/ npz 進版控供雙機同步）
+training/
+training.zip
 cubicasa/room_ft/
-
-# 微調驗收獨立語意快取（CC_CACHE_DIR 指定，重算即可重生）
-cubicasa_room_ft*/
 
 # 工作暫存（漏門裁圖、未標房間標示圖等除錯產物）
 temp/

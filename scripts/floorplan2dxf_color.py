@@ -8,8 +8,8 @@ floorplan2dxf_color.py — 彩色平面圖 PNG → DXF（floorplan2dxf.py 的彩
 指定別的設定檔：
     python3 floorplan2dxf_color.py 別的.ini
 
-輸出一律進 color 子目錄（chk/color/ dxf_scale/color/ json/color/
-json/color_arch/），與主程式 floorplan2dxf.py 的 chk/gray/ dxf_scale/gray/
+輸出一律進 color 子目錄（training/chk/color/ dxf_scale/color/ json/color/
+json/color_arch/），與主程式 floorplan2dxf.py 的 training/chk/gray/ dxf_scale/gray/
 json/gray/ json/arch/ 完全分開，不互相覆蓋。
 
 核心：不描輪廓（會歪），改成偵測線條後把每條「建構」成純水平或純垂直，
@@ -1885,12 +1885,12 @@ IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 chk/color/ 供快速檢視。"""
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 training/chk/color/ 供快速檢視。"""
     pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
                   if p.lower().endswith(IMG_EXTS))
     if not pngs:
         sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
-    chk_dir = "chk/color"
+    chk_dir = "training/chk/color"
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(chk_dir, exist_ok=True)
     ok = fail = 0
@@ -1916,7 +1916,7 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
 def main():
     p = argparse.ArgumentParser(
         description="彩色平面圖 PNG/JPG/BMP → DXF。參數見 config_color.ini；輸入/輸出可用指令覆蓋。\n"
-                    "不帶參數 = 批次跑 color_png/ 目錄下所有圖檔 → dxf_scale/color/ + chk/color/")
+                    "不帶參數 = 批次跑 color_png/ 目錄下所有圖檔 → dxf_scale/color/ + training/chk/color/")
     p.add_argument("input", nargs="?",
                    help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
@@ -1952,9 +1952,9 @@ def main():
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]
-    if not cfg.preview:                      # 慣例：疊圖 → chk/color/
-        os.makedirs("chk/color", exist_ok=True)
-        cfg.preview = os.path.join("chk/color", base + "_chk.png")
+    if not cfg.preview:                      # 慣例：疊圖 → training/chk/color/
+        os.makedirs("training/chk/color", exist_ok=True)
+        cfg.preview = os.path.join("training/chk/color", base + "_chk.png")
     run(cfg)
 
 

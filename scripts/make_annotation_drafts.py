@@ -1,11 +1,11 @@
 """make_annotation_drafts.py — 路線圖 C 準備：43 題標注初稿（管線輸出→人工修正）。
 
 把 png/ 每張圖的管線輸出（牆矩形/窗/門位/房間方塊+房型/符號命中）組成
-CubiCasa model.svg 格式草稿，存 own_dataset/<名>/{F1_scaled.png,
+CubiCasa model.svg 格式草稿，存 Identify_ans/own_dataset/<名>/{F1_scaled.png,
 F1_original.png, model.svg}。FloorplanSVG loader format='txt' 可直接吃，
 junction heatmap 由 House 從 SVG 自動推導；人工用 Inkscape 修正即可。
 
-用法：python make_annotation_drafts.py [--png-dir png] [--out own_dataset]
+用法：python make_annotation_drafts.py [--png-dir png] [--out Identify_ans/own_dataset]
 產出後逐張以 House() 回讀驗證；own_train.txt 43 行 / own_val.txt 5 行。
 """
 import argparse
@@ -158,11 +158,11 @@ def build_svg(w, h, rects, wins, zones, spaces, symbols):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--png-dir", default="png")
-    ap.add_argument("--out", default="own_dataset")
+    ap.add_argument("--out", default="Identify_ans/own_dataset")
     a = ap.parse_args()
 
     _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, os.path.join(_root, "CubiCasa5k"))
+    sys.path.insert(0, os.path.join(_root, "training/CubiCasa5k"))
     sys.path.insert(0, _root)          # floorplan2room 在專案根目錄
     from floortrans.loaders.house import House
     import floorplan2dxf as fp_bw

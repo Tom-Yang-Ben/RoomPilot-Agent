@@ -17,7 +17,7 @@ import numpy as np
 from symbol_match import CANVAS, TARGETS, collect_primitives, hu_of, \
     render_polylines
 
-DATA = "CubiCasa5k/data/cubicasa5k"
+DATA = "training/CubiCasa5k/data/cubicasa5k"
 
 
 def extract_sample(svg_path):
@@ -44,7 +44,7 @@ def extract_sample(svg_path):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--out", default="symbol_lib.npz")
+    ap.add_argument("--out", default="training/symbol_lib.npz")
     a = ap.parse_args()
 
     with open(os.path.join(DATA, "train.txt")) as f:

@@ -97,7 +97,7 @@ def rescore_file(jpath, png_dir, lib):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("names", nargs="*", help="圖名（不含副檔名）；預設全部")
-    ap.add_argument("--lib", default="door_lib.npz")
+    ap.add_argument("--lib", default="training/door_lib.npz")
     ap.add_argument("--png-dir", default="png")
     ap.add_argument("--json-dir", default="json/gray")
     a = ap.parse_args()

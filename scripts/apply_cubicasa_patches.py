@@ -139,7 +139,7 @@ PATCHES = [
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--dir", default="CubiCasa5k")
+    ap.add_argument("--dir", default="training/CubiCasa5k")
     a = ap.parse_args()
 
     for rel, desc, old, new in PATCHES:

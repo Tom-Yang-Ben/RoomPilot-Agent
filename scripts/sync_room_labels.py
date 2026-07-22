@@ -110,13 +110,13 @@ def validate(svg_path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset", default="own_dataset")
+    ap.add_argument("--dataset", default="Identify_ans/own_dataset")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-validate", action="store_true")
     a = ap.parse_args()
 
     _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(0, os.path.join(_root, "CubiCasa5k"))
+    sys.path.insert(0, os.path.join(_root, "training/CubiCasa5k"))
 
     n_changed, n_files = 0, 0
     all_unknown, all_unlabeled = [], []
