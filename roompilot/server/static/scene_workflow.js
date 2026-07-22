@@ -103,7 +103,9 @@ function validCompletion(step, data) {
   if (step === "recognition") return data?.engine === "cody" || data?.engine === "dxf";
   if (step === "calibration") return Number(data?.distanceCm) > 0;
   if (step === "space_confirmation") {
-    return data?.roomsConfirmed === true && data?.structureConfirmed === true;
+    return data?.roomsConfirmed === true
+      && data?.structureConfirmed === true
+      && data?.proportionsConfirmed === true;
   }
   if (step === "requirements") {
     return data?.basicConfirmed === true && data?.roomsResolved === true;

@@ -24,6 +24,58 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'src="/static/scene_v2.js?v=sha256-{expected}"' in html
 
 
+def test_space_proportion_summary_uses_calibrated_room_areas() -> None:
+    module_uri = (STATIC / "scene_space_proportions.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ buildSpaceProportionSummary }} from {json.dumps(module_uri)};
+        const summary = buildSpaceProportionSummary([
+          {{ id: "living", label: "客廳", widthCm: 500, depthCm: 400, areaM2: 20 }},
+          {{ id: "bedroom", label: "臥室", widthCm: 400, depthCm: 250, areaM2: 10 }},
+          {{ id: "kitchen", label: "廚房", widthCm: 400, depthCm: 250, areaM2: 10 }},
+        ]);
+        console.log(JSON.stringify(summary));
+        """
+    )
+
+    assert result["roomCount"] == 3
+    assert result["totalAreaM2"] == 40
+    assert [row["sharePercent"] for row in result["rooms"]] == [50, 25, 25]
+    assert result["rooms"][0]["areaMinM2"] == 19
+    assert result["rooms"][0]["areaMaxM2"] == 21
+    assert result["largestRoom"] == {
+        "id": "living",
+        "label": "客廳",
+        "sharePercent": 50,
+    }
+
+
+def test_step_four_has_a_separate_proportion_confirmation_page() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="space-editor-workspace"' in html
+    assert 'id="space-proportion-review"' in html
+    assert 'id="space-proportion-list"' in html
+    assert 'id="back-to-space-editor"' in html
+    assert 'id="recalibrate-space"' in html
+    assert 'id="confirm-space-proportion"' in html
+    assert "±5%" in html
+    assert "僅供空間規劃估算" in html
+    assert "function showSpaceProportionReview" in source
+    assert "function confirmSpaceProportion" in source
+    initial_confirmation = source.split("function confirmSpace()", 1)[1].split(
+        "function proportionRoomInputs", 1
+    )[0]
+    final_confirmation = source.split("function confirmSpaceProportion()", 1)[1].split(
+        "function renderWholeHouseQuestionnaire", 1
+    )[0]
+    assert 'showSpaceProportionReview();' in initial_confirmation
+    assert '.complete("space_confirmation"' not in initial_confirmation
+    assert '.complete("space_confirmation"' in final_confirmation
+    assert "proportionsConfirmed: true" in final_confirmation
+
+
 def test_upload_step_does_not_offer_the_internal_630_sample_button() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -580,7 +632,11 @@ def test_manual_upstream_edits_clear_stale_3d_steps_before_saving() -> None:
         workflow.complete("upload", {{ filename: "plan.png" }});
         workflow.complete("recognition", {{ engine: "cody" }});
         workflow.complete("calibration", {{ distanceCm: 630 }});
-        workflow.complete("space_confirmation", {{ roomsConfirmed: true, structureConfirmed: true }});
+        workflow.complete("space_confirmation", {{
+          roomsConfirmed: true,
+          structureConfirmed: true,
+          proportionsConfirmed: true,
+        }});
         workflow.complete("requirements", {{ basicConfirmed: true, roomsResolved: true }});
         workflow.complete("layout_2d", {{ confirmed: true }});
         workflow.complete("white_model_3d", {{

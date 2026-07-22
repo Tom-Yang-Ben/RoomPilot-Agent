@@ -6,7 +6,7 @@ import {
   shouldReplayPendingSave,
   WORKFLOW_PANEL_BY_STEP,
   WORKFLOW_STEPS,
-} from "./scene_workflow.js?v=20260721-pending-save1";
+} from "./scene_workflow.js?v=20260723-proportion-gate1";
 import {
   buildScaleCalibration,
   calibrationActionState,
@@ -41,6 +41,7 @@ import {
 } from "./scene_structure_utils.js?v=20260721-beam-drag1";
 import { createStructurePreview } from "./scene_structure_preview.js?v=20260721-column-resize3";
 import { validateColumnDimensionsCm } from "./scene_structure_geometry.js?v=20260721-column-resize3";
+import { buildSpaceProportionSummary } from "./scene_space_proportions.js?v=20260723-space-proportions1";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -71,6 +72,7 @@ const state = {
   selectedRoomId: null,
   activeLayoutRoomId: "all",
   showAllRooms: true,
+  spaceReviewMode: "editing",
   spaceMode: "rooms",
   roomGeometryMode: null,
   mergeRoomIds: [],
@@ -143,6 +145,14 @@ const element = {
   spaceImage: $("#space-plan-image"),
   spaceStage: $("#space-plan-stage"),
   spaceOverlay: $("#space-plan-overlay"),
+  spaceEditorWorkspace: $("#space-editor-workspace"),
+  spaceProportionReview: $("#space-proportion-review"),
+  spaceProportionList: $("#space-proportion-list"),
+  spaceTotalArea: $("#space-total-area"),
+  spaceRoomCount: $("#space-room-count"),
+  spaceLargestRoom: $("#space-largest-room"),
+  spaceCalibrationState: $("#space-calibration-state"),
+  spaceProportionError: $("#space-proportion-error"),
   roomList: $("#room-list"),
   roomEditor: $("#room-editor"),
   roomName: $("#room-name"),
@@ -404,6 +414,9 @@ function showStep(step) {
   const [number, text] = instructions[step] || instructions.project;
   element.stepNumber.textContent = number;
   element.instruction.textContent = text;
+  if (step === "space_confirmation") {
+    setSpaceReviewMode(state.spaceReviewMode);
+  }
   $$(".rp-progress button").forEach((button) => {
     const target = button.dataset.step;
     const targetIndex = WORKFLOW_STEPS.indexOf(target);
@@ -870,6 +883,7 @@ async function applyCalibration() {
       dxf_text: null,
       confirmation_status: "room_review_pending",
     };
+    state.spaceReviewMode = "editing";
     state.workflow.complete("calibration", { distanceCm, calibration });
     initializeRoomsAndStructures();
     state.workflow.goTo("space_confirmation");
@@ -2749,13 +2763,79 @@ function confirmSpace() {
     $("#estimated-size-ack").focus();
     return;
   }
+  showSpaceProportionReview();
+}
+
+function proportionRoomInputs() {
+  return state.rooms.map((room) => ({
+    id: room.id,
+    label: room.label || "未命名空間",
+    ...roomDimensions(room),
+  }));
+}
+
+function renderSpaceProportionReview() {
+  const summary = buildSpaceProportionSummary(proportionRoomInputs());
+  element.spaceTotalArea.textContent = `${summary.totalAreaM2.toFixed(2)} m²`;
+  element.spaceRoomCount.textContent = `${summary.roomCount} 個`;
+  element.spaceLargestRoom.textContent = summary.largestRoom
+    ? `${summary.largestRoom.label} ${summary.largestRoom.sharePercent.toFixed(1)}%`
+    : "—";
+  const distanceCm = Number(state.workflow?.data?.calibration?.distanceCm);
+  element.spaceCalibrationState.textContent = distanceCm > 0
+    ? `已用 ${Math.round(distanceCm)} cm 已知尺寸校正`
+    : "已套用比例尺校正";
+  element.spaceProportionList.innerHTML = summary.rooms.map((room) => `
+    <article class="rp-proportion-row">
+      <div class="rp-proportion-room">
+        <strong>${escapeHtml(room.label)}</strong>
+        <span>${Math.round(room.widthCm)} × ${Math.round(room.depthCm)} cm · ${room.areaM2.toFixed(2)} m²</span>
+      </div>
+      <div class="rp-proportion-share">
+        <div class="rp-proportion-bar" aria-hidden="true"><i style="width: ${room.sharePercent}%"></i></div>
+        <strong>${room.sharePercent.toFixed(1)}%</strong>
+      </div>
+      <span class="rp-proportion-range">${room.areaMinM2.toFixed(2)}–${room.areaMaxM2.toFixed(2)} m² <small>±5%</small></span>
+    </article>
+  `).join("");
+}
+
+function setSpaceReviewMode(mode) {
+  state.spaceReviewMode = mode === "proportion" ? "proportion" : "editing";
+  const reviewing = state.spaceReviewMode === "proportion";
+  element.spaceEditorWorkspace.hidden = reviewing;
+  element.spaceProportionReview.hidden = !reviewing;
+  if (activePanelName(state.workflow?.currentStep) === "space") {
+    element.instruction.textContent = reviewing
+      ? "最後確認各空間占全屋的比例與估算範圍"
+      : instructions.space_confirmation[1];
+  }
+  if (reviewing) renderSpaceProportionReview();
+}
+
+function showSpaceProportionReview() {
+  element.spaceProportionError.textContent = "";
+  setSpaceReviewMode("proportion");
+  element.spaceProportionReview.scrollIntoView({ behavior: "smooth", block: "start" });
+  $("#back-to-space-editor").focus({ preventScroll: true });
+  setStatus("請確認各空間占全屋的比例；面積與 ±5% 範圍皆為估算值。");
+}
+
+function confirmSpaceProportion() {
+  const summary = buildSpaceProportionSummary(proportionRoomInputs());
+  if (!summary.roomCount || summary.totalAreaM2 <= 0) {
+    element.spaceProportionError.textContent = "目前沒有可確認的空間面積，請返回調整空間或重新校正比例尺。";
+    return;
+  }
   state.workflow.complete("space_confirmation", {
     roomsConfirmed: true,
     structureConfirmed: true,
+    proportionsConfirmed: true,
+    totalAreaM2: summary.totalAreaM2,
   });
   renderWholeHouseQuestionnaire();
   renderQuestionRooms();
-  setStatus("空間與結構已保存。現在才開始基本問卷。");
+  setStatus("空間、結構與全屋比例已保存。現在開始基本問卷。");
   goTo("requirements");
 }
 
@@ -4490,6 +4570,17 @@ function bindEvents() {
     if (tool && point) addDroppedStructure(tool, point);
   });
   $("#confirm-space").addEventListener("click", confirmSpace);
+  $("#back-to-space-editor").addEventListener("click", () => {
+    setSpaceReviewMode("editing");
+    setStatus("可繼續調整房間與結構；完成後再確認全屋空間比例。");
+  });
+  $("#recalibrate-space").addEventListener("click", () => {
+    setSpaceReviewMode("editing");
+    if (goTo("calibration")) {
+      setStatus("請重新選取兩點並輸入實際尺寸；套用後會重新計算空間面積。");
+    }
+  });
+  $("#confirm-space-proportion").addEventListener("click", confirmSpaceProportion);
   $("#confirm-basic-questionnaire").addEventListener("click", confirmBasicQuestionnaire);
   element.roomQuestionNav.addEventListener("click", (event) => {
     const button = event.target.closest("[data-question-room]");

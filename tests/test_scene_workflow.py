@@ -360,9 +360,15 @@ def test_nine_step_workflow_uses_one_panel_for_recognition_and_calibration() -> 
         const questionnaireBeforeScale = workflow.goTo("requirements");
         workflow.complete("calibration", {{ distanceCm: 630 }});
         const questionnaireBeforeSpace = workflow.goTo("requirements");
+        const legacySpaceCompletion = workflow.complete("space_confirmation", {{
+          roomsConfirmed: true,
+          structureConfirmed: true,
+        }});
+        const questionnaireBeforeProportions = workflow.goTo("requirements");
         workflow.complete("space_confirmation", {{
           roomsConfirmed: true,
           structureConfirmed: true,
+          proportionsConfirmed: true,
         }});
         const questionnaireAfterSpace = workflow.goTo("requirements");
 
@@ -372,6 +378,8 @@ def test_nine_step_workflow_uses_one_panel_for_recognition_and_calibration() -> 
           calibrationPanel: WORKFLOW_PANEL_BY_STEP.calibration,
           questionnaireBeforeScale,
           questionnaireBeforeSpace,
+          legacySpaceCompletion,
+          questionnaireBeforeProportions,
           questionnaireAfterSpace,
         }}));
         """
@@ -393,6 +401,8 @@ def test_nine_step_workflow_uses_one_panel_for_recognition_and_calibration() -> 
         "calibrationPanel": "scale",
         "questionnaireBeforeScale": False,
         "questionnaireBeforeSpace": False,
+        "legacySpaceCompletion": False,
+        "questionnaireBeforeProportions": False,
         "questionnaireAfterSpace": True,
     }
 
@@ -457,6 +467,7 @@ def test_each_gate_blocks_the_next_stage_until_confirmation_is_valid() -> None:
         workflow.complete("space_confirmation", {{
           roomsConfirmed: true,
           structureConfirmed: true,
+          proportionsConfirmed: true,
         }});
         const layoutBeforeRequirements = workflow.goTo("layout_2d");
         workflow.complete("requirements", {{
@@ -553,6 +564,7 @@ def test_editing_upstream_confirmation_invalidates_downstream_results() -> None:
         workflow.complete("space_confirmation", {{
           roomsConfirmed: true,
           structureConfirmed: true,
+          proportionsConfirmed: true,
         }});
         workflow.complete("requirements", {{
           basicConfirmed: true,
@@ -599,6 +611,7 @@ def test_white_model_allows_an_explicit_zero_furniture_plan() -> None:
         workflow.complete("space_confirmation", {{
           roomsConfirmed: true,
           structureConfirmed: true,
+          proportionsConfirmed: true,
         }});
         workflow.complete("requirements", {{
           basicConfirmed: true,

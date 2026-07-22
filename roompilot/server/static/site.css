@@ -6617,6 +6617,175 @@ body.rp-workflow-page .danger-action {
   font-size: 13px;
 }
 
+.rp-space-proportion-review {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 34px 0 44px;
+}
+
+.rp-space-proportion-review[hidden] {
+  display: none;
+}
+
+.rp-proportion-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #cbc6be;
+}
+
+.rp-proportion-heading h2,
+.rp-proportion-heading p {
+  margin: 0;
+}
+
+.rp-proportion-heading h2 {
+  margin-top: 4px;
+  font-size: 26px;
+}
+
+.rp-proportion-heading p {
+  margin-top: 8px;
+  color: #625d56;
+}
+
+.rp-calibration-state {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-left: 3px solid #32788b;
+  background: #eaf3f5;
+  color: #284f5b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rp-proportion-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid #cbc6be;
+}
+
+.rp-proportion-summary > div {
+  display: grid;
+  gap: 5px;
+  padding: 22px 20px;
+  border-right: 1px solid #ddd8d1;
+}
+
+.rp-proportion-summary > div:last-child {
+  border-right: 0;
+}
+
+.rp-proportion-summary span,
+.rp-proportion-table-heading,
+.rp-proportion-room span,
+.rp-proportion-range small {
+  color: #6a645c;
+  font-size: 13px;
+}
+
+.rp-proportion-summary strong {
+  color: #253d35;
+  font-size: 22px;
+}
+
+.rp-proportion-table-heading,
+.rp-proportion-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.15fr) minmax(220px, 1fr) minmax(170px, 0.7fr);
+  align-items: center;
+  gap: 24px;
+}
+
+.rp-proportion-table-heading {
+  padding: 18px 14px 10px;
+  font-weight: 700;
+}
+
+.rp-proportion-list {
+  border-top: 1px solid #ded9d2;
+}
+
+.rp-proportion-row {
+  min-height: 82px;
+  padding: 14px;
+  border-bottom: 1px solid #ded9d2;
+}
+
+.rp-proportion-room {
+  display: grid;
+  gap: 5px;
+}
+
+.rp-proportion-room strong {
+  font-size: 17px;
+}
+
+.rp-proportion-share {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) 58px;
+  align-items: center;
+  gap: 12px;
+}
+
+.rp-proportion-share strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-proportion-bar {
+  height: 10px;
+  overflow: hidden;
+  background: #e3e0da;
+}
+
+.rp-proportion-bar i {
+  display: block;
+  height: 100%;
+  background: #2a735e;
+}
+
+.rp-proportion-row:nth-child(3n + 2) .rp-proportion-bar i {
+  background: #32788b;
+}
+
+.rp-proportion-row:nth-child(3n) .rp-proportion-bar i {
+  background: #b56a3b;
+}
+
+.rp-proportion-range {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-proportion-range small {
+  display: block;
+  margin-top: 3px;
+  font-weight: 600;
+}
+
+.rp-estimate-notice {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-left: 4px solid #b56a3b;
+  background: #fff4e8;
+  color: #5d4435;
+}
+
+.rp-estimate-notice p {
+  margin: 5px 0 0;
+  line-height: 1.55;
+}
+
+.rp-proportion-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
 .rp-inline-fields,
 .rp-action-row {
   display: grid;
@@ -7076,6 +7245,50 @@ body.rp-workflow-page .danger-action {
 
   #space-step .rp-room-toolbar-editor .rp-control-hint {
     grid-column: 1;
+  }
+
+  .rp-space-proportion-review {
+    width: calc(100% - 32px);
+    padding-top: 24px;
+  }
+
+  .rp-proportion-heading {
+    display: grid;
+    align-items: start;
+  }
+
+  .rp-proportion-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-proportion-summary > div {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 14px 4px;
+    border-right: 0;
+    border-bottom: 1px solid #ded9d2;
+  }
+
+  .rp-proportion-summary > div:last-child {
+    border-bottom: 0;
+  }
+
+  .rp-proportion-summary strong {
+    font-size: 18px;
+  }
+
+  .rp-proportion-table-heading {
+    display: none;
+  }
+
+  .rp-proportion-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px 4px;
+  }
+
+  .rp-proportion-actions {
+    display: grid;
   }
 
   .rp-guidance-band {

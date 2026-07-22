@@ -128,7 +128,7 @@
       </section>
 
       <section id="space-step" class="rp-step-panel" data-panel="space" hidden>
-        <div class="rp-split-workspace">
+        <div id="space-editor-workspace" class="rp-split-workspace">
           <div class="rp-plan-pane">
             <div class="rp-pane-heading">
               <div><span class="eyebrow">4 空間與結構</span><h2>確認房間，再確認牆、門、窗、樑、柱</h2></div>
@@ -256,6 +256,35 @@
             <button id="confirm-space" type="button" class="primary-action">完成空間與結構確認</button>
           </aside>
         </div>
+        <section id="space-proportion-review" class="rp-space-proportion-review" aria-labelledby="space-proportion-title" hidden>
+          <header class="rp-proportion-heading">
+            <div>
+              <span class="eyebrow">4 空間與結構</span>
+              <h2 id="space-proportion-title">確認全屋空間比例</h2>
+              <p>比較各空間占全屋的比例，確認配置是否符合生活需求。</p>
+            </div>
+            <span id="space-calibration-state" class="rp-calibration-state">已套用比例尺校正</span>
+          </header>
+          <div class="rp-proportion-summary" aria-label="全屋空間摘要">
+            <div><span>估算總面積</span><strong id="space-total-area">0.00 m²</strong></div>
+            <div><span>空間數量</span><strong id="space-room-count">0</strong></div>
+            <div><span>最大空間</span><strong id="space-largest-room">—</strong></div>
+          </div>
+          <div class="rp-proportion-table-heading" aria-hidden="true">
+            <span>空間與尺寸</span><span>占全屋比例</span><span>估算範圍</span>
+          </div>
+          <div id="space-proportion-list" class="rp-proportion-list"></div>
+          <aside class="rp-estimate-notice">
+            <strong>面積為校正後估算值</strong>
+            <p>±5% 範圍用來提醒圖面辨識與比例尺可能產生的誤差，僅供空間規劃估算，不可取代現場丈量或工程圖說。</p>
+          </aside>
+          <p id="space-proportion-error" class="rp-field-error" aria-live="polite"></p>
+          <div class="rp-proportion-actions">
+            <button id="back-to-space-editor" type="button" class="secondary-action">返回調整空間</button>
+            <button id="recalibrate-space" type="button" class="secondary-action">重新校正比例尺</button>
+            <button id="confirm-space-proportion" type="button" class="primary-action">確認空間比例並進入需求問卷</button>
+          </div>
+        </section>
       </section>
 
       <section id="requirements-step" class="rp-step-panel" data-panel="requirements" hidden>
@@ -477,6 +506,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene_v2.js?v=sha256-5f2d69511f92"></script>
+    <script type="module" src="/static/scene_v2.js?v=sha256-181f64da0f80"></script>
   </body>
 </html>
