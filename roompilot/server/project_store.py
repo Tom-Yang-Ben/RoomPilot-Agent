@@ -8,6 +8,9 @@ from pathlib import Path
 from uuid import uuid4
 
 
+MAX_WORKFLOW_BYTES = 2 * 1024 * 1024
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -24,6 +27,14 @@ def _merge_dict(base: dict, update: dict) -> dict:
 
 class ProjectVersionConflict(RuntimeError):
     """呼叫端嘗試把變更重播到較舊的專案版本。"""
+
+    def __init__(self, project: dict) -> None:
+        super().__init__("project version conflict")
+        self.project = project
+
+
+class WorkflowTooLargeError(ValueError):
+    """The canonical workflow would exceed the persistence size budget."""
 
 
 _DISPLAY_TEXT_KEYS = {
@@ -69,13 +80,17 @@ class ProjectStore:
     def __init__(self, runtime_dir: Path) -> None:
         self.runtime_dir = runtime_dir
         self.upload_dir = runtime_dir / "uploads"
+        self.render_dir = runtime_dir / "renders"
         self.database_path = runtime_dir / "projects.sqlite3"
         self.upload_dir.mkdir(parents=True, exist_ok=True)
+        self.render_dir.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.database_path)
+        connection = sqlite3.connect(self.database_path, timeout=10)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute("PRAGMA journal_mode = WAL")
         return connection
 
     def _initialize(self) -> None:
@@ -88,12 +103,40 @@ class ProjectStore:
                     notes TEXT NOT NULL DEFAULT '',
                     current_step TEXT NOT NULL,
                     workflow_json TEXT NOT NULL,
+                    revision INTEGER NOT NULL DEFAULT 0,
                     upload_filename TEXT,
                     upload_extension TEXT,
                     upload_mime TEXT,
                     upload_path TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
+                )
+                """
+            )
+            columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(projects)").fetchall()
+            }
+            if "revision" not in columns:
+                connection.execute(
+                    "ALTER TABLE projects ADD COLUMN revision INTEGER NOT NULL DEFAULT 0"
+                )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS render_outputs (
+                    render_id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    white_model_version INTEGER NOT NULL,
+                    viewpoint_version INTEGER NOT NULL,
+                    style_version INTEGER NOT NULL,
+                    style_card_id TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    mime_type TEXT NOT NULL,
+                    filename TEXT NOT NULL,
+                    file_path TEXT NOT NULL,
+                    byte_size INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(project_id)
                 )
                 """
             )
@@ -105,10 +148,19 @@ class ProjectStore:
             "name": row["name"],
             "notes": row["notes"],
             "current_step": row["current_step"],
-            "workflow": json.loads(row["workflow_json"] or "{}"),
+            "workflow": ProjectStore._workflow(row["workflow_json"]),
+            "revision": int(row["revision"]),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }
+
+    @staticmethod
+    def _workflow(raw: str | None) -> dict:
+        try:
+            value = json.loads(raw or "{}")
+        except json.JSONDecodeError:
+            return {}
+        return value if isinstance(value, dict) else {}
 
     def create_project(self, *, name: str, notes: str = "") -> dict:
         project_id = uuid4().hex
@@ -141,6 +193,7 @@ class ProjectStore:
         *,
         current_step: str | None = None,
         workflow: dict | None = None,
+        expected_revision: int | None = None,
         expected_updated_at: str | None = None,
     ) -> dict:
         with self._connect() as connection:
@@ -154,27 +207,38 @@ class ProjectStore:
                 raise KeyError(project_id)
             project = self._project(row)
             if (
+                expected_revision is not None
+                and project["revision"] != expected_revision
+            ):
+                raise ProjectVersionConflict(project)
+            if (
                 expected_updated_at is not None
                 and project["updated_at"] != expected_updated_at
             ):
-                raise ProjectVersionConflict(project_id)
+                raise ProjectVersionConflict(project)
 
             merged_workflow = _compact_workflow_value(
                 _merge_dict(project["workflow"], workflow or {})
             )
+            serialized = json.dumps(merged_workflow, ensure_ascii=False)
+            if len(serialized.encode("utf-8")) > MAX_WORKFLOW_BYTES:
+                raise WorkflowTooLargeError("workflow exceeds size limit")
             next_step = current_step or project["current_step"]
             now = _utc_now()
+            next_revision = project["revision"] + 1
             connection.execute(
                 """
                 UPDATE projects
-                SET current_step = ?, workflow_json = ?, updated_at = ?
-                WHERE project_id = ?
+                SET current_step = ?, workflow_json = ?, revision = ?, updated_at = ?
+                WHERE project_id = ? AND revision = ?
                 """,
                 (
                     next_step,
-                    json.dumps(merged_workflow, ensure_ascii=False),
+                    serialized,
+                    next_revision,
                     now,
                     project_id,
+                    project["revision"],
                 ),
             )
             updated = connection.execute(
@@ -191,28 +255,44 @@ class ProjectStore:
         extension: str,
         mime_type: str,
         content: bytes,
+        expected_revision: int | None = None,
     ) -> dict:
-        self.get_project(project_id)
-        project_dir = self.upload_dir / project_id
-        project_dir.mkdir(parents=True, exist_ok=True)
-        stored_path = project_dir / f"floorplan{extension}"
-        stored_path.write_bytes(content)
-        now = _utc_now()
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM projects WHERE project_id = ?",
+                (project_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(project_id)
+            project = self._project(row)
+            if (
+                expected_revision is not None
+                and project["revision"] != expected_revision
+            ):
+                raise ProjectVersionConflict(project)
+
+            project_dir = self.upload_dir / project_id
+            project_dir.mkdir(parents=True, exist_ok=True)
+            stored_path = project_dir / f"floorplan{extension}"
+            stored_path.write_bytes(content)
+            now = _utc_now()
             connection.execute(
                 """
                 UPDATE projects
                 SET upload_filename = ?, upload_extension = ?, upload_mime = ?,
-                    upload_path = ?, updated_at = ?
-                WHERE project_id = ?
+                    upload_path = ?, revision = ?, updated_at = ?
+                WHERE project_id = ? AND revision = ?
                 """,
                 (
                     filename,
                     extension,
                     mime_type,
                     str(stored_path),
+                    project["revision"] + 1,
                     now,
                     project_id,
+                    project["revision"],
                 ),
             )
         return self.get_upload(project_id)
@@ -238,6 +318,118 @@ class ProjectStore:
             "path": Path(row["upload_path"]),
         }
 
+    @staticmethod
+    def _render(row: sqlite3.Row) -> dict:
+        return {
+            "render_id": row["render_id"],
+            "project_id": row["project_id"],
+            "white_model_version": int(row["white_model_version"]),
+            "viewpoint_version": int(row["viewpoint_version"]),
+            "style_version": int(row["style_version"]),
+            "style_card_id": row["style_card_id"],
+            "provider": row["provider"],
+            "mime_type": row["mime_type"],
+            "filename": row["filename"],
+            "byte_size": int(row["byte_size"]),
+            "created_at": row["created_at"],
+        }
+
+    def save_render(
+        self,
+        project_id: str,
+        *,
+        expected_revision: int,
+        content: bytes,
+        white_model_version: int,
+        viewpoint_version: int,
+        style_version: int,
+        style_card_id: str,
+        provider: str,
+    ) -> tuple[dict, dict]:
+        """Persist a versioned PNG without replacing earlier proposal history."""
+        render_id = uuid4().hex
+        filename = f"roompilot-{project_id[:8]}-{render_id[:8]}.png"
+        project_dir = self.render_dir / project_id
+        project_dir.mkdir(parents=True, exist_ok=True)
+        stored_path = project_dir / filename
+        stored_path.write_bytes(content)
+        now = _utc_now()
+        try:
+            with self._connect() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                row = connection.execute(
+                    "SELECT * FROM projects WHERE project_id = ?",
+                    (project_id,),
+                ).fetchone()
+                if row is None:
+                    raise KeyError(project_id)
+                project = self._project(row)
+                if project["revision"] != expected_revision:
+                    raise ProjectVersionConflict(project)
+                connection.execute(
+                    """
+                    INSERT INTO render_outputs (
+                        render_id, project_id, white_model_version,
+                        viewpoint_version, style_version, style_card_id,
+                        provider, mime_type, filename, file_path, byte_size, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        render_id,
+                        project_id,
+                        white_model_version,
+                        viewpoint_version,
+                        style_version,
+                        style_card_id,
+                        provider,
+                        "image/png",
+                        filename,
+                        str(stored_path),
+                        len(content),
+                        now,
+                    ),
+                )
+                connection.execute(
+                    """
+                    UPDATE projects
+                    SET revision = ?, updated_at = ?
+                    WHERE project_id = ? AND revision = ?
+                    """,
+                    (expected_revision + 1, now, project_id, expected_revision),
+                )
+        except Exception:
+            stored_path.unlink(missing_ok=True)
+            raise
+        return self.get_render(project_id, render_id), self.get_project(project_id)
+
+    def list_renders(self, project_id: str) -> list[dict]:
+        self.get_project(project_id)
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM render_outputs
+                WHERE project_id = ?
+                ORDER BY created_at DESC, render_id DESC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [self._render(row) for row in rows]
+
+    def get_render(self, project_id: str, render_id: str) -> dict:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM render_outputs
+                WHERE project_id = ? AND render_id = ?
+                """,
+                (project_id, render_id),
+            ).fetchone()
+        if row is None:
+            raise FileNotFoundError(render_id)
+        record = self._render(row)
+        record["path"] = Path(row["file_path"])
+        return record
+
     def import_runtime(self, legacy_runtime_dir: Path) -> int:
         """將舊 worktree 的專案與原圖合併到目前的共用資料庫。"""
         legacy_database = legacy_runtime_dir / "projects.sqlite3"
@@ -253,13 +445,19 @@ class ProjectStore:
                 rows = legacy_connection.execute("SELECT * FROM projects").fetchall()
             except sqlite3.DatabaseError:
                 return 0
+            try:
+                render_rows = legacy_connection.execute(
+                    "SELECT * FROM render_outputs"
+                ).fetchall()
+            except sqlite3.DatabaseError:
+                render_rows = []
 
         imported = 0
         with self._connect() as connection:
             for row in rows:
                 current = connection.execute(
                     """
-                    SELECT updated_at, upload_filename, upload_extension,
+                    SELECT updated_at, revision, upload_filename, upload_extension,
                            upload_mime, upload_path
                     FROM projects WHERE project_id = ?
                     """,
@@ -287,11 +485,23 @@ class ProjectStore:
 
                 connection.execute(
                     """
-                    INSERT OR REPLACE INTO projects (
+                    INSERT INTO projects (
                         project_id, name, notes, current_step, workflow_json,
                         upload_filename, upload_extension, upload_mime, upload_path,
-                        created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        revision, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(project_id) DO UPDATE SET
+                        name = excluded.name,
+                        notes = excluded.notes,
+                        current_step = excluded.current_step,
+                        workflow_json = excluded.workflow_json,
+                        upload_filename = excluded.upload_filename,
+                        upload_extension = excluded.upload_extension,
+                        upload_mime = excluded.upload_mime,
+                        upload_path = excluded.upload_path,
+                        revision = excluded.revision,
+                        created_at = excluded.created_at,
+                        updated_at = excluded.updated_at
                     """,
                     (
                         row["project_id"],
@@ -303,9 +513,49 @@ class ProjectStore:
                         upload_extension,
                         upload_mime,
                         upload_path,
+                        int(row["revision"]) if "revision" in row.keys() else 0,
                         row["created_at"],
                         row["updated_at"],
                     ),
                 )
                 imported += 1
+
+            for render in render_rows:
+                project_exists = connection.execute(
+                    "SELECT 1 FROM projects WHERE project_id = ?",
+                    (render["project_id"],),
+                ).fetchone()
+                if project_exists is None:
+                    continue
+                source_render = Path(render["file_path"])
+                if not source_render.is_file():
+                    continue
+                target_dir = self.render_dir / render["project_id"]
+                target_dir.mkdir(parents=True, exist_ok=True)
+                target_render = target_dir / render["filename"]
+                if source_render.resolve() != target_render.resolve():
+                    shutil.copy2(source_render, target_render)
+                connection.execute(
+                    """
+                    INSERT OR IGNORE INTO render_outputs (
+                        render_id, project_id, white_model_version,
+                        viewpoint_version, style_version, style_card_id,
+                        provider, mime_type, filename, file_path, byte_size, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        render["render_id"],
+                        render["project_id"],
+                        render["white_model_version"],
+                        render["viewpoint_version"],
+                        render["style_version"],
+                        render["style_card_id"],
+                        render["provider"],
+                        render["mime_type"],
+                        render["filename"],
+                        str(target_render),
+                        render["byte_size"],
+                        render["created_at"],
+                    ),
+                )
         return imported

@@ -39,7 +39,11 @@ from .scene_service import (
 )
 from .intake_service import advance_intake, start_intake
 from .cost_estimation import estimate_project_cost, load_default_cost_catalog
-from .project_store import ProjectStore, ProjectVersionConflict
+from .project_store import (
+    ProjectStore,
+    ProjectVersionConflict,
+    WorkflowTooLargeError,
+)
 from .runtime_paths import legacy_runtime_dirs, project_runtime_dir
 from .style_cards import load_taiwan_style_cards
 
@@ -59,6 +63,7 @@ PROJECT_STORE = ProjectStore(project_runtime_dir(PROJECT_DIR))
 for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
     PROJECT_STORE.import_runtime(legacy_runtime)
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
+MAX_RENDER_BYTES = 20 * 1024 * 1024
 _EXTERNAL_GLB_ZIP_SEARCH_DIRS = (
     DATASET_DIR,
     PROJECT_DIR / "style-rag",
@@ -1451,6 +1456,13 @@ def save_project_workflow(project_id: str, payload: dict) -> dict:
     workflow = payload.get("workflow")
     if workflow is not None and not isinstance(workflow, dict):
         raise HTTPException(422, "workflow_must_be_an_object")
+    expected_revision = payload.get("expected_revision")
+    if expected_revision is not None and (
+        isinstance(expected_revision, bool)
+        or not isinstance(expected_revision, int)
+        or expected_revision < 0
+    ):
+        raise HTTPException(422, "expected_revision_must_be_a_non_negative_integer")
     expected_updated_at = None
     if payload.get("replay_pending") is True:
         expected_updated_at = str(payload.get("base_updated_at") or "").strip()
@@ -1461,10 +1473,28 @@ def save_project_workflow(project_id: str, payload: dict) -> dict:
             project_id,
             current_step=current_step,
             workflow=workflow or {},
+            expected_revision=expected_revision,
             expected_updated_at=expected_updated_at,
         )
     except ProjectVersionConflict as exc:
+        if expected_revision is not None:
+            raise HTTPException(
+                409,
+                {
+                    "code": "project_revision_conflict",
+                    "message": "專案已在另一個分頁更新，請載入最新版本後再儲存。",
+                    "project": exc.project,
+                },
+            ) from exc
         raise HTTPException(409, "project_version_conflict") from exc
+    except WorkflowTooLargeError as exc:
+        raise HTTPException(
+            413,
+            {
+                "code": "workflow_too_large",
+                "message": "專案草稿內容超過 2 MB，請移除大型暫存資料後再儲存。",
+            },
+        ) from exc
     return {"project": project}
 
 
@@ -1472,6 +1502,7 @@ def save_project_workflow(project_id: str, payload: dict) -> dict:
 async def save_project_floorplan(
     project_id: str,
     file: UploadFile = File(...),
+    expected_revision: int | None = Form(None),
 ) -> dict:
     _stored_project(project_id)
     filename = Path(file.filename or "").name
@@ -1487,14 +1518,26 @@ async def save_project_floorplan(
         )
     content = await file.read()
     mime_type = _validate_floorplan_bytes(extension, content)
-    upload = PROJECT_STORE.save_upload(
-        project_id,
-        filename=filename,
-        extension=extension,
-        mime_type=mime_type,
-        content=content,
-    )
+    try:
+        upload = PROJECT_STORE.save_upload(
+            project_id,
+            filename=filename,
+            extension=extension,
+            mime_type=mime_type,
+            content=content,
+            expected_revision=expected_revision,
+        )
+    except ProjectVersionConflict as exc:
+        raise HTTPException(
+            409,
+            {
+                "code": "project_revision_conflict",
+                "message": "專案已在另一個分頁更新，請載入最新版本後再上傳。",
+                "project": exc.project,
+            },
+        ) from exc
     return {
+        "project": PROJECT_STORE.get_project(project_id),
         "upload": {
             "filename": upload["filename"],
             "extension": upload["extension"],
@@ -1512,6 +1555,105 @@ def get_project_floorplan_source(project_id: str) -> FileResponse:
         media_type=upload["mime_type"],
         filename=upload["filename"],
     )
+
+
+def _public_render_record(record: dict) -> dict:
+    payload = {key: value for key, value in record.items() if key != "path"}
+    payload["download_url"] = (
+        f"/api/projects/{record['project_id']}/renders/{record['render_id']}/png"
+    )
+    return payload
+
+
+@app.post("/api/projects/{project_id}/renders", status_code=201)
+async def create_project_render(
+    project_id: str,
+    file: UploadFile = File(...),
+    expected_revision: int = Form(...),
+    white_model_version: int = Form(0),
+    viewpoint_version: int = Form(0),
+    style_version: int = Form(0),
+    style_card_id: str = Form("unassigned"),
+    provider: str = Form("browser_capture"),
+) -> dict:
+    _stored_project(project_id)
+    if expected_revision < 0:
+        raise HTTPException(422, "expected_revision_must_be_a_non_negative_integer")
+    if min(white_model_version, viewpoint_version, style_version) < 0:
+        raise HTTPException(422, "render_versions_must_be_non_negative")
+    if provider != "browser_capture":
+        raise HTTPException(
+            422,
+            {"code": "unsupported_render_provider", "message": "目前只接受瀏覽器場景 PNG。"},
+        )
+    content = await file.read(MAX_RENDER_BYTES + 1)
+    if len(content) > MAX_RENDER_BYTES:
+        raise HTTPException(
+            413,
+            {"code": "render_too_large", "message": "最終 PNG 不可超過 20 MB。"},
+        )
+    if not content.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise HTTPException(
+            415,
+            {"code": "invalid_render_png", "message": "最終輸出必須是 PNG。"},
+        )
+    try:
+        with Image.open(io.BytesIO(content)) as image:
+            image.verify()
+    except (OSError, ValueError) as exc:
+        raise HTTPException(
+            422,
+            {"code": "invalid_render_png", "message": "PNG 檔案已損壞。"},
+        ) from exc
+    try:
+        render, project = PROJECT_STORE.save_render(
+            project_id,
+            expected_revision=expected_revision,
+            content=content,
+            white_model_version=white_model_version,
+            viewpoint_version=viewpoint_version,
+            style_version=style_version,
+            style_card_id=style_card_id,
+            provider=provider,
+        )
+    except ProjectVersionConflict as exc:
+        raise HTTPException(
+            409,
+            {
+                "code": "project_revision_conflict",
+                "message": "專案已更新，請重新載入後再輸出 PNG。",
+                "project": exc.project,
+            },
+        ) from exc
+    return {"project": project, "render": _public_render_record(render)}
+
+
+@app.get("/api/projects/{project_id}/renders")
+def list_project_renders(project_id: str) -> dict:
+    try:
+        renders = PROJECT_STORE.list_renders(project_id)
+    except KeyError as exc:
+        raise HTTPException(
+            404, {"code": "project_not_found", "message": "找不到專案。"}
+        ) from exc
+    return {"renders": [_public_render_record(record) for record in renders]}
+
+
+@app.get("/api/projects/{project_id}/renders/{render_id}/png")
+def download_project_render(project_id: str, render_id: str) -> FileResponse:
+    try:
+        render = PROJECT_STORE.get_render(project_id, render_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            404, {"code": "render_not_found", "message": "找不到這張 PNG。"}
+        ) from exc
+    path = render["path"]
+    if not path.is_file():
+        raise HTTPException(
+            410,
+            {"code": "render_file_missing", "message": "PNG 紀錄存在，但檔案已遺失。"},
+        )
+    return FileResponse(path, media_type="image/png", filename=render["filename"])
 
 
 def _privacy_is_accepted(project: dict) -> bool:
