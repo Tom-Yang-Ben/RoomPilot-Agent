@@ -107,13 +107,13 @@ const panels = new Map(
 const instructions = {
   project: ["步驟 1", "先建立專案，之後每一次確認都會自動保存"],
   upload: ["步驟 2", "選擇 DXF、PNG 或 JPG，並確認資料用途"],
-  recognition: ["步驟 3–4", "拖曳尺寸線兩端，只輸入一個實際公分尺寸"],
-  calibration: ["步驟 3–4", "確認尺度後，才會顯示辨識到的房間"],
-  space_confirmation: ["步驟 5", "先確認房間，再確認牆、門、窗、樑與柱"],
-  requirements: ["步驟 6", "先完成全屋基本問卷，再逐房間填需求"],
-  layout_2d: ["步驟 7", "確認家具形式、實際尺寸、位置與淨空"],
-  white_model_3d: ["步驟 8", "確認 3D 白模家具可見，再指定模型、顏色與材質"],
-  realistic_3d: ["步驟 9", "從 18 張色卡切換完整 PBR StylePack"],
+  recognition: ["步驟 3", "拖曳尺寸線兩端，只輸入一個實際公分尺寸"],
+  calibration: ["步驟 3", "確認尺度後，才會顯示辨識到的房間"],
+  space_confirmation: ["步驟 4", "先確認房間，再確認牆、門、窗、樑與柱"],
+  requirements: ["步驟 5", "先完成全屋基本問卷，再逐房間填需求"],
+  layout_2d: ["步驟 6", "確認家具形式、實際尺寸、位置與淨空"],
+  white_model_3d: ["步驟 7", "確認 3D 白模家具可見，再指定模型、顏色與材質"],
+  realistic_3d: ["步驟 8", "從 18 張色卡切換完整 PBR StylePack"],
 };
 
 const element = {
@@ -2999,6 +2999,46 @@ function planCenterMeters() {
   };
 }
 
+function furnitureOfferFromSpec(room, spec, index) {
+  const [type, variant, reason, autoAdded] = spec;
+  const item = createFurniture2DItem(type, variant, {
+    id: `${room.id}-${type}-${variant || "standard"}-candidate-${index + 1}`,
+    roomId: room.id,
+  });
+  return {
+    furniture_id: item.id,
+    normalized_type: item.type,
+    variant_id: item.variantId,
+    name_zh_raw: item.label,
+    size_cm: {
+      width: item.widthCm,
+      depth: item.depthCm,
+      height: item.heightCm,
+    },
+    reason,
+    auto_added: autoAdded === true,
+    selection_source: "local_rules",
+  };
+}
+
+function specsFromSelectionResponse(room, response, fallbackSpecs) {
+  const selectedRoom = (response.rooms || []).find((item) => item.room_id === room.id);
+  if (!selectedRoom?.items?.length) return fallbackSpecs;
+  const specs = [];
+  selectedRoom.items.forEach((item) => {
+    const count = Math.max(1, Math.min(6, Number(item.count) || 1));
+    for (let index = 0; index < count; index += 1) {
+      specs.push([
+        item.normalized_type,
+        item.variant_id || item.variantId || "standard",
+        item.reason || item.match_reason || item.selection_source || response.source,
+        item.auto_added === true,
+      ]);
+    }
+  });
+  return specs.length ? specs : fallbackSpecs;
+}
+
 async function autoLayoutFurniture() {
   state.furniture2d = [];
   for (const room of state.rooms) {
@@ -3014,12 +3054,37 @@ async function autoLayoutFurniture() {
       requestedSpecs.map(([type]) => type),
     ).map((item) => [item.type, item.variantId, item.reason, true]);
     const specs = [...requestedSpecs, ...companionSpecs];
+    let selectedSpecs = specs;
+    try {
+      const selection = await api("/api/agent/furniture/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rooms: [{
+            room_id: room.id,
+            room_type: room.type,
+            label: room.label,
+          }],
+          offers: {
+            [room.id]: specs.map((spec, index) => furnitureOfferFromSpec(room, spec, index)),
+          },
+          context: {
+            room_answers: state.roomAnswers[room.id] || {},
+            basic_answers: state.basicAnswers,
+          },
+        }),
+      });
+      selectedSpecs = specsFromSelectionResponse(room, selection, specs);
+    } catch (error) {
+      console.warn("Yen furniture selection fallback", error);
+    }
     const roomItems = [];
-    specs.forEach(([type, variant, reason, autoAdded], index) => {
+    selectedSpecs.forEach(([type, variant, reason, autoAdded], index) => {
       try {
         const item = createFurniture2DItem(type, variant, {
           id: `${room.id}-${type}-${index + 1}`,
           roomId: room.id,
+          userRequired: roomWasAnswered && answerSpecs.length > 0 && autoAdded !== true,
         });
         item.roomId = room.id;
         item.reason = reason
@@ -3307,6 +3372,14 @@ async function resolveCatalogFurniture(item) {
   }
 }
 
+function placementResolutionText(report = []) {
+  if (!report.length) return "";
+  return report
+    .map((item) => item.message_zh || `${item.action || "adjust"}：${item.from || item.furniture_id || item.type || ""}`)
+    .filter(Boolean)
+    .join("；");
+}
+
 async function confirmLayout2d() {
   element.layoutError.textContent = "";
   try {
@@ -3375,11 +3448,12 @@ async function confirmLayout2d() {
     const expectedFurnitureCount = state.sceneData.scene_objects.filter(
       (item) => !item.placement_failed,
     ).length;
+    const resolutionText = placementResolutionText(state.sceneData.placement_resolution_report || []);
     if (expectedFurnitureCount === 0) {
       element.whiteError.textContent = "";
       setStatus("純結構 3D 白模已產生；此方案沒有家具需求。");
     } else if (diagnostics.visibleFurnitureCount > 0) {
-      element.whiteError.textContent = "";
+      element.whiteError.textContent = resolutionText;
       setStatus(`3D 白模已產生，${diagnostics.visibleFurnitureCount} 件家具可見。`);
     } else {
       element.whiteError.textContent = "3D 中沒有任何可見家具，不能進入下一步。";

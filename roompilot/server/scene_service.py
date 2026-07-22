@@ -12,6 +12,7 @@ from urllib import error, request
 from shapely.geometry import Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
+from ..agent.place import resolve_placements
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
@@ -1672,6 +1673,36 @@ def build_scene_payload(
         regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
         place_boundary=_largest_region_boundary(parsed_floorplan, engine_room) if engine_room else None,
     )
+    placement_resolution_report: list[dict[str, Any]] = []
+    if any(obj.get("placement_failed") for obj in objects):
+        protected_ids = {
+            str(item.get("furniture_id"))
+            for item in selected_items
+            if item.get("furniture_id")
+            and (
+                item.get("user_specified")
+                or item.get("user_required")
+                or item.get("position_locked")
+            )
+        }
+
+        def replace_and_place(working_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return generate_layout(
+                effective_width_cm,
+                effective_depth_cm,
+                working_items,
+                room=engine_room,
+                regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
+                place_boundary=_largest_region_boundary(parsed_floorplan, engine_room) if engine_room else None,
+            )
+
+        objects, selected_items, placement_resolution_report = resolve_placements(
+            objects,
+            selected_items,
+            site_payload["furniture"],
+            engine_place_fn=replace_and_place,
+            protected_ids=protected_ids,
+        )
 
     style = next(
         (style for style in site_payload["styles"] if style.get("style_id") == plan["style_id"]),
@@ -1754,6 +1785,7 @@ def build_scene_payload(
         },
         "selected_furniture": selected_items,
         "scene_objects": objects,
+        "placement_resolution_report": placement_resolution_report,
         "placement": {
             "engine": "furniture_engine",
             "failed": [

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=20260718-test1i" />
+    <link rel="stylesheet" href="/static/site.css?v=20260718-test1k" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -19,15 +19,15 @@
     </header>
 
     <main class="rp-workflow-shell">
-      <nav class="rp-progress" aria-label="空間規劃流程" data-workflow-count="9">
+      <nav class="rp-progress" aria-label="空間規劃流程" data-workflow-count="8">
         <button type="button" data-step="project" class="is-active"><b>1</b><span>1 建立專案</span></button>
         <button type="button" data-step="upload"><b>2</b><span>2 上傳平面圖</span></button>
-        <button type="button" data-step="recognition"><b>3–4</b><span>3–4 確定尺寸</span></button>
-        <button type="button" data-step="space_confirmation"><b>5</b><span>5 空間與結構</span></button>
-        <button type="button" data-step="requirements"><b>6</b><span>6 需求問卷</span></button>
-        <button type="button" data-step="layout_2d"><b>7</b><span>7 2D 家具配置</span></button>
-        <button type="button" data-step="white_model_3d"><b>8</b><span>8 3D 白模</span></button>
-        <button type="button" data-step="realistic_3d"><b>9</b><span>9 即時寫實</span></button>
+        <button type="button" data-step="recognition"><b>3</b><span>3 確定尺寸</span></button>
+        <button type="button" data-step="space_confirmation"><b>4</b><span>4 空間與結構</span></button>
+        <button type="button" data-step="requirements"><b>5</b><span>5 需求問卷</span></button>
+        <button type="button" data-step="layout_2d"><b>6</b><span>6 2D 家具配置</span></button>
+        <button type="button" data-step="white_model_3d"><b>7</b><span>7 3D 白模</span></button>
+        <button type="button" data-step="realistic_3d"><b>8</b><span>8 即時寫實</span></button>
       </nav>
 
       <section class="rp-guidance-band" aria-live="polite">
@@ -99,7 +99,7 @@
         <div class="rp-split-workspace">
           <div class="rp-plan-pane">
             <div class="rp-pane-heading">
-              <div><span class="eyebrow">3–4 確定尺寸</span><h2>在圖上拉出一段已知尺寸</h2></div>
+              <div><span class="eyebrow">3 確定尺寸</span><h2>在圖上拉出一段已知尺寸</h2></div>
               <span id="recognition-summary">等待辨識</span>
             </div>
             <div id="floorplan-calibration-stage" class="rp-plan-stage" role="application" aria-label="拖曳尺寸線的起點與終點">
@@ -131,7 +131,7 @@
         <div class="rp-split-workspace">
           <div class="rp-plan-pane">
             <div class="rp-pane-heading">
-              <div><span class="eyebrow">5 空間與結構</span><h2>確認房間，再確認牆、門、窗、樑、柱</h2></div>
+              <div><span class="eyebrow">4 空間與結構</span><h2>確認房間，再確認牆、門、窗、樑、柱</h2></div>
               <button id="show-all-rooms" type="button" class="secondary-action">查看全部空間框選</button>
               <div id="plan-structure-legend" class="rp-structure-legend rp-plan-structure-legend" aria-label="結構標示說明" hidden>
                 <span><i class="rp-legend-line is-selected"></i>橘黃＝目前選取</span>
@@ -143,6 +143,19 @@
             <div id="space-plan-stage" class="rp-plan-stage rp-editable-plan" aria-label="空間與結構確認圖">
               <img id="space-plan-image" alt="辨識後的平面圖" />
               <svg id="space-plan-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+              <div id="room-editor" class="rp-editor-box rp-room-floating-editor" hidden>
+                <label><span>空間名稱</span><input id="room-name" type="text" /></label>
+                <p id="room-area"></p>
+                <p class="rp-control-hint">拖曳左圖紫色節點後，尺寸與面積會自動重新計算。</p>
+                <div class="rp-room-node-tools">
+                  <button type="button" data-room-node-mode="merge" class="secondary-action">合併節點</button>
+                  <button type="button" data-room-node-mode="split" class="secondary-action">切割邊線新增節點</button>
+                  <button id="apply-node-merge" type="button" class="primary-action" hidden>合併所選兩個節點</button>
+                  <button id="cancel-node-edit" type="button" class="secondary-action" hidden>取消節點編輯</button>
+                </div>
+                <p id="room-node-guidance" class="rp-control-hint">需要微調輪廓時，可合併相鄰節點或在邊線新增節點。</p>
+                <button id="save-room" type="button" class="secondary-action">套用空間名稱</button>
+              </div>
             </div>
             <p id="space-plan-caption" class="rp-plan-caption">點房間框或右側名稱可定位；紫色節點可拖曳調整範圍。</p>
           </div>
@@ -162,19 +175,6 @@
               <p id="room-geometry-guidance" class="rp-control-hint">先逐一確認右側房間；需要時可合併或以兩點切割。</p>
               <strong id="room-confirmation-progress">已確認 0 / 0 個房間</strong>
               <div id="room-list" class="rp-room-list"></div>
-              <div id="room-editor" class="rp-editor-box" hidden>
-                <label><span>空間名稱</span><input id="room-name" type="text" /></label>
-                <p id="room-area"></p>
-                <p class="rp-control-hint">拖曳左圖紫色節點後，尺寸與面積會自動重新計算。</p>
-                <div class="rp-room-node-tools">
-                  <button type="button" data-room-node-mode="merge" class="secondary-action">合併節點</button>
-                  <button type="button" data-room-node-mode="split" class="secondary-action">切割邊線新增節點</button>
-                  <button id="apply-node-merge" type="button" class="primary-action" hidden>合併所選兩個節點</button>
-                  <button id="cancel-node-edit" type="button" class="secondary-action" hidden>取消節點編輯</button>
-                </div>
-                <p id="room-node-guidance" class="rp-control-hint">需要微調輪廓時，可合併相鄰節點或在邊線新增節點。</p>
-                <button id="save-room" type="button" class="secondary-action">套用空間名稱</button>
-              </div>
             </section>
             <section id="structure-confirmation-panel" hidden>
               <div class="rp-structure-kind-tabs" role="tablist" aria-label="結構類別">
@@ -256,7 +256,7 @@
         <div class="rp-questionnaire-workspace">
           <div class="rp-plan-pane rp-question-context-pane">
             <div class="rp-pane-heading">
-              <div><span class="eyebrow">6 需求問卷</span><h2>先填基本問卷，再逐房間說明需求</h2></div>
+              <div><span class="eyebrow">5 需求問卷</span><h2>先填基本問卷，再逐房間說明需求</h2></div>
               <span id="requirements-progress">基本問卷</span>
             </div>
             <p class="rp-question-lead">這裡主要是問卷。左側只保留目前房間清單與完成狀態，平面圖已在上一階段確認。</p>
@@ -299,7 +299,7 @@
         <div class="rp-split-workspace rp-layout-workspace">
           <div class="rp-plan-pane">
             <div class="rp-pane-heading">
-              <div><span class="eyebrow">7 2D 家具配置</span><h2>依房間需求產生可辨識的俯視家具</h2></div>
+              <div><span class="eyebrow">6 2D 家具配置</span><h2>依房間需求產生可辨識的俯視家具</h2></div>
               <button id="auto-layout-furniture" type="button" class="secondary-action">依需求重新配置</button>
             </div>
             <label class="rp-room-filter"><span>逐房間配置</span><select id="layout-room-filter"></select></label>
@@ -471,6 +471,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene_v2.js?v=sha256-a510ebd05f68"></script>
+    <script type="module" src="/static/scene_v2.js?v=sha256-5f2d69511f92"></script>
   </body>
 </html>

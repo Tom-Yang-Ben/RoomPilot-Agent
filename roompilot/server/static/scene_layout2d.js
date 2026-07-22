@@ -260,6 +260,7 @@ export function createFurniture2DItem(type, variantId, overrides = {}) {
     yCm: Number(overrides.yCm) || 0,
     rotationDeg: Number(overrides.rotationDeg) || 0,
     locked: overrides.locked === true,
+    userRequired: overrides.userRequired === true,
     categoryLabel: category.label,
     roomId: overrides.roomId || null,
     reason: overrides.reason || "",
@@ -274,6 +275,7 @@ export function replaceFurniture2DItem(current, type, variantId) {
     yCm: current.yCm,
     rotationDeg: current.rotationDeg,
     locked: current.locked,
+    userRequired: current.userRequired,
   });
   return {
     ...replacement,
@@ -306,6 +308,7 @@ export function toSceneFurniture(item, { positionLocked = true } = {}) {
     rotation_y_deg: item.rotationDeg,
     position_locked: positionLocked,
     user_specified: item.locked === true,
+    user_required: item.userRequired === true,
     placement_room_id: item.roomId,
   };
 }

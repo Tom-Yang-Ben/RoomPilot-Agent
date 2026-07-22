@@ -16,6 +16,8 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
+from ..agent.knowledge import family_of
+from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
 from ..catalog.style_db import sanitize_size_cm
 from ..floorplan.vision import (
     analyze_floorplan_image,
@@ -1923,6 +1925,152 @@ async def agent_intake_answer(payload: dict) -> dict:
         answer=answer,
         brief=payload.get("client_brief"),
     )
+
+
+def _normalize_selection_offers(raw_offers: object) -> dict[str, list[dict]]:
+    if not isinstance(raw_offers, dict):
+        return {}
+    offers: dict[str, list[dict]] = {}
+    for room_id, raw_items in raw_offers.items():
+        if not isinstance(raw_items, list):
+            continue
+        normalized_items: list[dict] = []
+        for index, raw_item in enumerate(raw_items):
+            if not isinstance(raw_item, dict):
+                continue
+            item_type = str(raw_item.get("normalized_type") or raw_item.get("type") or "")
+            variant_id = str(raw_item.get("variant_id") or raw_item.get("variantId") or "standard")
+            furniture_id = str(
+                raw_item.get("furniture_id")
+                or raw_item.get("id")
+                or f"{room_id}:{item_type}:{variant_id}:{index + 1}"
+            )
+            if not item_type or not furniture_id:
+                continue
+            item = dict(raw_item)
+            item["furniture_id"] = furniture_id
+            item["normalized_type"] = item_type
+            item["variant_id"] = variant_id
+            item["selection_source"] = str(item.get("selection_source") or "local_rules")
+            normalized_items.append(item)
+        offers[str(room_id)] = normalized_items
+    return offers
+
+
+def _local_selection_raw(rooms: list[dict], offers: dict[str, list[dict]]) -> dict:
+    selections: list[dict] = []
+    for room in rooms:
+        room_id = str(room.get("room_id") or room.get("id") or "")
+        used_families: set[str] = set()
+        items: list[dict] = []
+        for item in offers.get(room_id, []):
+            family = family_of(item.get("normalized_type"))
+            if family in used_families:
+                continue
+            used_families.add(family)
+            try:
+                count = int(item.get("count") or 1)
+            except (TypeError, ValueError):
+                count = 1
+            items.append({
+                "furniture_id": item.get("furniture_id"),
+                "count": max(1, min(6, count)),
+            })
+        if items:
+            selections.append({"room_id": room_id, "items": items})
+    return {"selections": selections}
+
+
+def _selection_response(
+    selected: dict[str, list],
+    *,
+    source: str,
+    model: str | None = None,
+    warnings: list[str] | None = None,
+) -> dict:
+    return {
+        "source": source,
+        "model": model,
+        "warnings": warnings or [],
+        "rooms": [
+            {
+                "room_id": room_id,
+                "items": [
+                    {
+                        **entry.item,
+                        "count": entry.count,
+                        "selection_source": entry.item.get("selection_source") or source,
+                    }
+                    for entry in entries
+                ],
+            }
+            for room_id, entries in selected.items()
+        ],
+    }
+
+
+@app.post("/api/agent/furniture/select")
+async def agent_furniture_select(payload: dict) -> dict:
+    """Server-side furniture selection gate for Yen selection discipline."""
+    raw_rooms = payload.get("rooms") or []
+    if not isinstance(raw_rooms, list):
+        raise HTTPException(status_code=422, detail="rooms must be a list")
+    rooms = []
+    for room in raw_rooms:
+        if not isinstance(room, dict):
+            continue
+        room_type = str(room.get("room_type") or room.get("type") or "")
+        if room_type in {"default", "unknown", "other"}:
+            room_type = ""
+        rooms.append({
+            **room,
+            "room_id": str(room.get("room_id") or room.get("id") or ""),
+            "room_type": room_type,
+        })
+    offers = _normalize_selection_offers(payload.get("offers"))
+    style_id = payload.get("style_id")
+    context = payload.get("context") if isinstance(payload.get("context"), dict) else None
+    llm_selection = payload.get("llm_selection")
+    warnings: list[str] = []
+
+    if isinstance(llm_selection, dict):
+        try:
+            selected, model = request_selections(
+                rooms,
+                offers,
+                str(style_id) if style_id else None,
+                complete=lambda _messages: ("payload/llm_selection", llm_selection),
+                context=context,
+            )
+            return _selection_response(selected, source="openrouter", model=model)
+        except (SelectionParseError, SelectionUnavailableError) as exc:
+            warnings.append(f"LLM 選擇未通過規則驗證，已改用本地規則：{exc}")
+
+    try:
+        selected = parse_selections(_local_selection_raw(rooms, offers), rooms, offers)
+        return _selection_response(selected, source="local_rules", warnings=warnings)
+    except SelectionParseError as exc:
+        warnings.append(f"本地規則無法完整驗證候選家具，已保留第一批候選：{exc}")
+        return {
+            "source": "local_rules_unvalidated",
+            "model": None,
+            "warnings": warnings,
+            "rooms": [
+                {
+                    "room_id": room_id,
+                    "items": [
+                        {
+                            **item,
+                            "count": int(item.get("count") or 1),
+                            "selection_source": item.get("selection_source") or "local_rules_unvalidated",
+                        }
+                        for item in items[:8]
+                    ],
+                }
+                for room_id, items in offers.items()
+                if items
+            ],
+        }
 
 
 @app.post("/api/scene/generate")

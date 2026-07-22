@@ -15,6 +15,67 @@ from roompilot.server.runtime_paths import legacy_runtime_dirs, project_runtime_
 client = TestClient(app)
 
 
+def _selection_candidate(fid: str, kind: str) -> dict:
+    return {
+        "furniture_id": fid,
+        "normalized_type": kind,
+        "variant_id": "standard",
+        "name_zh_raw": fid,
+        "size_cm": {"width": 120, "depth": 60, "height": 80},
+    }
+
+
+def test_agent_furniture_selection_falls_back_when_llm_violates_room_rules() -> None:
+    response = client.post(
+        "/api/agent/furniture/select",
+        json={
+            "rooms": [{"room_id": "living-1", "room_type": "living_room"}],
+            "offers": {
+                "living-1": [
+                    _selection_candidate("sofa-1", "sofa"),
+                    _selection_candidate("bed-1", "bed"),
+                ]
+            },
+            "llm_selection": {
+                "selections": [{"room_id": "living-1", "items": [{"furniture_id": "bed-1"}]}]
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"] == "local_rules"
+    assert payload["warnings"]
+    assert [
+        item["furniture_id"]
+        for item in payload["rooms"][0]["items"]
+    ] == ["sofa-1"]
+
+
+def test_agent_furniture_selection_uses_server_side_local_rules_without_llm() -> None:
+    response = client.post(
+        "/api/agent/furniture/select",
+        json={
+            "rooms": [{"room_id": "bedroom-1", "room_type": "bedroom"}],
+            "offers": {
+                "bedroom-1": [
+                    _selection_candidate("bed-1", "bed"),
+                    _selection_candidate("nightstand-1", "bedside-table"),
+                    _selection_candidate("bed-2", "bed-frame"),
+                ]
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"] == "local_rules"
+    assert [
+        item["furniture_id"]
+        for item in payload["rooms"][0]["items"]
+    ] == ["bed-1", "nightstand-1"]
+
+
 def test_worktree_uses_the_main_repository_runtime_directory(tmp_path: Path) -> None:
     repository = tmp_path / "RoomPilot-Agent"
     worktree = repository / ".worktrees" / "bella-test1"
