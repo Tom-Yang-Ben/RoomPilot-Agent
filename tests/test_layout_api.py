@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from roompilot.server.main import app
-from roompilot.server.scene_service import generate_layout, validate_single_placement
+from backend.server.main import app
+from backend.server.services.scene_service import generate_layout, validate_single_placement
 
 
 @pytest.fixture
@@ -17,7 +17,7 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 def _model_item(item_type: str | None = None) -> dict:
-    from roompilot.server.main import _furniture_payload_cache
+    from backend.server.services.catalog_service import _furniture_payload_cache
 
     return next(
         dict(item)
@@ -195,7 +195,7 @@ def test_white_model_rejects_confirmed_window_that_does_not_cross_a_wall(client:
         }],
         "windows": [{"x1": -0.5, "z1": 0, "x2": 0.5, "z2": 0}],
     })
-    from roompilot.upgrade3d.wall_openings import build_opening_wall_geometry
+    from backend.upgrade3d.wall_openings import build_opening_wall_geometry
     floorplan.update(build_opening_wall_geometry(floorplan))
     updated = client.put(
         f"/api/projects/{project['project_id']}/workflow",
@@ -277,27 +277,29 @@ def test_openrouter_selection_is_restricted_to_server_candidate_ids(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from roompilot.server import layout_service
+    import json as _json
+
+    from backend.server.services import layout_service
 
     project = _project_at_layout(client)
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("OPENROUTER_LAYOUT_ENABLED", "1")
 
-    def fake_suggestion(payload):
+    def fake_complete(messages):
+        payload = _json.loads(messages[1]["content"])
         room = payload["rooms"][0]
         valid_id = room["candidates"][0]["furniture_id"]
         return "mock/layout", {
-            "rooms": [{
+            "selections": [{
                 "room_id": room["room_id"],
-                "furniture_ids": [valid_id, "invented-furniture-id"],
-                "hints": [
-                    {"furniture_id": valid_id, "anchor": "left", "priority": 1},
-                    {"furniture_id": "invented-furniture-id", "anchor": "right", "priority": 0},
+                "items": [
+                    {"furniture_id": valid_id},
+                    {"furniture_id": "invented-furniture-id", "count": 3},
                 ],
             }],
         }
 
-    monkeypatch.setattr(layout_service, "_openrouter_layout_suggestion", fake_suggestion)
+    monkeypatch.setattr(layout_service, "_openrouter_complete", fake_complete)
     response = client.post(
         f"/api/projects/{project['project_id']}/layout-2d/analyze",
         json={"expected_revision": project["revision"], "allow_openrouter": True},
@@ -440,7 +442,7 @@ def test_viewpoint_style_card_and_final_png_preserve_explicit_furniture(
         item["instance_id"] for item in original if item["selection_source"] != "user"
     }
     assert all(change["instance_id"] in unprotected_ids for change in style_payload["replacements"])
-    assert style_payload["furniture_policy"]["placement_authority"] == "roompilot.engine"
+    assert style_payload["furniture_policy"]["placement_authority"] == "backend.engine"
 
     png = io.BytesIO()
     Image.new("RGB", (16, 12), "#ccbbaa").save(png, format="PNG")

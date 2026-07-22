@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from roompilot.server.scene_service import build_scene_payload
-from roompilot.upgrade3d.dxf_parser import parse_dxf_file
+from backend.server.services.scene_service import build_scene_payload
+from backend.upgrade3d.dxf_parser import parse_dxf_file
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STATIC = ROOT / "roompilot" / "server" / "static"
+STATIC = ROOT / "backend" / "server" / "static"
 
 
 def test_scene_starts_on_real_floorplan_step_with_visible_upload_contract():
@@ -28,7 +28,7 @@ def test_scene_starts_on_real_floorplan_step_with_visible_upload_contract():
 
 
 def test_dxf_parser_exposes_frontend_preview_contract():
-    sample = next((ROOT / "testdata" / "dxf").glob("*.dxf"))
+    sample = next((ROOT / "data" / "testdata" / "dxf").glob("*.dxf"))
     parsed = parse_dxf_file(str(sample))
 
     assert parsed["width_cm"] > 0

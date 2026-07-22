@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from roompilot.server.main import app
-from roompilot.server.requirements_service import analyze_special_requirements
+from backend.server.main import app
+from backend.server.services.requirements_service import analyze_special_requirements
 
 
 @pytest.fixture
@@ -139,7 +139,7 @@ def test_advanced_text_reaches_openrouter_adapter_only_with_consent(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from roompilot.server import main as server_main
+    from backend.server.services import requirements_service as requirements_module
 
     project = _project_at_requirements(client)
     calls = []
@@ -167,7 +167,7 @@ def test_advanced_text_reaches_openrouter_adapter_only_with_consent(
             },
         }
 
-    monkeypatch.setattr(server_main, "analyze_special_requirements", fake_analyze)
+    monkeypatch.setattr(requirements_module, "analyze_special_requirements", fake_analyze)
     answers = _answers(
         project,
         customization_mode="advanced",
@@ -220,7 +220,7 @@ def test_questionnaire_rejects_stale_rooms_unknown_style_and_missing_resident(
 
 
 def test_specified_furniture_must_exist_and_have_a_glb(client: TestClient) -> None:
-    from roompilot.server.main import _merged_furniture_catalog_cached
+    from backend.server.services.catalog_service import _merged_furniture_catalog_cached
 
     project = _project_at_requirements(client)
     answers = _answers(project, customization_mode="advanced")
@@ -254,7 +254,7 @@ def test_special_requirement_service_never_calls_ai_without_advanced_text_and_co
 ) -> None:
     calls = []
     monkeypatch.setattr(
-        "roompilot.server.requirements_service._openrouter_suggestion",
+        "backend.server.services.requirements_service._openrouter_suggestion",
         lambda *args, **kwargs: calls.append((args, kwargs)),
     )
     base = {

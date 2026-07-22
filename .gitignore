@@ -3,8 +3,8 @@ web_fastapi/.env
 .venv/
 .venv_triposr/
 .pytest_cache/
-frontend3d/node_modules/
-frontend3d/dist/
+frontend/node_modules/
+frontend/dist/
 __pycache__/
 *.pyc
 tmp/
@@ -28,8 +28,8 @@ TripoSR/
 test_3Dfurniture/
 
 # Non-runtime generated/intermediate model artifacts
-dataset/decoded_glb_cache/
-dataset/ikea/
+data/dataset/decoded_glb_cache/
+data/dataset/ikea/
 sf3d/inputs/
 sf3d/models/
 sf3d/official_repo/
@@ -45,8 +45,7 @@ web_fastapi/static/model_probe.*
 # docs/ 只保留團隊專案文件，一律納入版控。
 # 個人筆記、復刻研究與過時狀態稿已於 2026-07-21 移出 repo 封存。
 
-# 大型資料(不上傳)
-data/
+# 2026-07-22 重組:data/ 現為版控資料夾(data/dataset + data/testdata),不再整包忽略
 # dataset/ 已於 2026-07-07 進版控(blob 早已在 origin 歷史中,git 去重後零額外成本)
 downloaded-files/
 舊的翻譯資料/
@@ -71,4 +70,4 @@ PERSONAL_*.md
 # macOS 系統殘留(入倉三規則:禁止提交)
 .DS_Store
 # 分割模型權重 93MB — 進 git 前組長決定
-roompilot/floorplan/models/*.onnx
+backend/floorplan/models/*.onnx

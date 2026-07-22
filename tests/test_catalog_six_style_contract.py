@@ -3,12 +3,15 @@ import re
 
 import pytest
 
-from roompilot.server import intake_service
-from roompilot.server.main import _get_merged_furniture_by_id, _model_response_for_merged_furniture, _model_status, _resolve_external_zip_entry, furniture_catalog, load_style_database, site_data
+from backend.server.services import intake_service
+from backend.server.routes.library import furniture_catalog
+from backend.server.routes.pages import site_data
+from backend.server.services.catalog_service import _get_merged_furniture_by_id, load_style_database
+from backend.server.services.glb_assets import _model_response_for_merged_furniture, _model_status, _resolve_external_zip_entry
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = ROOT / "roompilot" / "catalog" / "data"
+DATA_DIR = ROOT / "backend" / "catalog" / "data"
 ARCHIVE_DIR = DATA_DIR / "舊友：12種風格與JSON"
 CANONICAL_STYLE_IDS = {
     "scandinavian",
@@ -83,4 +86,8 @@ def test_unverified_remote_glb_is_not_advertised_as_available():
 
 
 def test_intake_has_a_single_short_default_llm_attempt():
-    assert len(intake_service.DEFAULT_MODELS) == 1
+    # intake 的模型清單已與 scene_service 共用;預設池必須維持單一模型,
+    # 對話式 intake 才不會因多模型輪詢拖長首問延遲。
+    from backend.server.services.scene_service import DEFAULT_OPENROUTER_MODELS
+
+    assert len(DEFAULT_OPENROUTER_MODELS) == 1

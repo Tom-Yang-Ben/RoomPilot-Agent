@@ -8,7 +8,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# 網站後端(roompilot/server):四頁展示 + 場景生成 + DXF 升維
+# 網站後端(backend/server):四頁展示 + 場景生成 + DXF 升維
 server = [
     "fastapi>=0.115",
     "uvicorn>=0.30",
@@ -17,7 +17,7 @@ server = [
     "python-multipart>=0.0.9",
     "certifi>=2024",     # OpenRouter VLM 呼叫的 SSL 憑證鏈(macOS 系統 Python 沒有)
 ]
-# 平面辨識(roompilot/floorplan):PNG → DXF
+# 平面辨識(backend/floorplan):PNG → DXF
 vision = [
     "numpy>=2.0",
     "opencv-python>=4.10",
@@ -25,7 +25,7 @@ vision = [
     "onnxruntime>=1.20",   # 分割模型融合(floorseg.onnx);缺這個管線自動退回純規則
     "certifi>=2024",       # VLM 選配呼叫的 SSL 憑證鏈
 ]
-# 型錄管線(scripts/):IKEA 下載 + 清洗 + 匯入 PostgreSQL
+# 型錄管線(原 scripts/,2026-07-22 重組時移除;extra 暫留供合併含該管線的舊分支)
 catalog = [
     "requests>=2.34",
     "selenium>=4.45",
@@ -39,6 +39,7 @@ catalog = [
 
 [dependency-groups]
 dev = [
+    # 僅供 fastapi.testclient 的傳輸層;業務碼禁止 import(LLM 一律 OpenRouter,見 CLAUDE.md)
     "httpx2>=2.7",
     "pytest>=9.1.1",
 ]

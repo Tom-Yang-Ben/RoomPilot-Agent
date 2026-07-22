@@ -7,8 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from roompilot.server.main import app
-from roompilot.server.project_store import ProjectConflictError, ProjectStore
+from backend.server.main import app
+from backend.server.storage.project_store import ProjectConflictError, ProjectStore
 
 
 @pytest.fixture
@@ -149,7 +149,7 @@ def test_project_floorplan_analysis_persists_canonical_result_without_large_blob
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from roompilot.server import main as server_main
+    from backend.server.services import floorplan_recognition
 
     project = _create_project(client, "PNG 辨識案")
     uploaded = client.post(
@@ -177,8 +177,8 @@ def test_project_floorplan_analysis_persists_canonical_result_without_large_blob
         "vlm": None,
     }
     monkeypatch.setattr(
-        server_main,
-        "_recognize_floorplan_bytes",
+        floorplan_recognition,
+        "recognize_floorplan_bytes",
         lambda *_args, **_kwargs: analysis,
     )
 
@@ -229,7 +229,7 @@ def test_project_floorplan_analysis_persists_canonical_result_without_large_blob
 def test_project_dxf_analysis_uses_the_real_roompilot_parser(client: TestClient) -> None:
     sample = (
         Path(__file__).resolve().parents[1]
-        / "testdata"
+        / "data" / "testdata"
         / "pic"
         / "temp"
         / "01-HomePlanCadBlock.dxf"
@@ -261,7 +261,7 @@ def test_space_confirmation_persists_only_user_confirmed_geometry(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from roompilot.server import main as server_main
+    from backend.server.services import floorplan_recognition
 
     project = _create_project(client, "空間確認案")
     uploaded = client.post(
@@ -318,7 +318,7 @@ def test_space_confirmation_persists_only_user_confirmed_geometry(
         received.update(kwargs)
         return analysis
 
-    monkeypatch.setattr(server_main, "_recognize_floorplan_bytes", recognize)
+    monkeypatch.setattr(floorplan_recognition, "recognize_floorplan_bytes", recognize)
     analyzed_response = client.post(
         f"/api/projects/{project['project_id']}/floorplan/analyze",
         json={"expected_revision": uploaded["revision"], "allow_openrouter": True},
@@ -417,7 +417,7 @@ def test_space_confirmation_rejects_unknown_rooms_and_out_of_bounds_segments(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from roompilot.server import main as server_main
+    from backend.server.services import floorplan_recognition
 
     project = _create_project(client, "錯誤確認案")
     uploaded = client.post(
@@ -426,8 +426,8 @@ def test_space_confirmation_rejects_unknown_rooms_and_out_of_bounds_segments(
         files={"file": ("plan.png", _png_bytes(), "image/png")},
     ).json()["project"]
     monkeypatch.setattr(
-        server_main,
-        "_recognize_floorplan_bytes",
+        floorplan_recognition,
+        "recognize_floorplan_bytes",
         lambda *_args, **_kwargs: {
             "source": "image",
             "floorplan": {

@@ -30,19 +30,19 @@ v1.1(2026-07-21 文件清整)。回答一件事:**每一層「什麼叫完成」
 
 | | 內容 |
 |---|---|
-| 輸入 | `testdata/png/`(PNG;JPG/BMP 成功率 ~50%,非 P0) |
-| 輸出 | `testdata/dxf/`(WALL/WINDOW 兩圖層)、`testdata/dxf_scale/`(公分)、`testdata/json/`(前端交接,px+cm 雙座標+scale 信心度) |
-| 驗證 | (皆在 **repo 根目錄**跑;腳本預設路徑是根目錄相對,`cd` 進去跑會找不到資料)① 窗:`uv run --extra vision python roompilot/floorplan/eval_windows.py` — **門檻:精準/召回 ≥90%/90%**(現基準 94/92)② 門過濾:`uv run --extra vision python roompilot/floorplan/eval_doors.py` — **門檻:≥95%**(現 19/19=100%;根目錄跑會提示找不到 config.ini 並改用內建預設值,基準數字就是這樣跑出來的,屬正常)③ 批次重跑:`uv run --extra vision python roompilot/floorplan/floorplan2dxf.py testdata/png testdata/dxf` 無例外 |
-| 交下一層證據 | 評測輸出數字 + `testdata/chk/` 疊圖(人可目視抽查)+ 交接 JSON 的 scale 信心度欄位 |
+| 輸入 | `data/testdata/png/`(PNG;JPG/BMP 成功率 ~50%,非 P0) |
+| 輸出 | `data/testdata/dxf/`(WALL/WINDOW 兩圖層)、`data/testdata/dxf_scale/`(公分)、`data/testdata/json/`(前端交接,px+cm 雙座標+scale 信心度) |
+| 驗證 | (皆在 **repo 根目錄**跑;腳本預設路徑是根目錄相對,`cd` 進去跑會找不到資料)① 窗:`uv run --extra vision python backend/floorplan/eval_windows.py` — **門檻:精準/召回 ≥90%/90%**(現基準 94/92)② 門過濾:`uv run --extra vision python backend/floorplan/eval_doors.py` — **門檻:≥95%**(現 19/19=100%;根目錄跑會提示找不到 config.ini 並改用內建預設值,基準數字就是這樣跑出來的,屬正常)③ 批次重跑:`uv run --extra vision python backend/floorplan/floorplan2dxf.py data/testdata/png data/testdata/dxf` 無例外 |
+| 交下一層證據 | 評測輸出數字 + `data/testdata/chk/` 疊圖(人可目視抽查)+ 交接 JSON 的 scale 信心度欄位 |
 | 已知缺口 | 評測**不在 pytest 內**,改完必須手動跑;動到偵測邏輯而沒貼評測數字 = 未驗證 |
 
 ## 2. upgrade3d / dxf_parser(DXF → 樓面 JSON)
 
 | | 內容 |
 |---|---|
-| 輸入 | `testdata/dxf/*.dxf` |
+| 輸入 | `data/testdata/dxf/*.dxf` |
 | 輸出 | 樓面 JSON(牆體聯集、房間=孔洞、窗段聚類合併;**單位公尺**——公尺→公分的唯一邊界在 `engine/dxf_room.py`) |
-| 驗證 | ① `uv run python roompilot/upgrade3d/eval_window_merge.py` — **門檻:precision/recall ≥90%/90%**(現基準 100/100,自帶 PASS/FAIL 退出碼)② 自檢:`uv run python roompilot/upgrade3d/dxf_parser.py`(逐檔斷言牆體與比例;需 uv 環境的 ezdxf,勿用裸 `python`)③ `uv run pytest tests/test_roompilot_quality_guardrails.py -v`(前端預覽契約) |
+| 驗證 | ① `uv run python backend/upgrade3d/eval_window_merge.py` — **門檻:precision/recall ≥90%/90%**(現基準 100/100,自帶 PASS/FAIL 退出碼)② 自檢:`uv run python backend/upgrade3d/dxf_parser.py`(逐檔斷言牆體與比例;需 uv 環境的 ezdxf,勿用裸 `python`)③ `uv run pytest tests/test_roompilot_quality_guardrails.py -v`(前端預覽契約) |
 | 交下一層證據 | eval PASS + 樓面 JSON 中房間數/牆段數與 chk 疊圖一致 |
 | 已知缺口 | 樓面 JSON **無欄位契約文件**(只有 code docstring);3D 窗戶顯示問題未解(SSOT §14) |
 
@@ -62,26 +62,26 @@ v1.1(2026-07-21 文件清整)。回答一件事:**每一層「什麼叫完成」
 |---|---|
 | 輸入 | 樓面 JSON + 需求 + 型錄 |
 | 輸出 | scene payload(`position_cm`/`size_cm`=公分;`wall/window/door segments`、`room_regions`=**公尺**;`rotation_y_deg` 與引擎反向)——契約正本=CLAUDE.md invariants |
-| 驗證 | ① `uv run pytest tests/test_agent_layout_intent.py tests/test_agent_recovery.py tests/test_layout_api.py -v`② 端到端依 FastAPI OpenAPI／`project_models.py` 的現行欄位呼叫專案配置 API，人工抽查回應座標與單位 |
-| 交下一層證據 | curl 回應存檔 + frontend3d 或 /scene 頁實際渲染截圖 |
+| 驗證 | ① `uv run pytest tests/test_agent_knowledge.py tests/test_agent_select.py tests/test_agent_place.py tests/test_layout_api.py -v`(2026-07-21 agent 重寫後的現行檔名)② 端到端依 FastAPI OpenAPI／`storage/project_models.py` 的現行欄位呼叫專案配置 API，人工抽查回應座標與單位 |
+| 交下一層證據 | curl 回應存檔 + frontend 或 /scene 頁實際渲染截圖 |
 | 已知缺口 | `generate_layout` 主流程與 `choose_furniture_items` 評分**無直接單元測試**;OpenRouter 呼叫與降級路徑無 mock 測試——動這兩處必須做端到端驗證,不能只跑 pytest |
 
 ## 5. server API
 
 | | 內容 |
 |---|---|
-| 輸入/輸出 | 路由以 `roompilot/server/main.py`、Pydantic `project_models.py` 與 FastAPI OpenAPI 為準 |
-| 驗證 | ① 在 **repo 根目錄**跑 `uv run --extra vision uvicorn roompilot.server.main:app --port 8002`② 跑受影響的 `tests/test_project_api.py`、`test_requirements_api.py`、`test_layout_api.py`③ 對上傳或瀏覽器流程仍以真實檔案端到端實測 |
+| 輸入/輸出 | 路由以 `backend/server/routes/`(main.py 只組裝)、Pydantic `storage/project_models.py` 與 FastAPI OpenAPI 為準 |
+| 驗證 | ① 在 **repo 根目錄**跑 `uv run --extra vision uvicorn backend.server.main:app --port 8002`② 跑受影響的 `tests/test_project_api.py`、`test_requirements_api.py`、`test_layout_api.py`③ 對上傳或瀏覽器流程仍以真實檔案端到端實測 |
 | 交下一層證據 | curl 輸出(狀態碼+body 摘要) |
 | 已知缺口 | TestClient 已覆蓋主要專案流程，但外部 OpenRouter、瀏覽器截圖與真實 GLB 載入仍需端到端驗證 |
 
-## 6. frontend3d(R3F 顯示與手動微調)
+## 6. frontend(R3F 顯示與手動微調,原 frontend3d)
 
 | | 內容 |
 |---|---|
 | 輸入 | scene payload(經 proxy → :8002) |
 | 輸出 | 3D 場景渲染 + 拖曳/吸附(`Furniture.jsx`、`snap.js`) |
-| 驗證 | `cd frontend3d && npm test` 驗證資料與狀態 helper；`npm run build` 驗證建置；真正 UI 完成仍須在 `:8002/scene` 逐步操作並截圖存證 |
+| 驗證 | `cd frontend && npm test` 驗證資料與狀態 helper；`npm run build` 驗證建置；真正 UI 完成仍須在 `:8002/scene` 逐步操作並截圖存證 |
 | 交下一層證據 | 操作截圖或錄影 + 瀏覽器 console 無紅字 |
 | 已知缺口 | helper 測試不能證明 R3F 畫面、拖曳與門窗實物正確；互動與視覺仍是最高風險區 |
 
@@ -97,7 +97,7 @@ v1.1(2026-07-21 文件清整)。回答一件事:**每一層「什麼叫完成」
 
 ## 8. 尚需持續驗證的介面縫隙
 
-1. **scene payload → frontend3d**:混合單位與 rotation 反向仍由 CLAUDE.md invariants 約束，改動必須搭配 3D 實測。
+1. **scene payload → frontend**:混合單位與 rotation 反向仍由 CLAUDE.md invariants 約束，改動必須搭配 3D 實測。
 2. **floorplan 交接 JSON → 校尺 UI**:第三套座標系，須同時驗證同牆吸附與公分換算。
 3. **dxf_parser 樓面 JSON → engine**:公尺／公分邊界集中在 `dxf_room.py`，改動須跑升維與配置測試。
 4. **外部服務**:OpenRouter 與未定案的照片級渲染供應商，必須保留明確降級與失敗回報。

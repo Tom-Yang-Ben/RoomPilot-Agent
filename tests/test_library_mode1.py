@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from roompilot.server.main import furniture_catalog
+from backend.server.routes.library import furniture_catalog
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -93,8 +93,8 @@ def test_mode_one_catalog_exposes_and_applies_visual_filter_facets() -> None:
 
 
 def test_library_exposes_mode_one_room_type_and_proposal_contract() -> None:
-    html = (ROOT / "roompilot/server/static/library.html").read_text(encoding="utf-8")
-    script = (ROOT / "roompilot/server/static/library.js").read_text(encoding="utf-8")
+    html = (ROOT / "backend/server/static/library.html").read_text(encoding="utf-8")
+    script = (ROOT / "backend/server/static/library.js").read_text(encoding="utf-8")
 
     for element_id in (
         "mode1-space-grid",
@@ -119,8 +119,8 @@ def test_library_exposes_mode_one_room_type_and_proposal_contract() -> None:
 
 
 def test_library_mode_one_handoffs_selected_furniture_to_scene() -> None:
-    html = (ROOT / "roompilot/server/static/library.html").read_text(encoding="utf-8")
-    script = (ROOT / "roompilot/server/static/library.js").read_text(encoding="utf-8")
+    html = (ROOT / "backend/server/static/library.html").read_text(encoding="utf-8")
+    script = (ROOT / "backend/server/static/library.js").read_text(encoding="utf-8")
 
     assert 'id="enter-scene-with-proposal"' in html
     assert "帶著這些家具進入 3D 場景" in html

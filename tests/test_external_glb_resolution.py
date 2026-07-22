@@ -1,6 +1,6 @@
 import zipfile
 
-from roompilot.server import main
+from backend.server.services import glb_assets
 
 
 def _write_glb_zip(zip_path, entry_name):
@@ -13,15 +13,15 @@ def test_external_furniture_zip_entry_uses_furniture_download_prefix(tmp_path, m
     entry_name = "downloaded-files(furniture)/ABO/ABO-test/001 - Sample chair.glb"
     _write_glb_zip(zip_path, entry_name)
 
-    monkeypatch.setattr(main, "_EXTERNAL_GLB_ZIP_SEARCH_DIRS", (tmp_path,))
-    main._external_zip_entry_lookup.cache_clear()
+    monkeypatch.setattr(glb_assets, "_EXTERNAL_GLB_ZIP_SEARCH_DIRS", (tmp_path,))
+    glb_assets._external_zip_entry_lookup.cache_clear()
 
     item = {"zip_entry": "downloaded-files/ABO/ABO-test/001 - Sample chair.glb"}
 
-    assert main._model_status(item)[0] is True
-    assert main._external_glb_bytes(item) == b"glTF-test-payload"
+    assert glb_assets._model_status(item)[0] is True
+    assert glb_assets._external_glb_bytes(item) == b"glTF-test-payload"
 
-    main._external_zip_entry_lookup.cache_clear()
+    glb_assets._external_zip_entry_lookup.cache_clear()
 
 
 def test_external_furniture_zip_entry_uses_home_appliance_download_prefix(tmp_path, monkeypatch):
@@ -29,12 +29,12 @@ def test_external_furniture_zip_entry_uses_home_appliance_download_prefix(tmp_pa
     entry_name = "downloaded-files(home apppliances)/sf-electric-fans/001 - Fan.glb"
     _write_glb_zip(zip_path, entry_name)
 
-    monkeypatch.setattr(main, "_EXTERNAL_GLB_ZIP_SEARCH_DIRS", (tmp_path,))
-    main._external_zip_entry_lookup.cache_clear()
+    monkeypatch.setattr(glb_assets, "_EXTERNAL_GLB_ZIP_SEARCH_DIRS", (tmp_path,))
+    glb_assets._external_zip_entry_lookup.cache_clear()
 
     item = {"zip_entry": "sf-electric-fans/001 - Fan.glb"}
 
-    assert main._model_status(item)[0] is True
-    assert main._external_glb_bytes(item) == b"glTF-test-payload"
+    assert glb_assets._model_status(item)[0] is True
+    assert glb_assets._external_glb_bytes(item) == b"glTF-test-payload"
 
-    main._external_zip_entry_lookup.cache_clear()
+    glb_assets._external_zip_entry_lookup.cache_clear()
