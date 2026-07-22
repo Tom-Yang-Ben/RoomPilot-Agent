@@ -39,7 +39,7 @@ from .scene_service import (
 )
 from .intake_service import advance_intake, start_intake
 from .cost_estimation import estimate_project_cost, load_default_cost_catalog
-from .project_store import ProjectStore
+from .project_store import ProjectStore, ProjectVersionConflict
 from .runtime_paths import legacy_runtime_dirs, project_runtime_dir
 from .style_cards import load_taiwan_style_cards
 
@@ -1451,11 +1451,20 @@ def save_project_workflow(project_id: str, payload: dict) -> dict:
     workflow = payload.get("workflow")
     if workflow is not None and not isinstance(workflow, dict):
         raise HTTPException(422, "workflow_must_be_an_object")
-    project = PROJECT_STORE.update_workflow(
-        project_id,
-        current_step=current_step,
-        workflow=workflow or {},
-    )
+    expected_updated_at = None
+    if payload.get("replay_pending") is True:
+        expected_updated_at = str(payload.get("base_updated_at") or "").strip()
+        if not expected_updated_at:
+            raise HTTPException(422, "pending_save_base_version_required")
+    try:
+        project = PROJECT_STORE.update_workflow(
+            project_id,
+            current_step=current_step,
+            workflow=workflow or {},
+            expected_updated_at=expected_updated_at,
+        )
+    except ProjectVersionConflict as exc:
+        raise HTTPException(409, "project_version_conflict") from exc
     return {"project": project}
 
 
@@ -1571,7 +1580,30 @@ def analyze_project_floorplan(project_id: str) -> dict:
     PROJECT_STORE.update_workflow(
         project_id,
         current_step="recognition",
-        workflow={"recognition": analysis},
+        workflow={
+            "recognition": analysis,
+            "confirmed_floorplan": None,
+            "calibration": None,
+            "space_confirmation": None,
+            "requirements": None,
+            "layout_2d": None,
+            "white_model_3d": None,
+            "realistic_3d": None,
+            "_flow": {
+                "currentStep": "recognition",
+                "completed": ["project", "upload", "recognition"],
+                "staleFrom": "calibration",
+                "data": {
+                    "recognition": {"engine": geometry_engine},
+                    "calibration": None,
+                    "space_confirmation": None,
+                    "requirements": None,
+                    "layout_2d": None,
+                    "white_model_3d": None,
+                    "realistic_3d": None,
+                },
+            },
+        },
     )
     return {
         "analysis": analysis,

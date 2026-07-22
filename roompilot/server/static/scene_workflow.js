@@ -25,6 +25,17 @@ export const WORKFLOW_PANEL_BY_STEP = Object.freeze({
   realistic_3d: "realistic-3d",
 });
 
+export function shouldReplayPendingSave(pendingSave, serverProject) {
+  try {
+    const payload = typeof pendingSave === "string" ? JSON.parse(pendingSave) : pendingSave;
+    const baseUpdatedAt = String(payload?.base_updated_at || "");
+    const serverUpdatedAt = String(serverProject?.updated_at || "");
+    return Boolean(baseUpdatedAt && serverUpdatedAt && baseUpdatedAt === serverUpdatedAt);
+  } catch {
+    return false;
+  }
+}
+
 const REQUIRED_COMPLETIONS = Object.freeze({
   upload: ["project"],
   recognition: ["project", "upload"],

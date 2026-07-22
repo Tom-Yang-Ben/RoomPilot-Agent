@@ -13,12 +13,20 @@ import {
   furniturePbrProfile,
   surfacePbrProfile,
   surfaceTint,
-} from "./scene_pbr_contracts.js?v=20260719-real3d14";
+} from "./scene_pbr_contracts.js?v=20260720-real3d15";
 import { openingBelongsToWall } from "./scene_architecture.js?v=20260719-real3d6";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
-import { clampWalkPosition, computeExactModelScale, fallbackMaterialRole, viewPresentation } from "./scene_visual_contracts.js?v=20260718d";
+import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=20260721-column-resize3";
+import {
+  clampWalkPosition,
+  computeExactModelScale,
+  doorLeafTransform,
+  fallbackMaterialRole,
+  synchronizedFloorRegions,
+  viewPresentation,
+} from "./scene_visual_contracts.js?v=20260721-room-surfaces1";
 
-export function createSceneViewer(container, statusElement) {
+export function createSceneViewer(container, statusElement, { onSceneChange = null } = {}) {
   if ("createImageBitmap" in globalThis) {
     globalThis.createImageBitmap = undefined;
   }
@@ -347,6 +355,10 @@ export function createSceneViewer(container, statusElement) {
     if (statusElement) {
       statusElement.textContent = message;
     }
+  }
+
+  function notifySceneChange(item) {
+    if (typeof onSceneChange === "function") onSceneChange(item, lastSceneData);
   }
 
   function clearGroup(group) {
@@ -1209,17 +1221,21 @@ export function createSceneViewer(container, statusElement) {
         assembly.add(frame);
       });
     } else {
+      const transform = doorLeafTransform(interval.opening);
+      const hingeGroup = new THREE.Group();
+      hingeGroup.position.set(transform.hinge.x, 0, transform.hinge.z);
+      hingeGroup.rotation.y = transform.closedRotationYRad + transform.swingRotationYRad;
+      hingeGroup.userData.roompilotArchitecturalDetail = "door-hinge";
       const leaf = new THREE.Mesh(
-        new THREE.BoxGeometry(interval.width * 0.94, height, 0.045),
+        new THREE.BoxGeometry(transform.leafWidthM, height, 0.045),
         frameMaterial,
       );
-      leaf.position.y = centerY;
-      leaf.rotation.y = THREE.MathUtils.degToRad(
-        interval.opening.opening_direction === "right" ? -58 : 58,
-      );
+      leaf.position.set(transform.leafCenterXM, centerY, 0);
       leaf.castShadow = true;
       leaf.receiveShadow = true;
-      assembly.add(leaf);
+      hingeGroup.add(leaf);
+      roomGroupRef.add(hingeGroup);
+      return;
     }
     roomGroupRef.add(assembly);
   }
@@ -1331,13 +1347,16 @@ export function createSceneViewer(container, statusElement) {
     (floorplan.columns || []).forEach((column) => {
       const center = column.center;
       if (!center) return;
-      const size = Math.max(Number(column.size_m || 0.35), 0.12);
-      const height = Math.max(Number(column.height_m || wallHeight), 0.12);
+      const geometry = columnGeometryDescriptor(column, {
+        minimumDimensionM: 0.1,
+        defaultHeightM: wallHeight,
+      });
       const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(size, height, size),
+        new THREE.BoxGeometry(geometry.widthM, geometry.heightM, geometry.depthM),
         material.clone(),
       );
-      mesh.position.set(Number(center.x), height / 2, Number(center.z));
+      mesh.position.set(geometry.centerX, geometry.centerHeightM, geometry.centerZ);
+      mesh.rotation.y = -THREE.MathUtils.degToRad(geometry.rotationDeg);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.userData.roompilotStructure = "column";
@@ -1801,76 +1820,31 @@ export function createSceneViewer(container, statusElement) {
     return true;
   }
 
-  function buildContinuousWallTopCaps(
-    roomGroupRef,
-    segments,
-    material,
-    wallHeight,
-    wallThickness,
-  ) {
-    const groups = new Map();
-    segments.forEach((segment) => {
-      const start = segment.start || {};
-      const end = segment.end || {};
-      const dx = Number(end.x || 0) - Number(start.x || 0);
-      const dz = Number(end.z || 0) - Number(start.z || 0);
-      const horizontal = Math.abs(dx) >= Math.abs(dz);
-      const fixed = horizontal
-        ? (Number(start.z || 0) + Number(end.z || 0)) / 2
-        : (Number(start.x || 0) + Number(end.x || 0)) / 2;
-      const from = horizontal
-        ? Math.min(Number(start.x || 0), Number(end.x || 0))
-        : Math.min(Number(start.z || 0), Number(end.z || 0));
-      const to = horizontal
-        ? Math.max(Number(start.x || 0), Number(end.x || 0))
-        : Math.max(Number(start.z || 0), Number(end.z || 0));
-      if (to - from < 0.04) return;
-      const key = `${horizontal ? "h" : "v"}:${(Math.round(fixed / 0.08) * 0.08).toFixed(2)}`;
-      if (!groups.has(key)) groups.set(key, { horizontal, fixed, intervals: [] });
-      groups.get(key).intervals.push({ from, to });
-    });
-
-    groups.forEach(({ horizontal, fixed, intervals }) => {
-      intervals.sort((left, right) => left.from - right.from);
-      const merged = [];
-      intervals.forEach((interval) => {
-        const current = merged.at(-1);
-        if (!current || interval.from - current.to > 1.25) {
-          merged.push({ ...interval });
-        } else {
-          current.to = Math.max(current.to, interval.to);
-        }
-      });
-      merged.forEach(({ from, to }) => {
-        const span = to - from + wallThickness;
-        const cap = new THREE.Mesh(
-          new THREE.BoxGeometry(
-            horizontal ? span : wallThickness,
-            0.028,
-            horizontal ? wallThickness : span,
-          ),
-          material.clone(),
-        );
-        cap.position.set(
-          horizontal ? (from + to) / 2 : fixed,
-          wallHeight + 0.014,
-          horizontal ? fixed : (from + to) / 2,
-        );
-        cap.userData.roompilotArchitecturalDetail = "continuous-wall-top-cap";
-        cap.castShadow = true;
-        cap.receiveShadow = true;
-        roomGroupRef.add(cap);
-      });
+  function buildWallMassTopCaps(roomGroupRef, floorplan, material, wallHeight) {
+    const wallMassRegions = (floorplan?.wall_polys || []).filter(
+      (region) => region?.exterior?.length >= 3,
+    );
+    wallMassRegions.forEach((region) => {
+      const shape = polygonShape(region, true);
+      if (!shape) return;
+      const cap = new THREE.Mesh(
+        new THREE.ShapeGeometry(shape),
+        material.clone(),
+      );
+      cap.rotation.x = -Math.PI / 2;
+      cap.position.y = wallHeight + 0.004;
+      cap.userData.roompilotArchitecturalDetail = "continuous-wall-mass-top-cap";
+      cap.castShadow = true;
+      cap.receiveShadow = true;
+      roomGroupRef.add(cap);
     });
   }
 
   function createFloorGeometry(floorplan, widthM, depthM) {
-    const exterior = floorplan?.room_regions?.[0]?.exterior || [];
-    if (exterior.length < 3) {
-      return new THREE.PlaneGeometry(widthM, depthM);
-    }
-    const shape = polygonShape({ exterior }, false);
-    const geometry = new THREE.ShapeGeometry(shape);
+    const shapes = synchronizedFloorRegions(floorplan, widthM, depthM)
+      .map((region) => polygonShape(region, true))
+      .filter(Boolean);
+    const geometry = new THREE.ShapeGeometry(shapes);
     geometry.computeVertexNormals();
     return geometry;
   }
@@ -1976,12 +1950,11 @@ export function createSceneViewer(container, statusElement) {
       )
       : false;
     if (builtWallMass) {
-      buildContinuousWallTopCaps(
+      buildWallMassTopCaps(
         roomGroup,
-        wallSegments,
+        sceneData.floorplan,
         wallMaterial,
         wallHeight,
-        wallThickness,
       );
       buildStandaloneOpeningAssemblies(
         roomGroup,
@@ -2783,6 +2756,7 @@ export function createSceneViewer(container, statusElement) {
   let footprintGuide = null;
   let snapHint = null;
   let placementRequest = null;
+  let beamPlacementRequest = null;
 
   const dragRaycaster = new THREE.Raycaster();
   const pointerNdc = new THREE.Vector2();
@@ -3173,6 +3147,30 @@ export function createSceneViewer(container, statusElement) {
     if ((event.button !== 0 && event.button !== 2) || !lastSceneData || dragState) return;
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, camera);
+    if (beamPlacementRequest && event.button === 0) {
+      if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
+        const point = { x: planeHit.x, z: planeHit.z };
+        beamPlacementRequest.points.push(point);
+        if (beamPlacementRequest.points.length === 1) {
+          setStatus("已設定樑起點，請在室內點選終點；樑會固定於天花板下方。");
+        } else {
+          const start = beamPlacementRequest.points[0];
+          const rawEnd = beamPlacementRequest.points[1];
+          const dx = rawEnd.x - start.x;
+          const dz = rawEnd.z - start.z;
+          const end = Math.abs(dx) >= Math.abs(dz)
+            ? { x: rawEnd.x, z: start.z }
+            : { x: start.x, z: rawEnd.z };
+          const callback = beamPlacementRequest.callback;
+          beamPlacementRequest = null;
+          renderer.domElement.style.cursor = "";
+          callback({ start, end });
+        }
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
     if (placementRequest && event.button === 0) {
       const callback = placementRequest;
       placementRequest = null;
@@ -3233,7 +3231,7 @@ export function createSceneViewer(container, statusElement) {
 
   // ── 拖曳吸附:靠近牆段時貼齊(留 10cm,大於後端 8cm 邊距故吸附後必過驗證),平時 5cm 格點 ──
   const SNAP_RANGE = 0.3;
-  const WALL_GAP = 0;
+  const WALL_GAP = 0.06;
   const DRAG_GRID = 0.05;
 
   function normalizedRotationDeg(rotationDeg = 0) {
@@ -3469,58 +3467,49 @@ export function createSceneViewer(container, statusElement) {
   }
 
   function snapDragPositionV3(item, x, z) {
-    let best = null;
-    for (const seg of wallSegmentsForSnap()) {
-      const ax = Number(seg.start?.x);
-      const az = Number(seg.start?.z);
-      const bx = Number(seg.end?.x);
-      const bz = Number(seg.end?.z);
-      if (![ax, az, bx, bz].every(Number.isFinite)) continue;
-
-      const dx = bx - ax;
-      const dz = bz - az;
-      const lengthSq = dx * dx + dz * dz;
-      if (lengthSq < 0.0001) continue;
-
-      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / lengthSq));
-      const px = ax + dx * t;
-      const pz = az + dz * t;
-      const fromWallX = x - px;
-      const fromWallZ = z - pz;
-      const distance = Math.hypot(fromWallX, fromWallZ);
-      if (distance > SNAP_RANGE + 0.28) continue;
-
-      const length = Math.sqrt(lengthSq);
-      const normalX = -dz / length;
-      const normalZ = dx / length;
-      const side = (fromWallX * normalX + fromWallZ * normalZ) >= 0 ? 1 : -1;
-      const rotationDeg = normalizedRotationDeg(THREE.MathUtils.radToDeg(Math.atan2(-dz, dx)));
-      const half = halfExtentsForRotation(item, rotationDeg);
-      const halfNormal = Math.abs(half.x * normalX) + Math.abs(half.z * normalZ);
-      const snappedX = px + normalX * side * (halfNormal + WALL_GAP);
-      const snappedZ = pz + normalZ * side * (halfNormal + WALL_GAP);
-      const score = Math.hypot(x - snappedX, z - snappedZ);
-
-      if (!best || score < best.score) {
-        best = { x: snappedX, z: snappedZ, rotationDeg, score };
-      }
-    }
-
-    if (best) {
-      const constrained = constrainTransform(item, best.x, best.z, best.rotationDeg);
-      return {
-        ...constrained,
-        kind: constrained.blocked ? "blocked" : "wall",
-        rotationDeg: best.rotationDeg,
-      };
-    }
-
     return constrainTransform(
       item,
       Math.round(x / DRAG_GRID) * DRAG_GRID,
       Math.round(z / DRAG_GRID) * DRAG_GRID,
       normalizedRotationDeg(item.rotation_y_deg || 0)
     );
+  }
+
+  async function resolvePlacement(item, positionCm, rotationDeg) {
+    if (!lastSceneData) return { ok: false, reason: "場景未載入" };
+    try {
+      const response = await fetch("/api/scene/layout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          floorplan: lastSceneData.floorplan || null,
+          placement_room_id: item.placement_room_id,
+          scene_objects: [
+            ...(lastSceneData.scene_objects || [])
+              .filter((other) => other !== item)
+              .map((other) => ({ ...other, position_locked: true })),
+            {
+              ...item,
+              position_locked: false,
+              placement_hint_cm: positionCm,
+              rotation_y_deg: rotationDeg,
+            },
+          ],
+        }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      const resolved = (payload.scene_objects || []).find(
+        (candidate) => candidate.furniture_id === item.furniture_id,
+      );
+      if (!resolved || resolved.placement_failed) {
+        return { ok: false, reason: resolved?.placement_reason || "家具引擎找不到合法貼牆位置" };
+      }
+      return { ok: true, resolved };
+    } catch (error) {
+      console.warn("家具引擎貼牆失敗", error);
+      return { ok: false, reason: "家具引擎未回應" };
+    }
   }
 
   window.addEventListener("pointermove", (event) => {
@@ -3571,13 +3560,18 @@ export function createSceneViewer(container, statusElement) {
       z: Math.round(wrapper.position.z * 100 * 100) / 100,
     };
     setStatus(`正在檢查「${label}」的新位置...`);
-    const verdict = await validatePlacement(item, newPositionCm, normalizedRotationDeg(pendingRotationDeg));
+    const verdict = await resolvePlacement(item, newPositionCm, normalizedRotationDeg(pendingRotationDeg));
     if (verdict.ok) {
-      item.position_cm = newPositionCm;
-      item.rotation_y_deg = normalizedRotationDeg(pendingRotationDeg);
+      const { resolved } = verdict;
+      item.position_cm = resolved.position_cm;
+      item.rotation_y_deg = resolved.rotation_y_deg;
+      wrapper.position.x = Number(resolved.position_cm?.x || 0) / 100;
+      wrapper.position.z = Number(resolved.position_cm?.z || 0) / 100;
+      wrapper.rotation.y = THREE.MathUtils.degToRad(Number(resolved.rotation_y_deg || 0));
       updateFootprintGuide(wrapper);
       setStatus(`已移動「${label}」，靠近牆面時會自動貼齊並旋轉。`);
       item.position_locked = true;  // 之後的重排/替換不會沖掉手動位置
+      notifySceneChange(item);
       setStatus(`已移動「${label}」。`);
     } else {
       wrapper.position.copy(startPosition);
@@ -3603,6 +3597,7 @@ export function createSceneViewer(container, statusElement) {
       item.position_locked = true;
       selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
       updateFootprintGuide(selectedWrapper);
+      notifySceneChange(item);
       setStatus(`${label} 已旋轉到 ${nextRotation} 度。`);
       return true;
     }
@@ -3647,6 +3642,7 @@ export function createSceneViewer(container, statusElement) {
     item.position_locked = true;
     selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
     updateFootprintGuide(selectedWrapper);
+    notifySceneChange(item);
     setStatus(`已旋轉「${label}」到 ${nextRotation}°。`);
 
     const verdict = await validatePlacement(item, currentPositionCm, nextRotation);
@@ -3705,6 +3701,7 @@ export function createSceneViewer(container, statusElement) {
     item.position_cm = nextPositionCm;
     item.position_locked = true;
     updateFootprintGuide(selectedWrapper, candidate.kind);
+    notifySceneChange(item);
     setStatus(`已微調「${label}」。`);
     return true;
   }
@@ -3752,6 +3749,7 @@ export function createSceneViewer(container, statusElement) {
     item.rotation_y_deg = nextRotation;
     item.position_locked = true;
     updateFootprintGuide(selectedWrapper, candidate.kind);
+    notifySceneChange(item);
     setStatus(`${label} 已旋轉到 ${nextRotation} 度。`);
     return true;
   }
@@ -3804,6 +3802,7 @@ export function createSceneViewer(container, statusElement) {
     item.position_cm = nextPositionCm;
     item.position_locked = true;
     updateFootprintGuide(selectedWrapper, candidate.kind);
+    notifySceneChange(item);
     setStatus(`${label} 已移動 ${Math.round(step * 100)} 公分。`);
     return true;
   }
@@ -3847,38 +3846,9 @@ export function createSceneViewer(container, statusElement) {
   });
 
   function updateWallVisibility() {
-    const presentation = viewPresentation(viewMode.mode);
-    if (!presentation.hideOccludingWalls) {
-      wallMeshes.forEach((wall) => {
-        wall.visible = true;
-        const materials = Array.isArray(wall.material) ? wall.material : [wall.material];
-        materials.filter(Boolean).forEach((material) => {
-          material.transparent = false;
-          material.opacity = 1;
-          material.depthWrite = true;
-        });
-      });
-      return;
-    }
-    const targetVector = new THREE.Vector3().subVectors(controls.target, camera.position);
-    const targetDistance = targetVector.length();
-    if (targetDistance < 0.001) return;
-
-    const viewDirection = targetVector.normalize();
     wallMeshes.forEach((wall) => {
-      const wallCenter = new THREE.Vector3();
-      wall.getWorldPosition(wallCenter);
-      const wallVector = wallCenter.sub(camera.position);
-      const wallDistance = wallVector.length();
-      if (wallDistance < 0.001) return;
-
-      const alignment = wallVector.normalize().dot(viewDirection);
-      const wallBlocksRoom = alignment > 0.88 && wallDistance < targetDistance + 0.35;
-      const wallTooClose = wallDistance < 1.65;
-      const shouldHide = wallBlocksRoom || wallTooClose;
-      wall.visible = !shouldHide;
+      wall.visible = true;
       const materials = Array.isArray(wall.material) ? wall.material : [wall.material];
-
       materials.filter(Boolean).forEach((material) => {
         material.transparent = false;
         material.opacity = wall.userData.baseOpacity || 1;
@@ -3914,6 +3884,21 @@ export function createSceneViewer(container, statusElement) {
 
   function cancelPlacement() {
     placementRequest = null;
+    renderer.domElement.style.cursor = "";
+  }
+
+  function beginBeamPlacement(callback) {
+    if (typeof callback !== "function" || !lastSceneData) return false;
+    placementRequest = null;
+    beamPlacementRequest = { callback, points: [] };
+    selectWrapper(null);
+    renderer.domElement.style.cursor = "crosshair";
+    setStatus("請在室內點選樑的起點，再點選終點；系統會自動水平或垂直對齊。");
+    return true;
+  }
+
+  function cancelBeamPlacement() {
+    beamPlacementRequest = null;
     renderer.domElement.style.cursor = "";
   }
 
@@ -3984,6 +3969,8 @@ export function createSceneViewer(container, statusElement) {
     rotateSelected: rotateSelectedFromControls,
     beginPlacement,
     cancelPlacement,
+    beginBeamPlacement,
+    cancelBeamPlacement,
     toggleCeiling,
     getDiagnostics,
   };

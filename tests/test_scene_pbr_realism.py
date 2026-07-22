@@ -157,8 +157,9 @@ def test_floor_is_clipped_to_cody_floorplan_exterior() -> None:
     source = VIEWER.read_text(encoding="utf-8")
 
     assert "function createFloorGeometry" in source
-    assert "floorplan?.room_regions?.[0]?.exterior" in source
-    assert "new THREE.ShapeGeometry(shape)" in source
+    assert "synchronizedFloorRegions(floorplan, widthM, depthM)" in source
+    assert ".map((region) => polygonShape(region, true))" in source
+    assert "new THREE.ShapeGeometry(shapes)" in source
     assert "createFloorGeometry(sceneData.floorplan, widthM, depthM)" in source
 
 
@@ -176,8 +177,11 @@ def test_dxf_wall_mass_is_extruded_before_segment_fallback() -> None:
     assert '"door-wall-header"' in source
     assert '"window-wall-sill"' in source
     assert '"window-wall-header"' in source
-    assert "function buildContinuousWallTopCaps" in source
-    assert '"continuous-wall-top-cap"' in source
+    assert "function buildWallMassTopCaps" in source
+    assert "new THREE.ShapeGeometry(shape)" in source
+    assert '"continuous-wall-mass-top-cap"' in source
+    assert "buildWallMassTopCaps(" in source
+    assert "buildContinuousWallTopCaps(" not in source
 
 
 def test_orthographic_dollhouse_avoids_gtao_projection_artifacts() -> None:

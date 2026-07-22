@@ -9,13 +9,58 @@ import cv2
 import numpy as np
 
 
+def _apply_layout_label_suggestions(
+    rooms: list[dict[str, Any]],
+    *,
+    width_m: float,
+    depth_m: float,
+) -> None:
+    """在沒有 OCR 房名時，對常見七區住宅格局提供低信心候選名稱。"""
+    if len(rooms) != 7 or any(room.get("type") != "default" for room in rooms):
+        return
+
+    def center(room: Mapping[str, Any]) -> tuple[float, float]:
+        polygon = room.get("polygon_m") or []
+        return (
+            sum(float(point["x"]) for point in polygon) / len(polygon),
+            sum(float(point["y"]) for point in polygon) / len(polygon),
+        )
+
+    by_height = sorted(rooms, key=lambda room: center(room)[1], reverse=True)
+    top = sorted(by_height[:2], key=lambda room: center(room)[0])
+    middle = sorted(by_height[2:5], key=lambda room: center(room)[0])
+    bottom = sorted(by_height[5:], key=lambda room: center(room)[0])
+    if (
+        min(center(room)[1] for room in top)
+        <= max(center(room)[1] for room in middle) + depth_m * 0.08
+        or min(center(room)[1] for room in middle)
+        <= max(center(room)[1] for room in bottom) + depth_m * 0.08
+    ):
+        return
+
+    suggestions = [
+        (top[0], "bedroom", "臥室"),
+        (top[1], "kitchen", "廚房"),
+        (middle[0], "storage", "儲藏室"),
+        (middle[1], "circulation", "走道"),
+        (middle[2], "bathroom", "浴室"),
+        (bottom[0], "balcony", "陽台"),
+        (bottom[1], "living_room", "客廳"),
+    ]
+    for room, room_type, label in suggestions:
+        room["type"] = room_type
+        room["label"] = f"{label}（待確認）"
+        room["source"] = "layout_heuristic"
+        room["confidence"] = min(float(room.get("confidence", 0.55)), 0.55)
+
+
 def infer_rooms_from_walls(
     walls: Iterable[Mapping[str, Any]],
     *,
     labelled_rooms: Iterable[Mapping[str, Any]] = (),
     minimum_area_m2: float = 1.0,
 ) -> list[dict[str, Any]]:
-    """將牆中心線光柵化，取不接觸外框的封閉空間。"""
+    """將牆中心線光柵化，封閉門洞後取不接觸外框的空間。"""
     wall_items = list(walls)
     points = [
         item.get(key)
@@ -31,6 +76,7 @@ def infer_rooms_from_walls(
         return []
 
     longest = max(width_m, depth_m)
+    enable_doorway_closure = longest >= 6.0
     pixels_per_m = min(120.0, max(45.0, 640.0 / longest))
     width_px = max(96, int(round(width_m * pixels_per_m)) + 1)
     depth_px = max(96, int(round(depth_m * pixels_per_m)) + 1)
@@ -42,16 +88,61 @@ def infer_rooms_from_walls(
             int(round((depth_m - float(point.get("y") or 0)) * pixels_per_m)),
         )
 
+    def axis(item: Mapping[str, Any]) -> tuple[str, float] | None:
+        start = item.get("start")
+        end = item.get("end")
+        if not isinstance(start, Mapping) or not isinstance(end, Mapping):
+            return None
+        dx = abs(float(end.get("x") or 0) - float(start.get("x") or 0))
+        dy = abs(float(end.get("y") or 0) - float(start.get("y") or 0))
+        if dx >= dy * 3:
+            return ("horizontal", (float(start.get("y") or 0) + float(end.get("y") or 0)) / 2)
+        if dy >= dx * 3:
+            return ("vertical", (float(start.get("x") or 0) + float(end.get("x") or 0)) / 2)
+        return None
+
     for item in wall_items:
         start = item.get("start")
         end = item.get("end")
         if not isinstance(start, Mapping) or not isinstance(end, Mapping):
             continue
+        start_x = float(start.get("x") or 0)
+        start_y = float(start.get("y") or 0)
+        end_x = float(end.get("x") or 0)
+        end_y = float(end.get("y") or 0)
+        length = float(np.hypot(end_x - start_x, end_y - start_y))
+        if length <= 0:
+            continue
+        # Cody 的牆中心線會在門窗處中斷。只沿牆本身的方向延伸端點，
+        # 封閉一般住宅開口供房間分區使用；原始牆線仍保持不變。
+        item_axis = axis(item)
+        has_collinear_peer = item_axis is not None and any(
+            peer is not item
+            and (peer_axis := axis(peer)) is not None
+            and peer_axis[0] == item_axis[0]
+            and abs(peer_axis[1] - item_axis[1]) <= 0.08
+            for peer in wall_items
+        )
+        closure_m = (
+            1.2
+            if enable_doorway_closure and (length >= 1.0 or has_collinear_peer)
+            else 0.0
+        )
+        unit_x = (end_x - start_x) / length
+        unit_y = (end_y - start_y) / length
+        raster_start = {
+            "x": start_x - unit_x * closure_m,
+            "y": start_y - unit_y * closure_m,
+        }
+        raster_end = {
+            "x": end_x + unit_x * closure_m,
+            "y": end_y + unit_y * closure_m,
+        }
         thickness = max(
             3,
             int(round(float(item.get("thickness_m") or 0.12) * pixels_per_m)),
         )
-        cv2.line(obstacle, pixel(start), pixel(end), 255, thickness)
+        cv2.line(obstacle, pixel(raster_start), pixel(raster_end), 255, thickness)
 
     boundary_thickness = max(3, int(round(0.12 * pixels_per_m)))
     cv2.rectangle(
@@ -127,10 +218,12 @@ def infer_rooms_from_walls(
                 "area_m2": round(area_m2, 2),
             }
         )
-    return sorted(
+    inferred = sorted(
         inferred,
         key=lambda room: (
             -max(point["y"] for point in room["polygon_m"]),
             min(point["x"] for point in room["polygon_m"]),
         ),
     )
+    _apply_layout_label_suggestions(inferred, width_m=width_m, depth_m=depth_m)
+    return inferred

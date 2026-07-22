@@ -525,6 +525,8 @@ _BED_CONFLICT_TOKENS = (
 )
 _BED_IDENTITY_TOKENS = (
     "bed frame",
+    "upholstered bed",
+    "storage bed",
     "double bed",
     "single bed",
     "king size bed",
@@ -649,41 +651,70 @@ def _rotated_footprint(width: float, depth: float, rotation: float) -> tuple[flo
     return width * cos_v + depth * sin_v, width * sin_v + depth * cos_v
 
 
+_WALL_ANCHORED_TYPES = {
+    "appliance-cabinet",
+    "bathroom-vanity",
+    "bed",
+    "bed-frame",
+    "bookcase",
+    "cabinet",
+    "desk",
+    "mirror-cabinet",
+    "refrigerator",
+    "sideboard",
+    "sofa",
+    "sofa-bed",
+    "storage-cabinet",
+    "tv-bench",
+    "wardrobe",
+    "washer",
+}
+
+
 def _placement_candidates(
     item_type: str | None,
     width: float,
     depth: float,
     room_width_cm: float,
     room_depth_cm: float,
+    bounds_cm: tuple[float, float, float, float] | None = None,
 ) -> list[tuple[float, float, float]]:
-    left = -room_width_cm / 2
-    right = room_width_cm / 2
-    top = -room_depth_cm / 2
-    bottom = room_depth_cm / 2
-    center_x = 0.0
-    center_z = 0.0
+    left, right, top, bottom = bounds_cm or (
+        -room_width_cm / 2,
+        room_width_cm / 2,
+        -room_depth_cm / 2,
+        room_depth_cm / 2,
+    )
+    candidate_width_cm = right - left
+    candidate_depth_cm = bottom - top
+    center_x = (left + right) / 2
+    center_z = (top + bottom) / 2
     candidates: list[tuple[float, float, float]] = []
+    wall_gap = 0 if bounds_cm is not None else 10
 
     if item_type == "tv-bench":
-        candidates.extend([(center_x, top + depth / 2 + 24, 0), (-room_width_cm * 0.22, top + depth / 2 + 24, 0)])
+        candidates.extend([(center_x, top + depth / 2 + wall_gap, 0), (center_x - candidate_width_cm * 0.22, top + depth / 2 + wall_gap, 0)])
     elif item_type == "sofa":
-        candidates.extend([(center_x, bottom - depth / 2 - 36, 180), (-room_width_cm * 0.18, bottom - depth / 2 - 36, 180)])
+        candidates.extend([(center_x, bottom - depth / 2 - wall_gap, 180), (center_x - candidate_width_cm * 0.18, bottom - depth / 2 - wall_gap, 180)])
     elif item_type == "coffee-table":
         candidates.extend([(center_x, center_z + 12, 0), (center_x, center_z - 18, 0)])
     elif item_type == "armchair":
         candidates.extend([(right - width / 2 - 30, center_z + 35, -35), (left + width / 2 + 30, center_z + 35, 35)])
-    elif item_type in {"bookcase", "wardrobe", "cabinet", "storage-cabinet"}:
+    elif item_type in {
+        "appliance-cabinet", "bathroom-vanity", "bookcase", "cabinet",
+        "mirror-cabinet", "refrigerator", "storage-cabinet", "wardrobe", "washer",
+    }:
         candidates.extend([
-            (left + depth / 2 + 10, center_z, 90),
-            (right - depth / 2 - 10, center_z, -90),
-            (center_x, top + depth / 2 + 10, 0),
+            (left + depth / 2 + wall_gap, center_z, 90),
+            (right - depth / 2 - wall_gap, center_z, -90),
+            (center_x, top + depth / 2 + wall_gap, 0),
         ])
     elif item_type in {"bed", "bed-frame", "sofa-bed"}:
-        candidates.extend([(center_x, bottom - depth / 2 - 10, 180), (left + width / 2 + 10, center_z, 90)])
+        candidates.extend([(center_x, bottom - depth / 2 - wall_gap, 180), (left + depth / 2 + wall_gap, center_z, 90)])
     elif item_type == "bedside-table":
         candidates.extend([(right - width / 2 - 22, bottom - depth / 2 - 34, 0), (left + width / 2 + 22, bottom - depth / 2 - 34, 0)])
     elif item_type == "desk":
-        candidates.extend([(center_x, top + depth / 2 + 30, 0), (left + width / 2 + 24, center_z, 90)])
+        candidates.extend([(center_x, top + depth / 2 + wall_gap, 0), (left + depth / 2 + wall_gap, center_z, 90)])
     elif item_type == "office-chair":
         candidates.extend([(center_x, top + depth + 88, 180), (left + width / 2 + 80, center_z, 90)])
     elif item_type == "dining-table":
@@ -691,7 +722,7 @@ def _placement_candidates(
     elif item_type == "dining-chair":
         candidates.extend([(right - width / 2 - 40, center_z, 90), (left + width / 2 + 40, center_z, -90), (center_x, center_z + 80, 180)])
     elif item_type == "sideboard":
-        candidates.extend([(right - width / 2 - 24, top + depth / 2 + 24, 0), (left + width / 2 + 24, top + depth / 2 + 24, 0)])
+        candidates.extend([(center_x, top + depth / 2 + wall_gap, 0), (center_x, bottom - depth / 2 - wall_gap, 180)])
     elif item_type == "wall-shelf":
         candidates.extend([(left + width / 2 + 15, top + depth / 2 + 12, 0), (right - width / 2 - 15, top + depth / 2 + 12, 0)])
     elif item_type == "curtain":
@@ -711,13 +742,50 @@ def _placement_candidates(
     else:
         candidates.append((center_x, center_z, 0))
 
-    grid_x = [left + room_width_cm * ratio for ratio in (0.25, 0.5, 0.75)]
-    grid_z = [top + room_depth_cm * ratio for ratio in (0.28, 0.5, 0.72)]
+    grid_x = [left + candidate_width_cm * ratio for ratio in (0.25, 0.5, 0.75)]
+    grid_z = [top + candidate_depth_cm * ratio for ratio in (0.28, 0.5, 0.72)]
     for z in grid_z:
         for x in grid_x:
             candidates.append((x, z, 0))
 
     return candidates
+
+
+def _hinted_wall_candidate(
+    item_type: str | None,
+    width: float,
+    depth: float,
+    hint_cm: dict[str, Any] | None,
+    bounds_cm: tuple[float, float, float, float] | None,
+) -> tuple[float, float, float] | None:
+    """Convert a user's drag hint into an engine-validated wall candidate."""
+    if item_type not in _WALL_ANCHORED_TYPES or not bounds_cm or not isinstance(hint_cm, dict):
+        return None
+    try:
+        hint_x = float(hint_cm["x"])
+        hint_z = float(hint_cm["z"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    left, right, top, bottom = bounds_cm
+    candidates: list[tuple[float, float, float]] = []
+    for rotation, side in ((0.0, "top"), (0.0, "bottom"), (90.0, "left"), (90.0, "right")):
+        footprint_width, footprint_depth = _rotated_footprint(width, depth, rotation)
+        if side == "top":
+            x = _clamp_axis(hint_x, left, right, footprint_width, 0)
+            z = top + footprint_depth / 2
+        elif side == "bottom":
+            x = _clamp_axis(hint_x, left, right, footprint_width, 0)
+            z = bottom - footprint_depth / 2
+        elif side == "left":
+            x = left + footprint_width / 2
+            z = _clamp_axis(hint_z, top, bottom, footprint_depth, 0)
+        else:
+            x = right - footprint_width / 2
+            z = _clamp_axis(hint_z, top, bottom, footprint_depth, 0)
+        candidates.append((x, z, rotation))
+
+    return min(candidates, key=lambda candidate: math.hypot(candidate[0] - hint_x, candidate[1] - hint_z))
 
 
 # 地毯可與目標家具重疊，但仍須由引擎驗證牆與房間邊界。
@@ -1153,6 +1221,15 @@ def generate_layout(
     room_d_cm = room.depth * 100
     half_w_cm = room_w_cm / 2
     half_d_cm = room_d_cm / 2
+    placement_bounds_cm: tuple[float, float, float, float] | None = None
+    if boundary is not None:
+        min_x, min_y, max_x, max_y = boundary.bounds
+        placement_bounds_cm = (
+            min_x * 100 - half_w_cm,
+            max_x * 100 - half_w_cm,
+            min_y * 100 - half_d_cm,
+            max_y * 100 - half_d_cm,
+        )
 
     placed: list[PlacedFurniture] = []
     placed_by_type: dict[str, list[PlacedFurniture]] = {}
@@ -1308,19 +1385,35 @@ def generate_layout(
                 x_cm = inner.x * 100 - half_w_cm
                 z_cm = inner.y * 100 - half_d_cm
         else:
-            candidates = _placement_candidates(item_type, width, depth, room_w_cm, room_d_cm)
+            candidates = _placement_candidates(
+                item_type,
+                width,
+                depth,
+                room_w_cm,
+                room_d_cm,
+                placement_bounds_cm,
+            )
+            hinted_wall_candidate = _hinted_wall_candidate(
+                item_type,
+                width,
+                depth,
+                item.get("placement_hint_cm"),
+                placement_bounds_cm,
+            )
+            if hinted_wall_candidate is not None:
+                candidates.insert(0, hinted_wall_candidate)
             if curtain_hint:
                 candidates.insert(0, curtain_hint[:3])
             for raw_x, raw_z, rot in candidates:
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
-                wall_anchored = item_type in {
-                    "bed", "bed-frame", "sofa-bed", "sofa", "tv-bench",
-                    "bookcase", "wardrobe", "cabinet", "storage-cabinet",
-                    "sideboard", "desk",
-                }
-                clamp_margin = 10 if wall_anchored else 18
-                cand_x = _clamp_axis(raw_x, -half_w_cm, half_w_cm, fp_w, clamp_margin)
-                cand_z = _clamp_axis(raw_z, -half_d_cm, half_d_cm, fp_d, clamp_margin)
+                wall_anchored = item_type in _WALL_ANCHORED_TYPES
+                clamp_margin = 0 if wall_anchored else 18
+                candidate_left, candidate_right, candidate_top, candidate_bottom = (
+                    placement_bounds_cm
+                    or (-half_w_cm, half_w_cm, -half_d_cm, half_d_cm)
+                )
+                cand_x = _clamp_axis(raw_x, candidate_left, candidate_right, fp_w, clamp_margin)
+                cand_z = _clamp_axis(raw_z, candidate_top, candidate_bottom, fp_d, clamp_margin)
                 candidate = PlacedFurniture(
                     id=item_id,
                     catalog=catalog,
@@ -1356,6 +1449,7 @@ def generate_layout(
         fp_w, fp_d = _rotated_footprint(width, depth, rotation)
         results[index] = {
             "furniture_id": item["furniture_id"],
+            "catalog_furniture_id": item.get("catalog_furniture_id"),
             "name_zh_raw": item.get("name_zh_raw"),
             "normalized_type": item_type,
             "model_url": item.get("model_url"),
@@ -1365,6 +1459,7 @@ def generate_layout(
             "price_twd": item.get("price_twd"),
             "price_ntd": item.get("price_ntd"),
             "size_cm": {"width": width, "depth": depth, "height": height},
+            "catalog_size_cm": item.get("catalog_size_cm"),
             "footprint_cm": {"width": round(fp_w, 2), "depth": round(fp_d, 2)},
             "position_cm": {"x": round(x_cm, 2), "z": round(z_cm, 2)},
             "rotation_y_deg": rotation,

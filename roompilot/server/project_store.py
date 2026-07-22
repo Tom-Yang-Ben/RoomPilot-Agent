@@ -22,6 +22,10 @@ def _merge_dict(base: dict, update: dict) -> dict:
     return merged
 
 
+class ProjectVersionConflict(RuntimeError):
+    """呼叫端嘗試把變更重播到較舊的專案版本。"""
+
+
 _DISPLAY_TEXT_KEYS = {
     "name",
     "name_en",
@@ -137,14 +141,29 @@ class ProjectStore:
         *,
         current_step: str | None = None,
         workflow: dict | None = None,
+        expected_updated_at: str | None = None,
     ) -> dict:
-        project = self.get_project(project_id)
-        merged_workflow = _compact_workflow_value(
-            _merge_dict(project["workflow"], workflow or {})
-        )
-        next_step = current_step or project["current_step"]
-        now = _utc_now()
         with self._connect() as connection:
+            # 先取得寫入鎖，再讀取版本，使版本比對與更新成為原子操作。
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM projects WHERE project_id = ?",
+                (project_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(project_id)
+            project = self._project(row)
+            if (
+                expected_updated_at is not None
+                and project["updated_at"] != expected_updated_at
+            ):
+                raise ProjectVersionConflict(project_id)
+
+            merged_workflow = _compact_workflow_value(
+                _merge_dict(project["workflow"], workflow or {})
+            )
+            next_step = current_step or project["current_step"]
+            now = _utc_now()
             connection.execute(
                 """
                 UPDATE projects
@@ -158,7 +177,11 @@ class ProjectStore:
                     project_id,
                 ),
             )
-        return self.get_project(project_id)
+            updated = connection.execute(
+                "SELECT * FROM projects WHERE project_id = ?",
+                (project_id,),
+            ).fetchone()
+        return self._project(updated)
 
     def save_upload(
         self,

@@ -73,11 +73,13 @@
                 type="file"
                 accept=".dxf,.png,.jpg,.jpeg,image/png,image/jpeg,application/dxf"
               />
-              <span class="rp-upload-mark" aria-hidden="true">↑</span>
-              <strong>選擇 DXF、PNG 或 JPG 平面圖</strong>
-              <span>其他格式會被阻擋並說明原因</span>
+              <img id="upload-floorplan-preview" alt="剛選擇的平面圖預覽" hidden />
+              <span id="upload-floorplan-placeholder" class="rp-upload-placeholder">
+                <span class="rp-upload-mark" aria-hidden="true">↑</span>
+                <strong>選擇 DXF、PNG 或 JPG 平面圖</strong>
+                <span>其他格式會被阻擋並說明原因</span>
+              </span>
             </label>
-            <button id="load-sample-630" type="button" class="secondary-action">載入 630 cm 驗收圖</button>
           </div>
           <aside class="rp-control-pane">
             <span class="eyebrow">DATA USE</span>
@@ -88,7 +90,7 @@
               <label for="project-privacy-consent">我同意平面圖只供本專案分析，且不會用於訓練</label>
             </div>
             <p id="upload-error" class="rp-field-error" aria-live="polite"></p>
-            <button id="confirm-upload" type="button" class="primary-action">開始 Cody 辨識</button>
+            <button id="confirm-upload" type="button" class="primary-action">開始辨識</button>
           </aside>
         </div>
       </section>
@@ -98,7 +100,7 @@
           <div class="rp-plan-pane">
             <div class="rp-pane-heading">
               <div><span class="eyebrow">3–4 確定尺寸</span><h2>在圖上拉出一段已知尺寸</h2></div>
-              <span id="recognition-summary">等待 Cody</span>
+              <span id="recognition-summary">等待辨識</span>
             </div>
             <div id="floorplan-calibration-stage" class="rp-plan-stage" role="application" aria-label="拖曳尺寸線的起點與終點">
               <img id="floorplan-calibration-image" alt="等待上傳的平面圖" />
@@ -120,7 +122,7 @@
             </label>
             <button id="reset-floorplan-calibration" type="button" class="secondary-action">重選兩點</button>
             <p id="scale-error" class="rp-field-error" aria-live="polite"></p>
-            <button id="apply-floorplan-calibration" type="button" class="primary-action">確認尺寸並顯示房間</button>
+            <button id="apply-floorplan-calibration" type="button" class="primary-action" disabled>確認尺寸並顯示房間</button>
           </aside>
         </div>
       </section>
@@ -129,62 +131,120 @@
         <div class="rp-split-workspace">
           <div class="rp-plan-pane">
             <div class="rp-pane-heading">
-              <div><span class="eyebrow">5 空間與結構</span><h2>確認房間，再確認牆、門、窗、梁、柱</h2></div>
+              <div><span class="eyebrow">5 空間與結構</span><h2>確認房間，再確認牆、門、窗、樑、柱</h2></div>
               <button id="show-all-rooms" type="button" class="secondary-action">查看全部空間框選</button>
+              <div id="plan-structure-legend" class="rp-structure-legend rp-plan-structure-legend" aria-label="結構標示說明" hidden>
+                <span><i class="rp-legend-line is-selected"></i>橘黃＝目前選取</span>
+                <span><i class="rp-legend-line is-door"></i>橘色門弧＝門</span>
+                <span><i class="rp-legend-line is-window"></i>藍線編號＝窗</span>
+                <span><i class="rp-legend-line is-wall"></i>深灰線＝牆</span>
+              </div>
             </div>
             <div id="space-plan-stage" class="rp-plan-stage rp-editable-plan" aria-label="空間與結構確認圖">
-              <img id="space-plan-image" alt="Cody 辨識後的平面圖" />
+              <img id="space-plan-image" alt="辨識後的平面圖" />
               <svg id="space-plan-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
             </div>
-            <p class="rp-plan-caption">點房間框或右側名稱可定位；紫色節點可拖曳調整範圍。</p>
+            <p id="space-plan-caption" class="rp-plan-caption">點房間框或右側名稱可定位；紫色節點可拖曳調整範圍。</p>
           </div>
           <aside class="rp-control-pane rp-space-controls">
             <div class="rp-segmented" role="tablist" aria-label="確認內容">
               <button type="button" data-space-tab="rooms" class="is-active">房間</button>
-              <button type="button" data-space-tab="structure">牆門窗梁柱</button>
+              <button type="button" data-space-tab="structure">牆門窗樑柱</button>
             </div>
             <section id="room-confirmation-panel">
               <button id="add-missed-room" type="button" class="secondary-action">＋ 新增漏辨識空間</button>
+              <div class="rp-room-geometry-tools">
+                <button type="button" data-room-geometry-mode="merge" class="secondary-action">合併房間</button>
+                <button type="button" data-room-geometry-mode="split" class="secondary-action">切割房間</button>
+                <button id="apply-room-merge" type="button" class="primary-action" hidden>合併所選兩個房間</button>
+                <button id="cancel-room-geometry" type="button" class="secondary-action" hidden>取消合併／切割</button>
+              </div>
+              <p id="room-geometry-guidance" class="rp-control-hint">先逐一確認右側房間；需要時可合併或以兩點切割。</p>
+              <strong id="room-confirmation-progress">已確認 0 / 0 個房間</strong>
               <div id="room-list" class="rp-room-list"></div>
               <div id="room-editor" class="rp-editor-box" hidden>
                 <label><span>空間名稱</span><input id="room-name" type="text" /></label>
-                <div class="rp-inline-fields">
-                  <label><span>長（cm）</span><input id="room-width-cm" type="number" min="1" /></label>
-                  <label><span>寬（cm）</span><input id="room-depth-cm" type="number" min="1" /></label>
-                </div>
                 <p id="room-area"></p>
-                <button id="save-room" type="button" class="secondary-action">套用房間修正</button>
+                <p class="rp-control-hint">拖曳左圖紫色節點後，尺寸與面積會自動重新計算。</p>
+                <div class="rp-room-node-tools">
+                  <button type="button" data-room-node-mode="merge" class="secondary-action">合併節點</button>
+                  <button type="button" data-room-node-mode="split" class="secondary-action">切割邊線新增節點</button>
+                  <button id="apply-node-merge" type="button" class="primary-action" hidden>合併所選兩個節點</button>
+                  <button id="cancel-node-edit" type="button" class="secondary-action" hidden>取消節點編輯</button>
+                </div>
+                <p id="room-node-guidance" class="rp-control-hint">需要微調輪廓時，可合併相鄰節點或在邊線新增節點。</p>
+                <button id="save-room" type="button" class="secondary-action">套用空間名稱</button>
               </div>
-              <div class="rp-check-row"><input id="rooms-confirmed" type="checkbox" /><label for="rooms-confirmed">已逐一確認房間名稱、尺寸與面積</label></div>
             </section>
             <section id="structure-confirmation-panel" hidden>
-              <p>把圖示拖到左圖；門窗會磁吸最近牆。牆、梁先選工具，再在圖上點兩端。</p>
-              <div id="structure-toolbox" class="rp-structure-toolbox">
-                <button type="button" draggable="true" data-structure-tool="door">門</button>
-                <button type="button" draggable="true" data-structure-tool="window">窗</button>
-                <button type="button" data-structure-tool="wall">畫牆</button>
-                <button type="button" data-structure-tool="beam">畫梁</button>
-                <button type="button" draggable="true" data-structure-tool="column">柱</button>
+              <div class="rp-structure-kind-tabs" role="tablist" aria-label="結構類別">
+                <button type="button" role="tab" class="is-active" data-structure-section="door">門</button>
+                <button type="button" role="tab" data-structure-section="window">窗</button>
+                <button type="button" role="tab" data-structure-section="wall">牆</button>
+                <button type="button" role="tab" data-structure-section="beam">樑</button>
+                <button type="button" role="tab" data-structure-section="column">柱</button>
               </div>
-              <div id="structure-counts" class="rp-structure-counts"></div>
+              <div class="rp-door-review rp-structure-review">
+                <div class="rp-door-review-heading">
+                  <h3 id="structure-review-title">門候選清單</h3>
+                  <div class="rp-structure-review-actions">
+                    <button id="confirm-all-visible-structures" type="button" class="primary-action">一鍵確認全部門</button>
+                    <button id="add-active-structure" type="button" draggable="true" data-structure-tool="door" class="secondary-action">＋ 新增門</button>
+                  </div>
+                </div>
+                <p id="structure-review-guidance">新增門後會磁吸最近牆；可拖曳、調整寬度與門向，再逐扇確認。</p>
+                <strong id="structure-review-progress">已確認 0 / 0 扇門</strong>
+                <div id="structure-review-list" class="rp-door-review-list"></div>
+              </div>
+              <button id="cancel-structure-interaction" type="button" class="secondary-action">取消目前操作／選取</button>
               <section id="selected-structure-editor" class="rp-editor-box" hidden>
                 <h3 id="selected-structure-title">選取結構</h3>
-                <p>可直接在左圖拖曳移動；尺寸仍應以現場量測為準。</p>
+                <p id="structure-editor-guidance">可直接在左圖拖曳移動；尺寸仍應以現場量測為準。</p>
                 <div class="rp-inline-fields">
-                  <label><span id="selected-structure-size-label">尺寸（公分）</span><input id="selected-structure-size-cm" type="number" min="1" step="1" /></label>
-                  <label><span>高度（公分）</span><input id="selected-structure-height-cm" type="number" min="1" step="1" /></label>
+                  <label id="selected-structure-size-field"><span id="selected-structure-size-label">尺寸（公分）</span><input id="selected-structure-size-cm" type="number" min="1" step="1" /></label>
+                  <label id="selected-structure-length-field" hidden><span id="selected-structure-length-label">長度（公分）</span><input id="selected-structure-length-cm" type="number" min="1" step="1" /></label>
+                  <label id="selected-structure-depth-field" hidden><span id="selected-structure-depth-label">深度（公分）</span><input id="selected-structure-depth-cm" type="number" min="1" step="1" /></label>
+                  <label><span id="selected-structure-height-label">高度（公分）</span><input id="selected-structure-height-cm" type="number" min="1" step="1" /></label>
+                  <label id="window-sill-height-field" hidden><span>窗台離地高度（公分）</span><input id="window-sill-height-cm" type="number" min="0" step="1" value="90" /></label>
                 </div>
+                <section id="opening-width-controls" class="rp-door-width-controls" hidden>
+                  <div class="rp-door-width-heading">
+                    <strong id="opening-width-label">開口寬度</strong>
+                    <output id="opening-width-value" for="opening-width-slider">90 cm</output>
+                  </div>
+                  <input id="opening-width-slider" type="range" min="30" max="400" step="1" value="90" aria-label="開口寬度即時調整" />
+                  <div class="rp-door-width-steps">
+                    <button type="button" data-opening-width-step="-5" class="secondary-action">− 5 cm</button>
+                    <button type="button" data-opening-width-step="5" class="secondary-action">＋ 5 cm</button>
+                  </div>
+                </section>
                 <div class="rp-inline-actions">
                   <button id="apply-structure-size" type="button" class="secondary-action">套用尺寸</button>
-                  <button id="flip-selected-door" type="button" class="secondary-action">切換門向</button>
+                  <button id="flip-selected-door" type="button" class="secondary-action">切換開門側</button>
+                  <button id="rotate-selected-door-180" type="button" class="secondary-action">鉸鏈端翻轉 180°</button>
                   <button id="rotate-selected-structure-left" type="button" class="secondary-action">左轉 15°</button>
                   <button id="rotate-selected-structure-right" type="button" class="secondary-action">右轉 15°</button>
                   <button id="delete-selected-structure" type="button" class="danger-action">刪除此結構</button>
                 </div>
-                <p class="rp-control-hint">窗寬、門寬與門向都可修正；牆、梁、柱可拖曳或用 15° 微調方向。</p>
+                <section id="structure-3d-preview-panel" class="rp-structure-preview-panel" hidden>
+                  <div>
+                    <strong id="structure-3d-preview-title">室內 3D 結構預覽</strong>
+                    <span>拖曳旋轉視角，滾輪縮放</span>
+                  </div>
+                  <div id="structure-3d-preview" aria-label="樑柱室內 3D 預覽"></div>
+                  <p id="structure-3d-preview-status" class="rp-control-hint"></p>
+                </section>
+                <p id="structure-editor-hint" class="rp-control-hint">修改位置或尺寸後，該項目會回到待確認狀態。</p>
               </section>
-              <div class="rp-check-row"><input id="structure-confirmed" type="checkbox" /><label for="structure-confirmed">已確認牆、門、窗、梁與柱</label></div>
-              <div class="rp-check-row rp-warning-check"><input id="estimated-size-ack" type="checkbox" /><label for="estimated-size-ack">我知道未標示的牆、梁、柱尺寸是依圖面估計，可能與現場實際尺寸不同</label></div>
+              <div id="structure-counts" class="rp-structure-counts"></div>
+              <div class="rp-structure-legend" aria-label="結構標示說明">
+                <span><i class="rp-legend-line is-selected"></i>橘黃色線＝目前選取的結構，可拖曳或在右側修改</span>
+                <span><i class="rp-legend-line is-door"></i>橘色門弧＝系統偵測的門候選，門向需人工確認</span>
+                <span><i class="rp-legend-line is-window"></i>藍色線＝窗</span>
+                <span><i class="rp-legend-line is-wall"></i>深灰色線＝牆</span>
+              </div>
+              <div class="rp-check-row"><input id="structure-confirmed" type="checkbox" /><label for="structure-confirmed">已確認牆、門、窗、樑與柱</label></div>
+              <div class="rp-check-row rp-warning-check"><input id="estimated-size-ack" type="checkbox" /><label for="estimated-size-ack">我知道未標示的牆、樑、柱尺寸是依圖面估計，可能與現場實際尺寸不同</label></div>
             </section>
             <p id="space-error" class="rp-field-error" aria-live="polite"></p>
             <button id="confirm-space" type="button" class="primary-action">完成空間與結構確認</button>
@@ -300,6 +360,17 @@
             <p>切換視角時只操作相機；鎖定視角後才可拖曳家具，滾輪仍可縮放。</p>
             <div id="scene-object-list" class="rp-object-list"></div>
             <button id="delete-white-model-furniture" type="button" class="danger-action">刪除選取家具</button>
+            <section class="rp-editor-box rp-white-beam-editor" aria-labelledby="white-model-beam-title">
+              <h3 id="white-model-beam-title">天花板樑</h3>
+              <p>點「在 3D 新增樑」後，依序在室內點選起點與終點；樑會固定在天花板下方。</p>
+              <div class="rp-inline-fields">
+                <label><span>樑寬（公分）</span><input id="white-model-beam-width-cm" type="number" min="10" max="120" step="1" value="30" /></label>
+                <label><span>下垂深度（公分）</span><input id="white-model-beam-drop-cm" type="number" min="10" max="120" step="1" value="35" /></label>
+              </div>
+              <button id="add-white-model-beam" type="button" class="secondary-action">＋ 在 3D 新增樑</button>
+              <button id="cancel-white-model-beam" type="button" class="secondary-action" hidden>取消新增樑</button>
+              <p id="white-model-beam-status" class="rp-field-hint" aria-live="polite">樑會自動吸附天花板，不會自由漂浮。</p>
+            </section>
             <label><span>搜尋資料庫家具</span><input id="glb-furniture-search" type="search" placeholder="輸入家具名稱" /></label>
             <button id="search-glb-furniture" type="button" class="secondary-action">搜尋可用 GLB</button>
             <div id="glb-search-results" class="rp-glb-results"></div>
@@ -400,6 +471,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene_v2.js?v=20260719-real3d14"></script>
+    <script type="module" src="/static/scene_v2.js?v=sha256-a510ebd05f68"></script>
   </body>
 </html>

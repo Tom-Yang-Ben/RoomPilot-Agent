@@ -457,12 +457,12 @@ export function detectCeilingConflicts({
         objectLabel: item.label,
         location: item.roomLabel || "目前房間",
         overlapCm,
-        reason: `${item.label}梁底 ${bottomCm} cm、梁頂 ${topCm} cm${estimateNote}，完成天花 ${finishedHeight} cm 會穿過梁體。`,
-        impact: `天花平面與梁重疊 ${overlapCm} cm，無法直接連續施工。`,
+        reason: `${item.label}樑底 ${bottomCm} cm、樑頂 ${topCm} cm${estimateNote}，完成天花 ${finishedHeight} cm 會穿過樑體。`,
+        impact: `天花平面與樑重疊 ${overlapCm} cm，無法直接連續施工。`,
         recommendations: [
-          "改做包梁或分區高低天花",
-          `將天花降到梁底 ${bottomCm} cm 以下`,
-          "現場量測梁底後重算燈具與櫃體高度",
+          "改做包樑或分區高低天花",
+          `將天花降到樑底 ${bottomCm} cm 以下`,
+          "現場量測樑底後重算燈具與櫃體高度",
         ],
       });
       return;

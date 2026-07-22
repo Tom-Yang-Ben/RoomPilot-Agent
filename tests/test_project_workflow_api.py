@@ -134,6 +134,58 @@ def test_project_is_created_and_can_be_loaded_again() -> None:
     assert project["updated_at"]
 
 
+def test_pending_save_replay_rejects_a_stale_server_version_atomically() -> None:
+    project = _create_project()
+    project_id = project["project_id"]
+
+    base = client.put(
+        f"/api/projects/{project_id}/workflow",
+        json={
+            "current_step": "space_confirmation",
+            "workflow": {"space_confirmation": {"rooms": [{"id": "room-1"}]}},
+        },
+    ).json()["project"]
+    advanced = client.put(
+        f"/api/projects/{project_id}/workflow",
+        json={
+            "current_step": "requirements",
+            "workflow": {"requirements": {"completed": True}},
+        },
+    )
+    assert advanced.status_code == 200
+
+    stale_replay = client.put(
+        f"/api/projects/{project_id}/workflow",
+        json={
+            "current_step": "space_confirmation",
+            "workflow": {"space_confirmation": {"rooms": []}},
+            "base_updated_at": base["updated_at"],
+            "replay_pending": True,
+        },
+    )
+
+    assert stale_replay.status_code == 409
+    assert stale_replay.json()["detail"] == "project_version_conflict"
+    restored = client.get(f"/api/projects/{project_id}").json()["project"]
+    assert restored["current_step"] == "requirements"
+    assert restored["workflow"]["space_confirmation"]["rooms"] == [{"id": "room-1"}]
+    assert restored["workflow"]["requirements"]["completed"] is True
+
+    matching_replay = client.put(
+        f"/api/projects/{project_id}/workflow",
+        json={
+            "current_step": "space_confirmation",
+            "workflow": {"space_confirmation": {"rooms": [{"id": "room-2"}]}},
+            "base_updated_at": advanced.json()["project"]["updated_at"],
+            "replay_pending": True,
+        },
+    )
+    assert matching_replay.status_code == 200
+    assert matching_replay.json()["project"]["workflow"]["space_confirmation"]["rooms"] == [
+        {"id": "room-2"}
+    ]
+
+
 def test_floorplan_upload_accepts_only_dxf_png_and_jpeg() -> None:
     project = _create_project()
 
@@ -205,6 +257,68 @@ def test_floorplan_analysis_explains_missing_consent_instead_of_stalling() -> No
     payload = analyzed.json()
     assert payload["geometry_engine"] == "cody"
     assert payload["analysis"]["recognition_engine"] == "cody"
+
+
+def test_rerunning_floorplan_analysis_invalidates_stale_structure_confirmation() -> None:
+    project = _create_project()
+    project_id = project["project_id"]
+    floor04 = Path(__file__).resolve().parents[1] / "testdata" / "png" / "floor04.png"
+    uploaded = client.post(
+        f"/api/projects/{project_id}/floorplan",
+        files={"file": (floor04.name, floor04.read_bytes(), "image/png")},
+    )
+    assert uploaded.status_code == 201
+    consent = client.put(
+        f"/api/projects/{project_id}/workflow",
+        json={
+            "current_step": "upload",
+            "workflow": {
+                "privacy": {
+                    "accepted": True,
+                    "project_only": True,
+                    "no_training": True,
+                }
+            },
+        },
+    )
+    assert consent.status_code == 200
+    assert client.post(f"/api/projects/{project_id}/floorplan/analyze").status_code == 200
+    stale = client.put(
+        f"/api/projects/{project_id}/workflow",
+        json={
+            "current_step": "space_confirmation",
+            "workflow": {
+                "recognition": {
+                    "doors": [
+                        {"id": "legacy-false-door-1"},
+                        {"id": "legacy-false-door-2"},
+                        {"id": "legacy-false-door-3"},
+                    ]
+                },
+                "confirmed_floorplan": {"doors": [{"id": "old-door"}]},
+                "space_confirmation": {"doors": [{"id": "old-door"}]},
+                "requirements": {"rooms": [{"id": "old-room"}]},
+            },
+        },
+    )
+    assert stale.status_code == 200
+
+    rerun = client.post(f"/api/projects/{project_id}/floorplan/analyze")
+
+    assert rerun.status_code == 200
+    rerun_doors = rerun.json()["analysis"]["doors"]
+    assert len(rerun_doors) == 5
+    assert all(door["source"] == "cody_vision" for door in rerun_doors)
+    assert not {door.get("id") for door in rerun_doors} & {
+        "legacy-false-door-1",
+        "legacy-false-door-2",
+        "legacy-false-door-3",
+    }
+    restored = client.get(f"/api/projects/{project_id}").json()["project"]
+    assert restored["current_step"] == "recognition"
+    assert restored["workflow"]["confirmed_floorplan"] is None
+    assert restored["workflow"]["space_confirmation"] is None
+    assert restored["workflow"]["requirements"] is None
 
 
 def test_dxf_analysis_returns_canonical_metre_geometry_and_room_regions() -> None:
@@ -363,7 +477,10 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
                         {
                             "id": "column-1",
                             "center": {"x": 0.4, "y": 0.4},
-                            "size_m": 0.4,
+                            "size_m": 0.58,
+                            "depth_m": 0.35,
+                            "height_m": 2.45,
+                            "rotation_deg": 30,
                         }
                     ],
                 },
@@ -382,6 +499,10 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
     assert floorplan["room_regions"][0]["exterior"][2] == [3.0, 2.0]
     assert floorplan["beam_segments"][0]["top_m"] == 2.8
     assert floorplan["columns"][0]["center"] == {"x": -2.6, "z": -1.6}
+    assert floorplan["columns"][0]["size_m"] == 0.58
+    assert floorplan["columns"][0]["depth_m"] == 0.35
+    assert floorplan["columns"][0]["height_m"] == 2.45
+    assert floorplan["columns"][0]["rotation_deg"] == 30
     assert response.json()["scene_objects"] == []
 
 

@@ -1,15 +1,32 @@
 from __future__ import annotations
 
+import math
+from itertools import permutations
+
 import cv2
 import numpy as np
+from dataclasses import replace
 from pathlib import Path
 import pytest
 
+from roompilot.floorplan import floorplan2dxf as cody
 from roompilot.floorplan.vision import (
     analyze_floorplan_image,
     confirm_floorplan_analysis,
     infer_room_requirements,
 )
+
+
+def test_cody_cli_loads_floorplan_from_unicode_path(tmp_path: Path) -> None:
+    image_path = tmp_path / "中文平面圖.png"
+    image_path.write_bytes(_synthetic_floorplan())
+    config_path = Path(cody.__file__).with_name("config.ini")
+    cfg = replace(cody.load_config(str(config_path)), input=str(image_path))
+
+    gray, bgr = cody.load_gray(cfg)
+
+    assert gray.shape == (400, 500)
+    assert bgr.shape == (400, 500, 3)
 
 
 def _dimension_image() -> bytes:
@@ -391,3 +408,94 @@ def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations(
     master = next(room for room in confirmed["floorplan"]["room_regions"] if room["label"] == "主臥室")
     assert master["inner_dimensions_m"]["width"] > 0
     assert master["net_area_m2"] > 0
+
+
+def test_floor04_visible_swing_arcs_produce_door_candidates() -> None:
+    image_path = Path(__file__).resolve().parents[1] / "testdata" / "png" / "floor04.png"
+
+    analysis = analyze_floorplan_image(
+        image_path.read_bytes(),
+        filename=image_path.name,
+        calibration_hint={
+            "distance_cm": 950,
+            "start_px": [120.43, 164.92],
+            "end_px": [932.51, 164.92],
+        },
+    )
+
+    assert len(analysis["rooms"]) == 7
+    assert all(len(room["polygon_m"]) >= 3 for room in analysis["rooms"])
+    assert max(room["area_m2"] for room in analysis["rooms"]) < 40
+    assert {room["type"] for room in analysis["rooms"]} == {
+        "bedroom",
+        "kitchen",
+        "storage",
+        "circulation",
+        "bathroom",
+        "living_room",
+        "balcony",
+    }
+    assert all("待確認" in room["label"] for room in analysis["rooms"])
+    expected_hinges_px = [
+        (926, 188),  # 廚房外門
+        (515, 518),  # 宿舍門
+        (518, 563),  # 儲藏室門
+        (656, 677),  # 浴室門
+        (540, 1040),  # 客廳外門
+    ]
+    detected_hinges_px = [door.get("hinge_px") for door in analysis["doors"]]
+
+    assert len(analysis["doors"]) == len(expected_hinges_px)
+    assert all(hinge is not None for hinge in detected_hinges_px)
+    assert any(
+        all(math.dist(expected, detected) <= 15 for expected, detected in zip(expected_hinges_px, ordering))
+        for ordering in permutations(detected_hinges_px)
+    ), "五個門候選必須一對一落在可見門扇弧線的鉸鏈位置，且不可多出中央假門"
+    assert all(0.65 <= door["width_m"] <= 1.35 for door in analysis["doors"])
+    assert all(door["opening_direction"] == "manual_review" for door in analysis["doors"])
+    assert all(door["source"] == "cody_vision" for door in analysis["doors"])
+    assert all(door["swing_confidence"] >= 0.85 for door in analysis["doors"])
+    assert all("swing_end" in door for door in analysis["doors"])
+    assert all(
+        math.isclose(
+            math.dist(
+                (door["start"]["x"], door["start"]["y"]),
+                (door["swing_end"]["x"], door["swing_end"]["y"]),
+            ),
+            door["width_m"],
+            abs_tol=0.02,
+        )
+        for door in analysis["doors"]
+    )
+    assert all(
+        abs(
+            (door["end"]["x"] - door["start"]["x"])
+            * (door["swing_end"]["x"] - door["start"]["x"])
+            + (door["end"]["y"] - door["start"]["y"])
+            * (door["swing_end"]["y"] - door["start"]["y"])
+        )
+        <= 0.02
+        for door in analysis["doors"]
+    ), "門扇與弧線終點必須以鉸鏈為中心形成 90 度"
+
+
+def test_floor04_swing_detector_supplements_a_partial_legacy_result(monkeypatch) -> None:
+    image_path = Path(__file__).resolve().parents[1] / "testdata" / "png" / "floor04.png"
+    monkeypatch.setattr(
+        cody,
+        "detect_doors",
+        lambda _thin, _thickness, _arc_pct: [(535.0, 1038.0, 110.0, 1.0)],
+    )
+
+    analysis = analyze_floorplan_image(
+        image_path.read_bytes(),
+        filename=image_path.name,
+        calibration_hint={
+            "distance_cm": 950,
+            "start_px": [120.43, 164.92],
+            "end_px": [932.51, 164.92],
+        },
+    )
+
+    assert len(analysis["doors"]) == 5
+    assert all("swing_end" in door for door in analysis["doors"])

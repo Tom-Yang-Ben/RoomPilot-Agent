@@ -209,6 +209,40 @@ export function recommendCompanionFurniture(roomType, selectedTypes = []) {
   return recommendations;
 }
 
+function roomTypeFromName(room = {}) {
+  const explicitType = String(room.type || room.room_type || "default").toLowerCase();
+  if (explicitType && !["default", "unknown", "other"].includes(explicitType)) {
+    return explicitType;
+  }
+  const label = String(room.label || room.name || "").toLowerCase();
+  const rules = [
+    ["bedroom", /bedroom|dormitory|master\s*bed|臥室|主臥|次臥/],
+    ["kitchen", /kitchen|廚房/],
+    ["storage", /deposit|storage|store\s*room|儲藏|儲物|收納/],
+    ["bathroom", /bathroom|toilet|washroom|浴室|浴廁|衛生間|廁所/],
+    ["living_room", /living\s*room|lounge|客廳/],
+    ["dining_room", /dining\s*room|飯廳|餐廳/],
+    ["balcony", /balcony|terrace|陽台/],
+    ["circulation", /circulation|corridor|hallway|走道|走廊|玄關/],
+  ];
+  return rules.find(([, pattern]) => pattern.test(label))?.[0] || "default";
+}
+
+export function recommendedFurnitureForRoom(room = {}) {
+  const roomType = roomTypeFromName(room);
+  const recommendations = {
+    living_room: [["sofa", "three-seat"], ["coffee-table", "rect"], ["tv-bench", "low"]],
+    bedroom: [["bed", "double"], ["wardrobe", "two-door"]],
+    dining_room: [["dining-table", "round-4"], ["dining-chair", "standard"]],
+    kitchen: [["refrigerator", "single-door"], ["appliance-cabinet", "standard"]],
+    storage: [["storage-cabinet", "tall"]],
+    bathroom: [["bathroom-vanity", "standard"], ["mirror-cabinet", "standard"]],
+    balcony: [["washer", "front-load"]],
+    circulation: [],
+  };
+  return recommendations[roomType] || [];
+}
+
 export function createFurniture2DItem(type, variantId, overrides = {}) {
   const match = findFurniture2DVariant(type, variantId);
   if (!match) throw new Error(`unknown_furniture_type:${type}`);
@@ -273,5 +307,21 @@ export function toSceneFurniture(item, { positionLocked = true } = {}) {
     position_locked: positionLocked,
     user_specified: item.locked === true,
     placement_room_id: item.roomId,
+  };
+}
+
+export function mergeCatalogFurniture(item, catalogItem) {
+  const sceneItem = toSceneFurniture(item);
+  return {
+    ...catalogItem,
+    ...sceneItem,
+    furniture_id: item.id,
+    catalog_furniture_id: catalogItem.furniture_id,
+    model_url: catalogItem.model_url,
+    has_model: Boolean(catalogItem.model_url),
+    size_cm: sceneItem.size_cm,
+    catalog_size_cm: catalogItem.size_cm,
+    requested_size_cm: sceneItem.size_cm,
+    closest_size_match: true,
   };
 }

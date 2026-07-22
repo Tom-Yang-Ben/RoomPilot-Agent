@@ -6,6 +6,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_workflow.js"
 SCENE_HTML = ROOT / "roompilot" / "server" / "static" / "scene.html"
+STRUCTURE_UTILS_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_structure_utils.js"
+STRUCTURE_GEOMETRY_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_structure_geometry.js"
 
 
 def run_workflow_script(script: str) -> dict:
@@ -18,6 +20,281 @@ def run_workflow_script(script: str) -> dict:
         encoding="utf-8",
     )
     return json.loads(completed.stdout)
+
+
+def test_pending_save_replays_only_against_the_server_version_it_started_from() -> None:
+    module_uri = WORKFLOW_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ shouldReplayPendingSave }} from {json.dumps(module_uri)};
+
+        const serverProject = {{ updated_at: "2026-07-21T13:16:06Z" }};
+        console.log(JSON.stringify({{
+          same: shouldReplayPendingSave(JSON.stringify({{
+            base_updated_at: "2026-07-21T13:16:06Z",
+            current_step: "space_confirmation",
+            workflow: {{ space_confirmation: {{ rooms: [{{ id: "room-1" }}] }} }},
+          }}), serverProject),
+          stale: shouldReplayPendingSave(JSON.stringify({{
+            base_updated_at: "2026-07-21T13:12:11Z",
+            current_step: "space_confirmation",
+            workflow: {{ space_confirmation: {{ rooms: [] }} }},
+          }}), serverProject),
+          legacy: shouldReplayPendingSave(JSON.stringify({{
+            current_step: "space_confirmation",
+            workflow: {{ space_confirmation: {{ rooms: [] }} }},
+          }}), serverProject),
+          invalid: shouldReplayPendingSave("not-json", serverProject),
+        }}));
+        """
+    )
+
+    assert result == {"same": True, "stale": False, "legacy": False, "invalid": False}
+
+
+def test_overlapping_windows_on_the_same_wall_are_deduplicated() -> None:
+    module_uri = STRUCTURE_UTILS_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ dedupeWindowCandidates, windowsOverlap }} from {json.dumps(module_uri)};
+
+        const recognized = {{
+          id: "window-5",
+          host_wall_id: "wall-14",
+          start: {{ x: 6.2, y: 5.59 }},
+          end: {{ x: 6.2, y: 5.0 }},
+          confirmed: true,
+          confidence: 0.92,
+          source: "cody",
+        }};
+        const manualDuplicate = {{
+          id: "window-manual",
+          host_wall_id: "wall-14",
+          start: {{ x: 6.2, y: 6.19 }},
+          end: {{ x: 6.2, y: 4.99 }},
+          confirmed: false,
+          source: "manual",
+        }};
+        const separateWindow = {{
+          id: "window-4",
+          host_wall_id: "wall-14",
+          start: {{ x: 6.2, y: 2.0 }},
+          end: {{ x: 6.2, y: 3.2 }},
+          confirmed: true,
+          source: "cody",
+        }};
+
+        const normalized = dedupeWindowCandidates([
+          recognized,
+          manualDuplicate,
+          separateWindow,
+        ]);
+        console.log(JSON.stringify({{
+          duplicate: windowsOverlap(recognized, manualDuplicate),
+          separate: windowsOverlap(recognized, separateWindow),
+          ids: normalized.windows.map((item) => item.id),
+          removed: normalized.removed,
+        }}));
+        """
+    )
+
+    assert result == {
+        "duplicate": True,
+        "separate": False,
+        "ids": ["window-5", "window-4"],
+        "removed": 1,
+    }
+
+
+def test_beam_and_column_preview_geometry_exposes_real_vertical_position() -> None:
+    module_uri = STRUCTURE_GEOMETRY_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ structurePreviewDescriptor }} from {json.dumps(module_uri)};
+
+        const beam = structurePreviewDescriptor({{
+          start: {{ x: 1, y: 2 }},
+          end: {{ x: 4, y: 2 }},
+          thickness_m: 0.3,
+          height_m: 0.45,
+        }}, "beam", {{ ceilingHeightM: 2.7, planWidthM: 10, planDepthM: 8 }});
+        const column = structurePreviewDescriptor({{
+          center: {{ x: 2, y: 3 }},
+          size_m: 0.4,
+          depth_m: 0.55,
+          height_m: 2.7,
+        }}, "column", {{ ceilingHeightM: 2.7, planWidthM: 10, planDepthM: 8 }});
+
+        console.log(JSON.stringify({{ beam, column }}));
+        """
+    )
+
+    assert result == {
+        "beam": {
+            "kind": "beam",
+            "lengthM": 3,
+            "widthM": 0.3,
+            "heightM": 0.45,
+            "centerHeightM": 2.475,
+            "centerX": -2.5,
+            "centerZ": -2,
+            "rotationDeg": 0,
+        },
+        "column": {
+            "kind": "column",
+            "lengthM": 0.4,
+            "widthM": 0.55,
+            "heightM": 2.7,
+            "centerHeightM": 1.35,
+            "centerX": -3,
+            "centerZ": -1,
+            "rotationDeg": 0,
+        },
+    }
+
+
+def test_column_geometry_preserves_independent_width_depth_height_and_rotation() -> None:
+    module_uri = STRUCTURE_GEOMETRY_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ columnGeometryDescriptor }} from {json.dumps(module_uri)};
+
+        console.log(JSON.stringify(columnGeometryDescriptor({{
+          center: {{ x: 1.4, z: -0.8 }},
+          size_m: 0.58,
+          depth_m: 0.35,
+          height_m: 2.45,
+          rotation_deg: 30,
+        }})));
+        """
+    )
+
+    assert result == {
+        "widthM": 0.58,
+        "depthM": 0.35,
+        "heightM": 2.45,
+        "centerX": 1.4,
+        "centerZ": -0.8,
+        "centerHeightM": 1.225,
+        "rotationDeg": 30,
+    }
+
+
+def test_column_dimension_validation_rejects_missing_or_unbuildable_values() -> None:
+    module_uri = STRUCTURE_GEOMETRY_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ validateColumnDimensionsCm }} from {json.dumps(module_uri)};
+
+        console.log(JSON.stringify({{
+          valid: validateColumnDimensionsCm({{ widthCm: 58, depthCm: 35, heightCm: 270 }}),
+          missing: validateColumnDimensionsCm({{ widthCm: "", depthCm: 35, heightCm: 270 }}),
+          tooSmall: validateColumnDimensionsCm({{ widthCm: 5, depthCm: 35, heightCm: 270 }}),
+          tooLarge: validateColumnDimensionsCm({{
+            widthCm: 601,
+            depthCm: 35,
+            heightCm: 270,
+            maxWidthCm: 600,
+            maxDepthCm: 400,
+            maxHeightCm: 280,
+          }}),
+          rotatedOutside: validateColumnDimensionsCm({{
+            widthCm: 600,
+            depthCm: 400,
+            heightCm: 270,
+            maxWidthCm: 600,
+            maxDepthCm: 400,
+            maxHeightCm: 280,
+            centerXcm: 300,
+            centerYcm: 200,
+            rotationDeg: 30,
+          }}),
+          edgeOutside: validateColumnDimensionsCm({{
+            widthCm: 40,
+            depthCm: 35,
+            heightCm: 270,
+            maxWidthCm: 600,
+            maxDepthCm: 400,
+            maxHeightCm: 280,
+            centerXcm: 10,
+            centerYcm: 200,
+            rotationDeg: 0,
+          }}),
+          exactRotatedFit: validateColumnDimensionsCm({{
+            widthCm: 400,
+            depthCm: 600,
+            heightCm: 270,
+            maxWidthCm: 600,
+            maxDepthCm: 400,
+            maxHeightCm: 280,
+            centerXcm: 300,
+            centerYcm: 200,
+            rotationDeg: 90,
+          }}),
+        }}));
+        """
+    )
+
+    assert result == {
+        "valid": {"valid": True, "values": {"widthCm": 58, "depthCm": 35, "heightCm": 270}},
+        "missing": {"valid": False, "message": "請完整輸入柱寬、深度與高度。"},
+        "tooSmall": {"valid": False, "message": "柱寬與深度至少 10 公分，高度至少 30 公分。"},
+        "tooLarge": {"valid": False, "message": "柱寬不可超過 600 公分、深度不可超過 400 公分、高度不可超過 280 公分。"},
+        "rotatedOutside": {"valid": False, "message": "旋轉後柱體超出平面圖範圍，請縮小尺寸、調整方向或移動位置。"},
+        "edgeOutside": {"valid": False, "message": "旋轉後柱體超出平面圖範圍，請縮小尺寸、調整方向或移動位置。"},
+        "exactRotatedFit": {"valid": True, "values": {"widthCm": 400, "depthCm": 600, "heightCm": 270}},
+    }
+
+
+def test_beam_drag_geometry_snaps_to_axis_and_nearby_structure_points() -> None:
+    module_uri = STRUCTURE_UTILS_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ beamDragGeometry }} from {json.dumps(module_uri)};
+
+        const horizontal = beamDragGeometry(
+          {{ x: 1, y: 2 }},
+          {{ x: 4.02, y: 2.09 }},
+          [{{ x: 4, y: 2 }}],
+        );
+        const vertical = beamDragGeometry(
+          {{ x: 3, y: 1 }},
+          {{ x: 3.08, y: 4.1 }},
+          [{{ x: 3, y: 4 }}],
+        );
+        const tooShort = beamDragGeometry(
+          {{ x: 2, y: 2 }},
+          {{ x: 2.08, y: 2.03 }},
+          [],
+        );
+
+        console.log(JSON.stringify({{ horizontal, vertical, tooShort }}));
+        """
+    )
+
+    assert result == {
+        "horizontal": {
+            "start": {"x": 1, "y": 2},
+            "end": {"x": 4, "y": 2},
+            "lengthM": 3,
+            "valid": True,
+            "snapped": True,
+        },
+        "vertical": {
+            "start": {"x": 3, "y": 1},
+            "end": {"x": 3, "y": 4},
+            "lengthM": 3,
+            "valid": True,
+            "snapped": True,
+        },
+        "tooShort": {
+            "start": {"x": 2, "y": 2},
+            "end": {"x": 2.08, "y": 2},
+            "lengthM": 0.08,
+            "valid": False,
+            "snapped": False,
+        },
+    }
 
 
 def test_confirmed_scale_unlocks_space_confirmation_and_state_can_be_restored() -> None:

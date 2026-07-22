@@ -2331,7 +2331,7 @@ body[data-page="scene"] .scene-form .scene-field > span {
 
 .primary-action:disabled {
   opacity: 0.6;
-  cursor: wait;
+  cursor: not-allowed;
 }
 
 .secondary-action {
@@ -5848,6 +5848,252 @@ body.rp-workflow-page .is-selected-structure > * {
   stroke: #ef9f19;
 }
 
+body.rp-workflow-page .rp-structure-legend {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 14px;
+  padding: 12px;
+  border: 1px solid #d8d3cc;
+  background: #fff;
+  color: #33312e;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+body.rp-workflow-page #structure-confirmation-panel > .rp-structure-legend {
+  display: none;
+}
+
+body.rp-workflow-page .rp-plan-structure-legend {
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  width: auto;
+  margin: 0;
+  padding: 8px 10px;
+  background: #fff;
+  box-shadow: none;
+  font-size: 13px;
+}
+
+body.rp-workflow-page .rp-structure-preview-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #cfc8be;
+  background: #f4f1ec;
+}
+
+body.rp-workflow-page .rp-structure-preview-panel > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.rp-workflow-page .rp-structure-preview-panel > div:first-child span {
+  color: #625d56;
+  font-size: 12px;
+}
+
+body.rp-workflow-page #structure-3d-preview {
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  border: 1px solid #d8d2ca;
+  background: #f5f3ef;
+}
+
+body.rp-workflow-page #structure-3d-preview canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+body.rp-workflow-page .rp-white-beam-editor {
+  border-left: 4px solid #6b4d8a;
+}
+
+body.rp-workflow-page .rp-white-beam-editor button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+body.rp-workflow-page .rp-white-beam-editor .is-error {
+  color: #a33b2d;
+  font-weight: 700;
+}
+
+body.rp-workflow-page .rp-door-review {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #d8d3cc;
+  background: #f8f7f4;
+}
+
+body.rp-workflow-page .rp-door-review h3,
+body.rp-workflow-page .rp-door-review p {
+  margin: 0 0 8px;
+}
+
+body.rp-workflow-page .rp-door-review-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body.rp-workflow-page .rp-door-review-heading .secondary-action {
+  min-height: 36px;
+  padding: 7px 12px;
+}
+
+body.rp-workflow-page .rp-structure-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+body.rp-workflow-page .rp-structure-review-actions .primary-action,
+body.rp-workflow-page .rp-structure-review-actions .secondary-action {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+body.rp-workflow-page .rp-door-review-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+body.rp-workflow-page .rp-door-review-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 7px;
+  padding: 6px;
+  border: 1px solid #aaa59e;
+  border-radius: 5px;
+  background: #fff;
+}
+
+body.rp-workflow-page .rp-door-review-item.is-active {
+  border-color: #bd5c36;
+  box-shadow: inset 4px 0 0 #bd5c36;
+  background: #fff7f2;
+}
+
+body.rp-workflow-page .rp-door-review-list .rp-door-review-select {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #33312e;
+  text-align: left;
+}
+
+body.rp-workflow-page .rp-door-review-list .rp-door-confirm {
+  min-height: 44px;
+  align-self: center;
+  border: 1px solid #bd5c36;
+  border-radius: 5px;
+  background: #fff;
+  color: #8e3e23;
+  font-weight: 800;
+}
+
+body.rp-workflow-page .rp-door-review-list .rp-door-confirm.is-confirmed {
+  border-color: #2c7a61;
+  background: #e7f4ee;
+  color: #245d4b;
+}
+
+body.rp-workflow-page .rp-door-review-list span {
+  font-size: 13px;
+  color: #625d57;
+}
+
+body.rp-workflow-page .rp-door-width-controls {
+  margin: 10px 0;
+  padding: 12px;
+  border: 1px solid #c9c3bb;
+  border-radius: 6px;
+  background: #f8f7f4;
+}
+
+body.rp-workflow-page .rp-door-width-heading,
+body.rp-workflow-page .rp-door-width-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body.rp-workflow-page .rp-door-width-heading output {
+  color: #8e3e23;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+body.rp-workflow-page #opening-width-slider {
+  width: 100%;
+  height: 32px;
+  margin: 8px 0;
+  accent-color: #bd5c36;
+  cursor: ew-resize;
+}
+
+body.rp-workflow-page .rp-door-width-steps button {
+  flex: 1 1 0;
+}
+
+body.rp-workflow-page [data-door-handle] {
+  pointer-events: all;
+  filter: drop-shadow(0 1px 3px rgba(52, 49, 46, 0.35));
+}
+
+body.rp-workflow-page [data-door-handle="start"] {
+  stroke: #bd5c36 !important;
+}
+
+body.rp-workflow-page [data-door-handle="end"] {
+  stroke: #7755a6 !important;
+}
+
+body.rp-workflow-page [data-door-move-handle] > circle {
+  stroke: #2f6f87 !important;
+}
+
+body.rp-workflow-page .rp-structure-legend span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+body.rp-workflow-page .rp-legend-line {
+  display: inline-block;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 0;
+  border-top: 4px solid #343434;
+}
+
+body.rp-workflow-page .rp-legend-line.is-selected {
+  border-color: #ef9f19;
+  filter: drop-shadow(0 0 3px rgba(255, 184, 63, 0.9));
+}
+
+body.rp-workflow-page .rp-legend-line.is-door {
+  border-color: #bd5c36;
+  border-radius: 50% 50% 0 0;
+}
+
+body.rp-workflow-page .rp-legend-line.is-window {
+  border-color: #2f8ba1;
+}
+
 body.rp-workflow-page .primary-action {
   border-color: var(--rp-green);
   background: var(--rp-green);
@@ -5876,6 +6122,14 @@ body.rp-workflow-page .danger-action {
 
 .rp-field-error:empty {
   min-height: 0;
+}
+
+.rp-field-error[data-kind="instruction"] {
+  color: #8a5a32;
+}
+
+.rp-field-error[data-kind="ready"] {
+  color: #23785e;
 }
 
 .rp-split-workspace {
@@ -5912,6 +6166,7 @@ body.rp-workflow-page .danger-action {
 }
 
 .rp-drop-zone {
+  position: relative;
   display: grid;
   min-height: 360px;
   place-items: center;
@@ -5922,6 +6177,34 @@ body.rp-workflow-page .danger-action {
   background: #f6f8f5;
   text-align: center;
   cursor: pointer;
+}
+
+.rp-upload-placeholder {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+}
+
+.rp-drop-zone.has-preview {
+  padding: 12px;
+  border-style: solid;
+  background: #fff;
+}
+
+.rp-drop-zone.has-preview .rp-upload-placeholder {
+  display: none;
+}
+
+.rp-drop-zone > img {
+  display: block;
+  width: 100%;
+  height: 336px;
+  object-fit: contain;
+  background: #fff;
+}
+
+.rp-drop-zone > img[hidden] {
+  display: none;
 }
 
 .rp-drop-zone input {
@@ -6084,6 +6367,61 @@ body.rp-workflow-page .danger-action {
   gap: 7px;
 }
 
+.rp-room-geometry-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rp-room-geometry-tools #apply-room-merge,
+.rp-room-geometry-tools #cancel-room-geometry {
+  grid-column: 1 / -1;
+}
+
+.rp-room-geometry-tools [data-room-geometry-mode].is-active {
+  border-color: var(--rp-orange);
+  background: #fff1e9;
+  color: #8e3e23;
+}
+
+.rp-room-node-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.rp-room-node-tools #apply-node-merge,
+.rp-room-node-tools #cancel-node-edit {
+  grid-column: 1 / -1;
+}
+
+.rp-room-node-tools [data-room-node-mode].is-active {
+  border-color: #7755a6;
+  background: #f2ecfa;
+  color: #5d3d86;
+}
+
+.rp-room-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 7px;
+  padding: 6px;
+  border: 1px solid #ccc7c0;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.rp-room-item.is-active {
+  border-color: var(--rp-green);
+  background: var(--rp-green-soft);
+}
+
+.rp-room-item.is-merge-selected {
+  border-color: #7755a6;
+  box-shadow: inset 4px 0 0 #7755a6;
+}
+
 .rp-room-list button,
 .rp-object-list button {
   display: grid;
@@ -6095,6 +6433,28 @@ body.rp-workflow-page .danger-action {
   background: #fff;
   color: #34312e;
   text-align: left;
+}
+
+.rp-room-list .rp-room-select {
+  border: 0;
+  background: transparent;
+}
+
+.rp-room-list .rp-room-confirm {
+  display: grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  min-height: 44px;
+  padding: 8px;
+  border-color: var(--rp-green);
+  background: #fff;
+  color: var(--rp-green);
+  text-align: center;
+}
+
+.rp-room-list .rp-room-confirm.is-confirmed {
+  background: var(--rp-green);
+  color: #fff;
 }
 
 .rp-glb-result {
@@ -6160,7 +6520,7 @@ body.rp-workflow-page .danger-action {
   color: #1f5444;
 }
 
-.rp-room-list button.is-active,
+.rp-room-list .rp-room-select.is-active,
 .rp-object-list button.is-active {
   border-color: var(--rp-green);
   background: var(--rp-green-soft);
@@ -6217,6 +6577,40 @@ body.rp-workflow-page .danger-action {
   border-color: var(--rp-orange);
   background: #fff0e8;
   color: #8e3e23;
+}
+
+.rp-structure-kind-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.rp-structure-kind-tabs button {
+  min-height: 44px;
+  border: 1px solid #a9b2ad;
+  border-radius: 4px;
+  background: #fff;
+  font-weight: 700;
+}
+
+.rp-structure-kind-tabs button.is-active {
+  border-color: #245948;
+  background: #245948;
+  color: #fff;
+}
+
+.rp-structure-review {
+  margin-bottom: 10px;
+}
+
+#cancel-structure-interaction {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+#cancel-structure-interaction {
+  grid-column: 1 / -1;
 }
 
 .rp-plan-caption {

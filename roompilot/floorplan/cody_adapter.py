@@ -68,6 +68,83 @@ def _opening_segment(
     return (constant, cy - half), (constant, cy + half), orientation
 
 
+def _axis_segment(item: Mapping[str, Any]) -> tuple[str, float, float, float] | None:
+    start = item.get("start") or {}
+    end = item.get("end") or {}
+    x0, y0 = float(start.get("x", 0)), float(start.get("y", 0))
+    x1, y1 = float(end.get("x", 0)), float(end.get("y", 0))
+    dx, dy = abs(x1 - x0), abs(y1 - y0)
+    if dx >= max(0.01, dy * 3):
+        return "horizontal", (y0 + y1) / 2, min(x0, x1), max(x0, x1)
+    if dy >= max(0.01, dx * 3):
+        return "vertical", (x0 + x1) / 2, min(y0, y1), max(y0, y1)
+    return None
+
+
+def _door_candidates_from_wall_gaps(
+    walls: list[dict[str, Any]],
+    windows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Infer review-only door candidates from door-sized gaps between collinear walls."""
+    wall_axes = [axis for wall in walls if (axis := _axis_segment(wall))]
+    window_axes = [axis for window in windows if (axis := _axis_segment(window))]
+    candidates: list[dict[str, Any]] = []
+
+    for index, first in enumerate(wall_axes):
+        orientation, constant, first_lo, first_hi = first
+        for second in wall_axes[index + 1 :]:
+            other_orientation, other_constant, second_lo, second_hi = second
+            if orientation != other_orientation or abs(constant - other_constant) > 0.08:
+                continue
+            left, right = sorted((first, second), key=lambda axis: axis[2])
+            gap_start, gap_end = left[3], right[2]
+            gap_width = gap_end - gap_start
+            if not 0.65 <= gap_width <= 1.35:
+                continue
+            gap_constant = (constant + other_constant) / 2
+            overlaps_window = any(
+                window_orientation == orientation
+                and abs(window_constant - gap_constant) <= 0.15
+                and min(gap_end, window_hi) - max(gap_start, window_lo) > 0.3
+                for window_orientation, window_constant, window_lo, window_hi in window_axes
+            )
+            if overlaps_window:
+                continue
+            midpoint = (gap_start + gap_end) / 2
+            if any(
+                candidate["orientation"] == orientation
+                and math.dist(
+                    (
+                        (candidate["start"]["x"] + candidate["end"]["x"]) / 2,
+                        (candidate["start"]["y"] + candidate["end"]["y"]) / 2,
+                    ),
+                    (midpoint, gap_constant) if orientation == "horizontal" else (gap_constant, midpoint),
+                ) < 0.35
+                for candidate in candidates
+            ):
+                continue
+            if orientation == "horizontal":
+                start = {"x": round(gap_start, 4), "y": round(gap_constant, 4)}
+                end = {"x": round(gap_end, 4), "y": round(gap_constant, 4)}
+            else:
+                start = {"x": round(gap_constant, 4), "y": round(gap_start, 4)}
+                end = {"x": round(gap_constant, 4), "y": round(gap_end, 4)}
+            candidates.append(
+                {
+                    "start": start,
+                    "end": end,
+                    "width_m": round(gap_width, 4),
+                    "clearance_radius_m": round(gap_width, 4),
+                    "opening_direction": "manual_review",
+                    "orientation": orientation,
+                    "confidence": 0.62,
+                    "swing_confidence": 0.0,
+                    "source": "cody_wall_gap_candidate",
+                }
+            )
+    return candidates
+
+
 def _dedupe_rects(
     rects: list[tuple[int, int, int, int]],
 ) -> list[tuple[int, int, int, int]]:
@@ -312,6 +389,69 @@ def recognize_cody_geometry(
         wall_thickness_px = line_thickness
         cfg = line_cfg
         detection_mode = "paired_centerlines" if paired_rects else "hatch_normalized"
+
+    threshold_mode = cv2.THRESH_BINARY if cfg.invert else cv2.THRESH_BINARY_INV
+    _, door_ink = cv2.threshold(gray, 245, 255, threshold_mode)
+    door_kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE,
+        (max(3, int(cfg.solid)), max(3, int(cfg.solid))),
+    )
+    door_walls = cv2.morphologyEx(door_ink, cv2.MORPH_OPEN, door_kernel)
+    door_thin = cv2.subtract(
+        door_ink,
+        cv2.dilate(door_walls, np.ones((3, 3), np.uint8)),
+    )
+    door_roi = None
+    if rects:
+        door_roi = (
+            min(rect[0] for rect in rects),
+            min(rect[1] for rect in rects),
+            max(rect[2] for rect in rects),
+            max(rect[3] for rect in rects),
+        )
+    swing_doors = cody.detect_door_swing_arcs(
+        door_thin,
+        wall_thickness_px,
+        cfg.door_arc_pct,
+        roi=door_roi,
+    )
+
+    def hinge_wall_distance(door) -> float:
+        cx, cy = float(door[0]), float(door[1])
+        distances = []
+        for x0, y0, x1, y1 in rects:
+            dx = max(float(x0) - cx, 0.0, cx - float(x1))
+            dy = max(float(y0) - cy, 0.0, cy - float(y1))
+            distances.append(math.hypot(dx, dy))
+        return min(distances, default=math.inf)
+
+    swing_doors = [
+        door
+        for door in swing_doors
+        if float(door[3]) >= 0.85
+        and hinge_wall_distance(door) <= 1.25 * wall_thickness_px
+    ]
+    if not doors:
+        doors = swing_doors
+    elif swing_doors:
+        matched_legacy = sum(
+            any(
+                math.hypot(float(door[0]) - float(swing[0]), float(door[1]) - float(swing[1]))
+                <= 1.5 * wall_thickness_px
+                for swing in swing_doors
+            )
+            for door in doors
+        )
+        if matched_legacy >= max(1, math.ceil(0.6 * len(doors))):
+            merged_doors = [*swing_doors, *doors]
+            doors = []
+            for door in sorted(merged_doors, key=lambda item: (-len(item), -item[3])):
+                if not any(
+                    math.hypot(float(door[0]) - float(item[0]), float(door[1]) - float(item[1]))
+                    < wall_thickness_px
+                    for item in doors
+                ):
+                    doors.append(door)
     if cfg.invert:
         soft = binary
     else:
@@ -403,26 +543,53 @@ def recognize_cody_geometry(
     door_items = []
     for door in doors:
         raw_width_m = float(door[2]) * m_per_px
-        display_width_px = float(door[2]) if 0.7 <= raw_width_m <= 1.2 else 0.9 / m_per_px
+        display_width_px = (
+            float(door[2]) if 0.65 <= raw_width_m <= 1.35 else 0.9 / m_per_px
+        )
         display_door = (float(door[0]), float(door[1]), display_width_px, float(door[3]))
-        start_px, end_px, orientation = _opening_segment(display_door, rects)
+        swing_end_px = None
+        if len(door) >= 8:
+            start_px = (float(door[0]), float(door[1]))
+            end_px = (
+                float(door[0]) + float(door[4]) * display_width_px,
+                float(door[1]) + float(door[5]) * display_width_px,
+            )
+            swing_end_px = (
+                float(door[0]) + float(door[6]) * display_width_px,
+                float(door[1]) + float(door[7]) * display_width_px,
+            )
+            orientation = (
+                "horizontal"
+                if abs(float(door[4])) >= abs(float(door[5]))
+                else "vertical"
+            )
+        else:
+            start_px, end_px, orientation = _opening_segment(display_door, rects)
         start = _point(*start_px, origin_x=origin_x, bottom_y=bottom_y, m_per_px=m_per_px)
         end = _point(*end_px, origin_x=origin_x, bottom_y=bottom_y, m_per_px=m_per_px)
         width_m = math.dist((start["x"], start["y"]), (end["x"], end["y"]))
-        door_items.append(
-            {
-                "start": start,
-                "end": end,
-                "width_m": round(width_m, 4),
-                "clearance_radius_m": round(width_m, 4),
-                "opening_direction": "manual_review",
-                "orientation": orientation,
-                "confidence": round(float(door[3]), 3),
-                "swing_confidence": round(float(door[3]), 3),
-                "source": "cody_vision",
-                "hinge_px": [round(float(door[0]), 2), round(float(door[1]), 2)],
-            }
-        )
+        door_item = {
+            "start": start,
+            "end": end,
+            "width_m": round(width_m, 4),
+            "clearance_radius_m": round(width_m, 4),
+            "opening_direction": "manual_review",
+            "orientation": orientation,
+            "confidence": round(float(door[3]), 3),
+            "swing_confidence": round(float(door[3]), 3),
+            "source": "cody_vision",
+            "hinge_px": [round(float(door[0]), 2), round(float(door[1]), 2)],
+        }
+        if swing_end_px is not None:
+            door_item["swing_end"] = _point(
+                *swing_end_px,
+                origin_x=origin_x,
+                bottom_y=bottom_y,
+                m_per_px=m_per_px,
+            )
+        door_items.append(door_item)
+    if not door_items and window_items:
+        door_items = _door_candidates_from_wall_gaps(walls, window_items)
 
     return {
         "walls": walls,

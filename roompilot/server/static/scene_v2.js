@@ -1,20 +1,26 @@
-import { createSceneViewer } from "./scene_viewer.js?v=20260719-real3d14";
+import { createSceneViewer } from "./scene_viewer.js?v=20260721-column-resize3";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   createWorkflow,
   restoreWorkflow,
+  shouldReplayPendingSave,
   WORKFLOW_PANEL_BY_STEP,
   WORKFLOW_STEPS,
-} from "./scene_workflow.js?v=20260717-test1b";
-import { buildScaleCalibration } from "./scene_calibration.js?v=20260717-test1";
+} from "./scene_workflow.js?v=20260721-pending-save1";
+import {
+  buildScaleCalibration,
+  calibrationActionState,
+} from "./scene_calibration.js?v=20260720-upload-calibration1";
 import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
   furnitureFootprintStyle,
   recommendCompanionFurniture,
+  recommendedFurnitureForRoom,
+  mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=20260717-test1e";
+} from "./scene_layout2d.js?v=20260721-room-furniture1";
 import {
   requirementsGate,
   roomQuestionTemplate,
@@ -28,6 +34,13 @@ import {
   STYLE_MATERIAL_OPTIONS,
   STYLE_PACKS,
 } from "./scene_style_packs.js?v=20260719-actual-palettes";
+import {
+  beamDragGeometry,
+  dedupeWindowCandidates,
+  windowsOverlap,
+} from "./scene_structure_utils.js?v=20260721-beam-drag1";
+import { createStructurePreview } from "./scene_structure_preview.js?v=20260721-column-resize3";
+import { validateColumnDimensionsCm } from "./scene_structure_geometry.js?v=20260721-column-resize3";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -47,6 +60,7 @@ const state = {
   project: null,
   workflow: null,
   pendingFile: null,
+  pendingPreviewUrl: null,
   sourceUrl: null,
   sourceExtension: null,
   analysis: null,
@@ -57,10 +71,18 @@ const state = {
   selectedRoomId: null,
   activeLayoutRoomId: "all",
   showAllRooms: true,
+  spaceMode: "rooms",
+  roomGeometryMode: null,
+  mergeRoomIds: [],
+  splitPoints: [],
+  roomNodeMode: null,
+  selectedRoomNodeIndices: [],
   structures: { walls: [], doors: [], windows: [], beams: [], columns: [] },
+  activeStructureKind: "door",
   structureTool: null,
   structureLineStart: null,
   selectedStructure: null,
+  windowNormalizationRemoved: 0,
   basicAnswers: {},
   basicConfirmed: false,
   roomAnswers: {},
@@ -86,8 +108,8 @@ const instructions = {
   project: ["步驟 1", "先建立專案，之後每一次確認都會自動保存"],
   upload: ["步驟 2", "選擇 DXF、PNG 或 JPG，並確認資料用途"],
   recognition: ["步驟 3–4", "拖曳尺寸線兩端，只輸入一個實際公分尺寸"],
-  calibration: ["步驟 3–4", "確認尺度後，才會顯示 Cody 辨識的房間"],
-  space_confirmation: ["步驟 5", "先確認房間，再確認牆、門、窗、梁與柱"],
+  calibration: ["步驟 3–4", "確認尺度後，才會顯示辨識到的房間"],
+  space_confirmation: ["步驟 5", "先確認房間，再確認牆、門、窗、樑與柱"],
   requirements: ["步驟 6", "先完成全屋基本問卷，再逐房間填需求"],
   layout_2d: ["步驟 7", "確認家具形式、實際尺寸、位置與淨空"],
   white_model_3d: ["步驟 8", "確認 3D 白模家具可見，再指定模型、顏色與材質"],
@@ -104,6 +126,9 @@ const element = {
   projectNotes: $("#project-notes"),
   projectError: $("#project-error"),
   file: $("#floorplan-file"),
+  uploadDropZone: $(".rp-drop-zone"),
+  uploadPreview: $("#upload-floorplan-preview"),
+  uploadPlaceholder: $("#upload-floorplan-placeholder"),
   uploadFileState: $("#upload-file-state"),
   uploadError: $("#upload-error"),
   consent: $("#project-privacy-consent"),
@@ -113,6 +138,7 @@ const element = {
   scaleInput: $("#floorplan-scale-cm"),
   calibrationReadout: $("#calibration-readout"),
   scaleError: $("#scale-error"),
+  applyCalibration: $("#apply-floorplan-calibration"),
   recognitionSummary: $("#recognition-summary"),
   spaceImage: $("#space-plan-image"),
   spaceStage: $("#space-plan-stage"),
@@ -120,11 +146,15 @@ const element = {
   roomList: $("#room-list"),
   roomEditor: $("#room-editor"),
   roomName: $("#room-name"),
-  roomWidth: $("#room-width-cm"),
-  roomDepth: $("#room-depth-cm"),
   roomArea: $("#room-area"),
+  roomConfirmationProgress: $("#room-confirmation-progress"),
+  roomGeometryGuidance: $("#room-geometry-guidance"),
+  roomNodeGuidance: $("#room-node-guidance"),
   structureCounts: $("#structure-counts"),
+  doorReviewList: $("#structure-review-list"),
   structureEditor: $("#selected-structure-editor"),
+  openingWidthSlider: $("#opening-width-slider"),
+  openingWidthValue: $("#opening-width-value"),
   spaceError: $("#space-error"),
   requirementsImage: $("#requirements-plan-image"),
   requirementsStage: $("#requirements-plan-stage"),
@@ -168,8 +198,13 @@ const element = {
   ceilingConflicts: $("#ceiling-conflicts"),
 };
 
-const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteStatus);
-const realisticViewer = createSceneViewer($("#realistic-viewer"), element.realisticStatus);
+const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteStatus, {
+  onSceneChange: () => scheduleSave("white_model_3d"),
+});
+const realisticViewer = createSceneViewer($("#realistic-viewer"), element.realisticStatus, {
+  onSceneChange: () => scheduleSave("realistic_3d"),
+});
+const structurePreview = createStructurePreview($("#structure-3d-preview"));
 const styleFurnitureCache = new Map();
 
 function setStatus(message, kind = "normal") {
@@ -179,8 +214,15 @@ function setStatus(message, kind = "normal") {
 
 function errorMessage(error) {
   const detail = error?.detail;
-  if (typeof detail === "string") return detail;
-  return detail?.message || error?.message || "操作失敗，請稍後再試。";
+  const message = typeof detail === "string"
+    ? detail
+    : detail?.message || error?.message || "操作失敗，請稍後再試。";
+  const messages = {
+    targeted_room_review_required: "尺寸已確認；請在下一步逐一檢查房間範圍與名稱。",
+    geometry_confirmation_required: "請在下一步確認牆、門、窗的位置後再繼續。",
+    scale_confirmation_required: "請重新定位兩個端點並輸入實際公分尺寸。",
+  };
+  return messages[message] || message;
 }
 
 async function api(url, options = {}) {
@@ -263,6 +305,7 @@ function pendingSaveStorageKey() {
 
 function capturePendingSave(currentStep = state.workflow?.currentStep) {
   const serialized = JSON.stringify({
+    base_updated_at: state.project?.updated_at || null,
     current_step: currentStep,
     workflow: workflowPayload(),
   });
@@ -452,9 +495,9 @@ function firstWorkflowBlocker(step) {
   const requiredByStep = {
     upload: "請先建立專案。",
     recognition: "請先上傳平面圖並同意資料用途。",
-    calibration: "請先完成 Cody 辨識。",
+    calibration: "請先完成平面圖辨識。",
     space_confirmation: "請先拖曳兩端並確認公分尺度。",
-    requirements: "請先確認房間與牆、門、窗、梁、柱。",
+    requirements: "請先確認房間與牆、門、窗、樑、柱。",
     layout_2d: "請先完成基本問卷與每一個房間需求。",
     white_model_3d: "請先確認 2D 家具尺寸與配置。",
     realistic_3d: "請先確認 3D 家具確實可見，並確認指定家具需求。",
@@ -496,32 +539,49 @@ function floorplanExtension(file) {
   return [".dxf", ".png", ".jpg", ".jpeg"].find((extension) => name.endsWith(extension)) || "";
 }
 
+function clearPendingPreview() {
+  if (state.pendingPreviewUrl) URL.revokeObjectURL(state.pendingPreviewUrl);
+  state.pendingPreviewUrl = null;
+  element.uploadPreview.removeAttribute("src");
+  element.uploadPreview.hidden = true;
+  element.uploadDropZone.classList.remove("has-preview");
+}
+
+function showPendingPreview(file, extension) {
+  clearPendingPreview();
+  if (!file || extension === ".dxf") return;
+  state.pendingPreviewUrl = URL.createObjectURL(file);
+  element.uploadPreview.src = state.pendingPreviewUrl;
+  element.uploadPreview.hidden = false;
+  element.uploadDropZone.classList.add("has-preview");
+}
+
+function showUploadedPreview(url, extension) {
+  clearPendingPreview();
+  if (!url || extension === ".dxf") return;
+  element.uploadPreview.src = url;
+  element.uploadPreview.hidden = false;
+  element.uploadDropZone.classList.add("has-preview");
+}
+
 function selectFloorplanFile(file) {
   element.uploadError.textContent = "";
   const extension = floorplanExtension(file);
   if (!extension) {
     state.pendingFile = null;
+    clearPendingPreview();
     element.uploadFileState.textContent = "格式不支援";
     element.uploadError.textContent = "只支援 DXF、PNG、JPG 或 JPEG。PDF、WEBP、HEIC 等格式不會上傳。";
     return false;
   }
   state.pendingFile = file;
   state.sourceExtension = extension;
+  showPendingPreview(file, extension);
   element.uploadFileState.textContent = `${file.name} · ${(file.size / 1024).toFixed(1)} KB`;
-  setStatus("已選擇檔案。勾選資料用途後按「開始 Cody 辨識」。");
+  setStatus(extension === ".dxf"
+    ? "已選擇 DXF。勾選資料用途後按「開始辨識」，系統會產生圖面預覽。"
+    : "平面圖已顯示。請確認圖面正確，勾選資料用途後按「開始辨識」。");
   return true;
-}
-
-async function loadSample630() {
-  element.uploadError.textContent = "";
-  try {
-    const response = await fetch("/api/floorplan/sample/630");
-    if (!response.ok) throw new Error("630 cm 驗收圖不存在。");
-    const blob = await response.blob();
-    selectFloorplanFile(new File([blob], "builder_plan_630.png", { type: "image/png" }));
-  } catch (error) {
-    element.uploadError.textContent = errorMessage(error);
-  }
 }
 
 async function confirmUpload() {
@@ -532,12 +592,12 @@ async function confirmUpload() {
     return;
   }
   if (!element.consent.checked) {
-    element.uploadError.textContent = "請先勾選資料用途同意，才能開始 Cody 辨識。";
+    element.uploadError.textContent = "請先勾選資料用途同意，才能開始辨識。";
     element.consent.focus();
     return;
   }
   try {
-    setStatus("正在保存原圖並執行 Cody 牆、門、窗辨識…");
+    setStatus("正在保存原圖並辨識牆、門、窗…");
     const form = new FormData();
     form.append("file", state.pendingFile);
     const uploaded = await api(`/api/projects/${state.projectId}/floorplan`, {
@@ -546,6 +606,7 @@ async function confirmUpload() {
     });
     state.sourceUrl = `${uploaded.upload.source_url}?v=${Date.now()}`;
     state.sourceExtension = uploaded.upload.extension;
+    showUploadedPreview(state.sourceUrl, state.sourceExtension);
     state.workflow.setPrivacyConsent({
       accepted: true,
       projectOnly: true,
@@ -593,13 +654,13 @@ async function confirmUpload() {
       doors: state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0,
       windows: state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0,
     };
-    element.recognitionSummary.textContent = `Cody：牆 ${count.walls}、門 ${count.doors}、窗 ${count.windows}`;
+    element.recognitionSummary.textContent = `辨識結果：牆 ${count.walls}、門 ${count.doors}、窗 ${count.windows}`;
     if (state.analysis.scale?.distance_m) {
       element.scaleInput.value = Math.round(state.analysis.scale.distance_m * 1000) / 10;
     }
     setStatus(scaleEvidence
-      ? "Cody 已標出建議端點。請拖曳確認兩端位置，再確認實際公分尺寸。"
-      : "Cody 辨識完成。現在請由使用者拉兩端，確認一段實際公分尺寸。");
+      ? "已標出建議端點。請拖曳確認兩端位置，再輸入實際公分尺寸。"
+      : "辨識完成。現在請在圖上拉兩端，並輸入這一段的實際公分尺寸。");
     showStep("recognition");
     scheduleSave("recognition");
   } catch (error) {
@@ -739,6 +800,20 @@ function renderCalibration() {
   } else {
     element.calibrationReadout.textContent = "尚未定位兩點，請先點起點。";
   }
+  updateCalibrationAction();
+}
+
+function updateCalibrationAction({ showMessage = true } = {}) {
+  const action = calibrationActionState(
+    state.calibrationPoints,
+    element.scaleInput.value,
+  );
+  element.applyCalibration.disabled = !action.ready;
+  if (showMessage) {
+    element.scaleError.textContent = action.message;
+    element.scaleError.dataset.kind = action.ready ? "ready" : "instruction";
+  }
+  return action;
 }
 
 function calibrationPointerDown(event) {
@@ -770,20 +845,15 @@ function calibrationPointerMove(event) {
 }
 
 async function applyCalibration() {
-  element.scaleError.textContent = "";
+  const action = updateCalibrationAction();
+  if (!action.ready) {
+    if (state.calibrationPoints.length === 2) element.scaleInput.focus();
+    return;
+  }
   const distanceCm = Number(element.scaleInput.value);
-  if (state.calibrationPoints.length !== 2) {
-    element.scaleError.textContent = "請先在左圖點出尺寸線的起點與終點。";
-    return;
-  }
-  if (!(distanceCm > 0)) {
-    element.scaleError.textContent = "請輸入這一段的實際尺寸，單位是公分。";
-    element.scaleInput.focus();
-    return;
-  }
   try {
     const calibration = buildScaleCalibration(state.calibrationPoints, distanceCm);
-    setStatus("正在依使用者確認的公分尺度重新執行 Cody 辨識…");
+    setStatus("正在依確認的公分尺度重新計算房間與結構…");
     if (state.sourceExtension !== ".dxf") {
       const sourceResponse = await fetch(`/api/projects/${state.projectId}/floorplan/source`);
       const sourceBlob = await sourceResponse.blob();
@@ -795,19 +865,17 @@ async function applyCalibration() {
       const analyzed = await api("/api/floorplan/analyze", { method: "POST", body: form });
       state.analysis = analyzed.analysis;
     }
-    const confirmPayload = state.sourceExtension === ".dxf"
-      ? { floorplan: state.analysis.floorplan, dxf_text: null }
-      : await api("/api/floorplan/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ analysis: state.analysis }),
-      });
-    state.confirmedFloorplan = confirmPayload;
+    state.confirmedFloorplan = {
+      floorplan: state.analysis.floorplan || state.analysis,
+      dxf_text: null,
+      confirmation_status: "room_review_pending",
+    };
     state.workflow.complete("calibration", { distanceCm, calibration });
     initializeRoomsAndStructures();
+    state.workflow.goTo("space_confirmation");
     setStatus(`尺度已確認為 ${distanceCm} cm。現在開始確認 ${state.rooms.length} 個房間。`);
     showStep("space_confirmation");
-    scheduleSave("calibration");
+    scheduleSave("space_confirmation");
   } catch (error) {
     element.scaleError.textContent = errorMessage(error);
     setStatus(errorMessage(error), "error");
@@ -873,6 +941,54 @@ function polygonArea(points) {
   }, 0) / 2);
 }
 
+function convexHull(points) {
+  const unique = [...new Map(
+    points.map((point) => [`${point.x.toFixed(5)}:${point.y.toFixed(5)}`, point]),
+  ).values()].sort((a, b) => a.x - b.x || a.y - b.y);
+  if (unique.length <= 3) return unique;
+  const cross = (origin, a, b) =>
+    (a.x - origin.x) * (b.y - origin.y) - (a.y - origin.y) * (b.x - origin.x);
+  const lower = [];
+  for (const point of unique) {
+    while (lower.length >= 2 && cross(lower.at(-2), lower.at(-1), point) <= 0) lower.pop();
+    lower.push(point);
+  }
+  const upper = [];
+  for (const point of [...unique].reverse()) {
+    while (upper.length >= 2 && cross(upper.at(-2), upper.at(-1), point) <= 0) upper.pop();
+    upper.push(point);
+  }
+  return [...lower.slice(0, -1), ...upper.slice(0, -1)];
+}
+
+function clipPolygonByLine(points, start, end, keepPositive) {
+  const side = (point) =>
+    (end.x - start.x) * (point.y - start.y) - (end.y - start.y) * (point.x - start.x);
+  const inside = (point) => keepPositive ? side(point) >= -1e-6 : side(point) <= 1e-6;
+  const intersection = (a, b) => {
+    const sideA = side(a);
+    const sideB = side(b);
+    const denominator = sideA - sideB;
+    const t = Math.abs(denominator) < 1e-9 ? 0 : sideA / denominator;
+    return {
+      x: a.x + (b.x - a.x) * t,
+      y: a.y + (b.y - a.y) * t,
+    };
+  };
+  const result = [];
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index];
+    const previous = points[(index + points.length - 1) % points.length];
+    if (inside(current)) {
+      if (!inside(previous)) result.push(intersection(previous, current));
+      result.push(current);
+    } else if (inside(previous)) {
+      result.push(intersection(previous, current));
+    }
+  }
+  return result;
+}
+
 function roomDimensions(room) {
   const xs = room.polygon_m.map((point) => point.x);
   const ys = room.polygon_m.map((point) => point.y);
@@ -908,6 +1024,7 @@ function initializeRoomsAndStructures() {
       id: room.id || room.room_id || `room-${index + 1}`,
       label: room.label || room.name || `空間 ${index + 1}`,
       type: room.type || room.room_type || "default",
+      confirmed: room.confirmed === true,
       polygon_m: polygon.map((point) => normalizePoint(point, !hasImageRooms)),
     };
   }).filter((room) => room.polygon_m.length >= 3);
@@ -917,6 +1034,7 @@ function initializeRoomsAndStructures() {
       label: "未命名空間",
       type: "default",
       confidence: 0.4,
+      confirmed: false,
       polygon_m: [{ x: 0, y: 0 }, { x: widthM, y: 0 }, { x: widthM, y: depthM }, { x: 0, y: depthM }],
     }];
   }
@@ -956,6 +1074,9 @@ function initializeRoomsAndStructures() {
       center: normalizePoint(item.center, !hasImageRooms),
     })),
   };
+  const normalizedWindows = dedupeWindowCandidates(state.structures.windows);
+  state.structures.windows = normalizedWindows.windows;
+  state.windowNormalizationRemoved = normalizedWindows.removed;
   state.selectedRoomId = state.rooms[0]?.id || null;
   state.activeQuestionRoomId = state.selectedRoomId;
   renderRooms();
@@ -970,26 +1091,51 @@ function roomPolygonSvg(room) {
 function renderRooms() {
   element.roomList.innerHTML = state.rooms.map((room) => {
     const dimensions = roomDimensions(room);
+    const active = room.id === state.selectedRoomId;
+    const merging = state.mergeRoomIds.includes(room.id);
     return `
-      <button type="button" data-room-id="${escapeHtml(room.id)}" class="${room.id === state.selectedRoomId ? "is-active" : ""}">
-        <strong>${escapeHtml(room.label)}</strong>
-        <span>${dimensions.areaM2.toFixed(2)} m²</span>
-        <small>${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm</small>
-        <small>信心 ${(Number(room.confidence || room.polygon_confidence || 0.7) * 100).toFixed(0)}%</small>
-      </button>
+      <article class="rp-room-item ${active ? "is-active" : ""} ${merging ? "is-merge-selected" : ""}">
+        <button type="button" data-room-id="${escapeHtml(room.id)}" class="rp-room-select">
+          <strong>${escapeHtml(room.label)}</strong>
+          <span>${dimensions.areaM2.toFixed(2)} m²</span>
+          <small>${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm</small>
+          <small>${room.confirmed ? "已確認" : `信心 ${(Number(room.confidence || room.polygon_confidence || 0.7) * 100).toFixed(0)}%`}</small>
+        </button>
+        <button type="button" data-confirm-room="${escapeHtml(room.id)}"
+          class="rp-room-confirm ${room.confirmed ? "is-confirmed" : ""}">
+          ${room.confirmed ? "已確認" : "確認"}
+        </button>
+      </article>
     `;
   }).join("");
+  const confirmedCount = state.rooms.filter((room) => room.confirmed).length;
+  element.roomConfirmationProgress.textContent =
+    `已確認 ${confirmedCount} / ${state.rooms.length} 個房間`;
   const room = state.rooms.find((item) => item.id === state.selectedRoomId);
   if (room) {
     const dimensions = roomDimensions(room);
     element.roomEditor.hidden = false;
     element.roomName.value = room.label;
-    element.roomWidth.value = dimensions.widthCm.toFixed(0);
-    element.roomDepth.value = dimensions.depthCm.toFixed(0);
-    element.roomArea.textContent = `依目前框選計算：${dimensions.areaM2.toFixed(2)} m²`;
+    element.roomArea.textContent =
+      `系統依目前框選計算：${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm，${dimensions.areaM2.toFixed(2)} m²`;
   } else {
     element.roomEditor.hidden = true;
   }
+}
+
+function confirmRoom(roomId) {
+  const room = state.rooms.find((item) => item.id === roomId);
+  if (!room) return;
+  room.confirmed = true;
+  room.confidence = 1;
+  room.source = "manual_confirmation";
+  room.label = room.label.replace(/\s*（待確認）\s*/g, "").trim() || "未命名空間";
+  state.selectedRoomId = room.id;
+  element.spaceError.textContent = "";
+  renderRooms();
+  renderSpaceOverlay();
+  scheduleSave("space_confirmation");
+  setStatus(`已確認「${room.label}」；請繼續確認其他房間。`);
 }
 
 function addMissedRoom() {
@@ -1003,6 +1149,7 @@ function addMissedRoom() {
     label: `新增空間 ${state.rooms.length + 1}`,
     type: "default",
     confidence: 0.35,
+    confirmed: false,
     manually_added: true,
     polygon_m: [
       { x: center.x - widthM / 2, y: center.y - depthM / 2 },
@@ -1014,7 +1161,6 @@ function addMissedRoom() {
   state.rooms.push(room);
   state.selectedRoomId = room.id;
   state.showAllRooms = false;
-  $("#rooms-confirmed").checked = false;
   invalidateDownstreamFrom(
     "space_confirmation",
     "已新增漏辨識空間；請拖曳節點、命名並重新確認空間與結構。",
@@ -1024,29 +1170,292 @@ function addMissedRoom() {
   scheduleSave("space_confirmation");
 }
 
+function updateRoomGeometryControls() {
+  $$("[data-room-geometry-mode]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.roomGeometryMode === state.roomGeometryMode);
+  });
+  $("#apply-room-merge").hidden =
+    state.roomGeometryMode !== "merge" || state.mergeRoomIds.length !== 2;
+  $("#cancel-room-geometry").hidden = !state.roomGeometryMode;
+  if (state.roomGeometryMode === "merge") {
+    element.roomGeometryGuidance.textContent = state.mergeRoomIds.length === 2
+      ? "已選兩個房間。確認左圖範圍後，按「合併所選兩個房間」。"
+      : `請在左圖或清單點選兩個相鄰房間，目前已選 ${state.mergeRoomIds.length} 個。`;
+  } else if (state.roomGeometryMode === "split") {
+    element.roomGeometryGuidance.textContent = state.splitPoints.length === 1
+      ? "已設定切割線起點，請在左圖點第二點。"
+      : "請先選取要切割的房間，再在左圖點兩點定義切割線。";
+  } else {
+    element.roomGeometryGuidance.textContent =
+      "先逐一確認右側房間；需要時可合併或以兩點切割。";
+  }
+}
+
+function setRoomGeometryMode(mode) {
+  state.roomGeometryMode = state.roomGeometryMode === mode ? null : mode;
+  state.mergeRoomIds = [];
+  state.splitPoints = [];
+  state.roomNodeMode = null;
+  state.selectedRoomNodeIndices = [];
+  state.showAllRooms = true;
+  element.spaceError.textContent = "";
+  updateRoomNodeControls();
+  updateRoomGeometryControls();
+  renderRooms();
+  renderSpaceOverlay();
+}
+
+function updateRoomNodeControls() {
+  $$("[data-room-node-mode]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.roomNodeMode === state.roomNodeMode);
+  });
+  $("#apply-node-merge").hidden =
+    state.roomNodeMode !== "merge" || state.selectedRoomNodeIndices.length !== 2;
+  $("#cancel-node-edit").hidden = !state.roomNodeMode;
+  if (state.roomNodeMode === "merge") {
+    element.roomNodeGuidance.textContent = state.selectedRoomNodeIndices.length === 2
+      ? "已選兩點。確認是相鄰節點後，按「合併所選兩個節點」。"
+      : `請在左圖點選兩個相鄰紫色節點，目前已選 ${state.selectedRoomNodeIndices.length} 個。`;
+  } else if (state.roomNodeMode === "split") {
+    element.roomNodeGuidance.textContent = "請直接點房間框的邊線，系統會在最近位置新增一個可拖曳節點。";
+  } else {
+    element.roomNodeGuidance.textContent = "需要微調輪廓時，可合併相鄰節點或在邊線新增節點。";
+  }
+}
+
+function setRoomNodeMode(mode) {
+  state.roomNodeMode = state.roomNodeMode === mode ? null : mode;
+  state.selectedRoomNodeIndices = [];
+  state.roomGeometryMode = null;
+  state.mergeRoomIds = [];
+  state.splitPoints = [];
+  state.showAllRooms = false;
+  element.spaceError.textContent = "";
+  updateRoomGeometryControls();
+  updateRoomNodeControls();
+  renderRooms();
+  renderSpaceOverlay();
+}
+
+function mergeSelectedRoomNodes() {
+  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
+  if (!room || state.selectedRoomNodeIndices.length !== 2) return;
+  const polygon = room.polygon_m;
+  const [first, second] = [...state.selectedRoomNodeIndices].sort((a, b) => a - b);
+  const adjacent = second - first === 1 || (first === 0 && second === polygon.length - 1);
+  if (!adjacent) {
+    element.spaceError.textContent = "只能合併同一條邊上的兩個相鄰節點，請重新選擇。";
+    return;
+  }
+  if (polygon.length <= 3) {
+    element.spaceError.textContent = "房間至少需要三個節點，這兩點不能再合併。";
+    return;
+  }
+  const midpoint = {
+    x: (polygon[first].x + polygon[second].x) / 2,
+    y: (polygon[first].y + polygon[second].y) / 2,
+  };
+  const mergedPolygon = polygon.map((point) => ({ ...point }));
+  if (first === 0 && second === polygon.length - 1) {
+    mergedPolygon[0] = midpoint;
+    mergedPolygon.pop();
+  } else {
+    mergedPolygon[first] = midpoint;
+    mergedPolygon.splice(second, 1);
+  }
+  if (polygonArea(mergedPolygon) < 0.5) {
+    element.spaceError.textContent = "合併後房間面積會小於 0.5 m²，請保留這兩個節點。";
+    return;
+  }
+  room.polygon_m = mergedPolygon;
+  room.confirmed = false;
+  room.source = "manual_node_merge";
+  element.spaceError.textContent = "";
+  state.roomNodeMode = null;
+  state.selectedRoomNodeIndices = [];
+  updateRoomNodeControls();
+  renderRooms();
+  renderSpaceOverlay();
+  invalidateDownstreamFrom("space_confirmation", "房間節點已合併，後續需求、家具與 3D 需要重新確認。");
+  scheduleSave("space_confirmation");
+  setStatus("兩個相鄰節點已合併；房間尺寸與面積已重新計算。");
+}
+
+function nearestPointOnRoomEdge(point, polygon) {
+  let closest = null;
+  polygon.forEach((start, edgeIndex) => {
+    const end = polygon[(edgeIndex + 1) % polygon.length];
+    const projected = nearestPointOnSegment(point, start, end);
+    const distance = Math.hypot(point.x - projected.x, point.y - projected.y);
+    if (!closest || distance < closest.distance) {
+      closest = { edgeIndex, projected, distance };
+    }
+  });
+  return closest;
+}
+
+function insertRoomNodeAt(point) {
+  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
+  if (!room) return;
+  const closest = nearestPointOnRoomEdge(point, room.polygon_m);
+  if (!closest || closest.distance > 0.35) {
+    element.spaceError.textContent = "請點在房間框邊線附近，系統才可新增節點。";
+    return;
+  }
+  const start = room.polygon_m[closest.edgeIndex];
+  const end = room.polygon_m[(closest.edgeIndex + 1) % room.polygon_m.length];
+  if (
+    Math.hypot(closest.projected.x - start.x, closest.projected.y - start.y) < 0.08
+    || Math.hypot(closest.projected.x - end.x, closest.projected.y - end.y) < 0.08
+  ) {
+    element.spaceError.textContent = "新節點離既有節點太近，請改點邊線中間的位置。";
+    return;
+  }
+  room.polygon_m.splice(closest.edgeIndex + 1, 0, closest.projected);
+  room.confirmed = false;
+  room.source = "manual_node_split";
+  element.spaceError.textContent = "";
+  state.roomNodeMode = null;
+  state.selectedRoomNodeIndices = [];
+  updateRoomNodeControls();
+  renderRooms();
+  renderSpaceOverlay();
+  invalidateDownstreamFrom("space_confirmation", "房間邊線已新增節點，後續需求、家具與 3D 需要重新確認。");
+  scheduleSave("space_confirmation");
+  setStatus("已在房間邊線新增節點；可直接拖曳紫色節點調整輪廓。");
+}
+
+function mergeSelectedRooms() {
+  if (state.mergeRoomIds.length !== 2) {
+    element.spaceError.textContent = "請先選取兩個相鄰房間。";
+    return;
+  }
+  const selected = state.mergeRoomIds
+    .map((roomId) => state.rooms.find((room) => room.id === roomId))
+    .filter(Boolean);
+  if (selected.length !== 2) return;
+  const polygon = convexHull(selected.flatMap((room) => room.polygon_m));
+  const originalArea = selected.reduce((sum, room) => sum + polygonArea(room.polygon_m), 0);
+  const mergedArea = polygonArea(polygon);
+  if (polygon.length < 3 || mergedArea > originalArea * 1.2) {
+    element.spaceError.textContent =
+      "這兩個房間不相鄰，或合併後會涵蓋過多其他區域，請重新選擇。";
+    return;
+  }
+  const cleanLabel = (label) => label.replace(/\s*（待確認）\s*/g, "").trim();
+  const merged = {
+    id: `room-merged-${Date.now()}`,
+    label: `${cleanLabel(selected[0].label)}＋${cleanLabel(selected[1].label)}（待確認）`,
+    type: selected[0].type === selected[1].type ? selected[0].type : "default",
+    confidence: Math.min(...selected.map((room) => Number(room.confidence || 0.5))),
+    confirmed: false,
+    source: "manual_merge",
+    merged_from: selected.map((room) => room.id),
+    polygon_m: polygon,
+  };
+  const selectedIds = new Set(state.mergeRoomIds);
+  state.rooms = [...state.rooms.filter((room) => !selectedIds.has(room.id)), merged];
+  state.selectedRoomId = merged.id;
+  state.roomGeometryMode = null;
+  state.mergeRoomIds = [];
+  updateRoomGeometryControls();
+  renderRooms();
+  renderSpaceOverlay();
+  invalidateDownstreamFrom("space_confirmation", "房間已合併，後續需求、家具與 3D 需要重新確認。");
+  scheduleSave("space_confirmation");
+  setStatus("已合併兩個房間；請修改名稱並按房間確認鍵。");
+}
+
+function splitSelectedRoom(start, end) {
+  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
+  if (!room || Math.hypot(end.x - start.x, end.y - start.y) < 0.1) {
+    element.spaceError.textContent = "切割線太短，請重新點兩個不同位置。";
+    state.splitPoints = [];
+    updateRoomGeometryControls();
+    return;
+  }
+  const firstPolygon = clipPolygonByLine(room.polygon_m, start, end, true);
+  const secondPolygon = clipPolygonByLine(room.polygon_m, start, end, false);
+  if (
+    firstPolygon.length < 3
+    || secondPolygon.length < 3
+    || polygonArea(firstPolygon) < 0.5
+    || polygonArea(secondPolygon) < 0.5
+  ) {
+    element.spaceError.textContent =
+      "切割線沒有完整穿過房間，或切出的空間小於 0.5 m²，請重新畫線。";
+    state.splitPoints = [];
+    updateRoomGeometryControls();
+    renderSpaceOverlay();
+    return;
+  }
+  const baseLabel = room.label.replace(/\s*（待確認）\s*/g, "").trim();
+  const roomIndex = state.rooms.findIndex((item) => item.id === room.id);
+  const splitRooms = [firstPolygon, secondPolygon].map((polygon, index) => ({
+    ...room,
+    id: `room-split-${Date.now()}-${index + 1}`,
+    label: `${baseLabel} ${index === 0 ? "A" : "B"}（待確認）`,
+    confidence: Math.min(Number(room.confidence || 0.5), 0.7),
+    confirmed: false,
+    source: "manual_split",
+    split_from: room.id,
+    polygon_m: polygon,
+  }));
+  state.rooms.splice(roomIndex, 1, ...splitRooms);
+  state.selectedRoomId = splitRooms[0].id;
+  state.roomGeometryMode = null;
+  state.splitPoints = [];
+  updateRoomGeometryControls();
+  renderRooms();
+  renderSpaceOverlay();
+  invalidateDownstreamFrom("space_confirmation", "房間已切割，後續需求、家具與 3D 需要重新確認。");
+  scheduleSave("space_confirmation");
+  setStatus("房間已切成兩個範圍；請逐一命名並確認。");
+}
+
 function renderSpaceOverlay() {
   if (!element.spaceImage.naturalWidth || !state.rooms.length) return;
-  const visibleRooms = state.showAllRooms
-    ? state.rooms
-    : state.rooms.filter((room) => room.id === state.selectedRoomId);
+  const visibleRooms = state.spaceMode === "rooms"
+    ? (state.showAllRooms
+      ? state.rooms
+      : state.rooms.filter((room) => room.id === state.selectedRoomId))
+    : [];
   const polygons = visibleRooms.map((room) => {
-    const active = room.id === state.selectedRoomId;
+    const active = room.id === state.selectedRoomId || state.mergeRoomIds.includes(room.id);
+    const dimensions = roomDimensions(room);
+    const center = meterToPixel(roomCenter(room));
     const nodes = active
       ? room.polygon_m.map((point, index) => {
         const pixel = meterToPixel(point);
-        return `<circle data-room-point="${index}" cx="${pixel.x}" cy="${pixel.y}" r="9" fill="#fff" stroke="#7755a6" stroke-width="5"/>`;
+        const selected = state.roomNodeMode === "merge"
+          && state.selectedRoomNodeIndices.includes(index);
+        return `<circle data-room-point="${index}" cx="${pixel.x}" cy="${pixel.y}" r="${selected ? 12 : 9}"
+          fill="${selected ? "#fff1e9" : "#fff"}" stroke="${selected ? "#bd5c36" : "#7755a6"}"
+          stroke-width="${selected ? 7 : 5}"/>`;
       }).join("")
       : "";
     return `
       <g data-room-shape="${escapeHtml(room.id)}">
         <polygon points="${roomPolygonSvg(room)}" fill="${active ? "rgba(47,111,135,.20)" : "rgba(36,107,85,.10)"}"
           stroke="${active ? "#2f6f87" : "#246b55"}" stroke-width="${active ? 5 : 3}"/>
+        <text x="${center.x}" y="${center.y - 8}" text-anchor="middle"
+          fill="#173f35" stroke="#fff" stroke-width="8" paint-order="stroke"
+          font-size="24" font-weight="800" pointer-events="none">${escapeHtml(room.label)}</text>
+        <text x="${center.x}" y="${center.y + 22}" text-anchor="middle"
+          fill="#173f35" stroke="#fff" stroke-width="7" paint-order="stroke"
+          font-size="18" font-weight="700" pointer-events="none">${dimensions.areaM2.toFixed(2)} m²</text>
         ${nodes}
       </g>
     `;
   }).join("");
-  const structures = renderStructureSvg();
-  element.spaceOverlay.innerHTML = `${polygons}${structures}`;
+  const structures = state.spaceMode === "structure" ? renderStructureSvg() : "";
+  const splitGuide = state.roomGeometryMode === "split" && state.splitPoints[0]
+    ? (() => {
+      const point = meterToPixel(state.splitPoints[0]);
+      return `<circle cx="${point.x}" cy="${point.y}" r="10" fill="#fff" stroke="#bd5c36" stroke-width="5"/>`;
+    })()
+    : "";
+  element.spaceOverlay.innerHTML = `${polygons}${structures}${splitGuide}`;
 }
 
 function segmentSvg(item, color, width = 5, dash = "") {
@@ -1056,11 +1465,49 @@ function segmentSvg(item, color, width = 5, dash = "") {
 }
 
 const structureCollections = {
-  wall: "walls",
   door: "doors",
   window: "windows",
+  wall: "walls",
   beam: "beams",
   column: "columns",
+};
+
+const structureSectionMeta = {
+  door: {
+    label: "門",
+    listTitle: "門候選清單",
+    addLabel: "＋ 新增門",
+    unit: "扇門",
+    guidance: "新增門後會磁吸最近牆；可拖曳、調整寬度、門向與鉸鏈端，再逐扇確認。",
+  },
+  window: {
+    label: "窗",
+    listTitle: "窗候選清單",
+    addLabel: "＋ 新增窗",
+    unit: "扇窗",
+    guidance: "新增窗後會磁吸最近牆；可拖曳並調整窗寬、窗高與窗台離地高度，再逐扇確認。左圖只有帶編號的藍線是窗候選；未帶編號的原圖細線可能是門扇符號。",
+  },
+  wall: {
+    label: "牆",
+    listTitle: "牆體清單",
+    addLabel: "＋ 畫牆",
+    unit: "面牆",
+    guidance: "依序在左圖點牆的起點與終點；可再拖曳、調整厚度與高度。",
+  },
+  beam: {
+    label: "樑",
+    listTitle: "樑體清單",
+    addLabel: "＋ 畫樑",
+    unit: "道樑",
+    guidance: "按住左圖拖曳樑的起點至終點，放開即完成；端點會自動對齊水平或垂直並磁吸附近結構。",
+  },
+  column: {
+    label: "柱",
+    listTitle: "柱體清單",
+    addLabel: "＋ 新增柱",
+    unit: "根柱",
+    guidance: "點左圖放置柱；可拖曳並調整柱寬與高度。",
+  },
 };
 
 function structureGroup(item, kind, markup) {
@@ -1070,49 +1517,348 @@ function structureGroup(item, kind, markup) {
     class="${active ? "is-selected-structure" : ""}">${markup}</g>`;
 }
 
+function beamBandSvg(item, { selected = false, draft = false } = {}) {
+  const start = meterToPixel(item.start);
+  const end = meterToPixel(item.end);
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (length < 0.5) return "";
+  const halfWidth = Math.max(7, Number(item.thickness_m || 0.3) / planGeometry().scale / 2);
+  const nx = -dy / length * halfWidth;
+  const ny = dx / length * halfWidth;
+  const points = [
+    `${start.x + nx},${start.y + ny}`,
+    `${end.x + nx},${end.y + ny}`,
+    `${end.x - nx},${end.y - ny}`,
+    `${start.x - nx},${start.y - ny}`,
+  ].join(" ");
+  const color = selected || draft ? "#ef9f19" : "#6b4d8a";
+  return `<polygon points="${points}" fill="${color}" fill-opacity="${draft ? 0.28 : 0.42}"
+    stroke="${color}" stroke-width="${selected ? 5 : 3}" ${draft ? 'stroke-dasharray="14 9"' : ""}
+    style="cursor:${draft ? "crosshair" : "move"}"/>`;
+}
+
+function beamSnapCandidates(excludeId = null) {
+  return [
+    ...state.structures.walls.flatMap((item) => [item.start, item.end]),
+    ...state.structures.beams
+      .filter((item) => item.id !== excludeId)
+      .flatMap((item) => [item.start, item.end]),
+    ...state.structures.columns.map((item) => item.center),
+  ].filter(Boolean);
+}
+
+function structureNumberMarkerSvg(kind, index, point, {
+  selected = false,
+  moveHandle = "",
+} = {}) {
+  const colors = {
+    wall: "#343434",
+    door: "#bd5c36",
+    window: "#2f8ba1",
+    beam: "#6b4d8a",
+    column: "#8e3e23",
+  };
+  return `<g data-structure-number-kind="${kind}" data-structure-number="${index + 1}"
+    ${moveHandle} style="cursor:${selected ? "grab" : "pointer"}">
+    <circle cx="${point.x}" cy="${point.y}" r="18" fill="#fff"
+      stroke="${selected ? "#ef9f19" : colors[kind]}" stroke-width="6"/>
+    <text x="${point.x}" y="${point.y + 7}" text-anchor="middle"
+      fill="${colors[kind]}" font-size="20" font-weight="800"
+      pointer-events="none">${index + 1}</text>
+    <title>${structureSectionMeta[kind].label} ${index + 1}${selected ? "，拖曳可移動" : ""}</title>
+  </g>`;
+}
+
 function renderStructureSvg() {
-  const walls = state.structures.walls.map((item) => structureGroup(
-    item,
-    "wall",
-    segmentSvg(item, "#343434", Math.max(4, Number(item.thickness_m || 0.12) / planGeometry().scale)),
-  )).join("");
-  const windows = state.structures.windows.map((item) => structureGroup(
-    item,
-    "window",
-    segmentSvg(item, "#2f8ba1", 7),
-  )).join("");
-  const doors = state.structures.doors.map((item) => {
+  const walls = state.activeStructureKind === "wall" ? state.structures.walls.map((item, index) => {
+    const start = meterToPixel(item.start);
+    const end = meterToPixel(item.end);
+    const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+    const selected = state.selectedStructure?.kind === "wall"
+      && state.selectedStructure?.id === item.id;
+    return structureGroup(
+      item,
+      "wall",
+      `${segmentSvg(item, "#343434", Math.max(4, Number(item.thickness_m || 0.12) / planGeometry().scale))}
+      ${structureNumberMarkerSvg("wall", index, midpoint, { selected })}`,
+    );
+  }).join("") : "";
+  const windows = state.activeStructureKind === "window" ? state.structures.windows.map((item, index) => {
+    const start = meterToPixel(item.start);
+    const end = meterToPixel(item.end);
+    const selected = state.selectedStructure?.kind === "window"
+      && state.selectedStructure?.id === item.id;
+    const midpoint = {
+      x: (start.x + end.x) / 2,
+      y: (start.y + end.y) / 2,
+    };
+    const dragTarget = `<line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}"
+      stroke="transparent" stroke-width="34" pointer-events="stroke"/>`;
+    const marker = structureNumberMarkerSvg("window", index, midpoint, {
+      selected,
+      moveHandle: selected ? 'data-opening-move-handle="true"' : "",
+    }).replace(`data-structure-number="${index + 1}"`, `data-structure-number="${index + 1}" data-window-number="${index + 1}"`);
+    const handles = selected
+      ? `<circle data-opening-handle="start" cx="${start.x}" cy="${start.y}" r="18"
+          fill="#fff" stroke="#2f8ba1" stroke-width="7" style="cursor:ew-resize">
+          <title>拖曳此端調整窗寬</title>
+        </circle>
+        <circle data-opening-handle="end" cx="${end.x}" cy="${end.y}" r="18"
+          fill="#fff" stroke="#7755a6" stroke-width="7" style="cursor:ew-resize">
+          <title>拖曳此端調整窗寬</title>
+        </circle>`
+      : "";
+    return structureGroup(
+      item,
+      "window",
+      `${dragTarget}${segmentSvg(item, "#2f8ba1", 7)}${marker}${handles}`,
+    );
+  }).join("") : "";
+  const doors = state.activeStructureKind === "door" ? state.structures.doors.map((item, index) => {
     const line = segmentSvg(item, "#bd5c36", 7);
     const hinge = meterToPixel(item.start);
     const end = meterToPixel(item.end);
     const radius = Math.hypot(end.x - hinge.x, end.y - hinge.y);
-    const sweep = item.opening_direction === "left" ? 0 : 1;
+    const swingEnd = item.swing_end ? meterToPixel(item.swing_end) : {
+      x: hinge.x + (end.y - hinge.y),
+      y: hinge.y - (end.x - hinge.x),
+    };
+    const swingCross = (end.x - hinge.x) * (swingEnd.y - hinge.y)
+      - (end.y - hinge.y) * (swingEnd.x - hinge.x);
+    const sweep = item.swing_end
+      ? (swingCross >= 0 ? 1 : 0)
+      : (item.opening_direction === "left" ? 0 : 1);
+    const selected = state.selectedStructure?.kind === "door"
+      && state.selectedStructure?.id === item.id;
+    const midpoint = {
+      x: (hinge.x + end.x) / 2,
+      y: (hinge.y + end.y) / 2,
+    };
+    const dragTarget = `<line x1="${hinge.x}" y1="${hinge.y}" x2="${end.x}" y2="${end.y}"
+      stroke="transparent" stroke-width="34" pointer-events="stroke"/>`;
+    const marker = structureNumberMarkerSvg("door", index, midpoint, {
+      selected,
+      moveHandle: selected ? 'data-door-move-handle="true"' : "",
+    });
+    const handles = selected
+      ? `<circle data-door-handle="start" cx="${hinge.x}" cy="${hinge.y}" r="18"
+          fill="#fff" stroke="#bd5c36" stroke-width="7" style="cursor:ew-resize">
+          <title>拖曳此端調整門寬</title>
+        </circle>
+        <circle data-door-handle="end" cx="${end.x}" cy="${end.y}" r="18"
+          fill="#fff" stroke="#7755a6" stroke-width="7" style="cursor:ew-resize">
+          <title>拖曳此端調整門寬</title>
+        </circle>`
+      : "";
     return structureGroup(
       item,
       "door",
-      `${line}<path d="M ${end.x} ${end.y} A ${radius} ${radius} 0 0 ${sweep} ${hinge.x + (end.y - hinge.y)} ${hinge.y - (end.x - hinge.x)}" fill="none" stroke="#bd5c36" stroke-width="3"/>`,
+      `${dragTarget}${line}<path d="M ${end.x} ${end.y} A ${radius} ${radius} 0 0 ${sweep} ${swingEnd.x} ${swingEnd.y}" fill="none" stroke="#bd5c36" stroke-width="3"/>${marker}${handles}`,
     );
-  }).join("");
-  const beams = state.structures.beams.map((item) => structureGroup(
-    item,
-    "beam",
-    segmentSvg(item, "#6b4d8a", 11, "12 7"),
-  )).join("");
-  const columns = state.structures.columns.map((item) => {
+  }).join("") : "";
+  const beams = state.activeStructureKind === "beam" ? state.structures.beams.map((item, index) => {
+    const start = meterToPixel(item.start);
+    const end = meterToPixel(item.end);
+    const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+    const selected = state.selectedStructure?.kind === "beam"
+      && state.selectedStructure?.id === item.id;
+    return structureGroup(
+      item,
+      "beam",
+      `${beamBandSvg(item, { selected })}
+      ${structureNumberMarkerSvg("beam", index, midpoint, { selected })}
+      ${selected ? `<circle data-beam-handle="start" cx="${start.x}" cy="${start.y}" r="17"
+        fill="#fff" stroke="#6b4d8a" stroke-width="6" style="cursor:crosshair"/>
+      <circle data-beam-handle="end" cx="${end.x}" cy="${end.y}" r="17"
+        fill="#fff" stroke="#ef9f19" stroke-width="6" style="cursor:crosshair"/>` : ""}`,
+    );
+  }).join("") : "";
+  const columns = state.activeStructureKind === "column" ? state.structures.columns.map((item, index) => {
     const pixel = meterToPixel(item.center);
-    const size = Number(item.size_m || 0.35) / planGeometry().scale;
+    const width = Number(item.size_m || 0.35) / planGeometry().scale;
+    const depth = Number(item.depth_m || item.size_m || 0.35) / planGeometry().scale;
+    const selected = state.selectedStructure?.kind === "column"
+      && state.selectedStructure?.id === item.id;
     return structureGroup(
       item,
       "column",
-      `<rect x="${pixel.x - size / 2}" y="${pixel.y - size / 2}" width="${size}" height="${size}" fill="rgba(189,92,54,.32)" stroke="#8e3e23" stroke-width="4"/>`,
+      `<rect x="${pixel.x - width / 2}" y="${pixel.y - depth / 2}" width="${width}" height="${depth}"
+        transform="rotate(${Number(item.rotation_deg || 0)} ${pixel.x} ${pixel.y})"
+        fill="rgba(189,92,54,.32)" stroke="#8e3e23" stroke-width="4"/>
+      ${structureNumberMarkerSvg("column", index, pixel, { selected })}`,
     );
-  }).join("");
-  return `<g>${walls}${windows}${doors}${beams}${columns}</g>`;
+  }).join("") : "";
+  const beamDraft = state.activeStructureKind === "beam" && structureCreateDrag
+    ? beamBandSvg({
+      start: structureCreateDrag.geometry.start,
+      end: structureCreateDrag.geometry.end,
+      thickness_m: structureCreateDrag.thicknessM,
+    }, { selected: true, draft: true })
+    : "";
+  return `<g>${walls}${windows}${doors}${beams}${columns}${beamDraft}</g>`;
 }
 
 let draggedRoomPointIndex = null;
 let structureDrag = null;
+let doorResizeDrag = null;
+let beamResizeDrag = null;
+let structureCreateDrag = null;
+
+function cancelStructureInteraction() {
+  state.structureTool = null;
+  state.structureLineStart = null;
+  state.selectedStructure = null;
+  structureDrag = null;
+  doorResizeDrag = null;
+  beamResizeDrag = null;
+  structureCreateDrag = null;
+  $$("[data-structure-tool]").forEach((button) => button.classList.remove("is-active"));
+  renderSpaceOverlay();
+  renderDoorReviewList();
+  renderSelectedStructureEditor();
+  setStatus("已取消目前操作與結構選取。");
+}
+
+function finishBeamCreateDrag() {
+  if (!structureCreateDrag) return false;
+  const draft = structureCreateDrag;
+  structureCreateDrag = null;
+  if (!draft.geometry.valid) {
+    renderSpaceOverlay();
+    setStatus("樑長至少需要 25 公分，請重新拖曳起點與終點。", "error");
+    return false;
+  }
+  const item = {
+    id: `beam-manual-${Date.now()}`,
+    start: draft.geometry.start,
+    end: draft.geometry.end,
+    thickness_m: draft.thicknessM,
+    height_m: draft.heightM,
+    top_m: Number(state.sceneData?.floorplan?.room_height_cm || 270) / 100,
+    confirmed: false,
+    estimated: true,
+    source: "manual",
+  };
+  state.structures.beams.push(item);
+  state.selectedStructure = { id: item.id, kind: "beam" };
+  state.structureTool = null;
+  $$('[data-structure-tool]').forEach((button) => button.classList.remove("is-active"));
+  renderSpaceOverlay();
+  renderStructureCounts();
+  renderStructureReviewList();
+  renderSelectedStructureEditor();
+  invalidateDownstreamFrom("space_confirmation", "已新增樑，後續需求、家具與 3D 需要重新確認。");
+  scheduleSave("space_confirmation");
+  setStatus(`已新增樑 ${state.structures.beams.length}，長度 ${Math.round(draft.geometry.lengthM * 100)} 公分。`);
+  return true;
+}
+
 function spacePointerDown(event) {
+  if (state.spaceMode === "rooms" && state.roomGeometryMode === "split") {
+    const point = imagePoint(event, element.spaceImage);
+    if (!point) return;
+    state.splitPoints.push(pixelToMeter(point));
+    updateRoomGeometryControls();
+    renderSpaceOverlay();
+    if (state.splitPoints.length === 2) {
+      splitSelectedRoom(state.splitPoints[0], state.splitPoints[1]);
+    }
+    return;
+  }
+  if (state.spaceMode === "rooms" && state.roomNodeMode === "split") {
+    const point = imagePoint(event, element.spaceImage);
+    if (point) insertRoomNodeAt(pixelToMeter(point));
+    return;
+  }
+  if (
+    state.spaceMode === "structure"
+    && ["door", "window", "column"].includes(state.structureTool)
+  ) {
+    const point = imagePoint(event, element.spaceImage);
+    if (point) addDroppedStructure(state.structureTool, point);
+    return;
+  }
+  if (state.spaceMode === "structure" && state.structureTool === "beam") {
+    const point = imagePoint(event, element.spaceImage);
+    if (!point) return;
+    const meter = pixelToMeter(point);
+    structureCreateDrag = {
+      geometry: beamDragGeometry(meter, meter, beamSnapCandidates()),
+      thicknessM: 0.3,
+      heightM: 0.35,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    renderSpaceOverlay();
+    setStatus("按住並拖曳到樑的終點；系統會自動對齊水平、垂直並磁吸牆柱端點。");
+    return;
+  }
+  if (state.structureTool === "wall") {
+    const point = imagePoint(event, element.spaceImage);
+    if (!point) return;
+    const meter = pixelToMeter(point);
+    if (!state.structureLineStart) {
+      state.structureLineStart = meter;
+      setStatus(`已設定${state.structureTool === "wall" ? "牆" : "樑"}起點，請再點終點。`);
+    } else {
+      const kind = state.structureTool;
+      const collection = kind === "wall" ? "walls" : "beams";
+      const item = {
+        id: `${kind}-manual-${Date.now()}`,
+        start: state.structureLineStart,
+        end: meter,
+        thickness_m: kind === "wall" ? 0.12 : 0.3,
+        height_m: kind === "wall" ? 2.7 : 0.35,
+        confirmed: false,
+        estimated: true,
+        source: "manual",
+      };
+      state.structures[collection].push(item);
+      state.selectedStructure = { id: item.id, kind };
+      state.structureLineStart = null;
+      state.structureTool = null;
+      $$("[data-structure-tool]").forEach((button) => button.classList.remove("is-active"));
+      renderSpaceOverlay();
+      renderStructureCounts();
+      renderStructureReviewList();
+      renderSelectedStructureEditor();
+      invalidateDownstreamFrom("space_confirmation", "已新增牆/樑，後續需求、家具與 3D 需要重新確認。");
+      scheduleSave("space_confirmation");
+      setStatus(`已新增${structureSectionMeta[kind].label} ${state.structures[collection].length}，可拖曳、調整尺寸、刪除或確認。`);
+    }
+    return;
+  }
+  const beamHandle = event.target.closest("[data-beam-handle]");
+  if (beamHandle) {
+    const structureNode = beamHandle.closest("[data-structure-id]");
+    state.selectedStructure = {
+      id: structureNode.dataset.structureId,
+      kind: "beam",
+    };
+    beamResizeDrag = {
+      handle: beamHandle.dataset.beamHandle,
+      snapshot: JSON.parse(JSON.stringify(selectedStructureItem())),
+    };
+    renderStructureReviewList();
+    renderSelectedStructureEditor();
+    return;
+  }
+  const openingHandle = event.target.closest("[data-door-handle], [data-opening-handle]");
+  if (openingHandle) {
+    const structureNode = openingHandle.closest("[data-structure-id]");
+    state.selectedStructure = {
+      id: structureNode.dataset.structureId,
+      kind: structureNode.dataset.structureKind,
+    };
+    doorResizeDrag = {
+      handle: openingHandle.dataset.doorHandle || openingHandle.dataset.openingHandle,
+      snapshot: JSON.parse(JSON.stringify(selectedStructureItem())),
+    };
+    renderDoorReviewList();
+    renderSelectedStructureEditor();
+    return;
+  }
   const structureNode = event.target.closest("[data-structure-id]");
   if (structureNode) {
     state.selectedStructure = {
@@ -1127,11 +1873,32 @@ function spacePointerDown(event) {
       };
     }
     renderSpaceOverlay();
+    renderDoorReviewList();
     renderSelectedStructureEditor();
+    return;
+  }
+  if (state.spaceMode === "structure" && !state.structureTool) {
+    if (state.selectedStructure) {
+      state.selectedStructure = null;
+      renderSpaceOverlay();
+      renderDoorReviewList();
+      renderSelectedStructureEditor();
+      setStatus("已取消結構選取。");
+    }
     return;
   }
   const node = event.target.closest("[data-room-point]");
   if (node) {
+    if (state.roomNodeMode === "merge") {
+      const index = Number(node.dataset.roomPoint);
+      state.selectedRoomNodeIndices = state.selectedRoomNodeIndices.includes(index)
+        ? state.selectedRoomNodeIndices.filter((item) => item !== index)
+        : [...state.selectedRoomNodeIndices.slice(-1), index];
+      element.spaceError.textContent = "";
+      updateRoomNodeControls();
+      renderSpaceOverlay();
+      return;
+    }
     draggedRoomPointIndex = Number(node.dataset.roomPoint);
     return;
   }
@@ -1140,33 +1907,47 @@ function spacePointerDown(event) {
     selectRoom(roomShape.dataset.roomShape);
     return;
   }
-  if (state.structureTool === "wall" || state.structureTool === "beam") {
-    const point = imagePoint(event, element.spaceImage);
-    if (!point) return;
-    const meter = pixelToMeter(point);
-    if (!state.structureLineStart) {
-      state.structureLineStart = meter;
-      setStatus(`已設定${state.structureTool === "wall" ? "牆" : "梁"}起點，請再點終點。`);
-    } else {
-      const collection = state.structureTool === "wall" ? "walls" : "beams";
-      state.structures[collection].push({
-        id: `${state.structureTool}-manual-${Date.now()}`,
-        start: state.structureLineStart,
-        end: meter,
-        thickness_m: state.structureTool === "wall" ? 0.12 : 0.3,
-        estimated: true,
-        source: "manual",
-      });
-      state.structureLineStart = null;
-      renderSpaceOverlay();
-      renderStructureCounts();
-      invalidateDownstreamFrom("space_confirmation", "已新增牆/梁，後續需求、家具與 3D 需要重新確認。");
-      scheduleSave("space_confirmation");
-    }
-  }
 }
 
 function spacePointerMove(event) {
+  if (structureCreateDrag) {
+    const point = imagePoint(event, element.spaceImage);
+    if (!point) return;
+    structureCreateDrag.geometry = beamDragGeometry(
+      structureCreateDrag.geometry.start,
+      pixelToMeter(point),
+      beamSnapCandidates(),
+    );
+    renderSpaceOverlay();
+    return;
+  }
+  if (beamResizeDrag) {
+    const point = imagePoint(event, element.spaceImage);
+    const item = selectedStructureItem();
+    if (!point || !item) return;
+    const fixed = beamResizeDrag.handle === "start"
+      ? beamResizeDrag.snapshot.end
+      : beamResizeDrag.snapshot.start;
+    const geometry = beamDragGeometry(
+      fixed,
+      pixelToMeter(point),
+      beamSnapCandidates(item.id),
+    );
+    if (beamResizeDrag.handle === "start") {
+      item.start = geometry.end;
+      item.end = fixed;
+    } else {
+      item.start = fixed;
+      item.end = geometry.end;
+    }
+    item.confirmed = false;
+    renderSpaceOverlay();
+    return;
+  }
+  if (doorResizeDrag) {
+    resizeOpeningFromPointer(event);
+    return;
+  }
   if (structureDrag && state.selectedStructure) {
     const point = imagePoint(event, element.spaceImage);
     const item = selectedStructureItem();
@@ -1179,6 +1960,25 @@ function spacePointerMove(event) {
         x: structureDrag.snapshot.center.x + dx,
         y: structureDrag.snapshot.center.y + dy,
       };
+    } else if (["door", "window"].includes(state.selectedStructure.kind)) {
+      const snapshotCenter = {
+        x: (structureDrag.snapshot.start.x + structureDrag.snapshot.end.x) / 2,
+        y: (structureDrag.snapshot.start.y + structureDrag.snapshot.end.y) / 2,
+      };
+      item.start = { ...structureDrag.snapshot.start };
+      item.end = { ...structureDrag.snapshot.end };
+      item.width_m = Number(
+        structureDrag.snapshot.width_m
+        || Math.hypot(
+          structureDrag.snapshot.end.x - structureDrag.snapshot.start.x,
+          structureDrag.snapshot.end.y - structureDrag.snapshot.start.y,
+        ),
+      );
+      snapOpeningToHostWall(item, {
+        x: snapshotCenter.x + dx,
+        y: snapshotCenter.y + dy,
+      });
+      item.confirmed = false;
     } else {
       item.start = {
         x: structureDrag.snapshot.start.x + dx,
@@ -1189,6 +1989,7 @@ function spacePointerMove(event) {
         y: structureDrag.snapshot.end.y + dy,
       };
     }
+    item.confirmed = false;
     renderSpaceOverlay();
     return;
   }
@@ -1209,6 +2010,14 @@ function selectedStructureItem() {
   ) || null;
 }
 
+function selectedStructureIndex() {
+  if (!state.selectedStructure) return -1;
+  const collection = structureCollections[state.selectedStructure.kind];
+  return state.structures[collection]?.findIndex(
+    (item) => item.id === state.selectedStructure.id,
+  ) ?? -1;
+}
+
 function renderSelectedStructureEditor() {
   const item = selectedStructureItem();
   element.structureEditor.hidden = !item;
@@ -1217,16 +2026,25 @@ function renderSelectedStructureEditor() {
     wall: "牆",
     door: "門",
     window: "窗",
-    beam: "梁",
+    beam: "樑",
     column: "柱",
   };
+  const selectedIndex = selectedStructureIndex();
   $("#selected-structure-title").textContent =
-    `選取${labels[state.selectedStructure.kind] || "結構"}`;
+    `選取${labels[state.selectedStructure.kind] || "結構"} ${selectedIndex + 1}`;
   const isLineWidth = ["door", "window"].includes(state.selectedStructure.kind);
+  const isDoor = state.selectedStructure.kind === "door";
+  const isWindow = state.selectedStructure.kind === "window";
+  const isBeam = state.selectedStructure.kind === "beam";
+  const isColumn = state.selectedStructure.kind === "column";
+  const hasLength = ["wall", "beam"].includes(state.selectedStructure.kind);
+  $("#selected-structure-length-cm").readOnly = isBeam;
   $("#selected-structure-size-label").textContent = isLineWidth
     ? "開口寬度（公分）"
-    : state.selectedStructure.kind === "column"
+    : isColumn
       ? "柱寬（公分）"
+      : isBeam
+        ? "樑寬（公分）"
       : "厚度（公分）";
   const length = item.start && item.end
     ? Math.hypot(item.end.x - item.start.x, item.end.y - item.start.y)
@@ -1241,36 +2059,278 @@ function renderSelectedStructureEditor() {
     ) * 100,
   );
   $("#selected-structure-height-cm").value = Math.round(
-    Number(item.height_m || (state.selectedStructure.kind === "beam" ? 0.35 : 2.7)) * 100,
+    Number(
+      item.height_m
+      || (isWindow ? 1.2 : state.selectedStructure.kind === "beam" ? 0.35 : 2.7),
+    ) * 100,
   );
-  $("#flip-selected-door").hidden = state.selectedStructure.kind !== "door";
+  $("#selected-structure-length-field").hidden = !hasLength;
+  $("#selected-structure-depth-field").hidden = !isColumn;
+  if (hasLength) {
+    $("#selected-structure-length-cm").value = Math.round(length * 100);
+    $("#selected-structure-length-label").textContent =
+      isBeam ? "樑長（公分）" : "牆長（公分）";
+  }
+  if (isColumn) {
+    $("#selected-structure-depth-cm").value =
+      Math.round(Number(item.depth_m || item.size_m || 0.35) * 100);
+  }
+  $("#selected-structure-size-cm").min = isColumn ? "10" : "1";
+  $("#selected-structure-depth-cm").min = isColumn ? "10" : "1";
+  $("#selected-structure-height-cm").min = isColumn ? "30" : "1";
+  if (isColumn) {
+    const columnLimits = confirmedFloorplanEditor();
+    $("#selected-structure-size-cm").max = String(Math.round(columnLimits.width_cm));
+    $("#selected-structure-depth-cm").max = String(Math.round(columnLimits.depth_cm));
+    $("#selected-structure-height-cm").max = String(Math.round(columnLimits.room_height_cm));
+  } else {
+    $("#selected-structure-size-cm").removeAttribute("max");
+    $("#selected-structure-depth-cm").removeAttribute("max");
+    $("#selected-structure-height-cm").removeAttribute("max");
+  }
+  $("#selected-structure-height-label").textContent =
+    isBeam ? "下垂深度（公分）" : "高度（公分）";
+  $("#selected-structure-size-field").hidden = isLineWidth;
+  $("#opening-width-controls").hidden = !isLineWidth;
+  $("#window-sill-height-field").hidden = !isWindow;
+  if (isWindow) {
+    $("#window-sill-height-cm").value = Math.round(Number(item.sill_height_m ?? 0.9) * 100);
+  }
+  $("#apply-structure-size").textContent = isDoor ? "套用高度" : "套用尺寸";
+  if (isLineWidth) {
+    const widthCm = Math.round(Number(item.width_m || length || (isDoor ? 0.9 : 1.2)) * 100);
+    $("#opening-width-label").textContent = isDoor ? "門寬" : "窗寬";
+    element.openingWidthSlider.value = String(widthCm);
+    element.openingWidthValue.textContent = `${widthCm} cm`;
+  }
+  $("#flip-selected-door").hidden = !isDoor;
+  $("#rotate-selected-door-180").hidden = !isDoor;
+  const canRotateStructure = ["door", "window", "wall"].includes(state.selectedStructure.kind);
+  $("#rotate-selected-structure-left").hidden = !canRotateStructure;
+  $("#rotate-selected-structure-right").hidden = !canRotateStructure;
+  $("#structure-editor-guidance").textContent = isDoor
+    ? "拖曳左圖門弧可沿牆移動；可調整門寬、門高、開門側與鉸鏈端。"
+    : isWindow
+      ? "拖曳左圖藍色窗線可移動；可調整窗寬、窗高與窗台離地高度。"
+      : isBeam
+        ? "拖曳左圖樑帶可移動；拖曳兩端圓點可改變長度，並在下方調整樑寬與下垂深度。"
+        : isColumn
+          ? "左圖調整柱的位置；下方室內 3D 預覽顯示柱從地板到天花板的寬、深與高度。"
+      : "可直接在左圖拖曳移動，並在下方調整尺寸。";
+  const showStructurePreview = isBeam || isColumn;
+  $("#structure-3d-preview-panel").hidden = !showStructurePreview;
+  if (showStructurePreview) {
+    const index = selectedIndex;
+    const previewFloorplan = confirmedFloorplanEditor();
+    structurePreview.render(item, state.selectedStructure.kind, index, {
+      walls: state.structures.walls,
+      planWidthM: previewFloorplan.width_cm / 100,
+      planDepthM: previewFloorplan.depth_cm / 100,
+      ceilingHeightM: previewFloorplan.room_height_cm / 100,
+    });
+    $("#structure-3d-preview-title").textContent =
+      `${labels[state.selectedStructure.kind]} ${index + 1} · 室內 3D 預覽`;
+    $("#structure-3d-preview-status").textContent = isBeam
+      ? `紫色樑位於天花板下方；目前長 ${Math.round(length * 100)} cm、寬 ${Math.round(Number(item.thickness_m || 0.3) * 100)} cm、下垂 ${Math.round(Number(item.height_m || 0.35) * 100)} cm。`
+      : `棕色柱從地板立起；目前寬 ${Math.round(Number(item.size_m || 0.35) * 100)} cm、深 ${Math.round(Number(item.depth_m || item.size_m || 0.35) * 100)} cm、高 ${Math.round(Number(item.height_m || 2.7) * 100)} cm。`;
+  }
+  $("#structure-editor-hint").textContent =
+    `修改${labels[state.selectedStructure.kind]}的位置或尺寸後，會回到待確認狀態。`;
+}
+
+function structureMeasurement(item, kind) {
+  if (kind === "door" || kind === "window") {
+    const widthM = Number(
+      item.width_m
+      || Math.hypot(item.end?.x - item.start?.x, item.end?.y - item.start?.y)
+      || (kind === "door" ? 0.9 : 1.2),
+    );
+    const heightM = Number(item.height_m || (kind === "door" ? 2.1 : 1.2));
+    return `寬 ${Math.round(widthM * 100)} × 高 ${Math.round(heightM * 100)} cm`;
+  }
+  if (kind === "column") {
+    return `寬 ${Math.round(Number(item.size_m || 0.35) * 100)} × 深 ${Math.round(Number(item.depth_m || item.size_m || 0.35) * 100)} × 高 ${Math.round(Number(item.height_m || 2.7) * 100)} cm`;
+  }
+  const lengthM = Math.hypot(
+    Number(item.end?.x || 0) - Number(item.start?.x || 0),
+    Number(item.end?.y || 0) - Number(item.start?.y || 0),
+  );
+  const widthM = Number(item.thickness_m || (kind === "beam" ? 0.3 : 0.12));
+  const heightM = Number(item.height_m || (kind === "beam" ? 0.35 : 2.7));
+  return `長 ${Math.round(lengthM * 100)} × ${kind === "beam" ? "寬" : "厚"} ${Math.round(widthM * 100)} × 高 ${Math.round(heightM * 100)} cm`;
+}
+
+function renderStructureReviewList() {
+  if (!element.doorReviewList) return;
+  const kind = state.activeStructureKind;
+  const meta = structureSectionMeta[kind];
+  const collection = state.structures[structureCollections[kind]] || [];
+  const confirmedCount = collection.filter((item) => item.confirmed === true).length;
+  $("#structure-review-title").textContent = meta.listTitle;
+  $("#structure-review-guidance").textContent = meta.guidance;
+  $("#structure-review-progress").textContent =
+    `已確認 ${confirmedCount} / ${collection.length} ${meta.unit}`;
+  const confirmAllButton = $("#confirm-all-visible-structures");
+  const allConfirmed = collection.length > 0 && confirmedCount === collection.length;
+  confirmAllButton.disabled = !collection.length || allConfirmed;
+  confirmAllButton.textContent = allConfirmed
+    ? `此頁${meta.label}已全部確認`
+    : `一鍵確認全部${meta.label}`;
+  const addButton = $("#add-active-structure");
+  addButton.dataset.structureTool = kind;
+  addButton.textContent = meta.addLabel;
+  if (!collection.length) {
+    element.doorReviewList.innerHTML =
+      `<p class="rp-control-hint">尚未辨識到${meta.label}。請按「${meta.addLabel}」，再到左側圖面指定位置。</p>`;
+    return;
+  }
+  element.doorReviewList.innerHTML = collection.map((item, index) => {
+    const selected = state.selectedStructure?.kind === kind
+      && state.selectedStructure?.id === item.id;
+    return `<article class="rp-door-review-item ${selected ? "is-active" : ""}">
+      <button type="button" class="rp-door-review-select"
+        data-structure-review="${escapeHtml(item.id)}" data-structure-kind="${kind}">
+        <strong>${meta.label} ${index + 1}</strong>
+        <span>${structureMeasurement(item, kind)} · ${item.confirmed ? "已確認" : "待人工確認"}</span>
+      </button>
+      <button type="button" class="rp-door-confirm ${item.confirmed ? "is-confirmed" : ""}"
+        data-confirm-structure="${escapeHtml(item.id)}" data-structure-kind="${kind}">${item.confirmed ? "已確認" : "確認"}</button>
+    </article>`;
+  }).join("");
+}
+
+function renderDoorReviewList() {
+  renderStructureReviewList();
+}
+
+function confirmStructure(kind, structureId) {
+  const collection = state.structures[structureCollections[kind]] || [];
+  const item = collection.find((candidate) => candidate.id === structureId);
+  if (!item) return;
+  item.confirmed = true;
+  item.estimated = false;
+  state.selectedStructure = { id: item.id, kind };
+  element.spaceError.textContent = "";
+  renderSpaceOverlay();
+  renderStructureReviewList();
+  renderSelectedStructureEditor();
+  renderStructureCounts();
+  scheduleSave("space_confirmation");
+  setStatus(`此${structureSectionMeta[kind].label}的位置與尺寸已確認。`);
+}
+
+function confirmDoor(doorId) {
+  confirmStructure("door", doorId);
 }
 
 function applySelectedStructureSize() {
   const item = selectedStructureItem();
   if (!item) return;
-  const sizeM = Math.max(0.01, Number($("#selected-structure-size-cm").value) / 100);
-  const heightM = Math.max(0.01, Number($("#selected-structure-height-cm").value) / 100);
   const kind = state.selectedStructure.kind;
-  if (kind === "door" || kind === "window") {
+  const columnLimits = kind === "column" ? confirmedFloorplanEditor() : null;
+  const columnDimensions = kind === "column"
+    ? validateColumnDimensionsCm({
+      widthCm: $("#selected-structure-size-cm").value,
+      depthCm: $("#selected-structure-depth-cm").value,
+      heightCm: $("#selected-structure-height-cm").value,
+      maxWidthCm: columnLimits.width_cm,
+      maxDepthCm: columnLimits.depth_cm,
+      maxHeightCm: columnLimits.room_height_cm,
+      centerXcm: Number(item.center?.x || 0) * 100,
+      centerYcm: Number(item.center?.y ?? item.center?.z ?? 0) * 100,
+      rotationDeg: Number(item.rotation_deg || 0),
+    })
+    : null;
+  if (columnDimensions && !columnDimensions.valid) {
+    element.spaceError.textContent = columnDimensions.message;
+    setStatus(columnDimensions.message);
+    return;
+  }
+  element.spaceError.textContent = "";
+  const sizeM = columnDimensions
+    ? columnDimensions.values.widthCm / 100
+    : Math.max(0.01, Number($("#selected-structure-size-cm").value) / 100);
+  const heightM = columnDimensions
+    ? columnDimensions.values.heightCm / 100
+    : Math.max(0.01, Number($("#selected-structure-height-cm").value) / 100);
+  const lengthM = Math.max(0.1, Number($("#selected-structure-length-cm").value) / 100);
+  const depthM = columnDimensions
+    ? columnDimensions.values.depthCm / 100
+    : Math.max(0.1, Number($("#selected-structure-depth-cm").value) / 100);
+  const sillHeightM = Math.max(0, Number($("#window-sill-height-cm").value) / 100);
+  if (kind === "window") {
     const cx = (item.start.x + item.end.x) / 2;
     const cy = (item.start.y + item.end.y) / 2;
     const angle = Math.atan2(item.end.y - item.start.y, item.end.x - item.start.x);
     item.start = { x: cx - Math.cos(angle) * sizeM / 2, y: cy - Math.sin(angle) * sizeM / 2 };
     item.end = { x: cx + Math.cos(angle) * sizeM / 2, y: cy + Math.sin(angle) * sizeM / 2 };
     item.width_m = sizeM;
+    item.sill_height_m = sillHeightM;
+    item.height_m = heightM;
+  } else if (kind === "door") {
+    item.height_m = heightM;
   } else if (kind === "column") {
     item.size_m = sizeM;
+    item.depth_m = depthM;
     item.height_m = heightM;
   } else {
     item.thickness_m = sizeM;
     item.height_m = heightM;
+    if (item.start && item.end) {
+      const center = {
+        x: (item.start.x + item.end.x) / 2,
+        y: (item.start.y + item.end.y) / 2,
+      };
+      const angle = Math.atan2(item.end.y - item.start.y, item.end.x - item.start.x);
+      item.start = {
+        x: center.x - Math.cos(angle) * lengthM / 2,
+        y: center.y - Math.sin(angle) * lengthM / 2,
+      };
+      item.end = {
+        x: center.x + Math.cos(angle) * lengthM / 2,
+        y: center.y + Math.sin(angle) * lengthM / 2,
+      };
+    }
   }
+  item.confirmed = false;
   item.estimated = false;
   renderSpaceOverlay();
+  renderDoorReviewList();
   renderSelectedStructureEditor();
   invalidateDownstreamFrom("space_confirmation", "結構尺寸已修改，後續需求、家具與 3D 需要重新確認。");
   scheduleSave("space_confirmation");
+  setStatus(kind === "column"
+    ? `柱尺寸已更新為 ${Math.round(sizeM * 100)} × ${Math.round(depthM * 100)} × ${Math.round(heightM * 100)} 公分。`
+    : "結構尺寸已更新。");
+}
+
+function setSelectedOpeningWidthCm(widthCm, persist = false) {
+  const item = selectedStructureItem();
+  if (!item || !["door", "window"].includes(state.selectedStructure?.kind)) return;
+  const kind = state.selectedStructure.kind;
+  const widthM = Math.max(0.3, Math.min(4, Number(widthCm) / 100));
+  const dx = item.end.x - item.start.x;
+  const dy = item.end.y - item.start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  item.end = {
+    x: item.start.x + dx / length * widthM,
+    y: item.start.y + dy / length * widthM,
+  };
+  if (kind === "door") delete item.swing_end;
+  item.width_m = widthM;
+  item.confirmed = false;
+  item.estimated = false;
+  element.openingWidthSlider.value = String(Math.round(widthM * 100));
+  element.openingWidthValue.textContent = `${Math.round(widthM * 100)} cm`;
+  renderSpaceOverlay();
+  renderDoorReviewList();
+  renderSelectedStructureEditor();
+  if (persist) {
+    const label = structureSectionMeta[kind].label;
+    invalidateDownstreamFrom("space_confirmation", `${label}寬已調整，後續需求、家具與 3D 需要重新確認。`);
+    scheduleSave("space_confirmation");
+    setStatus(`${label}寬已調整為 ${Math.round(widthM * 100)} cm；請重新確認此${label}。`);
+  }
 }
 
 function syncFurnitureSelectFromCheckboxes() {
@@ -1293,7 +2353,19 @@ function syncFurnitureCheckboxesFromSelect() {
 
 function rotateSelectedStructure(deltaDeg) {
   const item = selectedStructureItem();
-  if (!item || !item.start || !item.end) return;
+  if (!item) return;
+  if (state.selectedStructure?.kind === "column") {
+    item.rotation_deg = (Number(item.rotation_deg) || 0) + deltaDeg;
+    item.confirmed = false;
+    item.estimated = false;
+    renderSpaceOverlay();
+    renderStructureReviewList();
+    renderSelectedStructureEditor();
+    invalidateDownstreamFrom("space_confirmation", "柱的方向已微調，後續需求、家具與 3D 需要重新確認。");
+    scheduleSave("space_confirmation");
+    return;
+  }
+  if (!item.start || !item.end) return;
   const angle = Math.atan2(item.end.y - item.start.y, item.end.x - item.start.x)
     + (Math.PI / 180) * deltaDeg;
   const length = Math.hypot(item.end.x - item.start.x, item.end.y - item.start.y);
@@ -1309,8 +2381,12 @@ function rotateSelectedStructure(deltaDeg) {
     x: center.x + Math.cos(angle) * length / 2,
     y: center.y + Math.sin(angle) * length / 2,
   };
+  if (state.selectedStructure?.kind === "door") delete item.swing_end;
+  item.confirmed = false;
   item.estimated = false;
   renderSpaceOverlay();
+  renderDoorReviewList();
+  renderDoorReviewList();
   renderSelectedStructureEditor();
   invalidateDownstreamFrom("space_confirmation", "結構方向已微調，後續需求、家具與 3D 需要重新確認。");
   scheduleSave("space_confirmation");
@@ -1318,11 +2394,13 @@ function rotateSelectedStructure(deltaDeg) {
 
 function deleteSelectedStructure() {
   if (!state.selectedStructure) return;
+  const deletedKind = state.selectedStructure.kind;
   const collection = structureCollections[state.selectedStructure.kind];
   state.structures[collection] = state.structures[collection].filter(
     (item) => item.id !== state.selectedStructure.id,
   );
-  state.selectedStructure = null;
+  const nextItem = state.structures[collection][0] || null;
+  state.selectedStructure = nextItem ? { id: nextItem.id, kind: deletedKind } : null;
   renderSpaceOverlay();
   renderStructureCounts();
   renderSelectedStructureEditor();
@@ -1331,8 +2409,25 @@ function deleteSelectedStructure() {
 }
 
 function selectRoom(roomId) {
+  if (state.selectedRoomId !== roomId) {
+    state.roomNodeMode = null;
+    state.selectedRoomNodeIndices = [];
+    updateRoomNodeControls();
+  }
   state.selectedRoomId = roomId;
-  state.showAllRooms = false;
+  if (state.roomGeometryMode === "merge") {
+    state.showAllRooms = true;
+    state.mergeRoomIds = state.mergeRoomIds.includes(roomId)
+      ? state.mergeRoomIds.filter((id) => id !== roomId)
+      : [...state.mergeRoomIds.slice(-1), roomId];
+    updateRoomGeometryControls();
+  } else {
+    state.showAllRooms = false;
+    if (state.roomGeometryMode === "split") {
+      state.splitPoints = [];
+      updateRoomGeometryControls();
+    }
+  }
   renderRooms();
   renderSpaceOverlay();
 }
@@ -1340,28 +2435,19 @@ function selectRoom(roomId) {
 function saveRoom() {
   const room = state.rooms.find((item) => item.id === state.selectedRoomId);
   if (!room) return;
-  const targetWidth = Number(element.roomWidth.value) / 100;
-  const targetDepth = Number(element.roomDepth.value) / 100;
-  if (!(targetWidth > 0) || !(targetDepth > 0)) {
-    element.spaceError.textContent = "房間長寬必須大於 0 公分。";
+  const name = element.roomName.value.trim();
+  if (!name) {
+    element.spaceError.textContent = "請輸入空間名稱。";
+    element.roomName.focus();
     return;
   }
-  room.label = element.roomName.value.trim() || room.label;
-  const xs = room.polygon_m.map((point) => point.x);
-  const ys = room.polygon_m.map((point) => point.y);
-  const center = {
-    x: (Math.min(...xs) + Math.max(...xs)) / 2,
-    y: (Math.min(...ys) + Math.max(...ys)) / 2,
-  };
-  const currentWidth = Math.max(...xs) - Math.min(...xs) || 1;
-  const currentDepth = Math.max(...ys) - Math.min(...ys) || 1;
-  room.polygon_m = room.polygon_m.map((point) => ({
-    x: center.x + (point.x - center.x) * targetWidth / currentWidth,
-    y: center.y + (point.y - center.y) * targetDepth / currentDepth,
-  }));
+  room.label = name;
+  room.confirmed = false;
+  room.source = "manual_confirmation";
+  room.confidence = 1;
+  element.spaceError.textContent = "";
   renderRooms();
   renderSpaceOverlay();
-  $("#rooms-confirmed").checked = false;
   invalidateDownstreamFrom("space_confirmation", "房間資料已修改，後續需求、家具與 3D 需要重新確認。");
   scheduleSave("space_confirmation");
 }
@@ -1374,15 +2460,130 @@ function nearestPointOnSegment(point, start, end) {
   return { x: start.x + t * dx, y: start.y + t * dy, t };
 }
 
+function nearestPointOnLine(point, start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy || 1;
+  const t = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared;
+  return { x: start.x + t * dx, y: start.y + t * dy, t };
+}
+
+function openingHostWall(item) {
+  const center = {
+    x: (item.start.x + item.end.x) / 2,
+    y: (item.start.y + item.end.y) / 2,
+  };
+  const doorDx = item.end.x - item.start.x;
+  const doorDy = item.end.y - item.start.y;
+  const doorLength = Math.hypot(doorDx, doorDy) || 1;
+  return state.structures.walls
+    .map((wall) => {
+      const wallDx = wall.end.x - wall.start.x;
+      const wallDy = wall.end.y - wall.start.y;
+      const wallLength = Math.hypot(wallDx, wallDy) || 1;
+      const alignment = Math.abs(
+        (doorDx / doorLength) * (wallDx / wallLength)
+        + (doorDy / doorLength) * (wallDy / wallLength),
+      );
+      const projected = nearestPointOnLine(center, wall.start, wall.end);
+      const segmentProjection = nearestPointOnSegment(center, wall.start, wall.end);
+      const perpendicularDistance = Math.hypot(projected.x - center.x, projected.y - center.y);
+      const extensionDistance = Math.hypot(
+        projected.x - segmentProjection.x,
+        projected.y - segmentProjection.y,
+      );
+      const recognizedHostBonus = wall.id === item.host_wall_id && alignment > 0.92 ? -0.08 : 0;
+      return {
+        wall,
+        score: perpendicularDistance
+          + (1 - alignment) * 3
+          + extensionDistance * 0.12
+          + recognizedHostBonus,
+      };
+    })
+    .sort((a, b) => a.score - b.score)[0]?.wall || null;
+}
+
+function snapOpeningToHostWall(item, targetCenter) {
+  const wall = openingHostWall(item);
+  if (!wall) return false;
+  const center = nearestPointOnLine(targetCenter, wall.start, wall.end);
+  const wallDx = wall.end.x - wall.start.x;
+  const wallDy = wall.end.y - wall.start.y;
+  const wallLength = Math.hypot(wallDx, wallDy) || 1;
+  const axis = { x: wallDx / wallLength, y: wallDy / wallLength };
+  const currentDx = item.end.x - item.start.x;
+  const currentDy = item.end.y - item.start.y;
+  const direction = currentDx * axis.x + currentDy * axis.y < 0 ? -1 : 1;
+  const halfWidth = Math.max(
+    0.2,
+    Number(item.width_m || Math.hypot(currentDx, currentDy) || 0.9) / 2,
+  );
+  item.start = {
+    x: center.x - axis.x * halfWidth * direction,
+    y: center.y - axis.y * halfWidth * direction,
+  };
+  item.end = {
+    x: center.x + axis.x * halfWidth * direction,
+    y: center.y + axis.y * halfWidth * direction,
+  };
+  delete item.swing_end;
+  item.host_wall_id = wall.id;
+  return true;
+}
+
+function resizeOpeningFromPointer(event) {
+  const item = selectedStructureItem();
+  const point = imagePoint(event, element.spaceImage);
+  if (!item || !point || !["door", "window"].includes(state.selectedStructure?.kind)) return;
+  const requested = pixelToMeter(point);
+  const wall = openingHostWall(item);
+  const projected = nearestPointOnLine(requested, item.start, item.end);
+  const movingKey = doorResizeDrag.handle;
+  const fixedKey = movingKey === "start" ? "end" : "start";
+  const fixed = item[fixedKey];
+  const snapshotMoving = doorResizeDrag.snapshot[movingKey];
+  let dx = projected.x - fixed.x;
+  let dy = projected.y - fixed.y;
+  let length = Math.hypot(dx, dy);
+  if (length < 0.001) {
+    dx = snapshotMoving.x - fixed.x;
+    dy = snapshotMoving.y - fixed.y;
+    length = Math.hypot(dx, dy) || 1;
+  }
+  const width = Math.max(0.3, Math.min(4, length));
+  item[movingKey] = {
+    x: fixed.x + dx / length * width,
+    y: fixed.y + dy / length * width,
+  };
+  if (state.selectedStructure?.kind === "door") delete item.swing_end;
+  item.width_m = Math.hypot(
+    item.end.x - item.start.x,
+    item.end.y - item.start.y,
+  );
+  item.host_wall_id = wall?.id || item.host_wall_id;
+  item.confirmed = false;
+  item.estimated = false;
+  renderSpaceOverlay();
+  renderDoorReviewList();
+  renderSelectedStructureEditor();
+}
+
 function addDroppedStructure(tool, point) {
+  state.activeStructureKind = tool;
   const meter = pixelToMeter(point);
+  let item = null;
   if (tool === "column") {
-    state.structures.columns.push({
+    item = {
       id: `column-manual-${Date.now()}`,
       center: meter,
       size_m: 0.35,
+      depth_m: 0.35,
+      height_m: 2.7,
+      confirmed: false,
       estimated: true,
-    });
+    };
+    state.structures.columns.push(item);
   } else if (tool === "door" || tool === "window") {
     const candidates = state.structures.walls.map((wall) => ({
       wall,
@@ -1399,44 +2600,147 @@ function addDroppedStructure(tool, point) {
     const wallEnd = host?.wall.end || { x: meter.x + 1, y: meter.y };
     const angle = Math.atan2(wallEnd.y - wallStart.y, wallEnd.x - wallStart.x);
     const center = host?.projected || meter;
-    const item = {
+    item = {
       id: `${tool}-manual-${Date.now()}`,
       start: { x: center.x - Math.cos(angle) * widthM / 2, y: center.y - Math.sin(angle) * widthM / 2 },
       end: { x: center.x + Math.cos(angle) * widthM / 2, y: center.y + Math.sin(angle) * widthM / 2 },
       width_m: widthM,
+      height_m: tool === "window" ? 1.2 : 2.1,
+      sill_height_m: tool === "window" ? 0.9 : 0,
       host_wall_id: host?.wall.id,
       source: "manual",
       opening_direction: "right",
+      confirmed: false,
       estimated: true,
     };
+    if (tool === "window") {
+      const duplicate = state.structures.windows.find((candidate) => windowsOverlap(candidate, item));
+      if (duplicate) {
+        state.selectedStructure = { id: duplicate.id, kind: "window" };
+        state.structureTool = null;
+        $$("[data-structure-tool]").forEach((button) => button.classList.remove("is-active"));
+        renderSpaceOverlay();
+        renderStructureReviewList();
+        renderSelectedStructureEditor();
+        setStatus("此位置已有窗，已選取既有窗，不重複新增。");
+        return;
+      }
+    }
     state.structures[tool === "door" ? "doors" : "windows"].push(item);
   }
+  if (item) {
+    state.selectedStructure = { id: item.id, kind: tool };
+  }
+  state.structureTool = null;
+  $$("[data-structure-tool]").forEach((button) => button.classList.remove("is-active"));
   renderSpaceOverlay();
   renderStructureCounts();
+  renderStructureReviewList();
+  renderSelectedStructureEditor();
+  invalidateDownstreamFrom("space_confirmation", "已新增結構，後續需求、家具與 3D 需要重新確認。");
   scheduleSave("space_confirmation");
+  setStatus(`已新增${tool === "door" ? "門" : tool === "window" ? "窗" : "柱"}，可在右側繼續修改。`);
+}
+
+function setActiveStructureKind(kind) {
+  if (!structureCollections[kind]) return;
+  state.activeStructureKind = kind;
+  state.structureTool = null;
+  state.structureLineStart = null;
+  structureDrag = null;
+  doorResizeDrag = null;
+  const firstItem = state.structures[structureCollections[kind]]?.[0] || null;
+  state.selectedStructure = firstItem ? { id: firstItem.id, kind } : null;
+  $$("[data-structure-section]").forEach((button) => {
+    const active = button.dataset.structureSection === kind;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  $$("[data-structure-tool]").forEach((button) => button.classList.remove("is-active"));
+  renderSpaceOverlay();
+  renderStructureReviewList();
+  renderSelectedStructureEditor();
+  setStatus(`已切換到${structureSectionMeta[kind].label}頁；左圖只顯示此類結構的可編輯標記。`);
+}
+
+function selectStructureForReview(kind, structureId) {
+  const item = state.structures[structureCollections[kind]]?.find(
+    (candidate) => candidate.id === structureId,
+  );
+  if (!item) return;
+  state.activeStructureKind = kind;
+  state.selectedStructure = { id: item.id, kind };
+  renderSpaceOverlay();
+  renderStructureReviewList();
+  renderSelectedStructureEditor();
+  setStatus(`已選取${structureSectionMeta[kind].label}，可拖曳、修改尺寸、旋轉或刪除。`);
+}
+
+function selectDoorForReview(doorId) {
+  selectStructureForReview("door", doorId);
+}
+
+function rotateSelectedDoor180() {
+  const item = selectedStructureItem();
+  if (!item || state.selectedStructure?.kind !== "door") return;
+  [item.start, item.end] = [item.end, item.start];
+  delete item.swing_end;
+  item.confirmed = false;
+  item.estimated = false;
+  element.spaceError.textContent = "";
+  renderSpaceOverlay();
+  renderDoorReviewList();
+  renderSelectedStructureEditor();
+  renderStructureCounts();
+  invalidateDownstreamFrom("space_confirmation", "門的鉸鏈端已翻轉，後續需求、家具與 3D 需要重新確認。");
+  scheduleSave("space_confirmation");
+  setStatus("已將鉸鏈端翻轉 180°；請檢查門弧後重新確認此扇門。");
 }
 
 function renderStructureCounts() {
   const s = state.structures;
-  const pendingDoorDirections = s.doors.filter(
-    (door) => !["left", "right"].includes(door.opening_direction),
-  ).length;
-  const doorReview = pendingDoorDirections
-    ? `；門向待人工確認 ${pendingDoorDirections} 扇（點門後按「切換門向」）`
-    : "；門向皆已確認";
+  const pendingSummary = Object.entries(structureCollections)
+    .map(([kind, collection]) => ({
+      label: structureSectionMeta[kind].label,
+      count: s[collection].filter((item) => item.confirmed !== true).length,
+    }))
+    .filter((item) => item.count > 0)
+    .map((item) => `${item.label} ${item.count}`)
+    .join("、");
+  const review = pendingSummary
+    ? `；待確認：${pendingSummary}`
+    : "；所有結構皆已確認";
   element.structureCounts.textContent =
-    `Cody＋人工：牆 ${s.walls.length}、門 ${s.doors.length}、窗 ${s.windows.length}、梁 ${s.beams.length}、柱 ${s.columns.length}${doorReview}`;
+    `辨識＋人工修正：牆 ${s.walls.length}、門 ${s.doors.length}、窗 ${s.windows.length}、樑 ${s.beams.length}、柱 ${s.columns.length}${review}`;
+  renderDoorReviewList();
 }
 
 function confirmSpace() {
   element.spaceError.textContent = "";
-  if (!$("#rooms-confirmed").checked) {
-    element.spaceError.textContent = "請先勾選已確認房間名稱、尺寸與面積。";
-    $("#rooms-confirmed").focus();
+  if (!state.rooms.every((room) => room.confirmed === true)) {
+    const pendingCount = state.rooms.filter((room) => !room.confirmed).length;
+    element.spaceError.textContent =
+      `尚有 ${pendingCount} 個房間未確認，請逐一按右側房間的「確認」鍵。`;
+    element.roomList.querySelector("[data-confirm-room]:not(.is-confirmed)")?.focus();
+    return;
+  }
+  const pendingStructureKind = Object.keys(structureCollections).find((kind) => {
+    const collection = state.structures[structureCollections[kind]];
+    return collection.some((item) => item.confirmed !== true);
+  });
+  if (pendingStructureKind) {
+    const collection = state.structures[structureCollections[pendingStructureKind]];
+    const pendingCount = collection.filter((item) => item.confirmed !== true).length;
+    const meta = structureSectionMeta[pendingStructureKind];
+    element.spaceError.textContent =
+      `尚有 ${pendingCount} 個${meta.label}項目未確認，已為你切到「${meta.label}」頁。請逐項確認或按「確認此頁全部項目」。`;
+    $("[data-space-tab='structure']").click();
+    setActiveStructureKind(pendingStructureKind);
+    $("#structure-review-list [data-confirm-structure]")?.focus();
     return;
   }
   if (!$("#structure-confirmed").checked) {
-    element.spaceError.textContent = "請切到「牆門窗梁柱」並確認結構。";
+    element.spaceError.textContent = "請切到「牆門窗樑柱」並確認結構。";
     $("[data-space-tab='structure']").focus();
     return;
   }
@@ -1680,15 +2984,6 @@ const furnitureLabelMap = {
   "椅": ["chair", "standard"],
 };
 
-function defaultFurnitureForRoom(room) {
-  if (room.type === "living_room") return [["sofa", "three-seat"], ["coffee-table", "rect"], ["tv-bench", "low"]];
-  if (room.type === "bedroom") return [["bed", "double"], ["wardrobe", "two-door"]];
-  if (room.type === "dining_room") return [["dining-table", "round-4"], ["dining-chair", "standard"]];
-  if (room.type === "kitchen") return [["refrigerator", "single-door"]];
-  if (room.type === "balcony") return [["washer", "front-load"]];
-  return [];
-}
-
 function roomCenter(room) {
   return room.polygon_m.reduce((sum, point) => ({
     x: sum.x + point.x / room.polygon_m.length,
@@ -1710,9 +3005,10 @@ async function autoLayoutFurniture() {
     if (state.keepExistingRoomIds.includes(room.id)) continue;
     const requested = state.roomAnswers[room.id]?.furniture || [];
     const roomWasAnswered = state.roomAnswers[room.id]?.confirmed === true;
-    const requestedSpecs = roomWasAnswered
-      ? requested.map((label) => furnitureLabelMap[label]).filter(Boolean)
-      : defaultFurnitureForRoom(room);
+    const answerSpecs = requested.map((label) => furnitureLabelMap[label]).filter(Boolean);
+    const requestedSpecs = roomWasAnswered && answerSpecs.length
+      ? answerSpecs
+      : recommendedFurnitureForRoom(room);
     const companionSpecs = recommendCompanionFurniture(
       room.type,
       requestedSpecs.map(([type]) => type),
@@ -1883,7 +3179,8 @@ let furnitureDrag = null;
 function layoutPointerDown(event) {
   const target = event.target.closest("[data-furniture-2d-id]");
   if (!target) return;
-  const item = state.furniture2d.find((candidate) => candidate.id === target.dataset.furniture2dId);
+  const furnitureId = target.getAttribute("data-furniture-2d-id");
+  const item = state.furniture2d.find((candidate) => candidate.id === furnitureId);
   if (!item) return;
   state.selectedFurniture2dId = item.id;
   furnitureDrag = {
@@ -2003,16 +3300,7 @@ async function resolveCatalogFurniture(item) {
       const bDelta = Math.abs(Number(bSize.width || 0) - item.widthCm) + Math.abs(Number(bSize.depth || 0) - item.depthCm);
       return aDelta - bDelta;
     })[0];
-    return {
-      ...best,
-      ...toSceneFurniture(item),
-      furniture_id: best.furniture_id,
-      model_url: best.model_url,
-      has_model: Boolean(best.model_url),
-      size_cm: best.size_cm || toSceneFurniture(item).size_cm,
-      requested_size_cm: toSceneFurniture(item).size_cm,
-      closest_size_match: true,
-    };
+    return mergeCatalogFurniture(item, best);
   } catch (error) {
     console.warn(error);
     return toSceneFurniture(item);
@@ -2101,6 +3389,65 @@ async function confirmLayout2d() {
     element.layoutError.textContent = errorMessage(error);
     setStatus(errorMessage(error), "error");
   }
+}
+
+async function addWhiteModelBeamFromWorld({ start, end }) {
+  const lengthM = Math.hypot(end.x - start.x, end.z - start.z);
+  const status = $("#white-model-beam-status");
+  if (lengthM < 0.25) {
+    status.textContent = "樑長至少需要 25 公分，請重新選取兩點。";
+    status.classList.add("is-error");
+    return;
+  }
+  const widthCm = Math.min(120, Math.max(10, Number($("#white-model-beam-width-cm").value) || 30));
+  const dropCm = Math.min(120, Math.max(10, Number($("#white-model-beam-drop-cm").value) || 35));
+  const floorplan = state.sceneData?.floorplan;
+  if (!floorplan) return;
+  const halfWidthM = Number(floorplan.width_cm || 600) / 200;
+  const halfDepthM = Number(floorplan.depth_cm || 400) / 200;
+  const id = `beam-manual-${Date.now()}`;
+  const editorBeam = {
+    id,
+    start: { x: start.x + halfWidthM, y: start.z + halfDepthM },
+    end: { x: end.x + halfWidthM, y: end.z + halfDepthM },
+    thickness_m: widthCm / 100,
+    height_m: dropCm / 100,
+    top_m: Number(floorplan.room_height_cm || 270) / 100,
+    confirmed: false,
+    estimated: true,
+    source: "manual_3d",
+  };
+  state.structures.beams.push(editorBeam);
+  floorplan.beam_segments ||= [];
+  floorplan.beam_segments.push({
+    ...editorBeam,
+    start: { x: start.x, z: start.z },
+    end: { x: end.x, z: end.z },
+  });
+  state.selectedStructure = { id, kind: "beam" };
+  await whiteViewer.loadScene(state.sceneData);
+  whiteViewer.setViewMode("dollhouse");
+  $("#add-white-model-beam").hidden = false;
+  $("#cancel-white-model-beam").hidden = true;
+  status.classList.remove("is-error");
+  status.textContent = `已新增樑 ${state.structures.beams.length}，長 ${Math.round(lengthM * 100)}、寬 ${widthCm}、下垂 ${dropCm} 公分。`;
+  invalidateDownstreamFrom("space_confirmation", "3D 已新增樑，後續寫實結果需要重新確認。");
+  scheduleSave("white_model_3d");
+}
+
+function beginWhiteModelBeamPlacement() {
+  const started = whiteViewer.beginBeamPlacement(addWhiteModelBeamFromWorld);
+  if (!started) return;
+  $("#add-white-model-beam").hidden = true;
+  $("#cancel-white-model-beam").hidden = false;
+  $("#white-model-beam-status").textContent = "請在 3D 室內依序點選樑的起點與終點。";
+}
+
+function cancelWhiteModelBeamPlacement() {
+  whiteViewer.cancelBeamPlacement();
+  $("#add-white-model-beam").hidden = false;
+  $("#cancel-white-model-beam").hidden = true;
+  $("#white-model-beam-status").textContent = "已取消；樑會自動吸附天花板，不會自由漂浮。";
 }
 
 const sceneObjectTypeLabels = {
@@ -2818,7 +4165,7 @@ async function evaluateCeilingConflicts() {
       return {
         id: beam.id,
         kind: "beam",
-        label: `梁 ${index + 1}`,
+        label: `樑 ${index + 1}`,
         topCm,
         bottomCm: topCm - heightCm,
         estimated: beam.estimated === true || (beam.top_cm == null && beam.top_m == null),
@@ -2856,7 +4203,7 @@ async function evaluateCeilingConflicts() {
         <p>AI 建議：${escapeHtml(conflict.recommendations.join("；"))}。套用前會再次做幾何驗證。</p>
       </article>
     `).join("")
-    : `<p>完成天花高度 ${result.finishedHeightCm} cm，目前未偵測到梁、櫃體或燈具衝突。</p>`;
+    : `<p>完成天花高度 ${result.finishedHeightCm} cm，目前未偵測到樑、櫃體或燈具衝突。</p>`;
   if (state.sceneData && state.workflow?.currentStep === "realistic_3d") {
     await realisticViewer.loadScene(state.sceneData);
     realisticViewer.setViewMode("dollhouse");
@@ -2866,22 +4213,47 @@ async function evaluateCeilingConflicts() {
 function bindEvents() {
   element.projectForm.addEventListener("submit", createProject);
   element.file.addEventListener("change", () => selectFloorplanFile(element.file.files[0]));
-  $("#load-sample-630").addEventListener("click", loadSample630);
   $("#confirm-upload").addEventListener("click", confirmUpload);
   element.scaleOverlay.addEventListener("pointerdown", calibrationPointerDown);
   element.scaleOverlay.addEventListener("pointermove", calibrationPointerMove);
+  element.scaleInput.addEventListener("input", () => updateCalibrationAction());
   window.addEventListener("pointerup", async () => {
+    if (structureCreateDrag) finishBeamCreateDrag();
     const completedRoomDrag = draggedRoomPointIndex != null;
     state.calibrationDragIndex = null;
     draggedRoomPointIndex = null;
     if (structureDrag) {
+      const draggedStructureKind = state.selectedStructure?.kind;
+      const draggedStructure = selectedStructureItem();
+      if (draggedStructureKind === "door" && draggedStructure) draggedStructure.confirmed = false;
       structureDrag = null;
+      renderDoorReviewList();
       renderSelectedStructureEditor();
       invalidateDownstreamFrom("space_confirmation", "結構位置已修改，後續需求、家具與 3D 需要重新確認。");
       scheduleSave("space_confirmation");
     }
+    if (doorResizeDrag) {
+      const resizedKind = state.selectedStructure?.kind || "door";
+      const resizedLabel = structureSectionMeta[resizedKind]?.label || "開口";
+      doorResizeDrag = null;
+      renderDoorReviewList();
+      renderSelectedStructureEditor();
+      invalidateDownstreamFrom("space_confirmation", `${resizedLabel}寬已直接調整，後續需求、家具與 3D 需要重新確認。`);
+      scheduleSave("space_confirmation");
+      setStatus(`${resizedLabel}寬已更新並保持吸附在牆上；請重新確認此${resizedLabel}。`);
+    }
+    if (beamResizeDrag) {
+      beamResizeDrag = null;
+      renderStructureReviewList();
+      renderSelectedStructureEditor();
+      invalidateDownstreamFrom("space_confirmation", "樑長已調整，後續需求、家具與 3D 需要重新確認。");
+      scheduleSave("space_confirmation");
+      setStatus("樑長已更新，樑仍固定於天花板下方。");
+    }
     if (completedRoomDrag) {
-      $("#rooms-confirmed").checked = false;
+      const room = state.rooms.find((item) => item.id === state.selectedRoomId);
+      if (room) room.confirmed = false;
+      renderRooms();
       invalidateDownstreamFrom("space_confirmation", "房間框選已修改，後續需求、家具與 3D 需要重新確認。");
       scheduleSave("space_confirmation");
     }
@@ -2893,11 +4265,26 @@ function bindEvents() {
     state.calibrationPoints = [];
     renderCalibration();
   });
-  $("#apply-floorplan-calibration").addEventListener("click", applyCalibration);
+  element.applyCalibration.addEventListener("click", applyCalibration);
   element.roomList.addEventListener("click", (event) => {
+    const confirmButton = event.target.closest("[data-confirm-room]");
+    if (confirmButton) {
+      confirmRoom(confirmButton.dataset.confirmRoom);
+      return;
+    }
     const button = event.target.closest("[data-room-id]");
     if (button) selectRoom(button.dataset.roomId);
   });
+  $$("[data-room-geometry-mode]").forEach((button) => {
+    button.addEventListener("click", () => setRoomGeometryMode(button.dataset.roomGeometryMode));
+  });
+  $("#apply-room-merge").addEventListener("click", mergeSelectedRooms);
+  $("#cancel-room-geometry").addEventListener("click", () => setRoomGeometryMode(null));
+  $$("[data-room-node-mode]").forEach((button) => {
+    button.addEventListener("click", () => setRoomNodeMode(button.dataset.roomNodeMode));
+  });
+  $("#apply-node-merge").addEventListener("click", mergeSelectedRoomNodes);
+  $("#cancel-node-edit").addEventListener("click", () => setRoomNodeMode(null));
   $("#add-missed-room").addEventListener("click", addMissedRoom);
   $("#show-all-rooms").addEventListener("click", () => {
     state.showAllRooms = true;
@@ -2907,14 +4294,32 @@ function bindEvents() {
   element.spaceOverlay.addEventListener("pointerdown", spacePointerDown);
   element.spaceOverlay.addEventListener("pointermove", spacePointerMove);
   $("#apply-structure-size").addEventListener("click", applySelectedStructureSize);
+  element.openingWidthSlider.addEventListener("input", () => {
+    setSelectedOpeningWidthCm(element.openingWidthSlider.value, false);
+  });
+  element.openingWidthSlider.addEventListener("change", () => {
+    setSelectedOpeningWidthCm(element.openingWidthSlider.value, true);
+  });
+  $$("[data-opening-width-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextWidth = Number(element.openingWidthSlider.value)
+        + Number(button.dataset.openingWidthStep);
+      setSelectedOpeningWidthCm(nextWidth, true);
+    });
+  });
   $("#rotate-selected-structure-left").addEventListener("click", () => rotateSelectedStructure(-15));
   $("#rotate-selected-structure-right").addEventListener("click", () => rotateSelectedStructure(15));
+  $("#rotate-selected-door-180").addEventListener("click", rotateSelectedDoor180);
   $("#delete-selected-structure").addEventListener("click", deleteSelectedStructure);
   $("#flip-selected-door").addEventListener("click", () => {
     const door = selectedStructureItem();
     if (!door || state.selectedStructure?.kind !== "door") return;
     door.opening_direction = door.opening_direction === "left" ? "right" : "left";
+    delete door.swing_end;
+    door.confirmed = false;
     renderSpaceOverlay();
+    renderStructureCounts();
+    renderSelectedStructureEditor();
     invalidateDownstreamFrom("space_confirmation", "門扇方向已修改，後續需求、家具與 3D 需要重新確認。");
     scheduleSave("space_confirmation");
     setStatus("已切換門扇開啟方向。");
@@ -2922,30 +4327,87 @@ function bindEvents() {
   $$("[data-space-tab]").forEach((button) => button.addEventListener("click", () => {
     $$("[data-space-tab]").forEach((item) => item.classList.toggle("is-active", item === button));
     const rooms = button.dataset.spaceTab === "rooms";
+    state.spaceMode = rooms ? "rooms" : "structure";
     $("#room-confirmation-panel").hidden = !rooms;
     $("#structure-confirmation-panel").hidden = rooms;
+    $("#show-all-rooms").hidden = !rooms;
+    $("#plan-structure-legend").hidden = rooms;
+    $("#space-plan-caption").textContent = rooms
+      ? "點房間框或右側名稱可定位；紫色節點可拖曳調整範圍。"
+      : "點選牆、門、窗、樑或柱後會以橘黃色標示；可直接拖曳或在右側修改。";
+    if (!rooms) setActiveStructureKind(state.activeStructureKind);
+    renderSpaceOverlay();
+    renderStructureReviewList();
+    renderSelectedStructureEditor();
   }));
+  $$("[data-structure-section]").forEach((button) => {
+    button.addEventListener("click", () => setActiveStructureKind(button.dataset.structureSection));
+  });
+  element.doorReviewList?.addEventListener("click", (event) => {
+    const confirmButton = event.target.closest("[data-confirm-structure]");
+    if (confirmButton) {
+      confirmStructure(
+        confirmButton.dataset.structureKind,
+        confirmButton.dataset.confirmStructure,
+      );
+      return;
+    }
+    const button = event.target.closest("[data-structure-review]");
+    if (button) {
+      selectStructureForReview(
+        button.dataset.structureKind,
+        button.dataset.structureReview,
+      );
+    }
+  });
+  $("#confirm-all-visible-structures").addEventListener("click", () => {
+    const kind = state.activeStructureKind;
+    const collection = state.structures[structureCollections[kind]] || [];
+    collection.forEach((item) => {
+      item.confirmed = true;
+      item.estimated = false;
+    });
+    renderStructureReviewList();
+    renderStructureCounts();
+    scheduleSave("space_confirmation");
+    setStatus(`已確認此頁全部 ${collection.length} 個${structureSectionMeta[kind].label}項目。`);
+  });
   $$("[data-structure-tool]").forEach((button) => {
     button.addEventListener("click", () => {
       const nextTool = state.structureTool === button.dataset.structureTool
         ? null
         : button.dataset.structureTool;
+      if (!nextTool) {
+        cancelStructureInteraction();
+        return;
+      }
       state.structureTool = nextTool;
+      state.structureLineStart = null;
+      state.selectedStructure = null;
+      structureDrag = null;
+      doorResizeDrag = null;
+      beamResizeDrag = null;
+      structureCreateDrag = null;
       $$("[data-structure-tool]").forEach((item) =>
         item.classList.toggle("is-active", item.dataset.structureTool === nextTool)
       );
-      if (!nextTool) {
-        setStatus("已回到結構選取模式，可點選並拖曳既有牆、門、窗、梁或柱。");
-        return;
-      }
+      renderSpaceOverlay();
+      renderDoorReviewList();
+      renderSelectedStructureEditor();
+      const structureLabel = {
+        door: "門",
+        window: "窗",
+        column: "柱",
+      }[state.structureTool];
       setStatus(state.structureTool === "wall" || state.structureTool === "beam"
-        ? `請在左圖點${state.structureTool === "wall" ? "牆" : "梁"}的起點與終點。`
-        : `請把${button.textContent.trim()}拖到左圖。`);
+        ? `請在左圖點${state.structureTool === "wall" ? "牆" : "樑"}的起點與終點。`
+        : `請在左圖點選要放置${structureLabel}的位置，系統會自動磁吸。`);
     });
     button.addEventListener("dragstart", (event) => {
       event.dataTransfer.setData("text/roompilot-structure", button.dataset.structureTool);
     });
   });
+  $("#cancel-structure-interaction").addEventListener("click", cancelStructureInteraction);
   element.spaceStage.addEventListener("dragover", (event) => event.preventDefault());
   element.spaceStage.addEventListener("drop", (event) => {
     event.preventDefault();
@@ -3023,6 +4485,8 @@ function bindEvents() {
     const locked = whiteViewer.toggleCameraLock();
     event.currentTarget.textContent = locked ? "結束家具編輯" : "鎖定視角並編輯家具";
   });
+  $("#add-white-model-beam").addEventListener("click", beginWhiteModelBeamPlacement);
+  $("#cancel-white-model-beam").addEventListener("click", cancelWhiteModelBeamPlacement);
   const selectSceneObject = (event) => {
     const button = event.target.closest("[data-scene-object-index]");
     if (!button) return;
@@ -3152,13 +4616,32 @@ async function restoreProject() {
   try {
     let result = await api(`/api/projects/${state.projectId}`);
     const pendingSave = localStorage.getItem(pendingSaveStorageKey());
+    let pendingSaveDiscarded = false;
     if (pendingSave) {
-      result = await api(`/api/projects/${state.projectId}/workflow`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: pendingSave,
-      });
-      localStorage.removeItem(pendingSaveStorageKey());
+      let removePendingSave = false;
+      if (shouldReplayPendingSave(pendingSave, result.project)) {
+        const replayPayload = {
+          ...JSON.parse(pendingSave),
+          replay_pending: true,
+        };
+        try {
+          result = await api(`/api/projects/${state.projectId}/workflow`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(replayPayload),
+          });
+          removePendingSave = true;
+        } catch (error) {
+          if (error.status !== 409) throw error;
+          pendingSaveDiscarded = true;
+          removePendingSave = true;
+          result = await api(`/api/projects/${state.projectId}`);
+        }
+      } else {
+        pendingSaveDiscarded = true;
+        removePendingSave = true;
+      }
+      if (removePendingSave) localStorage.removeItem(pendingSaveStorageKey());
     }
     state.project = result.project;
     const serverState = state.project.workflow || {};
@@ -3178,15 +4661,32 @@ async function restoreProject() {
         { x: Number(calibrationGeometry.start_px[0]), y: Number(calibrationGeometry.start_px[1]) },
         { x: Number(calibrationGeometry.end_px[0]), y: Number(calibrationGeometry.end_px[1]) },
       ];
+    } else {
+      const scaleEvidence = (state.analysis?.evidence || []).find(
+        (item) => Array.isArray(item.start_px) && Array.isArray(item.end_px),
+      );
+      if (scaleEvidence) {
+        state.calibrationPoints = [
+          { x: Number(scaleEvidence.start_px[0]), y: Number(scaleEvidence.start_px[1]) },
+          { x: Number(scaleEvidence.end_px[0]), y: Number(scaleEvidence.end_px[1]) },
+        ];
+      }
     }
     if (Number(savedCalibration?.distanceCm) > 0) {
       element.scaleInput.value = Number(savedCalibration.distanceCm);
+    } else if (Number(state.analysis?.scale?.distance_m) > 0) {
+      element.scaleInput.value = Math.round(Number(state.analysis.scale.distance_m) * 1000) / 10;
     }
     if (state.analysis) {
-      element.recognitionSummary.textContent = `Cody：牆 ${state.analysis.walls?.length || state.analysis.floorplan?.wall_count || 0}、門 ${state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0}、窗 ${state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0}`;
+      element.recognitionSummary.textContent = `辨識結果：牆 ${state.analysis.walls?.length || state.analysis.floorplan?.wall_count || 0}、門 ${state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0}、窗 ${state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0}`;
+      element.uploadFileState.textContent =
+        state.analysis.filename || state.workflow.data.upload?.filename || "已上傳平面圖";
     }
     state.rooms = serverState.space_confirmation?.rooms || [];
     state.structures = serverState.space_confirmation?.structures || state.structures;
+    const normalizedWindows = dedupeWindowCandidates(state.structures.windows || []);
+    state.structures.windows = normalizedWindows.windows;
+    state.windowNormalizationRemoved = normalizedWindows.removed;
     state.basicAnswers = serverState.requirements?.basic || {};
     state.basicConfirmed = serverState.requirements?.basicConfirmed === true;
     state.roomAnswers = serverState.requirements?.rooms || {};
@@ -3204,13 +4704,21 @@ async function restoreProject() {
     state.sourceUrl = state.sourceExtension === ".dxf"
       ? configureDxfPreview(state.analysis)
       : `/api/projects/${state.projectId}/floorplan/source?v=${Date.now()}`;
-    if (state.workflow.completed.includes("upload")) setPlanImages(state.sourceUrl);
+    if (state.workflow.completed.includes("upload")) {
+      setPlanImages(state.sourceUrl);
+      showUploadedPreview(state.sourceUrl, state.sourceExtension);
+    }
     showStep(state.workflow.currentStep || "project");
     await renderRestoredStep();
     if (state.confirmedFloorplan && !serverState.confirmed_floorplan) {
       scheduleSave(state.workflow.currentStep);
     }
-    setStatus(`已恢復專案「${state.project.name}」。`);
+    if (state.windowNormalizationRemoved > 0) {
+      scheduleSave(state.workflow.currentStep);
+    }
+    setStatus(pendingSaveDiscarded
+      ? `已恢復專案「${state.project.name}」；較舊的離線暫存未覆蓋目前版本。`
+      : `已恢復專案「${state.project.name}」。`);
   } catch (error) {
     if (state.project && state.workflow) {
       showStep(state.workflow.currentStep || state.project.current_step || "project");
@@ -3227,18 +4735,13 @@ async function restoreProject() {
 
 async function recoverConfirmedFloorplan() {
   if (state.confirmedFloorplan || !state.analysis) return state.confirmedFloorplan;
-  if (state.sourceExtension === ".dxf") {
-    state.confirmedFloorplan = {
-      floorplan: state.analysis.floorplan || state.analysis,
-      dxf_text: null,
-    };
-    return state.confirmedFloorplan;
-  }
-  state.confirmedFloorplan = await api("/api/floorplan/confirm", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ analysis: state.analysis }),
-  });
+  state.confirmedFloorplan = {
+    floorplan: state.analysis.floorplan || state.analysis,
+    dxf_text: null,
+    confirmation_status: state.workflow?.completed.includes("space_confirmation")
+      ? "space_reviewed"
+      : "room_review_pending",
+  };
   return state.confirmedFloorplan;
 }
 

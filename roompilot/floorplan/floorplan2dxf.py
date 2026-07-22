@@ -143,7 +143,11 @@ def load_config(path: str) -> Config:
 
 # ─────────────────────────── 前處理 ───────────────────────────
 def load_gray(cfg: Config):
-    img = cv2.imread(cfg.input, cv2.IMREAD_UNCHANGED)
+    try:
+        encoded = np.fromfile(cfg.input, dtype=np.uint8)
+        img = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED) if encoded.size else None
+    except OSError:
+        img = None
     if img is None:
         sys.exit(f"讀不到圖: {cfg.input}")
     if img.ndim == 2:
@@ -364,11 +368,118 @@ def detect_doors(thin, T: int, arc_pct: float):
     return uniq
 
 
+def detect_door_swing_arcs(thin, T: int, arc_pct: float, roi=None):
+    """Detect a door from one leaf line plus its quarter-circle swing arc.
+
+    Some builder plans draw the open leaf and swing arc without a second
+    perpendicular leaf.  ``detect_doors`` intentionally keeps the older L-shape
+    detector; this fallback is used with a high-fidelity thin-line mask so pale
+    cyan leaves and grey/dashed arcs are not discarded during wall extraction.
+    """
+    segs = cv2.HoughLinesP(
+        thin,
+        1,
+        np.pi / 180,
+        threshold=max(15, int(0.7 * T)),
+        minLineLength=max(16, int(1.5 * T)),
+        maxLineGap=max(4, int(0.55 * T)),
+    )
+    if segs is None:
+        return []
+
+    horizontal = []
+    vertical = []
+    for x1, y1, x2, y2 in np.asarray(segs).reshape(-1, 4):
+        length = math.hypot(x2 - x1, y2 - y1)
+        angle = abs(math.degrees(math.atan2(y2 - y1, x2 - x1)))
+        if angle < 12 or angle > 168:
+            horizontal.append((float(min(x1, x2)), float(max(x1, x2)), float((y1 + y2) / 2)))
+        elif 78 < angle < 102:
+            vertical.append((float(min(y1, y2)), float(max(y1, y2)), float((x1 + x2) / 2)))
+
+    def merged_spans(spans):
+        line_tolerance = max(3.0, 0.4 * T)
+        join_gap = max(4.0, 0.6 * T)
+        merged = []
+        for seed_index, (seed_a, seed_b, seed_c) in enumerate(spans):
+            selected = {seed_index}
+            a, b, c = seed_a, seed_b, seed_c
+            changed = True
+            while changed:
+                changed = False
+                for index, (other_a, other_b, other_c) in enumerate(spans):
+                    if index in selected:
+                        continue
+                    if abs(other_c - c) > line_tolerance:
+                        continue
+                    if other_a > b + join_gap or other_b < a - join_gap:
+                        continue
+                    selected.add(index)
+                    members = [spans[item] for item in selected]
+                    a = min(item[0] for item in members)
+                    b = max(item[1] for item in members)
+                    c = sum(item[2] for item in members) / len(members)
+                    changed = True
+            if not any(abs(a - item[0]) < 2 and abs(b - item[1]) < 2 and abs(c - item[2]) < 2 for item in merged):
+                merged.append((a, b, c))
+        return merged
+
+    # Direct arc detection must be strong enough to reject furniture and
+    # bathroom curves.  The legacy detector still handles weaker L symbols.
+    threshold = max(0.85, arc_pct / 100.0)
+    candidates = []
+
+    def inside_roi(x, y):
+        if roi is None:
+            return True
+        x0, y0, x1, y1 = roi
+        margin = float(T)
+        return x0 - margin <= x <= x1 + margin and y0 - margin <= y <= y1 + margin
+
+    def consider(cx, cy, radius, ux, uy):
+        if not inside_roi(cx, cy):
+            return
+        for side in (-1, 1):
+            vx, vy = -uy * side, ux * side
+            score = _arc_run(thin, cx, cy, radius, ux, vx, uy, vy)
+            if score >= threshold:
+                candidates.append(
+                    (
+                        float(cx),
+                        float(cy),
+                        float(radius),
+                        float(score),
+                        float(ux),
+                        float(uy),
+                        float(vx),
+                        float(vy),
+                    )
+                )
+
+    for a, b, c in [*merged_spans(horizontal), *horizontal]:
+        radius = b - a
+        if 1.8 * T <= radius <= 8.0 * T:
+            consider(a, c, radius, 1.0, 0.0)
+            consider(b, c, radius, -1.0, 0.0)
+    for a, b, c in [*merged_spans(vertical), *vertical]:
+        radius = b - a
+        if 1.8 * T <= radius <= 8.0 * T:
+            consider(c, a, radius, 0.0, 1.0)
+            consider(c, b, radius, 0.0, -1.0)
+
+    unique = []
+    for candidate in sorted(candidates, key=lambda item: -item[3]):
+        if not any(math.hypot(candidate[0] - item[0], candidate[1] - item[1]) < T for item in unique):
+            unique.append(candidate)
+    return unique
+
+
 def _near_door(cx, cy, gap, doors, ends=None, T=0):
     """開口是否對應到一扇偵測到的門：鉸鏈必須貼在開口其中一端(不能只是在附近，
     免得窗戶旁邊剛好有門/假門就整個被誤殺)，且門寬要與開口寬相符。
     只信弧線吻合度很高的門(≥0.85)——家具/淋浴間的曲線拼出來的假門分數較低，不拿來殺窗。"""
-    for dx, dy, dw, score in doors:
+    for door in doors:
+        dx, dy, dw, score = door[:4]
         if score < 0.85 or not (0.65 * gap <= dw <= 1.4 * gap):
             continue
         if ends is not None:
@@ -838,10 +949,10 @@ def write_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info, cfg: Con
                    "cm": box_cm(x0, y0, x1, y1)} for x0, y0, x1, y1 in rects],
         "windows": [{"orient": o, "px": [int(x0), int(y0), int(x1), int(y1)],
                      "cm": box_cm(x0, y0, x1, y1)} for o, x0, y0, x1, y1 in wins],
-        "doors": [{"px": {"cx": round(dx, 1), "cy": round(dy, 1), "width": round(dw, 1)},
-                   "cm": {"cx": round(dx * cm, 2), "cy": round((img_h - dy) * cm, 2),
-                          "width": round(dw * cm, 2)},
-                   "score": round(sc, 3)} for dx, dy, dw, sc in doors],
+        "doors": [{"px": {"cx": round(door[0], 1), "cy": round(door[1], 1), "width": round(door[2], 1)},
+                   "cm": {"cx": round(door[0] * cm, 2), "cy": round((img_h - door[1]) * cm, 2),
+                          "width": round(door[2] * cm, 2)},
+                   "score": round(door[3], 3)} for door in doors],
         "dxf": cfg.output, "dxf_scale": dxf_scale_path,
     }
     with open(path, "w", encoding="utf-8") as fp:

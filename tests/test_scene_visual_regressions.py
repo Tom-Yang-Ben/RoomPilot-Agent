@@ -3,7 +3,10 @@ from pathlib import Path
 
 from test_scene_workflow import ROOT, run_workflow_script
 from roompilot.server.main import _merge_furniture_catalog
-from roompilot.server.scene_service import choose_furniture_items
+from roompilot.server.scene_service import (
+    catalog_item_matches_type_semantics,
+    choose_furniture_items,
+)
 
 
 VISUAL_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_visual_contracts.js"
@@ -24,6 +27,91 @@ def test_model_scale_hits_catalog_width_depth_and_height() -> None:
     assert result == {"x": 0.8, "y": 0.82, "z": 4}
 
 
+def test_all_confirmed_room_regions_share_the_initial_floor_surface() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ synchronizedFloorRegions }} from {json.dumps(VISUAL_MODULE.as_uri())};
+        const regions = synchronizedFloorRegions({{
+          room_regions: [
+            {{ room_id: "bedroom", exterior: [[-4, -3], [0, -3], [0, 1], [-4, 1]] }},
+            {{ room_id: "living", exterior: [[0, -3], [4, -3], [4, 3], [0, 3]] }},
+          ],
+        }}, 8, 6);
+        console.log(JSON.stringify(regions));
+        """
+    )
+
+    assert [item["room_id"] for item in result] == ["bedroom", "living"]
+    assert all(len(item["exterior"]) == 4 for item in result)
+
+
+def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorLeafTransform }} from {json.dumps(VISUAL_MODULE.as_uri())};
+        console.log(JSON.stringify(doorLeafTransform({{
+          start: {{ x: 1, z: 2 }},
+          end: {{ x: 2, z: 2 }},
+          opening_direction: "right",
+        }})));
+        """
+    )
+
+    assert result["hinge"] == {"x": 1, "z": 2}
+    assert result["leafWidthM"] == 0.94
+    assert result["leafCenterXM"] == 0.47
+    assert result["closedRotationYRad"] == 0
+    assert result["swingRotationYRad"] < 0
+
+
+def test_3d_wall_snap_commits_the_backend_layout_result() -> None:
+    source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'fetch("/api/scene/layout"' in source
+    assert "placement_hint_cm" in source
+    assert "resolved.position_cm" in source
+    assert "wallFaceSnapOffset" not in source
+
+
+def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
+    viewer = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    controller = (ROOT / "roompilot" / "server" / "static" / "scene_v2.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "{ onSceneChange = null } = {}" in viewer
+    assert "notifySceneChange(item)" in viewer
+    assert 'onSceneChange: () => scheduleSave("white_model_3d")' in controller
+    assert 'onSceneChange: () => scheduleSave("realistic_3d")' in controller
+
+
+def test_formal_3d_columns_use_confirmed_rectangular_dimensions_and_rotation() -> None:
+    viewer = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'import { columnGeometryDescriptor } from "./scene_structure_geometry.js' in viewer
+    assert "minimumDimensionM: 0.1" in viewer
+    assert "minimumDimensionM: 0.12" not in viewer
+    assert "geometry.widthM, geometry.heightM, geometry.depthM" in viewer
+    assert "mesh.rotation.y = -THREE.MathUtils.degToRad(geometry.rotationDeg)" in viewer
+
+
+def test_upholstered_storage_bed_is_still_a_real_bed() -> None:
+    assert catalog_item_matches_type_semantics(
+        {
+            "normalized_type": "bed",
+            "name_en": "IDANAS Upholstered storage bed - beige 160x200 cm",
+            "size_cm": {"width": 160, "depth": 200, "height": 49},
+        },
+        "bed",
+    ) is True
+
+
 def test_walk_camera_is_clamped_inside_room_and_topdown_has_plan_labels() -> None:
     result = run_workflow_script(
         f"""
@@ -38,9 +126,11 @@ def test_walk_camera_is_clamped_inside_room_and_topdown_has_plan_labels() -> Non
     )
 
     assert result["clamped"] == {"x": 1.75, "y": 1.65, "z": -1.25}
-    assert result["dollhouse"]["hideOccludingWalls"] is True
+    assert result["dollhouse"]["hideOccludingWalls"] is False
     assert result["dollhouse"]["fadeExteriorWalls"] is False
+    assert result["walk"]["hideOccludingWalls"] is False
     assert result["walk"]["fadeExteriorWalls"] is False
+    assert result["topdown"]["hideOccludingWalls"] is False
     assert result["topdown"]["showFurniturePlanLabels"] is True
     assert result["topdown"]["walls"] == "flattened"
 
@@ -95,7 +185,7 @@ def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
     assert 'roompilotCirculation = true' in source
 
 
-def test_dollhouse_hides_blocking_walls_and_keeps_orbit_controls_enabled() -> None:
+def test_dollhouse_keeps_all_walls_visible_and_orbit_controls_enabled() -> None:
     source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
@@ -110,8 +200,10 @@ def test_dollhouse_hides_blocking_walls_and_keeps_orbit_controls_enabled() -> No
     assert "controls.enableRotate = true" in dollhouse
     assert "controls.enablePan = true" in dollhouse
     assert "controls.enableZoom = true" in dollhouse
-    assert "wall.visible = !shouldHide" in visibility
-    assert "targetOpacity = wallBlocksRoom" not in visibility
+    assert "wall.visible = true" in visibility
+    assert "wall.visible = !shouldHide" not in visibility
+    assert "wallBlocksRoom" not in visibility
+    assert "wallTooClose" not in visibility
 
 
 def test_generic_glb_material_gets_a_safe_furniture_role_fallback() -> None:

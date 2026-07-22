@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 
@@ -7,6 +8,23 @@ from test_scene_workflow import ROOT, run_workflow_script
 
 
 STATIC = ROOT / "roompilot" / "server" / "static"
+
+
+def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    bundle = (STATIC / "scene_v2.js").read_bytes()
+    expected = hashlib.sha256(bundle).hexdigest()[:12]
+
+    assert f'src="/static/scene_v2.js?v=sha256-{expected}"' in html
+
+
+def test_upload_step_does_not_offer_the_internal_630_sample_button() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="load-sample-630"' not in html
+    assert "function loadSample630" not in source
+    assert '$("#load-sample-630")' not in source
 
 
 def test_scene_sidebar_numbers_match_viewer_markers() -> None:
@@ -20,10 +38,14 @@ def test_scene_sidebar_numbers_match_viewer_markers() -> None:
 
 
 def test_structure_step_explains_pending_manual_door_directions() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert "門向待人工確認" in source
-    assert "點門後按「切換門向」" in source
+    assert "待確認：" in source
+    assert "一鍵確認全部門" in html
+    assert "confirmAllButton.disabled = !collection.length || allConfirmed" in source
+    assert "`一鍵確認全部${meta.label}`" in source
+    assert "開門側與鉸鏈端" in source
 
 
 def test_scene_uses_the_final_nine_step_flow_and_exact_upload_contract() -> None:
@@ -76,6 +98,80 @@ def test_2d_furniture_library_has_top_view_icons_and_real_centimetre_sizes() -> 
     assert result["everyVariantHasCm"] is True
     assert result["roundTable"]["widthCm"] == result["roundTable"]["depthCm"]
     assert result["lSofa"]["widthCm"] >= 240
+
+
+def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> None:
+    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ recommendedFurnitureForRoom }} from {json.dumps(module_uri)};
+        const samples = {{
+          bedroom: recommendedFurnitureForRoom({{ type: "default", label: "DORMITORY" }}),
+          kitchen: recommendedFurnitureForRoom({{ type: "default", label: "KITCHEN" }}),
+          storage: recommendedFurnitureForRoom({{ type: "default", label: "DEPOSIT" }}),
+          bathroom: recommendedFurnitureForRoom({{ type: "default", label: "BATHROOM" }}),
+          living: recommendedFurnitureForRoom({{ type: "default", label: "LIVING ROOM" }}),
+          balcony: recommendedFurnitureForRoom({{ type: "default", label: "BALCONY" }}),
+          circulation: recommendedFurnitureForRoom({{ type: "default", label: "CIRCULATION" }}),
+        }};
+        console.log(JSON.stringify(samples));
+        """
+    )
+
+    assert {item[0] for item in result["bedroom"]} >= {"bed", "wardrobe"}
+    assert {item[0] for item in result["kitchen"]} >= {"refrigerator", "appliance-cabinet"}
+    assert {item[0] for item in result["storage"]} == {"storage-cabinet"}
+    assert {item[0] for item in result["bathroom"]} >= {"bathroom-vanity", "mirror-cabinet"}
+    assert {item[0] for item in result["living"]} >= {"sofa", "coffee-table", "tv-bench"}
+    assert {item[0] for item in result["balcony"]} >= {"washer"}
+    assert result["circulation"] == []
+
+
+def test_2d_furniture_pointer_selection_reads_the_rendered_data_attribute() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    handler = source.split("function layoutPointerDown", 1)[1].split(
+        "function layoutPointerMove", 1
+    )[0]
+
+    assert 'target.getAttribute("data-furniture-2d-id")' in handler
+
+
+def test_catalog_resolution_keeps_each_room_furniture_as_a_unique_scene_instance() -> None:
+    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ createFurniture2DItem, mergeCatalogFurniture }} from {json.dumps(module_uri)};
+        const first = createFurniture2DItem("flower-pots-planter", "floor", {{
+          id: "living-plant",
+          roomId: "living",
+          xCm: 120,
+          yCm: 80,
+        }});
+        const second = createFurniture2DItem("flower-pots-planter", "floor", {{
+          id: "balcony-plant",
+          roomId: "balcony",
+          xCm: -220,
+          yCm: -410,
+        }});
+        const catalog = {{
+          furniture_id: "catalog-plant",
+          normalized_type: "flower-pots-planter",
+          model_url: "/models/plant.glb",
+          size_cm: {{ width: 19, depth: 19, height: 24 }},
+        }};
+        console.log(JSON.stringify({{
+          first: mergeCatalogFurniture(first, catalog),
+          second: mergeCatalogFurniture(second, catalog),
+        }}));
+        """
+    )
+
+    assert result["first"]["furniture_id"] == "living-plant"
+    assert result["second"]["furniture_id"] == "balcony-plant"
+    assert result["first"]["catalog_furniture_id"] == "catalog-plant"
+    assert result["second"]["catalog_furniture_id"] == "catalog-plant"
+    assert result["first"]["position_cm"] != result["second"]["position_cm"]
+    assert result["first"]["size_cm"] == {"width": 35, "depth": 35, "height": 85}
 
 
 def test_every_room_questionnaire_furniture_choice_has_a_2d_icon_variant() -> None:
@@ -188,6 +284,236 @@ def test_space_confirmation_can_add_a_missed_room_and_invalidates_downstream() -
     assert "room-manual-" in source
     assert "invalidateDownstreamFrom(\"space_confirmation\"" in source
     assert "請拖曳節點、命名並重新確認空間與結構" in source
+
+
+def test_room_size_is_computed_from_dragged_polygon_instead_of_typed() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="room-width-cm"' not in html
+    assert 'id="room-depth-cm"' not in html
+    assert "拖曳左圖紫色節點後，尺寸與面積會自動重新計算。" in html
+    assert "系統依目前框選計算" in source
+    assert 'font-weight="800" pointer-events="none">${escapeHtml(room.label)}</text>' in source
+
+
+def test_structure_mode_hides_room_overlays_and_explains_selected_lines() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'spaceMode: "rooms"' in source
+    assert 'state.spaceMode === "rooms"' in source
+    assert 'state.spaceMode = rooms ? "rooms" : "structure"' in source
+    assert "橘黃色線＝目前選取的結構" in html
+    assert "橘色門弧＝系統偵測的門候選" in html
+    assert '$("#show-all-rooms").hidden = !rooms' in source
+    assert "點選牆、門、窗、樑或柱後會以橘黃色標示" in source
+
+
+def test_door_review_exposes_add_select_edit_rotate_and_delete_controls() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'data-structure-section="door"' in html
+    assert 'id="add-active-structure"' in html
+    assert 'id="structure-review-list"' in html
+    assert 'id="apply-structure-size"' in html
+    assert 'id="flip-selected-door"' in html
+    assert 'id="rotate-selected-structure-left"' in html
+    assert 'id="rotate-selected-structure-right"' in html
+    assert 'id="delete-selected-structure"' in html
+    assert "function renderStructureReviewList()" in source
+    assert 'data-structure-review="${escapeHtml(item.id)}"' in source
+    assert '["door", "window", "column"].includes(state.structureTool)' in source
+    assert 'state.selectedStructure = { id: item.id, kind: tool }' in source
+
+
+def test_structure_editor_uses_separate_pages_and_exposes_window_controls() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    for kind in ("door", "window", "wall", "beam", "column"):
+        assert f'data-structure-section="{kind}"' in html
+    assert 'id="structure-review-title"' in html
+    assert 'id="structure-review-progress"' in html
+    assert 'id="structure-review-list"' in html
+    assert 'id="add-active-structure"' in html
+    assert 'id="window-sill-height-field"' in html
+    assert 'id="window-sill-height-cm"' in html
+    assert 'activeStructureKind: "door"' in source
+    assert "function setActiveStructureKind(kind)" in source
+    assert "function renderStructureReviewList()" in source
+    assert "function confirmStructure(kind, structureId)" in source
+    assert 'data-confirm-structure="${escapeHtml(item.id)}"' in source
+    assert "item.sill_height_m = sillHeightM" in source
+    assert 'state.activeStructureKind = tool' in source
+
+
+def test_each_door_requires_explicit_confirmation_and_supports_hinge_end_reversal() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="add-active-structure"' in html
+    assert 'id="structure-review-progress"' in html
+    assert 'id="rotate-selected-door-180"' in html
+    assert 'data-confirm-structure="${escapeHtml(item.id)}"' in source
+    assert "function confirmDoor(doorId)" in source
+    assert "function rotateSelectedDoor180()" in source
+    assert "[item.start, item.end] = [item.end, item.start]" in source
+    assert "pendingStructureKind" in source
+    assert "一鍵確認全部門" in html
+    assert "door.confirmed = false" in source
+
+
+def test_add_door_mode_takes_priority_over_wall_selection_and_can_be_cancelled() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    pointer_handler = source[source.index("function spacePointerDown"):source.index("function spacePointerMove")]
+
+    assert 'id="cancel-structure-interaction"' in html
+    assert "function cancelStructureInteraction()" in source
+    assert '["door", "window", "column"].includes(state.structureTool)' in pointer_handler
+    assert pointer_handler.index('["door", "window", "column"].includes(state.structureTool)') < pointer_handler.index(
+        'const structureNode = event.target.closest("[data-structure-id]")'
+    )
+    assert "state.selectedStructure = null" in source
+    assert "已取消目前操作與結構選取" in source
+
+
+def test_selected_door_has_large_drag_target_and_resizable_endpoint_handles() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="opening-width-controls"' in html
+    assert 'id="opening-width-slider"' in html
+    assert 'data-opening-width-step="-5"' in html
+    assert 'data-opening-width-step="5"' in html
+    assert 'pointer-events="stroke"' in source
+    assert 'data-door-handle="start"' in source
+    assert 'data-door-handle="end"' in source
+    assert "item.swing_end ? meterToPixel(item.swing_end)" in source
+    assert "${swingEnd.x} ${swingEnd.y}" in source
+    assert "const swingCross =" in source
+    assert "swingCross >= 0 ? 1 : 0" in source
+    assert 'data-door-move-handle="true"' in source
+    assert "let doorResizeDrag = null" in source
+    assert "function resizeOpeningFromPointer(" in source
+    assert "function snapOpeningToHostWall(" in source
+    assert "function setSelectedOpeningWidthCm(" in source
+    assert 'openingWidthSlider.addEventListener("input"' in source
+    assert "nearestPointOnLine(requested, item.start, item.end)" in source
+    assert "item.width_m = Math.hypot(" in source
+    assert "item.confirmed = false" in source
+
+
+def test_selected_window_has_drag_handles_wall_snap_and_live_width_control() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="opening-width-controls"' in html
+    assert 'id="opening-width-label"' in html
+    assert 'id="opening-width-slider"' in html
+    assert 'data-opening-handle="start"' in source
+    assert 'data-opening-handle="end"' in source
+    assert 'data-opening-move-handle="true"' in source
+    assert '["door", "window"].includes(state.selectedStructure.kind)' in source
+
+
+def test_structure_legend_uses_heading_space_and_window_markers_match_review_numbers() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    heading_start = html.index('class="rp-pane-heading"', html.index('id="space-step"'))
+    stage_start = html.index('id="space-plan-stage"')
+    stage_end = html.index('id="space-plan-caption"')
+    heading_html = html[heading_start:stage_start]
+    stage_html = html[stage_start:stage_end]
+
+    assert 'id="plan-structure-legend"' in heading_html
+    assert "hidden" in heading_html
+    assert 'id="plan-structure-legend"' not in stage_html
+    assert 'data-window-number="${index + 1}"' in source
+    assert '$("#plan-structure-legend").hidden = rooms;' in source
+
+
+def test_all_structure_kinds_share_numbering_sizing_and_crud_contract() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'data-structure-number-kind="${kind}"' in source
+    for kind in ("wall", "door", "window", "beam", "column"):
+        assert f'structureNumberMarkerSvg("{kind}"' in source
+    assert 'id="selected-structure-length-field"' in html
+    assert 'id="selected-structure-depth-field"' in html
+    assert 'id="structure-3d-preview-panel"' in html
+    assert 'id="structure-3d-preview"' in html
+    assert "createStructurePreview" in source
+    assert "structurePreview.render" in source
+    assert "walls: state.structures.walls" in source
+    assert "planWidthM" in source
+    assert "planDepthM" in source
+    assert "deleteSelectedStructure" in source
+    assert "confirmStructure" in source
+    assert "function resizeOpeningFromPointer(" in source
+    assert "function setSelectedOpeningWidthCm(" in source
+    assert "snapOpeningToHostWall(item" in source
+    assert "拖曳此端調整窗寬" in source
+
+
+def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert 'id="add-white-model-beam"' in html
+    assert 'id="white-model-beam-width-cm"' in html
+    assert 'id="white-model-beam-drop-cm"' in html
+    assert "beamDragGeometry" in source
+    assert "let structureCreateDrag = null" in source
+    assert "function beamBandSvg(" in source
+    assert 'data-beam-handle="start"' in source
+    assert 'data-beam-handle="end"' in source
+    assert "function finishBeamCreateDrag(" in source
+    assert "whiteViewer.beginBeamPlacement" in source
+    assert "function beginBeamPlacement(" in viewer
+    assert "beamPlacementRequest" in viewer
+    assert "beginBeamPlacement," in viewer
+    assert '$("#selected-structure-length-cm").readOnly = isBeam' in source
+    assert "element.structureLengthInput" not in source
+
+
+def test_room_confirmation_is_isolated_and_supports_confirm_merge_and_split() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="room-confirmation-progress"' in html
+    assert 'data-room-geometry-mode="merge"' in html
+    assert 'data-room-geometry-mode="split"' in html
+    assert 'id="apply-room-merge"' in html
+    assert 'id="cancel-room-geometry"' in html
+    assert 'data-confirm-room="${escapeHtml(room.id)}"' in source
+    assert 'state.spaceMode === "structure" ? renderStructureSvg() : ""' in source
+    assert "function confirmRoom(roomId)" in source
+    assert "function mergeSelectedRooms()" in source
+    assert "function splitSelectedRoom(start, end)" in source
+    assert "state.splitPoints.length === 2" in source
+    assert "state.rooms.every((room) => room.confirmed === true)" in source
+    assert 'id="rooms-confirmed"' not in html
+
+
+def test_room_polygon_nodes_can_be_merged_or_split_on_an_edge() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'data-room-node-mode="merge"' in html
+    assert 'data-room-node-mode="split"' in html
+    assert 'id="apply-node-merge"' in html
+    assert 'id="cancel-node-edit"' in html
+    assert "function mergeSelectedRoomNodes()" in source
+    assert "function insertRoomNodeAt(point)" in source
+    assert "function nearestPointOnRoomEdge(" in source
+    assert "state.selectedRoomNodeIndices.length === 2" in source
+    assert 'data-room-point="${index}"' in source
+    assert "room.confirmed = false" in source
 
 
 def test_manual_upstream_edits_clear_stale_3d_steps_before_saving() -> None:
@@ -480,7 +806,7 @@ def test_ceiling_conflicts_use_real_obstruction_geometry_and_installation_depth(
           beams: [{{
             id: "beam-1",
             kind: "beam",
-            label: "梁 1",
+            label: "樑 1",
             topCm: 280,
             bottomCm: 240,
             estimated: true,
@@ -507,7 +833,7 @@ def test_ceiling_conflicts_use_real_obstruction_geometry_and_installation_depth(
         "beam-1",
         "cabinet-1",
     ]
-    assert "梁底 240 cm" in result["conflicts"][0]["reason"]
+    assert "樑底 240 cm" in result["conflicts"][0]["reason"]
     assert "圖面估計" in result["conflicts"][0]["reason"]
     assert result["conflicts"][1]["overlapCm"] == 3
 
@@ -551,7 +877,8 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert 'id="rotate-selected-structure-right"' in html
     assert "rotateSelectedStructure(-15)" in controller
     assert "rotateSelectedStructure(15)" in controller
-    assert "窗寬、門寬與門向都可修正" in html
+    assert 'id="flip-selected-door"' in html
+    assert 'id="rotate-selected-door-180"' in html
     assert 'class="rp-questionnaire-workspace"' in html
     assert 'id="requirements-plan-stage"' not in html
     assert 'id="room-furniture-select"' in html
@@ -663,6 +990,12 @@ def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
     assert "roompilot.pending-save." in source
     assert "for (let attempt = 0; attempt < 3; attempt += 1)" in source
     assert "const pendingSave = localStorage.getItem(pendingSaveStorageKey())" in source
+    assert "base_updated_at: state.project?.updated_at || null" in source
+    assert "shouldReplayPendingSave(pendingSave, result.project)" in source
+    assert "replay_pending: true" in source
+    assert "error.status !== 409" in source
+    assert "result = await api(`/api/projects/${state.projectId}`)" in source
+    assert "較舊的離線暫存未覆蓋目前版本" in source
     assert 'window.addEventListener("beforeunload"' in source
     assert "pendingSaveCount === 0" in source
     assert "[element.scaleImage, element.spaceImage, element.requirementsImage, element.layoutImage]" in source

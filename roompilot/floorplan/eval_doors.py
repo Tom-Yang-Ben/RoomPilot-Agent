@@ -19,10 +19,12 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import floorplan2dxf as fp
 
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.ini")
+
 
 def detect_on(path):
     """對單張樣式圖執行與 run() 相同的窗偵測流程，回傳 wins。"""
-    cfg = fp.load_config("config.ini")
+    cfg = fp.load_config(CONFIG_PATH)
     cfg.input = path
     gray, _ = fp.load_gray(cfg)
     bw = fp.binarize(gray, cfg)
@@ -60,13 +62,13 @@ def main():
             continue
         if wins:
             boxes = " ".join(f"(x{int(w[1])}-{int(w[3])},y{int(w[2])}-{int(w[4])})" for w in wins)
-            print(f"{base:<24} ✗ 誤判成窗 {boxes}")
+            print(f"{base:<24} [失敗] 誤判成窗 {boxes}")
         else:
             ok += 1
-            print(f"{base:<24} ✓ 正確過濾")
+            print(f"{base:<24} [通過] 正確過濾")
     rate = ok / len(files) * 100
-    print("─" * 50)
-    print(f"門過濾率: {ok}/{len(files)} = {rate:.0f}%  (目標 ≥95%)")
+    print("-" * 50)
+    print(f"門過濾率: {ok}/{len(files)} = {rate:.0f}%  (目標 >=95%)")
 
 
 if __name__ == "__main__":
