@@ -941,6 +941,18 @@ def test_confirmed_rooms_and_structures_are_the_only_3d_floorplan_source() -> No
     assert "structureDrag" in controller
 
 
+def test_column_height_is_locked_to_the_confirmed_floor_height() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function confirmedRoomHeightCm()" in controller
+    assert "heightInput.readOnly = isColumn;" in controller
+    assert 'isColumn ? "柱高（依樓高，公分）"' in controller
+    assert "height_m: confirmedRoomHeightCm() / 100" in controller
+    assert "heightCm: confirmedRoomHeightCm()" in controller
+    assert "目前調整：柱高" not in controller
+    assert "調整柱寬與高度" not in controller
+
+
 def test_dxf_rooms_and_structures_are_normalized_for_the_corner_origin_editor() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 

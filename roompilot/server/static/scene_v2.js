@@ -939,6 +939,10 @@ function confirmedFloorplanEditor() {
   };
 }
 
+function confirmedRoomHeightCm() {
+  return Math.max(210, Number(confirmedFloorplanEditor().room_height_cm) || 270);
+}
+
 function hydrateSceneWallMass() {
   if (!state.sceneData?.floorplan) return;
   const confirmedPolys = state.confirmedFloorplan?.floorplan?.wall_polys || [];
@@ -1537,7 +1541,7 @@ const structureSectionMeta = {
     listTitle: "柱體清單",
     addLabel: "＋ 新增柱",
     unit: "根柱",
-    guidance: "點左圖放置柱；可拖曳並調整柱寬與高度。",
+    guidance: "點左圖放置柱；可拖曳並調整柱寬與柱深，柱高會跟隨樓高。",
   },
 };
 
@@ -1791,8 +1795,11 @@ function repairLoadedStructureWallCollisions() {
   let unresolved = 0;
   for (const [kind, collection] of [["beam", "beams"], ["column", "columns"]]) {
     state.structures[collection] = (state.structures[collection] || []).map((item) => {
+      const normalizedItem = kind === "column"
+        ? { ...item, height_m: confirmedRoomHeightCm() / 100 }
+        : item;
       const result = resolveStructureWallCollisions(
-        item,
+        normalizedItem,
         kind,
         state.structures.walls,
         { preferredPoint, maxAutoShiftM: 0.75 },
@@ -1808,9 +1815,9 @@ function repairLoadedStructureWallCollisions() {
       }
       if (!result.resolved) {
         unresolved += 1;
-        return { ...item, confirmed: false };
+        return { ...normalizedItem, confirmed: false };
       }
-      return item;
+      return normalizedItem;
     });
   }
   state.structureCollisionRepairs = { moved, unresolved };
@@ -2230,12 +2237,6 @@ function updateStructureDimensionHint(inputId, kind, valueCm, shiftM = 0) {
         direction: "前後方向",
         axis: "↔",
       },
-      "selected-structure-height-cm": {
-        dimension: "height",
-        label: "目前調整：柱高",
-        direction: "上下方向",
-        axis: "↕",
-      },
     },
   };
   const definition = definitions[kind]?.[inputId];
@@ -2254,7 +2255,9 @@ function previewSelectedStructureDraft(event) {
   if (!item || !["beam", "column"].includes(kind)) return;
   const sizeCm = Number($("#selected-structure-size-cm").value);
   const depthCm = Number($("#selected-structure-depth-cm").value);
-  const heightCm = Number($("#selected-structure-height-cm").value);
+  const heightCm = kind === "column"
+    ? confirmedRoomHeightCm()
+    : Number($("#selected-structure-height-cm").value);
   if (!Number.isFinite(sizeCm) || sizeCm <= 0 || !Number.isFinite(heightCm) || heightCm <= 0) {
     return;
   }
@@ -2330,6 +2333,7 @@ function renderSelectedStructureEditor() {
   const isFloorToCeilingWindow = windowType === WINDOW_TYPES.floorToCeiling;
   const isBeam = state.selectedStructure.kind === "beam";
   const isColumn = state.selectedStructure.kind === "column";
+  const heightInput = $("#selected-structure-height-cm");
   $("#structure-wall-collision-error").textContent =
     structureWallCollision(item, state.selectedStructure.kind)
       ? structureWallCollisionMessage(state.selectedStructure.kind)
@@ -2357,12 +2361,12 @@ function renderSelectedStructureEditor() {
           : item.thickness_m,
     ) * 100,
   );
-  $("#selected-structure-height-cm").value = Math.round(
-    Number(
-      item.height_m
-      || (isWindow ? 1.2 : state.selectedStructure.kind === "beam" ? 0.35 : 2.7),
-    ) * 100,
-  );
+  heightInput.value = isColumn
+    ? String(Math.round(confirmedRoomHeightCm()))
+    : String(Math.round(
+      Number(item.height_m || (isWindow ? 1.2 : isBeam ? 0.35 : 2.7)) * 100,
+    ));
+  heightInput.readOnly = isColumn;
   $("#selected-structure-length-field").hidden = !hasLength;
   $("#selected-structure-depth-field").hidden = !isColumn;
   if (hasLength) {
@@ -2376,19 +2380,19 @@ function renderSelectedStructureEditor() {
   }
   $("#selected-structure-size-cm").min = isColumn ? "10" : "1";
   $("#selected-structure-depth-cm").min = isColumn ? "10" : "1";
-  $("#selected-structure-height-cm").min = isColumn ? "30" : "1";
+  heightInput.min = isColumn ? String(Math.round(confirmedRoomHeightCm())) : "1";
   if (isColumn) {
     const columnLimits = confirmedFloorplanEditor();
     $("#selected-structure-size-cm").max = String(Math.round(columnLimits.width_cm));
     $("#selected-structure-depth-cm").max = String(Math.round(columnLimits.depth_cm));
-    $("#selected-structure-height-cm").max = String(Math.round(columnLimits.room_height_cm));
+    heightInput.max = String(Math.round(columnLimits.room_height_cm));
   } else {
     $("#selected-structure-size-cm").removeAttribute("max");
     $("#selected-structure-depth-cm").removeAttribute("max");
-    $("#selected-structure-height-cm").removeAttribute("max");
+    heightInput.removeAttribute("max");
   }
   $("#selected-structure-height-label").textContent =
-    isBeam ? "下垂深度（公分）" : "高度（公分）";
+    isBeam ? "下垂深度（公分）" : isColumn ? "柱高（依樓高，公分）" : "高度（公分）";
   $("#window-type-field").hidden = !isWindow;
   $("#selected-window-type").value = windowType;
   $("#selected-structure-size-field").hidden = isLineWidth;
@@ -2551,7 +2555,7 @@ function applySelectedStructureSize() {
     ? validateColumnDimensionsCm({
       widthCm: $("#selected-structure-size-cm").value,
       depthCm: $("#selected-structure-depth-cm").value,
-      heightCm: $("#selected-structure-height-cm").value,
+      heightCm: confirmedRoomHeightCm(),
       maxWidthCm: columnLimits.width_cm,
       maxDepthCm: columnLimits.depth_cm,
       maxHeightCm: columnLimits.room_height_cm,
@@ -2570,7 +2574,7 @@ function applySelectedStructureSize() {
     ? columnDimensions.values.widthCm / 100
     : Math.max(0.01, Number($("#selected-structure-size-cm").value) / 100);
   const heightM = columnDimensions
-    ? columnDimensions.values.heightCm / 100
+    ? confirmedRoomHeightCm() / 100
     : Math.max(0.01, Number($("#selected-structure-height-cm").value) / 100);
   const lengthM = Math.max(0.1, Number($("#selected-structure-length-cm").value) / 100);
   const depthM = columnDimensions
@@ -2635,7 +2639,7 @@ function applySelectedStructureSize() {
     ? `，並向室內避牆位移 ${Math.round(resolution.totalShiftM * 100)} 公分`
     : "";
   setStatus(kind === "column"
-    ? `柱尺寸已更新為 ${Math.round(sizeM * 100)} × ${Math.round(depthM * 100)} × ${Math.round(heightM * 100)} 公分${shiftNote}。`
+    ? `柱寬深已更新為 ${Math.round(sizeM * 100)} × ${Math.round(depthM * 100)} 公分，柱高依樓高固定為 ${Math.round(heightM * 100)} 公分${shiftNote}。`
     : `樑尺寸已更新${shiftNote}。`);
 }
 
@@ -2951,7 +2955,7 @@ function addDroppedStructure(tool, point) {
       center: meter,
       size_m: 0.35,
       depth_m: 0.35,
-      height_m: 2.7,
+      height_m: confirmedRoomHeightCm() / 100,
       confirmed: false,
       estimated: true,
     };
