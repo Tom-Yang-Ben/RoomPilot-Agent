@@ -953,6 +953,14 @@ def test_column_height_is_locked_to_the_confirmed_floor_height() -> None:
     assert "調整柱寬與高度" not in controller
 
 
+def test_project_workflow_brand_is_not_a_home_link() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+
+    assert '<div class="brand app-brand" aria-label="RoomPilot">' in html
+    assert 'aria-label="RoomPilot 首頁"' not in html
+    assert '<a class="brand app-brand" href="/"' not in html
+
+
 def test_dxf_rooms_and_structures_are_normalized_for_the_corner_origin_editor() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
