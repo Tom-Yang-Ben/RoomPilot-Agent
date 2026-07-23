@@ -27,6 +27,8 @@ import {
   viewPresentation,
 } from "./scene_visual_contracts.js?v=20260721-room-surfaces1";
 
+const CM_PER_METER = 100;
+
 export function createSceneViewer(container, statusElement, { onSceneChange = null } = {}) {
   if ("createImageBitmap" in globalThis) {
     globalThis.createImageBitmap = undefined;
@@ -37,9 +39,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
   const initialWidth = Math.max(container.clientWidth, 1);
   const initialHeight = Math.max(container.clientHeight, 1);
-  const perspectiveCamera = new THREE.PerspectiveCamera(45, initialWidth / initialHeight, 0.1, 200);
-  perspectiveCamera.position.set(5.5, 4.6, 6.8);
-  const orthographicCamera = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.01, 200);
+  const perspectiveCamera = new THREE.PerspectiveCamera(45, initialWidth / initialHeight, 10, 20_000);
+  perspectiveCamera.position.set(550, 460, 680);
+  const orthographicCamera = new THREE.OrthographicCamera(-500, 500, 500, -500, 1, 20_000);
   let camera = perspectiveCamera;
 
   const renderer = new THREE.WebGLRenderer({
@@ -101,10 +103,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
-  controls.minDistance = 1.4;
-  controls.maxDistance = 18;
+  controls.minDistance = 140;
+  controls.maxDistance = 1800;
   controls.zoomSpeed = 0.85;
-  controls.target.set(0, 0.8, 0);
+  controls.target.set(0, 80, 0);
   let activeCameraPreset = "dollhouse";
   const viewMode = createViewModeState("dollhouse");
   let cameraLocked = false;
@@ -119,8 +121,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     controls.enableRotate = true;
     controls.enablePan = !isInside;
     controls.enableZoom = !isInside;
-    controls.minDistance = isInside ? 1.25 : 1.4;
-    controls.maxDistance = isInside ? 3.4 : 18;
+    controls.minDistance = isInside ? 125 : 140;
+    controls.maxDistance = isInside ? 340 : 1800;
     controls.minPolarAngle = isInside ? Math.PI * 0.38 : 0;
     controls.maxPolarAngle = isInside ? Math.PI * 0.62 : Math.PI;
   }
@@ -140,17 +142,17 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   scene.add(ambientLight);
 
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0xdac9b8, 1.35);
-  hemiLight.position.set(0, 8, 0);
+  hemiLight.position.set(0, 800, 0);
   scene.add(hemiLight);
 
   const keyLight = new THREE.DirectionalLight(0xffffff, 1.9);
-  keyLight.position.set(6, 8, 5);
+  keyLight.position.set(600, 800, 500);
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.set(1024, 1024);
   scene.add(keyLight);
 
   const fillLight = new THREE.DirectionalLight(0xe5d0b2, 1.05);
-  fillLight.position.set(-5, 5, -4);
+  fillLight.position.set(-500, 500, -400);
   scene.add(fillLight);
 
   function lightColorForTemperature(temperatureK) {
@@ -167,7 +169,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       side: THREE.BackSide,
     });
     const shell = new THREE.Mesh(
-      new THREE.SphereGeometry(12, 48, 24),
+      new THREE.SphereGeometry(1200, 48, 24),
       shellMaterial,
     );
     environmentScene.add(shell);
@@ -180,11 +182,11 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       }),
     );
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -2.2;
+    ground.position.y = -220;
     environmentScene.add(ground);
 
     const sun = new THREE.Mesh(
-      new THREE.SphereGeometry(0.7, 24, 12),
+      new THREE.SphereGeometry(70, 24, 12),
       new THREE.MeshBasicMaterial({
         color: new THREE.Color(profile.sun).multiplyScalar(profile.sunEnergy),
       }),
@@ -306,23 +308,24 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   const grid = new THREE.GridHelper(12, 48, 0xc6ad8e, 0xe8ddcf);
-  grid.position.y = -0.01;
+  grid.scale.setScalar(CM_PER_METER);
+  grid.position.y = -1;
   grid.material.transparent = true;
   grid.material.opacity = 0.16;
   grid.visible = false;
   scene.add(grid);
 
-  const axes = new THREE.AxesHelper(1.4);
-  axes.position.set(-4.7, 0.02, 4.7);
+  const axes = new THREE.AxesHelper(140);
+  axes.position.set(-470, 2, 470);
   axes.visible = false;
   scene.add(axes);
   [
-    ["+X 右", "#d94b3d", [-3.05, 0.08, 4.7]],
-    ["-X 左", "#d94b3d", [-5.85, 0.08, 4.7]],
-    ["+Y 上", "#47a65a", [-4.7, 1.6, 4.7]],
-    ["-Y 地", "#47a65a", [-4.7, 0.08, 4.7]],
-    ["+Z 深", "#3f73d8", [-4.7, 0.08, 6.35]],
-    ["-Z 前", "#3f73d8", [-4.7, 0.08, 3.05]],
+    ["+X 右", "#d94b3d", [-305, 8, 470]],
+    ["-X 左", "#d94b3d", [-585, 8, 470]],
+    ["+Y 上", "#47a65a", [-470, 160, 470]],
+    ["-Y 地", "#47a65a", [-470, 8, 470]],
+    ["+Z 深", "#3f73d8", [-470, 8, 635]],
+    ["-Z 前", "#3f73d8", [-470, 8, 305]],
   ].filter(([label]) => !String(label).startsWith("-")).forEach(([label, color, position]) => {
     const sprite = createAxisLabel(label, color);
     sprite.position.set(...position);
@@ -395,23 +398,23 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       viewMode.setMode(preset === "inside" ? "walk" : "orbit");
       configureWallsForView("orbit");
     }
-    const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6, wallHeight: 2.7 };
+    const room = roomGroup.userData.roomSize || { widthCm: 420, depthCm: 360, wallHeight: 270 };
     const presets = {
       overview: {
-        position: [0, Math.max(room.widthM, room.depthM) * 1.12 + 2.1, 0.08],
-        target: [0, 0.25, 0],
+        position: [0, Math.max(room.widthCm, room.depthCm) * 1.12 + 210, 8],
+        target: [0, 25, 0],
       },
       entrance: {
-        position: [0, 1.72, room.depthM / 2 + 1.15],
-        target: [0, 1.05, -room.depthM * 0.16],
+        position: [0, 172, room.depthCm / 2 + 115],
+        target: [0, 105, -room.depthCm * 0.16],
       },
       corner: {
-        position: [room.widthM * 0.55 + 1.15, 2.72, room.depthM * 0.55 + 1.35],
-        target: [0, 0.85, 0],
+        position: [room.widthCm * 0.55 + 115, 272, room.depthCm * 0.55 + 135],
+        target: [0, 85, 0],
       },
       inside: {
-        position: [0, 1.45, Math.max(room.depthM * 0.28, 0.95)],
-        target: [0, 1.08, -Math.max(room.depthM * 0.14, 0.48)],
+        position: [0, 145, Math.max(room.depthCm * 0.28, 95)],
+        target: [0, 108, -Math.max(room.depthCm * 0.14, 48)],
       },
     };
 
@@ -490,7 +493,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(0.24, 0.24, 1);
+    sprite.scale.set(24, 24, 1);
     sprite.renderOrder = 998;
     return sprite;
   }
@@ -502,18 +505,18 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function getSurfaceModuleSize(surface, usage) {
-    if (usage !== "floor") return { x: 1.8, y: 1.8 };
+    if (usage !== "floor") return { x: 180, y: 180 };
     const physicalSize = String(surface.source_size || "")
       .match(/([\d.]+)\s*x\s*([\d.]+)\s*cm/i);
     if (physicalSize) {
       return {
-        x: Math.max(0.45, Number(physicalSize[1]) / 100),
-        y: Math.max(0.45, Number(physicalSize[2]) / 100),
+        x: Math.max(45, Number(physicalSize[1])),
+        y: Math.max(45, Number(physicalSize[2])),
       };
     }
-    if (surface.category === "tile") return { x: 0.6, y: 0.6 };
-    if (surface.category === "wood_tile") return { x: 0.9, y: 0.9 };
-    return { x: 2.4, y: 2.4 };
+    if (surface.category === "tile") return { x: 60, y: 60 };
+    if (surface.category === "wood_tile") return { x: 90, y: 90 };
+    return { x: 240, y: 240 };
   }
 
   function getContinuousSurfaceRepeat(surface, usage, spanX = 3, spanY = 3) {
@@ -819,7 +822,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       return createSurfaceImageMaterial(surface, "floor", {
         roughness: 0.86,
         metalness: 0.01,
-        repeat: getContinuousSurfaceRepeat(surface, "floor", roomSize.widthM, roomSize.depthM),
+        repeat: getContinuousSurfaceRepeat(surface, "floor", roomSize.widthCm, roomSize.depthCm),
       });
     }
 
@@ -1014,7 +1017,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       const dx = Number(end.x) - Number(start.x);
       const dz = Number(end.z) - Number(start.z);
       const length = Math.hypot(dx, dz);
-      if (length < 0.04) return;
+      if (length < 4) return;
       const unitX = dx / length;
       const unitZ = dz / length;
       const rotationY = Math.atan2(-dz, dx);
@@ -1034,19 +1037,19 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           const relZ = centerZ - Number(start.z);
           const along = relX * unitX + relZ * unitZ;
           const perpendicular = Math.abs(relX * -unitZ + relZ * unitX);
-          if (perpendicular > Math.max(0.28, wallThickness * 2.4)) return null;
+          if (perpendicular > Math.max(28, wallThickness * 2.4)) return null;
           const measuredWidth = Math.hypot(
             Number(openingEnd.x || 0) - Number(openingStart.x || 0),
             Number(openingEnd.z || 0) - Number(openingStart.z || 0),
           );
           const width = Math.max(
-            Number(opening.width_m || opening.width || measuredWidth)
-              || (kind === "door" ? 0.9 : 1.2),
-            kind === "door" ? 0.68 : 0.5,
+            Number(opening.width_cm || opening.width || measuredWidth)
+              || (kind === "door" ? 90 : 120),
+            kind === "door" ? 68 : 50,
           );
           const from = Math.max(0, along - width / 2);
           const to = Math.min(length, along + width / 2);
-          if (to - from < 0.24) return null;
+          if (to - from < 24) return null;
           const windowMetrics = kind === "window"
             ? windowOpeningMetrics(opening, wallHeight)
             : null;
@@ -1064,12 +1067,12 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         .sort((left, right) => left.from - right.from);
 
       const addWallSection = (from, to, bottom, height, sectionMaterial = material) => {
-        if (to - from < 0.025 || height < 0.025) return;
-        const seamOverlap = 0.006;
-        const sectionFrom = from <= 0.001
+        if (to - from < 2.5 || height < 2.5) return;
+        const seamOverlap = 0.6;
+        const sectionFrom = from <= 0.1
           ? from - wallThickness * 0.52
           : from - seamOverlap;
-        const sectionTo = to >= length - 0.001
+        const sectionTo = to >= length - 0.1
           ? to + wallThickness * 0.52
           : to + seamOverlap;
         const center = (sectionFrom + sectionTo) / 2;
@@ -1107,15 +1110,15 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         clearcoatRoughness: 0.68,
       });
       const addBaseboard = (from, to) => {
-        if (to - from < 0.04) return;
+        if (to - from < 4) return;
         const center = (from + to) / 2;
         const trim = new THREE.Mesh(
-          new THREE.BoxGeometry(to - from, 0.075, wallThickness + 0.022),
+          new THREE.BoxGeometry(to - from, 7.5, wallThickness + 2.2),
           trimMaterial,
         );
         trim.position.set(
           Number(start.x) + unitX * center,
-          0.038,
+          3.8,
           Number(start.z) + unitZ * center,
         );
         trim.rotation.y = rotationY;
@@ -1130,10 +1133,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         addWallSection(cursor, interval.from, 0, wallHeight);
         addBaseboard(cursor, interval.from);
         const openingHeight = interval.kind === "door"
-          ? Math.min(Number(interval.opening.height_m || 2.1), wallHeight - 0.08)
-          : interval.windowMetrics.headHeightM;
+          ? Math.min(Number(interval.opening.height_cm || 210), wallHeight - 8)
+          : interval.windowMetrics.headHeightCm;
         if (interval.kind === "window") {
-          const sillHeight = interval.windowMetrics.sillHeightM;
+          const sillHeight = interval.windowMetrics.sillHeightCm;
           addWallSection(interval.from, interval.to, 0, sillHeight);
           addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
         } else {
@@ -1159,12 +1162,12 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       addJunctionCap(end);
 
       const topCap = new THREE.Mesh(
-        new THREE.BoxGeometry(length + wallThickness, 0.025, wallThickness),
+        new THREE.BoxGeometry(length + wallThickness, 2.5, wallThickness),
         material.clone(),
       );
       topCap.position.set(
         (Number(start.x) + Number(end.x)) / 2,
-        wallHeight + 0.0125,
+        wallHeight + 1.25,
         (Number(start.z) + Number(end.z)) / 2,
       );
       topCap.rotation.y = rotationY;
@@ -1184,9 +1187,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       clearcoatRoughness: 0.34,
       envMapIntensity: 1,
     });
-    const height = isWindow ? interval.windowMetrics?.glazingHeightM || 1.2 : 2.05;
+    const height = isWindow ? interval.windowMetrics?.glazingHeightCm || 120 : 205;
     const centerY = isWindow
-      ? (interval.windowMetrics?.sillHeightM || 0) + height / 2
+      ? (interval.windowMetrics?.sillHeightCm || 0) + height / 2
       : height / 2;
     const assembly = new THREE.Group();
     assembly.position.set(anchor.x, 0, anchor.z);
@@ -1201,7 +1204,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           roughness: 0.08,
           metalness: 0,
           transmission: 0.88,
-          thickness: 0.01,
+          thickness: 1,
           ior: 1.48,
           transparent: true,
           opacity: 0.34,
@@ -1214,14 +1217,14 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       assembly.add(glass);
       const mullionPositions = [0];
       [
-        [interval.width, 0.045, 0, centerY - height / 2],
-        [interval.width, 0.045, 0, centerY + height / 2],
-        [0.045, height, -interval.width / 2, centerY],
-        [0.045, height, interval.width / 2, centerY],
-        ...mullionPositions.map((x) => [0.035, height, x, centerY]),
+        [interval.width, 4.5, 0, centerY - height / 2],
+        [interval.width, 4.5, 0, centerY + height / 2],
+        [4.5, height, -interval.width / 2, centerY],
+        [4.5, height, interval.width / 2, centerY],
+        ...mullionPositions.map((x) => [3.5, height, x, centerY]),
       ].forEach(([width, frameHeight, x, y]) => {
         const frame = new THREE.Mesh(
-          new THREE.BoxGeometry(width, frameHeight, 0.045),
+          new THREE.BoxGeometry(width, frameHeight, 4.5),
           frameMaterial,
         );
         frame.position.set(x, y, 0);
@@ -1235,10 +1238,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       hingeGroup.rotation.y = transform.closedRotationYRad + transform.swingRotationYRad;
       hingeGroup.userData.roompilotArchitecturalDetail = "door-hinge";
       const leaf = new THREE.Mesh(
-        new THREE.BoxGeometry(transform.leafWidthM, height, 0.045),
+        new THREE.BoxGeometry(transform.leafWidthCm, height, 4.5),
         frameMaterial,
       );
-      leaf.position.set(transform.leafCenterXM, centerY, 0);
+      leaf.position.set(transform.leafCenterXCm, centerY, 0);
       leaf.castShadow = true;
       leaf.receiveShadow = true;
       hingeGroup.add(leaf);
@@ -1265,10 +1268,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       const dx = Number(end.x || 0) - Number(start.x || 0);
       const dz = Number(end.z || 0) - Number(start.z || 0);
       const measuredWidth = Math.hypot(dx, dz);
-      if (measuredWidth < 0.04) return;
+      if (measuredWidth < 4) return;
       const openingWidth = Math.max(
-        Number(opening.width_m || opening.width || measuredWidth),
-        kind === "door" ? 0.68 : 0.5,
+        Number(opening.width_cm || opening.width || measuredWidth),
+        kind === "door" ? 68 : 50,
       );
       const windowMetrics = kind === "window"
         ? windowOpeningMetrics(opening, wallHeight)
@@ -1289,13 +1292,13 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       );
       const isWindow = kind === "window";
       const openingHeight = isWindow
-        ? windowMetrics.headHeightM
-        : Math.min(Number(opening.height_m || 2.1), wallHeight - 0.08);
+        ? windowMetrics.headHeightCm
+        : Math.min(Number(opening.height_cm || 210), wallHeight - 8);
       const sillHeight = isWindow
-        ? windowMetrics.sillHeightM
+        ? windowMetrics.sillHeightCm
         : 0;
       const addOpeningWallSection = (bottom, height, detail) => {
-        if (height < 0.025) return;
+        if (height < 2.5) return;
         const section = new THREE.Mesh(
           new THREE.BoxGeometry(
             openingWidth + wallThickness * 2.1,
@@ -1337,10 +1340,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       const dx = Number(end.x) - Number(start.x);
       const dz = Number(end.z) - Number(start.z);
       const length = Math.hypot(dx, dz);
-      if (length < 0.04) return;
-      const width = Math.max(Number(segment.width_m || segment.thickness_m || 0.3), 0.12);
-      const height = Math.max(Number(segment.height_m || 0.35), 0.12);
-      const top = Math.min(Number(segment.top_m || wallHeight), wallHeight);
+      if (length < 4) return;
+      const width = Math.max(Number(segment.width_cm || segment.thickness_cm || 30), 12);
+      const height = Math.max(Number(segment.height_cm || 35), 12);
+      const top = Math.min(Number(segment.top_cm || wallHeight), wallHeight);
       const beam = new THREE.Mesh(
         new THREE.BoxGeometry(length, height, width),
         material.clone(),
@@ -1360,14 +1363,14 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       const center = column.center;
       if (!center) return;
       const geometry = columnGeometryDescriptor(column, {
-        minimumDimensionM: 0.1,
-        defaultHeightM: wallHeight,
+        minimumDimensionCm: 10,
+        defaultHeightCm: wallHeight,
       });
       const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(geometry.widthM, geometry.heightM, geometry.depthM),
+        new THREE.BoxGeometry(geometry.widthCm, geometry.heightCm, geometry.depthCm),
         material.clone(),
       );
-      mesh.position.set(geometry.centerX, geometry.centerHeightM, geometry.centerZ);
+      mesh.position.set(geometry.centerX, geometry.centerHeightCm, geometry.centerZ);
       mesh.rotation.y = -THREE.MathUtils.degToRad(geometry.rotationDeg);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
@@ -1376,7 +1379,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     });
   }
 
-  function buildFloorPlanOverlay(roomGroupRef, segments, color, opacity = 0.55, yOffset = 0.025) {
+  function buildFloorPlanOverlay(roomGroupRef, segments, color, opacity = 0.55, yOffset = 2.5) {
     if (!segments?.length) return;
 
     const points = [];
@@ -1409,17 +1412,17 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     };
   }
 
-  function circulationAccessPoint(segment, reference, clearanceM = 0.38) {
+  function circulationAccessPoint(segment, reference, clearanceCm = 38) {
     const midpoint = segmentMidpoint(segment);
     const dx = Number(segment.end?.x) - Number(segment.start?.x);
     const dz = Number(segment.end?.z) - Number(segment.start?.z);
     const length = Math.hypot(dx, dz) || 1;
     const normal = { x: -dz / length, z: dx / length };
     const candidates = [1, -1].map((side) => ({
-      x: midpoint.x + normal.x * clearanceM * side,
-      z: midpoint.z + normal.z * clearanceM * side,
+      x: midpoint.x + normal.x * clearanceCm * side,
+      z: midpoint.z + normal.z * clearanceCm * side,
     })).filter(
-      (point) => walkPositionInsideFloor(point) && !walkPositionBlocked(point, 0.17),
+      (point) => walkPositionInsideFloor(point) && !walkPositionBlocked(point, 17),
     );
     if (!candidates.length) return midpoint;
     return candidates.sort(
@@ -1428,13 +1431,13 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     )[0];
   }
 
-  function findCirculationPath(start, goal, floorplan, cellSize = 0.2) {
-    const widthM = Math.max(Number(floorplan.width_cm) / 100, 2.4);
-    const depthM = Math.max(Number(floorplan.depth_cm) / 100, 2.4);
-    const minX = -widthM / 2;
-    const minZ = -depthM / 2;
-    const columns = Math.ceil(widthM / cellSize) + 1;
-    const rows = Math.ceil(depthM / cellSize) + 1;
+  function findCirculationPath(start, goal, floorplan, cellSize = 20) {
+    const widthCm = Math.max(Number(floorplan.width_cm), 240);
+    const depthCm = Math.max(Number(floorplan.depth_cm), 240);
+    const minX = -widthCm / 2;
+    const minZ = -depthCm / 2;
+    const columns = Math.ceil(widthCm / cellSize) + 1;
+    const rows = Math.ceil(depthCm / cellSize) + 1;
     const toCell = (point) => ({
       x: THREE.MathUtils.clamp(Math.round((point.x - minX) / cellSize), 0, columns - 1),
       z: THREE.MathUtils.clamp(Math.round((point.z - minZ) / cellSize), 0, rows - 1),
@@ -1446,7 +1449,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const keyOf = (cell) => `${cell.x}:${cell.z}`;
     const isWalkable = (cell) => {
       const point = toPoint(cell);
-      return walkPositionInsideFloor(point) && !walkPositionBlocked(point, 0.17);
+      return walkPositionInsideFloor(point) && !walkPositionBlocked(point, 17);
     };
     const nearestWalkable = (point) => {
       const origin = toCell(point);
@@ -1517,14 +1520,14 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
   function circulationSegmentWalkable(start, end) {
     const distance = Math.hypot(end.x - start.x, end.z - start.z);
-    const steps = Math.max(Math.ceil(distance / 0.1), 1);
+    const steps = Math.max(Math.ceil(distance / 10), 1);
     for (let index = 0; index <= steps; index += 1) {
       const progress = index / steps;
       const point = {
         x: THREE.MathUtils.lerp(start.x, end.x, progress),
         z: THREE.MathUtils.lerp(start.z, end.z, progress),
       };
-      if (!walkPositionInsideFloor(point) || walkPositionBlocked(point, 0.17)) return false;
+      if (!walkPositionInsideFloor(point) || walkPositionBlocked(point, 17)) return false;
     }
     return true;
   }
@@ -1557,12 +1560,12 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       const dx = point.x - previous.x;
       const dz = point.z - previous.z;
       const length = Math.hypot(dx, dz);
-      if (length < 0.02) return;
+      if (length < 2) return;
       const strip = new THREE.Mesh(
-        new THREE.BoxGeometry(length + 0.03, 0.012, 0.11),
+        new THREE.BoxGeometry(length + 3, 1.2, 11),
         material,
       );
-      strip.position.set((point.x + previous.x) / 2, 0.038, (point.z + previous.z) / 2);
+      strip.position.set((point.x + previous.x) / 2, 3.8, (point.z + previous.z) / 2);
       strip.rotation.y = Math.atan2(-dz, dx);
       strip.renderOrder = 24;
       strip.userData.roompilotCirculation = true;
@@ -1574,10 +1577,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       const point = points[index];
       const direction = new THREE.Vector3(point.x - previous.x, 0, point.z - previous.z).normalize();
       const arrow = new THREE.Mesh(
-        new THREE.ConeGeometry(0.11, 0.24, 3),
+        new THREE.ConeGeometry(11, 24, 3),
         material.clone(),
       );
-      arrow.position.set(point.x, 0.052, point.z);
+      arrow.position.set(point.x, 5.2, point.z);
       arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
       arrow.renderOrder = 25;
       arrow.userData.roompilotCirculation = true;
@@ -1607,7 +1610,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       transparent: true,
       depthTest: false,
     }));
-    sprite.scale.set(1.1, 0.42, 1);
+    sprite.scale.set(110, 42, 1);
     sprite.renderOrder = 30;
     sprite.userData.roompilotCirculation = true;
     return sprite;
@@ -1618,26 +1621,26 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       (segment) => segment.start && segment.end,
     );
     if (doors.length < 2) return;
-    const widthM = Math.max(Number(floorplan.width_cm) / 100, 2.4);
-    const depthM = Math.max(Number(floorplan.depth_cm) / 100, 2.4);
+    const widthCm = Math.max(Number(floorplan.width_cm), 240);
+    const depthCm = Math.max(Number(floorplan.depth_cm), 240);
     const edgeDistance = (point) => Math.min(
-      Math.abs(point.x + widthM / 2),
-      Math.abs(point.x - widthM / 2),
-      Math.abs(point.z + depthM / 2),
-      Math.abs(point.z - depthM / 2),
+      Math.abs(point.x + widthCm / 2),
+      Math.abs(point.x - widthCm / 2),
+      Math.abs(point.z + depthCm / 2),
+      Math.abs(point.z - depthCm / 2),
     );
     const entrance = [...doors].sort((left, right) => {
       const leftMidpoint = segmentMidpoint(left);
       const rightMidpoint = segmentMidpoint(right);
       const edgeDifference = edgeDistance(leftMidpoint) - edgeDistance(rightMidpoint);
-      return Math.abs(edgeDifference) > 0.08
+      return Math.abs(edgeDifference) > 8
         ? edgeDifference
         : rightMidpoint.z - leftMidpoint.z;
     })[0];
     const entranceMidpoint = segmentMidpoint(entrance);
     const entranceAccess = circulationAccessPoint(entrance, { x: 0, z: 0 });
     const startMarker = new THREE.Mesh(
-      new THREE.CircleGeometry(0.23, 32),
+      new THREE.CircleGeometry(23, 32),
       new THREE.MeshBasicMaterial({
         color: 0x2f7d64,
         transparent: true,
@@ -1647,12 +1650,12 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       }),
     );
     startMarker.rotation.x = -Math.PI / 2;
-    startMarker.position.set(entranceAccess.x, 0.04, entranceAccess.z);
+    startMarker.position.set(entranceAccess.x, 4, entranceAccess.z);
     startMarker.renderOrder = 26;
     startMarker.userData.roompilotCirculation = true;
     roomGroupRef.add(startMarker);
     const label = createCirculationLabel("玄關");
-    label.position.set(entranceAccess.x, 0.42, entranceAccess.z);
+    label.position.set(entranceAccess.x, 42, entranceAccess.z);
     label.userData = { ...label.userData, label: "玄關" };
     roomGroupRef.add(label);
 
@@ -1665,8 +1668,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function createMaterialBoundarySurfaces(roomGroupRef, boundary, floorMaterial, sceneData) {
-    const bounds = boundary?.room_bounds_m;
-    const line = boundary?.line_m;
+    const bounds = boundary?.room_bounds_cm;
+    const line = boundary?.line_cm;
     if (!bounds || !Array.isArray(line) || line.length < 2) return;
     const minX = Number(bounds.minX);
     const maxX = Number(bounds.maxX);
@@ -1691,13 +1694,13 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           { width: maxX - minX, depth: maxZ - split, x: (minX + maxX) / 2, z: (split + maxZ) / 2 },
         ];
     parts.forEach((part, index) => {
-      if (part.width < 0.02 || part.depth < 0.02) return;
+      if (part.width < 2 || part.depth < 2) return;
       const surface = new THREE.Mesh(
         new THREE.PlaneGeometry(part.width, part.depth),
         materials[index],
       );
       surface.rotation.x = -Math.PI / 2;
-      surface.position.set(part.x, 0.006 + index * 0.001, part.z);
+      surface.position.set(part.x, 0.6 + index * 0.1, part.z);
       surface.receiveShadow = true;
       surface.userData.roompilotMaterialZone = index + 1;
       roomGroupRef.add(surface);
@@ -1713,18 +1716,18 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
   function createRoomSurfaceOverrides(roomGroupRef, sceneData) {
     (sceneData.surface_overrides || []).forEach((override, index) => {
-      const bounds = override.room_bounds_m;
+      const bounds = override.room_bounds_cm;
       if (!bounds) return;
       const width = Number(bounds.maxX) - Number(bounds.minX);
       const depth = Number(bounds.maxZ) - Number(bounds.minZ);
-      if (width < 0.02 || depth < 0.02) return;
+      if (width < 2 || depth < 2) return;
       const material = createFloorMaterial(
         override.floor_option || "auto",
         sceneData.surface_catalog,
-        { widthM: width, depthM: depth },
+        { widthCm: width, depthCm: depth },
       );
       applySurfaceTint(material, override.floor_color_hex);
-      const polygon = override.room_polygon_m || [];
+      const polygon = override.room_polygon_cm || [];
       let geometry;
       if (polygon.length >= 3) {
         const shape = new THREE.Shape();
@@ -1741,7 +1744,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       }
       const surface = new THREE.Mesh(geometry, material);
       surface.rotation.x = -Math.PI / 2;
-      surface.position.y = 0.004 + index * 0.001;
+      surface.position.y = 0.4 + index * 0.1;
       if (polygon.length < 3) {
         surface.position.x = (Number(bounds.minX) + Number(bounds.maxX)) / 2;
         surface.position.z = (Number(bounds.minZ) + Number(bounds.maxZ)) / 2;
@@ -1761,8 +1764,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         z: (Number(segment.start?.z || 0) + Number(segment.end?.z || 0)) / 2,
       };
       const override = overrides.findLast(
-        (item) => item.room_bounds_m
-          && pointInBounds(midpoint, item.room_bounds_m, 0.18),
+        (item) => item.room_bounds_cm
+          && pointInBounds(midpoint, item.room_bounds_cm, 18),
       );
       if (!override) return defaultMaterial;
       if (!cache.has(override.room_id)) {
@@ -1844,7 +1847,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         material.clone(),
       );
       cap.rotation.x = -Math.PI / 2;
-      cap.position.y = wallHeight + 0.004;
+      cap.position.y = wallHeight + 0.4;
       cap.userData.roompilotArchitecturalDetail = "continuous-wall-mass-top-cap";
       cap.castShadow = true;
       cap.receiveShadow = true;
@@ -1852,8 +1855,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     });
   }
 
-  function createFloorGeometry(floorplan, widthM, depthM) {
-    const shapes = synchronizedFloorRegions(floorplan, widthM, depthM)
+  function createFloorGeometry(floorplan, widthCm, depthCm) {
+    const shapes = synchronizedFloorRegions(floorplan, widthCm, depthCm)
       .map((region) => polygonShape(region, true))
       .filter(Boolean);
     const geometry = new THREE.ShapeGeometry(shapes);
@@ -1867,11 +1870,11 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     clearGroup(hangingLightGroup);
     wallMeshes.length = 0;
 
-    const widthM = Math.max(sceneData.floorplan.width_cm / 100, 2.4);
-    const depthM = Math.max(sceneData.floorplan.depth_cm / 100, 2.4);
+    const widthCm = Math.max(sceneData.floorplan.width_cm, 240);
+    const depthCm = Math.max(sceneData.floorplan.depth_cm, 240);
     const wallHeight = Math.max(
-      Number(sceneData.floorplan.room_height_cm || 270) / 100,
-      2.1,
+      Number(sceneData.floorplan.room_height_cm || 270),
+      210,
     );
     const floorOption = sceneData.design_choices?.floor_option || "auto";
     const wallOption = sceneData.design_choices?.wall_option || "auto";
@@ -1879,7 +1882,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const floorMaterial = createFloorMaterial(
       floorOption,
       sceneData.surface_catalog,
-      { widthM, depthM },
+      { widthCm, depthCm },
     );
     const floorPbr = sceneData.style?.pbr?.floor || {};
     const floorColor = sceneData.design_choices?.floor_color_hex
@@ -1888,7 +1891,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     if (floorPbr.roughness != null) floorMaterial.roughness = floorPbr.roughness;
     if (floorPbr.metalness != null) floorMaterial.metalness = floorPbr.metalness;
     const floor = new THREE.Mesh(
-      createFloorGeometry(sceneData.floorplan, widthM, depthM),
+      createFloorGeometry(sceneData.floorplan, widthCm, depthCm),
       floorMaterial,
     );
     floor.rotation.x = -Math.PI / 2;
@@ -1896,7 +1899,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     floor.receiveShadow = true;
     roomGroup.add(floor);
     const presentationGround = new THREE.Mesh(
-      new THREE.CircleGeometry(Math.max(widthM, depthM) * 1.15, 96),
+      new THREE.CircleGeometry(Math.max(widthCm, depthCm) * 1.15, 96),
       new THREE.MeshPhysicalMaterial({
         color: 0xe8e5df,
         roughness: 0.96,
@@ -1905,17 +1908,17 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       }),
     );
     presentationGround.rotation.x = -Math.PI / 2;
-    presentationGround.position.y = -0.032;
+    presentationGround.position.y = -3.2;
     presentationGround.receiveShadow = true;
     presentationGround.userData.roompilotArchitecturalDetail = "shadow-ground";
     roomGroup.add(presentationGround);
-    const shadowExtent = Math.max(widthM, depthM) * 0.72 + 1;
+    const shadowExtent = Math.max(widthCm, depthCm) * 0.72 + 100;
     keyLight.shadow.camera.left = -shadowExtent;
     keyLight.shadow.camera.right = shadowExtent;
     keyLight.shadow.camera.top = shadowExtent;
     keyLight.shadow.camera.bottom = -shadowExtent;
-    keyLight.shadow.camera.near = 0.2;
-    keyLight.shadow.camera.far = 35;
+    keyLight.shadow.camera.near = 20;
+    keyLight.shadow.camera.far = 3500;
     keyLight.shadow.camera.updateProjectionMatrix();
     createRoomSurfaceOverrides(roomGroup, sceneData);
     createMaterialBoundarySurfaces(
@@ -1939,20 +1942,20 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       sceneData.floorplan?.source,
     );
     const singleRoomMode = sceneData.design_choices?.single_room_mode !== false;
-    roomGroup.userData.roomSize = { widthM, depthM, wallHeight };
+    roomGroup.userData.roomSize = { widthCm, depthCm, wallHeight };
     roomGroup.userData.ceilingStyle = sceneData.design_choices?.ceiling_style || "exposed";
 
     const ceilingDropCm = Number(sceneData.design_choices?.ceiling_drop_cm) || 0;
-    const ceilingHeight = wallHeight - ceilingDropCm / 100;
+    const ceilingHeight = wallHeight - ceilingDropCm;
     createCeilingGeometry(
-      { widthM, depthM, wallHeight, ceilingHeight },
+      { widthCm, depthCm, wallHeight, ceilingHeight },
       roomGroup.userData.ceilingStyle,
       sceneData.style_card || sceneData.style || {},
     );
     ceilingGroup.visible = false;
 
     // 12 cm 接近住宅隔間牆；原先 4 cm 會讓雙線牆與轉角看起來像中空。
-    const wallThickness = 0.12;
+    const wallThickness = 12;
     const builtWallMass = !singleRoomMode && hasAccurateFloorplan
       ? buildWallMass(
         roomGroup,
@@ -1987,26 +1990,26 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         windowSegments,
       );
     } else {
-      const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthM, wallHeight, wallThickness), wallMaterial.clone());
-      backWall.position.set(0, wallHeight / 2, -depthM / 2);
+      const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthCm, wallHeight, wallThickness), wallMaterial.clone());
+      backWall.position.set(0, wallHeight / 2, -depthCm / 2);
       roomGroup.add(registerWall(backWall));
 
-      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, wallHeight, depthM), wallMaterial.clone());
-      leftWall.position.set(-widthM / 2, wallHeight / 2, 0);
+      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, wallHeight, depthCm), wallMaterial.clone());
+      leftWall.position.set(-widthCm / 2, wallHeight / 2, 0);
       roomGroup.add(registerWall(leftWall));
 
-      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, wallHeight, depthM), wallMaterial.clone());
-      rightWall.position.set(widthM / 2, wallHeight / 2, 0);
+      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, wallHeight, depthCm), wallMaterial.clone());
+      rightWall.position.set(widthCm / 2, wallHeight / 2, 0);
       roomGroup.add(registerWall(rightWall));
     }
 
     if (hasAccurateFloorplan) {
-      buildFloorPlanOverlay(roomGroup, doorSegments, 0xb9773f, 0.82, 0.038);
-      buildFloorPlanOverlay(roomGroup, windowSegments, 0x6f9eb4, 0.9, 0.044);
+      buildFloorPlanOverlay(roomGroup, doorSegments, 0xb9773f, 0.82, 3.8);
+      buildFloorPlanOverlay(roomGroup, windowSegments, 0x6f9eb4, 0.9, 4.4);
       buildCirculationRoute(roomGroup, sceneData.floorplan);
     } else if (!builtWallMass) {
       const outline = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(widthM, wallHeight, depthM)),
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(widthCm, wallHeight, depthCm)),
         new THREE.LineBasicMaterial({ color: 0xb89264, transparent: true, opacity: 0.35 })
       );
       outline.position.set(0, wallHeight / 2, 0);
@@ -2014,24 +2017,24 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     }
     buildStructuralMembers(roomGroup, sceneData.floorplan || {}, wallHeight);
 
-    const boundary = sceneData.material_boundary?.line_m;
+    const boundary = sceneData.material_boundary?.line_cm;
     if (Array.isArray(boundary) && boundary.length >= 2) {
       buildFloorPlanOverlay(roomGroup, [{
         start: { x: Number(boundary[0].x) || 0, z: Number(boundary[0].y) || 0 },
         end: { x: Number(boundary[1].x) || 0, z: Number(boundary[1].y) || 0 },
-      }], 0x7b56b3, 0.96, 0.052);
+      }], 0x7b56b3, 0.96, 5.2);
     }
 
     if (sceneData.design_choices?.light_style) {
       createStyleLights(
-        { widthM, depthM, wallHeight: ceilingHeight },
+        { widthCm, depthCm, wallHeight: ceilingHeight },
         sceneData.style_card || sceneData.style || {},
         sceneData.design_choices.light_style,
       );
     }
 
     if (!cameraLocked) {
-      controls.target.set(0, 0.9, 0);
+      controls.target.set(0, 90, 0);
       setViewMode("dollhouse");
     }
   }
@@ -2049,9 +2052,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       roughness: 0.55,
       metalness: ceilingStyle === "linear" ? 0.45 : 0.05,
     });
-    const addPanel = (width, depth, y, material = baseMaterial, thickness = 0.04) => {
+    const addPanel = (width, depth, y, material = baseMaterial, thickness = 4) => {
       const panel = new THREE.Mesh(
-        new THREE.BoxGeometry(Math.max(width, 0.08), thickness, Math.max(depth, 0.08)),
+        new THREE.BoxGeometry(Math.max(width, 8), thickness, Math.max(depth, 8)),
         material,
       );
       panel.position.y = y;
@@ -2063,99 +2066,99 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     };
 
     if (ceilingStyle === "flat" || ceilingStyle === "no-main-light") {
-      addPanel(room.widthM, room.depthM, room.ceilingHeight);
+      addPanel(room.widthCm, room.depthCm, room.ceilingHeight);
       return;
     }
     if (ceilingStyle === "cove") {
-      const band = Math.min(0.42, room.widthM / 6, room.depthM / 6);
-      addPanel(room.widthM, band, room.ceilingHeight, baseMaterial, 0.1).position.z = -(room.depthM - band) / 2;
-      addPanel(room.widthM, band, room.ceilingHeight, baseMaterial, 0.1).position.z = (room.depthM - band) / 2;
-      addPanel(band, Math.max(room.depthM - band * 2, 0.1), room.ceilingHeight, baseMaterial, 0.1).position.x = -(room.widthM - band) / 2;
-      addPanel(band, Math.max(room.depthM - band * 2, 0.1), room.ceilingHeight, baseMaterial, 0.1).position.x = (room.widthM - band) / 2;
+      const band = Math.min(42, room.widthCm / 6, room.depthCm / 6);
+      addPanel(room.widthCm, band, room.ceilingHeight, baseMaterial, 10).position.z = -(room.depthCm - band) / 2;
+      addPanel(room.widthCm, band, room.ceilingHeight, baseMaterial, 10).position.z = (room.depthCm - band) / 2;
+      addPanel(band, Math.max(room.depthCm - band * 2, 10), room.ceilingHeight, baseMaterial, 10).position.x = -(room.widthCm - band) / 2;
+      addPanel(band, Math.max(room.depthCm - band * 2, 10), room.ceilingHeight, baseMaterial, 10).position.x = (room.widthCm - band) / 2;
       addPanel(
-        Math.max(room.widthM - band * 2, 0.1),
-        Math.max(room.depthM - band * 2, 0.1),
-        room.ceilingHeight + 0.1,
+        Math.max(room.widthCm - band * 2, 10),
+        Math.max(room.depthCm - band * 2, 10),
+        room.ceilingHeight + 10,
         baseMaterial,
       );
       return;
     }
     if (ceilingStyle === "floating") {
       addPanel(
-        Math.max(room.widthM - 0.7, 0.5),
-        Math.max(room.depthM - 0.7, 0.5),
+        Math.max(room.widthCm - 70, 50),
+        Math.max(room.depthCm - 70, 50),
         room.ceilingHeight,
         baseMaterial,
-        0.12,
+        12,
       );
       return;
     }
     if (ceilingStyle === "linear") {
-      addPanel(room.widthM, room.depthM, room.ceilingHeight);
-      [-0.55, 0.55].forEach((x) => {
-        const strip = addPanel(0.055, Math.max(room.depthM - 0.5, 0.4), room.ceilingHeight - 0.035, accentMaterial, 0.018);
-        strip.position.x = THREE.MathUtils.clamp(x, -room.widthM / 3, room.widthM / 3);
+      addPanel(room.widthCm, room.depthCm, room.ceilingHeight);
+      [-55, 55].forEach((x) => {
+        const strip = addPanel(5.5, Math.max(room.depthCm - 50, 40), room.ceilingHeight - 3.5, accentMaterial, 1.8);
+        strip.position.x = THREE.MathUtils.clamp(x, -room.widthCm / 3, room.widthCm / 3);
       });
       return;
     }
     if (ceilingStyle === "wood-grid") {
-      const spacing = 0.24;
-      const count = Math.max(3, Math.floor(room.widthM / spacing));
+      const spacing = 24;
+      const count = Math.max(3, Math.floor(room.widthCm / spacing));
       for (let index = 0; index <= count; index += 1) {
-        const x = -room.widthM / 2 + index * room.widthM / count;
-        const slat = addPanel(0.055, room.depthM, room.ceilingHeight, accentMaterial, 0.08);
+        const x = -room.widthCm / 2 + index * room.widthCm / count;
+        const slat = addPanel(5.5, room.depthCm, room.ceilingHeight, accentMaterial, 8);
         slat.position.x = x;
       }
       return;
     }
-    addPanel(room.widthM, room.depthM, room.ceilingHeight);
+    addPanel(room.widthCm, room.depthCm, room.ceilingHeight);
   }
 
   function createStyleLights(room, style = {}, lightStyle = "pendant") {
     const palette = style.palette_hex || ["#F3EBDD", "#D3B48A", "#8B684B"];
     const lightColor = new THREE.Color(palette[1] || "#D3B48A");
-    const positions = room.widthM >= 4.8 ? [-0.9, 0, 0.9] : [-0.62, 0.62];
+    const positions = room.widthCm >= 480 ? [-90, 0, 90] : [-62, 62];
 
     if (lightStyle === "track") {
       const rail = new THREE.Mesh(
-        new THREE.BoxGeometry(Math.min(room.widthM * 0.58, 3.4), 0.045, 0.055),
+        new THREE.BoxGeometry(Math.min(room.widthCm * 0.58, 340), 4.5, 5.5),
         new THREE.MeshStandardMaterial({ color: 0x292724, roughness: 0.34, metalness: 0.7 }),
       );
-      rail.position.y = room.wallHeight - 0.08;
+      rail.position.y = room.wallHeight - 8;
       hangingLightGroup.add(rail);
       positions.forEach((x, index) => {
         const spot = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.065, 0.09, 0.16, 18),
+          new THREE.CylinderGeometry(6.5, 9, 16, 18),
           new THREE.MeshStandardMaterial({ color: 0x34312e, roughness: 0.3, metalness: 0.65 }),
         );
-        spot.position.set(x, room.wallHeight - 0.19, 0);
+        spot.position.set(x, room.wallHeight - 19, 0);
         spot.rotation.z = index % 2 ? -0.28 : 0.28;
         hangingLightGroup.add(spot);
-        const light = new THREE.SpotLight(0xffdfb0, 2.2, 5.5, Math.PI / 5.5, 0.45, 1.7);
+        const light = new THREE.SpotLight(0xffdfb0, 2.2, 550, Math.PI / 5.5, 0.45, 1.7);
         light.position.copy(spot.position);
-        light.target.position.set(x + (index % 2 ? 0.7 : -0.7), 0, 0.5);
+        light.target.position.set(x + (index % 2 ? 70 : -70), 0, 50);
         hangingLightGroup.add(light, light.target);
       });
       return;
     }
     if (lightStyle === "downlight") {
-      const zPositions = room.depthM > 4.2 ? [-0.8, 0.8] : [0];
+      const zPositions = room.depthCm > 420 ? [-80, 80] : [0];
       positions.forEach((x) => zPositions.forEach((z) => {
         const trim = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.095, 0.095, 0.035, 24),
+          new THREE.CylinderGeometry(9.5, 9.5, 3.5, 24),
           new THREE.MeshStandardMaterial({ color: 0xf8f5ee, roughness: 0.42, metalness: 0.12 }),
         );
-        trim.position.set(x, room.wallHeight - 0.025, z);
+        trim.position.set(x, room.wallHeight - 2.5, z);
         hangingLightGroup.add(trim);
-        const light = new THREE.PointLight(0xffe4bd, 0.78, 3.5, 2);
-        light.position.set(x, room.wallHeight - 0.12, z);
+        const light = new THREE.PointLight(0xffe4bd, 0.78, 350, 2);
+        light.position.set(x, room.wallHeight - 12, z);
         hangingLightGroup.add(light);
       }));
       return;
     }
     if (lightStyle === "paper") {
       const paper = new THREE.Mesh(
-        new THREE.SphereGeometry(0.34, 32, 20),
+        new THREE.SphereGeometry(34, 32, 20),
         new THREE.MeshStandardMaterial({
           color: 0xfff0cf,
           emissive: 0xffc36f,
@@ -2166,26 +2169,26 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         }),
       );
       paper.scale.y = 1.18;
-      paper.position.set(0, room.wallHeight - 0.65, 0);
+      paper.position.set(0, room.wallHeight - 65, 0);
       hangingLightGroup.add(paper);
-      const light = new THREE.PointLight(0xffd9a0, 1.8, 5.2, 2);
+      const light = new THREE.PointLight(0xffd9a0, 1.8, 520, 2);
       light.position.copy(paper.position);
       hangingLightGroup.add(light);
       return;
     }
     positions.forEach((x, index) => {
       const pendant = new THREE.Group();
-      pendant.position.set(x, room.wallHeight - 0.08, 0);
+      pendant.position.set(x, room.wallHeight - 8, 0);
 
       const cord = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.012, 0.012, 0.72, 8),
+        new THREE.CylinderGeometry(1.2, 1.2, 72, 8),
         new THREE.MeshStandardMaterial({ color: 0x332b25, roughness: 0.7 })
       );
-      cord.position.y = -0.36;
+      cord.position.y = -36;
       pendant.add(cord);
 
       const shade = new THREE.Mesh(
-        new THREE.ConeGeometry(0.19, 0.18, 32, 1, true),
+        new THREE.ConeGeometry(19, 18, 32, 1, true),
         new THREE.MeshStandardMaterial({
           color: lightColor,
           roughness: 0.36,
@@ -2193,19 +2196,19 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           side: THREE.DoubleSide,
         })
       );
-      shade.position.y = -0.78;
+      shade.position.y = -78;
       shade.rotation.y = index % 2 ? Math.PI : 0;
       pendant.add(shade);
 
       const bulb = new THREE.Mesh(
-        new THREE.SphereGeometry(0.055, 16, 10),
+        new THREE.SphereGeometry(5.5, 16, 10),
         new THREE.MeshStandardMaterial({ color: 0xfff1ce, emissive: 0xffb45c, emissiveIntensity: 1.8 })
       );
-      bulb.position.y = -0.82;
+      bulb.position.y = -82;
       pendant.add(bulb);
 
-      const pointLight = new THREE.PointLight(0xffd6a0, 1.15, 4.8, 2);
-      pointLight.position.y = -0.86;
+      const pointLight = new THREE.PointLight(0xffd6a0, 1.15, 480, 2);
+      pointLight.position.y = -86;
       pointLight.castShadow = true;
       pendant.add(pointLight);
       hangingLightGroup.add(pendant);
@@ -2311,9 +2314,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const box = new THREE.Box3().setFromObject(root);
     const size = box.getSize(new THREE.Vector3());
     const target = {
-      width: (targetSizeCm.width || 120) / 100,
-      depth: (targetSizeCm.depth || 60) / 100,
-      height: (targetSizeCm.height || 80) / 100,
+      width: targetSizeCm.width || 120,
+      depth: targetSizeCm.depth || 60,
+      height: targetSizeCm.height || 80,
     };
 
     const scale = computeExactModelScale(size, target);
@@ -2333,7 +2336,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       if (mode === "topdown") {
         if (heightAxis === "z") wall.scale.z = 0.04;
         else wall.scale.y = 0.04;
-        wall.position.y = 0.06;
+        wall.position.y = 6;
       } else {
         if (heightAxis === "z") wall.scale.z = wall.userData.fullScaleZ || 1;
         else wall.scale.y = wall.userData.fullScaleY || 1;
@@ -2380,17 +2383,17 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       controls.enabled = false;
       controls.enablePan = false;
       controls.enableZoom = false;
-      const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6, wallHeight: 2.7 };
+      const room = roomGroup.userData.roomSize || { widthCm: 420, depthCm: 360, wallHeight: 270 };
       const clamped = clampWalkPosition(perspectiveCamera.position, room);
       perspectiveCamera.position.set(clamped.x, clamped.y, clamped.z);
     } else if (mode === "topdown") {
-      const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6 };
-      const extent = Math.max(room.widthM, room.depthM) * 0.62 + 0.8;
+      const room = roomGroup.userData.roomSize || { widthCm: 420, depthCm: 360 };
+      const extent = Math.max(room.widthCm, room.depthCm) * 0.62 + 80;
       orthographicCamera.left = -extent;
       orthographicCamera.right = extent;
       orthographicCamera.top = extent;
       orthographicCamera.bottom = -extent;
-      orthographicCamera.position.set(0, 18, 0.001);
+      orthographicCamera.position.set(0, 1800, 0.1);
       orthographicCamera.up.set(0, 0, -1);
       orthographicCamera.lookAt(0, 0, 0);
       orthographicCamera.updateProjectionMatrix();
@@ -2400,17 +2403,17 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       controls.enableZoom = true;
       controls.update();
     } else if (mode === "dollhouse") {
-      const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6 };
-      const extent = Math.max(room.widthM, room.depthM) * 0.68 + 0.9;
+      const room = roomGroup.userData.roomSize || { widthCm: 420, depthCm: 360 };
+      const extent = Math.max(room.widthCm, room.depthCm) * 0.68 + 90;
       orthographicCamera.left = -extent;
       orthographicCamera.right = extent;
       orthographicCamera.top = extent;
       orthographicCamera.bottom = -extent;
       orthographicCamera.position.set(extent, extent * 0.92, extent);
       orthographicCamera.up.set(0, 1, 0);
-      orthographicCamera.lookAt(0, 0.45, 0);
+      orthographicCamera.lookAt(0, 45, 0);
       orthographicCamera.updateProjectionMatrix();
-      controls.target.set(0, 0.45, 0);
+      controls.target.set(0, 45, 0);
       controls.enabled = true;
       controls.enableRotate = true;
       controls.enablePan = true;
@@ -2473,20 +2476,20 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     if (movement.lengthSq()) {
       walkDestination = null;
       walkMarker.visible = false;
-      movement.normalize().multiplyScalar(0.045);
+      movement.normalize().multiplyScalar(4.5);
     } else if (walkDestination) {
       movement.copy(walkDestination).sub(perspectiveCamera.position);
       movement.y = 0;
-      if (movement.length() < 0.08) {
+      if (movement.length() < 8) {
         walkDestination = null;
         walkMarker.visible = false;
         return;
       }
-      movement.clampLength(0, 0.055);
+      movement.clampLength(0, 5.5);
     } else {
       return;
     }
-    const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6, wallHeight: 2.7 };
+    const room = roomGroup.userData.roomSize || { widthCm: 420, depthCm: 360, wallHeight: 270 };
     const proposed = perspectiveCamera.position.clone().add(movement);
     const clamped = clampWalkPosition(proposed, room);
     if (!walkPositionInsideFloor(clamped) || walkPositionBlocked(clamped)) {
@@ -2538,7 +2541,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(0.52, 0.52, 1);
+    sprite.scale.set(52, 52, 1);
     sprite.renderOrder = 999;
     return sprite;
   }
@@ -2564,7 +2567,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false }));
-    sprite.scale.set(1.7, 0.38, 1);
+    sprite.scale.set(170, 38, 1);
     sprite.renderOrder = 1001;
     sprite.userData.roompilotPlanLabel = true;
     sprite.visible = false;
@@ -2598,8 +2601,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function addFurnitureContactShadow(wrapper, sizeCm = {}) {
-    const width = Math.max(Number(sizeCm.width || 80) / 100, 0.25);
-    const depth = Math.max(Number(sizeCm.depth || 60) / 100, 0.25);
+    const width = Math.max(Number(sizeCm.width || 80), 25);
+    const depth = Math.max(Number(sizeCm.depth || 60), 25);
     const shadow = new THREE.Mesh(
       new THREE.PlaneGeometry(width * 1.08, depth * 1.08),
       new THREE.MeshBasicMaterial({
@@ -2611,16 +2614,16 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       }),
     );
     shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = 0.008;
+    shadow.position.y = 0.8;
     shadow.renderOrder = 2;
     shadow.userData.roompilotContactShadow = true;
     wrapper.add(shadow);
   }
 
   function createFallbackFurnitureProxy(item, index, reason) {
-    const width = Math.max(Number(item.size_cm?.width || 120) / 100, 0.25);
-    const depth = Math.max(Number(item.size_cm?.depth || 60) / 100, 0.25);
-    const height = Math.max(Number(item.size_cm?.height || 80) / 100, 0.25);
+    const width = Math.max(Number(item.size_cm?.width || 120), 25);
+    const depth = Math.max(Number(item.size_cm?.depth || 60), 25);
+    const height = Math.max(Number(item.size_cm?.height || 80), 25);
     const wrapper = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({
       color: item.material_override?.color
@@ -2641,8 +2644,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     );
     outline.position.copy(body.position);
     wrapper.add(outline);
-    wrapper.position.x = Number(item.position_cm?.x || ((index % 4) - 1.5) * 130) / 100;
-    wrapper.position.z = Number(item.position_cm?.z || Math.floor(index / 4) * 110) / 100;
+    wrapper.position.x = Number(item.position_cm?.x ?? ((index % 4) - 1.5) * 130);
+    wrapper.position.z = Number(item.position_cm?.z ?? Math.floor(index / 4) * 110);
     wrapper.rotation.y = THREE.MathUtils.degToRad(item.rotation_y_deg || 0);
     wrapper.userData.sceneIndex = index + 1;
     wrapper.userData.sceneObject = item;
@@ -2651,10 +2654,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     addFurnitureContactShadow(wrapper, item.size_cm || {});
 
     const marker = createNumberMarker(index + 1);
-    marker.position.set(0, height + 0.48, 0);
+    marker.position.set(0, height + 48, 0);
     wrapper.add(marker);
     const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-    planLabel.position.set(0, height + 0.15, 0);
+    planLabel.position.set(0, height + 15, 0);
     wrapper.add(planLabel);
     furnitureGroup.add(wrapper);
     return wrapper;
@@ -2707,18 +2710,18 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           wrapper.userData.sceneIndex = index + 1;
           wrapper.userData.sceneObject = item;
 
-          wrapper.position.x = (item.position_cm?.x || 0) / 100;
-          wrapper.position.z = (item.position_cm?.z || 0) / 100;
+          wrapper.position.x = Number(item.position_cm?.x || 0);
+          wrapper.position.z = Number(item.position_cm?.z || 0);
           wrapper.rotation.y = THREE.MathUtils.degToRad(item.rotation_y_deg || 0);
 
           const itemBox = new THREE.Box3().setFromObject(wrapper);
           const itemSize = itemBox.getSize(new THREE.Vector3());
           addFurnitureContactShadow(wrapper, item.size_cm || {});
           const marker = createNumberMarker(index + 1);
-          marker.position.set(0, Math.max(itemSize.y + 0.48, 0.72), 0);
+          marker.position.set(0, Math.max(itemSize.y + 48, 72), 0);
           wrapper.add(marker);
           const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-          planLabel.position.set(0, Math.max(itemSize.y + 0.15, 0.35), 0);
+          planLabel.position.set(0, Math.max(itemSize.y + 15, 35), 0);
           wrapper.add(planLabel);
           furnitureGroup.add(wrapper);
         } catch (error) {
@@ -2775,7 +2778,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const planeHit = new THREE.Vector3();
   const walkMarker = new THREE.Mesh(
-    new THREE.RingGeometry(0.09, 0.14, 32),
+    new THREE.RingGeometry(9, 14, 32),
     new THREE.MeshBasicMaterial({
       color: 0x2f7d64,
       transparent: true,
@@ -2785,7 +2788,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     }),
   );
   walkMarker.rotation.x = -Math.PI / 2;
-  walkMarker.position.y = 0.025;
+  walkMarker.position.y = 2.5;
   walkMarker.visible = false;
   scene.add(walkMarker);
   const selectedControls = document.createElement("div");
@@ -2818,7 +2821,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, perspectiveCamera);
     if (!dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) return false;
-    const room = roomGroup.userData.roomSize || { widthM: 4.2, depthM: 3.6, wallHeight: 2.7 };
+    const room = roomGroup.userData.roomSize || { widthCm: 420, depthCm: 360, wallHeight: 270 };
     const destination = clampWalkPosition(
       { x: planeHit.x, y: perspectiveCamera.position.y, z: planeHit.z },
       room,
@@ -2834,7 +2837,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       perspectiveCamera.position.y,
       destination.z,
     );
-    walkMarker.position.set(destination.x, 0.025, destination.z);
+    walkMarker.position.set(destination.x, 2.5, destination.z);
     walkMarker.visible = true;
     setStatus("已設定室內移動位置；可拖曳畫面轉頭，或使用 WASD／方向鍵移動。");
     return true;
@@ -2863,13 +2866,13 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const regions = lastSceneData?.floorplan?.room_regions || [];
     if (!regions.length) return true;
     return regions.some((region) => {
-      const exterior = region.exterior || region.polygon_m || [];
+      const exterior = region.exterior || region.polygon_cm || region.polygon_m || [];
       if (!pointInRing(position, exterior)) return false;
       return !(region.holes || []).some((hole) => pointInRing(position, hole));
     });
   }
 
-  function walkPositionBlocked(position, clearanceM = 0.2) {
+  function walkPositionBlocked(position, clearanceCm = 20) {
     return (lastSceneData?.floorplan?.wall_segments || []).some((segment) => {
       const start = segment.start;
       const end = segment.end;
@@ -2886,7 +2889,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       );
       const closestX = Number(start.x) + projection * dx;
       const closestZ = Number(start.z) + projection * dz;
-      return Math.hypot(position.x - closestX, position.z - closestZ) < clearanceM;
+      return Math.hypot(position.x - closestX, position.z - closestZ) < clearanceCm;
     });
   }
 
@@ -2930,7 +2933,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       Math.sin(pitch),
       -Math.cos(yaw) * cosPitch,
     );
-    controls.target.copy(perspectiveCamera.position).addScaledVector(direction, 2);
+    controls.target.copy(perspectiveCamera.position).addScaledVector(direction, 200);
   }
 
   function finishWalkLook(event) {
@@ -2949,12 +2952,12 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     return node;
   }
 
-  function sizeMeters(item) {
+  function sizeCentimeters(item) {
     const size = item?.size_cm || {};
     return {
-      width: (Number(size.width) || 120) / 100,
-      depth: (Number(size.depth) || 60) / 100,
-      height: (Number(size.height) || 80) / 100,
+      width: Number(size.width) || 120,
+      depth: Number(size.depth) || 60,
+      height: Number(size.height) || 80,
     };
   }
 
@@ -2997,7 +3000,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(0.9, 0.34, 1);
+    sprite.scale.set(90, 34, 1);
     sprite.renderOrder = 1001;
     sprite.visible = false;
     return sprite;
@@ -3051,7 +3054,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       })
     );
     crosshair.rotation.x = -Math.PI / 2;
-    crosshair.position.y = 0.006;
+    crosshair.position.y = 0.6;
     crosshair.userData.guidePart = "crosshair";
 
     snapHint = createSnapHintSprite();
@@ -3087,9 +3090,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     }
     const guide = ensureFootprintGuide();
     const item = wrapper.userData.sceneObject;
-    const size = sizeMeters(item);
+    const size = sizeCentimeters(item);
     guide.visible = true;
-    guide.position.set(wrapper.position.x, 0.032, wrapper.position.z);
+    guide.position.set(wrapper.position.x, 3.2, wrapper.position.z);
     guide.rotation.y = wrapper.rotation.y;
     guide.children.forEach((child) => {
       if (child.userData.guidePart === "fill" || child.userData.guidePart === "outline" || child.userData.guidePart === "crosshair") {
@@ -3097,7 +3100,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       }
     });
     if (snapHint) {
-      snapHint.position.set(0, 0.06, -size.depth / 2 - 0.18);
+      snapHint.position.set(0, 6, -size.depth / 2 - 18);
     }
     setGuideSnapState(kind);
   }
@@ -3189,8 +3192,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       renderer.domElement.style.cursor = "";
       if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
         callback({
-          x: Math.round(planeHit.x * 10000) / 100,
-          z: Math.round(planeHit.z * 10000) / 100,
+          x: Math.round(planeHit.x * 100) / 100,
+          z: Math.round(planeHit.z * 100) / 100,
         });
       } else {
         setStatus("沒有點到可擺放的地板，請重新選擇「新增到 3D」。");
@@ -3242,16 +3245,16 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   });
 
   // ── 拖曳吸附:靠近牆段時貼齊(留 10cm,大於後端 8cm 邊距故吸附後必過驗證),平時 5cm 格點 ──
-  const SNAP_RANGE = 0.3;
-  const WALL_GAP = 0.06;
-  const DRAG_GRID = 0.05;
+  const SNAP_RANGE = 30;
+  const WALL_GAP = 6;
+  const DRAG_GRID = 5;
 
   function normalizedRotationDeg(rotationDeg = 0) {
     return ((Math.round(rotationDeg / 90) * 90) % 360 + 360) % 360;
   }
 
   function halfExtentsForRotation(item, rotationDeg = 0) {
-    const size = sizeMeters(item);
+    const size = sizeCentimeters(item);
     const radians = (Math.abs(normalizedRotationDeg(rotationDeg) % 180) * Math.PI) / 180;
     return {
       x: (size.width * Math.abs(Math.cos(radians)) + size.depth * Math.abs(Math.sin(radians))) / 2,
@@ -3261,15 +3264,15 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
   function roomBounds() {
     const floorplan = lastSceneData?.floorplan || {};
-    const widthM = Math.max((Number(floorplan.width_cm) || 420) / 100, 2.4);
-    const depthM = Math.max((Number(floorplan.depth_cm) || 360) / 100, 2.4);
+    const widthCm = Math.max(Number(floorplan.width_cm) || 420, 240);
+    const depthCm = Math.max(Number(floorplan.depth_cm) || 360, 240);
     return {
-      minX: -widthM / 2,
-      maxX: widthM / 2,
-      minZ: -depthM / 2,
-      maxZ: depthM / 2,
-      widthM,
-      depthM,
+      minX: -widthCm / 2,
+      maxX: widthCm / 2,
+      minZ: -depthCm / 2,
+      maxZ: depthCm / 2,
+      widthCm,
+      depthCm,
     };
   }
 
@@ -3289,7 +3292,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function footprintCorners(item, x, z, rotationDeg) {
-    const size = sizeMeters(item);
+    const size = sizeCentimeters(item);
     const hw = size.width / 2;
     const hd = size.depth / 2;
     const radians = THREE.MathUtils.degToRad(normalizedRotationDeg(rotationDeg));
@@ -3319,7 +3322,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const dx = b.x - a.x;
     const dz = b.z - a.z;
     const lengthSq = dx * dx + dz * dz;
-    if (lengthSq < 0.0001) return Math.hypot(point.x - a.x, point.z - a.z);
+    if (lengthSq < 0.01) return Math.hypot(point.x - a.x, point.z - a.z);
     const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.z - a.z) * dz) / lengthSq));
     return Math.hypot(point.x - (a.x + dx * t), point.z - (a.z + dz * t));
   }
@@ -3340,7 +3343,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const az = Number(seg.start?.z);
     const bx = Number(seg.end?.x);
     const bz = Number(seg.end?.z);
-    const eps = 0.08;
+    const eps = 8;
     const onLeft = Math.abs(ax - bounds.minX) < eps && Math.abs(bx - bounds.minX) < eps;
     const onRight = Math.abs(ax - bounds.maxX) < eps && Math.abs(bx - bounds.maxX) < eps;
     const onBack = Math.abs(az - bounds.minZ) < eps && Math.abs(bz - bounds.minZ) < eps;
@@ -3356,7 +3359,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       const a = { x: Number(seg.start?.x), z: Number(seg.start?.z) };
       const b = { x: Number(seg.end?.x), z: Number(seg.end?.z) };
       if (![a.x, a.z, b.x, b.z].every(Number.isFinite)) continue;
-      if (edges.some(([c, d]) => segmentToSegmentDistance(a, b, c, d) < 0.05)) return true;
+      if (edges.some(([c, d]) => segmentToSegmentDistance(a, b, c, d) < 5)) return true;
     }
     return false;
   }
@@ -3381,10 +3384,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const segments = floorplan.wall_segments || [];
     if (segments.length) return segments;
     // 手動矩形模式沒有牆段資料,用房間四邊當虛擬牆
-    const widthM = Math.max((Number(floorplan.width_cm) || 420) / 100, 2.4);
-    const depthM = Math.max((Number(floorplan.depth_cm) || 360) / 100, 2.4);
-    const hw = widthM / 2;
-    const hd = depthM / 2;
+    const widthCm = Math.max(Number(floorplan.width_cm) || 420, 240);
+    const depthCm = Math.max(Number(floorplan.depth_cm) || 360, 240);
+    const hw = widthCm / 2;
+    const hd = depthCm / 2;
     return [
       { start: { x: -hw, z: -hd }, end: { x: hw, z: -hd } },
       { start: { x: hw, z: -hd }, end: { x: hw, z: hd } },
@@ -3394,7 +3397,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function snapDragPosition(item, x, z) {
-    const size = sizeMeters(item);
+    const size = sizeCentimeters(item);
     const radians = (Math.abs((item.rotation_y_deg || 0) % 180) * Math.PI) / 180;
     const w = size.width;
     const d = size.depth;
@@ -3404,8 +3407,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     let bestX = null;
     let bestZ = null;
     for (const seg of wallSegmentsForSnap()) {
-      const isVertical = Math.abs(seg.start.x - seg.end.x) < 0.02;   // 沿 z 的牆
-      const isHorizontal = Math.abs(seg.start.z - seg.end.z) < 0.02; // 沿 x 的牆
+      const isVertical = Math.abs(seg.start.x - seg.end.x) < 2;   // 沿 z 的牆
+      const isHorizontal = Math.abs(seg.start.z - seg.end.z) < 2; // 沿 x 的牆
       if (isVertical) {
         const zLo = Math.min(seg.start.z, seg.end.z);
         const zHi = Math.max(seg.start.z, seg.end.z);
@@ -3437,8 +3440,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     let bestX = null;
     let bestZ = null;
     for (const seg of wallSegmentsForSnap()) {
-      const isVertical = Math.abs(seg.start.x - seg.end.x) < 0.02;
-      const isHorizontal = Math.abs(seg.start.z - seg.end.z) < 0.02;
+      const isVertical = Math.abs(seg.start.x - seg.end.x) < 2;
+      const isHorizontal = Math.abs(seg.start.z - seg.end.z) < 2;
       if (isVertical) {
         const wallRotationDeg = 90;
         const half = halfExtentsForRotation(item, wallRotationDeg);
@@ -3562,14 +3565,14 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     }
     renderer.domElement.style.cursor = selectedWrapper ? "grab" : "";
 
-    const movedM = Math.hypot(wrapper.position.x - startPosition.x, wrapper.position.z - startPosition.z);
+    const movedCm = Math.hypot(wrapper.position.x - startPosition.x, wrapper.position.z - startPosition.z);
     const rotated = normalizedRotationDeg(pendingRotationDeg) !== normalizedRotationDeg(startRotationDeg);
-    if (movedM < 0.01 && !rotated) return;  // 只是點選,沒有拖
+    if (movedCm < 1 && !rotated) return;  // 只是點選,沒有拖
 
     const label = item.name_zh_raw || item.normalized_type || "家具";
     const newPositionCm = {
-      x: Math.round(wrapper.position.x * 100 * 100) / 100,
-      z: Math.round(wrapper.position.z * 100 * 100) / 100,
+      x: Math.round(wrapper.position.x * 100) / 100,
+      z: Math.round(wrapper.position.z * 100) / 100,
     };
     setStatus(`正在檢查「${label}」的新位置...`);
     const verdict = await resolvePlacement(item, newPositionCm, normalizedRotationDeg(pendingRotationDeg));
@@ -3577,8 +3580,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       const { resolved } = verdict;
       item.position_cm = resolved.position_cm;
       item.rotation_y_deg = resolved.rotation_y_deg;
-      wrapper.position.x = Number(resolved.position_cm?.x || 0) / 100;
-      wrapper.position.z = Number(resolved.position_cm?.z || 0) / 100;
+      wrapper.position.x = Number(resolved.position_cm?.x || 0);
+      wrapper.position.z = Number(resolved.position_cm?.z || 0);
       wrapper.rotation.y = THREE.MathUtils.degToRad(Number(resolved.rotation_y_deg || 0));
       updateFootprintGuide(wrapper);
       setStatus(`已移動「${label}」，靠近牆面時會自動貼齊並旋轉。`);
@@ -3620,8 +3623,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
   function wrapperPositionCm(wrapper) {
     return {
-      x: Math.round(wrapper.position.x * 100 * 100) / 100,
-      z: Math.round(wrapper.position.z * 100 * 100) / 100,
+      x: Math.round(wrapper.position.x * 100) / 100,
+      z: Math.round(wrapper.position.z * 100) / 100,
     };
   }
 
@@ -3674,7 +3677,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     if (!item) return false;
 
     const label = item.name_zh_raw || item.normalized_type || "家具";
-    const step = 0.1;
+    const step = 10;
     const delta = {
       forward: { x: 0, z: -step },
       back: { x: 0, z: step },
@@ -3699,8 +3702,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     }
 
     const nextPositionCm = {
-      x: Math.round(candidate.x * 100 * 100) / 100,
-      z: Math.round(candidate.z * 100 * 100) / 100,
+      x: Math.round(candidate.x * 100) / 100,
+      z: Math.round(candidate.z * 100) / 100,
     };
     const verdict = await validatePlacement(item, nextPositionCm, rotationDeg);
     if (!verdict.ok) {
@@ -3722,10 +3725,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     return item?.name_zh_raw || item?.normalized_type || "家具";
   }
 
-  function metersToPositionCm(x, z) {
+  function scenePositionCm(x, z) {
     return {
-      x: Math.round(x * 100 * 100) / 100,
-      z: Math.round(z * 100 * 100) / 100,
+      x: Math.round(x * 100) / 100,
+      z: Math.round(z * 100) / 100,
     };
   }
 
@@ -3746,7 +3749,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       return false;
     }
 
-    const nextPositionCm = metersToPositionCm(candidate.x, candidate.z);
+    const nextPositionCm = scenePositionCm(candidate.x, candidate.z);
     setStatus(`${label} 旋轉檢查中...`);
     const verdict = await validatePlacement(item, nextPositionCm, nextRotation);
     if (!verdict.ok) {
@@ -3777,7 +3780,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const label = selectedObjectLabel(item);
     const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
     const radians = THREE.MathUtils.degToRad(rotationDeg);
-    const step = 0.25;
+    const step = 25;
     const forward = { x: -Math.sin(radians), z: -Math.cos(radians) };
     const right = { x: Math.cos(radians), z: -Math.sin(radians) };
     const delta = {
@@ -3801,7 +3804,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       return false;
     }
 
-    const nextPositionCm = metersToPositionCm(candidate.x, candidate.z);
+    const nextPositionCm = scenePositionCm(candidate.x, candidate.z);
     setStatus(`${label} 移動檢查中...`);
     const verdict = await validatePlacement(item, nextPositionCm, rotationDeg);
     if (!verdict.ok) {
@@ -3815,7 +3818,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     item.position_locked = true;
     updateFootprintGuide(selectedWrapper, candidate.kind);
     notifySceneChange(item);
-    setStatus(`${label} 已移動 ${Math.round(step * 100)} 公分。`);
+    setStatus(`${label} 已移動 ${Math.round(step)} 公分。`);
     return true;
   }
 

@@ -30,21 +30,21 @@ function positiveRatio(target, source) {
   return Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
 }
 
-export function computeExactModelScale(sourceSizeM, targetSizeM) {
+export function computeExactModelScale(sourceAssetSize, targetSizeCm) {
   return {
-    x: positiveRatio(targetSizeM.width, sourceSizeM.x),
-    y: positiveRatio(targetSizeM.height, sourceSizeM.y),
-    z: positiveRatio(targetSizeM.depth, sourceSizeM.z),
+    x: positiveRatio(targetSizeCm.width, sourceAssetSize.x),
+    y: positiveRatio(targetSizeCm.height, sourceAssetSize.y),
+    z: positiveRatio(targetSizeCm.depth, sourceAssetSize.z),
   };
 }
 
-export function clampWalkPosition(position, room, marginM = 0.25, eyeHeightM = 1.65) {
-  const halfWidth = Math.max(Number(room.widthM || 0) / 2 - marginM, 0);
-  const halfDepth = Math.max(Number(room.depthM || 0) / 2 - marginM, 0);
-  const maxEyeHeight = Math.max(Number(room.wallHeight || 2.7) - 0.35, 1.2);
+export function clampWalkPosition(position, room, marginCm = 25, eyeHeightCm = 165) {
+  const halfWidth = Math.max(Number(room.widthCm || 0) / 2 - marginCm, 0);
+  const halfDepth = Math.max(Number(room.depthCm || 0) / 2 - marginCm, 0);
+  const maxEyeHeight = Math.max(Number(room.wallHeight || 270) - 35, 120);
   return {
     x: Math.min(halfWidth, Math.max(-halfWidth, Number(position.x || 0))),
-    y: Math.min(maxEyeHeight, Math.max(1.2, eyeHeightM)),
+    y: Math.min(maxEyeHeight, Math.max(120, eyeHeightCm)),
     z: Math.min(halfDepth, Math.max(-halfDepth, Number(position.z || 0))),
   };
 }
@@ -61,7 +61,7 @@ export function fallbackMaterialRole(furnitureType = "") {
   return null;
 }
 
-export function synchronizedFloorRegions(floorplan = {}, widthM = 4.2, depthM = 3.6) {
+export function synchronizedFloorRegions(floorplan = {}, widthCm = 420, depthCm = 360) {
   const regions = (floorplan.room_regions || [])
     .filter((region) => Array.isArray(region?.exterior) && region.exterior.length >= 3)
     .map((region, index) => ({
@@ -71,8 +71,8 @@ export function synchronizedFloorRegions(floorplan = {}, widthM = 4.2, depthM = 
     }));
   if (regions.length) return regions;
 
-  const halfWidth = Math.max(Number(widthM) || 4.2, 0.1) / 2;
-  const halfDepth = Math.max(Number(depthM) || 3.6, 0.1) / 2;
+  const halfWidth = Math.max(Number(widthCm) || 420, 10) / 2;
+  const halfDepth = Math.max(Number(depthCm) || 360, 10) / 2;
   return [{
     room_id: "whole-floor",
     exterior: [
@@ -95,13 +95,13 @@ export function doorLeafTransform(opening = {}, swingDegrees = 58) {
   const dx = endX - startX;
   const dz = endZ - startZ;
   const measuredWidth = Math.hypot(dx, dz);
-  const openingWidth = Math.max(Number(opening.width_m || opening.width) || measuredWidth, 0.68);
-  const leafWidthM = Math.round(openingWidth * 0.94 * 10000) / 10000;
+  const openingWidth = Math.max(Number(opening.width_cm || opening.width) || measuredWidth, 68);
+  const leafWidthCm = Math.round(openingWidth * 0.94 * 10) / 10;
   const swingSign = opening.opening_direction === "left" ? 1 : -1;
   return {
     hinge: { x: startX, z: startZ },
-    leafWidthM,
-    leafCenterXM: leafWidthM / 2,
+    leafWidthCm,
+    leafCenterXCm: leafWidthCm / 2,
     closedRotationYRad: Math.atan2(-dz, dx),
     swingRotationYRad: swingSign * Number(swingDegrees) * Math.PI / 180,
   };

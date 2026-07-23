@@ -61,5 +61,6 @@ def test_floor_texture_repeat_uses_catalog_physical_size() -> None:
     source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "surface.source_size" in source
-    assert "Number(physicalSize[1]) / 100" in source
-    assert "return { x: 2.4, y: 2.4 }" in source
+    assert "Number(physicalSize[1])" in source
+    assert "Number(physicalSize[1]) / 100" not in source
+    assert "return { x: 240, y: 240 }" in source

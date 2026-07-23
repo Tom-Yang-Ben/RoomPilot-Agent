@@ -26,10 +26,10 @@ function segmentId(segment = {}) {
   return String(segment.id || segment.wall_id || segment.segment_id || "");
 }
 
-export function openingBelongsToWall(segment, opening, wallThickness = 0.12) {
+export function openingBelongsToWall(segment, opening, wallThickness = 12) {
   const wall = segmentVector(segment);
   const aperture = segmentVector(opening);
-  if (wall.length < 0.04 || aperture.length < 0.04) return false;
+  if (wall.length < 4 || aperture.length < 4) return false;
 
   const hostWallId = String(opening.host_wall_id || opening.hostWallId || "");
   const wallId = segmentId(segment);
@@ -46,8 +46,8 @@ export function openingBelongsToWall(segment, opening, wallThickness = 0.12) {
   const relZ = centerZ - wall.start.z;
   const along = relX * wall.unitX + relZ * wall.unitZ;
   const perpendicular = Math.abs(relX * -wall.unitZ + relZ * wall.unitX);
-  const proximity = Math.max(0.28, Number(wallThickness) * 2.4);
-  const endTolerance = Math.max(aperture.length / 2, 0.35);
+  const proximity = Math.max(28, Number(wallThickness) * 2.4);
+  const endTolerance = Math.max(aperture.length / 2, 35);
 
   return perpendicular <= proximity
     && along >= -endTolerance

@@ -61,8 +61,8 @@ def test_overlapping_windows_on_the_same_wall_are_deduplicated() -> None:
         const recognized = {{
           id: "window-5",
           host_wall_id: "wall-14",
-          start: {{ x: 6.2, y: 5.59 }},
-          end: {{ x: 6.2, y: 5.0 }},
+          start: {{ x: 620, y: 559 }},
+          end: {{ x: 620, y: 500 }},
           confirmed: true,
           confidence: 0.92,
           source: "cody",
@@ -70,16 +70,16 @@ def test_overlapping_windows_on_the_same_wall_are_deduplicated() -> None:
         const manualDuplicate = {{
           id: "window-manual",
           host_wall_id: "wall-14",
-          start: {{ x: 6.2, y: 6.19 }},
-          end: {{ x: 6.2, y: 4.99 }},
+          start: {{ x: 620, y: 619 }},
+          end: {{ x: 620, y: 499 }},
           confirmed: false,
           source: "manual",
         }};
         const separateWindow = {{
           id: "window-4",
           host_wall_id: "wall-14",
-          start: {{ x: 6.2, y: 2.0 }},
-          end: {{ x: 6.2, y: 3.2 }},
+          start: {{ x: 620, y: 200 }},
+          end: {{ x: 620, y: 320 }},
           confirmed: true,
           source: "cody",
         }};
@@ -113,17 +113,17 @@ def test_beam_and_column_preview_geometry_exposes_real_vertical_position() -> No
         import {{ structurePreviewDescriptor }} from {json.dumps(module_uri)};
 
         const beam = structurePreviewDescriptor({{
-          start: {{ x: 1, y: 2 }},
-          end: {{ x: 4, y: 2 }},
-          thickness_m: 0.3,
-          height_m: 0.45,
-        }}, "beam", {{ ceilingHeightM: 2.7, planWidthM: 10, planDepthM: 8 }});
+          start: {{ x: 100, y: 200 }},
+          end: {{ x: 400, y: 200 }},
+          thickness_cm: 30,
+          height_cm: 45,
+        }}, "beam", {{ ceilingHeightCm: 270, planWidthCm: 1000, planDepthCm: 800 }});
         const column = structurePreviewDescriptor({{
-          center: {{ x: 2, y: 3 }},
-          size_m: 0.4,
-          depth_m: 0.55,
-          height_m: 2.7,
-        }}, "column", {{ ceilingHeightM: 2.7, planWidthM: 10, planDepthM: 8 }});
+          center: {{ x: 200, y: 300 }},
+          size_cm: 40,
+          depth_cm: 55,
+          height_cm: 270,
+        }}, "column", {{ ceilingHeightCm: 270, planWidthCm: 1000, planDepthCm: 800 }});
 
         console.log(JSON.stringify({{ beam, column }}));
         """
@@ -132,22 +132,22 @@ def test_beam_and_column_preview_geometry_exposes_real_vertical_position() -> No
     assert result == {
         "beam": {
             "kind": "beam",
-            "lengthM": 3,
-            "widthM": 0.3,
-            "heightM": 0.45,
-            "centerHeightM": 2.475,
-            "centerX": -2.5,
-            "centerZ": -2,
+            "lengthCm": 300,
+            "widthCm": 30,
+            "heightCm": 45,
+            "centerHeightCm": 247.5,
+            "centerX": -250,
+            "centerZ": -200,
             "rotationDeg": 0,
         },
         "column": {
             "kind": "column",
-            "lengthM": 0.4,
-            "widthM": 0.55,
-            "heightM": 2.7,
-            "centerHeightM": 1.35,
-            "centerX": -3,
-            "centerZ": -1,
+            "lengthCm": 40,
+            "widthCm": 55,
+            "heightCm": 270,
+            "centerHeightCm": 135,
+            "centerX": -300,
+            "centerZ": -100,
             "rotationDeg": 0,
         },
     }
@@ -160,22 +160,22 @@ def test_column_geometry_preserves_independent_width_depth_height_and_rotation()
         import {{ columnGeometryDescriptor }} from {json.dumps(module_uri)};
 
         console.log(JSON.stringify(columnGeometryDescriptor({{
-          center: {{ x: 1.4, z: -0.8 }},
-          size_m: 0.58,
-          depth_m: 0.35,
-          height_m: 2.45,
+          center: {{ x: 140, z: -80 }},
+          size_cm: 58,
+          depth_cm: 35,
+          height_cm: 245,
           rotation_deg: 30,
         }})));
         """
     )
 
     assert result == {
-        "widthM": 0.58,
-        "depthM": 0.35,
-        "heightM": 2.45,
-        "centerX": 1.4,
-        "centerZ": -0.8,
-        "centerHeightM": 1.225,
+        "widthCm": 58,
+        "depthCm": 35,
+        "heightCm": 245,
+        "centerX": 140,
+        "centerZ": -80,
+        "centerHeightCm": 122.5,
         "rotationDeg": 30,
     }
 
@@ -253,18 +253,18 @@ def test_beam_drag_geometry_snaps_to_axis_and_nearby_structure_points() -> None:
         import {{ beamDragGeometry }} from {json.dumps(module_uri)};
 
         const horizontal = beamDragGeometry(
-          {{ x: 1, y: 2 }},
-          {{ x: 4.02, y: 2.09 }},
-          [{{ x: 4, y: 2 }}],
+          {{ x: 100, y: 200 }},
+          {{ x: 402, y: 209 }},
+          [{{ x: 400, y: 200 }}],
         );
         const vertical = beamDragGeometry(
-          {{ x: 3, y: 1 }},
-          {{ x: 3.08, y: 4.1 }},
-          [{{ x: 3, y: 4 }}],
+          {{ x: 300, y: 100 }},
+          {{ x: 308, y: 410 }},
+          [{{ x: 300, y: 400 }}],
         );
         const tooShort = beamDragGeometry(
-          {{ x: 2, y: 2 }},
-          {{ x: 2.08, y: 2.03 }},
+          {{ x: 200, y: 200 }},
+          {{ x: 208, y: 203 }},
           [],
         );
 
@@ -274,23 +274,23 @@ def test_beam_drag_geometry_snaps_to_axis_and_nearby_structure_points() -> None:
 
     assert result == {
         "horizontal": {
-            "start": {"x": 1, "y": 2},
-            "end": {"x": 4, "y": 2},
-            "lengthM": 3,
+            "start": {"x": 100, "y": 200},
+            "end": {"x": 400, "y": 200},
+            "lengthCm": 300,
             "valid": True,
             "snapped": True,
         },
         "vertical": {
-            "start": {"x": 3, "y": 1},
-            "end": {"x": 3, "y": 4},
-            "lengthM": 3,
+            "start": {"x": 300, "y": 100},
+            "end": {"x": 300, "y": 400},
+            "lengthCm": 300,
             "valid": True,
             "snapped": True,
         },
         "tooShort": {
-            "start": {"x": 2, "y": 2},
-            "end": {"x": 2.08, "y": 2},
-            "lengthM": 0.08,
+            "start": {"x": 200, "y": 200},
+            "end": {"x": 208, "y": 200},
+            "lengthCm": 8,
             "valid": False,
             "snapped": False,
         },

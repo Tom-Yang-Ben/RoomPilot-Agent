@@ -3,7 +3,7 @@ export const WINDOW_TYPES = Object.freeze({
   floorToCeiling: "floor_to_ceiling",
 });
 
-const roundMeters = (value) => Math.round(Number(value) * 1000) / 1000;
+const roundCentimeters = (value) => Math.round(Number(value) * 10) / 10;
 
 export function normalizedWindowType(value) {
   return value === WINDOW_TYPES.floorToCeiling
@@ -11,46 +11,46 @@ export function normalizedWindowType(value) {
     : WINDOW_TYPES.standard;
 }
 
-export function applyWindowTypePreset(opening = {}, type, ceilingHeightM = 2.7) {
+export function applyWindowTypePreset(opening = {}, type, ceilingHeightCm = 270) {
   const windowType = normalizedWindowType(type);
   if (windowType === WINDOW_TYPES.floorToCeiling) {
-    const headHeightM = Math.max(0.35, Number(ceilingHeightM || 2.7) - 0.08);
+    const headHeightCm = Math.max(35, Number(ceilingHeightCm || 270) - 8);
     return {
       ...opening,
       window_type: windowType,
-      sill_height_m: 0,
-      height_m: headHeightM,
-      head_height_m: headHeightM,
+      sill_height_cm: 0,
+      height_cm: headHeightCm,
+      head_height_cm: headHeightCm,
     };
   }
   return {
     ...opening,
     window_type: windowType,
-    sill_height_m: 0.9,
-    height_m: 1.2,
-    head_height_m: 2.1,
+    sill_height_cm: 90,
+    height_cm: 120,
+    head_height_cm: 210,
   };
 }
 
-export function windowOpeningMetrics(opening = {}, wallHeightM = 2.7) {
-  const wallHeight = Math.max(0.43, Number(wallHeightM) || 2.7);
+export function windowOpeningMetrics(opening = {}, wallHeightCm = 270) {
+  const wallHeight = Math.max(43, Number(wallHeightCm) || 270);
   const windowType = normalizedWindowType(opening.window_type);
   const floorToCeiling = windowType === WINDOW_TYPES.floorToCeiling;
-  const requestedSill = floorToCeiling ? 0 : Number(opening.sill_height_m ?? 0.9);
-  const sillHeightM = Math.max(0, Math.min(requestedSill, wallHeight - 0.43));
-  const fallbackHeight = floorToCeiling ? wallHeight - 0.08 : 1.2;
-  const requestedHeight = Math.max(0.35, Number(opening.height_m) || fallbackHeight);
-  const requestedHead = Number(opening.head_height_m);
-  const headHeightM = Math.min(
-    Number.isFinite(requestedHead) ? requestedHead : sillHeightM + requestedHeight,
-    wallHeight - 0.08,
+  const requestedSill = floorToCeiling ? 0 : Number(opening.sill_height_cm ?? 90);
+  const sillHeightCm = Math.max(0, Math.min(requestedSill, wallHeight - 43));
+  const fallbackHeight = floorToCeiling ? wallHeight - 8 : 120;
+  const requestedHeight = Math.max(35, Number(opening.height_cm) || fallbackHeight);
+  const requestedHead = Number(opening.head_height_cm);
+  const headHeightCm = Math.min(
+    Number.isFinite(requestedHead) ? requestedHead : sillHeightCm + requestedHeight,
+    wallHeight - 8,
   );
-  const glazingHeightM = roundMeters(Math.max(0.35, headHeightM - sillHeightM));
+  const glazingHeightCm = roundCentimeters(Math.max(35, headHeightCm - sillHeightCm));
 
   return {
     windowType,
-    sillHeightM: roundMeters(sillHeightM),
-    headHeightM: roundMeters(headHeightM),
-    glazingHeightM,
+    sillHeightCm: roundCentimeters(sillHeightCm),
+    headHeightCm: roundCentimeters(headHeightCm),
+    glazingHeightCm,
   };
 }

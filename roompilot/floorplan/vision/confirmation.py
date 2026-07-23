@@ -11,6 +11,7 @@ import ezdxf
 from ...upgrade3d.dxf_parser import parse_dxf_bytes
 from .requirements import infer_room_requirements
 from .spatial_report import build_spatial_report
+from .units import canonicalize_analysis_cm
 
 
 def _dxf_text(analysis: Mapping[str, Any]) -> str:
@@ -25,8 +26,8 @@ def _dxf_text(analysis: Mapping[str, Any]) -> str:
         for item in analysis.get(key, []):
             start, end = item.get("start", {}), item.get("end", {})
             try:
-                p1 = (float(start["x"]) * 1000, float(start["y"]) * 1000)
-                p2 = (float(end["x"]) * 1000, float(end["y"]) * 1000)
+                p1 = (float(start["x"]) * 10, float(start["y"]) * 10)
+                p2 = (float(end["x"]) * 10, float(end["y"]) * 10)
             except (KeyError, TypeError, ValueError):
                 continue
             if p1 != p2:
@@ -60,11 +61,12 @@ def confirm_floorplan_analysis(
                 for item in confirmed[key]:
                     item["source"] = "confirmed_geometry"
                     item["confidence"] = 1.0
+    confirmed = canonicalize_analysis_cm(confirmed)
     if not confirmed.get("scale"):
         raise ValueError("scale_confirmation_required")
     scale = confirmed["scale"]
     try:
-        valid_scale = float(scale["distance_m"]) > 0 and float(scale["m_per_px"]) > 0
+        valid_scale = float(scale["distance_cm"]) > 0 and float(scale["cm_per_px"]) > 0
         trusted_scale = scale.get("source") == "manual_confirmation" or (
             scale.get("source") == "dimension_ocr" and float(scale.get("confidence", 0)) >= 0.8
         )
@@ -96,14 +98,15 @@ def confirm_floorplan_analysis(
     ]
     dxf_text = _dxf_text(confirmed)
     floorplan = parse_dxf_bytes(dxf_text.encode("utf-8"), "confirmed-floorplan.dxf")
-    width_m = float(floorplan.get("width_cm", 0.0)) / 100
-    depth_m = float(floorplan.get("depth_cm", 0.0)) / 100
+    width_cm = float(floorplan.get("width_cm", 0.0))
+    depth_cm = float(floorplan.get("depth_cm", 0.0))
+    floorplan["coordinate_unit"] = "cm"
     floorplan["room_regions"] = []
     for room in confirmed["spatial_report"]["rooms"]:
         region = deepcopy(room)
         region["exterior"] = [
-            [round(float(point["x"]) - width_m / 2, 4), round(float(point["y"]) - depth_m / 2, 4)]
-            for point in room.get("polygon_m") or []
+            [round(float(point["x"]) - width_cm / 2, 2), round(float(point["y"]) - depth_cm / 2, 2)]
+            for point in room.get("polygon_cm") or []
         ]
         region["holes"] = []
         floorplan["room_regions"].append(region)

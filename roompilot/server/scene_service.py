@@ -804,14 +804,15 @@ def curtain_window_hint(
     windows = (floorplan or {}).get("window_segments") or []
     if not windows:
         return None
+    coordinate_scale = _floorplan_coordinate_scale_cm(floorplan)
     selected = None
     for window in windows:
         start = window.get("start") or {}
         end = window.get("end") or {}
         midpoint = Point(
-            (float(start.get("x") or 0) + float(end.get("x") or 0)) * 50
+            (float(start.get("x") or 0) + float(end.get("x") or 0)) * coordinate_scale / 2
             + room_width_cm / 2,
-            (float(start.get("z") or 0) + float(end.get("z") or 0)) * 50
+            (float(start.get("z") or 0) + float(end.get("z") or 0)) * coordinate_scale / 2
             + room_depth_cm / 2,
         )
         if boundary is None or boundary.buffer(30).contains(midpoint):
@@ -825,29 +826,30 @@ def curtain_window_hint(
     sx, sz = float(start.get("x") or 0), float(start.get("z") or 0)
     ex, ez = float(end.get("x") or 0), float(end.get("z") or 0)
     dx, dz = ex - sx, ez - sz
-    length_m = math.hypot(dx, dz)
-    if length_m < 0.1:
+    segment_length = math.hypot(dx, dz)
+    length_cm = segment_length * coordinate_scale
+    if length_cm < 10:
         return None
 
     midpoint_x, midpoint_z = (sx + ex) / 2, (sz + ez) / 2
-    inset_m = 0.14
-    normal_x, normal_z = -dz / length_m, dx / length_m
+    inset_cm = 14.0
+    normal_x, normal_z = -dz / segment_length, dx / segment_length
     inward_point = None
     for direction in (1, -1):
-        centered_x = midpoint_x + normal_x * inset_m * direction
-        centered_z = midpoint_z + normal_z * inset_m * direction
+        centered_x = midpoint_x * coordinate_scale + normal_x * inset_cm * direction
+        centered_z = midpoint_z * coordinate_scale + normal_z * inset_cm * direction
         engine_point = Point(
-            centered_x * 100 + room_width_cm / 2,
-            centered_z * 100 + room_depth_cm / 2,
+            centered_x + room_width_cm / 2,
+            centered_z + room_depth_cm / 2,
         )
         if boundary is None or boundary.buffer(2).contains(engine_point):
             inward_point = centered_x, centered_z
             break
     if inward_point is None:
         return None
-    x_cm, z_cm = inward_point[0] * 100, inward_point[1] * 100
+    x_cm, z_cm = inward_point
     rotation = math.degrees(math.atan2(dz, dx))
-    width_cm = min(max(length_m * 100 + 30, 80), max(room_width_cm, room_depth_cm), 500)
+    width_cm = min(max(length_cm + 30, 80), max(room_width_cm, room_depth_cm), 500)
     return x_cm, z_cm, rotation, width_cm
 
 
@@ -927,26 +929,31 @@ def _four_wall_room(width_cm: float, depth_cm: float) -> Room:
     )
 
 
+def _floorplan_coordinate_scale_cm(floorplan: dict[str, Any] | None) -> float:
+    """Return the scale from stored floorplan coordinates to centimeters."""
+    return 1.0 if (floorplan or {}).get("coordinate_unit") == "cm" else 100.0
+
+
 def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
     """由 payload 的 floorplan 區塊重建引擎 Room(拖曳驗證/重排都是無狀態請求)。
 
-    wall_segments 暫時相容房間中心原點、公尺;引擎要公分、角落原點
-    → ×100 再平移 half。
+    新資料使用公分；沒有 coordinate_unit 的舊專案視為公尺並在讀取時轉一次。
     沒有牆段(手動模式)就退回矩形房。
     """
     floorplan = floorplan or {}
     width = max(float(floorplan.get("width_cm") or 420), 240)
     depth = max(float(floorplan.get("depth_cm") or 360), 240)
+    coordinate_scale = _floorplan_coordinate_scale_cm(floorplan)
 
     walls: list[Wall] = []
     for seg in floorplan.get("wall_segments") or []:
         try:
             walls.append(
                 Wall(
-                    float(seg["start"]["x"]) * 100 + width / 2,
-                    float(seg["start"]["z"]) * 100 + depth / 2,
-                    float(seg["end"]["x"]) * 100 + width / 2,
-                    float(seg["end"]["z"]) * 100 + depth / 2,
+                    float(seg["start"]["x"]) * coordinate_scale + width / 2,
+                    float(seg["start"]["z"]) * coordinate_scale + depth / 2,
+                    float(seg["end"]["x"]) * coordinate_scale + width / 2,
+                    float(seg["end"]["z"]) * coordinate_scale + depth / 2,
                     thickness=6.0,
                 )
             )
@@ -959,20 +966,19 @@ def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
 
 
 def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any], Room]:
-    """Convert the step-5 corner-origin editor state into the canonical 3D contract."""
+    """Convert the corner-origin centimeter editor state into the 3D contract."""
     width_cm = max(float(editor.get("width_cm") or 420), 240)
     depth_cm = max(float(editor.get("depth_cm") or 360), 240)
-    width_m = width_cm / 100
-    depth_m = depth_cm / 100
-    half_width = width_m / 2
-    half_depth = depth_m / 2
+    half_width = width_cm / 2
+    half_depth = depth_cm / 2
+    editor_scale = 1.0 if editor.get("coordinate_unit") == "cm" else 100.0
     structures = editor.get("structures") or {}
 
     def centered_point(point: dict[str, Any] | None) -> dict[str, float]:
         point = point or {}
         return {
-            "x": round(float(point.get("x") or 0) - half_width, 4),
-            "z": round(float(point.get("y") or 0) - half_depth, 4),
+            "x": round(float(point.get("x") or 0) * editor_scale - half_width, 2),
+            "z": round(float(point.get("y") or 0) * editor_scale - half_depth, 2),
         }
 
     def segment(item: dict[str, Any]) -> dict[str, Any]:
@@ -1004,7 +1010,7 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
     room_regions = []
     for room_data in editor.get("rooms") or []:
         ring = []
-        for point in room_data.get("polygon_m") or []:
+        for point in room_data.get("polygon_cm") or room_data.get("polygon_m") or []:
             centered = centered_point(point)
             ring.append([centered["x"], centered["z"]])
         if len(ring) < 3:
@@ -1020,6 +1026,7 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
         )
 
     floorplan = {
+        "coordinate_unit": "cm",
         "width_cm": round(width_cm, 2),
         "depth_cm": round(depth_cm, 2),
         "room_height_cm": round(float(editor.get("room_height_cm") or 270), 2),
@@ -1085,12 +1092,19 @@ def _regions_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon |
 
 
 def _region_polygons(floorplan: dict[str, Any] | None, room: Room) -> list[Polygon]:
-    """相容舊 room_regions 公尺環，轉為角落原點公分多邊形。"""
+    """Convert canonical centimeter or legacy meter room regions to engine polygons."""
     polys: list[Polygon] = []
+    coordinate_scale = _floorplan_coordinate_scale_cm(floorplan)
     for region in (floorplan or {}).get("room_regions") or []:
         try:
             def _shift(ring):
-                return [(p[0] * 100 + room.width / 2, p[1] * 100 + room.depth / 2) for p in ring]
+                return [
+                    (
+                        p[0] * coordinate_scale + room.width / 2,
+                        p[1] * coordinate_scale + room.depth / 2,
+                    )
+                    for p in ring
+                ]
 
             poly = Polygon(_shift(region["exterior"]), [_shift(h) for h in region.get("holes") or []])
             if not poly.is_valid:
@@ -1120,12 +1134,19 @@ def _region_boundary_by_id(
     """取得指定房間的可擺放邊界，避免修改小房間時誤用最大房間。"""
     if not room_id:
         return None
+    coordinate_scale = _floorplan_coordinate_scale_cm(floorplan)
     for region in (floorplan or {}).get("room_regions") or []:
         if str(region.get("room_id")) != str(room_id):
             continue
         try:
             def _shift(ring):
-                return [(p[0] * 100 + room.width / 2, p[1] * 100 + room.depth / 2) for p in ring]
+                return [
+                    (
+                        p[0] * coordinate_scale + room.width / 2,
+                        p[1] * coordinate_scale + room.depth / 2,
+                    )
+                    for p in ring
+                ]
 
             polygon = Polygon(
                 _shift(region["exterior"]),
@@ -1521,7 +1542,7 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
 
     解析走 upgrade3d.dxf_parser(ezdxf,平面中心原點、公尺),
     再由 engine.dxf_room 取最大封閉房間轉成 Room(角落原點)。
-    回傳的線段座標一律換算成「房間中心原點、公尺」,維持前端 viewer 契約。
+    回傳的線段座標一律換算成「房間中心原點、公分」。
     """
     try:
         parsed = _flip_parsed_z(parse_dxf_bytes(dxf_text.encode("utf-8", errors="ignore"), "upload.dxf"))
@@ -1540,13 +1561,13 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
 
     room = build.room
     ox, oz = build.offset
-    room_center_x = (ox + room.width / 2) / 100
-    room_center_z = (oz + room.depth / 2) / 100
+    room_center_x_cm = ox + room.width / 2
+    room_center_z_cm = oz + room.depth / 2
 
     wall_segments = [
         {
-            "start": {"x": round((w.x1 - room.width / 2) / 100, 3), "z": round((w.y1 - room.depth / 2) / 100, 3)},
-            "end": {"x": round((w.x2 - room.width / 2) / 100, 3), "z": round((w.y2 - room.depth / 2) / 100, 3)},
+            "start": {"x": round(w.x1 - room.width / 2, 1), "z": round(w.y1 - room.depth / 2, 1)},
+            "end": {"x": round(w.x2 - room.width / 2, 1), "z": round(w.y2 - room.depth / 2, 1)},
         }
         for w in room.walls
     ]
@@ -1554,8 +1575,14 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
     def _convert(segs: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return [
             {
-                "start": {"x": round(s["x1"] - room_center_x, 3), "z": round(s["z1"] - room_center_z, 3)},
-                "end": {"x": round(s["x2"] - room_center_x, 3), "z": round(s["z2"] - room_center_z, 3)},
+                "start": {
+                    "x": round(s["x1"] * 100 - room_center_x_cm, 1),
+                    "z": round(s["z1"] * 100 - room_center_z_cm, 1),
+                },
+                "end": {
+                    "x": round(s["x2"] * 100 - room_center_x_cm, 1),
+                    "z": round(s["z2"] * 100 - room_center_z_cm, 1),
+                },
             }
             for s in segs
         ]
@@ -1563,6 +1590,28 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
     doors = _convert(parsed.get("doors", []))
     windows = _convert(parsed.get("windows", []))
     stats = parsed.get("stats", {})
+
+    def _ring_to_payload(coords) -> list:
+        return [
+            [
+                round(point[0] * 100 - room_center_x_cm, 1),
+                round(point[1] * 100 - room_center_z_cm, 1),
+            ]
+            for point in coords
+        ]
+
+    wall_polys = [
+        {
+            "exterior": _ring_to_payload(poly.get("exterior") or []),
+            "holes": [
+                _ring_to_payload(hole)
+                for hole in poly.get("holes") or []
+                if len(hole) >= 3
+            ],
+        }
+        for poly in parsed.get("wall_polys") or []
+        if len(poly.get("exterior") or []) >= 3
+    ]
 
     # 可擺放區域 = bbox 減去牆體實心區(自由空間),面積 ≥1m² 的每一塊當一個 region。
     # 這對「有封閉房間」與「開放式牆線(如 floor01,沒有 holes)」兩種 DXF 都成立;
@@ -1582,9 +1631,6 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
         bb = parsed["bbox"]
         free = shapely_box(bb["minx"], bb["minz"], bb["maxx"], bb["maxz"]).difference(unary_union(solids))
         pieces = list(free.geoms) if free.geom_type == "MultiPolygon" else [free]
-        def _ring_to_payload(coords) -> list:
-            return [[round(p[0] - room_center_x, 3), round(p[1] - room_center_z, 3)] for p in coords]
-
         for piece in pieces:
             if piece.is_empty or piece.area < 1.0:
                 continue
@@ -1599,6 +1645,7 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
         room_regions = []
 
     floorplan = {
+        "coordinate_unit": "cm",
         "width_cm": round(room.width, 1),
         "depth_cm": round(room.depth, 1),
         "source": "dxf",
@@ -1611,6 +1658,7 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
         "door_layers": [],
         "window_layers": [],
         "wall_segments": wall_segments,
+        "wall_polys": wall_polys,
         "plan_segments": wall_segments,
         "door_segments": doors,
         "window_segments": windows,
@@ -1740,6 +1788,7 @@ def build_scene_payload(
         },
         "plan_json": plan,
         "floorplan": {
+            "coordinate_unit": "cm",
             "image_path": floorplan_path,
             "width_cm": effective_width_cm,
             "depth_cm": effective_depth_cm,
@@ -1754,6 +1803,7 @@ def build_scene_payload(
             "door_layers": parsed_floorplan.get("door_layers", []) if parsed_floorplan else [],
             "window_layers": parsed_floorplan.get("window_layers", []) if parsed_floorplan else [],
             "wall_segments": parsed_floorplan["wall_segments"] if parsed_floorplan else [],
+            "wall_polys": parsed_floorplan.get("wall_polys", []) if parsed_floorplan else [],
             "plan_segments": parsed_floorplan.get("plan_segments", []) if parsed_floorplan else [],
             "door_segments": parsed_floorplan.get("door_segments", []) if parsed_floorplan else [],
             "window_segments": parsed_floorplan["window_segments"] if parsed_floorplan else [],

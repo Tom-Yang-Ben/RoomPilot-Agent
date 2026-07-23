@@ -9,7 +9,7 @@ export function buildScaleCalibration(points, distanceCm) {
     start_px: [Number(start.x), Number(start.y)],
     end_px: [Number(end.x), Number(end.y)],
     pixel_distance: pixelDistance,
-    m_per_px: distance / 100 / pixelDistance,
+    cm_per_px: distance / pixelDistance,
   };
 }
 

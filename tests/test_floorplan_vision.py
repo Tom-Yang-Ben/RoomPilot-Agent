@@ -15,6 +15,7 @@ from roompilot.floorplan.vision import (
     confirm_floorplan_analysis,
     infer_room_requirements,
 )
+from roompilot.floorplan.vision.units import canonicalize_analysis_cm
 
 
 def test_cody_cli_loads_floorplan_from_unicode_path(tmp_path: Path) -> None:
@@ -74,12 +75,12 @@ def test_analyze_floorplan_image_calibrates_630_cm_dimension() -> None:
         ],
     )
 
-    assert analysis["scale"]["distance_m"] == 6.3
+    assert analysis["scale"]["distance_cm"] == 630.0
     assert analysis["scale"]["pixel_distance"] == 415
-    assert analysis["scale"]["m_per_px"] == 0.015181
+    assert analysis["scale"]["cm_per_px"] == 1.5181
     assert analysis["scale"]["source"] == "dimension_ocr"
     assert analysis["coordinate_system"] == {
-        "unit": "metre",
+        "unit": "centimeter",
         "origin": "plan_bbox_bottom_left",
         "x_axis": "right",
         "y_axis": "up",
@@ -114,7 +115,7 @@ def test_low_confidence_ocr_scale_requires_manual_scale_correction() -> None:
     with pytest.raises(ValueError, match="scale_confirmation_required"):
         confirm_floorplan_analysis(analysis)
 
-    corrected_scale = {**analysis["scale"], "distance_m": 6.3, "m_per_px": 0.015181}
+    corrected_scale = {**analysis["scale"], "distance_cm": 630, "cm_per_px": 1.5181}
     confirmed = confirm_floorplan_analysis(analysis, corrections={"scale": corrected_scale})
     assert confirmed["analysis"]["scale"]["source"] == "manual_confirmation"
 
@@ -137,13 +138,13 @@ def test_analyze_floorplan_image_transforms_confirmed_walls_doors_and_windows() 
     assert analysis["walls"] == [
         {
             "start": {"x": 0.0, "y": 0.0},
-            "end": {"x": 6.0, "y": 0.0},
+            "end": {"x": 600.0, "y": 0.0},
             "confidence": 1.0,
             "source": "confirmed_geometry",
         }
     ]
-    assert analysis["doors"][0]["width_m"] == 0.9
-    assert analysis["windows"][0]["width_m"] == 1.2
+    assert analysis["doors"][0]["width_cm"] == 90.0
+    assert analysis["windows"][0]["width_cm"] == 120.0
     assert analysis["requires_confirmation"] is False
 
 
@@ -172,7 +173,7 @@ def test_cody_geometry_can_be_confirmed_without_roompilot_fallback_corrections()
     assert {item["source"] for item in confirmed["analysis"]["walls"]} == {"cody_vision"}
 
 
-def test_analyze_floorplan_image_normalizes_room_labels_to_metre_coordinates() -> None:
+def test_analyze_floorplan_image_normalizes_room_labels_to_centimeter_coordinates() -> None:
     image = np.full((400, 600, 3), 255, dtype=np.uint8)
     ok, encoded = cv2.imencode(".png", image)
     assert ok
@@ -200,7 +201,7 @@ def test_analyze_floorplan_image_normalizes_room_labels_to_metre_coordinates() -
         "bedroom",
     ]
     assert analysis["rooms"][0]["label"] == "客廳"
-    assert analysis["rooms"][0]["centroid_m"] == {"x": 0.9, "y": 1.35}
+    assert analysis["rooms"][0]["centroid_cm"] == {"x": 90.0, "y": 135.0}
 
 
 def test_high_confidence_room_has_traceable_inner_dimensions_without_blanket_confirmation() -> None:
@@ -225,7 +226,7 @@ def test_high_confidence_room_has_traceable_inner_dimensions_without_blanket_con
 
     room = analysis["spatial_report"]["rooms"][0]
     assert room["room_id"] == "bedroom-1"
-    assert room["inner_dimensions_m"] == {"width": 4.0, "depth": 3.0}
+    assert room["inner_dimensions_cm"] == {"width": 400.0, "depth": 300.0}
     assert room["net_area_m2"] == 12.0
     assert room["confidence"]["level"] == "high"
     assert room["evidence"][0]["kind"] == "ocr_room_label"
@@ -331,6 +332,7 @@ def test_confirm_floorplan_analysis_exports_dxf_and_engine_payload() -> None:
     assert "SECTION" in confirmed["dxf_text"]
     assert confirmed["floorplan"]["width_cm"] == 600.0
     assert confirmed["floorplan"]["depth_cm"] == 400.0
+    assert confirmed["floorplan"]["coordinate_unit"] == "cm"
     assert len(confirmed["floorplan"]["door_segments"]) == 1
     assert len(confirmed["floorplan"]["window_segments"]) == 1
     assert confirmed["requirements"]["rooms"][0]["room_type"] == "kitchen"
@@ -355,9 +357,9 @@ def test_builder_plan_630_cody_geometry_keeps_room_semantics_review_separate() -
     )
 
     assert analysis["scale"] == {
-        "distance_m": 6.3,
+        "distance_cm": 630.0,
         "pixel_distance": 414.0,
-        "m_per_px": 0.015217,
+        "cm_per_px": 1.5217,
         "source": "dimension_ocr",
         "confidence": 0.99,
     }
@@ -378,7 +380,7 @@ def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations(
 
     assert analysis["recognition_mode"] == "cody_vision"
     assert analysis["recognition_engine"] == "cody"
-    assert analysis["scale"]["distance_m"] == 6.3
+    assert analysis["scale"]["distance_cm"] == 630.0
     assert analysis["spatial_report"]["room_counts"] == {
         "bedroom": 3,
         "bathroom": 2,
@@ -389,7 +391,7 @@ def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations(
     }
     assert len(analysis["doors"]) == 7
     assert len(analysis["windows"]) == 3
-    assert all(0.7 <= door["width_m"] <= 1.2 for door in analysis["doors"])
+    assert all(70 <= door["width_cm"] <= 120 for door in analysis["doors"])
     assert any(
         wall["bbox_px"][1] >= 700
         and wall["bbox_px"][2] - wall["bbox_px"][0] >= 500
@@ -406,7 +408,7 @@ def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations(
     assert confirmed["ready_for_design"] is True
     assert len(confirmed["floorplan"]["room_regions"]) == 9
     master = next(room for room in confirmed["floorplan"]["room_regions"] if room["label"] == "主臥室")
-    assert master["inner_dimensions_m"]["width"] > 0
+    assert master["inner_dimensions_cm"]["width"] > 0
     assert master["net_area_m2"] > 0
 
 
@@ -424,7 +426,7 @@ def test_floor04_visible_swing_arcs_produce_door_candidates() -> None:
     )
 
     assert len(analysis["rooms"]) == 7
-    assert all(len(room["polygon_m"]) >= 3 for room in analysis["rooms"])
+    assert all(len(room["polygon_cm"]) >= 3 for room in analysis["rooms"])
     assert max(room["area_m2"] for room in analysis["rooms"]) < 40
     assert {room["type"] for room in analysis["rooms"]} == {
         "bedroom",
@@ -451,7 +453,7 @@ def test_floor04_visible_swing_arcs_produce_door_candidates() -> None:
         all(math.dist(expected, detected) <= 15 for expected, detected in zip(expected_hinges_px, ordering))
         for ordering in permutations(detected_hinges_px)
     ), "五個門候選必須一對一落在可見門扇弧線的鉸鏈位置，且不可多出中央假門"
-    assert all(0.65 <= door["width_m"] <= 1.35 for door in analysis["doors"])
+    assert all(65 <= door["width_cm"] <= 135 for door in analysis["doors"])
     assert all(door["opening_direction"] == "manual_review" for door in analysis["doors"])
     assert all(door["source"] == "cody_vision" for door in analysis["doors"])
     assert all(door["swing_confidence"] >= 0.85 for door in analysis["doors"])
@@ -462,8 +464,8 @@ def test_floor04_visible_swing_arcs_produce_door_candidates() -> None:
                 (door["start"]["x"], door["start"]["y"]),
                 (door["swing_end"]["x"], door["swing_end"]["y"]),
             ),
-            door["width_m"],
-            abs_tol=0.02,
+            door["width_cm"],
+            abs_tol=2,
         )
         for door in analysis["doors"]
     )
@@ -474,7 +476,7 @@ def test_floor04_visible_swing_arcs_produce_door_candidates() -> None:
             + (door["end"]["y"] - door["start"]["y"])
             * (door["swing_end"]["y"] - door["start"]["y"])
         )
-        <= 0.02
+        <= 200
         for door in analysis["doors"]
     ), "門扇與弧線終點必須以鉸鏈為中心形成 90 度"
 
@@ -499,3 +501,29 @@ def test_floor04_swing_detector_supplements_a_partial_legacy_result(monkeypatch)
 
     assert len(analysis["doors"]) == 5
     assert all("swing_end" in door for door in analysis["doors"])
+
+
+def test_legacy_meter_analysis_is_migrated_to_centimeters_only_once() -> None:
+    legacy = {
+        "coordinate_system": {"unit": "metre"},
+        "scale": {"distance_m": 6.3, "m_per_px": 0.01},
+        "walls": [{"start": {"x": 0, "y": 0}, "end": {"x": 6.3, "y": 0}}],
+        "rooms": [{
+            "id": "room-1",
+            "centroid_m": {"x": 3.15, "y": 2},
+            "polygon_m": [
+                {"x": 0, "y": 0},
+                {"x": 6.3, "y": 0},
+                {"x": 6.3, "y": 4},
+                {"x": 0, "y": 4},
+            ],
+        }],
+    }
+
+    first = canonicalize_analysis_cm(legacy)
+    second = canonicalize_analysis_cm(first)
+
+    assert first == second
+    assert second["scale"] == {"distance_cm": 630.0, "cm_per_px": 1.0}
+    assert second["walls"][0]["end"] == {"x": 630.0, "y": 0.0}
+    assert second["rooms"][0]["centroid_cm"] == {"x": 315.0, "y": 200.0}

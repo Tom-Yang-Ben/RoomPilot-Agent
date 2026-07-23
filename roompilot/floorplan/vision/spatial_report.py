@@ -35,9 +35,13 @@ def _wall_lengths(polygon: list[dict[str, float]]) -> list[float]:
 
 
 def _rectangle_for_room(
-    room: Mapping[str, Any], walls: Iterable[Mapping[str, Any]]
+    room: Mapping[str, Any],
+    walls: Iterable[Mapping[str, Any]],
+    *,
+    centimeter: bool = False,
 ) -> tuple[list[dict[str, float]] | None, list[Mapping[str, Any]]]:
-    centroid = room.get("centroid_m") or {}
+    centroid = room.get("centroid_cm" if centimeter else "centroid_m") or {}
+    axis_tolerance = 3.0 if centimeter else 0.03
     try:
         cx, cy = float(centroid["x"]), float(centroid["y"])
     except (KeyError, TypeError, ValueError):
@@ -54,9 +58,9 @@ def _rectangle_for_room(
             x2, y2 = float(end["x"]), float(end["y"])
         except (KeyError, TypeError, ValueError):
             continue
-        if abs(x1 - x2) <= 0.03 and _between(cy, y1, y2):
+        if abs(x1 - x2) <= axis_tolerance and _between(cy, y1, y2, axis_tolerance):
             (left if x1 <= cx else right).append((x1, wall))
-        if abs(y1 - y2) <= 0.03 and _between(cx, x1, x2):
+        if abs(y1 - y2) <= axis_tolerance and _between(cx, x1, x2, axis_tolerance):
             (bottom if y1 <= cy else top).append((y1, wall))
 
     if not all((left, right, bottom, top)):
@@ -80,15 +84,25 @@ def _rectangle_for_room(
 
 def build_spatial_report(analysis: Mapping[str, Any]) -> dict[str, Any]:
     """建立房間數量、內淨尺寸、證據與只針對疑點的修正清單。"""
+    centimeter = (analysis.get("coordinate_system") or {}).get("unit") in {
+        "centimeter",
+        "centimetre",
+        "cm",
+    }
+    suffix = "cm" if centimeter else "m"
     walls = list(analysis.get("walls") or [])
     report_rooms: list[dict[str, Any]] = []
     review_items: list[dict[str, Any]] = []
     for room in analysis.get("rooms") or []:
-        explicit_polygon = room.get("polygon_m")
+        explicit_polygon = room.get(f"polygon_{suffix}")
         polygon = [dict(point) for point in explicit_polygon] if explicit_polygon else None
         boundary_walls: list[Mapping[str, Any]] = []
         if polygon is None:
-            polygon, boundary_walls = _rectangle_for_room(room, walls)
+            polygon, boundary_walls = _rectangle_for_room(
+                room,
+                walls,
+                centimeter=centimeter,
+            )
         label_score = float(room.get("confidence", 0.0))
         wall_score = float(room.get("polygon_confidence", 0.0)) if explicit_polygon else min(
             (float(wall.get("confidence", 0.0)) for wall in boundary_walls), default=0.0
@@ -111,14 +125,17 @@ def build_spatial_report(analysis: Mapping[str, Any]) -> dict[str, Any]:
                 "room_id": room.get("id"),
                 "room_type": room.get("type"),
                 "label": room.get("label"),
-                "polygon_m": polygon,
+                f"polygon_{suffix}": polygon,
                 "shape_type": "rectangle" if is_rectangle else "irregular",
-                "inner_dimensions_m": {"width": width, "depth": depth} if is_rectangle else None,
-                "bounding_dimensions_m": {"width": width, "depth": depth},
-                "wall_lengths_m": _wall_lengths(polygon),
-                "net_area_m2": round(_polygon_area(polygon), 3),
-                "minimum_clear_width_m": round(min(width, depth), 3) if is_rectangle else None,
-                "maximum_usable_rectangle_m": {"width": width, "depth": depth} if is_rectangle else None,
+                f"inner_dimensions_{suffix}": {"width": width, "depth": depth} if is_rectangle else None,
+                f"bounding_dimensions_{suffix}": {"width": width, "depth": depth},
+                f"wall_lengths_{suffix}": _wall_lengths(polygon),
+                "net_area_m2": round(
+                    _polygon_area(polygon) / (10_000 if centimeter else 1),
+                    3,
+                ),
+                f"minimum_clear_width_{suffix}": round(min(width, depth), 3) if is_rectangle else None,
+                f"maximum_usable_rectangle_{suffix}": {"width": width, "depth": depth} if is_rectangle else None,
                 "confidence": _confidence(score),
                 "evidence": evidence
                 + [
@@ -136,9 +153,9 @@ def build_spatial_report(analysis: Mapping[str, Any]) -> dict[str, Any]:
                 "room_id": room.get("id"),
                 "room_type": room.get("type"),
                 "label": room.get("label"),
-                "polygon_m": None,
+                f"polygon_{suffix}": None,
                 "shape_type": "unresolved",
-                "inner_dimensions_m": None,
+                f"inner_dimensions_{suffix}": None,
                 "net_area_m2": None,
                 "confidence": _confidence(0.0),
                 "evidence": evidence,
@@ -170,7 +187,7 @@ def build_spatial_report(analysis: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": "1.0",
         "measurement_basis": "inner_wall_finish_geometry",
-        "unit": "metre",
+        "unit": "centimeter" if centimeter else "metre",
         "room_counts": dict(counts),
         "rooms": report_rooms,
         "review_items": review_items,

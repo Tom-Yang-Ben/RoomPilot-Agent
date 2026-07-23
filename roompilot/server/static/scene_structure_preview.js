@@ -7,8 +7,8 @@ export function createStructurePreview(container) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf5f3ef);
-  const camera = new THREE.PerspectiveCamera(48, 1, 0.05, 50);
-  camera.position.set(3.6, 2.25, 3.8);
+  const camera = new THREE.PerspectiveCamera(48, 1, 5, 5000);
+  camera.position.set(360, 225, 380);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -22,15 +22,15 @@ export function createStructurePreview(container) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.enablePan = false;
-  controls.target.set(0, 1.25, 0);
-  controls.minDistance = 3.2;
-  controls.maxDistance = 7;
+  controls.target.set(0, 125, 0);
+  controls.minDistance = 320;
+  controls.maxDistance = 700;
   controls.minPolarAngle = Math.PI * 0.18;
   controls.maxPolarAngle = Math.PI * 0.46;
 
   scene.add(new THREE.HemisphereLight(0xffffff, 0xb7aa98, 2.1));
   const key = new THREE.DirectionalLight(0xffffff, 2.4);
-  key.position.set(3, 5, 4);
+  key.position.set(300, 500, 400);
   key.castShadow = true;
   scene.add(key);
 
@@ -65,13 +65,13 @@ export function createStructurePreview(container) {
     }
   }
 
-  function rebuildContext({ walls = [], planWidthM = 5.2, planDepthM = 4.2, ceilingHeightM = 2.7 }) {
+  function rebuildContext({ walls = [], planWidthCm = 520, planDepthCm = 420, ceilingHeightCm = 270 }) {
     clearGroup(context);
-    const width = Math.max(2.4, Number(planWidthM) || 5.2);
-    const depth = Math.max(2.4, Number(planDepthM) || 4.2);
-    const wallHeight = Math.max(2.1, Number(ceilingHeightM) || 2.7);
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(width, 0.06, depth), floorMaterial);
-    floor.position.y = -0.03;
+    const width = Math.max(240, Number(planWidthCm) || 520);
+    const depth = Math.max(240, Number(planDepthCm) || 420);
+    const wallHeight = Math.max(210, Number(ceilingHeightCm) || 270);
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(width, 6, depth), floorMaterial);
+    floor.position.y = -3;
     floor.receiveShadow = true;
     context.add(floor);
     walls.forEach((wall) => {
@@ -83,9 +83,9 @@ export function createStructurePreview(container) {
       const dx = endX - startX;
       const dz = endZ - startZ;
       const length = Math.hypot(dx, dz);
-      if (length < 0.04) return;
+      if (length < 4) return;
       const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(length, wallHeight, Math.max(0.08, Number(wall.thickness_m || 0.12))),
+        new THREE.BoxGeometry(length, wallHeight, Math.max(8, Number(wall.thickness_cm || 12))),
         wallMaterial.clone(),
       );
       mesh.position.set((startX + endX) / 2, wallHeight / 2, (startZ + endZ) / 2);
@@ -121,41 +121,41 @@ export function createStructurePreview(container) {
       existing.material?.dispose();
     }
     if (!activeDimension) return;
-    const thickness = 0.035;
-    const guideLength = 0.12;
+    const thickness = 3.5;
+    const guideLength = 12;
     let geometry;
     let position;
     let color;
     if (activeDimension === "length") {
       geometry = new THREE.BoxGeometry(
-        activeDescriptor.lengthM + guideLength,
+        activeDescriptor.lengthCm + guideLength,
         thickness,
         thickness,
       );
-      position = new THREE.Vector3(0, activeDescriptor.heightM / 2 + 0.09, 0);
+      position = new THREE.Vector3(0, activeDescriptor.heightCm / 2 + 9, 0);
       color = 0xd98324;
     } else if (activeDimension === "width") {
       geometry = new THREE.BoxGeometry(
         thickness,
         thickness,
-        activeDescriptor.widthM + guideLength,
+        activeDescriptor.widthCm + guideLength,
       );
       position = new THREE.Vector3(
-        activeDescriptor.lengthM / 2 + 0.09,
-        activeDescriptor.heightM / 2 + 0.09,
+        activeDescriptor.lengthCm / 2 + 9,
+        activeDescriptor.heightCm / 2 + 9,
         0,
       );
       color = 0x26889a;
     } else {
       geometry = new THREE.BoxGeometry(
         thickness,
-        activeDescriptor.heightM + guideLength,
+        activeDescriptor.heightCm + guideLength,
         thickness,
       );
       position = new THREE.Vector3(
-        activeDescriptor.lengthM / 2 + 0.09,
+        activeDescriptor.lengthCm / 2 + 9,
         0,
-        activeDescriptor.widthM / 2 + 0.09,
+        activeDescriptor.widthCm / 2 + 9,
       );
       color = 0x2d8a67;
     }
@@ -183,16 +183,16 @@ export function createStructurePreview(container) {
     const across = new THREE.Vector3(-along.z, 0, along.x);
     const target = new THREE.Vector3(
       descriptor.centerX,
-      descriptor.centerHeightM,
+      descriptor.centerHeightCm,
       descriptor.centerZ,
     );
     const visibleWidth = view === "side"
-      ? Math.max(descriptor.widthM, descriptor.heightM)
-      : Math.max(descriptor.lengthM, descriptor.heightM);
+      ? Math.max(descriptor.widthCm, descriptor.heightCm)
+      : Math.max(descriptor.lengthCm, descriptor.heightCm);
     const modelClearance = view === "side"
-      ? descriptor.lengthM / 2 + 1
-      : descriptor.widthM / 2 + 1;
-    const distance = Math.max(2.2, visibleWidth * 1.35, modelClearance);
+      ? descriptor.lengthCm / 2 + 100
+      : descriptor.widthCm / 2 + 100;
+    const distance = Math.max(220, visibleWidth * 1.35, modelClearance);
     let direction;
     if (view === "front") {
       direction = across;
@@ -205,13 +205,13 @@ export function createStructurePreview(container) {
         .normalize();
     }
     camera.position.copy(target).add(direction.multiplyScalar(distance));
-    camera.near = Math.max(0.02, distance / 100);
-    camera.far = Math.max(30, distance * 8);
+    camera.near = Math.max(2, distance / 100);
+    camera.far = Math.max(3000, distance * 8);
     camera.updateProjectionMatrix();
     controls.target.copy(target);
     controls.enabled = view === "perspective";
-    controls.minDistance = Math.max(1.2, distance * 0.45);
-    controls.maxDistance = Math.max(8, distance * 2.5);
+    controls.minDistance = Math.max(120, distance * 0.45);
+    controls.maxDistance = Math.max(800, distance * 2.5);
     camera.lookAt(target);
     if (controls.enabled) controls.update();
   }
@@ -238,13 +238,13 @@ export function createStructurePreview(container) {
       metalness: 0.02,
     });
     const object = new THREE.Group();
-    object.position.set(descriptor.centerX, descriptor.centerHeightM, descriptor.centerZ);
+    object.position.set(descriptor.centerX, descriptor.centerHeightCm, descriptor.centerZ);
     object.rotation.y = -THREE.MathUtils.degToRad(descriptor.rotationDeg);
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(
-        descriptor.lengthM,
-        descriptor.heightM,
-        descriptor.widthM,
+        descriptor.lengthCm,
+        descriptor.heightCm,
+        descriptor.widthCm,
       ),
       material,
     );

@@ -19,12 +19,12 @@ def test_model_scale_hits_catalog_width_depth_and_height() -> None:
         import {{ computeExactModelScale }} from {json.dumps(VISUAL_MODULE.as_uri())};
         console.log(JSON.stringify(computeExactModelScale(
           {{ x: 2, y: 1, z: 0.5 }},
-          {{ width: 1.6, depth: 2, height: 0.82 }}
+          {{ width: 160, depth: 200, height: 82 }}
         )));
         """
     )
 
-    assert result == {"x": 0.8, "y": 0.82, "z": 4}
+    assert result == {"x": 80, "y": 82, "z": 400}
 
 
 def test_all_confirmed_room_regions_share_the_initial_floor_surface() -> None:
@@ -50,16 +50,16 @@ def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
         f"""
         import {{ doorLeafTransform }} from {json.dumps(VISUAL_MODULE.as_uri())};
         console.log(JSON.stringify(doorLeafTransform({{
-          start: {{ x: 1, z: 2 }},
-          end: {{ x: 2, z: 2 }},
+          start: {{ x: 100, z: 200 }},
+          end: {{ x: 200, z: 200 }},
           opening_direction: "right",
         }})));
         """
     )
 
-    assert result["hinge"] == {"x": 1, "z": 2}
-    assert result["leafWidthM"] == 0.94
-    assert result["leafCenterXM"] == 0.47
+    assert result["hinge"] == {"x": 100, "z": 200}
+    assert result["leafWidthCm"] == 94
+    assert result["leafCenterXCm"] == 47
     assert result["closedRotationYRad"] == 0
     assert result["swingRotationYRad"] < 0
 
@@ -95,9 +95,9 @@ def test_formal_3d_columns_use_confirmed_rectangular_dimensions_and_rotation() -
     )
 
     assert 'import { columnGeometryDescriptor } from "./scene_structure_geometry.js' in viewer
-    assert "minimumDimensionM: 0.1" in viewer
-    assert "minimumDimensionM: 0.12" not in viewer
-    assert "geometry.widthM, geometry.heightM, geometry.depthM" in viewer
+    assert "minimumDimensionCm: 10" in viewer
+    assert "minimumDimensionCm: 12" not in viewer
+    assert "geometry.widthCm, geometry.heightCm, geometry.depthCm" in viewer
     assert "mesh.rotation.y = -THREE.MathUtils.degToRad(geometry.rotationDeg)" in viewer
 
 
@@ -117,7 +117,7 @@ def test_walk_camera_is_clamped_inside_room_and_topdown_has_plan_labels() -> Non
         f"""
         import {{ clampWalkPosition, viewPresentation }} from {json.dumps(VISUAL_MODULE.as_uri())};
         console.log(JSON.stringify({{
-          clamped: clampWalkPosition({{ x: 8, y: 4, z: -9 }}, {{ widthM: 4, depthM: 3, wallHeight: 2.7 }}),
+          clamped: clampWalkPosition({{ x: 800, y: 400, z: -900 }}, {{ widthCm: 400, depthCm: 300, wallHeight: 270 }}),
           dollhouse: viewPresentation("dollhouse"),
           walk: viewPresentation("walk"),
           topdown: viewPresentation("topdown"),
@@ -125,7 +125,7 @@ def test_walk_camera_is_clamped_inside_room_and_topdown_has_plan_labels() -> Non
         """
     )
 
-    assert result["clamped"] == {"x": 1.75, "y": 1.65, "z": -1.25}
+    assert result["clamped"] == {"x": 175, "y": 165, "z": -125}
     assert result["dollhouse"]["hideOccludingWalls"] is False
     assert result["dollhouse"]["fadeExteriorWalls"] is False
     assert result["walk"]["hideOccludingWalls"] is False

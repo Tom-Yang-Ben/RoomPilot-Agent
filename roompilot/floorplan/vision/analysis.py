@@ -20,6 +20,7 @@ from .image import decode_image
 from .reference_plan import match_builder_plan_630
 from .rooms import infer_rooms_from_walls
 from .spatial_report import build_spatial_report
+from .units import canonicalize_analysis_cm
 from .openings import enrich_opening_relationships
 
 
@@ -402,4 +403,4 @@ def analyze_floorplan_image(
         if "targeted_room_review_required" not in result["issues"]:
             result["issues"].append("targeted_room_review_required")
         result["requires_confirmation"] = True
-    return result
+    return canonicalize_analysis_cm(result)

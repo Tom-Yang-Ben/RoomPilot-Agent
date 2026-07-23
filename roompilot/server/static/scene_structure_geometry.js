@@ -14,12 +14,12 @@ function segmentRotation(item) {
   ) * 180 / Math.PI;
 }
 
-function rectangleFootprint(center, lengthM, widthM, rotationDeg = 0) {
+function rectangleFootprint(center, lengthCm, widthCm, rotationDeg = 0) {
   const angle = Number(rotationDeg || 0) * Math.PI / 180;
   const along = { x: Math.cos(angle), y: Math.sin(angle) };
   const across = { x: -along.y, y: along.x };
-  const halfLength = Math.max(0, Number(lengthM) || 0) / 2;
-  const halfWidth = Math.max(0, Number(widthM) || 0) / 2;
+  const halfLength = Math.max(0, Number(lengthCm) || 0) / 2;
+  const halfWidth = Math.max(0, Number(widthCm) || 0) / 2;
   return [
     { x: center.x - along.x * halfLength - across.x * halfWidth, y: center.y - along.y * halfLength - across.y * halfWidth },
     { x: center.x + along.x * halfLength - across.x * halfWidth, y: center.y + along.y * halfLength - across.y * halfWidth },
@@ -28,17 +28,17 @@ function rectangleFootprint(center, lengthM, widthM, rotationDeg = 0) {
   ];
 }
 
-function segmentFootprint(item, widthM) {
+function segmentFootprint(item, widthCm) {
   if (!item?.start || !item?.end) return null;
   const start = { x: Number(item.start.x), y: Number(item.start.y) };
   const end = { x: Number(item.end.x), y: Number(item.end.y) };
   if (![start.x, start.y, end.x, end.y].every(Number.isFinite)) return null;
-  const lengthM = Math.hypot(end.x - start.x, end.y - start.y);
-  if (lengthM < 0.001) return null;
+  const lengthCm = Math.hypot(end.x - start.x, end.y - start.y);
+  if (lengthCm < 0.1) return null;
   return rectangleFootprint(
     { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 },
-    lengthM,
-    widthM,
+    lengthCm,
+    widthCm,
     Math.atan2(end.y - start.y, end.x - start.x) * 180 / Math.PI,
   );
 }
@@ -67,13 +67,13 @@ function polygonCenter(polygon) {
   );
 }
 
-function polygonPenetration(polygonA, polygonB, touchToleranceM, preferredPoint = null) {
+function polygonPenetration(polygonA, polygonB, touchToleranceCm, preferredPoint = null) {
   let minimum = null;
   for (const axis of [...polygonAxes(polygonA), ...polygonAxes(polygonB)]) {
     const a = projectionRange(polygonA, axis);
     const b = projectionRange(polygonB, axis);
     const overlap = Math.min(a.max, b.max) - Math.max(a.min, b.min);
-    if (overlap <= touchToleranceM) return null;
+    if (overlap <= touchToleranceCm) return null;
     if (!minimum || overlap < minimum.overlap) minimum = { axis, overlap };
   }
   if (!minimum) return null;
@@ -88,17 +88,17 @@ function polygonPenetration(polygonA, polygonB, touchToleranceM, preferredPoint 
     : { x: centerA.x - centerB.x, y: centerA.y - centerB.y };
   const directionDot = direction.x * minimum.axis.x + direction.y * minimum.axis.y;
   const sign = directionDot < 0 ? -1 : 1;
-  const distanceM = minimum.overlap + touchToleranceM;
+  const distanceCm = minimum.overlap + touchToleranceCm;
   return {
-    x: minimum.axis.x * sign * distanceM,
-    y: minimum.axis.y * sign * distanceM,
-    distanceM,
+    x: minimum.axis.x * sign * distanceCm,
+    y: minimum.axis.y * sign * distanceCm,
+    distanceCm,
   };
 }
 
 function structureFootprint(item, kind) {
   if (kind === "beam") {
-    return segmentFootprint(item, Math.max(0.01, Number(item?.thickness_m) || 0.3));
+    return segmentFootprint(item, Math.max(1, Number(item?.thickness_cm) || 30));
   }
   if (kind === "column") {
     const center = {
@@ -108,8 +108,8 @@ function structureFootprint(item, kind) {
     if (!Number.isFinite(center.x) || !Number.isFinite(center.y)) return null;
     return rectangleFootprint(
       center,
-      Math.max(0.01, Number(item?.size_m) || 0.35),
-      Math.max(0.01, Number(item?.depth_m) || Number(item?.size_m) || 0.35),
+      Math.max(1, Number(item?.size_cm) || 35),
+      Math.max(1, Number(item?.depth_cm) || Number(item?.size_cm) || 35),
       Number(item?.rotation_deg) || 0,
     );
   }
@@ -131,7 +131,7 @@ function pointToSegmentDistance(point, start, end) {
   );
 }
 
-function beamEndpointSupportedByWall(item, wall, wallWidthM, touchToleranceM) {
+function beamEndpointSupportedByWall(item, wall, wallWidthCm, touchToleranceCm) {
   if (!item?.start || !item?.end || !wall?.start || !wall?.end) return false;
   const beamDx = Number(item.end.x) - Number(item.start.x);
   const beamDy = Number(item.end.y) - Number(item.start.y);
@@ -139,7 +139,7 @@ function beamEndpointSupportedByWall(item, wall, wallWidthM, touchToleranceM) {
   const wallDy = Number(wall.end.y) - Number(wall.start.y);
   const beamLength = Math.hypot(beamDx, beamDy);
   const wallLength = Math.hypot(wallDx, wallDy);
-  if (beamLength < 0.001 || wallLength < 0.001) return false;
+  if (beamLength < 0.1 || wallLength < 0.1) return false;
   const parallelDot = Math.abs(
     (beamDx / beamLength) * (wallDx / wallLength)
     + (beamDy / beamLength) * (wallDy / wallLength),
@@ -147,7 +147,7 @@ function beamEndpointSupportedByWall(item, wall, wallWidthM, touchToleranceM) {
   if (parallelDot > 0.25) return false;
   const wallStart = { x: Number(wall.start.x), y: Number(wall.start.y) };
   const wallEnd = { x: Number(wall.end.x), y: Number(wall.end.y) };
-  const threshold = wallWidthM / 2 + touchToleranceM;
+  const threshold = wallWidthCm / 2 + touchToleranceCm;
   return [item.start, item.end].some((endpoint) =>
     pointToSegmentDistance(
       { x: Number(endpoint.x), y: Number(endpoint.y) },
@@ -157,13 +157,13 @@ function beamEndpointSupportedByWall(item, wall, wallWidthM, touchToleranceM) {
   );
 }
 
-function trimBeamEndpointsToWallFaces(item, walls, touchToleranceM) {
+function trimBeamEndpointsToWallFaces(item, walls, touchToleranceCm) {
   const next = {
     ...item,
     start: { ...item.start },
     end: { ...item.end },
   };
-  let totalTrimM = 0;
+  let totalTrimCm = 0;
   for (const endpointKey of ["start", "end"]) {
     const otherKey = endpointKey === "start" ? "end" : "start";
     for (const wall of walls) {
@@ -173,7 +173,7 @@ function trimBeamEndpointsToWallFaces(item, walls, touchToleranceM) {
       const wallDy = Number(wall?.end?.y) - Number(wall?.start?.y);
       const beamLength = Math.hypot(beamDx, beamDy);
       const wallLength = Math.hypot(wallDx, wallDy);
-      if (beamLength < 0.001 || wallLength < 0.001) continue;
+      if (beamLength < 0.1 || wallLength < 0.1) continue;
       const parallelDot = Math.abs(
         (beamDx / beamLength) * (wallDx / wallLength)
         + (beamDy / beamLength) * (wallDy / wallLength),
@@ -185,52 +185,52 @@ function trimBeamEndpointsToWallFaces(item, walls, touchToleranceM) {
       const wallEnd = { x: Number(wall.end.x), y: Number(wall.end.y) };
       const distance = pointToSegmentDistance(point, wallStart, wallEnd);
       const targetDistance =
-        Math.max(0.01, Number(wall.thickness_m) || 0.12) / 2 + touchToleranceM;
+        Math.max(1, Number(wall.thickness_cm) || 12) / 2 + touchToleranceCm;
       if (distance >= targetDistance) continue;
       const inward = {
         x: (other.x - point.x) / Math.hypot(other.x - point.x, other.y - point.y),
         y: (other.y - point.y) / Math.hypot(other.x - point.x, other.y - point.y),
       };
       const probe = {
-        x: point.x + inward.x * 0.01,
-        y: point.y + inward.y * 0.01,
+        x: point.x + inward.x,
+        y: point.y + inward.y,
       };
       if (pointToSegmentDistance(probe, wallStart, wallEnd) + 1e-6 < distance) {
         continue;
       }
-      const trimM = targetDistance - distance;
+      const trimCm = targetDistance - distance;
       next[endpointKey] = {
-        x: point.x + inward.x * trimM,
-        y: point.y + inward.y * trimM,
+        x: point.x + inward.x * trimCm,
+        y: point.y + inward.y * trimCm,
       };
-      totalTrimM += trimM;
+      totalTrimCm += trimCm;
     }
   }
-  return { item: next, totalTrimM };
+  return { item: next, totalTrimCm };
 }
 
 export function findStructureWallCollision(
   item,
   kind,
   walls = [],
-  { touchToleranceM = 0.005, preferredPoint = null } = {},
+  { touchToleranceCm = 0.5, preferredPoint = null } = {},
 ) {
   const footprint = structureFootprint(item, kind);
   if (!footprint) return null;
   for (let index = 0; index < walls.length; index += 1) {
     const wall = walls[index];
-    const wallWidthM = Math.max(0.01, Number(wall?.thickness_m) || 0.12);
+    const wallWidthCm = Math.max(1, Number(wall?.thickness_cm) || 12);
     const wallFootprint = segmentFootprint(
       wall,
-      wallWidthM,
+      wallWidthCm,
     );
     const translation = wallFootprint
-      ? polygonPenetration(footprint, wallFootprint, touchToleranceM, preferredPoint)
+      ? polygonPenetration(footprint, wallFootprint, touchToleranceCm, preferredPoint)
       : null;
     if (
       translation
       && !(kind === "beam"
-        && beamEndpointSupportedByWall(item, wall, wallWidthM, touchToleranceM))
+        && beamEndpointSupportedByWall(item, wall, wallWidthCm, touchToleranceCm))
     ) {
       return { wallId: wall.id || null, wallIndex: index, translation };
     }
@@ -265,8 +265,8 @@ export function resolveStructureWallCollisions(
   walls = [],
   {
     preferredPoint = null,
-    touchToleranceM = 0.005,
-    maxAutoShiftM = 0.75,
+    touchToleranceCm = 0.5,
+    maxAutoShiftCm = 75,
     maxIterations = 16,
   } = {},
 ) {
@@ -277,33 +277,33 @@ export function resolveStructureWallCollisions(
     ...(item?.end ? { end: { ...item.end } } : {}),
   };
   const trimmed = kind === "beam"
-    ? trimBeamEndpointsToWallFaces(original, walls, touchToleranceM)
-    : { item: original, totalTrimM: 0 };
+    ? trimBeamEndpointsToWallFaces(original, walls, touchToleranceCm)
+    : { item: original, totalTrimCm: 0 };
   let candidate = trimmed.item;
-  let totalShiftM = trimmed.totalTrimM;
-  if (totalShiftM > maxAutoShiftM) {
-    return { item: original, resolved: false, moved: false, totalShiftM: 0 };
+  let totalShiftCm = trimmed.totalTrimCm;
+  if (totalShiftCm > maxAutoShiftCm) {
+    return { item: original, resolved: false, moved: false, totalShiftCm: 0 };
   }
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
     const collision = findStructureWallCollision(candidate, kind, walls, {
-      touchToleranceM,
+      touchToleranceCm,
       preferredPoint,
     });
     if (!collision) {
       return {
         item: candidate,
         resolved: true,
-        moved: totalShiftM > 0,
-        totalShiftM,
+        moved: totalShiftCm > 0,
+        totalShiftCm,
       };
     }
-    totalShiftM += collision.translation.distanceM;
-    if (totalShiftM > maxAutoShiftM) {
-      return { item: original, resolved: false, moved: false, totalShiftM: 0 };
+    totalShiftCm += collision.translation.distanceCm;
+    if (totalShiftCm > maxAutoShiftCm) {
+      return { item: original, resolved: false, moved: false, totalShiftCm: 0 };
     }
     candidate = translatedStructure(candidate, kind, collision.translation);
   }
-  return { item: original, resolved: false, moved: false, totalShiftM: 0 };
+  return { item: original, resolved: false, moved: false, totalShiftCm: 0 };
 }
 
 export function validateColumnDimensionsCm({
@@ -379,27 +379,27 @@ export function validateColumnDimensionsCm({
 
 export function columnGeometryDescriptor(
   item,
-  { minimumDimensionM = 0.1, defaultHeightM = 2.7 } = {},
+  { minimumDimensionCm = 10, defaultHeightCm = 270 } = {},
 ) {
-  const widthM = Math.max(
-    minimumDimensionM,
-    Number(item?.size_m) || 0.35,
+  const widthCm = Math.max(
+    minimumDimensionCm,
+    Number(item?.size_cm) || 35,
   );
-  const depthM = Math.max(
-    minimumDimensionM,
-    Number(item?.depth_m) || Number(item?.size_m) || 0.35,
+  const depthCm = Math.max(
+    minimumDimensionCm,
+    Number(item?.depth_cm) || Number(item?.size_cm) || 35,
   );
-  const heightM = Math.max(
-    minimumDimensionM,
-    Number(item?.height_m) || Number(defaultHeightM) || 2.7,
+  const heightCm = Math.max(
+    minimumDimensionCm,
+    Number(item?.height_cm) || Number(defaultHeightCm) || 270,
   );
   return {
-    widthM,
-    depthM,
-    heightM,
+    widthCm,
+    depthCm,
+    heightCm,
     centerX: Number(item?.center?.x || 0),
     centerZ: Number(item?.center?.z ?? item?.center?.y ?? 0),
-    centerHeightM: heightM / 2,
+    centerHeightCm: heightCm / 2,
     rotationDeg: Number(item?.rotation_deg) || 0,
   };
 }
@@ -407,26 +407,26 @@ export function columnGeometryDescriptor(
 export function structurePreviewDescriptor(
   item,
   kind,
-  { ceilingHeightM = 2.7, planWidthM = 0, planDepthM = 0 } = {},
+  { ceilingHeightCm = 270, planWidthCm = 0, planDepthCm = 0 } = {},
 ) {
-  const safeCeilingHeight = Math.max(2.1, Number(ceilingHeightM) || 2.7);
+  const safeCeilingHeight = Math.max(210, Number(ceilingHeightCm) || 270);
   const centerX = kind === "column"
-    ? Number(item?.center?.x || 0) - Number(planWidthM || 0) / 2
+    ? Number(item?.center?.x || 0) - Number(planWidthCm || 0) / 2
     : (Number(item?.start?.x || 0) + Number(item?.end?.x || 0)) / 2
-      - Number(planWidthM || 0) / 2;
+      - Number(planWidthCm || 0) / 2;
   const centerZ = kind === "column"
-    ? Number(item?.center?.y ?? item?.center?.z ?? 0) - Number(planDepthM || 0) / 2
+    ? Number(item?.center?.y ?? item?.center?.z ?? 0) - Number(planDepthCm || 0) / 2
     : (Number(item?.start?.y ?? item?.start?.z ?? 0)
       + Number(item?.end?.y ?? item?.end?.z ?? 0)) / 2
-      - Number(planDepthM || 0) / 2;
+      - Number(planDepthCm || 0) / 2;
   if (kind === "beam") {
-    const heightM = Math.max(0.1, Number(item?.height_m) || 0.35);
+    const heightCm = Math.max(10, Number(item?.height_cm) || 35);
     return {
       kind,
-      lengthM: Math.max(0.3, segmentLength(item)),
-      widthM: Math.max(0.1, Number(item?.thickness_m) || 0.3),
-      heightM,
-      centerHeightM: safeCeilingHeight - heightM / 2,
+      lengthCm: Math.max(30, segmentLength(item)),
+      widthCm: Math.max(10, Number(item?.thickness_cm) || 30),
+      heightCm,
+      centerHeightCm: safeCeilingHeight - heightCm / 2,
       centerX,
       centerZ,
       rotationDeg: segmentRotation(item),
@@ -437,15 +437,15 @@ export function structurePreviewDescriptor(
       ...item,
       center: { x: centerX, z: centerZ },
     }, {
-      minimumDimensionM: 0.1,
-      defaultHeightM: safeCeilingHeight,
+      minimumDimensionCm: 10,
+      defaultHeightCm: safeCeilingHeight,
     });
     return {
       kind,
-      lengthM: column.widthM,
-      widthM: column.depthM,
-      heightM: column.heightM,
-      centerHeightM: column.centerHeightM,
+      lengthCm: column.widthCm,
+      widthCm: column.depthCm,
+      heightCm: column.heightCm,
+      centerHeightCm: column.centerHeightCm,
       centerX: column.centerX,
       centerZ: column.centerZ,
       rotationDeg: column.rotationDeg,

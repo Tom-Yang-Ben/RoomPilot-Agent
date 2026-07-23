@@ -69,7 +69,7 @@ def test_floorplan_analyze_then_confirm_http_e2e() -> None:
 
     assert response.status_code == 200
     analyzed = response.json()
-    assert analyzed["analysis"]["scale"]["m_per_px"] == 0.01
+    assert analyzed["analysis"]["scale"]["cm_per_px"] == 1.0
     assert analyzed["requirements"]["rooms"][0]["room_type"] == "kitchen"
     requirements = analyzed["requirements"]["rooms"][0]["requirements"]
     assert next(item for item in requirements if item["code"] == "sink_fixture_observed")["source"] == "floorplan_observation"
@@ -140,7 +140,7 @@ def test_builder_plan_630_confirmed_annotations_reach_scene_e2e() -> None:
 
     assert analyzed_response.status_code == 200
     analysis = analyzed_response.json()["analysis"]
-    assert analysis["scale"]["distance_m"] == 6.3
+    assert analysis["scale"]["distance_cm"] == 630.0
     assert analysis["requires_confirmation"] is False
     assert len(analysis["doors"]) == 7
     assert len(analysis["windows"]) == 5
@@ -183,7 +183,7 @@ def test_builder_plan_630_upload_is_automatically_recognized_without_annotation_
     analysis = response.json()["analysis"]
     assert analysis["recognition_mode"] == "cody_vision"
     assert analysis["recognition_engine"] == "cody"
-    assert analysis["scale"]["distance_m"] == 6.3
+    assert analysis["scale"]["distance_cm"] == 630.0
     assert analysis["spatial_report"]["room_counts"] == {
         "bedroom": 3,
         "bathroom": 2,
@@ -274,7 +274,7 @@ def test_builder_plan_630_two_point_calibration_can_be_confirmed() -> None:
 
     assert response.status_code == 200
     analysis = response.json()["analysis"]
-    assert analysis["scale"]["distance_m"] == 6.3
+    assert analysis["scale"]["distance_cm"] == 630.0
     assert analysis["scale"]["pixel_distance"] == 344
     assert analysis["scale"]["source"] == "manual_confirmation"
     assert len(analysis["walls"]) > 0

@@ -48,7 +48,7 @@ def test_two_image_points_and_known_length_create_scale_calibration() -> None:
         "start_px": [100, 50],
         "end_px": [515, 50],
         "pixel_distance": 415,
-        "m_per_px": 6.3 / 415,
+        "cm_per_px": 630 / 415,
     }
 
 

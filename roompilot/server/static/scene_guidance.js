@@ -29,17 +29,17 @@ export function localizeEvidence(evidence = []) {
 }
 
 export function buildFloorplanConfirmationCorrections(analysis = {}, scaleCm) {
-  const distanceM = Number(scaleCm) / 100;
+  const distanceCm = Number(scaleCm);
   const originalScale = analysis.scale || {};
   let pixelDistance = Number(originalScale.pixel_distance);
   if (!(pixelDistance > 0)) {
-    const originalDistanceM = Number(originalScale.distance_m);
-    const originalMPerPx = Number(originalScale.m_per_px);
-    if (originalDistanceM > 0 && originalMPerPx > 0) {
-      pixelDistance = originalDistanceM / originalMPerPx;
+    const originalDistanceCm = Number(originalScale.distance_cm);
+    const originalCmPerPx = Number(originalScale.cm_per_px);
+    if (originalDistanceCm > 0 && originalCmPerPx > 0) {
+      pixelDistance = originalDistanceCm / originalCmPerPx;
     }
   }
-  if (!(distanceM > 0) || !(pixelDistance > 0)) {
+  if (!(distanceCm > 0) || !(pixelDistance > 0)) {
     throw new Error("scale_reference_required");
   }
   return {
@@ -48,9 +48,9 @@ export function buildFloorplanConfirmationCorrections(analysis = {}, scaleCm) {
     windows: structuredClone(analysis.windows || []),
     scale: {
       ...structuredClone(originalScale),
-      distance_m: distanceM,
+      distance_cm: distanceCm,
       pixel_distance: pixelDistance,
-      m_per_px: distanceM / pixelDistance,
+      cm_per_px: distanceCm / pixelDistance,
       source: "manual_confirmation",
       confidence: 1,
     },
@@ -58,10 +58,10 @@ export function buildFloorplanConfirmationCorrections(analysis = {}, scaleCm) {
 }
 
 function dimensionLabel(room) {
-  const dimensions = room.inner_dimensions_m;
+  const dimensions = room.inner_dimensions_cm;
   const area = Number(room.net_area_m2);
   if (!dimensions || !Number.isFinite(area)) return "尺寸待局部修正";
-  return `${Number(dimensions.width).toFixed(2)} × ${Number(dimensions.depth).toFixed(2)} m｜${area.toFixed(2)} m²`;
+  return `${Number(dimensions.width).toFixed(0)} × ${Number(dimensions.depth).toFixed(0)} cm｜${area.toFixed(2)} m²`;
 }
 
 export function buildRecognitionPresentation(analysis = {}) {
@@ -77,7 +77,7 @@ export function buildRecognitionPresentation(analysis = {}) {
     label: room.label || ROOM_LABELS[room.room_type] || room.room_type,
     dimensionLabel: dimensionLabel(room),
     confidence: room.confidence,
-    polygonM: room.polygon_m,
+    polygonCm: room.polygon_cm,
     needsReview: pendingByRoom.has(room.room_id),
     evidence: room.evidence || [],
   }));

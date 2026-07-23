@@ -1,5 +1,6 @@
 import { createSceneViewer } from "./scene_viewer.js?v=20260723-floor-window1";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
+import { normalizeSavedSpaceConfirmation } from "./scene_unit_contracts.js?v=20260723-cm1";
 import {
   createWorkflow,
   restoreWorkflow,
@@ -10,7 +11,7 @@ import {
 import {
   buildScaleCalibration,
   calibrationActionState,
-} from "./scene_calibration.js?v=20260720-upload-calibration1";
+} from "./scene_calibration.js?v=20260723-cm1";
 import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
@@ -287,6 +288,7 @@ function workflowPayload() {
     calibration: calibrationIsLive ? state.workflow?.data?.calibration || null : null,
     space_confirmation: spaceIsLive
       ? {
+          coordinate_unit: "cm",
           rooms: state.rooms,
           structures: state.structures,
         }
@@ -698,7 +700,9 @@ async function confirmUpload() {
       windows: state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0,
     };
     element.recognitionSummary.textContent = `辨識結果：牆 ${count.walls}、門 ${count.doors}、窗 ${count.windows}`;
-    if (state.analysis.scale?.distance_m) {
+    if (Number(state.analysis.scale?.distance_cm) > 0) {
+      element.scaleInput.value = Number(state.analysis.scale.distance_cm);
+    } else if (Number(state.analysis.scale?.distance_m) > 0) {
       element.scaleInput.value = Math.round(state.analysis.scale.distance_m * 1000) / 10;
     }
     setStatus(scaleEvidence
@@ -714,8 +718,8 @@ async function confirmUpload() {
 
 function dxfPreviewDataUrl(floorplan = {}) {
   const segments = floorplan.wall_segments || floorplan.plan_segments || [];
-  const width = Math.max(Number(floorplan.width_cm || 600) / 100, 0.01);
-  const depth = Math.max(Number(floorplan.depth_cm || 400) / 100, 0.01);
+  const width = Math.max(Number(floorplan.width_cm || 600), 1);
+  const depth = Math.max(Number(floorplan.depth_cm || 400), 1);
   const pixelWidth = 1000;
   const pixelHeight = Math.max(1, Math.round(pixelWidth * depth / width));
   const lines = segments.map((segment) => {
@@ -733,15 +737,15 @@ function dxfPreviewDataUrl(floorplan = {}) {
 
 function configureDxfPreview(analysis) {
   const floorplan = analysis?.floorplan || {};
-  const widthM = Math.max(Number(floorplan.width_cm || 600) / 100, 0.01);
-  const depthM = Math.max(Number(floorplan.depth_cm || 400) / 100, 0.01);
+  const widthCm = Math.max(Number(floorplan.width_cm || 600), 1);
+  const depthCm = Math.max(Number(floorplan.depth_cm || 400), 1);
   const previewWidth = 1000;
-  const previewHeight = Math.max(1, Math.round(previewWidth * depthM / widthM));
+  const previewHeight = Math.max(1, Math.round(previewWidth * depthCm / widthCm));
   analysis.image_size_px = { width: previewWidth, height: previewHeight };
   analysis.plan_bbox_px = [0, 0, previewWidth, previewHeight];
   analysis.scale = {
-    distance_m: widthM,
-    m_per_px: widthM / previewWidth,
+    distance_cm: widthCm,
+    cm_per_px: widthCm / previewWidth,
     source: "dxf_geometry",
   };
   return dxfPreviewDataUrl(floorplan);
@@ -934,16 +938,19 @@ async function applyCalibration() {
 function planGeometry() {
   const imageWidth = state.analysis?.image_size_px?.width || element.spaceImage.naturalWidth || 1000;
   const imageHeight = state.analysis?.image_size_px?.height || element.spaceImage.naturalHeight || 1000;
-  const scale = Number(state.analysis?.scale?.m_per_px) || 0.01;
+  const scale = Number(state.analysis?.scale?.cm_per_px)
+    || Number(state.analysis?.scale?.m_per_px) * 100
+    || 1;
   const bbox = state.analysis?.plan_bbox_px || [0, 0, imageWidth, imageHeight];
   return { imageWidth, imageHeight, scale, bbox };
 }
 
 function confirmedFloorplanEditor() {
   const { scale, bbox } = planGeometry();
-  const recognizedWidthCm = Math.max(240, (bbox[2] - bbox[0]) * scale * 100);
-  const recognizedDepthCm = Math.max(240, (bbox[3] - bbox[1]) * scale * 100);
+  const recognizedWidthCm = Math.max(240, (bbox[2] - bbox[0]) * scale);
+  const recognizedDepthCm = Math.max(240, (bbox[3] - bbox[1]) * scale);
   return {
+    coordinate_unit: "cm",
     width_cm: Number(
       state.confirmedFloorplan?.floorplan?.width_cm || recognizedWidthCm,
     ),
@@ -970,7 +977,7 @@ function hydrateSceneWallMass() {
   }
 }
 
-function meterToPixel(point) {
+function cmToPixel(point) {
   const { scale, bbox } = planGeometry();
   return {
     x: bbox[0] + Number(point.x) / scale,
@@ -978,7 +985,7 @@ function meterToPixel(point) {
   };
 }
 
-function pixelToMeter(point) {
+function pixelToCm(point) {
   const { scale, bbox } = planGeometry();
   return {
     x: (point.x - bbox[0]) * scale,
@@ -1043,12 +1050,14 @@ function clipPolygonByLine(points, start, end, keepPositive) {
 }
 
 function roomDimensions(room) {
-  const xs = room.polygon_m.map((point) => point.x);
-  const ys = room.polygon_m.map((point) => point.y);
+  const polygon = room.polygon_cm || [];
+  const xs = polygon.map((point) => point.x);
+  const ys = polygon.map((point) => point.y);
+  if (polygon.length < 3) return { widthCm: 0, depthCm: 0, areaM2: 0 };
   return {
-    widthCm: (Math.max(...xs) - Math.min(...xs)) * 100,
-    depthCm: (Math.max(...ys) - Math.min(...ys)) * 100,
-    areaM2: polygonArea(room.polygon_m),
+    widthCm: Math.max(...xs) - Math.min(...xs),
+    depthCm: Math.max(...ys) - Math.min(...ys),
+    areaM2: polygonArea(polygon) / 10_000,
   };
 }
 
@@ -1060,27 +1069,55 @@ function initializeRoomsAndStructures() {
   const sourceRooms = hasImageRooms
     ? state.analysis.rooms
     : floorplan.room_regions || [];
-  const widthM = Number(floorplan.width_cm || 600) / 100;
-  const depthM = Number(floorplan.depth_cm || 400) / 100;
+  const widthCm = Number(floorplan.width_cm || 600);
+  const depthCm = Number(floorplan.depth_cm || 400);
+  const analysisUnit = String(state.analysis?.coordinate_system?.unit || "").toLowerCase();
+  const analysisIsCm = ["cm", "centimeter", "centimetre"].includes(analysisUnit)
+    || Number(state.analysis?.scale?.cm_per_px) > 0
+    || sourceRooms.some((room) => Array.isArray(room?.polygon_cm));
+  const sourceScale = hasImageRooms
+    ? (analysisIsCm ? 1 : 100)
+    : (floorplan.coordinate_unit === "cm" ? 1 : 100);
   const normalizePoint = (point, centered = false) => {
-    const x = Number(point?.x ?? point?.[0] ?? 0);
-    const y = Number(point?.y ?? point?.z ?? point?.[1] ?? 0);
+    const x = Number(point?.x ?? point?.[0] ?? 0) * sourceScale;
+    const y = Number(point?.y ?? point?.z ?? point?.[1] ?? 0) * sourceScale;
     return {
-      x: x + (centered ? widthM / 2 : 0),
-      y: y + (centered ? depthM / 2 : 0),
+      x: x + (centered ? widthCm / 2 : 0),
+      y: y + (centered ? depthCm / 2 : 0),
+    };
+  };
+  const canonicalStructure = (item = {}) => {
+    const result = Object.fromEntries(
+      Object.entries(item).filter(([key]) => !key.endsWith("_m") && key !== "size_m"),
+    );
+    const dimension = (cmKey, legacyKey, fallback) => {
+      if (Number.isFinite(Number(item[cmKey]))) return Number(item[cmKey]);
+      if (Number.isFinite(Number(item[legacyKey]))) return Number(item[legacyKey]) * 100;
+      return fallback;
+    };
+    return {
+      ...result,
+      width_cm: dimension("width_cm", "width_m", undefined),
+      thickness_cm: dimension("thickness_cm", "thickness_m", undefined),
+      height_cm: dimension("height_cm", "height_m", undefined),
+      top_cm: dimension("top_cm", "top_m", undefined),
+      depth_cm: dimension("depth_cm", "depth_m", undefined),
+      size_cm: dimension("size_cm", "size_m", undefined),
+      sill_height_cm: dimension("sill_height_cm", "sill_height_m", undefined),
+      head_height_cm: dimension("head_height_cm", "head_height_m", undefined),
     };
   };
   state.rooms = sourceRooms.map((room, index) => {
-    const polygon = room.polygon_m || room.polygon || room.exterior || [];
+    const polygon = room.polygon_cm || room.polygon_m || room.polygon || room.exterior || [];
     return {
       ...room,
       id: room.id || room.room_id || `room-${index + 1}`,
       label: room.label || room.name || `空間 ${index + 1}`,
       type: room.type || room.room_type || "default",
       confirmed: room.confirmed === true,
-      polygon_m: polygon.map((point) => normalizePoint(point, !hasImageRooms)),
+      polygon_cm: polygon.map((point) => normalizePoint(point, !hasImageRooms)),
     };
-  }).filter((room) => room.polygon_m.length >= 3);
+  }).filter((room) => room.polygon_cm.length >= 3);
   if (!state.rooms.length) {
     state.rooms = [{
       id: "room-1",
@@ -1088,11 +1125,11 @@ function initializeRoomsAndStructures() {
       type: "default",
       confidence: 0.4,
       confirmed: false,
-      polygon_m: [{ x: 0, y: 0 }, { x: widthM, y: 0 }, { x: widthM, y: depthM }, { x: 0, y: depthM }],
+      polygon_cm: [{ x: 0, y: 0 }, { x: widthCm, y: 0 }, { x: widthCm, y: depthCm }, { x: 0, y: depthCm }],
     }];
   }
   const normalizeSegment = (item, index, kind, centered = false) => ({
-    ...item,
+    ...canonicalStructure(item),
     id: item.id || `${kind}-${index + 1}`,
     start: normalizePoint(item.start, centered),
     end: normalizePoint(item.end, centered),
@@ -1122,7 +1159,7 @@ function initializeRoomsAndStructures() {
     beams: sourceStructures.beams.map((item, index) =>
       normalizeSegment(item, index, "beam", !hasImageRooms)),
     columns: sourceStructures.columns.map((item, index) => ({
-      ...item,
+      ...canonicalStructure(item),
       id: item.id || `column-${index + 1}`,
       center: normalizePoint(item.center, !hasImageRooms),
     })),
@@ -1139,7 +1176,7 @@ function initializeRoomsAndStructures() {
 }
 
 function roomPolygonSvg(room) {
-  return room.polygon_m.map(meterToPixel).map((point) => `${point.x},${point.y}`).join(" ");
+  return room.polygon_cm.map(cmToPixel).map((point) => `${point.x},${point.y}`).join(" ");
 }
 
 function renderRooms() {
@@ -1195,9 +1232,9 @@ function confirmRoom(roomId) {
 function addMissedRoom() {
   const center = state.selectedRoomId
     ? roomCenter(state.rooms.find((room) => room.id === state.selectedRoomId))
-    : planCenterMeters();
-  const widthM = 2.4;
-  const depthM = 2.4;
+    : planCenterCm();
+  const widthCm = 240;
+  const depthCm = 240;
   const room = {
     id: `room-manual-${Date.now()}`,
     label: `新增空間 ${state.rooms.length + 1}`,
@@ -1205,11 +1242,11 @@ function addMissedRoom() {
     confidence: 0.35,
     confirmed: false,
     manually_added: true,
-    polygon_m: [
-      { x: center.x - widthM / 2, y: center.y - depthM / 2 },
-      { x: center.x + widthM / 2, y: center.y - depthM / 2 },
-      { x: center.x + widthM / 2, y: center.y + depthM / 2 },
-      { x: center.x - widthM / 2, y: center.y + depthM / 2 },
+    polygon_cm: [
+      { x: center.x - widthCm / 2, y: center.y - depthCm / 2 },
+      { x: center.x + widthCm / 2, y: center.y - depthCm / 2 },
+      { x: center.x + widthCm / 2, y: center.y + depthCm / 2 },
+      { x: center.x - widthCm / 2, y: center.y + depthCm / 2 },
     ],
   };
   state.rooms.push(room);
@@ -1294,7 +1331,7 @@ function setRoomNodeMode(mode) {
 function mergeSelectedRoomNodes() {
   const room = state.rooms.find((item) => item.id === state.selectedRoomId);
   if (!room || state.selectedRoomNodeIndices.length !== 2) return;
-  const polygon = room.polygon_m;
+  const polygon = room.polygon_cm;
   const [first, second] = [...state.selectedRoomNodeIndices].sort((a, b) => a - b);
   const adjacent = second - first === 1 || (first === 0 && second === polygon.length - 1);
   if (!adjacent) {
@@ -1317,11 +1354,11 @@ function mergeSelectedRoomNodes() {
     mergedPolygon[first] = midpoint;
     mergedPolygon.splice(second, 1);
   }
-  if (polygonArea(mergedPolygon) < 0.5) {
+  if (polygonArea(mergedPolygon) < 5_000) {
     element.spaceError.textContent = "合併後房間面積會小於 0.5 m²，請保留這兩個節點。";
     return;
   }
-  room.polygon_m = mergedPolygon;
+  room.polygon_cm = mergedPolygon;
   room.confirmed = false;
   room.source = "manual_node_merge";
   element.spaceError.textContent = "";
@@ -1351,21 +1388,21 @@ function nearestPointOnRoomEdge(point, polygon) {
 function insertRoomNodeAt(point) {
   const room = state.rooms.find((item) => item.id === state.selectedRoomId);
   if (!room) return;
-  const closest = nearestPointOnRoomEdge(point, room.polygon_m);
-  if (!closest || closest.distance > 0.35) {
+  const closest = nearestPointOnRoomEdge(point, room.polygon_cm);
+  if (!closest || closest.distance > 35) {
     element.spaceError.textContent = "請點在房間框邊線附近，系統才可新增節點。";
     return;
   }
-  const start = room.polygon_m[closest.edgeIndex];
-  const end = room.polygon_m[(closest.edgeIndex + 1) % room.polygon_m.length];
+  const start = room.polygon_cm[closest.edgeIndex];
+  const end = room.polygon_cm[(closest.edgeIndex + 1) % room.polygon_cm.length];
   if (
-    Math.hypot(closest.projected.x - start.x, closest.projected.y - start.y) < 0.08
-    || Math.hypot(closest.projected.x - end.x, closest.projected.y - end.y) < 0.08
+    Math.hypot(closest.projected.x - start.x, closest.projected.y - start.y) < 8
+    || Math.hypot(closest.projected.x - end.x, closest.projected.y - end.y) < 8
   ) {
     element.spaceError.textContent = "新節點離既有節點太近，請改點邊線中間的位置。";
     return;
   }
-  room.polygon_m.splice(closest.edgeIndex + 1, 0, closest.projected);
+  room.polygon_cm.splice(closest.edgeIndex + 1, 0, closest.projected);
   room.confirmed = false;
   room.source = "manual_node_split";
   element.spaceError.textContent = "";
@@ -1388,8 +1425,8 @@ function mergeSelectedRooms() {
     .map((roomId) => state.rooms.find((room) => room.id === roomId))
     .filter(Boolean);
   if (selected.length !== 2) return;
-  const polygon = convexHull(selected.flatMap((room) => room.polygon_m));
-  const originalArea = selected.reduce((sum, room) => sum + polygonArea(room.polygon_m), 0);
+  const polygon = convexHull(selected.flatMap((room) => room.polygon_cm));
+  const originalArea = selected.reduce((sum, room) => sum + polygonArea(room.polygon_cm), 0);
   const mergedArea = polygonArea(polygon);
   if (polygon.length < 3 || mergedArea > originalArea * 1.2) {
     element.spaceError.textContent =
@@ -1405,7 +1442,7 @@ function mergeSelectedRooms() {
     confirmed: false,
     source: "manual_merge",
     merged_from: selected.map((room) => room.id),
-    polygon_m: polygon,
+    polygon_cm: polygon,
   };
   const selectedIds = new Set(state.mergeRoomIds);
   state.rooms = [...state.rooms.filter((room) => !selectedIds.has(room.id)), merged];
@@ -1422,19 +1459,19 @@ function mergeSelectedRooms() {
 
 function splitSelectedRoom(start, end) {
   const room = state.rooms.find((item) => item.id === state.selectedRoomId);
-  if (!room || Math.hypot(end.x - start.x, end.y - start.y) < 0.1) {
+  if (!room || Math.hypot(end.x - start.x, end.y - start.y) < 10) {
     element.spaceError.textContent = "切割線太短，請重新點兩個不同位置。";
     state.splitPoints = [];
     updateRoomGeometryControls();
     return;
   }
-  const firstPolygon = clipPolygonByLine(room.polygon_m, start, end, true);
-  const secondPolygon = clipPolygonByLine(room.polygon_m, start, end, false);
+  const firstPolygon = clipPolygonByLine(room.polygon_cm, start, end, true);
+  const secondPolygon = clipPolygonByLine(room.polygon_cm, start, end, false);
   if (
     firstPolygon.length < 3
     || secondPolygon.length < 3
-    || polygonArea(firstPolygon) < 0.5
-    || polygonArea(secondPolygon) < 0.5
+    || polygonArea(firstPolygon) < 5_000
+    || polygonArea(secondPolygon) < 5_000
   ) {
     element.spaceError.textContent =
       "切割線沒有完整穿過房間，或切出的空間小於 0.5 m²，請重新畫線。";
@@ -1453,7 +1490,7 @@ function splitSelectedRoom(start, end) {
     confirmed: false,
     source: "manual_split",
     split_from: room.id,
-    polygon_m: polygon,
+    polygon_cm: polygon,
   }));
   state.rooms.splice(roomIndex, 1, ...splitRooms);
   state.selectedRoomId = splitRooms[0].id;
@@ -1477,10 +1514,10 @@ function renderSpaceOverlay() {
   const polygons = visibleRooms.map((room) => {
     const active = room.id === state.selectedRoomId || state.mergeRoomIds.includes(room.id);
     const dimensions = roomDimensions(room);
-    const center = meterToPixel(roomCenter(room));
+    const center = cmToPixel(roomCenter(room));
     const nodes = active
-      ? room.polygon_m.map((point, index) => {
-        const pixel = meterToPixel(point);
+      ? room.polygon_cm.map((point, index) => {
+        const pixel = cmToPixel(point);
         const selected = state.roomNodeMode === "merge"
           && state.selectedRoomNodeIndices.includes(index);
         return `<circle data-room-point="${index}" cx="${pixel.x}" cy="${pixel.y}" r="${selected ? 12 : 9}"
@@ -1505,7 +1542,7 @@ function renderSpaceOverlay() {
   const structures = state.spaceMode === "structure" ? renderStructureSvg() : "";
   const splitGuide = state.roomGeometryMode === "split" && state.splitPoints[0]
     ? (() => {
-      const point = meterToPixel(state.splitPoints[0]);
+      const point = cmToPixel(state.splitPoints[0]);
       return `<circle cx="${point.x}" cy="${point.y}" r="10" fill="#fff" stroke="#bd5c36" stroke-width="5"/>`;
     })()
     : "";
@@ -1513,8 +1550,8 @@ function renderSpaceOverlay() {
 }
 
 function segmentSvg(item, color, width = 5, dash = "") {
-  const start = meterToPixel(item.start);
-  const end = meterToPixel(item.end);
+  const start = cmToPixel(item.start);
+  const end = cmToPixel(item.end);
   return `<line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" stroke="${color}" stroke-width="${width}" ${dash ? `stroke-dasharray="${dash}"` : ""}/>`;
 }
 
@@ -1572,13 +1609,13 @@ function structureGroup(item, kind, markup) {
 }
 
 function beamBandSvg(item, { selected = false, draft = false } = {}) {
-  const start = meterToPixel(item.start);
-  const end = meterToPixel(item.end);
+  const start = cmToPixel(item.start);
+  const end = cmToPixel(item.end);
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.hypot(dx, dy);
-  if (length < 0.5) return "";
-  const halfWidth = Math.max(7, Number(item.thickness_m || 0.3) / planGeometry().scale / 2);
+  if (length < 50) return "";
+  const halfWidth = Math.max(7, Number(item.thickness_cm || 30) / planGeometry().scale / 2);
   const nx = -dy / length * halfWidth;
   const ny = dx / length * halfWidth;
   const points = [
@@ -1627,21 +1664,21 @@ function structureNumberMarkerSvg(kind, index, point, {
 
 function renderStructureSvg() {
   const walls = state.activeStructureKind === "wall" ? state.structures.walls.map((item, index) => {
-    const start = meterToPixel(item.start);
-    const end = meterToPixel(item.end);
+    const start = cmToPixel(item.start);
+    const end = cmToPixel(item.end);
     const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
     const selected = state.selectedStructure?.kind === "wall"
       && state.selectedStructure?.id === item.id;
     return structureGroup(
       item,
       "wall",
-      `${segmentSvg(item, "#343434", Math.max(4, Number(item.thickness_m || 0.12) / planGeometry().scale))}
+      `${segmentSvg(item, "#343434", Math.max(4, Number(item.thickness_cm || 12) / planGeometry().scale))}
       ${structureNumberMarkerSvg("wall", index, midpoint, { selected })}`,
     );
   }).join("") : "";
   const windows = state.activeStructureKind === "window" ? state.structures.windows.map((item, index) => {
-    const start = meterToPixel(item.start);
-    const end = meterToPixel(item.end);
+    const start = cmToPixel(item.start);
+    const end = cmToPixel(item.end);
     const selected = state.selectedStructure?.kind === "window"
       && state.selectedStructure?.id === item.id;
     const midpoint = {
@@ -1672,10 +1709,10 @@ function renderStructureSvg() {
   }).join("") : "";
   const doors = state.activeStructureKind === "door" ? state.structures.doors.map((item, index) => {
     const line = segmentSvg(item, "#bd5c36", 7);
-    const hinge = meterToPixel(item.start);
-    const end = meterToPixel(item.end);
+    const hinge = cmToPixel(item.start);
+    const end = cmToPixel(item.end);
     const radius = Math.hypot(end.x - hinge.x, end.y - hinge.y);
-    const swingEnd = item.swing_end ? meterToPixel(item.swing_end) : {
+    const swingEnd = item.swing_end ? cmToPixel(item.swing_end) : {
       x: hinge.x + (end.y - hinge.y),
       y: hinge.y - (end.x - hinge.x),
     };
@@ -1717,8 +1754,8 @@ function renderStructureSvg() {
       && structureSizeDraft.id === item.id
       ? structureSizeDraft.item
       : item;
-    const start = meterToPixel(displayItem.start);
-    const end = meterToPixel(displayItem.end);
+    const start = cmToPixel(displayItem.start);
+    const end = cmToPixel(displayItem.end);
     const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
     const selected = state.selectedStructure?.kind === "beam"
       && state.selectedStructure?.id === item.id;
@@ -1738,9 +1775,9 @@ function renderStructureSvg() {
       && structureSizeDraft.id === item.id
       ? structureSizeDraft.item
       : item;
-    const pixel = meterToPixel(displayItem.center);
-    const width = Number(displayItem.size_m || 0.35) / planGeometry().scale;
-    const depth = Number(displayItem.depth_m || displayItem.size_m || 0.35) / planGeometry().scale;
+    const pixel = cmToPixel(displayItem.center);
+    const width = Number(displayItem.size_cm || 35) / planGeometry().scale;
+    const depth = Number(displayItem.depth_cm || displayItem.size_cm || 35) / planGeometry().scale;
     const selected = state.selectedStructure?.kind === "column"
       && state.selectedStructure?.id === item.id;
     return structureGroup(
@@ -1756,7 +1793,7 @@ function renderStructureSvg() {
     ? beamBandSvg({
       start: structureCreateDrag.geometry.start,
       end: structureCreateDrag.geometry.end,
-      thickness_m: structureCreateDrag.thicknessM,
+      thickness_cm: structureCreateDrag.thicknessCm,
     }, { selected: true, draft: true })
     : "";
   return `<g>${walls}${windows}${doors}${beams}${columns}${beamDraft}</g>`;
@@ -1793,18 +1830,18 @@ function structureWallCollision(item, kind) {
 function structurePreferredPoint() {
   const floorplan = confirmedFloorplanEditor();
   return {
-    x: Number(floorplan.width_cm || 0) / 200,
-    y: Number(floorplan.depth_cm || 0) / 200,
+    x: Number(floorplan.width_cm || 0) / 2,
+    y: Number(floorplan.depth_cm || 0) / 2,
   };
 }
 
 function resolveStructureSizeDraft(item, kind) {
   if (!["beam", "column"].includes(kind)) {
-    return { item, resolved: true, moved: false, totalShiftM: 0 };
+    return { item, resolved: true, moved: false, totalShiftCm: 0 };
   }
   return resolveStructureWallCollisions(item, kind, state.structures.walls, {
     preferredPoint: structurePreferredPoint(),
-    maxAutoShiftM: 0.75,
+    maxAutoShiftCm: 75,
   });
 }
 
@@ -1815,13 +1852,13 @@ function repairLoadedStructureWallCollisions() {
   for (const [kind, collection] of [["beam", "beams"], ["column", "columns"]]) {
     state.structures[collection] = (state.structures[collection] || []).map((item) => {
       const normalizedItem = kind === "column"
-        ? { ...item, height_m: confirmedRoomHeightCm() / 100 }
+        ? { ...item, height_cm: confirmedRoomHeightCm() }
         : item;
       const result = resolveStructureWallCollisions(
         normalizedItem,
         kind,
         state.structures.walls,
-        { preferredPoint, maxAutoShiftM: 0.75 },
+        { preferredPoint, maxAutoShiftCm: 75 },
       );
       if (result.resolved && result.moved) {
         moved += 1;
@@ -1875,9 +1912,9 @@ function finishBeamCreateDrag() {
     id: `beam-manual-${Date.now()}`,
     start: draft.geometry.start,
     end: draft.geometry.end,
-    thickness_m: draft.thicknessM,
-    height_m: draft.heightM,
-    top_m: Number(state.sceneData?.floorplan?.room_height_cm || 270) / 100,
+    thickness_cm: draft.thicknessCm,
+    height_cm: draft.heightCm,
+    top_cm: Number(state.sceneData?.floorplan?.room_height_cm || 270),
     confirmed: false,
     estimated: true,
     source: "manual",
@@ -1896,7 +1933,7 @@ function finishBeamCreateDrag() {
   renderSelectedStructureEditor();
   invalidateDownstreamFrom("space_confirmation", "已新增樑，後續需求、家具與 3D 需要重新確認。");
   scheduleSave("space_confirmation");
-  setStatus(`已新增樑 ${state.structures.beams.length}，長度 ${Math.round(draft.geometry.lengthM * 100)} 公分。`);
+  setStatus(`已新增樑 ${state.structures.beams.length}，長度 ${Math.round(draft.geometry.lengthCm)} 公分。`);
   return true;
 }
 
@@ -1904,7 +1941,7 @@ function spacePointerDown(event) {
   if (state.spaceMode === "rooms" && state.roomGeometryMode === "split") {
     const point = imagePoint(event, element.spaceImage);
     if (!point) return;
-    state.splitPoints.push(pixelToMeter(point));
+    state.splitPoints.push(pixelToCm(point));
     updateRoomGeometryControls();
     renderSpaceOverlay();
     if (state.splitPoints.length === 2) {
@@ -1914,7 +1951,7 @@ function spacePointerDown(event) {
   }
   if (state.spaceMode === "rooms" && state.roomNodeMode === "split") {
     const point = imagePoint(event, element.spaceImage);
-    if (point) insertRoomNodeAt(pixelToMeter(point));
+    if (point) insertRoomNodeAt(pixelToCm(point));
     return;
   }
   if (
@@ -1928,11 +1965,11 @@ function spacePointerDown(event) {
   if (state.spaceMode === "structure" && state.structureTool === "beam") {
     const point = imagePoint(event, element.spaceImage);
     if (!point) return;
-    const meter = pixelToMeter(point);
+    const meter = pixelToCm(point);
     structureCreateDrag = {
       geometry: beamDragGeometry(meter, meter, beamSnapCandidates()),
-      thicknessM: 0.3,
-      heightM: 0.35,
+      thicknessCm: 30,
+      heightCm: 35,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
     renderSpaceOverlay();
@@ -1942,7 +1979,7 @@ function spacePointerDown(event) {
   if (state.structureTool === "wall") {
     const point = imagePoint(event, element.spaceImage);
     if (!point) return;
-    const meter = pixelToMeter(point);
+    const meter = pixelToCm(point);
     if (!state.structureLineStart) {
       state.structureLineStart = meter;
       setStatus(`已設定${state.structureTool === "wall" ? "牆" : "樑"}起點，請再點終點。`);
@@ -1953,8 +1990,8 @@ function spacePointerDown(event) {
         id: `${kind}-manual-${Date.now()}`,
         start: state.structureLineStart,
         end: meter,
-        thickness_m: kind === "wall" ? 0.12 : 0.3,
-        height_m: kind === "wall" ? 2.7 : 0.35,
+        thickness_cm: kind === "wall" ? 12 : 30,
+        height_cm: kind === "wall" ? 270 : 35,
         confirmed: false,
         estimated: true,
         source: "manual",
@@ -2015,7 +2052,7 @@ function spacePointerDown(event) {
     const point = imagePoint(event, element.spaceImage);
     if (point) {
       structureDrag = {
-        start: pixelToMeter(point),
+        start: pixelToCm(point),
         snapshot: JSON.parse(JSON.stringify(selectedStructureItem())),
         changed: false,
         blocked: false,
@@ -2064,7 +2101,7 @@ function spacePointerMove(event) {
     if (!point) return;
     structureCreateDrag.geometry = beamDragGeometry(
       structureCreateDrag.geometry.start,
-      pixelToMeter(point),
+      pixelToCm(point),
       beamSnapCandidates(),
     );
     renderSpaceOverlay();
@@ -2079,7 +2116,7 @@ function spacePointerMove(event) {
       : beamResizeDrag.snapshot.start;
     const geometry = beamDragGeometry(
       fixed,
-      pixelToMeter(point),
+      pixelToCm(point),
       beamSnapCandidates(item.id),
     );
     const candidate = {
@@ -2112,7 +2149,7 @@ function spacePointerMove(event) {
     const point = imagePoint(event, element.spaceImage);
     const item = selectedStructureItem();
     if (!point || !item) return;
-    const current = pixelToMeter(point);
+    const current = pixelToCm(point);
     const dx = current.x - structureDrag.start.x;
     const dy = current.y - structureDrag.start.y;
     if (state.selectedStructure.kind === "column") {
@@ -2137,8 +2174,8 @@ function spacePointerMove(event) {
       };
       item.start = { ...structureDrag.snapshot.start };
       item.end = { ...structureDrag.snapshot.end };
-      item.width_m = Number(
-        structureDrag.snapshot.width_m
+      item.width_cm = Number(
+        structureDrag.snapshot.width_cm
         || Math.hypot(
           structureDrag.snapshot.end.x - structureDrag.snapshot.start.x,
           structureDrag.snapshot.end.y - structureDrag.snapshot.start.y,
@@ -2180,7 +2217,7 @@ function spacePointerMove(event) {
   const room = state.rooms.find((item) => item.id === state.selectedRoomId);
   const point = imagePoint(event, element.spaceImage);
   if (!room || !point) return;
-  room.polygon_m[draggedRoomPointIndex] = pixelToMeter(point);
+  room.polygon_cm[draggedRoomPointIndex] = pixelToCm(point);
   renderSpaceOverlay();
   renderRooms();
 }
@@ -2205,28 +2242,28 @@ function selectedStructurePreviewContext() {
   const floorplan = confirmedFloorplanEditor();
   return {
     walls: state.structures.walls,
-    planWidthM: floorplan.width_cm / 100,
-    planDepthM: floorplan.depth_cm / 100,
-    ceilingHeightM: floorplan.room_height_cm / 100,
+    planWidthCm: floorplan.width_cm,
+    planDepthCm: floorplan.depth_cm,
+    ceilingHeightCm: floorplan.room_height_cm,
   };
 }
 
 function renderStructurePreview(item, kind, index, { draft = false } = {}) {
   structurePreview.render(item, kind, index, selectedStructurePreviewContext());
   if (kind === "beam") {
-    const lengthM = Math.hypot(
+    const lengthCm = Math.hypot(
       Number(item.end?.x || 0) - Number(item.start?.x || 0),
       Number(item.end?.y || 0) - Number(item.start?.y || 0),
     );
     $("#structure-3d-preview-status").textContent =
-      `紫色樑位於天花板下方；長 ${Math.round(lengthM * 100)} cm、寬 ${Math.round(Number(item.thickness_m || 0.3) * 100)} cm、下垂 ${Math.round(Number(item.height_m || 0.35) * 100)} cm${draft ? "（尚未套用）" : "。"}`;
+      `紫色樑位於天花板下方；長 ${Math.round(lengthCm)} cm、寬 ${Math.round(Number(item.thickness_cm || 30))} cm、下垂 ${Math.round(Number(item.height_cm || 35))} cm${draft ? "（尚未套用）" : "。"}`;
     return;
   }
   $("#structure-3d-preview-status").textContent =
-    `棕色柱從地板立起；寬 ${Math.round(Number(item.size_m || 0.35) * 100)} cm、深 ${Math.round(Number(item.depth_m || item.size_m || 0.35) * 100)} cm、高 ${Math.round(Number(item.height_m || 2.7) * 100)} cm${draft ? "（尚未套用）" : "。"}`;
+    `棕色柱從地板立起；寬 ${Math.round(Number(item.size_cm || 35))} cm、深 ${Math.round(Number(item.depth_cm || item.size_cm || 35))} cm、高 ${Math.round(Number(item.height_cm || 270))} cm${draft ? "（尚未套用）" : "。"}`;
 }
 
-function updateStructureDimensionHint(inputId, kind, valueCm, shiftM = 0) {
+function updateStructureDimensionHint(inputId, kind, valueCm, shiftCm = 0) {
   const hint = $("#structure-preview-dimension-hint");
   const definitions = {
     beam: {
@@ -2264,7 +2301,7 @@ function updateStructureDimensionHint(inputId, kind, valueCm, shiftM = 0) {
   $("#structure-preview-dimension-axis").textContent = definition.axis;
   $("#structure-preview-dimension-label").textContent = definition.label;
   $("#structure-preview-dimension-value").textContent =
-    `${definition.direction} · ${Math.round(valueCm)} cm${shiftM > 0 ? ` · 避牆位移 ${Math.round(shiftM * 100)} cm` : ""}`;
+    `${definition.direction} · ${Math.round(valueCm)} cm${shiftCm > 0 ? ` · 避牆位移 ${Math.round(shiftCm)} cm` : ""}`;
   structurePreview.setActiveDimension(definition.dimension);
 }
 
@@ -2283,10 +2320,10 @@ function previewSelectedStructureDraft(event) {
   if (kind === "column" && (!Number.isFinite(depthCm) || depthCm <= 0)) return;
   const draft = {
     ...item,
-    height_m: heightCm / 100,
+    height_cm: heightCm,
     ...(kind === "beam"
-      ? { thickness_m: sizeCm / 100 }
-      : { size_m: sizeCm / 100, depth_m: depthCm / 100 }),
+      ? { thickness_cm: sizeCm }
+      : { size_cm: sizeCm, depth_cm: depthCm }),
   };
   const resolution = resolveStructureSizeDraft(draft, kind);
   const inputId = event?.target?.id || "selected-structure-size-cm";
@@ -2309,7 +2346,7 @@ function previewSelectedStructureDraft(event) {
     inputId,
     kind,
     inputValue,
-    resolution.totalShiftM,
+    resolution.totalShiftCm,
   );
   renderSpaceOverlay();
   renderStructurePreview(
@@ -2374,28 +2411,28 @@ function renderSelectedStructureEditor() {
   $("#selected-structure-size-cm").value = Math.round(
     Number(
       isLineWidth
-        ? item.width_m || length
+        ? item.width_cm || length
         : state.selectedStructure.kind === "column"
-          ? item.size_m
-          : item.thickness_m,
-    ) * 100,
+          ? item.size_cm
+          : item.thickness_cm,
+    ),
   );
   heightInput.value = isColumn
     ? String(Math.round(confirmedRoomHeightCm()))
     : String(Math.round(
-      Number(item.height_m || (isWindow ? 1.2 : isBeam ? 0.35 : 2.7)) * 100,
+      Number(item.height_cm || (isWindow ? 120 : isBeam ? 35 : 270)),
     ));
   heightInput.readOnly = isColumn;
   $("#selected-structure-length-field").hidden = !hasLength;
   $("#selected-structure-depth-field").hidden = !isColumn;
   if (hasLength) {
-    $("#selected-structure-length-cm").value = Math.round(length * 100);
+    $("#selected-structure-length-cm").value = Math.round(length);
     $("#selected-structure-length-label").textContent =
       isBeam ? "樑長（公分）" : "牆長（公分）";
   }
   if (isColumn) {
     $("#selected-structure-depth-cm").value =
-      Math.round(Number(item.depth_m || item.size_m || 0.35) * 100);
+      Math.round(Number(item.depth_cm || item.size_cm || 35));
   }
   $("#selected-structure-size-cm").min = isColumn ? "10" : "1";
   $("#selected-structure-depth-cm").min = isColumn ? "10" : "1";
@@ -2422,11 +2459,11 @@ function renderSelectedStructureEditor() {
   if (isWindow) {
     $("#window-sill-height-cm").value = isFloorToCeilingWindow
       ? "0"
-      : String(Math.round(Number(item.sill_height_m ?? 0.9) * 100));
+      : String(Math.round(Number(item.sill_height_cm ?? 90)));
   }
   $("#apply-structure-size").textContent = isDoor ? "套用高度" : "套用尺寸";
   if (isLineWidth) {
-    const widthCm = Math.round(Number(item.width_m || length || (isDoor ? 0.9 : 1.2)) * 100);
+    const widthCm = Math.round(Number(item.width_cm || length || (isDoor ? 90 : 120)));
     $("#opening-width-label").textContent = isDoor ? "門寬" : "窗寬";
     element.openingWidthSlider.value = String(widthCm);
     element.openingWidthValue.textContent = `${widthCm} cm`;
@@ -2459,28 +2496,28 @@ function renderSelectedStructureEditor() {
 
 function structureMeasurement(item, kind) {
   if (kind === "door" || kind === "window") {
-    const widthM = Number(
-      item.width_m
+    const widthCm = Number(
+      item.width_cm
       || Math.hypot(item.end?.x - item.start?.x, item.end?.y - item.start?.y)
-      || (kind === "door" ? 0.9 : 1.2),
+      || (kind === "door" ? 90 : 120),
     );
-    const heightM = Number(item.height_m || (kind === "door" ? 2.1 : 1.2));
+    const heightCm = Number(item.height_cm || (kind === "door" ? 210 : 120));
     const typeLabel = kind === "window"
       && normalizedWindowType(item.window_type) === WINDOW_TYPES.floorToCeiling
       ? "落地窗 · "
       : "";
-    return `${typeLabel}寬 ${Math.round(widthM * 100)} × 高 ${Math.round(heightM * 100)} cm`;
+    return `${typeLabel}寬 ${Math.round(widthCm)} × 高 ${Math.round(heightCm)} cm`;
   }
   if (kind === "column") {
-    return `寬 ${Math.round(Number(item.size_m || 0.35) * 100)} × 深 ${Math.round(Number(item.depth_m || item.size_m || 0.35) * 100)} × 高 ${Math.round(Number(item.height_m || 2.7) * 100)} cm`;
+    return `寬 ${Math.round(Number(item.size_cm || 35))} × 深 ${Math.round(Number(item.depth_cm || item.size_cm || 35))} × 高 ${Math.round(Number(item.height_cm || 270))} cm`;
   }
-  const lengthM = Math.hypot(
+  const lengthCm = Math.hypot(
     Number(item.end?.x || 0) - Number(item.start?.x || 0),
     Number(item.end?.y || 0) - Number(item.start?.y || 0),
   );
-  const widthM = Number(item.thickness_m || (kind === "beam" ? 0.3 : 0.12));
-  const heightM = Number(item.height_m || (kind === "beam" ? 0.35 : 2.7));
-  return `長 ${Math.round(lengthM * 100)} × ${kind === "beam" ? "寬" : "厚"} ${Math.round(widthM * 100)} × 高 ${Math.round(heightM * 100)} cm`;
+  const widthCm = Number(item.thickness_cm || (kind === "beam" ? 30 : 12));
+  const heightCm = Number(item.height_cm || (kind === "beam" ? 35 : 270));
+  return `長 ${Math.round(lengthCm)} × ${kind === "beam" ? "寬" : "厚"} ${Math.round(widthCm)} × 高 ${Math.round(heightCm)} cm`;
 }
 
 function renderStructureReviewList() {
@@ -2578,8 +2615,8 @@ function applySelectedStructureSize() {
       maxWidthCm: columnLimits.width_cm,
       maxDepthCm: columnLimits.depth_cm,
       maxHeightCm: columnLimits.room_height_cm,
-      centerXcm: Number(item.center?.x || 0) * 100,
-      centerYcm: Number(item.center?.y ?? item.center?.z ?? 0) * 100,
+      centerXcm: Number(item.center?.x || 0),
+      centerYcm: Number(item.center?.y ?? item.center?.z ?? 0),
       rotationDeg: Number(item.rotation_deg || 0),
     })
     : null;
@@ -2589,41 +2626,41 @@ function applySelectedStructureSize() {
     return;
   }
   element.spaceError.textContent = "";
-  const sizeM = columnDimensions
-    ? columnDimensions.values.widthCm / 100
-    : Math.max(0.01, Number($("#selected-structure-size-cm").value) / 100);
-  const heightM = columnDimensions
-    ? confirmedRoomHeightCm() / 100
-    : Math.max(0.01, Number($("#selected-structure-height-cm").value) / 100);
-  const lengthM = Math.max(0.1, Number($("#selected-structure-length-cm").value) / 100);
-  const depthM = columnDimensions
-    ? columnDimensions.values.depthCm / 100
-    : Math.max(0.1, Number($("#selected-structure-depth-cm").value) / 100);
+  const sizeCm = columnDimensions
+    ? columnDimensions.values.widthCm
+    : Math.max(1, Number($("#selected-structure-size-cm").value));
+  const heightCm = columnDimensions
+    ? confirmedRoomHeightCm()
+    : Math.max(1, Number($("#selected-structure-height-cm").value));
+  const lengthCm = Math.max(10, Number($("#selected-structure-length-cm").value));
+  const depthCm = columnDimensions
+    ? columnDimensions.values.depthCm
+    : Math.max(10, Number($("#selected-structure-depth-cm").value));
   const floorToCeiling = kind === "window"
     && normalizedWindowType(item.window_type) === WINDOW_TYPES.floorToCeiling;
-  const sillHeightM = floorToCeiling
+  const sillHeightCm = floorToCeiling
     ? 0
-    : Math.max(0, Number($("#window-sill-height-cm").value) / 100);
+    : Math.max(0, Number($("#window-sill-height-cm").value));
   const nextItem = { ...item };
   if (kind === "window") {
     const cx = (item.start.x + item.end.x) / 2;
     const cy = (item.start.y + item.end.y) / 2;
     const angle = Math.atan2(item.end.y - item.start.y, item.end.x - item.start.x);
-    nextItem.start = { x: cx - Math.cos(angle) * sizeM / 2, y: cy - Math.sin(angle) * sizeM / 2 };
-    nextItem.end = { x: cx + Math.cos(angle) * sizeM / 2, y: cy + Math.sin(angle) * sizeM / 2 };
-    nextItem.width_m = sizeM;
-    nextItem.sill_height_m = sillHeightM;
-    nextItem.height_m = heightM;
-    nextItem.head_height_m = sillHeightM + heightM;
+    nextItem.start = { x: cx - Math.cos(angle) * sizeCm / 2, y: cy - Math.sin(angle) * sizeCm / 2 };
+    nextItem.end = { x: cx + Math.cos(angle) * sizeCm / 2, y: cy + Math.sin(angle) * sizeCm / 2 };
+    nextItem.width_cm = sizeCm;
+    nextItem.sill_height_cm = sillHeightCm;
+    nextItem.height_cm = heightCm;
+    nextItem.head_height_cm = sillHeightCm + heightCm;
   } else if (kind === "door") {
-    nextItem.height_m = heightM;
+    nextItem.height_cm = heightCm;
   } else if (kind === "column") {
-    nextItem.size_m = sizeM;
-    nextItem.depth_m = depthM;
-    nextItem.height_m = heightM;
+    nextItem.size_cm = sizeCm;
+    nextItem.depth_cm = depthCm;
+    nextItem.height_cm = heightCm;
   } else {
-    nextItem.thickness_m = sizeM;
-    nextItem.height_m = heightM;
+    nextItem.thickness_cm = sizeCm;
+    nextItem.height_cm = heightCm;
     if (item.start && item.end) {
       const center = {
         x: (item.start.x + item.end.x) / 2,
@@ -2631,12 +2668,12 @@ function applySelectedStructureSize() {
       };
       const angle = Math.atan2(item.end.y - item.start.y, item.end.x - item.start.x);
       nextItem.start = {
-        x: center.x - Math.cos(angle) * lengthM / 2,
-        y: center.y - Math.sin(angle) * lengthM / 2,
+        x: center.x - Math.cos(angle) * lengthCm / 2,
+        y: center.y - Math.sin(angle) * lengthCm / 2,
       };
       nextItem.end = {
-        x: center.x + Math.cos(angle) * lengthM / 2,
-        y: center.y + Math.sin(angle) * lengthM / 2,
+        x: center.x + Math.cos(angle) * lengthCm / 2,
+        y: center.y + Math.sin(angle) * lengthCm / 2,
       };
     }
   }
@@ -2655,10 +2692,10 @@ function applySelectedStructureSize() {
   invalidateDownstreamFrom("space_confirmation", "結構尺寸已修改，後續需求、家具與 3D 需要重新確認。");
   scheduleSave("space_confirmation");
   const shiftNote = resolution.moved
-    ? `，並向室內避牆位移 ${Math.round(resolution.totalShiftM * 100)} 公分`
+    ? `，並向室內避牆位移 ${Math.round(resolution.totalShiftCm)} 公分`
     : "";
   setStatus(kind === "column"
-    ? `柱寬深已更新為 ${Math.round(sizeM * 100)} × ${Math.round(depthM * 100)} 公分，柱高依樓高固定為 ${Math.round(heightM * 100)} 公分${shiftNote}。`
+    ? `柱寬深已更新為 ${Math.round(sizeCm)} × ${Math.round(depthCm)} 公分，柱高依樓高固定為 ${Math.round(heightCm)} 公分${shiftNote}。`
     : `樑尺寸已更新${shiftNote}。`);
 }
 
@@ -2667,10 +2704,10 @@ function applyWindowType(windowId, type) {
   if (!item) return;
   const nextType = normalizedWindowType(type);
   if (normalizedWindowType(item.window_type) === nextType) return;
-  const ceilingHeightM = confirmedFloorplanEditor().room_height_cm / 100;
+  const ceilingHeightCm = confirmedFloorplanEditor().room_height_cm;
   Object.assign(
     item,
-    applyWindowTypePreset(item, nextType, ceilingHeightM),
+    applyWindowTypePreset(item, nextType, ceilingHeightCm),
   );
   item.confirmed = false;
   item.estimated = false;
@@ -2694,24 +2731,24 @@ function applySelectedWindowType() {
   applyWindowType(item.id, $("#selected-window-type").value);
 }
 
-function setSelectedOpeningWidthCm(widthCm, persist = false) {
+function setSelectedOpeningWidthCm(requestedWidthCm, persist = false) {
   const item = selectedStructureItem();
   if (!item || !["door", "window"].includes(state.selectedStructure?.kind)) return;
   const kind = state.selectedStructure.kind;
-  const widthM = Math.max(0.3, Math.min(4, Number(widthCm) / 100));
+  const widthCm = Math.max(30, Math.min(400, Number(requestedWidthCm)));
   const dx = item.end.x - item.start.x;
   const dy = item.end.y - item.start.y;
   const length = Math.hypot(dx, dy) || 1;
   item.end = {
-    x: item.start.x + dx / length * widthM,
-    y: item.start.y + dy / length * widthM,
+    x: item.start.x + dx / length * widthCm,
+    y: item.start.y + dy / length * widthCm,
   };
   if (kind === "door") delete item.swing_end;
-  item.width_m = widthM;
+  item.width_cm = widthCm;
   item.confirmed = false;
   item.estimated = false;
-  element.openingWidthSlider.value = String(Math.round(widthM * 100));
-  element.openingWidthValue.textContent = `${Math.round(widthM * 100)} cm`;
+  element.openingWidthSlider.value = String(Math.round(widthCm));
+  element.openingWidthValue.textContent = `${Math.round(widthCm)} cm`;
   renderSpaceOverlay();
   renderDoorReviewList();
   renderSelectedStructureEditor();
@@ -2719,7 +2756,7 @@ function setSelectedOpeningWidthCm(widthCm, persist = false) {
     const label = structureSectionMeta[kind].label;
     invalidateDownstreamFrom("space_confirmation", `${label}寬已調整，後續需求、家具與 3D 需要重新確認。`);
     scheduleSave("space_confirmation");
-    setStatus(`${label}寬已調整為 ${Math.round(widthM * 100)} cm；請重新確認此${label}。`);
+    setStatus(`${label}寬已調整為 ${Math.round(widthCm)} cm；請重新確認此${label}。`);
   }
 }
 
@@ -2887,11 +2924,11 @@ function openingHostWall(item) {
         projected.x - segmentProjection.x,
         projected.y - segmentProjection.y,
       );
-      const recognizedHostBonus = wall.id === item.host_wall_id && alignment > 0.92 ? -0.08 : 0;
+      const recognizedHostBonus = wall.id === item.host_wall_id && alignment > 0.92 ? -8 : 0;
       return {
         wall,
         score: perpendicularDistance
-          + (1 - alignment) * 3
+          + (1 - alignment) * 300
           + extensionDistance * 0.12
           + recognizedHostBonus,
       };
@@ -2911,8 +2948,8 @@ function snapOpeningToHostWall(item, targetCenter) {
   const currentDy = item.end.y - item.start.y;
   const direction = currentDx * axis.x + currentDy * axis.y < 0 ? -1 : 1;
   const halfWidth = Math.max(
-    0.2,
-    Number(item.width_m || Math.hypot(currentDx, currentDy) || 0.9) / 2,
+    20,
+    Number(item.width_cm || Math.hypot(currentDx, currentDy) || 90) / 2,
   );
   item.start = {
     x: center.x - axis.x * halfWidth * direction,
@@ -2931,7 +2968,7 @@ function resizeOpeningFromPointer(event) {
   const item = selectedStructureItem();
   const point = imagePoint(event, element.spaceImage);
   if (!item || !point || !["door", "window"].includes(state.selectedStructure?.kind)) return;
-  const requested = pixelToMeter(point);
+  const requested = pixelToCm(point);
   const wall = openingHostWall(item);
   const projected = nearestPointOnLine(requested, item.start, item.end);
   const movingKey = doorResizeDrag.handle;
@@ -2941,18 +2978,18 @@ function resizeOpeningFromPointer(event) {
   let dx = projected.x - fixed.x;
   let dy = projected.y - fixed.y;
   let length = Math.hypot(dx, dy);
-  if (length < 0.001) {
+  if (length < 0.1) {
     dx = snapshotMoving.x - fixed.x;
     dy = snapshotMoving.y - fixed.y;
     length = Math.hypot(dx, dy) || 1;
   }
-  const width = Math.max(0.3, Math.min(4, length));
+  const width = Math.max(30, Math.min(400, length));
   item[movingKey] = {
     x: fixed.x + dx / length * width,
     y: fixed.y + dy / length * width,
   };
   if (state.selectedStructure?.kind === "door") delete item.swing_end;
-  item.width_m = Math.hypot(
+  item.width_cm = Math.hypot(
     item.end.x - item.start.x,
     item.end.y - item.start.y,
   );
@@ -2966,15 +3003,15 @@ function resizeOpeningFromPointer(event) {
 
 function addDroppedStructure(tool, point) {
   state.activeStructureKind = tool;
-  const meter = pixelToMeter(point);
+  const meter = pixelToCm(point);
   let item = null;
   if (tool === "column") {
     item = {
       id: `column-manual-${Date.now()}`,
       center: meter,
-      size_m: 0.35,
-      depth_m: 0.35,
-      height_m: confirmedRoomHeightCm() / 100,
+      size_cm: 35,
+      depth_cm: 35,
+      height_cm: confirmedRoomHeightCm(),
       confirmed: false,
       estimated: true,
     };
@@ -2991,18 +3028,18 @@ function addDroppedStructure(tool, point) {
       return da - db;
     });
     const host = candidates[0];
-    const widthM = tool === "door" ? 0.9 : 1.2;
-    const wallStart = host?.wall.start || { x: meter.x - 1, y: meter.y };
-    const wallEnd = host?.wall.end || { x: meter.x + 1, y: meter.y };
+    const widthCm = tool === "door" ? 90 : 120;
+    const wallStart = host?.wall.start || { x: meter.x - 100, y: meter.y };
+    const wallEnd = host?.wall.end || { x: meter.x + 100, y: meter.y };
     const angle = Math.atan2(wallEnd.y - wallStart.y, wallEnd.x - wallStart.x);
     const center = host?.projected || meter;
     item = {
       id: `${tool}-manual-${Date.now()}`,
-      start: { x: center.x - Math.cos(angle) * widthM / 2, y: center.y - Math.sin(angle) * widthM / 2 },
-      end: { x: center.x + Math.cos(angle) * widthM / 2, y: center.y + Math.sin(angle) * widthM / 2 },
-      width_m: widthM,
-      height_m: tool === "window" ? 1.2 : 2.1,
-      sill_height_m: tool === "window" ? 0.9 : 0,
+      start: { x: center.x - Math.cos(angle) * widthCm / 2, y: center.y - Math.sin(angle) * widthCm / 2 },
+      end: { x: center.x + Math.cos(angle) * widthCm / 2, y: center.y + Math.sin(angle) * widthCm / 2 },
+      width_cm: widthCm,
+      height_cm: tool === "window" ? 120 : 210,
+      sill_height_cm: tool === "window" ? 90 : 0,
       window_type: tool === "window" ? WINDOW_TYPES.standard : undefined,
       host_wall_id: host?.wall.id,
       source: "manual",
@@ -3153,7 +3190,7 @@ function dimensionedPlanRoomInputs() {
   return state.rooms.map((room) => ({
     id: room.id,
     label: room.label || "未命名空間",
-    polygonPx: room.polygon_m.map(meterToPixel),
+    polygonPx: room.polygon_cm.map(cmToPixel),
     ...roomDimensions(room),
   }));
 }
@@ -3464,13 +3501,13 @@ const furnitureLabelMap = {
 };
 
 function roomCenter(room) {
-  return room.polygon_m.reduce((sum, point) => ({
-    x: sum.x + point.x / room.polygon_m.length,
-    y: sum.y + point.y / room.polygon_m.length,
+  return room.polygon_cm.reduce((sum, point) => ({
+    x: sum.x + point.x / room.polygon_cm.length,
+    y: sum.y + point.y / room.polygon_cm.length,
   }), { x: 0, y: 0 });
 }
 
-function planCenterMeters() {
+function planCenterCm() {
   const { bbox, scale } = planGeometry();
   return {
     x: (bbox[2] - bbox[0]) * scale / 2,
@@ -3641,29 +3678,29 @@ function renderFurnitureLibrary(filterText = "") {
 }
 
 function furniturePixelPosition(item) {
-  const center = planCenterMeters();
-  return meterToPixel({
-    x: center.x + item.xCm / 100,
-    y: center.y + item.yCm / 100,
+  const center = planCenterCm();
+  return cmToPixel({
+    x: center.x + item.xCm,
+    y: center.y + item.yCm,
   });
 }
 
 function layoutPixelsPerCm() {
   const imageRect = element.layoutImage.getBoundingClientRect();
   const naturalRatio = imageRect.width / Math.max(element.layoutImage.naturalWidth, 1);
-  return (0.01 / planGeometry().scale) * naturalRatio;
+  return (1 / planGeometry().scale) * naturalRatio;
 }
 
 function itemCollision(item) {
   const room = state.rooms.find((candidate) => candidate.id === item.roomId);
   if (!room) return true;
-  const center = planCenterMeters();
-  const x = center.x + item.xCm / 100;
-  const y = center.y + item.yCm / 100;
-  const xs = room.polygon_m.map((point) => point.x);
-  const ys = room.polygon_m.map((point) => point.y);
-  const halfWidth = item.widthCm / 200;
-  const halfDepth = item.depthCm / 200;
+  const center = planCenterCm();
+  const x = center.x + item.xCm;
+  const y = center.y + item.yCm;
+  const xs = room.polygon_cm.map((point) => point.x);
+  const ys = room.polygon_cm.map((point) => point.y);
+  const halfWidth = item.widthCm / 2;
+  const halfDepth = item.depthCm / 2;
   if (
     x - halfWidth < Math.min(...xs)
     || x + halfWidth > Math.max(...xs)
@@ -3806,10 +3843,10 @@ function addFurnitureFromLibrary(type, variant) {
     || state.rooms.find((item) => item.id === state.selectedRoomId)
     || state.rooms[0];
   const center = roomCenter(room);
-  const planCenter = planCenterMeters();
+  const planCenter = planCenterCm();
   const item = createFurniture2DItem(type, variant, {
-    xCm: (center.x - planCenter.x) * 100,
-    yCm: (center.y - planCenter.y) * 100,
+    xCm: center.x - planCenter.x,
+    yCm: center.y - planCenter.y,
   });
   item.roomId = room.id;
   item.reason = "使用者從 2D 圖示資料庫加入。";
@@ -3945,9 +3982,9 @@ async function confirmLayout2d() {
 }
 
 async function addWhiteModelBeamFromWorld({ start, end }) {
-  const lengthM = Math.hypot(end.x - start.x, end.z - start.z);
+  const lengthCm = Math.hypot(end.x - start.x, end.z - start.z);
   const status = $("#white-model-beam-status");
-  if (lengthM < 0.25) {
+  if (lengthCm < 25) {
     status.textContent = "樑長至少需要 25 公分，請重新選取兩點。";
     status.classList.add("is-error");
     return;
@@ -3956,16 +3993,16 @@ async function addWhiteModelBeamFromWorld({ start, end }) {
   const dropCm = Math.min(120, Math.max(10, Number($("#white-model-beam-drop-cm").value) || 35));
   const floorplan = state.sceneData?.floorplan;
   if (!floorplan) return;
-  const halfWidthM = Number(floorplan.width_cm || 600) / 200;
-  const halfDepthM = Number(floorplan.depth_cm || 400) / 200;
+  const halfWidthCm = Number(floorplan.width_cm || 600) / 2;
+  const halfDepthCm = Number(floorplan.depth_cm || 400) / 2;
   const id = `beam-manual-${Date.now()}`;
   const editorBeam = {
     id,
-    start: { x: start.x + halfWidthM, y: start.z + halfDepthM },
-    end: { x: end.x + halfWidthM, y: end.z + halfDepthM },
-    thickness_m: widthCm / 100,
-    height_m: dropCm / 100,
-    top_m: Number(floorplan.room_height_cm || 270) / 100,
+    start: { x: start.x + halfWidthCm, y: start.z + halfDepthCm },
+    end: { x: end.x + halfWidthCm, y: end.z + halfDepthCm },
+    thickness_cm: widthCm,
+    height_cm: dropCm,
+    top_cm: Number(floorplan.room_height_cm || 270),
     confirmed: false,
     estimated: true,
     source: "manual_3d",
@@ -3983,7 +4020,7 @@ async function addWhiteModelBeamFromWorld({ start, end }) {
   $("#add-white-model-beam").hidden = false;
   $("#cancel-white-model-beam").hidden = true;
   status.classList.remove("is-error");
-  status.textContent = `已新增樑 ${state.structures.beams.length}，長 ${Math.round(lengthM * 100)}、寬 ${widthCm}、下垂 ${dropCm} 公分。`;
+  status.textContent = `已新增樑 ${state.structures.beams.length}，長 ${Math.round(lengthCm)}、寬 ${widthCm}、下垂 ${dropCm} 公分。`;
   invalidateDownstreamFrom("space_confirmation", "3D 已新增樑，後續寫實結果需要重新確認。");
   scheduleSave("white_model_3d");
 }
@@ -4585,17 +4622,17 @@ async function applySurfaceOverrides() {
       element.realisticStatus.textContent = "請先選取要套用材質的房間。";
       return;
     }
-    const center = planCenterMeters();
+    const center = planCenterCm();
     const override = {
       room_id: room.id,
       room_label: room.label,
-      room_bounds_m: {
-        minX: Math.min(...room.polygon_m.map((point) => point.x)) - center.x,
-        maxX: Math.max(...room.polygon_m.map((point) => point.x)) - center.x,
-        minZ: Math.min(...room.polygon_m.map((point) => point.y)) - center.y,
-        maxZ: Math.max(...room.polygon_m.map((point) => point.y)) - center.y,
+      room_bounds_cm: {
+        minX: Math.min(...room.polygon_cm.map((point) => point.x)) - center.x,
+        maxX: Math.max(...room.polygon_cm.map((point) => point.x)) - center.x,
+        minZ: Math.min(...room.polygon_cm.map((point) => point.y)) - center.y,
+        maxZ: Math.max(...room.polygon_cm.map((point) => point.y)) - center.y,
       },
-      room_polygon_m: room.polygon_m.map((point) => ({
+      room_polygon_cm: room.polygon_cm.map((point) => ({
         x: point.x - center.x,
         z: point.y - center.y,
       })),
@@ -4627,12 +4664,12 @@ async function applySurfaceOverrides() {
 function toggleMaterialBoundary() {
   const room = state.rooms.find((item) => item.id === state.selectedRoomId) || state.rooms[0];
   if (!room) return;
-  const planCenter = planCenterMeters();
+  const planCenter = planCenterCm();
   const bounds = {
-    minX: Math.min(...room.polygon_m.map((point) => point.x)) - planCenter.x,
-    maxX: Math.max(...room.polygon_m.map((point) => point.x)) - planCenter.x,
-    minZ: Math.min(...room.polygon_m.map((point) => point.y)) - planCenter.y,
-    maxZ: Math.max(...room.polygon_m.map((point) => point.y)) - planCenter.y,
+    minX: Math.min(...room.polygon_cm.map((point) => point.x)) - planCenter.x,
+    maxX: Math.max(...room.polygon_cm.map((point) => point.x)) - planCenter.x,
+    minZ: Math.min(...room.polygon_cm.map((point) => point.y)) - planCenter.y,
+    maxZ: Math.max(...room.polygon_cm.map((point) => point.y)) - planCenter.y,
   };
   const direction = $("#material-boundary-direction").value;
   const ratio = Number($("#material-boundary-position").value) / 100;
@@ -4643,7 +4680,7 @@ function toggleMaterialBoundary() {
     roomId: room.id,
     direction,
     ratio,
-    line_m: direction === "horizontal"
+    line_cm: direction === "horizontal"
       ? [
           { x: bounds.minX, y: splitZ },
           { x: bounds.maxX, y: splitZ },
@@ -4652,7 +4689,7 @@ function toggleMaterialBoundary() {
           { x: splitX, y: bounds.minZ },
           { x: splitX, y: bounds.maxZ },
         ],
-    room_bounds_m: bounds,
+    room_bounds_cm: bounds,
     materials: ["current-floor", "secondary-floor"],
   };
   if (state.sceneData) state.sceneData.material_boundary = state.materialBoundary;
@@ -4674,8 +4711,8 @@ function removeMaterialBoundary() {
 
 function roomLabelAtPlanPoint(point) {
   const room = state.rooms.find((candidate) => {
-    const xs = candidate.polygon_m.map((vertex) => vertex.x);
-    const ys = candidate.polygon_m.map((vertex) => vertex.y);
+    const xs = candidate.polygon_cm.map((vertex) => vertex.x);
+    const ys = candidate.polygon_cm.map((vertex) => vertex.y);
     return point.x >= Math.min(...xs)
       && point.x <= Math.max(...xs)
       && point.y >= Math.min(...ys)
@@ -4694,7 +4731,7 @@ async function evaluateCeilingConflicts() {
     || state.confirmedFloorplan?.floorplan?.room_height_cm
     || 270,
   );
-  const planCenter = planCenterMeters();
+  const planCenter = planCenterCm();
   if (state.sceneData) {
     state.sceneData.design_choices = state.sceneData.design_choices || {};
     state.sceneData.design_choices.ceiling_style = ceiling.id;
@@ -4705,12 +4742,8 @@ async function evaluateCeilingConflicts() {
     ceilingStyle: ceiling.id,
     roomHeightCm,
     beams: state.structures.beams.map((beam, index) => {
-      const topCm = Number(beam.top_cm ?? beam.top_m * 100) || roomHeightCm;
-      const heightCm = Number(
-        beam.height_cm
-        ?? (beam.height_m != null ? beam.height_m * 100 : null)
-        ?? (beam.thickness_m != null ? beam.thickness_m * 100 : null),
-      ) || 30;
+      const topCm = Number(beam.top_cm) || roomHeightCm;
+      const heightCm = Number(beam.height_cm ?? beam.thickness_cm) || 30;
       const midpoint = {
         x: (Number(beam.start?.x || 0) + Number(beam.end?.x || 0)) / 2,
         y: (Number(beam.start?.y || 0) + Number(beam.end?.y || 0)) / 2,
@@ -4721,7 +4754,7 @@ async function evaluateCeilingConflicts() {
         label: `樑 ${index + 1}`,
         topCm,
         bottomCm: topCm - heightCm,
-        estimated: beam.estimated === true || (beam.top_cm == null && beam.top_m == null),
+        estimated: beam.estimated === true || beam.top_cm == null,
         roomLabel: roomLabelAtPlanPoint(midpoint),
       };
     }),
@@ -4735,8 +4768,8 @@ async function evaluateCeilingConflicts() {
           label: item.name_zh_raw || "櫃體",
           topCm: Number(item.size_cm?.height || 0),
           roomLabel: roomLabelAtPlanPoint({
-            x: planCenter.x + Number(position.x || 0) / 100,
-            y: planCenter.y + Number(position.z || 0) / 100,
+            x: planCenter.x + Number(position.x || 0),
+            y: planCenter.y + Number(position.z || 0),
           }),
         };
       }) || [],
@@ -5292,6 +5325,8 @@ async function restoreProject() {
     }
     if (Number(savedCalibration?.distanceCm) > 0) {
       element.scaleInput.value = Number(savedCalibration.distanceCm);
+    } else if (Number(state.analysis?.scale?.distance_cm) > 0) {
+      element.scaleInput.value = Number(state.analysis.scale.distance_cm);
     } else if (Number(state.analysis?.scale?.distance_m) > 0) {
       element.scaleInput.value = Math.round(Number(state.analysis.scale.distance_m) * 1000) / 10;
     }
@@ -5300,8 +5335,11 @@ async function restoreProject() {
       element.uploadFileState.textContent =
         state.analysis.filename || state.workflow.data.upload?.filename || "已上傳平面圖";
     }
-    state.rooms = serverState.space_confirmation?.rooms || [];
-    state.structures = serverState.space_confirmation?.structures || state.structures;
+    const savedSpace = normalizeSavedSpaceConfirmation(serverState.space_confirmation || {});
+    state.rooms = savedSpace.rooms;
+    state.structures = serverState.space_confirmation
+      ? savedSpace.structures
+      : state.structures;
     repairLoadedStructureWallCollisions();
     const normalizedWindows = dedupeWindowCandidates(state.structures.windows || []);
     state.structures.windows = normalizedWindows.windows;

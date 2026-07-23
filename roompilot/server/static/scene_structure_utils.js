@@ -11,7 +11,7 @@ function windowAxis(item) {
   const dx = Math.abs(end.x - start.x);
   const dy = Math.abs(end.y - start.y);
   const length = Math.hypot(dx, dy);
-  if (length < 0.05) return null;
+  if (length < 5) return null;
   if (dx > dy * 3) {
     return {
       orientation: "horizontal",
@@ -50,7 +50,7 @@ export function windowsOverlap(first, second) {
   const a = windowAxis(first);
   const b = windowAxis(second);
   if (!a || !b || a.orientation !== b.orientation) return false;
-  if (Math.abs(a.constant - b.constant) > 0.18) return false;
+  if (Math.abs(a.constant - b.constant) > 18) return false;
   const overlap = Math.max(0, Math.min(a.high, b.high) - Math.max(a.low, b.low));
   return overlap / Math.min(a.length, b.length) >= 0.55;
 }
@@ -72,9 +72,9 @@ export function dedupeWindowCandidates(candidates = []) {
   return { windows, removed };
 }
 
-function nearestSnapPoint(point, anchors, thresholdM) {
+function nearestSnapPoint(point, anchors, thresholdCm) {
   let best = null;
-  let bestDistance = thresholdM;
+  let bestDistance = thresholdCm;
   for (const candidate of anchors || []) {
     const anchor = finitePoint(candidate);
     if (!anchor) continue;
@@ -91,25 +91,25 @@ export function beamDragGeometry(
   rawStart,
   rawEnd,
   anchors = [],
-  { snapDistanceM = 0.24, minLengthM = 0.25 } = {},
+  { snapDistanceCm = 24, minLengthCm = 25 } = {},
 ) {
   const initialStart = finitePoint(rawStart) || { x: 0, y: 0 };
   const pointerEnd = finitePoint(rawEnd) || initialStart;
-  const snappedStart = nearestSnapPoint(initialStart, anchors, snapDistanceM);
+  const snappedStart = nearestSnapPoint(initialStart, anchors, snapDistanceCm);
   const start = snappedStart || initialStart;
   const dx = pointerEnd.x - start.x;
   const dy = pointerEnd.y - start.y;
   const axisEnd = Math.abs(dx) >= Math.abs(dy)
     ? { x: pointerEnd.x, y: start.y }
     : { x: start.x, y: pointerEnd.y };
-  const snappedEnd = nearestSnapPoint(axisEnd, anchors, snapDistanceM);
+  const snappedEnd = nearestSnapPoint(axisEnd, anchors, snapDistanceCm);
   const end = snappedEnd || axisEnd;
-  const lengthM = Math.round(Math.hypot(end.x - start.x, end.y - start.y) * 10000) / 10000;
+  const lengthCm = Math.round(Math.hypot(end.x - start.x, end.y - start.y) * 10000) / 10000;
   return {
     start,
     end,
-    lengthM,
-    valid: lengthM >= minLengthM,
+    lengthCm,
+    valid: lengthCm >= minLengthCm,
     snapped: Boolean(snappedStart || snappedEnd),
   };
 }

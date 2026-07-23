@@ -382,7 +382,7 @@ def test_rerunning_floorplan_analysis_invalidates_stale_structure_confirmation()
     assert restored["workflow"]["requirements"] is None
 
 
-def test_dxf_analysis_returns_canonical_metre_geometry_and_room_regions() -> None:
+def test_dxf_analysis_returns_canonical_centimeter_geometry_and_room_regions() -> None:
     project = _create_project()
     project_id = project["project_id"]
     sample = next((Path(__file__).resolve().parents[1] / "testdata" / "dxf").glob("*.dxf"))
@@ -413,6 +413,7 @@ def test_dxf_analysis_returns_canonical_metre_geometry_and_room_regions() -> Non
     floorplan = payload["analysis"]["floorplan"]
     assert payload["geometry_engine"] == "dxf"
     assert floorplan["source"] == "dxf"
+    assert floorplan["coordinate_unit"] == "cm"
     assert floorplan["wall_segments"]
     assert floorplan["room_regions"]
     points = [
@@ -420,8 +421,8 @@ def test_dxf_analysis_returns_canonical_metre_geometry_and_room_regions() -> Non
         for segment in floorplan["wall_segments"]
         for point in (segment["start"], segment["end"])
     ]
-    assert max(abs(point["x"]) for point in points) <= floorplan["width_cm"] / 200 + 0.2
-    assert max(abs(point["z"]) for point in points) <= floorplan["depth_cm"] / 200 + 0.2
+    assert max(abs(point["x"]) for point in points) <= floorplan["width_cm"] / 2 + 10
+    assert max(abs(point["z"]) for point in points) <= floorplan["depth_cm"] / 2 + 10
 
 
 def test_scene_generation_keeps_user_confirmed_furniture_when_glb_is_unavailable() -> None:
@@ -467,6 +468,7 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
             "selected_furniture": [],
             "selected_furniture_exact": True,
             "floorplan_editor": {
+                "coordinate_unit": "cm",
                 "width_cm": 600,
                 "depth_cm": 400,
                 "room_height_cm": 280,
@@ -474,11 +476,11 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
                     {
                         "id": "living-1",
                         "label": "客廳",
-                        "polygon_m": [
+                        "polygon_cm": [
                             {"x": 0, "y": 0},
-                            {"x": 6, "y": 0},
-                            {"x": 6, "y": 4},
-                            {"x": 0, "y": 4},
+                            {"x": 600, "y": 0},
+                            {"x": 600, "y": 400},
+                            {"x": 0, "y": 400},
                         ],
                     }
                 ],
@@ -487,60 +489,60 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
                         {
                             "id": "wall-1",
                             "start": {"x": 0, "y": 0},
-                            "end": {"x": 6, "y": 0},
-                            "thickness_m": 0.18,
+                            "end": {"x": 600, "y": 0},
+                            "thickness_cm": 18,
                         },
                         {
                             "id": "wall-2",
-                            "start": {"x": 6, "y": 0},
-                            "end": {"x": 6, "y": 4},
-                            "thickness_m": 0.18,
+                            "start": {"x": 600, "y": 0},
+                            "end": {"x": 600, "y": 400},
+                            "thickness_cm": 18,
                         },
                         {
                             "id": "wall-3",
-                            "start": {"x": 6, "y": 4},
-                            "end": {"x": 0, "y": 4},
-                            "thickness_m": 0.18,
+                            "start": {"x": 600, "y": 400},
+                            "end": {"x": 0, "y": 400},
+                            "thickness_cm": 18,
                         },
                         {
                             "id": "wall-4",
-                            "start": {"x": 0, "y": 4},
+                            "start": {"x": 0, "y": 400},
                             "end": {"x": 0, "y": 0},
-                            "thickness_m": 0.18,
+                            "thickness_cm": 18,
                         },
                     ],
                     "doors": [
                         {
                             "id": "door-1",
-                            "start": {"x": 2.4, "y": 0},
-                            "end": {"x": 3.3, "y": 0},
+                            "start": {"x": 240, "y": 0},
+                            "end": {"x": 330, "y": 0},
                             "opening_direction": "left",
                         }
                     ],
                     "windows": [
                         {
                             "id": "window-1",
-                            "start": {"x": 1, "y": 4},
-                            "end": {"x": 2.2, "y": 4},
+                            "start": {"x": 100, "y": 400},
+                            "end": {"x": 220, "y": 400},
                         }
                     ],
                     "beams": [
                         {
                             "id": "beam-1",
-                            "start": {"x": 0, "y": 2},
-                            "end": {"x": 6, "y": 2},
-                            "width_m": 0.3,
-                            "height_m": 0.4,
-                            "top_m": 2.8,
+                            "start": {"x": 0, "y": 200},
+                            "end": {"x": 600, "y": 200},
+                            "width_cm": 30,
+                            "height_cm": 40,
+                            "top_cm": 280,
                         }
                     ],
                     "columns": [
                         {
                             "id": "column-1",
-                            "center": {"x": 0.4, "y": 0.4},
-                            "size_m": 0.58,
-                            "depth_m": 0.35,
-                            "height_m": 2.45,
+                            "center": {"x": 40, "y": 40},
+                            "size_cm": 58,
+                            "depth_cm": 35,
+                            "height_cm": 245,
                             "rotation_deg": 30,
                         }
                     ],
@@ -555,39 +557,41 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
     assert floorplan["width_cm"] == 600
     assert floorplan["depth_cm"] == 400
     assert floorplan["room_height_cm"] == 280
-    assert floorplan["wall_segments"][0]["start"] == {"x": -3.0, "z": -2.0}
+    assert floorplan["coordinate_unit"] == "cm"
+    assert floorplan["wall_segments"][0]["start"] == {"x": -300.0, "z": -200.0}
     assert floorplan["room_regions"][0]["room_id"] == "living-1"
-    assert floorplan["room_regions"][0]["exterior"][2] == [3.0, 2.0]
-    assert floorplan["beam_segments"][0]["top_m"] == 2.8
-    assert floorplan["columns"][0]["center"] == {"x": -2.6, "z": -1.6}
-    assert floorplan["columns"][0]["size_m"] == 0.58
-    assert floorplan["columns"][0]["depth_m"] == 0.35
-    assert floorplan["columns"][0]["height_m"] == 2.45
+    assert floorplan["room_regions"][0]["exterior"][2] == [300.0, 200.0]
+    assert floorplan["beam_segments"][0]["top_cm"] == 280
+    assert floorplan["columns"][0]["center"] == {"x": -260.0, "z": -160.0}
+    assert floorplan["columns"][0]["size_cm"] == 58
+    assert floorplan["columns"][0]["depth_cm"] == 35
+    assert floorplan["columns"][0]["height_cm"] == 245
     assert floorplan["columns"][0]["rotation_deg"] == 30
     assert response.json()["scene_objects"] == []
 
 
 def test_2d_layout_and_drag_validation_use_the_engine_with_editor_geometry() -> None:
     floorplan_editor = {
+        "coordinate_unit": "cm",
         "width_cm": 600,
         "depth_cm": 400,
         "rooms": [
             {
                 "id": "living-1",
-                "polygon_m": [
+                "polygon_cm": [
                     {"x": 0, "y": 0},
-                    {"x": 6, "y": 0},
-                    {"x": 6, "y": 4},
-                    {"x": 0, "y": 4},
+                    {"x": 600, "y": 0},
+                    {"x": 600, "y": 400},
+                    {"x": 0, "y": 400},
                 ],
             }
         ],
         "structures": {
             "walls": [
-                {"start": {"x": 0, "y": 0}, "end": {"x": 6, "y": 0}},
-                {"start": {"x": 6, "y": 0}, "end": {"x": 6, "y": 4}},
-                {"start": {"x": 6, "y": 4}, "end": {"x": 0, "y": 4}},
-                {"start": {"x": 0, "y": 4}, "end": {"x": 0, "y": 0}},
+                {"start": {"x": 0, "y": 0}, "end": {"x": 600, "y": 0}},
+                {"start": {"x": 600, "y": 0}, "end": {"x": 600, "y": 400}},
+                {"start": {"x": 600, "y": 400}, "end": {"x": 0, "y": 400}},
+                {"start": {"x": 0, "y": 400}, "end": {"x": 0, "y": 0}},
             ]
         },
     }

@@ -90,23 +90,23 @@ def test_openings_only_cut_their_confirmed_host_wall() -> None:
         import {{ openingBelongsToWall }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
         const host = {{
           id: "wall-main",
-          start: {{ x: 0, z: 0 }},
-          end: {{ x: 4, z: 0 }},
+              start: {{ x: 0, z: 0 }},
+              end: {{ x: 400, z: 0 }},
         }};
         const adjacent = {{
           id: "wall-adjacent",
-          start: {{ x: 2, z: -2 }},
-          end: {{ x: 2, z: 2 }},
+              start: {{ x: 200, z: -200 }},
+              end: {{ x: 200, z: 200 }},
         }};
         const door = {{
           id: "door-1",
           host_wall_id: "wall-main",
-          start: {{ x: 1.6, z: 0 }},
-          end: {{ x: 2.4, z: 0 }},
+              start: {{ x: 160, z: 0 }},
+              end: {{ x: 240, z: 0 }},
         }};
         console.log(JSON.stringify({{
-          host: openingBelongsToWall(host, door, 0.12),
-          adjacent: openingBelongsToWall(adjacent, door, 0.12),
+              host: openingBelongsToWall(host, door, 12),
+              adjacent: openingBelongsToWall(adjacent, door, 12),
         }}));
         """
     )
@@ -157,10 +157,10 @@ def test_floor_is_clipped_to_cody_floorplan_exterior() -> None:
     source = VIEWER.read_text(encoding="utf-8")
 
     assert "function createFloorGeometry" in source
-    assert "synchronizedFloorRegions(floorplan, widthM, depthM)" in source
+    assert "synchronizedFloorRegions(floorplan, widthCm, depthCm)" in source
     assert ".map((region) => polygonShape(region, true))" in source
     assert "new THREE.ShapeGeometry(shapes)" in source
-    assert "createFloorGeometry(sceneData.floorplan, widthM, depthM)" in source
+    assert "createFloorGeometry(sceneData.floorplan, widthCm, depthCm)" in source
 
 
 def test_dxf_wall_mass_is_extruded_before_segment_fallback() -> None:

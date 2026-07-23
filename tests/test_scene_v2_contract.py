@@ -71,35 +71,79 @@ def test_floor_to_ceiling_window_preset_reaches_from_floor_to_ceiling() -> None:
           WINDOW_TYPES,
         }} from {json.dumps(module_uri)};
         const floorWindow = applyWindowTypePreset(
-          {{ id: "window-1", width_m: 2.4 }},
+          {{ id: "window-1", width_cm: 240 }},
           WINDOW_TYPES.floorToCeiling,
-          2.7,
+          270,
         );
-        const floorMetrics = windowOpeningMetrics(floorWindow, 2.7);
+        const floorMetrics = windowOpeningMetrics(floorWindow, 270);
         const standardMetrics = windowOpeningMetrics({{
           window_type: WINDOW_TYPES.standard,
-          sill_height_m: 0.9,
-          height_m: 1.2,
-        }}, 2.7);
+          sill_height_cm: 90,
+          height_cm: 120,
+        }}, 270);
         console.log(JSON.stringify({{ floorWindow, floorMetrics, standardMetrics }}));
         """
     )
 
     assert result["floorWindow"]["window_type"] == "floor_to_ceiling"
-    assert result["floorWindow"]["sill_height_m"] == 0
-    assert result["floorWindow"]["height_m"] == 2.62
+    assert result["floorWindow"]["sill_height_cm"] == 0
+    assert result["floorWindow"]["height_cm"] == 262
     assert result["floorMetrics"] == {
         "windowType": "floor_to_ceiling",
-        "sillHeightM": 0,
-        "headHeightM": 2.62,
-        "glazingHeightM": 2.62,
+        "sillHeightCm": 0,
+        "headHeightCm": 262,
+        "glazingHeightCm": 262,
     }
     assert result["standardMetrics"] == {
         "windowType": "standard",
-        "sillHeightM": 0.9,
-        "headHeightM": 2.1,
-        "glazingHeightM": 1.2,
+        "sillHeightCm": 90,
+        "headHeightCm": 210,
+        "glazingHeightCm": 120,
     }
+
+
+def test_saved_space_confirmation_migrates_legacy_meters_only_once() -> None:
+    module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ normalizeSavedSpaceConfirmation }} from {json.dumps(module_uri)};
+        const legacy = normalizeSavedSpaceConfirmation({{
+          rooms: [{{
+            id: "legacy-room",
+            polygon_m: [{{ x: 0, y: 0 }}, {{ x: 6, y: 0 }}, {{ x: 6, y: 4 }}],
+          }}],
+          structures: {{
+            walls: [{{
+              start: {{ x: 0, y: 0 }},
+              end: {{ x: 6, y: 0 }},
+              thickness_m: 0.18,
+            }}],
+          }},
+        }});
+        const current = normalizeSavedSpaceConfirmation({{
+          coordinate_unit: "cm",
+          rooms: [{{
+            id: "current-room",
+            polygon_cm: [{{ x: 0, y: 0 }}, {{ x: 600, y: 0 }}, {{ x: 600, y: 400 }}],
+          }}],
+          structures: {{
+            walls: [{{
+              start: {{ x: 0, y: 0 }},
+              end: {{ x: 600, y: 0 }},
+              thickness_cm: 18,
+            }}],
+          }},
+        }});
+        console.log(JSON.stringify({{ legacy, current }}));
+        """
+    )
+
+    assert result["legacy"]["coordinate_unit"] == "cm"
+    assert result["legacy"]["rooms"][0]["polygon_cm"][1] == {"x": 600, "y": 0}
+    assert result["legacy"]["structures"]["walls"][0]["end"] == {"x": 600, "y": 0}
+    assert result["legacy"]["structures"]["walls"][0]["thickness_cm"] == 18
+    assert result["current"]["rooms"][0]["polygon_cm"][1] == {"x": 600, "y": 0}
+    assert result["current"]["structures"]["walls"][0]["end"] == {"x": 600, "y": 0}
 
 
 def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
@@ -519,7 +563,7 @@ def test_structure_editor_uses_separate_pages_and_exposes_window_controls() -> N
     assert "function renderStructureReviewList()" in source
     assert "function confirmStructure(kind, structureId)" in source
     assert 'data-confirm-structure="${escapeHtml(item.id)}"' in source
-    assert "nextItem.sill_height_m = sillHeightM" in source
+    assert "nextItem.sill_height_cm = sillHeightCm" in source
     assert "Object.assign(item, resolution.item)" in source
     assert 'state.activeStructureKind = tool' in source
 
@@ -566,7 +610,7 @@ def test_selected_door_has_large_drag_target_and_resizable_endpoint_handles() ->
     assert 'pointer-events="stroke"' in source
     assert 'data-door-handle="start"' in source
     assert 'data-door-handle="end"' in source
-    assert "item.swing_end ? meterToPixel(item.swing_end)" in source
+    assert "item.swing_end ? cmToPixel(item.swing_end)" in source
     assert "${swingEnd.x} ${swingEnd.y}" in source
     assert "const swingCross =" in source
     assert "swingCross >= 0 ? 1 : 0" in source
@@ -577,7 +621,7 @@ def test_selected_door_has_large_drag_target_and_resizable_endpoint_handles() ->
     assert "function setSelectedOpeningWidthCm(" in source
     assert 'openingWidthSlider.addEventListener("input"' in source
     assert "nearestPointOnLine(requested, item.start, item.end)" in source
-    assert "item.width_m = Math.hypot(" in source
+    assert "item.width_cm = Math.hypot(" in source
     assert "item.confirmed = false" in source
 
 
@@ -641,8 +685,8 @@ def test_all_structure_kinds_share_numbering_sizing_and_crud_contract() -> None:
     assert "createStructurePreview" in source
     assert "structurePreview.render" in source
     assert "walls: state.structures.walls" in source
-    assert "planWidthM" in source
-    assert "planDepthM" in source
+    assert "planWidthCm" in source
+    assert "planDepthCm" in source
     assert "deleteSelectedStructure" in source
     assert "confirmStructure" in source
     assert "function resizeOpeningFromPointer(" in source
@@ -691,69 +735,69 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
         }} from {json.dumps(geometry_uri)};
         const wall = {{
           id: "wall-1",
-          start: {{ x: 0, y: -2 }},
-          end: {{ x: 0, y: 2 }},
-          thickness_m: 0.2,
+          start: {{ x: 0, y: -200 }},
+          end: {{ x: 0, y: 200 }},
+          thickness_cm: 20,
         }};
         const cases = {{
           columnThrough: findStructureWallCollision({{
-            center: {{ x: 0.12, y: 0 }},
-            size_m: 0.35,
-            depth_m: 0.35,
+            center: {{ x: 12, y: 0 }},
+            size_cm: 35,
+            depth_cm: 35,
           }}, "column", [wall]),
           columnTouching: findStructureWallCollision({{
-            center: {{ x: 0.275, y: 0 }},
-            size_m: 0.35,
-            depth_m: 0.35,
+            center: {{ x: 27.5, y: 0 }},
+            size_cm: 35,
+            depth_cm: 35,
           }}, "column", [wall]),
           beamThrough: findStructureWallCollision({{
-            start: {{ x: -1, y: 0 }},
-            end: {{ x: 1, y: 0 }},
-            thickness_m: 0.3,
+            start: {{ x: -100, y: 0 }},
+            end: {{ x: 100, y: 0 }},
+            thickness_cm: 30,
           }}, "beam", [wall]),
           beamTouching: findStructureWallCollision({{
-            start: {{ x: -1, y: 0 }},
-            end: {{ x: -0.1, y: 0 }},
-            thickness_m: 0.3,
+            start: {{ x: -100, y: 0 }},
+            end: {{ x: -10, y: 0 }},
+            thickness_cm: 30,
           }}, "beam", [wall]),
           beamSupportedAtEnd: findStructureWallCollision({{
             start: {{ x: 0, y: 0 }},
-            end: {{ x: 2, y: 0 }},
-            thickness_m: 0.3,
+            end: {{ x: 200, y: 0 }},
+            thickness_cm: 30,
           }}, "beam", [wall]),
         }};
         const cornerWalls = [
           wall,
           {{
             id: "wall-2",
-            start: {{ x: -2, y: 0 }},
-            end: {{ x: 2, y: 0 }},
-            thickness_m: 0.2,
+            start: {{ x: -200, y: 0 }},
+            end: {{ x: 200, y: 0 }},
+            thickness_cm: 20,
           }},
         ];
         const resolvedColumn = resolveStructureWallCollisions({{
-          center: {{ x: 0.12, y: 0.12 }},
-          size_m: 0.35,
-          depth_m: 0.35,
+          center: {{ x: 12, y: 12 }},
+          size_cm: 35,
+          depth_cm: 35,
         }}, "column", cornerWalls, {{
-          preferredPoint: {{ x: 2, y: 2 }},
-          maxAutoShiftM: 0.75,
+          preferredPoint: {{ x: 200, y: 200 }},
+          maxAutoShiftCm: 75,
         }});
         const unresolvedBeam = resolveStructureWallCollisions({{
-          start: {{ x: -1, y: 0 }},
-          end: {{ x: 1, y: 0 }},
-          thickness_m: 0.3,
+          start: {{ x: -100, y: 0 }},
+          end: {{ x: 100, y: 0 }},
+          thickness_cm: 30,
         }}, "beam", [wall], {{
-          preferredPoint: {{ x: 2, y: 0 }},
-          maxAutoShiftM: 0.4,
+          preferredPoint: {{ x: 200, y: 0 }},
+          maxAutoShiftCm: 40,
         }});
         const resolvedSupportedBeam = resolveStructureWallCollisions({{
           start: {{ x: 0, y: 0 }},
-          end: {{ x: 2, y: 0 }},
-          thickness_m: 0.3,
+          end: {{ x: 200, y: 0 }},
+          thickness_cm: 30,
         }}, "beam", [wall], {{
-          preferredPoint: {{ x: 1, y: 1 }},
-          maxAutoShiftM: 0.4,
+          preferredPoint: {{ x: 100, y: 100 }},
+          maxAutoShiftCm: 40,
         }});
         console.log(JSON.stringify({{
           cases,
@@ -771,13 +815,13 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
     assert result["cases"]["beamSupportedAtEnd"] is None
     assert result["resolvedColumn"]["resolved"] is True
     assert result["resolvedColumn"]["moved"] is True
-    assert result["resolvedColumn"]["item"]["center"]["x"] >= 0.27
-    assert result["resolvedColumn"]["item"]["center"]["y"] >= 0.27
+    assert result["resolvedColumn"]["item"]["center"]["x"] >= 27
+    assert result["resolvedColumn"]["item"]["center"]["y"] >= 27
     assert result["unresolvedBeam"]["resolved"] is False
     assert result["unresolvedBeam"]["moved"] is False
     assert result["resolvedSupportedBeam"]["resolved"] is True
     assert result["resolvedSupportedBeam"]["moved"] is True
-    assert result["resolvedSupportedBeam"]["item"]["start"]["x"] >= 0.1
+    assert result["resolvedSupportedBeam"]["item"]["start"]["x"] >= 10
 
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
@@ -947,7 +991,7 @@ def test_column_height_is_locked_to_the_confirmed_floor_height() -> None:
     assert "function confirmedRoomHeightCm()" in controller
     assert "heightInput.readOnly = isColumn;" in controller
     assert 'isColumn ? "柱高（依樓高，公分）"' in controller
-    assert "height_m: confirmedRoomHeightCm() / 100" in controller
+    assert "height_cm: confirmedRoomHeightCm()" in controller
     assert "heightCm: confirmedRoomHeightCm()" in controller
     assert "目前調整：柱高" not in controller
     assert "調整柱寬與高度" not in controller
@@ -972,13 +1016,13 @@ def test_dxf_rooms_and_structures_are_normalized_for_the_corner_origin_editor() 
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "floorplan.room_regions || []" in controller
-    assert "room.polygon_m || room.polygon || room.exterior" in controller
+    assert "room.polygon_cm || room.polygon_m || room.polygon || room.exterior" in controller
     assert "room.id || room.room_id" in controller
     assert "floorplan.wall_segments || floorplan.plan_segments" in controller
     assert "floorplan.door_segments || []" in controller
     assert "floorplan.window_segments || []" in controller
-    assert "x + (centered ? widthM / 2 : 0)" in controller
-    assert "y + (centered ? depthM / 2 : 0)" in controller
+    assert "x + (centered ? widthCm / 2 : 0)" in controller
+    assert "y + (centered ? depthCm / 2 : 0)" in controller
     assert "configureDxfPreview" in controller
 
 
