@@ -2210,8 +2210,8 @@ async def scene_layout(payload: dict) -> dict:
     )
     return {
         "scene_objects": generate_layout(
-            room.width * 100,
-            room.depth * 100,
+            room.width,
+            room.depth,
             objects,
             room=room,
             regions_boundary=_regions_boundary(floorplan, room),
@@ -2374,8 +2374,8 @@ async def scene_decorate(payload: dict) -> dict:
         requested_roles.append("plant")
     if curtain_window_hint(
         floorplan,
-        room_width_cm=room.width * 100,
-        room_depth_cm=room.depth * 100,
+        room_width_cm=room.width,
+        room_depth_cm=room.depth,
         boundary=place_boundary,
     ) and room_type in {"living_room", "bedroom", "dining_room", "default"}:
         requested_roles.append("curtain")
@@ -2387,8 +2387,8 @@ async def scene_decorate(payload: dict) -> dict:
     boundary_width_cm = boundary_depth_cm = 0.0
     if place_boundary is not None:
         min_x, min_y, max_x, max_y = place_boundary.bounds
-        boundary_width_cm = max((max_x - min_x) * 100 - 20, 0)
-        boundary_depth_cm = max((max_y - min_y) * 100 - 20, 0)
+        boundary_width_cm = max((max_x - min_x) - 20, 0)
+        boundary_depth_cm = max((max_y - min_y) - 20, 0)
     rug_anchor = next(
         (
             item
@@ -2433,8 +2433,8 @@ async def scene_decorate(payload: dict) -> dict:
             }
 
     scene_objects = generate_layout(
-        room.width * 100,
-        room.depth * 100,
+        room.width,
+        room.depth,
         [*existing, *additions],
         room=room,
         regions_boundary=_regions_boundary(floorplan, room),

@@ -158,17 +158,17 @@ def test_protected_furniture_is_reported_but_never_replaced_or_removed() -> None
     assert "使用者指定" in report[0]["message_zh"]
 
 
-def test_actual_roompilot_engine_receives_meters_and_owns_coordinates() -> None:
-    """整合回歸：型錄公分只在測試邊界轉公尺，Agent 未計算任何座標。"""
-    room = Room(width=4.0, depth=4.0)
+def test_actual_roompilot_engine_receives_centimeters_and_owns_coordinates() -> None:
+    """整合回歸：Agent 與引擎都使用公分，且 Agent 未計算任何座標。"""
+    room = Room(width=400, depth=400)
     item = _item("bed", "bed-frame", 160, 200)
     size = item["size_cm"]
     catalog = FurnitureCatalogItem(
         type="bed",
         name="床",
-        width=size["width"] / 100,
-        depth=size["depth"] / 100,
-        height=size["height"] / 100,
+        width=size["width"],
+        depth=size["depth"],
+        height=size["height"],
     )
     result = place_furniture_batch(room, [(catalog, "bed-1")])
     assert result["failed"] == []
@@ -177,8 +177,8 @@ def test_actual_roompilot_engine_receives_meters_and_owns_coordinates() -> None:
     assert 0 <= placed.pos_y <= room.depth
 
 
-def test_resolve_reflows_through_actual_meter_engine_adapter() -> None:
-    room = Room(width=4.0, depth=4.0)
+def test_resolve_reflows_through_actual_centimeter_engine_adapter() -> None:
+    room = Room(width=400, depth=400)
     large = _item("large", "fabric-sofa", 500, 200, instance_id="sofa-1")
     small = _item("small", "fabric-sofa", 120, 70)
 
@@ -189,9 +189,9 @@ def test_resolve_reflows_through_actual_meter_engine_adapter() -> None:
             batches.append((FurnitureCatalogItem(
                 type=item["normalized_type"],
                 name=item["name_zh_raw"],
-                width=size["width"] / 100,
-                depth=size["depth"] / 100,
-                height=size["height"] / 100,
+                width=size["width"],
+                depth=size["depth"],
+                height=size["height"],
             ), item["instance_id"]))
         result = place_furniture_batch(room, batches)
         failed_ids = {failure["id"] for failure in result["failed"]}
@@ -202,7 +202,7 @@ def test_resolve_reflows_through_actual_meter_engine_adapter() -> None:
                 "furniture_id": item["furniture_id"],
                 "normalized_type": item["normalized_type"],
                 "placement_failed": item["instance_id"] in failed_ids,
-                "position_m": (
+                "position_cm": (
                     {
                         "x": placed_by_id[item["instance_id"]].pos_x,
                         "y": placed_by_id[item["instance_id"]].pos_y,
@@ -223,4 +223,4 @@ def test_resolve_reflows_through_actual_meter_engine_adapter() -> None:
     assert final[0]["furniture_id"] == "small"
     assert report[0]["action"] == "replace"
     assert objects[0]["placement_failed"] is False
-    assert objects[0]["position_m"] is not None
+    assert objects[0]["position_cm"] is not None

@@ -84,14 +84,14 @@ def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
 
 
 def test_rug_relation_is_validated_by_the_engine() -> None:
-    room = Room(width=7, depth=5, walls=[])
+    room = Room(width=700, depth=500, walls=[])
     sofa_catalog = catalog_item_from_scene_object("sofa", "沙發", 210, 90, 82)
     rug_catalog = catalog_item_from_scene_object("large-medium-rug", "地毯", 180, 120, 1)
     sofa = PlacedFurniture(
         id="sofa",
         catalog=sofa_catalog,
-        pos_x=3.5,
-        pos_y=3.5,
+        pos_x=350,
+        pos_y=350,
         rotation=180,
     )
 
