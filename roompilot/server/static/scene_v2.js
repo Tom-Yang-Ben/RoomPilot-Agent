@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=20260721-column-resize3";
+import { createSceneViewer } from "./scene_viewer.js?v=20260723-floor-window1";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   createWorkflow,
@@ -42,6 +42,11 @@ import {
 import { createStructurePreview } from "./scene_structure_preview.js?v=20260721-column-resize3";
 import { validateColumnDimensionsCm } from "./scene_structure_geometry.js?v=20260721-column-resize3";
 import { buildSpaceProportionSummary } from "./scene_space_proportions.js?v=20260723-space-proportions1";
+import {
+  applyWindowTypePreset,
+  normalizedWindowType,
+  WINDOW_TYPES,
+} from "./scene_window_types.js?v=20260723-floor-window1";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -2044,14 +2049,16 @@ function renderSelectedStructureEditor() {
     column: "柱",
   };
   const selectedIndex = selectedStructureIndex();
-  $("#selected-structure-title").textContent =
-    `選取${labels[state.selectedStructure.kind] || "結構"} ${selectedIndex + 1}`;
   const isLineWidth = ["door", "window"].includes(state.selectedStructure.kind);
   const isDoor = state.selectedStructure.kind === "door";
   const isWindow = state.selectedStructure.kind === "window";
+  const windowType = isWindow ? normalizedWindowType(item.window_type) : WINDOW_TYPES.standard;
+  const isFloorToCeilingWindow = windowType === WINDOW_TYPES.floorToCeiling;
   const isBeam = state.selectedStructure.kind === "beam";
   const isColumn = state.selectedStructure.kind === "column";
   const hasLength = ["wall", "beam"].includes(state.selectedStructure.kind);
+  $("#selected-structure-title").textContent =
+    `選取${isFloorToCeilingWindow ? "落地窗" : labels[state.selectedStructure.kind] || "結構"} ${selectedIndex + 1}`;
   $("#selected-structure-length-cm").readOnly = isBeam;
   $("#selected-structure-size-label").textContent = isLineWidth
     ? "開口寬度（公分）"
@@ -2104,11 +2111,17 @@ function renderSelectedStructureEditor() {
   }
   $("#selected-structure-height-label").textContent =
     isBeam ? "下垂深度（公分）" : "高度（公分）";
+  $("#window-type-field").hidden = !isWindow;
+  $("#selected-window-type").value = windowType;
   $("#selected-structure-size-field").hidden = isLineWidth;
   $("#opening-width-controls").hidden = !isLineWidth;
   $("#window-sill-height-field").hidden = !isWindow;
+  $("#window-type-preview").hidden = !isFloorToCeilingWindow;
+  $("#window-sill-height-cm").disabled = isFloorToCeilingWindow;
   if (isWindow) {
-    $("#window-sill-height-cm").value = Math.round(Number(item.sill_height_m ?? 0.9) * 100);
+    $("#window-sill-height-cm").value = isFloorToCeilingWindow
+      ? "0"
+      : String(Math.round(Number(item.sill_height_m ?? 0.9) * 100));
   }
   $("#apply-structure-size").textContent = isDoor ? "套用高度" : "套用尺寸";
   if (isLineWidth) {
@@ -2160,7 +2173,11 @@ function structureMeasurement(item, kind) {
       || (kind === "door" ? 0.9 : 1.2),
     );
     const heightM = Number(item.height_m || (kind === "door" ? 2.1 : 1.2));
-    return `寬 ${Math.round(widthM * 100)} × 高 ${Math.round(heightM * 100)} cm`;
+    const typeLabel = kind === "window"
+      && normalizedWindowType(item.window_type) === WINDOW_TYPES.floorToCeiling
+      ? "落地窗 · "
+      : "";
+    return `${typeLabel}寬 ${Math.round(widthM * 100)} × 高 ${Math.round(heightM * 100)} cm`;
   }
   if (kind === "column") {
     return `寬 ${Math.round(Number(item.size_m || 0.35) * 100)} × 深 ${Math.round(Number(item.depth_m || item.size_m || 0.35) * 100)} × 高 ${Math.round(Number(item.height_m || 2.7) * 100)} cm`;
@@ -2204,7 +2221,7 @@ function renderStructureReviewList() {
     return `<article class="rp-door-review-item ${selected ? "is-active" : ""}">
       <button type="button" class="rp-door-review-select"
         data-structure-review="${escapeHtml(item.id)}" data-structure-kind="${kind}">
-        <strong>${meta.label} ${index + 1}</strong>
+        <strong>${kind === "window" && normalizedWindowType(item.window_type) === WINDOW_TYPES.floorToCeiling ? "落地窗" : meta.label} ${index + 1}</strong>
         <span>${structureMeasurement(item, kind)} · ${item.confirmed ? "已確認" : "待人工確認"}</span>
       </button>
       <button type="button" class="rp-door-confirm ${item.confirmed ? "is-confirmed" : ""}"
@@ -2271,7 +2288,11 @@ function applySelectedStructureSize() {
   const depthM = columnDimensions
     ? columnDimensions.values.depthCm / 100
     : Math.max(0.1, Number($("#selected-structure-depth-cm").value) / 100);
-  const sillHeightM = Math.max(0, Number($("#window-sill-height-cm").value) / 100);
+  const floorToCeiling = kind === "window"
+    && normalizedWindowType(item.window_type) === WINDOW_TYPES.floorToCeiling;
+  const sillHeightM = floorToCeiling
+    ? 0
+    : Math.max(0, Number($("#window-sill-height-cm").value) / 100);
   if (kind === "window") {
     const cx = (item.start.x + item.end.x) / 2;
     const cy = (item.start.y + item.end.y) / 2;
@@ -2281,6 +2302,7 @@ function applySelectedStructureSize() {
     item.width_m = sizeM;
     item.sill_height_m = sillHeightM;
     item.height_m = heightM;
+    item.head_height_m = sillHeightM + heightM;
   } else if (kind === "door") {
     item.height_m = heightM;
   } else if (kind === "column") {
@@ -2316,6 +2338,29 @@ function applySelectedStructureSize() {
   setStatus(kind === "column"
     ? `柱尺寸已更新為 ${Math.round(sizeM * 100)} × ${Math.round(depthM * 100)} × ${Math.round(heightM * 100)} 公分。`
     : "結構尺寸已更新。");
+}
+
+function applySelectedWindowType() {
+  const item = selectedStructureItem();
+  if (!item || state.selectedStructure?.kind !== "window") return;
+  const ceilingHeightM = confirmedFloorplanEditor().room_height_cm / 100;
+  Object.assign(
+    item,
+    applyWindowTypePreset(item, $("#selected-window-type").value, ceilingHeightM),
+  );
+  item.confirmed = false;
+  item.estimated = false;
+  renderSpaceOverlay();
+  renderStructureReviewList();
+  renderSelectedStructureEditor();
+  invalidateDownstreamFrom(
+    "space_confirmation",
+    "窗戶類型已修改，後續需求、家具與 3D 需要重新確認。",
+  );
+  scheduleSave("space_confirmation");
+  setStatus(item.window_type === WINDOW_TYPES.floorToCeiling
+    ? "已改為落地窗，窗台設為 0 cm，3D 會依樓高生成玻璃與框架。"
+    : "已改為一般窗，請確認窗高與窗台高度。");
 }
 
 function setSelectedOpeningWidthCm(widthCm, persist = false) {
@@ -2621,6 +2666,7 @@ function addDroppedStructure(tool, point) {
       width_m: widthM,
       height_m: tool === "window" ? 1.2 : 2.1,
       sill_height_m: tool === "window" ? 0.9 : 0,
+      window_type: tool === "window" ? WINDOW_TYPES.standard : undefined,
       host_wall_id: host?.wall.id,
       source: "manual",
       opening_direction: "right",
@@ -4448,6 +4494,7 @@ function bindEvents() {
   element.spaceOverlay.addEventListener("pointerdown", spacePointerDown);
   element.spaceOverlay.addEventListener("pointermove", spacePointerMove);
   $("#apply-structure-size").addEventListener("click", applySelectedStructureSize);
+  $("#selected-window-type").addEventListener("change", applySelectedWindowType);
   element.openingWidthSlider.addEventListener("input", () => {
     setSelectedOpeningWidthCm(element.openingWidthSlider.value, false);
   });

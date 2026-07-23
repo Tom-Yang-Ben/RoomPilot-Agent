@@ -6620,6 +6620,35 @@ body.rp-workflow-page .danger-action {
   font-size: 13px;
 }
 
+.rp-window-type-preview {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid #d8d3cc;
+}
+
+.rp-window-type-preview[hidden] {
+  display: none;
+}
+
+.rp-window-type-preview img {
+  width: 112px;
+  height: 76px;
+  object-fit: cover;
+  border: 1px solid #bdb8b0;
+  border-radius: 4px;
+}
+
+.rp-window-type-preview figcaption {
+  color: #3c4944;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 #space-step .rp-pane-heading {
   position: relative;
   flex-wrap: wrap;

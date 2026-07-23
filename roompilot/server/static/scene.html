@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=20260723-room-toolbar2" />
+    <link rel="stylesheet" href="/static/site.css?v=20260723-window-type1" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -207,12 +207,17 @@
                 <h3 id="selected-structure-title">選取結構</h3>
                 <p id="structure-editor-guidance">可直接在左圖拖曳移動；尺寸仍應以現場量測為準。</p>
                 <div class="rp-inline-fields">
+                  <label id="window-type-field" hidden><span>窗戶類型</span><select id="selected-window-type"><option value="standard">一般窗</option><option value="floor_to_ceiling">落地窗</option></select></label>
                   <label id="selected-structure-size-field"><span id="selected-structure-size-label">尺寸（公分）</span><input id="selected-structure-size-cm" type="number" min="1" step="1" /></label>
                   <label id="selected-structure-length-field" hidden><span id="selected-structure-length-label">長度（公分）</span><input id="selected-structure-length-cm" type="number" min="1" step="1" /></label>
                   <label id="selected-structure-depth-field" hidden><span id="selected-structure-depth-label">深度（公分）</span><input id="selected-structure-depth-cm" type="number" min="1" step="1" /></label>
                   <label><span id="selected-structure-height-label">高度（公分）</span><input id="selected-structure-height-cm" type="number" min="1" step="1" /></label>
                   <label id="window-sill-height-field" hidden><span>窗台離地高度（公分）</span><input id="window-sill-height-cm" type="number" min="0" step="1" value="90" /></label>
                 </div>
+                <figure id="window-type-preview" class="rp-window-type-preview" hidden>
+                      <img src="/static/structure_assets/floor-to-ceiling-window.png?v=20260723-two-panel1" alt="黑色鋁框左右兩扇玻璃落地窗" />
+                      <figcaption>落地窗 · 黑鋁框左右兩扇玻璃參考</figcaption>
+                </figure>
                 <section id="opening-width-controls" class="rp-door-width-controls" hidden>
                   <div class="rp-door-width-heading">
                     <strong id="opening-width-label">開口寬度</strong>
@@ -506,6 +511,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene_v2.js?v=sha256-181f64da0f80"></script>
+    <script type="module" src="/static/scene_v2.js?v=sha256-bfe11d97228c"></script>
   </body>
 </html>

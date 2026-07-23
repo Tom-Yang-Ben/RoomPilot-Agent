@@ -17,6 +17,7 @@ import {
 import { openingBelongsToWall } from "./scene_architecture.js?v=20260719-real3d6";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=20260721-column-resize3";
+import { windowOpeningMetrics } from "./scene_window_types.js?v=20260723-floor-window1";
 import {
   clampWalkPosition,
   computeExactModelScale,
@@ -1046,12 +1047,16 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           const from = Math.max(0, along - width / 2);
           const to = Math.min(length, along + width / 2);
           if (to - from < 0.24) return null;
+          const windowMetrics = kind === "window"
+            ? windowOpeningMetrics(opening, wallHeight)
+            : null;
           return {
             from,
             to,
             kind,
             width: to - from,
             opening,
+            windowMetrics,
             key: opening.id || `${kind}-${index}-${centerX.toFixed(2)}-${centerZ.toFixed(2)}`,
           };
         })
@@ -1126,9 +1131,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         addBaseboard(cursor, interval.from);
         const openingHeight = interval.kind === "door"
           ? Math.min(Number(interval.opening.height_m || 2.1), wallHeight - 0.08)
-          : Math.min(Number(interval.opening.head_height_m || 2.12), wallHeight - 0.08);
+          : interval.windowMetrics.headHeightM;
         if (interval.kind === "window") {
-          const sillHeight = Math.min(Number(interval.opening.sill_height_m || 0.88), openingHeight - 0.35);
+          const sillHeight = interval.windowMetrics.sillHeightM;
           addWallSection(interval.from, interval.to, 0, sillHeight);
           addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
         } else {
@@ -1179,8 +1184,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       clearcoatRoughness: 0.34,
       envMapIntensity: 1,
     });
-    const height = isWindow ? 1.18 : 2.05;
-    const centerY = isWindow ? 1.48 : height / 2;
+    const height = isWindow ? interval.windowMetrics?.glazingHeightM || 1.2 : 2.05;
+    const centerY = isWindow
+      ? (interval.windowMetrics?.sillHeightM || 0) + height / 2
+      : height / 2;
     const assembly = new THREE.Group();
     assembly.position.set(anchor.x, 0, anchor.z);
     assembly.rotation.y = anchor.rotationY;
@@ -1205,12 +1212,13 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       glass.position.y = centerY;
       glass.castShadow = false;
       assembly.add(glass);
+      const mullionPositions = [0];
       [
         [interval.width, 0.045, 0, centerY - height / 2],
         [interval.width, 0.045, 0, centerY + height / 2],
         [0.045, height, -interval.width / 2, centerY],
         [0.045, height, interval.width / 2, centerY],
-        [0.035, height, 0, centerY],
+        ...mullionPositions.map((x) => [0.035, height, x, centerY]),
       ].forEach(([width, frameHeight, x, y]) => {
         const frame = new THREE.Mesh(
           new THREE.BoxGeometry(width, frameHeight, 0.045),
@@ -1262,12 +1270,16 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         Number(opening.width_m || opening.width || measuredWidth),
         kind === "door" ? 0.68 : 0.5,
       );
+      const windowMetrics = kind === "window"
+        ? windowOpeningMetrics(opening, wallHeight)
+        : null;
       buildOpeningAssembly(
         roomGroupRef,
         {
           kind,
           width: openingWidth,
           opening,
+          windowMetrics,
         },
         {
           x: (Number(start.x || 0) + Number(end.x || 0)) / 2,
@@ -1277,10 +1289,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       );
       const isWindow = kind === "window";
       const openingHeight = isWindow
-        ? Math.min(Number(opening.head_height_m || 2.12), wallHeight - 0.08)
+        ? windowMetrics.headHeightM
         : Math.min(Number(opening.height_m || 2.1), wallHeight - 0.08);
       const sillHeight = isWindow
-        ? Math.min(Number(opening.sill_height_m || 0.88), openingHeight - 0.35)
+        ? windowMetrics.sillHeightM
         : 0;
       const addOpeningWallSection = (bottom, height, detail) => {
         if (height < 0.025) return;

@@ -50,6 +50,64 @@ def test_space_proportion_summary_uses_calibrated_room_areas() -> None:
     }
 
 
+def test_floor_to_ceiling_window_preset_reaches_from_floor_to_ceiling() -> None:
+    module_uri = (STATIC / "scene_window_types.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{
+          applyWindowTypePreset,
+          windowOpeningMetrics,
+          WINDOW_TYPES,
+        }} from {json.dumps(module_uri)};
+        const floorWindow = applyWindowTypePreset(
+          {{ id: "window-1", width_m: 2.4 }},
+          WINDOW_TYPES.floorToCeiling,
+          2.7,
+        );
+        const floorMetrics = windowOpeningMetrics(floorWindow, 2.7);
+        const standardMetrics = windowOpeningMetrics({{
+          window_type: WINDOW_TYPES.standard,
+          sill_height_m: 0.9,
+          height_m: 1.2,
+        }}, 2.7);
+        console.log(JSON.stringify({{ floorWindow, floorMetrics, standardMetrics }}));
+        """
+    )
+
+    assert result["floorWindow"]["window_type"] == "floor_to_ceiling"
+    assert result["floorWindow"]["sill_height_m"] == 0
+    assert result["floorWindow"]["height_m"] == 2.62
+    assert result["floorMetrics"] == {
+        "windowType": "floor_to_ceiling",
+        "sillHeightM": 0,
+        "headHeightM": 2.62,
+        "glazingHeightM": 2.62,
+    }
+    assert result["standardMetrics"] == {
+        "windowType": "standard",
+        "sillHeightM": 0.9,
+        "headHeightM": 2.1,
+        "glazingHeightM": 1.2,
+    }
+
+
+def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert 'id="window-type-field"' in html
+    assert 'id="selected-window-type"' in html
+    assert 'value="floor_to_ceiling"' in html
+    assert 'id="window-type-preview"' in html
+    assert "黑鋁框左右兩扇玻璃參考" in html
+    assert (STATIC / "structure_assets" / "floor-to-ceiling-window.png").is_file()
+    assert "function applySelectedWindowType" in controller
+    assert "applyWindowTypePreset" in controller
+    assert "windowOpeningMetrics" in viewer
+    assert "const mullionPositions = [0];" in viewer
+
+
 def test_step_four_has_a_separate_proportion_confirmation_page() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
