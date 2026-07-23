@@ -94,7 +94,7 @@
     </g>
     <g class="Space Bedroom" id="g30" transform="translate(-311.68339,47.440866)">
       <text x="1004.7598" y="157.09319" font-size="22" text-anchor="middle" fill="#000000" id="text30" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan39" x="1004.7598" y="157.09319">Bedroom</tspan></text>
-      <polygon points="867.113,-34.2629 1149.12,-34.2629 1149.12,404.565 867.113,404.565" style="fill:#498ed9;fill-opacity:0.35;stroke:#498ed9;stroke-width:1.41"/>
+      <polygon points="867.113,-34.2629 1149.12,-34.2629 1149.12,404.565 867.113,404.565 " style="fill:#498ed9;fill-opacity:0.35;stroke:#498ed9;stroke-width:1.41"/>
     </g>
     <g class="Space LivingRoom" id="g31">
       <polygon points="13.0,262.0 13.0,823.0 542.0,824.0 542.0,262.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon31" style="fill:#7ec37e;fill-opacity:0.34999999;stroke:#7ec37e;stroke-opacity:1"/>

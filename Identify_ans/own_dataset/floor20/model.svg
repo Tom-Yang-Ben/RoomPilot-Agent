@@ -59,14 +59,14 @@
     </g>
     <g class="Space Bedroom" id="g19" transform="translate(-385.83513,33.157706)">
       <text x="567.84949" y="219.85663" font-size="22px" text-anchor="middle" fill="#000000" id="text19">Bedroom</text>
-      <polygon points="400.916,-19.0815 716.398,-19.0815 716.398,443.098 400.916,443.098" style="fill:#4a8fd9;fill-opacity:0.35;stroke:#4a8fd9;stroke-width:1.42869;stroke-opacity:1"/>
+      <polygon points="400.916,-19.0815 716.398,-19.0815 716.398,443.098 400.916,443.098 " style="fill:#4a8fd9;fill-opacity:0.35;stroke:#4a8fd9;stroke-width:1.42869;stroke-opacity:1"/>
     </g>
     <g class="Space Bedroom" id="g19-1" transform="translate(-384.18747,34.1172)" inkscape:label="g22">
       <text x="826.0777" y="348.46832" font-size="22px" text-anchor="middle" fill="#000000" id="text19-3" inkscape:label="text22">Bedroom</text>
-      <polygon points="725.41,234.551 947.954,234.551 947.954,507.334 725.41,507.334" style="fill:#7ec47e;fill-opacity:0.35;stroke:#7ec47e;stroke-width:0.921855;stroke-opacity:1"/>
+      <polygon points="725.41,234.551 947.954,234.551 947.954,507.334 725.41,507.334 " style="fill:#7ec47e;fill-opacity:0.35;stroke:#7ec47e;stroke-width:0.921855;stroke-opacity:1"/>
     </g>
     <g class="Space Kitchen" id="g20">
-      <polygon points="247.176,542.581 562.676,542.581 562.676,827.938 247.176,827.938" style="fill:#e8823b;fill-opacity:0.34999999;stroke:#e8823b;stroke-width:1.41;stroke-opacity:1"/>
+      <polygon points="247.176,542.581 562.676,542.581 562.676,827.938 247.176,827.938 " style="fill:#e8823b;fill-opacity:0.34999999;stroke:#e8823b;stroke-width:1.41;stroke-opacity:1"/>
       <text x="394.04779" y="690.68335" font-size="22" text-anchor="middle" fill="#000000" id="text20" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan25" x="394.04779" y="690.68335">Kitchen</tspan></text>
     </g>
     <g class="Space Bath" id="g21">

@@ -59,15 +59,15 @@
       <polygon points="-71.0,290.0 -71.0,369.0 87.0,369.0 87.0,290.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon15"/>
     </g>
     <g class="Space Bath" id="g16">
-      <polygon points="15.0274,190.308 224.973,190.308 224.973,15.0274 15.0274,15.0274"/>
+      <polygon points="16,16 16,191 93,191 94,118 175,118 176,191 224,191 224,16 "/>
       <text x="120" y="98" font-size="22px" text-anchor="middle" fill="#000000" id="text16" transform="matrix(0.99973867,0,0,1.0559076,0.0313593,-0.81117501)">Bath</text>
     </g>
     <g class="Space Entry" id="g18">
-      <polygon points="14.6198,457.978 211.978,457.978 211.978,207.022 14.6198,207.022"/>
+      <polygon points="14.6198,457.978 211.978,457.978 211.978,207.022 14.6198,207.022 "/>
       <text x="136.75316" y="291.20782" font-size="22px" text-anchor="middle" fill="#000000" id="text18" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:25.4964px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:1.15893" transform="matrix(1.0442245,0,0,0.99982642,-9.3973684,0.05771543) scale(0.86286855,1.1589251)"><tspan sodipodi:role="line" id="tspan21" x="136.75316" y="291.20782" style="stroke-width:1.15893">Entrance</tspan></text>
     </g>
     <g class="Space LivingRoom" id="g19">
-      <polygon points="226.579,525.819 762.922,525.819 762.922,307.181 225.182,307.181" style="fill:#7ec37e;fill-opacity:0.34999999;stroke:#7ec37e;stroke-opacity:1"/>
+      <polygon points="226.579,525.819 762.922,525.819 762.922,307.181 225.182,307.181 " style="fill:#7ec37e;fill-opacity:0.34999999;stroke:#7ec37e;stroke-opacity:1"/>
       <text x="495.92831" y="356.16364" font-size="22px" text-anchor="middle" fill="#000000" id="text19" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.1015px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:1.18643" transform="matrix(1.396727,0,0,0.99834645,-89.081156,0.68870176) scale(0.84286377,1.1864313)"><tspan sodipodi:role="line" id="tspan20" x="495.92831" y="356.16364" style="stroke-width:1.18643">Living Room</tspan></text>
     </g>
   </g>

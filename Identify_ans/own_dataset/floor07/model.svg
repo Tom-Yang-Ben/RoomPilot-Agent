@@ -5,7 +5,7 @@
   <g id="Model" class="Model">
     <g class="Space Bedroom" id="g34" transform="translate(-1296.9112,80.342219)">
       <text x="2286.8044" y="139.88199" font-size="22" text-anchor="middle" fill="#000000" id="text34" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:21.6156px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:0.982526" transform="scale(1.0046694,0.99535231)"><tspan sodipodi:role="line" id="tspan42" x="2286.8044" y="139.88199" style="stroke-width:0.982526">Bedroom</tspan></text>
-      <polygon points="2133.87,-48.2382 2449.73,-48.2382 2449.73,320.722 2133.87,320.722" style="fill:#498ed9;fill-opacity:0.35;stroke:#498ed9;stroke-width:3.84954"/>
+      <polygon points="2133.87,-48.2382 2449.73,-48.2382 2449.73,320.722 2133.87,320.722 " style="fill:#498ed9;fill-opacity:0.35;stroke:#498ed9;stroke-width:3.84954"/>
     </g>
     <g id="Wall" class="Wall">
       <polygon points="20.0,14.0 510.0,14.0 510.0,29.0 20.0,29.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon1"/>
@@ -102,7 +102,7 @@
     </g>
     <g class="Space LivingRoom" id="g32" transform="translate(-490.45839,183.04857)">
       <text x="634.85571" y="-18.253937" font-size="22px" text-anchor="middle" fill="#000000" id="text32">LivingRoom</text>
-      <polygon points="526.789,-150.91 878.913,-150.91 878.913,181.651 526.789,181.651" style="fill:#498ed9;fill-opacity:0.35;stroke:#498ed9;stroke-width:3.918"/>
+      <polygon points="526.789,-150.91 878.913,-150.91 878.913,181.651 526.789,181.651 " style="fill:#498ed9;fill-opacity:0.35;stroke:#498ed9;stroke-width:3.918"/>
     </g>
     <g class="Space Bath" id="g33">
       <polygon points="406.0,30.0 406.0,132.0 422.0,134.0 428.0,144.0 428.0,224.0 631.0,224.0 631.0,92.0 622.0,91.0 615.0,84.0 614.0,33.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2" id="polygon33"/>

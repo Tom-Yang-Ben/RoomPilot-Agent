@@ -133,7 +133,7 @@
       <text x="424.2785" y="65.747627" font-size="22" text-anchor="middle" fill="#000000" id="text28-4-6-4" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:35.2854px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:1.60388" transform="scale(0.99819775,1.0018055)" inkscape:label="text30"><tspan sodipodi:role="line" id="tspan1">Stair</tspan></text>
     </g>
     <g class="Space LivingRoom" id="g29" transform="translate(293.04402,-332.86798)">
-      <polygon points="19.8778,498.798 261.812,498.798 261.812,670.326 19.8778,670.326" style="fill:#7ec37e;fill-opacity:0.35;stroke:#7ec37e;stroke-width:1.23213;stroke-opacity:1"/>
+      <polygon points="19.8778,498.798 261.812,498.798 261.812,670.326 19.8778,670.326 " style="fill:#7ec37e;fill-opacity:0.35;stroke:#7ec37e;stroke-width:1.23213;stroke-opacity:1"/>
       <text x="148.88411" y="582.75391" font-size="22px" text-anchor="middle" fill="#000000" id="text29" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan32" x="148.88411" y="582.75391">Living Room</tspan></text>
     </g>
     <g id="g17-1-1-7-2" class="Wall" transform="matrix(1.1119978,0,0,0.24840261,223.16377,124.83418)">

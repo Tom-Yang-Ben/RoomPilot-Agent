@@ -81,7 +81,7 @@
     </g>
     <g class="Space Bedroom" id="g26" transform="translate(-897.76706,22.682944)">
       <text x="1522.1548" y="168.31706" font-size="22px" text-anchor="middle" fill="#000000" id="text26">Bedroom</text>
-      <polygon points="1313.22,-6.36237 1746.59,-6.36237 1746.59,314.791 1313.22,314.791" style="fill:#4a8ed9;fill-opacity:0.35;stroke:#4a8ed9;stroke-width:1.989;stroke-opacity:1"/>
+      <polygon points="1313.22,-6.36237 1746.59,-6.36237 1746.59,314.791 1313.22,314.791 " style="fill:#4a8ed9;fill-opacity:0.35;stroke:#4a8ed9;stroke-width:1.989;stroke-opacity:1"/>
     </g>
     <g class="Space Bath" id="g27" transform="matrix(0.99954962,0,0,1.1094932,0.3283243,-38.378612)">
       <polygon points="611,643 847,643 847,352 611,351 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2" id="polygon27"/>

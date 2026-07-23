@@ -47,18 +47,18 @@
     </g>
     <g class="Space LivingRoom" id="g16">
       <text x="739.79144" y="261.90305" font-size="22px" text-anchor="middle" fill="#000000" id="text16" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="translate(-589.28466,16.144785)"><tspan sodipodi:role="line" id="tspan21" x="739.79144" y="261.90305">Living Room</tspan></text>
-      <polygon points="13.1951,15.4012 336.196,15.4012 336.196,451.416 13.1951,451.416" style="fill:#7ec37e;fill-opacity:0.35;stroke:#7ec37e;stroke-width:1.8944"/>
+      <polygon points="15,16 15,451 334,452 334,16 " style="fill:#7ec37e;fill-opacity:0.35;stroke:#7ec37e;stroke-width:1.8944"/>
     </g>
     <g class="Space Bedroom" id="g17">
-      <polygon points="348.0,15.0 348.0,438.0 629.0,438.0 629.0,15.0 " fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon17"/>
+      <polygon points="349,16 349,445 442,445 443,437 628,437 628,16 " fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon17"/>
       <text x="488" y="226" font-size="22" text-anchor="middle" fill="#000000" id="text17">Bedroom</text>
     </g>
     <g class="Space Kitchen" id="g18">
-      <polygon points="15.7111,643.527 628.527,643.527 628.527,453.473 15.7111,453.473" style="fill:#e8833b;fill-opacity:0.34999999;stroke:#e8833b;stroke-opacity:1"/>
+      <polygon points="628,532 557,531 557,454 443,454 442,446 349,446 348,452 86,453 86,531 15,532 15,643 628,643 " style="fill:#e8833b;fill-opacity:0.34999999;stroke:#e8833b;stroke-opacity:1"/>
       <text x="765.50604" y="370.23199" font-size="14.8633px" text-anchor="middle" fill="#000000" id="text18" transform="matrix(2.180839,0,0,0.99504603,-743.22083,2.7172514) scale(0.67560581,1.4801531)" style="stroke-width:0.675606;-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:14.8633px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan22">Kitchen</tspan></text>
     </g>
     <g class="Space Bath" id="g19">
-      <polygon points="643.181,720.059 797.819,720.059 797.819,453.181 643.181,453.181"/>
+      <polygon points="715,454 715,531 644,532 644,719 797,719 797,454 "/>
       <text x="585.42432" y="667.00616" font-size="17.888px" text-anchor="middle" fill="#000000" id="text19" transform="matrix(0.99766863,0,0,1.3972665,1.6797557,-179.78104) scale(1.2298772,0.81308929)" style="stroke-width:0.813089">Bath</text>
     </g>
   </g>
