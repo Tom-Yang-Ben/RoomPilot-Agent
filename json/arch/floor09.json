@@ -410,6 +410,6 @@
     "image": "floor09.png",
     "cm_per_px": 2.5,
     "scale_method": "wall_min",
-    "scale_confidence": "medium"
+    "scale_confidence": "low"
   }
 }

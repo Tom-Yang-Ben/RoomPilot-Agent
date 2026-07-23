@@ -424,67 +424,51 @@
   "doors": [
     {
       "px": {
-        "cx": 79.0,
-        "cy": 573.5,
-        "width": 31.0
+        "cx": 139.0,
+        "cy": 325.0,
+        "width": 44.5
       },
       "cm": {
-        "cx": 98.75,
-        "cy": 283.12,
-        "width": 38.79
-      },
-      "score": 0.778,
-      "tpl_chamfer": 1.88,
-      "tpl_kind": "door11",
-      "score_fused": 0.778
-    },
-    {
-      "px": {
-        "cx": 79.0,
-        "cy": 536.0,
-        "width": 28.5
-      },
-      "cm": {
-        "cx": 98.75,
-        "cy": 330.0,
-        "width": 35.68
+        "cx": 173.75,
+        "cy": 593.75,
+        "width": 55.62
       },
       "score": 0.741,
-      "tpl_chamfer": 2.02,
-      "tpl_kind": "door08",
+      "tpl_chamfer": 2.61,
+      "tpl_kind": "door02",
       "score_fused": 0.741
     },
     {
       "px": {
-        "cx": 67.5,
-        "cy": 634.0,
-        "width": 129.5
+        "cx": 534.0,
+        "cy": 330.0,
+        "width": 59.0
       },
       "cm": {
-        "cx": 84.38,
-        "cy": 207.5,
-        "width": 161.88
+        "cx": 667.5,
+        "cy": 587.5,
+        "width": 73.75
       },
       "score": 0.556,
-      "tpl_chamfer": 2.64,
-      "tpl_kind": "door02",
+      "tpl_chamfer": 2.39,
+      "tpl_kind": "door12",
       "score_fused": 0.556
     },
     {
       "px": {
-        "cx": 177.8,
-        "cy": 545.0,
-        "width": 23.1
+        "cx": 182.2,
+        "cy": 289.5,
+        "width": 21.2
       },
       "cm": {
-        "cx": 222.19,
-        "cy": 318.75,
-        "width": 28.81
+        "cx": 227.81,
+        "cy": 638.12,
+        "width": 26.48
       },
       "score": 0.556,
-      "tpl_chamfer": 1.4,
-      "tpl_kind": "door07",
-      "score_fused": 0.9
+      "tpl_chamfer": 1.88,
+      "tpl_kind": "door12",
+      "score_fused": 0.556
     },
     {
       "px": {
@@ -519,6 +503,21 @@
     {
       "px": {
         "cx": 242.5,
+        "cy": 557.0,
+        "width": 316.0
+      },
+      "cm": {
+        "cx": 303.12,
+        "cy": 303.75,
+        "width": 395.0
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 242.5,
         "cy": 382.0,
         "width": 144.0
       },
@@ -532,5 +531,5 @@
       "src": "zone"
     }
   ],
-  "dxf_scale": "dxf_scale/floor06.dxf"
+  "dxf_scale": "dxf_scale/gray/floor06.dxf"
 }

@@ -262,8 +262,26 @@
         "cy": 694.77,
         "width": 57.27
       },
-      "score": 0.704
+      "score": 0.704,
+      "tpl_chamfer": 2.55,
+      "tpl_kind": "door02",
+      "score_fused": 0.704
+    },
+    {
+      "px": {
+        "cx": 52.0,
+        "cy": 586.5,
+        "width": 156.0
+      },
+      "cm": {
+        "cx": 70.91,
+        "cy": 8.86,
+        "width": 212.7
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
     }
   ],
-  "dxf_scale": "dxf_scale/floor55.dxf"
+  "dxf_scale": "dxf_scale/gray/floor55.dxf"
 }

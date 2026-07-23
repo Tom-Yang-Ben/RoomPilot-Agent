@@ -243,19 +243,19 @@
     {
       "id": "door_2",
       "position": {
-        "x": 1015.91,
-        "y": 789.89
+        "x": 1013.86,
+        "y": 467.39
       },
       "rotation": 0,
-      "width": 92.05,
+      "width": 97.5,
       "hinge": "right",
-      "host_wall": "wall_10"
+      "host_wall": "wall_11"
     }
   ],
   "meta": {
     "image": "floor15.png",
     "cm_per_px": 1.3636,
     "scale_method": "wall_min",
-    "scale_confidence": "high"
+    "scale_confidence": "low"
   }
 }

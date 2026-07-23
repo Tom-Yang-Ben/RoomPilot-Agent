@@ -278,6 +278,97 @@
       ]
     }
   ],
-  "doors": [],
-  "dxf_scale": "dxf_scale/floor73.dxf"
+  "doors": [
+    {
+      "px": {
+        "cx": 379.0,
+        "cy": 236.5,
+        "width": 156.0
+      },
+      "cm": {
+        "cx": 494.33,
+        "cy": 628.02,
+        "width": 203.5
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 154.0,
+        "cy": 423.5,
+        "width": 156.0
+      },
+      "cm": {
+        "cx": 200.86,
+        "cy": 384.12,
+        "width": 203.5
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 423.5,
+        "cy": 283.5,
+        "width": 154.0
+      },
+      "cm": {
+        "cx": 552.37,
+        "cy": 566.72,
+        "width": 200.9
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 424.5,
+        "cy": 442.0,
+        "width": 156.0
+      },
+      "cm": {
+        "cx": 553.68,
+        "cy": 359.99,
+        "width": 203.5
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 424.5,
+        "cy": 283.5,
+        "width": 154.0
+      },
+      "cm": {
+        "cx": 553.68,
+        "cy": 566.72,
+        "width": 200.9
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    },
+    {
+      "px": {
+        "cx": 528.5,
+        "cy": 408.0,
+        "width": 296.0
+      },
+      "cm": {
+        "cx": 689.32,
+        "cy": 404.33,
+        "width": 386.1
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
+    }
+  ],
+  "dxf_scale": "dxf_scale/gray/floor73.dxf"
 }

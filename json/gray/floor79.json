@@ -362,7 +362,10 @@
         "cy": 1119.2,
         "width": 100.91
       },
-      "score": 1.0
+      "score": 1.0,
+      "tpl_chamfer": 1.13,
+      "tpl_kind": "door08",
+      "score_fused": 1.0
     },
     {
       "px": {
@@ -375,7 +378,10 @@
         "cy": 1116.82,
         "width": 40.91
       },
-      "score": 1.0
+      "score": 1.0,
+      "tpl_chamfer": 1.82,
+      "tpl_kind": "door02",
+      "score_fused": 1.0
     },
     {
       "px": {
@@ -388,8 +394,26 @@
         "cy": 634.09,
         "width": 101.6
       },
-      "score": 1.0
+      "score": 1.0,
+      "tpl_chamfer": 1.05,
+      "tpl_kind": "door08",
+      "score_fused": 1.0
+    },
+    {
+      "px": {
+        "cx": 689.5,
+        "cy": 60.5,
+        "width": 190.0
+      },
+      "cm": {
+        "cx": 940.2,
+        "cy": 1072.47,
+        "width": 259.1
+      },
+      "score": 0.0,
+      "score_fused": 0.88,
+      "src": "zone"
     }
   ],
-  "dxf_scale": "dxf_scale/floor79.dxf"
+  "dxf_scale": "dxf_scale/gray/floor79.dxf"
 }
