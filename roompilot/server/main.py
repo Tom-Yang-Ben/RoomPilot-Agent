@@ -12,7 +12,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
@@ -48,6 +48,12 @@ from .project_store import (
 )
 from .runtime_paths import legacy_runtime_dirs, project_runtime_dir
 from .style_cards import load_taiwan_style_cards
+from .services.cloud_models import (
+    cloud_model_status,
+    cloud_model_url,
+    cloudfront_required,
+    manifest_status,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -301,6 +307,13 @@ def _resolve_glb_path(furniture: dict) -> Path | None:
 
 
 def _model_status(furniture: dict) -> tuple[bool, str]:
+    cloud_url = cloud_model_url(furniture)
+    if cloud_url:
+        return True, "CloudFront GLB 可用"
+
+    if cloudfront_required():
+        return cloud_model_status(furniture)
+
     if _remote_glb_url(furniture):
         return True, "遠端 GLB 可由伺服器代理載入。"
 
@@ -509,6 +522,11 @@ def _merge_style_candidates(items: list[dict]) -> list[dict]:
 
 
 def _model_url_for_merged_item(item: dict) -> str | None:
+    cloud_url = cloud_model_url(item)
+    if cloud_url:
+        return cloud_url
+    if cloudfront_required():
+        return None
     return f"/api/furniture/{item.get('furniture_id')}/model" if item.get("has_model") else None
 
 
@@ -822,6 +840,12 @@ def _remote_glb_response(url: str) -> Response:
 
 
 def _model_response_for_merged_furniture(furniture: dict):
+    cloud_url = cloud_model_url(furniture)
+    if cloud_url:
+        return RedirectResponse(cloud_url, status_code=307)
+    if cloudfront_required():
+        raise HTTPException(status_code=404, detail=cloud_model_status(furniture)[1])
+
     if _resolve_external_zip_entry(furniture) is not None:
         payload = _external_glb_bytes(furniture)
         if payload[:4] == b"glTF":
@@ -1778,6 +1802,36 @@ def site_data() -> dict:
     return payload
 
 
+def catalog_status() -> dict:
+    """Describe active catalog providers without exposing credentials."""
+    furniture = dict(manifest_status())
+    furniture.pop("mode", None)
+    surfaces = load_surface_catalog().get("surfaces") or []
+    wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
+    floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
+    return {
+        "furniture": furniture,
+        "surfaces": {
+            "provider": "local_pending_aws_manifest",
+            "wall_count": wall_count,
+            "floor_count": floor_count,
+        },
+        "doors": {
+            "provider": "procedural_pending_aws_catalog",
+            "catalog_count": 0,
+        },
+        "style_cards": {
+            "provider": "local_allowed",
+            "count": len(load_taiwan_style_cards()),
+        },
+    }
+
+
+@app.get("/api/catalog/status")
+def catalog_status_api() -> dict:
+    return catalog_status()
+
+
 @app.get("/api/home-data")
 def home_data() -> dict:
     summary = _catalog_count_summary()
@@ -1792,6 +1846,7 @@ def home_data() -> dict:
         },
         "styles": _style_payloads()[:6],
         "taiwan_style_cards": load_taiwan_style_cards()[:6],
+        "catalog_status": catalog_status(),
     }
 
 
@@ -1809,6 +1864,7 @@ def styles_data() -> dict:
         },
         "style_furniture_counts": summary.get("style_furniture_counts", {}),
         "style_type_counts": summary.get("style_type_counts", {}),
+        "catalog_status": catalog_status(),
     }
 
 
@@ -1818,6 +1874,7 @@ def scene_bootstrap() -> dict:
         "styles": _style_payloads(),
         "taiwan_style_cards": load_taiwan_style_cards(),
         "surface_catalog": load_surface_catalog(),
+        "catalog_status": catalog_status(),
     }
 
 
@@ -1855,11 +1912,7 @@ def furniture_catalog(
     total = len(filtered)
     start = (page - 1) * page_size
     end = start + page_size
-    sample_files = (
-        sorted(f.name for f in SAMPLE_GLB_DIR.iterdir() if f.suffix.lower() == ".glb")
-        if SAMPLE_GLB_DIR.is_dir()
-        else []
-    )
+    sample_files = _legacy_viewer_models(filtered)
     return {
         "items": [
             item if detail == "scene" else _furniture_card_payload(item)
@@ -1874,7 +1927,25 @@ def furniture_catalog(
         "category_groups": _category_groups_for(style, has_model),
         "filter_options": _furniture_filter_options(facet_items),
         "furniture": sample_files,
+        "catalog_status": catalog_status(),
     }
+
+
+def _legacy_viewer_models(items: list[dict]) -> list[str]:
+    """Feed the retired R3F viewer without advertising blocked local GLBs."""
+    if cloudfront_required():
+        urls = [
+            str(item.get("model_url"))
+            for item in items
+            if item.get("has_model")
+            and str(item.get("model_url") or "").startswith("https://")
+        ]
+        return list(dict.fromkeys(urls))[:24]
+    return (
+        sorted(f.name for f in SAMPLE_GLB_DIR.iterdir() if f.suffix.lower() == ".glb")
+        if SAMPLE_GLB_DIR.is_dir()
+        else []
+    )
 
 
 def _furniture_detail_payload(furniture_id: str) -> dict:
@@ -2413,6 +2484,8 @@ def furniture_model(furniture_id: str):
 
 @app.get("/api/furniture/{furniture_id}/model.gltf")
 def furniture_model_gltf(furniture_id: str) -> JSONResponse:
+    if cloudfront_required():
+        raise HTTPException(410, "CloudFront 模式不提供本機 glTF 拆解端點。")
     furniture = _get_furniture_by_id(furniture_id)
     model_path_text = _get_model_path_for_furniture(furniture)
     return JSONResponse(_gltf_payload_for_web(model_path_text, furniture_id))
@@ -2420,6 +2493,8 @@ def furniture_model_gltf(furniture_id: str) -> JSONResponse:
 
 @app.get("/api/furniture/{furniture_id}/buffer.bin")
 def furniture_model_buffer(furniture_id: str) -> Response:
+    if cloudfront_required():
+        raise HTTPException(410, "CloudFront 模式不提供本機 GLB buffer。")
     furniture = _get_furniture_by_id(furniture_id)
     model_path_text = _get_model_path_for_furniture(furniture)
     _, binary_payload = _parse_glb(model_path_text)
@@ -2428,6 +2503,8 @@ def furniture_model_buffer(furniture_id: str) -> Response:
 
 @app.get("/api/furniture/{furniture_id}/images/{image_index}")
 def furniture_model_image(furniture_id: str, image_index: int) -> Response:
+    if cloudfront_required():
+        raise HTTPException(410, "CloudFront 模式不提供本機 GLB 圖片。")
     furniture = _get_furniture_by_id(furniture_id)
     model_path_text = _get_model_path_for_furniture(furniture)
     image_bytes, mime_type = _image_bytes_from_glb(model_path_text, image_index)
@@ -2551,6 +2628,12 @@ def cost_estimate(payload: dict):
 
 @app.get("/api/sample-furniture")
 def sample_furniture() -> dict:
+    if cloudfront_required():
+        return {
+            "furniture": [],
+            "provider": "aws_cloudfront",
+            "message": "請由家具型錄取得已驗證的 CloudFront model_url。",
+        }
     files = (
         sorted(f for f in SAMPLE_GLB_DIR.iterdir() if f.suffix.lower() == ".glb")
         if SAMPLE_GLB_DIR.is_dir()
@@ -2563,6 +2646,8 @@ def sample_furniture() -> dict:
 def sample_furniture_file(name: str):
     if not name.lower().endswith(".glb"):
         return _furniture_detail_payload(name)
+    if cloudfront_required():
+        raise HTTPException(410, "CloudFront 模式不提供本機範例 GLB。")
     path = SAMPLE_GLB_DIR / Path(name).name
     if not path.is_file():
         raise HTTPException(404, f"furniture not found: {name}")

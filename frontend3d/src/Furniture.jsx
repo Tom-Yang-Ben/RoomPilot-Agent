@@ -4,7 +4,11 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { snapPlacement, wallSegments } from './snap.js'
 
-export const furnitureUrl = (file) => `/api/furniture/${encodeURIComponent(file)}`
+export const furnitureUrl = (file) => (
+  file.startsWith('https://') || file.startsWith('http://') || file.startsWith('/')
+    ? file
+    : `/api/furniture/${encodeURIComponent(file)}`
+)
 
 let SEQ = 1 // placed-item ids, unique for the page's lifetime
 

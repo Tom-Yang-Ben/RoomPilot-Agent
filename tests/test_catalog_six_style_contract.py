@@ -68,7 +68,8 @@ def test_library_exposes_hierarchical_category_options():
     assert all(group["group_name_zh"] and group["types"] for group in groups)
 
 
-def test_an_available_external_model_resolves_to_a_real_glb_response():
+def test_an_available_external_model_resolves_to_a_real_glb_response(monkeypatch):
+    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "local")
     furniture = next(
         item
         for item in _merged_furniture_catalog_cached()
@@ -84,7 +85,8 @@ def test_site_data_is_a_small_bootstrap_payload_not_the_full_catalog():
     assert payload["catalog_merge_summary"]["delivery"] == "請使用 /api/furniture 分頁取得家具資料。"
 
 
-def test_remote_glb_is_advertised_when_the_server_proxy_can_load_it():
+def test_remote_glb_is_advertised_when_the_server_proxy_can_load_it(monkeypatch):
+    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "local")
     available, reason = _model_status({"glb_url": "https://example.test/furniture.glb"})
 
     assert available is True

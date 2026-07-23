@@ -9,6 +9,7 @@ def _write_glb_zip(zip_path, entry_name):
 
 
 def test_external_furniture_zip_entry_uses_furniture_download_prefix(tmp_path, monkeypatch):
+    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "local")
     zip_path = tmp_path / "downloaded-files(furniture)-sample.zip"
     entry_name = "downloaded-files(furniture)/ABO/ABO-test/001 - Sample chair.glb"
     _write_glb_zip(zip_path, entry_name)
@@ -25,6 +26,7 @@ def test_external_furniture_zip_entry_uses_furniture_download_prefix(tmp_path, m
 
 
 def test_external_furniture_zip_entry_uses_home_appliance_download_prefix(tmp_path, monkeypatch):
+    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "local")
     zip_path = tmp_path / "downloaded-files(home apppliances)-sample.zip"
     entry_name = "downloaded-files(home apppliances)/sf-electric-fans/001 - Fan.glb"
     _write_glb_zip(zip_path, entry_name)
@@ -41,6 +43,7 @@ def test_external_furniture_zip_entry_uses_home_appliance_download_prefix(tmp_pa
 
 
 def test_catalog_relative_glb_path_can_resolve_from_an_external_zip(tmp_path, monkeypatch):
+    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "local")
     zip_path = tmp_path / "downloaded-files-catalog.zip"
     entry_name = "downloaded-files/tw/tw-beds/01 - Sample bed.glb"
     _write_glb_zip(zip_path, entry_name)
