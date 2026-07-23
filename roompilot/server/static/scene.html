@@ -238,9 +238,13 @@
                   <button id="delete-selected-structure" type="button" class="danger-action">刪除此結構</button>
                 </div>
                 <section id="structure-3d-preview-panel" class="rp-structure-preview-panel" hidden>
-                  <div>
+                  <div class="rp-structure-preview-heading">
                     <strong id="structure-3d-preview-title">室內 3D 結構預覽</strong>
-                    <span>拖曳旋轉視角，滾輪縮放</span>
+                    <div class="rp-segmented rp-structure-preview-views" role="group" aria-label="3D 預覽視角">
+                      <button type="button" data-structure-preview-view="front">正視</button>
+                      <button type="button" data-structure-preview-view="side">側視</button>
+                      <button type="button" data-structure-preview-view="perspective" class="is-active">透視</button>
+                    </div>
                   </div>
                   <div id="structure-3d-preview" aria-label="樑柱室內 3D 預覽"></div>
                   <p id="structure-3d-preview-status" class="rp-control-hint"></p>
@@ -514,6 +518,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene_v2.js?v=sha256-5f95e3f3fb54"></script>
+    <script type="module" src="/static/scene_v2.js?v=sha256-220e20f92d37"></script>
   </body>
 </html>

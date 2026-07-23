@@ -39,7 +39,7 @@ import {
   dedupeWindowCandidates,
   windowsOverlap,
 } from "./scene_structure_utils.js?v=20260721-beam-drag1";
-import { createStructurePreview } from "./scene_structure_preview.js?v=20260721-column-resize3";
+import { createStructurePreview } from "./scene_structure_preview.js?v=20260723-beam-preview4";
 import { validateColumnDimensionsCm } from "./scene_structure_geometry.js?v=20260721-column-resize3";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
@@ -2044,6 +2044,52 @@ function selectedStructureIndex() {
   ) ?? -1;
 }
 
+function selectedStructurePreviewContext() {
+  const floorplan = confirmedFloorplanEditor();
+  return {
+    walls: state.structures.walls,
+    planWidthM: floorplan.width_cm / 100,
+    planDepthM: floorplan.depth_cm / 100,
+    ceilingHeightM: floorplan.room_height_cm / 100,
+  };
+}
+
+function renderStructurePreview(item, kind, index, { draft = false } = {}) {
+  structurePreview.render(item, kind, index, selectedStructurePreviewContext());
+  if (kind === "beam") {
+    const lengthM = Math.hypot(
+      Number(item.end?.x || 0) - Number(item.start?.x || 0),
+      Number(item.end?.y || 0) - Number(item.start?.y || 0),
+    );
+    $("#structure-3d-preview-status").textContent =
+      `紫色樑位於天花板下方；長 ${Math.round(lengthM * 100)} cm、寬 ${Math.round(Number(item.thickness_m || 0.3) * 100)} cm、下垂 ${Math.round(Number(item.height_m || 0.35) * 100)} cm${draft ? "（尚未套用）" : "。"}`;
+    return;
+  }
+  $("#structure-3d-preview-status").textContent =
+    `棕色柱從地板立起；寬 ${Math.round(Number(item.size_m || 0.35) * 100)} cm、深 ${Math.round(Number(item.depth_m || item.size_m || 0.35) * 100)} cm、高 ${Math.round(Number(item.height_m || 2.7) * 100)} cm${draft ? "（尚未套用）" : "。"}`;
+}
+
+function previewSelectedStructureDraft() {
+  const item = selectedStructureItem();
+  const kind = state.selectedStructure?.kind;
+  if (!item || !["beam", "column"].includes(kind)) return;
+  const sizeCm = Number($("#selected-structure-size-cm").value);
+  const depthCm = Number($("#selected-structure-depth-cm").value);
+  const heightCm = Number($("#selected-structure-height-cm").value);
+  if (!Number.isFinite(sizeCm) || sizeCm <= 0 || !Number.isFinite(heightCm) || heightCm <= 0) {
+    return;
+  }
+  if (kind === "column" && (!Number.isFinite(depthCm) || depthCm <= 0)) return;
+  const draft = {
+    ...item,
+    height_m: heightCm / 100,
+    ...(kind === "beam"
+      ? { thickness_m: sizeCm / 100 }
+      : { size_m: sizeCm / 100, depth_m: depthCm / 100 }),
+  };
+  renderStructurePreview(draft, kind, selectedStructureIndex(), { draft: true });
+}
+
 function renderSelectedStructureEditor() {
   const item = selectedStructureItem();
   element.structureEditor.hidden = !item;
@@ -2155,18 +2201,9 @@ function renderSelectedStructureEditor() {
   $("#structure-3d-preview-panel").hidden = !showStructurePreview;
   if (showStructurePreview) {
     const index = selectedIndex;
-    const previewFloorplan = confirmedFloorplanEditor();
-    structurePreview.render(item, state.selectedStructure.kind, index, {
-      walls: state.structures.walls,
-      planWidthM: previewFloorplan.width_cm / 100,
-      planDepthM: previewFloorplan.depth_cm / 100,
-      ceilingHeightM: previewFloorplan.room_height_cm / 100,
-    });
+    renderStructurePreview(item, state.selectedStructure.kind, index);
     $("#structure-3d-preview-title").textContent =
       `${labels[state.selectedStructure.kind]} ${index + 1} · 室內 3D 預覽`;
-    $("#structure-3d-preview-status").textContent = isBeam
-      ? `紫色樑位於天花板下方；目前長 ${Math.round(length * 100)} cm、寬 ${Math.round(Number(item.thickness_m || 0.3) * 100)} cm、下垂 ${Math.round(Number(item.height_m || 0.35) * 100)} cm。`
-      : `棕色柱從地板立起；目前寬 ${Math.round(Number(item.size_m || 0.35) * 100)} cm、深 ${Math.round(Number(item.depth_m || item.size_m || 0.35) * 100)} cm、高 ${Math.round(Number(item.height_m || 2.7) * 100)} cm。`;
   }
   $("#structure-editor-hint").textContent =
     `修改${labels[state.selectedStructure.kind]}的位置或尺寸後，會回到待確認狀態。`;
@@ -4540,6 +4577,21 @@ function bindEvents() {
   element.spaceOverlay.addEventListener("pointerdown", spacePointerDown);
   element.spaceOverlay.addEventListener("pointermove", spacePointerMove);
   $("#apply-structure-size").addEventListener("click", applySelectedStructureSize);
+  [
+    "#selected-structure-size-cm",
+    "#selected-structure-depth-cm",
+    "#selected-structure-height-cm",
+  ].forEach((selector) => {
+    $(selector).addEventListener("input", previewSelectedStructureDraft);
+  });
+  $$("[data-structure-preview-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      structurePreview.setView(button.dataset.structurePreviewView);
+      $$("[data-structure-preview-view]").forEach((candidate) => {
+        candidate.classList.toggle("is-active", candidate === button);
+      });
+    });
+  });
   $("#selected-window-type").addEventListener("change", applySelectedWindowType);
   element.openingWidthSlider.addEventListener("input", () => {
     setSelectedOpeningWidthCm(element.openingWidthSlider.value, false);

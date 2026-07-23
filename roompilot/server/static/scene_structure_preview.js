@@ -86,12 +86,6 @@ export function createStructurePreview(container) {
       mesh.rotation.y = Math.atan2(-dz, dx);
       context.add(mesh);
     });
-    const radius = Math.max(width, depth, 4);
-    camera.position.set(radius * 0.68, Math.max(3, radius * 0.48), radius * 0.72);
-    controls.target.set(0, Math.min(1.3, wallHeight / 2), 0);
-    controls.minDistance = Math.max(2.5, radius * 0.45);
-    controls.maxDistance = Math.max(8, radius * 1.8);
-    controls.update();
   }
 
   function resize() {
@@ -107,12 +101,62 @@ export function createStructurePreview(container) {
   }
 
   let activeKind = null;
+  let activeDescriptor = null;
+  let activeView = "perspective";
+
+  function focusSelectedStructure(descriptor, view = activeView) {
+    if (!descriptor) return;
+    const rotation = THREE.MathUtils.degToRad(descriptor.rotationDeg);
+    const along = new THREE.Vector3(Math.cos(rotation), 0, -Math.sin(rotation));
+    const across = new THREE.Vector3(-along.z, 0, along.x);
+    const target = new THREE.Vector3(
+      descriptor.centerX,
+      descriptor.centerHeightM,
+      descriptor.centerZ,
+    );
+    const visibleWidth = view === "side"
+      ? Math.max(descriptor.widthM, descriptor.heightM)
+      : Math.max(descriptor.lengthM, descriptor.heightM);
+    const modelClearance = view === "side"
+      ? descriptor.lengthM / 2 + 1
+      : descriptor.widthM / 2 + 1;
+    const distance = Math.max(2.2, visibleWidth * 1.35, modelClearance);
+    let direction;
+    if (view === "front") {
+      direction = across;
+    } else if (view === "side") {
+      direction = along;
+    } else {
+      direction = across.clone().multiplyScalar(0.78)
+        .add(along.clone().multiplyScalar(0.48))
+        .setY(0.42)
+        .normalize();
+    }
+    camera.position.copy(target).add(direction.multiplyScalar(distance));
+    camera.near = Math.max(0.02, distance / 100);
+    camera.far = Math.max(30, distance * 8);
+    camera.updateProjectionMatrix();
+    controls.target.copy(target);
+    controls.enabled = view === "perspective";
+    controls.minDistance = Math.max(1.2, distance * 0.45);
+    controls.maxDistance = Math.max(8, distance * 2.5);
+    camera.lookAt(target);
+    if (controls.enabled) controls.update();
+  }
+
+  function setView(view) {
+    if (!["front", "side", "perspective"].includes(view)) return;
+    activeView = view;
+    context.visible = view === "perspective";
+    focusSelectedStructure(activeDescriptor, activeView);
+  }
 
   function render(item, kind, index = 0, previewContext = {}) {
     const descriptor = structurePreviewDescriptor(item, kind, previewContext);
     if (!descriptor) return;
     rebuildContext(previewContext);
     activeKind = kind;
+    activeDescriptor = descriptor;
     clearSelected();
     resize();
     const material = new THREE.MeshStandardMaterial({
@@ -135,6 +179,8 @@ export function createStructurePreview(container) {
     selected.add(mesh);
     container.dataset.previewKind = kind;
     container.dataset.previewNumber = String(index + 1);
+    context.visible = activeView === "perspective";
+    focusSelectedStructure(descriptor, activeView);
   }
 
   const observer = new ResizeObserver(resize);
@@ -142,11 +188,11 @@ export function createStructurePreview(container) {
   resize();
 
   function animate() {
-    controls.update();
+    if (controls.enabled) controls.update();
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
   }
   animate();
 
-  return { render };
+  return { render, setView };
 }

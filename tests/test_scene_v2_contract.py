@@ -654,6 +654,7 @@ def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> Non
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    preview = (STATIC / "scene_structure_preview.js").read_text(encoding="utf-8")
 
     assert 'id="add-white-model-beam"' in html
     assert 'id="white-model-beam-width-cm"' in html
@@ -670,6 +671,13 @@ def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> Non
     assert "beginBeamPlacement," in viewer
     assert '$("#selected-structure-length-cm").readOnly = isBeam' in source
     assert "element.structureLengthInput" not in source
+    for view in ("front", "side", "perspective"):
+        assert f'data-structure-preview-view="{view}"' in html
+    assert "previewSelectedStructureDraft" in source
+    assert 'addEventListener("input", previewSelectedStructureDraft)' in source
+    assert "setView(view)" in preview
+    assert "focusSelectedStructure" in preview
+    assert 'context.visible = view === "perspective"' in preview
 
 
 def test_room_confirmation_is_isolated_and_supports_confirm_merge_and_split() -> None:
