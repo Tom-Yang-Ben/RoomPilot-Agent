@@ -2,15 +2,15 @@ import json
 from pathlib import Path
 
 from test_scene_workflow import ROOT, run_workflow_script
-from roompilot.server.main import _merge_furniture_catalog
-from roompilot.server.scene_service import (
+from backend.server.main import _merge_furniture_catalog
+from backend.server.scene_service import (
     catalog_item_matches_type_semantics,
     choose_furniture_items,
 )
 
 
-VISUAL_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_visual_contracts.js"
-SCENE_HTML = ROOT / "roompilot" / "server" / "static" / "scene.html"
+VISUAL_MODULE = ROOT / "backend" / "server" / "static" / "scene_visual_contracts.js"
+SCENE_HTML = ROOT / "backend" / "server" / "static" / "scene.html"
 
 
 def test_model_scale_hits_catalog_width_depth_and_height() -> None:
@@ -65,7 +65,7 @@ def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
 
 
 def test_3d_wall_snap_commits_the_backend_layout_result() -> None:
-    source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
@@ -76,21 +76,26 @@ def test_3d_wall_snap_commits_the_backend_layout_result() -> None:
 
 
 def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
-    viewer = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
-    controller = (ROOT / "roompilot" / "server" / "static" / "scene_v2.js").read_text(
+    controller = (ROOT / "backend" / "server" / "static" / "scene_v2.js").read_text(
         encoding="utf-8"
     )
 
     assert "{ onSceneChange = null } = {}" in viewer
     assert "notifySceneChange(item)" in viewer
     assert 'onSceneChange: () => scheduleSave("white_model_3d")' in controller
-    assert 'onSceneChange: () => scheduleSave("realistic_3d")' in controller
+    assert "onSceneChange: () => markRealisticSceneEdited()" in controller
+    mark_body = controller.split("function markRealisticSceneEdited()", 1)[1].split(
+        "function activePanelName", 1
+    )[0]
+    assert 'state.workflow.invalidateFrom("realistic_3d")' in mark_body
+    assert 'scheduleSave("realistic_3d")' in mark_body
 
 
 def test_formal_3d_columns_use_confirmed_rectangular_dimensions_and_rotation() -> None:
-    viewer = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
@@ -135,8 +140,27 @@ def test_walk_camera_is_clamped_inside_room_and_topdown_has_plan_labels() -> Non
     assert result["topdown"]["walls"] == "flattened"
 
 
+def test_walk_camera_finds_a_nearby_valid_spawn_when_the_default_is_on_a_wall() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ findNearestWalkablePosition }} from {json.dumps(VISUAL_MODULE.as_uri())};
+        const spawn = findNearestWalkablePosition(
+          {{ x: 0, y: 145, z: 297.68 }},
+          {{ widthCm: 966.82, depthCm: 1063.16, wallHeight: 270 }},
+          (point) => Math.abs(point.x) >= 20,
+        );
+        console.log(JSON.stringify(spawn));
+        """
+    )
+
+    assert result is not None
+    assert abs(result["x"]) >= 20
+    assert result["z"] == 297.68
+    assert result["y"] == 165
+
+
 def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation() -> None:
-    source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
@@ -156,7 +180,7 @@ def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation
 
 
 def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
-    source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
     wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
@@ -172,7 +196,7 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
 
 
 def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
-    source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
@@ -186,7 +210,7 @@ def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
 
 
 def test_dollhouse_keeps_all_walls_visible_and_orbit_controls_enabled() -> None:
-    source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
     dollhouse = source.split('} else if (mode === "dollhouse") {', 1)[1].split(
@@ -223,7 +247,7 @@ def test_generic_glb_material_gets_a_safe_furniture_role_fallback() -> None:
 
 
 def test_style_pack_preserves_real_texture_color_detail_with_subtle_tint() -> None:
-    source = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
     room_creation = source.split("function createRoom(sceneData)", 1)[1].split(
@@ -239,7 +263,7 @@ def test_style_pack_preserves_real_texture_color_detail_with_subtle_tint() -> No
 
 
 def test_material_schemes_explain_surface_and_furniture_changes() -> None:
-    material_module = ROOT / "roompilot" / "server" / "static" / "scene_material_schemes.js"
+    material_module = ROOT / "backend" / "server" / "static" / "scene_material_schemes.js"
     result = run_workflow_script(
         f"""
         import {{ generateMaterialSchemes }} from {json.dumps(material_module.as_uri())};

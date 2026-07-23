@@ -1,4 +1,4 @@
-from roompilot.server.scene_service import generate_layout
+from backend.server.scene_service import generate_layout
 
 
 def test_layout_preserves_known_catalog_price_and_material_for_bom() -> None:

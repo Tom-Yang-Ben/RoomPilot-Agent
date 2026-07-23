@@ -1,4 +1,4 @@
-from roompilot.server.cost_estimation import estimate_project_cost, load_default_cost_catalog
+from backend.server.cost_estimation import estimate_project_cost, load_default_cost_catalog
 
 
 def test_sourced_rates_produce_traceable_low_base_high_concept_estimate() -> None:

@@ -2,11 +2,11 @@ import json
 
 from fastapi.testclient import TestClient
 
-from roompilot.server.main import app
+from backend.server.main import app
 from test_scene_workflow import ROOT, run_workflow_script
 
 
-CALIBRATION_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_calibration.js"
+CALIBRATION_MODULE = ROOT / "backend" / "server" / "static" / "scene_calibration.js"
 client = TestClient(app)
 
 
@@ -27,7 +27,8 @@ def test_upload_step_has_immediate_preview_and_plain_recognition_label() -> None
     assert response.status_code == 200
     assert 'id="upload-floorplan-preview"' in response.text
     assert 'id="upload-floorplan-placeholder"' in response.text
-    assert ">開始辨識</button>" in response.text
+    assert 'id="confirm-upload" type="button" class="primary-action" disabled' in response.text
+    assert ">確認並開始辨識</button>" in response.text
     assert "開始 Cody 辨識" not in response.text
 
 

@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from roompilot.server.main import _furniture_payload_cache
+from backend.server.main import _furniture_payload_cache
 
 
 ROOT = Path(__file__).resolve().parents[1]
 QUARANTINE_PATH = (
     ROOT
-    / "roompilot"
+    / "backend"
     / "catalog"
     / "data"
     / "quarantine"

@@ -1,10 +1,10 @@
 from fastapi.testclient import TestClient
 
-from roompilot.catalog.style_db import catalog_item_from_scene_object
-from roompilot.engine.models import PlacedFurniture, Room
-from roompilot.engine.placement import place_overlay_on_furniture
-from roompilot.server.main import app
-from roompilot.server.scene_service import generate_layout
+from backend.catalog.style_db import catalog_item_from_scene_object
+from backend.engine.models import PlacedFurniture, Room
+from backend.engine.placement import place_overlay_on_furniture
+from backend.server.main import app
+from backend.server.scene_service import floorplan_from_editor_payload, generate_layout
 
 
 client = TestClient(app)
@@ -38,6 +38,31 @@ def _floorplan_editor() -> dict:
             ],
         },
     }
+
+
+def test_demolition_candidate_is_preserved_without_removing_engine_wall() -> None:
+    floorplan, room = floorplan_from_editor_payload(
+        {
+            "coordinate_unit": "cm",
+            "width_cm": 700,
+            "depth_cm": 500,
+            "structures": {
+                "walls": [
+                    {
+                        "id": "interior-wall",
+                        "start": {"x": 350, "y": 0},
+                        "end": {"x": 350, "y": 500},
+                        "thickness_cm": 12,
+                        "demolition_candidate": True,
+                    }
+                ]
+            },
+        }
+    )
+
+    assert floorplan["wall_segments"][0]["demolition_candidate"] is True
+    assert floorplan["wall_count"] == 1
+    assert len(room.walls) >= 1
 
 
 def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:

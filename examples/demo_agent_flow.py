@@ -16,12 +16,12 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # repo 根目錄,找 roompilot 套件
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # repo 根目錄，載入 backend 套件
 
-from roompilot.engine.models import Room, Wall
-from roompilot.engine.placement import place_furniture_batch
-from roompilot.engine.adjustment import adjust_furniture
-from roompilot.engine.schema import catalog_from_dict, placed_to_dict
+from backend.engine.models import Room, Wall
+from backend.engine.placement import place_furniture_batch
+from backend.engine.adjustment import adjust_furniture
+from backend.engine.schema import catalog_from_dict, placed_to_dict
 
 
 def pretty(title: str, payload) -> None:

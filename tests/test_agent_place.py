@@ -1,8 +1,8 @@
-"""Agent 擺位策略測試：座標永遠由 roompilot.engine 計算。"""
+"""Agent 擺位策略測試：座標永遠由 backend.engine 計算。"""
 
-from roompilot.agent.place import pick_smaller_model, placement_hints, resolve_placements
-from roompilot.engine.models import FurnitureCatalogItem, Room
-from roompilot.engine.placement import place_furniture_batch
+from backend.agent.place import pick_smaller_model, placement_hints, resolve_placements
+from backend.engine.models import FurnitureCatalogItem, Room
+from backend.engine.placement import place_furniture_batch
 
 
 def _item(fid: str, kind: str, width_cm: float, depth_cm: float, **extra) -> dict:

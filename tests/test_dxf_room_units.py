@@ -1,6 +1,6 @@
 import pytest
 
-from roompilot.engine.dxf_room import build_room_from_dxf
+from backend.engine.dxf_room import build_room_from_dxf
 
 
 def test_largest_room_converts_dxf_meters_to_engine_centimeters():

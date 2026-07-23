@@ -4,7 +4,7 @@ import csv
 
 import pytest
 
-from roompilot.server.services import cloud_models
+from backend.server.services import cloud_models
 
 
 @pytest.fixture(autouse=True)
@@ -20,6 +20,18 @@ def _write_manifest(path, rows):
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def test_default_manifest_path_follows_backend_package_layout():
+    assert cloud_models.DEFAULT_MANIFEST_PATH == (
+        cloud_models.PROJECT_DIR
+        / "backend"
+        / "catalog"
+        / "data"
+        / "manifests"
+        / "glb_upload_all_result.csv"
+    )
+    assert cloud_models.DEFAULT_MANIFEST_PATH.is_file()
 
 
 def test_cloud_model_url_uses_verified_delivery_url(monkeypatch, tmp_path):

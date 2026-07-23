@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 from fastapi.testclient import TestClient
 
-from roompilot.server.main import app
+from backend.server.main import app
 
 
 client = TestClient(app)

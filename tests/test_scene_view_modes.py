@@ -3,7 +3,7 @@ import json
 from test_scene_workflow import ROOT, run_workflow_script
 
 
-VIEW_MODE_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_view_modes.js"
+VIEW_MODE_MODULE = ROOT / "backend" / "server" / "static" / "scene_view_modes.js"
 
 
 def test_three_view_modes_share_scene_without_changing_furniture_coordinates() -> None:

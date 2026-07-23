@@ -8,8 +8,8 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from roompilot.server import main
-from roompilot.server.project_store import (
+from backend.server import main
+from backend.server.project_store import (
     MAX_WORKFLOW_BYTES,
     ProjectStore,
     ProjectVersionConflict,

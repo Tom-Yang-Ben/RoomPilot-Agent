@@ -23,14 +23,14 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-# 讓 demo_app 找得到 repo 根目錄的 roompilot 套件(此 demo 已退役,僅供參考)
+# 讓 demo_app 找得到 repo 根目錄的 backend 套件(此 demo 已退役,僅供參考)
 BASE = Path(__file__).resolve().parent
-sys.path.insert(0, str(BASE.parent.parent))  # repo 根目錄,找 roompilot 套件
+sys.path.insert(0, str(BASE.parent.parent))  # repo 根目錄,載入 backend 套件
 sys.path.insert(0, str(BASE))
 
-from roompilot.engine.models import Room, Wall               # noqa: E402
-from roompilot.engine.placement import place_furniture_batch  # noqa: E402
-from roompilot.engine.schema import catalog_from_dict, placed_to_dict  # noqa: E402
+from backend.engine.models import Room, Wall               # noqa: E402
+from backend.engine.placement import place_furniture_batch  # noqa: E402
+from backend.engine.schema import catalog_from_dict, placed_to_dict  # noqa: E402
 
 import agent_stub            # noqa: E402  (柏彥的位置)
 import render_style_stub     # noqa: E402  (舒媁的位置)

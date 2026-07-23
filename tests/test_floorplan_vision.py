@@ -9,13 +9,13 @@ from dataclasses import replace
 from pathlib import Path
 import pytest
 
-from roompilot.floorplan import floorplan2dxf as cody
-from roompilot.floorplan.vision import (
+from backend.floorplan import floorplan2dxf as cody
+from backend.floorplan.vision import (
     analyze_floorplan_image,
     confirm_floorplan_analysis,
     infer_room_requirements,
 )
-from roompilot.floorplan.vision.units import canonicalize_analysis_cm
+from backend.floorplan.vision.units import canonicalize_analysis_cm
 
 
 def test_cody_cli_loads_floorplan_from_unicode_path(tmp_path: Path) -> None:

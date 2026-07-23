@@ -1,8 +1,8 @@
 from pathlib import Path
 import re
 
-from roompilot.server import intake_service
-from roompilot.server.main import (
+from backend.server import intake_service
+from backend.server.main import (
     _merged_furniture_catalog_cached,
     _model_response_for_merged_furniture,
     _model_status,
@@ -14,7 +14,7 @@ from roompilot.server.main import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = ROOT / "roompilot" / "catalog" / "data"
+DATA_DIR = ROOT / "backend" / "catalog" / "data"
 ARCHIVE_DIR = DATA_DIR / "舊友：12種風格與JSON"
 CANONICAL_STYLE_IDS = {
     "scandinavian",
@@ -95,3 +95,7 @@ def test_remote_glb_is_advertised_when_the_server_proxy_can_load_it(monkeypatch)
 
 def test_intake_has_a_single_short_default_llm_attempt():
     assert len(intake_service.DEFAULT_MODELS) == 1
+
+
+def test_intake_service_resolves_repository_root():
+    assert Path(intake_service.PROJECT_DIR) == ROOT

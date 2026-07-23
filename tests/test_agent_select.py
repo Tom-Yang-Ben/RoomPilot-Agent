@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from roompilot.agent.select import (
+from backend.agent.select import (
     MAX_ITEMS_PER_ROOM,
     SelectionParseError,
     SelectionUnavailableError,

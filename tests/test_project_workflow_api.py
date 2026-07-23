@@ -7,9 +7,9 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from roompilot.server.main import app
-from roompilot.server.project_store import ProjectStore
-from roompilot.server.runtime_paths import legacy_runtime_dirs, project_runtime_dir
+from backend.server.main import app
+from backend.server.project_store import ProjectStore
+from backend.server.runtime_paths import legacy_runtime_dirs, project_runtime_dir
 
 
 client = TestClient(app)
@@ -278,7 +278,7 @@ def test_floorplan_upload_accepts_only_dxf_png_and_jpeg() -> None:
     assert source.headers["content-type"].startswith("image/png")
 
 
-def test_floorplan_analysis_explains_missing_consent_instead_of_stalling() -> None:
+def test_floorplan_analysis_explains_missing_confirmation_instead_of_stalling() -> None:
     project = _create_project()
     project_id = project["project_id"]
     uploaded = client.post(
@@ -291,9 +291,9 @@ def test_floorplan_analysis_explains_missing_consent_instead_of_stalling() -> No
 
     assert blocked.status_code == 409
     assert blocked.json()["detail"] == {
-        "code": "floorplan_consent_required",
-        "message": "請先同意本專案的平面圖分析條款，才能開始 AI 辨識。",
-        "focus": "project-privacy-consent",
+        "code": "floorplan_confirmation_required",
+        "message": "請先確認圖檔內容正確，才能開始辨識。",
+        "focus": "project-floorplan-confirmation",
     }
 
     saved = client.put(
@@ -301,11 +301,8 @@ def test_floorplan_analysis_explains_missing_consent_instead_of_stalling() -> No
         json={
             "current_step": "upload",
             "workflow": {
-                "privacy": {
-                    "accepted": True,
-                    "project_only": True,
-                    "no_training": True,
-                    "terms_version": "2026-07-17",
+                "floorplan_confirmation": {
+                    "confirmed": True,
                 }
             },
         },

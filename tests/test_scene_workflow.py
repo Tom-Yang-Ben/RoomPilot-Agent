@@ -4,10 +4,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_workflow.js"
-SCENE_HTML = ROOT / "roompilot" / "server" / "static" / "scene.html"
-STRUCTURE_UTILS_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_structure_utils.js"
-STRUCTURE_GEOMETRY_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_structure_geometry.js"
+WORKFLOW_MODULE = ROOT / "backend" / "server" / "static" / "scene_workflow.js"
+SCENE_HTML = ROOT / "backend" / "server" / "static" / "scene.html"
+STRUCTURE_UTILS_MODULE = ROOT / "backend" / "server" / "static" / "scene_structure_utils.js"
+STRUCTURE_GEOMETRY_MODULE = ROOT / "backend" / "server" / "static" / "scene_structure_geometry.js"
 
 
 def run_workflow_script(script: str) -> dict:
@@ -396,6 +396,8 @@ def test_nine_step_workflow_uses_one_panel_for_recognition_and_calibration() -> 
             "layout_2d",
             "white_model_3d",
             "realistic_3d",
+            "proposal_review",
+            "ai_render",
         ],
         "recognitionPanel": "scale",
         "calibrationPanel": "scale",
@@ -418,12 +420,15 @@ def test_scene_wizard_exposes_one_panel_for_each_confirmed_step() -> None:
         "layout-2d-step",
         "white-model-3d-step",
         "realistic-3d-step",
+        "proposal-review-step",
+        "ai-render-step",
     ]
 
     for panel_id in expected_panel_ids:
         assert f'id="{panel_id}"' in html
     assert 'id="reset-project"' in html
-    assert 'id="project-privacy-notice"' in html
+    assert 'id="project-floorplan-confirmation-notice"' in html
+    assert 'id="confirm-upload" type="button" class="primary-action" disabled' in html
     assert 'id="basic-profile-panel"' not in html
     assert 'id="room-list"' in html
     assert 'id="structure-confirmation-panel"' in html
@@ -434,7 +439,7 @@ def test_scene_wizard_exposes_one_panel_for_each_confirmed_step() -> None:
     assert "我已確認是否有指定家具需求" in html
 
 
-def test_scene_exposes_the_final_eight_step_workflow() -> None:
+def test_scene_exposes_the_final_ten_step_workflow() -> None:
     html = SCENE_HTML.read_text(encoding="utf-8")
     labels = [
         "1 建立專案",
@@ -445,12 +450,61 @@ def test_scene_exposes_the_final_eight_step_workflow() -> None:
         "6 2D 家具配置",
         "7 3D 白模",
         "8 即時寫實",
+        "9 方案鎖定",
+        "10 AI 渲染",
     ]
 
-    assert 'data-workflow-count="8"' in html
+    assert 'data-workflow-count="10"' in html
     for label in labels:
         assert label in html
     assert "進入 RoomPilot" not in html
+
+
+def test_render_review_steps_require_a_locked_master_camera() -> None:
+    result = run_workflow_script(
+        """
+        import { createWorkflow } from "__WORKFLOW_MODULE__";
+        const workflow = createWorkflow({ projectId: "render-gates", storage: null });
+        workflow.complete("project", { name: "渲染驗收" });
+        workflow.complete("upload", { filename: "plan.png" });
+        workflow.complete("recognition", { engine: "cody" });
+        workflow.complete("calibration", { distanceCm: 630 });
+        workflow.complete("space_confirmation", {
+          roomsConfirmed: true,
+          structureConfirmed: true,
+          proportionsConfirmed: true,
+        });
+        workflow.complete("requirements", { basicConfirmed: true, roomsResolved: true });
+        workflow.complete("layout_2d", { confirmed: true });
+        workflow.complete("white_model_3d", {
+          confirmed: true,
+          expectedFurnitureCount: 1,
+          visibleFurnitureCount: 1,
+        });
+        workflow.complete("realistic_3d", { confirmed: true });
+        const beforeLock = workflow.goTo("ai_render");
+        const invalidReview = workflow.complete("proposal_review", { confirmed: true });
+        const validReview = workflow.complete("proposal_review", {
+          confirmed: true,
+          masterView: {
+            camera: {
+              position_cm: [420, 165, 380],
+              target_cm: [210, 120, 190],
+              fov_deg: 52,
+            },
+          },
+        });
+        const afterLock = workflow.goTo("ai_render");
+        console.log(JSON.stringify({ beforeLock, invalidReview, validReview, afterLock }));
+        """.replace("__WORKFLOW_MODULE__", WORKFLOW_MODULE.as_uri())
+    )
+
+    assert result == {
+        "beforeLock": False,
+        "invalidReview": False,
+        "validReview": True,
+        "afterLock": True,
+    }
 
 
 def test_each_gate_blocks_the_next_stage_until_confirmation_is_valid() -> None:
@@ -511,7 +565,7 @@ def test_each_gate_blocks_the_next_stage_until_confirmation_is_valid() -> None:
     }
 
 
-def test_privacy_consent_and_completed_upload_are_required_before_analysis() -> None:
+def test_floorplan_confirmation_and_completed_upload_are_required_before_analysis() -> None:
     module_uri = WORKFLOW_MODULE.as_uri()
     result = run_workflow_script(
         f"""
@@ -523,29 +577,25 @@ def test_privacy_consent_and_completed_upload_are_required_before_analysis() -> 
           setItem: (key, value) => writes.set(key, value),
           removeItem: (key) => writes.delete(key),
         }};
-        const workflow = createWorkflow({{ projectId: "privacy", storage }});
+        const workflow = createWorkflow({{ projectId: "floorplan-confirmation", storage }});
         workflow.complete("project", {{ name: "梁宅專案" }});
         workflow.complete("upload", {{ filename: "plan.dxf" }});
-        const beforeConsent = workflow.canAnalyzeFloorplan();
-        workflow.setPrivacyConsent({{
-          accepted: true,
-          projectOnly: true,
-          noTraining: true,
-        }});
-        const afterConsent = workflow.canAnalyzeFloorplan();
-        const restored = restoreWorkflow({{ projectId: "privacy", storage }});
+        const beforeConfirmation = workflow.canAnalyzeFloorplan();
+        workflow.setFloorplanConfirmation({{ confirmed: true }});
+        const afterConfirmation = workflow.canAnalyzeFloorplan();
+        const restored = restoreWorkflow({{ projectId: "floorplan-confirmation", storage }});
 
         console.log(JSON.stringify({{
-          beforeConsent,
-          afterConsent,
+          beforeConfirmation,
+          afterConfirmation,
           restoredReady: restored.canAnalyzeFloorplan(),
         }}));
         """
     )
 
     assert result == {
-        "beforeConsent": False,
-        "afterConsent": True,
+        "beforeConfirmation": False,
+        "afterConfirmation": True,
         "restoredReady": True,
     }
 

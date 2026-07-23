@@ -5,8 +5,8 @@ import csv
 import pytest
 from fastapi import HTTPException
 
-from roompilot.server import main
-from roompilot.server.services import cloud_models
+from backend.server import main
+from backend.server.services import cloud_models
 
 
 @pytest.fixture(autouse=True)

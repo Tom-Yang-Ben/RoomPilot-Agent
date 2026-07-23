@@ -2,8 +2,12 @@
 web_fastapi/.env
 .venv/
 .venv_triposr/
+.uv-cache/
+.pytest_cache/
+.tmp/
 __pycache__/
 *.pyc
+node_modules/
 tmp/
 .runtime/
 web_fastapi/uploads/
@@ -19,18 +23,11 @@ _local_archive_not_for_push/
 external/
 TripoSR/
 test_3Dfurniture/
-scripts/
+scripts/*
+!scripts/verify_ikea_offline_backup.py
 
 # Non-runtime generated/intermediate model artifacts
-dataset/decoded_glb_cache/
-dataset/ikea/
-sf3d/inputs/
-sf3d/models/
-sf3d/official_repo/
-sf3d/outputs_normalized/
-sf3d/outputs_raw/
-sf3d/scripts/
-sf3d/README.md
+dataset/
 
 # Old diagnostic pages not used by the current website flow
 web_fastapi/static/compare.*
@@ -39,10 +36,17 @@ web_fastapi/static/model_probe.*
 # Only docs/moodboard_assets is required for the current website.
 docs/*
 !docs/*.md
+!docs/backlog/
+!docs/backlog/*.md
+!docs/contracts/
+!docs/contracts/*.md
 !docs/moodboard_assets/
 !docs/moodboard_assets/**
 
 # Local/personal generated Markdown, not for bella uploads
+.codex/
+.claude/
+CLAUDE.md
 PROJECT_CONTEXT.md
 CODEX_PROJECT_RULES.md
 LOCAL_*.md

@@ -1,12 +1,12 @@
 from pathlib import Path
 
-import roompilot.server.scene_service as scene_service
-from roompilot.server.scene_service import build_scene_payload
-from roompilot.upgrade3d.dxf_parser import parse_dxf_file
+import backend.server.scene_service as scene_service
+from backend.server.scene_service import build_scene_payload
+from backend.upgrade3d.dxf_parser import parse_dxf_file
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STATIC = ROOT / "roompilot" / "server" / "static"
+STATIC = ROOT / "backend" / "server" / "static"
 
 
 def test_scene_starts_with_project_creation_and_exposes_the_strict_upload_contract():
@@ -17,7 +17,7 @@ def test_scene_starts_with_project_creation_and_exposes_the_strict_upload_contra
     assert 'id="upload-step"' in html
     assert 'id="floorplan-file"' in html
     assert 'accept=".dxf,.png,.jpg,.jpeg,image/png,image/jpeg,application/dxf"' in html
-    assert 'id="project-privacy-consent"' in html
+    assert 'id="project-floorplan-confirmation"' in html
     assert "floorplanExtension" in javascript
     assert "selectFloorplanFile" in javascript
     assert "只支援 DXF、PNG、JPG 或 JPEG" in javascript

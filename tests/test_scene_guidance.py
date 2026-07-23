@@ -3,7 +3,7 @@ import json
 from test_scene_workflow import ROOT, run_workflow_script
 
 
-GUIDANCE_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_guidance.js"
+GUIDANCE_MODULE = ROOT / "backend" / "server" / "static" / "scene_guidance.js"
 
 
 def test_manual_scale_confirmation_replaces_low_confidence_ocr_scale() -> None:

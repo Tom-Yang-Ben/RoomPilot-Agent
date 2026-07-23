@@ -1,6 +1,6 @@
 """Agent 家具知識的公開契約測試。"""
 
-from roompilot.agent.knowledge import (
+from backend.agent.knowledge import (
     ANCHOR_FAMILIES,
     COMPANION_OF,
     FAMILY_ZH,

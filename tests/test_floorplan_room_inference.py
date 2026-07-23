@@ -1,4 +1,4 @@
-from roompilot.floorplan.vision.rooms import infer_rooms_from_walls
+from backend.floorplan.vision.rooms import infer_rooms_from_walls
 
 
 def _wall(start: tuple[float, float], end: tuple[float, float]) -> dict:

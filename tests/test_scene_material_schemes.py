@@ -3,7 +3,7 @@ import json
 from test_scene_workflow import ROOT, run_workflow_script
 
 
-MATERIAL_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_material_schemes.js"
+MATERIAL_MODULE = ROOT / "backend" / "server" / "static" / "scene_material_schemes.js"
 
 
 def test_three_material_schemes_preserve_layout_and_only_override_compatible_slots() -> None:

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from roompilot.server.main import _model_priority_ids, build_site_payload
-from roompilot.server.style_cards import find_taiwan_style_card
+from backend.server.main import _model_priority_ids, build_site_payload
+from backend.server.style_cards import find_taiwan_style_card
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,8 +33,8 @@ def test_style_card_lookup_is_safe_for_scene_handoff():
 
 
 def test_styles_page_is_the_six_style_gallery():
-    html = (ROOT / "roompilot" / "server" / "static" / "styles.html").read_text(encoding="utf-8")
-    javascript = (ROOT / "roompilot" / "server" / "static" / "styles.js").read_text(encoding="utf-8")
+    html = (ROOT / "backend" / "server" / "static" / "styles.html").read_text(encoding="utf-8")
+    javascript = (ROOT / "backend" / "server" / "static" / "styles.js").read_text(encoding="utf-8")
     assert 'id="taiwan-style-gallery"' in html
     assert "renderTaiwanStyleGallery" in javascript
     assert "style_card" in javascript
@@ -54,9 +54,9 @@ def test_unresolvable_external_furniture_does_not_steal_glb_priority():
 
 
 def test_scene_accepts_style_card_handoff_from_styles_page():
-    javascript = (ROOT / "roompilot" / "server" / "static" / "scene.js").read_text(encoding="utf-8")
-    main = (ROOT / "roompilot" / "server" / "main.py").read_text(encoding="utf-8")
-    service = (ROOT / "roompilot" / "server" / "scene_service.py").read_text(encoding="utf-8")
+    javascript = (ROOT / "backend" / "server" / "static" / "scene.js").read_text(encoding="utf-8")
+    main = (ROOT / "backend" / "server" / "main.py").read_text(encoding="utf-8")
+    service = (ROOT / "backend" / "server" / "scene_service.py").read_text(encoding="utf-8")
     assert 'sceneQuery.get("style_card")' in javascript
     assert "applyStyleCardFromQuery" in javascript
     assert "style_card_id: requestedStyleCardId" in javascript
@@ -65,7 +65,7 @@ def test_scene_accepts_style_card_handoff_from_styles_page():
 
 
 def test_scene_viewer_exposes_skin_lighting_and_interior_rotation_contract():
-    viewer = (ROOT / "roompilot" / "server" / "static" / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(encoding="utf-8")
     assert "applyStyleSkin" in viewer
     assert "style_card" in viewer
     assert "createStyleLights" in viewer

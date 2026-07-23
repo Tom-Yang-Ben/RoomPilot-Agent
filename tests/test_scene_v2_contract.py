@@ -7,7 +7,7 @@ import re
 from test_scene_workflow import ROOT, run_workflow_script
 
 
-STATIC = ROOT / "roompilot" / "server" / "static"
+STATIC = ROOT / "backend" / "server" / "static"
 
 
 def _space_heading_html(html: str) -> str:
@@ -129,6 +129,46 @@ def test_floor_to_ceiling_window_preset_reaches_from_floor_to_ceiling() -> None:
         "sillHeightCm": 90,
         "headHeightCm": 210,
         "glazingHeightCm": 120,
+    }
+
+
+def test_only_internal_walls_can_be_marked_as_demolition_candidates() -> None:
+    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{
+          canMarkWallForDemolition,
+          wallBoundarySide,
+        }} from {json.dumps(module_uri)};
+        const floorplan = {{ width_cm: 900, depth_cm: 600 }};
+        const exterior = {{
+          start: {{ x: 0, y: 0 }},
+          end: {{ x: 900, y: 0 }},
+        }};
+        const interior = {{
+          start: {{ x: 320, y: 120 }},
+          end: {{ x: 320, y: 520 }},
+        }};
+        console.log(JSON.stringify({{
+          exteriorSide: wallBoundarySide(exterior, {{
+            widthCm: floorplan.width_cm,
+            depthCm: floorplan.depth_cm,
+          }}),
+          exteriorAllowed: canMarkWallForDemolition(exterior, floorplan),
+          interiorSide: wallBoundarySide(interior, {{
+            widthCm: floorplan.width_cm,
+            depthCm: floorplan.depth_cm,
+          }}),
+          interiorAllowed: canMarkWallForDemolition(interior, floorplan),
+        }}));
+        """
+    )
+
+    assert result == {
+        "exteriorSide": "bottom",
+        "exteriorAllowed": False,
+        "interiorSide": None,
+        "interiorAllowed": True,
     }
 
 
@@ -446,10 +486,12 @@ def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> Non
         "6 2D 家具配置",
         "7 3D 白模",
         "8 即時寫實",
+        "9 方案鎖定",
+        "10 AI 渲染",
     ):
         assert label in html
 
-    assert 'data-workflow-count="8"' in html
+    assert 'data-workflow-count="10"' in html
     assert "3–4" not in html
     assert 'accept=".dxf,.png,.jpg,.jpeg,image/png,image/jpeg,application/dxf"' in html
     assert 'id="project-step"' in html
@@ -486,6 +528,87 @@ def test_2d_furniture_library_has_top_view_icons_and_real_centimetre_sizes() -> 
     assert result["everyVariantHasCm"] is True
     assert result["roundTable"]["widthCm"] == result["roundTable"]["depthCm"]
     assert result["lSofa"]["widthCm"] >= 240
+
+
+def test_2d_furniture_plan_coordinates_match_the_visible_image_layer() -> None:
+    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ planCmToLayerPixel }} from {json.dumps(module_uri)};
+        console.log(JSON.stringify(planCmToLayerPixel(
+          {{ x: 420, y: 977 }},
+          {{ scale: 1.166365, bbox: [111, 155, 944, 1071] }},
+          0.553859555936936,
+        )));
+        """
+    )
+
+    assert round(result["x"], 2) == 304.33
+    assert round(result["y"], 2) == 150.75
+
+
+def test_2d_collision_footprint_respects_furniture_rotation() -> None:
+    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ furnitureCollisionFootprintCm }} from {json.dumps(module_uri)};
+        const item = {{ widthCm: 120, depthCm: 45 }};
+        console.log(JSON.stringify({{
+          zero: furnitureCollisionFootprintCm({{ ...item, rotationDeg: 0 }}),
+          clockwise: furnitureCollisionFootprintCm({{ ...item, rotationDeg: 90 }}),
+          counterClockwise: furnitureCollisionFootprintCm({{ ...item, rotationDeg: -90 }}),
+          flipped: furnitureCollisionFootprintCm({{ ...item, rotationDeg: 180 }}),
+        }}));
+        """
+    )
+
+    assert result == {
+        "zero": {"width": 120, "depth": 45},
+        "clockwise": {"width": 45, "depth": 120},
+        "counterClockwise": {"width": 45, "depth": 120},
+        "flipped": {"width": 120, "depth": 45},
+    }
+
+
+def test_2d_collision_checker_uses_rotated_footprints_for_bounds_and_overlap() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    collision_function = source.split("function itemCollision", 1)[1].split(
+        "function renderLayoutFurniture", 1
+    )[0]
+
+    assert "furnitureCollisionFootprintCm(item)" in collision_function
+    assert "furnitureCollisionFootprintCm(other)" in collision_function
+    assert "item.widthCm / 2" not in collision_function
+    assert "item.depthCm / 2" not in collision_function
+
+
+def test_2d_layout_defaults_to_showing_every_generated_furniture_item() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    auto_layout = source.split("async function autoLayoutFurniture", 1)[1].split(
+        "function renderLayoutRoomFilter", 1
+    )[0]
+
+    assert 'state.activeLayoutRoomId = "all";' in auto_layout
+    assert "state.furniture2d[0]?.roomId" not in auto_layout
+
+
+def test_2d_furniture_scale_uses_the_visible_image_content_not_css_letterboxing() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    scale_function = source.split("function layoutPixelsPerCm", 1)[1].split(
+        "function itemCollision", 1
+    )[0]
+
+    assert "imageContentRect(element.layoutImage)" in scale_function
+    assert "element.layoutImage.getBoundingClientRect()" not in scale_function
+
+
+def test_2d_furniture_normal_and_invalid_colours_are_visually_distinct() -> None:
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    normal_rule = css.split(".rp-2d-furniture {", 1)[1].split("}", 1)[0]
+    invalid_rule = css.split(".rp-2d-furniture.is-invalid {", 1)[1].split("}", 1)[0]
+
+    assert "border: 2px solid #53646a;" in normal_rule
+    assert "border-color: #b94935;" in invalid_rule
 
 
 def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> None:
@@ -768,6 +891,35 @@ def test_structure_editor_uses_separate_pages_and_exposes_window_controls() -> N
     assert "nextItem.sill_height_cm = sillHeightCm" in source
     assert "Object.assign(item, resolution.item)" in source
     assert 'state.activeStructureKind = tool' in source
+
+
+def test_beam_drag_guidance_only_appears_during_draw_mode() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="structure-review-guidance"' in html
+    assert "按住左圖拖曳樑的起點至終點，放開即完成" in source
+    assert 'reviewGuidance.hidden = kind === "beam" && state.structureTool !== "beam"' in source
+    assert "renderDoorReviewList();" in source
+    assert "function cancelStructureInteraction()" in source
+
+
+def test_wall_review_exposes_locked_perimeter_and_two_layout_previews() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert 'id="wall-removal-preview"' in html
+    assert 'id="wall-retained-preview-svg"' in html
+    assert 'id="wall-demolished-preview-svg"' in html
+    assert "可拆牆」只是方案候選，不代表可施工" in html
+    assert 'data-wall-demolition="candidate"' in source
+    assert "function applyWallDemolitionType" in source
+    assert "canMarkWallForDemolition" in source
+    assert "最外圍牆不可標記為可拆牆" in source
+    assert "renderWallRemovalPreviews" in source
+    assert ".rp-wall-removal-compare" in css
+    assert ".rp-legend-line.is-removable-wall" in css
 
 
 def test_each_door_requires_explicit_confirmation_and_supports_hinge_end_reversal() -> None:
@@ -1481,6 +1633,27 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert 'data-object-rotate="-15"' in viewer
     assert 'data-object-rotate="15"' in viewer
     assert "Shift+R 反向 15 度" in viewer
+
+
+def test_3d_view_controls_use_perspective_free_rotation_instead_of_dollhouse() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert 'data-view-mode="orbit"' in html
+    assert 'data-real-view-mode="orbit"' in html
+    assert 'data-proposal-view-mode="orbit"' in html
+    assert html.count("自由旋轉") >= 3
+    assert 'data-view-mode="dollhouse"' not in html
+    assert 'data-real-view-mode="dollhouse"' not in html
+    assert 'data-proposal-view-mode="dollhouse"' not in html
+    assert 'whiteViewer.setViewMode("dollhouse")' not in controller
+    assert 'realisticViewer.setViewMode("dollhouse")' not in controller
+    assert 'const viewMode = createViewModeState("orbit");' in viewer
+    reset_camera = viewer.split("function resetCamera", 1)[1].split(
+        "function setCameraPreset", 1
+    )[0]
+    assert 'setViewMode("orbit")' in reset_camera
 
 
 def test_realtime_style_material_choices_are_grouped_by_style_with_previews() -> None:

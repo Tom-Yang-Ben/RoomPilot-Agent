@@ -5,7 +5,7 @@ import json
 from test_scene_workflow import ROOT, run_workflow_script
 
 
-STATIC = ROOT / "roompilot" / "server" / "static"
+STATIC = ROOT / "backend" / "server" / "static"
 PBR_MODULE = STATIC / "scene_pbr_contracts.js"
 ARCHITECTURE_MODULE = STATIC / "scene_architecture.js"
 VIEWER = STATIC / "scene_viewer.js"

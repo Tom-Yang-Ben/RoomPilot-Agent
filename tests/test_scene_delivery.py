@@ -3,10 +3,10 @@ import json
 from fastapi.testclient import TestClient
 
 from test_scene_workflow import ROOT, run_workflow_script
-from roompilot.server.main import app
+from backend.server.main import app
 
 
-DELIVERY_MODULE = ROOT / "roompilot" / "server" / "static" / "scene_delivery.js"
+DELIVERY_MODULE = ROOT / "backend" / "server" / "static" / "scene_delivery.js"
 
 
 def test_delivery_manifest_has_four_views_four_outputs_and_truthful_bom() -> None:
@@ -37,7 +37,7 @@ def test_scene_page_exposes_real_viewer_and_delivery_controls_without_image_gene
     flow_source = client.get("/static/scene_v2.js")
 
     assert page.status_code == viewer_source.status_code == flow_source.status_code == 200
-    assert all(mode in page.text for mode in ("娃娃屋", "正俯視", "室內透視"))
+    assert all(mode in page.text for mode in ("自由旋轉", "正俯視", "室內透視"))
     assert all(label in page.text for label in ("鎖定視角並編輯家具", "保存即時寫實方案"))
     assert "function setViewMode(mode)" in viewer_source.text
     assert "function capturePng()" in viewer_source.text
@@ -70,7 +70,7 @@ def test_locked_camera_is_preserved_when_style_reload_rebuilds_the_room() -> Non
     )[0]
     assert "if (!cameraLocked)" in room_creation
     assert room_creation.index("if (!cameraLocked)") < room_creation.index(
-        'setViewMode("dollhouse")'
+        'setViewMode("orbit")'
     )
 
 

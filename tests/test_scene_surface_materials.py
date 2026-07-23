@@ -5,8 +5,8 @@ import json
 from test_scene_workflow import ROOT, run_workflow_script
 
 
-STATIC = ROOT / "roompilot" / "server" / "static"
-SURFACE_CATALOG = ROOT / "roompilot" / "catalog" / "data" / "surface_catalog.json"
+STATIC = ROOT / "backend" / "server" / "static"
+SURFACE_CATALOG = ROOT / "backend" / "catalog" / "data" / "surface_catalog.json"
 
 
 def test_style_presets_resolve_to_real_catalog_textures() -> None:
