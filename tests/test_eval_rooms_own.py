@@ -79,3 +79,16 @@ def test_fix_svg_path_own_transform_and_text_child(tmp_path):
     assert pts == "50,10 60,10 60,20 50,20"     # g平移+path平移 兩層都烘進座標
     text = g.getElementsByTagName("text")[0]
     assert text.getAttribute("transform") == "translate(50,0) scale(2)"
+
+
+def test_crop_bbox_margin_and_clip():
+    import numpy as np
+    import extract_room_crops as ex
+    img = np.zeros((100, 200, 3), np.uint8)
+    rr = np.array([10, 50]); cc = np.array([20, 80])
+    crop, bbox = ex.crop_bbox(img, rr, cc, margin=0.1)
+    assert bbox == [6, 54, 14, 86]              # ±10% 邊距
+    assert crop.shape[:2] == (48, 72)
+    crop2, bbox2 = ex.crop_bbox(img, np.array([0, 99]), np.array([0, 199]), 0.2)
+    assert bbox2 == [0, 100, 0, 200]            # 邊距不得超出圖面
+    assert ex.norm_label(None) == "space" and ex.norm_label("balcony") == "outdoor"

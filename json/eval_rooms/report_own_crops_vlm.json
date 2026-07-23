@@ -1,0 +1,667 @@
+{
+ "summary": {
+  "method": "VLM zero-shot (Claude 視覺, 4 subagents, 盲測中性檔名)",
+  "n_test_rooms": 73,
+  "confusion": {
+   "kitchen": {
+    "kitchen": 3,
+    "living": 3,
+    "bed": 1,
+    "bath": 4,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 1
+   },
+   "living": {
+    "kitchen": 1,
+    "living": 1,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "bed": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 7,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "bath": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 6,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 1
+   },
+   "entry": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "storage": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "garage": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "outdoor": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "space": {
+    "kitchen": 5,
+    "living": 10,
+    "bed": 11,
+    "bath": 4,
+    "entry": 5,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 1,
+    "space": 9
+   }
+  },
+  "per_class": {
+   "kitchen": {
+    "gt": 12,
+    "precision": 0.333,
+    "recall": 0.25
+   },
+   "living": {
+    "gt": 2,
+    "precision": 0.071,
+    "recall": 0.5
+   },
+   "bed": {
+    "gt": 7,
+    "precision": 0.368,
+    "recall": 1.0
+   },
+   "bath": {
+    "gt": 7,
+    "precision": 0.429,
+    "recall": 0.857
+   },
+   "entry": {
+    "gt": 0,
+    "precision": 0.0,
+    "recall": null
+   },
+   "storage": {
+    "gt": 0,
+    "precision": null,
+    "recall": null
+   },
+   "garage": {
+    "gt": 0,
+    "precision": null,
+    "recall": null
+   },
+   "outdoor": {
+    "gt": 0,
+    "precision": 0.0,
+    "recall": null
+   },
+   "space": {
+    "gt": 45,
+    "precision": 0.818,
+    "recall": 0.2
+   }
+  }
+ },
+ "predictions": [
+  {
+   "floor": "floor55",
+   "idx": 0,
+   "gt": "kitchen",
+   "pred": "living",
+   "cue": "沙發組+茶几+餐桌+平台鋼琴"
+  },
+  {
+   "floor": "floor55",
+   "idx": 1,
+   "gt": "kitchen",
+   "pred": "bed",
+   "cue": "兩張單人床並排"
+  },
+  {
+   "floor": "floor55",
+   "idx": 2,
+   "gt": "kitchen",
+   "pred": "kitchen",
+   "cue": "爐台四口+雙水槽流理台"
+  },
+  {
+   "floor": "floor55",
+   "idx": 3,
+   "gt": "kitchen",
+   "pred": "space",
+   "cue": "僅門弧與牆角，無任何設備線索"
+  },
+  {
+   "floor": "floor55",
+   "idx": 4,
+   "gt": "kitchen",
+   "pred": "bath",
+   "cue": "浴缸+馬桶+洗手台"
+  },
+  {
+   "floor": "floor58",
+   "idx": 0,
+   "gt": "bed",
+   "pred": "bed",
+   "cue": "雙人床+床頭櫃側盆栽"
+  },
+  {
+   "floor": "floor58",
+   "idx": 1,
+   "gt": "space",
+   "pred": "bath",
+   "cue": "淋浴間+馬桶+洗手台"
+  },
+  {
+   "floor": "floor58",
+   "idx": 2,
+   "gt": "space",
+   "pred": "living",
+   "cue": "長沙發+入口門+盆栽"
+  },
+  {
+   "floor": "floor58",
+   "idx": 3,
+   "gt": "bed",
+   "pred": "bed",
+   "cue": "雙人床佔據房間中央"
+  },
+  {
+   "floor": "floor58",
+   "idx": 4,
+   "gt": "space",
+   "pred": "space",
+   "cue": "近乎空白僅牆線，無設備"
+  },
+  {
+   "floor": "floor58",
+   "idx": 5,
+   "gt": "space",
+   "pred": "kitchen",
+   "cue": "餐桌六椅+右側爐台與水槽"
+  },
+  {
+   "floor": "floor58",
+   "idx": 6,
+   "gt": "space",
+   "pred": "bath",
+   "cue": "淋浴間+馬桶+洗手台"
+  },
+  {
+   "floor": "floor58",
+   "idx": 7,
+   "gt": "space",
+   "pred": "living",
+   "cue": "兩張扶手沙發椅相對+音響"
+  },
+  {
+   "floor": "floor58",
+   "idx": 8,
+   "gt": "space",
+   "pred": "space",
+   "cue": "樓梯踏階符號，非居室"
+  },
+  {
+   "floor": "floor60",
+   "idx": 0,
+   "gt": "bath",
+   "pred": "bath",
+   "cue": "浴缸+馬桶+洗手台"
+  },
+  {
+   "floor": "floor60",
+   "idx": 1,
+   "gt": "space",
+   "pred": "living",
+   "cue": "雙人沙發+茶几+電視"
+  },
+  {
+   "floor": "floor60",
+   "idx": 2,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "雙人床附雙枕+轉角桌"
+  },
+  {
+   "floor": "floor60",
+   "idx": 3,
+   "gt": "space",
+   "pred": "kitchen",
+   "cue": "方餐桌四椅+爐台與雙水槽"
+  },
+  {
+   "floor": "floor60",
+   "idx": 4,
+   "gt": "space",
+   "pred": "space",
+   "cue": "狹長走道僅門弧，無設備"
+  },
+  {
+   "floor": "floor60",
+   "idx": 5,
+   "gt": "space",
+   "pred": "outdoor",
+   "cue": "狹長條狀空間僅兩盆植栽，似陽台"
+  },
+  {
+   "floor": "floor61",
+   "idx": 0,
+   "gt": "space",
+   "pred": "entry",
+   "cue": "中央為樓梯與樓梯間走道"
+  },
+  {
+   "floor": "floor61",
+   "idx": 1,
+   "gt": "kitchen",
+   "pred": "bath",
+   "cue": "浴缸、馬桶、洗手台符號齊全"
+  },
+  {
+   "floor": "floor61",
+   "idx": 2,
+   "gt": "bed",
+   "pred": "bed",
+   "cue": "雙人床加衣櫃與書桌"
+  },
+  {
+   "floor": "floor61",
+   "idx": 3,
+   "gt": "space",
+   "pred": "space",
+   "cue": "裁切幾乎全黑無任何可辨識線索"
+  },
+  {
+   "floor": "floor61",
+   "idx": 4,
+   "gt": "space",
+   "pred": "entry",
+   "cue": "狹長走道，頂端有對外門扇"
+  },
+  {
+   "floor": "floor61",
+   "idx": 5,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "單人床加書桌椅與斗櫃"
+  },
+  {
+   "floor": "floor61",
+   "idx": 6,
+   "gt": "space",
+   "pred": "living",
+   "cue": "沙發、平台鋼琴與圓形餐桌椅"
+  },
+  {
+   "floor": "floor61",
+   "idx": 7,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "單人床加衣櫃與電腦桌"
+  },
+  {
+   "floor": "floor64",
+   "idx": 0,
+   "gt": "bath",
+   "pred": "bath",
+   "cue": "浴缸、洗手台、馬桶符號"
+  },
+  {
+   "floor": "floor64",
+   "idx": 1,
+   "gt": "space",
+   "pred": "entry",
+   "cue": "含門扇迴轉的小廳，僅矮櫃與盆栽"
+  },
+  {
+   "floor": "floor64",
+   "idx": 2,
+   "gt": "space",
+   "pred": "living",
+   "cue": "L 型沙發、茶几與壁掛電視"
+  },
+  {
+   "floor": "floor69",
+   "idx": 0,
+   "gt": "space",
+   "pred": "living",
+   "cue": "兩組沙發、音響與樓梯"
+  },
+  {
+   "floor": "floor69",
+   "idx": 1,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "單人床加電腦桌與辦公椅"
+  },
+  {
+   "floor": "floor69",
+   "idx": 2,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "單人床加書桌與辦公椅"
+  },
+  {
+   "floor": "floor69",
+   "idx": 3,
+   "gt": "bath",
+   "pred": "bath",
+   "cue": "馬桶、洗手台與浴缸"
+  },
+  {
+   "floor": "floor69",
+   "idx": 4,
+   "gt": "bath",
+   "pred": "space",
+   "cue": "狹長空白條狀空間"
+  },
+  {
+   "floor": "floor69",
+   "idx": 5,
+   "gt": "space",
+   "pred": "kitchen",
+   "cue": "兩組四口爐台與雙槽水槽"
+  },
+  {
+   "floor": "floor70",
+   "idx": 0,
+   "gt": "space",
+   "pred": "living",
+   "cue": "圓桌配兩張扶手椅與盆栽"
+  },
+  {
+   "floor": "floor70",
+   "idx": 1,
+   "gt": "bed",
+   "pred": "bed",
+   "cue": "雙人床符號配床頭櫃"
+  },
+  {
+   "floor": "floor70",
+   "idx": 2,
+   "gt": "space",
+   "pred": "kitchen",
+   "cue": "水槽與四口爐台符號"
+  },
+  {
+   "floor": "floor70",
+   "idx": 3,
+   "gt": "bath",
+   "pred": "bath",
+   "cue": "浴缸與馬桶符號"
+  },
+  {
+   "floor": "floor73",
+   "idx": 0,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "雙人床加書桌與暖氣片"
+  },
+  {
+   "floor": "floor73",
+   "idx": 1,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "單人床配書桌椅"
+  },
+  {
+   "floor": "floor73",
+   "idx": 2,
+   "gt": "bath",
+   "pred": "bath",
+   "cue": "淋浴間、馬桶與洗手台"
+  },
+  {
+   "floor": "floor73",
+   "idx": 3,
+   "gt": "space",
+   "pred": "entry",
+   "cue": "樓梯與多門的門廳形態"
+  },
+  {
+   "floor": "floor73",
+   "idx": 4,
+   "gt": "kitchen",
+   "pred": "living",
+   "cue": "沙發與電視櫃符號"
+  },
+  {
+   "floor": "floor73",
+   "idx": 5,
+   "gt": "kitchen",
+   "pred": "kitchen",
+   "cue": "餐桌旁有水槽與爐台"
+  },
+  {
+   "floor": "floor74",
+   "idx": 0,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "單人床加電腦書桌"
+  },
+  {
+   "floor": "floor74",
+   "idx": 1,
+   "gt": "space",
+   "pred": "space",
+   "cue": "無傢俱的窄長走道"
+  },
+  {
+   "floor": "floor74",
+   "idx": 2,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "右側雙人床為主配矮沙發與斗櫃"
+  },
+  {
+   "floor": "floor74",
+   "idx": 3,
+   "gt": "bath",
+   "pred": "bath",
+   "cue": "浴缸、淋浴間、馬桶與洗手台俱全"
+  },
+  {
+   "floor": "floor74",
+   "idx": 4,
+   "gt": "space",
+   "pred": "living",
+   "cue": "平台鋼琴與琴椅的起居空間"
+  },
+  {
+   "floor": "floor74",
+   "idx": 5,
+   "gt": "living",
+   "pred": "kitchen",
+   "cue": "餐桌配下方水槽爐台廚具檯面"
+  },
+  {
+   "floor": "floor74",
+   "idx": 6,
+   "gt": "living",
+   "pred": "living",
+   "cue": "三件式沙發組、茶几與電視"
+  },
+  {
+   "floor": "floor76",
+   "idx": 0,
+   "gt": "space",
+   "pred": "living",
+   "cue": "沙發、茶几與電腦桌"
+  },
+  {
+   "floor": "floor76",
+   "idx": 1,
+   "gt": "bed",
+   "pred": "bed",
+   "cue": "雙人床與床頭櫃、梳妝椅"
+  },
+  {
+   "floor": "floor76",
+   "idx": 2,
+   "gt": "space",
+   "pred": "space",
+   "cue": "空房間，無任何家具或設備"
+  },
+  {
+   "floor": "floor76",
+   "idx": 3,
+   "gt": "space",
+   "pred": "space",
+   "cue": "僅有樓梯符號的梯間"
+  },
+  {
+   "floor": "floor76",
+   "idx": 4,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "左下角單人床，另有平台鋼琴"
+  },
+  {
+   "floor": "floor76",
+   "idx": 5,
+   "gt": "space",
+   "pred": "bath",
+   "cue": "馬桶、浴缸與洗手台"
+  },
+  {
+   "floor": "floor76",
+   "idx": 6,
+   "gt": "space",
+   "pred": "bath",
+   "cue": "浴缸、馬桶與洗手台"
+  },
+  {
+   "floor": "floor78",
+   "idx": 0,
+   "gt": "space",
+   "pred": "living",
+   "cue": "沙發、電視櫃、扶手椅與六人餐桌"
+  },
+  {
+   "floor": "floor78",
+   "idx": 1,
+   "gt": "bed",
+   "pred": "bed",
+   "cue": "房間中央雙人床"
+  },
+  {
+   "floor": "floor78",
+   "idx": 2,
+   "gt": "space",
+   "pred": "space",
+   "cue": "小空房，僅牆面淺櫃"
+  },
+  {
+   "floor": "floor78",
+   "idx": 3,
+   "gt": "kitchen",
+   "pred": "bath",
+   "cue": "馬桶、浴缸與洗手台"
+  },
+  {
+   "floor": "floor78",
+   "idx": 4,
+   "gt": "space",
+   "pred": "space",
+   "cue": "整片樓梯踏階符號"
+  },
+  {
+   "floor": "floor78",
+   "idx": 5,
+   "gt": "space",
+   "pred": "kitchen",
+   "cue": "四口爐台與雙槽水槽、冰箱"
+  },
+  {
+   "floor": "floor79",
+   "idx": 0,
+   "gt": "kitchen",
+   "pred": "bath",
+   "cue": "浴缸、馬桶與洗手台"
+  },
+  {
+   "floor": "floor79",
+   "idx": 1,
+   "gt": "space",
+   "pred": "entry",
+   "cue": "上方對外雙開門的小廳"
+  },
+  {
+   "floor": "floor79",
+   "idx": 2,
+   "gt": "space",
+   "pred": "bed",
+   "cue": "單人床加電腦桌與衣櫃"
+  },
+  {
+   "floor": "floor79",
+   "idx": 3,
+   "gt": "kitchen",
+   "pred": "kitchen",
+   "cue": "爐台烤箱組、雙槽水槽與冰箱"
+  },
+  {
+   "floor": "floor79",
+   "idx": 4,
+   "gt": "kitchen",
+   "pred": "living",
+   "cue": "沙發組、茶几、電視與圓餐桌"
+  },
+  {
+   "floor": "floor79",
+   "idx": 5,
+   "gt": "bed",
+   "pred": "bed",
+   "cue": "下方雙人床與矮櫃、吊扇符號"
+  }
+ ]
+}
