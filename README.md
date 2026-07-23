@@ -58,7 +58,7 @@ git status --short
 1. 每位成員只修改自己的主要目錄與對應測試。
 2. Bella 可以在 `roompilot/server/` 串接模組，但不複製其他人的演算法。
 3. 家具座標只能由 AN 的 `roompilot/engine/` 計算。
-4. 跨模組幾何資料一律使用公分，長度與座標欄位以 `_cm` 命名。DXF、GLB 與影像辨識 adapter 可在內部讀取檔案原生單位或像素，但輸出給其他模組前必須轉成公分；面積維持 `_m2`。
+4. 跨模組幾何資料一律使用公分，新欄位的長度與座標以 `_cm` 命名。AN／Yen 既有契約的 `width`、`depth`、`pos_x`、`pos_y` 為避免破壞相容性暫不改名，但 payload 必須帶 `coordinate_unit: "cm"` 與 `schema_version`。DXF、GLB 與影像辨識 adapter 可在內部讀取檔案原生單位、glTF 公尺或像素，但輸出給其他模組前必須轉成公分；面積維持 `_m2`。
 5. Kai 尚未安全對應的 1,514 件家具放在
    `roompilot/catalog/data/quarantine/unmatched_cloud_furniture/`，目前網頁、
    Agent 與 3D 場景都不得使用。

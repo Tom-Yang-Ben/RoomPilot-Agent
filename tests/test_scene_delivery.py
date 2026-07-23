@@ -42,6 +42,8 @@ def test_scene_page_exposes_real_viewer_and_delivery_controls_without_image_gene
     assert "function setViewMode(mode)" in viewer_source.text
     assert "function capturePng()" in viewer_source.text
     assert "async function exportGlb()" in viewer_source.text
+    assert 'lastSceneData?.floorplan?.coordinate_unit === "cm" ? 0.01 : 1' in viewer_source.text
+    assert "exportRoot.scale.setScalar(exportScale)" in viewer_source.text
     assert "/v1/images" not in flow_source.text
     assert "generative image" not in flow_source.text.lower()
 

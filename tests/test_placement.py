@@ -18,6 +18,7 @@ from roompilot.engine.placement import (
     place_overlay_on_furniture,
 )
 from roompilot.engine.adjustment import adjust_furniture
+from roompilot.engine.schema import placed_to_dict
 
 
 # ---------- 共用測資 ----------
@@ -44,6 +45,23 @@ def sofa_catalog() -> FurnitureCatalogItem:
 @pytest.fixture
 def table_catalog() -> FurnitureCatalogItem:
     return FurnitureCatalogItem(type="table", name="茶几", width=100, depth=60)
+
+
+def test_placed_furniture_payload_declares_centimeter_contract(sofa_catalog) -> None:
+    payload = placed_to_dict(
+        PlacedFurniture(
+            id="sofa-1",
+            catalog=sofa_catalog,
+            pos_x=150,
+            pos_y=90,
+            rotation=0,
+        )
+    )
+
+    assert payload["schema_version"] == "2.0"
+    assert payload["coordinate_unit"] == "cm"
+    assert payload["width"] == 200
+    assert payload["pos_x"] == 150
 
 
 # ---------- check_placement 基本案例 ----------

@@ -1,6 +1,9 @@
-import { createSceneViewer } from "./scene_viewer.js?v=20260723-floor-window1";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-98efb5a76a23";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
-import { normalizeSavedSpaceConfirmation } from "./scene_unit_contracts.js?v=20260723-cm1";
+import {
+  normalizeSavedSceneData,
+  normalizeSavedSpaceConfirmation,
+} from "./scene_unit_contracts.js?v=sha256-3372a900aa79";
 import {
   createWorkflow,
   restoreWorkflow,
@@ -11,7 +14,7 @@ import {
 import {
   buildScaleCalibration,
   calibrationActionState,
-} from "./scene_calibration.js?v=20260723-cm1";
+} from "./scene_calibration.js?v=sha256-66046852b468";
 import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
@@ -39,19 +42,19 @@ import {
   beamDragGeometry,
   dedupeWindowCandidates,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=20260721-beam-drag1";
-import { createStructurePreview } from "./scene_structure_preview.js?v=20260723-dimension-guide1";
+} from "./scene_structure_utils.js?v=sha256-3260562db519";
+import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-33fb11f45a21";
 import {
   findStructureWallCollision,
   resolveStructureWallCollisions,
   validateColumnDimensionsCm,
-} from "./scene_structure_geometry.js?v=20260723-wall-repair3";
+} from "./scene_structure_geometry.js?v=sha256-ebc6332ca3c4";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
   applyWindowTypePreset,
   normalizedWindowType,
   WINDOW_TYPES,
-} from "./scene_window_types.js?v=20260723-floor-window1";
+} from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -5349,7 +5352,7 @@ async function restoreProject() {
     state.roomAnswers = serverState.requirements?.rooms || {};
     state.keepExistingRoomIds = serverState.requirements?.keepExistingRoomIds || [];
     state.furniture2d = serverState.layout_2d?.furniture || [];
-    state.sceneData = serverState.white_model_3d?.sceneData || null;
+    state.sceneData = normalizeSavedSceneData(serverState.white_model_3d?.sceneData);
     state.activeStylePackId = serverState.realistic_3d?.activeStylePackId || null;
     state.surfaceState = serverState.realistic_3d?.surfaceState || state.surfaceState;
     state.materialBoundary = serverState.realistic_3d?.materialBoundary || null;

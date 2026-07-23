@@ -14,6 +14,60 @@ from .spatial_report import build_spatial_report
 from .units import canonicalize_analysis_cm
 
 
+def _canonicalize_floorplan_cm(floorplan: Mapping[str, Any]) -> dict[str, Any]:
+    """Convert the metres-based DXF parser geometry into the public cm contract."""
+    normalized = deepcopy(dict(floorplan))
+
+    bbox = normalized.get("bbox")
+    if isinstance(bbox, Mapping):
+        normalized["bbox"] = {
+            key: round(float(value) * 100, 2)
+            for key, value in bbox.items()
+        }
+
+    normalized["wall_polys"] = [
+        {
+            **polygon,
+            "exterior": [
+                [round(float(point[0]) * 100, 2), round(float(point[1]) * 100, 2)]
+                for point in polygon.get("exterior", [])
+            ],
+            "holes": [
+                [
+                    [round(float(point[0]) * 100, 2), round(float(point[1]) * 100, 2)]
+                    for point in ring
+                ]
+                for ring in polygon.get("holes", [])
+            ],
+        }
+        for polygon in normalized.get("wall_polys", [])
+    ]
+
+    for key in ("doors", "windows"):
+        normalized[key] = [
+            {
+                **segment,
+                **{
+                    axis: round(float(segment[axis]) * 100, 2)
+                    for axis in ("x1", "z1", "x2", "z2")
+                    if axis in segment
+                },
+            }
+            for segment in normalized.get(key, [])
+        ]
+
+    for meter_key, centimeter_key in (
+        ("wall_height", "wall_height_cm"),
+        ("wall_thickness", "wall_thickness_cm"),
+    ):
+        value = normalized.pop(meter_key, None)
+        if value is not None:
+            normalized[centimeter_key] = round(float(value) * 100, 2)
+
+    normalized["coordinate_unit"] = "cm"
+    return normalized
+
+
 def _dxf_text(analysis: Mapping[str, Any]) -> str:
     doc = ezdxf.new("R2010")
     doc.header["$INSUNITS"] = 4  # millimetres
@@ -97,10 +151,11 @@ def confirm_floorplan_analysis(
         }
     ]
     dxf_text = _dxf_text(confirmed)
-    floorplan = parse_dxf_bytes(dxf_text.encode("utf-8"), "confirmed-floorplan.dxf")
+    floorplan = _canonicalize_floorplan_cm(
+        parse_dxf_bytes(dxf_text.encode("utf-8"), "confirmed-floorplan.dxf")
+    )
     width_cm = float(floorplan.get("width_cm", 0.0))
     depth_cm = float(floorplan.get("depth_cm", 0.0))
-    floorplan["coordinate_unit"] = "cm"
     floorplan["room_regions"] = []
     for room in confirmed["spatial_report"]["rooms"]:
         region = deepcopy(room)

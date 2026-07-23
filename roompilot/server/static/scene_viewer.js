@@ -14,10 +14,10 @@ import {
   surfacePbrProfile,
   surfaceTint,
 } from "./scene_pbr_contracts.js?v=20260720-real3d15";
-import { openingBelongsToWall } from "./scene_architecture.js?v=20260719-real3d6";
+import { openingBelongsToWall } from "./scene_architecture.js?v=sha256-77dd3e6c8e09";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
-import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=20260721-column-resize3";
-import { windowOpeningMetrics } from "./scene_window_types.js?v=20260723-floor-window1";
+import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-ebc6332ca3c4";
+import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {
   clampWalkPosition,
   computeExactModelScale,
@@ -25,7 +25,7 @@ import {
   fallbackMaterialRole,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=20260721-room-surfaces1";
+} from "./scene_visual_contracts.js?v=sha256-862569e3e3d4";
 
 const CM_PER_METER = 100;
 
@@ -2513,6 +2513,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const exportRoot = new THREE.Group();
     exportRoot.add(roomGroup.clone(true));
     exportRoot.add(furnitureGroup.clone(true));
+    const exportScale = lastSceneData?.floorplan?.coordinate_unit === "cm" ? 0.01 : 1;
+    exportRoot.scale.setScalar(exportScale);
+    exportRoot.updateMatrixWorld(true);
     const exporter = new GLTFExporter();
     return exporter.parseAsync(exportRoot, { binary: true, onlyVisible: true });
   }

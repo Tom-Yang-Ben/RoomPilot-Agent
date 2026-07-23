@@ -24,6 +24,36 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'src="/static/scene_v2.js?v=sha256-{expected}"' in html
 
 
+def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
+    dependency_edges = {
+        "scene_v2.js": [
+            "scene_viewer.js",
+            "scene_unit_contracts.js",
+            "scene_calibration.js",
+            "scene_structure_utils.js",
+            "scene_structure_preview.js",
+            "scene_structure_geometry.js",
+            "scene_window_types.js",
+        ],
+        "scene_viewer.js": [
+            "scene_architecture.js",
+            "scene_structure_geometry.js",
+            "scene_window_types.js",
+            "scene_visual_contracts.js",
+        ],
+        "scene_structure_preview.js": ["scene_structure_geometry.js"],
+    }
+
+    for importer_name, dependency_names in dependency_edges.items():
+        importer = (STATIC / importer_name).read_text(encoding="utf-8")
+        for dependency_name in dependency_names:
+            dependency = (STATIC / dependency_name).read_bytes()
+            expected = hashlib.sha256(dependency).hexdigest()[:12]
+            assert (
+                f'./{dependency_name}?v=sha256-{expected}' in importer
+            ), f"{importer_name} has a stale cache key for {dependency_name}"
+
+
 def test_dimensioned_plan_draws_colored_room_outlines_and_size_lines() -> None:
     module_uri = (STATIC / "scene_dimensioned_plan.js").as_uri()
     result = run_workflow_script(
@@ -144,6 +174,178 @@ def test_saved_space_confirmation_migrates_legacy_meters_only_once() -> None:
     assert result["legacy"]["structures"]["walls"][0]["thickness_cm"] == 18
     assert result["current"]["rooms"][0]["polygon_cm"][1] == {"x": 600, "y": 0}
     assert result["current"]["structures"]["walls"][0]["end"] == {"x": 600, "y": 0}
+
+
+def test_saved_space_confirmation_migrates_each_field_by_its_own_unit() -> None:
+    module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ normalizeSavedSpaceConfirmation }} from {json.dumps(module_uri)};
+        const normalized = normalizeSavedSpaceConfirmation({{
+          coordinate_unit: "cm",
+          rooms: [
+            {{
+              id: "legacy-room",
+              polygon_m: [{{ x: 0, y: 0 }}, {{ x: 6, y: 0 }}, {{ x: 6, y: 4 }}],
+            }},
+            {{
+              id: "current-room",
+              polygon_cm: [{{ x: 0, y: 0 }}, {{ x: 300, y: 0 }}, {{ x: 300, y: 200 }}],
+            }},
+          ],
+          structures: {{
+            walls: [{{
+              start: {{ x: 0, y: 0 }},
+              end: {{ x: 6, y: 0 }},
+              thickness_m: 0.18,
+            }}],
+            columns: [{{
+              center: {{ x: 250, y: 180 }},
+              width_cm: 35,
+              depth_cm: 35,
+            }}],
+            doors: [{{
+              start: {{ x: 1, y: 0 }},
+              end: {{ x: 1.9, y: 0 }},
+              width_cm: 90,
+            }}],
+          }},
+        }});
+        console.log(JSON.stringify(normalized));
+        """
+    )
+
+    assert result["schema_version"] == "2.0"
+    assert result["rooms"][0]["polygon_cm"][1] == {"x": 600, "y": 0}
+    assert result["rooms"][1]["polygon_cm"][1] == {"x": 300, "y": 0}
+    assert result["structures"]["walls"][0]["end"] == {"x": 600, "y": 0}
+    assert result["structures"]["columns"][0]["center"] == {"x": 250, "y": 180}
+    assert result["structures"]["doors"][0]["end"] == {"x": 1.9, "y": 0}
+
+    legacy_with_cm_dimensions = run_workflow_script(
+        f"""
+        import {{ normalizeSavedSpaceConfirmation }} from {json.dumps(module_uri)};
+        console.log(JSON.stringify(normalizeSavedSpaceConfirmation({{
+          rooms: [{{
+            polygon_m: [{{ x: 0, y: 0 }}, {{ x: 6, y: 0 }}, {{ x: 6, y: 4 }}],
+          }}],
+          structures: {{
+            doors: [{{
+              start: {{ x: 1, y: 0 }},
+              end: {{ x: 1.9, y: 0 }},
+              width_cm: 90,
+            }}],
+          }},
+        }})));
+        """
+    )
+    assert legacy_with_cm_dimensions["structures"]["doors"][0]["end"] == {"x": 190, "y": 0}
+
+
+def test_saved_scene_data_migrates_only_legacy_floorplan_geometry_once() -> None:
+    module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ normalizeSavedSceneData }} from {json.dumps(module_uri)};
+        const legacy = {{
+          floorplan: {{
+            width_cm: 600,
+            depth_cm: 400,
+            wall_segments: [{{
+              start: {{ x: -3, z: -2 }},
+              end: {{ x: 3, z: -2 }},
+            }}],
+            wall_polys: [{{
+              exterior: [[-3, -2], [3, -2], [3, 2], [-3, 2]],
+              holes: [],
+            }}],
+            room_regions: [{{
+              exterior: [[-3, -2], [3, -2], [3, 2], [-3, 2]],
+              holes: [],
+            }}],
+          }},
+          scene_objects: [{{
+            id: "bed-1",
+            position_cm: {{ x: 120, z: -80 }},
+            size_cm: {{ width: 180, depth: 200, height: 90 }},
+          }}],
+        }};
+        const once = normalizeSavedSceneData(legacy);
+        const twice = normalizeSavedSceneData(once);
+        console.log(JSON.stringify({{ once, twice }}));
+        """
+    )
+
+    assert result["once"]["floorplan"]["coordinate_unit"] == "cm"
+    assert result["once"]["floorplan"]["schema_version"] == "2.0"
+    assert result["once"]["floorplan"]["wall_segments"][0]["end"] == {"x": 300, "z": -200}
+    assert result["once"]["floorplan"]["wall_polys"][0]["exterior"][2] == [300, 200]
+    assert result["once"]["floorplan"]["room_regions"][0]["exterior"][2] == [300, 200]
+    assert result["once"]["scene_objects"][0]["position_cm"] == {"x": 120, "z": -80}
+    assert result["twice"] == result["once"]
+
+
+def test_saved_scene_data_migrates_mixed_floorplan_fields_independently() -> None:
+    module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ normalizeSavedSceneData }} from {json.dumps(module_uri)};
+        console.log(JSON.stringify(normalizeSavedSceneData({{
+          floorplan: {{
+            coordinate_unit: "cm",
+            width_cm: 600,
+            depth_cm: 400,
+            bbox: {{ minx: -3, minz: -2, maxx: 3, maxz: 2 }},
+            wall_segments: [
+              {{
+                coordinate_unit: "cm",
+                start: {{ x: -300, z: -200 }},
+                end: {{ x: 300, z: -200 }},
+              }},
+              {{
+                coordinate_unit: "m",
+                start: {{ x: -3, z: 2 }},
+                end: {{ x: 3, z: 2 }},
+              }},
+            ],
+            wall_polys: [{{
+              exterior: [[-3, -2], [3, -2], [3, 2], [-3, 2]],
+              holes: [],
+            }}],
+            room_regions: [{{
+              coordinate_unit: "cm",
+              exterior: [[-300, -200], [300, -200], [300, 200], [-300, 200]],
+              holes: [],
+            }}],
+            columns: [{{
+              coordinate_unit: "m",
+              center: {{ x: 2.5, z: 1.5 }},
+              width_cm: 35,
+              depth_cm: 35,
+            }}],
+          }},
+          scene_objects: [],
+        }})));
+        """
+    )
+
+    floorplan = result["floorplan"]
+    assert floorplan["bbox"] == {"minx": -300, "minz": -200, "maxx": 300, "maxz": 200}
+    assert floorplan["wall_segments"][0]["end"] == {"x": 300, "z": -200}
+    assert floorplan["wall_segments"][1]["end"] == {"x": 300, "z": 200}
+    assert floorplan["wall_polys"][0]["exterior"][2] == [300, 200]
+    assert floorplan["room_regions"][0]["exterior"][2] == [300, 200]
+    assert floorplan["columns"][0]["center"] == {"x": 250, "z": 150}
+
+
+def test_project_restore_normalizes_saved_scene_before_loading_viewers() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "normalizeSavedSceneData" in controller
+    assert (
+        "state.sceneData = normalizeSavedSceneData(serverState.white_model_3d?.sceneData);"
+        in controller
+    )
 
 
 def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:

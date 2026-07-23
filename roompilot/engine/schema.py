@@ -18,6 +18,8 @@ from roompilot.engine.models import FurnitureCatalogItem, PlacedFurniture
 def placed_to_dict(item: PlacedFurniture) -> dict:
     """PlacedFurniture -> JSON dict(後端存 DB、前端渲染、回給 Agent 都吃這個)"""
     return {
+        "schema_version": "2.0",
+        "coordinate_unit": "cm",
         "id": item.id,
         "type": item.catalog.type,
         "name": item.catalog.name,

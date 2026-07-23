@@ -312,7 +312,7 @@ def recognize_cody_geometry(
     *,
     calibration_hint: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """執行 origin/cody 的牆、門、窗演算法並轉成 RoomPilot 公尺契約。"""
+    """執行 origin/cody 的牆、門、窗演算法並轉成 RoomPilot 公分契約。"""
     cfg = replace(cody.load_config(str(CONFIG_PATH)))
     gray, _ = _decode_image(image_bytes)
     if cfg.deskew:

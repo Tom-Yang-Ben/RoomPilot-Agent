@@ -1,6 +1,6 @@
 """平面圖分析公開入口。
 
-座標輸出遵守 RoomPilot 的 Python 公尺契約；影像像素只保留在 evidence，
+座標輸出遵守 RoomPilot 的跨模組公分契約；影像像素只保留在 evidence，
 不會流入家具配置引擎。
 """
 

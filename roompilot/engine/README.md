@@ -67,7 +67,7 @@ uv run python demo_agent_flow.py         # 看 Agent <-> Engine 的完整互動�
 ## 給對接組員的備註
 
 - **Agent 核心(柏彥)**:tool schema 定義在 `schema.py`(`PLACE_FURNITURE_TOOL` / `ADJUST_FURNITURE_TOOL`),互動範例跑 `demo_agent_flow.py`。v0.2 待議:add/remove、相對方位指令(toward_window 等)、場景狀態誰持有。
-- **後端/DB(立凱)**:要存的擺放結果欄位 = `pos_x` / `pos_y` / `rotation`(見 `schema.py` 的 `placed_to_dict`)。
+- **後端/DB(立凱)**:要存的擺放結果欄位 = `pos_x` / `pos_y` / `rotation`(見 `schema.py` 的 `placed_to_dict`)；`pos_x` / `pos_y` 為既有相容欄位，單位由同一 payload 的 `coordinate_unit: "cm"` 明示。
 - **家具型錄(鄭典)**:型錄需新增 `clearance` 資訊(哪一面、需要幾公分開合空間),沒有這個欄位淨空檢查無法運作。無開合需求的家具(沙發、茶几)可留空。
 
 ## 尚未實作(P1/P2)

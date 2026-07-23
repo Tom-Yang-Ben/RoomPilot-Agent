@@ -335,6 +335,29 @@ def test_confirm_floorplan_analysis_exports_dxf_and_engine_payload() -> None:
     assert confirmed["floorplan"]["coordinate_unit"] == "cm"
     assert len(confirmed["floorplan"]["door_segments"]) == 1
     assert len(confirmed["floorplan"]["window_segments"]) == 1
+    bbox = confirmed["floorplan"]["bbox"]
+    assert bbox["maxx"] - bbox["minx"] == pytest.approx(600.0)
+    assert bbox["maxz"] - bbox["minz"] == pytest.approx(400.0)
+    wall_points = [
+        point
+        for polygon in confirmed["floorplan"]["wall_polys"]
+        for point in polygon["exterior"]
+    ]
+    assert max(abs(point[0]) for point in wall_points) > 250
+    assert max(abs(point[1]) for point in wall_points) > 150
+    assert confirmed["floorplan"]["doors"][0]["x1"] == pytest.approx(
+        confirmed["floorplan"]["door_segments"][0]["start"]["x"]
+    )
+    assert confirmed["floorplan"]["doors"][0]["z1"] == pytest.approx(
+        confirmed["floorplan"]["door_segments"][0]["start"]["z"]
+    )
+    assert confirmed["floorplan"]["windows"][0]["x2"] == pytest.approx(
+        confirmed["floorplan"]["window_segments"][0]["end"]["x"]
+    )
+    assert confirmed["floorplan"]["wall_height_cm"] == pytest.approx(270.0)
+    assert confirmed["floorplan"]["wall_thickness_cm"] == pytest.approx(18.0)
+    assert "wall_height" not in confirmed["floorplan"]
+    assert "wall_thickness" not in confirmed["floorplan"]
     assert confirmed["requirements"]["rooms"][0]["room_type"] == "kitchen"
 
 
