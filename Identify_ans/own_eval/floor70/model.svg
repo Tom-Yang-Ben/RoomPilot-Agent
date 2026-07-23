@@ -45,7 +45,7 @@
     <g id="g15" class="Door">
       <polygon points="559.0,453.0 559.0,530.0 713.0,530.0 713.0,453.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon15"/>
     </g>
-    <g class="Space Undefined" id="g16">
+    <g class="Space LivingRoom" id="g16">
       <text x="739.79144" y="261.90305" font-size="22px" text-anchor="middle" fill="#000000" id="text16" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="translate(-589.28466,16.144785)"><tspan sodipodi:role="line" id="tspan21" x="739.79144" y="261.90305">Living Room</tspan></text>
       <polygon points="13.1951,15.4012 336.196,15.4012 336.196,451.416 13.1951,451.416" style="fill:#7ec37e;fill-opacity:0.35;stroke:#7ec37e;stroke-width:1.8944"/>
     </g>
@@ -53,7 +53,7 @@
       <polygon points="348.0,15.0 348.0,438.0 629.0,438.0 629.0,15.0 " fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon17"/>
       <text x="488" y="226" font-size="22" text-anchor="middle" fill="#000000" id="text17">Bedroom</text>
     </g>
-    <g class="Space Undefined" id="g18">
+    <g class="Space Kitchen" id="g18">
       <polygon points="15.7111,643.527 628.527,643.527 628.527,453.473 15.7111,453.473" style="fill:#e8833b;fill-opacity:0.34999999;stroke:#e8833b;stroke-opacity:1"/>
       <text x="765.50604" y="370.23199" font-size="14.8633px" text-anchor="middle" fill="#000000" id="text18" transform="matrix(2.180839,0,0,0.99504603,-743.22083,2.7172514) scale(0.67560581,1.4801531)" style="stroke-width:0.675606;-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:14.8633px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan22">Kitchen</tspan></text>
     </g>

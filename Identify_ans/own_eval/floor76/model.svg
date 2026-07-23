@@ -105,7 +105,7 @@
     <g id="g34" class="Door">
       <polygon points="477.5,924.0 477.5,1001.0 631.5,1001.0 631.5,924.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon34"/>
     </g>
-    <g class="Space Undefined" id="g35">
+    <g class="Space LivingRoom" id="g35">
       <text x="616.57422" y="108.16441" font-size="22px" text-anchor="middle" fill="#000000" id="text35" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="translate(-447.56074,128.45399)"><tspan sodipodi:role="line" id="tspan52" x="616.57422" y="108.16441">Bedroom</tspan></text>
       <polygon points="14.8172,13.5215 343.389,13.5215 343.389,429.983 14.8172,429.983" style="fill:#498ed9;fill-opacity:0.35;stroke:#4a8ed9;stroke-width:2"/>
     </g>
@@ -128,15 +128,15 @@
       <polygon points="16.1755,990.824 212.825,990.824 212.825,626.764 16.1755,626.764"/>
       <text x="107.76888" y="989.47052" font-size="22px" text-anchor="middle" fill="#000000" id="text42" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:26.7701px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:1.21682" transform="matrix(0.99821831,0,0,1.3842587,0.20400374,-380.97591) scale(1.1492679,0.87011916)"><tspan sodipodi:role="line" id="tspan49" x="107.76888" y="989.47052" style="stroke-width:1.21682">Stair</tspan></text>
     </g>
-    <g class="Space Undefined" id="g43">
+    <g class="Space Bedroom" id="g43">
       <text x="371" y="851" font-size="22px" text-anchor="middle" fill="#000000" id="text43" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="matrix(0.99172506,0,0,0.97818403,12.659968,75.347229)"><tspan sodipodi:role="line" id="tspan48" x="371" y="851">Bedroom</tspan></text>
       <polygon points="228.554,728.736 549.043,728.736 549.043,1091.14 228.554,1091.14" style="fill:#498ed9;fill-opacity:0.35;stroke:#4a8ed9;stroke-width:2;stroke-opacity:1"/>
     </g>
-    <g class="Space Undefined" id="g44">
+    <g class="Space Bath" id="g44">
       <polygon points="560.853,1062.98 840.978,1062.98 840.978,859.022 560.853,859.022" style="fill:#3ebbbb;fill-opacity:0.34999999;stroke:#3ebbbb;stroke-opacity:1"/>
       <text x="707" y="961" font-size="22px" text-anchor="middle" fill="#000000" id="text44" style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:22px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="matrix(1.0452418,0,0,0.99978177,-38.070627,0.20971587)"><tspan sodipodi:role="line" id="tspan46">Bath</tspan></text>
     </g>
-    <g class="Space Undefined" id="g44-9">
+    <g class="Space Bath" id="g44-9">
       <polygon points="842.708,597.452 842.708,381.384 562.643,381.384 562.643,597.452" style="fill:#3ebbbb;fill-opacity:0.35;stroke:#3ebbbb;stroke-opacity:1"/>
       <text x="707" y="961" font-size="22px" text-anchor="middle" fill="#000000" id="text44-6" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="matrix(1.0450194,0,0,1.0591562,-36.152983,-528.4311)"><tspan sodipodi:role="line" id="tspan46-5" x="707" y="961">Bath</tspan></text>
     </g>

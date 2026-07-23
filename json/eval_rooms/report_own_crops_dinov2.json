@@ -5,10 +5,10 @@
   "n_test_rooms": 73,
   "confusion": {
    "kitchen": {
-    "kitchen": 3,
-    "living": 2,
-    "bed": 3,
-    "bath": 4,
+    "kitchen": 9,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
     "entry": 0,
     "storage": 0,
     "garage": 0,
@@ -16,8 +16,52 @@
     "space": 0
    },
    "living": {
+    "kitchen": 3,
+    "living": 4,
+    "bed": 4,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 3
+   },
+   "bed": {
     "kitchen": 1,
-    "living": 1,
+    "living": 0,
+    "bed": 16,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 2
+   },
+   "bath": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 2,
+    "bath": 12,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "entry": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 1,
+    "bath": 1,
+    "entry": 3,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 1
+   },
+   "storage": {
+    "kitchen": 0,
+    "living": 0,
     "bed": 0,
     "bath": 0,
     "entry": 0,
@@ -26,109 +70,65 @@
     "outdoor": 0,
     "space": 0
    },
-   "bed": {
-    "kitchen": 1,
+   "garage": {
+    "kitchen": 0,
     "living": 0,
-    "bed": 5,
+    "bed": 0,
     "bath": 0,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 1
+    "space": 0
    },
-   "bath": {
+   "outdoor": {
     "kitchen": 0,
     "living": 0,
     "bed": 0,
-    "bath": 6,
+    "bath": 0,
     "entry": 1,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
     "space": 0
    },
-   "entry": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 0
-   },
-   "storage": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 0
-   },
-   "garage": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 0
-   },
-   "outdoor": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 0
-   },
    "space": {
-    "kitchen": 8,
-    "living": 1,
-    "bed": 16,
-    "bath": 4,
-    "entry": 7,
+    "kitchen": 0,
+    "living": 0,
+    "bed": 1,
+    "bath": 1,
+    "entry": 4,
     "storage": 1,
     "garage": 0,
     "outdoor": 0,
-    "space": 8
+    "space": 3
    }
   },
   "per_class": {
    "kitchen": {
-    "gt": 12,
-    "precision": 0.231,
-    "recall": 0.25
+    "gt": 9,
+    "precision": 0.692,
+    "recall": 1.0
    },
    "living": {
-    "gt": 2,
-    "precision": 0.25,
-    "recall": 0.5
+    "gt": 14,
+    "precision": 1.0,
+    "recall": 0.286
    },
    "bed": {
-    "gt": 7,
-    "precision": 0.208,
-    "recall": 0.714
+    "gt": 19,
+    "precision": 0.667,
+    "recall": 0.842
    },
    "bath": {
-    "gt": 7,
-    "precision": 0.429,
+    "gt": 14,
+    "precision": 0.857,
     "recall": 0.857
    },
    "entry": {
-    "gt": 0,
-    "precision": 0.0,
-    "recall": null
+    "gt": 6,
+    "precision": 0.375,
+    "recall": 0.5
    },
    "storage": {
     "gt": 0,
@@ -141,28 +141,29 @@
     "recall": null
    },
    "outdoor": {
-    "gt": 0,
+    "gt": 1,
     "precision": null,
-    "recall": null
+    "recall": 0.0
    },
    "space": {
-    "gt": 45,
-    "precision": 0.889,
-    "recall": 0.178
+    "gt": 10,
+    "precision": 0.333,
+    "recall": 0.3
    }
-  }
+  },
+  "gt_note": "GT 為 2026-07-23 人工覆核 47 筆補名後版本"
  },
  "predictions": [
   {
    "floor": "floor55",
    "idx": 0,
-   "gt": "kitchen",
+   "gt": "living",
    "pred": "living"
   },
   {
    "floor": "floor55",
    "idx": 1,
-   "gt": "kitchen",
+   "gt": "bed",
    "pred": "bed"
   },
   {
@@ -174,13 +175,13 @@
   {
    "floor": "floor55",
    "idx": 3,
-   "gt": "kitchen",
+   "gt": "entry",
    "pred": "bath"
   },
   {
    "floor": "floor55",
    "idx": 4,
-   "gt": "kitchen",
+   "gt": "bath",
    "pred": "bath"
   },
   {
@@ -192,13 +193,13 @@
   {
    "floor": "floor58",
    "idx": 1,
-   "gt": "space",
+   "gt": "bath",
    "pred": "bath"
   },
   {
    "floor": "floor58",
    "idx": 2,
-   "gt": "space",
+   "gt": "living",
    "pred": "bed"
   },
   {
@@ -216,19 +217,19 @@
   {
    "floor": "floor58",
    "idx": 5,
-   "gt": "space",
+   "gt": "kitchen",
    "pred": "kitchen"
   },
   {
    "floor": "floor58",
    "idx": 6,
-   "gt": "space",
+   "gt": "bath",
    "pred": "bath"
   },
   {
    "floor": "floor58",
    "idx": 7,
-   "gt": "space",
+   "gt": "living",
    "pred": "space"
   },
   {
@@ -246,19 +247,19 @@
   {
    "floor": "floor60",
    "idx": 1,
-   "gt": "space",
+   "gt": "living",
    "pred": "bed"
   },
   {
    "floor": "floor60",
    "idx": 2,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
    "floor": "floor60",
    "idx": 3,
-   "gt": "space",
+   "gt": "kitchen",
    "pred": "kitchen"
   },
   {
@@ -270,19 +271,19 @@
   {
    "floor": "floor60",
    "idx": 5,
-   "gt": "space",
+   "gt": "outdoor",
    "pred": "entry"
   },
   {
    "floor": "floor61",
    "idx": 0,
-   "gt": "space",
+   "gt": "entry",
    "pred": "space"
   },
   {
    "floor": "floor61",
    "idx": 1,
-   "gt": "kitchen",
+   "gt": "bath",
    "pred": "bed"
   },
   {
@@ -300,25 +301,25 @@
   {
    "floor": "floor61",
    "idx": 4,
-   "gt": "space",
+   "gt": "entry",
    "pred": "entry"
   },
   {
    "floor": "floor61",
    "idx": 5,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
    "floor": "floor61",
    "idx": 6,
-   "gt": "space",
+   "gt": "living",
    "pred": "space"
   },
   {
    "floor": "floor61",
    "idx": 7,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
@@ -330,31 +331,31 @@
   {
    "floor": "floor64",
    "idx": 1,
-   "gt": "space",
+   "gt": "entry",
    "pred": "entry"
   },
   {
    "floor": "floor64",
    "idx": 2,
-   "gt": "space",
+   "gt": "living",
    "pred": "kitchen"
   },
   {
    "floor": "floor69",
    "idx": 0,
-   "gt": "space",
+   "gt": "living",
    "pred": "kitchen"
   },
   {
    "floor": "floor69",
    "idx": 1,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
    "floor": "floor69",
    "idx": 2,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
@@ -366,19 +367,19 @@
   {
    "floor": "floor69",
    "idx": 4,
-   "gt": "bath",
+   "gt": "space",
    "pred": "entry"
   },
   {
    "floor": "floor69",
    "idx": 5,
-   "gt": "space",
+   "gt": "kitchen",
    "pred": "kitchen"
   },
   {
    "floor": "floor70",
    "idx": 0,
-   "gt": "space",
+   "gt": "living",
    "pred": "bed"
   },
   {
@@ -390,7 +391,7 @@
   {
    "floor": "floor70",
    "idx": 2,
-   "gt": "space",
+   "gt": "kitchen",
    "pred": "kitchen"
   },
   {
@@ -402,13 +403,13 @@
   {
    "floor": "floor73",
    "idx": 0,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
    "floor": "floor73",
    "idx": 1,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
@@ -420,13 +421,13 @@
   {
    "floor": "floor73",
    "idx": 3,
-   "gt": "space",
+   "gt": "entry",
    "pred": "bed"
   },
   {
    "floor": "floor73",
    "idx": 4,
-   "gt": "kitchen",
+   "gt": "living",
    "pred": "bed"
   },
   {
@@ -438,7 +439,7 @@
   {
    "floor": "floor74",
    "idx": 0,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
@@ -450,7 +451,7 @@
   {
    "floor": "floor74",
    "idx": 2,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
@@ -462,13 +463,13 @@
   {
    "floor": "floor74",
    "idx": 4,
-   "gt": "space",
+   "gt": "living",
    "pred": "space"
   },
   {
    "floor": "floor74",
    "idx": 5,
-   "gt": "living",
+   "gt": "kitchen",
    "pred": "kitchen"
   },
   {
@@ -480,7 +481,7 @@
   {
    "floor": "floor76",
    "idx": 0,
-   "gt": "space",
+   "gt": "living",
    "pred": "kitchen"
   },
   {
@@ -504,25 +505,25 @@
   {
    "floor": "floor76",
    "idx": 4,
-   "gt": "space",
+   "gt": "bed",
    "pred": "space"
   },
   {
    "floor": "floor76",
    "idx": 5,
-   "gt": "space",
+   "gt": "bath",
    "pred": "bath"
   },
   {
    "floor": "floor76",
    "idx": 6,
-   "gt": "space",
+   "gt": "bath",
    "pred": "bed"
   },
   {
    "floor": "floor78",
    "idx": 0,
-   "gt": "space",
+   "gt": "living",
    "pred": "living"
   },
   {
@@ -540,7 +541,7 @@
   {
    "floor": "floor78",
    "idx": 3,
-   "gt": "kitchen",
+   "gt": "bath",
    "pred": "bath"
   },
   {
@@ -552,25 +553,25 @@
   {
    "floor": "floor78",
    "idx": 5,
-   "gt": "space",
+   "gt": "kitchen",
    "pred": "kitchen"
   },
   {
    "floor": "floor79",
    "idx": 0,
-   "gt": "kitchen",
+   "gt": "bath",
    "pred": "bath"
   },
   {
    "floor": "floor79",
    "idx": 1,
-   "gt": "space",
+   "gt": "entry",
    "pred": "entry"
   },
   {
    "floor": "floor79",
    "idx": 2,
-   "gt": "space",
+   "gt": "bed",
    "pred": "bed"
   },
   {
@@ -582,7 +583,7 @@
   {
    "floor": "floor79",
    "idx": 4,
-   "gt": "kitchen",
+   "gt": "living",
    "pred": "living"
   },
   {

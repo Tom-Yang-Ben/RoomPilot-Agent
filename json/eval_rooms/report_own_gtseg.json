@@ -12,7 +12,7 @@
   "mean_iou": 1.0,
   "confusion": {
    "kitchen": {
-    "kitchen": 4,
+    "kitchen": 1,
     "living": 0,
     "bed": 0,
     "bath": 0,
@@ -31,7 +31,7 @@
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 1
+    "space": 13
    },
    "bed": {
     "kitchen": 0,
@@ -42,10 +42,10 @@
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 3
+    "space": 15
    },
    "bath": {
-    "kitchen": 0,
+    "kitchen": 3,
     "living": 0,
     "bed": 0,
     "bath": 3,
@@ -53,7 +53,7 @@
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 4
+    "space": 8
    },
    "entry": {
     "kitchen": 0,
@@ -64,7 +64,7 @@
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 0
+    "space": 6
    },
    "storage": {
     "kitchen": 0,
@@ -97,7 +97,7 @@
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 0
+    "space": 1
    },
    "space": {
     "kitchen": 0,
@@ -108,7 +108,7 @@
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 45
+    "space": 10
    }
   },
   "iou_thr": 0.5,
@@ -116,29 +116,29 @@
   "own_eval_mode": true,
   "per_class": {
    "kitchen": {
-    "gt": 12,
-    "precision": 1.0,
-    "recall": 0.333
+    "gt": 9,
+    "precision": 0.25,
+    "recall": 0.111
    },
    "living": {
-    "gt": 2,
+    "gt": 14,
     "precision": 1.0,
-    "recall": 0.5
+    "recall": 0.071
    },
    "bed": {
-    "gt": 7,
+    "gt": 19,
     "precision": 1.0,
-    "recall": 0.571
+    "recall": 0.211
    },
    "bath": {
-    "gt": 7,
+    "gt": 14,
     "precision": 1.0,
-    "recall": 0.429
+    "recall": 0.214
    },
    "entry": {
-    "gt": 0,
+    "gt": 6,
     "precision": null,
-    "recall": null
+    "recall": 0.0
    },
    "storage": {
     "gt": 0,
@@ -151,13 +151,13 @@
     "recall": null
    },
    "outdoor": {
-    "gt": 0,
+    "gt": 1,
     "precision": null,
-    "recall": null
+    "recall": 0.0
    },
    "space": {
-    "gt": 45,
-    "precision": 0.738,
+    "gt": 10,
+    "precision": 0.164,
     "recall": 1.0
    }
   }
@@ -172,11 +172,11 @@
    "mean_iou": 1.0,
    "pairs": [
     [
-     "kitchen",
+     "living",
      "space"
     ],
     [
-     "kitchen",
+     "bed",
      "space"
     ],
     [
@@ -184,11 +184,11 @@
      "kitchen"
     ],
     [
-     "kitchen",
+     "entry",
      "space"
     ],
     [
-     "kitchen",
+     "bath",
      "space"
     ]
    ],
@@ -214,11 +214,11 @@
      "space"
     ],
     [
-     "space",
+     "bath",
      "space"
     ],
     [
-     "space",
+     "living",
      "space"
     ],
     [
@@ -230,15 +230,15 @@
      "space"
     ],
     [
-     "space",
+     "kitchen",
      "space"
     ],
     [
-     "space",
+     "bath",
      "space"
     ],
     [
-     "space",
+     "living",
      "space"
     ],
     [
@@ -272,7 +272,15 @@
      "space"
     ],
     [
-     "space",
+     "living",
+     "space"
+    ],
+    [
+     "bed",
+     "space"
+    ],
+    [
+     "kitchen",
      "space"
     ],
     [
@@ -280,15 +288,7 @@
      "space"
     ],
     [
-     "space",
-     "space"
-    ],
-    [
-     "space",
-     "space"
-    ],
-    [
-     "space",
+     "outdoor",
      "space"
     ]
    ],
@@ -311,11 +311,11 @@
    "mean_iou": 1.0,
    "pairs": [
     [
-     "space",
+     "entry",
      "space"
     ],
     [
-     "kitchen",
+     "bath",
      "kitchen"
     ],
     [
@@ -327,19 +327,19 @@
      "space"
     ],
     [
-     "space",
+     "entry",
      "space"
     ],
     [
-     "space",
+     "bed",
      "space"
     ],
     [
-     "space",
+     "living",
      "space"
     ],
     [
-     "space",
+     "bed",
      "space"
     ]
    ],
@@ -368,11 +368,11 @@
      "bath"
     ],
     [
-     "space",
+     "entry",
      "space"
     ],
     [
-     "space",
+     "living",
      "space"
     ]
    ],
@@ -392,19 +392,15 @@
    "mean_iou": 1.0,
    "pairs": [
     [
-     "space",
+     "living",
      "space"
     ],
     [
-     "space",
+     "bed",
      "space"
     ],
     [
-     "space",
-     "space"
-    ],
-    [
-     "bath",
+     "bed",
      "space"
     ],
     [
@@ -413,6 +409,10 @@
     ],
     [
      "space",
+     "space"
+    ],
+    [
+     "kitchen",
      "space"
     ]
    ],
@@ -435,7 +435,7 @@
    "mean_iou": 1.0,
    "pairs": [
     [
-     "space",
+     "living",
      "space"
     ],
     [
@@ -443,7 +443,7 @@
      "bed"
     ],
     [
-     "space",
+     "kitchen",
      "space"
     ],
     [
@@ -468,11 +468,11 @@
    "mean_iou": 1.0,
    "pairs": [
     [
-     "space",
+     "bed",
      "space"
     ],
     [
-     "space",
+     "bed",
      "space"
     ],
     [
@@ -480,11 +480,11 @@
      "bath"
     ],
     [
-     "space",
+     "entry",
      "space"
     ],
     [
-     "kitchen",
+     "living",
      "space"
     ],
     [
@@ -511,7 +511,7 @@
    "mean_iou": 1.0,
    "pairs": [
     [
-     "space",
+     "bed",
      "space"
     ],
     [
@@ -519,7 +519,7 @@
      "space"
     ],
     [
-     "space",
+     "bed",
      "space"
     ],
     [
@@ -527,11 +527,11 @@
      "space"
     ],
     [
-     "space",
+     "living",
      "space"
     ],
     [
-     "living",
+     "kitchen",
      "space"
     ],
     [
@@ -559,7 +559,7 @@
    "mean_iou": 1.0,
    "pairs": [
     [
-     "space",
+     "living",
      "space"
     ],
     [
@@ -575,15 +575,15 @@
      "space"
     ],
     [
-     "space",
+     "bed",
      "space"
     ],
     [
-     "space",
+     "bath",
      "space"
     ],
     [
-     "space",
+     "bath",
      "space"
     ]
    ],
@@ -607,7 +607,7 @@
    "mean_iou": 1.0,
    "pairs": [
     [
-     "space",
+     "living",
      "space"
     ],
     [
@@ -619,7 +619,7 @@
      "space"
     ],
     [
-     "kitchen",
+     "bath",
      "kitchen"
     ],
     [
@@ -627,7 +627,7 @@
      "space"
     ],
     [
-     "space",
+     "kitchen",
      "space"
     ]
    ],
@@ -650,23 +650,23 @@
    "mean_iou": 1.0,
    "pairs": [
     [
-     "kitchen",
+     "bath",
      "kitchen"
     ],
     [
-     "space",
+     "entry",
      "space"
     ],
     [
-     "space",
-     "space"
-    ],
-    [
-     "kitchen",
+     "bed",
      "space"
     ],
     [
      "kitchen",
+     "space"
+    ],
+    [
+     "living",
      "space"
     ],
     [

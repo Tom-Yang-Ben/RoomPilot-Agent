@@ -1,51 +1,52 @@
-# own_eval 標注覆核建議（VLM 盲測分歧清單，2026-07-23）
-# 用法：逐筆看 VLM 線索是否屬實；屬實→在 Inkscape 補名該房，之後跑
-#       fix_annotation_paths --dir Identify_ans/own_eval 再重評分
+# own_eval 標注覆核——已於 2026-07-23 完成並套用
+# 47 筆 VLM/GT 分歧經人工逐筆覆核（review.html），決定如下並已改入各 model.svg：
 
-floor55#00  GT=kitchen  VLM=living   線索: 沙發組+茶几+餐桌+平台鋼琴
-floor55#01  GT=kitchen  VLM=bed      線索: 兩張單人床並排
-floor55#03  GT=kitchen  VLM=space    線索: 僅門弧與牆角，無任何設備線索
-floor55#04  GT=kitchen  VLM=bath     線索: 浴缸+馬桶+洗手台
-floor58#01  GT=space    VLM=bath     線索: 淋浴間+馬桶+洗手台
-floor58#02  GT=space    VLM=living   線索: 長沙發+入口門+盆栽
-floor58#05  GT=space    VLM=kitchen  線索: 餐桌六椅+右側爐台與水槽
-floor58#06  GT=space    VLM=bath     線索: 淋浴間+馬桶+洗手台
-floor58#07  GT=space    VLM=living   線索: 兩張扶手沙發椅相對+音響
-floor60#01  GT=space    VLM=living   線索: 雙人沙發+茶几+電視
-floor60#02  GT=space    VLM=bed      線索: 雙人床附雙枕+轉角桌
-floor60#03  GT=space    VLM=kitchen  線索: 方餐桌四椅+爐台與雙水槽
-floor60#05  GT=space    VLM=outdoor  線索: 狹長條狀空間僅兩盆植栽，似陽台
-floor61#00  GT=space    VLM=entry    線索: 中央為樓梯與樓梯間走道
-floor61#01  GT=kitchen  VLM=bath     線索: 浴缸、馬桶、洗手台符號齊全
-floor61#04  GT=space    VLM=entry    線索: 狹長走道，頂端有對外門扇
-floor61#05  GT=space    VLM=bed      線索: 單人床加書桌椅與斗櫃
-floor61#06  GT=space    VLM=living   線索: 沙發、平台鋼琴與圓形餐桌椅
-floor61#07  GT=space    VLM=bed      線索: 單人床加衣櫃與電腦桌
-floor64#01  GT=space    VLM=entry    線索: 含門扇迴轉的小廳，僅矮櫃與盆栽
-floor64#02  GT=space    VLM=living   線索: L 型沙發、茶几與壁掛電視
-floor69#00  GT=space    VLM=living   線索: 兩組沙發、音響與樓梯
-floor69#01  GT=space    VLM=bed      線索: 單人床加電腦桌與辦公椅
-floor69#02  GT=space    VLM=bed      線索: 單人床加書桌與辦公椅
-floor69#04  GT=bath     VLM=space    線索: 狹長空白條狀空間
-floor69#05  GT=space    VLM=kitchen  線索: 兩組四口爐台與雙槽水槽
-floor70#00  GT=space    VLM=living   線索: 圓桌配兩張扶手椅與盆栽
-floor70#02  GT=space    VLM=kitchen  線索: 水槽與四口爐台符號
-floor73#00  GT=space    VLM=bed      線索: 雙人床加書桌與暖氣片
-floor73#01  GT=space    VLM=bed      線索: 單人床配書桌椅
-floor73#03  GT=space    VLM=entry    線索: 樓梯與多門的門廳形態
-floor73#04  GT=kitchen  VLM=living   線索: 沙發與電視櫃符號
-floor74#00  GT=space    VLM=bed      線索: 單人床加電腦書桌
-floor74#02  GT=space    VLM=bed      線索: 右側雙人床為主配矮沙發與斗櫃
-floor74#04  GT=space    VLM=living   線索: 平台鋼琴與琴椅的起居空間
-floor74#05  GT=living   VLM=kitchen  線索: 餐桌配下方水槽爐台廚具檯面
-floor76#00  GT=space    VLM=living   線索: 沙發、茶几與電腦桌
-floor76#04  GT=space    VLM=bed      線索: 左下角單人床，另有平台鋼琴
-floor76#05  GT=space    VLM=bath     線索: 馬桶、浴缸與洗手台
-floor76#06  GT=space    VLM=bath     線索: 浴缸、馬桶與洗手台
-floor78#00  GT=space    VLM=living   線索: 沙發、電視櫃、扶手椅與六人餐桌
-floor78#03  GT=kitchen  VLM=bath     線索: 馬桶、浴缸與洗手台
-floor78#05  GT=space    VLM=kitchen  線索: 四口爐台與雙槽水槽、冰箱
-floor79#00  GT=kitchen  VLM=bath     線索: 浴缸、馬桶與洗手台
-floor79#01  GT=space    VLM=entry    線索: 上方對外雙開門的小廳
-floor79#02  GT=space    VLM=bed      線索: 單人床加電腦桌與衣櫃
-floor79#04  GT=kitchen  VLM=living   線索: 沙發組、茶几、電視與圓餐桌
+floor55#00  → living
+floor55#01  → bed
+floor55#03  → entry
+floor55#04  → bath
+floor58#01  → bath
+floor58#02  → living
+floor58#05  → kitchen
+floor58#06  → bath
+floor58#07  → living
+floor60#01  → living
+floor60#02  → bed
+floor60#03  → kitchen
+floor60#05  → outdoor
+floor61#00  → entry
+floor61#01  → bath
+floor61#04  → entry
+floor61#05  → bed
+floor61#06  → living
+floor61#07  → bed
+floor64#01  → entry
+floor64#02  → living
+floor69#00  → living
+floor69#01  → bed
+floor69#02  → bed
+floor69#04  → space
+floor69#05  → kitchen
+floor70#00  → living
+floor70#02  → kitchen
+floor73#00  → bed
+floor73#01  → bed
+floor73#03  → entry
+floor73#04  → living
+floor74#00  → bed
+floor74#02  → bed
+floor74#04  → living
+floor74#05  → kitchen
+floor76#00  → living
+floor76#04  → bed
+floor76#05  → bath
+floor76#06  → bath
+floor78#00  → living
+floor78#03  → bath
+floor78#05  → kitchen
+floor79#00  → bath
+floor79#01  → entry
+floor79#02  → bed
+floor79#04  → living
+
+# 遺留：floor64/74/76 各一個空 Space Undefined 群組（無幾何，評分自動跳過，可留可刪）

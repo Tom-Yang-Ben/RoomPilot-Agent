@@ -54,15 +54,15 @@
     <g id="g17" class="Window">
       <polygon points="583.0,1.0 681.0,1.0 681.0,12.0 583.0,12.0 " fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon17"/>
     </g>
-    <g class="Space Undefined" id="g18">
+    <g class="Space LivingRoom" id="g18">
       <polygon points="492.0,13.0 492.0,504.0 744.0,504.0 744.0,13.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon18" style="fill:#7ec37e;fill-opacity:0.34999999;stroke:#7ec37e;stroke-opacity:1"/>
       <text x="618" y="258" font-size="22" text-anchor="middle" fill="#000000" id="text18" style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:22px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan27">Living Room</tspan></text>
     </g>
-    <g class="Space Undefined" id="g19">
+    <g class="Space Bedroom" id="g19">
       <text x="493.92053" y="255.73758" font-size="22px" text-anchor="middle" fill="#000000" id="text19" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="translate(-367.69726,-29.368791)"><tspan sodipodi:role="line" id="tspan26" x="493.92053" y="255.73758">Bedroom</tspan></text>
       <polygon points="14.7918,13.0443 238.003,13.0443 238.003,424.216 14.7918,424.216" style="fill:#498ed9;fill-opacity:0.35;stroke:#498ed9;stroke-width:1.99154"/>
     </g>
-    <g class="Space Undefined" id="g19-7">
+    <g class="Space Bedroom" id="g19-7">
       <text x="493.92053" y="255.73758" font-size="22px" text-anchor="middle" fill="#000000" id="text19-9" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="translate(-128.44538,-26.931622)"><tspan sodipodi:role="line" id="tspan26-5" x="493.92053" y="255.73758">Bedroom</tspan></text>
       <polygon points="254.044,15.4814 477.255,15.4814 477.255,426.653 254.044,426.653" style="fill:#498ed9;fill-opacity:0.35;stroke:#498ed9;stroke-width:1.99154"/>
     </g>
@@ -70,11 +70,11 @@
       <text x="522.20221" y="827.10577" font-size="22px" text-anchor="middle" fill="#000000" id="text21" transform="translate(-377.09527,-234.95033)">Bath</text>
       <polygon points="12.2233,515.366 318.833,515.366 318.833,661.036 12.2233,661.036" style="fill:#3ebcbc;fill-opacity:0.35;stroke:#3dbdbd;stroke-width:2;stroke-opacity:1"/>
     </g>
-    <g class="Space Bath" id="g21-6">
+    <g class="Space Undefined" id="g21-6">
       <text x="465.81412" y="991.57098" font-size="22px" text-anchor="middle" fill="#000000" id="text21-1" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="translate(-244.44479,-511.94098)"><tspan sodipodi:role="line" id="tspan25" x="465.81412" y="991.57098">Hallway</tspan></text>
       <polygon points="14.8658,440.106 489.833,440.106 489.833,502.736 14.8658,502.736" style="fill:#d9d9d9;fill-opacity:0.35;stroke:#d9d9d9;stroke-width:1.6322;stroke-opacity:1"/>
     </g>
-    <g class="Space Undefined" id="g22">
+    <g class="Space Kitchen" id="g22">
       <polygon points="333.0,518.0 333.0,663.0 744.0,663.0 744.0,518.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon22" style="fill:#e8833b;fill-opacity:0.34999999;stroke:#e8833b;stroke-opacity:1"/>
       <text x="538" y="590" font-size="22" text-anchor="middle" fill="#000000" id="text22" style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:22px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan24">Kitchen</tspan></text>
     </g>

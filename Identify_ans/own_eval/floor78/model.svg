@@ -57,7 +57,7 @@
     <g id="g18" class="Door">
       <polygon points="-78.5,171.0 -78.5,257.0 93.5,257.0 93.5,171.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon18"/>
     </g>
-    <g class="Space Undefined" id="g19">
+    <g class="Space LivingRoom" id="g19">
       <text x="653.10309" y="279.98276" font-size="22px" text-anchor="middle" fill="#000000" id="text19" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="translate(-484.34356)"><tspan sodipodi:role="line" id="tspan30" x="653.10309" y="279.98276">Living Room</tspan></text>
       <polygon points="12.1116,13.2098 337.26,13.2098 337.26,600.429 12.1116,600.429" style="fill:#7ec47e;fill-opacity:0.34999999;stroke:#7ec47e;stroke-width:2;stroke-opacity:1"/>
     </g>
@@ -69,7 +69,7 @@
       <polygon points="640.0,14.0 640.0,148.0 789.0,148.0 789.0,14.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon21"/>
       <text x="714" y="81" font-size="22" text-anchor="middle" fill="#000000" id="text21" style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:22px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan29">Storage</tspan></text>
     </g>
-    <g class="Space Kitchen" id="g22">
+    <g class="Space Bath" id="g22">
       <polygon points="640.0,163.0 640.0,357.0 789.0,357.0 789.0,163.0 " fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2" id="polygon22" style="fill:#3dbdbd;fill-opacity:0.34999999;stroke:#3dbdbd;stroke-opacity:1"/>
       <text x="714" y="260" font-size="22" text-anchor="middle" fill="#000000" id="text22" style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:22px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000"><tspan sodipodi:role="line" id="tspan26">Bath</tspan></text>
     </g>
@@ -77,7 +77,7 @@
       <polygon points="788.22,468.222 788.22,371.118 352.427,371.118 352.427,468.222"/>
       <text x="1787.7797" y="190.44293" font-size="21.0324px" text-anchor="middle" fill="#000000" id="text24" transform="matrix(2.9247864,0,0,0.42589226,-1519.4366,213.1122) scale(0.37914563,2.637509)" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.7755px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:0.762524"><tspan sodipodi:role="line" id="tspan27" x="1787.7797" y="190.44293" style="stroke-width:0.762524">Stair</tspan></text>
     </g>
-    <g class="Space Undefined" id="g24-4" inkscape:label="g23">
+    <g class="Space Kitchen" id="g24-4" inkscape:label="g23">
       <polygon points="787.471,470.63 352.626,470.63 352.626,598.854 787.471,598.854" style="fill:#e8833b;fill-opacity:0.34999999;stroke:#e8833b;stroke-opacity:1"/>
       <text x="1632.0763" y="204.07263" font-size="26.5828px" text-anchor="middle" fill="#000000" id="text24-6" transform="matrix(2.9184265,0,0,0.56238503,-1515.1673,261.98559) scale(0.42130869,2.3735566)" style="stroke-width:1.20831;-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:26.5828px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" inkscape:label="text23"><tspan sodipodi:role="line" id="tspan28">Kitchen</tspan></text>
     </g>

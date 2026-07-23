@@ -84,15 +84,15 @@
     <g id="g25-3" class="Door" transform="matrix(0.81321846,0,0,1.5072447,-23.616211,-79.184006)">
       <polygon points="594.5,108 784.5,108 784.5,13 594.5,13 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon25-4"/>
     </g>
-    <g class="Space Kitchen" id="g27">
+    <g class="Space Bath" id="g27">
       <text x="725.4234" y="-60.386677" font-size="22" text-anchor="middle" fill="#000000" id="text27" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.8668px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:0.675763" transform="matrix(2.001094,0,0,0.99578653,-765.95331,200.20133) scale(0.675763,1.4798088)"><tspan sodipodi:role="line" id="tspan40" x="725.4234" y="-60.386677" style="stroke-width:0.675763">Bath</tspan></text>
       <polygon points="16.0006,13.922 411.137,13.922 411.137,208.48 16.0006,208.48" style="fill:#3dbdbd;fill-opacity:0.35;stroke:#3dbdbd;stroke-width:2"/>
     </g>
-    <g class="Space Undefined" id="g28">
+    <g class="Space Entry" id="g28">
       <polygon points="425.034,222.477 681.966,222.477 681.966,14.0337 427.033,14.0337"/>
       <text x="554" y="112" font-size="22px" text-anchor="middle" fill="#000000" id="text28" style="-inkscape-font-specification:'sans-serif, Normal';font-family:sans-serif;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;font-size:22px;font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="matrix(0.99973661,0,0,1.0689389,0.1457827,-0.93147681)"><tspan sodipodi:role="line" id="tspan39">Entrance</tspan></text>
     </g>
-    <g class="Space Undefined" id="g29">
+    <g class="Space Bedroom" id="g29">
       <text x="369.6221" y="40.115326" font-size="22px" text-anchor="middle" fill="#000000" id="text29" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000" transform="translate(528.96402,133.55603)"><tspan sodipodi:role="line" id="tspan38" x="369.6221" y="40.115326">Bedroom</tspan></text>
       <polygon points="694.207,11.9622 1091.21,11.9622 1091.21,349.723 694.207,349.723" style="fill:#4a8fd9;fill-opacity:0.35;stroke:#4a8fd9;stroke-width:2"/>
     </g>
@@ -100,7 +100,7 @@
       <text x="1371.0378" y="582.02191" font-size="36.5332px" text-anchor="middle" fill="#000000" id="text30" transform="translate(-724.5823,33.804042) scale(0.85100658,1.1750791)" style="stroke-width:1.6606">Kitchen</text>
       <polygon points="217.522,598.185 680.49,598.185 680.49,831.873 217.522,831.873" style="fill:#e8823b;fill-opacity:0.34999999;stroke:#e8823b;stroke-width:2;stroke-opacity:1"/>
     </g>
-    <g class="Space Kitchen" id="g30-6" inkscape:label="g32">
+    <g class="Space LivingRoom" id="g30-6" inkscape:label="g32">
       <text x="1358.9485" y="299.35034" font-size="36.5332px" text-anchor="middle" fill="#000000" id="text30-0" transform="translate(-723.80997,35.403422) scale(0.85100656,1.1750791)" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:36.5332px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#000000;stroke-width:1.6606" inkscape:label="text32"><tspan sodipodi:role="line" id="tspan42" x="1358.9485" y="299.35034">Living Room</tspan></text>
       <polygon points="16,225 681.793,225 681.793,596.844 16,596.844" style="fill:#7ec37e;fill-opacity:0.35;stroke:#7ec37e;stroke-width:2;stroke-opacity:1"/>
     </g>
