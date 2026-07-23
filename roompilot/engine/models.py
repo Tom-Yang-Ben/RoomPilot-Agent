@@ -5,6 +5,11 @@
 - 型錄屬性(type/name/size/color/style/price)
 - 擺放屬性(pos_x/pos_y/rotation) —— 這是 place_furniture / adjust_furniture 算出來要存的東西
 - 淨空屬性(clearance)—— 開合家具(衣櫃/冰箱/五斗櫃)所需的保留空間
+
+單位與座標約定:
+- 長度一律公分(cm);X 向右、Y 向上,原點在平面圖左下角
+- position 指物件中心點;rotation 為逆時針角度(度),0 度時家具正面朝 +Y
+- width 沿本地 X、depth 沿本地 Y、height 沿 Z
 """
 from dataclasses import dataclass, field
 
@@ -16,7 +21,7 @@ class Wall:
     y1: float
     x2: float
     y2: float
-    thickness: float = 0.1  # 牆厚度(公尺),預留給碰撞判斷用
+    thickness: float = 10.0  # 牆厚度(公分),預留給碰撞判斷用
 
 
 @dataclass
@@ -36,7 +41,7 @@ class ClearanceZone:
     家具旋轉時,淨空範圍會跟著 rotation 一起轉(在 clearance.py 處理)。
     """
     side: str          # "front" / "back" / "left" / "right"
-    depth: float       # 開合所需額外深度(公尺),如抽屜拉出 0.5、門扇打開 0.6
+    depth: float       # 開合所需額外深度(公分),如抽屜拉出 50、門扇打開 60
 
 
 @dataclass
@@ -44,9 +49,9 @@ class FurnitureCatalogItem:
     """型錄屬性:描述「這是什麼家具」,不含座標"""
     type: str          # e.g. "sofa", "bed", "table"
     name: str          # e.g. "三人座沙發"
-    width: float       # 對應 size.w(公尺)
-    depth: float       # 對應 size.d(公尺)
-    height: float = 0.8  # 對應 size.h(公尺)
+    width: float       # 對應 size.w(公分)
+    depth: float       # 對應 size.d(公分)
+    height: float = 80.0  # 對應 size.h(公分)
     style: str | None = None
     price: float | None = None
     glb_path: str | None = None

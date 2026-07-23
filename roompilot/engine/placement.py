@@ -30,7 +30,7 @@ def place_furniture(
                   (1, 1), (-1, 1), (1, -1), (-1, -1),
                   (2, 0), (-2, 0), (0, 2), (0, -2)]
 
-    step = 0.95
+    step = 95.0
     for rotation in (0, 90, 180, 270):  # 也嘗試不同角度
         for sx, sz in candidates:
             candidate = PlacedFurniture(
@@ -75,7 +75,7 @@ def place_adjacent_to_furniture(
     item_id: str,
     target: PlacedFurniture,
     existing: list[PlacedFurniture],
-    gap: float = 0.12,
+    gap: float = 12.0,
 ) -> dict:
     """把燈具、植栽等配件放在主家具四周，而不是散落在房間角落。"""
     target_width = target.catalog.width

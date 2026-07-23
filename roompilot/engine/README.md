@@ -28,7 +28,7 @@ uv run python demo_agent_flow.py         # 看 Agent <-> Engine 的完整互動�
 ## 介面規則(v0.1,待與 Agent 核心對齊)
 
 ### 座標系
-- 單位:公尺;原點在房間左下角 (0, 0)
+- 單位:公分;原點在房間左下角 (0, 0)
 - `pos_x` / `pos_y` 為家具中心點;`pos_y` 對應前端 three.js 的 **z 軸**(不是高度)
 - `rotation`:度(0~360)
 
@@ -68,7 +68,7 @@ uv run python demo_agent_flow.py         # 看 Agent <-> Engine 的完整互動�
 
 - **Agent 核心(柏彥)**:tool schema 定義在 `schema.py`(`PLACE_FURNITURE_TOOL` / `ADJUST_FURNITURE_TOOL`),互動範例跑 `demo_agent_flow.py`。v0.2 待議:add/remove、相對方位指令(toward_window 等)、場景狀態誰持有。
 - **後端/DB(立凱)**:要存的擺放結果欄位 = `pos_x` / `pos_y` / `rotation`(見 `schema.py` 的 `placed_to_dict`)。
-- **家具型錄(鄭典)**:型錄需新增 `clearance` 資訊(哪一面、需要幾公尺開合空間),沒有這個欄位淨空檢查無法運作。無開合需求的家具(沙發、茶几)可留空。
+- **家具型錄(鄭典)**:型錄需新增 `clearance` 資訊(哪一面、需要幾公分開合空間),沒有這個欄位淨空檢查無法運作。無開合需求的家具(沙發、茶几)可留空。
 
 ## 尚未實作(P1/P2)
 

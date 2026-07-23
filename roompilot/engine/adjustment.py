@@ -3,7 +3,7 @@ adjust_furniture:依 Agent 已拆解好的結構化指令,調整家具位置/角
 
 對應 SSOT 文件 F6:「自然語言調家具位置/數量,重繪」
 注意:自然語言理解不是這裡的工作(那是 Agent 核心),
-這裡只吃結構化參數,例如 {"action": "move", "target": "sofa_1", "dx": 0.5, "dy": 0}
+這裡只吃結構化參數,例如 {"action": "move", "target": "sofa_1", "dx": 50, "dy": 0}(單位公分)
 """
 from roompilot.engine.models import Room, PlacedFurniture
 from roompilot.engine.clearance import check_placement_with_clearance as check_placement
@@ -79,7 +79,7 @@ def adjust_furniture(
     統一入口,吃 Agent 拆解好的結構化指令。
 
     command 範例:
-      {"action": "move", "dx": 0.5, "dy": 0}
+      {"action": "move", "dx": 50, "dy": 0}
       {"action": "rotate", "rotation": 90}
     """
     action = command.get("action")

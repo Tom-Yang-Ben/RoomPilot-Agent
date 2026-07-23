@@ -27,7 +27,7 @@ def wall_polygon(wall: Wall) -> Polygon:
     """把一段牆轉成有厚度的長方形多邊形"""
     dx, dy = wall.x2 - wall.x1, wall.y2 - wall.y1
     length = math.hypot(dx, dy)
-    if length < 1e-6:
+    if length < 1e-4:
         return Polygon()
     angle = math.degrees(math.atan2(dy, dx))
     cx, cy = (wall.x1 + wall.x2) / 2, (wall.y1 + wall.y2) / 2
