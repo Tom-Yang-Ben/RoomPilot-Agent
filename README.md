@@ -58,7 +58,7 @@ git status --short
 1. 每位成員只修改自己的主要目錄與對應測試。
 2. Bella 可以在 `roompilot/server/` 串接模組，但不複製其他人的演算法。
 3. 家具座標只能由 AN 的 `roompilot/engine/` 計算。
-4. Python 內部一律使用公尺；公分只出現在既有 catalog 與前端 payload 邊界。
+4. 跨模組幾何資料一律使用公尺；舊模組可在內部使用公分或像素，但輸出前必須由 adapter 轉成公尺。公分欄位必須以 `_cm` 命名。
 5. Kai 尚未安全對應的 1,514 件家具放在
    `roompilot/catalog/data/quarantine/unmatched_cloud_furniture/`，目前網頁、
    Agent 與 3D 場景都不得使用。
@@ -170,23 +170,9 @@ uv run uvicorn roompilot.server.main:app --port 8002
 uv run pytest tests/ -v
 ```
 
-目前完整測試基準為 `161 passed`。
+目前完整測試基準為 `295 passed`。
 
-## 模型與私密檔案
+## 版本控制規則
 
-- `.glb` 模型屬於本機或外部資料資產，不納入 `bella` 分支版本控制。
 - `.env` 不得提交；請由 `.env.example` 建立本機設定。
-- `PROJECT_CONTEXT.md` 與 `CODEX_PROJECT_RULES.md` 屬於本機工作規則，不上傳 GitHub；`AGENTS.md` 不由 `bella` 修改。
-- 前端透過 `/api/furniture/{id}/model` 取得後端解析的家具模型。
-
-## 目前待辦
-
-- 家具類型名稱與圖示要依使用者選擇的空間動態更換。
-- 裝飾品排除燈具，燈具維持獨立分類。
-- 家電不顯示於家具資料庫，只在 3D 場景依空間與需求配置。
-- 3D 場景 Step 2 提供更換已選風格，並保留已填空間資料與特殊需求。
-- 持續依模型與資料欄位稽核結果補齊 catalog。
-
-## 詳細改動
-
-過往網頁版改動摘要請見 [網頁版改動摘要](docs/BELLA_CHANGE_SUMMARY_2026-07-11.md)。
+- 大型 `.glb` 不直接加入新提交；正式家具模型由已驗證的 CloudFront Manifest 提供。
