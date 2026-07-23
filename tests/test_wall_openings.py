@@ -3,8 +3,8 @@ from __future__ import annotations
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
-from roompilot.server.scene_service import _flip_parsed_z
-from roompilot.upgrade3d.wall_openings import build_opening_wall_geometry
+from backend.server.services.scene_service import _flip_parsed_z
+from backend.upgrade3d.wall_openings import build_opening_wall_geometry
 
 
 def _wall_at_height(result: dict, height: float):

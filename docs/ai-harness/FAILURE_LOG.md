@@ -48,7 +48,7 @@ v1.0(2026-07-13)。**目的:同一個錯不犯第三次。** 開工前查相關�
 錯誤假設:索引檔有記錄=檔案存在。
 根因:`external_furniture_import_index.json` 的 zip_entry 前綴與實際目錄名不符(`downloaded-files/` vs `downloaded-files(furniture)/`),且部分檔案根本不在任何可讀 zip。
 教訓:**「已補齊」這種話必須附可重跑的清點指令與輸出**;索引 ≠ 實物。
-證據:`docs/05.../EXTERNAL_GLB_SOURCE_AUDIT_2026-07-11.md` 推翻 `MODEL_PIPELINE_STATUS.md` 的結論。
+證據:Git 歷史中的 `EXTERNAL_GLB_SOURCE_AUDIT_2026-07-11.md` 推翻 `docs/archive/MODEL_PIPELINE_STATUS.md` 的結論；前者已於 2026-07-21 移出現行 repo 封存。
 升級:已升級 → `.claude/rules/verification.md`。
 
 ### #5 GLB 檔名撇號不一致,32 個模型無聲缺失(2026-07-06 前)
@@ -56,7 +56,7 @@ v1.0(2026-07-13)。**目的:同一個錯不犯第三次。** 開工前查相關�
 根因:檔名 `Children_s` 與索引裡的 `Children's` 撇號不一致。
 有效修法:補檔 zip + 修復腳本(文件記為 `scripts/repair_missing_glb_paths.py`,**該腳本未入倉、已佚失**——scripts/ 曾被 gitignore 整目錄忽略;修法不可重跑,僅存紀錄)。
 教訓:跨來源資料對接要驗「實際能開啟」而不是「路徑字串存在」;特殊字元(撇號/空格)是高發區。
-證據:`MODEL_PIPELINE_STATUS.md` §缺失 GLB 補檔紀錄。
+證據:`docs/archive/MODEL_PIPELINE_STATUS.md` §缺失 GLB 補檔紀錄。
 升級:否(與 #4 同族,#4 已立規則)。
 
 ### #6 F6 拖曳曾被判「完成」,後被更正為未達標(2026-07-06→07-07)
@@ -97,5 +97,5 @@ v1.0(2026-07-13)。**目的:同一個錯不犯第三次。** 開工前查相關�
 症狀:前端顯示的擺位與引擎輸出不一致。
 有效修法:前端不再覆寫後端正式座標;後成文為 CLAUDE.md 第一條 invariant「家具座標只有 engine 能算」。
 教訓:誰擁有哪個數值要白紙黑字;前端只顯示、要重排就打 `/api/scene/layout`。
-證據:`MODEL_PIPELINE_STATUS.md` §scene 3;CLAUDE.md invariants。
+證據:`docs/archive/MODEL_PIPELINE_STATUS.md` §scene 3;CLAUDE.md invariants。
 升級:已升級 → CLAUDE.md invariants 第一條。

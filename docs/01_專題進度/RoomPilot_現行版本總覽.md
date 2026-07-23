@@ -6,7 +6,7 @@
 > 版本:v4.0 ・ 更新日期:2026-07-19 ・ 維護者:組長(楊本顥)・ Demo 死線:**2026-08-20**
 >
 > **v4.0 為依 7/16 新五階段流程+7/17–18 組長裁決群的結構性大改**(組長 7/19 逐條比對核可,變更明細見文末「v4.0 變更明細 C01–C29」)。⚠ **新五階段仍待 Sunny 老師批准**——批准前對外口徑沿用 7/7 版七步流程;批准後刪此警語。
-> **主軸 = Python / FastAPI 專案 repo `RoomPilot-Agent`,2026-07-06 已重組為單一套件 `roompilot/`。** 早期原型 `2Dto3D.html` 存於 `docs/archive/`,非 code 主線。
+> **主軸 = Python / FastAPI 專案 repo `RoomPilot-Agent`,2026-07-06 重組為單一套件,2026-07-22 再重組為技術分層:`backend/`(Python,原 `roompilot/`)、`frontend/`(原 `frontend3d/`)、`data/`(原 `dataset/`+`testdata/`)。** 早期原型 `2Dto3D.html` 存於 `docs/archive/`,非 code 主線。
 
 ---
 
@@ -68,7 +68,7 @@
    換風格=換色卡重打 API；使用者指定型號保持不變，未指定家具依色卡換選後由引擎重排
 ```
 
-> 狀態依賴與「改了 A,B 是否作廢」的規則,正本=《新五階段_狀態失效規則_v0.1.md》(六狀態 S1–S6 × 七事件 E0–E6,含硬失效/軟失效/封存三等級與版本計數器實作建議)。
+> 狀態依賴的可執行正本是 `project_models.py`、`project_store.py` 的 revision／版本血統與 `tests/test_project_api.py`；7/17 的 S1–S6／E0–E6 草案已於 2026-07-21 移出 repo 封存，不再作為現行契約。
 
 **兩個關鍵設計:**
 
@@ -89,11 +89,11 @@
 | ① | 平面圖辨識(F1) | DXF/PNG 上傳可預覽、辨識牆線+門/窗 | 🟢 可用;窗召回 95%(7/15 seg 融合)、門過濾 ~100%;JPG 類 P1 續改 |
 | ① | 手動拉線比例(F2a) | 兩點定錨+實距(公分),全屋等比換算 | 🔴 未做(自動推估比例+信心度已有,拉線 UI 未做) |
 | ① | 房型下拉修正+節點切割 | AI 標房型可下拉改;開放空間可手動切割 | 🔴 未做(新五階段新增) |
-| ② | 問卷雙層 UI(F3) | 基礎必填+進階預設值,80/20 | 🟢 `frontend3d` 已接空間確認後問卷;預設/進階分流、逐房機能、材質、型錄 GLB 與人工確認已接線 |
+| ② | 問卷雙層 UI(F3) | 基礎必填+進階預設值,80/20 | 🟢 `frontend` 已接空間確認後問卷;預設/進階分流、逐房機能、材質、型錄 GLB 與人工確認已接線 |
 | ② | 特殊需求 LLM→JSON(F3) | 自由文字→結構化 JSON,Agent 有引用 | 🟡 `requirements_service.py` 已完成 OpenRouter 明確同意+本機降級+人工確認；確認後 constraints 會進 `layout_service` 的嚴格 AI 建議輸入，但無 OpenRouter 時除指定型號外，其他 constraints 尚未逐條轉成選件／動線規則 |
 | ③ | Agent 2D 佈局(F4) | 依需求 JSON+空間屬性選件、給擺位提示;座標由引擎算 | 🟢 `layout_service.py` 做逐房型錄白名單選件，OpenRouter 僅選候選 ID；`layout_intent` 給語意提示、`recovery` 協商失敗，座標只由 `generate_layout` 計算 |
 | ③ | 引擎配置(F5) | 真實尺寸、不超空間、無違規重疊 | 🟢 逐 `room_id` 邊界、真實尺寸族系清洗、碰撞與開合淨空已接專案 API；自動配置、拖曳驗證與確認會重複把關 |
-| ③ | 2D 佈局編輯器(前端) | 佈局呈現+拖曳/旋轉微調(無縮放),違規亮紅 | 🟢 `frontend3d/src/Layout2DReview.jsx` 已逐房呈現 footprint、拖曳／旋轉／移除搭配建議；每次變更走後端驗證，人工勾選後才進 3D |
+| ③ | 2D 佈局編輯器(前端) | 佈局呈現+拖曳/旋轉微調(無縮放),違規亮紅 | 🟢 `frontend/src/Layout2DReview.jsx` 已逐房呈現 footprint、拖曳／旋轉／移除搭配建議；每次變更走後端驗證，人工勾選後才進 3D |
 | ③ | 合法重疊/擋門/動線規則(F6 附屬) | 電視可上櫃、地毯可墊底、不擋門、留動線 | 🟡 門線已轉 90 cm 虛擬淨空，碰撞／收納開合與指定房間邊界已擋；地毯等忽略碰撞類已有，電視上櫃與完整主動線寬度仍待規則定案 |
 | ④ | 3D 白模自動生成(F2b) | 2D 確認後自動生成;與平面一致;窗正確 | 🟢 `wall_solids` 依窗台／窗高／窗楣分層扣除真實開口；家具不依賴 GLB、直接以 `size_cm` 生成中性白模；全部可見且使用者確認後才完成 |
 | ④ | 取景鎖定 | 調攝影機→鎖定單一視角,姿態(公分)入檔 | 🟢 R3F 視角可調整／重鎖；`position_cm`、`target_cm`、FOV 與版本寫入 project workflow |
@@ -108,7 +108,7 @@
 
 順位已定(7/17):五站主線全綠後才動,依序:
 
-1. **RAG 選件檢索**(P1 第一位):接 `dataset/style_rag`,依特殊需求檢索式選件——履歷價值最高的一塊。
+1. **RAG 選件檢索**(P1 第一位):接 `data/dataset/style_rag`,依特殊需求檢索式選件——履歷價值最高的一塊。
 2. **自然語言微調**(P1 第二位):語意級改場景(「這間改兒童房」→連鎖重配)。
 3. **JPG / JPEG / BMP 平面圖辨識**(已做,成功率 ~50%,續改)。
 4. 訪談 Agent、更多風格/家具、多方案配置、eval harness。
@@ -125,7 +125,7 @@
 
 ### 6.1 Agent 做什麼
 
-**Agent = 2D 佈局的大腦——理解需求、選件、定錨、失敗協商;引擎是它的手。** 吃「問卷 JSON+特殊需求 JSON+空間屬性(房型/節點切割/幾何,公分)」,產出選件與 layout_intent 語意提示(只說誰當錨點、靠哪面牆、誰優先——**不含任何座標數字**);放不下時走 recovery(換同型較小款/移除)與引擎協商重擺至收斂。風格視覺不歸 Agent(屬第⑤站色卡+渲染)。**能力分層正本=《Agent能力清單_v0.1.md》**(已實作 A1–A3/P0 B1–B2/P1 C1–C2+三不邊界)。
+**Agent = 2D 佈局的大腦——理解需求、選件、定錨、失敗協商;引擎是它的手。** 吃「問卷 JSON+特殊需求 JSON+空間屬性(房型/節點切割/幾何,公分)」,產出選件與 layout_intent 語意提示(只說誰當錨點、靠哪面牆、誰優先——**不含任何座標數字**);放不下時走 recovery(換同型較小款/移除)與引擎協商重擺至收斂。風格視覺不歸 Agent(屬第⑤站色卡+渲染)。現行能力以 `backend/agent/`、`layout_service.py` 與對應測試為準。
 
 ### 6.2 引擎工具 + 現況
 
@@ -137,7 +137,7 @@
 | Agent 提示鏈 | `layout_intent` / `recovery` | 擺位前語意提示;失敗協商換小款/移除 | 🟢 已接線有測試(`tests/test_agent_layout_intent.py`、`test_agent_recovery.py`) |
 | 選件 | `layout_service` | 依房型/需求與型錄候選挑家具 | 🟢 問卷指定 ID 強制保留；本地規則可離線完成，OpenRouter 只可回候選 ID，非法／虛構 ID 一律剔除 |
 
-> 介面契約:`roompilot/engine/schema.py` 的 `PLACE_FURNITURE_TOOL` / `ADJUST_FURNITURE_TOOL` 仍是 Agent ↔ 引擎的對接基礎;`examples/demo_agent_flow.py` 有 id 規則與失敗詞彙表。LLM 串接走 OpenRouter;key 統一控管制度不變(制度為舒媁提議);LLM 實作的**現行歸屬凍結中**,見 §11(歷史歸屬紀錄:v3.1 曾定「凡直接動到 LLM 的實作皆由楊舒媁負責,key 由柏彥統一控管」)。
+> 介面契約:`backend/engine/schema.py` 的 `PLACE_FURNITURE_TOOL` / `ADJUST_FURNITURE_TOOL` 仍是 Agent ↔ 引擎的對接基礎;`examples/demo_agent_flow.py` 有 id 規則與失敗詞彙表。LLM 串接走 OpenRouter;key 統一控管制度不變(制度為舒媁提議);LLM 實作的**現行歸屬凍結中**,見 §11(歷史歸屬紀錄:v3.1 曾定「凡直接動到 LLM 的實作皆由楊舒媁負責,key 由柏彥統一控管」)。
 
 ### 6.3 碰撞 / 重疊 / 動線規則(劃分中)
 
@@ -152,13 +152,13 @@
 
 ## 7. 技術架構
 
-**系統架構圖已寫成:`docs/04_契約與規格/系統架構圖_三層制_v1.0.md`**(2026-07-18 組長核可;圖 A Demo 簡報版/圖 B 模組總覽含實作三態標記/圖 C1–C5 分站步驟流)。⚠ 該檔現被 `.gitignore` 的 `docs/*` 規則攔住、**尚未進版控**——需組長 `git add -f` 或在 .gitignore 加豁免後 commit,組員才拉得到(即已知的 docs/* 地雷)。「沒實測不寫進 SSOT」原則不變,已定案的架構決策:
+2026-07-18 曾完成三層制架構圖草稿，但它未進入目前 `ben` 工作樹；2026-07-21 清整後不再宣稱 repo 內已有該圖。重新納入前必須依現行單入口 React 流程、專案 API 與測試結果重畫。「沒實測不寫進 SSOT」原則不變，已落地的架構決策如下:
 
-- **三條鐵律**:家具座標只有 `roompilot.engine` 能算;全專案唯一 FastAPI(`roompilot.server`),前端一律走 API;全鏈公分(例外=四處遷移工項,由 server 內部吸收、不外洩)。
+- **三條鐵律**:家具座標只有 `backend.engine` 能算;全專案唯一 FastAPI(`backend.server`),前端一律走 API;全鏈公分(例外=四處遷移工項,由 server 內部吸收、不外洩)。
 - **前端**:主線=React(柏彥 R3F 為 3D 基底);問卷與 2D 佈局編輯器已接專案主流程，提案畫廊仍待建。
 - **資料**:runtime 型錄=`catalog/data` JSON 直讀;PostgreSQL=離線匯入管線(scripts/)+規劃中的 projects 表與渲染履歷。**Redis 已裁決不做(7/18)——快取=渲染履歷本身**。
 - **LLM**:經 OpenRouter 串接;key 統一控管;特殊需求→JSON 現況在 server intake,獨立化=P0。
-- **狀態機**:版本計數器(`version`/`built_from`),規格=失效規則 v0.1,實作未動工。
+- **狀態機**:專案 revision、各階段版本與 `built_from` 血統已由 project API／SQLite 保存；行為以程式與 `tests/test_project_api.py` 為準。
 
 ---
 
@@ -182,8 +182,8 @@
 - **DXF:** 🟢 解析 LINE / LWPOLYLINE / POLYLINE / ARC / CIRCLE / MLINE → 牆體;門 L 形+弧偵測、窗開口覆蓋率偵測;舊基準:窗 精準 89% / 召回 91%、門 過濾 ~100%(7/15 融合後窗召回 95%,見 PNG 條)。
 - **PNG:** 🟢 已做,成功率高(灰階二值化 → 形態學 → 牆遮罩向量化 → 正交化輸出 DXF);**窗偵測 7/15 融合分割模型第二意見,召回 92→95%**;門靠交接 JSON 補(DXF 圖層只有 WALL/WINDOW)。
 - **JPG / JPEG / BMP:** 🟡 已做,**成功率僅 ~50%** — **非 P0**,列 P1 續改。
-- **批次輸出三套:** `testdata/dxf/`(辨識 DXF)、`testdata/dxf_scale/`(公分 DXF,外圍牆厚錨定自動比例)、`testdata/json/`(前端交接,px+cm 雙座標+scale 信心度)。
-- **驗證資料:** `testdata/`(png+答案、door 樣式、dxf;**floor21=Demo 基準圖,已移植完成**)。
+- **批次輸出三套:** `data/testdata/dxf/`(辨識 DXF)、`data/testdata/dxf_scale/`(公分 DXF,外圍牆厚錨定自動比例)、`data/testdata/json/`(前端交接,px+cm 雙座標+scale 信心度)。
+- **驗證資料:** `data/testdata/`(png+答案、door 樣式、dxf;**floor21=Demo 基準圖,已移植完成**)。
 
 **限制:** 圖片無真實單位 → 自動比例僅供預設,**必須靠拉線比例(F2a)校正**;牆以軸向為主,斜/弧牆會掉。
 
@@ -197,18 +197,18 @@
 
 | 路徑 | 內容 |
 | --- | --- |
-| `roompilot/engine/` | 家具擺放引擎(Shapely,公分);`schema.py` = tool schema;`dxf_room.py` = 樓面 JSON→`Room`(公尺→公分唯一邊界) |
-| `roompilot/upgrade3d/` | DXF → 3D 樓面 JSON(輸出公尺,遷移工項);窗段聚類合併 |
-| `roompilot/floorplan/` | PNG(+JPG 類)→ DXF + eval;另產 dxf_scale(公分)與交接 JSON |
-| `roompilot/agent/` | Agent 提示鏈:layout_intent+recovery(已接線有測試) |
-| `roompilot/catalog/` | `style_db.py`+`data/`(6 風格型錄 JSON、taiwan_style_cards.json) |
-| `roompilot/skills/` | roompilot-llm SKILL.md(對話式 intake/風格推薦行為契約,未接程式) |
-| `roompilot/server/` | 唯一 FastAPI:專案／辨識／問卷／2D 配置 API；`layout_service.py` 嚴格選件與逐房引擎協調；GLB 串流路由 |
-| `frontend3d/` | React 問卷+2D 配置編輯器+R3F 3D 編輯器 |
+| `backend/engine/` | 家具擺放引擎(Shapely,公分);`schema.py` = tool schema;`dxf_room.py` = 樓面 JSON→`Room`(公尺→公分唯一邊界) |
+| `backend/upgrade3d/` | DXF → 3D 樓面 JSON(輸出公尺,遷移工項);窗段聚類合併 |
+| `backend/floorplan/` | PNG(+JPG 類)→ DXF + eval;另產 dxf_scale(公分)與交接 JSON |
+| `backend/agent/` | Agent 提示鏈:layout_intent+recovery(已接線有測試) |
+| `backend/catalog/` | `style_db.py`+`data/`(6 風格型錄 JSON、taiwan_style_cards.json) |
+| `backend/skills/` | roompilot-llm SKILL.md(對話式 intake/風格推薦行為契約,未接程式) |
+| `backend/server/` | 唯一 FastAPI:專案／辨識／問卷／2D 配置 API；`layout_service.py` 嚴格選件與逐房引擎協調；GLB 串流路由 |
+| `frontend/` | React 問卷+2D 配置編輯器+R3F 3D 編輯器 |
 | `scripts/` | IKEA 型錄管線(下載/清洗/驗證/匯入 Postgres;uv 化) |
-| `dataset/` | IKEA GLB **實測 1,517 檔**(⚠ 7/11 起 GLB 已移出 git 版控、僅存本機)+catalog_json+style_rag 風格池+地板材質包 |
-| `testdata/` | 測試燃料(floor21=Demo 基準) |
-| `docs/` | 01 SSOT/04 契約規格(架構圖 v1.0 在此)/05 狀態稽核(部分過時)/ai-harness/archive;02、03 為組長本地不進版控 |
+| `data/dataset/` | IKEA GLB **實測 1,517 檔**(⚠ 7/11 起 GLB 已移出 git 版控、僅存本機)+catalog_json+style_rag 風格池+地板材質包 |
+| `data/testdata/` | 測試燃料(floor21=Demo 基準) |
+| `docs/` | 現行資料夾總覽、01 SSOT、04 品質契約、ai-harness 驗收制度、archive 歷史資料；個人研究與過時狀態稿已移出 repo |
 
 ### 各段真實狀態
 
@@ -226,7 +226,7 @@
 | --- | --- | --- |
 | Web 前端頁面 + UI(四頁展示) | **楊舒媁** | 另提議 API key 統一控管制度;組長副手(提案發想、匯總、糾錯) |
 | F6 3D 拖曳雛形(7/6) | **林柏彥** | 前端拖 + 引擎驗證 + 彈回(體驗仍有問題,列待辦) |
-| F2 升維`dxf_parser`(已整合) | **林柏彥** | ezdxf+shapely;7/5–7/6 併入`roompilot/upgrade3d` |
+| F2 升維`dxf_parser`(已整合) | **林柏彥** | ezdxf+shapely;7/5–7/6 併入`backend/upgrade3d` |
 | 家具引擎幾何邏輯 | **蔡承安** | place/adjust/碰撞/淨空;7/8 引擎公分化 |
 | F1 平面辨識(DXF/PNG + 門窗 eval) | **陳峙宏** | 窗偵測持續改良(7/15 達召回 95%);JPG 類 50% 續改 |
 | IKEA 型錄管線 + 素材爬取 | **蘇立凱 + 鄭典** | GLB 下載/清洗/匯入 Postgres;持續爬家具、地板、天花板資料 |
@@ -310,8 +310,8 @@
 - [X] requirements.txt 廢除,uv 統一依賴(7/16)
 - [X] 色卡 6 風格 × 3 色系=18 張入庫+schema v2.0+載入模組接線
 - [X] 7/16 新五階段流程提案成型(NotebookLM 簡報,待 Sunny)
-- [X] 失效規則 v0.1+測試檢核表 v0.1+Agent 能力清單 v0.1(7/17–18,docs/02)
-- [X] 系統架構圖三層制 v1.0 寫成於 docs/04(7/18;⚠ 待 .gitignore 豁免+commit 才算真入庫)
+- [X] 7/17–18 失效規則／測試檢核／Agent 能力草案完成研究；7/21 已移出 repo 封存，現行行為回歸 code + tests
+- [ ] 系統架構圖需依 8002 單入口與現行專案 API 重畫；舊三層制草稿未進目前 `ben` 工作樹
 - [X] SSOT v4.0 逐條比對核可並回寫(7/19)
 
 ---
@@ -339,7 +339,7 @@
 | 2D 佈局 | 家具真實尺寸、不超空間、無違規重疊(合法重疊除外)、不擋門;拖曳微調含引擎驗證 |
 | 白模+取景 | 2D 確認後自動生成;窗正確;可鎖定單一視角 |
 | 渲染 | 白模+色卡 → 照片級 2D 圖 ＜5 分鐘;換色卡出平行變體;渲染履歷正確 |
-| 失效邏輯 | 《新五階段_測試檢核表_v0.1.md》TC-01–TC-11(約 40 驗證點)通過;【A】項沉為 pytest |
+| 失效邏輯 | `tests/test_project_api.py` 的 revision／下游失效案例通過，並以瀏覽器實測確認人工成果不會無聲消失 |
 
 **eval 指標:** 擺位合法率、渲染出圖成功率與時間(＜5 分鐘)、快取命中直接回圖、5 分鐘連跑成功率(目標 ≥5/5)。
 
@@ -349,9 +349,9 @@
 
 ## 17. 名詞 / 參考資料
 
-**名詞:** 一般需求(問卷勾選)・特殊需求 JSON(自由文字經 LLM 轉換)・**色卡**(6 風格 × 3 色系=18,渲染參數,非狀態)・**渲染履歷**(白模版本+取景版本+色卡)・**狀態機**(版本計數器 `version`/`built_from`)・**S1–S6 / E0–E6**(六狀態/七事件,正本=失效規則 v0.1)・**硬失效/軟失效/封存**・**取景**(鎖定單一視角)・**交接 JSON**(門段+比例信心度,第三套座標系)・**三態標記**(✅🟡⭕)・拉線比例(F2a)・`upgrade_to_3d` / `place_furniture` / `adjust_furniture`(引擎工具)・`layout_intent` / `recovery`(Agent 提示鏈)。~~MCP 12 種風格~~(由 6×3 色卡定案取代)。
+**名詞:** 一般需求(問卷勾選)・特殊需求 JSON(自由文字經 LLM 轉換)・**色卡**(6 風格 × 3 色系=18,渲染參數,非狀態)・**渲染履歷**(白模版本+取景版本+色卡)・**狀態血統**(revision、各階段版本與 `built_from`)・**取景**(鎖定單一視角)・**交接 JSON**(門段+比例信心度,第三套座標系)・**三態標記**(✅🟡⭕)・拉線比例(F2a)・`upgrade_to_3d` / `place_furniture` / `adjust_furniture`(引擎工具)・`layout_intent` / `recovery`(Agent 提示鏈)。~~MCP 12 種風格~~(由 6×3 色卡定案取代)。
 
-**參考方向:** 競品 — HomeByMe / Planner 5D / SketchUp / AiHouse(逆向拆解見 docs/02);技術與格式待主線跑通後回填(§7)。
+**參考方向:** 競品 — HomeByMe / Planner 5D / SketchUp / AiHouse；研究稿已移出 repo 封存，現行技術與格式只以本文件、code 與 tests 為準。
 
 ---
 

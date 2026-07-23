@@ -1,0 +1,7 @@
+# 前端源碼釘 LF:Windows checkout 不再轉出 CRLF,兩平台 npm run build 才會
+# 產出位元組相同的建置產物(否則行尾差異會讓 artifacts 整檔 churn 並在
+# ben 整合分支製造必然的合併衝突)。text=auto 讓二進位檔自動豁免。
+frontend/** text=auto eol=lf
+
+# Vite 建置產物視為原樣位元組,git 不做任何行尾轉換。
+backend/server/static/frontend3d/** -text

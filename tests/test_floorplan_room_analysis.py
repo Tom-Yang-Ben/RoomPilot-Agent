@@ -6,8 +6,8 @@ import ezdxf
 import pytest
 from shapely.geometry import box
 
-from roompilot.floorplan.room_analysis import derive_room_regions
-from roompilot.upgrade3d.dxf_parser import parse_dxf_file
+from backend.floorplan.room_analysis import derive_room_regions
+from backend.upgrade3d.dxf_parser import parse_dxf_file
 
 
 def _record(polygon) -> dict:
@@ -107,9 +107,9 @@ def test_dxf_parser_exposes_text_with_the_same_centered_metre_coordinates(
 def test_png_is_sent_to_openrouter_only_with_explicit_consent(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from roompilot.server import main as server_main
+    from backend.server.services import floorplan_recognition, floorplan_vlm
 
-    source = Path(__file__).resolve().parents[1] / "testdata" / "png" / "floor21.png"
+    source = Path(__file__).resolve().parents[1] / "data" / "testdata" / "png" / "floor21.png"
     calls = []
 
     def fake_annotation(raw: bytes, mime: str):
@@ -128,9 +128,9 @@ def test_png_is_sent_to_openrouter_only_with_explicit_consent(
             "printed_dimensions": [],
         }
 
-    monkeypatch.setattr(server_main, "vlm_enabled", lambda: True)
-    monkeypatch.setattr(server_main, "annotate_floorplan", fake_annotation)
-    analysis = server_main._recognize_floorplan_bytes(
+    monkeypatch.setattr(floorplan_vlm, "vlm_enabled", lambda: True)
+    monkeypatch.setattr(floorplan_vlm, "annotate_floorplan", fake_annotation)
+    analysis = floorplan_recognition.recognize_floorplan_bytes(
         source.read_bytes(),
         source.name,
         allow_openrouter=True,
@@ -148,7 +148,7 @@ def test_png_is_sent_to_openrouter_only_with_explicit_consent(
     assert analysis["floorplan"]["room_regions"][0]["label_source"] == "ai_suggestion"
 
     calls.clear()
-    offline = server_main._recognize_floorplan_bytes(
+    offline = floorplan_recognition.recognize_floorplan_bytes(
         source.read_bytes(),
         source.name,
         allow_openrouter=False,
