@@ -1,5 +1,68 @@
 # RoomPilot-Agent
 
+## 團隊目錄與合併規則
+
+Bella 保留 `roompilot/` 作為 Python 套件，不另外建立重複的
+`backend/`。組員舊分支若採用先前的 `backend/frontend/data` 結構，
+請依下表移植到 Bella。
+
+| 負責人 | Bella 唯一主要目錄 | 功能 |
+|---|---|---|
+| Cody | `roompilot/floorplan/`、`roompilot/upgrade3d/` | PNG、DXF、牆與門窗辨識 |
+| Kai | `roompilot/catalog/` | 家具型錄、AWS Manifest、CloudFront 與隔離資料 |
+| Django | `roompilot/spatial_data/` | 房間長寬、面積、比例及尺寸標註 |
+| Yen | `roompilot/agent/` | 家具選件與擺放失敗修復策略 |
+| AN | `roompilot/engine/` | 家具座標、碰撞與淨空檢查 |
+| Bella | `roompilot/server/`、`frontend3d/` | FastAPI、1–8 流程、2D／3D UI |
+
+### 舊分支路徑對照
+
+| 組員舊路徑 | Bella 合併落點 |
+|---|---|
+| `backend/floorplan/` | `roompilot/floorplan/` |
+| `backend/upgrade3d/` | `roompilot/upgrade3d/` |
+| `backend/catalog/` | `roompilot/catalog/` |
+| `backend/agent/` | `roompilot/agent/` |
+| `backend/engine/` | `roompilot/engine/` |
+| `backend/server/` | `roompilot/server/` |
+| `frontend/` | 靜態網站放 `roompilot/server/static/`；R3F 放 `frontend3d/` |
+| `data/dataset/` | 不搬大型 GLB；型錄 metadata 放 `roompilot/catalog/data/` |
+| `data/testdata/` | `testdata/` |
+| `Final-Project_Version3/` | 只移植空間邏輯到 `roompilot/spatial_data/` |
+
+### 合併方式
+
+不要把包含整份 `backend/`、`frontend/`、`data/` 的舊分支直接執行一般
+`git merge`。先從 Bella 建立整合分支並查看差異：
+
+```powershell
+git fetch origin
+git switch bella
+git switch -c integration/<name>-into-bella
+git diff --name-status bella...origin/<member-branch>
+```
+
+只將成員負責的實作移到上表指定目錄，並將 import 改成
+`roompilot.<module>`。不要帶入第二套 FastAPI、重複前端或整包大型模型。
+
+合併前必須執行：
+
+```powershell
+uv run pytest tests/ -q
+git diff --check
+git status --short
+```
+
+共同規則：
+
+1. 每位成員只修改自己的主要目錄與對應測試。
+2. Bella 可以在 `roompilot/server/` 串接模組，但不複製其他人的演算法。
+3. 家具座標只能由 AN 的 `roompilot/engine/` 計算。
+4. Python 內部一律使用公尺；公分只出現在既有 catalog 與前端 payload 邊界。
+5. Kai 尚未安全對應的 1,514 件家具放在
+   `roompilot/catalog/data/quarantine/unmatched_cloud_furniture/`，目前網頁、
+   Agent 與 3D 場景都不得使用。
+
 RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案把平面圖、住宅風格、家具資料與 Three.js 3D 場景串成一套可操作的網頁流程，協助設計師快速和使用者確認空間方向。
 
 相較於 `main`，目前版本整合 Cody 平面圖辨識、九步驟提案流程、2D 家具配置、3D 白模、即時 PBR StylePack、專案持久化與室內漫遊。
