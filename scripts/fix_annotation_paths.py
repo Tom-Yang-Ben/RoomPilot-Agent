@@ -154,7 +154,7 @@ def fix_svg(svg_path, check_only):
             if p.nodeName == "path" or baked:
                 poly = doc.createElement("polygon")
                 poly.setAttribute("points",
-                                  " ".join(f"{x:g},{y:g}" for x, y in pts))
+                                  " ".join(f"{x:g},{y:g}" for x, y in pts) + " ")  # 尾空格：House get_polygon 會砍最後一項
                 if p.getAttribute("style"):
                     poly.setAttribute("style", p.getAttribute("style"))
                 e.replaceChild(poly, p)

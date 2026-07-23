@@ -56,7 +56,7 @@ def test_fix_svg_bakes_group_transform(tmp_path):
          if "Space" in e.getAttribute("class")][0]
     assert not g.getAttribute("transform")
     pts = g.getElementsByTagName("polygon")[0].getAttribute("points")
-    assert pts == "100,0 120,0 120,10 100,10"
+    assert pts == "100,0 120,0 120,10 100,10 "
 
 
 def test_fix_svg_path_own_transform_and_text_child(tmp_path):
@@ -76,7 +76,7 @@ def test_fix_svg_path_own_transform_and_text_child(tmp_path):
          if "Space" in e.getAttribute("class")][0]
     assert not g.getAttribute("transform")
     pts = g.getElementsByTagName("polygon")[0].getAttribute("points")
-    assert pts == "50,10 60,10 60,20 50,20"     # g平移+path平移 兩層都烘進座標
+    assert pts == "50,10 60,10 60,20 50,20 "     # g平移+path平移 兩層都烘進座標
     text = g.getElementsByTagName("text")[0]
     assert text.getAttribute("transform") == "translate(50,0) scale(2)"
 
@@ -92,3 +92,31 @@ def test_crop_bbox_margin_and_clip():
     crop2, bbox2 = ex.crop_bbox(img, np.array([0, 99]), np.array([0, 199]), 0.2)
     assert bbox2 == [0, 100, 0, 200]            # 邊距不得超出圖面
     assert ex.norm_label(None) == "space" and ex.norm_label("balcony") == "outdoor"
+
+
+def test_rebuild_split_by_seeds_and_polygon():
+    import numpy as np
+    import rebuild_room_gt as rb
+    region = np.zeros((40, 60), np.uint8)
+    region[5:35, 5:55] = 1                       # 一大區
+    s_left = np.zeros_like(region); s_left[10:15, 8:12] = 1
+    s_right = np.zeros_like(region); s_right[10:15, 48:52] = 1
+    out = rb.split_by_seeds(region, [(0, s_left), (1, s_right)])
+    assert out[0][12, 10] == 1 and out[1][12, 50] == 1
+    assert out[0][12, 50] == 0 and out[1][12, 10] == 0
+    assert int(out[0].sum()) + int(out[1].sum()) == int(region.sum())
+    poly = rb.mask_to_polygon(out[0] * 255 // 255)
+    assert poly is not None and len(poly) >= 3
+
+
+def test_all_annotation_polygons_have_trailing_space():
+    """House get_polygon 會把 points split(' ') 後砍最後一項——
+    CubiCasa 慣例是尾空格結尾；缺尾空格的 polygon 會丟失最後一個頂點。"""
+    import glob
+    from xml.dom import minidom
+    for svg in (glob.glob("Identify_ans/own_eval/floor*/model.svg")
+                + glob.glob("Identify_ans/own_dataset/floor*/model.svg")):
+        doc = minidom.parse(svg)
+        for p in doc.getElementsByTagName("polygon"):
+            pts = p.getAttribute("points")
+            assert pts and pts[-1].isspace(), f"{svg} 有 polygon 缺尾空格"
