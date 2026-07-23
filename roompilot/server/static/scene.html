@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=20260723-window-card-toggle1" />
+    <link rel="stylesheet" href="/static/site.css?v=20260723-dimensioned-plan1" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -261,33 +261,36 @@
             <button id="confirm-space" type="button" class="primary-action">完成空間與結構確認</button>
           </aside>
         </div>
-        <section id="space-proportion-review" class="rp-space-proportion-review" aria-labelledby="space-proportion-title" hidden>
-          <header class="rp-proportion-heading">
+        <section id="space-dimension-review" class="rp-space-dimension-review" aria-labelledby="space-dimension-title" hidden>
+          <header class="rp-dimension-heading">
             <div>
               <span class="eyebrow">4 空間與結構</span>
-              <h2 id="space-proportion-title">確認全屋空間比例</h2>
-              <p>比較各空間占全屋的比例，確認配置是否符合生活需求。</p>
+              <h2 id="space-dimension-title">確認尺寸標註平面圖</h2>
+              <p>逐一確認各空間的彩色輪廓、水平寬度線、垂直長度線與估算面積。</p>
             </div>
-            <span id="space-calibration-state" class="rp-calibration-state">已套用比例尺校正</span>
+            <span id="dimension-calibration-state" class="rp-calibration-state">已套用比例尺校正</span>
           </header>
-          <div class="rp-proportion-summary" aria-label="全屋空間摘要">
-            <div><span>估算總面積</span><strong id="space-total-area">0.00 m²</strong></div>
-            <div><span>空間數量</span><strong id="space-room-count">0</strong></div>
-            <div><span>最大空間</span><strong id="space-largest-room">—</strong></div>
+          <div class="rp-dimension-summary" aria-label="尺寸標註摘要">
+            <div><span>估算總面積</span><strong id="dimension-total-area">0.00 m²</strong></div>
+            <div><span>已標註空間</span><strong id="dimension-room-count">0 個</strong></div>
           </div>
-          <div class="rp-proportion-table-heading" aria-hidden="true">
-            <span>空間與尺寸</span><span>占全屋比例</span><span>估算範圍</span>
-          </div>
-          <div id="space-proportion-list" class="rp-proportion-list"></div>
+          <figure class="rp-dimensioned-plan">
+            <div id="dimensioned-plan-stage" class="rp-plan-stage rp-dimensioned-plan-stage" aria-label="各空間長寬尺寸標註平面圖">
+              <img id="dimensioned-plan-image" alt="已確認的平面圖" />
+              <svg id="dimensioned-plan-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+            </div>
+            <figcaption>彩色虛線代表各空間範圍；水平線標示寬度，垂直線標示長度。</figcaption>
+          </figure>
+          <div id="dimensioned-plan-legend" class="rp-dimensioned-plan-legend" aria-label="空間尺寸圖例"></div>
           <aside class="rp-estimate-notice">
-            <strong>面積為校正後估算值</strong>
-            <p>±5% 範圍用來提醒圖面辨識與比例尺可能產生的誤差，僅供空間規劃估算，不可取代現場丈量或工程圖說。</p>
+            <strong>圖面尺寸為校正後估算值</strong>
+            <p>圖中長寬與面積可能受原圖解析度、框選邊界及比例尺影響，±5% 僅為規劃提醒，不可取代現場丈量或工程圖說。</p>
           </aside>
-          <p id="space-proportion-error" class="rp-field-error" aria-live="polite"></p>
-          <div class="rp-proportion-actions">
+          <p id="dimension-review-error" class="rp-field-error" aria-live="polite"></p>
+          <div class="rp-dimension-actions">
             <button id="back-to-space-editor" type="button" class="secondary-action">返回調整空間</button>
             <button id="recalibrate-space" type="button" class="secondary-action">重新校正比例尺</button>
-            <button id="confirm-space-proportion" type="button" class="primary-action">確認空間比例並進入需求問卷</button>
+            <button id="confirm-dimensioned-plan" type="button" class="primary-action">確認尺寸標註並進入需求問卷</button>
           </div>
         </section>
       </section>
@@ -511,6 +514,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene_v2.js?v=sha256-afbc9a928a03"></script>
+    <script type="module" src="/static/scene_v2.js?v=sha256-5f95e3f3fb54"></script>
   </body>
 </html>

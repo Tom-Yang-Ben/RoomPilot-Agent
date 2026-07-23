@@ -6723,17 +6723,17 @@ body.rp-workflow-page .danger-action {
   }
 }
 
-.rp-space-proportion-review {
+.rp-space-dimension-review {
   width: min(1120px, calc(100% - 48px));
   margin: 0 auto;
   padding: 34px 0 44px;
 }
 
-.rp-space-proportion-review[hidden] {
+.rp-space-dimension-review[hidden] {
   display: none;
 }
 
-.rp-proportion-heading {
+.rp-dimension-heading {
   display: flex;
   align-items: end;
   justify-content: space-between;
@@ -6742,17 +6742,17 @@ body.rp-workflow-page .danger-action {
   border-bottom: 1px solid #cbc6be;
 }
 
-.rp-proportion-heading h2,
-.rp-proportion-heading p {
+.rp-dimension-heading h2,
+.rp-dimension-heading p {
   margin: 0;
 }
 
-.rp-proportion-heading h2 {
+.rp-dimension-heading h2 {
   margin-top: 4px;
   font-size: 26px;
 }
 
-.rp-proportion-heading p {
+.rp-dimension-heading p {
   margin-top: 8px;
   color: #625d56;
 }
@@ -6767,109 +6767,86 @@ body.rp-workflow-page .danger-action {
   font-weight: 700;
 }
 
-.rp-proportion-summary {
+.rp-dimension-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border-bottom: 1px solid #cbc6be;
 }
 
-.rp-proportion-summary > div {
+.rp-dimension-summary > div {
   display: grid;
   gap: 5px;
   padding: 22px 20px;
   border-right: 1px solid #ddd8d1;
 }
 
-.rp-proportion-summary > div:last-child {
+.rp-dimension-summary > div:last-child {
   border-right: 0;
 }
 
-.rp-proportion-summary span,
-.rp-proportion-table-heading,
-.rp-proportion-room span,
-.rp-proportion-range small {
+.rp-dimension-summary span {
   color: #6a645c;
   font-size: 13px;
 }
 
-.rp-proportion-summary strong {
+.rp-dimension-summary strong {
   color: #253d35;
   font-size: 22px;
 }
 
-.rp-proportion-table-heading,
-.rp-proportion-row {
-  display: grid;
-  grid-template-columns: minmax(220px, 1.15fr) minmax(220px, 1fr) minmax(170px, 0.7fr);
+.rp-dimensioned-plan {
+  margin: 24px 0 0;
+}
+
+.rp-dimensioned-plan-stage {
+  height: min(68vh, 760px);
+  min-height: 520px;
+  border: 1px solid #b9b4ac;
+  background: #f1f1ee;
+}
+
+.rp-dimensioned-plan-stage img {
+  opacity: 0.78;
+}
+
+.rp-dimensioned-plan-stage svg {
+  pointer-events: none;
+}
+
+.rp-dimensioned-plan figcaption {
+  margin-top: 9px;
+  color: #655f58;
+  font-size: 13px;
+}
+
+.rp-dimensioned-plan-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.rp-dimensioned-plan-legend span {
+  display: inline-flex;
   align-items: center;
-  gap: 24px;
+  gap: 7px;
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 1px solid #cbc6be;
+  border-radius: 4px;
+  background: #fff;
+  color: #5a554f;
+  font-size: 12px;
 }
 
-.rp-proportion-table-heading {
-  padding: 18px 14px 10px;
-  font-weight: 700;
-}
-
-.rp-proportion-list {
-  border-top: 1px solid #ded9d2;
-}
-
-.rp-proportion-row {
-  min-height: 82px;
-  padding: 14px;
-  border-bottom: 1px solid #ded9d2;
-}
-
-.rp-proportion-room {
-  display: grid;
-  gap: 5px;
-}
-
-.rp-proportion-room strong {
-  font-size: 17px;
-}
-
-.rp-proportion-share {
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr) 58px;
-  align-items: center;
-  gap: 12px;
-}
-
-.rp-proportion-share strong {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.rp-proportion-bar {
+.rp-dimensioned-plan-legend i {
+  width: 10px;
   height: 10px;
-  overflow: hidden;
-  background: #e3e0da;
+  flex: 0 0 auto;
 }
 
-.rp-proportion-bar i {
-  display: block;
-  height: 100%;
-  background: #2a735e;
-}
-
-.rp-proportion-row:nth-child(3n + 2) .rp-proportion-bar i {
-  background: #32788b;
-}
-
-.rp-proportion-row:nth-child(3n) .rp-proportion-bar i {
-  background: #b56a3b;
-}
-
-.rp-proportion-range {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.rp-proportion-range small {
-  display: block;
-  margin-top: 3px;
-  font-weight: 600;
+.rp-dimensioned-plan-legend strong {
+  color: #2d2a27;
 }
 
 .rp-estimate-notice {
@@ -6885,7 +6862,7 @@ body.rp-workflow-page .danger-action {
   line-height: 1.55;
 }
 
-.rp-proportion-actions {
+.rp-dimension-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -7353,21 +7330,21 @@ body.rp-workflow-page .danger-action {
     grid-column: 1;
   }
 
-  .rp-space-proportion-review {
+  .rp-space-dimension-review {
     width: calc(100% - 32px);
     padding-top: 24px;
   }
 
-  .rp-proportion-heading {
+  .rp-dimension-heading {
     display: grid;
     align-items: start;
   }
 
-  .rp-proportion-summary {
+  .rp-dimension-summary {
     grid-template-columns: 1fr;
   }
 
-  .rp-proportion-summary > div {
+  .rp-dimension-summary > div {
     grid-template-columns: 1fr auto;
     align-items: center;
     padding: 14px 4px;
@@ -7375,25 +7352,20 @@ body.rp-workflow-page .danger-action {
     border-bottom: 1px solid #ded9d2;
   }
 
-  .rp-proportion-summary > div:last-child {
+  .rp-dimension-summary > div:last-child {
     border-bottom: 0;
   }
 
-  .rp-proportion-summary strong {
+  .rp-dimension-summary strong {
     font-size: 18px;
   }
 
-  .rp-proportion-table-heading {
-    display: none;
+  .rp-dimensioned-plan-stage {
+    height: min(60vh, 560px);
+    min-height: 360px;
   }
 
-  .rp-proportion-row {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 16px 4px;
-  }
-
-  .rp-proportion-actions {
+  .rp-dimension-actions {
     display: grid;
   }
 

@@ -41,7 +41,7 @@ import {
 } from "./scene_structure_utils.js?v=20260721-beam-drag1";
 import { createStructurePreview } from "./scene_structure_preview.js?v=20260721-column-resize3";
 import { validateColumnDimensionsCm } from "./scene_structure_geometry.js?v=20260721-column-resize3";
-import { buildSpaceProportionSummary } from "./scene_space_proportions.js?v=20260723-space-proportions1";
+import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
   applyWindowTypePreset,
   normalizedWindowType,
@@ -151,13 +151,15 @@ const element = {
   spaceStage: $("#space-plan-stage"),
   spaceOverlay: $("#space-plan-overlay"),
   spaceEditorWorkspace: $("#space-editor-workspace"),
-  spaceProportionReview: $("#space-proportion-review"),
-  spaceProportionList: $("#space-proportion-list"),
-  spaceTotalArea: $("#space-total-area"),
-  spaceRoomCount: $("#space-room-count"),
-  spaceLargestRoom: $("#space-largest-room"),
-  spaceCalibrationState: $("#space-calibration-state"),
-  spaceProportionError: $("#space-proportion-error"),
+  spaceDimensionReview: $("#space-dimension-review"),
+  dimensionPlanStage: $("#dimensioned-plan-stage"),
+  dimensionPlanImage: $("#dimensioned-plan-image"),
+  dimensionPlanOverlay: $("#dimensioned-plan-overlay"),
+  dimensionPlanLegend: $("#dimensioned-plan-legend"),
+  dimensionTotalArea: $("#dimension-total-area"),
+  dimensionRoomCount: $("#dimension-room-count"),
+  dimensionCalibrationState: $("#dimension-calibration-state"),
+  dimensionReviewError: $("#dimension-review-error"),
   roomList: $("#room-list"),
   roomEditor: $("#room-editor"),
   roomName: $("#room-name"),
@@ -780,6 +782,11 @@ function syncLayoutLayer() {
 function syncAllOverlays() {
   syncOverlayToImage(element.scaleStage, element.scaleImage, element.scaleOverlay);
   syncOverlayToImage(element.spaceStage, element.spaceImage, element.spaceOverlay);
+  syncOverlayToImage(
+    element.dimensionPlanStage,
+    element.dimensionPlanImage,
+    element.dimensionPlanOverlay,
+  );
   syncOverlayToImage(element.requirementsStage, element.requirementsImage, element.requirementsOverlay);
   syncOverlayToImage(element.layoutStage, element.layoutImage, element.layoutRoomOverlay);
   syncLayoutLayer();
@@ -2832,79 +2839,95 @@ function confirmSpace() {
     $("#estimated-size-ack").focus();
     return;
   }
-  showSpaceProportionReview();
+  showDimensionedPlanReview();
 }
 
-function proportionRoomInputs() {
+function dimensionedPlanRoomInputs() {
   return state.rooms.map((room) => ({
     id: room.id,
     label: room.label || "未命名空間",
+    polygonPx: room.polygon_m.map(meterToPixel),
     ...roomDimensions(room),
   }));
 }
 
-function renderSpaceProportionReview() {
-  const summary = buildSpaceProportionSummary(proportionRoomInputs());
-  element.spaceTotalArea.textContent = `${summary.totalAreaM2.toFixed(2)} m²`;
-  element.spaceRoomCount.textContent = `${summary.roomCount} 個`;
-  element.spaceLargestRoom.textContent = summary.largestRoom
-    ? `${summary.largestRoom.label} ${summary.largestRoom.sharePercent.toFixed(1)}%`
-    : "—";
+function renderDimensionedPlanReview() {
+  const { imageWidth, imageHeight } = planGeometry();
+  const annotation = buildDimensionedPlanAnnotations(
+    dimensionedPlanRoomInputs(),
+    { imageWidth, imageHeight },
+  );
+  element.dimensionTotalArea.textContent = `${annotation.totalAreaM2.toFixed(2)} m²`;
+  element.dimensionRoomCount.textContent = `${annotation.roomCount} 個`;
   const distanceCm = Number(state.workflow?.data?.calibration?.distanceCm);
-  element.spaceCalibrationState.textContent = distanceCm > 0
+  element.dimensionCalibrationState.textContent = distanceCm > 0
     ? `已用 ${Math.round(distanceCm)} cm 已知尺寸校正`
     : "已套用比例尺校正";
-  element.spaceProportionList.innerHTML = summary.rooms.map((room) => `
-    <article class="rp-proportion-row">
-      <div class="rp-proportion-room">
-        <strong>${escapeHtml(room.label)}</strong>
-        <span>${Math.round(room.widthCm)} × ${Math.round(room.depthCm)} cm · ${room.areaM2.toFixed(2)} m²</span>
-      </div>
-      <div class="rp-proportion-share">
-        <div class="rp-proportion-bar" aria-hidden="true"><i style="width: ${room.sharePercent}%"></i></div>
-        <strong>${room.sharePercent.toFixed(1)}%</strong>
-      </div>
-      <span class="rp-proportion-range">${room.areaMinM2.toFixed(2)}–${room.areaMaxM2.toFixed(2)} m² <small>±5%</small></span>
-    </article>
+  element.dimensionPlanOverlay.setAttribute("viewBox", `0 0 ${imageWidth} ${imageHeight}`);
+  element.dimensionPlanOverlay.innerHTML = annotation.svg;
+  element.dimensionPlanLegend.innerHTML = annotation.rooms.map((room) => `
+    <span><i style="background:${room.color}"></i><strong>${escapeHtml(room.label)}</strong>
+      ${Math.round(room.widthCm)} × ${Math.round(room.depthCm)} cm</span>
   `).join("");
+  const source = element.spaceImage.currentSrc || element.spaceImage.src;
+  if (source && element.dimensionPlanImage.src !== source) {
+    element.dimensionPlanImage.src = source;
+    element.dimensionPlanImage.addEventListener("load", () => {
+      syncOverlayToImage(
+        element.dimensionPlanStage,
+        element.dimensionPlanImage,
+        element.dimensionPlanOverlay,
+      );
+    }, { once: true });
+  }
+  requestAnimationFrame(() => syncOverlayToImage(
+    element.dimensionPlanStage,
+    element.dimensionPlanImage,
+    element.dimensionPlanOverlay,
+  ));
 }
 
 function setSpaceReviewMode(mode) {
-  state.spaceReviewMode = mode === "proportion" ? "proportion" : "editing";
-  const reviewing = state.spaceReviewMode === "proportion";
+  state.spaceReviewMode = ["dimensions", "proportion"].includes(mode) ? "dimensions" : "editing";
+  const reviewing = state.spaceReviewMode === "dimensions";
   element.spaceEditorWorkspace.hidden = reviewing;
-  element.spaceProportionReview.hidden = !reviewing;
+  element.spaceDimensionReview.hidden = !reviewing;
   if (activePanelName(state.workflow?.currentStep) === "space") {
     element.instruction.textContent = reviewing
-      ? "最後確認各空間占全屋的比例與估算範圍"
+      ? "最後確認平面圖上的房間輪廓、長寬尺寸與估算面積"
       : instructions.space_confirmation[1];
   }
-  if (reviewing) renderSpaceProportionReview();
+  if (reviewing) renderDimensionedPlanReview();
 }
 
-function showSpaceProportionReview() {
-  element.spaceProportionError.textContent = "";
-  setSpaceReviewMode("proportion");
-  element.spaceProportionReview.scrollIntoView({ behavior: "smooth", block: "start" });
+function showDimensionedPlanReview() {
+  element.dimensionReviewError.textContent = "";
+  setSpaceReviewMode("dimensions");
+  element.spaceDimensionReview.scrollIntoView({ behavior: "smooth", block: "start" });
   $("#back-to-space-editor").focus({ preventScroll: true });
-  setStatus("請確認各空間占全屋的比例；面積與 ±5% 範圍皆為估算值。");
+  setStatus("請確認平面圖上的彩色房間輪廓、水平寬度與垂直長度標註。");
 }
 
-function confirmSpaceProportion() {
-  const summary = buildSpaceProportionSummary(proportionRoomInputs());
-  if (!summary.roomCount || summary.totalAreaM2 <= 0) {
-    element.spaceProportionError.textContent = "目前沒有可確認的空間面積，請返回調整空間或重新校正比例尺。";
+function confirmDimensionedPlan() {
+  const { imageWidth, imageHeight } = planGeometry();
+  const annotation = buildDimensionedPlanAnnotations(
+    dimensionedPlanRoomInputs(),
+    { imageWidth, imageHeight },
+  );
+  if (!annotation.roomCount || annotation.totalAreaM2 <= 0) {
+    element.dimensionReviewError.textContent = "目前沒有可確認的空間尺寸，請返回調整空間或重新校正比例尺。";
     return;
   }
   state.workflow.complete("space_confirmation", {
     roomsConfirmed: true,
     structureConfirmed: true,
     proportionsConfirmed: true,
-    totalAreaM2: summary.totalAreaM2,
+    dimensionedPlanConfirmed: true,
+    totalAreaM2: annotation.totalAreaM2,
   });
   renderWholeHouseQuestionnaire();
   renderQuestionRooms();
-  setStatus("空間、結構與全屋比例已保存。現在開始基本問卷。");
+  setStatus("尺寸標註平面圖與結構均已確認。現在開始基本問卷。");
   goTo("requirements");
 }
 
@@ -4650,7 +4673,7 @@ function bindEvents() {
   $("#confirm-space").addEventListener("click", confirmSpace);
   $("#back-to-space-editor").addEventListener("click", () => {
     setSpaceReviewMode("editing");
-    setStatus("可繼續調整房間與結構；完成後再確認全屋空間比例。");
+    setStatus("可繼續調整房間與結構；完成後再確認尺寸標註平面圖。");
   });
   $("#recalibrate-space").addEventListener("click", () => {
     setSpaceReviewMode("editing");
@@ -4658,7 +4681,7 @@ function bindEvents() {
       setStatus("請重新選取兩點並輸入實際尺寸；套用後會重新計算空間面積。");
     }
   });
-  $("#confirm-space-proportion").addEventListener("click", confirmSpaceProportion);
+  $("#confirm-dimensioned-plan").addEventListener("click", confirmDimensionedPlan);
   $("#confirm-basic-questionnaire").addEventListener("click", confirmBasicQuestionnaire);
   element.roomQuestionNav.addEventListener("click", (event) => {
     const button = event.target.closest("[data-question-room]");

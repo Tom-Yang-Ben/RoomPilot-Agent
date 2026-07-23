@@ -24,30 +24,41 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'src="/static/scene_v2.js?v=sha256-{expected}"' in html
 
 
-def test_space_proportion_summary_uses_calibrated_room_areas() -> None:
-    module_uri = (STATIC / "scene_space_proportions.js").as_uri()
+def test_dimensioned_plan_draws_colored_room_outlines_and_size_lines() -> None:
+    module_uri = (STATIC / "scene_dimensioned_plan.js").as_uri()
     result = run_workflow_script(
         f"""
-        import {{ buildSpaceProportionSummary }} from {json.dumps(module_uri)};
-        const summary = buildSpaceProportionSummary([
-          {{ id: "living", label: "客廳", widthCm: 500, depthCm: 400, areaM2: 20 }},
-          {{ id: "bedroom", label: "臥室", widthCm: 400, depthCm: 250, areaM2: 10 }},
-          {{ id: "kitchen", label: "廚房", widthCm: 400, depthCm: 250, areaM2: 10 }},
-        ]);
-        console.log(JSON.stringify(summary));
+        import {{ buildDimensionedPlanAnnotations }} from {json.dumps(module_uri)};
+        const plan = buildDimensionedPlanAnnotations([
+          {{
+            id: "living",
+            label: "客廳",
+            widthCm: 500,
+            depthCm: 400,
+            areaM2: 20,
+            polygonPx: [{{x: 20, y: 20}}, {{x: 520, y: 20}}, {{x: 520, y: 420}}, {{x: 20, y: 420}}],
+          }},
+          {{
+            id: "bedroom",
+            label: "臥室",
+            widthCm: 400,
+            depthCm: 250,
+            areaM2: 10,
+            polygonPx: [{{x: 540, y: 20}}, {{x: 940, y: 20}}, {{x: 940, y: 270}}, {{x: 540, y: 270}}],
+          }},
+        ], {{ imageWidth: 1000, imageHeight: 600 }});
+        console.log(JSON.stringify(plan));
         """
     )
 
-    assert result["roomCount"] == 3
-    assert result["totalAreaM2"] == 40
-    assert [row["sharePercent"] for row in result["rooms"]] == [50, 25, 25]
-    assert result["rooms"][0]["areaMinM2"] == 19
-    assert result["rooms"][0]["areaMaxM2"] == 21
-    assert result["largestRoom"] == {
-        "id": "living",
-        "label": "客廳",
-        "sharePercent": 50,
-    }
+    assert result["roomCount"] == 2
+    assert result["totalAreaM2"] == 30
+    assert result["rooms"][0]["color"] != result["rooms"][1]["color"]
+    assert 'data-dimension-room="living"' in result["svg"]
+    assert "500 cm" in result["svg"]
+    assert "400 cm" in result["svg"]
+    assert "20.00 m² · ±5%" in result["svg"]
+    assert 'class="rp-plan-dimension"' in result["svg"]
 
 
 def test_floor_to_ceiling_window_preset_reaches_from_floor_to_ceiling() -> None:
@@ -115,30 +126,36 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
     assert "const mullionPositions = [0];" in viewer
 
 
-def test_step_four_has_a_separate_proportion_confirmation_page() -> None:
+def test_step_four_has_a_dimensioned_floorplan_confirmation_page() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="space-editor-workspace"' in html
-    assert 'id="space-proportion-review"' in html
-    assert 'id="space-proportion-list"' in html
+    assert 'id="space-dimension-review"' in html
+    assert 'id="dimensioned-plan-stage"' in html
+    assert 'id="dimensioned-plan-image"' in html
+    assert 'id="dimensioned-plan-overlay"' in html
+    assert 'id="dimensioned-plan-legend"' in html
     assert 'id="back-to-space-editor"' in html
     assert 'id="recalibrate-space"' in html
-    assert 'id="confirm-space-proportion"' in html
+    assert 'id="confirm-dimensioned-plan"' in html
+    assert "水平線標示寬度，垂直線標示長度" in html
     assert "±5%" in html
-    assert "僅供空間規劃估算" in html
-    assert "function showSpaceProportionReview" in source
-    assert "function confirmSpaceProportion" in source
+    assert "不可取代現場丈量" in html
+    assert "rp-proportion-bar" not in html
+    assert "function showDimensionedPlanReview" in source
+    assert "function confirmDimensionedPlan" in source
     initial_confirmation = source.split("function confirmSpace()", 1)[1].split(
-        "function proportionRoomInputs", 1
+        "function dimensionedPlanRoomInputs", 1
     )[0]
-    final_confirmation = source.split("function confirmSpaceProportion()", 1)[1].split(
+    final_confirmation = source.split("function confirmDimensionedPlan()", 1)[1].split(
         "function renderWholeHouseQuestionnaire", 1
     )[0]
-    assert 'showSpaceProportionReview();' in initial_confirmation
+    assert 'showDimensionedPlanReview();' in initial_confirmation
     assert '.complete("space_confirmation"' not in initial_confirmation
     assert '.complete("space_confirmation"' in final_confirmation
     assert "proportionsConfirmed: true" in final_confirmation
+    assert "dimensionedPlanConfirmed: true" in final_confirmation
 
 
 def test_upload_step_does_not_offer_the_internal_630_sample_button() -> None:
