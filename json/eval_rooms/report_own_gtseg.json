@@ -12,7 +12,7 @@
   "mean_iou": 1.0,
   "confusion": {
    "kitchen": {
-    "kitchen": 1,
+    "kitchen": 4,
     "living": 0,
     "bed": 0,
     "bath": 0,
@@ -20,7 +20,7 @@
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 8
+    "space": 5
    },
    "living": {
     "kitchen": 0,
@@ -36,24 +36,24 @@
    "bed": {
     "kitchen": 0,
     "living": 0,
-    "bed": 4,
+    "bed": 7,
     "bath": 0,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 15
+    "space": 12
    },
    "bath": {
-    "kitchen": 3,
+    "kitchen": 4,
     "living": 0,
     "bed": 0,
-    "bath": 3,
+    "bath": 5,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 8
+    "space": 5
    },
    "entry": {
     "kitchen": 0,
@@ -117,8 +117,8 @@
   "per_class": {
    "kitchen": {
     "gt": 9,
-    "precision": 0.25,
-    "recall": 0.111
+    "precision": 0.5,
+    "recall": 0.444
    },
    "living": {
     "gt": 14,
@@ -128,12 +128,12 @@
    "bed": {
     "gt": 19,
     "precision": 1.0,
-    "recall": 0.211
+    "recall": 0.368
    },
    "bath": {
     "gt": 14,
     "precision": 1.0,
-    "recall": 0.214
+    "recall": 0.357
    },
    "entry": {
     "gt": 6,
@@ -157,7 +157,7 @@
    },
    "space": {
     "gt": 10,
-    "precision": 0.164,
+    "precision": 0.192,
     "recall": 1.0
    }
   }
@@ -189,7 +189,7 @@
     ],
     [
      "bath",
-     "space"
+     "kitchen"
     ]
    ],
    "ious": [
@@ -211,7 +211,7 @@
    "pairs": [
     [
      "bed",
-     "space"
+     "bed"
     ],
     [
      "bath",
@@ -405,7 +405,7 @@
     ],
     [
      "bath",
-     "space"
+     "bath"
     ],
     [
      "space",
@@ -489,7 +489,7 @@
     ],
     [
      "kitchen",
-     "space"
+     "kitchen"
     ]
    ],
    "ious": [
@@ -524,7 +524,7 @@
     ],
     [
      "bath",
-     "space"
+     "bath"
     ],
     [
      "living",
@@ -532,7 +532,7 @@
     ],
     [
      "kitchen",
-     "space"
+     "kitchen"
     ],
     [
      "living",
@@ -612,7 +612,7 @@
     ],
     [
      "bed",
-     "space"
+     "bed"
     ],
     [
      "space",
@@ -663,7 +663,7 @@
     ],
     [
      "kitchen",
-     "space"
+     "kitchen"
     ],
     [
      "living",
@@ -671,7 +671,7 @@
     ],
     [
      "bed",
-     "space"
+     "bed"
     ]
    ],
    "ious": [

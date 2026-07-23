@@ -6,13 +6,13 @@
   "n_skip": 0,
   "gt_rooms": 73,
   "pred_rooms": 74,
-  "matched": 28,
-  "hit_rate": 0.3836,
+  "matched": 53,
+  "hit_rate": 0.726,
   "overseg": 1.0137,
-  "mean_iou": 0.7494,
+  "mean_iou": 0.8291,
   "confusion": {
    "kitchen": {
-    "kitchen": 0,
+    "kitchen": 1,
     "living": 0,
     "bed": 0,
     "bath": 0,
@@ -23,6 +23,83 @@
     "space": 2
    },
    "living": {
+    "kitchen": 1,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 10
+   },
+   "bed": {
+    "kitchen": 1,
+    "living": 0,
+    "bed": 7,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 11
+   },
+   "bath": {
+    "kitchen": 2,
+    "living": 0,
+    "bed": 0,
+    "bath": 5,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 5
+   },
+   "entry": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 3
+   },
+   "storage": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "garage": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "outdoor": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "space": 0
+   },
+   "space": {
     "kitchen": 0,
     "living": 0,
     "bed": 0,
@@ -32,83 +109,6 @@
     "garage": 0,
     "outdoor": 0,
     "space": 5
-   },
-   "bed": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 4,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 4
-   },
-   "bath": {
-    "kitchen": 3,
-    "living": 0,
-    "bed": 0,
-    "bath": 2,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 3
-   },
-   "entry": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 2
-   },
-   "storage": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 0
-   },
-   "garage": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 0
-   },
-   "outdoor": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 0
-   },
-   "space": {
-    "kitchen": 0,
-    "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
-    "storage": 0,
-    "garage": 0,
-    "outdoor": 0,
-    "space": 3
    }
   },
   "iou_thr": 0.5,
@@ -116,27 +116,27 @@
   "own_eval_mode": true,
   "per_class": {
    "kitchen": {
-    "gt": 2,
-    "precision": 0.0,
-    "recall": 0.0
+    "gt": 3,
+    "precision": 0.2,
+    "recall": 0.333
    },
    "living": {
-    "gt": 5,
+    "gt": 11,
     "precision": null,
     "recall": 0.0
    },
    "bed": {
-    "gt": 8,
+    "gt": 19,
     "precision": 1.0,
-    "recall": 0.5
+    "recall": 0.368
    },
    "bath": {
-    "gt": 8,
+    "gt": 12,
     "precision": 1.0,
-    "recall": 0.25
+    "recall": 0.417
    },
    "entry": {
-    "gt": 2,
+    "gt": 3,
     "precision": null,
     "recall": 0.0
    },
@@ -156,8 +156,8 @@
     "recall": null
    },
    "space": {
-    "gt": 3,
-    "precision": 0.158,
+    "gt": 5,
+    "precision": 0.139,
     "recall": 1.0
    }
   }
@@ -168,10 +168,22 @@
    "status": "ok",
    "n_gt": 5,
    "n_pred": 2,
-   "n_match": 0,
-   "mean_iou": 0.0,
-   "pairs": [],
-   "ious": [],
+   "n_match": 2,
+   "mean_iou": 0.7676,
+   "pairs": [
+    [
+     "living",
+     "space"
+    ],
+    [
+     "bed",
+     "kitchen"
+    ]
+   ],
+   "ious": [
+    0.783,
+    0.7521
+   ],
    "split": "own"
   },
   {
@@ -179,36 +191,51 @@
    "status": "ok",
    "n_gt": 9,
    "n_pred": 10,
-   "n_match": 5,
-   "mean_iou": 0.8174,
+   "n_match": 8,
+   "mean_iou": 0.8834,
    "pairs": [
     [
      "bath",
      "space"
     ],
     [
+     "living",
+     "space"
+    ],
+    [
      "bath",
      "space"
     ],
     [
-     "living",
-     "space"
-    ],
-    [
-     "living",
+     "kitchen",
      "space"
     ],
     [
      "bed",
      "bed"
+    ],
+    [
+     "space",
+     "space"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "living",
+     "space"
     ]
    ],
    "ious": [
     1.0,
-    1.0,
-    0.9998,
-    0.5499,
-    0.5371
+    0.9783,
+    0.969,
+    0.9457,
+    0.9137,
+    0.7913,
+    0.7431,
+    0.7263
    ],
    "split": "own"
   },
@@ -217,10 +244,17 @@
    "status": "ok",
    "n_gt": 6,
    "n_pred": 3,
-   "n_match": 0,
-   "mean_iou": 0.0,
-   "pairs": [],
-   "ious": [],
+   "n_match": 1,
+   "mean_iou": 0.8111,
+   "pairs": [
+    [
+     "bed",
+     "space"
+    ]
+   ],
+   "ious": [
+    0.8111
+   ],
    "split": "own"
   },
   {
@@ -228,13 +262,9 @@
    "status": "ok",
    "n_gt": 8,
    "n_pred": 9,
-   "n_match": 3,
-   "mean_iou": 0.8341,
+   "n_match": 7,
+   "mean_iou": 0.8491,
    "pairs": [
-    [
-     "bath",
-     "kitchen"
-    ],
     [
      "bed",
      "bed"
@@ -242,12 +272,36 @@
     [
      "bed",
      "space"
+    ],
+    [
+     "bed",
+     "space"
+    ],
+    [
+     "bath",
+     "kitchen"
+    ],
+    [
+     "space",
+     "space"
+    ],
+    [
+     "living",
+     "space"
+    ],
+    [
+     "entry",
+     "space"
     ]
    ],
    "ious": [
-    0.9999,
-    0.996,
-    0.5063
+    0.9539,
+    0.9272,
+    0.9151,
+    0.9017,
+    0.824,
+    0.763,
+    0.6587
    ],
    "split": "own"
   },
@@ -256,16 +310,26 @@
    "status": "ok",
    "n_gt": 3,
    "n_pred": 5,
-   "n_match": 1,
-   "mean_iou": 0.5198,
+   "n_match": 3,
+   "mean_iou": 0.8274,
    "pairs": [
     [
      "entry",
      "space"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "living",
+     "space"
     ]
    ],
    "ious": [
-    0.5198
+    0.9596,
+    0.8088,
+    0.7138
    ],
    "split": "own"
   },
@@ -274,26 +338,36 @@
    "status": "ok",
    "n_gt": 6,
    "n_pred": 5,
-   "n_match": 3,
-   "mean_iou": 0.8374,
+   "n_match": 5,
+   "mean_iou": 0.9466,
    "pairs": [
-    [
-     "kitchen",
-     "space"
-    ],
     [
      "living",
      "space"
     ],
     [
+     "kitchen",
+     "space"
+    ],
+    [
      "bed",
      "space"
+    ],
+    [
+     "bed",
+     "space"
+    ],
+    [
+     "bath",
+     "bath"
     ]
    ],
    "ious": [
-    1.0,
-    1.0,
-    0.5122
+    0.99,
+    0.9719,
+    0.948,
+    0.9123,
+    0.9109
    ],
    "split": "own"
   },
@@ -302,21 +376,26 @@
    "status": "ok",
    "n_gt": 4,
    "n_pred": 4,
-   "n_match": 2,
-   "mean_iou": 0.7916,
+   "n_match": 3,
+   "mean_iou": 0.7494,
    "pairs": [
     [
      "bed",
      "bed"
     ],
     [
-     "kitchen",
+     "living",
      "space"
+    ],
+    [
+     "bath",
+     "bath"
     ]
    ],
    "ious": [
-    1.0,
-    0.5832
+    0.9836,
+    0.6893,
+    0.5753
    ],
    "split": "own"
   },
@@ -326,30 +405,30 @@
    "n_gt": 6,
    "n_pred": 6,
    "n_match": 4,
-   "mean_iou": 0.888,
+   "mean_iou": 0.7805,
    "pairs": [
+    [
+     "bed",
+     "space"
+    ],
+    [
+     "bed",
+     "space"
+    ],
     [
      "bath",
      "bath"
     ],
     [
-     "bed",
-     "space"
-    ],
-    [
-     "bed",
-     "space"
-    ],
-    [
-     "entry",
-     "space"
+     "kitchen",
+     "kitchen"
     ]
    ],
    "ious": [
-    1.0,
-    1.0,
-    0.9963,
-    0.5557
+    0.921,
+    0.8946,
+    0.7961,
+    0.5103
    ],
    "split": "own"
   },
@@ -358,21 +437,36 @@
    "status": "ok",
    "n_gt": 7,
    "n_pred": 8,
-   "n_match": 2,
-   "mean_iou": 0.5079,
+   "n_match": 5,
+   "mean_iou": 0.7651,
    "pairs": [
     [
      "bath",
      "bath"
     ],
     [
+     "bed",
+     "space"
+    ],
+    [
+     "bed",
+     "space"
+    ],
+    [
      "living",
+     "space"
+    ],
+    [
+     "space",
      "space"
     ]
    ],
    "ious": [
-    0.511,
-    0.5048
+    0.9017,
+    0.8457,
+    0.8118,
+    0.766,
+    0.5003
    ],
    "split": "own"
   },
@@ -381,15 +475,15 @@
    "status": "ok",
    "n_gt": 7,
    "n_pred": 10,
-   "n_match": 4,
-   "mean_iou": 0.5401,
+   "n_match": 6,
+   "mean_iou": 0.8352,
    "pairs": [
     [
-     "space",
+     "living",
      "space"
     ],
     [
-     "space",
+     "bed",
      "space"
     ],
     [
@@ -397,15 +491,25 @@
      "space"
     ],
     [
-     "living",
+     "bed",
+     "bed"
+    ],
+    [
+     "bath",
+     "space"
+    ],
+    [
+     "space",
      "space"
     ]
    ],
    "ious": [
-    0.6058,
-    0.5287,
-    0.5208,
-    0.5049
+    0.947,
+    0.8917,
+    0.8894,
+    0.8855,
+    0.8766,
+    0.5211
    ],
    "split": "own"
   },
@@ -414,8 +518,8 @@
    "status": "ok",
    "n_gt": 6,
    "n_pred": 6,
-   "n_match": 2,
-   "mean_iou": 1.0,
+   "n_match": 4,
+   "mean_iou": 0.8603,
    "pairs": [
     [
      "bath",
@@ -424,11 +528,21 @@
     [
      "space",
      "space"
+    ],
+    [
+     "living",
+     "space"
+    ],
+    [
+     "bed",
+     "bed"
     ]
    ],
    "ious": [
-    1.0,
-    1.0
+    0.9604,
+    0.9489,
+    0.9447,
+    0.587
    ],
    "split": "own"
   },
@@ -437,21 +551,36 @@
    "status": "ok",
    "n_gt": 6,
    "n_pred": 6,
-   "n_match": 2,
-   "mean_iou": 0.5257,
+   "n_match": 5,
+   "mean_iou": 0.7446,
    "pairs": [
-    [
-     "bath",
-     "kitchen"
-    ],
     [
      "bed",
      "bed"
+    ],
+    [
+     "bed",
+     "space"
+    ],
+    [
+     "living",
+     "kitchen"
+    ],
+    [
+     "entry",
+     "space"
+    ],
+    [
+     "bath",
+     "space"
     ]
    ],
    "ious": [
-    0.5502,
-    0.5012
+    0.9862,
+    0.9163,
+    0.6874,
+    0.5989,
+    0.5342
    ],
    "split": "own"
   }
