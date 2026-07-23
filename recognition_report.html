@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoomPilot 四層級辨識成功率報表（2026-07-23）</title>
+<style>
+:root{
+  color-scheme: light;
+  --surface:#fcfcfb; --page:#f9f9f7;
+  --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --baseline:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --good-text:#006300;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --surface:#1a1a19; --page:#0d0d0d;
+    --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
+    --s1:#3987e5; --s2:#d95926;
+    --good-text:#0ca30c;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;
+  line-height:1.6;}
+.wrap{max-width:980px;margin:0 auto;padding:32px 20px 64px}
+h1{font-size:24px;margin:0 0 4px}
+h2{font-size:18px;margin:40px 0 12px;padding-top:16px;border-top:1px solid var(--grid)}
+.sub{color:var(--ink2);font-size:13px;margin-bottom:24px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:20px 0}
+.tile{background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:14px 16px}
+.tile .v{font-size:28px;font-weight:650}
+.tile .k{font-size:12.5px;color:var(--ink2)}
+.tile .n{font-size:11.5px;color:var(--muted)}
+.tile.warn .v{color:var(--critical)}
+.tile.good .v{color:var(--good-text)}
+.card{background:var(--surface);border:1px solid var(--ring);border-radius:10px;
+  padding:16px 18px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{color:var(--muted);font-weight:500;text-align:left;font-size:12px;
+  border-bottom:1px solid var(--baseline);padding:6px 10px 6px 0}
+td{padding:7px 10px 7px 0;border-bottom:1px solid var(--grid);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.barcell{min-width:220px;width:45%}
+.bar{position:relative;height:14px;background:transparent}
+.bar::before{content:"";position:absolute;inset:0;border-left:2px solid var(--baseline)}
+.bar i{position:absolute;top:0;bottom:0;left:0;background:var(--s1);
+  border-radius:0 4px 4px 0;min-width:2px}
+.bar i.ref{background:var(--s2)}
+.bar i.dim{opacity:.45}
+.legend{display:flex;gap:18px;font-size:12px;color:var(--ink2);margin:8px 0 2px}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:3px;
+  vertical-align:-1px;margin-right:5px}
+.note{font-size:12.5px;color:var(--ink2);margin-top:10px}
+.badge{display:inline-block;font-size:11.5px;border:1px solid var(--ring);
+  border-radius:999px;padding:1px 9px;color:var(--ink2);background:var(--surface)}
+.flag{font-weight:600}
+.flag.crit{color:var(--critical)}
+.flag.good{color:var(--good-text)}
+ol.diag{padding-left:20px}
+ol.diag li{margin-bottom:8px}
+.gap{color:var(--muted);font-size:12.5px}
+footer{margin-top:44px;color:var(--muted);font-size:12px;border-top:1px solid var(--grid);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>RoomPilot 四層級辨識成功率報表</h1>
+<div class="sub">評測日 2026-07-23（全部以現行程式碼重跑）｜輸入：灰階 <b>png/</b> 39 張、彩色 <b>color_png/</b> 29 張｜
+答案集：牆窗像素答案 灰 38＋彩 28、門位 GT 26 題、own_eval 保留集 12 題 73 房（永不進訓練，2026-07-23 完成 47 筆人工覆核校準）</div>
+
+<div class="tiles">
+  <div class="tile good"><div class="v">0.99</div><div class="k">灰階牆 F1（像素 ±3px）</div><div class="n">38 題人工答案</div></div>
+  <div class="tile good"><div class="v">96%</div><div class="k">灰階窗 精準率/召回率</div><div class="n">133 中·5 誤·6 漏</div></div>
+  <div class="tile"><div class="v">0.868</div><div class="k">門位召回率（score_fused）</div><div class="n">26 題 GT·zone 提名後</div></div>
+  <div class="tile warn"><div class="v">38.4%</div><div class="k">空間切割命中率 ⚠️</div><div class="n">own_eval 73 房·IoU≥0.5</div></div>
+</div>
+
+<h2>(1) 牆、窗</h2>
+<div class="card">
+<div class="legend"><span><b style="background:var(--s1)"></b>我們的管線</span><span><b style="background:var(--s2)"></b>CubiCasa mask（對照）</span></div>
+<table>
+<tr><th>項目（樣本）</th><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th></tr>
+<tr><td>灰階 牆（38 題）</td><td>F1（像素 ±3px）</td><td class="num"><span class="flag good">0.99</span></td>
+  <td class="barcell"><div class="bar" title="我們 0.99"><i style="width:99%"></i></div>
+      <div class="bar" title="CubiCasa 0.89"><i class="ref" style="width:89%"></i></div></td></tr>
+<tr><td>灰階 窗（38 題）</td><td>精準率 / 召回率</td><td class="num">96% / 96%</td>
+  <td class="barcell"><div class="bar" title="精準率 96%"><i style="width:96%"></i></div>
+      <div class="bar" title="召回率 96%"><i style="width:96%"></i></div></td></tr>
+<tr><td>彩色 牆（28 題）</td><td>精準率 / 召回率</td><td class="num">87.7% / 94.9%</td>
+  <td class="barcell"><div class="bar" title="精準率 87.7%"><i style="width:87.7%"></i></div>
+      <div class="bar" title="召回率 94.9%"><i style="width:94.9%"></i></div></td></tr>
+<tr><td>彩色 牆（28 題）</td><td>IoU（像素加權）</td><td class="num">83.8%</td>
+  <td class="barcell"><div class="bar" title="IoU 83.8%"><i style="width:83.8%"></i></div></td></tr>
+<tr><td>彩色 窗（28 題）</td><td>精準率 / 召回率</td><td class="num"><span class="flag crit">62% / 38%</span> ⚠️</td>
+  <td class="barcell"><div class="bar" title="精準率 62%"><i style="width:62%"></i></div>
+      <div class="bar" title="召回率 38%"><i style="width:38%"></i></div></td></tr>
+</table>
+<div class="note">灰階牆窗為強項；灰階牆並以 0.99 對 0.89 勝過 CubiCasa 深度學習遮罩。彩色窗為 v2.13 首輪接回，仍在早期（90 個漏檢集中於細窄窗與陽台落地窗）。</div>
+</div>
+
+<h2>(2) 門</h2>
+<div class="card">
+<table>
+<tr><th>項目</th><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th></tr>
+<tr><td>門誤判成窗的過濾（19 個門樣式）</td><td>過濾率（目標 ≥95%）</td><td class="num"><span class="flag good">100%</span></td>
+  <td class="barcell"><div class="bar" title="過濾率 100%"><i style="width:100%"></i></div></td></tr>
+<tr><td rowspan="2">門位偵測（灰階 26 題 GT，106 門）<br><span class="badge">door_match → zone 提名 → score_fused</span></td>
+  <td>召回率</td><td class="num">0.868</td>
+  <td class="barcell"><div class="bar" title="召回率 0.868"><i style="width:86.8%"></i></div></td></tr>
+<tr><td>精準率</td><td class="num">0.576</td>
+  <td class="barcell"><div class="bar" title="精準率 0.576"><i style="width:57.6%"></i></div></td></tr>
+</table>
+<div class="note">zone 提名將召回率由 0.132 拉至 0.868（92/106），精準率 0.576 為下一個優化點（118 個候選中 50 個誤報）。<span class="gap">彩色管線門位尚無 GT——缺口。</span></div>
+</div>
+
+<h2>(3) 空間切割（own_eval 12 題端對端，73 房）</h2>
+<div class="card">
+<table>
+<tr><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th><th>解讀</th></tr>
+<tr><td>切割命中率（IoU≥0.5 一對一配對）</td><td class="num"><span class="flag crit">38.4%</span>（28/73）</td>
+  <td class="barcell"><div class="bar" title="命中率 38.4%"><i style="width:38.4%"></i></div></td>
+  <td>⚠️ 端對端最大瓶頸</td></tr>
+<tr><td>過切率（預測數/GT 數）</td><td class="num">1.01（74/73）</td>
+  <td class="barcell"><div class="bar" title="過切率 1.01（越接近 1 越好）"><i class="dim" style="width:50.5%"></i></div></td>
+  <td>幾乎一房一塊，無碎切</td></tr>
+<tr><td>命中房間的平均 IoU</td><td class="num">0.749</td>
+  <td class="barcell"><div class="bar" title="平均 IoU 0.749"><i style="width:74.9%"></i></div></td>
+  <td>切中的房間輪廓品質尚可</td></tr>
+</table>
+<div class="note">牆窗門皆不差、也沒有碎切——漏掉的 45 房主因是 own 風格的 hatched（斜線填充）牆與開放空間分界切不開，整片連成大區塊。切不對的房間無法進入命名層，是端對端分數的第一道天花板。<span class="gap">彩色管線空間切割尚無 GT——缺口。</span></div>
+</div>
+
+<h2>(4) 空間命名（own_eval 63 具名房，GT 解耦＝假設切割正確）</h2>
+<div class="card">
+<table>
+<tr><th>證據源 / 方法</th><th class="num">具名正確率</th><th class="barcell">0 ─ 100%</th><th>備註</th></tr>
+<tr><td>現行管線（CubiCasa 基線投票）</td><td class="num"><span class="flag crit">0.143</span></td>
+  <td class="barcell"><div class="bar" title="CC 基線 0.143"><i style="width:14.3%"></i></div></td>
+  <td>保守棄權策略，多判 space</td></tr>
+<tr><td>CubiCasa v4 微調（26 題）</td><td class="num">0.508</td>
+  <td class="barcell"><div class="bar" title="CC v4 0.508"><i style="width:50.8%"></i></div></td>
+  <td>有風格遷移但精度不足</td></tr>
+<tr><td>DINOv2 裁切分類（131 張訓練）</td><td class="num"><span class="flag good">0.698</span></td>
+  <td class="barcell"><div class="bar" title="DINOv2 0.698"><i style="width:69.8%"></i></div></td>
+  <td>無 CubiCasa 授權包袱，待接進管線</td></tr>
+<tr><td>VLM 零樣本（上限參考）</td><td class="num">0.984</td>
+  <td class="barcell"><div class="bar" title="VLM 0.984（循環性分數，僅供上限參考）"><i class="dim" style="width:98.4%"></i></div></td>
+  <td>※ 分數有循環性（GT 覆核多採其建議），僅證明裁切資訊量上限</td></tr>
+</table>
+<div class="note">逐類（DINOv2）：kitchen F1 0.818、bath 0.857、bed 0.744；弱項 living/entry 混淆與 outdoor（訓練樣本僅 2 張）——擴充 own_dataset 可直接補。<span class="gap">彩色管線命名尚無 GT——缺口。</span></div>
+</div>
+
+<h2>診斷結論（瓶頸排序）</h2>
+<div class="card">
+<ol class="diag">
+<li><b>空間切割命中率 38.4%</b> 是端對端最大破口——切不對，後面命名再準也進不了分。優化方向：hatched 牆偵測與開放空間分界。</li>
+<li><b>彩色窗召回率 38%</b> 為第二破口（首輪接回，早期狀態）。</li>
+<li><b>命名層已有現成解</b>：DINOv2 裁切分類 0.698 待接進 floorplan2room 融合層，取代現行 0.143 的 CubiCasa 證據源（該資料集授權 CC BY-NC 禁商用，本已須替換）。</li>
+<li><b>門位精準率 0.576</b> 有優化空間；召回率 0.868 可用。</li>
+<li><b>強項維持</b>：灰階牆 0.99／灰階窗 96%／門過濾 100%。</li>
+</ol>
+<div class="note">GT 缺口：彩色管線僅有牆窗答案，門位／切割／命名三層無 GT——可沿用「VLM 盲標＋人工把關」流程低成本建集（本輪 47 筆補名實測約 20 分鐘）。</div>
+</div>
+
+<footer>
+資料來源：eval_windows.py、eval_color_walls.py、score_compare.py、eval_doors.py、eval_door_match.py、eval_rooms_cc.py（--own-eval／--gt-seg）、probe_room_classifier.py｜
+報表快照：json/eval_rooms/report_own*.json（commits ffb4a55、85ca385、8c2e63c、2336632）｜
+產出：2026-07-23，RoomPilot-Agent cody 分支
+</footer>
+</div>
+</body>
+</html>
