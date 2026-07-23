@@ -6,7 +6,10 @@ CubiCasa5k model.svg 的 Space 多邊形當 ground truth，對 floorplan2room
 樣本：val/test 的 high_quality_architectural 單層樓樣本（train 留給微調）。
 用法：python eval_rooms_cc.py [--n-test 40] [--n-val 30] [--smoke N] [--thr 0.5]
       [--gt-seg]（GT 分割解耦：GT 多邊形當房間，只評房型辨識層）
-輸出：json/eval_rooms/report[_gtseg].json、training/eval_rooms/chk/<id>_{gt,pred,gtpred}.png
+      [--own-eval]（own 風格量尺：Identify_ans/own_eval 12 題保留集當 GT，
+                    此集永不進訓練，微調 A/B 驗收在產品風格上的可信分數）
+輸出：json/eval_rooms/report[_own][_gtseg].json、
+      training/eval_rooms/chk/<id>_{gt,pred,gtpred}.png
 """
 import argparse
 import json
@@ -25,6 +28,7 @@ sys.path.insert(0, _ROOT)              # floorplan2room 在專案根目錄
 
 DATA = "training/CubiCasa5k/data/cubicasa5k"
 SUBSET = "high_quality_architectural"
+OWN_DIR = "Identify_ans/own_eval"
 IN_DIR = "training/eval_rooms/input"
 CHK_DIR = "training/eval_rooms/chk"
 REPORT = "json/eval_rooms/report.json"
@@ -86,6 +90,25 @@ def pick_samples(n_test=40, n_val=30):
     return out
 
 
+def pick_own_samples():
+    """own_eval 保留集：eval_list.txt 逐題，目錄/圖/標注缺漏即報錯不靜默跳過。"""
+    with open(os.path.join(OWN_DIR, "eval_list.txt")) as f:
+        ids = [ln.strip().strip("/") for ln in f if ln.strip()]
+    for sid in ids:
+        d = os.path.join(OWN_DIR, sid)
+        for fn in ("F1_scaled.png", "model.svg"):
+            if not os.path.isfile(os.path.join(d, fn)):
+                raise FileNotFoundError(f"own_eval 樣本不完整: {d}/{fn}")
+    print(f"own_eval: 保留集 {len(ids)} 題")
+    return [("own", sid) for sid in ids]
+
+
+def report_path_for(own, gt_seg):
+    """報表路徑：report[_own][_gtseg].json。"""
+    suffix = ("_own" if own else "") + ("_gtseg" if gt_seg else "")
+    return REPORT.replace(".json", suffix + ".json")
+
+
 def parse_gt(svg_path, h, w):
     """model.svg Space 多邊形 → [(9類label, bool mask)]；對位不符回 None。
 
@@ -104,7 +127,12 @@ def parse_gt(svg_path, h, w):
         cid = rooms_selected.get(cls[1] if len(cls) > 1 else "Undefined", 11)
         if cid in (0, 2, 8):                     # 背景/牆/欄杆不是房間
             continue
-        rr, cc = get_polygon(e)
+        try:
+            rr, cc = get_polygon(e)
+        except StopIteration:                    # 空群組（Inkscape 殘留）跳過
+            continue
+        if rr.size == 0:                         # 退化多邊形（零面積）跳過
+            continue
         if rr.max() > h * 1.02 or cc.max() > w * 1.02:
             return None                          # 座標超出圖面 → 對位不符
         m = np.zeros((h, w), bool)
@@ -170,10 +198,12 @@ def eval_gt_seg(sid, gt, bgr, cfg_bw, cfg_color):
             "ious": [1.0] * len(gt)}
 
 
-def eval_one(sid, cfg_bw, cfg_color, thr, gt_seg=False):
-    """單樣本：GT 解析＋管線＋配對。回傳評分 dict（error/分割失敗亦結構化）。"""
+def eval_one(sid, cfg_bw, cfg_color, thr, gt_seg=False, svg=None):
+    """單樣本：GT 解析＋管線＋配對。回傳評分 dict（error/分割失敗亦結構化）。
+    svg=None 時走 CubiCasa 預設路徑；own_eval 模式由呼叫端傳入。"""
     img = os.path.join(IN_DIR, sid + ".png")
-    svg = os.path.join(DATA, SUBSET, sid, "model.svg")
+    if svg is None:
+        svg = os.path.join(DATA, SUBSET, sid, "model.svg")
     bgr = cv2.imread(img)
     h, w = bgr.shape[:2]
     gt = parse_gt(svg, h, w)
@@ -212,8 +242,10 @@ def main():
     ap.add_argument("--thr", type=float, default=0.5)
     ap.add_argument("--gt-seg", action="store_true",
                     help="GT 分割解耦：GT 多邊形當房間，只評房型辨識層")
+    ap.add_argument("--own-eval", action="store_true",
+                    help="own 風格量尺：Identify_ans/own_eval 12 題保留集當 GT")
     a = ap.parse_args()
-    report_path = REPORT.replace(".json", "_gtseg.json") if a.gt_seg else REPORT
+    report_path = report_path_for(a.own_eval, a.gt_seg)
 
     import floorplan2room as f2r
     import floorplan2dxf as fp_bw
@@ -221,17 +253,19 @@ def main():
     cfg_bw = fp_bw.load_config("config.ini")
     cfg_color = fp_c.load_config("config_color.ini")
 
-    samples = pick_samples(a.n_test, a.n_val)
+    samples = pick_own_samples() if a.own_eval else pick_samples(a.n_test,
+                                                                 a.n_val)
     if a.smoke:
         samples = samples[:a.smoke]
     os.makedirs(IN_DIR, exist_ok=True)
     os.makedirs(CHK_DIR, exist_ok=True)
     os.makedirs(os.path.dirname(REPORT), exist_ok=True)
+    src_dir = OWN_DIR if a.own_eval else os.path.join(DATA, SUBSET)
     staged = []
     for _, sid in samples:
         dst = os.path.join(IN_DIR, sid + ".png")
         if not os.path.isfile(dst):
-            shutil.copy(os.path.join(DATA, SUBSET, sid, "F1_scaled.png"), dst)
+            shutil.copy(os.path.join(src_dir, sid, "F1_scaled.png"), dst)
         staged.append(dst)
     f2r.ensure_cc_masks(staged)                  # 缺快取自動補（CPU ~1 分/張）
 
@@ -239,7 +273,10 @@ def main():
     for n, (split, sid) in enumerate(samples, 1):
         print(f"[{n}/{len(samples)}] {split}/{sid}", end=" ", flush=True)
         try:
-            r = eval_one(sid, cfg_bw, cfg_color, a.thr, gt_seg=a.gt_seg)
+            svg = (os.path.join(OWN_DIR, sid, "model.svg")
+                   if a.own_eval else None)
+            r = eval_one(sid, cfg_bw, cfg_color, a.thr, gt_seg=a.gt_seg,
+                         svg=svg)
         except Exception as e:                   # 單張爆炸不拖垮批次，總表可追溯
             r = {"id": sid, "status": "error", "error": repr(e)}
         r["split"] = split
@@ -264,6 +301,7 @@ def main():
         "overseg": round(n_pred / n_gt, 4) if n_gt else 0,
         "mean_iou": round(float(np.mean(all_ious)), 4) if all_ious else 0,
         "confusion": cm, "iou_thr": a.thr, "gt_seg_mode": a.gt_seg,
+        "own_eval_mode": a.own_eval,
     }
     per_cls = {}
     for c in CLASSES:
