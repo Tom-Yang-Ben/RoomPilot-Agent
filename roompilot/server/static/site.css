@@ -6010,6 +6010,34 @@ body.rp-workflow-page .rp-door-review-list .rp-door-confirm.is-confirmed {
   color: #245d4b;
 }
 
+body.rp-workflow-page .rp-window-type-toggle {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid #aaa59e;
+  border-radius: 5px;
+}
+
+body.rp-workflow-page .rp-window-type-toggle button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  color: #4f4b46;
+  font-weight: 700;
+}
+
+body.rp-workflow-page .rp-window-type-toggle button + button {
+  border-left: 1px solid #aaa59e;
+}
+
+body.rp-workflow-page .rp-window-type-toggle button.is-active {
+  background: #2b6253;
+  color: #fff;
+}
+
 body.rp-workflow-page .rp-door-review-list span {
   font-size: 13px;
   color: #625d57;

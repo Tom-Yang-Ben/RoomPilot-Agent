@@ -103,6 +103,13 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
     assert "黑鋁框左右兩扇玻璃參考" in html
     assert (STATIC / "structure_assets" / "floor-to-ceiling-window.png").is_file()
     assert "function applySelectedWindowType" in controller
+    assert "function applyWindowType(windowId, type)" in controller
+    assert 'class="rp-window-type-toggle"' in controller
+    assert 'data-window-type="${WINDOW_TYPES.standard}"' in controller
+    assert 'data-window-type="${WINDOW_TYPES.floorToCeiling}"' in controller
+    assert 'aria-pressed="${windowType === WINDOW_TYPES.standard}"' in controller
+    assert 'event.target.closest("[data-window-type]")' in controller
+    assert "normalizedWindowType(item.window_type) === nextType" in controller
     assert "applyWindowTypePreset" in controller
     assert "windowOpeningMetrics" in viewer
     assert "const mullionPositions = [0];" in viewer

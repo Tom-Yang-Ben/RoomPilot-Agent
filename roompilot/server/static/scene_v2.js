@@ -2218,6 +2218,19 @@ function renderStructureReviewList() {
   element.doorReviewList.innerHTML = collection.map((item, index) => {
     const selected = state.selectedStructure?.kind === kind
       && state.selectedStructure?.id === item.id;
+    const windowType = kind === "window"
+      ? normalizedWindowType(item.window_type)
+      : null;
+    const windowTypeToggle = kind === "window"
+      ? `<div class="rp-window-type-toggle" role="group" aria-label="窗 ${index + 1} 類型">
+          <button type="button" class="${windowType === WINDOW_TYPES.standard ? "is-active" : ""}"
+            aria-pressed="${windowType === WINDOW_TYPES.standard}"
+            data-window-type="${WINDOW_TYPES.standard}" data-window-id="${escapeHtml(item.id)}">一般窗</button>
+          <button type="button" class="${windowType === WINDOW_TYPES.floorToCeiling ? "is-active" : ""}"
+            aria-pressed="${windowType === WINDOW_TYPES.floorToCeiling}"
+            data-window-type="${WINDOW_TYPES.floorToCeiling}" data-window-id="${escapeHtml(item.id)}">落地窗</button>
+        </div>`
+      : "";
     return `<article class="rp-door-review-item ${selected ? "is-active" : ""}">
       <button type="button" class="rp-door-review-select"
         data-structure-review="${escapeHtml(item.id)}" data-structure-kind="${kind}">
@@ -2226,6 +2239,7 @@ function renderStructureReviewList() {
       </button>
       <button type="button" class="rp-door-confirm ${item.confirmed ? "is-confirmed" : ""}"
         data-confirm-structure="${escapeHtml(item.id)}" data-structure-kind="${kind}">${item.confirmed ? "已確認" : "確認"}</button>
+      ${windowTypeToggle}
     </article>`;
   }).join("");
 }
@@ -2340,16 +2354,19 @@ function applySelectedStructureSize() {
     : "結構尺寸已更新。");
 }
 
-function applySelectedWindowType() {
-  const item = selectedStructureItem();
-  if (!item || state.selectedStructure?.kind !== "window") return;
+function applyWindowType(windowId, type) {
+  const item = state.structures.windows.find((candidate) => candidate.id === windowId);
+  if (!item) return;
+  const nextType = normalizedWindowType(type);
+  if (normalizedWindowType(item.window_type) === nextType) return;
   const ceilingHeightM = confirmedFloorplanEditor().room_height_cm / 100;
   Object.assign(
     item,
-    applyWindowTypePreset(item, $("#selected-window-type").value, ceilingHeightM),
+    applyWindowTypePreset(item, nextType, ceilingHeightM),
   );
   item.confirmed = false;
   item.estimated = false;
+  state.selectedStructure = { id: item.id, kind: "window" };
   renderSpaceOverlay();
   renderStructureReviewList();
   renderSelectedStructureEditor();
@@ -2361,6 +2378,12 @@ function applySelectedWindowType() {
   setStatus(item.window_type === WINDOW_TYPES.floorToCeiling
     ? "已改為落地窗，窗台設為 0 cm，3D 會依樓高生成玻璃與框架。"
     : "已改為一般窗，請確認窗高與窗台高度。");
+}
+
+function applySelectedWindowType() {
+  const item = selectedStructureItem();
+  if (!item || state.selectedStructure?.kind !== "window") return;
+  applyWindowType(item.id, $("#selected-window-type").value);
 }
 
 function setSelectedOpeningWidthCm(widthCm, persist = false) {
@@ -4545,6 +4568,14 @@ function bindEvents() {
     button.addEventListener("click", () => setActiveStructureKind(button.dataset.structureSection));
   });
   element.doorReviewList?.addEventListener("click", (event) => {
+    const windowTypeButton = event.target.closest("[data-window-type]");
+    if (windowTypeButton) {
+      applyWindowType(
+        windowTypeButton.dataset.windowId,
+        windowTypeButton.dataset.windowType,
+      );
+      return;
+    }
     const confirmButton = event.target.closest("[data-confirm-structure]");
     if (confirmButton) {
       confirmStructure(
