@@ -42,8 +42,9 @@ import {
 import { createStructurePreview } from "./scene_structure_preview.js?v=20260723-beam-preview4";
 import {
   findStructureWallCollision,
+  resolveStructureWallCollisions,
   validateColumnDimensionsCm,
-} from "./scene_structure_geometry.js?v=20260723-wall-collision1";
+} from "./scene_structure_geometry.js?v=20260723-wall-repair1";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
   applyWindowTypePreset,
@@ -1103,6 +1104,7 @@ function initializeRoomsAndStructures() {
       center: normalizePoint(item.center, !hasImageRooms),
     })),
   };
+  repairLoadedStructureWallCollisions();
   const normalizedWindows = dedupeWindowCandidates(state.structures.windows);
   state.structures.windows = normalizedWindows.windows;
   state.windowNormalizationRemoved = normalizedWindows.removed;
@@ -1753,6 +1755,42 @@ function cancelStructureInteraction() {
 function structureWallCollision(item, kind) {
   if (!["beam", "column"].includes(kind)) return null;
   return findStructureWallCollision(item, kind, state.structures.walls);
+}
+
+function repairLoadedStructureWallCollisions() {
+  const floorplan = confirmedFloorplanEditor();
+  const preferredPoint = {
+    x: Number(floorplan.width_cm || 0) / 200,
+    y: Number(floorplan.depth_cm || 0) / 200,
+  };
+  let moved = 0;
+  let unresolved = 0;
+  for (const [kind, collection] of [["beam", "beams"], ["column", "columns"]]) {
+    state.structures[collection] = (state.structures[collection] || []).map((item) => {
+      const result = resolveStructureWallCollisions(
+        item,
+        kind,
+        state.structures.walls,
+        { preferredPoint, maxAutoShiftM: 0.75 },
+      );
+      if (result.resolved && result.moved) {
+        moved += 1;
+        return {
+          ...result.item,
+          confirmed: false,
+          estimated: false,
+          wall_collision_repaired: true,
+        };
+      }
+      if (!result.resolved) {
+        unresolved += 1;
+        return { ...item, confirmed: false };
+      }
+      return item;
+    });
+  }
+  state.structureCollisionRepairs = { moved, unresolved };
+  return state.structureCollisionRepairs;
 }
 
 function structureWallCollisionMessage(kind) {
@@ -5119,6 +5157,7 @@ async function restoreProject() {
     }
     state.rooms = serverState.space_confirmation?.rooms || [];
     state.structures = serverState.space_confirmation?.structures || state.structures;
+    repairLoadedStructureWallCollisions();
     const normalizedWindows = dedupeWindowCandidates(state.structures.windows || []);
     state.structures.windows = normalizedWindows.windows;
     state.windowNormalizationRemoved = normalizedWindows.removed;
@@ -5147,6 +5186,12 @@ async function restoreProject() {
     await renderRestoredStep();
     if (state.confirmedFloorplan && !serverState.confirmed_floorplan) {
       scheduleSave(state.workflow.currentStep);
+    }
+    if (state.structureCollisionRepairs?.moved > 0) {
+      scheduleSave("space_confirmation");
+      setStatus(
+        `已將 ${state.structureCollisionRepairs.moved} 個貼牆的樑柱自動移至牆體內側，請重新確認。`,
+      );
     }
     if (state.windowNormalizationRemoved > 0) {
       scheduleSave(state.workflow.currentStep);

@@ -57,14 +57,43 @@ function projectionRange(polygon, axis) {
   return { min: Math.min(...values), max: Math.max(...values) };
 }
 
-function polygonsOverlap(polygonA, polygonB, touchToleranceM) {
+function polygonCenter(polygon) {
+  return polygon.reduce(
+    (center, point) => ({
+      x: center.x + point.x / polygon.length,
+      y: center.y + point.y / polygon.length,
+    }),
+    { x: 0, y: 0 },
+  );
+}
+
+function polygonPenetration(polygonA, polygonB, touchToleranceM, preferredPoint = null) {
+  let minimum = null;
   for (const axis of [...polygonAxes(polygonA), ...polygonAxes(polygonB)]) {
     const a = projectionRange(polygonA, axis);
     const b = projectionRange(polygonB, axis);
     const overlap = Math.min(a.max, b.max) - Math.max(a.min, b.min);
-    if (overlap <= touchToleranceM) return false;
+    if (overlap <= touchToleranceM) return null;
+    if (!minimum || overlap < minimum.overlap) minimum = { axis, overlap };
   }
-  return true;
+  if (!minimum) return null;
+  const centerA = polygonCenter(polygonA);
+  const centerB = polygonCenter(polygonB);
+  const preferred = {
+    x: Number(preferredPoint?.x),
+    y: Number(preferredPoint?.y),
+  };
+  const direction = Number.isFinite(preferred.x) && Number.isFinite(preferred.y)
+    ? { x: preferred.x - centerA.x, y: preferred.y - centerA.y }
+    : { x: centerA.x - centerB.x, y: centerA.y - centerB.y };
+  const directionDot = direction.x * minimum.axis.x + direction.y * minimum.axis.y;
+  const sign = directionDot < 0 ? -1 : 1;
+  const distanceM = minimum.overlap + touchToleranceM;
+  return {
+    x: minimum.axis.x * sign * distanceM,
+    y: minimum.axis.y * sign * distanceM,
+    distanceM,
+  };
 }
 
 function structureFootprint(item, kind) {
@@ -91,7 +120,7 @@ export function findStructureWallCollision(
   item,
   kind,
   walls = [],
-  { touchToleranceM = 0.005 } = {},
+  { touchToleranceM = 0.005, preferredPoint = null } = {},
 ) {
   const footprint = structureFootprint(item, kind);
   if (!footprint) return null;
@@ -101,11 +130,76 @@ export function findStructureWallCollision(
       wall,
       Math.max(0.01, Number(wall?.thickness_m) || 0.12),
     );
-    if (wallFootprint && polygonsOverlap(footprint, wallFootprint, touchToleranceM)) {
-      return { wallId: wall.id || null, wallIndex: index };
+    const translation = wallFootprint
+      ? polygonPenetration(footprint, wallFootprint, touchToleranceM, preferredPoint)
+      : null;
+    if (translation) {
+      return { wallId: wall.id || null, wallIndex: index, translation };
     }
   }
   return null;
+}
+
+function translatedStructure(item, kind, translation) {
+  const next = { ...item };
+  if (kind === "column") {
+    next.center = {
+      ...item.center,
+      x: Number(item.center?.x || 0) + translation.x,
+      y: Number(item.center?.y ?? item.center?.z ?? 0) + translation.y,
+    };
+  } else if (kind === "beam") {
+    next.start = {
+      x: Number(item.start?.x || 0) + translation.x,
+      y: Number(item.start?.y || 0) + translation.y,
+    };
+    next.end = {
+      x: Number(item.end?.x || 0) + translation.x,
+      y: Number(item.end?.y || 0) + translation.y,
+    };
+  }
+  return next;
+}
+
+export function resolveStructureWallCollisions(
+  item,
+  kind,
+  walls = [],
+  {
+    preferredPoint = null,
+    touchToleranceM = 0.005,
+    maxAutoShiftM = 0.75,
+    maxIterations = 16,
+  } = {},
+) {
+  const original = {
+    ...item,
+    ...(item?.center ? { center: { ...item.center } } : {}),
+    ...(item?.start ? { start: { ...item.start } } : {}),
+    ...(item?.end ? { end: { ...item.end } } : {}),
+  };
+  let candidate = original;
+  let totalShiftM = 0;
+  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    const collision = findStructureWallCollision(candidate, kind, walls, {
+      touchToleranceM,
+      preferredPoint,
+    });
+    if (!collision) {
+      return {
+        item: candidate,
+        resolved: true,
+        moved: totalShiftM > 0,
+        totalShiftM,
+      };
+    }
+    totalShiftM += collision.translation.distanceM;
+    if (totalShiftM > maxAutoShiftM) {
+      return { item: original, resolved: false, moved: false, totalShiftM: 0 };
+    }
+    candidate = translatedStructure(candidate, kind, collision.translation);
+  }
+  return { item: original, resolved: false, moved: false, totalShiftM: 0 };
 }
 
 export function validateColumnDimensionsCm({

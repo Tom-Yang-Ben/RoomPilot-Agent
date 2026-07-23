@@ -685,7 +685,10 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
     geometry_uri = (STATIC / "scene_structure_geometry.js").as_uri()
     result = run_workflow_script(
         f"""
-        import {{ findStructureWallCollision }} from {json.dumps(geometry_uri)};
+        import {{
+          findStructureWallCollision,
+          resolveStructureWallCollisions,
+        }} from {json.dumps(geometry_uri)};
         const wall = {{
           id: "wall-1",
           start: {{ x: 0, y: -2 }},
@@ -714,19 +717,51 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
             thickness_m: 0.3,
           }}, "beam", [wall]),
         }};
-        console.log(JSON.stringify(cases));
+        const cornerWalls = [
+          wall,
+          {{
+            id: "wall-2",
+            start: {{ x: -2, y: 0 }},
+            end: {{ x: 2, y: 0 }},
+            thickness_m: 0.2,
+          }},
+        ];
+        const resolvedColumn = resolveStructureWallCollisions({{
+          center: {{ x: 0.12, y: 0.12 }},
+          size_m: 0.35,
+          depth_m: 0.35,
+        }}, "column", cornerWalls, {{
+          preferredPoint: {{ x: 2, y: 2 }},
+          maxAutoShiftM: 0.75,
+        }});
+        const unresolvedBeam = resolveStructureWallCollisions({{
+          start: {{ x: -1, y: 0 }},
+          end: {{ x: 1, y: 0 }},
+          thickness_m: 0.3,
+        }}, "beam", [wall], {{
+          preferredPoint: {{ x: 2, y: 0 }},
+          maxAutoShiftM: 0.4,
+        }});
+        console.log(JSON.stringify({{ cases, resolvedColumn, unresolvedBeam }}));
         """
     )
 
-    assert result["columnThrough"]["wallId"] == "wall-1"
-    assert result["columnTouching"] is None
-    assert result["beamThrough"]["wallId"] == "wall-1"
-    assert result["beamTouching"] is None
+    assert result["cases"]["columnThrough"]["wallId"] == "wall-1"
+    assert result["cases"]["columnTouching"] is None
+    assert result["cases"]["beamThrough"]["wallId"] == "wall-1"
+    assert result["cases"]["beamTouching"] is None
+    assert result["resolvedColumn"]["resolved"] is True
+    assert result["resolvedColumn"]["moved"] is True
+    assert result["resolvedColumn"]["item"]["center"]["x"] >= 0.27
+    assert result["resolvedColumn"]["item"]["center"]["y"] >= 0.27
+    assert result["unresolvedBeam"]["resolved"] is False
+    assert result["unresolvedBeam"]["moved"] is False
 
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     assert 'id="structure-wall-collision-error"' in html
     assert "structureWallCollision" in source
+    assert "repairLoadedStructureWallCollisions" in source
     assert "樑柱不可穿過牆體" in source
     assert "confirmStructure" in source
     assert "finishBeamCreateDrag" in source
