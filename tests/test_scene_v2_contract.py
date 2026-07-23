@@ -953,12 +953,19 @@ def test_column_height_is_locked_to_the_confirmed_floor_height() -> None:
     assert "調整柱寬與高度" not in controller
 
 
-def test_project_workflow_brand_is_not_a_home_link() -> None:
+def test_project_workflow_brand_confirms_before_returning_home() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert '<div class="brand app-brand" aria-label="RoomPilot">' in html
-    assert 'aria-label="RoomPilot 首頁"' not in html
-    assert '<a class="brand app-brand" href="/"' not in html
+    assert '<a id="exit-project" class="brand app-brand" href="/"' in html
+    assert 'aria-label="離開專案並返回首頁"' in html
+    assert "async function confirmProjectExit(event)" in controller
+    assert "要離開目前專案並返回首頁嗎？" in controller
+    assert '$("#exit-project").addEventListener("click", confirmProjectExit);' in controller
+    assert "await saveSequence.catch(() => null);" in controller
+    assert 'location.assign("/");' in controller
+    assert "專案尚未完成保存，請稍後再試。" in controller
+    assert "if (projectExitConfirmed)" in controller
 
 
 def test_dxf_rooms_and_structures_are_normalized_for_the_corner_origin_editor() -> None:

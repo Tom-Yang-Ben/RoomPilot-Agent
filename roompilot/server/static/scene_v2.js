@@ -319,6 +319,7 @@ function workflowPayload() {
 
 let saveSequence = Promise.resolve();
 let pendingSaveCount = 0;
+let projectExitConfirmed = false;
 
 function pendingSaveStorageKey() {
   return state.projectId ? `roompilot.pending-save.${state.projectId}` : "";
@@ -377,6 +378,24 @@ function scheduleSave(currentStep = state.workflow?.currentStep) {
       pendingSaveCount -= 1;
     }
   });
+}
+
+async function confirmProjectExit(event) {
+  event.preventDefault();
+  if (!confirm("要離開目前專案並返回首頁嗎？系統會先完成目前的自動儲存。")) return;
+
+  if (pendingSaveCount > 0) {
+    element.saveStatus.textContent = "正在完成儲存…";
+  }
+  await saveSequence.catch(() => null);
+
+  const pendingKey = pendingSaveStorageKey();
+  if (pendingKey && localStorage.getItem(pendingKey)) {
+    setStatus("專案尚未完成保存，請稍後再試。", "error");
+    return;
+  }
+  projectExitConfirmed = true;
+  location.assign("/");
 }
 
 function invalidateDownstreamFrom(step, message = "") {
@@ -4745,6 +4764,7 @@ async function evaluateCeilingConflicts() {
 }
 
 function bindEvents() {
+  $("#exit-project").addEventListener("click", confirmProjectExit);
   element.projectForm.addEventListener("submit", createProject);
   element.file.addEventListener("change", () => selectFloorplanFile(element.file.files[0]));
   $("#confirm-upload").addEventListener("click", confirmUpload);
@@ -5198,6 +5218,7 @@ function bindEvents() {
   });
   window.addEventListener("resize", syncAllOverlays);
   window.addEventListener("beforeunload", (event) => {
+    if (projectExitConfirmed) return;
     if (pendingSaveCount === 0 && !localStorage.getItem(pendingSaveStorageKey())) return;
     event.preventDefault();
     event.returnValue = "";
