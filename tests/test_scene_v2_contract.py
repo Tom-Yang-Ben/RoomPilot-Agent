@@ -520,7 +520,7 @@ def test_structure_editor_uses_separate_pages_and_exposes_window_controls() -> N
     assert "function confirmStructure(kind, structureId)" in source
     assert 'data-confirm-structure="${escapeHtml(item.id)}"' in source
     assert "nextItem.sill_height_m = sillHeightM" in source
-    assert "Object.assign(item, nextItem)" in source
+    assert "Object.assign(item, resolution.item)" in source
     assert 'state.activeStructureKind = tool' in source
 
 
@@ -716,6 +716,11 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
             end: {{ x: -0.1, y: 0 }},
             thickness_m: 0.3,
           }}, "beam", [wall]),
+          beamSupportedAtEnd: findStructureWallCollision({{
+            start: {{ x: 0, y: 0 }},
+            end: {{ x: 2, y: 0 }},
+            thickness_m: 0.3,
+          }}, "beam", [wall]),
         }};
         const cornerWalls = [
           wall,
@@ -742,7 +747,20 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
           preferredPoint: {{ x: 2, y: 0 }},
           maxAutoShiftM: 0.4,
         }});
-        console.log(JSON.stringify({{ cases, resolvedColumn, unresolvedBeam }}));
+        const resolvedSupportedBeam = resolveStructureWallCollisions({{
+          start: {{ x: 0, y: 0 }},
+          end: {{ x: 2, y: 0 }},
+          thickness_m: 0.3,
+        }}, "beam", [wall], {{
+          preferredPoint: {{ x: 1, y: 1 }},
+          maxAutoShiftM: 0.4,
+        }});
+        console.log(JSON.stringify({{
+          cases,
+          resolvedColumn,
+          unresolvedBeam,
+          resolvedSupportedBeam,
+        }}));
         """
     )
 
@@ -750,18 +768,28 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
     assert result["cases"]["columnTouching"] is None
     assert result["cases"]["beamThrough"]["wallId"] == "wall-1"
     assert result["cases"]["beamTouching"] is None
+    assert result["cases"]["beamSupportedAtEnd"] is None
     assert result["resolvedColumn"]["resolved"] is True
     assert result["resolvedColumn"]["moved"] is True
     assert result["resolvedColumn"]["item"]["center"]["x"] >= 0.27
     assert result["resolvedColumn"]["item"]["center"]["y"] >= 0.27
     assert result["unresolvedBeam"]["resolved"] is False
     assert result["unresolvedBeam"]["moved"] is False
+    assert result["resolvedSupportedBeam"]["resolved"] is True
+    assert result["resolvedSupportedBeam"]["moved"] is True
+    assert result["resolvedSupportedBeam"]["item"]["start"]["x"] >= 0.1
 
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     assert 'id="structure-wall-collision-error"' in html
+    assert 'id="structure-preview-dimension-hint"' in html
     assert "structureWallCollision" in source
     assert "repairLoadedStructureWallCollisions" in source
+    assert "resolveStructureSizeDraft" in source
+    assert "structureSizeDraft" in source
+    assert "setActiveDimension(dimension)" in (
+        STATIC / "scene_structure_preview.js"
+    ).read_text(encoding="utf-8")
     assert "樑柱不可穿過牆體" in source
     assert "confirmStructure" in source
     assert "finishBeamCreateDrag" in source

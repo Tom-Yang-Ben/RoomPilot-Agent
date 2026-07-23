@@ -116,6 +116,99 @@ function structureFootprint(item, kind) {
   return null;
 }
 
+function pointToSegmentDistance(point, start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= 1e-9) return Math.hypot(point.x - start.x, point.y - start.y);
+  const t = Math.max(0, Math.min(
+    1,
+    ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared,
+  ));
+  return Math.hypot(
+    point.x - (start.x + dx * t),
+    point.y - (start.y + dy * t),
+  );
+}
+
+function beamEndpointSupportedByWall(item, wall, wallWidthM, touchToleranceM) {
+  if (!item?.start || !item?.end || !wall?.start || !wall?.end) return false;
+  const beamDx = Number(item.end.x) - Number(item.start.x);
+  const beamDy = Number(item.end.y) - Number(item.start.y);
+  const wallDx = Number(wall.end.x) - Number(wall.start.x);
+  const wallDy = Number(wall.end.y) - Number(wall.start.y);
+  const beamLength = Math.hypot(beamDx, beamDy);
+  const wallLength = Math.hypot(wallDx, wallDy);
+  if (beamLength < 0.001 || wallLength < 0.001) return false;
+  const parallelDot = Math.abs(
+    (beamDx / beamLength) * (wallDx / wallLength)
+    + (beamDy / beamLength) * (wallDy / wallLength),
+  );
+  if (parallelDot > 0.25) return false;
+  const wallStart = { x: Number(wall.start.x), y: Number(wall.start.y) };
+  const wallEnd = { x: Number(wall.end.x), y: Number(wall.end.y) };
+  const threshold = wallWidthM / 2 + touchToleranceM;
+  return [item.start, item.end].some((endpoint) =>
+    pointToSegmentDistance(
+      { x: Number(endpoint.x), y: Number(endpoint.y) },
+      wallStart,
+      wallEnd,
+    ) <= threshold
+  );
+}
+
+function trimBeamEndpointsToWallFaces(item, walls, touchToleranceM) {
+  const next = {
+    ...item,
+    start: { ...item.start },
+    end: { ...item.end },
+  };
+  let totalTrimM = 0;
+  for (const endpointKey of ["start", "end"]) {
+    const otherKey = endpointKey === "start" ? "end" : "start";
+    for (const wall of walls) {
+      const beamDx = Number(next.end.x) - Number(next.start.x);
+      const beamDy = Number(next.end.y) - Number(next.start.y);
+      const wallDx = Number(wall?.end?.x) - Number(wall?.start?.x);
+      const wallDy = Number(wall?.end?.y) - Number(wall?.start?.y);
+      const beamLength = Math.hypot(beamDx, beamDy);
+      const wallLength = Math.hypot(wallDx, wallDy);
+      if (beamLength < 0.001 || wallLength < 0.001) continue;
+      const parallelDot = Math.abs(
+        (beamDx / beamLength) * (wallDx / wallLength)
+        + (beamDy / beamLength) * (wallDy / wallLength),
+      );
+      if (parallelDot > 0.25) continue;
+      const point = next[endpointKey];
+      const other = next[otherKey];
+      const wallStart = { x: Number(wall.start.x), y: Number(wall.start.y) };
+      const wallEnd = { x: Number(wall.end.x), y: Number(wall.end.y) };
+      const distance = pointToSegmentDistance(point, wallStart, wallEnd);
+      const targetDistance =
+        Math.max(0.01, Number(wall.thickness_m) || 0.12) / 2 + touchToleranceM;
+      if (distance >= targetDistance) continue;
+      const inward = {
+        x: (other.x - point.x) / Math.hypot(other.x - point.x, other.y - point.y),
+        y: (other.y - point.y) / Math.hypot(other.x - point.x, other.y - point.y),
+      };
+      const probe = {
+        x: point.x + inward.x * 0.01,
+        y: point.y + inward.y * 0.01,
+      };
+      if (pointToSegmentDistance(probe, wallStart, wallEnd) + 1e-6 < distance) {
+        continue;
+      }
+      const trimM = targetDistance - distance;
+      next[endpointKey] = {
+        x: point.x + inward.x * trimM,
+        y: point.y + inward.y * trimM,
+      };
+      totalTrimM += trimM;
+    }
+  }
+  return { item: next, totalTrimM };
+}
+
 export function findStructureWallCollision(
   item,
   kind,
@@ -126,14 +219,19 @@ export function findStructureWallCollision(
   if (!footprint) return null;
   for (let index = 0; index < walls.length; index += 1) {
     const wall = walls[index];
+    const wallWidthM = Math.max(0.01, Number(wall?.thickness_m) || 0.12);
     const wallFootprint = segmentFootprint(
       wall,
-      Math.max(0.01, Number(wall?.thickness_m) || 0.12),
+      wallWidthM,
     );
     const translation = wallFootprint
       ? polygonPenetration(footprint, wallFootprint, touchToleranceM, preferredPoint)
       : null;
-    if (translation) {
+    if (
+      translation
+      && !(kind === "beam"
+        && beamEndpointSupportedByWall(item, wall, wallWidthM, touchToleranceM))
+    ) {
       return { wallId: wall.id || null, wallIndex: index, translation };
     }
   }
@@ -178,8 +276,14 @@ export function resolveStructureWallCollisions(
     ...(item?.start ? { start: { ...item.start } } : {}),
     ...(item?.end ? { end: { ...item.end } } : {}),
   };
-  let candidate = original;
-  let totalShiftM = 0;
+  const trimmed = kind === "beam"
+    ? trimBeamEndpointsToWallFaces(original, walls, touchToleranceM)
+    : { item: original, totalTrimM: 0 };
+  let candidate = trimmed.item;
+  let totalShiftM = trimmed.totalTrimM;
+  if (totalShiftM > maxAutoShiftM) {
+    return { item: original, resolved: false, moved: false, totalShiftM: 0 };
+  }
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
     const collision = findStructureWallCollision(candidate, kind, walls, {
       touchToleranceM,

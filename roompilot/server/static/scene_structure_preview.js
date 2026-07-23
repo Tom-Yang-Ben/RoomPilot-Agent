@@ -54,8 +54,14 @@ export function createStructurePreview(container) {
     while (group.children.length) {
       const child = group.children[0];
       group.remove(child);
-      child.geometry?.dispose();
-      child.material?.dispose();
+      child.traverse((node) => {
+        node.geometry?.dispose();
+        if (Array.isArray(node.material)) {
+          node.material.forEach((material) => material.dispose());
+        } else {
+          node.material?.dispose();
+        }
+      });
     }
   }
 
@@ -103,6 +109,72 @@ export function createStructurePreview(container) {
   let activeKind = null;
   let activeDescriptor = null;
   let activeView = "perspective";
+  let activeDimension = null;
+  let activeObject = null;
+
+  function renderDimensionGuide() {
+    if (!activeObject || !activeDescriptor) return;
+    const existing = activeObject.getObjectByName("dimension-guide");
+    if (existing) {
+      activeObject.remove(existing);
+      existing.geometry?.dispose();
+      existing.material?.dispose();
+    }
+    if (!activeDimension) return;
+    const thickness = 0.035;
+    const guideLength = 0.12;
+    let geometry;
+    let position;
+    let color;
+    if (activeDimension === "length") {
+      geometry = new THREE.BoxGeometry(
+        activeDescriptor.lengthM + guideLength,
+        thickness,
+        thickness,
+      );
+      position = new THREE.Vector3(0, activeDescriptor.heightM / 2 + 0.09, 0);
+      color = 0xd98324;
+    } else if (activeDimension === "width") {
+      geometry = new THREE.BoxGeometry(
+        thickness,
+        thickness,
+        activeDescriptor.widthM + guideLength,
+      );
+      position = new THREE.Vector3(
+        activeDescriptor.lengthM / 2 + 0.09,
+        activeDescriptor.heightM / 2 + 0.09,
+        0,
+      );
+      color = 0x26889a;
+    } else {
+      geometry = new THREE.BoxGeometry(
+        thickness,
+        activeDescriptor.heightM + guideLength,
+        thickness,
+      );
+      position = new THREE.Vector3(
+        activeDescriptor.lengthM / 2 + 0.09,
+        0,
+        activeDescriptor.widthM / 2 + 0.09,
+      );
+      color = 0x2d8a67;
+    }
+    const guide = new THREE.Mesh(
+      geometry,
+      new THREE.MeshBasicMaterial({ color, depthTest: false }),
+    );
+    guide.name = "dimension-guide";
+    guide.position.copy(position);
+    guide.renderOrder = 10;
+    activeObject.add(guide);
+  }
+
+  function setActiveDimension(dimension) {
+    activeDimension = ["length", "width", "height"].includes(dimension)
+      ? dimension
+      : null;
+    renderDimensionGuide();
+  }
 
   function focusSelectedStructure(descriptor, view = activeView) {
     if (!descriptor) return;
@@ -158,12 +230,16 @@ export function createStructurePreview(container) {
     activeKind = kind;
     activeDescriptor = descriptor;
     clearSelected();
+    activeObject = null;
     resize();
     const material = new THREE.MeshStandardMaterial({
       color: kind === "beam" ? 0x6b4d8a : 0x9b684b,
       roughness: 0.6,
       metalness: 0.02,
     });
+    const object = new THREE.Group();
+    object.position.set(descriptor.centerX, descriptor.centerHeightM, descriptor.centerZ);
+    object.rotation.y = -THREE.MathUtils.degToRad(descriptor.rotationDeg);
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(
         descriptor.lengthM,
@@ -172,11 +248,12 @@ export function createStructurePreview(container) {
       ),
       material,
     );
-    mesh.position.set(descriptor.centerX, descriptor.centerHeightM, descriptor.centerZ);
-    mesh.rotation.y = -THREE.MathUtils.degToRad(descriptor.rotationDeg);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    selected.add(mesh);
+    object.add(mesh);
+    selected.add(object);
+    activeObject = object;
+    renderDimensionGuide();
     container.dataset.previewKind = kind;
     container.dataset.previewNumber = String(index + 1);
     context.visible = activeView === "perspective";
@@ -194,5 +271,5 @@ export function createStructurePreview(container) {
   }
   animate();
 
-  return { render, setView };
+  return { render, setView, setActiveDimension };
 }

@@ -39,12 +39,12 @@ import {
   dedupeWindowCandidates,
   windowsOverlap,
 } from "./scene_structure_utils.js?v=20260721-beam-drag1";
-import { createStructurePreview } from "./scene_structure_preview.js?v=20260723-beam-preview4";
+import { createStructurePreview } from "./scene_structure_preview.js?v=20260723-dimension-guide1";
 import {
   findStructureWallCollision,
   resolveStructureWallCollisions,
   validateColumnDimensionsCm,
-} from "./scene_structure_geometry.js?v=20260723-wall-repair1";
+} from "./scene_structure_geometry.js?v=20260723-wall-repair3";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
   applyWindowTypePreset,
@@ -1690,15 +1690,19 @@ function renderStructureSvg() {
     );
   }).join("") : "";
   const beams = state.activeStructureKind === "beam" ? state.structures.beams.map((item, index) => {
-    const start = meterToPixel(item.start);
-    const end = meterToPixel(item.end);
+    const displayItem = structureSizeDraft?.kind === "beam"
+      && structureSizeDraft.id === item.id
+      ? structureSizeDraft.item
+      : item;
+    const start = meterToPixel(displayItem.start);
+    const end = meterToPixel(displayItem.end);
     const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
     const selected = state.selectedStructure?.kind === "beam"
       && state.selectedStructure?.id === item.id;
     return structureGroup(
       item,
       "beam",
-      `${beamBandSvg(item, { selected })}
+      `${beamBandSvg(displayItem, { selected })}
       ${structureNumberMarkerSvg("beam", index, midpoint, { selected })}
       ${selected ? `<circle data-beam-handle="start" cx="${start.x}" cy="${start.y}" r="17"
         fill="#fff" stroke="#6b4d8a" stroke-width="6" style="cursor:crosshair"/>
@@ -1707,16 +1711,20 @@ function renderStructureSvg() {
     );
   }).join("") : "";
   const columns = state.activeStructureKind === "column" ? state.structures.columns.map((item, index) => {
-    const pixel = meterToPixel(item.center);
-    const width = Number(item.size_m || 0.35) / planGeometry().scale;
-    const depth = Number(item.depth_m || item.size_m || 0.35) / planGeometry().scale;
+    const displayItem = structureSizeDraft?.kind === "column"
+      && structureSizeDraft.id === item.id
+      ? structureSizeDraft.item
+      : item;
+    const pixel = meterToPixel(displayItem.center);
+    const width = Number(displayItem.size_m || 0.35) / planGeometry().scale;
+    const depth = Number(displayItem.depth_m || displayItem.size_m || 0.35) / planGeometry().scale;
     const selected = state.selectedStructure?.kind === "column"
       && state.selectedStructure?.id === item.id;
     return structureGroup(
       item,
       "column",
       `<rect x="${pixel.x - width / 2}" y="${pixel.y - depth / 2}" width="${width}" height="${depth}"
-        transform="rotate(${Number(item.rotation_deg || 0)} ${pixel.x} ${pixel.y})"
+        transform="rotate(${Number(displayItem.rotation_deg || 0)} ${pixel.x} ${pixel.y})"
         fill="rgba(189,92,54,.32)" stroke="#8e3e23" stroke-width="4"/>
       ${structureNumberMarkerSvg("column", index, pixel, { selected })}`,
     );
@@ -1736,6 +1744,8 @@ let structureDrag = null;
 let doorResizeDrag = null;
 let beamResizeDrag = null;
 let structureCreateDrag = null;
+let structureSizeDraft = null;
+let lastStructureEditorKey = null;
 
 function cancelStructureInteraction() {
   state.structureTool = null;
@@ -1757,12 +1767,26 @@ function structureWallCollision(item, kind) {
   return findStructureWallCollision(item, kind, state.structures.walls);
 }
 
-function repairLoadedStructureWallCollisions() {
+function structurePreferredPoint() {
   const floorplan = confirmedFloorplanEditor();
-  const preferredPoint = {
+  return {
     x: Number(floorplan.width_cm || 0) / 200,
     y: Number(floorplan.depth_cm || 0) / 200,
   };
+}
+
+function resolveStructureSizeDraft(item, kind) {
+  if (!["beam", "column"].includes(kind)) {
+    return { item, resolved: true, moved: false, totalShiftM: 0 };
+  }
+  return resolveStructureWallCollisions(item, kind, state.structures.walls, {
+    preferredPoint: structurePreferredPoint(),
+    maxAutoShiftM: 0.75,
+  });
+}
+
+function repairLoadedStructureWallCollisions() {
+  const preferredPoint = structurePreferredPoint();
   let moved = 0;
   let unresolved = 0;
   for (const [kind, collection] of [["beam", "beams"], ["column", "columns"]]) {
@@ -2176,7 +2200,55 @@ function renderStructurePreview(item, kind, index, { draft = false } = {}) {
     `棕色柱從地板立起；寬 ${Math.round(Number(item.size_m || 0.35) * 100)} cm、深 ${Math.round(Number(item.depth_m || item.size_m || 0.35) * 100)} cm、高 ${Math.round(Number(item.height_m || 2.7) * 100)} cm${draft ? "（尚未套用）" : "。"}`;
 }
 
-function previewSelectedStructureDraft() {
+function updateStructureDimensionHint(inputId, kind, valueCm, shiftM = 0) {
+  const hint = $("#structure-preview-dimension-hint");
+  const definitions = {
+    beam: {
+      "selected-structure-size-cm": {
+        dimension: "width",
+        label: "目前調整：樑寬",
+        direction: "前後方向",
+        axis: "↔",
+      },
+      "selected-structure-height-cm": {
+        dimension: "height",
+        label: "目前調整：下垂深度",
+        direction: "上下方向",
+        axis: "↕",
+      },
+    },
+    column: {
+      "selected-structure-size-cm": {
+        dimension: "length",
+        label: "目前調整：柱寬",
+        direction: "左右方向",
+        axis: "↔",
+      },
+      "selected-structure-depth-cm": {
+        dimension: "width",
+        label: "目前調整：柱深",
+        direction: "前後方向",
+        axis: "↔",
+      },
+      "selected-structure-height-cm": {
+        dimension: "height",
+        label: "目前調整：柱高",
+        direction: "上下方向",
+        axis: "↕",
+      },
+    },
+  };
+  const definition = definitions[kind]?.[inputId];
+  if (!definition) return;
+  hint.hidden = false;
+  $("#structure-preview-dimension-axis").textContent = definition.axis;
+  $("#structure-preview-dimension-label").textContent = definition.label;
+  $("#structure-preview-dimension-value").textContent =
+    `${definition.direction} · ${Math.round(valueCm)} cm${shiftM > 0 ? ` · 避牆位移 ${Math.round(shiftM * 100)} cm` : ""}`;
+  structurePreview.setActiveDimension(definition.dimension);
+}
+
+function previewSelectedStructureDraft(event) {
   const item = selectedStructureItem();
   const kind = state.selectedStructure?.kind;
   if (!item || !["beam", "column"].includes(kind)) return;
@@ -2194,16 +2266,55 @@ function previewSelectedStructureDraft() {
       ? { thickness_m: sizeCm / 100 }
       : { size_m: sizeCm / 100, depth_m: depthCm / 100 }),
   };
-  $("#structure-wall-collision-error").textContent = structureWallCollision(draft, kind)
-    ? structureWallCollisionMessage(kind)
-    : "";
-  renderStructurePreview(draft, kind, selectedStructureIndex(), { draft: true });
+  const resolution = resolveStructureSizeDraft(draft, kind);
+  const inputId = event?.target?.id || "selected-structure-size-cm";
+  const inputValue = Number(event?.target?.value) || sizeCm;
+  if (!resolution.resolved) {
+    structureSizeDraft = null;
+    $("#structure-wall-collision-error").textContent = structureWallCollisionMessage(kind);
+    updateStructureDimensionHint(inputId, kind, inputValue);
+    renderSpaceOverlay();
+    renderStructurePreview(item, kind, selectedStructureIndex());
+    return;
+  }
+  structureSizeDraft = {
+    id: item.id,
+    kind,
+    item: resolution.item,
+  };
+  $("#structure-wall-collision-error").textContent = "";
+  updateStructureDimensionHint(
+    inputId,
+    kind,
+    inputValue,
+    resolution.totalShiftM,
+  );
+  renderSpaceOverlay();
+  renderStructurePreview(
+    resolution.item,
+    kind,
+    selectedStructureIndex(),
+    { draft: true },
+  );
 }
 
 function renderSelectedStructureEditor() {
   const item = selectedStructureItem();
   element.structureEditor.hidden = !item;
-  if (!item) return;
+  if (!item) {
+    structureSizeDraft = null;
+    lastStructureEditorKey = null;
+    $("#structure-preview-dimension-hint").hidden = true;
+    structurePreview.setActiveDimension(null);
+    return;
+  }
+  const editorKey = `${state.selectedStructure.kind}:${item.id}`;
+  if (lastStructureEditorKey !== editorKey) {
+    structureSizeDraft = null;
+    lastStructureEditorKey = editorKey;
+    $("#structure-preview-dimension-hint").hidden = true;
+    structurePreview.setActiveDimension(null);
+  }
   const labels = {
     wall: "牆",
     door: "門",
@@ -2506,8 +2617,13 @@ function applySelectedStructureSize() {
       };
     }
   }
-  if (rejectStructureWallCollision(nextItem, kind)) return;
-  Object.assign(item, nextItem);
+  const resolution = resolveStructureSizeDraft(nextItem, kind);
+  if (!resolution.resolved) {
+    rejectStructureWallCollision(nextItem, kind);
+    return;
+  }
+  Object.assign(item, resolution.item);
+  structureSizeDraft = null;
   item.confirmed = false;
   item.estimated = false;
   renderSpaceOverlay();
@@ -2515,9 +2631,12 @@ function applySelectedStructureSize() {
   renderSelectedStructureEditor();
   invalidateDownstreamFrom("space_confirmation", "結構尺寸已修改，後續需求、家具與 3D 需要重新確認。");
   scheduleSave("space_confirmation");
+  const shiftNote = resolution.moved
+    ? `，並向室內避牆位移 ${Math.round(resolution.totalShiftM * 100)} 公分`
+    : "";
   setStatus(kind === "column"
-    ? `柱尺寸已更新為 ${Math.round(sizeM * 100)} × ${Math.round(depthM * 100)} × ${Math.round(heightM * 100)} 公分。`
-    : "結構尺寸已更新。");
+    ? `柱尺寸已更新為 ${Math.round(sizeM * 100)} × ${Math.round(depthM * 100)} × ${Math.round(heightM * 100)} 公分${shiftNote}。`
+    : `樑尺寸已更新${shiftNote}。`);
 }
 
 function applyWindowType(windowId, type) {
@@ -4725,6 +4844,7 @@ function bindEvents() {
     "#selected-structure-height-cm",
   ].forEach((selector) => {
     $(selector).addEventListener("input", previewSelectedStructureDraft);
+    $(selector).addEventListener("focus", previewSelectedStructureDraft);
   });
   $$("[data-structure-preview-view]").forEach((button) => {
     button.addEventListener("click", () => {
