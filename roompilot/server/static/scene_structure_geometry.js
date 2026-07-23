@@ -14,6 +14,100 @@ function segmentRotation(item) {
   ) * 180 / Math.PI;
 }
 
+function rectangleFootprint(center, lengthM, widthM, rotationDeg = 0) {
+  const angle = Number(rotationDeg || 0) * Math.PI / 180;
+  const along = { x: Math.cos(angle), y: Math.sin(angle) };
+  const across = { x: -along.y, y: along.x };
+  const halfLength = Math.max(0, Number(lengthM) || 0) / 2;
+  const halfWidth = Math.max(0, Number(widthM) || 0) / 2;
+  return [
+    { x: center.x - along.x * halfLength - across.x * halfWidth, y: center.y - along.y * halfLength - across.y * halfWidth },
+    { x: center.x + along.x * halfLength - across.x * halfWidth, y: center.y + along.y * halfLength - across.y * halfWidth },
+    { x: center.x + along.x * halfLength + across.x * halfWidth, y: center.y + along.y * halfLength + across.y * halfWidth },
+    { x: center.x - along.x * halfLength + across.x * halfWidth, y: center.y - along.y * halfLength + across.y * halfWidth },
+  ];
+}
+
+function segmentFootprint(item, widthM) {
+  if (!item?.start || !item?.end) return null;
+  const start = { x: Number(item.start.x), y: Number(item.start.y) };
+  const end = { x: Number(item.end.x), y: Number(item.end.y) };
+  if (![start.x, start.y, end.x, end.y].every(Number.isFinite)) return null;
+  const lengthM = Math.hypot(end.x - start.x, end.y - start.y);
+  if (lengthM < 0.001) return null;
+  return rectangleFootprint(
+    { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 },
+    lengthM,
+    widthM,
+    Math.atan2(end.y - start.y, end.x - start.x) * 180 / Math.PI,
+  );
+}
+
+function polygonAxes(polygon) {
+  return polygon.map((point, index) => {
+    const next = polygon[(index + 1) % polygon.length];
+    const edge = { x: next.x - point.x, y: next.y - point.y };
+    const length = Math.hypot(edge.x, edge.y) || 1;
+    return { x: -edge.y / length, y: edge.x / length };
+  });
+}
+
+function projectionRange(polygon, axis) {
+  const values = polygon.map((point) => point.x * axis.x + point.y * axis.y);
+  return { min: Math.min(...values), max: Math.max(...values) };
+}
+
+function polygonsOverlap(polygonA, polygonB, touchToleranceM) {
+  for (const axis of [...polygonAxes(polygonA), ...polygonAxes(polygonB)]) {
+    const a = projectionRange(polygonA, axis);
+    const b = projectionRange(polygonB, axis);
+    const overlap = Math.min(a.max, b.max) - Math.max(a.min, b.min);
+    if (overlap <= touchToleranceM) return false;
+  }
+  return true;
+}
+
+function structureFootprint(item, kind) {
+  if (kind === "beam") {
+    return segmentFootprint(item, Math.max(0.01, Number(item?.thickness_m) || 0.3));
+  }
+  if (kind === "column") {
+    const center = {
+      x: Number(item?.center?.x),
+      y: Number(item?.center?.y ?? item?.center?.z),
+    };
+    if (!Number.isFinite(center.x) || !Number.isFinite(center.y)) return null;
+    return rectangleFootprint(
+      center,
+      Math.max(0.01, Number(item?.size_m) || 0.35),
+      Math.max(0.01, Number(item?.depth_m) || Number(item?.size_m) || 0.35),
+      Number(item?.rotation_deg) || 0,
+    );
+  }
+  return null;
+}
+
+export function findStructureWallCollision(
+  item,
+  kind,
+  walls = [],
+  { touchToleranceM = 0.005 } = {},
+) {
+  const footprint = structureFootprint(item, kind);
+  if (!footprint) return null;
+  for (let index = 0; index < walls.length; index += 1) {
+    const wall = walls[index];
+    const wallFootprint = segmentFootprint(
+      wall,
+      Math.max(0.01, Number(wall?.thickness_m) || 0.12),
+    );
+    if (wallFootprint && polygonsOverlap(footprint, wallFootprint, touchToleranceM)) {
+      return { wallId: wall.id || null, wallIndex: index };
+    }
+  }
+  return null;
+}
+
 export function validateColumnDimensionsCm({
   widthCm,
   depthCm,

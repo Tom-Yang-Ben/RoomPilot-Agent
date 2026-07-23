@@ -519,7 +519,8 @@ def test_structure_editor_uses_separate_pages_and_exposes_window_controls() -> N
     assert "function renderStructureReviewList()" in source
     assert "function confirmStructure(kind, structureId)" in source
     assert 'data-confirm-structure="${escapeHtml(item.id)}"' in source
-    assert "item.sill_height_m = sillHeightM" in source
+    assert "nextItem.sill_height_m = sillHeightM" in source
+    assert "Object.assign(item, nextItem)" in source
     assert 'state.activeStructureKind = tool' in source
 
 
@@ -678,6 +679,58 @@ def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> Non
     assert "setView(view)" in preview
     assert "focusSelectedStructure" in preview
     assert 'context.visible = view === "perspective"' in preview
+
+
+def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
+    geometry_uri = (STATIC / "scene_structure_geometry.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ findStructureWallCollision }} from {json.dumps(geometry_uri)};
+        const wall = {{
+          id: "wall-1",
+          start: {{ x: 0, y: -2 }},
+          end: {{ x: 0, y: 2 }},
+          thickness_m: 0.2,
+        }};
+        const cases = {{
+          columnThrough: findStructureWallCollision({{
+            center: {{ x: 0.12, y: 0 }},
+            size_m: 0.35,
+            depth_m: 0.35,
+          }}, "column", [wall]),
+          columnTouching: findStructureWallCollision({{
+            center: {{ x: 0.275, y: 0 }},
+            size_m: 0.35,
+            depth_m: 0.35,
+          }}, "column", [wall]),
+          beamThrough: findStructureWallCollision({{
+            start: {{ x: -1, y: 0 }},
+            end: {{ x: 1, y: 0 }},
+            thickness_m: 0.3,
+          }}, "beam", [wall]),
+          beamTouching: findStructureWallCollision({{
+            start: {{ x: -1, y: 0 }},
+            end: {{ x: -0.1, y: 0 }},
+            thickness_m: 0.3,
+          }}, "beam", [wall]),
+        }};
+        console.log(JSON.stringify(cases));
+        """
+    )
+
+    assert result["columnThrough"]["wallId"] == "wall-1"
+    assert result["columnTouching"] is None
+    assert result["beamThrough"]["wallId"] == "wall-1"
+    assert result["beamTouching"] is None
+
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    assert 'id="structure-wall-collision-error"' in html
+    assert "structureWallCollision" in source
+    assert "樑柱不可穿過牆體" in source
+    assert "confirmStructure" in source
+    assert "finishBeamCreateDrag" in source
+    assert "addDroppedStructure" in source
 
 
 def test_room_confirmation_is_isolated_and_supports_confirm_merge_and_split() -> None:

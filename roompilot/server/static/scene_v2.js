@@ -40,7 +40,10 @@ import {
   windowsOverlap,
 } from "./scene_structure_utils.js?v=20260721-beam-drag1";
 import { createStructurePreview } from "./scene_structure_preview.js?v=20260723-beam-preview4";
-import { validateColumnDimensionsCm } from "./scene_structure_geometry.js?v=20260721-column-resize3";
+import {
+  findStructureWallCollision,
+  validateColumnDimensionsCm,
+} from "./scene_structure_geometry.js?v=20260723-wall-collision1";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
   applyWindowTypePreset,
@@ -1747,6 +1750,30 @@ function cancelStructureInteraction() {
   setStatus("已取消目前操作與結構選取。");
 }
 
+function structureWallCollision(item, kind) {
+  if (!["beam", "column"].includes(kind)) return null;
+  return findStructureWallCollision(item, kind, state.structures.walls);
+}
+
+function structureWallCollisionMessage(kind) {
+  const label = kind === "beam" ? "樑" : "柱";
+  return `樑柱不可穿過牆體；請移動或縮小${label}，也可以貼齊牆面。`;
+}
+
+function rejectStructureWallCollision(item, kind) {
+  const collision = structureWallCollision(item, kind);
+  if (!collision) {
+    element.spaceError.textContent = "";
+    $("#structure-wall-collision-error").textContent = "";
+    return false;
+  }
+  const message = structureWallCollisionMessage(kind);
+  element.spaceError.textContent = message;
+  $("#structure-wall-collision-error").textContent = message;
+  setStatus(message, "error");
+  return true;
+}
+
 function finishBeamCreateDrag() {
   if (!structureCreateDrag) return false;
   const draft = structureCreateDrag;
@@ -1767,6 +1794,10 @@ function finishBeamCreateDrag() {
     estimated: true,
     source: "manual",
   };
+  if (rejectStructureWallCollision(item, "beam")) {
+    renderSpaceOverlay();
+    return false;
+  }
   state.structures.beams.push(item);
   state.selectedStructure = { id: item.id, kind: "beam" };
   state.structureTool = null;
@@ -1865,6 +1896,8 @@ function spacePointerDown(event) {
     beamResizeDrag = {
       handle: beamHandle.dataset.beamHandle,
       snapshot: JSON.parse(JSON.stringify(selectedStructureItem())),
+      changed: false,
+      blocked: false,
     };
     renderStructureReviewList();
     renderSelectedStructureEditor();
@@ -1896,6 +1929,8 @@ function spacePointerDown(event) {
       structureDrag = {
         start: pixelToMeter(point),
         snapshot: JSON.parse(JSON.stringify(selectedStructureItem())),
+        changed: false,
+        blocked: false,
       };
     }
     renderSpaceOverlay();
@@ -1959,6 +1994,15 @@ function spacePointerMove(event) {
       pixelToMeter(point),
       beamSnapCandidates(item.id),
     );
+    const candidate = {
+      ...item,
+      start: beamResizeDrag.handle === "start" ? geometry.end : fixed,
+      end: beamResizeDrag.handle === "start" ? fixed : geometry.end,
+    };
+    if (rejectStructureWallCollision(candidate, "beam")) {
+      beamResizeDrag.blocked = true;
+      return;
+    }
     if (beamResizeDrag.handle === "start") {
       item.start = geometry.end;
       item.end = fixed;
@@ -1966,6 +2010,8 @@ function spacePointerMove(event) {
       item.start = fixed;
       item.end = geometry.end;
     }
+    beamResizeDrag.changed = true;
+    beamResizeDrag.blocked = false;
     item.confirmed = false;
     renderSpaceOverlay();
     return;
@@ -1982,10 +2028,20 @@ function spacePointerMove(event) {
     const dx = current.x - structureDrag.start.x;
     const dy = current.y - structureDrag.start.y;
     if (state.selectedStructure.kind === "column") {
-      item.center = {
-        x: structureDrag.snapshot.center.x + dx,
-        y: structureDrag.snapshot.center.y + dy,
+      const candidate = {
+        ...item,
+        center: {
+          x: structureDrag.snapshot.center.x + dx,
+          y: structureDrag.snapshot.center.y + dy,
+        },
       };
+      if (rejectStructureWallCollision(candidate, "column")) {
+        structureDrag.blocked = true;
+        return;
+      }
+      item.center = candidate.center;
+      structureDrag.changed = true;
+      structureDrag.blocked = false;
     } else if (["door", "window"].includes(state.selectedStructure.kind)) {
       const snapshotCenter = {
         x: (structureDrag.snapshot.start.x + structureDrag.snapshot.end.x) / 2,
@@ -2004,16 +2060,29 @@ function spacePointerMove(event) {
         x: snapshotCenter.x + dx,
         y: snapshotCenter.y + dy,
       });
+      structureDrag.changed = true;
       item.confirmed = false;
     } else {
-      item.start = {
-        x: structureDrag.snapshot.start.x + dx,
-        y: structureDrag.snapshot.start.y + dy,
+      const candidate = {
+        ...item,
+        start: {
+          x: structureDrag.snapshot.start.x + dx,
+          y: structureDrag.snapshot.start.y + dy,
+        },
+        end: {
+          x: structureDrag.snapshot.end.x + dx,
+          y: structureDrag.snapshot.end.y + dy,
+        },
       };
-      item.end = {
-        x: structureDrag.snapshot.end.x + dx,
-        y: structureDrag.snapshot.end.y + dy,
-      };
+      if (state.selectedStructure.kind === "beam"
+        && rejectStructureWallCollision(candidate, "beam")) {
+        structureDrag.blocked = true;
+        return;
+      }
+      item.start = candidate.start;
+      item.end = candidate.end;
+      structureDrag.changed = true;
+      structureDrag.blocked = false;
     }
     item.confirmed = false;
     renderSpaceOverlay();
@@ -2087,6 +2156,9 @@ function previewSelectedStructureDraft() {
       ? { thickness_m: sizeCm / 100 }
       : { size_m: sizeCm / 100, depth_m: depthCm / 100 }),
   };
+  $("#structure-wall-collision-error").textContent = structureWallCollision(draft, kind)
+    ? structureWallCollisionMessage(kind)
+    : "";
   renderStructurePreview(draft, kind, selectedStructureIndex(), { draft: true });
 }
 
@@ -2109,6 +2181,10 @@ function renderSelectedStructureEditor() {
   const isFloorToCeilingWindow = windowType === WINDOW_TYPES.floorToCeiling;
   const isBeam = state.selectedStructure.kind === "beam";
   const isColumn = state.selectedStructure.kind === "column";
+  $("#structure-wall-collision-error").textContent =
+    structureWallCollision(item, state.selectedStructure.kind)
+      ? structureWallCollisionMessage(state.selectedStructure.kind)
+      : "";
   const hasLength = ["wall", "beam"].includes(state.selectedStructure.kind);
   $("#selected-structure-title").textContent =
     `選取${isFloorToCeilingWindow ? "落地窗" : labels[state.selectedStructure.kind] || "結構"} ${selectedIndex + 1}`;
@@ -2296,6 +2372,11 @@ function confirmStructure(kind, structureId) {
   const collection = state.structures[structureCollections[kind]] || [];
   const item = collection.find((candidate) => candidate.id === structureId);
   if (!item) return;
+  if (rejectStructureWallCollision(item, kind)) {
+    state.selectedStructure = { id: item.id, kind };
+    renderSelectedStructureEditor();
+    return;
+  }
   item.confirmed = true;
   item.estimated = false;
   state.selectedStructure = { id: item.id, kind };
@@ -2351,41 +2432,44 @@ function applySelectedStructureSize() {
   const sillHeightM = floorToCeiling
     ? 0
     : Math.max(0, Number($("#window-sill-height-cm").value) / 100);
+  const nextItem = { ...item };
   if (kind === "window") {
     const cx = (item.start.x + item.end.x) / 2;
     const cy = (item.start.y + item.end.y) / 2;
     const angle = Math.atan2(item.end.y - item.start.y, item.end.x - item.start.x);
-    item.start = { x: cx - Math.cos(angle) * sizeM / 2, y: cy - Math.sin(angle) * sizeM / 2 };
-    item.end = { x: cx + Math.cos(angle) * sizeM / 2, y: cy + Math.sin(angle) * sizeM / 2 };
-    item.width_m = sizeM;
-    item.sill_height_m = sillHeightM;
-    item.height_m = heightM;
-    item.head_height_m = sillHeightM + heightM;
+    nextItem.start = { x: cx - Math.cos(angle) * sizeM / 2, y: cy - Math.sin(angle) * sizeM / 2 };
+    nextItem.end = { x: cx + Math.cos(angle) * sizeM / 2, y: cy + Math.sin(angle) * sizeM / 2 };
+    nextItem.width_m = sizeM;
+    nextItem.sill_height_m = sillHeightM;
+    nextItem.height_m = heightM;
+    nextItem.head_height_m = sillHeightM + heightM;
   } else if (kind === "door") {
-    item.height_m = heightM;
+    nextItem.height_m = heightM;
   } else if (kind === "column") {
-    item.size_m = sizeM;
-    item.depth_m = depthM;
-    item.height_m = heightM;
+    nextItem.size_m = sizeM;
+    nextItem.depth_m = depthM;
+    nextItem.height_m = heightM;
   } else {
-    item.thickness_m = sizeM;
-    item.height_m = heightM;
+    nextItem.thickness_m = sizeM;
+    nextItem.height_m = heightM;
     if (item.start && item.end) {
       const center = {
         x: (item.start.x + item.end.x) / 2,
         y: (item.start.y + item.end.y) / 2,
       };
       const angle = Math.atan2(item.end.y - item.start.y, item.end.x - item.start.x);
-      item.start = {
+      nextItem.start = {
         x: center.x - Math.cos(angle) * lengthM / 2,
         y: center.y - Math.sin(angle) * lengthM / 2,
       };
-      item.end = {
+      nextItem.end = {
         x: center.x + Math.cos(angle) * lengthM / 2,
         y: center.y + Math.sin(angle) * lengthM / 2,
       };
     }
   }
+  if (rejectStructureWallCollision(nextItem, kind)) return;
+  Object.assign(item, nextItem);
   item.confirmed = false;
   item.estimated = false;
   renderSpaceOverlay();
@@ -2481,7 +2565,12 @@ function rotateSelectedStructure(deltaDeg) {
   const item = selectedStructureItem();
   if (!item) return;
   if (state.selectedStructure?.kind === "column") {
-    item.rotation_deg = (Number(item.rotation_deg) || 0) + deltaDeg;
+    const candidate = {
+      ...item,
+      rotation_deg: (Number(item.rotation_deg) || 0) + deltaDeg,
+    };
+    if (rejectStructureWallCollision(candidate, "column")) return;
+    item.rotation_deg = candidate.rotation_deg;
     item.confirmed = false;
     item.estimated = false;
     renderSpaceOverlay();
@@ -2709,6 +2798,7 @@ function addDroppedStructure(tool, point) {
       confirmed: false,
       estimated: true,
     };
+    if (rejectStructureWallCollision(item, "column")) return;
     state.structures.columns.push(item);
   } else if (tool === "door" || tool === "window") {
     const candidates = state.structures.walls.map((wall) => ({
@@ -4506,14 +4596,22 @@ function bindEvents() {
     state.calibrationDragIndex = null;
     draggedRoomPointIndex = null;
     if (structureDrag) {
+      const completedStructureDrag = structureDrag.changed;
+      const blockedStructureDrag = structureDrag.blocked;
       const draggedStructureKind = state.selectedStructure?.kind;
       const draggedStructure = selectedStructureItem();
-      if (draggedStructureKind === "door" && draggedStructure) draggedStructure.confirmed = false;
+      if (completedStructureDrag && draggedStructureKind === "door" && draggedStructure) {
+        draggedStructure.confirmed = false;
+      }
       structureDrag = null;
       renderDoorReviewList();
       renderSelectedStructureEditor();
-      invalidateDownstreamFrom("space_confirmation", "結構位置已修改，後續需求、家具與 3D 需要重新確認。");
-      scheduleSave("space_confirmation");
+      if (completedStructureDrag) {
+        invalidateDownstreamFrom("space_confirmation", "結構位置已修改，後續需求、家具與 3D 需要重新確認。");
+        scheduleSave("space_confirmation");
+      } else if (blockedStructureDrag) {
+        setStatus("樑柱不可穿過牆體；位置未變更。", "error");
+      }
     }
     if (doorResizeDrag) {
       const resizedKind = state.selectedStructure?.kind || "door";
@@ -4526,12 +4624,18 @@ function bindEvents() {
       setStatus(`${resizedLabel}寬已更新並保持吸附在牆上；請重新確認此${resizedLabel}。`);
     }
     if (beamResizeDrag) {
+      const completedBeamResize = beamResizeDrag.changed;
+      const blockedBeamResize = beamResizeDrag.blocked;
       beamResizeDrag = null;
       renderStructureReviewList();
       renderSelectedStructureEditor();
-      invalidateDownstreamFrom("space_confirmation", "樑長已調整，後續需求、家具與 3D 需要重新確認。");
-      scheduleSave("space_confirmation");
-      setStatus("樑長已更新，樑仍固定於天花板下方。");
+      if (completedBeamResize) {
+        invalidateDownstreamFrom("space_confirmation", "樑長已調整，後續需求、家具與 3D 需要重新確認。");
+        scheduleSave("space_confirmation");
+        setStatus("樑長已更新，樑仍固定於天花板下方。");
+      } else if (blockedBeamResize) {
+        setStatus("樑柱不可穿過牆體；樑長未變更。", "error");
+      }
     }
     if (completedRoomDrag) {
       const room = state.rooms.find((item) => item.id === state.selectedRoomId);
@@ -4670,14 +4774,27 @@ function bindEvents() {
   $("#confirm-all-visible-structures").addEventListener("click", () => {
     const kind = state.activeStructureKind;
     const collection = state.structures[structureCollections[kind]] || [];
+    let blockedCount = 0;
     collection.forEach((item) => {
+      if (structureWallCollision(item, kind)) {
+        blockedCount += 1;
+        item.confirmed = false;
+        return;
+      }
       item.confirmed = true;
       item.estimated = false;
     });
     renderStructureReviewList();
     renderStructureCounts();
     scheduleSave("space_confirmation");
-    setStatus(`已確認此頁全部 ${collection.length} 個${structureSectionMeta[kind].label}項目。`);
+    if (blockedCount) {
+      const message = `樑柱不可穿過牆體；${blockedCount} 個項目尚未確認，請先移動或縮小。`;
+      element.spaceError.textContent = message;
+      setStatus(message, "error");
+    } else {
+      element.spaceError.textContent = "";
+      setStatus(`已確認此頁全部 ${collection.length} 個${structureSectionMeta[kind].label}項目。`);
+    }
   });
   $$("[data-structure-tool]").forEach((button) => {
     button.addEventListener("click", () => {
