@@ -1,3 +1,40 @@
+2026/7/23 v.2.15 變更（own 量尺接線＋雙重校準，切割真實命中 72.6%；微調 v4 四輪最佳仍維持基線；去 CubiCasa 路線確立——授權禁商用實錘、DINOv2 裁切分類 0.730；四層級成功率盤點＋HTML 報表；本機大清理 17GB）
+
+一、微調第四輪（own_eval 撤出訓練集後以乾淨 26 題重訓）：
+
+- v3 同配方（lr 5e-5/20 epochs/batch 8）RTX 3060 重訓 → model_finetuned_v4.pkl。CubiCasa 尺具名 macro-F1 0.814/macro-R 0.900 皆四輪最佳（kitchen P 0.537→0.684 且 R 持平、space→kitchen 誤名 51→25），但六類具名 recall 仍倒退——**未過門檻，預設權重維持基線**
+- 量尺校準後翻案：own 尺具名 63 房 v4 0.619 vs 基線 0.270——先前「增益未遷移到 own 風格」判定下修為「**有遷移但精度不足**」（v4 被 CubiCasa 尺＋髒 GT 雙重低估）
+
+二、own 量尺接線與雙重校準（自此為現行主尺；CubiCasa 量尺隨資料集刪除退役）：
+
+- `eval_rooms_cc --own-eval [--gt-seg]`：own_eval 12 題當 GT，報表 report_own[_gtseg].json，CC_WEIGHTS/CC_CACHE_DIR 照舊正交
+- 標注修復鏈三波：(1) fix_annotation_paths 增 `--dir`＋**transform 烘焙**（Inkscape 縮放/移動存成 matrix，House 全忽略→座標錯位；含 path 自帶 transform 兩層合成、text 前綴保渲染）；(2) **47 筆 VLM 盲標分歧人工覆核**（review.html 看圖點選→批次改 class 純文字改名，36 補名/10 錯名修正/1 降回；floor55 五房全 Kitchen 確為複製未改名）；(3) **rebuild_room_gt.py 幾何重建**——楔形 GT 只蓋部分房間，以同檔審定牆/窗/門 flood fill 重建 68/73 房輪廓（楔形當標籤指針、開放空間距離分水嶺切分）
+- **get_polygon 尾空格陷阱**（重大潛伏 bug）：House 解析 points 固定 split(' ')[:-1]，自產 polygon 無尾空格被砍最後一頂點、遮罩剩半——v2.11 起所有轉換標注中招（own_dataset 訓練資料在內）。emitter 修正＋110 處補救＋防回歸測試；**own_dataset 標注自此痊癒，下輪微調品質高於 v1~v4 當時**
+- 校準後真實數字：**切割命中 38.4%（假）→72.6%（53/73）、配對 IoU 0.829**；剩餘漏接集中 floor60（GT 牆未封閉）與 floor55 類開放式黏房。門位封口查明非缺口：segment_rooms 已內建弧門＋牆縫 40~260cm 雙層封口，zone 提名即源自同一推理
+
+三、去 CubiCasa 路線（房型命名層重構為「房間裁切分類」問題）：
+
+- **授權實錘：repo CC BY-NC 4.0、Zenodo 資料集 CC BY-NC-SA 4.0，官方權重與微調 v1~v4 全繼承禁商用**（同 MitUNet 移除原因），商用部署前必須替換
+- extract_room_crops.py（own_dataset 131 房訓／own_eval 73 房測）＋ probe_room_classifier.py（凍結 DINOv2 ViT-S/14＋線性頭，8 向擴增/TTA，--backbone 可換）：具名 63 房正確率 **0.730**，勝 CC 基線 0.270 與 v4 0.619；VLM 盲測 0.984 僅當上限參考（循環性——GT 覆核多採其建議）。131 張樣本即勝語意投票，資料效率高微調一個量級
+- **VLM 盲標＋人工把關**工作流實證：47 筆補名約 20 分鐘，之後擴充 own_dataset 沿用
+- 本機大清理 **17GB**（使用者確認）：CubiCasa5k 資料集 5.6G（Zenodo 2613548 可重下）、training.zip 7.7G、runs_cubi/微調 v1~v3/finetune_data/ft 快取。保留：CubiCasa5k 程式庫（floortrans 解析仍被依賴）、官方權重（管線新圖推論仍需）、v4 權重。**換機備份需重新打包**
+
+四、四層級辨識成功率盤點（recognition_report.html，根目錄，支援深色模式）：
+
+- 全批次重跑後評分：灰牆 F1 0.99（勝 CC mask 0.89）/灰窗 96%/96%；彩牆 87.7/94.9/IoU 83.8；**彩窗 P62/R38 為全系統最低真實值**；門過濾 100%、門位 fused P 0.576/R 0.868（zone 提名回填 json/gray）；切割 72.6%；命名四方如上
+- GT 缺口：彩色管線僅牆窗有答案，門位/切割/命名三層無 GT
+
+五、待辦（優先序）：
+
+1. **DINOv2 裁切分類器接進 floorplan2room 融合層**（命名 0.270→0.730，最高回報）；同步處理 v2.14 定案的 10 類對齊——量尺與分類器目前 9 類，office/stair 尚未進評分與訓練
+2. 彩色窗召回 38%（調參方向 v2.13 已記：牆段配對 gap 與 covered 門檻的線寬適配）
+3. 切割收尾：floor60 GT 牆補封（其 1/6 命中主因）、開放空間語意分界（家具聚落切縫，最難放最後）
+4. own_dataset 擴充 50~100 題（VLM 盲標＋人工把關；DINOv2 頭直接受益）
+5. 彩色管線門位/切割/命名 GT 建集（同流程低成本）
+6. 門位精準率 0.576（118 候選 50 誤報）
+7. 長期：floortrans 解析自寫替換（CubiCasa 程式碼授權亦 CC BY-NC）；training/ 備份重打包（現僅 782MB）
+8. 可選：微調 v5（own_dataset 缺角痊癒＋題數擴充後再評估，單純重訓不值得）
+
 2026/7/22 v.2.14 變更（目錄重整：Identify_ans/ 人工答案集中、training/ 本機自管不 push；own_wip 5 題定案淘汰；own_eval 12 題審定完成維持保留集；own 量尺房型 10 類定案）
 
 一、Identify_ans/——人工答案總目錄（進版控）：
