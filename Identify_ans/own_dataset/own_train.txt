@@ -21,6 +21,5 @@
 /floor44/
 /floor47/
 /floor48/
-/floor49/
 /floor52/
 /floor54/
