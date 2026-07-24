@@ -1,8 +1,9 @@
-"""家具擺位紀律：主件先行、副件成組、放不下寧缺勿亂。
+"""選件結果的擺位紀律：主件先行、副件成組、放不下寧缺勿亂。
 
-本模組絕不計算座標。``placement_hints`` 只給順序與成組語意；
-``resolve_placements`` 的每次重擺都必須經由呼叫端注入的
-``engine_place_fn``（RoomPilot 正式整合時必須是 :mod:`backend.engine` adapter）。
+``placement_hints`` 只產生順序與成組語意；``resolve_placements`` 讀取
+引擎回傳的 ``placement_failed``，再決定換小、移除或升級人工處理。
+每次重擺都必須經由呼叫端注入的 ``engine_place_fn``，正式流程必須
+使用 :mod:`backend.engine` adapter。本模組本身絕不計算或修改座標。
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ def _footprint_cm2(item: dict[str, Any]) -> float:
 
 
 def _clean_size_cm(item: dict[str, Any]) -> dict[str, float]:
+    """防禦性清洗型錄尺寸，避免字串、缺欄或非正值進入替換品項。"""
     size = item.get("size_cm") or {}
     cleaned: dict[str, float] = {}
     for key, fallback in (("width", 120.0), ("depth", 60.0), ("height", 80.0)):
@@ -41,6 +43,7 @@ def _name(item: dict[str, Any]) -> str:
 
 
 def _key(item: dict[str, Any]) -> str:
+    """取得場景品項對位鍵；多實例家具優先使用 instance_id。"""
     return str(item.get("instance_id") or item.get("furniture_id") or "")
 
 
@@ -49,7 +52,7 @@ def _anchor_names(family: str) -> str:
 
 
 def placement_hints(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """產生確定性擺放優先序，不含任何座標或旋轉。"""
+    """產生主件 → 泛用件 → 副件的確定性順序，不含座標或旋轉。"""
 
     def item_class(item: dict[str, Any]) -> int:
         family = family_of(item.get("normalized_type"))
@@ -76,7 +79,10 @@ def pick_smaller_model(
     footprint_cap: float,
     exclude_ids: set[str],
 ) -> dict[str, Any] | None:
-    """確定性挑選同型（其次同族系）且面積更小的 3D 家具。"""
+    """挑選同型、有 3D 模型且 footprint 更小的確定性替代品。
+
+    找不到相同 ``normalized_type`` 時，才放寬到相同擺位族系。
+    """
 
     def candidates(predicate: Callable[[dict[str, Any]], bool]) -> list[dict[str, Any]]:
         return [
@@ -98,6 +104,7 @@ def pick_smaller_model(
 
 
 def _replacement_item(item: dict[str, Any], smaller: dict[str, Any]) -> dict[str, Any]:
+    """以新型錄品項換小，並只保留白名單中的場景綁定資料。"""
     # 以新型錄品項為主，只白名單保留場景綁定資料，避免產生
     # 「新 ID／新模型＋舊顏色／舊價格」的混合品項。
     replacement = dict(smaller)
@@ -132,7 +139,8 @@ def resolve_placements(
     """依引擎 ``placement_failed`` 結果換小、移除或升級人工處理。
 
     返回 ``(engine_objects, final_items, report)``。本函式不讀寫座標；
-    ``engine_objects`` 內的座標只可由 ``engine_place_fn`` 產生。
+    ``engine_objects`` 內的座標只可由 ``engine_place_fn`` 產生。使用者
+    指定家具放不下時只升級人工處理，不得自動替換或刪除。
     """
     working = [dict(item) for item in items]
     protected_ids = protected_ids or set()
@@ -190,6 +198,7 @@ def resolve_placements(
 
             family = family_of(obj.get("normalized_type"))
             if family in COMPANION_OF:
+                # 副件只准與主件成組；副件本身放不下就直接退場，不換小獨活。
                 remove(
                     item,
                     obj,
@@ -201,6 +210,7 @@ def resolve_placements(
             key = _key(obj)
             failure_counts[key] = failure_counts.get(key, 0) + 1
             if failure_counts[key] >= 2:
+                # 同一品項連續兩輪失敗後停止替換，避免在候選間反覆震盪。
                 remove(item, obj, f"多次嘗試仍放不下，移除「{_name(item)}」。")
                 changed = True
                 continue
@@ -230,6 +240,8 @@ def resolve_placements(
             )
             changed = True
 
+        # 主件已不在工作清單時，Agent 自選的副件也一併退場；使用者指定
+        # 或來源未標記的家具不在此自動清理範圍。
         working_families = {
             family_of(candidate.get("normalized_type")) for candidate in working
         }

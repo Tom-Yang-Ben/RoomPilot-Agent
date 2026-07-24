@@ -1,8 +1,20 @@
-"""家具選件與配置的宣告式領域知識。"""
+"""家具擺放規則：Agent 選件與擺位紀律共用的單一事實來源。
+
+兩個消費端共用同一份資料：
+- ``select.py`` 透過 ``prompt_rules()`` 將規則加入選件提示，並在解析
+  結果時強制執行房型適配與成組依賴。
+- ``place.py`` 透過 ``COMPANION_OF`` 安排主件、泛用件、副件的順序，
+  並在引擎回報放不下時避免副件脫離主件單獨存在。
+
+型錄的 ``normalized_type`` 會先經 ``family_of()`` 摺疊成擺位族系。
+本模組只放宣告式知識，不放幾何；座標一律由 :mod:`backend.engine` 計算。
+"""
 
 from __future__ import annotations
 
 
+# 型錄具體類型 → 擺位族系。未列出的類型會直接以原類型作為族系，
+# 讓 Agent 與 server 的候選型錄保持解耦。
 FAMILY_OF: dict[str, str] = {
     "fabric-sofa": "sofa",
     "leather-sofa": "sofa",
@@ -20,11 +32,13 @@ FAMILY_OF: dict[str, str] = {
 
 
 def family_of(normalized_type: str | None) -> str:
-    """把型錄類型摺疊成引擎擺位族系。"""
+    """把型錄類型摺疊成擺位族系；未知類型原樣返回。"""
     key = str(normalized_type or "")
     return FAMILY_OF.get(key, key)
 
 
+# 副件 → 可接受主件。選件時若房內沒有主件就不選副件；擺位時主件
+# 不存在或放不下，Agent 自選的副件也必須退場，避免床頭櫃等物件獨活。
 COMPANION_OF: dict[str, tuple[str, ...]] = {
     "bedside-table": ("bed",),
     "coffee-table": ("sofa",),
@@ -33,6 +47,8 @@ COMPANION_OF: dict[str, tuple[str, ...]] = {
     "office-chair": ("desk",),
 }
 
+# 族系 → 適用房型。未列出的書櫃、邊櫃、書桌等視為泛用家具。
+# wardrobe 刻意不限房型，因為收納系統也可能用在廚房、儲藏室或家事間。
 ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
     "bed": ("bedroom",),
     "bedside-table": ("bedroom",),
@@ -43,8 +59,10 @@ ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
     "dining-chair": ("dining_room",),
 }
 
+# 成組擺放的主件優先取得牆位，泛用件其次，COMPANION_OF 副件最後。
 ANCHOR_FAMILIES: tuple[str, ...] = ("bed", "sofa", "dining-table", "desk")
 
+# 族系 → 成組語意標籤。此資料只進入提示，不參與座標計算。
 GROUP_OF: dict[str, str] = {
     "bed": "sleeping",
     "bedside-table": "sleeping",

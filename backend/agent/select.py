@@ -1,6 +1,9 @@
-"""LLM 家具選件邊界。
+"""LLM 家具選件邊界：房型與需求 → 各房候選白名單中的家具組合。
 
-LLM 只能從每個房間的候選白名單選品；座標不在此契約中。
+LLM 只決定「選哪些件」，不得捏造家具、跨房借用候選或輸出座標。
+輸出會在系統邊界再次驗證房型、數量、同族系唯一性、必要主件與成組
+依賴；使用者指定的家具則受保護，不會被 LLM 遺漏或被規則移除。
+
 ``size_cm`` 與 Python 幾何引擎皆使用公分，不得在 Agent 層另行換算。
 """
 
@@ -16,6 +19,8 @@ from .knowledge import COMPANION_OF, ROOM_AFFINITY, ROOM_TYPE_ZH, family_of, pro
 
 logger = logging.getLogger(__name__)
 
+# 注入的 LLM 呼叫器：接收 chat messages，回傳模型 ID 與解析後 JSON；
+# 未啟用或呼叫失敗時回傳 None，由呼叫端降級為本地規則。
 Complete = Callable[[list[dict[str, str]]], Optional[tuple[str, dict[str, Any]]]]
 MAX_ITEMS_PER_ROOM = 8
 COUNT_MAX = 6
@@ -40,6 +45,7 @@ class SelectedItem:
     count: int
 
 
+# 提供給 LLM 的 JSON 輸出形狀；真正的信任邊界仍是 parse_selections()。
 SELECT_OUTPUT_SHAPE = {
     "selections": [
         {
@@ -71,7 +77,7 @@ def build_select_messages(
     style_id: str | None,
     context: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
-    """產生只含房間摘要與白名單的選件訊息。"""
+    """產生只含房間摘要、候選白名單與選件規則的訊息。"""
     payload = {
         "style_id": style_id,
         **{key: value for key, value in (context or {}).items() if value not in (None, [], "")},
@@ -116,6 +122,10 @@ def _apply_conventions(
     items: list[SelectedItem],
     protected_ids: set[str],
 ) -> list[SelectedItem]:
+    """先過濾房型不合項目，再移除缺少主件的副件。
+
+    ``protected_ids`` 代表使用者指定家具，必須保留並照常占用族系名額。
+    """
     fitting: list[SelectedItem] = []
     for selected in items:
         furniture_id = str(selected.item.get("furniture_id") or "")
@@ -151,7 +161,11 @@ def parse_selections(
     offers: dict[str, list[dict[str, Any]]],
     preselected: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, list[SelectedItem]]:
-    """驗證 LLM 輸出的白名單、數量、族系與主副件規則。"""
+    """驗證 LLM 輸出的房間、白名單、數量、族系與主副件規則。
+
+    同族系每房只保留一款，每房最多八種家具；臥室、客廳與餐廳若缺少
+    必要主件，整次選件會明確失敗，交由呼叫端執行本地 fallback。
+    """
     if not isinstance(raw, dict) or not isinstance(raw.get("selections"), list):
         raise SelectionParseError("selections 缺失或非陣列")
 
@@ -202,6 +216,7 @@ def parse_selections(
             continue
         room_id = selection.get("room_id")
         raw_items = selection.get("items")
+        # 先驗證 room_id 型別，避免 list/dict 等不可雜湊資料進入索引。
         if (
             not isinstance(room_id, str)
             or room_id not in room_type_by_id
@@ -227,6 +242,7 @@ def parse_selections(
             if item is None or furniture_id in known_ids:
                 continue
             family = family_of(item.get("normalized_type"))
+            # 使用者指定品項已先入座並占用族系，LLM 同族選擇自動讓位。
             if family in used:
                 continue
             bucket.append(SelectedItem(item=item, count=_clamp_count(entry.get("count"))))
@@ -271,7 +287,11 @@ def request_selections(
     preselected: dict[str, list[dict[str, Any]]] | None = None,
     context: dict[str, Any] | None = None,
 ) -> tuple[dict[str, list[SelectedItem]], str | None]:
-    """向注入的 LLM 呼叫器請求選件，並僅回傳驗證後結果。"""
+    """向注入的 LLM 呼叫器請求選件，並僅回傳驗證後結果。
+
+    沒有候選的專案合法回傳空結果且不呼叫 LLM；呼叫器未注入、停用或
+    失敗則拋出 ``SelectionUnavailableError``，讓正式流程採用本地規則。
+    """
     askable = [room for room in rooms if offers.get(str(room.get("room_id")))]
     if not askable:
         return {}, None
