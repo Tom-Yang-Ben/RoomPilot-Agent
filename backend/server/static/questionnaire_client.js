@@ -12,7 +12,7 @@ import {
   roomTechnicalAxes,
   validateCeilingPreference,
   WHOLE_HOUSE_QUESTIONS,
-} from "./scene_requirements.js?v=sha256-b1ec853ceeac";
+} from "./scene_requirements.js?v=sha256-0e01ee1db923";
 import {
   questionnairePlanPoint,
   questionnairePolygonLabelPoint,

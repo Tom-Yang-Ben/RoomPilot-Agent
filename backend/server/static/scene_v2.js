@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-c5a65cc85b58";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-abc8ee60ad37";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,
@@ -53,7 +53,7 @@ import {
   validateCeilingPreference,
   validateQuestionnaireCeilings,
   WHOLE_HOUSE_QUESTIONS,
-} from "./scene_requirements.js?v=sha256-b1ec853ceeac";
+} from "./scene_requirements.js?v=sha256-0e01ee1db923";
 import {
   questionnairePolygonLabelPoint,
   questionnaireRoomAnswerChanged,
