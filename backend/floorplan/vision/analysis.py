@@ -18,6 +18,7 @@ from ..cody_adapter import recognize_cody_geometry
 from .geometry import transform_confirmed_geometry
 from .image import decode_image
 from .reference_plan import match_builder_plan_630
+from .room_icons import apply_icon_room_labels, detect_room_icons
 from .rooms import infer_rooms_from_walls
 from .spatial_report import build_spatial_report
 from .units import canonicalize_analysis_cm
@@ -371,6 +372,22 @@ def analyze_floorplan_image(
             room["polygon_source"] = "reference_annotation"
             room["polygon_confidence"] = reference_match["match"]["inlier_ratio"]
 
+    room_icon_evidence: list[dict[str, Any]] = []
+    if scale and geometry["walls"] and geometry.get("plan_bbox_px") and rooms:
+        room_icon_evidence = detect_room_icons(
+            gray,
+            walls=geometry["walls"],
+            plan_bbox_px=geometry["plan_bbox_px"],
+            m_per_px=float(scale["m_per_px"]),
+            text_observations=observations,
+        )
+        apply_icon_room_labels(
+            rooms,
+            room_icon_evidence,
+            plan_bbox_px=geometry["plan_bbox_px"],
+            m_per_px=float(scale["m_per_px"]),
+        )
+
     result = {
         "schema_version": "1.0",
         "filename": filename,
@@ -384,6 +401,7 @@ def analyze_floorplan_image(
         "windows": geometry["windows"],
         "plan_bbox_px": geometry.get("plan_bbox_px"),
         "rooms": rooms,
+        "room_icon_evidence": room_icon_evidence,
         "evidence": [evidence] if evidence else [],
         "cody_diagnostics": cody_diagnostics,
         "issues": issues,

@@ -108,9 +108,14 @@ def build_spatial_report(analysis: Mapping[str, Any]) -> dict[str, Any]:
             (float(wall.get("confidence", 0.0)) for wall in boundary_walls), default=0.0
         )
         score = min(label_score, wall_score) if polygon else 0.0
+        label_evidence_kind = (
+            "furniture_icon_room_label"
+            if room.get("source") == "furniture_icon_inference"
+            else "ocr_room_label"
+        )
         evidence = [
             {
-                "kind": "ocr_room_label",
+                "kind": label_evidence_kind,
                 "source": room.get("source"),
                 "label": room.get("label"),
                 "bbox_px": room.get("bbox_px"),
@@ -162,6 +167,16 @@ def build_spatial_report(analysis: Mapping[str, Any]) -> dict[str, Any]:
                 "assumptions": [],
             }
         report_rooms.append(spatial_room)
+        if room.get("room_review"):
+            review_items.append(
+                {
+                    "id": f"room:{room.get('id')}:label",
+                    "category": "room_label",
+                    "room_id": room.get("id"),
+                    "reason": "room_label_icon_evidence_conflict",
+                    "status": "needs_targeted_review",
+                }
+            )
         if spatial_room["shape_type"] == "irregular":
             review_items.append(
                 {
