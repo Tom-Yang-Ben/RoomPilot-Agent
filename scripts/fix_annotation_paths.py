@@ -1,11 +1,11 @@
 """fix_annotation_paths.py — 修復 Inkscape 編輯後的標注 SVG。
 
 Inkscape 手修 Identify_ans/own_dataset/*/model.svg 時，房間（Space）或牆（Wall/Railing）
-群組裡的 <polygon> 可能被改存成 <path>（矩形工具、路徑編輯都會），
+群組裡的 <polygon> 可能被改存成 <path> 或 <rect>（矩形工具、路徑編輯都會），
 縮放/移動則會存成群組或形狀上的 transform="matrix(...)" 屬性。
 CubiCasa 的 House 解析器只認 <polygon> 子節點且完全忽略 transform——
 前者直接 StopIteration、後者座標落在錯誤空間。本腳本做兩件無損正規化：
-1. 「僅含直線段的閉合 path」轉回 polygon（M/m L/l H/h V/v Z/z；曲線報錯不動檔案）
+1. 「僅含直線段的閉合 path」與 rect 轉回 polygon（M/m L/l H/h V/v Z/z；曲線報錯不動檔案）
 2. transform（matrix/translate/scale 組合）烘焙進座標點後移除屬性
    （rotate/skew 報錯不動檔案；上層群組帶 transform 亦報錯——移除會波及兄弟節點）
 
@@ -19,7 +19,9 @@ import re
 import sys
 from xml.dom import minidom
 
-TOKEN = re.compile(r"([MmLlHhVvZz])|(-?\d*\.?\d+(?:[eE][-+]?\d+)?)")
+# 字母全捕捉：不支援的指令（曲線 C/Q/A/S/T 等）必須進 else 報錯，
+# 只捕捉 MLHVZ 會讓曲線的數字靜默混入前一個指令、形狀畫歪
+TOKEN = re.compile(r"([A-Za-z])|(-?\d*\.?\d+(?:[eE][-+]?\d+)?)")
 
 
 def path_to_points(d):
@@ -103,6 +105,17 @@ def check_ancestors_clean(e):
         p = p.parentNode
 
 
+def rect_points(e):
+    """rect 的 x/y/width/height → 四角頂點（rx/ry 圓角忽略，取外接矩形）。"""
+    x = float(e.getAttribute("x") or 0)
+    y = float(e.getAttribute("y") or 0)
+    w = float(e.getAttribute("width"))
+    h = float(e.getAttribute("height"))
+    if w <= 0 or h <= 0:
+        raise ValueError(f"rect 尺寸非正: {w}x{h}")
+    return [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
+
+
 def points_of(poly_attr):
     """polygon points 屬性 → [(x, y)]。"""
     nums = [float(v) for v in NUM.findall(poly_attr)]
@@ -125,9 +138,9 @@ def fix_svg(svg_path, check_only):
             continue
         label = e.getAttribute("class").strip() or e.getAttribute("id")
         kids = [c for c in e.childNodes if c.nodeType == 1]
-        shapes = [k for k in kids if k.nodeName in ("polygon", "path")]
+        shapes = [k for k in kids if k.nodeName in ("polygon", "path", "rect")]
         if not shapes:
-            errors.append(f"{label} 既無 polygon 也無 path")
+            errors.append(f"{label} 既無 polygon 也無 path/rect")
             continue
         try:
             check_ancestors_clean(e)
@@ -139,9 +152,12 @@ def fix_svg(svg_path, check_only):
         for p in shapes:
             try:
                 mat = mat_mul(gmat, parse_transform(p.getAttribute("transform")))
-                pts = (path_to_points(p.getAttribute("d"))
-                       if p.nodeName == "path"
-                       else points_of(p.getAttribute("points")))
+                if p.nodeName == "path":
+                    pts = path_to_points(p.getAttribute("d"))
+                elif p.nodeName == "rect":
+                    pts = rect_points(p)
+                else:
+                    pts = points_of(p.getAttribute("points"))
             except ValueError as ex:
                 errors.append(f"{label}: {ex}")
                 group_ok = False
@@ -151,15 +167,21 @@ def fix_svg(svg_path, check_only):
                 a, b, c, d, tx, ty = mat
                 pts = [(a * x + c * y + tx, b * x + d * y + ty)
                        for x, y in pts]
-            if p.nodeName == "path" or baked:
+            if p.nodeName in ("path", "rect") or baked:
                 poly = doc.createElement("polygon")
+                # 保留所有非幾何屬性（fill/stroke/style/opacity…）——
+                # 只複製 style 會讓屬性式配色的圖形變成預設黑色實心
+                GEOM = {"d", "points", "x", "y", "width", "height",
+                        "rx", "ry", "transform"}
+                for i in range(p.attributes.length):
+                    attr = p.attributes.item(i)
+                    if attr.name not in GEOM:
+                        poly.setAttribute(attr.name, attr.value)
                 poly.setAttribute("points",
                                   " ".join(f"{x:g},{y:g}" for x, y in pts) + " ")  # 尾空格：House get_polygon 會砍最後一項
-                if p.getAttribute("style"):
-                    poly.setAttribute("style", p.getAttribute("style"))
                 e.replaceChild(poly, p)
                 changed = True
-                tags = (["path"] if p.nodeName == "path" else []) \
+                tags = ([p.nodeName] if p.nodeName != "polygon" else []) \
                     + (["transform"] if baked else [])
                 converted.append(f"{label}[{'+'.join(tags)}]")
         gt_attr = e.getAttribute("transform")
@@ -186,7 +208,7 @@ def main():
     a = ap.parse_args()
 
     total, bad = 0, 0
-    for svg in sorted(glob.glob(a.dir.rstrip("/") + "/floor*/model.svg")):
+    for svg in sorted(glob.glob(a.dir.rstrip("/") + "/*floor*/model.svg")):
         converted, errors = fix_svg(svg, a.check)
         if converted:
             total += len(converted)

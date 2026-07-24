@@ -21,6 +21,28 @@ import os
 
 # (檔案相對路徑, 說明, OLD, NEW)
 PATCHES = [
+    ("floortrans/loaders/house.py", "WashRoom 房型（all_rooms；訓練歸 Bath id，標注獨立）",
+     '''             "Basement": 5,
+             "Bath": 6,
+''',
+     '''             "Basement": 5,
+             "Bath": 6,
+             "WashRoom": 6,
+'''),
+    ("floortrans/loaders/house.py", "WashRoom 房型（rooms_selected）",
+     '''                  "Basement": 11,
+                  "Bath": 6,
+''',
+     '''                  "Basement": 11,
+                  "Bath": 6,
+                  "WashRoom": 6,
+'''),
+    ("floortrans/loaders/house.py", "WashRoom 房型（room_name_map）",
+     '''                 "Bath": "Bath",
+''',
+     '''                 "Bath": "Bath",
+                 "WashRoom": "Bath",
+'''),
     ("floortrans/loaders/svg_utils.py", "np.matrix → np.array（numpy 2.x）",
      """            v = np.matrix([[X[i]], [Y[i]], [1]])
             vv = np.matmul(M, v)

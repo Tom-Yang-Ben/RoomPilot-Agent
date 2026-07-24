@@ -44,8 +44,10 @@ def _pts(points):
 FILL = {"Wall": ("#cc2222", 0.45), "Window": ("#22aa22", 0.6),
         "Door": ("#ddaa00", 0.6)}
 SPACE_FILL = {"Bedroom": "#4a90d9", "Bath": "#3dbdbd", "Kitchen": "#e8843c",
-              "LivingRoom": "#7dc37d", "Entry": "#c9a0dc", "Storage": "#b8a06a",
-              "Garage": "#909090", "Outdoor": "#c77dbb", "Undefined": "#d9d9d9"}
+              "LivingRoom": "#7dc37d", "Entry": "#8f5fc6", "Storage": "#b8a06a",
+              "Garage": "#909090", "Outdoor": "#b5368f", "Undefined": "#d9d9d9",
+              "Office": "#c9b458", "StairWell": "#a89cc8", "HallWay": "#c9a0dc",
+              "WashRoom": "#d97a8f"}
 
 
 def _g_poly(doc, points, gid=None, cls=None, fill=None, opacity=0.4,
