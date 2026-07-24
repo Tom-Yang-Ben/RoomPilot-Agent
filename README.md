@@ -81,7 +81,7 @@ RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案�
 → 2 上傳 PNG／JPG／DXF 平面圖
 → 3 拉取兩點並確認公分尺度
 → 4 確認房間尺寸、面積、牆、門、窗、樑與柱
-→ 5 填寫全屋基本問卷與逐房需求
+→ 5 完成 Test2 問卷：基本資料、逐房需求、極與極偏好、風格與表面色卡
 → 6 產生並修正 2D 家具配置
 → 7 升維為可編輯的 3D 白模
 → 8 套用六種風格、18 張色卡與即時 PBR 材質
@@ -94,6 +94,17 @@ RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案�
 ### 六種住宅風格
 
 目前網站提供北歐、日式、現代簡約、奶油、工業與美式六種風格，每種風格包含三組生活情境色調。使用者選定色調後，可把風格、主色與材質方向帶入 3D 場景。
+
+### Test2 需求問卷
+
+- 第 5 步依序收集居住者資料、逐房功能需求、極與極視覺偏好，以及風格、牆面、地板、天花板材質與色卡。極與極題庫共有 55 組，頁面會依已確認的空間類型顯示相關題目。
+- 未完成目前階段的必填內容時不可進入下一階段；完成摘要後才可產生 2D 家具配置。
+- 問卷資料會隨專案保存並可在重新整理後恢復。問卷內容異動時，既有 2D 配置與後續 3D／渲染結果會失效，必須依新需求重新產生。
+- 極與極結果會轉成結構化視覺偏好，供家具規格、3D 材質與遠端渲染使用；前端不自行計算家具座標。
+- 問卷題目與圖片狀態的版本來源是
+  `backend/server/data/questionnaire_visual_catalog.json`；後端會建立 SQLite
+  查詢索引，但索引不是需要提交或人工編輯的資料來源。
+- 圖片尚未完成的題目仍可使用文字選項作答；正式圖片補齊後只需更新版本化圖庫與靜態圖片，不改問卷資料契約。
 
 ### 家具資料庫
 
@@ -133,6 +144,8 @@ RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案�
 |---|---|---|
 | 首頁 | `/api/home-data` | 專案摘要與首頁資訊 |
 | 風格頁 | `/api/styles` | 風格、色卡、示意圖與說明 |
+| Test2 問卷 | `/api/questionnaire/visual-catalog` | 極與極題目、順序、文字選項與圖片狀態 |
+| Test2 問卷圖片 | `/api/questionnaire/visual-images/{image_id}` | 單張問卷圖片的 metadata |
 | 家具庫 | `/api/furniture` | 篩選後的分頁家具 |
 | 家具詳情 | `/api/furniture/{id}` | 單件家具完整資料 |
 | 3D 場景 | `/api/scene/bootstrap` | 問卷、風格與材質必要資料 |
@@ -213,6 +226,13 @@ ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS=D:\RoomPilot-assets\ikea抓取家具glb_中文�
 
 ```powershell
 uv run pytest tests/ -v
+```
+
+十步流程、Test2 問卷保存與重載、Project API，以及問卷結果傳入
+2D／3D 的整合驗證可單獨執行：
+
+```powershell
+uv run pytest tests/test_scene_workflow.py tests/test_questionnaire_visual_catalog.py tests/test_project_workflow_api.py -q
 ```
 
 ## 版本控制規則

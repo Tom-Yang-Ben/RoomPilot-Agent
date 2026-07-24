@@ -9,7 +9,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from backend.catalog.questionnaire_visuals import (
+from backend.server.questionnaire_visuals import (
     QuestionnaireVisualStore,
     load_questionnaire_visual_catalog,
 )
@@ -33,6 +33,7 @@ def _run_questionnaire_helpers(script: str) -> dict:
               import {{
                 applyVisualPreferencesToSpecs,
                 finishesGate,
+                occupantsFromBasicAnswers,
                 questionnaireSummary,
                 questionsForRooms,
                 visualQuestionnaireProgress,
@@ -122,7 +123,7 @@ def test_questionnaire_catalog_json_remains_the_versioned_source() -> None:
     path = (
         ROOT
         / "backend"
-        / "catalog"
+        / "server"
         / "data"
         / "questionnaire_visual_catalog.json"
     )
@@ -148,6 +149,13 @@ def test_questionnaire_helpers_filter_rooms_and_enforce_both_gates() -> None:
           const selected = questionsForRooms(questions, [
             { id: "room-1", type: "bedroom" },
           ]);
+          const bedrooms = questionsForRooms([
+            { question_id: "primary", space_type: "primary_bedroom" },
+            { question_id: "secondary", space_type: "secondary_bedroom" },
+          ], [
+            { id: "room-1", type: "bedroom" },
+            { id: "room-2", type: "bedroom" },
+          ]);
           const visual = visualQuestionnaireProgress({
             questions: selected,
             answers: { bed: { optionId: "left" } },
@@ -171,6 +179,7 @@ def test_questionnaire_helpers_filter_rooms_and_enforce_both_gates() -> None:
           });
           console.log(JSON.stringify({
             questionIds: selected.map((item) => item.question_id),
+            bedroomQuestionIds: bedrooms.map((item) => item.question_id),
             visual,
             incompleteFinishes,
             completeFinishes,
@@ -179,6 +188,7 @@ def test_questionnaire_helpers_filter_rooms_and_enforce_both_gates() -> None:
     )
 
     assert result["questionIds"] == ["bed", "shared"]
+    assert result["bedroomQuestionIds"] == ["primary", "secondary"]
     assert result["visual"] == {"completed": 2, "total": 2, "ready": True}
     assert result["incompleteFinishes"]["ready"] is False
     assert result["incompleteFinishes"]["missing"] == [
@@ -189,6 +199,68 @@ def test_questionnaire_helpers_filter_rooms_and_enforce_both_gates() -> None:
         "light_style",
     ]
     assert result["completeFinishes"] == {"ready": True, "missing": []}
+
+
+def test_basic_answers_are_converted_to_scene_occupants() -> None:
+    result = _run_questionnaire_helpers(
+        """
+          console.log(JSON.stringify({
+            soloWithPet: occupantsFromBasicAnswers({
+              household: "一人",
+              membersAndPets: "有貓",
+            }),
+            threeGenerations: occupantsFromBasicAnswers({
+              household: "三代同堂",
+              membersAndPets: "有長輩",
+            }),
+          }));
+        """
+    )
+
+    assert result["soloWithPet"] == {
+        "adults": 1,
+        "children": 0,
+        "elderly": 0,
+        "pets": 1,
+    }
+    assert result["threeGenerations"] == {
+        "adults": 2,
+        "children": 1,
+        "elderly": 1,
+        "pets": 0,
+    }
+
+
+def test_scene_generate_preserves_complete_test2_questionnaire() -> None:
+    client = TestClient(main.app)
+    test2 = {
+        "catalog_version": "1.0.0",
+        "basic": {"household": "一人"},
+        "rooms": {"living-1": {"confirmed": True}},
+        "visual_preferences": [{"question_id": "living-focus", "option_id": "social"}],
+        "finishes": {"wallColor": "#ffffff"},
+    }
+
+    response = client.post(
+        "/api/scene/generate",
+        json={
+            "client_brief": {
+                "space": {"type": "living_room"},
+                "style": {"preferred": ["modern"]},
+                "occupants": {"adults": 1, "children": 0, "elderly": 0, "pets": 0},
+            },
+            "questionnaire": test2,
+            "room_width_cm": 420,
+            "room_depth_cm": 360,
+            "required_furniture": [],
+            "selected_furniture": [],
+            "selected_furniture_exact": True,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["questionnaire"]["test2_questionnaire"] == test2
+    assert response.json()["questionnaire"]["occupants"]["adults"] == 1
 
 
 def test_questionnaire_summary_localizes_balanced_visual_choice() -> None:

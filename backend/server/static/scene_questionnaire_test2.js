@@ -3,7 +3,6 @@ const ROOM_TO_VISUAL_SPACES = Object.freeze({
   living_room: ["living_room"],
   dining_room: ["dining_room"],
   kitchen: ["kitchen"],
-  bedroom: ["primary_bedroom", "secondary_bedroom"],
   bathroom: ["bathroom"],
   workspace: ["study"],
   balcony: ["balcony"],
@@ -26,14 +25,37 @@ export const VISUAL_SPACE_LABELS = Object.freeze({
 });
 
 export function questionsForRooms(questions = [], rooms = []) {
-  const roomSpaces = new Set(
-    rooms.flatMap((room) => ROOM_TO_VISUAL_SPACES[room.type] || []),
-  );
+  let bedroomIndex = 0;
+  const roomSpaces = new Set();
+  rooms.forEach((room) => {
+    if (room.type === "bedroom") {
+      roomSpaces.add(bedroomIndex === 0 ? "primary_bedroom" : "secondary_bedroom");
+      bedroomIndex += 1;
+      return;
+    }
+    (ROOM_TO_VISUAL_SPACES[room.type] || []).forEach((space) => roomSpaces.add(space));
+  });
   const sharedSpaces = new Set(["circulation", "all_rooms"]);
   return questions.filter(
     (question) => roomSpaces.has(question.space_type)
       || sharedSpaces.has(question.space_type),
   );
+}
+
+export function occupantsFromBasicAnswers(basic = {}) {
+  const occupants = { adults: 2, children: 0, elderly: 0, pets: 0 };
+  const household = basic.household || "";
+  if (household === "一人") occupants.adults = 1;
+  if (household === "親子家庭") occupants.children = 1;
+  if (household === "三代同堂") {
+    occupants.children = 1;
+    occupants.elderly = 1;
+  }
+  const membersAndPets = basic.membersAndPets || "";
+  if (membersAndPets === "有幼兒") occupants.children = Math.max(1, occupants.children);
+  if (membersAndPets === "有長輩") occupants.elderly = Math.max(1, occupants.elderly);
+  if (membersAndPets === "有貓" || membersAndPets === "有狗") occupants.pets = 1;
+  return occupants;
 }
 
 export function answeredVisualQuestionIds(answers = {}) {

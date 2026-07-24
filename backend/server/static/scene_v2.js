@@ -35,11 +35,12 @@ import {
 import {
   applyVisualPreferencesToSpecs,
   finishesGate,
+  occupantsFromBasicAnswers,
   questionnaireSummary,
   questionsForRooms,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-91e08ff2f3d9";
+} from "./scene_questionnaire_test2.js?v=20260724-reviewfix1";
 import {
   applyStylePack,
   CEILING_STYLES,
@@ -3960,6 +3961,7 @@ function selectQuestionnaireStylePack(packId) {
     )?.id || LIGHT_STYLES[0].id,
   };
   renderQuestionnaireFinishes();
+  scheduleSave("requirements");
 }
 
 function confirmQuestionnaireFinishes() {
@@ -4729,16 +4731,18 @@ async function confirmLayout2d() {
               state.questionnaireFinishes.ceilingMaterial,
             ].filter(Boolean),
           },
-          occupants: { adults: 2, children: 0, elderly: 0, pets: 0 },
-          needs: [],
+          occupants: occupantsFromBasicAnswers(state.basicAnswers),
+          needs: [state.basicAnswers.lifestyle].filter(Boolean),
           constraints: ["keep_door_clear", "keep_window_clear"],
         },
         questionnaire: {
+          catalog_version: state.visualCatalogVersion,
           basic: state.basicAnswers,
           rooms: state.roomAnswers,
           visual_preferences: visualPreferences,
           finishes: state.questionnaireFinishes,
         },
+        personal_notes: state.basicAnswers.immutableNeeds || "",
         floorplan_filename: `${state.projectId}-confirmed.dxf`,
         floorplan_editor: confirmedFloorplanEditor(),
         room_width_cm: dimensions.widthCm,
@@ -6352,6 +6356,7 @@ function bindEvents() {
       if (option?.color) state.questionnaireFinishes[colorKey] = option.color;
       state.questionnaireFinishes.confirmed = false;
       renderQuestionnaireFinishes();
+      scheduleSave("requirements");
     });
   });
   [

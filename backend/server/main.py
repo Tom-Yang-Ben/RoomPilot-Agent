@@ -19,7 +19,7 @@ from PIL import Image
 
 from ..agent.knowledge import family_of
 from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
-from ..catalog.questionnaire_visuals import (
+from .questionnaire_visuals import (
     QuestionnaireVisualStore,
     load_questionnaire_visual_catalog,
 )
@@ -2254,11 +2254,11 @@ async def generate_scene(payload: dict) -> dict:
     brief_space = client_brief.get("space") or {}
     brief_style = client_brief.get("style") or {}
     brief_occupants = client_brief.get("occupants") or {}
+    test2_questionnaire = payload.get("questionnaire") or {}
 
     questionnaire = {
         "space_type": payload.get("space_type") or brief_space.get("type") or "living_room",
         "style_preference": payload.get("style_preference") or (brief_style.get("preferred") or ["auto"])[0],
-        "style_card_id": payload.get("style_card_id"),
         "style_card_id": payload.get("style_card_id"),
         "required_furniture": payload.get("required_furniture", []),
         "selected_furniture": payload.get("selected_furniture", []),
@@ -2267,6 +2267,7 @@ async def generate_scene(payload: dict) -> dict:
         "preferred_colors": payload.get("preferred_colors") or brief_style.get("colors", []),
         "custom_colors": payload.get("custom_colors", []),
         "personal_notes": payload.get("personal_notes", ""),
+        "test2_questionnaire": test2_questionnaire,
         "keep_window_clear": bool(payload.get("keep_window_clear", "keep_window_clear" in client_brief.get("constraints", []))),
         "keep_door_clear": bool(payload.get("keep_door_clear", "keep_door_clear" in client_brief.get("constraints", []))),
         "need_storage": bool(payload.get("need_storage", "storage" in client_brief.get("needs", []))),
