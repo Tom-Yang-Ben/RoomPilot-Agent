@@ -3,10 +3,70 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+import math
 from typing import Any
 
 import cv2
 import numpy as np
+
+
+def _polygon_area(points: list[Mapping[str, Any]]) -> float:
+    return abs(
+        sum(
+            float(point["x"]) * float(points[(index + 1) % len(points)]["y"])
+            - float(points[(index + 1) % len(points)]["x"]) * float(point["y"])
+            for index, point in enumerate(points)
+        )
+    ) / 2
+
+
+def _remove_narrow_spikes(
+    polygon: list[Mapping[str, Any]],
+    *,
+    max_base_m: float = 0.35,
+    min_height_m: float = 0.15,
+) -> list[dict[str, Any]]:
+    """Remove thin raster-closure needles without flattening normal room corners."""
+    repaired = [dict(point) for point in polygon]
+    changed = True
+    while changed and len(repaired) > 3:
+        changed = False
+        area = _polygon_area(repaired)
+        for index, point in enumerate(repaired):
+            previous = repaired[index - 1]
+            following = repaired[(index + 1) % len(repaired)]
+            ax = float(previous["x"])
+            ay = float(previous["y"])
+            bx = float(point["x"])
+            by = float(point["y"])
+            cx = float(following["x"])
+            cy = float(following["y"])
+            dx = cx - ax
+            dy = cy - ay
+            base = math.hypot(dx, dy)
+            if base <= 1e-9 or base > max_base_m:
+                if base <= 1e-9:
+                    continue
+            projection = ((bx - ax) * dx + (by - ay) * dy) / (base * base)
+            height = abs(dx * (ay - by) - (ax - bx) * dy) / base
+            if 0.0 <= projection <= 1.0 and height <= 0.02:
+                repaired = repaired[:index] + repaired[index + 1 :]
+                changed = True
+                break
+            if base > max_base_m:
+                continue
+            if not 0.1 <= projection <= 0.9:
+                continue
+            if height < min_height_m or height < base * 0.75:
+                continue
+            candidate = repaired[:index] + repaired[index + 1 :]
+            area_change = abs(area - _polygon_area(candidate))
+            if area_change > max(0.05, area * 0.05):
+                continue
+            repaired = candidate
+            changed = True
+            break
+    return repaired
 
 
 def _apply_layout_label_suggestions(
@@ -184,6 +244,7 @@ def infer_rooms_from_walls(
             }
             for point in polygon
         ]
+        polygon_m = _remove_narrow_spikes(polygon_m)
         if len(polygon_m) < 3:
             continue
 

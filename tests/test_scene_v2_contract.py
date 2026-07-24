@@ -30,6 +30,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_viewer.js",
             "scene_unit_contracts.js",
             "scene_calibration.js",
+            "scene_room_geometry.js",
             "scene_structure_utils.js",
             "scene_structure_preview.js",
             "scene_structure_geometry.js",
@@ -1227,6 +1228,52 @@ def test_room_polygon_nodes_can_be_merged_or_split_on_an_edge() -> None:
     assert "state.selectedRoomNodeIndices.length === 2" in source
     assert 'data-room-point="${index}"' in source
     assert "room.confirmed = false" in source
+
+
+def test_loaded_cody_rooms_repair_narrow_spikes_before_rendering() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    module_uri = (STATIC / "scene_room_geometry.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ repairLoadedRoomPolygon }} from {json.dumps(module_uri)};
+        const spike = [
+          {{ x: 376.6, y: 788.4 }},
+          {{ x: 376.6, y: 478.6 }},
+          {{ x: 463.5, y: 478.6 }},
+          {{ x: 473.6, y: 690.2 }},
+          {{ x: 483.6, y: 478.6 }},
+          {{ x: 714.1, y: 478.6 }},
+          {{ x: 715.4, y: 788.4 }},
+        ];
+        const lShape = [
+          {{ x: 0, y: 0 }},
+          {{ x: 400, y: 0 }},
+          {{ x: 400, y: 300 }},
+          {{ x: 200, y: 300 }},
+          {{ x: 200, y: 100 }},
+          {{ x: 0, y: 100 }},
+        ];
+        console.log(JSON.stringify({{
+          repaired: repairLoadedRoomPolygon(spike),
+          lShape: repairLoadedRoomPolygon(lShape),
+        }}));
+        """
+    )
+
+    assert "repairLoadedRoomPolygon" in source
+    assert 'room.polygon_source === "cody_wall_enclosure"' in source
+    assert "room.confirmed !== true" in source
+    assert "geometry_repaired: geometryRepaired" in source
+    assert len(result["repaired"]) == 4
+    assert {"x": 473.6, "y": 690.2} not in result["repaired"]
+    assert result["lShape"] == [
+        {"x": 0, "y": 0},
+        {"x": 400, "y": 0},
+        {"x": 400, "y": 300},
+        {"x": 200, "y": 300},
+        {"x": 200, "y": 100},
+        {"x": 0, "y": 100},
+    ]
 
 
 def test_manual_upstream_edits_clear_stale_3d_steps_before_saving() -> None:

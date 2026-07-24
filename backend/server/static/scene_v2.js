@@ -5,6 +5,9 @@ import {
   normalizeSavedSpaceConfirmation,
 } from "./scene_unit_contracts.js?v=sha256-3372a900aa79";
 import {
+  repairLoadedRoomPolygon,
+} from "./scene_room_geometry.js?v=sha256-de1617c48879";
+import {
   createWorkflow,
   restoreWorkflow,
   shouldReplayPendingSave,
@@ -1232,15 +1235,27 @@ function initializeRoomsAndStructures() {
       head_height_cm: dimension("head_height_cm", "head_height_m", undefined),
     };
   };
+  let repairedRoomCount = 0;
   state.rooms = sourceRooms.map((room, index) => {
     const polygon = room.polygon_cm || room.polygon_m || room.polygon || room.exterior || [];
+    const normalizedPolygon = polygon.map((point) => normalizePoint(point, !hasImageRooms));
+    const shouldRepair = (
+      room.polygon_source === "cody_wall_enclosure"
+      && room.confirmed !== true
+    );
+    const repairedPolygon = shouldRepair
+      ? repairLoadedRoomPolygon(normalizedPolygon)
+      : normalizedPolygon;
+    const geometryRepaired = repairedPolygon.length < normalizedPolygon.length;
+    if (geometryRepaired) repairedRoomCount += 1;
     return {
       ...room,
       id: room.id || room.room_id || `room-${index + 1}`,
       label: room.label || room.name || `空間 ${index + 1}`,
       type: room.type || room.room_type || "default",
-      confirmed: room.confirmed === true,
-      polygon_cm: polygon.map((point) => normalizePoint(point, !hasImageRooms)),
+      confirmed: geometryRepaired ? false : room.confirmed === true,
+      geometry_repaired: geometryRepaired || room.geometry_repaired === true,
+      polygon_cm: repairedPolygon,
     };
   }).filter((room) => room.polygon_cm.length >= 3);
   if (!state.rooms.length) {
@@ -1298,6 +1313,10 @@ function initializeRoomsAndStructures() {
   renderRooms();
   renderSpaceOverlay();
   renderStructureCounts();
+  if (repairedRoomCount > 0) {
+    element.spaceError.textContent =
+      `已修復 ${repairedRoomCount} 個房間的異常岔出節點，請重新確認房間輪廓。`;
+  }
 }
 
 function roomPolygonSvg(room) {
