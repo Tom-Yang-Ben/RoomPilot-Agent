@@ -1823,6 +1823,8 @@ def build_scene_payload(
             "style_card_id": questionnaire.get("style_card_id"),
             "wall_option": questionnaire.get("wall_option", "auto"),
             "floor_option": questionnaire.get("floor_option", "auto"),
+            "wall_color_hex": questionnaire.get("wall_color_hex"),
+            "floor_color_hex": questionnaire.get("floor_color_hex"),
             "single_room_mode": not bool(parsed_floorplan),
             "accurate_dxf_mode": bool(parsed_floorplan),
         },

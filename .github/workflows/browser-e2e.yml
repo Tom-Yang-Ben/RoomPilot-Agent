@@ -1,0 +1,34 @@
+name: Browser E2E Gate
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  step6-step7-browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ROOMPILOT_BROWSER_E2E: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install server and browser-test dependencies
+        run: uv sync --extra server --extra e2e
+
+      - name: Run the real Chrome Step 6 to Step 7 gate
+        run: uv run pytest tests/test_browser_step6_step7_e2e.py -q

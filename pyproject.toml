@@ -38,6 +38,9 @@ catalog = [
     "psycopg2-binary>=2.9",
     "python-dotenv>=1.2",
 ]
+e2e = [
+    "selenium>=4.45",
+]
 
 [dependency-groups]
 dev = [

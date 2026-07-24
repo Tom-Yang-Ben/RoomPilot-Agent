@@ -1885,6 +1885,9 @@ catalog = [
     { name = "tqdm" },
     { name = "webdriver-manager" },
 ]
+e2e = [
+    { name = "selenium" },
+]
 ocr = [
     { name = "paddleocr" },
     { name = "paddlepaddle" },
@@ -1924,13 +1927,14 @@ requires-dist = [
     { name = "python-multipart", marker = "extra == 'server'", specifier = ">=0.0.9" },
     { name = "requests", marker = "extra == 'catalog'", specifier = ">=2.34" },
     { name = "selenium", marker = "extra == 'catalog'", specifier = ">=4.45" },
+    { name = "selenium", marker = "extra == 'e2e'", specifier = ">=4.45" },
     { name = "shapely", specifier = ">=2.1.2" },
     { name = "sqlalchemy", marker = "extra == 'catalog'", specifier = ">=2.0" },
     { name = "tqdm", marker = "extra == 'catalog'", specifier = ">=4.68" },
     { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.30" },
     { name = "webdriver-manager", marker = "extra == 'catalog'", specifier = ">=4.1" },
 ]
-provides-extras = ["server", "vision", "ocr", "catalog"]
+provides-extras = ["server", "vision", "ocr", "catalog", "e2e"]
 
 [package.metadata.requires-dev]
 dev = [
