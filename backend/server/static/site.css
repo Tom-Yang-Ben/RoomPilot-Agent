@@ -10303,3 +10303,529 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
     grid-template-columns: 1fr;
   }
 }
+/* Test2 questionnaire, integrated into the ten-step Bella workflow. */
+#requirements-step .rp-questionnaire-workspace {
+  display: block;
+  min-height: 0;
+}
+
+.rp-test2-questionnaire {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 56px;
+}
+
+.rp-questionnaire-heading,
+.rp-questionnaire-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.rp-questionnaire-heading {
+  padding-bottom: 22px;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-heading h2,
+.rp-questionnaire-section-heading h3 {
+  margin: 4px 0 6px;
+  letter-spacing: 0;
+}
+
+.rp-questionnaire-heading p,
+.rp-questionnaire-section-heading p {
+  margin: 0;
+  color: #68645e;
+}
+
+.rp-questionnaire-heading > strong {
+  flex: 0 0 auto;
+  padding-left: 16px;
+  border-left: 3px solid #2b725f;
+  color: #29473e;
+}
+
+.rp-questionnaire-stage-nav {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 20px 0 30px;
+  border-block: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-stage-nav button {
+  min-width: 0;
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 0;
+  border-right: 1px solid #d8d5ce;
+  border-radius: 0;
+  background: #fff;
+  color: #706c66;
+}
+
+.rp-questionnaire-stage-nav button:last-child {
+  border-right: 0;
+}
+
+.rp-questionnaire-stage-nav button b {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid #bcb8b1;
+  border-radius: 50%;
+  font-size: 13px;
+}
+
+.rp-questionnaire-stage-nav button.is-active {
+  background: #e9f2ed;
+  color: #1f5b4b;
+  font-weight: 700;
+}
+
+.rp-questionnaire-stage-nav button.is-active b,
+.rp-questionnaire-stage-nav button.is-complete b {
+  border-color: #26715c;
+  background: #26715c;
+  color: #fff;
+}
+
+.rp-questionnaire-stage-nav button:disabled {
+  cursor: not-allowed;
+  color: #aaa69f;
+  opacity: 0.72;
+}
+
+.rp-questionnaire-stage {
+  min-height: 440px;
+}
+
+.rp-questionnaire-section-heading {
+  margin-bottom: 24px;
+}
+
+.rp-test2-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-test2-profile-grid > label {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border-right: 1px solid #d8d5ce;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-test2-profile-grid > label:nth-child(even) {
+  border-right: 0;
+}
+
+.rp-test2-profile-grid > label:last-child {
+  grid-column: 1 / -1;
+  border-right: 0;
+}
+
+.rp-test2-profile-grid select,
+.rp-test2-profile-grid textarea,
+.rp-test2-room-editor textarea,
+.rp-questionnaire-material-grid select {
+  width: 100%;
+}
+
+.rp-test2-room-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.rp-questionnaire-plan-stage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 360px;
+  border: 1px solid #cbc8c0;
+  background: #f6f6f3;
+}
+
+.rp-test2-room-editor {
+  display: grid;
+  gap: 18px;
+  padding-left: 28px;
+  border-left: 1px solid #d8d5ce;
+}
+
+.rp-test2-room-editor fieldset {
+  margin: 0;
+  padding: 0 0 18px;
+  border: 0;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-test2-room-editor legend {
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.rp-test2-room-editor #room-furniture-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+}
+
+.rp-questionnaire-footer-actions {
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-visual-questionnaire-layout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 28px;
+}
+
+.rp-visual-space-nav {
+  display: grid;
+  align-content: start;
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-visual-space-nav button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 14px 8px;
+  border: 0;
+  border-bottom: 1px solid #d8d5ce;
+  border-radius: 0;
+  background: transparent;
+  color: #595650;
+  text-align: left;
+}
+
+.rp-visual-space-nav button.is-active {
+  padding-left: 14px;
+  border-left: 3px solid #2b725f;
+  background: #eef4f0;
+  color: #214f42;
+}
+
+.rp-visual-space-nav small {
+  white-space: nowrap;
+}
+
+.rp-visual-question-progress {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.rp-visual-question-card {
+  padding: 0;
+}
+
+.rp-visual-question-card h3 {
+  margin: 4px 0 8px;
+  font-size: 28px;
+  letter-spacing: 0;
+}
+
+.rp-visual-question-card > p {
+  margin: 0 0 20px;
+  color: #68645e;
+}
+
+.rp-visual-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rp-visual-option {
+  min-width: 0;
+  min-height: 310px;
+  display: grid;
+  grid-template-rows: 210px auto auto;
+  align-content: start;
+  gap: 10px;
+  padding: 10px 10px 16px;
+  border: 1px solid #c8c4bc;
+  border-radius: 6px;
+  background: #fff;
+  color: #302e2b;
+  text-align: left;
+}
+
+.rp-visual-option:hover,
+.rp-visual-option.is-selected,
+.rp-visual-balance.is-selected {
+  border-color: #27715d;
+  box-shadow: inset 0 0 0 2px #27715d;
+}
+
+.rp-visual-option-media {
+  width: 100%;
+  height: 210px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #eeece7;
+}
+
+.rp-visual-option-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rp-visual-image-pending {
+  color: #77726b;
+  text-align: center;
+}
+
+.rp-visual-option strong {
+  font-size: 18px;
+}
+
+.rp-visual-option small {
+  color: #66615b;
+  line-height: 1.55;
+}
+
+.rp-visual-balance {
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px 16px;
+  border: 1px solid #c8c4bc;
+  border-radius: 4px;
+  background: #f7f6f3;
+}
+
+.rp-visual-custom-answer {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.rp-questionnaire-style-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 28px;
+}
+
+.rp-questionnaire-style-grid > button {
+  min-width: 0;
+}
+
+.rp-questionnaire-material-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  padding-top: 24px;
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-material-grid fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.rp-questionnaire-material-grid legend {
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.rp-questionnaire-material-grid label {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.rp-questionnaire-material-grid input[type="color"] {
+  width: 100%;
+  height: 44px;
+  padding: 4px;
+}
+
+.rp-questionnaire-material-options {
+  display: grid;
+  gap: 10px;
+}
+
+.rp-questionnaire-material-options button {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 3px 12px;
+  padding: 9px;
+  border: 1px solid #cbc7bf;
+  border-radius: 5px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-questionnaire-material-options button.is-active {
+  border-color: #27715d;
+  box-shadow: inset 0 0 0 2px #27715d;
+}
+
+.rp-questionnaire-material-options .rp-material-preview {
+  grid-row: 1 / 3;
+  width: 72px;
+  height: 58px;
+  background-position: center;
+  background-size: cover;
+}
+
+.rp-questionnaire-material-options small {
+  color: #6e6962;
+}
+
+.rp-questionnaire-summary {
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-summary > section {
+  padding: 22px 0;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-summary h4 {
+  margin: 0 0 14px;
+}
+
+.rp-questionnaire-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rp-questionnaire-summary-grid > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px 12px 0;
+}
+
+.rp-questionnaire-summary-grid span,
+.rp-questionnaire-summary li span {
+  color: #716d66;
+}
+
+.rp-questionnaire-summary ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-questionnaire-summary li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ece9e3;
+}
+
+.rp-questionnaire-summary li small {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .rp-test2-questionnaire {
+    width: min(100% - 24px, 720px);
+  }
+
+  .rp-questionnaire-stage-nav {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .rp-questionnaire-stage-nav button {
+    flex: 0 0 132px;
+  }
+
+  .rp-questionnaire-stage-nav button span {
+    white-space: nowrap;
+  }
+
+  .rp-test2-room-workspace,
+  .rp-visual-questionnaire-layout,
+  .rp-questionnaire-material-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-test2-room-editor {
+    padding: 22px 0 0;
+    border-top: 1px solid #d8d5ce;
+    border-left: 0;
+  }
+
+  .rp-visual-space-nav {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    overflow-x: auto;
+  }
+
+  .rp-questionnaire-style-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .rp-questionnaire-heading,
+  .rp-questionnaire-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rp-test2-profile-grid,
+  .rp-visual-options,
+  .rp-questionnaire-style-grid,
+  .rp-questionnaire-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-test2-profile-grid > label {
+    border-right: 0;
+  }
+
+  .rp-visual-option {
+    min-height: 270px;
+    grid-template-rows: 175px auto auto;
+  }
+
+  .rp-visual-option-media {
+    height: 175px;
+  }
+
+  .rp-visual-question-card h3 {
+    font-size: 24px;
+  }
+
+  .rp-questionnaire-footer-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rp-questionnaire-stage .rp-action-row > button {
+    width: 100%;
+  }
+}

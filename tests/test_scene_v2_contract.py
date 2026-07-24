@@ -1624,7 +1624,8 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert 'id="flip-selected-door"' in html
     assert 'id="rotate-selected-door-180"' in html
     assert 'class="rp-questionnaire-workspace"' in html
-    assert 'id="requirements-plan-stage"' not in html
+    assert 'id="requirements-plan-stage"' in html
+    assert 'id="requirements-plan-overlay"' in html
     assert 'id="room-furniture-select"' in html
     assert "selectedOptions" in controller
     assert 'id="layout-room-filter"' in html

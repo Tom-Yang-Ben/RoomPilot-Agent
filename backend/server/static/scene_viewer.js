@@ -1953,6 +1953,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       { widthCm, depthCm, wallHeight, ceilingHeight },
       roomGroup.userData.ceilingStyle,
       sceneData.style_card || sceneData.style || {},
+      {
+        color: sceneData.design_choices?.ceiling_color_hex,
+        material: sceneData.design_choices?.ceiling_material,
+      },
     );
     ceilingGroup.visible = false;
 
@@ -2041,12 +2045,20 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     }
   }
 
-  function createCeilingGeometry(room, ceilingStyle, style = {}) {
+  function createCeilingGeometry(room, ceilingStyle, style = {}, finish = {}) {
     if (ceilingStyle === "exposed") return;
     const palette = style.palette_hex || ["#F3EBDD", "#D3B48A", "#8B684B"];
+    const materialProfiles = {
+      "flat-paint": { roughness: 0.86, metalness: 0 },
+      "mineral-paint": { roughness: 0.96, metalness: 0 },
+      "wood-veneer": { roughness: 0.58, metalness: 0 },
+      "exposed-concrete": { roughness: 0.92, metalness: 0 },
+    };
+    const profile = materialProfiles[finish.material] || materialProfiles["flat-paint"];
     const baseMaterial = new THREE.MeshStandardMaterial({
-      color: palette[0] || "#f3eee6",
-      roughness: 0.86,
+      color: finish.color || palette[0] || "#f3eee6",
+      roughness: profile.roughness,
+      metalness: profile.metalness,
       side: THREE.DoubleSide,
     });
     const accentMaterial = new THREE.MeshStandardMaterial({
@@ -2063,6 +2075,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       panel.receiveShadow = true;
       panel.castShadow = true;
       panel.userData.ceilingStyle = ceilingStyle;
+      panel.userData.ceilingMaterial = finish.material || "flat-paint";
       ceilingGroup.add(panel);
       return panel;
     };

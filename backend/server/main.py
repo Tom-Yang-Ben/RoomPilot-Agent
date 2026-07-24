@@ -10,6 +10,7 @@ import urllib.request
 import zipfile
 from functools import lru_cache
 from pathlib import Path
+from threading import Lock
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
@@ -18,6 +19,10 @@ from PIL import Image
 
 from ..agent.knowledge import family_of
 from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
+from ..catalog.questionnaire_visuals import (
+    QuestionnaireVisualStore,
+    load_questionnaire_visual_catalog,
+)
 from ..catalog.style_db import sanitize_size_cm
 from ..floorplan.vision import (
     analyze_floorplan_image,
@@ -76,6 +81,9 @@ SAMPLE_FLOORPLAN_630 = PROJECT_DIR / "testdata" / "png" / "builder_plan_630.png"
 PROJECT_STORE = ProjectStore(project_runtime_dir(PROJECT_DIR))
 for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
     PROJECT_STORE.import_runtime(legacy_runtime)
+QUESTIONNAIRE_VISUAL_CATALOG = load_questionnaire_visual_catalog()
+QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
+_QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
 MAX_RENDER_BYTES = 20 * 1024 * 1024
 _EXTERNAL_GLB_ZIP_SEARCH_DIRS = (
@@ -97,6 +105,23 @@ _DATASET_GLB_ROOTS = [
 ]
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
+
+
+def _questionnaire_visual_store() -> QuestionnaireVisualStore:
+    """Build the worktree-local query index only when the questionnaire is used."""
+    global QUESTIONNAIRE_VISUAL_STORE
+    if QUESTIONNAIRE_VISUAL_STORE is not None:
+        return QUESTIONNAIRE_VISUAL_STORE
+    with _QUESTIONNAIRE_VISUAL_STORE_LOCK:
+        if QUESTIONNAIRE_VISUAL_STORE is None:
+            store = QuestionnaireVisualStore(
+                project_runtime_dir(PROJECT_DIR)
+                / "indexes"
+                / "questionnaire_visuals.sqlite3"
+            )
+            store.sync(QUESTIONNAIRE_VISUAL_CATALOG)
+            QUESTIONNAIRE_VISUAL_STORE = store
+    return QUESTIONNAIRE_VISUAL_STORE
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/docs-assets", StaticFiles(directory=MOODBOARD_DIR), name="docs-assets")
@@ -1919,6 +1944,40 @@ def scene_bootstrap() -> dict:
         "surface_catalog": load_surface_catalog(),
         "catalog_status": catalog_status(),
     }
+
+
+@app.get("/api/questionnaire/visual-catalog")
+def questionnaire_visual_catalog_api(
+    space_type: str | None = Query(None),
+    ready_only: bool = Query(False),
+) -> dict:
+    questions = _questionnaire_visual_store().list_questions(
+        space_type=space_type,
+        ready_only=ready_only,
+    )
+    return {
+        "version": QUESTIONNAIRE_VISUAL_CATALOG["version"],
+        "notice_zh": QUESTIONNAIRE_VISUAL_CATALOG["notice_zh"],
+        "question_count": QUESTIONNAIRE_VISUAL_CATALOG["question_count"],
+        "image_count": QUESTIONNAIRE_VISUAL_CATALOG["image_count"],
+        "ready_image_count": sum(
+            option["generation_status"] == "ready"
+            for question in QUESTIONNAIRE_VISUAL_CATALOG["questions"]
+            for option in question["options"]
+        ),
+        "questions": questions,
+    }
+
+
+@app.get("/api/questionnaire/visual-images/{image_id}")
+def questionnaire_visual_image_api(image_id: str) -> dict:
+    try:
+        return _questionnaire_visual_store().get_image(image_id)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail="questionnaire_image_not_found",
+        ) from exc
 
 
 @app.get("/api/furniture")
