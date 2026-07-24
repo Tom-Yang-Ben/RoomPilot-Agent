@@ -685,43 +685,43 @@ def test_catalog_resolution_keeps_each_room_furniture_as_a_unique_scene_instance
     assert result["first"]["size_cm"] == {"width": 35, "depth": 35, "height": 85}
 
 
-def test_every_room_questionnaire_furniture_choice_has_a_2d_icon_variant() -> None:
+def test_every_room_default_furniture_has_a_2d_icon_variant() -> None:
     layout_uri = (STATIC / "scene_layout2d.js").as_uri()
-    requirements_uri = (STATIC / "scene_requirements.js").as_uri()
-    scene_source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    label_map = {
-        label: (kind, variant)
-        for label, kind, variant in re.findall(
-            r'"([^"]+)":\s*\[\s*"([^"]+)",\s*"([^"]+)"\s*\]',
-            scene_source,
-        )
-    }
     result = run_workflow_script(
         f"""
-        import {{ FURNITURE_2D_LIBRARY, createFurniture2DItem }} from {json.dumps(layout_uri)};
-        import {{ ROOM_QUESTION_TEMPLATES }} from {json.dumps(requirements_uri)};
+        import {{
+          FURNITURE_2D_LIBRARY,
+          createFurniture2DItem,
+          recommendedFurnitureForRoom,
+        }} from {json.dumps(layout_uri)};
 
-        const choices = [...new Set(Object.values(ROOM_QUESTION_TEMPLATES).flatMap((template) => template.furniture))];
         const libraryKeys = new Set(FURNITURE_2D_LIBRARY.flatMap((category) =>
           category.variants.map((variant) => `${{category.type}}/${{variant.id}}`)
         ));
-        const samples = [
-          createFurniture2DItem("bedside-table", "compact"),
-          createFurniture2DItem("kitchen-island", "standard"),
-          createFurniture2DItem("bathroom-vanity", "standard"),
-        ];
-        console.log(JSON.stringify({{ choices, libraryKeys: [...libraryKeys], samples }}));
+        const rooms = [
+          "living_room", "bedroom", "dining_room", "kitchen",
+          "storage", "bathroom", "balcony", "circulation",
+        ].map((type) => ({{ id: type, type }}));
+        const recommendations = rooms.flatMap((room) =>
+          recommendedFurnitureForRoom(room).map(([type, variant]) => ({{ type, variant }}))
+        );
+        const samples = recommendations.map((item) =>
+          createFurniture2DItem(item.type, item.variant)
+        );
+        console.log(JSON.stringify({{
+          recommendations,
+          libraryKeys: [...libraryKeys],
+          samples,
+        }}));
         """
     )
 
-    missing_labels = [label for label in result["choices"] if label not in label_map]
     missing_variants = [
-        label for label in result["choices"]
-        if label in label_map and f"{label_map[label][0]}/{label_map[label][1]}" not in result["libraryKeys"]
+        item for item in result["recommendations"]
+        if f"{item['type']}/{item['variant']}" not in result["libraryKeys"]
     ]
-    assert missing_labels == []
     assert missing_variants == []
-    assert {item["label"] for item in result["samples"]} == {"床頭櫃", "廚房中島", "浴櫃"}
+    assert result["samples"]
 
 
 def test_2d_form_replacement_preserves_position_and_uses_new_real_size() -> None:
@@ -1624,10 +1624,10 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert 'id="flip-selected-door"' in html
     assert 'id="rotate-selected-door-180"' in html
     assert 'class="rp-questionnaire-workspace"' in html
-    assert 'id="requirements-plan-stage"' in html
-    assert 'id="requirements-plan-overlay"' in html
-    assert 'id="room-furniture-select"' in html
-    assert "selectedOptions" in controller
+    assert 'data-questionnaire-panel="rooms"' in html
+    assert 'id="visual-space-nav"' in html
+    assert 'id="room-furniture-select"' not in html
+    assert "visualPreferencesForRoom(room)" in controller
     assert 'id="layout-room-filter"' in html
     assert "state.activeLayoutRoomId" in controller
     assert "placement_room_id: room.id" in controller
@@ -1689,7 +1689,8 @@ def test_realtime_style_cards_show_reference_images_and_sync_full_scene_rules() 
 def test_removed_questionnaire_floorplan_overlay_does_not_break_event_binding() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert "element.requirementsOverlay?.addEventListener" in controller
+    assert "requirementsOverlay" not in controller
+    assert "renderRequirementsOverlay" not in controller
 
 
 def test_project_resume_restores_flow_rooms_and_generated_scene() -> None:
@@ -1749,7 +1750,7 @@ def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
     assert 'api("/api/scene/decorate"' in source
     assert "for (const room of targetRooms)" in source
     assert "placement_room_id: room.id" in source
-    assert "!state.keepExistingRoomIds.includes(room.id)" in source
+    assert "? state.rooms" in source
     assert "await ensureAutomaticSoftDecor(pack)" in source
     assert "item.auto_decor_role && item.placement_failed" in source
     assert "saveSequence = saveSequence.catch" in source
@@ -1764,5 +1765,5 @@ def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
     assert "較舊的離線暫存未覆蓋目前版本" in source
     assert 'window.addEventListener("beforeunload"' in source
     assert "pendingSaveCount === 0" in source
-    assert "[element.scaleImage, element.spaceImage, element.requirementsImage, element.layoutImage]" in source
+    assert "[element.scaleImage, element.spaceImage, element.layoutImage]" in source
     assert ".filter(Boolean)" in source

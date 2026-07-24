@@ -433,9 +433,10 @@ def test_scene_wizard_exposes_one_panel_for_each_confirmed_step() -> None:
     assert 'id="room-list"' in html
     assert 'id="structure-confirmation-panel"' in html
     assert 'id="whole-house-fields"' in html
-    assert 'id="room-question-nav"' in html
+    assert 'id="visual-space-nav"' in html
+    assert 'id="room-question-nav"' not in html
     assert 'id="furniture-icon-library"' in html
-    assert "確認未填寫房間維持現狀不做規劃" in html
+    assert "此空間暫不作答" in html
     assert "我已確認是否有指定家具需求" in html
 
 

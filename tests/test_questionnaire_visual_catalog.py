@@ -100,9 +100,12 @@ def test_test2_questionnaire_ui_exposes_all_required_stages() -> None:
     html = (static / "scene.html").read_text(encoding="utf-8")
     javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
 
-    for stage in ("profile", "rooms", "visual", "finishes", "summary"):
+    for stage in ("profile", "rooms", "finishes", "summary"):
         assert f'data-questionnaire-stage="{stage}"' in html
         assert f'data-questionnaire-panel="{stage}"' in html
+    assert 'data-questionnaire-stage="visual"' not in html
+    assert 'id="room-questionnaire"' not in html
+    assert 'id="room-furniture-select"' not in html
 
     assert 'id="visual-question-card"' in html
     assert 'id="questionnaire-style-grid"' in html
@@ -268,13 +271,14 @@ def test_questionnaire_summary_localizes_balanced_visual_choice() -> None:
         """
           const summary = questionnaireSummary({
             basic: { household: "兩位大人" },
-            roomAnswers: { bedroom: { confirmed: true } },
             visualQuestions: [{
               question_id: "q-1",
+              space_type: "primary_bedroom",
               title_zh: "明亮或沉穩",
               options: [],
             }],
             visualAnswers: { "q-1": { optionId: "both", custom: "依房間調整" } },
+            skippedSpaceTypes: [],
             finishes: { stylePackId: "pack-1" },
             stylePacks: [{
               id: "pack-1",
@@ -294,6 +298,8 @@ def test_questionnaire_summary_localizes_balanced_visual_choice() -> None:
             "custom": "依房間調整",
         }
     ]
+    assert result["answeredSpaceCount"] == 1
+    assert result["skippedSpaceCount"] == 0
     assert result["finishes"]["style"] == "現代｜明亮留白"
 
 
@@ -342,14 +348,6 @@ def test_questionnaire_state_survives_project_save_and_reload() -> None:
     requirements = {
         "basic": {"household": "兩位大人"},
         "basicConfirmed": True,
-        "rooms": {
-            "living-1": {
-                "confirmed": True,
-                "uses": ["日常生活"],
-                "furniture": ["L 型沙發"],
-            }
-        },
-        "keepExistingRoomIds": [],
         "questionnaireStage": "summary",
         "visualCatalogVersion": "1.0.0",
         "visualAnswers": {

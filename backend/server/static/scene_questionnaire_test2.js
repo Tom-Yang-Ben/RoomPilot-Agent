@@ -145,10 +145,9 @@ export function finishesGate(finishes = {}) {
 
 export function questionnaireSummary({
   basic = {},
-  roomAnswers = {},
-  keepExistingRoomIds = [],
   visualQuestions = [],
   visualAnswers = {},
+  skippedSpaceTypes = [],
   finishes = {},
   stylePacks = [],
 } = {}) {
@@ -172,9 +171,12 @@ export function questionnaireSummary({
     .filter(Boolean);
   return {
     basic,
-    plannedRoomCount: Object.values(roomAnswers)
-      .filter((answer) => answer?.confirmed === true).length,
-    keepExistingRoomCount: keepExistingRoomIds.length,
+    answeredSpaceCount: new Set(
+      visualQuestions
+        .filter((question) => visualAnswers[question.question_id]?.optionId)
+        .map((question) => question.space_type),
+    ).size,
+    skippedSpaceCount: new Set(skippedSpaceTypes).size,
     visualSelections,
     finishes: {
       style: stylePack

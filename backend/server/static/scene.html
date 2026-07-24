@@ -337,70 +337,32 @@
             <div>
               <span class="eyebrow">5 需求問卷</span>
               <h2>告訴 RoomPilot 你真正想要的生活方式</h2>
-              <p>依 Test2 問卷順序完成基本資料、逐房需求、極與極偏好、風格色卡與空間材質。</p>
+              <p>依 Test2 問卷順序完成基本資料、各空間的極與極需求，以及風格色卡與空間材質。</p>
             </div>
             <strong id="requirements-progress">基本資料</strong>
           </header>
 
           <nav id="questionnaire-stage-nav" class="rp-questionnaire-stage-nav" aria-label="需求問卷進度">
             <button type="button" data-questionnaire-stage="profile" class="is-active"><b>1</b><span>基本資料</span></button>
-            <button type="button" data-questionnaire-stage="rooms" disabled><b>2</b><span>逐房需求</span></button>
-            <button type="button" data-questionnaire-stage="visual" disabled><b>3</b><span>極與極偏好</span></button>
-            <button type="button" data-questionnaire-stage="finishes" disabled><b>4</b><span>風格與材質</span></button>
-            <button type="button" data-questionnaire-stage="summary" disabled><b>5</b><span>確認摘要</span></button>
+            <button type="button" data-questionnaire-stage="rooms" disabled><b>2</b><span>逐房極與極</span></button>
+            <button type="button" data-questionnaire-stage="finishes" disabled><b>3</b><span>風格與材質</span></button>
+            <button type="button" data-questionnaire-stage="summary" disabled><b>4</b><span>確認摘要</span></button>
           </nav>
 
           <section id="whole-house-questionnaire" class="rp-questionnaire-stage" data-questionnaire-panel="profile">
             <div class="rp-questionnaire-section-heading">
               <div><span class="eyebrow">基本資料</span><h3>先確認全屋共用條件</h3></div>
-              <p>這一頁只填一次；下一頁再逐房確認。</p>
+              <p>這一頁只填一次；下一頁依空間回答極與極需求。</p>
             </div>
             <div id="whole-house-fields" class="rp-test2-profile-grid"></div>
             <div class="rp-action-row">
-              <button id="confirm-basic-questionnaire" type="button" class="primary-action">確認基本資料，開始逐房需求</button>
+              <button id="confirm-basic-questionnaire" type="button" class="primary-action">確認基本資料，開始逐房極與極</button>
             </div>
           </section>
 
-          <section id="room-questionnaire" class="rp-questionnaire-stage" data-questionnaire-panel="rooms" hidden>
+          <section id="visual-questionnaire" class="rp-questionnaire-stage" data-questionnaire-panel="rooms" hidden>
             <div class="rp-questionnaire-section-heading">
-              <div><span class="eyebrow">逐房需求</span><h3 id="room-question-title">房間需求</h3></div>
-              <p>從常見選項快速選擇，只有特殊需求才需要輸入文字。</p>
-            </div>
-            <div class="rp-test2-room-workspace">
-              <div>
-                <div id="room-question-nav" class="rp-room-tabs"></div>
-                <div id="requirements-plan-stage" class="rp-plan-stage rp-questionnaire-plan-stage">
-                  <img id="requirements-plan-image" alt="逐房需求平面圖" />
-                  <svg id="requirements-plan-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
-                </div>
-              </div>
-              <div class="rp-test2-room-editor">
-                <fieldset>
-                  <legend>這個空間主要會怎麼使用？</legend>
-                  <div id="room-use-options" class="rp-choice-grid"></div>
-                </fieldset>
-                <fieldset>
-                  <legend>希望優先配置哪些家具？</legend>
-                  <select id="room-furniture-select" multiple size="8" aria-label="選擇希望配置的家具"></select>
-                  <div id="room-furniture-options" class="rp-choice-grid"></div>
-                </fieldset>
-                <label><span>這個房間最重要的條件</span><textarea id="room-priority" rows="2"></textarea></label>
-                <label><span>特殊需求（選填）</span><textarea id="room-personal-needs" rows="3" placeholder="只有上方沒有的需求才需要輸入"></textarea></label>
-                <div class="rp-action-row">
-                  <button id="confirm-room-requirement" type="button" class="primary-action">確認這個房間需求</button>
-                  <button id="keep-room-existing" type="button" class="secondary-action">此房間維持現狀</button>
-                </div>
-              </div>
-            </div>
-            <div class="rp-action-row rp-questionnaire-footer-actions">
-              <button id="keep-unfilled-rooms-existing" type="button" class="secondary-action">確認未填寫房間維持現狀不做規劃</button>
-              <button id="continue-to-visual-questionnaire" type="button" class="primary-action">下一步：極與極偏好</button>
-            </div>
-          </section>
-
-          <section id="visual-questionnaire" class="rp-questionnaire-stage" data-questionnaire-panel="visual" hidden>
-            <div class="rp-questionnaire-section-heading">
-              <div><span class="eyebrow">極與極偏好</span><h3>在兩種空間方向之間做選擇</h3></div>
+              <div><span class="eyebrow">逐房需求</span><h3>依空間回答極與極選擇</h3></div>
               <p id="visual-questionnaire-notice">圖片尚未完成的題目仍可先依文字選擇，之後補圖不會改變答案。</p>
             </div>
             <div class="rp-visual-questionnaire-layout">
@@ -720,6 +682,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene_v2.js?v=sha256-f9669c0c6ddc"></script>
+    <script type="module" src="/static/scene_v2.js?v=sha256-be0a6ea0a721"></script>
   </body>
 </html>

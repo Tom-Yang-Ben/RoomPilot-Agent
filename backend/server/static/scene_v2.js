@@ -28,8 +28,6 @@ import {
   toSceneFurniture,
 } from "./scene_layout2d.js?v=sha256-35d1bfd9747d";
 import {
-  requirementsGate,
-  roomQuestionTemplate,
   WHOLE_HOUSE_QUESTIONS,
 } from "./scene_requirements.js?v=sha256-cb53bf0d6e51";
 import {
@@ -113,9 +111,6 @@ const state = {
   windowNormalizationRemoved: 0,
   basicAnswers: {},
   basicConfirmed: false,
-  roomAnswers: {},
-  keepExistingRoomIds: [],
-  activeQuestionRoomId: null,
   questionnaireStage: "profile",
   visualCatalog: null,
   visualCatalogVersion: null,
@@ -165,7 +160,7 @@ const instructions = {
   recognition: ["步驟 3", "拖曳尺寸線兩端，只輸入一個實際公分尺寸"],
   calibration: ["步驟 3", "確認尺度後，才會顯示辨識到的房間"],
   space_confirmation: ["步驟 4", "先確認房間，再確認牆、門、窗、樑與柱"],
-  requirements: ["步驟 5", "完成基本資料、逐房需求、極與極偏好及風格材質"],
+  requirements: ["步驟 5", "完成基本資料、逐房極與極需求及風格材質"],
   layout_2d: ["步驟 6", "確認家具形式、實際尺寸、位置與淨空"],
   white_model_3d: ["步驟 7", "確認 3D 白模家具可見，再指定模型、顏色與材質"],
   realistic_3d: ["步驟 8", "從 18 張色卡切換完整 PBR StylePack"],
@@ -224,17 +219,7 @@ const element = {
   openingWidthSlider: $("#opening-width-slider"),
   openingWidthValue: $("#opening-width-value"),
   spaceError: $("#space-error"),
-  requirementsImage: $("#requirements-plan-image"),
-  requirementsStage: $("#requirements-plan-stage"),
-  requirementsOverlay: $("#requirements-plan-overlay"),
   wholeHouseFields: $("#whole-house-fields"),
-  roomQuestionNav: $("#room-question-nav"),
-  roomQuestionTitle: $("#room-question-title"),
-  roomUseOptions: $("#room-use-options"),
-  roomFurnitureOptions: $("#room-furniture-options"),
-  roomFurnitureSelect: $("#room-furniture-select"),
-  roomPriority: $("#room-priority"),
-  roomPersonalNeeds: $("#room-personal-needs"),
   requirementsProgress: $("#requirements-progress"),
   requirementsError: $("#requirements-error"),
   confirmRequirements: $("#confirm-requirements"),
@@ -384,8 +369,6 @@ function workflowPayload() {
       ? {
           basic: state.basicAnswers,
           basicConfirmed: state.basicConfirmed,
-          rooms: state.roomAnswers,
-          keepExistingRoomIds: state.keepExistingRoomIds,
           questionnaireStage: state.questionnaireStage,
           visualCatalogVersion: state.visualCatalogVersion,
           visualAnswers: state.visualAnswers,
@@ -604,7 +587,6 @@ function showStep(step) {
 async function renderRestoredStep() {
   if (state.rooms.length) {
     state.selectedRoomId = state.selectedRoomId || state.rooms[0].id;
-    state.activeQuestionRoomId = state.activeQuestionRoomId || state.selectedRoomId;
     renderRooms();
     renderStructureCounts();
   }
@@ -897,7 +879,7 @@ function configureDxfPreview(analysis) {
 }
 
 function setPlanImages(url) {
-  [element.scaleImage, element.spaceImage, element.requirementsImage, element.layoutImage]
+  [element.scaleImage, element.spaceImage, element.layoutImage]
     .filter(Boolean)
     .forEach((image) => {
       image.src = url;
@@ -959,12 +941,10 @@ function syncAllOverlays() {
     element.dimensionPlanImage,
     element.dimensionPlanOverlay,
   );
-  syncOverlayToImage(element.requirementsStage, element.requirementsImage, element.requirementsOverlay);
   syncOverlayToImage(element.layoutStage, element.layoutImage, element.layoutRoomOverlay);
   syncLayoutLayer();
   renderCalibration();
   renderSpaceOverlay();
-  renderRequirementsOverlay();
   renderLayoutFurniture();
 }
 
@@ -1315,7 +1295,6 @@ function initializeRoomsAndStructures() {
   state.structures.windows = normalizedWindows.windows;
   state.windowNormalizationRemoved = normalizedWindows.removed;
   state.selectedRoomId = state.rooms[0]?.id || null;
-  state.activeQuestionRoomId = state.selectedRoomId;
   renderRooms();
   renderSpaceOverlay();
   renderStructureCounts();
@@ -3563,7 +3542,6 @@ function confirmDimensionedPlan() {
     totalAreaM2: annotation.totalAreaM2,
   });
   renderWholeHouseQuestionnaire();
-  renderQuestionRooms();
   setStatus("尺寸標註平面圖與結構均已確認。現在開始基本問卷。");
   goTo("requirements");
 }
@@ -3571,15 +3549,13 @@ function confirmDimensionedPlan() {
 const QUESTIONNAIRE_STAGES = Object.freeze([
   "profile",
   "rooms",
-  "visual",
   "finishes",
   "summary",
 ]);
 
 async function prepareQuestionnaireStep() {
   renderWholeHouseQuestionnaire();
-  renderQuestionRooms();
-  if (state.basicConfirmed && roomRequirementsProgress().ready) {
+  if (state.basicConfirmed) {
     try {
       await ensureVisualQuestionnaireLoaded();
     } catch (error) {
@@ -3590,21 +3566,10 @@ async function prepareQuestionnaireStep() {
   showQuestionnaireStage(state.questionnaireStage);
 }
 
-function roomRequirementsProgress() {
-  return requirementsGate({
-    basic: { confirmed: state.basicConfirmed },
-    rooms: state.rooms,
-    answers: state.roomAnswers,
-    keepExistingRoomIds: state.keepExistingRoomIds,
-  });
-}
-
 function questionnaireStageUnlocked(stage) {
   if (stage === "profile") return true;
   if (!state.basicConfirmed) return false;
   if (stage === "rooms") return true;
-  if (!roomRequirementsProgress().ready) return false;
-  if (stage === "visual") return true;
   const visualProgress = visualQuestionnaireProgress({
     questions: state.visualQuestions,
     answers: state.visualAnswers,
@@ -3632,16 +3597,17 @@ function showQuestionnaireStage(stage) {
   });
   const labels = {
     profile: "基本資料",
-    rooms: `逐房需求 ${state.rooms.length - roomRequirementsProgress().unresolvedRoomIds.length} / ${state.rooms.length}`,
-    visual: "極與極偏好",
+    rooms: `逐房極與極 ${visualQuestionnaireProgress({
+      questions: state.visualQuestions,
+      answers: state.visualAnswers,
+      skippedSpaceTypes: state.skippedVisualSpaceTypes,
+    }).completed} / ${state.visualQuestions.length}`,
     finishes: "風格與材質",
     summary: "確認摘要",
   };
   element.requirementsProgress.textContent = labels[nextStage];
   element.requirementsError.textContent = "";
   if (nextStage === "rooms") {
-    selectQuestionRoom(state.activeQuestionRoomId || state.rooms[0]?.id);
-  } else if (nextStage === "visual") {
     renderVisualQuestionnaire();
   } else if (nextStage === "finishes") {
     renderQuestionnaireFinishes();
@@ -3663,7 +3629,7 @@ async function ensureVisualQuestionnaireLoaded() {
   ) {
     state.visualAnswers = {};
     state.skippedVisualSpaceTypes = [];
-    state.questionnaireStage = "visual";
+    state.questionnaireStage = "rooms";
     invalidateDownstreamFrom(
       "requirements",
       "極與極題庫已更新，後續 2D、3D 與渲染結果需要重新確認。",
@@ -3722,6 +3688,21 @@ function resolvedVisualPreferences(questions = state.visualQuestions) {
 }
 
 function visualPreferencesForRoom(room) {
+  if (room.type === "bedroom") {
+    const bedroomIndex = state.rooms
+      .filter((candidate) => candidate.type === "bedroom")
+      .findIndex((candidate) => candidate.id === room.id);
+    const bedroomSpace = bedroomIndex <= 0
+      ? "primary_bedroom"
+      : "secondary_bedroom";
+    return resolvedVisualPreferences(
+      state.visualQuestions.filter(
+        (question) => question.space_type === bedroomSpace
+          || question.space_type === "all_rooms"
+          || question.space_type === "circulation",
+      ),
+    );
+  }
   return resolvedVisualPreferences(questionsForRooms(state.visualQuestions, [room]));
 }
 
@@ -3993,10 +3974,9 @@ function confirmQuestionnaireFinishes() {
 function renderQuestionnaireSummary() {
   const summary = questionnaireSummary({
     basic: state.basicAnswers,
-    roomAnswers: state.roomAnswers,
-    keepExistingRoomIds: state.keepExistingRoomIds,
     visualQuestions: state.visualQuestions,
     visualAnswers: state.visualAnswers,
+    skippedSpaceTypes: state.skippedVisualSpaceTypes,
     finishes: state.questionnaireFinishes,
     stylePacks: STYLE_PACKS,
   });
@@ -4008,8 +3988,7 @@ function renderQuestionnaireSummary() {
   ).join("");
   element.questionnaireSummary.innerHTML = `
     <section><h4>全屋基本資料</h4><div class="rp-questionnaire-summary-grid">${basicRows}</div></section>
-    <section><h4>房間需求</h4><p>規劃 ${summary.plannedRoomCount} 個房間；${summary.keepExistingRoomCount} 個房間維持現狀。</p></section>
-    <section><h4>極與極偏好</h4><ul>${visualRows || "<li>本案沒有對應的視覺題目。</li>"}</ul></section>
+    <section><h4>逐房極與極需求</h4><p>已回答 ${summary.answeredSpaceCount} 類空間；${summary.skippedSpaceCount} 類空間暫不規劃。</p><ul>${visualRows || "<li>本案沒有對應的極與極題目。</li>"}</ul></section>
     <section><h4>風格與材質</h4>
       <p><strong>${escapeHtml(summary.finishes.style)}</strong></p>
       <p>牆壁 ${escapeHtml(summary.finishes.wallMaterial)} ${escapeHtml(summary.finishes.wallColor)}／地板 ${escapeHtml(summary.finishes.floorMaterial)} ${escapeHtml(summary.finishes.floorColor)}／天花板 ${escapeHtml(summary.finishes.ceilingMaterial)}、${escapeHtml(summary.finishes.ceilingStyle)}／照明 ${escapeHtml(summary.finishes.lightStyle)}</p>
@@ -4043,7 +4022,7 @@ function collectBasicAnswers() {
   return answers;
 }
 
-function confirmBasicQuestionnaire() {
+async function confirmBasicQuestionnaire() {
   element.requirementsError.textContent = "";
   const answers = collectBasicAnswers();
   const missing = WHOLE_HOUSE_QUESTIONS.find(
@@ -4056,163 +4035,26 @@ function confirmBasicQuestionnaire() {
   }
   state.basicAnswers = answers;
   state.basicConfirmed = true;
+  try {
+    await ensureVisualQuestionnaireLoaded();
+  } catch (error) {
+    element.requirementsError.textContent = errorMessage(error);
+    return;
+  }
   showQuestionnaireStage("rooms");
   scheduleSave("requirements");
 }
 
-function renderQuestionRooms() {
-  element.roomQuestionNav.innerHTML = state.rooms.map((room) => {
-    const resolved = state.roomAnswers[room.id]?.confirmed || state.keepExistingRoomIds.includes(room.id);
-    return `<button type="button" data-question-room="${escapeHtml(room.id)}" class="${room.id === state.activeQuestionRoomId ? "is-active" : ""}">${escapeHtml(room.label)}${resolved ? " · 已完成" : ""}</button>`;
-  }).join("");
-}
-
-function renderRequirementsOverlay() {
-  if (!element.requirementsImage || !element.requirementsOverlay || !element.requirementsImage.naturalWidth || !state.rooms.length) return;
-  element.requirementsOverlay.innerHTML = state.rooms.map((room) => `
-    <polygon data-requirement-room="${escapeHtml(room.id)}" points="${roomPolygonSvg(room)}"
-      fill="${room.id === state.activeQuestionRoomId ? "rgba(47,111,135,.24)" : "rgba(36,107,85,.06)"}"
-      stroke="${room.id === state.activeQuestionRoomId ? "#2f6f87" : "#7b8f86"}" stroke-width="4"/>
-  `).join("");
-}
-
-function selectQuestionRoom(roomId) {
-  const room = state.rooms.find((item) => item.id === roomId);
-  if (!room) return;
-  state.activeQuestionRoomId = roomId;
-  state.selectedRoomId = roomId;
-  const template = roomQuestionTemplate(room.type);
-  element.roomQuestionTitle.textContent = `${room.label}的使用與家具需求`;
-  element.roomUseOptions.innerHTML = template.uses.map((label) =>
-    `<label><input type="checkbox" value="${escapeHtml(label)}"/><span>${escapeHtml(label)}</span></label>`
-  ).join("");
-  element.roomFurnitureOptions.innerHTML = template.furniture.map((label) =>
-    `<label><input type="checkbox" value="${escapeHtml(label)}"/><span>${escapeHtml(label)}</span></label>`
-  ).join("");
-  element.roomFurnitureSelect.innerHTML = template.furniture.map((label) =>
-    `<option value="${escapeHtml(label)}">${escapeHtml(label)}</option>`
-  ).join("");
-  const existing = state.roomAnswers[roomId];
-  if (existing) {
-    $$("input", element.roomUseOptions).forEach((input) => { input.checked = existing.uses.includes(input.value); });
-    $$("input", element.roomFurnitureOptions).forEach((input) => { input.checked = existing.furniture.includes(input.value); });
-    Array.from(element.roomFurnitureSelect.options).forEach((option) => {
-      option.selected = existing.furniture.includes(option.value);
-    });
-    element.roomPriority.value = existing.priority || "";
-    element.roomPersonalNeeds.value = existing.personalNeeds || "";
-  } else {
-    Array.from(element.roomFurnitureSelect.options).forEach((option) => { option.selected = false; });
-    element.roomPriority.value = "";
-    element.roomPersonalNeeds.value = "";
-  }
-  renderQuestionRooms();
-  renderRequirementsOverlay();
-}
-
-function resolveActiveRoomRequirement(keepExisting = false) {
-  const roomId = state.activeQuestionRoomId;
-  if (!roomId) return;
-  if (keepExisting) {
-    if (!state.keepExistingRoomIds.includes(roomId)) state.keepExistingRoomIds.push(roomId);
-    delete state.roomAnswers[roomId];
-  } else {
-    const uses = $$("input:checked", element.roomUseOptions).map((input) => input.value);
-    if (!uses.length) {
-      element.requirementsError.textContent =
-        "請先選擇此房間至少一項使用方式；若不規劃，請按「此房間維持現狀不規劃」。";
-      return;
-    }
-    element.requirementsError.textContent = "";
-    state.keepExistingRoomIds = state.keepExistingRoomIds.filter((id) => id !== roomId);
-    state.roomAnswers[roomId] = {
-      confirmed: true,
-      uses,
-      furniture: [
-        ...new Set([
-          ...$$("input:checked", element.roomFurnitureOptions).map((input) => input.value),
-          ...Array.from(element.roomFurnitureSelect.selectedOptions).map((option) => option.value),
-        ]),
-      ],
-      priority: element.roomPriority.value.trim(),
-      personalNeeds: element.roomPersonalNeeds.value.trim(),
-    };
-  }
-  const gate = requirementsGate({
-    basic: { confirmed: state.basicConfirmed },
-    rooms: state.rooms,
-    answers: state.roomAnswers,
-    keepExistingRoomIds: state.keepExistingRoomIds,
-  });
-  const completed = state.rooms.length - gate.unresolvedRoomIds.length;
-  element.requirementsProgress.textContent = `房間需求 ${completed} / ${state.rooms.length}`;
-  renderQuestionRooms();
-  const nextRoom = state.rooms.find((room) => gate.unresolvedRoomIds.includes(room.id));
-  if (nextRoom) selectQuestionRoom(nextRoom.id);
-  invalidateDownstreamFrom("requirements", "房間需求已修改，2D 家具與 3D 需要重新產生。");
-  scheduleSave("requirements");
-}
-
-function keepUnfilledRoomsExisting() {
-  const unresolvedRoomIds = requirementsGate({
-    basic: { confirmed: state.basicConfirmed },
-    rooms: state.rooms,
-    answers: state.roomAnswers,
-    keepExistingRoomIds: state.keepExistingRoomIds,
-  }).unresolvedRoomIds;
-  if (!unresolvedRoomIds.length) {
-    element.requirementsError.textContent = "所有房間都已處理。";
-    return;
-  }
-  state.keepExistingRoomIds = [
-    ...new Set([...state.keepExistingRoomIds, ...unresolvedRoomIds]),
-  ];
-  unresolvedRoomIds.forEach((roomId) => delete state.roomAnswers[roomId]);
-  element.requirementsProgress.textContent = `房間需求 ${state.rooms.length} / ${state.rooms.length}`;
-  element.requirementsError.textContent = `已將 ${unresolvedRoomIds.length} 個未填寫房間標示為維持現狀。`;
-  renderQuestionRooms();
-  renderRequirementsOverlay();
-  invalidateDownstreamFrom("requirements", "房間需求已修改，2D 家具與 3D 需要重新產生。");
-  scheduleSave("requirements");
-}
-
-async function continueToVisualQuestionnaire() {
-  const gate = roomRequirementsProgress();
-  if (!gate.ready) {
-    const labels = gate.unresolvedRoomIds
-      .map((id) => state.rooms.find((room) => room.id === id)?.label)
-      .filter(Boolean);
-    element.requirementsError.textContent =
-      `尚未處理：${labels.join("、")}。請完成需求或標示維持現狀。`;
-    if (gate.unresolvedRoomIds[0]) selectQuestionRoom(gate.unresolvedRoomIds[0]);
-    return;
-  }
-  try {
-    await ensureVisualQuestionnaireLoaded();
-    if (!state.visualQuestions.length) {
-      element.requirementsError.textContent = "目前房間沒有可用的極與極題目。";
-      return;
-    }
-    showQuestionnaireStage("visual");
-  } catch (error) {
-    element.requirementsError.textContent = errorMessage(error);
-  }
-}
-
 async function confirmRequirements() {
   element.requirementsError.textContent = "";
-  const gate = requirementsGate({
-    basic: { confirmed: state.basicConfirmed },
-    rooms: state.rooms,
-    answers: state.roomAnswers,
-    keepExistingRoomIds: state.keepExistingRoomIds,
+  const visualProgress = visualQuestionnaireProgress({
+    questions: state.visualQuestions,
+    answers: state.visualAnswers,
+    skippedSpaceTypes: state.skippedVisualSpaceTypes,
   });
-  if (!gate.ready) {
-    const labels = gate.unresolvedRoomIds
-      .map((id) => state.rooms.find((room) => room.id === id)?.label)
-      .filter(Boolean);
-    element.requirementsError.textContent = `尚未處理：${labels.join("、")}。請填需求或按「此房間維持現狀不規劃」。`;
-    if (gate.unresolvedRoomIds[0]) selectQuestionRoom(gate.unresolvedRoomIds[0]);
+  if (!state.basicConfirmed || !visualProgress.ready
+      || !finishesGate(state.questionnaireFinishes).ready) {
+    element.requirementsError.textContent = "請先完成基本資料、逐房極與極需求，以及風格材質確認。";
     return;
   }
   try {
@@ -4234,39 +4076,6 @@ async function confirmRequirements() {
     setStatus(errorMessage(error), "error");
   }
 }
-
-const furnitureLabelMap = {
-  "沙發": ["sofa", "three-seat"],
-  "L 型沙發": ["sofa", "l-shape"],
-  "茶几": ["coffee-table", "rect"],
-  "圓形茶几": ["coffee-table", "round"],
-  "圓桌": ["dining-table", "round-4"],
-  "長桌": ["dining-table", "rect-6"],
-  "餐椅": ["dining-chair", "standard"],
-  "床": ["bed", "double"],
-  "床頭櫃": ["bedside-table", "compact"],
-  "衣櫃": ["wardrobe", "two-door"],
-  "書桌": ["desk", "standard"],
-  "工作椅": ["office-chair", "task"],
-  "單椅": ["lounge-chair", "accent"],
-  "戶外椅": ["lounge-chair", "outdoor"],
-  "收納櫃": ["storage-cabinet", "low"],
-  "梳妝台": ["vanity-table", "standard"],
-  "餐邊櫃": ["sideboard", "standard"],
-  "冰箱": ["refrigerator", "single-door"],
-  "電器櫃": ["appliance-cabinet", "standard"],
-  "中島": ["kitchen-island", "standard"],
-  "餐櫃": ["sideboard", "standard"],
-  "浴櫃": ["bathroom-vanity", "standard"],
-  "鏡櫃": ["mirror-cabinet", "standard"],
-  "收納架": ["storage-cabinet", "tall"],
-  "洗衣機": ["washer", "front-load"],
-  "浴缸": ["bathtub", "standard"],
-  "電視櫃": ["tv-bench", "low"],
-  "植栽架": ["plant-shelf", "standard"],
-  "桌": ["table", "standard"],
-  "椅": ["chair", "standard"],
-};
 
 function roomCenter(room) {
   return room.polygon_cm.reduce((sum, point) => ({
@@ -4326,13 +4135,7 @@ function specsFromSelectionResponse(room, response, fallbackSpecs) {
 async function autoLayoutFurniture() {
   state.furniture2d = [];
   for (const room of state.rooms) {
-    if (state.keepExistingRoomIds.includes(room.id)) continue;
-    const requested = state.roomAnswers[room.id]?.furniture || [];
-    const roomWasAnswered = state.roomAnswers[room.id]?.confirmed === true;
-    const answerSpecs = requested.map((label) => furnitureLabelMap[label]).filter(Boolean);
-    const requestedSpecs = roomWasAnswered && answerSpecs.length
-      ? answerSpecs
-      : recommendedFurnitureForRoom(room);
+    const requestedSpecs = recommendedFurnitureForRoom(room);
     const visualPreferences = visualPreferencesForRoom(room);
     const preferredSpecs = applyVisualPreferencesToSpecs(
       requestedSpecs,
@@ -4362,7 +4165,6 @@ async function autoLayoutFurniture() {
             [room.id]: specs.map((spec, index) => furnitureOfferFromSpec(room, spec, index)),
           },
           context: {
-            room_answers: state.roomAnswers[room.id] || {},
             basic_answers: state.basicAnswers,
             visual_preferences: visualPreferences,
             finishes: state.questionnaireFinishes,
@@ -4379,7 +4181,7 @@ async function autoLayoutFurniture() {
         const item = createFurniture2DItem(type, variant, {
           id: `${room.id}-${type}-${index + 1}`,
           roomId: room.id,
-          userRequired: roomWasAnswered && answerSpecs.length > 0 && autoAdded !== true,
+          userRequired: false,
         });
         item.roomId = room.id;
         item.reason = reason
@@ -4738,7 +4540,6 @@ async function confirmLayout2d() {
         questionnaire: {
           catalog_version: state.visualCatalogVersion,
           basic: state.basicAnswers,
-          rooms: state.roomAnswers,
           visual_preferences: visualPreferences,
           finishes: state.questionnaireFinishes,
         },
@@ -4756,7 +4557,6 @@ async function confirmLayout2d() {
     state.sceneData.questionnaire = {
       catalog_version: state.visualCatalogVersion,
       basic: state.basicAnswers,
-      rooms: state.roomAnswers,
       visual_preferences: visualPreferences,
       finishes: state.questionnaireFinishes,
     };
@@ -5314,7 +5114,7 @@ function stylePackByIdSafe(packId) {
 
 async function ensureAutomaticSoftDecor(pack) {
   const targetRooms = state.rooms.length
-    ? state.rooms.filter((room) => !state.keepExistingRoomIds.includes(room.id))
+    ? state.rooms
     : [{ id: state.selectedRoomId || "default" }];
   for (const room of targetRooms) {
     const result = await api("/api/scene/decorate", {
@@ -5658,15 +5458,15 @@ function currentSceneVersion() {
 function renderProposalSummary() {
   const pack = STYLE_PACKS.find((item) => item.id === state.activeStylePackId);
   const furniture = state.sceneData?.scene_objects || [];
-  const personalNeedCount = Object.values(state.roomAnswers || {}).filter(
-    (answer) => String(answer?.personalNeeds || answer?.personal_needs || "").trim(),
+  const customPreferenceCount = Object.values(state.visualAnswers || {}).filter(
+    (answer) => String(answer?.custom || "").trim(),
   ).length;
   const rows = [
     ["色卡", pack ? `${pack.styleLabel}／${pack.name}` : "尚未選擇"],
     ["家具", `${furniture.filter((item) => !item.placement_failed).length} 件已配置`],
     ["結構", `牆 ${state.structures.walls.length}、門 ${state.structures.doors.length}、窗 ${state.structures.windows.length}`],
     ["表面", state.surfaceState.wall?.styleLocked && state.surfaceState.floor?.styleLocked ? "牆與地板已鎖定" : "使用目前 StylePack"],
-    ["房間需求", `${state.rooms.length} 個房間／${personalNeedCount} 個含個人需求`],
+    ["逐房需求", `${state.rooms.length} 個房間／${customPreferenceCount} 項補充條件`],
   ];
   element.proposalReviewSummary.innerHTML = rows.map(([label, value]) => `
     <div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>
@@ -5702,8 +5502,8 @@ function lockMasterRenderView() {
   });
   if (!visualProgress.ready) {
     element.requirementsError.textContent =
-      `極與極偏好尚有 ${visualProgress.total - visualProgress.completed} 題未處理。`;
-    showQuestionnaireStage("visual");
+      `逐房極與極尚有 ${visualProgress.total - visualProgress.completed} 題未處理。`;
+    showQuestionnaireStage("rooms");
     return;
   }
   if (!finishesGate(state.questionnaireFinishes).ready) {
@@ -5928,8 +5728,6 @@ function renderRequestPayload(mode, styleCardIds, roomViews = []) {
     },
     requirements: {
       basic: state.basicAnswers,
-      rooms: state.roomAnswers,
-      keep_existing_room_ids: state.keepExistingRoomIds,
       visual_preferences: state.visualAnswers,
       finishes: state.questionnaireFinishes,
     },
@@ -6279,20 +6077,6 @@ function bindEvents() {
   });
   $("#confirm-dimensioned-plan").addEventListener("click", confirmDimensionedPlan);
   $("#confirm-basic-questionnaire").addEventListener("click", confirmBasicQuestionnaire);
-  element.roomQuestionNav.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-question-room]");
-    if (button) selectQuestionRoom(button.dataset.questionRoom);
-  });
-  element.requirementsOverlay?.addEventListener("click", (event) => {
-    const room = event.target.closest("[data-requirement-room]");
-    if (room) selectQuestionRoom(room.dataset.requirementRoom);
-  });
-  $("#confirm-room-requirement").addEventListener("click", () => resolveActiveRoomRequirement(false));
-  $("#keep-room-existing").addEventListener("click", () => resolveActiveRoomRequirement(true));
-  $("#keep-unfilled-rooms-existing").addEventListener("click", keepUnfilledRoomsExisting);
-  $("#continue-to-visual-questionnaire").addEventListener("click", continueToVisualQuestionnaire);
-  element.roomFurnitureOptions.addEventListener("change", syncFurnitureSelectFromCheckboxes);
-  element.roomFurnitureSelect.addEventListener("change", syncFurnitureCheckboxesFromSelect);
   element.questionnaireStageNav.addEventListener("click", (event) => {
     const button = event.target.closest("[data-questionnaire-stage]");
     if (button && !button.disabled) showQuestionnaireStage(button.dataset.questionnaireStage);
@@ -6325,7 +6109,7 @@ function bindEvents() {
   $("#visual-question-back").addEventListener("click", () => moveVisualQuestion(-1));
   $("#visual-question-next").addEventListener("click", () => moveVisualQuestion(1));
   $("#skip-visual-space").addEventListener("click", skipCurrentVisualSpace);
-  $("#questionnaire-finishes-back").addEventListener("click", () => showQuestionnaireStage("visual"));
+  $("#questionnaire-finishes-back").addEventListener("click", () => showQuestionnaireStage("rooms"));
   $("#questionnaire-summary-back").addEventListener("click", () => showQuestionnaireStage("finishes"));
   element.questionnaireStyleTabs.addEventListener("click", (event) => {
     const button = event.target.closest("[data-questionnaire-style]");
@@ -6679,9 +6463,10 @@ async function restoreProject() {
     state.windowNormalizationRemoved = normalizedWindows.removed;
     state.basicAnswers = serverState.requirements?.basic || {};
     state.basicConfirmed = serverState.requirements?.basicConfirmed === true;
-    state.roomAnswers = serverState.requirements?.rooms || {};
-    state.keepExistingRoomIds = serverState.requirements?.keepExistingRoomIds || [];
-    state.questionnaireStage = serverState.requirements?.questionnaireStage || (
+    const savedQuestionnaireStage = serverState.requirements?.questionnaireStage;
+    state.questionnaireStage = (savedQuestionnaireStage === "visual"
+      ? "rooms"
+      : savedQuestionnaireStage) || (
       state.basicConfirmed ? "rooms" : "profile"
     );
     state.visualCatalogVersion =
