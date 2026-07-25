@@ -5800,6 +5800,47 @@ body.rp-workflow-page .app-topbar {
   gap: 16px;
 }
 
+.rp-project-transfer {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(360px, 1fr);
+  gap: 20px 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rp-line);
+}
+
+.rp-project-transfer h3 {
+  margin: 4px 0 6px;
+  font-size: 18px;
+}
+
+.rp-project-transfer p {
+  margin: 0;
+  color: var(--rp-muted);
+  line-height: 1.55;
+}
+
+.rp-project-transfer-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.rp-project-transfer-actions button {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.rp-project-transfer .rp-field-note {
+  grid-column: 2;
+  font-size: 12px;
+}
+
+.rp-project-transfer .rp-field-note.is-error {
+  color: var(--rp-orange);
+}
+
 body.rp-workflow-page label {
   display: grid;
   gap: 7px;
@@ -7891,6 +7932,19 @@ body.rp-workflow-page .danger-action {
     width: calc(100% - 32px);
     gap: 28px;
     padding: 32px 0;
+  }
+
+  .rp-project-transfer {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .rp-project-transfer .rp-field-note {
+    grid-column: 1;
+  }
+
+  .rp-project-transfer-actions {
+    grid-template-columns: 1fr;
   }
 
   .rp-plan-pane {
