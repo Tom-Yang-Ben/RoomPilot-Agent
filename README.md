@@ -136,22 +136,6 @@ RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案�
 6. **專案持久化**：新增 project store、workflow step 儲存、3D 場景與 StylePack 恢復，重新整理後可承接既有專案。
 7. **驗證**：補齊 floorplan、workflow、project API、家具配置、StylePack、材質、軟裝與 3D 視覺回歸測試。
 
-## 跨電腦接續專案
-
-Git 只同步程式碼，不會同步 `.runtime/` 中的專案資料庫與使用者上傳
-檔案，因此不同電腦不能共用同一個 `project_id` 網址。需要把本機
-8014 的進度交給組員或遠端 Bella 時：
-
-1. 在已開啟的專案頁首按「下載專案封包」圖示。
-2. 在另一台電腦更新並啟動相同版本的 `bella`。
-3. 進入第 1 步「建立專案」，選擇 `.roompilot` 檔並按「匯入並接續」。
-4. 系統會建立新的 `project_id`，還原原始平面圖、目前步驟與已保存的
-   空間、問卷、家具、材質和場景資料。
-
-`.roompilot` 封包不包含 `.env`、帳號、API 金鑰、家具 GLB 或遠端渲染
-輸出。匯入時會驗證版本、檔案格式與平面圖 SHA-256；不合法或遭修改
-的封包不會寫入專案資料庫。
-
 ## 載入效能
 
 前端不再讓所有頁面共同下載完整家具 catalog，而是依頁面取得必要資料：
@@ -204,6 +188,24 @@ uv run uvicorn backend.server.main:app --port 8002
 啟動後開啟：<http://127.0.0.1:8002>
 
 如果 `8002` 已被占用，可改用其他連接埠，例如 `--port 8010`。
+
+### 組員同步 Bella
+
+驗收前先停止舊的 Uvicorn，再確認本機確實使用遠端最新 `bella`：
+
+```powershell
+git fetch origin
+git switch bella
+git pull --ff-only origin bella
+git rev-parse --short HEAD
+uv run uvicorn backend.server.main:app --port 8014
+```
+
+重新啟動後再開啟 `/scene`。頁面與專案 API 已禁止沿用瀏覽器快取，
+JavaScript 也使用內容雜湊版本；若程式提交相同且上傳同一張
+`floor04.png`，辨識基準應為 19 面牆、5 扇門、5 扇窗與 7 個房間。
+`project_id` 對應各電腦本機 `.runtime/` 的資料，不能把另一台電腦的
+專案網址當成程式版本是否一致的驗證依據。
 
 ## 家具模型來源與離線備援
 

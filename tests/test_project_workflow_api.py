@@ -189,6 +189,7 @@ def test_project_is_created_and_can_be_loaded_again() -> None:
     loaded = client.get(f"/api/projects/{project['project_id']}")
 
     assert loaded.status_code == 200
+    assert loaded.headers["cache-control"] == "no-store"
     assert loaded.json()["project"] == project
     assert project["current_step"] == "project"
     assert project["created_at"]

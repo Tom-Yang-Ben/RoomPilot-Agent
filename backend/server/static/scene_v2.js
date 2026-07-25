@@ -204,10 +204,6 @@ const element = {
   projectName: $("#project-name"),
   projectNotes: $("#project-notes"),
   projectError: $("#project-error"),
-  exportProject: $("#export-project"),
-  projectBundleFile: $("#project-bundle-file"),
-  importProject: $("#import-project"),
-  projectImportStatus: $("#project-import-status"),
   file: $("#floorplan-file"),
   uploadDropZone: $(".rp-drop-zone"),
   uploadPreview: $("#upload-floorplan-preview"),
@@ -904,68 +900,12 @@ async function createProject(event) {
     state.workflow = createWorkflow({ projectId: state.projectId });
     state.workflow.complete("project", { name });
     history.replaceState({}, "", `/scene?project_id=${encodeURIComponent(state.projectId)}`);
-    updateProjectTransferControls();
     element.saveStatus.textContent = `已建立 · ${name}`;
     setStatus("專案已建立。下一步只需要上傳平面圖，不會先問需求問卷。");
     scheduleSave("upload");
     goTo("upload");
   } catch (error) {
     element.projectError.textContent = errorMessage(error);
-  }
-}
-
-function updateProjectTransferControls() {
-  element.exportProject.hidden = !state.projectId;
-  element.importProject.disabled = !element.projectBundleFile.files?.length;
-}
-
-async function exportProjectBundle() {
-  if (!state.projectId) return;
-  element.exportProject.disabled = true;
-  element.saveStatus.textContent = "正在整理專案封包…";
-  try {
-    await saveSequence;
-    const response = await fetch(`/api/projects/${state.projectId}/export`);
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({}));
-      throw new Error(result.detail?.message || result.detail || "無法下載專案封包");
-    }
-    const blob = await response.blob();
-    const disposition = response.headers.get("Content-Disposition") || "";
-    const filename = disposition.match(/filename="([^"]+)"/)?.[1]
-      || `roompilot-${state.projectId.slice(0, 8)}.roompilot`;
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    element.saveStatus.textContent = `已下載 · ${state.project.name}`;
-  } catch (error) {
-    element.saveStatus.textContent = "封包下載失敗";
-    setStatus(errorMessage(error), "error");
-  } finally {
-    element.exportProject.disabled = false;
-  }
-}
-
-async function importProjectBundle() {
-  const [bundle] = element.projectBundleFile.files || [];
-  if (!bundle) return;
-  element.importProject.disabled = true;
-  element.projectImportStatus.textContent = "正在驗證並還原專案…";
-  try {
-    const body = new FormData();
-    body.append("bundle", bundle);
-    const result = await api("/api/projects/import", { method: "POST", body });
-    element.projectImportStatus.textContent = "匯入完成，正在開啟專案。";
-    location.assign(`/scene?project_id=${encodeURIComponent(result.project.project_id)}`);
-  } catch (error) {
-    element.projectImportStatus.textContent = errorMessage(error);
-    element.projectImportStatus.classList.add("is-error");
-    element.importProject.disabled = false;
   }
 }
 
@@ -8225,15 +8165,6 @@ function bindEvents() {
     if (state.workflow?.canEnter(step)) goTo(step);
     else setStatus(firstWorkflowBlocker(step), "error");
   }));
-  element.exportProject.addEventListener("click", exportProjectBundle);
-  element.projectBundleFile.addEventListener("change", () => {
-    element.projectImportStatus.classList.remove("is-error");
-    element.projectImportStatus.textContent = element.projectBundleFile.files?.length
-      ? `已選擇：${element.projectBundleFile.files[0].name}`
-      : "封包只包含專案流程與原始平面圖，不包含帳號或私密金鑰。";
-    updateProjectTransferControls();
-  });
-  element.importProject.addEventListener("click", importProjectBundle);
   $("#reset-project").addEventListener("click", () => {
     if (!confirm("要重新開始此專案嗎？目前頁面的本機流程狀態會清除。")) return;
     state.workflow?.reset();
@@ -8252,7 +8183,6 @@ function bindEvents() {
 async function restoreProject() {
   if (!state.projectId) {
     state.workflow = null;
-    updateProjectTransferControls();
     showStep("project");
     return;
   }
@@ -8295,7 +8225,6 @@ async function restoreProject() {
     element.projectName.value = state.project.name;
     element.projectNotes.value = state.project.notes || "";
     element.saveStatus.textContent = `已載入 · ${state.project.name}`;
-    updateProjectTransferControls();
     state.analysis = serverState.recognition || state.workflow.data.recognition || null;
     state.confirmedFloorplan = serverState.confirmed_floorplan || null;
     const savedCalibration = serverState.calibration || state.workflow.data.calibration || null;
@@ -8475,7 +8404,6 @@ async function restoreProject() {
     }
     state.projectId = null;
     state.workflow = null;
-    updateProjectTransferControls();
     history.replaceState({}, "", "/scene");
     showStep("project");
     setStatus(`原網址的專案無法載入：${errorMessage(error)}`, "error");

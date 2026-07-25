@@ -177,49 +177,6 @@ class ProjectStore:
             )
         return self.get_project(project_id)
 
-    def import_project(
-        self,
-        *,
-        name: str,
-        notes: str,
-        current_step: str,
-        workflow: dict,
-        upload: dict | None = None,
-    ) -> dict:
-        project = self.create_project(name=name, notes=notes)
-        project_id = project["project_id"]
-        try:
-            if upload is not None:
-                self.save_upload(
-                    project_id,
-                    filename=upload["filename"],
-                    extension=upload["extension"],
-                    mime_type=upload["mime_type"],
-                    content=upload["content"],
-                )
-            return self.update_workflow(
-                project_id,
-                current_step=current_step,
-                workflow=workflow,
-            )
-        except Exception:
-            self.delete_project(project_id)
-            raise
-
-    def delete_project(self, project_id: str) -> None:
-        with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            connection.execute(
-                "DELETE FROM render_outputs WHERE project_id = ?",
-                (project_id,),
-            )
-            connection.execute(
-                "DELETE FROM projects WHERE project_id = ?",
-                (project_id,),
-            )
-        shutil.rmtree(self.upload_dir / project_id, ignore_errors=True)
-        shutil.rmtree(self.render_dir / project_id, ignore_errors=True)
-
     def get_project(self, project_id: str) -> dict:
         with self._connect() as connection:
             row = connection.execute(

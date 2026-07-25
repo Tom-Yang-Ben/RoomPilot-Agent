@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import io
 import json
 import os
@@ -87,9 +86,6 @@ QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
 _QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
 MAX_RENDER_BYTES = 20 * 1024 * 1024
-MAX_PROJECT_BUNDLE_BYTES = 30 * 1024 * 1024
-PROJECT_BUNDLE_FORMAT = "roompilot-project-bundle"
-PROJECT_BUNDLE_VERSION = 1
 WORKFLOW_STEPS = {
     "project",
     "upload",
@@ -1422,7 +1418,10 @@ def library_page() -> FileResponse:
 
 @app.get("/scene")
 def scene_page() -> FileResponse:
-    return _page("scene.html")
+    return FileResponse(
+        STATIC_DIR / "scene.html",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 def _stored_project(project_id: str) -> dict:
@@ -1490,35 +1489,6 @@ def _validate_floorplan_bytes(extension: str, content: bytes) -> str:
     return "image/png" if extension == ".png" else "image/jpeg"
 
 
-def _rewrite_project_references(
-    value,
-    *,
-    old_project_id: str,
-    new_project_id: str,
-):
-    if isinstance(value, list):
-        return [
-            _rewrite_project_references(
-                item,
-                old_project_id=old_project_id,
-                new_project_id=new_project_id,
-            )
-            for item in value
-        ]
-    if isinstance(value, dict):
-        return {
-            key: _rewrite_project_references(
-                item,
-                old_project_id=old_project_id,
-                new_project_id=new_project_id,
-            )
-            for key, item in value.items()
-        }
-    if isinstance(value, str) and old_project_id:
-        return value.replace(old_project_id, new_project_id)
-    return value
-
-
 @app.post("/api/projects", status_code=201)
 def create_project(payload: dict) -> dict:
     name = str(payload.get("name") or "").strip()
@@ -1535,171 +1505,9 @@ def create_project(payload: dict) -> dict:
     return {"project": PROJECT_STORE.create_project(name=name, notes=notes)}
 
 
-@app.get("/api/projects/{project_id}/export")
-def export_project_bundle(project_id: str) -> Response:
-    project = _stored_project(project_id)
-    try:
-        upload = PROJECT_STORE.get_upload(project_id)
-    except FileNotFoundError:
-        upload = None
-
-    floorplan_manifest = None
-    floorplan_content = None
-    if upload is not None and upload["path"].is_file():
-        floorplan_content = upload["path"].read_bytes()
-        member = f"floorplan{upload['extension']}"
-        floorplan_manifest = {
-            "member": member,
-            "filename": upload["filename"],
-            "extension": upload["extension"],
-            "mime_type": upload["mime_type"],
-            "sha256": hashlib.sha256(floorplan_content).hexdigest(),
-        }
-
-    manifest = {
-        "format": PROJECT_BUNDLE_FORMAT,
-        "version": PROJECT_BUNDLE_VERSION,
-        "source_project_id": project_id,
-        "project": {
-            "name": project["name"],
-            "notes": project["notes"],
-            "current_step": project["current_step"],
-            "workflow": project["workflow"],
-        },
-        "floorplan": floorplan_manifest,
-    }
-    output = io.BytesIO()
-    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr(
-            "manifest.json",
-            json.dumps(manifest, ensure_ascii=False, separators=(",", ":")),
-        )
-        if floorplan_manifest and floorplan_content is not None:
-            archive.writestr(floorplan_manifest["member"], floorplan_content)
-    filename = f"roompilot-{project_id[:8]}.roompilot"
-    return Response(
-        content=output.getvalue(),
-        media_type="application/vnd.roompilot.project+zip",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
-
-
-@app.post("/api/projects/import", status_code=201)
-async def import_project_bundle(bundle: UploadFile = File(...)) -> dict:
-    content = await bundle.read(MAX_PROJECT_BUNDLE_BYTES + 1)
-    if len(content) > MAX_PROJECT_BUNDLE_BYTES:
-        raise HTTPException(413, "project_bundle_too_large")
-    try:
-        with zipfile.ZipFile(io.BytesIO(content)) as archive:
-            members = archive.infolist()
-            member_names = [item.filename for item in members]
-            if (
-                len(members) > 2
-                or len(member_names) != len(set(member_names))
-                or any(item.flag_bits & 0x1 for item in members)
-                or sum(item.file_size for item in members) > MAX_PROJECT_BUNDLE_BYTES
-            ):
-                raise HTTPException(422, "invalid_project_bundle")
-            if "manifest.json" not in member_names:
-                raise HTTPException(422, "project_bundle_manifest_missing")
-            manifest = json.loads(archive.read("manifest.json"))
-            if not isinstance(manifest, dict):
-                raise HTTPException(422, "invalid_project_bundle")
-            floorplan_meta = manifest.get("floorplan")
-            expected_members = {"manifest.json"}
-            if floorplan_meta is None:
-                floorplan_content = None
-            elif isinstance(floorplan_meta, dict):
-                floorplan_member = floorplan_meta.get("member")
-                if not isinstance(floorplan_member, str) or not floorplan_member:
-                    raise HTTPException(422, "invalid_project_bundle")
-                expected_members.add(floorplan_member)
-                floorplan_content = archive.read(floorplan_member)
-            else:
-                raise HTTPException(422, "invalid_project_bundle")
-            if set(member_names) != expected_members:
-                raise HTTPException(422, "invalid_project_bundle")
-    except (zipfile.BadZipFile, KeyError, json.JSONDecodeError, UnicodeDecodeError) as exc:
-        raise HTTPException(422, "invalid_project_bundle") from exc
-
-    if (
-        manifest.get("format") != PROJECT_BUNDLE_FORMAT
-        or manifest.get("version") != PROJECT_BUNDLE_VERSION
-    ):
-        raise HTTPException(422, "unsupported_project_bundle")
-    project_data = manifest.get("project")
-    if not isinstance(project_data, dict):
-        raise HTTPException(422, "invalid_project_bundle")
-    name = str(project_data.get("name") or "").strip()
-    workflow = project_data.get("workflow")
-    current_step = str(project_data.get("current_step") or "project")
-    source_project_id = str(manifest.get("source_project_id") or "")
-    if (
-        not name
-        or not isinstance(workflow, dict)
-        or current_step not in WORKFLOW_STEPS
-        or re.fullmatch(r"[0-9a-f]{32}", source_project_id) is None
-    ):
-        raise HTTPException(422, "invalid_project_bundle")
-
-    upload = None
-    if isinstance(floorplan_meta, dict):
-        extension = str(floorplan_meta.get("extension") or "").lower()
-        if extension not in FLOORPLAN_EXTENSIONS or floorplan_content is None:
-            raise HTTPException(422, "invalid_project_bundle")
-        if hashlib.sha256(floorplan_content).hexdigest() != floorplan_meta.get("sha256"):
-            raise HTTPException(422, "project_bundle_checksum_mismatch")
-        mime_type = _validate_floorplan_bytes(extension, floorplan_content)
-        upload = {
-            "filename": Path(str(floorplan_meta.get("filename") or f"floorplan{extension}")).name,
-            "extension": extension,
-            "mime_type": mime_type,
-            "content": floorplan_content,
-        }
-
-    imported = PROJECT_STORE.import_project(
-        name=f"{name}（匯入）",
-        notes=str(project_data.get("notes") or ""),
-        current_step=current_step,
-        workflow={},
-        upload=upload,
-    )
-    rewritten_workflow = _rewrite_project_references(
-        workflow,
-        old_project_id=source_project_id,
-        new_project_id=imported["project_id"],
-    )
-    try:
-        imported = PROJECT_STORE.update_workflow(
-            imported["project_id"],
-            current_step=current_step,
-            workflow=rewritten_workflow,
-            expected_revision=imported["revision"],
-        )
-    except WorkflowTooLargeError as exc:
-        PROJECT_STORE.delete_project(imported["project_id"])
-        raise HTTPException(
-            413,
-            {
-                "code": "workflow_too_large",
-                "message": "專案封包內容超過 2 MB，無法匯入。",
-            },
-        ) from exc
-    except Exception:
-        PROJECT_STORE.delete_project(imported["project_id"])
-        raise
-    return {
-        "project": imported,
-        "source_url": (
-            f"/api/projects/{imported['project_id']}/floorplan/source"
-            if upload is not None
-            else None
-        ),
-    }
-
-
 @app.get("/api/projects/{project_id}")
-def get_project(project_id: str) -> dict:
+def get_project(project_id: str, response: Response) -> dict:
+    response.headers["Cache-Control"] = "no-store"
     return {"project": _stored_project(project_id)}
 
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=20260725-project-bundle2" />
+    <link rel="stylesheet" href="/static/site.css?v=20260725-bella-sync1" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -14,14 +14,6 @@
       </a>
       <div class="rp-project-meta">
         <span id="project-save-status">尚未建立專案</span>
-        <button
-          id="export-project"
-          type="button"
-          class="rp-icon-command"
-          title="下載專案封包"
-          aria-label="下載專案封包"
-          hidden
-        >⇩</button>
         <button id="reset-project" type="button" class="rp-icon-command" title="重新開始專案" aria-label="重新開始專案">↻</button>
       </div>
     </header>
@@ -67,27 +59,6 @@
             <p id="project-error" class="rp-field-error" aria-live="polite"></p>
             <button id="create-project" type="submit" class="primary-action">建立專案並繼續</button>
           </form>
-          <section class="rp-project-transfer" aria-labelledby="project-transfer-title">
-            <div>
-              <span class="eyebrow">CONTINUE PROJECT</span>
-              <h3 id="project-transfer-title">從其他電腦接續專案</h3>
-              <p>選擇 RoomPilot 專案封包，即可還原平面圖與目前完成的流程。</p>
-            </div>
-            <div class="rp-project-transfer-actions">
-              <label>
-                <span>專案封包</span>
-                <input
-                  id="project-bundle-file"
-                  type="file"
-                  accept=".roompilot,application/vnd.roompilot.project+zip,application/zip"
-                />
-              </label>
-              <button id="import-project" type="button" disabled>匯入並接續</button>
-            </div>
-            <p id="project-import-status" class="rp-field-note" aria-live="polite">
-              封包只包含專案流程與原始平面圖，不包含帳號或私密金鑰。
-            </p>
-          </section>
         </div>
       </section>
 
@@ -816,6 +787,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene_v2.js?v=sha256-55262afceb21"></script>
+    <script type="module" src="/static/scene_v2.js?v=sha256-985b386cfe12"></script>
   </body>
 </html>
