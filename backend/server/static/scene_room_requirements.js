@@ -10,6 +10,39 @@ const numberOrZero = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+export function conditionalOptionId(option = {}) {
+  const tags = new Set((option.rag_tags || []).map((tag) => String(tag).toLowerCase()));
+  const effects = option.engine_effects || {};
+  if (effects.bath_fixture === "tub" || tags.has("bathtub")) return "bathtub";
+  if (
+    numberOrZero(effects.vanity_capacity) >= 2
+    || tags.has("double_vanity")
+    || tags.has("double-vanity")
+  ) {
+    return "double_vanity";
+  }
+  if (
+    numberOrZero(effects.dining_capacity) >= 6
+    || tags.has("large_dining_table")
+    || tags.has("large-dining-table")
+  ) {
+    return "large_dining_table";
+  }
+  return null;
+}
+
+export function buildSpecialRequestAnswer(optionId, label, currentCustom = "") {
+  const note = `${label}（尺寸可能無法配置）`;
+  return {
+    optionId,
+    custom: currentCustom.includes(note)
+      ? currentCustom
+      : [currentCustom, note].filter(Boolean).join("；"),
+    specialRequest: true,
+    forcePlacement: false,
+  };
+}
+
 function polygonBoundsCm(room = {}) {
   const points = room.polygon_cm || room.polygon || room.points || [];
   if (!Array.isArray(points) || points.length < 3) return null;

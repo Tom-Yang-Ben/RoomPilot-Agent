@@ -1,3 +1,5 @@
+import json
+import subprocess
 from pathlib import Path
 
 
@@ -7,6 +9,29 @@ SOURCE = (ROOT / "backend/server/static/scene_room_requirements.js").read_text(
 )
 SCENE = (ROOT / "backend/server/static/scene_v2.js").read_text(encoding="utf-8")
 VIEWER = (ROOT / "backend/server/static/scene_viewer.js").read_text(encoding="utf-8")
+ROOM_REQUIREMENTS = ROOT / "backend/server/static/scene_room_requirements.js"
+
+
+def _run_room_requirement_helper(script: str) -> dict:
+    result = subprocess.run(
+        [
+            "node",
+            "--input-type=module",
+            "--eval",
+            f"""
+              import {{
+                buildSpecialRequestAnswer,
+                conditionalOptionId,
+              }} from {json.dumps(ROOM_REQUIREMENTS.resolve().as_uri())};
+              {script}
+            """,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    return json.loads(result.stdout)
 
 
 def test_room_requirement_contract_is_room_scoped_and_versioned() -> None:
@@ -37,6 +62,47 @@ def test_feasibility_checks_room_geometry_and_openings() -> None:
     assert "opening.room_ids" in SOURCE
     assert "目前尺寸可能無法配置" in SOURCE
     assert "forcePlacement: false" in SOURCE
+
+
+def test_conditional_option_detection_uses_structured_catalog_fields() -> None:
+    result = _run_room_requirement_helper(
+        """
+          console.log(JSON.stringify({
+            tub: conditionalOptionId({
+              option_id: "tub",
+              label_zh: "保留浴缸",
+              rag_tags: ["bathroom", "bathtub"],
+              engine_effects: { bath_fixture: "tub" },
+            }),
+            shower: conditionalOptionId({
+              option_id: "shower",
+              label_zh: "放大淋浴",
+              visual_brief_zh: "取消浴缸並形成寬敞淋浴區",
+              rag_tags: ["bathroom", "large_shower"],
+              engine_effects: { bath_fixture: "shower" },
+            }),
+          }));
+        """
+    )
+
+    assert result == {"tub": "bathtub", "shower": None}
+
+
+def test_special_request_is_a_complete_non_forced_answer() -> None:
+    result = _run_room_requirement_helper(
+        """
+          console.log(JSON.stringify(
+            buildSpecialRequestAnswer("tub", "保留浴缸", "需要扶手")
+          ));
+        """
+    )
+
+    assert result == {
+        "optionId": "tub",
+        "custom": "需要扶手；保留浴缸（尺寸可能無法配置）",
+        "specialRequest": True,
+        "forcePlacement": False,
+    }
 
 
 def test_rag_payload_waits_for_all_room_and_global_confirmations() -> None:

@@ -10990,6 +10990,17 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   color: #713821;
 }
 
+.rp-option-fit-warning.is-selected {
+  outline: 2px solid #26745f;
+  outline-offset: 2px;
+}
+
+.rp-option-fit-warning.is-selected button {
+  border-color: #26745f;
+  background: #26745f;
+  color: #fff;
+}
+
 .rp-option-fit-warning span {
   grid-column: 1;
   font-size: 0.88rem;

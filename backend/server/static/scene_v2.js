@@ -45,10 +45,12 @@ import {
 } from "./scene_questionnaire_test2.js?v=20260725-room-scoped1";
 import {
   applyRoomFinishScope,
+  buildSpecialRequestAnswer,
   buildRoomRequirementsPayload,
+  conditionalOptionId,
   evaluateConditionalOption,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-f414d14d4dc3";
+} from "./scene_room_requirements.js?v=sha256-3d6beb40e5c4";
 import {
   applyStylePack,
   CEILING_STYLES,
@@ -4551,7 +4553,9 @@ function resolvedVisualPreferences(questions = state.visualQuestions) {
       space_type: question.space_type,
       option_id: answer.optionId,
       custom: answer.custom || "",
-      engine_effects: option?.engine_effects || {},
+      special_request: answer.specialRequest === true,
+      force_placement: answer.forcePlacement !== false,
+      engine_effects: answer.forcePlacement === false ? {} : (option?.engine_effects || {}),
     }];
   });
 }
@@ -4660,21 +4664,10 @@ function renderVisualQuestionnaire() {
   const room = activeQuestionnaireRoom();
   const blockedOptions = [];
   const optionMarkup = question.options.flatMap((option) => {
-    const normalizedText = `${option.label_zh || ""} ${option.visual_brief_zh || ""}`;
-    let feasibility = null;
-    if (normalizedText.includes("浴缸")) {
-      feasibility = evaluateConditionalOption(room, "bathtub", state.structures.doors);
-    } else if (
-      Number(option.engine_effects?.dining_capacity) >= 6
-      || normalizedText.includes("六至八人")
-      || normalizedText.includes("大型餐桌")
-    ) {
-      feasibility = evaluateConditionalOption(
-        room,
-        "large_dining_table",
-        state.structures.doors,
-      );
-    }
+    const conditionalId = conditionalOptionId(option);
+    const feasibility = conditionalId
+      ? evaluateConditionalOption(room, conditionalId, state.structures.doors)
+      : null;
     if (feasibility && !feasibility.feasible) {
       blockedOptions.push({ option, feasibility });
       return [];
@@ -4700,10 +4693,13 @@ function renderVisualQuestionnaire() {
     <p>${escapeHtml(question.purpose_zh)}</p>
     <div class="rp-visual-options">${optionMarkup}</div>
     ${blockedOptions.map(({ option, feasibility }) => `
-      <aside class="rp-option-fit-warning">
+      <aside class="rp-option-fit-warning ${answer.optionId === option.option_id ? "is-selected" : ""}">
         <strong>${escapeHtml(option.label_zh)}：目前尺寸可能無法配置</strong>
         <span>${escapeHtml(feasibility.warnings[0])}</span>
-        <button type="button" data-keep-special-request="${escapeHtml(option.label_zh)}">保留為特殊需求</button>
+        <button type="button"
+          data-keep-special-request="${escapeHtml(option.label_zh)}"
+          data-special-option-id="${escapeHtml(option.option_id)}"
+          aria-pressed="${answer.optionId === option.option_id}">保留為特殊需求</button>
       </aside>
     `).join("")}
     ${question.allow_both ? `
@@ -4732,7 +4728,11 @@ function renderVisualQuestionnaire() {
   renderQuestionnaireFinishes();
 }
 
-function selectVisualOption(optionId) {
+function selectVisualOption(optionId, {
+  specialRequest = false,
+  forcePlacement = true,
+  custom = element.visualCustomAnswer.value.trim(),
+} = {}) {
   const question = visualQuestionAt();
   if (!question) return;
   state.skippedVisualSpaceTypes = state.skippedVisualSpaceTypes.filter(
@@ -4740,7 +4740,9 @@ function selectVisualOption(optionId) {
   );
   state.visualAnswers[question.question_id] = {
     optionId,
-    custom: element.visualCustomAnswer.value.trim(),
+    custom,
+    specialRequest,
+    forcePlacement,
   };
   renderVisualQuestionnaire();
   invalidateDownstreamFrom("requirements", "視覺偏好已修改，2D 家具與 3D 需要重新產生。");
@@ -7714,11 +7716,16 @@ function bindEvents() {
     if (special) {
       const label = special.dataset.keepSpecialRequest;
       const current = element.visualCustomAnswer.value.trim();
-      element.visualCustomAnswer.value = [current, `${label}（尺寸可能無法配置）`]
-        .filter(Boolean)
-        .join("；");
-      saveVisualCustomAnswer();
-      scheduleSave("requirements");
+      const specialAnswer = buildSpecialRequestAnswer(
+        special.dataset.specialOptionId,
+        label,
+        current,
+      );
+      element.visualCustomAnswer.value = specialAnswer.custom;
+      selectVisualOption(special.dataset.specialOptionId, {
+        ...specialAnswer,
+      });
+      element.requirementsError.textContent = "";
       return;
     }
     const option = event.target.closest("[data-visual-option]");
