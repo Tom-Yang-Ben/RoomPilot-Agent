@@ -511,25 +511,25 @@ def test_structure_step_explains_pending_manual_door_directions() -> None:
     assert "開門側與鉸鏈端" in source
 
 
-def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> None:
+def test_scene_uses_the_integrated_step6_step7_flow_and_exact_upload_contract() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
 
     for label in (
         "1 建立專案",
         "2 上傳平面圖",
-        "3 確定尺寸",
-        "4 空間與結構",
-        "5 需求問卷",
-        "6 2D 家具配置",
-        "7 3D 白模",
-        "8 即時寫實",
-        "9 方案鎖定",
-        "10 AI 渲染",
+        "3–4 確定尺寸",
+        "5 空間與結構",
+        "6 需求問卷",
+        "7 方案工作台",
+        "8 3D 白模",
+        "9 即時寫實",
+        "10 方案鎖定",
+        "11 AI 渲染",
     ):
         assert label in html
 
-    assert 'data-workflow-count="10"' in html
-    assert "3–4" not in html
+    assert 'data-workflow-count="11"' in html
+    assert "3–4" in html
     assert 'accept=".dxf,.png,.jpg,.jpeg,image/png,image/jpeg,application/dxf"' in html
     assert 'id="project-step"' in html
     assert 'id="upload-step"' in html
@@ -615,6 +615,7 @@ def test_2d_collision_checker_uses_rotated_footprints_for_bounds_and_overlap() -
 
     assert "furnitureCollisionFootprintCm(item)" in collision_function
     assert "furnitureCollisionFootprintCm(other)" in collision_function
+    assert "furnitureCollisionFootprintCm," in source
     assert "item.widthCm / 2" not in collision_function
     assert "item.depthCm / 2" not in collision_function
 
@@ -1432,18 +1433,34 @@ def test_requirements_gate_allows_explicit_keep_existing_for_unfilled_rooms() ->
     module_uri = (STATIC / "scene_requirements.js").as_uri()
     result = run_workflow_script(
         f"""
-        import {{ requirementsGate }} from {json.dumps(module_uri)};
-        const rooms = [{{ id: "living" }}, {{ id: "bedroom" }}];
+        import {{ requirementsGate, QUESTIONNAIRE_SCHEMA_VERSION }} from {json.dumps(module_uri)};
+        const rooms = [
+          {{ id: "living", type: "living_room" }},
+          {{ id: "bedroom", type: "bedroom" }},
+        ];
+        const livingAnswer = {{
+          schemaVersion: QUESTIONNAIRE_SCHEMA_VERSION,
+          confirmed: true,
+          uses: ["日常休息"],
+          axes: {{
+            openness_storage: "open_flow",
+            social_focus: "conversation",
+            seating_flexibility: "fixed_sofa",
+            ceiling: "flat",
+            air_conditioning: "wall_mounted",
+            lighting: "surface_focus",
+          }},
+        }};
         const blocked = requirementsGate({{
           basic: {{ confirmed: true }},
           rooms,
-          answers: {{ living: {{ confirmed: true, uses: ["日常休息"] }} }},
+          answers: {{ living: livingAnswer }},
           keepExistingRoomIds: [],
         }});
         const allowed = requirementsGate({{
           basic: {{ confirmed: true }},
           rooms,
-          answers: {{ living: {{ confirmed: true, uses: ["日常休息"] }} }},
+          answers: {{ living: livingAnswer }},
           keepExistingRoomIds: ["bedroom"],
         }});
         console.log(JSON.stringify({{ blocked, allowed }}));
@@ -1781,10 +1798,11 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert 'id="flip-selected-door"' in html
     assert 'id="rotate-selected-door-180"' in html
     assert 'class="rp-questionnaire-workspace"' in html
-    assert 'data-questionnaire-panel="rooms"' in html
-    assert 'id="visual-space-nav"' in html
+    assert 'id="room-questionnaire"' in html
+    assert 'id="questionnaire-room-locator"' in html
+    assert 'id="room-question-nav"' in html
     assert 'id="room-furniture-select"' not in html
-    assert "visualPreferencesForRoom(room)" in controller
+    assert "state.roomAnswers[room.id]" in controller
     assert 'id="layout-room-filter"' in html
     assert "state.activeLayoutRoomId" in controller
     assert "placement_room_id: room.id" in controller
@@ -1843,11 +1861,12 @@ def test_realtime_style_cards_show_reference_images_and_sync_full_scene_rules() 
     assert ".rp-style-card-preview" in css
 
 
-def test_removed_questionnaire_floorplan_overlay_does_not_break_event_binding() -> None:
+def test_questionnaire_floorplan_overlay_is_present_and_event_binding_is_safe() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert "requirementsOverlay" not in controller
-    assert "renderRequirementsOverlay" not in controller
+    assert 'requirementsOverlay: $("#requirements-plan-overlay")' in controller
+    assert "renderRequirementsOverlay" in controller
+    assert "element.requirementsOverlay?.addEventListener" in controller
 
 
 def test_project_resume_restores_flow_rooms_and_generated_scene() -> None:
@@ -1985,8 +2004,11 @@ def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
     assert "replay_pending: true" in source
     assert "error.status !== 409" in source
     assert "result = await api(`/api/projects/${state.projectId}`)" in source
-    assert "較舊的離線暫存未覆蓋目前版本" in source
+    assert "離線編輯已保留，請選擇是否合併" in source
     assert 'window.addEventListener("beforeunload"' in source
     assert "pendingSaveCount === 0" in source
-    assert "[element.scaleImage, element.spaceImage, element.layoutImage]" in source
+    assert (
+        "[element.scaleImage, element.spaceImage, element.requirementsImage, "
+        "element.layoutImage]"
+    ) in source
     assert ".filter(Boolean)" in source

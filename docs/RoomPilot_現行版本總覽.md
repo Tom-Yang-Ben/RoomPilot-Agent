@@ -5,24 +5,47 @@
 歷史測試結果或分支開發日誌。
 
 實際欄位與行為發生衝突時，依序以自動化測試、可執行程式、正式契約
-及本總覽為準。README 負責安裝與啟動，本文件負責跨模組協作。
+及本總覽為準。[README](../README.md) 負責安裝、啟動、資產準備與
+常用測試，本文件負責產品流程、跨模組協作、資料邊界與接入狀態。
+
+README 與本總覽共用的流程、入口、單位及團隊目錄必須通過：
+
+```powershell
+uv run pytest tests/test_project_documentation_consistency.py -q
+```
+
+## AI 協作入口
+
+根目錄的 `AGENTS.md` 與 `CLAUDE.md` 是內容完全相同的 AI 協作入口。
+兩者只摘要不易改變的工程規則，並要求 AI 在修改程式前閱讀本總覽；
+產品流程、模組責任與接入狀態仍以本文件為唯一現行導航，不在兩個
+入口檔各自維護副本。
+
+修改任一 AI 協作入口時，必須同步修改另一份並執行：
+
+```powershell
+uv run pytest tests/test_ai_instruction_docs.py tests/test_project_documentation_consistency.py -q
+```
 
 ## 產品流程
 
-正式網頁入口為 `/scene`，目前固定為八個步驟：
+正式網頁入口為 `/scene`，目前固定為十一個編號步驟。程式內部另將
+Step 3–4 的辨識與尺度校正、Step 6 的問卷與材質偏好保存為獨立 state，
+但它們在 UI 仍屬於同一組編號流程：
 
 | 步驟 | 名稱 | 主要結果 |
 |---|---|---|
 | 1 | 建立專案 | 建立 `project_id`，後續確認結果可保存 |
 | 2 | 上傳平面圖 | 上傳 PNG、JPG 或 DXF，並確認圖檔內容 |
-| 3 | 確定尺寸 | 以已知線段校正比例尺，跨模組尺寸使用公分 |
-| 4 | 空間與結構 | 確認房間、尺寸標註、牆、門、窗、樑與柱 |
-| 5 | 需求問卷 | 蒐集全屋基本資料、逐房家具與特殊需求 |
-| 6 | 2D 家具配置 | Agent 選件，AN 引擎配置並驗證家具 |
-| 7 | 3D 白模 | 以已確認格局與家具建立可檢查的 3D 場景 |
-| 8 | 即時寫實 | 套用 StylePack、PBR 材質、燈光與真實 GLB |
-| 9 | 方案鎖定 | 核對家具、格局、材質、色卡與需求，最後鎖定色卡比較視角 |
-| 10 | AI 渲染 | 先以固定場景比較色卡，再逐房保存視角並送往遠端渲染 |
+| 3 | 圖面辨識 | 產生尺寸線、房間及結構候選，低信心結果交由人工確認 |
+| 4 | 確定尺寸 | 以已知線段校正比例尺，跨模組尺寸使用公分 |
+| 5 | 空間與結構 | 確認房間、尺寸標註、牆、門、窗、樑與柱 |
+| 6 | 需求問卷 | 蒐集全屋與逐房需求，最後確認風格及牆地家具材質偏好 |
+| 7 | 方案工作台 | 比較三案，由 Agent 選件並交由 AN 引擎配置及驗證家具 |
+| 8 | 3D 白模 | 以已確認格局與家具建立可檢查的 3D 場景 |
+| 9 | 即時寫實 | 套用 StylePack、PBR 材質、燈光與真實 GLB |
+| 10 | 方案鎖定 | 核對家具、格局、材質、色卡與需求，最後鎖定色卡比較視角 |
+| 11 | AI 渲染 | 先以固定場景比較色卡，再逐房保存視角並送往遠端渲染 |
 
 前一步資料改動時，依賴它的後續步驟必須失效並重新確認，不能沿用
 可能已過期的 2D 或 3D 結果。
@@ -36,7 +59,7 @@
 | Django | `backend/spatial_data/` | 房間長寬、面積、比例與尺寸標註邏輯 | 目錄目前僅保留落點；現行尺寸標註 UI 位於 `backend/server/static/` |
 | Yen | `backend/agent/` | 需求理解、家具選件與擺放失敗修復策略 | `request_selections()` 與 `resolve_placements()` 已接正式流程 |
 | AN | `backend/engine/` | 家具座標、旋轉、碰撞、淨空與房間邊界 | 已接場景生成、重新配置與位置驗證 |
-| Bella | `backend/server/`、`frontend3d/` | FastAPI、專案保存、十步驟 UI 與 2D／3D 呈現 | `backend/server/static/` 是整合網頁；`frontend3d/` 是獨立 R3F 編輯器 |
+| Bella | `backend/server/`、`frontend3d/` | FastAPI、專案保存、十一步驟 UI 與 2D／3D 呈現 | `backend/server/static/` 是整合網頁；`frontend3d/` 是獨立 R3F 編輯器 |
 
 組員只在自己的主要目錄維護演算法。Bella 可在 `backend/server/`
 調度模組與轉換 payload，但不複製其他組員的核心邏輯。
@@ -83,7 +106,7 @@ Agent 可以選件、排序或提出修復策略，但不能輸出合法家具�
 | `backend/agent/` | Yen 選件規則與擺放失敗修復 |
 | `backend/engine/` | AN 家具擺放、碰撞與淨空核心 |
 | `backend/server/` | 唯一 FastAPI、工作流、專案保存與整合前端 |
-| `backend/server/static/` | 正式十步驟網頁與 Three.js Viewer |
+| `backend/server/static/` | 正式十一步驟網頁與 Three.js Viewer |
 | `frontend3d/` | 獨立 React Three Fiber 編輯器及相容 API 用戶端 |
 | `scripts/` | 型錄、模型與離線備援維護工具 |
 | `testdata/` | 可提交的小型辨識及整合測試資料 |
@@ -103,14 +126,14 @@ Agent 可以選件、排序或提出修復策略，但不能輸出合法家具�
 - `/`：首頁。
 - `/styles`：住宅風格與色卡。
 - `/library`：家具資料庫。
-- `/scene`：十步驟專案流程。
+- `/scene`：十一步驟專案流程。
 
 主要 API：
 
 | API | 用途 |
 |---|---|
 | `/api/projects`、`/api/projects/{project_id}` | 建立與讀取專案 |
-| `/api/projects/{project_id}/workflow` | 保存十步驟工作流 |
+| `/api/projects/{project_id}/workflow` | 保存十一步驟工作流 |
 | `/api/render-provider/status` | 確認遠端渲染服務是否已設定 |
 | `/api/projects/{project_id}/render-jobs` | 代理色卡比較與逐房渲染任務 |
 | `/api/projects/{project_id}/floorplan/analyze` | 分析專案平面圖 |
@@ -141,7 +164,7 @@ CloudFront Manifest 交付。未能可靠對應的家具必須留在 quarantine�
 
 已接入正式流程：
 
-- 十步驟專案建立、保存、恢復與步驟阻擋。
+- 十一步驟專案建立、保存、恢復與步驟阻擋。
 - 第 9 步方案版本與主比較視角鎖定；第 10 步色卡比較、逐房視角與遠端渲染任務。
 - Cody 平面圖分析、尺度校正及空間結構人工確認。
 - Yen `request_selections()` 家具選件與 deterministic fallback。

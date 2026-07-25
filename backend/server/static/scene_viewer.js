@@ -14,10 +14,10 @@ import {
   surfacePbrProfile,
   surfaceTint,
 } from "./scene_pbr_contracts.js?v=20260720-real3d15";
-import { openingBelongsToWall } from "./scene_architecture.js?v=sha256-77dd3e6c8e09";
+import { openingBelongsToWall } from "./scene_architecture.js?v=sha256-ef897a9c0e59";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
-import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-ebc6332ca3c4";
-import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
+import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
+import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
 import {
   clampWalkPosition,
   computeExactModelScale,
@@ -26,7 +26,7 @@ import {
   findNearestWalkablePosition,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-b4521120c436";
+} from "./scene_visual_contracts.js?v=sha256-d193ac77ac2f";
 
 const CM_PER_METER = 100;
 
@@ -1670,43 +1670,350 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     addCirculationStrip(roomGroupRef, [entranceMidpoint, entranceAccess]);
   }
 
-  function createMaterialBoundarySurfaces(roomGroupRef, boundary, floorMaterial, sceneData) {
+  function resolveMaterialBoundaryLine(boundary, bounds) {
+    const minX = Number(bounds?.minX);
+    const maxX = Number(bounds?.maxX);
+    const minZ = Number(bounds?.minZ);
+    const maxZ = Number(bounds?.maxZ);
+    if (![minX, maxX, minZ, maxZ].every(Number.isFinite)) return null;
+    if (Array.isArray(boundary?.line_cm) && boundary.line_cm.length >= 2) {
+      return boundary.line_cm.slice(0, 2).map((point) => ({
+        x: Number(point.x),
+        y: Number(point.y),
+      }));
+    }
+    if (Array.isArray(boundary?.points) && boundary.points.length >= 2) {
+      return boundary.points.slice(0, 2).map((point) => ({
+        x: minX + THREE.MathUtils.clamp(Number(point.x) || 0, 0, 1) * (maxX - minX),
+        y: minZ + THREE.MathUtils.clamp(Number(point.y) || 0, 0, 1) * (maxZ - minZ),
+      }));
+    }
+    const ratio = THREE.MathUtils.clamp(
+      Number(boundary.split_ratio ?? boundary.ratio) || 0.5,
+      0,
+      1,
+    );
+    return boundary.direction === "horizontal"
+      ? [
+          { x: minX, y: minZ + (maxZ - minZ) * ratio },
+          { x: maxX, y: minZ + (maxZ - minZ) * ratio },
+        ]
+      : [
+          { x: minX + (maxX - minX) * ratio, y: minZ },
+          { x: minX + (maxX - minX) * ratio, y: maxZ },
+        ];
+  }
+
+  function normalizeMaterialBoundaryWallFace(value) {
+    const normalized = String(value || "").toLowerCase();
+    return ["north", "east", "south", "west"].includes(normalized)
+      ? normalized
+      : null;
+  }
+
+  function clipMaterialPolygon(points, axis, split, keepBefore) {
+    const inside = (point) => (
+      keepBefore ? point[axis] <= split : point[axis] >= split
+    );
+    const intersection = (start, end) => {
+      const delta = end[axis] - start[axis];
+      const ratio = Math.abs(delta) < 1e-6 ? 0 : (split - start[axis]) / delta;
+      return {
+        x: start.x + (end.x - start.x) * ratio,
+        z: start.z + (end.z - start.z) * ratio,
+      };
+    };
+    const output = [];
+    points.forEach((end, index) => {
+      const start = points[(index + points.length - 1) % points.length];
+      const startInside = inside(start);
+      const endInside = inside(end);
+      if (startInside && endInside) {
+        output.push(end);
+      } else if (startInside && !endInside) {
+        output.push(intersection(start, end));
+      } else if (!startInside && endInside) {
+        output.push(intersection(start, end), end);
+      }
+    });
+    return output;
+  }
+
+  function createMaterialPolygonGeometry(points) {
+    if (!Array.isArray(points) || points.length < 3) return null;
+    const shape = new THREE.Shape();
+    shape.moveTo(points[0].x, -points[0].z);
+    points.slice(1).forEach((point) => shape.lineTo(point.x, -point.z));
+    shape.closePath();
+    return new THREE.ShapeGeometry(shape);
+  }
+
+  function createMaterialBoundarySurfaces(roomGroupRef, boundary, sceneData, wallHeight) {
     const bounds = boundary?.room_bounds_cm;
-    const line = boundary?.line_cm;
+    const line = resolveMaterialBoundaryLine(boundary, bounds);
     if (!bounds || !Array.isArray(line) || line.length < 2) return;
     const minX = Number(bounds.minX);
     const maxX = Number(bounds.maxX);
     const minZ = Number(bounds.minZ);
     const maxZ = Number(bounds.maxZ);
-    const vertical = Math.abs(Number(line[1].x) - Number(line[0].x))
-      <= Math.abs(Number(line[1].y) - Number(line[0].y));
+    const vertical = ["horizontal", "vertical"].includes(boundary.direction)
+      ? boundary.direction === "vertical"
+      : Math.abs(Number(line[1].x) - Number(line[0].x))
+        <= Math.abs(Number(line[1].y) - Number(line[0].y));
     const split = vertical
       ? Math.max(minX, Math.min(maxX, (Number(line[0].x) + Number(line[1].x)) / 2))
       : Math.max(minZ, Math.min(maxZ, (Number(line[0].y) + Number(line[1].y)) / 2));
-    const palette = sceneData.style_card?.palette_hex || sceneData.style?.palette_hex || [];
-    const materials = [floorMaterial.clone(), floorMaterial.clone()];
-    applySurfaceTint(materials[0], palette[1] || "#c9a77d");
-    applySurfaceTint(materials[1], palette[3] || "#8b684b");
-    const parts = vertical
-      ? [
-          { width: split - minX, depth: maxZ - minZ, x: (minX + split) / 2, z: (minZ + maxZ) / 2 },
-          { width: maxX - split, depth: maxZ - minZ, x: (split + maxX) / 2, z: (minZ + maxZ) / 2 },
-        ]
-      : [
-          { width: maxX - minX, depth: split - minZ, x: (minX + maxX) / 2, z: (minZ + split) / 2 },
-          { width: maxX - minX, depth: maxZ - split, x: (minX + maxX) / 2, z: (split + maxZ) / 2 },
+    const definitions = Array.isArray(boundary.materials) ? boundary.materials : [];
+    const surfaceKind = boundary.surface === "wall" ? "wall" : "floor";
+    const materials = [0, 1].map((index) => {
+      const definition = definitions[index] || definitions[0] || {};
+      const material = surfaceKind === "wall"
+        ? createWallMaterial(definition.surface_id || "auto", sceneData.surface_catalog)
+        : createFloorMaterial(
+          definition.surface_id || "auto",
+          sceneData.surface_catalog,
+          { widthCm: maxX - minX, depthCm: maxZ - minZ },
+        );
+      applySurfaceTint(material, definition.color_hex);
+      return material;
+    });
+
+    if (surfaceKind === "floor") {
+      const roomPolygon = Array.isArray(boundary.room_polygon_cm)
+        ? boundary.room_polygon_cm
+          .map((point) => ({ x: Number(point.x), z: Number(point.z) }))
+          .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.z))
+        : [];
+      if (roomPolygon.length >= 3) {
+        const axis = vertical ? "x" : "z";
+        const polygonParts = [
+          clipMaterialPolygon(roomPolygon, axis, split, true),
+          clipMaterialPolygon(roomPolygon, axis, split, false),
         ];
-    parts.forEach((part, index) => {
-      if (part.width < 2 || part.depth < 2) return;
+        let renderedParts = 0;
+        polygonParts.forEach((polygon, index) => {
+          const geometry = createMaterialPolygonGeometry(polygon);
+          if (!geometry) return;
+          const surface = new THREE.Mesh(geometry, materials[index]);
+          surface.rotation.x = -Math.PI / 2;
+          surface.position.y = 0.6 + index * 0.1;
+          surface.receiveShadow = true;
+          surface.userData.roompilotMaterialZone = index + 1;
+          surface.userData.roompilotMaterialSurface = "floor";
+          surface.userData.roompilotMaterialClippedToRoom = true;
+          roomGroupRef.add(surface);
+          renderedParts += 1;
+        });
+        if (renderedParts > 0) return;
+      }
+      const parts = vertical
+        ? [
+            { width: split - minX, depth: maxZ - minZ, x: (minX + split) / 2, z: (minZ + maxZ) / 2 },
+            { width: maxX - split, depth: maxZ - minZ, x: (split + maxX) / 2, z: (minZ + maxZ) / 2 },
+          ]
+        : [
+            { width: maxX - minX, depth: split - minZ, x: (minX + maxX) / 2, z: (minZ + split) / 2 },
+            { width: maxX - minX, depth: maxZ - split, x: (minX + maxX) / 2, z: (split + maxZ) / 2 },
+          ];
+      parts.forEach((part, index) => {
+        if (part.width < 2 || part.depth < 2) return;
+        const surface = new THREE.Mesh(
+          new THREE.PlaneGeometry(part.width, part.depth),
+          materials[index],
+        );
+        surface.rotation.x = -Math.PI / 2;
+        surface.position.set(part.x, 0.6 + index * 0.1, part.z);
+        surface.receiveShadow = true;
+        surface.userData.roompilotMaterialZone = index + 1;
+        surface.userData.roompilotMaterialSurface = "floor";
+        roomGroupRef.add(surface);
+      });
+      return;
+    }
+
+    const addWallPanel = ({
+      width,
+      height = wallHeight,
+      x,
+      y = height / 2,
+      z,
+      rotationY,
+      materialIndex,
+      wallFace = null,
+    }) => {
+      if (width < 2 || height < 2) return;
       const surface = new THREE.Mesh(
-        new THREE.PlaneGeometry(part.width, part.depth),
-        materials[index],
+        new THREE.PlaneGeometry(width, height),
+        materials[materialIndex],
       );
-      surface.rotation.x = -Math.PI / 2;
-      surface.position.set(part.x, 0.6 + index * 0.1, part.z);
-      surface.receiveShadow = true;
-      surface.userData.roompilotMaterialZone = index + 1;
+      surface.rotation.y = rotationY;
+      surface.position.set(x, y, z);
+      surface.userData.roompilotMaterialZone = materialIndex + 1;
+      surface.userData.roompilotMaterialSurface = "wall";
+      if (wallFace) {
+        surface.userData.roompilotMaterialWallFace = wallFace;
+      }
       roomGroupRef.add(surface);
+    };
+    const inset = 0.8;
+    const wallFace = normalizeMaterialBoundaryWallFace(boundary.wallFace);
+    if (wallFace) {
+      const faceDefinitions = {
+        north: {
+          axis: "x",
+          width: maxX - minX,
+          x: (minX + maxX) / 2,
+          z: minZ + inset,
+          rotationY: 0,
+        },
+        east: {
+          axis: "z",
+          width: maxZ - minZ,
+          x: maxX - inset,
+          z: (minZ + maxZ) / 2,
+          rotationY: -Math.PI / 2,
+        },
+        south: {
+          axis: "x",
+          width: maxX - minX,
+          x: (minX + maxX) / 2,
+          z: maxZ - inset,
+          rotationY: Math.PI,
+        },
+        west: {
+          axis: "z",
+          width: maxZ - minZ,
+          x: minX + inset,
+          z: (minZ + maxZ) / 2,
+          rotationY: Math.PI / 2,
+        },
+      };
+      const face = faceDefinitions[wallFace];
+      const drawnPoints = Array.isArray(boundary?.points)
+        ? boundary.points.slice(0, 2)
+        : [];
+      const horizontalBoundary = boundary.direction === "horizontal";
+      const drawnRatio = drawnPoints.length >= 2
+        ? (
+            horizontalBoundary
+              ? (Number(drawnPoints[0].y) + Number(drawnPoints[1].y)) / 2
+              : (Number(drawnPoints[0].x) + Number(drawnPoints[1].x)) / 2
+          )
+        : Number(boundary.split_ratio ?? boundary.ratio);
+      const faceRatio = THREE.MathUtils.clamp(
+        Number.isFinite(drawnRatio) ? drawnRatio : 0.5,
+        0.02,
+        0.98,
+      );
+      if (horizontalBoundary) {
+        const lowerHeight = wallHeight * faceRatio;
+        const upperHeight = wallHeight - lowerHeight;
+        addWallPanel({
+          ...face,
+          height: lowerHeight,
+          y: lowerHeight / 2,
+          materialIndex: 0,
+          wallFace,
+        });
+        addWallPanel({
+          ...face,
+          height: upperHeight,
+          y: lowerHeight + upperHeight / 2,
+          materialIndex: 1,
+          wallFace,
+        });
+        return;
+      }
+      const firstWidth = face.width * faceRatio;
+      const secondWidth = face.width - firstWidth;
+      const firstCenter = face.axis === "x"
+        ? minX + firstWidth / 2
+        : minZ + firstWidth / 2;
+      const secondCenter = face.axis === "x"
+        ? minX + firstWidth + secondWidth / 2
+        : minZ + firstWidth + secondWidth / 2;
+      addWallPanel({
+        ...face,
+        width: firstWidth,
+        x: face.axis === "x" ? firstCenter : face.x,
+        z: face.axis === "z" ? firstCenter : face.z,
+        materialIndex: 0,
+        wallFace,
+      });
+      addWallPanel({
+        ...face,
+        width: secondWidth,
+        x: face.axis === "x" ? secondCenter : face.x,
+        z: face.axis === "z" ? secondCenter : face.z,
+        materialIndex: 1,
+        wallFace,
+      });
+      return;
+    }
+    if (vertical) {
+      [minZ + inset, maxZ - inset].forEach((z, edgeIndex) => {
+        const rotationY = edgeIndex === 0 ? 0 : Math.PI;
+        addWallPanel({
+          width: split - minX,
+          x: (minX + split) / 2,
+          z,
+          rotationY,
+          materialIndex: 0,
+        });
+        addWallPanel({
+          width: maxX - split,
+          x: (split + maxX) / 2,
+          z,
+          rotationY,
+          materialIndex: 1,
+        });
+      });
+      addWallPanel({
+        width: maxZ - minZ,
+        x: minX + inset,
+        z: (minZ + maxZ) / 2,
+        rotationY: Math.PI / 2,
+        materialIndex: 0,
+      });
+      addWallPanel({
+        width: maxZ - minZ,
+        x: maxX - inset,
+        z: (minZ + maxZ) / 2,
+        rotationY: -Math.PI / 2,
+        materialIndex: 1,
+      });
+      return;
+    }
+    [minX + inset, maxX - inset].forEach((x, edgeIndex) => {
+      const rotationY = edgeIndex === 0 ? Math.PI / 2 : -Math.PI / 2;
+      addWallPanel({
+        width: split - minZ,
+        x,
+        z: (minZ + split) / 2,
+        rotationY,
+        materialIndex: 0,
+      });
+      addWallPanel({
+        width: maxZ - split,
+        x,
+        z: (split + maxZ) / 2,
+        rotationY,
+        materialIndex: 1,
+      });
+    });
+    addWallPanel({
+      width: maxX - minX,
+      x: (minX + maxX) / 2,
+      z: minZ + inset,
+      rotationY: 0,
+      materialIndex: 0,
+    });
+    addWallPanel({
+      width: maxX - minX,
+      x: (minX + maxX) / 2,
+      z: maxZ - inset,
+      rotationY: Math.PI,
+      materialIndex: 1,
     });
   }
 
@@ -2003,12 +2310,6 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     keyLight.shadow.camera.far = 3500;
     keyLight.shadow.camera.updateProjectionMatrix();
     createRoomSurfaceOverrides(roomGroup, sceneData);
-    createMaterialBoundarySurfaces(
-      roomGroup,
-      sceneData.material_boundary,
-      floorMaterial,
-      sceneData,
-    );
 
     const wallMaterial = createWallMaterial(wallOption, sceneData.surface_catalog);
     const wallPbr = sceneData.style?.pbr?.wall || {};
@@ -2017,6 +2318,12 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     applySurfaceTint(wallMaterial, wallColor);
     if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
+    const materialBoundaries = Array.isArray(sceneData.material_boundaries)
+      ? sceneData.material_boundaries
+      : [sceneData.material_boundary].filter(Boolean);
+    materialBoundaries.forEach((boundary) => {
+      createMaterialBoundarySurfaces(roomGroup, boundary, sceneData, wallHeight);
+    });
     const wallSegments = sceneData.floorplan?.wall_segments || [];
     const doorSegments = sceneData.floorplan?.door_segments || [];
     const windowSegments = sceneData.floorplan?.window_segments || [];
@@ -2111,12 +2418,20 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     }
     buildStructuralMembers(roomGroup, sceneData.floorplan || {}, wallHeight);
 
-    const boundary = sceneData.material_boundary?.line_cm;
-    if (Array.isArray(boundary) && boundary.length >= 2) {
-      buildFloorPlanOverlay(roomGroup, [{
-        start: { x: Number(boundary[0].x) || 0, z: Number(boundary[0].y) || 0 },
-        end: { x: Number(boundary[1].x) || 0, z: Number(boundary[1].y) || 0 },
-      }], 0x7b56b3, 0.96, 5.2);
+    const boundarySegments = (
+      Array.isArray(sceneData.material_boundaries)
+        ? sceneData.material_boundaries
+        : [sceneData.material_boundary].filter(Boolean)
+    ).flatMap((boundary) => {
+      const line = boundary?.line_cm;
+      if (!Array.isArray(line) || line.length < 2) return [];
+      return [{
+        start: { x: Number(line[0].x) || 0, z: Number(line[0].y) || 0 },
+        end: { x: Number(line[1].x) || 0, z: Number(line[1].y) || 0 },
+      }];
+    });
+    if (boundarySegments.length) {
+      buildFloorPlanOverlay(roomGroup, boundarySegments, 0x7b56b3, 0.96, 5.2);
     }
 
     if (sceneData.design_choices?.light_style) {

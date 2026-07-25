@@ -124,7 +124,7 @@ def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
     assert "buildRoomRequirementsPayload" in javascript
     assert "visual_preferences: visualPreferences" in javascript
     assert "state.sceneData.questionnaire" in javascript
-    assert "ceiling_color_hex" in javascript
+    assert 'id="room-technical-preference-options"' in html
 
 
 def test_questionnaire_catalog_json_remains_the_versioned_source() -> None:
@@ -351,29 +351,13 @@ def test_questionnaire_state_survives_project_save_and_reload() -> None:
         json={"name": f"Test2 questionnaire {uuid4().hex[:8]}"},
     ).json()["project"]
     requirements = {
-        "basic": {"household": "兩位大人"},
-        "basicConfirmed": True,
-        "questionnaireStage": "summary",
-        "visualCatalogVersion": "1.0.0",
-        "visualAnswers": {
-            "living-sofa-layout": {
-                "optionId": "sectional",
-                "custom": "保留主要走道",
-            }
-        },
-        "skippedVisualSpaceTypes": ["balcony"],
-        "finishes": {
-            "confirmed": True,
-            "stylePackId": "scandinavian-01",
-            "wallMaterial": "paint",
-            "wallColor": "#f4f1eb",
-            "floorMaterial": "wood",
-            "floorColor": "#b99b78",
-            "ceilingMaterial": "flat-paint",
-            "ceilingStyle": "flat",
-            "lightStyle": "warm",
-            "ceilingColor": "#ffffff",
-        },
+        "schemaVersion": "3.0",
+        "basic": {},
+        "basicConfirmed": False,
+        "rooms": {},
+        "keepExistingRoomIds": [],
+        "settings": {"minimumFinishedHeightCm": 240},
+        "designerNotes": "待與客戶共同確認",
     }
 
     saved = client.put(

@@ -13,7 +13,7 @@ RoomPilot 直接使用 `backend/` 作為 Python 套件，與 Yen 分支及團隊
 | Django | `backend/spatial_data/` | 房間長寬、面積、比例及尺寸標註 |
 | Yen | `backend/agent/` | 家具選件與擺放失敗修復策略 |
 | AN | `backend/engine/` | 家具座標、碰撞與淨空檢查 |
-| Bella | `backend/server/`、`frontend3d/` | FastAPI、1–10 流程、2D／3D UI |
+| Bella | `backend/server/`、`frontend3d/` | FastAPI、1–11 流程、2D／3D UI |
 
 Agent、家具引擎與前後端的欄位及 fallback 規則，請見
 [Agent 前後端契約](docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md)。
@@ -70,23 +70,39 @@ git status --short
 
 RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案把平面圖、住宅風格、家具資料與 Three.js 3D 場景串成一套可操作的網頁流程，協助設計師快速和使用者確認空間方向。
 
-目前版本整合 Cody 平面圖辨識、十步驟提案流程、2D 家具配置、3D
+目前版本整合 Cody 平面圖辨識、十一步驟提案流程、2D 家具配置、3D
 白模、即時 PBR StylePack、方案鎖定、遠端 AI 渲染、專案持久化與室內漫遊。跨模組責任與接入
 狀態請見 [RoomPilot 現行版本總覽](docs/RoomPilot_現行版本總覽.md)。
+
+### 文件責任與同步
+
+本 README 是安裝、啟動、資產準備與常用測試的操作入口；
+[RoomPilot 現行版本總覽](docs/RoomPilot_現行版本總覽.md) 是產品流程、
+模組責任、資料邊界與接入狀態的唯一導航。唯一正式 FastAPI 是
+`backend/server/main.py`。兩份文件的共同不變量由下列測試檢查：
+
+```powershell
+uv run pytest tests/test_project_documentation_consistency.py -q
+```
+
+若測試、可執行程式、正式契約與說明文件發生衝突，先以測試及程式
+確認現況，再同步正式契約、現行版本總覽與 README；不得只修改其中
+一份來隱藏差異。
 
 ## 現行流程
 
 ```text
 1 建立專案
 → 2 上傳 PNG／JPG／DXF 平面圖
-→ 3 拉取兩點並確認公分尺度
-→ 4 確認房間尺寸、面積、牆、門、窗、樑與柱
-→ 5 完成 Test2 問卷：基本資料、逐房極與極需求、風格與表面色卡
-→ 6 產生並修正 2D 家具配置
-→ 7 升維為可編輯的 3D 白模
-→ 8 套用六種風格、18 張色卡與即時 PBR 材質
-→ 9 核對完整方案，最後鎖定一個色卡比較視角
-→ 10 固定場景比較色卡，再逐房保存視角並送往遠端渲染
+→ 3 自動辨識圖面與尺寸線候選
+→ 4 拉取兩點並確認公分尺度
+→ 5 確認房間尺寸、面積、牆、門、窗、樑與柱
+→ 6 完成 Test2 問卷：基本資料、逐房極與極需求、風格與表面色卡
+→ 7 比較三個方案並修正 2D 家具配置
+→ 8 升維為可編輯的 3D 白模
+→ 9 套用六種風格、18 張色卡與即時 PBR 材質
+→ 10 核對完整方案，最後鎖定一個色卡比較視角
+→ 11 固定場景比較色卡，再逐房保存視角並送往遠端渲染
 ```
 
 ## 主要功能
@@ -129,7 +145,7 @@ RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案�
 ### 相對 `main` 新增的主要功能
 
 1. **平面圖辨識與確認**：新增 Cody adapter、PNG/JPG 分析、DXF 轉接、OCR 房名、門窗候選、房間幾何、兩點公分尺度校正與人工確認 API。
-2. **完整使用者流程**：把單頁展示改為建立專案、上傳、尺度、空間結構、需求問卷、2D 配置、3D 白模、即時寫實、方案鎖定與 AI 渲染十步驟流程，加入逐步阻擋原因與恢復進度。
+2. **完整使用者流程**：把單頁展示改為建立專案、上傳、辨識、尺度、空間結構、需求問卷、方案工作台、3D 白模、即時寫實、方案鎖定與 AI 渲染十一步驟流程，加入逐步阻擋原因與恢復進度。
 3. **家具與軟裝引擎**：新增逐房家具需求、2D 家具圖示與尺寸、GLB 指定、15 度旋轉、貼牆候選，以及窗簾、地毯、植栽、燈具自動配置。
 4. **3D 與材質**：新增六種風格、18 張色卡、牆地 PBR 貼圖、HDR 環境光、GTAO、ACES、柔和陰影、材質覆寫與 StylePack 即時切換。
 5. **3D 操作與視覺修正**：新增娃娃屋自由旋轉、正俯視、室內漫遊、碰撞限制、牆體接縫修正、玄關動線與家具編號。
@@ -228,7 +244,7 @@ ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS=D:\RoomPilot-assets\ikea抓取家具glb_中文�
 uv run pytest tests/ -v
 ```
 
-十步流程、Test2 問卷保存與重載、Project API，以及問卷結果傳入
+十一步流程、Test2 問卷保存與重載、Project API，以及問卷結果傳入
 2D／3D 的整合驗證可單獨執行：
 
 ```powershell
