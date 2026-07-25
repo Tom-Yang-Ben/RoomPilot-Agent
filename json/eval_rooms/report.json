@@ -24,14 +24,14 @@
    },
    "living": {
     "kitchen": 0,
-    "living": 3,
+    "living": 4,
     "bed": 0,
     "bath": 0,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 1
+    "space": 0
    },
    "bed": {
     "kitchen": 0,
@@ -103,15 +103,17 @@
     "kitchen": 0,
     "living": 0,
     "bed": 0,
-    "bath": 0,
+    "bath": 1,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 2
+    "space": 1
    }
   },
   "iou_thr": 0.5,
+  "gt_seg_mode": false,
+  "own_eval_mode": false,
   "per_class": {
    "kitchen": {
     "gt": 1,
@@ -121,7 +123,7 @@
    "living": {
     "gt": 4,
     "precision": 1.0,
-    "recall": 0.75
+    "recall": 1.0
    },
    "bed": {
     "gt": 3,
@@ -130,7 +132,7 @@
    },
    "bath": {
     "gt": 2,
-    "precision": 1.0,
+    "precision": 0.667,
     "recall": 1.0
    },
    "entry": {
@@ -155,8 +157,8 @@
    },
    "space": {
     "gt": 2,
-    "precision": 0.667,
-    "recall": 1.0
+    "precision": 1.0,
+    "recall": 0.5
    }
   }
  },
@@ -219,7 +221,7 @@
    "pairs": [
     [
      "space",
-     "space"
+     "bath"
     ]
    ],
    "ious": [
@@ -273,7 +275,7 @@
    "pairs": [
     [
      "living",
-     "space"
+     "living"
     ],
     [
      "kitchen",

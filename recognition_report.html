@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RoomPilot 四層級辨識成功率報表（2026-07-23）</title>
+<title>RoomPilot 四層級辨識成功率報表（2026-07-25）</title>
 <style>
 :root{
   color-scheme: light;
@@ -73,14 +73,14 @@ footer{margin-top:44px;color:var(--muted);font-size:12px;border-top:1px solid va
 <div class="wrap">
 
 <h1>RoomPilot 四層級辨識成功率報表</h1>
-<div class="sub">評測日 2026-07-23（全部以現行程式碼重跑；晚間完成量尺幾何修正——GT 房間輪廓重建＋get_polygon 尾空格 bug 修復後全面重評）｜輸入：灰階 <b>png/</b> 39 張、彩色 <b>color_png/</b> 29 張｜
-答案集：牆窗像素答案 灰 38＋彩 28、門位 GT 26 題、own_eval 保留集 12 題 73 房（永不進訓練，2026-07-23 完成 47 筆人工覆核校準）</div>
+<div class="sub">評測日 2026-07-25（切割/命名層以 v5 微調預設權重＋全題標注修復後 GT 重評；牆窗/門層沿用 2026-07-23 快照）｜輸入：灰階 <b>png/</b> 38 張、彩色 <b>color_png/</b> 30 張｜
+答案集：牆窗像素答案 灰 38＋彩 28、門位 GT 26 題、own_eval 保留集 12 題 72 房（永不進訓練，2026-07-25 完成全題標注修復逐張人工驗收）</div>
 
 <div class="tiles">
   <div class="tile good"><div class="v">0.99</div><div class="k">灰階牆 F1（像素 ±3px）</div><div class="n">38 題人工答案</div></div>
   <div class="tile good"><div class="v">96%</div><div class="k">灰階窗 精準率/召回率</div><div class="n">133 中·5 誤·6 漏</div></div>
   <div class="tile"><div class="v">0.868</div><div class="k">門位召回率（score_fused）</div><div class="n">26 題 GT·zone 提名後</div></div>
-  <div class="tile"><div class="v">72.6%</div><div class="k">空間切割命中率</div><div class="n">own_eval 73 房·IoU≥0.5·量尺修正後</div></div>
+  <div class="tile"><div class="v">76.4%</div><div class="k">空間切割命中率</div><div class="n">own_eval 72 房·IoU≥0.5·標注修復後</div></div>
 </div>
 
 <h2>(1) 牆、窗</h2>
@@ -121,59 +121,60 @@ footer{margin-top:44px;color:var(--muted);font-size:12px;border-top:1px solid va
 <div class="note">zone 提名將召回率由 0.132 拉至 0.868（92/106），精準率 0.576 為下一個優化點（118 個候選中 50 個誤報）。<span class="gap">彩色管線門位尚無 GT——缺口。</span></div>
 </div>
 
-<h2>(3) 空間切割（own_eval 12 題端對端，73 房）</h2>
+<h2>(3) 空間切割（own_eval 12 題端對端，72 房）</h2>
 <div class="card">
 <table>
 <tr><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th><th>解讀</th></tr>
-<tr><td>切割命中率（IoU≥0.5 一對一配對）</td><td class="num">72.6%（53/73）</td>
-  <td class="barcell"><div class="bar" title="命中率 72.6%"><i style="width:72.6%"></i></div></td>
-  <td>量尺修正後的真實值</td></tr>
-<tr><td>過切率（預測數/GT 數）</td><td class="num">1.01（74/73）</td>
-  <td class="barcell"><div class="bar" title="過切率 1.01（越接近 1 越好）"><i class="dim" style="width:50.5%"></i></div></td>
+<tr><td>切割命中率（IoU≥0.5 一對一配對）</td><td class="num">76.4%（55/72）</td>
+  <td class="barcell"><div class="bar" title="命中率 76.4%"><i style="width:76.4%"></i></div></td>
+  <td>全題標注修復後重評</td></tr>
+<tr><td>過切率（預測數/GT 數）</td><td class="num">1.03（74/72）</td>
+  <td class="barcell"><div class="bar" title="過切率 1.03（越接近 1 越好）"><i class="dim" style="width:51.5%"></i></div></td>
   <td>幾乎一房一塊，無碎切</td></tr>
-<tr><td>命中房間的平均 IoU</td><td class="num">0.829</td>
-  <td class="barcell"><div class="bar" title="平均 IoU 0.829"><i style="width:82.9%"></i></div></td>
-  <td>切中的房間輪廓品質尚可</td></tr>
+<tr><td>命中房間的平均 IoU</td><td class="num">0.875</td>
+  <td class="barcell"><div class="bar" title="平均 IoU 0.875"><i style="width:87.5%"></i></div></td>
+  <td>切中的房間輪廓品質良好</td></tr>
 </table>
-<div class="note">早前量測的 38.4% 是量尺失真（GT 三角楔形＋get_polygon 尾空格 bug 砍頂點）造成的假低分；GT 房間輪廓以審定牆體 flood fill 重建後，真實命中率 72.6%。剩餘漏接集中兩型：floor60（GT 牆未封閉，1/6）與 floor55 類開放式空間黏房（2/5）。<span class="gap">彩色管線空間切割尚無 GT——缺口。</span></div>
+<div class="note">2026-07-23 量尺幾何修正（GT 輪廓 flood fill 重建＋get_polygon 尾空格修復）後為 72.6%；2026-07-25 全題標注修復（牆窗門 id 失配等七大陷阱）後 GT 收斂為 72 房，命中率 76.4%、IoU 0.875。剩餘漏接仍集中 floor60（GT 牆未封閉）與開放式空間黏房兩型。<span class="gap">彩色管線空間切割尚無 GT——缺口。</span></div>
 </div>
 
-<h2>(4) 空間命名（own_eval 63 具名房，GT 解耦＝假設切割正確）</h2>
+<h2>(4) 空間命名（own_eval 66 具名房，GT 解耦＝假設切割正確）</h2>
 <div class="card">
 <table>
 <tr><th>證據源 / 方法</th><th class="num">具名正確率</th><th class="barcell">0 ─ 100%</th><th>備註</th></tr>
-<tr><td>現行管線（CubiCasa 基線投票）</td><td class="num"><span class="flag crit">0.270</span></td>
-  <td class="barcell"><div class="bar" title="CC 基線 0.270"><i style="width:27%"></i></div></td>
-  <td>保守棄權策略，多判 space</td></tr>
-<tr><td>CubiCasa v4 微調（26 題）</td><td class="num">0.619</td>
-  <td class="barcell"><div class="bar" title="CC v4 0.619"><i style="width:61.9%"></i></div></td>
-  <td>有風格遷移但精度不足</td></tr>
-<tr><td>DINOv2 裁切分類（131 張訓練）</td><td class="num"><span class="flag good">0.730</span></td>
-  <td class="barcell"><div class="bar" title="DINOv2 0.730"><i style="width:73%"></i></div></td>
-  <td>無 CubiCasa 授權包袱，待接進管線</td></tr>
+<tr><td>現行管線（CubiCasa v5 微調，預設權重）</td><td class="num"><span class="flag good">0.788</span></td>
+  <td class="barcell"><div class="bar" title="CC v5 0.788"><i style="width:78.8%"></i></div></td>
+  <td>標注 id 失配修復後首訓（25 題），2026-07-25 接管預設</td></tr>
+<tr><td>CubiCasa 基線投票（前預設）</td><td class="num"><span class="flag crit">0.273</span></td>
+  <td class="barcell"><div class="bar" title="CC 基線 0.273"><i class="ref" style="width:27.3%"></i></div></td>
+  <td>保守棄權策略，多判 space；已退役</td></tr>
+<tr><td>DINOv2 裁切分類（131 張訓練）</td><td class="num">0.730</td>
+  <td class="barcell"><div class="bar" title="DINOv2 0.730（舊 GT 63 房快照）"><i class="dim" style="width:73%"></i></div></td>
+  <td>舊 GT 63 房快照，待新 GT 重評；無 CubiCasa 授權包袱</td></tr>
 <tr><td>VLM 零樣本（上限參考）</td><td class="num">0.984</td>
   <td class="barcell"><div class="bar" title="VLM 0.984（循環性分數，僅供上限參考）"><i class="dim" style="width:98.4%"></i></div></td>
   <td>※ 分數有循環性（GT 覆核多採其建議），僅證明裁切資訊量上限</td></tr>
 </table>
-<div class="note">數字為量尺幾何修正後版本（GT=完整房間輪廓）。DINOv2 弱項仍是 living/entry 混淆與 outdoor（訓練樣本僅 2 張）——擴充 own_dataset 可直接補。<span class="gap">彩色管線命名尚無 GT——缺口。</span></div>
+<div class="note">GT＝2026-07-25 全題標注修復版（72 房，其中 66 具名）。v5 recall：kitchen 0.90／living 1.00／bed 0.80／bath 0.86／entry 0.43，八類無一倒退；殘餘誤命名集中 bed→living、entry→living。歷屆 v1~v4 均敗於標注 id 失配（手畫牆窗門對訓練隱形），資料修復後同配方立即反轉。<span class="gap">彩色管線命名尚無 GT——缺口。</span></div>
 </div>
 
 <h2>診斷結論（瓶頸排序）</h2>
 <div class="card">
 <ol class="diag">
-<li><b>命名層是現在最大的可收割空間</b>：現行管線 0.270 vs DINOv2 0.730——把裁切分類器接進融合層是回報最高的一步。</li>
-<li><b>彩色窗召回率 38%</b> 是各層級中最低的真實破口（首輪接回，早期狀態）。</li>
-<li><b>空間切割 72.6%</b>（原以為 38.4% 是量尺失真）：剩餘問題集中在 GT 牆未封閉的 floor60 與開放式空間黏房，非普遍性失效。</li>
+<li><b>命名層破口已收割</b>：v5 微調接管預設，0.273 → 0.788，且已超過 DINOv2 0.730——「DINOv2 接融合層」的優先序待重議（可轉為互補證據源或以新 GT 重評後再比）。剩餘誤命名集中 living 混淆與 storage/outdoor 樣本不足，擴充 own_dataset（彩色 30 題待修）是下一槓桿。</li>
+<li><b>彩色窗召回率 38%</b> 成為各層級中最低的真實破口（首輪接回，早期狀態）。</li>
+<li><b>空間切割 76.4%</b>（標注修復後重評，IoU 0.875）：剩餘問題集中在 GT 牆未封閉的 floor60 與開放式空間黏房，非普遍性失效。</li>
 <li><b>門位精準率 0.576</b> 有優化空間；召回率 0.868 可用。</li>
 <li><b>強項維持</b>：灰階牆 0.99／灰階窗 96%／門過濾 100%。</li>
+<li><span class="gap">註：CubiCasa 域（非目標域）v5 具名 macro-F1 0.797 vs 基線 0.838，storage/garage recall 有退——產品取向已定調 own 風格優先，此為已知取捨。</span></li>
 </ol>
 <div class="note">GT 缺口：彩色管線僅有牆窗答案，門位／切割／命名三層無 GT——可沿用「VLM 盲標＋人工把關」流程低成本建集（本輪 47 筆補名實測約 20 分鐘）。</div>
 </div>
 
 <footer>
 資料來源：eval_windows.py、eval_color_walls.py、score_compare.py、eval_doors.py、eval_door_match.py、eval_rooms_cc.py（--own-eval／--gt-seg）、probe_room_classifier.py｜
-報表快照：json/eval_rooms/report_own*.json（量尺幾何修正後版本；歷程見 git log json/eval_rooms/）｜
-產出：2026-07-23，RoomPilot-Agent cody 分支
+報表快照：json/eval_rooms/report_own*.json（2026-07-25 v5 預設權重＋標注修復後版本；歷程見 git log json/eval_rooms/）｜
+產出：2026-07-25，RoomPilot-Agent cody 分支
 </footer>
 </div>
 </body>

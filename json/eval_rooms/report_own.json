@@ -4,72 +4,72 @@
   "n_ok": 12,
   "n_seg_fail": 0,
   "n_skip": 0,
-  "gt_rooms": 73,
+  "gt_rooms": 72,
   "pred_rooms": 74,
-  "matched": 53,
-  "hit_rate": 0.726,
-  "overseg": 1.0137,
-  "mean_iou": 0.8291,
+  "matched": 55,
+  "hit_rate": 0.7639,
+  "overseg": 1.0278,
+  "mean_iou": 0.8747,
   "confusion": {
    "kitchen": {
-    "kitchen": 1,
-    "living": 0,
+    "kitchen": 4,
+    "living": 1,
     "bed": 0,
     "bath": 0,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 2
+    "space": 0
    },
    "living": {
-    "kitchen": 1,
-    "living": 0,
+    "kitchen": 0,
+    "living": 9,
     "bed": 0,
     "bath": 0,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 10
+    "space": 0
    },
    "bed": {
-    "kitchen": 1,
-    "living": 0,
-    "bed": 7,
+    "kitchen": 0,
+    "living": 4,
+    "bed": 16,
     "bath": 0,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 11
+    "space": 0
    },
    "bath": {
-    "kitchen": 2,
-    "living": 0,
+    "kitchen": 0,
+    "living": 2,
     "bed": 0,
-    "bath": 5,
+    "bath": 10,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 5
+    "space": 0
    },
    "entry": {
     "kitchen": 0,
-    "living": 0,
+    "living": 4,
     "bed": 0,
     "bath": 0,
     "entry": 0,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 3
+    "space": 0
    },
    "storage": {
     "kitchen": 0,
     "living": 0,
-    "bed": 0,
+    "bed": 2,
     "bath": 0,
     "entry": 0,
     "storage": 0,
@@ -102,13 +102,13 @@
    "space": {
     "kitchen": 0,
     "living": 0,
-    "bed": 0,
-    "bath": 0,
-    "entry": 0,
+    "bed": 1,
+    "bath": 1,
+    "entry": 1,
     "storage": 0,
     "garage": 0,
     "outdoor": 0,
-    "space": 5
+    "space": 0
    }
   },
   "iou_thr": 0.5,
@@ -116,34 +116,34 @@
   "own_eval_mode": true,
   "per_class": {
    "kitchen": {
-    "gt": 3,
-    "precision": 0.2,
-    "recall": 0.333
+    "gt": 5,
+    "precision": 1.0,
+    "recall": 0.8
    },
    "living": {
-    "gt": 11,
-    "precision": null,
-    "recall": 0.0
+    "gt": 9,
+    "precision": 0.45,
+    "recall": 1.0
    },
    "bed": {
-    "gt": 19,
-    "precision": 1.0,
-    "recall": 0.368
+    "gt": 20,
+    "precision": 0.842,
+    "recall": 0.8
    },
    "bath": {
     "gt": 12,
-    "precision": 1.0,
-    "recall": 0.417
+    "precision": 0.909,
+    "recall": 0.833
    },
    "entry": {
-    "gt": 3,
-    "precision": null,
+    "gt": 4,
+    "precision": 0.0,
     "recall": 0.0
    },
    "storage": {
-    "gt": 0,
+    "gt": 2,
     "precision": null,
-    "recall": null
+    "recall": 0.0
    },
    "garage": {
     "gt": 0,
@@ -156,9 +156,9 @@
     "recall": null
    },
    "space": {
-    "gt": 5,
-    "precision": 0.139,
-    "recall": 1.0
+    "gt": 3,
+    "precision": null,
+    "recall": 0.0
    }
   }
  },
@@ -166,57 +166,53 @@
   {
    "id": "floor55",
    "status": "ok",
-   "n_gt": 5,
+   "n_gt": 4,
    "n_pred": 2,
    "n_match": 2,
-   "mean_iou": 0.7676,
+   "mean_iou": 0.8009,
    "pairs": [
     [
      "living",
-     "space"
+     "living"
     ],
     [
      "bed",
-     "kitchen"
+     "bed"
     ]
    ],
    "ious": [
-    0.783,
-    0.7521
+    0.8566,
+    0.7453
    ],
    "split": "own"
   },
   {
    "id": "floor58",
    "status": "ok",
-   "n_gt": 9,
+   "n_gt": 8,
    "n_pred": 10,
-   "n_match": 8,
-   "mean_iou": 0.8834,
+   "n_match": 7,
+   "mean_iou": 0.8848,
    "pairs": [
     [
      "bath",
-     "space"
-    ],
-    [
-     "living",
-     "space"
+     "living"
     ],
     [
      "bath",
-     "space"
+     "living"
+    ],
+    [
+     "living",
+     "living"
     ],
     [
      "kitchen",
-     "space"
+     "kitchen"
     ],
     [
      "bed",
      "bed"
-    ],
-    [
-     "space",
-     "space"
     ],
     [
      "bed",
@@ -224,111 +220,110 @@
     ],
     [
      "living",
-     "space"
+     "living"
     ]
    ],
    "ious": [
     1.0,
-    0.9783,
-    0.969,
-    0.9457,
-    0.9137,
-    0.7913,
+    1.0,
+    0.9998,
+    0.9561,
+    0.9149,
     0.7431,
-    0.7263
+    0.5801
    ],
    "split": "own"
   },
   {
    "id": "floor60",
    "status": "ok",
-   "n_gt": 6,
+   "n_gt": 5,
    "n_pred": 3,
-   "n_match": 1,
-   "mean_iou": 0.8111,
-   "pairs": [
-    [
-     "bed",
-     "space"
-    ]
-   ],
-   "ious": [
-    0.8111
-   ],
-   "split": "own"
-  },
-  {
-   "id": "floor61",
-   "status": "ok",
-   "n_gt": 8,
-   "n_pred": 9,
-   "n_match": 7,
-   "mean_iou": 0.8491,
+   "n_match": 2,
+   "mean_iou": 0.7463,
    "pairs": [
     [
      "bed",
      "bed"
     ],
     [
-     "bed",
-     "space"
-    ],
-    [
-     "bed",
-     "space"
-    ],
-    [
      "bath",
-     "kitchen"
-    ],
-    [
-     "space",
-     "space"
-    ],
-    [
-     "living",
-     "space"
-    ],
-    [
-     "entry",
-     "space"
+     "bath"
     ]
    ],
    "ious": [
-    0.9539,
-    0.9272,
-    0.9151,
-    0.9017,
-    0.824,
-    0.763,
-    0.6587
+    0.8161,
+    0.6766
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor61",
+   "status": "ok",
+   "n_gt": 7,
+   "n_pred": 9,
+   "n_match": 5,
+   "mean_iou": 0.945,
+   "pairs": [
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "living",
+     "living"
+    ]
+   ],
+   "ious": [
+    0.9999,
+    0.996,
+    0.9748,
+    0.9711,
+    0.7833
    ],
    "split": "own"
   },
   {
    "id": "floor64",
    "status": "ok",
-   "n_gt": 3,
+   "n_gt": 4,
    "n_pred": 5,
-   "n_match": 3,
-   "mean_iou": 0.8274,
+   "n_match": 4,
+   "mean_iou": 0.8553,
    "pairs": [
-    [
-     "entry",
-     "space"
-    ],
     [
      "bath",
      "bath"
     ],
     [
+     "entry",
+     "living"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
      "living",
-     "space"
+     "living"
     ]
    ],
    "ious": [
-    0.9596,
-    0.8088,
+    0.9489,
+    0.8923,
+    0.8662,
     0.7138
    ],
    "split": "own"
@@ -339,35 +334,35 @@
    "n_gt": 6,
    "n_pred": 5,
    "n_match": 5,
-   "mean_iou": 0.9466,
+   "mean_iou": 0.9578,
    "pairs": [
     [
-     "living",
-     "space"
-    ],
-    [
      "kitchen",
-     "space"
+     "kitchen"
+    ],
+    [
+     "living",
+     "living"
     ],
     [
      "bed",
-     "space"
-    ],
-    [
-     "bed",
-     "space"
+     "living"
     ],
     [
      "bath",
      "bath"
+    ],
+    [
+     "bed",
+     "living"
     ]
    ],
    "ious": [
-    0.99,
-    0.9719,
-    0.948,
-    0.9123,
-    0.9109
+    1.0,
+    1.0,
+    0.9505,
+    0.9206,
+    0.9181
    ],
    "split": "own"
   },
@@ -377,25 +372,25 @@
    "n_gt": 4,
    "n_pred": 4,
    "n_match": 3,
-   "mean_iou": 0.7494,
+   "mean_iou": 0.8028,
    "pairs": [
     [
      "bed",
      "bed"
     ],
     [
-     "living",
-     "space"
-    ],
-    [
      "bath",
      "bath"
+    ],
+    [
+     "living",
+     "living"
     ]
    ],
    "ious": [
-    0.9836,
-    0.6893,
-    0.5753
+    1.0,
+    0.7164,
+    0.6921
    ],
    "split": "own"
   },
@@ -405,19 +400,19 @@
    "n_gt": 6,
    "n_pred": 6,
    "n_match": 4,
-   "mean_iou": 0.7805,
+   "mean_iou": 0.8839,
    "pairs": [
-    [
-     "bed",
-     "space"
-    ],
-    [
-     "bed",
-     "space"
-    ],
     [
      "bath",
      "bath"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
     ],
     [
      "kitchen",
@@ -425,91 +420,111 @@
     ]
    ],
    "ious": [
-    0.921,
-    0.8946,
-    0.7961,
-    0.5103
+    1.0,
+    1.0,
+    0.9963,
+    0.5394
    ],
    "split": "own"
   },
   {
    "id": "floor74",
    "status": "ok",
-   "n_gt": 7,
+   "n_gt": 8,
    "n_pred": 8,
-   "n_match": 5,
-   "mean_iou": 0.7651,
+   "n_match": 7,
+   "mean_iou": 0.8109,
    "pairs": [
     [
      "bath",
      "bath"
     ],
     [
-     "bed",
-     "space"
-    ],
-    [
-     "bed",
-     "space"
-    ],
-    [
-     "living",
-     "space"
-    ],
-    [
      "space",
-     "space"
-    ]
-   ],
-   "ious": [
-    0.9017,
-    0.8457,
-    0.8118,
-    0.766,
-    0.5003
-   ],
-   "split": "own"
-  },
-  {
-   "id": "floor76",
-   "status": "ok",
-   "n_gt": 7,
-   "n_pred": 10,
-   "n_match": 6,
-   "mean_iou": 0.8352,
-   "pairs": [
-    [
-     "living",
-     "space"
-    ],
-    [
-     "bed",
-     "space"
-    ],
-    [
-     "bath",
-     "space"
+     "bed"
     ],
     [
      "bed",
      "bed"
     ],
     [
-     "bath",
-     "space"
+     "bed",
+     "bed"
     ],
     [
      "space",
-     "space"
+     "bath"
+    ],
+    [
+     "entry",
+     "living"
+    ],
+    [
+     "kitchen",
+     "living"
     ]
    ],
    "ious": [
-    0.947,
-    0.8917,
-    0.8894,
-    0.8855,
-    0.8766,
-    0.5211
+    0.9776,
+    0.9496,
+    0.8933,
+    0.8835,
+    0.8476,
+    0.5785,
+    0.5463
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor76",
+   "status": "ok",
+   "n_gt": 8,
+   "n_pred": 10,
+   "n_match": 8,
+   "mean_iou": 0.8822,
+   "pairs": [
+    [
+     "bed",
+     "living"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "storage",
+     "bed"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "space",
+     "entry"
+    ],
+    [
+     "entry",
+     "living"
+    ]
+   ],
+   "ious": [
+    0.9837,
+    0.9811,
+    0.974,
+    0.9575,
+    0.9573,
+    0.889,
+    0.7233,
+    0.5915
    ],
    "split": "own"
   },
@@ -519,19 +534,19 @@
    "n_gt": 6,
    "n_pred": 6,
    "n_match": 4,
-   "mean_iou": 0.8603,
+   "mean_iou": 0.9074,
    "pairs": [
     [
      "bath",
-     "kitchen"
+     "bath"
     ],
     [
-     "space",
-     "space"
+     "storage",
+     "bed"
     ],
     [
      "living",
-     "space"
+     "living"
     ],
     [
      "bed",
@@ -539,10 +554,10 @@
     ]
    ],
    "ious": [
-    0.9604,
-    0.9489,
-    0.9447,
-    0.587
+    1.0,
+    1.0,
+    0.9846,
+    0.6451
    ],
    "split": "own"
   },
@@ -551,8 +566,8 @@
    "status": "ok",
    "n_gt": 6,
    "n_pred": 6,
-   "n_match": 5,
-   "mean_iou": 0.7446,
+   "n_match": 4,
+   "mean_iou": 0.8948,
    "pairs": [
     [
      "bed",
@@ -560,27 +575,22 @@
     ],
     [
      "bed",
-     "space"
-    ],
-    [
-     "living",
-     "kitchen"
+     "living"
     ],
     [
      "entry",
-     "space"
+     "living"
     ],
     [
-     "bath",
-     "space"
+     "living",
+     "living"
     ]
    ],
    "ious": [
-    0.9862,
-    0.9163,
-    0.6874,
-    0.5989,
-    0.5342
+    0.9861,
+    0.9734,
+    0.933,
+    0.6866
    ],
    "split": "own"
   }
