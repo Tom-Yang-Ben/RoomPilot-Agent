@@ -36,6 +36,7 @@ def _run_questionnaire_helpers(script: str) -> dict:
                 occupantsFromBasicAnswers,
                 questionnaireSummary,
                 questionsForRooms,
+                suggestSharedRoomAnswers,
                 visualQuestionnaireProgress,
               }} from {json.dumps(module_url)};
               {script}
@@ -55,6 +56,85 @@ def test_visual_catalog_keeps_all_test2_question_pairs() -> None:
     assert len(catalog["questions"]) == 55
     assert sum(len(question["options"]) for question in catalog["questions"]) == 110
     assert all(len(question["options"]) == 2 for question in catalog["questions"])
+
+
+def test_confirmed_room_prefills_only_shared_unanswered_questions() -> None:
+    result = _run_questionnaire_helpers(
+        """
+          const questions = [
+            {
+              question_id: "bedroom:ceiling-lighting",
+              source_question_id: "ceiling-lighting",
+              room_id: "bedroom",
+              space_type: "all_rooms",
+              options: [{ option_id: "recessed" }, { option_id: "surface" }],
+            },
+            {
+              question_id: "bathroom:ceiling-lighting",
+              source_question_id: "ceiling-lighting",
+              room_id: "bathroom",
+              space_type: "all_rooms",
+              options: [{ option_id: "recessed" }, { option_id: "surface" }],
+            },
+            {
+              question_id: "bathroom:bath-shower",
+              source_question_id: "bath-shower",
+              room_id: "bathroom",
+              space_type: "bathroom",
+              options: [{ option_id: "tub" }, { option_id: "shower" }],
+            },
+            {
+              question_id: "bedroom:ceiling-plane",
+              source_question_id: "ceiling-plane",
+              room_id: "bedroom",
+              space_type: "all_rooms",
+              allow_both: true,
+              options: [{ option_id: "flat" }, { option_id: "dropped" }],
+            },
+            {
+              question_id: "bathroom:ceiling-plane",
+              source_question_id: "ceiling-plane",
+              room_id: "bathroom",
+              space_type: "all_rooms",
+              allow_both: true,
+              options: [{ option_id: "flat" }, { option_id: "dropped" }],
+            },
+            {
+              question_id: "living:ceiling-lighting",
+              source_question_id: "ceiling-lighting",
+              room_id: "living",
+              space_type: "all_rooms",
+              options: [{ option_id: "recessed" }, { option_id: "surface" }],
+            },
+          ];
+          const answers = {
+            "bedroom:ceiling-lighting": { optionId: "surface", custom: "方便維修" },
+            "bedroom:ceiling-plane": { optionId: "both", custom: "" },
+            "living:ceiling-lighting": { optionId: "recessed" },
+          };
+          console.log(JSON.stringify(suggestSharedRoomAnswers({
+            questions,
+            answers,
+            sourceRoomId: "bedroom",
+            targetRoomId: "bathroom",
+          })));
+        """
+    )
+
+    assert result == {
+        "bathroom:ceiling-lighting": {
+            "optionId": "surface",
+            "custom": "方便維修",
+            "suggested": True,
+            "suggestedFromRoomId": "bedroom",
+        },
+        "bathroom:ceiling-plane": {
+            "optionId": "both",
+            "custom": "",
+            "suggested": True,
+            "suggestedFromRoomId": "bedroom",
+        }
+    }
 
 
 def test_ready_questionnaire_images_are_valid_assets() -> None:

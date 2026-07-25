@@ -36,6 +36,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_structure_geometry.js",
             "scene_window_types.js",
             "scene_design_schemes.js",
+            "scene_questionnaire_test2.js",
         ],
         "scene_viewer.js": [
             "scene_architecture.js",

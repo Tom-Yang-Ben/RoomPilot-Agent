@@ -40,9 +40,10 @@ import {
   questionnaireSummary,
   questionsForIndividualRooms,
   questionsForRooms,
+  suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=20260725-room-scoped1";
+} from "./scene_questionnaire_test2.js?v=sha256-d93f6034e2a8";
 import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
@@ -260,6 +261,7 @@ const element = {
   questionnaireStageNav: $("#questionnaire-stage-nav"),
   visualSpaceNav: $("#visual-space-nav"),
   visualQuestionProgress: $("#visual-question-progress"),
+  roomPreferenceSuggestion: $("#room-preference-suggestion"),
   visualQuestionCard: $("#visual-question-card"),
   visualCustomAnswer: $("#visual-custom-answer"),
   questionnaireStyleTabs: $("#questionnaire-style-tabs"),
@@ -4540,6 +4542,15 @@ function visualQuestionAt(index = state.visualQuestionIndex) {
   return state.visualQuestions[index] || null;
 }
 
+function firstPendingQuestionIndex(roomId) {
+  const roomQuestionIndexes = state.visualQuestions
+    .map((question, index) => ({ question, index }))
+    .filter(({ question }) => String(question.room_id) === String(roomId));
+  return roomQuestionIndexes.find(
+    ({ question }) => !state.visualAnswers[question.question_id]?.optionId,
+  )?.index ?? roomQuestionIndexes[0]?.index ?? -1;
+}
+
 function resolvedVisualPreferences(questions = state.visualQuestions) {
   return questions.flatMap((question) => {
     if (state.skippedVisualSpaceTypes.includes(question.space_type)) return [];
@@ -4653,6 +4664,40 @@ function renderVisualSpaceNav() {
   }).join("");
 }
 
+function activeRoomPreferenceSuggestion() {
+  const room = activeQuestionnaireRoom();
+  const requirement = room
+    ? state.roomRequirementModel?.roomRequirements?.[room.id]
+    : null;
+  const suggestedQuestions = state.visualQuestions.filter(
+    (question) => String(question.room_id) === String(room?.id)
+      && state.visualAnswers[question.question_id]?.suggested === true,
+  );
+  if (!requirement?.preferenceSuggestion || suggestedQuestions.length === 0) return null;
+  return {
+    ...requirement.preferenceSuggestion,
+    count: suggestedQuestions.length,
+    firstQuestionIndex: state.visualQuestions.indexOf(suggestedQuestions[0]),
+  };
+}
+
+function renderRoomPreferenceSuggestion() {
+  const suggestion = activeRoomPreferenceSuggestion();
+  element.roomPreferenceSuggestion.hidden = !suggestion;
+  if (!suggestion) {
+    element.roomPreferenceSuggestion.innerHTML = "";
+    return;
+  }
+  element.roomPreferenceSuggestion.innerHTML = `
+    <div>
+      <strong>已依「${escapeHtml(suggestion.sourceRoomLabel)}」預選 ${suggestion.count} 題</strong>
+      <p>共通偏好與風格材質已先帶入；房間專屬需求仍需由你確認。</p>
+    </div>
+    <button type="button" class="secondary-action" data-review-suggested-preferences
+      data-question-index="${suggestion.firstQuestionIndex}">查看預選</button>
+  `;
+}
+
 function renderVisualQuestionnaire() {
   const question = visualQuestionAt();
   if (!question) {
@@ -4724,6 +4769,7 @@ function renderVisualQuestionnaire() {
       : "下一題";
   renderVisualSpaceNav();
   state.roomRequirementModel.activeRoomId = question.room_id;
+  renderRoomPreferenceSuggestion();
   renderQuestionnairePlan();
   renderQuestionnaireFinishes();
 }
@@ -4764,7 +4810,11 @@ function moveVisualQuestion(offset) {
     .filter(({ candidate }) => String(candidate.room_id) === String(roomId))
     .map(({ index }) => index);
   const roomPosition = roomQuestionIndexes.indexOf(state.visualQuestionIndex);
-  const nextIndex = roomQuestionIndexes[roomPosition + offset];
+  const nextIndex = offset > 0
+    ? roomQuestionIndexes
+      .slice(roomPosition + 1)
+      .find((index) => !state.visualAnswers[state.visualQuestions[index].question_id]?.optionId)
+    : roomQuestionIndexes[roomPosition + offset];
   if (Number.isInteger(nextIndex)) {
     state.visualQuestionIndex = nextIndex;
     renderVisualQuestionnaire();
@@ -4773,6 +4823,46 @@ function moveVisualQuestion(offset) {
   if (offset > 0) {
     $("#questionnaire-finishes").scrollIntoView({ block: "start", behavior: "smooth" });
   }
+}
+
+function prefillRemainingRoomPreferences(sourceRoom) {
+  const sourceRequirement =
+    state.roomRequirementModel?.roomRequirements?.[sourceRoom.id];
+  if (!sourceRequirement) return 0;
+  let totalSuggested = 0;
+  state.rooms
+    .filter(
+      (room) => room.id !== sourceRoom.id
+        && state.roomRequirementModel.roomRequirements[room.id]?.confirmed !== true,
+    )
+    .forEach((targetRoom) => {
+      const suggestions = suggestSharedRoomAnswers({
+        questions: state.visualQuestions,
+        answers: state.visualAnswers,
+        sourceRoomId: sourceRoom.id,
+        targetRoomId: targetRoom.id,
+      });
+      const suggestionCount = Object.keys(suggestions).length;
+      if (suggestionCount === 0) return;
+      Object.assign(state.visualAnswers, suggestions);
+      totalSuggested += suggestionCount;
+
+      const targetRequirement =
+        state.roomRequirementModel.roomRequirements[targetRoom.id];
+      if (!targetRequirement.surfaces?.paletteId && sourceRequirement.surfaces?.paletteId) {
+        targetRequirement.surfaces = {
+          ...structuredClone(sourceRequirement.surfaces),
+          wallSurfaceIds: [],
+          wallOverrides: {},
+        };
+        delete state.roomFinishDrafts[targetRoom.id];
+      }
+      targetRequirement.preferenceSuggestion = {
+        sourceRoomId: String(sourceRoom.id),
+        sourceRoomLabel: sourceRoom.label,
+      };
+    });
+  return totalSuggested;
 }
 
 function skipCurrentVisualSpace() {
@@ -5007,6 +5097,15 @@ function confirmQuestionnaireFinishes() {
     renderVisualQuestionnaire();
     return;
   }
+  roomQuestions.forEach((question) => {
+    const answer = state.visualAnswers[question.question_id];
+    if (!answer?.suggested) return;
+    const confirmedAnswer = { ...answer };
+    delete confirmedAnswer.suggested;
+    delete confirmedAnswer.suggestedFromRoomId;
+    state.visualAnswers[question.question_id] = confirmedAnswer;
+  });
+  delete requirement.preferenceSuggestion;
   requirement.axisAnswers = Object.fromEntries(roomQuestions.map((question) => [
     question.source_question_id || question.question_id,
     { ...(state.visualAnswers[question.question_id] || {}) },
@@ -5064,6 +5163,7 @@ function confirmQuestionnaireFinishes() {
     selectedRoomIds,
   );
   state.roomRequirementModel.roomRequirements[room.id].confirmed = true;
+  const suggestedCount = prefillRemainingRoomPreferences(room);
   if (scope !== "room") {
     state.roomFinishDrafts = {};
   }
@@ -5074,13 +5174,16 @@ function confirmQuestionnaireFinishes() {
     (candidate) => !state.roomRequirementModel.roomRequirements[candidate.id]?.confirmed,
   );
   if (nextRoom) {
-    const nextIndex = state.visualQuestions.findIndex(
-      (question) => String(question.room_id) === String(nextRoom.id),
-    );
+    const nextIndex = firstPendingQuestionIndex(nextRoom.id);
     if (nextIndex >= 0) state.visualQuestionIndex = nextIndex;
     state.selectedQuestionnaireWallId = null;
     renderVisualQuestionnaire();
-    setStatus(`已確認「${room.label}」；接著確認「${nextRoom.label}」。`);
+    setStatus(
+      suggestedCount > 0
+        ? `已確認「${room.label}」；已為其他房間預選 ${suggestedCount} 個共通答案。`
+        : `已確認「${room.label}」；接著確認「${nextRoom.label}」。`,
+    );
+    scheduleSave("requirements");
   } else {
     showQuestionnaireStage("profile");
   }
@@ -7702,9 +7805,7 @@ function bindEvents() {
     const button = event.target.closest("[data-visual-room]");
     if (!button) return;
     if (saveVisualCustomAnswer()) scheduleSave("requirements");
-    const index = state.visualQuestions.findIndex(
-      (question) => String(question.room_id) === String(button.dataset.visualRoom),
-    );
+    const index = firstPendingQuestionIndex(button.dataset.visualRoom);
     if (index >= 0) {
       state.visualQuestionIndex = index;
       state.selectedQuestionnaireWallId = null;
@@ -7730,6 +7831,13 @@ function bindEvents() {
     }
     const option = event.target.closest("[data-visual-option]");
     if (option) selectVisualOption(option.dataset.visualOption);
+  });
+  element.roomPreferenceSuggestion.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-review-suggested-preferences]");
+    const index = Number(button?.dataset.questionIndex);
+    if (!button || !Number.isInteger(index) || index < 0) return;
+    state.visualQuestionIndex = index;
+    renderVisualQuestionnaire();
   });
   element.visualCustomAnswer.addEventListener("input", () => {
     if (!saveVisualCustomAnswer()) return;

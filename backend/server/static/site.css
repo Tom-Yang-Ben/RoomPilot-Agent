@@ -10898,6 +10898,33 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   margin-bottom: 14px;
 }
 
+.rp-preference-suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-left: 3px solid #2b725f;
+  background: #eef4f0;
+  color: #214f42;
+}
+
+.rp-preference-suggestion[hidden] {
+  display: none;
+}
+
+.rp-preference-suggestion p {
+  margin: 3px 0 0;
+  color: #49665e;
+  font-size: 0.9rem;
+}
+
+.rp-preference-suggestion button {
+  flex: 0 0 auto;
+}
+
 .rp-visual-question-card {
   padding: 0;
 }
