@@ -25,10 +25,13 @@
 """
 import argparse
 import glob
+import hashlib
 import json
 import os
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from dataclasses import replace
 
 import cv2
@@ -251,7 +254,15 @@ def detect_symbols(det):
 
 # ─────────────────────────── 語意辨識房型 ───────────────────────────
 CC_CACHE_DIR = os.environ.get("CC_CACHE_DIR", "cubicasa/room")  # CubiCasa 語意快取（含 room/icon 通道）
-CC_WEIGHTS = os.environ.get("CC_WEIGHTS", "model_finetuned_v5.pkl")  # 預設 v5 微調權重（專案根，進版控；own 域主尺勝出 2026-07-25）；環境變數可換權重 A/B 驗收
+CC_WEIGHTS = os.environ.get("CC_WEIGHTS", "model_finetuned_v5.pkl")  # 預設 v5 微調權重（專案根；own 域主尺勝出 2026-07-25）；環境變數可換權重 A/B 驗收
+# 權重 200M 超 GitHub 100MB 限制不進版控，掛在 Release 上，缺檔時自動下載（部署端 clone 即可用）。
+# repo 目前 private：直鏈 404，須以 token 走 asset API 換 S3 簽名鏈（部署端本就有 clone 用 token，
+# 設 GITHUB_TOKEN / GH_TOKEN 即可）；repo 若轉 public，直鏈自動生效、零設定
+CC_WEIGHTS_URL = ("https://github.com/Tom-Yang-Ben/RoomPilot-Agent/"
+                  "releases/download/weights-v5/model_finetuned_v5.pkl")
+CC_WEIGHTS_ASSET_API = ("https://api.github.com/repos/Tom-Yang-Ben/RoomPilot-Agent/"
+                        "releases/assets/489011637")
+CC_WEIGHTS_SHA256 = "b7a280d2d7cf2dde580a947e1ebc7b4d12e53135c05581babb3b5797a166f4cf"
 CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
                  7: "entry", 9: "storage", 10: "garage", 1: "outdoor"}
 CC_ICON = {"closet": 3, "appliance": 4, "toilet": 5, "sink": 6,
@@ -275,12 +286,91 @@ def _cc_ok(npz_path):
         return "room" in z.files
 
 
+def _gh_token():
+    """找部署/開發環境可用的 GitHub token：環境變數優先，其次 git 憑證系統。"""
+    tok = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if tok:
+        return tok
+    try:
+        out = subprocess.run(
+            ["git", "credential", "fill"], input="protocol=https\nhost=github.com\n",
+            capture_output=True, text=True, timeout=15,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}).stdout
+        for line in out.splitlines():
+            if line.startswith("password="):
+                return line.split("=", 1)[1]
+    except Exception:
+        pass
+    return None
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def _resolve_weights_url():
+    """回傳實際可下載的 URL。公開 repo 直鏈即中；私有 repo 用 token 向 asset API
+    換 S3 簽名鏈（簽名鏈本身免認證，避免 Authorization 頭被轉送到 S3 造成 400）。"""
+    try:
+        urllib.request.urlopen(
+            urllib.request.Request(CC_WEIGHTS_URL, method="HEAD"), timeout=15)
+        return CC_WEIGHTS_URL
+    except Exception:
+        pass
+    tok = _gh_token()
+    if not tok:
+        return None
+    req = urllib.request.Request(CC_WEIGHTS_ASSET_API, headers={
+        "Accept": "application/octet-stream", "Authorization": "Bearer " + tok})
+    try:
+        urllib.request.build_opener(_NoRedirect()).open(req, timeout=30)
+    except urllib.error.HTTPError as e:
+        if e.code in (301, 302, 307, 308):
+            return e.headers.get("Location")
+    except Exception:
+        pass
+    return None
+
+
+def _ensure_cc_weights():
+    """權重檔缺失時自動從 GitHub Release 下載（SHA-256 校驗）。
+    使用者以 CC_WEIGHTS 環境變數指定的權重不代抓——缺了就該報錯而非默默換檔。"""
+    if os.path.isfile(CC_WEIGHTS):
+        return True
+    if os.environ.get("CC_WEIGHTS"):
+        return False
+    url = _resolve_weights_url()
+    if not url:
+        print("⚠ 權重下載無可用管道：私有 repo 需 GITHUB_TOKEN / GH_TOKEN 或 git 憑證")
+        return False
+    print(f"權重下載 : {CC_WEIGHTS_URL}（約 200MB，僅首次）")
+    tmp = CC_WEIGHTS + ".part"
+    try:
+        urllib.request.urlretrieve(url, tmp)
+        h = hashlib.sha256()
+        with open(tmp, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        if h.hexdigest() != CC_WEIGHTS_SHA256:
+            os.remove(tmp)
+            print("⚠ 權重下載 SHA-256 校驗失敗，已捨棄")
+            return False
+        os.replace(tmp, CC_WEIGHTS)
+        return True
+    except Exception as e:
+        if os.path.isfile(tmp):
+            os.remove(tmp)
+        print(f"⚠ 權重下載失敗：{e}")
+        return False
+
+
 def ensure_cc_masks(paths):
     """缺語意快取的圖先跑 CubiCasa 推論（一次 subprocess 全補，CPU 約 1 分/張）。"""
     miss = [p for p in paths if not _cc_ok(_cc_path(p))]
     if not miss:
         return
-    if not os.path.isfile(CC_WEIGHTS):
+    if not _ensure_cc_weights():
         print(f"⚠ 找不到 {CC_WEIGHTS}，跳過語意辨識（房型退回面積規則）")
         return
     print(f"CubiCasa 語意推論 : {len(miss)} 張（CPU 約 1 分/張 → {CC_CACHE_DIR}/）")

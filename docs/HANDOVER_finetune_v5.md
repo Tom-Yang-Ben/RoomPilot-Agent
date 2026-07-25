@@ -77,8 +77,14 @@ v1~v4 全部未過門檻、預設權重維持基線；本輪資料痊癒後值�
   kitchen P 0.537→0.681、space→kitchen 誤名 51→24
 - 結論：own 域大贏、CubiCasa 域小輸。預設權重是否切到 v5＝產品取向決策（目標域是 own 風格則值得切）
 - **使用者已裁決（2026-07-25）：目標域＝own 風格，v5 接管預設**。權重移至專案根 `model_finetuned_v5.pkl`，
-  **不進版控**（200M 超 GitHub 100MB 限制；gitignore 已加 `/model_finetuned_*.pkl`），換機用 Drive/隨身碟帶——
-  現行 finetune_data.zip 模式
+  **不進版控**（200M 超 GitHub 100MB 限制；gitignore 已加 `/model_finetuned_*.pkl`）
+- **權重發佈與自動下載（2026-07-25，供前端整合部署）**：權重掛在 GitHub Release
+  [`weights-v5`](https://github.com/Tom-Yang-Ben/RoomPilot-Agent/releases/tag/weights-v5)
+  （asset id 489011637，SHA-256 `b7a280d2…f4cf`）。floorplan2room.py 在權重缺失時自動下載
+  （`_ensure_cc_weights`，含 SHA-256 校驗；`CC_WEIGHTS` 環境變數指定的自訂權重不代抓）。
+  **repo 目前 private**：部署端須設 `GITHUB_TOKEN`/`GH_TOKEN`（clone 私有 repo 本就需要，同一顆即可），
+  程式會經 asset API 換 S3 簽名鏈下載；repo 若轉 public 則零設定直鏈生效。
+  換機亦可繼續用 Drive/隨身碟帶（放專案根即跳過下載）
   （floorplan2room.py CC_WEIGHTS 預設已改）；`cubicasa/room/` 語意快取全數以 v5 重算
   （含 9 個來源圖已刪的死快取移除：hq17/19/33、floor17/24/30/34/46/49）；四份評分報表＋
   recognition_report.html 已重算同步（own 端對端 76.4%、IoU 0.875；具名命中 0.788）
