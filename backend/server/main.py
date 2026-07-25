@@ -70,6 +70,16 @@ from .services.cloud_models import (
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent.parent
+
+
+def _project_path_from_env(name: str, default: Path) -> Path:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    path = Path(raw).expanduser()
+    return path if path.is_absolute() else PROJECT_DIR / path
+
+
 STATIC_DIR = BASE_DIR / "static"
 MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
 STYLE_ENRICHMENT_DB_PATH = (
@@ -78,12 +88,13 @@ STYLE_ENRICHMENT_DB_PATH = (
 CLOUD_CATALOG_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json"
 )
-CLOUD_MANIFEST_PATH = (
+CLOUD_MANIFEST_PATH = _project_path_from_env(
+    "ROOMPILOT_GLB_MANIFEST_PATH",
     BASE_DIR.parent
     / "catalog"
     / "data"
     / "manifests"
-    / "glb_upload_all_result.csv"
+    / "glb_upload_all_result.csv",
 )
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
 EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風格與JSON" / "external_furniture_import_index.json"

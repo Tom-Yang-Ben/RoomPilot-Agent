@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from scripts.sql import import_official_catalog_to_postgres as sql_import
 from scripts.sql.import_official_catalog_to_postgres import (
     DEFAULT_CLOUD_CATALOG,
     DEFAULT_MANIFEST,
@@ -41,3 +42,33 @@ def test_sql_schema_has_transaction_safe_upsert_targets_and_official_view():
     assert "CREATE TABLE IF NOT EXISTS glb_assets" in schema
     assert "CREATE OR REPLACE VIEW official_furniture_with_glb" in schema
     assert "delivery_url LIKE 'https://%'" in schema
+
+
+def test_sql_import_defaults_to_non_destructive_prune(monkeypatch):
+    calls = {}
+
+    def fake_import_to_postgres(
+        official,
+        manifest_rows,
+        *,
+        schema_path,
+        prune_extra,
+        catalog_filename,
+        manifest_filename,
+    ):
+        calls["prune_extra"] = prune_extra
+        calls["catalog_filename"] = catalog_filename
+        calls["manifest_filename"] = manifest_filename
+        return len(official["furniture"]), len(manifest_rows), 9_350
+
+    monkeypatch.setattr(sql_import, "import_to_postgres", fake_import_to_postgres)
+
+    assert sql_import.main([]) == 0
+    assert calls == {
+        "prune_extra": False,
+        "catalog_filename": DEFAULT_CLOUD_CATALOG.name,
+        "manifest_filename": DEFAULT_MANIFEST.name,
+    }
+
+    assert sql_import.main(["--prune-extra"]) == 0
+    assert calls["prune_extra"] is True

@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from backend.catalog.cloud_catalog import official_catalog_diagnostics
+import csv
+import json
+
+import pytest
+
+from backend.catalog.cloud_catalog import (
+    build_official_catalog,
+    official_catalog_diagnostics,
+)
 from backend.server import main
 
 
@@ -51,3 +59,18 @@ def test_furniture_api_cache_contains_only_verified_cloud_items():
         item["model_url"].startswith("https://ddgsm1yg3xikc.cloudfront.net/")
         for item in items
     )
+
+
+def test_runtime_catalog_rejects_manifest_rows_that_are_not_uploaded():
+    cloud_catalog = json.loads(main.CLOUD_CATALOG_PATH.read_text(encoding="utf-8"))
+    style_enrichment = json.loads(
+        main.STYLE_ENRICHMENT_DB_PATH.read_text(encoding="utf-8")
+    )
+    with main.CLOUD_MANIFEST_PATH.open(encoding="utf-8", newline="") as handle:
+        manifest_rows = list(csv.DictReader(handle))
+
+    manifest_rows[0] = dict(manifest_rows[0])
+    manifest_rows[0]["upload_status"] = "pending"
+
+    with pytest.raises(ValueError, match="ready CloudFront upload status"):
+        build_official_catalog(cloud_catalog, style_enrichment, manifest_rows)

@@ -16,6 +16,14 @@ from typing import Any
 
 
 OFFICIAL_CATALOG_COUNT = 9_350
+READY_UPLOAD_STATUSES = {
+    "uploaded",
+    "already_exists",
+    "complete",
+    "completed",
+    "success",
+    "skipped_existing",
+}
 
 _IDENTITY_FIELDS = {
     "furniture_id",
@@ -186,6 +194,11 @@ def build_official_catalog(
     for item_id in canonical_ids:
         canonical = canonical_by_id[item_id]
         manifest = manifest_by_id[item_id]
+        upload_status = str(manifest.get("upload_status") or "").strip().lower()
+        if upload_status not in READY_UPLOAD_STATUSES:
+            raise ValueError(
+                f"catalog item has no ready CloudFront upload status: {item_id}"
+            )
         delivery_url = str(
             manifest.get("delivery_url") or canonical.get("glb_url") or ""
         ).strip()
@@ -262,7 +275,7 @@ def build_official_catalog(
                 for entry in entries
                 if entry.get("furniture_id")
             ],
-            "upload_status": manifest.get("upload_status"),
+            "upload_status": upload_status,
         }
 
         for field in _ENRICHMENT_FIELDS - _IDENTITY_FIELDS:

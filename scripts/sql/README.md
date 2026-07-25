@@ -1,22 +1,26 @@
-# RoomPilot PostgreSQL：正式 9,350 筆家具
+# RoomPilot PostgreSQL Import
 
-正式家具與 GLB 來源：
+This importer validates and loads the official 9,350-item cloud furniture
+catalog into PostgreSQL.
+
+Source files:
 
 ```text
 backend/catalog/data/furniture_catalog_cloud_9350.json
 backend/catalog/data/manifests/glb_upload_all_result.csv
 ```
 
-舊六風格 catalog 只作 enrichment。正式查詢、家具 Agent 與 3D 選件只發布這
-9,350 個 ID；沒有對應的 1,514 筆舊資料不會匯入。
+The legacy six-style catalog is enrichment only. It can add style, taxonomy,
+and placement metadata, but it cannot add furniture outside the official 9,350
+cloud item IDs.
 
-## 先驗證、不寫入資料庫
+## Dry Run
 
 ```powershell
 python scripts/sql/import_official_catalog_to_postgres.py --dry-run
 ```
 
-必須得到：
+Expected diagnostics:
 
 - `official_items: 9350`
 - `manifest_items: 9350`
@@ -24,9 +28,10 @@ python scripts/sql/import_official_catalog_to_postgres.py --dry-run
 - `style_unclassified_items: 329`
 - `legacy_rows_excluded: 1514`
 
-## 匯入
+## Import
 
-安裝 `catalog` extra，並在 `.env` 或執行環境設定：
+Install the `catalog` extra and configure the database in `.env` or the process
+environment:
 
 ```dotenv
 DB_HOST=localhost
@@ -36,11 +41,17 @@ DB_USER=postgres
 DB_PASSWORD=...
 ```
 
-執行：
+Run:
 
 ```powershell
 python scripts/sql/import_official_catalog_to_postgres.py
 ```
 
-匯入採單一 transaction 與 UPSERT。預設會刪除資料庫內不屬於正式 9,350 ID
-的 catalog 資料；若只做並存檢查，可明確加上 `--keep-extra`。
+The importer runs in one transaction and UPSERTs the official 9,350 IDs. By
+default it does not delete other catalog rows already in the database.
+
+To explicitly remove rows outside the official cloud set, run:
+
+```powershell
+python scripts/sql/import_official_catalog_to_postgres.py --prune-extra
+```

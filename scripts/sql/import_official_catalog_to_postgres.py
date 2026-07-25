@@ -14,6 +14,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - catalog extra includes python-dotenv
+    load_dotenv = None
+
 from backend.catalog.cloud_catalog import (  # noqa: E402
     OFFICIAL_CATALOG_COUNT,
     build_official_catalog,
@@ -49,9 +54,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Validate inputs without connecting to PostgreSQL.",
     )
     parser.add_argument(
-        "--keep-extra",
+        "--prune-extra",
         action="store_true",
-        help="Do not remove database rows outside the official 9,350 item IDs.",
+        help="Remove database catalog rows outside the official 9,350 item IDs.",
     )
     return parser.parse_args(argv)
 
@@ -198,6 +203,8 @@ def import_to_postgres(
     *,
     schema_path: Path,
     prune_extra: bool,
+    catalog_filename: str,
+    manifest_filename: str,
 ) -> tuple[int, int, int]:
     try:
         from psycopg2.extras import Json, execute_values
@@ -294,8 +301,8 @@ def import_to_postgres(
                     """,
                     (
                         batch_key,
-                        DEFAULT_CLOUD_CATALOG.name,
-                        DEFAULT_MANIFEST.name,
+                        catalog_filename,
+                        manifest_filename,
                         len(item_rows),
                         len(asset_rows),
                         official["summary"]["style_enriched"],
@@ -310,6 +317,8 @@ def import_to_postgres(
 
 
 def main(argv: list[str] | None = None) -> int:
+    if load_dotenv is not None:
+        load_dotenv(PROJECT_ROOT / ".env", override=False)
     args = parse_args(argv)
     official, manifest_rows, diagnostics = load_import_payload(
         args.catalog,
@@ -325,7 +334,9 @@ def main(argv: list[str] | None = None) -> int:
         official,
         manifest_rows,
         schema_path=args.schema,
-        prune_extra=not args.keep_extra,
+        prune_extra=args.prune_extra,
+        catalog_filename=args.catalog.name,
+        manifest_filename=args.manifest.name,
     )
     if published_count != OFFICIAL_CATALOG_COUNT:
         raise RuntimeError(
