@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-python-multipart
-numpy
-opencv-python-headless
-ezdxf
-pytesseract
-torch  # 家具符號 CNN 分類器（裝不了時系統自動退回 numpy softmax 備援）

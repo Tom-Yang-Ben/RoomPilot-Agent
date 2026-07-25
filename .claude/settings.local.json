@@ -24,7 +24,14 @@
       "Bash(python -X utf8 make_size_report.py)",
       "Bash(cp \"RAG_風格Skills_合併.json\" \"RAG_風格Skills_合併.prespec.bak\")",
       "Bash(python -X utf8 build_rag_skills_spec.py)",
-      "Bash(rm -f _styledefs_probe.json)"
+      "Bash(rm -f _styledefs_probe.json)",
+      "Bash(git add *)",
+      "Bash(xargs -0 -I{} du -m \"{}\")",
+      "Bash(awk '$1>20')",
+      "Bash(sed 's/^add .//;s/.$//')",
+      "Bash(awk -F/ '{print}' /private/tmp/claude-501/-Users-django-cheng-Public-AIPE-03-final-term-RoomPilot-Agent/5cd8f245-fd9a-4949-a6a9-89dcc9b5ee92/scratchpad/tobeadded.txt)",
+      "Bash(xargs -0 du -ck)",
+      "Bash(grep -v '^$')"
     ]
   }
 }

@@ -42,3 +42,6 @@ data/
 downloaded-files/
 舊的翻譯資料/
 needed.md
+
+# Claude Code 暫存檔
+.claude/settings.local.json.tmp.*

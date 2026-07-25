@@ -1,0 +1,395 @@
+{"file": "unc_78de10e5af.png", "target": "other", "at": "2026-07-18 23:05:55", "golden": true}
+{"file": "unc_d70cfe628c.png", "target": "door", "at": "2026-07-19 21:50:02", "golden": false}
+{"file": "unc_45f7826657.png", "target": "desk", "at": "2026-07-19 21:50:42", "golden": false}
+{"file": "unc_eb0930a55a.png", "target": "bathtub", "at": "2026-07-19 21:50:46", "golden": false}
+{"file": "unc_b5a171dc19.png", "target": "kitchen_counter", "at": "2026-07-19 21:50:54", "golden": false}
+{"file": "unc_3ed08fdb2e.png", "target": "other", "at": "2026-07-19 21:51:06", "golden": false}
+{"file": "cor_e373b63d58.png", "kind": "correction", "from": "toilet", "target": "sink", "golden": false, "source": "floor58.png", "at": "2026-07-19 21:57:53"}
+{"file": "unc_2983173e4e.png", "target": "kitchen_counter", "at": "2026-07-19 22:16:32", "golden": false}
+{"file": "unc_43d4b19e81.png", "target": "dining_set", "at": "2026-07-19 22:16:39", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "door", "at": "2026-07-19 22:16:44", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "door", "at": "2026-07-19 22:16:47", "golden": false}
+{"file": "unc_ae9c0e4d1e.png", "target": "delete", "at": "2026-07-19 22:16:49", "golden": false}
+{"file": "unc_3d282336c7.png", "target": "delete", "at": "2026-07-19 22:16:51", "golden": false}
+{"file": "unc_044a67601f.png", "target": "delete", "at": "2026-07-19 22:16:52", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-19 22:16:53", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "wardrobe", "at": "2026-07-19 22:17:07", "golden": false}
+{"file": "unc_8b13bfbd40.png", "target": "tv_cabinet", "at": "2026-07-19 22:17:28", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-19 22:17:40", "golden": false}
+{"file": "unc_e1a92f283d.png", "target": "stove", "at": "2026-07-19 22:17:46", "golden": false}
+{"file": "unc_3724875107.png", "target": "refrigerator", "at": "2026-07-19 22:17:50", "golden": false}
+{"file": "unc_211d7155a5.png", "target": "delete", "at": "2026-07-19 22:17:51", "golden": false}
+{"file": "unc_342e35b83a.png", "target": "urinal", "at": "2026-07-19 22:17:58", "golden": false}
+{"file": "unc_3bb7f3abfb.png", "target": "delete", "at": "2026-07-19 22:18:07", "golden": false}
+{"file": "unc_2ad7287ddb.png", "target": "delete", "at": "2026-07-19 22:18:08", "golden": false}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-19 23:29:27", "golden": false}
+{"file": "unc_d3744a0c3f.png", "target": "delete", "at": "2026-07-19 23:29:29", "golden": false}
+{"file": "unc_3d282336c7.png", "target": "delete", "at": "2026-07-19 23:29:30", "golden": false}
+{"file": "unc_044a67601f.png", "target": "delete", "at": "2026-07-19 23:29:31", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-19 23:29:32", "golden": false}
+{"file": "unc_1fe814d082.png", "target": "delete", "at": "2026-07-19 23:29:34", "golden": false}
+{"file": "unc_ae9c0e4d1e.png", "target": "delete", "at": "2026-07-19 23:29:35", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "other", "at": "2026-07-19 23:29:38", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "other", "at": "2026-07-19 23:29:42", "golden": false}
+{"file": "unc_32e43c1c65.png", "target": "dining_set", "at": "2026-07-19 23:29:50", "golden": true}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-19 23:29:54", "golden": false}
+{"file": "unc_e1a92f283d.png", "target": "stove", "at": "2026-07-19 23:30:01", "golden": false}
+{"file": "unc_3724875107.png", "target": "other", "at": "2026-07-19 23:30:30", "golden": false}
+{"file": "unc_211d7155a5.png", "target": "other", "at": "2026-07-19 23:30:33", "golden": false}
+{"file": "unc_2ad7287ddb.png", "target": "other", "at": "2026-07-19 23:30:36", "golden": false}
+{"file": "unc_3bb7f3abfb.png", "target": "other", "at": "2026-07-19 23:30:40", "golden": false}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-20 00:08:12", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 00:08:13", "golden": false}
+{"file": "unc_db84d31bad.png", "target": "delete", "at": "2026-07-20 00:08:15", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 00:08:18", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 00:08:19", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 00:08:20", "golden": false}
+{"file": "unc_2983173e4e.png", "target": "stove", "at": "2026-07-20 00:08:28", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-20 00:08:31", "golden": false}
+{"file": "unc_e1a92f283d.png", "target": "stove", "at": "2026-07-20 00:08:35", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 00:08:36", "golden": false}
+{"file": "unc_bc340cb0d8.png", "target": "bathtub", "at": "2026-07-20 00:08:40", "golden": false}
+{"file": "cor_ad6acf263e.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 00:08:54"}
+{"file": "cor_8c15b95e3e.png", "kind": "correction", "from": null, "target": "sofa", "golden": true, "source": "floor70.png#框選", "at": "2026-07-20 00:09:08"}
+{"file": "cor_e1a92f283d.png", "kind": "correction", "from": "bathtub", "target": "stove", "golden": false, "source": "floor70.png", "at": "2026-07-20 00:09:57"}
+{"file": "cor_862bd21331.png", "kind": "correction", "from": "bathtub", "target": "stove", "golden": false, "source": "floor70.png", "at": "2026-07-20 00:10:07"}
+{"file": "cor_3d5e0d9d65.png", "kind": "correction", "from": "bathtub", "target": "toilet", "golden": false, "source": "floor70.png", "at": "2026-07-20 00:10:21"}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-20 01:18:12", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 01:18:14", "golden": false}
+{"file": "unc_db84d31bad.png", "target": "delete", "at": "2026-07-20 01:18:15", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 01:18:16", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 01:18:18", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 01:18:19", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-20 01:18:25", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 01:18:26", "golden": false}
+{"file": "unc_bc340cb0d8.png", "target": "bathtub", "at": "2026-07-20 01:18:30", "golden": false}
+{"file": "cor_72a1d544d4.png", "kind": "correction", "from": null, "target": "sofa", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 01:19:27"}
+{"file": "cor_54643c42a2.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 01:19:34"}
+{"file": "cor_3d5e0d9d65.png", "kind": "correction", "from": "bathtub", "target": "toilet", "golden": false, "source": "floor70.png", "at": "2026-07-20 01:20:10"}
+{"file": "unc_a4c0ae1bc0.png", "target": "delete", "at": "2026-07-20 01:24:42", "golden": false}
+{"file": "unc_ec1cb032e8.png", "target": "toilet", "at": "2026-07-20 01:24:45", "golden": false}
+{"file": "unc_2e2d5bba2b.png", "target": "sofa", "at": "2026-07-20 01:25:11", "golden": false}
+{"file": "unc_78de10e5af.png", "target": "delete", "at": "2026-07-20 01:25:19", "golden": false}
+{"file": "unc_5bcd022da6.png", "target": "shower", "at": "2026-07-20 01:25:23", "golden": false}
+{"file": "unc_dd61df6a66.png", "target": "stove", "at": "2026-07-20 01:25:27", "golden": false}
+{"file": "unc_5982d5f5d6.png", "target": "delete", "at": "2026-07-20 01:25:28", "golden": false}
+{"file": "unc_c1159a4ded.png", "target": "delete", "at": "2026-07-20 01:25:28", "golden": false}
+{"file": "unc_286d2db736.png", "target": "shower", "at": "2026-07-20 01:25:33", "golden": true}
+{"file": "unc_be8e7a5f9e.png", "target": "toilet", "at": "2026-07-20 01:25:34", "golden": true}
+{"file": "unc_e6a364a21f.png", "target": "delete", "at": "2026-07-20 01:25:35", "golden": false}
+{"file": "cor_d25a8c5edd.png", "kind": "correction", "from": null, "target": "sofa", "golden": true, "source": "floor58.png#框選", "at": "2026-07-20 01:26:16"}
+{"file": "cor_1c66acf9e0.png", "kind": "correction", "from": null, "target": "dining_set", "golden": false, "source": "floor58.png#框選", "at": "2026-07-20 01:26:41"}
+{"file": "cor_f03a72555c.png", "kind": "correction", "from": null, "target": "bed", "golden": true, "source": "floor58.png#框選", "at": "2026-07-20 01:27:13"}
+{"file": "cor_8ea5950fe6.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor58.png#框選", "at": "2026-07-20 01:27:31"}
+{"file": "cor_5982d5f5d6.png", "kind": "correction", "from": "sofa", "target": "other", "golden": false, "source": "floor58.png", "at": "2026-07-20 01:31:57"}
+{"file": "cor_c1159a4ded.png", "kind": "correction", "from": "sofa", "target": "other", "golden": false, "source": "floor58.png", "at": "2026-07-20 01:32:05"}
+{"file": "cor_e6a364a21f.png", "kind": "correction", "from": "sofa", "target": "other", "golden": true, "source": "floor58.png", "at": "2026-07-20 01:32:33"}
+{"file": "cor_78de10e5af.png", "kind": "correction", "from": "sofa", "target": "other", "golden": true, "source": "floor58.png", "at": "2026-07-20 01:32:51"}
+{"file": "cor_0accbc2b80.png", "kind": "correction", "from": "bed", "target": "stove", "golden": true, "source": "floor58.png", "at": "2026-07-20 01:33:06"}
+{"file": "cor_dd61df6a66.png", "kind": "correction", "from": "bed", "target": "stove", "golden": false, "source": "floor58.png", "at": "2026-07-20 01:33:09"}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-20 01:47:30", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 01:47:31", "golden": false}
+{"file": "unc_db84d31bad.png", "target": "delete", "at": "2026-07-20 01:47:33", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 01:47:34", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 01:47:37", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 01:47:38", "golden": false}
+{"file": "unc_2983173e4e.png", "target": "stove", "at": "2026-07-20 01:47:42", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-20 01:47:46", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 01:47:48", "golden": false}
+{"file": "unc_bc340cb0d8.png", "target": "bathtub", "at": "2026-07-20 01:47:50", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "delete", "at": "2026-07-20 01:47:55", "golden": false}
+{"file": "unc_3d5e0d9d65.png", "target": "toilet", "at": "2026-07-20 01:47:58", "golden": false}
+{"file": "unc_e1a92f283d.png", "target": "stove", "at": "2026-07-20 01:48:01", "golden": false}
+{"file": "cor_6a696322ad.png", "kind": "correction", "from": null, "target": "sofa", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 01:48:19"}
+{"file": "cor_a608f6653c.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 01:48:27"}
+{"file": "unc_a4c0ae1bc0.png", "target": "delete", "at": "2026-07-20 11:33:20", "golden": false}
+{"file": "unc_ec1cb032e8.png", "target": "toilet", "at": "2026-07-20 11:33:23", "golden": false}
+{"file": "unc_2e2d5bba2b.png", "target": "sofa", "at": "2026-07-20 11:33:30", "golden": false}
+{"file": "unc_063439d686.png", "target": "delete", "at": "2026-07-20 11:33:32", "golden": false}
+{"file": "unc_dd93fa59fe.png", "target": "shower", "at": "2026-07-20 11:33:35", "golden": false}
+{"file": "unc_0accbc2b80.png", "target": "delete", "at": "2026-07-20 11:33:37", "golden": false}
+{"file": "unc_dd61df6a66.png", "target": "stove", "at": "2026-07-20 11:33:40", "golden": false}
+{"file": "unc_db110fb2a2.png", "target": "dining_set", "at": "2026-07-20 11:33:43", "golden": false}
+{"file": "unc_62b97abfb2.png", "target": "shower", "at": "2026-07-20 11:33:46", "golden": false}
+{"file": "unc_be8e7a5f9e.png", "target": "toilet", "at": "2026-07-20 11:33:50", "golden": true}
+{"file": "unc_0c6f4dcdd0.png", "target": "sofa", "at": "2026-07-20 11:33:54", "golden": false}
+{"file": "unc_c6d787797b.png", "target": "sofa", "at": "2026-07-20 11:33:58", "golden": false}
+{"file": "cor_ee8f582069.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor58.png#框選", "at": "2026-07-20 11:34:14"}
+{"file": "cor_426363e444.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor58.png#框選", "at": "2026-07-20 11:34:22"}
+{"file": "unc_4ee84d7027.png", "target": "delete", "at": "2026-07-20 13:54:51", "golden": false}
+{"file": "unc_aeeb241f88.png", "target": "bathtub", "at": "2026-07-20 13:54:57", "golden": false}
+{"file": "unc_3cc20423d0.png", "target": "delete", "at": "2026-07-20 13:54:58", "golden": false}
+{"file": "unc_da87d361da.png", "target": "bed", "at": "2026-07-20 13:55:01", "golden": false}
+{"file": "unc_16695e4e67.png", "target": "sofa", "at": "2026-07-20 13:55:04", "golden": false}
+{"file": "unc_61c7365ea0.png", "target": "sofa", "at": "2026-07-20 13:55:08", "golden": false}
+{"file": "unc_59354898a5.png", "target": "delete", "at": "2026-07-20 13:55:14", "golden": false}
+{"file": "unc_37ae0e4de8.png", "target": "delete", "at": "2026-07-20 13:55:15", "golden": false}
+{"file": "unc_5b4983cbe3.png", "target": "delete", "at": "2026-07-20 13:55:24", "golden": false}
+{"file": "unc_a158bb5063.png", "target": "delete", "at": "2026-07-20 13:55:25", "golden": false}
+{"file": "unc_21f42fc7d9.png", "target": "delete", "at": "2026-07-20 13:55:27", "golden": false}
+{"file": "unc_3f71dcd729.png", "target": "delete", "at": "2026-07-20 13:55:29", "golden": false}
+{"file": "cor_7a32892829.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor79.png#框選", "at": "2026-07-20 13:55:54"}
+{"file": "cor_1afadc1ae2.png", "kind": "correction", "from": null, "target": "stove", "golden": false, "source": "floor79.png#框選", "at": "2026-07-20 13:56:05"}
+{"file": "cor_eb0930a55a.png", "kind": "correction", "from": "bathtub", "target": "toilet", "golden": false, "source": "floor79.png", "at": "2026-07-20 13:56:29"}
+{"file": "cor_3f71dcd729.png", "kind": "correction", "from": "shower", "target": "other", "golden": false, "source": "floor79.png", "at": "2026-07-20 13:58:48"}
+{"file": "cor_21f42fc7d9.png", "kind": "correction", "from": "bathtub", "target": "other", "golden": false, "source": "floor79.png", "at": "2026-07-20 13:58:59"}
+{"file": "cor_5b4983cbe3.png", "kind": "correction", "from": "bathtub", "target": "other", "golden": false, "source": "floor79.png", "at": "2026-07-20 13:59:16"}
+{"file": "cor_59354898a5.png", "kind": "correction", "from": "bathtub", "target": "other", "golden": false, "source": "floor79.png", "at": "2026-07-20 13:59:22"}
+{"file": "cor_a158bb5063.png", "kind": "correction", "from": "shower", "target": "other", "golden": false, "source": "floor79.png", "at": "2026-07-20 13:59:34"}
+{"file": "cor_3cc20423d0.png", "kind": "correction", "from": "shower", "target": "other", "golden": true, "source": "floor79.png", "at": "2026-07-20 13:59:36"}
+{"file": "cor_16695e4e67.png", "kind": "correction", "from": "bed", "target": "other", "golden": false, "source": "floor79.png", "at": "2026-07-20 14:00:05"}
+{"file": "cor_61c7365ea0.png", "kind": "correction", "from": "bed", "target": "other", "golden": false, "source": "floor79.png", "at": "2026-07-20 14:00:07"}
+{"file": "unc_4ee84d7027.png", "target": "delete", "at": "2026-07-20 14:02:45", "golden": false}
+{"file": "unc_aeeb241f88.png", "target": "bathtub", "at": "2026-07-20 14:02:50", "golden": false}
+{"file": "unc_3cc20423d0.png", "target": "delete", "at": "2026-07-20 14:02:52", "golden": false}
+{"file": "unc_56f88ecf6c.png", "target": "delete", "at": "2026-07-20 14:02:54", "golden": false}
+{"file": "unc_da87d361da.png", "target": "bed", "at": "2026-07-20 14:02:59", "golden": false}
+{"file": "unc_16695e4e67.png", "target": "sofa", "at": "2026-07-20 14:03:02", "golden": false}
+{"file": "unc_61c7365ea0.png", "target": "sofa", "at": "2026-07-20 14:03:07", "golden": false}
+{"file": "unc_59354898a5.png", "target": "delete", "at": "2026-07-20 14:03:08", "golden": false}
+{"file": "unc_37ae0e4de8.png", "target": "delete", "at": "2026-07-20 14:03:11", "golden": false}
+{"file": "unc_5b4983cbe3.png", "target": "delete", "at": "2026-07-20 14:03:18", "golden": false}
+{"file": "unc_a158bb5063.png", "target": "delete", "at": "2026-07-20 14:03:19", "golden": false}
+{"file": "unc_21f42fc7d9.png", "target": "delete", "at": "2026-07-20 14:03:20", "golden": false}
+{"file": "unc_3f71dcd729.png", "target": "delete", "at": "2026-07-20 14:03:22", "golden": false}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-20 14:42:55", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 14:42:56", "golden": false}
+{"file": "unc_db84d31bad.png", "target": "delete", "at": "2026-07-20 14:42:57", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 14:42:59", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 14:42:59", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 14:43:01", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-20 14:43:03", "golden": false}
+{"file": "unc_e1a92f283d.png", "target": "stove", "at": "2026-07-20 14:43:07", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 14:43:08", "golden": false}
+{"file": "unc_bc340cb0d8.png", "target": "bathtub", "at": "2026-07-20 14:43:11", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-20 14:43:18", "golden": false}
+{"file": "unc_3d5e0d9d65.png", "target": "toilet", "at": "2026-07-20 14:43:22", "golden": false}
+{"file": "cor_3f99932217.png", "kind": "correction", "from": null, "target": "sofa", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 14:43:49"}
+{"file": "cor_9fbe16f3ab.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 14:43:55"}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-20 14:48:28", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 14:48:29", "golden": false}
+{"file": "unc_db84d31bad.png", "target": "delete", "at": "2026-07-20 14:48:30", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 14:48:30", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 14:48:32", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 14:48:32", "golden": false}
+{"file": "unc_2983173e4e.png", "target": "stove", "at": "2026-07-20 14:48:37", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-20 14:48:41", "golden": false}
+{"file": "unc_e1a92f283d.png", "target": "stove", "at": "2026-07-20 14:48:47", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 14:48:48", "golden": false}
+{"file": "unc_bc340cb0d8.png", "target": "bathtub", "at": "2026-07-20 14:48:51", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-20 14:48:56", "golden": false}
+{"file": "unc_3d5e0d9d65.png", "target": "toilet", "at": "2026-07-20 14:49:02", "golden": false}
+{"file": "unc_3cc20423d0.png", "target": "delete", "at": "2026-07-20 15:12:14", "golden": false}
+{"file": "unc_16695e4e67.png", "target": "delete", "at": "2026-07-20 15:12:19", "golden": false}
+{"file": "unc_61c7365ea0.png", "target": "sofa", "at": "2026-07-20 15:12:23", "golden": false}
+{"file": "unc_dfbbb470bb.png", "target": "delete", "at": "2026-07-20 15:12:25", "golden": false}
+{"file": "unc_5b4983cbe3.png", "target": "delete", "at": "2026-07-20 15:12:28", "golden": false}
+{"file": "unc_a158bb5063.png", "target": "delete", "at": "2026-07-20 15:12:30", "golden": false}
+{"file": "unc_0e18e2885b.png", "target": "dining_set", "at": "2026-07-20 15:12:34", "golden": false}
+{"file": "unc_3f71dcd729.png", "target": "delete", "at": "2026-07-20 15:12:35", "golden": false}
+{"file": "cor_19dedafbdd.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor79.png#框選", "at": "2026-07-20 15:12:44"}
+{"file": "cor_6266999db0.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor79.png#框選", "at": "2026-07-20 15:12:50"}
+{"file": "cor_37566a69c9.png", "kind": "correction", "from": null, "target": "sofa", "golden": false, "source": "floor79.png#框選", "at": "2026-07-20 15:12:59"}
+{"file": "cor_ade77bf126.png", "kind": "correction", "from": null, "target": "stove", "golden": false, "source": "floor79.png#框選", "at": "2026-07-20 15:13:07"}
+{"file": "cor_bff09fbeea.png", "kind": "correction", "from": null, "target": "bathtub", "golden": false, "source": "floor79.png#框選", "at": "2026-07-20 15:13:16"}
+{"file": "cor_eb0930a55a.png", "kind": "correction", "from": "bathtub", "target": "toilet", "golden": false, "source": "floor79.png", "at": "2026-07-20 15:13:29"}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 15:36:16", "golden": false}
+{"file": "unc_4819f2e3cb.png", "target": "delete", "at": "2026-07-20 15:36:17", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 15:36:18", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 15:36:19", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 15:36:20", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-20 15:36:24", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 15:36:27", "golden": false}
+{"file": "unc_686fc0e3cd.png", "target": "bathtub", "at": "2026-07-20 15:36:31", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-20 15:36:36", "golden": false}
+{"file": "unc_3d5e0d9d65.png", "target": "toilet", "at": "2026-07-20 15:36:38", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 15:37:57", "golden": false}
+{"file": "unc_4819f2e3cb.png", "target": "delete", "at": "2026-07-20 15:37:58", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 15:38:01", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 15:38:01", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 15:38:03", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-20 15:38:08", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 15:38:09", "golden": false}
+{"file": "unc_686fc0e3cd.png", "target": "bathtub", "at": "2026-07-20 15:38:12", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-20 15:38:17", "golden": false}
+{"file": "unc_3d5e0d9d65.png", "target": "toilet", "at": "2026-07-20 15:38:19", "golden": false}
+{"file": "cor_f793aa43d8.png", "kind": "correction", "from": null, "target": "sofa", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 15:38:29"}
+{"file": "cor_28d6321bf7.png", "kind": "correction", "from": null, "target": "bed", "golden": true, "source": "floor70.png#框選", "at": "2026-07-20 15:38:36"}
+{"file": "unc_4ee84d7027.png", "target": "delete", "at": "2026-07-20 15:56:27", "golden": false}
+{"file": "unc_5bed8c4cb6.png", "target": "bathtub", "at": "2026-07-20 15:56:31", "golden": false}
+{"file": "unc_3cc20423d0.png", "target": "delete", "at": "2026-07-20 15:56:32", "golden": false}
+{"file": "unc_56f88ecf6c.png", "target": "delete", "at": "2026-07-20 15:56:34", "golden": false}
+{"file": "unc_b87a5a5379.png", "target": "delete", "at": "2026-07-20 15:56:35", "golden": false}
+{"file": "unc_eb0930a55a.png", "target": "toilet", "at": "2026-07-20 15:56:38", "golden": false}
+{"file": "unc_54930f62f8.png", "target": "bed", "at": "2026-07-20 15:56:40", "golden": false}
+{"file": "unc_16695e4e67.png", "target": "sofa", "at": "2026-07-20 15:56:44", "golden": false}
+{"file": "unc_61c7365ea0.png", "target": "sofa", "at": "2026-07-20 15:56:48", "golden": false}
+{"file": "unc_59354898a5.png", "target": "delete", "at": "2026-07-20 15:56:49", "golden": false}
+{"file": "unc_37ae0e4de8.png", "target": "delete", "at": "2026-07-20 15:56:50", "golden": false}
+{"file": "unc_5b4983cbe3.png", "target": "delete", "at": "2026-07-20 15:56:51", "golden": false}
+{"file": "unc_a158bb5063.png", "target": "delete", "at": "2026-07-20 15:56:52", "golden": false}
+{"file": "unc_21f42fc7d9.png", "target": "delete", "at": "2026-07-20 15:56:54", "golden": false}
+{"file": "unc_3f71dcd729.png", "target": "delete", "at": "2026-07-20 15:56:55", "golden": false}
+{"file": "unc_6c26b4bd54.png", "target": "bed", "at": "2026-07-20 15:56:59", "golden": false}
+{"file": "unc_b5a171dc19.png", "target": "stove", "at": "2026-07-20 15:57:04", "golden": false}
+{"file": "cor_348878836a.png", "kind": "correction", "from": null, "target": "stove", "golden": false, "source": "floor79.png#框選", "at": "2026-07-20 15:57:21"}
+{"file": "unc_4ee84d7027.png", "target": "delete", "at": "2026-07-20 15:59:19", "golden": false}
+{"file": "unc_5bed8c4cb6.png", "target": "bathtub", "at": "2026-07-20 15:59:45", "golden": false}
+{"file": "unc_3cc20423d0.png", "target": "delete", "at": "2026-07-20 15:59:47", "golden": false}
+{"file": "unc_56f88ecf6c.png", "target": "delete", "at": "2026-07-20 15:59:48", "golden": false}
+{"file": "unc_eb0930a55a.png", "target": "toilet", "at": "2026-07-20 15:59:51", "golden": false}
+{"file": "unc_54930f62f8.png", "target": "bed", "at": "2026-07-20 15:59:53", "golden": false}
+{"file": "unc_16695e4e67.png", "target": "sofa", "at": "2026-07-20 16:00:09", "golden": false}
+{"file": "unc_61c7365ea0.png", "target": "sofa", "at": "2026-07-20 16:00:14", "golden": false}
+{"file": "unc_59354898a5.png", "target": "delete", "at": "2026-07-20 16:00:19", "golden": false}
+{"file": "unc_37ae0e4de8.png", "target": "delete", "at": "2026-07-20 16:00:21", "golden": false}
+{"file": "unc_5b4983cbe3.png", "target": "delete", "at": "2026-07-20 16:00:25", "golden": false}
+{"file": "unc_a158bb5063.png", "target": "delete", "at": "2026-07-20 16:00:26", "golden": false}
+{"file": "unc_21f42fc7d9.png", "target": "delete", "at": "2026-07-20 16:00:27", "golden": false}
+{"file": "unc_3f71dcd729.png", "target": "delete", "at": "2026-07-20 16:00:28", "golden": false}
+{"file": "unc_6c26b4bd54.png", "target": "bed", "at": "2026-07-20 16:00:38", "golden": false}
+{"file": "unc_b5a171dc19.png", "target": "stove", "at": "2026-07-20 16:00:59", "golden": false}
+{"file": "cor_f5b43d059f.png", "kind": "correction", "from": null, "target": "stove", "golden": false, "source": "floor79.png#框選", "at": "2026-07-20 16:01:19"}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 16:58:14", "golden": false}
+{"file": "unc_4819f2e3cb.png", "target": "delete", "at": "2026-07-20 16:58:15", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 16:58:16", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 16:58:18", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 16:58:19", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 16:58:21", "golden": false}
+{"file": "unc_686fc0e3cd.png", "target": "bathtub", "at": "2026-07-20 16:58:26", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-20 16:58:30", "golden": false}
+{"file": "cor_2b33fe3630.png", "kind": "correction", "from": null, "target": "sofa", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 16:58:40"}
+{"file": "cor_f272af68bc.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 16:58:48"}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 17:21:00", "golden": false}
+{"file": "unc_db84d31bad.png", "target": "delete", "at": "2026-07-20 17:21:01", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 17:21:02", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 17:21:03", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 17:21:05", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-20 17:21:08", "golden": false}
+{"file": "unc_e1a92f283d.png", "target": "stove", "at": "2026-07-20 17:21:12", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 17:21:13", "golden": false}
+{"file": "unc_bc340cb0d8.png", "target": "bathtub", "at": "2026-07-20 17:21:17", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-20 17:21:21", "golden": false}
+{"file": "unc_3d5e0d9d65.png", "target": "toilet", "at": "2026-07-20 17:21:25", "golden": false}
+{"file": "cor_ff8b23edcf.png", "kind": "correction", "from": null, "target": "sofa", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 17:21:35"}
+{"file": "cor_363aa9665e.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 17:21:42"}
+{"file": "usr_862bd21331.png", "kind": "user_override", "target": "stove", "golden": false, "source": "floor70.png", "at": "2026-07-20 17:21:50"}
+{"file": "usr_e1a92f283d.png", "kind": "user_override", "target": "stove", "golden": false, "source": "floor70.png", "at": "2026-07-20 17:21:50"}
+{"file": "usr_bc340cb0d8.png", "kind": "user_override", "target": "bathtub", "golden": false, "source": "floor70.png", "at": "2026-07-20 17:21:50"}
+{"file": "usr_614a8697cf.png", "kind": "user_override", "target": "stove", "golden": false, "source": "floor70.png", "at": "2026-07-20 17:21:50"}
+{"file": "usr_3d5e0d9d65.png", "kind": "user_override", "target": "toilet", "golden": false, "source": "floor70.png", "at": "2026-07-20 17:21:50"}
+{"file": "usr_7a553dee20.png", "kind": "user_override", "target": "sofa", "golden": false, "source": "floor70.png", "at": "2026-07-20 17:21:50"}
+{"file": "usr_0c86fe7aff.png", "kind": "user_override", "target": "bed", "golden": false, "source": "floor70.png", "at": "2026-07-20 17:21:50"}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-20 23:35:47", "golden": false}
+{"file": "unc_bb1932bb8e.png", "target": "sofa", "at": "2026-07-20 23:36:00", "golden": false}
+{"file": "unc_4819f2e3cb.png", "target": "delete", "at": "2026-07-20 23:36:02", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-20 23:36:03", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-20 23:36:04", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-20 23:36:05", "golden": false}
+{"file": "unc_862bd21331.png", "target": "stove", "at": "2026-07-20 23:36:06", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-20 23:36:08", "golden": false}
+{"file": "unc_686fc0e3cd.png", "target": "bathtub", "at": "2026-07-20 23:36:12", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-20 23:36:14", "golden": false}
+{"file": "cor_b95a3fed7b.png", "kind": "correction", "from": null, "target": "sofa", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 23:36:28"}
+{"file": "cor_71f82c308e.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor70.png#框選", "at": "2026-07-20 23:36:35"}
+{"file": "usr_686fc0e3cd.png", "kind": "user_override", "target": "bathtub", "golden": false, "source": "floor70.png", "at": "2026-07-20 23:36:42"}
+{"file": "usr_3cc00a60b7.png", "kind": "user_override", "target": "sofa", "golden": true, "source": "floor70.png", "at": "2026-07-20 23:36:42"}
+{"file": "usr_c66b05628e.png", "kind": "user_override", "target": "bed", "golden": false, "source": "floor70.png", "at": "2026-07-20 23:36:42"}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-20 23:37:20", "golden": false}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-21 14:14:48", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-21 14:14:49", "golden": false}
+{"file": "unc_1e37825421.png", "target": "sofa", "at": "2026-07-21 14:14:53", "golden": true}
+{"file": "unc_bb1932bb8e.png", "target": "sofa", "at": "2026-07-21 14:14:57", "golden": false}
+{"file": "unc_4819f2e3cb.png", "target": "delete", "at": "2026-07-21 14:14:58", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-21 14:14:59", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-21 14:15:01", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-21 14:15:03", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-21 14:15:05", "golden": false}
+{"file": "unc_686fc0e3cd.png", "target": "bathtub", "at": "2026-07-21 14:15:08", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-21 14:15:11", "golden": false}
+{"file": "cor_2d52ca22ce.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor70.png#框選", "at": "2026-07-21 14:15:28"}
+{"file": "usr_1e37825421.png", "kind": "user_override", "target": "sofa", "golden": true, "source": "floor70.png", "at": "2026-07-21 14:15:31"}
+{"file": "usr_bb1932bb8e.png", "kind": "user_override", "target": "sofa", "golden": false, "source": "floor70.png", "at": "2026-07-21 14:15:31"}
+{"file": "usr_1c2e2b9478.png", "kind": "user_override", "target": "bed", "golden": false, "source": "floor70.png", "at": "2026-07-21 14:15:31"}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-21 19:35:07", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-21 19:35:08", "golden": false}
+{"file": "unc_1e37825421.png", "target": "sofa", "at": "2026-07-21 19:35:14", "golden": true}
+{"file": "unc_bb1932bb8e.png", "target": "sofa", "at": "2026-07-21 19:35:17", "golden": false}
+{"file": "unc_4819f2e3cb.png", "target": "delete", "at": "2026-07-21 19:35:19", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-21 19:35:20", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-21 19:35:26", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-21 19:35:27", "golden": false}
+{"file": "unc_3724875107.png", "target": "delete", "at": "2026-07-21 19:35:30", "golden": false}
+{"file": "unc_686fc0e3cd.png", "target": "bathtub", "at": "2026-07-21 19:35:34", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-21 19:35:37", "golden": false}
+{"file": "cor_d979e7cc39.png", "kind": "correction", "from": null, "target": "bed", "golden": false, "source": "floor70.png#框選", "at": "2026-07-21 19:35:55"}
+{"file": "usr_e629f64fd4.png", "kind": "user_override", "target": "bed", "golden": true, "source": "floor70.png", "at": "2026-07-21 19:35:59"}
+{"file": "unc_8b13bfbd40.png", "target": "delete", "at": "2026-07-21 21:25:11", "golden": false}
+{"file": "unc_75ad6ecb34.png", "target": "delete", "at": "2026-07-21 21:25:12", "golden": false}
+{"file": "unc_3d282336c7.png", "target": "delete", "at": "2026-07-21 21:25:14", "golden": false}
+{"file": "unc_3e7599cff5.png", "target": "bed", "at": "2026-07-21 21:25:18", "golden": false}
+{"file": "unc_4bf4779530.png", "target": "sofa", "at": "2026-07-21 21:25:22", "golden": false}
+{"file": "unc_4819f2e3cb.png", "target": "delete", "at": "2026-07-21 21:25:24", "golden": false}
+{"file": "unc_c4b8499e57.png", "target": "delete", "at": "2026-07-21 21:25:24", "golden": false}
+{"file": "unc_1fe814d082.png", "target": "delete", "at": "2026-07-21 21:25:25", "golden": false}
+{"file": "unc_ae9c0e4d1e.png", "target": "delete", "at": "2026-07-21 21:25:27", "golden": false}
+{"file": "unc_e79c99b5c8.png", "target": "delete", "at": "2026-07-21 21:25:27", "golden": false}
+{"file": "unc_7a46c59a4a.png", "target": "delete", "at": "2026-07-21 21:25:29", "golden": false}
+{"file": "unc_43d4b19e81.png", "target": "dining_set", "at": "2026-07-21 21:25:33", "golden": false}
+{"file": "unc_c6b74a6419.png", "target": "stove", "at": "2026-07-21 21:25:38", "golden": false}
+{"file": "unc_686fc0e3cd.png", "target": "bathtub", "at": "2026-07-21 21:25:41", "golden": false}
+{"file": "unc_211d7155a5.png", "target": "delete", "at": "2026-07-21 21:25:43", "golden": false}
+{"file": "unc_342e35b83a.png", "target": "delete", "at": "2026-07-21 21:25:45", "golden": false}
+{"file": "unc_2ad7287ddb.png", "target": "delete", "at": "2026-07-21 21:25:46", "golden": false}
+{"file": "unc_3bb7f3abfb.png", "target": "delete", "at": "2026-07-21 21:25:48", "golden": false}
+{"file": "unc_614a8697cf.png", "target": "stove", "at": "2026-07-21 21:25:51", "golden": false}
+{"file": "usr_3e7599cff5.png", "kind": "user_override", "target": "bed", "golden": false, "source": "floor70.png", "at": "2026-07-21 21:25:55"}
+{"file": "usr_43d4b19e81.png", "kind": "user_override", "target": "dining_set", "golden": false, "source": "floor70.png", "at": "2026-07-21 21:25:55"}
+{"file": "cor_d5f893491d.png", "kind": "correction", "from": null, "target": "sofa", "golden": false, "source": "floor70.png#框選", "at": "2026-07-21 21:26:08"}
+{"file": "usr_586a2392b6.png", "kind": "user_override", "target": "sofa", "golden": false, "source": "floor70.png", "at": "2026-07-21 21:26:10"}
+{"file": "unc_a4c0ae1bc0.png", "target": "delete", "at": "2026-07-22 14:56:06", "golden": false}
+{"file": "unc_2e2d5bba2b.png", "target": "sofa", "at": "2026-07-22 14:56:11", "golden": false}
+{"file": "unc_66b977d830.png", "target": "bed", "at": "2026-07-22 14:56:14", "golden": false}
+{"file": "unc_063439d686.png", "target": "delete", "at": "2026-07-22 14:56:16", "golden": false}
+{"file": "unc_0accbc2b80.png", "target": "delete", "at": "2026-07-22 14:56:17", "golden": false}
+{"file": "unc_dd61df6a66.png", "target": "stove", "at": "2026-07-22 14:56:19", "golden": false}
+{"file": "unc_ccfac6e55d.png", "target": "stove", "at": "2026-07-22 14:56:25", "golden": false}
+{"file": "unc_716ad547eb.png", "target": "bed", "at": "2026-07-22 14:56:29", "golden": false}
+{"file": "unc_0c6f4dcdd0.png", "target": "sofa", "at": "2026-07-22 14:56:32", "golden": false}
+{"file": "unc_c6d787797b.png", "target": "sofa", "at": "2026-07-22 14:56:36", "golden": false}
+{"file": "usr_2e2d5bba2b.png", "kind": "user_override", "target": "sofa", "golden": false, "source": "floor58.png", "at": "2026-07-22 14:56:54"}
+{"file": "usr_66b977d830.png", "kind": "user_override", "target": "bed", "golden": false, "source": "floor58.png", "at": "2026-07-22 14:56:54"}
+{"file": "usr_dd61df6a66.png", "kind": "user_override", "target": "stove", "golden": false, "source": "floor58.png", "at": "2026-07-22 14:56:54"}
+{"file": "usr_ccfac6e55d.png", "kind": "user_override", "target": "stove", "golden": false, "source": "floor58.png", "at": "2026-07-22 14:56:54"}
+{"file": "usr_716ad547eb.png", "kind": "user_override", "target": "bed", "golden": false, "source": "floor58.png", "at": "2026-07-22 14:56:54"}
+{"file": "usr_0c6f4dcdd0.png", "kind": "user_override", "target": "sofa", "golden": false, "source": "floor58.png", "at": "2026-07-22 14:56:54"}
+{"file": "usr_c6d787797b.png", "kind": "user_override", "target": "sofa", "golden": false, "source": "floor58.png", "at": "2026-07-22 14:56:54"}
+{"file": "unc_78de10e5af.png", "target": "delete", "at": "2026-07-22 14:58:58", "golden": false}
+{"file": "unc_c1159a4ded.png", "target": "delete", "at": "2026-07-22 14:58:59", "golden": false}
+{"file": "unc_e6a364a21f.png", "target": "delete", "at": "2026-07-22 14:59:01", "golden": false}
+{"file": "unc_a4c0ae1bc0.png", "target": "delete", "at": "2026-07-25 12:24:39", "golden": false}
+{"file": "unc_2f7dd64cfb.png", "target": "delete", "at": "2026-07-25 12:24:41", "golden": false}
+{"file": "unc_906cb38034.png", "target": "sofa", "at": "2026-07-25 12:24:45", "golden": false}
+{"file": "unc_2e2d5bba2b.png", "target": "sofa", "at": "2026-07-25 12:24:49", "golden": false}
+{"file": "unc_66b977d830.png", "target": "bed", "at": "2026-07-25 12:24:52", "golden": false}
+{"file": "unc_063439d686.png", "target": "delete", "at": "2026-07-25 12:24:53", "golden": false}
+{"file": "unc_0accbc2b80.png", "target": "delete", "at": "2026-07-25 12:24:55", "golden": false}
+{"file": "unc_dd61df6a66.png", "target": "stove", "at": "2026-07-25 12:25:01", "golden": false}
+{"file": "unc_ccfac6e55d.png", "target": "stove", "at": "2026-07-25 12:25:15", "golden": false}
+{"file": "unc_716ad547eb.png", "target": "bed", "at": "2026-07-25 12:25:18", "golden": false}
+{"file": "unc_e373b63d58.png", "target": "delete", "at": "2026-07-25 12:25:20", "golden": false}
+{"file": "unc_0c6f4dcdd0.png", "target": "sofa", "at": "2026-07-25 12:25:27", "golden": false}
+{"file": "unc_c6d787797b.png", "target": "sofa", "at": "2026-07-25 12:25:32", "golden": false}
+{"file": "usr_906cb38034.png", "kind": "user_override", "target": "sofa", "golden": false, "source": "floor58.png", "at": "2026-07-25 12:25:47"}
+{"file": "unc_a4c0ae1bc0.png", "target": "delete", "at": "2026-07-25 12:29:07", "golden": false}
+{"file": "unc_2f7dd64cfb.png", "target": "delete", "at": "2026-07-25 12:29:10", "golden": false}
+{"file": "unc_906cb38034.png", "target": "sofa", "at": "2026-07-25 12:29:13", "golden": false}
+{"file": "unc_2e2d5bba2b.png", "target": "sofa", "at": "2026-07-25 12:29:18", "golden": false}
+{"file": "unc_66b977d830.png", "target": "bed", "at": "2026-07-25 12:29:22", "golden": false}
+{"file": "unc_063439d686.png", "target": "delete", "at": "2026-07-25 12:29:24", "golden": false}
+{"file": "unc_0accbc2b80.png", "target": "delete", "at": "2026-07-25 12:29:26", "golden": false}
+{"file": "unc_ccfac6e55d.png", "target": "stove", "at": "2026-07-25 12:29:33", "golden": false}
+{"file": "unc_716ad547eb.png", "target": "bed", "at": "2026-07-25 12:29:37", "golden": false}
+{"file": "unc_e373b63d58.png", "target": "delete", "at": "2026-07-25 12:29:39", "golden": false}
+{"file": "unc_0c6f4dcdd0.png", "target": "sofa", "at": "2026-07-25 12:29:44", "golden": false}
+{"file": "unc_c6d787797b.png", "target": "sofa", "at": "2026-07-25 12:29:51", "golden": false}

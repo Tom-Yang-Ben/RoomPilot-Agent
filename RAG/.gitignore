@@ -1,0 +1,4 @@
+.anthropic_key
+
+# GLB 渲染中間產物(約 470MB / 18,701 張 PNG),可由 dataset/ 重跑產生,不進版控
+rendering/output/
