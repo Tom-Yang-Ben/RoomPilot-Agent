@@ -1,3 +1,20 @@
+2026/7/25 v.2.16 變更（微調 v5 首勝基線並接管預設權重——own 尺具名命中 0.273→0.788；權重掛 GitHub Release＋缺檔自動下載，前端 clone 即可用；快取/報表/HTML 全量重算）
+
+一、微調 v5（標注痊癒後首訓，own 25 題×3＋HQA 300、v4 同配方）：
+
+- own 尺（主尺）**史上首勝基線**：新 GT（標注修復後 72 房）同尺重評，具名 macro-F1 基線 0.215 → **0.473**、具名命中 0.273→**0.788**（52/66），八類 recall 無一倒退（kitchen 0.4→0.9、living 0.083→1.0、bed 0.35→0.8、bath 0.43→0.86、entry 0→0.43）——證實 v1~v4 全敗於「牆窗門 id 失配使九成手畫標注隱形」，資料修復後同配方立即反轉
+- CubiCasa 尺 0.797 未過 0.838 門檻（storage/garage recall 有退）；**使用者裁決：目標域＝own 風格，v5 接管預設**（floorplan2room.py CC_WEIGHTS）。CubiCasa5k 資料集已自 Zenodo 重下，該尺恢復可評
+- 訓練指令勘誤（HANDOVER_finetune_v5.md 已修）：官方 44 類權重須 `--weights ＋ --new-hyperparams`；`--furukawa-weights` 是 51 類原始權重入口，誤用即 size mismatch
+- cubicasa/room/ 語意快取 136 檔全量 v5 重算＋9 個來源已刪死快取移除；四報表＋recognition_report.html 同步（own 端對端切割 76.4%、IoU 0.875）
+
+二、權重發佈與部署（前端整合：丟任意新 PNG 判斷房型需要權重推論）：
+
+- 200M 權重不進版控（GitHub 100MB 硬限），掛 Release [`weights-v5`](https://github.com/Tom-Yang-Ben/RoomPilot-Agent/releases/tag/weights-v5)（SHA-256 `b7a280d2…f4cf`）；floorplan2room.py 缺檔自動下載＋校驗（`_ensure_cc_weights`，7 例單元測試＋私有鏈全程實測）
+- **部署重點：部署機把 clone 私有 repo 用的那顆 token 設成環境變數 `GITHUB_TOKEN`，其他的程式全自動**（token＝PAT，密碼等級秘密，勿進版控；repo 轉 public 後連 token 都不需要）
+- 既有考卷走版控快取不觸發下載；`CC_WEIGHTS` 指定自訂權重時缺檔不代抓
+
+三、待辦定序衝擊：v2.15 待辦首位「DINOv2 接融合層」前提已變——v5 預設 0.788 已超 DINOv2 0.730（舊 GT 63 房快照），該項降級為「新 GT 重評後再議」；彩色窗召回 38% 升為最大真實破口；彩色 30 題標注草稿人工修正（次輪訓練素材）為 own 域繼續放大的直接槓桿。
+
 2026/7/23 v.2.15 變更（own 量尺接線＋雙重校準，切割真實命中 72.6%；微調 v4 四輪最佳仍維持基線；去 CubiCasa 路線確立——授權禁商用實錘、DINOv2 裁切分類 0.730；四層級成功率盤點＋HTML 報表；本機大清理 17GB）
 
 一、微調第四輪（own_eval 撤出訓練集後以乾淨 26 題重訓）：
