@@ -5629,662 +5629,6 @@ body[data-page="scene"] .scene-selected-copy small {
   }
 }
 
-/* 流程 6：設計師共填與客戶邀請共用的引導式問卷 */
-.rp-questionnaire-notice {
-  margin: 0;
-  padding: 12px 14px;
-  border-left: 4px solid #a66d3f;
-  border-radius: 8px;
-  background: #fff4e8;
-  color: #69452c;
-  font-weight: 800;
-}
-
-.rp-questionnaire-summary-card,
-.rp-questionnaire-jump,
-.rp-questionnaire-warning,
-.rp-client-brief-card,
-.rp-designer-notes,
-.rp-room-integrated-summary {
-  display: grid;
-  gap: 10px;
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid #d8c9ba;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.78);
-}
-
-.rp-questionnaire-summary-card output {
-  overflow-wrap: anywhere;
-  font-size: 0.84rem;
-}
-
-.rp-questionnaire-incomplete-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.rp-questionnaire-incomplete-list button {
-  width: auto;
-  padding: 8px 12px;
-  border: 1px solid #cdbba8;
-  border-radius: 999px;
-  background: #fff;
-}
-
-.rp-questionnaire-warning {
-  border-color: #d38a56;
-  background: #fff4eb;
-}
-
-.rp-questionnaire-warning[hidden] {
-  display: none !important;
-}
-
-.rp-questionnaire-warning-head {
-  display: flex;
-  justify-content: space-between;
-  color: #8a4f29;
-}
-
-.rp-question-step-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin: 16px 0 10px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #edf6f2;
-  color: #245744;
-}
-
-.rp-question-step-head strong {
-  font-size: 0.95rem;
-}
-
-.rp-question-step-head span {
-  color: #68756f;
-  font-size: 0.78rem;
-}
-
-.rp-question-step-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 16px;
-  padding: 12px 0 4px;
-  border-top: 1px solid #e1d7ce;
-  background: linear-gradient(to bottom, rgba(255, 253, 249, 0.86), #fffdf9 28%);
-  backdrop-filter: blur(8px);
-}
-
-.rp-question-step-actions button {
-  width: auto;
-  min-width: 112px;
-}
-
-.rp-question-list > [hidden],
-.rp-room-axis-list > [hidden],
-[data-room-question-stage][hidden],
-[data-client-room-stage][hidden] {
-  display: none !important;
-}
-
-.rp-question-list > fieldset:not([hidden]),
-.rp-room-axis-list > fieldset:not([hidden]),
-[data-room-question-stage]:not([hidden]),
-[data-client-room-stage]:not([hidden]) {
-  animation: rp-question-enter 180ms ease-out;
-}
-
-@keyframes rp-question-enter {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.rp-room-question-actions,
-.rp-copy-room-answer,
-.rp-material-preference-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin: 12px 0;
-}
-
-.rp-copy-room-answer {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-}
-
-.rp-room-axis-list {
-  display: grid;
-  gap: 16px;
-}
-
-.rp-room-axis {
-  margin: 0;
-  min-height: 280px;
-  padding: clamp(18px, 3vw, 28px);
-  border: 1px solid #d9cabd;
-  border-radius: 20px;
-  background: #fffdf9;
-}
-
-.rp-room-axis > p {
-  margin: 6px 0 20px;
-  color: #665c54;
-  font-size: 1.02rem;
-}
-
-.rp-axis-choice-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.rp-axis-choice-grid label {
-  position: relative;
-  min-height: 116px;
-  padding: 18px;
-  border: 1px solid #d9cabd;
-  border-radius: 14px;
-  background: #fff;
-  cursor: pointer;
-}
-
-.rp-axis-choice-grid input {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-}
-
-.rp-axis-choice-grid label:has(input:checked) {
-  border-color: #246c56;
-  box-shadow: inset 0 0 0 2px #246c56;
-  background: #f0f8f4;
-}
-
-.rp-axis-choice-grid span {
-  display: grid;
-  gap: 8px;
-  padding-right: 22px;
-}
-
-.rp-axis-choice-grid small,
-.rp-choice-grid small {
-  color: #746a62;
-  font-weight: 500;
-}
-
-.rp-question-note {
-  display: grid;
-  gap: 6px;
-  margin-top: 12px;
-}
-
-body.rp-workflow-page .rp-structure-preview-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-body.rp-workflow-page .rp-structure-preview-views {
-  flex: 0 0 auto;
-}
-
-body.rp-workflow-page .rp-structure-preview-views button {
-  min-width: 54px;
-  min-height: 34px;
-  padding: 6px 10px;
-  font-size: 13px;
-}
-
-body.rp-workflow-page .rp-structure-dimension-hint {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 7px 9px;
-  border-left: 3px solid #2f7f8f;
-  background: #eaf4f4;
-  color: #263f42;
-  font-size: 13px;
-}
-
-body.rp-workflow-page .rp-structure-dimension-hint[hidden] {
-  display: none;
-}
-
-body.rp-workflow-page #structure-preview-dimension-axis {
-  color: #2f7f8f;
-  font-size: 21px;
-  font-weight: 800;
-  line-height: 1;
-  text-align: center;
-}
-
-body.rp-workflow-page #structure-preview-dimension-value {
-  grid-column: 2;
-  color: #4f5c5e;
-  text-align: left;
-}
-
-body.rp-workflow-page #structure-preview-dimension-label {
-  min-width: 0;
-  white-space: nowrap;
-}
-
-body.rp-workflow-page #structure-3d-preview {
-  width: 100%;
-  height: 280px;
-  overflow: hidden;
-  border: 1px solid #d8d2ca;
-  background: #f5f3ef;
-}
-
-body.rp-workflow-page #structure-3d-preview canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-@media (max-width: 720px) {
-  body.rp-workflow-page .rp-structure-preview-heading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  body.rp-workflow-page .rp-structure-preview-views {
-    width: 100%;
-  }
-
-  body.rp-workflow-page .rp-structure-preview-views button {
-    flex: 1 1 0;
-  }
-}
-
-body.rp-workflow-page .rp-white-beam-editor {
-  border-left: 4px solid #6b4d8a;
-}
-
-.rp-axis-endpoints {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.rp-axis-endpoint-card {
-  position: relative;
-  min-width: 0;
-  border: 1px solid #d9cabd;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #fff;
-  cursor: pointer;
-}
-
-.rp-axis-endpoint-card > input {
-  position: absolute;
-  z-index: 2;
-  top: 12px;
-  right: 12px;
-}
-
-.rp-axis-endpoint-card:has(input:checked) {
-  border-color: #246c56;
-  box-shadow: inset 0 0 0 2px #246c56;
-}
-
-.rp-axis-endpoint-visual {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-}
-
-.rp-axis-pole {
-  color: #8b6548;
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-}
-
-.rp-axis-image-placeholder {
-  display: grid;
-  min-height: 128px;
-  place-items: center;
-  border-radius: 11px;
-  background:
-    linear-gradient(135deg, rgba(36, 108, 86, 0.08), rgba(139, 101, 72, 0.12));
-  color: #746a62;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.rp-axis-image {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 3 / 2;
-  object-fit: cover;
-  border-radius: 11px;
-}
-
-.rp-axis-preference-scale {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.rp-axis-preference-scale label {
-  position: relative;
-  cursor: pointer;
-}
-
-.rp-axis-preference-scale input {
-  position: absolute;
-  opacity: 0;
-}
-
-.rp-axis-preference-scale span {
-  display: grid;
-  min-height: 42px;
-  place-items: center;
-  padding: 8px;
-  border: 1px solid #d9cabd;
-  border-radius: 999px;
-  background: #fff;
-  font-weight: 800;
-}
-
-.rp-axis-preference-scale label:has(input:checked) span {
-  border-color: #246c56;
-  background: #e8f3ee;
-  color: #205744;
-  box-shadow: inset 0 0 0 1px #246c56;
-}
-
-.rp-axis-exclusive-note {
-  margin: 10px 0 0;
-  color: #7a6250;
-  font-size: 0.84rem;
-}
-
-.rp-axis-custom-approach {
-  width: fit-content;
-  max-width: 100%;
-  margin-top: 12px;
-}
-
-body.rp-workflow-page .rp-window-type-toggle {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  overflow: hidden;
-  border: 1px solid #aaa59e;
-  border-radius: 5px;
-}
-
-body.rp-workflow-page .rp-window-type-toggle button {
-  min-height: 34px;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: 0;
-  background: #fff;
-  color: #4f4b46;
-  font-weight: 700;
-}
-
-body.rp-workflow-page .rp-window-type-toggle button + button {
-  border-left: 1px solid #aaa59e;
-}
-
-body.rp-workflow-page .rp-window-type-toggle button.is-active {
-  background: #2b6253;
-  color: #fff;
-}
-
-body.rp-workflow-page .rp-wall-type-toggle button.is-active {
-  background: #343434;
-}
-
-body.rp-workflow-page .rp-wall-type-toggle button[data-wall-demolition="candidate"].is-active {
-  background: #a83f3f;
-}
-
-body.rp-workflow-page .rp-wall-type-toggle button:disabled {
-  cursor: not-allowed;
-  background: #eceae6;
-  color: #77716a;
-}
-
-body.rp-workflow-page .rp-wall-removal-preview {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #cbc6bf;
-}
-
-body.rp-workflow-page .rp-wall-removal-preview[hidden] {
-  display: none;
-}
-
-body.rp-workflow-page .rp-wall-removal-preview > header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-body.rp-workflow-page .rp-wall-removal-preview > header p {
-  margin: 4px 0 0;
-  color: #625d57;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-body.rp-workflow-page .rp-wall-removal-preview > header > span {
-  flex: 0 0 auto;
-  color: #8e3e23;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-body.rp-workflow-page .rp-wall-removal-compare {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-body.rp-workflow-page .rp-wall-removal-compare figure {
-  min-width: 0;
-  margin: 0;
-  padding: 8px;
-  border: 1px solid #c9c3bb;
-  border-radius: 5px;
-  background: #fff;
-}
-
-body.rp-workflow-page .rp-wall-removal-compare figcaption {
-  margin-bottom: 6px;
-  color: #34312e;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-body.rp-workflow-page .rp-wall-removal-compare svg {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  background: #f7f6f3;
-}
-
-body.rp-workflow-page .rp-wall-safety-notice {
-  margin: 0;
-  padding: 9px 10px;
-  border-left: 3px solid #bd5c36;
-  background: #fff5ef;
-  color: #6f3425;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-body.rp-workflow-page .rp-door-review-list span {
-  font-size: 13px;
-  color: #625d57;
-}
-
-.rp-axis-custom-approach > summary {
-  width: fit-content;
-  padding: 7px 11px;
-  border: 1px solid #cdbba8;
-  border-radius: 999px;
-  background: #fff;
-  color: #5f5146;
-  font-size: 0.84rem;
-  font-weight: 800;
-  cursor: pointer;
-  list-style: none;
-}
-
-.rp-axis-custom-approach > summary::-webkit-details-marker {
-  display: none;
-}
-
-.rp-axis-custom-approach[open] {
-  width: 100%;
-}
-
-.rp-axis-custom-approach[open] > summary {
-  border-color: #8aa99c;
-  background: #edf6f2;
-  color: #245744;
-}
-
-.rp-axis-custom-approach .rp-question-note {
-  margin-top: 8px;
-}
-
-.rp-axis-custom-approach textarea {
-  min-height: 72px;
-}
-
-.rp-room-integrated-summary {
-  background: #edf6f2;
-  color: #254f42;
-}
-
-.rp-room-final-question {
-  display: grid;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid #d9cabd;
-  border-radius: 16px;
-  background: #fffdf9;
-}
-
-.rp-client-brief-card pre {
-  max-height: 360px;
-  overflow: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 0.75rem;
-}
-
-.rp-questionnaire-client {
-  min-height: 100vh;
-  background: #f1ece5;
-}
-
-.rp-questionnaire-client-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px clamp(20px, 5vw, 72px);
-  background: #3f352d;
-  color: #fff;
-}
-
-.rp-questionnaire-client-header .brand {
-  color: inherit;
-  font-family: Georgia, serif;
-  font-size: 1.3rem;
-  text-decoration: none;
-}
-
-.rp-questionnaire-client-main {
-  display: grid;
-  grid-template-columns: minmax(240px, 0.7fr) minmax(0, 1.3fr);
-  gap: 24px;
-  width: min(1180px, calc(100% - 32px));
-  margin: 28px auto 80px;
-}
-
-.rp-questionnaire-client-intro,
-.rp-questionnaire-client-card {
-  padding: clamp(20px, 3vw, 36px);
-  border: 1px solid #ddd0c3;
-  border-radius: 22px;
-  background: #fffdf9;
-}
-
-.rp-questionnaire-client-intro {
-  position: sticky;
-  top: 86px;
-  align-self: start;
-}
-
-.rp-questionnaire-client-card {
-  display: grid;
-  gap: 18px;
-}
-
-#questionnaire-client-basic[hidden],
-#questionnaire-client-room[hidden] {
-  display: none !important;
-}
-
-@media (max-width: 860px) {
-  .rp-questionnaire-client-main {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-questionnaire-client-intro {
-    position: static;
-  }
-
-  .rp-room-question-actions,
-  .rp-material-preference-grid,
-  .rp-axis-choice-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-question-step-head {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-}
-
 /* RoomPilot test1: final nine-step planning workflow */
 body.rp-workflow-page {
   --rp-ink: #252422;
@@ -6344,7 +5688,7 @@ body.rp-workflow-page .app-topbar {
   top: 58px;
   z-index: 50;
   display: grid;
-  grid-template-columns: repeat(8, minmax(110px, 1fr));
+  grid-template-columns: repeat(10, minmax(110px, 1fr));
   gap: 0;
   overflow-x: auto;
   border-bottom: 1px solid var(--rp-line);
@@ -6539,16 +5883,58 @@ body.rp-workflow-page .rp-structure-preview-panel {
   background: #f4f1ec;
 }
 
-body.rp-workflow-page .rp-structure-preview-panel > div:first-child {
+body.rp-workflow-page .rp-structure-preview-heading {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-body.rp-workflow-page .rp-structure-preview-panel > div:first-child span {
-  color: #625d56;
-  font-size: 12px;
+body.rp-workflow-page .rp-structure-preview-views {
+  flex: 0 0 auto;
+}
+
+body.rp-workflow-page .rp-structure-preview-views button {
+  min-width: 54px;
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+body.rp-workflow-page .rp-structure-dimension-hint {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 7px 9px;
+  border-left: 3px solid #2f7f8f;
+  background: #eaf4f4;
+  color: #263f42;
+  font-size: 13px;
+}
+
+body.rp-workflow-page .rp-structure-dimension-hint[hidden] {
+  display: none;
+}
+
+body.rp-workflow-page #structure-preview-dimension-axis {
+  color: #2f7f8f;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+body.rp-workflow-page #structure-preview-dimension-value {
+  grid-column: 2;
+  color: #4f5c5e;
+  text-align: left;
+}
+
+body.rp-workflow-page #structure-preview-dimension-label {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 body.rp-workflow-page #structure-3d-preview {
@@ -6563,6 +5949,21 @@ body.rp-workflow-page #structure-3d-preview canvas {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+@media (max-width: 720px) {
+  body.rp-workflow-page .rp-structure-preview-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  body.rp-workflow-page .rp-structure-preview-views {
+    width: 100%;
+  }
+
+  body.rp-workflow-page .rp-structure-preview-views button {
+    flex: 1 1 0;
+  }
 }
 
 body.rp-workflow-page .rp-white-beam-editor {
@@ -6926,368 +6327,6 @@ body.rp-workflow-page .rp-legend-line {
   border-top: 4px solid #343434;
 }
 
-.rp-review-summary,
-.rp-render-option-list,
-.rp-render-room-list,
-.rp-render-jobs {
-  display: grid;
-  gap: 8px;
-}
-
-.rp-review-summary > div,
-.rp-render-option-list > label,
-.rp-render-room-list > button,
-.rp-render-jobs > article {
-  padding: 10px 12px;
-  border: 1px solid var(--rp-line);
-  border-radius: 6px;
-  background: #fff;
-}
-
-.rp-review-summary > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-}
-
-.rp-render-view-lock {
-  margin-top: auto;
-  border-left: 3px solid var(--rp-green);
-}
-
-.rp-render-result-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.rp-render-result-grid img {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  border: 1px solid var(--rp-line);
-}
-
-.rp-render-result {
-  display: grid;
-  gap: 6px;
-}
-
-.rp-render-placeholder {
-  display: grid;
-  min-height: 120px;
-  place-items: center;
-  border: 1px dashed var(--rp-line);
-  background: #f4f2ef;
-  color: var(--rp-muted);
-}
-
-.rp-render-room-list > button {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  text-align: left;
-}
-
-.rp-render-room-list > button.is-active {
-  border-color: var(--rp-green);
-  background: var(--rp-green-soft);
-}
-
-.rp-plan-heading-tools {
-  display: grid;
-  width: 100%;
-  justify-items: end;
-  gap: 8px;
-}
-
-.rp-room-toolbar-editor {
-  width: 100%;
-  grid-template-columns: minmax(150px, 0.8fr) minmax(210px, 1.2fr);
-  align-items: start;
-  gap: 8px 12px;
-  padding: 12px;
-  border-color: rgba(78, 75, 70, 0.22);
-  background: #f8faf8;
-  box-shadow: none;
-}
-
-.rp-room-toolbar-editor[hidden] {
-  display: none;
-}
-
-.rp-room-editor-summary {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-}
-
-.rp-room-toolbar-editor label {
-  margin: 0;
-}
-
-.rp-room-name-control {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px;
-}
-
-.rp-room-toolbar-editor #room-area {
-  margin: 0;
-  font-weight: 700;
-  color: #2f453c;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.rp-room-toolbar-editor .rp-control-hint {
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.rp-room-toolbar-editor .rp-room-node-tools {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-self: start;
-  margin: 0;
-}
-
-.rp-room-toolbar-editor .primary-action,
-.rp-room-toolbar-editor .secondary-action {
-  height: 38px;
-  min-height: 38px;
-  padding: 7px 9px;
-  font-size: 13px;
-}
-
-.rp-window-type-preview {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  margin: 0;
-  padding-top: 12px;
-  border-top: 1px solid #d8d3cc;
-}
-
-.rp-window-type-preview[hidden] {
-  display: none;
-}
-
-.rp-window-type-preview img {
-  width: 112px;
-  height: 76px;
-  object-fit: cover;
-  border: 1px solid #bdb8b0;
-  border-radius: 4px;
-}
-
-.rp-window-type-preview figcaption {
-  color: #3c4944;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.45;
-}
-
-#space-step .rp-pane-heading {
-  position: relative;
-  flex-wrap: wrap;
-}
-
-@media (min-width: 1121px) {
-  #space-step .rp-plan-heading-tools {
-    min-height: 0;
-  }
-
-  #space-step #show-all-rooms {
-    position: absolute;
-    top: 0;
-    right: 0;
-  }
-
-  #space-step .rp-room-toolbar-editor {
-    grid-template-columns: auto minmax(210px, 1fr) minmax(170px, 0.8fr) minmax(230px, 1fr);
-    align-items: center;
-  }
-
-  #space-step .rp-room-editor-summary {
-    display: contents;
-  }
-
-  #space-step .rp-room-toolbar-editor label {
-    grid-column: 1;
-  }
-
-  #space-step .rp-room-name-control {
-    grid-column: 2;
-  }
-
-  #space-step .rp-room-toolbar-editor #room-area {
-    grid-column: 3;
-  }
-
-  #space-step .rp-room-toolbar-editor .rp-room-node-tools {
-    grid-column: 4;
-  }
-
-  #space-step .rp-room-toolbar-editor .rp-control-hint {
-    grid-column: 1 / -1;
-  }
-}
-
-.rp-space-dimension-review {
-  width: min(1120px, calc(100% - 48px));
-  margin: 0 auto;
-  padding: 34px 0 44px;
-}
-
-.rp-space-dimension-review[hidden] {
-  display: none;
-}
-
-.rp-dimension-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 24px;
-  padding-bottom: 22px;
-  border-bottom: 1px solid #cbc6be;
-}
-
-.rp-dimension-heading h2,
-.rp-dimension-heading p {
-  margin: 0;
-}
-
-.rp-dimension-heading h2 {
-  margin-top: 4px;
-  font-size: 26px;
-}
-
-.rp-dimension-heading p {
-  margin-top: 8px;
-  color: #625d56;
-}
-
-.rp-calibration-state {
-  flex: 0 0 auto;
-  padding: 8px 10px;
-  border-left: 3px solid #32788b;
-  background: #eaf3f5;
-  color: #284f5b;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.rp-dimension-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-bottom: 1px solid #cbc6be;
-}
-
-.rp-dimension-summary > div {
-  display: grid;
-  gap: 5px;
-  padding: 22px 20px;
-  border-right: 1px solid #ddd8d1;
-}
-
-.rp-dimension-summary > div:last-child {
-  border-right: 0;
-}
-
-.rp-dimension-summary span {
-  color: #6a645c;
-  font-size: 13px;
-}
-
-.rp-dimension-summary strong {
-  color: #253d35;
-  font-size: 22px;
-}
-
-.rp-dimensioned-plan {
-  margin: 24px 0 0;
-}
-
-.rp-dimensioned-plan-stage {
-  height: min(68vh, 760px);
-  min-height: 520px;
-  border: 1px solid #b9b4ac;
-  background: #f1f1ee;
-}
-
-.rp-dimensioned-plan-stage img {
-  opacity: 0.78;
-}
-
-.rp-dimensioned-plan-stage svg {
-  pointer-events: none;
-}
-
-.rp-dimensioned-plan figcaption {
-  margin-top: 9px;
-  color: #655f58;
-  font-size: 13px;
-}
-
-.rp-dimensioned-plan-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.rp-dimensioned-plan-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 32px;
-  padding: 5px 9px;
-  border: 1px solid #cbc6be;
-  border-radius: 4px;
-  background: #fff;
-  color: #5a554f;
-  font-size: 12px;
-}
-
-.rp-dimensioned-plan-legend i {
-  width: 10px;
-  height: 10px;
-  flex: 0 0 auto;
-}
-
-.rp-dimensioned-plan-legend strong {
-  color: #2d2a27;
-}
-
-.rp-estimate-notice {
-  margin-top: 24px;
-  padding: 16px 18px;
-  border-left: 4px solid #b56a3b;
-  background: #fff4e8;
-  color: #5d4435;
-}
-
-.rp-estimate-notice p {
-  margin: 5px 0 0;
-  line-height: 1.55;
-}
-
-.rp-dimension-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 22px;
-}
-
-.rp-inline-fields,
-.rp-action-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-}
-
 body.rp-workflow-page .rp-legend-line.is-selected {
   border-color: #ef9f19;
   filter: drop-shadow(0 0 3px rgba(255, 184, 63, 0.9));
@@ -7305,6 +6344,12 @@ body.rp-workflow-page .rp-legend-line.is-window {
 body.rp-workflow-page .rp-legend-line.is-removable-wall {
   border-color: #c54c4c;
   border-top-style: dashed;
+}
+
+@media (max-width: 720px) {
+  body.rp-workflow-page .rp-wall-removal-compare {
+    grid-template-columns: 1fr;
+  }
 }
 
 body.rp-workflow-page .primary-action {
@@ -7800,6 +6845,361 @@ body.rp-workflow-page .danger-action {
   font-size: 16px;
 }
 
+.rp-review-summary,
+.rp-render-option-list,
+.rp-render-room-list,
+.rp-render-jobs {
+  display: grid;
+  gap: 8px;
+}
+
+.rp-review-summary > div,
+.rp-render-option-list > label,
+.rp-render-room-list > button,
+.rp-render-jobs > article {
+  padding: 10px 12px;
+  border: 1px solid var(--rp-line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.rp-review-summary > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.rp-render-view-lock {
+  margin-top: auto;
+  border-left: 3px solid var(--rp-green);
+}
+
+.rp-render-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rp-render-result-grid img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--rp-line);
+}
+
+.rp-render-result {
+  display: grid;
+  gap: 6px;
+}
+
+.rp-render-placeholder {
+  display: grid;
+  min-height: 120px;
+  place-items: center;
+  border: 1px dashed var(--rp-line);
+  background: #f4f2ef;
+  color: var(--rp-muted);
+}
+
+.rp-render-room-list > button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  text-align: left;
+}
+
+.rp-render-room-list > button.is-active {
+  border-color: var(--rp-green);
+  background: var(--rp-green-soft);
+}
+
+.rp-plan-heading-tools {
+  display: grid;
+  width: 100%;
+  justify-items: end;
+  gap: 8px;
+}
+
+.rp-room-toolbar-editor {
+  width: 100%;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(210px, 1.2fr);
+  align-items: start;
+  gap: 8px 12px;
+  padding: 12px;
+  border-color: rgba(78, 75, 70, 0.22);
+  background: #f8faf8;
+  box-shadow: none;
+}
+
+.rp-room-toolbar-editor[hidden] {
+  display: none;
+}
+
+.rp-room-editor-summary {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.rp-room-toolbar-editor label {
+  margin: 0;
+}
+
+.rp-room-name-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.rp-room-toolbar-editor #room-area {
+  margin: 0;
+  font-weight: 700;
+  color: #2f453c;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.rp-room-toolbar-editor .rp-control-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.rp-room-toolbar-editor .rp-room-node-tools {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-self: start;
+  margin: 0;
+}
+
+.rp-room-toolbar-editor .primary-action,
+.rp-room-toolbar-editor .secondary-action {
+  height: 38px;
+  min-height: 38px;
+  padding: 7px 9px;
+  font-size: 13px;
+}
+
+.rp-window-type-preview {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid #d8d3cc;
+}
+
+.rp-window-type-preview[hidden] {
+  display: none;
+}
+
+.rp-window-type-preview img {
+  width: 112px;
+  height: 76px;
+  object-fit: cover;
+  border: 1px solid #bdb8b0;
+  border-radius: 4px;
+}
+
+.rp-window-type-preview figcaption {
+  color: #3c4944;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+#space-step .rp-pane-heading {
+  position: relative;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 1121px) {
+  #space-step .rp-plan-heading-tools {
+    min-height: 0;
+  }
+
+  #space-step #show-all-rooms {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  #space-step .rp-room-toolbar-editor {
+    grid-template-columns: auto minmax(210px, 1fr) minmax(170px, 0.8fr) minmax(230px, 1fr);
+    align-items: center;
+  }
+
+  #space-step .rp-room-editor-summary {
+    display: contents;
+  }
+
+  #space-step .rp-room-toolbar-editor label {
+    grid-column: 1;
+  }
+
+  #space-step .rp-room-name-control {
+    grid-column: 2;
+  }
+
+  #space-step .rp-room-toolbar-editor #room-area {
+    grid-column: 3;
+  }
+
+  #space-step .rp-room-toolbar-editor .rp-room-node-tools {
+    grid-column: 4;
+  }
+
+  #space-step .rp-room-toolbar-editor .rp-control-hint {
+    grid-column: 1 / -1;
+  }
+}
+
+.rp-space-dimension-review {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 34px 0 44px;
+}
+
+.rp-space-dimension-review[hidden] {
+  display: none;
+}
+
+.rp-dimension-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #cbc6be;
+}
+
+.rp-dimension-heading h2,
+.rp-dimension-heading p {
+  margin: 0;
+}
+
+.rp-dimension-heading h2 {
+  margin-top: 4px;
+  font-size: 26px;
+}
+
+.rp-dimension-heading p {
+  margin-top: 8px;
+  color: #625d56;
+}
+
+.rp-calibration-state {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-left: 3px solid #32788b;
+  background: #eaf3f5;
+  color: #284f5b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rp-dimension-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid #cbc6be;
+}
+
+.rp-dimension-summary > div {
+  display: grid;
+  gap: 5px;
+  padding: 22px 20px;
+  border-right: 1px solid #ddd8d1;
+}
+
+.rp-dimension-summary > div:last-child {
+  border-right: 0;
+}
+
+.rp-dimension-summary span {
+  color: #6a645c;
+  font-size: 13px;
+}
+
+.rp-dimension-summary strong {
+  color: #253d35;
+  font-size: 22px;
+}
+
+.rp-dimensioned-plan {
+  margin: 24px 0 0;
+}
+
+.rp-dimensioned-plan-stage {
+  height: min(68vh, 760px);
+  min-height: 520px;
+  border: 1px solid #b9b4ac;
+  background: #f1f1ee;
+}
+
+.rp-dimensioned-plan-stage img {
+  opacity: 0.78;
+}
+
+.rp-dimensioned-plan-stage svg {
+  pointer-events: none;
+}
+
+.rp-dimensioned-plan figcaption {
+  margin-top: 9px;
+  color: #655f58;
+  font-size: 13px;
+}
+
+.rp-dimensioned-plan-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.rp-dimensioned-plan-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 1px solid #cbc6be;
+  border-radius: 4px;
+  background: #fff;
+  color: #5a554f;
+  font-size: 12px;
+}
+
+.rp-dimensioned-plan-legend i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+}
+
+.rp-dimensioned-plan-legend strong {
+  color: #2d2a27;
+}
+
+.rp-estimate-notice {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-left: 4px solid #b56a3b;
+  background: #fff4e8;
+  color: #5d4435;
+}
+
+.rp-estimate-notice p {
+  margin: 5px 0 0;
+  line-height: 1.55;
+}
+
+.rp-dimension-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
 .rp-inline-fields,
 .rp-action-row {
   display: grid;
@@ -7854,112 +7254,6 @@ body.rp-workflow-page .danger-action {
 #cancel-structure-interaction {
   width: 100%;
   margin-bottom: 8px;
-}
-
-@media (max-width: 1120px) {
-  #space-step .rp-pane-heading {
-    flex-wrap: wrap;
-  }
-
-  #space-step .rp-plan-heading-tools {
-    width: 100%;
-  }
-
-  .rp-split-workspace,
-  .rp-3d-workspace {
-    grid-template-columns: minmax(0, 1fr) 340px;
-  }
-
-  .rp-progress {
-    grid-template-columns: repeat(10, minmax(140px, 1fr));
-  }
-}
-
-@media (max-width: 820px) {
-  #space-step .rp-room-toolbar-editor {
-    grid-template-columns: 1fr;
-  }
-
-  #space-step .rp-room-toolbar-editor .rp-control-hint {
-    grid-column: 1;
-  }
-
-  .rp-space-dimension-review {
-    width: calc(100% - 32px);
-    padding-top: 24px;
-  }
-
-  .rp-dimension-heading {
-    display: grid;
-    align-items: start;
-  }
-
-  .rp-dimension-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-dimension-summary > div {
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    padding: 14px 4px;
-    border-right: 0;
-    border-bottom: 1px solid #ded9d2;
-  }
-
-  .rp-dimension-summary > div:last-child {
-    border-bottom: 0;
-  }
-
-  .rp-dimension-summary strong {
-    font-size: 18px;
-  }
-
-  .rp-dimensioned-plan-stage {
-    height: min(60vh, 560px);
-    min-height: 360px;
-  }
-
-  .rp-dimension-actions {
-    display: grid;
-  }
-
-  .rp-guidance-band {
-    grid-template-columns: 1fr;
-    gap: 6px;
-    padding: 12px 16px;
-  }
-
-  .rp-simple-step,
-  .rp-split-workspace,
-  .rp-3d-workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-render-result-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-simple-step {
-    width: calc(100% - 32px);
-    gap: 28px;
-    padding: 32px 0;
-  }
-
-  .rp-plan-pane {
-    border-right: 0;
-    border-bottom: 1px solid var(--rp-line);
-  }
-
-  .rp-control-pane,
-  .rp-3d-sidebar,
-  .rp-style-sidebar {
-    max-height: none;
-  }
-
-  .rp-plan-stage {
-    height: min(72vh, 650px);
-    min-height: 390px;
-  }
 }
 
 #cancel-structure-interaction {
@@ -8093,7 +7387,8 @@ body.rp-workflow-page .danger-action {
   place-items: center;
   border: 2px solid #53646a;
   border-radius: 3px;
-  background: rgba(255, 252, 245, 0.86);
+  background: rgba(244, 248, 247, 0.9);
+  color: #26383d;
   cursor: grab;
   touch-action: none;
 }
@@ -8510,17 +7805,72 @@ body.rp-workflow-page .danger-action {
 }
 
 @media (max-width: 1120px) {
+  #space-step .rp-pane-heading {
+    flex-wrap: wrap;
+  }
+
+  #space-step .rp-plan-heading-tools {
+    width: 100%;
+  }
+
   .rp-split-workspace,
   .rp-3d-workspace {
     grid-template-columns: minmax(0, 1fr) 340px;
   }
 
   .rp-progress {
-    grid-template-columns: repeat(8, minmax(140px, 1fr));
+    grid-template-columns: repeat(10, minmax(140px, 1fr));
   }
 }
 
 @media (max-width: 820px) {
+  #space-step .rp-room-toolbar-editor {
+    grid-template-columns: 1fr;
+  }
+
+  #space-step .rp-room-toolbar-editor .rp-control-hint {
+    grid-column: 1;
+  }
+
+  .rp-space-dimension-review {
+    width: calc(100% - 32px);
+    padding-top: 24px;
+  }
+
+  .rp-dimension-heading {
+    display: grid;
+    align-items: start;
+  }
+
+  .rp-dimension-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-dimension-summary > div {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 14px 4px;
+    border-right: 0;
+    border-bottom: 1px solid #ded9d2;
+  }
+
+  .rp-dimension-summary > div:last-child {
+    border-bottom: 0;
+  }
+
+  .rp-dimension-summary strong {
+    font-size: 18px;
+  }
+
+  .rp-dimensioned-plan-stage {
+    height: min(60vh, 560px);
+    min-height: 360px;
+  }
+
+  .rp-dimension-actions {
+    display: grid;
+  }
+
   .rp-guidance-band {
     grid-template-columns: 1fr;
     gap: 6px;
@@ -8530,6 +7880,10 @@ body.rp-workflow-page .danger-action {
   .rp-simple-step,
   .rp-split-workspace,
   .rp-3d-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-render-result-grid {
     grid-template-columns: 1fr;
   }
 
@@ -10097,10 +9451,6 @@ body[data-page="scene"] .app-topbar {
   padding-bottom: 12px;
 }
 
-body[data-page="scene"] .rp-progress {
-  top: 72px;
-}
-
 body[data-page="scene"] .scene-shell {
   padding-top: 72px;
 }
@@ -11280,1521 +10630,6 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   body[data-page="library"] .viewer-meta,
   body[data-page="library"] .axis-note-strong {
     grid-template-columns: 1fr;
-  }
-}
-
-/* 問卷卡片的 radio 不繼承一般表單欄位的滿版寬度。 */
-.rp-questionnaire-workspace .rp-axis-choice-grid input,
-.rp-questionnaire-client .rp-axis-choice-grid input {
-  width: 18px;
-  min-height: 18px;
-  margin: 0;
-}
-
-.rp-questionnaire-client,
-.rp-questionnaire-client-main,
-.rp-questionnaire-client-intro,
-.rp-questionnaire-client-card {
-  color: #332b25;
-}
-
-/* 流程 6 聚焦版：左側只負責房間定位，右側一次處理一題。 */
-.rp-questionnaire-workspace {
-  grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
-}
-
-.rp-questionnaire-workspace .rp-question-context-pane {
-  max-height: calc(100vh - 195px);
-  padding: 22px;
-  overflow-y: auto;
-}
-
-.rp-questionnaire-workspace .rp-control-pane > section {
-  width: min(860px, 100%);
-  margin-inline: auto;
-}
-
-.rp-question-context-pane .rp-pane-heading h2 {
-  margin-bottom: 0;
-  font-size: 1.05rem;
-}
-
-.rp-question-context-pane .rp-pane-heading {
-  align-items: flex-start;
-}
-
-.rp-question-context-pane .rp-questionnaire-notice {
-  margin-top: 12px;
-  padding: 10px 12px;
-  font-size: 0.84rem;
-}
-
-.rp-room-locator {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-  padding: 12px;
-  border: 1px solid #c9d8d2;
-  border-radius: 14px;
-  background: #fffdf9;
-}
-
-.rp-room-locator[hidden] {
-  display: none !important;
-}
-
-.rp-room-locator-head {
-  display: grid;
-  gap: 2px;
-}
-
-.rp-room-locator-head span {
-  color: #6b756f;
-  font-size: 0.75rem;
-}
-
-.rp-room-locator-head strong {
-  color: #174f3e;
-  font-size: 1.05rem;
-}
-
-.rp-mini-plan-stage {
-  position: relative;
-  min-height: 180px;
-  max-height: 285px;
-  border: 1px solid #d8dedb;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #f8faf8;
-}
-
-.rp-mini-plan-stage img {
-  display: block;
-  width: 100%;
-  max-height: 285px;
-  object-fit: contain;
-}
-
-.rp-mini-plan-stage svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-#requirements-plan-overlay {
-  pointer-events: auto;
-}
-
-#questionnaire-client-plan-overlay {
-  pointer-events: auto;
-}
-
-.rp-mini-plan-stage [data-requirement-room] {
-  cursor: pointer;
-}
-
-.rp-mini-plan-stage [data-client-plan-room] {
-  cursor: pointer;
-}
-
-.rp-mini-plan-stage text {
-  fill: #355e51;
-  paint-order: stroke;
-  stroke: rgba(255, 255, 255, 0.94);
-  stroke-width: 5px;
-  font-size: 25px;
-  font-weight: 800;
-  pointer-events: none;
-}
-
-.rp-mini-plan-stage text.is-active {
-  fill: #174f6a;
-  font-size: 29px;
-}
-
-.rp-client-room-locator {
-  display: grid;
-  grid-template-columns: minmax(170px, 0.55fr) minmax(220px, 0.45fr);
-  gap: 18px;
-  align-items: center;
-  margin-bottom: 18px;
-  padding: 14px;
-  border: 1px solid #d8dedb;
-  border-radius: 12px;
-  background: #f7faf8;
-}
-
-.rp-client-room-locator[hidden] {
-  display: none !important;
-}
-
-.rp-client-room-locator p {
-  margin: 8px 0 0;
-  color: #68756f;
-  font-size: 0.82rem;
-}
-
-.rp-client-mini-plan {
-  width: 100%;
-  min-height: 0;
-  max-width: 240px;
-  max-height: none;
-  justify-self: end;
-}
-
-.rp-client-mini-plan img {
-  width: 100%;
-  height: 100%;
-  max-height: none;
-  object-fit: contain;
-}
-
-.rp-room-locator-hint {
-  margin: 0;
-  color: #68756f;
-  font-size: 0.75rem;
-  line-height: 1.45;
-}
-
-.rp-save-conflict {
-  position: sticky;
-  top: 0;
-  z-index: 80;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
-  border-block: 1px solid #e3b89a;
-  background: #fff3e8;
-  box-shadow: 0 8px 20px rgba(91, 58, 34, 0.12);
-}
-
-.rp-save-conflict[hidden] {
-  display: none !important;
-}
-
-.rp-save-conflict > div {
-  display: grid;
-  gap: 2px;
-  margin-right: auto;
-}
-
-.rp-save-conflict strong {
-  color: #7b3f24;
-}
-
-.rp-save-conflict span {
-  color: #6f5a4e;
-  font-size: 0.84rem;
-}
-
-.rp-save-conflict button {
-  width: auto;
-  min-height: 38px;
-  padding: 8px 12px;
-}
-
-.rp-room-locator-tabs {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-  overflow: visible;
-}
-
-.rp-room-locator-tabs button {
-  width: 100%;
-  min-width: 0;
-  text-align: left;
-  white-space: normal;
-}
-
-.rp-question-context-pane .rp-questionnaire-jump {
-  margin-top: 12px;
-  padding: 10px;
-}
-
-.rp-question-context-pane .rp-questionnaire-incomplete-list {
-  gap: 6px;
-}
-
-.rp-question-context-pane .rp-questionnaire-incomplete-list button {
-  padding: 6px 9px;
-  font-size: 0.76rem;
-}
-
-.rp-questionnaire-project-tools,
-.rp-questionnaire-room-tools {
-  margin-top: 12px;
-  border: 1px solid #d8cfc6;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.rp-questionnaire-project-tools > summary,
-.rp-questionnaire-room-tools > summary {
-  padding: 11px 13px;
-  color: #4e4944;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.rp-questionnaire-project-tools[open],
-.rp-questionnaire-room-tools[open] {
-  padding: 0 12px 12px;
-}
-
-.rp-questionnaire-project-tools[open] > summary,
-.rp-questionnaire-room-tools[open] > summary {
-  margin-inline: -12px;
-}
-
-.rp-questionnaire-project-tools .rp-questionnaire-summary-card,
-.rp-questionnaire-project-tools .rp-designer-notes,
-.rp-questionnaire-project-tools .rp-client-brief-card {
-  margin-top: 10px;
-  padding: 12px;
-}
-
-.rp-designer-note-tool {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  z-index: 40;
-  width: fit-content;
-  margin: 0;
-}
-
-.rp-designer-note-tool > summary {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 14px;
-  border: 1px solid #6d8f82;
-  border-radius: 999px;
-  box-shadow: 0 10px 28px rgba(55, 42, 31, 0.2);
-  background: #275f4d;
-  color: #fff;
-  font-weight: 800;
-  cursor: pointer;
-  list-style: none;
-}
-
-.rp-designer-note-tool:not([open]) > summary {
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-}
-
-.rp-designer-note-tool:not([open]) > summary > span:nth-of-type(2) {
-  display: none;
-}
-
-.rp-designer-note-tool:not([open]) > summary small {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  font-size: 0;
-}
-
-.rp-designer-note-tool > summary::-webkit-details-marker {
-  display: none;
-}
-
-.rp-designer-note-tool > summary small {
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  font-size: 0.7rem;
-}
-
-.rp-designer-note-tool[open] {
-  width: min(360px, calc(100vw - 28px));
-  padding: 12px;
-  border: 1px solid #d8cfc6;
-  border-radius: 16px;
-  box-shadow: 0 18px 50px rgba(55, 42, 31, 0.24);
-  background: #fffdf9;
-}
-
-.rp-designer-note-tool[open] > summary {
-  display: flex;
-  width: fit-content;
-  margin-left: auto;
-  padding: 7px 11px;
-}
-
-.rp-designer-note-tool .rp-designer-notes {
-  gap: 8px;
-  margin: 10px 0 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.rp-designer-note-tool .rp-designer-notes > span {
-  color: #6d6259;
-  font-size: 0.78rem;
-}
-
-.rp-designer-note-tool textarea {
-  min-height: 180px;
-  resize: vertical;
-}
-
-.rp-room-question-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.rp-room-question-heading h2 {
-  margin: 0;
-}
-
-.rp-questionnaire-room-tools {
-  width: min(360px, 100%);
-  margin-top: 0;
-}
-
-.rp-questionnaire-room-tools .rp-room-question-actions {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.rp-questionnaire-workspace .rp-room-axis {
-  min-height: 0;
-}
-
-.rp-questionnaire-workspace .rp-question-step-head {
-  margin-top: 12px;
-}
-
-.rp-questionnaire-workspace .rp-question-step-actions {
-  justify-content: center;
-}
-
-.rp-question-context-pane .rp-questionnaire-warning {
-  margin-top: 12px;
-  padding: 12px;
-}
-
-@media (max-width: 900px) {
-  .rp-workflow-shell {
-    padding-bottom: 96px;
-  }
-
-  .rp-questionnaire-workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-questionnaire-workspace .rp-question-context-pane,
-  .rp-questionnaire-workspace .rp-control-pane {
-    max-height: none;
-  }
-
-  .rp-mini-plan-stage {
-    max-height: 340px;
-  }
-
-  .rp-room-question-heading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .rp-designer-note-tool {
-    right: 10px;
-    bottom: 10px;
-  }
-
-  .rp-questionnaire-room-tools {
-    width: 100%;
-  }
-
-  .rp-client-room-locator {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-client-mini-plan {
-    justify-self: center;
-  }
-}
-
-#questionnaire-invite-output,
-#questionnaire-invite-output a {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-#questionnaire-invite-output {
-  display: grid;
-  gap: 8px;
-}
-
-#questionnaire-invite-output .secondary-action {
-  width: fit-content;
-}
-
-.rp-design-preferences-workspace .rp-plan-pane,
-.rp-design-preferences-workspace .rp-control-pane {
-  min-width: 0;
-}
-
-.rp-technical-preference-grid {
-  display: grid;
-  gap: 10px;
-}
-
-.rp-technical-preference-grid > label {
-  display: grid;
-  grid-template-columns: minmax(80px, 0.4fr) minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-}
-
-.rp-technical-axis-block {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid #ded1c5;
-  border-radius: 14px;
-  background: #fffdf9;
-}
-
-.rp-technical-axis-block h4,
-.rp-technical-axis-block p {
-  margin: 0;
-}
-
-.rp-design-style-grid,
-.rp-layout-scheme-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0;
-}
-
-.rp-design-style-grid button,
-.rp-layout-scheme-tabs button {
-  min-height: 88px;
-  padding: 14px 16px;
-  border: 1px solid #d7c8b9;
-  border-radius: 16px;
-  background: #fffdf9;
-  color: #3d322b;
-  text-align: left;
-}
-
-.rp-design-style-grid button strong,
-.rp-layout-scheme-tabs button strong,
-.rp-design-style-grid button span,
-.rp-layout-scheme-tabs button span {
-  display: block;
-}
-
-.rp-design-style-grid button span,
-.rp-layout-scheme-tabs button span {
-  margin-top: 6px;
-  color: #766b63;
-  font-size: 13px;
-}
-
-.rp-design-style-grid button.is-active,
-.rp-layout-scheme-tabs button.is-active {
-  border: 2px solid #246b55;
-  background: #eef7f2;
-}
-
-.rp-workbench-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.rp-workbench-toolbar > span {
-  max-width: 544px;
-  color: #6f655f;
-  font-size: 13px;
-  text-align: right;
-}
-
-#layout-3d-view .rp-three-viewer {
-  min-height: 544px;
-  border: 1px solid #ddcfc1;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-@media (max-width: 960px) {
-  .rp-design-style-grid,
-  .rp-layout-scheme-tabs {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-workbench-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .rp-workbench-toolbar > span {
-    text-align: left;
-  }
-}
-
-/* Step 6: visual, room-by-room material selection. */
-#design-preferences-step {
-  --rp-material-card-radius: 14px;
-  --rp-material-shadow: 0 12px 30px rgba(45, 55, 49, 0.08);
-  --rp-material-selected: #236f58;
-  --rp-material-selected-soft: #edf7f2;
-  --rp-material-warm: #9a6845;
-}
-
-#design-preferences-step .rp-material-experience {
-  display: grid;
-  gap: 28px;
-  width: min(1440px, 100%);
-  margin: 0 auto;
-  padding: 26px clamp(18px, 3vw, 40px) 48px;
-  color: var(--rp-ink);
-}
-
-#design-preferences-step .rp-material-experience-heading {
-  align-items: center;
-  min-height: 0;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--rp-line);
-}
-
-#design-preferences-step .rp-material-experience-heading h2 {
-  max-width: 820px;
-  margin-bottom: 7px;
-  font-size: clamp(22px, 2vw, 29px);
-}
-
-#design-preferences-step .rp-material-experience-heading p {
-  max-width: 780px;
-  margin: 0;
-  color: var(--rp-muted);
-  line-height: 1.6;
-}
-
-#design-preferences-step #design-preferences-status {
-  flex: none;
-  padding: 7px 11px;
-  border-radius: 999px;
-  background: var(--rp-green-soft);
-  color: var(--rp-green);
-  white-space: nowrap;
-}
-
-#design-preferences-step .rp-section-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
-#design-preferences-step .rp-section-heading > div {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 9px;
-}
-
-#design-preferences-step .rp-section-heading h3,
-#design-preferences-step .rp-section-heading p {
-  margin: 0;
-}
-
-#design-preferences-step .rp-section-heading h3 {
-  color: #252422;
-  font-size: 18px;
-}
-
-#design-preferences-step .rp-section-heading p {
-  max-width: 600px;
-  color: var(--rp-muted);
-  font-size: 13px;
-  line-height: 1.55;
-  text-align: right;
-}
-
-#design-preferences-step .rp-step-chip {
-  display: inline-grid;
-  width: 25px;
-  height: 25px;
-  flex: none;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--rp-green);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-#design-preferences-step .rp-style-choice-section {
-  padding: 22px;
-  border: 1px solid #ddd7cf;
-  border-radius: 16px;
-  background: #fff;
-}
-
-#design-preferences-step .rp-design-style-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 0;
-}
-
-#design-preferences-step .rp-style-variant-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-#design-preferences-step .rp-design-style-grid button,
-#design-preferences-step .rp-style-variant-grid button {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  min-height: 0;
-  padding: 0;
-  overflow: hidden;
-  border: 1px solid #d8d1c8;
-  border-radius: var(--rp-material-card-radius);
-  background: #fffdf9;
-  color: var(--rp-ink);
-  text-align: left;
-  cursor: pointer;
-  isolation: isolate;
-  transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease,
-    transform 150ms ease;
-}
-
-#design-preferences-step .rp-design-style-grid button:hover,
-#design-preferences-step .rp-style-variant-grid button:hover {
-  border-color: #99b6aa;
-  box-shadow: var(--rp-material-shadow);
-  transform: translateY(-2px);
-}
-
-#design-preferences-step .rp-design-style-grid button.is-active,
-#design-preferences-step .rp-style-variant-grid button.is-active,
-#design-preferences-step .rp-design-style-grid button[aria-pressed="true"],
-#design-preferences-step .rp-style-variant-grid button[aria-pressed="true"] {
-  border: 2px solid var(--rp-material-selected);
-  background: var(--rp-material-selected-soft);
-  box-shadow: 0 0 0 3px rgba(35, 111, 88, 0.09);
-}
-
-#design-preferences-step .rp-design-style-grid button > img,
-#design-preferences-step .rp-style-variant-grid button > img,
-#design-preferences-step .rp-style-card-preview {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-  background: #eeeae4;
-  object-fit: cover;
-}
-
-#design-preferences-step .rp-design-style-grid button::after,
-#design-preferences-step .rp-style-variant-grid button::after {
-  content: "RoomPilot";
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
-  padding: 4px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 999px;
-  background: rgba(33, 35, 33, 0.58);
-  color: rgba(255, 255, 255, 0.94);
-  font-family: var(--display);
-  font-size: 11px;
-  letter-spacing: 0.03em;
-  pointer-events: none;
-  backdrop-filter: blur(4px);
-}
-
-#design-preferences-step .rp-design-style-grid button > strong,
-#design-preferences-step .rp-style-variant-grid button > strong {
-  display: block;
-  padding: 12px 13px 5px;
-  font-size: 15px;
-  line-height: 1.35;
-}
-
-#design-preferences-step .rp-design-style-grid button > small,
-#design-preferences-step .rp-style-variant-grid button > small {
-  display: block;
-  padding: 0 13px 12px;
-  color: var(--rp-muted);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-#design-preferences-step .rp-style-swatches,
-#design-preferences-step .rp-style-palette,
-#design-preferences-step .rp-style-card-palette {
-  display: grid !important;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  gap: 4px;
-  height: 24px;
-  margin: 0 !important;
-  padding: 6px 12px 0;
-}
-
-#design-preferences-step .rp-style-swatches i,
-#design-preferences-step .rp-style-palette i,
-#design-preferences-step .rp-style-card-palette i,
-#design-preferences-step .rp-style-swatches span,
-#design-preferences-step .rp-style-palette span {
-  display: block;
-  min-width: 0;
-  height: 12px;
-  margin: 0;
-  border: 1px solid rgba(57, 48, 40, 0.13);
-  border-radius: 4px;
-  background: var(--swatch);
-}
-
-#design-preferences-step .rp-colorway-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  margin: 20px 0 10px;
-}
-
-#design-preferences-step .rp-colorway-heading strong {
-  font-size: 15px;
-}
-
-#design-preferences-step .rp-colorway-heading span {
-  color: var(--rp-muted);
-  font-size: 13px;
-}
-
-#design-preferences-step .rp-room-material-workspace {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.7fr);
-  min-width: 0;
-  overflow: clip;
-  border: 1px solid #d8d3cc;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: var(--rp-material-shadow);
-}
-
-#design-preferences-step .rp-room-material-locator {
-  position: sticky;
-  top: 116px;
-  z-index: 2;
-  align-self: start;
-  min-width: 0;
-  padding: 20px;
-  border-right: 1px solid #ded9d1;
-  background: #f5f7f3;
-}
-
-#design-preferences-step .rp-room-material-locator > p {
-  margin: -2px 0 14px;
-  color: var(--rp-muted);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-#design-preferences-step .rp-design-room-plan-stage {
-  width: 100%;
-  height: auto;
-  min-height: 0;
-  aspect-ratio: 1 / 1;
-  border-color: #bfc9c2;
-  border-radius: 10px;
-  background: #fff;
-}
-
-#design-preferences-step #design-room-plan-overlay {
-  pointer-events: auto;
-}
-
-#design-preferences-step #design-room-plan-overlay [data-design-room],
-#design-preferences-step #design-room-plan-overlay [data-room-id] {
-  cursor: pointer;
-}
-
-#design-preferences-step #design-room-plan-overlay [data-design-room] > *,
-#design-preferences-step #design-room-plan-overlay [data-room-id] > * {
-  transition:
-    fill 140ms ease,
-    stroke 140ms ease,
-    opacity 140ms ease;
-}
-
-#design-preferences-step .rp-design-room-nav {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-  margin-top: 12px;
-}
-
-#design-preferences-step .rp-design-room-nav button {
-  position: relative;
-  min-height: 40px;
-  padding: 8px 28px 8px 10px;
-  overflow: hidden;
-  border: 1px solid #cfcac3;
-  border-radius: 8px;
-  background: #fff;
-  color: #3b3835;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-#design-preferences-step .rp-design-room-nav button::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: 11px;
-  width: 8px;
-  height: 8px;
-  border: 2px solid #bbb5ad;
-  border-radius: 50%;
-  transform: translateY(-50%);
-}
-
-#design-preferences-step .rp-design-room-nav button.is-complete::after,
-#design-preferences-step .rp-design-room-nav button[data-complete="true"]::after {
-  border-color: var(--rp-green);
-  background: var(--rp-green);
-  box-shadow: inset 0 0 0 2px #fff;
-}
-
-#design-preferences-step .rp-design-room-nav button.is-active,
-#design-preferences-step .rp-design-room-nav button[aria-current="true"] {
-  border-color: var(--rp-green);
-  background: var(--rp-green-soft);
-  color: #174c3b;
-  font-weight: 800;
-}
-
-#design-preferences-step .rp-room-material-main {
-  display: grid;
-  min-width: 0;
-  align-content: start;
-  gap: 16px;
-  padding: 20px clamp(18px, 2.2vw, 30px) 28px;
-}
-
-#design-preferences-step .rp-room-material-main > .rp-section-heading {
-  margin-bottom: 0;
-}
-
-#design-preferences-step .rp-material-tabs {
-  position: sticky;
-  top: 130px;
-  z-index: 12;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 4px;
-  border-radius: 10px;
-  background: #eef0ec;
-}
-
-#design-preferences-step .rp-material-tabs button {
-  min-height: 42px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: #595550;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-#design-preferences-step .rp-material-tabs button.is-active,
-#design-preferences-step .rp-material-tabs button[aria-selected="true"] {
-  background: #fff;
-  color: var(--rp-green);
-  box-shadow: 0 3px 10px rgba(45, 55, 49, 0.12);
-}
-
-#design-preferences-step .rp-material-target-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-#design-preferences-step .rp-material-target-row > span {
-  color: #4a4743;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-#design-preferences-step .rp-material-target-row .rp-segmented {
-  width: min(420px, 100%);
-}
-
-#design-preferences-step .rp-material-recommendation {
-  min-height: 0;
-  margin: 0;
-  padding: 11px 13px;
-  border-left: 3px solid var(--rp-green);
-  border-radius: 0 8px 8px 0;
-  background: var(--rp-green-soft);
-  color: #245342;
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-#design-preferences-step .rp-material-recommendation:empty {
-  display: none;
-}
-
-#design-preferences-step .rp-material-card-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-#design-preferences-step .rp-material-card-grid > button {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  align-content: start;
-  padding: 0;
-  overflow: hidden;
-  border: 1px solid #d8d2ca;
-  border-radius: var(--rp-material-card-radius);
-  background: #fff;
-  color: #302e2b;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
-}
-
-#design-preferences-step .rp-material-card-grid > button:hover {
-  border-color: #8eada0;
-  box-shadow: var(--rp-material-shadow);
-  transform: translateY(-2px);
-}
-
-#design-preferences-step .rp-material-card-grid > button.is-active,
-#design-preferences-step .rp-material-card-grid > button.is-selected,
-#design-preferences-step .rp-material-card-grid > button[aria-pressed="true"] {
-  border: 2px solid var(--rp-material-selected);
-  background: var(--rp-material-selected-soft);
-  box-shadow: 0 0 0 3px rgba(35, 111, 88, 0.08);
-}
-
-#design-preferences-step .rp-material-card-grid img,
-#design-preferences-step .rp-material-card-grid .rp-material-preview,
-#design-preferences-step .rp-material-card-grid .rp-material-card-preview {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  min-height: 0;
-  border: 0;
-  border-radius: 0;
-  background-color: #ece9e3;
-  background-position: center;
-  background-size: cover;
-  object-fit: cover;
-}
-
-#design-preferences-step .rp-material-card-grid > button > strong {
-  display: block;
-  padding: 10px 11px 4px;
-  overflow: hidden;
-  font-size: 14px;
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-#design-preferences-step .rp-material-card-grid > button > small {
-  display: -webkit-box;
-  min-height: 45px;
-  padding: 0 11px 11px;
-  overflow: hidden;
-  color: var(--rp-muted);
-  font-size: 12px;
-  line-height: 1.45;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-#design-preferences-step .rp-material-card-grid [data-recommended="true"]::after,
-#design-preferences-step .rp-material-card-grid .is-recommended::after {
-  content: "推薦";
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  padding: 4px 7px;
-  border-radius: 999px;
-  background: rgba(36, 107, 85, 0.92);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-#design-preferences-step .rp-material-preview-wrap {
-  position: relative;
-  display: block;
-}
-
-#design-preferences-step .rp-material-image-state {
-  position: absolute;
-  right: 7px;
-  bottom: 7px;
-  padding: 3px 6px;
-  border-radius: 999px;
-  background: rgba(30, 34, 31, 0.72);
-  color: #fff;
-  font-size: 10px;
-  line-height: 1.2;
-}
-
-#design-preferences-step .rp-material-card-meta {
-  display: block;
-  padding: 0 11px 6px;
-  color: #706b64;
-  font-size: 11px;
-}
-
-#design-preferences-step .rp-material-card-grid > button:disabled {
-  border-color: #d8d2ca;
-  opacity: 0.58;
-  cursor: not-allowed;
-  transform: none;
-}
-
-#design-preferences-step .rp-material-pagination {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding-top: 4px;
-}
-
-#design-preferences-step .rp-material-pagination[hidden] {
-  display: none;
-}
-
-#design-preferences-step .rp-material-pagination > button {
-  min-width: 86px;
-  min-height: 40px;
-}
-
-#design-preferences-step .rp-material-page-summary {
-  display: grid;
-  justify-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-
-#design-preferences-step #design-material-page-status {
-  color: #5f5a54;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-#design-preferences-step .rp-material-page-numbers {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-}
-
-#design-preferences-step .rp-material-page-numbers button {
-  display: inline-grid;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  padding: 0;
-  border: 1px solid #d8d2ca;
-  border-radius: 8px;
-  background: #fff;
-  color: #514c46;
-  font-weight: 750;
-  cursor: pointer;
-}
-
-#design-preferences-step .rp-material-page-numbers button:hover {
-  border-color: #8eada0;
-}
-
-#design-preferences-step .rp-material-page-numbers button.is-active,
-#design-preferences-step .rp-material-page-numbers button[aria-current="page"] {
-  border-color: var(--rp-green);
-  background: var(--rp-green);
-  color: #fff;
-}
-
-#design-preferences-step .rp-furniture-material-sample {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 55%),
-    repeating-linear-gradient(25deg, #c6a982 0 12px, #a57f59 12px 15px);
-}
-
-#design-preferences-step [data-material-sample="fabric"] {
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 5px),
-    repeating-linear-gradient(0deg, #aaa7a0 0 3px, #c3c0b9 3px 6px);
-}
-
-#design-preferences-step [data-material-sample="leather"] {
-  background: radial-gradient(circle at 25% 30%, #9c7558, #594033 72%);
-}
-
-#design-preferences-step [data-material-sample="metal"] {
-  background: linear-gradient(115deg, #353b3e, #b8bec0 42%, #555c5f 74%, #262b2d);
-}
-
-#design-preferences-step [data-material-sample="glass"] {
-  background:
-    linear-gradient(135deg, transparent 35%, rgba(255, 255, 255, 0.84) 37% 43%, transparent 45%),
-    linear-gradient(#b8d5db, #eaf4f4);
-}
-
-#design-preferences-step [data-material-sample="stone"] {
-  background:
-    linear-gradient(135deg, transparent 45%, rgba(80, 77, 73, 0.26) 46% 48%, transparent 49%),
-    #d5d0c7;
-}
-
-#design-preferences-step .rp-cut-room-outline {
-  fill: rgba(47, 111, 135, 0.08);
-  stroke: #2f6f87;
-  stroke-width: 4;
-  vector-effect: non-scaling-stroke;
-}
-
-#design-preferences-step .rp-wall-elevation {
-  fill: rgba(242, 238, 231, 0.88);
-  stroke: #82776d;
-  stroke-width: 3;
-}
-
-#design-preferences-step .rp-wall-face-label {
-  fill: #4b4641;
-  font-size: 24px;
-  font-weight: 800;
-}
-
-#design-preferences-step .rp-cut-boundary-line {
-  stroke: #c45436;
-  stroke-width: 5;
-  stroke-dasharray: 12 8;
-  vector-effect: non-scaling-stroke;
-}
-
-#design-preferences-step .rp-cut-boundary-handle {
-  fill: #fff;
-  stroke: #c45436;
-  stroke-width: 4;
-  vector-effect: non-scaling-stroke;
-}
-
-#design-preferences-step .rp-design-cut-editor {
-  border: 1px solid #d8d2ca;
-  border-radius: 11px;
-  background: #faf9f6;
-}
-
-#design-preferences-step .rp-design-cut-editor > summary {
-  padding: 14px 16px;
-  color: #35322f;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-#design-preferences-step .rp-design-cut-editor[open] > summary {
-  border-bottom: 1px solid #ded9d2;
-}
-
-#design-preferences-step .rp-design-cut-editor[open] {
-  padding-bottom: 16px;
-}
-
-#design-preferences-step .rp-design-cut-editor > p,
-#design-preferences-step .rp-design-cut-editor > div:not(.rp-design-cut-stage) {
-  margin-right: 16px;
-  margin-left: 16px;
-}
-
-#design-preferences-step .rp-design-cut-editor > p {
-  color: var(--rp-muted);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-#design-preferences-step .rp-cut-editor-toolbar {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-}
-
-#design-preferences-step .rp-cut-editor-toolbar .rp-segmented {
-  min-width: 250px;
-}
-
-#design-preferences-step .rp-cut-editor-toolbar label {
-  flex: 1;
-}
-
-#design-preferences-step .rp-cut-editor-toolbar .secondary-action {
-  flex: none;
-}
-
-#design-preferences-step .rp-design-cut-stage {
-  position: relative;
-  width: calc(100% - 32px);
-  aspect-ratio: 5 / 3;
-  margin: 14px 16px 0;
-  overflow: hidden;
-  border: 1px solid #adb9b2;
-  border-radius: 9px;
-  background:
-    linear-gradient(rgba(87, 105, 96, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(87, 105, 96, 0.07) 1px, transparent 1px),
-    #fff;
-  background-size: 24px 24px;
-  touch-action: none;
-}
-
-#design-preferences-step .rp-design-cut-stage > img,
-#design-preferences-step .rp-design-cut-stage > svg {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-#design-preferences-step .rp-design-cut-stage > img {
-  object-fit: contain;
-  opacity: 0.72;
-  pointer-events: none;
-  user-select: none;
-}
-
-#design-preferences-step #design-cut-canvas {
-  z-index: 2;
-  overflow: visible;
-  cursor: crosshair;
-  pointer-events: auto;
-}
-
-#design-preferences-step #design-cut-canvas:focus-visible {
-  outline: 4px solid #2f6f87;
-  outline-offset: -4px;
-}
-
-#design-preferences-step #design-cut-canvas line,
-#design-preferences-step #design-cut-canvas path {
-  vector-effect: non-scaling-stroke;
-}
-
-#design-preferences-step .rp-cut-summary {
-  min-height: 38px;
-  margin: 10px 16px 0 !important;
-  padding: 9px 11px;
-  border-radius: 7px;
-  background: #edf4f6;
-  color: #315866 !important;
-}
-
-#design-preferences-step .rp-room-material-note,
-#design-preferences-step .rp-material-project-note {
-  display: grid;
-  gap: 7px;
-}
-
-#design-preferences-step .rp-room-material-note > span,
-#design-preferences-step .rp-material-project-note > span {
-  font-weight: 800;
-}
-
-#design-preferences-step #confirm-design-room {
-  width: 100%;
-}
-
-#design-preferences-step .rp-material-baseline-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin: 0;
-  padding: 18px 20px;
-  border-left: 4px solid var(--rp-material-warm);
-  background: #fffaf4;
-}
-
-#design-preferences-step .rp-material-baseline-summary h3,
-#design-preferences-step .rp-material-baseline-summary p {
-  margin: 0;
-}
-
-#design-preferences-step .rp-material-baseline-summary h3 {
-  margin-top: 3px;
-  font-size: 16px;
-}
-
-#design-preferences-step .rp-material-baseline-summary p {
-  margin-top: 5px;
-  color: var(--rp-muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-#design-preferences-step .rp-material-baseline-summary .secondary-action {
-  flex: none;
-}
-
-#design-preferences-step .rp-material-project-note {
-  max-width: 920px;
-}
-
-#design-preferences-step .rp-material-finish-action {
-  justify-self: end;
-  min-width: min(100%, 340px);
-}
-
-@media (max-width: 1180px) {
-  #design-preferences-step .rp-design-style-grid,
-  #design-preferences-step .rp-style-variant-grid,
-  #design-preferences-step .rp-material-card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  #design-preferences-step .rp-room-material-workspace {
-    grid-template-columns: minmax(250px, 0.65fr) minmax(0, 1.35fr);
-  }
-
-  #design-preferences-step .rp-design-room-nav {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 860px) {
-  #design-preferences-step .rp-material-experience {
-    gap: 20px;
-    padding-top: 18px;
-  }
-
-  #design-preferences-step .rp-material-experience-heading,
-  #design-preferences-step .rp-section-heading,
-  #design-preferences-step .rp-colorway-heading,
-  #design-preferences-step .rp-material-baseline-summary {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  #design-preferences-step .rp-section-heading p {
-    max-width: none;
-    text-align: left;
-  }
-
-  #design-preferences-step .rp-room-material-workspace {
-    grid-template-columns: 1fr;
-    overflow: visible;
-  }
-
-  #design-preferences-step .rp-room-material-locator {
-    position: static;
-    border-right: 0;
-    border-bottom: 1px solid #ded9d1;
-  }
-
-  #design-preferences-step .rp-design-room-plan-stage {
-    max-width: 520px;
-    margin-inline: auto;
-    aspect-ratio: 1 / 1;
-  }
-
-  #design-preferences-step .rp-design-room-nav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  #design-preferences-step .rp-material-target-row {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  #design-preferences-step .rp-material-target-row .rp-segmented {
-    width: 100%;
-  }
-}
-
-@media (max-width: 620px) {
-  #design-preferences-step .rp-material-experience {
-    padding: 14px 12px 32px;
-  }
-
-  #design-preferences-step .rp-style-choice-section,
-  #design-preferences-step .rp-room-material-locator,
-  #design-preferences-step .rp-room-material-main {
-    padding: 14px;
-  }
-
-  #design-preferences-step .rp-design-style-grid,
-  #design-preferences-step .rp-style-variant-grid,
-  #design-preferences-step .rp-material-card-grid {
-    grid-template-columns: 1fr;
-  }
-
-  #design-preferences-step .rp-design-room-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  #design-preferences-step .rp-material-tabs {
-    grid-template-columns: 1fr;
-  }
-
-  #design-preferences-step .rp-material-target-row .rp-segmented,
-  #design-preferences-step .rp-cut-editor-toolbar,
-  #design-preferences-step .rp-cut-editor-toolbar .rp-segmented {
-    width: 100%;
-  }
-
-  #design-preferences-step .rp-cut-editor-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  #design-preferences-step .rp-cut-editor-toolbar .rp-segmented {
-    min-width: 0;
-  }
-
-  #design-preferences-step .rp-material-baseline-summary .secondary-action,
-  #design-preferences-step .rp-material-finish-action {
-    width: 100%;
   }
 }
 /* Test2 questionnaire, integrated into the ten-step Bella workflow. */

@@ -46,6 +46,7 @@ docs/*
 # Local/personal generated Markdown, not for bella uploads
 .codex/
 .claude/
+CLAUDE.md
 PROJECT_CONTEXT.md
 CODEX_PROJECT_RULES.md
 LOCAL_*.md
@@ -59,6 +60,7 @@ PERSONAL_*.md
 *_personal.md
 docs/MISSING_*_AUDIT_*.md
 
+AGENTS.md
+
 # 3D 模型屬於本機或外部資產，不從 bella 分支上傳。
 *.glb
-backend/floorplan/models/*.onnx

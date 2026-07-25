@@ -8,7 +8,6 @@ export const WORKFLOW_STEPS = Object.freeze([
   "calibration",
   "space_confirmation",
   "requirements",
-  "design_preferences",
   "layout_2d",
   "white_model_3d",
   "realistic_3d",
@@ -23,7 +22,6 @@ export const WORKFLOW_PANEL_BY_STEP = Object.freeze({
   calibration: "scale",
   space_confirmation: "space",
   requirements: "requirements",
-  design_preferences: "design-preferences",
   layout_2d: "layout-2d",
   white_model_3d: "white-model-3d",
   realistic_3d: "realistic-3d",
@@ -42,147 +40,6 @@ export function shouldReplayPendingSave(pendingSave, serverProject) {
   }
 }
 
-export function resolveConflictDraftAfterRequest({
-  sentDraft = "",
-  pendingDraft = null,
-} = {}) {
-  const sent = String(sentDraft || "");
-  const pending = typeof pendingDraft === "string" && pendingDraft
-    ? pendingDraft
-    : null;
-  return {
-    hasNewerDraft: Boolean(pending && pending !== sent),
-    conflictDraft: pending || sent,
-  };
-}
-
-function workflowValuesEqual(left, right) {
-  if (Object.is(left, right)) return true;
-  if (Array.isArray(left) || Array.isArray(right)) {
-    return Array.isArray(left)
-      && Array.isArray(right)
-      && left.length === right.length
-      && left.every((value, index) => workflowValuesEqual(value, right[index]));
-  }
-  if (
-    left
-    && right
-    && typeof left === "object"
-    && typeof right === "object"
-  ) {
-    const leftKeys = Object.keys(left);
-    const rightKeys = Object.keys(right);
-    return leftKeys.length === rightKeys.length
-      && leftKeys.every(
-        (key) => Object.hasOwn(right, key)
-          && workflowValuesEqual(left[key], right[key]),
-      );
-  }
-  return false;
-}
-
-function mergeWorkflowValue(baseValue, pendingValue, serverValue) {
-  if (workflowValuesEqual(pendingValue, baseValue)) return clone(serverValue);
-  if (
-    baseValue
-    && pendingValue
-    && typeof baseValue === "object"
-    && typeof pendingValue === "object"
-    && !Array.isArray(baseValue)
-    && !Array.isArray(pendingValue)
-  ) {
-    const merged = {};
-    const keys = new Set([
-      ...Object.keys(baseValue),
-      ...Object.keys(pendingValue),
-      ...Object.keys(serverValue && typeof serverValue === "object" ? serverValue : {}),
-    ]);
-    keys.forEach((key) => {
-      const baseHas = Object.hasOwn(baseValue, key);
-      const pendingHas = Object.hasOwn(pendingValue, key);
-      const serverHas = Boolean(
-        serverValue
-        && typeof serverValue === "object"
-        && Object.hasOwn(serverValue, key),
-      );
-      if (!pendingHas && baseHas) return;
-      if (!pendingHas) {
-        if (serverHas) merged[key] = clone(serverValue[key]);
-        return;
-      }
-      merged[key] = mergeWorkflowValue(
-        baseHas ? baseValue[key] : undefined,
-        pendingValue[key],
-        serverHas ? serverValue[key] : undefined,
-      );
-    });
-    return merged;
-  }
-  return clone(pendingValue);
-}
-
-export function mergePendingWorkflowPayload(pendingSave, serverProject) {
-  try {
-    const pending = typeof pendingSave === "string"
-      ? JSON.parse(pendingSave)
-      : pendingSave;
-    const serverUpdatedAt = String(serverProject?.updated_at || "");
-    if (!pending?.workflow || !pending?.base_workflow || !serverUpdatedAt) return null;
-    return {
-      base_updated_at: serverUpdatedAt,
-      current_step: pending.current_step || serverProject.current_step || "project",
-      workflow: mergeWorkflowValue(
-        pending.base_workflow,
-        pending.workflow,
-        serverProject.workflow || {},
-      ),
-    };
-  } catch {
-    return null;
-  }
-}
-
-export function questionnaireConflictStorageKey(token) {
-  return `roompilot.questionnaire-conflict.${String(token || "")}`;
-}
-
-export function storeQuestionnaireConflictDraft({
-  storage = globalThis.localStorage,
-  token,
-  baseUpdatedAt,
-  baseRequirements,
-  requirements,
-} = {}) {
-  storage?.setItem(questionnaireConflictStorageKey(token), JSON.stringify({
-    base_updated_at: baseUpdatedAt,
-    base_workflow: { requirements: clone(baseRequirements || {}) },
-    current_step: "requirements",
-    workflow: { requirements: clone(requirements || {}) },
-  }));
-}
-
-export function restoreQuestionnaireConflictDraft({
-  storage = globalThis.localStorage,
-  token,
-  serverRequirements,
-  updatedAt,
-} = {}) {
-  const serialized = storage?.getItem(questionnaireConflictStorageKey(token));
-  if (!serialized) return null;
-  return mergePendingWorkflowPayload(serialized, {
-    updated_at: updatedAt,
-    current_step: "requirements",
-    workflow: { requirements: serverRequirements || {} },
-  })?.workflow?.requirements || null;
-}
-
-export function clearQuestionnaireConflictDraft({
-  storage = globalThis.localStorage,
-  token,
-} = {}) {
-  storage?.removeItem(questionnaireConflictStorageKey(token));
-}
-
 const REQUIRED_COMPLETIONS = Object.freeze({
   upload: ["project"],
   recognition: ["project", "upload"],
@@ -196,15 +53,6 @@ const REQUIRED_COMPLETIONS = Object.freeze({
     "space_confirmation",
   ],
   layout_2d: [
-    "project",
-    "upload",
-    "recognition",
-    "calibration",
-    "space_confirmation",
-    "requirements",
-    "design_preferences",
-  ],
-  design_preferences: [
     "project",
     "upload",
     "recognition",
@@ -288,11 +136,6 @@ function validCompletion(step, data) {
   }
   if (step === "requirements") {
     return data?.basicConfirmed === true && data?.roomsResolved === true;
-  }
-  if (step === "design_preferences") {
-    return data?.confirmed === true
-      && data?.styleConfirmed === true
-      && data?.materialsConfirmed === true;
   }
   if (step === "layout_2d") return data?.confirmed === true;
   if (step === "white_model_3d") {

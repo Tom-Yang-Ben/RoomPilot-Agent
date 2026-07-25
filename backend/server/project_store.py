@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -13,11 +13,6 @@ MAX_WORKFLOW_BYTES = 2 * 1024 * 1024
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _invite_expiration(created_at: str) -> str:
-    created = datetime.fromisoformat(created_at)
-    return (created + timedelta(days=7)).isoformat()
 
 
 def _merge_dict(base: dict, update: dict) -> dict:
@@ -145,47 +140,6 @@ class ProjectStore:
                 )
                 """
             )
-            connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS questionnaire_invites (
-                    invite_token TEXT PRIMARY KEY,
-                    project_id TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    expires_at TEXT,
-                    revoked_at TEXT,
-                    FOREIGN KEY(project_id) REFERENCES projects(project_id)
-                )
-                """
-            )
-            invite_columns = {
-                row["name"]
-                for row in connection.execute(
-                    "PRAGMA table_info(questionnaire_invites)"
-                ).fetchall()
-            }
-            if "expires_at" not in invite_columns:
-                connection.execute(
-                    "ALTER TABLE questionnaire_invites ADD COLUMN expires_at TEXT"
-                )
-            if "revoked_at" not in invite_columns:
-                connection.execute(
-                    "ALTER TABLE questionnaire_invites ADD COLUMN revoked_at TEXT"
-                )
-            for row in connection.execute(
-                """
-                SELECT invite_token, created_at
-                FROM questionnaire_invites
-                WHERE expires_at IS NULL
-                """
-            ).fetchall():
-                connection.execute(
-                    """
-                    UPDATE questionnaire_invites
-                    SET expires_at = ?
-                    WHERE invite_token = ?
-                    """,
-                    (_invite_expiration(row["created_at"]), row["invite_token"]),
-                )
 
     @staticmethod
     def _project(row: sqlite3.Row) -> dict:
@@ -232,82 +186,6 @@ class ProjectStore:
         if row is None:
             raise KeyError(project_id)
         return self._project(row)
-
-    def create_questionnaire_invite(self, project_id: str) -> dict:
-        self.get_project(project_id)
-        invite_token = uuid4().hex
-        created_at = _utc_now()
-        expires_at = _invite_expiration(created_at)
-        with self._connect() as connection:
-            connection.execute(
-                """
-                INSERT INTO questionnaire_invites (
-                    invite_token, project_id, created_at, expires_at, revoked_at
-                ) VALUES (?, ?, ?, ?, NULL)
-                """,
-                (invite_token, project_id, created_at, expires_at),
-            )
-        return {
-            "invite_token": invite_token,
-            "project_id": project_id,
-            "created_at": created_at,
-            "expires_at": expires_at,
-        }
-
-    def get_project_by_questionnaire_invite(self, invite_token: str) -> dict:
-        with self._connect() as connection:
-            row = connection.execute(
-                """
-                SELECT project_id, expires_at, revoked_at
-                FROM questionnaire_invites
-                WHERE invite_token = ?
-                """,
-                (invite_token,),
-            ).fetchone()
-        if (
-            row is None
-            or row["revoked_at"] is not None
-            or not row["expires_at"]
-            or datetime.fromisoformat(row["expires_at"]) <= datetime.now(timezone.utc)
-        ):
-            raise KeyError(invite_token)
-        return self.get_project(row["project_id"])
-
-    def revoke_questionnaire_invite(
-        self,
-        project_id: str,
-        invite_token: str,
-    ) -> None:
-        self.get_project(project_id)
-        revoked_at = _utc_now()
-        with self._connect() as connection:
-            cursor = connection.execute(
-                """
-                UPDATE questionnaire_invites
-                SET revoked_at = ?
-                WHERE project_id = ?
-                  AND invite_token = ?
-                  AND revoked_at IS NULL
-                """,
-                (revoked_at, project_id, invite_token),
-            )
-        if cursor.rowcount != 1:
-            raise KeyError(invite_token)
-
-    def revoke_all_questionnaire_invites(self, project_id: str) -> int:
-        self.get_project(project_id)
-        revoked_at = _utc_now()
-        with self._connect() as connection:
-            cursor = connection.execute(
-                """
-                UPDATE questionnaire_invites
-                SET revoked_at = ?
-                WHERE project_id = ?
-                  AND revoked_at IS NULL
-                """,
-                (revoked_at, project_id),
-            )
-        return cursor.rowcount
 
     def update_workflow(
         self,

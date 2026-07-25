@@ -42,11 +42,11 @@ def test_scene_exposes_requirements_2d_library_and_visible_furniture_gate():
     javascript = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="whole-house-fields"' in html
-    assert 'id="room-questionnaire"' in html
-    assert 'id="questionnaire-room-locator"' in html
-    assert 'id="room-question-nav"' in html
-    assert 'id="keep-room-existing"' in html
-    assert 'id="keep-unfilled-rooms-existing"' in html
+    assert 'data-questionnaire-stage="rooms"' in html
+    assert 'id="visual-space-nav"' in html
+    assert 'id="room-question-nav"' not in html
+    assert 'id="keep-room-existing"' not in html
+    assert 'id="keep-unfilled-rooms-existing"' not in html
     assert 'id="furniture-icon-library"' in html
     assert 'id="selected-2d-width"' in html
     assert 'id="selected-2d-depth"' in html
