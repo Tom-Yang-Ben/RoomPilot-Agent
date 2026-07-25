@@ -2307,6 +2307,9 @@ async def scene_layout(payload: dict) -> dict:
         floorplan = payload.get("floorplan") or {}
         room = room_from_payload(floorplan)
     placement_room_id = payload.get("placement_room_id")
+    placement_variant = str(payload.get("placement_variant") or "A").upper()
+    if placement_variant not in {"A", "B"}:
+        placement_variant = "A"
     place_boundary = (
         _region_boundary_by_id(floorplan, room, placement_room_id)
         or _largest_region_boundary(floorplan, room)
@@ -2320,6 +2323,7 @@ async def scene_layout(payload: dict) -> dict:
             regions_boundary=_regions_boundary(floorplan, room),
             place_boundary=place_boundary,
             floorplan=floorplan,
+            placement_variant=placement_variant,
         )
     }
 

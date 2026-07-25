@@ -66,11 +66,32 @@ function windowAxis(item) {
   return null;
 }
 
+function openingAxis(item) {
+  return windowAxis(item);
+}
+
+function openingWidthCm(item) {
+  const start = finitePoint(item?.start);
+  const end = finitePoint(item?.end);
+  return Number(item?.width_cm) || (start && end ? Math.hypot(end.x - start.x, end.y - start.y) : 0);
+}
+
 function windowCandidateScore(item) {
   return (item?.confirmed === true ? 100 : 0)
     + (item?.source === "manual" ? 20 : 0)
     + Math.max(0, Number(item?.confidence) || 0) * 10
     + (item?.estimated === false ? 5 : 0);
+}
+
+function doorCandidateScore(item) {
+  const width = openingWidthCm(item);
+  const widthPenalty = width >= 70 && width <= 120 ? 0 : Math.abs(width - 90) * -0.08;
+  return (item?.confirmed === true ? 1000 : 0)
+    + (item?.source === "manual" ? 120 : 0)
+    + (item?.estimated === false ? 20 : 0)
+    + (item?.swing_end ? 16 : 0)
+    + Math.max(0, Number(item?.confidence) || 0) * 100
+    + widthPenalty;
 }
 
 export function windowsOverlap(first, second) {
@@ -88,6 +109,24 @@ export function windowsOverlap(first, second) {
   return overlap / Math.min(a.length, b.length) >= 0.55;
 }
 
+export function doorsOverlap(first, second) {
+  if (!first || !second || first.id === second.id) return false;
+  if (
+    first.host_wall_id
+    && second.host_wall_id
+    && first.host_wall_id !== second.host_wall_id
+  ) return false;
+  const a = openingAxis(first);
+  const b = openingAxis(second);
+  if (!a || !b || a.orientation !== b.orientation) return false;
+  if (Math.abs(a.constant - b.constant) > 35) return false;
+  const overlap = Math.max(0, Math.min(a.high, b.high) - Math.max(a.low, b.low));
+  const centerDistance = Math.abs((a.low + a.high) / 2 - (b.low + b.high) / 2);
+  const width = Math.min(a.length, b.length);
+  return overlap / Math.max(1, width) >= 0.35
+    || centerDistance <= Math.max(45, width * 0.75);
+}
+
 export function dedupeWindowCandidates(candidates = []) {
   const windows = [];
   let removed = 0;
@@ -103,6 +142,37 @@ export function dedupeWindowCandidates(candidates = []) {
     removed += 1;
   }
   return { windows, removed };
+}
+
+export function dedupeDoorCandidates(candidates = []) {
+  const doors = [];
+  let removed = 0;
+  for (const candidate of candidates || []) {
+    const manual = candidate?.confirmed === true || candidate?.source === "manual";
+    const confidence = Number(candidate?.confidence);
+    const width = openingWidthCm(candidate);
+    if (
+      !manual
+      && (
+        (Number.isFinite(confidence) && confidence < 0.75)
+        || width < 55
+        || width > 150
+      )
+    ) {
+      removed += 1;
+      continue;
+    }
+    const duplicateIndex = doors.findIndex((item) => doorsOverlap(item, candidate));
+    if (duplicateIndex < 0) {
+      doors.push(candidate);
+      continue;
+    }
+    if (doorCandidateScore(candidate) > doorCandidateScore(doors[duplicateIndex])) {
+      doors[duplicateIndex] = candidate;
+    }
+    removed += 1;
+  }
+  return { doors, removed };
 }
 
 function nearestSnapPoint(point, anchors, thresholdCm) {

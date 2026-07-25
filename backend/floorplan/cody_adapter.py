@@ -68,6 +68,76 @@ def _opening_segment(
     return (constant, cy - half), (constant, cy + half), orientation
 
 
+def _door_width_cm(door: Mapping[str, Any]) -> float:
+    start, end = door.get("start") or {}, door.get("end") or {}
+    fallback = math.dist(
+        (float(start.get("x", 0.0)), float(start.get("y", 0.0))),
+        (float(end.get("x", 0.0)), float(end.get("y", 0.0))),
+    ) * 100
+    return float(door.get("width_m") or 0.0) * 100 or fallback
+
+
+def _door_score(door: Mapping[str, Any]) -> float:
+    width = _door_width_cm(door)
+    width_bonus = 12.0 if 70 <= width <= 120 else -abs(width - 90) * 0.08
+    return (
+        float(door.get("confidence") or 0.0) * 100
+        + (16.0 if door.get("swing_end") else 0.0)
+        + width_bonus
+    )
+
+
+def _door_axis(door: Mapping[str, Any]) -> tuple[str, float, float, float] | None:
+    start = door.get("start") or {}
+    end = door.get("end") or {}
+    x0, y0 = float(start.get("x", 0.0)) * 100, float(start.get("y", 0.0)) * 100
+    x1, y1 = float(end.get("x", 0.0)) * 100, float(end.get("y", 0.0)) * 100
+    dx, dy = abs(x1 - x0), abs(y1 - y0)
+    length = math.hypot(dx, dy)
+    if length < 5:
+        return None
+    if dx > dy * 3:
+        return "horizontal", (y0 + y1) / 2, min(x0, x1), max(x0, x1)
+    if dy > dx * 3:
+        return "vertical", (x0 + x1) / 2, min(y0, y1), max(y0, y1)
+    return None
+
+
+def _doors_overlap(first: Mapping[str, Any], second: Mapping[str, Any]) -> bool:
+    first_axis = _door_axis(first)
+    second_axis = _door_axis(second)
+    if not first_axis or not second_axis or first_axis[0] != second_axis[0]:
+        return False
+    if abs(first_axis[1] - second_axis[1]) > 35:
+        return False
+    overlap = max(0.0, min(first_axis[3], second_axis[3]) - max(first_axis[2], second_axis[2]))
+    width = min(first_axis[3] - first_axis[2], second_axis[3] - second_axis[2])
+    center_distance = abs(
+        (first_axis[2] + first_axis[3]) / 2
+        - (second_axis[2] + second_axis[3]) / 2
+    )
+    return overlap / max(1.0, width) >= 0.35 or center_distance <= max(45.0, width * 0.75)
+
+
+def _clean_door_items(doors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    cleaned: list[dict[str, Any]] = []
+    for door in doors:
+        width_cm = _door_width_cm(door)
+        confidence = float(door.get("confidence") or 0.0)
+        if confidence < 0.75 or not 55 <= width_cm <= 150:
+            continue
+        duplicate_index = next(
+            (index for index, item in enumerate(cleaned) if _doors_overlap(item, door)),
+            None,
+        )
+        if duplicate_index is None:
+            cleaned.append(door)
+            continue
+        if _door_score(door) > _door_score(cleaned[duplicate_index]):
+            cleaned[duplicate_index] = door
+    return cleaned
+
+
 def _axis_segment(item: Mapping[str, Any]) -> tuple[str, float, float, float] | None:
     start = item.get("start") or {}
     end = item.get("end") or {}
@@ -588,6 +658,7 @@ def recognize_cody_geometry(
                 m_per_px=m_per_px,
             )
         door_items.append(door_item)
+    door_items = _clean_door_items(door_items)
     if not door_items and window_items:
         door_items = _door_candidates_from_wall_gaps(walls, window_items)
 

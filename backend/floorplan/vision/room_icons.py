@@ -73,6 +73,51 @@ ICON_RULES: dict[str, dict[str, Any]] = {
     },
 }
 
+COMPATIBLE_ROOM_COMBINATIONS = {
+    frozenset({"bathroom"}),
+    frozenset({"living_room", "dining_room"}),
+    frozenset({"dining_room", "kitchen"}),
+    frozenset({"living_room", "dining_room", "kitchen"}),
+}
+
+MAX_SINGLE_ICON_ROOM_AREA_M2 = {
+    "bathroom": 30.0,
+    "bedroom": 80.0,
+    "kitchen": 80.0,
+}
+
+
+def _generic_pending_label(room: Mapping[str, Any]) -> str:
+    room_id = str(room.get("id") or "").strip()
+    suffix = room_id.rsplit("-", 1)[-1] if room_id else ""
+    if suffix.isdigit():
+        return f"空間 {suffix}（待確認）"
+    return "未命名空間（待確認）"
+
+
+def _review_reasons(
+    ranked: list[tuple[str, float]],
+    *,
+    room: Mapping[str, Any],
+    confidence: float,
+) -> list[str]:
+    reasons: list[str] = []
+    room_types = frozenset(room_type for room_type, _ in ranked)
+    if len(room_types) > 1 and room_types not in COMPATIBLE_ROOM_COMBINATIONS:
+        reasons.append("room_icon_function_conflict")
+    if confidence < 0.90:
+        reasons.append("room_icon_low_confidence")
+    if ranked:
+        room_type = ranked[0][0]
+        max_area = MAX_SINGLE_ICON_ROOM_AREA_M2.get(room_type)
+        try:
+            area_m2 = float(room.get("area_m2") or 0)
+        except (TypeError, ValueError):
+            area_m2 = 0.0
+        if max_area is not None and area_m2 > max_area:
+            reasons.append("room_icon_area_implausible")
+    return reasons
+
 
 def _to_ink(image: np.ndarray) -> np.ndarray:
     if image.ndim == 3 and image.shape[2] == 4:
@@ -445,12 +490,26 @@ def apply_icon_room_labels(
         room_type, score = ranked[0]
         competing = len(ranked) > 1 and ranked[1][1] >= score * 0.75
         confidence = min(0.96, score)
-        room["type"] = room_type
-        room["label"] = (
-            f"{labels[room_type]}（待確認）"
-            if competing or confidence < 0.90
-            else labels[room_type]
-        )
+        reasons = _review_reasons(ranked, room=room, confidence=confidence)
+        needs_review = competing or bool(reasons)
+        if (
+            "room_icon_function_conflict" in reasons
+            or "room_icon_area_implausible" in reasons
+        ):
+            room["type"] = "default"
+            room["label"] = _generic_pending_label(room)
+        else:
+            room["type"] = room_type
+            room["label"] = (
+                f"{labels[room_type]}（待確認）"
+                if needs_review
+                else labels[room_type]
+            )
         room["source"] = "furniture_icon_inference"
         room["confidence"] = round(confidence, 3)
-        room["room_review"] = competing or confidence < 0.90
+        room["room_review"] = needs_review
+        room["room_review_reasons"] = reasons
+        room["icon_suggested_room_types"] = [
+            {"room_type": item[0], "score": round(item[1], 3)}
+            for item in ranked
+        ]

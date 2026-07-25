@@ -42,6 +42,32 @@ export function questionsForRooms(questions = [], rooms = []) {
   );
 }
 
+function visualSpaceForRoom(room, bedroomIndex = 0) {
+  if (room.type === "bedroom") {
+    return bedroomIndex === 0 ? "primary_bedroom" : "secondary_bedroom";
+  }
+  return ROOM_TO_VISUAL_SPACES[room.type]?.[0] || null;
+}
+
+export function questionsForIndividualRooms(questions = [], rooms = []) {
+  let bedroomIndex = 0;
+  return rooms.flatMap((room) => {
+    const roomSpace = visualSpaceForRoom(room, bedroomIndex);
+    if (room.type === "bedroom") bedroomIndex += 1;
+    const matching = questions.filter((question) =>
+      question.space_type === roomSpace || question.space_type === "all_rooms"
+    );
+    return matching.map((question) => ({
+      ...question,
+      source_question_id: question.question_id,
+      question_id: `${room.id}:${question.question_id}`,
+      room_id: room.id,
+      room_label: room.name || room.label || VISUAL_SPACE_LABELS[roomSpace] || roomSpace,
+      room_type: room.type,
+    }));
+  });
+}
+
 export function occupantsFromBasicAnswers(basic = {}) {
   const occupants = { adults: 2, children: 0, elderly: 0, pets: 0 };
   const household = basic.household || "";

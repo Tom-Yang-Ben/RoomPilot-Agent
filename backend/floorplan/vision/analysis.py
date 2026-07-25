@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 
 from ..cody_adapter import recognize_cody_geometry
+from .cody_semantic import cody_semantic_room_labeler_status
 from .geometry import transform_confirmed_geometry
 from .image import decode_image
 from .reference_plan import match_builder_plan_630
@@ -402,6 +403,7 @@ def analyze_floorplan_image(
         "plan_bbox_px": geometry.get("plan_bbox_px"),
         "rooms": rooms,
         "room_icon_evidence": room_icon_evidence,
+        "cody_semantic_room_labeler": cody_semantic_room_labeler_status(),
         "evidence": [evidence] if evidence else [],
         "cody_diagnostics": cody_diagnostics,
         "issues": issues,

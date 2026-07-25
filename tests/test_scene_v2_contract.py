@@ -35,6 +35,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_structure_preview.js",
             "scene_structure_geometry.js",
             "scene_window_types.js",
+            "scene_design_schemes.js",
         ],
         "scene_viewer.js": [
             "scene_architecture.js",
@@ -53,6 +54,26 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             assert (
                 f'./{dependency_name}?v=sha256-{expected}' in importer
             ), f"{importer_name} has a stale cache key for {dependency_name}"
+
+
+def test_loaded_door_candidates_drop_low_confidence_wide_and_duplicate_auto_doors() -> None:
+    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ dedupeDoorCandidates }} from {json.dumps(module_uri)};
+        const result = dedupeDoorCandidates([
+          {{ id: "wide", source: "cody_vision", confidence: 1, width_cm: 186, start: {{x: 0, y: 0}}, end: {{x: 186, y: 0}} }},
+          {{ id: "weak", source: "cody_vision", confidence: 0.59, width_cm: 90, start: {{x: 220, y: 0}}, end: {{x: 310, y: 0}} }},
+          {{ id: "first", source: "cody_vision", confidence: 0.91, width_cm: 90, host_wall_id: "wall-1", start: {{x: 0, y: 40}}, end: {{x: 90, y: 40}} }},
+          {{ id: "better", source: "cody_vision", confidence: 0.96, width_cm: 92, host_wall_id: "wall-1", start: {{x: 10, y: 45}}, end: {{x: 102, y: 45}}, swing_end: {{x: 10, y: 135}} }},
+          {{ id: "manual-wide", source: "manual", confidence: 0.1, width_cm: 180, confirmed: true, start: {{x: 400, y: 0}}, end: {{x: 580, y: 0}} }},
+        ]);
+        console.log(JSON.stringify(result));
+        """
+    )
+
+    assert [door["id"] for door in result["doors"]] == ["better", "manual-wide"]
+    assert result["removed"] == 3
 
 
 def test_dimensioned_plan_draws_colored_room_outlines_and_size_lines() -> None:
@@ -384,9 +405,10 @@ def test_project_restore_normalizes_saved_scene_before_loading_viewers() -> None
 
     assert "normalizeSavedSceneData" in controller
     assert (
-        "state.sceneData = normalizeSavedSceneData(serverState.white_model_3d?.sceneData);"
+        "const legacySceneData = normalizeSavedSceneData(serverState.white_model_3d?.sceneData);"
         in controller
     )
+    assert "state.sceneData = normalizeSavedSceneData(restoredScheme?.sceneData) || legacySceneData;" in controller
 
 
 def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
@@ -410,6 +432,20 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
     assert "normalizedWindowType(item.window_type) === nextType" in controller
     assert "applyWindowTypePreset" in controller
     assert "windowOpeningMetrics" in viewer
+
+
+def test_accurate_floorplan_uses_segment_walls_when_openings_exist() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert (
+        "const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;"
+        in viewer
+    )
+    assert (
+        "const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !hasWallOpenings"
+        in viewer
+    )
+    assert "buildSegmentWalls(" in viewer
     assert "const mullionPositions = [0];" in viewer
 
 
@@ -830,6 +866,38 @@ def test_space_confirmation_can_add_a_missed_room_and_invalidates_downstream() -
     assert "請拖曳節點、命名並重新確認空間與結構" in source
 
 
+def test_room_review_explains_django_icon_conflict_reasons() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert "function roomReviewHint(room)" in source
+    assert "function normalizeIconInferredRoomReview(room, polygonCm, index)" in source
+    assert "room_icon_function_conflict" in source
+    assert "room_icon_area_implausible" in source
+    assert "ICON_INFERENCE_MAX_ROOM_AREA_M2" in source
+    assert "next.source === \"furniture_icon_inference\"" in source
+    assert "savedSpace.rooms.map((room, index)" in source
+    assert "normalizeIconInferredRoomReview(room, repairedPolygon, index)" in source
+    assert "function splitImplausibleIconRoomsByInteriorWalls(rooms, walls)" in source
+    assert "function preparedAutoRoomLabels(rooms, walls)" in source
+    assert "preparedAutoRoomLabels(state.rooms, state.structures.walls)" in source
+    assert "preparedAutoRoomLabels(state.rooms, state.structures.walls || [])" in source
+    assert "function deleteRoom(roomId = state.selectedRoomId)" in source
+    assert "data-delete-room" in source
+    assert "function updateShowAllRoomsButton()" in source
+    assert "目前只有一個空間，沒有其他框選可顯示" in source
+    assert "dismissed_auto_room_ids: state.dismissedAutoRoomIds" in source
+    assert "dismissed.has(room.id)" in source
+    assert "return applyDjangoZoneRoomLabels(" in source
+    assert "auto_wall_split_review" in source
+    assert "function applyDjangoZoneRoomLabels(rooms)" in source
+    assert "django_zone_bed_anchor" in source
+    assert "django_zone_storage_candidate" in source
+    assert "儲藏室（待確認）" in source
+    assert "可能是多個空間，請切割或改名後再確認" in source
+    assert "rp-room-review-hint" in css
+
+
 def test_room_size_is_computed_from_dragged_polygon_instead_of_typed() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -1065,7 +1133,10 @@ def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> Non
     assert 'data-beam-handle="start"' in source
     assert 'data-beam-handle="end"' in source
     assert "function finishBeamCreateDrag(" in source
-    assert "whiteViewer.beginBeamPlacement" in source
+    assert 'showStep("space_confirmation")' in source
+    assert 'setActiveStructureKind("beam")' in source
+    assert "第 7 步只編輯家具" in html
+    assert "返回第 4 步修改樑" in html
     assert "function beginBeamPlacement(" in viewer
     assert "beamPlacementRequest" in viewer
     assert "beginBeamPlacement," in viewer
@@ -1230,6 +1301,18 @@ def test_room_polygon_nodes_can_be_merged_or_split_on_an_edge() -> None:
     assert "room.confirmed = false" in source
 
 
+def test_room_review_can_confirm_all_rooms_at_once() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="confirm-all-rooms"' in html
+    assert "一鍵確認全部房間" in html
+    assert "function confirmAllRooms()" in source
+    assert 'room.source = "manual_confirmation"' in source
+    assert '$("#confirm-all-rooms").addEventListener("click", confirmAllRooms)' in source
+    assert 'confirmAllRoomsButton.disabled = !state.rooms.length || allConfirmed' in source
+
+
 def test_loaded_cody_rooms_repair_narrow_spikes_before_rendering() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     module_uri = (STATIC / "scene_room_geometry.js").as_uri()
@@ -1253,9 +1336,23 @@ def test_loaded_cody_rooms_repair_narrow_spikes_before_rendering() -> None:
           {{ x: 200, y: 100 }},
           {{ x: 0, y: 100 }},
         ];
+        const nearOrthogonal = [
+          {{ x: 0, y: 180 }},
+          {{ x: -17, y: 0 }},
+          {{ x: 450, y: 17 }},
+          {{ x: 445, y: 185 }},
+        ];
+        const diagonal = [
+          {{ x: 0, y: 100 }},
+          {{ x: 100, y: 0 }},
+          {{ x: 200, y: 100 }},
+          {{ x: 100, y: 200 }},
+        ];
         console.log(JSON.stringify({{
           repaired: repairLoadedRoomPolygon(spike),
           lShape: repairLoadedRoomPolygon(lShape),
+          nearOrthogonal: repairLoadedRoomPolygon(nearOrthogonal),
+          diagonal: repairLoadedRoomPolygon(diagonal),
         }}));
         """
     )
@@ -1273,6 +1370,18 @@ def test_loaded_cody_rooms_repair_narrow_spikes_before_rendering() -> None:
         {"x": 200, "y": 300},
         {"x": 200, "y": 100},
         {"x": 0, "y": 100},
+    ]
+    assert result["nearOrthogonal"] == [
+        {"x": -8.5, "y": 182.5},
+        {"x": -8.5, "y": 8.5},
+        {"x": 447.5, "y": 8.5},
+        {"x": 447.5, "y": 182.5},
+    ]
+    assert result["diagonal"] == [
+        {"x": 0, "y": 100},
+        {"x": 100, "y": 0},
+        {"x": 200, "y": 100},
+        {"x": 100, "y": 200},
     ]
 
 
@@ -1375,7 +1484,8 @@ def test_confirmed_rooms_and_structures_are_the_only_3d_floorplan_source() -> No
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
-    assert "function confirmedFloorplanEditor()" in controller
+    assert "function confirmedFloorplanEditor(schemeId = activeSchemeId())" in controller
+    assert "structures: structuresForScheme(state.structures, schemeId)" in controller
     assert "floorplan_editor: confirmedFloorplanEditor()" in controller
     assert "floorplan_dxf_text: state.confirmedFloorplan?.dxf_text" not in controller
     assert "floorplan.beam_segments" in viewer
@@ -1782,13 +1892,79 @@ def test_project_resume_restores_flow_rooms_and_generated_scene() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     assert "_flow: state.workflow?.toJSON()" in source
     assert "confirmed_floorplan: calibrationIsLive ? state.confirmedFloorplan : null" in source
-    assert "layout_2d: layoutIsLive ? { furniture: state.furniture2d } : null" in source
+    assert "active_scheme_id: state.designSchemes.active_scheme_id" in source
+    assert "furniture: state.furniture2d" in source
+
+
+def test_step_four_shows_vertical_scheme_comparison_only_when_b_exists() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert 'id="design-scheme-compare"' in html
+    assert html.index('id="scheme-a-plan-image"') < html.index('id="scheme-b-plan-image"')
+    assert 'id="delete-scheme-b"' in html
+    assert "hasRenovationChanges(state.structures)" in source
+    assert ".rp-design-scheme-compare" in css
+    assert "grid" in css
+
+
+def test_scheme_b_structure_contract_cascades_added_openings_and_follows_wall() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'scheme_id: "B"' in source
+    assert "attachedOpeningUpdates" in source
+    assert "applyAttachedOpeningUpdates" in source
+    assert "刪除牆時會一併刪除" in source
+    assert "牆長不足以容納附著" in source
+
+
+def test_questionnaire_is_preserved_when_structure_changes_mark_layouts_stale() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "markSchemeLayoutsStale(state.designSchemes, message)" in source
+    assert "|| state.basicConfirmed" in source
+    assert "|| Object.keys(state.visualAnswers || {}).length > 0" in source
+
+
+def test_steps_six_to_nine_expose_scheme_switching_and_render_lock() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert html.count('data-design-scheme="A"') >= 4
+    assert html.count('data-design-scheme="B"') >= 4
+    assert 'id="locked-scheme-label"' in html
+    assert "placement_variant: activeSchemeId()" in source
+    assert 'placement_variant: schemeId' in source
+    assert "state.designSchemes.locked_scheme_id = activeSchemeId()" in source
+    assert "scheme_id: state.designSchemes.locked_scheme_id || activeSchemeId()" in source
     assert "realistic_3d: realisticIsLive" in source
     assert "sceneData: state.sceneData" in source
     assert "renderRestoredStep()" in source
     assert "recoverConfirmedFloorplan" in source
     assert "await whiteViewer.loadScene(state.sceneData)" in source
     assert "await realisticViewer.loadScene(state.sceneData)" in source
+    assert 'state.proposalReview.masterView?.scheme_id === "B"' in source
+    assert 'state.workflow?.invalidateFrom?.("proposal_review")' in source
+
+
+def test_empty_scheme_a_does_not_persist_layout_before_layout_work_exists() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "const hasSchemeLayoutState = Boolean(state.designSchemes.schemes.B)" in source
+    assert "layout_2d: layoutIsLive || hasSchemeLayoutState" in source
+    assert "layoutIsLive || Object.keys(state.designSchemes.schemes).length" not in source
+    assert "const emptySchemeB = restoredSchemeB" in source
+    assert "if (emptySchemeB) deleteSchemeB(state.designSchemes)" in source
+
+
+def test_grouped_surface_cards_sync_their_material_ids_into_native_selects() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function syncSurfaceMaterialSelect(" in source
+    assert "syncSurfaceMaterialSelect(kind, items, current)" in source
+    assert "select.value = materialId" in source
+    assert "select.value !== materialId" in source
 
 
 def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:

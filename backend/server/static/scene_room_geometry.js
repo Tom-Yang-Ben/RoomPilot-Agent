@@ -6,6 +6,48 @@ function polygonArea(points) {
   }, 0) / 2);
 }
 
+function orthogonalizeNearAxisEdges(
+  points,
+  { maxOffsetCm = 30, maxSlopeRatio = 0.15, minEdgeLengthCm = 40 } = {},
+) {
+  if (!Array.isArray(points) || points.length < 3) return points || [];
+  const constraints = points.map(() => ({ x: [], y: [] }));
+  points.forEach((point, index) => {
+    const nextIndex = (index + 1) % points.length;
+    const next = points[nextIndex];
+    const dx = Number(next.x) - Number(point.x);
+    const dy = Number(next.y) - Number(point.y);
+    const length = Math.hypot(dx, dy);
+    if (length < minEdgeLengthCm) return;
+    if (
+      Math.abs(dy) <= maxOffsetCm
+      && Math.abs(dy) <= Math.abs(dx) * maxSlopeRatio
+    ) {
+      const y = (Number(point.y) + Number(next.y)) / 2;
+      constraints[index].y.push(y);
+      constraints[nextIndex].y.push(y);
+      return;
+    }
+    if (
+      Math.abs(dx) <= maxOffsetCm
+      && Math.abs(dx) <= Math.abs(dy) * maxSlopeRatio
+    ) {
+      const x = (Number(point.x) + Number(next.x)) / 2;
+      constraints[index].x.push(x);
+      constraints[nextIndex].x.push(x);
+    }
+  });
+  const average = (values, fallback) => (
+    values.length
+      ? values.reduce((sum, value) => sum + value, 0) / values.length
+      : fallback
+  );
+  return points.map((point, index) => ({
+    x: average(constraints[index].x, Number(point.x)),
+    y: average(constraints[index].y, Number(point.y)),
+  }));
+}
+
 export function repairLoadedRoomPolygon(points) {
   let repaired = (points || []).map((point) => ({ ...point }));
   let changed = true;
@@ -42,5 +84,5 @@ export function repairLoadedRoomPolygon(points) {
       break;
     }
   }
-  return repaired;
+  return orthogonalizeNearAxisEdges(repaired);
 }

@@ -99,6 +99,7 @@ def test_library_exposes_mode_one_room_type_and_proposal_contract() -> None:
     for element_id in (
         "mode1-space-grid",
         "mode1-space-select",
+        "style-filter",
         "mode1-type-step",
         "mode1-type-grid",
         "mode1-type-next",
@@ -116,6 +117,20 @@ def test_library_exposes_mode_one_room_type_and_proposal_contract() -> None:
     assert "selectDefaultFurnitureForPage" in script
     assert "mode1-card-favorite" in script
     assert "mode1-card-add" in script
+    assert "return (group?.types || [])" in script
+    assert "groupType.type_name_zh" in script
+    assert "MODE_ONE_CATEGORY_DEFS" not in script
+
+
+def test_library_places_style_next_to_space_selector() -> None:
+    html = (ROOT / "backend/server/static/library.html").read_text(encoding="utf-8")
+
+    controls_start = html.index('<div class="mode1-space-controls">')
+    controls_end = html.index("</div>", controls_start)
+    controls = html[controls_start:controls_end]
+    assert 'id="style-filter"' in controls
+    assert 'id="mode1-space-select"' in controls
+    assert html.count('id="style-filter"') == 1
 
 
 def test_library_mode_one_handoffs_selected_furniture_to_scene() -> None:

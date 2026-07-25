@@ -36,6 +36,12 @@ export const WHOLE_HOUSE_QUESTIONS = Object.freeze([
     options: ["60 萬以下／彈性時程", "60–100 萬／三個月", "100–150 萬／三至六個月", "150 萬以上／另議"],
   },
   {
+    id: "overallStyle",
+    label: "全屋整體風格",
+    type: "select",
+    options: ["北歐風", "奶油風", "工業風", "美式風", "日式風", "現代風", "各房依逐房色卡"],
+  },
+  {
     id: "immutableNeeds",
     label: "特殊或不可變條件",
     type: "text",

@@ -1222,6 +1222,7 @@ def generate_layout(
     place_boundary: Polygon | None = None,
     floorplan: dict[str, Any] | None = None,
     preserve_existing_count: int = 0,
+    placement_variant: str = "A",
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
@@ -1416,6 +1417,9 @@ def generate_layout(
                 room_d_cm,
                 placement_bounds_cm,
             )
+            if placement_variant == "B" and len(candidates) > 1:
+                # 方案 B 仍走相同碰撞/淨空驗證，只改由另一端開始搜尋合法解。
+                candidates = list(reversed(candidates))
             hinted_wall_candidate = _hinted_wall_candidate(
                 item_type,
                 width,

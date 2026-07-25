@@ -74,6 +74,10 @@ export function normalizeSavedSpaceConfirmation(saved = {}) {
   return {
     coordinate_unit: "cm",
     schema_version: CONTRACT_SCHEMA_VERSION,
+    dismissed_auto_room_ids: Array.isArray(saved.dismissed_auto_room_ids)
+      ? saved.dismissed_auto_room_ids
+      : [],
+    design_schemes: saved.design_schemes || null,
     rooms: rooms.map((room, index) => {
       const polygon = Array.isArray(room.polygon_cm)
         ? room.polygon_cm

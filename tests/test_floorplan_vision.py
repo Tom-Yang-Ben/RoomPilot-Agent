@@ -16,6 +16,7 @@ from backend.floorplan.vision import (
     infer_room_requirements,
 )
 from backend.floorplan.vision.units import canonicalize_analysis_cm
+from backend.floorplan.cody_adapter import _clean_door_items
 
 
 def test_cody_cli_loads_floorplan_from_unicode_path(tmp_path: Path) -> None:
@@ -524,6 +525,44 @@ def test_floor04_swing_detector_supplements_a_partial_legacy_result(monkeypatch)
 
     assert len(analysis["doors"]) == 5
     assert all("swing_end" in door for door in analysis["doors"])
+
+
+def test_cody_door_cleanup_rejects_low_confidence_wide_and_duplicate_candidates() -> None:
+    doors = _clean_door_items([
+        {
+            "start": {"x": 0, "y": 0},
+            "end": {"x": 1.86, "y": 0},
+            "width_m": 1.86,
+            "confidence": 1,
+            "source": "cody_vision",
+        },
+        {
+            "start": {"x": 2.0, "y": 0},
+            "end": {"x": 2.9, "y": 0},
+            "width_m": 0.9,
+            "confidence": 0.59,
+            "source": "cody_vision",
+        },
+        {
+            "start": {"x": 0, "y": 0.4},
+            "end": {"x": 0.9, "y": 0.4},
+            "width_m": 0.9,
+            "confidence": 0.91,
+            "source": "cody_vision",
+        },
+        {
+            "start": {"x": 0.1, "y": 0.45},
+            "end": {"x": 1.02, "y": 0.45},
+            "width_m": 0.92,
+            "confidence": 0.96,
+            "swing_end": {"x": 0.1, "y": 1.35},
+            "source": "cody_vision",
+        },
+    ])
+
+    assert len(doors) == 1
+    assert doors[0]["confidence"] == 0.96
+    assert doors[0]["width_m"] == 0.92
 
 
 def test_legacy_meter_analysis_is_migrated_to_centimeters_only_once() -> None:

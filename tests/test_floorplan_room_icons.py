@@ -189,6 +189,8 @@ def test_competing_icon_types_require_room_confirmation() -> None:
     )
 
     assert rooms[0]["room_review"] is True
+    assert rooms[0]["type"] == "default"
+    assert "room_icon_function_conflict" in rooms[0]["room_review_reasons"]
     assert rooms[0]["label"].endswith("（待確認）")
 
     report = build_spatial_report(
@@ -206,3 +208,43 @@ def test_competing_icon_types_require_room_confirmation() -> None:
         report["rooms"][0]["evidence"][0]["kind"]
         == "furniture_icon_room_label"
     )
+
+
+def test_single_icon_does_not_name_an_implausibly_large_room() -> None:
+    rooms = [
+        {
+            "id": "room-1",
+            "type": "default",
+            "label": "空間 1",
+            "area_m2": 265.0,
+            "polygon_m": [
+                {"x": 0, "y": 0},
+                {"x": 18, "y": 0},
+                {"x": 18, "y": 15},
+                {"x": 0, "y": 15},
+            ],
+        }
+    ]
+    detections = [
+        {
+            "class": "bed",
+            "label": "臥室",
+            "room_type": "bedroom",
+            "score": 0.96,
+            "bbox_px": [240.0, 200.0, 120.0, 150.0],
+            "centroid_px": [300.0, 275.0],
+        },
+    ]
+
+    apply_icon_room_labels(
+        rooms,
+        detections,
+        plan_bbox_px=[100, 100, 2000, 1700],
+        m_per_px=0.01,
+    )
+
+    assert rooms[0]["type"] == "default"
+    assert rooms[0]["label"] == "空間 1（待確認）"
+    assert rooms[0]["room_review"] is True
+    assert "room_icon_area_implausible" in rooms[0]["room_review_reasons"]
+    assert rooms[0]["icon_suggested_room_types"][0]["room_type"] == "bedroom"

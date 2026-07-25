@@ -95,14 +95,15 @@ def test_visual_catalog_api_returns_planned_and_ready_questions(
     assert len(payload["questions"]) == 55
 
 
-def test_test2_questionnaire_ui_exposes_all_required_stages() -> None:
+def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
     static = ROOT / "backend" / "server" / "static"
     html = (static / "scene.html").read_text(encoding="utf-8")
     javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
 
-    for stage in ("profile", "rooms", "finishes", "summary"):
+    for stage in ("rooms", "profile", "summary"):
         assert f'data-questionnaire-stage="{stage}"' in html
         assert f'data-questionnaire-panel="{stage}"' in html
+    assert 'data-questionnaire-stage="finishes"' not in html
     assert 'data-questionnaire-stage="visual"' not in html
     assert 'id="room-questionnaire"' not in html
     assert 'id="room-furniture-select"' not in html
@@ -115,8 +116,12 @@ def test_test2_questionnaire_ui_exposes_all_required_stages() -> None:
     assert 'id="questionnaire-floor-color"' in html
     assert 'id="questionnaire-ceiling-material"' in html
     assert 'id="questionnaire-ceiling-style"' in html
+    assert 'id="questionnaire-air-conditioning"' in html
+    assert 'id="questionnaire-plan-overlay"' in html
+    assert 'id="questionnaire-finish-scope"' in html
     assert "ensureVisualQuestionnaireLoaded" in javascript
     assert "confirmQuestionnaireFinishes" in javascript
+    assert "buildRoomRequirementsPayload" in javascript
     assert "visual_preferences: visualPreferences" in javascript
     assert "state.sceneData.questionnaire" in javascript
     assert "ceiling_color_hex" in javascript

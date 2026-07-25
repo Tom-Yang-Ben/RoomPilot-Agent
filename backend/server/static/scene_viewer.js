@@ -112,6 +112,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   let activeCameraPreset = "corner";
   const viewMode = createViewModeState("orbit");
   let cameraLocked = false;
+  let interactionMode = "camera";
   const walkKeys = new Set();
   let walkDestination = null;
   let walkLookState = null;
@@ -1757,9 +1758,66 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     });
   }
 
+  function createRoomCeilingOverrides(sceneData, wallHeight) {
+    const dropByStyle = {
+      flat: 12,
+      cove: 18,
+      floating: 20,
+      linear: 14,
+      "no-main-light": 12,
+      "wood-grid": 16,
+    };
+    (sceneData.surface_overrides || []).forEach((override, index) => {
+      const styleId = override.ceiling_style_id || "exposed";
+      const polygon = override.room_polygon_cm || [];
+      if (styleId === "exposed" || polygon.length < 3) return;
+      const shape = new THREE.Shape();
+      polygon.forEach((point, pointIndex) => {
+        const x = Number(point.x);
+        const y = -Number(point.z);
+        if (pointIndex === 0) shape.moveTo(x, y);
+        else shape.lineTo(x, y);
+      });
+      shape.closePath();
+      const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(override.ceiling_color_hex || "#f4f1eb"),
+        roughness: override.ceiling_material_id === "wood-veneer" ? 0.72 : 0.9,
+        metalness: styleId === "linear" ? 0.12 : 0,
+        side: THREE.DoubleSide,
+      });
+      const panel = new THREE.Mesh(new THREE.ShapeGeometry(shape), material);
+      panel.rotation.x = Math.PI / 2;
+      panel.position.y = wallHeight - (dropByStyle[styleId] || 12) - index * 0.05;
+      panel.receiveShadow = true;
+      panel.userData.roompilotCeilingOverride = override.room_id;
+      panel.userData.ceilingStyle = styleId;
+      panel.userData.ceilingMaterial = override.ceiling_material_id || "flat-paint";
+      panel.userData.lightingId = override.lighting_id || "";
+      ceilingGroup.add(panel);
+    });
+  }
+
   function wallMaterialResolver(sceneData, defaultMaterial) {
     const overrides = sceneData.surface_overrides || [];
     const cache = new Map();
+    const pointToSegmentDistance = (point, start, end) => {
+      const dx = Number(end.x) - Number(start.x);
+      const dz = Number(end.z) - Number(start.z);
+      const lengthSquared = dx * dx + dz * dz;
+      if (lengthSquared < 0.0001) {
+        return Math.hypot(point.x - Number(start.x), point.z - Number(start.z));
+      }
+      const projection = THREE.MathUtils.clamp(
+        ((point.x - Number(start.x)) * dx + (point.z - Number(start.z)) * dz)
+          / lengthSquared,
+        0,
+        1,
+      );
+      return Math.hypot(
+        point.x - (Number(start.x) + projection * dx),
+        point.z - (Number(start.z) + projection * dz),
+      );
+    };
     return (segment) => {
       const midpoint = {
         x: (Number(segment.start?.x || 0) + Number(segment.end?.x || 0)) / 2,
@@ -1770,15 +1828,37 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           && pointInBounds(midpoint, item.room_bounds_cm, 18),
       );
       if (!override) return defaultMaterial;
-      if (!cache.has(override.room_id)) {
+      const polygon = override.room_polygon_cm || [];
+      let surfaceId = null;
+      let nearestDistance = Infinity;
+      polygon.forEach((point, index) => {
+        const next = polygon[(index + 1) % polygon.length];
+        const distance = pointToSegmentDistance(midpoint, point, next);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          surfaceId = `${override.room_id}:wall:${index}`;
+        }
+      });
+      const surfaceOverride = nearestDistance <= 32
+        ? override.wall_overrides?.[surfaceId]
+        : null;
+      const cacheKey = surfaceOverride ? surfaceId : override.room_id;
+      if (!cache.has(cacheKey)) {
         const material = createWallMaterial(
-          override.wall_option || "auto",
+          surfaceOverride?.materialId
+            || surfaceOverride?.material_id
+            || override.wall_option
+            || "auto",
           sceneData.surface_catalog,
         );
-        applySurfaceTint(material, override.wall_color_hex);
-        cache.set(override.room_id, material);
+        applySurfaceTint(
+          material,
+          surfaceOverride?.color || surfaceOverride?.color_hex || override.wall_color_hex,
+        );
+        material.userData.roompilotWallSurfaceId = surfaceId;
+        cache.set(cacheKey, material);
       }
-      return cache.get(override.room_id);
+      return cache.get(cacheKey);
     };
   }
 
@@ -1949,20 +2029,28 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
     const ceilingDropCm = Number(sceneData.design_choices?.ceiling_drop_cm) || 0;
     const ceilingHeight = wallHeight - ceilingDropCm;
-    createCeilingGeometry(
-      { widthCm, depthCm, wallHeight, ceilingHeight },
-      roomGroup.userData.ceilingStyle,
-      sceneData.style_card || sceneData.style || {},
-      {
-        color: sceneData.design_choices?.ceiling_color_hex,
-        material: sceneData.design_choices?.ceiling_material,
-      },
+    const hasRoomCeilings = (sceneData.surface_overrides || []).some(
+      (override) => override.ceiling_style_id && override.ceiling_style_id !== "exposed",
     );
+    if (hasRoomCeilings) {
+      createRoomCeilingOverrides(sceneData, wallHeight);
+    } else {
+      createCeilingGeometry(
+        { widthCm, depthCm, wallHeight, ceilingHeight },
+        roomGroup.userData.ceilingStyle,
+        sceneData.style_card || sceneData.style || {},
+        {
+          color: sceneData.design_choices?.ceiling_color_hex,
+          material: sceneData.design_choices?.ceiling_material,
+        },
+      );
+    }
     ceilingGroup.visible = false;
 
     // 12 cm 接近住宅隔間牆；原先 4 cm 會讓雙線牆與轉角看起來像中空。
     const wallThickness = 12;
-    const builtWallMass = !singleRoomMode && hasAccurateFloorplan
+    const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;
+    const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !hasWallOpenings
       ? buildWallMass(
         roomGroup,
         sceneData.floorplan,
@@ -2379,6 +2467,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
   function setViewMode(mode) {
     cameraLocked = false;
+    interactionMode = mode === "walk" ? "walk" : "camera";
     const config = viewMode.setMode(mode);
     controls.object = config.camera === "orthographic" ? orthographicCamera : perspectiveCamera;
     camera = controls.object;
@@ -2467,6 +2556,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
   function toggleCameraLock(force) {
     cameraLocked = typeof force === "boolean" ? force : !cameraLocked;
+    interactionMode = cameraLocked ? "edit" : (viewMode.mode === "walk" ? "walk" : "camera");
     controls.enabled = true;
     if (cameraLocked) {
       controls.enableRotate = false;
@@ -2477,6 +2567,34 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       setViewMode(viewMode.mode);
     }
     return cameraLocked;
+  }
+
+  function setInteractionMode(mode) {
+    if (mode === "walk") {
+      setViewMode("walk");
+      interactionMode = "walk";
+      cameraLocked = false;
+      setStatus("走動模式：使用 W／A／S／D 前後左右移動，拖曳空白處轉動視角。");
+      return interactionMode;
+    }
+    if (mode === "edit") {
+      interactionMode = "edit";
+      cameraLocked = true;
+      walkKeys.clear();
+      walkDestination = null;
+      walkMarker.visible = false;
+      controls.enabled = true;
+      controls.enableRotate = false;
+      controls.enablePan = false;
+      controls.enableZoom = true;
+      renderer.domElement.style.cursor = selectedWrapper ? "grab" : "";
+      setStatus("家具編輯模式：鏡頭已固定，可點選、拖曳或旋轉家具。");
+      return interactionMode;
+    }
+    interactionMode = "camera";
+    cameraLocked = false;
+    setViewMode(viewMode.mode);
+    return interactionMode;
   }
 
   function getDiagnostics() {
@@ -2492,7 +2610,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function updateWalkMovement() {
-    if (viewMode.mode !== "walk") return;
+    if (viewMode.mode !== "walk" || interactionMode !== "walk") return;
     const forward = new THREE.Vector3();
     perspectiveCamera.getWorldDirection(forward);
     forward.y = 0;
@@ -2979,6 +3097,32 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       );
       const closestX = Number(start.x) + projection * dx;
       const closestZ = Number(start.z) + projection * dz;
+      const insideDoorOpening = (lastSceneData?.floorplan?.door_openings || []).some((opening) => {
+        if (!openingBelongsToWall(segment, opening, 24)) return false;
+        const openingStart = opening.start || opening.hinge || {};
+        const openingEnd = opening.end || {};
+        const centerX = Number.isFinite(Number(openingEnd.x))
+          ? (Number(openingStart.x || 0) + Number(openingEnd.x || 0)) / 2
+          : Number(openingStart.x || 0);
+        const centerZ = Number.isFinite(Number(openingEnd.z))
+          ? (Number(openingStart.z || 0) + Number(openingEnd.z || 0)) / 2
+          : Number(openingStart.z || 0);
+        const measuredWidth = Math.hypot(
+          Number(openingEnd.x || centerX) - Number(openingStart.x || centerX),
+          Number(openingEnd.z || centerZ) - Number(openingStart.z || centerZ),
+        );
+        const width = Math.max(
+          Number(opening.width_cm || opening.width || opening.leafWidthCm || measuredWidth) || 80,
+          68,
+        );
+        const openingProjection = (
+          (centerX - Number(start.x)) * dx
+          + (centerZ - Number(start.z)) * dz
+        ) / lengthSquared;
+        const alongDistance = Math.abs(projection - openingProjection) * Math.sqrt(lengthSquared);
+        return alongDistance <= Math.max(12, width / 2 - clearanceCm * 0.35);
+      });
+      if (insideDoorOpening) return false;
       return Math.hypot(position.x - closestX, position.z - closestZ) < clearanceCm;
     });
   }
@@ -3007,7 +3151,13 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function beginWalkLook(event) {
-    if (viewMode.mode !== "walk" || event.button !== 0 || dragState || placementRequest) return;
+    if (
+      viewMode.mode !== "walk"
+      || interactionMode !== "walk"
+      || event.button !== 0
+      || dragState
+      || placementRequest
+    ) return;
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, perspectiveCamera);
     if (dragRaycaster.intersectObjects(furnitureGroup.children, true).length) return;
@@ -3324,8 +3474,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     if (!wrapper || !wrapper.userData.sceneObject) return;
 
     selectWrapper(wrapper);
-    if (!cameraLocked) {
-      setStatus("已選取家具；請先按「鎖定視角並編輯家具」再拖曳。");
+    if (interactionMode !== "edit") {
+      setStatus("已選取家具；請切換至「編輯家具」模式再拖曳。");
       return;
     }
     dragRaycaster.ray.intersectPlane(floorPlane, planeHit);
@@ -4034,7 +4184,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   window.addEventListener("pointermove", updateWalkLook);
   window.addEventListener("pointerup", finishWalkLook);
   renderer.domElement.addEventListener("wheel", (event) => {
-    if (viewMode.mode !== "walk") return;
+    if (viewMode.mode !== "walk" || interactionMode !== "walk") return;
     event.preventDefault();
     perspectiveCamera.fov = THREE.MathUtils.clamp(
       perspectiveCamera.fov + Math.sign(event.deltaY) * 3,
@@ -4089,6 +4239,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     resetCamera,
     setCameraPreset,
     setViewMode,
+    setInteractionMode,
     toggleCameraLock,
     capturePng,
     getCameraState,
