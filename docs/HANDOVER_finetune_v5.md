@@ -35,7 +35,9 @@ python scripts/apply_cubicasa_patches.py --dir training/CubiCasa5k
 ### 4. 解壓訓練資料
 
 ```bash
-cd training && unzip -o finetune_data.zip -d finetune_data && cd ..
+# zip 內部路徑已帶 training/finetune_data/ 前綴，須在專案根目錄解壓
+python -m zipfile -e training/finetune_data.zip .
+# （機器沒裝 unzip 時 python -m zipfile 是現成替代；勿再 -d finetune_data，會雙層巢套）
 # 內容：own/ 25 題 ×3 過採樣 + high_quality_architectural/ 300 題
 # train.txt 375 行、val.txt 3 行（floor01/10/20——僅訓練監控用）
 ```
@@ -45,11 +47,14 @@ cd training && unzip -o finetune_data.zip -d finetune_data && cd ..
 ```bash
 cd training/CubiCasa5k
 python train.py --data-path ../finetune_data/ \
-  --furukawa-weights ../model_best_val_loss_var.pkl \
+  --weights ../model_best_val_loss_var.pkl --new-hyperparams true \
   --n-epoch 20 --batch-size 8 --l-rate 5e-5 --l-rate-var 5e-5 \
   --log-path runs_cubi/ft_v5/
 # 產出 checkpoint 更名為 training/model_finetuned_v5.pkl 帶回
-# 註：v4 當時在 machine A 執行，如指令有出入以該機 shell history 為準
+# 註（2026-07-25 實跑修正）：官方 model_best_val_loss_var.pkl 是 44 類權重，
+# 必須用 --weights 載入；--furukawa-weights 是給原始 51 類 Furukawa 權重用的，
+# 誤用會 size mismatch（conv4_/upsample 44 vs 51）。--new-hyperparams 必加，
+# 否則會沿用 checkpoint 內舊 optimizer 狀態、蓋掉 lr 5e-5。
 ```
 
 ### 6. 驗收（回 Cody 機或就地）
@@ -62,6 +67,23 @@ CC_WEIGHTS=training/model_finetuned_v5.pkl CC_CACHE_DIR=training/cubicasa_room_f
 
 **驗收門檻（歷屆同一標準）：具名房型 recall 不得倒退**（基線具名 macro-F1 0.838）。
 v1~v4 全部未過門檻、預設權重維持基線；本輪資料痊癒後值得重新期待。
+
+### 2026-07-25 v5 實測結果（雙尺分歧，換權重待裁決）
+
+- 訓練順跑：val loss 6.57→1.75（v4 終點 2.19），最佳 checkpoint 在最後 epoch
+- **own 尺（現行主尺）史上首勝基線**：新 GT 同尺重評，具名 macro-F1 基線 0.215 → **v5 0.473**，
+  八類 recall 無一倒退（kitchen 0.4→0.9、living 0.083→1.0、bed 0.35→0.8、bath 0.43→0.86、entry 0→0.43）
+- **CubiCasa 尺未過門檻**：具名 macro-F1 0.797（v4 0.814、基線 0.838），storage R -10pp、garage R -18pp；
+  kitchen P 0.537→0.681、space→kitchen 誤名 51→24
+- 結論：own 域大贏、CubiCasa 域小輸。預設權重是否切到 v5＝產品取向決策（目標域是 own 風格則值得切）
+- **使用者已裁決（2026-07-25）：目標域＝own 風格，v5 接管預設**。權重移至專案根 `model_finetuned_v5.pkl`，
+  **不進版控**（200M 超 GitHub 100MB 限制；gitignore 已加 `/model_finetuned_*.pkl`），換機用 Drive/隨身碟帶——
+  現行 finetune_data.zip 模式
+  （floorplan2room.py CC_WEIGHTS 預設已改）；`cubicasa/room/` 語意快取全數以 v5 重算
+  （含 9 個來源圖已刪的死快取移除：hq17/19/33、floor17/24/30/34/46/49）；四份評分報表＋
+  recognition_report.html 已重算同步（own 端對端 76.4%、IoU 0.875；具名命中 0.788）
+- 註：CubiCasa 尺驗收需要資料集，7/23 清理時已刪；本輪已從 Zenodo record 2613548 重下
+  （`python -m zipfile -e cubicasa5k.zip training/CubiCasa5k/data/`）
 
 ---
 

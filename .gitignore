@@ -25,6 +25,9 @@ cubicasa/room/*_cc.png
 training/
 training.zip
 cubicasa/room_ft/
+# 微調權重留專案根本地使用（200M 超 GitHub 100MB 限制），換機用 Drive/隨身碟帶
+/model_finetuned_*.pkl
+/cubicasa5k.zip
 
 # 工作暫存（漏門裁圖、未標房間標示圖等除錯產物）
 temp/
