@@ -108,6 +108,12 @@ RoomPilot 是 AIPE03 第四組的室內設計即時提案溝通 Agent。專案�
 
 ### 家具資料庫
 
+- 正式家具集合固定為 Kai 已上傳並具有 CloudFront GLB 的 9,350 件；
+  `backend/catalog/data/furniture_catalog_cloud_9350.json` 是資產、尺寸、
+  材質與顏色母集合。
+- `furniture_catalog_6styles_zh.json` 只補六風格、RAG、分類與擺放提示，
+  不得把舊檔的其他項目重新加入正式家具集合。目前可補到 9,021 件，
+  其餘 329 件保留為未分類家具，不偽造風格。
 - 左側依空間、類型、風格、尺寸、顏色、材質與關鍵字篩選家具。
 - 家具資料由後端搜尋及分頁，每次只回傳目前頁面需要的資料。
 - 右側顯示單件家具資訊與 Three.js 模型預覽。
@@ -209,10 +215,14 @@ JavaScript 也使用內容雜湊版本；若程式提交相同且上傳同一張
 
 ## 家具模型來源與離線備援
 
-正式環境使用 Kai 維護的 CloudFront Manifest。伺服器預設採用嚴格雲端模式，不會在連線失敗時悄悄改讀本機檔案，避免資料版本不一致。
+正式環境使用 Kai 維護的 9,350 件 CloudFront catalog 與 Manifest。
+伺服器預設採用嚴格雲端模式，不會在連線失敗時悄悄改讀本機檔案，
+也不會把舊六風格檔中無法映射的 1,514 筆資料加入正式查詢。
 
 完整的雲端對應、隔離與 fallback 規則請見
 [家具模型交付契約](docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md)。
+若要把同一組 9,350 筆正式資料匯入 PostgreSQL，請先依
+[SQL 匯入說明](scripts/sql/README.md)執行 dry-run。
 
 離線備援使用下列 IKEA 中文命名家具包。這份固定資產經驗證含有
 1,517 個 GLB，可唯一提供 1,508 件家具模型；8 個未入型錄變體不

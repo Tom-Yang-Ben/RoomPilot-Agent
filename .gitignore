@@ -25,6 +25,10 @@ TripoSR/
 test_3Dfurniture/
 scripts/*
 !scripts/verify_ikea_offline_backup.py
+!scripts/sql/
+!scripts/sql/**
+scripts/sql/__pycache__/
+scripts/sql/**/*.pyc
 
 # Non-runtime generated/intermediate model artifacts
 dataset/

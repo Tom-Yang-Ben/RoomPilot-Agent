@@ -24,6 +24,7 @@ from .questionnaire_visuals import (
     load_questionnaire_visual_catalog,
 )
 from ..catalog.style_db import sanitize_size_cm
+from ..catalog.cloud_catalog import load_official_catalog
 from ..floorplan.vision import (
     analyze_floorplan_image,
     confirm_floorplan_analysis,
@@ -71,7 +72,19 @@ BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent.parent
 STATIC_DIR = BASE_DIR / "static"
 MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
-STYLE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
+STYLE_ENRICHMENT_DB_PATH = (
+    BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
+)
+CLOUD_CATALOG_PATH = (
+    BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json"
+)
+CLOUD_MANIFEST_PATH = (
+    BASE_DIR.parent
+    / "catalog"
+    / "data"
+    / "manifests"
+    / "glb_upload_all_result.csv"
+)
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
 EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風格與JSON" / "external_furniture_import_index.json"
 DATASET_DIR = PROJECT_DIR / "dataset"
@@ -378,7 +391,11 @@ def _model_status(furniture: dict) -> tuple[bool, str]:
 
 @lru_cache(maxsize=1)
 def load_style_database() -> dict:
-    return json.loads(STYLE_DB_PATH.read_text(encoding="utf-8"))
+    return load_official_catalog(
+        CLOUD_CATALOG_PATH,
+        STYLE_ENRICHMENT_DB_PATH,
+        CLOUD_MANIFEST_PATH,
+    )
 
 
 @lru_cache(maxsize=1)
