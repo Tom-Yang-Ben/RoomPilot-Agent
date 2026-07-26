@@ -41,8 +41,8 @@
   "rooms": [
     {
       "id": 1,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 5.11,
       "bbox": [
         14,
@@ -57,16 +57,20 @@
       "aspect": 2.04,
       "has_door": false,
       "reach": true,
-      "cc_share": {},
+      "cc_share": {
+        "living": 0.345,
+        "bed": 0.097,
+        "bath": 0.088
+      },
       "icons_cm2": {
-        "sink": 827
+        "sink": 574
       },
       "symbols": {}
     },
     {
       "id": 2,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 2.42,
       "bbox": [
         173,
@@ -81,14 +85,17 @@
       "aspect": 1.58,
       "has_door": true,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.065,
+        "living": 1.046
+      },
       "icons_cm2": {},
       "symbols": {}
     },
     {
       "id": 3,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 6.59,
       "bbox": [
         300,
@@ -103,10 +110,12 @@
       "aspect": 1.81,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
-      "icons_cm2": {
-        "closet": 223
+      "cc_share": {
+        "living": 0.676,
+        "bed": 0.21,
+        "entry": 0.159
       },
+      "icons_cm2": {},
       "symbols": {}
     },
     {
@@ -128,7 +137,9 @@
       "has_door": false,
       "reach": false,
       "cc_share": {
-        "bed": 0.5
+        "living": 0.099,
+        "bed": 1.217,
+        "entry": 0.207
       },
       "icons_cm2": {},
       "symbols": {
@@ -137,8 +148,8 @@
     },
     {
       "id": 5,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "entry",
+      "label_zh": "玄關",
       "area_m2": 1.41,
       "bbox": [
         173,
@@ -153,14 +164,17 @@
       "aspect": 1.08,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "living": 0.112,
+        "entry": 0.699
+      },
       "icons_cm2": {},
       "symbols": {}
     },
     {
       "id": 6,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "kitchen",
+      "label_zh": "廚房",
       "area_m2": 11.25,
       "bbox": [
         300,
@@ -175,10 +189,14 @@
       "aspect": 1.08,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.426,
+        "living": 0.219,
+        "bed": 0.371
+      },
       "icons_cm2": {
-        "sink": 1113,
-        "fireplace": 108
+        "closet": 464,
+        "sink": 167
       },
       "symbols": {}
     },
@@ -201,7 +219,7 @@
       "has_door": false,
       "reach": false,
       "cc_share": {
-        "bed": 0.5
+        "bed": 1.234
       },
       "icons_cm2": {},
       "symbols": {
@@ -210,8 +228,8 @@
     },
     {
       "id": 8,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 5.83,
       "bbox": [
         754,
@@ -226,16 +244,21 @@
       "aspect": 1.79,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.025,
+        "living": 0.408,
+        "bed": 0.028,
+        "bath": 0.052
+      },
       "icons_cm2": {
-        "sink": 1074
+        "sink": 842
       },
       "symbols": {}
     },
     {
       "id": 9,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 8.29,
       "bbox": [
         300,
@@ -250,14 +273,16 @@
       "aspect": 1.52,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "living": 0.725
+      },
       "icons_cm2": {},
       "symbols": {}
     },
     {
       "id": 10,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "entry",
+      "label_zh": "玄關",
       "area_m2": 1.17,
       "bbox": [
         644,
@@ -272,7 +297,9 @@
       "aspect": 1.05,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "entry": 0.848
+      },
       "icons_cm2": {},
       "symbols": {}
     }

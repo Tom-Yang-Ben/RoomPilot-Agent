@@ -61,8 +61,8 @@
   "rooms": [
     {
       "id": 1,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 62.96,
       "bbox": [
         12,
@@ -77,8 +77,13 @@
       "aspect": 1.76,
       "has_door": true,
       "reach": true,
-      "cc_share": {},
-      "icons_cm2": {},
+      "cc_share": {
+        "kitchen": 0.116,
+        "living": 0.742
+      },
+      "icons_cm2": {
+        "closet": 251
+      },
       "symbols": {
         "tubrect": 1
       }
@@ -102,11 +107,13 @@
       "has_door": true,
       "reach": true,
       "cc_share": {
-        "bath": 0.45
+        "kitchen": 0.058,
+        "living": 0.157,
+        "bed": 0.484,
+        "bath": 0.52
       },
       "icons_cm2": {
-        "sink": 1370,
-        "bathtub": 112
+        "sink": 577
       },
       "symbols": {
         "oval": 1
@@ -114,8 +121,8 @@
     },
     {
       "id": 3,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "bed",
+      "label_zh": "臥室",
       "area_m2": 9.28,
       "bbox": [
         743,
@@ -130,14 +137,17 @@
       "aspect": 1.48,
       "has_door": true,
       "reach": true,
-      "cc_share": {},
+      "cc_share": {
+        "living": 0.036,
+        "bed": 0.666
+      },
       "icons_cm2": {},
       "symbols": {}
     },
     {
       "id": 4,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "entry",
+      "label_zh": "玄關",
       "area_m2": 4.41,
       "bbox": [
         545,
@@ -152,7 +162,10 @@
       "aspect": 1.1,
       "has_door": true,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "bed": 0.046,
+        "entry": 0.876
+      },
       "icons_cm2": {},
       "symbols": {}
     }

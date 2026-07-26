@@ -41,8 +41,8 @@
   "rooms": [
     {
       "id": 1,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 19.18,
       "bbox": [
         14,
@@ -57,9 +57,14 @@
       "aspect": 1.37,
       "has_door": false,
       "reach": true,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.083,
+        "living": 0.812,
+        "bed": 0.097,
+        "entry": 0.061
+      },
       "icons_cm2": {
-        "closet": 3894
+        "closet": 21
       },
       "symbols": {}
     },
@@ -82,7 +87,7 @@
       "has_door": false,
       "reach": false,
       "cc_share": {
-        "bed": 0.5
+        "bed": 1.183
       },
       "icons_cm2": {},
       "symbols": {
@@ -91,8 +96,8 @@
     },
     {
       "id": 3,
-      "label": "bath",
-      "label_zh": "浴廁",
+      "label": "kitchen",
+      "label_zh": "廚房",
       "area_m2": 7.28,
       "bbox": [
         611,
@@ -108,10 +113,13 @@
       "has_door": false,
       "reach": false,
       "cc_share": {
+        "kitchen": 0.871,
+        "living": 0.188,
+        "bed": 0.028,
         "bath": 0.45
       },
       "icons_cm2": {
-        "sink": 1041
+        "sink": 777
       },
       "symbols": {
         "oval": 1
@@ -119,8 +127,8 @@
     },
     {
       "id": 4,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "kitchen",
+      "label_zh": "廚房",
       "area_m2": 8.26,
       "bbox": [
         15,
@@ -135,17 +143,19 @@
       "aspect": 1.58,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.566,
+        "living": 0.489
+      },
       "icons_cm2": {
-        "appliance": 50,
-        "sink": 482
+        "appliance": 116
       },
       "symbols": {}
     },
     {
       "id": 5,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "kitchen",
+      "label_zh": "廚房",
       "area_m2": 4.32,
       "bbox": [
         380,
@@ -160,7 +170,11 @@
       "aspect": 1.14,
       "has_door": true,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.782,
+        "living": 0.217,
+        "entry": 0.05
+      },
       "icons_cm2": {},
       "symbols": {}
     }

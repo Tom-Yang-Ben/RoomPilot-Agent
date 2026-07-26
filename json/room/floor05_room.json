@@ -71,8 +71,8 @@
   "rooms": [
     {
       "id": 1,
-      "label": "storage",
-      "label_zh": "儲藏室",
+      "label": "bed",
+      "label_zh": "臥室",
       "area_m2": 11.49,
       "bbox": [
         44,
@@ -88,10 +88,11 @@
       "has_door": true,
       "reach": true,
       "cc_share": {
-        "storage": 0.2
+        "living": 0.04,
+        "bed": 0.468
       },
       "icons_cm2": {
-        "closet": 19895
+        "closet": 19084
       },
       "symbols": {}
     },
@@ -114,18 +115,20 @@
       "has_door": false,
       "reach": false,
       "cc_share": {
-        "bath": 0.845
+        "kitchen": 0.151,
+        "bed": 0.027,
+        "bath": 1.343
       },
       "icons_cm2": {
-        "toilet": 3124,
-        "sink": 448
+        "toilet": 2980,
+        "sink": 103
       },
       "symbols": {}
     },
     {
       "id": 3,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "kitchen",
+      "label_zh": "廚房",
       "area_m2": 3.47,
       "bbox": [
         449,
@@ -140,17 +143,20 @@
       "aspect": 1.39,
       "has_door": true,
       "reach": true,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.43,
+        "bed": 0.181,
+        "bath": 0.023
+      },
       "icons_cm2": {
-        "closet": 102,
-        "sink": 1330
+        "sink": 29
       },
       "symbols": {}
     },
     {
       "id": 4,
-      "label": "storage",
-      "label_zh": "儲藏室",
+      "label": "bed",
+      "label_zh": "臥室",
       "area_m2": 15.6,
       "bbox": [
         645,
@@ -166,17 +172,18 @@
       "has_door": false,
       "reach": false,
       "cc_share": {
-        "storage": 0.2
+        "living": 0.448,
+        "bed": 0.564
       },
       "icons_cm2": {
-        "closet": 20067
+        "closet": 19530
       },
       "symbols": {}
     },
     {
       "id": 5,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "entry",
+      "label_zh": "玄關",
       "area_m2": 2.69,
       "bbox": [
         366,
@@ -191,7 +198,9 @@
       "aspect": 2.88,
       "has_door": true,
       "reach": true,
-      "cc_share": {},
+      "cc_share": {
+        "entry": 0.857
+      },
       "icons_cm2": {},
       "symbols": {}
     },
@@ -214,12 +223,14 @@
       "has_door": true,
       "reach": true,
       "cc_share": {
-        "kitchen": 1.042,
-        "living": 0.03
+        "kitchen": 1.074,
+        "living": 0.573,
+        "bed": 0.051,
+        "entry": 0.053
       },
       "icons_cm2": {
-        "closet": 8735,
-        "appliance": 3826
+        "closet": 8774,
+        "appliance": 3682
       },
       "symbols": {
         "tubrect": 1,
@@ -245,7 +256,7 @@
       "has_door": false,
       "reach": false,
       "cc_share": {
-        "outdoor": 1.12
+        "outdoor": 1.108
       },
       "icons_cm2": {},
       "symbols": {}

@@ -91,8 +91,8 @@
   "rooms": [
     {
       "id": 1,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "bath",
+      "label_zh": "浴廁",
       "area_m2": 12.33,
       "bbox": [
         72,
@@ -106,8 +106,12 @@
       ],
       "aspect": 1.2,
       "has_door": false,
-      "reach": true,
-      "cc_share": {},
+      "reach": false,
+      "cc_share": {
+        "kitchen": 0.086,
+        "bed": 0.031,
+        "bath": 0.423
+      },
       "icons_cm2": {},
       "symbols": {}
     },
@@ -128,14 +132,14 @@
       ],
       "aspect": 1.12,
       "has_door": true,
-      "reach": false,
+      "reach": true,
       "cc_share": {
-        "bath": 1.25
+        "bath": 2.337
       },
       "icons_cm2": {
-        "toilet": 320,
-        "sink": 2820,
-        "bathtub": 1360
+        "toilet": 367,
+        "sink": 2754,
+        "bathtub": 2084
       },
       "symbols": {
         "oval": 1
@@ -143,8 +147,8 @@
     },
     {
       "id": 3,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 69.77,
       "bbox": [
         72,
@@ -158,13 +162,13 @@
       ],
       "aspect": 1.64,
       "has_door": true,
-      "reach": false,
-      "cc_share": {},
-      "icons_cm2": {
-        "appliance": 43,
-        "sink": 5121,
-        "fireplace": 196
+      "reach": true,
+      "cc_share": {
+        "kitchen": 0.274,
+        "living": 0.545,
+        "entry": 0.122
       },
+      "icons_cm2": {},
       "symbols": {
         "tubrect": 1
       }
@@ -186,9 +190,9 @@
       ],
       "aspect": 1.5,
       "has_door": true,
-      "reach": false,
+      "reach": true,
       "cc_share": {
-        "bed": 0.5
+        "bed": 1.503
       },
       "icons_cm2": {},
       "symbols": {
@@ -197,8 +201,8 @@
     },
     {
       "id": 5,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "entry",
+      "label_zh": "玄關",
       "area_m2": 5.95,
       "bbox": [
         386,
@@ -212,8 +216,10 @@
       ],
       "aspect": 1.94,
       "has_door": true,
-      "reach": false,
-      "cc_share": {},
+      "reach": true,
+      "cc_share": {
+        "entry": 0.975
+      },
       "icons_cm2": {},
       "symbols": {}
     },
@@ -236,7 +242,7 @@
       "has_door": false,
       "reach": false,
       "cc_share": {
-        "bed": 0.5
+        "bed": 1.549
       },
       "icons_cm2": {},
       "symbols": {

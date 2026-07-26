@@ -68,19 +68,18 @@
       "has_door": true,
       "reach": true,
       "cc_share": {
-        "bath": 0.8
+        "bath": 1.903
       },
       "icons_cm2": {
-        "toilet": 791,
-        "sink": 1275,
-        "bathtub": 3129
+        "toilet": 565,
+        "sink": 1084
       },
       "symbols": {}
     },
     {
       "id": 2,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "kitchen",
+      "label_zh": "廚房",
       "area_m2": 10.57,
       "bbox": [
         238,
@@ -95,17 +94,21 @@
       "aspect": 1.33,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.846,
+        "living": 0.189,
+        "entry": 0.051
+      },
       "icons_cm2": {
-        "closet": 2300,
-        "sink": 1375
+        "closet": 1877,
+        "sink": 445
       },
       "symbols": {}
     },
     {
       "id": 3,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 5.54,
       "bbox": [
         23,
@@ -120,14 +123,21 @@
       "aspect": 1.33,
       "has_door": true,
       "reach": true,
-      "cc_share": {},
-      "icons_cm2": {},
+      "cc_share": {
+        "kitchen": 0.048,
+        "living": 0.525,
+        "bed": 0.146,
+        "entry": 0.335
+      },
+      "icons_cm2": {
+        "closet": 11227
+      },
       "symbols": {}
     },
     {
       "id": 4,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 9.82,
       "bbox": [
         225,
@@ -142,14 +152,16 @@
       "aspect": 1.75,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "living": 1.119
+      },
       "icons_cm2": {},
       "symbols": {}
     },
     {
       "id": 5,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 3.39,
       "bbox": [
         623,
@@ -164,7 +176,9 @@
       "aspect": 1.43,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "living": 1.12
+      },
       "icons_cm2": {},
       "symbols": {}
     }

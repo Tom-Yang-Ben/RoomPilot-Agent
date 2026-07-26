@@ -51,8 +51,8 @@
   "rooms": [
     {
       "id": 1,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "bed",
+      "label_zh": "臥室",
       "area_m2": 10.5,
       "bbox": [
         13,
@@ -66,18 +66,19 @@
       ],
       "aspect": 1.28,
       "has_door": false,
-      "reach": true,
-      "cc_share": {},
-      "icons_cm2": {
-        "closet": 335,
-        "sauna": 37
+      "reach": false,
+      "cc_share": {
+        "kitchen": 0.302,
+        "living": 0.312,
+        "bed": 0.367
       },
+      "icons_cm2": {},
       "symbols": {}
     },
     {
       "id": 2,
-      "label": "bed",
-      "label_zh": "臥室",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 13.59,
       "bbox": [
         322,
@@ -91,21 +92,20 @@
       ],
       "aspect": 1.18,
       "has_door": true,
-      "reach": false,
+      "reach": true,
       "cc_share": {
-        "bed": 0.5
+        "living": 0.813,
+        "bed": 0.76
       },
-      "icons_cm2": {
-        "fireplace": 590
-      },
+      "icons_cm2": {},
       "symbols": {
         "bedrect": 1
       }
     },
     {
       "id": 3,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "kitchen",
+      "label_zh": "廚房",
       "area_m2": 3.27,
       "bbox": [
         885,
@@ -120,14 +120,17 @@
       "aspect": 1.22,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.172,
+        "bed": 0.049
+      },
       "icons_cm2": {},
       "symbols": {}
     },
     {
       "id": 4,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "entry",
+      "label_zh": "玄關",
       "area_m2": 3.96,
       "bbox": [
         885,
@@ -141,17 +144,22 @@
       ],
       "aspect": 1.0,
       "has_door": true,
-      "reach": false,
-      "cc_share": {},
+      "reach": true,
+      "cc_share": {
+        "kitchen": 0.088,
+        "bed": 0.102,
+        "bath": 0.155,
+        "entry": 0.613
+      },
       "icons_cm2": {
-        "closet": 1642
+        "closet": 4366
       },
       "symbols": {}
     },
     {
       "id": 5,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 13.85,
       "bbox": [
         13,
@@ -166,17 +174,20 @@
       "aspect": 1.24,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 0.371,
+        "living": 0.641,
+        "entry": 0.039
+      },
       "icons_cm2": {
-        "sink": 1964,
-        "fireplace": 80
+        "closet": 1353
       },
       "symbols": {}
     },
     {
       "id": 6,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 29.56,
       "bbox": [
         375,
@@ -190,11 +201,12 @@
       ],
       "aspect": 1.64,
       "has_door": true,
-      "reach": false,
-      "cc_share": {},
-      "icons_cm2": {
-        "fireplace": 423
+      "reach": true,
+      "cc_share": {
+        "living": 1.063,
+        "entry": 0.034
       },
+      "icons_cm2": {},
       "symbols": {}
     }
   ],

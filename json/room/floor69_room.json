@@ -30,8 +30,8 @@
   "rooms": [
     {
       "id": 1,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 26.47,
       "bbox": [
         492,
@@ -46,16 +46,20 @@
       "aspect": 1.94,
       "has_door": false,
       "reach": true,
-      "cc_share": {},
+      "cc_share": {
+        "living": 1.035,
+        "bed": 0.029,
+        "entry": 0.027
+      },
       "icons_cm2": {
-        "closet": 6267
+        "closet": 6272
       },
       "symbols": {}
     },
     {
       "id": 2,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 18.34,
       "bbox": [
         13,
@@ -70,14 +74,17 @@
       "aspect": 1.82,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "living": 0.665,
+        "bed": 0.405
+      },
       "icons_cm2": {},
       "symbols": {}
     },
     {
       "id": 3,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "living",
+      "label_zh": "客廳",
       "area_m2": 19.21,
       "bbox": [
         252,
@@ -92,10 +99,11 @@
       "aspect": 1.81,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
-      "icons_cm2": {
-        "fireplace": 666
+      "cc_share": {
+        "living": 0.663,
+        "bed": 0.403
       },
+      "icons_cm2": {},
       "symbols": {}
     },
     {
@@ -117,10 +125,11 @@
       "has_door": false,
       "reach": false,
       "cc_share": {
-        "bath": 0.45
+        "kitchen": 0.337,
+        "bath": 0.503
       },
       "icons_cm2": {
-        "sink": 1555
+        "sink": 1297
       },
       "symbols": {
         "oval": 1
@@ -128,8 +137,8 @@
     },
     {
       "id": 5,
-      "label": "room",
-      "label_zh": "空間",
+      "label": "kitchen",
+      "label_zh": "廚房",
       "area_m2": 12.79,
       "bbox": [
         333,
@@ -144,11 +153,13 @@
       "aspect": 2.82,
       "has_door": false,
       "reach": false,
-      "cc_share": {},
+      "cc_share": {
+        "kitchen": 1.432,
+        "living": 0.074
+      },
       "icons_cm2": {
-        "appliance": 57,
-        "sink": 2631,
-        "fireplace": 1727
+        "appliance": 2071,
+        "sink": 293
       },
       "symbols": {}
     }
