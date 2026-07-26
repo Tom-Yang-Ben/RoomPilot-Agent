@@ -38,6 +38,7 @@ Current compatibility fields:
 - `/api/floorplan/analyze` returns both `analysis` and `layout_json`.
 - `/api/projects/{project_id}/floorplan/analyze` returns both `analysis` and `layout_json`.
 - `/api/floorplan/confirm` returns both `floorplan` and `layout_json`.
+- `/api/scene/generate` accepts `layout_json` as a canonical layout input.
 
 The older names remain for frontend compatibility. New architecture diagrams and
 worker contracts should call the recognition output `layout_json`.
@@ -61,6 +62,13 @@ Required inputs:
 - Catalog candidates
 - Geometry planner constraints
 - Rule checker constraints
+
+Current compatibility fields:
+
+- `/api/scene/generate` returns `scene_json` beside the legacy top-level scene
+  payload.
+- The legacy top-level scene payload remains the frontend contract until the
+  browser flow is migrated to read `response.scene_json || response`.
 
 ## Graph RAG Boundary
 
@@ -95,4 +103,3 @@ Object storage should be labelled by deployment target:
 
 - Local or Docker demo: MinIO.
 - Production cloud: AWS S3 or another S3-compatible provider.
-

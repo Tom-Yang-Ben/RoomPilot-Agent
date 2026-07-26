@@ -35,6 +35,7 @@ c1182072 feat(floorplan): add cody semantic weight contract
   - `/api/floorplan/analyze` now returns `layout_json` beside the legacy `analysis`
   - `/api/projects/{project_id}/floorplan/analyze` now returns `layout_json` beside `analysis`
   - `/api/floorplan/confirm` now returns `layout_json` beside the legacy `floorplan`
+  - `/api/scene/generate` now accepts `layout_json` and returns `scene_json` beside the legacy top-level scene payload
 - No Redis worker, Graph RAG runtime, MinIO/S3 runtime, or render worker was implemented in this slice.
 
 ### Surface Material Backup Assets
@@ -309,6 +310,25 @@ $env:TEMP=$env:TMP
 .\.venv\Scripts\python.exe -m pytest `
   tests/test_floorplan_vision_api.py `
   tests/test_project_workflow_api.py `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+```
+
+Current verification after wiring `layout_json` into `/api/scene/generate`:
+
+```text
+py_compile passed for:
+- backend/server/main.py
+- backend/server/scene_service.py
+
+34 passed, 3 warnings
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
+  tests/test_project_workflow_api.py `
+  tests/test_floorplan_vision_api.py `
+  tests/test_questionnaire_visual_catalog.py `
   --basetemp=.tmp\pytest -p no:cacheprovider
 ```
 

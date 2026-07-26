@@ -1681,8 +1681,15 @@ def build_scene_payload(
     parsed_floorplan = None
     engine_room = None
     editor_floorplan = questionnaire.get("floorplan_editor")
+    layout_json = questionnaire.get("layout_json")
     dxf_text = questionnaire.get("floorplan_dxf_text")
-    if isinstance(editor_floorplan, dict) and editor_floorplan:
+    if isinstance(layout_json, dict) and isinstance(layout_json.get("floorplan"), dict):
+        parsed_floorplan = layout_json["floorplan"]
+        engine_room = room_from_payload(parsed_floorplan)
+    elif isinstance(layout_json, dict) and layout_json.get("wall_segments"):
+        parsed_floorplan = layout_json
+        engine_room = room_from_payload(parsed_floorplan)
+    elif isinstance(editor_floorplan, dict) and editor_floorplan:
         parsed_floorplan, engine_room = floorplan_from_editor_payload(editor_floorplan)
     elif dxf_text:
         parsed_floorplan, engine_room = parse_floorplan_with_engine(dxf_text)

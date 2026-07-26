@@ -8,6 +8,7 @@ import unicodedata
 import urllib.error
 import urllib.request
 import zipfile
+from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
@@ -2316,19 +2317,24 @@ async def generate_scene(payload: dict) -> dict:
         "preferred_materials": brief_style.get("materials", []),
         "floorplan_filename": payload.get("floorplan_filename"),
         "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
+        "layout_json": payload.get("layout_json"),
         "floorplan_editor": payload.get("floorplan_editor"),
         "wall_option": payload.get("wall_option", "auto"),
         "floor_option": payload.get("floor_option", "auto"),
         "furniture_random_seed": payload.get("furniture_random_seed"),
     }
 
-    return build_scene_payload(
+    scene_payload = build_scene_payload(
         site_payload=site_payload,
         questionnaire=questionnaire,
         floorplan_path=payload.get("floorplan_filename"),
         room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
         room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
     )
+    return {
+        **scene_payload,
+        "scene_json": deepcopy(scene_payload),
+    }
 
 
 @app.post("/api/scene/layout")
