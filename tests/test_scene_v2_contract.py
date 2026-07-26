@@ -2170,6 +2170,22 @@ def test_added_and_deleted_furniture_refresh_numbering_and_stay_draggable() -> N
     assert "activateWhiteFurnitureEditing();" in add_block
 
 
+def test_saved_layout_can_rebuild_a_missing_white_model_scene() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "async function recoverSceneDataFromSavedLayout()" in controller
+    assert "floorplan: layout.floorplan" in controller
+    assert "scene_objects: layout.scene_objects || []" in controller
+    recovery_block = controller.split(
+        "async function recoverSceneDataFromSavedLayout()",
+        1,
+    )[1].split("function installUnloadGuard()", 1)[0]
+    assert "!state.furniture2d.length" not in recovery_block
+    assert "await recoverSceneDataFromSavedLayout();" in controller
+    assert 'console.warn("Unable to rebuild saved 3D scene from layout."' in controller
+    assert "if (sceneRecoveryError)" in controller
+
+
 def test_ceiling_conflicts_use_real_obstruction_geometry_and_installation_depth() -> None:
     module_uri = (STATIC / "scene_style_packs.js").as_uri()
     result = run_workflow_script(

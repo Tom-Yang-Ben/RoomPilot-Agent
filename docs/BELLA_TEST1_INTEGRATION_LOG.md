@@ -846,3 +846,27 @@ $env:TEMP=$env:TMP
   plan and furniture list.
 - Full suite verification: 473 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Room-Scoped Walk Mode and On-Demand Furniture Catalog
+
+- Removed the persistent furniture-search results from the Step 6 sidebar.
+  `＋ 新增家具` now opens the same catalog in a focused dialog only when needed.
+- Added a room selector to walk mode. Selecting a room places the camera at a
+  validated walkable point inside that room instead of a generic whole-home
+  position.
+- Walk mode hides door assemblies and furniture number markers, keeps
+  floor-click navigation, and prevents furniture selection, dragging, or
+  adjustment. Furniture editing remains a separate explicit mode.
+- Rejected room entry when the scene is not ready or no safe standing position
+  exists, avoiding cameras inside walls, furniture, or outside the room.
+- Restored missing white-model `sceneData` for older saved projects from the
+  authoritative `/api/scene/layout` floorplan response. A rebuild failure no
+  longer prevents the rest of the project and 2D data from loading.
+- Browser verification on project
+  `47abb48d539c46a0afd1fc1acce34add` confirmed the room selector, living-room
+  first-person view, hidden furniture controls during walk, and catalog results
+  appearing only inside the add-furniture dialog.
+- Independent Standards and Spec reviews were run against `e74c1cea`; all three
+  actionable edge cases found during review were fixed before final testing.
+- Full suite verification: 476 passed, 2 skipped.
+- No remote push was performed.

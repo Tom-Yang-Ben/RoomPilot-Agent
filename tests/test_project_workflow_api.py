@@ -631,6 +631,8 @@ def test_2d_layout_and_drag_validation_use_the_engine_with_editor_geometry() -> 
     )
 
     assert layout.status_code == 200
+    assert layout.json()["floorplan"]["room_regions"][0]["room_id"] == "living-1"
+    assert layout.json()["floorplan"]["wall_segments"]
     placed = layout.json()["scene_objects"][0]
     assert placed["placement_failed"] is False
     assert placed["position_cm"] != {"x": 0.0, "z": 0.0}

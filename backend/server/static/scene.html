@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=sha256-304e3ff94e4b" />
+    <link rel="stylesheet" href="/static/site.css?v=sha256-0aafb3f3d23b" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -574,6 +574,13 @@
                 <button type="button" data-white-interaction="walk">走動</button>
                 <button type="button" data-white-interaction="edit">編輯家具</button>
               </div>
+              <label class="rp-walk-room-picker">
+                <span>走動空間</span>
+                <select id="white-walk-room" aria-label="選擇走動空間"></select>
+              </label>
+              <button id="open-furniture-catalog" type="button" class="secondary-action">
+                ＋ 新增家具
+              </button>
             </div>
             <div id="white-model-viewer" class="rp-three-viewer" aria-label="3D 資料庫家具配置"></div>
             <p id="white-model-status" class="rp-viewer-status">正在準備資料庫家具配置。</p>
@@ -618,9 +625,6 @@
               <button id="cancel-white-model-beam" type="button" class="secondary-action" hidden>取消新增樑</button>
               <p id="white-model-beam-status" class="rp-field-hint" aria-live="polite">第 6 步只局部校正家具；門窗牆柱樑請回第 4 步修改。</p>
             </section>
-            <label><span>搜尋資料庫家具</span><input id="glb-furniture-search" type="search" placeholder="輸入家具名稱" /></label>
-            <button id="search-glb-furniture" type="button" class="secondary-action">搜尋可用 GLB</button>
-            <div id="glb-search-results" class="rp-glb-results"></div>
             <section id="furniture-property-locks" class="rp-editor-box">
               <h3>指定家具外觀</h3>
               <label><span>指定顏色（選填）</span><input id="specified-furniture-color" type="color" value="#f2f0ec" /></label>
@@ -817,6 +821,26 @@
       </div>
     </dialog>
 
+    <dialog id="furniture-catalog-drawer" class="rp-replacement-drawer">
+      <div class="rp-replacement-drawer-shell">
+        <header>
+          <div>
+            <span class="eyebrow">家具資料庫</span>
+            <h2>新增家具</h2>
+            <p>搜尋後選擇家具，再回到 3D 房間點選合法擺放位置。</p>
+          </div>
+          <button id="close-furniture-catalog" type="button" class="rp-icon-button"
+            aria-label="關閉新增家具" title="關閉">×</button>
+        </header>
+        <label class="rp-search-field">
+          <span>搜尋資料庫家具</span>
+          <input id="glb-furniture-search" type="search" placeholder="輸入家具名稱" />
+        </label>
+        <button id="search-glb-furniture" type="button" class="secondary-action">搜尋可用 GLB</button>
+        <div id="glb-search-results" class="rp-glb-results rp-catalog-results" aria-live="polite"></div>
+      </div>
+    </dialog>
+
     <div id="glb-thumbnail-viewer" class="rp-offscreen-thumbnail-viewer" aria-hidden="true"></div>
     <p id="glb-thumbnail-status" hidden aria-hidden="true"></p>
 
@@ -828,6 +852,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-94683334d9ce"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-d2353fc508e0"></script>
   </body>
 </html>

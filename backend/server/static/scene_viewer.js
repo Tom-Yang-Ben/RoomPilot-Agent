@@ -2587,6 +2587,7 @@ export function createSceneViewer(
     const visible = viewPresentation(mode).showFurniturePlanLabels;
     furnitureGroup.traverse((object) => {
       if (object.userData.roompilotPlanLabel) object.visible = visible;
+      if (object.userData.roompilotNumberMarker) object.visible = mode !== "walk";
     });
   }
 
@@ -2594,6 +2595,14 @@ export function createSceneViewer(
     roomGroup.traverse((object) => {
       if (object.userData.roompilotCirculation) {
         object.visible = mode === "topdown";
+      }
+    });
+  }
+
+  function configureOpeningsForView(mode) {
+    roomGroup.traverse((object) => {
+      if (object.userData.roompilotArchitecturalDetail === "door") {
+        object.visible = mode !== "walk";
       }
     });
   }
@@ -2608,12 +2617,14 @@ export function createSceneViewer(
     configureWallsForView(mode);
     configurePlanLabels(mode);
     configureCirculationForView(mode);
+    configureOpeningsForView(mode);
     renderer.domElement.style.cursor = mode === "walk" ? "grab" : "";
     if (mode !== "walk") {
       walkDestination = null;
       walkMarker.visible = false;
     }
     if (mode === "walk") {
+      selectWrapper(null);
       setCameraPreset("inside");
       activeCameraPreset = "walk";
       perspectiveCamera.up.set(0, 1, 0);
@@ -2685,6 +2696,46 @@ export function createSceneViewer(
     }
     onResize();
     return config;
+  }
+
+  function setWalkRoom(room = {}) {
+    if (!lastSceneData) return false;
+    const requested = sceneToWorldPosition(room.center_cm || {});
+    const polygon = (room.polygon_cm || []).map(sceneToWorldPosition);
+    const roomSize = roomGroup.userData.roomSize || {
+      widthCm: 420,
+      depthCm: 360,
+      wallHeight: 270,
+    };
+    const eyeHeight = 145;
+    const candidate = {
+      x: requested.x,
+      y: eyeHeight,
+      z: requested.z,
+    };
+    const spawn = findNearestWalkablePosition(
+      candidate,
+      roomSize,
+      (point) => (
+        (!polygon.length || pointInRing(point, polygon))
+        && walkPositionInsideFloor(point)
+        && !walkPositionBlocked(point)
+        && !walkPositionBlockedByFurniture(point)
+      ),
+    );
+    if (!spawn) {
+      setStatus(`無法進入「${room.label || "選取空間"}」：找不到可安全站立的位置。`);
+      return false;
+    }
+    setViewMode("walk");
+    perspectiveCamera.position.set(spawn.x, eyeHeight, spawn.z);
+    controls.target.set(spawn.x, 108, spawn.z - 100);
+    walkDestination = null;
+    walkMarker.visible = false;
+    setStatus(
+      `走動模式：已進入「${room.label || "選取空間"}」，門片已隱藏；點地板移動，家具不會被選取。`,
+    );
+    return true;
   }
 
   function toggleCameraLock(force) {
@@ -3332,8 +3383,6 @@ export function createSceneViewer(
       || placementRequest
     ) return;
     pointerToNdc(event);
-    dragRaycaster.setFromCamera(pointerNdc, perspectiveCamera);
-    if (pickFurnitureWrapper()) return;
     walkDestination = null;
     walkMarker.visible = false;
     const direction = controls.target.clone().sub(perspectiveCamera.position).normalize();
@@ -3760,6 +3809,10 @@ export function createSceneViewer(
       }
       event.preventDefault();
       event.stopPropagation();
+      return;
+    }
+    if (interactionMode === "walk") {
+      selectWrapper(null);
       return;
     }
     const wrapper = pickFurnitureWrapper();
@@ -4503,6 +4556,7 @@ export function createSceneViewer(
     resetCamera,
     setCameraPreset,
     setViewMode,
+    setWalkRoom,
     setInteractionMode,
     toggleCameraLock,
     capturePng,

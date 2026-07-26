@@ -2468,6 +2468,7 @@ async def scene_layout(payload: dict) -> dict:
         or _largest_region_boundary(floorplan, room)
     )
     return {
+        "floorplan": floorplan,
         "scene_objects": generate_layout(
             room.width,
             room.depth,

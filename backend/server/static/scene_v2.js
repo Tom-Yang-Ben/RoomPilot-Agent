@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-4943260a844e";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-6d9f5811e896";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
@@ -130,6 +130,7 @@ const state = {
   calibrationDragIndex: null,
   rooms: [],
   selectedRoomId: null,
+  selectedWalkRoomId: null,
   activeLayoutRoomId: "all",
   showAllRooms: true,
   spaceReviewMode: "editing",
@@ -340,6 +341,8 @@ const element = {
   replacementResults: $("#replacement-furniture-results"),
   replacementError: $("#replacement-furniture-error"),
   replacement3dStatus: $("#replacement-3d-status"),
+  catalogDrawer: $("#furniture-catalog-drawer"),
+  whiteWalkRoom: $("#white-walk-room"),
   whiteStatus: $("#white-model-status"),
   whiteError: $("#white-model-error"),
   configurationPlanPanel: $("#configuration-plan-panel"),
@@ -908,7 +911,10 @@ function showStep(step) {
   if (step === "requirements") void prepareQuestionnaireStep();
   if (step === "proposal_review") void prepareProposalReview();
   if (step === "ai_render") void prepareAiRender();
-  if (step === "white_model_3d") renderConfigurationPlan();
+  if (step === "white_model_3d") {
+    renderWhiteWalkRoomSelector();
+    renderConfigurationPlan();
+  }
   const currentPublicStep = publicWorkflowStep(step);
   const currentPublicIndex = PUBLIC_WORKFLOW_STEPS.indexOf(currentPublicStep);
   $$(".rp-progress button").forEach((button) => {
@@ -7877,8 +7883,68 @@ function loadSelectedSceneAppearance() {
   $("#lock-specified-material").checked = selected?.material_locked === true;
 }
 
+function renderWhiteWalkRoomSelector() {
+  if (!element.whiteWalkRoom) return;
+  const selectedExists = state.rooms.some(
+    (room) => String(room.id) === String(state.selectedWalkRoomId),
+  );
+  if (!selectedExists) {
+    state.selectedWalkRoomId = state.selectedRoomId || state.rooms[0]?.id || null;
+  }
+  element.whiteWalkRoom.innerHTML = state.rooms.map((room) => `
+    <option value="${escapeHtml(room.id)}">${escapeHtml(room.label || "未命名空間")}</option>
+  `).join("");
+  element.whiteWalkRoom.disabled = state.rooms.length === 0;
+  if (state.selectedWalkRoomId) element.whiteWalkRoom.value = state.selectedWalkRoomId;
+}
+
+function selectedWhiteWalkRoomPayload() {
+  const room = state.rooms.find(
+    (candidate) => String(candidate.id) === String(state.selectedWalkRoomId),
+  ) || state.rooms[0];
+  if (!room?.polygon_cm?.length) return null;
+  const center = planCenterCm();
+  const roomMiddle = roomCenter(room);
+  return {
+    id: room.id,
+    label: room.label || "未命名空間",
+    center_cm: {
+      x: roomMiddle.x - center.x,
+      z: roomMiddle.y - center.y,
+    },
+    polygon_cm: room.polygon_cm.map((point) => ({
+      x: point.x - center.x,
+      z: point.y - center.y,
+    })),
+  };
+}
+
+function activateWhiteWalkMode() {
+  renderWhiteWalkRoomSelector();
+  const room = selectedWhiteWalkRoomPayload();
+  if (!room) {
+    setStatus("目前沒有可進入的房間，請先回到第 4 步確認空間。", "error");
+    return false;
+  }
+  if (!whiteViewer.setWalkRoom(room)) {
+    setStatus("3D 場景尚未就緒，或該空間沒有可安全站立的位置。", "error");
+    return false;
+  }
+  $$("[data-view-mode]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.viewMode === "walk");
+  });
+  $$("[data-white-interaction]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.whiteInteraction === "walk");
+  });
+  return true;
+}
+
 function activateWhiteFurnitureEditing() {
+  whiteViewer.setViewMode("dollhouse");
   whiteViewer.setInteractionMode("edit");
+  $$("[data-view-mode]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.viewMode === "dollhouse");
+  });
   $$("[data-white-interaction]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.whiteInteraction === "edit");
   });
@@ -7925,6 +7991,24 @@ async function deleteSelectedSceneFurniture() {
   setStatus(
     `已刪除「${selected.name_zh_raw || selected.normalized_type || "家具"}」，其餘家具已重新編號。`,
   );
+}
+
+function setFurnitureCatalogOpen(open) {
+  if (open) {
+    activateWhiteFurnitureEditing();
+    if (typeof element.catalogDrawer.showModal === "function") {
+      element.catalogDrawer.showModal();
+    } else {
+      element.catalogDrawer.setAttribute("open", "");
+    }
+    $("#glb-furniture-search").focus();
+    return;
+  }
+  if (typeof element.catalogDrawer.close === "function") {
+    element.catalogDrawer.close();
+  } else {
+    element.catalogDrawer.removeAttribute("open");
+  }
 }
 
 async function searchGlbFurniture() {
@@ -9794,6 +9878,10 @@ function bindEvents() {
   });
   $("#confirm-layout-2d").addEventListener("click", confirmLayout2d);
   $$("[data-view-mode]").forEach((button) => button.addEventListener("click", () => {
+    if (button.dataset.viewMode === "walk") {
+      activateWhiteWalkMode();
+      return;
+    }
     $$("[data-view-mode]").forEach((item) => item.classList.toggle("is-active", item === button));
     whiteViewer.setViewMode(button.dataset.viewMode);
     $$("[data-white-interaction]").forEach((item) => {
@@ -9805,16 +9893,16 @@ function bindEvents() {
   }));
   $$("[data-white-interaction]").forEach((button) => {
     button.addEventListener("click", () => {
-      whiteViewer.setInteractionMode(button.dataset.whiteInteraction);
-      $$("[data-white-interaction]").forEach((item) => {
-        item.classList.toggle("is-active", item === button);
-      });
       if (button.dataset.whiteInteraction === "walk") {
-        $$("[data-view-mode]").forEach((item) => {
-          item.classList.toggle("is-active", item.dataset.viewMode === "walk");
-        });
+        activateWhiteWalkMode();
+      } else {
+        activateWhiteFurnitureEditing();
       }
     });
+  });
+  element.whiteWalkRoom.addEventListener("change", () => {
+    state.selectedWalkRoomId = element.whiteWalkRoom.value;
+    activateWhiteWalkMode();
   });
   $("#add-white-model-beam").addEventListener("click", () => {
     if (!goTo("space_confirmation")) return;
@@ -9954,15 +10042,27 @@ function bindEvents() {
     saveSelectedSceneAppearance();
     scheduleSave("white_model_3d");
   }));
+  $("#open-furniture-catalog").addEventListener("click", () => setFurnitureCatalogOpen(true));
+  $("#close-furniture-catalog").addEventListener("click", () => setFurnitureCatalogOpen(false));
   $("#search-glb-furniture").addEventListener("click", searchGlbFurniture);
+  $("#glb-furniture-search").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      searchGlbFurniture();
+    }
+  });
   element.glbResults.addEventListener("click", (event) => {
     const replacementButton = event.target.closest("[data-replace-furniture-id]");
     if (replacementButton) {
+      setFurnitureCatalogOpen(false);
       replaceSceneFurniture(replacementButton.dataset.replaceFurnitureId);
       return;
     }
     const addButton = event.target.closest("[data-add-furniture-id]");
-    if (addButton) addSceneFurniture(addButton.dataset.addFurnitureId);
+    if (addButton) {
+      setFurnitureCatalogOpen(false);
+      addSceneFurniture(addButton.dataset.addFurnitureId);
+    }
   });
   $("#confirm-white-model").addEventListener("click", confirmWhiteModel);
   element.styleTabs.addEventListener("pointerdown", (event) => {
@@ -10103,6 +10203,76 @@ function bindEvents() {
   });
 }
 
+async function recoverSceneDataFromSavedLayout() {
+  const sceneSteps = new Set([
+    "white_model_3d",
+    "realistic_3d",
+    "proposal_review",
+    "ai_render",
+  ]);
+  if (
+    state.sceneData
+    || !sceneSteps.has(state.workflow?.currentStep)
+  ) return false;
+  const layout = await api("/api/scene/layout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      floorplan_editor: confirmedFloorplanEditor(),
+      placement_variant: activeSchemeId(),
+      scene_objects: state.furniture2d.map((item) => toSceneFurniture(item)),
+    }),
+  });
+  const roomSurfaces = roomSurfaceAssignments();
+  state.sceneData = {
+    scene_id: `${state.projectId}-restored-${activeSchemeId()}`,
+    floorplan: layout.floorplan,
+    scene_objects: layout.scene_objects || [],
+    questionnaire: {
+      catalog_version: state.visualCatalogVersion,
+      basic: state.basicAnswers,
+      visual_preferences: resolvedVisualPreferences(),
+      finishes: state.questionnaireFinishes,
+      room_requirements: state.roomRequirementModel.roomRequirements,
+    },
+    room_requirements: state.roomRequirementModel.roomRequirements,
+    surface_overrides: roomSurfaces.map((surface) => ({
+      ...surface,
+      wall_option: surface.wall_material_id || "auto",
+      floor_option: surface.floor_material_id || "auto",
+    })),
+    design_choices: {
+      single_room_mode: false,
+      wall_option: state.questionnaireFinishes.wallMaterial || "auto",
+      wall_color_hex: state.questionnaireFinishes.wallColor || "#f2f0ec",
+      floor_option: state.questionnaireFinishes.floorMaterial || "auto",
+      floor_color_hex: state.questionnaireFinishes.floorColor || "#b99b78",
+      ceiling_material: state.questionnaireFinishes.ceilingMaterial || "flat-paint",
+      ceiling_style: state.questionnaireFinishes.ceilingStyle || "exposed",
+      ceiling_color_hex: state.questionnaireFinishes.ceilingColor || "#f4f1eb",
+      exterior_wall_option: "auto",
+      exterior_wall_color_hex: "#e7e3dc",
+    },
+    style: {
+      style_id: "white_model",
+      palette_hex: ["#f4f1ec", "#e9e6e1", "#d8d3cc", "#bcb4aa"],
+    },
+    placement_resolution_report: [],
+  };
+  state.sceneData.scene_objects.forEach((item) => {
+    state.furniture2d = upsertFurniture2dFromSceneObject(
+      state.furniture2d,
+      item,
+      furniture2dDefaultsForSceneObject(item),
+    );
+  });
+  persistActiveScheme(state.designSchemes, {
+    furniture: state.furniture2d,
+    sceneData: state.sceneData,
+  });
+  return true;
+}
+
 async function restoreProject() {
   if (!state.projectId) {
     state.workflow = null;
@@ -10110,6 +10280,7 @@ async function restoreProject() {
     return;
   }
   try {
+    let sceneRecoveryError = null;
     let result = await api(`/api/projects/${state.projectId}`);
     const pendingSave = localStorage.getItem(pendingSaveStorageKey());
     let pendingSaveDiscarded = false;
@@ -10292,6 +10463,13 @@ async function restoreProject() {
       name: state.analysis?.filename || state.workflow.data.upload?.filename || "",
     });
     await recoverConfirmedFloorplan();
+    let sceneRecoveredFromLayout = false;
+    try {
+      sceneRecoveredFromLayout = await recoverSceneDataFromSavedLayout();
+    } catch (error) {
+      sceneRecoveryError = error;
+      console.warn("Unable to rebuild saved 3D scene from layout.", error);
+    }
     hydrateSceneWallMass();
     state.sourceUrl = state.sourceExtension === ".dxf"
       ? configureDxfPreview(state.analysis)
@@ -10305,6 +10483,7 @@ async function restoreProject() {
     if (state.confirmedFloorplan && !serverState.confirmed_floorplan) {
       scheduleSave(state.workflow.currentStep);
     }
+    if (sceneRecoveredFromLayout) scheduleSave(state.workflow.currentStep);
     if (state.structureCollisionRepairs?.moved > 0) {
       scheduleSave("space_confirmation");
       setStatus(
@@ -10318,9 +10497,16 @@ async function restoreProject() {
     if (state.windowNormalizationRemoved > 0) {
       scheduleSave(state.workflow.currentStep);
     }
-    setStatus(pendingSaveDiscarded
-      ? `已恢復專案「${state.project.name}」；較舊的離線暫存未覆蓋目前版本。`
-      : `已恢復專案「${state.project.name}」。`);
+    if (sceneRecoveryError) {
+      setStatus(
+        `已恢復專案「${state.project.name}」，但 3D 場景暫時無法重建：${errorMessage(sceneRecoveryError)}`,
+        "error",
+      );
+    } else {
+      setStatus(pendingSaveDiscarded
+        ? `已恢復專案「${state.project.name}」；較舊的離線暫存未覆蓋目前版本。`
+        : `已恢復專案「${state.project.name}」。`);
+    }
   } catch (error) {
     if (state.project && state.workflow) {
       showStep(state.workflow.currentStep || state.project.current_step || "project");
