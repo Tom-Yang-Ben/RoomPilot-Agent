@@ -64,6 +64,12 @@ c1182072 feat(floorplan): add cody semantic weight contract
   - item types: 87
   - warnings: 0
 - PostgreSQL connection status: local `localhost:5432` is not reachable, so no live DB fetch has been completed yet.
+- Cleaned `.env.example` into a readable local setup template:
+  - OpenRouter can stay blank and fall back to local rules.
+  - `OPENROUTER_SITE_URL` now points to `http://127.0.0.1:8002`.
+  - `OPENROUTER_APP_NAME` now uses `roompilot`.
+  - PostgreSQL catalog import keys match the 10,550 importer: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_ADMIN_DB`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE`, `DB_CONNECT_TIMEOUT`, and `DB_APPLICATION_NAME`.
+- Added an env-template contract test so those defaults do not drift.
 
 ### Cody Room Recognition Evaluation
 
@@ -330,6 +336,28 @@ $env:TEMP=$env:TMP
   tests/test_floorplan_vision_api.py `
   tests/test_questionnaire_visual_catalog.py `
   --basetemp=.tmp\pytest -p no:cacheprovider
+```
+
+Current verification after cleaning `.env.example`:
+
+```text
+py_compile passed for:
+- tests/test_env_example_contract.py
+- scripts/sql/import_catalog_to_postgres.py
+
+4 passed, 1 skipped
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
+  tests/test_env_example_contract.py `
+  tests/test_catalog_10550_sql.py `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+
+Skipped:
+- tests/test_catalog_10550_sql.py::test_catalog_10550_postgres_connection_smoke
+  because this worktree has no local `.env` with DB_* settings yet.
 ```
 
 ## Cleanup Notes
