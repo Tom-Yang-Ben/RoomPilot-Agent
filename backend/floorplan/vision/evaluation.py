@@ -19,15 +19,25 @@ ROOM_CLASSES = (
     "outdoor",
     "space",
 )
+ROOM_LABEL_ALIASES = {
+    "living_room": "living",
+    "bathroom": "bath",
+    "bedroom": "bed",
+    "balcony": "outdoor",
+    "room": "space",
+    "default": "space",
+    "circulation": "entry",
+    "dining_room": "living",
+    "workspace": "bed",
+}
 
 
 def normalize_room_label(label: str | None) -> str:
     """Normalize Cody/CubiCasa room labels into the shared scoring classes."""
-    if label in (None, "", "room", "default"):
+    if label in (None, ""):
         return "space"
-    if label == "balcony":
-        return "outdoor"
-    return str(label)
+    text = str(label)
+    return ROOM_LABEL_ALIASES.get(text, text)
 
 
 def match_room_masks(
@@ -143,4 +153,131 @@ def summarize_room_recognition(
         "iou_threshold": iou_threshold,
         "confusion": confusion,
         "per_class": per_class,
+    }
+
+
+def _room_label(room: Mapping[str, Any]) -> str | None:
+    return (
+        room.get("room_type")
+        or room.get("type")
+        or room.get("label")
+    )
+
+
+def _room_polygon(room: Mapping[str, Any]) -> list[Mapping[str, Any]] | None:
+    for key in ("polygon_cm", "polygon_m", "polygon"):
+        polygon = room.get(key)
+        if isinstance(polygon, list) and len(polygon) >= 3:
+            return polygon
+    return None
+
+
+def _polygon_mask(
+    polygon: Sequence[Mapping[str, Any]],
+    *,
+    min_x: float,
+    max_y: float,
+    pixels_per_unit: float,
+    width: int,
+    height: int,
+) -> np.ndarray:
+    points = np.array(
+        [
+            [
+                round((float(point["x"]) - min_x) * pixels_per_unit),
+                round((max_y - float(point["y"])) * pixels_per_unit),
+            ]
+            for point in polygon
+        ],
+        dtype=np.int32,
+    )
+    mask = np.zeros((height, width), dtype=np.uint8)
+    import cv2
+
+    cv2.fillPoly(mask, [points], 1)
+    return mask.astype(bool)
+
+
+def rooms_with_polygon_masks(
+    rooms: Sequence[Mapping[str, Any]],
+    *,
+    bounds: tuple[float, float, float, float],
+    pixels_per_unit: float,
+    width: int,
+    height: int,
+) -> list[dict[str, Any]]:
+    """Convert room polygons into labelled masks for Cody-style evaluation."""
+    min_x, _min_y, _max_x, max_y = bounds
+    masked_rooms: list[dict[str, Any]] = []
+    for room in rooms:
+        polygon = _room_polygon(room)
+        if polygon is None:
+            continue
+        masked_rooms.append(
+            {
+                "label": _room_label(room),
+                "mask": _polygon_mask(
+                    polygon,
+                    min_x=min_x,
+                    max_y=max_y,
+                    pixels_per_unit=pixels_per_unit,
+                    width=width,
+                    height=height,
+                ),
+            }
+        )
+    return masked_rooms
+
+
+def summarize_room_polygons(
+    reference_rooms: Sequence[Mapping[str, Any]],
+    predicted_rooms: Sequence[Mapping[str, Any]],
+    *,
+    iou_threshold: float = 0.5,
+) -> dict[str, Any]:
+    """Evaluate labelled room polygons without requiring Cody mask artifacts."""
+    polygons = [
+        polygon
+        for room in [*reference_rooms, *predicted_rooms]
+        if (polygon := _room_polygon(room)) is not None
+    ]
+    if not polygons:
+        return {
+            "available": False,
+            "reason": "missing_room_polygons",
+        }
+
+    xs = [float(point["x"]) for polygon in polygons for point in polygon]
+    ys = [float(point["y"]) for polygon in polygons for point in polygon]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    longest = max(max_x - min_x, max_y - min_y, 1.0)
+    pixels_per_unit = min(24.0, max(1.0, 768.0 / longest))
+    width = max(8, int(round((max_x - min_x) * pixels_per_unit)) + 3)
+    height = max(8, int(round((max_y - min_y) * pixels_per_unit)) + 3)
+    bounds = (min_x, min_y, max_x, max_y)
+    reference = rooms_with_polygon_masks(
+        reference_rooms,
+        bounds=bounds,
+        pixels_per_unit=pixels_per_unit,
+        width=width,
+        height=height,
+    )
+    predicted = rooms_with_polygon_masks(
+        predicted_rooms,
+        bounds=bounds,
+        pixels_per_unit=pixels_per_unit,
+        width=width,
+        height=height,
+    )
+    summary = summarize_room_recognition(
+        reference,
+        predicted,
+        iou_threshold=iou_threshold,
+    )
+    return {
+        "available": True,
+        "basis": "room_polygon_iou",
+        "raster_size_px": {"width": width, "height": height},
+        **summary,
     }

@@ -9,6 +9,7 @@ from backend.floorplan.vision.evaluation import (
     normalize_room_label,
     summarize_room_recognition,
 )
+from backend.floorplan.vision import analyze_floorplan_image
 
 
 def _mask(
@@ -74,3 +75,42 @@ def test_room_recognition_summary_reports_cody_v5_metrics_shape():
     assert summary["per_class"]["bed"] == {"gt": 1, "precision": 1.0, "recall": 1.0}
     assert summary["per_class"]["outdoor"]["recall"] == 0.0
     assert summary["confusion"]["outdoor"]["space"] == 1
+
+
+def test_floorplan_analysis_can_attach_room_evaluation_debug_report():
+    image = np.full((120, 160, 3), 255, dtype=np.uint8)
+    import cv2
+
+    ok, encoded = cv2.imencode(".png", image)
+    assert ok
+
+    reference_rooms = [
+        {
+            "room_type": "living_room",
+            "polygon_cm": [
+                {"x": 0, "y": 0},
+                {"x": 160, "y": 0},
+                {"x": 160, "y": 120},
+                {"x": 0, "y": 120},
+            ],
+        }
+    ]
+    analysis = analyze_floorplan_image(
+        encoded.tobytes(),
+        calibration_hint={"distance_cm": 160, "start_px": [0, 0], "end_px": [160, 0]},
+        ocr_observations=[
+            {"text": "\u5ba2\u5ef3", "bbox": [65, 50, 95, 70], "confidence": 0.99}
+        ],
+        geometry_observations=[
+            {"kind": "wall", "start_px": [0, 0], "end_px": [160, 0], "confidence": 1},
+            {"kind": "wall", "start_px": [160, 0], "end_px": [160, 120], "confidence": 1},
+            {"kind": "wall", "start_px": [160, 120], "end_px": [0, 120], "confidence": 1},
+            {"kind": "wall", "start_px": [0, 120], "end_px": [0, 0], "confidence": 1},
+        ],
+        evaluation_reference_rooms=reference_rooms,
+    )
+
+    assert analysis["room_evaluation"]["available"] is True
+    assert analysis["room_evaluation"]["basis"] == "room_polygon_iou"
+    assert analysis["room_evaluation"]["matched"] == 1
+    assert analysis["room_evaluation"]["per_class"]["living"]["recall"] == 1.0

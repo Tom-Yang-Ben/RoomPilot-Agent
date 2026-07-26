@@ -16,6 +16,7 @@ import numpy as np
 
 from ..cody_adapter import recognize_cody_geometry
 from .cody_semantic import cody_semantic_room_labeler_status
+from .evaluation import summarize_room_polygons
 from .geometry import transform_confirmed_geometry
 from .image import decode_image
 from .reference_plan import match_builder_plan_630
@@ -228,6 +229,7 @@ def analyze_floorplan_image(
     ocr_observations: Iterable[Mapping[str, Any]] | None = None,
     ocr_provider: Any | None = None,
     geometry_observations: Iterable[Mapping[str, Any]] | None = None,
+    evaluation_reference_rooms: Iterable[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """分析建商平面圖；不確定的尺度必須透過 confirmation seam 補齊。"""
     image = decode_image(image_bytes)
@@ -423,4 +425,10 @@ def analyze_floorplan_image(
         if "targeted_room_review_required" not in result["issues"]:
             result["issues"].append("targeted_room_review_required")
         result["requires_confirmation"] = True
-    return canonicalize_analysis_cm(result)
+    canonical = canonicalize_analysis_cm(result)
+    if evaluation_reference_rooms is not None:
+        canonical["room_evaluation"] = summarize_room_polygons(
+            list(evaluation_reference_rooms),
+            canonical["spatial_report"]["rooms"],
+        )
+    return canonical
