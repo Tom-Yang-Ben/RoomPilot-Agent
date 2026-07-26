@@ -779,3 +779,24 @@ $env:TEMP=$env:TMP
   so they correctly use the GLB fallback path.
 - Full suite verification: 467 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Editable Proxies for Unavailable Furniture Models
+
+- Distinguished database GLB load failures from geometric placement failures
+  in the Step 6 pending-furniture workflow.
+- Furniture whose GLB is missing or inaccessible now remains visible at its
+  assigned position as a translucent orange, correctly sized warning proxy.
+- Warning proxies keep the original scene object identity, pick target, and
+  transform controls, so users can locate and move them in the 3D room without
+  mistaking them for successfully loaded catalog furniture.
+- Kept model failures in viewer diagnostics and blocked Step 7 until the user
+  replaces the unavailable furniture with a loadable catalog item.
+- Model failures now offer `更換家具`; only geometric placement failures offer
+  `只重排此家具`.
+- Fixed the pending-list `定位` action so it only focuses the 3D object instead
+  of also opening the replacement dialog.
+- Browser verification on project
+  `47abb48d539c46a0afd1fc1acce34add` confirmed warning proxies for furniture 4
+  and 13, 3D-only locate behavior, and the separate replacement dialog action.
+- Full suite verification: 468 passed, 2 skipped.
+- No remote push was performed.

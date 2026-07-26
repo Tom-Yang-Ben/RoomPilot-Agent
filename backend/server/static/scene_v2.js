@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-6f6d839c25f6";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-4943260a844e";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
@@ -6552,16 +6552,20 @@ function renderConfigurationPlan() {
     const reason = modelFailures.get(furnitureKey)
       || item.placementReason
       || "家具碰撞、超出房間或淨空不足。";
+    const modelFailed = modelFailures.has(furnitureKey);
     const reflowing = configurationReflowInFlight.has(furnitureKey);
     const reflowLocked = configurationReflowInFlight.size > 0;
+    const repairAction = modelFailed
+      ? `<button type="button" data-replace-configuration-furniture="${escapeHtml(item.id)}">更換家具</button>`
+      : `<button type="button" data-reflow-configuration-furniture="${escapeHtml(item.id)}"
+          ${reflowLocked ? "disabled" : ""}>${reflowing ? "重新配置中…" : "只重排此家具"}</button>`;
     return `
       <div class="rp-configuration-pending-item">
         <b>${furnitureNumber}</b>
         <span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(reason)}</small></span>
         <div>
           <button type="button" data-select-configuration-furniture="${escapeHtml(item.id)}">定位</button>
-          <button type="button" data-reflow-configuration-furniture="${escapeHtml(item.id)}"
-            ${reflowLocked ? "disabled" : ""}>${reflowing ? "重新配置中…" : "只重排此家具"}</button>
+          ${repairAction}
         </div>
       </div>
     `;
@@ -9314,8 +9318,9 @@ function bindEvents() {
     const button = event.target.closest("[data-select-configuration-furniture]");
     if (!button) return;
     const fromPlan = event.currentTarget === element.configurationPlanLayer;
+    const fromFurnitureList = event.currentTarget === element.configurationPlanFurnitureList;
     state.selectedFurniture2dId = button.dataset.selectConfigurationFurniture;
-    if (!fromPlan) void openFurnitureReplacement();
+    if (fromFurnitureList) void openFurnitureReplacement();
     renderLayoutFurniture();
     renderConfigurationPlan();
     const focused = syncSelected2dFurnitureToScene({ focus: true });
@@ -9336,6 +9341,15 @@ function bindEvents() {
     selectConfigurationFurniture,
   );
   element.configurationPendingList.addEventListener("click", (event) => {
+    const replaceButton = event.target.closest("[data-replace-configuration-furniture]");
+    if (replaceButton) {
+      state.selectedFurniture2dId = replaceButton.dataset.replaceConfigurationFurniture;
+      renderLayoutFurniture();
+      renderConfigurationPlan();
+      syncSelected2dFurnitureToScene({ focus: true });
+      void openFurnitureReplacement();
+      return;
+    }
     const reflowButton = event.target.closest("[data-reflow-configuration-furniture]");
     if (reflowButton) {
       void reflowSingleConfigurationFurniture(

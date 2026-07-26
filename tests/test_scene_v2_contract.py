@@ -718,7 +718,10 @@ def test_configuration_markers_focus_3d_and_use_visible_selected_numbers() -> No
     )[0]
 
     assert "event.currentTarget === element.configurationPlanLayer" in handler
-    assert "if (!fromPlan) void openFurnitureReplacement()" in handler
+    assert (
+        "event.currentTarget === element.configurationPlanFurnitureList" in handler
+    )
+    assert "if (fromFurnitureList) void openFurnitureReplacement()" in handler
     assert "syncSelected2dFurnitureToScene({ focus: true })" in handler
     assert "已在 3D 定位家具" in handler
     assert ".rp-configuration-furniture.is-active b" in css
@@ -2102,13 +2105,19 @@ def test_ceiling_and_light_choices_create_distinct_three_geometry() -> None:
     assert "keyLight.shadow.mapSize.set(shadowMapSize, shadowMapSize)" in viewer
 
 
-def test_viewer_reports_missing_glbs_without_rendering_white_fallbacks() -> None:
+def test_viewer_keeps_missing_glbs_editable_without_pretending_the_proxy_is_valid() -> None:
     source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     load_scene = source.split("async function loadScene", 1)[1].split(
         "let lastSceneData", 1
     )[0]
-    assert "createFallbackFurnitureProxy(item, index, reason)" not in load_scene
+    assert "createFallbackFurnitureProxy(" in load_scene
+    assert '"資料庫尚未提供 GLB"' in load_scene
+    assert '"GLB 載入失敗，請更換家具或檢查資料庫模型權限"' in load_scene
+    assert "wrapper.userData.modelLoadFailed = true" in source
+    assert "wrapper.userData.sceneObject = item" in source
+    assert "addFurniturePickProxy(wrapper, item)" in source
+    assert "wrapper?.userData.modelLoadFailed === true" in load_scene
     assert "if (item.placement_failed)" in source
     assert "家具位置無法通過碰撞與淨空檢查" in source
     assert "visibleFurnitureCount" in source
@@ -2118,6 +2127,27 @@ def test_viewer_reports_missing_glbs_without_rendering_white_fallbacks() -> None
     assert "controls.enableZoom = true" in source
     assert "getDiagnostics" in source
     assert "selectObjectByIndex" in source
+
+
+def test_configuration_pending_actions_distinguish_model_and_placement_failures() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    pending = source.split(
+        "element.configurationPendingList.innerHTML = blocking.map", 1
+    )[1].split("const confirmButton", 1)[0]
+    handlers = source.split(
+        'element.configurationPendingList.addEventListener("click"', 1
+    )[1].split(
+        'element.configurationPlanImage.addEventListener("load"', 1
+    )[0]
+
+    assert "modelFailures.has(furnitureKey)" in pending
+    assert 'data-replace-configuration-furniture="' in pending
+    assert "更換家具" in pending
+    assert 'data-reflow-configuration-furniture="' in pending
+    assert "只重排此家具" in pending
+    assert 'closest("[data-replace-configuration-furniture]")' in handlers
+    assert "void openFurnitureReplacement()" in handlers
 
 
 def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_editing() -> None:

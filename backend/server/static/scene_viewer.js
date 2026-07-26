@@ -2975,10 +2975,10 @@ export function createSceneViewer(
     const height = Math.max(Number(item.size_cm?.height || 80), 25);
     const wrapper = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({
-      color: item.material_override?.color
-        || lastSceneData?.style_card?.palette_hex?.[2]
-        || 0xf4f1ec,
-      roughness: item.material_override?.pbr?.fabricRoughness || 0.84,
+      color: 0xd97706,
+      transparent: true,
+      opacity: 0.38,
+      roughness: 0.78,
       metalness: 0,
     });
     const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
@@ -2989,7 +2989,7 @@ export function createSceneViewer(
 
     const outline = new THREE.LineSegments(
       new THREE.EdgesGeometry(body.geometry),
-      new THREE.LineBasicMaterial({ color: 0x8b6b52, transparent: true, opacity: 0.72 }),
+      new THREE.LineBasicMaterial({ color: 0x9a3412, transparent: true, opacity: 0.95 }),
     );
     outline.position.copy(body.position);
     wrapper.add(outline);
@@ -3003,6 +3003,7 @@ export function createSceneViewer(
     wrapper.userData.sceneObject = item;
     wrapper.userData.fallbackFurniture = true;
     wrapper.userData.fallbackReason = reason;
+    wrapper.userData.modelLoadFailed = true;
     addFurnitureContactShadow(wrapper, item.size_cm || {});
     addFurniturePickProxy(wrapper, item);
 
@@ -3049,6 +3050,7 @@ export function createSceneViewer(
         }
         if (!item.model_url) {
           failures.push(`${item.name_zh_raw || item.normalized_type} 無模型`);
+          createFallbackFurnitureProxy(item, index, "資料庫尚未提供 GLB");
           return;
         }
 
@@ -3094,15 +3096,27 @@ export function createSceneViewer(
         } catch (error) {
           console.error(error);
           failures.push(item.name_zh_raw || item.normalized_type || "未知家具");
+          createFallbackFurnitureProxy(
+            item,
+            index,
+            "GLB 載入失敗，請更換家具或檢查資料庫模型權限",
+          );
         }
       })
     );
 
     objects.forEach((item, index) => {
-      const visible = furnitureGroup.children.some(
+      const wrapper = furnitureGroup.children.find(
         (wrapper) => wrapper.userData.sceneObject === item,
       );
-      if (visible) return;
+      if (wrapper?.userData.modelLoadFailed === true) {
+        lastDiagnostics.failedFurniture.push({
+          id: item.furniture_id,
+          reason: wrapper.userData.fallbackReason,
+        });
+        return;
+      }
+      if (wrapper) return;
       if (item.placement_failed) {
         lastDiagnostics.failedFurniture.push({
           id: item.furniture_id,
