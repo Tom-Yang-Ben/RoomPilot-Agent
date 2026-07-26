@@ -4481,6 +4481,14 @@ const TEST_AIR_CONDITIONING_OPTIONS = Object.freeze([
   "none",
 ]);
 
+const PREFERENCE_WEIGHT_OPTIONS = Object.freeze([
+  { value: -2, label: "強偏 A" },
+  { value: -1, label: "偏 A" },
+  { value: 0, label: "平衡" },
+  { value: 1, label: "偏 B" },
+  { value: 2, label: "強偏 B" },
+]);
+
 function randomItem(items, fallback = null) {
   const candidates = (items || []).filter(Boolean);
   if (!candidates.length) return fallback;
@@ -4497,12 +4505,23 @@ function randomWholeHouseAnswers() {
 
 function randomAnswerForQuestion(question) {
   const useBalanced = question.allow_both === true && Math.random() < 0.18;
-  if (useBalanced) return { optionId: "both", custom: "測試隨機：兩端需求都要保留，交給配置時依房間尺寸取捨。" };
+  if (useBalanced) {
+    return {
+      optionId: "both",
+      custom: "測試隨機：兩端需求都要保留，交給配置時依房間尺寸取捨。",
+      preferenceWeight: 0,
+      preferenceDirection: "balanced",
+    };
+  }
   const option = randomItem(question.options, question.options?.[0]);
+  const optionIndex = Math.max(0, question.options?.indexOf(option) ?? 0);
+  const preferenceWeight = optionIndex === 0 ? randomItem([-2, -1], -2) : randomItem([1, 2], 2);
   return {
     optionId: option?.option_id || "",
     custom: randomItem(TEST_REQUIREMENT_PROFILE_NOTES, ""),
     forcePlacement: true,
+    preferenceWeight,
+    preferenceDirection: preferenceWeight < 0 ? "a" : "b",
   };
 }
 
@@ -4765,6 +4784,33 @@ function visualQuestionAt(index = state.visualQuestionIndex) {
   return state.visualQuestions[index] || null;
 }
 
+function answerWeightDirection(weight) {
+  if (Number(weight) < 0) return "a";
+  if (Number(weight) > 0) return "b";
+  return "balanced";
+}
+
+function weightedOptionId(question, weight, currentOptionId = "") {
+  if (!question?.options?.length) return currentOptionId;
+  if (Number(weight) < 0) return question.options[0]?.option_id || currentOptionId;
+  if (Number(weight) > 0) return question.options[1]?.option_id || currentOptionId;
+  return question.allow_both ? "both" : (currentOptionId || question.options[0]?.option_id || "");
+}
+
+function preferenceWeightFromOption(question, optionId, fallback = null) {
+  if (Number.isFinite(Number(fallback))) return Number(fallback);
+  if (!question?.options?.length) return 0;
+  if (optionId === "both") return 0;
+  const index = question.options.findIndex((option) => option.option_id === optionId);
+  if (index === 0) return -2;
+  if (index === 1) return 2;
+  return 0;
+}
+
+function preferenceWeightLabel(weight) {
+  return PREFERENCE_WEIGHT_OPTIONS.find((item) => item.value === Number(weight))?.label || "";
+}
+
 function firstPendingQuestionIndex(roomId) {
   const roomQuestionIndexes = state.visualQuestions
     .map((question, index) => ({ question, index }))
@@ -4789,6 +4835,9 @@ function resolvedVisualPreferences(questions = state.visualQuestions) {
       custom: answer.custom || "",
       special_request: answer.specialRequest === true,
       force_placement: answer.forcePlacement !== false,
+      preference_weight: Number(answer.preferenceWeight ?? 0),
+      preference_direction: answer.preferenceDirection
+        || answerWeightDirection(answer.preferenceWeight),
       engine_effects: answer.forcePlacement === false ? {} : (option?.engine_effects || {}),
     }];
   });
@@ -4931,6 +4980,13 @@ function renderVisualQuestionnaire() {
   const answer = state.visualAnswers[question.question_id] || {};
   const room = activeQuestionnaireRoom();
   const blockedOptions = [];
+  const canWeightPreference = question.options.length === 2
+    && (question.selection_rule === "weighted" || question.allow_both === true);
+  const activeWeight = preferenceWeightFromOption(
+    question,
+    answer.optionId,
+    answer.preferenceWeight,
+  );
   const optionMarkup = question.options.flatMap((option) => {
     const conditionalId = conditionalOptionId(option);
     const feasibility = conditionalId
@@ -4974,6 +5030,17 @@ function renderVisualQuestionnaire() {
       <button type="button" class="rp-visual-balance ${answer.optionId === "both" ? "is-selected" : ""}"
         data-visual-option="both" aria-pressed="${answer.optionId === "both"}">兩者平衡／依補充條件調整</button>
     ` : ""}
+    ${canWeightPreference ? `
+      <div class="rp-preference-weight" role="group" aria-label="偏重選項">
+        <span>${escapeHtml(question.options[0]?.label_zh || "A")}</span>
+        ${PREFERENCE_WEIGHT_OPTIONS.map((item) => `
+          <button type="button" data-preference-weight="${item.value}"
+            class="${activeWeight === item.value ? "is-active" : ""}"
+            aria-pressed="${activeWeight === item.value}">${escapeHtml(item.label)}</button>
+        `).join("")}
+        <span>${escapeHtml(question.options[1]?.label_zh || "B")}</span>
+      </div>
+    ` : ""}
   `;
   element.visualCustomAnswer.placeholder = question.custom_input_example_zh || "";
   element.visualCustomAnswer.value = answer.custom || "";
@@ -5001,9 +5068,11 @@ function selectVisualOption(optionId, {
   specialRequest = false,
   forcePlacement = true,
   custom = element.visualCustomAnswer.value.trim(),
+  preferenceWeight = null,
 } = {}) {
   const question = visualQuestionAt();
   if (!question) return;
+  const weight = preferenceWeightFromOption(question, optionId, preferenceWeight);
   state.skippedVisualSpaceTypes = state.skippedVisualSpaceTypes.filter(
     (spaceType) => spaceType !== question.space_type,
   );
@@ -5012,10 +5081,26 @@ function selectVisualOption(optionId, {
     custom,
     specialRequest,
     forcePlacement,
+    preferenceWeight: weight,
+    preferenceDirection: answerWeightDirection(weight),
   };
   renderVisualQuestionnaire();
   invalidateDownstreamFrom("requirements", "視覺偏好已修改，2D 家具與 3D 需要重新產生。");
   scheduleSave("requirements");
+}
+
+function selectPreferenceWeight(weight) {
+  const question = visualQuestionAt();
+  if (!question) return;
+  const parsed = Number(weight);
+  if (!Number.isFinite(parsed)) return;
+  const previous = state.visualAnswers[question.question_id] || {};
+  const optionId = weightedOptionId(question, parsed, previous.optionId);
+  selectVisualOption(optionId, {
+    ...previous,
+    custom: element.visualCustomAnswer.value.trim(),
+    preferenceWeight: parsed,
+  });
 }
 
 function moveVisualQuestion(offset) {
@@ -5426,7 +5511,12 @@ function renderQuestionnaireSummary() {
       const option = question?.options.find(
         (candidate) => candidate.option_id === answer.optionId,
       );
-      return `<li><span>${escapeHtml(question?.title_zh || questionId)}</span><strong>${escapeHtml(option?.label_zh || answer.optionId || "未填")}</strong></li>`;
+      const weightLabel = preferenceWeightLabel(answer.preferenceWeight);
+      const answerLabel = [
+        option?.label_zh || answer.optionId || "未填",
+        weightLabel,
+      ].filter(Boolean).join(" / ");
+      return `<li><span>${escapeHtml(question?.title_zh || questionId)}</span><strong>${escapeHtml(answerLabel)}</strong></li>`;
     }).join("");
     const surfaces = requirement?.surfaces || {};
     const notices = (requirement?.feasibility || []).map(
@@ -8117,6 +8207,11 @@ function bindEvents() {
     }
   });
   element.visualQuestionCard.addEventListener("click", (event) => {
+    const preferenceWeight = event.target.closest("[data-preference-weight]");
+    if (preferenceWeight) {
+      selectPreferenceWeight(preferenceWeight.dataset.preferenceWeight);
+      return;
+    }
     const special = event.target.closest("[data-keep-special-request]");
     if (special) {
       const label = special.dataset.keepSpecialRequest;

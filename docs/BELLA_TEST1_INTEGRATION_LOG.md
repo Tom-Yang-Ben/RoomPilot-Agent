@@ -407,4 +407,8 @@ $env:TEMP=$env:TMP
   - `roomRequirementModel.roomRequirements[*]` with confirmed room requirements
 - Added room-type polar axes for test data generation:
   - living room, bedroom, dining room, kitchen, bathroom, workspace, balcony, entry, default
+- Added weighted A/B preference fields for questionnaire answers:
+  - frontend control: strong A, A, balanced, B, strong B
+  - stored answer fields: `preferenceWeight`, `preferenceDirection`
+  - RAG payload fields: `preference_weight`, `preference_direction`
 - This is a local frontend/testing helper only. It does not change the DB/PostgreSQL work, and no remote push was performed.

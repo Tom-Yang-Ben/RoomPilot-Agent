@@ -36,6 +36,20 @@ def test_requirements_step_has_randomized_test_skip_button() -> None:
     assert 'showQuestionnaireStage("summary")' in source
 
 
+def test_weighted_questionnaire_answers_preserve_a_b_preference_strength() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert "PREFERENCE_WEIGHT_OPTIONS" in source
+    assert 'data-preference-weight="${item.value}"' in source
+    assert "function selectPreferenceWeight" in source
+    assert "preferenceWeight: weight" in source
+    assert "preferenceDirection: answerWeightDirection(weight)" in source
+    assert "preference_weight: Number(answer.preferenceWeight ?? 0)" in source
+    assert "preference_direction: answer.preferenceDirection" in source
+    assert ".rp-preference-weight" in css
+
+
 def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     dependency_edges = {
         "scene_v2.js": [
