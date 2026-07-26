@@ -19,9 +19,12 @@ def _space_heading_html(html: str) -> str:
 def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     bundle = (STATIC / "scene_v2.js").read_bytes()
-    expected = hashlib.sha256(bundle).hexdigest()[:12]
+    css = (STATIC / "site.css").read_bytes()
+    expected_bundle = hashlib.sha256(bundle).hexdigest()[:12]
+    expected_css = hashlib.sha256(css).hexdigest()[:12]
 
-    assert f'src="/static/scene_v2.js?v=sha256-{expected}"' in html
+    assert f'src="/static/scene_v2.js?v=sha256-{expected_bundle}"' in html
+    assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
 
 
 def test_requirements_step_has_randomized_test_skip_button() -> None:
@@ -75,6 +78,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_window_types.js",
             "scene_design_schemes.js",
             "scene_questionnaire_test2.js",
+            "scene_configuration_sync.js",
         ],
         "scene_viewer.js": [
             "scene_architecture.js",
@@ -542,6 +546,9 @@ def test_scene_sidebar_numbers_match_viewer_markers() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'class="rp-object-number">#${index + 1}' in source
+    assert "function configurationFurnitureNumber" in source
+    assert "const furnitureNumber = configurationFurnitureNumber(item, index)" in source
+    assert "const furnitureNumber = configurationFurnitureNumber(item)" in source
     assert '"bed-frame": "雙人床"' in source
     assert '"floor-lamp": "落地燈"' in source
     assert '"large-medium-rug": "地毯"' in source
@@ -568,15 +575,18 @@ def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> Non
         "3 確定尺寸",
         "4 空間與結構",
         "5 需求問卷",
-        "6 2D 家具配置",
-        "7 3D 白模",
-        "8 即時寫實",
-        "9 方案鎖定",
-        "10 AI 渲染",
+        "6 配置與預覽",
+        "7 方案鎖定與視角",
+        "8 AI 渲染與成果包",
     ):
         assert label in html
 
-    assert 'data-workflow-count="10"' in html
+    assert 'data-workflow-count="8"' in html
+    assert html.count('data-step="') == 8
+    assert "7 3D 白模" not in html
+    assert "8 即時寫實" not in html
+    assert "9 方案鎖定" not in html
+    assert "10 AI 渲染" not in html
     assert "3–4" not in html
     assert 'accept=".dxf,.png,.jpg,.jpeg,image/png,image/jpeg,application/dxf"' in html
     assert 'id="project-step"' in html
@@ -588,6 +598,35 @@ def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> Non
     assert 'id="white-model-3d-step"' in html
     assert 'id="realistic-3d-step"' in html
     assert 'id="basic-profile-panel"' not in html
+
+
+def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    white_model = html.split('id="white-model-3d-step"', 1)[1].split(
+        'id="realistic-3d-step"', 1
+    )[0]
+    assert 'id="configuration-plan-panel"' in white_model
+    assert 'id="configuration-plan-toggle"' in white_model
+    assert 'id="configuration-plan-image"' in white_model
+    assert 'id="configuration-plan-furniture-layer"' in white_model
+    assert 'id="configuration-plan-furniture-list"' in white_model
+    assert 'id="configuration-pending-list"' in white_model
+    assert "尚有未處理家具時不能進入下一步" in white_model
+
+    assert "function renderConfigurationPlan" in source
+    assert "function configurationBlockingFurniture" in source
+    assert "renderConfigurationPlan();" in source
+    assert "confirmButton.disabled = blocking.length > 0" in source
+    assert "請先從 2D 待處理清單定位修正" in source
+    assert "function reflowSingleConfigurationFurniture" in source
+    assert "只重排此家具" in source
+    assert "syncOverlayToImage(" in source
+    assert "element.configurationPlanStage" in source
+    assert ".rp-configuration-plan" in css
+    assert ".is-collapsed" in css
 
 
 def test_2d_furniture_library_has_top_view_icons_and_real_centimetre_sizes() -> None:
@@ -658,6 +697,9 @@ def test_2d_furniture_selection_syncs_to_matching_3d_scene_object() -> None:
 def test_3d_scene_selection_syncs_back_to_2d_furniture_state() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    object_list_handler = controller.split("const selectSceneObject =", 1)[1].split(
+        "element.objectList.addEventListener", 1
+    )[0]
 
     assert "onObjectSelect = null" in viewer
     assert "onObjectSelect(selectedWrapper?.userData?.sceneObject || null, lastSceneData)" in viewer
@@ -666,6 +708,94 @@ def test_3d_scene_selection_syncs_back_to_2d_furniture_state() -> None:
     assert "String(candidate.id) === String(furnitureId)" in controller
     assert "state.selectedFurniture2dId = item.id" in controller
     assert "onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item)" in controller
+    assert "syncSceneSelectionTo2dFurniture" in object_list_handler
+
+
+def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects() -> None:
+    module_uri = (STATIC / "scene_configuration_sync.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{
+          removeFurniture2dBySceneObject,
+          upsertFurniture2dFromSceneObject,
+        }} from {json.dumps(module_uri)};
+
+        const initial = [{{
+          id: "chair-1",
+          label: "餐椅",
+          roomId: "dining",
+          xCm: 10,
+          yCm: 20,
+          widthCm: 45,
+          depthCm: 48,
+        }}];
+        const moved = upsertFurniture2dFromSceneObject(initial, {{
+          furniture_id: "chair-1",
+          normalized_type: "dining-chair",
+          name_zh_raw: "新餐椅",
+          catalog_furniture_id: "catalog-chair",
+          model_url: "/chair.glb",
+          position_cm: {{ x: 35, z: 45 }},
+          rotation_y_deg: 90,
+          size_cm: {{ width: 50, depth: 52, height: 82 }},
+        }});
+        const added = upsertFurniture2dFromSceneObject(moved, {{
+          furniture_id: "sofa-1",
+          normalized_type: "sofa",
+          name_zh_raw: "三人沙發",
+          position_cm: {{ x: 100, z: 120 }},
+          size_cm: {{ width: 210, depth: 90, height: 85 }},
+        }}, {{ roomId: "living", iconPath: "M0 0h48v48H0z" }});
+        const failed = upsertFurniture2dFromSceneObject(added, {{
+          furniture_id: "sofa-1",
+          normalized_type: "sofa",
+          name_zh_raw: "三人沙發",
+          position_cm: {{ x: 100, z: 120 }},
+          size_cm: {{ width: 210, depth: 90, height: 85 }},
+          placement_failed: true,
+          placement_reason: "與牆面碰撞",
+        }});
+        const removed = removeFurniture2dBySceneObject(failed, {{ furniture_id: "chair-1" }});
+        console.log(JSON.stringify({{ moved, added, failed, removed }}));
+        """
+    )
+
+    assert result["moved"][0]["label"] == "新餐椅"
+    assert result["moved"][0]["roomId"] == "dining"
+    assert result["moved"][0]["xCm"] == 35
+    assert result["moved"][0]["yCm"] == 45
+    assert result["moved"][0]["rotationDeg"] == 90
+    assert result["moved"][0]["catalogFurnitureId"] == "catalog-chair"
+    assert len(result["added"]) == 2
+    assert result["added"][1]["id"] == "sofa-1"
+    assert result["added"][1]["roomId"] == "living"
+    assert result["failed"][1]["placementFailed"] is True
+    assert result["failed"][1]["placementReason"] == "與牆面碰撞"
+    assert [item["id"] for item in result["removed"]] == ["sofa-1"]
+
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    assert controller.count("upsertFurniture2dFromSceneObject(") >= 4
+    assert "removeFurniture2dBySceneObject(" in controller
+    assert "furniture2dDefaultsForSceneObject" in controller
+    assert "syncFinalValidationToConfiguration" in controller
+
+
+def test_step_six_progress_entry_prefers_the_integrated_3d_workspace() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'if (step === "layout_2d")' in source
+    assert 'state.workflow?.canEnter("white_model_3d")' in source
+    assert 'goTo("white_model_3d")' in source
+
+
+def test_single_furniture_reflow_is_locked_until_the_request_finishes() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "configurationReflowInFlight.has(furnitureKey)" in source
+    assert "configurationReflowInFlight.add(furnitureKey)" in source
+    assert "configurationReflowInFlight.delete(furnitureKey)" in source
+    assert "finally {" in source
+    assert "reflowLocked ? \"disabled\"" in source
 
 
 def test_3d_viewer_flips_scene_z_at_the_visual_boundary_only() -> None:
@@ -1250,7 +1380,7 @@ def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> Non
     assert "function finishBeamCreateDrag(" in source
     assert 'showStep("space_confirmation")' in source
     assert 'setActiveStructureKind("beam")' in source
-    assert "第 7 步只編輯家具" in html
+    assert "第 6 步只局部校正家具" in html
     assert "返回第 4 步修改樑" in html
     assert "function beginBeamPlacement(" in viewer
     assert "beamPlacementRequest" in viewer
@@ -1908,19 +2038,20 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert "Shift+R 反向 15 度" in viewer
 
 
-def test_3d_view_controls_use_perspective_free_rotation_instead_of_dollhouse() -> None:
+def test_3d_view_controls_offer_full_model_and_perspective_free_rotation() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'data-view-mode="orbit"' in html
+    assert 'data-view-mode="dollhouse"' in html
     assert 'data-real-view-mode="orbit"' in html
     assert 'data-proposal-view-mode="orbit"' in html
     assert html.count("自由旋轉") >= 3
-    assert 'data-view-mode="dollhouse"' not in html
+    assert "全屋白模" in html
     assert 'data-real-view-mode="dollhouse"' not in html
     assert 'data-proposal-view-mode="dollhouse"' not in html
-    assert 'whiteViewer.setViewMode("dollhouse")' not in controller
+    assert 'whiteViewer.setViewMode("dollhouse")' in controller
     assert 'realisticViewer.setViewMode("dollhouse")' not in controller
     assert 'const viewMode = createViewModeState("orbit");' in viewer
     reset_camera = viewer.split("function resetCamera", 1)[1].split(

@@ -457,3 +457,62 @@ $env:TEMP=$env:TMP
   - projected screen `x` moved from `561` to `682`
 - Screenshot saved outside the repo:
   `C:/Users/user/.codex/visualizations/2026/07/24/019f93b8-1038-7900-843e-c01e4c13226f/bella-test1-3d-drag-verification.png`
+
+## 2026-07-26 Step 6-8 Condensed Workflow Specification
+
+- Added `docs/BELLA_6_8_CONDENSED_FLOW_SPEC.md`.
+- Finalized the reduction from ten workflow steps to eight:
+  - Step 6: configuration and preview
+  - Step 7: proposal locking and camera selection
+  - Step 8: AI rendering and proposal package
+- Recorded the accepted 2D/3D workspace, furniture validation, indoor walk,
+  material/ceiling/light editing, structure-return, palette, camera, rendering,
+  regeneration, proposal-version, and UI/UX decisions.
+- Defined the formal `/scene` flow and public APIs as the primary testing seam.
+- This update is documentation only. No frontend/backend implementation, commit,
+  or remote push was performed.
+
+## 2026-07-26 Step 6 Configuration and Preview Slice
+
+- Changed the visible workflow navigation from ten steps to the approved eight steps.
+- Kept the existing internal workflow states for backward-compatible project restore,
+  while grouping `layout_2d`, `white_model_3d`, and `realistic_3d` under visible Step 6.
+- Integrated a collapsible 2D review panel into the formal Step 6 3D workspace:
+  - floor-plan image
+  - furniture footprints
+  - furniture list
+  - matching 2D/3D furniture numbers
+  - two-way furniture selection
+  - pending invalid-furniture list
+- Blocked Step 6 completion while invalid furniture remains and provided a direct
+  locate path through the pending list.
+- Synchronized successful 3D furniture moves back to the 2D furniture state before
+  auto-saving.
+- Added a tested scene-to-2D inventory boundary for 3D add, replace, move, and
+  delete operations.
+- Added a per-item pending action that relayouts only the selected invalid
+  furniture while keeping all other furniture position-locked.
+- Locked the pending-item reflow action while its request is running to prevent
+  repeated clicks or concurrent relayout responses from overwriting newer state.
+- Synced final server-side placement failures back into both scene and 2D
+  furniture state so rejected items appear in the pending list instead of
+  silently blocking the workflow.
+- Changed the visible Step 6 navigation entry to reopen the integrated 3D
+  configuration workspace after the 2D prerequisite has been completed.
+- Aligned the compact furniture layer to the actual rendered image content box,
+  including non-4:3 floor-plan images with letterboxing.
+- Added a whole-model camera mode as the safe initial overview, while preserving
+  free orbit, top-down, and indoor walk modes.
+- Browser verification on the restored local project confirmed:
+  - 14 furniture items rendered in the synchronized 2D panel
+  - zero horizontal page overflow at 1280 x 720
+  - collapsible panel state and accessible label changes
+  - matching `#8` furniture selection from the 3D list to the 2D list
+  - clicking the active Step 6 progress item remains in the integrated 3D workspace
+  - zero pending invalid furniture for the verified project
+- Verification:
+  - `node --check backend/server/static/scene_v2.js`
+  - `git diff --check`
+  - 117 focused scene workflow, contract, delivery, and walk/edit tests passed
+  - full suite: 442 passed, 2 skipped
+- No remote push was performed.

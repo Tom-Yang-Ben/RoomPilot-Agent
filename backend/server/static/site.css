@@ -5688,7 +5688,7 @@ body.rp-workflow-page .app-topbar {
   top: 58px;
   z-index: 50;
   display: grid;
-  grid-template-columns: repeat(10, minmax(110px, 1fr));
+  grid-template-columns: repeat(8, minmax(120px, 1fr));
   gap: 0;
   overflow-x: auto;
   border-bottom: 1px solid var(--rp-line);
@@ -7641,6 +7641,217 @@ body.rp-workflow-page .danger-action {
   min-height: calc(100vh - 195px);
 }
 
+.rp-configuration-plan {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--rp-line);
+}
+
+.rp-configuration-plan > header,
+.rp-configuration-pending-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-configuration-plan > header h2 {
+  margin: 2px 0 0;
+  font-size: 17px;
+}
+
+.rp-configuration-plan > header .rp-icon-command {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  border-color: #c9c4bd;
+  color: #403c37;
+  font-size: 20px;
+}
+
+.rp-configuration-plan-body {
+  display: grid;
+  gap: 10px;
+  max-height: min(52vh, 480px);
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+.rp-configuration-plan.is-collapsed .rp-configuration-plan-body {
+  display: none;
+}
+
+.rp-configuration-plan-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 220px;
+  overflow: hidden;
+  border: 1px solid #c9c4bd;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.rp-configuration-plan-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+#configuration-plan-furniture-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.rp-configuration-furniture {
+  position: absolute;
+  display: grid;
+  min-width: 20px;
+  min-height: 20px;
+  place-items: center;
+  border: 2px solid #386f62;
+  border-radius: 3px;
+  background: rgba(222, 240, 234, 0.88);
+  color: #174b3b;
+  cursor: pointer;
+}
+
+.rp-configuration-furniture b {
+  font-size: 11px;
+}
+
+.rp-configuration-furniture.is-active {
+  border-color: #2f6f87;
+  box-shadow: 0 0 0 3px rgba(47, 111, 135, 0.2);
+}
+
+.rp-configuration-furniture.is-invalid {
+  border-color: #b94935;
+  background: rgba(255, 225, 218, 0.92);
+  color: #7b2d20;
+}
+
+.rp-configuration-furniture-list,
+#configuration-pending-list {
+  display: grid;
+  gap: 6px;
+}
+
+.rp-configuration-furniture-list button,
+.rp-configuration-pending-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 7px 8px;
+  border: 1px solid #d2cdc6;
+  border-radius: 5px;
+  background: #fff;
+  color: #383530;
+  text-align: left;
+}
+
+.rp-configuration-furniture-list button > b,
+.rp-configuration-pending-item > b {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e6f0ec;
+  color: #174b3b;
+  font-size: 11px;
+}
+
+.rp-configuration-furniture-list button.is-active {
+  border-color: var(--rp-green);
+  box-shadow: inset 0 0 0 1px var(--rp-green);
+}
+
+.rp-configuration-furniture-list button.is-invalid {
+  border-color: #cc7768;
+}
+
+.rp-configuration-furniture-list small,
+.rp-configuration-pending-item small {
+  display: block;
+  margin-top: 2px;
+  color: var(--rp-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.rp-configuration-pending {
+  display: grid;
+  gap: 7px;
+  padding-top: 10px;
+  border-top: 1px solid #d8d3cc;
+}
+
+.rp-configuration-pending h3,
+.rp-configuration-pending p {
+  margin: 0;
+}
+
+.rp-configuration-pending-heading span {
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ece8e2;
+  color: #5b554f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rp-configuration-pending > p,
+.rp-configuration-clear {
+  color: var(--rp-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.rp-configuration-pending-item {
+  border-color: #d49789;
+  background: #fff5f2;
+}
+
+.rp-configuration-pending-item > b {
+  background: #f6ddd7;
+  color: #7b2d20;
+}
+
+.rp-configuration-pending-item > div {
+  display: grid;
+  gap: 5px;
+}
+
+.rp-configuration-pending-item > div button {
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 1px solid #b87061;
+  border-radius: 4px;
+  background: #fff;
+  color: #713426;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.rp-configuration-pending-item > div button:last-child {
+  background: #7b3c2d;
+  color: #fff;
+}
+
+.rp-configuration-clear {
+  padding: 8px 0;
+  color: #386f62;
+}
+
 .rp-viewer-pane {
   display: grid;
   grid-template-rows: auto minmax(440px, 1fr) auto;
@@ -7819,7 +8030,7 @@ body.rp-workflow-page .danger-action {
   }
 
   .rp-progress {
-    grid-template-columns: repeat(10, minmax(140px, 1fr));
+    grid-template-columns: repeat(8, minmax(150px, 1fr));
   }
 }
 

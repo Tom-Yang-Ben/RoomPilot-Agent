@@ -4013,43 +4013,6 @@ export function createSceneViewer(
     );
   }
 
-  async function resolvePlacement(item, positionCm, rotationDeg) {
-    if (!lastSceneData) return { ok: false, reason: "場景未載入" };
-    try {
-      const response = await fetch("/api/scene/layout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          floorplan: lastSceneData.floorplan || null,
-          placement_room_id: item.placement_room_id,
-          scene_objects: [
-            ...(lastSceneData.scene_objects || [])
-              .filter((other) => other !== item)
-              .map((other) => ({ ...other, position_locked: true })),
-            {
-              ...item,
-              position_locked: false,
-              placement_hint_cm: positionCm,
-              rotation_y_deg: rotationDeg,
-            },
-          ],
-        }),
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const payload = await response.json();
-      const resolved = (payload.scene_objects || []).find(
-        (candidate) => candidate.furniture_id === item.furniture_id,
-      );
-      if (!resolved || resolved.placement_failed) {
-        return { ok: false, reason: resolved?.placement_reason || "家具引擎找不到合法貼牆位置" };
-      }
-      return { ok: true, resolved };
-    } catch (error) {
-      console.warn("家具引擎貼牆失敗", error);
-      return { ok: false, reason: "家具引擎未回應" };
-    }
-  }
-
   window.addEventListener("pointermove", (event) => {
     if (!dragState) return;
     pointerToNdc(event);

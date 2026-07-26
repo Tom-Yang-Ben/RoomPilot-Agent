@@ -64,14 +64,14 @@ def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
     assert result["swingRotationYRad"] < 0
 
 
-def test_3d_wall_snap_commits_the_backend_layout_result() -> None:
+def test_3d_drag_preserves_the_user_position_after_backend_validation() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
-    assert 'fetch("/api/scene/layout"' in source
-    assert "placement_hint_cm" in source
-    assert "resolved.position_cm" in source
+    assert 'fetch("/api/scene/validate"' in source
+    assert "item: { ...item, position_cm: positionCm, rotation_y_deg: rotationDeg }" in source
+    assert 'fetch("/api/scene/layout"' not in source
     assert "wallFaceSnapOffset" not in source
 
 
@@ -83,9 +83,10 @@ def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
         encoding="utf-8"
     )
 
-    assert "{ onSceneChange = null } = {}" in viewer
+    assert "{ onSceneChange = null, onObjectSelect = null } = {}" in viewer
     assert "notifySceneChange(item)" in viewer
-    assert 'onSceneChange: () => scheduleSave("white_model_3d")' in controller
+    assert "onSceneChange: (item) => {" in controller
+    assert 'scheduleSave("white_model_3d")' in controller
     assert "onSceneChange: () => markRealisticSceneEdited()" in controller
     mark_body = controller.split("function markRealisticSceneEdited()", 1)[1].split(
         "function activePanelName", 1

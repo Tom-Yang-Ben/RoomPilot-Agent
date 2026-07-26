@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-3f42f50a792d";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-375fce9608ab";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,
@@ -21,6 +21,7 @@ import {
 import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
+  findFurniture2DVariant,
   furnitureCollisionFootprintCm,
   furnitureFootprintStyle,
   planCmToLayerPixel,
@@ -30,6 +31,10 @@ import {
   replaceFurniture2DItem,
   toSceneFurniture,
 } from "./scene_layout2d.js?v=sha256-35d1bfd9747d";
+import {
+  removeFurniture2dBySceneObject,
+  upsertFurniture2dFromSceneObject,
+} from "./scene_configuration_sync.js?v=sha256-251a84d74635";
 import {
   WHOLE_HOUSE_QUESTIONS,
 } from "./scene_requirements.js?v=sha256-cb53bf0d6e51";
@@ -179,6 +184,7 @@ const state = {
 };
 let styleApplyRevision = 0;
 let visualCustomSaveTimer = null;
+const configurationReflowInFlight = new Set();
 
 const panels = new Map(
   $$(".rp-step-panel").map((panel) => [panel.dataset.panel, panel]),
@@ -192,11 +198,28 @@ const instructions = {
   space_confirmation: ["步驟 4", "先確認房間，再確認牆、門、窗、樑與柱"],
   requirements: ["步驟 5", "完成基本資料、逐房極與極需求及風格材質"],
   layout_2d: ["步驟 6", "確認家具形式、實際尺寸、位置與淨空"],
-  white_model_3d: ["步驟 7", "確認 3D 白模家具可見，再指定模型、顏色與材質"],
-  realistic_3d: ["步驟 8", "從 18 張色卡切換完整 PBR StylePack"],
-  proposal_review: ["步驟 9", "核對完整方案，最後再鎖定色卡比較視角"],
-  ai_render: ["步驟 10", "先比對色卡，再逐房間保存視角並送出渲染"],
+  white_model_3d: ["步驟 6", "在 3D 主畫面配置家具，並用同步 2D 側欄檢查位置"],
+  realistic_3d: ["步驟 6", "即時確認牆面、地板、天花板、燈光與家具材質"],
+  proposal_review: ["步驟 7", "檢查完整方案，鎖定色卡與各空間渲染視角"],
+  ai_render: ["步驟 8", "依鎖定方案逐空間產生圖片並加入成果包"],
 };
+
+const PUBLIC_WORKFLOW_STEPS = Object.freeze([
+  "project",
+  "upload",
+  "recognition",
+  "space_confirmation",
+  "requirements",
+  "layout_2d",
+  "proposal_review",
+  "ai_render",
+]);
+
+function publicWorkflowStep(step) {
+  if (step === "calibration") return "recognition";
+  if (step === "white_model_3d" || step === "realistic_3d") return "layout_2d";
+  return step;
+}
 
 const element = {
   status: $("#global-status"),
@@ -308,6 +331,14 @@ const element = {
   replacement3dStatus: $("#replacement-3d-status"),
   whiteStatus: $("#white-model-status"),
   whiteError: $("#white-model-error"),
+  configurationPlanPanel: $("#configuration-plan-panel"),
+  configurationPlanToggle: $("#configuration-plan-toggle"),
+  configurationPlanStage: $(".rp-configuration-plan-stage"),
+  configurationPlanImage: $("#configuration-plan-image"),
+  configurationPlanLayer: $("#configuration-plan-furniture-layer"),
+  configurationPlanFurnitureList: $("#configuration-plan-furniture-list"),
+  configurationPendingCount: $("#configuration-pending-count"),
+  configurationPendingList: $("#configuration-pending-list"),
   objectList: $("#scene-object-list"),
   realisticObjectList: $("#realistic-scene-object-list"),
   glbResults: $("#glb-search-results"),
@@ -336,7 +367,11 @@ const element = {
 };
 
 const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteStatus, {
-  onSceneChange: () => scheduleSave("white_model_3d"),
+  onSceneChange: (item) => {
+    syncMovedSceneFurnitureTo2d(item);
+    renderConfigurationPlan();
+    scheduleSave("white_model_3d");
+  },
   onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item),
 });
 const realisticViewer = createSceneViewer($("#realistic-viewer"), element.realisticStatus, {
@@ -436,6 +471,16 @@ function syncSceneSelectionTo2dFurniture(sceneObject) {
   if (!item) return false;
   state.selectedFurniture2dId = item.id;
   renderLayoutFurniture();
+  renderConfigurationPlan();
+  return true;
+}
+
+function syncMovedSceneFurnitureTo2d(sceneObject) {
+  if (sceneObjectIndexByFurnitureId(sceneObject?.furniture_id) < 0) return false;
+  state.furniture2d = upsertFurniture2dFromSceneObject(
+    state.furniture2d,
+    sceneObject,
+  );
   return true;
 }
 
@@ -772,7 +817,7 @@ async function switchDesignScheme(schemeId) {
   const step = state.workflow?.currentStep;
   if (state.sceneData && step === "white_model_3d") {
     await whiteViewer.loadScene(state.sceneData);
-    whiteViewer.setViewMode("orbit");
+    whiteViewer.setViewMode("dollhouse");
     renderSceneObjectList();
     syncSelected2dFurnitureToScene({ focus: true });
   } else if (state.sceneData && step === "realistic_3d") {
@@ -836,12 +881,16 @@ function showStep(step) {
   if (step === "requirements") void prepareQuestionnaireStep();
   if (step === "proposal_review") void prepareProposalReview();
   if (step === "ai_render") void prepareAiRender();
+  if (step === "white_model_3d") renderConfigurationPlan();
+  const currentPublicStep = publicWorkflowStep(step);
+  const currentPublicIndex = PUBLIC_WORKFLOW_STEPS.indexOf(currentPublicStep);
   $$(".rp-progress button").forEach((button) => {
-    const target = button.dataset.step;
-    const targetIndex = WORKFLOW_STEPS.indexOf(target);
-    const currentIndex = WORKFLOW_STEPS.indexOf(step);
-    button.classList.toggle("is-active", activePanelName(target) === panelName);
-    button.classList.toggle("is-complete", targetIndex >= 0 && targetIndex < currentIndex);
+    const targetIndex = PUBLIC_WORKFLOW_STEPS.indexOf(button.dataset.step);
+    button.classList.toggle("is-active", button.dataset.step === currentPublicStep);
+    button.classList.toggle(
+      "is-complete",
+      targetIndex >= 0 && targetIndex < currentPublicIndex,
+    );
   });
   requestAnimationFrame(syncAllOverlays);
 }
@@ -862,7 +911,7 @@ async function renderRestoredStep() {
   }
   if (state.sceneData && state.workflow.currentStep === "white_model_3d") {
     await whiteViewer.loadScene(state.sceneData);
-    whiteViewer.setViewMode("orbit");
+    whiteViewer.setViewMode("dollhouse");
     renderSceneObjectList();
     loadSelectedSceneAppearance();
     const diagnostics = whiteViewer.getDiagnostics();
@@ -935,7 +984,7 @@ function firstWorkflowBlocker(step) {
     white_model_3d: "請先確認 2D 家具尺寸與配置。",
     realistic_3d: "請先確認 3D 家具確實可見，並確認指定家具需求。",
     proposal_review: "請先完成並保存即時寫實方案。",
-    ai_render: "請先確認完整方案，並在第 9 步最後鎖定色卡比較視角。",
+    ai_render: "請先在第 7 步確認完整方案、三種候選色卡與比較視角。",
   };
   return requiredByStep[step] || "前一步尚未完成。";
 }
@@ -1216,6 +1265,7 @@ function syncAllOverlays() {
   renderCalibration();
   renderSpaceOverlay();
   renderLayoutFurniture();
+  renderConfigurationPlan();
 }
 
 function imagePoint(event, image) {
@@ -5766,6 +5816,37 @@ function roomCenter(room) {
   }), { x: 0, y: 0 });
 }
 
+function roomIdForScenePosition(positionCm = {}) {
+  const center = planCenterCm();
+  const planPoint = {
+    x: center.x + Number(positionCm.x || 0),
+    y: center.y + Number(positionCm.z || 0),
+  };
+  return state.rooms.find(
+    (room) => pointInPolygonCm(planPoint, room.polygon_cm || []),
+  )?.id || state.selectedRoomId || state.rooms[0]?.id || null;
+}
+
+function furniture2dDefaultsForSceneObject(sceneObject) {
+  const match = findFurniture2DVariant(
+    sceneObject?.normalized_type,
+    sceneObject?.variant_id,
+  );
+  return {
+    roomId: sceneObject?.placement_room_id
+      || roomIdForScenePosition(sceneObject?.position_cm),
+    type: sceneObject?.normalized_type || match?.category?.type || "furniture",
+    variantId: match?.selected?.id || sceneObject?.variant_id || "standard",
+    iconPath: match?.selected?.iconPath || "",
+    label: sceneObject?.name_zh
+      || sceneObject?.name_zh_raw
+      || match?.selected?.label
+      || "家具",
+    reason: "使用者在 3D 配置與預覽工作台中新增或替換。",
+    userRequired: true,
+  };
+}
+
 function roomSurfaceAssignments() {
   const center = planCenterCm();
   return state.rooms.map((room) => {
@@ -6168,6 +6249,202 @@ function renderLayoutFurniture() {
     </button>
   `).join("");
   renderSelectedFurnitureEditor();
+}
+
+function configurationBlockingFurniture() {
+  const sceneById = new Map(
+    (state.sceneData?.scene_objects || []).map((item) => [String(item.furniture_id), item]),
+  );
+  return state.furniture2d.filter((item) => {
+    const sceneObject = sceneById.get(String(item.id));
+    return item.placementFailed === true
+      || sceneObject?.placement_failed === true
+      || itemCollision(item);
+  });
+}
+
+function syncFinalValidationToConfiguration(validatedObjects = []) {
+  if (!state.sceneData || !Array.isArray(validatedObjects) || !validatedObjects.length) {
+    return configurationBlockingFurniture();
+  }
+  const validatedById = new Map(
+    validatedObjects.map((item) => [String(item.furniture_id), item]),
+  );
+  state.sceneData.scene_objects = (state.sceneData.scene_objects || []).map((item) => {
+    const validated = validatedById.get(String(item.furniture_id));
+    if (!validated) return item;
+    return {
+      ...item,
+      ...validated,
+      position_cm: { ...(item.position_cm || {}), ...(validated.position_cm || {}) },
+      size_cm: { ...(item.size_cm || {}), ...(validated.size_cm || {}) },
+    };
+  });
+  state.sceneData.scene_objects.forEach((item) => {
+    state.furniture2d = upsertFurniture2dFromSceneObject(
+      state.furniture2d,
+      item,
+      furniture2dDefaultsForSceneObject(item),
+    );
+  });
+  syncFurnitureInventoryAcrossSchemes();
+  renderLayoutRoomFilter();
+  renderLayoutFurniture();
+  renderConfigurationPlan();
+  return configurationBlockingFurniture();
+}
+
+function configurationPlanPixelsPerCm() {
+  if (!element.configurationPlanImage?.naturalWidth) return 0;
+  const imageRect = imageContentRect(element.configurationPlanImage);
+  const naturalRatio = imageRect.width
+    / Math.max(element.configurationPlanImage.naturalWidth, 1);
+  return (1 / planGeometry().scale) * naturalRatio;
+}
+
+function configurationFurniturePixelPosition(item) {
+  const center = planCenterCm();
+  return planCmToLayerPixel(
+    {
+      x: center.x + item.xCm,
+      y: center.y + item.yCm,
+    },
+    planGeometry(),
+    configurationPlanPixelsPerCm(),
+  );
+}
+
+function configurationFurnitureNumber(item, fallbackIndex = state.furniture2d.indexOf(item)) {
+  const sceneIndex = sceneObjectIndexByFurnitureId(item.id);
+  return sceneIndex >= 0 ? sceneIndex + 1 : fallbackIndex + 1;
+}
+
+function renderConfigurationPlan() {
+  if (!element.configurationPlanImage) return;
+  const planSource = element.layoutImage.currentSrc || element.layoutImage.src;
+  if (planSource && element.configurationPlanImage.src !== planSource) {
+    element.configurationPlanImage.src = planSource;
+  }
+  syncOverlayToImage(
+    element.configurationPlanStage,
+    element.configurationPlanImage,
+    element.configurationPlanLayer,
+  );
+
+  const blocking = configurationBlockingFurniture();
+  const blockingIds = new Set(blocking.map((item) => String(item.id)));
+  const scale = configurationPlanPixelsPerCm();
+  if (scale > 0) {
+    element.configurationPlanLayer.innerHTML = state.furniture2d.map((item, index) => {
+      const pixel = configurationFurniturePixelPosition(item);
+      const style = furnitureFootprintStyle(item, scale);
+      const invalid = blockingIds.has(String(item.id));
+      const furnitureNumber = configurationFurnitureNumber(item, index);
+      return `
+        <button type="button"
+          class="rp-configuration-furniture ${item.id === state.selectedFurniture2dId ? "is-active" : ""} ${invalid ? "is-invalid" : ""}"
+          data-select-configuration-furniture="${escapeHtml(item.id)}"
+          aria-label="家具 ${furnitureNumber} ${escapeHtml(item.label)}"
+          style="left:${pixel.x}px;top:${pixel.y}px;width:${style.width};height:${style.height};transform:${style.transform}">
+          <b>${furnitureNumber}</b>
+        </button>
+      `;
+    }).join("");
+  }
+
+  element.configurationPlanFurnitureList.innerHTML = state.furniture2d.map((item, index) => {
+    const furnitureNumber = configurationFurnitureNumber(item, index);
+    return `
+      <button type="button"
+        class="${item.id === state.selectedFurniture2dId ? "is-active" : ""} ${blockingIds.has(String(item.id)) ? "is-invalid" : ""}"
+        data-select-configuration-furniture="${escapeHtml(item.id)}">
+        <b>${furnitureNumber}</b>
+        <span><strong>${escapeHtml(item.label)}</strong><small>${item.widthCm} × ${item.depthCm} cm</small></span>
+        <span>${blockingIds.has(String(item.id)) ? "待處理" : "合法"}</span>
+      </button>
+    `;
+  }).join("") || "<p class=\"rp-control-hint\">目前沒有家具。</p>";
+
+  element.configurationPendingCount.textContent = String(blocking.length);
+  element.configurationPendingList.innerHTML = blocking.map((item) => {
+    const furnitureNumber = configurationFurnitureNumber(item);
+    const reason = item.placementReason || "家具碰撞、超出房間或淨空不足。";
+    const furnitureKey = String(item.id);
+    const reflowing = configurationReflowInFlight.has(furnitureKey);
+    const reflowLocked = configurationReflowInFlight.size > 0;
+    return `
+      <div class="rp-configuration-pending-item">
+        <b>${furnitureNumber}</b>
+        <span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(reason)}</small></span>
+        <div>
+          <button type="button" data-select-configuration-furniture="${escapeHtml(item.id)}">定位</button>
+          <button type="button" data-reflow-configuration-furniture="${escapeHtml(item.id)}"
+            ${reflowLocked ? "disabled" : ""}>${reflowing ? "重新配置中…" : "只重排此家具"}</button>
+        </div>
+      </div>
+    `;
+  }).join("") || "<p class=\"rp-configuration-clear\">目前沒有待處理家具。</p>";
+
+  const confirmButton = $("#confirm-white-model");
+  if (confirmButton) {
+    confirmButton.disabled = blocking.length > 0;
+    confirmButton.title = blocking.length
+      ? `尚有 ${blocking.length} 件家具位置不合法，請先修正。`
+      : "";
+  }
+}
+
+async function reflowSingleConfigurationFurniture(furnitureId) {
+  const furnitureKey = String(furnitureId);
+  if (configurationReflowInFlight.has(furnitureKey) || configurationReflowInFlight.size > 0) {
+    return;
+  }
+  const item = state.furniture2d.find(
+    (candidate) => String(candidate.id) === furnitureKey,
+  );
+  if (!item) return;
+  configurationReflowInFlight.add(furnitureKey);
+  renderConfigurationPlan();
+  setStatus(`正在只重新配置「${item.label}」…`);
+  try {
+    const resolved = await resolveFurniturePosition(item);
+    if (!resolved || resolved.placement_failed) {
+      item.placementFailed = true;
+      item.placementReason = resolved?.placement_reason || "目前房間沒有合法位置。";
+      renderConfigurationPlan();
+      setStatus(`無法重新配置「${item.label}」：${item.placementReason}`, "error");
+      return;
+    }
+    let sceneIndex = sceneObjectIndexByFurnitureId(item.id);
+    if (sceneIndex < 0) {
+      state.sceneData.scene_objects.push(resolved);
+      sceneIndex = state.sceneData.scene_objects.length - 1;
+    }
+    const sceneObject = state.sceneData.scene_objects[sceneIndex];
+    Object.assign(sceneObject, resolved, {
+      position_locked: true,
+      placement_failed: false,
+      placement_reason: "",
+    });
+    state.furniture2d = upsertFurniture2dFromSceneObject(
+      state.furniture2d,
+      sceneObject,
+    );
+    state.selectedFurniture2dId = item.id;
+    state.selectedSceneIndex = sceneIndex;
+    await whiteViewer.loadScene(state.sceneData);
+    whiteViewer.setViewMode("dollhouse");
+    renderLayoutFurniture();
+    renderSceneObjectList();
+    whiteViewer.selectObjectByIndex(sceneIndex);
+    scheduleSave("white_model_3d");
+    setStatus(`已只重新配置「${item.label}」，其他合法家具位置保持不變。`);
+  } catch (error) {
+    setStatus(errorMessage(error), "error");
+  } finally {
+    configurationReflowInFlight.delete(furnitureKey);
+    renderConfigurationPlan();
+  }
 }
 
 function renderSelectedFurnitureEditor() {
@@ -6659,7 +6936,7 @@ async function confirmLayout2d() {
     state.workflow.goTo("white_model_3d");
     showStep("white_model_3d");
     await whiteViewer.loadScene(state.sceneData);
-    whiteViewer.setViewMode("orbit");
+    whiteViewer.setViewMode("dollhouse");
     renderSceneObjectList();
     loadSelectedSceneAppearance();
     syncSelected2dFurnitureToScene({ focus: true });
@@ -6719,7 +6996,7 @@ async function addWhiteModelBeamFromWorld({ start, end }) {
   });
   state.selectedStructure = { id, kind: "beam" };
   await whiteViewer.loadScene(state.sceneData);
-  whiteViewer.setViewMode("orbit");
+  whiteViewer.setViewMode("dollhouse");
   $("#add-white-model-beam").hidden = false;
   $("#cancel-white-model-beam").hidden = true;
   status.classList.remove("is-error");
@@ -6780,6 +7057,7 @@ function renderSceneObjectList() {
   if (element.realisticObjectList) {
     element.realisticObjectList.innerHTML = markup || "<p>目前為純結構方案，沒有家具。</p>";
   }
+  renderConfigurationPlan();
 }
 
 function saveSelectedSceneAppearance() {
@@ -6824,12 +7102,20 @@ async function deleteSelectedSceneFurniture() {
     return;
   }
   objects.splice(state.selectedSceneIndex, 1);
+  state.furniture2d = removeFurniture2dBySceneObject(
+    state.furniture2d,
+    selected,
+  );
+  syncFurnitureInventoryAcrossSchemes();
   state.selectedSceneIndex = Math.max(0, Math.min(state.selectedSceneIndex, objects.length - 1));
+  state.selectedFurniture2dId = state.furniture2d[0]?.id || null;
+  renderLayoutRoomFilter();
+  renderLayoutFurniture();
   renderSceneObjectList();
   loadSelectedSceneAppearance();
   if (state.workflow.currentStep === "white_model_3d") {
     await whiteViewer.loadScene(state.sceneData);
-    whiteViewer.setViewMode("orbit");
+    whiteViewer.setViewMode("dollhouse");
     scheduleSave("white_model_3d");
   } else {
     await realisticViewer.loadScene(state.sceneData);
@@ -6955,6 +7241,13 @@ async function replaceSceneFurniture(furnitureId) {
     return;
   }
   Object.assign(current, candidate);
+  state.furniture2d = upsertFurniture2dFromSceneObject(
+    state.furniture2d,
+    current,
+    furniture2dDefaultsForSceneObject(current),
+  );
+  syncFurnitureInventoryAcrossSchemes();
+  renderLayoutFurniture();
   await whiteViewer.loadScene(state.sceneData);
   renderSceneObjectList();
   loadSelectedSceneAppearance();
@@ -6998,7 +7291,16 @@ function addSceneFurniture(furnitureId) {
         return;
       }
       state.sceneData.scene_objects.push(candidate);
+      state.furniture2d = upsertFurniture2dFromSceneObject(
+        state.furniture2d,
+        candidate,
+        furniture2dDefaultsForSceneObject(candidate),
+      );
+      syncFurnitureInventoryAcrossSchemes();
+      renderLayoutRoomFilter();
+      renderLayoutFurniture();
       state.selectedSceneIndex = state.sceneData.scene_objects.length - 1;
+      state.selectedFurniture2dId = candidate.furniture_id;
       await whiteViewer.loadScene(state.sceneData);
       renderSceneObjectList();
       loadSelectedSceneAppearance();
@@ -7018,6 +7320,14 @@ function addSceneFurniture(furnitureId) {
 
 async function confirmWhiteModel() {
   element.whiteError.textContent = "";
+  const blockingFurniture = configurationBlockingFurniture();
+  if (blockingFurniture.length) {
+    element.whiteError.textContent =
+      `目前還有 ${blockingFurniture.length} 件家具位置不合法，請先從 2D 待處理清單定位修正。`;
+    setStatus(element.whiteError.textContent, "error");
+    renderConfigurationPlan();
+    return;
+  }
   const diagnostics = whiteViewer.getDiagnostics();
   const expectedFurnitureCount = state.sceneData?.scene_objects?.filter(
     (item) => !item.placement_failed,
@@ -7044,9 +7354,7 @@ async function confirmWhiteModel() {
         })),
       }),
     });
-    const invalid = (finalValidation.scene_objects || []).filter(
-      (item) => item.placement_failed || !item.position_locked,
-    );
+    const invalid = syncFinalValidationToConfiguration(finalValidation.scene_objects || []);
     if (invalid.length) {
       element.whiteError.textContent = `${invalid
         .map((item) => item.name_zh_raw || item.normalized_type || "家具")
@@ -7706,7 +8014,7 @@ function lockMasterRenderView() {
     return;
   }
   if (!state.sceneData || !state.activeStylePackId) {
-    element.masterViewStatus.textContent = "缺少已確認的場景或色卡，請返回第 8 步。";
+    element.masterViewStatus.textContent = "缺少已確認的場景或色卡，請返回第 6 步。";
     return;
   }
   const camera = proposalViewer.getCameraState();
@@ -8622,6 +8930,40 @@ function bindEvents() {
     renderLayoutFurniture();
     syncSelected2dFurnitureToScene({ focus: false });
   });
+  const selectConfigurationFurniture = (event) => {
+    const button = event.target.closest("[data-select-configuration-furniture]");
+    if (!button) return;
+    state.selectedFurniture2dId = button.dataset.selectConfigurationFurniture;
+    renderLayoutFurniture();
+    renderConfigurationPlan();
+    syncSelected2dFurnitureToScene({ focus: true });
+  };
+  element.configurationPlanLayer.addEventListener("click", selectConfigurationFurniture);
+  element.configurationPlanFurnitureList.addEventListener(
+    "click",
+    selectConfigurationFurniture,
+  );
+  element.configurationPendingList.addEventListener("click", (event) => {
+    const reflowButton = event.target.closest("[data-reflow-configuration-furniture]");
+    if (reflowButton) {
+      void reflowSingleConfigurationFurniture(
+        reflowButton.dataset.reflowConfigurationFurniture,
+      );
+      return;
+    }
+    selectConfigurationFurniture(event);
+  });
+  element.configurationPlanImage.addEventListener("load", renderConfigurationPlan);
+  element.configurationPlanToggle.addEventListener("click", () => {
+    const collapsed = element.configurationPlanPanel.classList.toggle("is-collapsed");
+    element.configurationPlanToggle.textContent = collapsed ? "+" : "−";
+    element.configurationPlanToggle.title = collapsed ? "展開 2D 平面" : "收合 2D 平面";
+    element.configurationPlanToggle.setAttribute(
+      "aria-label",
+      collapsed ? "展開 2D 平面" : "收合 2D 平面",
+    );
+    if (!collapsed) requestAnimationFrame(renderConfigurationPlan);
+  });
   $("#replace-2d-furniture").addEventListener("click", openFurnitureReplacement);
   $("#close-furniture-replacement").addEventListener("click", () => {
     element.replacementDrawer.close();
@@ -8656,6 +8998,9 @@ function bindEvents() {
     state.selectedSceneIndex = Number(button.dataset.sceneObjectIndex);
     renderSceneObjectList();
     loadSelectedSceneAppearance();
+    syncSceneSelectionTo2dFurniture(
+      state.sceneData?.scene_objects?.[state.selectedSceneIndex],
+    );
     if (state.workflow.currentStep === "realistic_3d") {
       realisticViewer.selectObjectByIndex(state.selectedSceneIndex);
     } else {
@@ -8794,13 +9139,17 @@ function bindEvents() {
     const completed = state.workflow.complete("realistic_3d", { confirmed: true });
     if (!completed) return;
     scheduleSave("realistic_3d");
-    setStatus("即時寫實方案已保存；請在第 9 步核對並鎖定比較視角。");
+    setStatus("即時寫實方案已保存；請在第 7 步核對並鎖定比較視角。");
     goTo("proposal_review");
   });
   $$(".rp-progress button").forEach((button) => button.addEventListener("click", () => {
     const step = button.dataset.step;
     if (step === "recognition" && state.workflow?.canEnter("recognition")) {
       goTo(state.workflow.completed.includes("calibration") ? "calibration" : "recognition");
+      return;
+    }
+    if (step === "layout_2d" && state.workflow?.canEnter("white_model_3d")) {
+      goTo("white_model_3d");
       return;
     }
     if (state.workflow?.canEnter(step)) goTo(step);
