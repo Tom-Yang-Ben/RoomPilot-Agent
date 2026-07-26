@@ -26,7 +26,7 @@ import {
   findNearestWalkablePosition,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-d193ac77ac2f";
+} from "./scene_visual_contracts.js?v=sha256-4b0907de9db9";
 
 const CM_PER_METER = 100;
 

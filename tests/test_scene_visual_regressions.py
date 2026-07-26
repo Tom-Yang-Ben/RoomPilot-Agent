@@ -64,6 +64,32 @@ def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
     assert result["swingRotationYRad"] < 0
 
 
+def test_open_door_leaf_folds_flat_against_the_host_wall() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorLeafTransform }} from {json.dumps(VISUAL_MODULE.as_uri())};
+        const transform = doorLeafTransform({{
+          start: {{ x: 100, z: 200 }},
+          end: {{ x: 180, z: 260 }},
+          opening_direction: "right",
+        }});
+        const wallAngle = Math.atan2(-(260 - 200), 180 - 100);
+        const openAngle = transform.closedRotationYRad + transform.swingRotationYRad;
+        const wall = {{ x: Math.cos(wallAngle), z: -Math.sin(wallAngle) }};
+        const leaf = {{ x: Math.cos(openAngle), z: -Math.sin(openAngle) }};
+        console.log(JSON.stringify({{
+          parallelError: Math.abs(wall.x * leaf.z - wall.z * leaf.x),
+          directionDot: wall.x * leaf.x + wall.z * leaf.z,
+          swingDegrees: Math.abs(transform.swingRotationYRad) * 180 / Math.PI,
+        }}));
+        """
+    )
+
+    assert result["parallelError"] < 1e-9
+    assert result["directionDot"] < -0.999999
+    assert abs(result["swingDegrees"] - 180) < 1e-9
+
+
 def test_3d_drag_preserves_the_user_position_after_backend_validation() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"

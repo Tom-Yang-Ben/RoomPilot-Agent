@@ -516,3 +516,16 @@ $env:TEMP=$env:TMP
   - 117 focused scene workflow, contract, delivery, and walk/edit tests passed
   - full suite: 442 passed, 2 skipped
 - No remote push was performed.
+
+## 2026-07-26 3D Door Leaf Wall Alignment
+
+- Changed the 3D display state for confirmed hinged doors from a fixed 58-degree
+  partial opening to a 180-degree fully open position.
+- Kept the confirmed hinge endpoint, opening width, wall opening, and left/right
+  door metadata unchanged.
+- Added a diagonal-wall regression test that verifies the open door leaf is
+  parallel to the host wall and extends away from the doorway.
+- Browser-verified the restored project in both whole-model and top-down views;
+  door leaves now fold along the wall instead of crossing the room at an angle.
+- Full suite verification: 443 passed, 2 skipped.
+- No remote push was performed.
