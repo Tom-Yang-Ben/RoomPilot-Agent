@@ -114,6 +114,74 @@ def test_openings_only_cut_their_confirmed_host_wall() -> None:
     assert result == {"host": True, "adjacent": False}
 
 
+def test_open_door_leaves_snap_to_two_distinct_existing_wall_gaps() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{
+          doorOpeningForWallTopology,
+          openingWallInterval,
+        }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const walls = [
+          {{
+            id: "wall-2",
+            start: {{x: -486.99, z: 87.11}},
+            end: {{x: 11.11, z: 87.11}},
+            thickness_cm: 22.22,
+          }},
+          {{
+            id: "wall-11",
+            start: {{x: 0, z: 333.24}},
+            end: {{x: 0, z: 222.16}},
+            thickness_cm: 22.22,
+          }},
+          {{
+            id: "wall-15",
+            start: {{x: 0, z: 112.25}},
+            end: {{x: 0, z: 63.14}},
+            thickness_cm: 19.88,
+          }},
+          {{
+            id: "wall-17",
+            start: {{x: 0, z: -47.93}},
+            end: {{x: 0, z: -274.77}},
+            thickness_cm: 22.22,
+          }},
+        ];
+        const doors = [
+          {{
+            id: "door-2",
+            host_wall_id: "wall-2",
+            width_cm: 113.41,
+            start: {{x: -9.94, z: 61.39}},
+            end: {{x: -123.35, z: 61.39}},
+          }},
+          {{
+            id: "door-3",
+            host_wall_id: "wall-2",
+            width_cm: 104.06,
+            start: {{x: -19.29, z: 111.67}},
+            end: {{x: -123.35, z: 111.67}},
+          }},
+        ];
+        const openings = doors.map((door) => doorOpeningForWallTopology(walls, door, 22));
+        console.log(JSON.stringify({{
+          openings,
+          cutsWrongWall: openings.map(
+            (opening) => Boolean(openingWallInterval(walls[0], opening, 22, 68)),
+          ),
+        }}));
+        """
+    )
+
+    assert result["cutsWrongWall"] == [False, False]
+    assert result["openings"][0]["topology_gap"] is True
+    assert result["openings"][1]["topology_gap"] is True
+    assert result["openings"][0]["start"] == {"x": 0, "z": 63.14}
+    assert result["openings"][0]["end"] == {"x": 0, "z": -47.93}
+    assert result["openings"][1]["start"] == {"x": 0, "z": 222.16}
+    assert result["openings"][1]["end"] == {"x": 0, "z": 112.25}
+
+
 def test_gap_window_has_no_usable_span_inside_the_split_host_wall() -> None:
     result = run_workflow_script(
         f"""

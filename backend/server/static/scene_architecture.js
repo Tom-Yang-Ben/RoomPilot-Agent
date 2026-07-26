@@ -27,6 +27,7 @@ function segmentId(segment = {}) {
 }
 
 export function openingBelongsToWall(segment, opening, wallThickness = 12) {
+  if (opening?.topology_gap) return false;
   const wall = segmentVector(segment);
   const aperture = segmentVector(opening);
   if (wall.length < 4 || aperture.length < 4) return false;
@@ -52,6 +53,83 @@ export function openingBelongsToWall(segment, opening, wallThickness = 12) {
   return perpendicular <= proximity
     && along >= -endTolerance
     && along <= wall.length + endTolerance;
+}
+
+export function doorOpeningForWallTopology(
+  segments = [],
+  door = {},
+  wallThickness = 12,
+) {
+  const leaf = segmentVector(door);
+  if (leaf.length < 4) return door;
+  const requestedWidth = Number(door.width_cm || door.width) || leaf.length;
+  const hingeCandidates = [leaf.start, leaf.end];
+  const maximumGap = Math.max(180, requestedWidth * 1.45);
+  const hingeTolerance = Math.max(35, Number(wallThickness) * 1.8);
+  const candidates = [];
+
+  segments.forEach((first, firstIndex) => {
+    const firstVector = segmentVector(first);
+    if (firstVector.length < 4) return;
+    segments.slice(firstIndex + 1).forEach((second) => {
+      const secondVector = segmentVector(second);
+      if (secondVector.length < 4) return;
+      const wallParallel = Math.abs(
+        firstVector.unitX * secondVector.unitX
+        + firstVector.unitZ * secondVector.unitZ,
+      );
+      if (wallParallel < 0.98) return;
+
+      [firstVector.start, firstVector.end].forEach((firstEndpoint) => {
+        [secondVector.start, secondVector.end].forEach((secondEndpoint) => {
+          const gapX = secondEndpoint.x - firstEndpoint.x;
+          const gapZ = secondEndpoint.z - firstEndpoint.z;
+          const gapLength = Math.hypot(gapX, gapZ);
+          if (gapLength < 50 || gapLength > maximumGap) return;
+          const gapUnitX = gapX / gapLength;
+          const gapUnitZ = gapZ / gapLength;
+          const gapFollowsWall = Math.abs(
+            gapUnitX * firstVector.unitX + gapUnitZ * firstVector.unitZ,
+          );
+          if (gapFollowsWall < 0.98) return;
+          const leafPerpendicular = Math.abs(
+            gapUnitX * leaf.unitX + gapUnitZ * leaf.unitZ,
+          );
+          if (leafPerpendicular > 0.35) return;
+
+          const hingeDistance = Math.min(
+            ...hingeCandidates.flatMap((hinge) => [
+              Math.hypot(hinge.x - firstEndpoint.x, hinge.z - firstEndpoint.z),
+              Math.hypot(hinge.x - secondEndpoint.x, hinge.z - secondEndpoint.z),
+            ]),
+          );
+          if (hingeDistance > hingeTolerance) return;
+          const widthDifference = Math.abs(gapLength - requestedWidth);
+          if (widthDifference > Math.max(30, requestedWidth * 0.3)) return;
+          candidates.push({
+            firstEndpoint,
+            secondEndpoint,
+            score: hingeDistance + widthDifference * 0.5,
+          });
+        });
+      });
+    });
+  });
+
+  if (!candidates.length) return door;
+  const best = candidates.sort((left, right) => left.score - right.score)[0];
+  return {
+    ...door,
+    start: { ...best.firstEndpoint },
+    end: { ...best.secondEndpoint },
+    original_host_wall_id: door.host_wall_id || null,
+    host_wall_id: null,
+    topology_gap: true,
+    door_leaf_segment: {
+      start: { ...leaf.start },
+      end: { ...leaf.end },
+    },
+  };
 }
 
 export function openingWallInterval(

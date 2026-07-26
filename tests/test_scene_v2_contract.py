@@ -150,7 +150,7 @@ def test_loaded_door_candidates_drop_low_confidence_wide_and_duplicate_auto_door
     assert result["removed"] == 3
 
 
-def test_same_wall_parallel_door_edges_become_one_opening() -> None:
+def test_nearby_parallel_door_leaves_remain_distinct() -> None:
     module_uri = (STATIC / "scene_structure_utils.js").as_uri()
     result = run_workflow_script(
         f"""
@@ -181,8 +181,8 @@ def test_same_wall_parallel_door_edges_become_one_opening() -> None:
         """
     )
 
-    assert len(result["doors"]) == 1
-    assert result["removed"] == 1
+    assert len(result["doors"]) == 2
+    assert result["removed"] == 0
 
 
 def test_restored_scene_data_removes_duplicate_door_segments() -> None:

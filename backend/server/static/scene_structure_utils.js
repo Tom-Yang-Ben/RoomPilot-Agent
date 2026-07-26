@@ -119,15 +119,7 @@ export function doorsOverlap(first, second) {
   const a = openingAxis(first);
   const b = openingAxis(second);
   if (!a || !b || a.orientation !== b.orientation) return false;
-  const sameHostWall = Boolean(
-    first.host_wall_id
-    && second.host_wall_id
-    && first.host_wall_id === second.host_wall_id,
-  );
-  const perpendicularTolerance = sameHostWall
-    ? Math.max(60, Math.min(a.length, b.length) * 0.55)
-    : 35;
-  if (Math.abs(a.constant - b.constant) > perpendicularTolerance) return false;
+  if (Math.abs(a.constant - b.constant) > 35) return false;
   const overlap = Math.max(0, Math.min(a.high, b.high) - Math.max(a.low, b.low));
   const centerDistance = Math.abs((a.low + a.high) / 2 - (b.low + b.high) / 2);
   const width = Math.min(a.length, b.length);

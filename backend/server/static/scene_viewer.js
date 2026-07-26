@@ -15,11 +15,12 @@ import {
   surfaceTint,
 } from "./scene_pbr_contracts.js?v=20260720-real3d15";
 import {
+  doorOpeningForWallTopology,
   openingBelongsToWall,
   openingWallInterval,
   wallEndpointBordersOpening,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-51358cd0fc38";
+} from "./scene_architecture.js?v=sha256-684185a66ae5";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -2160,8 +2161,11 @@ export function createSceneViewer(
     applySurfaceTint(wallMaterial, wallColor);
     if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
+    const wallThickness = 12;
     const wallSegments = sceneData.floorplan?.wall_segments || [];
-    const doorSegments = sceneData.floorplan?.door_segments || [];
+    const doorSegments = (sceneData.floorplan?.door_segments || []).map(
+      (door) => doorOpeningForWallTopology(wallSegments, door, wallThickness),
+    );
     const windowSegments = sceneData.floorplan?.window_segments || [];
     const hasAccurateFloorplan = ["dxf", "user_confirmed"].includes(
       sceneData.floorplan?.source,
@@ -2191,7 +2195,6 @@ export function createSceneViewer(
     ceilingGroup.visible = false;
 
     // 12 cm 接近住宅隔間牆；原先 4 cm 會讓雙線牆與轉角看起來像中空。
-    const wallThickness = 12;
     const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;
     const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !hasWallOpenings
       ? buildWallMass(

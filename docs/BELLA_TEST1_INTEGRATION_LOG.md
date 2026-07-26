@@ -673,20 +673,23 @@ $env:TEMP=$env:TMP
 - Full suite verification: 458 passed, 2 skipped.
 - No remote push was performed.
 
-## 2026-07-27 Duplicate Same-Wall Door Opening Fix
+## 2026-07-27 Door Topology and Empty Opening Correction
 
-- Traced the double opening to Cody vision returning two parallel edges for one
-  physical door. Project `47abb48d539c46a0afd1fc1acce34add` stored both
-  `door-2` and `door-3` on `wall-2`, about 50 cm apart with almost completely
-  overlapping spans.
-- Updated door deduplication to support both editor `x/y` and scene `x/z`
-  coordinates and to use the shared `host_wall_id` when merging parallel door
-  edges.
-- Normalized restored `sceneData.floorplan.door_segments` so existing saved
-  projects are repaired on reload instead of requiring scene regeneration.
-- Added regression coverage using the exact saved coordinates of the duplicate
-  `door-2` and `door-3`.
-- Browser verification confirmed the restored project now reports 4 doors,
-  with all 4 confirmed, instead of sending 5 door segments to the 3D renderer.
-- Full suite verification: 460 passed, 2 skipped.
+- Corrected the earlier diagnosis that `door-2` and `door-3` were duplicate
+  edges. They are two adjacent open door leaves whose `host_wall_id` was
+  incorrectly assigned to nearby horizontal `wall-2`.
+- Found the corresponding two approximately 110 cm gaps in the central
+  vertical partition. Treating the open leaves as horizontal wall openings
+  created a door in the wrong wall and left the real topology gaps empty.
+- Added topology-aware door placement. A door now snaps to a nearby existing
+  wall gap when the gap matches its width, touches its hinge, and runs
+  perpendicular to the detected open leaf.
+- Restored `door-3` in project `47abb48d539c46a0afd1fc1acce34add`
+  after the earlier incorrect deduplication had persisted its removal.
+- Added regression coverage using the exact wall and door coordinates from the
+  affected project. The test asserts that both doors use distinct vertical gaps
+  and neither cuts horizontal `wall-2`.
+- Browser verification confirmed 5/5 doors in Step 4 and a successful Step 6
+  3D restore with the current cache-keyed modules.
+- Full suite verification: 461 passed, 2 skipped.
 - No remote push was performed.
