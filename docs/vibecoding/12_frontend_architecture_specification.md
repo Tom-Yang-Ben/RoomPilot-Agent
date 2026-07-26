@@ -1,23 +1,23 @@
-> 本文件由 VibeCoding 模板 12_frontend_architecture_specification.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
-
 # 前端架構規範 - RoomPilot-Agent
 
+> 本文件由 VibeCoding 模板 12_frontend_architecture_specification.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
+
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 已發布(依現行程式碼逐條核對整理)
-> **相關文檔:** [API 設計規範 (06)](./06_api_design_specification.md)、[專案結構指南 (08)](./08_project_structure_guide.md);前端資訊架構 (17) **尚未導入,待補**
+> **相關文檔:** [API 設計規範 (06)](./06_api_design_specification.md)、[專案結構指南 (08)](./08_project_structure_guide.md)、[前端資訊架構 (17)](./17_frontend_information_architecture_template.md)(已導入)
 >
 > **MECE 邊界**:本文件**只談技術視角**(stack / 分層 / 量化指標 / 工程化)。
-> 使用者視角(頁面職責、旅程、導航、路由內容)依模板約定屬 17 號文件——該文件尚未導入,相關內容暫散見 README.md(十步驟流程)與 `docs/RoomPilot_現行版本總覽.md`。
+> 使用者視角(頁面職責、旅程、導航、路由內容)依模板約定屬 17 號文件,已導入:[17_frontend_information_architecture_template.md](./17_frontend_information_architecture_template.md)。
 >
 > | 你想找的 | 看這份 |
 > |---|---|
 > | 兩套前端是什麼、關係如何 | 12(本檔)§0 |
 > | 用什麼框架、怎麼分層 | 12(本檔)§2 |
-> | 3D 渲染架構(牆體擠出、X-ray、吸附) | 12(本檔)§2.3、§7.3 |
+> | 3D 渲染架構(牆體擠出、X-ray、吸附) | 12(本檔)§2.3 |
 > | 效能與快取現況 | 12(本檔)§4 |
 > | 專案 file 組織、測試現況 | 12(本檔)§6 |
 > | 與後端的資料流、API 呼叫點 | 12(本檔)§7 |
 > | 全部 44 條 API 端點規格 | 06 |
-> | 哪些**頁面**存在、頁面職責、旅程 | 17(**尚未導入,待補**) |
+> | 哪些**頁面**存在、頁面職責、旅程 | [17](./17_frontend_information_architecture_template.md) |
 
 ---
 
@@ -38,10 +38,10 @@
 - `backend/server/main.py:2072` 的 `_legacy_viewer_models()` docstring 寫明 **"Feed the retired R3F viewer"**(退役的 R3F 檢視器),但供它使用的路由**全部存活**:main.py:2657 起有註解「以下路由自原 app/backend/main.py 移植,供 frontend3d(React Three Fiber)使用」,含 `GET /api/plans`、`GET /api/plan`、`POST /api/upload`、`GET /api/furniture/{name}`;`GET /api/furniture` 回應也保留 legacy 鍵 `furniture` 餵它(main.py:2066)。
 - `tests/test_cloud_catalog_bridge.py:133` 的 `test_frontend3d_accepts_cloudfront_model_urls` 仍直接讀 `frontend3d/src/Furniture.jsx` 原始碼驗證它能吃 CloudFront URL——CI 層面 frontend3d 仍被當作受保護的消費端。
 - `docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md:17` 把 `backend/server/static/` 與 `frontend3d/` 並列為前端職責範圍(蒐集需求、呼叫 API、呈現結果;禁止在瀏覽器自行推算合法家具座標)。
-- `frontend3d/README.md` 內容已過時:寫後端 port 8000、路徑 `app/backend/`/`app/frontend/`,與 `vite.config.js` 實際代理的 8002 及倉庫根 README 的啟動指令(`uv run uvicorn backend.server.main:app --port 8002`,README.md:185)矛盾。
-- `frontend3d/node_modules` 不存在(實測),依賴未安裝;`npm install`/`npm run dev`/`npm run build` 在本機均未實際執行過驗證(未查證)。
+- `frontend3d/README.md` 內容已過時:寫後端 port 8000、路徑 `app/backend/`/`app/frontend/`,與 `vite.config.js` 實際代理的 8002 及倉庫根 README 的啟動指令(`uv run uvicorn backend.server.main:app --port 8002`,README.md:185)矛盾。git 實測:該檔自 2026-07-06 重構 commit 85b4a92 後未再更動,內容沿用重組前 `app/` 佈局——屬未同步更新,非刻意標記。
+- `frontend3d/node_modules` 不存在(實測),依賴未安裝;`npm install --dry-run` 實測(2026-07-26)以 **ERESOLVE 失敗**:鎖定的 `@vitejs/plugin-react` 4.7.0 peer 只支援 vite ^4–^7,與宣告的 vite ^8.1.0 衝突,預設安裝直接中止(npm 提示需 `--legacy-peer-deps`/`--force`);`npm run dev`/`npm run build` 因依賴裝不起來仍無法驗證(未查證)。
 
-> **裁決事項(待本顥/團隊決定):** frontend3d 的定位——(a) 正式除役:移除 main.py:2657 起的移植路由、`_legacy_viewer_models`、legacy `furniture` 鍵與對應測試,封存目錄;或 (b) 保留為 DXF 除錯工具:更新 frontend3d/README.md(port、路徑)、驗證 `npm install` 可行。現況「docstring 說退役、路由與測試都活著」是半吊子狀態,文件與程式碼互相矛盾。
+> **裁決事項(待本顥/團隊決定):** frontend3d 的定位——(a) 正式除役:移除 main.py:2657 起的移植路由、`_legacy_viewer_models`、legacy `furniture` 鍵與對應測試,封存目錄;或 (b) 保留為 DXF 除錯工具:更新 frontend3d/README.md(port、路徑)、解決 `npm install` 的 ERESOLVE 衝突(vite 8 vs plugin-react peer,實測失敗)。現況「docstring 說退役、路由與測試都活著」是半吊子狀態,文件與程式碼互相矛盾。
 
 ---
 
@@ -51,7 +51,7 @@
 
 | 維度 | 現況目標 | 依據 |
 | :--- | :--- | :--- |
-| 正確性優先於快取 | `/scene` 頁回應帶 `Cache-Control: no-store`(main.py:1449-1452);JS 以內容雜湊查詢參數載入(`scene_v2.js?v=sha256-2ff7e164ea1b`,scene.html:792)防舊快取 | 記憶檔:曾因舊頁快取造成組員驗收問題 |
+| 正確性優先於快取 | `/scene` 頁回應帶 `Cache-Control: no-store`(main.py:1449-1452);JS 以內容雜湊查詢參數載入(`scene_v2.js?v=sha256-2ff7e164ea1b`,scene.html:792)防舊快取——注意本分支該雜湊已與 scene_v2.js 現內容不符,守約測試紅燈(§6) | 記憶檔:曾因舊頁快取造成組員驗收問題 |
 | 3D 即時互動 | 牆體 X-ray shader、拖曳吸附即時計算(§2.3);幾何重算 250ms debounce(App.jsx:42-68) | 程式碼 |
 | 免 CORS 設定 | frontend3d 以 Vite proxy 把 `/api` 轉到 8002(vite.config.js);static 頁與 API 同源——後端**沒有任何 CORS middleware**(全 backend/ grep 無 `add_middleware`/`cors`) | 程式碼 |
 | 座標紀律 | 前端不得自行推算合法家具座標,一律問後端引擎(contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md:17) | 契約 |
@@ -68,7 +68,7 @@
 用戶感知層    -- 4 個 HTML(index/styles/library/scene)+ site.css + scene.html 內部樣式
 互動邏輯層    -- 33 支原生 ES module JS(其中 scene_*.js 26 支;scene_v2.js 8,544 行為主檔)
 狀態管理層    -- 模組內變數 + localStorage(workflow v2 契約 + 待重放的 pending save)
-資料通訊層    -- 原生 fetch,無封裝 client;樂觀鎖 expected_revision/409 重試
+資料通訊層    -- 原生 fetch,無封裝 client;保存失敗 3 次退避重試 + pending save 版本檢查重放(§7.2)
 基礎設施層    -- 無建置工具、無打包、無前端測試框架;由 FastAPI StaticFiles 直接供檔
 ```
 
@@ -76,8 +76,8 @@
 | :--- | :--- | :--- |
 | 感知層 | 無框架 vanilla JS + 手寫 CSS;three.js **0.165.0** 經 `<script type="importmap">` 從 unpkg CDN 載入(scene.html:784-791) | 實測 |
 | 互動層 | 原生 DOM 事件;`scene.html` 頂部導覽 10 顆步驟按鈕(`data-step`,scene.html:22-32) | 實測 |
-| 狀態層 | `scene_workflow.js` 匯出 `WORKFLOW_SCHEMA_VERSION = 2`、`WORKFLOW_STORAGE_KEY = "roompilot.workflow.v2"`、`createWorkflow({storage = globalThis.localStorage})`;`scene_v2.js` 另以 localStorage 存斷線期間的 pending save 供重放(scene_v2.js:510-582) | 實測 |
-| 通訊層 | `scene_v2.js` 內 15 種 `/api/*` 端點字串(§7.2);`common.js` 負責 `/api/home-data`、`/api/scene/bootstrap`、`/api/site-data`、`/api/styles`、`/api/furniture` | grep 實測 |
+| 狀態層 | `scene_workflow.js` 匯出 `WORKFLOW_SCHEMA_VERSION = 2`、`WORKFLOW_STORAGE_KEY = "roompilot.workflow.v2"`、`createWorkflow({projectId, storage = globalThis.localStorage})`;`scene_v2.js` 另以 localStorage 存斷線期間的 pending save 供重放(scene_v2.js:510-582) | 實測 |
+| 通訊層 | `scene_v2.js` 內 16 種 `/api/*` 端點字串(§7.2);`common.js` 負責 `/api/home-data`、`/api/scene/bootstrap`、`/api/site-data`、`/api/styles`、`/api/furniture` | grep 實測 |
 | 基礎設施 | `app.mount("/static", ...)` 與 `app.mount("/docs-assets", ...)`(main.py:163-164);JS 相互 import 也帶雜湊查詢參數(如 `scene_viewer.js?v=sha256-aee068a25df9`) | 實測 |
 
 主流程步驟順序以程式碼為準:`static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 共 11 個內部步驟(`project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render`);`recognition` 與 `calibration` 共用同一 "scale" 面板,故 UI 只顯示 10 顆按鈕。伺服器端 main.py 的同名集合只驗步驟名不驗順序,前置依賴僅由前端強制。
@@ -112,7 +112,7 @@
 | vite(dev) | ^8.1.0 | 8.1.0 |
 | @vitejs/plugin-react(dev) | ^4.3.4 | 4.7.0 |
 
-注意:frontend3d 用 three **0.160.1**、static UI 用 CDN three **0.165.0**——兩套前端的 three 版本不一致(照實記錄,無同步機制)。
+注意:frontend3d 用 three **0.160.1**、static UI 用 CDN three **0.165.0**——兩套前端的 three 版本不一致(照實記錄,無同步機制)。另:鎖定的 plugin-react 4.7.0 peer range 不含 vite 8,`npm install` 實測 ERESOLVE 失敗(§0)。
 
 ### 2.3 frontend3d 3D 渲染架構(src/ 各檔職責)
 
@@ -131,7 +131,7 @@
 
 **本專案不適用(未建立)**——兩套前端均無 Design Tokens 定義檔、無 Atomic Design 元件分層、無元件庫;樣式為手寫 CSS(static: site.css + scene.html 內部樣式;frontend3d: styles.css 內以 hex 色碼硬編碼)。
 
-與「設計系統」概念最接近的現況資產是**設計內容資料**而非技術令牌:6 風格 × 3 色系 = 18 張色卡(`backend/catalog/data/taiwan_style_cards.json`,每卡含 `palette_hex` 三色),由 `static/scene_style_packs.js` 與 `scene_v2.js` 消費(依 `docs/contracts/STYLEPACK_RENDERING_CONTRACT.md:23-31`)。若未來要建 tokens,色彩來源應以該 JSON 為準,不另立平行清單。
+與「設計系統」概念最接近的現況資產是**設計內容資料**而非技術令牌:6 風格 × 3 色系 = 18 張色卡(`backend/catalog/data/taiwan_style_cards.json`,實測 6 風格各 3 卡,每卡 `palette_hex` 三色)。注意色票實際存在**兩份平行資料**:該 JSON 由後端 `style_cards.py` 載入、經 API 供前端;`static/scene_style_packs.js` 則以同一組 card_id **另行硬編碼**每卡 4 色 palette 與 PBR/燈光參數,數值與 JSON 不一致(如 `scandinavian_1`:JSON `#F3EBDD…` vs style_packs `#FAF4EE…`,實測)。`docs/contracts/STYLEPACK_RENDERING_CONTRACT.md:23-31` 把兩者並列為各自職責的執行來源。若未來要建 tokens,需先裁決以哪份為準——平行清單已是現況,不是風險預告。
 
 ---
 
@@ -149,14 +149,14 @@
 | `Cache-Control: no-store` | main.py:1449-1452 | 只對 `/scene` 頁;犧牲快取換部署正確性 |
 | GLB 走 CDN | `/api/furniture/{furniture_id}/model` → 307 轉址 CloudFront(main.py:914-935) | 模型檔不經 FastAPI 傳輸;`ROOMPILOT_MODEL_DELIVERY_MODE` 預設 `cloudfront` |
 | 型錄分頁 | `GET /api/furniture` page_size 1-80、預設 24 | 避免 9,350 件一次載入 |
-| CDN importmap | scene.html:784-791 | three@0.165.0 由 unpkg 載入,不在 repo 內 |
+| CDN importmap | scene.html:784-791、library.html:160-167 | three@0.165.0 由 unpkg 載入,不在 repo 內(`/scene` 與 `/library` 兩頁) |
 
 ### 執行時(現況,frontend3d)
 
 - 幾何重抓 **250ms debounce**(App.jsx:42-68),滑桿連續調整不會每 tick 打 API。
 - `useMemo` 快取牆體幾何與材質,且**分開的 dispose 節奏**:材質只在換色/卸載時 dispose,幾何在重建時 dispose——耦合會導致每次滑桿微調都重編譯 shader(Scene.jsx:71-77 註解)。
 - `React.memo` 包家具 Item;GLB 以 `<Suspense>` 逐件懶載;drei `useGLTF` 內建以 URL 為鍵的快取。
-- X-ray 淡化用 `THREE.MathUtils.damp` 緩動,並在近俯視角自動關閉(Scene.jsx:93-98)。
+- X-ray 淡化用 `THREE.MathUtils.damp` 緩動,並在近俯視角自動關閉(Scene.jsx:93-99)。
 
 ### SSR / SSG
 
@@ -225,7 +225,7 @@ static UI 的組織是**檔名前綴慣例**:`scene_*.js` 26 支(workflow/calibr
 | 前端單元測試 | **零**。frontend3d 無測試框架;`snap.js` 檔頭寫明「不 import three 以便 node 單測」,但 repo 內**沒有**對應測試檔(tests/ 全為 Python,實測) | 實測 |
 | 前端元件/E2E/視覺 | **無** Testing Library/Playwright/Storybook | 實測 |
 | 跨層守約測試(Python) | `tests/test_cloud_catalog_bridge.py:133` `test_frontend3d_accepts_cloudfront_model_urls` 直接讀 `frontend3d/src/Furniture.jsx` 原始碼,驗證 `furnitureUrl()` 透傳 https URL | 實測 |
-| 後端測試間接覆蓋 | static UI 的 API 契約由後端 pytest(tests/ 47 檔)覆蓋;前端 JS 邏輯本身無自動化測試 | 實測(通過率本次未執行,未查證) |
+| 後端測試間接覆蓋 | static UI 的 API 契約由後端 pytest(tests/ 47 檔)覆蓋;前端 JS 邏輯本身無自動化測試 | 實測;2026-07-26 本分支 `uv run pytest`:**389 passed / 2 failed / 1 skipped**,敗的 2 條均為 `tests/test_scene_v2_contract.py` 快取鍵一致性(scene.html 的 `?v=sha256-2ff7e164ea1b` ≠ scene_v2.js 現內容雜湊 `6221aa80936c`) |
 
 ---
 
@@ -235,7 +235,7 @@ static UI 的組織是**檔名前綴慣例**:`scene_*.js` 26 支(workflow/calibr
 
 - **無統一 API Client**:兩套前端皆直接呼叫原生 `fetch`(與模板建議相反,照實記錄)。
 - **無型別自動生成**:FastAPI 可產 `/openapi.json`,但前端未消費(無 codegen 設定,實測無相關檔案)。
-- 錯誤處理:frontend3d 讀 `(await res.json()).detail || res.statusText`(App.jsx:58);static UI 的樂觀鎖流程依 409 `project_revision_conflict` 附回的最新 project 處理(契約詳見 06 號文件)。
+- 錯誤處理:frontend3d 讀 `(await res.json()).detail || res.statusText`(App.jsx:58);static UI 保存失敗時重試 3 次(180ms 遞增退避,scene_v2.js:514-535);離線期間的 pending save 於載入時以 `replay_pending` + `base_updated_at` 重放,遇 409 直接捨棄 pending 並重新 GET 專案(scene_v2.js:8310-8333)。後端另支援 `expected_revision` 樂觀鎖與 409 `project_revision_conflict` 附回最新 project(main.py:1542-1592,契約詳見 06 號文件),但 grep 全 static/ 無 `expected_revision` 字串——**現行前端未使用該機制**。
 - CORS:後端**無** CORS middleware。frontend3d 依賴 Vite proxy 同源化;若改為跨源直連後端,瀏覽器會攔截,屬已知限制。
 
 ### 7.1 frontend3d ↔ 後端資料流(4 個 fetch + 1 個 GLB URL)
@@ -243,7 +243,7 @@ static UI 的組織是**檔名前綴慣例**:`scene_*.js` 26 支(workflow/calibr
 | 呼叫點 | 端點 | 後端定義 | 用途 |
 | :--- | :--- | :--- | :--- |
 | App.jsx:26 | `GET /api/plans` | main.py:2661 | 列 `testdata/pic/temp/` 的 DXF(實測 7 個檔) |
-| App.jsx:30 | `GET /api/furniture` | main.py:2018 | 只讀回應 legacy 鍵 `furniture`;CloudFront 模式回最多 24 條已驗證 https model_url,local 模式回 `testdata/sample_glb/` 檔名(main.py:2071-2086) |
+| App.jsx:30 | `GET /api/furniture` | main.py:2018 | 只讀回應 legacy 鍵 `furniture`;CloudFront 模式回最多 24 條已驗證 https model_url,local 模式回 `testdata/sample_glb/` 檔名(main.py:2071-2085;該目錄現不存在,實測回空清單) |
 | App.jsx:53 | `POST /api/upload?thickness&height[&scale_m]`(FormData `file`) | main.py:2682 | 上傳 DXF 直接解析,失敗 422 |
 | App.jsx:56 | `GET /api/plan?name&thickness&height[&scale_m]` | main.py:2666 | 解析既有 DXF;`Path(name).name` basename 防路徑跳脫;404/422 |
 | Furniture.jsx:7-11 | `GET /api/furniture/{name}` 或直接透傳 URL | main.py:2787 | `furnitureUrl()`:`http(s)://` 或 `/` 開頭直接透傳(可吃 CloudFront model_url),否則組本機端點;`.glb` 結尾在 CloudFront 模式回 410 |
@@ -252,15 +252,15 @@ static UI 的組織是**檔名前綴慣例**:`scene_*.js` 26 支(workflow/calibr
 
 ### 7.2 現行主要 UI ↔ 後端資料流(摘要)
 
-`scene_v2.js`(8,544 行)呼叫的端點(grep 字串實測,15 種):
+`scene_v2.js`(8,544 行)呼叫的端點(grep 字串實測,16 種):
 
-- 專案生命週期:`POST /api/projects`、`GET/PUT /api/projects/{id}`(workflow 保存帶 `expected_revision` 樂觀鎖)、`POST .../floorplan`、`GET .../floorplan/source`、`POST .../floorplan/analyze`、`POST .../render-jobs`
+- 專案生命週期:`POST /api/projects`、`GET /api/projects/{id}`、`PUT /api/projects/{id}/workflow`(自動保存;帶 `base_updated_at`,重放時附 `replay_pending` 做版本檢查,**未用** `expected_revision`,見上)、`POST .../floorplan`、`GET .../floorplan/source`、`POST .../floorplan/analyze`、`POST .../render-jobs`
 - 場景管線:`POST /api/scene/generate`、`/api/scene/layout`、`/api/scene/decorate`、`/api/scene/validate`(F6 拖曳落點驗證——前端不自算座標,符合契約)
 - 其他:`POST /api/agent/furniture/select`、`POST /api/floorplan/analyze`、`GET /api/furniture?...`(4 種參數組合)、`GET /api/questionnaire/visual-catalog`、`GET /api/render-provider/status`
 
 `common.js` 負責 `GET /api/home-data`、`/api/scene/bootstrap`、`/api/site-data`、`/api/styles`、`/api/furniture`。
 
-3D 檢視由 `scene_viewer.js`(`scene_v2.js:1` import)以 three@0.165.0 實作,`preserveDrawingBuffer: true` + `toDataURL("image/png")` 支援瀏覽器端截圖(scene_viewer.js:51、2661);後端 `POST /api/projects/{id}/renders` 接受 `provider=browser_capture` 的 PNG 上傳,但 static/ 內 grep 不到對 `/renders` 的呼叫點——上傳鏈路是否接通**未查證**,前端目前確定接的是 `POST .../render-jobs`(遠端渲染提交)。
+3D 檢視由 `scene_viewer.js`(`scene_v2.js:1` import)以 three@0.165.0 實作,`preserveDrawingBuffer: true` + `toDataURL("image/png")` 支援瀏覽器端截圖(scene_viewer.js:51、2661);後端 `POST /api/projects/{id}/renders` 接受 `provider=browser_capture` 的 PNG 上傳,但全 repo grep:`browser_capture` 只出現在 main.py 與 tests/,static/ 與 frontend3d/ 均無對 `/renders` 的呼叫點——**上傳鏈路未接通(實測)**,該端點現階段只有測試在打;前端接的是 `POST .../render-jobs`(遠端渲染提交)。
 
 ### 認證與授權(Token 機制)
 
@@ -276,11 +276,11 @@ static UI 的組織是**檔名前綴慣例**:`scene_*.js` 26 支(workflow/calibr
 
 ### 前端安全(現況檢查表)
 
-- [ ] XSS 防護:React 有自動跳脫(frontend3d);static UI 為手寫 DOM 操作,無 CSP header(main.py 無設定)——未逐支 JS 審計,**未查證**
+- [ ] XSS 防護:React 有自動跳脫(frontend3d);static UI 為手寫 DOM 操作,`innerHTML` 賦值共 109 處、集中 6 支 JS(scene_v2.js 51、scene.js 31、library.js 19、styles.js 6、home.js 1、scene_viewer.js 1,grep 實測),scene_v2.js 備有 `escapeHtml`(scene_v2.js:97)供插值跳脫;無 CSP header(main.py 無設定)——每一處是否都經跳脫未逐點審計,**未查證**
 - [ ] CSRF 防護:無(也無 cookie-based 認證,攻擊面有限但未評估)
 - [x] 敏感資料不存 localStorage:localStorage 只存 workflow 進度與 pending save(scene_workflow.js、scene_v2.js:510-582),不含個資;個資剝除在伺服器端做(render_service.py 送遠端前剝 name/phone/email)
 - [ ] 依賴掃描:未執行(`npm audit` 需先 `npm install`,node_modules 不存在)
-- [ ] Subresource Integrity:**缺**——scene.html 的 unpkg importmap 無 `integrity` 屬性(實測);three.js 由第三方 CDN 載入而無完整性驗證,是明確的供應鏈風險點(待辦)
+- [ ] Subresource Integrity:**缺**——scene.html 與 library.html 的 unpkg importmap 均無 `integrity` 屬性(grep 兩檔零命中,實測);three.js 由第三方 CDN 載入而無完整性驗證,是明確的供應鏈風險點(待辦)
 
 ---
 
@@ -290,28 +290,28 @@ static UI 的組織是**檔名前綴慣例**:`scene_*.js` 26 支(workflow/calibr
 
 **現況可執行的檢查:**
 
-- [ ] 後端 pytest 全綠(tests/ 47 檔;含 `test_cloud_catalog_bridge.py` 的 frontend3d 守約測試)——本次未執行,通過率未查證
+- [ ] 後端 pytest 全綠(tests/ 47 檔;含 `test_cloud_catalog_bridge.py` 的 frontend3d 守約測試)——2026-07-26 實測**未全綠**:389 passed / 2 failed / 1 skipped,敗因=scene.html 快取雜湊未隨 scene_v2.js 內容更新(§6);修法=重算 `?v=sha256-…` 參數
 - [ ] `/scene` 頁 no-store 與 JS 雜湊參數在部署後確實生效(改版後強制重新載入驗證)
 - [ ] CloudFront 模式下家具 model_url 全為 https(`GET /api/catalog/status` 的 manifest_ready)
 
 **未建立、列為待辦(需先裁決是否投資):**
 
-- [ ] frontend3d 定位裁決(§0)→ 據此決定是否修 README、驗證 `npm install`/`npm run build`
+- [ ] frontend3d 定位裁決(§0)→ 據此決定是否修 README、解 `npm install` ERESOLVE(已實測失敗,§0)並驗證 `npm run build`
 - [ ] Core Web Vitals 量測與目標(§4)
 - [ ] 前端 JS 測試(至少 `snap.js` 已為可測而設計,補 node 單測成本最低)
 - [ ] ESLint/Prettier 導入(§6)
 - [ ] unpkg CDN 資源 SRI 或改為 vendor 進 repo(§8)
 - [ ] 響應式斷點整理與行動裝置支援範圍聲明(§5)
-- [ ] 17 號文件(前端資訊架構)導入,收納頁面職責/旅程/路由表
+- [x] 17 號文件(前端資訊架構)已導入:`./17_frontend_information_architecture_template.md`,收納頁面職責/旅程/路由表
 
 ---
 
 ## 附:本文件未查證項清單
 
+2026-07-26 逐項複查後,原列 5 項中 3 項已查證完畢並回寫正文:pytest 通過率(389/2/1,§6)、browser_capture 上傳鏈路(未接通,§7.2)、frontend3d README 過時原因(85b4a92 後未更動,§0)。仍未查證的剩:
+
 | 項目 | 說明 |
 | :--- | :--- |
-| `npm install`/`npm run dev`/`npm run build` 可行性 | node_modules 不存在,依賴可裝性與 vite 8.1.0 相容性未實測 |
-| 後端 pytest 現況通過率 | 本次僅引用測試存在性,未執行 |
-| static UI 的 XSS 面 | 33 支 JS 未逐支審計 innerHTML 等用法 |
-| browser_capture 渲染 PNG 上傳鏈路 | 後端端點存在,static/ 內 grep 不到 `/renders` 呼叫點,是否有其他觸發路徑未追完 |
-| frontend3d README 過時未修的原因 | 是否刻意保留未知 |
+| `npm run dev`/`npm run build` 可行性 | `npm install` 已實測 ERESOLVE 失敗(§0);dev/build 因依賴裝不起來,仍無法驗證 |
+| static UI 的 XSS 逐點審計 | `innerHTML` 109 處已量測(§8),每處是否都經 `escapeHtml` 跳脫未逐點確認 |
+| a11y 鍵盤導航/對比度/螢幕閱讀器 | 零星 aria 屬性存在(§5),系統性驗證未做 |

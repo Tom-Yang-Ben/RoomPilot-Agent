@@ -1,10 +1,10 @@
 # 模組規格與測試案例 - backend/engine 碰撞與淨空檢查
 
-> 本文件由 VibeCoding 模板 07_module_specification_and_tests.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | e48cd67
+> 本文件由 VibeCoding 模板 07_module_specification_and_tests.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 已完成(規格對照現行程式碼;測試於本日實測 28 passed)
 
-**對應架構文件**: `docs/contracts/FURNITURE_ENGINEERING_RULES.md`(鐵律第 4 條:「家具座標、碰撞與淨空是否合法,只能由 `backend.engine` 判定」);`docs/vibecoding/05_architecture_and_design_document.md`(撰寫本文件當下尚未產出,連結待補)
+**對應架構文件**: `docs/contracts/FURNITURE_ENGINEERING_RULES.md`(鐵律第 4 條:「家具座標、碰撞與淨空是否合法，只能由 `backend.engine` 判定。」);`docs/vibecoding/05_architecture_and_design_document.md`
 **對應 BDD Feature**: `docs/vibecoding/03_behavior_driven_development_guide.md`(其測試對照表已引用 `tests/test_placement.py` 18 個測試與 `tests/test_clearance.py` 10 個測試)
 
 ---
@@ -54,7 +54,7 @@
 | :--- | :--- | :--- |
 | `backend/engine/placement.py` | placement.py:7 | `import check_placement_with_clearance as check_placement`——自動擺位一律走淨空版檢查 |
 | `backend/engine/adjustment.py` | adjustment.py:9 | 同上,移動(軸分離)與旋轉的合法性判斷 |
-| `backend/server/scene_service.py` | scene_service.py:17(import);913、1307、1309、1453(`generate_layout` 候選驗證);1202、1212(`validate_single_placement`) | 2D 佈局與 F6 拖曳驗證 |
+| `backend/server/scene_service.py` | scene_service.py:17(import);1307、1309、1453(`generate_layout` 候選驗證)與 913(輔助函式 `_grid_place_in_boundary`,僅由 `generate_layout` 呼叫);1202、1212(`validate_single_placement`) | 2D 佈局與 F6 拖曳驗證 |
 | `POST /api/scene/validate` | backend/server/main.py:2607 → scene_service.py:1185 `validate_single_placement` | 前端拖曳落點的 HTTP 入口,回 `{ok, reason}` |
 
 ### 淨空資料來源(業務規則)
@@ -76,7 +76,7 @@
 | :--- | :--- |
 | **前置條件** | 1. `item.catalog.width` / `depth` 為正數公分——函式本身不驗證,由上游 `style_db.sanitize_size_cm` 修補(本日實測:寬深皆 0 時三項檢查全通過、回傳 `None`,屬未定義行為,見 TC-007) 2. `room` 為角落原點座標系,`walls` 可為空 3. `others` 中每件的 `id` 應唯一;與 `item.id` 相同者會被跳過不檢查 |
 | **後置條件** | 1. 回傳 `None` ⇔ `out_of_bounds`、`hits_wall`、`hits_furniture` 三項全部通過 2. 失敗時回傳固定詞彙字串,且只回報「第一個」失敗原因(短路):`"物件超出空間範圍"` → `"與牆體穿透"` → `"與「{家具名}」重疊"` 3. 不修改 `item` / `room` / `others` 任何欄位(純查詢) |
-| **不變性** | 1. 碰撞以旋轉後的實際多邊形判斷(Shapely `intersects` / `within`),非包圍盒近似,支援任意角度 2. 檢查順序固定:出界 → 穿牆 → 重疊,測試已釘死此順序(見 TC-301 對本體優先的延伸) 3. 失敗字串是對外契約——`examples/demo_agent_flow.py:11-12` 列為詞彙表、多個測試斷言完整字串,改字即破壞性變更 4. 家具邊緣與房間邊界恰好重合視為合法(Shapely `within` 容許邊界接觸;本日以引擎實測驗證,尚無正式測試,見 TC-006) |
+| **不變性** | 1. 碰撞以旋轉後的實際多邊形判斷(Shapely `intersects` / `within`),非包圍盒近似,支援任意角度 2. 檢查順序固定:出界 → 穿牆 → 重疊,測試已釘死此順序(見 TC-301 對本體優先的延伸) 3. 失敗字串是對外契約——`examples/demo_agent_flow.py:11-12` 列為詞彙表、多個測試斷言完整字串,改字即破壞性變更 4. 家具邊緣與房間邊界恰好重合不判出界(Shapely `within` 容許邊界接觸;本日以無牆房間引擎實測驗證,尚無正式測試,見 TC-006)——但若邊界線上有牆體(如測試共用 fixture 的四面牆壓在邊界線上),同一位置仍會因穿牆失敗 |
 
 ---
 
@@ -176,9 +176,9 @@
 
 #### TC-006: 邊界情況——家具邊緣與房間邊界恰好重合 **(待補)**
 
-- **Arrange**: 200×90 沙發置於 (100, 45),四邊貼齊房間邊界(min_x=0, min_y=0)
+- **Arrange**: 500×400 **無牆**房間(`walls=[]`);200×90 沙發置於 (100, 45),左、下兩邊貼齊房間邊界(min_x=0, min_y=0)
 - **Act**: `check_placement`
-- **Assert**: 應釘死為合法(`None`);本日以引擎實測確認現行為合法(Shapely `within` 容許邊界接觸),但無正式測試防守此行為
+- **Assert**: 應釘死為不出界(`None`);本日以無牆房間引擎實測確認現行為合法(Shapely `within` 容許邊界接觸),但無正式測試防守此行為。注意:若沿用共用 fixture 的四面圍牆房間,同一座標實測回傳 `"與牆體穿透"`(牆中心線壓在邊界線上),測試必須用無牆房間隔離出界判定
 
 #### TC-007: 無效輸入——零尺寸家具 **(待補)**
 
@@ -314,7 +314,7 @@
 | 項目 | 數字 |
 | :--- | :--- |
 | 現有測試 | 28 個(`test_clearance.py` 10 + `test_placement.py` 18),本日實測全數通過(0.14s) |
-| 其中直接測本篇三個檢查函式 | 15 個(TC-001~005、TC-101~103、TC-201~204、TC-301~303) |
-| 待補測試 | 8 個:TC-006(邊界重合)、TC-007(零尺寸)、TC-008(退化牆)、TC-009(斜角旋轉)、TC-104(無效 side)、TC-105(back/left/right 淨空)、TC-106(depth ≤ 0)、TC-205(淨空檢查次序)、TC-206(同 id 跳過)——其中 TC-007、TC-104、TC-106 需先裁決契約(防禦 vs 釘死現況)再寫測試 |
+| 其中直接測本篇四個規格函式 | 15 個(TC-001~005、TC-101~103、TC-201~204、TC-301~303) |
+| 待補測試 | 9 個:TC-006(邊界重合)、TC-007(零尺寸)、TC-008(退化牆)、TC-009(斜角旋轉)、TC-104(無效 side)、TC-105(back/left/right 淨空)、TC-106(depth ≤ 0)、TC-205(淨空檢查次序)、TC-206(同 id 跳過)——其中 TC-007、TC-104、TC-106 需先裁決契約(防禦 vs 釘死現況)再寫測試 |
 
-另註:`check_placement_with_clearance` 在 `backend/server/scene_service.py` 的整合行為(拖曳驗證、2D 佈局)由 `tests/test_project_workflow_api.py` 與 `tests/test_scene_layout_regions.py` 等場景測試覆蓋(見 `docs/vibecoding/03_behavior_driven_development_guide.md` 測試對照表),不在本篇單元規格範圍內重列;該批測試本次未執行。
+另註:`check_placement_with_clearance` 在 `backend/server/scene_service.py` 的整合行為(拖曳驗證、2D 佈局)由 `tests/test_project_workflow_api.py` 與 `tests/test_scene_layout_regions.py` 等場景測試覆蓋(見 `docs/vibecoding/03_behavior_driven_development_guide.md` 測試對照表),不在本篇單元規格範圍內重列;該批測試已於 2026-07-26 全量 pytest(389 通過/2 失敗/1 跳過,失敗均為快取鍵紅燈)中通過。

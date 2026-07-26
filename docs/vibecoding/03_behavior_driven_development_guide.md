@@ -143,7 +143,7 @@ Feature: 平面圖辨識與兩點比例尺
     Given 我尚未確認圖檔內容
     When 我啟動平面圖辨識
     Then 我應該收到 409,錯誤碼為 floorplan_confirmation_required
-    And 訊息為「請先確認圖檔內容正確,才能開始辨識。」
+    And 訊息為「請先確認圖檔內容正確，才能開始辨識。」(訊息內逗號為全形,照 main.py 原文)
 
   @sad-path
   Scenario Outline: 辨識失敗有明確錯誤碼
@@ -188,7 +188,7 @@ Feature: 工作流草稿保存(樂觀鎖)
   Scenario: 草稿超過 2 MB
     When 我保存超過 2 MB 的 workflow JSON
     Then 我應該收到 413,錯誤碼為 workflow_too_large
-    And 訊息為「專案草稿內容超過 2 MB,請移除大型暫存資料後再儲存。」
+    And 訊息為「專案草稿內容超過 2 MB，請移除大型暫存資料後再儲存。」(訊息內逗號為全形,照 main.py 原文)
 
   @sad-path
   Scenario: 另一分頁已更新,revision 衝突
@@ -307,7 +307,7 @@ Feature: 3D 檢視閘門與自動軟裝
   @happy-path
   Scenario: 自動軟裝經引擎驗證後才入場
     Given 我已有一個客廳的 3D 場景
-    When 我要求自動軟裝(地毯/植栽/立燈/窗簾)
+    When 我要求自動軟裝(地毯/植栽/燈具/窗簾)
     Then 回應的 decor_summary 應列出 requested 與實際 placed 的角色
     And engine 應為 "furniture_engine"
     And 放不下的軟裝應被移除,不得以失敗標記留在場景中

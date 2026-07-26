@@ -16,13 +16,13 @@
 - [ ] **文檔已更新**: 欄位或行為變更須同步 `docs/contracts/` 對應契約(6 份);使用者可見流程變更須同步 `README.md` 與 `docs/RoomPilot_現行版本總覽.md`
 - [ ] **已完成自我審查**: diff 只落在自己的責任目錄與對應測試(README 共同規則 1;目錄責任表見下節)
 
-### 測試基準現況(2026-07-26 實測,bella-local-20260726 @ e48cd67)
+### 測試基準現況(2026-07-26 實測,bella-local-20260726;程式基準 e48cd67,其後 d88b707 僅導入 docs/vibecoding 文件,同日複測結果相同)
 
 `uv run pytest tests/ -q` → **2 failed, 389 passed, 1 skipped**(13.53s,共收集 392 條)。
 
 - 兩條既有紅燈都在 `tests/test_scene_v2_contract.py`:`scene.html` 對 `scene_v2.js` 的 sha256 內容雜湊快取鍵、以及 `scene_v2.js` 對 `scene_viewer.js` 的快取鍵,與現行檔案內容不符(JS 改過但雜湊查詢參數未重生)。審查時遇到紅燈先對照這份基準:**新變更不得增加新紅燈**;修復這兩條紅燈本身也是待辦。
 - 2 條 warning 之一是 FastAPI `on_event` 的 `DeprecationWarning`(見技術債 D-06)。
-- 本日在既有 `.venv` 直接跑通全套;各測試檔對 extras(`server`/`vision`/`ocr`/`catalog`)的最低需求組合未逐一查證,新環境至少 `uv sync --extra server`(README 安裝指令),平面圖辨識相關測試另需 `vision`(未查證)。
+- 本日在既有 `.venv` 直接跑通全套;該環境查無 `ocr`/`catalog` extras 套件(`uv pip list` 無 paddleocr/paddlepaddle/selenium/sqlalchemy/psycopg2,2026-07-26 實測)而全套仍綠,故 **全套測試的最低需求組合 = `dev` 群組(`uv sync` 預設安裝)+ `server` + `vision` 兩個 extras**;`ocr`/`catalog` 非測試必需。逐檔掃描 47 個測試檔的第三方 import:14 檔直接用到 extras 套件——11 檔僅涉 `server`,2 檔僅涉 `vision`(`test_floorplan_room_icons.py`、`test_floorplan_vision.py`),1 檔兩者皆涉(`test_floorplan_vision_api.py`);其餘 33 檔無直接第三方 import(可能經 `backend.server` 間接依賴 `server`)。新環境安裝指令:`uv sync --extra server --extra vision`(README 安裝指令為 `uv sync --extra server`,跑平面辨識測試須再加 `vision`)。
 
 常用指令:
 
@@ -126,9 +126,9 @@ git log --oneline bella..origin/<member-branch>
 
 ### Commit 訊息慣例(2026-07-26 自 git log 全史歸納)
 
-全史共 120 條 commit,兩種風格並存:
+全史共 121 條 commit(含 7/26 導入本套文件的 `d88b707`),兩種風格並存:
 
-1. **英文 Conventional Commits**:58 條,格式 `type(scope): 摘要`,type 見於 log:`feat`/`fix`/`docs`/`chore`/`refactor`。例:`e48cd67 fix(catalog): harden cloud database import`、`d97f95c refactor(engine): adopt centimeter contract`。
+1. **英文 Conventional Commits**:59 條(嚴格比對 `type[(scope)]: ` 前綴),type 見於 log:`feat`(20)/`fix`(19)/`docs`(9)/`chore`(5)/`refactor`(3)/`test`(2),另有 `doc` 單數變體(`04a1fbe`、`c2ece59`)。例:`e48cd67 fix(catalog): harden cloud database import`、`d97f95c refactor(engine): adopt centimeter contract`。
 2. **繁中「類別:一句話」**:近期主要格式,全形冒號,類別詞見於 log:**新增/修正/功能/整合**,摘要不加句號。例:
    - `7fb3753 新增:依已確認房間預選共通問卷`
    - `6978f07 修正:需求問卷特殊選項卡住`
@@ -136,7 +136,7 @@ git log --oneline bella..origin/<member-branch>
    - `9aef367 整合:同步遠端 Bella 並保留 Codex 功能`
    - 更早也有無冒號直述句(`87b1876 修正房間輪廓異常岔出節點`)與自由格式,早期歷史不必回溯統一。
 
-歸納(現況描述,非既有明文規定):同一週內兩種風格並存(7/26 的 `e48cd67` 英文 conventional 與 `7fb3753` 繁中);模組級/工程面變更偏英文 conventional,流程與 UI 面向團隊溝通的變更偏繁中「類別:摘要」。最低要求:單一整合批次內風格一致,繁中格式沿用上列四個類別詞。
+歸納(現況描述,非既有明文規定):同一週內兩種風格並存(7/26 的 `e48cd67` 英文 conventional 與 7/25 的 `7fb3753` 繁中);模組級/工程面變更偏英文 conventional,流程與 UI 面向團隊溝通的變更偏繁中「類別:摘要」。最低要求:單一整合批次內風格一致,繁中格式沿用上列四個類別詞。
 
 ---
 
@@ -145,7 +145,7 @@ git log --oneline bella..origin/<member-branch>
 模板四條觸發訊號,對應本專案已查證的實例:
 
 - **偵測到 code smells** → 見下節技術債清單(單檔 2,796 行的 `main.py`、無人引用的 `scene.js` 等)
-- **效能問題浮現** → 目前無已查證的效能瓶頸紀錄(未查證)
+- **效能問題浮現** → repo 文件內查無任何效能瓶頸紀錄(grep「效能瓶頸」/profiling 於 `docs/` 僅本檔自身命中,2026-07-26 實測);浮現時再登記
 - **新增功能變得困難** → 44 條路由全擠在 `main.py`,任何路由變更都在同一檔案衝突(整合時 `backend/server/` 是衝突熱區)
 - **技術債累積過多** → 下節清單即現況;新增債務時應同步登記到 `docs/backlog/`(現有 1 筆 `FLOORPLAN_DATASET_TUNING.md`)
 
@@ -165,7 +165,7 @@ git log --oneline bella..origin/<member-branch>
 | D-08 | `docs/RoomPilot_現行版本總覽.md:12`、`README.md:5-7`、`frontend3d/README.md:15,22` | 文件腐化:總覽寫「目前固定為八個步驟」但同檔表格與程式碼為 10 顆按鈕/11 內部步驟;README 開頭有殘缺句(「不再建立/不再保留舊版巢狀後端命名」接不上);frontend3d README 寫 port 8000,實際 `vite.config.js:8` 代理到 8002 | 逐處修正(文件變更,不影響程式) |
 | D-09 | `backend/catalog/data/舊友：12種風格與JSON/`(git 追蹤)與 `舊有：12種風格與JSON/`(未追蹤) | 兩目錄僅 README.md 不同,其餘 4 個 JSON 相同(diff -rq 實測);`main.py` 的 `EXTERNAL_IMPORT_PATH` 指向「舊友」版 | 裁決保留哪一份,刪除另一份(裁決事項,待辦) |
 | D-10 | `backend/floorplan/__pycache__/`、`backend/upgrade3d/__pycache__/`、`backend/server/storage/` | 孤兒編譯殘留:`opening_classifier`/`room_analysis`/`seg_infer`/`vlm_judge`/`wall_openings` 的 `.pyc` 無對應 `.py`(ls 實測);`storage/` 目錄只剩 `__pycache__` | 清除 `__pycache__` 與空目錄 |
-| D-11 | `backend/catalog/data/surface_catalog.json` + `backend/server/main.py:426-428` | `style_surface_profiles` 用 12 個舊風格 key,與現行 6 風格 ID 體系不一致;查不到 profile 時 fallback 到 `scandinavian` | 補 6 風格 profile 或建立映射(6→12 映射是否有意設計,未查證) |
+| D-11 | `backend/catalog/data/surface_catalog.json` + `backend/server/main.py:426-428` | `style_surface_profiles` 有 12 個舊風格 key;現行 6 風格 ID(`taiwan_style_cards.json`:american/cream/industrial/japanese/modern_minimal/scandinavian)中 3 個恰同名命中(american/industrial/scandinavian),另 3 個(cream/japanese/modern_minimal)查無 profile、落到 `scandinavian` fallback;repo 內無任何 6→12 映射程式(`_style_surface_profile` 直接以 ID 查 dict) | 補齊 cream/japanese/modern_minimal 的 profile 或建立映射;此不一致是否有意設計無法自 repo 斷定(`surface_catalog.json` 係整合 commit `b04833c` 整檔新增 21,876 行帶入,未查證) |
 | D-12 | `backend/server/main.py:113` vs `backend/server/static/scene_workflow.js:4` | 伺服器端 `WORKFLOW_STEPS` 是 set 只驗步驟名,步驟前置依賴僅前端強制——伺服器無法阻止跳步驟寫入 | 評估是否在 `PUT /api/projects/{id}/workflow` 補伺服器端順序驗證 |
 
 ---
@@ -175,10 +175,10 @@ git log --oneline bella..origin/<member-branch>
 | 策略 | 適用場景 | RoomPilot 現況實例(已查證) |
 | :--- | :--- | :--- |
 | Extract Method | 函式過長,有可複用邏輯 | `backend/server/main.py`(2,796 行)內的路由處理函式;先從已自成區塊的段落下手 |
-| Extract Variable | 條件表達式過複雜 | 待補(本次未查證到現成案例,審查中指認) |
+| Extract Variable | 條件表達式過複雜 | `backend/server/main.py:1184`/`:1186` 家具列表篩選的 color/material 條件:取值→`_normalize_furniture_facet_value()`→`casefold()`→比較全連寫在單行 `if`,且同型條件逐 facet 重複;可先抽出具名變數再考慮抽共用函式 |
 | Replace Conditional with Polymorphism | 多重 if/switch | `backend/server/scene_service.py` 以類型集合分支決定擺放路徑:`_OVERLAY_TYPES`(:793)、`_IGNORE_COLLISION_TYPES`(:794),分支散在 :1201/:1204/:1210/:1304 |
 | Introduce Parameter Object | 參數過多 | `backend/floorplan/vision/analysis.py:223` `analyze_floorplan_image` 有 5 個 keyword-only 參數(calibration_hint/ocr_observations/ocr_provider/geometry_observations/filename) |
-| Move Method | 方法在錯誤的類別中 | `main.py` 拆 APIRouter;首選 `main.py:2656` 起註解明標「自原 app/backend/main.py 移植,供 frontend3d 使用」的舊 R3F 路由區塊,邊界最清楚 |
+| Move Method | 方法在錯誤的類別中 | `main.py` 拆 APIRouter;首選 `main.py:2656` 起註解明標「以下路由自原 app/backend/main.py 移植,供 frontend3d(React Three Fiber)使用」的舊 R3F 路由區塊,邊界最清楚 |
 
 重構的守門規則(本專案特有):
 
@@ -225,7 +225,7 @@ git log --oneline bella..origin/<member-branch>
 - [ ] `git diff --check`、`git status --short` 乾淨
 - [ ] 整合者逐 commit 檢視(`git diff --name-status bella...origin/<member-branch>`、`git log --oneline bella..origin/<member-branch>`),只挑責任範圍內變更
 - [ ] 目錄責任、公分契約、隔離區三條規則逐項核對(見審查重點第 2、3 節)
-- [ ] 同儕審核:無工具強制,依賴整合分支上的人工檢視;安全/效能專項審查無既定流程(待補,對應模板 `13_security_and_readiness_checklists.md` 未導入)
+- [ ] 同儕審核:無工具強制,依賴整合分支上的人工檢視;安全/生產準備專項檢查依 `docs/vibecoding/13_security_and_readiness_checklists.md`(2026-07-26 與本檔同批導入,基於程式碼實查);效能專項審查仍無既定流程(待補)
 
 ### 合併後(本專案無部署,對應現實 = 組員驗收)
 

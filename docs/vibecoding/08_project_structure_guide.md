@@ -1,6 +1,6 @@
 # 專案結構指南 - RoomPilot-Agent
 
-> 本文件由 VibeCoding 模板 08_project_structure_guide.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26(HEAD e48cd67)
+> 本文件由 VibeCoding 模板 08_project_structure_guide.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26
 
@@ -29,7 +29,7 @@ RoomPilot-Agent/
 │   │   └── data/                 # 型錄 JSON、manifests/、quarantine/(隔離區)
 │   ├── engine/                   # 幾何擺放引擎:座標、碰撞、淨空(公分制)
 │   ├── floorplan/                # PNG 平面圖辨識(Cody 管線)
-│   │   └── vision/               # 分析管線 15 模組 + icon_templates/(6 類家具圖示)
+│   │   └── vision/               # 分析管線 14 支 .py + icon_templates/(6 類家具圖示)
 │   ├── server/                   # FastAPI 應用:44 條路由全在 main.py
 │   │   ├── data/                 # questionnaire_visual_catalog.json(問卷版本來源)
 │   │   ├── services/             # cloud_models.py(CloudFront GLB 信任邊界)
@@ -180,7 +180,7 @@ uv run python scripts/verify_ikea_offline_backup.py <zip 路徑>
 | 目錄 | 小寫,必要時 `snake_case` | `spatial_data/`、`upgrade3d/`、`frontend3d/` |
 | API 路徑 | `/api/` 前綴;多字段用 kebab-case;資源 ID 用 `{snake_case}` 路徑參數 | `/api/render-provider/status`、`/api/questionnaire/visual-catalog`、`/api/projects/{project_id}/render-jobs` |
 | JSON 欄位 | `snake_case` | `expected_revision`、`style_card_id`、`placement_variant` |
-| 長度/座標欄位 | 一律公分、`_cm` 後綴;面積維持 `_m2`(README 共同規則第 4 條) | `width_cm`、`room_depth_cm`、`net_area_m2`;`scene_service.py` 內 `_cm` 命中 163 處 |
+| 長度/座標欄位 | 一律公分、`_cm` 後綴;面積維持 `_m2`(README 共同規則第 4 條) | `width_cm`、`room_depth_cm`、`net_area_m2`;`scene_service.py` 內 `_cm` 命中 163 行(共 231 次出現) |
 | 既有例外 | AN/Yen 舊契約的 `width`、`depth`、`pos_x`、`pos_y` 暫不改名,但 payload 必帶 `coordinate_unit: "cm"` 與 `schema_version` | `backend/engine/schema.py`(`placed_to_dict`,schema_version 2.0) |
 | 環境變數 | 專案自有的用 `ROOMPILOT_` 前綴;LLM 用 `OPENROUTER_` 前綴 | `ROOMPILOT_MODEL_DELIVERY_MODE`、`ROOMPILOT_RENDER_PROVIDER_URL`、`OPENROUTER_API_KEY`、`OPENROUTER_INTAKE_ENABLED`(grep 實測共 9 個 ROOMPILOT_* 與 7 個 OPENROUTER_*) |
 | 錯誤碼字串 | `snake_case` 語意碼 | `project_revision_conflict`(409)、`unsupported_floorplan_type`(415)、`workflow_too_large`(413) |
@@ -199,7 +199,7 @@ tests/
 
 - 命名即分域:`test_agent_*`(選件/擺放/知識)、`test_floorplan_*`(辨識)、`test_scene_*`(場景系列)、`test_cloud_*` / `test_official_*`(型錄)、`test_placement` / `test_clearance`(引擎)等。
 - 其中 23 檔 import `backend.server`,即近半測試直接打 FastAPI 層。
-- 執行:`uv run pytest tests/ -q`(README 規定合併前必跑)。本文件撰寫時只實跑過 agent+engine 相關 6 檔共 62 個測試(62 passed);全量通過率(未查證,記憶口徑 7/24 曾 330 過/4 敗)。
+- 執行:`uv run pytest tests/ -q`(README 規定合併前必跑)。全量實跑(2026-07-26,本分支):**389 passed / 2 failed / 1 skipped**;2 個失敗均在 `test_scene_v2_contract.py`,原因是 `scene.html` 與 `scene_v2.js` 內的 `?v=sha256-…` 內容雜湊快取鍵過期(既有紅燈,與文件變更無關)。
 
 ---
 
@@ -213,8 +213,9 @@ docs/
 ├── contracts/                  # 6 份正式契約(agent 前後端、型錄交付、家具工程規則、
 │                               #   佈局評估 schema、遠端渲染、StylePack 渲染)
 ├── backlog/                    # 待辦(現有 FLOORPLAN_DATASET_TUNING.md 1 檔)
-├── moodboard_assets/           # 文件圖片資產(伺服器掛載為 /docs-assets)
-└── vibecoding/                 # VibeCoding 模板導入文件(01/02/03/04/06/08…)
+├── moodboard_assets/           # 文件圖片資產;/docs-assets 掛載的是
+│                               #   backend/server/static/moodboard_assets/ 的同內容副本,非本目錄
+└── vibecoding/                 # VibeCoding 模板導入文件(01–17 全套 + output_style.md,共 18 檔)
 ```
 
 ⚠️ `.gitignore` 陷阱:`docs/*` 與 `scripts/*` 預設全忽略,僅白名單豁免(`docs/*.md`、`docs/backlog/*.md`、`docs/contracts/*.md`、`docs/moodboard_assets/**`、`docs/vibecoding/` 與 `docs/vibecoding/*.md`、`scripts/verify_ikea_offline_backup.py`、`scripts/sql/**`)。在 docs/ 或 scripts/ 下新增子目錄或非 .md 檔前,先確認 `.gitignore` 有對應豁免,否則檔案不會進版控。

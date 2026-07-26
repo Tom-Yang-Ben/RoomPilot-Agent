@@ -1,10 +1,10 @@
 # 類別/元件關係文件 - RoomPilot-Agent
 
-> 本文件由 VibeCoding 模板 10_class_relationships_template.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | e48cd67 (2026-07-26)
+> 本文件由 VibeCoding 模板 10_class_relationships_template.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 草稿
 
-**範圍與讀法**:本文件盤點 `backend/engine/`(幾何擺放引擎)、`backend/agent/`(選件與擺位紀律)、`backend/catalog/`(型錄轉接層)的類別與模組關係,並標出 `backend/server/` 的消費點。本 repo 的架構特徵是「**類別只當資料結構與例外用,行為都在模組層函式**」——engine 五個運算模組、agent 三個模組、catalog 兩個模組全部沒有業務類別,只有 dataclass 與 Exception 子類。因此本文件分兩層畫:先畫真實存在的類別(dataclass/例外),再以「模組」為節點畫依賴關係。所有類別、行號、數字均經逐檔讀碼查證,未虛構。
+**範圍與讀法**:本文件盤點 `backend/engine/`(幾何擺放引擎)、`backend/agent/`(選件與擺位紀律)、`backend/catalog/`(型錄轉接層)的類別與模組關係,並標出 `backend/server/` 的消費點。本 repo 的架構特徵是「**類別只當資料結構與例外用,行為都在模組層函式**」——engine 七個模組、agent 三個模組、catalog 兩個模組全部沒有業務類別,只有 dataclass 與 Exception 子類。因此本文件分兩層畫:先畫真實存在的類別(dataclass/例外),再以「模組」為節點畫依賴關係。所有類別、行號、數字均經逐檔讀碼查證,未虛構。
 
 ---
 
@@ -249,7 +249,7 @@ classDiagram
 依賴邊全部取自各檔案的 import 陳述(`scene_service.py:15-26`、`main.py:20-27` 等),逐條核對過。三個關鍵的「刻意不依賴」:
 
 1. **`agent` 套件不 import `engine`**:`place.py` 只 import 標準庫與 `knowledge`;引擎重擺透過呼叫端注入的 `engine_place_fn` 進行(`place.py:16` 型別別名、`place.py:130` 參數)。`agent/__init__.py` docstring 明文宣告不碰網路、不依賴 `backend.server`。
-2. **`engine/dxf_room.py` 不 import ezdxf/shapely**(檔頭 docstring 明言),因此可獨立匯入測試;shapely 只有 `geometry.py`/`clearance.py` 使用。
+2. **`engine/dxf_room.py` 不 import ezdxf/shapely**(檔頭 docstring 明言),因此可獨立匯入測試;engine 內 shapely 只有 `geometry.py`/`clearance.py` 使用(repo 其他層的 `server/scene_service.py` 與 `upgrade3d/dxf_parser.py` 另有自己的 shapely 依賴)。
 3. **`agent_select` 的 LLM 呼叫器是注入的 `Complete` callable**(`select.py:24`),實際 OpenRouter 網路呼叫在 `backend/server/`(`scene_service.py` 的 `_openrouter_request`),agent 層零網路依賴。
 
 ---
@@ -310,7 +310,7 @@ classDiagram
 
 | 模式 | 應用場景 | 目的 |
 | :--- | :--- | :--- |
-| 依賴注入 | `Complete` LLM 呼叫器注入 `request_selections()`(select.py:24,282);`engine_place_fn` 注入 `resolve_placements()`(place.py:130) | agent 層不碰網路、不依賴 engine;可用假 callable 單測(main.py:2247 就用 lambda 假 complete 做伺服器端驗證) |
+| 依賴注入 | `Complete` LLM 呼叫器注入 `request_selections()`(select.py:24,282);`engine_place_fn` 注入 `resolve_placements()`(place.py:130) | agent 層不碰網路、不依賴 engine;可用假 callable 單測(main.py:2250 就用 lambda 假 complete 做伺服器端驗證) |
 | 轉接器(Adapter) | `catalog_item_from_scene_object()`(style_db.py:193)、`build_room_from_dxf()`(dxf_room.py:85)、`_scene_object_to_placed()`(scene_service.py:1053) | 在單一邊界解決資料形狀、單位(公尺→公分)與座標系(中心原點↔角落原點)差異 |
 | 外觀(Facade) | `geometry.check_placement()`(geometry.py:67)收攏出界/穿牆/重疊;`clearance.check_placement_with_clearance()`(clearance.py:89)再收攏本體+淨空+反向淨空;`adjust_furniture()`(adjustment.py:72)收攏 move/rotate | 呼叫端只面對一個檢查入口與一致的 `str \| None` 回傳約定 |
 | 降級鏈(備援策略) | `POST /api/agent/furniture/select`(main.py:2220-2281):LLM 選擇驗證(`openrouter`)→ 本地規則(`local_rules`)→ 保留前 8 個候選(`local_rules_unvalidated`) | LLM 失敗不擋主流程;每層失敗以例外(`SelectionParseError`/`SelectionUnavailableError`)明確傳遞,不靜默 |
@@ -320,7 +320,7 @@ classDiagram
 
 ## SOLID 原則檢核
 
-- [x] **S** 單一職責:engine 五個運算模組各管一事(models 資料/geometry 碰撞/clearance 淨空/placement 搜尋/adjustment 調整);agent 三模組分「知識/選件/擺位紀律」;職責分界在 `agent/__init__.py` docstring 有明文(agent 決策、engine 算座標)。
+- [x] **S** 單一職責:engine 七個模組各管一事(models 資料/geometry 碰撞/clearance 淨空/placement 搜尋/adjustment 調整/dxf_room 單位轉換/schema 序列化);agent 三模組分「知識/選件/擺位紀律」;職責分界在 `agent/__init__.py` docstring 有明文(agent 決策、engine 算座標)。
 - [x] **O** 開放封閉:擴充靠改宣告表不改邏輯——`FAMILY_OF` 未列出的類型原樣返回(knowledge.py:34-37)、`_SIZE_RULES`/`CLEARANCE_BY_TYPE` 加類型即生效(style_db.py);`resolve_placements` 的修復策略則是寫死的三種 action,新增策略需改函式本體。
 - [ ] **L** 里氏替換:不適用——repo 內唯一繼承是例外類別繼承內建例外,無業務類別繼承層級可檢核。
 - [x] **I** 介面隔離:沒有正式 interface,但事實上的介面都很小:`Complete` 一個 callable、`EnginePlaceFn` 一個 callable、引擎檢查函式統一 `str | None` 回傳;`SELECT_OUTPUT_SHAPE`(select.py:49)限定 LLM 輸出形狀。
@@ -377,6 +377,6 @@ repo 內沒有 ABC/Protocol,以下是「事實上的介面」:型別別名、注
 
 - `engine/schema.py` 的 `PLACE_FURNITURE_TOOL`/`ADJUST_FURNITURE_TOOL` 自標 v0.1 草案,`backend/server` 內無引用(grep 實查,僅 `examples/demo_app/agent_stub.py` 註解提及)——不得寫成現行 Agent function-calling 介面。
 - `engine/adjustment.py` 在正式伺服器流程無呼叫點;F6 拖曳驗證實際走 `scene_service` 直呼 `check_placement_with_clearance`(scene_service.py:1202,1212)。adjustment 模組現役消費者只有 examples 與 tests。
-- `agent/place.py` 的 `placement_hints()` 正式程式碼無呼叫點(僅 tests);`main.py:748` 等處的 `"placement_hints"` 是資料欄位名,與此函式是否同一概念(未查證)。
-- 本文件相關測試:`tests/` 對 agent+engine 兩模組共 6 個測試檔 62 個測試,2026-07-26 以 `.venv/bin/python -m pytest` 實跑 62 passed(事實庫記錄);本次撰寫僅靜態讀碼,未重跑。
+- `agent/place.py` 的 `placement_hints()` 正式程式碼無呼叫點(僅 `tests/test_agent_place.py`);`main.py:748` 的 `"placement_hints"` 是另一概念——`_candidate_schema_fields()` 固定輸出空 dict 的候選 schema 保留欄位,`cloud_catalog._ENRICHMENT_FIELDS` 雖列同名欄位、但 `backend/catalog/data` 內無任何 JSON 實際帶此欄;函式輸出(priority/group)也沒有任何程式路徑寫入該欄位(grep 實查,兩者僅同名)。
+- 本文件相關測試:`tests/` 對 agent+engine 兩模組共 6 個測試檔(`test_agent_knowledge`/`test_agent_place`/`test_agent_select`/`test_clearance`/`test_placement`/`test_dxf_room_units`)62 個測試,2026-07-26 查證時以 `.venv/bin/python -m pytest` 實跑 62 passed。
 - `backend/catalog/` 無任何業務類別(僅模組函式),若未來 Postgres 遷主線後型錄改走 DB 存取層,本圖需增補對應類別。

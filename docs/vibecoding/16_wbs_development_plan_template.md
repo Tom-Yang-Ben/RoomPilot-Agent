@@ -138,7 +138,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 3.4.1 | 風格推薦與材質編輯:提示規格已寫入版本化參考文件,但明標為目標行為,無對應程式與測試 | Yen | | 待辦 | | - | `backend/agent/prompts/ROOMPILOT_LLM.md:14`:「target behavior unless corresponding code and tests exist」實測 |
 | 3.4.2 | `placement_hints()` 接線裁決:函式僅測試使用,正式流程(`backend/server/`)無呼叫點;`main.py:748` 的 `"placement_hints": {}` 為資料欄位名,非函式呼叫 | Yen | | 待議 | | - | grep 實測:呼叫者僅 `tests/test_agent_place.py` |
-| 3.4.3 | 選件與失敗修復迴圈維護(`resolve_placements` 三輪修復、保護件 escalate) | Yen | | 現行維護 | | - | `backend/agent/place.py` 實作;`tests/test_agent_place.py` 等 62 測試通過(本次全套實測含在 389 passed 內) |
+| 3.4.3 | 選件與失敗修復迴圈維護(`resolve_placements` 三輪修復、保護件 escalate) | Yen | | 現行維護 | | - | `backend/agent/place.py` 實作;agent 三測試檔(test_agent_place 11 項、test_agent_knowledge+test_agent_select 21 項)共 32 項通過(2026-07-26 collect 實測,含在 389 passed 內) |
 
 **模組小計**:工時待補 | 進度:待補
 
@@ -158,7 +158,7 @@
 | 編號 | 任務 | 負責人 | 工時 | 狀態 | 完成日期 | 依賴 | 依據 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 3.6.1 | 修復 2 個紅燈測試:`scene.html` 的 cache-busting 雜湊與 `scene_v2.js` 現行內容 SHA-256 不一致 | Bella | | 待辦 | | - | 2026-07-26 實測 `pytest tests/test_scene_v2_contract.py` 2 failed(`test_scene_entrypoint_cache_key_matches_bundle_content` 等 2 項) |
-| 3.6.2 | 窗簾 GLB 缺檔:`/api/scene/decorate` 引用 `/static/models/roompilot-curtain.glb`,static/ 下實測 0 個 .glb,觸發 409 `decor_model_missing` | Bella | | 待辦 | | - | `main.py:2446` 引用實測;`find backend/server/static -name '*.glb'` 為 0;`main.py:2413` 錯誤碼實測 |
+| 3.6.2 | 窗簾 GLB 缺檔:`/api/scene/decorate` 引用 `/static/models/roompilot-curtain.glb`,static/ 下實測 0 個 .glb;窗簾為固定假想品項不經型錄查找、不會觸發 409,而是瀏覽器載入 404 後由前端以同尺寸白色替代物兜底(409 `decor_model_missing` 屬燈/地毯/植栽等型錄角色查無 GLB 的情形) | Bella | | 待辦 | | - | `main.py:2440-2450` `_curtain_catalog_item` 與 `main.py:2409-2416` 409 路徑實測;`find backend/server/static -name '*.glb'` 為 0;`scene_viewer.js:2955-2957` 兜底實測 |
 | 3.6.3 | 伺服器端步驟順序防護:`main.py` 的 `WORKFLOW_STEPS` 是無序 set 只驗步驟名,前置依賴僅前端 `REQUIRED_COMPLETIONS` 強制,伺服器無法阻止跳步驟寫入 | Bella | | 待辦 | | - | `main.py:113-125`(set)與 `static/scene_workflow.js:43`(REQUIRED_COMPLETIONS)實測 |
 | 3.6.4 | `DATASET_DIR` 路徑修正:指向 repo 根 `dataset/`(不存在),實際 GLB 在 `data/dataset/`;cloudfront 模式不受影響,local 模式本機解析落空 | Bella | | 待辦 | | - | `main.py:101` 與 `ls dataset` No such file 實測 |
 | 3.6.5 | 問卷選項圖片補齊:110 個選項圖中 8 個 `ready`、102 個 `planned`;圖片未完成的題目以文字選項作答 | Bella(圖片來源負責人未查證) | | 進行中 | | - | `backend/server/data/questionnaire_visual_catalog.json` 實測統計(55 題/110 圖) |
@@ -172,7 +172,7 @@
 | 編號 | 任務 | 負責人 | 工時 | 狀態 | 完成日期 | 依賴 | 依據 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 4.1.1 | 主前端 10 步流程維護(`/scene` 入口,`scene_v2.js` 8,544 行;內部 11 步,recognition 與 calibration 共用面板故 UI 顯示 10 顆按鈕) | Bella | | 現行維護 | | - | `static/scene_workflow.js:4-16` 11 步實測;`scene.html` 10 顆步驟按鈕 |
-| 4.2.1 | frontend3d 去留裁決:後端 docstring 稱其為 retired R3F viewer,但 5 條相容路由仍存活;`node_modules` 未安裝 | Bella | | 待議 | | - | `main.py:2071` `"Feed the retired R3F viewer"` 實測;`frontend3d/` 11 個 git 追蹤檔 |
+| 4.2.1 | frontend3d 去留裁決:後端 docstring 稱其為 retired R3F viewer,但 4 條移植路由(`/api/plans`、`/api/plan`、`/api/upload`、`/api/furniture/{name}`)與 `/api/furniture` 的 legacy `furniture` 鍵仍存活;`node_modules` 未安裝且 `npm install` ERESOLVE 失敗 | Bella | | 待議 | | - | `main.py:2072` `"Feed the retired R3F viewer"` 實測;`frontend3d/` 11 個 git 追蹤檔;路由清單見 12 §0/09 |
 
 **模組小計**:工時待補 | 進度:待補
 
@@ -190,7 +190,7 @@
 
 | 編號 | 任務 | 負責人 | 工時 | 狀態 | 完成日期 | 依賴 | 依據 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 6.1.1 | 遠端渲染供應商設定:`ROOMPILOT_RENDER_PROVIDER_URL/TOKEN` 未設定時 `/api/projects/{id}/render-jobs` 回 503,不得假成功 | Bella(供應商窗口未查證) | | 待辦 | | - | `main.py:1773`(503)/`1778`(502)實測;`docs/contracts/REMOTE_RENDER_CONTRACT.md` |
+| 6.1.1 | 遠端渲染供應商設定:`ROOMPILOT_RENDER_PROVIDER_URL/TOKEN` 未設定時 `/api/projects/{project_id}/render-jobs` 回 503,不得假成功 | Bella(供應商窗口未查證) | | 待辦 | | - | `main.py:1773`(503)/`1778`(502)實測;`docs/contracts/REMOTE_RENDER_CONTRACT.md` |
 | 6.2.1 | CloudFront GLB 交付維運:9,350 件 manifest 驗證,預設 `cloudfront` 模式 | Kai | | 現行維護 | | - | `services/cloud_models.py` 與 manifest CSV 實測(9,350 列全 uploaded) |
 | 6.3.1 | PostgreSQL 執行期接線:importer 與 schema 僅在 `scripts/sql/`,伺服器執行期(`backend/server/`)grep 無 psycopg2/postgres,型錄仍由 JSON+CSV 記憶體載入 | Kai(與 Bella 協作) | | 待辦 | | 2.3 | grep `backend/server/` 零命中實測;`scripts/sql/` 3 檔在庫 |
 
@@ -217,7 +217,7 @@
 | 測試通過 | 389 passed / 2 failed / 1 skipped,共 392 collected(2026-07-26 `uv run pytest tests/` 實測,16.28s) | 全綠 |
 | 程式碼覆蓋率 | 未量測(無 coverage 設定) | 待訂(模板預設 80%+,本專案未採納此門檻) |
 | 開放 Bug | 已知 2 項:紅燈測試(3.6.1)、窗簾 GLB 缺檔(3.6.2) | 0 |
-| 技術債項目 | 本文件標「待議」共 9 項(3.1.5、3.1.6、3.2.2、3.4.2、3.5.2、3.5.3、3.6.6、4.2.1、7.2.2) | 逐項裁決歸零 |
+| 技術債項目 | 本文件標「待議」共 10 項(3.1.5、3.1.6、3.2.2、3.3.2、3.4.2、3.5.2、3.5.3、3.6.6、4.2.1、7.2.2) | 逐項裁決歸零 |
 
 ---
 
@@ -226,7 +226,7 @@
 | 風險 | 可能性 | 影響 | 緩解策略 | 負責人 |
 | :--- | :--- | :--- | :--- | :--- |
 | 伺服器端不驗步驟順序,客戶端可跳步驟寫入工作流(`WORKFLOW_STEPS` 為 set) | 中 | 中 | 3.6.3:伺服器端補前置依賴驗證 | Bella |
-| `/api/scene/decorate` 的窗簾一律 409(GLB 缺檔) | 高(該路徑必觸發) | 中 | 3.6.2:補檔或改用型錄內既有 GLB | Bella |
+| `/api/scene/decorate` 的窗簾 GLB 缺檔:瀏覽器載入必 404,前端以白色替代物顯示(不中斷,但畫面非預期材質) | 高(該路徑必觸發) | 低-中 | 3.6.2:補檔或改用型錄內既有 GLB | Bella |
 | CloudFront 為 GLB 唯一交付來源,單點失效時 local 模式又因 `DATASET_DIR` 錯路徑落空 | 低 | 高 | 3.6.4 修路徑;離線備援包驗證流程(3.2.6)保持可用 | Bella/Kai |
 | 表面型錄 12 舊風格 profile 與 6 風格 ID 不一致,未知風格靜默 fallback `scandinavian`,使用者不易察覺 | 中 | 中 | 3.2.3:建立 6→12 映射或改寫 profiles | Kai |
 | 文件與程式矛盾(步驟數、殘缺句、過時 README)誤導新成員與整合 | 高 | 中 | 7.1.x/7.2.x 逐項修正;衝突時依總覽優先序「測試 > 程式 > 契約 > 總覽」 | 整合者(未查證) |
@@ -244,5 +244,5 @@ repo 內無時程文件,日期欄除已發生事實外一律(未查證)或留空
 | :--- | :--- | :--- | :--- |
 | M1: 官方雲端型錄整合 | (已發生)2026-07-26 | 9,350 件 catalog + manifest + PostgreSQL importer(commit 83b3c8a、e48cd67) | 完成(git log 實測) |
 | M2: 紅燈歸零 + 已知缺檔修復 | 待補 | 全綠 pytest、decorate 流程可完整執行 | 待辦 |
-| M3: 待議項逐項裁決 | 待補 | 9 項技術債的去留決議紀錄 | 待辦 |
+| M3: 待議項逐項裁決 | 待補 | 10 項技術債的去留決議紀錄 | 待辦 |
 | M4: 成果發表 | 2026-08-20(未查證,依團隊口述,repo 無記載) | 可展示完整 1–10 流程 | 待辦 |

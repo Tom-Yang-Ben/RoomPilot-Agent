@@ -1,12 +1,12 @@
-# 前端資訊架構規範 - RoomPilot Agent
+# 前端資訊架構規範 - RoomPilot-Agent
 
 > 本文件由 VibeCoding 模板 17_frontend_information_architecture_template.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 已發布(依現行程式碼逐條核對整理)
-> **相關文檔:** [PRD](./02_project_brief_and_prd.md) | [API 設計規範 (06)](./06_api_design_specification.md) | 前端架構 (12) **尚未導入,待補**
+> **相關文檔:** [PRD](./02_project_brief_and_prd.md) | [API 設計規範 (06)](./06_api_design_specification.md) | [前端架構 (12)](./12_frontend_architecture_specification.md)
 >
 > **MECE 邊界**:本文件**只談使用者/內容視角**(旅程、導航、頁面職責、URL、跨頁資料模型)。
-> 技術視角(框架選型、效能數字、a11y 標準、檔案組織)屬 12 號文件範圍;12 尚未導入前,本檔在必要處以「(→ 12 待補)」標記。
+> 技術視角(框架選型、效能數字、a11y 標準、檔案組織)→ [12_frontend_architecture_specification.md](./12_frontend_architecture_specification.md)(已導入)。
 >
 > | 你想找的 | 看這份 |
 > |---|---|
@@ -17,10 +17,10 @@
 > | 單頁職責、CTA、導航入口/出口 | 17(本檔)§6 |
 > | URL 命名規則、路由表 | 17(本檔)§7 |
 > | 跨頁資料模型(URL params / localStorage / sessionStorage / 伺服器保存) | 17(本檔)§8 |
-> | 後端 44 條 API 端點的完整規格 | **06** |
-> | 用什麼框架、效能數字、a11y 標準、元件分層 | **12(待補)** |
+> | 後端 API 端點的完整規格(main.py 路由總數 44,其中 `/api/*` 40 條) | **06** |
+> | 用什麼框架、效能數字、a11y 標準、元件分層 | **12** |
 
-**現況說明**:RoomPilot 目前的主 UI 是 `backend/server/static/` 下由 FastAPI 直接供應的 4 個靜態 HTML 頁面(無前端框架、無打包器,原生 ES module + Three.js importmap)。另有一個獨立的 Vite + React Three Fiber 子專案 `frontend3d/`(DXF 3D 白模檢視器),只在開發模式下經 `npm run dev` 啟動,不由 FastAPI 供頁;後端 `main.py:2072` 的 `_legacy_viewer_models` docstring 稱其為 retired R3F viewer,但其 4 條對口 API 仍存活(是否仍為現役入口未查證,見 §6.5)。
+**現況說明**:RoomPilot 目前的主 UI 是 `backend/server/static/` 下由 FastAPI 直接供應的 4 個靜態 HTML 頁面(無前端框架、無打包器,原生 ES module + Three.js importmap)。另有一個獨立的 Vite + React Three Fiber 子專案 `frontend3d/`(DXF 3D 白模檢視器),設計上經 `npm run dev` 啟動、不由 FastAPI 供頁——但 `node_modules` 未安裝且 `npm install` 因 ERESOLVE 依賴衝突直接失敗(2026-07-26 實測),現況無法啟動;後端 `main.py:2072` 的 `_legacy_viewer_models` docstring 稱其為 retired R3F viewer,但其 4 條對口 API 仍存活(定位待裁決,見 §6.5 與 12 §0)。
 
 ---
 
@@ -49,7 +49,7 @@
 | 架構模式 | 混合:入口三頁為扁平化(hub),`/scene` 內部為嚴格線性層級(11 個內部步驟,前置依賴由 `scene_workflow.js:43-105` `REQUIRED_COMPLETIONS` 強制) |
 | 漸進揭露 | `/scene` 每一步完成才解鎖下一步;`/library` 進階篩選預設 `hidden`(library.html:95-99);問卷第 5 步內部再分 3 個子階段依序解鎖(scene.html:373-377) |
 
-> 量化 UX 指標(LCP、a11y 對比度):專案內無此類規範文件,待補(→ 12)。
+> 量化 UX 指標(LCP、a11y 對比度)→ 12 §4 §5;12 已核實專案未建立任何量測(無 web-vitals 收集程式碼、無 WCAG 承諾)。
 
 ---
 
@@ -84,14 +84,14 @@ graph TB
 | # | 路由 | 頁面檔案 | `<title>` | 主要職責 | 入口 script | 層級 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 0 | `/` | `backend/server/static/index.html`(90 行) | RoomPilot \| AI 室內配置與 3D 預覽 | 行銷落地頁 + 功能導覽 | `home.js`(108 行) | L0 |
-| 1 | `/styles` | `backend/server/static/styles.html`(52 行) | 查看風格類型 | 6 風格 × 18 色卡瀏覽與選擇 | `styles.js`(1,243 行) | L1 |
+| 1 | `/styles` | `backend/server/static/styles.html`(52 行) | 查看風格類型 | 6 風格 × 3 色系共 18 色卡瀏覽與選擇 | `styles.js`(1,243 行) | L1 |
 | 2 | `/library` | `backend/server/static/library.html`(171 行) | 家具資料庫｜RoomPilot | 家具型錄瀏覽 + 3D 檢視 + 方案清單 | `library.js`(754 行) | L1 |
 | 3 | `/scene` | `backend/server/static/scene.html`(794 行) | RoomPilot 空間規劃 | 十步驟空間規劃主工作流 | `scene_v2.js`(8,544 行) | L2 |
 | — | (Vite dev,proxy 8002) | `frontend3d/index.html` | DXF → 3D 白模 | DXF 解析結果 R3F 檢視 + 家具手動擺放 | `src/main.jsx` → `App.jsx` | 獨立 |
 
 **總計:** FastAPI 供應 4 頁(main.py:1432-1452)+ 1 個獨立 Vite SPA。
 
-補充事實(實測):`static/` 頂層共 4 個 HTML + 33 個 JS + `site.css`;`scene_v2.js` 另以帶內容雜湊查詢參數的相對路徑 import 17 個本地模組(`scene_workflow.js`、`scene_viewer.js`、`scene_layout2d.js`、`scene_questionnaire_test2.js` 等);`scene.js`(3,128 行)為舊版 `/scene` 入口,**現已無任何 HTML 載入**(grep 全部 4 個 HTML 證實);`viewer.js` 則仍被 `library.js:9` 使用,不是死碼。
+補充事實(實測):`static/` 頂層共 4 個 HTML + 33 個 JS + `site.css`;`scene_v2.js` 另以帶版本查詢參數(sha256 片段或日期標記)的相對路徑 import 17 個本地模組(`scene_workflow.js`、`scene_viewer.js`、`scene_layout2d.js`、`scene_questionnaire_test2.js` 等);`scene.js`(3,128 行)為舊版 `/scene` 入口,**現已無任何 HTML 載入**(grep 全部 4 個 HTML 證實);`viewer.js` 則仍被 `library.js:9` 使用,不是死碼。
 
 > 每頁的詳細規格(資料、CTA、導航入出口)→ §6。
 
@@ -123,7 +123,7 @@ graph LR
 | UI 步 | 內部 step id | 面板 `data-panel` | 使用者要做的事 | 主要 CTA | 呼叫的 API(scene_v2.js 行號) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | `project` | `project` | 輸入專案名稱與備註 | 建立專案並繼續 | `POST /api/projects`(897) |
-| 2 | `upload` | `upload` | 選 DXF/PNG/JPG 圖檔並勾選「已確認圖檔內容正確」 | 確認並開始辨識 | `POST …/floorplan`(991)、`PUT …/workflow`、`POST …/floorplan/analyze`(1012) |
+| 2 | `upload` | `upload` | 選 DXF/PNG/JPG 圖檔並勾選「我已確認圖檔內容正確」(scene.html:92) | 確認並開始辨識 | `POST …/floorplan`(991)、`PUT …/workflow`、`POST …/floorplan/analyze`(1012) |
 | 3 | `recognition` + `calibration` | `scale` | 在圖上拉兩點、輸入實際公分 | (輸入後自動前進) | `GET …/floorplan/source`(1249)、`POST /api/floorplan/analyze` 附 `calibration_json`(1256,僅非 DXF 圖) |
 | 4 | `space_confirmation` | `space` | 逐一確認房間名稱與牆、門、窗、樑、柱 | 依面板內按鈕逐項確認 | (以前端幾何編輯為主,結果經 `PUT …/workflow` 保存) |
 | 5 | `requirements` | `requirements` | 3 子階段:逐房需求與材質 → 全屋資料 → 逐房摘要 | 子階段逐段解鎖 | `GET /api/questionnaire/visual-catalog`(4495) |
@@ -137,7 +137,7 @@ graph LR
 
 ### 轉換率目標
 
-無。全部前端程式碼 grep 無任何事件追蹤/分析套件(gtag、GA、mixpanel、posthog 等均零命中,2026-07-26 實測);專案未定義轉換率目標,待補。
+無。全部前端程式碼 grep 無任何事件追蹤/分析套件(gtag、GA、mixpanel、posthog 等均零命中,2026-07-26 實測);專案未定義轉換率目標,待補(監控/事件追蹤技術現況 → 12 §8)。
 
 ---
 
@@ -192,14 +192,14 @@ graph LR
 | 項目 | 內容 |
 | :--- | :--- |
 | **路由** | `GET /styles`(main.py:1437-1439) |
-| **職責** | 呈現 6 種台灣住宅風格 × 18 組色卡,讓使用者先選色調方向 |
+| **職責** | 呈現 6 種台灣住宅風格 × 3 色系(共 18 組色卡),讓使用者先選色調方向 |
 | **使用者目標** | 選定一組色卡並帶入 3D 場景 |
 | **資料需求** | `GET /api/styles`(common.js `fetchStylesData`;404 時退回 `GET /api/site-data`,common.js:23) |
 | **主要 CTA** | 色卡上的進入場景動作 → `/scene?style=<scene_style_id>&style_card=<card_id>`(styles.js:664-665、736) |
 | **次要行動** | 「選擇這組色調」(只記錄選擇不跳頁,styles.js:602-611) |
 | **導航入口** | 首頁「查看風格」、topnav |
 | **導航出口** | `/scene`(帶 query)、topnav 各頁 |
-| **空 / 錯誤狀態** | (未逐段查證,待補) |
+| **空 / 錯誤狀態** | 無 loading/錯誤 UI:styles.js 頂層 `await fetchStylesData()`(styles.js:3)無 try/catch,API 失敗時模組中止,`#style-tab-row` 與 `#taiwan-style-gallery` 兩個容器維持空白、只剩靜態標題(styles.html:36、44 實測);唯一兜底是 404 時退回 `/api/site-data`(common.js:18-27) |
 | **⚠️ 交接斷點** | 選卡會寫 `sessionStorage["roompilot:selectedStyleCard"]`(styles.js:10、575-576)並以 query 跳轉,但現行 `/scene` 入口 scene_v2.js **只讀 `project_id` 一個 query 參數**(scene_v2.js:109),不讀 `style`/`style_card` query 也不讀該 sessionStorage key(grep 證實);這條交接只有舊版 scene.js 會消費。現況=風格頁的選擇傳不進場景工作流,待裁決/修復 |
 
 ### 6.3 頁面: library.html(家具資料庫)
@@ -239,7 +239,7 @@ graph LR
 | **職責** | 選擇/上傳 DXF → 後端解析 → R3F 呈現牆/窗/門/地板(X-ray 透牆)→ 手動擺放 GLB 家具(吸附、旋轉、刪除) |
 | **資料需求** | `GET /api/plans`(App.jsx:26)、`GET /api/furniture`(App.jsx:30,只讀 legacy `furniture` 鍵)、`POST /api/upload`(App.jsx:53)、`GET /api/plan`(App.jsx:56)、`GET /api/furniture/{name}.glb`(Furniture.jsx `furnitureUrl`) |
 | **狀態** | 純 React `useState` 共 15 個,全部集中於 App.jsx 頂層,props 下傳;無 Router、無狀態庫 |
-| **現況註記** | 後端對口註解自述供「retired R3F viewer」使用(main.py:2072);`frontend3d/README.md` 內容過時(寫 port 8000,實際 proxy 8002)。是否仍為現役入口未查證 |
+| **現況註記** | 後端對口註解自述供「retired R3F viewer」使用(main.py:2072),但 4 條對口路由(main.py:2661、2666、2682、2787)與 CI 測試皆存活;`frontend3d/README.md` 內容過時(寫 port 8000,實際 proxy 8002);`node_modules` 未安裝且 `npm install` 因 ERESOLVE 依賴衝突失敗(2026-07-26 實測),`npm run dev` 現況無法直接啟動。定位(除役 vs 保留為 DXF 除錯工具)待裁決 → 12 §0 |
 
 ---
 
@@ -265,7 +265,7 @@ graph LR
 | `/scene` | scene.html | 無 | `no-store` | `project_id`(scene_v2.js:109 讀取,續作專案);`style`+`style_card`(styles.js 寫入,**現行入口不讀**);`source=library`(library.js 寫入,**現行入口不讀**) |
 | `/static/*` | 靜態資產掛載 | 無 | 預設 | — |
 | `/docs-assets/*` | moodboard 資產掛載 | 無 | 預設 | — |
-| `/api/*` | 44 條 API(→ 06 文件) | 無 | — | — |
+| `/api/*` | 40 條 API(→ 06 文件;main.py 路由總數 44,含上列 4 個頁面路由) | 無 | — | — |
 
 - **認證/角色**:全站無登入、無角色,所有路由任何人可存取(backend/ 無任何認證 middleware,grep 證實)。
 - **載入策略**:無 lazy loading 概念;每頁一支入口 module script,scene_v2.js 再靜態 import 17 個模組。
@@ -280,7 +280,7 @@ graph LR
 | 來源頁面 | 目標頁面 | 載體 | 資料內容 | 現況 |
 | :--- | :--- | :--- | :--- | :--- |
 | `/scene` | `/scene`(重開/分享) | URL query `project_id` | 專案識別字 | ✅ 現行有效:重開網址即從伺服器還原專案(可書籤) |
-| `/scene` | 伺服器(SQLite `.runtime/projects.sqlite3`) | `PUT /api/projects/{id}/workflow` | 全部工作流狀態(current_step + workflow JSON ≤ 2MB),樂觀鎖 `expected_revision` | ✅ 主要持久化路徑:每步 `scheduleSave` 保存 |
+| `/scene` | 伺服器(SQLite `.runtime/projects.sqlite3`) | `PUT /api/projects/{id}/workflow` | 全部工作流狀態(current_step + workflow JSON ≤ 2MB);版本防護:重放補送帶 `base_updated_at`(現行前端未使用伺服器另支援的 `expected_revision` 樂觀鎖,grep 全 static/ 零命中 → 12 §7.2) | ✅ 主要持久化路徑:每步 `scheduleSave` 保存 |
 | `/scene` | `/scene`(離線/衝突補救) | `localStorage["roompilot.pending-save.<projectId>"]` | 未成功送達的 workflow payload + `base_updated_at` | ✅ 保存失敗時暫存,重進頁面依 `shouldReplayPendingSave`(scene_workflow.js:32-41)決定重播或丟棄 |
 | `/scene` | `/scene` | `localStorage["roompilot.workflow.v2:<projectId>"]` | 前端 workflow 快照(schema v2) | ✅ `createWorkflow`/`restoreWorkflow` 讀寫(scene_workflow.js:2、107-108、321-331) |
 | `/styles` | `/scene` | URL query `style`+`style_card` 與 `sessionStorage["roompilot:selectedStyleCard"]` | 選定的風格與色卡 | ⚠️ **斷裂**:只有舊版 scene.js 消費;scene_v2.js 不讀(§6.2) |
@@ -296,7 +296,7 @@ scene_v2.js 以單一模組層 `state` 物件(scene_v2.js:108 起)集中管理,�
 ```
 使用者操作 → state 變更 → 面板重繪
           → workflow.complete(step, data)(scene_workflow.js)
-          → scheduleSave → PUT /api/projects/{id}/workflow(樂觀鎖 expected_revision)
+          → scheduleSave → PUT /api/projects/{id}/workflow(重放補送帶 base_updated_at 做版本檢查;現行前端未帶 expected_revision)
               成功 → revision 前進
               失敗/離線 → localStorage pending-save → 下次載入重播
 重開 /scene?project_id= → GET /api/projects/{id} → restoreWorkflow → 跳到 current_step 面板
@@ -328,7 +328,7 @@ scene_v2.js 以單一模組層 `state` 物件(scene_v2.js:108 起)集中管理,�
 - [x] 導航深度 ≤ 3 層(L0→L1→L2;`/scene` 內部步驟為線性面板非巢狀頁面)
 - [x] 每個工作流面板一個 primary-action(§4)
 - [ ] ❌ 無麵包屑(§5;`/scene` 以步驟進度列替代回溯)
-- [ ] ⚠️ 無自訂 404 頁面:FastAPI 對未知路徑回 JSON 404,無引導返回主旅程(未逐項查證所有錯誤路徑,404 頁面確認不存在於 static/)
+- [ ] ⚠️ 無自訂 404 頁面:FastAPI 對未知路徑回 JSON `{"detail":"Not Found"}`(TestClient 實測 404),無引導返回主旅程;static/ 無自訂 404 頁、main.py 無任何 exception_handler(grep 證實)
 - [x] 空狀態有下一步引導(`/library` 空清單提示加入方式、`/scene` 各面板引導帶)
 - [x] 漸進揭露:`/scene` 步驟解鎖、`/library` 進階篩選預設隱藏(§2)
 
@@ -338,5 +338,4 @@ scene_v2.js 以單一模組層 `state` 物件(scene_v2.js:108 起)集中管理,�
 2. **首頁內容過時**:index.html:61 與 home.js:11 的「12 種風格」舊口徑、home.js 5 步舊流程卡,與現行 6 風格 18 色卡、十步驟工作流不符。
 3. **topnav 字樣統一**:library.html:19「風格模型」。
 4. **`/scene` back 行為**:步驟切換不寫 history,瀏覽器 back 直接離開工作流;是否要攔截或提示,待裁決。
-5. **frontend3d 定位裁決**:後端註解稱 retired,但路由與 SPA 皆存活;現役與否需明文定案(未查證)。
-6. 12 號文件(前端架構規範)尚未導入,本檔多處「→ 12 待補」。
+5. **frontend3d 定位裁決**:後端註解稱 retired,但路由、CI 測試與 SPA 原始碼皆存活,而 `npm install` 實測失敗、無法啟動;除役或保留需明文定案(→ 12 §0 裁決事項)。

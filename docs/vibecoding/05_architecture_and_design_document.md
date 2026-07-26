@@ -1,8 +1,6 @@
 # 架構與設計文件 - RoomPilot-Agent
 
-> 本文件由 VibeCoding 模板 05_architecture_and_design_document.md 導入 RoomPilot-Agent 生成 | 基準分支 undefined | undefined
->
-> （導入腳本未帶入分支變數；實際查證基準：分支 `bella-local-20260726`、HEAD `e48cd67`、2026-07-26，以 `git branch --show-current` 與 `git rev-parse` 實測。）
+> 本文件由 VibeCoding 模板 05_architecture_and_design_document.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 草稿
 >
@@ -62,7 +60,7 @@
 | :--- | :--- | :--- | :---: | :---: |
 | FastAPI 應用伺服器 | Web 應用 process | Python ≥3.12、FastAPI ≥0.115、uvicorn ≥0.30；入口 `backend.server.main:app`（main.py:144，共 44 條路由） | 現行 | ✅ §L3-A |
 | 瀏覽器十步驟前端 | 瀏覽器內 runtime | 原生 ES module、three 0.165.0（unpkg importmap）；`scene.html` + `scene_v2.js`（8,544 行）等 4 頁靜態頁 | 現行 | ✅ §L3-B |
-| frontend3d DXF 檢視器 | 開發用前端 runtime（Vite dev server + 瀏覽器 R3F 應用） | React 18.3.1、@react-three/fiber 8、three 0.160.1、Vite 8.1.0；proxy `/api` → `http://localhost:8002` | 現行（後端註解稱其為 retired R3F viewer，仍可運作） | 表代圖，見 §L3-X |
+| frontend3d DXF 檢視器 | 開發用前端 runtime（Vite dev server + 瀏覽器 R3F 應用） | React 18.3.1、@react-three/fiber 8、three 0.160.1、Vite 8.1.0；proxy `/api` → `http://localhost:8002` | 半退役：後端註解稱 retired，但對口路由存活；`npm install` 實測 ERESOLVE 失敗、依賴未裝，現況無法啟動（去留待裁決，見 12 §0） | 表代圖，見 §L3-X |
 | 專案儲存 SQLite | 內嵌資料庫（同 process 檔案） | SQLite WAL；`.runtime/projects.sqlite3`（project_store.py:84、93） | 現行 | 表代圖 → §4.1 ER |
 | 問卷視覺索引 SQLite | 內嵌查詢索引 | SQLite；`.runtime/indexes/questionnaire_visuals.sqlite3`（main.py 惰性建立）；資料來源是版控 JSON，索引可重建 | 現行 | 略（純索引，無業務 schema） |
 | PostgreSQL `roompilot_db` | 資料庫 | PostgreSQL + pg_trgm；schema 見 `scripts/sql/roompilot_postgresql_schema.sql` | 資料工程階段；**執行期 API 未接**（main.py 不連 Postgres） | 表代圖 → §4.1 ER |
@@ -74,7 +72,7 @@
 | :--- | :--- | :--- |
 | 資料源（3D 模型原始儲存） | AWS S3 bucket `roompilot-furniture-glb-prod-825555019055-ap-east-2-an`（區域 ap-east-2） | manifest CSV `backend/catalog/data/manifests/glb_upload_all_result.csv`（9,350 資料列，實測 9,351 行含表頭） |
 | 遞送 CDN | AWS CloudFront `https://ddgsm1yg3xikc.cloudfront.net`（cloud_models.py:34；`ROOMPILOT_CLOUDFRONT_BASE_URL` 可覆寫） | GLB 唯一正式遞送管道，預設模式 `cloudfront` |
-| 前端函式庫 CDN | unpkg（`scene.html` importmap 載入 three@0.165.0） | scene.html:784-791 |
+| 前端函式庫 CDN | unpkg（`scene.html` 與 `library.html` importmap 載入 three@0.165.0） | scene.html:787-788、library.html:164-165 |
 | LLM 服務 | OpenRouter API（預設模型 `qwen/qwen3-32b:free`；intake 與場景規劃兩個獨立開關，見 §6.2） | intake_service.py、scene_service.py |
 | 遠端渲染供應商 | `ROOMPILOT_RENDER_PROVIDER_URL` 指定之 HTTP 服務；未設定回 503 | render_service.py:42-44；契約 `docs/contracts/REMOTE_RENDER_CONTRACT.md` |
 | 交易 | 無（本系統無金流；成本概算 `/api/cost/estimate` 用版控內台灣行情，不外呼） | main.py:2759 |
@@ -204,7 +202,7 @@ flowchart TB
     api -->|"HTTPS POST 渲染工作"| rp
 ```
 
-（future state 中 frontend3d 是否保留未裁決——後端 main.py:2073 已稱其 retired；圖中省略，裁決後回填。）
+（future state 中 frontend3d 是否保留未裁決——後端 main.py:2072 已稱其 retired；圖中省略，裁決後回填。）
 
 #### L3-A — Component（zoom: FastAPI 應用伺服器）
 
@@ -297,11 +295,11 @@ flowchart TD
 | 專案儲存 SQLite | 表代圖 → §4.1 ER | DB 的 components = tables |
 | 問卷視覺索引 SQLite | 略 | 可重建索引，資料真源是 `backend/server/data/questionnaire_visual_catalog.json` |
 | PostgreSQL | 表代圖 → §4.1 ER | 同上 |
-| 型錄匯入批次 CLI | 略 | 單一腳本（355 行），流程見 `scripts/sql/README.md` |
+| 型錄匯入批次 CLI | 略 | 單一腳本（354 行），流程見 `scripts/sql/README.md` |
 
 #### L4 — Code
 
-省略。類別／函式層級請直接讀 `backend/engine/models.py`（座標契約 docstring）與 `docs/contracts/` 六份契約；類別關係文件（模板 10）尚未導入，待補。
+省略。類別／函式層級請直接讀 `backend/engine/models.py`（座標契約 docstring）與 `docs/contracts/` 六份契約；類別關係文件見 `docs/vibecoding/10_class_relationships_template.md` 導入版。
 
 #### 1.1.3 C4 審查 Checklist（PR / milestone gate）
 
@@ -330,7 +328,7 @@ flowchart TD
 **演進規則**：
 - [ ] 新增模組：先決定屬哪個 Container → 再畫進對應 L3
 - [ ] 拆出新 process → 先改 L2，再新增 L3
-- [ ] 架構變動 → 同步更新結構（08）、依賴（09）、類別（10）、部署（14）對應文件（vibecoding 系列其餘文件尚未全數導入，待補）
+- [ ] 架構變動 → 同步更新結構（08）、依賴（09）、類別（10）、部署（14）對應文件（`docs/vibecoding/` 01–17 導入版皆已產出）
 
 ---
 
@@ -419,7 +417,7 @@ graph LR
 | **Domain Event** | **缺席**。狀態以 revision 遞增 + workflow JSON 快照整包覆寫保存，無事件流／事件溯源；現行單機規模下屬合理取捨 | 需明確說明缺席理由（本欄即是） |
 | **Repository** | `project_store.py ProjectStore`（SQLite）；型錄以 `load_official_catalog` 啟動載入記憶體（唯讀，無寫入 Repository） | Aggregate 持久化抽象 |
 | **Anti-Corruption Layer** | `engine/dxf_room.py`（單位/原點防腐）；`floorplan/vision/units.py canonicalize_analysis_cm`（公尺→公分唯一轉換點）；`catalog/style_db.py`（型錄→引擎橋接 + 尺寸修補）；`catalog/cloud_catalog.py`（舊型錄僅 enrichment）；`services/cloud_models.py`（僅回 manifest 驗證過的 URL） | 隔離外部/舊 schema 變動 |
-| **Specification** | `agent/knowledge.py` 的 `ROOM_AFFINITY`、`REQUIRED_FAMILIES_BY_ROOM`、`COMPANION_OF`、`FAMILY_OF`（宣告式規則表，`prompt_rules()` 同步生成 LLM 提示條文） | 集中的業務規則判斷 |
+| **Specification** | `agent/knowledge.py` 的 `ROOM_AFFINITY`、`COMPANION_OF`、`FAMILY_OF` 與 `agent/select.py` 的 `REQUIRED_FAMILIES_BY_ROOM`（宣告式規則表，`prompt_rules()` 同步生成 LLM 提示條文） | 集中的業務規則判斷 |
 
 ---
 
@@ -445,7 +443,7 @@ Repo 未按 Clean Architecture 目錄命名，以下為模組邊界到邏輯分�
 | 商用主資料庫 | PostgreSQL（pg_trgm；schema `scripts/sql/roompilot_postgresql_schema.sql`） | 型錄查詢/全文檢索；執行期尚未接 | — | `scripts/sql/README.md` 為近似決策記錄 |
 | DXF 解析 | ezdxf ≥1.3 | DXF 實體攤平、$INSUNITS 讀取 | （未記錄） | 無 |
 | 影像辨識 | OpenCV（`vision` extra：numpy/opencv-python） | 牆門窗偵測、Hough/distanceTransform | PaddleOCR（`ocr` extra，現行線上未啟用，`default_ocr_provider` 無呼叫者） | 無 |
-| 3D 前端（主線） | three 0.165.0，unpkg importmap，原生 ES module（scene.html） | 免建置工具鏈、四頁靜態直出 | React Three Fiber（frontend3d，退役中） | 無 |
+| 3D 前端（主線） | three 0.165.0，unpkg importmap，原生 ES module（scene.html） | 免建置工具鏈、四頁靜態直出 | React Three Fiber（frontend3d，定位待裁決，見 12 §0） | 無 |
 | 3D 前端（檢視器） | React 18.3.1 + @react-three/fiber 8 + three 0.160.1 + Vite 8.1.0 | 早期 DXF 白模檢視 | — | 無 |
 | LLM | OpenRouter，預設 `qwen/qwen3-32b:free`；失敗必 fallback 本地規則 | 免費模型、可選能力 | — | `docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md` |
 | GLB 遞送 | AWS CloudFront + S3（ap-east-2），manifest 驗證 | 9,350 件 GLB 不進 repo/不佔本機 | 本機 `local` 模式（fallback） | `docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md` |
@@ -876,7 +874,7 @@ flowchart TB
 | 無認證授權：任何可連上 :8002 的人可讀寫所有專案 | 高（公開部署時必發生） | 高 | 公開部署前加認證；現階段限單機/區網 demo |
 | 伺服器不驗步驟順序：`WORKFLOW_STEPS` 是 set 只驗名稱，前置依賴僅前端 `scene_workflow.js` 強制，任何 client 可跳步驟寫入 | 中 | 中 | 伺服器端補前置檢查，或明文接受（demo 取捨） |
 | three.js 自 unpkg CDN 載入：離線或 CDN 故障時 `/scene` 頁面失效 | 中 | 高（demo 現場） | 發表前改 self-host 或準備離線 fallback |
-| `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`，但 `static/` 下實測無任何 `.glb`（find 零命中）——`/api/scene/decorate` 的窗簾軟裝會拿到 404 資源 | 高（該路徑必 404） | 低-中 | 補上檔案或改回 409 `decor_model_missing` 路徑；前端對 404 的處理未查證 |
+| `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`，但 `static/` 下實測無任何 `.glb`（find 零命中）——`/api/scene/decorate` 的窗簾軟裝會拿到 404 資源 | 高（該路徑必 404） | 低-中 | 補上檔案、改走型錄 GLB 或移除假想品項；前端已實證有兜底——`scene_viewer.js` 對 GLB 載入失敗會 catch 並以「同尺寸白色替代物」呈現（scene_viewer.js:2955-2957），場景不中斷 |
 | `main.py:101` `DATASET_DIR` 指向 repo 根 `dataset/`（實測不存在），實際 GLB 在 `data/dataset/`——`local` 遞送模式本機 GLB 解析落空 | 低（預設 cloudfront 模式不受影響） | 低 | 修路徑或移除 local 模式殘路徑 |
 | `surface_catalog.json` 的 style profiles 用 12 個舊風格 ID，與家具 6 風格體系不一致（查不到時 fallback scandinavian，main.py:426-428） | 中 | 低 | 6→12 映射補齊或收斂 |
 | 資料庫雙軌：執行期 JSON+CSV 記憶體載入 vs 批次 PostgreSQL，兩邊可能漂移 | 中 | 中 | importer 匯入後 9,350 驗證已擋大錯；接入執行期 API 後收斂單源 |
@@ -898,7 +896,7 @@ flowchart TB
 
 ## 第 8 部分：模組詳細設計
 
-詳見模板 07（`07_module_specification_and_tests.md`）之導入版——尚未導入，待補。過渡期間各模組的權威規格：
+模板 07 導入版已產出：`docs/vibecoding/07_module_specification_and_tests.md`（現況聚焦 backend/engine 碰撞與淨空檢查）。其餘模組的權威規格：
 
 - 引擎與擺位紀律：`docs/contracts/FURNITURE_ENGINEERING_RULES.md`
 - Agent 介面與 fallback：`docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md`
@@ -923,14 +921,14 @@ flowchart TB
 
 ## 附錄：跨文件一致性檢查表
 
-本文件變更後，**強制**檢查以下文件是否同步（vibecoding 系列編號文件尚未全數導入者標「待導入」）：
+本文件變更後，**強制**檢查以下文件是否同步（編號 = `docs/vibecoding/` 對應導入版文件，01–17 皆已產出）：
 
 | 異動類型 | 應同步更新 |
 | :--- | :--- |
-| 新增 Container | 08（結構，待導入）、09（依賴，待導入）、14（部署，待導入）；過渡期同步 `docs/RoomPilot_現行版本總覽.md` |
-| 新增 module | 07（模組規格，待導入）、08、09、10（類別，待導入）；過渡期同步 README.md 責任目錄表 |
-| 新增外部系統 | 06（API，待導入）、13（安全，待導入）、14；過渡期同步本文件 §1.1.2 外部系統清單 |
-| 變更 protocol | 06、13、14；過渡期同步 `docs/contracts/` 對應契約 |
-| 變更 DDD 限界上下文 | 02（PRD，待導入）、07；過渡期同步 README.md 責任目錄表 |
+| 新增 Container | 08（結構）、09（依賴）、14（部署）；並同步 `docs/RoomPilot_現行版本總覽.md` |
+| 新增 module | 07（模組規格）、08、09、10（類別）；並同步 README.md 責任目錄表 |
+| 新增外部系統 | 06（API）、13（安全）、14；並同步本文件 §1.1.2 外部系統清單 |
+| 變更 protocol | 06、13、14；並同步 `docs/contracts/` 對應契約 |
+| 變更 DDD 限界上下文 | 02（PRD）、07；並同步 README.md 責任目錄表 |
 
 **鐵律**：05 是架構契約——任何模組在 05 沒出現，等於不存在。若其他文件提到、05 沒提到 → **05 有 bug，不是其他文件多寫**。（與 repo 既有優先序並用：測試 > 程式 > `docs/contracts/` > 本文件。）

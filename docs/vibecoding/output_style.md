@@ -51,7 +51,7 @@
 ```bash
 uv sync --extra server                                    # 安裝後端依賴(pyproject.toml)
 uv run uvicorn backend.server.main:app --port 8002        # 啟動(README.md「使用 uv」一節)
-uv run pytest tests/ -q                                   # 全測試(47 個測試檔、392 tests collected,實測 --collect-only;通過率本次未執行,未查證)
+uv run pytest tests/ -q                                   # 全測試(47 個測試檔、392 條;2026-07-26 全量實跑 389 通過、2 失敗、1 跳過——2 失敗均為 tests/test_scene_v2_contract.py 既有快取鍵紅燈)
 ```
 
 ---
@@ -279,7 +279,7 @@ description: "API 合約輸出;OpenAPI/JSON Schema、錯誤語意、版本與相
 - 欄位變更是否同步 docs/contracts/ 對應契約?
 ```
 
-**RoomPilot 套用**:repo 既有樣式 `05-api-contract-spec`。已查證落點:`floorplan_confirmation_required` 在 `backend/server/main.py:1805`;`Idempotency-Key` 在 `backend/server/render_service.py:133`;渲染供應商未設定拋 `render_provider_not_configured`(`render_service.py:128`),503/502 語意見 `docs/contracts/REMOTE_RENDER_CONTRACT.md`;三個 API 測試檔名以 `ls tests/` 實測。FastAPI 內建 OpenAPI 文件頁(`/docs`)是否可正常瀏覽,本次未啟動伺服器驗證(未查證)。
+**RoomPilot 套用**:repo 既有樣式 `05-api-contract-spec`。已查證落點:`floorplan_confirmation_required` 在 `backend/server/main.py:1805`;`Idempotency-Key` 在 `backend/server/render_service.py:133`;渲染供應商未設定拋 `render_provider_not_configured`(`render_service.py:128`),503(未設定/無法連線)語意見 `docs/contracts/REMOTE_RENDER_CONTRACT.md`,502(供應商拒絕)則定義於 `backend/server/main.py:1778` 的 `RenderProviderRejected` 處理器,契約檔未載;三個 API 測試檔名以 `ls tests/` 實測。FastAPI 內建 OpenAPI 文件頁已以 TestClient 實測:`GET /docs` 與 `GET /openapi.json` 均回 200(2026-07-26;未另行啟動真實伺服器)。
 
 ---
 
@@ -308,7 +308,7 @@ description: "Gherkin 可執行規格模板;Given/When/Then + 參數化範例與
   Given 專案已建立且已上傳 DXF 平面圖
   And workflow.floorplan_confirmation.confirmed 為 true
   When POST /api/projects/{id}/floorplan/analyze
-  Then 回應 200,analysis 帶 geometry_engine="dxf"
+  Then 回應 200,回應頂層帶 geometry_engine="dxf"(analysis 內對應欄位為 recognition_engine)
 **Scenario:** 未確認前禁止辨識
   Given 專案已上傳平面圖但尚未確認
   When POST /api/projects/{id}/floorplan/analyze
@@ -501,7 +501,7 @@ description: "把品質門檻寫進流水線;覆蓋率、靜態分析、合約�
 
 ## RoomPilot 現況(2026-07-26 實測)
 - repo 無 .github/、無任何 CI 流水線;品質柵欄 = 本機 `uv run pytest tests/`
-  (47 個測試檔、392 tests collected;通過率本次未執行,未查證)。
+  (47 個測試檔、392 條;2026-07-26 全量實跑 389 通過/2 失敗/1 跳過,失敗均為既有快取鍵紅燈)。
 - .claude/hooks/ 已有 post-write.sh、pre-tool-use.sh、session-start.sh 等腳本,但 .claude/ 不入版控。
 - Lint/型別檢查工具(ruff/mypy 等)未列於 pyproject.toml,未導入。
 - 待補:CI 平台選型、覆蓋率門檻數值、合約測試在流水線的強制點。

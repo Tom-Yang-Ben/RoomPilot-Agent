@@ -1,6 +1,6 @@
 # RoomPilot-Agent 產品開發流程使用說明書
 
-> 本文件由 VibeCoding 模板 01_workflow_manual.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | e48cd67 (2026-07-26)
+> 本文件由 VibeCoding 模板 01_workflow_manual.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v2.0 | **更新:** 2026-07-26 | **狀態:** 活躍
 

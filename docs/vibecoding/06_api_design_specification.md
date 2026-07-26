@@ -1,6 +1,6 @@
-> 本文件由 VibeCoding 模板 06_api_design_specification.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | e48cd67(2026-07-26)
+# API 設計規範 - RoomPilot-Agent 後端(backend/server)
 
-# API 設計規範 - RoomPilot Agent 後端(backend/server)
+> 本文件由 VibeCoding 模板 06_api_design_specification.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 已發布(依現行程式碼逐條核對整理) | **OpenAPI 定義:** 由 FastAPI 自動生成(伺服器啟動後於 `/docs` 與 `/openapi.json` 取得;repo 內未維護靜態 OpenAPI 檔)
 
@@ -270,11 +270,13 @@ project → upload → recognition → calibration → space_confirmation → re
 ```json
 {
   "furniture": { "…manifest_status():verified_model_count、cloudfront_base_url、manifest_ready 等…" },
-  "surfaces": { "provider": "local_pending_aws_manifest", "wall_count": 0, "floor_count": 0 },
+  "surfaces": { "provider": "local_pending_aws_manifest", "wall_count": 110, "floor_count": 299 },
   "doors": { "provider": "procedural_pending_aws_catalog", "catalog_count": 0 },
-  "style_cards": { "provider": "local_allowed", "count": 18 }
+  "style_cards": { "provider": "local_allowed", "count": 6 }
 }
 ```
+
+(`wall_count`/`floor_count` 由版控 surface catalog 的 usage 標籤計數、`style_cards.count` = `len(load_taiwan_style_cards())`,以上為 TestClient 實測值;`doors.catalog_count` 為程式硬寫 0。)
 
 #### `GET /api/home-data` - 首頁摘要
 
@@ -377,7 +379,7 @@ project → upload → recognition → calibration → space_confirmation → re
 #### `POST /api/scene/decorate` - 依房型自動軟裝
 
 - **請求體**: `{"scene_objects", "floorplan"|"floorplan_editor", "placement_room_id", "room": {"type": "..."}, "style"}`
-- **行為**: 依房內既有家具與房型決定加 `light`/`rug`/`plant`/`curtain`;先移除該房舊 auto_decor 再重算(重跑=重算而非累加);放不下的軟裝直接捨棄不硬塞。布簾用固定假想品項 `model_url: "/static/models/roompilot-curtain.glb"`(main.py:2446)——**注意:該 GLB 實際不存在**(`find backend/server/static -name '*.glb'` 為 0,`static/models/` 目錄不存在;前端如何處理此 404 未查證)
+- **行為**: 依房內既有家具與房型決定加 `light`/`rug`/`plant`/`curtain`;先移除該房舊 auto_decor 再重算(重跑=重算而非累加);放不下的軟裝直接捨棄不硬塞。布簾用固定假想品項 `model_url: "/static/models/roompilot-curtain.glb"`(main.py:2446)——**注意:該 GLB 實際不存在**(`find backend/server/static -name '*.glb'` 為 0,`static/models/` 目錄不存在)。前端已有兜底:scene_viewer.js 的 `loader.loadAsync` 失敗會被 catch,改放同尺寸白色替代物並在狀態列列為「GLB 載入失敗,已顯示同尺寸白色替代物」(scene_viewer.js:2907、2935-2938、2954-2957),故此 404 不會中斷場景
 - **回應**: `{"scene_objects": [...], "decor_summary": {"requested": ["light","rug"], "placed": ["light"], "engine": "furniture_engine"}}`
 - **錯誤**: 409 `decor_model_missing`(型錄找不到對應角色的 GLB)
 
@@ -395,7 +397,7 @@ project → upload → recognition → calibration → space_confirmation → re
 
 ### 資源:GLB 模型供應(Model Delivery)
 
-供應模式由 `ROOMPILOT_MODEL_DELIVERY_MODE` 決定,預設 `cloudfront`(base URL `https://ddgsm1yg3xikc.cloudfront.net`,可用 `ROOMPILOT_CLOUDFRONT_BASE_URL` 覆寫;services/cloud_models.py:48-54)。
+供應模式由 `ROOMPILOT_MODEL_DELIVERY_MODE` 決定,預設 `cloudfront`(services/cloud_models.py:47-54;base URL `https://ddgsm1yg3xikc.cloudfront.net` 定義於 cloud_models.py:34,可用 `ROOMPILOT_CLOUDFRONT_BASE_URL` 覆寫,cloud_models.py:69)。
 
 #### `GET /api/furniture/{furniture_id}/model` - 取得家具 GLB
 
@@ -413,7 +415,7 @@ project → upload → recognition → calibration → space_confirmation → re
 
 - `name` 以 `.glb` 結尾:回 `testdata/sample_glb/` 實體 GLB(cloudfront 模式 410;檔案不在 404)
 - 否則視為 `furniture_id`:回合併後家具詳情 payload(FurnitureCard + `merged_furniture_ids`、`model_priority_ids`、`catalog_merge_key`、`source_count`)
-- 與 `/api/furniture/{furniture_id}/model` 等特定路徑並存;依 FastAPI 定義順序,特定路徑先匹配(依程式碼順序推斷,未實際啟動逐一驗證)
+- 與 `/api/furniture/{furniture_id}/model` 等特定路徑並存;特定路徑先匹配(已以 FastAPI TestClient 實測:`…/model` 命中 model 端點、`…/model.gltf` 命中 glTF 端點回 410、`xxx.glb` 才落入本端點)
 
 ---
 
@@ -531,8 +533,8 @@ project → upload → recognition → calibration → space_confirmation → re
 
 ## 待補與已知落差
 
-- `POST /api/scene/decorate` 引用的 `/static/models/roompilot-curtain.glb` 實際不存在於 repo(已實測);前端對此 404 的處理行為未查證。
+- `POST /api/scene/decorate` 引用的 `/static/models/roompilot-curtain.glb` 實際不存在於 repo(已實測);前端 scene_viewer.js 對 GLB 載入失敗有兜底(同尺寸白色替代物,見第 5 節 decorate 條目),已實測程式碼路徑確認。
 - 伺服器端無步驟順序/前置檢查,`PUT .../workflow` 可寫入任意合法步驟名;順序僅由前端 `scene_workflow.js` 強制。
-- `@app.on_event("startup")` 為 FastAPI 已棄用 API,pytest 收集時已出現 deprecation warning;是否遷移 lifespan 未裁決。
-- `GET /api/furniture/{name}` 與 `/api/furniture/{furniture_id}/model` 等路徑的匹配優先序依程式碼定義順序推斷,未以實際啟動的伺服器逐一驗證。
+- `@app.on_event("startup")` 為 FastAPI 已棄用 API;已實測:import `backend.server.main` 即發出「on_event is deprecated, use lifespan event handlers instead.」DeprecationWarning。是否遷移 lifespan 未裁決。
+- `GET /api/furniture/{name}` 與 `/api/furniture/{furniture_id}/model` 等路徑的匹配優先序已以 FastAPI TestClient 實測:特定路徑先匹配,`{name}` 僅接住其餘(見第 5 節)。
 - 全部端點無認證、無 CORS、無速率限制(見第 4 節);若要對外部署,此為最優先缺口。

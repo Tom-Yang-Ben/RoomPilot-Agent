@@ -1,6 +1,6 @@
 # 架構決策紀錄(ADR)— RoomPilot-Agent
 
-> 本文件由 VibeCoding 模板 04_architecture_decision_record_template.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | e48cd67
+> 本文件由 VibeCoding 模板 04_architecture_decision_record_template.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 本文件分兩部分:
 
@@ -262,7 +262,7 @@
 - **負面**:
   - 執行期依賴外部網路與 CloudFront 存活;離線時 3D 模型全部無法載入。
   - 離線備援是一顆 zip(1,517 GLB、可供 1,508 件使用,SHA-256 見 `README.md:228-241`,以 `scripts/verify_ikea_offline_backup.py` 驗證),與雲端隔離清單是不同集合、不可互代(README 明文)。
-  - `main.py:101` 的 DATASET_DIR 指向 repo 根 `dataset/`(不存在,實際 GLB 在 `data/dataset/`),local 模式的本機解析路徑落空——cloudfront 模式不受影響,local 模式行為(未查證)。
+  - `main.py:101` 的 DATASET_DIR 指向 repo 根 `dataset/`(不存在,實際 GLB 在 `data/dataset/`),local 模式的本機解析路徑落空——cloudfront 模式不受影響;local 模式已實測(2026-07-26 本機):型錄 9,350 件仍載入成功,但 `_dataset_glb_lookup()` 為空,抽測家具的模型端點回 404「找不到這件家具對應的 GLB 檔案(dataset/ 未就緒?)」。
 - **影響範圍**: `backend/server/`、`frontend3d/`、部署環境變數。
 - **重新評估觸發**: CloudFront 費用或供應商變更;需要完全離線 demo 的場合。
 
@@ -376,7 +376,7 @@
 
 ## 4. 後果
 
-- **正面**: 全 manifest 9,350 列現況皆 `uploaded`(其他 agent csv 實測),白名單當下零誤殺;誤跑匯入不再刪資料;`tests/test_official_catalog_sql.py`(+31 行)與 `tests/test_official_cloud_catalog.py`(+24/−1 行)同 commit 補測試。
+- **正面**: 全 manifest 9,350 列現況皆 `uploaded`(csv 實測;2026-07-26 收尾時以 csv.DictReader 複核仍為 9,350 列全 `uploaded`),白名單當下零誤殺;誤跑匯入不再刪資料;`tests/test_official_catalog_sql.py`(+31 行)與 `tests/test_official_cloud_catalog.py`(+24/−1 行)同 commit 補測試。
 - **負面**: 需要清理資料庫多餘列時,忘了 `--prune-extra` 會殘留舊資料(view `official_furniture_with_glb` 的 9,350 驗證仍會把關,匯入後計數不符即 RuntimeError,`scripts/sql/import_official_catalog_to_postgres.py:341-345` 實測)。
 - **影響範圍**: `backend/catalog/cloud_catalog.py` 的所有載入方(伺服器啟動、測試)、PostgreSQL 匯入流程。
 - **重新評估觸發**: manifest 出現白名單以外的新狀態值時;Postgres 從匯入工具階段接上執行期 API 時(現行伺服器不讀 Postgres)。
@@ -392,5 +392,5 @@
 ## 待補事項
 
 - 各 ADR 的「決策者」僅依 commit 作者與 README 責任歸屬回推,實際討論與拍板過程待團隊補認(標註「(未查證)」處)。
-- ADR-003 local 模式的本機 GLB 解析行為(DATASET_DIR 指向不存在的 `dataset/`)未實測,待驗證後補記。
+- ADR-003 local 模式已於 2026-07-26 實測補記(DATASET_DIR 缺失使 GLB 查找表為空、模型端點回 404),詳見 ADR-003 後果段;跨機器行為(如 `~/Downloads` zip 備援命中時)仍依各機器素材而異。
 - 「舊有:/舊友:12種風格與JSON」重複目錄的去留為裁決事項,裁決後可新增 ADR。

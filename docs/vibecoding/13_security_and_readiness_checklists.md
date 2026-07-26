@@ -2,7 +2,7 @@
 
 > 本文件由 VibeCoding 模板 13_security_and_readiness_checklists.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
-> **版本:** v1.0 | **更新:** 2026-07-26(HEAD e48cd67) | **審查人員:** 待補(本檔為程式碼實查產出,尚未經人工安全審查)
+> **版本:** v1.0 | **更新:** 2026-07-26(程式基準 e48cd67;現 HEAD d88b707 僅新增 docs,程式檔相同) | **審查人員:** 待補(本檔為程式碼實查產出,尚未經人工安全審查)
 
 **系統定位(影響判讀基準):** RoomPilot-Agent 目前是本機啟動的 FastAPI 單體(`uv run uvicorn backend.server.main:app --port 8002`,README L185),無使用者帳號系統、未對外部署。以下每項按「現狀程式碼實查」打勾/打叉;❌ 不代表現階段展示不能用,代表**對外部署前必須處理**。
 
@@ -14,17 +14,17 @@
 
 | 項目 | 現況 | 一句結論 |
 | :--- | :---: | :--- |
-| `.env` 與 secrets 管理 | ⚠️ | `.env` 已 gitignore、`git log --all` 無提交紀錄、`.env.example` 值全空、程式無硬編碼金鑰;但無專用 secrets 管理系統,金鑰輪替與團隊共享方式未定義 |
+| `.env` 與 secrets 管理 | ⚠️ | `.env` 已 gitignore、`git log --all` 無提交紀錄、`.env.example` 金鑰欄位全空、程式無硬編碼金鑰;但無專用 secrets 管理系統,金鑰輪替與團隊共享方式未定義 |
 | 上傳檔案驗證 | ⚠️ | 渲染 PNG 端點驗證最完整(20MB 上限+magic bytes+PIL);平面圖端點有副檔名白名單+PIL 驗證但**無大小上限**;舊版 `/api/upload` 幾乎無驗證 |
 | CORS 設定 | ⚠️ | 全 backend 零 CORS/middleware 設定(grep 實測零命中)=瀏覽器同源政策預設拒絕跨域,現行同源部署可運作;但屬「未設定」而非「設定了白名單」 |
 | AWS 憑證處理 | ✅ | repo 內無任何 AWS 金鑰樣式與 SDK;執行期只消費 CloudFront 公開 HTTPS URL;manifest 的 presigned URL 欄 9,350 列全空;唯一揭露是 bucket 名含 AWS 帳號 ID(低風險) |
-| 依賴風險 | ❌ | 有 `uv.lock`/`package-lock.json` 鎖定,但無任何漏洞掃描機制(無 CI、無 pip-audit/npm audit/Dependabot);`/scene` 與 `/library` 從 unpkg CDN 載 three.js 無 SRI |
+| 依賴風險 | ❌ | 有 `uv.lock`/`package-lock.json` 鎖定;本次手動實測 pip-audit(93 個鎖定套件)0 個已知漏洞、npm audit 1 個 high(postcss);但無常態掃描機制(無 CI/Dependabot),`/scene` 與 `/library` 從 unpkg CDN 載 three.js 無 SRI |
 
 ---
 
 ## A. 核心安全原則
 
-- [ ] ❌ **最小權限**: 全部 44 條 API 路由(`backend/server/main.py`,grep `@app.` 實數)無任何認證授權——`Depends`/`Authorization`/`api_key` 在 main.py 零命中。風險:任何能連上該 port 的人可建立/讀取/覆寫所有專案資料。建議:對外部署前加最小認證層;本機展示至少確保 uvicorn 只綁 127.0.0.1。
+- [ ] ❌ **最小權限**: 全部 44 條 API 路由(`backend/server/main.py`,路由裝飾器 grep 實數;`@app.` 全部 45 處另含 1 個 startup 事件)無任何認證授權——`Depends`/`Authorization`/`api_key` 在 main.py 零命中。風險:任何能連上該 port 的人可建立/讀取/覆寫所有專案資料。建議:對外部署前加最小認證層;本機展示至少確保 uvicorn 只綁 127.0.0.1。
 - [ ] ❌ **縱深防禦**: 無任何 middleware(grep `add_middleware` 全 backend 零命中)、無速率限制、無 WAF——唯一防線是各端點的參數驗證。風險:單一驗證疏漏即直達資料層。建議:對外部署時前置反向代理(限流+TLS)。
 - [ ] ⚠️ **預設安全**: 部分成立——家具交付預設 `cloudfront` 模式且只回 manifest 驗證過的 HTTPS URL(`backend/server/services/cloud_models.py`,docstring 明言 manifest 是信任邊界);遠端渲染未設定時回 503 不產生假結果(`render_service.py`)。但伺服器本身「預設無認證」。
 - [ ] ⚠️ **攻擊面最小化**: cloudfront 模式下舊 glTF 拆解端點(model.gltf/buffer.bin/images)已改回 410(main.py:2627 起)——有做關閉;但舊版 R3F 路由 `/api/plans`、`/api/plan`、`/api/upload` 仍存活(main.py:2661-2693),其中 `/api/upload` 驗證最弱(見 C 節)。建議:確認 frontend3d 去留後淘汰或補驗證。
@@ -34,7 +34,7 @@
 ### 資料分類與收集
 - [ ] ❌ 資料未依敏感性分類——repo 內無資料分類文件(未查證是否存在於 repo 外)。風險:上傳的平面圖與問卷內容(居住格局、家庭成員描述)實質上是個人資料,但未被當 PII 對待。建議:至少在 README 或契約標注「上傳平面圖視同個資」。
 - [x] 只收集業務必要資料:API 請求 payload 均為流程必要欄位(專案名/平面圖/問卷/場景);無追蹤、無第三方分析腳本(static HTML 無外部 analytics,僅 unpkg CDN 載 three.js)。
-- [ ] ⚠️ PII 同意機制:未見同意書流程(未查證前端全部文案);但送外部渲染前有實質防護——`render_service.py:12-22` 定義 `PRIVATE_KEYS`(name/phone/email/address 等 10 鍵),`_strip_private_fields` 遞迴剝除後才送供應商,與 `docs/contracts/REMOTE_RENDER_CONTRACT.md` L61-62 一致。
+- [ ] ⚠️ PII 同意機制:現行頁面無同意文案——scene.html 與 scene_v2.js 的「隱私/同意/consent」grep 零命中;僅未被任何頁面載入的舊版 scene.js 留有 privacy-consent 勾選流程,main.py:1788-1794 仍相容該舊欄位。但送外部渲染前有實質防護——`render_service.py:12-22` 定義 `PRIVATE_KEYS`(name/phone/email/address 等 9 鍵),`_strip_private_fields` 遞迴剝除後才送供應商,與 `docs/contracts/REMOTE_RENDER_CONTRACT.md` L61-62 一致。
 
 ### 傳輸安全
 - [ ] ❌ 本機服務為純 HTTP:uvicorn 啟動無 TLS 設定(README L183-196、repo 內無憑證/TLS 設定)。風險:跨機器使用時(README L207 組員驗收情境)平面圖與問卷內容明文傳輸。建議:對外部署走反向代理終結 TLS;內網展示可接受。
@@ -61,7 +61,7 @@
 
 ### 輸入驗證與輸出編碼
 - [x] 防注入:SQLite 全部參數化查詢——project_store.py 28 處 `execute()` 皆用 `?` 佔位,無 f-string 拼 SQL(grep 實測);PostgreSQL 匯入器用 psycopg2 `execute_values`(scripts/sql/import_official_catalog_to_postgres.py)。
-- [ ] ❌ 防 XSS:無 CSP——無 middleware 即無 CSP header,4 個靜態 HTML 亦無 CSP meta(grep 零命中);前端 33 支 JS 的 DOM 寫入是否全走安全 API 未逐一稽核(未查證)。風險:若任一 JS 把使用者輸入(專案名/問卷答案)以 innerHTML 寫入即成 stored XSS。建議:抽查 scene_v2.js 對使用者字串的渲染方式,並補 CSP meta。
+- [ ] ❌ 防 XSS:無 CSP——無 middleware 即無 CSP header,4 個靜態 HTML 亦無 CSP meta(grep 零命中);前端 33 支自家 JS 中 `innerHTML` 實測出現於 6 支共 109 處(scene_v2.js 51 處;另 31 處在未被任何頁面載入的舊版 scene.js),是否有使用者輸入流入這些寫入點未逐一稽核(未查證)。風險:若任一 JS 把使用者輸入(專案名/問卷答案)以 innerHTML 寫入即成 stored XSS。建議:抽查 scene_v2.js 對使用者字串的渲染方式,並補 CSP meta。
 - [ ] ⚠️ 防 CSRF:無 CSRF token;但系統無 cookie session,不存在「借用既有登入態」的古典 CSRF——跨站請求與直接請求權限相同,問題被「無認證」吸收。加認證時必須同時補 CSRF 防護。
 
 ### 上傳檔案驗證(逐端點實查)
@@ -85,13 +85,13 @@
 - [ ] ⚠️ 回應最小化:大致可以;例外是 409 revision 衝突回應附完整最新 project payload(main.py:1571-1580)——對無認證系統無額外暴露,加認證後需重新評估。
 
 ### 依賴安全
-- [ ] ❌ 無任何漏洞掃描:repo 無 `.github/`(ls 實測不存在)、無 CI、pyproject/.gitignore 無 audit/dependabot/snyk 相關設定(grep 零命中);frontend3d 的 npm audit 未執行(node_modules 未安裝)。風險:fastapi/pillow/ezdxf/three 等已知 CVE 無人知會。建議:最低成本做法——本機手動跑一次 `uv run pip-audit`(或 `uvx pip-audit`)與 `cd frontend3d && npm audit`,結果記入本檔 F 節。
+- [ ] ❌ 無常態漏洞掃描機制:repo 無 `.github/`(ls 實測不存在)、無 CI、無 audit/dependabot/snyk 工具設定。本次查證已手動實測一次(2026-07-26):`uvx pip-audit`(uv export --all-extras 匯出的 93 個鎖定套件)0 個已知漏洞;`npm audit --package-lock-only`(frontend3d,無需安裝 node_modules)1 個 high——postcss ≤8.5.17 路徑跳脫(GHSA-r28c-9q8g-f849),`npm audit fix` 可修。風險:此為單次快照,之後的新 CVE 仍無人知會。建議:修 postcss,並把兩道指令納入例行或一支 CI workflow。
 - [x] 版本鎖定存在:repo 根 `uv.lock`(475KB)、`frontend3d/package-lock.json` 皆在版控;pyproject 依賴為下限約束(`>=`),paddle 系列有上限 `<4`。
 - [ ] ❌ 前端 CDN 供應鏈:`/scene` 與 `/library` 兩頁 importmap 從 unpkg 載 `three@0.165.0`(scene.html:787-788、library.html:164-165),無 SRI、無 vendoring。風險:unpkg 被竄改或斷線時,3D 頁面供應鏈失守或直接失效(離線展示會場即重現)。建議:把 three 0.165.0 vendored 進 `/static`(自家 `scene_v2.js` 已用 sha256 查詢參數防快取,可比照管理)。
 
 ## D. 基礎設施安全
 
-- [ ] ⚠️ 防火牆/安全組:不適用(未部署雲端);本機唯一等效控制是 uvicorn 綁定位址,README 啟動指令未指定 `--host`(uvicorn 預設 127.0.0.1),組員跨機驗收時如何開放未在 repo 文件中規定(未查證實際操作)。
+- [ ] ⚠️ 防火牆/安全組:不適用(未部署雲端);本機唯一等效控制是 uvicorn 綁定位址,README 啟動指令未指定 `--host`(uvicorn 預設 127.0.0.1),組員跨機驗收時如何開放未在 repo 文件中規定(grep `--host` 全 repo 文件僅本檔自身命中;實際操作方式未查證)。
 - [ ] ❌ DDoS 防護:無,同速率限制項。
 - [x] **Secrets 不硬編碼**(重點項,逐條實查):
   - `.env` 在 .gitignore L1(另 L2 涵蓋舊路徑 `web_fastapi/.env`);`git log --all -- .env backend/server/.env` 無任何提交紀錄——金鑰從未進過版控。
@@ -101,7 +101,7 @@
   - manifest CSV 的 `temporary_presigned_url` 欄 9,350 列全空(python csv 實測)——無簽名 URL 洩漏。
   - PostgreSQL 匯入器憑證全走環境變數 `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`(import_official_catalog_to_postgres.py:192-196),密碼預設空字串非硬編碼值。
   - `.env` 載入點有三處且行為一致(`override=False`/不覆蓋既有環境變數):intake_service.py:22-40(手寫 parser,repo 根與 backend/server/.env)、cloud_models.py:23-25(python-dotenv)、scene_service.py `load_local_env()`。
-- [ ] ⚠️ 例外(資訊揭露,低風險):manifest CSV 入版控揭露 S3 bucket 名 `roompilot-furniture-glb-prod-825555019055-ap-east-2-an`(內含 AWS 帳號 ID)與 s3_uri/s3_etag(CSV 首列實測)。風險:攻擊者得知帳號 ID 與 bucket 命名,利於針對性嘗試;bucket 本身是否鎖 OAC/禁公開讀在本 repo 不可查(未查證,程式屬 kai 分支)。建議:向 Kai 確認 bucket 只允許 CloudFront OAC 讀取。
+- [ ] ⚠️ 例外(資訊揭露,低風險):manifest CSV 入版控揭露 S3 bucket 名 `roompilot-furniture-glb-prod-825555019055-ap-east-2-an`(內含 AWS 帳號 ID)與 s3_uri/s3_etag(CSV 首列實測)。風險:攻擊者得知帳號 ID 與 bucket 命名,利於針對性嘗試;bucket 的 AWS 端實際設定不可由 repo 查證,但 kai 分支 `KAI_progress.md` 明列「Block Public Access 應保持開啟」且 OAC/Bucket Policy 外部實測項標「待確認」(git show origin/kai 實查)——設計意圖已文件化,實測完成與否仍需向 Kai 確認。建議:向 Kai 確認 bucket 只允許 CloudFront OAC 讀取。
 - [ ] ⚠️ 非 root/容器:不適用(無容器化);伺服器以開發者本人帳號執行。
 - [ ] ❌ 安全事件日誌與告警:無——backend/server 未使用 logging 模組,存取紀錄只有 uvicorn 預設 access log,無留存與告警。
 
@@ -116,8 +116,8 @@
 | :--- | :--- | :--- | :--- | :--- |
 | 1 | 三個無上限上傳端點補大小上限(floorplan/`/api/upload`/`/api/floorplan/analyze`,比照 renders 的 `read(MAX+1)` 模式) | 待指派(backend/server 依 README 責任表屬 Bella) | 待補 | 待辦 |
 | 2 | three@0.165.0 從 unpkg 改 vendored 進 `/static`(同時解決離線展示風險) | 待指派 | 8/20 發表前 | 待辦 |
-| 3 | 手動跑 `pip-audit` + `npm audit` 一次,結果記回本檔 | 待指派 | 待補 | 待辦 |
-| 4 | 向 Kai 確認 S3 bucket 讀取權限僅開放 CloudFront OAC | 本顥(跨組協調) | 待補 | 待辦 |
+| 3 | 手動跑 `pip-audit` + `npm audit`(2026-07-26 已跑:pip-audit 0 漏洞、npm audit 1 high=postcss);後續=`npm audit fix` 並納入例行 | 待指派 | 待補 | 部分完成 |
+| 4 | 向 Kai 確認 S3 bucket 讀取權限僅開放 CloudFront OAC(kai 分支 KAI_progress.md 自列 OAC/Bucket Policy 實測「待確認」) | 本顥(跨組協調) | 待補 | 待辦 |
 | 5 | 抽查 scene_v2.js 使用者字串渲染是否有 innerHTML 注入點 | 待指派 | 待補 | 待辦 |
 | 6 | 決定舊版 R3F 路由(`/api/upload` 等)去留;保留則補驗證 | 待指派(涉 frontend3d 去留裁決) | 待補 | 待辦 |
 | 7 | 對外部署前置項:認證層、TLS(反向代理)、速率限制 | 待指派 | 僅商用化需要 | 待辦 |
@@ -150,9 +150,9 @@
 
 ### 可維護性
 - [ ] ⚠️ Runbook:README 有安裝/啟動/驗收步驟(L183-215)與 floor04.png 驗收基準(L212);無故障排除 runbook。
-- [ ] ❌ CI/CD:無——`.github/` 不存在,392 個測試(collect 實數)全靠本機手動 `uv run pytest`。風險:合併分支時無自動守門(7/24 合併即出現 4 個紅燈的前例,見記憶檔,未在本次重驗)。建議:一支跑 pytest 的 GitHub Actions workflow 即可補上。
+- [ ] ❌ CI/CD:無——`.github/` 不存在,392 個測試全靠本機手動 `uv run pytest`。本次實跑(2026-07-26):389 通過、2 失敗(`tests/test_scene_v2_contract.py` 兩條快取鍵與 bundle 內容不符的契約測試)、1 跳過。風險:合併分支時無自動守門(7/24 合併曾出現 4 個紅燈前例)。建議:一支跑 pytest 的 GitHub Actions workflow 即可補上。
 - [x] 配置集中管理:環境變數統一 `ROOMPILOT_` 前綴(LLM 為 `OPENROUTER_`),`.env.example` 為完整範本並附註解;平面辨識參數集中在 `backend/floorplan/config.ini`。
-- [x] Feature Flag(env 開關)已實作:`OPENROUTER_INTAKE_ENABLED=1`(intake_service.py:138)、`OPENROUTER_SCENE_PLANNING_ENABLED=1`(scene_service.py)、`ROOMPILOT_MODEL_DELIVERY_MODE=cloudfront|local`(cloud_models.py)——三者皆預設關閉/保守值,符合「重大能力用開關」精神。
+- [x] Feature Flag(env 開關)已實作:`OPENROUTER_INTAKE_ENABLED=1`(intake_service.py:138)、`OPENROUTER_SCENE_PLANNING_ENABLED=1`(scene_service.py:264)、`ROOMPILOT_MODEL_DELIVERY_MODE=cloudfront|local`(cloud_models.py:49)——前兩者預設關閉;delivery mode 預設 `cloudfront` 嚴格雲端模式(README 明言不悄悄 fallback 本機),符合「重大能力用開關」精神。
 
 ---
 

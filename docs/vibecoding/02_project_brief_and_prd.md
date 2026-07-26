@@ -1,6 +1,6 @@
 # 專案簡報與產品需求文件 (PRD) - RoomPilot-Agent
 
-> 本文件由 VibeCoding 模板 02_project_brief_and_prd.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | e48cd67
+> 本文件由 VibeCoding 模板 02_project_brief_and_prd.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 草稿
 
@@ -13,7 +13,7 @@
 | **專案名稱** | RoomPilot-Agent(`pyproject.toml`:`roompilot-agent` 0.1.0;FastAPI 標題「AI 室內風格與家具配置展示系統」,`backend/server/main.py:144`) |
 | **狀態** | 開發中(本文件基準:分支 `bella-local-20260726`、commit `e48cd67`) |
 | **目標發布日期** | 2026-08-20 成果發表(未查證——repo 內查無任何日期紀錄,此日期為團隊口頭資訊,待補正式來源) |
-| **核心團隊** | 依 `README.md` 團隊目錄表共 6 個責任目錄:Cody=`backend/floorplan/`+`backend/upgrade3d/`、Kai=`backend/catalog/`、Django=`backend/spatial_data/`、Yen=`backend/agent/`、AN=`backend/engine/`、Bella=`backend/server/`+`frontend3d/` |
+| **核心團隊** | 依 `README.md` 團隊目錄表共 6 位負責人:Cody=`backend/floorplan/`+`backend/upgrade3d/`、Kai=`backend/catalog/`、Django=`backend/spatial_data/`、Yen=`backend/agent/`、AN=`backend/engine/`、Bella=`backend/server/`+`frontend3d/` |
 
 ### 1.1 問題陳述
 
@@ -28,7 +28,7 @@
 
 ### 1.3 主流程(程式碼權威順序)
 
-順序以 `backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 為準,共 11 個內部步驟;其中 `recognition` 與 `calibration` 共用同一個「確定尺寸」UI 面板(`WORKFLOW_PANEL_BY_STEP`,同檔 18-30 行),因此 `/scene` 頁面只顯示 10 顆步驟按鈕(`scene.html:22-31`)。
+順序以 `backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 為準,共 11 個內部步驟;其中 `recognition` 與 `calibration` 共用同一個「確定尺寸」UI 面板(`WORKFLOW_PANEL_BY_STEP`,同檔 18-30 行),因此 `/scene` 頁面只顯示 10 顆步驟按鈕(`scene.html:23-32`)。
 
 | # | 內部步驟 | UI 名稱 | 主要結果/伺服器行為(已對照程式碼) |
 | :--- | :--- | :--- | :--- |
@@ -68,26 +68,26 @@
 
 ## 3. 使用者故事與允收標準
 
-註:本專案無 `.feature` 檔;「對應測試」欄為 `tests/` 內實際存在的 pytest 檔案,並已逐條 grep 核對允收標準的關鍵斷言確實出現在所列檔案中。
+註:本專案無 `.feature` 檔;「對應測試」欄為 `tests/` 內實際存在的 pytest 檔案,關鍵斷言所在檔案已逐條 grep 核對;允收項在測試中沒有自動化斷言者,直接於該欄明註「無測試斷言」。
 
 ### Epic A:專案與平面圖(步驟 1–6)
 
 | ID | 描述 (As a / I want to / So that) | 允收標準 | 對應測試 |
 | :--- | :--- | :--- | :--- |
 | US-001 | As a 屋主, I want to 建立專案並在重新整理後恢復進度, so that 不必一次做完全部流程。 | 1. `POST /api/projects` 回 201 2. `PUT /api/projects/{id}/workflow` 以 `expected_revision` 樂觀鎖保存,衝突回 409 `project_revision_conflict` 3. workflow JSON 超過 2MB 回 413(`project_store.py:11`) | `tests/test_project_workflow_api.py`;409/413 斷言在 `tests/test_project_store_hardening.py` |
-| US-002 | As a 屋主, I want to 上傳 PNG/JPG/DXF 平面圖, so that 系統以我的實際格局做提案。 | 1. 副檔名限 `.dxf/.png/.jpg/.jpeg`,否則 415 2. 空檔或無效影像回 422 3. 檔案保存於 `.runtime/uploads/{project_id}/` | `tests/test_project_workflow_api.py`(415 副檔名斷言)、`tests/test_scene_workflow.py` |
+| US-002 | As a 屋主, I want to 上傳 PNG/JPG/DXF 平面圖, so that 系統以我的實際格局做提案。 | 1. 副檔名限 `.dxf/.png/.jpg/.jpeg`,否則 415 2. 空檔或無效影像回 422 3. 檔案保存於 `.runtime/uploads/{project_id}/` | `tests/test_project_workflow_api.py`(415 副檔名斷言)、`tests/test_scene_workflow.py`;422 無測試斷言(程式行為在 `main.py` `_validate_floorplan_bytes`) |
 | US-003 | As a 屋主, I want to 用兩點校正公分尺度, so that 家具尺寸與空間比例正確。 | 1. 手動兩點校正 confidence = 1.0 2. 自動比例信心 < 0.8 時系統加註 `scale_confirmation_required`,不得默默採用 | `tests/test_floorplan_vision.py` |
-| US-004 | As a 屋主, I want to 確認辨識出的房間、牆、門、窗, so that 後續配置建立在正確結構上。 | 1. 未確認圖檔內容前呼叫 analyze 回 409 2. `floor04.png` 基準:19 牆/5 門/5 窗/7 房 3. 低信心或衝突結果須由使用者確認,圖示推測不覆蓋 OCR(`README.md`) | `tests/test_floorplan_vision_api.py` |
+| US-004 | As a 屋主, I want to 確認辨識出的房間、牆、門、窗, so that 後續配置建立在正確結構上。 | 1. 未確認圖檔內容前呼叫 analyze 回 409 2. `floor04.png` 基準:19 牆/5 門/5 窗/7 房 3. 低信心或衝突結果須由使用者確認,圖示推測不覆蓋 OCR(`README.md`) | `tests/test_floorplan_vision_api.py`(analyze/confirm 流程);409 斷言在 `tests/test_project_workflow_api.py`;floor04 全項基準(19/5/5/7)無測試斷言,僅 `tests/test_floorplan_vision.py` 覆蓋 floor04 門弧偵測案例 |
 | US-005 | As a 屋主, I want to 用視覺問卷表達逐房需求與風格偏好, so that 提案符合我的生活方式。 | 1. 題庫 55 組,依已確認空間類型顯示題目 2. 必填未完成不可進下一階段(`README.md`) 3. 問卷異動時既有 2D/3D 結果失效並要求重新產生 | `tests/test_questionnaire_visual_catalog.py` |
 
 ### Epic B:AI 配置、3D 與渲染(步驟 7–11)
 
 | ID | 描述 (As a / I want to / So that) | 允收標準 | 對應測試 |
 | :--- | :--- | :--- | :--- |
-| US-006 | As a 屋主, I want to 讓 AI 依需求選家具, so that 不必自己逐件挑選。 | 1. LLM(OpenRouter)為可選;選擇結果經白名單驗證:每房最多 8 種、每種數量 1–6(`backend/agent/select.py`) 2. LLM 失敗自動降級本地規則,回應 `source` 標明 `openrouter`/`local_rules`/`local_rules_unvalidated` 3. 使用者指定家具受保護不被移除 | `tests/test_agent_select.py` |
+| US-006 | As a 屋主, I want to 讓 AI 依需求選家具, so that 不必自己逐件挑選。 | 1. LLM(OpenRouter)為可選;選擇結果經白名單驗證:每房最多 8 種、每種數量 1–6(`backend/agent/select.py`) 2. LLM 失敗自動降級本地規則,回應 `source` 標明 `openrouter`/`local_rules`/`local_rules_unvalidated` 3. 使用者指定家具受保護不被移除 | `tests/test_agent_select.py`(白名單上限斷言);`source` 值斷言在 `tests/test_project_workflow_api.py` |
 | US-007 | As a 屋主, I want to 系統自動擺位並自我修復失敗, so that 得到合法可行的配置。 | 1. 座標只由 `backend/engine/` 計算(碰撞、淨空、邊界;`README.md` 共同規則 3) 2. 擺放失敗修復最多 3 輪(`resolve_placements` `max_rounds=3`,`backend/agent/place.py:137`) 3. 使用者指定家具失敗時只升級人工(escalate),不自動替換 | `tests/test_placement.py`、`tests/test_clearance.py`、`tests/test_agent_place.py` |
-| US-008 | As a 屋主, I want to 在 3D 場景切換風格與色卡, so that 比較不同方向。 | 1. 6 風格 × 3 色卡 = 18 張(`taiwan_style_cards.json` 實測) 2. GLB 由 CloudFront 交付(預設 `cloudfront` 模式;`/api/furniture/{id}/model` 307 轉址) 3. 家具型錄伺服器端分頁(`page_size` 1–80,預設 24) | `tests/test_official_cloud_catalog.py`;307 斷言在 `tests/test_catalog_six_style_contract.py`、分頁斷言在 `tests/test_library_mode1.py` |
-| US-009 | As a 屋主, I want to 鎖定方案並送遠端 AI 渲染, so that 拿到寫實提案圖。 | 1. `POST /api/projects/{id}/render-jobs` 回 202 2. `mode` 僅限 `palette_comparison`/`room_final` 3. 供應商未設定回 503,不得假成功 4. 送出前剝除姓名、電話、Email 等私人欄位(`render_service.py:12` `PRIVATE_KEYS`) | `tests/test_remote_render_workflow.py` |
+| US-008 | As a 屋主, I want to 在 3D 場景切換風格與色卡, so that 比較不同方向。 | 1. 6 風格 × 3 色卡 = 18 張(`taiwan_style_cards.json` 實測) 2. GLB 由 CloudFront 交付(預設 `cloudfront` 模式;`/api/furniture/{id}/model` 307 轉址) 3. 家具型錄伺服器端分頁(`page_size` 1–80,預設 24) | `tests/test_official_cloud_catalog.py`;分頁斷言在 `tests/test_library_mode1.py`;307 轉址無測試斷言(程式行為在 `main.py` `_model_response_for_merged_furniture`,`tests/test_catalog_six_style_contract.py` 只測 `local` 模式 GLB 回應) |
+| US-009 | As a 屋主, I want to 鎖定方案並送遠端 AI 渲染, so that 拿到寫實提案圖。 | 1. `POST /api/projects/{id}/render-jobs` 回 202 2. `mode` 僅限 `palette_comparison`/`room_final` 3. 供應商未設定回 503,不得假成功 4. 送出前剝除姓名、電話、Email 等私人欄位(`render_service.py:12` `PRIVATE_KEYS`) | `tests/test_remote_render_workflow.py`(503 與兩種 mode 斷言;202 無測試斷言,狀態碼定義在 `main.py:1756` 路由裝飾器) |
 
 ---
 
@@ -106,7 +106,7 @@
 
 | ID | 描述 | 狀態 | 負責人 |
 | :--- | :--- | :--- | :--- |
-| Q-001 | `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`,但 `backend/server/static/` 下實測無任何 `.glb`;軟裝窗簾模型缺檔行為待處理 | 待討論 | Bella |
+| Q-001 | `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`,但 `backend/server/static/` 下實測無任何 `.glb`;軟裝窗簾模型缺檔待處理(前端對載入失敗已有兜底:以同尺寸白色替代物顯示,`scene_viewer.js:2955-2957`,不中斷場景) | 待討論 | Bella |
 | Q-002 | `surface_catalog.json` 的 `style_surface_profiles` 用 12 個舊風格 ID(實測:american、american_country、classical、eclectic、industrial、light_luxury、melad、minimalist_muji、modern、nordic_modern、scandinavian、wabi_sabi),與家具 6 風格體系不一致;6 個現行 style_id 中僅 `american`/`industrial`/`scandinavian` 有同名 profile,`japanese`/`modern_minimal`/`cream` 查無 → 落入 fallback `scandinavian`(`main.py:428`),映射是否有意設計待確認 | 待討論 | Kai、Bella |
 | Q-003 | `main.py` `DATASET_DIR` 指向 repo 根 `dataset/`(不存在),實際 GLB 在 `data/dataset/`;`cloudfront` 模式不受影響,但 `local` 模式的本機解析路徑落空 | 待討論 | Bella |
 | Q-004 | `docs/RoomPilot_現行版本總覽.md` 第 12 行寫「固定為八個步驟」但同檔表格列 10 步,為舊殘留,需修訂 | 待討論 | 文件維護(待補) |

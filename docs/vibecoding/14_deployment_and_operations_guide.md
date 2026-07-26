@@ -1,6 +1,8 @@
 # 部署與運維指南 - RoomPilot-Agent
 
-> 本文件由 VibeCoding 模板 14_deployment_and_operations_guide.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26(HEAD e48cd67)
+> 本文件由 VibeCoding 模板 14_deployment_and_operations_guide.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
+
+> 程式基準 commit e48cd67;查證時 HEAD 已為 d88b707,該 commit 僅新增 docs 文件與 .gitignore 調整。
 
 > **版本:** v1.0 | **更新:** 2026-07-26
 
@@ -32,7 +34,7 @@
 | :--- | :--- | :--- |
 | 負載均衡 | 流量分配與故障轉移 | **無**;單機 uvicorn,無反向代理 |
 | 應用伺服器 | 核心應用託管 | uvicorn(本機 .venv 實測 0.50.0)+ FastAPI(實測 0.139.0);**無 Dockerfile、無容器化**(repo 根 find 實測) |
-| 資料庫 | 資料持久化 | 執行期:SQLite `.runtime/projects.sqlite3`(WAL,`project_store.py:96`)。PostgreSQL 只有離線匯入器 `scripts/sql/import_official_catalog_to_postgres.py`,**伺服器執行期不連 Postgres** |
+| 資料庫 | 資料持久化 | 執行期:SQLite `.runtime/projects.sqlite3`(WAL,`project_store.py:93`)。PostgreSQL 只有離線匯入器 `scripts/sql/import_official_catalog_to_postgres.py`,**伺服器執行期不連 Postgres** |
 | 快取層 | 效能優化 | **無** Redis/Memcached;僅進程內記憶體快取(啟動時預熱家具 payload,`main.py:2102-2108`) |
 | CDN | 靜態資源交付 | CloudFront `https://ddgsm1yg3xikc.cloudfront.net`,交付 9,350 件 GLB(manifest:`backend/catalog/data/manifests/glb_upload_all_result.csv`);網頁靜態資源不走 CDN,由 FastAPI `/static` 直出 |
 | 監控 | 健康檢查與告警 | **無**;無 `/health` 端點(grep 實測),僅三個狀態端點,見第 5 節 |
@@ -74,15 +76,16 @@ Windows 已有虛擬環境:
 
 ```bash
 cd frontend3d
-npm install      # 現況 node_modules 不存在;安裝流程未實測
+npm install      # 現況 node_modules 不存在;2026-07-26 dry-run 實測失敗(ERESOLVE,見下)
 npm run dev      # vite dev server;/api 代理到 http://localhost:8002(vite.config.js)
 npm run build    # vite build(未實測)
 npm run preview
 ```
 
 - scripts 只有 dev/build/preview 三個,無測試無 lint(`frontend3d/package.json`)。
-- 後端**沒有任何 CORS middleware**(grep 全 backend/ 實測零命中);瀏覽器直連只能同源,開發時靠 vite proxy 把 `/api` 轉到 8002。若後端不是跑在 8002,需自行改 `vite.config.js`。
-- 定位注意:正式 UI 是 `backend/server/static/` 由 FastAPI 直出;frontend3d 是輔助檢視器,`main.py:2073` 的 `_legacy_viewer_models` docstring 稱其為 retired R3F viewer,但對應路由(`/api/plans`、`/api/plan`、`/api/upload`、`/api/furniture`)仍存活。
+- **`npm install` 依賴解析失敗(2026-07-26 `--dry-run` 實測)**:`@vitejs/plugin-react@4.7.0`(由 `^4.3.4` 解析而得)peer 只支援 vite ^4–^7,專案 devDependencies 要求 `vite ^8.1.0`,npm 11 嚴格模式回 ERESOLVE。繞法為 `--legacy-peer-deps` 或升級 plugin;依 `package-lock.json` 重放的 `npm ci` 與 `npm run build` 未實測。
+- 後端**沒有任何 CORS middleware**(grep 實測 backend/ 程式碼無 CORSMiddleware);瀏覽器直連只能同源,開發時靠 vite proxy 把 `/api` 轉到 8002。若後端不是跑在 8002,需自行改 `vite.config.js`。
+- 定位注意:正式 UI 是 `backend/server/static/` 由 FastAPI 直出;frontend3d 是輔助檢視器,`main.py:2072` 的 `_legacy_viewer_models` docstring 稱其為 retired R3F viewer,但對應路由(`/api/plans`、`/api/plan`、`/api/upload`、`/api/furniture`)仍存活。
 - `frontend3d/README.md` 內容過時(寫 port 8000 與舊路徑),以 `vite.config.js` 與根 README 為準。
 
 ### 環境變數(全部 grep `backend/` 實測;範例檔=git 追蹤的 `.env.example`)
@@ -116,11 +119,11 @@ npm run preview
 | 階段 | 步驟(現況實際做法) |
 | :--- | :--- |
 | **建置** | 無編譯產物;`uv sync --extra server` 安裝依賴即完成 |
-| **測試** | `uv run pytest tests/ -q`(47 個測試檔,collect 392 tests——本次僅收集實測,全量通過率未查證)+ `git diff --check` + `git status --short`(README 合併前必跑三指令) |
+| **測試** | `uv run pytest tests/ -q`(47 個測試檔;2026-07-26 全量實測:392 收集、389 過、2 敗、1 跳過,約 16 秒。2 敗皆在 `tests/test_scene_v2_contract.py`:scene_v2.js 引用 scene_viewer.js 的內容雜湊快取鍵過期,工作樹乾淨下重現,屬本 commit 既有紅燈)+ `git diff --check` + `git status --short`(README 合併前必跑三指令) |
 | **部署** | 無部署動作;各組員本機 `git pull` 後重啟 uvicorn(README「組員同步 Bella」流程,見第 3 節) |
 
 待辦:
-- [ ] 引入 CI(如 GitHub Actions)自動跑 pytest;團隊是否已有規劃(未查證)
+- [ ] 引入 CI(如 GitHub Actions)自動跑 pytest;repo 內無任何 CI 設定與規劃文字(grep 實測),是否口頭規劃過(未查證)
 - [ ] 8/20 發表的 demo 環境形態尚未定義(本機 demo 或雲端部署,待補)
 
 ---
@@ -130,7 +133,7 @@ npm run preview
 本專案「部署」= 組員本機更新到指定 commit 並重啟。以下清單改寫自 README「組員同步 Bella」與「合併方式」小節,全部項目在 README 有明文依據:
 
 ### 更新前
-- [ ] `uv run pytest tests/ -q` 通過
+- [ ] `uv run pytest tests/ -q` 通過(現況基準:389 過、2 敗,敗者為既有紅燈,見第 2 節)
 - [ ] `git diff --check` 無殘留衝突標記、`git status --short` 乾淨
 - [ ] 停止舊的 uvicorn 進程(README 明文要求,避免驗到舊程式)
 
@@ -140,7 +143,7 @@ npm run preview
 - [ ] 重啟:`uv run uvicorn backend.server.main:app --port 8002`
 
 ### 更新後(煙霧測試)
-- [ ] 開啟 `/scene`:頁面帶 `Cache-Control: no-store`、JS 以內容雜湊防快取(README 明文;`main.py:1452`),不需手動清快取
+- [ ] 開啟 `/scene`:頁面帶 `Cache-Control: no-store`、JS 以內容雜湊防快取(README 明文;`main.py:1451`),不需手動清快取(注意:本 commit 有 2 個模組的雜湊已過期,見第 2 節)
 - [ ] `GET /api/catalog/status`:CloudFront manifest 健康度,正常應回報 9,350 件已驗證模型
 - [ ] 上傳 `floor04.png` 的辨識基準:**19 面牆、5 扇門、5 扇窗、7 個房間**(README 驗收基準)
 - [ ] 注意:`project_id` 對應各電腦本機 `.runtime/`,**不能**拿另一台電腦的專案網址驗證程式版本是否一致(README 明文)
@@ -158,7 +161,7 @@ npm run preview
 實際策略:**更新即停機重啟**(短暫斷線;SQLite 與上傳檔在 `.runtime/` 持久化,重啟不掉資料)。版本控制即發佈控制:
 
 - 遠端分支(git branch -r 實測):`origin/main`(預設分支)、`origin/bella`(整合來源)、各組員分支 `ancai/ben/cody/django/kai/kai-dev/kai-dwv/yen`。
-- 本文件基準工作區在本機分支 `bella-local-20260726`(HEAD e48cd67)。
+- 本文件基準工作區在本機分支 `bella-local-20260726`(程式基準 e48cd67;查證時 HEAD 為 d88b707,僅新增 docs 文件與 .gitignore 調整)。
 - 團隊規則:不得把舊分支整支 merge 到 bella,必須從 bella 開整合分支、只挑組員責任範圍內的變更(README「合併方式」)。
 
 ---
@@ -177,7 +180,7 @@ npm run preview
 
 - **無日誌檔、無集中式日誌**;所有輸出走 uvicorn 的 stdout(access log + 應用訊息),終端關閉即消失。
 - Python `logging` 在全 backend 只有 `backend/agent/select.py` 使用(選件丟棄警告,`select.py:138,152`);`backend/server/` 無任何 logging 設定,啟動預熱失敗用 `print`(`main.py:2108`)。
-- 前端錯誤無回報機制(未查證前端 JS 是否有任何錯誤上報)。
+- 前端錯誤無回報機制:grep `static/*.js` 無 `window.onerror`、error listener、`sendBeacon` 等任何上報碼(2026-07-26 實測)。
 
 ### 關鍵指標與告警規則
 
@@ -201,19 +204,19 @@ npm run preview
 
 ### 資料層注意事項
 
-- `.runtime/` 不隨 git 回滾:程式回舊版後,SQLite 內可能有新版程式寫入的 workflow 資料。workflow 前端 schema 版本為 `WORKFLOW_SCHEMA_VERSION = 2`(`scene_workflow.js:1`);舊程式讀新資料的相容性未查證,回滾跨大版本時建議先備份 `.runtime/`。
+- `.runtime/` 不隨 git 回滾:程式回舊版後,SQLite 內可能有新版程式寫入的 workflow 資料。workflow 前端 schema 版本為 `WORKFLOW_SCHEMA_VERSION = 2`(`scene_workflow.js:1`),localStorage 鍵名 `roompilot.workflow.v2` 自帶版號;git 全歷史查無 `= 1` 版號或 `.v1` 鍵(pickaxe 實測),版號 2 是首個有版號的 schema。後端把 workflow 存成不驗 schema 的 JSON 欄位(`project_store.py:105` `workflow_json TEXT`),回滾後端本身不受 schema 影響;回滾到「無版號時代」的前端讀新資料的行為仍未查證,跨大版本回滾前建議先備份 `.runtime/`。
 - 專案 API 有樂觀鎖(`expected_revision`,衝突回 409 `project_revision_conflict`),回滾不會造成靜默覆寫,但會讓前端要求重新載入。
 
 ### 備份現況(本節為運維事實盤點,2026-07-26 本機實測)
 
 | 項目 | 現況 |
 | :--- | :--- |
-| `.runtime/` 總量 | 約 12MB:`projects.sqlite3` 3.0MB + `-wal` 2.3MB + `-shm`;`uploads/` 160 個專案目錄;`renders/` 空 |
+| `.runtime/` 總量 | 約 16MB(2026-07-26 13:15 實測):`projects.sqlite3` 4.1MB + `-wal` 4.1MB + `-shm`;`uploads/` 212 個專案目錄;`renders/` 空。註:全量 pytest 會寫入本目錄,數字隨測試與使用持續增長 |
 | 版控狀態 | `.runtime/` 被 `.gitignore` 第 12 行排除,**完全不在 git 保護範圍** |
 | 自動備份 | **無任何備份腳本或排程** |
 | 手動備份方法 | SQLite 為 WAL 模式,直接複製須同時帶 `projects.sqlite3` + `-wal` + `-shm` 三檔,或在伺服器停機時用 `sqlite3 .runtime/projects.sqlite3 ".backup <目的檔>"`(標準 SQLite 做法;repo 內無現成腳本) |
 | 跨 worktree 合併 | 啟動時自動把舊 worktree 的 `.runtime` 合併進共用資料庫(`runtime_paths.legacy_runtime_dirs` + `project_store.import_runtime`);設計對象是**同機多 worktree**,不是跨機備援 |
-| 跨電腦搬移 | 曾有「跨電腦匯入匯出專案」功能(commit 6cf188b,含 `tests/test_project_bundle.py`),但現行工作區已無該測試檔、`main.py` 也 grep 不到 bundle 端點——功能在後續合併中消失,**現況不可用**(何時移除未查 git 歷史) |
+| 跨電腦搬移 | 曾有「跨電腦匯入匯出專案」功能(commit 6cf188b,2026-07-25,含 `tests/test_project_bundle.py`),同日即被 d32dc7a「修正:同步 Bella 並停用舊頁快取」移除(git log -S 實測,`main.py` 端點與測試檔同刪),**現況不可用** |
 | 問卷視覺索引 | `.runtime/indexes/questionnaire_visuals.sqlite3` 為惰性建立的查詢索引(`main.py:147-161`),資料來源是版控內的 `backend/server/data/questionnaire_visual_catalog.json`,可隨時重建,**不需備份**;本機目前尚未生成 |
 | 離線 GLB 備援 | IKEA zip(1,517 GLB、SHA-256 `5AFB7B19...E377A8`)是**型錄資產**的雲端故障備援(驗證指令 `uv run python scripts/verify_ikea_offline_backup.py <zip路徑>`,README),與 `.runtime` 使用者資料備份是兩回事 |
 
@@ -259,21 +262,23 @@ npm run preview
   固定回 410,屬設計行為;整體改本機供應須設 ROOMPILOT_MODEL_DELIVERY_MODE=local
   並先用 scripts/verify_ikea_offline_backup.py 驗證備援 zip(README 規定流程)
 - POST /api/projects/{id}/render-jobs 回 503 → ROOMPILOT_RENDER_PROVIDER_URL 未設定
-  或供應商連不上(main.py:1772-1776);回 502 = 供應商拒絕任務
+  或供應商連不上(main.py:1771-1780);回 502 = 供應商拒絕任務
 - LLM 功能沒反應 → 需同時設 OPENROUTER_API_KEY 且 OPENROUTER_INTAKE_ENABLED=1
   (intake)/OPENROUTER_SCENE_PLANNING_ENABLED=1(場景規劃);未設定走本地 fallback
   是契約規定行為,不是故障(docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md)
 - 換電腦後找不到專案 → project_id 綁本機 .runtime/,資料不跟 git 走(README 明文)
 - 前端存檔回 409 project_revision_conflict → 樂觀鎖版本衝突,前端須以回應附帶的
   最新 project 重新套用;非資料損毀
-- 軟裝加窗簾回 409 decor_model_missing → main.py:2446 引用的
-  /static/models/roompilot-curtain.glb 實際不存在(find static/ 零 .glb,已知缺陷)
+- 軟裝回 409 decor_model_missing → 型錄找不到該角色(燈/地毯/植栽)可用 GLB
+  (main.py:2409-2416);窗簾不會 409——它走固定假想品項 /static/models/roompilot-curtain.glb
+  (main.py:2446),該檔實際不存在(find static/ 零 .glb,已知缺陷),瀏覽器載入 404 後
+  由前端以同尺寸白色替代物顯示(scene_viewer.js:2955-2957),場景不中斷
 - pytest collect 出現 on_event deprecation warning → FastAPI 已棄用 API,已知現象
 
 ## 緊急聯絡人 / 升級流程
 - 責任目錄表見 README「團隊目錄與合併規則」:backend/server 與 frontend3d 由 Bella 負責、
   backend/catalog(CloudFront/manifest)由 Kai 負責,其餘依表
-- 正式升級流程:無 on-call 制度;口頭/群組聯絡(未查證是否有書面約定)
+- 正式升級流程:無 on-call 制度;repo 內文件 grep 無緊急聯絡/升級流程書面約定(實測),實務上口頭/群組聯絡(未查證)
 ```
 
 ---
@@ -281,6 +286,6 @@ npm run preview
 ## 附:本文件的已知缺口(待補清單)
 
 - 8/20 發表用環境的部署形態(本機 demo 或雲端)未定義(待補)
-- pytest 全量通過率:本次只做 `--collect-only`(392 tests),未執行完整測試(未查證;記憶中 7/24 曾 330 過/4 敗,非本次實測)
-- frontend3d `npm install` / `npm run build` 未實際執行,依賴可裝性未驗證(未查證)
-- CI 導入與 `.runtime/` 備份機制:現況皆無,列於第 2、6 節待辦
+- pytest 全量已實測(2026-07-26):392 收集、389 過、2 敗、1 跳過;2 敗=`tests/test_scene_v2_contract.py` 的 scene 快取鍵契約(scene_v2.js 引用 scene_viewer.js 的內容雜湊過期),工作樹乾淨下重現,屬本 commit 既有紅燈
+- frontend3d 依賴可裝性已實測:`npm install --dry-run` 失敗(ERESOLVE,plugin-react peer 不支援 vite 8,詳見第 1 節);`npm ci` 與 `npm run build` 未實測
+- CI 導入與 `.runtime/` 備份機制:現況皆無(repo 亦無 CI 規劃文字,grep 實測),列於第 2、6 節待辦

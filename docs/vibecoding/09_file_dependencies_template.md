@@ -1,9 +1,8 @@
 # 模組依賴關係分析 - RoomPilot-Agent
 
-> 本文件由 VibeCoding 模板 09_file_dependencies_template.md 導入 RoomPilot-Agent 生成 | 基準分支 undefined | undefined
+> 本文件由 VibeCoding 模板 09_file_dependencies_template.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 草稿
-> (實際產出環境:工作區分支 `bella-local-20260726`、HEAD `e48cd67`,以 `git branch --show-current` 與 `git rev-parse` 實測;上方引用註記的「undefined」為導入流程參數原樣保留)
 
 ---
 
@@ -35,7 +34,7 @@ graph TD
     CATALOG --> ENGINE
     FP --> UP3D
 
-    SRV --> DB[(SQLite<br/>.runtime/projects.sqlite3<br/>indexes/questionnaire_visuals.sqlite3)]
+    SRV --> DB[(SQLite<br/>.runtime/projects.sqlite3<br/>.runtime/indexes/questionnaire_visuals.sqlite3)]
     SRV -.-> CF[CloudFront GLB<br/>ddgsm1yg3xikc.cloudfront.net]
     SRV -.-> OR[OpenRouter API<br/>可選,失敗必須本地 fallback]
     SRV -.-> RP[遠端渲染供應商<br/>ROOMPILOT_RENDER_PROVIDER_URL]
@@ -53,7 +52,7 @@ graph TD
 
 ### 模組間 import 邊清單(grep 實證)
 
-跨模組邊(共 10 條,`grep -rnE "^\s*(import|from)\s" backend --include="*.py"` 過濾 stdlib 後逐條確認):
+跨模組邊(下表共 12 列、對應 16 條 import 語句——engine 多檔匯入合併為一列,`grep -rnE "^\s*(import|from)\s" backend --include="*.py"` 過濾 stdlib 後逐條確認):
 
 | 來源檔 | 目標模組 | 匯入符號 |
 | :--- | :--- | :--- |
@@ -123,12 +122,12 @@ graph TD
 
 | 風險 | 解決策略 / 現況 |
 | :--- | :--- |
-| 循環依賴 | 現況無循環(上方邊清單構成 DAG)。維持手段:agent↔engine 以 callable 注入取代互相 import;共用 dataclass 集中在 `engine/models.py`。目前無 CI 工具強制檢查(未查證到 import-linter 之類設定),依賴人工 review——待補自動檢查 |
+| 循環依賴 | 現況無循環(上方邊清單構成 DAG)。維持手段:agent↔engine 以 callable 注入取代互相 import;共用 dataclass 集中在 `engine/models.py`。目前無 CI 工具強制檢查(repo 無 `.importlinter`/`setup.cfg`/`tox.ini`、`pyproject.toml` 無 import-linter 段、無 `.github/`,ls+grep 實測),依賴人工 review——待補自動檢查 |
 | 不穩定外部依賴 | OpenRouter:`intake_service.py`(urllib,逾時 8 秒)與 `scene_service.py` 各有開關環境變數,失敗一律降級本地規則,不阻斷主流程。CloudFront:`services/cloud_models.py` 為信任邊界,只回 manifest 驗證過的 URL。遠端渲染:`render_service.py` 未設定回 503、供應商拒絕回 502,不假成功 |
 | 路由單檔膨脹 | `main.py` 2796 行、44 條路由集中一檔,無 APIRouter 拆分;修改互相干擾風險隨檔案成長——是否拆分屬裁決事項,本文件只記錄現況 |
-| 腳本式 import | `backend/floorplan/eval_doors.py:20` 用裸 `import floorplan2dxf as fp`(非套件相對 import),只有 cwd 在 `backend/floorplan/` 時可執行;離線評測腳本專用,不影響伺服器 |
+| 腳本式 import | `backend/floorplan/eval_doors.py:20` 用裸 `import floorplan2dxf as fp`(非套件相對 import);`eval_doors.py:19` 先把腳本所在目錄插入 `sys.path`,故任何 cwd 都可直接執行,但會產生與 `backend.floorplan.floorplan2dxf` 不同的重複模組實例;離線評測腳本專用,不影響伺服器 |
 | 死碼殘留 | `backend/floorplan/vision/geometry.py` 的 `detect_geometry` 與 `ocr.py` 的 `default_ocr_provider` 全 repo 無呼叫者(grep 證實);`backend/engine/adjustment.py` 與 `schema.py` 的 tool 常數在 `backend/server` 無引用,只有 `examples/` 使用——文件與新人不應把它們當現行介面 |
-| 前端資產斷鏈 | `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`,但 `find backend/server/static -name "*.glb"` 零命中(未查證前端如何處理此 404);`main.py:101` 的 `DATASET_DIR` 指向 repo 根 `dataset/`(不存在,實際 GLB 在 `data/dataset/`),cloudfront 預設模式下不走本機路徑故未爆 |
+| 前端資產斷鏈 | `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`,但 `find backend/server/static -name "*.glb"` 零命中;404 時前端不會中斷——`scene_viewer.js:2953-2957` 對載入失敗的物件呼叫 `createFallbackFurnitureProxy`,以「同尺寸白色替代物」呈現並把原因寫入診斷;`main.py:101` 的 `DATASET_DIR` 指向 repo 根 `dataset/`(不存在,實際 GLB 在 `data/dataset/`),cloudfront 預設模式下不走本機路徑故未爆 |
 
 ---
 
@@ -161,7 +160,7 @@ graph TD
 | @react-three/fiber | 8.18.0 | React 對 three 綁定 | 低 |
 | @react-three/drei | 9.122.0 | OrbitControls/Bounds/Grid/useGLTF | 低 |
 | react / react-dom | 18.3.1 | UI | 低 |
-| vite / @vitejs/plugin-react | 8.1.0 / 4.7.0(dev) | 建置與 dev proxy | 低(`node_modules` 未安裝,可裝性未驗證) |
+| vite / @vitejs/plugin-react | 8.1.0 / 4.7.0(dev) | 建置與 dev proxy | 中(`node_modules` 未安裝;實測 `npm install` 與 `npm ci` 皆因 ERESOLVE 失敗——lock 的 vite 8.1.0 超出 `@vitejs/plugin-react@4.7.0` 的 peer 範圍 `^4.2.0 || ^5 || ^6 || ^7`,需 `--legacy-peer-deps` 才能安裝) |
 
 另注意:主前端 `backend/server/static/scene.html:784-791` 的 importmap 自 unpkg CDN 載入 `three@0.165.0`,與 frontend3d 鎖定的 0.160.1 是兩套版本並存。
 
@@ -174,4 +173,4 @@ graph TD
 - [ ] 待補:依賴方向的自動化守門(如 import-linter 或 CI grep 規則),目前僅人工維持。
 - [ ] 待補:外部依賴自動掃描(無 `.github/`,無 dependabot/renovate 設定)。
 - [ ] 裁決事項:`main.py` 44 條路由是否拆 APIRouter;frontend3d 是否仍為現役入口;死碼(`detect_geometry`、`default_ocr_provider`、`engine/adjustment.py` 正式流程呼叫鏈)去留。
-- [ ] (未查證)`/static/models/roompilot-curtain.glb` 404 時前端的實際行為。
+- [x] 已查證:`/static/models/roompilot-curtain.glb` 404 時,`scene_viewer.js:2953-2957` 以同尺寸白色替代物 fallback,渲染不中斷(見「依賴風險管理」)。
