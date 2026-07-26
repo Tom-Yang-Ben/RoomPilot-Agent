@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-52bd43366fd0";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-7b2f8a34ce74";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,
@@ -337,9 +337,11 @@ const element = {
 
 const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteStatus, {
   onSceneChange: () => scheduleSave("white_model_3d"),
+  onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item),
 });
 const realisticViewer = createSceneViewer($("#realistic-viewer"), element.realisticStatus, {
   onSceneChange: () => markRealisticSceneEdited(),
+  onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item),
 });
 const proposalViewer = createSceneViewer(
   $("#proposal-review-viewer"),
@@ -423,6 +425,18 @@ function syncSelected2dFurnitureToScene({ focus = false } = {}) {
   const viewer = activeSceneViewerForStep();
   if (!viewer || !state.selectedFurniture2dId) return false;
   return selectSceneObjectByFurnitureId(state.selectedFurniture2dId, { viewer, focus });
+}
+
+function syncSceneSelectionTo2dFurniture(sceneObject) {
+  const furnitureId = sceneObject?.furniture_id;
+  if (!furnitureId) return false;
+  const item = state.furniture2d.find(
+    (candidate) => String(candidate.id) === String(furnitureId),
+  );
+  if (!item) return false;
+  state.selectedFurniture2dId = item.id;
+  renderLayoutFurniture();
+  return true;
 }
 
 function workflowPayload() {

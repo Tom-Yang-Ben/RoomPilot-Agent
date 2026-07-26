@@ -36,10 +36,14 @@ c1182072 feat(floorplan): add cody semantic weight contract
   - 2D furniture ids are matched to `scene_objects[].furniture_id`.
   - Clicking a 2D furniture icon or list row syncs to the active 3D viewer when a scene already exists.
   - Confirming 2D layout and entering 3D white model preserves the selected 2D furniture.
+- Added 3D-to-2D furniture selection sync:
+  - White-model and realistic viewers emit selected scene object changes through `onObjectSelect`.
+  - User clicks in 3D update the matching 2D furniture selection by `furniture_id`.
+  - Programmatic 2D-to-3D sync does not re-emit selection events, avoiding callback loops.
 - Verification:
   - `node --check backend/server/static/scene_viewer.js`
   - `node --check backend/server/static/scene_v2.js`
-  - `pytest tests/test_scene_v2_contract.py -k "scene_entrypoint_cache_key_matches_bundle_content or changed_scene_module_cache_keys_match_dependency_content or scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection or 2d_furniture_selection_syncs_to_matching_3d_scene_object"`
+  - `pytest tests/test_scene_v2_contract.py -k "scene_entrypoint_cache_key_matches_bundle_content or changed_scene_module_cache_keys_match_dependency_content or scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection or 2d_furniture_selection_syncs_to_matching_3d_scene_object or 3d_scene_selection_syncs_back_to_2d_furniture_state"`
 
 ### Layout / Scene Boundary Contract
 

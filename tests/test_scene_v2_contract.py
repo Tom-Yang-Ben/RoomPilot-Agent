@@ -655,6 +655,19 @@ def test_2d_furniture_selection_syncs_to_matching_3d_scene_object() -> None:
     assert "syncSelected2dFurnitureToScene({ focus: false })" in source
 
 
+def test_3d_scene_selection_syncs_back_to_2d_furniture_state() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "onObjectSelect = null" in viewer
+    assert "onObjectSelect(selectedWrapper?.userData?.sceneObject || null, lastSceneData)" in viewer
+    assert "selectWrapper(wrapper, null, { notify: false })" in viewer
+    assert "function syncSceneSelectionTo2dFurniture" in controller
+    assert "String(candidate.id) === String(furnitureId)" in controller
+    assert "state.selectedFurniture2dId = item.id" in controller
+    assert "onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item)" in controller
+
+
 def test_2d_collision_footprint_respects_furniture_rotation() -> None:
     module_uri = (STATIC / "scene_layout2d.js").as_uri()
     result = run_workflow_script(

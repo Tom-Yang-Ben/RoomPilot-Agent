@@ -30,7 +30,11 @@ import {
 
 const CM_PER_METER = 100;
 
-export function createSceneViewer(container, statusElement, { onSceneChange = null } = {}) {
+export function createSceneViewer(
+  container,
+  statusElement,
+  { onSceneChange = null, onObjectSelect = null } = {},
+) {
   if ("createImageBitmap" in globalThis) {
     globalThis.createImageBitmap = undefined;
   }
@@ -3489,7 +3493,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     setGuideSnapState(kind);
   }
 
-  function selectWrapper(wrapper, kind = null) {
+  function selectWrapper(wrapper, kind = null, { notify = true } = {}) {
     selectedWrapper = wrapper || null;
     if (selectedWrapper) {
       updateFootprintGuide(selectedWrapper, kind);
@@ -3500,6 +3504,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       renderer.domElement.style.cursor = "";
       selectedControls.hidden = true;
     }
+    if (notify && typeof onObjectSelect === "function") {
+      onObjectSelect(selectedWrapper?.userData?.sceneObject || null, lastSceneData);
+    }
   }
 
   function selectObjectByIndex(index, { focus = true } = {}) {
@@ -3508,7 +3515,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       (candidate) => candidate.userData.sceneIndex === sceneIndex,
     );
     if (!wrapper) return false;
-    selectWrapper(wrapper);
+    selectWrapper(wrapper, null, { notify: false });
     if (focus) focusObject(wrapper);
     return true;
   }
