@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-c4ba9459e57a";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-6f6d839c25f6";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
@@ -7493,6 +7493,7 @@ function glbThumbnailScene(item) {
       placement_failed: false,
     }],
     style: { style_id: state.activeStyleId || "white_model" },
+    design_choices: { catalog_thumbnail_mode: true },
   };
 }
 
@@ -7512,7 +7513,10 @@ async function populateGlbSearchThumbnails(items, batchId) {
       try {
         await glbThumbnailViewer.loadScene(glbThumbnailScene(item));
         if (glbThumbnailViewer.getDiagnostics()?.failedFurniture?.length) continue;
-        glbThumbnailViewer.selectObjectByIndex(0, { focus: true });
+        glbThumbnailViewer.selectObjectByIndex(0, {
+          focus: true,
+          showGuide: false,
+        });
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         png = glbThumbnailViewer.capturePng();
         glbThumbnailCache.set(item.model_url, png);

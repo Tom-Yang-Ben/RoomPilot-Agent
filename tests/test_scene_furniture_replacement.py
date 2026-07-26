@@ -58,3 +58,24 @@ def test_glb_search_generates_png_thumbnails_from_models() -> None:
     assert "glbThumbnailViewer.capturePng()" in search
     assert "data-glb-thumbnail" in search
     assert "glbThumbnailCache" in SOURCE
+
+
+def test_glb_thumbnail_mode_renders_only_the_furniture() -> None:
+    search = SOURCE.split("function glbThumbnailScene", 1)[1].split(
+        "async function styleFurnitureCandidate", 1
+    )[0]
+    viewer = (ROOT / "backend/server/static/scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    room_builder = viewer.split("function createRoom(sceneData)", 1)[1].split(
+        "function createCeilingGeometry", 1
+    )[0]
+
+    assert "catalog_thumbnail_mode: true" in search
+    assert "showGuide: false" in search
+    assert "const catalogThumbnailMode" in room_builder
+    assert "if (!catalogThumbnailMode)" in room_builder
+    assert "roomGroup.add(floor)" in room_builder
+    assert "roomGroup.add(presentationGround)" in room_builder
+    assert "function furnitureAnnotationsEnabled()" in viewer
+    assert "if (furnitureAnnotationsEnabled())" in viewer

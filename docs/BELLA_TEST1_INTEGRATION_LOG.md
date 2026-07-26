@@ -763,3 +763,19 @@ $env:TEMP=$env:TMP
   `47abb48d539c46a0afd1fc1acce34add`.
 - Full suite verification: 466 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Furniture-Only Catalog Thumbnails
+
+- Kept native AWS `image_url`, `thumbnail_url`, `preview_url`, and product-image
+  fields as the fastest thumbnail source when catalog records provide them.
+- Added a dedicated catalog-thumbnail render mode for records that only provide
+  a GLB model.
+- GLB fallback thumbnails now omit walls, floors, ceilings, doors, windows,
+  structural elements, selection guides, plan labels, and furniture numbers.
+- Browser verification generated 12/12 PNG thumbnails for the `書桌` search and
+  confirmed the first image contains only the furniture against the viewer
+  background.
+- The current 12 search records expose `model_url` but no native preview field,
+  so they correctly use the GLB fallback path.
+- Full suite verification: 467 passed, 2 skipped.
+- No remote push was performed.

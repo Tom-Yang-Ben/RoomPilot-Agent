@@ -2064,6 +2064,7 @@ export function createSceneViewer(
     clearGroup(ceilingGroup);
     clearGroup(hangingLightGroup);
     wallMeshes.length = 0;
+    const catalogThumbnailMode = sceneData.design_choices?.catalog_thumbnail_mode === true;
 
     const widthCm = Math.max(sceneData.floorplan.width_cm, 240);
     const depthCm = Math.max(sceneData.floorplan.depth_cm, 240);
@@ -2101,7 +2102,7 @@ export function createSceneViewer(
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
     floor.receiveShadow = true;
-    roomGroup.add(floor);
+    if (!catalogThumbnailMode) roomGroup.add(floor);
     const presentationGround = new THREE.Mesh(
       new THREE.CircleGeometry(Math.max(widthCm, depthCm) * 1.15, 96),
       new THREE.MeshPhysicalMaterial({
@@ -2115,7 +2116,7 @@ export function createSceneViewer(
     presentationGround.position.y = -3.2;
     presentationGround.receiveShadow = true;
     presentationGround.userData.roompilotArchitecturalDetail = "shadow-ground";
-    roomGroup.add(presentationGround);
+    if (!catalogThumbnailMode) roomGroup.add(presentationGround);
     const shadowExtent = Math.max(widthCm, depthCm) * 0.72 + 100;
     keyLight.shadow.camera.left = -shadowExtent;
     keyLight.shadow.camera.right = shadowExtent;
@@ -2124,13 +2125,15 @@ export function createSceneViewer(
     keyLight.shadow.camera.near = 20;
     keyLight.shadow.camera.far = 3500;
     keyLight.shadow.camera.updateProjectionMatrix();
-    createRoomSurfaceOverrides(roomGroup, sceneData);
-    createMaterialBoundarySurfaces(
-      roomGroup,
-      sceneData.material_boundary,
-      floorMaterial,
-      sceneData,
-    );
+    if (!catalogThumbnailMode) {
+      createRoomSurfaceOverrides(roomGroup, sceneData);
+      createMaterialBoundarySurfaces(
+        roomGroup,
+        sceneData.material_boundary,
+        floorMaterial,
+        sceneData,
+      );
+    }
 
     const wallMaterial = createWallMaterial(wallOption, sceneData.surface_catalog);
     const wallPbr = sceneData.style?.pbr?.wall || {};
@@ -2157,18 +2160,20 @@ export function createSceneViewer(
     const hasRoomCeilings = (sceneData.surface_overrides || []).some(
       (override) => override.ceiling_style_id && override.ceiling_style_id !== "exposed",
     );
-    if (hasRoomCeilings) {
-      createRoomCeilingOverrides(sceneData, wallHeight);
-    } else {
-      createCeilingGeometry(
-        { widthCm, depthCm, wallHeight, ceilingHeight },
-        roomGroup.userData.ceilingStyle,
-        sceneData.style_card || sceneData.style || {},
-        {
-          color: sceneData.design_choices?.ceiling_color_hex,
-          material: sceneData.design_choices?.ceiling_material,
-        },
-      );
+    if (!catalogThumbnailMode) {
+      if (hasRoomCeilings) {
+        createRoomCeilingOverrides(sceneData, wallHeight);
+      } else {
+        createCeilingGeometry(
+          { widthCm, depthCm, wallHeight, ceilingHeight },
+          roomGroup.userData.ceilingStyle,
+          sceneData.style_card || sceneData.style || {},
+          {
+            color: sceneData.design_choices?.ceiling_color_hex,
+            material: sceneData.design_choices?.ceiling_material,
+          },
+        );
+      }
     }
     ceilingGroup.visible = false;
 
@@ -2182,7 +2187,9 @@ export function createSceneViewer(
         wallHeight,
       )
       : false;
-    if (builtWallMass) {
+    if (catalogThumbnailMode) {
+      // Product thumbnails intentionally omit room geometry.
+    } else if (builtWallMass) {
       buildWallMassTopCaps(
         roomGroup,
         sceneData.floorplan,
@@ -2221,11 +2228,11 @@ export function createSceneViewer(
       roomGroup.add(registerWall(rightWall));
     }
 
-    if (hasAccurateFloorplan) {
+    if (!catalogThumbnailMode && hasAccurateFloorplan) {
       buildFloorPlanOverlay(roomGroup, doorSegments, 0xb9773f, 0.82, 3.8);
       buildFloorPlanOverlay(roomGroup, windowSegments, 0x6f9eb4, 0.9, 4.4);
       buildCirculationRoute(roomGroup, sceneData.floorplan);
-    } else if (!builtWallMass) {
+    } else if (!catalogThumbnailMode && !builtWallMass) {
       const outline = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(widthCm, wallHeight, depthCm)),
         new THREE.LineBasicMaterial({ color: 0xb89264, transparent: true, opacity: 0.35 })
@@ -2233,17 +2240,19 @@ export function createSceneViewer(
       outline.position.set(0, wallHeight / 2, 0);
       roomGroup.add(outline);
     }
-    buildStructuralMembers(roomGroup, sceneData.floorplan || {}, wallHeight);
+    if (!catalogThumbnailMode) {
+      buildStructuralMembers(roomGroup, sceneData.floorplan || {}, wallHeight);
+    }
 
     const boundary = sceneData.material_boundary?.line_cm;
-    if (Array.isArray(boundary) && boundary.length >= 2) {
+    if (!catalogThumbnailMode && Array.isArray(boundary) && boundary.length >= 2) {
       buildFloorPlanOverlay(roomGroup, [{
         start: { x: Number(boundary[0].x) || 0, z: Number(boundary[0].y) || 0 },
         end: { x: Number(boundary[1].x) || 0, z: Number(boundary[1].y) || 0 },
       }], 0x7b56b3, 0.96, 5.2);
     }
 
-    if (sceneData.design_choices?.light_style) {
+    if (!catalogThumbnailMode && sceneData.design_choices?.light_style) {
       createStyleLights(
         { widthCm, depthCm, wallHeight: ceilingHeight },
         sceneData.style_card || sceneData.style || {},
@@ -2909,6 +2918,10 @@ export function createSceneViewer(
     return sprite;
   }
 
+  function furnitureAnnotationsEnabled() {
+    return lastWorldSceneData?.design_choices?.catalog_thumbnail_mode !== true;
+  }
+
   let lastDiagnostics = {
     requestedFurnitureCount: 0,
     visibleFurnitureCount: 0,
@@ -2993,13 +3006,15 @@ export function createSceneViewer(
     addFurnitureContactShadow(wrapper, item.size_cm || {});
     addFurniturePickProxy(wrapper, item);
 
-    const marker = createNumberMarker(index + 1);
-    marker.userData.roompilotNumberMarker = true;
-    marker.position.set(0, height + 48, 0);
-    wrapper.add(marker);
-    const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-    planLabel.position.set(0, height + 15, 0);
-    wrapper.add(planLabel);
+    if (furnitureAnnotationsEnabled()) {
+      const marker = createNumberMarker(index + 1);
+      marker.userData.roompilotNumberMarker = true;
+      marker.position.set(0, height + 48, 0);
+      wrapper.add(marker);
+      const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
+      planLabel.position.set(0, height + 15, 0);
+      wrapper.add(planLabel);
+    }
     furnitureGroup.add(wrapper);
     return wrapper;
   }
@@ -3066,13 +3081,15 @@ export function createSceneViewer(
           const size = sizeCentimeters(item);
           addFurnitureContactShadow(wrapper, item.size_cm || {});
           addFurniturePickProxy(wrapper, item);
-          const marker = createNumberMarker(index + 1);
-          marker.userData.roompilotNumberMarker = true;
-          marker.position.set(0, Math.max(size.height + 48, 72), 0);
-          wrapper.add(marker);
-          const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-          planLabel.position.set(0, Math.max(size.height + 15, 35), 0);
-          wrapper.add(planLabel);
+          if (furnitureAnnotationsEnabled()) {
+            const marker = createNumberMarker(index + 1);
+            marker.userData.roompilotNumberMarker = true;
+            marker.position.set(0, Math.max(size.height + 48, 72), 0);
+            wrapper.add(marker);
+            const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
+            planLabel.position.set(0, Math.max(size.height + 15, 35), 0);
+            wrapper.add(planLabel);
+          }
           furnitureGroup.add(wrapper);
         } catch (error) {
           console.error(error);
@@ -3646,13 +3663,14 @@ export function createSceneViewer(
     }
   }
 
-  function selectObjectByIndex(index, { focus = true } = {}) {
+  function selectObjectByIndex(index, { focus = true, showGuide = true } = {}) {
     const sceneIndex = Number(index) + 1;
     const wrapper = furnitureGroup.children.find(
       (candidate) => candidate.userData.sceneIndex === sceneIndex,
     );
     if (!wrapper) return false;
-    selectWrapper(wrapper, null, { notify: false });
+    if (showGuide) selectWrapper(wrapper, null, { notify: false });
+    else selectWrapper(null, null, { notify: false });
     if (focus) focusObject(wrapper);
     return true;
   }
