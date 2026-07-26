@@ -46,6 +46,8 @@ docs/*
 !docs/contracts/*.md
 !docs/moodboard_assets/
 !docs/moodboard_assets/**
+!docs/vibecoding/
+!docs/vibecoding/*.md
 
 # Local/personal generated Markdown, not for bella uploads
 .codex/
