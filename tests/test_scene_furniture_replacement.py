@@ -21,8 +21,9 @@ def test_replacement_filters_context_and_revalidates_with_engine() -> None:
         "function addFurnitureFromLibrary", 1
     )[0]
 
-    assert "type: current.type" in load
-    assert 'params.set("style", style)' in load
+    assert "catalogCandidatesForType(current.type" in load
+    assert "styleId: style" in load
+    assert "rankCatalogFurniture(catalogCandidates, request)" in load
     assert "replacementCandidateFitsRoom" in load
     assert "resolveFurniturePosition(candidate)" in replace
     assert "model_url: catalogItem.model_url" in replace

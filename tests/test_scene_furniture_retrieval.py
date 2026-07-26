@@ -92,6 +92,8 @@ def test_frontend_maps_questionnaire_appliances_to_the_appliance_catalog() -> No
 
     assert '"refrigerator": { endpoint: "/api/appliances", type: "fridge-freezer" }' in source
     assert '"washer": { endpoint: "/api/appliances", type: "washing-machine" }' in source
+    assert "catalogCandidatesForType(current.type" in source
+    assert "rankCatalogFurniture(catalogCandidates, request)" in source
 
 
 def test_semantic_product_name_rejects_wrongly_classified_catalog_rows() -> None:

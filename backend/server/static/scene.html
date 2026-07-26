@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=sha256-eea1912c2390" />
+    <link rel="stylesheet" href="/static/site.css?v=sha256-7fab0aec4986" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -581,9 +581,11 @@
                   title="收合 2D 平面" aria-label="收合 2D 平面">−</button>
               </header>
               <div id="configuration-plan-body" class="rp-configuration-plan-body">
-                <div class="rp-configuration-plan-stage">
-                  <img id="configuration-plan-image" alt="與 3D 同步的 2D 家具配置" />
-                  <div id="configuration-plan-furniture-layer"></div>
+                <div class="rp-configuration-plan-sticky">
+                  <div class="rp-configuration-plan-stage">
+                    <img id="configuration-plan-image" alt="與 3D 同步的 2D 家具配置" />
+                    <div id="configuration-plan-furniture-layer"></div>
+                  </div>
                 </div>
                 <div id="configuration-plan-furniture-list" class="rp-configuration-furniture-list"
                   aria-label="2D 同步家具清單"></div>
@@ -817,6 +819,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-51b900c36d05"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-9324a0a6bab7"></script>
   </body>
 </html>

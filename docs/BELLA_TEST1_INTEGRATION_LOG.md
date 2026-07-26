@@ -616,3 +616,18 @@ $env:TEMP=$env:TMP
     can render; the UI now reports this instead of showing white models
 - Full suite verification: 454 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-26 Sticky 2D Review and Direct Furniture Replacement
+
+- Moved the Step 6 pending-furniture section to the top of the 2D review panel.
+- Made the 2D plan sticky inside its scroll container so it remains visible
+  while the user scrolls through the furniture list.
+- Clicking a numbered furniture footprint or its list item now selects and
+  focuses that object, then opens the existing database replacement dialog.
+- Reused the questionnaire-aware catalog ranking and appliance routes in the
+  replacement dialog. Refrigerators and washers now receive appliance
+  candidates instead of querying the general furniture endpoint.
+- Browser-verified the sticky plan after 708 px of panel scrolling and confirmed
+  that clicking furniture opens the replacement dialog with the correct type.
+- Full suite verification: 454 passed, 2 skipped.
+- No remote push was performed.

@@ -5965,10 +5965,9 @@ const CATALOG_RETRIEVAL_ROUTES = {
   },
 };
 
-async function catalogOffersForSpec(room, spec, index) {
-  const request = questionnaireFurnitureRequest(room, spec);
-  const route = CATALOG_RETRIEVAL_ROUTES[spec[0]]
-    || { endpoint: "/api/furniture", type: spec[0] };
+async function catalogCandidatesForType(type, { styleId = "", query = "" } = {}) {
+  const route = CATALOG_RETRIEVAL_ROUTES[type]
+    || { endpoint: "/api/furniture", type };
   const routeTypes = route.types || [route.type];
   const candidateGroups = await Promise.all(routeTypes.map(async (routeType) => {
     const params = new URLSearchParams({
@@ -5977,9 +5976,10 @@ async function catalogOffersForSpec(room, spec, index) {
       page_size: "80",
     });
     if (route.endpoint === "/api/furniture") params.set("has_model", "true");
-    if (route.query) params.set("q", route.query);
-    if (request.styleId && route.endpoint === "/api/furniture") {
-      params.set("style", request.styleId);
+    const searchQuery = [route.query, query].filter(Boolean).join(" ");
+    if (searchQuery) params.set("q", searchQuery);
+    if (styleId && route.endpoint === "/api/furniture") {
+      params.set("style", styleId);
     }
     let payload = await api(`${route.endpoint}?${params.toString()}`);
     if (!(payload.items || []).length && params.has("style")) {
@@ -5988,7 +5988,15 @@ async function catalogOffersForSpec(room, spec, index) {
     }
     return payload.items || [];
   }));
-  const ranked = rankCatalogFurniture(candidateGroups.flat(), request);
+  return candidateGroups.flat();
+}
+
+async function catalogOffersForSpec(room, spec, index) {
+  const request = questionnaireFurnitureRequest(room, spec);
+  const candidates = await catalogCandidatesForType(spec[0], {
+    styleId: request.styleId,
+  });
+  const ranked = rankCatalogFurniture(candidates, request);
   return ranked.slice(0, 4).map((candidate) => catalogFurnitureOffer(candidate, {
     roomId: room.id,
     requestedType: spec[0],
@@ -6790,28 +6798,18 @@ async function loadReplacementCandidates() {
   const style = STYLE_PACKS.find((pack) => pack.id === paletteId)?.styleId
     || state.activeStyleId
     || "";
-  const params = new URLSearchParams({
-    type: current.type,
-    has_model: "true",
-    detail: "scene",
-    page_size: "80",
+  const request = {
+    ...questionnaireFurnitureRequest(room, [current.type, current.variantId]),
+    widthCm: current.widthCm,
+    depthCm: current.depthCm,
+  };
+  const catalogCandidates = await catalogCandidatesForType(current.type, {
+    styleId: style,
+    query,
   });
-  if (style) params.set("style", style);
-  if (query) params.set("q", query);
-  let payload = await api(`/api/furniture?${params.toString()}`);
-  if (!(payload.items || []).length && style) {
-    params.delete("style");
-    payload = await api(`/api/furniture?${params.toString()}`);
-  }
-  const candidates = (payload.items || [])
+  const candidates = rankCatalogFurniture(catalogCandidates, request)
     .filter((candidate) => replacementCandidateFitsRoom(candidate, room))
-    .toSorted((a, b) => {
-      const aDelta = Math.abs(Number(a.size_cm?.width || 0) - current.widthCm)
-        + Math.abs(Number(a.size_cm?.depth || 0) - current.depthCm);
-      const bDelta = Math.abs(Number(b.size_cm?.width || 0) - current.widthCm)
-        + Math.abs(Number(b.size_cm?.depth || 0) - current.depthCm);
-      return aDelta - bDelta;
-    });
+    .slice(0, 24);
   element.replacementFilterSummary.textContent =
     `${room.label} · ${current.label} · ${style || "目前風格"} · 房間內可配置尺寸`;
   renderReplacementCandidates(candidates);
@@ -9112,6 +9110,7 @@ function bindEvents() {
     renderLayoutFurniture();
     renderConfigurationPlan();
     syncSelected2dFurnitureToScene({ focus: true });
+    void openFurnitureReplacement();
   };
   element.configurationPlanLayer.addEventListener("click", selectConfigurationFurniture);
   element.configurationPlanFurnitureList.addEventListener(

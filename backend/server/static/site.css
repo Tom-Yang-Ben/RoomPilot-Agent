@@ -7678,6 +7678,15 @@ body.rp-workflow-page .danger-action {
   overflow-y: auto;
 }
 
+.rp-configuration-plan-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  order: 0;
+  padding-bottom: 4px;
+  background: #f7f7f4;
+}
+
 .rp-configuration-plan.is-collapsed .rp-configuration-plan-body {
   display: none;
 }
@@ -7739,6 +7748,10 @@ body.rp-workflow-page .danger-action {
   gap: 6px;
 }
 
+.rp-configuration-furniture-list {
+  order: 1;
+}
+
 .rp-configuration-furniture-list button,
 .rp-configuration-pending-item {
   display: grid;
@@ -7786,6 +7799,7 @@ body.rp-workflow-page .danger-action {
 }
 
 .rp-configuration-pending {
+  order: -1;
   display: grid;
   gap: 7px;
   padding-top: 10px;

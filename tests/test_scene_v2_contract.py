@@ -645,6 +645,9 @@ def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
     assert 'id="configuration-plan-furniture-layer"' in white_model
     assert 'id="configuration-plan-furniture-list"' in white_model
     assert 'id="configuration-pending-list"' in white_model
+    assert white_model.index('class="rp-configuration-plan-sticky"') < white_model.index(
+        'id="configuration-plan-furniture-list"'
+    )
     assert "尚有未處理家具時不能進入下一步" in white_model
 
     assert "function renderConfigurationPlan" in source
@@ -656,7 +659,11 @@ def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
     assert "只重排此家具" in source
     assert "syncOverlayToImage(" in source
     assert "element.configurationPlanStage" in source
+    assert "void openFurnitureReplacement();" in source
     assert ".rp-configuration-plan" in css
+    assert ".rp-configuration-plan-sticky" in css
+    assert "position: sticky;" in css
+    assert ".rp-configuration-pending {\n  order: -1;" in css
     assert ".is-collapsed" in css
 
 
