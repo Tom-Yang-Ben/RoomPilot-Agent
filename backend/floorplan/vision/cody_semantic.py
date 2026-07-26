@@ -13,8 +13,15 @@ from pathlib import Path
 from typing import Mapping
 
 
-DEFAULT_WEIGHTS = Path("training/model_best_val_loss_var.pkl")
+DEFAULT_WEIGHTS = Path("training/model_finetuned_v5.pkl")
 DEFAULT_CACHE_DIR = Path("cubicasa/room")
+CODY_V5_WEIGHTS_URL = (
+    "https://github.com/Tom-Yang-Ben/RoomPilot-Agent/releases/download/"
+    "weights-v5/model_finetuned_v5.pkl"
+)
+CODY_V5_WEIGHTS_SHA256 = (
+    "b7a280d2d7cf2dde580a947e1ebc7b4d12e53135c05581babb3b5797a166f4cf"
+)
 
 
 def cody_semantic_room_labeler_status(
@@ -43,8 +50,11 @@ def cody_semantic_room_labeler_status(
     return {
         "available": available,
         "reason": reason,
+        "model_version": "cody_cubicasa_v5",
         "weights_path": str(weights),
         "weights_present": has_weights,
+        "weights_url": CODY_V5_WEIGHTS_URL,
+        "weights_sha256": CODY_V5_WEIGHTS_SHA256,
         "cache_dir": str(cache_dir),
         "cache_count": len(cache_files),
         "fallback": None if available else "django_icon_zone_rules",
