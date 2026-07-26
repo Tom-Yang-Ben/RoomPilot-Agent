@@ -6909,6 +6909,22 @@ function renderReplacementTypeOptions(current) {
   element.replacementSearch.value = options.length > 1 ? "" : (options[0] || "");
 }
 
+function setReplacementDrawerOpen(open) {
+  if (open) {
+    if (typeof element.replacementDrawer.showModal === "function") {
+      element.replacementDrawer.showModal();
+    } else {
+      element.replacementDrawer.setAttribute("open", "");
+    }
+    return;
+  }
+  if (typeof element.replacementDrawer.close === "function") {
+    element.replacementDrawer.close();
+  } else {
+    element.replacementDrawer.removeAttribute("open");
+  }
+}
+
 async function openFurnitureReplacement() {
   if (!state.selectedFurniture2dId) {
     element.layoutError.textContent = "請先選取一件要更換的家具。";
@@ -6922,7 +6938,7 @@ async function openFurnitureReplacement() {
     return;
   }
   renderReplacementTypeOptions(current);
-  element.replacementDrawer.showModal();
+  setReplacementDrawerOpen(true);
   try {
     await loadReplacementCandidates();
   } catch (error) {
@@ -6967,7 +6983,7 @@ async function replaceSelectedLayoutFurniture(furnitureId) {
   renderLayoutFurniture();
   invalidateDownstreamFrom("layout_2d", "家具款式已更換，3D 家具配置與即時寫實需要重新產生。");
   scheduleSave("layout_2d");
-  element.replacementDrawer.close();
+  setReplacementDrawerOpen(false);
   setStatus(`已用「${candidate.label}」取代原家具，並通過家具引擎檢查。`);
 }
 
@@ -7330,7 +7346,9 @@ function renderSceneObjectList() {
       <small>${item.user_specified ? "已指定" : "系統選配"}</small>
     </button>
   `).join("");
-  element.objectList.innerHTML = markup || "<p>目前為純結構方案，沒有家具。</p>";
+  if (element.objectList) {
+    element.objectList.innerHTML = markup || "<p>目前為純結構方案，沒有家具。</p>";
+  }
   if (element.realisticObjectList) {
     element.realisticObjectList.innerHTML = markup || "<p>目前為純結構方案，沒有家具。</p>";
   }
@@ -9218,10 +9236,10 @@ function bindEvents() {
     const button = event.target.closest("[data-select-configuration-furniture]");
     if (!button) return;
     state.selectedFurniture2dId = button.dataset.selectConfigurationFurniture;
+    void openFurnitureReplacement();
     renderLayoutFurniture();
     renderConfigurationPlan();
     syncSelected2dFurnitureToScene({ focus: true });
-    void openFurnitureReplacement();
   };
   element.configurationPlanLayer.addEventListener("click", selectConfigurationFurniture);
   element.configurationPlanFurnitureList.addEventListener(
@@ -9251,7 +9269,7 @@ function bindEvents() {
   });
   $("#replace-2d-furniture").addEventListener("click", openFurnitureReplacement);
   $("#close-furniture-replacement").addEventListener("click", () => {
-    element.replacementDrawer.close();
+    setReplacementDrawerOpen(false);
   });
   element.replacementSearch.addEventListener("change", () => {
     loadReplacementCandidates().catch((error) => {
@@ -9293,9 +9311,12 @@ function bindEvents() {
     }
     scheduleSave(state.workflow.currentStep);
   };
-  element.objectList.addEventListener("click", selectSceneObject);
+  element.objectList?.addEventListener("click", selectSceneObject);
   element.realisticObjectList?.addEventListener("click", selectSceneObject);
-  $("#delete-white-model-furniture").addEventListener("click", deleteSelectedSceneFurniture);
+  $("#delete-replacement-furniture").addEventListener("click", async () => {
+    await deleteSelectedSceneFurniture();
+    if (element.replacementDrawer.open) setReplacementDrawerOpen(false);
+  });
   $("#delete-realistic-furniture").addEventListener("click", deleteSelectedSceneFurniture);
   [
     "#specified-furniture-color",

@@ -779,7 +779,7 @@ def test_3d_scene_selection_syncs_back_to_2d_furniture_state() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
     object_list_handler = controller.split("const selectSceneObject =", 1)[1].split(
-        "element.objectList.addEventListener", 1
+        "element.objectList?.addEventListener", 1
     )[0]
 
     assert "onObjectSelect = null" in viewer
@@ -907,7 +907,9 @@ def test_3d_viewer_keeps_manual_furniture_controls_and_number_markers() -> None:
     assert "beginPlacement" in viewer
     assert "function addSceneFurniture" in controller
     assert "function deleteSelectedSceneFurniture" in controller
-    assert 'id="delete-white-model-furniture"' in (STATIC / "scene.html").read_text(encoding="utf-8")
+    assert 'id="delete-replacement-furniture"' in (
+        STATIC / "scene.html"
+    ).read_text(encoding="utf-8")
 
 
 def test_2d_collision_footprint_respects_furniture_rotation() -> None:
@@ -1999,10 +2001,14 @@ def test_3d_furniture_can_be_deleted_and_each_item_keeps_its_own_material_overri
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert 'id="delete-white-model-furniture"' in html
+    assert 'id="delete-replacement-furniture"' in html
+    assert 'id="scene-object-list"' not in html
+    assert "先由系統選配，再點家具更換" not in html
+    assert 'id="configuration-plan-furniture-list"' in html
     assert 'id="delete-realistic-furniture"' in html
     assert "function deleteSelectedSceneFurniture()" in controller
     assert "objects.splice(state.selectedSceneIndex, 1)" in controller
+    assert "function setReplacementDrawerOpen(open)" in controller
     assert "function saveSelectedSceneAppearance()" in controller
     assert "function loadSelectedSceneAppearance()" in controller
 

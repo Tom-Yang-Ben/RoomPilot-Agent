@@ -599,11 +599,6 @@
                 </section>
               </div>
             </section>
-            <span class="eyebrow">實際 GLB 家具</span>
-            <h2>先由系統選配，再點家具更換</h2>
-            <p>「走動」可用 W／A／S／D 與滑鼠查看室內；「編輯家具」會固定鏡頭，家具仍受牆界、碰撞與淨空限制。</p>
-            <div id="scene-object-list" class="rp-object-list"></div>
-            <button id="delete-white-model-furniture" type="button" class="danger-action">刪除選取家具</button>
             <section class="rp-editor-box rp-white-beam-editor" aria-labelledby="white-model-beam-title">
               <h3 id="white-model-beam-title">天花板樑</h3>
               <p>結構已在第 4 步鎖定。若要新增或調整樑，請返回「空間與結構」，確認後再重新產生此方案。</p>
@@ -808,6 +803,9 @@
           </section>
         </div>
         <p id="replacement-furniture-error" class="rp-field-error" aria-live="polite"></p>
+        <div class="rp-action-row">
+          <button id="delete-replacement-furniture" type="button" class="danger-action">刪除此家具</button>
+        </div>
       </div>
     </dialog>
 
@@ -819,6 +817,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-542c5d566034"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-997740248450"></script>
   </body>
 </html>

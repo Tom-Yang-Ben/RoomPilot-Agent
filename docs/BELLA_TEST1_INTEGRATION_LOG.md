@@ -693,3 +693,21 @@ $env:TEMP=$env:TMP
   3D restore with the current cache-keyed modules.
 - Full suite verification: 461 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Step 6 Duplicate Furniture List Removal
+
+- Removed the lower `Actual GLB Furniture` summary and scene-object list from
+  the Step 6 sidebar because it repeated the furniture already shown with the
+  sticky 2D configuration plan.
+- Kept the sticky plan, pending items, and configuration furniture list as the
+  single Step 6 selection surface.
+- Moved the white-model delete action into the existing furniture replacement
+  dialog so selecting a furniture item still supports both replacement and
+  deletion.
+- Added a dialog open/close fallback for browser environments without native
+  `showModal()` support.
+- Browser verification confirmed the duplicate heading and list are absent,
+  the configuration list remains present, and the current bundle restores
+  without a scene error.
+- Full suite verification: 461 passed, 2 skipped.
+- No remote push was performed.

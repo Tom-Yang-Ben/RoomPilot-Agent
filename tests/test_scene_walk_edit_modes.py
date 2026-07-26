@@ -11,7 +11,6 @@ def test_white_model_exposes_walk_and_furniture_edit_modes() -> None:
     assert 'data-white-interaction="walk"' in HTML
     assert 'data-white-interaction="edit"' in HTML
     assert "setInteractionMode" in CONTROLLER
-    assert "W／A／S／D" in HTML
 
 
 def test_walk_mode_moves_and_blocks_walls_and_large_furniture() -> None:
