@@ -7,7 +7,7 @@ Remote push status: not pushed
 ## Current Local Commits
 
 ```text
-current feat(floorplan): add cody cubicasa mask adapter
+a5130dbc feat(floorplan): add cody cubicasa mask adapter
 dfe6c005 fix(test): restore local pytest environment
 c1182072 feat(floorplan): add cody semantic weight contract
 4b659fb5 feat(floorplan): backport django image route profiling
@@ -95,6 +95,12 @@ c1182072 feat(floorplan): add cody semantic weight contract
   - returns clear fallback reasons for missing weights, missing inference script, inference failure, or missing output files
   - accepts an injected runner so the subprocess contract can be verified without downloading the 200MB model or installing torch
 - The full Cody inference script was not copied yet because `training/CubiCasa5k` and runtime torch assets are not verified in Bella. The integration now has a controlled adapter point ready for that script.
+- Added Cody mask cache loading and validation:
+  - requires `room`, `wall`, `window`, `door`, and `icon` fields
+  - requires all arrays to be 2D with matching shape
+  - normalizes wall/window/door arrays to bool and room/icon arrays to uint8
+  - ignores invalid cache files in semantic status instead of reporting a false ready state
+- Checked `origin/cody`; the branch includes `scripts/infer_cubicasa.py` and precomputed `cubicasa/**` outputs, but not the external `training/CubiCasa5k` runtime tree. A true torch/CubiCasa smoke test is still blocked until that runtime is installed or supplied.
 
 ### Local Test Environment Recovery
 
@@ -174,7 +180,7 @@ $env:TEMP=$env:TMP
 Current verification after the Cody CubiCasa mask adapter:
 
 ```text
-11 passed
+15 passed
 
 Command:
 $env:TMP=(Resolve-Path .tmp).Path
@@ -183,7 +189,7 @@ $env:TEMP=$env:TMP
   tests/test_cody_semantic_status.py `
   --basetemp=.tmp\pytest -p no:cacheprovider
 
-47 passed, 3 warnings
+51 passed, 3 warnings
 
 Command:
 $env:TMP=(Resolve-Path .tmp).Path
@@ -210,7 +216,7 @@ $env:TEMP=$env:TMP
 - Use `room_evaluation` with real reference-room fixtures before replacing current room-labeling behavior.
 - Use the project-local `.venv/` plus project-local pytest temp command above for future focused test runs.
 - Finish the Cody integration slice before starting other branches:
-  - confirm `training/CubiCasa5k` availability or an acceptable deployment fallback
+  - install or supply `training/CubiCasa5k`; `origin/cody` does not version this runtime tree
   - run a real CubiCasa inference smoke test once weights/script/runtime are present
 - Continue the Django Version4 backport with the door/window band-carve classifier and uncertain/autolabel training-data loop only after the Cody slice verifies cleanly.
 - Integrate Kai S3/GLB management scripts only after Django/Cody floor-plan recognition work is verified.

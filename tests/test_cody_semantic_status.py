@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import hashlib
-import zipfile
 
+import numpy as np
 from backend.floorplan.vision import cody_semantic
 from backend.floorplan.vision.cody_semantic import (
     cody_semantic_room_labeler_status,
     ensure_cody_semantic_masks,
     ensure_cody_semantic_weights,
+    load_cody_semantic_mask,
 )
 
 
@@ -28,14 +29,25 @@ def test_cody_semantic_room_labeler_reports_fallback_without_assets(tmp_path) ->
 
 def test_cody_semantic_room_labeler_can_use_precomputed_cache(tmp_path) -> None:
     cache_dir = tmp_path / "cubicasa" / "room"
-    cache_dir.mkdir(parents=True)
-    (cache_dir / "floor15_mask.npz").write_bytes(b"placeholder")
+    _write_room_mask(cache_dir / "floor15_mask.npz")
 
     status = cody_semantic_room_labeler_status(root=tmp_path, env={})
 
     assert status["available"] is True
     assert status["reason"] == "cody_semantic_ready"
     assert status["cache_count"] == 1
+
+
+def test_cody_semantic_room_labeler_ignores_invalid_cache(tmp_path) -> None:
+    cache_dir = tmp_path / "cubicasa" / "room"
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "floor15_mask.npz").write_bytes(b"placeholder")
+
+    status = cody_semantic_room_labeler_status(root=tmp_path, env={})
+
+    assert status["available"] is False
+    assert status["reason"] == "missing_cody_cubicasa_weights_or_cache"
+    assert status["cache_count"] == 0
 
 
 def _fake_retrieve(payload: bytes):
@@ -47,8 +59,19 @@ def _fake_retrieve(payload: bytes):
 
 def _write_room_mask(path):
     path.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(path, "w") as archive:
-        archive.writestr("room.npy", b"fake-room-array")
+    room = np.array([[3, 4], [5, 6]], dtype=np.uint8)
+    icon = np.array([[0, 1], [2, 0]], dtype=np.uint8)
+    wall = room == 2
+    window = icon == 1
+    door = icon == 2
+    np.savez_compressed(
+        path,
+        wall=wall,
+        window=window,
+        door=door,
+        room=room,
+        icon=icon,
+    )
 
 
 def test_cody_semantic_weights_existing_file_short_circuits(tmp_path, monkeypatch) -> None:
@@ -155,6 +178,58 @@ def test_cody_semantic_masks_reuse_existing_cache_without_runner(tmp_path) -> No
     assert result["ok"] is True
     assert result["reason"] == "semantic_masks_cached"
     assert result["generated"] == []
+
+
+def test_cody_semantic_mask_loader_validates_cody_fields(tmp_path) -> None:
+    mask = tmp_path / "cubicasa" / "room" / "plan_mask.npz"
+    _write_room_mask(mask)
+
+    result = load_cody_semantic_mask(mask)
+
+    assert result["shape"] == (2, 2)
+    assert result["arrays"]["room"].dtype == np.uint8
+    assert result["arrays"]["icon"].dtype == np.uint8
+    assert result["arrays"]["window"].dtype == bool
+    assert result["arrays"]["door"].dtype == bool
+
+
+def test_cody_semantic_masks_reject_incomplete_cache(tmp_path) -> None:
+    image = tmp_path / "uploads" / "plan.png"
+    image.parent.mkdir()
+    image.write_bytes(b"image")
+    cache = tmp_path / "cubicasa" / "room" / "plan_mask.npz"
+    cache.parent.mkdir(parents=True)
+    np.savez_compressed(cache, room=np.zeros((2, 2), dtype=np.uint8))
+    monkeypatch_error = AssertionError("should not infer without weights")
+
+    result = ensure_cody_semantic_masks(
+        [image],
+        root=tmp_path,
+        env={"CC_WEIGHTS": "missing.pkl"},
+        runner=lambda _command: (_ for _ in ()).throw(monkeypatch_error),
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "custom_weights_missing"
+
+
+def test_cody_semantic_mask_loader_rejects_shape_mismatch(tmp_path) -> None:
+    mask = tmp_path / "bad_mask.npz"
+    np.savez_compressed(
+        mask,
+        wall=np.zeros((2, 2), dtype=bool),
+        window=np.zeros((2, 2), dtype=bool),
+        door=np.zeros((2, 2), dtype=bool),
+        room=np.zeros((2, 3), dtype=np.uint8),
+        icon=np.zeros((2, 2), dtype=np.uint8),
+    )
+
+    try:
+        load_cody_semantic_mask(mask)
+    except ValueError as exc:
+        assert "inconsistent shapes" in str(exc)
+    else:
+        raise AssertionError("shape mismatch should fail")
 
 
 def test_cody_semantic_masks_fail_clearly_without_inference_script(tmp_path) -> None:

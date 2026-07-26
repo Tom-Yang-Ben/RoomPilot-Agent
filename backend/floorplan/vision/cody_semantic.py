@@ -16,12 +16,14 @@ import sys
 from typing import Any, Mapping
 import urllib.error
 import urllib.request
-import zipfile
+
+import numpy as np
 
 
 DEFAULT_WEIGHTS = Path("training/model_finetuned_v5.pkl")
 DEFAULT_CACHE_DIR = Path("cubicasa/room")
 DEFAULT_INFER_SCRIPT = Path("scripts/infer_cubicasa.py")
+REQUIRED_MASK_FIELDS = ("room", "wall", "window", "door", "icon")
 CODY_V5_WEIGHTS_URL = (
     "https://github.com/Tom-Yang-Ben/RoomPilot-Agent/releases/download/"
     "weights-v5/model_finetuned_v5.pkl"
@@ -74,13 +76,48 @@ def _mask_path_for_image(cache_dir: Path, image_path: Path) -> Path:
 
 
 def _has_room_mask(mask_path: Path) -> bool:
-    if not mask_path.is_file():
-        return False
     try:
-        with zipfile.ZipFile(mask_path) as archive:
-            return "room.npy" in archive.namelist()
-    except zipfile.BadZipFile:
+        load_cody_semantic_mask(mask_path)
+        return True
+    except (OSError, ValueError):
         return False
+
+
+def load_cody_semantic_mask(mask_path: str | Path) -> dict[str, Any]:
+    """Load and validate a Cody/CubiCasa mask cache file.
+
+    Cody's inference output contains boolean wall/window/door masks plus uint8
+    room and icon argmax maps. Bella accepts the cache only when all arrays
+    share the same 2D shape, so downstream room and opening logic does not mix
+    incompatible evidence.
+    """
+    path = Path(mask_path)
+    if not path.is_file():
+        raise ValueError(f"semantic mask missing: {path}")
+    try:
+        with np.load(path, allow_pickle=False) as archive:
+            missing = [field for field in REQUIRED_MASK_FIELDS if field not in archive]
+            if missing:
+                raise ValueError(f"semantic mask missing fields: {', '.join(missing)}")
+            arrays = {field: archive[field] for field in REQUIRED_MASK_FIELDS}
+    except Exception as exc:
+        raise ValueError(f"invalid semantic mask: {path}") from exc
+
+    shapes = {field: array.shape for field, array in arrays.items()}
+    if any(len(shape) != 2 for shape in shapes.values()):
+        raise ValueError(f"semantic mask arrays must be 2D: {path}")
+    if len(set(shapes.values())) != 1:
+        raise ValueError(f"semantic mask arrays have inconsistent shapes: {path}")
+
+    for field in ("wall", "window", "door"):
+        arrays[field] = arrays[field].astype(bool, copy=False)
+    for field in ("room", "icon"):
+        arrays[field] = arrays[field].astype(np.uint8, copy=False)
+    return {
+        "path": str(path),
+        "shape": tuple(next(iter(shapes.values()))),
+        "arrays": arrays,
+    }
 
 
 def _gh_token(env: Mapping[str, str] | None = None) -> str | None:
@@ -302,7 +339,11 @@ def cody_semantic_room_labeler_status(
 ) -> dict[str, object]:
     """Return whether Cody's CubiCasa semantic room labeler can run locally."""
     weights, cache_dir, _values = _semantic_paths(root=root, env=env)
-    cache_files = sorted(cache_dir.glob("*_mask.npz")) if cache_dir.is_dir() else []
+    cache_files = []
+    if cache_dir.is_dir():
+        cache_files = [
+            path for path in sorted(cache_dir.glob("*_mask.npz")) if _has_room_mask(path)
+        ]
     has_weights = weights.is_file()
     has_cache = bool(cache_files)
     available = has_weights or has_cache
