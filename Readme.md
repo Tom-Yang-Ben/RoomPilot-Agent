@@ -23,7 +23,7 @@
 - 結果：門過濾 80/86→**84/86=98%**（達標 ≥95%）；灰窗全批次 **P96→98%／R96% 持平**（真實誤報 5→3、零真窗損失）；殘留 door_001/door_007 為多線門扇板＝窗符號幾何同構的困難樣本，實測（側翼長度比、帶內墨密度）與真窗分布重疊，判定不可局部硬擋
 - 勘誤：記憶中 99%/95% 為 2026-07-23 chk 快照分數；現行程式可重現基準即 v2.16 記載的 96%/96%，本輪後為 98%/96%
 
-三、其他：requirements 補 pytest；Washbasin 素材自 pieces 策展（sink 42＋fittings 23 併入，pieces 原始庫移除）；json 產物與 door 工具鏈（door_match/door_propose/score_compare 等 6 支）路徑同步 training/json/。
+三、其他：requirements 補 pytest；scripts/ 解散——main 需要的 infer_cubicasa／symbol_match（floorplan2room 硬依賴）／apply_cubicasa_patches 三支移入 backend/floorplan/，其餘 18 支研發工具移入 training/scripts/ 退出版控；Washbasin 素材自 pieces 策展（sink 42＋fittings 23 併入，pieces 原始庫移除）；json 產物與 door 工具鏈（door_match/door_propose/score_compare 等 6 支）路徑同步 training/json/。
 
 2026/7/25 v.2.16 變更（微調 v5 首勝基線並接管預設權重——own 尺具名命中 0.273→0.788；權重掛 GitHub Release＋缺檔自動下載，前端 clone 即可用；快取/報表/HTML 全量重算）
 

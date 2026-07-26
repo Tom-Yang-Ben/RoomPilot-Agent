@@ -14,7 +14,7 @@ CubiCasa5k/ 不進版控（.gitignore 註記 re-clone 重建），上游最後�
 5. train.py 驗證期單張 OOM 跳過：驗證做整圖推論，大圖（如 own_val 的
    floor01 1908×2732）在 4GB 卡 OOM；跳過該張仍有其餘 val 樣本監控
 
-用法：python scripts/apply_cubicasa_patches.py [--dir CubiCasa5k]
+用法：python backend/floorplan/apply_cubicasa_patches.py [--dir CubiCasa5k]
 """
 import argparse
 import os

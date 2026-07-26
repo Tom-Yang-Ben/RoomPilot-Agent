@@ -10,7 +10,7 @@
 用法: python infer_cubicasa.py <weights.pkl> <out_dir> <img1> [img2 ...]
 """
 import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "training/CubiCasa5k"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "training/CubiCasa5k"))
 import cv2
 import numpy as np
 import torch

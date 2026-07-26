@@ -39,9 +39,7 @@ import numpy as np
 
 _PKG_DIR = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(os.path.dirname(_PKG_DIR))
-_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")  # 研發工具（symbol_match、infer_cubicasa 等）仍在 scripts/
-sys.path.insert(0, _SCRIPTS_DIR)
-sys.path.insert(0, _PKG_DIR)           # 管線模組同在 backend/floorplan/
+sys.path.insert(0, _PKG_DIR)           # 管線模組（含 symbol_match、infer_cubicasa）同在 backend/floorplan/
 
 import floorplan2dxf as fp_bw          # 黑白線稿管線（凍結，只 import 不改）
 import floorplan2dxf_color as fp_c     # 彩色管線（牆偵測 + 房間分割/分類工具）
@@ -378,7 +376,7 @@ def ensure_cc_masks(paths):
         return
     print(f"CubiCasa 語意推論 : {len(miss)} 張（CPU 約 1 分/張 → {CC_CACHE_DIR}/）")
     subprocess.run([sys.executable,
-                    os.path.join(_SCRIPTS_DIR, "infer_cubicasa.py"),
+                    os.path.join(_PKG_DIR, "infer_cubicasa.py"),
                     CC_WEIGHTS, CC_CACHE_DIR, *miss], check=True)
 
 

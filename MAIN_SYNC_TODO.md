@@ -62,7 +62,7 @@ DEFAULT_WEIGHTS = Path("backend/floorplan/model_finetuned_v5.pkl")   # cody v5 �
 ## 5. 環境與依賴（pyproject / uv.lock 需新增）
 
 語意路徑的完整執行鏈：`floorplan2room` → `ensure_cc_masks()` → **subprocess 呼叫
-`scripts/infer_cubicasa.py`** → torch 載入 floortrans 模型定義＋v5 權重推論。
+`infer_cubicasa.py`（同 package）** → torch 載入 floortrans 模型定義＋v5 權重推論。
 main 的環境要補齊這條鏈：
 
 | 需求 | 版本/來源 | 備註 |
@@ -72,9 +72,9 @@ main 的環境要補齊這條鏈：
 | `opencv-python-headless` | `<5` 同樣要鎖 | torch 生態會拉 headless 版蓋掉 cv2，同須擋 5.0 |
 | `numpy` | `>=2.0` | main 應已有 |
 | `ezdxf` | `>=1.3` | DXF 輸出 |
-| `scripts/infer_cubicasa.py` | 隨管線帶過去 | `ensure_cc_masks` 以 subprocess 呼叫，路徑基準 `_SCRIPTS_DIR` |
-| `scripts/symbol_match.py` | 隨管線帶過去（**硬依賴**） | `floorplan2room` 頂層 `import symbol_match`，缺檔直接 ImportError；模板庫 `training/symbol_lib.npz` 缺失時自動停用、不影響運作 |
-| `scripts/apply_cubicasa_patches.py` | 部署時跑一次 | CubiCasa5k 程式庫的 numpy 2.x 相容補丁，checkout 後執行 |
+| `backend/floorplan/infer_cubicasa.py` | 已隨管線同目錄（2026-07-27 移入） | `ensure_cc_masks` 以 subprocess 呼叫，同 package 內 |
+| `backend/floorplan/symbol_match.py` | 已隨管線同目錄（**硬依賴**） | `floorplan2room` 頂層 `import symbol_match`；模板庫 `training/symbol_lib.npz` 缺失時自動停用、不影響運作 |
+| `backend/floorplan/apply_cubicasa_patches.py` | 部署時跑一次 | CubiCasa5k 程式庫的 numpy 2.x 相容補丁，checkout 後執行 |
 | floortrans 模型定義 | `training/CubiCasa5k/` 原始碼 checkout | 只用模型定義、不用其 loader；**CC BY-NC** |
 
 **不需要**帶去的：`lmdb`、`scikit-image`、`svgpathtools`——那是 CubiCasa loader／
