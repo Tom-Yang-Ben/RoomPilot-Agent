@@ -30,6 +30,7 @@ def profile_floorplan_image(image: np.ndarray) -> dict[str, object]:
 
     hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
     saturation = hsv[:, :, 1].astype(np.float32)
+    value = hsv[:, :, 2].astype(np.float32)
     b, g, r = cv2.split(bgr.astype(np.float32))
     rg = np.abs(r - g)
     yb = np.abs(0.5 * (r + g) - b)
@@ -39,13 +40,14 @@ def profile_floorplan_image(image: np.ndarray) -> dict[str, object]:
     )
     saturation_p90 = float(np.percentile(saturation, 90))
     saturation_mean = float(saturation.mean())
+    saturated_ratio = float(((saturation >= 35) & (value < 250)).mean())
     dark_ratio = float((gray < 80).mean())
     midtone_ratio = float(((gray >= 80) & (gray <= 220)).mean())
     contrast_std = float(gray.std())
     _, otsu_ink = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     ink_ratio = float((otsu_ink > 0).mean())
 
-    has_color_signal = saturation_p90 >= 35.0 and colorfulness >= 8.0
+    has_color_signal = (saturation_p90 >= 35.0 and colorfulness >= 8.0) or saturated_ratio >= 0.01
     low_contrast_scan = not has_color_signal and midtone_ratio >= 0.18
     if has_color_signal:
         kind = "color_line_art"
@@ -65,6 +67,7 @@ def profile_floorplan_image(image: np.ndarray) -> dict[str, object]:
             "colorfulness": round(colorfulness, 3),
             "saturation_mean": round(saturation_mean, 3),
             "saturation_p90": round(saturation_p90, 3),
+            "saturated_ratio": round(saturated_ratio, 4),
             "dark_ratio": round(dark_ratio, 4),
             "midtone_ratio": round(midtone_ratio, 4),
             "contrast_std": round(contrast_std, 3),

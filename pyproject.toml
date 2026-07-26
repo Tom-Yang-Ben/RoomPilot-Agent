@@ -20,7 +20,7 @@ server = [
 # 平面辨識(backend/floorplan):PNG → DXF
 vision = [
     "numpy>=2.0",
-    "opencv-python>=4.10",
+    "opencv-python>=4.10,<5",
     "ezdxf>=1.3",
 ]
 # 尺度文字與繁中房名 OCR；模型較大，部署端按需安裝。
@@ -48,3 +48,6 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.setuptools]
+packages = ["backend"]

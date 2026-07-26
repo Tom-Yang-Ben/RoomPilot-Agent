@@ -82,6 +82,19 @@ current feat(floorplan): backport django image route profiling
   - checksum or download failures clean up partial files and return explicit reasons
 - `cody_semantic_room_labeler_status()` now exposes the Release asset API endpoint in addition to the direct URL and SHA-256.
 
+### Local Test Environment Recovery
+
+- Diagnosed the failing test environment:
+  - `python` and `py` resolve to WindowsApps shims inside the sandbox
+  - direct `Python312` execution works with elevated command permission
+  - pytest needed a project-local temp directory because `C:\Users\user\AppData\Local\Temp\pytest-of-user` was not accessible
+- Created a local ignored `.venv/` from `C:\Users\user\AppData\Local\Programs\Python\Python312\python.exe`.
+- Fixed `pyproject.toml` so editable install works:
+  - explicitly package `backend`
+  - constrain `opencv-python` to `>=4.10,<5`
+- Verified `pip install -e ".[server,vision]"` now succeeds.
+- Fixed sparse colored floor-plan line art detection by adding `saturated_ratio` to `image_profile`; sparse colored drawings no longer fall through to `grayscale_line_art`.
+
 ## Verification
 
 Latest full suite before the Django image-route backport:
@@ -127,6 +140,23 @@ direct bundled-Python contract check passed:
 - CC_WEIGHTS custom override not auto-downloaded
 ```
 
+Current verification after local test environment recovery:
+
+```text
+43 passed, 3 warnings
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
+  tests/test_floorplan_vision.py `
+  tests/test_floorplan_vision_api.py `
+  tests/test_floorplan_room_inference.py `
+  tests/test_floorplan_room_evaluation.py `
+  tests/test_cody_semantic_status.py `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+```
+
 ## Cleanup Notes
 
 - No `.patch`, `.rej`, or `.orig` files are left in the worktree.
@@ -138,7 +168,7 @@ direct bundled-Python contract check passed:
 - Start or install PostgreSQL locally, configure `.env`, run the 10,550 import, and verify live SQL counts.
 - Decide whether to wire Cody v5 inference/weight download into Bella runtime.
 - Use `room_evaluation` with real reference-room fixtures before replacing current room-labeling behavior.
-- Run the focused floorplan pytest suite once the local Python/pytest/cv2 environment is available again.
+- Use the project-local `.venv/` plus project-local pytest temp command above for future focused test runs.
 - Finish the Cody integration slice before starting other branches:
   - add a subprocess/CubiCasa mask inference adapter only after confirming `training/CubiCasa5k` availability or an acceptable deployment fallback
   - run the cody semantic tests with the project pytest environment once available
