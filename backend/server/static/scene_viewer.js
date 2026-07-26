@@ -17,7 +17,8 @@ import {
 import {
   openingBelongsToWall,
   openingWallInterval,
-} from "./scene_architecture.js?v=sha256-1abc31675a8f";
+  wallEndpointBordersOpening,
+} from "./scene_architecture.js?v=sha256-09a59ef778c2";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -29,7 +30,7 @@ import {
   findNearestWalkablePosition,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-4b0907de9db9";
+} from "./scene_visual_contracts.js?v=sha256-b73f02baf64c";
 
 const CM_PER_METER = 100;
 
@@ -1132,6 +1133,7 @@ export function createSceneViewer(
   ) {
     const renderedOpenings = new Set();
     const renderedJunctions = new Set();
+    const allOpenings = [...doorSegments, ...windowSegments];
 
     segments.forEach((segment) => {
       const start = segment.start;
@@ -1200,6 +1202,7 @@ export function createSceneViewer(
       };
 
       const addJunctionCap = (endpoint) => {
+        if (wallEndpointBordersOpening(endpoint, allOpenings, wallThickness)) return;
         const key = `${Number(endpoint.x).toFixed(2)}:${Number(endpoint.z).toFixed(2)}`;
         if (renderedJunctions.has(key)) return;
         renderedJunctions.add(key);
@@ -1272,7 +1275,7 @@ export function createSceneViewer(
       addJunctionCap(end);
 
       const topCap = new THREE.Mesh(
-        new THREE.BoxGeometry(length + wallThickness, 2.5, wallThickness),
+        new THREE.BoxGeometry(length, 2.5, wallThickness),
         material.clone(),
       );
       topCap.position.set(
@@ -1431,7 +1434,7 @@ export function createSceneViewer(
         if (height < 2.5) return;
         const section = new THREE.Mesh(
           new THREE.BoxGeometry(
-            openingWidth + wallThickness * 2.1,
+            openingWidth + 1.2,
             height,
             wallThickness,
           ),

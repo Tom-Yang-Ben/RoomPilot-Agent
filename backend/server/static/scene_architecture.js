@@ -78,3 +78,17 @@ export function openingWallInterval(
   if (to - from < 24) return null;
   return { from, to, width: to - from, centerX, centerZ };
 }
+
+export function wallEndpointBordersOpening(
+  endpoint,
+  openings = [],
+  wallThickness = 12,
+) {
+  const target = point(endpoint);
+  const tolerance = Math.max(1.5, Number(wallThickness) * 0.2);
+  return openings.some((opening) => {
+    const aperture = segmentVector(opening);
+    return Math.hypot(target.x - aperture.start.x, target.z - aperture.start.z) <= tolerance
+      || Math.hypot(target.x - aperture.end.x, target.z - aperture.end.z) <= tolerance;
+  });
+}

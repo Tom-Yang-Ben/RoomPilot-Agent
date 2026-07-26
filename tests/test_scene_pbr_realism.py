@@ -160,6 +160,40 @@ def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
     assert "missingDoors,\n        missingWindows," in viewer
 
 
+def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ wallEndpointBordersOpening }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const window = {{
+          start: {{ x: 171.3, z: -524.4 }},
+          end: {{ x: 308.1, z: -524.4 }},
+        }};
+        console.log(JSON.stringify({{
+          openingEdge: wallEndpointBordersOpening(
+            {{ x: 171.3, z: -524.4 }},
+            [window],
+            12,
+          ),
+          realCorner: wallEndpointBordersOpening(
+            {{ x: -11.11, z: -524.4 }},
+            [window],
+            12,
+          ),
+        }}));
+        """
+    )
+
+    assert result == {"openingEdge": True, "realCorner": False}
+
+    viewer = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+    assert "wallEndpointBordersOpening(endpoint, allOpenings, wallThickness)" in viewer
+    assert "new THREE.BoxGeometry(length, 2.5, wallThickness)" in viewer
+    assert "openingWidth + 1.2" in viewer
+    assert "openingWidth + wallThickness * 2.1" not in viewer
+
+
 def test_furniture_roles_receive_distinct_realistic_pbr_parameters() -> None:
     result = run_workflow_script(
         f"""

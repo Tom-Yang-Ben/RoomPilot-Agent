@@ -61,10 +61,10 @@ def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
     assert result["leafWidthCm"] == 94
     assert result["leafCenterXCm"] == 47
     assert result["closedRotationYRad"] == 0
-    assert result["swingRotationYRad"] < 0
+    assert result["swingRotationYRad"] == 0
 
 
-def test_open_door_leaf_folds_flat_against_the_host_wall() -> None:
+def test_closed_door_leaf_lies_flat_inside_the_doorway() -> None:
     result = run_workflow_script(
         f"""
         import {{ doorLeafTransform }} from {json.dumps(VISUAL_MODULE.as_uri())};
@@ -74,9 +74,9 @@ def test_open_door_leaf_folds_flat_against_the_host_wall() -> None:
           opening_direction: "right",
         }});
         const wallAngle = Math.atan2(-(260 - 200), 180 - 100);
-        const openAngle = transform.closedRotationYRad + transform.swingRotationYRad;
+        const closedAngle = transform.closedRotationYRad + transform.swingRotationYRad;
         const wall = {{ x: Math.cos(wallAngle), z: -Math.sin(wallAngle) }};
-        const leaf = {{ x: Math.cos(openAngle), z: -Math.sin(openAngle) }};
+        const leaf = {{ x: Math.cos(closedAngle), z: -Math.sin(closedAngle) }};
         console.log(JSON.stringify({{
           parallelError: Math.abs(wall.x * leaf.z - wall.z * leaf.x),
           directionDot: wall.x * leaf.x + wall.z * leaf.z,
@@ -86,8 +86,8 @@ def test_open_door_leaf_folds_flat_against_the_host_wall() -> None:
     )
 
     assert result["parallelError"] < 1e-9
-    assert result["directionDot"] < -0.999999
-    assert abs(result["swingDegrees"] - 180) < 1e-9
+    assert result["directionDot"] > 0.999999
+    assert result["swingDegrees"] == 0
 
 
 def test_3d_drag_preserves_the_user_position_after_backend_validation() -> None:

@@ -545,3 +545,20 @@ $env:TEMP=$env:TMP
   view.
 - Full suite verification: 445 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-26 Closed Doors and Opening Edge Cleanup
+
+- Changed the default 3D door presentation from fully open to closed while
+  preserving the confirmed hinge endpoint and doorway width.
+- Prevented split-wall endpoints that border a door or window from receiving
+  junction-cap columns.
+- Removed the wall-thickness extension from each split wall top cap so it no
+  longer projects into door and window gaps.
+- Reduced standalone window sill/header overlap from 12.6 cm per side to a
+  0.6 cm seam allowance per side.
+- Added regression coverage for closed-door alignment and opening-edge cap
+  suppression using the restored project geometry.
+- Browser-verified closed doors, cleaner wall faces, and aligned window edges in
+  the restored whole-model view.
+- Full suite verification: 446 passed, 2 skipped.
+- No remote push was performed.
