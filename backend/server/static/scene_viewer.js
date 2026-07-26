@@ -2749,8 +2749,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(52, 52, 1);
-    sprite.renderOrder = 999;
+    sprite.scale.set(64, 64, 1);
+    sprite.renderOrder = 1005;
+    sprite.raycast = () => {};
+    sprite.userData.roompilotNumberMarker = true;
     return sprite;
   }
 
@@ -2778,6 +2780,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     sprite.scale.set(170, 38, 1);
     sprite.renderOrder = 1001;
     sprite.userData.roompilotPlanLabel = true;
+    sprite.raycast = () => {};
     sprite.visible = false;
     return sprite;
   }
@@ -2825,6 +2828,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     shadow.position.y = 0.8;
     shadow.renderOrder = 2;
     shadow.userData.roompilotContactShadow = true;
+    shadow.raycast = () => {};
     wrapper.add(shadow);
   }
 
@@ -2860,8 +2864,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     wrapper.userData.fallbackFurniture = true;
     wrapper.userData.fallbackReason = reason;
     addFurnitureContactShadow(wrapper, item.size_cm || {});
+    addFurniturePickProxy(wrapper, item);
 
     const marker = createNumberMarker(index + 1);
+    marker.userData.roompilotNumberMarker = true;
     marker.position.set(0, height + 48, 0);
     wrapper.add(marker);
     const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
@@ -2912,9 +2918,19 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
               object.receiveShadow = true;
             }
           });
+          // 只縮放 GLB 本體，wrapper 保持 1：1 公分尺度。
+          // 若 scale 加在 wrapper 上，後加的編號／陰影／pick proxy 會被放大上百倍，
+          // 看起來像「沒編號」，點選也會整片被一件 GLB 吃掉。
           const wrapper = new THREE.Group();
-          wrapper.add(gltf.scene);
-          fitToTargetSize(wrapper, item.size_cm || {});
+          const modelRoot = gltf.scene;
+          wrapper.add(modelRoot);
+          fitToTargetSize(modelRoot, item.size_cm || {});
+          // GLB 網格常超出 footprint：禁用其 raycast，點選只走 pick proxy。
+          modelRoot.traverse((object) => {
+            if (object.isMesh || object.isSkinnedMesh) {
+              object.raycast = () => {};
+            }
+          });
           wrapper.userData.sceneIndex = index + 1;
           wrapper.userData.sceneObject = item;
 
@@ -2922,14 +2938,15 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           wrapper.position.z = Number(item.position_cm?.z || 0);
           wrapper.rotation.y = THREE.MathUtils.degToRad(item.rotation_y_deg || 0);
 
-          const itemBox = new THREE.Box3().setFromObject(wrapper);
-          const itemSize = itemBox.getSize(new THREE.Vector3());
+          const size = sizeCentimeters(item);
           addFurnitureContactShadow(wrapper, item.size_cm || {});
+          addFurniturePickProxy(wrapper, item);
           const marker = createNumberMarker(index + 1);
-          marker.position.set(0, Math.max(itemSize.y + 48, 72), 0);
+          marker.userData.roompilotNumberMarker = true;
+          marker.position.set(0, Math.max(size.height + 48, 72), 0);
           wrapper.add(marker);
           const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-          planLabel.position.set(0, Math.max(itemSize.y + 15, 35), 0);
+          planLabel.position.set(0, Math.max(size.height + 15, 35), 0);
           wrapper.add(planLabel);
           furnitureGroup.add(wrapper);
         } catch (error) {
@@ -3160,7 +3177,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     ) return;
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, perspectiveCamera);
-    if (dragRaycaster.intersectObjects(furnitureGroup.children, true).length) return;
+    if (pickFurnitureWrapper()) return;
     walkDestination = null;
     walkMarker.visible = false;
     const direction = controls.target.clone().sub(perspectiveCamera.position).normalize();
@@ -3209,6 +3226,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     if (!wasDragged) setWalkDestinationFromPointer(event);
   }
 
+
   function wrapperFromObject(object) {
     let node = object;
     while (node && node.parent !== furnitureGroup) node = node.parent;
@@ -3223,6 +3241,134 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       height: Number(size.height) || 80,
     };
   }
+
+  // GLB 常含超出宣告尺寸的透明／輔助網格；地毯等 height≈1cm 也幾乎點不到。
+  // 每件家具加隱形 pick proxy（依 size_cm，薄件加高到可點），選取只認 proxy／地板 footprint。
+  const _pickLocal = new THREE.Vector3();
+  const FLOOR_OVERLAY_TYPES = new Set(["large-medium-rug", "runner-small-rug"]);
+
+  function isFloorOverlayItem(item) {
+    const type = String(item?.normalized_type || "");
+    if (FLOOR_OVERLAY_TYPES.has(type) || type.includes("rug")) return true;
+    const height = Number(item?.size_cm?.height);
+    return Number.isFinite(height) && height > 0 && height <= 5;
+  }
+
+  function hitPointInFurnitureVolume(wrapper, point, padCm = 10) {
+    const item = wrapper?.userData?.sceneObject;
+    if (!item || !point) return false;
+    const size = sizeCentimeters(item);
+    const pickHeight = Math.max(size.height, isFloorOverlayItem(item) ? 12 : size.height);
+    _pickLocal.copy(point);
+    wrapper.worldToLocal(_pickLocal);
+    return Math.abs(_pickLocal.x) <= size.width / 2 + padCm
+      && _pickLocal.y >= -padCm
+      && _pickLocal.y <= pickHeight + padCm
+      && Math.abs(_pickLocal.z) <= size.depth / 2 + padCm;
+  }
+
+  function pointInFurnitureFootprint(wrapper, x, z, padCm = 12) {
+    const item = wrapper?.userData?.sceneObject;
+    if (!item) return false;
+    const size = sizeCentimeters(item);
+    const radians = THREE.MathUtils.degToRad(Number(item.rotation_y_deg) || 0);
+    const dx = x - wrapper.position.x;
+    const dz = z - wrapper.position.z;
+    const localX = dx * Math.cos(radians) + dz * Math.sin(radians);
+    const localZ = -dx * Math.sin(radians) + dz * Math.cos(radians);
+    return Math.abs(localX) <= size.width / 2 + padCm
+      && Math.abs(localZ) <= size.depth / 2 + padCm;
+  }
+
+  function addFurniturePickProxy(wrapper, item) {
+    const size = sizeCentimeters(item);
+    const pickHeight = Math.max(size.height, isFloorOverlayItem(item) ? 16 : 10);
+    const proxy = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        Math.max(size.width, 20),
+        pickHeight,
+        Math.max(size.depth, 20),
+      ),
+      // 完全透明：不可見，但仍可 raycast（visible=false 會被 Three 跳過）。
+      // 不要用綠色 debug 色，避免部分 GPU 上 colorWrite 失效造成「家具變色」。
+      new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        depthTest: false,
+        toneMapped: false,
+      }),
+    );
+    proxy.position.y = pickHeight / 2;
+    proxy.frustumCulled = false;
+    proxy.userData.roompilotPickProxy = true;
+    wrapper.add(proxy);
+    return proxy;
+  }
+
+  function pickFurnitureWrapper() {
+    const hits = dragRaycaster.intersectObjects(furnitureGroup.children, true);
+    const proxyHits = [];
+    for (const hit of hits) {
+      if (!hit.object.userData?.roompilotPickProxy) continue;
+      const wrapper = wrapperFromObject(hit.object);
+      const item = wrapper?.userData?.sceneObject;
+      if (!item) continue;
+      proxyHits.push({
+        wrapper,
+        item,
+        distance: hit.distance,
+        overlay: isFloorOverlayItem(item),
+      });
+    }
+    if (proxyHits.length) {
+      proxyHits.sort((a, b) => a.distance - b.distance);
+      const closest = proxyHits[0];
+      // 同視線上多件接近時，優先較矮者（地毯／茶几），避免被沙發等高件 pick box 蓋住。
+      const near = proxyHits.filter((candidate) => candidate.distance <= closest.distance + 40);
+      if (near.length > 1) {
+        near.sort((left, right) => {
+          const leftHeight = sizeCentimeters(left.item).height;
+          const rightHeight = sizeCentimeters(right.item).height;
+          return leftHeight - rightHeight || left.distance - right.distance;
+        });
+        const shortest = near[0];
+        const closestHeight = sizeCentimeters(closest.item).height;
+        const shortestHeight = sizeCentimeters(shortest.item).height;
+        if (
+          shortest.overlay
+          || shortestHeight <= 15
+          || shortestHeight < closestHeight * 0.55
+        ) {
+          return shortest.wrapper;
+        }
+      }
+      return closest.wrapper;
+    }
+
+    // 後備：打地板，同點多件時優先較矮（地毯可選到），再比距離。
+    if (!dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) return null;
+    let best = null;
+    let bestHeight = Infinity;
+    let bestDist = Infinity;
+    for (const wrapper of furnitureGroup.children) {
+      const item = wrapper.userData?.sceneObject;
+      if (!item) continue;
+      if (!pointInFurnitureFootprint(wrapper, planeHit.x, planeHit.z)) continue;
+      const height = sizeCentimeters(item).height;
+      const dist = Math.hypot(planeHit.x - wrapper.position.x, planeHit.z - wrapper.position.z);
+      if (
+        height < bestHeight - 0.5
+        || (Math.abs(height - bestHeight) <= 0.5 && dist < bestDist)
+      ) {
+        best = wrapper;
+        bestHeight = height;
+        bestDist = dist;
+      }
+    }
+    return best;
+  }
+
 
   function disposeGuide() {
     if (!footprintGuide) return;
@@ -3416,7 +3562,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     // 右鍵按在家具上時是拖曳,不要跳出瀏覽器選單
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, camera);
-    if (dragRaycaster.intersectObjects(furnitureGroup.children, true).length) {
+    if (pickFurnitureWrapper()) {
       event.preventDefault();
     }
   });
@@ -3465,13 +3611,11 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       event.stopPropagation();
       return;
     }
-    const hits = dragRaycaster.intersectObjects(furnitureGroup.children, true);
-    if (!hits.length) {
+    const wrapper = pickFurnitureWrapper();
+    if (!wrapper) {
       selectWrapper(null);
       return;
     }
-    const wrapper = wrapperFromObject(hits[0].object);
-    if (!wrapper || !wrapper.userData.sceneObject) return;
 
     selectWrapper(wrapper);
     if (interactionMode !== "edit") {
@@ -4248,6 +4392,26 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     exportGlb,
     focusObject,
     selectObjectByIndex,
+    getSelectedFurnitureId: () => selectedWrapper?.userData?.sceneObject?.furniture_id || null,
+    projectFurnitureCenters() {
+      const rect = renderer.domElement.getBoundingClientRect();
+      camera.updateMatrixWorld(true);
+      return furnitureGroup.children.map((wrapper) => {
+        const item = wrapper.userData.sceneObject || {};
+        const size = sizeCentimeters(item);
+        const v = new THREE.Vector3(wrapper.position.x, Math.max(15, size.height * 0.45), wrapper.position.z);
+        v.project(camera);
+        return {
+          furniture_id: item.furniture_id,
+          name: item.name_zh_raw,
+          screen: {
+            x: (v.x * 0.5 + 0.5) * rect.width + rect.left,
+            y: (-v.y * 0.5 + 0.5) * rect.height + rect.top,
+          },
+          behind: v.z > 1,
+        };
+      });
+    },
     rotateSelected: rotateSelectedFromControls,
     beginPlacement,
     cancelPlacement,

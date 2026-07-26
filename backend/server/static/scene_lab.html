@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RoomPilot 擺位工作台（實驗）</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { height: 100%; }
+      body {
+        font-family: "Noto Sans TC", system-ui, sans-serif;
+        background: #14161a;
+        color: #e8eaed;
+        overflow: hidden;
+      }
+      #lab-viewer { position: fixed; inset: 0; }
+      #lab-viewer canvas { display: block; }
+
+      .lab-header {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        padding: 10px 16px;
+        background: linear-gradient(rgba(10, 12, 15, 0.92), rgba(10, 12, 15, 0.6) 80%, transparent);
+        pointer-events: none;
+      }
+      .lab-header > * { pointer-events: auto; }
+      .lab-header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.04em; }
+      .lab-header h1 small {
+        margin-left: 8px; padding: 2px 8px; border-radius: 99px;
+        background: #3d2f00; color: #ffd666; font-size: 11px; vertical-align: 2px;
+      }
+      #lab-project-form { display: flex; gap: 6px; }
+      #lab-project-id {
+        width: 240px; padding: 6px 10px; border-radius: 8px;
+        border: 1px solid #3a3f47; background: #1d2127; color: inherit; font-size: 13px;
+      }
+      #lab-project-form button, .lab-views button, #lab-plan-toggle {
+        padding: 6px 12px; border-radius: 8px; border: 1px solid #3a3f47;
+        background: #232830; color: inherit; font-size: 13px; cursor: pointer;
+      }
+      #lab-project-form button:hover, .lab-views button:hover { background: #2d3440; }
+      .lab-views { display: flex; gap: 6px; }
+      .lab-views button.is-active { background: #2b4a78; border-color: #48679a; }
+      .lab-modes button.is-active { background: #7a4a12; border-color: #a86a2a; }
+      #lab-project-name { font-size: 13px; color: #9aa3ad; }
+      #lab-step-summary { font-size: 12px; color: #79828c; width: 100%; }
+
+      #lab-notice {
+        position: fixed; top: 96px; left: 50%; transform: translateX(-50%); z-index: 30;
+        max-width: 620px; padding: 10px 16px; border-radius: 10px;
+        background: #20242b; border: 1px solid #3a3f47; font-size: 13px;
+      }
+      #lab-notice[data-tone="warn"] { border-color: #8a6d1a; background: #2a2410; }
+      #lab-notice[data-tone="error"] { border-color: #8a2f2f; background: #2a1414; }
+
+      #lab-viewer-status {
+        position: fixed; left: 16px; bottom: 12px; z-index: 20;
+        font-size: 12px; color: #9aa3ad;
+      }
+
+      #lab-plan-panel {
+        position: fixed; right: 16px; bottom: 16px; z-index: 25;
+        width: min(400px, 42vw);
+        background: rgba(18, 21, 25, 0.94);
+        border: 1px solid #343a42; border-radius: 14px;
+        display: flex; flex-direction: column; overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      }
+      #lab-plan-panel header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 14px; font-size: 13px; font-weight: 600;
+      }
+      #lab-plan-panel.is-collapsed .lab-plan-body { display: none; }
+      .lab-plan-body { padding: 0 14px 14px; overflow-y: auto; max-height: 62vh; }
+      .lab-plan-stage { position: relative; border-radius: 8px; overflow: hidden; background: #fff; }
+      #lab-plan-image { display: block; width: 100%; height: auto; }
+      #lab-plan-layer { position: absolute; inset: 0; }
+      .lab-furniture {
+        position: absolute; display: flex; align-items: center; justify-content: center;
+        border: 1.5px solid #2b6cb0; border-radius: 4px;
+        background: rgba(59, 130, 246, 0.24); color: #1a365d;
+        cursor: pointer; padding: 0;
+      }
+      .lab-furniture svg { width: 70%; height: 70%; fill: rgba(26, 54, 93, 0.75); pointer-events: none; }
+      .lab-furniture.is-active { border-color: #d69e2e; background: rgba(214, 158, 46, 0.3); z-index: 2; }
+      .lab-furniture.is-invalid { border-color: #c53030; background: rgba(197, 48, 48, 0.3); }
+
+      #lab-furniture-list { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+      #lab-furniture-list button {
+        display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+        padding: 7px 10px; border-radius: 8px; border: 1px solid transparent;
+        background: #1c2026; color: inherit; font-size: 13px; cursor: pointer; text-align: left;
+      }
+      #lab-furniture-list button:hover { background: #232830; }
+      #lab-furniture-list button.is-active { border-color: #48679a; background: #223047; }
+      #lab-furniture-list small { color: #8a939d; }
+
+      #lab-room-list { list-style: none; margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+      #lab-room-list li {
+        padding: 4px 10px; border-radius: 99px; background: #1c2026;
+        border: 1px solid #2c313a; font-size: 12px;
+      }
+      #lab-room-list small { color: #8a939d; margin-left: 4px; }
+
+      /* viewer 內建的「單件家具微調」面板：樣式源自 site.css，移到左下避開 2D 面板 */
+      .scene-object-controls {
+        position: absolute; left: 16px; bottom: 40px; z-index: 8;
+        width: min(240px, calc(100% - 36px));
+        padding: 12px; border: 1px solid #3a3f47; border-radius: 14px;
+        background: rgba(24, 27, 32, 0.94);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      }
+      .scene-object-controls[hidden] { display: none; }
+      .scene-object-controls-title {
+        margin-bottom: 8px; font-size: 12px; font-weight: 700;
+        letter-spacing: 0.08em; color: #9aa3ad;
+      }
+      .scene-object-controls-grid {
+        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;
+      }
+      .scene-object-controls button {
+        min-height: 34px; border: 1px solid #3a3f47; border-radius: 8px;
+        background: #232830; color: #e8eaed; cursor: pointer; font-size: 12px;
+      }
+      .scene-object-controls button:hover { background: #2d3440; }
+      /* 上游 15° 旋轉鈕因 normalizedRotationDeg 吸附 90° 而無效，改用本頁的 90° 鈕 */
+      .scene-object-controls [data-object-rotate] { display: none; }
+
+      #lab-library { margin-top: 14px; border-top: 1px solid #2c313a; padding-top: 12px; }
+      #lab-library h2 { font-size: 13px; margin-bottom: 8px; color: #b8c0c9; }
+      #lab-library-form { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      #lab-library-form input, #lab-library-form select, #lab-library-form button {
+        padding: 6px 8px; border-radius: 8px; border: 1px solid #3a3f47;
+        background: #1d2127; color: inherit; font-size: 12px; min-width: 0;
+      }
+      #lab-library-form button { background: #2b4a78; border-color: #48679a; cursor: pointer; }
+      #lab-library-results { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+      .lab-lib-item {
+        padding: 8px 10px; border-radius: 8px; background: #1c2026;
+        border: 1px solid #2c313a; font-size: 12px;
+      }
+      .lab-lib-item strong { display: block; font-size: 12px; margin-bottom: 2px; }
+      .lab-lib-item small { color: #8a939d; }
+      .lab-lib-actions { display: flex; gap: 6px; margin-top: 6px; }
+      .lab-lib-actions button {
+        padding: 4px 10px; border-radius: 6px; border: 1px solid #3a3f47;
+        background: #232830; color: inherit; font-size: 12px; cursor: pointer;
+      }
+      .lab-lib-actions button:hover { background: #2d3440; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="lab-viewer" aria-label="3D 白模主舞台"></div>
+
+    <header class="lab-header">
+      <h1>擺位工作台<small>實驗・變更不入庫</small></h1>
+      <form id="lab-project-form">
+        <input id="lab-project-id" placeholder="專案 ID" autocomplete="off" />
+        <button type="submit">載入</button>
+      </form>
+      <div class="lab-views" role="group" aria-label="3D 視角">
+        <button type="button" data-lab-view="dollhouse" class="is-active">白模</button>
+        <button type="button" data-lab-view="orbit">環繞</button>
+        <button type="button" data-lab-view="topdown">俯視</button>
+        <button type="button" data-lab-view="walk">走路</button>
+      </div>
+      <div class="lab-views lab-modes" role="group" aria-label="互動模式">
+        <button type="button" data-lab-mode="edit" class="is-active">編輯擺位</button>
+        <button type="button" data-lab-mode="camera">純相機</button>
+      </div>
+      <span id="lab-project-name"></span>
+      <span id="lab-step-summary"></span>
+    </header>
+
+    <p id="lab-notice" hidden></p>
+    <div id="lab-viewer-status" aria-live="polite"></div>
+
+    <aside id="lab-plan-panel">
+      <header>
+        <span>2D 平面（精修預定區）</span>
+        <button type="button" id="lab-plan-toggle">收合</button>
+      </header>
+      <div class="lab-plan-body">
+        <div class="lab-plan-stage">
+          <img id="lab-plan-image" alt="平面圖底圖" />
+          <div id="lab-plan-layer"></div>
+        </div>
+        <ul id="lab-room-list"></ul>
+        <div id="lab-furniture-list"></div>
+        <section id="lab-library">
+          <h2>家具庫（GLB 型錄）</h2>
+          <form id="lab-library-form">
+            <select id="lab-library-type"><option value="">全部類型</option></select>
+            <select id="lab-library-style"><option value="">全部風格</option></select>
+            <input id="lab-library-q" placeholder="關鍵字（例：沙發、書桌）" autocomplete="off" />
+            <button type="submit">搜尋</button>
+          </form>
+          <div id="lab-library-results"></div>
+        </section>
+      </div>
+    </aside>
+
+    <script type="module" src="/static/scene_lab.js?v=sha256-pickfix7-nocolor"></script>
+  </body>
+</html>
