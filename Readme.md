@@ -1,4 +1,32 @@
+2026/7/27 v.2.17 變更（目錄結構全面對齊 main 分支——管線入 backend/、評測資料入 testdata/、自研產物入 training/；門過濾集兩代合併 86 張＋detect_windows 開口下限修正，窗精準率 96→98%）
+
+一、目錄重整（與 main/bella 同構，交付面直接 diff 可同步；舊→新對照）：
+
+| 舊位置 | 新位置 |
+|---|---|
+| `scripts/floorplan2dxf*.py`、根目錄 `floorplan2room.py`、`config*.ini`、`scripts/eval_windows.py`、`scripts/eval_doors.py` | `backend/floorplan/` |
+| 根目錄 `cabinet_designer.py` | `backend/cabinetdesign/` |
+| `png/`、`color_png/`、`Identify_ans/`、`Asset/` | `testdata/` 下同名目錄 |
+| `dxf_scale/gray/`＋`dxf_scale/color/` | `testdata/dxf/`（扁平合併，與 main 一致） |
+| `json/`（gray/arch/room/color/eval_rooms） | `training/json/`（退出版控；main 走 cody_adapter 記憶體交接不需檔案） |
+| `tests/` | `training/tests/`（退出版控；`pytest training/tests/` 28 綠） |
+| 根目錄 `model_finetuned_v5.pkl` | `backend/floorplan/`（CC_WEIGHTS 預設同步，與 main 統一） |
+| 根目錄 `recognition_report.html` | `docs/` |
+
+- 路徑配套：`load_config` 支援相對路徑落模組旁、`_SCRIPTS_DIR` 修復（ensure_cc_masks subprocess 鏈）、scripts/tests 全數改掛 `backend/floorplan/`；`docs/vibecoding/` 19 份自 cody 移除（main 為正式家）
+- 新增 `MAIN_SYNC_TODO.md`（根目錄）：main 需配合的 6 項修改（cody_semantic 權重路徑、入口換 floorplan2room、v5 自動下載、測試更新、依賴清單、door 評測集新位置）
+
+二、門過濾評測集兩代合併＋detect_windows 修正（凍結檔經授權的演算法變更）：
+
+- 舊 19 張（door_type，100% 世代）自 git 歷史復原與新 67 張合併，統一命名 `door_001–086`；素材庫全目錄改「目錄名_三位數序號」（Tub 67／WC 104／Washbasin 128／dinner_table 73）
+- 根因：主迴圈開口下限 0.4T 與 sub_window 的 1.5T 不對稱，比牆厚窄的「窗」可過關；修正為 `gmin_win = max(gmin, 1.5·min(T, max(1.6·wall_t, 0.6·T)))`（沿用 _has_door_swing 的可靠尺寸基準——直接用 1.5T 會誤殺 floor35 貼邊小窗，實測後撤回）
+- 結果：門過濾 80/86→**84/86=98%**（達標 ≥95%）；灰窗全批次 **P96→98%／R96% 持平**（真實誤報 5→3、零真窗損失）；殘留 door_001/door_007 為多線門扇板＝窗符號幾何同構的困難樣本，實測（側翼長度比、帶內墨密度）與真窗分布重疊，判定不可局部硬擋
+- 勘誤：記憶中 99%/95% 為 2026-07-23 chk 快照分數；現行程式可重現基準即 v2.16 記載的 96%/96%，本輪後為 98%/96%
+
+三、其他：requirements 補 pytest；Washbasin 素材自 pieces 策展（sink 42＋fittings 23 併入，pieces 原始庫移除）；json 產物與 door 工具鏈（door_match/door_propose/score_compare 等 6 支）路徑同步 training/json/。
+
 2026/7/25 v.2.16 變更（微調 v5 首勝基線並接管預設權重——own 尺具名命中 0.273→0.788；權重掛 GitHub Release＋缺檔自動下載，前端 clone 即可用；快取/報表/HTML 全量重算）
+
 
 一、微調 v5（標注痊癒後首訓，own 25 題×3＋HQA 300、v4 同配方）：
 

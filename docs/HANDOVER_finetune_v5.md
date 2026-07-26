@@ -97,7 +97,7 @@ v1~v4 全部未過門檻、預設權重維持基線；本輪資料痊癒後值�
 
 今晚 37 題逐張走完的 SOP，**一張一張來，不批次**（使用者要求；批次會漏掉語意錯標）：
 
-1. **腳本先跑自動修復**：`python scripts/fix_own_floor.py Identify_ans/own_dataset/floorXX --backup-dir <備份> --render-dir <輸出>`
+1. **腳本先跑自動修復**：`python scripts/fix_own_floor.py testdata/Identify_ans/own_dataset/floorXX --backup-dir <備份> --render-dir <輸出>`
    - 修檔前必備份；產出 House 視角渲染圖
 2. **AI 檢視渲染圖自我把關**：房型 vs 家具是否矛盾（沙發房標 Kitchen、浴缸間標 Kitchen 等）、
    「需人工」旗標逐條判讀、房間數 vs 圖面比對
@@ -153,11 +153,11 @@ v1~v4 全部未過門檻、預設權重維持基線；本輪資料痊癒後值�
 ## 四、後續待辦（優先序）
 
 1. **微調 v5 訓練＋驗收**（本交接主任務）
-2. 彩色 30 題草稿人工修正：`Identify_ans/own_dataset_color/`（20 題）＋`own_eval_color/`（10 題）
+2. 彩色 30 題草稿人工修正：`testdata/Identify_ans/own_dataset_color/`（20 題）＋`own_eval_color/`（10 題）
    ——目前是管線草稿**未經人工修正、未進訓練**；修完跑 `fix_own_floor.py`（支援 `*floor*` 目錄）再擴充 pack_finetune_data.py
 3. v5 若過門檻：換預設權重、重算全評分報表
-4. 辨識素材庫已備妥可接符號匹配開發：`Asset/door/` 71 張、`Asset/kitchen/` 73 張、
-   `Asset/bathroom/` 69 張、`Asset/pieces/` 543 張（10 類 DWG 切割，含馬桶/水槽/浴缸/淋浴/小便斗）
+4. 辨識素材庫已備妥可接符號匹配開發：`testdata/Asset/door/` 86 張（door_001–086）、`testdata/Asset/kitchen/dinner_table/` 73 張、
+   `testdata/Asset/bathroom/` 299 張（Tub 67／WC 104／Washbasin 128；2026-07-27 自 pieces 策展改名，pieces 原始庫已移除）
 
 ## 附：本機（Cody）狀態
 
