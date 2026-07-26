@@ -7877,6 +7877,13 @@ function loadSelectedSceneAppearance() {
   $("#lock-specified-material").checked = selected?.material_locked === true;
 }
 
+function activateWhiteFurnitureEditing() {
+  whiteViewer.setInteractionMode("edit");
+  $$("[data-white-interaction]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.whiteInteraction === "edit");
+  });
+}
+
 async function deleteSelectedSceneFurniture() {
   const objects = state.sceneData?.scene_objects || [];
   const selected = objects[state.selectedSceneIndex];
@@ -7891,7 +7898,8 @@ async function deleteSelectedSceneFurniture() {
   );
   syncFurnitureInventoryAcrossSchemes();
   state.selectedSceneIndex = Math.max(0, Math.min(state.selectedSceneIndex, objects.length - 1));
-  state.selectedFurniture2dId = state.furniture2d[0]?.id || null;
+  const nextSelected = objects[state.selectedSceneIndex] || null;
+  state.selectedFurniture2dId = nextSelected?.furniture_id || null;
   renderLayoutRoomFilter();
   renderLayoutFurniture();
   renderSceneObjectList();
@@ -7899,13 +7907,24 @@ async function deleteSelectedSceneFurniture() {
   if (state.workflow.currentStep === "white_model_3d") {
     await whiteViewer.loadScene(state.sceneData);
     whiteViewer.setViewMode("dollhouse");
+    renderConfigurationPlan();
+    if (nextSelected) {
+      selectSceneObjectByFurnitureId(nextSelected.furniture_id, {
+        viewer: whiteViewer,
+        focus: false,
+      });
+      activateWhiteFurnitureEditing();
+    }
     scheduleSave("white_model_3d");
   } else {
     await realisticViewer.loadScene(state.sceneData);
     realisticViewer.setViewMode("orbit");
+    renderConfigurationPlan();
     scheduleSave("realistic_3d");
   }
-  setStatus(`已刪除「${selected.name_zh_raw || selected.normalized_type || "家具"}」。`);
+  setStatus(
+    `已刪除「${selected.name_zh_raw || selected.normalized_type || "家具"}」，其餘家具已重新編號。`,
+  );
 }
 
 async function searchGlbFurniture() {
@@ -8155,12 +8174,18 @@ function addSceneFurniture(furnitureId) {
       state.selectedSceneIndex = state.sceneData.scene_objects.length - 1;
       state.selectedFurniture2dId = candidate.furniture_id;
       await whiteViewer.loadScene(state.sceneData);
+      whiteViewer.setViewMode("dollhouse");
       renderSceneObjectList();
+      renderConfigurationPlan();
       loadSelectedSceneAppearance();
       whiteViewer.selectObjectByIndex(state.selectedSceneIndex);
+      activateWhiteFurnitureEditing();
       element.whiteError.textContent = "";
       scheduleSave("white_model_3d");
-      setStatus("家具已新增到指定位置，並通過碰撞、淨空與房間邊界檢查。");
+      const furnitureNumber = state.selectedSceneIndex + 1;
+      setStatus(
+        `家具 ${furnitureNumber} 已新增到指定位置，可直接拖曳或旋轉，並已通過碰撞、淨空與房間邊界檢查。`,
+      );
     } catch (error) {
       element.whiteError.textContent = errorMessage(error);
       setStatus(element.whiteError.textContent, "error");

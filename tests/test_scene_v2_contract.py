@@ -2147,6 +2147,29 @@ def test_3d_catalog_supports_engine_validated_replacement_addition_and_final_gat
     assert 'renderer.domElement.style.cursor = "crosshair"' in viewer
 
 
+def test_added_and_deleted_furniture_refresh_numbering_and_stay_draggable() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function activateWhiteFurnitureEditing()" in controller
+    assert "whiteViewer.setInteractionMode(\"edit\")" in controller
+    assert "const furnitureNumber = state.selectedSceneIndex + 1;" in controller
+    assert "家具 ${furnitureNumber} 已新增" in controller
+
+    delete_block = controller.split(
+        "async function deleteSelectedSceneFurniture()",
+        1,
+    )[1].split("async function searchGlbFurniture()", 1)[0]
+    assert "renderConfigurationPlan();" in delete_block
+    assert "selectSceneObjectByFurnitureId(" in delete_block
+
+    add_block = controller.split(
+        "function addSceneFurniture(furnitureId)",
+        1,
+    )[1].split("async function confirmWhiteModel()", 1)[0]
+    assert "renderConfigurationPlan();" in add_block
+    assert "activateWhiteFurnitureEditing();" in add_block
+
+
 def test_ceiling_conflicts_use_real_obstruction_geometry_and_installation_depth() -> None:
     module_uri = (STATIC / "scene_style_packs.js").as_uri()
     result = run_workflow_script(

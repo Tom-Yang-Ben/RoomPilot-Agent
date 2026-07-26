@@ -831,3 +831,18 @@ $env:TEMP=$env:TMP
   under `廚房` and `陽台`.
 - Full suite verification: 472 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Step 6 Furniture Add/Delete Numbering
+
+- Added a single furniture-edit activation path so a newly placed catalog item
+  immediately enters the draggable and rotatable 3D edit mode.
+- A newly added item now receives and reports its current contiguous scene
+  number after collision, clearance, and room-boundary validation succeeds.
+- Deleting an item immediately refreshes the synchronized 2D plan, furniture
+  list, and 3D scene numbering. The nearest remaining item stays selected.
+- Browser verification on project
+  `47abb48d539c46a0afd1fc1acce34add` confirmed the updated controller bundle,
+  one active 3D canvas, and matching contiguous 1-14 markers in both the 2D
+  plan and furniture list.
+- Full suite verification: 473 passed, 2 skipped.
+- No remote push was performed.
