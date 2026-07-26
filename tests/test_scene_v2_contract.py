@@ -710,6 +710,22 @@ def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
     assert ".is-collapsed" in css
 
 
+def test_configuration_markers_focus_3d_and_use_visible_selected_numbers() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    handler = source.split("const selectConfigurationFurniture =", 1)[1].split(
+        "element.configurationPlanLayer.addEventListener", 1
+    )[0]
+
+    assert "event.currentTarget === element.configurationPlanLayer" in handler
+    assert "if (!fromPlan) void openFurnitureReplacement()" in handler
+    assert "syncSelected2dFurnitureToScene({ focus: true })" in handler
+    assert "已在 3D 定位家具" in handler
+    assert ".rp-configuration-furniture.is-active b" in css
+    assert ".rp-configuration-furniture-list button.is-active > b" in css
+    assert "background: #1768a6;" in css
+
+
 def test_2d_furniture_library_has_top_view_icons_and_real_centimetre_sizes() -> None:
     module_uri = (STATIC / "scene_layout2d.js").as_uri()
     result = run_workflow_script(

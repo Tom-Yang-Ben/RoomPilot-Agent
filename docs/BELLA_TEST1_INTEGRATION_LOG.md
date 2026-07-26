@@ -711,3 +711,22 @@ $env:TEMP=$env:TMP
   without a scene error.
 - Full suite verification: 461 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 GLB Thumbnails and 2D-to-3D Furniture Focus
+
+- Replaced the generic `GLB` search-result placeholder with an automatically
+  captured PNG thumbnail rendered from each available GLB model.
+- Added sequential thumbnail generation and URL-based caching so the hidden
+  renderer does not compete with the main 3D scene or repeatedly load the same
+  model.
+- Strengthened furniture numbers on both the 2D plan and synchronized list with
+  high-contrast circular badges and a blue selected state.
+- Clicking a numbered footprint on the 2D plan now selects the matching list
+  item and focuses the corresponding object in the 3D scene without opening the
+  replacement dialog. List-item clicks still open furniture replacement.
+- Browser verification on project
+  `47abb48d539c46a0afd1fc1acce34add` generated PNG data URLs for all 12 returned
+  `書桌` search results and confirmed synchronized selection of furniture 2 in
+  the plan, list, and 3D scene.
+- Full suite verification: 463 passed, 2 skipped.
+- No remote push was performed.

@@ -44,3 +44,17 @@ def test_replacement_preview_uses_the_current_room_and_generates_png_thumbnail()
     assert "replacementViewer.capturePng()" in preview
     assert 'replacementViewer.setViewMode("dollhouse")' in preview
     assert "data-replacement-thumbnail" in SOURCE
+
+
+def test_glb_search_generates_png_thumbnails_from_models() -> None:
+    search = SOURCE.split("async function searchGlbFurniture", 1)[1].split(
+        "async function styleFurnitureCandidate", 1
+    )[0]
+
+    assert 'id="glb-thumbnail-viewer"' in HTML
+    assert "function glbThumbnailScene(item)" in search
+    assert "async function populateGlbSearchThumbnails" in search
+    assert "glbThumbnailViewer.loadScene(glbThumbnailScene(item))" in search
+    assert "glbThumbnailViewer.capturePng()" in search
+    assert "data-glb-thumbnail" in search
+    assert "glbThumbnailCache" in SOURCE

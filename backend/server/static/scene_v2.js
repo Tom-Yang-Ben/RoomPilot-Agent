@@ -392,8 +392,15 @@ const replacementViewer = createSceneViewer(
   $("#replacement-3d-preview"),
   element.replacement3dStatus,
 );
+const glbThumbnailViewer = createSceneViewer(
+  $("#glb-thumbnail-viewer"),
+  $("#glb-thumbnail-status"),
+);
 const structurePreview = createStructurePreview($("#structure-3d-preview"));
 const styleFurnitureCache = new Map();
+const glbThumbnailCache = new Map();
+let glbThumbnailBatch = 0;
+let glbThumbnailSequence = Promise.resolve();
 
 function setStatus(message, kind = "normal") {
   element.status.textContent = message;
@@ -7426,6 +7433,7 @@ async function searchGlbFurniture() {
     element.glbResults.innerHTML = "<p>請輸入家具名稱。</p>";
     return;
   }
+  const thumbnailBatch = ++glbThumbnailBatch;
   try {
     const payload = await api(`/api/furniture?q=${encodeURIComponent(query)}&has_model=true&detail=scene&page_size=12`);
     element.glbResults.innerHTML = (payload.items || []).map((item) => {
@@ -7437,11 +7445,15 @@ async function searchGlbFurniture() {
         || "";
       const title = item.name_zh || item.name_zh_raw || item.name_en || "GLB 家具";
       return `
-      <article class="rp-glb-result ${preview ? "has-preview" : ""}">
+      <article class="rp-glb-result has-preview">
         <div class="rp-glb-thumb">
-          ${preview
-            ? `<img src="${escapeHtml(preview)}" alt="${escapeHtml(title)}" loading="lazy"/>`
-            : "<span>GLB</span>"}
+          <img
+            class="${preview ? "" : "is-loading"}"
+            src="${escapeHtml(preview || "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=")}"
+            alt="${escapeHtml(title)} PNG 預覽"
+            data-glb-thumbnail="${escapeHtml(item.furniture_id)}"
+            loading="lazy"
+          />
         </div>
         <strong>${escapeHtml(title)}</strong>
         <span>${Number(item.size_cm?.width || 0).toFixed(0)} x ${Number(item.size_cm?.depth || 0).toFixed(0)} cm</span>
@@ -7453,10 +7465,71 @@ async function searchGlbFurniture() {
     `;
     }).join("") || "<p>找不到適合 GLB 的家具。</p>";
     element.glbResults.dataset.items = JSON.stringify(payload.items || []);
+    glbThumbnailSequence = glbThumbnailSequence
+      .catch(() => null)
+      .then(() => populateGlbSearchThumbnails(payload.items || [], thumbnailBatch));
   } catch (error) {
     element.glbResults.innerHTML = `<p>${escapeHtml(errorMessage(error))}</p>`;
   }
 }
+
+function glbThumbnailScene(item) {
+  return {
+    floorplan: {
+      width_cm: 360,
+      depth_cm: 360,
+      room_height_cm: 270,
+      wall_segments: [],
+      door_segments: [],
+      window_segments: [],
+    },
+    scene_objects: [{
+      ...item,
+      furniture_id: `glb-thumbnail-${item.furniture_id}`,
+      position_cm: { x: 0, z: 0 },
+      rotation_y_deg: 0,
+      position_locked: true,
+      placement_failed: false,
+    }],
+    style: { style_id: state.activeStyleId || "white_model" },
+  };
+}
+
+async function populateGlbSearchThumbnails(items, batchId) {
+  for (const item of items) {
+    if (batchId !== glbThumbnailBatch) return;
+    const furnitureId = String(item.furniture_id || "");
+    if (!furnitureId || !item.model_url) continue;
+    const nativePreview = item.image_url
+      || item.thumbnail_url
+      || item.preview_url
+      || item.main_image_url
+      || item.image;
+    if (nativePreview) continue;
+    let png = glbThumbnailCache.get(item.model_url);
+    if (!png) {
+      try {
+        await glbThumbnailViewer.loadScene(glbThumbnailScene(item));
+        if (glbThumbnailViewer.getDiagnostics()?.failedFurniture?.length) continue;
+        glbThumbnailViewer.selectObjectByIndex(0, { focus: true });
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        png = glbThumbnailViewer.capturePng();
+        glbThumbnailCache.set(item.model_url, png);
+      } catch (error) {
+        console.warn("GLB thumbnail generation failed", item.model_url, error);
+        continue;
+      }
+    }
+    if (batchId !== glbThumbnailBatch) return;
+    document.querySelectorAll(
+      `[data-glb-thumbnail="${CSS.escape(furnitureId)}"]`,
+    ).forEach((image) => {
+      image.src = png;
+      image.classList.remove("is-loading");
+    });
+  }
+}
+
 async function styleFurnitureCandidate(item, pack) {
   const cacheKey = `${pack.styleId}:${item.normalized_type}`;
   if (!styleFurnitureCache.has(cacheKey)) {
@@ -9235,11 +9308,22 @@ function bindEvents() {
   const selectConfigurationFurniture = (event) => {
     const button = event.target.closest("[data-select-configuration-furniture]");
     if (!button) return;
+    const fromPlan = event.currentTarget === element.configurationPlanLayer;
     state.selectedFurniture2dId = button.dataset.selectConfigurationFurniture;
-    void openFurnitureReplacement();
+    if (!fromPlan) void openFurnitureReplacement();
     renderLayoutFurniture();
     renderConfigurationPlan();
-    syncSelected2dFurnitureToScene({ focus: true });
+    const focused = syncSelected2dFurnitureToScene({ focus: true });
+    if (fromPlan) {
+      const item = state.furniture2d.find(
+        (candidate) => candidate.id === state.selectedFurniture2dId,
+      );
+      setStatus(
+        focused && item
+          ? `已在 3D 定位家具 ${configurationFurnitureNumber(item)}「${item.label}」。`
+          : "已選取家具；目前尚無可定位的 3D 模型。",
+      );
+    }
   };
   element.configurationPlanLayer.addEventListener("click", selectConfigurationFurniture);
   element.configurationPlanFurnitureList.addEventListener(

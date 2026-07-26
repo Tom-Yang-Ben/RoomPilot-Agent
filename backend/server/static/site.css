@@ -6785,6 +6785,28 @@ body.rp-workflow-page .danger-action {
   object-fit: cover;
 }
 
+.rp-glb-thumb img.is-loading {
+  opacity: 0.35;
+  background: repeating-linear-gradient(
+    135deg,
+    #ece8e1 0,
+    #ece8e1 10px,
+    #f7f4ef 10px,
+    #f7f4ef 20px
+  );
+}
+
+.rp-offscreen-thumbnail-viewer {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 320px;
+  height: 240px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .rp-glb-result > span {
   color: #69635d;
   font-size: 13px;
@@ -7734,20 +7756,37 @@ body.rp-workflow-page .danger-action {
   min-width: 20px;
   min-height: 20px;
   place-items: center;
-  border: 2px solid #386f62;
-  border-radius: 3px;
+  border: 2px solid #286b59;
+  border-radius: 4px;
   background: rgba(222, 240, 234, 0.88);
   color: #174b3b;
   cursor: pointer;
+  z-index: 1;
 }
 
 .rp-configuration-furniture b {
-  font-size: 11px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #185b49;
+  color: #fff;
+  font-size: 12px;
+  box-shadow: 0 1px 4px rgba(20, 49, 41, 0.38);
 }
 
 .rp-configuration-furniture.is-active {
-  border-color: #2f6f87;
-  box-shadow: 0 0 0 3px rgba(47, 111, 135, 0.2);
+  border-color: #1768a6;
+  background: rgba(211, 233, 250, 0.92);
+  box-shadow: 0 0 0 4px rgba(23, 104, 166, 0.26);
+  z-index: 3;
+}
+
+.rp-configuration-furniture.is-active b {
+  background: #1768a6;
+  transform: scale(1.18);
 }
 
 .rp-configuration-furniture.is-invalid {
@@ -7788,15 +7827,23 @@ body.rp-workflow-page .danger-action {
   width: 26px;
   height: 26px;
   place-items: center;
+  border: 2px solid #fff;
   border-radius: 50%;
-  background: #e6f0ec;
-  color: #174b3b;
-  font-size: 11px;
+  background: #185b49;
+  color: #fff;
+  font-size: 12px;
+  box-shadow: 0 1px 4px rgba(20, 49, 41, 0.28);
 }
 
 .rp-configuration-furniture-list button.is-active {
-  border-color: var(--rp-green);
-  box-shadow: inset 0 0 0 1px var(--rp-green);
+  border: 2px solid #1768a6;
+  background: #eaf4fb;
+  box-shadow: inset 4px 0 0 #1768a6;
+}
+
+.rp-configuration-furniture-list button.is-active > b {
+  background: #1768a6;
+  transform: scale(1.12);
 }
 
 .rp-configuration-furniture-list button.is-invalid {
