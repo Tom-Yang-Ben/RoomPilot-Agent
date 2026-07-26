@@ -4481,6 +4481,8 @@ const TEST_AIR_CONDITIONING_OPTIONS = Object.freeze([
   "none",
 ]);
 
+const QUESTIONNAIRE_MATERIAL_RECOMMENDATION_COUNT = 4;
+
 const PREFERENCE_WEIGHT_OPTIONS = Object.freeze([
   { value: -2, label: "強偏 A" },
   { value: -1, label: "偏 A" },
@@ -4493,6 +4495,62 @@ function randomItem(items, fallback = null) {
   const candidates = (items || []).filter(Boolean);
   if (!candidates.length) return fallback;
   return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function stableStringNumber(value = "") {
+  return String(value).split("").reduce(
+    (total, char, index) => total + char.charCodeAt(0) * (index + 1),
+    0,
+  );
+}
+
+function uniqueMaterialOptions(kind) {
+  const seen = new Set();
+  return Object.values(STYLE_MATERIAL_OPTIONS).flatMap((style) => style[kind] || [])
+    .filter((option) => {
+      if (!option?.id || seen.has(option.id)) return false;
+      seen.add(option.id);
+      return true;
+    });
+}
+
+function packMaterialColor(pack, option, kind, index) {
+  const palette = pack?.palette || [];
+  if (!palette.length) return option.color;
+  const offset = stableStringNumber(`${pack.id}:${kind}:${option.id}:${index}`);
+  return palette[offset % palette.length] || option.color;
+}
+
+function materialOptionForPack(option, pack, kind, index) {
+  return {
+    ...option,
+    color: packMaterialColor(pack, option, kind, index),
+    note: `${pack.name} 色卡推薦｜${option.note}`,
+  };
+}
+
+function questionnaireMaterialOptionsForPack(kind, pack) {
+  const styleOptions = STYLE_MATERIAL_OPTIONS[pack.styleId]?.[kind] || [];
+  const allOptions = uniqueMaterialOptions(kind);
+  const preferredId = kind === "wall" ? pack.wall.surfaceOption : pack.floor.surfaceOption;
+  const preferred = allOptions.find((option) => option.id === preferredId)
+    || styleOptions.find((option) => option.id === preferredId);
+  const pool = [preferred, ...styleOptions, ...allOptions].filter(Boolean);
+  const unique = [];
+  const seen = new Set();
+  pool.forEach((option) => {
+    if (!option?.id || seen.has(option.id)) return;
+    seen.add(option.id);
+    unique.push(option);
+  });
+  const [first, ...rest] = unique;
+  const shift = rest.length
+    ? stableStringNumber(`${pack.id}:${kind}`) % rest.length
+    : 0;
+  const rotated = rest.slice(shift).concat(rest.slice(0, shift));
+  return [first, ...rotated]
+    .slice(0, QUESTIONNAIRE_MATERIAL_RECOMMENDATION_COUNT)
+    .map((option, index) => materialOptionForPack(option, pack, kind, index));
 }
 
 function randomWholeHouseAnswers() {
@@ -4536,9 +4594,8 @@ function randomRoomAxisNote(room) {
 
 function randomRoomFinishDraft() {
   const pack = randomItem(STYLE_PACKS, STYLE_PACKS[0]);
-  const materialOptions = STYLE_MATERIAL_OPTIONS[pack.styleId] || {};
-  const wallOption = randomItem(materialOptions.wall, null);
-  const floorOption = randomItem(materialOptions.floor, null);
+  const wallOption = randomItem(questionnaireMaterialOptionsForPack("wall", pack), null);
+  const floorOption = randomItem(questionnaireMaterialOptionsForPack("floor", pack), null);
   const wallMaterial = wallOption?.id || pack.wall.surfaceOption;
   const wallColor = wallOption?.color || pack.wall.color;
   const floorMaterial = floorOption?.id || pack.floor.surfaceOption;
@@ -5239,7 +5296,7 @@ function renderQuestionnaireMaterialOptions(kind, pack) {
     ? element.questionnaireWallOptions
     : element.questionnaireFloorOptions;
   const selectedKey = kind === "wall" ? "wallMaterial" : "floorMaterial";
-  const options = STYLE_MATERIAL_OPTIONS[pack.styleId]?.[kind] || [];
+  const options = questionnaireMaterialOptionsForPack(kind, pack);
   host.innerHTML = options.map((option) => `
     <button type="button" data-questionnaire-material="${escapeHtml(kind)}"
       data-questionnaire-material-id="${escapeHtml(option.id)}"
@@ -5347,17 +5404,23 @@ function selectQuestionnaireStylePack(packId) {
   const pack = STYLE_PACKS.find((candidate) => candidate.id === packId);
   if (!pack) return;
   const draft = activeRoomFinishDraft();
+  const wallOption = questionnaireMaterialOptionsForPack("wall", pack)[0];
+  const floorOption = questionnaireMaterialOptionsForPack("floor", pack)[0];
+  const wallMaterial = wallOption?.id || pack.wall.surfaceOption;
+  const wallColor = wallOption?.color || pack.wall.color;
+  const floorMaterial = floorOption?.id || pack.floor.surfaceOption;
+  const floorColor = floorOption?.color || pack.floor.color;
   state.activeStyleId = pack.styleId;
   Object.assign(draft, {
     ...draft,
     confirmed: false,
     stylePackId: pack.id,
-    wallMaterial: pack.wall.surfaceOption,
-    wallColor: pack.wall.color,
-    defaultWallMaterial: pack.wall.surfaceOption,
-    defaultWallColor: pack.wall.color,
-    floorMaterial: pack.floor.surfaceOption,
-    floorColor: pack.floor.color,
+    wallMaterial,
+    wallColor,
+    defaultWallMaterial: wallMaterial,
+    defaultWallColor: wallColor,
+    floorMaterial,
+    floorColor,
     ceilingMaterial: "flat-paint",
     ceilingStyle: CEILING_STYLES.find(
       (item) => item.styles.includes(pack.styleId),
@@ -8282,9 +8345,10 @@ function bindEvents() {
       const draft = activeRoomFinishDraft();
       draft[key] = button.dataset.questionnaireMaterialId;
       const pack = activeQuestionnairePack();
-      const option = STYLE_MATERIAL_OPTIONS[pack.styleId]?.[
-        button.dataset.questionnaireMaterial
-      ]?.find((candidate) => candidate.id === button.dataset.questionnaireMaterialId);
+      const option = questionnaireMaterialOptionsForPack(
+        button.dataset.questionnaireMaterial,
+        pack,
+      ).find((candidate) => candidate.id === button.dataset.questionnaireMaterialId);
       if (option?.color) draft[colorKey] = option.color;
       if (button.dataset.questionnaireMaterial === "wall") {
         if (state.selectedQuestionnaireWallId) {

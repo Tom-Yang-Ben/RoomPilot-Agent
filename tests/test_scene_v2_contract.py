@@ -53,9 +53,11 @@ def test_weighted_questionnaire_answers_preserve_a_b_preference_strength() -> No
 def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert "const materialOptions = STYLE_MATERIAL_OPTIONS[pack.styleId] || {}" in source
-    assert "const wallOption = randomItem(materialOptions.wall, null)" in source
-    assert "const floorOption = randomItem(materialOptions.floor, null)" in source
+    assert "QUESTIONNAIRE_MATERIAL_RECOMMENDATION_COUNT = 4" in source
+    assert "function questionnaireMaterialOptionsForPack" in source
+    assert 'const wallOption = randomItem(questionnaireMaterialOptionsForPack("wall", pack), null)' in source
+    assert 'const floorOption = randomItem(questionnaireMaterialOptionsForPack("floor", pack), null)' in source
+    assert "const options = questionnaireMaterialOptionsForPack(kind, pack)" in source
     assert "defaultWallMaterial: wallMaterial" in source
     assert "floorMaterial" in source
 

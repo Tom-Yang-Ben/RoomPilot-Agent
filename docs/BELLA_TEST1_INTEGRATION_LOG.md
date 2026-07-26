@@ -412,4 +412,5 @@ $env:TEMP=$env:TMP
   - stored answer fields: `preferenceWeight`, `preferenceDirection`
   - RAG payload fields: `preference_weight`, `preference_direction`
 - Updated the random requirements shortcut so wall and floor materials are sampled from the active style's material options instead of always using the style pack defaults.
+- Expanded questionnaire wall/floor recommendations so each style card derives its own ordered material suggestions and color swatches instead of sharing the same two style-level options.
 - This is a local frontend/testing helper only. It does not change the DB/PostgreSQL work, and no remote push was performed.
