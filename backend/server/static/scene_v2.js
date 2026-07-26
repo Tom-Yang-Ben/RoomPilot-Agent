@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-483ce5f02182";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-6227f5e0dbd8";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,
@@ -7062,6 +7062,16 @@ async function confirmLayout2d() {
       }),
     });
     state.sceneData = sceneDataFromGenerateResponse(payload);
+    const generatedInvalid = (state.sceneData.scene_objects || []).filter(
+      (item) => item.placement_failed || !item.position_cm,
+    );
+    if (generatedInvalid.length) {
+      element.layoutError.textContent =
+        `系統仍有 ${generatedInvalid.length} 件家具無法合法放置，請先在上方待處理清單更換或調整家具。`;
+      setStatus("配置尚未通過門窗淨空、房間邊界與家具碰撞檢查。", "error");
+      renderLayout2d();
+      return;
+    }
     state.sceneData.questionnaire = {
       catalog_version: state.visualCatalogVersion,
       basic: state.basicAnswers,

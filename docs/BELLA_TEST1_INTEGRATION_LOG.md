@@ -631,3 +631,25 @@ $env:TEMP=$env:TMP
   that clicking furniture opens the replacement dialog with the correct type.
 - Full suite verification: 454 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-26 Architectural and Placement Validity Gate
+
+- Separated exterior boundary-wall material from questionnaire-selected
+  interior wall finishes so room styling no longer recolors the facade.
+- Built closed door leaves inside the wall-snapped opening assembly instead of
+  placing them again from the raw recognition endpoints.
+- Added confirmed-window and floor-to-ceiling-window clearance bands to both
+  automatic layout and manual placement validation.
+- Added relationship-aware orientation for automatically placed office chairs,
+  dining chairs, armchairs, sofas, sofa beds, and desks.
+- Added a post-generation gate that keeps the user in Step 6 layout review when
+  any generated furniture still lacks a legal position.
+- Added regression coverage for window clearance, chair-to-desk orientation,
+  boundary-wall material isolation, and snapped closed-door geometry.
+- Browser-verified the updated bundle, closed door placement, neutral exterior
+  walls, persistent 2D plan, and blocking pending list on project
+  `47abb48d539c46a0afd1fc1acce34add`.
+- Full suite verification: 457 passed, 2 skipped.
+- The two appliance GLBs remain blocked by external AWS HTTP 403 responses;
+  they are still shown as pending and do not fall back to white models.
+- No remote push was performed.

@@ -26,7 +26,6 @@ import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3
 import {
   clampWalkPosition,
   computeExactModelScale,
-  doorLeafTransform,
   fallbackMaterialRole,
   findNearestWalkablePosition,
   synchronizedFloorRegions,
@@ -1369,21 +1368,15 @@ export function createSceneViewer(
         assembly.add(frame);
       });
     } else {
-      const transform = doorLeafTransform(interval.opening);
-      const hingeGroup = new THREE.Group();
-      hingeGroup.position.set(transform.hinge.x, 0, transform.hinge.z);
-      hingeGroup.rotation.y = transform.closedRotationYRad + transform.swingRotationYRad;
-      hingeGroup.userData.roompilotArchitecturalDetail = "door-hinge";
       const leaf = new THREE.Mesh(
-        new THREE.BoxGeometry(transform.leafWidthCm, height, 4.5),
+        new THREE.BoxGeometry(Math.max(interval.width * 0.94, 60), height, 4.5),
         frameMaterial,
       );
-      leaf.position.set(transform.leafCenterXCm, centerY, 0);
+      leaf.position.set(0, centerY, 0);
       leaf.castShadow = true;
       leaf.receiveShadow = true;
-      hingeGroup.add(leaf);
-      roomGroupRef.add(hingeGroup);
-      return;
+      leaf.userData.roompilotArchitecturalDetail = "closed-door-leaf";
+      assembly.add(leaf);
     }
     roomGroupRef.add(assembly);
   }
@@ -1934,7 +1927,7 @@ export function createSceneViewer(
     });
   }
 
-  function wallMaterialResolver(sceneData, defaultMaterial) {
+  function wallMaterialResolver(sceneData, defaultMaterial, exteriorMaterial = defaultMaterial) {
     const overrides = sceneData.surface_overrides || [];
     const cache = new Map();
     const pointToSegmentDistance = (point, start, end) => {
@@ -1956,6 +1949,10 @@ export function createSceneViewer(
       );
     };
     return (segment) => {
+      if (segment.boundary_side) {
+        exteriorMaterial.userData.roompilotWallSurfaceRole = "exterior";
+        return exteriorMaterial;
+      }
       const midpoint = {
         x: (Number(segment.start?.x || 0) + Number(segment.end?.x || 0)) / 2,
         z: (Number(segment.start?.z || 0) + Number(segment.end?.z || 0)) / 2,
@@ -2108,6 +2105,15 @@ export function createSceneViewer(
       || sceneData.style_card?.palette_hex?.[1];
     applySurfaceTint(floorMaterial, floorColor);
     if (floorPbr.roughness != null) floorMaterial.roughness = floorPbr.roughness;
+    const exteriorWallMaterial = createWallMaterial(
+      sceneData.design_choices?.exterior_wall_option || "auto",
+      sceneData.surface_catalog,
+    );
+    applySurfaceTint(
+      exteriorWallMaterial,
+      sceneData.design_choices?.exterior_wall_color_hex || "#e7e3dc",
+    );
+    exteriorWallMaterial.userData.roompilotWallSurfaceRole = "exterior";
     if (floorPbr.metalness != null) floorMaterial.metalness = floorPbr.metalness;
     const floor = new THREE.Mesh(
       createFloorGeometry(sceneData.floorplan, widthCm, depthCm),
@@ -2214,7 +2220,7 @@ export function createSceneViewer(
       buildSegmentWalls(
         roomGroup,
         wallSegments,
-        wallMaterialResolver(sceneData, wallMaterial),
+        wallMaterialResolver(sceneData, wallMaterial, exteriorWallMaterial),
         wallHeight,
         wallThickness,
         doorSegments,

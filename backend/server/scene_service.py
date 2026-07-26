@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, request
 
-from shapely.geometry import Point, Polygon, box as shapely_box
+from shapely.geometry import LineString, Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
 from ..agent.place import resolve_placements
@@ -886,7 +886,14 @@ def _inside_boundary(candidate: PlacedFurniture, boundary: Polygon | None) -> bo
     return boundary.contains(furniture_polygon(candidate))
 
 
-def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
+def _grid_place_in_boundary(
+    catalog,
+    item_id,
+    room,
+    placed,
+    boundary,
+    forbidden_zones: list[Polygon] | None = None,
+):
     """非矩形房間的最後防線:沿房間多邊形內部以 50cm 網格搜尋(由質心向外)。
 
     錨點與引擎網格都以 bbox 為座標基準,房間只佔 bbox 一角時全會撲空,
@@ -914,7 +921,11 @@ def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
     for rotation in (0, 90, 180, 270):
         for x, y in cands:
             cand = PlacedFurniture(id=item_id, catalog=catalog, pos_x=x, pos_y=y, rotation=rotation)
-            if _inside_boundary(cand, boundary) and check_placement_with_clearance(cand, room, placed) is None:
+            if (
+                _inside_boundary(cand, boundary)
+                and not _placement_intersects_zones(cand, forbidden_zones)
+                and check_placement_with_clearance(cand, room, placed) is None
+            ):
                 return cand
     return None
 
@@ -936,6 +947,100 @@ def _four_wall_room(width_cm: float, depth_cm: float) -> Room:
 def _floorplan_coordinate_scale_cm(floorplan: dict[str, Any] | None) -> float:
     """Return the scale from stored floorplan coordinates to centimeters."""
     return 1.0 if (floorplan or {}).get("coordinate_unit") == "cm" else 100.0
+
+
+_WINDOW_CLEARANCE_EXEMPT_TYPES = {"curtain"}
+
+
+def window_clearance_zones(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+    depth_cm: float = 70.0,
+) -> list[Polygon]:
+    """Build no-furniture bands around confirmed window and balcony openings."""
+    scale = _floorplan_coordinate_scale_cm(floorplan)
+    zones: list[Polygon] = []
+    for opening in (floorplan or {}).get("window_segments") or []:
+        try:
+            start = opening["start"]
+            end = opening["end"]
+            line = LineString(
+                [
+                    (
+                        float(start["x"]) * scale + room.width / 2,
+                        float(start["z"]) * scale + room.depth / 2,
+                    ),
+                    (
+                        float(end["x"]) * scale + room.width / 2,
+                        float(end["z"]) * scale + room.depth / 2,
+                    ),
+                ]
+            )
+            if line.length >= 4:
+                zones.append(line.buffer(depth_cm, cap_style=2))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return zones
+
+
+def _placement_intersects_zones(
+    candidate: PlacedFurniture,
+    zones: list[Polygon] | None,
+) -> bool:
+    if not zones:
+        return False
+    footprint = furniture_polygon(candidate)
+    return any(footprint.intersects(zone) for zone in zones)
+
+
+def _scene_rotation_toward(
+    source: dict[str, float],
+    target: dict[str, float],
+) -> float:
+    dx = float(target.get("x") or 0) - float(source.get("x") or 0)
+    dz = float(target.get("z") or 0) - float(source.get("z") or 0)
+    if math.hypot(dx, dz) < 1:
+        return 0.0
+    return round(math.degrees(math.atan2(dx, dz)) % 360, 2)
+
+
+def orient_layout_toward_targets(
+    scene_objects: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Orient automatically placed seating and work furniture toward useful targets."""
+    target_types = {
+        "office-chair": ("desk",),
+        "dining-chair": ("dining-table",),
+        "armchair": ("coffee-table", "sofa", "sofa-bed"),
+        "sofa": ("tv-bench", "coffee-table"),
+        "sofa-bed": ("tv-bench", "coffee-table"),
+        "desk": ("office-chair",),
+    }
+    valid = [
+        item for item in scene_objects
+        if not item.get("placement_failed") and item.get("position_cm")
+    ]
+    for item in valid:
+        if item.get("position_locked"):
+            continue
+        preferred = target_types.get(item.get("normalized_type"))
+        if not preferred:
+            continue
+        targets = [candidate for candidate in valid if candidate.get("normalized_type") in preferred]
+        if not targets:
+            continue
+        source = item["position_cm"]
+        target = min(
+            targets,
+            key=lambda candidate: (
+                float(candidate["position_cm"].get("x") or 0) - float(source.get("x") or 0)
+            ) ** 2 + (
+                float(candidate["position_cm"].get("z") or 0) - float(source.get("z") or 0)
+            ) ** 2,
+        )
+        item["rotation_y_deg"] = _scene_rotation_toward(source, target["position_cm"])
+        item["facing_target_id"] = target.get("furniture_id")
+    return scene_objects
 
 
 def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
@@ -1207,6 +1312,11 @@ def validate_single_placement(
         return {"ok": reason is None, "reason": reason}
     if item.get("normalized_type") in _IGNORE_COLLISION_TYPES:
         return {"ok": True, "reason": None}
+    if (
+        item.get("normalized_type") not in _WINDOW_CLEARANCE_EXEMPT_TYPES
+        and _placement_intersects_zones(moving, window_clearance_zones(floorplan, room))
+    ):
+        return {"ok": False, "reason": "家具不可遮擋窗戶或落地窗前方淨空。"}
 
     placed_others = [
         _scene_object_to_placed(o, half_w_cm, half_d_cm)
@@ -1244,6 +1354,7 @@ def generate_layout(
     # 矩形房由牆環重建(等價於 bbox)。注意 DXF fallback 模式的 Room.walls
     # 是多個獨立環,不能拿去重建多邊形 —— 所以 DXF 一律走傳入的 place_boundary。
     boundary = place_boundary if place_boundary is not None else _shrunk_boundary(room)
+    forbidden_zones = window_clearance_zones(floorplan, room)
 
     room_w_cm = room.width
     room_d_cm = room.depth
@@ -1311,6 +1422,9 @@ def generate_layout(
                     and check_placement_with_clearance(candidate, room, []) is None
                 )
                 or check_placement_with_clearance(candidate, room, placed) is None
+            ) and (
+                item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES
+                or not _placement_intersects_zones(candidate, forbidden_zones)
             )
             if ok:
                 x_cm = float(item["position_cm"].get("x") or 0)
@@ -1357,7 +1471,9 @@ def generate_layout(
                     z_cm = engine_item.pos_y - half_d_cm
                     rotation = (-engine_item.rotation) % 360
                 else:
-                    engine_item = _grid_place_in_boundary(catalog, item_id, room, [], boundary)
+                    engine_item = _grid_place_in_boundary(
+                        catalog, item_id, room, [], boundary, forbidden_zones
+                    )
                     if engine_item is not None:
                         x_cm = engine_item.pos_x - half_w_cm
                         z_cm = engine_item.pos_y - half_d_cm
@@ -1388,7 +1504,11 @@ def generate_layout(
                 else {"success": False, "placed": None, "reason": "房間內沒有可依附的主家具"}
             )
             engine_item = adjacent["placed"] if adjacent["success"] else None
-            if engine_item is not None and _inside_boundary(engine_item, boundary):
+            if (
+                engine_item is not None
+                and _inside_boundary(engine_item, boundary)
+                and not _placement_intersects_zones(engine_item, forbidden_zones)
+            ):
                 placed.append(engine_item)
                 placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
                 x_cm = engine_item.pos_x - half_w_cm
@@ -1454,6 +1574,10 @@ def generate_layout(
                 )
                 if (
                     _inside_boundary(candidate, boundary)
+                    and (
+                        item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES
+                        or not _placement_intersects_zones(candidate, forbidden_zones)
+                    )
                     and check_placement_with_clearance(candidate, room, placed) is None
                 ):
                     x_cm, z_cm, rotation = cand_x, cand_z, rot
@@ -1465,8 +1589,16 @@ def generate_layout(
                 engine_item = result["placed"] if result["success"] else None
                 if engine_item is not None and not _inside_boundary(engine_item, boundary):
                     engine_item = None
+                if (
+                    engine_item is not None
+                    and item_type not in _WINDOW_CLEARANCE_EXEMPT_TYPES
+                    and _placement_intersects_zones(engine_item, forbidden_zones)
+                ):
+                    engine_item = None
                 if engine_item is None and boundary is not None:
-                    engine_item = _grid_place_in_boundary(catalog, item_id, room, placed, boundary)
+                    engine_item = _grid_place_in_boundary(
+                        catalog, item_id, room, placed, boundary, forbidden_zones
+                    )
                 if engine_item is not None:
                     placed.append(engine_item)
                     placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
@@ -1508,7 +1640,7 @@ def generate_layout(
             "placement_room_id": item.get("placement_room_id"),
         }
 
-    return [results[i] for i in range(len(items))]
+    return orient_layout_toward_targets([results[i] for i in range(len(items))])
 
 
 def _flip_parsed_z(parsed: dict[str, Any]) -> dict[str, Any]:
