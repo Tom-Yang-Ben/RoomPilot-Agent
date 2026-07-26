@@ -632,6 +632,18 @@ def test_2d_furniture_plan_coordinates_match_the_visible_image_layer() -> None:
     assert round(result["y"], 2) == 150.75
 
 
+def test_scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection() -> None:
+    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function addFurniturePickProxy" in source
+    assert "roompilotPickProxy" in source
+    assert "modelRoot.traverse" in source
+    assert "object.raycast = () => {}" in source
+    assert "pickFurnitureWrapper()" in source
+    assert "getSelectedFurnitureId" in source
+    assert "projectFurnitureCenters()" in source
+
+
 def test_2d_collision_footprint_respects_furniture_rotation() -> None:
     module_uri = (STATIC / "scene_layout2d.js").as_uri()
     result = run_workflow_script(

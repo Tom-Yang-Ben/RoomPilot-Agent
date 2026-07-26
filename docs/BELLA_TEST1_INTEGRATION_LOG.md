@@ -22,6 +22,20 @@ c1182072 feat(floorplan): add cody semantic weight contract
 
 ## Integrated Work
 
+### Ancai-dev 3D Selection Backport
+
+- Reviewed `origin/ancai-dev` without switching away from `bella-test1`.
+- Did not merge the branch wholesale because it removes many Bella catalog, SQL, surface asset, and test files.
+- Backported only the low-risk viewer behavior that keeps the current `/scene` visual style intact:
+  - GLB model scaling now stays inside the model root, while the furniture wrapper remains in centimeter scale.
+  - Furniture selection uses an invisible pick proxy sized from `size_cm`, so oversized GLB meshes do not swallow clicks.
+  - Thin floor-overlay objects such as rugs are easier to select because picking falls back to the furniture footprint.
+  - Number markers, labels, and contact shadows are excluded from raycast selection.
+  - Viewer exposes selected furniture id and projected furniture centers for later 2D/3D sync.
+- Verification:
+  - `node --check backend/server/static/scene_viewer.js`
+  - `pytest tests/test_scene_v2_contract.py -k "scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection or 2d_furniture_plan_coordinates_match_the_visible_image_layer"`
+
 ### Layout / Scene Boundary Contract
 
 - Added `docs/contracts/LAYOUT_SCENE_BOUNDARY_CONTRACT.md` to lock the architecture language:
