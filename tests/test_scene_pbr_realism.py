@@ -256,9 +256,9 @@ def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
     viewer = (
         ROOT / "backend" / "server" / "static" / "scene_viewer.js"
     ).read_text(encoding="utf-8")
-    assert "wallEndpointBordersOpening(endpoint, allOpenings, wallThickness)" in viewer
+    assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in viewer
     assert "new THREE.BoxGeometry(length, 2.5, wallThickness)" in viewer
-    assert "openingWidth + 1.2" in viewer
+    assert "openingWidth + 1.2" not in viewer
     assert "openingWidth + wallThickness * 2.1" not in viewer
 
 
@@ -299,6 +299,37 @@ def test_gap_window_uses_its_own_host_wall_for_surface_material() -> None:
     assert "wallSegmentForOpening(segments, opening, wallThickness)" in viewer
     assert "wallMaterial(hostSegment || segments[0] || {})" in viewer
     assert "wallMaterial(segments[0] || {})" not in viewer
+
+
+def test_gap_window_wall_sections_end_flush_with_the_opening() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ wallSectionSpan }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        console.log(JSON.stringify({{
+          exact: wallSectionSpan(0, 162.52, 162.52),
+          internalSeam: wallSectionSpan(0, 50, 100),
+        }}));
+        """
+    )
+
+    assert result == {
+        "exact": {"from": 0, "to": 162.52},
+        "internalSeam": {"from": 0, "to": 50.6},
+    }
+
+    viewer = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+    wall_builder = viewer.split("function buildSegmentWalls", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+    standalone = viewer.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
+        "function buildStructuralMembers", 1
+    )[0]
+
+    assert "const span = wallSectionSpan(from, to, length)" in wall_builder
+    assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in wall_builder
+    assert "openingWidth + 1.2" not in standalone
 
 
 def test_furniture_roles_receive_distinct_realistic_pbr_parameters() -> None:

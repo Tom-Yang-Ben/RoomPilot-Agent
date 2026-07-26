@@ -18,9 +18,9 @@ import {
   doorOpeningForWallTopology,
   openingBelongsToWall,
   openingWallInterval,
-  wallEndpointBordersOpening,
+  wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-684185a66ae5";
+} from "./scene_architecture.js?v=sha256-f10efe4286e2";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -1133,8 +1133,6 @@ export function createSceneViewer(
     windowSegments = [],
   ) {
     const renderedOpenings = new Set();
-    const renderedJunctions = new Set();
-    const allOpenings = [...doorSegments, ...windowSegments];
 
     segments.forEach((segment) => {
       const start = segment.start;
@@ -1181,13 +1179,9 @@ export function createSceneViewer(
 
       const addWallSection = (from, to, bottom, height, sectionMaterial = material) => {
         if (to - from < 2.5 || height < 2.5) return;
-        const seamOverlap = 0.6;
-        const sectionFrom = from <= 0.1
-          ? from - wallThickness * 0.52
-          : from - seamOverlap;
-        const sectionTo = to >= length - 0.1
-          ? to + wallThickness * 0.52
-          : to + seamOverlap;
+        const span = wallSectionSpan(from, to, length);
+        const sectionFrom = span.from;
+        const sectionTo = span.to;
         const center = (sectionFrom + sectionTo) / 2;
         const wallMesh = new THREE.Mesh(
           new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness),
@@ -1200,20 +1194,6 @@ export function createSceneViewer(
         );
         wallMesh.rotation.y = rotationY;
         roomGroupRef.add(registerWall(wallMesh));
-      };
-
-      const addJunctionCap = (endpoint) => {
-        if (wallEndpointBordersOpening(endpoint, allOpenings, wallThickness)) return;
-        const key = `${Number(endpoint.x).toFixed(2)}:${Number(endpoint.z).toFixed(2)}`;
-        if (renderedJunctions.has(key)) return;
-        renderedJunctions.add(key);
-        const cap = new THREE.Mesh(
-          new THREE.BoxGeometry(wallThickness * 1.08, wallHeight, wallThickness * 1.08),
-          material.clone(),
-        );
-        cap.position.set(Number(endpoint.x), wallHeight / 2, Number(endpoint.z));
-        cap.userData.roompilotArchitecturalDetail = "wall-junction-seal";
-        roomGroupRef.add(registerWall(cap));
       };
 
       const trimMaterial = new THREE.MeshPhysicalMaterial({
@@ -1272,8 +1252,6 @@ export function createSceneViewer(
       });
       addWallSection(cursor, length, 0, wallHeight);
       addBaseboard(cursor, length);
-      addJunctionCap(start);
-      addJunctionCap(end);
 
       const topCap = new THREE.Mesh(
         new THREE.BoxGeometry(length, 2.5, wallThickness),
@@ -1435,7 +1413,7 @@ export function createSceneViewer(
         if (height < 2.5) return;
         const section = new THREE.Mesh(
           new THREE.BoxGeometry(
-            openingWidth + 1.2,
+            openingWidth,
             height,
             wallThickness,
           ),

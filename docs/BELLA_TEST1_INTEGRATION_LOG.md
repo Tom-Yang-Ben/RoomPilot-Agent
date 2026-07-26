@@ -730,3 +730,21 @@ $env:TEMP=$env:TMP
   the plan, list, and 3D scene.
 - Full suite verification: 463 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Flush Wall Ends and Window Openings
+
+- Reproduced the right-facade defect with the exact `window-5` coordinates from
+  project `47abb48d539c46a0afd1fc1acce34add`.
+- Stopped wall sections at their confirmed endpoints instead of extending every
+  segment by half a wall thickness.
+- Removed redundant wall-junction cap meshes that appeared as full-height
+  protruding strips at exposed wall ends.
+- Made standalone window sill and header spans exactly match the detected gap
+  instead of adding 1.2 cm of overlap.
+- Added regression coverage for exact endpoint spans, internal seam overlap,
+  window-gap width, and the absence of junction-cap geometry.
+- Browser verification confirmed the current cache-keyed bundle restores the
+  project and renders the right-side window without the former overlapping wall
+  strip.
+- Full suite verification: 464 passed, 2 skipped.
+- No remote push was performed.

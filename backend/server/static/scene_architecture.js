@@ -171,6 +171,18 @@ export function wallEndpointBordersOpening(
   });
 }
 
+export function wallSectionSpan(from, to, wallLength, seamOverlap = 0.6) {
+  const length = Math.max(0, Number(wallLength) || 0);
+  return {
+    from: Number(from) <= 0.1
+      ? 0
+      : Math.max(0, Number(from) - seamOverlap),
+    to: Number(to) >= length - 0.1
+      ? length
+      : Math.min(length, Number(to) + seamOverlap),
+  };
+}
+
 export function wallSegmentForOpening(
   segments = [],
   opening = {},
