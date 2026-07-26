@@ -150,6 +150,49 @@ def test_loaded_door_candidates_drop_low_confidence_wide_and_duplicate_auto_door
     assert result["removed"] == 3
 
 
+def test_same_wall_parallel_door_edges_become_one_opening() -> None:
+    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ dedupeDoorCandidates }} from {json.dumps(module_uri)};
+        const result = dedupeDoorCandidates([
+          {{
+            id: "door-2",
+            source: "cody_vision",
+            confidence: 1,
+            confirmed: true,
+            host_wall_id: "wall-2",
+            width_cm: 113.41,
+            start: {{x: -9.94, z: 61.39}},
+            end: {{x: -123.35, z: 61.39}},
+          }},
+          {{
+            id: "door-3",
+            source: "cody_vision",
+            confidence: 1,
+            confirmed: true,
+            host_wall_id: "wall-2",
+            width_cm: 104.06,
+            start: {{x: -19.29, z: 111.67}},
+            end: {{x: -123.35, z: 111.67}},
+          }},
+        ]);
+        console.log(JSON.stringify(result));
+        """
+    )
+
+    assert len(result["doors"]) == 1
+    assert result["removed"] == 1
+
+
+def test_restored_scene_data_removes_duplicate_door_segments() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function normalizeSceneDoorSegments(sceneData)" in source
+    assert "dedupeDoorCandidates(sceneData.floorplan.door_segments)" in source
+    assert "normalizeSceneDoorSegments(state.sceneData)" in source
+
+
 def test_dimensioned_plan_draws_colored_room_outlines_and_size_lines() -> None:
     module_uri = (STATIC / "scene_dimensioned_plan.js").as_uri()
     result = run_workflow_script(

@@ -672,3 +672,21 @@ $env:TEMP=$env:TMP
   `47abb48d539c46a0afd1fc1acce34add`.
 - Full suite verification: 458 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Duplicate Same-Wall Door Opening Fix
+
+- Traced the double opening to Cody vision returning two parallel edges for one
+  physical door. Project `47abb48d539c46a0afd1fc1acce34add` stored both
+  `door-2` and `door-3` on `wall-2`, about 50 cm apart with almost completely
+  overlapping spans.
+- Updated door deduplication to support both editor `x/y` and scene `x/z`
+  coordinates and to use the shared `host_wall_id` when merging parallel door
+  edges.
+- Normalized restored `sceneData.floorplan.door_segments` so existing saved
+  projects are repaired on reload instead of requiring scene regeneration.
+- Added regression coverage using the exact saved coordinates of the duplicate
+  `door-2` and `door-3`.
+- Browser verification confirmed the restored project now reports 4 doors,
+  with all 4 confirmed, instead of sending 5 door segments to the 3D renderer.
+- Full suite verification: 460 passed, 2 skipped.
+- No remote push was performed.

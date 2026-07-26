@@ -76,7 +76,7 @@ import {
   dedupeWindowCandidates,
   wallBoundarySide,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=sha256-b5f84b0a67f8";
+} from "./scene_structure_utils.js?v=sha256-ba999cced223";
 import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-2e7650196b86";
 import {
   findStructureWallCollision,
@@ -430,6 +430,13 @@ async function api(url, options = {}) {
 
 function sceneDataFromGenerateResponse(payload) {
   return payload?.scene_json || payload;
+}
+
+function normalizeSceneDoorSegments(sceneData) {
+  if (!sceneData?.floorplan?.door_segments?.length) return 0;
+  const normalized = dedupeDoorCandidates(sceneData.floorplan.door_segments);
+  sceneData.floorplan.door_segments = normalized.doors;
+  return normalized.removed;
 }
 
 function sceneObjectIndexByFurnitureId(furnitureId) {
@@ -9619,6 +9626,8 @@ async function restoreProject() {
     const restoredScheme = activeScheme();
     state.furniture2d = restoredScheme?.furniture || legacyFurniture;
     state.sceneData = normalizeSavedSceneData(restoredScheme?.sceneData) || legacySceneData;
+    const restoredSceneDoorsRemoved = normalizeSceneDoorSegments(state.sceneData);
+    state.doorNormalizationRemoved += restoredSceneDoorsRemoved;
     state.activeStylePackId = serverState.realistic_3d?.activeStylePackId || null;
     state.surfaceState = serverState.realistic_3d?.surfaceState || state.surfaceState;
     state.materialBoundary = serverState.realistic_3d?.materialBoundary || null;
