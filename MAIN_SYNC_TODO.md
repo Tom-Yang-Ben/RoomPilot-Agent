@@ -73,6 +73,8 @@ main 的環境要補齊這條鏈：
 | `numpy` | `>=2.0` | main 應已有 |
 | `ezdxf` | `>=1.3` | DXF 輸出 |
 | `scripts/infer_cubicasa.py` | 隨管線帶過去 | `ensure_cc_masks` 以 subprocess 呼叫，路徑基準 `_SCRIPTS_DIR` |
+| `scripts/symbol_match.py` | 隨管線帶過去（**硬依賴**） | `floorplan2room` 頂層 `import symbol_match`，缺檔直接 ImportError；模板庫 `training/symbol_lib.npz` 缺失時自動停用、不影響運作 |
+| `scripts/apply_cubicasa_patches.py` | 部署時跑一次 | CubiCasa5k 程式庫的 numpy 2.x 相容補丁，checkout 後執行 |
 | floortrans 模型定義 | `training/CubiCasa5k/` 原始碼 checkout | 只用模型定義、不用其 loader；**CC BY-NC** |
 
 **不需要**帶去的：`lmdb`、`scikit-image`、`svgpathtools`——那是 CubiCasa loader／
