@@ -7,6 +7,8 @@ Remote push status: not pushed
 ## Current Local Commits
 
 ```text
+current feat(floorplan): backport django image route profiling
+9f2d7260 docs: record bella-test1 integration status
 9dc25eda feat(floorplan): attach room evaluation debug report
 466c425a feat(floorplan): add cody room evaluation core
 87c14d43 feat(sql): port kai catalog import flow
@@ -55,28 +57,59 @@ Remote push status: not pushed
 - Added polygon-based evaluation so Bella can score existing spatial output before Cody v5 model inference is fully wired.
 - `analyze_floorplan_image(..., evaluation_reference_rooms=...)` now attaches `room_evaluation` when reference room polygons are supplied.
 
+### Django Version4 Image Route Backport
+
+- Reviewed `origin/django` `Final-Project_Version4` and avoided a whole-directory import.
+- Added a lightweight image profile seam for floor-plan uploads:
+  - `color_line_art` -> `color_mask_then_otsu`
+  - `grayscale_line_art` -> `otsu`
+  - `scanned_grayscale` -> `adaptive_threshold_review`
+- `analyze_floorplan_image()` now returns `image_profile` so the API exposes whether a colored drawing is being handled explicitly.
+- Cody image decoding now applies a color/deep-ink mask before the existing grayscale recognition path when the upload is detected as colored line art.
+- Added focused tests for colored line-art and black-line-art profile behavior.
+
 ## Verification
 
-Latest full suite:
+Latest full suite before the Django image-route backport:
 
 ```text
 409 passed, 2 skipped, 3 warnings
 ```
 
-Targeted floorplan suite:
+Targeted floorplan suite before the Django image-route backport:
 
 ```text
 30 passed, 3 warnings
+```
+
+Current verification after the Django image-route backport:
+
+```text
+py_compile passed for:
+- backend/floorplan/vision/image.py
+- backend/floorplan/vision/analysis.py
+- backend/floorplan/cody_adapter.py
+- tests/test_floorplan_vision.py
+```
+
+Runtime pytest is currently blocked in this desktop session:
+
+```text
+python.exe: 指定的登入工作階段不存在
+bundled Python: No module named pytest / cv2
+uv: command not found
 ```
 
 ## Cleanup Notes
 
 - No `.patch`, `.rej`, or `.orig` files are left in the worktree.
 - Backup/source patches were integrated into formal project files only.
-- Worktree was clean after commit `9dc25eda`.
+- Worktree was clean after the Django image-route backport commit.
 
 ## Remaining Work
 
 - Start or install PostgreSQL locally, configure `.env`, run the 10,550 import, and verify live SQL counts.
 - Decide whether to wire Cody v5 inference/weight download into Bella runtime.
 - Use `room_evaluation` with real reference-room fixtures before replacing current room-labeling behavior.
+- Run the focused floorplan pytest suite once the local Python/pytest/cv2 environment is available again.
+- Continue the Django Version4 backport with the door/window band-carve classifier and uncertain/autolabel training-data loop.

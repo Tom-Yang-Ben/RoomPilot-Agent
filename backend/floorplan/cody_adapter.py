@@ -16,20 +16,34 @@ from . import floorplan2dxf as cody
 CONFIG_PATH = Path(__file__).with_name("config.ini")
 
 
-def _decode_image(image_bytes: bytes) -> tuple[np.ndarray, np.ndarray]:
+def _decode_image(image_bytes: bytes) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
+    from .vision.image import profile_floorplan_image
+
     encoded = np.frombuffer(image_bytes, dtype=np.uint8)
     image = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED)
     if image is None:
         raise ValueError("floorplan_image_decode_failed")
     if image.ndim == 2:
-        return image, cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        bgr = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        return image, bgr, profile_floorplan_image(bgr)
     if image.shape[2] == 4:
         bgr = image[:, :, :3]
         alpha = image[:, :, 3].astype(np.float32) / 255
         white = np.full_like(bgr, 255)
         bgr = (bgr * alpha[..., None] + white * (1 - alpha[..., None])).astype(np.uint8)
-        return cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY), bgr
-    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY), image
+    else:
+        bgr = image
+    profile = profile_floorplan_image(bgr)
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    if profile["kind"] == "color_line_art":
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+        saturation = hsv[:, :, 1]
+        value = hsv[:, :, 2]
+        colored_ink = (saturation > 35) & (value < 248)
+        dark_ink = gray < 215
+        ink = np.where(colored_ink | dark_ink, 255, 0).astype(np.uint8)
+        gray = cv2.bitwise_not(ink)
+    return gray, bgr, profile
 
 
 def _point(
@@ -384,7 +398,7 @@ def recognize_cody_geometry(
 ) -> dict[str, Any]:
     """執行 origin/cody 的牆、門、窗演算法並轉成 RoomPilot 公分契約。"""
     cfg = replace(cody.load_config(str(CONFIG_PATH)))
-    gray, _ = _decode_image(image_bytes)
+    gray, _, image_profile = _decode_image(image_bytes)
     if cfg.deskew:
         gray, _ = cody.deskew(gray)
     binary = cody.binarize(gray, cfg)
@@ -682,5 +696,6 @@ def recognize_cody_geometry(
             "wall_count": len(walls),
             "door_count": len(door_items),
             "window_count": len(window_items),
+            "image_profile": image_profile,
         },
     }

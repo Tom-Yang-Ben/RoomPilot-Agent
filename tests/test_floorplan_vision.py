@@ -15,6 +15,7 @@ from backend.floorplan.vision import (
     confirm_floorplan_analysis,
     infer_room_requirements,
 )
+from backend.floorplan.vision.image import decode_image, profile_floorplan_image
 from backend.floorplan.vision.units import canonicalize_analysis_cm
 from backend.floorplan.cody_adapter import _clean_door_items
 
@@ -61,6 +62,36 @@ def _synthetic_floorplan() -> bytes:
     ok, encoded = cv2.imencode(".png", image)
     assert ok
     return encoded.tobytes()
+
+
+def test_image_profile_detects_colored_floorplan_line_art() -> None:
+    image = np.full((160, 220, 3), 255, dtype=np.uint8)
+    cv2.line(image, (20, 30), (200, 30), (255, 0, 0), 3)
+    cv2.line(image, (20, 80), (200, 80), (0, 0, 255), 3)
+    cv2.rectangle(image, (40, 105), (180, 140), (0, 160, 0), 2)
+    ok, encoded = cv2.imencode(".png", image)
+    assert ok
+
+    analysis = analyze_floorplan_image(
+        encoded.tobytes(),
+        calibration_hint={"distance_cm": 220, "start_px": [0, 0], "end_px": [220, 0]},
+        geometry_observations=[
+            {"kind": "wall", "start_px": [20, 30], "end_px": [200, 30]},
+            {"kind": "wall", "start_px": [20, 80], "end_px": [200, 80]},
+        ],
+    )
+
+    assert analysis["image_profile"]["kind"] == "color_line_art"
+    assert analysis["image_profile"]["threshold_route"] == "color_mask_then_otsu"
+    assert analysis["image_profile"]["has_color_signal"] is True
+
+
+def test_image_profile_keeps_black_line_art_on_otsu_route() -> None:
+    profile = profile_floorplan_image(decode_image(_synthetic_floorplan()))
+
+    assert profile["kind"] == "grayscale_line_art"
+    assert profile["threshold_route"] == "otsu"
+    assert profile["has_color_signal"] is False
 
 
 def test_analyze_floorplan_image_calibrates_630_cm_dimension() -> None:
