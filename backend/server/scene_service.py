@@ -526,6 +526,9 @@ _BED_CONFLICT_TOKENS = (
 )
 _BED_IDENTITY_TOKENS = (
     "bed frame",
+    "loft bed",
+    "day-bed",
+    "daybed",
     "upholstered bed",
     "storage bed",
     "double bed",
@@ -557,7 +560,8 @@ def catalog_item_matches_type_semantics(item: dict[str, Any], requested_type: st
         height = float(size.get("height") or 0)
     except (TypeError, ValueError):
         height = 0
-    return height <= 150
+    maximum_height = 240 if "loft bed" in name_text else 150
+    return height <= maximum_height
 
 
 def selected_furniture_items_from_questionnaire(

@@ -99,6 +99,37 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             ), f"{importer_name} has a stale cache key for {dependency_name}"
 
 
+def test_space_save_does_not_duplicate_furniture_or_scene_payloads() -> None:
+    module_uri = (STATIC / "scene_design_schemes.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ compactDesignSchemesForSpace }} from {json.dumps(module_uri)};
+        const compact = compactDesignSchemesForSpace({{
+          schema_version: 1,
+          active_scheme_id: "A",
+          locked_scheme_id: null,
+          schemes: {{
+            A: {{
+              id: "A",
+              kind: "baseline",
+              label: "方案 A",
+              furniture: [{{ id: "chair-1" }}],
+              sceneData: {{ surface_catalog: {{ huge: true }} }},
+              stale: false,
+              staleReason: "",
+            }},
+          }},
+        }});
+        console.log(JSON.stringify(compact));
+        """
+    )
+
+    assert result["active_scheme_id"] == "A"
+    assert result["schemes"]["A"]["kind"] == "baseline"
+    assert result["schemes"]["A"]["furniture"] == []
+    assert result["schemes"]["A"]["sceneData"] is None
+
+
 def test_loaded_door_candidates_drop_low_confidence_wide_and_duplicate_auto_doors() -> None:
     module_uri = (STATIC / "scene_structure_utils.js").as_uri()
     result = run_workflow_script(
@@ -1999,10 +2030,13 @@ def test_ceiling_and_light_choices_create_distinct_three_geometry() -> None:
     assert "keyLight.shadow.mapSize.set(shadowMapSize, shadowMapSize)" in viewer
 
 
-def test_viewer_never_silently_drops_missing_furniture_and_lock_keeps_zoom() -> None:
+def test_viewer_reports_missing_glbs_without_rendering_white_fallbacks() -> None:
     source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
-    assert "createFallbackFurnitureProxy" in source
+    load_scene = source.split("async function loadScene", 1)[1].split(
+        "let lastSceneData", 1
+    )[0]
+    assert "createFallbackFurnitureProxy(item, index, reason)" not in load_scene
     assert "if (item.placement_failed)" in source
     assert "家具位置無法通過碰撞與淨空檢查" in source
     assert "visibleFurnitureCount" in source
@@ -2048,7 +2082,7 @@ def test_3d_view_controls_offer_full_model_and_perspective_free_rotation() -> No
     assert 'data-real-view-mode="orbit"' in html
     assert 'data-proposal-view-mode="orbit"' in html
     assert html.count("自由旋轉") >= 3
-    assert "全屋白模" in html
+    assert "全屋家具配置" in html
     assert 'data-real-view-mode="dollhouse"' not in html
     assert 'data-proposal-view-mode="dollhouse"' not in html
     assert 'whiteViewer.setViewMode("dollhouse")' in controller

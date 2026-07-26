@@ -3107,9 +3107,8 @@ export function createSceneViewer(
         return;
       }
       const reason = item.model_url
-          ? "GLB 載入失敗，已顯示同尺寸白色替代物"
-          : "資料庫找不到 GLB，已顯示同尺寸白色替代物";
-      createFallbackFurnitureProxy(item, index, reason);
+          ? "GLB 載入失敗，請檢查資料庫模型權限或網址"
+          : "資料庫尚未提供 GLB";
       lastDiagnostics.failedFurniture.push({
         id: item.furniture_id,
         reason,

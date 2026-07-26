@@ -144,6 +144,17 @@ def test_upholstered_storage_bed_is_still_a_real_bed() -> None:
     ) is True
 
 
+def test_full_size_loft_bed_is_still_a_real_bed() -> None:
+    assert catalog_item_matches_type_semantics(
+        {
+            "normalized_type": "bed",
+            "name_en": "Dcraft Berdine Metal Loft Bed, Full Size",
+            "size_cm": {"width": 199.4, "depth": 200, "height": 200},
+        },
+        "bed",
+    ) is True
+
+
 def test_walk_camera_is_clamped_inside_room_and_topdown_has_plan_labels() -> None:
     result = run_workflow_script(
         f"""

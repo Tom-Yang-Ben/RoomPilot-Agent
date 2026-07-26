@@ -322,9 +322,17 @@ export function furnitureFootprintStyle(item, pixelsPerCm) {
 
 export function toSceneFurniture(item, { positionLocked = true } = {}) {
   return {
-    furniture_id: item.catalogFurnitureId || item.id,
+    furniture_id: item.id,
+    catalog_furniture_id: item.catalogFurnitureId || null,
     normalized_type: item.type,
     name_zh_raw: item.label,
+    model_url: item.model_url || null,
+    has_model: Boolean(item.model_url),
+    primary_style: item.primaryStyle || null,
+    color: item.catalogColor || null,
+    material: item.catalogMaterial || null,
+    selection_source: item.selectionSource || null,
+    match_reason: item.catalogMatchReason || item.reason || null,
     size_cm: {
       width: item.widthCm,
       depth: item.depthCm,

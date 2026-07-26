@@ -50,6 +50,21 @@ export function normalizeDesignSchemes(saved = {}, legacy = {}) {
   };
 }
 
+export function compactDesignSchemesForSpace(designSchemes = {}) {
+  const compact = clone(designSchemes) || {};
+  compact.schemes = Object.fromEntries(
+    Object.entries(compact.schemes || {}).map(([id, scheme]) => [
+      id,
+      {
+        ...scheme,
+        furniture: [],
+        sceneData: null,
+      },
+    ]),
+  );
+  return compact;
+}
+
 export function hasRenovationChanges(structures = {}) {
   const walls = structures.walls || [];
   if (walls.some((wall) => wall.demolition_candidate === true)) return true;

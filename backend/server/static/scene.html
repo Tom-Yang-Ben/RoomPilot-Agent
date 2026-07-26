@@ -547,7 +547,7 @@
 
       <section id="white-model-3d-step" class="rp-step-panel" data-panel="white-model-3d" hidden>
         <div class="rp-scheme-toolbar">
-          <div class="rp-segmented" role="tablist" aria-label="3D 白模方案">
+          <div class="rp-segmented" role="tablist" aria-label="3D 家具配置方案">
             <button type="button" data-design-scheme="A" class="is-active">方案 A</button>
             <button type="button" data-design-scheme="B" hidden>方案 B</button>
           </div>
@@ -557,7 +557,7 @@
           <div class="rp-viewer-pane">
             <div class="rp-viewer-toolbar">
               <div class="rp-segmented" aria-label="3D 視角">
-                <button type="button" data-view-mode="dollhouse" class="is-active">全屋白模</button>
+                <button type="button" data-view-mode="dollhouse" class="is-active">全屋家具配置</button>
                 <button type="button" data-view-mode="orbit">自由旋轉</button>
                 <button type="button" data-view-mode="topdown">正俯視</button>
                 <button type="button" data-view-mode="walk">室內透視</button>
@@ -567,8 +567,8 @@
                 <button type="button" data-white-interaction="edit">編輯家具</button>
               </div>
             </div>
-            <div id="white-model-viewer" class="rp-three-viewer" aria-label="3D 白模與家具"></div>
-            <p id="white-model-status" class="rp-viewer-status">正在準備 3D 白模。</p>
+            <div id="white-model-viewer" class="rp-three-viewer" aria-label="3D 資料庫家具配置"></div>
+            <p id="white-model-status" class="rp-viewer-status">正在準備資料庫家具配置。</p>
           </div>
           <aside class="rp-control-pane rp-3d-sidebar">
             <section id="configuration-plan-panel" class="rp-configuration-plan" aria-labelledby="configuration-plan-title">
@@ -625,7 +625,7 @@
             </section>
             <div class="rp-check-row"><input id="specified-furniture-reviewed" type="checkbox" /><label for="specified-furniture-reviewed">我已確認是否有指定家具需求</label></div>
             <p id="white-model-error" class="rp-field-error" aria-live="polite"></p>
-            <button id="confirm-white-model" type="button" class="primary-action">確認白模並進入即時寫實</button>
+            <button id="confirm-white-model" type="button" class="primary-action">確認家具配置並進入即時寫實</button>
           </aside>
         </div>
       </section>
@@ -817,6 +817,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-a19f7330a978"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-51b900c36d05"></script>
   </body>
 </html>

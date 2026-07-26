@@ -577,3 +577,42 @@ $env:TEMP=$env:TMP
   whole-model view.
 - Full suite verification: 447 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-26 Questionnaire RAG Catalog Furniture in Step 6
+
+- Moved catalog retrieval ahead of the furniture selection Agent so Step 5
+  questionnaire data now selects actual database GLBs before Step 6 placement.
+- Ranked candidates per room using the selected style card, palette, furniture
+  material language, requested footprint, and semantic product-name checks.
+- Preserved the database furniture id, GLB URL, match reason, room assignment,
+  and stable local scene id through 2D layout and 3D generation.
+- Added type routes for dirty or split catalog taxonomies, including real sofa
+  families, bathroom storage, mirror cabinets, refrigerators, and washers.
+- Added `/api/appliances` without changing the official 9,350-furniture
+  contract. The endpoint reads the 10,550 combined Kai catalog and verifies
+  appliance assets against the matching 10,550-row upload manifest.
+- Browser verification confirmed all 14 generated 2D items carried database
+  GLBs, including a LAGAN refrigerator, UDDARP washer/dryer, HEMNES mirror
+  cabinet, and a full-size sofa rather than the previous wrong-type chair.
+- Allowed real loft-bed models to keep their catalog height instead of being
+  rejected by the standard low-bed height guard. The final 2D/3D markers are
+  now unique and continuous from 1 through 14.
+- Removed runtime white-box fallback rendering. Missing or inaccessible GLBs
+  are now listed as blocking Step 6 items and prevent progression.
+- Compacted `space_confirmation.design_schemes` so it no longer duplicates the
+  complete furniture list and 3D scene payload. The restored test project
+  dropped from about 1.05 million serialized characters to about 118 thousand
+  without losing its Step 6 furniture.
+- Final browser verification rendered 12 of 14 real catalog GLBs. The two AWS
+  appliance failures appeared in the pending list, no white fallback was
+  created, and progression to Step 7 remained disabled.
+- External blocker discovered during live verification:
+  - the Kai manifest marks the tested appliance uploads as uploaded
+  - both CloudFront and direct S3 URLs for the refrigerator and washer return
+    HTTP 403
+  - the repository and inspected Kai/Django branches do not contain the
+    original local appliance GLB files
+  - AWS object/distribution access must be corrected before those two assets
+    can render; the UI now reports this instead of showing white models
+- Full suite verification: 454 passed, 2 skipped.
+- No remote push was performed.
