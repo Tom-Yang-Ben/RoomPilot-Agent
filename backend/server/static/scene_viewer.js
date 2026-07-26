@@ -14,7 +14,10 @@ import {
   surfacePbrProfile,
   surfaceTint,
 } from "./scene_pbr_contracts.js?v=20260720-real3d15";
-import { openingBelongsToWall } from "./scene_architecture.js?v=sha256-ef897a9c0e59";
+import {
+  openingBelongsToWall,
+  openingWallInterval,
+} from "./scene_architecture.js?v=sha256-1abc31675a8f";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -1149,39 +1152,25 @@ export function createSceneViewer(
       const openingIntervals = [...doorSegments.map((opening) => ({ opening, kind: "door" })),
         ...windowSegments.map((opening) => ({ opening, kind: "window" }))]
         .map(({ opening, kind }, index) => {
-          if (!openingBelongsToWall(segment, opening, wallThickness)) return null;
-          const openingStart = opening.start || {};
-          const openingEnd = opening.end || {};
-          const centerX = (Number(openingStart.x || 0) + Number(openingEnd.x || 0)) / 2;
-          const centerZ = (Number(openingStart.z || 0) + Number(openingEnd.z || 0)) / 2;
-          const relX = centerX - Number(start.x);
-          const relZ = centerZ - Number(start.z);
-          const along = relX * unitX + relZ * unitZ;
-          const perpendicular = Math.abs(relX * -unitZ + relZ * unitX);
-          if (perpendicular > Math.max(28, wallThickness * 2.4)) return null;
-          const measuredWidth = Math.hypot(
-            Number(openingEnd.x || 0) - Number(openingStart.x || 0),
-            Number(openingEnd.z || 0) - Number(openingStart.z || 0),
-          );
-          const width = Math.max(
-            Number(opening.width_cm || opening.width || measuredWidth)
-              || (kind === "door" ? 90 : 120),
+          const wallInterval = openingWallInterval(
+            segment,
+            opening,
+            wallThickness,
             kind === "door" ? 68 : 50,
           );
-          const from = Math.max(0, along - width / 2);
-          const to = Math.min(length, along + width / 2);
-          if (to - from < 24) return null;
+          if (!wallInterval) return null;
           const windowMetrics = kind === "window"
             ? windowOpeningMetrics(opening, wallHeight)
             : null;
           return {
-            from,
-            to,
+            from: wallInterval.from,
+            to: wallInterval.to,
             kind,
-            width: to - from,
+            width: wallInterval.width,
             opening,
             windowMetrics,
-            key: opening.id || `${kind}-${index}-${centerX.toFixed(2)}-${centerZ.toFixed(2)}`,
+            key: opening.id
+              || `${kind}-${index}-${wallInterval.centerX.toFixed(2)}-${wallInterval.centerZ.toFixed(2)}`,
           };
         })
         .filter(Boolean)
@@ -1296,6 +1285,26 @@ export function createSceneViewer(
       topCap.receiveShadow = true;
       roomGroupRef.add(topCap);
     });
+
+    const missingDoors = doorSegments.filter((opening) => !segments.some(
+      (segment) => openingWallInterval(segment, opening, wallThickness, 68),
+    ));
+    const missingWindows = windowSegments.filter((opening) => !segments.some(
+      (segment) => openingWallInterval(segment, opening, wallThickness, 50),
+    ));
+    if (missingDoors.length || missingWindows.length) {
+      const standaloneWallMaterial = typeof wallMaterial === "function"
+        ? wallMaterial(segments[0] || {})
+        : wallMaterial;
+      buildStandaloneOpeningAssemblies(
+        roomGroupRef,
+        missingDoors,
+        missingWindows,
+        standaloneWallMaterial,
+        wallHeight,
+        wallThickness,
+      );
+    }
   }
 
   function buildOpeningAssembly(roomGroupRef, interval, anchor) {

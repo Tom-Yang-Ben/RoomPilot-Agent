@@ -529,3 +529,19 @@ $env:TEMP=$env:TMP
   door leaves now fold along the wall instead of crossing the room at an angle.
 - Full suite verification: 443 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-26 Split-Wall Window Rendering
+
+- Confirmed that the restored project retained five `window_segments`, including
+  one `floor_to_ceiling` window; the loss happened only in 3D rendering.
+- Added a shared wall-interval check that distinguishes openings embedded in one
+  wall segment from openings already represented as gaps between split walls.
+- Added standalone 3D assemblies for unmatched gap openings so their frame,
+  glazing, sill, and header are generated instead of silently skipped.
+- Preserved `sill_height_cm: 0` and `height_cm` for floor-to-ceiling windows.
+- Added regression coverage using the restored project's split `wall-6` and
+  `window-1` geometry.
+- Browser-verified visible window frames and glazing in the restored whole-model
+  view.
+- Full suite verification: 445 passed, 2 skipped.
+- No remote push was performed.

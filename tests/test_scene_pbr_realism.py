@@ -114,6 +114,52 @@ def test_openings_only_cut_their_confirmed_host_wall() -> None:
     assert result == {"host": True, "adjacent": False}
 
 
+def test_gap_window_has_no_usable_span_inside_the_split_host_wall() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ openingWallInterval }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const splitHostWall = {{
+          id: "wall-6",
+          start: {{ x: -11.11, z: -524.4 }},
+          end: {{ x: 171.3, z: -524.4 }},
+        }};
+        const floorWindow = {{
+          id: "window-1",
+          host_wall_id: "wall-6",
+          start: {{ x: 171.3, z: -524.4 }},
+          end: {{ x: 308.1, z: -524.4 }},
+          width_cm: 136.8,
+          sill_height_cm: 0,
+          height_cm: 262,
+        }};
+        const embeddedWindow = {{
+          id: "window-embedded",
+          host_wall_id: "wall-6",
+          start: {{ x: 20, z: -524.4 }},
+          end: {{ x: 120, z: -524.4 }},
+          width_cm: 100,
+        }};
+        console.log(JSON.stringify({{
+          gap: openingWallInterval(splitHostWall, floorWindow, 12, 50),
+          embedded: openingWallInterval(splitHostWall, embeddedWindow, 12, 50),
+        }}));
+        """
+    )
+
+    assert result["gap"] is None
+    assert abs(result["embedded"]["to"] - result["embedded"]["from"] - 100) < 1e-9
+
+
+def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
+    viewer = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+
+    assert "const missingWindows = windowSegments.filter" in viewer
+    assert "openingWallInterval(segment, opening, wallThickness, 50)" in viewer
+    assert "missingDoors,\n        missingWindows," in viewer
+
+
 def test_furniture_roles_receive_distinct_realistic_pbr_parameters() -> None:
     result = run_workflow_script(
         f"""
