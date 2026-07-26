@@ -9,8 +9,8 @@ DXF 內的家具通常是散開的原始幾何（LINE/ARC/CIRCLE/ELLIPSE），�
 3. 依連通元件範圍把實體分群，逐群以向量重新渲染成固定尺寸 PNG
 
 用法：
-    python scripts/dxf2png_pieces.py Asset/furniture/dinner_table.dxf \
-        -o Asset/furniture/dinner_table_png --size 512 --gap 120
+    python scripts/dxf2png_pieces.py testdata/Asset/furniture/dinner_table.dxf \
+        -o testdata/Asset/furniture/dinner_table_png --size 512 --gap 120
 """
 
 import argparse

@@ -1,6 +1,6 @@
 """pack_finetune_data.py — 路線圖 C：打包微調資料 zip。
 
-內容：Identify_ans/own_dataset 43 張（管線草稿→人工修正後）＋ hq_arch train 前 300
+內容：testdata/Identify_ans/own_dataset 43 張（管線草稿→人工修正後）＋ hq_arch train 前 300
 樣本（防災難性遺忘）＋混合清單（own 行 ×3 過採樣，直混會被 300 張淹沒）。
 own_val.txt 僅作訓練監控；正式驗收永遠走路線 A 的 val/test 評分集。
 
@@ -14,7 +14,7 @@ import zipfile
 
 DATA = "training/CubiCasa5k/data/cubicasa5k"
 SUBSET = "high_quality_architectural"
-OWN = "Identify_ans/own_dataset"
+OWN = "testdata/Identify_ans/own_dataset"
 STAGE = "training/finetune_data"
 
 

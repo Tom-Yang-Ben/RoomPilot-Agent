@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""eval_cc_masks.py — CubiCasa 牆遮罩對 Identify_ans/pngans/color/ 答案的像素級評分。
+"""eval_cc_masks.py — CubiCasa 牆遮罩對 testdata/Identify_ans/pngans/color/ 答案的像素級評分。
 
 與 eval_color_walls.py 同一套指標(精準率/召回率/IoU)，但評的是
 cubicasa/color/<名>_mask.npz 的 wall 遮罩(原圖尺寸)，不經過矩形化——
@@ -18,7 +18,7 @@ import sys
 import cv2
 import numpy as np
 
-ANS_DIR = "Identify_ans/pngans/color"
+ANS_DIR = "testdata/Identify_ans/pngans/color"
 MASK_DIR = "cubicasa/color"
 ANS_BGR = np.array([21, 0, 136], np.int16)
 TOL = 40

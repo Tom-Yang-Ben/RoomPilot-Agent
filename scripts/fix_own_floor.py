@@ -9,7 +9,7 @@
 別名轉換：Terrace→Outdoor、Study→Office、Entrance→Entry；WashRoom 獨立 class
 （house.py 需先套 apply_cubicasa_patches.py 的 WashRoom 補丁）。
 
-用法：python scripts/fix_own_floor.py Identify_ans/own_dataset/floor03 \
+用法：python scripts/fix_own_floor.py testdata/Identify_ans/own_dataset/floor03 \
         [--backup-dir DIR] [--render-dir DIR] [--dry-run]
 產出：修復 model.svg（先備份）＋ House 視角渲染圖（人工驗收用）
 """

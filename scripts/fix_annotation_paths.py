@@ -1,6 +1,6 @@
 """fix_annotation_paths.py — 修復 Inkscape 編輯後的標注 SVG。
 
-Inkscape 手修 Identify_ans/own_dataset/*/model.svg 時，房間（Space）或牆（Wall/Railing）
+Inkscape 手修 testdata/Identify_ans/own_dataset/*/model.svg 時，房間（Space）或牆（Wall/Railing）
 群組裡的 <polygon> 可能被改存成 <path> 或 <rect>（矩形工具、路徑編輯都會），
 縮放/移動則會存成群組或形狀上的 transform="matrix(...)" 屬性。
 CubiCasa 的 House 解析器只認 <polygon> 子節點且完全忽略 transform——
@@ -11,7 +11,7 @@ CubiCasa 的 House 解析器只認 <polygon> 子節點且完全忽略 transform�
 
 用法：python scripts/fix_annotation_paths.py [--check] [--dir DIR]
     --check 只掃描回報，不寫檔
-    --dir   標注根目錄（預設 Identify_ans/own_dataset；own_eval 審定後亦須跑）
+    --dir   標注根目錄（預設 testdata/Identify_ans/own_dataset；own_eval 審定後亦須跑）
 """
 import argparse
 import glob
@@ -203,7 +203,7 @@ def fix_svg(svg_path, check_only):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--check", action="store_true", help="只掃描不寫檔")
-    ap.add_argument("--dir", default="Identify_ans/own_dataset",
+    ap.add_argument("--dir", default="testdata/Identify_ans/own_dataset",
                     help="標注根目錄（own_eval 審定後亦須跑）")
     a = ap.parse_args()
 

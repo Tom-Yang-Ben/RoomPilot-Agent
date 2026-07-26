@@ -6,7 +6,7 @@
 --own-eval --gt-seg 同一批 GT 房間，分數可直接對比。
 
 用法：python scripts/probe_room_classifier.py [--crops training/room_crops]
-輸出：json/eval_rooms/report_own_crops_dinov2.json
+輸出：training/json/eval_rooms/report_own_crops_dinov2.json
 """
 import argparse
 import json
@@ -91,7 +91,7 @@ def main():
     ap.add_argument("--backbone", default="dinov2_vits14",
                     help="dinov2_vits14 / dinov2_vitb14 / dinov2_vitl14")
     ap.add_argument("--report",
-                    default="json/eval_rooms/report_own_crops_dinov2.json")
+                    default="training/json/eval_rooms/report_own_crops_dinov2.json")
     a = ap.parse_args()
 
     manifest = json.load(open(os.path.join(a.crops, "manifest.json")))

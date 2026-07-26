@@ -4,7 +4,7 @@
   - detect_doors 弧偵測的候選天花板 recall 僅 0.189（86 門連候選都沒有）
   - floorplan2room.build_rooms 的門位 zones（牆端連線封口推理）實測
     recall 0.877、precision 0.798——管線裡早就有高召回門位來源，只是
-    從未接進 json/gray 的 doors 清單
+    從未接進 training/json/gray 的 doors 清單
   - 門樣式模板（door_lib.npz）對 zone 真假無區分力（真門 zone 的門扇
     窗被牆線污染，chamfer 中位 2.14 vs 假門 2.06）——因此 zone 提名
     不做模板加減分；模板訊號只用在 door_match.py 的弧候選重評分
@@ -12,7 +12,7 @@
 每個 zone → doors 新增一筆：score=0（非弧吻合）、score_fused=ZONE_SCORE、
 src="zone"。原候選一律不動；可重複執行（先清舊 src="zone"/"tpl"）。
 
-用法：python scripts/door_propose.py [名 ...]     # 預設掃 json/gray/*.json
+用法：python scripts/door_propose.py [名 ...]     # 預設掃 training/json/gray/*.json
 """
 import argparse
 import contextlib
@@ -26,7 +26,7 @@ import numpy as np
 
 _scripts = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _scripts)
-sys.path.insert(0, os.path.dirname(_scripts))   # floorplan2room 在專案根
+sys.path.insert(0, os.path.join(os.path.dirname(_scripts), "backend", "floorplan"))   # 管線模組在 backend/floorplan/
 
 ZONE_SCORE = 0.88   # 高於白模端 0.85 門檻、低於弧偵測滿分——來源可回溯
 DEDUP = 0.6         # 與既有高分候選的去重距離（相對 zone 長邊）
@@ -83,8 +83,8 @@ def rebuild_file(jpath, png_dir):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("names", nargs="*", help="圖名（不含副檔名）；預設全部")
-    ap.add_argument("--png-dir", default="png")
-    ap.add_argument("--json-dir", default="json/gray")
+    ap.add_argument("--png-dir", default="testdata/png")
+    ap.add_argument("--json-dir", default="training/json/gray")
     a = ap.parse_args()
 
     jpaths = ([os.path.join(a.json_dir, n + ".json") for n in a.names]

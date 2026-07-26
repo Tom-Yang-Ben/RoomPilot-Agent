@@ -110,7 +110,7 @@ def validate(svg_path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset", default="Identify_ans/own_dataset")
+    ap.add_argument("--dataset", default="testdata/Identify_ans/own_dataset")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-validate", action="store_true")
     a = ap.parse_args()

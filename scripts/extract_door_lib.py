@@ -1,14 +1,14 @@
 """extract_door_lib.py — 門樣式模板庫（路線 B 符號救援的門版本，一次性）。
 
-Asset/door/ 是人工剪裁的各類型門圖示（白底黑線，type01~type12，含雙開/
+testdata/Asset/door/ 是人工剪裁的各類型門圖示（白底黑線，type01~type12，含雙開/
 單開/摺疊等樣式）。本腳本把它們正規化成與 symbol_lib.npz 同規格的 48×48
 線稿模板：實心牆段轉輪廓線（查詢側同樣處理才公平）、bbox 裁切置中、
 8 向變體（4 旋轉 × 鏡射）展開後去重，存 door_lib.npz。
 
 用途：door_match.py 對主管線的門候選做模板比對，救回弧吻合度低於
-0.85 但樣式明確的真門（見 json/gray 的 score_fused 欄位）。
+0.85 但樣式明確的真門（見 training/json/gray 的 score_fused 欄位）。
 
-用法：python scripts/extract_door_lib.py [--src Asset/door] [--out door_lib.npz]
+用法：python scripts/extract_door_lib.py [--src testdata/Asset/door] [--out door_lib.npz]
 """
 import argparse
 import glob
@@ -54,7 +54,7 @@ def variants(t):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--src", default="Asset/door")
+    ap.add_argument("--src", default="testdata/Asset/door")
     ap.add_argument("--out", default="training/door_lib.npz")
     a = ap.parse_args()
 

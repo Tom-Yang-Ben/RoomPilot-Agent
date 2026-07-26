@@ -23,10 +23,12 @@ cubicasa/room/*_cc.png
 # 換機：整包 training.zip 搬運解壓即可
 # （人工答案在 Identify_ans/ 進版控；語意快取 cubicasa/ npz 進版控供雙機同步）
 training/
+VibeCoding_Workflow_Templates/
 training.zip
 cubicasa/room_ft/
 # 微調權重留專案根本地使用（200M 超 GitHub 100MB 限制），換機用 Drive/隨身碟帶
 /model_finetuned_*.pkl
+/backend/floorplan/model_finetuned_*.pkl
 /cubicasa5k.zip
 
 # 工作暫存（漏門裁圖、未標房間標示圖等除錯產物）

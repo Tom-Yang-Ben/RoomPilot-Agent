@@ -9,7 +9,7 @@ flood fill，自動長出乾淨房間輪廓；既有楔形只當「標籤指針�
 幾何全自動、語意沿用人工審定；Space 群組的 class 與數量不變，只換
 polygon 座標。
 
-用法：python scripts/rebuild_room_gt.py [--dir Identify_ans/own_eval]
+用法：python scripts/rebuild_room_gt.py [--dir testdata/Identify_ans/own_eval]
       [--check]（只回報不寫檔）
 """
 import argparse
@@ -150,7 +150,7 @@ def rebuild_floor(svg_path, img_path, check_only):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--dir", default="Identify_ans/own_eval")
+    ap.add_argument("--dir", default="testdata/Identify_ans/own_eval")
     ap.add_argument("--check", action="store_true", help="只回報不寫檔")
     a = ap.parse_args()
 

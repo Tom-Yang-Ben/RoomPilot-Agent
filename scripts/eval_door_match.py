@@ -1,7 +1,7 @@
 """eval_door_match.py — 門候選評分：score vs score_fused 的 A/B（26 題 own GT）。
 
-GT = Identify_ans/own_dataset/<名>/model.svg 的 Door quad（人工校正過）。
-候選 = json/gray/<名>.json 的 doors（跑過 door_match.py 後含 score_fused）。
+GT = testdata/Identify_ans/own_dataset/<名>/model.svg 的 Door quad（人工校正過）。
+候選 = training/json/gray/<名>.json 的 doors（跑過 door_match.py 後含 score_fused）。
 
 配對規則：候選鉸鏈點落在 GT quad（外擴 TOL px）內。
 對每個門檻策略（score ≥ 0.85 / score_fused ≥ 0.85）算：
@@ -43,9 +43,9 @@ def gt_quads(svg_path):
 def evaluate(thr, tol, key):
     tp = fp = 0
     gt_total = gt_hit = 0
-    for svg_path in sorted(glob.glob("Identify_ans/own_dataset/*/model.svg")):
+    for svg_path in sorted(glob.glob("testdata/Identify_ans/own_dataset/*/model.svg")):
         name = os.path.basename(os.path.dirname(svg_path))
-        jpath = os.path.join("json/gray", name + ".json")
+        jpath = os.path.join("training/json/gray", name + ".json")
         if not os.path.isfile(jpath):
             continue
         quads = gt_quads(svg_path)

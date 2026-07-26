@@ -6,9 +6,9 @@ CubiCasa5k model.svg 的 Space 多邊形當 ground truth，對 floorplan2room
 樣本：val/test 的 high_quality_architectural 單層樓樣本（train 留給微調）。
 用法：python eval_rooms_cc.py [--n-test 40] [--n-val 30] [--smoke N] [--thr 0.5]
       [--gt-seg]（GT 分割解耦：GT 多邊形當房間，只評房型辨識層）
-      [--own-eval]（own 風格量尺：Identify_ans/own_eval 12 題保留集當 GT，
+      [--own-eval]（own 風格量尺：testdata/Identify_ans/own_eval 12 題保留集當 GT，
                     此集永不進訓練，微調 A/B 驗收在產品風格上的可信分數）
-輸出：json/eval_rooms/report[_own][_gtseg].json、
+輸出：training/json/eval_rooms/report[_own][_gtseg].json、
       training/eval_rooms/chk/<id>_{gt,pred,gtpred}.png
 """
 import argparse
@@ -24,14 +24,14 @@ import numpy as np
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(_ROOT, "training/CubiCasa5k"))
-sys.path.insert(0, _ROOT)              # floorplan2room 在專案根目錄
+sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))  # 管線模組在 backend/floorplan/
 
 DATA = "training/CubiCasa5k/data/cubicasa5k"
 SUBSET = "high_quality_architectural"
-OWN_DIR = "Identify_ans/own_eval"
+OWN_DIR = "testdata/Identify_ans/own_eval"
 IN_DIR = "training/eval_rooms/input"
 CHK_DIR = "training/eval_rooms/chk"
-REPORT = "json/eval_rooms/report.json"
+REPORT = "training/json/eval_rooms/report.json"
 CLASSES = ["kitchen", "living", "bed", "bath", "entry",
            "storage", "garage", "outdoor", "space"]
 
@@ -243,7 +243,7 @@ def main():
     ap.add_argument("--gt-seg", action="store_true",
                     help="GT 分割解耦：GT 多邊形當房間，只評房型辨識層")
     ap.add_argument("--own-eval", action="store_true",
-                    help="own 風格量尺：Identify_ans/own_eval 12 題保留集當 GT")
+                    help="own 風格量尺：testdata/Identify_ans/own_eval 12 題保留集當 GT")
     a = ap.parse_args()
     report_path = report_path_for(a.own_eval, a.gt_seg)
 

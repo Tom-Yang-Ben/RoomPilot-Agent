@@ -18,10 +18,10 @@ import numpy as np
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(_ROOT, "training/CubiCasa5k"))
-sys.path.insert(0, _ROOT)
+sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))
 
-SETS = [("train", "Identify_ans/own_dataset", "own_train.txt"),
-        ("test", "Identify_ans/own_eval", "eval_list.txt")]
+SETS = [("train", "testdata/Identify_ans/own_dataset", "own_train.txt"),
+        ("test", "testdata/Identify_ans/own_eval", "eval_list.txt")]
 
 
 def norm_label(k):

@@ -3,13 +3,13 @@
 """
 eval_color_walls.py — 彩色管線「牆體(含建築基柱)」偵測評分
 
-答案集 Identify_ans/pngans/color/{名稱}_ans.png：在原圖(或管線的 2 倍放大圖)上，
+答案集 testdata/Identify_ans/pngans/color/{名稱}_ans.png：在原圖(或管線的 2 倍放大圖)上，
 用純色 RGB(136, 0, 21) 實心塗出牆與建築基柱。
 本腳本抽出標註遮罩，與 floorplan2dxf_color.detect_walls() 輸出的牆矩形
 (含基柱) rasterize 後做像素級比對；ans 與管線處理尺寸不同時自動縮放。
 
 用法:
-    python3 eval_color_walls.py                    (跑 Identify_ans/pngans/color/ 全部)
+    python3 eval_color_walls.py                    (跑 testdata/Identify_ans/pngans/color/ 全部)
     python3 eval_color_walls.py color_floor_01     (只跑指定幾張)
     python3 eval_color_walls.py --vis              (另存差異圖 training/chk/color/eval_*.png)
 
@@ -27,10 +27,12 @@ import sys
 import cv2
 import numpy as np
 
+sys.path.insert(0, os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend", "floorplan"))
 import floorplan2dxf_color as fc
 
-ANS_DIR = "Identify_ans/pngans/color"
-PNG_DIR = "color_png"
+ANS_DIR = "testdata/Identify_ans/pngans/color"
+PNG_DIR = "testdata/color_png"
 ANS_BGR = np.array([21, 0, 136], np.int16)   # 標註純色 RGB(136,0,21) 的 BGR
 TOL = 40                                     # 每通道容差(防壓縮/重存色偏)
 
