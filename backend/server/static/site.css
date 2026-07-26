@@ -10669,7 +10669,14 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   color: #68645e;
 }
 
-.rp-questionnaire-heading > strong {
+.rp-questionnaire-heading-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rp-questionnaire-heading-actions > strong {
   flex: 0 0 auto;
   padding-left: 16px;
   border-left: 3px solid #2b725f;
@@ -11336,6 +11343,12 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   .rp-questionnaire-section-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .rp-questionnaire-heading-actions {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column-reverse;
   }
 
   .rp-test2-profile-grid,

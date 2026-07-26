@@ -396,3 +396,15 @@ $env:TEMP=$env:TMP
   - run a real CubiCasa inference smoke test once weights/script/runtime are present
 - Continue the Django Version4 backport with the torch CNN opening classifier and uncertain/autolabel training-data loop only after the deterministic band-carve path is stable on more real samples.
 - Integrate Kai S3/GLB management scripts only after Django/Cody floor-plan recognition work is verified.
+
+## 2026-07-26 Requirements Test Shortcut
+
+- Added a `隨機需求` button to the requirements step so test runs can quickly fill the whole questionnaire and jump to the summary stage.
+- The shortcut populates:
+  - whole-house answers
+  - per-room visual answers
+  - per-room style/material/ceiling/lighting/air-conditioning finishes
+  - `roomRequirementModel.roomRequirements[*]` with confirmed room requirements
+- Added room-type polar axes for test data generation:
+  - living room, bedroom, dining room, kitchen, bathroom, workspace, balcony, entry, default
+- This is a local frontend/testing helper only. It does not change the DB/PostgreSQL work, and no remote push was performed.

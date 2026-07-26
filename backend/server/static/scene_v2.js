@@ -257,6 +257,7 @@ const element = {
   wholeHouseFields: $("#whole-house-fields"),
   requirementsProgress: $("#requirements-progress"),
   requirementsError: $("#requirements-error"),
+  randomizeRequirements: $("#randomize-requirements"),
   confirmRequirements: $("#confirm-requirements"),
   questionnaireStageNav: $("#questionnaire-stage-nav"),
   visualSpaceNav: $("#visual-space-nav"),
@@ -4427,6 +4428,224 @@ const QUESTIONNAIRE_STAGES = Object.freeze([
   "summary",
 ]);
 
+const ROOM_REQUIREMENT_POLAR_AXES = Object.freeze({
+  living_room: [
+    { axis: "use", left: "獨處放鬆", right: "多人社交" },
+    { axis: "lighting", left: "柔和間接光", right: "明亮主燈" },
+  ],
+  bedroom: [
+    { axis: "use", left: "深度睡眠", right: "工作收納" },
+    { axis: "atmosphere", left: "安靜包覆", right: "清爽明亮" },
+  ],
+  dining_room: [
+    { axis: "use", left: "日常快餐", right: "聚餐儀式" },
+    { axis: "lighting", left: "低位餐吊燈", right: "均勻工作光" },
+  ],
+  kitchen: [
+    { axis: "use", left: "快速備餐", right: "重度烹飪" },
+    { axis: "storage", left: "檯面留白", right: "高量收納" },
+  ],
+  bathroom: [
+    { axis: "use", left: "快速乾濕分離", right: "泡澡放鬆" },
+    { axis: "maintenance", left: "低維護", right: "飯店感" },
+  ],
+  workspace: [
+    { axis: "use", left: "專注工作", right: "彈性閱讀" },
+    { axis: "lighting", left: "防眩任務光", right: "展示氛圍光" },
+  ],
+  balcony: [
+    { axis: "use", left: "洗曬機能", right: "休憩植栽" },
+    { axis: "storage", left: "完全收納", right: "開放展示" },
+  ],
+  entry: [
+    { axis: "use", left: "快速出入", right: "完整落塵收納" },
+    { axis: "lighting", left: "感應安全光", right: "端景展示光" },
+  ],
+  default: [
+    { axis: "use", left: "極簡留白", right: "高機能收納" },
+    { axis: "atmosphere", left: "安靜低調", right: "明亮展示" },
+  ],
+});
+
+const TEST_REQUIREMENT_PROFILE_NOTES = Object.freeze([
+  "測試需求：偏低維護、好整理、保留寬走道。",
+  "測試需求：偏展示感、材質層次明顯、照明要有重點。",
+  "測試需求：偏高收納、家具要實用、動線不能被堵住。",
+  "測試需求：偏放鬆舒適、光線柔和、少尖角。",
+]);
+
+const TEST_AIR_CONDITIONING_OPTIONS = Object.freeze([
+  "wall-split",
+  "ceiling-cassette",
+  "ducted",
+  "none",
+]);
+
+function randomItem(items, fallback = null) {
+  const candidates = (items || []).filter(Boolean);
+  if (!candidates.length) return fallback;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function randomWholeHouseAnswers() {
+  const note = randomItem(TEST_REQUIREMENT_PROFILE_NOTES, TEST_REQUIREMENT_PROFILE_NOTES[0]);
+  return Object.fromEntries(WHOLE_HOUSE_QUESTIONS.map((question) => {
+    if (question.type === "select") return [question.id, randomItem(question.options, "")];
+    return [question.id, note];
+  }));
+}
+
+function randomAnswerForQuestion(question) {
+  const useBalanced = question.allow_both === true && Math.random() < 0.18;
+  if (useBalanced) return { optionId: "both", custom: "測試隨機：兩端需求都要保留，交給配置時依房間尺寸取捨。" };
+  const option = randomItem(question.options, question.options?.[0]);
+  return {
+    optionId: option?.option_id || "",
+    custom: randomItem(TEST_REQUIREMENT_PROFILE_NOTES, ""),
+    forcePlacement: true,
+  };
+}
+
+function randomRoomAxisNote(room) {
+  const axes = ROOM_REQUIREMENT_POLAR_AXES[room.type]
+    || ROOM_REQUIREMENT_POLAR_AXES.default;
+  return axes.map((axis) => {
+    const side = Math.random() < 0.5 ? axis.left : axis.right;
+    return `${axis.axis}:${side}`;
+  });
+}
+
+function randomRoomFinishDraft() {
+  const pack = randomItem(STYLE_PACKS, STYLE_PACKS[0]);
+  const ceilingStyle = randomItem(
+    CEILING_STYLES.filter((item) => item.styles.includes(pack.styleId)),
+    CEILING_STYLES[0],
+  );
+  const lightStyle = randomItem(
+    LIGHT_STYLES.filter((item) => item.styles.includes(pack.styleId)),
+    LIGHT_STYLES[0],
+  );
+  return {
+    confirmed: true,
+    stylePackId: pack.id,
+    wallMaterial: pack.wall.surfaceOption,
+    wallColor: pack.wall.color,
+    defaultWallMaterial: pack.wall.surfaceOption,
+    defaultWallColor: pack.wall.color,
+    wallOverrides: {},
+    floorMaterial: pack.floor.surfaceOption,
+    floorColor: pack.floor.color,
+    ceilingMaterial: randomItem(["flat-paint", "mineral-paint", "wood-veneer", "exposed-concrete"], "flat-paint"),
+    ceilingStyle: ceilingStyle.id,
+    lightStyle: lightStyle.id,
+    ceilingColor: randomItem(pack.palette, "#f4f1eb"),
+    airConditioning: randomItem(TEST_AIR_CONDITIONING_OPTIONS, "wall-split"),
+  };
+}
+
+function applyRandomRoomRequirement(room, draft) {
+  const requirement = state.roomRequirementModel.roomRequirements[room.id];
+  if (!requirement) return;
+  const roomQuestions = state.visualQuestions.filter(
+    (question) => String(question.room_id) === String(room.id),
+  );
+  const axisAnswers = Object.fromEntries(roomQuestions.map((question) => {
+    const answer = randomAnswerForQuestion(question);
+    state.visualAnswers[question.question_id] = answer;
+    return [
+      question.source_question_id || question.question_id,
+      { ...answer },
+    ];
+  }));
+  const axisNotes = randomRoomAxisNote(room);
+  requirement.axisAnswers = axisAnswers;
+  requirement.furniture = {
+    required: axisNotes,
+    optional: [],
+  };
+  requirement.climate.airConditioning = draft.airConditioning;
+  requirement.surfaces = {
+    ...requirement.surfaces,
+    paletteId: draft.stylePackId,
+    wallDefault: {
+      materialId: draft.defaultWallMaterial || draft.wallMaterial,
+      color: draft.defaultWallColor || draft.wallColor,
+    },
+    wallOverrides: {},
+    wallSurfaceIds: [],
+    floor: {
+      materialId: draft.floorMaterial,
+      color: draft.floorColor,
+    },
+    ceiling: {
+      materialId: draft.ceilingMaterial,
+      styleId: draft.ceilingStyle,
+      lightingId: draft.lightStyle,
+      color: draft.ceilingColor,
+    },
+  };
+  requirement.specialRequests = axisNotes;
+  requirement.feasibility = [];
+  requirement.confirmed = true;
+}
+
+async function randomizeRequirementsForTesting() {
+  element.requirementsError.textContent = "";
+  if (!state.rooms.length) {
+    element.requirementsError.textContent = "請先完成空間確認，再隨機產生需求。";
+    return;
+  }
+  try {
+    await ensureVisualQuestionnaireLoaded();
+  } catch (error) {
+    element.requirementsError.textContent = errorMessage(error);
+    return;
+  }
+  state.roomRequirementModel = normalizeRoomRequirements(
+    state.roomRequirementModel,
+    state.rooms,
+    {
+      basic: state.basicAnswers,
+      basicConfirmed: state.basicConfirmed,
+      finishes: state.questionnaireFinishes,
+    },
+  );
+  state.basicAnswers = randomWholeHouseAnswers();
+  state.basicConfirmed = true;
+  state.roomRequirementModel.globalProfile = { ...state.basicAnswers };
+  state.roomRequirementModel.globalConfirmed = true;
+  state.visualAnswers = {};
+  state.skippedVisualSpaceTypes = [];
+  state.roomFinishDrafts = {};
+  state.rooms.forEach((room) => {
+    const draft = randomRoomFinishDraft();
+    state.roomFinishDrafts[room.id] = { ...draft };
+    applyRandomRoomRequirement(room, draft);
+  });
+  const firstRoomId = state.rooms[0]?.id;
+  state.roomRequirementModel.activeRoomId = firstRoomId || null;
+  state.questionnaireFinishes = {
+    ...(state.roomFinishDrafts[firstRoomId] || randomRoomFinishDraft()),
+    confirmed: true,
+  };
+  state.visualQuestionIndex = 0;
+  state.selectedQuestionnaireWallId = null;
+  state.questionnaireStage = "summary";
+  invalidateDownstreamFrom("requirements", "已隨機產生測試需求，後續配置已標記需重新生成。");
+  const firstPack = STYLE_PACKS.find((pack) => pack.id === state.questionnaireFinishes.stylePackId);
+  if (firstPack) {
+    state.activeStyleId = firstPack.styleId;
+    state.activeStylePackId = firstPack.id;
+  }
+  renderWholeHouseQuestionnaire();
+  renderVisualQuestionnaire();
+  renderQuestionnaireFinishes();
+  renderQuestionnaireSummary();
+  showQuestionnaireStage("summary");
+  setStatus("已隨機完成逐房需求、全屋資料、天花板、照明、冷氣與材質。");
+  scheduleSave("requirements");
+}
+
 async function prepareQuestionnaireStep() {
   state.roomRequirementModel = normalizeRoomRequirements(
     state.roomRequirementModel,
@@ -7881,6 +8100,7 @@ function bindEvents() {
   });
   $("#confirm-dimensioned-plan").addEventListener("click", confirmDimensionedPlan);
   $("#confirm-basic-questionnaire").addEventListener("click", confirmBasicQuestionnaire);
+  element.randomizeRequirements.addEventListener("click", randomizeRequirementsForTesting);
   element.questionnaireStageNav.addEventListener("click", (event) => {
     const button = event.target.closest("[data-questionnaire-stage]");
     if (button && !button.disabled) showQuestionnaireStage(button.dataset.questionnaireStage);

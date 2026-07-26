@@ -24,6 +24,18 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'src="/static/scene_v2.js?v=sha256-{expected}"' in html
 
 
+def test_requirements_step_has_randomized_test_skip_button() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="randomize-requirements"' in html
+    assert "async function randomizeRequirementsForTesting" in source
+    assert "ROOM_REQUIREMENT_POLAR_AXES" in source
+    assert "state.basicConfirmed = true" in source
+    assert "requirement.confirmed = true" in source
+    assert 'showQuestionnaireStage("summary")' in source
+
+
 def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     dependency_edges = {
         "scene_v2.js": [
