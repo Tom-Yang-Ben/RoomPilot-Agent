@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-5506c4917e05";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-52bd43366fd0";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,
@@ -390,6 +390,41 @@ function sceneDataFromGenerateResponse(payload) {
   return payload?.scene_json || payload;
 }
 
+function sceneObjectIndexByFurnitureId(furnitureId) {
+  if (!furnitureId || !state.sceneData?.scene_objects?.length) return -1;
+  return state.sceneData.scene_objects.findIndex(
+    (item) => String(item.furniture_id) === String(furnitureId),
+  );
+}
+
+function selectSceneObjectByFurnitureId(furnitureId, {
+  viewer = null,
+  focus = true,
+  renderList = true,
+} = {}) {
+  const index = sceneObjectIndexByFurnitureId(furnitureId);
+  if (index < 0) return false;
+  state.selectedSceneIndex = index;
+  if (renderList) {
+    renderSceneObjectList();
+    loadSelectedSceneAppearance();
+  }
+  viewer?.selectObjectByIndex?.(index, { focus });
+  return true;
+}
+
+function activeSceneViewerForStep() {
+  if (state.workflow?.currentStep === "realistic_3d") return realisticViewer;
+  if (state.workflow?.currentStep === "white_model_3d") return whiteViewer;
+  return null;
+}
+
+function syncSelected2dFurnitureToScene({ focus = false } = {}) {
+  const viewer = activeSceneViewerForStep();
+  if (!viewer || !state.selectedFurniture2dId) return false;
+  return selectSceneObjectByFurnitureId(state.selectedFurniture2dId, { viewer, focus });
+}
+
 function workflowPayload() {
   persistActiveScheme(state.designSchemes, {
     furniture: state.furniture2d,
@@ -725,10 +760,12 @@ async function switchDesignScheme(schemeId) {
     await whiteViewer.loadScene(state.sceneData);
     whiteViewer.setViewMode("orbit");
     renderSceneObjectList();
+    syncSelected2dFurnitureToScene({ focus: true });
   } else if (state.sceneData && step === "realistic_3d") {
     await realisticViewer.loadScene(state.sceneData);
     realisticViewer.setViewMode("orbit");
     renderSceneObjectList();
+    syncSelected2dFurnitureToScene({ focus: true });
   } else if (state.sceneData && step === "proposal_review") {
     await proposalViewer.loadScene(state.sceneData);
     proposalViewer.setViewMode("orbit");
@@ -6149,6 +6186,7 @@ function layoutPointerDown(event) {
   };
   target.setPointerCapture?.(event.pointerId);
   renderLayoutFurniture();
+  syncSelected2dFurnitureToScene({ focus: false });
 }
 
 function layoutPointerMove(event) {
@@ -6593,6 +6631,8 @@ async function confirmLayout2d() {
       style_id: "white_model",
       palette_hex: ["#f4f1ec", "#e9e6e1", "#d8d3cc", "#bcb4aa"],
     };
+    const selectedSceneIndex = sceneObjectIndexByFurnitureId(state.selectedFurniture2dId);
+    if (selectedSceneIndex >= 0) state.selectedSceneIndex = selectedSceneIndex;
     const generatedScheme = activeScheme();
     generatedScheme.sceneData = JSON.parse(JSON.stringify(state.sceneData));
     generatedScheme.furniture = JSON.parse(JSON.stringify(state.furniture2d));
@@ -6608,6 +6648,7 @@ async function confirmLayout2d() {
     whiteViewer.setViewMode("orbit");
     renderSceneObjectList();
     loadSelectedSceneAppearance();
+    syncSelected2dFurnitureToScene({ focus: true });
     const diagnostics = whiteViewer.getDiagnostics();
     const expectedFurnitureCount = state.sceneData.scene_objects.filter(
       (item) => !item.placement_failed,
@@ -8565,6 +8606,7 @@ function bindEvents() {
     if (!button) return;
     state.selectedFurniture2dId = button.dataset.selectLayoutFurniture;
     renderLayoutFurniture();
+    syncSelected2dFurnitureToScene({ focus: false });
   });
   $("#replace-2d-furniture").addEventListener("click", openFurnitureReplacement);
   $("#close-furniture-replacement").addEventListener("click", () => {

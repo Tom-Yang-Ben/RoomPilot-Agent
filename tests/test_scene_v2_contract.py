@@ -644,6 +644,17 @@ def test_scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection() -> N
     assert "projectFurnitureCenters()" in source
 
 
+def test_2d_furniture_selection_syncs_to_matching_3d_scene_object() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function sceneObjectIndexByFurnitureId" in source
+    assert "String(item.furniture_id) === String(furnitureId)" in source
+    assert "function selectSceneObjectByFurnitureId" in source
+    assert "function syncSelected2dFurnitureToScene" in source
+    assert "syncSelected2dFurnitureToScene({ focus: true })" in source
+    assert "syncSelected2dFurnitureToScene({ focus: false })" in source
+
+
 def test_2d_collision_footprint_respects_furniture_rotation() -> None:
     module_uri = (STATIC / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
