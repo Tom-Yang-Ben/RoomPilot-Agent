@@ -7607,9 +7607,23 @@ body.rp-workflow-page .danger-action {
 }
 
 .rp-replacement-thumb img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.rp-replacement-thumb img.is-loading {
+  background:
+    linear-gradient(90deg, #efede9 25%, #faf9f6 50%, #efede9 75%);
+  background-size: 200% 100%;
+  animation: rp-thumbnail-loading 1.2s linear infinite;
+}
+
+@keyframes rp-thumbnail-loading {
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .rp-replacement-preview {

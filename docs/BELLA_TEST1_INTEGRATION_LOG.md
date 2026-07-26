@@ -653,3 +653,22 @@ $env:TEMP=$env:TMP
 - The two appliance GLBs remain blocked by external AWS HTTP 403 responses;
   they are still shown as pending and do not fall back to white models.
 - No remote push was performed.
+
+## 2026-07-27 In-Room Furniture Replacement Preview
+
+- Replaced the free-text replacement search with a compatible furniture-type
+  selector. Sofa replacement supports all compatible, fabric, leather,
+  modular, and general sofa options without allowing unrelated furniture.
+- Changed the replacement preview from an isolated 360 cm demo box to a cloned
+  copy of the current project scene.
+- Candidate furniture now replaces the selected object at its existing room,
+  position, and rotation in the preview while keeping the real walls, doors,
+  windows, finishes, and surrounding furniture visible.
+- Captured the loaded candidate as a PNG data URL and inserted it into the
+  selected catalog card. The loading state replaces the former generic `3D`
+  text placeholder when the source catalog has no product image.
+- Browser-verified the current living-room sofa replacement, generated PNG,
+  full-room context, and leather-sofa selector on project
+  `47abb48d539c46a0afd1fc1acce34add`.
+- Full suite verification: 458 passed, 2 skipped.
+- No remote push was performed.

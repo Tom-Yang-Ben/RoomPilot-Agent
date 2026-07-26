@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=sha256-7fab0aec4986" />
+    <link rel="stylesheet" href="/static/site.css?v=sha256-a3a7b0a5df04" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -797,8 +797,8 @@
           <button id="close-furniture-replacement" type="button" class="rp-icon-button" aria-label="關閉家具更換" title="關閉">×</button>
         </header>
         <label class="rp-search-field">
-          <span>搜尋同類型家具</span>
-          <input id="replacement-furniture-search" type="search" placeholder="輸入名稱、材質或顏色" />
+          <span>選擇同類家具</span>
+          <select id="replacement-furniture-search" aria-label="選擇同類家具"></select>
         </label>
         <div class="rp-replacement-layout">
           <div id="replacement-furniture-results" class="rp-replacement-results" aria-live="polite"></div>
@@ -819,6 +819,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-9115baf30cec"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-9b1d0da3af46"></script>
   </body>
 </html>

@@ -5965,10 +5965,24 @@ const CATALOG_RETRIEVAL_ROUTES = {
   },
 };
 
-async function catalogCandidatesForType(type, { styleId = "", query = "" } = {}) {
+const REPLACEMENT_TYPE_LABELS = {
+  "fabric-sofa": "布沙發",
+  "leather-sofa": "皮沙發",
+  "modular-sofa": "模組沙發",
+  "sofa": "一般沙發",
+  "fridge-freezer": "冰箱",
+  "washing-machine": "洗衣機／洗脫烘",
+  "cabinet-cupboard": "收納櫃",
+  "mirror-cabinet": "鏡櫃",
+};
+
+async function catalogCandidatesForType(
+  type,
+  { styleId = "", query = "", catalogType = "" } = {},
+) {
   const route = CATALOG_RETRIEVAL_ROUTES[type]
     || { endpoint: "/api/furniture", type };
-  const routeTypes = route.types || [route.type];
+  const routeTypes = catalogType ? [catalogType] : (route.types || [route.type]);
   const candidateGroups = await Promise.all(routeTypes.map(async (routeType) => {
     const params = new URLSearchParams({
       type: routeType,
@@ -6737,26 +6751,75 @@ async function previewReplacementCandidate(candidate) {
     element.replacement3dStatus.textContent = "這件家具沒有可載入的 3D 模型。";
     return;
   }
-  await replacementViewer.loadScene({
-    floorplan: {
-      width_cm: 360,
-      depth_cm: 360,
-      room_height_cm: 270,
-      wall_segments: [],
-      door_openings: [],
-      window_openings: [],
-    },
-    scene_objects: [{
+  const current = state.furniture2d.find(
+    (item) => item.id === state.selectedFurniture2dId,
+  );
+  const baseScene = state.sceneData || activeScheme()?.sceneData;
+  const previewFurnitureId = `replacement-preview-${candidate.furniture_id}`;
+  let previewIndex = 0;
+  let previewScene;
+  if (baseScene?.floorplan && current) {
+    previewScene = JSON.parse(JSON.stringify(baseScene));
+    const currentIndex = (previewScene.scene_objects || []).findIndex(
+      (item) => String(item.furniture_id) === String(current.id),
+    );
+    const existing = currentIndex >= 0
+      ? previewScene.scene_objects[currentIndex]
+      : {
+        position_cm: { x: current.xCm, z: current.yCm },
+        rotation_y_deg: current.rotationDeg,
+        placement_room_id: current.roomId,
+      };
+    const replacement = {
+      ...existing,
       ...candidate,
-      furniture_id: `replacement-preview-${candidate.furniture_id}`,
-      position_cm: { x: 0, z: 0 },
-      rotation_y_deg: 0,
+      furniture_id: previewFurnitureId,
+      position_cm: existing.position_cm,
+      rotation_y_deg: existing.rotation_y_deg,
+      placement_room_id: existing.placement_room_id || current.roomId,
       position_locked: true,
       placement_failed: false,
-    }],
-    style: { style_id: state.activeStyleId || "white_model" },
+    };
+    if (currentIndex >= 0) {
+      previewScene.scene_objects[currentIndex] = replacement;
+      previewIndex = currentIndex;
+    } else {
+      previewIndex = previewScene.scene_objects.length;
+      previewScene.scene_objects.push(replacement);
+    }
+  } else {
+    previewScene = {
+      floorplan: {
+        width_cm: 360,
+        depth_cm: 360,
+        room_height_cm: 270,
+        wall_segments: [],
+        door_segments: [],
+        window_segments: [],
+      },
+      scene_objects: [{
+        ...candidate,
+        furniture_id: previewFurnitureId,
+        position_cm: { x: 0, z: 0 },
+        rotation_y_deg: 0,
+        position_locked: true,
+        placement_failed: false,
+      }],
+      style: { style_id: state.activeStyleId || "white_model" },
+    };
+  }
+  await replacementViewer.loadScene(previewScene);
+  replacementViewer.selectObjectByIndex(previewIndex, { focus: true });
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const generatedPng = replacementViewer.capturePng();
+  document.querySelectorAll(
+    `[data-replacement-thumbnail="${CSS.escape(String(candidate.furniture_id))}"]`,
+  ).forEach((image) => {
+    image.src = generatedPng;
+    image.classList.remove("is-loading");
   });
-  replacementViewer.setViewMode("orbit");
+  replacementViewer.setViewMode("dollhouse");
+  replacementViewer.selectObjectByIndex(previewIndex, { focus: false });
 }
 
 function renderReplacementCandidates(candidates) {
@@ -6770,9 +6833,15 @@ function renderReplacementCandidates(candidates) {
     return `
       <article>
         <button type="button" class="rp-replacement-candidate" data-preview-replacement="${escapeHtml(candidate.furniture_id)}">
-          <span class="rp-replacement-thumb">${image
-            ? `<img src="${escapeHtml(image)}" alt="" loading="lazy">`
-            : "<span>3D</span>"}</span>
+          <span class="rp-replacement-thumb">
+            <img
+              class="${image ? "" : "is-loading"}"
+              src="${escapeHtml(image || "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=")}"
+              alt="${escapeHtml(title)} 預覽圖"
+              data-replacement-thumbnail="${escapeHtml(candidate.furniture_id)}"
+              loading="lazy"
+            >
+          </span>
           <span><strong>${escapeHtml(title)}</strong>
             <small>${Number(candidate.size_cm?.width || 0).toFixed(0)} × ${Number(candidate.size_cm?.depth || 0).toFixed(0)} × ${Number(candidate.size_cm?.height || 0).toFixed(0)} cm</small>
             <small>${escapeHtml(candidate.primary_style || state.activeStyleId || "符合目前風格")} · ${escapeHtml(materialLabel)}</small>
@@ -6793,7 +6862,7 @@ async function loadReplacementCandidates() {
   if (!current || !room) return;
   element.replacementError.textContent = "";
   element.replacementResults.innerHTML = "<p>正在搜尋可放入目前房間的家具...</p>";
-  const query = element.replacementSearch.value.trim();
+  const catalogType = element.replacementSearch.value;
   const paletteId = state.roomRequirementModel?.roomRequirements?.[room.id]?.surfaces?.paletteId;
   const style = STYLE_PACKS.find((pack) => pack.id === paletteId)?.styleId
     || state.activeStyleId
@@ -6805,7 +6874,7 @@ async function loadReplacementCandidates() {
   };
   const catalogCandidates = await catalogCandidatesForType(current.type, {
     styleId: style,
-    query,
+    catalogType,
   });
   const candidates = rankCatalogFurniture(catalogCandidates, request)
     .filter((candidate) => replacementCandidateFitsRoom(candidate, room))
@@ -6815,12 +6884,37 @@ async function loadReplacementCandidates() {
   renderReplacementCandidates(candidates);
 }
 
+function renderReplacementTypeOptions(current) {
+  const route = CATALOG_RETRIEVAL_ROUTES[current.type]
+    || { type: current.type };
+  const routeTypes = route.types || [route.type];
+  const options = routeTypes.filter(Boolean);
+  element.replacementSearch.innerHTML = [
+    ...(options.length > 1
+      ? ['<option value="">全部相容類型</option>']
+      : []),
+    ...options.map((type) => `
+      <option value="${escapeHtml(type)}">
+        ${escapeHtml(REPLACEMENT_TYPE_LABELS[type] || current.label || type)}
+      </option>
+    `),
+  ].join("");
+  element.replacementSearch.value = options.length > 1 ? "" : (options[0] || "");
+}
+
 async function openFurnitureReplacement() {
   if (!state.selectedFurniture2dId) {
     element.layoutError.textContent = "請先選取一件要更換的家具。";
     return;
   }
-  element.replacementSearch.value = "";
+  const current = state.furniture2d.find(
+    (candidate) => candidate.id === state.selectedFurniture2dId,
+  );
+  if (!current) {
+    element.layoutError.textContent = "找不到目前選取的家具，請重新選取後再更換。";
+    return;
+  }
+  renderReplacementTypeOptions(current);
   element.replacementDrawer.showModal();
   try {
     await loadReplacementCandidates();
