@@ -21,29 +21,64 @@ def test_style_presets_resolve_to_real_catalog_textures() -> None:
         ));
         const floorId = resolveSurfaceOption(catalog, "floor", "light_oak");
         const wallId = resolveSurfaceOption(catalog, "wall", "limewash");
+        const warmWallId = resolveSurfaceOption(catalog, "wall", "warm_white");
+        const sageWallId = resolveSurfaceOption(catalog, "wall", "sage");
         const floor = catalog.surfaces.find((item) => item.surface_id === floorId);
         const wall = catalog.surfaces.find((item) => item.surface_id === wallId);
+        const warmWall = catalog.surfaces.find((item) => item.surface_id === warmWallId);
+        const sageWall = catalog.surfaces.find((item) => item.surface_id === sageWallId);
         console.log(JSON.stringify({{
           floorId,
           wallId,
+          warmWallId,
+          sageWallId,
           floorTexture: floor?.texture_url || null,
           wallTexture: wall?.texture_url || null,
+          warmWallTexture: warmWall?.texture_url || null,
+          sageWallTexture: sageWall?.texture_url || null,
         }}));
         """
     )
 
-    assert result == {
-        "floorId": "wood_cc0_wood_textures_woodfloor051",
-        "wallId": "wall_ambientcg_plaster006",
-        "floorTexture": (
-            "/static/surface_assets/_import_all/cc0-wood-textures/"
-            "ambientcg-WoodFloor051.jpg"
-        ),
-        "wallTexture": (
-            "/static/surface_assets/wall_materials_20260708/"
-            "ambientcg-wall-clean-Plaster006.jpg"
-        ),
-    }
+    assert result["floorId"] == "wood_cc0_wood_textures_planks039"
+    assert result["wallId"] == "wall_json_ambientcg_wall_paint_plaster002"
+    assert result["warmWallId"] == "wall_json_ambientcg_wall_paint_paintedplaster017"
+    assert result["sageWallId"] == "wall_json_ambientcg_wall_wallpaper_fabric018"
+    assert result["floorTexture"] == (
+        "/static/surface_assets/_import_all/cc0-wood-textures/"
+        "ambientcg-Planks039.jpg"
+    )
+    assert result["wallTexture"]
+    assert result["warmWallTexture"]
+    assert result["sageWallTexture"]
+    assert len({result["wallTexture"], result["warmWallTexture"], result["sageWallTexture"]}) == 3
+
+
+def test_realtime_surface_recommendations_explain_and_vary_options() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "SURFACE_VARIANT_OPTIONS" in source
+    assert "surfaceRecommendationScore" in source
+    assert "surfaceRecommendationReason" in source
+    assert "materialOptionsForStyle" in source
+    assert "title=\"${escapeHtml(surfaceRecommendationReason(item, activePack, kind))}\"" in source
+    assert "scoreFor" in source
+    assert "scandinavian_2" in source
+    assert "modern_minimal_2" in source
+    assert "industrial_2" in source
+    assert "herringbone_oak" in source
+    assert "microcement" in source
+    assert "mineral_beige" in source
+
+
+def test_surface_preset_mapping_no_longer_collapses_to_one_wall_material() -> None:
+    source = (STATIC / "scene_surface_materials.js").read_text(encoding="utf-8")
+
+    assert 'warm_white: "wall_json_ambientcg_wall_paint_paintedplaster017"' in source
+    assert 'limewash: "wall_json_ambientcg_wall_paint_plaster002"' in source
+    assert 'sage: "wall_json_ambientcg_wall_wallpaper_fabric018"' in source
+    assert 'greige: "wall_json_ambientcg_wall_paint_concrete008"' in source
+    assert source.count('wall_ambientcg_plaster006"') == 0
 
 
 def test_scene_viewer_uses_image_texture_as_color_and_relief_maps() -> None:

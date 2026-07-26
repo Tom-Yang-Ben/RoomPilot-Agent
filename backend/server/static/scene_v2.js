@@ -6742,6 +6742,84 @@ function syncSurfaceMaterialSelect(kind, items, current) {
   return materialId;
 }
 
+function surfaceRecommendationScore(item, recommendedId, activePack) {
+  const scoreFor = item.scoreFor || {};
+  const packScore = Number(scoreFor[activePack?.id] || 0);
+  const styleScore = Number(scoreFor[activePack?.styleId] || 0);
+  const directScore = item.id === recommendedId ? 100 : 0;
+  return directScore + packScore + styleScore + Number(item.baseScore || 0);
+}
+
+function surfaceRecommendationReason(item, activePack, kind) {
+  if (item.reason) return item.reason;
+  const styleName = activePack?.styleLabel || "目前風格";
+  const packName = activePack?.name || "";
+  const source = packName ? `${styleName}「${packName}」` : styleName;
+  return kind === "wall"
+    ? `${source}先用牆面控制明度與背景份量，再讓家具成為主角。`
+    : `${source}以地面決定主調，這個材質能接住家具色與採光。`;
+}
+
+const SURFACE_VARIANT_OPTIONS = Object.freeze({
+  scandinavian: {
+    wall: [
+      { id: "sage", label: "鼠尾草礦物漆", color: "#D8DDCF", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "北歐風如果家具偏淺木，低彩度綠牆能增加層次，不會只剩白牆。", scoreFor: { scandinavian_2: 55 } },
+      { id: "mineral_beige", label: "米灰礦物塗料", color: "#DDD2C1", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "用米灰牆降低白牆冷感，適合小坪數與自然光不足的房間。", scoreFor: { scandinavian: 18 } },
+    ],
+    floor: [
+      { id: "herringbone_oak", label: "人字拼橡木", color: "#C8A16F", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-Planks033B.jpg", reason: "想讓北歐不那麼制式時，人字拼能保留木質溫度並增加精緻度。", scoreFor: { scandinavian_3: 65 } },
+    ],
+  },
+  japanese: {
+    wall: [
+      { id: "sand", label: "砂岩感塗料", color: "#D8C6A9", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "砂岩色能接住榻榻米、藤編與紙燈，不會像純白牆那麼硬。", scoreFor: { japanese: 40 } },
+    ],
+    floor: [
+      { id: "herringbone_oak", label: "細拼淺木地板", color: "#D2B889", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-Planks033B.jpg", reason: "細拼木紋讓日系空間比較有手作感，適合想要溫潤但不厚重的配置。", scoreFor: { japanese_1: 45 } },
+    ],
+  },
+  modern_minimal: {
+    wall: [
+      { id: "greige", label: "灰米微水泥牆", color: "#BEB8AF", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Tiles008.jpg", reason: "現代簡約需要乾淨背景，灰米牆比白牆更能襯出黑金屬與石材。", scoreFor: { modern_minimal_2: 70 } },
+    ],
+    floor: [
+      { id: "microcement", label: "霧面微水泥地坪", color: "#9B9992", materialPreview: "/static/surface_assets/tile/ccity-CAL288001.png", reason: "微水泥適合俐落線條與低彩度家具，比木地板更有都會感。", scoreFor: { modern_minimal: 35, modern_minimal_2: 60 } },
+    ],
+  },
+  cream: {
+    wall: [
+      { id: "mineral_beige", label: "奶茶礦物塗料", color: "#E7D8C3", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "奶油風需要暖底但不能太黃，奶茶礦物牆能讓白色家具有陰影層次。", scoreFor: { cream: 45 } },
+    ],
+    floor: [
+      { id: "herringbone_oak", label: "柔光人字木地板", color: "#DEC393", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-Planks033B.jpg", reason: "柔光人字拼比一般淺橡木更有精緻感，適合奶油風的圓角家具。", scoreFor: { cream_3: 55 } },
+    ],
+  },
+  industrial: {
+    wall: [
+      { id: "greige", label: "斑駁灰泥牆", color: "#8E8A82", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Tiles009.jpg", reason: "工業風不一定要全黑，灰泥牆能保留粗獷但讓空間不壓迫。", scoreFor: { industrial_1: 50 } },
+    ],
+    floor: [
+      { id: "walnut", label: "深胡桃木地板", color: "#76583E", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-WoodFloor039.jpg", reason: "深木地板能平衡鐵件與水泥，讓工業風比較像住宅而不是展場。", scoreFor: { industrial_2: 48 } },
+    ],
+  },
+  american: {
+    wall: [
+      { id: "mineral_beige", label: "暖米礦物漆", color: "#E5D8C4", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "美式家具份量較重，暖米牆能柔化線板與深木色。", scoreFor: { american: 30 } },
+    ],
+    floor: [
+      { id: "marble", label: "柔紋石材地坪", color: "#DDD2BF", materialPreview: "/static/surface_assets/tile/ccity-CAL330121.png", reason: "想做輕奢美式時，柔紋石材比固定木地板更有正式感。", scoreFor: { american_3: 52 } },
+    ],
+  },
+});
+
+function materialOptionsForStyle(styleId, kind, baseOptions) {
+  const merged = new Map((baseOptions || []).map((item) => [item.id, item]));
+  for (const item of SURFACE_VARIANT_OPTIONS[styleId]?.[kind] || []) {
+    merged.set(item.id, { ...(merged.get(item.id) || {}), ...item });
+  }
+  return [...merged.values()];
+}
+
 function renderGroupedMaterialOptions(activePack) {
   const options = STYLE_MATERIAL_OPTIONS[state.activeStyleId]
     || STYLE_MATERIAL_OPTIONS[activePack?.styleId]
@@ -6749,8 +6827,9 @@ function renderGroupedMaterialOptions(activePack) {
   const render = (kind, host) => {
     if (!host) return;
     const recommendedId = activePack?.[kind]?.surfaceOption;
-    const items = [...(options[kind] || [])].sort((left, right) =>
-      Number(right.id === recommendedId) - Number(left.id === recommendedId)
+    const items = materialOptionsForStyle(activePack?.styleId || state.activeStyleId, kind, options[kind]).sort((left, right) =>
+      surfaceRecommendationScore(right, recommendedId, activePack)
+      - surfaceRecommendationScore(left, recommendedId, activePack)
     );
     const current = $(`#${kind}-material`)?.value;
     const selectedMaterial = syncSurfaceMaterialSelect(kind, items, current);
@@ -6761,10 +6840,11 @@ function renderGroupedMaterialOptions(activePack) {
         data-surface-color="${escapeHtml(item.color || "")}"
         data-material-preview="${escapeHtml(item.materialPreview || "")}"
         data-style-card-recommended="${item.id === recommendedId ? "true" : "false"}"
+        title="${escapeHtml(surfaceRecommendationReason(item, activePack, kind))}"
         class="${item.id === selectedMaterial ? "is-active" : ""}">
         <span class="rp-material-preview" style="background:${escapeHtml(item.color || "#ddd")};${item.materialPreview ? `background-image:url('${escapeHtml(item.materialPreview)}')` : ""}"></span>
         <strong>${escapeHtml(item.label)}${item.id === recommendedId ? " · 此色卡推薦" : ""}</strong>
-        <small>${escapeHtml(item.note || "")}</small>
+        <small>${escapeHtml(surfaceRecommendationReason(item, activePack, kind))}</small>
       </button>
     `).join("");
   };
