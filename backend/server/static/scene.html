@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=sha256-94c4a8ccd5c3" />
+    <link rel="stylesheet" href="/static/site.css?v=sha256-304e3ff94e4b" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -428,6 +428,14 @@
                     <option value="ducted">全熱交換／風管</option>
                     <option value="none">不需要冷氣</option>
                   </select></label>
+                  <section class="rp-questionnaire-furniture">
+                    <div class="rp-questionnaire-section-heading">
+                      <div><span class="eyebrow">本房家具</span><h3>勾選要帶入配置的資料庫家具</h3></div>
+                      <p id="questionnaire-furniture-status" aria-live="polite">正在依本房用途、尺寸與色卡取得推薦。</p>
+                    </div>
+                    <div id="questionnaire-furniture-options"
+                      class="rp-questionnaire-furniture-options"></div>
+                  </section>
                   <div id="questionnaire-style-tabs" class="rp-style-tabs" aria-label="六種風格"></div>
                   <div id="questionnaire-style-grid" class="rp-style-grid rp-questionnaire-style-grid"></div>
                   <div class="rp-questionnaire-material-grid">
@@ -820,6 +828,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-7439720dcf4c"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-e30b50f7edd0"></script>
   </body>
 </html>

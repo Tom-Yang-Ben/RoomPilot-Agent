@@ -800,3 +800,34 @@ $env:TEMP=$env:TMP
   and 13, 3D-only locate behavior, and the separate replacement dialog action.
 - Full suite verification: 468 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Per-Room Questionnaire Furniture Selection
+
+- Added a visible database-furniture section to every room in Step 5, between
+  the room equipment choice and style/material controls.
+- Recommendations use each room's function, polar-question answers, selected
+  style card, material language, and usable room dimensions.
+- Candidate GLBs are actually loaded in the hidden catalog viewer before being
+  offered. Missing or inaccessible models are skipped in favor of the next
+  compatible candidate.
+- Users explicitly check the exact catalog items they want. The saved room
+  requirement now preserves furniture ID, model URL, dimensions, style,
+  material, selection priority, and deferred items.
+- Step 6 uses the exact checked catalog objects instead of asking the selection
+  agent to choose a different model.
+- Step 6 pending items are grouped by room with room-specific explanations.
+  Placement failures offer individual reflow, smaller-model replacement, and a
+  room-level `同意擇優配置` action.
+- Room-level prioritization preserves user-selected and essential furniture
+  first, records omitted items under that room as deferred, and never removes
+  them without the user's explicit action.
+- Model-load failures remain separate from placement failures and offer direct
+  furniture replacement.
+- Browser verification on project
+  `47abb48d539c46a0afd1fc1acce34add` found 3 bedroom, 2 kitchen, 1 storage,
+  2 bathroom, 4 living-room, and 2 balcony recommendations. Circulation
+  correctly offered no default furniture.
+- Browser verification also confirmed the existing Step 6 failures are grouped
+  under `廚房` and `陽台`.
+- Full suite verification: 472 passed, 2 skipped.
+- No remote push was performed.

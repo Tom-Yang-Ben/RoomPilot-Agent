@@ -7891,6 +7891,68 @@ body.rp-workflow-page .danger-action {
   line-height: 1.45;
 }
 
+.rp-configuration-pending-room {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #d8b3aa;
+  background: #fffaf8;
+}
+
+.rp-configuration-pending-room > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ead8d3;
+}
+
+.rp-configuration-pending-room > header div,
+.rp-configuration-pending-room > header strong,
+.rp-configuration-pending-room > header small {
+  min-width: 0;
+}
+
+.rp-configuration-pending-room > header strong,
+.rp-configuration-pending-room > header small {
+  display: block;
+}
+
+.rp-configuration-pending-room > header small {
+  margin-top: 3px;
+  color: #76594f;
+}
+
+.rp-configuration-pending-room > header button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #7b3c2d;
+  border-radius: 4px;
+  background: #7b3c2d;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.rp-configuration-pending-room.is-deferred {
+  border-color: #b8c9c1;
+  background: #f2f7f4;
+}
+
+.rp-configuration-pending-room.is-deferred > header {
+  border-bottom-color: #d4e0da;
+}
+
+.rp-configuration-pending-room.is-deferred ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+  color: #4f5f58;
+  font-size: 12px;
+}
+
 .rp-configuration-pending-item {
   border-color: #d49789;
   background: #fff5f2;
@@ -11377,6 +11439,71 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   margin-bottom: 28px;
 }
 
+.rp-questionnaire-furniture {
+  margin: 24px 0;
+  padding: 20px 0;
+  border-top: 1px solid #d8d5ce;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-furniture-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rp-questionnaire-furniture-options > label {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 12px;
+  border: 1px solid #cbc7bf;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.rp-questionnaire-furniture-options > label.is-selected {
+  border-color: #27715d;
+  box-shadow: inset 0 0 0 2px #27715d;
+  background: #f1f8f5;
+}
+
+.rp-questionnaire-furniture-options input {
+  width: 18px;
+  height: 18px;
+  accent-color: #27715d;
+}
+
+.rp-questionnaire-furniture-options span,
+.rp-questionnaire-furniture-options strong,
+.rp-questionnaire-furniture-options small {
+  min-width: 0;
+}
+
+.rp-questionnaire-furniture-options strong,
+.rp-questionnaire-furniture-options small {
+  display: block;
+}
+
+.rp-questionnaire-furniture-options small {
+  margin-top: 4px;
+  color: #6e6962;
+}
+
+.rp-questionnaire-furniture-options em {
+  padding: 4px 6px;
+  border: 1px solid #bbb5ac;
+  border-radius: 4px;
+  color: #5d5851;
+  font-size: 11px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
 .rp-questionnaire-style-grid > button {
   min-width: 0;
   display: grid;
@@ -11673,6 +11800,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 
   .rp-test2-profile-grid,
   .rp-visual-options,
+  .rp-questionnaire-furniture-options,
   .rp-questionnaire-style-grid,
   .rp-questionnaire-summary-grid,
   .rp-room-summary-body {

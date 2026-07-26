@@ -65,6 +65,106 @@ def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options(
     assert "floorMaterial" in source
 
 
+def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert 'id="questionnaire-furniture-options"' in html
+    assert 'id="questionnaire-furniture-status"' in html
+    assert "function ensureQuestionnaireFurnitureRecommendations" in source
+    assert "function renderQuestionnaireFurnitureRecommendations" in source
+    assert 'data-questionnaire-furniture-id="' in source
+    assert "user_selected: true" in source
+    assert "selection_priority:" in source
+    assert "function knownUnavailableCatalogFurnitureIds" in source
+    assert "unavailableCatalogIds.has(String(offer.furniture_id))" in source
+    assert "async function verifyQuestionnaireCatalogModel" in source
+    assert "model_load_verified: true" in source
+    assert ".rp-questionnaire-furniture-options" in css
+
+
+def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    auto_layout = source.split("async function autoLayoutFurniture()", 1)[1].split(
+        "async function relayoutFurnitureForScheme", 1
+    )[0]
+
+    assert "requirement?.furniture?.selected" in auto_layout
+    assert "userSelectedSpecs" in auto_layout
+    assert "catalogItem?.user_selected === true" in auto_layout
+    assert "item.selectionPriority" in auto_layout
+    assert "selected_furniture_exact" in source
+
+
+def test_room_requirement_round_trip_preserves_selected_and_deferred_furniture() -> None:
+    module_uri = (STATIC / "scene_room_requirements.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{
+          buildRoomRequirementsPayload,
+          normalizeRoomRequirements,
+        }} from {json.dumps(module_uri)};
+        const rooms = [{{
+          id: "living-1",
+          type: "living_room",
+          label: "客廳",
+        }}];
+        const model = normalizeRoomRequirements({{
+          roomRequirements: {{
+            "living-1": {{
+              confirmed: true,
+              furniture: {{
+                required: ["sofa"],
+                selected: [{{
+                  furniture_id: "sofa-db-1",
+                  normalized_type: "sofa",
+                  model_url: "https://cdn.example/sofa.glb",
+                  user_selected: true,
+                  selection_priority: 1,
+                }}],
+                deferred: [{{
+                  furniture_id: "table-db-1",
+                  normalized_type: "coffee-table",
+                  label: "茶几",
+                }}],
+              }},
+              climate: {{ airConditioning: "none" }},
+              surfaces: {{
+                wallDefault: {{ materialId: "paint" }},
+                floor: {{ materialId: "wood" }},
+                ceiling: {{
+                  materialId: "paint",
+                  styleId: "flat",
+                  lightingId: "track",
+                }},
+              }},
+            }},
+          }},
+          globalConfirmed: true,
+        }}, rooms);
+        console.log(JSON.stringify(buildRoomRequirementsPayload(model)));
+        """
+    )
+
+    furniture = result["roomRequirements"][0]["furniture"]
+    assert furniture["selected"][0]["furniture_id"] == "sofa-db-1"
+    assert furniture["selected"][0]["selection_priority"] == 1
+    assert furniture["deferred"][0]["label"] == "茶几"
+
+
+def test_step_six_groups_failures_by_room_and_offers_explicit_resolution() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert "function configurationBlockingFurnitureByRoom" in source
+    assert 'data-prioritize-configuration-room="' in source
+    assert "同意擇優配置" in source
+    assert "function prioritizeConfigurationRoomFurniture" in source
+    assert "更換較小款" in source
+    assert ".rp-configuration-pending-room" in css
+
+
 def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     dependency_edges = {
         "scene_v2.js": [
@@ -2133,7 +2233,7 @@ def test_configuration_pending_actions_distinguish_model_and_placement_failures(
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     pending = source.split(
-        "element.configurationPendingList.innerHTML = blocking.map", 1
+        "const blockingRooms = configurationBlockingFurnitureByRoom", 1
     )[1].split("const confirmButton", 1)[0]
     handlers = source.split(
         'element.configurationPendingList.addEventListener("click"', 1
