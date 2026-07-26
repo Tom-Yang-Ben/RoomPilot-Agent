@@ -1,0 +1,38 @@
+# RoomPilot team baseline
+# Verified on Windows 64-bit with Python 3.12.13 on 2026-07-27.
+# Covers the production web app, floorplan vision, catalog/SQL tools, and tests.
+
+# Geometry and placement (Ancai)
+shapely==2.1.2
+
+# FastAPI, persistence, upload and render integration (Bella)
+fastapi==0.140.0
+uvicorn==0.51.0
+pillow==12.3.0
+ezdxf==1.4.4
+python-multipart==0.0.32
+httpx==0.28.1
+
+# Floorplan recognition and spatial evaluation (Cody / Django / Ben)
+numpy==2.5.1
+opencv-python==4.13.0.92
+
+# Catalog, AWS metadata tooling and PostgreSQL import (Kai)
+requests==2.34.2
+selenium==4.46.0
+webdriver-manager==4.1.2
+tqdm==4.69.1
+beautifulsoup4==4.15.0
+SQLAlchemy==2.0.51
+psycopg2-binary==2.9.12
+python-dotenv==1.2.2
+
+# Team verification
+pytest==9.1.1
+
+# Optional OCR is intentionally installed separately because Paddle is large
+# and platform-specific. The team lock is:
+#   paddleocr==3.7.0
+#   paddlepaddle==3.3.1
+# Use the command documented in README.md.
+

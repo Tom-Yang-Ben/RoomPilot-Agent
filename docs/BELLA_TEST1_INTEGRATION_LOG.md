@@ -870,3 +870,26 @@ $env:TEMP=$env:TMP
   actionable edge cases found during review were fixed before final testing.
 - Full suite verification: 476 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Team AI Ownership and Dependency Baseline
+
+- Audited the current repository tree, remote branch history, module tests, and
+  existing ownership notes for Bella, Cody, Django, Kai, Yen, Ancai, and Ben.
+- Added versioned root `AGENTS.md` and `CLAUDE.md` guidance with mandatory
+  read-before-write and cross-folder change gates.
+- Added per-owner architecture/workflow profiles under `docs/owners/` and
+  path-specific `AGENTS.md` files for every primary runtime and test area.
+- Updated `.gitignore` only to version these shared team instructions while
+  keeping personal/local AI files ignored.
+- Rewrote `README.md` around the current eight-step product flow and added
+  executable venv, uv, FastAPI, PostgreSQL, test, and React prototype commands.
+- Added `requirements.txt` with the Python 3.12.13 environment versions used by
+  the passing suite. Large optional Paddle OCR dependencies are isolated in
+  `requirements-ocr.txt`.
+- Added contract tests for owner coverage, folder guidance, README startup and
+  flow wording, Python dependency pins, and frontend package-lock versions.
+- `pip check` passed and every package in `requirements.txt` matched the tested
+  environment. A temporary Uvicorn process using
+  `backend.server.main:app` returned HTTP 200 on port 8031.
+- Full suite verification: 480 passed, 2 skipped.
+- No remote push was performed.
