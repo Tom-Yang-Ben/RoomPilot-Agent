@@ -30,6 +30,120 @@ import {
 
 const CM_PER_METER = 100;
 
+function normalizeSceneRotationDeg(rotationDeg = 0) {
+  return ((Number(rotationDeg) % 360) + 360) % 360;
+}
+
+function sceneToWorldPosition(position = {}) {
+  return {
+    x: Number(position.x || 0),
+    z: -Number(position.z || 0),
+  };
+}
+
+function worldToScenePosition(position = {}) {
+  return {
+    x: Math.round(Number(position.x || 0) * 100) / 100,
+    z: Math.round(-Number(position.z || 0) * 100) / 100,
+  };
+}
+
+function sceneToWorldRotationDeg(rotationDeg = 0) {
+  return normalizeSceneRotationDeg(-Number(rotationDeg || 0));
+}
+
+function worldToSceneRotationDeg(rotationDeg = 0) {
+  return normalizeSceneRotationDeg(-Number(rotationDeg || 0));
+}
+
+function flipPointZ(point) {
+  if (Array.isArray(point)) return [Number(point[0] || 0), -Number(point[1] || 0)];
+  if (!point || typeof point !== "object") return point;
+  const next = { ...point };
+  if ("z" in next) next.z = -Number(next.z || 0);
+  if ("y" in next && !("z" in next)) next.y = -Number(next.y || 0);
+  return next;
+}
+
+function flipSegmentZ(segment) {
+  if (!segment || typeof segment !== "object") return segment;
+  return {
+    ...segment,
+    start: flipPointZ(segment.start),
+    end: flipPointZ(segment.end),
+    rotation_deg: "rotation_deg" in segment
+      ? sceneToWorldRotationDeg(segment.rotation_deg)
+      : segment.rotation_deg,
+  };
+}
+
+function flipBoundsZ(bounds) {
+  if (!bounds || typeof bounds !== "object") return bounds;
+  const minZ = Number(bounds.minZ);
+  const maxZ = Number(bounds.maxZ);
+  if (!Number.isFinite(minZ) || !Number.isFinite(maxZ)) return { ...bounds };
+  return { ...bounds, minZ: -maxZ, maxZ: -minZ };
+}
+
+function flipPolygonRegionZ(region) {
+  if (!region || typeof region !== "object") return region;
+  return {
+    ...region,
+    exterior: (region.exterior || []).map(flipPointZ),
+    holes: (region.holes || []).map((ring) => (ring || []).map(flipPointZ)),
+    polygon_cm: (region.polygon_cm || []).map(flipPointZ),
+  };
+}
+
+function floorplanForWorld(sceneData) {
+  const floorplan = JSON.parse(JSON.stringify(sceneData?.floorplan || {}));
+  [
+    "wall_segments",
+    "door_segments",
+    "window_segments",
+    "door_openings",
+    "beam_segments",
+  ].forEach((key) => {
+    if (Array.isArray(floorplan[key])) floorplan[key] = floorplan[key].map(flipSegmentZ);
+  });
+  if (Array.isArray(floorplan.columns)) {
+    floorplan.columns = floorplan.columns.map((column) => ({
+      ...column,
+      center: flipPointZ(column.center),
+      rotation_deg: "rotation_deg" in column
+        ? sceneToWorldRotationDeg(column.rotation_deg)
+        : column.rotation_deg,
+    }));
+  }
+  if (Array.isArray(floorplan.wall_polys)) {
+    floorplan.wall_polys = floorplan.wall_polys.map(flipPolygonRegionZ);
+  }
+  if (Array.isArray(floorplan.room_regions)) {
+    floorplan.room_regions = floorplan.room_regions.map(flipPolygonRegionZ);
+  }
+  return floorplan;
+}
+
+function sceneDataForWorld(sceneData) {
+  const worldScene = {
+    ...sceneData,
+    floorplan: floorplanForWorld(sceneData),
+    surface_overrides: (sceneData?.surface_overrides || []).map((override) => ({
+      ...override,
+      room_bounds_cm: flipBoundsZ(override.room_bounds_cm),
+      room_polygon_cm: (override.room_polygon_cm || []).map(flipPointZ),
+    })),
+  };
+  if (worldScene.material_boundary?.room_bounds_cm) {
+    worldScene.material_boundary = {
+      ...worldScene.material_boundary,
+      room_bounds_cm: flipBoundsZ(worldScene.material_boundary.room_bounds_cm),
+      line_cm: (worldScene.material_boundary.line_cm || []).map(flipPointZ),
+    };
+  }
+  return worldScene;
+}
+
 export function createSceneViewer(
   container,
   statusElement,
@@ -2860,9 +2974,12 @@ export function createSceneViewer(
     );
     outline.position.copy(body.position);
     wrapper.add(outline);
-    wrapper.position.x = Number(item.position_cm?.x ?? ((index % 4) - 1.5) * 130);
-    wrapper.position.z = Number(item.position_cm?.z ?? Math.floor(index / 4) * 110);
-    wrapper.rotation.y = THREE.MathUtils.degToRad(item.rotation_y_deg || 0);
+    const worldPosition = sceneToWorldPosition(
+      item.position_cm || { x: ((index % 4) - 1.5) * 130, z: Math.floor(index / 4) * 110 },
+    );
+    wrapper.position.x = worldPosition.x;
+    wrapper.position.z = worldPosition.z;
+    wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
     wrapper.userData.sceneIndex = index + 1;
     wrapper.userData.sceneObject = item;
     wrapper.userData.fallbackFurniture = true;
@@ -2884,13 +3001,14 @@ export function createSceneViewer(
   async function loadScene(sceneData) {
     onResize();
     lastSceneData = sceneData;
+    lastWorldSceneData = sceneDataForWorld(sceneData);
     dragState = null;
     selectedWrapper = null;
     selectedControls.hidden = true;
     disposeGuide();
     clearGroup(furnitureGroup);
     applyRenderingProfile(sceneData);
-    createRoom(sceneData);
+    createRoom(lastWorldSceneData);
     setStatus("正在生成 3D 場景...");
 
     const objects = sceneData.scene_objects || [];
@@ -2934,9 +3052,10 @@ export function createSceneViewer(
           wrapper.userData.sceneIndex = index + 1;
           wrapper.userData.sceneObject = item;
 
-          wrapper.position.x = Number(item.position_cm?.x || 0);
-          wrapper.position.z = Number(item.position_cm?.z || 0);
-          wrapper.rotation.y = THREE.MathUtils.degToRad(item.rotation_y_deg || 0);
+          const worldPosition = sceneToWorldPosition(item.position_cm || {});
+          wrapper.position.x = worldPosition.x;
+          wrapper.position.z = worldPosition.z;
+          wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
 
           const size = sizeCentimeters(item);
           addFurnitureContactShadow(wrapper, item.size_cm || {});
@@ -2991,6 +3110,7 @@ export function createSceneViewer(
 
   // ── F6 自由拖曳：前端只負責拖，落點合法性由後端 furniture_engine 驗證 ──
   let lastSceneData = null;
+  let lastWorldSceneData = null;
   let dragState = null;
   let selectedWrapper = null;
   let footprintGuide = null;
@@ -3088,7 +3208,7 @@ export function createSceneViewer(
   }
 
   function walkPositionInsideFloor(position) {
-    const regions = lastSceneData?.floorplan?.room_regions || [];
+    const regions = lastWorldSceneData?.floorplan?.room_regions || [];
     if (!regions.length) return true;
     return regions.some((region) => {
       const exterior = region.exterior || region.polygon_cm || region.polygon_m || [];
@@ -3098,7 +3218,7 @@ export function createSceneViewer(
   }
 
   function walkPositionBlocked(position, clearanceCm = 20) {
-    return (lastSceneData?.floorplan?.wall_segments || []).some((segment) => {
+    return (lastWorldSceneData?.floorplan?.wall_segments || []).some((segment) => {
       const start = segment.start;
       const end = segment.end;
       if (!start || !end) return false;
@@ -3114,7 +3234,7 @@ export function createSceneViewer(
       );
       const closestX = Number(start.x) + projection * dx;
       const closestZ = Number(start.z) + projection * dz;
-      const insideDoorOpening = (lastSceneData?.floorplan?.door_openings || []).some((opening) => {
+      const insideDoorOpening = (lastWorldSceneData?.floorplan?.door_openings || []).some((opening) => {
         if (!openingBelongsToWall(segment, opening, 24)) return false;
         const openingStart = opening.start || opening.hinge || {};
         const openingEnd = opening.end || {};
@@ -3241,6 +3361,18 @@ export function createSceneViewer(
     };
   }
 
+  function topdownPointerDeltaCm(event, startEvent) {
+    if (!startEvent || viewMode.mode !== "topdown" || camera !== orthographicCamera) return null;
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const worldWidth = (orthographicCamera.right - orthographicCamera.left) / orthographicCamera.zoom;
+    const worldHeight = (orthographicCamera.top - orthographicCamera.bottom) / orthographicCamera.zoom;
+    return {
+      x: ((event.clientX - startEvent.clientX) / rect.width) * worldWidth,
+      z: ((event.clientY - startEvent.clientY) / rect.height) * worldHeight,
+    };
+  }
+
   const pickLocal = new THREE.Vector3();
   const FLOOR_OVERLAY_TYPES = new Set(["large-medium-rug", "runner-small-rug"]);
 
@@ -3255,7 +3387,7 @@ export function createSceneViewer(
     const item = wrapper?.userData?.sceneObject;
     if (!item) return false;
     const size = sizeCentimeters(item);
-    const radians = THREE.MathUtils.degToRad(Number(item.rotation_y_deg) || 0);
+    const radians = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
     const dx = x - wrapper.position.x;
     const dz = z - wrapper.position.z;
     const localX = dx * Math.cos(radians) + dz * Math.sin(radians);
@@ -3570,7 +3702,10 @@ export function createSceneViewer(
           const callback = beamPlacementRequest.callback;
           beamPlacementRequest = null;
           renderer.domElement.style.cursor = "";
-          callback({ start, end });
+          callback({
+            start: worldToScenePosition(start),
+            end: worldToScenePosition(end),
+          });
         }
       }
       event.preventDefault();
@@ -3582,10 +3717,7 @@ export function createSceneViewer(
       placementRequest = null;
       renderer.domElement.style.cursor = "";
       if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
-        callback({
-          x: Math.round(planeHit.x * 100) / 100,
-          z: Math.round(planeHit.z * 100) / 100,
-        });
+        callback(worldToScenePosition(planeHit));
       } else {
         setStatus("沒有點到可擺放的地板，請重新選擇「新增到 3D」。");
       }
@@ -3610,13 +3742,14 @@ export function createSceneViewer(
       wrapper,
       item: wrapper.userData.sceneObject,
       startPosition: wrapper.position.clone(),
-      startRotationDeg: normalizedRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
-      pendingRotationDeg: normalizedRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
+      startEvent: { clientX: event.clientX, clientY: event.clientY },
+      startRotationDeg: sceneToWorldRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
+      pendingRotationDeg: sceneToWorldRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
       grabOffset: planeHit.clone().sub(wrapper.position),
       lastValid: {
         x: wrapper.position.x,
         z: wrapper.position.z,
-        rotationDeg: normalizedRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
+        rotationDeg: sceneToWorldRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
         kind: "grid",
       },
       materials: [],
@@ -3653,7 +3786,7 @@ export function createSceneViewer(
   }
 
   function roomBounds() {
-    const floorplan = lastSceneData?.floorplan || {};
+    const floorplan = lastWorldSceneData?.floorplan || {};
     const widthCm = Math.max(Number(floorplan.width_cm) || 420, 240);
     const depthCm = Math.max(Number(floorplan.depth_cm) || 360, 240);
     return {
@@ -3770,7 +3903,7 @@ export function createSceneViewer(
   }
 
   function wallSegmentsForSnap() {
-    const floorplan = lastSceneData?.floorplan || {};
+    const floorplan = lastWorldSceneData?.floorplan || {};
     const segments = floorplan.wall_segments || [];
     if (segments.length) return segments;
     // 手動矩形模式沒有牆段資料,用房間四邊當虛擬牆
@@ -3867,7 +4000,7 @@ export function createSceneViewer(
       x: bestX ? bestX.value : Math.round(x / DRAG_GRID) * DRAG_GRID,
       z: bestZ ? bestZ.value : Math.round(z / DRAG_GRID) * DRAG_GRID,
       kind: snapKind,
-      rotationDeg: rotationSource ? rotationSource.rotationDeg : normalizedRotationDeg(item.rotation_y_deg || 0),
+      rotationDeg: rotationSource ? rotationSource.rotationDeg : sceneToWorldRotationDeg(item.rotation_y_deg || 0),
     };
   }
 
@@ -3876,7 +4009,7 @@ export function createSceneViewer(
       item,
       Math.round(x / DRAG_GRID) * DRAG_GRID,
       Math.round(z / DRAG_GRID) * DRAG_GRID,
-      normalizedRotationDeg(item.rotation_y_deg || 0)
+      sceneToWorldRotationDeg(item.rotation_y_deg || 0)
     );
   }
 
@@ -3921,11 +4054,18 @@ export function createSceneViewer(
     if (!dragState) return;
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, camera);
-    if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
+    const topdownDelta = topdownPointerDeltaCm(event, dragState.startEvent);
+    const target = topdownDelta
+      ? {
+          x: dragState.startPosition.x + topdownDelta.x,
+          z: dragState.startPosition.z + topdownDelta.z,
+        }
+      : null;
+    if (target || dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
       const snapped = snapDragPositionV3(
         dragState.item,
-        planeHit.x - dragState.grabOffset.x,
-        planeHit.z - dragState.grabOffset.z
+        target ? target.x : planeHit.x - dragState.grabOffset.x,
+        target ? target.z : planeHit.z - dragState.grabOffset.z
       );
       const nextTransform = snapped.blocked ? dragState.lastValid : snapped;
       dragState.wrapper.position.x = nextTransform.x;
@@ -3960,19 +4100,17 @@ export function createSceneViewer(
     if (movedCm < 1 && !rotated) return;  // 只是點選,沒有拖
 
     const label = item.name_zh_raw || item.normalized_type || "家具";
-    const newPositionCm = {
-      x: Math.round(wrapper.position.x * 100) / 100,
-      z: Math.round(wrapper.position.z * 100) / 100,
-    };
+    const newPositionCm = worldToScenePosition(wrapper.position);
+    const newRotationDeg = worldToSceneRotationDeg(pendingRotationDeg);
     setStatus(`正在檢查「${label}」的新位置...`);
-    const verdict = await resolvePlacement(item, newPositionCm, normalizedRotationDeg(pendingRotationDeg));
+    const verdict = await validatePlacement(item, newPositionCm, newRotationDeg);
     if (verdict.ok) {
-      const { resolved } = verdict;
-      item.position_cm = resolved.position_cm;
-      item.rotation_y_deg = resolved.rotation_y_deg;
-      wrapper.position.x = Number(resolved.position_cm?.x || 0);
-      wrapper.position.z = Number(resolved.position_cm?.z || 0);
-      wrapper.rotation.y = THREE.MathUtils.degToRad(Number(resolved.rotation_y_deg || 0));
+      item.position_cm = newPositionCm;
+      item.rotation_y_deg = newRotationDeg;
+      const worldPosition = sceneToWorldPosition(item.position_cm || {});
+      wrapper.position.x = worldPosition.x;
+      wrapper.position.z = worldPosition.z;
+      wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
       updateFootprintGuide(wrapper);
       setStatus(`已移動「${label}」，靠近牆面時會自動貼齊並旋轉。`);
       item.position_locked = true;  // 之後的重排/替換不會沖掉手動位置
@@ -4000,7 +4138,7 @@ export function createSceneViewer(
     if (verdict.ok) {
       item.rotation_y_deg = nextRotation;
       item.position_locked = true;
-      selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
+      selectedWrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(nextRotation));
       updateFootprintGuide(selectedWrapper);
       notifySceneChange(item);
       setStatus(`${label} 已旋轉到 ${nextRotation} 度。`);
@@ -4012,10 +4150,7 @@ export function createSceneViewer(
   }
 
   function wrapperPositionCm(wrapper) {
-    return {
-      x: Math.round(wrapper.position.x * 100) / 100,
-      z: Math.round(wrapper.position.z * 100) / 100,
-    };
+    return worldToScenePosition(wrapper.position);
   }
 
   async function rotateSelectedManual(deltaDeg = 90) {
@@ -4030,8 +4165,9 @@ export function createSceneViewer(
 
     const label = item.name_zh_raw || item.normalized_type || "家具";
     const nextRotation = normalizedRotationDeg((item.rotation_y_deg || 0) + deltaDeg);
+    const nextWorldRotation = sceneToWorldRotationDeg(nextRotation);
     const currentPositionCm = wrapperPositionCm(selectedWrapper);
-    const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextRotation);
+    const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextWorldRotation);
     if (candidate.blocked) {
       setStatus(`「${label}」旋轉後會超出房間或碰到牆，已取消。`);
       return false;
@@ -4045,7 +4181,7 @@ export function createSceneViewer(
     item.rotation_y_deg = nextRotation;
     item.position_cm = currentPositionCm;
     item.position_locked = true;
-    selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
+    selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextWorldRotation);
     updateFootprintGuide(selectedWrapper);
     notifySceneChange(item);
     setStatus(`已旋轉「${label}」到 ${nextRotation}°。`);
@@ -4077,12 +4213,13 @@ export function createSceneViewer(
     if (!delta) return false;
 
     const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
+    const worldRotationDeg = sceneToWorldRotationDeg(rotationDeg);
     const candidate = constrainTransform(
       item,
       selectedWrapper.position.x + delta.x,
       selectedWrapper.position.z + delta.z,
-      rotationDeg,
-      { x: selectedWrapper.position.x, z: selectedWrapper.position.z, rotationDeg, kind: "blocked" }
+      worldRotationDeg,
+      { x: selectedWrapper.position.x, z: selectedWrapper.position.z, rotationDeg: worldRotationDeg, kind: "blocked" }
     );
 
     if (candidate.blocked) {
@@ -4116,10 +4253,7 @@ export function createSceneViewer(
   }
 
   function scenePositionCm(x, z) {
-    return {
-      x: Math.round(x * 100) / 100,
-      z: Math.round(z * 100) / 100,
-    };
+    return worldToScenePosition({ x, z });
   }
 
   async function rotateSelectedFromControls(deltaDeg = 15) {
@@ -4131,8 +4265,10 @@ export function createSceneViewer(
     const item = selectedWrapper.userData.sceneObject;
     if (!item) return false;
     const label = selectedObjectLabel(item);
-    const nextRotation = normalizedRotationDeg((item.rotation_y_deg || 0) + deltaDeg);
-    const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextRotation);
+    const currentWorldRotation = sceneToWorldRotationDeg(item.rotation_y_deg || 0);
+    const nextWorldRotation = normalizedRotationDeg(currentWorldRotation + deltaDeg);
+    const nextRotation = worldToSceneRotationDeg(nextWorldRotation);
+    const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextWorldRotation);
     if (candidate.blocked) {
       updateFootprintGuide(selectedWrapper, "blocked");
       setStatus(`${label} 旋轉後會碰牆或超出房間，已取消。`);
@@ -4149,7 +4285,7 @@ export function createSceneViewer(
     }
 
     selectedWrapper.position.set(candidate.x, selectedWrapper.position.y, candidate.z);
-    selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
+    selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextWorldRotation);
     item.position_cm = nextPositionCm;
     item.rotation_y_deg = nextRotation;
     item.position_locked = true;
@@ -4169,7 +4305,8 @@ export function createSceneViewer(
     if (!item) return false;
     const label = selectedObjectLabel(item);
     const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
-    const radians = THREE.MathUtils.degToRad(rotationDeg);
+    const worldRotationDeg = sceneToWorldRotationDeg(rotationDeg);
+    const radians = THREE.MathUtils.degToRad(worldRotationDeg);
     const step = 25;
     const forward = { x: -Math.sin(radians), z: -Math.cos(radians) };
     const right = { x: Math.cos(radians), z: -Math.sin(radians) };
@@ -4185,8 +4322,8 @@ export function createSceneViewer(
       item,
       selectedWrapper.position.x + delta.x,
       selectedWrapper.position.z + delta.z,
-      rotationDeg,
-      { x: selectedWrapper.position.x, z: selectedWrapper.position.z, rotationDeg, kind: "blocked" }
+      worldRotationDeg,
+      { x: selectedWrapper.position.x, z: selectedWrapper.position.z, rotationDeg: worldRotationDeg, kind: "blocked" }
     );
     if (candidate.blocked) {
       updateFootprintGuide(selectedWrapper, "blocked");

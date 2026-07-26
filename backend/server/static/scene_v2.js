@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-7b2f8a34ce74";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-3f42f50a792d";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,

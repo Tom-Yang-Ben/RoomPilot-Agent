@@ -28,4 +28,4 @@ def test_edit_mode_is_required_before_dragging_furniture() -> None:
     assert 'interactionMode !== "edit"' in VIEWER
     assert "cameraLocked = true" in VIEWER
     assert "controls.enableRotate = false" in VIEWER
-    assert "resolvePlacement(item" in VIEWER
+    assert "validatePlacement(item, newPositionCm, newRotationDeg)" in VIEWER

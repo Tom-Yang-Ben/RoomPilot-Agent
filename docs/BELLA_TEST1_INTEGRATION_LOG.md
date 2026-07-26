@@ -40,10 +40,16 @@ c1182072 feat(floorplan): add cody semantic weight contract
   - White-model and realistic viewers emit selected scene object changes through `onObjectSelect`.
   - User clicks in 3D update the matching 2D furniture selection by `furniture_id`.
   - Programmatic 2D-to-3D sync does not re-emit selection events, avoiding callback loops.
+- Fixed the 2D/3D mirror boundary in the 3D viewer:
+  - `sceneData` and 2D layout remain in engine coordinates.
+  - The viewer builds a world-frame clone with `z` flipped for floorplan geometry and surface overrides.
+  - Furniture positions and rotations are flipped only at render time.
+  - Dragging, manual placement, and beam placement convert world coordinates back to scene coordinates before validation/saving.
+  - Existing manual 3D add/delete controls and furniture number markers are preserved.
 - Verification:
   - `node --check backend/server/static/scene_viewer.js`
   - `node --check backend/server/static/scene_v2.js`
-  - `pytest tests/test_scene_v2_contract.py -k "scene_entrypoint_cache_key_matches_bundle_content or changed_scene_module_cache_keys_match_dependency_content or scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection or 2d_furniture_selection_syncs_to_matching_3d_scene_object or 3d_scene_selection_syncs_back_to_2d_furniture_state"`
+  - `pytest tests/test_scene_v2_contract.py -k "scene_entrypoint_cache_key_matches_bundle_content or changed_scene_module_cache_keys_match_dependency_content or scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection or 2d_furniture_selection_syncs_to_matching_3d_scene_object or 3d_scene_selection_syncs_back_to_2d_furniture_state or 3d_viewer_flips_scene_z_at_the_visual_boundary_only or 3d_viewer_keeps_manual_furniture_controls_and_number_markers"`
 
 ### Layout / Scene Boundary Contract
 
@@ -437,3 +443,17 @@ $env:TEMP=$env:TMP
 - Updated the random requirements shortcut so wall and floor materials are sampled from the active style's material options instead of always using the style pack defaults.
 - Expanded questionnaire wall/floor recommendations so each style card derives its own ordered material suggestions and color swatches instead of sharing the same two style-level options.
 - This is a local frontend/testing helper only. It does not change the DB/PostgreSQL work, and no remote push was performed.
+
+## 2026-07-26 3D Viewer Coordinate Boundary
+
+- Kept canonical scene data in layout/scene coordinates and added a viewer-only world transform for floorplan geometry and furniture display.
+- Fixed topdown furniture dragging so screen movement maps directly to topdown world movement; dragging right now increases the saved scene `x` instead of moving the object left.
+- Changed 3D manual drag completion from `/api/scene/layout` relayout to `/api/scene/validate` validation, so a user-dragged legal position is preserved instead of being re-snapped by the automatic placement engine.
+- Kept manual furniture add/delete controls and numbered 3D markers intact.
+- Browser smoke verified on local `http://127.0.0.1:8022/static/verify_scene_viewer.html` before deleting the temporary verification page:
+  - two visible fallback furniture objects
+  - visible number markers `1` and `2`
+  - rightward topdown drag changed `position_cm.x` from `-120` to `65`
+  - projected screen `x` moved from `561` to `682`
+- Screenshot saved outside the repo:
+  `C:/Users/user/.codex/visualizations/2026/07/24/019f93b8-1038-7900-843e-c01e4c13226f/bella-test1-3d-drag-verification.png`

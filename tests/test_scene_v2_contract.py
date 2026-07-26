@@ -668,6 +668,37 @@ def test_3d_scene_selection_syncs_back_to_2d_furniture_state() -> None:
     assert "onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item)" in controller
 
 
+def test_3d_viewer_flips_scene_z_at_the_visual_boundary_only() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function sceneToWorldPosition" in viewer
+    assert "z: -Number(position.z || 0)" in viewer
+    assert "function worldToScenePosition" in viewer
+    assert "z: Math.round(-Number(position.z || 0) * 100) / 100" in viewer
+    assert "function sceneDataForWorld" in viewer
+    assert "lastWorldSceneData = sceneDataForWorld(sceneData)" in viewer
+    assert "createRoom(lastWorldSceneData)" in viewer
+    assert "const worldPosition = sceneToWorldPosition(item.position_cm || {})" in viewer
+    assert "callback(worldToScenePosition(planeHit))" in viewer
+    assert "function topdownPointerDeltaCm" in viewer
+    assert "dragState.startPosition.x + topdownDelta.x" in viewer
+    assert "const newPositionCm = worldToScenePosition(wrapper.position)" in viewer
+    assert "const verdict = await validatePlacement(item, newPositionCm, newRotationDeg)" in viewer
+    assert "item.position_cm = newPositionCm" in viewer
+
+
+def test_3d_viewer_keeps_manual_furniture_controls_and_number_markers() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function createNumberMarker" in viewer
+    assert "roompilotNumberMarker" in viewer
+    assert "beginPlacement" in viewer
+    assert "function addSceneFurniture" in controller
+    assert "function deleteSelectedSceneFurniture" in controller
+    assert 'id="delete-white-model-furniture"' in (STATIC / "scene.html").read_text(encoding="utf-8")
+
+
 def test_2d_collision_footprint_respects_furniture_rotation() -> None:
     module_uri = (STATIC / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
