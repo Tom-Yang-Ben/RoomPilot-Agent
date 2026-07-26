@@ -142,6 +142,12 @@ c1182072 feat(floorplan): add cody semantic weight contract
   - constrain `opencv-python` to `>=4.10,<5`
 - Verified `pip install -e ".[server,vision]"` now succeeds.
 - Fixed sparse colored floor-plan line art detection by adding `saturated_ratio` to `image_profile`; sparse colored drawings no longer fall through to `grayscale_line_art`.
+- Rebuilt `.venv/` after its launcher was created with a mojibake worktree path:
+  - stopped the local `bella-test1-clean` uvicorn process that was locking `.pyd` and `.dll` files
+  - removed the broken `.venv/`
+  - recreated it with `C:\Users\user\AppData\Local\Programs\Python\Python312\python.exe -m venv .venv`
+  - reinstalled `.[server,vision]` and `pytest`
+  - verified direct `.venv\Scripts\python.exe` imports for `pytest`, `cv2`, `fastapi`, and `numpy`
 
 ## Verification
 
@@ -281,6 +287,26 @@ $env:TMP=(Resolve-Path .tmp).Path
 $env:TEMP=$env:TMP
 $env:PYTHONPATH=(Resolve-Path .).Path + ';' + (Resolve-Path .venv\Lib\site-packages).Path
 C:\Users\user\AppData\Local\Programs\Python\Python312\python.exe -m pytest `
+  tests/test_floorplan_vision_api.py `
+  tests/test_project_workflow_api.py `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+```
+
+Current verification after rebuilding `.venv/`:
+
+```text
+direct venv import check passed:
+- pytest
+- cv2
+- fastapi
+- numpy
+
+21 passed, 3 warnings
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
   tests/test_floorplan_vision_api.py `
   tests/test_project_workflow_api.py `
   --basetemp=.tmp\pytest -p no:cacheprovider
