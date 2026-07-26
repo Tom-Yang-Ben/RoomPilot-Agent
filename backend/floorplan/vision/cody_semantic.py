@@ -11,13 +11,17 @@ from __future__ import annotations
 import hashlib
 import os
 from pathlib import Path
-from typing import Mapping
+import subprocess
+import sys
+from typing import Any, Mapping
 import urllib.error
 import urllib.request
+import zipfile
 
 
 DEFAULT_WEIGHTS = Path("training/model_finetuned_v5.pkl")
 DEFAULT_CACHE_DIR = Path("cubicasa/room")
+DEFAULT_INFER_SCRIPT = Path("scripts/infer_cubicasa.py")
 CODY_V5_WEIGHTS_URL = (
     "https://github.com/Tom-Yang-Ben/RoomPilot-Agent/releases/download/"
     "weights-v5/model_finetuned_v5.pkl"
@@ -42,7 +46,7 @@ def _semantic_paths(
     env: Mapping[str, str] | None = None,
 ) -> tuple[Path, Path, Mapping[str, str]]:
     base = root or Path.cwd()
-    values = env or os.environ
+    values = env if env is not None else os.environ
     weights = Path(values.get("CC_WEIGHTS", str(DEFAULT_WEIGHTS)))
     cache_dir = Path(values.get("CC_CACHE_DIR", str(DEFAULT_CACHE_DIR)))
     if not weights.is_absolute():
@@ -52,8 +56,35 @@ def _semantic_paths(
     return weights, cache_dir, values
 
 
+def _infer_script_path(
+    *,
+    root: Path | None = None,
+    env: Mapping[str, str] | None = None,
+) -> Path:
+    base = root or Path.cwd()
+    values = env if env is not None else os.environ
+    script = Path(values.get("CC_INFER_SCRIPT", str(DEFAULT_INFER_SCRIPT)))
+    if not script.is_absolute():
+        script = base / script
+    return script
+
+
+def _mask_path_for_image(cache_dir: Path, image_path: Path) -> Path:
+    return cache_dir / f"{image_path.stem}_mask.npz"
+
+
+def _has_room_mask(mask_path: Path) -> bool:
+    if not mask_path.is_file():
+        return False
+    try:
+        with zipfile.ZipFile(mask_path) as archive:
+            return "room.npy" in archive.namelist()
+    except zipfile.BadZipFile:
+        return False
+
+
 def _gh_token(env: Mapping[str, str] | None = None) -> str | None:
-    values = env or os.environ
+    values = env if env is not None else os.environ
     return values.get("GITHUB_TOKEN") or values.get("GH_TOKEN")
 
 
@@ -164,6 +195,106 @@ def ensure_cody_semantic_weights(
         }
 
 
+def ensure_cody_semantic_masks(
+    image_paths: list[str | Path],
+    *,
+    root: Path | None = None,
+    env: Mapping[str, str] | None = None,
+    runner: Any | None = None,
+) -> dict[str, object]:
+    """Ensure CubiCasa semantic mask cache files exist for uploaded images.
+
+    This is intentionally a thin adapter around Cody's heavyweight inference
+    script. Bella can verify orchestration without importing torch/cv2 at API
+    import time, and production gets a clear fallback reason when model assets
+    are absent.
+    """
+    weights, cache_dir, values = _semantic_paths(root=root, env=env)
+    base = root or Path.cwd()
+    images = [Path(path) for path in image_paths]
+    absolute_images = [path if path.is_absolute() else base / path for path in images]
+    mask_paths = [_mask_path_for_image(cache_dir, image) for image in absolute_images]
+    missing = [
+        image
+        for image, mask_path in zip(absolute_images, mask_paths)
+        if not _has_room_mask(mask_path)
+    ]
+    if not missing:
+        return {
+            "ok": True,
+            "reason": "semantic_masks_cached",
+            "cache_dir": str(cache_dir),
+            "cached": [str(path) for path in mask_paths],
+            "generated": [],
+        }
+
+    weight_result = ensure_cody_semantic_weights(root=root, env=values)
+    if not weight_result["ok"]:
+        return {
+            "ok": False,
+            "reason": weight_result["reason"],
+            "cache_dir": str(cache_dir),
+            "weights_path": str(weights),
+            "missing_images": [str(path) for path in missing],
+        }
+
+    script = _infer_script_path(root=root, env=values)
+    if not script.is_file():
+        return {
+            "ok": False,
+            "reason": "inference_script_missing",
+            "cache_dir": str(cache_dir),
+            "weights_path": str(weights),
+            "script_path": str(script),
+            "missing_images": [str(path) for path in missing],
+        }
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    command = [
+        sys.executable,
+        str(script),
+        str(weights),
+        str(cache_dir),
+        *[str(path) for path in missing],
+    ]
+    try:
+        if runner is None:
+            subprocess.run(command, check=True, capture_output=True, text=True)
+        else:
+            runner(command)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "reason": "inference_failed",
+            "cache_dir": str(cache_dir),
+            "weights_path": str(weights),
+            "script_path": str(script),
+            "missing_images": [str(path) for path in missing],
+            "error": str(exc),
+        }
+
+    generated = [_mask_path_for_image(cache_dir, image) for image in missing]
+    invalid = [path for path in generated if not _has_room_mask(path)]
+    if invalid:
+        return {
+            "ok": False,
+            "reason": "inference_output_missing",
+            "cache_dir": str(cache_dir),
+            "weights_path": str(weights),
+            "script_path": str(script),
+            "invalid_outputs": [str(path) for path in invalid],
+        }
+    return {
+        "ok": True,
+        "reason": "semantic_masks_generated",
+        "cache_dir": str(cache_dir),
+        "weights_path": str(weights),
+        "script_path": str(script),
+        "cached": [str(path) for path in mask_paths],
+        "generated": [str(path) for path in generated],
+    }
+
+
 def cody_semantic_room_labeler_status(
     *,
     root: Path | None = None,
@@ -186,6 +317,7 @@ def cody_semantic_room_labeler_status(
         "model_version": "cody_cubicasa_v5",
         "weights_path": str(weights),
         "weights_present": has_weights,
+        "inference_script_path": str(_infer_script_path(root=root, env=env)),
         "weights_url": CODY_V5_WEIGHTS_URL,
         "weights_asset_api": CODY_V5_WEIGHTS_ASSET_API,
         "weights_sha256": CODY_V5_WEIGHTS_SHA256,

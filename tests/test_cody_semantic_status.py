@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import zipfile
 
 from backend.floorplan.vision import cody_semantic
 from backend.floorplan.vision.cody_semantic import (
     cody_semantic_room_labeler_status,
+    ensure_cody_semantic_masks,
     ensure_cody_semantic_weights,
 )
 
@@ -41,6 +43,12 @@ def _fake_retrieve(payload: bytes):
         destination.write_bytes(payload)
 
     return retrieve
+
+
+def _write_room_mask(path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("room.npy", b"fake-room-array")
 
 
 def test_cody_semantic_weights_existing_file_short_circuits(tmp_path, monkeypatch) -> None:
@@ -126,6 +134,87 @@ def test_cody_semantic_weights_no_download_channel_is_clear_failure(tmp_path, mo
     monkeypatch.setattr(cody_semantic, "_resolve_weights_url", lambda _env: None)
 
     result = ensure_cody_semantic_weights(root=tmp_path, env={})
+
+    assert result["ok"] is False
+    assert result["reason"] == "weights_download_unavailable"
+
+
+def test_cody_semantic_masks_reuse_existing_cache_without_runner(tmp_path) -> None:
+    image = tmp_path / "uploads" / "plan.png"
+    image.parent.mkdir()
+    image.write_bytes(b"image")
+    _write_room_mask(tmp_path / "cubicasa" / "room" / "plan_mask.npz")
+
+    result = ensure_cody_semantic_masks(
+        [image],
+        root=tmp_path,
+        env={},
+        runner=lambda _command: (_ for _ in ()).throw(AssertionError("should not infer")),
+    )
+
+    assert result["ok"] is True
+    assert result["reason"] == "semantic_masks_cached"
+    assert result["generated"] == []
+
+
+def test_cody_semantic_masks_fail_clearly_without_inference_script(tmp_path) -> None:
+    weights = tmp_path / "training" / "model_finetuned_v5.pkl"
+    weights.parent.mkdir()
+    weights.write_bytes(b"weights")
+    image = tmp_path / "uploads" / "plan.png"
+    image.parent.mkdir()
+    image.write_bytes(b"image")
+
+    result = ensure_cody_semantic_masks([image], root=tmp_path, env={})
+
+    assert result["ok"] is False
+    assert result["reason"] == "inference_script_missing"
+    assert result["script_path"].endswith("scripts\\infer_cubicasa.py") or result[
+        "script_path"
+    ].endswith("scripts/infer_cubicasa.py")
+
+
+def test_cody_semantic_masks_runner_generates_missing_cache(tmp_path) -> None:
+    weights = tmp_path / "training" / "model_finetuned_v5.pkl"
+    weights.parent.mkdir()
+    weights.write_bytes(b"weights")
+    script = tmp_path / "scripts" / "infer_cubicasa.py"
+    script.parent.mkdir()
+    script.write_text("# fake cody inference script\n", encoding="utf-8")
+    image = tmp_path / "uploads" / "plan.png"
+    image.parent.mkdir()
+    image.write_bytes(b"image")
+    commands = []
+
+    def fake_runner(command):
+        commands.append(command)
+        cache_dir = tmp_path / "cubicasa" / "room"
+        _write_room_mask(cache_dir / "plan_mask.npz")
+
+    result = ensure_cody_semantic_masks([image], root=tmp_path, env={}, runner=fake_runner)
+
+    assert result["ok"] is True
+    assert result["reason"] == "semantic_masks_generated"
+    assert len(commands) == 1
+    assert commands[0][2] == str(weights)
+    assert commands[0][3].endswith("cubicasa\\room") or commands[0][3].endswith(
+        "cubicasa/room"
+    )
+    assert result["generated"] == [str(tmp_path / "cubicasa" / "room" / "plan_mask.npz")]
+
+
+def test_cody_semantic_masks_do_not_infer_when_weights_are_missing(tmp_path, monkeypatch) -> None:
+    image = tmp_path / "uploads" / "plan.png"
+    image.parent.mkdir()
+    image.write_bytes(b"image")
+    monkeypatch.setattr(cody_semantic, "_resolve_weights_url", lambda _env: None)
+
+    result = ensure_cody_semantic_masks(
+        [image],
+        root=tmp_path,
+        env={},
+        runner=lambda _command: (_ for _ in ()).throw(AssertionError("should not infer")),
+    )
 
     assert result["ok"] is False
     assert result["reason"] == "weights_download_unavailable"

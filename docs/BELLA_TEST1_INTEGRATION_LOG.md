@@ -7,7 +7,10 @@ Remote push status: not pushed
 ## Current Local Commits
 
 ```text
-current feat(floorplan): backport django image route profiling
+current feat(floorplan): add cody cubicasa mask adapter
+dfe6c005 fix(test): restore local pytest environment
+c1182072 feat(floorplan): add cody semantic weight contract
+4b659fb5 feat(floorplan): backport django image route profiling
 9f2d7260 docs: record bella-test1 integration status
 9dc25eda feat(floorplan): attach room evaluation debug report
 466c425a feat(floorplan): add cody room evaluation core
@@ -81,6 +84,17 @@ current feat(floorplan): backport django image route profiling
   - downloads land in `.part`, pass SHA-256, then atomically replace the target
   - checksum or download failures clean up partial files and return explicit reasons
 - `cody_semantic_room_labeler_status()` now exposes the Release asset API endpoint in addition to the direct URL and SHA-256.
+
+### Cody CubiCasa Mask Adapter
+
+- Added a safe CubiCasa v5 mask orchestration seam without importing the heavyweight torch/CubiCasa stack at API import time.
+- `ensure_cody_semantic_masks(...)` now:
+  - reuses existing valid `*_mask.npz` cache files when they include `room.npy`
+  - prepares default Cody v5 weights through the existing weight contract only when masks are missing
+  - supports `CC_INFER_SCRIPT` while defaulting to `scripts/infer_cubicasa.py`
+  - returns clear fallback reasons for missing weights, missing inference script, inference failure, or missing output files
+  - accepts an injected runner so the subprocess contract can be verified without downloading the 200MB model or installing torch
+- The full Cody inference script was not copied yet because `training/CubiCasa5k` and runtime torch assets are not verified in Bella. The integration now has a controlled adapter point ready for that script.
 
 ### Local Test Environment Recovery
 
@@ -157,6 +171,32 @@ $env:TEMP=$env:TMP
   --basetemp=.tmp\pytest -p no:cacheprovider
 ```
 
+Current verification after the Cody CubiCasa mask adapter:
+
+```text
+11 passed
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
+  tests/test_cody_semantic_status.py `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+
+47 passed, 3 warnings
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
+  tests/test_floorplan_vision.py `
+  tests/test_floorplan_vision_api.py `
+  tests/test_floorplan_room_inference.py `
+  tests/test_floorplan_room_evaluation.py `
+  tests/test_cody_semantic_status.py `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+```
+
 ## Cleanup Notes
 
 - No `.patch`, `.rej`, or `.orig` files are left in the worktree.
@@ -166,11 +206,11 @@ $env:TEMP=$env:TMP
 ## Remaining Work
 
 - Start or install PostgreSQL locally, configure `.env`, run the 10,550 import, and verify live SQL counts.
-- Decide whether to wire Cody v5 inference/weight download into Bella runtime.
+- Decide whether to copy Cody's full CubiCasa inference script into Bella or package it as a deployment-only runtime script with `CC_INFER_SCRIPT`.
 - Use `room_evaluation` with real reference-room fixtures before replacing current room-labeling behavior.
 - Use the project-local `.venv/` plus project-local pytest temp command above for future focused test runs.
 - Finish the Cody integration slice before starting other branches:
-  - add a subprocess/CubiCasa mask inference adapter only after confirming `training/CubiCasa5k` availability or an acceptable deployment fallback
-  - run the cody semantic tests with the project pytest environment once available
+  - confirm `training/CubiCasa5k` availability or an acceptable deployment fallback
+  - run a real CubiCasa inference smoke test once weights/script/runtime are present
 - Continue the Django Version4 backport with the door/window band-carve classifier and uncertain/autolabel training-data loop only after the Cody slice verifies cleanly.
 - Integrate Kai S3/GLB management scripts only after Django/Cody floor-plan recognition work is verified.
