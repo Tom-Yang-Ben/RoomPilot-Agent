@@ -18,7 +18,8 @@ import {
   openingBelongsToWall,
   openingWallInterval,
   wallEndpointBordersOpening,
-} from "./scene_architecture.js?v=sha256-09a59ef778c2";
+  wallSegmentForOpening,
+} from "./scene_architecture.js?v=sha256-51358cd0fc38";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -1297,7 +1298,10 @@ export function createSceneViewer(
     ));
     if (missingDoors.length || missingWindows.length) {
       const standaloneWallMaterial = typeof wallMaterial === "function"
-        ? wallMaterial(segments[0] || {})
+        ? (opening) => {
+          const hostSegment = wallSegmentForOpening(segments, opening, wallThickness);
+          return wallMaterial(hostSegment || segments[0] || {});
+        }
         : wallMaterial;
       buildStandaloneOpeningAssemblies(
         roomGroupRef,
@@ -1396,6 +1400,9 @@ export function createSceneViewer(
       ...doorSegments.map((opening) => ({ opening, kind: "door" })),
       ...windowSegments.map((opening) => ({ opening, kind: "window" })),
     ].forEach(({ opening, kind }) => {
+      const openingWallMaterial = typeof wallMaterial === "function"
+        ? wallMaterial(opening)
+        : wallMaterial;
       const start = opening.start || {};
       const end = opening.end || {};
       const dx = Number(end.x || 0) - Number(start.x || 0);
@@ -1438,7 +1445,7 @@ export function createSceneViewer(
             height,
             wallThickness,
           ),
-          wallMaterial.clone(),
+          openingWallMaterial.clone(),
         );
         section.position.set(
           (Number(start.x || 0) + Number(end.x || 0)) / 2,

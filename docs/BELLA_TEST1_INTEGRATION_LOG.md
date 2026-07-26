@@ -562,3 +562,18 @@ $env:TEMP=$env:TMP
   the restored whole-model view.
 - Full suite verification: 446 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-26 Window Host-Wall Material Consistency
+
+- Fixed standalone gap-window sill and header sections using the first wall's
+  material for every opening.
+- Added host-wall resolution by `host_wall_id`, with geometry fallback when an
+  explicit host id is unavailable.
+- Each window now receives the same surface material as its confirmed wall:
+  white-wall windows remain white and dark-wall windows remain dark.
+- Preserved the existing standard and floor-to-ceiling window height rules.
+- Added regression coverage using project `window-5` on `wall-14`.
+- Browser-verified consistent window-adjacent wall materials in the restored
+  whole-model view.
+- Full suite verification: 447 passed, 2 skipped.
+- No remote push was performed.

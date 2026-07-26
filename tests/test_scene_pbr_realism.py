@@ -194,6 +194,45 @@ def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
     assert "openingWidth + wallThickness * 2.1" not in viewer
 
 
+def test_gap_window_uses_its_own_host_wall_for_surface_material() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ wallSegmentForOpening }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const walls = [
+          {{
+            id: "wall-6",
+            start: {{ x: -11.11, z: -524.4 }},
+            end: {{ x: 171.3, z: -524.4 }},
+            material_id: "dark-wall",
+          }},
+          {{
+            id: "wall-14",
+            start: {{ x: 475.88, z: 190.59 }},
+            end: {{ x: 475.88, z: 28.07 }},
+            material_id: "white-wall",
+          }},
+        ];
+        const window = {{
+          id: "window-5",
+          host_wall_id: "wall-14",
+          start: {{ x: 475.88, z: 28.07 }},
+          end: {{ x: 475.88, z: -40.92 }},
+        }};
+        console.log(JSON.stringify(wallSegmentForOpening(walls, window, 12)));
+        """
+    )
+
+    assert result["id"] == "wall-14"
+    assert result["material_id"] == "white-wall"
+
+    viewer = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+    assert "wallSegmentForOpening(segments, opening, wallThickness)" in viewer
+    assert "wallMaterial(hostSegment || segments[0] || {})" in viewer
+    assert "wallMaterial(segments[0] || {})" not in viewer
+
+
 def test_furniture_roles_receive_distinct_realistic_pbr_parameters() -> None:
     result = run_workflow_script(
         f"""

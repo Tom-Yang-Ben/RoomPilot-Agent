@@ -92,3 +92,18 @@ export function wallEndpointBordersOpening(
       || Math.hypot(target.x - aperture.end.x, target.z - aperture.end.z) <= tolerance;
   });
 }
+
+export function wallSegmentForOpening(
+  segments = [],
+  opening = {},
+  wallThickness = 12,
+) {
+  const hostWallId = String(opening.host_wall_id || opening.hostWallId || "");
+  if (hostWallId) {
+    const confirmedHost = segments.find((segment) => segmentId(segment) === hostWallId);
+    if (confirmedHost) return confirmedHost;
+  }
+  return segments.find(
+    (segment) => openingBelongsToWall(segment, opening, wallThickness),
+  ) || null;
+}
