@@ -4536,6 +4536,13 @@ function randomRoomAxisNote(room) {
 
 function randomRoomFinishDraft() {
   const pack = randomItem(STYLE_PACKS, STYLE_PACKS[0]);
+  const materialOptions = STYLE_MATERIAL_OPTIONS[pack.styleId] || {};
+  const wallOption = randomItem(materialOptions.wall, null);
+  const floorOption = randomItem(materialOptions.floor, null);
+  const wallMaterial = wallOption?.id || pack.wall.surfaceOption;
+  const wallColor = wallOption?.color || pack.wall.color;
+  const floorMaterial = floorOption?.id || pack.floor.surfaceOption;
+  const floorColor = floorOption?.color || pack.floor.color;
   const ceilingStyle = randomItem(
     CEILING_STYLES.filter((item) => item.styles.includes(pack.styleId)),
     CEILING_STYLES[0],
@@ -4547,13 +4554,13 @@ function randomRoomFinishDraft() {
   return {
     confirmed: true,
     stylePackId: pack.id,
-    wallMaterial: pack.wall.surfaceOption,
-    wallColor: pack.wall.color,
-    defaultWallMaterial: pack.wall.surfaceOption,
-    defaultWallColor: pack.wall.color,
+    wallMaterial,
+    wallColor,
+    defaultWallMaterial: wallMaterial,
+    defaultWallColor: wallColor,
     wallOverrides: {},
-    floorMaterial: pack.floor.surfaceOption,
-    floorColor: pack.floor.color,
+    floorMaterial,
+    floorColor,
     ceilingMaterial: randomItem(["flat-paint", "mineral-paint", "wood-veneer", "exposed-concrete"], "flat-paint"),
     ceilingStyle: ceilingStyle.id,
     lightStyle: lightStyle.id,

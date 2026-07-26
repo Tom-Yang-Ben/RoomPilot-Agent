@@ -50,6 +50,16 @@ def test_weighted_questionnaire_answers_preserve_a_b_preference_strength() -> No
     assert ".rp-preference-weight" in css
 
 
+def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "const materialOptions = STYLE_MATERIAL_OPTIONS[pack.styleId] || {}" in source
+    assert "const wallOption = randomItem(materialOptions.wall, null)" in source
+    assert "const floorOption = randomItem(materialOptions.floor, null)" in source
+    assert "defaultWallMaterial: wallMaterial" in source
+    assert "floorMaterial" in source
+
+
 def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     dependency_edges = {
         "scene_v2.js": [
