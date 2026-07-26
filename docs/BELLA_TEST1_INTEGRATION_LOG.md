@@ -748,3 +748,18 @@ $env:TEMP=$env:TMP
   strip.
 - Full suite verification: 464 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Traditional Chinese Text Recovery
+
+- Added guarded UTF-8 mojibake recovery for JSON API payloads restored from
+  existing project and catalog data.
+- The repair only replaces byte-like strings when decoding increases valid CJK
+  characters, preserving already-correct Traditional Chinese, English, and
+  accented names such as `Café`.
+- Applied the repair to project loading, catalog responses, scene generation,
+  and workflow-save responses before they enter frontend state.
+- Browser verification restored `臥室`, `客廳`, `LAGAN 雙門冰箱，獨立式/白色`,
+  and `UDDARP 洗脫烘衣機` on project
+  `47abb48d539c46a0afd1fc1acce34add`.
+- Full suite verification: 466 passed, 2 skipped.
+- No remote push was performed.

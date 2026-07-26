@@ -1,4 +1,5 @@
 import { createSceneViewer } from "./scene_viewer.js?v=sha256-c4ba9459e57a";
+import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,
@@ -424,7 +425,7 @@ async function api(url, options = {}) {
   const response = await fetch(url, options);
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json")
-    ? await response.json()
+    ? repairMojibakeDeep(await response.json())
     : await response.text();
   if (!response.ok) {
     const error = new Error(errorMessage(payload));
@@ -639,7 +640,7 @@ async function saveWorkflowRequest(serialized) {
         headers: { "Content-Type": "application/json" },
         body: serialized,
       });
-      const result = await response.json();
+      const result = repairMojibakeDeep(await response.json());
       if (!response.ok) {
         throw new Error(result.detail?.message || result.detail || "專案保存失敗。");
       }
