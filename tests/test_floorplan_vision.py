@@ -17,7 +17,7 @@ from backend.floorplan.vision import (
 )
 from backend.floorplan.vision.image import decode_image, profile_floorplan_image
 from backend.floorplan.vision.units import canonicalize_analysis_cm
-from backend.floorplan.cody_adapter import _clean_door_items
+from backend.floorplan.cody_adapter import _carve_band_openings, _clean_door_items
 
 
 def test_cody_cli_loads_floorplan_from_unicode_path(tmp_path: Path) -> None:
@@ -594,6 +594,36 @@ def test_cody_door_cleanup_rejects_low_confidence_wide_and_duplicate_candidates(
     assert len(doors) == 1
     assert doors[0]["confidence"] == 0.96
     assert doors[0]["width_m"] == 0.92
+
+
+def test_django_band_carve_cuts_embedded_window_lines_out_of_wall_band() -> None:
+    wall = np.zeros((80, 220), dtype=np.uint8)
+    ink = np.zeros_like(wall)
+    cv2.rectangle(wall, (20, 34), (200, 46), 255, -1)
+    cv2.rectangle(ink, (20, 34), (80, 46), 255, -1)
+    cv2.rectangle(ink, (140, 34), (200, 46), 255, -1)
+    cv2.line(ink, (82, 37), (138, 37), 255, 1)
+    cv2.line(ink, (82, 43), (138, 43), 255, 1)
+
+    carved, log = _carve_band_openings(wall, ink, 12)
+
+    assert log
+    assert log[0]["source"] == "django_band_carve"
+    assert log[0]["axis"] == "h"
+    assert 45 <= log[0]["width_px"] <= 70
+    assert carved[40, 100] == 0
+    assert carved[40, 50] == 255
+    assert carved[40, 170] == 255
+
+
+def test_django_band_carve_keeps_plain_solid_wall_intact() -> None:
+    wall = np.zeros((80, 220), dtype=np.uint8)
+    cv2.rectangle(wall, (20, 34), (200, 46), 255, -1)
+
+    carved, log = _carve_band_openings(wall, wall, 12)
+
+    assert log == []
+    assert np.array_equal(carved, wall)
 
 
 def test_legacy_meter_analysis_is_migrated_to_centimeters_only_once() -> None:

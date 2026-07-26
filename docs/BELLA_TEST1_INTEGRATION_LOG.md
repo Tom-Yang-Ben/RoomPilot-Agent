@@ -7,6 +7,8 @@ Remote push status: not pushed
 ## Current Local Commits
 
 ```text
+current feat(floorplan): backport django band-carve openings
+265f6351 feat(floorplan): validate cody semantic masks
 a5130dbc feat(floorplan): add cody cubicasa mask adapter
 dfe6c005 fix(test): restore local pytest environment
 c1182072 feat(floorplan): add cody semantic weight contract
@@ -70,6 +72,17 @@ c1182072 feat(floorplan): add cody semantic weight contract
 - `analyze_floorplan_image()` now returns `image_profile` so the API exposes whether a colored drawing is being handled explicitly.
 - Cody image decoding now applies a color/deep-ink mask before the existing grayscale recognition path when the upload is detected as colored line art.
 - Added focused tests for colored line-art and black-line-art profile behavior.
+
+### Django Version4 Band-Carve Opening Backport
+
+- Backported the deterministic `band_carve` opening repair from `origin/django` `Final-Project_Version4/png_pipeline.py`.
+- Integrated it into Bella's `backend/floorplan/cody_adapter.py` before Cody's solid wall/opening detection:
+  - scans horizontal and vertical wall bands
+  - detects sustained anomalous cross-sections caused by embedded door/window strokes
+  - carves those runs out of the wall mask so downstream Cody detection can see a real gap
+  - ignores whole-wall anomalous bands to avoid damaging hollow/double-line wall styles
+- Added `diagnostics.band_carve_count` so API results can show when the Django repair path was active.
+- Did not port Django's torch CNN `opening_ml.py` yet; it depends on local sample folders and runtime model training. Bella now has the safer deterministic repair first.
 
 ### Cody V5 Semantic Weight Contract
 
@@ -203,6 +216,42 @@ $env:TEMP=$env:TMP
   --basetemp=.tmp\pytest -p no:cacheprovider
 ```
 
+Current verification after the Django band-carve opening backport:
+
+```text
+23 passed
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
+  tests/test_floorplan_vision.py `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+
+53 passed, 3 warnings
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
+  tests/test_floorplan_vision.py `
+  tests/test_floorplan_vision_api.py `
+  tests/test_floorplan_room_inference.py `
+  tests/test_floorplan_room_evaluation.py `
+  tests/test_cody_semantic_status.py `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+
+4 passed, 19 deselected
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
+  tests/test_floorplan_vision.py `
+  -k "builder_plan_630 or floor04" `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+```
+
 ## Cleanup Notes
 
 - No `.patch`, `.rej`, or `.orig` files are left in the worktree.
@@ -218,5 +267,5 @@ $env:TEMP=$env:TMP
 - Finish the Cody integration slice before starting other branches:
   - install or supply `training/CubiCasa5k`; `origin/cody` does not version this runtime tree
   - run a real CubiCasa inference smoke test once weights/script/runtime are present
-- Continue the Django Version4 backport with the door/window band-carve classifier and uncertain/autolabel training-data loop only after the Cody slice verifies cleanly.
+- Continue the Django Version4 backport with the torch CNN opening classifier and uncertain/autolabel training-data loop only after the deterministic band-carve path is stable on more real samples.
 - Integrate Kai S3/GLB management scripts only after Django/Cody floor-plan recognition work is verified.

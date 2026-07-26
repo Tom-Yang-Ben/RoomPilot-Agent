@@ -247,6 +247,196 @@ def _dedupe_rects(
     return unique
 
 
+def _odd_kernel(value: float, minimum: int = 3) -> int:
+    size = max(minimum, int(round(value)))
+    return size if size % 2 == 1 else size + 1
+
+
+def _extract_wall_strips(
+    wall_mask: np.ndarray,
+    wall_thickness_px: float,
+    axis: str,
+) -> list[dict[str, Any]]:
+    long_kernel = _odd_kernel(wall_thickness_px * 2.2, 9)
+    thin_kernel = _odd_kernel(wall_thickness_px * 0.5)
+    size = (long_kernel, thin_kernel) if axis == "h" else (thin_kernel, long_kernel)
+    strips = cv2.morphologyEx(
+        wall_mask,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_RECT, size),
+    )
+    _, labels, stats, _ = cv2.connectedComponentsWithStats(
+        (strips > 0).astype(np.uint8),
+        8,
+    )
+    segments: list[dict[str, Any]] = []
+    for label in range(1, stats.shape[0]):
+        x = int(stats[label, cv2.CC_STAT_LEFT])
+        y = int(stats[label, cv2.CC_STAT_TOP])
+        width = int(stats[label, cv2.CC_STAT_WIDTH])
+        height = int(stats[label, cv2.CC_STAT_HEIGHT])
+        if axis == "h":
+            if width < wall_thickness_px * 2.5:
+                continue
+            segments.append(
+                {
+                    "axis": "h",
+                    "lo": float(x),
+                    "hi": float(x + width),
+                    "pos": y + height / 2.0,
+                    "thickness": float(height),
+                }
+            )
+        else:
+            if height < wall_thickness_px * 2.5:
+                continue
+            segments.append(
+                {
+                    "axis": "v",
+                    "lo": float(y),
+                    "hi": float(y + height),
+                    "pos": x + width / 2.0,
+                    "thickness": float(width),
+                }
+            )
+    return segments
+
+
+def _group_collinear_strips(
+    segments: list[dict[str, Any]],
+    wall_thickness_px: float,
+) -> list[dict[str, Any]]:
+    groups: list[dict[str, Any]] = []
+    tolerance = max(wall_thickness_px * 0.8, 6.0)
+    for segment in sorted(segments, key=lambda item: item["pos"]):
+        for group in groups:
+            if abs(float(group["pos"]) - float(segment["pos"])) <= tolerance:
+                group["segments"].append(segment)
+                group["pos"] = float(np.mean([item["pos"] for item in group["segments"]]))
+                break
+        else:
+            groups.append({"pos": segment["pos"], "segments": [segment]})
+    for group in groups:
+        group["segments"].sort(key=lambda item: item["lo"])
+        group["lo"] = min(item["lo"] for item in group["segments"])
+        group["hi"] = max(item["hi"] for item in group["segments"])
+    return groups
+
+
+def _carve_band_openings(
+    wall_mask: np.ndarray,
+    ink_mask: np.ndarray,
+    wall_thickness_px: float,
+) -> tuple[np.ndarray, list[dict[str, Any]]]:
+    """Carve embedded door/window strokes out of a wall band.
+
+    This backports Django Version4's band-carve idea in a bounded form: when a
+    door/window line is absorbed into the structural wall mask, scan across the
+    wall thickness and cut only sustained anomalous runs. Empty double-line wall
+    styles are ignored because they would mark most of the wall as anomalous.
+    """
+    carved = wall_mask.copy()
+    carved_log: list[dict[str, Any]] = []
+    min_run = max(20, int(wall_thickness_px * 1.2))
+    image_height, image_width = wall_mask.shape[:2]
+    for axis in ("h", "v"):
+        segments = _extract_wall_strips(wall_mask, wall_thickness_px, axis)
+        for group in _group_collinear_strips(segments, wall_thickness_px):
+            start, end = int(round(group["lo"])), int(round(group["hi"]))
+            if end - start < min_run * 2:
+                continue
+            pos = int(round(group["pos"]))
+            nominal_thickness = float(
+                np.median([segment["thickness"] for segment in group["segments"]])
+            )
+            band_half = int(round(nominal_thickness / 2.0 + 2))
+            if axis == "h":
+                band = (
+                    ink_mask[
+                        max(0, pos - band_half) : min(image_height, pos + band_half + 1),
+                        max(0, start) : min(image_width, end),
+                    ]
+                    > 0
+                )
+            else:
+                band = (
+                    ink_mask[
+                        max(0, start) : min(image_height, end),
+                        max(0, pos - band_half) : min(image_width, pos + band_half + 1),
+                    ]
+                    > 0
+                ).T
+            if band.size == 0:
+                continue
+            positions = band.shape[1]
+            diff = np.diff(band.astype(np.int8), axis=0, prepend=0)
+            run_count = np.zeros(positions, np.int32)
+            longest_run = np.zeros(positions, np.int32)
+            for offset in range(positions):
+                starts = np.nonzero(diff[:, offset] == 1)[0]
+                run_count[offset] = len(starts)
+                if starts.size:
+                    stops = np.nonzero(diff[:, offset] == -1)[0]
+                    if stops.size < starts.size:
+                        stops = np.append(stops, band.shape[0])
+                    longest_run[offset] = int((stops[: starts.size] - starts).max())
+            solid_values = longest_run[
+                (run_count == 1) & (longest_run >= nominal_thickness * 0.7)
+            ]
+            thickness = (
+                float(np.median(solid_values))
+                if solid_values.size >= positions * 0.2
+                else nominal_thickness
+            )
+            if thickness < 3:
+                continue
+            anomalous = (
+                (longest_run < thickness * 0.3)
+                | ((run_count >= 2) & (longest_run < thickness * 0.8))
+                | (
+                    (run_count == 1)
+                    & (longest_run < thickness * 0.75)
+                    & (longest_run <= thickness - 2)
+                )
+            )
+            if float(anomalous.mean()) > 0.70:
+                continue
+            offset = 0
+            while offset < positions:
+                if not anomalous[offset]:
+                    offset += 1
+                    continue
+                run_start = offset
+                while offset < positions and anomalous[offset]:
+                    offset += 1
+                if offset - run_start < min_run:
+                    continue
+                cut_start, cut_end = start + run_start, start + offset
+                cut_half = band_half + 1
+                if axis == "h":
+                    carved[
+                        max(0, pos - cut_half) : min(image_height, pos + cut_half + 1),
+                        cut_start:cut_end,
+                    ] = 0
+                    p1, p2 = [float(cut_start), float(pos)], [float(cut_end), float(pos)]
+                else:
+                    carved[
+                        cut_start:cut_end,
+                        max(0, pos - cut_half) : min(image_width, pos + cut_half + 1),
+                    ] = 0
+                    p1, p2 = [float(pos), float(cut_start)], [float(pos), float(cut_end)]
+                carved_log.append(
+                    {
+                        "p1": p1,
+                        "p2": p2,
+                        "axis": axis,
+                        "width_px": float(offset - run_start),
+                        "source": "django_band_carve",
+                    }
+                )
+    return carved, carved_log
+
+
 def _paired_wall_rects(
     horizontal: list[tuple[float, float, float]],
     vertical: list[tuple[float, float, float]],
@@ -420,6 +610,7 @@ def recognize_cody_geometry(
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (cfg.solid, cfg.solid))
     opened = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+    opened, band_carve_log = _carve_band_openings(opened, binary, wall_thickness_px)
     rects = cody.detect_solid(opened, cfg, wall_thickness_px)
     thin = cv2.subtract(binary, cv2.dilate(opened, np.ones((3, 3), np.uint8)))
     doors = cody.detect_doors(thin, wall_thickness_px, cfg.door_arc_pct)
@@ -697,5 +888,6 @@ def recognize_cody_geometry(
             "door_count": len(door_items),
             "window_count": len(window_items),
             "image_profile": image_profile,
+            "band_carve_count": len(band_carve_log),
         },
     }
