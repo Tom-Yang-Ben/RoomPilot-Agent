@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-aee068a25df9";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-5506c4917e05";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,
@@ -43,7 +43,7 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-d93f6034e2a8";
+} from "./scene_questionnaire_test2.js?v=sha256-c42955c6a50b";
 import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
@@ -68,7 +68,7 @@ import {
   wallBoundarySide,
   windowsOverlap,
 } from "./scene_structure_utils.js?v=sha256-b5f84b0a67f8";
-import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-39a9cb678053";
+import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-2e7650196b86";
 import {
   findStructureWallCollision,
   resolveStructureWallCollisions,

@@ -13,6 +13,7 @@ from pathlib import Path
 from threading import Lock
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
@@ -142,6 +143,7 @@ _DATASET_GLB_ROOTS = [
 ]
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 def _questionnaire_visual_store() -> QuestionnaireVisualStore:
