@@ -22,6 +22,21 @@ c1182072 feat(floorplan): add cody semantic weight contract
 
 ## Integrated Work
 
+### Layout / Scene Boundary Contract
+
+- Added `docs/contracts/LAYOUT_SCENE_BOUNDARY_CONTRACT.md` to lock the architecture language:
+  - floor-plan recognition produces `layout_json`
+  - proposal generation produces `scene_json`
+  - Graph RAG retrieves relationship evidence only
+  - geometry planning and rule checking remain deterministic decision layers
+  - final deployment may add `render-export-worker`
+  - MinIO and AWS S3 are separated by deployment target
+- Added compatibility API fields without breaking existing frontend consumers:
+  - `/api/floorplan/analyze` now returns `layout_json` beside the legacy `analysis`
+  - `/api/projects/{project_id}/floorplan/analyze` now returns `layout_json` beside `analysis`
+  - `/api/floorplan/confirm` now returns `layout_json` beside the legacy `floorplan`
+- No Redis worker, Graph RAG runtime, MinIO/S3 runtime, or render worker was implemented in this slice.
+
 ### Surface Material Backup Assets
 
 - Ported surface material processing and wall material candidate assets.
@@ -249,6 +264,25 @@ $env:TEMP=$env:TMP
 .\.venv\Scripts\python.exe -m pytest `
   tests/test_floorplan_vision.py `
   -k "builder_plan_630 or floor04" `
+  --basetemp=.tmp\pytest -p no:cacheprovider
+```
+
+Current verification after the layout/scene boundary contract update:
+
+```text
+py_compile passed for:
+- backend/server/main.py
+- backend/floorplan/vision/confirmation.py
+
+21 passed, 3 warnings
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+$env:PYTHONPATH=(Resolve-Path .).Path + ';' + (Resolve-Path .venv\Lib\site-packages).Path
+C:\Users\user\AppData\Local\Programs\Python\Python312\python.exe -m pytest `
+  tests/test_floorplan_vision_api.py `
+  tests/test_project_workflow_api.py `
   --basetemp=.tmp\pytest -p no:cacheprovider
 ```
 

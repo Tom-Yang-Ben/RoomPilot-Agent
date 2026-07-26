@@ -315,6 +315,7 @@ def test_floorplan_analysis_explains_missing_confirmation_instead_of_stalling() 
     assert analyzed.status_code == 200
     payload = analyzed.json()
     assert payload["geometry_engine"] == "cody"
+    assert payload["layout_json"] == payload["analysis"]
     assert payload["analysis"]["recognition_engine"] == "cody"
 
 

@@ -1878,8 +1878,10 @@ def analyze_project_floorplan(project_id: str) -> dict:
             },
         },
     )
+    layout_json = _layout_json_from_analysis(analysis)
     return {
         "analysis": analysis,
+        "layout_json": layout_json,
         "geometry_engine": geometry_engine,
     }
 
@@ -2704,6 +2706,13 @@ def _floorplan_json_field(raw: str | None, field: str, default):
         raise HTTPException(422, f"invalid_{field}_json") from exc
 
 
+def _layout_json_from_analysis(analysis: dict) -> dict:
+    floorplan = analysis.get("floorplan")
+    if isinstance(floorplan, dict):
+        return floorplan
+    return analysis
+
+
 @app.post("/api/floorplan/analyze")
 async def floorplan_analyze(
     file: UploadFile = File(...),
@@ -2737,8 +2746,10 @@ async def floorplan_analyze(
         raise HTTPException(422, str(exc)) from exc
     analysis["observed_utilities"] = observed_utilities
     analysis["requirement_brief"] = brief
+    layout_json = _layout_json_from_analysis(analysis)
     return {
         "analysis": analysis,
+        "layout_json": layout_json,
         "requirements": infer_room_requirements(analysis, brief),
         "geometry_engine": "cody" if not geometry else "manual",
         "ocr_provider": "provided_or_reference_semantics",
