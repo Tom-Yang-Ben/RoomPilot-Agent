@@ -385,6 +385,10 @@ async function api(url, options = {}) {
   return payload;
 }
 
+function sceneDataFromGenerateResponse(payload) {
+  return payload?.scene_json || payload;
+}
+
 function workflowPayload() {
   persistActiveScheme(state.designSchemes, {
     furniture: state.furniture2d,
@@ -6183,7 +6187,7 @@ async function confirmLayout2d() {
         selected_furniture_exact: true,
       }),
     });
-    state.sceneData = payload;
+    state.sceneData = sceneDataFromGenerateResponse(payload);
     state.sceneData.questionnaire = {
       catalog_version: state.visualCatalogVersion,
       basic: state.basicAnswers,

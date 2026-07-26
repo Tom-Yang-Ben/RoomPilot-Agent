@@ -36,6 +36,7 @@ c1182072 feat(floorplan): add cody semantic weight contract
   - `/api/projects/{project_id}/floorplan/analyze` now returns `layout_json` beside `analysis`
   - `/api/floorplan/confirm` now returns `layout_json` beside the legacy `floorplan`
   - `/api/scene/generate` now accepts `layout_json` and returns `scene_json` beside the legacy top-level scene payload
+- Updated the browser scene generation flow to read `response.scene_json || response`, so the new contract is preferred while old payloads still work.
 - No Redis worker, Graph RAG runtime, MinIO/S3 runtime, or render worker was implemented in this slice.
 
 ### Surface Material Backup Assets
@@ -358,6 +359,24 @@ $env:TEMP=$env:TMP
 Skipped:
 - tests/test_catalog_10550_sql.py::test_catalog_10550_postgres_connection_smoke
   because this worktree has no local `.env` with DB_* settings yet.
+```
+
+Current verification after frontend `scene_json` fallback support:
+
+```text
+node --check passed for:
+- backend/server/static/scene_v2.js
+
+3 passed, 96 deselected, 3 warnings
+
+Command:
+$env:TMP=(Resolve-Path .tmp).Path
+$env:TEMP=$env:TMP
+.\.venv\Scripts\python.exe -m pytest `
+  tests/test_scene_v2_contract.py `
+  tests/test_project_workflow_api.py `
+  -k "scene_generate_response_prefers_scene_json_with_legacy_fallback or scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometry or scene_entrypoint_cache_key_matches_bundle_content" `
+  --basetemp=.tmp\pytest -p no:cacheprovider
 ```
 
 ## Cleanup Notes

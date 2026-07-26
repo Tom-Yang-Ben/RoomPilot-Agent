@@ -401,6 +401,15 @@ def test_saved_scene_data_migrates_mixed_floorplan_fields_independently() -> Non
     assert floorplan["columns"][0]["center"] == {"x": 250, "z": 150}
 
 
+def test_scene_generate_response_prefers_scene_json_with_legacy_fallback() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function sceneDataFromGenerateResponse(payload)" in source
+    assert "return payload?.scene_json || payload;" in source
+    assert "state.sceneData = sceneDataFromGenerateResponse(payload);" in source
+    assert "state.sceneData = payload;" not in source
+
+
 def test_project_restore_normalizes_saved_scene_before_loading_viewers() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 

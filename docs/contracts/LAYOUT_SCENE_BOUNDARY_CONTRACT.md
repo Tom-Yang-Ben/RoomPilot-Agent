@@ -67,8 +67,8 @@ Current compatibility fields:
 
 - `/api/scene/generate` returns `scene_json` beside the legacy top-level scene
   payload.
-- The legacy top-level scene payload remains the frontend contract until the
-  browser flow is migrated to read `response.scene_json || response`.
+- The browser flow now reads `response.scene_json || response`, so new responses
+  use the explicit contract while legacy top-level responses remain a fallback.
 
 ## Graph RAG Boundary
 
