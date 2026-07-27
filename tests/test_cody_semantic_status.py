@@ -244,17 +244,17 @@ def test_cody_semantic_masks_fail_clearly_without_inference_script(tmp_path) -> 
 
     assert result["ok"] is False
     assert result["reason"] == "inference_script_missing"
-    assert result["script_path"].endswith("scripts\\infer_cubicasa.py") or result[
-        "script_path"
-    ].endswith("scripts/infer_cubicasa.py")
+    assert result["script_path"].endswith(
+        "backend\\floorplan\\infer_cubicasa.py"
+    ) or result["script_path"].endswith("backend/floorplan/infer_cubicasa.py")
 
 
 def test_cody_semantic_masks_runner_generates_missing_cache(tmp_path) -> None:
     weights = tmp_path / "training" / "model_finetuned_v5.pkl"
     weights.parent.mkdir()
     weights.write_bytes(b"weights")
-    script = tmp_path / "scripts" / "infer_cubicasa.py"
-    script.parent.mkdir()
+    script = tmp_path / "backend" / "floorplan" / "infer_cubicasa.py"
+    script.parent.mkdir(parents=True)
     script.write_text("# fake cody inference script\n", encoding="utf-8")
     image = tmp_path / "uploads" / "plan.png"
     image.parent.mkdir()

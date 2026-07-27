@@ -22,7 +22,7 @@ import numpy as np
 
 DEFAULT_WEIGHTS = Path("training/model_finetuned_v5.pkl")
 DEFAULT_CACHE_DIR = Path("cubicasa/room")
-DEFAULT_INFER_SCRIPT = Path("scripts/infer_cubicasa.py")
+DEFAULT_INFER_SCRIPT = Path("backend/floorplan/infer_cubicasa.py")
 REQUIRED_MASK_FIELDS = ("room", "wall", "window", "door", "icon")
 CODY_V5_WEIGHTS_URL = (
     "https://github.com/Tom-Yang-Ben/RoomPilot-Agent/releases/download/"
