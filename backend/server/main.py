@@ -69,6 +69,11 @@ from .services.cloud_models import (
     cloudfront_required,
     manifest_status,
 )
+from .services.cloud_images import (
+    cloud_image_urls,
+    cloud_primary_image_url,
+    image_manifest_status,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -771,6 +776,13 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         if "has_model" in item
         else _model_status(item)
     )
+    preview_images = cloud_image_urls(item)
+    image_url = (
+        preview_images.get("front")
+        or preview_images.get("angle-45")
+        or preview_images.get("side")
+        or cloud_primary_image_url(item)
+    )
     payload = {
         "furniture_id": item.get("furniture_id"),
         "name_en": item.get("name_en"),
@@ -793,6 +805,10 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         "can_rotate": item.get("can_rotate"),
         "has_model": has_model,
         "missing_model_reason": None if has_model else model_reason,
+        "image_url": image_url,
+        "thumbnail_url": image_url,
+        "preview_url": image_url,
+        "preview_images": preview_images,
         **_candidate_schema_fields(item, has_model),
     }
     if include_model_url:
@@ -820,6 +836,10 @@ def _furniture_card_payload(item: dict) -> dict:
         "has_model": item.get("has_model"),
         "missing_model_reason": item.get("missing_model_reason"),
         "model_url": item.get("model_url"),
+        "image_url": item.get("image_url"),
+        "thumbnail_url": item.get("thumbnail_url"),
+        "preview_url": item.get("preview_url"),
+        "preview_images": item.get("preview_images", {}),
     }
 
 
@@ -1989,6 +2009,7 @@ def catalog_status() -> dict:
     floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
     return {
         "furniture": furniture,
+        "furniture_images": image_manifest_status(),
         "surfaces": {
             "provider": "local_pending_aws_manifest",
             "wall_count": wall_count,

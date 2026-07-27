@@ -893,3 +893,53 @@ $env:TEMP=$env:TMP
   `backend.server.main:app` returned HTTP 200 on port 8031.
 - Full suite verification: 480 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Step 6 Unloadable-Model Review Deadlock
+
+- Reproduced a Step 6 deadlock on project
+  `47abb48d539c46a0afd1fc1acce34add`: two placement failures could use
+  room-level prioritization, but two CloudFront GLBs returning HTTP 403 had no
+  equivalent defer action and permanently disabled the confirmation button.
+- Kept the existing rule that unresolved furniture blocks Step 7.
+- Extended `同意擇優配置` to every room with pending furniture. Unloadable
+  catalog models are now explicitly deferred with a recorded reason before the
+  remaining furniture is revalidated for collision, clearance, and room bounds.
+- Browser verification confirmed the action is available for the bedroom,
+  kitchen, storage room, and balcony while the confirmation button remains
+  disabled until the user resolves or explicitly defers all four items.
+- Updated the scene bundle cache key so existing pages receive the corrected
+  controller after reload.
+- Full suite verification: 481 passed, 2 skipped.
+- No commit or remote push was performed.
+
+## 2026-07-27 Kai PNG Preview and Cody Window Threshold Patch
+
+- Selectively integrated Kai's official furniture image manifests into the
+  backend catalog data. Only the two PNG manifest CSV files were brought over;
+  Kai's appliance API removal was intentionally not merged.
+- Added a CloudFront PNG preview resolver for furniture. `/api/furniture` now
+  returns `image_url`, `thumbnail_url`, `preview_url`, and `preview_images`
+  when the manifest has verified `front`, `side`, and `angle-45` PNG renders.
+- Updated Step 6 GLB search cards to prefer the official furniture PNG preview
+  and only fall back to generated GLB thumbnails when a manifest image is
+  unavailable.
+- Ported Cody's small window-gap threshold fix in `floorplan2dxf.py` so tiny
+  door-hardware gaps are less likely to be classified as windows.
+- Added focused tests for the 9,350-item / 28,050-image manifest contract and
+  backend preview URL resolution.
+
+## 2026-07-27 Step 6 Edit-Mode Camera Preservation
+
+- Removed the forced dollhouse camera reset from the Step 6
+  `編輯家具` interaction-mode switch.
+- Switching from walk, orbit, top-down, or interior view now preserves the
+  current camera position, target, zoom, and active view indicator while only
+  enabling furniture selection, dragging, and rotation.
+- Added a regression assertion that the edit-mode activation path cannot call
+  `setViewMode`.
+- Browser verification confirmed `室內透視` remains the active view after
+  switching to `編輯家具`.
+- Updated the scene bundle cache key so the corrected controller is loaded
+  after refresh.
+- Full suite verification: 481 passed, 2 skipped.
+- No commit or remote push was performed.

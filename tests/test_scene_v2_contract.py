@@ -2152,6 +2152,12 @@ def test_added_and_deleted_furniture_refresh_numbering_and_stay_draggable() -> N
 
     assert "function activateWhiteFurnitureEditing()" in controller
     assert "whiteViewer.setInteractionMode(\"edit\")" in controller
+    edit_mode = controller.split(
+        "function activateWhiteFurnitureEditing()",
+        1,
+    )[1].split("async function deleteSelectedSceneFurniture()", 1)[0]
+    assert "whiteViewer.setViewMode(" not in edit_mode
+    assert "button.dataset.viewMode === \"dollhouse\"" not in edit_mode
     assert "const furnitureNumber = state.selectedSceneIndex + 1;" in controller
     assert "家具 ${furnitureNumber} 已新增" in controller
 
@@ -2287,6 +2293,24 @@ def test_configuration_pending_actions_distinguish_model_and_placement_failures(
     assert "只重排此家具" in pending
     assert 'closest("[data-replace-configuration-furniture]")' in handlers
     assert "void openFurnitureReplacement()" in handlers
+
+
+def test_room_priority_can_defer_unloadable_models_without_bypassing_review() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    pending = source.split(
+        "const blockingRooms = configurationBlockingFurnitureByRoom", 1
+    )[1].split("const confirmButton", 1)[0]
+    prioritize = source.split(
+        "async function prioritizeConfigurationRoomFurniture", 1
+    )[1].split("function renderSelectedFurnitureEditor", 1)[0]
+
+    assert 'data-prioritize-configuration-room="' in pending
+    assert "group.items.length" in pending
+    assert "configurationModelFailures()" in prioritize
+    assert "modelFailureIds.has(String(item.id))" in prioritize
+    assert "模型無法載入" in prioritize
+    assert "furniture.deferred = deferred.map" in prioritize
 
 
 def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_editing() -> None:

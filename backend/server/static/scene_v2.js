@@ -6866,7 +6866,7 @@ function renderConfigurationPlan() {
     );
     const summary = placementFailures.length
       ? `${placementFailures.length} 件因碰撞、淨空或房間尺寸無法放入`
-      : "家具位置合法，但資料庫模型無法載入";
+      : "資料庫模型無法載入，可更換或同意本次暫緩";
     const items = group.items.map((item) => {
       const furnitureNumber = configurationFurnitureNumber(item);
       const furnitureKey = String(item.id);
@@ -6896,7 +6896,7 @@ function renderConfigurationPlan() {
       <section class="rp-configuration-pending-room">
         <header>
           <div><strong>${escapeHtml(group.roomLabel)}</strong><small>${escapeHtml(summary)}</small></div>
-          ${placementFailures.length ? `<button type="button"
+          ${group.items.length ? `<button type="button"
             data-prioritize-configuration-room="${escapeHtml(group.roomId)}">同意擇優配置</button>` : ""}
         </header>
         ${items}
@@ -7019,8 +7019,13 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
     .filter((item) => String(item.roomId) === String(roomId))
     .sort(compareConfigurationFurniturePriority);
   if (!originalItems.length) return;
-  const retained = [...originalItems];
-  const deferred = [];
+  const modelFailureIds = new Set(configurationModelFailures().keys());
+  const retained = originalItems.filter(
+    (item) => !modelFailureIds.has(String(item.id)),
+  );
+  const deferred = originalItems.filter(
+    (item) => modelFailureIds.has(String(item.id)),
+  );
   let placedObjects = [];
   setStatus(`正在為「${room.label}」擇優配置，會保留優先家具並記錄未放入項目…`);
   try {
@@ -7092,7 +7097,9 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
       furniture_id: item.catalogFurnitureId || item.id,
       normalized_type: item.type,
       label: item.label,
-      reason: "使用者同意依空間尺寸擇優配置，本次暫不放入",
+      reason: modelFailureIds.has(String(item.id))
+        ? "資料庫模型無法載入，使用者同意本次暫不放入"
+        : "使用者同意依空間尺寸擇優配置，本次暫不放入",
     }));
     const scheme = activeScheme();
     scheme.furniture = JSON.parse(JSON.stringify(state.furniture2d));
@@ -7940,11 +7947,7 @@ function activateWhiteWalkMode() {
 }
 
 function activateWhiteFurnitureEditing() {
-  whiteViewer.setViewMode("dollhouse");
   whiteViewer.setInteractionMode("edit");
-  $$("[data-view-mode]").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.viewMode === "dollhouse");
-  });
   $$("[data-white-interaction]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.whiteInteraction === "edit");
   });
@@ -8049,9 +8052,14 @@ async function searchGlbFurniture() {
     `;
     }).join("") || "<p>找不到適合 GLB 的家具。</p>";
     element.glbResults.dataset.items = JSON.stringify(payload.items || []);
-    glbThumbnailSequence = glbThumbnailSequence
-      .catch(() => null)
-      .then(() => populateGlbSearchThumbnails(payload.items || [], thumbnailBatch));
+    const itemsNeedingGeneratedThumbnails = (payload.items || []).filter(
+      (item) => !(item.image_url || item.thumbnail_url || item.preview_url || item.main_image_url || item.image),
+    );
+    if (itemsNeedingGeneratedThumbnails.length) {
+      glbThumbnailSequence = glbThumbnailSequence
+        .catch(() => null)
+        .then(() => populateGlbSearchThumbnails(itemsNeedingGeneratedThumbnails, thumbnailBatch));
+    }
   } catch (error) {
     element.glbResults.innerHTML = `<p>${escapeHtml(errorMessage(error))}</p>`;
   }
