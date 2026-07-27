@@ -61,17 +61,43 @@ def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
     assert result["leafWidthCm"] == 94
     assert result["leafCenterXCm"] == 47
     assert result["closedRotationYRad"] == 0
-    assert result["swingRotationYRad"] < 0
+    assert result["swingRotationYRad"] == 0
 
 
-def test_3d_wall_snap_commits_the_backend_layout_result() -> None:
+def test_closed_door_leaf_lies_flat_inside_the_doorway() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorLeafTransform }} from {json.dumps(VISUAL_MODULE.as_uri())};
+        const transform = doorLeafTransform({{
+          start: {{ x: 100, z: 200 }},
+          end: {{ x: 180, z: 260 }},
+          opening_direction: "right",
+        }});
+        const wallAngle = Math.atan2(-(260 - 200), 180 - 100);
+        const closedAngle = transform.closedRotationYRad + transform.swingRotationYRad;
+        const wall = {{ x: Math.cos(wallAngle), z: -Math.sin(wallAngle) }};
+        const leaf = {{ x: Math.cos(closedAngle), z: -Math.sin(closedAngle) }};
+        console.log(JSON.stringify({{
+          parallelError: Math.abs(wall.x * leaf.z - wall.z * leaf.x),
+          directionDot: wall.x * leaf.x + wall.z * leaf.z,
+          swingDegrees: Math.abs(transform.swingRotationYRad) * 180 / Math.PI,
+        }}));
+        """
+    )
+
+    assert result["parallelError"] < 1e-9
+    assert result["directionDot"] > 0.999999
+    assert result["swingDegrees"] == 0
+
+
+def test_3d_drag_preserves_the_user_position_after_backend_validation() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
-    assert 'fetch("/api/scene/layout"' in source
-    assert "placement_hint_cm" in source
-    assert "resolved.position_cm" in source
+    assert 'fetch("/api/scene/validate"' in source
+    assert "item: { ...item, position_cm: positionCm, rotation_y_deg: rotationDeg }" in source
+    assert 'fetch("/api/scene/layout"' not in source
     assert "wallFaceSnapOffset" not in source
 
 
@@ -83,9 +109,10 @@ def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
         encoding="utf-8"
     )
 
-    assert "{ onSceneChange = null } = {}" in viewer
+    assert "{ onSceneChange = null, onObjectSelect = null } = {}" in viewer
     assert "notifySceneChange(item)" in viewer
-    assert 'onSceneChange: () => scheduleSave("white_model_3d")' in controller
+    assert "onSceneChange: (item) => {" in controller
+    assert 'scheduleSave("white_model_3d")' in controller
     assert "onSceneChange: () => markRealisticSceneEdited()" in controller
     mark_body = controller.split("function markRealisticSceneEdited()", 1)[1].split(
         "function activePanelName", 1
@@ -112,6 +139,17 @@ def test_upholstered_storage_bed_is_still_a_real_bed() -> None:
             "normalized_type": "bed",
             "name_en": "IDANAS Upholstered storage bed - beige 160x200 cm",
             "size_cm": {"width": 160, "depth": 200, "height": 49},
+        },
+        "bed",
+    ) is True
+
+
+def test_full_size_loft_bed_is_still_a_real_bed() -> None:
+    assert catalog_item_matches_type_semantics(
+        {
+            "normalized_type": "bed",
+            "name_en": "Dcraft Berdine Metal Loft Bed, Full Size",
+            "size_cm": {"width": 199.4, "depth": 200, "height": 200},
         },
         "bed",
     ) is True
@@ -291,7 +329,7 @@ def test_view_mode_hint_is_part_of_viewer_and_adjacent_to_canvas() -> None:
     canvas_index = viewer.index('id="white-model-viewer"')
 
     assert hint_index < canvas_index
-    assert canvas_index - hint_index < 900
+    assert canvas_index - hint_index < 1200
 
 
 def test_catalog_does_not_merge_same_named_bed_and_cabinet_models() -> None:

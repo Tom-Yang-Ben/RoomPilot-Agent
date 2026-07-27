@@ -19,9 +19,150 @@ def _space_heading_html(html: str) -> str:
 def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     bundle = (STATIC / "scene_v2.js").read_bytes()
-    expected = hashlib.sha256(bundle).hexdigest()[:12]
+    css = (STATIC / "site.css").read_bytes()
+    expected_bundle = hashlib.sha256(bundle).hexdigest()[:12]
+    expected_css = hashlib.sha256(css).hexdigest()[:12]
 
-    assert f'src="/static/scene_v2.js?v=sha256-{expected}"' in html
+    assert f'src="/static/scene_v2.js?v=sha256-{expected_bundle}"' in html
+    assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
+
+
+def test_requirements_step_has_randomized_test_skip_button() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="randomize-requirements"' in html
+    assert "async function randomizeRequirementsForTesting" in source
+    assert "ROOM_REQUIREMENT_POLAR_AXES" in source
+    assert "state.basicConfirmed = true" in source
+    assert "requirement.confirmed = true" in source
+    assert 'showQuestionnaireStage("summary")' in source
+
+
+def test_weighted_questionnaire_answers_preserve_a_b_preference_strength() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert "PREFERENCE_WEIGHT_OPTIONS" in source
+    assert 'data-preference-weight="${item.value}"' in source
+    assert "function selectPreferenceWeight" in source
+    assert "preferenceWeight: weight" in source
+    assert "preferenceDirection: answerWeightDirection(weight)" in source
+    assert "preference_weight: Number(answer.preferenceWeight ?? 0)" in source
+    assert "preference_direction: answer.preferenceDirection" in source
+    assert ".rp-preference-weight" in css
+
+
+def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "QUESTIONNAIRE_MATERIAL_RECOMMENDATION_COUNT = 4" in source
+    assert "function questionnaireMaterialOptionsForPack" in source
+    assert 'const wallOption = randomItem(questionnaireMaterialOptionsForPack("wall", pack), null)' in source
+    assert 'const floorOption = randomItem(questionnaireMaterialOptionsForPack("floor", pack), null)' in source
+    assert "const options = questionnaireMaterialOptionsForPack(kind, pack)" in source
+    assert "defaultWallMaterial: wallMaterial" in source
+    assert "floorMaterial" in source
+
+
+def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert 'id="questionnaire-furniture-options"' in html
+    assert 'id="questionnaire-furniture-status"' in html
+    assert "function ensureQuestionnaireFurnitureRecommendations" in source
+    assert "function renderQuestionnaireFurnitureRecommendations" in source
+    assert 'data-questionnaire-furniture-id="' in source
+    assert "user_selected: true" in source
+    assert "selection_priority:" in source
+    assert "function knownUnavailableCatalogFurnitureIds" in source
+    assert "unavailableCatalogIds.has(String(offer.furniture_id))" in source
+    assert "async function verifyQuestionnaireCatalogModel" in source
+    assert "model_load_verified: true" in source
+    assert ".rp-questionnaire-furniture-options" in css
+
+
+def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    auto_layout = source.split("async function autoLayoutFurniture()", 1)[1].split(
+        "async function relayoutFurnitureForScheme", 1
+    )[0]
+
+    assert "requirement?.furniture?.selected" in auto_layout
+    assert "userSelectedSpecs" in auto_layout
+    assert "catalogItem?.user_selected === true" in auto_layout
+    assert "item.selectionPriority" in auto_layout
+    assert "selected_furniture_exact" in source
+
+
+def test_room_requirement_round_trip_preserves_selected_and_deferred_furniture() -> None:
+    module_uri = (STATIC / "scene_room_requirements.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{
+          buildRoomRequirementsPayload,
+          normalizeRoomRequirements,
+        }} from {json.dumps(module_uri)};
+        const rooms = [{{
+          id: "living-1",
+          type: "living_room",
+          label: "客廳",
+        }}];
+        const model = normalizeRoomRequirements({{
+          roomRequirements: {{
+            "living-1": {{
+              confirmed: true,
+              furniture: {{
+                required: ["sofa"],
+                selected: [{{
+                  furniture_id: "sofa-db-1",
+                  normalized_type: "sofa",
+                  model_url: "https://cdn.example/sofa.glb",
+                  user_selected: true,
+                  selection_priority: 1,
+                }}],
+                deferred: [{{
+                  furniture_id: "table-db-1",
+                  normalized_type: "coffee-table",
+                  label: "茶几",
+                }}],
+              }},
+              climate: {{ airConditioning: "none" }},
+              surfaces: {{
+                wallDefault: {{ materialId: "paint" }},
+                floor: {{ materialId: "wood" }},
+                ceiling: {{
+                  materialId: "paint",
+                  styleId: "flat",
+                  lightingId: "track",
+                }},
+              }},
+            }},
+          }},
+          globalConfirmed: true,
+        }}, rooms);
+        console.log(JSON.stringify(buildRoomRequirementsPayload(model)));
+        """
+    )
+
+    furniture = result["roomRequirements"][0]["furniture"]
+    assert furniture["selected"][0]["furniture_id"] == "sofa-db-1"
+    assert furniture["selected"][0]["selection_priority"] == 1
+    assert furniture["deferred"][0]["label"] == "茶几"
+
+
+def test_step_six_groups_failures_by_room_and_offers_explicit_resolution() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert "function configurationBlockingFurnitureByRoom" in source
+    assert 'data-prioritize-configuration-room="' in source
+    assert "同意擇優配置" in source
+    assert "function prioritizeConfigurationRoomFurniture" in source
+    assert "更換較小款" in source
+    assert ".rp-configuration-pending-room" in css
 
 
 def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
@@ -37,6 +178,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_window_types.js",
             "scene_design_schemes.js",
             "scene_questionnaire_test2.js",
+            "scene_configuration_sync.js",
         ],
         "scene_viewer.js": [
             "scene_architecture.js",
@@ -57,6 +199,37 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             ), f"{importer_name} has a stale cache key for {dependency_name}"
 
 
+def test_space_save_does_not_duplicate_furniture_or_scene_payloads() -> None:
+    module_uri = (STATIC / "scene_design_schemes.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ compactDesignSchemesForSpace }} from {json.dumps(module_uri)};
+        const compact = compactDesignSchemesForSpace({{
+          schema_version: 1,
+          active_scheme_id: "A",
+          locked_scheme_id: null,
+          schemes: {{
+            A: {{
+              id: "A",
+              kind: "baseline",
+              label: "方案 A",
+              furniture: [{{ id: "chair-1" }}],
+              sceneData: {{ surface_catalog: {{ huge: true }} }},
+              stale: false,
+              staleReason: "",
+            }},
+          }},
+        }});
+        console.log(JSON.stringify(compact));
+        """
+    )
+
+    assert result["active_scheme_id"] == "A"
+    assert result["schemes"]["A"]["kind"] == "baseline"
+    assert result["schemes"]["A"]["furniture"] == []
+    assert result["schemes"]["A"]["sceneData"] is None
+
+
 def test_loaded_door_candidates_drop_low_confidence_wide_and_duplicate_auto_doors() -> None:
     module_uri = (STATIC / "scene_structure_utils.js").as_uri()
     result = run_workflow_script(
@@ -75,6 +248,49 @@ def test_loaded_door_candidates_drop_low_confidence_wide_and_duplicate_auto_door
 
     assert [door["id"] for door in result["doors"]] == ["better", "manual-wide"]
     assert result["removed"] == 3
+
+
+def test_nearby_parallel_door_leaves_remain_distinct() -> None:
+    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ dedupeDoorCandidates }} from {json.dumps(module_uri)};
+        const result = dedupeDoorCandidates([
+          {{
+            id: "door-2",
+            source: "cody_vision",
+            confidence: 1,
+            confirmed: true,
+            host_wall_id: "wall-2",
+            width_cm: 113.41,
+            start: {{x: -9.94, z: 61.39}},
+            end: {{x: -123.35, z: 61.39}},
+          }},
+          {{
+            id: "door-3",
+            source: "cody_vision",
+            confidence: 1,
+            confirmed: true,
+            host_wall_id: "wall-2",
+            width_cm: 104.06,
+            start: {{x: -19.29, z: 111.67}},
+            end: {{x: -123.35, z: 111.67}},
+          }},
+        ]);
+        console.log(JSON.stringify(result));
+        """
+    )
+
+    assert len(result["doors"]) == 2
+    assert result["removed"] == 0
+
+
+def test_restored_scene_data_removes_duplicate_door_segments() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function normalizeSceneDoorSegments(sceneData)" in source
+    assert "dedupeDoorCandidates(sceneData.floorplan.door_segments)" in source
+    assert "normalizeSceneDoorSegments(state.sceneData)" in source
 
 
 def test_dimensioned_plan_draws_colored_room_outlines_and_size_lines() -> None:
@@ -401,6 +617,15 @@ def test_saved_scene_data_migrates_mixed_floorplan_fields_independently() -> Non
     assert floorplan["columns"][0]["center"] == {"x": 250, "z": 150}
 
 
+def test_scene_generate_response_prefers_scene_json_with_legacy_fallback() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function sceneDataFromGenerateResponse(payload)" in source
+    assert "return payload?.scene_json || payload;" in source
+    assert "state.sceneData = sceneDataFromGenerateResponse(payload);" in source
+    assert "state.sceneData = payload;" not in source
+
+
 def test_project_restore_normalizes_saved_scene_before_loading_viewers() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
@@ -495,6 +720,9 @@ def test_scene_sidebar_numbers_match_viewer_markers() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'class="rp-object-number">#${index + 1}' in source
+    assert "function configurationFurnitureNumber" in source
+    assert "const furnitureNumber = configurationFurnitureNumber(item, index)" in source
+    assert "const furnitureNumber = configurationFurnitureNumber(item)" in source
     assert '"bed-frame": "雙人床"' in source
     assert '"floor-lamp": "落地燈"' in source
     assert '"large-medium-rug": "地毯"' in source
@@ -521,15 +749,18 @@ def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> Non
         "3 確定尺寸",
         "4 空間與結構",
         "5 需求問卷",
-        "6 2D 家具配置",
-        "7 3D 白模",
-        "8 即時寫實",
-        "9 方案鎖定",
-        "10 AI 渲染",
+        "6 配置與預覽",
+        "7 方案鎖定與視角",
+        "8 AI 渲染與成果包",
     ):
         assert label in html
 
-    assert 'data-workflow-count="10"' in html
+    assert 'data-workflow-count="8"' in html
+    assert html.count('data-step="') == 8
+    assert "7 3D 白模" not in html
+    assert "8 即時寫實" not in html
+    assert "9 方案鎖定" not in html
+    assert "10 AI 渲染" not in html
     assert "3–4" not in html
     assert 'accept=".dxf,.png,.jpg,.jpeg,image/png,image/jpeg,application/dxf"' in html
     assert 'id="project-step"' in html
@@ -541,6 +772,61 @@ def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> Non
     assert 'id="white-model-3d-step"' in html
     assert 'id="realistic-3d-step"' in html
     assert 'id="basic-profile-panel"' not in html
+
+
+def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    white_model = html.split('id="white-model-3d-step"', 1)[1].split(
+        'id="realistic-3d-step"', 1
+    )[0]
+    assert 'id="configuration-plan-panel"' in white_model
+    assert 'id="configuration-plan-toggle"' in white_model
+    assert 'id="configuration-plan-image"' in white_model
+    assert 'id="configuration-plan-furniture-layer"' in white_model
+    assert 'id="configuration-plan-furniture-list"' in white_model
+    assert 'id="configuration-pending-list"' in white_model
+    assert white_model.index('class="rp-configuration-plan-sticky"') < white_model.index(
+        'id="configuration-plan-furniture-list"'
+    )
+    assert "尚有未處理家具時不能進入下一步" in white_model
+
+    assert "function renderConfigurationPlan" in source
+    assert "function configurationBlockingFurniture" in source
+    assert "renderConfigurationPlan();" in source
+    assert "confirmButton.disabled = blocking.length > 0" in source
+    assert "請先從 2D 待處理清單定位修正" in source
+    assert "function reflowSingleConfigurationFurniture" in source
+    assert "只重排此家具" in source
+    assert "syncOverlayToImage(" in source
+    assert "element.configurationPlanStage" in source
+    assert "void openFurnitureReplacement();" in source
+    assert ".rp-configuration-plan" in css
+    assert ".rp-configuration-plan-sticky" in css
+    assert "position: sticky;" in css
+    assert ".rp-configuration-pending {\n  order: -1;" in css
+    assert ".is-collapsed" in css
+
+
+def test_configuration_markers_focus_3d_and_use_visible_selected_numbers() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    handler = source.split("const selectConfigurationFurniture =", 1)[1].split(
+        "element.configurationPlanLayer.addEventListener", 1
+    )[0]
+
+    assert "event.currentTarget === element.configurationPlanLayer" in handler
+    assert (
+        "event.currentTarget === element.configurationPlanFurnitureList" in handler
+    )
+    assert "if (fromFurnitureList) void openFurnitureReplacement()" in handler
+    assert "syncSelected2dFurnitureToScene({ focus: true })" in handler
+    assert "已在 3D 定位家具" in handler
+    assert ".rp-configuration-furniture.is-active b" in css
+    assert ".rp-configuration-furniture-list button.is-active > b" in css
+    assert "background: #1768a6;" in css
 
 
 def test_2d_furniture_library_has_top_view_icons_and_real_centimetre_sizes() -> None:
@@ -583,6 +869,166 @@ def test_2d_furniture_plan_coordinates_match_the_visible_image_layer() -> None:
 
     assert round(result["x"], 2) == 304.33
     assert round(result["y"], 2) == 150.75
+
+
+def test_scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection() -> None:
+    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function addFurniturePickProxy" in source
+    assert "roompilotPickProxy" in source
+    assert "modelRoot.traverse" in source
+    assert "object.raycast = () => {}" in source
+    assert "pickFurnitureWrapper()" in source
+    assert "getSelectedFurnitureId" in source
+    assert "projectFurnitureCenters()" in source
+
+
+def test_2d_furniture_selection_syncs_to_matching_3d_scene_object() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function sceneObjectIndexByFurnitureId" in source
+    assert "String(item.furniture_id) === String(furnitureId)" in source
+    assert "function selectSceneObjectByFurnitureId" in source
+    assert "function syncSelected2dFurnitureToScene" in source
+    assert "syncSelected2dFurnitureToScene({ focus: true })" in source
+    assert "syncSelected2dFurnitureToScene({ focus: false })" in source
+
+
+def test_3d_scene_selection_syncs_back_to_2d_furniture_state() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    object_list_handler = controller.split("const selectSceneObject =", 1)[1].split(
+        "element.objectList?.addEventListener", 1
+    )[0]
+
+    assert "onObjectSelect = null" in viewer
+    assert "onObjectSelect(selectedWrapper?.userData?.sceneObject || null, lastSceneData)" in viewer
+    assert "selectWrapper(wrapper, null, { notify: false })" in viewer
+    assert "function syncSceneSelectionTo2dFurniture" in controller
+    assert "String(candidate.id) === String(furnitureId)" in controller
+    assert "state.selectedFurniture2dId = item.id" in controller
+    assert "onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item)" in controller
+    assert "syncSceneSelectionTo2dFurniture" in object_list_handler
+
+
+def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects() -> None:
+    module_uri = (STATIC / "scene_configuration_sync.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{
+          removeFurniture2dBySceneObject,
+          upsertFurniture2dFromSceneObject,
+        }} from {json.dumps(module_uri)};
+
+        const initial = [{{
+          id: "chair-1",
+          label: "餐椅",
+          roomId: "dining",
+          xCm: 10,
+          yCm: 20,
+          widthCm: 45,
+          depthCm: 48,
+        }}];
+        const moved = upsertFurniture2dFromSceneObject(initial, {{
+          furniture_id: "chair-1",
+          normalized_type: "dining-chair",
+          name_zh_raw: "新餐椅",
+          catalog_furniture_id: "catalog-chair",
+          model_url: "/chair.glb",
+          position_cm: {{ x: 35, z: 45 }},
+          rotation_y_deg: 90,
+          size_cm: {{ width: 50, depth: 52, height: 82 }},
+        }});
+        const added = upsertFurniture2dFromSceneObject(moved, {{
+          furniture_id: "sofa-1",
+          normalized_type: "sofa",
+          name_zh_raw: "三人沙發",
+          position_cm: {{ x: 100, z: 120 }},
+          size_cm: {{ width: 210, depth: 90, height: 85 }},
+        }}, {{ roomId: "living", iconPath: "M0 0h48v48H0z" }});
+        const failed = upsertFurniture2dFromSceneObject(added, {{
+          furniture_id: "sofa-1",
+          normalized_type: "sofa",
+          name_zh_raw: "三人沙發",
+          position_cm: {{ x: 100, z: 120 }},
+          size_cm: {{ width: 210, depth: 90, height: 85 }},
+          placement_failed: true,
+          placement_reason: "與牆面碰撞",
+        }});
+        const removed = removeFurniture2dBySceneObject(failed, {{ furniture_id: "chair-1" }});
+        console.log(JSON.stringify({{ moved, added, failed, removed }}));
+        """
+    )
+
+    assert result["moved"][0]["label"] == "新餐椅"
+    assert result["moved"][0]["roomId"] == "dining"
+    assert result["moved"][0]["xCm"] == 35
+    assert result["moved"][0]["yCm"] == 45
+    assert result["moved"][0]["rotationDeg"] == 90
+    assert result["moved"][0]["catalogFurnitureId"] == "catalog-chair"
+    assert len(result["added"]) == 2
+    assert result["added"][1]["id"] == "sofa-1"
+    assert result["added"][1]["roomId"] == "living"
+    assert result["failed"][1]["placementFailed"] is True
+    assert result["failed"][1]["placementReason"] == "與牆面碰撞"
+    assert [item["id"] for item in result["removed"]] == ["sofa-1"]
+
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    assert controller.count("upsertFurniture2dFromSceneObject(") >= 4
+    assert "removeFurniture2dBySceneObject(" in controller
+    assert "furniture2dDefaultsForSceneObject" in controller
+    assert "syncFinalValidationToConfiguration" in controller
+
+
+def test_step_six_progress_entry_prefers_the_integrated_3d_workspace() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'if (step === "layout_2d")' in source
+    assert 'state.workflow?.canEnter("white_model_3d")' in source
+    assert 'goTo("white_model_3d")' in source
+
+
+def test_single_furniture_reflow_is_locked_until_the_request_finishes() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "configurationReflowInFlight.has(furnitureKey)" in source
+    assert "configurationReflowInFlight.add(furnitureKey)" in source
+    assert "configurationReflowInFlight.delete(furnitureKey)" in source
+    assert "finally {" in source
+    assert "reflowLocked ? \"disabled\"" in source
+
+
+def test_3d_viewer_flips_scene_z_at_the_visual_boundary_only() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function sceneToWorldPosition" in viewer
+    assert "z: -Number(position.z || 0)" in viewer
+    assert "function worldToScenePosition" in viewer
+    assert "z: Math.round(-Number(position.z || 0) * 100) / 100" in viewer
+    assert "function sceneDataForWorld" in viewer
+    assert "lastWorldSceneData = sceneDataForWorld(sceneData)" in viewer
+    assert "createRoom(lastWorldSceneData)" in viewer
+    assert "const worldPosition = sceneToWorldPosition(item.position_cm || {})" in viewer
+    assert "callback(worldToScenePosition(planeHit))" in viewer
+    assert "function topdownPointerDeltaCm" in viewer
+    assert "dragState.startPosition.x + topdownDelta.x" in viewer
+    assert "const newPositionCm = worldToScenePosition(wrapper.position)" in viewer
+    assert "const verdict = await validatePlacement(item, newPositionCm, newRotationDeg)" in viewer
+    assert "item.position_cm = newPositionCm" in viewer
+
+
+def test_3d_viewer_keeps_manual_furniture_controls_and_number_markers() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function createNumberMarker" in viewer
+    assert "roompilotNumberMarker" in viewer
+    assert "beginPlacement" in viewer
+    assert "function addSceneFurniture" in controller
+    assert "function deleteSelectedSceneFurniture" in controller
+    assert 'id="delete-replacement-furniture"' in (
+        STATIC / "scene.html"
+    ).read_text(encoding="utf-8")
 
 
 def test_2d_collision_footprint_respects_furniture_rotation() -> None:
@@ -1136,7 +1582,7 @@ def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> Non
     assert "function finishBeamCreateDrag(" in source
     assert 'showStep("space_confirmation")' in source
     assert 'setActiveStructureKind("beam")' in source
-    assert "第 7 步只編輯家具" in html
+    assert "第 6 步只局部校正家具" in html
     assert "返回第 4 步修改樑" in html
     assert "function beginBeamPlacement(" in viewer
     assert "beamPlacementRequest" in viewer
@@ -1674,10 +2120,14 @@ def test_3d_furniture_can_be_deleted_and_each_item_keeps_its_own_material_overri
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert 'id="delete-white-model-furniture"' in html
+    assert 'id="delete-replacement-furniture"' in html
+    assert 'id="scene-object-list"' not in html
+    assert "先由系統選配，再點家具更換" not in html
+    assert 'id="configuration-plan-furniture-list"' in html
     assert 'id="delete-realistic-furniture"' in html
     assert "function deleteSelectedSceneFurniture()" in controller
     assert "objects.splice(state.selectedSceneIndex, 1)" in controller
+    assert "function setReplacementDrawerOpen(open)" in controller
     assert "function saveSelectedSceneAppearance()" in controller
     assert "function loadSelectedSceneAppearance()" in controller
 
@@ -1695,6 +2145,45 @@ def test_3d_catalog_supports_engine_validated_replacement_addition_and_final_gat
     assert "item.placement_failed || !item.position_locked" in controller
     assert "function beginPlacement(" in viewer
     assert 'renderer.domElement.style.cursor = "crosshair"' in viewer
+
+
+def test_added_and_deleted_furniture_refresh_numbering_and_stay_draggable() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function activateWhiteFurnitureEditing()" in controller
+    assert "whiteViewer.setInteractionMode(\"edit\")" in controller
+    assert "const furnitureNumber = state.selectedSceneIndex + 1;" in controller
+    assert "家具 ${furnitureNumber} 已新增" in controller
+
+    delete_block = controller.split(
+        "async function deleteSelectedSceneFurniture()",
+        1,
+    )[1].split("async function searchGlbFurniture()", 1)[0]
+    assert "renderConfigurationPlan();" in delete_block
+    assert "selectSceneObjectByFurnitureId(" in delete_block
+
+    add_block = controller.split(
+        "function addSceneFurniture(furnitureId)",
+        1,
+    )[1].split("async function confirmWhiteModel()", 1)[0]
+    assert "renderConfigurationPlan();" in add_block
+    assert "activateWhiteFurnitureEditing();" in add_block
+
+
+def test_saved_layout_can_rebuild_a_missing_white_model_scene() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "async function recoverSceneDataFromSavedLayout()" in controller
+    assert "floorplan: layout.floorplan" in controller
+    assert "scene_objects: layout.scene_objects || []" in controller
+    recovery_block = controller.split(
+        "async function recoverSceneDataFromSavedLayout()",
+        1,
+    )[1].split("function installUnloadGuard()", 1)[0]
+    assert "!state.furniture2d.length" not in recovery_block
+    assert "await recoverSceneDataFromSavedLayout();" in controller
+    assert 'console.warn("Unable to rebuild saved 3D scene from layout."' in controller
+    assert "if (sceneRecoveryError)" in controller
 
 
 def test_ceiling_conflicts_use_real_obstruction_geometry_and_installation_depth() -> None:
@@ -1755,10 +2244,19 @@ def test_ceiling_and_light_choices_create_distinct_three_geometry() -> None:
     assert "keyLight.shadow.mapSize.set(shadowMapSize, shadowMapSize)" in viewer
 
 
-def test_viewer_never_silently_drops_missing_furniture_and_lock_keeps_zoom() -> None:
+def test_viewer_keeps_missing_glbs_editable_without_pretending_the_proxy_is_valid() -> None:
     source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
-    assert "createFallbackFurnitureProxy" in source
+    load_scene = source.split("async function loadScene", 1)[1].split(
+        "let lastSceneData", 1
+    )[0]
+    assert "createFallbackFurnitureProxy(" in load_scene
+    assert '"資料庫尚未提供 GLB"' in load_scene
+    assert '"GLB 載入失敗，請更換家具或檢查資料庫模型權限"' in load_scene
+    assert "wrapper.userData.modelLoadFailed = true" in source
+    assert "wrapper.userData.sceneObject = item" in source
+    assert "addFurniturePickProxy(wrapper, item)" in source
+    assert "wrapper?.userData.modelLoadFailed === true" in load_scene
     assert "if (item.placement_failed)" in source
     assert "家具位置無法通過碰撞與淨空檢查" in source
     assert "visibleFurnitureCount" in source
@@ -1768,6 +2266,27 @@ def test_viewer_never_silently_drops_missing_furniture_and_lock_keeps_zoom() -> 
     assert "controls.enableZoom = true" in source
     assert "getDiagnostics" in source
     assert "selectObjectByIndex" in source
+
+
+def test_configuration_pending_actions_distinguish_model_and_placement_failures() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    pending = source.split(
+        "const blockingRooms = configurationBlockingFurnitureByRoom", 1
+    )[1].split("const confirmButton", 1)[0]
+    handlers = source.split(
+        'element.configurationPendingList.addEventListener("click"', 1
+    )[1].split(
+        'element.configurationPlanImage.addEventListener("load"', 1
+    )[0]
+
+    assert "modelFailures.has(furnitureKey)" in pending
+    assert 'data-replace-configuration-furniture="' in pending
+    assert "更換家具" in pending
+    assert 'data-reflow-configuration-furniture="' in pending
+    assert "只重排此家具" in pending
+    assert 'closest("[data-replace-configuration-furniture]")' in handlers
+    assert "void openFurnitureReplacement()" in handlers
 
 
 def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_editing() -> None:
@@ -1794,19 +2313,20 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert "Shift+R 反向 15 度" in viewer
 
 
-def test_3d_view_controls_use_perspective_free_rotation_instead_of_dollhouse() -> None:
+def test_3d_view_controls_offer_full_model_and_perspective_free_rotation() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'data-view-mode="orbit"' in html
+    assert 'data-view-mode="dollhouse"' in html
     assert 'data-real-view-mode="orbit"' in html
     assert 'data-proposal-view-mode="orbit"' in html
     assert html.count("自由旋轉") >= 3
-    assert 'data-view-mode="dollhouse"' not in html
+    assert "全屋家具配置" in html
     assert 'data-real-view-mode="dollhouse"' not in html
     assert 'data-proposal-view-mode="dollhouse"' not in html
-    assert 'whiteViewer.setViewMode("dollhouse")' not in controller
+    assert 'whiteViewer.setViewMode("dollhouse")' in controller
     assert 'realisticViewer.setViewMode("dollhouse")' not in controller
     assert 'const viewMode = createViewModeState("orbit");' in viewer
     reset_camera = viewer.split("function resetCamera", 1)[1].split(

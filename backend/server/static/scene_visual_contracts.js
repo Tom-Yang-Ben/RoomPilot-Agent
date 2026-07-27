@@ -133,7 +133,7 @@ export function synchronizedFloorRegions(floorplan = {}, widthCm = 420, depthCm 
   }];
 }
 
-export function doorLeafTransform(opening = {}, swingDegrees = 58) {
+export function doorLeafTransform(opening = {}, swingDegrees = 0) {
   const start = opening.start || {};
   const end = opening.end || {};
   const startX = Number(start.x) || 0;

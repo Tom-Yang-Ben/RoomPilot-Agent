@@ -91,6 +91,8 @@ function emptyRoomRequirement(room = {}) {
     furniture: {
       required: [],
       optional: [],
+      selected: [],
+      deferred: [],
     },
     climate: {
       airConditioning: null,
@@ -161,6 +163,8 @@ export function normalizeRoomRequirements(
       furniture: {
         ...migrated.furniture,
         ...(restored.furniture || {}),
+        selected: clone(restored.furniture?.selected || []),
+        deferred: clone(restored.furniture?.deferred || []),
       },
       climate: {
         ...migrated.climate,

@@ -16,8 +16,9 @@ import numpy as np
 
 from ..cody_adapter import recognize_cody_geometry
 from .cody_semantic import cody_semantic_room_labeler_status
+from .evaluation import summarize_room_polygons
 from .geometry import transform_confirmed_geometry
-from .image import decode_image
+from .image import decode_image, profile_floorplan_image
 from .reference_plan import match_builder_plan_630
 from .room_icons import apply_icon_room_labels, detect_room_icons
 from .rooms import infer_rooms_from_walls
@@ -228,9 +229,11 @@ def analyze_floorplan_image(
     ocr_observations: Iterable[Mapping[str, Any]] | None = None,
     ocr_provider: Any | None = None,
     geometry_observations: Iterable[Mapping[str, Any]] | None = None,
+    evaluation_reference_rooms: Iterable[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """分析建商平面圖；不確定的尺度必須透過 confirmation seam 補齊。"""
     image = decode_image(image_bytes)
+    image_profile = profile_floorplan_image(image)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     observations = list(ocr_observations or [])
     had_supplied_ocr_observations = bool(observations)
@@ -394,6 +397,7 @@ def analyze_floorplan_image(
         "filename": filename,
         "recognition_engine": "cody" if not geometry_observations else "manual",
         "recognition_mode": recognition_mode,
+        "image_profile": image_profile,
         "image_size_px": {"width": int(gray.shape[1]), "height": int(gray.shape[0])},
         "coordinate_system": COORDINATE_SYSTEM.copy(),
         "scale": scale,
@@ -423,4 +427,10 @@ def analyze_floorplan_image(
         if "targeted_room_review_required" not in result["issues"]:
             result["issues"].append("targeted_room_review_required")
         result["requires_confirmation"] = True
-    return canonicalize_analysis_cm(result)
+    canonical = canonicalize_analysis_cm(result)
+    if evaluation_reference_rooms is not None:
+        canonical["room_evaluation"] = summarize_room_polygons(
+            list(evaluation_reference_rooms),
+            canonical["spatial_report"]["rooms"],
+        )
+    return canonical

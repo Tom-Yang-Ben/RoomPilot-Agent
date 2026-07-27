@@ -114,6 +114,224 @@ def test_openings_only_cut_their_confirmed_host_wall() -> None:
     assert result == {"host": True, "adjacent": False}
 
 
+def test_open_door_leaves_snap_to_two_distinct_existing_wall_gaps() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{
+          doorOpeningForWallTopology,
+          openingWallInterval,
+        }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const walls = [
+          {{
+            id: "wall-2",
+            start: {{x: -486.99, z: 87.11}},
+            end: {{x: 11.11, z: 87.11}},
+            thickness_cm: 22.22,
+          }},
+          {{
+            id: "wall-11",
+            start: {{x: 0, z: 333.24}},
+            end: {{x: 0, z: 222.16}},
+            thickness_cm: 22.22,
+          }},
+          {{
+            id: "wall-15",
+            start: {{x: 0, z: 112.25}},
+            end: {{x: 0, z: 63.14}},
+            thickness_cm: 19.88,
+          }},
+          {{
+            id: "wall-17",
+            start: {{x: 0, z: -47.93}},
+            end: {{x: 0, z: -274.77}},
+            thickness_cm: 22.22,
+          }},
+        ];
+        const doors = [
+          {{
+            id: "door-2",
+            host_wall_id: "wall-2",
+            width_cm: 113.41,
+            start: {{x: -9.94, z: 61.39}},
+            end: {{x: -123.35, z: 61.39}},
+          }},
+          {{
+            id: "door-3",
+            host_wall_id: "wall-2",
+            width_cm: 104.06,
+            start: {{x: -19.29, z: 111.67}},
+            end: {{x: -123.35, z: 111.67}},
+          }},
+        ];
+        const openings = doors.map((door) => doorOpeningForWallTopology(walls, door, 22));
+        console.log(JSON.stringify({{
+          openings,
+          cutsWrongWall: openings.map(
+            (opening) => Boolean(openingWallInterval(walls[0], opening, 22, 68)),
+          ),
+        }}));
+        """
+    )
+
+    assert result["cutsWrongWall"] == [False, False]
+    assert result["openings"][0]["topology_gap"] is True
+    assert result["openings"][1]["topology_gap"] is True
+    assert result["openings"][0]["start"] == {"x": 0, "z": 63.14}
+    assert result["openings"][0]["end"] == {"x": 0, "z": -47.93}
+    assert result["openings"][1]["start"] == {"x": 0, "z": 222.16}
+    assert result["openings"][1]["end"] == {"x": 0, "z": 112.25}
+
+
+def test_gap_window_has_no_usable_span_inside_the_split_host_wall() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ openingWallInterval }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const splitHostWall = {{
+          id: "wall-6",
+          start: {{ x: -11.11, z: -524.4 }},
+          end: {{ x: 171.3, z: -524.4 }},
+        }};
+        const floorWindow = {{
+          id: "window-1",
+          host_wall_id: "wall-6",
+          start: {{ x: 171.3, z: -524.4 }},
+          end: {{ x: 308.1, z: -524.4 }},
+          width_cm: 136.8,
+          sill_height_cm: 0,
+          height_cm: 262,
+        }};
+        const embeddedWindow = {{
+          id: "window-embedded",
+          host_wall_id: "wall-6",
+          start: {{ x: 20, z: -524.4 }},
+          end: {{ x: 120, z: -524.4 }},
+          width_cm: 100,
+        }};
+        console.log(JSON.stringify({{
+          gap: openingWallInterval(splitHostWall, floorWindow, 12, 50),
+          embedded: openingWallInterval(splitHostWall, embeddedWindow, 12, 50),
+        }}));
+        """
+    )
+
+    assert result["gap"] is None
+    assert abs(result["embedded"]["to"] - result["embedded"]["from"] - 100) < 1e-9
+
+
+def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
+    viewer = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+
+    assert "const missingWindows = windowSegments.filter" in viewer
+    assert "openingWallInterval(segment, opening, wallThickness, 50)" in viewer
+    assert "missingDoors,\n        missingWindows," in viewer
+
+
+def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ wallEndpointBordersOpening }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const window = {{
+          start: {{ x: 171.3, z: -524.4 }},
+          end: {{ x: 308.1, z: -524.4 }},
+        }};
+        console.log(JSON.stringify({{
+          openingEdge: wallEndpointBordersOpening(
+            {{ x: 171.3, z: -524.4 }},
+            [window],
+            12,
+          ),
+          realCorner: wallEndpointBordersOpening(
+            {{ x: -11.11, z: -524.4 }},
+            [window],
+            12,
+          ),
+        }}));
+        """
+    )
+
+    assert result == {"openingEdge": True, "realCorner": False}
+
+    viewer = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+    assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in viewer
+    assert "new THREE.BoxGeometry(length, 2.5, wallThickness)" in viewer
+    assert "openingWidth + 1.2" not in viewer
+    assert "openingWidth + wallThickness * 2.1" not in viewer
+
+
+def test_gap_window_uses_its_own_host_wall_for_surface_material() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ wallSegmentForOpening }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const walls = [
+          {{
+            id: "wall-6",
+            start: {{ x: -11.11, z: -524.4 }},
+            end: {{ x: 171.3, z: -524.4 }},
+            material_id: "dark-wall",
+          }},
+          {{
+            id: "wall-14",
+            start: {{ x: 475.88, z: 190.59 }},
+            end: {{ x: 475.88, z: 28.07 }},
+            material_id: "white-wall",
+          }},
+        ];
+        const window = {{
+          id: "window-5",
+          host_wall_id: "wall-14",
+          start: {{ x: 475.88, z: 28.07 }},
+          end: {{ x: 475.88, z: -40.92 }},
+        }};
+        console.log(JSON.stringify(wallSegmentForOpening(walls, window, 12)));
+        """
+    )
+
+    assert result["id"] == "wall-14"
+    assert result["material_id"] == "white-wall"
+
+    viewer = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+    assert "wallSegmentForOpening(segments, opening, wallThickness)" in viewer
+    assert "wallMaterial(hostSegment || segments[0] || {})" in viewer
+    assert "wallMaterial(segments[0] || {})" not in viewer
+
+
+def test_gap_window_wall_sections_end_flush_with_the_opening() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ wallSectionSpan }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        console.log(JSON.stringify({{
+          exact: wallSectionSpan(0, 162.52, 162.52),
+          internalSeam: wallSectionSpan(0, 50, 100),
+        }}));
+        """
+    )
+
+    assert result == {
+        "exact": {"from": 0, "to": 162.52},
+        "internalSeam": {"from": 0, "to": 50.6},
+    }
+
+    viewer = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+    wall_builder = viewer.split("function buildSegmentWalls", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+    standalone = viewer.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
+        "function buildStructuralMembers", 1
+    )[0]
+
+    assert "const span = wallSectionSpan(from, to, length)" in wall_builder
+    assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in wall_builder
+    assert "openingWidth + 1.2" not in standalone
+
+
 def test_furniture_roles_receive_distinct_realistic_pbr_parameters() -> None:
     result = run_workflow_script(
         f"""

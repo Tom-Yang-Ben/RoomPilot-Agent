@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import csv
 import json
 import os
 import re
@@ -8,11 +9,13 @@ import unicodedata
 import urllib.error
 import urllib.request
 import zipfile
+from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
@@ -88,6 +91,14 @@ STYLE_ENRICHMENT_DB_PATH = (
 CLOUD_CATALOG_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json"
 )
+COMBINED_CATALOG_PATH = _project_path_from_env(
+    "ROOMPILOT_COMBINED_CATALOG_PATH",
+    PROJECT_DIR / "JSON" / "furniture" / "all_furniture_appliance_catalog.json",
+)
+COMBINED_MANIFEST_PATH = _project_path_from_env(
+    "ROOMPILOT_COMBINED_MANIFEST_PATH",
+    PROJECT_DIR / "JSON" / "manifests" / "glb_upload_all_result.csv",
+)
 CLOUD_MANIFEST_PATH = _project_path_from_env(
     "ROOMPILOT_GLB_MANIFEST_PATH",
     BASE_DIR.parent
@@ -142,6 +153,7 @@ _DATASET_GLB_ROOTS = [
 ]
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 def _questionnaire_visual_store() -> QuestionnaireVisualStore:
@@ -814,6 +826,67 @@ def _furniture_card_payload(item: dict) -> dict:
 @lru_cache(maxsize=1)
 def _furniture_payload_cache() -> tuple[dict, ...]:
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
+
+
+@lru_cache(maxsize=1)
+def _appliance_manifest_index() -> dict[str, str]:
+    if not COMBINED_MANIFEST_PATH.exists():
+        return {}
+    ready_statuses = {
+        "already_exists",
+        "complete",
+        "completed",
+        "skipped_existing",
+        "success",
+        "uploaded",
+    }
+    with COMBINED_MANIFEST_PATH.open(encoding="utf-8", newline="") as handle:
+        rows = csv.DictReader(handle)
+        return {
+            str(row.get("item_id") or ""): str(row.get("delivery_url") or "")
+            for row in rows
+            if str(row.get("kind") or "").casefold() == "appliance"
+            and str(row.get("upload_status") or "").casefold() in ready_statuses
+            and str(row.get("delivery_url") or "").startswith("https://")
+        }
+
+
+@lru_cache(maxsize=1)
+def _appliance_payload_cache() -> tuple[dict, ...]:
+    if not COMBINED_CATALOG_PATH.exists():
+        return ()
+    raw = json.loads(COMBINED_CATALOG_PATH.read_text(encoding="utf-8"))
+    items = []
+    manifest = _appliance_manifest_index()
+    for source in raw.get("items", []):
+        if source.get("role_code") != "appliance":
+            continue
+        item = {
+            **source,
+            "furniture_id": source.get("furniture_id") or source.get("id"),
+            "normalized_type": (
+                source.get("normalized_type")
+                or source.get("type_code")
+                or source.get("type")
+            ),
+            "name_zh_raw": source.get("name_zh_raw") or source.get("name_zh"),
+            "category_label": source.get("category_label") or source.get("category"),
+            "taxonomy_group": "appliance",
+            "taxonomy_group_zh": "家電",
+            "catalog_scope": "appliance",
+        }
+        payload = _furniture_payload_item(item)
+        verified_url = manifest.get(str(item["furniture_id"]))
+        if verified_url:
+            payload["has_model"] = True
+            payload["missing_model_reason"] = None
+            payload["model_url"] = verified_url
+            payload["match_reason"] = (
+                f"類型為 {payload.get('normalized_type')}，"
+                "且已有完整 manifest 驗證的 CloudFront GLB。"
+            )
+        items.append(payload)
+    return tuple(items)
 
 
 @lru_cache(maxsize=2048)
@@ -1876,8 +1949,10 @@ def analyze_project_floorplan(project_id: str) -> dict:
             },
         },
     )
+    layout_json = _layout_json_from_analysis(analysis)
     return {
         "analysis": analysis,
+        "layout_json": layout_json,
         "geometry_engine": geometry_engine,
     }
 
@@ -2065,6 +2140,44 @@ def furniture_catalog(
         "filter_options": _furniture_filter_options(facet_items),
         "furniture": sample_files,
         "catalog_status": catalog_status(),
+    }
+
+
+@app.get("/api/appliances")
+def appliance_catalog(
+    item_type: str | None = Query(None, alias="type"),
+    q: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(24, ge=1, le=80),
+    detail: str = Query("card"),
+) -> dict:
+    query = (q or "").strip().casefold()
+    filtered = [
+        item
+        for item in _appliance_payload_cache()
+        if (not item_type or item.get("normalized_type") == item_type)
+        and (
+            not query
+            or query in _furniture_search_text(item)
+        )
+        and item.get("model_url")
+    ]
+    start = (page - 1) * page_size
+    end = start + page_size
+    return {
+        "items": [
+            item if detail == "scene" else _furniture_card_payload(item)
+            for item in filtered[start:end]
+        ],
+        "page": page,
+        "page_size": page_size,
+        "total": len(filtered),
+        "has_next_page": end < len(filtered),
+        "catalog_status": {
+            "source": "combined_furniture_appliance_catalog",
+            "catalog_items": 10_550,
+            "appliance_items": len(_appliance_payload_cache()),
+        },
     }
 
 
@@ -2312,19 +2425,24 @@ async def generate_scene(payload: dict) -> dict:
         "preferred_materials": brief_style.get("materials", []),
         "floorplan_filename": payload.get("floorplan_filename"),
         "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
+        "layout_json": payload.get("layout_json"),
         "floorplan_editor": payload.get("floorplan_editor"),
         "wall_option": payload.get("wall_option", "auto"),
         "floor_option": payload.get("floor_option", "auto"),
         "furniture_random_seed": payload.get("furniture_random_seed"),
     }
 
-    return build_scene_payload(
+    scene_payload = build_scene_payload(
         site_payload=site_payload,
         questionnaire=questionnaire,
         floorplan_path=payload.get("floorplan_filename"),
         room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
         room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
     )
+    return {
+        **scene_payload,
+        "scene_json": deepcopy(scene_payload),
+    }
 
 
 @app.post("/api/scene/layout")
@@ -2350,6 +2468,7 @@ async def scene_layout(payload: dict) -> dict:
         or _largest_region_boundary(floorplan, room)
     )
     return {
+        "floorplan": floorplan,
         "scene_objects": generate_layout(
             room.width,
             room.depth,
@@ -2702,6 +2821,13 @@ def _floorplan_json_field(raw: str | None, field: str, default):
         raise HTTPException(422, f"invalid_{field}_json") from exc
 
 
+def _layout_json_from_analysis(analysis: dict) -> dict:
+    floorplan = analysis.get("floorplan")
+    if isinstance(floorplan, dict):
+        return floorplan
+    return analysis
+
+
 @app.post("/api/floorplan/analyze")
 async def floorplan_analyze(
     file: UploadFile = File(...),
@@ -2735,8 +2861,10 @@ async def floorplan_analyze(
         raise HTTPException(422, str(exc)) from exc
     analysis["observed_utilities"] = observed_utilities
     analysis["requirement_brief"] = brief
+    layout_json = _layout_json_from_analysis(analysis)
     return {
         "analysis": analysis,
+        "layout_json": layout_json,
         "requirements": infer_room_requirements(analysis, brief),
         "geometry_engine": "cody" if not geometry else "manual",
         "ocr_provider": "provided_or_reference_semantics",

@@ -315,6 +315,7 @@ def test_floorplan_analysis_explains_missing_confirmation_instead_of_stalling() 
     assert analyzed.status_code == 200
     payload = analyzed.json()
     assert payload["geometry_engine"] == "cody"
+    assert payload["layout_json"] == payload["analysis"]
     assert payload["analysis"]["recognition_engine"] == "cody"
 
 
@@ -550,7 +551,10 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
     )
 
     assert response.status_code == 200
-    floorplan = response.json()["floorplan"]
+    payload = response.json()
+    floorplan = payload["floorplan"]
+    assert payload["scene_json"]["floorplan"] == floorplan
+    assert "scene_json" not in payload["scene_json"]
     assert floorplan["source"] == "user_confirmed"
     assert floorplan["width_cm"] == 600
     assert floorplan["depth_cm"] == 400
@@ -565,7 +569,23 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
     assert floorplan["columns"][0]["depth_cm"] == 35
     assert floorplan["columns"][0]["height_cm"] == 245
     assert floorplan["columns"][0]["rotation_deg"] == 30
-    assert response.json()["scene_objects"] == []
+    assert payload["scene_objects"] == []
+
+    layout_response = client.post(
+        "/api/scene/generate",
+        json={
+            "space_type": "living_room",
+            "style_preference": "scandinavian",
+            "selected_furniture": [],
+            "selected_furniture_exact": True,
+            "layout_json": floorplan,
+        },
+    )
+
+    assert layout_response.status_code == 200
+    layout_payload = layout_response.json()
+    assert layout_payload["floorplan"] == floorplan
+    assert layout_payload["scene_json"]["floorplan"] == floorplan
 
 
 def test_2d_layout_and_drag_validation_use_the_engine_with_editor_geometry() -> None:
@@ -611,6 +631,8 @@ def test_2d_layout_and_drag_validation_use_the_engine_with_editor_geometry() -> 
     )
 
     assert layout.status_code == 200
+    assert layout.json()["floorplan"]["room_regions"][0]["room_id"] == "living-1"
+    assert layout.json()["floorplan"]["wall_segments"]
     placed = layout.json()["scene_objects"][0]
     assert placed["placement_failed"] is False
     assert placed["position_cm"] != {"x": 0.0, "z": 0.0}

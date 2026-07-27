@@ -69,6 +69,7 @@ def test_floorplan_analyze_then_confirm_http_e2e() -> None:
 
     assert response.status_code == 200
     analyzed = response.json()
+    assert analyzed["layout_json"] == analyzed["analysis"]
     assert analyzed["analysis"]["scale"]["cm_per_px"] == 1.0
     assert analyzed["requirements"]["rooms"][0]["room_type"] == "kitchen"
     requirements = analyzed["requirements"]["rooms"][0]["requirements"]
@@ -83,6 +84,7 @@ def test_floorplan_analyze_then_confirm_http_e2e() -> None:
     assert confirmed.status_code == 200
     payload = confirmed.json()
     assert payload["ready_for_design"] is True
+    assert payload["layout_json"] == payload["floorplan"]
     assert payload["floorplan"]["width_cm"] == 600.0
     assert payload["floorplan"]["door_segments"]
     assert payload["floorplan"]["window_segments"]

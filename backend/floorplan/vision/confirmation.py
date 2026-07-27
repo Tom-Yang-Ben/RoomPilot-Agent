@@ -175,6 +175,7 @@ def confirm_floorplan_analysis(
         "schema_version": "1.0",
         "ready_for_design": True,
         "analysis": confirmed,
+        "layout_json": floorplan,
         "requirements": requirements,
         "dxf_text": dxf_text,
         "floorplan": floorplan,
