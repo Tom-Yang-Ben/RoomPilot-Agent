@@ -15,6 +15,12 @@ node_modules/
 _local_archive_not_for_push/
 *_local_archive_not_for_push*/
 
+# 僅限本機的資料集與暫存輸出（體積以 GB 計，不進版控）
+tmp/
+temp/
+data/
+dataset/
+
 # 文件目錄只提交 Markdown、契約與已核准的 moodboard 圖片。
 docs/*
 !docs/*.md
