@@ -450,6 +450,68 @@ function sceneDataFromGenerateResponse(payload) {
   return payload?.scene_json || payload;
 }
 
+const RETIRED_APPLIANCE_TYPES = new Set(["refrigerator", "washer"]);
+const RETIRED_APPLIANCE_MODEL_MARKERS = [
+  "/models/ikea/appliance/",
+  "/fi-fridges-freezers-",
+  "/fi-washing-machines-",
+];
+
+function isRetiredApplianceItem(item = {}) {
+  const type = String(item.type || item.normalized_type || "").toLowerCase();
+  if (RETIRED_APPLIANCE_TYPES.has(type)) return true;
+  const modelUrl = String(item.model_url || item.glb_url || "").toLowerCase();
+  if (!modelUrl) return false;
+  return RETIRED_APPLIANCE_MODEL_MARKERS.some((marker) => modelUrl.includes(marker));
+}
+
+function removeRetiredAppliancesFromSceneData(sceneData) {
+  if (!sceneData?.scene_objects?.length) return 0;
+  const before = sceneData.scene_objects.length;
+  sceneData.scene_objects = sceneData.scene_objects.filter(
+    (item) => !isRetiredApplianceItem(item),
+  );
+  return before - sceneData.scene_objects.length;
+}
+
+function removeRetiredAppliancesFromFurniture(furniture = []) {
+  return furniture.filter((item) => !isRetiredApplianceItem(item));
+}
+
+function pruneRetiredAppliances({ notify = false } = {}) {
+  let removed = 0;
+  const beforeFurniture = state.furniture2d.length;
+  state.furniture2d = removeRetiredAppliancesFromFurniture(state.furniture2d);
+  removed += beforeFurniture - state.furniture2d.length;
+  removed += removeRetiredAppliancesFromSceneData(state.sceneData);
+
+  Object.values(state.designSchemes?.schemes || {}).forEach((scheme) => {
+    const beforeSchemeFurniture = (scheme.furniture || []).length;
+    scheme.furniture = removeRetiredAppliancesFromFurniture(scheme.furniture || []);
+    removed += beforeSchemeFurniture - scheme.furniture.length;
+    removed += removeRetiredAppliancesFromSceneData(scheme.sceneData);
+  });
+
+  if (
+    state.selectedFurniture2dId
+    && !state.furniture2d.some((item) => String(item.id) === String(state.selectedFurniture2dId))
+  ) {
+    state.selectedFurniture2dId = state.furniture2d[0]?.id || null;
+  }
+  if (state.sceneData?.scene_objects?.length) {
+    state.selectedSceneIndex = Math.min(
+      Math.max(Number(state.selectedSceneIndex) || 0, 0),
+      state.sceneData.scene_objects.length - 1,
+    );
+  } else {
+    state.selectedSceneIndex = -1;
+  }
+  if (removed > 0 && notify) {
+    setStatus(`已移除 ${removed} 件舊版家電項目；冰箱與洗衣機已改由一般家具與櫃體流程處理。`);
+  }
+  return removed;
+}
+
 function normalizeSceneDoorSegments(sceneData) {
   if (!sceneData?.floorplan?.door_segments?.length) return 0;
   const normalized = dedupeDoorCandidates(sceneData.floorplan.door_segments);
@@ -515,6 +577,7 @@ function syncMovedSceneFurnitureTo2d(sceneObject) {
 }
 
 function workflowPayload() {
+  pruneRetiredAppliances();
   persistActiveScheme(state.designSchemes, {
     furniture: state.furniture2d,
     sceneData: state.sceneData,
@@ -6832,6 +6895,7 @@ function configurationFurnitureNumber(item, fallbackIndex = state.furniture2d.in
 
 function renderConfigurationPlan() {
   if (!element.configurationPlanImage) return;
+  pruneRetiredAppliances();
   const planSource = element.layoutImage.currentSrc || element.layoutImage.src;
   if (planSource && element.configurationPlanImage.src !== planSource) {
     element.configurationPlanImage.src = planSource;
@@ -7698,6 +7762,7 @@ async function confirmLayout2d() {
       }),
     });
     state.sceneData = sceneDataFromGenerateResponse(payload);
+    pruneRetiredAppliances({ notify: true });
     const generatedInvalid = (state.sceneData.scene_objects || []).filter(
       (item) => item.placement_failed || !item.position_cm,
     );
@@ -10471,6 +10536,7 @@ async function restoreProject() {
     const restoredScheme = activeScheme();
     state.furniture2d = restoredScheme?.furniture || legacyFurniture;
     state.sceneData = normalizeSavedSceneData(restoredScheme?.sceneData) || legacySceneData;
+    const restoredRetiredAppliancesRemoved = pruneRetiredAppliances({ notify: true });
     const restoredSceneDoorsRemoved = normalizeSceneDoorSegments(state.sceneData);
     state.doorNormalizationRemoved += restoredSceneDoorsRemoved;
     state.activeStylePackId = serverState.realistic_3d?.activeStylePackId || null;
@@ -10509,7 +10575,9 @@ async function restoreProject() {
     if (state.confirmedFloorplan && !serverState.confirmed_floorplan) {
       scheduleSave(state.workflow.currentStep);
     }
-    if (sceneRecoveredFromLayout) scheduleSave(state.workflow.currentStep);
+    if (sceneRecoveredFromLayout || restoredRetiredAppliancesRemoved > 0) {
+      scheduleSave(state.workflow.currentStep);
+    }
     if (state.structureCollisionRepairs?.moved > 0) {
       scheduleSave("space_confirmation");
       setStatus(

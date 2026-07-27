@@ -958,6 +958,20 @@ $env:TEMP=$env:TMP
 - Added regression tests for enriched runtime payloads and questionnaire catalog
   ranking.
 
+## 2026-07-27 Step 6 Retired Appliance Project Cleanup
+
+- Fixed restored projects that still contained retired refrigerator or washer
+  items from the earlier appliance catalog flow.
+- Added a Step 6 cleanup guard that removes `refrigerator`, `washer`, and old
+  IKEA appliance CloudFront model URLs from `furniture2d`, active `sceneData`,
+  and all design schemes before rendering, saving, or regenerating 3D.
+- Kept `appliance-cabinet` intact so kitchens can still receive general cabinet
+  furniture from the official furniture catalog.
+- Browser verification on project `47abb48d539c46a0afd1fc1acce34add` confirmed
+  `LAGAN` and `UDDARP` disappeared from the Step 6 DOM and live page state after
+  reload; the furniture list dropped from 14 to 12 items.
+- Full suite verification: 486 passed, 2 skipped.
+
 ## 2026-07-27 Step 6 Edit-Mode Camera Preservation
 
 - Removed the forced dollhouse camera reset from the Step 6

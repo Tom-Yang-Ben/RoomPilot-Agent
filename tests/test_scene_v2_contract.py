@@ -1294,6 +1294,23 @@ def test_room_usage_recommends_decor_without_restoring_retired_appliances() -> N
     assert result["empty"] == []
 
 
+def test_step_six_prunes_retired_appliances_from_restored_projects() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'const RETIRED_APPLIANCE_TYPES = new Set(["refrigerator", "washer"])' in source
+    assert '"/models/ikea/appliance/"' in source
+    assert "function pruneRetiredAppliances" in source
+    assert "state.furniture2d = removeRetiredAppliancesFromFurniture(state.furniture2d)" in source
+    assert "removeRetiredAppliancesFromSceneData(state.sceneData)" in source
+    assert "Object.values(state.designSchemes?.schemes || {}).forEach" in source
+    assert "const restoredRetiredAppliancesRemoved = pruneRetiredAppliances" in source
+    assert "if (sceneRecoveredFromLayout || restoredRetiredAppliancesRemoved > 0)" in source
+    assert "pruneRetiredAppliances();" in source.split("function renderConfigurationPlan", 1)[1].split(
+        "const planSource",
+        1,
+    )[0]
+
+
 def test_2d_library_exposes_an_explicit_add_mode_separate_from_replacement() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
