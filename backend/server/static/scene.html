@@ -630,6 +630,8 @@
               <h3>指定家具外觀</h3>
               <label><span>指定顏色（選填）</span><input id="specified-furniture-color" type="color" value="#f2f0ec" /></label>
               <label><span>指定材質（選填）</span><select id="specified-furniture-material"><option value="">不指定</option><option value="fabric">布料</option><option value="leather">皮革</option><option value="wood">木材</option><option value="metal">金屬</option><option value="glass">玻璃</option></select></label>
+              <button id="mark-specified-furniture" type="button" class="secondary-action">鎖定目前家具為指定需求</button>
+              <p id="specified-furniture-status" class="rp-field-hint" aria-live="polite">先在 3D 或右側清單選取家具，再按此按鈕鎖定。</p>
               <div class="rp-check-row"><input id="lock-specified-model" type="checkbox" /><label for="lock-specified-model">鎖定指定模型，切換風格不改外型</label></div>
               <div class="rp-check-row"><input id="lock-specified-material" type="checkbox" /><label for="lock-specified-material">鎖定指定顏色與材質</label></div>
             </section>
@@ -853,6 +855,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-405bb1eb3c6e"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-b30019636999"></script>
   </body>
 </html>

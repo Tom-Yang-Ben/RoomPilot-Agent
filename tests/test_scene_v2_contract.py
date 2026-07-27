@@ -2156,6 +2156,23 @@ def test_style_switch_changes_unlocked_models_and_material_surface_types() -> No
     assert "function removeMaterialBoundary()" in controller
 
 
+def test_step_six_can_mark_selected_furniture_as_user_specified() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="mark-specified-furniture"' in html
+    assert 'id="specified-furniture-status"' in html
+    assert "鎖定目前家具為指定需求" in html
+    assert "function markSelectedFurnitureAsSpecified" in controller
+    assert "selected.user_specified = true" in controller
+    assert "selected.user_required = true" in controller
+    assert "selected.model_locked = true" in controller
+    assert "selected.position_locked = true" in controller
+    assert "item.userRequired = true" in controller
+    assert "item.userSpecified = true" in controller
+    assert "$(\"#mark-specified-furniture\").addEventListener(\"click\", markSelectedFurnitureAsSpecified)" in controller
+
+
 def test_3d_furniture_can_be_deleted_and_each_item_keeps_its_own_material_override() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")

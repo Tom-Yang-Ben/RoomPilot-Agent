@@ -8043,12 +8043,52 @@ function saveSelectedSceneAppearance() {
     : null;
 }
 
+function markSelectedFurnitureAsSpecified() {
+  const selected = state.sceneData?.scene_objects?.[state.selectedSceneIndex];
+  const status = $("#specified-furniture-status");
+  if (!selected) {
+    if (status) status.textContent = "請先在 3D 畫面或右側家具清單選取一件家具。";
+    return;
+  }
+  selected.user_specified = true;
+  selected.user_required = true;
+  selected.model_locked = true;
+  selected.position_locked = true;
+  const furnitureId = String(selected.furniture_id || "");
+  const item = state.furniture2d.find(
+    (candidate) => String(candidate.id) === furnitureId,
+  );
+  if (item) {
+    item.userRequired = true;
+    item.userSpecified = true;
+    item.modelLocked = true;
+    item.placementFailed = false;
+    item.placementReason = "";
+  }
+  $("#lock-specified-model").checked = true;
+  saveSelectedSceneAppearance();
+  renderSceneObjectList();
+  renderLayoutFurniture();
+  renderConfigurationPlan();
+  whiteViewer.selectObjectByIndex(state.selectedSceneIndex, { focus: false });
+  if (status) {
+    status.textContent = `已將「${sceneObjectDisplayName(selected, state.selectedSceneIndex)}」鎖定為指定家具需求。`;
+  }
+  scheduleSave("white_model_3d");
+}
+
 function loadSelectedSceneAppearance() {
   const selected = state.sceneData?.scene_objects?.[state.selectedSceneIndex];
   $("#specified-furniture-color").value = selected?.specified_color || "#f2f0ec";
   $("#specified-furniture-material").value = selected?.specified_material || "";
   $("#lock-specified-model").checked = selected?.model_locked === true;
   $("#lock-specified-material").checked = selected?.material_locked === true;
+  const status = $("#specified-furniture-status");
+  if (status) {
+    status.textContent = selected?.user_specified
+      ? "目前選取家具已鎖定為指定需求。"
+      : "先在 3D 或右側清單選取家具，再按此按鈕鎖定。";
+  }
 }
 
 function renderWhiteWalkRoomSelector() {
@@ -10211,6 +10251,7 @@ function bindEvents() {
     saveSelectedSceneAppearance();
     scheduleSave("white_model_3d");
   }));
+  $("#mark-specified-furniture").addEventListener("click", markSelectedFurnitureAsSpecified);
   $("#open-furniture-catalog").addEventListener("click", () => setFurnitureCatalogOpen(true));
   $("#close-furniture-catalog").addEventListener("click", () => setFurnitureCatalogOpen(false));
   $("#search-glb-furniture").addEventListener("click", searchGlbFurniture);

@@ -1012,6 +1012,18 @@ $env:TEMP=$env:TMP
 - Browser verification confirmed the explanatory text appears in the active
   8023 page.
 
+## 2026-07-27 Step 6 User-Specified Furniture Lock
+
+- Added a direct `鎖定目前家具為指定需求` action in the Step 6 furniture
+  appearance panel.
+- The action marks the selected 3D furniture as `user_specified`,
+  `user_required`, `model_locked`, and `position_locked`, and mirrors the lock
+  back to the matching 2D furniture item.
+- This gives users a visible way to preserve furniture they explicitly want
+  before style switching, replacement, or structure-driven revalidation.
+- Browser verification confirmed the new button and hint text appear in the
+  active 8023 page with the updated `scene_v2` cache key.
+
 ## 2026-07-27 Step 6 Edit-Mode Camera Preservation
 
 - Removed the forced dollhouse camera reset from the Step 6
