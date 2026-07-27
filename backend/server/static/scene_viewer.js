@@ -1131,8 +1131,12 @@ export function createSceneViewer(
     wallThickness,
     doorSegments = [],
     windowSegments = [],
+    floorplan = null,
   ) {
     const renderedOpenings = new Set();
+    const exteriorSegments = segments.filter((segment) => (
+      isExteriorWallSegment(segment, floorplan, wallThickness)
+    ));
 
     segments.forEach((segment) => {
       const start = segment.start;
@@ -1146,6 +1150,16 @@ export function createSceneViewer(
       const unitX = dx / length;
       const unitZ = dz / length;
       const rotationY = Math.atan2(-dz, dx);
+      const exteriorWall = isExteriorWallSegment(segment, floorplan, wallThickness);
+      const wallJunctionInsets = exteriorWall
+        ? { start: 0, end: 0 }
+        : interiorWallJunctionInsets(segment, exteriorSegments, wallThickness);
+      const sectionMin = Math.min(Math.max(wallJunctionInsets.start, 0), length / 2);
+      const sectionMax = Math.max(
+        sectionMin,
+        length - Math.min(Math.max(wallJunctionInsets.end, 0), length / 2),
+      );
+      if (sectionMax - sectionMin < 4) return;
 
       const material = typeof wallMaterial === "function"
         ? wallMaterial(segment)
@@ -1163,9 +1177,12 @@ export function createSceneViewer(
           const windowMetrics = kind === "window"
             ? windowOpeningMetrics(opening, wallHeight)
             : null;
+          const from = Math.max(wallInterval.from, sectionMin);
+          const to = Math.min(wallInterval.to, sectionMax);
+          if (to - from < 2.5) return null;
           return {
-            from: wallInterval.from,
-            to: wallInterval.to,
+            from,
+            to,
             kind,
             width: wallInterval.width,
             opening,
@@ -1222,7 +1239,7 @@ export function createSceneViewer(
         roomGroupRef.add(trim);
       };
 
-      let cursor = 0;
+      let cursor = sectionMin;
       openingIntervals.forEach((interval) => {
         addWallSection(cursor, interval.from, 0, wallHeight);
         addBaseboard(cursor, interval.from);
@@ -1257,17 +1274,19 @@ export function createSceneViewer(
         }
         cursor = Math.max(cursor, interval.to);
       });
-      addWallSection(cursor, length, 0, wallHeight);
-      addBaseboard(cursor, length);
+      addWallSection(cursor, sectionMax, 0, wallHeight);
+      addBaseboard(cursor, sectionMax);
 
+      const capLength = sectionMax - sectionMin;
+      const capCenter = (sectionMin + sectionMax) / 2;
       const topCap = new THREE.Mesh(
-        new THREE.BoxGeometry(length, 2.5, wallThickness),
+        new THREE.BoxGeometry(capLength, 2.5, wallThickness),
         material.clone(),
       );
       topCap.position.set(
-        (Number(start.x) + Number(end.x)) / 2,
+        Number(start.x) + unitX * capCenter,
         wallHeight + 1.25,
-        (Number(start.z) + Number(end.z)) / 2,
+        Number(start.z) + unitZ * capCenter,
       );
       topCap.rotation.y = rotationY;
       topCap.castShadow = true;
@@ -1959,7 +1978,7 @@ export function createSceneViewer(
       );
     };
     return (segment) => {
-      if (segment.boundary_side) {
+      if (isExteriorWallSegment(segment, sceneData.floorplan)) {
         exteriorMaterial.userData.roompilotWallSurfaceRole = "exterior";
         return exteriorMaterial;
       }
@@ -2003,6 +2022,161 @@ export function createSceneViewer(
         cache.set(cacheKey, material);
       }
       return cache.get(cacheKey);
+    };
+  }
+
+  function wallSegmentPoint(segment, key) {
+    const point = segment?.[key];
+    const x = Number(point?.x);
+    const z = Number(point?.z);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+    return { x, z };
+  }
+
+  function pointToWallSegmentDistance(point, segment) {
+    const start = wallSegmentPoint(segment, "start");
+    const end = wallSegmentPoint(segment, "end");
+    if (!point || !start || !end) return Infinity;
+    const dx = end.x - start.x;
+    const dz = end.z - start.z;
+    const lengthSquared = dx * dx + dz * dz;
+    if (lengthSquared < 0.01) return Math.hypot(point.x - start.x, point.z - start.z);
+    const projection = THREE.MathUtils.clamp(
+      ((point.x - start.x) * dx + (point.z - start.z) * dz) / lengthSquared,
+      0,
+      1,
+    );
+    return Math.hypot(
+      point.x - (start.x + projection * dx),
+      point.z - (start.z + projection * dz),
+    );
+  }
+
+  function wallSegmentBounds(floorplan = {}) {
+    const points = (floorplan.wall_segments || [])
+      .flatMap((segment) => [wallSegmentPoint(segment, "start"), wallSegmentPoint(segment, "end")])
+      .filter(Boolean);
+    if (!points.length) return null;
+    return points.reduce((bounds, point) => ({
+      minX: Math.min(bounds.minX, point.x),
+      maxX: Math.max(bounds.maxX, point.x),
+      minZ: Math.min(bounds.minZ, point.z),
+      maxZ: Math.max(bounds.maxZ, point.z),
+    }), {
+      minX: Infinity,
+      maxX: -Infinity,
+      minZ: Infinity,
+      maxZ: -Infinity,
+    });
+  }
+
+  function ringPointCoordinates(point) {
+    const x = Number(Array.isArray(point) ? point[0] : point?.x);
+    const z = Number(Array.isArray(point) ? point[1] : point?.z ?? point?.y);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+    return { x, z };
+  }
+
+  function ringContainsPoint(position, ring) {
+    if (!Array.isArray(ring) || ring.length < 3) return false;
+    let inside = false;
+    for (let current = 0, previous = ring.length - 1; current < ring.length; previous = current++) {
+      const currentPoint = ringPointCoordinates(ring[current]);
+      const previousPoint = ringPointCoordinates(ring[previous]);
+      if (!currentPoint || !previousPoint) continue;
+      const crosses = (currentPoint.z > position.z) !== (previousPoint.z > position.z);
+      const edgeX = ((previousPoint.x - currentPoint.x) * (position.z - currentPoint.z))
+        / ((previousPoint.z - currentPoint.z) || Number.EPSILON) + currentPoint.x;
+      if (crosses && position.x < edgeX) inside = !inside;
+    }
+    return inside;
+  }
+
+  function floorplanRoomRegions(floorplan = {}) {
+    const regions = [
+      ...(Array.isArray(floorplan.room_regions) ? floorplan.room_regions : []),
+      ...(Array.isArray(floorplan.rooms) ? floorplan.rooms : []),
+    ];
+    return regions
+      .map((region) => ({
+        exterior: region.exterior || region.polygon_cm || region.polygon_m || [],
+        holes: region.holes || [],
+      }))
+      .filter((region) => Array.isArray(region.exterior) && region.exterior.length >= 3);
+  }
+
+  function pointInsideAnyFloorplanRoom(point, floorplan = {}) {
+    return floorplanRoomRegions(floorplan).some((region) => (
+      ringContainsPoint(point, region.exterior)
+        && !(region.holes || []).some((hole) => ringContainsPoint(point, hole))
+    ));
+  }
+
+  function isExplicitExteriorWallSegment(segment = {}) {
+    const role = String(
+      segment.boundary_side
+        || segment.wall_role
+        || segment.role
+        || segment.wall_type
+        || segment.type
+        || "",
+    ).toLowerCase();
+    return segment.exterior === true
+      || segment.is_exterior === true
+      || segment.boundary === true
+      || ["exterior", "outer", "perimeter", "boundary"].some((token) => role.includes(token));
+  }
+
+  function isExteriorWallSegment(segment, floorplan = {}, toleranceCm = 10) {
+    if (isExplicitExteriorWallSegment(segment)) return true;
+    const start = wallSegmentPoint(segment, "start");
+    const end = wallSegmentPoint(segment, "end");
+    if (!start || !end) return false;
+    const dx = end.x - start.x;
+    const dz = end.z - start.z;
+    const length = Math.hypot(dx, dz);
+    const roomRegions = floorplanRoomRegions(floorplan);
+    if (start && end && length > 0.01 && roomRegions.length) {
+      const midpoint = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+      const offset = Math.max(toleranceCm, 14);
+      const normal = { x: -dz / length, z: dx / length };
+      const leftInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x + normal.x * offset,
+        z: midpoint.z + normal.z * offset,
+      }, floorplan);
+      const rightInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x - normal.x * offset,
+        z: midpoint.z - normal.z * offset,
+      }, floorplan);
+      if (leftInside !== rightInside) return true;
+    }
+    const bounds = wallSegmentBounds(floorplan);
+    if (!bounds) return false;
+    const onLeft = Math.abs(start.x - bounds.minX) <= toleranceCm
+      && Math.abs(end.x - bounds.minX) <= toleranceCm;
+    const onRight = Math.abs(start.x - bounds.maxX) <= toleranceCm
+      && Math.abs(end.x - bounds.maxX) <= toleranceCm;
+    const onBack = Math.abs(start.z - bounds.minZ) <= toleranceCm
+      && Math.abs(end.z - bounds.minZ) <= toleranceCm;
+    const onFront = Math.abs(start.z - bounds.maxZ) <= toleranceCm
+      && Math.abs(end.z - bounds.maxZ) <= toleranceCm;
+    return onLeft || onRight || onBack || onFront;
+  }
+
+  function interiorWallJunctionInsets(segment, exteriorSegments, wallThickness) {
+    const insetCm = Math.max(Number(wallThickness) / 2 + 1, 6);
+    const toleranceCm = Math.max(Number(wallThickness) / 2 + 2, 8);
+    const endpointTouchesExterior = (key) => {
+      const point = wallSegmentPoint(segment, key);
+      if (!point) return false;
+      return exteriorSegments.some((exteriorSegment) => (
+        exteriorSegment !== segment
+          && pointToWallSegmentDistance(point, exteriorSegment) <= toleranceCm
+      ));
+    };
+    return {
+      start: endpointTouchesExterior("start") ? insetCm : 0,
+      end: endpointTouchesExterior("end") ? insetCm : 0,
     };
   }
 
@@ -2244,6 +2418,7 @@ export function createSceneViewer(
         wallThickness,
         doorSegments,
         windowSegments,
+        sceneData.floorplan,
       );
     } else {
       const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthCm, wallHeight, wallThickness), wallMaterial.clone());

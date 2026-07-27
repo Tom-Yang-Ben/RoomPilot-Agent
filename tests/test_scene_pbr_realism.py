@@ -257,7 +257,7 @@ def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
         ROOT / "backend" / "server" / "static" / "scene_viewer.js"
     ).read_text(encoding="utf-8")
     assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in viewer
-    assert "new THREE.BoxGeometry(length, 2.5, wallThickness)" in viewer
+    assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in viewer
     assert "openingWidth + 1.2" not in viewer
     assert "openingWidth + wallThickness * 2.1" not in viewer
 

@@ -1039,3 +1039,16 @@ $env:TEMP=$env:TMP
   after refresh.
 - Full suite verification: 481 passed, 2 skipped.
 - No commit or remote push was performed.
+
+## 2026-07-27 Step 6 Exterior Wall Material and Junction Cleanup
+
+- Fixed Step 6 segment-wall rendering so exterior walls keep a stable exterior
+  finish instead of inheriting room-specific interior wall materials.
+- Added geometric exterior-wall detection for wall segments that do not carry a
+  `boundary_side` flag but sit on the floorplan perimeter.
+- Trimmed interior wall endpoints where they meet exterior walls so dark accent
+  wall end caps no longer protrude through the outside facade.
+- Shortened top caps together with the trimmed interior wall span to avoid thin
+  cap strips sticking out at wall intersections.
+- Added regression coverage for the exterior-wall material resolver and
+  interior-junction inset contract.

@@ -258,6 +258,33 @@ def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
     assert "Math.max(0, sillHeight - frameAllowanceCm)" in standalone_builder
 
 
+def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protrude() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+    resolver = source.split("function wallMaterialResolver", 1)[1].split(
+        "function polygonShape", 1
+    )[0]
+    create_room = source.split("function createRoom", 1)[1].split(
+        "function buildFloorPlanOverlay", 1
+    )[0]
+
+    assert "isExteriorWallSegment(segment, sceneData.floorplan)" in resolver
+    assert "pointInsideAnyFloorplanRoom" in resolver
+    assert "leftInside !== rightInside" in resolver
+    assert "roompilotWallSurfaceRole = \"exterior\"" in resolver
+    assert "isExteriorWallSegment(segment, floorplan, wallThickness)" in wall_builder
+    assert "interiorWallJunctionInsets(segment, exteriorSegments, wallThickness)" in wall_builder
+    assert "const sectionMin" in wall_builder
+    assert "const sectionMax" in wall_builder
+    assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in wall_builder
+    assert "Number(start.x) + unitX * capCenter" in wall_builder
+    assert "sceneData.floorplan," in create_room
+
+
 def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"

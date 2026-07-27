@@ -78,7 +78,8 @@ def test_viewer_keeps_boundary_walls_exterior_and_door_inside_snapped_assembly()
         "function buildStandaloneOpeningAssemblies", 1
     )[0]
 
-    assert "if (segment.boundary_side)" in resolver
+    assert "isExteriorWallSegment(segment, sceneData.floorplan)" in resolver
+    assert "segment.boundary_side" in resolver
     assert 'roompilotWallSurfaceRole = "exterior"' in resolver
     assert "leaf.position.set(0, centerY, 0)" in opening
     assert "assembly.add(leaf)" in opening
