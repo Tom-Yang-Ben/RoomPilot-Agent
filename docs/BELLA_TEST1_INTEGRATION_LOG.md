@@ -941,6 +941,23 @@ $env:TEMP=$env:TMP
   kitchens or washers on balconies, preventing retired appliance items from
   blocking Step 6 review.
 
+## 2026-07-27 Kai Room Role Rag Furniture Recommendation
+
+- Integrated Kai's VLM-enriched official furniture catalog at
+  `JSON/furniture/furniture_official_catagory.json` as the preferred 9,350-item
+  runtime catalog.
+- Preserved the older backend cloud catalog as fallback when the enriched JSON
+  is unavailable.
+- Propagated Kai fields through `/api/furniture`: `room_types`, `catalog_role`,
+  `style_primary`, `style_secondary`, `description`, `rag_text`, mood tags,
+  features, and search keywords.
+- Expanded furniture API search to include the enriched semantic fields.
+- Updated Step 6 ranking so room type, catalog role, and questionnaire/RAG text
+  influence candidate ordering instead of relying only on fixed type, style,
+  size, material, and color.
+- Added regression tests for enriched runtime payloads and questionnaire catalog
+  ranking.
+
 ## 2026-07-27 Step 6 Edit-Mode Camera Preservation
 
 - Removed the forced dollhouse camera reset from the Step 6

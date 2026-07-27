@@ -93,8 +93,14 @@ MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
 STYLE_ENRICHMENT_DB_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
 )
-CLOUD_CATALOG_PATH = (
-    BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json"
+OFFICIAL_FURNITURE_CATALOG_PATH = (
+    PROJECT_DIR / "JSON" / "furniture" / "furniture_official_catagory.json"
+)
+CLOUD_CATALOG_PATH = _project_path_from_env(
+    "ROOMPILOT_CLOUD_CATALOG_PATH",
+    OFFICIAL_FURNITURE_CATALOG_PATH
+    if OFFICIAL_FURNITURE_CATALOG_PATH.exists()
+    else BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json",
 )
 CLOUD_MANIFEST_PATH = _project_path_from_env(
     "ROOMPILOT_GLB_MANIFEST_PATH",
@@ -787,9 +793,22 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         "catalog_scope": item.get("catalog_scope"),
         "normalized_type": item.get("normalized_type"),
         "primary_style": item.get("primary_style"),
+        "style_primary": item.get("style_primary") or item.get("primary_style"),
+        "style_secondary": item.get("style_secondary"),
         "style_candidates": item.get("style_candidates", []),
         "style_confidence": item.get("style_confidence"),
         "style_assignment_source": item.get("style_assignment_source"),
+        "room_types": item.get("room_types", []),
+        "catalog_role": item.get("role"),
+        "visual_weight": item.get("visual_weight"),
+        "height_zone": item.get("height_zone"),
+        "size_class": item.get("size_class"),
+        "description": item.get("description"),
+        "rag_text": item.get("rag_text", []),
+        "mood_tags": item.get("mood_tags", []),
+        "features": item.get("features", []),
+        "search_keywords": item.get("search_keywords", []),
+        "object_type_zh": item.get("object_type_zh"),
         "color": item.get("color"),
         "material": item.get("material"),
         "size_cm": sanitize_size_cm(item),
@@ -821,7 +840,16 @@ def _furniture_card_payload(item: dict) -> dict:
         "catalog_scope": item.get("catalog_scope"),
         "normalized_type": item.get("normalized_type"),
         "primary_style": item.get("primary_style"),
+        "style_primary": item.get("style_primary") or item.get("primary_style"),
+        "style_secondary": item.get("style_secondary"),
         "style_candidates": item.get("style_candidates", []),
+        "room_types": item.get("room_types", []),
+        "catalog_role": item.get("role"),
+        "description": item.get("description"),
+        "rag_text": item.get("rag_text", []),
+        "mood_tags": item.get("mood_tags", []),
+        "features": item.get("features", []),
+        "search_keywords": item.get("search_keywords", []),
         "color": item.get("color"),
         "material": item.get("material"),
         "size_cm": item.get("size_cm"),
@@ -1150,7 +1178,11 @@ def _catalog_count_summary() -> dict:
 def _furniture_matches_style(item: dict, style_id: str | None) -> bool:
     if not style_id:
         return True
-    if item.get("primary_style") == style_id:
+    if style_id in {
+        item.get("primary_style"),
+        item.get("style_primary"),
+        item.get("style_secondary"),
+    }:
         return True
     for candidate in item.get("style_candidates", []) or []:
         if _candidate_style_id(candidate) == style_id and _candidate_score(candidate) > 0:
@@ -1173,6 +1205,16 @@ def _furniture_search_text(item: dict) -> str:
             item.get("color"),
             item.get("material"),
             item.get("primary_style"),
+            item.get("style_primary"),
+            item.get("style_secondary"),
+            " ".join(item.get("room_types") or []),
+            item.get("role"),
+            item.get("description"),
+            " ".join(item.get("rag_text") or []),
+            " ".join(item.get("mood_tags") or []),
+            " ".join(item.get("features") or []),
+            " ".join(item.get("search_keywords") or []),
+            item.get("object_type_zh"),
         )
     ).casefold()
 

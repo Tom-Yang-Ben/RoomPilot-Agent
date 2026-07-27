@@ -59,6 +59,52 @@ def test_questionnaire_matching_catalog_glb_wins_over_size_only_candidate() -> N
     assert result == ["questionnaire-match", "wrong-style-near-size"]
 
 
+def test_room_role_and_rag_text_influence_questionnaire_catalog_ranking() -> None:
+    module_uri = (STATIC / "scene_furniture_retrieval.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ rankCatalogFurniture }} from {json.dumps(module_uri)};
+
+        const request = {{
+          type: "storage-cabinet",
+          roomType: "bedroom",
+          roomLabel: "主臥",
+          queryText: "主臥 木質 儲物 溫馨",
+          preferAnchor: true,
+          widthCm: 120,
+          depthCm: 50,
+        }};
+        const ranked = rankCatalogFurniture([
+          {{
+            furniture_id: "generic-same-size",
+            normalized_type: "cabinet-cupboard",
+            primary_style: "industrial",
+            size_cm: {{ width: 120, depth: 50 }},
+            model_url: "/models/generic.glb",
+            room_types: ["storage"],
+            catalog_role: "decor",
+            rag_text: ["metal office cabinet"],
+          }},
+          {{
+            furniture_id: "kai-rag-match",
+            normalized_type: "cabinet-cupboard",
+            primary_style: "rustic",
+            size_cm: {{ width: 121, depth: 51 }},
+            model_url: "/models/match.glb",
+            room_types: ["bedroom", "living_room"],
+            catalog_role: "anchor",
+            rag_text: ["主臥 木質 儲物 溫馨 櫃體"],
+            description: "適合臥室使用的木質儲物櫃",
+          }},
+        ], request);
+
+        console.log(JSON.stringify(ranked.map((item) => item.furniture_id)));
+        """
+    )
+
+    assert result == ["kai-rag-match", "generic-same-size"]
+
+
 def test_step_six_contract_requires_catalog_models_instead_of_white_fallbacks() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     html = (STATIC / "scene.html").read_text(encoding="utf-8")

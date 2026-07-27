@@ -59,6 +59,28 @@ _ENRICHMENT_FIELDS = {
     "clearance_zones",
     "layout_relations",
     "rule",
+    "room_types",
+    "role",
+    "visual_weight",
+    "height_zone",
+    "size_class",
+    "price_twd",
+    "price_is_estimated",
+    "consistency_flag",
+    "consistency_severity",
+    "suggested_category",
+    "style_primary",
+    "style_secondary",
+    "pattern",
+    "mood_tags",
+    "description",
+    "confidence",
+    "desc_source",
+    "object_type_zh",
+    "shape_tags",
+    "features",
+    "search_keywords",
+    "rag_text",
 }
 
 
@@ -220,6 +242,8 @@ def build_official_catalog(
             entries[0] if entries else {},
         )
         style_candidates = _merged_style_candidates(entries)
+        primary_style = style_candidates[0]["style_id"] if style_candidates else None
+        style_confidence = style_candidates[0]["score"] if style_candidates else 0.0
 
         item: dict[str, Any] = {
             "furniture_id": item_id,
@@ -259,12 +283,8 @@ def build_official_catalog(
             "must_against_wall": preferred.get("must_against_wall", False),
             "usable_for_moodboard": preferred.get("usable_for_moodboard", True),
             "style_candidates": style_candidates,
-            "primary_style": (
-                style_candidates[0]["style_id"] if style_candidates else None
-            ),
-            "style_confidence": (
-                style_candidates[0]["score"] if style_candidates else 0.0
-            ),
+            "primary_style": primary_style,
+            "style_confidence": style_confidence,
             "style_assignment_source": (
                 "cloud_9350+legacy_6styles"
                 if entries
@@ -278,6 +298,9 @@ def build_official_catalog(
             "upload_status": upload_status,
         }
 
+        for field in _ENRICHMENT_FIELDS - _IDENTITY_FIELDS:
+            if canonical.get(field) is not None:
+                item[field] = canonical[field]
         for field in _ENRICHMENT_FIELDS - _IDENTITY_FIELDS:
             if field in {
                 "style_candidates",

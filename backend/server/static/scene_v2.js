@@ -5983,10 +5983,31 @@ function questionnaireFurnitureRequest(room, spec) {
   const pack = questionnairePackForRoom(room);
   const surfaces =
     state.roomRequirementModel?.roomRequirements?.[room.id]?.surfaces || {};
+  const requirement = state.roomRequirementModel?.roomRequirements?.[room.id] || {};
+  const visualPreferenceText = visualPreferencesForRoom(room)
+    .flatMap((preference) => [
+      preference.option_id,
+      preference.custom,
+      preference.preference_direction,
+    ])
+    .filter(Boolean)
+    .join(" ");
   return {
     type,
+    roomType: room.type || room.room_type || "",
+    roomLabel: room.label || room.name || "",
     styleId: pack.styleId,
     palette: pack.palette,
+    queryText: [
+      room.label,
+      room.type,
+      requirement.summary,
+      requirement.notes,
+      requirement.usage,
+      requirement.furniture?.selected?.map((item) => item.label || item.type).join(" "),
+      visualPreferenceText,
+    ].filter(Boolean).join(" "),
+    preferAnchor: ["bed", "sofa", "dining-table", "storage-cabinet", "appliance-cabinet"].includes(type),
     materials: [
       ...(pack.furniture?.materialLanguage || []),
       surfaces.wallDefault?.materialId,
@@ -6060,6 +6081,7 @@ async function catalogOffersForSpec(room, spec, index) {
   const request = questionnaireFurnitureRequest(room, spec);
   const candidates = await catalogCandidatesForType(spec[0], {
     styleId: request.styleId,
+    query: request.queryText,
   });
   const ranked = rankCatalogFurniture(candidates, request);
   return ranked.slice(0, 4).map((candidate) => catalogFurnitureOffer(candidate, {
