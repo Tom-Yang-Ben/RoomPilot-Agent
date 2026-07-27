@@ -1,8 +1,21 @@
 # Bella Test1 Integration Log
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 Branch: `bella-test1`
 Remote push status: not pushed
+
+## 2026-07-27 最新整合狀態
+
+- 已完成 Kai 正式 PostgreSQL catalog 匯入與 API adapter：
+  `roompilot.furniture_catalog_current` 有 9,349 筆啟用家具、37,400 筆
+  GLB/三視角資產與 9,350 筆 VLM 註解。
+- 第 6 步優先使用 PostgreSQL 的家具、CloudFront GLB 與三視角 PNG；
+  資料庫暫時不可用才回退到已驗證 JSON catalog。
+- 冰箱、洗衣機等家電保留為問卷與 `scene_json.render_context` 的生圖
+  輔助資料，不再進入 2D/3D 自動配置或正式家具 API。
+- 增加 PostgreSQL 數值與風格欄位 adapter，避免 `Decimal` JSON 序列化及
+  `style_codes` 格式不相容造成場景生成失敗。
+- 本次整合完成後尚待以中文 commit 並推送 `bella-test1`。
 
 ## Current Local Commits
 

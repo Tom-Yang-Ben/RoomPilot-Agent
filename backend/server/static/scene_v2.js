@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-b6733e9563d0";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-5db3c1474c1e";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
@@ -35,7 +35,7 @@ import {
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-251a84d74635";
+} from "./scene_configuration_sync.js?v=sha256-4229260e286c";
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
@@ -177,6 +177,7 @@ const state = {
   furniture2d: [],
   selectedFurniture2dId: null,
   sceneData: null,
+  autoGeneratingWhiteModel: false,
   selectedSceneIndex: 0,
   styleHistory: [],
   activeStyleId: "scandinavian",
@@ -338,6 +339,7 @@ const element = {
   replacementDrawer: $("#furniture-replacement-drawer"),
   replacementFilterSummary: $("#replacement-filter-summary"),
   replacementSearch: $("#replacement-furniture-search"),
+  replacementQuery: $("#replacement-furniture-query"),
   replacementResults: $("#replacement-furniture-results"),
   replacementError: $("#replacement-furniture-error"),
   replacement3dStatus: $("#replacement-3d-status"),
@@ -383,6 +385,8 @@ const element = {
 const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteStatus, {
   onSceneChange: (item) => {
     syncMovedSceneFurnitureTo2d(item);
+    renderSceneObjectList();
+    loadSelectedSceneAppearance();
     renderConfigurationPlan();
     scheduleSave("white_model_3d");
   },
@@ -450,7 +454,19 @@ function sceneDataFromGenerateResponse(payload) {
   return payload?.scene_json || payload;
 }
 
-const RETIRED_APPLIANCE_TYPES = new Set(["refrigerator", "washer"]);
+const RETIRED_APPLIANCE_TYPES = new Set([
+  "refrigerator",
+  "washer",
+  "washing-machine",
+  "dishwasher",
+  "dryer",
+  "oven",
+  "microwave",
+  "range-hood",
+  "air-conditioner",
+  "ceiling-cassette",
+  "appliance",
+]);
 const RETIRED_APPLIANCE_MODEL_MARKERS = [
   "/models/ikea/appliance/",
   "/fi-fridges-freezers-",
@@ -476,6 +492,19 @@ function removeRetiredAppliancesFromSceneData(sceneData) {
 
 function removeRetiredAppliancesFromFurniture(furniture = []) {
   return furniture.filter((item) => !isRetiredApplianceItem(item));
+}
+
+function applianceRequirementsForRendering(furniture = []) {
+  return furniture
+    .filter((item) => isRetiredApplianceItem(item))
+    .map((item) => ({
+      furniture_id: item.furniture_id || item.catalogFurnitureId || item.id || null,
+      normalized_type: item.type || item.normalized_type || "appliance",
+      name_zh: item.name_zh || item.name_zh_raw || item.label || "",
+      room_id: item.roomId || item.room_id || null,
+      room_type: item.roomType || item.room_type || null,
+      selected_by_user: Boolean(item.user_selected || item.userSpecified),
+    }));
 }
 
 function pruneRetiredAppliances({ notify = false } = {}) {
@@ -6000,7 +6029,7 @@ async function confirmRequirements() {
     setStatus(state.furniture2d.length
       ? `需求已完成，家具引擎已配置 ${state.furniture2d.length} 件 2D 家具。`
       : "需求已完成，所有房間都選擇無家具或維持現狀。");
-    goTo("layout_2d");
+    await generateWhiteModelFromRequirements({ returnToRequirementsOnFailure: true });
   } catch (error) {
     element.requirementsError.textContent = errorMessage(error);
     setStatus(errorMessage(error), "error");
@@ -6190,17 +6219,20 @@ const REPLACEMENT_TYPE_LABELS = {
 
 async function catalogCandidatesForType(
   type,
-  { styleId = "", query = "", catalogType = "" } = {},
+  { styleId = "", query = "", catalogType = "", searchAll = false } = {},
 ) {
   const route = CATALOG_RETRIEVAL_ROUTES[type]
     || { endpoint: "/api/furniture", type };
-  const routeTypes = catalogType ? [catalogType] : (route.types || [route.type]);
+  const canSearchAll = searchAll && route.endpoint === "/api/furniture";
+  const routeTypes = canSearchAll
+    ? [""]
+    : (catalogType ? [catalogType] : (route.types || [route.type]));
   const candidateGroups = await Promise.all(routeTypes.map(async (routeType) => {
     const params = new URLSearchParams({
-      type: routeType,
       detail: "scene",
       page_size: "80",
     });
+    if (routeType) params.set("type", routeType);
     if (route.endpoint === "/api/furniture") params.set("has_model", "true");
     const searchQuery = [route.query, query].filter(Boolean).join(" ");
     if (searchQuery) params.set("q", searchQuery);
@@ -7409,6 +7441,164 @@ function replacementCandidateFitsRoom(candidate, room) {
   );
 }
 
+function replacementCandidateImageUrl(candidate = {}) {
+  const cloudImages = candidate.cloud_image_urls || {};
+  return candidate.image_url
+    || candidate.thumbnail_url
+    || candidate.preview_url
+    || candidate.main_image_url
+    || candidate.primary_image_url
+    || candidate.image
+    || candidate.imageUrl
+    || cloudImages.front
+    || cloudImages.angle
+    || Object.values(cloudImages).find(Boolean)
+    || "";
+}
+
+function replacementRoomBounds(room) {
+  if (!room?.polygon_cm?.length) return null;
+  const center = planCenterCm();
+  const xs = room.polygon_cm.map((point) => Number(point.x || 0) - center.x);
+  const zs = room.polygon_cm.map((point) => Number(point.y || 0) - center.y);
+  return {
+    minX: Math.min(...xs),
+    maxX: Math.max(...xs),
+    minZ: Math.min(...zs),
+    maxZ: Math.max(...zs),
+    centerX: (Math.min(...xs) + Math.max(...xs)) / 2,
+    centerZ: (Math.min(...zs) + Math.max(...zs)) / 2,
+  };
+}
+
+function segmentEndpoint(point = {}) {
+  return {
+    x: Number(point.x || 0),
+    z: Number(point.z ?? point.y ?? 0),
+  };
+}
+
+function segmentOverlapsBounds(segment, bounds, padding = 32) {
+  if (!segment || !bounds) return false;
+  const start = segmentEndpoint(segment.start || segment[0]);
+  const end = segmentEndpoint(segment.end || segment[1]);
+  const minX = Math.min(start.x, end.x);
+  const maxX = Math.max(start.x, end.x);
+  const minZ = Math.min(start.z, end.z);
+  const maxZ = Math.max(start.z, end.z);
+  return (
+    maxX >= bounds.minX - padding
+    && minX <= bounds.maxX + padding
+    && maxZ >= bounds.minZ - padding
+    && minZ <= bounds.maxZ + padding
+  );
+}
+
+function shiftScenePoint(point = {}, offset) {
+  if (!offset) return { ...point };
+  const next = { ...point };
+  if ("x" in next) next.x = Number(next.x || 0) - offset.x;
+  if ("z" in next) next.z = Number(next.z || 0) - offset.z;
+  if ("y" in next && !("z" in next)) next.y = Number(next.y || 0) - offset.z;
+  return next;
+}
+
+function shiftSceneSegment(segment, offset) {
+  if (!segment) return segment;
+  if (Array.isArray(segment)) {
+    return segment.map((point) => shiftScenePoint(point, offset));
+  }
+  return {
+    ...segment,
+    start: shiftScenePoint(segment.start, offset),
+    end: shiftScenePoint(segment.end, offset),
+  };
+}
+
+function shiftRoomSurfaceAssignment(assignment, offset) {
+  if (!assignment || !offset) return assignment;
+  const next = { ...assignment };
+  if (next.room_bounds_cm) {
+    next.room_bounds_cm = {
+      ...next.room_bounds_cm,
+      minX: Number(next.room_bounds_cm.minX || 0) - offset.x,
+      maxX: Number(next.room_bounds_cm.maxX || 0) - offset.x,
+      minZ: Number(next.room_bounds_cm.minZ || 0) - offset.z,
+      maxZ: Number(next.room_bounds_cm.maxZ || 0) - offset.z,
+    };
+  }
+  if (Array.isArray(next.room_polygon_cm)) {
+    next.room_polygon_cm = next.room_polygon_cm.map((point) => shiftScenePoint(point, offset));
+  }
+  return next;
+}
+
+function buildReplacementRoomPreviewScene(baseScene, current, candidate) {
+  if (!baseScene?.floorplan || !current) return null;
+  const room = state.rooms.find(
+    (candidateRoom) => String(candidateRoom.id) === String(current.roomId),
+  );
+  const bounds = replacementRoomBounds(room);
+  if (!room || !bounds) return null;
+  const offset = { x: bounds.centerX, z: bounds.centerZ };
+  const scene = JSON.parse(JSON.stringify(baseScene));
+  const floorplan = scene.floorplan || {};
+  ["wall_segments", "door_segments", "window_segments", "beam_segments", "column_segments"].forEach((key) => {
+    if (!Array.isArray(floorplan[key])) return;
+    floorplan[key] = floorplan[key]
+      .filter((segment) => segmentOverlapsBounds(segment, bounds))
+      .map((segment) => shiftSceneSegment(segment, offset));
+  });
+  if (Array.isArray(floorplan.room_regions)) {
+    floorplan.room_regions = floorplan.room_regions.filter(
+      (region) => String(region.room_id || region.id || "") === String(room.id),
+    );
+  }
+  floorplan.width_cm = Math.max(240, (bounds.maxX - bounds.minX) + 120);
+  floorplan.depth_cm = Math.max(240, (bounds.maxZ - bounds.minZ) + 120);
+  scene.floorplan = floorplan;
+  scene.room_surface_assignments = (scene.room_surface_assignments || [])
+    .filter((assignment) => String(assignment.room_id || "") === String(room.id))
+    .map((assignment) => shiftRoomSurfaceAssignment(assignment, offset));
+  scene.scene_objects = (scene.scene_objects || [])
+    .filter((item) => {
+      const sameFurniture = String(item.furniture_id) === String(current.id);
+      const sameRoom = String(item.placement_room_id || item.room_id || "") === String(room.id);
+      return sameFurniture || sameRoom;
+    })
+    .map((item) => ({
+      ...item,
+      position_cm: shiftScenePoint(item.position_cm, offset),
+    }));
+  const currentIndex = scene.scene_objects.findIndex(
+    (item) => String(item.furniture_id) === String(current.id),
+  );
+  const existing = currentIndex >= 0
+    ? scene.scene_objects[currentIndex]
+    : {
+      position_cm: shiftScenePoint({ x: current.xCm, z: current.yCm }, offset),
+      rotation_y_deg: current.rotationDeg,
+      placement_room_id: current.roomId,
+    };
+  const previewFurnitureId = `replacement-preview-${candidate.furniture_id}`;
+  const replacement = {
+    ...existing,
+    ...candidate,
+    furniture_id: previewFurnitureId,
+    position_cm: existing.position_cm,
+    rotation_y_deg: existing.rotation_y_deg,
+    placement_room_id: existing.placement_room_id || current.roomId,
+    position_locked: true,
+    placement_failed: false,
+  };
+  if (currentIndex >= 0) scene.scene_objects[currentIndex] = replacement;
+  else scene.scene_objects.push(replacement);
+  return {
+    scene,
+    previewIndex: currentIndex >= 0 ? currentIndex : scene.scene_objects.length - 1,
+  };
+}
+
 async function previewReplacementCandidate(candidate) {
   if (!candidate?.model_url) {
     element.replacement3dStatus.textContent = "這件家具沒有可載入的 3D 模型。";
@@ -7421,35 +7611,10 @@ async function previewReplacementCandidate(candidate) {
   const previewFurnitureId = `replacement-preview-${candidate.furniture_id}`;
   let previewIndex = 0;
   let previewScene;
-  if (baseScene?.floorplan && current) {
-    previewScene = JSON.parse(JSON.stringify(baseScene));
-    const currentIndex = (previewScene.scene_objects || []).findIndex(
-      (item) => String(item.furniture_id) === String(current.id),
-    );
-    const existing = currentIndex >= 0
-      ? previewScene.scene_objects[currentIndex]
-      : {
-        position_cm: { x: current.xCm, z: current.yCm },
-        rotation_y_deg: current.rotationDeg,
-        placement_room_id: current.roomId,
-      };
-    const replacement = {
-      ...existing,
-      ...candidate,
-      furniture_id: previewFurnitureId,
-      position_cm: existing.position_cm,
-      rotation_y_deg: existing.rotation_y_deg,
-      placement_room_id: existing.placement_room_id || current.roomId,
-      position_locked: true,
-      placement_failed: false,
-    };
-    if (currentIndex >= 0) {
-      previewScene.scene_objects[currentIndex] = replacement;
-      previewIndex = currentIndex;
-    } else {
-      previewIndex = previewScene.scene_objects.length;
-      previewScene.scene_objects.push(replacement);
-    }
+  const roomPreview = buildReplacementRoomPreviewScene(baseScene, current, candidate);
+  if (roomPreview) {
+    previewScene = roomPreview.scene;
+    previewIndex = roomPreview.previewIndex;
   } else {
     previewScene = {
       floorplan: {
@@ -7474,13 +7639,6 @@ async function previewReplacementCandidate(candidate) {
   await replacementViewer.loadScene(previewScene);
   replacementViewer.selectObjectByIndex(previewIndex, { focus: true });
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  const generatedPng = replacementViewer.capturePng();
-  document.querySelectorAll(
-    `[data-replacement-thumbnail="${CSS.escape(String(candidate.furniture_id))}"]`,
-  ).forEach((image) => {
-    image.src = generatedPng;
-    image.classList.remove("is-loading");
-  });
   replacementViewer.setViewMode("dollhouse");
   replacementViewer.selectObjectByIndex(previewIndex, { focus: false });
 }
@@ -7489,7 +7647,7 @@ function renderReplacementCandidates(candidates) {
   element.replacementResults.dataset.items = JSON.stringify(candidates);
   element.replacementResults.innerHTML = candidates.map((candidate, index) => {
     const title = candidate.name_zh || candidate.name_zh_raw || candidate.name_en || "家具";
-    const image = candidate.image_url || candidate.thumbnail_url || candidate.preview_url || "";
+    const image = replacementCandidateImageUrl(candidate);
     const materialLabel = candidate.material
       || (Array.isArray(candidate.materials) ? candidate.materials.join("、") : "")
       || "材質未標示";
@@ -7498,10 +7656,9 @@ function renderReplacementCandidates(candidates) {
         <button type="button" class="rp-replacement-candidate" data-preview-replacement="${escapeHtml(candidate.furniture_id)}">
           <span class="rp-replacement-thumb">
             <img
-              class="${image ? "" : "is-loading"}"
+              class="${image ? "" : "rp-fallback-thumbnail"}"
               src="${escapeHtml(image || "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=")}"
               alt="${escapeHtml(title)} 預覽圖"
-              data-replacement-thumbnail="${escapeHtml(candidate.furniture_id)}"
               loading="lazy"
             >
           </span>
@@ -7525,7 +7682,9 @@ async function loadReplacementCandidates() {
   if (!current || !room) return;
   element.replacementError.textContent = "";
   element.replacementResults.innerHTML = "<p>正在搜尋可放入目前房間的家具...</p>";
-  const catalogType = element.replacementSearch.value;
+  const filterMode = element.replacementSearch.value || "same-type";
+  const catalogType = filterMode.startsWith("type:") ? filterMode.slice(5) : "";
+  const query = element.replacementQuery?.value?.trim() || "";
   const paletteId = state.roomRequirementModel?.roomRequirements?.[room.id]?.surfaces?.paletteId;
   const style = STYLE_PACKS.find((pack) => pack.id === paletteId)?.styleId
     || state.activeStyleId
@@ -7536,8 +7695,10 @@ async function loadReplacementCandidates() {
     depthCm: current.depthCm,
   };
   const catalogCandidates = await catalogCandidatesForType(current.type, {
-    styleId: style,
+    styleId: filterMode === "all" ? "" : style,
+    query,
     catalogType,
+    searchAll: filterMode === "same-style" || filterMode === "all",
   });
   const candidates = rankCatalogFurniture(catalogCandidates, request)
     .filter(
@@ -7558,16 +7719,20 @@ function renderReplacementTypeOptions(current) {
   const routeTypes = route.types || [route.type];
   const options = routeTypes.filter(Boolean);
   element.replacementSearch.innerHTML = [
+    '<option value="same-type">同類家具</option>',
+    '<option value="same-style">同風格家具</option>',
+    '<option value="all">全部資料庫</option>',
     ...(options.length > 1
       ? ['<option value="">全部相容類型</option>']
       : []),
     ...options.map((type) => `
-      <option value="${escapeHtml(type)}">
-        ${escapeHtml(REPLACEMENT_TYPE_LABELS[type] || current.label || type)}
+      <option value="type:${escapeHtml(type)}">
+        分類：${escapeHtml(REPLACEMENT_TYPE_LABELS[type] || current.label || type)}
       </option>
     `),
   ].join("");
-  element.replacementSearch.value = options.length > 1 ? "" : (options[0] || "");
+  element.replacementSearch.value = "same-type";
+  if (element.replacementQuery) element.replacementQuery.value = "";
 }
 
 function setReplacementDrawerOpen(open) {
@@ -7736,7 +7901,7 @@ function placementResolutionText(report = []) {
     .join("；");
 }
 
-async function confirmLayout2d() {
+async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
   element.layoutError.textContent = "";
   if (
     activeSchemeId() === "B"
@@ -7761,7 +7926,7 @@ async function confirmLayout2d() {
       const invalid = (validation.scene_objects || []).filter(
         (item) => item.placement_failed || !item.position_locked,
       );
-      if (invalid.length) {
+      if (invalid.length && !allowPendingFurniture) {
         element.layoutError.textContent = `${invalid
           .map((item) => item.name_zh_raw || item.normalized_type)
           .join("、")}目前位置未通過碰撞、淨空或房間邊界檢查，請移動或更換尺寸。`;
@@ -7771,9 +7936,11 @@ async function confirmLayout2d() {
     setStatus(state.furniture2d.length
       ? "正在依問卷、色卡與尺寸載入資料庫 GLB 家具…"
       : "沒有家具需求，正在產生純結構 3D 配置…");
-    const selectedFurniture = await Promise.all(state.furniture2d.map(resolveCatalogFurniture));
+    const applianceRequirements = applianceRequirementsForRendering(state.furniture2d);
+    const placeableFurniture = removeRetiredAppliancesFromFurniture(state.furniture2d);
+    const selectedFurniture = await Promise.all(placeableFurniture.map(resolveCatalogFurniture));
     const missingCatalogModels = selectedFurniture.filter((item) => !item.model_url);
-    if (missingCatalogModels.length) {
+    if (missingCatalogModels.length && !allowPendingFurniture) {
       element.layoutError.textContent =
         `有 ${missingCatalogModels.length} 件家具尚未找到可用的資料庫 GLB：${
           missingCatalogModels
@@ -7783,6 +7950,21 @@ async function confirmLayout2d() {
       setStatus("資料庫家具尚未完整，已停止產生替代模型。", "error");
       return;
     }
+    if (missingCatalogModels.length) {
+      const missingIds = new Set(missingCatalogModels.map((item) => String(item.id)));
+      state.furniture2d = state.furniture2d.map((item) => (
+        missingIds.has(String(item.id))
+          ? {
+            ...item,
+            placementFailed: true,
+            placementReason: "尚未找到可用的資料庫 GLB，請替換為可載入的家具。",
+          }
+          : item
+      ));
+    }
+    const sceneFurniture = allowPendingFurniture
+      ? selectedFurniture.filter((item) => item.model_url)
+      : selectedFurniture;
     const firstRoom = state.rooms.find((room) => room.type === "living_room") || state.rooms[0];
     const dimensions = roomDimensions(firstRoom);
     const preferredPack = activeQuestionnairePack();
@@ -7827,6 +8009,7 @@ async function confirmLayout2d() {
           visual_preferences: visualPreferences,
           finishes: state.questionnaireFinishes,
           room_requirements: roomRequirementsPayload.roomRequirements,
+          appliance_requirements: applianceRequirements,
         },
         room_surface_assignments: roomSurfaces,
         personal_notes: state.basicAnswers.immutableNeeds || "",
@@ -7834,9 +8017,9 @@ async function confirmLayout2d() {
         floorplan_editor: confirmedFloorplanEditor(),
         room_width_cm: dimensions.widthCm,
         room_depth_cm: dimensions.depthCm,
-        required_furniture: [...new Set(state.furniture2d.map((item) => item.type))],
-        selected_furniture: selectedFurniture,
-        selected_furniture_exact: true,
+        required_furniture: [...new Set(placeableFurniture.map((item) => item.type))],
+        selected_furniture: sceneFurniture,
+        selected_furniture_exact: !allowPendingFurniture,
       }),
     });
     state.sceneData = sceneDataFromGenerateResponse(payload);
@@ -7844,7 +8027,7 @@ async function confirmLayout2d() {
     const generatedInvalid = (state.sceneData.scene_objects || []).filter(
       (item) => item.placement_failed || !item.position_cm,
     );
-    if (generatedInvalid.length) {
+    if (generatedInvalid.length && !allowPendingFurniture) {
       element.layoutError.textContent =
         `系統仍有 ${generatedInvalid.length} 件家具無法合法放置，請先在上方待處理清單更換或調整家具。`;
       setStatus("配置尚未通過門窗淨空、房間邊界與家具碰撞檢查。", "error");
@@ -7857,6 +8040,7 @@ async function confirmLayout2d() {
       visual_preferences: visualPreferences,
       finishes: state.questionnaireFinishes,
       room_requirements: roomRequirementsPayload.roomRequirements,
+      appliance_requirements: applianceRequirements,
     };
     state.sceneData.room_requirements = roomRequirementsPayload.roomRequirements;
     state.sceneData.surface_overrides = roomSurfaces.map((surface) => ({
@@ -7877,6 +8061,12 @@ async function confirmLayout2d() {
       style_id: "white_model",
       palette_hex: ["#f4f1ec", "#e9e6e1", "#d8d3cc", "#bcb4aa"],
     };
+    state.sceneData.scene_objects.forEach((sceneObject) => {
+      state.furniture2d = upsertFurniture2dFromSceneObject(
+        state.furniture2d,
+        sceneObject,
+      );
+    });
     const selectedSceneIndex = sceneObjectIndexByFurnitureId(state.selectedFurniture2dId);
     if (selectedSceneIndex >= 0) state.selectedSceneIndex = selectedSceneIndex;
     const generatedScheme = activeScheme();
@@ -7913,6 +8103,36 @@ async function confirmLayout2d() {
   } catch (error) {
     element.layoutError.textContent = errorMessage(error);
     setStatus(errorMessage(error), "error");
+  }
+}
+
+async function generateWhiteModelFromRequirements({ returnToRequirementsOnFailure = false } = {}) {
+  if (state.autoGeneratingWhiteModel) return false;
+  state.autoGeneratingWhiteModel = true;
+  element.layoutError.textContent = "";
+  try {
+    if (!state.workflow?.goTo("layout_2d")) {
+      const message = firstWorkflowBlocker("layout_2d");
+      if (returnToRequirementsOnFailure) element.requirementsError.textContent = message;
+      setStatus(message, "error");
+      return false;
+    }
+    setStatus("正在依照問卷、色卡與指定家具建立 3D 場景...");
+    await confirmLayout2d({ allowPendingFurniture: true });
+    const generated = state.workflow.currentStep === "white_model_3d" && Boolean(state.sceneData);
+    if (generated) return true;
+
+    const message = element.layoutError.textContent.trim()
+      || "無法建立 3D 場景，請檢查問卷需求或資料庫家具模型。";
+    if (returnToRequirementsOnFailure) {
+      state.workflow.goTo("requirements");
+      showStep("requirements");
+      element.requirementsError.textContent = message;
+      scheduleSave("requirements");
+    }
+    return false;
+  } finally {
+    state.autoGeneratingWhiteModel = false;
   }
 }
 
@@ -8043,40 +8263,6 @@ function saveSelectedSceneAppearance() {
     : null;
 }
 
-function markSelectedFurnitureAsSpecified() {
-  const selected = state.sceneData?.scene_objects?.[state.selectedSceneIndex];
-  const status = $("#specified-furniture-status");
-  if (!selected) {
-    if (status) status.textContent = "請先在 3D 畫面或右側家具清單選取一件家具。";
-    return;
-  }
-  selected.user_specified = true;
-  selected.user_required = true;
-  selected.model_locked = true;
-  selected.position_locked = true;
-  const furnitureId = String(selected.furniture_id || "");
-  const item = state.furniture2d.find(
-    (candidate) => String(candidate.id) === furnitureId,
-  );
-  if (item) {
-    item.userRequired = true;
-    item.userSpecified = true;
-    item.modelLocked = true;
-    item.placementFailed = false;
-    item.placementReason = "";
-  }
-  $("#lock-specified-model").checked = true;
-  saveSelectedSceneAppearance();
-  renderSceneObjectList();
-  renderLayoutFurniture();
-  renderConfigurationPlan();
-  whiteViewer.selectObjectByIndex(state.selectedSceneIndex, { focus: false });
-  if (status) {
-    status.textContent = `已將「${sceneObjectDisplayName(selected, state.selectedSceneIndex)}」鎖定為指定家具需求。`;
-  }
-  scheduleSave("white_model_3d");
-}
-
 function loadSelectedSceneAppearance() {
   const selected = state.sceneData?.scene_objects?.[state.selectedSceneIndex];
   $("#specified-furniture-color").value = selected?.specified_color || "#f2f0ec";
@@ -8086,8 +8272,8 @@ function loadSelectedSceneAppearance() {
   const status = $("#specified-furniture-status");
   if (status) {
     status.textContent = selected?.user_specified
-      ? "目前選取家具已鎖定為指定需求。"
-      : "先在 3D 或右側清單選取家具，再按此按鈕鎖定。";
+      ? "目前選取家具已在 3D 微調面板鎖定為指定需求。"
+      : "可在 3D 畫面選取家具後，使用浮動微調面板鎖定指定需求。";
   }
 }
 
@@ -8512,11 +8698,6 @@ async function confirmWhiteModel() {
       `有 ${diagnostics.failedFurniture.length} 件資料庫 GLB 無法載入，請先修正型錄權限或更換家具，才能進入下一步。`;
     setStatus(element.whiteError.textContent, "error");
     renderConfigurationPlan();
-    return;
-  }
-  if (!$("#specified-furniture-reviewed").checked) {
-    element.whiteError.textContent = "請先確認是否有指定家具需求。";
-    $("#specified-furniture-reviewed").focus();
     return;
   }
   saveSelectedSceneAppearance();
@@ -10200,6 +10381,13 @@ function bindEvents() {
       element.replacementError.textContent = errorMessage(error);
     });
   });
+  element.replacementQuery?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    loadReplacementCandidates().catch((error) => {
+      element.replacementError.textContent = errorMessage(error);
+    });
+  });
   element.replacementResults.addEventListener("click", (event) => {
     const preview = event.target.closest("[data-preview-replacement]");
     if (preview) {
@@ -10251,7 +10439,6 @@ function bindEvents() {
     saveSelectedSceneAppearance();
     scheduleSave("white_model_3d");
   }));
-  $("#mark-specified-furniture").addEventListener("click", markSelectedFurnitureAsSpecified);
   $("#open-furniture-catalog").addEventListener("click", () => setFurnitureCatalogOpen(true));
   $("#close-furniture-catalog").addEventListener("click", () => setFurnitureCatalogOpen(false));
   $("#search-glb-furniture").addEventListener("click", searchGlbFurniture);
@@ -10692,6 +10879,13 @@ async function restoreProject() {
     }
     showStep(state.workflow.currentStep || "project");
     await renderRestoredStep();
+    if (
+      state.workflow.currentStep === "layout_2d"
+      && state.workflow.completed.includes("requirements")
+      && !state.sceneData
+    ) {
+      await generateWhiteModelFromRequirements({ returnToRequirementsOnFailure: true });
+    }
     if (state.confirmedFloorplan && !serverState.confirmed_floorplan) {
       scheduleSave(state.workflow.currentStep);
     }

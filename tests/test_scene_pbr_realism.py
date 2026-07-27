@@ -351,6 +351,28 @@ def test_furniture_roles_receive_distinct_realistic_pbr_parameters() -> None:
     assert result["glass"]["transparent"] is True
 
 
+def test_architectural_openings_have_dedicated_physical_profiles() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ architecturalPbrProfile }} from {json.dumps(PBR_MODULE.as_uri())};
+        console.log(JSON.stringify({{
+          door: architecturalPbrProfile("door_leaf"),
+          frame: architecturalPbrProfile("window_frame"),
+          glass: architecturalPbrProfile("glass"),
+        }}));
+        """
+    )
+
+    assert result["door"]["roughness"] > result["frame"]["roughness"]
+    assert result["frame"]["metalness"] > result["door"]["metalness"]
+    assert result["glass"]["transmission"] > 0.7
+
+    source = VIEWER.read_text(encoding="utf-8")
+    assert "function createArchitecturalMaterial" in source
+    assert "wood_cc0_wood_textures_woodfloor039" in source
+    assert 'architecturalPbrProfile("glass")' in source
+
+
 def test_viewer_uses_physical_materials_relief_and_contact_shadows() -> None:
     source = VIEWER.read_text(encoding="utf-8")
 

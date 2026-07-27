@@ -74,6 +74,7 @@ from .services.cloud_images import (
     cloud_primary_image_url,
     image_manifest_status,
 )
+from .postgres_catalog import catalog_provider_status, load_catalog as load_postgres_catalog
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -865,6 +866,13 @@ def _furniture_card_payload(item: dict) -> dict:
 
 @lru_cache(maxsize=1)
 def _furniture_payload_cache() -> tuple[dict, ...]:
+    """Prefer Kai's reviewed PostgreSQL catalog, with a portable JSON fallback."""
+    provider = os.getenv("ROOMPILOT_CATALOG_PROVIDER", "postgres").strip().casefold()
+    if provider not in {"json", "local", "fallback"}:
+        try:
+            return load_postgres_catalog(PROJECT_DIR)
+        except Exception as exc:
+            print(f"[RoomPilot] PostgreSQL catalog unavailable; using JSON fallback: {type(exc).__name__}")
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
 
 
@@ -960,6 +968,9 @@ def _get_external_furniture_by_id(furniture_id: str) -> dict:
 
 
 def _get_merged_furniture_by_id(furniture_id: str) -> dict:
+    for item in _furniture_payload_cache():
+        if str(item.get("furniture_id")) == str(furniture_id):
+            return item
     for item in _merged_furniture_catalog_cached():
         aliases = set(item.get("merged_furniture_ids") or [])
         aliases.add(str(item.get("furniture_id")))
@@ -2020,6 +2031,7 @@ def catalog_status() -> dict:
     wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
     floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
     return {
+        "catalog_provider": catalog_provider_status(PROJECT_DIR),
         "furniture": furniture,
         "furniture_images": image_manifest_status(),
         "surfaces": {
@@ -2194,8 +2206,17 @@ def _legacy_viewer_models(items: list[dict]) -> list[str]:
 
 
 def _furniture_detail_payload(furniture_id: str) -> dict:
-    item = _get_merged_furniture_by_id(furniture_id)
-    payload = _furniture_payload_item(item)
+    item = next(
+        (
+            candidate
+            for candidate in _furniture_payload_cache()
+            if str(candidate.get("furniture_id")) == str(furniture_id)
+        ),
+        None,
+    )
+    if item is None:
+        item = _furniture_payload_item(_get_merged_furniture_by_id(furniture_id))
+    payload = dict(item)
     payload.update(
         {
             "merged_furniture_ids": item.get("merged_furniture_ids", []),
@@ -2735,6 +2756,9 @@ async def scene_validate(payload: dict) -> dict:
 @app.get("/api/furniture/{furniture_id}/model")
 def furniture_model(furniture_id: str):
     furniture = _get_merged_furniture_by_id(furniture_id)
+    direct_url = str(furniture.get("model_url") or "").strip()
+    if direct_url.startswith(("https://", "http://")):
+        return RedirectResponse(direct_url, status_code=307)
     return _model_response_for_merged_furniture(furniture)
 
 

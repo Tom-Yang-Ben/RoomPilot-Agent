@@ -694,6 +694,55 @@ def test_accurate_floorplan_uses_segment_walls_when_openings_exist() -> None:
     assert "const mullionPositions = [0];" in viewer
 
 
+def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function dedupeArchitecturalOpeningsFor3d" in viewer
+    assert "const doorSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
+    assert "doorOpeningForWallTopology(wallSegments, door, wallThickness)" in viewer
+    wall_builder = viewer.split("function buildSegmentWalls", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+    assert "const wallDoorSegments = doorSegments.filter" in wall_builder
+    assert "opening?.topology_gap !== true" in wall_builder
+    assert "const topologyGapDoors = doorSegments.filter" in wall_builder
+    assert "opening?.topology_gap === true" in wall_builder
+    assert "const missingDoors = topologyGapDoors;" in wall_builder
+    assert "[...wallDoorSegments.map" in wall_builder
+
+
+def test_3d_door_openings_merge_overlapping_spans_on_the_same_host_wall() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function openingWallCoverage" in viewer
+    assert "function openingsShareWallCoverage" in viewer
+    assert "overlap >= Math.max(24, narrowerWidth * 0.55)" in viewer
+    assert "openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness)" in viewer
+    assert "dedupeArchitecturalOpeningsFor3d(" in viewer
+    assert "      wallSegments,\n      wallThickness," in viewer
+
+
+def test_requirements_generate_the_white_model_without_an_intermediate_2d_confirmation() -> None:
+    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+
+    assert "async function generateWhiteModelFromRequirements" in viewer
+    assert "await generateWhiteModelFromRequirements({ returnToRequirementsOnFailure: true });" in viewer
+    assert 'state.workflow?.goTo("layout_2d")' in viewer
+    assert 'await confirmLayout2d({ allowPendingFurniture: true });' in viewer
+    assert 'state.workflow.currentStep === "white_model_3d"' in viewer
+    assert 'state.workflow.currentStep === "layout_2d"' in viewer
+    assert "returnToRequirementsOnFailure: true" in viewer
+    assert "if (invalid.length && !allowPendingFurniture)" in viewer
+    assert "if (generatedInvalid.length && !allowPendingFurniture)" in viewer
+    assert "if (missingCatalogModels.length && !allowPendingFurniture)" in viewer
+    assert "const sceneFurniture = allowPendingFurniture" in viewer
+    assert "selectedFurniture.filter((item) => item.model_url)" in viewer
+    assert "尚未找到可用的資料庫 GLB" in viewer
+    assert "selected_furniture_exact: !allowPendingFurniture" in viewer
+    assert "完成需求並建立 2D+3D 配置" in html
+
+
 def test_step_four_has_a_dimensioned_floorplan_confirmation_page() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -1316,7 +1365,9 @@ def test_room_usage_recommends_decor_without_restoring_retired_appliances() -> N
 def test_step_six_prunes_retired_appliances_from_restored_projects() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert 'const RETIRED_APPLIANCE_TYPES = new Set(["refrigerator", "washer"])' in source
+    assert '"refrigerator"' in source
+    assert '"dishwasher"' in source
+    assert '"air-conditioner"' in source
     assert '"/models/ikea/appliance/"' in source
     assert "function pruneRetiredAppliances" in source
     assert "state.furniture2d = removeRetiredAppliancesFromFurniture(state.furniture2d)" in source
@@ -1964,7 +2015,7 @@ def test_scene_does_not_force_placeholder_furniture_for_an_empty_plan() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "目前沒有指定家具，先放入可刪除的雙人沙發" not in source
-    assert "selected_furniture_exact: true" in source
+    assert "selected_furniture_exact: !allowPendingFurniture" in source
 
 
 def test_confirmed_rooms_and_structures_are_the_only_3d_floorplan_source() -> None:
@@ -2156,21 +2207,24 @@ def test_style_switch_changes_unlocked_models_and_material_surface_types() -> No
     assert "function removeMaterialBoundary()" in controller
 
 
-def test_step_six_can_mark_selected_furniture_as_user_specified() -> None:
+def test_step_six_locks_specified_furniture_from_3d_controls() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
-    assert 'id="mark-specified-furniture"' in html
+    assert 'id="mark-specified-furniture"' not in html
+    assert 'id="specified-furniture-reviewed"' not in html
     assert 'id="specified-furniture-status"' in html
-    assert "鎖定目前家具為指定需求" in html
-    assert "function markSelectedFurnitureAsSpecified" in controller
-    assert "selected.user_specified = true" in controller
-    assert "selected.user_required = true" in controller
-    assert "selected.model_locked = true" in controller
-    assert "selected.position_locked = true" in controller
-    assert "item.userRequired = true" in controller
-    assert "item.userSpecified = true" in controller
-    assert "$(\"#mark-specified-furniture\").addEventListener(\"click\", markSelectedFurnitureAsSpecified)" in controller
+    assert "鎖定目前家具為指定需求" not in html
+    assert "function markSelectedFurnitureAsSpecified" not in controller
+    assert "data-object-lock" in viewer
+    assert "鎖定此家具" in viewer
+    assert "取消鎖定此家具" in viewer
+    assert "item.user_specified = !locked" in viewer
+    assert "item.user_required = !locked" in viewer
+    assert "item.model_locked = !locked" in viewer
+    assert "notifySceneChange(item)" in viewer
+    assert "renderSceneObjectList()" in controller
 
 
 def test_3d_furniture_can_be_deleted_and_each_item_keeps_its_own_material_override() -> None:

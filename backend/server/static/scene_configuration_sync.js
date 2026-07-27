@@ -56,7 +56,15 @@ export function upsertFurniture2dFromSceneObject(
     placementFailed: sceneObject.placement_failed === true,
     placementReason: sceneObject.placement_reason || "",
     reason: current.reason || defaults.reason || "",
-    userRequired: current.userRequired ?? defaults.userRequired ?? false,
+    userRequired: "user_required" in sceneObject
+      ? sceneObject.user_required === true
+      : (current.userRequired ?? defaults.userRequired ?? false),
+    userSpecified: "user_specified" in sceneObject
+      ? sceneObject.user_specified === true
+      : (current.userSpecified ?? defaults.userSpecified ?? false),
+    modelLocked: "model_locked" in sceneObject
+      ? sceneObject.model_locked === true
+      : (current.modelLocked ?? defaults.modelLocked ?? false),
   };
 
   if (index >= 0) items[index] = next;

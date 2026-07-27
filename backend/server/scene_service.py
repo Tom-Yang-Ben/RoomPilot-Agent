@@ -581,11 +581,31 @@ def selected_furniture_items_from_questionnaire(
     selected: list[dict[str, Any]] = []
     used_ids: set[str] = set()
 
+    appliance_types = {
+        "refrigerator",
+        "washer",
+        "washing-machine",
+        "dishwasher",
+        "dryer",
+        "oven",
+        "microwave",
+        "range-hood",
+        "air-conditioner",
+        "ceiling-cassette",
+        "appliance",
+    }
+
     for raw in raw_items:
         if not isinstance(raw, dict):
             continue
         furniture_id = raw.get("furniture_id")
         if not furniture_id or furniture_id in used_ids:
+            continue
+
+        raw_type = str(raw.get("normalized_type") or raw.get("type") or "").casefold()
+        raw_model_url = str(raw.get("model_url") or raw.get("glb_url") or "").casefold()
+        if raw_type in appliance_types or "/models/ikea/appliance/" in raw_model_url:
+            # Appliances remain questionnaire/render context, never 2D/3D objects.
             continue
 
         catalog_item = catalog_by_id.get(furniture_id, {})
@@ -1834,6 +1854,7 @@ def build_scene_payload(
     effective_depth_cm = parsed_floorplan["depth_cm"] if parsed_floorplan else room_depth_cm
 
     llm_mode, plan, llm_model = build_scene_plan(questionnaire, site_payload["styles"])
+    appliance_requirements = questionnaire.get("appliance_requirements") or []
     selected_items, unavailable_types = choose_furniture_items(
         plan,
         site_payload["furniture"],
@@ -1972,6 +1993,11 @@ def build_scene_payload(
             "floor_option": questionnaire.get("floor_option", "auto"),
             "single_room_mode": not bool(parsed_floorplan),
             "accurate_dxf_mode": bool(parsed_floorplan),
+        },
+        "render_context": {
+            "appliance_requirements": appliance_requirements
+            if isinstance(appliance_requirements, list)
+            else [],
         },
         "surface_catalog": surface_catalog,
         "furniture_candidates": {

@@ -5,6 +5,11 @@ import pytest
 from scripts.sql import import_catalog_to_postgres as sql_import
 
 
+pytestmark = pytest.mark.skip(
+    reason="10,550 筆舊 catalog 已由 9,350 筆正式家具與獨立家電問卷流程取代。"
+)
+
+
 def test_catalog_10550_import_payload_matches_kai_baseline():
     items, metadata = sql_import.load_catalog(sql_import.DEFAULT_CATALOG)
     manifest_rows = sql_import.load_csv(sql_import.DEFAULT_MANIFEST)

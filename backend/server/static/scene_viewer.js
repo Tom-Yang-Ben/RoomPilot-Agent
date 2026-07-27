@@ -10,10 +10,11 @@ import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { classifyMaterialSlot } from "./scene_material_schemes.js?v=20260712b";
 import {
+  architecturalPbrProfile,
   furniturePbrProfile,
   surfacePbrProfile,
   surfaceTint,
-} from "./scene_pbr_contracts.js?v=20260720-real3d15";
+} from "./scene_pbr_contracts.js?v=sha256-075ad1cedc62";
 import {
   doorOpeningForWallTopology,
   openingBelongsToWall,
@@ -37,6 +38,118 @@ const CM_PER_METER = 100;
 
 function normalizeSceneRotationDeg(rotationDeg = 0) {
   return ((Number(rotationDeg) % 360) + 360) % 360;
+}
+
+function architecturalOpeningVector(opening = {}) {
+  const start = opening.start || {};
+  const end = opening.end || {};
+  const startX = Number(start.x || 0);
+  const startZ = Number(start.z || 0);
+  const endX = Number(end.x || 0);
+  const endZ = Number(end.z || 0);
+  const dx = endX - startX;
+  const dz = endZ - startZ;
+  const length = Math.hypot(dx, dz);
+  return {
+    startX,
+    startZ,
+    endX,
+    endZ,
+    centerX: (startX + endX) / 2,
+    centerZ: (startZ + endZ) / 2,
+    length,
+    unitX: length ? dx / length : 0,
+    unitZ: length ? dz / length : 0,
+  };
+}
+
+function architecturalOpeningsOverlap(left = {}, right = {}) {
+  const leftVector = architecturalOpeningVector(left);
+  const rightVector = architecturalOpeningVector(right);
+  if (leftVector.length < 4 || rightVector.length < 4) return false;
+  const parallel = Math.abs(
+    leftVector.unitX * rightVector.unitX + leftVector.unitZ * rightVector.unitZ,
+  );
+  if (parallel < 0.82) return false;
+  const centerDistance = Math.hypot(
+    leftVector.centerX - rightVector.centerX,
+    leftVector.centerZ - rightVector.centerZ,
+  );
+  const endpointDistance = Math.min(
+    Math.hypot(leftVector.startX - rightVector.startX, leftVector.startZ - rightVector.startZ)
+      + Math.hypot(leftVector.endX - rightVector.endX, leftVector.endZ - rightVector.endZ),
+    Math.hypot(leftVector.startX - rightVector.endX, leftVector.startZ - rightVector.endZ)
+      + Math.hypot(leftVector.endX - rightVector.startX, leftVector.endZ - rightVector.startZ),
+  );
+  const width = Math.min(
+    Number(left.width_cm || left.width || leftVector.length) || leftVector.length,
+    Number(right.width_cm || right.width || rightVector.length) || rightVector.length,
+  );
+  return centerDistance <= Math.max(18, width * 0.28) || endpointDistance <= 36;
+}
+
+function openingWallCoverage(opening = {}, wallSegments = [], wallThickness = 12) {
+  if (opening.topology_gap) return null;
+  const hostSegment = wallSegmentForOpening(wallSegments, opening, wallThickness);
+  if (!hostSegment) return null;
+  const interval = openingWallInterval(hostSegment, opening, wallThickness, 24);
+  if (!interval) return null;
+  return { hostSegment, interval };
+}
+
+function openingsShareWallCoverage(left = {}, right = {}, wallSegments = [], wallThickness = 12) {
+  const leftCoverage = openingWallCoverage(left, wallSegments, wallThickness);
+  const rightCoverage = openingWallCoverage(right, wallSegments, wallThickness);
+  if (!leftCoverage || !rightCoverage || leftCoverage.hostSegment !== rightCoverage.hostSegment) {
+    return false;
+  }
+  const overlap = Math.min(leftCoverage.interval.to, rightCoverage.interval.to)
+    - Math.max(leftCoverage.interval.from, rightCoverage.interval.from);
+  const narrowerWidth = Math.min(
+    leftCoverage.interval.to - leftCoverage.interval.from,
+    rightCoverage.interval.to - rightCoverage.interval.from,
+  );
+  // A repeated recognition can be offset from the wall line, but still cuts the
+  // same physical span. Do not collapse neighbouring, genuinely separate doors.
+  return overlap >= Math.max(24, narrowerWidth * 0.55);
+}
+
+function architecturalOpeningScore(opening = {}, wallSegments = [], wallThickness = 12) {
+  const coverage = openingWallCoverage(opening, wallSegments, wallThickness);
+  const vector = architecturalOpeningVector(opening);
+  const host = coverage ? architecturalOpeningVector(coverage.hostSegment) : null;
+  const centerOffset = host
+    ? Math.abs(
+      (vector.centerX - host.startX) * -host.unitZ
+      + (vector.centerZ - host.startZ) * host.unitX,
+    )
+    : 0;
+  return (opening.topology_gap ? 100 : 0)
+    + (opening.confirmed ? 18 : 0)
+    + (opening.source === "manual" ? 14 : 0)
+    + Math.min(12, Number(opening.confidence || 0) * 12)
+    - Math.min(30, centerOffset * 0.25);
+}
+
+function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wallThickness = 12) {
+  const result = [];
+  openings.filter(Boolean).forEach((opening) => {
+    const duplicateIndex = result.findIndex(
+      (candidate) => architecturalOpeningsOverlap(candidate, opening)
+        || openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness),
+    );
+    if (duplicateIndex < 0) {
+      result.push(opening);
+      return;
+    }
+    if (
+      architecturalOpeningScore(opening, wallSegments, wallThickness)
+      > architecturalOpeningScore(result[duplicateIndex], wallSegments, wallThickness)
+    ) {
+      result[duplicateIndex] = opening;
+    }
+  });
+  return result;
 }
 
 function sceneToWorldPosition(position = {}) {
@@ -630,6 +743,12 @@ export function createSceneViewer(
     );
   }
 
+  function findSurfaceTexture(surfaceCatalog, surfaceId) {
+    return (surfaceCatalog?.surfaces || []).find(
+      (surface) => surface.surface_id === surfaceId && surface.texture_url,
+    ) || null;
+  }
+
   function getSurfaceModuleSize(surface, usage) {
     if (usage !== "floor") return { x: 180, y: 180 };
     const physicalSize = String(surface.source_size || "")
@@ -691,6 +810,33 @@ export function createSceneViewer(
       material.transparent = true;
       material.opacity = options.opacity ?? 0.92;
       material.depthWrite = true;
+    }
+    return material;
+  }
+
+  function createArchitecturalMaterial(role, surfaceCatalog) {
+    const profile = architecturalPbrProfile(role);
+    const isDoor = role === "door_leaf";
+    const material = new THREE.MeshPhysicalMaterial({
+      color: isDoor ? 0xb98c62 : 0xe9ecec,
+      ...profile,
+    });
+
+    // The existing wood surface gives the default closed door visible grain.
+    // A future door catalog may replace it with a product-specific PBR set.
+    if (isDoor) {
+      const woodSurface = findSurfaceTexture(
+        surfaceCatalog,
+        "wood_cc0_wood_textures_woodfloor039",
+      );
+      if (woodSurface) {
+        material.map = createImageTexture(woodSurface, "floor", [1, 2.2]);
+        material.bumpMap = createImageTexture(woodSurface, "floor", [1, 2.2]);
+        material.bumpMap.colorSpace = THREE.NoColorSpace;
+        material.bumpScale = 0.018;
+        material.userData.roompilotImageSurface = true;
+        material.userData.roompilotSurfaceUsage = "door";
+      }
     }
     return material;
   }
@@ -1132,8 +1278,11 @@ export function createSceneViewer(
     doorSegments = [],
     windowSegments = [],
     floorplan = null,
+    surfaceCatalog = null,
   ) {
     const renderedOpenings = new Set();
+    const wallDoorSegments = doorSegments.filter((opening) => opening?.topology_gap !== true);
+    const topologyGapDoors = doorSegments.filter((opening) => opening?.topology_gap === true);
     const exteriorSegments = segments.filter((segment) => (
       isExteriorWallSegment(segment, floorplan, wallThickness)
     ));
@@ -1170,7 +1319,7 @@ export function createSceneViewer(
       const exteriorSurfaceMaterial = typeof wallMaterial === "function"
         ? (wallMaterial.exteriorMaterial || material)
         : material;
-      const openingIntervals = [...doorSegments.map((opening) => ({ opening, kind: "door" })),
+      const openingIntervals = [...wallDoorSegments.map((opening) => ({ opening, kind: "door" })),
         ...windowSegments.map((opening) => ({ opening, kind: "window" }))]
         .map(({ opening, kind }, index) => {
           const wallInterval = openingWallInterval(
@@ -1279,6 +1428,7 @@ export function createSceneViewer(
               rotationY,
               wallThickness,
             },
+            surfaceCatalog,
           );
           renderedOpenings.add(interval.key);
         }
@@ -1304,9 +1454,7 @@ export function createSceneViewer(
       roomGroupRef.add(topCap);
     });
 
-    const missingDoors = doorSegments.filter((opening) => !segments.some(
-      (segment) => openingWallInterval(segment, opening, wallThickness, 68),
-    ));
+    const missingDoors = topologyGapDoors;
     const missingWindows = windowSegments.filter((opening) => !segments.some(
       (segment) => openingWallInterval(segment, opening, wallThickness, 50),
     ));
@@ -1324,20 +1472,17 @@ export function createSceneViewer(
         standaloneWallMaterial,
         wallHeight,
         wallThickness,
+        surfaceCatalog,
       );
     }
   }
 
-  function buildOpeningAssembly(roomGroupRef, interval, anchor) {
+  function buildOpeningAssembly(roomGroupRef, interval, anchor, surfaceCatalog = null) {
     const isWindow = interval.kind === "window";
-    const frameMaterial = new THREE.MeshPhysicalMaterial({
-      color: isWindow ? 0xe9ecec : 0xb98c62,
-      roughness: isWindow ? 0.34 : 0.46,
-      metalness: isWindow ? 0.18 : 0,
-      clearcoat: 0.28,
-      clearcoatRoughness: 0.34,
-      envMapIntensity: 1,
-    });
+    const frameMaterial = createArchitecturalMaterial(
+      isWindow ? "window_frame" : "door_leaf",
+      surfaceCatalog,
+    );
     const height = isWindow ? interval.windowMetrics?.glazingHeightCm || 120 : 205;
     const centerY = isWindow
       ? (interval.windowMetrics?.sillHeightCm || 0) + height / 2
@@ -1357,15 +1502,8 @@ export function createSceneViewer(
         new THREE.PlaneGeometry(Math.max(interval.width - frameThickness * 2, 12), Math.max(height - frameThickness * 2, 12)),
         new THREE.MeshPhysicalMaterial({
           color: 0xd9edf2,
-          roughness: 0.08,
-          metalness: 0,
-          transmission: 0.88,
-          thickness: 1,
-          ior: 1.48,
-          transparent: true,
-          opacity: 0.34,
+          ...architecturalPbrProfile("glass"),
           side: THREE.DoubleSide,
-          envMapIntensity: 1.35,
         }),
       );
       glass.position.y = centerY;
@@ -1419,6 +1557,7 @@ export function createSceneViewer(
     wallMaterial,
     wallHeight,
     wallThickness,
+    surfaceCatalog = null,
   ) {
     [
       ...doorSegments.map((opening) => ({ opening, kind: "door" })),
@@ -1454,6 +1593,7 @@ export function createSceneViewer(
           rotationY: Math.atan2(-dz, dx),
           wallThickness,
         },
+        surfaceCatalog,
       );
       const isWindow = kind === "window";
       const openingHeight = isWindow
@@ -2432,10 +2572,18 @@ export function createSceneViewer(
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
     const wallThickness = 12;
     const wallSegments = sceneData.floorplan?.wall_segments || [];
-    const doorSegments = (sceneData.floorplan?.door_segments || []).map(
-      (door) => doorOpeningForWallTopology(wallSegments, door, wallThickness),
+    const doorSegments = dedupeArchitecturalOpeningsFor3d(
+      (sceneData.floorplan?.door_segments || []).map(
+        (door) => doorOpeningForWallTopology(wallSegments, door, wallThickness),
+      ),
+      wallSegments,
+      wallThickness,
     );
-    const windowSegments = sceneData.floorplan?.window_segments || [];
+    const windowSegments = dedupeArchitecturalOpeningsFor3d(
+      sceneData.floorplan?.window_segments || [],
+      wallSegments,
+      wallThickness,
+    );
     const hasAccurateFloorplan = ["dxf", "user_confirmed"].includes(
       sceneData.floorplan?.source,
     );
@@ -2491,6 +2639,7 @@ export function createSceneViewer(
         wallMaterial,
         wallHeight,
         wallThickness,
+        sceneData.surface_catalog,
       );
     } else if (!builtWallMass && !singleRoomMode && wallSegments.length >= 2) {
       buildSegmentWalls(
@@ -2502,6 +2651,7 @@ export function createSceneViewer(
         doorSegments,
         windowSegments,
         sceneData.floorplan,
+        sceneData.surface_catalog,
       );
     } else {
       const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthCm, wallHeight, wallThickness), wallMaterial.clone());
@@ -3525,6 +3675,7 @@ export function createSceneViewer(
       <button type="button" data-object-move="back">後</button>
       <button type="button" data-object-move="right">右</button>
     </div>
+    <button type="button" class="scene-object-lock-button" data-object-lock>鎖定此家具</button>
   `;
   container.appendChild(selectedControls);
   selectedControls.addEventListener("pointerdown", (event) => {
@@ -4005,6 +4156,7 @@ export function createSceneViewer(
       updateFootprintGuide(selectedWrapper, kind);
       renderer.domElement.style.cursor = "grab";
       selectedControls.hidden = false;
+      updateSelectedControlsState();
     } else {
       disposeGuide();
       renderer.domElement.style.cursor = "";
@@ -4013,6 +4165,37 @@ export function createSceneViewer(
     if (notify && typeof onObjectSelect === "function") {
       onObjectSelect(selectedWrapper?.userData?.sceneObject || null, lastSceneData);
     }
+  }
+
+  function updateSelectedControlsState() {
+    const lockButton = selectedControls.querySelector("[data-object-lock]");
+    if (!lockButton) return;
+    const item = selectedWrapper?.userData?.sceneObject;
+    const locked = item?.user_specified === true || item?.model_locked === true;
+    lockButton.textContent = locked ? "取消鎖定此家具" : "鎖定此家具";
+    lockButton.classList.toggle("is-active", locked);
+    lockButton.setAttribute(
+      "aria-pressed",
+      locked ? "true" : "false",
+    );
+  }
+
+  function toggleSelectedObjectLock() {
+    if (!selectedWrapper) return false;
+    const item = selectedWrapper.userData.sceneObject;
+    if (!item) return false;
+    const locked = item.user_specified === true || item.model_locked === true;
+    item.user_specified = !locked;
+    item.user_required = !locked;
+    item.model_locked = !locked;
+    if (!locked) item.position_locked = true;
+    updateSelectedControlsState();
+    notifySceneChange(item);
+    const label = item.name_zh || item.name_zh_raw || item.normalized_type || "家具";
+    setStatus(!locked
+      ? `已鎖定「${label}」為指定需求。`
+      : `已取消「${label}」的指定需求鎖定。`);
+    return true;
   }
 
   function selectObjectByIndex(index, { focus = true, showGuide = true } = {}) {
@@ -4694,6 +4877,11 @@ export function createSceneViewer(
   selectedControls.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
+    const lockButton = event.target.closest("[data-object-lock]");
+    if (lockButton) {
+      toggleSelectedObjectLock();
+      return;
+    }
     const moveButton = event.target.closest("[data-object-move]");
     if (moveButton) {
       await moveSelectedFromControls(moveButton.dataset.objectMove);
