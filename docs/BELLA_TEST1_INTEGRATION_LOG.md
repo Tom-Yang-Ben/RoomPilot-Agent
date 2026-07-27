@@ -987,6 +987,19 @@ $env:TEMP=$env:TMP
 - Updated the Step 6 room-material side label to display the effective material
   after consistency normalization.
 
+## 2026-07-27 Flush Window Frame Geometry
+
+- Fixed Step 6 3D window rendering where the upper/lower edge could visibly
+  fight with wall sections and look recessed or protruded.
+- Window assemblies now offset the glass and frame to a stable wall-face plane
+  instead of drawing directly on the wall centerline.
+- Window sill/header wall sections leave a small clearance around the frame so
+  the frame, sill, and wall no longer overlap.
+- Added a flush sill detail and regression checks for the frame offset,
+  wall-section clearance, and standalone window path.
+- Browser reload confirmed the new scene viewer import was active with no
+  console errors.
+
 ## 2026-07-27 Step 6 Edit-Mode Camera Preservation
 
 - Removed the forced dollhouse camera reset from the Step 6

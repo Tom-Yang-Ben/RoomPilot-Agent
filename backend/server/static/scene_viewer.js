@@ -1231,8 +1231,14 @@ export function createSceneViewer(
           : interval.windowMetrics.headHeightCm;
         if (interval.kind === "window") {
           const sillHeight = interval.windowMetrics.sillHeightCm;
-          addWallSection(interval.from, interval.to, 0, sillHeight);
-          addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
+          const frameAllowanceCm = 0.6;
+          addWallSection(interval.from, interval.to, 0, Math.max(0, sillHeight - frameAllowanceCm));
+          addWallSection(
+            interval.from,
+            interval.to,
+            openingHeight + frameAllowanceCm,
+            Math.max(0, wallHeight - openingHeight - frameAllowanceCm),
+          );
         } else {
           addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
         }
@@ -1244,6 +1250,7 @@ export function createSceneViewer(
               x: Number(start.x) + unitX * ((interval.from + interval.to) / 2),
               z: Number(start.z) + unitZ * ((interval.from + interval.to) / 2),
               rotationY,
+              wallThickness,
             },
           );
           renderedOpenings.add(interval.key);
@@ -1312,8 +1319,13 @@ export function createSceneViewer(
     assembly.userData.roompilotArchitecturalDetail = interval.kind;
 
     if (isWindow) {
+      const frameDepth = 3.2;
+      const frameThickness = 4.2;
+      const faceOffset = Math.max(Number(anchor.wallThickness || 12) / 2 + 0.35, 6);
+      const bottomY = centerY - height / 2;
+      const topY = centerY + height / 2;
       const glass = new THREE.Mesh(
-        new THREE.PlaneGeometry(interval.width * 0.92, height * 0.9),
+        new THREE.PlaneGeometry(Math.max(interval.width - frameThickness * 2, 12), Math.max(height - frameThickness * 2, 12)),
         new THREE.MeshPhysicalMaterial({
           color: 0xd9edf2,
           roughness: 0.08,
@@ -1328,24 +1340,35 @@ export function createSceneViewer(
         }),
       );
       glass.position.y = centerY;
+      glass.position.z = faceOffset - frameDepth / 2 - 0.08;
       glass.castShadow = false;
       assembly.add(glass);
       const mullionPositions = [0];
       [
-        [interval.width, 4.5, 0, centerY - height / 2],
-        [interval.width, 4.5, 0, centerY + height / 2],
-        [4.5, height, -interval.width / 2, centerY],
-        [4.5, height, interval.width / 2, centerY],
-        ...mullionPositions.map((x) => [3.5, height, x, centerY]),
+        [interval.width, frameThickness, 0, bottomY],
+        [interval.width, frameThickness, 0, topY],
+        [frameThickness, height, -interval.width / 2, centerY],
+        [frameThickness, height, interval.width / 2, centerY],
+        ...mullionPositions.map((x) => [3.2, height - frameThickness, x, centerY]),
       ].forEach(([width, frameHeight, x, y]) => {
         const frame = new THREE.Mesh(
-          new THREE.BoxGeometry(width, frameHeight, 4.5),
+          new THREE.BoxGeometry(width, frameHeight, frameDepth),
           frameMaterial,
         );
-        frame.position.set(x, y, 0);
+        frame.position.set(x, y, faceOffset);
         frame.castShadow = true;
+        frame.receiveShadow = true;
         assembly.add(frame);
       });
+      const sill = new THREE.Mesh(
+        new THREE.BoxGeometry(interval.width + 8, 2.2, frameDepth + 4),
+        frameMaterial,
+      );
+      sill.position.set(0, bottomY - 1.1, faceOffset);
+      sill.castShadow = true;
+      sill.receiveShadow = true;
+      sill.userData.roompilotArchitecturalDetail = "flush-window-sill";
+      assembly.add(sill);
     } else {
       const leaf = new THREE.Mesh(
         new THREE.BoxGeometry(Math.max(interval.width * 0.94, 60), height, 4.5),
@@ -1400,6 +1423,7 @@ export function createSceneViewer(
           x: (Number(start.x || 0) + Number(end.x || 0)) / 2,
           z: (Number(start.z || 0) + Number(end.z || 0)) / 2,
           rotationY: Math.atan2(-dz, dx),
+          wallThickness,
         },
       );
       const isWindow = kind === "window";
@@ -1429,13 +1453,20 @@ export function createSceneViewer(
         roomGroupRef.add(registerWall(section));
       };
       if (isWindow) {
-        addOpeningWallSection(0, sillHeight, "window-wall-sill");
+        const frameAllowanceCm = 0.6;
+        addOpeningWallSection(0, Math.max(0, sillHeight - frameAllowanceCm), "window-wall-sill");
+        addOpeningWallSection(
+          openingHeight + frameAllowanceCm,
+          Math.max(0, wallHeight - openingHeight - frameAllowanceCm),
+          "window-wall-header",
+        );
+      } else {
+        addOpeningWallSection(
+          openingHeight,
+          wallHeight - openingHeight,
+          "door-wall-header",
+        );
       }
-      addOpeningWallSection(
-        openingHeight,
-        wallHeight - openingHeight,
-        isWindow ? "window-wall-header" : "door-wall-header",
-      );
     });
   }
 

@@ -233,6 +233,31 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
     assert "roomGroupRef.add(topCap)" in wall_builder
 
 
+def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildStandaloneOpeningAssemblies", 1
+    )[0]
+    opening_builder = source.split("function buildOpeningAssembly", 1)[1].split(
+        "function buildStandaloneOpeningAssemblies", 1
+    )[0]
+    standalone_builder = source.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
+        "function buildStructuralMembers", 1
+    )[0]
+
+    assert "const frameAllowanceCm = 0.6" in wall_builder
+    assert "Math.max(0, sillHeight - frameAllowanceCm)" in wall_builder
+    assert "wallHeight - openingHeight - frameAllowanceCm" in wall_builder
+    assert "wallThickness" in wall_builder
+    assert "const faceOffset = Math.max(Number(anchor.wallThickness || 12) / 2 + 0.35, 6)" in opening_builder
+    assert "glass.position.z = faceOffset - frameDepth / 2 - 0.08" in opening_builder
+    assert "frame.position.set(x, y, faceOffset)" in opening_builder
+    assert 'roompilotArchitecturalDetail = "flush-window-sill"' in opening_builder
+    assert "Math.max(0, sillHeight - frameAllowanceCm)" in standalone_builder
+
+
 def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
