@@ -438,10 +438,11 @@ def test_scene_wizard_exposes_one_panel_for_each_confirmed_step() -> None:
     assert 'id="furniture-icon-library"' in html
     assert "此空間暫不作答" not in html
     assert "確認此房需求與材質" in html
-    assert "我已確認是否有指定家具需求" in html
+    assert "我已確認是否有指定家具需求" not in html
+    assert "使用浮動微調面板鎖定或取消指定需求" in html
 
 
-def test_scene_exposes_the_final_ten_step_workflow() -> None:
+def test_scene_exposes_the_final_eight_step_workflow() -> None:
     html = SCENE_HTML.read_text(encoding="utf-8")
     labels = [
         "1 建立專案",
@@ -449,14 +450,12 @@ def test_scene_exposes_the_final_ten_step_workflow() -> None:
         "3 確定尺寸",
         "4 空間與結構",
         "5 需求問卷",
-        "6 2D 家具配置",
-        "7 3D 白模",
-        "8 即時寫實",
-        "9 方案鎖定",
-        "10 AI 渲染",
+        "6 配置與預覽",
+        "7 方案鎖定與視角",
+        "8 AI 渲染與成果包",
     ]
 
-    assert 'data-workflow-count="10"' in html
+    assert 'data-workflow-count="8"' in html
     for label in labels:
         assert label in html
     assert "進入 RoomPilot" not in html

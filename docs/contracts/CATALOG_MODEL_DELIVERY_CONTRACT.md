@@ -9,7 +9,8 @@
 
 | 資料 | 來源 |
 |---|---|
-| 家具搜尋、風格、尺寸與選件 metadata | `backend/catalog/data/furniture_catalog_6styles_zh.json` |
+| 正式家具、尺寸、材質、顏色與 GLB ID | `backend/catalog/data/furniture_catalog_cloud_9350.json` |
+| 六風格、RAG、分類與擺放提示 enrichment | `backend/catalog/data/furniture_catalog_6styles_zh.json` |
 | 家具 GLB | AWS CloudFront |
 | 未對應家具 | `backend/catalog/data/quarantine/unmatched_cloud_furniture/` |
 | 離線備援 | README 指定並通過驗證的外部 zip |
@@ -20,12 +21,19 @@ Manifest 位於：
 backend/catalog/data/manifests/glb_upload_all_result.csv
 ```
 
+正式集合必須是 cloud catalog 與 Manifest 完整共有的 9,350 個 ID。
+六風格檔只能補資料，不能增加家具。目前 9,021 件可由 ID 或唯一英文
+品名安全補上舊資料，329 件維持未分類；無法映射的 1,514 筆舊資料
+排除於正式查詢。
+
 隔離項目在確認家具 ID、唯一品名或 Manifest 前，不得進入網頁、
 Agent 選件或 3D 場景，也不得猜測模型 URL。
 
 ## 交付規則
 
 - 預設模式是 `cloudfront`。
+- 網頁、Agent 與 3D 只能列出正式 9,350 件，不得先載入 10,550 件再
+  於前端隱藏多餘資料。
 - 只有 Manifest 中狀態已完成且具 HTTPS URL 的模型可被發布。
 - 對應順序是家具 ID、合併後模型優先 ID、唯一標準化英文品名。
 - 同名對應超過一筆時拒絕猜測。

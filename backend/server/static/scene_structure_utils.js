@@ -1,6 +1,6 @@
 function finitePoint(point) {
   const x = Number(point?.x);
-  const y = Number(point?.y);
+  const y = Number(point?.y ?? point?.z);
   return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
 }
 

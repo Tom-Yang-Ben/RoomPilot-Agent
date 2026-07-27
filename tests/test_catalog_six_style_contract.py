@@ -1,6 +1,8 @@
 from pathlib import Path
 import re
 
+import pytest
+
 from backend.server import intake_service
 from backend.server.main import (
     _merged_furniture_catalog_cached,
@@ -33,23 +35,25 @@ def test_old_twelve_style_json_is_archived_outside_the_active_catalog():
     assert (ARCHIVE_DIR / "README.md").is_file()
 
 
-def test_active_catalog_uses_only_the_confirmed_six_styles_and_chinese_names():
+def test_active_catalog_uses_the_official_cloud_set_and_only_confirmed_styles():
     catalog = load_style_database()
     assert {style["style_id"] for style in catalog["styles"]} == CANONICAL_STYLE_IDS
 
     furniture = catalog["furniture"]
-    assert furniture
+    assert len(furniture) == 9_350
     assert all(item.get("name_zh") and re.search(r"[\u4e00-\u9fff]", item["name_zh"]) for item in furniture)
 
-    non_equipment = [item for item in furniture if item.get("catalog_scope") == "furniture"]
-    assert non_equipment
-    assert all(item.get("primary_style") in CANONICAL_STYLE_IDS for item in non_equipment)
-    assert all(1 <= len(item.get("style_candidates", [])) <= 2 for item in non_equipment)
-
-    equipment = [item for item in furniture if item.get("catalog_scope") == "equipment"]
-    assert equipment
-    assert all(item.get("primary_style") is None for item in equipment)
-    assert all(item.get("style_candidates") == [] for item in equipment)
+    classified = [item for item in furniture if item.get("primary_style")]
+    unclassified = [item for item in furniture if not item.get("primary_style")]
+    assert len(classified) == 9_021
+    assert len(unclassified) == 329
+    assert all(item["primary_style"] in CANONICAL_STYLE_IDS for item in classified)
+    assert all(
+        set(candidate["style_id"] for candidate in item.get("style_candidates", []))
+        <= CANONICAL_STYLE_IDS
+        for item in classified
+    )
+    assert all(item.get("style_candidates") == [] for item in unclassified)
 
 
 def test_library_exposes_hierarchical_category_options():
@@ -64,17 +68,30 @@ def test_library_exposes_hierarchical_category_options():
         detail="card",
     )
     groups = payload["category_groups"]
-    assert {group["group_id"] for group in groups} >= {"living", "dining_kitchen", "bedroom", "study", "storage", "soft_decor", "equipment"}
+    assert {group["group_id"] for group in groups} >= {
+        "living",
+        "dining_kitchen",
+        "bedroom",
+        "study",
+        "storage",
+        "soft_decor",
+    }
+    assert "equipment" not in {group["group_id"] for group in groups}
     assert all(group["group_name_zh"] and group["types"] for group in groups)
 
 
 def test_an_available_external_model_resolves_to_a_real_glb_response(monkeypatch):
     monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "local")
     furniture = next(
+        (
         item
         for item in _merged_furniture_catalog_cached()
         if _resolve_external_zip_entry(item) is not None
+        ),
+        None,
     )
+    if furniture is None:
+        pytest.skip("未設定外部離線 GLB 備援包")
     response = _model_response_for_merged_furniture(furniture)
     assert response.body[:4] == b"glTF"
 

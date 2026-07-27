@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import csv
 import json
 import os
 import re
@@ -8,11 +9,13 @@ import unicodedata
 import urllib.error
 import urllib.request
 import zipfile
+from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
@@ -24,6 +27,7 @@ from .questionnaire_visuals import (
     load_questionnaire_visual_catalog,
 )
 from ..catalog.style_db import sanitize_size_cm
+from ..catalog.cloud_catalog import load_official_catalog
 from ..floorplan.vision import (
     analyze_floorplan_image,
     confirm_floorplan_analysis,
@@ -65,13 +69,48 @@ from .services.cloud_models import (
     cloudfront_required,
     manifest_status,
 )
+from .services.cloud_images import (
+    cloud_image_urls,
+    cloud_primary_image_url,
+    image_manifest_status,
+)
+from .postgres_catalog import catalog_provider_status, load_catalog as load_postgres_catalog
 
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent.parent
+
+
+def _project_path_from_env(name: str, default: Path) -> Path:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    path = Path(raw).expanduser()
+    return path if path.is_absolute() else PROJECT_DIR / path
+
+
 STATIC_DIR = BASE_DIR / "static"
 MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
-STYLE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
+STYLE_ENRICHMENT_DB_PATH = (
+    BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
+)
+OFFICIAL_FURNITURE_CATALOG_PATH = (
+    PROJECT_DIR / "JSON" / "furniture" / "furniture_official_catagory.json"
+)
+CLOUD_CATALOG_PATH = _project_path_from_env(
+    "ROOMPILOT_CLOUD_CATALOG_PATH",
+    OFFICIAL_FURNITURE_CATALOG_PATH
+    if OFFICIAL_FURNITURE_CATALOG_PATH.exists()
+    else BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json",
+)
+CLOUD_MANIFEST_PATH = _project_path_from_env(
+    "ROOMPILOT_GLB_MANIFEST_PATH",
+    BASE_DIR.parent
+    / "catalog"
+    / "data"
+    / "manifests"
+    / "glb_upload_all_result.csv",
+)
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
 EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風格與JSON" / "external_furniture_import_index.json"
 DATASET_DIR = PROJECT_DIR / "dataset"
@@ -86,6 +125,19 @@ QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
 _QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
 MAX_RENDER_BYTES = 20 * 1024 * 1024
+WORKFLOW_STEPS = {
+    "project",
+    "upload",
+    "recognition",
+    "calibration",
+    "space_confirmation",
+    "requirements",
+    "layout_2d",
+    "white_model_3d",
+    "realistic_3d",
+    "proposal_review",
+    "ai_render",
+}
 _EXTERNAL_GLB_ZIP_SEARCH_DIRS = (
     DATASET_DIR,
     Path.home() / "Downloads",
@@ -105,6 +157,7 @@ _DATASET_GLB_ROOTS = [
 ]
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 def _questionnaire_visual_store() -> QuestionnaireVisualStore:
@@ -365,7 +418,11 @@ def _model_status(furniture: dict) -> tuple[bool, str]:
 
 @lru_cache(maxsize=1)
 def load_style_database() -> dict:
-    return json.loads(STYLE_DB_PATH.read_text(encoding="utf-8"))
+    return load_official_catalog(
+        CLOUD_CATALOG_PATH,
+        STYLE_ENRICHMENT_DB_PATH,
+        CLOUD_MANIFEST_PATH,
+    )
 
 
 @lru_cache(maxsize=1)
@@ -718,6 +775,13 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         if "has_model" in item
         else _model_status(item)
     )
+    preview_images = cloud_image_urls(item)
+    image_url = (
+        preview_images.get("front")
+        or preview_images.get("angle-45")
+        or preview_images.get("side")
+        or cloud_primary_image_url(item)
+    )
     payload = {
         "furniture_id": item.get("furniture_id"),
         "name_en": item.get("name_en"),
@@ -730,9 +794,22 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         "catalog_scope": item.get("catalog_scope"),
         "normalized_type": item.get("normalized_type"),
         "primary_style": item.get("primary_style"),
+        "style_primary": item.get("style_primary") or item.get("primary_style"),
+        "style_secondary": item.get("style_secondary"),
         "style_candidates": item.get("style_candidates", []),
         "style_confidence": item.get("style_confidence"),
         "style_assignment_source": item.get("style_assignment_source"),
+        "room_types": item.get("room_types", []),
+        "catalog_role": item.get("role"),
+        "visual_weight": item.get("visual_weight"),
+        "height_zone": item.get("height_zone"),
+        "size_class": item.get("size_class"),
+        "description": item.get("description"),
+        "rag_text": item.get("rag_text", []),
+        "mood_tags": item.get("mood_tags", []),
+        "features": item.get("features", []),
+        "search_keywords": item.get("search_keywords", []),
+        "object_type_zh": item.get("object_type_zh"),
         "color": item.get("color"),
         "material": item.get("material"),
         "size_cm": sanitize_size_cm(item),
@@ -740,6 +817,10 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         "can_rotate": item.get("can_rotate"),
         "has_model": has_model,
         "missing_model_reason": None if has_model else model_reason,
+        "image_url": image_url,
+        "thumbnail_url": image_url,
+        "preview_url": image_url,
+        "preview_images": preview_images,
         **_candidate_schema_fields(item, has_model),
     }
     if include_model_url:
@@ -760,19 +841,78 @@ def _furniture_card_payload(item: dict) -> dict:
         "catalog_scope": item.get("catalog_scope"),
         "normalized_type": item.get("normalized_type"),
         "primary_style": item.get("primary_style"),
+        "style_primary": item.get("style_primary") or item.get("primary_style"),
+        "style_secondary": item.get("style_secondary"),
         "style_candidates": item.get("style_candidates", []),
+        "room_types": item.get("room_types", []),
+        "catalog_role": item.get("role"),
+        "description": item.get("description"),
+        "rag_text": item.get("rag_text", []),
+        "mood_tags": item.get("mood_tags", []),
+        "features": item.get("features", []),
+        "search_keywords": item.get("search_keywords", []),
         "color": item.get("color"),
         "material": item.get("material"),
         "size_cm": item.get("size_cm"),
         "has_model": item.get("has_model"),
         "missing_model_reason": item.get("missing_model_reason"),
         "model_url": item.get("model_url"),
+        "image_url": item.get("image_url"),
+        "thumbnail_url": item.get("thumbnail_url"),
+        "preview_url": item.get("preview_url"),
+        "preview_images": item.get("preview_images", {}),
     }
 
 
 @lru_cache(maxsize=1)
 def _furniture_payload_cache() -> tuple[dict, ...]:
+    """Prefer Kai's reviewed PostgreSQL catalog, with a portable JSON fallback."""
+    provider = os.getenv("ROOMPILOT_CATALOG_PROVIDER", "postgres").strip().casefold()
+    if provider not in {"json", "local", "fallback"}:
+        try:
+            return load_postgres_catalog(PROJECT_DIR)
+        except Exception as exc:
+            print(f"[RoomPilot] PostgreSQL catalog unavailable; using JSON fallback: {type(exc).__name__}")
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
+
+
+@lru_cache(maxsize=1)
+def _appliance_payload_cache() -> tuple[dict, ...]:
+    return ()
+    if not COMBINED_CATALOG_PATH.exists():
+        return ()
+    raw = json.loads(COMBINED_CATALOG_PATH.read_text(encoding="utf-8"))
+    items = []
+    manifest = _appliance_manifest_index()
+    for source in raw.get("items", []):
+        if source.get("role_code") != "appliance":
+            continue
+        item = {
+            **source,
+            "furniture_id": source.get("furniture_id") or source.get("id"),
+            "normalized_type": (
+                source.get("normalized_type")
+                or source.get("type_code")
+                or source.get("type")
+            ),
+            "name_zh_raw": source.get("name_zh_raw") or source.get("name_zh"),
+            "category_label": source.get("category_label") or source.get("category"),
+            "taxonomy_group": "appliance",
+            "taxonomy_group_zh": "家電",
+            "catalog_scope": "appliance",
+        }
+        payload = _furniture_payload_item(item)
+        verified_url = manifest.get(str(item["furniture_id"]))
+        if verified_url:
+            payload["has_model"] = True
+            payload["missing_model_reason"] = None
+            payload["model_url"] = verified_url
+            payload["match_reason"] = (
+                f"類型為 {payload.get('normalized_type')}，"
+                "且已有完整 manifest 驗證的 CloudFront GLB。"
+            )
+        items.append(payload)
+    return tuple(items)
 
 
 @lru_cache(maxsize=2048)
@@ -828,6 +968,9 @@ def _get_external_furniture_by_id(furniture_id: str) -> dict:
 
 
 def _get_merged_furniture_by_id(furniture_id: str) -> dict:
+    for item in _furniture_payload_cache():
+        if str(item.get("furniture_id")) == str(furniture_id):
+            return item
     for item in _merged_furniture_catalog_cached():
         aliases = set(item.get("merged_furniture_ids") or [])
         aliases.add(str(item.get("furniture_id")))
@@ -1046,7 +1189,11 @@ def _catalog_count_summary() -> dict:
 def _furniture_matches_style(item: dict, style_id: str | None) -> bool:
     if not style_id:
         return True
-    if item.get("primary_style") == style_id:
+    if style_id in {
+        item.get("primary_style"),
+        item.get("style_primary"),
+        item.get("style_secondary"),
+    }:
         return True
     for candidate in item.get("style_candidates", []) or []:
         if _candidate_style_id(candidate) == style_id and _candidate_score(candidate) > 0:
@@ -1069,6 +1216,16 @@ def _furniture_search_text(item: dict) -> str:
             item.get("color"),
             item.get("material"),
             item.get("primary_style"),
+            item.get("style_primary"),
+            item.get("style_secondary"),
+            " ".join(item.get("room_types") or []),
+            item.get("role"),
+            item.get("description"),
+            " ".join(item.get("rag_text") or []),
+            " ".join(item.get("mood_tags") or []),
+            " ".join(item.get("features") or []),
+            " ".join(item.get("search_keywords") or []),
+            item.get("object_type_zh"),
         )
     ).casefold()
 
@@ -1405,7 +1562,10 @@ def library_page() -> FileResponse:
 
 @app.get("/scene")
 def scene_page() -> FileResponse:
-    return _page("scene.html")
+    return FileResponse(
+        STATIC_DIR / "scene.html",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 def _stored_project(project_id: str) -> dict:
@@ -1490,7 +1650,8 @@ def create_project(payload: dict) -> dict:
 
 
 @app.get("/api/projects/{project_id}")
-def get_project(project_id: str) -> dict:
+def get_project(project_id: str, response: Response) -> dict:
+    response.headers["Cache-Control"] = "no-store"
     return {"project": _stored_project(project_id)}
 
 
@@ -1498,17 +1659,7 @@ def get_project(project_id: str) -> dict:
 def save_project_workflow(project_id: str, payload: dict) -> dict:
     _stored_project(project_id)
     current_step = str(payload.get("current_step") or "").strip() or None
-    if current_step and current_step not in {
-        "project",
-        "upload",
-        "recognition",
-        "calibration",
-        "space_confirmation",
-        "requirements",
-        "layout_2d",
-        "white_model_3d",
-        "realistic_3d",
-    }:
+    if current_step and current_step not in WORKFLOW_STEPS:
         raise HTTPException(422, "invalid_workflow_step")
     workflow = payload.get("workflow")
     if workflow is not None and not isinstance(workflow, dict):
@@ -1841,8 +1992,10 @@ def analyze_project_floorplan(project_id: str) -> dict:
             },
         },
     )
+    layout_json = _layout_json_from_analysis(analysis)
     return {
         "analysis": analysis,
+        "layout_json": layout_json,
         "geometry_engine": geometry_engine,
     }
 
@@ -1878,7 +2031,9 @@ def catalog_status() -> dict:
     wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
     floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
     return {
+        "catalog_provider": catalog_provider_status(PROJECT_DIR),
         "furniture": furniture,
+        "furniture_images": image_manifest_status(),
         "surfaces": {
             "provider": "local_pending_aws_manifest",
             "wall_count": wall_count,
@@ -2051,8 +2206,17 @@ def _legacy_viewer_models(items: list[dict]) -> list[str]:
 
 
 def _furniture_detail_payload(furniture_id: str) -> dict:
-    item = _get_merged_furniture_by_id(furniture_id)
-    payload = _furniture_payload_item(item)
+    item = next(
+        (
+            candidate
+            for candidate in _furniture_payload_cache()
+            if str(candidate.get("furniture_id")) == str(furniture_id)
+        ),
+        None,
+    )
+    if item is None:
+        item = _furniture_payload_item(_get_merged_furniture_by_id(furniture_id))
+    payload = dict(item)
     payload.update(
         {
             "merged_furniture_ids": item.get("merged_furniture_ids", []),
@@ -2277,19 +2441,24 @@ async def generate_scene(payload: dict) -> dict:
         "preferred_materials": brief_style.get("materials", []),
         "floorplan_filename": payload.get("floorplan_filename"),
         "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
+        "layout_json": payload.get("layout_json"),
         "floorplan_editor": payload.get("floorplan_editor"),
         "wall_option": payload.get("wall_option", "auto"),
         "floor_option": payload.get("floor_option", "auto"),
         "furniture_random_seed": payload.get("furniture_random_seed"),
     }
 
-    return build_scene_payload(
+    scene_payload = build_scene_payload(
         site_payload=site_payload,
         questionnaire=questionnaire,
         floorplan_path=payload.get("floorplan_filename"),
         room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
         room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
     )
+    return {
+        **scene_payload,
+        "scene_json": deepcopy(scene_payload),
+    }
 
 
 @app.post("/api/scene/layout")
@@ -2315,6 +2484,7 @@ async def scene_layout(payload: dict) -> dict:
         or _largest_region_boundary(floorplan, room)
     )
     return {
+        "floorplan": floorplan,
         "scene_objects": generate_layout(
             room.width,
             room.depth,
@@ -2586,6 +2756,9 @@ async def scene_validate(payload: dict) -> dict:
 @app.get("/api/furniture/{furniture_id}/model")
 def furniture_model(furniture_id: str):
     furniture = _get_merged_furniture_by_id(furniture_id)
+    direct_url = str(furniture.get("model_url") or "").strip()
+    if direct_url.startswith(("https://", "http://")):
+        return RedirectResponse(direct_url, status_code=307)
     return _model_response_for_merged_furniture(furniture)
 
 
@@ -2667,6 +2840,13 @@ def _floorplan_json_field(raw: str | None, field: str, default):
         raise HTTPException(422, f"invalid_{field}_json") from exc
 
 
+def _layout_json_from_analysis(analysis: dict) -> dict:
+    floorplan = analysis.get("floorplan")
+    if isinstance(floorplan, dict):
+        return floorplan
+    return analysis
+
+
 @app.post("/api/floorplan/analyze")
 async def floorplan_analyze(
     file: UploadFile = File(...),
@@ -2700,8 +2880,10 @@ async def floorplan_analyze(
         raise HTTPException(422, str(exc)) from exc
     analysis["observed_utilities"] = observed_utilities
     analysis["requirement_brief"] = brief
+    layout_json = _layout_json_from_analysis(analysis)
     return {
         "analysis": analysis,
+        "layout_json": layout_json,
         "requirements": infer_room_requirements(analysis, brief),
         "geometry_engine": "cody" if not geometry else "manual",
         "ocr_provider": "provided_or_reference_semantics",

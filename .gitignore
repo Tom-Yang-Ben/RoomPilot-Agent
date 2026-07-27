@@ -25,6 +25,10 @@ TripoSR/
 test_3Dfurniture/
 scripts/*
 !scripts/verify_ikea_offline_backup.py
+!scripts/sql/
+!scripts/sql/**
+scripts/sql/__pycache__/
+scripts/sql/**/*.pyc
 
 # Non-runtime generated/intermediate model artifacts
 dataset/
@@ -61,6 +65,17 @@ PERSONAL_*.md
 docs/MISSING_*_AUDIT_*.md
 
 AGENTS.md
+
+# Shared AI team guidance is intentionally versioned.
+!AGENTS.md
+!CLAUDE.md
+!backend/**/AGENTS.md
+!frontend3d/AGENTS.md
+!scripts/AGENTS.md
+!testdata/AGENTS.md
+!tests/AGENTS.md
+!docs/owners/
+!docs/owners/*.md
 
 # 3D 模型屬於本機或外部資產，不從 bella 分支上傳。
 *.glb

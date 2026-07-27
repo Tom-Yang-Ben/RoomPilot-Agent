@@ -10,27 +10,263 @@ import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { classifyMaterialSlot } from "./scene_material_schemes.js?v=20260712b";
 import {
+  architecturalPbrProfile,
   furniturePbrProfile,
   surfacePbrProfile,
   surfaceTint,
-} from "./scene_pbr_contracts.js?v=20260720-real3d15";
-import { openingBelongsToWall } from "./scene_architecture.js?v=sha256-77dd3e6c8e09";
+} from "./scene_pbr_contracts.js?v=sha256-075ad1cedc62";
+import {
+  doorOpeningForWallTopology,
+  openingBelongsToWall,
+  openingWallInterval,
+  wallSectionSpan,
+  wallSegmentForOpening,
+} from "./scene_architecture.js?v=sha256-f10efe4286e2";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
-import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-ebc6332ca3c4";
-import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
+import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
+import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
 import {
   clampWalkPosition,
   computeExactModelScale,
-  doorLeafTransform,
   fallbackMaterialRole,
   findNearestWalkablePosition,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-b4521120c436";
+} from "./scene_visual_contracts.js?v=sha256-b73f02baf64c";
 
 const CM_PER_METER = 100;
 
-export function createSceneViewer(container, statusElement, { onSceneChange = null } = {}) {
+function normalizeSceneRotationDeg(rotationDeg = 0) {
+  return ((Number(rotationDeg) % 360) + 360) % 360;
+}
+
+function architecturalOpeningVector(opening = {}) {
+  const start = opening.start || {};
+  const end = opening.end || {};
+  const startX = Number(start.x || 0);
+  const startZ = Number(start.z || 0);
+  const endX = Number(end.x || 0);
+  const endZ = Number(end.z || 0);
+  const dx = endX - startX;
+  const dz = endZ - startZ;
+  const length = Math.hypot(dx, dz);
+  return {
+    startX,
+    startZ,
+    endX,
+    endZ,
+    centerX: (startX + endX) / 2,
+    centerZ: (startZ + endZ) / 2,
+    length,
+    unitX: length ? dx / length : 0,
+    unitZ: length ? dz / length : 0,
+  };
+}
+
+function architecturalOpeningsOverlap(left = {}, right = {}) {
+  const leftVector = architecturalOpeningVector(left);
+  const rightVector = architecturalOpeningVector(right);
+  if (leftVector.length < 4 || rightVector.length < 4) return false;
+  const parallel = Math.abs(
+    leftVector.unitX * rightVector.unitX + leftVector.unitZ * rightVector.unitZ,
+  );
+  if (parallel < 0.82) return false;
+  const centerDistance = Math.hypot(
+    leftVector.centerX - rightVector.centerX,
+    leftVector.centerZ - rightVector.centerZ,
+  );
+  const endpointDistance = Math.min(
+    Math.hypot(leftVector.startX - rightVector.startX, leftVector.startZ - rightVector.startZ)
+      + Math.hypot(leftVector.endX - rightVector.endX, leftVector.endZ - rightVector.endZ),
+    Math.hypot(leftVector.startX - rightVector.endX, leftVector.startZ - rightVector.endZ)
+      + Math.hypot(leftVector.endX - rightVector.startX, leftVector.endZ - rightVector.startZ),
+  );
+  const width = Math.min(
+    Number(left.width_cm || left.width || leftVector.length) || leftVector.length,
+    Number(right.width_cm || right.width || rightVector.length) || rightVector.length,
+  );
+  return centerDistance <= Math.max(18, width * 0.28) || endpointDistance <= 36;
+}
+
+function openingWallCoverage(opening = {}, wallSegments = [], wallThickness = 12) {
+  if (opening.topology_gap) return null;
+  const hostSegment = wallSegmentForOpening(wallSegments, opening, wallThickness);
+  if (!hostSegment) return null;
+  const interval = openingWallInterval(hostSegment, opening, wallThickness, 24);
+  if (!interval) return null;
+  return { hostSegment, interval };
+}
+
+function openingsShareWallCoverage(left = {}, right = {}, wallSegments = [], wallThickness = 12) {
+  const leftCoverage = openingWallCoverage(left, wallSegments, wallThickness);
+  const rightCoverage = openingWallCoverage(right, wallSegments, wallThickness);
+  if (!leftCoverage || !rightCoverage || leftCoverage.hostSegment !== rightCoverage.hostSegment) {
+    return false;
+  }
+  const overlap = Math.min(leftCoverage.interval.to, rightCoverage.interval.to)
+    - Math.max(leftCoverage.interval.from, rightCoverage.interval.from);
+  const narrowerWidth = Math.min(
+    leftCoverage.interval.to - leftCoverage.interval.from,
+    rightCoverage.interval.to - rightCoverage.interval.from,
+  );
+  // A repeated recognition can be offset from the wall line, but still cuts the
+  // same physical span. Do not collapse neighbouring, genuinely separate doors.
+  return overlap >= Math.max(24, narrowerWidth * 0.55);
+}
+
+function architecturalOpeningScore(opening = {}, wallSegments = [], wallThickness = 12) {
+  const coverage = openingWallCoverage(opening, wallSegments, wallThickness);
+  const vector = architecturalOpeningVector(opening);
+  const host = coverage ? architecturalOpeningVector(coverage.hostSegment) : null;
+  const centerOffset = host
+    ? Math.abs(
+      (vector.centerX - host.startX) * -host.unitZ
+      + (vector.centerZ - host.startZ) * host.unitX,
+    )
+    : 0;
+  return (opening.topology_gap ? 100 : 0)
+    + (opening.confirmed ? 18 : 0)
+    + (opening.source === "manual" ? 14 : 0)
+    + Math.min(12, Number(opening.confidence || 0) * 12)
+    - Math.min(30, centerOffset * 0.25);
+}
+
+function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wallThickness = 12) {
+  const result = [];
+  openings.filter(Boolean).forEach((opening) => {
+    const duplicateIndex = result.findIndex(
+      (candidate) => architecturalOpeningsOverlap(candidate, opening)
+        || openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness),
+    );
+    if (duplicateIndex < 0) {
+      result.push(opening);
+      return;
+    }
+    if (
+      architecturalOpeningScore(opening, wallSegments, wallThickness)
+      > architecturalOpeningScore(result[duplicateIndex], wallSegments, wallThickness)
+    ) {
+      result[duplicateIndex] = opening;
+    }
+  });
+  return result;
+}
+
+function sceneToWorldPosition(position = {}) {
+  return {
+    x: Number(position.x || 0),
+    z: -Number(position.z || 0),
+  };
+}
+
+function worldToScenePosition(position = {}) {
+  return {
+    x: Math.round(Number(position.x || 0) * 100) / 100,
+    z: Math.round(-Number(position.z || 0) * 100) / 100,
+  };
+}
+
+function sceneToWorldRotationDeg(rotationDeg = 0) {
+  return normalizeSceneRotationDeg(-Number(rotationDeg || 0));
+}
+
+function worldToSceneRotationDeg(rotationDeg = 0) {
+  return normalizeSceneRotationDeg(-Number(rotationDeg || 0));
+}
+
+function flipPointZ(point) {
+  if (Array.isArray(point)) return [Number(point[0] || 0), -Number(point[1] || 0)];
+  if (!point || typeof point !== "object") return point;
+  const next = { ...point };
+  if ("z" in next) next.z = -Number(next.z || 0);
+  if ("y" in next && !("z" in next)) next.y = -Number(next.y || 0);
+  return next;
+}
+
+function flipSegmentZ(segment) {
+  if (!segment || typeof segment !== "object") return segment;
+  return {
+    ...segment,
+    start: flipPointZ(segment.start),
+    end: flipPointZ(segment.end),
+    rotation_deg: "rotation_deg" in segment
+      ? sceneToWorldRotationDeg(segment.rotation_deg)
+      : segment.rotation_deg,
+  };
+}
+
+function flipBoundsZ(bounds) {
+  if (!bounds || typeof bounds !== "object") return bounds;
+  const minZ = Number(bounds.minZ);
+  const maxZ = Number(bounds.maxZ);
+  if (!Number.isFinite(minZ) || !Number.isFinite(maxZ)) return { ...bounds };
+  return { ...bounds, minZ: -maxZ, maxZ: -minZ };
+}
+
+function flipPolygonRegionZ(region) {
+  if (!region || typeof region !== "object") return region;
+  return {
+    ...region,
+    exterior: (region.exterior || []).map(flipPointZ),
+    holes: (region.holes || []).map((ring) => (ring || []).map(flipPointZ)),
+    polygon_cm: (region.polygon_cm || []).map(flipPointZ),
+  };
+}
+
+function floorplanForWorld(sceneData) {
+  const floorplan = JSON.parse(JSON.stringify(sceneData?.floorplan || {}));
+  [
+    "wall_segments",
+    "door_segments",
+    "window_segments",
+    "door_openings",
+    "beam_segments",
+  ].forEach((key) => {
+    if (Array.isArray(floorplan[key])) floorplan[key] = floorplan[key].map(flipSegmentZ);
+  });
+  if (Array.isArray(floorplan.columns)) {
+    floorplan.columns = floorplan.columns.map((column) => ({
+      ...column,
+      center: flipPointZ(column.center),
+      rotation_deg: "rotation_deg" in column
+        ? sceneToWorldRotationDeg(column.rotation_deg)
+        : column.rotation_deg,
+    }));
+  }
+  if (Array.isArray(floorplan.wall_polys)) {
+    floorplan.wall_polys = floorplan.wall_polys.map(flipPolygonRegionZ);
+  }
+  if (Array.isArray(floorplan.room_regions)) {
+    floorplan.room_regions = floorplan.room_regions.map(flipPolygonRegionZ);
+  }
+  return floorplan;
+}
+
+function sceneDataForWorld(sceneData) {
+  const worldScene = {
+    ...sceneData,
+    floorplan: floorplanForWorld(sceneData),
+    surface_overrides: (sceneData?.surface_overrides || []).map((override) => ({
+      ...override,
+      room_bounds_cm: flipBoundsZ(override.room_bounds_cm),
+      room_polygon_cm: (override.room_polygon_cm || []).map(flipPointZ),
+    })),
+  };
+  if (worldScene.material_boundary?.room_bounds_cm) {
+    worldScene.material_boundary = {
+      ...worldScene.material_boundary,
+      room_bounds_cm: flipBoundsZ(worldScene.material_boundary.room_bounds_cm),
+      line_cm: (worldScene.material_boundary.line_cm || []).map(flipPointZ),
+    };
+  }
+  return worldScene;
+}
+
+export function createSceneViewer(
+  container,
+  statusElement,
+  { onSceneChange = null, onObjectSelect = null } = {},
+) {
   if ("createImageBitmap" in globalThis) {
     globalThis.createImageBitmap = undefined;
   }
@@ -507,6 +743,12 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     );
   }
 
+  function findSurfaceTexture(surfaceCatalog, surfaceId) {
+    return (surfaceCatalog?.surfaces || []).find(
+      (surface) => surface.surface_id === surfaceId && surface.texture_url,
+    ) || null;
+  }
+
   function getSurfaceModuleSize(surface, usage) {
     if (usage !== "floor") return { x: 180, y: 180 };
     const physicalSize = String(surface.source_size || "")
@@ -568,6 +810,33 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       material.transparent = true;
       material.opacity = options.opacity ?? 0.92;
       material.depthWrite = true;
+    }
+    return material;
+  }
+
+  function createArchitecturalMaterial(role, surfaceCatalog) {
+    const profile = architecturalPbrProfile(role);
+    const isDoor = role === "door_leaf";
+    const material = new THREE.MeshPhysicalMaterial({
+      color: isDoor ? 0xb98c62 : 0xe9ecec,
+      ...profile,
+    });
+
+    // The existing wood surface gives the default closed door visible grain.
+    // A future door catalog may replace it with a product-specific PBR set.
+    if (isDoor) {
+      const woodSurface = findSurfaceTexture(
+        surfaceCatalog,
+        "wood_cc0_wood_textures_woodfloor039",
+      );
+      if (woodSurface) {
+        material.map = createImageTexture(woodSurface, "floor", [1, 2.2]);
+        material.bumpMap = createImageTexture(woodSurface, "floor", [1, 2.2]);
+        material.bumpMap.colorSpace = THREE.NoColorSpace;
+        material.bumpScale = 0.018;
+        material.userData.roompilotImageSurface = true;
+        material.userData.roompilotSurfaceUsage = "door";
+      }
     }
     return material;
   }
@@ -1008,9 +1277,15 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     wallThickness,
     doorSegments = [],
     windowSegments = [],
+    floorplan = null,
+    surfaceCatalog = null,
   ) {
     const renderedOpenings = new Set();
-    const renderedJunctions = new Set();
+    const wallDoorSegments = doorSegments.filter((opening) => opening?.topology_gap !== true);
+    const topologyGapDoors = doorSegments.filter((opening) => opening?.topology_gap === true);
+    const exteriorSegments = segments.filter((segment) => (
+      isExteriorWallSegment(segment, floorplan, wallThickness)
+    ));
 
     segments.forEach((segment) => {
       const start = segment.start;
@@ -1024,46 +1299,51 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       const unitX = dx / length;
       const unitZ = dz / length;
       const rotationY = Math.atan2(-dz, dx);
+      const exteriorWall = isExteriorWallSegment(segment, floorplan, wallThickness);
+      const exteriorSideSign = exteriorWall
+        ? exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)
+        : 0;
+      const wallJunctionInsets = exteriorWall
+        ? { start: 0, end: 0 }
+        : interiorWallJunctionInsets(segment, exteriorSegments, wallThickness);
+      const sectionMin = Math.min(Math.max(wallJunctionInsets.start, 0), length / 2);
+      const sectionMax = Math.max(
+        sectionMin,
+        length - Math.min(Math.max(wallJunctionInsets.end, 0), length / 2),
+      );
+      if (sectionMax - sectionMin < 4) return;
 
       const material = typeof wallMaterial === "function"
         ? wallMaterial(segment)
         : wallMaterial;
-      const openingIntervals = [...doorSegments.map((opening) => ({ opening, kind: "door" })),
+      const exteriorSurfaceMaterial = typeof wallMaterial === "function"
+        ? (wallMaterial.exteriorMaterial || material)
+        : material;
+      const openingIntervals = [...wallDoorSegments.map((opening) => ({ opening, kind: "door" })),
         ...windowSegments.map((opening) => ({ opening, kind: "window" }))]
         .map(({ opening, kind }, index) => {
-          if (!openingBelongsToWall(segment, opening, wallThickness)) return null;
-          const openingStart = opening.start || {};
-          const openingEnd = opening.end || {};
-          const centerX = (Number(openingStart.x || 0) + Number(openingEnd.x || 0)) / 2;
-          const centerZ = (Number(openingStart.z || 0) + Number(openingEnd.z || 0)) / 2;
-          const relX = centerX - Number(start.x);
-          const relZ = centerZ - Number(start.z);
-          const along = relX * unitX + relZ * unitZ;
-          const perpendicular = Math.abs(relX * -unitZ + relZ * unitX);
-          if (perpendicular > Math.max(28, wallThickness * 2.4)) return null;
-          const measuredWidth = Math.hypot(
-            Number(openingEnd.x || 0) - Number(openingStart.x || 0),
-            Number(openingEnd.z || 0) - Number(openingStart.z || 0),
-          );
-          const width = Math.max(
-            Number(opening.width_cm || opening.width || measuredWidth)
-              || (kind === "door" ? 90 : 120),
+          const wallInterval = openingWallInterval(
+            segment,
+            opening,
+            wallThickness,
             kind === "door" ? 68 : 50,
           );
-          const from = Math.max(0, along - width / 2);
-          const to = Math.min(length, along + width / 2);
-          if (to - from < 24) return null;
+          if (!wallInterval) return null;
           const windowMetrics = kind === "window"
             ? windowOpeningMetrics(opening, wallHeight)
             : null;
+          const from = Math.max(wallInterval.from, sectionMin);
+          const to = Math.min(wallInterval.to, sectionMax);
+          if (to - from < 2.5) return null;
           return {
             from,
             to,
             kind,
-            width: to - from,
+            width: wallInterval.width,
             opening,
             windowMetrics,
-            key: opening.id || `${kind}-${index}-${centerX.toFixed(2)}-${centerZ.toFixed(2)}`,
+            key: opening.id
+              || `${kind}-${index}-${wallInterval.centerX.toFixed(2)}-${wallInterval.centerZ.toFixed(2)}`,
           };
         })
         .filter(Boolean)
@@ -1071,17 +1351,17 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
       const addWallSection = (from, to, bottom, height, sectionMaterial = material) => {
         if (to - from < 2.5 || height < 2.5) return;
-        const seamOverlap = 0.6;
-        const sectionFrom = from <= 0.1
-          ? from - wallThickness * 0.52
-          : from - seamOverlap;
-        const sectionTo = to >= length - 0.1
-          ? to + wallThickness * 0.52
-          : to + seamOverlap;
+        const span = wallSectionSpan(from, to, length);
+        const sectionFrom = span.from;
+        const sectionTo = span.to;
         const center = (sectionFrom + sectionTo) / 2;
+        const sectionGeometry = new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness);
+        const sectionMaterials = exteriorWall
+          ? wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)
+          : sectionMaterial.clone();
         const wallMesh = new THREE.Mesh(
-          new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness),
-          sectionMaterial.clone(),
+          sectionGeometry,
+          sectionMaterials,
         );
         wallMesh.position.set(
           Number(start.x) + unitX * center,
@@ -1090,19 +1370,6 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         );
         wallMesh.rotation.y = rotationY;
         roomGroupRef.add(registerWall(wallMesh));
-      };
-
-      const addJunctionCap = (endpoint) => {
-        const key = `${Number(endpoint.x).toFixed(2)}:${Number(endpoint.z).toFixed(2)}`;
-        if (renderedJunctions.has(key)) return;
-        renderedJunctions.add(key);
-        const cap = new THREE.Mesh(
-          new THREE.BoxGeometry(wallThickness * 1.08, wallHeight, wallThickness * 1.08),
-          material.clone(),
-        );
-        cap.position.set(Number(endpoint.x), wallHeight / 2, Number(endpoint.z));
-        cap.userData.roompilotArchitecturalDetail = "wall-junction-seal";
-        roomGroupRef.add(registerWall(cap));
       };
 
       const trimMaterial = new THREE.MeshPhysicalMaterial({
@@ -1131,7 +1398,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         roomGroupRef.add(trim);
       };
 
-      let cursor = 0;
+      let cursor = sectionMin;
       openingIntervals.forEach((interval) => {
         addWallSection(cursor, interval.from, 0, wallHeight);
         addBaseboard(cursor, interval.from);
@@ -1140,8 +1407,14 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           : interval.windowMetrics.headHeightCm;
         if (interval.kind === "window") {
           const sillHeight = interval.windowMetrics.sillHeightCm;
-          addWallSection(interval.from, interval.to, 0, sillHeight);
-          addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
+          const frameAllowanceCm = 0.6;
+          addWallSection(interval.from, interval.to, 0, Math.max(0, sillHeight - frameAllowanceCm));
+          addWallSection(
+            interval.from,
+            interval.to,
+            openingHeight + frameAllowanceCm,
+            Math.max(0, wallHeight - openingHeight - frameAllowanceCm),
+          );
         } else {
           addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
         }
@@ -1153,43 +1426,63 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
               x: Number(start.x) + unitX * ((interval.from + interval.to) / 2),
               z: Number(start.z) + unitZ * ((interval.from + interval.to) / 2),
               rotationY,
+              wallThickness,
             },
+            surfaceCatalog,
           );
           renderedOpenings.add(interval.key);
         }
         cursor = Math.max(cursor, interval.to);
       });
-      addWallSection(cursor, length, 0, wallHeight);
-      addBaseboard(cursor, length);
-      addJunctionCap(start);
-      addJunctionCap(end);
+      addWallSection(cursor, sectionMax, 0, wallHeight);
+      addBaseboard(cursor, sectionMax);
 
+      const capLength = sectionMax - sectionMin;
+      const capCenter = (sectionMin + sectionMax) / 2;
       const topCap = new THREE.Mesh(
-        new THREE.BoxGeometry(length + wallThickness, 2.5, wallThickness),
+        new THREE.BoxGeometry(capLength, 2.5, wallThickness),
         material.clone(),
       );
       topCap.position.set(
-        (Number(start.x) + Number(end.x)) / 2,
+        Number(start.x) + unitX * capCenter,
         wallHeight + 1.25,
-        (Number(start.z) + Number(end.z)) / 2,
+        Number(start.z) + unitZ * capCenter,
       );
       topCap.rotation.y = rotationY;
       topCap.castShadow = true;
       topCap.receiveShadow = true;
       roomGroupRef.add(topCap);
     });
+
+    const missingDoors = topologyGapDoors;
+    const missingWindows = windowSegments.filter((opening) => !segments.some(
+      (segment) => openingWallInterval(segment, opening, wallThickness, 50),
+    ));
+    if (missingDoors.length || missingWindows.length) {
+      const standaloneWallMaterial = typeof wallMaterial === "function"
+        ? (opening) => {
+          const hostSegment = wallSegmentForOpening(segments, opening, wallThickness);
+          return wallMaterial(hostSegment || segments[0] || {});
+        }
+        : wallMaterial;
+      buildStandaloneOpeningAssemblies(
+        roomGroupRef,
+        missingDoors,
+        missingWindows,
+        standaloneWallMaterial,
+        wallHeight,
+        wallThickness,
+        surfaceCatalog,
+      );
+    }
   }
 
-  function buildOpeningAssembly(roomGroupRef, interval, anchor) {
+  function buildOpeningAssembly(roomGroupRef, interval, anchor, surfaceCatalog = null) {
     const isWindow = interval.kind === "window";
-    const frameMaterial = new THREE.MeshPhysicalMaterial({
-      color: isWindow ? 0xe9ecec : 0xb98c62,
-      roughness: isWindow ? 0.34 : 0.46,
-      metalness: isWindow ? 0.18 : 0,
-      clearcoat: 0.28,
-      clearcoatRoughness: 0.34,
-      envMapIntensity: 1,
-    });
+    const frameMaterial = createArchitecturalMaterial(
+      isWindow ? "window_frame" : "door_leaf",
+      surfaceCatalog,
+    );
     const height = isWindow ? interval.windowMetrics?.glazingHeightCm || 120 : 205;
     const centerY = isWindow
       ? (interval.windowMetrics?.sillHeightCm || 0) + height / 2
@@ -1200,56 +1493,59 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     assembly.userData.roompilotArchitecturalDetail = interval.kind;
 
     if (isWindow) {
+      const frameDepth = 3.2;
+      const frameThickness = 4.2;
+      const faceOffset = Math.max(Number(anchor.wallThickness || 12) / 2 + 0.35, 6);
+      const bottomY = centerY - height / 2;
+      const topY = centerY + height / 2;
       const glass = new THREE.Mesh(
-        new THREE.PlaneGeometry(interval.width * 0.92, height * 0.9),
+        new THREE.PlaneGeometry(Math.max(interval.width - frameThickness * 2, 12), Math.max(height - frameThickness * 2, 12)),
         new THREE.MeshPhysicalMaterial({
           color: 0xd9edf2,
-          roughness: 0.08,
-          metalness: 0,
-          transmission: 0.88,
-          thickness: 1,
-          ior: 1.48,
-          transparent: true,
-          opacity: 0.34,
+          ...architecturalPbrProfile("glass"),
           side: THREE.DoubleSide,
-          envMapIntensity: 1.35,
         }),
       );
       glass.position.y = centerY;
+      glass.position.z = faceOffset - frameDepth / 2 - 0.08;
       glass.castShadow = false;
       assembly.add(glass);
       const mullionPositions = [0];
       [
-        [interval.width, 4.5, 0, centerY - height / 2],
-        [interval.width, 4.5, 0, centerY + height / 2],
-        [4.5, height, -interval.width / 2, centerY],
-        [4.5, height, interval.width / 2, centerY],
-        ...mullionPositions.map((x) => [3.5, height, x, centerY]),
+        [interval.width, frameThickness, 0, bottomY],
+        [interval.width, frameThickness, 0, topY],
+        [frameThickness, height, -interval.width / 2, centerY],
+        [frameThickness, height, interval.width / 2, centerY],
+        ...mullionPositions.map((x) => [3.2, height - frameThickness, x, centerY]),
       ].forEach(([width, frameHeight, x, y]) => {
         const frame = new THREE.Mesh(
-          new THREE.BoxGeometry(width, frameHeight, 4.5),
+          new THREE.BoxGeometry(width, frameHeight, frameDepth),
           frameMaterial,
         );
-        frame.position.set(x, y, 0);
+        frame.position.set(x, y, faceOffset);
         frame.castShadow = true;
+        frame.receiveShadow = true;
         assembly.add(frame);
       });
-    } else {
-      const transform = doorLeafTransform(interval.opening);
-      const hingeGroup = new THREE.Group();
-      hingeGroup.position.set(transform.hinge.x, 0, transform.hinge.z);
-      hingeGroup.rotation.y = transform.closedRotationYRad + transform.swingRotationYRad;
-      hingeGroup.userData.roompilotArchitecturalDetail = "door-hinge";
-      const leaf = new THREE.Mesh(
-        new THREE.BoxGeometry(transform.leafWidthCm, height, 4.5),
+      const sill = new THREE.Mesh(
+        new THREE.BoxGeometry(interval.width + 8, 2.2, frameDepth + 4),
         frameMaterial,
       );
-      leaf.position.set(transform.leafCenterXCm, centerY, 0);
+      sill.position.set(0, bottomY - 1.1, faceOffset);
+      sill.castShadow = true;
+      sill.receiveShadow = true;
+      sill.userData.roompilotArchitecturalDetail = "flush-window-sill";
+      assembly.add(sill);
+    } else {
+      const leaf = new THREE.Mesh(
+        new THREE.BoxGeometry(Math.max(interval.width * 0.94, 60), height, 4.5),
+        frameMaterial,
+      );
+      leaf.position.set(0, centerY, 0);
       leaf.castShadow = true;
       leaf.receiveShadow = true;
-      hingeGroup.add(leaf);
-      roomGroupRef.add(hingeGroup);
-      return;
+      leaf.userData.roompilotArchitecturalDetail = "closed-door-leaf";
+      assembly.add(leaf);
     }
     roomGroupRef.add(assembly);
   }
@@ -1261,11 +1557,15 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     wallMaterial,
     wallHeight,
     wallThickness,
+    surfaceCatalog = null,
   ) {
     [
       ...doorSegments.map((opening) => ({ opening, kind: "door" })),
       ...windowSegments.map((opening) => ({ opening, kind: "window" })),
     ].forEach(({ opening, kind }) => {
+      const openingWallMaterial = typeof wallMaterial === "function"
+        ? wallMaterial(opening)
+        : wallMaterial;
       const start = opening.start || {};
       const end = opening.end || {};
       const dx = Number(end.x || 0) - Number(start.x || 0);
@@ -1291,7 +1591,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           x: (Number(start.x || 0) + Number(end.x || 0)) / 2,
           z: (Number(start.z || 0) + Number(end.z || 0)) / 2,
           rotationY: Math.atan2(-dz, dx),
+          wallThickness,
         },
+        surfaceCatalog,
       );
       const isWindow = kind === "window";
       const openingHeight = isWindow
@@ -1304,11 +1606,11 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         if (height < 2.5) return;
         const section = new THREE.Mesh(
           new THREE.BoxGeometry(
-            openingWidth + wallThickness * 2.1,
+            openingWidth,
             height,
             wallThickness,
           ),
-          wallMaterial.clone(),
+          openingWallMaterial.clone(),
         );
         section.position.set(
           (Number(start.x || 0) + Number(end.x || 0)) / 2,
@@ -1320,13 +1622,20 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         roomGroupRef.add(registerWall(section));
       };
       if (isWindow) {
-        addOpeningWallSection(0, sillHeight, "window-wall-sill");
+        const frameAllowanceCm = 0.6;
+        addOpeningWallSection(0, Math.max(0, sillHeight - frameAllowanceCm), "window-wall-sill");
+        addOpeningWallSection(
+          openingHeight + frameAllowanceCm,
+          Math.max(0, wallHeight - openingHeight - frameAllowanceCm),
+          "window-wall-header",
+        );
+      } else {
+        addOpeningWallSection(
+          openingHeight,
+          wallHeight - openingHeight,
+          "door-wall-header",
+        );
       }
-      addOpeningWallSection(
-        openingHeight,
-        wallHeight - openingHeight,
-        isWindow ? "window-wall-header" : "door-wall-header",
-      );
     });
   }
 
@@ -1797,7 +2106,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     });
   }
 
-  function wallMaterialResolver(sceneData, defaultMaterial) {
+  function wallMaterialResolver(sceneData, defaultMaterial, exteriorMaterial = defaultMaterial) {
     const overrides = sceneData.surface_overrides || [];
     const cache = new Map();
     const pointToSegmentDistance = (point, start, end) => {
@@ -1818,7 +2127,11 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         point.z - (Number(start.z) + projection * dz),
       );
     };
-    return (segment) => {
+    const resolveWallMaterial = (segment) => {
+      if (isExteriorWallSegment(segment, sceneData.floorplan)) {
+        exteriorMaterial.userData.roompilotWallSurfaceRole = "exterior";
+        return exteriorMaterial;
+      }
       const midpoint = {
         x: (Number(segment.start?.x || 0) + Number(segment.end?.x || 0)) / 2,
         z: (Number(segment.start?.z || 0) + Number(segment.end?.z || 0)) / 2,
@@ -1859,6 +2172,234 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         cache.set(cacheKey, material);
       }
       return cache.get(cacheKey);
+    };
+    resolveWallMaterial.exteriorMaterial = exteriorMaterial;
+    return resolveWallMaterial;
+  }
+
+  function wallSegmentPoint(segment, key) {
+    const point = segment?.[key];
+    const x = Number(point?.x);
+    const z = Number(point?.z);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+    return { x, z };
+  }
+
+  function pointToWallSegmentDistance(point, segment) {
+    const start = wallSegmentPoint(segment, "start");
+    const end = wallSegmentPoint(segment, "end");
+    if (!point || !start || !end) return Infinity;
+    const dx = end.x - start.x;
+    const dz = end.z - start.z;
+    const lengthSquared = dx * dx + dz * dz;
+    if (lengthSquared < 0.01) return Math.hypot(point.x - start.x, point.z - start.z);
+    const projection = THREE.MathUtils.clamp(
+      ((point.x - start.x) * dx + (point.z - start.z) * dz) / lengthSquared,
+      0,
+      1,
+    );
+    return Math.hypot(
+      point.x - (start.x + projection * dx),
+      point.z - (start.z + projection * dz),
+    );
+  }
+
+  function wallSegmentBounds(floorplan = {}) {
+    const points = (floorplan.wall_segments || [])
+      .flatMap((segment) => [wallSegmentPoint(segment, "start"), wallSegmentPoint(segment, "end")])
+      .filter(Boolean);
+    if (!points.length) return null;
+    return points.reduce((bounds, point) => ({
+      minX: Math.min(bounds.minX, point.x),
+      maxX: Math.max(bounds.maxX, point.x),
+      minZ: Math.min(bounds.minZ, point.z),
+      maxZ: Math.max(bounds.maxZ, point.z),
+    }), {
+      minX: Infinity,
+      maxX: -Infinity,
+      minZ: Infinity,
+      maxZ: -Infinity,
+    });
+  }
+
+  function ringPointCoordinates(point) {
+    const x = Number(Array.isArray(point) ? point[0] : point?.x);
+    const z = Number(Array.isArray(point) ? point[1] : point?.z ?? point?.y);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+    return { x, z };
+  }
+
+  function ringContainsPoint(position, ring) {
+    if (!Array.isArray(ring) || ring.length < 3) return false;
+    let inside = false;
+    for (let current = 0, previous = ring.length - 1; current < ring.length; previous = current++) {
+      const currentPoint = ringPointCoordinates(ring[current]);
+      const previousPoint = ringPointCoordinates(ring[previous]);
+      if (!currentPoint || !previousPoint) continue;
+      const crosses = (currentPoint.z > position.z) !== (previousPoint.z > position.z);
+      const edgeX = ((previousPoint.x - currentPoint.x) * (position.z - currentPoint.z))
+        / ((previousPoint.z - currentPoint.z) || Number.EPSILON) + currentPoint.x;
+      if (crosses && position.x < edgeX) inside = !inside;
+    }
+    return inside;
+  }
+
+  function floorplanRoomRegions(floorplan = {}) {
+    const regions = [
+      ...(Array.isArray(floorplan.room_regions) ? floorplan.room_regions : []),
+      ...(Array.isArray(floorplan.rooms) ? floorplan.rooms : []),
+    ];
+    return regions
+      .map((region) => ({
+        exterior: region.exterior || region.polygon_cm || region.polygon_m || [],
+        holes: region.holes || [],
+      }))
+      .filter((region) => Array.isArray(region.exterior) && region.exterior.length >= 3);
+  }
+
+  function pointInsideAnyFloorplanRoom(point, floorplan = {}) {
+    return floorplanRoomRegions(floorplan).some((region) => (
+      ringContainsPoint(point, region.exterior)
+        && !(region.holes || []).some((hole) => ringContainsPoint(point, hole))
+    ));
+  }
+
+  function isExplicitExteriorWallSegment(segment = {}) {
+    const role = String(
+      segment.boundary_side
+        || segment.wall_role
+        || segment.role
+        || segment.wall_type
+        || segment.type
+        || "",
+    ).toLowerCase();
+    return segment.exterior === true
+      || segment.is_exterior === true
+      || segment.boundary === true
+      || ["exterior", "outer", "perimeter", "boundary"].some((token) => role.includes(token));
+  }
+
+  function isExteriorWallSegment(segment, floorplan = {}, toleranceCm = 10) {
+    if (isExplicitExteriorWallSegment(segment)) return true;
+    const start = wallSegmentPoint(segment, "start");
+    const end = wallSegmentPoint(segment, "end");
+    if (!start || !end) return false;
+    const dx = end.x - start.x;
+    const dz = end.z - start.z;
+    const length = Math.hypot(dx, dz);
+    const roomRegions = floorplanRoomRegions(floorplan);
+    if (start && end && length > 0.01 && roomRegions.length) {
+      const midpoint = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+      const offset = Math.max(toleranceCm, 14);
+      const normal = { x: -dz / length, z: dx / length };
+      const leftInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x + normal.x * offset,
+        z: midpoint.z + normal.z * offset,
+      }, floorplan);
+      const rightInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x - normal.x * offset,
+        z: midpoint.z - normal.z * offset,
+      }, floorplan);
+      if (leftInside !== rightInside) return true;
+    }
+    const bounds = wallSegmentBounds(floorplan);
+    if (!bounds) return false;
+    const onLeft = Math.abs(start.x - bounds.minX) <= toleranceCm
+      && Math.abs(end.x - bounds.minX) <= toleranceCm;
+    const onRight = Math.abs(start.x - bounds.maxX) <= toleranceCm
+      && Math.abs(end.x - bounds.maxX) <= toleranceCm;
+    const onBack = Math.abs(start.z - bounds.minZ) <= toleranceCm
+      && Math.abs(end.z - bounds.minZ) <= toleranceCm;
+    const onFront = Math.abs(start.z - bounds.maxZ) <= toleranceCm
+      && Math.abs(end.z - bounds.maxZ) <= toleranceCm;
+    return onLeft || onRight || onBack || onFront
+      || wallEndpointTouchesExteriorBounds(start, bounds, toleranceCm)
+      || wallEndpointTouchesExteriorBounds(end, bounds, toleranceCm);
+  }
+
+  function wallEndpointTouchesExteriorBounds(point, bounds, toleranceCm = 10) {
+    return Math.abs(point.x - bounds.minX) <= toleranceCm
+      || Math.abs(point.x - bounds.maxX) <= toleranceCm
+      || Math.abs(point.z - bounds.minZ) <= toleranceCm
+      || Math.abs(point.z - bounds.maxZ) <= toleranceCm;
+  }
+
+  function exteriorWallOutwardSideSign(segment, floorplan = {}, unitX = 1, unitZ = 0) {
+    const start = wallSegmentPoint(segment, "start");
+    const end = wallSegmentPoint(segment, "end");
+    if (!start || !end) return 1;
+    const normal = { x: -unitZ, z: unitX };
+    const length = Math.hypot(end.x - start.x, end.z - start.z);
+    const roomRegions = floorplanRoomRegions(floorplan);
+    if (length > 0.01 && roomRegions.length) {
+      const midpoint = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+      const offset = 14;
+      const plusInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x + normal.x * offset,
+        z: midpoint.z + normal.z * offset,
+      }, floorplan);
+      const minusInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x - normal.x * offset,
+        z: midpoint.z - normal.z * offset,
+      }, floorplan);
+      if (plusInside !== minusInside) {
+        return plusInside ? -1 : 1;
+      }
+    }
+    const side = String(segment.boundary_side || "").toLowerCase();
+    const outwardBySide = {
+      left: { x: -1, z: 0 },
+      right: { x: 1, z: 0 },
+      top: { x: 0, z: 1 },
+      bottom: { x: 0, z: -1 },
+    }[side];
+    if (outwardBySide) {
+      return (outwardBySide.x * normal.x + outwardBySide.z * normal.z) >= 0 ? 1 : -1;
+    }
+    const bounds = wallSegmentBounds(floorplan);
+    if (bounds) {
+      const midpoint = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+      const distances = [
+        { vector: { x: -1, z: 0 }, distance: Math.abs(midpoint.x - bounds.minX) },
+        { vector: { x: 1, z: 0 }, distance: Math.abs(midpoint.x - bounds.maxX) },
+        { vector: { x: 0, z: -1 }, distance: Math.abs(midpoint.z - bounds.minZ) },
+        { vector: { x: 0, z: 1 }, distance: Math.abs(midpoint.z - bounds.maxZ) },
+      ].sort((left, right) => left.distance - right.distance);
+      const outward = distances[0]?.vector;
+      if (outward) return (outward.x * normal.x + outward.z * normal.z) >= 0 ? 1 : -1;
+    }
+    return 1;
+  }
+
+  function wallSectionFaceMaterials(sectionMaterial, exteriorMaterial, exteriorSideSign = 1) {
+    const interior = sectionMaterial.clone();
+    const exterior = exteriorMaterial.clone();
+    const materials = [
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+    ];
+    materials[exteriorSideSign >= 0 ? 4 : 5] = exterior;
+    return materials;
+  }
+
+  function interiorWallJunctionInsets(segment, exteriorSegments, wallThickness) {
+    const insetCm = Math.max(Number(wallThickness) / 2 + 1, 6);
+    const toleranceCm = Math.max(Number(wallThickness) / 2 + 2, 8);
+    const endpointTouchesExterior = (key) => {
+      const point = wallSegmentPoint(segment, key);
+      if (!point) return false;
+      return exteriorSegments.some((exteriorSegment) => (
+        exteriorSegment !== segment
+          && pointToWallSegmentDistance(point, exteriorSegment) <= toleranceCm
+      ));
+    };
+    return {
+      start: endpointTouchesExterior("start") ? insetCm : 0,
+      end: endpointTouchesExterior("end") ? insetCm : 0,
     };
   }
 
@@ -1951,6 +2492,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     clearGroup(ceilingGroup);
     clearGroup(hangingLightGroup);
     wallMeshes.length = 0;
+    const catalogThumbnailMode = sceneData.design_choices?.catalog_thumbnail_mode === true;
 
     const widthCm = Math.max(sceneData.floorplan.width_cm, 240);
     const depthCm = Math.max(sceneData.floorplan.depth_cm, 240);
@@ -1971,6 +2513,15 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       || sceneData.style_card?.palette_hex?.[1];
     applySurfaceTint(floorMaterial, floorColor);
     if (floorPbr.roughness != null) floorMaterial.roughness = floorPbr.roughness;
+    const exteriorWallMaterial = createWallMaterial(
+      sceneData.design_choices?.exterior_wall_option || "auto",
+      sceneData.surface_catalog,
+    );
+    applySurfaceTint(
+      exteriorWallMaterial,
+      sceneData.design_choices?.exterior_wall_color_hex || "#e7e3dc",
+    );
+    exteriorWallMaterial.userData.roompilotWallSurfaceRole = "exterior";
     if (floorPbr.metalness != null) floorMaterial.metalness = floorPbr.metalness;
     const floor = new THREE.Mesh(
       createFloorGeometry(sceneData.floorplan, widthCm, depthCm),
@@ -1979,7 +2530,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
     floor.receiveShadow = true;
-    roomGroup.add(floor);
+    if (!catalogThumbnailMode) roomGroup.add(floor);
     const presentationGround = new THREE.Mesh(
       new THREE.CircleGeometry(Math.max(widthCm, depthCm) * 1.15, 96),
       new THREE.MeshPhysicalMaterial({
@@ -1993,7 +2544,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     presentationGround.position.y = -3.2;
     presentationGround.receiveShadow = true;
     presentationGround.userData.roompilotArchitecturalDetail = "shadow-ground";
-    roomGroup.add(presentationGround);
+    if (!catalogThumbnailMode) roomGroup.add(presentationGround);
     const shadowExtent = Math.max(widthCm, depthCm) * 0.72 + 100;
     keyLight.shadow.camera.left = -shadowExtent;
     keyLight.shadow.camera.right = shadowExtent;
@@ -2002,13 +2553,15 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     keyLight.shadow.camera.near = 20;
     keyLight.shadow.camera.far = 3500;
     keyLight.shadow.camera.updateProjectionMatrix();
-    createRoomSurfaceOverrides(roomGroup, sceneData);
-    createMaterialBoundarySurfaces(
-      roomGroup,
-      sceneData.material_boundary,
-      floorMaterial,
-      sceneData,
-    );
+    if (!catalogThumbnailMode) {
+      createRoomSurfaceOverrides(roomGroup, sceneData);
+      createMaterialBoundarySurfaces(
+        roomGroup,
+        sceneData.material_boundary,
+        floorMaterial,
+        sceneData,
+      );
+    }
 
     const wallMaterial = createWallMaterial(wallOption, sceneData.surface_catalog);
     const wallPbr = sceneData.style?.pbr?.wall || {};
@@ -2017,9 +2570,20 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     applySurfaceTint(wallMaterial, wallColor);
     if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
+    const wallThickness = 12;
     const wallSegments = sceneData.floorplan?.wall_segments || [];
-    const doorSegments = sceneData.floorplan?.door_segments || [];
-    const windowSegments = sceneData.floorplan?.window_segments || [];
+    const doorSegments = dedupeArchitecturalOpeningsFor3d(
+      (sceneData.floorplan?.door_segments || []).map(
+        (door) => doorOpeningForWallTopology(wallSegments, door, wallThickness),
+      ),
+      wallSegments,
+      wallThickness,
+    );
+    const windowSegments = dedupeArchitecturalOpeningsFor3d(
+      sceneData.floorplan?.window_segments || [],
+      wallSegments,
+      wallThickness,
+    );
     const hasAccurateFloorplan = ["dxf", "user_confirmed"].includes(
       sceneData.floorplan?.source,
     );
@@ -2032,23 +2596,24 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const hasRoomCeilings = (sceneData.surface_overrides || []).some(
       (override) => override.ceiling_style_id && override.ceiling_style_id !== "exposed",
     );
-    if (hasRoomCeilings) {
-      createRoomCeilingOverrides(sceneData, wallHeight);
-    } else {
-      createCeilingGeometry(
-        { widthCm, depthCm, wallHeight, ceilingHeight },
-        roomGroup.userData.ceilingStyle,
-        sceneData.style_card || sceneData.style || {},
-        {
-          color: sceneData.design_choices?.ceiling_color_hex,
-          material: sceneData.design_choices?.ceiling_material,
-        },
-      );
+    if (!catalogThumbnailMode) {
+      if (hasRoomCeilings) {
+        createRoomCeilingOverrides(sceneData, wallHeight);
+      } else {
+        createCeilingGeometry(
+          { widthCm, depthCm, wallHeight, ceilingHeight },
+          roomGroup.userData.ceilingStyle,
+          sceneData.style_card || sceneData.style || {},
+          {
+            color: sceneData.design_choices?.ceiling_color_hex,
+            material: sceneData.design_choices?.ceiling_material,
+          },
+        );
+      }
     }
     ceilingGroup.visible = false;
 
     // 12 cm 接近住宅隔間牆；原先 4 cm 會讓雙線牆與轉角看起來像中空。
-    const wallThickness = 12;
     const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;
     const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !hasWallOpenings
       ? buildWallMass(
@@ -2058,7 +2623,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         wallHeight,
       )
       : false;
-    if (builtWallMass) {
+    if (catalogThumbnailMode) {
+      // Product thumbnails intentionally omit room geometry.
+    } else if (builtWallMass) {
       buildWallMassTopCaps(
         roomGroup,
         sceneData.floorplan,
@@ -2072,16 +2639,19 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         wallMaterial,
         wallHeight,
         wallThickness,
+        sceneData.surface_catalog,
       );
     } else if (!builtWallMass && !singleRoomMode && wallSegments.length >= 2) {
       buildSegmentWalls(
         roomGroup,
         wallSegments,
-        wallMaterialResolver(sceneData, wallMaterial),
+        wallMaterialResolver(sceneData, wallMaterial, exteriorWallMaterial),
         wallHeight,
         wallThickness,
         doorSegments,
         windowSegments,
+        sceneData.floorplan,
+        sceneData.surface_catalog,
       );
     } else {
       const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthCm, wallHeight, wallThickness), wallMaterial.clone());
@@ -2097,11 +2667,11 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       roomGroup.add(registerWall(rightWall));
     }
 
-    if (hasAccurateFloorplan) {
+    if (!catalogThumbnailMode && hasAccurateFloorplan) {
       buildFloorPlanOverlay(roomGroup, doorSegments, 0xb9773f, 0.82, 3.8);
       buildFloorPlanOverlay(roomGroup, windowSegments, 0x6f9eb4, 0.9, 4.4);
       buildCirculationRoute(roomGroup, sceneData.floorplan);
-    } else if (!builtWallMass) {
+    } else if (!catalogThumbnailMode && !builtWallMass) {
       const outline = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(widthCm, wallHeight, depthCm)),
         new THREE.LineBasicMaterial({ color: 0xb89264, transparent: true, opacity: 0.35 })
@@ -2109,17 +2679,19 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       outline.position.set(0, wallHeight / 2, 0);
       roomGroup.add(outline);
     }
-    buildStructuralMembers(roomGroup, sceneData.floorplan || {}, wallHeight);
+    if (!catalogThumbnailMode) {
+      buildStructuralMembers(roomGroup, sceneData.floorplan || {}, wallHeight);
+    }
 
     const boundary = sceneData.material_boundary?.line_cm;
-    if (Array.isArray(boundary) && boundary.length >= 2) {
+    if (!catalogThumbnailMode && Array.isArray(boundary) && boundary.length >= 2) {
       buildFloorPlanOverlay(roomGroup, [{
         start: { x: Number(boundary[0].x) || 0, z: Number(boundary[0].y) || 0 },
         end: { x: Number(boundary[1].x) || 0, z: Number(boundary[1].y) || 0 },
       }], 0x7b56b3, 0.96, 5.2);
     }
 
-    if (sceneData.design_choices?.light_style) {
+    if (!catalogThumbnailMode && sceneData.design_choices?.light_style) {
       createStyleLights(
         { widthCm, depthCm, wallHeight: ceilingHeight },
         sceneData.style_card || sceneData.style || {},
@@ -2454,6 +3026,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const visible = viewPresentation(mode).showFurniturePlanLabels;
     furnitureGroup.traverse((object) => {
       if (object.userData.roompilotPlanLabel) object.visible = visible;
+      if (object.userData.roompilotNumberMarker) object.visible = mode !== "walk";
     });
   }
 
@@ -2461,6 +3034,14 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     roomGroup.traverse((object) => {
       if (object.userData.roompilotCirculation) {
         object.visible = mode === "topdown";
+      }
+    });
+  }
+
+  function configureOpeningsForView(mode) {
+    roomGroup.traverse((object) => {
+      if (object.userData.roompilotArchitecturalDetail === "door") {
+        object.visible = mode !== "walk";
       }
     });
   }
@@ -2475,12 +3056,14 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     configureWallsForView(mode);
     configurePlanLabels(mode);
     configureCirculationForView(mode);
+    configureOpeningsForView(mode);
     renderer.domElement.style.cursor = mode === "walk" ? "grab" : "";
     if (mode !== "walk") {
       walkDestination = null;
       walkMarker.visible = false;
     }
     if (mode === "walk") {
+      selectWrapper(null);
       setCameraPreset("inside");
       activeCameraPreset = "walk";
       perspectiveCamera.up.set(0, 1, 0);
@@ -2552,6 +3135,46 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     }
     onResize();
     return config;
+  }
+
+  function setWalkRoom(room = {}) {
+    if (!lastSceneData) return false;
+    const requested = sceneToWorldPosition(room.center_cm || {});
+    const polygon = (room.polygon_cm || []).map(sceneToWorldPosition);
+    const roomSize = roomGroup.userData.roomSize || {
+      widthCm: 420,
+      depthCm: 360,
+      wallHeight: 270,
+    };
+    const eyeHeight = 145;
+    const candidate = {
+      x: requested.x,
+      y: eyeHeight,
+      z: requested.z,
+    };
+    const spawn = findNearestWalkablePosition(
+      candidate,
+      roomSize,
+      (point) => (
+        (!polygon.length || pointInRing(point, polygon))
+        && walkPositionInsideFloor(point)
+        && !walkPositionBlocked(point)
+        && !walkPositionBlockedByFurniture(point)
+      ),
+    );
+    if (!spawn) {
+      setStatus(`無法進入「${room.label || "選取空間"}」：找不到可安全站立的位置。`);
+      return false;
+    }
+    setViewMode("walk");
+    perspectiveCamera.position.set(spawn.x, eyeHeight, spawn.z);
+    controls.target.set(spawn.x, 108, spawn.z - 100);
+    walkDestination = null;
+    walkMarker.visible = false;
+    setStatus(
+      `走動模式：已進入「${room.label || "選取空間"}」，門片已隱藏；點地板移動，家具不會被選取。`,
+    );
+    return true;
   }
 
   function toggleCameraLock(force) {
@@ -2749,8 +3372,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(52, 52, 1);
-    sprite.renderOrder = 999;
+    sprite.scale.set(64, 64, 1);
+    sprite.renderOrder = 1005;
+    sprite.raycast = () => {};
+    sprite.userData.roompilotNumberMarker = true;
     return sprite;
   }
 
@@ -2778,8 +3403,13 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     sprite.scale.set(170, 38, 1);
     sprite.renderOrder = 1001;
     sprite.userData.roompilotPlanLabel = true;
+    sprite.raycast = () => {};
     sprite.visible = false;
     return sprite;
+  }
+
+  function furnitureAnnotationsEnabled() {
+    return lastWorldSceneData?.design_choices?.catalog_thumbnail_mode !== true;
   }
 
   let lastDiagnostics = {
@@ -2825,6 +3455,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     shadow.position.y = 0.8;
     shadow.renderOrder = 2;
     shadow.userData.roompilotContactShadow = true;
+    shadow.raycast = () => {};
     wrapper.add(shadow);
   }
 
@@ -2834,10 +3465,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const height = Math.max(Number(item.size_cm?.height || 80), 25);
     const wrapper = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({
-      color: item.material_override?.color
-        || lastSceneData?.style_card?.palette_hex?.[2]
-        || 0xf4f1ec,
-      roughness: item.material_override?.pbr?.fabricRoughness || 0.84,
+      color: 0xd97706,
+      transparent: true,
+      opacity: 0.38,
+      roughness: 0.78,
       metalness: 0,
     });
     const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), material);
@@ -2848,25 +3479,33 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
     const outline = new THREE.LineSegments(
       new THREE.EdgesGeometry(body.geometry),
-      new THREE.LineBasicMaterial({ color: 0x8b6b52, transparent: true, opacity: 0.72 }),
+      new THREE.LineBasicMaterial({ color: 0x9a3412, transparent: true, opacity: 0.95 }),
     );
     outline.position.copy(body.position);
     wrapper.add(outline);
-    wrapper.position.x = Number(item.position_cm?.x ?? ((index % 4) - 1.5) * 130);
-    wrapper.position.z = Number(item.position_cm?.z ?? Math.floor(index / 4) * 110);
-    wrapper.rotation.y = THREE.MathUtils.degToRad(item.rotation_y_deg || 0);
+    const worldPosition = sceneToWorldPosition(
+      item.position_cm || { x: ((index % 4) - 1.5) * 130, z: Math.floor(index / 4) * 110 },
+    );
+    wrapper.position.x = worldPosition.x;
+    wrapper.position.z = worldPosition.z;
+    wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
     wrapper.userData.sceneIndex = index + 1;
     wrapper.userData.sceneObject = item;
     wrapper.userData.fallbackFurniture = true;
     wrapper.userData.fallbackReason = reason;
+    wrapper.userData.modelLoadFailed = true;
     addFurnitureContactShadow(wrapper, item.size_cm || {});
+    addFurniturePickProxy(wrapper, item);
 
-    const marker = createNumberMarker(index + 1);
-    marker.position.set(0, height + 48, 0);
-    wrapper.add(marker);
-    const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-    planLabel.position.set(0, height + 15, 0);
-    wrapper.add(planLabel);
+    if (furnitureAnnotationsEnabled()) {
+      const marker = createNumberMarker(index + 1);
+      marker.userData.roompilotNumberMarker = true;
+      marker.position.set(0, height + 48, 0);
+      wrapper.add(marker);
+      const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
+      planLabel.position.set(0, height + 15, 0);
+      wrapper.add(planLabel);
+    }
     furnitureGroup.add(wrapper);
     return wrapper;
   }
@@ -2874,13 +3513,14 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   async function loadScene(sceneData) {
     onResize();
     lastSceneData = sceneData;
+    lastWorldSceneData = sceneDataForWorld(sceneData);
     dragState = null;
     selectedWrapper = null;
     selectedControls.hidden = true;
     disposeGuide();
     clearGroup(furnitureGroup);
     applyRenderingProfile(sceneData);
-    createRoom(sceneData);
+    createRoom(lastWorldSceneData);
     setStatus("正在生成 3D 場景...");
 
     const objects = sceneData.scene_objects || [];
@@ -2900,6 +3540,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         }
         if (!item.model_url) {
           failures.push(`${item.name_zh_raw || item.normalized_type} 無模型`);
+          createFallbackFurnitureProxy(item, index, "資料庫尚未提供 GLB");
           return;
         }
 
@@ -2913,37 +3554,59 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
             }
           });
           const wrapper = new THREE.Group();
-          wrapper.add(gltf.scene);
-          fitToTargetSize(wrapper, item.size_cm || {});
+          const modelRoot = gltf.scene;
+          wrapper.add(modelRoot);
+          fitToTargetSize(modelRoot, item.size_cm || {});
+          modelRoot.traverse((object) => {
+            if (object.isMesh || object.isSkinnedMesh) {
+              object.raycast = () => {};
+            }
+          });
           wrapper.userData.sceneIndex = index + 1;
           wrapper.userData.sceneObject = item;
 
-          wrapper.position.x = Number(item.position_cm?.x || 0);
-          wrapper.position.z = Number(item.position_cm?.z || 0);
-          wrapper.rotation.y = THREE.MathUtils.degToRad(item.rotation_y_deg || 0);
+          const worldPosition = sceneToWorldPosition(item.position_cm || {});
+          wrapper.position.x = worldPosition.x;
+          wrapper.position.z = worldPosition.z;
+          wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
 
-          const itemBox = new THREE.Box3().setFromObject(wrapper);
-          const itemSize = itemBox.getSize(new THREE.Vector3());
+          const size = sizeCentimeters(item);
           addFurnitureContactShadow(wrapper, item.size_cm || {});
-          const marker = createNumberMarker(index + 1);
-          marker.position.set(0, Math.max(itemSize.y + 48, 72), 0);
-          wrapper.add(marker);
-          const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-          planLabel.position.set(0, Math.max(itemSize.y + 15, 35), 0);
-          wrapper.add(planLabel);
+          addFurniturePickProxy(wrapper, item);
+          if (furnitureAnnotationsEnabled()) {
+            const marker = createNumberMarker(index + 1);
+            marker.userData.roompilotNumberMarker = true;
+            marker.position.set(0, Math.max(size.height + 48, 72), 0);
+            wrapper.add(marker);
+            const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
+            planLabel.position.set(0, Math.max(size.height + 15, 35), 0);
+            wrapper.add(planLabel);
+          }
           furnitureGroup.add(wrapper);
         } catch (error) {
           console.error(error);
           failures.push(item.name_zh_raw || item.normalized_type || "未知家具");
+          createFallbackFurnitureProxy(
+            item,
+            index,
+            "GLB 載入失敗，請更換家具或檢查資料庫模型權限",
+          );
         }
       })
     );
 
     objects.forEach((item, index) => {
-      const visible = furnitureGroup.children.some(
+      const wrapper = furnitureGroup.children.find(
         (wrapper) => wrapper.userData.sceneObject === item,
       );
-      if (visible) return;
+      if (wrapper?.userData.modelLoadFailed === true) {
+        lastDiagnostics.failedFurniture.push({
+          id: item.furniture_id,
+          reason: wrapper.userData.fallbackReason,
+        });
+        return;
+      }
+      if (wrapper) return;
       if (item.placement_failed) {
         lastDiagnostics.failedFurniture.push({
           id: item.furniture_id,
@@ -2952,9 +3615,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
         return;
       }
       const reason = item.model_url
-          ? "GLB 載入失敗，已顯示同尺寸白色替代物"
-          : "資料庫找不到 GLB，已顯示同尺寸白色替代物";
-      createFallbackFurnitureProxy(item, index, reason);
+          ? "GLB 載入失敗，請檢查資料庫模型權限或網址"
+          : "資料庫尚未提供 GLB";
       lastDiagnostics.failedFurniture.push({
         id: item.furniture_id,
         reason,
@@ -2974,6 +3636,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
   // ── F6 自由拖曳：前端只負責拖，落點合法性由後端 furniture_engine 驗證 ──
   let lastSceneData = null;
+  let lastWorldSceneData = null;
   let dragState = null;
   let selectedWrapper = null;
   let footprintGuide = null;
@@ -3012,6 +3675,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       <button type="button" data-object-move="back">後</button>
       <button type="button" data-object-move="right">右</button>
     </div>
+    <button type="button" class="scene-object-lock-button" data-object-lock>鎖定此家具</button>
   `;
   container.appendChild(selectedControls);
   selectedControls.addEventListener("pointerdown", (event) => {
@@ -3071,7 +3735,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function walkPositionInsideFloor(position) {
-    const regions = lastSceneData?.floorplan?.room_regions || [];
+    const regions = lastWorldSceneData?.floorplan?.room_regions || [];
     if (!regions.length) return true;
     return regions.some((region) => {
       const exterior = region.exterior || region.polygon_cm || region.polygon_m || [];
@@ -3081,7 +3745,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function walkPositionBlocked(position, clearanceCm = 20) {
-    return (lastSceneData?.floorplan?.wall_segments || []).some((segment) => {
+    return (lastWorldSceneData?.floorplan?.wall_segments || []).some((segment) => {
       const start = segment.start;
       const end = segment.end;
       if (!start || !end) return false;
@@ -3097,7 +3761,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       );
       const closestX = Number(start.x) + projection * dx;
       const closestZ = Number(start.z) + projection * dz;
-      const insideDoorOpening = (lastSceneData?.floorplan?.door_openings || []).some((opening) => {
+      const insideDoorOpening = (lastWorldSceneData?.floorplan?.door_openings || []).some((opening) => {
         if (!openingBelongsToWall(segment, opening, 24)) return false;
         const openingStart = opening.start || opening.hinge || {};
         const openingEnd = opening.end || {};
@@ -3159,8 +3823,6 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       || placementRequest
     ) return;
     pointerToNdc(event);
-    dragRaycaster.setFromCamera(pointerNdc, perspectiveCamera);
-    if (dragRaycaster.intersectObjects(furnitureGroup.children, true).length) return;
     walkDestination = null;
     walkMarker.visible = false;
     const direction = controls.target.clone().sub(perspectiveCamera.position).normalize();
@@ -3222,6 +3884,126 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       depth: Number(size.depth) || 60,
       height: Number(size.height) || 80,
     };
+  }
+
+  function topdownPointerDeltaCm(event, startEvent) {
+    if (!startEvent || viewMode.mode !== "topdown" || camera !== orthographicCamera) return null;
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const worldWidth = (orthographicCamera.right - orthographicCamera.left) / orthographicCamera.zoom;
+    const worldHeight = (orthographicCamera.top - orthographicCamera.bottom) / orthographicCamera.zoom;
+    return {
+      x: ((event.clientX - startEvent.clientX) / rect.width) * worldWidth,
+      z: ((event.clientY - startEvent.clientY) / rect.height) * worldHeight,
+    };
+  }
+
+  const pickLocal = new THREE.Vector3();
+  const FLOOR_OVERLAY_TYPES = new Set(["large-medium-rug", "runner-small-rug"]);
+
+  function isFloorOverlayItem(item) {
+    const type = String(item?.normalized_type || "");
+    if (FLOOR_OVERLAY_TYPES.has(type) || type.includes("rug")) return true;
+    const height = Number(item?.size_cm?.height);
+    return Number.isFinite(height) && height > 0 && height <= 5;
+  }
+
+  function pointInFurnitureFootprint(wrapper, x, z, padCm = 12) {
+    const item = wrapper?.userData?.sceneObject;
+    if (!item) return false;
+    const size = sizeCentimeters(item);
+    const radians = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
+    const dx = x - wrapper.position.x;
+    const dz = z - wrapper.position.z;
+    const localX = dx * Math.cos(radians) + dz * Math.sin(radians);
+    const localZ = -dx * Math.sin(radians) + dz * Math.cos(radians);
+    return Math.abs(localX) <= size.width / 2 + padCm
+      && Math.abs(localZ) <= size.depth / 2 + padCm;
+  }
+
+  function addFurniturePickProxy(wrapper, item) {
+    const size = sizeCentimeters(item);
+    const pickHeight = Math.max(size.height, isFloorOverlayItem(item) ? 16 : 10);
+    const proxy = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        Math.max(size.width, 20),
+        pickHeight,
+        Math.max(size.depth, 20),
+      ),
+      new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        depthTest: false,
+        toneMapped: false,
+      }),
+    );
+    proxy.position.y = pickHeight / 2;
+    proxy.frustumCulled = false;
+    proxy.userData.roompilotPickProxy = true;
+    wrapper.add(proxy);
+    return proxy;
+  }
+
+  function pickFurnitureWrapper() {
+    const hits = dragRaycaster.intersectObjects(furnitureGroup.children, true);
+    const proxyHits = [];
+    for (const hit of hits) {
+      if (!hit.object.userData?.roompilotPickProxy) continue;
+      const wrapper = wrapperFromObject(hit.object);
+      const item = wrapper?.userData?.sceneObject;
+      if (!item) continue;
+      proxyHits.push({
+        wrapper,
+        item,
+        distance: hit.distance,
+        overlay: isFloorOverlayItem(item),
+      });
+    }
+    if (proxyHits.length) {
+      proxyHits.sort((a, b) => a.distance - b.distance);
+      const closest = proxyHits[0];
+      const near = proxyHits.filter((candidate) => candidate.distance <= closest.distance + 40);
+      if (near.length > 1) {
+        near.sort((left, right) => {
+          const leftHeight = sizeCentimeters(left.item).height;
+          const rightHeight = sizeCentimeters(right.item).height;
+          return leftHeight - rightHeight || left.distance - right.distance;
+        });
+        const shortest = near[0];
+        const closestHeight = sizeCentimeters(closest.item).height;
+        const shortestHeight = sizeCentimeters(shortest.item).height;
+        if (
+          shortest.overlay
+          || shortestHeight <= 15
+          || shortestHeight < closestHeight * 0.55
+        ) {
+          return shortest.wrapper;
+        }
+      }
+      return closest.wrapper;
+    }
+
+    if (!dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) return null;
+    let best = null;
+    let bestHeight = Infinity;
+    let bestDist = Infinity;
+    for (const wrapper of furnitureGroup.children) {
+      const item = wrapper.userData?.sceneObject;
+      if (!item) continue;
+      if (!pointInFurnitureFootprint(wrapper, planeHit.x, planeHit.z)) continue;
+      const height = sizeCentimeters(item).height;
+      const dist = Math.hypot(planeHit.x - wrapper.position.x, planeHit.z - wrapper.position.z);
+      if (
+        height < bestHeight - 0.5
+        || (Math.abs(height - bestHeight) <= 0.5 && dist < bestDist)
+      ) {
+        best = wrapper;
+        bestHeight = height;
+        bestDist = dist;
+      }
+    }
+    return best;
   }
 
   function disposeGuide() {
@@ -3368,26 +4150,62 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     setGuideSnapState(kind);
   }
 
-  function selectWrapper(wrapper, kind = null) {
+  function selectWrapper(wrapper, kind = null, { notify = true } = {}) {
     selectedWrapper = wrapper || null;
     if (selectedWrapper) {
       updateFootprintGuide(selectedWrapper, kind);
       renderer.domElement.style.cursor = "grab";
       selectedControls.hidden = false;
+      updateSelectedControlsState();
     } else {
       disposeGuide();
       renderer.domElement.style.cursor = "";
       selectedControls.hidden = true;
     }
+    if (notify && typeof onObjectSelect === "function") {
+      onObjectSelect(selectedWrapper?.userData?.sceneObject || null, lastSceneData);
+    }
   }
 
-  function selectObjectByIndex(index, { focus = true } = {}) {
+  function updateSelectedControlsState() {
+    const lockButton = selectedControls.querySelector("[data-object-lock]");
+    if (!lockButton) return;
+    const item = selectedWrapper?.userData?.sceneObject;
+    const locked = item?.user_specified === true || item?.model_locked === true;
+    lockButton.textContent = locked ? "取消鎖定此家具" : "鎖定此家具";
+    lockButton.classList.toggle("is-active", locked);
+    lockButton.setAttribute(
+      "aria-pressed",
+      locked ? "true" : "false",
+    );
+  }
+
+  function toggleSelectedObjectLock() {
+    if (!selectedWrapper) return false;
+    const item = selectedWrapper.userData.sceneObject;
+    if (!item) return false;
+    const locked = item.user_specified === true || item.model_locked === true;
+    item.user_specified = !locked;
+    item.user_required = !locked;
+    item.model_locked = !locked;
+    if (!locked) item.position_locked = true;
+    updateSelectedControlsState();
+    notifySceneChange(item);
+    const label = item.name_zh || item.name_zh_raw || item.normalized_type || "家具";
+    setStatus(!locked
+      ? `已鎖定「${label}」為指定需求。`
+      : `已取消「${label}」的指定需求鎖定。`);
+    return true;
+  }
+
+  function selectObjectByIndex(index, { focus = true, showGuide = true } = {}) {
     const sceneIndex = Number(index) + 1;
     const wrapper = furnitureGroup.children.find(
       (candidate) => candidate.userData.sceneIndex === sceneIndex,
     );
     if (!wrapper) return false;
-    selectWrapper(wrapper);
+    if (showGuide) selectWrapper(wrapper, null, { notify: false });
+    else selectWrapper(null, null, { notify: false });
     if (focus) focusObject(wrapper);
     return true;
   }
@@ -3416,7 +4234,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     // 右鍵按在家具上時是拖曳,不要跳出瀏覽器選單
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, camera);
-    if (dragRaycaster.intersectObjects(furnitureGroup.children, true).length) {
+    if (pickFurnitureWrapper()) {
       event.preventDefault();
     }
   });
@@ -3442,7 +4260,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
           const callback = beamPlacementRequest.callback;
           beamPlacementRequest = null;
           renderer.domElement.style.cursor = "";
-          callback({ start, end });
+          callback({
+            start: worldToScenePosition(start),
+            end: worldToScenePosition(end),
+          });
         }
       }
       event.preventDefault();
@@ -3454,10 +4275,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       placementRequest = null;
       renderer.domElement.style.cursor = "";
       if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
-        callback({
-          x: Math.round(planeHit.x * 100) / 100,
-          z: Math.round(planeHit.z * 100) / 100,
-        });
+        callback(worldToScenePosition(planeHit));
       } else {
         setStatus("沒有點到可擺放的地板，請重新選擇「新增到 3D」。");
       }
@@ -3465,12 +4283,15 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       event.stopPropagation();
       return;
     }
-    const hits = dragRaycaster.intersectObjects(furnitureGroup.children, true);
-    if (!hits.length) {
+    if (interactionMode === "walk") {
       selectWrapper(null);
       return;
     }
-    const wrapper = wrapperFromObject(hits[0].object);
+    const wrapper = pickFurnitureWrapper();
+    if (!wrapper) {
+      selectWrapper(null);
+      return;
+    }
     if (!wrapper || !wrapper.userData.sceneObject) return;
 
     selectWrapper(wrapper);
@@ -3483,13 +4304,14 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       wrapper,
       item: wrapper.userData.sceneObject,
       startPosition: wrapper.position.clone(),
-      startRotationDeg: normalizedRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
-      pendingRotationDeg: normalizedRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
+      startEvent: { clientX: event.clientX, clientY: event.clientY },
+      startRotationDeg: sceneToWorldRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
+      pendingRotationDeg: sceneToWorldRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
       grabOffset: planeHit.clone().sub(wrapper.position),
       lastValid: {
         x: wrapper.position.x,
         z: wrapper.position.z,
-        rotationDeg: normalizedRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
+        rotationDeg: sceneToWorldRotationDeg(wrapper.userData.sceneObject.rotation_y_deg || 0),
         kind: "grid",
       },
       materials: [],
@@ -3526,7 +4348,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function roomBounds() {
-    const floorplan = lastSceneData?.floorplan || {};
+    const floorplan = lastWorldSceneData?.floorplan || {};
     const widthCm = Math.max(Number(floorplan.width_cm) || 420, 240);
     const depthCm = Math.max(Number(floorplan.depth_cm) || 360, 240);
     return {
@@ -3643,7 +4465,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function wallSegmentsForSnap() {
-    const floorplan = lastSceneData?.floorplan || {};
+    const floorplan = lastWorldSceneData?.floorplan || {};
     const segments = floorplan.wall_segments || [];
     if (segments.length) return segments;
     // 手動矩形模式沒有牆段資料,用房間四邊當虛擬牆
@@ -3740,7 +4562,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       x: bestX ? bestX.value : Math.round(x / DRAG_GRID) * DRAG_GRID,
       z: bestZ ? bestZ.value : Math.round(z / DRAG_GRID) * DRAG_GRID,
       kind: snapKind,
-      rotationDeg: rotationSource ? rotationSource.rotationDeg : normalizedRotationDeg(item.rotation_y_deg || 0),
+      rotationDeg: rotationSource ? rotationSource.rotationDeg : sceneToWorldRotationDeg(item.rotation_y_deg || 0),
     };
   }
 
@@ -3749,56 +4571,26 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       item,
       Math.round(x / DRAG_GRID) * DRAG_GRID,
       Math.round(z / DRAG_GRID) * DRAG_GRID,
-      normalizedRotationDeg(item.rotation_y_deg || 0)
+      sceneToWorldRotationDeg(item.rotation_y_deg || 0)
     );
-  }
-
-  async function resolvePlacement(item, positionCm, rotationDeg) {
-    if (!lastSceneData) return { ok: false, reason: "場景未載入" };
-    try {
-      const response = await fetch("/api/scene/layout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          floorplan: lastSceneData.floorplan || null,
-          placement_room_id: item.placement_room_id,
-          scene_objects: [
-            ...(lastSceneData.scene_objects || [])
-              .filter((other) => other !== item)
-              .map((other) => ({ ...other, position_locked: true })),
-            {
-              ...item,
-              position_locked: false,
-              placement_hint_cm: positionCm,
-              rotation_y_deg: rotationDeg,
-            },
-          ],
-        }),
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const payload = await response.json();
-      const resolved = (payload.scene_objects || []).find(
-        (candidate) => candidate.furniture_id === item.furniture_id,
-      );
-      if (!resolved || resolved.placement_failed) {
-        return { ok: false, reason: resolved?.placement_reason || "家具引擎找不到合法貼牆位置" };
-      }
-      return { ok: true, resolved };
-    } catch (error) {
-      console.warn("家具引擎貼牆失敗", error);
-      return { ok: false, reason: "家具引擎未回應" };
-    }
   }
 
   window.addEventListener("pointermove", (event) => {
     if (!dragState) return;
     pointerToNdc(event);
     dragRaycaster.setFromCamera(pointerNdc, camera);
-    if (dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
+    const topdownDelta = topdownPointerDeltaCm(event, dragState.startEvent);
+    const target = topdownDelta
+      ? {
+          x: dragState.startPosition.x + topdownDelta.x,
+          z: dragState.startPosition.z + topdownDelta.z,
+        }
+      : null;
+    if (target || dragRaycaster.ray.intersectPlane(floorPlane, planeHit)) {
       const snapped = snapDragPositionV3(
         dragState.item,
-        planeHit.x - dragState.grabOffset.x,
-        planeHit.z - dragState.grabOffset.z
+        target ? target.x : planeHit.x - dragState.grabOffset.x,
+        target ? target.z : planeHit.z - dragState.grabOffset.z
       );
       const nextTransform = snapped.blocked ? dragState.lastValid : snapped;
       dragState.wrapper.position.x = nextTransform.x;
@@ -3833,19 +4625,17 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     if (movedCm < 1 && !rotated) return;  // 只是點選,沒有拖
 
     const label = item.name_zh_raw || item.normalized_type || "家具";
-    const newPositionCm = {
-      x: Math.round(wrapper.position.x * 100) / 100,
-      z: Math.round(wrapper.position.z * 100) / 100,
-    };
+    const newPositionCm = worldToScenePosition(wrapper.position);
+    const newRotationDeg = worldToSceneRotationDeg(pendingRotationDeg);
     setStatus(`正在檢查「${label}」的新位置...`);
-    const verdict = await resolvePlacement(item, newPositionCm, normalizedRotationDeg(pendingRotationDeg));
+    const verdict = await validatePlacement(item, newPositionCm, newRotationDeg);
     if (verdict.ok) {
-      const { resolved } = verdict;
-      item.position_cm = resolved.position_cm;
-      item.rotation_y_deg = resolved.rotation_y_deg;
-      wrapper.position.x = Number(resolved.position_cm?.x || 0);
-      wrapper.position.z = Number(resolved.position_cm?.z || 0);
-      wrapper.rotation.y = THREE.MathUtils.degToRad(Number(resolved.rotation_y_deg || 0));
+      item.position_cm = newPositionCm;
+      item.rotation_y_deg = newRotationDeg;
+      const worldPosition = sceneToWorldPosition(item.position_cm || {});
+      wrapper.position.x = worldPosition.x;
+      wrapper.position.z = worldPosition.z;
+      wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
       updateFootprintGuide(wrapper);
       setStatus(`已移動「${label}」，靠近牆面時會自動貼齊並旋轉。`);
       item.position_locked = true;  // 之後的重排/替換不會沖掉手動位置
@@ -3873,7 +4663,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     if (verdict.ok) {
       item.rotation_y_deg = nextRotation;
       item.position_locked = true;
-      selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
+      selectedWrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(nextRotation));
       updateFootprintGuide(selectedWrapper);
       notifySceneChange(item);
       setStatus(`${label} 已旋轉到 ${nextRotation} 度。`);
@@ -3885,10 +4675,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function wrapperPositionCm(wrapper) {
-    return {
-      x: Math.round(wrapper.position.x * 100) / 100,
-      z: Math.round(wrapper.position.z * 100) / 100,
-    };
+    return worldToScenePosition(wrapper.position);
   }
 
   async function rotateSelectedManual(deltaDeg = 90) {
@@ -3903,8 +4690,9 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
 
     const label = item.name_zh_raw || item.normalized_type || "家具";
     const nextRotation = normalizedRotationDeg((item.rotation_y_deg || 0) + deltaDeg);
+    const nextWorldRotation = sceneToWorldRotationDeg(nextRotation);
     const currentPositionCm = wrapperPositionCm(selectedWrapper);
-    const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextRotation);
+    const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextWorldRotation);
     if (candidate.blocked) {
       setStatus(`「${label}」旋轉後會超出房間或碰到牆，已取消。`);
       return false;
@@ -3918,7 +4706,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     item.rotation_y_deg = nextRotation;
     item.position_cm = currentPositionCm;
     item.position_locked = true;
-    selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
+    selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextWorldRotation);
     updateFootprintGuide(selectedWrapper);
     notifySceneChange(item);
     setStatus(`已旋轉「${label}」到 ${nextRotation}°。`);
@@ -3950,12 +4738,13 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     if (!delta) return false;
 
     const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
+    const worldRotationDeg = sceneToWorldRotationDeg(rotationDeg);
     const candidate = constrainTransform(
       item,
       selectedWrapper.position.x + delta.x,
       selectedWrapper.position.z + delta.z,
-      rotationDeg,
-      { x: selectedWrapper.position.x, z: selectedWrapper.position.z, rotationDeg, kind: "blocked" }
+      worldRotationDeg,
+      { x: selectedWrapper.position.x, z: selectedWrapper.position.z, rotationDeg: worldRotationDeg, kind: "blocked" }
     );
 
     if (candidate.blocked) {
@@ -3989,10 +4778,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   }
 
   function scenePositionCm(x, z) {
-    return {
-      x: Math.round(x * 100) / 100,
-      z: Math.round(z * 100) / 100,
-    };
+    return worldToScenePosition({ x, z });
   }
 
   async function rotateSelectedFromControls(deltaDeg = 15) {
@@ -4004,8 +4790,10 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     const item = selectedWrapper.userData.sceneObject;
     if (!item) return false;
     const label = selectedObjectLabel(item);
-    const nextRotation = normalizedRotationDeg((item.rotation_y_deg || 0) + deltaDeg);
-    const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextRotation);
+    const currentWorldRotation = sceneToWorldRotationDeg(item.rotation_y_deg || 0);
+    const nextWorldRotation = normalizedRotationDeg(currentWorldRotation + deltaDeg);
+    const nextRotation = worldToSceneRotationDeg(nextWorldRotation);
+    const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextWorldRotation);
     if (candidate.blocked) {
       updateFootprintGuide(selectedWrapper, "blocked");
       setStatus(`${label} 旋轉後會碰牆或超出房間，已取消。`);
@@ -4022,7 +4810,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     }
 
     selectedWrapper.position.set(candidate.x, selectedWrapper.position.y, candidate.z);
-    selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
+    selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextWorldRotation);
     item.position_cm = nextPositionCm;
     item.rotation_y_deg = nextRotation;
     item.position_locked = true;
@@ -4042,7 +4830,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     if (!item) return false;
     const label = selectedObjectLabel(item);
     const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
-    const radians = THREE.MathUtils.degToRad(rotationDeg);
+    const worldRotationDeg = sceneToWorldRotationDeg(rotationDeg);
+    const radians = THREE.MathUtils.degToRad(worldRotationDeg);
     const step = 25;
     const forward = { x: -Math.sin(radians), z: -Math.cos(radians) };
     const right = { x: Math.cos(radians), z: -Math.sin(radians) };
@@ -4058,8 +4847,8 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
       item,
       selectedWrapper.position.x + delta.x,
       selectedWrapper.position.z + delta.z,
-      rotationDeg,
-      { x: selectedWrapper.position.x, z: selectedWrapper.position.z, rotationDeg, kind: "blocked" }
+      worldRotationDeg,
+      { x: selectedWrapper.position.x, z: selectedWrapper.position.z, rotationDeg: worldRotationDeg, kind: "blocked" }
     );
     if (candidate.blocked) {
       updateFootprintGuide(selectedWrapper, "blocked");
@@ -4088,6 +4877,11 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
   selectedControls.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
+    const lockButton = event.target.closest("[data-object-lock]");
+    if (lockButton) {
+      toggleSelectedObjectLock();
+      return;
+    }
     const moveButton = event.target.closest("[data-object-move]");
     if (moveButton) {
       await moveSelectedFromControls(moveButton.dataset.objectMove);
@@ -4239,6 +5033,7 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     resetCamera,
     setCameraPreset,
     setViewMode,
+    setWalkRoom,
     setInteractionMode,
     toggleCameraLock,
     capturePng,
@@ -4248,6 +5043,31 @@ export function createSceneViewer(container, statusElement, { onSceneChange = nu
     exportGlb,
     focusObject,
     selectObjectByIndex,
+    getCanvasHost: () => renderer.domElement,
+    getSelectedFurnitureId: () => selectedWrapper?.userData?.sceneObject?.furniture_id || null,
+    projectFurnitureCenters() {
+      const rect = renderer.domElement.getBoundingClientRect();
+      camera.updateMatrixWorld(true);
+      return furnitureGroup.children.map((wrapper) => {
+        const item = wrapper.userData.sceneObject || {};
+        const size = sizeCentimeters(item);
+        const point = new THREE.Vector3(
+          wrapper.position.x,
+          Math.max(15, size.height * 0.45),
+          wrapper.position.z,
+        );
+        point.project(camera);
+        return {
+          furniture_id: item.furniture_id,
+          name: item.name_zh_raw,
+          screen: {
+            x: (point.x * 0.5 + 0.5) * rect.width + rect.left,
+            y: (-point.y * 0.5 + 0.5) * rect.height + rect.top,
+          },
+          behind: point.z > 1,
+        };
+      });
+    },
     rotateSelected: rotateSelectedFromControls,
     beginPlacement,
     cancelPlacement,

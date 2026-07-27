@@ -68,6 +68,51 @@ export function questionsForIndividualRooms(questions = [], rooms = []) {
   });
 }
 
+export function suggestSharedRoomAnswers({
+  questions = [],
+  answers = {},
+  sourceRoomId,
+  targetRoomId,
+} = {}) {
+  const sourceAnswers = new Map();
+  questions
+    .filter(
+      (question) => String(question.room_id) === String(sourceRoomId)
+        && question.space_type === "all_rooms",
+    )
+    .forEach((question) => {
+      const answer = answers[question.question_id];
+      if (!answer?.optionId) return;
+      sourceAnswers.set(question.source_question_id || question.question_id, answer);
+    });
+
+  return Object.fromEntries(
+    questions
+      .filter(
+        (question) => String(question.room_id) === String(targetRoomId)
+          && question.space_type === "all_rooms"
+          && !answers[question.question_id]?.optionId,
+      )
+      .flatMap((question) => {
+        const sourceQuestionId = question.source_question_id || question.question_id;
+        const sourceAnswer = sourceAnswers.get(sourceQuestionId);
+        if (!sourceAnswer) return [];
+        const optionExists = sourceAnswer.optionId === "both"
+          ? question.allow_both === true
+          : question.options?.some(
+            (option) => option.option_id === sourceAnswer.optionId,
+          );
+        if (!optionExists) return [];
+        return [[question.question_id, {
+          optionId: sourceAnswer.optionId,
+          custom: sourceAnswer.custom || "",
+          suggested: true,
+          suggestedFromRoomId: String(sourceRoomId),
+        }]];
+      }),
+  );
+}
+
 export function occupantsFromBasicAnswers(basic = {}) {
   const occupants = { adults: 2, children: 0, elderly: 0, pets: 0 };
   const household = basic.household || "";

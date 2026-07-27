@@ -1,0 +1,208 @@
+{
+  "schema_version": "1.0.0",
+  "catalog_status": "generated_candidates_not_for_production_selection",
+  "source_style_catalog": "roompilot/catalog/data/taiwan_style_cards.json",
+  "generation_method": "OpenAI built-in image generation",
+  "variant_count": 18,
+  "mapping_rule_zh": "每張色卡提供一張主牆材候選。色碼決定主色，wall_material 與 keywords 決定可見肌理及 RAG 語意；線板等立體構造不得烘焙進貼圖。",
+  "items": [
+    {
+      "style_card_id": "scandinavian_1",
+      "style_id": "scandinavian",
+      "style_name_zh": "北歐風",
+      "card_name_zh": "自然木質",
+      "wall_hex": "#F3EBDD",
+      "wall_material": "warm_mineral_paint",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/scandinavian_1-natural-wood-wall.png",
+      "keywords": ["暖白", "礦物漆", "霧面", "明亮", "自然木質"]
+    },
+    {
+      "style_card_id": "scandinavian_2",
+      "style_id": "scandinavian",
+      "style_name_zh": "北歐風",
+      "card_name_zh": "清新明亮",
+      "wall_hex": "#F7F5ED",
+      "wall_material": "bright_smooth_mineral_paint",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/scandinavian_2-bright-fresh-wall.png",
+      "keywords": ["亮暖白", "細緻礦物漆", "霧面", "清新", "通透"]
+    },
+    {
+      "style_card_id": "scandinavian_3",
+      "style_id": "scandinavian",
+      "style_name_zh": "北歐風",
+      "card_name_zh": "低彩度質感",
+      "wall_hex": "#E8E6DF",
+      "wall_material": "greige_limewash",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/scandinavian_3-low-saturation-wall.png",
+      "keywords": ["灰米白", "石灰洗色", "低彩度", "雲霧紋理", "霧面"]
+    },
+    {
+      "style_card_id": "japanese_1",
+      "style_id": "japanese",
+      "style_name_zh": "日式",
+      "card_name_zh": "侘寂自然",
+      "wall_hex": "#D8D0C1",
+      "wall_material": "clay_lime_plaster",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/japanese_1-wabi-nature-wall.png",
+      "keywords": ["黏土灰泥", "石灰", "侘寂", "米灰", "手工鏝紋"]
+    },
+    {
+      "style_card_id": "japanese_2",
+      "style_id": "japanese",
+      "style_name_zh": "日式",
+      "card_name_zh": "茶室禪意",
+      "wall_hex": "#D8D0C1",
+      "wall_material": "earth_plaster",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/japanese_2-tea-zen-wall.png",
+      "keywords": ["大地灰泥", "暖米色", "茶室", "禪意", "礦物顆粒"]
+    },
+    {
+      "style_card_id": "japanese_3",
+      "style_id": "japanese",
+      "style_name_zh": "日式",
+      "card_name_zh": "現代和風",
+      "wall_hex": "#D8D0C1",
+      "wall_material": "smooth_mineral_plaster",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/japanese_3-modern-wa-wall.png",
+      "keywords": ["平滑礦物牆", "暖灰米", "現代和風", "細鏝紋", "霧面"]
+    },
+    {
+      "style_card_id": "modern_minimal_1",
+      "style_id": "modern_minimal",
+      "style_name_zh": "現代簡約",
+      "card_name_zh": "黑白俐落",
+      "wall_hex": "#F4F3F0",
+      "wall_material": "ultra_smooth_mineral_coating",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/modern_minimal_1-black-white-wall.png",
+      "keywords": ["俐落白", "極細礦物牆", "黑白", "平整", "現代簡約"]
+    },
+    {
+      "style_card_id": "modern_minimal_2",
+      "style_id": "modern_minimal",
+      "style_name_zh": "現代簡約",
+      "card_name_zh": "暖灰質感",
+      "wall_hex": "#E4DED5",
+      "wall_material": "warm_gray_limewash",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/modern_minimal_2-warm-gray-wall.png",
+      "keywords": ["暖灰白", "石灰洗色", "雲霧紋理", "沉穩", "現代"]
+    },
+    {
+      "style_card_id": "modern_minimal_3",
+      "style_id": "modern_minimal",
+      "style_name_zh": "現代簡約",
+      "card_name_zh": "自然留白",
+      "wall_hex": "#F5F2EB",
+      "wall_material": "smooth_warm_paint",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/modern_minimal_3-natural-blank-wall.png",
+      "keywords": ["暖白", "平滑塗料", "自然留白", "極簡", "霧面"]
+    },
+    {
+      "style_card_id": "cream_1",
+      "style_id": "cream",
+      "style_name_zh": "奶油風",
+      "card_name_zh": "奶油米白",
+      "wall_hex": "#F5EBDD",
+      "wall_material": "milk_white_limewash",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/cream_1-milky-white-wall.png",
+      "keywords": ["奶油米白", "石灰洗色", "粉霧", "柔和", "暖色"]
+    },
+    {
+      "style_card_id": "cream_2",
+      "style_id": "cream",
+      "style_name_zh": "奶油風",
+      "card_name_zh": "法式柔霧",
+      "wall_hex": "#F5EBDD",
+      "wall_material": "refined_ivory_plaster_paint",
+      "finish": "semi_gloss",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/cream_2-french-mist-wall.png",
+      "keywords": ["暖象牙白", "柔霧", "細緻灰泥", "蛋殼光", "法式"]
+    },
+    {
+      "style_card_id": "cream_3",
+      "style_id": "cream",
+      "style_name_zh": "奶油風",
+      "card_name_zh": "奶茶木質",
+      "wall_hex": "#F5EBDD",
+      "wall_material": "cream_mineral_paint",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/cream_3-milk-tea-wood-wall.png",
+      "keywords": ["奶茶色", "奶油礦物漆", "燕麥色差", "木質搭配", "霧面"]
+    },
+    {
+      "style_card_id": "industrial_1",
+      "style_id": "industrial",
+      "style_name_zh": "工業風",
+      "card_name_zh": "黑鐵水泥",
+      "wall_hex": "#3D403F",
+      "wall_material": "charcoal_concrete_effect",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/industrial_1-black-iron-concrete-wall.png",
+      "keywords": ["炭灰", "仿水泥", "黑鐵", "礦物孔隙", "工業風"]
+    },
+    {
+      "style_card_id": "industrial_2",
+      "style_id": "industrial",
+      "style_name_zh": "工業風",
+      "card_name_zh": "復古工坊",
+      "wall_hex": "#4A4038",
+      "wall_material": "aged_plaster_concrete",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/industrial_2-vintage-workshop-wall.png",
+      "keywords": ["深灰棕", "仿舊灰泥", "復古", "工坊", "暖工業"]
+    },
+    {
+      "style_card_id": "industrial_3",
+      "style_id": "industrial",
+      "style_name_zh": "工業風",
+      "card_name_zh": "極簡冷調",
+      "wall_hex": "#D5D6D2",
+      "wall_material": "cool_microcement",
+      "finish": "matte",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/industrial_3-minimal-cool-wall.png",
+      "keywords": ["冷淺灰", "微水泥", "極簡", "連續鏝面", "冷調"]
+    },
+    {
+      "style_card_id": "american_1",
+      "style_id": "american",
+      "style_name_zh": "美式",
+      "card_name_zh": "鄉村溫馨",
+      "wall_hex": "#F0E5D4",
+      "wall_material": "warm_ivory_washable_paint",
+      "finish": "semi_gloss",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/american_1-country-warm-wall.png",
+      "keywords": ["暖象牙", "耐擦洗漆面候選", "蛋殼光", "鄉村", "溫馨"]
+    },
+    {
+      "style_card_id": "american_2",
+      "style_id": "american",
+      "style_name_zh": "美式",
+      "card_name_zh": "經典優雅",
+      "wall_hex": "#F0E5D4",
+      "wall_material": "refined_ivory_enamel_effect",
+      "finish": "semi_gloss",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/american_2-classic-elegant-wall.png",
+      "keywords": ["象牙白", "細緻漆面", "半光", "經典", "優雅"]
+    },
+    {
+      "style_card_id": "american_3",
+      "style_id": "american",
+      "style_name_zh": "美式",
+      "card_name_zh": "現代輕奢",
+      "wall_hex": "#F0E5D4",
+      "wall_material": "premium_smooth_pearl_depth",
+      "finish": "semi_gloss",
+      "texture_url": "/static/surface_assets/wall_style_card_variants_20260723/american_3-modern-luxe-wall.png",
+      "keywords": ["柔暖白", "高級平滑塗層", "微珠光層次", "現代輕奢", "蛋殼光"]
+    }
+  ]
+}

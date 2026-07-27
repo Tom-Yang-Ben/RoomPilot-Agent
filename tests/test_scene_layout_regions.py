@@ -3,10 +3,87 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from backend.server.main import app
+from backend.server.scene_service import (
+    orient_layout_toward_targets,
+    validate_single_placement,
+)
 
 
 client = TestClient(app)
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_window_clearance_rejects_furniture_in_front_of_confirmed_window() -> None:
+    floorplan = {
+        "coordinate_unit": "cm",
+        "width_cm": 600,
+        "depth_cm": 500,
+        "window_segments": [
+            {
+                "start": {"x": -100, "z": -250},
+                "end": {"x": 100, "z": -250},
+                "window_type": "floor-to-ceiling",
+            }
+        ],
+    }
+    result = validate_single_placement(
+        floorplan,
+        {
+            "furniture_id": "chair-1",
+            "normalized_type": "armchair",
+            "size_cm": {"width": 80, "depth": 80, "height": 90},
+            "position_cm": {"x": 0, "z": -170},
+            "rotation_y_deg": 0,
+        },
+        [],
+    )
+
+    assert result["ok"] is False
+    assert "窗戶" in result["reason"]
+
+
+def test_automatic_chair_faces_the_nearest_desk() -> None:
+    scene_objects = [
+        {
+            "furniture_id": "desk-1",
+            "normalized_type": "desk",
+            "position_cm": {"x": 0, "z": -120},
+            "position_locked": True,
+            "placement_failed": False,
+        },
+        {
+            "furniture_id": "chair-1",
+            "normalized_type": "office-chair",
+            "position_cm": {"x": 0, "z": 20},
+            "position_locked": False,
+            "placement_failed": False,
+            "rotation_y_deg": 0,
+        },
+    ]
+
+    oriented = orient_layout_toward_targets(scene_objects)
+
+    assert oriented[1]["rotation_y_deg"] == 180
+    assert oriented[1]["facing_target_id"] == "desk-1"
+
+
+def test_viewer_keeps_boundary_walls_exterior_and_door_inside_snapped_assembly() -> None:
+    source = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+    resolver = source.split("function wallMaterialResolver", 1)[1].split(
+        "function createFloorMaterial", 1
+    )[0]
+    opening = source.split("function buildOpeningAssembly", 1)[1].split(
+        "function buildStandaloneOpeningAssemblies", 1
+    )[0]
+
+    assert "isExteriorWallSegment(segment, sceneData.floorplan)" in resolver
+    assert "segment.boundary_side" in resolver
+    assert 'roompilotWallSurfaceRole = "exterior"' in resolver
+    assert "leaf.position.set(0, centerY, 0)" in opening
+    assert "assembly.add(leaf)" in opening
+    assert "roomGroupRef.add(hingeGroup)" not in opening
 
 
 def test_layout_variant_b_uses_a_different_engine_validated_candidate() -> None:
