@@ -1052,3 +1052,15 @@ $env:TEMP=$env:TMP
   cap strips sticking out at wall intersections.
 - Added regression coverage for the exterior-wall material resolver and
   interior-junction inset contract.
+
+## 2026-07-27 Step 6 Exterior-Facing Wall Surface Cleanup
+
+- Added exterior-facing face material assignment for segment walls so exposed
+  exterior faces stay on the exterior wall finish even when the interior side
+  uses a room-specific wall material.
+- Treated wall segments that touch the floorplan exterior bounds as
+  exterior-facing, preventing room divider colors from leaking onto the facade
+  at wall junctions.
+- Verified the active Step 6 page loads the updated scene bundle with no console
+  errors and the right-side facade no longer shows a large brown interior wall
+  surface.

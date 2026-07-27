@@ -275,8 +275,12 @@ def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protru
     assert "isExteriorWallSegment(segment, sceneData.floorplan)" in resolver
     assert "pointInsideAnyFloorplanRoom" in resolver
     assert "leftInside !== rightInside" in resolver
+    assert "wallEndpointTouchesExteriorBounds" in resolver
+    assert "resolveWallMaterial.exteriorMaterial = exteriorMaterial" in resolver
     assert "roompilotWallSurfaceRole = \"exterior\"" in resolver
     assert "isExteriorWallSegment(segment, floorplan, wallThickness)" in wall_builder
+    assert "exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)" in wall_builder
+    assert "wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)" in wall_builder
     assert "interiorWallJunctionInsets(segment, exteriorSegments, wallThickness)" in wall_builder
     assert "const sectionMin" in wall_builder
     assert "const sectionMax" in wall_builder

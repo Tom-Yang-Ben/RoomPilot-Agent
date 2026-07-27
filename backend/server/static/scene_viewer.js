@@ -1151,6 +1151,9 @@ export function createSceneViewer(
       const unitZ = dz / length;
       const rotationY = Math.atan2(-dz, dx);
       const exteriorWall = isExteriorWallSegment(segment, floorplan, wallThickness);
+      const exteriorSideSign = exteriorWall
+        ? exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)
+        : 0;
       const wallJunctionInsets = exteriorWall
         ? { start: 0, end: 0 }
         : interiorWallJunctionInsets(segment, exteriorSegments, wallThickness);
@@ -1164,6 +1167,9 @@ export function createSceneViewer(
       const material = typeof wallMaterial === "function"
         ? wallMaterial(segment)
         : wallMaterial;
+      const exteriorSurfaceMaterial = typeof wallMaterial === "function"
+        ? (wallMaterial.exteriorMaterial || material)
+        : material;
       const openingIntervals = [...doorSegments.map((opening) => ({ opening, kind: "door" })),
         ...windowSegments.map((opening) => ({ opening, kind: "window" }))]
         .map(({ opening, kind }, index) => {
@@ -1200,9 +1206,13 @@ export function createSceneViewer(
         const sectionFrom = span.from;
         const sectionTo = span.to;
         const center = (sectionFrom + sectionTo) / 2;
+        const sectionGeometry = new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness);
+        const sectionMaterials = exteriorWall
+          ? wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)
+          : sectionMaterial.clone();
         const wallMesh = new THREE.Mesh(
-          new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness),
-          sectionMaterial.clone(),
+          sectionGeometry,
+          sectionMaterials,
         );
         wallMesh.position.set(
           Number(start.x) + unitX * center,
@@ -1977,7 +1987,7 @@ export function createSceneViewer(
         point.z - (Number(start.z) + projection * dz),
       );
     };
-    return (segment) => {
+    const resolveWallMaterial = (segment) => {
       if (isExteriorWallSegment(segment, sceneData.floorplan)) {
         exteriorMaterial.userData.roompilotWallSurfaceRole = "exterior";
         return exteriorMaterial;
@@ -2023,6 +2033,8 @@ export function createSceneViewer(
       }
       return cache.get(cacheKey);
     };
+    resolveWallMaterial.exteriorMaterial = exteriorMaterial;
+    return resolveWallMaterial;
   }
 
   function wallSegmentPoint(segment, key) {
@@ -2160,7 +2172,78 @@ export function createSceneViewer(
       && Math.abs(end.z - bounds.minZ) <= toleranceCm;
     const onFront = Math.abs(start.z - bounds.maxZ) <= toleranceCm
       && Math.abs(end.z - bounds.maxZ) <= toleranceCm;
-    return onLeft || onRight || onBack || onFront;
+    return onLeft || onRight || onBack || onFront
+      || wallEndpointTouchesExteriorBounds(start, bounds, toleranceCm)
+      || wallEndpointTouchesExteriorBounds(end, bounds, toleranceCm);
+  }
+
+  function wallEndpointTouchesExteriorBounds(point, bounds, toleranceCm = 10) {
+    return Math.abs(point.x - bounds.minX) <= toleranceCm
+      || Math.abs(point.x - bounds.maxX) <= toleranceCm
+      || Math.abs(point.z - bounds.minZ) <= toleranceCm
+      || Math.abs(point.z - bounds.maxZ) <= toleranceCm;
+  }
+
+  function exteriorWallOutwardSideSign(segment, floorplan = {}, unitX = 1, unitZ = 0) {
+    const start = wallSegmentPoint(segment, "start");
+    const end = wallSegmentPoint(segment, "end");
+    if (!start || !end) return 1;
+    const normal = { x: -unitZ, z: unitX };
+    const length = Math.hypot(end.x - start.x, end.z - start.z);
+    const roomRegions = floorplanRoomRegions(floorplan);
+    if (length > 0.01 && roomRegions.length) {
+      const midpoint = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+      const offset = 14;
+      const plusInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x + normal.x * offset,
+        z: midpoint.z + normal.z * offset,
+      }, floorplan);
+      const minusInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x - normal.x * offset,
+        z: midpoint.z - normal.z * offset,
+      }, floorplan);
+      if (plusInside !== minusInside) {
+        return plusInside ? -1 : 1;
+      }
+    }
+    const side = String(segment.boundary_side || "").toLowerCase();
+    const outwardBySide = {
+      left: { x: -1, z: 0 },
+      right: { x: 1, z: 0 },
+      top: { x: 0, z: 1 },
+      bottom: { x: 0, z: -1 },
+    }[side];
+    if (outwardBySide) {
+      return (outwardBySide.x * normal.x + outwardBySide.z * normal.z) >= 0 ? 1 : -1;
+    }
+    const bounds = wallSegmentBounds(floorplan);
+    if (bounds) {
+      const midpoint = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+      const distances = [
+        { vector: { x: -1, z: 0 }, distance: Math.abs(midpoint.x - bounds.minX) },
+        { vector: { x: 1, z: 0 }, distance: Math.abs(midpoint.x - bounds.maxX) },
+        { vector: { x: 0, z: -1 }, distance: Math.abs(midpoint.z - bounds.minZ) },
+        { vector: { x: 0, z: 1 }, distance: Math.abs(midpoint.z - bounds.maxZ) },
+      ].sort((left, right) => left.distance - right.distance);
+      const outward = distances[0]?.vector;
+      if (outward) return (outward.x * normal.x + outward.z * normal.z) >= 0 ? 1 : -1;
+    }
+    return 1;
+  }
+
+  function wallSectionFaceMaterials(sectionMaterial, exteriorMaterial, exteriorSideSign = 1) {
+    const interior = sectionMaterial.clone();
+    const exterior = exteriorMaterial.clone();
+    const materials = [
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+    ];
+    materials[exteriorSideSign >= 0 ? 4 : 5] = exterior;
+    return materials;
   }
 
   function interiorWallJunctionInsets(segment, exteriorSegments, wallThickness) {
