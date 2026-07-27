@@ -69,6 +69,12 @@ from .services.cloud_models import (
     cloudfront_required,
     manifest_status,
 )
+from .services.cloud_images import (
+    cloud_image_urls,
+    cloud_primary_image_url,
+    image_manifest_status,
+)
+from .postgres_catalog import catalog_provider_status, load_catalog as load_postgres_catalog
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -88,16 +94,14 @@ MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
 STYLE_ENRICHMENT_DB_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
 )
-CLOUD_CATALOG_PATH = (
-    BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json"
+OFFICIAL_FURNITURE_CATALOG_PATH = (
+    PROJECT_DIR / "JSON" / "furniture" / "furniture_official_catagory.json"
 )
-COMBINED_CATALOG_PATH = _project_path_from_env(
-    "ROOMPILOT_COMBINED_CATALOG_PATH",
-    PROJECT_DIR / "JSON" / "furniture" / "all_furniture_appliance_catalog.json",
-)
-COMBINED_MANIFEST_PATH = _project_path_from_env(
-    "ROOMPILOT_COMBINED_MANIFEST_PATH",
-    PROJECT_DIR / "JSON" / "manifests" / "glb_upload_all_result.csv",
+CLOUD_CATALOG_PATH = _project_path_from_env(
+    "ROOMPILOT_CLOUD_CATALOG_PATH",
+    OFFICIAL_FURNITURE_CATALOG_PATH
+    if OFFICIAL_FURNITURE_CATALOG_PATH.exists()
+    else BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json",
 )
 CLOUD_MANIFEST_PATH = _project_path_from_env(
     "ROOMPILOT_GLB_MANIFEST_PATH",
@@ -771,6 +775,13 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         if "has_model" in item
         else _model_status(item)
     )
+    preview_images = cloud_image_urls(item)
+    image_url = (
+        preview_images.get("front")
+        or preview_images.get("angle-45")
+        or preview_images.get("side")
+        or cloud_primary_image_url(item)
+    )
     payload = {
         "furniture_id": item.get("furniture_id"),
         "name_en": item.get("name_en"),
@@ -783,9 +794,22 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         "catalog_scope": item.get("catalog_scope"),
         "normalized_type": item.get("normalized_type"),
         "primary_style": item.get("primary_style"),
+        "style_primary": item.get("style_primary") or item.get("primary_style"),
+        "style_secondary": item.get("style_secondary"),
         "style_candidates": item.get("style_candidates", []),
         "style_confidence": item.get("style_confidence"),
         "style_assignment_source": item.get("style_assignment_source"),
+        "room_types": item.get("room_types", []),
+        "catalog_role": item.get("role"),
+        "visual_weight": item.get("visual_weight"),
+        "height_zone": item.get("height_zone"),
+        "size_class": item.get("size_class"),
+        "description": item.get("description"),
+        "rag_text": item.get("rag_text", []),
+        "mood_tags": item.get("mood_tags", []),
+        "features": item.get("features", []),
+        "search_keywords": item.get("search_keywords", []),
+        "object_type_zh": item.get("object_type_zh"),
         "color": item.get("color"),
         "material": item.get("material"),
         "size_cm": sanitize_size_cm(item),
@@ -793,6 +817,10 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         "can_rotate": item.get("can_rotate"),
         "has_model": has_model,
         "missing_model_reason": None if has_model else model_reason,
+        "image_url": image_url,
+        "thumbnail_url": image_url,
+        "preview_url": image_url,
+        "preview_images": preview_images,
         **_candidate_schema_fields(item, has_model),
     }
     if include_model_url:
@@ -813,46 +841,44 @@ def _furniture_card_payload(item: dict) -> dict:
         "catalog_scope": item.get("catalog_scope"),
         "normalized_type": item.get("normalized_type"),
         "primary_style": item.get("primary_style"),
+        "style_primary": item.get("style_primary") or item.get("primary_style"),
+        "style_secondary": item.get("style_secondary"),
         "style_candidates": item.get("style_candidates", []),
+        "room_types": item.get("room_types", []),
+        "catalog_role": item.get("role"),
+        "description": item.get("description"),
+        "rag_text": item.get("rag_text", []),
+        "mood_tags": item.get("mood_tags", []),
+        "features": item.get("features", []),
+        "search_keywords": item.get("search_keywords", []),
         "color": item.get("color"),
         "material": item.get("material"),
         "size_cm": item.get("size_cm"),
         "has_model": item.get("has_model"),
         "missing_model_reason": item.get("missing_model_reason"),
         "model_url": item.get("model_url"),
+        "image_url": item.get("image_url"),
+        "thumbnail_url": item.get("thumbnail_url"),
+        "preview_url": item.get("preview_url"),
+        "preview_images": item.get("preview_images", {}),
     }
 
 
 @lru_cache(maxsize=1)
 def _furniture_payload_cache() -> tuple[dict, ...]:
+    """Prefer Kai's reviewed PostgreSQL catalog, with a portable JSON fallback."""
+    provider = os.getenv("ROOMPILOT_CATALOG_PROVIDER", "postgres").strip().casefold()
+    if provider not in {"json", "local", "fallback"}:
+        try:
+            return load_postgres_catalog(PROJECT_DIR)
+        except Exception as exc:
+            print(f"[RoomPilot] PostgreSQL catalog unavailable; using JSON fallback: {type(exc).__name__}")
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
 
 
 @lru_cache(maxsize=1)
-def _appliance_manifest_index() -> dict[str, str]:
-    if not COMBINED_MANIFEST_PATH.exists():
-        return {}
-    ready_statuses = {
-        "already_exists",
-        "complete",
-        "completed",
-        "skipped_existing",
-        "success",
-        "uploaded",
-    }
-    with COMBINED_MANIFEST_PATH.open(encoding="utf-8", newline="") as handle:
-        rows = csv.DictReader(handle)
-        return {
-            str(row.get("item_id") or ""): str(row.get("delivery_url") or "")
-            for row in rows
-            if str(row.get("kind") or "").casefold() == "appliance"
-            and str(row.get("upload_status") or "").casefold() in ready_statuses
-            and str(row.get("delivery_url") or "").startswith("https://")
-        }
-
-
-@lru_cache(maxsize=1)
 def _appliance_payload_cache() -> tuple[dict, ...]:
+    return ()
     if not COMBINED_CATALOG_PATH.exists():
         return ()
     raw = json.loads(COMBINED_CATALOG_PATH.read_text(encoding="utf-8"))
@@ -942,6 +968,9 @@ def _get_external_furniture_by_id(furniture_id: str) -> dict:
 
 
 def _get_merged_furniture_by_id(furniture_id: str) -> dict:
+    for item in _furniture_payload_cache():
+        if str(item.get("furniture_id")) == str(furniture_id):
+            return item
     for item in _merged_furniture_catalog_cached():
         aliases = set(item.get("merged_furniture_ids") or [])
         aliases.add(str(item.get("furniture_id")))
@@ -1160,7 +1189,11 @@ def _catalog_count_summary() -> dict:
 def _furniture_matches_style(item: dict, style_id: str | None) -> bool:
     if not style_id:
         return True
-    if item.get("primary_style") == style_id:
+    if style_id in {
+        item.get("primary_style"),
+        item.get("style_primary"),
+        item.get("style_secondary"),
+    }:
         return True
     for candidate in item.get("style_candidates", []) or []:
         if _candidate_style_id(candidate) == style_id and _candidate_score(candidate) > 0:
@@ -1183,6 +1216,16 @@ def _furniture_search_text(item: dict) -> str:
             item.get("color"),
             item.get("material"),
             item.get("primary_style"),
+            item.get("style_primary"),
+            item.get("style_secondary"),
+            " ".join(item.get("room_types") or []),
+            item.get("role"),
+            item.get("description"),
+            " ".join(item.get("rag_text") or []),
+            " ".join(item.get("mood_tags") or []),
+            " ".join(item.get("features") or []),
+            " ".join(item.get("search_keywords") or []),
+            item.get("object_type_zh"),
         )
     ).casefold()
 
@@ -1988,7 +2031,9 @@ def catalog_status() -> dict:
     wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
     floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
     return {
+        "catalog_provider": catalog_provider_status(PROJECT_DIR),
         "furniture": furniture,
+        "furniture_images": image_manifest_status(),
         "surfaces": {
             "provider": "local_pending_aws_manifest",
             "wall_count": wall_count,
@@ -2143,44 +2188,6 @@ def furniture_catalog(
     }
 
 
-@app.get("/api/appliances")
-def appliance_catalog(
-    item_type: str | None = Query(None, alias="type"),
-    q: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(24, ge=1, le=80),
-    detail: str = Query("card"),
-) -> dict:
-    query = (q or "").strip().casefold()
-    filtered = [
-        item
-        for item in _appliance_payload_cache()
-        if (not item_type or item.get("normalized_type") == item_type)
-        and (
-            not query
-            or query in _furniture_search_text(item)
-        )
-        and item.get("model_url")
-    ]
-    start = (page - 1) * page_size
-    end = start + page_size
-    return {
-        "items": [
-            item if detail == "scene" else _furniture_card_payload(item)
-            for item in filtered[start:end]
-        ],
-        "page": page,
-        "page_size": page_size,
-        "total": len(filtered),
-        "has_next_page": end < len(filtered),
-        "catalog_status": {
-            "source": "combined_furniture_appliance_catalog",
-            "catalog_items": 10_550,
-            "appliance_items": len(_appliance_payload_cache()),
-        },
-    }
-
-
 def _legacy_viewer_models(items: list[dict]) -> list[str]:
     """Feed the retired R3F viewer without advertising blocked local GLBs."""
     if cloudfront_required():
@@ -2199,8 +2206,17 @@ def _legacy_viewer_models(items: list[dict]) -> list[str]:
 
 
 def _furniture_detail_payload(furniture_id: str) -> dict:
-    item = _get_merged_furniture_by_id(furniture_id)
-    payload = _furniture_payload_item(item)
+    item = next(
+        (
+            candidate
+            for candidate in _furniture_payload_cache()
+            if str(candidate.get("furniture_id")) == str(furniture_id)
+        ),
+        None,
+    )
+    if item is None:
+        item = _furniture_payload_item(_get_merged_furniture_by_id(furniture_id))
+    payload = dict(item)
     payload.update(
         {
             "merged_furniture_ids": item.get("merged_furniture_ids", []),
@@ -2740,6 +2756,9 @@ async def scene_validate(payload: dict) -> dict:
 @app.get("/api/furniture/{furniture_id}/model")
 def furniture_model(furniture_id: str):
     furniture = _get_merged_furniture_by_id(furniture_id)
+    direct_url = str(furniture.get("model_url") or "").strip()
+    if direct_url.startswith(("https://", "http://")):
+        return RedirectResponse(direct_url, status_code=307)
     return _model_response_for_merged_furniture(furniture)
 
 

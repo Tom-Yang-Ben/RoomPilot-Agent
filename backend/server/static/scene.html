@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=sha256-0aafb3f3d23b" />
+    <link rel="stylesheet" href="/static/site.css?v=sha256-16201762aa2f" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -483,13 +483,13 @@
 
           <section id="questionnaire-summary" class="rp-questionnaire-stage" data-questionnaire-panel="summary" hidden>
             <div class="rp-questionnaire-section-heading">
-              <div><span class="eyebrow">確認摘要</span><h3>確認後才會產生 2D 家具配置</h3></div>
+              <div><span class="eyebrow">確認摘要</span><h3>確認後會建立方案 A、B 的 2D+3D 配置</h3></div>
               <p>返回前面修改時，系統會保留已填內容。</p>
             </div>
             <div id="questionnaire-summary-content" class="rp-questionnaire-summary"></div>
             <div class="rp-action-row">
               <button id="questionnaire-summary-back" type="button" class="secondary-action">返回全屋資料</button>
-              <button id="confirm-requirements" type="button" class="primary-action">完成全部需求並產生 2D 配置</button>
+              <button id="confirm-requirements" type="button" class="primary-action">完成需求並建立 2D+3D 配置</button>
             </div>
           </section>
 
@@ -564,15 +564,19 @@
         <div class="rp-3d-workspace">
           <div class="rp-viewer-pane">
             <div class="rp-viewer-toolbar">
-              <div class="rp-segmented" aria-label="3D 視角">
-                <button type="button" data-view-mode="dollhouse" class="is-active">全屋家具配置</button>
-                <button type="button" data-view-mode="orbit">自由旋轉</button>
-                <button type="button" data-view-mode="topdown">正俯視</button>
-                <button type="button" data-view-mode="walk">室內透視</button>
+              <div class="rp-toolbar-group" aria-label="檢視方式">
+                <span class="rp-toolbar-group-label">檢視</span>
+                <div class="rp-segmented" aria-label="3D 視角">
+                  <button type="button" data-view-mode="orbit" class="is-active">自由旋轉</button>
+                  <button type="button" data-view-mode="topdown">正俯視</button>
+                </div>
               </div>
-              <div class="rp-segmented rp-interaction-mode" aria-label="3D 操作模式">
-                <button type="button" data-white-interaction="walk">走動</button>
-                <button type="button" data-white-interaction="edit">編輯家具</button>
+              <div class="rp-toolbar-group" aria-label="操作方式">
+                <span class="rp-toolbar-group-label">操作</span>
+                <div class="rp-segmented rp-interaction-mode" aria-label="3D 操作模式">
+                  <button type="button" data-white-interaction="walk">走動</button>
+                  <button type="button" data-white-interaction="edit">編輯家具</button>
+                </div>
               </div>
               <label class="rp-walk-room-picker">
                 <span>走動空間</span>
@@ -617,6 +621,7 @@
             <section class="rp-editor-box rp-white-beam-editor" aria-labelledby="white-model-beam-title">
               <h3 id="white-model-beam-title">天花板樑</h3>
               <p>結構已在第 4 步鎖定。若要新增或調整樑，請返回「空間與結構」，確認後再重新產生此方案。</p>
+              <p class="rp-field-hint">選擇「返回第 4 步修改樑」後，可以新增、移動、刪除樑，或調整樑寬與下垂高度。系統會保留目前家具配置；回到第 6 步時會重新驗證，只有因結構變更變得不合法的家具會進入右側待處理清單。</p>
               <div class="rp-inline-fields" hidden>
                 <label><span>樑寬（公分）</span><input id="white-model-beam-width-cm" type="number" min="10" max="120" step="1" value="30" /></label>
                 <label><span>下垂深度（公分）</span><input id="white-model-beam-drop-cm" type="number" min="10" max="120" step="1" value="35" /></label>
@@ -629,10 +634,10 @@
               <h3>指定家具外觀</h3>
               <label><span>指定顏色（選填）</span><input id="specified-furniture-color" type="color" value="#f2f0ec" /></label>
               <label><span>指定材質（選填）</span><select id="specified-furniture-material"><option value="">不指定</option><option value="fabric">布料</option><option value="leather">皮革</option><option value="wood">木材</option><option value="metal">金屬</option><option value="glass">玻璃</option></select></label>
+              <p id="specified-furniture-status" class="rp-field-hint" aria-live="polite">請在 3D 畫面選取家具，使用浮動微調面板鎖定或取消指定需求。</p>
               <div class="rp-check-row"><input id="lock-specified-model" type="checkbox" /><label for="lock-specified-model">鎖定指定模型，切換風格不改外型</label></div>
               <div class="rp-check-row"><input id="lock-specified-material" type="checkbox" /><label for="lock-specified-material">鎖定指定顏色與材質</label></div>
             </section>
-            <div class="rp-check-row"><input id="specified-furniture-reviewed" type="checkbox" /><label for="specified-furniture-reviewed">我已確認是否有指定家具需求</label></div>
             <p id="white-model-error" class="rp-field-error" aria-live="polite"></p>
             <button id="confirm-white-model" type="button" class="primary-action">確認家具配置並進入即時寫實</button>
           </aside>
@@ -803,10 +808,16 @@
           </div>
           <button id="close-furniture-replacement" type="button" class="rp-icon-button" aria-label="關閉家具更換" title="關閉">×</button>
         </header>
-        <label class="rp-search-field">
-          <span>選擇同類家具</span>
-          <select id="replacement-furniture-search" aria-label="選擇同類家具"></select>
-        </label>
+        <div class="rp-replacement-filter-row">
+          <label class="rp-search-field">
+            <span>家具類別與推薦方式</span>
+            <select id="replacement-furniture-search" aria-label="選擇家具資料庫篩選方式"></select>
+          </label>
+          <label class="rp-search-field">
+            <span>搜尋家具</span>
+            <input id="replacement-furniture-query" type="search" placeholder="輸入名稱、材質、顏色或風格" />
+          </label>
+        </div>
         <div class="rp-replacement-layout">
           <div id="replacement-furniture-results" class="rp-replacement-results" aria-live="polite"></div>
           <section class="rp-replacement-preview" aria-label="家具 3D 預覽">
@@ -852,6 +863,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-d2353fc508e0"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-310fcabf186d"></script>
   </body>
 </html>

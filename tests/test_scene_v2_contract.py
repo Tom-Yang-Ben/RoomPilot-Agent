@@ -65,6 +65,42 @@ def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options(
     assert "floorMaterial" in source
 
 
+def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    material_option = source.split("function materialOptionForPack", 1)[1].split(
+        "function questionnaireMaterialOptionsForPack", 1
+    )[0]
+    assert "packMaterialColor" not in source
+    assert "color: packMaterialColor" not in material_option
+    assert "note: option.note" in material_option
+    assert "recommendation: pack.name" in material_option
+    assert "background-color:${escapeHtml(option.color)}" in source
+    assert "全房牆面目前使用：${wallLabel}" in source
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in css
+    assert "background-blend-mode: multiply;" in css
+
+
+def test_room_surfaces_keep_one_main_floor_with_functional_exceptions() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "const INDEPENDENT_FLOOR_ROOM_TYPES" in source
+    assert '"bathroom"' in source
+    assert '"kitchen"' in source
+    assert '"entry"' in source
+    assert '"balcony"' in source
+    assert "function wholeHouseMainFloorSurface" in source
+    assert "function normalizedRoomSurfaces" in source
+    assert "function applyWholeHouseSurfaceConsistency" in source
+    assert "trimAccentWallSurfaces" in source
+    assert "wallSurfaceIds: [...(surfaces.wallSurfaceIds || [])].slice(0, 1)" in source
+    assert "Object.entries(surfaces.wallOverrides || {}).slice(0, 1)" in source
+    assert "if (!roomAllowsIndependentFloor(room) && mainFloor)" in source
+    assert "const surfaces = normalizedRoomSurfaces(room, requirement?.surfaces || {})" in source
+    assert "const surfaces = normalizedRoomSurfaces(room, rawSurfaces || {})" in source
+
+
 def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -675,6 +711,68 @@ def test_accurate_floorplan_uses_segment_walls_when_openings_exist() -> None:
     assert "const mullionPositions = [0];" in viewer
 
 
+def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function dedupeArchitecturalOpeningsFor3d" in viewer
+    assert "const doorSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
+    assert "doorOpeningForWallTopology(wallSegments, door, wallThickness)" in viewer
+    wall_builder = viewer.split("function buildSegmentWalls", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+    assert "const wallDoorSegments = doorSegments.filter" in wall_builder
+    assert "opening?.topology_gap !== true" in wall_builder
+    assert "const topologyGapDoors = doorSegments.filter" in wall_builder
+    assert "opening?.topology_gap === true" in wall_builder
+    assert "const missingDoors = topologyGapDoors;" in wall_builder
+    assert "[...wallDoorSegments.map" in wall_builder
+
+
+def test_3d_door_openings_merge_overlapping_spans_on_the_same_host_wall() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function openingWallCoverage" in viewer
+    assert "function openingsShareWallCoverage" in viewer
+    assert "overlap >= Math.max(24, narrowerWidth * 0.55)" in viewer
+    assert "openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness)" in viewer
+    assert "dedupeArchitecturalOpeningsFor3d(" in viewer
+    assert "      wallSegments,\n      wallThickness," in viewer
+
+
+def test_requirements_generate_the_white_model_without_an_intermediate_2d_confirmation() -> None:
+    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+
+    assert "async function generateWhiteModelFromRequirements" in viewer
+    assert "await generateWhiteModelFromRequirements({ returnToRequirementsOnFailure: true });" in viewer
+    assert 'state.workflow?.goTo("layout_2d")' in viewer
+    assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });' in viewer
+    assert viewer.count('await confirmLayout2d({ allowPendingFurniture: false });') >= 2
+    assert "方案 A、B 的 2D+3D 配置已建立" in viewer
+    assert 'state.workflow.currentStep === "white_model_3d"' in viewer
+    assert 'state.workflow.currentStep === "layout_2d"' in viewer
+    assert "returnToRequirementsOnFailure: true" in viewer
+    assert "if (invalid.length && !allowPendingFurniture)" in viewer
+    assert "if (generatedInvalid.length && !allowPendingFurniture)" in viewer
+    assert "if (missingCatalogModels.length && !allowPendingFurniture)" in viewer
+    assert "const sceneFurniture = allowPendingFurniture" in viewer
+    assert "selectedFurniture.filter((item) => item.model_url)" in viewer
+    assert "尚未找到可用的資料庫 GLB" in viewer
+    assert "selected_furniture_exact: !allowPendingFurniture" in viewer
+    assert "完成需求並建立 2D+3D 配置" in html
+
+
+def test_step_six_defaults_to_free_rotation_with_grouped_tools() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'data-view-mode="orbit" class="is-active">自由旋轉' in html
+    assert 'data-view-mode="dollhouse"' not in html
+    assert 'class="rp-toolbar-group" aria-label="檢視方式"' in html
+    assert 'class="rp-toolbar-group" aria-label="操作方式"' in html
+    assert 'whiteViewer.setViewMode("dollhouse")' not in viewer
+
+
 def test_step_four_has_a_dimensioned_floorplan_confirmation_page() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -1114,11 +1212,11 @@ def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> 
     )
 
     assert {item[0] for item in result["bedroom"]} >= {"bed", "wardrobe"}
-    assert {item[0] for item in result["kitchen"]} >= {"refrigerator", "appliance-cabinet"}
+    assert {item[0] for item in result["kitchen"]} == {"appliance-cabinet"}
     assert {item[0] for item in result["storage"]} == {"storage-cabinet"}
     assert {item[0] for item in result["bathroom"]} >= {"bathroom-vanity", "mirror-cabinet"}
     assert {item[0] for item in result["living"]} >= {"sofa", "coffee-table", "tv-bench"}
-    assert {item[0] for item in result["balcony"]} >= {"washer"}
+    assert {item[0] for item in result["balcony"]} == {"flower-pots-planter"}
     assert result["circulation"] == []
 
 
@@ -1268,7 +1366,7 @@ def test_2d_payload_marks_user_required_furniture_for_server_resolution() -> Non
     }
 
 
-def test_room_usage_recommends_visible_appliances_and_decor_without_overriding_empty_rooms() -> None:
+def test_room_usage_recommends_decor_without_restoring_retired_appliances() -> None:
     module_uri = (STATIC / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
@@ -1289,8 +1387,28 @@ def test_room_usage_recommends_visible_appliances_and_decor_without_overriding_e
     assert "bedside-table" in result["libraryTypes"]
     assert any(item["type"] == "flower-pots-planter" for item in result["living"])
     assert any(item["type"] == "bedside-table" for item in result["bedroom"])
-    assert any(item["type"] == "refrigerator" for item in result["kitchen"])
+    assert all(item["type"] != "refrigerator" for item in result["kitchen"])
+    assert all(item["type"] != "washer" for item in result["kitchen"])
     assert result["empty"] == []
+
+
+def test_step_six_prunes_retired_appliances_from_restored_projects() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert '"refrigerator"' in source
+    assert '"dishwasher"' in source
+    assert '"air-conditioner"' in source
+    assert '"/models/ikea/appliance/"' in source
+    assert "function pruneRetiredAppliances" in source
+    assert "state.furniture2d = removeRetiredAppliancesFromFurniture(state.furniture2d)" in source
+    assert "removeRetiredAppliancesFromSceneData(state.sceneData)" in source
+    assert "Object.values(state.designSchemes?.schemes || {}).forEach" in source
+    assert "const restoredRetiredAppliancesRemoved = pruneRetiredAppliances" in source
+    assert "if (sceneRecoveredFromLayout || restoredRetiredAppliancesRemoved > 0)" in source
+    assert "pruneRetiredAppliances();" in source.split("function renderConfigurationPlan", 1)[1].split(
+        "const planSource",
+        1,
+    )[0]
 
 
 def test_2d_library_exposes_an_explicit_add_mode_separate_from_replacement() -> None:
@@ -1582,6 +1700,9 @@ def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> Non
     assert "function finishBeamCreateDrag(" in source
     assert 'showStep("space_confirmation")' in source
     assert 'setActiveStructureKind("beam")' in source
+    assert "選擇「返回第 4 步修改樑」後" in html
+    assert "系統會保留目前家具配置" in html
+    assert "不合法的家具會進入右側待處理清單" in html
     assert "第 6 步只局部校正家具" in html
     assert "返回第 4 步修改樑" in html
     assert "function beginBeamPlacement(" in viewer
@@ -1924,7 +2045,7 @@ def test_scene_does_not_force_placeholder_furniture_for_an_empty_plan() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "目前沒有指定家具，先放入可刪除的雙人沙發" not in source
-    assert "selected_furniture_exact: true" in source
+    assert "selected_furniture_exact: !allowPendingFurniture" in source
 
 
 def test_confirmed_rooms_and_structures_are_the_only_3d_floorplan_source() -> None:
@@ -2116,6 +2237,26 @@ def test_style_switch_changes_unlocked_models_and_material_surface_types() -> No
     assert "function removeMaterialBoundary()" in controller
 
 
+def test_step_six_locks_specified_furniture_from_3d_controls() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert 'id="mark-specified-furniture"' not in html
+    assert 'id="specified-furniture-reviewed"' not in html
+    assert 'id="specified-furniture-status"' in html
+    assert "鎖定目前家具為指定需求" not in html
+    assert "function markSelectedFurnitureAsSpecified" not in controller
+    assert "data-object-lock" in viewer
+    assert "鎖定此家具" in viewer
+    assert "取消鎖定此家具" in viewer
+    assert "item.user_specified = !locked" in viewer
+    assert "item.user_required = !locked" in viewer
+    assert "item.model_locked = !locked" in viewer
+    assert "notifySceneChange(item)" in viewer
+    assert "renderSceneObjectList()" in controller
+
+
 def test_3d_furniture_can_be_deleted_and_each_item_keeps_its_own_material_override() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -2152,6 +2293,12 @@ def test_added_and_deleted_furniture_refresh_numbering_and_stay_draggable() -> N
 
     assert "function activateWhiteFurnitureEditing()" in controller
     assert "whiteViewer.setInteractionMode(\"edit\")" in controller
+    edit_mode = controller.split(
+        "function activateWhiteFurnitureEditing()",
+        1,
+    )[1].split("async function deleteSelectedSceneFurniture()", 1)[0]
+    assert "whiteViewer.setViewMode(" not in edit_mode
+    assert "button.dataset.viewMode === \"dollhouse\"" not in edit_mode
     assert "const furnitureNumber = state.selectedSceneIndex + 1;" in controller
     assert "家具 ${furnitureNumber} 已新增" in controller
 
@@ -2289,6 +2436,24 @@ def test_configuration_pending_actions_distinguish_model_and_placement_failures(
     assert "void openFurnitureReplacement()" in handlers
 
 
+def test_room_priority_can_defer_unloadable_models_without_bypassing_review() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    pending = source.split(
+        "const blockingRooms = configurationBlockingFurnitureByRoom", 1
+    )[1].split("const confirmButton", 1)[0]
+    prioritize = source.split(
+        "async function prioritizeConfigurationRoomFurniture", 1
+    )[1].split("function renderSelectedFurnitureEditor", 1)[0]
+
+    assert 'data-prioritize-configuration-room="' in pending
+    assert "group.items.length" in pending
+    assert "configurationModelFailures()" in prioritize
+    assert "modelFailureIds.has(String(item.id))" in prioritize
+    assert "模型無法載入" in prioritize
+    assert "furniture.deferred = deferred.map" in prioritize
+
+
 def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_editing() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -2313,20 +2478,22 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert "Shift+R 反向 15 度" in viewer
 
 
-def test_3d_view_controls_offer_full_model_and_perspective_free_rotation() -> None:
+def test_3d_view_controls_offer_free_rotation_and_grouped_workflows() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'data-view-mode="orbit"' in html
-    assert 'data-view-mode="dollhouse"' in html
+    assert 'data-view-mode="dollhouse"' not in html
     assert 'data-real-view-mode="orbit"' in html
     assert 'data-proposal-view-mode="orbit"' in html
     assert html.count("自由旋轉") >= 3
-    assert "全屋家具配置" in html
+    assert "全屋家具配置" not in html
     assert 'data-real-view-mode="dollhouse"' not in html
     assert 'data-proposal-view-mode="dollhouse"' not in html
-    assert 'whiteViewer.setViewMode("dollhouse")' in controller
+    assert 'whiteViewer.setViewMode("dollhouse")' not in controller
+    assert 'class="rp-toolbar-group" aria-label="檢視方式"' in html
+    assert 'class="rp-toolbar-group" aria-label="操作方式"' in html
     assert 'realisticViewer.setViewMode("dollhouse")' not in controller
     assert 'const viewMode = createViewModeState("orbit");' in viewer
     reset_camera = viewer.split("function resetCamera", 1)[1].split(
@@ -2511,3 +2678,26 @@ def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
     assert "pendingSaveCount === 0" in source
     assert "[element.scaleImage, element.spaceImage, element.layoutImage]" in source
     assert ".filter(Boolean)" in source
+
+
+def test_step_seven_requires_one_locked_room_view_before_batch_rendering() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function proposalRoomCameraCandidates" in source
+    assert "function ensureProposalRoomCandidatePreviews" in source
+    assert "proposalRoomPreviewCache" in source
+    assert "proposalViewer.capturePng()" in source
+    assert "入口視角" in source
+    assert "對角視角" in source
+    assert "活動視角" in source
+    assert "function lockSelectedProposalRoomView" in source
+    assert "function confirmProposalRoomViews" in source
+    assert "尚有 ${missing.map((room) => room.label).join" in source
+    assert 'goTo("ai_render")' in source
+    assert "proposalRoomPreviewCache.clear();" in source
+
+    palette_handler = source.split("function confirmRenderPalette()", 1)[1].split(
+        "async function prepareAiRender()", 1
+    )[0]
+    assert "state.proposalReview.roomViews = {};" not in palette_handler
+    assert "將沿用第 7 步鎖定的逐房視角" in palette_handler

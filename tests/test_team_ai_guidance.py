@@ -39,9 +39,9 @@ def test_team_ai_guidance_covers_every_owner_and_primary_folder() -> None:
 
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     claude = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
-    assert "Mandatory Read-Before-Write Gate" in agents
-    assert "Cross-Folder Change Gate" in agents
-    assert "Read `AGENTS.md` before changing code" in claude
+    assert "動手前必做" in agents
+    assert "跨資料夾修改" in agents
+    assert "修改前先閱讀 `AGENTS.md`" in claude
 
 
 def test_readme_describes_current_flow_and_executable_startup() -> None:

@@ -53,6 +53,48 @@ function sizeScore(candidate, request) {
   return Math.max(0, 28 * (1 - relativeDelta));
 }
 
+function roomTypeScore(candidate, request) {
+  const roomType = String(request.roomType || "").toLowerCase();
+  if (!roomType) return 0;
+  const roomTypes = normalizedTokens(candidate.room_types);
+  return roomTypes.includes(roomType) ? 44 : 0;
+}
+
+function roleScore(candidate, request) {
+  const role = String(candidate.catalog_role || candidate.role || "").toLowerCase();
+  if (!role) return 0;
+  if (request.preferAnchor === true && role === "anchor") return 20;
+  if (["anchor", "functional", "storage", "task"].includes(role)) return 12;
+  return 0;
+}
+
+function semanticTextScore(candidate, request) {
+  const queryTokens = new Set(normalizedTokens([
+    request.queryText,
+    request.roomLabel,
+    request.materials,
+    request.styleId,
+    request.type,
+  ]));
+  if (!queryTokens.size) return 0;
+  const candidateTokens = new Set(normalizedTokens([
+    candidate.rag_text,
+    candidate.description,
+    candidate.search_keywords,
+    candidate.features,
+    candidate.mood_tags,
+    candidate.object_type_zh,
+    candidate.name_en,
+    candidate.name_zh,
+    candidate.name_zh_raw,
+  ]));
+  let hits = 0;
+  queryTokens.forEach((token) => {
+    if (candidateTokens.has(token)) hits += 1;
+  });
+  return Math.min(36, hits * 9);
+}
+
 const PRODUCT_NAME_RULES = {
   sofa: {
     positive: ["sofa", "couch", "loveseat", "settee"],
@@ -102,8 +144,11 @@ function productNameScore(candidate, requestedType) {
 export function catalogFurnitureScore(candidate, request = {}) {
   if (!candidate?.model_url) return Number.NEGATIVE_INFINITY;
   const styleScore = request.styleId
-    && candidate.primary_style === request.styleId ? 80 : 0;
+    && [candidate.primary_style, candidate.style_primary, candidate.style_secondary].includes(request.styleId) ? 80 : 0;
   return styleScore
+    + roomTypeScore(candidate, request)
+    + roleScore(candidate, request)
+    + semanticTextScore(candidate, request)
     + materialScore(candidate, request.materials)
     + colorScore(candidate.color, request.palette)
     + sizeScore(candidate, request)

@@ -1,42 +1,41 @@
-# Bella AI Profile
+# Bella AI 責任說明
 
-## Mission
+## 任務
 
-Integrate the team modules into one recoverable eight-step product without
-duplicating their algorithms. Bella owns `backend/server/`, the production
-static frontend, project persistence, API boundaries, and release verification.
+把團隊模組整合成唯一、可恢復的八步產品，不能複製其他 owner 的核心演算法。Bella 維護 `backend/server/`、正式靜態前端、專案保存、API 邊界與發布驗證。
 
-## Architecture
+## 整合流程
 
 ```text
-owner modules -> FastAPI adapters -> project/workflow state
-              -> production HTML/CSS/JS/Three.js
-              -> saved layout_json / requirements_json / scene_json
+各 owner 模組 -> FastAPI adapter -> project/workflow state
+               -> 正式 HTML/CSS/JS/Three.js
+               -> 保存 layout_json / requirements_json / scene_json
 ```
 
-`backend/server/static/` is production. `frontend3d/` is a secondary prototype.
+`backend/server/static/` 是 production frontend；`frontend3d/` 僅是次要 React/R3F 原型。
 
-## Before Editing
+第 6 步使用 Kai PostgreSQL catalog 優先。第 5 步家電需求必須保存給 AI 生圖，但不得變成 2D/3D 自動擺設。第 6 步位置、碰撞與淨空仍由 Ancai 引擎決定。
 
-1. Read `docs/contracts/` for every payload touched.
-2. Identify the domain owner; keep its algorithm in its own module.
-3. Check project restore, migration compatibility, and cache keys.
-4. Plan focused API/contract tests and real browser verification.
+## 修改前
 
-## Cross-Folder Rules
+1. 閱讀所有受影響 payload 的 `docs/contracts/`。
+2. 找出領域 owner，保持其演算法在原目錄。
+3. 檢查專案恢復、舊資料相容與前端 cache key。
+4. 規劃 API/契約測試與實際瀏覽器驗證。
 
-- Floorplan behavior requires Cody/Django review.
-- Catalog/SQL behavior requires Kai review.
-- Selection explanations require Yen review.
-- Placement legality requires Ancai review.
-- Never merge an entire teammate branch or add a second production app.
+## 跨目錄規則
 
-## Verification
+- 平面圖行為需要 Cody/Django review。
+- catalog/SQL 行為需要 Kai review。
+- 選件說明需要 Yen review。
+- 配置合法性需要 Ancai review。
+- 不得整包 merge 成員分支，也不得新增第二套 production app。
+
+## 驗證
 
 ```powershell
-python -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -q
 node --check backend/server/static/scene_v2.js
 node --check backend/server/static/scene_viewer.js
 git diff --check
 ```
-

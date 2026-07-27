@@ -1,74 +1,129 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from scripts.sql import import_official_catalog_to_postgres as sql_import
-from scripts.sql.import_official_catalog_to_postgres import (
-    DEFAULT_CLOUD_CATALOG,
-    DEFAULT_MANIFEST,
-    DEFAULT_SCHEMA,
-    DEFAULT_STYLE_ENRICHMENT,
-    _asset_rows,
-    _catalog_rows,
-    load_import_payload,
-    main,
-)
 
 
-def test_sql_dry_run_validates_the_official_9350_without_database(capsys):
-    assert main(["--dry-run"]) == 0
-
-    output = capsys.readouterr().out
-    assert '"official_items": 9350' in output
-    assert '"legacy_rows_excluded": 1514' in output
-    assert "PostgreSQL was not modified" in output
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_sql_records_are_one_to_one_and_cloudfront_ready():
-    official, manifest, diagnostics = load_import_payload(
-        DEFAULT_CLOUD_CATALOG,
-        DEFAULT_STYLE_ENRICHMENT,
-        DEFAULT_MANIFEST,
-    )
-
-    assert len(_catalog_rows(official["furniture"])) == 9_350
-    assert len(_asset_rows(manifest)) == 9_350
-    assert diagnostics["style_enriched_items"] == 9_021
-    assert all(row["delivery_url"].startswith("https://") for row in manifest)
-
-
-def test_sql_schema_has_transaction_safe_upsert_targets_and_official_view():
-    schema = DEFAULT_SCHEMA.read_text(encoding="utf-8")
-
-    assert "CREATE TABLE IF NOT EXISTS catalog_items" in schema
-    assert "CREATE TABLE IF NOT EXISTS glb_assets" in schema
-    assert "CREATE OR REPLACE VIEW official_furniture_with_glb" in schema
-    assert "delivery_url LIKE 'https://%'" in schema
-
-
-def test_sql_import_defaults_to_non_destructive_prune(monkeypatch):
-    calls = {}
-
-    def fake_import_to_postgres(
-        official,
-        manifest_rows,
-        *,
-        schema_path,
-        prune_extra,
-        catalog_filename,
-        manifest_filename,
-    ):
-        calls["prune_extra"] = prune_extra
-        calls["catalog_filename"] = catalog_filename
-        calls["manifest_filename"] = manifest_filename
-        return len(official["furniture"]), len(manifest_rows), 9_350
-
-    monkeypatch.setattr(sql_import, "import_to_postgres", fake_import_to_postgres)
-
-    assert sql_import.main([]) == 0
-    assert calls == {
-        "prune_extra": False,
-        "catalog_filename": DEFAULT_CLOUD_CATALOG.name,
-        "manifest_filename": DEFAULT_MANIFEST.name,
+def test_sql_defaults_use_the_portable_official_catalog_handoff() -> None:
+    expected_paths = {
+        sql_import.DEFAULT_CATALOG: ROOT
+        / "JSON"
+        / "furniture"
+        / "furniture_official_catagory.json",
+        sql_import.DEFAULT_GLB_MANIFEST: ROOT
+        / "JSON"
+        / "manifests"
+        / "glb_upload_manifest.csv",
+        sql_import.DEFAULT_GLB_RESULT: ROOT
+        / "JSON"
+        / "manifests"
+        / "glb_upload_all_result.csv",
+        sql_import.DEFAULT_IMAGE_MANIFEST: ROOT
+        / "JSON"
+        / "manifests"
+        / "image_upload_manifest.csv",
+        sql_import.DEFAULT_IMAGE_RESULT: ROOT
+        / "JSON"
+        / "manifests"
+        / "image_upload_all_result.csv",
     }
 
-    assert sql_import.main(["--prune-extra"]) == 0
-    assert calls["prune_extra"] is True
+    for actual, expected in expected_paths.items():
+        assert actual == expected
+        assert actual.is_file()
+
+
+def test_sql_dry_run_validates_all_official_assets_without_database(
+    tmp_path: Path, capsys
+) -> None:
+    report_path = tmp_path / "postgres_import_validation.json"
+
+    assert (
+        sql_import.main(
+            ["--dry-run", "--validation-report", str(report_path)]
+        )
+        == 0
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["valid"] is True
+    assert report["source_counts"] == {
+        "catalog_items": 9_350,
+        "glb_manifest_rows": 9_350,
+        "glb_result_rows": 9_350,
+        "image_manifest_rows": 28_050,
+        "image_result_rows": 28_050,
+    }
+    assert report["prepared_counts"]["assets"] == 37_400
+    assert report["prepared_counts"]["vlm_annotations"] == 9_350
+    assert report["errors"] == []
+
+    output = capsys.readouterr().out
+    assert "家具：9,350" in output
+    assert "Dry Run 完成；未連線 PostgreSQL，也未寫入資料庫。" in output
+
+
+def test_sql_schema_exposes_current_catalog_and_staging_contracts() -> None:
+    schema = sql_import.DEFAULT_SCHEMA.read_text(encoding="utf-8")
+
+    assert "CREATE TABLE IF NOT EXISTS roompilot.furniture_items" in schema
+    assert "CREATE TABLE IF NOT EXISTS roompilot.furniture_assets" in schema
+    assert "CREATE TABLE IF NOT EXISTS roompilot.furniture_vlm_annotations" in schema
+    assert "CREATE TABLE IF NOT EXISTS staging.stg_furniture_catalog" in schema
+    assert "FROM pg_available_extensions" in schema
+    assert "WHERE name = 'vector'" in schema
+    assert "CREATE EXTENSION IF NOT EXISTS vector" in schema
+    assert "DO $furniture_embeddings_table$" in schema
+    assert "TO_REGCLASS('roompilot.furniture_embeddings')" in schema
+    assert "CREATE OR REPLACE VIEW roompilot.furniture_catalog_current" in schema
+    assert "delivery_url" in schema
+
+
+def test_sql_database_config_reads_the_repo_env_contract(
+    tmp_path: Path, monkeypatch
+) -> None:
+    keys = (
+        "DB_HOST",
+        "DB_PORT",
+        "DB_NAME",
+        "DB_USER",
+        "DB_PASSWORD",
+        "DB_SSLMODE",
+        "DB_CONNECT_TIMEOUT",
+        "DB_APPLICATION_NAME",
+    )
+    for key in keys:
+        monkeypatch.delenv(key, raising=False)
+
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        "\n".join(
+            (
+                "DB_HOST=localhost",
+                "DB_PORT=5432",
+                "DB_NAME=roompilot_db",
+                "DB_USER=postgres",
+                "DB_PASSWORD=secret",
+                "DB_SSLMODE=disable",
+                "DB_CONNECT_TIMEOUT=10",
+                "DB_APPLICATION_NAME=roompilot_catalog_import",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    assert sql_import.db_config(env_path) == {
+        "host": "localhost",
+        "port": 5432,
+        "dbname": "roompilot_db",
+        "user": "postgres",
+        "password": "secret",
+        "connect_timeout": 10,
+        "application_name": "roompilot_catalog_import",
+        "sslmode": "disable",
+    }

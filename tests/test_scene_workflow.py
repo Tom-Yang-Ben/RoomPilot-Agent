@@ -438,7 +438,8 @@ def test_scene_wizard_exposes_one_panel_for_each_confirmed_step() -> None:
     assert 'id="furniture-icon-library"' in html
     assert "此空間暫不作答" not in html
     assert "確認此房需求與材質" in html
-    assert "我已確認是否有指定家具需求" in html
+    assert "我已確認是否有指定家具需求" not in html
+    assert "使用浮動微調面板鎖定或取消指定需求" in html
 
 
 def test_scene_exposes_the_final_eight_step_workflow() -> None:

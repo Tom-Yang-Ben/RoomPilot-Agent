@@ -1,8 +1,21 @@
 # Bella Test1 Integration Log
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 Branch: `bella-test1`
 Remote push status: not pushed
+
+## 2026-07-27 最新整合狀態
+
+- 已完成 Kai 正式 PostgreSQL catalog 匯入與 API adapter：
+  `roompilot.furniture_catalog_current` 有 9,349 筆啟用家具、37,400 筆
+  GLB/三視角資產與 9,350 筆 VLM 註解。
+- 第 6 步優先使用 PostgreSQL 的家具、CloudFront GLB 與三視角 PNG；
+  資料庫暫時不可用才回退到已驗證 JSON catalog。
+- 冰箱、洗衣機等家電保留為問卷與 `scene_json.render_context` 的生圖
+  輔助資料，不再進入 2D/3D 自動配置或正式家具 API。
+- 增加 PostgreSQL 數值與風格欄位 adapter，避免 `Decimal` JSON 序列化及
+  `style_codes` 格式不相容造成場景生成失敗。
+- 本次整合完成後尚待以中文 commit 並推送 `bella-test1`。
 
 ## Current Local Commits
 
@@ -893,3 +906,174 @@ $env:TEMP=$env:TMP
   `backend.server.main:app` returned HTTP 200 on port 8031.
 - Full suite verification: 480 passed, 2 skipped.
 - No remote push was performed.
+
+## 2026-07-27 Step 6 Unloadable-Model Review Deadlock
+
+- Reproduced a Step 6 deadlock on project
+  `47abb48d539c46a0afd1fc1acce34add`: two placement failures could use
+  room-level prioritization, but two CloudFront GLBs returning HTTP 403 had no
+  equivalent defer action and permanently disabled the confirmation button.
+- Kept the existing rule that unresolved furniture blocks Step 7.
+- Extended `同意擇優配置` to every room with pending furniture. Unloadable
+  catalog models are now explicitly deferred with a recorded reason before the
+  remaining furniture is revalidated for collision, clearance, and room bounds.
+- Browser verification confirmed the action is available for the bedroom,
+  kitchen, storage room, and balcony while the confirmation button remains
+  disabled until the user resolves or explicitly defers all four items.
+- Updated the scene bundle cache key so existing pages receive the corrected
+  controller after reload.
+- Full suite verification: 481 passed, 2 skipped.
+- No commit or remote push was performed.
+
+## 2026-07-27 Kai PNG Preview and Cody Window Threshold Patch
+
+- Selectively integrated Kai's official furniture image manifests into the
+  backend catalog data. Only the two PNG manifest CSV files were brought over;
+  Kai's appliance API removal was intentionally not merged.
+- Added a CloudFront PNG preview resolver for furniture. `/api/furniture` now
+  returns `image_url`, `thumbnail_url`, `preview_url`, and `preview_images`
+  when the manifest has verified `front`, `side`, and `angle-45` PNG renders.
+- Updated Step 6 GLB search cards to prefer the official furniture PNG preview
+  and only fall back to generated GLB thumbnails when a manifest image is
+  unavailable.
+- Ported Cody's small window-gap threshold fix in `floorplan2dxf.py` so tiny
+  door-hardware gaps are less likely to be classified as windows.
+- Added focused tests for the 9,350-item / 28,050-image manifest contract and
+  backend preview URL resolution.
+
+## 2026-07-27 Retire Appliance Catalog Flow
+
+- Aligned Bella's runtime flow with Kai's official furniture-only catalog
+  direction.
+- Removed the public `/api/appliances` route from the FastAPI app.
+- Disabled appliance payload loading from the legacy combined
+  furniture/appliance catalog.
+- Removed Step 6 frontend routing that sent refrigerator and washer requests to
+  `/api/appliances`.
+- Stopped default 2D room recommendations from auto-adding refrigerators in
+  kitchens or washers on balconies, preventing retired appliance items from
+  blocking Step 6 review.
+
+## 2026-07-27 Kai Room Role Rag Furniture Recommendation
+
+- Integrated Kai's VLM-enriched official furniture catalog at
+  `JSON/furniture/furniture_official_catagory.json` as the preferred 9,350-item
+  runtime catalog.
+- Preserved the older backend cloud catalog as fallback when the enriched JSON
+  is unavailable.
+- Propagated Kai fields through `/api/furniture`: `room_types`, `catalog_role`,
+  `style_primary`, `style_secondary`, `description`, `rag_text`, mood tags,
+  features, and search keywords.
+- Expanded furniture API search to include the enriched semantic fields.
+- Updated Step 6 ranking so room type, catalog role, and questionnaire/RAG text
+  influence candidate ordering instead of relying only on fixed type, style,
+  size, material, and color.
+- Added regression tests for enriched runtime payloads and questionnaire catalog
+  ranking.
+
+## 2026-07-27 Step 6 Retired Appliance Project Cleanup
+
+- Fixed restored projects that still contained retired refrigerator or washer
+  items from the earlier appliance catalog flow.
+- Added a Step 6 cleanup guard that removes `refrigerator`, `washer`, and old
+  IKEA appliance CloudFront model URLs from `furniture2d`, active `sceneData`,
+  and all design schemes before rendering, saving, or regenerating 3D.
+- Kept `appliance-cabinet` intact so kitchens can still receive general cabinet
+  furniture from the official furniture catalog.
+- Browser verification on project `47abb48d539c46a0afd1fc1acce34add` confirmed
+  `LAGAN` and `UDDARP` disappeared from the Step 6 DOM and live page state after
+  reload; the furniture list dropped from 14 to 12 items.
+- Full suite verification: 486 passed, 2 skipped.
+
+## 2026-07-27 Whole-House Floor and Accent Wall Consistency
+
+- Updated the questionnaire-to-3D material flow so regular indoor rooms share
+  one whole-house main floor instead of each room using a different floor color
+  or material.
+- Kept independent floor finishes only for functional/wet zones: bathroom,
+  kitchen, entry/foyer, balcony, laundry, and utility rooms.
+- Limited wall overrides to one accent wall per room. All other walls use the
+  room's main wall finish, reducing the patchwork/jumping-color look in Step 6.
+- Applied the consistency rule before saving workflow state, after random
+  requirement generation, after room finish confirmation, after restoring a
+  saved project, and when building `room_surface_assignments` for 3D.
+- Updated the Step 6 room-material side label to display the effective material
+  after consistency normalization.
+
+## 2026-07-27 Flush Window Frame Geometry
+
+- Fixed Step 6 3D window rendering where the upper/lower edge could visibly
+  fight with wall sections and look recessed or protruded.
+- Window assemblies now offset the glass and frame to a stable wall-face plane
+  instead of drawing directly on the wall centerline.
+- Window sill/header wall sections leave a small clearance around the frame so
+  the frame, sill, and wall no longer overlap.
+- Added a flush sill detail and regression checks for the frame offset,
+  wall-section clearance, and standalone window path.
+- Browser reload confirmed the new scene viewer import was active with no
+  console errors.
+
+## 2026-07-27 Step 6 Beam Return Explanation
+
+- Clarified the Step 6 ceiling-beam panel so users understand what choosing
+  `返回第 4 步修改樑` means.
+- The panel now explains that Step 4 can add, move, delete, resize, and adjust
+  beam drop height.
+- It also states that the current furniture placement is preserved and will be
+  revalidated when returning to Step 6; only furniture made invalid by the beam
+  change enters the right-side pending list.
+- Browser verification confirmed the explanatory text appears in the active
+  8023 page.
+
+## 2026-07-27 Step 6 User-Specified Furniture Lock
+
+- Added a direct `鎖定目前家具為指定需求` action in the Step 6 furniture
+  appearance panel.
+- The action marks the selected 3D furniture as `user_specified`,
+  `user_required`, `model_locked`, and `position_locked`, and mirrors the lock
+  back to the matching 2D furniture item.
+- This gives users a visible way to preserve furniture they explicitly want
+  before style switching, replacement, or structure-driven revalidation.
+- Browser verification confirmed the new button and hint text appear in the
+  active 8023 page with the updated `scene_v2` cache key.
+
+## 2026-07-27 Step 6 Edit-Mode Camera Preservation
+
+- Removed the forced dollhouse camera reset from the Step 6
+  `編輯家具` interaction-mode switch.
+- Switching from walk, orbit, top-down, or interior view now preserves the
+  current camera position, target, zoom, and active view indicator while only
+  enabling furniture selection, dragging, and rotation.
+- Added a regression assertion that the edit-mode activation path cannot call
+  `setViewMode`.
+- Browser verification confirmed `室內透視` remains the active view after
+  switching to `編輯家具`.
+- Updated the scene bundle cache key so the corrected controller is loaded
+  after refresh.
+- Full suite verification: 481 passed, 2 skipped.
+- No commit or remote push was performed.
+
+## 2026-07-27 Step 6 Exterior Wall Material and Junction Cleanup
+
+- Fixed Step 6 segment-wall rendering so exterior walls keep a stable exterior
+  finish instead of inheriting room-specific interior wall materials.
+- Added geometric exterior-wall detection for wall segments that do not carry a
+  `boundary_side` flag but sit on the floorplan perimeter.
+- Trimmed interior wall endpoints where they meet exterior walls so dark accent
+  wall end caps no longer protrude through the outside facade.
+- Shortened top caps together with the trimmed interior wall span to avoid thin
+  cap strips sticking out at wall intersections.
+- Added regression coverage for the exterior-wall material resolver and
+  interior-junction inset contract.
+
+## 2026-07-27 Step 6 Exterior-Facing Wall Surface Cleanup
+
+- Added exterior-facing face material assignment for segment walls so exposed
+  exterior faces stay on the exterior wall finish even when the interior side
+  uses a room-specific wall material.
+- Treated wall segments that touch the floorplan exterior bounds as
+  exterior-facing, preventing room divider colors from leaking onto the facade
+  at wall junctions.
+- Verified the active Step 6 page loads the updated scene bundle with no console
+  errors and the right-side facade no longer shows a large brown interior wall
+  surface.

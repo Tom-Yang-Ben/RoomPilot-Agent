@@ -555,6 +555,7 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
     wall_t = float(np.median(src)) if src else float(T)        # 代表性牆厚
     min_w = (1.0 - cfg.win_min_pct / 100.0) * wall_t           # 窗跨牆寬度下限
     gmin, gmax = 0.4 * T, 25.0 * T
+    gmin_win = max(gmin, 1.5 * min(float(T), max(1.6 * wall_t, 0.6 * T)))
     horiz = [r for r in rects if (r[2] - r[0]) >= (r[3] - r[1])]
     vert = [r for r in rects if (r[2] - r[0]) < (r[3] - r[1])]
     wins = []
@@ -661,7 +662,7 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         grp.sort(key=lambda r: r[0])
         for a, b in zip(grp, grp[1:]):
             gap = b[0] - a[2]
-            if gap < gmin or gap > gmax:
+            if gap < gmin_win or gap > gmax:
                 continue
             x0, x1 = int(a[2]), int(b[0])
             y0, y1 = int(min(a[1], b[1])), int(max(a[3], b[3]))
@@ -681,7 +682,7 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         grp.sort(key=lambda r: r[1])
         for a, b in zip(grp, grp[1:]):
             gap = b[1] - a[3]
-            if gap < gmin or gap > gmax:
+            if gap < gmin_win or gap > gmax:
                 continue
             y0, y1 = int(a[3]), int(b[1])
             x0, x1 = int(min(a[0], b[0])), int(max(a[2], b[2]))

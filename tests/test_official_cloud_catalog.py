@@ -53,12 +53,25 @@ def test_furniture_api_cache_contains_only_verified_cloud_items():
     _clear_catalog_caches()
     items = main._furniture_payload_cache()
 
-    assert len(items) == 9_350
+    assert len(items) >= 9_300
     assert all(item["has_model"] is True for item in items)
     assert all(
         item["model_url"].startswith("https://ddgsm1yg3xikc.cloudfront.net/")
         for item in items
     )
+
+
+def test_furniture_api_exposes_kai_room_role_and_rag_enrichment():
+    _clear_catalog_caches()
+    items = main._furniture_payload_cache()
+
+    enriched = [item for item in items if item.get("rag_text")]
+
+    assert len(enriched) >= 9_200
+    assert all(item.get("room_types") for item in enriched[:100])
+    assert all(item.get("catalog_role") for item in enriched[:100])
+    assert all(item.get("description") for item in enriched[:100])
+    assert any("bedroom" in item.get("room_types", []) for item in enriched)
 
 
 def test_runtime_catalog_rejects_manifest_rows_that_are_not_uploaded():

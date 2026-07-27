@@ -1,5 +1,9 @@
 # RoomPilot-Agent
 
+## IKEA 地端 GLB 備援（尚未完成）
+
+Kai 的 CloudFront catalog 目前仍是唯一正式模型來源。Django 與 Kai 後續會共同完成本機 IKEA GLB 備援的 JSON 對照、固定備份路徑與 API 模式；完成前請勿在 `.env` 啟用本機模式，也不要將大型 GLB 提交到 Git。已清洗的網站 PBR 紋理可提交至 `backend/server/static/pbr_assets/`。
+
 RoomPilot 是 AIPE03 第四組的 AI 室內設計系統。它把平面圖辨識、人工
 校正、逐房需求、家具資料庫、幾何配置、2D/3D 編輯、方案視角與 AI
 渲染整合成一個可恢復的網頁流程。
@@ -12,7 +16,7 @@ RoomPilot 是 AIPE03 第四組的 AI 室內設計系統。它把平面圖辨識�
 - Python 3.12
 - Git
 - Node.js 24 與 npm 11 僅供 `frontend3d/` 原型使用
-- PostgreSQL 僅在測試正式 catalog SQL 時需要
+- PostgreSQL 17：第 6 步正式家具 catalog 的優先資料來源
 
 ### 方式一：Python venv 與 requirements.txt
 
@@ -174,10 +178,10 @@ AI 或新成員開始修改前，必須依序閱讀：
 
 正式雲端 catalog 由 Kai 的資料流維護：
 
-- 官方 CloudFront 家具：9,350 件
-- 可補六風格／RAG／擺放資訊：9,021 件
-- 尚無舊風格標籤：329 件
-- 無法安全映射的舊資料維持 quarantine
+- PostgreSQL 正式 view：9,349 筆啟用家具
+- 每筆具有 CloudFront GLB 與正面、側面、45 度 PNG
+- JSON 備援 catalog：9,350 筆，僅在 PostgreSQL 暫時不可連線時使用
+- 家電問卷需求會保留給 AI 生圖，不會進入第 6 步 2D/3D 擺設
 
 先建立 `.env`：
 
@@ -187,6 +191,13 @@ DB_PORT=5432
 DB_NAME=roompilot_db
 DB_USER=postgres
 DB_PASSWORD=安裝 PostgreSQL 時自行設定的密碼
+```
+
+網站預設嘗試 PostgreSQL。若本機尚未匯入或資料庫暫時不可連線，會自動
+使用已驗證 JSON 備援；如需強制使用 JSON 進行離線開發，可在 `.env` 加入：
+
+```dotenv
+ROOMPILOT_CATALOG_PROVIDER=json
 ```
 
 Dry-run：
@@ -203,6 +214,10 @@ Dry-run：
 
 匯入採 transaction 與 UPSERT，預設不刪除其他資料。只有經過人工確認
 才可使用 `--prune-extra`。
+
+目前的責任、資料流與家電邊界請看
+[現行版本總覽](docs/RoomPilot_現行版本總覽.md) 與
+[團隊 AI 責任與整合架構](docs/TEAM_AI_OWNERSHIP.md)。
 
 ## React/R3F 原型
 

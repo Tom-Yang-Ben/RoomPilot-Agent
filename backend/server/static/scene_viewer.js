@@ -10,10 +10,11 @@ import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { classifyMaterialSlot } from "./scene_material_schemes.js?v=20260712b";
 import {
+  architecturalPbrProfile,
   furniturePbrProfile,
   surfacePbrProfile,
   surfaceTint,
-} from "./scene_pbr_contracts.js?v=20260720-real3d15";
+} from "./scene_pbr_contracts.js?v=sha256-075ad1cedc62";
 import {
   doorOpeningForWallTopology,
   openingBelongsToWall,
@@ -37,6 +38,118 @@ const CM_PER_METER = 100;
 
 function normalizeSceneRotationDeg(rotationDeg = 0) {
   return ((Number(rotationDeg) % 360) + 360) % 360;
+}
+
+function architecturalOpeningVector(opening = {}) {
+  const start = opening.start || {};
+  const end = opening.end || {};
+  const startX = Number(start.x || 0);
+  const startZ = Number(start.z || 0);
+  const endX = Number(end.x || 0);
+  const endZ = Number(end.z || 0);
+  const dx = endX - startX;
+  const dz = endZ - startZ;
+  const length = Math.hypot(dx, dz);
+  return {
+    startX,
+    startZ,
+    endX,
+    endZ,
+    centerX: (startX + endX) / 2,
+    centerZ: (startZ + endZ) / 2,
+    length,
+    unitX: length ? dx / length : 0,
+    unitZ: length ? dz / length : 0,
+  };
+}
+
+function architecturalOpeningsOverlap(left = {}, right = {}) {
+  const leftVector = architecturalOpeningVector(left);
+  const rightVector = architecturalOpeningVector(right);
+  if (leftVector.length < 4 || rightVector.length < 4) return false;
+  const parallel = Math.abs(
+    leftVector.unitX * rightVector.unitX + leftVector.unitZ * rightVector.unitZ,
+  );
+  if (parallel < 0.82) return false;
+  const centerDistance = Math.hypot(
+    leftVector.centerX - rightVector.centerX,
+    leftVector.centerZ - rightVector.centerZ,
+  );
+  const endpointDistance = Math.min(
+    Math.hypot(leftVector.startX - rightVector.startX, leftVector.startZ - rightVector.startZ)
+      + Math.hypot(leftVector.endX - rightVector.endX, leftVector.endZ - rightVector.endZ),
+    Math.hypot(leftVector.startX - rightVector.endX, leftVector.startZ - rightVector.endZ)
+      + Math.hypot(leftVector.endX - rightVector.startX, leftVector.endZ - rightVector.startZ),
+  );
+  const width = Math.min(
+    Number(left.width_cm || left.width || leftVector.length) || leftVector.length,
+    Number(right.width_cm || right.width || rightVector.length) || rightVector.length,
+  );
+  return centerDistance <= Math.max(18, width * 0.28) || endpointDistance <= 36;
+}
+
+function openingWallCoverage(opening = {}, wallSegments = [], wallThickness = 12) {
+  if (opening.topology_gap) return null;
+  const hostSegment = wallSegmentForOpening(wallSegments, opening, wallThickness);
+  if (!hostSegment) return null;
+  const interval = openingWallInterval(hostSegment, opening, wallThickness, 24);
+  if (!interval) return null;
+  return { hostSegment, interval };
+}
+
+function openingsShareWallCoverage(left = {}, right = {}, wallSegments = [], wallThickness = 12) {
+  const leftCoverage = openingWallCoverage(left, wallSegments, wallThickness);
+  const rightCoverage = openingWallCoverage(right, wallSegments, wallThickness);
+  if (!leftCoverage || !rightCoverage || leftCoverage.hostSegment !== rightCoverage.hostSegment) {
+    return false;
+  }
+  const overlap = Math.min(leftCoverage.interval.to, rightCoverage.interval.to)
+    - Math.max(leftCoverage.interval.from, rightCoverage.interval.from);
+  const narrowerWidth = Math.min(
+    leftCoverage.interval.to - leftCoverage.interval.from,
+    rightCoverage.interval.to - rightCoverage.interval.from,
+  );
+  // A repeated recognition can be offset from the wall line, but still cuts the
+  // same physical span. Do not collapse neighbouring, genuinely separate doors.
+  return overlap >= Math.max(24, narrowerWidth * 0.55);
+}
+
+function architecturalOpeningScore(opening = {}, wallSegments = [], wallThickness = 12) {
+  const coverage = openingWallCoverage(opening, wallSegments, wallThickness);
+  const vector = architecturalOpeningVector(opening);
+  const host = coverage ? architecturalOpeningVector(coverage.hostSegment) : null;
+  const centerOffset = host
+    ? Math.abs(
+      (vector.centerX - host.startX) * -host.unitZ
+      + (vector.centerZ - host.startZ) * host.unitX,
+    )
+    : 0;
+  return (opening.topology_gap ? 100 : 0)
+    + (opening.confirmed ? 18 : 0)
+    + (opening.source === "manual" ? 14 : 0)
+    + Math.min(12, Number(opening.confidence || 0) * 12)
+    - Math.min(30, centerOffset * 0.25);
+}
+
+function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wallThickness = 12) {
+  const result = [];
+  openings.filter(Boolean).forEach((opening) => {
+    const duplicateIndex = result.findIndex(
+      (candidate) => architecturalOpeningsOverlap(candidate, opening)
+        || openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness),
+    );
+    if (duplicateIndex < 0) {
+      result.push(opening);
+      return;
+    }
+    if (
+      architecturalOpeningScore(opening, wallSegments, wallThickness)
+      > architecturalOpeningScore(result[duplicateIndex], wallSegments, wallThickness)
+    ) {
+      result[duplicateIndex] = opening;
+    }
+  });
+  return result;
 }
 
 function sceneToWorldPosition(position = {}) {
@@ -630,6 +743,12 @@ export function createSceneViewer(
     );
   }
 
+  function findSurfaceTexture(surfaceCatalog, surfaceId) {
+    return (surfaceCatalog?.surfaces || []).find(
+      (surface) => surface.surface_id === surfaceId && surface.texture_url,
+    ) || null;
+  }
+
   function getSurfaceModuleSize(surface, usage) {
     if (usage !== "floor") return { x: 180, y: 180 };
     const physicalSize = String(surface.source_size || "")
@@ -691,6 +810,33 @@ export function createSceneViewer(
       material.transparent = true;
       material.opacity = options.opacity ?? 0.92;
       material.depthWrite = true;
+    }
+    return material;
+  }
+
+  function createArchitecturalMaterial(role, surfaceCatalog) {
+    const profile = architecturalPbrProfile(role);
+    const isDoor = role === "door_leaf";
+    const material = new THREE.MeshPhysicalMaterial({
+      color: isDoor ? 0xb98c62 : 0xe9ecec,
+      ...profile,
+    });
+
+    // The existing wood surface gives the default closed door visible grain.
+    // A future door catalog may replace it with a product-specific PBR set.
+    if (isDoor) {
+      const woodSurface = findSurfaceTexture(
+        surfaceCatalog,
+        "wood_cc0_wood_textures_woodfloor039",
+      );
+      if (woodSurface) {
+        material.map = createImageTexture(woodSurface, "floor", [1, 2.2]);
+        material.bumpMap = createImageTexture(woodSurface, "floor", [1, 2.2]);
+        material.bumpMap.colorSpace = THREE.NoColorSpace;
+        material.bumpScale = 0.018;
+        material.userData.roompilotImageSurface = true;
+        material.userData.roompilotSurfaceUsage = "door";
+      }
     }
     return material;
   }
@@ -1131,8 +1277,15 @@ export function createSceneViewer(
     wallThickness,
     doorSegments = [],
     windowSegments = [],
+    floorplan = null,
+    surfaceCatalog = null,
   ) {
     const renderedOpenings = new Set();
+    const wallDoorSegments = doorSegments.filter((opening) => opening?.topology_gap !== true);
+    const topologyGapDoors = doorSegments.filter((opening) => opening?.topology_gap === true);
+    const exteriorSegments = segments.filter((segment) => (
+      isExteriorWallSegment(segment, floorplan, wallThickness)
+    ));
 
     segments.forEach((segment) => {
       const start = segment.start;
@@ -1146,11 +1299,27 @@ export function createSceneViewer(
       const unitX = dx / length;
       const unitZ = dz / length;
       const rotationY = Math.atan2(-dz, dx);
+      const exteriorWall = isExteriorWallSegment(segment, floorplan, wallThickness);
+      const exteriorSideSign = exteriorWall
+        ? exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)
+        : 0;
+      const wallJunctionInsets = exteriorWall
+        ? { start: 0, end: 0 }
+        : interiorWallJunctionInsets(segment, exteriorSegments, wallThickness);
+      const sectionMin = Math.min(Math.max(wallJunctionInsets.start, 0), length / 2);
+      const sectionMax = Math.max(
+        sectionMin,
+        length - Math.min(Math.max(wallJunctionInsets.end, 0), length / 2),
+      );
+      if (sectionMax - sectionMin < 4) return;
 
       const material = typeof wallMaterial === "function"
         ? wallMaterial(segment)
         : wallMaterial;
-      const openingIntervals = [...doorSegments.map((opening) => ({ opening, kind: "door" })),
+      const exteriorSurfaceMaterial = typeof wallMaterial === "function"
+        ? (wallMaterial.exteriorMaterial || material)
+        : material;
+      const openingIntervals = [...wallDoorSegments.map((opening) => ({ opening, kind: "door" })),
         ...windowSegments.map((opening) => ({ opening, kind: "window" }))]
         .map(({ opening, kind }, index) => {
           const wallInterval = openingWallInterval(
@@ -1163,9 +1332,12 @@ export function createSceneViewer(
           const windowMetrics = kind === "window"
             ? windowOpeningMetrics(opening, wallHeight)
             : null;
+          const from = Math.max(wallInterval.from, sectionMin);
+          const to = Math.min(wallInterval.to, sectionMax);
+          if (to - from < 2.5) return null;
           return {
-            from: wallInterval.from,
-            to: wallInterval.to,
+            from,
+            to,
             kind,
             width: wallInterval.width,
             opening,
@@ -1183,9 +1355,13 @@ export function createSceneViewer(
         const sectionFrom = span.from;
         const sectionTo = span.to;
         const center = (sectionFrom + sectionTo) / 2;
+        const sectionGeometry = new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness);
+        const sectionMaterials = exteriorWall
+          ? wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)
+          : sectionMaterial.clone();
         const wallMesh = new THREE.Mesh(
-          new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness),
-          sectionMaterial.clone(),
+          sectionGeometry,
+          sectionMaterials,
         );
         wallMesh.position.set(
           Number(start.x) + unitX * center,
@@ -1222,7 +1398,7 @@ export function createSceneViewer(
         roomGroupRef.add(trim);
       };
 
-      let cursor = 0;
+      let cursor = sectionMin;
       openingIntervals.forEach((interval) => {
         addWallSection(cursor, interval.from, 0, wallHeight);
         addBaseboard(cursor, interval.from);
@@ -1231,8 +1407,14 @@ export function createSceneViewer(
           : interval.windowMetrics.headHeightCm;
         if (interval.kind === "window") {
           const sillHeight = interval.windowMetrics.sillHeightCm;
-          addWallSection(interval.from, interval.to, 0, sillHeight);
-          addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
+          const frameAllowanceCm = 0.6;
+          addWallSection(interval.from, interval.to, 0, Math.max(0, sillHeight - frameAllowanceCm));
+          addWallSection(
+            interval.from,
+            interval.to,
+            openingHeight + frameAllowanceCm,
+            Math.max(0, wallHeight - openingHeight - frameAllowanceCm),
+          );
         } else {
           addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
         }
@@ -1244,23 +1426,27 @@ export function createSceneViewer(
               x: Number(start.x) + unitX * ((interval.from + interval.to) / 2),
               z: Number(start.z) + unitZ * ((interval.from + interval.to) / 2),
               rotationY,
+              wallThickness,
             },
+            surfaceCatalog,
           );
           renderedOpenings.add(interval.key);
         }
         cursor = Math.max(cursor, interval.to);
       });
-      addWallSection(cursor, length, 0, wallHeight);
-      addBaseboard(cursor, length);
+      addWallSection(cursor, sectionMax, 0, wallHeight);
+      addBaseboard(cursor, sectionMax);
 
+      const capLength = sectionMax - sectionMin;
+      const capCenter = (sectionMin + sectionMax) / 2;
       const topCap = new THREE.Mesh(
-        new THREE.BoxGeometry(length, 2.5, wallThickness),
+        new THREE.BoxGeometry(capLength, 2.5, wallThickness),
         material.clone(),
       );
       topCap.position.set(
-        (Number(start.x) + Number(end.x)) / 2,
+        Number(start.x) + unitX * capCenter,
         wallHeight + 1.25,
-        (Number(start.z) + Number(end.z)) / 2,
+        Number(start.z) + unitZ * capCenter,
       );
       topCap.rotation.y = rotationY;
       topCap.castShadow = true;
@@ -1268,9 +1454,7 @@ export function createSceneViewer(
       roomGroupRef.add(topCap);
     });
 
-    const missingDoors = doorSegments.filter((opening) => !segments.some(
-      (segment) => openingWallInterval(segment, opening, wallThickness, 68),
-    ));
+    const missingDoors = topologyGapDoors;
     const missingWindows = windowSegments.filter((opening) => !segments.some(
       (segment) => openingWallInterval(segment, opening, wallThickness, 50),
     ));
@@ -1288,20 +1472,17 @@ export function createSceneViewer(
         standaloneWallMaterial,
         wallHeight,
         wallThickness,
+        surfaceCatalog,
       );
     }
   }
 
-  function buildOpeningAssembly(roomGroupRef, interval, anchor) {
+  function buildOpeningAssembly(roomGroupRef, interval, anchor, surfaceCatalog = null) {
     const isWindow = interval.kind === "window";
-    const frameMaterial = new THREE.MeshPhysicalMaterial({
-      color: isWindow ? 0xe9ecec : 0xb98c62,
-      roughness: isWindow ? 0.34 : 0.46,
-      metalness: isWindow ? 0.18 : 0,
-      clearcoat: 0.28,
-      clearcoatRoughness: 0.34,
-      envMapIntensity: 1,
-    });
+    const frameMaterial = createArchitecturalMaterial(
+      isWindow ? "window_frame" : "door_leaf",
+      surfaceCatalog,
+    );
     const height = isWindow ? interval.windowMetrics?.glazingHeightCm || 120 : 205;
     const centerY = isWindow
       ? (interval.windowMetrics?.sillHeightCm || 0) + height / 2
@@ -1312,40 +1493,49 @@ export function createSceneViewer(
     assembly.userData.roompilotArchitecturalDetail = interval.kind;
 
     if (isWindow) {
+      const frameDepth = 3.2;
+      const frameThickness = 4.2;
+      const faceOffset = Math.max(Number(anchor.wallThickness || 12) / 2 + 0.35, 6);
+      const bottomY = centerY - height / 2;
+      const topY = centerY + height / 2;
       const glass = new THREE.Mesh(
-        new THREE.PlaneGeometry(interval.width * 0.92, height * 0.9),
+        new THREE.PlaneGeometry(Math.max(interval.width - frameThickness * 2, 12), Math.max(height - frameThickness * 2, 12)),
         new THREE.MeshPhysicalMaterial({
           color: 0xd9edf2,
-          roughness: 0.08,
-          metalness: 0,
-          transmission: 0.88,
-          thickness: 1,
-          ior: 1.48,
-          transparent: true,
-          opacity: 0.34,
+          ...architecturalPbrProfile("glass"),
           side: THREE.DoubleSide,
-          envMapIntensity: 1.35,
         }),
       );
       glass.position.y = centerY;
+      glass.position.z = faceOffset - frameDepth / 2 - 0.08;
       glass.castShadow = false;
       assembly.add(glass);
       const mullionPositions = [0];
       [
-        [interval.width, 4.5, 0, centerY - height / 2],
-        [interval.width, 4.5, 0, centerY + height / 2],
-        [4.5, height, -interval.width / 2, centerY],
-        [4.5, height, interval.width / 2, centerY],
-        ...mullionPositions.map((x) => [3.5, height, x, centerY]),
+        [interval.width, frameThickness, 0, bottomY],
+        [interval.width, frameThickness, 0, topY],
+        [frameThickness, height, -interval.width / 2, centerY],
+        [frameThickness, height, interval.width / 2, centerY],
+        ...mullionPositions.map((x) => [3.2, height - frameThickness, x, centerY]),
       ].forEach(([width, frameHeight, x, y]) => {
         const frame = new THREE.Mesh(
-          new THREE.BoxGeometry(width, frameHeight, 4.5),
+          new THREE.BoxGeometry(width, frameHeight, frameDepth),
           frameMaterial,
         );
-        frame.position.set(x, y, 0);
+        frame.position.set(x, y, faceOffset);
         frame.castShadow = true;
+        frame.receiveShadow = true;
         assembly.add(frame);
       });
+      const sill = new THREE.Mesh(
+        new THREE.BoxGeometry(interval.width + 8, 2.2, frameDepth + 4),
+        frameMaterial,
+      );
+      sill.position.set(0, bottomY - 1.1, faceOffset);
+      sill.castShadow = true;
+      sill.receiveShadow = true;
+      sill.userData.roompilotArchitecturalDetail = "flush-window-sill";
+      assembly.add(sill);
     } else {
       const leaf = new THREE.Mesh(
         new THREE.BoxGeometry(Math.max(interval.width * 0.94, 60), height, 4.5),
@@ -1367,6 +1557,7 @@ export function createSceneViewer(
     wallMaterial,
     wallHeight,
     wallThickness,
+    surfaceCatalog = null,
   ) {
     [
       ...doorSegments.map((opening) => ({ opening, kind: "door" })),
@@ -1400,7 +1591,9 @@ export function createSceneViewer(
           x: (Number(start.x || 0) + Number(end.x || 0)) / 2,
           z: (Number(start.z || 0) + Number(end.z || 0)) / 2,
           rotationY: Math.atan2(-dz, dx),
+          wallThickness,
         },
+        surfaceCatalog,
       );
       const isWindow = kind === "window";
       const openingHeight = isWindow
@@ -1429,13 +1622,20 @@ export function createSceneViewer(
         roomGroupRef.add(registerWall(section));
       };
       if (isWindow) {
-        addOpeningWallSection(0, sillHeight, "window-wall-sill");
+        const frameAllowanceCm = 0.6;
+        addOpeningWallSection(0, Math.max(0, sillHeight - frameAllowanceCm), "window-wall-sill");
+        addOpeningWallSection(
+          openingHeight + frameAllowanceCm,
+          Math.max(0, wallHeight - openingHeight - frameAllowanceCm),
+          "window-wall-header",
+        );
+      } else {
+        addOpeningWallSection(
+          openingHeight,
+          wallHeight - openingHeight,
+          "door-wall-header",
+        );
       }
-      addOpeningWallSection(
-        openingHeight,
-        wallHeight - openingHeight,
-        isWindow ? "window-wall-header" : "door-wall-header",
-      );
     });
   }
 
@@ -1927,8 +2127,8 @@ export function createSceneViewer(
         point.z - (Number(start.z) + projection * dz),
       );
     };
-    return (segment) => {
-      if (segment.boundary_side) {
+    const resolveWallMaterial = (segment) => {
+      if (isExteriorWallSegment(segment, sceneData.floorplan)) {
         exteriorMaterial.userData.roompilotWallSurfaceRole = "exterior";
         return exteriorMaterial;
       }
@@ -1972,6 +2172,234 @@ export function createSceneViewer(
         cache.set(cacheKey, material);
       }
       return cache.get(cacheKey);
+    };
+    resolveWallMaterial.exteriorMaterial = exteriorMaterial;
+    return resolveWallMaterial;
+  }
+
+  function wallSegmentPoint(segment, key) {
+    const point = segment?.[key];
+    const x = Number(point?.x);
+    const z = Number(point?.z);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+    return { x, z };
+  }
+
+  function pointToWallSegmentDistance(point, segment) {
+    const start = wallSegmentPoint(segment, "start");
+    const end = wallSegmentPoint(segment, "end");
+    if (!point || !start || !end) return Infinity;
+    const dx = end.x - start.x;
+    const dz = end.z - start.z;
+    const lengthSquared = dx * dx + dz * dz;
+    if (lengthSquared < 0.01) return Math.hypot(point.x - start.x, point.z - start.z);
+    const projection = THREE.MathUtils.clamp(
+      ((point.x - start.x) * dx + (point.z - start.z) * dz) / lengthSquared,
+      0,
+      1,
+    );
+    return Math.hypot(
+      point.x - (start.x + projection * dx),
+      point.z - (start.z + projection * dz),
+    );
+  }
+
+  function wallSegmentBounds(floorplan = {}) {
+    const points = (floorplan.wall_segments || [])
+      .flatMap((segment) => [wallSegmentPoint(segment, "start"), wallSegmentPoint(segment, "end")])
+      .filter(Boolean);
+    if (!points.length) return null;
+    return points.reduce((bounds, point) => ({
+      minX: Math.min(bounds.minX, point.x),
+      maxX: Math.max(bounds.maxX, point.x),
+      minZ: Math.min(bounds.minZ, point.z),
+      maxZ: Math.max(bounds.maxZ, point.z),
+    }), {
+      minX: Infinity,
+      maxX: -Infinity,
+      minZ: Infinity,
+      maxZ: -Infinity,
+    });
+  }
+
+  function ringPointCoordinates(point) {
+    const x = Number(Array.isArray(point) ? point[0] : point?.x);
+    const z = Number(Array.isArray(point) ? point[1] : point?.z ?? point?.y);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+    return { x, z };
+  }
+
+  function ringContainsPoint(position, ring) {
+    if (!Array.isArray(ring) || ring.length < 3) return false;
+    let inside = false;
+    for (let current = 0, previous = ring.length - 1; current < ring.length; previous = current++) {
+      const currentPoint = ringPointCoordinates(ring[current]);
+      const previousPoint = ringPointCoordinates(ring[previous]);
+      if (!currentPoint || !previousPoint) continue;
+      const crosses = (currentPoint.z > position.z) !== (previousPoint.z > position.z);
+      const edgeX = ((previousPoint.x - currentPoint.x) * (position.z - currentPoint.z))
+        / ((previousPoint.z - currentPoint.z) || Number.EPSILON) + currentPoint.x;
+      if (crosses && position.x < edgeX) inside = !inside;
+    }
+    return inside;
+  }
+
+  function floorplanRoomRegions(floorplan = {}) {
+    const regions = [
+      ...(Array.isArray(floorplan.room_regions) ? floorplan.room_regions : []),
+      ...(Array.isArray(floorplan.rooms) ? floorplan.rooms : []),
+    ];
+    return regions
+      .map((region) => ({
+        exterior: region.exterior || region.polygon_cm || region.polygon_m || [],
+        holes: region.holes || [],
+      }))
+      .filter((region) => Array.isArray(region.exterior) && region.exterior.length >= 3);
+  }
+
+  function pointInsideAnyFloorplanRoom(point, floorplan = {}) {
+    return floorplanRoomRegions(floorplan).some((region) => (
+      ringContainsPoint(point, region.exterior)
+        && !(region.holes || []).some((hole) => ringContainsPoint(point, hole))
+    ));
+  }
+
+  function isExplicitExteriorWallSegment(segment = {}) {
+    const role = String(
+      segment.boundary_side
+        || segment.wall_role
+        || segment.role
+        || segment.wall_type
+        || segment.type
+        || "",
+    ).toLowerCase();
+    return segment.exterior === true
+      || segment.is_exterior === true
+      || segment.boundary === true
+      || ["exterior", "outer", "perimeter", "boundary"].some((token) => role.includes(token));
+  }
+
+  function isExteriorWallSegment(segment, floorplan = {}, toleranceCm = 10) {
+    if (isExplicitExteriorWallSegment(segment)) return true;
+    const start = wallSegmentPoint(segment, "start");
+    const end = wallSegmentPoint(segment, "end");
+    if (!start || !end) return false;
+    const dx = end.x - start.x;
+    const dz = end.z - start.z;
+    const length = Math.hypot(dx, dz);
+    const roomRegions = floorplanRoomRegions(floorplan);
+    if (start && end && length > 0.01 && roomRegions.length) {
+      const midpoint = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+      const offset = Math.max(toleranceCm, 14);
+      const normal = { x: -dz / length, z: dx / length };
+      const leftInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x + normal.x * offset,
+        z: midpoint.z + normal.z * offset,
+      }, floorplan);
+      const rightInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x - normal.x * offset,
+        z: midpoint.z - normal.z * offset,
+      }, floorplan);
+      if (leftInside !== rightInside) return true;
+    }
+    const bounds = wallSegmentBounds(floorplan);
+    if (!bounds) return false;
+    const onLeft = Math.abs(start.x - bounds.minX) <= toleranceCm
+      && Math.abs(end.x - bounds.minX) <= toleranceCm;
+    const onRight = Math.abs(start.x - bounds.maxX) <= toleranceCm
+      && Math.abs(end.x - bounds.maxX) <= toleranceCm;
+    const onBack = Math.abs(start.z - bounds.minZ) <= toleranceCm
+      && Math.abs(end.z - bounds.minZ) <= toleranceCm;
+    const onFront = Math.abs(start.z - bounds.maxZ) <= toleranceCm
+      && Math.abs(end.z - bounds.maxZ) <= toleranceCm;
+    return onLeft || onRight || onBack || onFront
+      || wallEndpointTouchesExteriorBounds(start, bounds, toleranceCm)
+      || wallEndpointTouchesExteriorBounds(end, bounds, toleranceCm);
+  }
+
+  function wallEndpointTouchesExteriorBounds(point, bounds, toleranceCm = 10) {
+    return Math.abs(point.x - bounds.minX) <= toleranceCm
+      || Math.abs(point.x - bounds.maxX) <= toleranceCm
+      || Math.abs(point.z - bounds.minZ) <= toleranceCm
+      || Math.abs(point.z - bounds.maxZ) <= toleranceCm;
+  }
+
+  function exteriorWallOutwardSideSign(segment, floorplan = {}, unitX = 1, unitZ = 0) {
+    const start = wallSegmentPoint(segment, "start");
+    const end = wallSegmentPoint(segment, "end");
+    if (!start || !end) return 1;
+    const normal = { x: -unitZ, z: unitX };
+    const length = Math.hypot(end.x - start.x, end.z - start.z);
+    const roomRegions = floorplanRoomRegions(floorplan);
+    if (length > 0.01 && roomRegions.length) {
+      const midpoint = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+      const offset = 14;
+      const plusInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x + normal.x * offset,
+        z: midpoint.z + normal.z * offset,
+      }, floorplan);
+      const minusInside = pointInsideAnyFloorplanRoom({
+        x: midpoint.x - normal.x * offset,
+        z: midpoint.z - normal.z * offset,
+      }, floorplan);
+      if (plusInside !== minusInside) {
+        return plusInside ? -1 : 1;
+      }
+    }
+    const side = String(segment.boundary_side || "").toLowerCase();
+    const outwardBySide = {
+      left: { x: -1, z: 0 },
+      right: { x: 1, z: 0 },
+      top: { x: 0, z: 1 },
+      bottom: { x: 0, z: -1 },
+    }[side];
+    if (outwardBySide) {
+      return (outwardBySide.x * normal.x + outwardBySide.z * normal.z) >= 0 ? 1 : -1;
+    }
+    const bounds = wallSegmentBounds(floorplan);
+    if (bounds) {
+      const midpoint = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+      const distances = [
+        { vector: { x: -1, z: 0 }, distance: Math.abs(midpoint.x - bounds.minX) },
+        { vector: { x: 1, z: 0 }, distance: Math.abs(midpoint.x - bounds.maxX) },
+        { vector: { x: 0, z: -1 }, distance: Math.abs(midpoint.z - bounds.minZ) },
+        { vector: { x: 0, z: 1 }, distance: Math.abs(midpoint.z - bounds.maxZ) },
+      ].sort((left, right) => left.distance - right.distance);
+      const outward = distances[0]?.vector;
+      if (outward) return (outward.x * normal.x + outward.z * normal.z) >= 0 ? 1 : -1;
+    }
+    return 1;
+  }
+
+  function wallSectionFaceMaterials(sectionMaterial, exteriorMaterial, exteriorSideSign = 1) {
+    const interior = sectionMaterial.clone();
+    const exterior = exteriorMaterial.clone();
+    const materials = [
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+      interior.clone(),
+    ];
+    materials[exteriorSideSign >= 0 ? 4 : 5] = exterior;
+    return materials;
+  }
+
+  function interiorWallJunctionInsets(segment, exteriorSegments, wallThickness) {
+    const insetCm = Math.max(Number(wallThickness) / 2 + 1, 6);
+    const toleranceCm = Math.max(Number(wallThickness) / 2 + 2, 8);
+    const endpointTouchesExterior = (key) => {
+      const point = wallSegmentPoint(segment, key);
+      if (!point) return false;
+      return exteriorSegments.some((exteriorSegment) => (
+        exteriorSegment !== segment
+          && pointToWallSegmentDistance(point, exteriorSegment) <= toleranceCm
+      ));
+    };
+    return {
+      start: endpointTouchesExterior("start") ? insetCm : 0,
+      end: endpointTouchesExterior("end") ? insetCm : 0,
     };
   }
 
@@ -2144,10 +2572,18 @@ export function createSceneViewer(
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
     const wallThickness = 12;
     const wallSegments = sceneData.floorplan?.wall_segments || [];
-    const doorSegments = (sceneData.floorplan?.door_segments || []).map(
-      (door) => doorOpeningForWallTopology(wallSegments, door, wallThickness),
+    const doorSegments = dedupeArchitecturalOpeningsFor3d(
+      (sceneData.floorplan?.door_segments || []).map(
+        (door) => doorOpeningForWallTopology(wallSegments, door, wallThickness),
+      ),
+      wallSegments,
+      wallThickness,
     );
-    const windowSegments = sceneData.floorplan?.window_segments || [];
+    const windowSegments = dedupeArchitecturalOpeningsFor3d(
+      sceneData.floorplan?.window_segments || [],
+      wallSegments,
+      wallThickness,
+    );
     const hasAccurateFloorplan = ["dxf", "user_confirmed"].includes(
       sceneData.floorplan?.source,
     );
@@ -2203,6 +2639,7 @@ export function createSceneViewer(
         wallMaterial,
         wallHeight,
         wallThickness,
+        sceneData.surface_catalog,
       );
     } else if (!builtWallMass && !singleRoomMode && wallSegments.length >= 2) {
       buildSegmentWalls(
@@ -2213,6 +2650,8 @@ export function createSceneViewer(
         wallThickness,
         doorSegments,
         windowSegments,
+        sceneData.floorplan,
+        sceneData.surface_catalog,
       );
     } else {
       const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthCm, wallHeight, wallThickness), wallMaterial.clone());
@@ -3236,6 +3675,7 @@ export function createSceneViewer(
       <button type="button" data-object-move="back">後</button>
       <button type="button" data-object-move="right">右</button>
     </div>
+    <button type="button" class="scene-object-lock-button" data-object-lock>鎖定此家具</button>
   `;
   container.appendChild(selectedControls);
   selectedControls.addEventListener("pointerdown", (event) => {
@@ -3716,6 +4156,7 @@ export function createSceneViewer(
       updateFootprintGuide(selectedWrapper, kind);
       renderer.domElement.style.cursor = "grab";
       selectedControls.hidden = false;
+      updateSelectedControlsState();
     } else {
       disposeGuide();
       renderer.domElement.style.cursor = "";
@@ -3724,6 +4165,37 @@ export function createSceneViewer(
     if (notify && typeof onObjectSelect === "function") {
       onObjectSelect(selectedWrapper?.userData?.sceneObject || null, lastSceneData);
     }
+  }
+
+  function updateSelectedControlsState() {
+    const lockButton = selectedControls.querySelector("[data-object-lock]");
+    if (!lockButton) return;
+    const item = selectedWrapper?.userData?.sceneObject;
+    const locked = item?.user_specified === true || item?.model_locked === true;
+    lockButton.textContent = locked ? "取消鎖定此家具" : "鎖定此家具";
+    lockButton.classList.toggle("is-active", locked);
+    lockButton.setAttribute(
+      "aria-pressed",
+      locked ? "true" : "false",
+    );
+  }
+
+  function toggleSelectedObjectLock() {
+    if (!selectedWrapper) return false;
+    const item = selectedWrapper.userData.sceneObject;
+    if (!item) return false;
+    const locked = item.user_specified === true || item.model_locked === true;
+    item.user_specified = !locked;
+    item.user_required = !locked;
+    item.model_locked = !locked;
+    if (!locked) item.position_locked = true;
+    updateSelectedControlsState();
+    notifySceneChange(item);
+    const label = item.name_zh || item.name_zh_raw || item.normalized_type || "家具";
+    setStatus(!locked
+      ? `已鎖定「${label}」為指定需求。`
+      : `已取消「${label}」的指定需求鎖定。`);
+    return true;
   }
 
   function selectObjectByIndex(index, { focus = true, showGuide = true } = {}) {
@@ -4405,6 +4877,11 @@ export function createSceneViewer(
   selectedControls.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
+    const lockButton = event.target.closest("[data-object-lock]");
+    if (lockButton) {
+      toggleSelectedObjectLock();
+      return;
+    }
     const moveButton = event.target.closest("[data-object-move]");
     if (moveButton) {
       await moveSelectedFromControls(moveButton.dataset.objectMove);
@@ -4566,6 +5043,7 @@ export function createSceneViewer(
     exportGlb,
     focusObject,
     selectObjectByIndex,
+    getCanvasHost: () => renderer.domElement,
     getSelectedFurnitureId: () => selectedWrapper?.userData?.sceneObject?.furniture_id || null,
     projectFurnitureCenters() {
       const rect = renderer.domElement.getBoundingClientRect();

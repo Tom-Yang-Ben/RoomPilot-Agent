@@ -233,6 +233,62 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
     assert "roomGroupRef.add(topCap)" in wall_builder
 
 
+def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildStandaloneOpeningAssemblies", 1
+    )[0]
+    opening_builder = source.split("function buildOpeningAssembly", 1)[1].split(
+        "function buildStandaloneOpeningAssemblies", 1
+    )[0]
+    standalone_builder = source.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
+        "function buildStructuralMembers", 1
+    )[0]
+
+    assert "const frameAllowanceCm = 0.6" in wall_builder
+    assert "Math.max(0, sillHeight - frameAllowanceCm)" in wall_builder
+    assert "wallHeight - openingHeight - frameAllowanceCm" in wall_builder
+    assert "wallThickness" in wall_builder
+    assert "const faceOffset = Math.max(Number(anchor.wallThickness || 12) / 2 + 0.35, 6)" in opening_builder
+    assert "glass.position.z = faceOffset - frameDepth / 2 - 0.08" in opening_builder
+    assert "frame.position.set(x, y, faceOffset)" in opening_builder
+    assert 'roompilotArchitecturalDetail = "flush-window-sill"' in opening_builder
+    assert "Math.max(0, sillHeight - frameAllowanceCm)" in standalone_builder
+
+
+def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protrude() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+    resolver = source.split("function wallMaterialResolver", 1)[1].split(
+        "function polygonShape", 1
+    )[0]
+    create_room = source.split("function createRoom", 1)[1].split(
+        "function buildFloorPlanOverlay", 1
+    )[0]
+
+    assert "isExteriorWallSegment(segment, sceneData.floorplan)" in resolver
+    assert "pointInsideAnyFloorplanRoom" in resolver
+    assert "leftInside !== rightInside" in resolver
+    assert "wallEndpointTouchesExteriorBounds" in resolver
+    assert "resolveWallMaterial.exteriorMaterial = exteriorMaterial" in resolver
+    assert "roompilotWallSurfaceRole = \"exterior\"" in resolver
+    assert "isExteriorWallSegment(segment, floorplan, wallThickness)" in wall_builder
+    assert "exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)" in wall_builder
+    assert "wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)" in wall_builder
+    assert "interiorWallJunctionInsets(segment, exteriorSegments, wallThickness)" in wall_builder
+    assert "const sectionMin" in wall_builder
+    assert "const sectionMax" in wall_builder
+    assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in wall_builder
+    assert "Number(start.x) + unitX * capCenter" in wall_builder
+    assert "sceneData.floorplan," in create_room
+
+
 def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
@@ -329,7 +385,8 @@ def test_view_mode_hint_is_part_of_viewer_and_adjacent_to_canvas() -> None:
     canvas_index = viewer.index('id="white-model-viewer"')
 
     assert hint_index < canvas_index
-    assert canvas_index - hint_index < 1200
+    # 工具列保留了依檢視與操作分組的語意結構，仍必須緊鄰主畫布。
+    assert canvas_index - hint_index < 1400
 
 
 def test_catalog_does_not_merge_same_named_bed_and_cabinet_models() -> None:

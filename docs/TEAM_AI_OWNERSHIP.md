@@ -1,79 +1,73 @@
-# RoomPilot Team AI Ownership and Architecture
+# RoomPilot 團隊 AI 責任與整合架構
 
-This document maps remote branches and current repository folders to the people
-and responsibilities used by RoomPilot. It is based on branch history, current
-code, tests, and existing team documentation. Git authorship alone is not
-treated as ownership because Bella has already integrated many teammate patches.
+本文件把遠端分支、目前 repository 目錄與模組責任對應起來。判斷依據是分支內容、現行程式、測試與既有文件；Git author 不能單獨視為 owner，因為 Bella 已整合多位組員的相容 patch。
 
-## Branch Map
+## 遠端分支對照
 
-| Team label | Remote branch | Current responsibility | Notes |
+| 組員 | 遠端分支 | 工作責任 | 整合原則 |
 |---|---|---|---|
-| Bella | `origin/bella` | Integration, FastAPI, persistence, production UI and 2D/3D workflow | Current remote ref may match `main`; active integration work continues on Bella test branches |
-| Cody | `origin/cody` | Recognition models, evaluation, datasets, walls/doors/windows/rooms | Large training assets stay outside the integrated runtime tree |
-| Django | `origin/django` | Room inference, furniture-symbol evidence, spatial data, RAG annotations | Only compatible algorithms and schemas are ported; not the whole Version4 tree |
-| Kai | `origin/kai` | Catalog, AWS/CloudFront manifest, PostgreSQL import and data delivery | Historical branch also contains experiments outside the current catalog boundary |
-| Yen | `origin/yen` | Requirements, structured preferences, selection and repair decision flow | Current production UI is still integrated by Bella |
-| Ancai | `origin/ancai`, `origin/ancai-dev` | Placement engine and 2D+3D interaction prototypes | Scene-lab experiments require Bella review before entering production UI |
-| Ben | `origin/ben` and Cody-history commits | Recognition QA, model/evaluation assets, project documentation | Works with Cody on recognition and with Bella on release verification |
+| Bella | `origin/bella` | 整合、FastAPI、保存、正式 UI、八步 2D/3D 工作流 | 以 Bella test 分支完成可驗證整合後再推送 |
+| Cody | `origin/cody` | 辨識模型、測資評估、牆門窗房間 | 大型訓練資產不直接放入正式 runtime tree |
+| Django | `origin/django` | 房間推論、家具符號證據、空間資料與 RAG 標註 | 只移植相容演算法與 schema，不整包搬 Version4 |
+| Kai | `origin/kai`、`origin/kai-with-bellatest1` | catalog、AWS/CloudFront manifest、PostgreSQL 與資料交付 | Kai 資料庫為第 6 步家具主來源 |
+| Yen | `origin/yen` | 需求結構化、偏好、選件與修復決策 | 正式 UI 由 Bella 接入 |
+| Ancai | `origin/ancai`、`origin/ancai-dev` | 配置引擎與 2D+3D 互動原型 | scene-lab 類實驗必須經 Bella 驗證後進正式 UI |
+| Ben | `origin/ben` 與 Cody 歷史 commit | 辨識 QA、模型/evaluation 資產、文件 | 與 Cody 共同維護辨識品質，與 Bella 做發布驗證 |
 
-## Folder Ownership and Data Flow
+## 目錄責任與資料流
 
-| Folder | Owner | Collaborators | Input | Output / Function |
+| 目錄 | Owner | 協作方 | 輸入 | 輸出／功能 |
 |---|---|---|---|---|
-| `backend/server/` | Bella | All owners at adapters | HTTP, project state, `layout_json`, requirements | FastAPI, persistence, API adapters, eight-step UI, `scene_json` orchestration |
-| `backend/server/static/` | Bella | Yen for questionnaire, Ancai for interaction, Cody/Django for correction UI | API payloads | Production HTML/CSS/JS and Three.js editing |
-| `backend/floorplan/` | Cody | Django, Ben | PNG/JPG/DXF and scale confirmation | Walls, doors, windows, rooms, confidence/evaluation, `layout_json` |
-| `backend/floorplan/vision/` | Cody | Django for room/icon inference | Decoded/profiled image | Normalized recognition analysis in centimeters |
-| `backend/spatial_data/` | Django | Cody producer, Ancai/Bella consumers | Confirmed room/opening geometry | Spatial measurements, adjacency/evaluation records; no rendering |
-| `backend/catalog/` | Kai | Django for RAG labels, Bella for API | Official catalog and manifest | Verified furniture/material records and retrieval metadata |
-| `JSON/` | Kai | Bella validation | Import/export source metadata | Catalog manifests and furniture JSON handoff |
-| `scripts/sql/` | Kai | Bella API integration | Verified catalog JSON/CSV | PostgreSQL schema, dry-run validation and transactional import |
-| `backend/agent/` | Yen | Kai retrieval, Ancai legality, Bella API | Requirements, room context, catalog candidates | Selection, explanations and repair intents; never final geometry |
-| `backend/engine/` | Ancai | Yen and Bella | Room, walls, furniture candidates | Placement, collision, clearance, movement and legality |
-| `backend/upgrade3d/` | Cody | Ancai and Bella | Confirmed DXF/layout | 3D-ready wall/floor/opening geometry |
-| `frontend3d/` | Bella | Ancai prototype review | DXF/scene API | Secondary React/R3F prototype, not the production workflow |
-| `testdata/` | Cody | Django and Ben | Curated images/DXF/ground truth | Reproducible recognition fixtures |
-| `tests/` | Matching owner | Bella end-to-end review | Public behavior | Unit, API, contract and visual regression gates |
-| `docs/contracts/` | Bella | All affected owners | Agreed interfaces | Cross-folder schema and lifecycle source of truth |
-| `examples/` | Ancai/Yen | Bella | Domain objects and intents | Small executable demonstrations |
+| `backend/server/` | Bella | 各 owner 的 adapter | HTTP、專案狀態、`layout_json`、需求 | FastAPI、保存、八步 UI、`scene_json` 調度 |
+| `backend/server/static/` | Bella | Yen、Ancai、Cody、Django | API payload | 正式 HTML/CSS/JS/Three.js 編輯介面 |
+| `backend/floorplan/` | Cody | Django、Ben | PNG/JPG/DXF、尺度校正 | 牆、門、窗、房間、信心度與 `layout_json` |
+| `backend/spatial_data/` | Django | Cody、Ancai、Bella | 已確認房間與開口幾何 | 空間尺寸、相鄰與 evaluation 記錄，不負責渲染 |
+| `backend/catalog/` | Kai | Django、Bella | 官方 catalog、資產 manifest | 已驗證家具/材質、三視角圖、RAG metadata |
+| `JSON/` | Kai | Bella | 匯入/匯出中介資料 | 家具 JSON 與 GLB/圖片 manifest |
+| `scripts/sql/` | Kai | Bella | 已驗證 JSON/CSV | PostgreSQL schema、dry-run、transactional import |
+| `backend/agent/` | Yen | Kai、Ancai、Bella | 需求、房間、候選家具 | 選件、說明、修復意圖；不輸出合法座標 |
+| `backend/engine/` | Ancai | Yen、Bella | 房間、牆、候選家具 | 擺放、碰撞、淨空、移動與合法性 |
+| `backend/upgrade3d/` | Cody | Ancai、Bella | 已確認 DXF/layout | 3D 可用的牆、地板、門窗幾何 |
+| `frontend3d/` | Bella | Ancai review | DXF/scene API | 次要 React/R3F 原型，不取代正式流程 |
+| `testdata/` | Cody | Django、Ben | 圖片/DXF/ground truth | 可重現辨識測資 |
+| `tests/` | 對應 owner | Bella 整合 | 公開行為 | 單元、API、契約與視覺回歸門檻 |
+| `docs/contracts/` | Bella | 受影響 owner | 已協議介面 | 跨目錄 schema 與生命週期唯一依據 |
 
-Generated `.runtime/`, `.tmp/`, caches, weights, and local databases have no
-source-code owner and must not be committed.
+`.runtime/`、`.tmp/`、cache、模型權重與本機資料庫沒有原始碼 owner，且不得提交。
 
-## Cross-Module Architecture
+## 目前正式架構
 
 ```text
-floorplan image / DXF
-  -> Cody recognition
-  -> Django spatial relationships and evaluation
+平面圖 PNG/JPG/DXF
+  -> Cody 辨識與使用者確認
+  -> Django 空間關係與 evaluation 證據
   -> layout_json
-  -> Yen requirement/selection decisions
-  -> Kai catalog and relationship retrieval
-  -> Ancai geometry placement and validation
+  -> Yen 解析逐房需求與選件意圖
+  -> Kai PostgreSQL / CloudFront 家具、三視角圖與 RAG metadata
+  -> Ancai 幾何配置、碰撞與淨空驗證
   -> scene_json
-  -> Bella FastAPI, persistence and production 2D/3D UI
+  -> Bella FastAPI、專案保存、正式 2D/3D UI
+  -> 第 7 步鎖定逐房視角 -> 第 8 步 AI 生圖
 ```
 
-Graph RAG may enrich Kai/Django retrieval with room, style, furniture, material,
-and restriction relationships. Ancai remains authoritative for geometry and
-rules.
+Graph RAG 只補強 Kai/Django 的房間、風格、家具、材質、限制關係與可追溯證據；Ancai 仍是幾何與規則的唯一裁決者。
 
-## Shared Change Protocol
+### Kai catalog 與家電邊界
 
-1. The producer owner changes and versions the contract.
-2. The consumer owner updates its adapter, not a duplicate implementation.
-3. Bella verifies API/persistence and end-to-end UI behavior.
-4. Tests cover both producer and consumer.
-5. The relevant owner profile and contract are updated in the same change.
+- PostgreSQL `roompilot.furniture_catalog_current` 是第 6 步家具 API 的優先來源，目前有 9,349 筆啟用家具。
+- 每筆正式家具有 GLB 與 `front`、`side`、`angle-45` 三視角 CloudFront PNG。
+- PostgreSQL 不可用時，API 才回退到已驗證的 9,350 筆 JSON catalog，確保展示與開發不中斷。
+- 冰箱、洗衣機等家電仍可由問卷收集，會寫入 `questionnaire.appliance_requirements` 與 `scene_json.render_context`，供 AI 生圖理解需求；它們不進第 6 步 2D/3D 自動配置、不出現在正式家具 API。
 
-Examples:
+## 共用修改流程
 
-- New floorplan field: Cody + Django if spatial, then Bella adapter tests.
-- New furniture metadata: Kai + Yen retrieval, then Bella API/UI tests.
-- New placement rule: Ancai + Yen explanation, then Bella workflow tests.
-- New questionnaire output: Yen + Bella, plus Kai/Ancai only if their inputs
-  change.
+1. 資料生產 owner 先修改並版本化契約。
+2. 消費端 owner 更新 adapter，不重做生產端演算法。
+3. Bella 驗證 API、保存與端到端 UI。
+4. 生產端與消費端皆須有測試。
+5. 同步更新 owner profile 與受影響的契約文件。
+
+例子：新平面圖欄位由 Cody 負責，涉及空間資訊時與 Django 協作，再由 Bella 寫 adapter 測試；新家具 metadata 由 Kai 與 Yen 確認檢索語意，Bella 更新 API/UI；新擺放規則由 Ancai 定義、Yen 說明，Bella 完成 workflow 測試。
 
 ## Owner Profiles
 
@@ -84,4 +78,3 @@ Examples:
 - [Yen](owners/YEN.md)
 - [Ancai](owners/ANCAI.md)
 - [Ben](owners/BEN.md)
-

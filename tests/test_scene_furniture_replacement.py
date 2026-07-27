@@ -11,6 +11,7 @@ def test_step6_has_a_dedicated_replacement_drawer() -> None:
     assert 'id="furniture-replacement-drawer"' in HTML
     assert 'id="replacement-3d-preview"' in HTML
     assert '<select id="replacement-furniture-search"' in HTML
+    assert 'id="replacement-furniture-query"' in HTML
     assert "loadReplacementCandidates" in SOURCE
 
 
@@ -24,7 +25,9 @@ def test_replacement_filters_context_and_revalidates_with_engine() -> None:
 
     assert "catalogCandidatesForType(current.type" in load
     assert "catalogType" in load
-    assert "styleId: style" in load
+    assert "query" in load
+    assert "searchAll" in load
+    assert 'styleId: filterMode === "all" ? "" : style' in load
     assert "rankCatalogFurniture(catalogCandidates, request)" in load
     assert "replacementCandidateFitsRoom" in load
     assert "resolveFurniturePosition(candidate)" in replace
@@ -33,17 +36,18 @@ def test_replacement_filters_context_and_revalidates_with_engine() -> None:
     assert "syncFurnitureInventoryAcrossSchemes()" in replace
 
 
-def test_replacement_preview_uses_the_current_room_and_generates_png_thumbnail() -> None:
+def test_replacement_preview_uses_the_current_room_and_keeps_database_thumbnail() -> None:
     preview = SOURCE.split("async function previewReplacementCandidate", 1)[1].split(
         "function renderReplacementCandidates", 1
     )[0]
 
     assert "const baseScene = state.sceneData || activeScheme()?.sceneData" in preview
-    assert "JSON.parse(JSON.stringify(baseScene))" in preview
-    assert "previewScene.scene_objects[currentIndex] = replacement" in preview
-    assert "replacementViewer.capturePng()" in preview
+    assert "buildReplacementRoomPreviewScene(baseScene, current, candidate)" in preview
     assert 'replacementViewer.setViewMode("dollhouse")' in preview
-    assert "data-replacement-thumbnail" in SOURCE
+    assert "replacementViewer.capturePng()" not in preview
+    assert "data-replacement-thumbnail" not in SOURCE
+    assert "replacementCandidateImageUrl(candidate)" in SOURCE
+    assert "function buildReplacementRoomPreviewScene" in SOURCE
 
 
 def test_glb_search_generates_png_thumbnails_from_models() -> None:

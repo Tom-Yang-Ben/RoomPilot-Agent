@@ -257,7 +257,7 @@ def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
         ROOT / "backend" / "server" / "static" / "scene_viewer.js"
     ).read_text(encoding="utf-8")
     assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in viewer
-    assert "new THREE.BoxGeometry(length, 2.5, wallThickness)" in viewer
+    assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in viewer
     assert "openingWidth + 1.2" not in viewer
     assert "openingWidth + wallThickness * 2.1" not in viewer
 
@@ -349,6 +349,28 @@ def test_furniture_roles_receive_distinct_realistic_pbr_parameters() -> None:
     assert result["metal"]["metalness"] > 0.7
     assert result["glass"]["transmission"] > 0.7
     assert result["glass"]["transparent"] is True
+
+
+def test_architectural_openings_have_dedicated_physical_profiles() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ architecturalPbrProfile }} from {json.dumps(PBR_MODULE.as_uri())};
+        console.log(JSON.stringify({{
+          door: architecturalPbrProfile("door_leaf"),
+          frame: architecturalPbrProfile("window_frame"),
+          glass: architecturalPbrProfile("glass"),
+        }}));
+        """
+    )
+
+    assert result["door"]["roughness"] > result["frame"]["roughness"]
+    assert result["frame"]["metalness"] > result["door"]["metalness"]
+    assert result["glass"]["transmission"] > 0.7
+
+    source = VIEWER.read_text(encoding="utf-8")
+    assert "function createArchitecturalMaterial" in source
+    assert "wood_cc0_wood_textures_woodfloor039" in source
+    assert 'architecturalPbrProfile("glass")' in source
 
 
 def test_viewer_uses_physical_materials_relief_and_contact_shadows() -> None:
