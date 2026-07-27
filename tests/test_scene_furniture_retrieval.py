@@ -111,7 +111,8 @@ def test_step_six_contract_requires_catalog_models_instead_of_white_fallbacks() 
 
     assert "catalogOffersForRoomPlans" in source
     assert "missingCatalogModels" in source
-    assert "全屋家具配置" in html
+    assert "自由旋轉" in html
+    assert "全屋家具配置" not in html
     assert "白色替代物" not in source
 
 

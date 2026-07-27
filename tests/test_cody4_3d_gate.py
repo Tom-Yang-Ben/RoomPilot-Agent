@@ -76,6 +76,8 @@ def test_cody4_3d_view_controls_remain_explicit_ci_contracts() -> None:
     controller = Path("backend/server/static/scene_v2.js").read_text(encoding="utf-8")
 
     assert 'data-view-mode="topdown"' in source
-    assert 'data-view-mode="walk"' in source
+    assert 'data-white-interaction="walk"' in source
+    assert 'data-white-interaction="edit"' in source
+    assert 'data-view-mode="dollhouse"' not in source
     assert 'whiteViewer.setViewMode(button.dataset.viewMode)' in controller
     assert 'realisticViewer.setViewMode(button.dataset.realViewMode)' in controller

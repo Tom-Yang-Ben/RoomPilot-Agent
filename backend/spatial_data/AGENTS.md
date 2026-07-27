@@ -1,16 +1,14 @@
-# Spatial Data Boundary
+# 空間資料邊界
 
-Owner: Django. Read `docs/owners/DJANGO.md`.
+Owner：Django。開始前閱讀 `docs/owners/DJANGO.md` 與
+`docs/contracts/LIGHTING_CEILING_CATALOG_CONTRACT.md`。
 
-This folder is the canonical home for reusable spatial relationships and layout
-evaluation schemas. It currently contains no runtime implementation; add code
-only after the producer/consumer contract is documented.
+此目錄是可重用空間關係與格局評估 schema 的唯一位置。目前尚未有完整 runtime；新增程式前必須先定義 producer／consumer 契約。
 
-- Inputs are confirmed or confidence-tagged floorplan geometry.
-- Outputs may include dimensions, area, adjacency, opening relationships, and
-  evaluation evidence.
-- Graph RAG can retrieve these relationships but cannot decide geometry.
-- Coordinate output is centimeters; area output is square meters.
+- 輸入是已確認或帶信心度的格局幾何。
+- 輸出可包含尺寸、面積、相鄰關係、門窗 host wall、窗門淨空、樑柱與可用天花區域。
+- 家具 ID、GLB、圖片、授權與正式尺寸屬於 Kai catalog，不在此目錄維護。
+- Graph RAG 只能檢索空間關係，不能決定幾何合法性。
+- 長度單位為公分，面積單位為平方公尺。
 
-Changes require Cody producer tests and Bella/Ancai consumer tests.
-
+變更需同時有 Cody producer 測試與 Bella／Ancai consumer 測試。

@@ -1,5 +1,9 @@
 # RoomPilot-Agent
 
+## IKEA 地端 GLB 備援（尚未完成）
+
+Kai 的 CloudFront catalog 目前仍是唯一正式模型來源。Django 與 Kai 後續會共同完成本機 IKEA GLB 備援的 JSON 對照、固定備份路徑與 API 模式；完成前請勿在 `.env` 啟用本機模式，也不要將大型 GLB 提交到 Git。已清洗的網站 PBR 紋理可提交至 `backend/server/static/pbr_assets/`。
+
 RoomPilot 是 AIPE03 第四組的 AI 室內設計系統。它把平面圖辨識、人工
 校正、逐房需求、家具資料庫、幾何配置、2D/3D 編輯、方案視角與 AI
 渲染整合成一個可恢復的網頁流程。

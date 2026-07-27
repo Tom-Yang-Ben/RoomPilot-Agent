@@ -385,7 +385,8 @@ def test_view_mode_hint_is_part_of_viewer_and_adjacent_to_canvas() -> None:
     canvas_index = viewer.index('id="white-model-viewer"')
 
     assert hint_index < canvas_index
-    assert canvas_index - hint_index < 1200
+    # 工具列保留了依檢視與操作分組的語意結構，仍必須緊鄰主畫布。
+    assert canvas_index - hint_index < 1400
 
 
 def test_catalog_does_not_merge_same_named_bed_and_cabinet_models() -> None:

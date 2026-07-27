@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=sha256-0cca466f7213" />
+    <link rel="stylesheet" href="/static/site.css?v=sha256-16201762aa2f" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -483,7 +483,7 @@
 
           <section id="questionnaire-summary" class="rp-questionnaire-stage" data-questionnaire-panel="summary" hidden>
             <div class="rp-questionnaire-section-heading">
-              <div><span class="eyebrow">確認摘要</span><h3>確認後才會產生 2D 家具配置</h3></div>
+              <div><span class="eyebrow">確認摘要</span><h3>確認後會建立方案 A、B 的 2D+3D 配置</h3></div>
               <p>返回前面修改時，系統會保留已填內容。</p>
             </div>
             <div id="questionnaire-summary-content" class="rp-questionnaire-summary"></div>
@@ -564,15 +564,19 @@
         <div class="rp-3d-workspace">
           <div class="rp-viewer-pane">
             <div class="rp-viewer-toolbar">
-              <div class="rp-segmented" aria-label="3D 視角">
-                <button type="button" data-view-mode="dollhouse" class="is-active">全屋家具配置</button>
-                <button type="button" data-view-mode="orbit">自由旋轉</button>
-                <button type="button" data-view-mode="topdown">正俯視</button>
-                <button type="button" data-view-mode="walk">室內透視</button>
+              <div class="rp-toolbar-group" aria-label="檢視方式">
+                <span class="rp-toolbar-group-label">檢視</span>
+                <div class="rp-segmented" aria-label="3D 視角">
+                  <button type="button" data-view-mode="orbit" class="is-active">自由旋轉</button>
+                  <button type="button" data-view-mode="topdown">正俯視</button>
+                </div>
               </div>
-              <div class="rp-segmented rp-interaction-mode" aria-label="3D 操作模式">
-                <button type="button" data-white-interaction="walk">走動</button>
-                <button type="button" data-white-interaction="edit">編輯家具</button>
+              <div class="rp-toolbar-group" aria-label="操作方式">
+                <span class="rp-toolbar-group-label">操作</span>
+                <div class="rp-segmented rp-interaction-mode" aria-label="3D 操作模式">
+                  <button type="button" data-white-interaction="walk">走動</button>
+                  <button type="button" data-white-interaction="edit">編輯家具</button>
+                </div>
               </div>
               <label class="rp-walk-room-picker">
                 <span>走動空間</span>
@@ -859,6 +863,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-18921afd77d9"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-310fcabf186d"></script>
   </body>
 </html>

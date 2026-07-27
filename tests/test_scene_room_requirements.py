@@ -140,3 +140,13 @@ def test_agent_selection_receives_all_rooms_in_one_request() -> None:
     assert "rooms: roomPlans.map" in auto_layout
     assert "questionnaire: requirementsPayload" in auto_layout
     assert "specsAllowedByRoomFeasibility" in auto_layout
+
+
+def test_questionnaire_generates_two_validated_2d_3d_schemes_before_entering_step_six() -> None:
+    assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" })' in SCENE
+    assert "目前格局無法在保留問卷需求下產生方案 B 的合法配置" in SCENE
+    generation = SCENE.split("async function generateWhiteModelFromRequirements", 1)[1].split(
+        "async function addWhiteModelBeamFromWorld", 1
+    )[0]
+    assert generation.count("await confirmLayout2d({ allowPendingFurniture: false })") == 2
+    assert "方案 A、B 的 2D+3D 配置已建立" in generation
