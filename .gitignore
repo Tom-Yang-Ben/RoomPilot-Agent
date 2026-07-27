@@ -79,3 +79,22 @@ backend/server/static/texture_cache/
 # 正式 PBR 材質（含 KTX2 壓縮貼圖）是網站執行期資產，必須上傳。
 !backend/server/static/pbr_assets/
 !backend/server/static/pbr_assets/**
+
+# 自 cody 分支併入的忽略規則（僅取安全與大型產物必要項目）。
+# MCP 設定含 API key，是主線先前缺少的安全漏洞，優先補上。
+.mcp.json
+!.mcp.json.*.example
+
+# Windows 下載來源標記檔，由瀏覽器自動產生，不屬於專案內容。
+*Zone.Identifier
+
+# 平面圖語意權重與訓練產物體積以百 MB 計，只留在本機或物件儲存。
+# 例外：cubicasa/room/ 底下的語意快取是跨分支契約路徑，必須進版控，故不列入忽略。
+training/
+/model_finetuned_*.pkl
+/backend/floorplan/model_finetuned_*.pkl
+
+# CubiCasa5k 原始資料集與微調工作區屬大型下載產物，換機重新取得即可。
+cubicasa/room_ft/
+/cubicasa5k.zip
+training.zip
