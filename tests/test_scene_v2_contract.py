@@ -1114,11 +1114,11 @@ def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> 
     )
 
     assert {item[0] for item in result["bedroom"]} >= {"bed", "wardrobe"}
-    assert {item[0] for item in result["kitchen"]} >= {"refrigerator", "appliance-cabinet"}
+    assert {item[0] for item in result["kitchen"]} == {"appliance-cabinet"}
     assert {item[0] for item in result["storage"]} == {"storage-cabinet"}
     assert {item[0] for item in result["bathroom"]} >= {"bathroom-vanity", "mirror-cabinet"}
     assert {item[0] for item in result["living"]} >= {"sofa", "coffee-table", "tv-bench"}
-    assert {item[0] for item in result["balcony"]} >= {"washer"}
+    assert {item[0] for item in result["balcony"]} == {"flower-pots-planter"}
     assert result["circulation"] == []
 
 
@@ -1268,7 +1268,7 @@ def test_2d_payload_marks_user_required_furniture_for_server_resolution() -> Non
     }
 
 
-def test_room_usage_recommends_visible_appliances_and_decor_without_overriding_empty_rooms() -> None:
+def test_room_usage_recommends_decor_without_restoring_retired_appliances() -> None:
     module_uri = (STATIC / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
@@ -1289,7 +1289,8 @@ def test_room_usage_recommends_visible_appliances_and_decor_without_overriding_e
     assert "bedside-table" in result["libraryTypes"]
     assert any(item["type"] == "flower-pots-planter" for item in result["living"])
     assert any(item["type"] == "bedside-table" for item in result["bedroom"])
-    assert any(item["type"] == "refrigerator" for item in result["kitchen"])
+    assert all(item["type"] != "refrigerator" for item in result["kitchen"])
+    assert all(item["type"] != "washer" for item in result["kitchen"])
     assert result["empty"] == []
 
 

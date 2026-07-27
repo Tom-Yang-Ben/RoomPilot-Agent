@@ -96,14 +96,6 @@ STYLE_ENRICHMENT_DB_PATH = (
 CLOUD_CATALOG_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json"
 )
-COMBINED_CATALOG_PATH = _project_path_from_env(
-    "ROOMPILOT_COMBINED_CATALOG_PATH",
-    PROJECT_DIR / "JSON" / "furniture" / "all_furniture_appliance_catalog.json",
-)
-COMBINED_MANIFEST_PATH = _project_path_from_env(
-    "ROOMPILOT_COMBINED_MANIFEST_PATH",
-    PROJECT_DIR / "JSON" / "manifests" / "glb_upload_all_result.csv",
-)
 CLOUD_MANIFEST_PATH = _project_path_from_env(
     "ROOMPILOT_GLB_MANIFEST_PATH",
     BASE_DIR.parent
@@ -849,30 +841,8 @@ def _furniture_payload_cache() -> tuple[dict, ...]:
 
 
 @lru_cache(maxsize=1)
-def _appliance_manifest_index() -> dict[str, str]:
-    if not COMBINED_MANIFEST_PATH.exists():
-        return {}
-    ready_statuses = {
-        "already_exists",
-        "complete",
-        "completed",
-        "skipped_existing",
-        "success",
-        "uploaded",
-    }
-    with COMBINED_MANIFEST_PATH.open(encoding="utf-8", newline="") as handle:
-        rows = csv.DictReader(handle)
-        return {
-            str(row.get("item_id") or ""): str(row.get("delivery_url") or "")
-            for row in rows
-            if str(row.get("kind") or "").casefold() == "appliance"
-            and str(row.get("upload_status") or "").casefold() in ready_statuses
-            and str(row.get("delivery_url") or "").startswith("https://")
-        }
-
-
-@lru_cache(maxsize=1)
 def _appliance_payload_cache() -> tuple[dict, ...]:
+    return ()
     if not COMBINED_CATALOG_PATH.exists():
         return ()
     raw = json.loads(COMBINED_CATALOG_PATH.read_text(encoding="utf-8"))
@@ -2161,44 +2131,6 @@ def furniture_catalog(
         "filter_options": _furniture_filter_options(facet_items),
         "furniture": sample_files,
         "catalog_status": catalog_status(),
-    }
-
-
-@app.get("/api/appliances")
-def appliance_catalog(
-    item_type: str | None = Query(None, alias="type"),
-    q: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(24, ge=1, le=80),
-    detail: str = Query("card"),
-) -> dict:
-    query = (q or "").strip().casefold()
-    filtered = [
-        item
-        for item in _appliance_payload_cache()
-        if (not item_type or item.get("normalized_type") == item_type)
-        and (
-            not query
-            or query in _furniture_search_text(item)
-        )
-        and item.get("model_url")
-    ]
-    start = (page - 1) * page_size
-    end = start + page_size
-    return {
-        "items": [
-            item if detail == "scene" else _furniture_card_payload(item)
-            for item in filtered[start:end]
-        ],
-        "page": page,
-        "page_size": page_size,
-        "total": len(filtered),
-        "has_next_page": end < len(filtered),
-        "catalog_status": {
-            "source": "combined_furniture_appliance_catalog",
-            "catalog_items": 10_550,
-            "appliance_items": len(_appliance_payload_cache()),
-        },
     }
 
 

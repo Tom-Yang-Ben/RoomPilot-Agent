@@ -186,9 +186,11 @@ export function findFurniture2DVariant(type, variantId) {
 
 export function recommendCompanionFurniture(roomType, selectedTypes = []) {
   const selected = new Set(selectedTypes);
+  const retiredApplianceTypes = new Set(["refrigerator", "washer"]);
   if (!selected.size) return [];
   const recommendations = [];
   const add = (type, variantId, reason) => {
+    if (retiredApplianceTypes.has(type)) return;
     if (selected.has(type) || recommendations.some((item) => item.type === type)) return;
     recommendations.push({ type, variantId, reason, autoAdded: true });
   };
@@ -234,10 +236,10 @@ export function recommendedFurnitureForRoom(room = {}) {
     living_room: [["sofa", "three-seat"], ["coffee-table", "rect"], ["tv-bench", "low"]],
     bedroom: [["bed", "double"], ["wardrobe", "two-door"]],
     dining_room: [["dining-table", "round-4"], ["dining-chair", "standard"]],
-    kitchen: [["refrigerator", "single-door"], ["appliance-cabinet", "standard"]],
+    kitchen: [["appliance-cabinet", "standard"]],
     storage: [["storage-cabinet", "tall"]],
     bathroom: [["bathroom-vanity", "standard"], ["mirror-cabinet", "standard"]],
-    balcony: [["washer", "front-load"]],
+    balcony: [["flower-pots-planter", "floor"]],
     circulation: [],
   };
   return recommendations[roomType] || [];

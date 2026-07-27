@@ -928,6 +928,19 @@ $env:TEMP=$env:TMP
 - Added focused tests for the 9,350-item / 28,050-image manifest contract and
   backend preview URL resolution.
 
+## 2026-07-27 Retire Appliance Catalog Flow
+
+- Aligned Bella's runtime flow with Kai's official furniture-only catalog
+  direction.
+- Removed the public `/api/appliances` route from the FastAPI app.
+- Disabled appliance payload loading from the legacy combined
+  furniture/appliance catalog.
+- Removed Step 6 frontend routing that sent refrigerator and washer requests to
+  `/api/appliances`.
+- Stopped default 2D room recommendations from auto-adding refrigerators in
+  kitchens or washers on balconies, preventing retired appliance items from
+  blocking Step 6 review.
+
 ## 2026-07-27 Step 6 Edit-Mode Camera Preservation
 
 - Removed the forced dollhouse camera reset from the Step 6

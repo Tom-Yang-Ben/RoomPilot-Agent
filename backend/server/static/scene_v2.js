@@ -6002,8 +6002,6 @@ const CATALOG_RETRIEVAL_ROUTES = {
     endpoint: "/api/furniture",
     types: ["fabric-sofa", "leather-sofa", "modular-sofa", "sofa"],
   },
-  "refrigerator": { endpoint: "/api/appliances", type: "fridge-freezer" },
-  "washer": { endpoint: "/api/appliances", type: "washing-machine" },
   "storage-cabinet": { endpoint: "/api/furniture", type: "cabinet-cupboard" },
   "appliance-cabinet": { endpoint: "/api/furniture", type: "cabinet-cupboard" },
   "bathroom-vanity": {
@@ -6985,8 +6983,6 @@ function configurationFurniturePriority(item) {
   const essentialTypes = new Set([
     "bed",
     "sofa",
-    "refrigerator",
-    "washer",
     "dining-table",
     "bathroom-vanity",
   ]);

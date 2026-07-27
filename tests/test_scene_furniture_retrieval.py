@@ -69,29 +69,20 @@ def test_step_six_contract_requires_catalog_models_instead_of_white_fallbacks() 
     assert "白色替代物" not in source
 
 
-def test_appliance_catalog_exposes_verified_fridge_and_washer_glbs() -> None:
-    fridge = client.get(
+def test_appliance_catalog_is_retired_from_step_six() -> None:
+    response = client.get(
         "/api/appliances",
         params={"type": "fridge-freezer", "detail": "scene", "page_size": 4},
     )
-    washer = client.get(
-        "/api/appliances",
-        params={"type": "washing-machine", "detail": "scene", "page_size": 4},
-    )
 
-    assert fridge.status_code == 200
-    assert washer.status_code == 200
-    assert fridge.json()["total"] == 25
-    assert washer.json()["total"] == 8
-    assert all(item["model_url"].endswith(".glb") for item in fridge.json()["items"])
-    assert all(item["model_url"].endswith(".glb") for item in washer.json()["items"])
+    assert response.status_code == 404
 
 
-def test_frontend_maps_questionnaire_appliances_to_the_appliance_catalog() -> None:
+def test_frontend_no_longer_maps_questionnaire_appliances_to_an_api() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert '"refrigerator": { endpoint: "/api/appliances", type: "fridge-freezer" }' in source
-    assert '"washer": { endpoint: "/api/appliances", type: "washing-machine" }' in source
+    assert 'endpoint: "/api/appliances"' not in source
+    assert '"/api/appliances"' not in source
     assert "catalogCandidatesForType(current.type" in source
     assert "rankCatalogFurniture(catalogCandidates, request)" in source
 
