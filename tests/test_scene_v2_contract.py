@@ -1619,6 +1619,9 @@ def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> Non
     assert "function finishBeamCreateDrag(" in source
     assert 'showStep("space_confirmation")' in source
     assert 'setActiveStructureKind("beam")' in source
+    assert "選擇「返回第 4 步修改樑」後" in html
+    assert "系統會保留目前家具配置" in html
+    assert "不合法的家具會進入右側待處理清單" in html
     assert "第 6 步只局部校正家具" in html
     assert "返回第 4 步修改樑" in html
     assert "function beginBeamPlacement(" in viewer

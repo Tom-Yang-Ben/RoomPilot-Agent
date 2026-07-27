@@ -1000,6 +1000,18 @@ $env:TEMP=$env:TMP
 - Browser reload confirmed the new scene viewer import was active with no
   console errors.
 
+## 2026-07-27 Step 6 Beam Return Explanation
+
+- Clarified the Step 6 ceiling-beam panel so users understand what choosing
+  `返回第 4 步修改樑` means.
+- The panel now explains that Step 4 can add, move, delete, resize, and adjust
+  beam drop height.
+- It also states that the current furniture placement is preserved and will be
+  revalidated when returning to Step 6; only furniture made invalid by the beam
+  change enters the right-side pending list.
+- Browser verification confirmed the explanatory text appears in the active
+  8023 page.
+
 ## 2026-07-27 Step 6 Edit-Mode Camera Preservation
 
 - Removed the forced dollhouse camera reset from the Step 6
