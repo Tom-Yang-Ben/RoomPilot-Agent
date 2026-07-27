@@ -7663,6 +7663,11 @@ body.rp-workflow-page .danger-action {
   opacity: 0.28;
 }
 
+.rp-three-viewer canvas.rp-scene-selection-flash {
+  outline: 3px solid #1768a6;
+  outline-offset: -3px;
+}
+
 @keyframes rp-thumbnail-loading {
   to {
     background-position: -200% 0;

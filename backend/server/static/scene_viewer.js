@@ -5043,6 +5043,7 @@ export function createSceneViewer(
     exportGlb,
     focusObject,
     selectObjectByIndex,
+    getCanvasHost: () => renderer.domElement,
     getSelectedFurnitureId: () => selectedWrapper?.userData?.sceneObject?.furniture_id || null,
     projectFurnitureCenters() {
       const rect = renderer.domElement.getBoundingClientRect();

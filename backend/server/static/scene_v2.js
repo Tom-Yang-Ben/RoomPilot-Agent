@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-5db3c1474c1e";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-a5dc3994c2a6";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
@@ -550,9 +550,26 @@ function normalizeSceneDoorSegments(sceneData) {
 
 function sceneObjectIndexByFurnitureId(furnitureId) {
   if (!furnitureId || !state.sceneData?.scene_objects?.length) return -1;
-  return state.sceneData.scene_objects.findIndex(
-    (item) => String(item.furniture_id) === String(furnitureId),
+  const id = String(furnitureId);
+  const layoutItem = state.furniture2d.find(
+    (item) => String(item.id) === id,
   );
+  const identifiers = new Set([
+    id,
+    layoutItem?.catalogFurnitureId,
+    layoutItem?.furniture_id,
+  ].filter(Boolean).map(String));
+  return state.sceneData.scene_objects.findIndex((item) => {
+    const sceneIdentifiers = [
+      item.furniture_id,
+      item.catalog_furniture_id,
+      item.catalogFurnitureId,
+      item.layout_furniture_id,
+      item.source_furniture_id,
+      item.id,
+    ].filter(Boolean).map(String);
+    return sceneIdentifiers.some((candidate) => identifiers.has(candidate));
+  });
 }
 
 function selectSceneObjectByFurnitureId(furnitureId, {
@@ -568,6 +585,11 @@ function selectSceneObjectByFurnitureId(furnitureId, {
     loadSelectedSceneAppearance();
   }
   viewer?.selectObjectByIndex?.(index, { focus });
+  if (focus) {
+    const host = viewer?.getCanvasHost?.();
+    host?.classList.add("rp-scene-selection-flash");
+    window.setTimeout(() => host?.classList.remove("rp-scene-selection-flash"), 700);
+  }
   return true;
 }
 
@@ -7533,6 +7555,32 @@ function shiftRoomSurfaceAssignment(assignment, offset) {
   return next;
 }
 
+function sceneObjectMatchesLayoutFurniture(sceneObject = {}, layoutItem = {}) {
+  const sceneIds = [
+    sceneObject.furniture_id,
+    sceneObject.catalog_furniture_id,
+    sceneObject.catalogFurnitureId,
+    sceneObject.layout_furniture_id,
+    sceneObject.source_furniture_id,
+    sceneObject.id,
+  ].filter(Boolean).map(String);
+  const layoutIds = [
+    layoutItem.id,
+    layoutItem.catalogFurnitureId,
+    layoutItem.furniture_id,
+  ].filter(Boolean).map(String);
+  return sceneIds.some((id) => layoutIds.includes(id));
+}
+
+function replacementRoomIdForSceneObject(sceneObject = {}) {
+  const explicitRoomId = sceneObject.placement_room_id || sceneObject.room_id;
+  if (explicitRoomId) return String(explicitRoomId);
+  const layoutItem = state.furniture2d.find(
+    (item) => sceneObjectMatchesLayoutFurniture(sceneObject, item),
+  );
+  return layoutItem?.roomId ? String(layoutItem.roomId) : "";
+}
+
 function buildReplacementRoomPreviewScene(baseScene, current, candidate) {
   if (!baseScene?.floorplan || !current) return null;
   const room = state.rooms.find(
@@ -7562,8 +7610,8 @@ function buildReplacementRoomPreviewScene(baseScene, current, candidate) {
     .map((assignment) => shiftRoomSurfaceAssignment(assignment, offset));
   scene.scene_objects = (scene.scene_objects || [])
     .filter((item) => {
-      const sameFurniture = String(item.furniture_id) === String(current.id);
-      const sameRoom = String(item.placement_room_id || item.room_id || "") === String(room.id);
+      const sameFurniture = sceneObjectMatchesLayoutFurniture(item, current);
+      const sameRoom = replacementRoomIdForSceneObject(item) === String(room.id);
       return sameFurniture || sameRoom;
     })
     .map((item) => ({
@@ -7571,7 +7619,7 @@ function buildReplacementRoomPreviewScene(baseScene, current, candidate) {
       position_cm: shiftScenePoint(item.position_cm, offset),
     }));
   const currentIndex = scene.scene_objects.findIndex(
-    (item) => String(item.furniture_id) === String(current.id),
+    (item) => sceneObjectMatchesLayoutFurniture(item, current),
   );
   const existing = currentIndex >= 0
     ? scene.scene_objects[currentIndex]
@@ -7719,17 +7767,15 @@ function renderReplacementTypeOptions(current) {
   const routeTypes = route.types || [route.type];
   const options = routeTypes.filter(Boolean);
   element.replacementSearch.innerHTML = [
-    '<option value="same-type">同類家具</option>',
-    '<option value="same-style">同風格家具</option>',
-    '<option value="all">全部資料庫</option>',
+    '<option value="same-type">建議：同類家具</option>',
+    '<option value="same-style">依目前風格推薦</option>',
+    '<option value="all">瀏覽全部家具資料庫</option>',
     ...(options.length > 1
-      ? ['<option value="">全部相容類型</option>']
+      ? ['<option value="">瀏覽全部相容類型</option>']
       : []),
-    ...options.map((type) => `
-      <option value="type:${escapeHtml(type)}">
-        分類：${escapeHtml(REPLACEMENT_TYPE_LABELS[type] || current.label || type)}
-      </option>
-    `),
+    options.length ? '<optgroup label="家具類別">' : '',
+    ...options.map((type) => `<option value="type:${escapeHtml(type)}">${escapeHtml(REPLACEMENT_TYPE_LABELS[type] || current.label || type)}</option>`),
+    options.length ? '</optgroup>' : '',
   ].join("");
   element.replacementSearch.value = "same-type";
   if (element.replacementQuery) element.replacementQuery.value = "";
@@ -10318,7 +10364,9 @@ function bindEvents() {
     if (fromFurnitureList) void openFurnitureReplacement();
     renderLayoutFurniture();
     renderConfigurationPlan();
-    const focused = syncSelected2dFurnitureToScene({ focus: true });
+    const focused = fromFurnitureList
+      ? syncSelected2dFurnitureToScene({ focus: false })
+      : syncSelected2dFurnitureToScene({ focus: true });
     if (fromPlan) {
       const item = state.furniture2d.find(
         (candidate) => candidate.id === state.selectedFurniture2dId,
