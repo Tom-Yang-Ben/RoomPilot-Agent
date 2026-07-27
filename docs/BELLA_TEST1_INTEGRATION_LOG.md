@@ -972,6 +972,21 @@ $env:TEMP=$env:TMP
   reload; the furniture list dropped from 14 to 12 items.
 - Full suite verification: 486 passed, 2 skipped.
 
+## 2026-07-27 Whole-House Floor and Accent Wall Consistency
+
+- Updated the questionnaire-to-3D material flow so regular indoor rooms share
+  one whole-house main floor instead of each room using a different floor color
+  or material.
+- Kept independent floor finishes only for functional/wet zones: bathroom,
+  kitchen, entry/foyer, balcony, laundry, and utility rooms.
+- Limited wall overrides to one accent wall per room. All other walls use the
+  room's main wall finish, reducing the patchwork/jumping-color look in Step 6.
+- Applied the consistency rule before saving workflow state, after random
+  requirement generation, after room finish confirmation, after restoring a
+  saved project, and when building `room_surface_assignments` for 3D.
+- Updated the Step 6 room-material side label to display the effective material
+  after consistency normalization.
+
 ## 2026-07-27 Step 6 Edit-Mode Camera Preservation
 
 - Removed the forced dollhouse camera reset from the Step 6

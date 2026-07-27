@@ -578,6 +578,7 @@ function syncMovedSceneFurnitureTo2d(sceneObject) {
 
 function workflowPayload() {
   pruneRetiredAppliances();
+  applyWholeHouseSurfaceConsistency();
   persistActiveScheme(state.designSchemes, {
     furniture: state.furniture2d,
     sceneData: state.sceneData,
@@ -4679,6 +4680,25 @@ const TEST_AIR_CONDITIONING_OPTIONS = Object.freeze([
 ]);
 
 const QUESTIONNAIRE_MATERIAL_RECOMMENDATION_COUNT = 4;
+const INDEPENDENT_FLOOR_ROOM_TYPES = new Set([
+  "bathroom",
+  "kitchen",
+  "entry",
+  "foyer",
+  "balcony",
+  "laundry",
+  "utility",
+]);
+const INDEPENDENT_FLOOR_LABEL_PATTERNS = [
+  "浴",
+  "廁",
+  "衛",
+  "廚",
+  "玄關",
+  "陽台",
+  "洗衣",
+  "家務",
+];
 
 const PREFERENCE_WEIGHT_OPTIONS = Object.freeze([
   { value: -2, label: "強偏 A" },
@@ -4692,6 +4712,61 @@ function randomItem(items, fallback = null) {
   const candidates = (items || []).filter(Boolean);
   if (!candidates.length) return fallback;
   return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function roomAllowsIndependentFloor(room = {}) {
+  const type = String(room.type || room.room_type || "").toLowerCase();
+  const label = String(room.label || room.name || "");
+  return INDEPENDENT_FLOOR_ROOM_TYPES.has(type)
+    || INDEPENDENT_FLOOR_LABEL_PATTERNS.some((pattern) => label.includes(pattern));
+}
+
+function trimAccentWallSurfaces(surfaces = {}) {
+  const wallOverrides = Object.fromEntries(
+    Object.entries(surfaces.wallOverrides || {}).slice(0, 1),
+  );
+  return {
+    ...surfaces,
+    wallSurfaceIds: [...(surfaces.wallSurfaceIds || [])].slice(0, 1),
+    wallOverrides,
+  };
+}
+
+function wholeHouseMainFloorSurface() {
+  const dryRoomFloor = state.rooms
+    .filter((room) => !roomAllowsIndependentFloor(room))
+    .map((room) =>
+      state.roomRequirementModel?.roomRequirements?.[room.id]?.surfaces?.floor
+    )
+    .find((floor) => floor?.materialId || floor?.color);
+  if (dryRoomFloor) return { ...dryRoomFloor };
+  if (state.questionnaireFinishes.floorMaterial || state.questionnaireFinishes.floorColor) {
+    return {
+      materialId: state.questionnaireFinishes.floorMaterial || null,
+      color: state.questionnaireFinishes.floorColor || null,
+    };
+  }
+  return null;
+}
+
+function normalizedRoomSurfaces(room, surfaces = {}) {
+  const next = trimAccentWallSurfaces(surfaces);
+  const mainFloor = wholeHouseMainFloorSurface();
+  if (!roomAllowsIndependentFloor(room) && mainFloor) {
+    next.floor = { ...mainFloor };
+  }
+  return next;
+}
+
+function applyWholeHouseSurfaceConsistency() {
+  const mainFloor = wholeHouseMainFloorSurface();
+  Object.entries(state.roomRequirementModel?.roomRequirements || {}).forEach(([roomId, requirement]) => {
+    const room = state.rooms.find((candidate) => String(candidate.id) === String(roomId));
+    requirement.surfaces = trimAccentWallSurfaces(requirement.surfaces || {});
+    if (room && !roomAllowsIndependentFloor(room) && mainFloor) {
+      requirement.surfaces.floor = { ...mainFloor };
+    }
+  });
 }
 
 function stableStringNumber(value = "") {
@@ -4908,6 +4983,7 @@ async function randomizeRequirementsForTesting() {
     ...(state.roomFinishDrafts[firstRoomId] || randomRoomFinishDraft()),
     confirmed: true,
   };
+  applyWholeHouseSurfaceConsistency();
   state.visualQuestionIndex = 0;
   state.selectedQuestionnaireWallId = null;
   state.questionnaireStage = "summary";
@@ -5757,6 +5833,7 @@ function confirmQuestionnaireFinishes() {
     scope,
     selectedRoomIds,
   );
+  applyWholeHouseSurfaceConsistency();
   state.roomRequirementModel.roomRequirements[room.id].confirmed = true;
   const suggestedCount = prefillRemainingRoomPreferences(room);
   if (scope !== "room") {
@@ -5805,7 +5882,7 @@ function renderQuestionnaireSummary() {
       ].filter(Boolean).join(" / ");
       return `<li><span>${escapeHtml(question?.title_zh || questionId)}</span><strong>${escapeHtml(answerLabel)}</strong></li>`;
     }).join("");
-    const surfaces = requirement?.surfaces || {};
+    const surfaces = normalizedRoomSurfaces(room, requirement?.surfaces || {});
     const selectedFurniture = requirement?.furniture?.selected || [];
     const deferredFurniture = requirement?.furniture?.deferred || [];
     const notices = (requirement?.feasibility || []).map(
@@ -5972,7 +6049,7 @@ function roomSurfaceAssignments() {
   const center = planCenterCm();
   return state.rooms.map((room) => {
     const requirement = state.roomRequirementModel?.roomRequirements?.[room.id];
-    const surfaces = requirement?.surfaces || {};
+    const surfaces = normalizedRoomSurfaces(room, requirement?.surfaces || {});
     return {
       room_id: room.id,
       room_label: room.label,
@@ -6669,8 +6746,9 @@ function renderLayoutRoomMaterials() {
     ? state.rooms
     : state.rooms.filter((room) => room.id === state.activeLayoutRoomId);
   element.layoutRoomMaterials.innerHTML = rooms.map((room) => {
-    const surfaces = state.roomRequirementModel?.roomRequirements?.[room.id]?.surfaces;
-    if (!surfaces) return "";
+    const rawSurfaces = state.roomRequirementModel?.roomRequirements?.[room.id]?.surfaces;
+    if (!rawSurfaces) return "";
+    const surfaces = normalizedRoomSurfaces(room, rawSurfaces || {});
     return `
       <span class="rp-layout-room-material">
         <strong>${escapeHtml(room.label)}</strong>
@@ -10536,6 +10614,7 @@ async function restoreProject() {
     const restoredScheme = activeScheme();
     state.furniture2d = restoredScheme?.furniture || legacyFurniture;
     state.sceneData = normalizeSavedSceneData(restoredScheme?.sceneData) || legacySceneData;
+    applyWholeHouseSurfaceConsistency();
     const restoredRetiredAppliancesRemoved = pruneRetiredAppliances({ notify: true });
     const restoredSceneDoorsRemoved = normalizeSceneDoorSegments(state.sceneData);
     state.doorNormalizationRemoved += restoredSceneDoorsRemoved;

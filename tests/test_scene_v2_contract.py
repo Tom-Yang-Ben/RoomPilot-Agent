@@ -65,6 +65,25 @@ def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options(
     assert "floorMaterial" in source
 
 
+def test_room_surfaces_keep_one_main_floor_with_functional_exceptions() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "const INDEPENDENT_FLOOR_ROOM_TYPES" in source
+    assert '"bathroom"' in source
+    assert '"kitchen"' in source
+    assert '"entry"' in source
+    assert '"balcony"' in source
+    assert "function wholeHouseMainFloorSurface" in source
+    assert "function normalizedRoomSurfaces" in source
+    assert "function applyWholeHouseSurfaceConsistency" in source
+    assert "trimAccentWallSurfaces" in source
+    assert "wallSurfaceIds: [...(surfaces.wallSurfaceIds || [])].slice(0, 1)" in source
+    assert "Object.entries(surfaces.wallOverrides || {}).slice(0, 1)" in source
+    assert "if (!roomAllowsIndependentFloor(room) && mainFloor)" in source
+    assert "const surfaces = normalizedRoomSurfaces(room, requirement?.surfaces || {})" in source
+    assert "const surfaces = normalizedRoomSurfaces(room, rawSurfaces || {})" in source
+
+
 def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
