@@ -445,7 +445,9 @@ def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations(
         "balcony": 1,
     }
     assert len(analysis["doors"]) == 7
-    assert len(analysis["windows"]) == 3
+    # 2026-07-28 由 3 改為 2：cody 辨識核心併入後濾掉一扇 12.17 公分寬、
+    # 對應 38 乘 8 像素色塊的假窗，剩下兩扇為 76.09 與 79.13 公分。
+    assert len(analysis["windows"]) == 2
     assert all(70 <= door["width_cm"] <= 120 for door in analysis["doors"])
     assert any(
         wall["bbox_px"][1] >= 700
