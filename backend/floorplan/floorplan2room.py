@@ -276,12 +276,15 @@ OCR_WORD2LABEL = {
 }
 
 _ocr_engine = None                     # 模組級單例：模型載入 ~1s，批次只付一次
+_ocr_cache = {"path": None, "words": []}   # 單格快取：同圖 texts/text_boxes 兩問只推一次
 
 
 def _ocr_words(img_path):
-    """RapidOCR 行級辨識 → [(text, conf, cx, cy)]（原圖 px 座標）。
+    """RapidOCR 行級辨識 → [(text, conf, cx, cy, (x0, y0, x1, y1))]（原圖 px）。
     引擎未安裝＝空清單並提示一次（OCR 是 semantic 同級 extra，不是硬依賴）。"""
     global _ocr_engine
+    if _ocr_cache["path"] == img_path:
+        return _ocr_cache["words"]
     if _ocr_engine is None:
         try:
             from rapidocr_onnxruntime import RapidOCR
@@ -292,12 +295,15 @@ def _ocr_words(img_path):
     if _ocr_engine is False:
         return []
     result, _elapse = _ocr_engine(img_path)
-    if not result:
-        return []
-    return [(text, float(conf),
-             sum(p[0] for p in box) / len(box),
-             sum(p[1] for p in box) / len(box))
-            for box, text, conf in result]
+    words = [] if not result else \
+        [(text, float(conf),
+          sum(p[0] for p in box) / len(box),
+          sum(p[1] for p in box) / len(box),
+          (min(p[0] for p in box), min(p[1] for p in box),
+           max(p[0] for p in box), max(p[1] for p in box)))
+         for box, text, conf in result]
+    _ocr_cache.update(path=img_path, words=words)
+    return words
 
 
 def ocr_room_label(text):
@@ -335,13 +341,31 @@ def detect_room_text(img_path, dst_w=None, dst_h=None):
         h, w = img.shape[:2]
         sx, sy = dst_w / float(w), dst_h / float(h)
     out = []
-    for text, conf, cx, cy in words:
+    for text, conf, cx, cy, _box in words:
         if conf < OCR_CONF_MIN:
             continue
         lab = ocr_room_label(text)
         if lab:
             out.append((lab, cx * sx, cy * sy, text))
     return out
+
+
+def detect_text_boxes(img_path, dst_w=None, dst_h=None):
+    """圖面上全部文字的框（不限房型詞，conf ≥0.5 即收）→ [(x0,y0,x1,y1)]，
+    座標同 detect_room_text 縮放到分析圖空間。用途：把文字墨水從細線層
+    扣掉，避免污染門扇迴轉區的證據量測（floor04 的 CIRCULATION 實案）。"""
+    words = _ocr_words(img_path)
+    if not words:
+        return []
+    sx = sy = 1.0
+    if dst_w and dst_h:
+        img = cv2.imread(img_path)
+        if img is None:
+            return []
+        h, w = img.shape[:2]
+        sx, sy = dst_w / float(w), dst_h / float(h)
+    return [(x0 * sx, y0 * sy, x1 * sx, y1 * sy)
+            for _t, conf, _cx, _cy, (x0, y0, x1, y1) in words if conf >= 0.5]
 
 
 # ─────────────────────────── 語意辨識房型 ───────────────────────────
@@ -729,6 +753,35 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
 
 
 
+def _bridge_has_door_ink(det, horiz, g0, g1, b0, b1):
+    """門位證據：門扇迴轉區（開口兩側各 1.1×開口深）扣掉 OCR 文字框後的
+    細線墨水密度。真門畫弧/門扇必留墨（floor04 浴廁虛線弧 1.45%），
+    開放通道空白（走道↔客廳 0%）；文字墨水（CIRCULATION 4.8%）已扣，
+    門檻取 0.5%。弧掃描（_has_door_swing 0.9 覆蓋率）對虛線弧眼盲、
+    detect_doors 亦然，故用密度而非形狀。thin 缺席（彩圖管線）不濾照舊。"""
+    thin = det.get("thin")
+    if thin is None:
+        return True
+    ink = thin.copy()
+    for x0, y0, x1, y1 in det.get("text_boxes", ()):
+        ink[max(0, int(y0) - 2):int(y1) + 3,
+            max(0, int(x0) - 2):int(x1) + 3] = 0
+    gap = g1 - g0
+    H, W = ink.shape
+    # 三個證據區：開口帶本身（雙開/滑門門扇畫在開口內）＋兩側迴轉區（單開門弧）
+    regions = [(b0, b1)] + [(b0 - 1.1 * gap, b0), (b1, b1 + 1.1 * gap)]
+    for lo, hi in regions:
+        if horiz:
+            y0, y1, x0, x1 = lo, hi, g0, g1
+        else:
+            x0, x1, y0, y1 = lo, hi, g0, g1
+        box = ink[max(0, int(y0)):min(H, int(y1)),
+                  max(0, int(x0)):min(W, int(x1))]
+        if box.size and np.count_nonzero(box) / box.size >= 0.005:
+            return True
+    return False
+
+
 def _bridge_zone(horiz, g0, g1, b0, b1):
     """牆端連線 → 門位框：沿牆=連線長，垂直牆前後各一倍（1:2 黃框，
     同 fp_c.gap_openings 的格式，door tuple 供 room_graph 幾何驗證）。"""
@@ -768,7 +821,8 @@ def build_rooms(det):
     # 走道橫斷橋合併後即失效：疊圖不再畫、恰為門尺寸者的假門位一併移除
     rooms, bridges = _merge_nondoor_bridges(labels, rooms, bridges, det)
     zones = [_bridge_zone(*b) for b in bridges
-             if any(lo <= (b[2] - b[1]) * cm <= hi for lo, hi in DOOR_RANGES_CM)]
+             if any(lo <= (b[2] - b[1]) * cm <= hi for lo, hi in DOOR_RANGES_CM)
+             and _bridge_has_door_ink(det, *b)]  # 迴轉區無墨=開放通道非門
     cc_f = det.get("cc_file")
     if cc_f and cc_cache_valid(cc_f, img_w, img_h,
                                det.get("src_sha256")):
@@ -883,9 +937,10 @@ def process(path, out_dir, cfg_bw, cfg_color):
     det["symbols"] = detect_symbols(det)         # 古典家具符號（補模型盲區）
     if not is_color and cfg_bw.deskew:           # OCR 讀原始檔，轉正後座標對不上分析圖
         print("⚠ deskew 開啟 → OCR 文字證據層停用（座標無法對齊）")
-        det["texts"] = []
+        det["texts"], det["text_boxes"] = [], []
     else:
         det["texts"] = detect_room_text(path, det["img_w"], det["img_h"])  # OCR 文字證據（層 5）
+        det["text_boxes"] = detect_text_boxes(path, det["img_w"], det["img_h"])
 
     labels, rooms, bridges, zones, edges = build_rooms(det)
     png_out = os.path.join(out_dir, base + "_room.png")
