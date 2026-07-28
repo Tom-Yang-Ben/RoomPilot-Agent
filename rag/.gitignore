@@ -1,0 +1,30 @@
+# RAG 子專案：資料產物一律不進版控
+#
+# 這些目錄在本機動輒數百 MB 到數 GB，且都能由 rag/ 內的腳本重建。
+# rag_export/furniture_embeddings_bge_m3.jsonl 為 107 MB，
+# 已超過 GitHub 單檔 100 MB 硬限制，若要交付需另走 Git LFS 或檔案傳輸。
+
+# 金鑰（純文字，絕不可提交）
+.anthropic_key
+
+# 執行環境
+.venv-rag/
+.venv/
+
+# 資料產物（由 build_rag_v3.py / embed_v3.py 重建）
+rag_dataset/
+rag_export/
+chroma_db/
+
+# 影像來源（2.0 GB 預渲染 PNG）
+rendering/output/
+
+# 標註中間產物（可續跑的進度檔；render_meta_full.jsonl 含本機絕對路徑）
+vlm_annotation/*.jsonl
+
+# 官方分類對照版（20 MB，內容與 v2 相同，僅供對照）
+json_adjustment/furniture_official_catagory.json
+
+__pycache__/
+*.pyc
+.DS_Store
