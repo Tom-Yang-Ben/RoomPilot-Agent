@@ -36,3 +36,12 @@ pytest==9.1.1
 #   paddlepaddle==3.3.1
 # Use the command documented in README.md.
 
+# Optional CubiCasa semantic inference (backend/floorplan/infer_cubicasa.py) is
+# also kept out of this baseline because torch pulls in the CUDA stack. The lock is:
+#   torch==2.13.0
+#   opencv-python-headless==4.13.0.92
+# opencv-python-headless MUST stay <5 for the same HoughLinesP reason as
+# opencv-python above: torch's dependency chain installs it and it shadows cv2.
+# Install with `uv sync --extra semantic`, or pip-install the two pins directly.
+# Without it the semantic room labeller degrades to area rules; nothing crashes.
+

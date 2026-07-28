@@ -60,6 +60,17 @@ uv sync --extra server --extra vision --extra catalog --extra ocr --group dev
 
 OCR 套件較大，且不是啟動網站或執行目前標準測試的必要條件。
 
+需要 CubiCasa 語意房型辨識時（`backend/floorplan/infer_cubicasa.py` 需要
+torch），再加 `semantic`：
+
+```powershell
+uv sync --extra server --extra vision --extra catalog --extra semantic --group dev
+```
+
+不裝也不會壞：房型會退回面積規則，分析照常完成，`cody_room_semantics.room_label_source`
+會標示 `area_rules` 而非 `cubicasa_semantic`。torch 會連帶拉進 CUDA 相依套件，
+因此與 OCR 同樣不放進預設環境。
+
 ## 驗證指令
 
 ```powershell
