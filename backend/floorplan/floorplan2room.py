@@ -12,7 +12,7 @@
 輸出：
   temp/chk/room/<名>_room.png  房間疊圖：紅=牆、橘=牆端連線(封口)、綠=窗、房型色塊+房名
   temp/chk/door/<名>_door.png  門位檢查圖（獨立目錄）：黃框=門位+門寬標註；
-                               連線長度 80~95(單門) 或 160~190(雙開門) cm 才算門
+                               連線長度 75~100(單門) 或 160~190(雙開門) cm 且有門扇墨水才算門
   temp/json/room/<名>_room.json 房間清單（房型/面積/bbox/有無門/辨識證據）＋門位＋比例資訊
 
 比例尺以門寬鐵律校正（refine_scale）：單門 85cm / 雙門 175cm / 牆厚 17.5cm。
@@ -133,7 +133,11 @@ def detect_color(cfg):
 
 
 # ─────────────────────────── 比例尺校正 ───────────────────────────
-DOOR_RANGES_CM = ((80.0, 95.0), (160.0, 190.0))    # 單門 / 雙開門（user spec）
+DOOR_RANGES_CM = ((75.0, 100.0), (160.0, 190.0))  # 單門 / 雙開門。單門原 user spec
+                                                   # 80~95，門位掛上墨水證據後放寬
+                                                   # 75~100：own 集門 GT 實測 R 0.56→0.73、
+                                                   # P 0.90→0.86（floor04 比例尺被走道假開
+                                                   # 口拉偏，真門量成 78cm 全漏）
 DOOR_SINGLE_CM = 85.0                              # 單門錨點：80~90(最多95) 取中值
 DOOR_DOUBLE_CM = 175.0                             # 雙開門錨點：160~190 取中值
 WALL_MID_CM = 17.5                                 # 人住建築牆厚 15~20cm 取中點
@@ -803,7 +807,7 @@ def _bridge_zone(horiz, g0, g1, b0, b1):
 def build_rooms(det):
     """牆 → 房間方塊：牆端點沿軸向連到對面牆（fp_c._wall_gaps 封口）＋門洞補線
     ＋閉運算，閉合後灌水切連通塊＝房間，再依規則分類房型。
-    門位（user spec）：連線長度 80~95 或 160~190 cm 才算門、框黃框；
+    門位：連線長度 75~100 或 160~190 cm 且有門扇墨水才算門、框黃框；
     範圍外的連線只封口不框。回傳 (labels, rooms, bridges, zones, edges)。"""
     rects, wins, doors = det["rects"], det["wins"], det["doors"]
     T, T_out, cm = det["T"], det["T_out"], det["cm"]
@@ -963,7 +967,7 @@ def process(path, out_dir, cfg_bw, cfg_color):
     if rooms:
         names = "、".join(f'{r["label_zh"]}{r["area_m2"]}m²' for r in rooms)
         print(f"房間   : {len(rooms)} 間（{names}）  牆端連線 {len(bridges)} 條"
-              f"  門位 {len(zones)} 個（80~95/160~190cm）")
+              f"  門位 {len(zones)} 個（75~100/160~190cm）")
     else:
         print("房間   : 分割失敗（殼封不起來）——疊圖仍輸出牆與連線供檢視")
     print(f"輸出   : {png_out}   {door_out}   {json_out}")
@@ -1012,7 +1016,7 @@ def main():
     print(f"\n批次完成: 成功 {ok} / 分割失敗 {no_room} / 錯誤 {fail}")
     print(f"  疊圖 → {out_dir}/  (紅牆、橘=牆端連線、房型色塊)")
     print(f"  門位 → {os.path.join(os.path.dirname(out_dir.rstrip('/')), 'door')}/"
-          f"  (黃框=門位80~95/160~190cm)")
+          f"  (黃框=門位75~100/160~190cm)")
     print(f"  JSON → temp/json/room/  (<名>_room.json：房間+門位清單)")
 
 
