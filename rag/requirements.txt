@@ -1,0 +1,27 @@
+# RoomPilot RAG 檢索系統 — 直接相依
+#
+# 只列直接 import 的套件，遞移相依交給 pip 解析（本機 .venv-rag 共 116 個套件）。
+# 版本是本機實測可運作的組合（macOS 15 / Apple Silicon / Python 3.11.15）。
+#
+#   python3.11 -m venv .venv-rag
+#   .venv-rag/bin/pip install -r requirements.txt
+#
+# 注意：torch 在 Apple Silicon 走 MPS，在其他平台 pip 會自動裝對應版本。
+# 首次執行需先下載約 9 GB 的 HF 模型，見 SETUP.md。
+
+# 檢索核心
+torch==2.13.0
+sentence-transformers==5.6.1     # bge-m3（SentenceTransformer）+ bge-reranker-v2-m3（CrossEncoder）
+transformers==5.14.1
+chromadb==1.5.9                  # 向量庫，collection furniture_v3（cosine）
+numpy==2.4.6
+
+# 需求解析（claude-haiku-4-5 + structured outputs）
+anthropic==0.120.0
+
+# UI
+gradio==6.20.0                   # Gradio 6：theme 在 launch() 傳，非 Blocks()
+pillow==12.3.0                   # 卡片縮圖 → base64 data URI
+
+# 批次風格判定呼叫本機 Ollama
+requests==2.34.2

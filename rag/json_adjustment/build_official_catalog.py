@@ -24,7 +24,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 PROJ = Path(__file__).resolve().parent.parent
-OFFICIAL = PROJ / "json_adjustment" / "furniture_official_catagory.json"
+# 原本讀 json_adjustment/furniture_official_catagory.json，但那份與 v2 逐位元組相同
+# （9,350 筆、欄位與值全數一致），等於同一份資料存兩份。改讀 v2 以消除重複，
+# 舊檔已列入 .gitignore 不再隨 repo 散布。
+OFFICIAL = PROJ / "rag_dataset" / "furniture_enriched_v2.json"
 V3 = PROJ / "rag_dataset" / "furniture_enriched_v3.json"
 DST = PROJ / "rag_export" / "furniture_official_catagory.json"
 TZ8 = timezone(timedelta(hours=8))
