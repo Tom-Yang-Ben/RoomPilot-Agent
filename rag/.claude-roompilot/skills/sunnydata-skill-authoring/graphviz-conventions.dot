@@ -1,0 +1,172 @@
+digraph STYLE_GUIDE {
+    // 我們流程 DSL 的樣式指南，本身就用這個 DSL 寫成（RoomPilot 版：指令一律 Python 3.11 / .venv-rag）
+
+    // 節點類型與對應形狀的範例
+    subgraph cluster_node_types {
+        label="節點類型與形狀";
+
+        // 問題用菱形
+        "這是一個問題嗎？" [shape=diamond];
+
+        // 動作用方框（預設）
+        "採取一個動作" [shape=box];
+
+        // 指令用 plaintext
+        "git commit -m 'msg'" [shape=plaintext];
+
+        // 狀態用橢圓
+        "目前狀態" [shape=ellipse];
+
+        // 警告用八角形
+        "停：關鍵警告" [shape=octagon, style=filled, fillcolor=red, fontcolor=white];
+
+        // 起點／終點用雙圓
+        "流程開始" [shape=doublecircle];
+        "流程完成" [shape=doublecircle];
+
+        // 各類型的實例
+        "冒煙檢索通過了嗎？" [shape=diamond];
+        "先寫測試" [shape=box];
+        ".venv-rag/bin/python rag_pipeline/retriever.py '北歐風沙發'" [shape=plaintext];
+        "我卡住了" [shape=ellipse];
+        "絕不把 rag_indexable 寫進 Chroma where" [shape=octagon, style=filled, fillcolor=red, fontcolor=white];
+    }
+
+    // 邊的命名慣例
+    subgraph cluster_edge_types {
+        label="邊的標籤";
+
+        "二元決策？" [shape=diamond];
+        "Yes 路徑" [shape=box];
+        "No 路徑" [shape=box];
+
+        "二元決策？" -> "Yes 路徑" [label="yes"];
+        "二元決策？" -> "No 路徑" [label="no"];
+
+        "多選一？" [shape=diamond];
+        "選項 A" [shape=box];
+        "選項 B" [shape=box];
+        "選項 C" [shape=box];
+
+        "多選一？" -> "選項 A" [label="條件 A"];
+        "多選一？" -> "選項 B" [label="條件 B"];
+        "多選一？" -> "選項 C" [label="其他"];
+
+        "流程 A 完成" [shape=doublecircle];
+        "流程 B 開始" [shape=doublecircle];
+
+        "流程 A 完成" -> "流程 B 開始" [label="觸發", style=dotted];
+    }
+
+    // 命名模式
+    subgraph cluster_naming_patterns {
+        label="命名模式";
+
+        // 問題以問號結尾
+        "我該做 X 嗎？";
+        "這可以是 Y 嗎？";
+        "Z 成立嗎？";
+        "我做過 W 了嗎？";
+
+        // 動作以動詞開頭
+        "寫測試";
+        "搜尋模式";
+        "提交變更";
+        "求助";
+
+        // 指令照原樣逐字寫
+        "grep -r 'pattern' .";
+        "git status";
+        ".venv-rag/bin/python rag_pipeline/embed_v3.py --only-changed";
+
+        // 狀態描述情境
+        "檢索回傳 0 筆";
+        "索引重建完成";
+        "卡在模型載入";
+    }
+
+    // 流程結構模板
+    subgraph cluster_structure {
+        label="流程結構模板";
+
+        "觸發：某事發生" [shape=ellipse];
+        "初始檢查？" [shape=diamond];
+        "主要動作" [shape=box];
+        "git status" [shape=plaintext];
+        "再次檢查？" [shape=diamond];
+        "替代動作" [shape=box];
+        "停：不要這樣做" [shape=octagon, style=filled, fillcolor=red, fontcolor=white];
+        "流程完成" [shape=doublecircle];
+
+        "觸發：某事發生" -> "初始檢查？";
+        "初始檢查？" -> "主要動作" [label="yes"];
+        "初始檢查？" -> "替代動作" [label="no"];
+        "主要動作" -> "git status";
+        "git status" -> "再次檢查？";
+        "再次檢查？" -> "流程完成" [label="ok"];
+        "再次檢查？" -> "停：不要這樣做" [label="有問題"];
+        "替代動作" -> "流程完成";
+    }
+
+    // 該用哪種形狀
+    subgraph cluster_shape_rules {
+        label="各形狀的使用時機";
+
+        "選擇形狀" [shape=ellipse];
+
+        "這是決策嗎？" [shape=diamond];
+        "用菱形" [shape=diamond, style=filled, fillcolor=lightblue];
+
+        "這是指令嗎？" [shape=diamond];
+        "用 plaintext" [shape=plaintext, style=filled, fillcolor=lightgray];
+
+        "這是警告嗎？" [shape=diamond];
+        "用八角形" [shape=octagon, style=filled, fillcolor=pink];
+
+        "這是起點／終點嗎？" [shape=diamond];
+        "用雙圓" [shape=doublecircle, style=filled, fillcolor=lightgreen];
+
+        "這是狀態嗎？" [shape=diamond];
+        "用橢圓" [shape=ellipse, style=filled, fillcolor=lightyellow];
+
+        "預設：用方框" [shape=box, style=filled, fillcolor=lightcyan];
+
+        "選擇形狀" -> "這是決策嗎？";
+        "這是決策嗎？" -> "用菱形" [label="yes"];
+        "這是決策嗎？" -> "這是指令嗎？" [label="no"];
+        "這是指令嗎？" -> "用 plaintext" [label="yes"];
+        "這是指令嗎？" -> "這是警告嗎？" [label="no"];
+        "這是警告嗎？" -> "用八角形" [label="yes"];
+        "這是警告嗎？" -> "這是起點／終點嗎？" [label="no"];
+        "這是起點／終點嗎？" -> "用雙圓" [label="yes"];
+        "這是起點／終點嗎？" -> "這是狀態嗎？" [label="no"];
+        "這是狀態嗎？" -> "用橢圓" [label="yes"];
+        "這是狀態嗎？" -> "預設：用方框" [label="no"];
+    }
+
+    // 好壞範例對照
+    subgraph cluster_examples {
+        label="好範例 vs 壞範例";
+
+        // 好：具體且形狀正確
+        "檢索回傳 0 筆" [shape=ellipse];
+        "讀錯誤訊息與 where 條件" [shape=box];
+        "能重現嗎？" [shape=diamond];
+        ".venv-rag/bin/python rag_pipeline/query_parser.py '日式臥室'" [shape=plaintext];
+        "絕不忽略錯誤" [shape=octagon, style=filled, fillcolor=red, fontcolor=white];
+
+        "檢索回傳 0 筆" -> "讀錯誤訊息與 where 條件";
+        "讀錯誤訊息與 where 條件" -> "能重現嗎？";
+        "能重現嗎？" -> ".venv-rag/bin/python rag_pipeline/query_parser.py '日式臥室'" [label="yes"];
+
+        // 壞：含糊且形狀錯誤
+        bad_1 [label="怪怪的", shape=box];  // 應該用橢圓（狀態）
+        bad_2 [label="修一下", shape=box];  // 太含糊
+        bad_3 [label="檢查", shape=box];  // 應該用菱形
+        bad_4 [label="跑指令", shape=box];  // 應該用 plaintext 並寫出實際指令
+
+        bad_1 -> bad_2;
+        bad_2 -> bad_3;
+        bad_3 -> bad_4;
+    }
+}
