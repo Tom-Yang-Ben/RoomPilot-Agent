@@ -28,6 +28,14 @@ ocr = [
     "paddleocr>=3.0,<4",
     "paddlepaddle>=3.0,<4",
 ]
+# CubiCasa 語意推論(backend/floorplan/infer_cubicasa.py)：只推論不訓練，CPU 版即可。
+# 與 ocr 同理獨立成 extra——torch 體積大，不該進每個人的預設環境。
+# opencv-python-headless 必須同步鎖 <5：torch 生態會把它拉進來蓋掉 cv2，
+# 而 OpenCV 5.0 改了 HoughLinesP 的回傳 shape，門偵測會當場失效。
+semantic = [
+    "torch>=2.0",
+    "opencv-python-headless>=4.10,<5",
+]
 # 型錄管線(scripts/):IKEA 下載 + 清洗 + 匯入 PostgreSQL
 catalog = [
     "requests>=2.34",
