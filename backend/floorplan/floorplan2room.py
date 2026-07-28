@@ -615,16 +615,25 @@ def _enforce_singletons(rooms):
     """住宅常識約束（user spec）：living/kitchen 全戶各限一間。
     同類多間只保留面積最大者，其餘降級為自己的次高分房型——限額類
     不得再選（降級又互撞），次高分 <0.15 照原則標中性「空間」。
-    demoted_from 記錄原判供 JSON 追溯。"""
+    接著：有廚無廳＝那間「廚房」多半是客餐廚一體，改叫客廳優先；
+    圖面文字明寫 KITCHEN（作者親口說的答案）則豁免不改。
+    relabel_from 記錄原判供 JSON 追溯。"""
     for lab in UNIQUE_LABELS:
         cand = [r for r in rooms if r["label"] == lab]
         for r in sorted(cand, key=lambda c: c["area_m2"], reverse=True)[1:]:
             alt = {k: v for k, v in r["_score"].items()
                    if k not in UNIQUE_LABELS}
             alt_lab, alt_val = max(alt.items(), key=lambda kv: kv[1])
-            r["demoted_from"] = lab
+            r["relabel_from"] = lab
             r["label"] = alt_lab if alt_val >= 0.15 else "room"
             r["label_zh"] = ROOM_ZH_EX[r["label"]]
+    if not any(r["label"] == "living" for r in rooms):
+        for r in rooms:                        # 限額後 kitchen 至多一間
+            if r["label"] == "kitchen" \
+                    and "kitchen" not in (r.get("ocr_text") or {}):
+                r["relabel_from"] = "kitchen"
+                r["label"] = "living"
+                r["label_zh"] = ROOM_ZH_EX["living"]
 
 
 # ─────────────────────────── 房間方塊 ───────────────────────────
@@ -753,7 +762,7 @@ def write_rooms_json(path, det, rooms, zones, edges, is_color, colorful):
             "reach": bool(r.get("reach", False)),
             "cc_share": r.get("cc_share"), "icons_cm2": r.get("icons_cm2"),
             "symbols": r.get("symbols"), "ocr_text": r.get("ocr_text"),
-            "demoted_from": r.get("demoted_from"),
+            "relabel_from": r.get("relabel_from"),
         } for r in rooms],
         "adjacency": [list(e) for e in edges],
     }
