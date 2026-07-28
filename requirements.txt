@@ -6,3 +6,4 @@ lmdb>=1.4                     # CubiCasa svg_loader 依賴（標注解析/訓練
 scikit-image>=0.24            # CubiCasa svg_utils 依賴
 svgpathtools>=1.6             # CubiCasa svg_utils 依賴
 pytest>=8.0                   # training/tests/ 測試框架
+rapidocr-onnxruntime>=1.4     # 房型 OCR 文字證據層（semantic 同級 extra；純 pip/CPU，免系統套件——tesseract 需 apt 故不採）
