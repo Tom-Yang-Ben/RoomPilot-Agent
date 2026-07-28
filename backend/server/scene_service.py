@@ -199,9 +199,16 @@ def _normalize_openrouter_plan(
     if not normalized_required:
         return None
 
-    layout_rules = raw_plan.get("layout_rules", [])
-    if not isinstance(layout_rules, list):
-        layout_rules = []
+    raw_layout_rules = raw_plan.get("layout_rules", [])
+    if not isinstance(raw_layout_rules, list):
+        raw_layout_rules = []
+    # LLM 常把規則回成字串陣列；下游 must_keep 直接呼叫 rule.get("message")，
+    # 在邊界一律轉成 dict，無法取出訊息的項目直接丟棄。
+    layout_rules = [
+        item if isinstance(item, dict) else {"rule": "llm_rule", "message": item.strip()}
+        for item in raw_layout_rules
+        if isinstance(item, dict) or (isinstance(item, str) and item.strip())
+    ]
 
     preferred_colors = raw_plan.get("preferred_colors", questionnaire.get("preferred_colors", []))
     if not isinstance(preferred_colors, list):
