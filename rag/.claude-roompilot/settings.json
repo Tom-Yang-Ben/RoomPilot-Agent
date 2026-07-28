@@ -1,0 +1,123 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(cd:*)",
+      "Bash(pwd:*)",
+      "Bash(tree:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(tee:*)",
+      "Bash(git:*)",
+      "Bash(.venv-rag/bin/python:*)",
+      "Bash(.venv-rag/bin/pip:*)",
+      "Bash(python3:*)",
+      "Bash(pip3:*)",
+      "Bash(ollama:*)",
+      "Bash(wget:*)",
+      "Bash(curl:*)",
+      "Bash(rg:*)",
+      "Bash(bat:*)",
+      "Bash(which:*)",
+      "Bash(command:*)",
+      "Bash(echo:*)",
+      "Bash(source:*)",
+      "Bash(chmod:*)",
+      "Bash(jq:*)",
+      "Bash(bash:*)",
+      "Bash(open:*)",
+      "Bash(stat:*)",
+      "Bash(du:*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)"
+    ],
+    "deny": [
+      "Read(./.anthropic_key)",
+      "Edit(./.anthropic_key)",
+      "Write(./.anthropic_key)"
+    ],
+    "ask": [
+      "Bash(sudo:*)",
+      "Bash(brew:*)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash .claude-roompilot/statusline.sh",
+    "padding": 0
+  },
+  "model": "opus",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude-roompilot/hooks/session-start.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude-roompilot/hooks/user-prompt-submit.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude-roompilot/hooks/agent-monitor.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude-roompilot/hooks/pre-tool-use.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude-roompilot/hooks/agent-monitor.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude-roompilot/hooks/post-write.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
