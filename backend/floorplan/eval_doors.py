@@ -27,8 +27,7 @@ def detect_on(path):
     gray, _ = fp.load_gray(cfg)
     bw = fp.binarize(gray, cfg)
     bw, _ = fp.remove_solid_blobs(bw)
-    dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
-    T = max(2, int(round(2.0 * float(dt.max()))))
+    T = fp.derive_wall_T(bw)                     # 與 run() 同式（抗離群）
     pick = lambda v, d: (v if v not in (None, 0) else d)
     cfg.solid = pick(cfg.solid, max(3, int(round(0.35 * T))))
     cfg.h_len = pick(cfg.h_len, max(int(round(1.5 * T)), cfg.solid + 2))

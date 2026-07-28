@@ -1267,6 +1267,41 @@ def remove_solid_blobs(bw):
     return out, removed
 
 
+def derive_wall_T(bw):
+    """自動牆厚 T＝距離變換 max×2（現行式），加「磨牆害徵」防護。
+    max 會被黏在牆網上的粗塊綁架（remove_solid_blobs 清不掉：與牆同
+    連通塊、或內切圓 <16px）；T 撐爆時 0.35T 的 solid 開運算核超過細
+    隔間牆厚，牆整批被磨掉——floor13 實案：角塊拉到 T=30、隔間僅 8px、
+    下半牆全滅使房間灌通。
+    防護：以「長直段（≥1.5T）且 ≥5px 粗」為牆本體，量 solid 開運算後
+    的牆存活率——≥0.92 為正常（38 張考卷實測其餘皆 ≥0.94），T 原樣回傳
+    行為零改變；<0.92＝正在磨牆，迴退 p99.5×2 穩健值。
+    全域直接改 p99.5 已實測不可行：floor04 的 max 是誠實外牆厚，
+    p99.5 低估 → 窗全滅（P98/R96 → 97/88 大回歸），故只在害徵時介入。"""
+    dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
+    T = max(2, int(round(2.0 * float(dt.max()))))
+    solid = max(3, int(round(0.35 * T)))
+    L = max(9, int(round(1.5 * T)))
+    horiz = cv2.morphologyEx(bw, cv2.MORPH_OPEN,
+                             cv2.getStructuringElement(cv2.MORPH_RECT, (L, 1)))
+    vert = cv2.morphologyEx(bw, cv2.MORPH_OPEN,
+                            cv2.getStructuringElement(cv2.MORPH_RECT, (1, L)))
+    wallish = ((horiz > 0) | (vert > 0)) & (dt >= 2.5)
+    n_wall = int(np.count_nonzero(wallish))
+    if n_wall:
+        ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (solid, solid))
+        bw_open = cv2.morphologyEx(bw, cv2.MORPH_OPEN, ker)
+        surv = float(np.count_nonzero(wallish & (bw_open > 0))) / n_wall
+        if surv < 0.92:
+            on = dt[dt > 0]
+            t_rb = max(2, int(round(2.0 * float(np.percentile(on, 99.5)))))
+            if t_rb < T:
+                print(f"⚠ 牆存活率 {surv:.2f} <0.92（T={T} 遭粗塊撐爆）"
+                      f"→ 穩健牆厚 T={t_rb}")
+                T = t_rb
+    return T
+
+
 def run(cfg: Config):
     scale = (25.4 / cfg.dpi) if cfg.dpi else cfg.mm_per_px
     gray, bgr = load_gray(cfg)
@@ -1278,8 +1313,7 @@ def run(cfg: Config):
     bw, nblob = remove_solid_blobs(bw)           # 去掉大實心填充塊(非牆)
 
     # 自動量牆厚 T(最厚的水平/垂直線寬)，再依 T 推導所有 px 參數(空白者才推)
-    dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
-    T = max(2, int(round(2.0 * float(dt.max()))))
+    T = derive_wall_T(bw)
     pick = lambda v, d: (v if v not in (None, 0) else d)
     cfg.solid = pick(cfg.solid, max(3, int(round(0.35 * T))))
     cfg.h_len = pick(cfg.h_len, max(int(round(1.5 * T)), cfg.solid + 2))

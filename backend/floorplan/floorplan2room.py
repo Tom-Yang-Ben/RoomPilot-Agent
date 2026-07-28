@@ -88,8 +88,7 @@ def detect_bw(cfg):
     img_h, img_w = bw.shape[:2]
     bw, _n = fp_bw.remove_solid_blobs(bw)
 
-    dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
-    T = max(2, int(round(2.0 * float(dt.max()))))
+    T = fp_bw.derive_wall_T(bw)                  # 抗離群牆厚（與 fp_bw.run 同式）
     pick = lambda v, d: (v if v not in (None, 0) else d)
     cfg.solid = pick(cfg.solid, max(3, int(round(0.35 * T))))
     cfg.h_len = pick(cfg.h_len, max(int(round(1.5 * T)), cfg.solid + 2))
