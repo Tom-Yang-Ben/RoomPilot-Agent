@@ -602,6 +602,29 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
         r["label_zh"] = ROOM_ZH_EX[r["label"]]
         r["cc_share"] = {k: round(v, 3) for k, v in score.items() if v >= 0.02}
         r["icons_cm2"] = {k: round(v) for k, v in icx.items() if v >= 20}
+        r["_score"] = score                    # 供限額後處理挑次高分，結尾即刪
+    _enforce_singletons(rooms)
+    for r in rooms:
+        del r["_score"]
+
+
+UNIQUE_LABELS = ("living", "kitchen")          # user spec：全戶各最多一間，留面積最大
+
+
+def _enforce_singletons(rooms):
+    """住宅常識約束（user spec）：living/kitchen 全戶各限一間。
+    同類多間只保留面積最大者，其餘降級為自己的次高分房型——限額類
+    不得再選（降級又互撞），次高分 <0.15 照原則標中性「空間」。
+    demoted_from 記錄原判供 JSON 追溯。"""
+    for lab in UNIQUE_LABELS:
+        cand = [r for r in rooms if r["label"] == lab]
+        for r in sorted(cand, key=lambda c: c["area_m2"], reverse=True)[1:]:
+            alt = {k: v for k, v in r["_score"].items()
+                   if k not in UNIQUE_LABELS}
+            alt_lab, alt_val = max(alt.items(), key=lambda kv: kv[1])
+            r["demoted_from"] = lab
+            r["label"] = alt_lab if alt_val >= 0.15 else "room"
+            r["label_zh"] = ROOM_ZH_EX[r["label"]]
 
 
 # ─────────────────────────── 房間方塊 ───────────────────────────
@@ -730,6 +753,7 @@ def write_rooms_json(path, det, rooms, zones, edges, is_color, colorful):
             "reach": bool(r.get("reach", False)),
             "cc_share": r.get("cc_share"), "icons_cm2": r.get("icons_cm2"),
             "symbols": r.get("symbols"), "ocr_text": r.get("ocr_text"),
+            "demoted_from": r.get("demoted_from"),
         } for r in rooms],
         "adjacency": [list(e) for e in edges],
     }
