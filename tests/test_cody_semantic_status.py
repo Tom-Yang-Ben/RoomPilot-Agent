@@ -18,9 +18,9 @@ def test_cody_semantic_room_labeler_reports_fallback_without_assets(tmp_path) ->
     assert status["available"] is False
     assert status["reason"] == "missing_cody_cubicasa_weights_or_cache"
     assert status["model_version"] == "cody_cubicasa_v5"
-    assert status["weights_path"].endswith("training\\model_finetuned_v5.pkl") or status[
-        "weights_path"
-    ].endswith("training/model_finetuned_v5.pkl")
+    assert status["weights_path"].endswith(
+        "backend\\floorplan\\model_finetuned_v5.pkl"
+    ) or status["weights_path"].endswith("backend/floorplan/model_finetuned_v5.pkl")
     assert status["weights_sha256"].startswith("b7a280d2")
     assert status["fallback"] == "django_icon_zone_rules"
     assert status["weights_present"] is False
@@ -75,8 +75,8 @@ def _write_room_mask(path):
 
 
 def test_cody_semantic_weights_existing_file_short_circuits(tmp_path, monkeypatch) -> None:
-    weights = tmp_path / "training" / "model_finetuned_v5.pkl"
-    weights.parent.mkdir()
+    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
+    weights.parent.mkdir(parents=True)
     weights.write_bytes(b"weights")
     monkeypatch.setattr(
         cody_semantic.urllib.request,
@@ -123,7 +123,7 @@ def test_cody_semantic_weights_checksum_mismatch_is_rejected(tmp_path, monkeypat
 
     result = ensure_cody_semantic_weights(root=tmp_path, env={})
 
-    weights = tmp_path / "training" / "model_finetuned_v5.pkl"
+    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
     assert result["ok"] is False
     assert result["reason"] == "weights_checksum_mismatch"
     assert not weights.exists()
@@ -146,7 +146,7 @@ def test_cody_semantic_weights_download_success(tmp_path, monkeypatch) -> None:
 
     result = ensure_cody_semantic_weights(root=tmp_path, env={})
 
-    weights = tmp_path / "training" / "model_finetuned_v5.pkl"
+    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
     assert result["ok"] is True
     assert result["reason"] == "weights_downloaded"
     assert weights.read_bytes() == payload
@@ -233,8 +233,8 @@ def test_cody_semantic_mask_loader_rejects_shape_mismatch(tmp_path) -> None:
 
 
 def test_cody_semantic_masks_fail_clearly_without_inference_script(tmp_path) -> None:
-    weights = tmp_path / "training" / "model_finetuned_v5.pkl"
-    weights.parent.mkdir()
+    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
+    weights.parent.mkdir(parents=True)
     weights.write_bytes(b"weights")
     image = tmp_path / "uploads" / "plan.png"
     image.parent.mkdir()
@@ -250,11 +250,12 @@ def test_cody_semantic_masks_fail_clearly_without_inference_script(tmp_path) -> 
 
 
 def test_cody_semantic_masks_runner_generates_missing_cache(tmp_path) -> None:
-    weights = tmp_path / "training" / "model_finetuned_v5.pkl"
-    weights.parent.mkdir()
+    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
+    weights.parent.mkdir(parents=True)
     weights.write_bytes(b"weights")
     script = tmp_path / "backend" / "floorplan" / "infer_cubicasa.py"
-    script.parent.mkdir(parents=True)
+    # 權重與推論腳本現在同在 backend/floorplan/，父目錄上一行已建立。
+    script.parent.mkdir(parents=True, exist_ok=True)
     script.write_text("# fake cody inference script\n", encoding="utf-8")
     image = tmp_path / "uploads" / "plan.png"
     image.parent.mkdir()
