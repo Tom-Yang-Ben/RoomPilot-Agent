@@ -10,9 +10,9 @@
 牆縫開口），平面就閉合成一塊塊方塊＝房間，再依規則分類房型。
 
 輸出：
-  chk/room/<名>_room.png   房間疊圖：紅=牆、橘=牆端連線(封口)、綠=窗、房型色塊+房名
-  chk/room/<名>_door.png   門位檢查圖（獨立）：黃框=門位+門寬標註；
-                           連線長度 80~95(單門) 或 160~190(雙開門) cm 才算門
+  temp/chk/room/<名>_room.png  房間疊圖：紅=牆、橘=牆端連線(封口)、綠=窗、房型色塊+房名
+  temp/chk/door/<名>_door.png  門位檢查圖（獨立目錄）：黃框=門位+門寬標註；
+                               連線長度 80~95(單門) 或 160~190(雙開門) cm 才算門
   temp/json/room/<名>_room.json 房間清單（房型/面積/bbox/有無門/辨識證據）＋門位＋比例資訊
 
 比例尺以門寬鐵律校正（refine_scale）：單門 85cm / 雙門 175cm / 牆厚 17.5cm。
@@ -794,7 +794,10 @@ def process(path, out_dir, cfg_bw, cfg_color):
 
     labels, rooms, bridges, zones, edges = build_rooms(det)
     png_out = os.path.join(out_dir, base + "_room.png")
-    door_out = os.path.join(out_dir, base + "_door.png")
+    door_dir = os.path.join(os.path.dirname(out_dir.rstrip("/\\")) or ".",
+                            "door")              # 門位圖獨立目錄（room/ 的兄弟）
+    os.makedirs(door_dir, exist_ok=True)
+    door_out = os.path.join(door_dir, base + "_door.png")
     os.makedirs("temp/json/room", exist_ok=True)
     json_out = os.path.join("temp/json/room", base + "_room.json")
     preview_rooms(det, labels, rooms, bridges, png_out)
@@ -851,7 +854,9 @@ def main():
             print(f"  ✗ 失敗: {e}")
             fail += 1
     print(f"\n批次完成: 成功 {ok} / 分割失敗 {no_room} / 錯誤 {fail}")
-    print(f"  疊圖 → {out_dir}/  (紅牆、橘=牆端連線、黃=門位80~95/160~190cm、房型色塊)")
+    print(f"  疊圖 → {out_dir}/  (紅牆、橘=牆端連線、房型色塊)")
+    print(f"  門位 → {os.path.join(os.path.dirname(out_dir.rstrip('/')), 'door')}/"
+          f"  (黃框=門位80~95/160~190cm)")
     print(f"  JSON → temp/json/room/  (<名>_room.json：房間+門位清單)")
 
 
