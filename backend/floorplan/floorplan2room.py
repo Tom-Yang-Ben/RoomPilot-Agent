@@ -24,10 +24,12 @@
   python floorplan2room.py 目錄 [輸出]  # 批次指定目錄
 """
 import argparse
+import difflib
 import glob
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.error
@@ -253,6 +255,96 @@ def detect_symbols(det):
     return syms
 
 
+# ─────────────────────────── OCR 文字證據（層 5）───────────────────────────
+# 美式極簡線稿無家具符號、正解以文字印在圖上（floor04：DORMITORY/KITCHEN/…），
+# 對 CubiCasa 是 OOD——區分資訊只存在於文字，25 張 own 集再 finetune 也學不到。
+# 文字是作者親口說的答案，權重設在圖示證據(0.5)之上；圖上沒字＝零貢獻，
+# 引擎缺席＝空清單，其他評測集行為與現行完全相同。
+OCR_CONF_MIN = 0.7                     # rapidocr 實測正字信心 0.99+，0.7 已很寬
+OCR_TEXT_W = 1.3                       # 壓過語意滿票+加成(1.12)：floor04 實測 DEPOSIT
+                                       # →living 語意 1.0「自信地錯」，TODO 草案 0.65
+                                       # 壓不過；語意+圖示鐵證聯手(≥1.7)仍可反壓誤讀
+OCR_WORD2LABEL = {
+    "DORMITORY": "bed", "BEDROOM": "bed",
+    "KITCHEN": "kitchen",
+    "BATH": "bath", "BATHROOM": "bath", "WC": "bath", "TOILET": "bath",
+    "LIVING": "living", "LIVINGROOM": "living", "LOUNGE": "living",
+    "DEPOSIT": "storage", "STORAGE": "storage", "CLOSET": "storage",
+    "CIRCULATION": "entry", "HALL": "entry", "HALLWAY": "entry",
+    "ENTRY": "entry",
+    "BALCONY": "outdoor", "TERRACE": "outdoor",
+    "GARAGE": "garage",
+}
+
+_ocr_engine = None                     # 模組級單例：模型載入 ~1s，批次只付一次
+
+
+def _ocr_words(img_path):
+    """RapidOCR 行級辨識 → [(text, conf, cx, cy)]（原圖 px 座標）。
+    引擎未安裝＝空清單並提示一次（OCR 是 semantic 同級 extra，不是硬依賴）。"""
+    global _ocr_engine
+    if _ocr_engine is None:
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+            _ocr_engine = RapidOCR()
+        except ImportError:
+            print("⚠ rapidocr-onnxruntime 未安裝 → OCR 文字證據層停用")
+            _ocr_engine = False
+    if _ocr_engine is False:
+        return []
+    result, _elapse = _ocr_engine(img_path)
+    if not result:
+        return []
+    return [(text, float(conf),
+             sum(p[0] for p in box) / len(box),
+             sum(p[1] for p in box) / len(box))
+            for box, text, conf in result]
+
+
+def ocr_room_label(text):
+    """標注詞 → 房型 key；None＝非房型詞（尺寸/圖名等雜訊）。
+    三段比對：正規化後精確 → 片語含鍵（MASTER BEDROOM/LIVINGROOM2）→
+    模糊比對容 OCR 錯字（BATHR0OM→BATHROOM）。片語/模糊只認 ≥4 字鍵，
+    WC 這種短鍵僅精確命中，避免雜訊誤收。"""
+    t = re.sub(r"[^A-Z]", "", text.upper())
+    if len(t) < 2:
+        return None
+    if t in OCR_WORD2LABEL:
+        return OCR_WORD2LABEL[t]
+    hits = [k for k in OCR_WORD2LABEL if len(k) >= 4 and k in t]
+    if hits:
+        return OCR_WORD2LABEL[max(hits, key=len)]
+    close = difflib.get_close_matches(
+        t, [k for k in OCR_WORD2LABEL if len(k) >= 4], n=1, cutoff=0.8)
+    return OCR_WORD2LABEL[close[0]] if close else None
+
+
+def detect_room_text(img_path, dst_w=None, dst_h=None):
+    """OCR 文字證據（與 detect_symbols 平行的第 5 層）：
+    圖上印的房型文字 → [(label, cx, cy, raw_text)]。
+    座標依 dst_w/dst_h 縮放到分析圖空間（彩圖管線可能放大 2 倍）。
+    限制：OCR 讀原始檔，deskew=true 轉正後座標會錯位（預設 false 不受影響）。"""
+    words = _ocr_words(img_path)
+    if not words:
+        return []
+    sx = sy = 1.0
+    if dst_w and dst_h:
+        img = cv2.imread(img_path)
+        if img is None:                    # 拿不到原圖尺寸＝縮放未知，寧缺勿錯位
+            print("⚠ OCR 原圖尺寸讀取失敗 → 本張文字證據放棄")
+            return []
+        h, w = img.shape[:2]
+        sx, sy = dst_w / float(w), dst_h / float(h)
+    out = []
+    for text, conf, cx, cy in words:
+        if conf < OCR_CONF_MIN:
+            continue
+        lab = ocr_room_label(text)
+        if lab:
+            out.append((lab, cx * sx, cy * sy, text))
+    return out
+
+
 # ─────────────────────────── 語意辨識房型 ───────────────────────────
 # 兩個預設路徑都以模組自身位置推導，不吃 cwd——本檔既被當腳本直接執行（cwd 可能是
 # backend/floorplan/），也可能被伺服器端 import（cwd 由伺服器決定）。與 main 的 20cfd21 同步。
@@ -449,9 +541,12 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
                for k, v in CC_ICON.items()}       # 圖示絕對面積(cm²)
         score = {lab: votes[cls] for cls, lab in CC_ROOM_LABEL.items()}
         typed = sum(score.values())               # 相對多數票（層 2）
+        # 弱票不放大：top 票 <0.35 代表模型自己也沒把握（floor04 living 0.275
+        # 弱票曾被放大到蓋過一切），加成只留給有把握的相對多數
         if typed >= 0.05:
             top = max(score, key=score.get)
-            score[top] += 0.12 * (score[top] / typed)
+            if score[top] >= 0.35:
+                score[top] += 0.12 * (score[top] / typed)
         if icx["toilet"] >= 150 or icx["bathtub"] >= 500:   # 圖示證據（層 3）
             score["bath"] += 0.5
         if icx["sink"] >= 150 and icx["toilet"] >= 100:
@@ -489,6 +584,19 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
         if n["sinkicon"] and not open_living:        # 模板：水槽（保守權重）
             score["kitchen"] += 0.15
         r["symbols"] = {k: v for k, v in n.items() if v}
+        # OCR 文字證據（層 5）：字框中心落在這間房 → 該房型加分。
+        # 同房同型多字只加一次（重複字樣不疊權），異型各加（衝突交給總分裁決）
+        txt_hits = {}
+        for lab_t, tx, ty, raw in det.get("texts", ()):
+            iy, ix = int(round(ty)), int(round(tx))
+            if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
+                    and labels[iy, ix] == r["id"]:
+                txt_hits.setdefault(lab_t, []).append(raw)
+        for lab_t in txt_hits:
+            if lab_t in score:             # 防呆：字典日後加了量尺外的房型 key 不炸
+                score[lab_t] += OCR_TEXT_W
+        if txt_hits:
+            r["ocr_text"] = txt_hits
         lab, val = max(score.items(), key=lambda kv: kv[1])
         r["label"] = lab if val >= 0.15 else "room"
         r["label_zh"] = ROOM_ZH_EX[r["label"]]
@@ -621,7 +729,7 @@ def write_rooms_json(path, det, rooms, zones, edges, is_color, colorful):
             "aspect": r["aspect"], "has_door": bool(r.get("has_door", False)),
             "reach": bool(r.get("reach", False)),
             "cc_share": r.get("cc_share"), "icons_cm2": r.get("icons_cm2"),
-            "symbols": r.get("symbols"),
+            "symbols": r.get("symbols"), "ocr_text": r.get("ocr_text"),
         } for r in rooms],
         "adjacency": [list(e) for e in edges],
     }
@@ -645,6 +753,11 @@ def process(path, out_dir, cfg_bw, cfg_color):
     with open(path, "rb") as f:                  # 快取來源驗證用（cc_cache_valid）
         det["src_sha256"] = hashlib.sha256(f.read()).hexdigest()
     det["symbols"] = detect_symbols(det)         # 古典家具符號（補模型盲區）
+    if not is_color and cfg_bw.deskew:           # OCR 讀原始檔，轉正後座標對不上分析圖
+        print("⚠ deskew 開啟 → OCR 文字證據層停用（座標無法對齊）")
+        det["texts"] = []
+    else:
+        det["texts"] = detect_room_text(path, det["img_w"], det["img_h"])  # OCR 文字證據（層 5）
 
     labels, rooms, bridges, zones, edges = build_rooms(det)
     png_out = os.path.join(out_dir, base + "_room.png")
