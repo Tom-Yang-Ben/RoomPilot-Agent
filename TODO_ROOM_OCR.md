@@ -2,6 +2,12 @@
 
 > 2026-07-28 於 cody 機調查後立項。目標機器：任一台（OCR 走 CPU，免 GPU、免重訓）。
 > 起因：floor04.png 七間房被判成 客廳×5／玄關×2，使用者質疑辨識品質。
+>
+> **✅ 2026-07-28 已完成**（feat/room-ocr-evidence，同機當日實作）。結果：
+> own_dataset 25 層 gt-seg 具名 106/164=64.6% → **117/164=71.3%，零倒退**
+> （floor04 1/6→6/6；floor01/02/03/07/08 連帶提升）；端對端切割前後
+> 完全一致（68.3%／IoU 0.893），配對房型正確 60.2%→65.7%；
+> 窗 P98/R96、門 84/86 不動。實作備註見文末「實作結果」。
 
 ## 調查結論（已驗證，換機不必重查）
 
@@ -24,10 +30,11 @@
 
 ### 實作項目
 
-- [ ] **環境**：裝 OCR。首選 `apt install tesseract-ocr` + `pip pytesseract`
+- [x] **環境**：裝 OCR。首選 `apt install tesseract-ocr` + `pip pytesseract`
       （乾淨印刷英文足夠、最輕）；不想動系統套件則 `rapidocr-onnxruntime`（純 pip、
       CPU、順便吃中文標注）。裝哪套記得進 requirements.txt 註明（semantic extra 同級）。
-- [ ] **OCR 證據函式**（`backend/floorplan/floorplan2room.py` 新增，與 `detect_symbols` 平行）：
+      → **採 rapidocr-onnxruntime**（cody 機 sudo 需密碼，apt 不可用；floor04 六字全中 conf 0.99+）
+- [x] **OCR 證據函式**（`backend/floorplan/floorplan2room.py` 新增，與 `detect_symbols` 平行）：
   - 對原灰階圖（或細線層）做 word-level OCR，取字框＋信心值，信心門檻過濾。
   - 字典映射（含模糊比對容 OCR 錯字）：
     `DORMITORY/BEDROOM→bed`、`KITCHEN→kitchen`、`BATH/BATHROOM/WC/TOILET→bath`、
@@ -35,21 +42,30 @@
     `CIRCULATION/HALL/HALLWAY/ENTRY→entry`、`BALCONY/TERRACE→outdoor`、`GARAGE→garage`。
   - **注意**：floor04 的 ground truth 把 DEPOSIT 標成 `Space Bedroom`（model.svg 內
     Bedroom×2）——DEPOSIT 的映射要跟標注慣例對齊，動手前先跟標注者確認一次。
-- [ ] **計分整合**（`classify_rooms_cc`）：字框中心落在哪個房間（`labels` 查表）就給
+    → **已確認（2026-07-28）：DEPOSIT→storage，GT 誤植一併修正**（model.svg g33）
+- [x] **計分整合**（`classify_rooms_cc`）：字框中心落在哪個房間（`labels` 查表）就給
       該房型加分；權重設在圖示證據之上（文字是作者親口說的答案，建議 +0.6~0.7 級）。
       圖上沒字＝零貢獻，行為與現行完全相同，不影響其他評測集。
-- [ ] **順手修弱票放大器**：`classify_rooms_cc` 相對多數加成無下限，
-      living 0.275 弱票也被放大到蓋過一切——加門檻（如 top 票 < 0.35 不加成），
-      改動要單獨評測確認渲染圖不退步。
-- [ ] **JSON/疊圖透明化**：`_room.json` 每房加 `ocr_text` 證據欄（比照 `cc_share`／
-      `icons_cm2`），方便驗收時看見文字層有無命中。
+      → **權重定 1.3 而非 0.6~0.7**：floor04 實測 DEPOSIT→living 語意滿票 1.0
+      「自信地錯」，0.65 壓不過語意+加成 1.12；語意+圖示鐵證聯手(≥1.7)仍可反壓 OCR 誤讀
+- [x] **順手修弱票放大器**：top 票 < 0.35 不加成；own_dataset 25 層評測零倒退確認
+- [x] **JSON/疊圖透明化**：`_room.json` 每房加 `ocr_text` 欄（{房型: [原文字]}，
+      無命中時為 null——main 端若有嚴格 schema 需知悉此 additive 欄位）
 
 ### 驗證（收工條件）
 
-- [ ] `testdata/Identify_ans/own_dataset/` 25 層逐層比對 `model.svg` 的 Space 標注，
-      房型準確率出前後對照表；floor04 預期 5/7 錯 → 至少 6/7 對。
-- [ ] 無文字的圖（渲染圖、一般線稿）成績零退步（OCR 層零觸發）。
-- [ ] 窗/門既有基準不動：gray 38 張 P98/R96、door 84/86（見 eval_windows.py / eval_doors.py）。
+- [x] own_dataset 25 層前後對照：gt-seg 具名 64.6%→71.3% 零倒退
+      （報表 training/json/eval_rooms/report_own_gtseg_own_dataset_{baseline,after}.json，
+      評測入口 `eval_rooms_cc.py --own-dir testdata/Identify_ans/own_dataset [--gt-seg]` 本輪新增）；
+      floor04 端對端 6/7（唯一錯的是被切成上下兩半的走道上半、無文字可救；gt-seg 6/6）
+- [x] 無文字的圖成績零退步：25 層中僅含文字層變動且全為改善；端對端切割前後逐字節一致
+- [x] 窗/門基準不動：gray 45 張 P98/R96、door 84/86（chk 重生後實測）
+
+### 已知限制（follow-up）
+
+- `deskew=true` 時 OCR 座標對不上分析圖 → 已加防護自動停用（預設 false 不受影響）
+- OCR 單例非執行緒安全：批次/腳本單執行緒沒問題，伺服器端多執行緒 import 需加鎖或 warm-up
+- 退回面積規則路徑（無語意快取）不採 OCR 證據；中文標注詞彙未進字典（rapidocr 可讀，待需求）
 
 ### 流程約定
 
