@@ -38,15 +38,19 @@ baseline; `door_001` and `door_007` are the two known hard samples, where a
 multi-line door leaf is geometrically identical to a window symbol. Do not
 tighten the filter until those two are handled deliberately.
 
-### Relationship to `door/`
+### Retirement of `door/` (2026-07-28)
 
-The older `door/` directory (19 files, `door_typeXX_NNN.png`) is a strict
-subset of `Asset/door` — all 19 blobs appear byte-identical inside the 86.
-The two directories coexist for now: `door/` keeps existing scripts and
-snapshots working, `Asset/door` is the current evaluation set. Retiring
-`door/` is the recognition owner's call, and must happen together with the
-default path in `backend/floorplan/eval_doors.py`, which still points at
-`testdata/door`.
+The older `door/` directory (19 files, `door_typeXX_NNN.png`) has been removed;
+`Asset/door` (86 files, `door_001`–`door_086`) is now the only door evaluation
+set, and `backend/floorplan/eval_doors.py` defaults to it.
+
+The retirement was requested by the recognition owner in
+`docs/CODY_MAIN_SYNC_TODO.md` item 6, and verified lossless before deletion:
+none of the 19 old blobs is byte-identical to any of the 86 (an earlier note
+here claimed otherwise), because the old set is RGB and the new set is
+grayscale. Converting each old image to grayscale makes all 19 pixel-identical
+to a same-sized member of `Asset/door`, so the old set is a true subset in
+content and nothing was lost.
 
 Nothing else under `testdata/` was touched by this import. In particular
 `png/`, `pngans/`, `chk/`, `dxf/`, and `pic/` stay on their main-branch
