@@ -645,15 +645,18 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
     合併條件（全部成立）：橋長 40~160cm（>160 為雙開門或缺牆補償——
     floor04 廚房左牆未偵測、215cm 長橋在補牆，合併會讓廚房吃掉走道）、
     橋位無門弧證據、兩側各為一間房且沿橋軸 bbox 寬皆 ≤1.15×橋長。
-    labels 就地改，回傳新 rooms。"""
+    labels 就地改，回傳 (新 rooms, 未合併的 bridges)——合併掉的橋已
+    失效，不該再畫進疊圖，恰為門尺寸者也不該再產生假門位。"""
     cm, T = det["cm"], det["T"]
     doors = det.get("doors") or ()
     by_id = {r["id"]: r for r in rooms}
     h, w = labels.shape
     merged = False
+    kept = []
     for horiz, g0, g1, b0, b1 in bridges:
         gap = g1 - g0
         if not 40.0 <= gap * cm <= 160.0:
+            kept.append((horiz, g0, g1, b0, b1))
             continue                             # 雙開門/缺牆補償 → 照舊隔房
         mx, my = ((g0 + g1) / 2.0, (b0 + b1) / 2.0) if horiz \
             else ((b0 + b1) / 2.0, (g0 + g1) / 2.0)
@@ -665,6 +668,7 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
             return (g0 - 0.3 * gap <= u <= g1 + 0.3 * gap
                     and band_lo - 1.2 * gap <= v <= band_hi + 1.2 * gap)
         if any(_arc_at_bridge(d) for d in doors):
+            kept.append((horiz, g0, g1, b0, b1))
             continue                             # 有門弧 → 是門
         # 橋兩側取樣（跳過封口線附近的牆帶，往外找到第一個房間像素）
         side = [0, 0]
@@ -681,15 +685,22 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
                     break
         a, b = side
         if not (a > 0 and b > 0 and a != b):
+            kept.append((horiz, g0, g1, b0, b1))
             continue
         ra, rb = by_id.get(a), by_id.get(b)
         if ra is None or rb is None:
+            kept.append((horiz, g0, g1, b0, b1))
             continue
         ext = (lambda r: r["bbox"][2] - r["bbox"][0]) if horiz \
             else (lambda r: r["bbox"][3] - r["bbox"][1])
         if ext(ra) > 1.15 * gap or ext(rb) > 1.15 * gap:
+            kept.append((horiz, g0, g1, b0, b1))
             continue                             # 有一側遠寬於開口 → 是真門
         labels[labels == b] = a                  # 後續橋取樣自動吃到合併結果
+        y0, y1 = (int(b0), int(b1) + 1) if horiz else (int(g0), int(g1) + 1)
+        x0, x1 = (int(g0), int(g1) + 1) if horiz else (int(b0), int(b1) + 1)
+        band = labels[max(0, y0):y1, max(0, x0):x1]
+        band[band == 0] = a                      # 封口帶填回房間，疊圖不留白縫
         ra["bbox"] = (min(ra["bbox"][0], rb["bbox"][0]),
                       min(ra["bbox"][1], rb["bbox"][1]),
                       max(ra["bbox"][2], rb["bbox"][2]),
@@ -697,7 +708,7 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
         del by_id[b]
         merged = True
     if not merged:
-        return rooms
+        return rooms, bridges
     out = []
     for r in rooms:                              # 依合併後 labels 重算統計
         m = labels == r["id"]
@@ -712,7 +723,7 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
                  cx=float(xs.mean()), cy=float(ys.mean()),
                  aspect=round(max(w_, h_) / max(1.0, min(w_, h_)), 2))
         out.append(r)
-    return out
+    return out, kept
 
 
 
@@ -747,13 +758,17 @@ def build_rooms(det):
 
     # 牆端連線（「紅色線端點連到另一端」）：40~260cm 的牆縫開口全封
     bridges = fp_c._wall_gaps(rects, wins, T, cm, 40.0, 260.0)
-    zones = [_bridge_zone(*b) for b in bridges
-             if any(lo <= (b[2] - b[1]) * cm <= hi for lo, hi in DOOR_RANGES_CM)]
     labels, rooms, outside = fp_c.segment_rooms(rects, wins, doors,
                                                 img_w, img_h, T, T_out, cm)
     if labels is None or not rooms:
+        zones = [_bridge_zone(*b) for b in bridges
+                 if any(lo <= (b[2] - b[1]) * cm <= hi
+                        for lo, hi in DOOR_RANGES_CM)]
         return None, [], bridges, zones, []
-    rooms = _merge_nondoor_bridges(labels, rooms, bridges, det)  # 非門橋不隔房
+    # 走道橫斷橋合併後即失效：疊圖不再畫、恰為門尺寸者的假門位一併移除
+    rooms, bridges = _merge_nondoor_bridges(labels, rooms, bridges, det)
+    zones = [_bridge_zone(*b) for b in bridges
+             if any(lo <= (b[2] - b[1]) * cm <= hi for lo, hi in DOOR_RANGES_CM)]
     cc_f = det.get("cc_file")
     if cc_f and cc_cache_valid(cc_f, img_w, img_h,
                                det.get("src_sha256")):
