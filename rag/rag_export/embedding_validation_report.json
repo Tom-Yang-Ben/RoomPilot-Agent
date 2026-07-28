@@ -1,0 +1,17 @@
+{
+  "total_source_items": 9349,
+  "total_embedding_records": 9349,
+  "unique_furniture_ids": 9349,
+  "duplicate_furniture_ids": 0,
+  "missing_furniture_ids": 0,
+  "invalid_vector_count": 0,
+  "null_vector_count": 0,
+  "dimension_distribution": {
+    "1024": 9349
+  },
+  "model_distribution": {
+    "BAAI/bge-m3": 9349
+  },
+  "coverage_percent": 100.0,
+  "generated_at": "2026-07-28T02:17:09+08:00"
+}

@@ -39,7 +39,17 @@ ROOM_ZH = {
 
 @lru_cache(maxsize=1)
 def render_index() -> dict:
-    """id → 正面渲染圖路徑。"""
+    """id → 正面渲染圖路徑。
+
+    索引檔不在版控內（每行都是本機絕對路徑），且渲染圖有 2 GB 也不隨 repo 散布，
+    所以新環境很可能沒有這個檔。缺檔時回空 dict 讓卡片無圖即可——
+    跟 thumb_data_uri() 對缺圖的處理一致，不該讓整個查詢掛掉。
+    重建方式：.venv-rag/bin/python vlm_annotation/build_render_meta_full.py
+    """
+    if not RENDER_META.exists():
+        print(f"[app] 找不到 {RENDER_META.name}，卡片將不顯示縮圖", flush=True)
+        return {}
+
     index = {}
     with RENDER_META.open(encoding="utf-8") as fh:
         for line in fh:
