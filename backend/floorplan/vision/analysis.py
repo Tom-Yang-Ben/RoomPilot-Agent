@@ -14,7 +14,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from ..cody_adapter import recognize_cody_geometry
+from ..cody_adapter import recognize_cody_geometry, recognize_cody_rooms
 from .cody_semantic import cody_semantic_room_labeler_status
 from .evaluation import summarize_room_polygons
 from .geometry import transform_confirmed_geometry
@@ -44,6 +44,124 @@ ROOM_LABELS = (
     ("balcony", ("陽台", "工作陽台")),
     ("workspace", ("書房", "工作室")),
 )
+
+# cody floorplan2room 的房型詞彙 → 上面 ROOM_LABELS 的主線契約詞彙。
+# 兩邊字彙不同（cody 用 bed/bath/living，主線下游吃 bedroom/bathroom/living_room），
+# 不對照就會把非契約值寫進 rooms[].type。
+# "room" 是 cody 對「證據太弱」的中性標記（ROOM_ZH 標「空間」），映射為 None
+# 代表不採用——它不該蓋掉 OCR 或圖示規則已經給出的判斷。
+CODY_ROOM_TYPE_MAP: dict[str, str | None] = {
+    "living": "living_room",
+    "kitchen": "kitchen",
+    "bed": "bedroom",
+    "bath": "bathroom",
+    "balcony": "balcony",
+    "room": None,
+}
+
+
+def _room_centre_px(
+    room: Mapping[str, Any],
+    *,
+    plan_bbox_px: list[float] | None,
+    m_per_px: float | None = None,
+    cm_per_px: float | None = None,
+) -> tuple[float, float] | None:
+    """取房間在原圖像素空間的中心點。
+
+    三種房間各帶不同座標：OCR 標籤房間有 `bbox_px`（原圖像素）；
+    `infer_rooms_from_walls` 推導的房間只有多邊形，且單位視管線階段而定——
+    `analyze_floorplan_image` 內部還是公尺的 `polygon_m`，序列化成公分契約後
+    才變 `polygon_cm`。兩者都支援，避免呼叫時機一變就靜默對不上。
+
+    多邊形是 plan 座標（原點在 plan_bbox 左下、y 朝上），要靠 plan_bbox_px
+    與對應比例尺才換得回像素。
+    """
+    bbox = room.get("bbox_px")
+    if isinstance(bbox, (list, tuple)) and len(bbox) == 4:
+        return (float(bbox[0]) + float(bbox[2])) / 2, (float(bbox[1]) + float(bbox[3])) / 2
+
+    if not plan_bbox_px:
+        return None
+    for key, unit_per_px in (("polygon_m", m_per_px), ("polygon_cm", cm_per_px)):
+        polygon = room.get(key)
+        if not polygon or not unit_per_px:
+            continue
+        points = [
+            (float(p["x"]), float(p["y"]))
+            for p in polygon
+            if isinstance(p, Mapping) and "x" in p and "y" in p
+        ]
+        if not points:
+            continue
+        centre_x = sum(x for x, _ in points) / len(points)
+        centre_y = sum(y for _, y in points) / len(points)
+        left, _top, _right, bottom = plan_bbox_px
+        return left + centre_x / unit_per_px, bottom - centre_y / unit_per_px
+    return None
+
+
+def apply_floorplan2room_labels(
+    rooms: list[dict[str, Any]],
+    semantics: Mapping[str, Any] | None,
+    *,
+    image_width: int,
+    image_height: int,
+    plan_bbox_px: list[float] | None = None,
+    m_per_px: float | None = None,
+    cm_per_px: float | None = None,
+) -> int:
+    """把 cody floorplan2room 的房型語意套到 rooms[]，回傳實際套用筆數。
+
+    `docs/CODY_MAIN_SYNC_TODO.md` 第 2 點要求房型改由語意管線提供，而非
+    django_icon_zone_rules。配對方式是像素空間包含判定：rooms[] 的 bbox 中心
+    落在哪個語意方塊裡就採用該方塊的房型。
+
+    語意管線的座標以它自己回報的 image 尺寸為準——彩色管線會把圖放大兩倍，
+    所以 bbox 必須換算回原圖像素才對得上。
+
+    覆蓋權限看語意來源：`cubicasa_semantic` 是 TODO 指定的房型來源，可以蓋掉
+    圖示規則的判斷；`area_rules` 是 cody 自己在缺語意快取時的降級，實測比主線的
+    furniture_icon_inference 差（floor04 的 kitchen 與 storage 會被它改掉），
+    因此只准填補主線判不出房型的空位。
+    """
+    if not rooms or not semantics or not semantics.get("rooms"):
+        return 0
+
+    may_overwrite = semantics.get("room_label_source") == "cubicasa_semantic"
+    source_size = semantics.get("image") or {}
+    scale_x = image_width / max(1.0, float(source_size.get("w") or image_width))
+    scale_y = image_height / max(1.0, float(source_size.get("h") or image_height))
+
+    applied = 0
+    for room in rooms:
+        if not may_overwrite and room.get("type") not in (None, "", "default"):
+            continue
+        centre = _room_centre_px(
+            room, plan_bbox_px=plan_bbox_px, m_per_px=m_per_px, cm_per_px=cm_per_px
+        )
+        if centre is None:
+            continue
+        centre_x, centre_y = centre
+        for candidate in semantics["rooms"]:
+            room_type = CODY_ROOM_TYPE_MAP.get(candidate.get("label"))
+            if room_type is None:
+                continue
+            box = candidate.get("bbox")
+            if not isinstance(box, (list, tuple)) or len(box) != 4:
+                continue
+            left, top = float(box[0]) * scale_x, float(box[1]) * scale_y
+            right, bottom = float(box[2]) * scale_x, float(box[3]) * scale_y
+            if not (left <= centre_x <= right and top <= centre_y <= bottom):
+                continue
+            room["type"] = room_type
+            room["label"] = candidate.get("label_zh") or room["label"]
+            room["source"] = "cody_floorplan2room"
+            if candidate.get("area_m2"):
+                room["area_m2"] = candidate["area_m2"]
+            applied += 1
+            break
+    return applied
 
 
 def _number_m(text: str) -> float | None:
@@ -269,6 +387,7 @@ def analyze_floorplan_image(
     scale = None
     geometry = {"walls": [], "doors": [], "windows": []}
     cody_diagnostics = None
+    cody_room_semantics: dict[str, Any] | None = None
     if geometry_observations and evidence and evidence["pixel_distance"] > 0:
         scale = {
             "distance_m": round(evidence["distance_m"], 3),
@@ -307,6 +426,9 @@ def analyze_floorplan_image(
         scale = cody_result["scale"]
         scale.pop("cody_scale", None)
         cody_diagnostics = cody_result["diagnostics"]
+        # CODY_MAIN_SYNC_TODO 第 2 點：房型改由 floorplan2room 語意管線提供。
+        # 回 None（無法辨識）時下方仍走 django_icon_zone_rules，行為向下相容。
+        cody_room_semantics = recognize_cody_rooms(image_bytes)
         if evidence and calibration_hint is None:
             scale["distance_m"] = round(evidence["distance_m"], 3)
             scale["pixel_distance"] = round(evidence["pixel_distance"], 3)
@@ -392,6 +514,17 @@ def analyze_floorplan_image(
             m_per_px=float(scale["m_per_px"]),
         )
 
+    # 語意管線的判斷優先於圖示規則，所以放在 apply_icon_room_labels 之後覆蓋。
+    semantic_label_count = apply_floorplan2room_labels(
+        rooms,
+        cody_room_semantics,
+        image_width=int(gray.shape[1]),
+        image_height=int(gray.shape[0]),
+        plan_bbox_px=geometry.get("plan_bbox_px"),
+        m_per_px=float(scale["m_per_px"]) if scale and scale.get("m_per_px") else None,
+        cm_per_px=float(scale["cm_per_px"]) if scale and scale.get("cm_per_px") else None,
+    )
+
     result = {
         "schema_version": "1.0",
         "filename": filename,
@@ -407,6 +540,8 @@ def analyze_floorplan_image(
         "plan_bbox_px": geometry.get("plan_bbox_px"),
         "rooms": rooms,
         "room_icon_evidence": room_icon_evidence,
+        "cody_room_semantics": cody_room_semantics,
+        "cody_room_semantic_labels_applied": semantic_label_count,
         "cody_semantic_room_labeler": cody_semantic_room_labeler_status(),
         "evidence": [evidence] if evidence else [],
         "cody_diagnostics": cody_diagnostics,
