@@ -839,9 +839,12 @@ def build_rooms(det):
 
 
 def preview_rooms(det, labels, rooms, bridges, path):
-    """房間疊圖：房間依房型上色、紅=牆、橘=牆端連線(封口)、綠=窗、房名標字。
-    門位黃框另出 _door.png（user spec：同一張太亂）。"""
+    """房間疊圖：房間依房型上色、紅=牆、綠=窗、房名標字。
+    牆端連線（封口）分兩種畫法（user 回饋：無門的縫畫橘色會被讀成
+    「多切了一條」）——有門證據的開口＝橘實線；無門證據的縫＝當牆
+    封死，畫暗紅與牆同色。門位黃框另出 _door.png（同一張太亂）。"""
     bgr = det["bgr"]
+    cm = det["cm"]
     vis = bgr.copy()
     fill = vis.copy()
     if rooms and labels is not None:
@@ -851,11 +854,14 @@ def preview_rooms(det, labels, rooms, bridges, path):
     for x0, y0, x1, y1 in det["rects"]:
         cv2.rectangle(fill, (int(x0), int(y0)), (int(x1), int(y1)), (0, 0, 255), -1)
     vis = cv2.addWeighted(fill, 0.45, vis, 0.55, 0)   # 半透明：紅牆 + 房型色塊
-    for horiz, g0, g1, b0, b1 in bridges:             # 橘實線 = 牆端點連線
+    for horiz, g0, g1, b0, b1 in bridges:
+        is_door = any(lo <= (g1 - g0) * cm <= hi for lo, hi in DOOR_RANGES_CM) \
+            and _bridge_has_door_ink(det, horiz, g0, g1, b0, b1)
+        color = (0, 140, 255) if is_door else (0, 0, 139)   # 橘=門開口、暗紅=封牆
         m = (b0 + b1) / 2.0
         p1 = (int(g0), int(m)) if horiz else (int(m), int(g0))
         p2 = (int(g1), int(m)) if horiz else (int(m), int(g1))
-        cv2.line(vis, p1, p2, (0, 140, 255), max(2, int(det["T"] // 2)))
+        cv2.line(vis, p1, p2, color, max(2, int(det["T"] // 2)))
     for _o, x0, y0, x1, y1 in det["wins"]:
         cv2.rectangle(vis, (int(x0), int(y0)), (int(x1), int(y1)), (0, 170, 0), 2)
     if rooms:
