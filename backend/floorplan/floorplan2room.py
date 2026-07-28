@@ -254,8 +254,13 @@ def detect_symbols(det):
 
 
 # ─────────────────────────── 語意辨識房型 ───────────────────────────
-CC_CACHE_DIR = os.environ.get("CC_CACHE_DIR", "cubicasa/room")  # CubiCasa 語意快取（含 room/icon 通道）
-CC_WEIGHTS = os.environ.get("CC_WEIGHTS", "backend/floorplan/model_finetuned_v5.pkl")  # 預設 v5 微調權重（與 main 統一放 backend/floorplan/；own 域主尺勝出 2026-07-25）；環境變數可換權重 A/B 驗收
+# 兩個預設路徑都以模組自身位置推導，不吃 cwd——本檔既被當腳本直接執行（cwd 可能是
+# backend/floorplan/），也被 cody_adapter 在 HTTP 請求路徑上 import（cwd 由伺服器決定）。
+# 相對字串在這兩種情境下會各自疊錯層，權重與快取同時查不到，語意辨識靜默退回面積規則。
+CC_CACHE_DIR = os.environ.get(
+    "CC_CACHE_DIR", os.path.join(_ROOT, "cubicasa", "room"))  # CubiCasa 語意快取（含 room/icon 通道）；`cubicasa/room/` 是跨分支契約路徑，錨在 repo 根不搬進套件目錄
+CC_WEIGHTS = os.environ.get(
+    "CC_WEIGHTS", os.path.join(_PKG_DIR, "model_finetuned_v5.pkl"))  # 預設 v5 微調權重（與 main 統一放 backend/floorplan/；own 域主尺勝出 2026-07-25）；環境變數可換權重 A/B 驗收
 # 權重 200M 超 GitHub 100MB 限制不進版控，掛在 Release 上，缺檔時自動下載（部署端 clone 即可用）。
 # repo 目前 private：直鏈 404，須以 token 走 asset API 換 S3 簽名鏈（部署端本就有 clone 用 token，
 # 設 GITHUB_TOKEN / GH_TOKEN 即可）；repo 若轉 public，直鏈自動生效、零設定
@@ -346,6 +351,7 @@ def _ensure_cc_weights():
         print("⚠ 權重下載無可用管道：私有 repo 需 GITHUB_TOKEN / GH_TOKEN 或 git 憑證")
         return False
     print(f"權重下載 : {CC_WEIGHTS_URL}（約 200MB，僅首次）")
+    os.makedirs(os.path.dirname(CC_WEIGHTS) or ".", exist_ok=True)  # 先建目錄，否則 200MB 抓完才在寫檔時失敗（vision/cody_semantic.py 的同功能實作早有此步）
     tmp = CC_WEIGHTS + ".part"
     try:
         urllib.request.urlretrieve(url, tmp)
