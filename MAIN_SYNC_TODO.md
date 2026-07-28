@@ -151,6 +151,22 @@ main 剩最後一步：`analysis.py` 呼叫處改為
 `recognize_cody_rooms(image_bytes, cache_key=Path(filename).stem)`
 （`analyze_floorplan_image` 本來就收 `filename`）。
 
+### 裁定 3：語意房型一律只填空、不覆蓋主線判斷
+
+快取接通後 floor04 現形：CubiCasa 把七間投成 living×5/entry×2、信心 0.9–1.0，
+而圖面文字標籤（DORMITORY/KITCHEN/DEPOSIT/…）證明主線圖示推論全對——模型在
+美式線稿上會「自信地錯」，信心值不能當覆蓋依據。`apply_floorplan2room_labels`
+改為不分來源一律只填 `type` 為空/default 的房間；main 的兩條覆蓋測試
+（`test_labels_override_icon_fallback_*`、`test_true_semantics_may_overwrite_*`）
+依此裁定反轉。
+
+### 新增第 8 點（選配）：`CODY_LIVE_SEMANTIC=1` 就地推論
+
+真實流量的上傳圖不會命中既有快取，語意要生效得現推。設 `CODY_LIVE_SEMANTIC=1`
+後 `recognize_cody_rooms` 在快取缺失／來源不符時就地跑 CubiCasa 推論補快取
+（阻塞請求約一分鐘，CPU；同一張圖只推一次）。與契約鍵衝突（同名不同圖）時
+自動改用內容雜湊鍵，契約檔不被覆寫。預設關閉，行為與現行完全相同。
+
 ### 其餘交付事項的回覆
 
 - **detect_doors 元組欄位**：cody 端定名為 `(cx, cy, width, score, ux, vy)`（現狀），
