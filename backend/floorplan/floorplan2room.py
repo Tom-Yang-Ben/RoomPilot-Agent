@@ -254,8 +254,12 @@ def detect_symbols(det):
 
 
 # ─────────────────────────── 語意辨識房型 ───────────────────────────
-CC_CACHE_DIR = os.environ.get("CC_CACHE_DIR", "cubicasa/room")  # CubiCasa 語意快取（含 room/icon 通道）
-CC_WEIGHTS = os.environ.get("CC_WEIGHTS", "backend/floorplan/model_finetuned_v5.pkl")  # 預設 v5 微調權重（與 main 統一放 backend/floorplan/；own 域主尺勝出 2026-07-25）；環境變數可換權重 A/B 驗收
+# 兩個預設路徑都以模組自身位置推導，不吃 cwd——本檔既被當腳本直接執行（cwd 可能是
+# backend/floorplan/），也可能被伺服器端 import（cwd 由伺服器決定）。與 main 的 20cfd21 同步。
+CC_CACHE_DIR = os.environ.get(
+    "CC_CACHE_DIR", os.path.join(_ROOT, "cubicasa", "room"))  # CubiCasa 語意快取（含 room/icon 通道）；`cubicasa/room/` 是跨分支契約路徑，錨在 repo 根不搬進套件目錄
+CC_WEIGHTS = os.environ.get(
+    "CC_WEIGHTS", os.path.join(_PKG_DIR, "model_finetuned_v5.pkl"))  # 預設 v5 微調權重（與 main 統一放 backend/floorplan/；own 域主尺勝出 2026-07-25）；環境變數可換權重 A/B 驗收
 # 權重 200M 超 GitHub 100MB 限制不進版控，掛在 Release 上，缺檔時自動下載（部署端 clone 即可用）。
 # repo 目前 private：直鏈 404，須以 token 走 asset API 換 S3 簽名鏈（部署端本就有 clone 用 token，
 # 設 GITHUB_TOKEN / GH_TOKEN 即可）；repo 若轉 public，直鏈自動生效、零設定
@@ -285,6 +289,26 @@ def _cc_ok(npz_path):
         return False
     with np.load(npz_path) as z:                   # 舊版快取沒有 room 通道 → 重推
         return "room" in z.files
+
+
+def cc_cache_valid(cc_file, img_w, img_h, src_sha256=None):
+    """語意快取來源驗證。infer_cubicasa 一律以來源圖「原尺寸」輸出遮罩，
+    所以遮罩尺寸 ≠ 分析圖尺寸＝同名不同圖（跨分支同名檔已實際發生：
+    main 的 floor10.png 419×687 vs 本分支遮罩 896×1200），視為快取失效，
+    避免錯圖語意被 classify_rooms_cc 的 resize 靜默吞掉、套出錯房型。
+    彩圖管線可能把圖放大 2 倍——img_w/img_h 收的是管線工作尺寸，
+    故遮罩等於工作尺寸或其一半皆屬同圖。
+    新版快取帶 src_sha256（infer_cubicasa 寫入）；呼叫端有給雜湊且快取有存時，
+    再以內容嚴格比對，擋掉「不同圖恰好同尺寸」的殘餘風險。"""
+    if not _cc_ok(cc_file):
+        return False
+    with np.load(cc_file) as z:
+        mh, mw = z["room"].shape[:2]
+        if (mh, mw) not in ((img_h, img_w), (img_h // 2, img_w // 2)):
+            return False
+        if src_sha256 and "src_sha256" in z.files:
+            return str(z["src_sha256"]) == src_sha256
+    return True
 
 
 def _gh_token():
@@ -346,6 +370,7 @@ def _ensure_cc_weights():
         print("⚠ 權重下載無可用管道：私有 repo 需 GITHUB_TOKEN / GH_TOKEN 或 git 憑證")
         return False
     print(f"權重下載 : {CC_WEIGHTS_URL}（約 200MB，僅首次）")
+    os.makedirs(os.path.dirname(CC_WEIGHTS) or ".", exist_ok=True)  # 先建目錄，否則 200MB 抓完才在寫檔時失敗（與 main 的 20cfd21 同步）
     tmp = CC_WEIGHTS + ".part"
     try:
         urllib.request.urlretrieve(url, tmp)
@@ -366,9 +391,27 @@ def _ensure_cc_weights():
         return False
 
 
+def _cc_stale(img_path):
+    """快取缺失或與來源圖對不上（尺寸／雜湊）＝該重推。
+    遮罩由 infer_cubicasa 以來源圖原尺寸輸出，尺寸不符只可能是同名換圖。"""
+    npz = _cc_path(img_path)
+    if not _cc_ok(npz):
+        return True
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        return False                               # 讀不到圖 → 交給下游報錯，別觸發推論
+    with np.load(npz) as z:
+        if z["room"].shape[:2] != img.shape[:2]:
+            return True
+        if "src_sha256" in z.files:
+            with open(img_path, "rb") as f:
+                return str(z["src_sha256"]) != hashlib.sha256(f.read()).hexdigest()
+    return False
+
+
 def ensure_cc_masks(paths):
-    """缺語意快取的圖先跑 CubiCasa 推論（一次 subprocess 全補，CPU 約 1 分/張）。"""
-    miss = [p for p in paths if not _cc_ok(_cc_path(p))]
+    """缺（或失效）語意快取的圖先跑 CubiCasa 推論（一次 subprocess 全補，CPU 約 1 分/張）。"""
+    miss = [p for p in paths if _cc_stale(p)]
     if not miss:
         return
     if not _ensure_cc_weights():
@@ -492,10 +535,14 @@ def build_rooms(det):
     if labels is None or not rooms:
         return None, [], bridges, zones, []
     cc_f = det.get("cc_file")
-    if cc_f and _cc_ok(cc_f):                    # 辨識式房型（方塊切出來投票命名）
-        classify_rooms_cc(det, labels, rooms, cc_f)
-    else:                                        # 無語意快取才退回面積規則
-        print("⚠ 無語意快取 → 房型退回面積規則")
+    if cc_f and cc_cache_valid(cc_f, img_w, img_h,
+                               det.get("src_sha256")):
+        classify_rooms_cc(det, labels, rooms, cc_f)   # 辨識式房型（方塊切出來投票命名）
+    else:                                        # 無（有效）語意快取才退回面積規則
+        if cc_f and _cc_ok(cc_f):
+            print("⚠ 語意快取來源不符（同名不同圖）→ 視為無快取，房型退回面積規則")
+        else:
+            print("⚠ 無語意快取 → 房型退回面積規則")
         fp_c.classify_rooms(rooms, cm, det["thin"], labels)
     # room_graph 只拿來算 has_door/相鄰圖——黃框依長度規則全畫，不被它篩掉
     edges, _kept = fp_c.room_graph(labels, outside, rooms, zones, rects, wins, T)
@@ -595,6 +642,8 @@ def process(path, out_dir, cfg_bw, cfg_color):
         det = detect_bw(replace(cfg_bw, input=path, output="", preview=None))
     refine_scale(det)                            # 門寬鐵律反推比例尺，修上游系統性偏大
     det["cc_file"] = _cc_path(path)
+    with open(path, "rb") as f:                  # 快取來源驗證用（cc_cache_valid）
+        det["src_sha256"] = hashlib.sha256(f.read()).hexdigest()
     det["symbols"] = detect_symbols(det)         # 古典家具符號（補模型盲區）
 
     labels, rooms, bridges, zones, edges = build_rooms(det)

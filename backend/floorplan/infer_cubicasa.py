@@ -7,10 +7,12 @@
                               7玄關 8欄杆 9儲藏 10車庫 11未定義
   icon  uint8 圖示 argmax：0無 1窗 2門 3衣櫃 4電器 5馬桶 6水槽
                           7桑拿椅 8壁爐 9浴缸 10煙囪
+  src_sha256  來源圖 SHA-256（讀取端 cc_cache_valid 驗證快取歸屬；舊快取無此欄）
 用法: python infer_cubicasa.py <weights.pkl> <out_dir> <img1> [img2 ...]
 """
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "training/CubiCasa5k"))
+import sys, os, hashlib
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo 根（本檔在 backend/floorplan/）
+sys.path.insert(0, os.path.join(_ROOT, "training/CubiCasa5k"))
 import cv2
 import numpy as np
 import torch
@@ -28,7 +30,7 @@ ICON0 = 33
 
 os.makedirs(OUT, exist_ok=True)
 _cwd = os.getcwd()                # floortrans 以相對路徑載入 floortrans/models/model_1427.pth
-os.chdir(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "training/CubiCasa5k"))
+os.chdir(os.path.join(_ROOT, "training/CubiCasa5k"))
 model = get_model('hg_furukawa_original', 51)
 os.chdir(_cwd)
 model.conv4_ = torch.nn.Conv2d(256, N_CLASSES, bias=True, kernel_size=1)
@@ -90,9 +92,12 @@ for path in IMGS:
         door = cv2.resize(door, (W0, H0), interpolation=cv2.INTER_NEAREST)
         rooms = cv2.resize(rooms, (W0, H0), interpolation=cv2.INTER_NEAREST)
         icons = cv2.resize(icons, (W0, H0), interpolation=cv2.INTER_NEAREST)
+    with open(path, "rb") as f:                      # 來源圖雜湊：讀取端驗證快取歸屬
+        src_sha = hashlib.sha256(f.read()).hexdigest()
     np.savez_compressed(os.path.join(OUT, base + "_mask.npz"),
                         wall=wall.astype(bool), window=win.astype(bool),
-                        door=door.astype(bool), room=rooms, icon=icons)
+                        door=door.astype(bool), room=rooms, icon=icons,
+                        src_sha256=np.str_(src_sha))
     vis = bgr.copy()
     vis[wall > 0] = (0, 0, 255)                      # 紅=牆
     vis[win > 0] = (0, 200, 0)                       # 綠=窗

@@ -34,3 +34,6 @@ cubicasa/room_ft/
 # 工作暫存（漏門裁圖、未標房間標示圖等除錯產物）
 temp/
 .mcp.json
+
+# macOS Finder 中繼檔（ben 端 macOS 工作機會持續產生）
+.DS_Store
