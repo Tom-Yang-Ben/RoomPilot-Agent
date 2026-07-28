@@ -636,6 +636,86 @@ def _enforce_singletons(rooms):
 
 
 # ─────────────────────────── 房間方塊 ───────────────────────────
+def _merge_nondoor_bridges(labels, rooms, bridges, det):
+    """走道攔腰切修正（floor04 實案：走道被 85cm 的橋切成兩個玄關）。
+    牆縫封口把 40~260cm 開口全封，走道會被「左右牆端點隔走道相對」的
+    橋切段——而 85cm 恰為單門尺寸，尺寸無法區分真門與走道橫斷。
+    鑑別特徵：真門的房間遠寬於門洞（floor04 浴廁 1.32×、客廳 4.6×）；
+    走道橫斷的橋兩側空間沿橋軸寬度 ≈ 橋長（實測 1.0×，開口吃滿全寬）。
+    合併條件（全部成立）：橋長 40~160cm（>160 為雙開門或缺牆補償——
+    floor04 廚房左牆未偵測、215cm 長橋在補牆，合併會讓廚房吃掉走道）、
+    橋位無門弧證據、兩側各為一間房且沿橋軸 bbox 寬皆 ≤1.15×橋長。
+    labels 就地改，回傳新 rooms。"""
+    cm, T = det["cm"], det["T"]
+    doors = det.get("doors") or ()
+    by_id = {r["id"]: r for r in rooms}
+    h, w = labels.shape
+    merged = False
+    for horiz, g0, g1, b0, b1 in bridges:
+        gap = g1 - g0
+        if not 40.0 <= gap * cm <= 160.0:
+            continue                             # 雙開門/缺牆補償 → 照舊隔房
+        mx, my = ((g0 + g1) / 2.0, (b0 + b1) / 2.0) if horiz \
+            else ((b0 + b1) / 2.0, (g0 + g1) / 2.0)
+        # 門弧證據：沿橋軸 ±0.3 橋長、垂直向 ±1.2 橋長（門扇迴轉範圍）
+        def _arc_at_bridge(d):
+            ax, ay = float(d[0]), float(d[1])
+            u, v = (ax, ay) if horiz else (ay, ax)
+            band_lo, band_hi = (b0, b1)
+            return (g0 - 0.3 * gap <= u <= g1 + 0.3 * gap
+                    and band_lo - 1.2 * gap <= v <= band_hi + 1.2 * gap)
+        if any(_arc_at_bridge(d) for d in doors):
+            continue                             # 有門弧 → 是門
+        # 橋兩側取樣（跳過封口線附近的牆帶，往外找到第一個房間像素）
+        side = [0, 0]
+        for k, sign in ((0, -1), (1, 1)):
+            for off in range(int(T), int(6 * T) + 1):
+                iy = int(round((b0 if sign < 0 else b1) + sign * off)) if horiz \
+                    else int(round(my))
+                ix = int(round(mx)) if horiz \
+                    else int(round((b0 if sign < 0 else b1) + sign * off))
+                if not (0 <= iy < h and 0 <= ix < w):
+                    break
+                if labels[iy, ix] > 0:
+                    side[k] = labels[iy, ix]
+                    break
+        a, b = side
+        if not (a > 0 and b > 0 and a != b):
+            continue
+        ra, rb = by_id.get(a), by_id.get(b)
+        if ra is None or rb is None:
+            continue
+        ext = (lambda r: r["bbox"][2] - r["bbox"][0]) if horiz \
+            else (lambda r: r["bbox"][3] - r["bbox"][1])
+        if ext(ra) > 1.15 * gap or ext(rb) > 1.15 * gap:
+            continue                             # 有一側遠寬於開口 → 是真門
+        labels[labels == b] = a                  # 後續橋取樣自動吃到合併結果
+        ra["bbox"] = (min(ra["bbox"][0], rb["bbox"][0]),
+                      min(ra["bbox"][1], rb["bbox"][1]),
+                      max(ra["bbox"][2], rb["bbox"][2]),
+                      max(ra["bbox"][3], rb["bbox"][3]))
+        del by_id[b]
+        merged = True
+    if not merged:
+        return rooms
+    out = []
+    for r in rooms:                              # 依合併後 labels 重算統計
+        m = labels == r["id"]
+        n = int(np.count_nonzero(m))
+        if not n:
+            continue
+        ys, xs = np.nonzero(m)
+        w_, h_ = int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)
+        r.update(area_px=n,
+                 bbox=(int(xs.min()), int(ys.min()),
+                       int(xs.max() + 1), int(ys.max() + 1)),
+                 cx=float(xs.mean()), cy=float(ys.mean()),
+                 aspect=round(max(w_, h_) / max(1.0, min(w_, h_)), 2))
+        out.append(r)
+    return out
+
+
+
 
 
 def _bridge_zone(horiz, g0, g1, b0, b1):
@@ -673,6 +753,7 @@ def build_rooms(det):
                                                 img_w, img_h, T, T_out, cm)
     if labels is None or not rooms:
         return None, [], bridges, zones, []
+    rooms = _merge_nondoor_bridges(labels, rooms, bridges, det)  # 非門橋不隔房
     cc_f = det.get("cc_file")
     if cc_f and cc_cache_valid(cc_f, img_w, img_h,
                                det.get("src_sha256")):
