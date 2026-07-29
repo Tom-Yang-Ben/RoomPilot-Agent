@@ -187,7 +187,6 @@ def run_pipeline(img_path, cfg_bw, cfg_color, build=True):
         det = f2r.detect_bw(replace(cfg_bw, input=img_path,
                                     output="", preview=None))
     f2r.refine_scale(det)
-    det["cc_file"] = f2r._cc_path(img_path)
     # 順序同 process()：text_boxes 先算，供 match_symbols 抑制文字假陽性
     det["texts"] = (f2r.detect_room_text(img_path, det["img_w"], det["img_h"])
                     if hasattr(f2r, "detect_room_text") else [])  # 基線版無 OCR 層
@@ -225,15 +224,12 @@ def eval_gt_seg(sid, gt, bgr, cfg_bw, cfg_color):
     for i, (_lab, m) in enumerate(gt, 1):
         labels[m] = i                            # GT 多邊形間幾乎不重疊
         rooms.append({"id": i, "area_px": int(m.sum())})
-    # 命名層優先序須與 build_rooms 一致，否則量到的不是產品實際走的路徑
+    # 命名層須與 build_rooms 走同一條，否則量到的不是產品實際路徑
     import room_classifier
     probs = room_classifier.classify(det.get("bgr"), labels, rooms)
-    if probs is not None:
-        f2r.classify_rooms_dino(det, labels, rooms, probs)
-    elif f2r._cc_ok(det["cc_file"]):
-        f2r.classify_rooms_cc(det, labels, rooms, det["cc_file"])
-    else:
-        return {"id": sid, "status": "no_cc_cache"}
+    if probs is None:
+        return {"id": sid, "status": "no_room_classifier"}
+    f2r.classify_rooms_dino(det, labels, rooms, probs)
     preds = [(norm_label(r["label"]), labels == r["id"]) for r in rooms]
     matched = [(gt[i][0], preds[i][0]) for i in range(len(gt))]  # 配對=恆等
     _overlay(bgr, preds, os.path.join(CHK_DIR, sid + "_gtpred.png"))
@@ -325,7 +321,6 @@ def main():
         if not os.path.isfile(dst):
             shutil.copy(os.path.join(src_dir, sid, "F1_scaled.png"), dst)
         staged.append(dst)
-    f2r.ensure_cc_masks(staged)                  # 缺快取自動補（CPU ~1 分/張）
 
     results = []
     for n, (split, sid) in enumerate(samples, 1):

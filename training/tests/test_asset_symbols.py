@@ -48,14 +48,11 @@ def _mk(tmp_path, symbols, anchor_living=True):
     互相排擠，且 2026-07-29 起限額保留的是**分數最高**者（錨房滿票必勝）。"""
     labels = np.zeros((20, 40), np.int32)
     labels[:, :20], labels[:, 20:] = 1, 2
-    cc_room = np.zeros((20, 40), np.uint8)
-    cc_room[:, 20:] = 4 if anchor_living else 5    # living / bed
-    cc_file = str(tmp_path / "m.npz")
-    np.savez(cc_file, room=cc_room, icon=np.zeros((20, 40), np.uint8))
     det = {"cm": 1.0, "thin": None, "texts": [],
            "symbols": [(k, 10.0, 10.0) for k in symbols]}
     rooms = [{"id": 1, "area_px": 400}, {"id": 2, "area_px": 400}]
-    return det, labels, rooms, cc_file
+    anchor = {"living": 1.0} if anchor_living else {"bed": 1.0}
+    return det, labels, rooms, [{}, anchor]
 
 
 def test_asset_symbols_name_rooms(tmp_path):
@@ -65,15 +62,15 @@ def test_asset_symbols_name_rooms(tmp_path):
         (["bed"], "bed"), (["wardrobe", "bed"], "bed"),
         (["sofa"], "living"), (["chair", "sofa"], "living"),
     ]:
-        det, labels, rooms, cc_file = _mk(tmp_path, kinds,
+        det, labels, rooms, probs = _mk(tmp_path, kinds,
                                           anchor_living=(expect != "living"))
-        fp.classify_rooms_cc(det, labels, rooms, cc_file)
+        fp.classify_rooms_dino(det, labels, rooms, probs)
         assert rooms[0]["label"] == expect, (kinds, rooms[0]["label"])
 
 
 def test_asset_chair_alone_below_threshold(tmp_path):
     # 單一 chair 權重 0.15 剛好過 0.15 門檻 → living；確認弱證據不誤標他類
-    det, labels, rooms, cc_file = _mk(tmp_path, ["chair"],
+    det, labels, rooms, probs = _mk(tmp_path, ["chair"],
                                       anchor_living=False)
-    fp.classify_rooms_cc(det, labels, rooms, cc_file)
+    fp.classify_rooms_dino(det, labels, rooms, probs)
     assert rooms[0]["label"] in ("living", "room")

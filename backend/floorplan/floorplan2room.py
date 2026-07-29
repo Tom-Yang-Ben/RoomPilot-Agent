@@ -16,7 +16,7 @@
   temp/json/room/<名>_room.json 房間清單（房型/面積/bbox/有無門/辨識證據）＋門位＋比例資訊
 
 比例尺以門寬鐵律校正（refine_scale）：單門 85cm / 雙門 175cm / 牆厚 17.5cm。
-房型以辨識決定（放棄面積規則）：CubiCasa 語意投票 + 圖示 + 古典符號偵測。
+房型以辨識決定：DINOv2 房間裁切分類 + 古典符號偵測 + OCR 文字證據。
 
 用法：
   python floorplan2room.py              # 批次 testdata/png/ → chk/room/
@@ -26,14 +26,11 @@
 import argparse
 import difflib
 import glob
-import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
-import urllib.error
-import urllib.request
 from dataclasses import replace
 
 import cv2
@@ -41,11 +38,11 @@ import numpy as np
 
 _PKG_DIR = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(os.path.dirname(_PKG_DIR))
-sys.path.insert(0, _PKG_DIR)           # 管線模組（含 symbol_match、infer_cubicasa）同在 backend/floorplan/
+sys.path.insert(0, _PKG_DIR)           # 管線模組（room_classifier、symbol_match）同在 backend/floorplan/
 
 import floorplan2dxf as fp_bw          # 黑白線稿管線（凍結，只 import 不改）
 import floorplan2dxf_color as fp_c     # 彩色管線（牆偵測 + 房間分割/分類工具）
-import room_classifier                 # DINOv2 房型裁切分類（缺件＝停用，退回 CubiCasa）
+import room_classifier                 # DINOv2 房型裁切分類（缺件＝停用，退回面積規則）
 import symbol_match                    # 符號模板庫比對（庫檔缺失＝不啟用）
 
 IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
@@ -478,34 +475,20 @@ def detect_text_boxes(img_path, dst_w=None, dst_h=None):
             for _t, conf, _cx, _cy, (x0, y0, x1, y1) in words if conf >= 0.5]
 
 
-# ─────────────────────────── 語意辨識房型 ───────────────────────────
-# 兩個預設路徑都以模組自身位置推導，不吃 cwd——本檔既被當腳本直接執行（cwd 可能是
-# backend/floorplan/），也可能被伺服器端 import（cwd 由伺服器決定）。與 main 的 20cfd21 同步。
-CC_CACHE_DIR = os.environ.get(
-    "CC_CACHE_DIR", os.path.join(_ROOT, "cubicasa", "room"))  # CubiCasa 語意快取（含 room/icon 通道）；`cubicasa/room/` 是跨分支契約路徑，錨在 repo 根不搬進套件目錄
-CC_WEIGHTS = os.environ.get(
-    "CC_WEIGHTS", os.path.join(_PKG_DIR, "model_finetuned_v5.pkl"))  # 預設 v5 微調權重（與 main 統一放 backend/floorplan/；own 域主尺勝出 2026-07-25）；環境變數可換權重 A/B 驗收
-# 權重 200M 超 GitHub 100MB 限制不進版控，掛在 Release 上，缺檔時自動下載（部署端 clone 即可用）。
-# repo 目前 private：直鏈 404，須以 token 走 asset API 換 S3 簽名鏈（部署端本就有 clone 用 token，
-# 設 GITHUB_TOKEN / GH_TOKEN 即可）；repo 若轉 public，直鏈自動生效、零設定
-CC_WEIGHTS_URL = ("https://github.com/Tom-Yang-Ben/RoomPilot-Agent/"
-                  "releases/download/weights-v5/model_finetuned_v5.pkl")
-CC_WEIGHTS_ASSET_API = ("https://api.github.com/repos/Tom-Yang-Ben/RoomPilot-Agent/"
-                        "releases/assets/489011637")
-CC_WEIGHTS_SHA256 = "b7a280d2d7cf2dde580a947e1ebc7b4d12e53135c05581babb3b5797a166f4cf"
+# ─────────────────────────── 房型詞彙表 ───────────────────────────
+# id 沿用 CubiCasa5k 標注格式的 room class 編碼——GT 標注仍是該格式的 SVG，
+# `eval_rooms_cc.gt_label_of` 需要這層映射把標注 token 轉成類別。產品推論路徑
+# 只用到 `.values()`（類別集合），不碰 CubiCasa 的任何模型、權重或程式碼。
 CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
                  7: "entry", 9: "storage", 10: "garage", 1: "outdoor"}
-# 模型盲區類：CubiCasa 的 12 個 room class 沒有樓梯，StairWell 在其
-# rooms_selected 是 11(Undefined)——語意投票（層 1/2）結構上產不出來，
-# 分數只能由證據層供給（層 4 的 detect_stairs 踏板幾何）。
-# 必須另行播種進 score，否則 OCR 層的 `if lab_t in score` 防呆會靜默丟掉證據。
+# 模型盲區類：DINOv2 的線性頭雖有 stair 通道，但該類的證據仍主要來自
+# 層 4 的 detect_stairs 踏板幾何。必須另行播種進 score，否則 OCR 層的
+# `if lab_t in score` 防呆會靜默丟掉證據。
 #
 # 註：曾短暫存在的 `office`（書房）已於 2026-07-29 併入 `storage`（使用者裁決）
 # ——兩者實務上是同一空間的兩個狀態，且 DINOv2 實測從未把它們互相搞混，
 # 分開標不帶來可量測資訊。書房系 OCR 詞彙改指向 storage。
 EXTRA_LABELS = ("stair",)
-CC_ICON = {"closet": 3, "appliance": 4, "toilet": 5, "sink": 6,
-           "sauna": 7, "fireplace": 8, "bathtub": 9}
 ROOM_ZH_EX = {**fp_c.ROOM_ZH, "entry": "玄關", "storage": "儲藏室",
               "garage": "車庫", "outdoor": "陽台/戶外",
               "stair": "樓梯"}
@@ -515,153 +498,29 @@ ROOM_BGR_EX = {**fp_c.ROOM_BGR, "entry": (120, 210, 250),
                "stair": (70, 70, 200)}
 
 
-def _cc_path(img_path):
-    base = os.path.splitext(os.path.basename(img_path))[0]
-    return os.path.join(CC_CACHE_DIR, base + "_mask.npz")
 
 
-def _cc_ok(npz_path):
-    if not os.path.isfile(npz_path):
-        return False
-    with np.load(npz_path) as z:                   # 舊版快取沒有 room 通道 → 重推
-        return "room" in z.files
 
 
-def cc_cache_valid(cc_file, img_w, img_h, src_sha256=None):
-    """語意快取來源驗證。infer_cubicasa 一律以來源圖「原尺寸」輸出遮罩，
-    所以遮罩尺寸 ≠ 分析圖尺寸＝同名不同圖（跨分支同名檔已實際發生：
-    main 的 floor10.png 419×687 vs 本分支遮罩 896×1200），視為快取失效，
-    避免錯圖語意被 classify_rooms_cc 的 resize 靜默吞掉、套出錯房型。
-    彩圖管線可能把圖放大 2 倍——img_w/img_h 收的是管線工作尺寸，
-    故遮罩等於工作尺寸或其一半皆屬同圖。
-    新版快取帶 src_sha256（infer_cubicasa 寫入）；呼叫端有給雜湊且快取有存時，
-    再以內容嚴格比對，擋掉「不同圖恰好同尺寸」的殘餘風險。"""
-    if not _cc_ok(cc_file):
-        return False
-    with np.load(cc_file) as z:
-        mh, mw = z["room"].shape[:2]
-        if (mh, mw) not in ((img_h, img_w), (img_h // 2, img_w // 2)):
-            return False
-        if src_sha256 and "src_sha256" in z.files:
-            return str(z["src_sha256"]) == src_sha256
-    return True
 
 
-def _gh_token():
-    """找部署/開發環境可用的 GitHub token：環境變數優先，其次 git 憑證系統。"""
-    tok = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-    if tok:
-        return tok
-    try:
-        out = subprocess.run(
-            ["git", "credential", "fill"], input="protocol=https\nhost=github.com\n",
-            capture_output=True, text=True, timeout=15,
-            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}).stdout
-        for line in out.splitlines():
-            if line.startswith("password="):
-                return line.split("=", 1)[1]
-    except Exception:
-        pass
-    return None
 
 
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, *args, **kwargs):
-        return None
 
 
-def _resolve_weights_url():
-    """回傳實際可下載的 URL。公開 repo 直鏈即中；私有 repo 用 token 向 asset API
-    換 S3 簽名鏈（簽名鏈本身免認證，避免 Authorization 頭被轉送到 S3 造成 400）。"""
-    try:
-        urllib.request.urlopen(
-            urllib.request.Request(CC_WEIGHTS_URL, method="HEAD"), timeout=15)
-        return CC_WEIGHTS_URL
-    except Exception:
-        pass
-    tok = _gh_token()
-    if not tok:
-        return None
-    req = urllib.request.Request(CC_WEIGHTS_ASSET_API, headers={
-        "Accept": "application/octet-stream", "Authorization": "Bearer " + tok})
-    try:
-        urllib.request.build_opener(_NoRedirect()).open(req, timeout=30)
-    except urllib.error.HTTPError as e:
-        if e.code in (301, 302, 307, 308):
-            return e.headers.get("Location")
-    except Exception:
-        pass
-    return None
 
 
-def _ensure_cc_weights():
-    """權重檔缺失時自動從 GitHub Release 下載（SHA-256 校驗）。
-    使用者以 CC_WEIGHTS 環境變數指定的權重不代抓——缺了就該報錯而非默默換檔。"""
-    if os.path.isfile(CC_WEIGHTS):
-        return True
-    if os.environ.get("CC_WEIGHTS"):
-        return False
-    url = _resolve_weights_url()
-    if not url:
-        print("⚠ 權重下載無可用管道：私有 repo 需 GITHUB_TOKEN / GH_TOKEN 或 git 憑證")
-        return False
-    print(f"權重下載 : {CC_WEIGHTS_URL}（約 200MB，僅首次）")
-    os.makedirs(os.path.dirname(CC_WEIGHTS) or ".", exist_ok=True)  # 先建目錄，否則 200MB 抓完才在寫檔時失敗（與 main 的 20cfd21 同步）
-    tmp = CC_WEIGHTS + ".part"
-    try:
-        urllib.request.urlretrieve(url, tmp)
-        h = hashlib.sha256()
-        with open(tmp, "rb") as f:
-            for chunk in iter(lambda: f.read(1 << 20), b""):
-                h.update(chunk)
-        if h.hexdigest() != CC_WEIGHTS_SHA256:
-            os.remove(tmp)
-            print("⚠ 權重下載 SHA-256 校驗失敗，已捨棄")
-            return False
-        os.replace(tmp, CC_WEIGHTS)
-        return True
-    except Exception as e:
-        if os.path.isfile(tmp):
-            os.remove(tmp)
-        print(f"⚠ 權重下載失敗：{e}")
-        return False
 
 
-def _cc_stale(img_path):
-    """快取缺失或與來源圖對不上（尺寸／雜湊）＝該重推。
-    遮罩由 infer_cubicasa 以來源圖原尺寸輸出，尺寸不符只可能是同名換圖。"""
-    npz = _cc_path(img_path)
-    if not _cc_ok(npz):
-        return True
-    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-    if img is None:
-        return False                               # 讀不到圖 → 交給下游報錯，別觸發推論
-    with np.load(npz) as z:
-        if z["room"].shape[:2] != img.shape[:2]:
-            return True
-        if "src_sha256" in z.files:
-            with open(img_path, "rb") as f:
-                return str(z["src_sha256"]) != hashlib.sha256(f.read()).hexdigest()
-    return False
 
 
-def ensure_cc_masks(paths):
-    """缺（或失效）語意快取的圖先跑 CubiCasa 推論（一次 subprocess 全補，CPU 約 1 分/張）。"""
-    miss = [p for p in paths if _cc_stale(p)]
-    if not miss:
-        return
-    if not _ensure_cc_weights():
-        print(f"⚠ 找不到 {CC_WEIGHTS}，跳過語意辨識（房型退回面積規則）")
-        return
-    print(f"CubiCasa 語意推論 : {len(miss)} 張（CPU 約 1 分/張 → {CC_CACHE_DIR}/）")
-    subprocess.run([sys.executable,
-                    os.path.join(_PKG_DIR, "infer_cubicasa.py"),
-                    CC_WEIGHTS, CC_CACHE_DIR, *miss], check=True)
 
 
 def _apply_evidence(det, labels, r, score, open_living):
-    """層 4（符號幾何＋模板＋樓梯）與層 5（OCR 文字）加分——**無 CubiCasa 血統**，
-    CubiCasa 路徑與 DINOv2 路徑共用。就地改 score，並在 r 上記錄證據供追溯。
+    """層 4（符號幾何＋模板＋樓梯）與層 5（OCR 文字）加分。
+    就地改 score，並在 r 上記錄證據供追溯。原為 CubiCasa 與 DINOv2 兩條命名
+    路徑共用而抽出；2026-07-30 前者移除後只剩一個呼叫端，但保持獨立函式——
+    這兩層與層 1 的證據來源正交，分開才看得清楚誰貢獻了什麼。
     open_living：客餐廚一體時廚房系證據不加分（爐台水槽只是角落）。"""
 # 古典符號證據（層 4）：模型圖示沒抓到時的補充（美式極簡線稿）
     # 後十類為 Asset 家具模板庫 kind（extract_asset_lib.py，分類依
@@ -730,66 +589,6 @@ def _apply_evidence(det, labels, r, score, open_living):
         r["ocr_text"] = txt_hits
 
 
-def classify_rooms_cc(det, labels, rooms, cc_file):
-    """辨識式房型（user spec：放棄面積規則）：把每個方塊切出來，
-    以 CubiCasa 房間語意像素投票 + 設備圖示證據命名用途。三層證據：
-    1) 語意佔比：模型直接說這塊是臥室/客廳/…（乾淨渲染圖很準,佔比 0.9+）
-    2) 相對多數票：線稿圖大片像素被標「未定義」,已分類像素內的多數類仍有資訊
-    3) 圖示絕對面積(cm²)：馬桶/浴缸=浴室鐵證、爐具+水槽=廚房、衣櫃=儲藏——
-       設備尺寸是物理常數,用絕對面積不會被大房間稀釋。
-       桑拿椅在美式圖全是誤報(芬蘭訓練集特有),只記錄不採證。
-    總分最高者勝；證據太弱(<0.15)標中性「空間」。"""
-    cm = det["cm"]
-    with np.load(cc_file) as z:
-        cc_room, cc_icon = z["room"], z["icon"]
-    if cc_room.shape != labels.shape:              # 彩圖管線可能放大 2 倍
-        h, w = labels.shape
-        cc_room = cv2.resize(cc_room, (w, h), interpolation=cv2.INTER_NEAREST)
-        cc_icon = cv2.resize(cc_icon, (w, h), interpolation=cv2.INTER_NEAREST)
-    for r in rooms:
-        m = labels == r["id"]
-        npx = max(1, int(np.count_nonzero(m)))
-        area_cm2 = r["area_px"] * cm * cm
-        r["area_m2"] = round(area_cm2 / 1e4, 2)
-        votes = np.bincount(cc_room[m], minlength=12).astype(np.float64) / npx
-        icx = {k: float(np.count_nonzero(cc_icon[m] == v)) / npx * area_cm2
-               for k, v in CC_ICON.items()}       # 圖示絕對面積(cm²)
-        score = {lab: votes[cls] for cls, lab in CC_ROOM_LABEL.items()}
-        score.update({lab: 0.0 for lab in EXTRA_LABELS})   # 模型盲區類：0 分起跳，
-        # 全靠證據層加分；播種只是讓 OCR/幾何有 key 可加，不是 0.15 門檻的免死金牌
-        typed = sum(score.values())               # 相對多數票（層 2）
-        # 弱票不放大：top 票 <0.35 代表模型自己也沒把握（floor04 living 0.275
-        # 弱票曾被放大到蓋過一切），加成只留給有把握的相對多數
-        if typed >= 0.05:
-            top = max(score, key=score.get)
-            if score[top] >= 0.35:
-                score[top] += 0.12 * (score[top] / typed)
-        if icx["toilet"] >= 150 or icx["bathtub"] >= 500:   # 圖示證據（層 3）
-            score["bath"] += 0.5
-        if icx["sink"] >= 150 and icx["toilet"] >= 100:
-            score["bath"] += 0.3
-        # 開放式客廳（客廳票強且遠勝廚房票）不給廚房圖示加分——
-        # 客餐廚一體的大方塊應命名為客廳，爐台水槽只是角落
-        open_living = votes[4] >= 0.15 and votes[4] > 2.0 * votes[3]
-        if not open_living:
-            if icx["appliance"] >= 500 and icx["sink"] >= 80:
-                score["kitchen"] += 0.4
-            elif icx["appliance"] >= 1200:
-                score["kitchen"] += 0.25
-        # 儲藏室=整間都是櫃(密度≥8%)且無臥室票；臥室附衣櫥只是牆邊一條,密度低
-        if icx["closet"] >= 600 and votes[5] < 0.05 \
-                and icx["closet"] / area_cm2 >= 0.08:
-            score["storage"] += 0.2
-        _apply_evidence(det, labels, r, score, open_living)
-        lab, val = max(score.items(), key=lambda kv: kv[1])
-        r["label"] = lab if val >= 0.15 else "room"
-        r["label_zh"] = ROOM_ZH_EX[r["label"]]
-        r["cc_share"] = {k: round(v, 3) for k, v in score.items() if v >= 0.02}
-        r["icons_cm2"] = {k: round(v) for k, v in icx.items() if v >= 20}
-        r["_score"] = score                    # 供限額後處理挑次高分，結尾即刪
-    _enforce_singletons(rooms)
-    for r in rooms:
-        del r["_score"]
 
 
 DINO_W = 1.0            # DINOv2 機率的權重。設 1.0 使其與 OCR(1.3) 的相對關係
@@ -800,10 +599,13 @@ DINO_W = 1.0            # DINOv2 機率的權重。設 1.0 使其與 OCR(1.3) �
 def classify_rooms_dino(det, labels, rooms, probs):
     """辨識式房型——**去 CubiCasa 版本**（層 1 換成 DINOv2 裁切分類）。
 
-    與 classify_rooms_cc 的差別只在證據來源：
-      層 1  DINOv2 房間裁切分類機率（取代 CubiCasa 語意佔比＋相對多數票）
-      層 3  CubiCasa 圖示絕對面積 —— **移除**（該通道來自 CubiCasa 模型）
-      層 4/5 符號幾何、OCR 文字 —— 不變（本就無 CubiCasa 血統）
+    證據層：
+      層 1  DINOv2 房間裁切分類機率
+      層 4  符號幾何＋模板＋樓梯踏板（_apply_evidence）
+      層 5  OCR 圖面文字（_apply_evidence）
+    2026-07-30 CubiCasa 整批移除前，此函式與 classify_rooms_cc 並存；
+    後者的層 2（相對多數票）與層 3（圖示絕對面積 cm²）隨其一併消失——
+    兩者的資料來源都是 CubiCasa 模型輸出的通道。
 
     `open_living` 原以 CubiCasa 的 living/kitchen 票判定，改用 DINOv2 機率同義：
     客廳機率夠高且遠勝廚房 → 客餐廚一體，廚房系證據不加分。"""
@@ -1044,22 +846,14 @@ def build_rooms(det):
     zones = [_bridge_zone(*b) for b in bridges
              if any(lo <= (b[2] - b[1]) * cm <= hi for lo, hi in DOOR_RANGES_CM)
              and _bridge_has_door_ink(det, *b)]  # 迴轉區無墨=開放通道非門
-    # 房型命名優先序（2026-07-29 起 DINOv2 為首選——own_eval 72 房保留集
-    # 90.3% vs CubiCasa 路徑 79.2%，且 Apache 2.0 可商用）：
-    #   1) DINOv2 裁切分類（room_classifier，去 CubiCasa）
-    #   2) CubiCasa 語意投票（需有效快取；CC BY-NC 禁商用）
-    #   3) 面積規則（純幾何兜底）
+    # 房型命名（2026-07-30 起只剩兩層，CubiCasa 語意投票已整批移除）：
+    #   1) DINOv2 裁切分類（room_classifier）——own_eval 72 房 90.3%
+    #   2) 面積規則（純幾何兜底）——缺 torch/骨幹/線性頭時
     probs = room_classifier.classify(det.get("bgr"), labels, rooms)
-    cc_f = det.get("cc_file")
     if probs is not None:
         classify_rooms_dino(det, labels, rooms, probs)
-    elif cc_f and cc_cache_valid(cc_f, img_w, img_h, det.get("src_sha256")):
-        classify_rooms_cc(det, labels, rooms, cc_f)   # 辨識式房型（方塊切出來投票命名）
-    else:                                        # 無（有效）語意快取才退回面積規則
-        if cc_f and _cc_ok(cc_f):
-            print("⚠ 語意快取來源不符（同名不同圖）→ 視為無快取，房型退回面積規則")
-        else:
-            print("⚠ 無語意快取 → 房型退回面積規則")
+    else:
+        print("⚠ DINOv2 房型分類不可用 → 房型退回面積規則（品質明顯較差）")
         fp_c.classify_rooms(rooms, cm, det["thin"], labels)
     # room_graph 只拿來算 has_door/相鄰圖——黃框依長度規則全畫，不被它篩掉
     edges, _kept = fp_c.room_graph(labels, outside, rooms, zones, rects, wins, T)
@@ -1165,9 +959,6 @@ def process(path, out_dir, cfg_bw, cfg_color):
     else:
         det = detect_bw(replace(cfg_bw, input=path, output="", preview=None))
     refine_scale(det)                            # 門寬鐵律反推比例尺，修上游系統性偏大
-    det["cc_file"] = _cc_path(path)
-    with open(path, "rb") as f:                  # 快取來源驗證用（cc_cache_valid）
-        det["src_sha256"] = hashlib.sha256(f.read()).hexdigest()
     # OCR 必須先於 detect_symbols：模板比對用 text_boxes 抑制圖面文字假陽性
     # （floor06 的 LNDRY/BALCONY 曾被判成 ksink/sofa）。順序反了不會報錯，
     # 只會拿到空的抑制清單——test_symbol_gate.py 有斷言釘住。
@@ -1217,7 +1008,6 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     if a.input and os.path.isfile(a.input):
-        ensure_cc_masks([a.input])
         process(a.input, out_dir, cfg_bw, cfg_color)
         return
 
@@ -1228,7 +1018,6 @@ def main():
                   if p_.lower().endswith(IMG_EXTS))
     if not imgs:
         sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
-    ensure_cc_masks(imgs)
     ok = fail = no_room = 0
     for p_ in imgs:
         print(f"=== {os.path.splitext(os.path.basename(p_))[0]} ===")

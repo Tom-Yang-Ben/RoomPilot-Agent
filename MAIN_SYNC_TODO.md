@@ -414,3 +414,55 @@ cody_room_semantics = recognize_cody_rooms(image_bytes)   # 仍缺 cache_key
 
 效果：gt-seg 24 圖/157 房，具名 117→118，**kitchen recall 0.773→0.818**，
 bath precision 0.920 不變，其餘七類逐項相同。
+
+---
+
+## 2026-07-30 重大變更：CubiCasa 血統整批移除
+
+**這是本清單最大的一次變更，前面第 1/3/5/5.1 節的多數內容因此作廢。**
+
+房型命名層由 CubiCasa 語意投票換成 DINOv2 凍結骨幹＋線性頭：
+own_eval 72 房保留集 **79.2% → 90.3%**，且 DINOv2 程式碼與權重皆
+**Apache 2.0 可商用**——v2.15 就記載的「CC BY-NC 禁商用」硬閘至此解除。
+
+### main 端該做什麼
+
+| 舊要求 | 現況 |
+| :--- | :--- |
+| 第 1 節 `DEFAULT_WEIGHTS` 指向 v5 | **作廢**，v5 權重已刪 |
+| 第 3 節 v5 權重自動下載（Release + token） | **作廢**，整套下載鏈已刪 |
+| 第 5.1 節 checkout `training/CubiCasa5k` | **作廢**，推論不再需要 |
+| 第 5.1 節 跑 `apply_cubicasa_patches` | **作廢** |
+| 「不變的契約」表中的語意快取 `cubicasa/room/` | **作廢**，目錄已刪 |
+| 「不變的契約」表中的 `CC_WEIGHTS` 環境變數 | **作廢** |
+| 第 7 節 `recognize_cody_rooms(cache_key=...)` | **作廢**（快取機制本身已不存在） |
+| 第 8 節 `CODY_LIVE_SEMANTIC=1` 就地推論 | **作廢** |
+
+### 新的部署需求
+
+| 項目 | 說明 |
+| :--- | :--- |
+| `torch` | 由 semantic extra 升為**必要依賴**（CPU 版即可，只推論不訓練） |
+| DINOv2 骨幹 88MB | `torch.hub` 首次下載後快取於 `~/.cache/torch/hub/`。**實測封鎖網路仍可載入**——非執行期連網需求。離線部署預先放好該快取，或設 `TORCH_HOME` |
+| `backend/floorplan/room_head.npz` | 15KB 線性頭，**進版控**，clone 即得 |
+| `ROOM_HEAD` 環境變數 | 可覆寫線性頭路徑（A/B 用） |
+
+不再需要：200MB v5 權重、30MB 語意快取、`GITHUB_TOKEN`（權重下載用途）、
+`training/CubiCasa5k/` checkout。
+
+### 仍然不變的契約
+
+| 項目 | 路徑/約定 |
+| :--- | :--- |
+| 前端交接座標 | cm、原點左下、y 向上（`"dxf_scale"` 鍵名保留） |
+| `rooms[]` 欄位 | `label`／`label_zh`／`area_m2`／`bbox`／`cc_share`／`icons_cm2`／`adjacency` |
+| `rooms[].label` 值域 | 9 類 ＋ `stair`；**無 `office`**（見第 10 節） |
+
+`icons_cm2` 在新路徑恆為空 dict（來源是 CubiCasa 圖示通道，已移除），
+契約鍵保留避免下游 KeyError。`cc_share` 仍是分數明細（鍵名沿用，
+內容已是 DINOv2 機率＋證據層加分）。
+
+### 缺件時的行為
+
+DINOv2 不可用（缺 torch／骨幹／線性頭）→ 房型退回面積規則，品質明顯下降，
+**且一定印警告**。不再有 CubiCasa 這一層中間 fallback。

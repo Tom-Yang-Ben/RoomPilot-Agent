@@ -30,21 +30,22 @@
 
 | 順位 | 路徑 | own_eval 72 房 | 授權 |
 | :--- | :--- | ---: | :--- |
-| 1 | `classify_rooms_dino()` — DINOv2 裁切分類 | **87.5%** | Apache 2.0 可商用 |
-| 2 | `classify_rooms_cc()` — CubiCasa 語意投票 | 79.2% | CC BY-NC **禁商用** |
-| 3 | `fp_c.classify_rooms()` — 面積規則 | （明顯更差） | — |
+| 1 | `classify_rooms_dino()` — DINOv2 裁切分類 | **90.3%** | Apache 2.0 可商用 |
+| 2 | `fp_c.classify_rooms()` — 面積規則 | （明顯更差） | — |
 
 缺件（torch / DINOv2 骨幹 / `room_head.npz`）才會降級，且**一定印警告**。
+CubiCasa 語意投票已於 2026-07-30 整批移除——**產品推論路徑不再有任何
+CC BY-NC 成分**。
 
 逐間房把第 4、5 步的全圖證據「歸屬」進來後加權投票：
 
 | 層 | 證據 | 歸屬方式 | DINOv2 路徑 |
 | :--- | :--- | :--- | :--- |
-| 1 | 房型機率／語意佔比 | 裁切圖過分類器／遮罩像素比例 | DINOv2 |
-| 2 | 相對多數票 | 已分類像素中的多數類 | **已移除** |
-| 3 | 圖示絕對面積 cm² | 馬桶/浴缸/爐具像素數 × cm² | **已移除**（來源是 CubiCasa 通道） |
-| 4 | 符號幾何＋模板＋樓梯 | 符號中心點落在哪間房 | 保留（無 CubiCasa 血統） |
-| 5 | OCR 文字 | 字框中心點落在哪間房 | 保留（同上） |
+| 1 | 房型機率 | 房間裁切圖過 DINOv2＋線性頭 | ✅ |
+| 2 | 相對多數票 | （CubiCasa 專屬）| 隨其移除 |
+| 3 | 圖示絕對面積 cm² | （CubiCasa 專屬）| 隨其移除 |
+| 4 | 符號幾何＋模板＋樓梯 | 符號中心點落在哪間房 | ✅ |
+| 5 | OCR 文字 | 字框中心點落在哪間房 | ✅ |
 
 總分最高者勝，`<0.15` 標中性「空間」。OCR 權重 1.3 刻意高於模型滿票 1.0
 ——圖面文字是作者親口說的答案，可壓過「自信地錯」的模型。
@@ -60,13 +61,76 @@
 
 ## 已知待辦
 
-- `open_living` 防呆對 DINOv2 失效：它用 `score["living"]>=0.15` 判定開放式
-  客餐廚，但模型把大開放空間判成 kitchen 時（living 僅 0.06~0.08）根本不觸發，
-  廚房符號繼續加分蓋過真廚房——kitchen recall 0.900→0.600 的根因
-- `main()` 仍無條件呼叫 `ensure_cc_masks()`：新圖會白跑 CubiCasa 推論
-  （CPU 約 1 分鐘/張），但 DINOv2 路徑不使用其結果。待 CubiCasa 整批移除時一併處理
+- floor69/70 的真廚房仍被限額規則犧牲（見 `_enforce_singletons` docstring
+  的對照表——三種替代方案實測皆更差，是取捨不是疏漏）
+- 分割層仍是最大瓶頸：灰階主尺切割命中 72.6%，命名層再準也吃不到
 
 ---
+
+2026/7/30 v.2.21 變更（CubiCasa 血統整批移除——房型命名層換 DINOv2 凍結骨幹＋線性頭，own_eval 保留集 79.2%→90.3%，且產品推論路徑不再有任何 CC BY-NC 成分；命名層後處理修好兩處誤傷真廚房）
+
+一、授權：這是整件事的前提，先驗證才動工
+
+- DINOv2 的 GitHub repo 放了多種模型、授權不同。我們用的基礎骨幹
+  `dinov2_vits14` 是 **Apache 2.0**（上游 README 明載 "DINOv2 code and model
+  weights are released under the Apache License 2.0"），**可商用**
+- repo 內的 FAIR Noncommercial / X-Ray Research 授權是給 CELL_DINO、
+  XRAY_DINO 等醫療變體的，與我們無關；實際下載的檔案只有
+  `dinov2_vits14_pretrain.pth`（88MB）一個
+- 對照：CubiCasa5k 權重 CC BY-NC 禁商用，v5 微調為其衍生物一併受限。
+  這條路確實解掉了 v2.15 就記載的授權硬閘
+
+二、命名層換人（`classify_rooms_dino` 取代 `classify_rooms_cc`）
+
+| | own_eval 72 房保留集 |
+| :--- | ---: |
+| CubiCasa 語意投票（舊） | 57/72 = 79.2% |
+| **DINOv2 裁切分類（新）** | **65/72 = 90.3%** |
+
+- 新增 `backend/floorplan/room_classifier.py`（推論）＋ `room_head.npz`
+  （15KB 線性頭，只用 own_dataset 157 房訓練，own_eval 保持乾淨）
+- 層 1 換成 DINOv2 機率；層 2（相對多數票）與層 3（圖示絕對面積 cm²）
+  隨 CubiCasa 一併消失——兩者的資料來源都是 CubiCasa 模型的輸出通道；
+  層 4/5（符號幾何、OCR）原封不動，本就無 CubiCasa 血統
+- 缺件（torch／骨幹／線性頭）退回面積規則，且**一定印警告**不靜默降級
+
+三、命名層後處理修好兩處誤傷真廚房（kitchen recall 0.600→0.800）
+
+DINOv2 接手後 9 個錯誤裡有 4 個是**純分類器判對、被後處理弄壞**的真廚房，
+分屬三種根因：
+
+- `open_living` 的 `2.0×` 係數過嚴。floor64 客廳 living 0.56 / kitchen 0.41
+  過不了 `0.56 > 0.82`，防呆不觸發，廚房符號繼續加分把它推成 kitchen。
+  CubiCasa 的分數分布平緩故 2× 可行，DINOv2 的機率是尖銳分布 → 改為比大小
+- 「有廚無廳→改叫客廳」無條件觸發。floor73 真廚房 kitchen 1.00 / living 0.00
+  被改名 → 加門檻：該房自身 living 分數 ≥0.05 才升級
+- floor69/70 是限額「按面積挑」的犧牲品，**維持不改**——第三次實測確認改成
+  「按分數挑」整體更差（64→62），是取捨不是疏漏。對照表見 docstring
+
+四、移除清單與驗證
+
+| 移除 | 說明 |
+| :--- | :--- |
+| `backend/floorplan/ccmodel/` | CubiCasa 模型定義副本（v2.19 才建，任務完成） |
+| `backend/floorplan/infer_cubicasa.py` | 語意遮罩推論腳本 |
+| `backend/floorplan/model_finetuned_v5.pkl` | v5 微調權重 200MB（未進版控） |
+| `cubicasa/` | 語意快取 207 檔 30MB |
+| `floorplan2room` 內 16 個定義 | 快取路徑/驗證、權重下載鏈（含 GitHub token 換 S3 簽名）、`ensure_cc_masks`、`classify_rooms_cc`、`CC_ICON` |
+| `test_cc_weights_download.py` | 測的是已刪除的權重下載機制 |
+
+**保留** `CC_ROOM_LABEL`：它是房型詞彙表，GT 標注仍是 CubiCasa 格式的 SVG，
+`eval_rooms_cc.gt_label_of` 需要這層映射；產品路徑只用 `.values()`。
+標注解析（`lmdb`／`scikit-image`／`floortrans.loaders`）屬 `training/` 研發
+工具，不隨產品出貨，授權風險不適用。
+
+驗證：移除前後 **混淆矩陣逐格完全相同**（65/72 = 90.3%）；端到端實跑 floor13
+從「空間8.76m²、空間8.12m²」變成「臥室、廚房」；`pytest training/tests/` 107 綠
+（原 116 扣掉 7 支權重下載測試與 2 支 CubiCasa 專屬的弱票放大測試）。
+
+五、部署變更：`torch` 由 semantic extra 升為必要依賴（CPU 版即可）。DINOv2
+骨幹 88MB 經 torch.hub 首次下載後快取於 `~/.cache/torch/hub/`，**實測封鎖
+網路仍可載入**——非執行期連網需求，同 v5 權重的既有模式。相對地，部署端
+不再需要 200MB 權重、30MB 快取，也不必再跑 `apply_cubicasa_patches`。
 
 2026/7/29 v.2.20 變更（模板比對從死碼救活：移除 Hu 粗篩＋逐類啟用＋文字抑制，kitchen recall 0.773→0.818 且 bath precision 零損；CubiCasa 向量模板 3516 條經 A/B 實測零貢獻已剪除，庫 4459→943）
 

@@ -90,41 +90,37 @@ def _mk(tmp_path, symbols=(), texts=()):
     """房1=受測房；房2=客廳錨（語意 living 滿票），避免觸發有廚無廳升級。"""
     labels = np.zeros((20, 40), np.int32)
     labels[:, :20], labels[:, 20:] = 1, 2
-    cc_room = np.zeros((20, 40), np.uint8)
-    cc_room[:, 20:] = 4                        # living
-    cc_file = str(tmp_path / "m.npz")
-    np.savez(cc_file, room=cc_room, icon=np.zeros((20, 40), np.uint8))
     det = {"cm": 1.0, "thin": None,
            "symbols": [(k, 10.0, 10.0) for k in symbols],
            "texts": [(lab, 10.0, 10.0, lab.upper()) for lab in texts]}
     rooms = [{"id": 1, "area_px": 400}, {"id": 2, "area_px": 400}]
-    return det, labels, rooms, cc_file
+    return det, labels, rooms, [{}, {"living": 1.0}]
 
 
 def test_stair_symbol_names_room(tmp_path):
-    det, labels, rooms, cc_file = _mk(tmp_path, symbols=["stair"])
-    fp.classify_rooms_cc(det, labels, rooms, cc_file)
+    det, labels, rooms, probs = _mk(tmp_path, symbols=["stair"])
+    fp.classify_rooms_dino(det, labels, rooms, probs)
     assert rooms[0]["label"] == "stair"
 
 
 def test_ocr_text_names_storage(tmp_path):
     """書房系文字（OFFICE/STUDY…）走 OCR 落到 storage。"""
-    det, labels, rooms, cc_file = _mk(tmp_path, texts=["storage"])
-    fp.classify_rooms_cc(det, labels, rooms, cc_file)
+    det, labels, rooms, probs = _mk(tmp_path, texts=["storage"])
+    fp.classify_rooms_dino(det, labels, rooms, probs)
     assert rooms[0]["label"] == "storage"
 
 
 def test_new_kinds_do_not_leak_into_other_rooms(tmp_path):
     """無證據時不得憑空冒出 stair（0 分播種不是 0.15 門檻的免死金牌）。"""
-    det, labels, rooms, cc_file = _mk(tmp_path)
-    fp.classify_rooms_cc(det, labels, rooms, cc_file)
+    det, labels, rooms, probs = _mk(tmp_path)
+    fp.classify_rooms_dino(det, labels, rooms, probs)
     assert rooms[0]["label"] != "stair"
 
 
 def test_stair_survives_singleton_demotion(tmp_path):
     """living/kitchen 限額降級時，次高分挑選不得被新類的 0 分播種干擾。"""
-    det, labels, rooms, cc_file = _mk(tmp_path, symbols=["stair"])
-    fp.classify_rooms_cc(det, labels, rooms, cc_file)
+    det, labels, rooms, probs = _mk(tmp_path, symbols=["stair"])
+    fp.classify_rooms_dino(det, labels, rooms, probs)
     assert rooms[1]["label"] == "living"       # 錨房不受影響
 
 
