@@ -17,12 +17,17 @@ __pycache__/
 # 語意快取預覽圖（分鐘級可重生，只提交 npz 與 report）
 cubicasa/room/*_cc.png
 
-# 本機自管總目錄，不 push：訓練產物（打包件/微調模型/驗收快取）＋
+# 本機自管大檔，不 push：訓練產物（打包件/微調模型/驗收快取）＋
 # CubiCasa5k 程式庫與資料集＋官方權重 model_best_val_loss_var.pkl＋
-# 門/符號模板庫 npz＋管線預覽輸出 chk/＋房型評分工作區 eval_rooms/
-# 換機：整包 training.zip 搬運解壓即可
+# 管線預覽輸出 chk/＋房型評分工作區 eval_rooms/
+# 換機：大檔整包 training.zip 搬運解壓；程式碼/測試/模板庫/評測報告走版控（下方負向規則）
 # （人工答案在 Identify_ans/ 進版控；語意快取 cubicasa/ npz 進版控供雙機同步）
-training/
+training/*
+!training/scripts/
+!training/tests/
+!training/json/
+!training/*.npz
+training/tests/.pytest_cache/
 VibeCoding_Workflow_Templates/
 training.zip
 cubicasa/room_ft/
