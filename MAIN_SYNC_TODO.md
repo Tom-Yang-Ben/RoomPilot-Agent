@@ -339,27 +339,34 @@ cody_room_semantics = recognize_cody_rooms(image_bytes)   # 仍缺 cache_key
 自成一個可獨立搬運的單位，此失效模式消失。已加測試釘住
 （`test_symbol_match.py::test_lib_path_resolves_to_real_file`）。
 
-### 10. 房型新增 `office`／`stair` 兩類（2026-07-29）
+### 10. 房型新增 `stair` 一類（2026-07-29，**當日修訂：`office` 已撤回**）
 
 原本 `Office` 與 `StairWell` 在 CubiCasa 的 `rooms_selected` 都是 11(Undefined)，
 評分的 `space` 是「書房＋樓梯間＋真未定義」混合桶（recall 0.286）。
-v2.14 早已裁決要拆成 10 類，本次補完整條鏈路。main 若消費 `rooms[].label`
-需知道會多出這兩個值：
+本次拆解該混合桶，但**只新增 `stair` 一個 label**：
+
+> **⚠ 給 main 的重點**：`rooms[].label` 只多出 `"stair"` 一個值。
+> 曾短暫存在的 `"office"`（commit 7ca3b1dd）已於同日撤回併入 `storage`，
+> 若已依舊版接了 office 請移除。
 
 | 層 | 變更 |
 | :--- | :--- |
-| `ROOM_ZH_EX` | `office`→「書房」、`stair`→「樓梯」 |
-| `ROOM_BGR_EX` | 兩類各給疊圖色 |
-| `EXTRA_LABELS` | 新常數：模型盲區類，score 以 0 分播種 |
-| `OCR_WORD2LABEL` | OFFICE/STUDY/WORKROOM/DEN/LIBRARY→office；STAIR(S)/STAIRWELL/STAIRCASE→stair |
-| `detect_stairs()` | **新增**：踏板幾何偵測（層 4） |
+| `ROOM_ZH_EX` / `ROOM_BGR_EX` | `stair`→「樓梯」＋疊圖色 |
+| `EXTRA_LABELS` | 新常數 `("stair",)`：模型盲區類，score 以 0 分播種 |
+| `OCR_WORD2LABEL` | STAIR(S)/STAIRWELL/STAIRCASE→stair；OFFICE/STUDY/WORKROOM/DEN/LIBRARY→**storage** |
+| `detect_stairs()` | **新增**：踏板幾何偵測（層 4），≥4 條等距等長平行線 |
 | `classify_rooms_cc` | `n["stair"]` → `score["stair"] += 0.6` |
-| GT 側 `gt_label_of()` | `training/scripts/eval_rooms_cc.py`，塌陷前攔截兩個具名 token |
+| GT 側 `gt_label_of()` | `training/scripts/eval_rooms_cc.py`，塌陷前攔截具名 token；`Office`→`storage` |
 
-**重要限制**：CubiCasa 模型沒有這兩類的輸出通道，語意投票（層 1/2）
-**結構上產不出來**，分數只能由證據層供給——`stair` 靠幾何、`office` 只有 OCR
-（`ASSET_KINDS` 無書桌／書櫃素材）。因此 `office` 在無文字標示的圖上恆為 0 分，
-不會誤標，但也叫不出來。
+**為什麼 `office` 撤回**：實測證明這個區分不帶資訊——DINOv2 裁切分類器在 72 房
+上**從未把 office 與 storage 互相搞混**（三個相關錯誤全是跨家族的），合併前後
+正確率完全相同（DINOv2 65/72、管線 57/72，逐類 recall 一分未動）。且書房沒有
+專屬家具（桌椅書櫃全跟別的房型共用），證據層供不出分數，管線 office recall
+恆為 0.000。`stair` 得以保留是因為踏板是樓梯獨有的圖案——**有專屬視覺特徵的
+類別才立得住**。
+
+標注資料同步：`testdata/Identify_ans/own_*` 的 9 個 `Space Office` 群組已改為
+`Space Storage`（含底色 `#c9b458`→`#b8a06a` 與文字標籤），House 回讀 65/65 通過。
 
 **驗收**（`--own-dir own_dataset --gt-seg`，24 圖／157 房，與 v2.18 基準同尺）：
 
@@ -368,7 +375,6 @@ v2.14 早已裁決要拆成 10 類，本次補完整條鏈路。main 若消費 `
 | 具名命中 | 114/157 = 72.6% | **117/157 = 74.5%** |
 | `space` 混合桶 | n=14, recall 0.286 | **已解散**（n=0） |
 | `stair` | — | n=7, recall 0.429, precision 0.75 |
-| `office` | — | n=7, recall 0.0（7 張圖 OCR 全無有效文字） |
 | 舊八類 recall | — | **逐類完全未動**（zero regression） |
 
 `office` 掛零已查明原因：那 7 張圖 OCR 只讀到 0~3 行雜訊（「这」「中」「区」），
