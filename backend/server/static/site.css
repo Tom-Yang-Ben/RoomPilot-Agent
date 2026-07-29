@@ -11720,6 +11720,20 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   padding: 4px;
 }
 
+.rp-whole-house-style-editor {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid #d8d5ce;
+}
+
+#questionnaire-finishes.is-room-needs-only > .rp-style-tabs,
+#questionnaire-finishes.is-room-needs-only > .rp-style-grid,
+#questionnaire-finishes.is-room-needs-only > .rp-questionnaire-material-grid,
+#questionnaire-finishes.is-room-needs-only > .rp-room-finish-apply,
+#questionnaire-finishes.is-room-needs-only > .rp-room-feasibility-notices {
+  display: none;
+}
+
 .rp-questionnaire-material-options {
   display: grid;
   gap: 10px;

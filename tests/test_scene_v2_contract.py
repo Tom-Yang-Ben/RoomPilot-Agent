@@ -768,10 +768,11 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
 
     assert "async function generateWhiteModelFromRequirements" in viewer
-    assert "await generateWhiteModelFromRequirements({ returnToRequirementsOnFailure: true });" in viewer
+    assert "const generated = await generateWhiteModelFromRequirements({" in viewer
     assert 'state.workflow?.goTo("layout_2d")' in viewer
     assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });' in viewer
-    assert viewer.count('await confirmLayout2d({ allowPendingFurniture: false });') >= 2
+    assert viewer.count('await confirmLayout2d({ allowPendingFurniture: true });') >= 2
+    assert 'state.designSchemes.schemes.B && !state.designSchemes.schemes.B.stale' in viewer
     assert "方案 A、B 的 2D+3D 配置已建立" in viewer
     assert 'state.workflow.currentStep === "white_model_3d"' in viewer
     assert 'state.workflow.currentStep === "layout_2d"' in viewer
@@ -784,6 +785,19 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "尚未找到可用的資料庫 GLB" in viewer
     assert "selected_furniture_exact: !allowPendingFurniture" in viewer
     assert "完成需求並建立 2D+3D 配置" in html
+
+
+def test_questionnaire_collects_room_needs_before_applying_whole_house_finishes() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+
+    assert 'id="whole-house-style-editor"' in html
+    assert 'id="whole-house-wall-options"' in html
+    assert 'id="whole-house-floor-options"' in html
+    assert "function applyWholeHouseFinishes()" in source
+    assert "applyWholeHouseFinishes();" in source
+    assert 'if (state.questionnaireStage === "rooms")' in source
+    assert "逐房用途與家具" in html
 
 
 def test_step_six_defaults_to_free_rotation_with_grouped_tools() -> None:

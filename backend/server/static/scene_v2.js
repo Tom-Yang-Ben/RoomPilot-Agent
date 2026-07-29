@@ -295,6 +295,17 @@ const element = {
   openingWidthValue: $("#opening-width-value"),
   spaceError: $("#space-error"),
   wholeHouseFields: $("#whole-house-fields"),
+  wholeHouseStyleTabs: $("#whole-house-style-tabs"),
+  wholeHouseStyleGrid: $("#whole-house-style-grid"),
+  wholeHouseWallOptions: $("#whole-house-wall-options"),
+  wholeHouseFloorOptions: $("#whole-house-floor-options"),
+  wholeHouseWallColor: $("#whole-house-wall-color"),
+  wholeHouseFloorColor: $("#whole-house-floor-color"),
+  wholeHouseCeilingMaterial: $("#whole-house-ceiling-material"),
+  wholeHouseCeilingStyle: $("#whole-house-ceiling-style"),
+  wholeHouseLightStyle: $("#whole-house-light-style"),
+  wholeHouseCeilingColor: $("#whole-house-ceiling-color"),
+  wholeHouseAirConditioning: $("#whole-house-air-conditioning"),
   requirementsProgress: $("#requirements-progress"),
   requirementsError: $("#requirements-error"),
   randomizeRequirements: $("#randomize-requirements"),
@@ -5116,6 +5127,8 @@ function showQuestionnaireStage(stage) {
   element.requirementsError.textContent = "";
   if (nextStage === "rooms") {
     renderVisualQuestionnaire();
+  } else if (nextStage === "profile") {
+    renderWholeHouseQuestionnaire();
   } else if (nextStage === "summary") {
     renderQuestionnaireSummary();
   }
@@ -5537,7 +5550,17 @@ function renderQuestionnaireFinishes() {
   const room = activeQuestionnaireRoom();
   const draft = activeRoomFinishDraft();
   if (!room || !draft) return;
-  $("#room-finish-title").textContent = `${room.label}的設備與材質`;
+  const roomNeedsOnly = state.questionnaireStage === "rooms";
+  $("#questionnaire-finishes").classList.toggle("is-room-needs-only", roomNeedsOnly);
+  $("#room-finish-title").textContent = roomNeedsOnly
+    ? `${room.label}的用途與家具`
+    : `${room.label}的設備與材質`;
+  $("#questionnaire-finishes .rp-questionnaire-section-heading > p").textContent = roomNeedsOnly
+    ? "先勾選這個空間的用途與想帶入的家具；全屋風格、材質與設備會在所有房間完成後一次設定。"
+    : "材質與設備會由全屋風格預設帶入；你仍可在第 6 步針對個別空間微調。";
+  $("#confirm-questionnaire-finishes").textContent = roomNeedsOnly
+    ? `確認${room.label}的用途與家具`
+    : "確認設備與材質";
   renderQuestionnaireRoomUsage(room);
   renderQuestionnaireFurnitureRecommendations(room);
   void ensureQuestionnaireFurnitureRecommendations(room);
@@ -5674,6 +5697,24 @@ function confirmQuestionnaireFinishes() {
   const requirement = activeRoomRequirement();
   const draft = activeRoomFinishDraft();
   if (!room || !requirement) return;
+  if (state.questionnaireStage === "rooms") {
+    requirement.confirmed = true;
+    delete requirement.preferenceSuggestion;
+    element.requirementsError.textContent = "";
+    invalidateDownstreamFrom("requirements", "逐房用途或家具已修改，後續配置需要重新產生。");
+    const nextRoom = state.rooms.find(
+      (candidate) => !state.roomRequirementModel.roomRequirements[candidate.id]?.confirmed,
+    );
+    if (nextRoom) {
+      state.roomRequirementModel.activeRoomId = nextRoom.id;
+      renderVisualQuestionnaire();
+      setStatus(`已確認「${room.label}」；接著確認「${nextRoom.label}」。`);
+      scheduleSave("requirements");
+    } else {
+      showQuestionnaireStage("profile");
+    }
+    return;
+  }
   const pack = draft.stylePackId ? activeQuestionnairePack() : STYLE_PACKS[0];
   Object.assign(draft, {
     ...draft,
@@ -5829,6 +5870,164 @@ function renderWholeHouseQuestionnaire() {
     const control = host?.querySelector("select, textarea");
     if (control) control.value = state.basicAnswers[question.id] || "";
   });
+  renderWholeHouseStyleEditor();
+}
+
+function wholeHouseFinishDraft() {
+  const fallbackPack = STYLE_PACKS.find(
+    (pack) => pack.id === state.activeStylePackId,
+  ) || STYLE_PACKS[0];
+  const draft = state.questionnaireFinishes || {};
+  return {
+    stylePackId: draft.stylePackId || fallbackPack.id,
+    wallMaterial: draft.wallMaterial || fallbackPack.wall.surfaceOption,
+    wallColor: draft.wallColor || fallbackPack.wall.color,
+    floorMaterial: draft.floorMaterial || fallbackPack.floor.surfaceOption,
+    floorColor: draft.floorColor || fallbackPack.floor.color,
+    ceilingMaterial: draft.ceilingMaterial || "flat-paint",
+    ceilingStyle: draft.ceilingStyle || CEILING_STYLES[0].id,
+    lightStyle: draft.lightStyle || LIGHT_STYLES[0].id,
+    ceilingColor: draft.ceilingColor || "#f4f1eb",
+    airConditioning: draft.airConditioning || "auto",
+  };
+}
+
+function renderWholeHouseMaterialOptions(kind, pack, draft) {
+  const host = kind === "wall"
+    ? element.wholeHouseWallOptions
+    : element.wholeHouseFloorOptions;
+  const selectedKey = kind === "wall" ? "wallMaterial" : "floorMaterial";
+  host.innerHTML = questionnaireMaterialOptionsForPack(kind, pack).map((option) => `
+    <button type="button" data-whole-house-material="${escapeHtml(kind)}"
+      data-whole-house-material-id="${escapeHtml(option.id)}"
+      class="${draft[selectedKey] === option.id ? "is-active" : ""}"
+      aria-pressed="${draft[selectedKey] === option.id}">
+      <span class="rp-material-preview" style="background-color:${escapeHtml(option.color)};background-image:url('${escapeHtml(option.materialPreview)}')"></span>
+      <strong>${escapeHtml(option.label)}</strong>
+      <small>${escapeHtml(option.note)}<em>${escapeHtml(`${pack.name} 推薦`)}</em></small>
+    </button>
+  `).join("");
+}
+
+function renderWholeHouseStyleEditor() {
+  const draft = wholeHouseFinishDraft();
+  const pack = STYLE_PACKS.find((candidate) => candidate.id === draft.stylePackId) || STYLE_PACKS[0];
+  state.questionnaireFinishes = { ...state.questionnaireFinishes, ...draft };
+  state.activeStyleId = pack.styleId;
+  element.wholeHouseStyleTabs.innerHTML = [...new Map(
+    STYLE_PACKS.map((candidate) => [candidate.styleId, candidate.styleLabel]),
+  ).entries()].map(([styleId, label]) => `
+    <button type="button" data-whole-house-style="${escapeHtml(styleId)}"
+      class="${styleId === pack.styleId ? "is-active" : ""}"
+      aria-pressed="${styleId === pack.styleId}">${escapeHtml(label)}</button>
+  `).join("");
+  element.wholeHouseStyleGrid.innerHTML = STYLE_PACKS
+    .filter((candidate) => candidate.styleId === pack.styleId)
+    .map((candidate) => `
+      <button type="button" data-whole-house-style-pack="${escapeHtml(candidate.id)}"
+        class="${candidate.id === pack.id ? "is-active" : ""}"
+        aria-pressed="${candidate.id === pack.id}">
+        <img class="rp-style-card-preview" src="${escapeHtml(candidate.sourceImage)}"
+          alt="${escapeHtml(`${candidate.styleLabel} ${candidate.name}參考圖`)}" loading="lazy">
+        <span class="rp-style-swatches">${candidate.palette
+          .map((color) => `<i style="background:${escapeHtml(color)}"></i>`)
+          .join("")}</span>
+        <strong>${escapeHtml(candidate.name)}</strong>
+      </button>
+    `).join("");
+  renderWholeHouseMaterialOptions("wall", pack, draft);
+  renderWholeHouseMaterialOptions("floor", pack, draft);
+  element.wholeHouseWallColor.value = draft.wallColor;
+  element.wholeHouseFloorColor.value = draft.floorColor;
+  element.wholeHouseCeilingMaterial.value = draft.ceilingMaterial;
+  element.wholeHouseCeilingStyle.innerHTML = CEILING_STYLES.map((item) =>
+    `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`
+  ).join("");
+  element.wholeHouseLightStyle.innerHTML = LIGHT_STYLES.map((item) =>
+    `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`
+  ).join("");
+  element.wholeHouseCeilingStyle.value = draft.ceilingStyle;
+  element.wholeHouseLightStyle.value = draft.lightStyle;
+  element.wholeHouseCeilingColor.value = draft.ceilingColor;
+  element.wholeHouseAirConditioning.value = draft.airConditioning;
+}
+
+function selectWholeHouseStylePack(packId) {
+  const pack = STYLE_PACKS.find((candidate) => candidate.id === packId);
+  if (!pack) return;
+  const wallOption = questionnaireMaterialOptionsForPack("wall", pack)[0];
+  const floorOption = questionnaireMaterialOptionsForPack("floor", pack)[0];
+  state.activeStyleId = pack.styleId;
+  state.activeStylePackId = pack.id;
+  state.questionnaireFinishes = {
+    ...wholeHouseFinishDraft(),
+    stylePackId: pack.id,
+    wallMaterial: wallOption?.id || pack.wall.surfaceOption,
+    wallColor: wallOption?.color || pack.wall.color,
+    floorMaterial: floorOption?.id || pack.floor.surfaceOption,
+    floorColor: floorOption?.color || pack.floor.color,
+    ceilingStyle: CEILING_STYLES.find((item) => item.styles.includes(pack.styleId))?.id
+      || CEILING_STYLES[0].id,
+    lightStyle: LIGHT_STYLES.find((item) => item.styles.includes(pack.styleId))?.id
+      || LIGHT_STYLES[0].id,
+  };
+  renderWholeHouseStyleEditor();
+  scheduleSave("requirements");
+}
+
+function saveWholeHouseFinishInputs() {
+  state.questionnaireFinishes = {
+    ...wholeHouseFinishDraft(),
+    wallColor: element.wholeHouseWallColor.value,
+    floorColor: element.wholeHouseFloorColor.value,
+    ceilingMaterial: element.wholeHouseCeilingMaterial.value,
+    ceilingStyle: element.wholeHouseCeilingStyle.value,
+    lightStyle: element.wholeHouseLightStyle.value,
+    ceilingColor: element.wholeHouseCeilingColor.value,
+    airConditioning: element.wholeHouseAirConditioning.value || "auto",
+  };
+  scheduleSave("requirements");
+}
+
+function applyWholeHouseFinishes() {
+  const previous = wholeHouseFinishDraft();
+  const pack = STYLE_PACKS.find((candidate) => candidate.id === previous.stylePackId) || STYLE_PACKS[0];
+  const draft = {
+    ...previous,
+    wallColor: element.wholeHouseWallColor.value,
+    floorColor: element.wholeHouseFloorColor.value,
+    ceilingMaterial: element.wholeHouseCeilingMaterial.value,
+    ceilingStyle: element.wholeHouseCeilingStyle.value,
+    lightStyle: element.wholeHouseLightStyle.value,
+    ceilingColor: element.wholeHouseCeilingColor.value,
+    airConditioning: element.wholeHouseAirConditioning.value || "auto",
+  };
+  state.questionnaireFinishes = draft;
+  state.activeStyleId = pack.styleId;
+  state.activeStylePackId = pack.id;
+  state.rooms.forEach((room) => {
+    const requirement = state.roomRequirementModel.roomRequirements[room.id];
+    if (!requirement) return;
+    const existing = requirement.surfaces || {};
+    requirement.surfaces = {
+      ...existing,
+      paletteId: draft.stylePackId,
+      wallDefault: { materialId: draft.wallMaterial, color: draft.wallColor },
+      floor: { materialId: draft.floorMaterial, color: draft.floorColor },
+      ceiling: {
+        materialId: draft.ceilingMaterial,
+        styleId: draft.ceilingStyle,
+        lightingId: draft.lightStyle,
+        color: draft.ceilingColor,
+      },
+    };
+    requirement.climate = {
+      ...(requirement.climate || {}),
+      airConditioning: draft.airConditioning,
+    };
+    state.roomFinishDrafts[room.id] = { ...draft, confirmed: true };
+  });
+  applyWholeHouseSurfaceConsistency();
 }
 
 function collectBasicAnswers() {
@@ -5855,6 +6054,11 @@ async function confirmBasicQuestionnaire() {
   state.basicConfirmed = true;
   state.roomRequirementModel.globalProfile = { ...answers };
   state.roomRequirementModel.globalConfirmed = true;
+  applyWholeHouseFinishes();
+  invalidateDownstreamFrom(
+    "requirements",
+    "全屋風格與材質已確認，後續配置需要依完整需求重新產生。",
+  );
   showQuestionnaireStage("summary");
   scheduleSave("requirements");
 }
@@ -5887,13 +6091,11 @@ async function confirmRequirements() {
       schemeB.furniture = [];
       schemeB.stale = true;
       schemeB.staleReason = "目前格局無法在保留問卷需求下產生方案 B 的合法配置。";
-      element.requirementsError.textContent = `${schemeB.staleReason} 請調整家具需求或房間結構後再試。`;
-      switchDesignScheme("A");
-      return;
+    } else {
+      schemeB.furniture = schemeBFurniture;
+      schemeB.stale = false;
+      schemeB.staleReason = "";
     }
-    schemeB.furniture = schemeBFurniture;
-    schemeB.stale = false;
-    schemeB.staleReason = "";
     switchDesignScheme("A");
     state.workflow.complete("requirements", {
       basicConfirmed: true,
@@ -5903,7 +6105,13 @@ async function confirmRequirements() {
     });
     renderFurnitureLibrary();
     setStatus("正在載入方案 A 的資料庫家具與 3D 場景…");
-    await generateWhiteModelFromRequirements({ returnToRequirementsOnFailure: true });
+    const generated = await generateWhiteModelFromRequirements({
+      returnToRequirementsOnFailure: true,
+    });
+    if (!generated && !element.requirementsError.textContent.trim()) {
+      element.requirementsError.textContent =
+        "無法建立 2D+3D 配置，請檢查待處理家具或稍後再試。";
+    }
   } catch (error) {
     element.requirementsError.textContent = errorMessage(error);
     setStatus(errorMessage(error), "error");
@@ -8102,7 +8310,9 @@ async function generateWhiteModelFromRequirements({ returnToRequirementsOnFailur
       return false;
     }
     setStatus("正在依照問卷、色卡與指定家具建立方案 A 的 3D 場景…");
-    await confirmLayout2d({ allowPendingFurniture: false });
+    // 問卷候選家具的 GLB 可能仍在驗證，先進入第 6 步處理可用項目。
+    // 尚未載入的候選會保留為待處理，不應阻擋整體 2D+3D 場景。
+    await confirmLayout2d({ allowPendingFurniture: true });
     const generatedA = state.workflow.currentStep === "white_model_3d" && Boolean(state.sceneData);
     if (!generatedA) {
       const message = element.layoutError.textContent.trim()
@@ -8116,25 +8326,24 @@ async function generateWhiteModelFromRequirements({ returnToRequirementsOnFailur
       return false;
     }
 
-    if (state.designSchemes.schemes.B) {
+    if (state.designSchemes.schemes.B && !state.designSchemes.schemes.B.stale) {
       setStatus("正在載入方案 B 的資料庫家具與 3D 場景…");
       await switchDesignScheme("B");
-      await confirmLayout2d({ allowPendingFurniture: false });
+      await confirmLayout2d({ allowPendingFurniture: true });
       const generatedB = state.workflow.currentStep === "white_model_3d" && Boolean(state.sceneData);
       if (!generatedB) {
         const message = element.layoutError.textContent.trim()
           || "方案 B 無法建立 3D 場景，請返回問卷調整需求。";
+        state.designSchemes.schemes.B.stale = true;
+        state.designSchemes.schemes.B.staleReason = message;
         await switchDesignScheme("A");
-        if (returnToRequirementsOnFailure) {
-          state.workflow.goTo("requirements");
-          showStep("requirements");
-          element.requirementsError.textContent = message;
-          scheduleSave("requirements");
-        }
-        return false;
+        setStatus("方案 A 已建立；方案 B 有待處理家具，請在第 6 步調整。", "warning");
+      } else {
+        await switchDesignScheme("A");
+        setStatus("方案 A、B 的 2D+3D 配置已建立，可開始比較與調整。", "success");
       }
-      await switchDesignScheme("A");
-      setStatus("方案 A、B 的 2D+3D 配置已建立，可開始比較與調整。");
+    } else if (state.designSchemes.schemes.B?.stale) {
+      setStatus("方案 A 已建立；方案 B 有待處理家具，請在第 6 步調整。", "warning");
     }
     return true;
   } finally {
@@ -10222,6 +10431,55 @@ function bindEvents() {
   $("#visual-question-next").addEventListener("click", () => moveVisualQuestion(1));
   $("#back-to-room-questionnaire").addEventListener("click", () => showQuestionnaireStage("rooms"));
   $("#questionnaire-summary-back").addEventListener("click", () => showQuestionnaireStage("profile"));
+  element.wholeHouseStyleTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-whole-house-style]");
+    if (!button) return;
+    const firstPack = STYLE_PACKS.find(
+      (pack) => pack.styleId === button.dataset.wholeHouseStyle,
+    );
+    if (firstPack) selectWholeHouseStylePack(firstPack.id);
+  });
+  element.wholeHouseStyleGrid.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-whole-house-style-pack]");
+    if (button) selectWholeHouseStylePack(button.dataset.wholeHouseStylePack);
+  });
+  [element.wholeHouseWallOptions, element.wholeHouseFloorOptions].forEach((host) => {
+    host.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-whole-house-material]");
+      if (!button) return;
+      const key = button.dataset.wholeHouseMaterial === "wall"
+        ? "wallMaterial"
+        : "floorMaterial";
+      const colorKey = button.dataset.wholeHouseMaterial === "wall"
+        ? "wallColor"
+        : "floorColor";
+      const pack = STYLE_PACKS.find(
+        (candidate) => candidate.id === wholeHouseFinishDraft().stylePackId,
+      ) || STYLE_PACKS[0];
+      const option = questionnaireMaterialOptionsForPack(
+        button.dataset.wholeHouseMaterial,
+        pack,
+      ).find((candidate) => candidate.id === button.dataset.wholeHouseMaterialId);
+      state.questionnaireFinishes = {
+        ...wholeHouseFinishDraft(),
+        [key]: button.dataset.wholeHouseMaterialId,
+        [colorKey]: option?.color || wholeHouseFinishDraft()[colorKey],
+      };
+      renderWholeHouseStyleEditor();
+      scheduleSave("requirements");
+    });
+  });
+  [
+    element.wholeHouseWallColor,
+    element.wholeHouseFloorColor,
+    element.wholeHouseCeilingMaterial,
+    element.wholeHouseCeilingStyle,
+    element.wholeHouseLightStyle,
+    element.wholeHouseCeilingColor,
+    element.wholeHouseAirConditioning,
+  ].forEach((control) => {
+    control.addEventListener("change", saveWholeHouseFinishInputs);
+  });
   element.questionnaireStyleTabs.addEventListener("click", (event) => {
     const button = event.target.closest("[data-questionnaire-style]");
     if (!button) return;

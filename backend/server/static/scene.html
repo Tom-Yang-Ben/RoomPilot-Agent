@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-eda41c413558" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-983f81917f00" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -382,6 +382,45 @@
               <p>家庭成員、預算、生活偏好與整體風格只填一次；系統會將其與逐房家具選擇一起交給 RAG。</p>
             </div>
             <div id="whole-house-fields" class="rp-test2-profile-grid"></div>
+            <section id="whole-house-style-editor" class="rp-whole-house-style-editor">
+              <div class="rp-questionnaire-section-heading">
+                <div><span class="eyebrow">全屋風格</span><h3>選一組風格，再微調材質</h3></div>
+                <p>一般室內空間會先共用這組牆面、地板、天花與照明設定；廚房、浴室與陽台可在第 6 步個別調整。</p>
+              </div>
+              <div id="whole-house-style-tabs" class="rp-style-tabs" aria-label="全屋風格類型"></div>
+              <div id="whole-house-style-grid" class="rp-style-grid rp-questionnaire-style-grid"></div>
+              <div class="rp-questionnaire-material-grid">
+                <fieldset>
+                  <legend>牆壁材質</legend>
+                  <div id="whole-house-wall-options" class="rp-questionnaire-material-options"></div>
+                  <label><span>牆壁顏色</span><input id="whole-house-wall-color" type="color" value="#f2f0ec" /></label>
+                </fieldset>
+                <fieldset>
+                  <legend>地板材質</legend>
+                  <div id="whole-house-floor-options" class="rp-questionnaire-material-options"></div>
+                  <label><span>地板顏色</span><input id="whole-house-floor-color" type="color" value="#b99b78" /></label>
+                </fieldset>
+                <fieldset>
+                  <legend>天花與設備</legend>
+                  <label><span>天花材質</span><select id="whole-house-ceiling-material">
+                    <option value="flat-paint">平光乳膠漆</option>
+                    <option value="mineral-paint">礦物塗料</option>
+                    <option value="wood-veneer">木質飾板</option>
+                    <option value="exposed-concrete">清水混凝土</option>
+                  </select></label>
+                  <label><span>天花形式</span><select id="whole-house-ceiling-style"></select></label>
+                  <label><span>照明形式</span><select id="whole-house-light-style"></select></label>
+                  <label><span>冷氣形式</span><select id="whole-house-air-conditioning">
+                    <option value="auto">依房間條件建議</option>
+                    <option value="wall-split">壁掛分離式</option>
+                    <option value="ceiling-cassette">嵌入式四方吹</option>
+                    <option value="ducted">隱藏式風管</option>
+                    <option value="none">暫不規劃冷氣</option>
+                  </select></label>
+                  <label><span>天花顏色</span><input id="whole-house-ceiling-color" type="color" value="#f4f1eb" /></label>
+                </fieldset>
+              </div>
+            </section>
             <div class="rp-action-row">
               <button id="back-to-room-questionnaire" type="button" class="secondary-action">返回逐房家具</button>
               <button id="confirm-basic-questionnaire" type="button" class="primary-action">確認全屋需求與風格，查看方案摘要</button>
@@ -390,7 +429,7 @@
 
           <section id="visual-questionnaire" class="rp-questionnaire-stage" data-questionnaire-panel="rooms">
             <div class="rp-questionnaire-section-heading">
-              <div><span class="eyebrow">逐房家具與材質</span><h3>每個空間只確認想帶入的家具與材質</h3></div>
+              <div><span class="eyebrow">逐房用途與家具</span><h3>每個空間只確認用途與想帶入的家具</h3></div>
               <p id="visual-questionnaire-notice"></p>
             </div>
             <div class="rp-room-questionnaire-layout">
@@ -867,6 +906,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-df8ca7f6a484"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-54e87beeda29"></script>
   </body>
 </html>
