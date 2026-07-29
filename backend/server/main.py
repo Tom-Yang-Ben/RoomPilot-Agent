@@ -33,6 +33,7 @@ from ..floorplan.vision import (
     confirm_floorplan_analysis,
     infer_room_requirements,
 )
+from ..floorplan.vision.ocr import default_ocr_provider
 from ..upgrade3d.dxf_parser import list_plans, parse_dxf_bytes, parse_dxf_file
 from .scene_service import (
     _largest_region_boundary,
@@ -124,6 +125,18 @@ QUESTIONNAIRE_VISUAL_CATALOG = load_questionnaire_visual_catalog()
 QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
 _QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
+
+
+def _floorplan_ocr_provider():
+    """印刷房名與尺寸標註的 OCR 供應者（2026-07 盤點第 3 項「OCR 死碼」接線）。
+
+    paddle 未安裝時回 None，行為與接線前完全一致（比例尺回到手拉）；
+    ROOMPILOT_OCR_DISABLED=1 可在演示現場緊急停用。
+    實例由 ocr.default_ocr_provider 以 lru_cache 共用，不會每請求重建引擎。
+    """
+    if os.environ.get("ROOMPILOT_OCR_DISABLED") == "1":
+        return None
+    return default_ocr_provider()
 MAX_RENDER_BYTES = 20 * 1024 * 1024
 WORKFLOW_STEPS = {
     "project",
@@ -1606,6 +1619,12 @@ def _stored_floorplan(project_id: str) -> dict:
     return upload
 
 
+# 二進位 DXF 的官方 sentinel（前 18 個位元組即可辨識）。
+_BINARY_DXF_SENTINEL = b"AutoCAD Binary DXF"
+# 文字 DXF 一定含有「群組碼 0 換行 SECTION」的段落開頭；testdata/dxf 全部 30 檔已驗證通過。
+_TEXT_DXF_SECTION_RE = re.compile(r"^[ \t]*0[ \t]*\r?\n[ \t]*SECTION\b", re.MULTILINE)
+
+
 def _validate_floorplan_bytes(extension: str, content: bytes) -> str:
     if not content:
         raise HTTPException(
@@ -1617,6 +1636,25 @@ def _validate_floorplan_bytes(extension: str, content: bytes) -> str:
             },
         )
     if extension == ".dxf":
+        if content.startswith(_BINARY_DXF_SENTINEL):
+            raise HTTPException(
+                415,
+                {
+                    "code": "binary_dxf_unsupported",
+                    "message": "偵測到二進位 DXF；目前僅支援文字（ASCII）DXF，請在 CAD 以 ASCII DXF 另存後重新上傳。",
+                    "focus": "floorplan-file",
+                },
+            )
+        head = content[:65536].decode("utf-8", errors="replace")
+        if not _TEXT_DXF_SECTION_RE.search(head):
+            raise HTTPException(
+                422,
+                {
+                    "code": "invalid_floorplan_dxf",
+                    "message": "檔案副檔名是 .dxf，但內容不是可讀取的文字 DXF（開頭找不到 SECTION 結構）。",
+                    "focus": "floorplan-file",
+                },
+            )
         return "application/dxf"
     try:
         with Image.open(io.BytesIO(content)) as image:
@@ -1952,6 +1990,7 @@ def analyze_project_floorplan(project_id: str) -> dict:
             analysis = analyze_floorplan_image(
                 content,
                 filename=upload["filename"],
+                ocr_provider=_floorplan_ocr_provider(),
             )
         except (TypeError, ValueError) as exc:
             raise HTTPException(
@@ -2866,7 +2905,7 @@ async def floorplan_analyze(
     geometry = _floorplan_json_field(geometry_json, "geometry", [])
     observed_utilities = _floorplan_json_field(observed_utilities_json, "observed_utilities", [])
     brief = _floorplan_json_field(brief_json, "brief", {})
-    provider = None
+    provider = _floorplan_ocr_provider()
     try:
         analysis = analyze_floorplan_image(
             data,

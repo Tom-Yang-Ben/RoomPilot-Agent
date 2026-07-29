@@ -87,15 +87,26 @@ def _semantics(rooms, *, width=100, height=100, source="cubicasa_semantic"):
 
 
 def test_vocabulary_map_covers_every_cody_label() -> None:
-    """cody 的 ROOM_ZH 六個鍵都要有對照，漏一個就會靜默不套用。"""
-    from backend.floorplan.floorplan2dxf_color import ROOM_ZH
+    """語意層實際輸出的詞彙表是 ROOM_ZH_EX（含 entry/storage/garage/outdoor），
+    不是基礎的 ROOM_ZH——舊版拿 ROOM_ZH 當基準，正是 entry/storage 被靜默
+    丟棄卻沒被任何測試抓到的原因（2026-07 盤點）。漏一鍵就會靜默不套用。"""
+    from backend.floorplan.floorplan2room import ROOM_ZH_EX
 
-    assert set(ROOM_ZH) == set(CODY_ROOM_TYPE_MAP)
+    assert set(ROOM_ZH_EX) == set(CODY_ROOM_TYPE_MAP)
 
 
-def test_labels_override_icon_fallback_when_centroid_falls_inside() -> None:
+def test_semantic_updates_uncertain_icons_but_not_heuristic_types() -> None:
+    # 2026-07-29 優先序定案：圖示層的猜測自我標記「待確認」，真語意可更新
+    # （floor01 的 4 m² 假臥室→玄關）；七格局啟發式與印刷房名不可覆蓋
+    # （floor04 黃金測試曾因被覆蓋而四型全滅）。
     rooms = [
-        {"id": "bedroom-1", "type": "bedroom", "label": "臥室", "source": "ocr_room_label",
+        {"id": "bedroom-1", "type": "bedroom", "label": "臥室（待確認）",
+         "source": "furniture_icon_inference",
+         "bbox_px": [10.0, 10.0, 30.0, 30.0]},
+        {"id": "room-2", "type": "default", "label": "空間 2",
+         "bbox_px": [10.0, 10.0, 30.0, 30.0]},
+        {"id": "storage-1", "type": "storage", "label": "儲藏室",
+         "source": "layout_heuristic",
          "bbox_px": [10.0, 10.0, 30.0, 30.0]},
     ]
     applied = apply_floorplan2room_labels(
@@ -106,11 +117,11 @@ def test_labels_override_icon_fallback_when_centroid_falls_inside() -> None:
         image_height=100,
     )
 
-    assert applied == 1
-    assert rooms[0]["type"] == "living_room"
-    assert rooms[0]["label"] == "客廳"
-    assert rooms[0]["source"] == "cody_floorplan2room"
-    assert rooms[0]["area_m2"] == 42.0
+    assert applied == 2
+    assert rooms[0]["type"] == "living_room", "待確認的圖示猜測可被真語意更新"
+    assert rooms[1]["type"] == "living_room", "空位可填"
+    assert rooms[2]["type"] == "storage", "啟發式判斷不得被語意覆蓋"
+    assert rooms[2]["label"] == "儲藏室"
 
 
 def test_neutral_label_does_not_overwrite_a_known_type() -> None:
@@ -152,7 +163,7 @@ def test_rooms_outside_every_semantic_bbox_are_left_alone() -> None:
 def test_semantic_bbox_is_rescaled_when_pipeline_upscaled_the_image() -> None:
     """彩色管線會放大 2 倍，bbox 必須換算回原圖像素才對得上。"""
     rooms = [
-        {"id": "bedroom-1", "type": "bedroom", "label": "臥室", "source": "ocr_room_label",
+        {"id": "room-1", "type": "default", "label": "空間 1",
          "bbox_px": [10.0, 10.0, 30.0, 30.0]},
     ]
     applied = apply_floorplan2room_labels(

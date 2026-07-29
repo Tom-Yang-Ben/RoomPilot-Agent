@@ -35,14 +35,23 @@ COORDINATE_SYSTEM = {
 }
 MIN_AUTOMATIC_SCALE_CONFIDENCE = 0.8
 
+# 別名比對前會去空白並 casefold，因此英文別名一律小寫、不含空白
+# （"MASTER BEDROOM" → "masterbedroom" 以 "bedroom" 命中）。
+# 英文別名 2026-07-29 補：testdata 美式圖的印刷房名全是英文，
+# PaddleOCR 抓到信心 1.0 卻因表裡只有中文而整批被丟掉。
 ROOM_LABELS = (
-    ("bathroom", ("浴廁", "浴室", "廁所", "衛浴", "洗手間")),
-    ("living_room", ("客廳", "起居室")),
-    ("kitchen", ("廚房", "厨房")),
-    ("dining_room", ("餐廳", "餐室")),
-    ("bedroom", ("主臥室", "主臥", "次臥", "臥室", "卧室")),
-    ("balcony", ("陽台", "工作陽台")),
-    ("workspace", ("書房", "工作室")),
+    ("bathroom", ("浴廁", "浴室", "廁所", "衛浴", "洗手間",
+                  "bathroom", "bath", "toilet", "washroom", "lavatory", "wc")),
+    ("living_room", ("客廳", "起居室", "livingroom", "living", "lounge", "familyroom")),
+    ("kitchen", ("廚房", "厨房", "kitchen")),
+    ("dining_room", ("餐廳", "餐室", "diningroom", "dining")),
+    ("bedroom", ("主臥室", "主臥", "次臥", "臥室", "卧室", "bedroom", "masterbed")),
+    ("balcony", ("陽台", "工作陽台", "balcony", "terrace", "patio")),
+    ("workspace", ("書房", "工作室", "study", "office", "den")),
+    # 語意層 entry/storage 的落地型別（2026-07 盤點修正）。circulation 與
+    # storage 同時是前端推薦表 scene_layout2d.js 的既有契約鍵。
+    ("circulation", ("玄關", "走道", "走廊", "hallway", "hall", "foyer", "entry", "corridor")),
+    ("storage", ("儲藏室", "儲藏", "儲物間", "收納間", "closet", "storage", "pantry")),
 )
 
 # cody floorplan2room 的房型詞彙 → 上面 ROOM_LABELS 的主線契約詞彙。
@@ -56,8 +65,31 @@ CODY_ROOM_TYPE_MAP: dict[str, str | None] = {
     "bed": "bedroom",
     "bath": "bathroom",
     "balcony": "balcony",
+    # 語意層另會輸出 entry/storage/garage/outdoor 四型；先前未映射會被靜默丟棄，
+    # 玄關與儲藏室永遠落不了地（2026-07 盤點確認）。circulation 與 storage 是
+    # 前端推薦表既有的契約鍵（circulation 刻意零家具，正好避免小空間被硬塞）。
+    "entry": "circulation",
+    "storage": "storage",
+    "outdoor": "balcony",
+    "garage": None,  # 台灣公寓場景罕見且無下游消費者，維持不採用
     "room": None,
 }
+
+
+def _semantic_cache_key(filename: str | None) -> str | None:
+    """上傳檔名主幹 → `cubicasa/room/<stem>_mask.npz` 的語意快取鍵。
+
+    既有語意快取全部以測資檔名為鍵；這裡若不把檔名傳給 recognize_cody_rooms，
+    鍵會退化成內容雜湊、快取 100% 落空（2026-07 盤點的房型斷鏈主因）。
+    只接受 ASCII 安全字元的主幹；其他（含中文檔名、帶空白）回 None，
+    讓 cody_adapter 沿用內容雜湊鍵，行為與快取未命中時完全一致。
+    """
+    base = re.split(r"[\\/]", str(filename or ""))[-1]
+    stem, _, _ext = base.rpartition(".")
+    stem = stem or base
+    if re.fullmatch(r"[A-Za-z0-9_\-]{1,64}", stem):
+        return stem
+    return None
 
 
 def _room_centre_px(
@@ -120,22 +152,35 @@ def apply_floorplan2room_labels(
     語意管線的座標以它自己回報的 image 尺寸為準——彩色管線會把圖放大兩倍，
     所以 bbox 必須換算回原圖像素才對得上。
 
-    覆蓋權限看語意來源：`cubicasa_semantic` 是 TODO 指定的房型來源，可以蓋掉
-    圖示規則的判斷；`area_rules` 是 cody 自己在缺語意快取時的降級，實測比主線的
-    furniture_icon_inference 差（floor04 的 kitchen 與 storage 會被它改掉），
-    因此只准填補主線判不出房型的空位。
+    覆蓋規則（2026-07-29 以 floor01/floor04 實測定案）：語意層可以填補空位、
+    可以更新圖示層自我標記「待確認」的猜測（僅限 cubicasa_semantic 來源），
+    但不得覆蓋印刷房名、七格局啟發式與使用者確認的判斷。
     """
     if not rooms or not semantics or not semantics.get("rooms"):
         return 0
 
-    may_overwrite = semantics.get("room_label_source") == "cubicasa_semantic"
     source_size = semantics.get("image") or {}
     scale_x = image_width / max(1.0, float(source_size.get("w") or image_width))
     scale_y = image_height / max(1.0, float(source_size.get("h") or image_height))
 
+    semantic_may_update_icons = semantics.get("room_label_source") == "cubicasa_semantic"
     applied = 0
     for room in rooms:
-        if not may_overwrite and room.get("type") not in (None, "", "default"):
+        # 2026-07-29 優先序定案（floor01 OCR 實跑＋floor04 黃金測試 A/B）：
+        # (1) 空位（default）一律可填；
+        # (2) 圖示層的猜測自我標記「待確認」（furniture_icon_inference），
+        #     可被真語意（cubicasa_semantic）更新——floor01 的 4 m² 假臥室
+        #     即由此修正為玄關；降級的 area_rules 沒有這個資格；
+        # (3) 其他一律不可覆蓋：印刷房名（ocr_room_label，floor01 實跑
+        #     CLOSET 曾被蓋成廚房）、七格局啟發式（layout_heuristic，
+        #     floor04 黃金測試曾因被覆蓋而四型全滅）、使用者確認。
+        # 最終順位：印刷房名/啟發式 > CubiCasa 語意 > 圖示待確認 > 面積規則。
+        room_type_value = room.get("type")
+        if room_type_value in (None, "", "default"):
+            pass
+        elif semantic_may_update_icons and room.get("source") == "furniture_icon_inference":
+            pass
+        else:
             continue
         centre = _room_centre_px(
             room, plan_bbox_px=plan_bbox_px, m_per_px=m_per_px, cm_per_px=cm_per_px
@@ -167,15 +212,25 @@ def apply_floorplan2room_labels(
 def _number_m(text: str) -> float | None:
     compact = text.strip().lower().replace(",", "")
     match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(mm|cm|m|公分|毫米|公尺)?", compact)
-    if not match:
-        return None
-    value = float(match.group(1))
-    unit = match.group(2) or "cm"
-    if unit in {"mm", "毫米"}:
-        value /= 1000.0
-    elif unit in {"cm", "公分"}:
-        value /= 100.0
-    return value if 0.3 <= value <= 100 else None
+    if match:
+        value = float(match.group(1))
+        unit = match.group(2) or "cm"
+        if unit in {"mm", "毫米"}:
+            value /= 1000.0
+        elif unit in {"cm", "公分"}:
+            value /= 100.0
+        return value if 0.3 <= value <= 100 else None
+    # 英呎吋（美式圖的尺寸標註，如 9'-0"、12'6"、10'）。OCR 常把引號辨成
+    # ’ ” ″，先正規化。複合房間尺寸（9'-0"x12'-0"）不是單一量測、刻意不收——
+    # 那是房中央的面積標籤，配錯牆線會整張圖比例錯掉。
+    normalized = compact.replace("’", "'").replace("′", "'").replace("”", '"').replace("″", '"')
+    imperial = re.fullmatch(r"(\d+)\s*'\s*-?\s*(\d+(?:\.\d+)?)?\s*\"?", normalized)
+    if imperial:
+        feet = float(imperial.group(1))
+        inches = float(imperial.group(2) or 0.0)
+        value = feet * 0.3048 + inches * 0.0254
+        return value if 0.3 <= value <= 100 else None
+    return None
 
 
 def _lines(gray: np.ndarray) -> list[tuple[int, int, int, int]]:
@@ -294,11 +349,42 @@ def _dimension_evidence(
 
 
 def _room_type(text: str) -> str | None:
-    compact = re.sub(r"\s+", "", text)
+    compact = re.sub(r"\s+", "", text).casefold()
     for room_type, aliases in ROOM_LABELS:
         if any(alias in compact for alias in aliases):
             return room_type
     return None
+
+
+def _drop_duplicate_ocr_label_rooms(rooms: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """開放式空間常在同一牆體圈圍裡印多塊房名（LIVING ROOM 與 KITCHEN 同室），
+    每塊字各建一間房、但一個圈圍只會把多邊形發給第一個命中的標籤——沒領到
+    多邊形、質心又落在別間房多邊形裡的 OCR 房，是同一實體空間的重複計數，
+    砍掉（2026-07-29 floor01 實跑：49.3 m² 客餐廚被算成兩間）。
+    領不到多邊形、也不落在任何房間裡的 OCR 房保留——那是圈圍偵測失敗，
+    標籤本身仍是有效證據。"""
+    contours = []
+    for room in rooms:
+        polygon = room.get("polygon_m")
+        if polygon and len(polygon) >= 3:
+            contours.append(
+                np.array(
+                    [[[float(p.get("x") or 0), float(p.get("y") or 0)]] for p in polygon],
+                    dtype=np.float32,
+                )
+            )
+    if not contours:
+        return rooms
+    kept = []
+    for room in rooms:
+        if room.get("polygon_m") or room.get("source") != "ocr_room_label":
+            kept.append(room)
+            continue
+        centroid = room.get("centroid_m") or {}
+        point = (float(centroid.get("x") or 0), float(centroid.get("y") or 0))
+        if not any(cv2.pointPolygonTest(c, point, False) >= 0 for c in contours):
+            kept.append(room)
+    return kept
 
 
 def _room_observations(
@@ -357,12 +443,18 @@ def analyze_floorplan_image(
     had_supplied_ocr_observations = bool(observations)
     recognition_mode = "provided_observations" if geometry_observations else "cody_vision"
     reference_match = None
-    if not observations and ocr_provider is not None:
-        observations = list(ocr_provider.recognize(image_bytes))
     if not geometry_observations:
         reference_match = match_builder_plan_630(image)
         if reference_match and not observations:
             observations = reference_match["ocr"]
+    # OCR 供應者是最後手段：呼叫端提供的觀測與黃金圖參考標註都優先。
+    # 2026-07-29 實測：真 PaddleOCR 若搶在 630 黃金圖標註之前執行，會取代
+    # 已驗收的標準答案，打破 confirm 契約與零 review_items 的驗收。
+    if not observations and ocr_provider is not None:
+        try:
+            observations = list(ocr_provider.recognize(image_bytes))
+        except Exception:
+            observations = []  # OCR 是輔助證據；供應者執行失敗不得拖垮辨識主流程
 
     evidence = _dimension_evidence(gray, observations)
     if calibration_hint:
@@ -428,7 +520,10 @@ def analyze_floorplan_image(
         cody_diagnostics = cody_result["diagnostics"]
         # CODY_MAIN_SYNC_TODO 第 2 點：房型改由 floorplan2room 語意管線提供。
         # 回 None（無法辨識）時下方仍走 django_icon_zone_rules，行為向下相容。
-        cody_room_semantics = recognize_cody_rooms(image_bytes)
+        cody_room_semantics = recognize_cody_rooms(
+            image_bytes,
+            cache_key=_semantic_cache_key(filename),
+        )
         if evidence and calibration_hint is None:
             scale["distance_m"] = round(evidence["distance_m"], 3)
             scale["pixel_distance"] = round(evidence["pixel_distance"], 3)
@@ -482,6 +577,7 @@ def analyze_floorplan_image(
                 for room in inferred_rooms
                 if room["id"] not in labelled_ids
             ]
+            rooms = _drop_duplicate_ocr_label_rooms(rooms)
     if reference_match and scale and geometry.get("plan_bbox_px"):
         bbox_left, _, _, bbox_bottom = geometry["plan_bbox_px"]
         for room in rooms:

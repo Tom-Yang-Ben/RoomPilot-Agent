@@ -648,3 +648,82 @@ def test_2d_layout_and_drag_validation_use_the_engine_with_editor_geometry() -> 
 
     assert validation.status_code == 200
     assert validation.json() == {"ok": True, "reason": None}
+
+
+def _jpeg_bytes() -> bytes:
+    buffer = BytesIO()
+    Image.new("RGB", (24, 16), "white").save(buffer, format="JPEG")
+    return buffer.getvalue()
+
+
+def test_floorplan_upload_accepts_real_jpeg_bytes() -> None:
+    project = _create_project()
+
+    accepted = client.post(
+        f"/api/projects/{project['project_id']}/floorplan",
+        files={"file": ("plan.jpg", _jpeg_bytes(), "image/jpeg")},
+    )
+
+    assert accepted.status_code == 201
+    upload = accepted.json()["upload"]
+    assert upload["extension"] == ".jpg"
+
+    source = client.get(upload["source_url"])
+    assert source.status_code == 200
+    assert source.headers["content-type"].startswith("image/jpeg")
+
+
+def test_floorplan_upload_rejects_jpg_extension_with_non_image_bytes() -> None:
+    project = _create_project()
+
+    rejected = client.post(
+        f"/api/projects/{project['project_id']}/floorplan",
+        files={"file": ("plan.jpg", b"not an image at all", "image/jpeg")},
+    )
+
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"]["code"] == "invalid_floorplan_image"
+
+
+def test_floorplan_upload_accepts_minimal_text_dxf() -> None:
+    project = _create_project()
+    minimal = (
+        "999\ncomment\n  0\nSECTION\n  2\nENTITIES\n  0\nENDSEC\n  0\nEOF\n"
+    ).encode("ascii")
+
+    accepted = client.post(
+        f"/api/projects/{project['project_id']}/floorplan",
+        files={"file": ("plan.dxf", minimal, "application/dxf")},
+    )
+
+    assert accepted.status_code == 201
+    assert accepted.json()["upload"]["extension"] == ".dxf"
+
+
+def test_floorplan_upload_rejects_garbage_dxf_bytes() -> None:
+    project = _create_project()
+
+    rejected = client.post(
+        f"/api/projects/{project['project_id']}/floorplan",
+        files={"file": ("plan.dxf", b"\x00\x01\x02 definitely not a dxf", "application/dxf")},
+    )
+
+    assert rejected.status_code == 422
+    detail = rejected.json()["detail"]
+    assert detail["code"] == "invalid_floorplan_dxf"
+    assert detail["focus"] == "floorplan-file"
+
+
+def test_floorplan_upload_rejects_binary_dxf_with_ascii_hint() -> None:
+    project = _create_project()
+    binary = b"AutoCAD Binary DXF\r\n\x1a\x00" + b"\x00" * 32
+
+    rejected = client.post(
+        f"/api/projects/{project['project_id']}/floorplan",
+        files={"file": ("plan.dxf", binary, "application/dxf")},
+    )
+
+    assert rejected.status_code == 415
+    detail = rejected.json()["detail"]
+    assert detail["code"] == "binary_dxf_unsupported"
+    assert "ASCII" in detail["message"]

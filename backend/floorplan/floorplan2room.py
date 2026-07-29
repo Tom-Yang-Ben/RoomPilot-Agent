@@ -285,11 +285,22 @@ def _cc_path(img_path):
     return os.path.join(CC_CACHE_DIR, base + "_mask.npz")
 
 
-def _cc_ok(npz_path):
+def _cc_ok(npz_path, expected_shape=None):
     if not os.path.isfile(npz_path):
         return False
     with np.load(npz_path) as z:                   # 舊版快取沒有 room 通道 → 重推
-        return "room" in z.files
+        if "room" not in z.files:
+            return False
+        if expected_shape is None:                 # 建快取路徑只問「檔案可用」，不比對尺寸
+            return True
+        ch, cw = z["room"].shape[:2]
+        eh, ew = int(expected_shape[0]), int(expected_shape[1])
+        if min(ch, cw, eh, ew) <= 0:
+            return False
+        # 檔名鍵快取可能配到不同版本的圖（floor10 案例：快取 896×1200 對圖 419×687）。
+        # 等比縮放合法（彩圖管線放大 2 倍）；長寬比差逾 5% 視為錯配——
+        # 寧可退回面積規則，也不要把錯圖的語意最近鄰縮放硬套上來。
+        return abs(cw / ch - ew / eh) <= 0.05 * (ew / eh)
 
 
 def _gh_token():
@@ -498,10 +509,10 @@ def build_rooms(det):
     if labels is None or not rooms:
         return None, [], bridges, zones, []
     cc_f = det.get("cc_file")
-    if cc_f and _cc_ok(cc_f):                    # 辨識式房型（方塊切出來投票命名）
+    if cc_f and _cc_ok(cc_f, labels.shape):      # 辨識式房型（方塊切出來投票命名）
         classify_rooms_cc(det, labels, rooms, cc_f)
-    else:                                        # 無語意快取才退回面積規則
-        print("⚠ 無語意快取 → 房型退回面積規則")
+    else:                                        # 無語意快取（或快取與圖尺寸錯配）才退回面積規則
+        print("⚠ 無語意快取或快取尺寸錯配 → 房型退回面積規則")
         fp_c.classify_rooms(rooms, cm, det["thin"], labels)
     # room_graph 只拿來算 has_door/相鄰圖——黃框依長度規則全畫，不被它篩掉
     edges, _kept = fp_c.room_graph(labels, outside, rooms, zones, rects, wins, T)
