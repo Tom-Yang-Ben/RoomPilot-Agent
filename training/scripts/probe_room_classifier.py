@@ -5,19 +5,30 @@
 測試＝own_eval 73 房（永不進訓練；8 向 TTA 平均）。與 eval_rooms_cc
 --own-eval --gt-seg 同一批 GT 房間，分數可直接對比。
 
-用法：python scripts/probe_room_classifier.py [--crops training/room_crops]
+用法：python training/scripts/probe_room_classifier.py [--crops training/room_crops]
 輸出：training/json/eval_rooms/report_own_crops_dinov2.json
+
+`--ink`（預設關閉）：特徵尾端接上墨水密度。**已實測為淨負面，勿當作改進採用**
+——72 房 90.3%→88.9%。訊號本身有效（把近乎空的 office floor74_04 從 bath 修正
+回 office，正是目標樣本），但同時把琴房型 office 與一間 living 推去 bath，淨值
+為負。保留旗標供後續研究，不要重複踩。
+根因：這批 storage 是走入式儲藏間、沿牆配櫃體，墨水量反而高於空蕩的 office，
+「空→storage、滿→office」的前提不成立（storage 中位 0.009 但測試兩間是
+0.016/0.023；office 範圍 0.015~0.061，兩者重疊）。
 """
 import argparse
 import json
 import os
 
+import sys
+
 import cv2
 import numpy as np
 import torch
 
-CLASSES = ["kitchen", "living", "bed", "bath", "entry",
-           "storage", "garage", "outdoor", "space"]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from eval_rooms_cc import CLASSES        # 單一真相來源（含 office/stair）
+
 MEAN = np.array([0.485, 0.456, 0.406], np.float32)
 STD = np.array([0.229, 0.224, 0.225], np.float32)
 SIZE = 224
@@ -51,20 +62,43 @@ def to_tensor(imgs):
     return torch.from_numpy(x.transpose(0, 3, 1, 2))
 
 
+def ink_density(bgr):
+    """細線墨水佔比——「這間房空不空」。
+
+    牆與填充是實心塊（開運算存活），扣掉後剩下的細線才是家具/設備。
+    實測 storage 中位 0.009 vs office 0.040（差 4.4 倍），但範圍重疊，
+    單獨當硬規則只有 ~81%；此處交給線性頭與視覺特徵一起權衡。
+    對旋轉/鏡射不變，故 8 視角共用同一個值。"""
+    g = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    ink = (g < 128).astype(np.uint8)
+    solid = cv2.morphologyEx(ink, cv2.MORPH_OPEN, np.ones((7, 7), np.uint8))
+    thin = cv2.bitwise_and(ink, cv2.bitwise_not(solid))
+    return float(thin.sum()) / max(1, thin.size)
+
+
 @torch.no_grad()
-def extract(model, dev, rows, augment):
-    """逐裁切取特徵；augment=True 回傳 8 視角展開，False 回傳 8 視角平均。"""
+def extract(model, dev, rows, augment, use_ink=False, use_area=False):
+    """逐裁切取特徵；augment=True 回傳 8 視角展開，False 回傳 8 視角平均。
+    use_ink / use_area：於特徵尾端接上純量（乘 10 拉到與 CLS 特徵同量級）。
+    兩者對旋轉/鏡射皆不變，8 視角共用同一個值。"""
     feats, labels = [], []
     for m in rows:
-        img = letterbox(cv2.imread(m["path"]))
+        raw = cv2.imread(m["path"])
+        img = letterbox(raw)
         vs = variants(img)
         f = model(to_tensor(vs).to(dev)).cpu().numpy()
-        if augment:
-            feats.append(f)
-            labels += [m["label"]] * len(vs)
-        else:
-            feats.append(f.mean(0, keepdims=True))
-            labels.append(m["label"])
+        if not augment:
+            f = f.mean(0, keepdims=True)
+        extra = []
+        if use_ink:
+            extra.append(ink_density(raw) * 10.0)
+        if use_area:
+            extra.append(float(m.get("area_ratio", 1.0)))
+        if extra:
+            f = np.concatenate(
+                [f, np.tile(np.float32(extra), (f.shape[0], 1))], 1)
+        feats.append(f)
+        labels += [m["label"]] * f.shape[0]
     return np.concatenate(feats), labels
 
 
@@ -92,6 +126,10 @@ def main():
                     help="dinov2_vits14 / dinov2_vitb14 / dinov2_vitl14")
     ap.add_argument("--report",
                     default="training/json/eval_rooms/report_own_crops_dinov2.json")
+    ap.add_argument("--ink", action="store_true",
+                    help="特徵接上墨水密度（空房↔滿房訊號；已實測淨負面）")
+    ap.add_argument("--area", action="store_true",
+                    help="特徵接上 area_ratio（面積÷同圖中位，大小房分層）")
     a = ap.parse_args()
 
     manifest = json.load(open(os.path.join(a.crops, "manifest.json")))
@@ -102,8 +140,10 @@ def main():
     model.eval().to(dev)
 
     print(f"特徵萃取：train {len(train)}×8 視角、test {len(test)}（TTA 平均）")
-    Xtr, ytr = extract(model, dev, train, augment=True)
-    Xte, yte = extract(model, dev, test, augment=False)
+    Xtr, ytr = extract(model, dev, train, augment=True, use_ink=a.ink,
+                       use_area=a.area)
+    Xte, yte = extract(model, dev, test, augment=False, use_ink=a.ink,
+                       use_area=a.area)
     ytr_i = [CLASSES.index(c) for c in ytr]
 
     head, loss = train_head(Xtr, ytr_i, len(CLASSES), dev)

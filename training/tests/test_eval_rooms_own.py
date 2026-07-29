@@ -91,7 +91,17 @@ def test_crop_bbox_margin_and_clip():
     assert crop.shape[:2] == (48, 72)
     crop2, bbox2 = ex.crop_bbox(img, np.array([0, 99]), np.array([0, 199]), 0.2)
     assert bbox2 == [0, 100, 0, 200]            # 邊距不得超出圖面
-    assert ex.norm_label(None) == "space" and ex.norm_label("balcony") == "outdoor"
+
+
+def test_crop_labels_share_one_source_of_truth():
+    """extract_room_crops 原本自帶一份 norm_label 副本，會與量尺各自漂移
+    （office/stair 拆分後就現形了）。2026-07-29 起改用 eval_rooms_cc.gt_label_of，
+    分類器、量尺、管線三方類別空間一致。"""
+    import extract_room_crops as ex
+    from eval_rooms_cc import gt_label_of
+    assert not hasattr(ex, "norm_label")        # 副本已移除，勿再長回來
+    assert gt_label_of("Office") == "office"
+    assert gt_label_of("StairWell") == "stair"
 
 
 def test_rebuild_split_by_seeds_and_polygon():

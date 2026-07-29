@@ -20,29 +20,27 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 sys.path.insert(0, os.path.join(_ROOT, "training/CubiCasa5k"))
 sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # eval_rooms_cc
+
 SETS = [("train", "testdata/Identify_ans/own_dataset", "own_train.txt"),
         ("test", "testdata/Identify_ans/own_eval", "eval_list.txt")]
 
 
-def norm_label(k):
-    if k in (None, "", "room"):
-        return "space"
-    return "outdoor" if k == "balcony" else k
-
-
 def iter_rooms(svg_path):
-    """model.svg → [(9類label, rr, cc)]；空群組/退化多邊形跳過。"""
+    """model.svg → [(label, rr, cc)]；空群組/退化多邊形跳過。
+
+    標籤走 eval_rooms_cc.gt_label_of（單一真相來源）——含 2026-07-29 新增的
+    office/stair 拆分，分類器的類別空間才與量尺、管線三方一致。"""
     from xml.dom import minidom
-    from floortrans.loaders.house import rooms_selected
     from floortrans.loaders.svg_utils import get_polygon
-    import floorplan2room as f2r
+    from eval_rooms_cc import gt_label_of
     doc = minidom.parse(svg_path)
     for e in doc.getElementsByTagName("g"):
         cls = e.getAttribute("class").split(" ")
         if not cls or cls[0] != "Space":
             continue
-        cid = rooms_selected.get(cls[1] if len(cls) > 1 else "Undefined", 11)
-        if cid in (0, 2, 8):
+        label = gt_label_of(cls[1] if len(cls) > 1 else "Undefined")
+        if label is None:                    # 背景/牆/欄杆不是房間
             continue
         try:
             rr, cc = get_polygon(e)
@@ -50,7 +48,7 @@ def iter_rooms(svg_path):
             continue
         if rr.size == 0:
             continue
-        yield norm_label(f2r.CC_ROOM_LABEL.get(cid)), rr, cc
+        yield label, rr, cc
 
 
 def crop_bbox(img, rr, cc, margin):
@@ -79,8 +77,13 @@ def main():
             img = cv2.imread(os.path.join(root, sid, "F1_scaled.png"))
             if img is None:
                 raise FileNotFoundError(f"{root}/{sid}/F1_scaled.png")
-            for i, (label, rr, cc) in enumerate(
-                    iter_rooms(os.path.join(root, sid, "model.svg"))):
+            rooms = list(iter_rooms(os.path.join(root, sid, "model.svg")))
+            # area_ratio：面積 ÷ 同圖全部房間的中位面積。以「全部房間」而非
+            # 特定房型當基準，推論時 build_rooms 就算得出來，無標籤洩漏；
+            # 同時吸收各圖比例尺差異。實測中位 living 1.96 / kitchen 1.32 /
+            # bed 1.23 / bath 0.58 / storage 0.46，大小房分層明顯。
+            med = float(np.median([rr.size for _l, rr, _c in rooms])) if rooms else 1.0
+            for i, (label, rr, cc) in enumerate(rooms):
                 crop, bbox = crop_bbox(img, rr, cc, a.margin)
                 if crop.size == 0:
                     continue
@@ -88,6 +91,7 @@ def main():
                 cv2.imwrite(os.path.join(out_dir, name), crop)
                 manifest.append({"split": split, "floor": sid, "idx": i,
                                  "label": label, "bbox": bbox,
+                                 "area_ratio": round(rr.size / max(med, 1.0), 4),
                                  "path": os.path.join(out_dir, name)})
     with open(os.path.join(a.out, "manifest.json"), "w") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=1)
