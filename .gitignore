@@ -1,43 +1,21 @@
+# 私密設定
 .env
-web_fastapi/.env
+
+# Python、Node 與測試快取
 .venv/
-.venv_triposr/
 .uv-cache/
 .pytest_cache/
 .tmp/
 __pycache__/
 *.pyc
 node_modules/
-tmp/
 .runtime/
-web_fastapi/uploads/
-web_fastapi/__pycache__/
-Miniconda3-latest-Windows-x86_64.exe
 
-# Local-only archives / cleanup holding area
+# 僅限本機的封存與清理暫存區
 _local_archive_not_for_push/
 *_local_archive_not_for_push*/
 
-# Old experiments and reference repos, not required by the current FastAPI website
-.agents/
-external/
-TripoSR/
-test_3Dfurniture/
-scripts/*
-!scripts/verify_ikea_offline_backup.py
-!scripts/sql/
-!scripts/sql/**
-scripts/sql/__pycache__/
-scripts/sql/**/*.pyc
-
-# Non-runtime generated/intermediate model artifacts
-dataset/
-
-# Old diagnostic pages not used by the current website flow
-web_fastapi/static/compare.*
-web_fastapi/static/model_probe.*
-
-# Only docs/moodboard_assets is required for the current website.
+# 文件目錄只提交 Markdown、契約與已核准的 moodboard 圖片。
 docs/*
 !docs/*.md
 !docs/backlog/
@@ -46,8 +24,10 @@ docs/*
 !docs/contracts/*.md
 !docs/moodboard_assets/
 !docs/moodboard_assets/**
+!docs/owners/
+!docs/owners/*.md
 
-# Local/personal generated Markdown, not for bella uploads
+# 個人或工具產生的本機設定與筆記不提交。
 .codex/
 .claude/
 CLAUDE.md
@@ -64,9 +44,8 @@ PERSONAL_*.md
 *_personal.md
 docs/MISSING_*_AUDIT_*.md
 
+# AI 協作規則必須版本化。
 AGENTS.md
-
-# Shared AI team guidance is intentionally versioned.
 !AGENTS.md
 !CLAUDE.md
 !backend/**/AGENTS.md
@@ -74,8 +53,21 @@ AGENTS.md
 !scripts/AGENTS.md
 !testdata/AGENTS.md
 !tests/AGENTS.md
-!docs/owners/
-!docs/owners/*.md
 
-# 3D 模型屬於本機或外部資產，不從 bella 分支上傳。
+# 大型 3D 模型、原始下載與批次預覽只保留在物件儲存或本機。
+# 已清洗、可在網站直接使用的 PBR 紋理必須提交版本控制。
 *.glb
+*.gltf
+*.bin
+*.ktx2
+*.hdr
+*.exr
+backend/catalog/data/staging/
+backend/catalog/data/quarantine/lighting/
+backend/catalog/assets/
+backend/server/static/lighting_assets/
+backend/server/static/texture_cache/
+
+# 正式 PBR 材質（含 KTX2 壓縮貼圖）是網站執行期資產，必須上傳。
+!backend/server/static/pbr_assets/
+!backend/server/static/pbr_assets/**

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 
 from test_scene_workflow import ROOT, run_workflow_script
 
@@ -27,6 +28,19 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
 
 
+def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
+    """Keep a browser-breaking syntax error from hiding behind API-only tests."""
+    module_file = tmp_path / "scene_v2.mjs"
+    module_file.write_bytes((STATIC / "scene_v2.js").read_bytes())
+    result = subprocess.run(
+        ["node", "--check", str(module_file)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_requirements_step_has_randomized_test_skip_button() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -39,18 +53,18 @@ def test_requirements_step_has_randomized_test_skip_button() -> None:
     assert 'showQuestionnaireStage("summary")' in source
 
 
-def test_weighted_questionnaire_answers_preserve_a_b_preference_strength() -> None:
+def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     css = (STATIC / "site.css").read_text(encoding="utf-8")
 
     assert "PREFERENCE_WEIGHT_OPTIONS" in source
-    assert 'data-preference-weight="${item.value}"' in source
     assert "function selectPreferenceWeight" in source
     assert "preferenceWeight: weight" in source
     assert "preferenceDirection: answerWeightDirection(weight)" in source
     assert "preference_weight: Number(answer.preferenceWeight ?? 0)" in source
     assert "preference_direction: answer.preferenceDirection" in source
     assert ".rp-preference-weight" in css
+    assert 'data-preference-weight="${item.value}"' not in source
 
 
 def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options() -> None:
@@ -63,6 +77,27 @@ def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options(
     assert "const options = questionnaireMaterialOptionsForPack(kind, pack)" in source
     assert "defaultWallMaterial: wallMaterial" in source
     assert "floorMaterial" in source
+
+
+def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    material_option = source.split("function materialOptionForPack", 1)[1].split(
+        "function questionnaireMaterialOptionsForPack", 1
+    )[0]
+    assert "packMaterialColor" not in source
+    assert "color: packMaterialColor" not in material_option
+    assert "note: option.note" in material_option
+    assert "recommendation: pack.name" in material_option
+    assert "background-color:${escapeHtml(option.color)}" in source
+    assert "全房牆面目前使用：${wallLabel}" in source
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in css
+    assert "grid-auto-rows: 86px;" in css
+    assert "width: 76px;" in css
+    assert "height: 68px;" in css
+    assert "background-size: auto 230%;" in css
+    assert "background-blend-mode: multiply;" not in css
 
 
 def test_room_surfaces_keep_one_main_floor_with_functional_exceptions() -> None:
@@ -91,16 +126,21 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
 
     assert 'id="questionnaire-furniture-options"' in html
     assert 'id="questionnaire-furniture-status"' in html
+    assert 'id="questionnaire-room-usage-options"' in html
     assert "function ensureQuestionnaireFurnitureRecommendations" in source
     assert "function renderQuestionnaireFurnitureRecommendations" in source
+    assert "const ROOM_USAGE_OPTIONS" in source
+    assert "function renderQuestionnaireRoomUsage" in source
+    assert "data-questionnaire-room-usage" in source
     assert 'data-questionnaire-furniture-id="' in source
     assert "user_selected: true" in source
     assert "selection_priority:" in source
     assert "function knownUnavailableCatalogFurnitureIds" in source
     assert "unavailableCatalogIds.has(String(offer.furniture_id))" in source
-    assert "async function verifyQuestionnaireCatalogModel" in source
-    assert "model_load_verified: true" in source
+    assert "const visibleCandidates = fittingCandidates.length ? fittingCandidates : candidates;" in source
+    assert 'model_load_verification: "deferred"' in source
     assert ".rp-questionnaire-furniture-options" in css
+    assert ".rp-questionnaire-room-usage-options" in css
 
 
 def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
@@ -198,6 +238,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_design_schemes.js",
             "scene_questionnaire_test2.js",
             "scene_configuration_sync.js",
+            "scene_viewer_reload.js",
         ],
         "scene_viewer.js": [
             "scene_architecture.js",
@@ -729,7 +770,9 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "async function generateWhiteModelFromRequirements" in viewer
     assert "await generateWhiteModelFromRequirements({ returnToRequirementsOnFailure: true });" in viewer
     assert 'state.workflow?.goTo("layout_2d")' in viewer
-    assert 'await confirmLayout2d({ allowPendingFurniture: true });' in viewer
+    assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });' in viewer
+    assert viewer.count('await confirmLayout2d({ allowPendingFurniture: false });') >= 2
+    assert "方案 A、B 的 2D+3D 配置已建立" in viewer
     assert 'state.workflow.currentStep === "white_model_3d"' in viewer
     assert 'state.workflow.currentStep === "layout_2d"' in viewer
     assert "returnToRequirementsOnFailure: true" in viewer
@@ -741,6 +784,17 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "尚未找到可用的資料庫 GLB" in viewer
     assert "selected_furniture_exact: !allowPendingFurniture" in viewer
     assert "完成需求並建立 2D+3D 配置" in html
+
+
+def test_step_six_defaults_to_free_rotation_with_grouped_tools() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'data-view-mode="orbit" class="is-active">自由旋轉' in html
+    assert 'data-view-mode="dollhouse"' not in html
+    assert 'class="rp-toolbar-group" aria-label="檢視方式"' in html
+    assert 'class="rp-toolbar-group" aria-label="操作方式"' in html
+    assert 'whiteViewer.setViewMode("dollhouse")' not in viewer
 
 
 def test_step_four_has_a_dimensioned_floorplan_confirmation_page() -> None:
@@ -2287,6 +2341,39 @@ def test_added_and_deleted_furniture_refresh_numbering_and_stay_draggable() -> N
     assert "activateWhiteFurnitureEditing();" in add_block
 
 
+def test_catalog_edits_keep_the_current_3d_camera_framing() -> None:
+    module_uri = (STATIC / "scene_viewer_reload.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ reloadViewerPreservingState }} from {json.dumps(module_uri)};
+        const calls = [];
+        const camera = {{ view_mode: "orbit", position_cm: [120, 200, 80] }};
+        const scene = {{ scene_objects: [{{ furniture_id: "chair-1" }}] }};
+        const viewer = {{
+          getCameraState() {{ calls.push("get-camera"); return camera; }},
+          async loadScene(value) {{ calls.push(value === scene ? "load-scene" : "wrong-scene"); }},
+          setCameraState(value) {{ calls.push(value === camera ? "restore-camera" : "wrong-camera"); }},
+          setInteractionMode(value) {{ calls.push("interaction:" + value); }},
+        }};
+        const returned = await reloadViewerPreservingState(viewer, scene, {{
+          interactionMode: "edit",
+        }});
+        console.log(JSON.stringify({{ calls, returned }}));
+        """
+    )
+
+    assert result["calls"] == [
+        "get-camera",
+        "load-scene",
+        "restore-camera",
+        "interaction:edit",
+    ]
+    assert result["returned"] == {
+        "view_mode": "orbit",
+        "position_cm": [120, 200, 80],
+    }
+
+
 def test_saved_layout_can_rebuild_a_missing_white_model_scene() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
@@ -2448,20 +2535,22 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert "Shift+R 反向 15 度" in viewer
 
 
-def test_3d_view_controls_offer_full_model_and_perspective_free_rotation() -> None:
+def test_3d_view_controls_offer_free_rotation_and_grouped_workflows() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'data-view-mode="orbit"' in html
-    assert 'data-view-mode="dollhouse"' in html
+    assert 'data-view-mode="dollhouse"' not in html
     assert 'data-real-view-mode="orbit"' in html
     assert 'data-proposal-view-mode="orbit"' in html
     assert html.count("自由旋轉") >= 3
-    assert "全屋家具配置" in html
+    assert "全屋家具配置" not in html
     assert 'data-real-view-mode="dollhouse"' not in html
     assert 'data-proposal-view-mode="dollhouse"' not in html
-    assert 'whiteViewer.setViewMode("dollhouse")' in controller
+    assert 'whiteViewer.setViewMode("dollhouse")' not in controller
+    assert 'class="rp-toolbar-group" aria-label="檢視方式"' in html
+    assert 'class="rp-toolbar-group" aria-label="操作方式"' in html
     assert 'realisticViewer.setViewMode("dollhouse")' not in controller
     assert 'const viewMode = createViewModeState("orbit");' in viewer
     reset_camera = viewer.split("function resetCamera", 1)[1].split(
@@ -2646,3 +2735,26 @@ def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
     assert "pendingSaveCount === 0" in source
     assert "[element.scaleImage, element.spaceImage, element.layoutImage]" in source
     assert ".filter(Boolean)" in source
+
+
+def test_step_seven_requires_one_locked_room_view_before_batch_rendering() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function proposalRoomCameraCandidates" in source
+    assert "function ensureProposalRoomCandidatePreviews" in source
+    assert "proposalRoomPreviewCache" in source
+    assert "proposalViewer.capturePng()" in source
+    assert "入口視角" in source
+    assert "對角視角" in source
+    assert "活動視角" in source
+    assert "function lockSelectedProposalRoomView" in source
+    assert "function confirmProposalRoomViews" in source
+    assert "尚有 ${missing.map((room) => room.label).join" in source
+    assert 'goTo("ai_render")' in source
+    assert "proposalRoomPreviewCache.clear();" in source
+
+    palette_handler = source.split("function confirmRenderPalette()", 1)[1].split(
+        "async function prepareAiRender()", 1
+    )[0]
+    assert "state.proposalReview.roomViews = {};" not in palette_handler
+    assert "將沿用第 7 步鎖定的逐房視角" in palette_handler
