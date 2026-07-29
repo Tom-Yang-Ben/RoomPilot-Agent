@@ -1,7 +1,6 @@
 /color_floor_21/
 /color_floor_22/
 /color_floor_23/
-/color_floor_24/
 /color_floor_25/
 /color_floor_26/
 /color_floor_27/
