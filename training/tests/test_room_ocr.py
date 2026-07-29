@@ -203,8 +203,9 @@ def test_singleton_single_instances_untouched(tmp_path):
 
 def test_kitchen_without_living_promoted(tmp_path):
     # 全戶只判出 kitchen（無 living）→ 客餐廚一體，改叫 living
+    # 2026-07-29 起需該房本身有 living 概念（≥0.05）才升級，故給 0.2 living 票
     det, labels, rooms, cc_file = _mk_multi(tmp_path, {
-        2: {3: 0.9}, 3: {5: 0.9}})
+        2: {3: 0.7, 4: 0.2}, 3: {5: 0.9}})
     fp.classify_rooms_cc(det, labels, rooms, cc_file)
     assert rooms[1]["label"] == "living"
     assert rooms[1]["relabel_from"] == "kitchen"
@@ -229,10 +230,21 @@ def test_kitchen_ocr_text_exempt_from_promotion(tmp_path):
     assert "relabel_from" not in rooms[1]
 
 
+def test_kitchen_with_zero_living_not_promoted(tmp_path):
+    """模型對該房完全沒有 living 概念 → 它就是一間獨立廚房，不是客餐廚一體。
+    floor73 實案：真廚房 kitchen 1.00 / living 0.00 卻被無條件升級成 living，
+    是 DINOv2 路徑 kitchen recall 掉到 0.6 的成因之一（修正後 0.8）。"""
+    det, labels, rooms, cc_file = _mk_multi(tmp_path, {2: {3: 0.9}, 3: {5: 0.9}})
+    fp.classify_rooms_cc(det, labels, rooms, cc_file)
+    assert rooms[1]["label"] == "kitchen"
+    assert "relabel_from" not in rooms[1]
+
+
 def test_two_kitchens_no_living_dedup_then_promote(tmp_path):
     # 兩間 kitchen 無 living：大的留下再改叫 living，小的降級
+    # （留下者需有 living 概念才升級，故房2 給 0.2 living 票）
     det, labels, rooms, cc_file = _mk_multi(tmp_path, {
-        2: {3: 0.9}, 3: {3: 0.8, 6: 0.2}})
+        2: {3: 0.7, 4: 0.2}, 3: {3: 0.8, 6: 0.2}})
     fp.classify_rooms_cc(det, labels, rooms, cc_file)
     assert rooms[1]["label"] == "living"           # 房2 面積大：kitchen→living
     assert rooms[1]["relabel_from"] == "kitchen"

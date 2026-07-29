@@ -815,8 +815,14 @@ def classify_rooms_dino(det, labels, rooms, probs):
         for lab, p in (pr or {}).items():
             if lab in score:
                 score[lab] += p * DINO_W
+        # 開放式客餐廚防呆。沿用 CubiCasa 路徑的「living 票夠強且勝過 kitchen」
+        # 語意，但係數由 2.0× 放寬為單純比大小——DINOv2 的機率是尖銳分布，
+        # floor64 的客廳 living 0.56 / kitchen 0.41 過不了 2× 門檻，廚房符號
+        # 便繼續加分把它推成 kitchen，再經限額鏈砍掉真正的廚房。
+        # `>= 0.15` 的下限保留：模型對該房完全沒有 living 概念時（floor73 的
+        # 真廚房 living 0.00）不該套用此防呆。
         open_living = (score["living"] >= 0.15
-                       and score["living"] > 2.0 * score["kitchen"])
+                       and score["living"] > score["kitchen"])
         _apply_evidence(det, labels, r, score, open_living)
         lab, val = max(score.items(), key=lambda kv: kv[1])
         r["label"] = lab if val >= 0.15 else "room"
@@ -864,7 +870,10 @@ def _enforce_singletons(rooms):
             r["label_zh"] = ROOM_ZH_EX[r["label"]]
     if not any(r["label"] == "living" for r in rooms):
         for r in rooms:                        # 限額後 kitchen 至多一間
+            # 門檻：模型對該房完全沒有 living 概念時（floor73 的真廚房
+            # living 0.00），它就只是一間獨立廚房，不是客餐廚一體，別改名
             if r["label"] == "kitchen" \
+                    and r["_score"].get("living", 0.0) >= 0.05 \
                     and "kitchen" not in (r.get("ocr_text") or {}):
                 r["relabel_from"] = "kitchen"
                 r["label"] = "living"
