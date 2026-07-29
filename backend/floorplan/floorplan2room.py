@@ -255,7 +255,106 @@ def detect_symbols(det):
         if not any(k == kind and abs(sx - ux) * cm < 20 and abs(sy - uy) * cm < 20
                    for k, ux, uy in syms):
             syms.append((kind, sx, sy))
+    syms.extend(detect_stairs(det))              # 樓梯踏板（模型盲區類 stair）
     return syms
+
+
+# ─────────────────────────── 樓梯幾何（層 4）───────────────────────────
+# CubiCasa 沒有樓梯輸出通道（StairWell→11 Undefined），而樓梯區「不可擺設」
+# 是管線的硬需求（v2.14 使用者裁決），只能自己抓。
+# 踏板在圖面上＝一疊平行、等長、等距的細線，尺寸全是建築常數，比例尺已由
+# 門寬校正 → 用 cm 規則辨識，與 detect_symbols 同套路。
+TREAD_DEPTH_CM = (21.0, 35.0)   # 踏面深度（法規/人因常數）
+STAIR_RUN_CM = (70.0, 160.0)    # 梯段淨寬：單人梯 ~75cm 起，雙人梯 ~140cm
+MIN_TREADS = 4                  # 踏板條數下限。Readme 2026-07-29 已記「衣櫃內部
+                                # 分隔線／牆體剖面線與樓梯踏步幾何同構，本質不可
+                                # 分辨」——衣櫃分隔通常 1~3 條、牆剖面線間距遠密
+                                # 於踏面深度，條數＋間距是僅有的鑑別軸，寧漏勿誤
+_SPACING_TOL = 1.35             # 間距一致性：最寬/最窄比值上限
+
+
+def _axis_segments(lines, cm, horiz):
+    """Hough 線段 → 指定方向的 (pos, lo, hi)。
+    pos＝垂直於線段的座標（踏板的排列軸），lo/hi＝線段自身的延伸範圍。"""
+    tol = max(1.0, 2.0 / cm)                     # 2cm 內視為軸對齊
+    out = []
+    for seg in lines:
+        x1, y1, x2, y2 = (float(v) for v in seg[0])
+        if horiz and abs(y2 - y1) <= tol:
+            out.append(((y1 + y2) / 2.0, min(x1, x2), max(x1, x2)))
+        elif not horiz and abs(x2 - x1) <= tol:
+            out.append(((x1 + x2) / 2.0, min(y1, y2), max(y1, y2)))
+    return out
+
+
+def _merge_collinear(segs, cm):
+    """同一條踏板可能被 Hough 切成數段，或內外緣各給一條——
+    位置差 <5cm 且範圍相接者合併，避免灌水成假的踏板數。"""
+    near = 5.0 / cm
+    merged = []
+    for pos, lo, hi in sorted(segs):
+        for i, (p, l, h) in enumerate(merged):
+            if abs(p - pos) <= near and lo <= h + near and hi >= l - near:
+                merged[i] = ((p + pos) / 2.0, min(l, lo), max(h, hi))
+                break
+        else:
+            merged.append((pos, lo, hi))
+    return merged
+
+
+def _stair_runs(segs, cm, horiz):
+    """等距平行線段 → [(cx, cy)]；不足 MIN_TREADS 或間距不齊者不採。"""
+    lo_len, hi_len = STAIR_RUN_CM
+    cand = sorted(s for s in _merge_collinear(segs, cm)
+                  if lo_len <= (s[2] - s[1]) * cm <= hi_len)
+    d_lo, d_hi = TREAD_DEPTH_CM
+    out, used = [], set()
+    for i in range(len(cand)):
+        if i in used:
+            continue
+        run = [i]
+        for j in range(i + 1, len(cand)):
+            pos_k, lo_k, hi_k = cand[run[-1]]
+            pos_j, lo_j, hi_j = cand[j]
+            gap = (pos_j - pos_k) * cm
+            if gap < d_lo:                       # 太近＝同踏板殘影，略過不斷鏈
+                continue
+            if gap > d_hi:                       # 已排序，再往後只會更遠
+                break
+            ov = min(hi_j, hi_k) - max(lo_j, lo_k)
+            if ov < 0.6 * min(hi_j - lo_j, hi_k - lo_k):
+                continue                         # 橫向沒疊在一起＝不同構件
+            run.append(j)
+        if len(run) < MIN_TREADS:
+            continue
+        gaps = [(cand[b][0] - cand[a][0]) * cm for a, b in zip(run, run[1:])]
+        if max(gaps) > _SPACING_TOL * min(gaps):  # 間距不齊＝散落家具線
+            continue
+        used.update(run)
+        pos_c = sum(cand[k][0] for k in run) / len(run)
+        lat_c = sum((cand[k][1] + cand[k][2]) / 2.0 for k in run) / len(run)
+        out.append((lat_c, pos_c) if horiz else (pos_c, lat_c))
+    return out
+
+
+def detect_stairs(det):
+    """細線層 → [("stair", cx, cy)]（px 座標）。
+    彩圖管線沒有細線層 → 空清單（同 detect_symbols 契約）。"""
+    thin, cm = det.get("thin"), det["cm"]
+    if thin is None:
+        return []
+    min_len = max(8, int(round(STAIR_RUN_CM[0] / cm)))
+    lines = cv2.HoughLinesP(thin, 1, np.pi / 180,
+                            threshold=max(15, int(min_len * 0.5)),
+                            minLineLength=min_len,
+                            maxLineGap=max(2, int(round(5.0 / cm))))
+    if lines is None:
+        return []
+    out = []
+    for horiz in (True, False):
+        for cx, cy in _stair_runs(_axis_segments(lines, cm, horiz), cm, horiz):
+            out.append(("stair", cx, cy))
+    return out
 
 
 # ─────────────────────────── OCR 文字證據（層 5）───────────────────────────
@@ -277,6 +376,12 @@ OCR_WORD2LABEL = {
     "ENTRY": "entry",
     "BALCONY": "outdoor", "TERRACE": "outdoor",
     "GARAGE": "garage",
+    # 模型盲區兩類（EXTRA_LABELS）。書房沒有幾何證據可用，OCR 是唯一來源，
+    # 詞彙寧可多列；STAIRWELL/STAIRCASE 含 STAIR，片語比對取最長鍵仍是 stair。
+    "OFFICE": "office", "STUDY": "office", "WORKROOM": "office",
+    "DEN": "office", "LIBRARY": "office",
+    "STAIR": "stair", "STAIRS": "stair", "STAIRWELL": "stair",
+    "STAIRCASE": "stair",
 }
 
 _ocr_engine = None                     # 模組級單例：模型載入 ~1s，批次只付一次
@@ -389,13 +494,21 @@ CC_WEIGHTS_ASSET_API = ("https://api.github.com/repos/Tom-Yang-Ben/RoomPilot-Age
 CC_WEIGHTS_SHA256 = "b7a280d2d7cf2dde580a947e1ebc7b4d12e53135c05581babb3b5797a166f4cf"
 CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
                  7: "entry", 9: "storage", 10: "garage", 1: "outdoor"}
+# 模型盲區類：CubiCasa 的 12 個 room class 沒有書房與樓梯，Office/StairWell
+# 在其 rooms_selected 都是 11(Undefined)——語意投票（層 1/2）結構上產不出來。
+# 兩類的分數只能由證據層供給：stair 走樓梯踏板幾何（層 4，detect_stairs），
+# office 走 OCR 文字（層 5，ASSET_KINDS 無書桌/書櫃素材，無幾何證據可用）。
+# 必須另行播種進 score，否則 OCR 層的 `if lab_t in score` 防呆會靜默丟掉證據。
+EXTRA_LABELS = ("office", "stair")
 CC_ICON = {"closet": 3, "appliance": 4, "toilet": 5, "sink": 6,
            "sauna": 7, "fireplace": 8, "bathtub": 9}
 ROOM_ZH_EX = {**fp_c.ROOM_ZH, "entry": "玄關", "storage": "儲藏室",
-              "garage": "車庫", "outdoor": "陽台/戶外"}
+              "garage": "車庫", "outdoor": "陽台/戶外",
+              "office": "書房", "stair": "樓梯"}
 ROOM_BGR_EX = {**fp_c.ROOM_BGR, "entry": (120, 210, 250),
                "storage": (180, 180, 120), "garage": (130, 130, 130),
-               "outdoor": fp_c.ROOM_BGR["balcony"]}
+               "outdoor": fp_c.ROOM_BGR["balcony"],
+               "office": (110, 160, 200), "stair": (70, 70, 200)}
 
 
 def _cc_path(img_path):
@@ -567,6 +680,8 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
         icx = {k: float(np.count_nonzero(cc_icon[m] == v)) / npx * area_cm2
                for k, v in CC_ICON.items()}       # 圖示絕對面積(cm²)
         score = {lab: votes[cls] for cls, lab in CC_ROOM_LABEL.items()}
+        score.update({lab: 0.0 for lab in EXTRA_LABELS})   # 模型盲區類：0 分起跳，
+        # 全靠證據層加分；播種只是讓 OCR/幾何有 key 可加，不是 0.15 門檻的免死金牌
         typed = sum(score.values())               # 相對多數票（層 2）
         # 弱票不放大：top 票 <0.35 代表模型自己也沒把握（floor04 living 0.275
         # 弱票曾被放大到蓋過一切），加成只留給有把握的相對多數
@@ -596,7 +711,8 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
         n = {"oval": 0, "tubrect": 0, "bedrect": 0, "stove": 0,
              "shower": 0, "sinkicon": 0,
              "wc": 0, "tub": 0, "basin": 0, "kstove": 0, "ksink": 0,
-             "dtable": 0, "bed": 0, "wardrobe": 0, "sofa": 0, "chair": 0}
+             "dtable": 0, "bed": 0, "wardrobe": 0, "sofa": 0, "chair": 0,
+             "stair": 0}
         for kind, sx, sy in det.get("symbols", ()):
             iy, ix = int(round(sy)), int(round(sx))
             if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
@@ -636,6 +752,10 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
             score["living"] += 0.3
         if n["chair"]:                               # user 裁決：單人沙發＝客廳
             score["living"] += 0.15
+        if n["stair"]:                               # 樓梯踏板（detect_stairs）
+            # 權重高於一般家具：4+ 條等距等長踏板是強幾何約束，且 stair 沒有
+            # 語意票可搭配（模型盲區類），證據不夠力就永遠叫不出這個名字
+            score["stair"] += 0.6
         r["symbols"] = {k: v for k, v in n.items() if v}
         # OCR 文字證據（層 5）：字框中心落在這間房 → 該房型加分。
         # 同房同型多字只加一次（重複字樣不疊權），異型各加（衝突交給總分裁決）
@@ -1047,4 +1167,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # Windows 原生的 stdout 重導預設 cp950，編不出本檔 9 處警告裡的 ⚠(U+26A0)
+    # → `python floorplan2room.py > log.txt` 會整支炸掉。只動 __main__，
+    # 被伺服器端 import 時不改動宿主行程的 stdout。
+    for _s in (sys.stdout, sys.stderr):
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8")
     main()

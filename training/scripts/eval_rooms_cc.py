@@ -34,14 +34,35 @@ IN_DIR = "training/eval_rooms/input"
 CHK_DIR = "training/eval_rooms/chk"
 REPORT = "training/json/eval_rooms/report.json"
 CLASSES = ["kitchen", "living", "bed", "bath", "entry",
-           "storage", "garage", "outdoor", "space"]
+           "storage", "garage", "outdoor", "office", "stair", "space"]
+# CubiCasa 的 rooms_selected 把 Office 與 StairWell 都塌成 11(Undefined)，
+# 塌陷後三者不可分——先攔這兩個具名 token，其餘才走 CubiCasa 映射。
+# 不這麼做的後果：space 成為「書房＋樓梯間＋真未定義」混合桶（recall 0.286）。
+GT_CLASS_EXTRA = {"Office": "office", "StairWell": "stair"}
 
 
 def norm_label(k):
-    """管線房型 key → 評分 9 類：balcony 併 outdoor、room/None 併 space。"""
+    """管線房型 key → 評分 11 類：balcony 併 outdoor、room/None 併 space。
+    office/stair 為具名類，原樣通過（不得再併入 space）。"""
     if k in (None, "", "room"):
         return "space"
     return "outdoor" if k == "balcony" else k
+
+
+def gt_label_of(cls_token):
+    """model.svg 的 `class="Space <token>"` → 評分類別；None＝不是房間。
+
+    背景(0)/牆(2)/欄杆(8) 回 None 供呼叫端跳過。CubiCasa 模型本身沒有
+    office/stair 輸出通道，這兩類只在 GT 側具名——預測側靠證據層（OCR／樓梯
+    幾何）產出，量尺兩邊才對得上。"""
+    if cls_token in GT_CLASS_EXTRA:
+        return GT_CLASS_EXTRA[cls_token]
+    from floortrans.loaders.house import rooms_selected
+    import floorplan2room as f2r
+    cid = rooms_selected.get(cls_token, 11)
+    if cid in (0, 2, 8):
+        return None
+    return norm_label(f2r.CC_ROOM_LABEL.get(cid))
 
 
 def match_rooms(gt_masks, pred_masks, thr=0.5):
@@ -117,22 +138,20 @@ def report_path_for(own, gt_seg):
 
 
 def parse_gt(svg_path, h, w):
-    """model.svg Space 多邊形 → [(9類label, bool mask)]；對位不符回 None。
+    """model.svg Space 多邊形 → [(11類label, bool mask)]；對位不符回 None。
 
     多邊形座標＝F1_scaled.png 像素（實證疊圖驗證）；SVG 的 width/height
     宣告與圖面尺寸普遍不符（三子集抽查皆然），不可用來驗對位——
     改以「多邊形範圍不得超出圖面 2%」守門。"""
-    from floortrans.loaders.house import rooms_selected
     from floortrans.loaders.svg_utils import get_polygon
-    import floorplan2room as f2r
     doc = minidom.parse(svg_path)
     gt = []
     for e in doc.getElementsByTagName("g"):
         cls = e.getAttribute("class").split(" ")
         if not cls or cls[0] != "Space":
             continue
-        cid = rooms_selected.get(cls[1] if len(cls) > 1 else "Undefined", 11)
-        if cid in (0, 2, 8):                     # 背景/牆/欄杆不是房間
+        lab = gt_label_of(cls[1] if len(cls) > 1 else "Undefined")
+        if lab is None:                          # 背景/牆/欄杆不是房間
             continue
         try:
             rr, cc = get_polygon(e)
@@ -146,7 +165,7 @@ def parse_gt(svg_path, h, w):
         m[np.clip(rr, 0, h - 1), np.clip(cc, 0, w - 1)] = True
         if m.sum() < 100:                        # 退化多邊形
             continue
-        gt.append((norm_label(f2r.CC_ROOM_LABEL.get(cid)), m))
+        gt.append((lab, m))
     return gt
 
 
@@ -339,7 +358,9 @@ def main():
                       "recall": round(tp / gt_c, 3) if gt_c else None}
     summary["per_class"] = per_cls
 
-    with open(report_path, "w") as f:
+    # encoding 必須明寫：ensure_ascii=False 會吐中文與 ⚠，Windows 原生的
+    # 預設 cp950 編不出來會在整批跑完後才炸（報表全失，24 張白跑）
+    with open(report_path, "w", encoding="utf-8") as f:
         json.dump({"summary": summary, "images": results}, f,
                   ensure_ascii=False, indent=1)
 
@@ -363,4 +384,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # Windows 原生的 stdout 重導預設 cp950，編不出管線警告裡的 ⚠(U+26A0)：
+    # 整張圖會以 UnicodeEncodeError 記成 error（實測 floor13，10 間 GT 蒸發，
+    # 且只在輸出導向檔案時發作，互動執行看不到）。只動 __main__ 不影響被 import。
+    for _s in (sys.stdout, sys.stderr):
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8")
     main()
