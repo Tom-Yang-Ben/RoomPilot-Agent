@@ -73,7 +73,7 @@ main 的環境要補齊這條鏈：
 | `numpy` | `>=2.0` | main 應已有 |
 | `ezdxf` | `>=1.3` | DXF 輸出 |
 | `backend/floorplan/infer_cubicasa.py` | 已隨管線同目錄（2026-07-27 移入） | `ensure_cc_masks` 以 subprocess 呼叫，同 package 內 |
-| `backend/floorplan/symbol_match.py` | 已隨管線同目錄（**硬依賴**） | `floorplan2room` 頂層 `import symbol_match`；模板庫 `backend/floorplan/symbol_lib.npz`（2026-07-29 由 repo 根移入，與消費模組同目錄）缺失時自動停用、不影響運作 |
+| `backend/floorplan/symbol_match.py` | 已隨管線同目錄（**硬依賴**） | `floorplan2room` 頂層 `import symbol_match`；模板庫 `backend/floorplan/symbol_lib.npz`（943 條、143KB）缺失時自動停用、不影響運作 |
 | `backend/floorplan/ccmodel/` | 隨 repo（2 支 .py，約 29KB） | **2026-07-29 新增**，見下方說明 |
 
 **不需要**帶去的：`lmdb`、`scikit-image`、`svgpathtools`——那是 CubiCasa loader／
@@ -387,3 +387,24 @@ v2.14 早已裁決要拆成 10 類，本次補完整條鏈路。main 若消費 `
 例外一項，經裁定維持不動：`cubicasa/room/*_mask.npz` 雖是生成物，但它是
 **預算好的交付資產**（main 的 `DEFAULT_CACHE_DIR` 寫死此路徑、進版控讓部署端
 免 torch 免權重即可出結果），移入 `temp/` 會同時破壞跨分支契約與版控同步。
+
+### 12. 模板比對閘門重構（2026-07-29）——main 無需動作，但要知道行為變了
+
+`symbol_match` 的比對閘門由「尺寸 → Hu 粗篩(0.15) → chamfer(2.0)」改為
+「文字抑制 → 尺寸 → chamfer(1.2)」。Hu 粗篩移除的理由是實測：12 張圖 2016 個
+輪廓候選，過尺寸閘門 509 個，**過 Hu 者 0 個**——路線 B 一直是死碼。
+
+| 項目 | 舊 | 新 |
+| :--- | :--- | :--- |
+| `HU_THR` | 0.15 | **已移除** |
+| `CH_THR` | 2.0 | 1.2 |
+| 啟用類別 | 全部 | `ENABLED_KINDS = ("kstove","ksink")`，可用 `SYMBOL_KINDS` 環境變數覆寫 |
+| `symbol_lib.npz` | 4459 條 / 478KB | **943 條 / 143KB**（CubiCasa 向量系 3516 條 A/B 證實零貢獻，已剪除） |
+
+**管線順序變更（若 main 自己組呼叫鏈需同步）**：`text_boxes` 必須先於
+`detect_symbols` 計算，否則文字抑制拿到空清單。順序反了不報錯、只靜默失效。
+`floorplan2room.process()` 已調整；`recognize_cody_rooms` 走的 `build_rooms`
+不受影響（它吃已備妥的 `det`）。
+
+效果：gt-seg 24 圖/157 房，具名 117→118，**kitchen recall 0.773→0.818**，
+bath precision 0.920 不變，其餘七類逐項相同。

@@ -2,8 +2,12 @@
 
 testdata/Asset/ 的 10 類 DWG 切割線稿 PNG → 48×48 標準模板，
 近重複去重後「併入」既有模板庫（backend/floorplan/symbol_lib.npz，
-即 symbol_match.LIB_PATH——推論期資產，保留 CubiCasa 系模板）。
+即 symbol_match.LIB_PATH——推論期資產）。
 房型歸屬依使用者裁決：dinner_table→kitchen、chairs（單人沙發）→living。
+
+註（2026-07-29）：庫內原有的 CubiCasa 向量模板 3516 條已剪除（A/B 實測零
+貢獻），現行庫即本腳本產出的 943 條。其中只有 `symbol_match.ENABLED_KINDS`
+（kstove/ksink）進得了比對，其餘八類仍入庫但停用——品質分級見 Readme v2.18 §4。
 
 Asset PNG 無比例資訊，實體尺寸閘門（wh）以家具物理常識範圍給值：
 每類模板的 wh 沿範圍線性鋪開，使 match_symbols 的 P5~P95 閘門
@@ -139,7 +143,7 @@ def main():
               f"{', '.join(pending)}。重跑同指令續算；全部完成那次才會寫入 {a.out}。")
         return
 
-    if os.path.isfile(a.out):                  # 併入既有庫（保留 CubiCasa 系）
+    if os.path.isfile(a.out):                  # 併入既有庫（非 ASSET_KINDS 的舊條目原樣保留）
         z = np.load(a.out, allow_pickle=False)
         old_labels = [str(x) for x in z["labels"]]
         keep = [i for i, l in enumerate(old_labels)

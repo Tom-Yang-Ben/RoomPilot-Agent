@@ -1,3 +1,40 @@
+2026/7/29 v.2.20 變更（模板比對從死碼救活：移除 Hu 粗篩＋逐類啟用＋文字抑制，kitchen recall 0.773→0.818 且 bath precision 零損；CubiCasa 向量模板 3516 條經 A/B 實測零貢獻已剪除，庫 4459→943）
+
+一、根因量化——Hu 粗篩從未放行過任何候選（v2.18 只查到「Asset 進不了關」，本輪量到全貌）：
+
+- 12 張灰階圖：輪廓候選 2016 → 過尺寸閘門 509 → **過 Hu 粗篩 0**。不是 Asset 專屬，是整條路線 B 從未運作
+- 候選對全庫的最佳 Hu 距離（門檻 0.15）：CubiCasa 系中位 8.67／P5 2.179／最小 0.484；**Asset 系中位 3.98／P5 0.522／最小 0.178**
+- **v2.18 的印象要反轉**：Asset 點陣模板系統性地比 CubiCasa 向量模板更接近查詢圖。合理——查詢側本來就是掃描圖的點陣細線層，點陣模板同源。「素材白做了」不成立，真正沒作用的是那 3516 條向量模板
+- Hu 的 0.15 應是拿模板對模板校出來的；真實查詢輪廓帶斷線、鄰接墨水、雜訊，Hu 矩對此極敏感，差 1~2 個數量級
+
+二、閘門重構（尺寸 → chamfer，Hu 整個移除）：
+
+- `chamfer_dt()` ＋ `load_lib()` 預算模板距離場：把重複的 distanceTransform 提出迴圈——粗篩移除後每個候選要對整個 kind 的模板算 chamfer，這是可行性關鍵
+- `CH_THR` 2.0 → **1.2**（v2.18 §4 天花板量測值；2.0 是搭配 Hu 粗篩的寬鬆值，粗篩移除後由它獨自把關故收緊）
+- **`ENABLED_KINDS = ("kstove", "ksink")`**：在 `load_lib()` 就濾掉，未啟用者連 chamfer 都不算、尺寸閘門也隨之收窄。這是與 v2.18「調高全域門檻」的關鍵差別——那是全域旋鈕，真假證據一起放行故 bath precision 崩壞；逐類啟用是外科手術
+- 文字抑制接線：`detect_text_boxes()` 早就存在但只用在門扇迴轉區，本輪接進 `match_symbols`。**配套改了管線順序**——`process()` 與 `run_pipeline()` 原本先算 symbols 再算 text_boxes，抑制會拿到空清單；順序反了不報錯只靜默失效，已加原始碼順序斷言釘住
+- `SYMBOL_KINDS` 環境變數可覆寫啟用清單供 A/B（同 `CC_WEIGHTS`／`CC_CACHE_DIR` 慣例）
+
+三、驗收（24 圖/157 房，gt-seg 同尺）：
+
+| | 具名 | kitchen R | **bath P** |
+| :--- | ---: | ---: | ---: |
+| 本輪起點（v2.19） | 117/157 = 74.5% | 0.773 | 0.920 |
+| 新閘門 | **118/157 = 75.2%** | **0.818** | **0.920** |
+
+其餘七類 recall/precision 逐項完全相同。**kitchen recall +0.045 正是 v2.18 預測「唯一穩定的真實增益」，而 bath precision 一分未損**——證實崩壞源於全域放寬而非模板本身。
+
+四、CubiCasa 向量模板 3516 條剪除（使用者授權：驗證無用即移除）：
+
+- A/B：新閘門下把五類（oval/tubrect/stove/sinkicon/shower）全部加回，**混淆矩陣逐格完全相同**、具名 118/157 一分未動。12 張圖它們只命中 4 次（stove 2／oval 1／tubrect 1），且全是手寫幾何規則已覆蓋的 kind
+- 組成揭露：3516 條裡 `sinkicon` 2110 ＋ `stove` 1402 就佔 3512，**`oval`／`shower` 各僅 1 條、`tubrect` 2 條**——v2.8 記載的「上千變體」全集中在兩類
+- `symbol_lib.npz` 4459 → **943**（478KB → 143KB），保留全部 Asset 十類（其中八類入庫但停用，日後改善閘門可重啟）
+- **手寫幾何規則不受影響**：`detect_symbols` 仍獨立產出 oval/tubrect/bedrect/stove，那是另一條路
+- `extract_symbol_lib.py` 標為已退役（重跑會把向量模板灌回，且需 5.6G CubiCasa5k 資料集）
+- `load_lib()` 新增缺 kind 警告——靜默停用是本模組既有陷阱，不再無聲
+
+五、下一步（未動工）：文字抑制目前在兩類配置下量不到效果（floor06 抑制 0 個，因 v2.18 記載的 LNDRY/BALCONY 假陽性是 ksink/sofa，而 sofa 已停用），它是重啟更多類別時的保險；`bed`（283 條，準但量少）是下一個評估對象。`pytest training/tests/` **96 綠**。
+
 2026/7/29 v.2.19 變更（房型新增 office/stair 兩類拆解 space 混合桶，具名 72.6%→74.5% 且舊八類零倒退；推論鏈與 training/ 完全脫鉤——模型定義入 backend/floorplan/ccmodel/、symbol_lib 入 backend/floorplan/；Windows 原生 cp950 編碼陷阱修復）
 
 一、房型 office/stair 補完整條鏈路（v2.14 裁決的 10 類，本輪履行）：

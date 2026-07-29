@@ -182,11 +182,12 @@ def run_pipeline(img_path, cfg_bw, cfg_color, build=True):
                                     output="", preview=None))
     f2r.refine_scale(det)
     det["cc_file"] = f2r._cc_path(img_path)
-    det["symbols"] = f2r.detect_symbols(det)
+    # 順序同 process()：text_boxes 先算，供 match_symbols 抑制文字假陽性
     det["texts"] = (f2r.detect_room_text(img_path, det["img_w"], det["img_h"])
                     if hasattr(f2r, "detect_room_text") else [])  # 基線版無 OCR 層
     det["text_boxes"] = (f2r.detect_text_boxes(img_path, det["img_w"], det["img_h"])
                          if hasattr(f2r, "detect_text_boxes") else [])
+    det["symbols"] = f2r.detect_symbols(det)
 
     if not build:
         return det, None, None

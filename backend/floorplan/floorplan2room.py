@@ -1090,13 +1090,16 @@ def process(path, out_dir, cfg_bw, cfg_color):
     det["cc_file"] = _cc_path(path)
     with open(path, "rb") as f:                  # 快取來源驗證用（cc_cache_valid）
         det["src_sha256"] = hashlib.sha256(f.read()).hexdigest()
-    det["symbols"] = detect_symbols(det)         # 古典家具符號（補模型盲區）
+    # OCR 必須先於 detect_symbols：模板比對用 text_boxes 抑制圖面文字假陽性
+    # （floor06 的 LNDRY/BALCONY 曾被判成 ksink/sofa）。順序反了不會報錯，
+    # 只會拿到空的抑制清單——test_symbol_gate.py 有斷言釘住。
     if not is_color and cfg_bw.deskew:           # OCR 讀原始檔，轉正後座標對不上分析圖
         print("⚠ deskew 開啟 → OCR 文字證據層停用（座標無法對齊）")
         det["texts"], det["text_boxes"] = [], []
     else:
         det["texts"] = detect_room_text(path, det["img_w"], det["img_h"])  # OCR 文字證據（層 5）
         det["text_boxes"] = detect_text_boxes(path, det["img_w"], det["img_h"])
+    det["symbols"] = detect_symbols(det)         # 古典家具符號（補模型盲區）
 
     labels, rooms, bridges, zones, edges = build_rooms(det)
     png_out = os.path.join(out_dir, base + "_room.png")

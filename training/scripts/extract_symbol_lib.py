@@ -1,5 +1,10 @@
 """extract_symbol_lib.py — 路線圖 B：從 train 樣本建符號模板庫（一次性）。
 
+**已退役（2026-07-29）**：本腳本產出的 CubiCasa 向量模板（3516 條）經 A/B
+實測對評分零貢獻——加回全庫，24 圖/157 房混淆矩陣逐格完全相同——已自
+symbol_lib.npz 剪除。現行模板庫只留 Asset 點陣系。保留本檔供研究參考；
+重跑會把向量模板灌回庫裡，且需 CubiCasa5k 資料集（5.6G，Zenodo 2613548）。
+
 走訪 CubiCasa5k train.txt 全部樣本的 model.svg，萃取六類 FixedFurniture
 （Toilet/Bathtub/BathtubRound/IntegratedStove/Sink/Shower）的向量線稿，
 以 local 座標渲染成 48×48 標準模板（方向已標準化，零牆線/文字污染），
