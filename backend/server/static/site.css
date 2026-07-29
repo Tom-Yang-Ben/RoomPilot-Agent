@@ -10,6 +10,7 @@ body.rp-workflow-page #space-step {
 #space-step .rp-space-review-workspace {
   grid-template-columns: minmax(0, 1.58fr) minmax(390px, 0.82fr);
   grid-template-rows: auto auto;
+  align-items: start;
   gap: 18px;
   min-height: calc(100vh - 195px);
   padding: 22px clamp(20px, 3vw, 42px) 24px;
@@ -6296,6 +6297,520 @@ body[data-page="scene"] .scene-selected-copy small {
 @media (max-width: 520px) {
   .scene-furniture-tools {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Step 5 initial interview — six decisions, then one shared summary. */
+#requirements-step .rp-legacy-questionnaire[hidden] {
+  display: none !important;
+}
+
+#requirements-step .rp-first-meeting {
+  width: min(1180px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 34px 0 44px;
+  color: #332d28;
+}
+
+.rp-first-meeting-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 24px;
+}
+
+.rp-first-meeting-heading h2 {
+  max-width: 760px;
+  margin: 6px 0 8px;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: clamp(25px, 3vw, 38px);
+  line-height: 1.25;
+}
+
+.rp-first-meeting-heading p {
+  max-width: 760px;
+  margin: 0;
+  color: #756d65;
+  line-height: 1.7;
+}
+
+.rp-first-meeting-progress {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-bottom: 22px;
+  overflow: hidden;
+  border: 1px solid #dcd6ce;
+  border-radius: 10px;
+  background: #fffdf9;
+}
+
+.rp-first-meeting-progress button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 54px;
+  padding: 8px;
+  border: 0;
+  border-right: 1px solid #e5dfd8;
+  border-radius: 0;
+  background: transparent;
+  color: #817970;
+  font-size: 12px;
+}
+
+.rp-first-meeting-progress button:last-child {
+  border-right: 0;
+}
+
+.rp-first-meeting-progress button b {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid #cfc7be;
+  border-radius: 50%;
+  font-size: 11px;
+}
+
+.rp-first-meeting-progress button.is-active {
+  background: #edf4f0;
+  color: #155f49;
+  font-weight: 700;
+}
+
+.rp-first-meeting-progress button.is-active b,
+.rp-first-meeting-progress button.is-complete b {
+  border-color: #17664f;
+  background: #17664f;
+  color: #fff;
+}
+
+.rp-first-meeting-progress button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.rp-first-meeting-workspace {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  min-height: 530px;
+  overflow: hidden;
+  border: 1px solid #ddd6ce;
+  border-radius: 14px;
+  background: #fffdfa;
+  box-shadow: 0 18px 50px rgba(72, 57, 45, 0.07);
+}
+
+.rp-first-meeting-guide {
+  padding: 34px 28px;
+  border-right: 1px solid #e2dbd3;
+  background: #f1eee8;
+}
+
+.rp-first-meeting-guide > strong {
+  display: block;
+  margin: 10px 0 14px;
+  color: #17664f;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: 23px;
+}
+
+.rp-first-meeting-guide > p,
+.rp-first-meeting-rule span {
+  color: #6e665e;
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.rp-first-meeting-rule {
+  display: grid;
+  gap: 8px;
+  margin-top: 34px;
+  padding-top: 20px;
+  border-top: 1px solid #d8d0c7;
+}
+
+.rp-first-meeting-panel {
+  min-width: 0;
+  padding: 38px 42px 44px;
+}
+
+.rp-first-meeting-panel > header {
+  margin-bottom: 28px;
+}
+
+.rp-first-meeting-panel > header h3 {
+  margin: 6px 0 8px;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: clamp(23px, 2.5vw, 32px);
+  line-height: 1.3;
+}
+
+.rp-first-meeting-panel > header p {
+  margin: 0;
+  color: #766e66;
+  line-height: 1.65;
+}
+
+.rp-first-meeting-residents,
+.rp-first-meeting-budget-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.rp-first-meeting-residents label,
+.rp-first-meeting-budget-grid label,
+.rp-first-meeting-text,
+.rp-first-meeting-room label {
+  display: grid;
+  gap: 8px;
+  color: #514a44;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rp-first-meeting-residents select,
+.rp-first-meeting-budget-grid select,
+.rp-first-meeting-text textarea,
+.rp-first-meeting-room textarea {
+  width: 100%;
+  border: 1px solid #d8d0c7;
+  border-radius: 8px;
+  background: #fff;
+  color: #332d28;
+}
+
+.rp-first-meeting-residents select,
+.rp-first-meeting-budget-grid select {
+  min-height: 48px;
+  padding: 0 12px;
+}
+
+.rp-first-meeting-text {
+  margin-top: 20px;
+}
+
+.rp-first-meeting-text span small {
+  color: #928981;
+  font-weight: 500;
+}
+
+.rp-first-meeting-text textarea,
+.rp-first-meeting-room textarea {
+  padding: 12px 14px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.rp-first-meeting-text-large textarea {
+  min-height: 190px;
+  font-size: 16px;
+}
+
+.rp-first-meeting-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rp-first-meeting-choice {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 64px;
+  padding: 12px 16px;
+  border: 1px solid #d9d2ca;
+  border-radius: 9px;
+  background: #fff;
+  color: #48413a;
+  text-align: left;
+}
+
+.rp-first-meeting-choice b,
+.rp-first-meeting-room button > b {
+  display: grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ece8e2;
+  color: #766e66;
+}
+
+.rp-first-meeting-choice.is-selected,
+.rp-first-meeting-room.is-selected {
+  border-color: #70a18e;
+  background: #f0f6f2;
+}
+
+.rp-first-meeting-choice.is-selected b,
+.rp-first-meeting-room.is-selected button > b {
+  background: #17664f;
+  color: #fff;
+}
+
+.rp-first-meeting-room-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rp-first-meeting-room {
+  overflow: hidden;
+  border: 1px solid #d9d2ca;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.rp-first-meeting-room > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 13px;
+  padding: 15px;
+  border: 0;
+  background: transparent;
+  color: #413a34;
+  text-align: left;
+}
+
+.rp-first-meeting-room > button span {
+  display: grid;
+  gap: 3px;
+}
+
+.rp-first-meeting-room > button small {
+  color: #877f77;
+}
+
+.rp-first-meeting-room label {
+  padding: 0 15px 15px;
+}
+
+.rp-first-meeting-style-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rp-first-meeting-style {
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: #f4f1ec;
+}
+
+.rp-first-meeting-style.is-liked {
+  border-color: #2a7a60;
+}
+
+.rp-first-meeting-style.is-disliked {
+  border-color: #a96862;
+}
+
+.rp-first-meeting-style > img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.rp-first-meeting-style > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px 11px 8px;
+}
+
+.rp-first-meeting-style > div small {
+  color: #7c746c;
+}
+
+.rp-first-meeting-style > footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 0 9px 10px;
+}
+
+.rp-first-meeting-style > footer button {
+  min-height: 35px;
+  border: 1px solid #d3cbc2;
+  border-radius: 6px;
+  background: #fff;
+  color: #514941;
+  font-size: 12px;
+}
+
+.rp-first-meeting-style.is-liked [data-first-meeting-style-like] {
+  border-color: #2a7a60;
+  background: #e9f3ed;
+  color: #155f49;
+}
+
+.rp-first-meeting-style.is-disliked [data-first-meeting-style-dislike] {
+  border-color: #a96862;
+  background: #f7ecea;
+  color: #864c46;
+}
+
+.rp-first-meeting-summary {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #ddd6ce;
+  border-radius: 10px;
+}
+
+.rp-first-meeting-summary > section {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 4px 18px;
+  padding: 15px 18px;
+  border-bottom: 1px solid #e6e0d9;
+}
+
+.rp-first-meeting-summary > section:last-child {
+  border-bottom: 0;
+}
+
+.rp-first-meeting-summary > section > span {
+  grid-row: 1 / span 2;
+  color: #81786f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rp-first-meeting-summary strong {
+  line-height: 1.55;
+}
+
+.rp-first-meeting-summary small {
+  color: #766e66;
+  line-height: 1.55;
+}
+
+.rp-first-meeting-summary p {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 10px;
+  margin: 0 0 5px;
+  line-height: 1.5;
+}
+
+.rp-first-meeting-follow-up {
+  background: #f1f6f3;
+  color: #155f49;
+}
+
+.rp-first-meeting-actions {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 2px 0;
+}
+
+.rp-first-meeting-actions > span {
+  color: #817970;
+  font-size: 12px;
+  text-align: center;
+}
+
+#first-meeting-error {
+  min-height: 20px;
+  margin: 10px 0 0;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  #requirements-step .rp-first-meeting {
+    width: min(100% - 28px, 760px);
+    padding-top: 20px;
+  }
+
+  .rp-first-meeting-heading {
+    align-items: flex-start;
+  }
+
+  .rp-first-meeting-progress {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .rp-first-meeting-progress button {
+    flex: 0 0 112px;
+  }
+
+  .rp-first-meeting-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-first-meeting-guide {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 18px;
+    padding: 20px 24px;
+    border-right: 0;
+    border-bottom: 1px solid #e2dbd3;
+  }
+
+  .rp-first-meeting-guide > strong {
+    margin: 0;
+  }
+
+  .rp-first-meeting-guide > p {
+    grid-column: 2;
+    margin: 0;
+  }
+
+  .rp-first-meeting-rule {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .rp-first-meeting-heading {
+    display: grid;
+  }
+
+  .rp-first-meeting-heading button {
+    width: 100%;
+  }
+
+  .rp-first-meeting-panel {
+    padding: 28px 20px 32px;
+  }
+
+  .rp-first-meeting-residents,
+  .rp-first-meeting-budget-grid,
+  .rp-first-meeting-choice-grid,
+  .rp-first-meeting-room-grid,
+  .rp-first-meeting-style-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-first-meeting-style-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rp-first-meeting-summary > section {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-first-meeting-summary > section > span {
+    grid-row: auto;
+  }
+
+  .rp-first-meeting-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .rp-first-meeting-actions > span {
+    display: none;
   }
 }
 
@@ -13693,5 +14208,893 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
     grid-column: 2;
     width: max-content;
     margin-top: 0;
+  }
+}
+
+/* Step 5 questionnaire refresh — a quieter room queue with one focused task. */
+body[data-workflow-step="requirements"] .rp-guidance-band {
+  display: none;
+}
+
+body[data-workflow-step="requirements"] #requirements-step {
+  min-height: calc(100vh - 144px);
+  background: #f8f5f0;
+}
+
+#requirements-step .rp-test2-questionnaire {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 24px 36px 0;
+}
+
+#requirements-step > .rp-questionnaire-workspace > .rp-test2-questionnaire > .rp-questionnaire-heading,
+#requirements-step > .rp-questionnaire-workspace > .rp-test2-questionnaire > .rp-questionnaire-stage-nav {
+  display: none;
+}
+
+#requirements-step .rp-questionnaire-stage {
+  min-height: 0;
+}
+
+#requirements-step .rp-room-questionnaire-layout {
+  display: grid;
+  grid-template-columns: 348px minmax(0, 1fr);
+  gap: 38px;
+  align-items: start;
+  max-width: 1370px;
+  min-height: calc(100vh - 252px);
+  margin: 0 auto;
+}
+
+#requirements-step .rp-room-questionnaire-plan {
+  position: sticky;
+  top: 22px;
+  min-width: 0;
+  padding-right: 22px;
+  border-right: 1px solid #e2dbd2;
+}
+
+#requirements-step .rp-questionnaire-plan-stage {
+  display: none;
+}
+
+#requirements-step .rp-questionnaire-rail-heading {
+  margin-bottom: 16px;
+}
+
+#requirements-step .rp-questionnaire-rail-heading h3 {
+  margin: 5px 0 5px;
+  color: #302923;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: 19px;
+  letter-spacing: 0.035em;
+}
+
+#requirements-step .rp-questionnaire-rail-heading p {
+  margin: 0;
+  color: #84796f;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+#requirements-step .rp-visual-space-nav {
+  display: grid;
+  gap: 10px;
+  border: 0;
+}
+
+#requirements-step .rp-visual-space-nav > button {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 13px;
+  min-height: 0;
+  padding: 17px 15px 16px;
+  border: 1px solid #ded7cf;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.42);
+  color: #4b433c;
+  text-align: left;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+#requirements-step .rp-visual-space-nav > button:hover {
+  border-color: #aebfb7;
+  background: #fffdfa;
+}
+
+#requirements-step .rp-visual-space-nav > button.is-active {
+  padding-left: 15px;
+  border: 1px solid #7fa696;
+  border-left: 3px solid #16634d;
+  background: #f4f8f5;
+  color: #2f3f38;
+  box-shadow: 0 8px 18px rgba(48, 70, 61, 0.055);
+}
+
+#requirements-step .rp-room-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#requirements-step .rp-room-progress-heading strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #302923;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+#requirements-step .rp-room-progress-heading strong > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #bbb5ae;
+}
+
+#requirements-step .is-active .rp-room-progress-heading strong > i,
+#requirements-step .rp-room-progress-heading small.is-complete::before {
+  background: #17664f;
+}
+
+#requirements-step .rp-room-progress-heading small {
+  color: #796f66;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#requirements-step .rp-room-progress-heading small.is-complete {
+  color: #17664f;
+}
+
+#requirements-step .rp-room-progress-details {
+  display: grid;
+  gap: 9px;
+}
+
+#requirements-step .rp-room-progress-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 9px;
+  color: #675e56;
+  font-size: 11px;
+}
+
+#requirements-step .rp-room-progress-row > i {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8e3dd;
+}
+
+#requirements-step .rp-room-progress-row > i > b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #17664f;
+}
+
+#requirements-step .rp-room-progress-row > small {
+  color: #827970;
+  font-size: 10px;
+  text-align: right;
+}
+
+#requirements-step .rp-room-questionnaire-editor {
+  min-width: 0;
+}
+
+#requirements-step .rp-room-questionnaire-section-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 23px;
+  overflow: hidden;
+  border: 1px solid #ddd6ce;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+#requirements-step .rp-room-questionnaire-section-nav button {
+  display: flex;
+  min-width: 0;
+  min-height: 58px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border: 0;
+  border-right: 1px solid #ddd6ce;
+  border-radius: 0;
+  background: transparent;
+  color: #938a81;
+  font-weight: 600;
+}
+
+#requirements-step .rp-room-questionnaire-section-nav button:last-child {
+  border-right: 0;
+}
+
+#requirements-step .rp-room-questionnaire-section-nav button b {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cfc7be;
+  border-radius: 50%;
+  font-size: 11px;
+}
+
+#requirements-step .rp-room-questionnaire-section-nav button.is-active {
+  background: #e9f0ec;
+  color: #185d49;
+}
+
+#requirements-step .rp-room-questionnaire-section-nav button.is-active b {
+  border-color: #17664f;
+  background: #17664f;
+  color: #fff;
+}
+
+#requirements-step .rp-room-questionnaire-section[hidden],
+#requirements-step .rp-questionnaire-dock button[hidden],
+#requirements-step .rp-room-summary-body[hidden] {
+  display: none !important;
+}
+
+#requirements-step .rp-room-questionnaire-section {
+  padding: 0 7px 24px;
+}
+
+#requirements-step .rp-visual-question-progress {
+  min-height: 24px;
+  margin-bottom: 8px;
+  color: #655d55;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+#requirements-step .rp-visual-question-progress small {
+  max-width: 55%;
+  overflow: hidden;
+  color: #9a9188;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#requirements-step .rp-visual-question-card h3 {
+  max-width: 820px;
+  margin: 7px 0 7px;
+  color: #26211d;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: clamp(23px, 2.15vw, 31px);
+  font-weight: 650;
+  letter-spacing: 0.035em;
+  line-height: 1.35;
+}
+
+#requirements-step .rp-visual-question-card > p {
+  margin-bottom: 17px;
+  color: #71685f;
+  font-size: 13px;
+}
+
+#requirements-step .rp-visual-options {
+  gap: 18px;
+}
+
+#requirements-step .rp-visual-option {
+  position: relative;
+  min-height: 0;
+  grid-template-rows: minmax(184px, 25vh) auto auto;
+  gap: 7px;
+  padding: 9px 9px 12px;
+  border: 1px solid #d7d0c8;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
+}
+
+#requirements-step .rp-visual-option::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  left: 18px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(79, 66, 55, 0.32);
+}
+
+#requirements-step .rp-visual-option:hover,
+#requirements-step .rp-visual-option.is-selected {
+  border-color: #17664f;
+  box-shadow: inset 0 0 0 1px #17664f;
+}
+
+#requirements-step .rp-visual-option.is-selected::before {
+  border: 4px solid #17664f;
+  background: #fff;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+#requirements-step .rp-visual-option-media {
+  height: 100%;
+  min-height: 184px;
+  background: #eee9e2;
+}
+
+#requirements-step .rp-visual-option-media img {
+  object-fit: cover;
+}
+
+#requirements-step .rp-visual-option strong {
+  padding: 2px 6px 0;
+  color: #37302a;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: 16px;
+}
+
+#requirements-step .rp-visual-option small {
+  padding: 0 6px;
+  color: #81776e;
+  font-size: 11px;
+}
+
+#requirements-step .rp-visual-balance {
+  margin-top: 9px;
+  min-height: 38px;
+  padding: 9px 13px;
+  border-color: #d7d0c8;
+  background: #f2eee8;
+  color: #5f564e;
+  font-size: 12px;
+}
+
+#requirements-step .rp-preference-weight {
+  grid-template-columns: minmax(105px, 1fr) repeat(5, 44px) minmax(105px, 1fr);
+  gap: 10px;
+  margin-top: 11px;
+  padding-top: 12px;
+  border-top: 1px solid #e0d9d1;
+}
+
+#requirements-step .rp-preference-weight button {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-color: #d7cabe;
+  border-radius: 50%;
+  background: #fffdfa;
+  color: #9a7961;
+}
+
+#requirements-step .rp-preference-weight button.is-active {
+  border-color: #17664f;
+  background: #17664f;
+  color: #fff;
+}
+
+#requirements-step .rp-visual-custom-answer {
+  position: relative;
+  gap: 7px;
+  margin-top: 12px;
+  color: #3e3731;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+#requirements-step .rp-visual-custom-answer > span small {
+  color: #8d837a;
+  font-weight: 400;
+}
+
+#requirements-step .rp-visual-custom-answer textarea {
+  min-height: 70px;
+  padding: 12px 14px 22px;
+  resize: vertical;
+  border-color: #d7d0c8;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+#requirements-step .rp-input-count {
+  position: absolute;
+  right: 11px;
+  bottom: 8px;
+  color: #a1988f;
+  font-size: 9px;
+  font-weight: 400;
+}
+
+#requirements-step .rp-preference-suggestion {
+  margin-bottom: 12px;
+  border-left-color: #17664f;
+  background: #edf3ef;
+}
+
+#requirements-step .rp-room-equipment-editor,
+#requirements-step .rp-room-finish-editor {
+  margin-top: 0;
+  padding-top: 4px;
+  border-top: 0;
+}
+
+#requirements-step .rp-room-questionnaire-section > .rp-questionnaire-section-heading {
+  align-items: flex-start;
+  margin-bottom: 22px;
+  padding-bottom: 17px;
+  border-bottom: 1px solid #e2dbd2;
+}
+
+#requirements-step .rp-room-questionnaire-section > .rp-questionnaire-section-heading h3,
+#requirements-step .rp-room-questionnaire-section > .rp-questionnaire-section-heading h4 {
+  margin: 4px 0 0;
+  color: #302923;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: 22px;
+}
+
+#requirements-step .rp-room-questionnaire-section > .rp-questionnaire-section-heading p {
+  max-width: 390px;
+  color: #81776e;
+  font-size: 12px;
+  text-align: right;
+}
+
+#requirements-step .rp-questionnaire-field {
+  display: grid;
+  gap: 8px;
+  max-width: 520px;
+  color: #4e463f;
+  font-weight: 700;
+}
+
+#requirements-step .rp-questionnaire-field select {
+  width: 100%;
+}
+
+#requirements-step .rp-questionnaire-furniture {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-bottom: 0;
+}
+
+#requirements-step .rp-questionnaire-furniture .rp-questionnaire-section-heading {
+  align-items: flex-start;
+}
+
+#requirements-step .rp-questionnaire-furniture-options,
+#requirements-step .rp-questionnaire-material-grid {
+  gap: 14px;
+}
+
+#requirements-step .rp-questionnaire-style-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 26px;
+}
+
+#requirements-step .rp-questionnaire-style-grid > button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: 136px auto;
+  gap: 9px;
+  padding: 8px 8px 11px;
+}
+
+#requirements-step .rp-questionnaire-style-grid .rp-style-card-preview {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: 100%;
+  max-height: none;
+  height: 136px;
+  object-fit: cover;
+}
+
+#requirements-step .rp-questionnaire-style-grid .rp-style-swatches {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+#requirements-step .rp-questionnaire-style-grid > button > strong {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: center;
+}
+
+#requirements-step .rp-questionnaire-furniture-options > label,
+#requirements-step .rp-questionnaire-material-options button,
+#requirements-step .rp-questionnaire-style-grid > button {
+  border-color: #ddd5cc;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+#requirements-step .rp-questionnaire-dock {
+  position: sticky;
+  z-index: 8;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 348px minmax(0, 1fr);
+  gap: 38px;
+  width: calc(100% + 72px);
+  min-height: 76px;
+  margin: 0 -36px;
+  padding: 14px max(36px, calc((100% - 1370px) / 2 + 36px));
+  border-top: 1px solid #ddd5cc;
+  background: rgba(250, 247, 243, 0.96);
+  box-shadow: 0 -10px 26px rgba(67, 55, 45, 0.045);
+  backdrop-filter: blur(10px);
+}
+
+#requirements-step .rp-questionnaire-dock > button {
+  width: 180px;
+  justify-self: start;
+  border-color: #9e958c;
+  background: transparent;
+  color: #302923;
+}
+
+#requirements-step .rp-questionnaire-dock > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+#requirements-step .rp-questionnaire-dock > div > span {
+  color: #877d73;
+  font-size: 11px;
+}
+
+#requirements-step .rp-questionnaire-dock .primary-action {
+  width: min(500px, 62%);
+  min-height: 48px;
+  border-color: #312922;
+  border-radius: 7px;
+  background: #312922;
+  color: #fff;
+  box-shadow: none;
+}
+
+#requirements-step .rp-questionnaire-dock .primary-action:hover {
+  border-color: #17664f;
+  background: #17664f;
+}
+
+#requirements-step #requirements-error {
+  position: sticky;
+  z-index: 9;
+  bottom: 78px;
+  width: min(760px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 0;
+  background: #fff5ef;
+  text-align: center;
+}
+
+#requirements-step #requirements-error:empty {
+  display: none;
+}
+
+/* Step 5 profile and compact accordion summary share the same editorial surface. */
+#requirements-step [data-questionnaire-panel="profile"],
+#requirements-step [data-questionnaire-panel="summary"] {
+  width: min(1120px, calc(100% - 24px));
+  margin: 10px auto 56px;
+  padding: 30px;
+  border: 1px solid #ded7cf;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 14px 34px rgba(65, 53, 43, 0.055);
+}
+
+#requirements-step .rp-questionnaire-summary {
+  display: grid;
+  gap: 24px;
+  border-top: 0;
+}
+
+#requirements-step .rp-questionnaire-summary > section {
+  padding: 0;
+  border-bottom: 0;
+}
+
+#requirements-step .rp-whole-house-summary {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 26px;
+  padding-bottom: 24px !important;
+  border-bottom: 1px solid #e1dad2 !important;
+}
+
+#requirements-step .rp-questionnaire-summary h4 {
+  margin: 5px 0 0;
+  color: #302923;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: 19px;
+}
+
+#requirements-step .rp-questionnaire-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 18px;
+}
+
+#requirements-step .rp-questionnaire-summary-grid > div {
+  gap: 3px;
+  padding: 8px 12px;
+  border-left: 2px solid #d9d1c8;
+}
+
+#requirements-step .rp-summary-list-heading {
+  margin-bottom: 14px;
+}
+
+#requirements-step .rp-room-summary-list {
+  display: grid;
+  gap: 10px;
+}
+
+#requirements-step .rp-room-summary-card {
+  overflow: hidden;
+  border: 1px solid #ded7cf;
+  border-radius: 6px;
+  background: #fffdfa;
+}
+
+#requirements-step .rp-room-summary-card.is-expanded {
+  border-color: #8eaa9e;
+}
+
+#requirements-step .rp-room-summary-toggle {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(0, 1.3fr) 18px;
+  align-items: center;
+  gap: 20px;
+  padding: 17px 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #3c342e;
+  text-align: left;
+}
+
+#requirements-step .rp-room-summary-card.is-expanded .rp-room-summary-toggle {
+  background: #f1f5f2;
+}
+
+#requirements-step .rp-room-summary-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+#requirements-step .rp-room-summary-title strong {
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: 18px;
+}
+
+#requirements-step .rp-room-summary-title small {
+  color: #8a8178;
+  font-size: 11px;
+}
+
+#requirements-step .rp-room-summary-title small.is-complete {
+  color: #17664f;
+}
+
+#requirements-step .rp-summary-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#requirements-step .rp-summary-progress-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid #e0d9d1;
+  border-radius: 999px;
+  color: #7b7168;
+  font-size: 10px;
+}
+
+#requirements-step .rp-summary-progress-item i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c7c0b8;
+}
+
+#requirements-step .rp-summary-progress-item.is-complete {
+  border-color: #bfd1c8;
+  color: #17664f;
+}
+
+#requirements-step .rp-summary-progress-item.is-complete i {
+  background: #17664f;
+}
+
+#requirements-step .rp-summary-chevron {
+  width: 9px;
+  height: 9px;
+  border-right: 1px solid #756b62;
+  border-bottom: 1px solid #756b62;
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+#requirements-step .is-expanded .rp-summary-chevron {
+  transform: rotate(225deg);
+}
+
+#requirements-step .rp-room-summary-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 28px;
+  padding: 22px 22px 20px;
+  border-top: 1px solid #e7e0d8;
+}
+
+#requirements-step .rp-room-summary-body h4 {
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+#requirements-step .rp-room-summary-body p,
+#requirements-step .rp-room-summary-body li {
+  color: #686057;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+#requirements-step .rp-summary-more-preferences {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #ece6df;
+}
+
+#requirements-step .rp-summary-more-preferences > summary {
+  width: fit-content;
+  cursor: pointer;
+  color: #17664f;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+#requirements-step .rp-summary-more-preferences > ul {
+  margin-top: 12px;
+}
+
+#requirements-step .rp-room-summary-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+@media (max-width: 980px) {
+  #requirements-step .rp-test2-questionnaire {
+    padding-inline: 20px;
+  }
+
+  #requirements-step .rp-room-questionnaire-layout {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  #requirements-step .rp-questionnaire-dock {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+    width: calc(100% + 40px);
+    margin-inline: -20px;
+    padding-inline: 20px;
+  }
+
+  #requirements-step .rp-preference-weight {
+    grid-template-columns: repeat(5, 42px);
+    justify-content: center;
+  }
+
+  #requirements-step .rp-preference-weight > span {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+}
+
+@media (max-width: 900px) {
+  body[data-workflow-step="requirements"] #requirements-step {
+    min-height: 0;
+  }
+
+  #requirements-step .rp-test2-questionnaire {
+    padding: 18px 14px 0;
+  }
+
+  #requirements-step .rp-room-questionnaire-layout {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  #requirements-step .rp-room-questionnaire-plan {
+    position: static;
+    padding: 0 0 18px;
+    border-right: 0;
+    border-bottom: 1px solid #e2dbd2;
+  }
+
+  #requirements-step .rp-visual-space-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+  }
+
+  #requirements-step .rp-visual-space-nav > button {
+    flex: 0 0 245px;
+  }
+
+  #requirements-step .rp-room-questionnaire-section-nav button {
+    min-height: 52px;
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+
+  #requirements-step .rp-visual-options,
+  #requirements-step .rp-questionnaire-furniture-options,
+  #requirements-step .rp-questionnaire-style-grid,
+  #requirements-step .rp-questionnaire-material-grid,
+  #requirements-step .rp-room-summary-body,
+  #requirements-step .rp-whole-house-summary {
+    grid-template-columns: 1fr;
+  }
+
+  #requirements-step .rp-questionnaire-dock {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    width: calc(100% + 28px);
+    min-height: 68px;
+    margin-inline: -14px;
+    padding: 10px 14px;
+  }
+
+  #requirements-step .rp-questionnaire-dock > button {
+    width: auto;
+  }
+
+  #requirements-step .rp-questionnaire-dock > div > span {
+    display: none;
+  }
+
+  #requirements-step .rp-questionnaire-dock .primary-action {
+    width: 100%;
+  }
+
+  #requirements-step .rp-room-summary-toggle {
+    grid-template-columns: 1fr 16px;
+    gap: 10px;
+  }
+
+  #requirements-step .rp-summary-progress {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  #requirements-step .rp-summary-chevron {
+    grid-column: 2;
+    grid-row: 1;
   }
 }

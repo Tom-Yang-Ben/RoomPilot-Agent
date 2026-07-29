@@ -52,6 +52,56 @@ def test_pending_save_replays_only_against_the_server_version_it_started_from() 
     assert result == {"same": True, "stale": False, "legacy": False, "invalid": False}
 
 
+def test_browser_storage_quota_does_not_block_the_next_workflow_step() -> None:
+    module_uri = WORKFLOW_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ createWorkflow, safeStorageSetItem }} from {json.dumps(module_uri)};
+
+        const quotaStorage = {{
+          getItem() {{ return null; }},
+          setItem() {{
+            const error = new Error("Quota has been exceeded");
+            error.name = "QuotaExceededError";
+            throw error;
+          }},
+          removeItem() {{ throw new Error("storage unavailable"); }},
+        }};
+        const workflow = createWorkflow({{
+          projectId: "quota-project",
+          storage: quotaStorage,
+        }});
+        workflow.complete("project", {{ name: "容量測試" }});
+        workflow.complete("upload", {{ filename: "plan.png" }});
+        workflow.complete("recognition", {{ engine: "cody" }});
+        workflow.complete("calibration", {{ distanceCm: 630 }});
+        workflow.complete("space_confirmation", {{
+          roomsConfirmed: true,
+          structureConfirmed: true,
+          proportionsConfirmed: true,
+        }});
+        const requirementsCompleted = workflow.complete("requirements", {{
+          basicConfirmed: true,
+          roomsResolved: true,
+        }});
+        const enteredLayout = workflow.goTo("layout_2d");
+        console.log(JSON.stringify({{
+          directWrite: safeStorageSetItem(quotaStorage, "large", "payload"),
+          requirementsCompleted,
+          enteredLayout,
+          currentStep: workflow.currentStep,
+          completed: workflow.completed,
+        }}));
+        """
+    )
+
+    assert result["directWrite"] is False
+    assert result["requirementsCompleted"] is True
+    assert result["enteredLayout"] is True
+    assert result["currentStep"] == "layout_2d"
+    assert "requirements" in result["completed"]
+
+
 def test_overlapping_windows_on_the_same_wall_are_deduplicated() -> None:
     module_uri = STRUCTURE_UTILS_MODULE.as_uri()
     result = run_workflow_script(
@@ -293,6 +343,41 @@ def test_beam_drag_geometry_snaps_to_axis_and_nearby_structure_points() -> None:
             "lengthCm": 8,
             "valid": False,
             "snapped": False,
+        },
+    }
+
+
+def test_opening_drag_preserves_horizontal_and_vertical_axes() -> None:
+    module_uri = STRUCTURE_UTILS_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ translateOpeningAlongAxis }} from {json.dumps(module_uri)};
+
+        console.log(JSON.stringify({{
+          horizontal: translateOpeningAlongAxis(
+            {{ start: {{ x: 100, y: 200 }}, end: {{ x: 190, y: 200 }} }},
+            {{ x: 75, y: 80 }},
+          ),
+          vertical: translateOpeningAlongAxis(
+            {{ start: {{ x: 300, y: 220 }}, end: {{ x: 300, y: 100 }} }},
+            {{ x: 90, y: -35 }},
+          ),
+        }}));
+        """
+    )
+
+    assert result == {
+        "horizontal": {
+            "start": {"x": 175, "y": 200},
+            "end": {"x": 265, "y": 200},
+            "axis": {"x": 1, "y": 0},
+            "distanceCm": 75,
+        },
+        "vertical": {
+            "start": {"x": 300, "y": 185},
+            "end": {"x": 300, "y": 65},
+            "axis": {"x": 0, "y": -1},
+            "distanceCm": 35,
         },
     }
 

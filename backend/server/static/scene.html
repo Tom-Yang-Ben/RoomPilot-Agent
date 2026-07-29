@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=sha256-b407533fc31d" />
+    <link rel="stylesheet" href="/static/site.css?v=sha256-22a2d11e791d" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -236,6 +236,11 @@
                       <input id="room-name" type="text" />
                       <button id="save-room" type="button" class="secondary-action">套用名稱</button>
                     </div>
+                    <label for="room-type">空間用途</label>
+                    <div class="rp-room-name-control">
+                      <select id="room-type" class="rp-room-type-select"></select>
+                    </div>
+                    <p id="room-type-source" class="rp-control-hint"></p>
                     <div id="room-area" class="rp-current-room-metrics"></div>
                   </div>
                   <details class="rp-room-outline-tools">
@@ -428,7 +433,40 @@
       </section>
 
       <section id="requirements-step" class="rp-step-panel" data-panel="requirements" hidden>
-        <div class="rp-questionnaire-workspace">
+        <section id="first-meeting-questionnaire" class="rp-first-meeting" aria-labelledby="first-meeting-title">
+          <header class="rp-first-meeting-heading">
+            <div>
+              <span class="eyebrow">5 初回面談</span>
+              <h2 id="first-meeting-title">先抓住這次設計真正要解決的事</h2>
+              <p>設計師與客戶一起操作，約 8–10 分鐘完成；家具、材質與設備留到方案階段再談。</p>
+            </div>
+            <button id="randomize-requirements" type="button" class="secondary-action">填入 Demo 範例</button>
+          </header>
+
+          <nav id="first-meeting-progress" class="rp-first-meeting-progress" aria-label="初回面談進度"></nav>
+
+          <div class="rp-first-meeting-workspace">
+            <aside class="rp-first-meeting-guide">
+              <span class="eyebrow">MEETING GUIDE</span>
+              <strong id="first-meeting-time">約 1 分鐘</strong>
+              <p id="first-meeting-guide-text">先確認誰會使用這個家，以及需要優先照顧的條件。</p>
+              <div class="rp-first-meeting-rule">
+                <b>面談原則</b>
+                <span>只記錄會影響設計方向的答案。若答案互相衝突，摘要頁只追問一件事。</span>
+              </div>
+            </aside>
+            <main id="first-meeting-panel" class="rp-first-meeting-panel" aria-live="polite"></main>
+          </div>
+
+          <footer class="rp-first-meeting-actions">
+            <button id="first-meeting-back" type="button" class="secondary-action">上一題</button>
+            <span id="first-meeting-status">作答後會自動保存</span>
+            <button id="first-meeting-next" type="button" class="primary-action">下一題</button>
+          </footer>
+          <p id="first-meeting-error" class="rp-field-error" aria-live="polite"></p>
+        </section>
+
+        <div class="rp-questionnaire-workspace rp-legacy-questionnaire" hidden aria-hidden="true">
         <div class="rp-test2-questionnaire">
           <header class="rp-questionnaire-heading">
             <div>
@@ -437,7 +475,7 @@
               <p>先逐房確認生活需求與材質，最後再填一次全屋共用資料；全部完成後才交給 RAG 推薦。</p>
             </div>
             <div class="rp-questionnaire-heading-actions">
-              <button id="randomize-requirements" type="button" class="secondary-action">隨機需求</button>
+              <button id="randomize-legacy-requirements" type="button" class="secondary-action">隨機需求</button>
               <strong id="requirements-progress">逐房需求</strong>
             </div>
           </header>
@@ -461,12 +499,13 @@
           </section>
 
           <section id="visual-questionnaire" class="rp-questionnaire-stage" data-questionnaire-panel="rooms">
-            <div class="rp-questionnaire-section-heading">
-              <div><span class="eyebrow">逐房需求</span><h3>每個空間分別確認極與極、設備及材質</h3></div>
-              <p id="visual-questionnaire-notice">圖片尚未完成的題目仍可先依文字選擇，之後補圖不會改變答案。</p>
-            </div>
             <div class="rp-room-questionnaire-layout">
               <aside class="rp-room-questionnaire-plan">
+                <header class="rp-questionnaire-rail-heading">
+                  <span class="eyebrow">PROJECT PROGRESS</span>
+                  <h3>專案進度</h3>
+                  <p>逐房完成需求、家具設備與材質風格。</p>
+                </header>
                 <div class="rp-questionnaire-plan-stage">
                   <img id="questionnaire-plan-image" alt="逐房需求平面圖" />
                   <svg id="questionnaire-plan-overlay" aria-label="點選房間或牆面"></svg>
@@ -474,26 +513,45 @@
                 <nav id="visual-space-nav" class="rp-visual-space-nav" aria-label="逐房需求空間"></nav>
               </aside>
               <div class="rp-room-questionnaire-editor">
-                <div class="rp-visual-question-progress">
-                  <span id="visual-question-progress">載入題目中</span>
-                </div>
-                <aside id="room-preference-suggestion" class="rp-preference-suggestion"
-                  aria-live="polite" hidden></aside>
-                <article id="visual-question-card" class="rp-visual-question-card" aria-live="polite"></article>
-                <label class="rp-visual-custom-answer">
-                  <span>補充條件（選填）</span>
-                  <textarea id="visual-custom-answer" rows="2"></textarea>
-                </label>
-                <div class="rp-action-row">
-                  <button id="visual-question-back" type="button" class="secondary-action">上一題</button>
-                  <button id="visual-question-next" type="button" class="primary-action">下一題</button>
-                </div>
-                <section id="questionnaire-finishes" class="rp-room-finish-editor">
-                  <div class="rp-questionnaire-section-heading">
-                    <div><span class="eyebrow">本房設備與材質</span><h3 id="room-finish-title">選擇色卡與表面</h3></div>
-                    <p>標示「推薦」的項目仍需由你確認；天花板與照明不會在其他頁重複詢問。</p>
+                <nav id="room-questionnaire-section-nav" class="rp-room-questionnaire-section-nav"
+                  aria-label="目前房間問卷段落">
+                  <button type="button" data-room-questionnaire-section="preferences" class="is-active">
+                    <b>1</b><span>生活偏好</span>
+                  </button>
+                  <button type="button" data-room-questionnaire-section="equipment">
+                    <b>2</b><span>家具與設備</span>
+                  </button>
+                  <button type="button" data-room-questionnaire-section="materials">
+                    <b>3</b><span>材質與風格</span>
+                  </button>
+                </nav>
+
+                <div class="rp-room-questionnaire-section" data-room-questionnaire-panel="preferences">
+                  <div class="rp-visual-question-progress">
+                    <span id="visual-question-progress">載入題目中</span>
+                    <small id="visual-questionnaire-notice">圖片尚未完成的題目仍可先依文字選擇。</small>
                   </div>
-                  <label><span>冷氣形式與位置需求</span><select id="questionnaire-air-conditioning">
+                  <aside id="room-preference-suggestion" class="rp-preference-suggestion"
+                    aria-live="polite" hidden></aside>
+                  <article id="visual-question-card" class="rp-visual-question-card" aria-live="polite"></article>
+                  <label class="rp-visual-custom-answer">
+                    <span>補充說明 <small>（選填）</small></span>
+                    <textarea id="visual-custom-answer" rows="2" maxlength="200"></textarea>
+                    <small class="rp-input-count" aria-hidden="true">最多 200 字</small>
+                  </label>
+                </div>
+
+                <section class="rp-room-questionnaire-section rp-room-equipment-editor"
+                  data-room-questionnaire-panel="equipment" hidden>
+                  <div class="rp-questionnaire-section-heading">
+                    <div><span class="eyebrow">家具與設備</span><h3 id="room-equipment-title">確認本房需要的家具與設備</h3></div>
+                    <p>只勾選實際想放入方案的項目，系統會在下一步依空間尺寸檢查。</p>
+                  </div>
+                  <div class="rp-questionnaire-section-heading">
+                    <div><span class="eyebrow">空間設備</span><h4>冷氣與基本設備</h4></div>
+                    <p>這些需求會保存給方案生成，不會在瀏覽器自行決定位置。</p>
+                  </div>
+                  <label class="rp-questionnaire-field"><span>冷氣形式與位置需求</span><select id="questionnaire-air-conditioning">
                     <option value="">請選擇</option>
                     <option value="wall-split">壁掛分離式</option>
                     <option value="ceiling-cassette">嵌入式冷氣</option>
@@ -508,6 +566,14 @@
                     <div id="questionnaire-furniture-options"
                       class="rp-questionnaire-furniture-options"></div>
                   </section>
+                </section>
+
+                <section id="questionnaire-finishes" class="rp-room-questionnaire-section rp-room-finish-editor"
+                  data-room-questionnaire-panel="materials" hidden>
+                  <div class="rp-questionnaire-section-heading">
+                    <div><span class="eyebrow">材質與風格</span><h3 id="room-finish-title">選擇色卡與表面</h3></div>
+                    <p>標示「推薦」的項目仍需由你確認；天花板與照明不會在其他頁重複詢問。</p>
+                  </div>
                   <div id="questionnaire-style-tabs" class="rp-style-tabs" aria-label="六種風格"></div>
                   <div id="questionnaire-style-grid" class="rp-style-grid rp-questionnaire-style-grid"></div>
                   <div class="rp-questionnaire-material-grid">
@@ -545,10 +611,16 @@
                     <div id="questionnaire-finish-room-targets" class="rp-room-targets" hidden></div>
                   </div>
                   <div id="room-feasibility-notices" class="rp-room-feasibility-notices" aria-live="polite"></div>
-                  <div class="rp-action-row">
-                    <button id="confirm-questionnaire-finishes" type="button" class="primary-action">確認此房需求與材質</button>
-                  </div>
                 </section>
+              </div>
+            </div>
+            <div class="rp-questionnaire-dock" aria-label="問卷操作">
+              <button id="visual-question-back" type="button" class="secondary-action">上一題</button>
+              <div>
+                <span id="room-questionnaire-save-hint">作答後會自動保存</span>
+                <button id="visual-question-next" type="button" class="primary-action">儲存並繼續</button>
+                <button id="confirm-questionnaire-finishes" type="button" class="primary-action"
+                  title="確認此房需求與材質" hidden>確認此房並繼續</button>
               </div>
             </div>
           </section>
@@ -829,6 +901,8 @@
               <p>請先完成上方方案確認，再調整一個能清楚看見主要格局的視角。此視角會用於第 8 步的色卡比較。</p>
               <button id="suggest-master-view" type="button" class="secondary-action">套用建議視角</button>
               <button id="lock-master-view" type="button" class="primary-action">鎖定此視角並進入第 8 步</button>
+              <button id="download-proposal-view" type="button" class="secondary-action">下載目前視角 PNG</button>
+              <button id="save-proposal-view-png" type="button" class="secondary-action">保存截圖到專案</button>
               <p id="master-view-status" class="rp-field-hint" aria-live="polite">尚未鎖定比較視角。</p>
             </section>
           </aside>
@@ -862,6 +936,16 @@
               <div id="render-room-list" class="rp-render-room-list"></div>
               <button id="save-room-view" type="button" class="secondary-action">保存目前房間視角</button>
               <button id="submit-room-renders" type="button" class="primary-action">送出已保存的房間渲染</button>
+            </section>
+            <section class="rp-editor-box">
+              <h3>3. 截圖成果</h3>
+              <p>不需等待遠端渲染——目前視角可直接下載，或保存進專案成果清單。</p>
+              <div class="rp-render-option-list">
+                <button id="download-render-view" type="button" class="secondary-action">下載目前視角 PNG</button>
+                <button id="save-render-view-png" type="button" class="secondary-action">保存截圖到專案</button>
+              </div>
+              <div class="rp-room-queue-heading"><strong>已保存的截圖</strong><span id="saved-renders-count">尚無</span></div>
+              <div id="saved-renders-list" class="rp-render-result-grid" aria-live="polite"></div>
             </section>
             <div id="remote-render-jobs" class="rp-render-jobs" aria-live="polite"></div>
           </aside>
@@ -930,11 +1014,11 @@
     <script type="importmap">
       {
         "imports": {
-          "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+          "three": "/static/vendor/three/build/three.module.js",
+          "three/addons/": "/static/vendor/three/examples/jsm/"
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-a06fa561851b"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-836bcd177338"></script>
   </body>
 </html>

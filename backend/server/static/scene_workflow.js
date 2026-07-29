@@ -108,6 +108,38 @@ function storageKey(projectId) {
   return `${WORKFLOW_STORAGE_KEY}:${projectId}`;
 }
 
+export function safeStorageGetItem(storage, key) {
+  if (!storage || !key) return null;
+  try {
+    return storage.getItem(key);
+  } catch (error) {
+    console.warn("RoomPilot 無法讀取瀏覽器備份，將繼續使用專案伺服器資料。", error);
+    return null;
+  }
+}
+
+export function safeStorageSetItem(storage, key, value) {
+  if (!storage || !key) return false;
+  try {
+    storage.setItem(key, value);
+    return true;
+  } catch (error) {
+    console.warn("RoomPilot 瀏覽器儲存空間不足，已略過本機備份。", error);
+    return false;
+  }
+}
+
+export function safeStorageRemoveItem(storage, key) {
+  if (!storage || !key) return false;
+  try {
+    storage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.warn("RoomPilot 無法清除瀏覽器備份，專案流程仍會繼續。", error);
+    return false;
+  }
+}
+
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
@@ -169,7 +201,7 @@ function canEnter(state, step) {
 function createController(state, storage) {
   const persist = () => {
     state.updatedAt = new Date().toISOString();
-    storage?.setItem(storageKey(state.projectId), JSON.stringify(state));
+    safeStorageSetItem(storage, storageKey(state.projectId), JSON.stringify(state));
   };
 
   const markDownstreamStale = (step) => {
@@ -310,7 +342,7 @@ function createController(state, storage) {
       return true;
     },
     reset() {
-      storage?.removeItem(storageKey(state.projectId));
+      safeStorageRemoveItem(storage, storageKey(state.projectId));
       state = initialState(state.projectId);
       return true;
     },
@@ -322,7 +354,7 @@ export function createWorkflow({ projectId, storage = globalThis.localStorage } 
   if (!projectId) throw new Error("projectId is required");
   const state = initialState(projectId);
   const controller = createController(state, storage);
-  storage?.setItem(storageKey(projectId), JSON.stringify(state));
+  safeStorageSetItem(storage, storageKey(projectId), JSON.stringify(state));
   return controller;
 }
 
@@ -334,13 +366,17 @@ export function restoreWorkflow({
   if (!projectId) throw new Error("projectId is required");
   try {
     const parsed = snapshot
-      || JSON.parse(storage?.getItem(storageKey(projectId)) || "null");
+      || JSON.parse(safeStorageGetItem(storage, storageKey(projectId)) || "null");
     if (
       parsed?.schemaVersion === WORKFLOW_SCHEMA_VERSION
       && parsed.projectId === projectId
     ) {
       const controller = createController(clone(parsed), storage);
-      storage?.setItem(storageKey(projectId), JSON.stringify(controller.toJSON()));
+      safeStorageSetItem(
+        storage,
+        storageKey(projectId),
+        JSON.stringify(controller.toJSON()),
+      );
       return controller;
     }
   } catch (error) {

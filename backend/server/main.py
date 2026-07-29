@@ -63,6 +63,11 @@ from .render_service import (
     render_provider_status,
     submit_render_jobs,
 )
+from .render_providers import (
+    direct_image_provider_available,
+    direct_image_provider_status,
+    run_direct_render_jobs,
+)
 from .style_cards import load_taiwan_style_cards
 from .services.cloud_models import (
     cloud_model_status,
@@ -1904,6 +1909,9 @@ def download_project_render(project_id: str, render_id: str) -> FileResponse:
 
 @app.get("/api/render-provider/status")
 def get_render_provider_status() -> dict:
+    # 內建生圖供應者（OpenRouter）啟用時如實回報；舊遠端 URL 設定時維持原契約。
+    if direct_image_provider_available():
+        return direct_image_provider_status()
     return render_provider_status()
 
 
@@ -1916,6 +1924,10 @@ async def create_project_render_jobs(project_id: str, payload: dict) -> dict:
             {"code": "render_project_mismatch", "message": "渲染資料與目前專案不一致。"},
         )
     try:
+        if direct_image_provider_available():
+            # 2026-07 盤點第 10 項修復：內建轉接層直接叫生圖 API、回圖入庫、
+            # 回傳 completed＋圖片網址（前端首回即顯示，不需輪詢）。
+            return await run_direct_render_jobs(project_id, payload, PROJECT_STORE)
         return await submit_render_jobs(payload)
     except ValueError as exc:
         raise HTTPException(

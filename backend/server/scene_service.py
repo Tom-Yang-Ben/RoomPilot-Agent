@@ -100,6 +100,15 @@ SPACE_DEFAULTS = {
     "workspace": ["desk", "office-chair", "bookcase", "wall-shelf"],
     "dining_room": ["dining-table", "dining-chair", "sideboard"],
     "studio": ["sofa-bed", "coffee-table", "desk", "bookcase"],
+    # 2026-07 盤點第 5 項修復：前端「空間用途」下拉開放後，使用者會真的選到
+    # 廚房／浴廁／儲藏／陽台／走道——這些型別先前不在表內，會一律退成客廳
+    # 家具（浴室被塞沙發）。circulation 刻意零家具（動線空間不自動配置）。
+    # 詞彙一致性由 tests/test_room_type_vocabulary.py 鎖住。
+    "kitchen": ["appliance-cabinet"],
+    "bathroom": ["bathroom-vanity", "mirror-cabinet"],
+    "storage": ["storage-cabinet"],
+    "balcony": ["flower-pots-planter"],
+    "circulation": [],
 }
 
 FURNITURE_ALIASES = {

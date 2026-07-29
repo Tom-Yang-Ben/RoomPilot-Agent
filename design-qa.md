@@ -1,59 +1,59 @@
-# RoomPilot 第 4 步「空間與結構」Design QA
+# RoomPilot 第 5 步「需求問卷」Design QA
 
 ## 比對目標
 
-- Source visual truth：`/Users/yangbenhao/.codex/generated_images/019fa9d2-07aa-74d2-913f-be6f73d0132a/exec-1055515d-34e6-4b06-8a33-968b7922530d.png`
-- Implementation screenshot：`/Users/yangbenhao/.codex/visualizations/2026/07/28/019fa9d2-07aa-74d2-913f-be6f73d0132a/roompilot-space-structure-build/13-final-approved-1440x1024.png`
-- Full-view comparison：`/Users/yangbenhao/.codex/visualizations/2026/07/28/019fa9d2-07aa-74d2-913f-be6f73d0132a/roompilot-space-structure-build/comparison-final-full.png`
-- Focused panel comparison：`/Users/yangbenhao/.codex/visualizations/2026/07/28/019fa9d2-07aa-74d2-913f-be6f73d0132a/roompilot-space-structure-build/comparison-final-panel.png`
-- Structure review evidence：`/Users/yangbenhao/.codex/visualizations/2026/07/28/019fa9d2-07aa-74d2-913f-be6f73d0132a/roompilot-space-structure-build/12-final-structure-1440x1024.png`
+- Source visual truth：`/Users/yangbenhao/.codex/generated_images/019fa9d2-07aa-74d2-913f-be6f73d0132a/exec-de495c8f-4815-43ff-ab1b-2a2782b6acd0.png`
+- Implementation screenshot：`/Users/yangbenhao/.codex/visualizations/2026/07/28/019fa9d2-07aa-74d2-913f-be6f73d0132a/roompilot-questionnaire-option1-implementation-final.png`
+- Full-view comparison：`/Users/yangbenhao/.codex/visualizations/2026/07/28/019fa9d2-07aa-74d2-913f-be6f73d0132a/roompilot-questionnaire-option1-comparison-final.png`
+- Focused question comparison：`/Users/yangbenhao/.codex/visualizations/2026/07/28/019fa9d2-07aa-74d2-913f-be6f73d0132a/roompilot-questionnaire-option1-focused-comparison.png`
+- Responsive fix evidence：`/Users/yangbenhao/.codex/visualizations/2026/07/28/019fa9d2-07aa-74d2-913f-be6f73d0132a/roompilot-questionnaire-option1-tablet-768.png`
 
-## 尺寸與狀態
+## 尺寸、正規化與狀態
 
-- Source pixels：1488 × 1058。
-- Implementation pixels：1440 × 1024；CSS viewport 1440 × 1024，device pixel ratio 1。
-- Normalization：兩張圖以幾乎相同的 1.406:1 比例正規化為 1440 × 1024，再放進同一張並排比對圖；沒有裁切主要內容。
-- State：正式第 4 步、房間頁籤、3 個房間、客廳為目前房間、0 / 3 已確認、完成按鈕停用。
-- 另於預設 1280 × 720 視窗驗證頁面捲動、底部完成列及較矮桌面視窗。
+- Source pixels：1487 × 1058。
+- Browser implementation capture：1425 × 1013；瀏覽器 CSS viewport override 為 1440 × 1024。
+- Density normalization：source 與 implementation 等比例重採樣為 1440 × 1024，再放進同一張並排比較圖；沒有裁切主畫面。聚焦比較使用兩張正規化圖相同的 `(275, 135)–(1420, 990)` 題目區域。
+- State：正式第 5 步、客廳、生活偏好、第 1 / 15 題，三個房間皆有測試答案，平衡權重為目前狀態，固定操作列可見。
+- Responsive states：另以 768 × 1024 與 390 × 844 CSS viewport 驗證房間佇列、三段式導覽、內容區與固定操作列。
 
 ## Findings
 
 - 沒有剩餘 P0、P1 或 P2 問題。
-- [P3] 視覺稿含選取、平移、框選和尺寸顯示圖示；正式產品目前沒有對應的既有操作契約，因此實作保留「查看全部空間」與現有畫布操作，沒有加入假的圖示或無作用按鈕。
-- [P3] 視覺稿的房間尺寸較大，實作證據使用 240 × 240 cm 的人工測試房間；這是 QA 測試資料差異，不是版面或契約差異。
+- [P3] 選定稿的兩張客廳圖是專為構圖產生的示意圖；正式實作使用題庫既有、可保存且有語意對應的真實參考圖，因此主題與裁切相近，但畫面內容不逐像素相同。
+- [P3] 選定稿示範未完成、進行中與已完成三種房間狀態；瀏覽器證據專案的三個房間都已完成，所以證據畫面只顯示已完成狀態。進度列仍依實際答案、家具設備與材質資料動態計算。
 
 ## 必要設計面向
 
-- Fonts and typography：延用首頁與選定稿的襯線展示標題，操作文字使用清楚的無襯線字體；標題、進度、欄位、狀態與次要說明的層級一致，沒有截字或異常換行。
-- Spacing and layout rhythm：畫布維持主要視覺面積，右欄只展開目前房間，其他房間收為單列佇列；頁籤、目前房間、佇列、更多操作與底部完成列之間有明確間距。1440 × 1024 內可看見主要確認動作與底部狀態。
-- Colors and visual tokens：暖白、深墨、木色邊框、柔和陰影與首頁語言一致；主要 CTA 只使用深墨色，停用完成按鈕與停用批次按鈕均降低飽和度，不與目前任務競爭。
-- Image quality and asset fidelity：保留真實 RoomPilot logo 與使用者平面圖；沒有新增占位圖、CSS 圖像、手繪 SVG 或假圖示。畫布保持清晰且使用既有 overlay。
-- Copy and content：保留「房間／牆門窗樑柱」、命名、面積、尺寸、新增、合併、切割與完成等正式功能文案；說明改為一次只引導一個任務。
-- Icons：沒有用文字符號或 CSS 圖形仿造視覺稿圖示；正式頁面沿用現有品牌 logo 與既有結構圖例。
-- States and interactions：已實測房間選取、重新命名、稍後處理、確認後自動前往下一間、更多操作展開／收合、房間／結構頁籤切換、停用完成狀態與自動保存。
-- Accessibility：目前房間、頁籤、進度、欄位與完成狀態都有語意標籤；按鈕維持實際 button 控制，輸入框保留 label，停用狀態同時使用 `disabled` 與 `aria-disabled`。瀏覽器錯誤紀錄為空。
+- Fonts and typography：延用 RoomPilot 首頁的襯線展示標題與無襯線操作字；題目、房間名稱、段落導覽、進度與輔助文字的尺寸和權重接近視覺稿，桌面、平板與手機沒有截字。動態題目較長時可自然換行。
+- Spacing and layout rhythm：桌面保持約 348 px 左側房間佇列與較寬主內容區；三段式導覽、題目、圖片卡、偏好尺度、補充欄及固定操作列有一致間距。平板以下改為橫向房間佇列並把問卷完整下移，避免雙欄擠壓。
+- Colors and visual tokens：暖象牙背景、深咖啡主 CTA、墨綠進度與選取狀態、低對比灰棕邊框均對應選定稿；陰影與圓角保持克制，沒有新增裝飾漸層或泛用大圓卡。
+- Image quality and asset fidelity：使用正式題庫 1536 × 1024 參考圖，以 `object-fit: cover` 填滿卡片且沒有變形、透明邊或占位圖；品牌 logo 沿用正式資產。沒有用 CSS art、手繪 SVG、emoji 或文字符號替代目標中的可見圖片資產。
+- Copy and content：生活偏好、家具與設備、材質與風格三段文案可獨立理解；補充欄、保存提示、上一題與繼續動作清楚。既有家具、冷氣、材質、全屋資料與摘要內容全部保留。
+- Icons：品牌 logo 與既有流程圓形步驟標記保持一致；房間狀態與選項 radio 使用簡單幾何狀態，不另造不具功能的圖示。
+- States and interactions：已實測房間切換、生活偏好權重選擇、三段式導覽、冷氣與家具段、材質段、完成房間後前往全屋資料、摘要單一展開、返回修改此房與自動保存。
+- Accessibility：導覽與摘要使用實際 button，active/expanded 狀態有 `aria-current`、`aria-pressed` 或 `aria-expanded`；textarea、select 與圖片均保留 label/alt，固定操作列不遮住主要控制。Console error 為 0。
 
 ## 比對迭代紀錄
 
-1. 第一輪 P2：舊版標題工具列的 `display: contents` 規則壓縮房間名稱輸入框。修正為只在引導式卡片內使用獨立 grid，並固定名稱欄與套用按鈕的最小高度。修正證據：`02-guided-review-fixed.png`。
-2. 第二輪 P2：完成列與畫布列在較矮視窗中發生重疊。修正 workspace row sizing，並把完成列改為獨立全寬列。修正證據：`07-final-completion-bar.png`。
-3. 第三輪 P2：結構頁空狀態的批次確認按鈕仍過度醒目，標題和兩個操作也互相擠壓。修正為兩欄低密度操作列及中性停用色。修正證據：`12-final-structure-1440x1024.png`。
-4. 最終比對：目前房間卡、佇列、畫布比例、底部完成列、色彩及主要 CTA 均符合選定稿的層級；沒有剩餘可執行的 P0／P1／P2。
+1. 第一輪 full-view 比對：桌面構圖、左側房間進度、三段式導覽、雙圖問題、五點權重、補充欄與底部操作列均符合選定稿，沒有 P0/P1；家具與材質仍保留完整功能但改到各自分段。
+2. 第一輪 P2：768 px 平板寬度仍使用雙欄，左側房間卡受既有三欄規則影響而互相擠壓，主題圖卡也過窄。修正：把 Step 5 單欄斷點提高至 900 px，平板改為橫向房間佇列，主問卷置於下方，固定操作列維持可見。修正證據：`roompilot-questionnaire-option1-tablet-768.png`。
+3. 摘要密度 P2：第一個展開房間仍一次列出 15 項生活偏好，雖然只展開一房，頁面仍偏長。修正：預設顯示前 4 項，其餘放入原生可展開的「查看其餘 N 項偏好」，保留完整檢查能力。瀏覽器驗證同時確認只有一個房間摘要 body 可見。
+4. 最終 full-view 與 focused comparison：版面比例、字體層級、色彩、圖片裁切、主 CTA、補充欄及三段式導覽沒有剩餘可執行的 P0/P1/P2。
 
 ## Primary interactions tested
 
-- 選取三個房間並切換目前房間。
-- 修改房間名稱並觸發既有自動保存。
-- 「確認並查看下一間」確認目前房間後自動選取下一個未確認房間。
-- 「稍後處理」只切換房間，不寫入新的 workflow 欄位。
-- 「更多操作」正常展開／收合，既有新增、全部確認、刪除目前房間、合併與切割入口仍存在。
-- 切換到牆門窗樑柱，門／窗／牆／樑／柱頁籤及確認勾選保持可用。
-- 完成按鈕在房間、結構及兩項確認尚未完成時維持停用。
+- 客廳、餐廳與主臥房間切換，題目標題與房間進度同步更新。
+- 生活偏好從「平衡」切到「強偏 A」再切回「平衡」，`aria-pressed` 與自動保存正確。
+- 「家具與設備」與「材質與風格」分段切換，冷氣、家具推薦、色卡、牆地材質、天花板、照明與套用範圍仍存在。
+- 確認房間後進入全屋資料；確認全屋資料後進入逐房摘要。
+- 摘要切換到第二個房間時，第一個房間同步收合；可見摘要 body 數量為 1。
+- 「返回修改此房」回到對應房間與生活偏好段落。
+- 1440 × 1024、768 × 1024、390 × 844 三種 viewport 均確認導覽與固定操作列可用。
 - Console errors checked：0。
 
 ## Follow-up Polish
 
-- P3：若未來正式新增畫布縮放、平移或尺寸顯示功能，可再選定同一套圖示庫補上視覺稿中的工具列；本次不為視覺相似度新增沒有行為的控制。
-- P3：保留 860px 與 560px 單欄斷點；本次視覺真值為桌面畫面，因此沒有把行動版截圖列為阻擋條件。
+- P3：若題庫日後有更接近選定稿暖色客廳的正式雙圖，可只替換題庫圖片資產，不需更動本次版面或保存契約。
+- P3：房間很多時，平板與手機目前使用橫向滑動佇列；未來可補一個「目前房間 x / n」文字提示，但不是本次三房流程的阻擋問題。
 
 final result: passed

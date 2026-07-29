@@ -76,6 +76,40 @@ function openingWidthCm(item) {
   return Number(item?.width_cm) || (start && end ? Math.hypot(end.x - start.x, end.y - start.y) : 0);
 }
 
+export function translateOpeningAlongAxis(opening, delta = {}) {
+  const start = finitePoint(opening?.start);
+  const end = finitePoint(opening?.end);
+  if (!start || !end) return null;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (length < 0.1) return null;
+
+  let axis;
+  if (Math.abs(dx) >= Math.abs(dy) * 3) {
+    axis = { x: Math.sign(dx) || 1, y: 0 };
+  } else if (Math.abs(dy) >= Math.abs(dx) * 3) {
+    axis = { x: 0, y: Math.sign(dy) || 1 };
+  } else {
+    axis = { x: dx / length, y: dy / length };
+  }
+  const requestedDelta = finitePoint(delta) || { x: 0, y: 0 };
+  const distance = requestedDelta.x * axis.x + requestedDelta.y * axis.y;
+  const translation = { x: axis.x * distance, y: axis.y * distance };
+  return {
+    start: {
+      x: start.x + translation.x,
+      y: start.y + translation.y,
+    },
+    end: {
+      x: end.x + translation.x,
+      y: end.y + translation.y,
+    },
+    axis,
+    distanceCm: distance,
+  };
+}
+
 function windowCandidateScore(item) {
   return (item?.confirmed === true ? 100 : 0)
     + (item?.source === "manual" ? 20 : 0)

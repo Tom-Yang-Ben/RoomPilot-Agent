@@ -27,16 +27,16 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
 
 
-def test_requirements_step_has_randomized_test_skip_button() -> None:
+def test_requirements_step_has_first_meeting_demo_shortcut() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="randomize-requirements"' in html
     assert "async function randomizeRequirementsForTesting" in source
-    assert "ROOM_REQUIREMENT_POLAR_AXES" in source
-    assert "state.basicConfirmed = true" in source
-    assert "requirement.confirmed = true" in source
-    assert 'showQuestionnaireStage("summary")' in source
+    assert 'state.firstMeetingStep = "summary"' in source
+    assert 'goalIds: ["circulation", "storage", "daylight"]' in source
+    assert "likedStylePackIds: packs.slice(0, 2)" in source
+    assert "dislikedStylePackId:" in source
 
 
 def test_weighted_questionnaire_answers_preserve_a_b_preference_strength() -> None:
@@ -201,21 +201,11 @@ def test_step_six_groups_failures_by_room_and_offers_explicit_resolution() -> No
     assert ".rp-configuration-pending-room" in css
 
 
-def test_step_six_navigation_reopens_the_dedicated_2d_workspace() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    progress_navigation = source.split(
-        '$$(".rp-progress button").forEach((button) => button.addEventListener("click", () => {',
-        1,
-    )[1].split('$("#reset-project")', 1)[0]
-
-    assert 'goTo("white_model_3d")' not in progress_navigation
-    assert "if (state.workflow?.canEnter(step)) goTo(step);" in progress_navigation
-
-
 def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     dependency_edges = {
         "scene_v2.js": [
             "scene_viewer.js",
+            "scene_workflow.js",
             "scene_unit_contracts.js",
             "scene_calibration.js",
             "scene_room_geometry.js",
@@ -846,7 +836,7 @@ def test_structure_step_explains_pending_manual_door_directions() -> None:
     assert "一鍵確認全部門" in html
     assert "confirmAllButton.disabled = !collection.length || allConfirmed" in source
     assert "`一鍵確認全部${meta.label}`" in source
-    assert "開門側與鉸鏈端" in source
+    assert "門向與鉸鏈端" in source
 
 
 def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> None:
@@ -1089,12 +1079,15 @@ def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects(
     assert "syncFinalValidationToConfiguration" in controller
 
 
-def test_step_six_progress_entry_prefers_the_integrated_3d_workspace() -> None:
+def test_step_six_progress_entry_reopens_the_dedicated_2d_workspace() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    progress_navigation = source.split(
+        '$$(".rp-progress button").forEach((button) => button.addEventListener("click", () => {',
+        1,
+    )[1].split('$("#reset-project")', 1)[0]
 
-    assert 'if (step === "layout_2d")' in source
-    assert 'state.workflow?.canEnter("white_model_3d")' in source
-    assert 'goTo("white_model_3d")' in source
+    assert 'goTo("white_model_3d")' not in progress_navigation
+    assert "if (state.workflow?.canEnter(step)) goTo(step);" in progress_navigation
 
 
 def test_single_furniture_reflow_is_locked_until_the_request_finishes() -> None:
@@ -1583,7 +1576,7 @@ def test_each_door_requires_explicit_confirmation_and_supports_hinge_end_reversa
     assert "[item.start, item.end] = [item.end, item.start]" in source
     assert "pendingStructureKind" in source
     assert "一鍵確認全部門" in html
-    assert "door.confirmed = false" in source
+    assert "item.confirmed = false" in source
 
 
 def test_add_door_mode_takes_priority_over_wall_selection_and_can_be_cancelled() -> None:
@@ -2484,7 +2477,8 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert "rotateSelectedStructure(15)" in controller
     assert 'id="flip-selected-door"' in html
     assert 'id="rotate-selected-door-180"' in html
-    assert 'class="rp-questionnaire-workspace"' in html
+    assert 'id="first-meeting-questionnaire"' in html
+    assert 'class="rp-questionnaire-workspace rp-legacy-questionnaire" hidden' in html
     assert 'data-questionnaire-panel="rooms"' in html
     assert 'id="visual-space-nav"' in html
     assert 'id="room-furniture-select"' not in html
@@ -2495,6 +2489,27 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert 'data-object-rotate="-15"' in viewer
     assert 'data-object-rotate="15"' in viewer
     assert "Shift+R 反向 15 度" in viewer
+
+
+def test_step_five_uses_room_queue_and_three_client_only_work_sections() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    for section in ("preferences", "equipment", "materials"):
+        assert f'data-room-questionnaire-section="{section}"' in html
+        assert f'data-room-questionnaire-panel="{section}"' in html
+    assert 'class="rp-questionnaire-dock"' in html
+    assert "function roomQuestionnaireSectionProgress" in controller
+    assert "function showRoomQuestionnaireSection" in controller
+    assert "function renderRoomQuestionnaireSection" in controller
+    assert 'class="rp-room-summary-card ${expanded ? "is-expanded" : ""}"' in controller
+    assert 'data-edit-questionnaire-room="${escapeHtml(room.id)}"' in controller
+    assert "roomQuestionnaireSection: state.roomQuestionnaireSection" not in controller
+    assert "expandedQuestionnaireSummaryRoomId: state.expandedQuestionnaireSummaryRoomId" not in controller
+    assert "#requirements-step .rp-room-questionnaire-section-nav" in css
+    assert "#requirements-step .rp-questionnaire-dock" in css
+    assert "#requirements-step .rp-room-summary-card" in css
 
 
 def test_3d_view_controls_offer_free_rotation_and_grouped_workflows() -> None:
@@ -2684,9 +2699,10 @@ def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
     assert "await ensureAutomaticSoftDecor(pack)" in source
     assert "item.auto_decor_role && item.placement_failed" in source
     assert "saveSequence = saveSequence.catch" in source
+    assert "safeStorageSetItem(localStorage, pendingSaveStorageKey(), serialized)" in source
     assert "roompilot.pending-save." in source
     assert "for (let attempt = 0; attempt < 3; attempt += 1)" in source
-    assert "const pendingSave = localStorage.getItem(pendingSaveStorageKey())" in source
+    assert "const pendingSave = safeStorageGetItem(localStorage, pendingSaveStorageKey())" in source
     assert "base_updated_at: state.project?.updated_at || null" in source
     assert "shouldReplayPendingSave(pendingSave, result.project)" in source
     assert "replay_pending: true" in source
@@ -2720,3 +2736,32 @@ def test_step_seven_requires_one_locked_room_view_before_batch_rendering() -> No
     )[0]
     assert "state.proposalReview.roomViews = {};" not in palette_handler
     assert "將沿用第 7 步鎖定的逐房視角" in palette_handler
+
+
+def test_scheme_generation_degrades_per_item_instead_of_total_failure() -> None:
+    """2026-07 盤點方案 B 修復：任一件家具失敗不得再讓整包方案歸零。
+
+    失敗件改列該房「暫不放入」（deferred）清單，其餘照常成案；
+    自動推薦另設尺寸預檢，小房間從源頭不被推薦塞不下的家具。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "? null : placedFurniture" not in source, "全有或全無的 null 回傳必須拆除"
+    assert "function deferFailedPlacements(" in source
+    assert "function specFitsRoomDimensions(" in source
+    assert "已列入「暫不放入」" in source
+    assert "方案 B 無法在保留問卷家具需求下產生合法配置" not in source
+    assert "目前格局無法在保留問卷需求下產生方案 B 的合法配置" not in source
+
+
+def test_step_four_plan_stays_fixed_and_resyncs_overlays_after_panel_changes() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert "function observePlanStageResizes()" in source
+    assert "new ResizeObserver(scheduleOverlaySync)" in source
+    assert "planStageResizeObserver.observe(stage)" in source
+    assert 'window.addEventListener("resize", scheduleOverlaySync)' in source
+    assert "#space-step .rp-space-review-workspace" in css
+    assert "align-items: start;" in css.split(
+        "#space-step .rp-space-review-workspace", 1
+    )[1].split("}", 1)[0]

@@ -144,7 +144,11 @@ def test_agent_selection_receives_all_rooms_in_one_request() -> None:
 
 def test_questionnaire_generates_two_validated_2d_3d_schemes_before_entering_step_six() -> None:
     assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" })' in SCENE
-    assert "目前格局無法在保留問卷需求下產生方案 B 的合法配置" in SCENE
+    # 2026-07-30 方案 B 改逐件降級（盤點第 6 項修復）：不再有「無法產生
+    # 合法配置」的整包死當訊息，放不下的家具列入「暫不放入」後流程繼續。
+    assert "目前格局無法在保留問卷需求下產生方案 B 的合法配置" not in SCENE
+    assert "deferFailedPlacements(schemeBFurniture" in SCENE
+    assert "已列入「暫不放入」" in SCENE
     generation = SCENE.split("async function generateWhiteModelFromRequirements", 1)[1].split(
         "async function addWhiteModelBeamFromWorld", 1
     )[0]

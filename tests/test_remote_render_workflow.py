@@ -86,6 +86,10 @@ def test_unconfigured_remote_renderer_reports_explicit_503(
     tmp_path, monkeypatch
 ) -> None:
     monkeypatch.delenv("ROOMPILOT_RENDER_PROVIDER_URL", raising=False)
+    # 2026-07-30 起「未設定」的定義擴大：自訂遠端 URL 與內建生圖金鑰
+    # （OPENROUTER_API_KEY，見 render_providers.py）都不存在才回 503。
+    # 開發機 .env 常備有真實金鑰，這裡必須顯式清掉。
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.setattr(main, "PROJECT_STORE", ProjectStore(tmp_path / "runtime"))
     client = TestClient(main.app)
     project = client.post("/api/projects", json={"name": "Render test"}).json()["project"]
