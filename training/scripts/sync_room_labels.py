@@ -115,7 +115,7 @@ def main():
     ap.add_argument("--no-validate", action="store_true")
     a = ap.parse_args()
 
-    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, os.path.join(_root, "training/CubiCasa5k"))
 
     n_changed, n_files = 0, 0

@@ -163,7 +163,7 @@ def main():
     ap.add_argument("--out", default="testdata/Identify_ans/own_dataset")
     a = ap.parse_args()
 
-    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, os.path.join(_root, "training/CubiCasa5k"))
     sys.path.insert(0, os.path.join(_root, "backend", "floorplan"))  # 管線模組在 backend/floorplan/
     from floortrans.loaders.house import House

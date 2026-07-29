@@ -16,7 +16,7 @@ import sys
 import cv2
 import numpy as np
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(_ROOT, "training/CubiCasa5k"))
 sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))
 

@@ -49,7 +49,7 @@ def test_build_svg_structure():
 
 def test_house_round_trip():
     sys.path.insert(0, os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         "training/CubiCasa5k"))
     from floortrans.loaders.house import House
     doc = _sample_svg()
