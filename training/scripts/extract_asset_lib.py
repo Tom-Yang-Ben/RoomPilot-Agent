@@ -1,7 +1,8 @@
 """extract_asset_lib.py — 階段 A：Asset 家具素材灌入符號模板庫。
 
 testdata/Asset/ 的 10 類 DWG 切割線稿 PNG → 48×48 標準模板，
-近重複去重後「併入」既有 symbol_lib.npz（repo 根，保留 CubiCasa 系模板）。
+近重複去重後「併入」既有模板庫（backend/floorplan/symbol_lib.npz，
+即 symbol_match.LIB_PATH——推論期資產，保留 CubiCasa 系模板）。
 房型歸屬依使用者裁決：dinner_table→kitchen、chairs（單人沙發）→living。
 
 Asset PNG 無比例資訊，實體尺寸閘門（wh）以家具物理常識範圍給值：
@@ -25,7 +26,7 @@ _ROOT = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))
 
-from symbol_match import CANVAS, hu_of
+from symbol_match import CANVAS, LIB_PATH, hu_of
 
 # Asset 目錄 → (kind, (短邊lo, 短邊hi, 長邊lo, 長邊hi) cm)
 ASSET_KINDS = [
@@ -85,7 +86,7 @@ def _chamfer(a, b):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--out", default="symbol_lib.npz")
+    ap.add_argument("--out", default=LIB_PATH)
     ap.add_argument("--ckpt-dir", default="training/asset_ckpt")
     ap.add_argument("--batch", type=int, default=1,
                     help="本次最多新算幾個類別（已有檢查點的直接沿用）")

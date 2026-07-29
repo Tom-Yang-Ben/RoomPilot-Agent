@@ -27,7 +27,7 @@ pip install lmdb scikit-image svgpathtools   # SVG 標注解析新增依賴（re
 ### 3. CubiCasa5k 程式庫補丁（**必跑，含新增的 WashRoom 補丁**）
 
 ```bash
-python scripts/apply_cubicasa_patches.py --dir training/CubiCasa5k
+python training/scripts/apply_cubicasa_patches.py --dir training/CubiCasa5k
 # 冪等腳本；若 GPU 機是 fresh clone 也是這一條
 # 不跑的後果：WashRoom class 標注會退回 Undefined（floor01/06/08/47 中招）
 ```

@@ -11,9 +11,11 @@ import cv2
 import numpy as np
 
 CANVAS = 48
-LIB_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "symbol_lib.npz")                # repo 根（2026-07-29 由 training/ 移出）
+LIB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "symbol_lib.npz")
+# 推論期資產，與消費它的模組同目錄（2026-07-29 由 repo 根移入）——
+# 只搬 backend/floorplan/ 的部署不會再解析到錯路徑（舊版往上三層推導，
+# 且找不到檔不報錯、靜默停用，是無聲失效的高風險寫法）
 # SVG class token → 證據 kind（oval/tubrect/stove 沿用既有計分；
 # shower/sinkicon 為新 kind，classify_rooms_cc 給保守小權重）
 TARGETS = {"Toilet": "oval", "Bathtub": "tubrect", "BathtubRound": "tubrect",

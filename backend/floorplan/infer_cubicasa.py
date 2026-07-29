@@ -11,13 +11,12 @@
 用法: python infer_cubicasa.py <weights.pkl> <out_dir> <img1> [img2 ...]
 """
 import sys, os, hashlib
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo 根（本檔在 backend/floorplan/）
-sys.path.insert(0, os.path.join(_ROOT, "training/CubiCasa5k"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # 同目錄的 ccmodel
 import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
-from floortrans.models import get_model
+from ccmodel import get_model      # 模型定義推論期副本（backend/floorplan/ccmodel/）
 
 WEIGHTS, OUT = sys.argv[1], sys.argv[2]
 IMGS = sys.argv[3:]
@@ -29,10 +28,10 @@ ICON0 = 33
 # icon class 1 = Window, 2 = Door
 
 os.makedirs(OUT, exist_ok=True)
-_cwd = os.getcwd()                # floortrans 以相對路徑載入 floortrans/models/model_1427.pth
-os.chdir(os.path.join(_ROOT, "training/CubiCasa5k"))
+# pretrained=False：MPII 預訓練權重（model_1427.pth）隨即被下面的 v5
+# load_state_dict 全部覆蓋，推論載它純屬浪費——這也是能拿掉 chdir 進
+# training/CubiCasa5k 的原因（上游 init_weights 寫死相對路徑）
 model = get_model('hg_furukawa_original', 51)
-os.chdir(_cwd)
 model.conv4_ = torch.nn.Conv2d(256, N_CLASSES, bias=True, kernel_size=1)
 model.upsample = torch.nn.ConvTranspose2d(N_CLASSES, N_CLASSES, kernel_size=4, stride=4)
 # 安全載入:只收張量與 numpy 標量(微調 checkpoint 的 best_loss 統計)，杜絕 pickle 任意程式碼

@@ -3,9 +3,12 @@
 走訪 CubiCasa5k train.txt 全部樣本的 model.svg，萃取六類 FixedFurniture
 （Toilet/Bathtub/BathtubRound/IntegratedStove/Sink/Shower）的向量線稿，
 以 local 座標渲染成 48×48 標準模板（方向已標準化，零牆線/文字污染），
-去重後存 symbol_lib.npz。val/test 樣本完全不碰（評分集衛生，同路線 A）。
+去重後存模板庫。val/test 樣本完全不碰（評分集衛生，同路線 A）。
 
-用法：python extract_symbol_lib.py [--out symbol_lib.npz]
+輸出是**推論期資產**（floorplan2room.detect_symbols 讀），落在
+backend/floorplan/ 而非 training/——本腳本雖是研發工具，產物歸管線。
+
+用法：python extract_symbol_lib.py [--out <路徑>]
 """
 import argparse
 import os
@@ -14,8 +17,8 @@ from xml.dom import minidom
 
 import numpy as np
 
-from symbol_match import CANVAS, TARGETS, collect_primitives, hu_of, \
-    render_polylines
+from symbol_match import CANVAS, LIB_PATH, TARGETS, collect_primitives, \
+    hu_of, render_polylines
 
 DATA = "training/CubiCasa5k/data/cubicasa5k"
 
@@ -44,7 +47,7 @@ def extract_sample(svg_path):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--out", default="symbol_lib.npz")
+    ap.add_argument("--out", default=LIB_PATH)
     a = ap.parse_args()
 
     with open(os.path.join(DATA, "train.txt")) as f:

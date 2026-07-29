@@ -5,7 +5,7 @@ import sys, os
 from xml.dom import minidom
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from symbol_match import (collect_primitives, render_polylines, hu_of,
-                          hu_dist, chamfer_score, CANVAS)
+                          hu_dist, chamfer_score, load_lib, CANVAS, LIB_PATH)
 
 STOVE_SVG = """<g class="FixedFurniture ElectricalAppliance IntegratedStove"
   transform="matrix(0,1,-1,0,100,200)" fill="#ffffff" stroke="#000000">
@@ -63,3 +63,12 @@ def test_chamfer_identity_lt_cross():
     toilet = render_polylines(collect_primitives(_node(TOILET_SVG)))
     assert chamfer_score(stove, stove) < 0.1
     assert chamfer_score(stove, toilet) > chamfer_score(stove, stove) + 1.0
+
+
+def test_lib_path_resolves_to_real_file():
+    """LIB_PATH 找不到檔時 load_lib() 回 None、match_symbols() 回空清單——
+    **不報錯、靜默停用**。搬過檔案而忘了改路徑不會有任何徵兆，只有評測分數
+    悄悄退回手寫規則的水準，故以測試釘住（2026-07-29 由 repo 根移入本目錄）。"""
+    assert os.path.isfile(LIB_PATH), f"模板庫不在 {LIB_PATH}——會靜默停用"
+    lib = load_lib()
+    assert lib is not None and len(lib["rasters"]) > 0

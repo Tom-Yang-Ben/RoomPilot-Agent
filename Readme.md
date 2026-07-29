@@ -1,3 +1,61 @@
+2026/7/29 v.2.19 變更（房型新增 office/stair 兩類拆解 space 混合桶，具名 72.6%→74.5% 且舊八類零倒退；推論鏈與 training/ 完全脫鉤——模型定義入 backend/floorplan/ccmodel/、symbol_lib 入 backend/floorplan/；Windows 原生 cp950 編碼陷阱修復）
+
+一、房型 office/stair 補完整條鏈路（v2.14 裁決的 10 類，本輪履行）：
+
+- 根因複述：`Office` 與 `StairWell` 在 CubiCasa `rooms_selected` 同為 11(Undefined)，
+  評分的 `space` 實為「書房＋樓梯間＋真未定義」混合桶（recall 0.286）
+- GT 側 `eval_rooms_cc.gt_label_of()`：在 `rooms_selected` 塌陷**之前**攔截兩個具名 token；
+  `CLASSES` 9→11 類。實測 own_dataset token 分布 157 間，僅 Office 7／StairWell 7 兩者改判，其餘九類逐一驗證未動
+- 管線側 `EXTRA_LABELS`：**CC_ROOM_LABEL 不新增 11 的映射**——模型沒有這兩類的輸出通道，
+  硬映射 11 會把所有 Undefined 像素倒進來。改以 0 分播種進 score，讓證據層加分
+  （不播種的話 OCR 層 `if lab_t in score` 防呆會靜默丟掉證據）
+- 層 4 新增 `detect_stairs()`：踏板＝平行等長等距線。踏面深度 21~35cm／梯段淨寬 70~160cm
+  ／**≥4 條**／間距一致性 ≤1.35 倍。條數下限是關鍵——v2.18 已記「衣櫃內部分隔線與樓梯踏步
+  幾何同構、本質不可分辨」，衣櫃分隔通常 1~3 條、牆剖面線間距遠密於踏面，條數＋間距是僅有的鑑別軸
+- 層 5 `OCR_WORD2LABEL` 補 OFFICE/STUDY/WORKROOM/DEN/LIBRARY→office、STAIR(S)/STAIRWELL/STAIRCASE→stair
+- **驗收（24 圖/157 房，同 v2.18 尺）：具名 114/157=72.6% → 117/157=74.5%，舊八類 recall 逐類完全未動**；
+  stair recall 0.429／precision 0.75；`space` 混合桶解散
+- **`office` recall 0.0 已查明非 bug**：那 7 張圖 OCR 只讀到 0~3 行雜訊（「这」「中」「区」），
+  圖面根本沒有房名文字。office 沒有幾何證據可用（`ASSET_KINDS` 無書桌／書櫃素材），
+  OCR 是唯一來源——在美式文字標示線稿（floor04 那類）才會生效。不誤標，但也叫不出來
+
+二、推論鏈與 `training/` 完全脫鉤（使用者裁定的目錄職責）：
+
+- 職責界線：`backend/floorplan/`＝辨識程式與其執行期所需一切；`temp/`＝生成檔；
+  `training/`＝**只放訓練材料與研發工具**，交付 main 的東西不得依賴此目錄
+- **`backend/floorplan/ccmodel/`（新增）**：CubiCasa 模型定義的推論期副本（2 支 .py，約 29KB）。
+  以往 `infer_cubicasa.py` 要 `sys.path` 掛 `training/CubiCasa5k` 再 `os.chdir` 進去
+  （上游 `init_weights()` 寫死相對路徑 `floortrans/models/model_1427.pth`），
+  等於把 6.6G 訓練目錄變成部署必要條件。現已全部移除
+- **`model_1427.pth`（70MB）不再需要**：它是 MPII 姿態估計預訓練權重，推論建完架構後
+  `load_state_dict(v5, strict=True)` 會覆蓋全部參數。**實測驗證：跳過 init_weights 與載入後再
+  覆蓋，740 個參數張量逐張量完全相同（0 個相異）**，故 `get_model(pretrained=False)` 為推論預設
+- 不取名 `floortrans`：研發工具 `eval_rooms_cc.py` 仍需原版 `floortrans.loaders` 解析 GT，同名會在
+  `sys.path` 上互相遮蔽
+- `symbol_lib.npz` **repo 根 → `backend/floorplan/`**（v2.18 當日移到根，本輪二次修正到位）。
+  舊 `LIB_PATH` 往上三層推導，只搬 `backend/floorplan/` 就會解析到錯路徑，而**找不到檔不報錯**
+  （靜默停用）；改與消費模組同目錄後 `backend/floorplan/` 自成可獨立搬運的單位。已加測試釘住。
+  兩支 extract 腳本的 `--out` 預設改為引用 `symbol_match.LIB_PATH`，不再各自寫死
+- `apply_cubicasa_patches.py` 移回 `training/scripts/`——推論已不碰 CubiCasa5k 程式庫，
+  main 部署不必再跑這一步。`door_lib.npz` 維持 `training/`（只被 door_match.py 消費，位置本就正確）
+- 例外一項，經裁定維持不動：`cubicasa/room/*_mask.npz` 雖是生成物，但屬**預算好的交付資產**
+  （main 的 `DEFAULT_CACHE_DIR` 寫死此路徑、進版控讓部署端免 torch 免權重即可出結果）
+
+三、Windows 原生 cp950 編碼陷阱（換機後才現形，v2.18 未觸及）：
+
+- **報表全失**：`json.dump(ensure_ascii=False)` 寫進未指定 encoding 的檔，遇 `⚠`(U+26A0)
+  在 24 張跑完後才 UnicodeEncodeError，整份報表報銷
+- **整張圖靜默記成 error**：管線警告字串含 `⚠`，stdout 重導到檔案時 Windows 預設 cp950 編不出來
+  → floor13 被記為 error、**10 間 GT 蒸發**（GT 157→147，一度誤以為是新類別改壞了映射）。
+  只在輸出導向檔案時發作，互動執行看不到
+- 修法：報表 `open(..., encoding="utf-8")`；`eval_rooms_cc` 與 `floorplan2room` 的 `__main__`
+  重設 stdout/stderr 為 utf-8（只動 `__main__`，被 import 時不改宿主行程）
+- 註：cp950 編得出中文，卡的是 `⚠` 這個符號，故只有含它的路徑會爆
+
+四、環境：本機 `.venv` 為空（僅 pip）已依 requirements 重建，版本與 v2.18 記載一致
+（numpy 2.5.1／opencv 4.14／rapidocr 1.4.4／torch 2.13.0+cpu）；`pytest training/tests/` **83 綠**
+（原 66 ＋ office/stair 16 ＋ 模板庫路徑防靜默失效 1）。
+
 2026/7/29 v.2.18 變更（換機 WSL→Windows 原生，基準零差異複驗；Asset 家具模板 943 條入庫完成——但實測**功能未生效**，根因是 Hu 預篩門檻讓整套模板比對機制早已失效；symbol_lib.npz 移至 repo 根）
 
 一、換機與環境重建（舊機 0x154 藍屏連環當機，改走 Windows 原生繞開 WSL 記憶體回收）：

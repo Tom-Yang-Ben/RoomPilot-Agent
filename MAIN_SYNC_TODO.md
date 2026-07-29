@@ -62,7 +62,7 @@ DEFAULT_WEIGHTS = Path("backend/floorplan/model_finetuned_v5.pkl")   # cody v5 �
 ## 5. 環境與依賴（pyproject / uv.lock 需新增）
 
 語意路徑的完整執行鏈：`floorplan2room` → `ensure_cc_masks()` → **subprocess 呼叫
-`infer_cubicasa.py`（同 package）** → torch 載入 floortrans 模型定義＋v5 權重推論。
+`infer_cubicasa.py`（同 package）** → torch 載入 `ccmodel` 模型定義＋v5 權重推論。
 main 的環境要補齊這條鏈：
 
 | 需求 | 版本/來源 | 備註 |
@@ -73,12 +73,36 @@ main 的環境要補齊這條鏈：
 | `numpy` | `>=2.0` | main 應已有 |
 | `ezdxf` | `>=1.3` | DXF 輸出 |
 | `backend/floorplan/infer_cubicasa.py` | 已隨管線同目錄（2026-07-27 移入） | `ensure_cc_masks` 以 subprocess 呼叫，同 package 內 |
-| `backend/floorplan/symbol_match.py` | 已隨管線同目錄（**硬依賴**） | `floorplan2room` 頂層 `import symbol_match`；模板庫 `symbol_lib.npz`（**repo 根**，2026-07-29 由 `training/` 移出）缺失時自動停用、不影響運作 |
-| `backend/floorplan/apply_cubicasa_patches.py` | 部署時跑一次 | CubiCasa5k 程式庫的 numpy 2.x 相容補丁，checkout 後執行 |
-| floortrans 模型定義 | `training/CubiCasa5k/` 原始碼 checkout | 只用模型定義、不用其 loader；**CC BY-NC** |
+| `backend/floorplan/symbol_match.py` | 已隨管線同目錄（**硬依賴**） | `floorplan2room` 頂層 `import symbol_match`；模板庫 `backend/floorplan/symbol_lib.npz`（2026-07-29 由 repo 根移入，與消費模組同目錄）缺失時自動停用、不影響運作 |
+| `backend/floorplan/ccmodel/` | 隨 repo（2 支 .py，約 29KB） | **2026-07-29 新增**，見下方說明 |
 
 **不需要**帶去的：`lmdb`、`scikit-image`、`svgpathtools`——那是 CubiCasa loader／
 訓練資料打包才用的，推論不碰。
+
+### 5.1 推論鏈已與 `training/` 完全脫鉤（2026-07-29）
+
+以往這條鏈要求部署端 checkout `training/CubiCasa5k/`（6.6G 目錄），因為
+`infer_cubicasa.py` 得 `sys.path` 掛它、再 `os.chdir` 進去才載得到模型定義
+（上游 `init_weights()` 寫死相對路徑 `floortrans/models/model_1427.pth`）。
+現已改為：
+
+| 項目 | 舊 | 新 |
+| :--- | :--- | :--- |
+| 模型定義 | `training/CubiCasa5k/floortrans/models/` | **`backend/floorplan/ccmodel/`**（2 支 .py，進版控） |
+| `sys.path` / `chdir` | 掛 + 切進 `training/CubiCasa5k` | 皆已移除 |
+| `model_1427.pth`（70MB） | 部署端必備 | **不再需要** |
+| `apply_cubicasa_patches.py` | 列為部署步驟 | **已移至 `training/scripts/`，main 不必再跑** |
+
+`model_1427.pth` 是 MPII 姿態估計預訓練權重，屬訓練起點；推論建完架構後
+`load_state_dict(v5, strict=True)` 會把**全部 740 個參數張量**覆蓋掉。
+已實測驗證：跳過 `init_weights` 與載入後再覆蓋，兩者參數逐張量完全相同
+（0 個相異）。故 `get_model(..., pretrained=False)` 為推論預設。
+
+套件名不叫 `floortrans`：`training/scripts/eval_rooms_cc.py` 等研發工具仍需原版
+`floortrans.loaders` 解析 GT，同名會在 `sys.path` 上互相遮蔽。
+
+**授權不變**：`ccmodel` 是 CubiCasa5k 原始碼衍生，CC BY-NC **禁商用**，
+與 v5 權重的授權閘門一致。
 
 已知樓層可靠 `cubicasa/room/*_mask.npz` 快取直接出結果（免權重、免 torch）；
 只有遇到**新圖**要現推語意時才走上面整條鏈。
@@ -292,22 +316,74 @@ cody_room_semantics = recognize_cody_rooms(image_bytes)   # 仍缺 cache_key
 `extract_asset_lib.py` 的分批續跑機制（`--ckpt-dir`／`--batch`／`--redo`）即為此而生：
 每算完一類存檔即停，重跑同指令續算，十類齊全那次才合併寫入。
 
-### 9. `symbol_lib.npz` 已移到 repo 根（2026-07-29）——main 需同步
+### 9. `symbol_lib.npz` 已移入 `backend/floorplan/`（2026-07-29）——main 需同步
 
 原本放在 `training/` 純屬歷史位置，但它是**推論期資產**不是訓練產物：
 產品進入點 `floorplan2room.process()` → `detect_symbols()` → `symbol_match.match_symbols()`
 → `load_lib()` 讀取。放在 `training/` 容易讓部署誤判為可略過。
 
-| 項目 | 舊 | 新 |
+| 項目 | 舊 | 新（**同日二次修正，以此為準**） |
 | :--- | :--- | :--- |
-| 檔案位置 | `training/symbol_lib.npz` | **`symbol_lib.npz`（repo 根）** |
-| `symbol_match.LIB_PATH` | `dirname×3 + "training/symbol_lib.npz"` | `dirname×3 + "symbol_lib.npz"` |
-| `extract_asset_lib.py --out` 預設 | `training/symbol_lib.npz` | `symbol_lib.npz` |
-| `extract_symbol_lib.py --out` 預設 | `training/symbol_lib.npz` | `symbol_lib.npz` |
+| 檔案位置 | `training/symbol_lib.npz` | **`backend/floorplan/symbol_lib.npz`** |
+| `symbol_match.LIB_PATH` | `dirname×3 + "training/symbol_lib.npz"` | `dirname(__file__) + "symbol_lib.npz"` |
+| `extract_asset_lib.py --out` 預設 | `training/symbol_lib.npz` | `symbol_match.LIB_PATH`（引用，不再各自寫死） |
+| `extract_symbol_lib.py --out` 預設 | `training/symbol_lib.npz` | 同上 |
 
-`door_lib.npz` **維持在 `training/`**（本次未動），其消費端 `door_match.py --lib`
-預設不變。
+`door_lib.npz` **維持在 `training/`**：它只被 `training/scripts/door_match.py`
+消費，是研發工具的材料而非推論期資產，位置正確。
 
-部署提醒：`LIB_PATH` 由模組位置推導（`backend/floorplan/symbol_match.py` 往上三層），
-若只搬 `backend/floorplan/` 而不保持 repo 目錄結構，會解析到錯誤路徑。
-**找不到檔不會報錯**——`load_lib()` 回 `None`、`match_symbols()` 回空清單、靜默停用。
+**先移到 repo 根、當日再移入 `backend/floorplan/` 的原因**：舊寫法
+`LIB_PATH` 由模組位置往上三層推導，只搬 `backend/floorplan/` 而不保持 repo
+目錄結構就會解析到錯路徑，而**找不到檔不會報錯**——`load_lib()` 回 `None`、
+`match_symbols()` 回空清單、靜默停用。改成與消費模組同目錄後，`backend/floorplan/`
+自成一個可獨立搬運的單位，此失效模式消失。已加測試釘住
+（`test_symbol_match.py::test_lib_path_resolves_to_real_file`）。
+
+### 10. 房型新增 `office`／`stair` 兩類（2026-07-29）
+
+原本 `Office` 與 `StairWell` 在 CubiCasa 的 `rooms_selected` 都是 11(Undefined)，
+評分的 `space` 是「書房＋樓梯間＋真未定義」混合桶（recall 0.286）。
+v2.14 早已裁決要拆成 10 類，本次補完整條鏈路。main 若消費 `rooms[].label`
+需知道會多出這兩個值：
+
+| 層 | 變更 |
+| :--- | :--- |
+| `ROOM_ZH_EX` | `office`→「書房」、`stair`→「樓梯」 |
+| `ROOM_BGR_EX` | 兩類各給疊圖色 |
+| `EXTRA_LABELS` | 新常數：模型盲區類，score 以 0 分播種 |
+| `OCR_WORD2LABEL` | OFFICE/STUDY/WORKROOM/DEN/LIBRARY→office；STAIR(S)/STAIRWELL/STAIRCASE→stair |
+| `detect_stairs()` | **新增**：踏板幾何偵測（層 4） |
+| `classify_rooms_cc` | `n["stair"]` → `score["stair"] += 0.6` |
+| GT 側 `gt_label_of()` | `training/scripts/eval_rooms_cc.py`，塌陷前攔截兩個具名 token |
+
+**重要限制**：CubiCasa 模型沒有這兩類的輸出通道，語意投票（層 1/2）
+**結構上產不出來**，分數只能由證據層供給——`stair` 靠幾何、`office` 只有 OCR
+（`ASSET_KINDS` 無書桌／書櫃素材）。因此 `office` 在無文字標示的圖上恆為 0 分，
+不會誤標，但也叫不出來。
+
+**驗收**（`--own-dir own_dataset --gt-seg`，24 圖／157 房，與 v2.18 基準同尺）：
+
+| | 基準 | 本次 |
+| :--- | ---: | ---: |
+| 具名命中 | 114/157 = 72.6% | **117/157 = 74.5%** |
+| `space` 混合桶 | n=14, recall 0.286 | **已解散**（n=0） |
+| `stair` | — | n=7, recall 0.429, precision 0.75 |
+| `office` | — | n=7, recall 0.0（7 張圖 OCR 全無有效文字） |
+| 舊八類 recall | — | **逐類完全未動**（zero regression） |
+
+`office` 掛零已查明原因：那 7 張圖 OCR 只讀到 0~3 行雜訊（「这」「中」「区」），
+圖面上沒有房名文字。不是詞彙表漏收，是證據來源在此評測集結構性缺席；
+在美式文字標示線稿（floor04 那類）上才會生效。
+
+### 11. 目錄職責界線（2026-07-29 使用者裁定）
+
+| 目錄 | 放什麼 |
+| :--- | :--- |
+| `backend/floorplan/` | **辨識程式與其執行期所需的一切**（權重、模板庫、模型定義） |
+| `temp/` | 辨識過程生成的檔（chk 疊圖、json 產物）——已在 `.gitignore` |
+| `training/` | **只放訓練材料與研發工具**，交付給 main 的東西不得依賴此目錄 |
+
+現況：`backend/` 對 `training/` 的功能性引用已歸零（僅剩註解說明沿革）。
+例外一項，經裁定維持不動：`cubicasa/room/*_mask.npz` 雖是生成物，但它是
+**預算好的交付資產**（main 的 `DEFAULT_CACHE_DIR` 寫死此路徑、進版控讓部署端
+免 torch 免權重即可出結果），移入 `temp/` 會同時破壞跨分支契約與版控同步。
