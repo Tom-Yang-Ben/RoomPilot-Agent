@@ -591,8 +591,12 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
                 and icx["closet"] / area_cm2 >= 0.08:
             score["storage"] += 0.2
         # 古典符號證據（層 4）：模型圖示沒抓到時的補充（美式極簡線稿）
+        # 後十類為 Asset 家具模板庫 kind（extract_asset_lib.py，分類依
+        # 使用者裁決：dtable→kitchen、chair(單人沙發)→living）
         n = {"oval": 0, "tubrect": 0, "bedrect": 0, "stove": 0,
-             "shower": 0, "sinkicon": 0}
+             "shower": 0, "sinkicon": 0,
+             "wc": 0, "tub": 0, "basin": 0, "kstove": 0, "ksink": 0,
+             "dtable": 0, "bed": 0, "wardrobe": 0, "sofa": 0, "chair": 0}
         for kind, sx, sy in det.get("symbols", ()):
             iy, ix = int(round(sy)), int(round(sx))
             if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
@@ -610,6 +614,28 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
             score["bath"] += 0.3
         if n["sinkicon"] and not open_living:        # 模板：水槽（保守權重）
             score["kitchen"] += 0.15
+        # Asset 家具模板證據（存在制不疊加，權重保守——模板與考卷畫風
+        # 有落差，寧漏勿誤；廚房系沿用 open_living 防呆）
+        if n["wc"]:
+            score["bath"] += 0.4
+        if n["tub"]:
+            score["bath"] += 0.3
+        if n["basin"]:
+            score["bath"] += 0.2
+        if n["kstove"] and not open_living:
+            score["kitchen"] += 0.35
+        if n["ksink"] and not open_living:
+            score["kitchen"] += 0.2
+        if n["dtable"] and not open_living:          # user 裁決：餐桌歸廚房
+            score["kitchen"] += 0.25
+        if n["bed"]:
+            score["bed"] += 0.4
+        if n["wardrobe"]:
+            score["bed"] += 0.2
+        if n["sofa"]:
+            score["living"] += 0.3
+        if n["chair"]:                               # user 裁決：單人沙發＝客廳
+            score["living"] += 0.15
         r["symbols"] = {k: v for k, v in n.items() if v}
         # OCR 文字證據（層 5）：字框中心落在這間房 → 該房型加分。
         # 同房同型多字只加一次（重複字樣不疊權），異型各加（衝突交給總分裁決）
