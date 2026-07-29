@@ -100,14 +100,14 @@ python scripts/score_compare.py <repo_dir> <cc_out_dir>
 ## 符號比對（路線圖 B）
 
 ### extract_symbol_lib.py
-一次性腳本：走訪 CubiCasa5k train.txt 全部樣本的 model.svg，萃取六類 FixedFurniture（Toilet/Bathtub/BathtubRound/IntegratedStove/Sink/Shower）向量線稿，渲染成 48×48 標準模板（方向標準化、零污染），去重後存 `training/symbol_lib.npz`。val/test 樣本完全不碰（評分集衛生）。
+一次性腳本：走訪 CubiCasa5k train.txt 全部樣本的 model.svg，萃取六類 FixedFurniture（Toilet/Bathtub/BathtubRound/IntegratedStove/Sink/Shower）向量線稿，渲染成 48×48 標準模板（方向標準化、零污染），去重後存 `symbol_lib.npz`（repo 根）。val/test 樣本完全不碰（評分集衛生）。
 
 ```bash
 python scripts/extract_symbol_lib.py [--out symbol_lib.npz]
 ```
 
 ### symbol_match.py
-模板庫的渲染與比對引擎：查詢圖細線層輪廓以 Hu moments 預篩 ＋ chamfer 距離驗證兩階段比對，作為手寫幾何規則（`floorplan2room.detect_symbols`）的並行互補證據來源。`training/symbol_lib.npz` 缺失時回空清單，管線行為不變。
+模板庫的渲染與比對引擎：查詢圖細線層輪廓以 Hu moments 預篩 ＋ chamfer 距離驗證兩階段比對，作為手寫幾何規則（`floorplan2room.detect_symbols`）的並行互補證據來源。`symbol_lib.npz`（repo 根） 缺失時回空清單，管線行為不變。
 
 ---
 

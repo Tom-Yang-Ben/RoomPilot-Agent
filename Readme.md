@@ -1,3 +1,34 @@
+2026/7/29 v.2.18 變更（換機 WSL→Windows 原生，基準零差異複驗；Asset 家具模板 943 條入庫完成——但實測**功能未生效**，根因是 Hu 預篩門檻讓整套模板比對機制早已失效；symbol_lib.npz 移至 repo 根）
+
+一、換機與環境重建（舊機 0x154 藍屏連環當機，改走 Windows 原生繞開 WSL 記憶體回收）：
+
+- `.venv` Python 3.12.10 與舊機同版；套件逐項對齊 WSL freeze（numpy 2.5.1／torch 2.13.0+cpu／opencv 4.14 鎖 <5／rapidocr 1.4.4），差異僅建置工具與 Windows 專屬 colorama
+- CubiCasa5k 那份 2019 全鎖定 requirements（`numpy==1.15.4`／`torch==1.0.0`）在 py3.12 無 wheel 且與根 `numpy>=2.0` 互斥，實際只需其功能子集（torch CPU／shapely／svgwrite／tqdm）——舊機亦是如此
+- **基準複驗與舊機零差異**：gt-seg 具名 114/157＝72.6%、端對端命中 107（70.9%）IoU 0.8975、門過濾 84/86＝98%、`pytest training/tests/` 66 綠
+- git 衛生：`core.autocrlf` 本地設 false（覆蓋 Git 安裝時寫在系統層的 true）；清除 10 個中斷 fetch 殘留的孤兒 pack idx（`garbage: 0`）
+
+二、Asset 模板工程結案——階段 A 完成、驗收零倒退，但**功能實際未生效**：
+
+- 合併完成：CubiCasa 3516 條保留＋Asset 新增 **943** 條＝4459（來源 1490 張 PNG，chamfer<0.6 去重 547）；`extract_asset_lib.py` 新增分批續跑（`--ckpt-dir`／`--batch`／`--redo`），即舊機當機後的斷點保護
+- **合併前後評測報表逐字節相同**。根因：`symbol_match.HU_THR = 0.15` 是 chamfer 前的 Hu 粗篩，Asset 模板最佳 Hu 距離落在 0.56~837（差 1~3 個數量級），943 條無一進得了驗證關
+- **不是 Asset 專屬問題**：106 張圖全庫掃描，現行門檻下含原有 CubiCasa 系在內總共只命中 **2 次**（sinkicon/stove 皆 0）——路線 B 模板比對早已是死碼，房型計分實際全靠 `detect_symbols` 手寫幾何規則在撐。成因是渲染路徑不同（向量 `render_polylines` vs 點陣 `png_to_template`），Hu 對此極敏感
+- **放寬門檻已實測為淨負面，勿再嘗試**：`HU_THR` 掃 0.15/0.5/1.0/2.0/5.0/∞，具名在 113~116 間震盪像雜訊，拆逐類才見真相——`kitchen` recall 0.773→0.818 是唯一穩定真實增益（kstove/ksink 圖案獨特），代價是 `bath` precision **單調崩壞** 0.920→0.767→0.676（recall 完全沒動＝非漏抓，是誤標），與 basin/wc 假陽性數 0→60→366→463 同步
+- 模板品質分級（chamfer≤1.2 天花板量測，36 張考卷）：`wardrobe` 55 個為假陽性大戶——平面圖衣櫃＝長方形＋內部分隔線，與牆體剖面線／樓梯踏步幾何同構，本質不可分辨（對照 `bed` 僅 3 個，床遠比衣櫃常見，數字反轉即誤判證據）；另有圖面文字假陽性（floor06「LNDRY」「BALCONY」chamfer 1.58/1.68 被判成 ksink/sofa）
+- 下一步（未動工）：接上已存在的 `detect_text_boxes()` 做文字抑制（目前只用在門扇迴轉區，沒接到符號比對）→ 只啟用 kstove/ksink → Hu 粗篩換成對渲染路徑不敏感的指標
+
+三、`symbol_lib.npz` 移至 repo 根（main 需同步）：
+
+- 它是**推論期資產**非訓練產物（`process()`→`detect_symbols()`→`match_symbols()`→`load_lib()`），放 `training/` 易讓部署誤判為可略過
+- 同步修正 `symbol_match.LIB_PATH`、`extract_asset_lib.py`／`extract_symbol_lib.py` 的 `--out` 預設；`door_lib.npz` 維持 `training/` 不動
+- 部署提醒：`LIB_PATH` 由模組位置往上三層推導，只搬 `backend/floorplan/` 而不保持 repo 結構會解析到錯路徑，且**找不到檔不報錯**（靜默停用）
+
+四、其他發現與文件收斂：
+
+- **「書房」結構上答不出來**：own_dataset 答案含 `Office` 7 間，但 `rooms_selected["Office"]=11` → `CC_ROOM_LABEL` 只映射 1/3/4/5/6/7/9/10 → 落入 `space`。`StairWell` 同為 11，故評分的 `space` 類實為「書房＋樓梯間」混合桶（GT 14＝7＋7，recall 僅 0.286）。`ASSET_KINDS` 亦無書桌／書櫃素材。要支援需整條鏈路新增類別
+- **main 第 7 點仍未履行**：查證 `origin/ben:backend/floorplan/vision/analysis.py:431` 仍是 `recognize_cody_rooms(image_bytes)` 缺 `cache_key`，語意快取在產品路徑命中率為零，137 份 `cubicasa/room/*_mask.npz` 形同虛設
+- `TODO_ASSET_SYMBOLS.md`／`TODO_ROOM_OCR.md` 已刪除，結論全數併入 `MAIN_SYNC_TODO.md` 的 2026-07-29 收斂章節（含上述量測數據與待辦定序）
+- 換機提醒：`training/asset_ckpt/` 十類檢查點不在版控（`training/*` 涵蓋、無負向規則救回），換機需重跑 1490 張 PNG 模板化＋O(n²) 去重；素材 `testdata/Asset/` 1576 張本身有版控
+
 2026/7/27 v.2.17 變更（目錄結構全面對齊 main 分支——管線入 backend/、評測資料入 testdata/、自研產物入 training/；門過濾集兩代合併 86 張＋detect_windows 開口下限修正，窗精準率 96→98%）
 
 一、目錄重整（與 main/bella 同構，交付面直接 diff 可同步；舊→新對照）：

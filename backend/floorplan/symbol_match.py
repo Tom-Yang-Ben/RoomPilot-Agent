@@ -13,7 +13,7 @@ import numpy as np
 CANVAS = 48
 LIB_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "training", "symbol_lib.npz")
+    "symbol_lib.npz")                # repo 根（2026-07-29 由 training/ 移出）
 # SVG class token → 證據 kind（oval/tubrect/stove 沿用既有計分；
 # shower/sinkicon 為新 kind，classify_rooms_cc 給保守小權重）
 TARGETS = {"Toilet": "oval", "Bathtub": "tubrect", "BathtubRound": "tubrect",

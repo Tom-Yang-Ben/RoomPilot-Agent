@@ -1,14 +1,16 @@
 """extract_asset_lib.py — 階段 A：Asset 家具素材灌入符號模板庫。
 
 testdata/Asset/ 的 10 類 DWG 切割線稿 PNG → 48×48 標準模板，
-近重複去重後「併入」既有 training/symbol_lib.npz（保留 CubiCasa 系模板）。
+近重複去重後「併入」既有 symbol_lib.npz（repo 根，保留 CubiCasa 系模板）。
 房型歸屬依使用者裁決：dinner_table→kitchen、chairs（單人沙發）→living。
 
 Asset PNG 無比例資訊，實體尺寸閘門（wh）以家具物理常識範圍給值：
 每類模板的 wh 沿範圍線性鋪開，使 match_symbols 的 P5~P95 閘門
 覆蓋整段合理尺寸。
 
-用法：python extract_asset_lib.py [--out training/symbol_lib.npz]
+用法：python extract_asset_lib.py [--out symbol_lib.npz]
+分批模式：預設一次只算 --batch 個類別，算完存檢查點（--ckpt-dir）即停；
+重複執行同指令續跑，十類檢查點齊全那次才合併寫入 --out。
 """
 import argparse
 import glob
@@ -83,22 +85,44 @@ def _chamfer(a, b):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--out", default="training/symbol_lib.npz")
+    ap.add_argument("--out", default="symbol_lib.npz")
+    ap.add_argument("--ckpt-dir", default="training/asset_ckpt")
+    ap.add_argument("--batch", type=int, default=1,
+                    help="本次最多新算幾個類別（已有檢查點的直接沿用）")
+    ap.add_argument("--redo", action="store_true", help="忽略檢查點全部重算")
     a = ap.parse_args()
 
+    cv2.setNumThreads(1)                       # 壓低瞬時負載
+    os.makedirs(a.ckpt_dir, exist_ok=True)
     entries = []                               # (kind, raster, wh)
     stats = Counter()
+    budget, pending = a.batch, []
     for sub, (kind, (s_lo, s_hi, l_lo, l_hi)) in ASSET_KINDS:
-        files = sorted(glob.glob(os.path.join(ASSET_ROOT, sub, "*.png")))
-        kept = []
-        for f in files:
-            r = png_to_template(f)
-            if r is None:
-                continue
-            if any(_chamfer(r, k) < DEDUP_CHAMFER for k in kept):
-                stats[kind + "_dup"] += 1
-                continue                       # 近重複去重
-            kept.append(r)
+        ck = os.path.join(a.ckpt_dir, kind + ".npz")
+        if os.path.isfile(ck) and not a.redo:  # 沿用檢查點
+            z = np.load(ck)
+            kept = list(z["rasters"])
+            stats[kind + "_dup"] = int(z["dup"])
+            src = "檢查點"
+        elif budget > 0:                       # 本批新算
+            budget -= 1
+            files = sorted(glob.glob(os.path.join(ASSET_ROOT, sub, "*.png")))
+            kept = []
+            for f in files:
+                r = png_to_template(f)
+                if r is None:
+                    continue
+                if any(_chamfer(r, k) < DEDUP_CHAMFER for k in kept):
+                    stats[kind + "_dup"] += 1
+                    continue                   # 近重複去重
+                kept.append(r)
+            arr = (np.stack(kept) if kept
+                   else np.zeros((0, CANVAS, CANVAS), np.uint8))
+            np.savez_compressed(ck, rasters=arr, dup=stats[kind + "_dup"])
+            src = f"{len(files)} 張新算"
+        else:
+            pending.append(kind)
+            continue
         # wh 沿物理範圍線性鋪開 → P5~P95 閘門涵蓋整段
         n = max(1, len(kept))
         for i, r in enumerate(kept):
@@ -106,8 +130,13 @@ def main():
             wh = (s_lo + t * (s_hi - s_lo), l_lo + t * (l_hi - l_lo))
             entries.append((kind, r, wh))
         stats[kind] = len(kept)
-        print(f"{kind:9s} {len(files):4d} 張 → 模板 {len(kept):4d}"
+        print(f"{kind:9s} {src} → 模板 {len(kept):4d}"
               f"（重複 {stats[kind + '_dup']}）")
+
+    if pending:
+        print(f"\n本批額度（--batch {a.batch}）用盡，尚餘 {len(pending)} 類："
+              f"{', '.join(pending)}。重跑同指令續算；全部完成那次才會寫入 {a.out}。")
+        return
 
     if os.path.isfile(a.out):                  # 併入既有庫（保留 CubiCasa 系）
         z = np.load(a.out, allow_pickle=False)

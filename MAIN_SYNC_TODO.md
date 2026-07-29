@@ -73,7 +73,7 @@ main 的環境要補齊這條鏈：
 | `numpy` | `>=2.0` | main 應已有 |
 | `ezdxf` | `>=1.3` | DXF 輸出 |
 | `backend/floorplan/infer_cubicasa.py` | 已隨管線同目錄（2026-07-27 移入） | `ensure_cc_masks` 以 subprocess 呼叫，同 package 內 |
-| `backend/floorplan/symbol_match.py` | 已隨管線同目錄（**硬依賴**） | `floorplan2room` 頂層 `import symbol_match`；模板庫 `training/symbol_lib.npz` 缺失時自動停用、不影響運作 |
+| `backend/floorplan/symbol_match.py` | 已隨管線同目錄（**硬依賴**） | `floorplan2room` 頂層 `import symbol_match`；模板庫 `symbol_lib.npz`（**repo 根**，2026-07-29 由 `training/` 移出）缺失時自動停用、不影響運作 |
 | `backend/floorplan/apply_cubicasa_patches.py` | 部署時跑一次 | CubiCasa5k 程式庫的 numpy 2.x 相容補丁，checkout 後執行 |
 | floortrans 模型定義 | `training/CubiCasa5k/` 原始碼 checkout | 只用模型定義、不用其 loader；**CC BY-NC** |
 
@@ -177,3 +177,137 @@ main 剩最後一步：`analysis.py` 呼叫處改為
   CubiCasa5k checkout、v5 權重推論、快取重推）。註：`infer_cubicasa.py` 在 scripts/
   解散重構後 chdir 路徑少一層目錄（`backend/training/CubiCasa5k`），已修復——
   main 若已同步該檔請一併帶回。
+
+---
+
+## 2026-07-29 收斂（Asset 模板工程結案；併入原 TODO_ASSET_SYMBOLS.md／TODO_ROOM_OCR.md）
+
+換機到 Windows 原生環境後跑完 Asset 模板工程的全部斷點。**階段 A 完成、驗收零倒退，
+但功能實際未生效**——原因不在權重也不在模板品質，在比對閘門。兩份 TODO 已刪除，
+結論收在這裡。
+
+### 1. 執行結果
+
+- 環境：Windows 原生 `.venv` Python 3.12.10，套件版本與舊機 WSL 逐項相同
+  （numpy 2.5.1 / torch 2.13.0+cpu / opencv 4.14 鎖 <5 / rapidocr 1.4.4）。
+- 基準複驗與舊機 **零差異**：gt-seg 具名 114/157＝72.6%、端對端命中 107（70.9%）
+  IoU 0.8975、門過濾 84/86＝98%。
+- 階段 A 合併完成：CubiCasa 3516 條保留＋Asset 新增 **943** 條＝4459 條
+  （bed 283／basin 116／chair 112／wc 92／kstove 82／ksink 73／sofa 58／
+  dtable 51／tub 47／wardrobe 29；來源 1490 張 PNG，chamfer<0.6 去重 547 張）。
+- 合併後重跑評測：**兩份報表與合併前逐字節相同**，具名率一分未動。
+
+### 2. 根因：`symbol_match.HU_THR` 讓整套模板比對失效
+
+`HU_THR = 0.15` 是 chamfer 驗證前的 Hu 矩粗篩。實測 Asset 模板的最佳 Hu 距離落在
+**0.56 ~ 837**，差一至三個數量級，943 條模板無一進得了 chamfer 那關。
+
+**這不是 Asset 專屬問題**：106 張圖全庫掃描，現行門檻下含原有 CubiCasa 系在內
+總共只命中 **2 次**（sinkicon/stove 皆 0）。路線 B 的模板比對早已是死碼，
+房型計分實際全靠 `detect_symbols` 的手寫幾何規則在撐；灌入 943 條模板才把它照出來。
+
+成因是渲染路徑不同：CubiCasa 模板與查詢圖同走 `render_polylines` 向量渲染，Hu 幾乎一致；
+Asset 模板走 `extract_asset_lib.png_to_template` 點陣化，Hu 必然拉開。
+
+### 3. 放寬門檻是淨負面（已實測，勿再嘗試）
+
+gt-seg／157 房／`CH_THR` 固定 2.0，只改 `HU_THR`：
+
+| HU_THR | 具名 | Δ | kitchen R | **bath P** | bed R |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| 0.15（現值） | 114 (72.6%) | — | 0.773 | **0.920** | 0.889 |
+| 0.5 | 115 | +1 | 0.818 | 0.920 | 0.889 |
+| 1.0 | 113 | −1 | 0.773 | 0.920 | 0.861 |
+| 2.0 | 116 | +2 | 0.818 | 0.920 | 0.917 |
+| 5.0 | 114 | 0 | 0.818 | **0.767** | 0.861 |
+| ∞ | 113 | −1 | 0.818 | **0.676** | 0.833 |
+
+總分在 113~116 間震盪像雜訊，拆逐類才看得出真相：`kitchen` recall 0.773→0.818
+是**唯一穩定的真實增益**（kstove/ksink 的四口爐與雙槽圖案夠獨特）；代價是
+`bath` precision **單調崩壞** 0.920→0.676，recall 完全沒動——不是漏抓，是大量
+非浴室房間被誤標成 bath，與 basin/wc 假陽性數量（0→60→366→463）完全同步。
+
+### 4. 模板品質分級（目視 + chamfer 天花板量測）
+
+繞過 Hu、只用尺寸閘門＋chamfer≤1.2，36 張考卷的命中分布：
+
+| kind | 命中 | 判定 |
+| :--- | ---: | :--- |
+| wardrobe | 55 | ❌ **假陽性大戶**——平面圖衣櫃＝長方形＋內部分隔線，與牆體剖面線／樓梯踏步幾何同構，本質不可分辨 |
+| tub / basin / chair / sofa | 46/20/15/25 | ⚠️ 混雜，basin 是 bath precision 崩壞元凶之一 |
+| kstove / ksink | 28/25 | ✅ 圖案獨特，證據可信，唯一值得啟用的兩類 |
+| bed | 3 | ✅ 準但量太少（整床輪廓極少被切成單一 contour） |
+| wc / dtable | 5/2 | — 量太少 |
+
+`wardrobe` 55 個而 `bed` 只有 3 個——床遠比衣櫃常見，數字反過來本身就是誤判的證據。
+
+另有一類假陽性是**圖面文字**：floor06 的「LNDRY」「BALCONY」字樣 chamfer 1.58/1.68
+會被判成 ksink/sofa。
+
+### 5. 要讓它生效該做什麼（未動工）
+
+1. **文字抑制**——[`floorplan2room.detect_text_boxes()`](backend/floorplan/floorplan2room.py) 已存在，
+   註解寫明用途就是「把文字墨水從細線層扣掉」，目前只用在門扇迴轉區、**沒接到符號比對**。
+   接上去即可消除文字類假陽性。投報比最高的一刀。
+2. **只啟用廚房系**——`kstove`／`ksink` 進計分，`wardrobe`／`chair`／`dtable` 關閉。
+3. Hu 粗篩本身要換成對渲染路徑不敏感的指標（長寬比／填充率／輪廓數），
+   而非調整全域門檻——第 3 節已證實調門檻只能同時放行真假兩者。
+
+### 6. 「書房」結構上答不出來（新發現，與模板無關）
+
+own_dataset 答案含 `Office` **7 間**，但映射鏈是：
+
+```
+model.svg class="Space Office"
+  → rooms_selected["Office"] = 11        (CubiCasa house.py)
+  → CC_ROOM_LABEL.get(11) = None         (floorplan2room.py:390，只映射 1/3/4/5/6/7/9/10)
+  → norm_label(None) = "space"
+```
+
+`StairWell` 同樣是 id 11。**評分的 `space` 類實際是「書房＋樓梯間」混合桶**
+（GT 14 ＝ Office 7 ＋ StairWell 7，與報表數字吻合），recall 僅 0.286。
+且 `ASSET_KINDS` 沒有書桌／書櫃素材，模板庫對此毫無幫助。
+
+要支援書房需整條鏈路新增類別：GT 映射 → `CC_ROOM_LABEL` → 計分規則 → 證據素材。
+
+### 7. main 尚未履行的交代（第 7 點，仍未完成）
+
+2026-07-29 查證 `origin/ben:backend/floorplan/vision/analysis.py:431`：
+
+```python
+cody_room_semantics = recognize_cody_rooms(image_bytes)   # 仍缺 cache_key
+```
+
+依上方第 7 點，此處應為 `recognize_cody_rooms(image_bytes, cache_key=Path(filename).stem)`。
+**未改前語意快取在產品路徑命中率為零**，`cubicasa/room/*_mask.npz` 那 137 份快取形同虛設。
+
+### 8. 換機提醒：`training/asset_ckpt/` 不在版控
+
+`.gitignore` 的 `training/*` 涵蓋它，且無負向規則救回（對照：`door_lib.npz` 靠
+`!training/*.npz` 留在版控內；`symbol_lib.npz` 已於本日移到 repo 根，見第 9 節）。
+那 10 個檢查點只存在於本機磁碟。
+換機後若要重建需重跑 1490 張 PNG 的模板化＋O(n²) chamfer 去重——即 2026-07-28
+舊機當機的那段工作。素材（`testdata/Asset/` 1576 張）本身有版控，clone 即得。
+
+`extract_asset_lib.py` 的分批續跑機制（`--ckpt-dir`／`--batch`／`--redo`）即為此而生：
+每算完一類存檔即停，重跑同指令續算，十類齊全那次才合併寫入。
+
+### 9. `symbol_lib.npz` 已移到 repo 根（2026-07-29）——main 需同步
+
+原本放在 `training/` 純屬歷史位置，但它是**推論期資產**不是訓練產物：
+產品進入點 `floorplan2room.process()` → `detect_symbols()` → `symbol_match.match_symbols()`
+→ `load_lib()` 讀取。放在 `training/` 容易讓部署誤判為可略過。
+
+| 項目 | 舊 | 新 |
+| :--- | :--- | :--- |
+| 檔案位置 | `training/symbol_lib.npz` | **`symbol_lib.npz`（repo 根）** |
+| `symbol_match.LIB_PATH` | `dirname×3 + "training/symbol_lib.npz"` | `dirname×3 + "symbol_lib.npz"` |
+| `extract_asset_lib.py --out` 預設 | `training/symbol_lib.npz` | `symbol_lib.npz` |
+| `extract_symbol_lib.py --out` 預設 | `training/symbol_lib.npz` | `symbol_lib.npz` |
+
+`door_lib.npz` **維持在 `training/`**（本次未動），其消費端 `door_match.py --lib`
+預設不變。
+
+部署提醒：`LIB_PATH` 由模組位置推導（`backend/floorplan/symbol_match.py` 往上三層），
+若只搬 `backend/floorplan/` 而不保持 repo 目錄結構，會解析到錯誤路徑。
+**找不到檔不會報錯**——`load_lib()` 回 `None`、`match_symbols()` 回空清單、靜默停用。
