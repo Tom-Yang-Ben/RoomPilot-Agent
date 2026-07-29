@@ -201,6 +201,17 @@ def test_step_six_groups_failures_by_room_and_offers_explicit_resolution() -> No
     assert ".rp-configuration-pending-room" in css
 
 
+def test_step_six_navigation_reopens_the_dedicated_2d_workspace() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    progress_navigation = source.split(
+        '$$(".rp-progress button").forEach((button) => button.addEventListener("click", () => {',
+        1,
+    )[1].split('$("#reset-project")', 1)[0]
+
+    assert 'goTo("white_model_3d")' not in progress_navigation
+    assert "if (state.workflow?.canEnter(step)) goTo(step);" in progress_navigation
+
+
 def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     dependency_edges = {
         "scene_v2.js": [
@@ -1469,8 +1480,11 @@ def test_room_size_is_computed_from_dragged_polygon_instead_of_typed() -> None:
 
     assert 'id="room-width-cm"' not in html
     assert 'id="room-depth-cm"' not in html
-    assert "拖曳左圖紫色節點後，尺寸與面積會自動重新計算。" in html
-    assert "系統依目前框選計算" in source
+    assert "拖曳左圖節點後，尺寸與面積會自動重新計算。" in html
+    assert "element.roomArea.innerHTML" in source
+    assert "dimensions.areaM2.toFixed(2)" in source
+    assert "dimensions.widthCm.toFixed(0)" in source
+    assert "dimensions.depthCm.toFixed(0)" in source
     assert 'font-weight="800" pointer-events="none">${escapeHtml(room.label)}</text>' in source
 
 
@@ -1641,22 +1655,24 @@ def test_structure_legend_uses_heading_space_and_window_markers_match_review_num
     assert '$("#plan-structure-legend").hidden = rooms;' in source
 
 
-def test_room_editor_is_embedded_in_the_plan_heading() -> None:
+def test_room_editor_is_embedded_in_the_guided_review_card() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     css = (STATIC / "site.css").read_text(encoding="utf-8")
-    stage_start = html.index('id="space-plan-stage"')
-    heading_html = _space_heading_html(html)
+    room_panel_start = html.index('id="room-confirmation-panel"')
+    room_list_start = html.index('id="room-list"')
+    guided_review_html = html[room_panel_start:room_list_start]
 
-    assert 'class="rp-plan-heading-tools"' in heading_html
-    assert 'id="room-editor"' in heading_html
-    assert 'class="rp-editor-box rp-room-toolbar-editor"' in heading_html
-    assert 'id="room-editor"' not in html[stage_start:]
+    assert 'id="current-room-review"' in guided_review_html
+    assert 'id="room-editor"' in guided_review_html
+    assert 'class="rp-room-review-editor"' in guided_review_html
+    assert 'id="confirm-current-room"' in guided_review_html
+    assert 'id="skip-current-room"' in guided_review_html
+    assert 'id="room-more-actions"' in html
     assert ".rp-room-floating-editor" not in css
-    assert "#space-step .rp-plan-heading-tools" in css
-    assert "#space-step .rp-room-editor-summary" in css
-    assert "display: contents" in css
-    assert "#space-step #show-all-rooms" in css
-    assert "height: 38px" in css
+    assert "#space-step .rp-current-room-card" in css
+    assert "#space-step .rp-current-room-actions" in css
+    assert "#space-step .rp-room-review-queue" in css
+    assert "#space-step .rp-space-completion-bar" in css
 
 
 def test_all_structure_kinds_share_numbering_sizing_and_crud_contract() -> None:
@@ -1843,7 +1859,10 @@ def test_room_confirmation_is_isolated_and_supports_confirm_merge_and_split() ->
     assert 'data-room-geometry-mode="split"' in html
     assert 'id="apply-room-merge"' in html
     assert 'id="cancel-room-geometry"' in html
-    assert 'data-confirm-room="${escapeHtml(room.id)}"' in source
+    assert 'id="confirm-current-room"' in html
+    assert "function confirmCurrentRoomAndAdvance()" in source
+    assert "function nextRoomForReview(roomId)" in source
+    assert "function skipCurrentRoomReview()" in source
     assert 'state.spaceMode === "structure" ? renderStructureSvg() : ""' in source
     assert "function confirmRoom(roomId)" in source
     assert "function mergeSelectedRooms()" in source

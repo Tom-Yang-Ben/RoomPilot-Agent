@@ -1,13 +1,13 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-a5dc3994c2a6";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-a7bb379e9b2d";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-} from "./scene_unit_contracts.js?v=sha256-3c8c399f1d70";
+} from "./scene_unit_contracts.js?v=sha256-88f874e652a8";
 import {
   repairLoadedRoomPolygon,
-} from "./scene_room_geometry.js?v=sha256-d863939b9c06";
+} from "./scene_room_geometry.js?v=sha256-fea08f0d5f34";
 import {
   createWorkflow,
   restoreWorkflow,
@@ -18,7 +18,7 @@ import {
 import {
   buildScaleCalibration,
   calibrationActionState,
-} from "./scene_calibration.js?v=sha256-175dc2c59c64";
+} from "./scene_calibration.js?v=sha256-a1eb97980af1";
 import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
@@ -31,7 +31,7 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-b6f034658424";
+} from "./scene_layout2d.js?v=sha256-f3162f2c1657";
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
@@ -39,10 +39,10 @@ import {
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
-} from "./scene_furniture_retrieval.js?v=sha256-735762d2e6ca";
+} from "./scene_furniture_retrieval.js?v=sha256-3624ecae3813";
 import {
   WHOLE_HOUSE_QUESTIONS,
-} from "./scene_requirements.js?v=sha256-cb53bf0d6e51";
+} from "./scene_requirements.js?v=sha256-097f1470f5a3";
 import {
   applyVisualPreferencesToSpecs,
   finishesGate,
@@ -53,7 +53,7 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-c42955c6a50b";
+} from "./scene_questionnaire_test2.js?v=sha256-4a1ae7a37cce";
 import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
@@ -61,7 +61,7 @@ import {
   conditionalOptionId,
   evaluateConditionalOption,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-91393fd2bf2b";
+} from "./scene_room_requirements.js?v=sha256-42f0cbf4b9d8";
 import {
   applyStylePack,
   CEILING_STYLES,
@@ -77,19 +77,19 @@ import {
   dedupeWindowCandidates,
   wallBoundarySide,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=sha256-14798672e8ed";
-import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-2e7650196b86";
+} from "./scene_structure_utils.js?v=sha256-b07cf63ce932";
+import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-9d866df171b3";
 import {
   findStructureWallCollision,
   resolveStructureWallCollisions,
   validateColumnDimensionsCm,
-} from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
+} from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
   applyWindowTypePreset,
   normalizedWindowType,
   WINDOW_TYPES,
-} from "./scene_window_types.js?v=sha256-990e2abb3240";
+} from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {
   activateScheme,
   attachedOpenings,
@@ -101,7 +101,7 @@ import {
   normalizeDesignSchemes,
   persistActiveScheme,
   structuresForScheme,
-} from "./scene_design_schemes.js?v=sha256-b32b932ac53e";
+} from "./scene_design_schemes.js?v=sha256-9cae7554d27d";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -207,7 +207,7 @@ const panels = new Map(
 const instructions = {
   project: ["步驟 1", "先建立專案，之後每一次確認都會自動保存"],
   upload: ["步驟 2", "選擇 DXF、PNG 或 JPG，並確認圖檔內容"],
-  recognition: ["步驟 3", "拖曳尺寸線兩端，只輸入一個實際公分尺寸"],
+  recognition: ["步驟 3", "確認圖面比例，讓後續房間尺寸更準確"],
   calibration: ["步驟 3", "確認尺度後，才會顯示辨識到的房間"],
   space_confirmation: ["步驟 4", "先確認房間，再確認牆、門、窗、樑與柱"],
   requirements: ["步驟 5", "完成基本資料、逐房極與極需求及風格材質"],
@@ -259,6 +259,13 @@ const element = {
   calibrationReadout: $("#calibration-readout"),
   scaleError: $("#scale-error"),
   applyCalibration: $("#apply-floorplan-calibration"),
+  resetCalibration: $("#reset-floorplan-calibration"),
+  calibrationPointTask: $("#calibration-task-points"),
+  calibrationMeasureTask: $("#calibration-task-measure"),
+  calibrationConfirmTask: $("#calibration-task-confirm"),
+  calibrationPointStatus: $("#calibration-task-points-status"),
+  calibrationMeasureStatus: $("#calibration-task-measure-status"),
+  calibrationConfirmStatus: $("#calibration-task-confirm-status"),
   recognitionSummary: $("#recognition-summary"),
   spaceImage: $("#space-plan-image"),
   spaceStage: $("#space-plan-stage"),
@@ -283,6 +290,10 @@ const element = {
   roomName: $("#room-name"),
   roomArea: $("#room-area"),
   roomConfirmationProgress: $("#room-confirmation-progress"),
+  currentRoomReview: $("#current-room-review"),
+  currentRoomStatus: $("#current-room-status"),
+  skipCurrentRoom: $("#skip-current-room"),
+  confirmCurrentRoom: $("#confirm-current-room"),
   roomGeometryGuidance: $("#room-geometry-guidance"),
   roomNodeGuidance: $("#room-node-guidance"),
   structureCounts: $("#structure-counts"),
@@ -291,6 +302,9 @@ const element = {
   openingWidthSlider: $("#opening-width-slider"),
   openingWidthValue: $("#opening-width-value"),
   spaceError: $("#space-error"),
+  spaceCompletionSummary: $("#space-completion-summary"),
+  spaceCompletionHint: $("#space-completion-hint"),
+  confirmSpace: $("#confirm-space"),
   wholeHouseFields: $("#whole-house-fields"),
   requirementsProgress: $("#requirements-progress"),
   requirementsError: $("#requirements-error"),
@@ -1034,6 +1048,7 @@ function showStep(step) {
     renderConfigurationPlan();
   }
   const currentPublicStep = publicWorkflowStep(step);
+  document.body.dataset.workflowStep = currentPublicStep;
   const currentPublicIndex = PUBLIC_WORKFLOW_STEPS.indexOf(currentPublicStep);
   $$(".rp-progress button").forEach((button) => {
     const targetIndex = PUBLIC_WORKFLOW_STEPS.indexOf(button.dataset.step);
@@ -1051,9 +1066,9 @@ async function renderRestoredStep() {
   renderSchemeComparison();
   if (state.rooms.length) {
     state.selectedRoomId = state.selectedRoomId || state.rooms[0].id;
-    renderRooms();
-    renderStructureCounts();
   }
+  renderRooms();
+  renderStructureCounts();
   if (state.furniture2d.length) {
     state.selectedFurniture2dId = state.selectedFurniture2dId || state.furniture2d[0].id;
     state.activeLayoutRoomId = state.activeLayoutRoomId || state.furniture2d[0].roomId || "all";
@@ -1433,22 +1448,33 @@ function imagePoint(event, image) {
 function renderCalibration() {
   const [start, end] = state.calibrationPoints;
   const line = start && end
-    ? `<line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" stroke="#bd5c36" stroke-width="5" stroke-dasharray="12 7"/>`
+    ? `<line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" stroke="#806958" stroke-width="5" stroke-dasharray="12 7"/>`
     : "";
   const points = state.calibrationPoints.map((point, index) => `
     <circle data-calibration-point="${index}" cx="${point.x}" cy="${point.y}" r="12"
-      fill="#fff" stroke="${index ? "#bd5c36" : "#2f6f87"}" stroke-width="6"/>
+      fill="#fffdf9" stroke="${index ? "#806958" : "#2b2927"}" stroke-width="6"/>
   `).join("");
   element.scaleOverlay.innerHTML = `${line}${points}`;
   if (start && end) {
     const pixels = Math.hypot(end.x - start.x, end.y - start.y);
-    element.calibrationReadout.textContent = `已定位兩點，圖上距離 ${pixels.toFixed(1)} px。可拖曳圓點微調。`;
+    element.calibrationReadout.textContent = pixels > 0
+      ? `兩個端點已選好，圖上距離 ${pixels.toFixed(1)} px；仍可拖曳微調。`
+      : "兩個端點重疊，請拖曳其中一點。";
   } else if (start) {
-    element.calibrationReadout.textContent = "已定位起點，請再點一下終點。";
+    element.calibrationReadout.textContent = "起點已選好，請再點一下終點。";
   } else {
-    element.calibrationReadout.textContent = "尚未定位兩點，請先點起點。";
+    element.calibrationReadout.textContent = "請先在圖面點選起點。";
   }
   updateCalibrationAction();
+}
+
+function setCalibrationTaskState(task, status, stateName, label) {
+  task.classList.toggle("is-active", stateName === "active");
+  task.classList.toggle("is-complete", stateName === "complete");
+  task.classList.toggle("is-pending", stateName === "pending");
+  if (stateName === "active") task.setAttribute("aria-current", "step");
+  else task.removeAttribute("aria-current");
+  status.textContent = label;
 }
 
 function updateCalibrationAction({ showMessage = true } = {}) {
@@ -1456,9 +1482,36 @@ function updateCalibrationAction({ showMessage = true } = {}) {
     state.calibrationPoints,
     element.scaleInput.value,
   );
+  const [start, end] = state.calibrationPoints;
+  const pixelDistance = start && end
+    ? Math.hypot(end.x - start.x, end.y - start.y)
+    : 0;
+  const pointsReady = state.calibrationPoints.length === 2 && pixelDistance > 0;
+  const measurementReady = pointsReady && Number(element.scaleInput.value) > 0;
+
+  element.scaleInput.disabled = !pointsReady;
+  element.resetCalibration.hidden = state.calibrationPoints.length === 0;
+  setCalibrationTaskState(
+    element.calibrationPointTask,
+    element.calibrationPointStatus,
+    pointsReady ? "complete" : "active",
+    pointsReady ? "完成" : "進行中",
+  );
+  setCalibrationTaskState(
+    element.calibrationMeasureTask,
+    element.calibrationMeasureStatus,
+    measurementReady ? "complete" : pointsReady ? "active" : "pending",
+    measurementReady ? "完成" : pointsReady ? "進行中" : "待選點",
+  );
+  setCalibrationTaskState(
+    element.calibrationConfirmTask,
+    element.calibrationConfirmStatus,
+    action.ready ? "active" : "pending",
+    action.ready ? "可確認" : "待完成",
+  );
   element.applyCalibration.disabled = !action.ready;
   if (showMessage) {
-    element.scaleError.textContent = action.message;
+    element.scaleError.textContent = pointsReady ? action.message : "";
     element.scaleError.dataset.kind = action.ready ? "ready" : "instruction";
   }
   return action;
@@ -2112,34 +2165,60 @@ function updateShowAllRoomsButton() {
     : "目前只有一個空間，沒有其他框選可顯示";
 }
 
+function roomsAfter(roomId) {
+  const currentIndex = state.rooms.findIndex((room) => room.id === roomId);
+  if (currentIndex < 0) return [...state.rooms];
+  return [
+    ...state.rooms.slice(currentIndex + 1),
+    ...state.rooms.slice(0, currentIndex),
+  ];
+}
+
+function nextRoomForReview(roomId) {
+  return roomsAfter(roomId).find((room) => room.confirmed !== true) || null;
+}
+
+function nextRoomInQueue(roomId) {
+  return roomsAfter(roomId)[0] || null;
+}
+
 function renderRooms() {
-  element.roomList.innerHTML = state.rooms.map((room) => {
+  if (!state.rooms.some((room) => room.id === state.selectedRoomId)) {
+    state.selectedRoomId = state.rooms[0]?.id || null;
+  }
+  const selectedRoom = state.rooms.find((room) => room.id === state.selectedRoomId) || null;
+  const currentIndex = selectedRoom
+    ? state.rooms.findIndex((room) => room.id === selectedRoom.id)
+    : -1;
+  const queuedRooms = state.rooms.filter((room) => room.id !== state.selectedRoomId);
+  element.roomList.innerHTML = queuedRooms.length ? queuedRooms.map((room) => {
     const dimensions = roomDimensions(room);
-    const active = room.id === state.selectedRoomId;
     const merging = state.mergeRoomIds.includes(room.id);
     const reviewHint = roomReviewHint(room);
+    const roomIndex = state.rooms.findIndex((item) => item.id === room.id);
     return `
-      <article class="rp-room-item ${active ? "is-active" : ""} ${merging ? "is-merge-selected" : ""}">
+      <article class="rp-room-item rp-room-queue-item ${merging ? "is-merge-selected" : ""}">
         <button type="button" data-room-id="${escapeHtml(room.id)}" class="rp-room-select">
-          <strong>${escapeHtml(room.label)}</strong>
-          <span>${dimensions.areaM2.toFixed(2)} m²</span>
-          <small>${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm</small>
-          <small>${room.confirmed ? "已確認" : `信心 ${(Number(room.confidence || room.polygon_confidence || 0.7) * 100).toFixed(0)}%`}</small>
+          <span class="rp-room-queue-index">${roomIndex + 1}</span>
+          <span class="rp-room-queue-copy">
+            <strong>${escapeHtml(room.label)}</strong>
+            <small>${dimensions.areaM2.toFixed(2)} m² · ${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm</small>
+          </span>
+          <span class="rp-room-queue-status ${room.confirmed ? "is-confirmed" : ""}">
+            ${room.confirmed ? "已確認" : "待確認"}
+          </span>
           ${reviewHint ? `<small class="rp-room-review-hint">${escapeHtml(reviewHint)}</small>` : ""}
-        </button>
-        <button type="button" data-confirm-room="${escapeHtml(room.id)}"
-          class="rp-room-confirm ${room.confirmed ? "is-confirmed" : ""}">
-          ${room.confirmed ? "已確認" : "確認"}
-        </button>
-        <button type="button" data-delete-room="${escapeHtml(room.id)}" class="rp-room-delete danger-action">
-          刪除
         </button>
       </article>
     `;
-  }).join("");
+  }).join("") : '<p class="rp-room-queue-empty">沒有其他房間。</p>';
   const confirmedCount = state.rooms.filter((room) => room.confirmed).length;
   element.roomConfirmationProgress.textContent =
-    `已確認 ${confirmedCount} / ${state.rooms.length} 個房間`;
+    `${currentIndex + 1} / ${state.rooms.length}`;
+  element.roomConfirmationProgress.setAttribute(
+    "aria-label",
+    `目前第 ${Math.max(0, currentIndex + 1)} 個房間，已確認 ${confirmedCount} / ${state.rooms.length} 個房間`,
+  );
   const confirmAllRoomsButton = $("#confirm-all-rooms");
   if (confirmAllRoomsButton) {
     const allConfirmed = state.rooms.length > 0 && confirmedCount === state.rooms.length;
@@ -2148,17 +2227,40 @@ function renderRooms() {
       ? "全部房間已確認"
       : "一鍵確認全部房間";
   }
+  const deleteCurrentRoomButton = $("#delete-current-room");
+  if (deleteCurrentRoomButton) deleteCurrentRoomButton.disabled = state.rooms.length <= 1;
   updateShowAllRoomsButton();
-  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
-  if (room) {
-    const dimensions = roomDimensions(room);
+  element.currentRoomReview.hidden = !selectedRoom;
+  if (selectedRoom) {
+    const dimensions = roomDimensions(selectedRoom);
+    const reviewHint = roomReviewHint(selectedRoom);
     element.roomEditor.hidden = false;
-    element.roomName.value = room.label;
-    element.roomArea.textContent =
-      `系統依目前框選計算：${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm，${dimensions.areaM2.toFixed(2)} m²`;
+    element.roomName.value = selectedRoom.label;
+    element.currentRoomStatus.textContent = selectedRoom.confirmed ? "已確認" : "目前檢視";
+    element.currentRoomStatus.classList.toggle("is-confirmed", selectedRoom.confirmed === true);
+    element.roomArea.innerHTML = `
+      <span><small>面積</small><strong>${dimensions.areaM2.toFixed(2)} m²</strong></span>
+      <span><small>尺寸（寬 × 深）</small><strong>${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm</strong></span>
+      ${reviewHint ? `<small class="rp-room-review-hint">${escapeHtml(reviewHint)}</small>` : ""}
+    `;
+    const nextPendingRoom = nextRoomForReview(selectedRoom.id);
+    element.skipCurrentRoom.disabled = state.rooms.length <= 1;
+    if (selectedRoom.confirmed) {
+      element.confirmCurrentRoom.textContent = nextPendingRoom
+        ? "查看下一間待確認"
+        : "前往結構確認";
+    } else {
+      element.confirmCurrentRoom.textContent = nextPendingRoom
+        ? "確認並查看下一間"
+        : "確認並檢查結構";
+    }
+    element.confirmCurrentRoom.disabled = false;
   } else {
     element.roomEditor.hidden = true;
+    element.skipCurrentRoom.disabled = true;
+    element.confirmCurrentRoom.disabled = true;
   }
+  updateSpaceCompletionState();
 }
 
 function confirmRoom(roomId) {
@@ -2174,6 +2276,37 @@ function confirmRoom(roomId) {
   renderSpaceOverlay();
   scheduleSave("space_confirmation");
   setStatus(`已確認「${room.label}」；請繼續確認其他房間。`);
+}
+
+function openStructureReview() {
+  const structureTab = $("[data-space-tab='structure']");
+  if (structureTab && !structureTab.classList.contains("is-active")) structureTab.click();
+}
+
+function confirmCurrentRoomAndAdvance() {
+  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
+  if (!room) return;
+  if (room.confirmed !== true) confirmRoom(room.id);
+  const nextRoom = nextRoomForReview(room.id);
+  if (nextRoom) {
+    selectRoom(nextRoom.id);
+    setStatus(`已確認「${room.label}」；接著檢查「${nextRoom.label}」。`);
+    return;
+  }
+  openStructureReview();
+  setStatus("所有房間都已確認；接著檢查牆、門、窗、樑與柱。");
+}
+
+function skipCurrentRoomReview() {
+  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
+  if (!room) return;
+  const nextRoom = nextRoomForReview(room.id) || nextRoomInQueue(room.id);
+  if (!nextRoom) {
+    setStatus("目前只有這一個房間，請確認名稱與範圍後繼續。");
+    return;
+  }
+  selectRoom(nextRoom.id);
+  setStatus(`已暫時略過「${room.label}」；目前檢查「${nextRoom.label}」。`);
 }
 
 function confirmAllRooms() {
@@ -2564,6 +2697,40 @@ const structureCollections = {
   beam: "beams",
   column: "columns",
 };
+
+function updateSpaceCompletionState() {
+  if (!element.confirmSpace) return;
+  const confirmedRooms = state.rooms.filter((room) => room.confirmed === true).length;
+  const pendingRooms = Math.max(0, state.rooms.length - confirmedRooms);
+  const pendingStructures = Object.values(structureCollections).reduce(
+    (total, collection) => total + (state.structures[collection] || [])
+      .filter((item) => item.confirmed !== true).length,
+    0,
+  );
+  const structuresAcknowledged = $("#structure-confirmed")?.checked === true;
+  const estimatedSizeAcknowledged = $("#estimated-size-ack")?.checked === true;
+  const ready = state.rooms.length > 0
+    && pendingRooms === 0
+    && pendingStructures === 0
+    && structuresAcknowledged
+    && estimatedSizeAcknowledged;
+
+  element.spaceCompletionSummary.textContent =
+    `已確認 ${confirmedRooms} / ${state.rooms.length} 個房間`;
+  if (!state.rooms.length) {
+    element.spaceCompletionHint.textContent = "目前沒有可確認的房間，請先新增或重新辨識空間。";
+  } else if (pendingRooms > 0) {
+    element.spaceCompletionHint.textContent = `尚有 ${pendingRooms} 個房間待確認。`;
+  } else if (pendingStructures > 0) {
+    element.spaceCompletionHint.textContent = `房間已完成，尚有 ${pendingStructures} 個結構項目待確認。`;
+  } else if (!structuresAcknowledged || !estimatedSizeAcknowledged) {
+    element.spaceCompletionHint.textContent = "結構項目已完成，請勾選結構與估計尺寸確認。";
+  } else {
+    element.spaceCompletionHint.textContent = "房間與結構皆已確認，可以檢查尺寸標註。";
+  }
+  element.confirmSpace.disabled = !ready;
+  element.confirmSpace.setAttribute("aria-disabled", ready ? "false" : "true");
+}
 
 function attachedOpeningUpdates(oldWall, newWall, openingSnapshots) {
   const oldDx = oldWall.end.x - oldWall.start.x;
@@ -4547,6 +4714,7 @@ function renderStructureCounts() {
   element.structureCounts.textContent =
     `辨識＋人工修正：牆 ${s.walls.length}、門 ${s.doors.length}、窗 ${s.windows.length}、樑 ${s.beams.length}、柱 ${s.columns.length}${review}`;
   renderDoorReviewList();
+  updateSpaceCompletionState();
 }
 
 function confirmSpace() {
@@ -4554,8 +4722,8 @@ function confirmSpace() {
   if (!state.rooms.every((room) => room.confirmed === true)) {
     const pendingCount = state.rooms.filter((room) => !room.confirmed).length;
     element.spaceError.textContent =
-      `尚有 ${pendingCount} 個房間未確認，請逐一按右側房間的「確認」鍵。`;
-    element.roomList.querySelector("[data-confirm-room]:not(.is-confirmed)")?.focus();
+      `尚有 ${pendingCount} 個房間未確認，請依序檢查目前房間。`;
+    element.confirmCurrentRoom?.focus();
     return;
   }
   const pendingStructureKind = Object.keys(structureCollections).find((kind) => {
@@ -10013,6 +10181,9 @@ function bindEvents() {
     const button = event.target.closest("[data-room-id]");
     if (button) selectRoom(button.dataset.roomId);
   });
+  element.skipCurrentRoom.addEventListener("click", skipCurrentRoomReview);
+  element.confirmCurrentRoom.addEventListener("click", confirmCurrentRoomAndAdvance);
+  $("#delete-current-room").addEventListener("click", () => deleteRoom());
   $$("[data-room-geometry-mode]").forEach((button) => {
     button.addEventListener("click", () => setRoomGeometryMode(button.dataset.roomGeometryMode));
   });
@@ -10025,6 +10196,9 @@ function bindEvents() {
   $("#cancel-node-edit").addEventListener("click", () => setRoomNodeMode(null));
   $("#add-missed-room").addEventListener("click", addMissedRoom);
   $("#confirm-all-rooms").addEventListener("click", confirmAllRooms);
+  ["#structure-confirmed", "#estimated-size-ack"].forEach((selector) => {
+    $(selector).addEventListener("change", updateSpaceCompletionState);
+  });
   $("#show-all-rooms").addEventListener("click", () => {
     if (state.rooms.length <= 1) {
       setStatus("目前只有一個空間，沒有其他框選可顯示。");
@@ -10819,10 +10993,6 @@ function bindEvents() {
     const step = button.dataset.step;
     if (step === "recognition" && state.workflow?.canEnter("recognition")) {
       goTo(state.workflow.completed.includes("calibration") ? "calibration" : "recognition");
-      return;
-    }
-    if (step === "layout_2d" && state.workflow?.canEnter("white_model_3d")) {
-      goTo("white_model_3d");
       return;
     }
     if (state.workflow?.canEnter(step)) goTo(step);
