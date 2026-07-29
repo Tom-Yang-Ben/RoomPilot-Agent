@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 
 from test_scene_workflow import ROOT, run_workflow_script
 
@@ -27,6 +28,19 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
 
 
+def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
+    """Keep a browser-breaking syntax error from hiding behind API-only tests."""
+    module_file = tmp_path / "scene_v2.mjs"
+    module_file.write_bytes((STATIC / "scene_v2.js").read_bytes())
+    result = subprocess.run(
+        ["node", "--check", str(module_file)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_requirements_step_has_randomized_test_skip_button() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -39,18 +53,18 @@ def test_requirements_step_has_randomized_test_skip_button() -> None:
     assert 'showQuestionnaireStage("summary")' in source
 
 
-def test_weighted_questionnaire_answers_preserve_a_b_preference_strength() -> None:
+def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     css = (STATIC / "site.css").read_text(encoding="utf-8")
 
     assert "PREFERENCE_WEIGHT_OPTIONS" in source
-    assert 'data-preference-weight="${item.value}"' in source
     assert "function selectPreferenceWeight" in source
     assert "preferenceWeight: weight" in source
     assert "preferenceDirection: answerWeightDirection(weight)" in source
     assert "preference_weight: Number(answer.preferenceWeight ?? 0)" in source
     assert "preference_direction: answer.preferenceDirection" in source
     assert ".rp-preference-weight" in css
+    assert 'data-preference-weight="${item.value}"' not in source
 
 
 def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options() -> None:
@@ -79,7 +93,11 @@ def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() 
     assert "background-color:${escapeHtml(option.color)}" in source
     assert "全房牆面目前使用：${wallLabel}" in source
     assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in css
-    assert "background-blend-mode: multiply;" in css
+    assert "grid-auto-rows: 86px;" in css
+    assert "width: 76px;" in css
+    assert "height: 68px;" in css
+    assert "background-size: auto 230%;" in css
+    assert "background-blend-mode: multiply;" not in css
 
 
 def test_room_surfaces_keep_one_main_floor_with_functional_exceptions() -> None:
@@ -108,16 +126,21 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
 
     assert 'id="questionnaire-furniture-options"' in html
     assert 'id="questionnaire-furniture-status"' in html
+    assert 'id="questionnaire-room-usage-options"' in html
     assert "function ensureQuestionnaireFurnitureRecommendations" in source
     assert "function renderQuestionnaireFurnitureRecommendations" in source
+    assert "const ROOM_USAGE_OPTIONS" in source
+    assert "function renderQuestionnaireRoomUsage" in source
+    assert "data-questionnaire-room-usage" in source
     assert 'data-questionnaire-furniture-id="' in source
     assert "user_selected: true" in source
     assert "selection_priority:" in source
     assert "function knownUnavailableCatalogFurnitureIds" in source
     assert "unavailableCatalogIds.has(String(offer.furniture_id))" in source
-    assert "async function verifyQuestionnaireCatalogModel" in source
-    assert "model_load_verified: true" in source
+    assert "const visibleCandidates = fittingCandidates.length ? fittingCandidates : candidates;" in source
+    assert 'model_load_verification: "deferred"' in source
     assert ".rp-questionnaire-furniture-options" in css
+    assert ".rp-questionnaire-room-usage-options" in css
 
 
 def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
@@ -215,6 +238,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_design_schemes.js",
             "scene_questionnaire_test2.js",
             "scene_configuration_sync.js",
+            "scene_viewer_reload.js",
         ],
         "scene_viewer.js": [
             "scene_architecture.js",
@@ -2315,6 +2339,39 @@ def test_added_and_deleted_furniture_refresh_numbering_and_stay_draggable() -> N
     )[1].split("async function confirmWhiteModel()", 1)[0]
     assert "renderConfigurationPlan();" in add_block
     assert "activateWhiteFurnitureEditing();" in add_block
+
+
+def test_catalog_edits_keep_the_current_3d_camera_framing() -> None:
+    module_uri = (STATIC / "scene_viewer_reload.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ reloadViewerPreservingState }} from {json.dumps(module_uri)};
+        const calls = [];
+        const camera = {{ view_mode: "orbit", position_cm: [120, 200, 80] }};
+        const scene = {{ scene_objects: [{{ furniture_id: "chair-1" }}] }};
+        const viewer = {{
+          getCameraState() {{ calls.push("get-camera"); return camera; }},
+          async loadScene(value) {{ calls.push(value === scene ? "load-scene" : "wrong-scene"); }},
+          setCameraState(value) {{ calls.push(value === camera ? "restore-camera" : "wrong-camera"); }},
+          setInteractionMode(value) {{ calls.push("interaction:" + value); }},
+        }};
+        const returned = await reloadViewerPreservingState(viewer, scene, {{
+          interactionMode: "edit",
+        }});
+        console.log(JSON.stringify({{ calls, returned }}));
+        """
+    )
+
+    assert result["calls"] == [
+        "get-camera",
+        "load-scene",
+        "restore-camera",
+        "interaction:edit",
+    ]
+    assert result["returned"] == {
+        "view_mode": "orbit",
+        "position_cm": [120, 200, 80],
+    }
 
 
 def test_saved_layout_can_rebuild_a_missing_white_model_scene() -> None:

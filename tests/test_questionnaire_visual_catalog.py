@@ -207,6 +207,21 @@ def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
     assert "ceiling_color_hex" in javascript
 
 
+def test_questionnaire_ui_keeps_visual_catalog_for_rag_but_not_as_required_questions() -> None:
+    static = ROOT / "backend" / "server" / "static"
+    html = (static / "scene.html").read_text(encoding="utf-8")
+    javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "逐房家具與材質" in html
+    assert "全屋需求與風格" in html
+    assert 'id="apply-air-conditioning-all"' in html
+    assert "state.visualQuestions = [];" in javascript
+    assert "state.visualQuestions = questionsForIndividualRooms" not in javascript
+    assert "這個空間想放什麼？" in javascript
+    assert "請先完成這個房間的極與極題目。" not in javascript
+    assert "冷氣設定已套用至全部房間" in javascript
+
+
 def test_questionnaire_catalog_json_remains_the_versioned_source() -> None:
     path = (
         ROOT
