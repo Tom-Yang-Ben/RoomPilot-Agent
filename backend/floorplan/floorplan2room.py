@@ -376,10 +376,10 @@ OCR_WORD2LABEL = {
     "ENTRY": "entry",
     "BALCONY": "outdoor", "TERRACE": "outdoor",
     "GARAGE": "garage",
-    # 模型盲區兩類（EXTRA_LABELS）。書房沒有幾何證據可用，OCR 是唯一來源，
-    # 詞彙寧可多列；STAIRWELL/STAIRCASE 含 STAIR，片語比對取最長鍵仍是 stair。
-    "OFFICE": "office", "STUDY": "office", "WORKROOM": "office",
-    "DEN": "office", "LIBRARY": "office",
+    # 書房系詞彙 → storage（office 已於 2026-07-29 併入 storage）。
+    # STAIRWELL/STAIRCASE 含 STAIR，片語比對取最長鍵仍是 stair。
+    "OFFICE": "storage", "STUDY": "storage", "WORKROOM": "storage",
+    "DEN": "storage", "LIBRARY": "storage",
     "STAIR": "stair", "STAIRS": "stair", "STAIRWELL": "stair",
     "STAIRCASE": "stair",
 }
@@ -494,21 +494,24 @@ CC_WEIGHTS_ASSET_API = ("https://api.github.com/repos/Tom-Yang-Ben/RoomPilot-Age
 CC_WEIGHTS_SHA256 = "b7a280d2d7cf2dde580a947e1ebc7b4d12e53135c05581babb3b5797a166f4cf"
 CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
                  7: "entry", 9: "storage", 10: "garage", 1: "outdoor"}
-# 模型盲區類：CubiCasa 的 12 個 room class 沒有書房與樓梯，Office/StairWell
-# 在其 rooms_selected 都是 11(Undefined)——語意投票（層 1/2）結構上產不出來。
-# 兩類的分數只能由證據層供給：stair 走樓梯踏板幾何（層 4，detect_stairs），
-# office 走 OCR 文字（層 5，ASSET_KINDS 無書桌/書櫃素材，無幾何證據可用）。
+# 模型盲區類：CubiCasa 的 12 個 room class 沒有樓梯，StairWell 在其
+# rooms_selected 是 11(Undefined)——語意投票（層 1/2）結構上產不出來，
+# 分數只能由證據層供給（層 4 的 detect_stairs 踏板幾何）。
 # 必須另行播種進 score，否則 OCR 層的 `if lab_t in score` 防呆會靜默丟掉證據。
-EXTRA_LABELS = ("office", "stair")
+#
+# 註：曾短暫存在的 `office`（書房）已於 2026-07-29 併入 `storage`（使用者裁決）
+# ——兩者實務上是同一空間的兩個狀態，且 DINOv2 實測從未把它們互相搞混，
+# 分開標不帶來可量測資訊。書房系 OCR 詞彙改指向 storage。
+EXTRA_LABELS = ("stair",)
 CC_ICON = {"closet": 3, "appliance": 4, "toilet": 5, "sink": 6,
            "sauna": 7, "fireplace": 8, "bathtub": 9}
 ROOM_ZH_EX = {**fp_c.ROOM_ZH, "entry": "玄關", "storage": "儲藏室",
               "garage": "車庫", "outdoor": "陽台/戶外",
-              "office": "書房", "stair": "樓梯"}
+              "stair": "樓梯"}
 ROOM_BGR_EX = {**fp_c.ROOM_BGR, "entry": (120, 210, 250),
                "storage": (180, 180, 120), "garage": (130, 130, 130),
                "outdoor": fp_c.ROOM_BGR["balcony"],
-               "office": (110, 160, 200), "stair": (70, 70, 200)}
+               "stair": (70, 70, 200)}
 
 
 def _cc_path(img_path):

@@ -34,11 +34,17 @@ IN_DIR = "training/eval_rooms/input"
 CHK_DIR = "training/eval_rooms/chk"
 REPORT = "training/json/eval_rooms/report.json"
 CLASSES = ["kitchen", "living", "bed", "bath", "entry",
-           "storage", "garage", "outdoor", "office", "stair", "space"]
+           "storage", "garage", "outdoor", "stair", "space"]
 # CubiCasa 的 rooms_selected 把 Office 與 StairWell 都塌成 11(Undefined)，
 # 塌陷後三者不可分——先攔這兩個具名 token，其餘才走 CubiCasa 映射。
 # 不這麼做的後果：space 成為「書房＋樓梯間＋真未定義」混合桶（recall 0.286）。
-GT_CLASS_EXTRA = {"Office": "office", "StairWell": "stair"}
+#
+# `Office` 併入 `storage`（2026-07-29 使用者裁決）：實務上兩者是同一種空間的
+# 兩個狀態——放東西叫書房、空著叫儲藏、書房堆滿了又變回儲藏。實測佐證：
+# DINOv2 裁切分類器在 72 房上**從未把兩者互相搞混**（三個相關錯誤全是跨家族的
+# living→office、office→bath、storage→bed），合併前後正確率完全相同 65/72，
+# 亦即分開標並不帶來任何可量測的資訊。
+GT_CLASS_EXTRA = {"Office": "storage", "StairWell": "stair"}
 
 
 def norm_label(k):
