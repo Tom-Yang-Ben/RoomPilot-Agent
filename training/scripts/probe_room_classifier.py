@@ -130,6 +130,9 @@ def main():
                     help="特徵接上墨水密度（空房↔滿房訊號；已實測淨負面）")
     ap.add_argument("--area", action="store_true",
                     help="特徵接上 area_ratio（面積÷同圖中位，大小房分層）")
+    ap.add_argument("--save-head", metavar="PATH",
+                    help="訓練完把線性頭存檔供推論用（預設 backend/floorplan/"
+                         "room_head.npz）。只用 train split 訓練，own_eval 保持乾淨")
     a = ap.parse_args()
 
     manifest = json.load(open(os.path.join(a.crops, "manifest.json")))
@@ -148,6 +151,19 @@ def main():
 
     head, loss = train_head(Xtr, ytr_i, len(CLASSES), dev)
     print(f"線性頭訓練完成 loss={loss:.4f}")
+
+    if a.save_head:
+        # 推論期資產 → backend/floorplan/（目錄職責：training/ 只放訓練材料）
+        os.makedirs(os.path.dirname(a.save_head) or ".", exist_ok=True)
+        np.savez_compressed(
+            a.save_head,
+            weight=head.weight.detach().cpu().numpy().astype(np.float32),
+            bias=head.bias.detach().cpu().numpy().astype(np.float32),
+            classes=np.array(CLASSES), backbone=np.array(a.backbone),
+            use_ink=np.array(bool(a.ink)), use_area=np.array(bool(a.area)))
+        print(f"線性頭 → {a.save_head}"
+              f"（{head.weight.shape[1]}→{len(CLASSES)}，"
+              f"{os.path.getsize(a.save_head) / 1024:.0f}KB）")
 
     with torch.no_grad():
         pred_i = head(torch.from_numpy(Xte).float().to(dev)).argmax(1).cpu()

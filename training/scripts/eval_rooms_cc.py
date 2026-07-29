@@ -225,9 +225,15 @@ def eval_gt_seg(sid, gt, bgr, cfg_bw, cfg_color):
     for i, (_lab, m) in enumerate(gt, 1):
         labels[m] = i                            # GT 多邊形間幾乎不重疊
         rooms.append({"id": i, "area_px": int(m.sum())})
-    if not f2r._cc_ok(det["cc_file"]):
+    # 命名層優先序須與 build_rooms 一致，否則量到的不是產品實際走的路徑
+    import room_classifier
+    probs = room_classifier.classify(det.get("bgr"), labels, rooms)
+    if probs is not None:
+        f2r.classify_rooms_dino(det, labels, rooms, probs)
+    elif f2r._cc_ok(det["cc_file"]):
+        f2r.classify_rooms_cc(det, labels, rooms, det["cc_file"])
+    else:
         return {"id": sid, "status": "no_cc_cache"}
-    f2r.classify_rooms_cc(det, labels, rooms, det["cc_file"])
     preds = [(norm_label(r["label"]), labels == r["id"]) for r in rooms]
     matched = [(gt[i][0], preds[i][0]) for i in range(len(gt))]  # 配對=恆等
     _overlay(bgr, preds, os.path.join(CHK_DIR, sid + "_gtpred.png"))

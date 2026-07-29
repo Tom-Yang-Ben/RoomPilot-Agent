@@ -45,6 +45,7 @@ sys.path.insert(0, _PKG_DIR)           # 管線模組（含 symbol_match、infer
 
 import floorplan2dxf as fp_bw          # 黑白線稿管線（凍結，只 import 不改）
 import floorplan2dxf_color as fp_c     # 彩色管線（牆偵測 + 房間分割/分類工具）
+import room_classifier                 # DINOv2 房型裁切分類（缺件＝停用，退回 CubiCasa）
 import symbol_match                    # 符號模板庫比對（庫檔缺失＝不啟用）
 
 IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
@@ -658,6 +659,77 @@ def ensure_cc_masks(paths):
                     CC_WEIGHTS, CC_CACHE_DIR, *miss], check=True)
 
 
+def _apply_evidence(det, labels, r, score, open_living):
+    """層 4（符號幾何＋模板＋樓梯）與層 5（OCR 文字）加分——**無 CubiCasa 血統**，
+    CubiCasa 路徑與 DINOv2 路徑共用。就地改 score，並在 r 上記錄證據供追溯。
+    open_living：客餐廚一體時廚房系證據不加分（爐台水槽只是角落）。"""
+# 古典符號證據（層 4）：模型圖示沒抓到時的補充（美式極簡線稿）
+    # 後十類為 Asset 家具模板庫 kind（extract_asset_lib.py，分類依
+    # 使用者裁決：dtable→kitchen、chair(單人沙發)→living）
+    n = {"oval": 0, "tubrect": 0, "bedrect": 0, "stove": 0,
+         "shower": 0, "sinkicon": 0,
+         "wc": 0, "tub": 0, "basin": 0, "kstove": 0, "ksink": 0,
+         "dtable": 0, "bed": 0, "wardrobe": 0, "sofa": 0, "chair": 0,
+         "stair": 0}
+    for kind, sx, sy in det.get("symbols", ()):
+        iy, ix = int(round(sy)), int(round(sx))
+        if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
+                and labels[iy, ix] == r["id"]:
+            n[kind] += 1
+    if n["oval"]:                                # 馬桶/洗手台橢圓
+        score["bath"] += 0.45 + 0.2 * min(n["oval"] - 1, 2)
+        if n["tubrect"]:                         # 浴缸矩形＋橢圓同室 → 鐵證
+            score["bath"] += 0.3
+    if n["stove"] and not open_living:           # 爐台燃燒圈
+        score["kitchen"] += 0.5
+    if n["bedrect"]:                             # 雙人床矩形
+        score["bed"] += 0.5
+    if n["shower"]:                              # 模板：淋浴間（保守權重）
+        score["bath"] += 0.3
+    if n["sinkicon"] and not open_living:        # 模板：水槽（保守權重）
+        score["kitchen"] += 0.15
+    # Asset 家具模板證據（存在制不疊加，權重保守——模板與考卷畫風
+    # 有落差，寧漏勿誤；廚房系沿用 open_living 防呆）
+    if n["wc"]:
+        score["bath"] += 0.4
+    if n["tub"]:
+        score["bath"] += 0.3
+    if n["basin"]:
+        score["bath"] += 0.2
+    if n["kstove"] and not open_living:
+        score["kitchen"] += 0.35
+    if n["ksink"] and not open_living:
+        score["kitchen"] += 0.2
+    if n["dtable"] and not open_living:          # user 裁決：餐桌歸廚房
+        score["kitchen"] += 0.25
+    if n["bed"]:
+        score["bed"] += 0.4
+    if n["wardrobe"]:
+        score["bed"] += 0.2
+    if n["sofa"]:
+        score["living"] += 0.3
+    if n["chair"]:                               # user 裁決：單人沙發＝客廳
+        score["living"] += 0.15
+    if n["stair"]:                               # 樓梯踏板（detect_stairs）
+        # 權重高於一般家具：4+ 條等距等長踏板是強幾何約束，且 stair 沒有
+        # 語意票可搭配（模型盲區類），證據不夠力就永遠叫不出這個名字
+        score["stair"] += 0.6
+    r["symbols"] = {k: v for k, v in n.items() if v}
+    # OCR 文字證據（層 5）：字框中心落在這間房 → 該房型加分。
+    # 同房同型多字只加一次（重複字樣不疊權），異型各加（衝突交給總分裁決）
+    txt_hits = {}
+    for lab_t, tx, ty, raw in det.get("texts", ()):
+        iy, ix = int(round(ty)), int(round(tx))
+        if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
+                and labels[iy, ix] == r["id"]:
+            txt_hits.setdefault(lab_t, []).append(raw)
+    for lab_t in txt_hits:
+        if lab_t in score:             # 防呆：字典日後加了量尺外的房型 key 不炸
+            score[lab_t] += OCR_TEXT_W
+    if txt_hits:
+        r["ocr_text"] = txt_hits
+
+
 def classify_rooms_cc(det, labels, rooms, cc_file):
     """辨識式房型（user spec：放棄面積規則）：把每個方塊切出來，
     以 CubiCasa 房間語意像素投票 + 設備圖示證據命名用途。三層證據：
@@ -708,71 +780,7 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
         if icx["closet"] >= 600 and votes[5] < 0.05 \
                 and icx["closet"] / area_cm2 >= 0.08:
             score["storage"] += 0.2
-        # 古典符號證據（層 4）：模型圖示沒抓到時的補充（美式極簡線稿）
-        # 後十類為 Asset 家具模板庫 kind（extract_asset_lib.py，分類依
-        # 使用者裁決：dtable→kitchen、chair(單人沙發)→living）
-        n = {"oval": 0, "tubrect": 0, "bedrect": 0, "stove": 0,
-             "shower": 0, "sinkicon": 0,
-             "wc": 0, "tub": 0, "basin": 0, "kstove": 0, "ksink": 0,
-             "dtable": 0, "bed": 0, "wardrobe": 0, "sofa": 0, "chair": 0,
-             "stair": 0}
-        for kind, sx, sy in det.get("symbols", ()):
-            iy, ix = int(round(sy)), int(round(sx))
-            if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
-                    and labels[iy, ix] == r["id"]:
-                n[kind] += 1
-        if n["oval"]:                                # 馬桶/洗手台橢圓
-            score["bath"] += 0.45 + 0.2 * min(n["oval"] - 1, 2)
-            if n["tubrect"]:                         # 浴缸矩形＋橢圓同室 → 鐵證
-                score["bath"] += 0.3
-        if n["stove"] and not open_living:           # 爐台燃燒圈
-            score["kitchen"] += 0.5
-        if n["bedrect"]:                             # 雙人床矩形
-            score["bed"] += 0.5
-        if n["shower"]:                              # 模板：淋浴間（保守權重）
-            score["bath"] += 0.3
-        if n["sinkicon"] and not open_living:        # 模板：水槽（保守權重）
-            score["kitchen"] += 0.15
-        # Asset 家具模板證據（存在制不疊加，權重保守——模板與考卷畫風
-        # 有落差，寧漏勿誤；廚房系沿用 open_living 防呆）
-        if n["wc"]:
-            score["bath"] += 0.4
-        if n["tub"]:
-            score["bath"] += 0.3
-        if n["basin"]:
-            score["bath"] += 0.2
-        if n["kstove"] and not open_living:
-            score["kitchen"] += 0.35
-        if n["ksink"] and not open_living:
-            score["kitchen"] += 0.2
-        if n["dtable"] and not open_living:          # user 裁決：餐桌歸廚房
-            score["kitchen"] += 0.25
-        if n["bed"]:
-            score["bed"] += 0.4
-        if n["wardrobe"]:
-            score["bed"] += 0.2
-        if n["sofa"]:
-            score["living"] += 0.3
-        if n["chair"]:                               # user 裁決：單人沙發＝客廳
-            score["living"] += 0.15
-        if n["stair"]:                               # 樓梯踏板（detect_stairs）
-            # 權重高於一般家具：4+ 條等距等長踏板是強幾何約束，且 stair 沒有
-            # 語意票可搭配（模型盲區類），證據不夠力就永遠叫不出這個名字
-            score["stair"] += 0.6
-        r["symbols"] = {k: v for k, v in n.items() if v}
-        # OCR 文字證據（層 5）：字框中心落在這間房 → 該房型加分。
-        # 同房同型多字只加一次（重複字樣不疊權），異型各加（衝突交給總分裁決）
-        txt_hits = {}
-        for lab_t, tx, ty, raw in det.get("texts", ()):
-            iy, ix = int(round(ty)), int(round(tx))
-            if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
-                    and labels[iy, ix] == r["id"]:
-                txt_hits.setdefault(lab_t, []).append(raw)
-        for lab_t in txt_hits:
-            if lab_t in score:             # 防呆：字典日後加了量尺外的房型 key 不炸
-                score[lab_t] += OCR_TEXT_W
-        if txt_hits:
-            r["ocr_text"] = txt_hits
+        _apply_evidence(det, labels, r, score, open_living)
         lab, val = max(score.items(), key=lambda kv: kv[1])
         r["label"] = lab if val >= 0.15 else "room"
         r["label_zh"] = ROOM_ZH_EX[r["label"]]
@@ -784,16 +792,67 @@ def classify_rooms_cc(det, labels, rooms, cc_file):
         del r["_score"]
 
 
-UNIQUE_LABELS = ("living", "kitchen")          # user spec：全戶各最多一間，留面積最大
+DINO_W = 1.0            # DINOv2 機率的權重。設 1.0 使其與 OCR(1.3) 的相對關係
+                        # 維持「圖面文字是作者親口說的答案，可壓過模型」，
+                        # 而符號證據(0.15~0.6)只在模型沒把握時才翻得動總分
+
+
+def classify_rooms_dino(det, labels, rooms, probs):
+    """辨識式房型——**去 CubiCasa 版本**（層 1 換成 DINOv2 裁切分類）。
+
+    與 classify_rooms_cc 的差別只在證據來源：
+      層 1  DINOv2 房間裁切分類機率（取代 CubiCasa 語意佔比＋相對多數票）
+      層 3  CubiCasa 圖示絕對面積 —— **移除**（該通道來自 CubiCasa 模型）
+      層 4/5 符號幾何、OCR 文字 —— 不變（本就無 CubiCasa 血統）
+
+    `open_living` 原以 CubiCasa 的 living/kitchen 票判定，改用 DINOv2 機率同義：
+    客廳機率夠高且遠勝廚房 → 客餐廚一體，廚房系證據不加分。"""
+    cm = det["cm"]
+    for r, pr in zip(rooms, probs):
+        r["area_m2"] = round(r["area_px"] * cm * cm / 1e4, 2)
+        score = {lab: 0.0 for lab in
+                 tuple(CC_ROOM_LABEL.values()) + EXTRA_LABELS}
+        for lab, p in (pr or {}).items():
+            if lab in score:
+                score[lab] += p * DINO_W
+        open_living = (score["living"] >= 0.15
+                       and score["living"] > 2.0 * score["kitchen"])
+        _apply_evidence(det, labels, r, score, open_living)
+        lab, val = max(score.items(), key=lambda kv: kv[1])
+        r["label"] = lab if val >= 0.15 else "room"
+        r["label_zh"] = ROOM_ZH_EX[r["label"]]
+        r["cc_share"] = {k: round(v, 3) for k, v in score.items() if v >= 0.02}
+        r["icons_cm2"] = {}                    # 契約鍵保留（來源已移除）
+        r["_score"] = score
+    _enforce_singletons(rooms)
+    for r in rooms:
+        del r["_score"]
+
+
+UNIQUE_LABELS = ("living", "kitchen")          # user spec：全戶各最多一間
 
 
 def _enforce_singletons(rooms):
     """住宅常識約束（user spec）：living/kitchen 全戶各限一間。
-    同類多間只保留面積最大者，其餘降級為自己的次高分房型——限額類
-    不得再選（降級又互撞），次高分 <0.15 照原則標中性「空間」。
+    同類多間只保留**該類分數最高**者，其餘降級為自己的次高分房型。
     接著：有廚無廳＝那間「廚房」多半是客餐廚一體，改叫客廳優先；
     圖面文字明寫 KITCHEN（作者親口說的答案）則豁免不改。
-    relabel_from 記錄原判供 JSON 追溯。"""
+    relabel_from 記錄原判供 JSON 追溯。
+
+    **2026-07-29 實測：兩種「改良」皆為淨負面，勿再嘗試**（own_eval 72 房）。
+    起因是 floor64 的真實缺陷——DINOv2 給小廚房 kitchen 1.00、給大客廳
+    kitchen 0.41（被廚房符號推上去），照面積挑會砍掉模型有把握的那間：
+
+    | 保留者 / 降級可取的類 | CubiCasa 路徑 | DINOv2 路徑 |
+    | 面積最大 / 排除全部限額類（現行） | 57/72 | **63/72** |
+    | 分數最高 / 排除全部限額類 | 58/72 | 60/72 |
+    | 分數最高 / 只排除已被佔走者 | 59/72 | 62/72 |
+
+    兩者都修好了 floor64，卻在 floor69/70 賠更多：那兩張的真客廳被 DINOv2
+    判成 kitchen（living 僅 0.06~0.08，開放式客餐廚），**現行規則靠「留最大
+    的那間 → 下方有廚無廳改叫客廳」這條鏈歪打正著救回來**，改了就斷。
+    要真正解決得從 `open_living` 防呆下手（它用 `score["living"]>=0.15`
+    判定，模型把開放空間判成廚房時根本不觸發），而非動限額規則。"""
     for lab in UNIQUE_LABELS:
         cand = [r for r in rooms if r["label"] == lab]
         for r in sorted(cand, key=lambda c: c["area_m2"], reverse=True)[1:]:
@@ -976,9 +1035,16 @@ def build_rooms(det):
     zones = [_bridge_zone(*b) for b in bridges
              if any(lo <= (b[2] - b[1]) * cm <= hi for lo, hi in DOOR_RANGES_CM)
              and _bridge_has_door_ink(det, *b)]  # 迴轉區無墨=開放通道非門
+    # 房型命名優先序（2026-07-29 起 DINOv2 為首選——own_eval 72 房保留集
+    # 90.3% vs CubiCasa 路徑 79.2%，且 Apache 2.0 可商用）：
+    #   1) DINOv2 裁切分類（room_classifier，去 CubiCasa）
+    #   2) CubiCasa 語意投票（需有效快取；CC BY-NC 禁商用）
+    #   3) 面積規則（純幾何兜底）
+    probs = room_classifier.classify(det.get("bgr"), labels, rooms)
     cc_f = det.get("cc_file")
-    if cc_f and cc_cache_valid(cc_f, img_w, img_h,
-                               det.get("src_sha256")):
+    if probs is not None:
+        classify_rooms_dino(det, labels, rooms, probs)
+    elif cc_f and cc_cache_valid(cc_f, img_w, img_h, det.get("src_sha256")):
         classify_rooms_cc(det, labels, rooms, cc_f)   # 辨識式房型（方塊切出來投票命名）
     else:                                        # 無（有效）語意快取才退回面積規則
         if cc_f and _cc_ok(cc_f):

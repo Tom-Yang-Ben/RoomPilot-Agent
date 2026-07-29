@@ -40,12 +40,16 @@ def test_asset_kind_room_mapping():
     assert m["livingroom/chairs"][0] == "chair"          # 單人沙發＝客廳
 
 
-def _mk(tmp_path, symbols):
-    """房1=受測符號；房2=客廳錨（語意 living 滿票），避免觸發有廚無廳升級。"""
+def _mk(tmp_path, symbols, anchor_living=True):
+    """房1=受測符號；房2=錨房。
+
+    錨房預設投 living 滿票以避免觸發「有廚無廳→改叫客廳」升級；但受測房
+    本身要驗 living（sofa/chair）時必須換掉——living 是限額類，兩間同標會
+    互相排擠，且 2026-07-29 起限額保留的是**分數最高**者（錨房滿票必勝）。"""
     labels = np.zeros((20, 40), np.int32)
     labels[:, :20], labels[:, 20:] = 1, 2
     cc_room = np.zeros((20, 40), np.uint8)
-    cc_room[:, 20:] = 4                        # living
+    cc_room[:, 20:] = 4 if anchor_living else 5    # living / bed
     cc_file = str(tmp_path / "m.npz")
     np.savez(cc_file, room=cc_room, icon=np.zeros((20, 40), np.uint8))
     det = {"cm": 1.0, "thin": None, "texts": [],
@@ -61,13 +65,15 @@ def test_asset_symbols_name_rooms(tmp_path):
         (["bed"], "bed"), (["wardrobe", "bed"], "bed"),
         (["sofa"], "living"), (["chair", "sofa"], "living"),
     ]:
-        det, labels, rooms, cc_file = _mk(tmp_path, kinds)
+        det, labels, rooms, cc_file = _mk(tmp_path, kinds,
+                                          anchor_living=(expect != "living"))
         fp.classify_rooms_cc(det, labels, rooms, cc_file)
         assert rooms[0]["label"] == expect, (kinds, rooms[0]["label"])
 
 
 def test_asset_chair_alone_below_threshold(tmp_path):
     # 單一 chair 權重 0.15 剛好過 0.15 門檻 → living；確認弱證據不誤標他類
-    det, labels, rooms, cc_file = _mk(tmp_path, ["chair"])
+    det, labels, rooms, cc_file = _mk(tmp_path, ["chair"],
+                                      anchor_living=False)
     fp.classify_rooms_cc(det, labels, rooms, cc_file)
     assert rooms[0]["label"] in ("living", "room")
