@@ -123,7 +123,8 @@ def test_room_surfaces_flow_into_2d_3d_and_render_payloads() -> None:
     ).read_text(encoding="utf-8")
     assert "createRoomCeilingOverrides" in VIEWER
     assert "roompilotCeilingOverride" in VIEWER
-    assert "override.wall_overrides?.[surfaceId]" in VIEWER
+    assert "resolveWallMaterial.faceMaterials" in VIEWER
+    assert "const overrideAtPoint" in VIEWER
     apply_style = SCENE.split("async function applyStylePackToScene", 1)[1].split(
         "async function applySurfaceOverrides", 1
     )[0]

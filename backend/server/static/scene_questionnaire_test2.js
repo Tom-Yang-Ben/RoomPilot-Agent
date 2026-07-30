@@ -28,6 +28,10 @@ export function questionsForRooms(questions = [], rooms = []) {
   let bedroomIndex = 0;
   const roomSpaces = new Set();
   rooms.forEach((room) => {
+    if (["primary_bedroom", "secondary_bedroom"].includes(room.visual_space_type)) {
+      roomSpaces.add(room.visual_space_type);
+      return;
+    }
     if (room.type === "bedroom") {
       roomSpaces.add(bedroomIndex === 0 ? "primary_bedroom" : "secondary_bedroom");
       bedroomIndex += 1;
@@ -43,6 +47,9 @@ export function questionsForRooms(questions = [], rooms = []) {
 }
 
 function visualSpaceForRoom(room, bedroomIndex = 0) {
+  if (["primary_bedroom", "secondary_bedroom"].includes(room.visual_space_type)) {
+    return room.visual_space_type;
+  }
   if (room.type === "bedroom") {
     return bedroomIndex === 0 ? "primary_bedroom" : "secondary_bedroom";
   }

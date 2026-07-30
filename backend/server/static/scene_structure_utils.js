@@ -119,12 +119,14 @@ export function doorsOverlap(first, second) {
   const a = openingAxis(first);
   const b = openingAxis(second);
   if (!a || !b || a.orientation !== b.orientation) return false;
-  if (Math.abs(a.constant - b.constant) > 35) return false;
+  // 開啟的門片可能落在平行的相鄰牆旁。只有幾乎落在同一條
+  // 中心線時才視為重複，避免把兩扇真實相鄰門合併掉。
+  if (Math.abs(a.constant - b.constant) > 14) return false;
   const overlap = Math.max(0, Math.min(a.high, b.high) - Math.max(a.low, b.low));
   const centerDistance = Math.abs((a.low + a.high) / 2 - (b.low + b.high) / 2);
   const width = Math.min(a.length, b.length);
-  return overlap / Math.max(1, width) >= 0.35
-    || centerDistance <= Math.max(45, width * 0.75);
+  return overlap / Math.max(1, width) >= 0.75
+    && centerDistance <= Math.max(18, width * 0.16);
 }
 
 export function dedupeWindowCandidates(candidates = []) {

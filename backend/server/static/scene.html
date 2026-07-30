@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-983f81917f00" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-ccc921d32972" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -138,7 +138,20 @@
                   <div class="rp-room-editor-summary">
                     <label for="room-name">空間名稱</label>
                     <div class="rp-room-name-control">
-                      <input id="room-name" type="text" />
+                      <select id="room-name">
+                        <option value="entryway">玄關</option>
+                        <option value="living_room">客廳</option>
+                        <option value="dining_room">餐廳</option>
+                        <option value="kitchen">廚房</option>
+                        <option value="primary_bedroom">主臥</option>
+                        <option value="secondary_bedroom">次臥</option>
+                        <option value="bathroom">浴室</option>
+                        <option value="study">書房／工作區</option>
+                        <option value="balcony">陽台</option>
+                        <option value="storage">儲藏室</option>
+                        <option value="circulation">走道／動線</option>
+                        <option value="multi_purpose">多功能室</option>
+                      </select>
                       <button id="save-room" type="button" class="secondary-action">套用名稱</button>
                     </div>
                     <p id="room-area"></p>
@@ -281,6 +294,7 @@
                 </section>
                 <div class="rp-inline-actions">
                   <button id="apply-structure-size" type="button" class="secondary-action">套用尺寸</button>
+                  <button id="lock-selected-door-opening" type="button" class="primary-action" hidden>鎖定目前門洞</button>
                   <button id="flip-selected-door" type="button" class="secondary-action">切換開門側</button>
                   <button id="rotate-selected-door-180" type="button" class="secondary-action">鉸鏈端翻轉 180°</button>
                   <button id="rotate-selected-structure-left" type="button" class="secondary-action">左轉 15°</button>
@@ -371,8 +385,8 @@
           </header>
 
           <nav id="questionnaire-stage-nav" class="rp-questionnaire-stage-nav" aria-label="需求問卷進度">
-            <button type="button" data-questionnaire-stage="rooms" class="is-active"><b>1</b><span>逐房家具與材質</span></button>
-            <button type="button" data-questionnaire-stage="profile" disabled><b>2</b><span>全屋需求與風格</span></button>
+            <button type="button" data-questionnaire-stage="profile" class="is-active"><b>1</b><span>全屋風格與設備</span></button>
+            <button type="button" data-questionnaire-stage="rooms" disabled><b>2</b><span>逐房用途與家具</span></button>
             <button type="button" data-questionnaire-stage="summary" disabled><b>3</b><span>確認方案</span></button>
           </nav>
 
@@ -381,7 +395,7 @@
               <div><span class="eyebrow">全屋需求與風格</span><h3>最後確認全屋共用條件</h3></div>
               <p>家庭成員、預算、生活偏好與整體風格只填一次；系統會將其與逐房家具選擇一起交給 RAG。</p>
             </div>
-            <div id="whole-house-fields" class="rp-test2-profile-grid"></div>
+            <div id="whole-house-fields" class="rp-test2-profile-grid" hidden></div>
             <section id="whole-house-style-editor" class="rp-whole-house-style-editor">
               <div class="rp-questionnaire-section-heading">
                 <div><span class="eyebrow">全屋風格</span><h3>選一組風格，再微調材質</h3></div>
@@ -418,18 +432,19 @@
                     <option value="none">暫不規劃冷氣</option>
                   </select></label>
                   <label><span>天花顏色</span><input id="whole-house-ceiling-color" type="color" value="#f4f1eb" /></label>
+                  <label class="rp-questionnaire-default-toggle"><input id="whole-house-style-all" type="checkbox" checked /> <span>先套用至全部房間，之後可於第 6 步個別調整</span></label>
+                  <label class="rp-questionnaire-default-toggle"><input id="whole-house-air-conditioning-all" type="checkbox" checked /> <span>冷氣預設套用客廳、臥室與書房</span></label>
                 </fieldset>
               </div>
             </section>
             <div class="rp-action-row">
-              <button id="back-to-room-questionnaire" type="button" class="secondary-action">返回逐房家具</button>
-              <button id="confirm-basic-questionnaire" type="button" class="primary-action">確認全屋需求與風格，查看方案摘要</button>
+              <button id="confirm-basic-questionnaire" type="button" class="primary-action">確認全屋風格與設備，開始逐房選家具</button>
             </div>
           </section>
 
           <section id="visual-questionnaire" class="rp-questionnaire-stage" data-questionnaire-panel="rooms">
             <div class="rp-questionnaire-section-heading">
-              <div><span class="eyebrow">逐房用途與家具</span><h3>每個空間只確認用途與想帶入的家具</h3></div>
+              <div><span class="eyebrow">逐房用途與家具</span><h3>選擇空間用途、家具類型、尺寸與數量</h3></div>
               <p id="visual-questionnaire-notice"></p>
             </div>
             <div class="rp-room-questionnaire-layout">
@@ -451,10 +466,17 @@
                 <article id="visual-question-card" class="rp-visual-question-card" aria-live="polite"></article>
                 <section id="questionnaire-finishes" class="rp-room-finish-editor">
                   <div class="rp-questionnaire-section-heading">
-                    <div><span class="eyebrow">本房設備與材質</span><h3 id="room-finish-title">選擇色卡與表面</h3></div>
-                    <p>標示「推薦」的項目仍需由你確認；天花板與照明不會在其他頁重複詢問。</p>
+                    <div><span class="eyebrow">本房用途與家具</span><h3 id="room-finish-title">確認要帶入此空間的家具</h3></div>
+                    <p>此處只收集需求。實際 GLB 尺寸、碰撞、門窗與走道問題會在第 6 步集中說明並處理。</p>
                   </div>
-                  <div class="rp-inline-apply-control">
+                  <section id="circulation-style-notice" class="rp-circulation-style-notice" hidden>
+                    <div>
+                      <strong>走道沿用客廳風格</strong>
+                      <p>走道會同步客廳的牆面、地板、天花板與照明，讓全屋動線保持連續。</p>
+                    </div>
+                    <button id="enable-circulation-style-override" type="button" class="secondary-action">改為走道獨立風格</button>
+                  </section>
+                  <div class="rp-inline-apply-control" hidden>
                     <label><span>冷氣形式與位置需求</span><select id="questionnaire-air-conditioning">
                       <option value="auto">由系統依房間判斷</option>
                       <option value="wall-split">壁掛分離式</option>
@@ -474,14 +496,23 @@
                   <section class="rp-questionnaire-furniture">
                     <div class="rp-questionnaire-section-heading">
                       <div><span class="eyebrow">本房家具</span><h3>勾選想帶入配置的資料庫家具</h3></div>
-                      <p id="questionnaire-furniture-status" aria-live="polite">系統會依房間用途、尺寸與目前風格推薦；空間不足的家具不會被硬放入。</p>
+                      <p id="questionnaire-furniture-status" aria-live="polite">系統依房型、全屋風格與你的選擇推薦。第 5 步不會阻擋；第 6 步會驗證實際 GLB 與位置。</p>
+                    </div>
+                    <div class="rp-questionnaire-furniture-preference">
+                      <label for="questionnaire-furniture-preference">想要的家具或樣式（選填）</label>
+                      <div>
+                        <textarea id="questionnaire-furniture-preference" rows="2"
+                          placeholder="例如：淺木色、圓角、可收納；想要一張靠窗閱讀椅。"></textarea>
+                        <button id="refresh-questionnaire-furniture" type="button" class="secondary-action">更新推薦</button>
+                      </div>
+                      <div id="questionnaire-furniture-preference-tags" class="rp-questionnaire-preference-tags" aria-label="家具特徵快速選擇"></div>
                     </div>
                     <div id="questionnaire-furniture-options"
                       class="rp-questionnaire-furniture-options"></div>
                   </section>
-                  <div id="questionnaire-style-tabs" class="rp-style-tabs" aria-label="六種風格"></div>
-                  <div id="questionnaire-style-grid" class="rp-style-grid rp-questionnaire-style-grid"></div>
-                  <div class="rp-questionnaire-material-grid">
+                  <div id="questionnaire-style-tabs" class="rp-style-tabs" aria-label="六種風格" hidden></div>
+                  <div id="questionnaire-style-grid" class="rp-style-grid rp-questionnaire-style-grid" hidden></div>
+                  <div class="rp-questionnaire-material-grid" hidden>
                     <fieldset>
                       <legend>牆壁材質</legend>
                       <p id="selected-wall-surface">尚未指定牆面，將套用本房預設牆材。</p>
@@ -506,7 +537,7 @@
                       <label><span>天花板顏色</span><input id="questionnaire-ceiling-color" type="color" value="#f4f1eb" /></label>
                     </fieldset>
                   </div>
-                  <div class="rp-room-finish-apply">
+                  <div class="rp-room-finish-apply" hidden>
                     <label><span>套用設定</span><select id="questionnaire-finish-scope">
                       <option value="room">只套用目前房間</option>
                       <option value="selected">套用至指定房間</option>
@@ -515,9 +546,9 @@
                     </select></label>
                     <div id="questionnaire-finish-room-targets" class="rp-room-targets" hidden></div>
                   </div>
-                  <div id="room-feasibility-notices" class="rp-room-feasibility-notices" aria-live="polite"></div>
+                  <div id="room-feasibility-notices" class="rp-room-feasibility-notices" aria-live="polite" hidden></div>
                   <div class="rp-action-row">
-                    <button id="confirm-questionnaire-finishes" type="button" class="primary-action">確認此房需求與材質</button>
+                    <button id="confirm-questionnaire-finishes" type="button" class="primary-action">確認此房用途與家具</button>
                   </div>
                 </section>
               </div>
@@ -906,6 +937,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-54e87beeda29"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-d4bae591bad1"></script>
   </body>
 </html>
