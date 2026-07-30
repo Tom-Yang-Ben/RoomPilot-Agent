@@ -1,13 +1,13 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-a7bb379e9b2d";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-b97245564184";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=20260719-real3d3";
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-} from "./scene_unit_contracts.js?v=sha256-88f874e652a8";
+} from "./scene_unit_contracts.js?v=sha256-3c8c399f1d70";
 import {
   repairLoadedRoomPolygon,
-} from "./scene_room_geometry.js?v=sha256-fea08f0d5f34";
+} from "./scene_room_geometry.js?v=sha256-d863939b9c06";
 import {
   createWorkflow,
   restoreWorkflow,
@@ -17,11 +17,11 @@ import {
   shouldReplayPendingSave,
   WORKFLOW_PANEL_BY_STEP,
   WORKFLOW_STEPS,
-} from "./scene_workflow.js?v=sha256-13a58f49a774";
+} from "./scene_workflow.js?v=sha256-1731ab127eab";
 import {
   buildScaleCalibration,
   calibrationActionState,
-} from "./scene_calibration.js?v=sha256-a1eb97980af1";
+} from "./scene_calibration.js?v=sha256-175dc2c59c64";
 import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
@@ -39,7 +39,7 @@ import {
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-4229260e286c";
+} from "./scene_configuration_sync.js?v=sha256-5d58be033c8a";
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
@@ -57,10 +57,10 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-4a1ae7a37cce";
+} from "./scene_questionnaire_test2.js?v=sha256-c42955c6a50b";
 import {
   reloadViewerPreservingState,
-} from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
+} from "./scene_viewer_reload.js?v=sha256-4adbd0d35e57";
 import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
@@ -96,19 +96,19 @@ import {
   translateOpeningAlongAxis,
   wallBoundarySide,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=sha256-01401753ffff";
-import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-9d866df171b3";
+} from "./scene_structure_utils.js?v=sha256-89991601b362";
+import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-6c8b26b0c186";
 import {
   findStructureWallCollision,
   resolveStructureWallCollisions,
   validateColumnDimensionsCm,
-} from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
+} from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
   applyWindowTypePreset,
   normalizedWindowType,
   WINDOW_TYPES,
-} from "./scene_window_types.js?v=sha256-ebe4923f97c0";
+} from "./scene_window_types.js?v=sha256-990e2abb3240";
 import {
   activateScheme,
   attachedOpenings,
@@ -120,7 +120,7 @@ import {
   normalizeDesignSchemes,
   persistActiveScheme,
   structuresForScheme,
-} from "./scene_design_schemes.js?v=sha256-9cae7554d27d";
+} from "./scene_design_schemes.js?v=sha256-087006a5b5b3";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

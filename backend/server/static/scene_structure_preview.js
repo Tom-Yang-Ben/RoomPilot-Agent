@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { structurePreviewDescriptor } from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
+import { structurePreviewDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 
 export function createStructurePreview(container) {
   if (!container) return { render() {} };
