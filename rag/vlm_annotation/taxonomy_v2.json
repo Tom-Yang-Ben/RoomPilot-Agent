@@ -1,0 +1,1001 @@
+{
+  "taxonomy_version": "v2-six-style",
+  "source_cards": "taiwan_style_cards.json",
+  "source_cards_version": "2.0",
+  "supersedes": "v1-draft",
+  "generated_at": "2026-07-27T20:11:16+08:00",
+  "styles": {
+    "scandinavian": {
+      "zh": "北歐風",
+      "definition": "淺色原木與白色基調，搭配燕麥、米白與柔和灰綠，線條簡潔圓潤，布藝、羊毛與淺色木材為主，重視自然採光、留白與溫暖質感，氛圍明亮放鬆。",
+      "cards": [
+        {
+          "card_id": "scandinavian_1",
+          "name_zh": "自然木質",
+          "palette_hex": [
+            "#F3EBDD",
+            "#D3B48A",
+            "#8B684B"
+          ],
+          "image_file": "01_北歐/01_北歐_自然木質.png"
+        },
+        {
+          "card_id": "scandinavian_2",
+          "name_zh": "清新明亮",
+          "palette_hex": [
+            "#F7F5ED",
+            "#DCE7DF",
+            "#A5C0B0"
+          ],
+          "image_file": "01_北歐/02_北歐_清新明亮.png"
+        },
+        {
+          "card_id": "scandinavian_3",
+          "name_zh": "低彩度質感",
+          "palette_hex": [
+            "#E8E6DF",
+            "#B9B5A9",
+            "#6E706D"
+          ],
+          "image_file": "01_北歐/03_北歐_低彩度質感.png"
+        }
+      ]
+    },
+    "japanese": {
+      "zh": "日式",
+      "definition": "日式侘寂與禪意，原木、藤編、亞麻與和紙等自然材質，米灰與麻褐等低彩度大地色，家具低矮貼地，線條乾淨，強調留白、收納整齊與寧靜秩序感。",
+      "cards": [
+        {
+          "card_id": "japanese_1",
+          "name_zh": "侘寂自然",
+          "palette_hex": [
+            "#D8D0C1",
+            "#A89B87",
+            "#625B50"
+          ],
+          "image_file": "02_日式/01_日式_侘寂自然.png"
+        },
+        {
+          "card_id": "japanese_2",
+          "name_zh": "茶室禪意",
+          "palette_hex": [
+            "#D8D0C1",
+            "#A89B87",
+            "#625B50"
+          ],
+          "image_file": "02_日式/02_日式_茶室禪意.png"
+        },
+        {
+          "card_id": "japanese_3",
+          "name_zh": "現代和風",
+          "palette_hex": [
+            "#D8D0C1",
+            "#A89B87",
+            "#625B50"
+          ],
+          "image_file": "02_日式/03_日式_現代和風.png"
+        }
+      ]
+    },
+    "modern_minimal": {
+      "zh": "現代簡約",
+      "definition": "俐落直線與幾何形體，黑白灰與暖灰為主色，玻璃、金屬與烤漆面材，平整無把手面板，裝飾極少，強調機能與比例，整體乾淨明快、都會感強。",
+      "cards": [
+        {
+          "card_id": "modern_minimal_1",
+          "name_zh": "黑白俐落",
+          "palette_hex": [
+            "#F4F3F0",
+            "#969696",
+            "#252525"
+          ],
+          "image_file": "03_現代簡約/01_現代簡約_黑白俐落.png"
+        },
+        {
+          "card_id": "modern_minimal_2",
+          "name_zh": "暖灰質感",
+          "palette_hex": [
+            "#E4DED5",
+            "#A69C91",
+            "#5A534D"
+          ],
+          "image_file": "03_現代簡約/02_現代簡約_暖灰質感.png"
+        },
+        {
+          "card_id": "modern_minimal_3",
+          "name_zh": "自然留白",
+          "palette_hex": [
+            "#F5F2EB",
+            "#D3C7B5",
+            "#77736B"
+          ],
+          "image_file": "03_現代簡約/03_現代簡約_自然留白.png"
+        }
+      ]
+    },
+    "cream": {
+      "zh": "奶油風",
+      "definition": "以奶油白、奶茶與淺駝為主調，柔霧質感與圓潤曲線，大量布藝軟裝、絨布與淺色木質，邊角圓弧、視覺柔和，氛圍溫柔療癒並帶法式優雅。",
+      "cards": [
+        {
+          "card_id": "cream_1",
+          "name_zh": "奶油米白",
+          "palette_hex": [
+            "#F5EBDD",
+            "#DCC4A8",
+            "#A98568"
+          ],
+          "image_file": "04_奶油風/01_奶油風_奶油米白.png"
+        },
+        {
+          "card_id": "cream_2",
+          "name_zh": "法式柔霧",
+          "palette_hex": [
+            "#F5EBDD",
+            "#DCC4A8",
+            "#A98568"
+          ],
+          "image_file": "04_奶油風/02_奶油風_法式柔霧.png"
+        },
+        {
+          "card_id": "cream_3",
+          "name_zh": "奶茶木質",
+          "palette_hex": [
+            "#F5EBDD",
+            "#DCC4A8",
+            "#A98568"
+          ],
+          "image_file": "04_奶油風/03_奶油風_奶茶木質.png"
+        }
+      ]
+    },
+    "industrial": {
+      "zh": "工業風",
+      "definition": "裸露質感為特色，黑鐵件、深色木材、皮革與水泥灰，粗獷金屬結構外露，色調深沉，常見鉚釘、管線與復古工坊元素，氛圍粗獷率性。",
+      "cards": [
+        {
+          "card_id": "industrial_1",
+          "name_zh": "黑鐵水泥",
+          "palette_hex": [
+            "#3D403F",
+            "#858078",
+            "#A56F4E"
+          ],
+          "image_file": "05_工業風/01_工業風_黑鐵水泥.png"
+        },
+        {
+          "card_id": "industrial_2",
+          "name_zh": "復古工坊",
+          "palette_hex": [
+            "#4A4038",
+            "#9A6A46",
+            "#C19B72"
+          ],
+          "image_file": "05_工業風/02_工業風_復古工坊.png"
+        },
+        {
+          "card_id": "industrial_3",
+          "name_zh": "極簡冷調",
+          "palette_hex": [
+            "#D5D6D2",
+            "#697078",
+            "#252A2D"
+          ],
+          "image_file": "05_工業風/03_工業風_極簡冷調.png"
+        }
+      ]
+    },
+    "american": {
+      "zh": "美式",
+      "definition": "厚實木作與線板細節，米白、駝色搭配胡桃木或櫻桃木等深色木質，皮革與格紋布藝，從鄉村溫馨到現代輕奢皆有，色調沉穩大器，強調舒適包覆感與家庭氛圍。",
+      "cards": [
+        {
+          "card_id": "american_1",
+          "name_zh": "鄉村溫馨",
+          "palette_hex": [
+            "#F0E5D4",
+            "#B58D67",
+            "#6C513F"
+          ],
+          "image_file": "06_美式/01_美式_鄉村溫馨.png"
+        },
+        {
+          "card_id": "american_2",
+          "name_zh": "經典優雅",
+          "palette_hex": [
+            "#F0E5D4",
+            "#B58D67",
+            "#6C513F"
+          ],
+          "image_file": "06_美式/02_美式_經典優雅.png"
+        },
+        {
+          "card_id": "american_3",
+          "name_zh": "現代輕奢",
+          "palette_hex": [
+            "#F0E5D4",
+            "#B58D67",
+            "#6C513F"
+          ],
+          "image_file": "06_美式/03_美式_現代輕奢.png"
+        }
+      ]
+    }
+  },
+  "style_compat": {
+    "scandinavian": {
+      "scandinavian": 1.0,
+      "japanese": 0.9,
+      "modern_minimal": 0.8,
+      "cream": 0.7,
+      "american": 0.4,
+      "industrial": 0.3
+    },
+    "japanese": {
+      "japanese": 1.0,
+      "scandinavian": 0.9,
+      "modern_minimal": 0.8,
+      "cream": 0.5,
+      "industrial": 0.4,
+      "american": 0.2
+    },
+    "modern_minimal": {
+      "modern_minimal": 1.0,
+      "scandinavian": 0.8,
+      "japanese": 0.8,
+      "industrial": 0.7,
+      "cream": 0.5,
+      "american": 0.4
+    },
+    "cream": {
+      "cream": 1.0,
+      "scandinavian": 0.7,
+      "american": 0.7,
+      "modern_minimal": 0.5,
+      "japanese": 0.5,
+      "industrial": 0.2
+    },
+    "industrial": {
+      "industrial": 1.0,
+      "modern_minimal": 0.7,
+      "american": 0.5,
+      "japanese": 0.4,
+      "scandinavian": 0.3,
+      "cream": 0.2
+    },
+    "american": {
+      "american": 1.0,
+      "cream": 0.7,
+      "industrial": 0.5,
+      "modern_minimal": 0.4,
+      "scandinavian": 0.4,
+      "japanese": 0.2
+    }
+  },
+  "legacy_style_hint": {
+    "nordic": "scandinavian",
+    "japandi": "japanese",
+    "minimalist": "modern_minimal",
+    "modern": "modern_minimal",
+    "contemporary": "modern_minimal",
+    "industrial": "industrial",
+    "american_classic": "american",
+    "mid_century": null,
+    "scandi_luxe": null,
+    "french_country": null,
+    "rustic": null,
+    "boho": null
+  },
+  "pattern_enum": [
+    "素色",
+    "木紋",
+    "幾何",
+    "花紋"
+  ],
+  "visual_weight_enum": [
+    "light",
+    "medium",
+    "heavy"
+  ],
+  "height_zone_enum": [
+    "low",
+    "mid",
+    "high"
+  ],
+  "role_enum": [
+    "anchor",
+    "accent"
+  ],
+  "room_enum": [
+    "living_room",
+    "bedroom",
+    "dining_room",
+    "kitchen",
+    "bathroom",
+    "study",
+    "kids_room",
+    "entryway",
+    "outdoor"
+  ],
+  "mood_vocab": [
+    "溫馨",
+    "放鬆",
+    "明亮",
+    "寧靜",
+    "俐落",
+    "率性",
+    "沉穩",
+    "大器",
+    "優雅",
+    "浪漫",
+    "質樸",
+    "自然",
+    "精緻",
+    "高級",
+    "復古",
+    "懷舊",
+    "活潑",
+    "繽紛",
+    "純粹",
+    "靜謐",
+    "粗獷",
+    "溫潤",
+    "療癒",
+    "都會"
+  ],
+  "category_map": {
+    "PAX 衣櫃": {
+      "room_types": [
+        "bedroom"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "high",
+      "price_base_twd": 12000
+    },
+    "兒童凳子與長凳": {
+      "room_types": [
+        "kids_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 900
+    },
+    "兒童家具": {
+      "room_types": [
+        "kids_room"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 3000
+    },
+    "兒童桌": {
+      "room_types": [
+        "kids_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 2500
+    },
+    "兒童椅與凳子": {
+      "room_types": [
+        "kids_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 1200
+    },
+    "凳子與長凳": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "entryway",
+        "dining_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 1800
+    },
+    "吊燈": {
+      "room_types": [
+        "living_room",
+        "dining_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "high",
+      "price_base_twd": 3500
+    },
+    "吧檯桌": {
+      "room_types": [
+        "kitchen",
+        "dining_room",
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 6000
+    },
+    "吸頂燈": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "dining_room",
+        "study",
+        "kids_room",
+        "entryway"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "high",
+      "price_base_twd": 2500
+    },
+    "圓形地毯": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "kids_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 2500
+    },
+    "地毯": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "dining_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 3500
+    },
+    "壁架": {
+      "room_types": [
+        "living_room",
+        "study",
+        "bedroom",
+        "kitchen"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "high",
+      "price_base_twd": 1200
+    },
+    "壁燈": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "entryway"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "high",
+      "price_base_twd": 1800
+    },
+    "大型與中型地毯": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "dining_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 5000
+    },
+    "大型鏡子": {
+      "room_types": [
+        "bedroom",
+        "entryway",
+        "living_room"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "high",
+      "price_base_twd": 4500
+    },
+    "屏風與隔間": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "study"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "high",
+      "price_base_twd": 4000
+    },
+    "展示櫃": {
+      "room_types": [
+        "living_room",
+        "study",
+        "dining_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "high",
+      "price_base_twd": 9000
+    },
+    "層架": {
+      "room_types": [
+        "living_room",
+        "study",
+        "bedroom",
+        "kids_room"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "high",
+      "price_base_twd": 2500
+    },
+    "工作燈": {
+      "room_types": [
+        "study"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 1200
+    },
+    "布沙發": {
+      "room_types": [
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "mid",
+      "price_base_twd": 18000
+    },
+    "床": {
+      "room_types": [
+        "bedroom"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "mid",
+      "price_base_twd": 15000
+    },
+    "床墊": {
+      "room_types": [
+        "bedroom"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "low",
+      "price_base_twd": 12000
+    },
+    "床邊桌": {
+      "room_types": [
+        "bedroom"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 2500
+    },
+    "戶外地毯": {
+      "room_types": [
+        "outdoor"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 2000
+    },
+    "手工地毯": {
+      "room_types": [
+        "living_room",
+        "bedroom"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 8000
+    },
+    "扶手椅": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "study"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 7000
+    },
+    "抱枕靠墊": {
+      "room_types": [
+        "living_room",
+        "bedroom"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 600
+    },
+    "抽屜櫃": {
+      "room_types": [
+        "bedroom",
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 6000
+    },
+    "收納家具": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "study",
+        "entryway"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 3000
+    },
+    "收納盒與籃子": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "study",
+        "kids_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 600
+    },
+    "收納系統": {
+      "room_types": [
+        "bedroom",
+        "study"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "high",
+      "price_base_twd": 9000
+    },
+    "書桌": {
+      "room_types": [
+        "study",
+        "bedroom",
+        "kids_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 6000
+    },
+    "書櫃": {
+      "room_types": [
+        "study",
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "high",
+      "price_base_twd": 5000
+    },
+    "桌子": {
+      "room_types": [
+        "living_room",
+        "study",
+        "dining_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 5000
+    },
+    "椅子": {
+      "room_types": [
+        "dining_room",
+        "study",
+        "living_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "mid",
+      "price_base_twd": 2000
+    },
+    "模組沙發": {
+      "room_types": [
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "mid",
+      "price_base_twd": 35000
+    },
+    "檯燈": {
+      "room_types": [
+        "bedroom",
+        "study",
+        "living_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 1500
+    },
+    "櫃體": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "study"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 5000
+    },
+    "沙發": {
+      "room_types": [
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "mid",
+      "price_base_twd": 20000
+    },
+    "沙發床": {
+      "room_types": [
+        "living_room",
+        "study"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "mid",
+      "price_base_twd": 15000
+    },
+    "燈具": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "study",
+        "dining_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "mid",
+      "price_base_twd": 2000
+    },
+    "燈罩與燈座": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "study"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 800
+    },
+    "皮沙發": {
+      "room_types": [
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "mid",
+      "price_base_twd": 32000
+    },
+    "盆栽植器": {
+      "room_types": [
+        "living_room",
+        "entryway",
+        "outdoor"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 800
+    },
+    "立鏡": {
+      "room_types": [
+        "bedroom",
+        "entryway"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "high",
+      "price_base_twd": 3000
+    },
+    "羊皮與牛皮地毯": {
+      "room_types": [
+        "living_room",
+        "bedroom"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 6000
+    },
+    "花器": {
+      "room_types": [
+        "living_room",
+        "dining_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 600
+    },
+    "茶几": {
+      "room_types": [
+        "living_room"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "low",
+      "price_base_twd": 4500
+    },
+    "落地燈": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "study"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "mid",
+      "price_base_twd": 3000
+    },
+    "衣帽架": {
+      "room_types": [
+        "entryway",
+        "bedroom"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "high",
+      "price_base_twd": 1500
+    },
+    "衣櫃": {
+      "room_types": [
+        "bedroom"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "high",
+      "price_base_twd": 10000
+    },
+    "裝飾配件": {
+      "room_types": [
+        "living_room",
+        "bedroom",
+        "study",
+        "dining_room",
+        "entryway"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 800
+    },
+    "走道地毯與小地毯": {
+      "room_types": [
+        "entryway",
+        "living_room",
+        "bedroom"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 1500
+    },
+    "辦公椅": {
+      "room_types": [
+        "study"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 4500
+    },
+    "鏡子": {
+      "room_types": [
+        "bathroom",
+        "bedroom",
+        "entryway"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "mid",
+      "price_base_twd": 2000
+    },
+    "鏡櫃": {
+      "room_types": [
+        "bathroom"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 4000
+    },
+    "門墊": {
+      "room_types": [
+        "entryway"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "low",
+      "price_base_twd": 500
+    },
+    "電競椅": {
+      "room_types": [
+        "study"
+      ],
+      "role": "accent",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 6000
+    },
+    "電視櫃": {
+      "room_types": [
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "low",
+      "price_base_twd": 8000
+    },
+    "電視與影音家具": {
+      "room_types": [
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "low",
+      "price_base_twd": 9000
+    },
+    "鞋櫃": {
+      "room_types": [
+        "entryway"
+      ],
+      "role": "anchor",
+      "visual_weight": "medium",
+      "height_zone": "mid",
+      "price_base_twd": 3500
+    },
+    "餐桌": {
+      "room_types": [
+        "dining_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "mid",
+      "price_base_twd": 12000
+    },
+    "餐椅": {
+      "room_types": [
+        "dining_room"
+      ],
+      "role": "accent",
+      "visual_weight": "light",
+      "height_zone": "mid",
+      "price_base_twd": 2500
+    },
+    "餐邊櫃": {
+      "room_types": [
+        "dining_room",
+        "living_room"
+      ],
+      "role": "anchor",
+      "visual_weight": "heavy",
+      "height_zone": "mid",
+      "price_base_twd": 10000
+    }
+  }
+}

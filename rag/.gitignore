@@ -1,0 +1,40 @@
+# RAG 子專案 — 不進版控的項目
+#
+# 原則：資料「來源」與「規格」進版控，可由腳本重生的「產物」不進。
+# 例外會逐條註明原因。重建步驟見 SETUP.md。
+
+# ── 絕不可提交 ────────────────────────────────────────────────
+.anthropic_key
+
+# ── 執行環境（含絕對路徑與平台專屬二進位，本來就不可攜）──────
+.venv-rag/
+.venv/
+
+# ── 超過 GitHub 限制或無法 delta 的產物 ──────────────────────
+# 106.5 MB，超過單檔 100 MB 硬限制，push 會被拒收。由 embed_v3.py 重生。
+rag_export/furniture_embeddings_bge_m3.jsonl
+# 365 MB 二進位 HNSW 索引，每次重建都是全新 blob（無法 delta），由 embed_v3.py 重生。
+chroma_db/
+
+# ── 本機專屬，對其他人無效 ───────────────────────────────────
+# 每行都是本機絕對路徑（/Users/xxx/...），且需搭配 2 GB 的 PNG 才有意義。
+# 缺檔時 app.py 的 render_index() 會回空 dict，卡片無圖但不影響檢索。
+vlm_annotation/render_meta_full.jsonl
+# 2.0 GB 預渲染 PNG，PNG 已是壓縮格式（實測 gzip 只到 96%），進版控無意義。
+rendering/output/
+
+# ── 重複資料 ─────────────────────────────────────────────────
+# 與 rag_dataset/furniture_enriched_v2.json 逐位元組相同（9,350 筆、欄位與值全等）。
+# build_official_catalog.py 已改讀 v2，不再需要這一份。
+json_adjustment/furniture_official_catagory.json
+
+# ── 主 repo 整合決策（2026-07-30）：資料集與交付檔不進版控 ──
+# v1/v2/v3 三代資料集共約 80 MB；v3 可由 build_rag_v3.py 重生，
+# 發布走版控外通道（S3/CloudFront、LFS 或 release asset）。
+rag_dataset/
+# 交接 SQL 交付檔依 json_adjustment/RAGSQL.md 直接交給 Kai 匯入 PostgreSQL，不經 main。
+rag_export/
+
+__pycache__/
+*.pyc
+.DS_Store
