@@ -2546,7 +2546,7 @@ async def scene_layout(payload: dict) -> dict:
 _AUTO_DECOR_TYPES = {
     "rug": ("large-medium-rug", "runner-small-rug"),
     "plant": ("flower-pots-planter",),
-    "light": ("floor-lamp",),
+    "light": ("floor-lamp", "lamp"),
 }
 
 

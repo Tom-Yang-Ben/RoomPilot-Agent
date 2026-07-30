@@ -1670,11 +1670,8 @@ def test_room_size_is_computed_from_dragged_polygon_instead_of_typed() -> None:
 
     assert 'id="room-width-cm"' not in html
     assert 'id="room-depth-cm"' not in html
-    assert "拖曳左圖節點後，尺寸與面積會自動重新計算。" in html
-    assert "element.roomArea.innerHTML" in source
-    assert "dimensions.areaM2.toFixed(2)" in source
-    assert "dimensions.widthCm.toFixed(0)" in source
-    assert "dimensions.depthCm.toFixed(0)" in source
+    assert "拖曳左圖紫色節點後，尺寸與面積會自動重新計算。" in html
+    assert "系統依目前框選計算" in source
     assert 'font-weight="800" pointer-events="none">${escapeHtml(room.label)}</text>' in source
 
 

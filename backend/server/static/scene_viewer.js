@@ -21,7 +21,7 @@ import {
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-15774e4e668f";
+} from "./scene_architecture.js?v=sha256-c996c98814de";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";

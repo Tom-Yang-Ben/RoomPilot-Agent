@@ -1,10 +1,10 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-456461ef9681";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-000e912460e5";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd27184d7e";
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-} from "./scene_unit_contracts.js?v=sha256-66d8d568f445";
+} from "./scene_unit_contracts.js?v=sha256-6a193452d1e5";
 import {
   repairLoadedRoomPolygon,
 } from "./scene_room_geometry.js?v=sha256-d863939b9c06";
@@ -57,7 +57,7 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-d3803a876d5f";
+} from "./scene_questionnaire_test2.js?v=sha256-541428dd376b";
 import {
   reloadViewerPreservingState,
 } from "./scene_viewer_reload.js?v=sha256-4adbd0d35e57";
@@ -96,8 +96,8 @@ import {
   translateOpeningAlongAxis,
   wallBoundarySide,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=sha256-d56a61642343";
-import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-2e7650196b86";
+} from "./scene_structure_utils.js?v=sha256-4e110623e339";
+import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-6c8b26b0c186";
 import {
   findStructureWallCollision,
   resolveStructureWallCollisions,
