@@ -142,7 +142,7 @@ def test_agent_selection_receives_all_rooms_in_one_request() -> None:
     assert "specsAllowedByRoomFeasibility" in auto_layout
 
 
-def test_questionnaire_generates_two_validated_2d_3d_schemes_before_entering_step_six() -> None:
+def test_questionnaire_enters_step_six_when_scheme_b_needs_adjustment() -> None:
     assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" })' in SCENE
     # 2026-07-30 方案 B 改逐件降級（盤點第 6 項修復）：不再有「無法產生
     # 合法配置」的整包死當訊息，放不下的家具列入「暫不放入」後流程繼續。
@@ -152,5 +152,7 @@ def test_questionnaire_generates_two_validated_2d_3d_schemes_before_entering_ste
     generation = SCENE.split("async function generateWhiteModelFromRequirements", 1)[1].split(
         "async function addWhiteModelBeamFromWorld", 1
     )[0]
-    assert generation.count("await confirmLayout2d({ allowPendingFurniture: false })") == 2
+    assert generation.count("await confirmLayout2d({ allowPendingFurniture: true })") == 2
+    assert 'state.designSchemes.schemes.B.staleReason = message;' in generation
+    assert '方案 A 已建立；方案 B 有待處理家具，請在第 6 步調整。' in generation
     assert "方案 A、B 的 2D+3D 配置已建立" in generation
