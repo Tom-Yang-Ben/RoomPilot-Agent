@@ -51,10 +51,14 @@ from .scene_service import (
 )
 from .intake_service import advance_intake, start_intake
 from .cost_estimation import estimate_project_cost, load_default_cost_catalog
+from .catalog_admin import router as catalog_admin_router
+from .rag_api import router as rag_router
+from .engineering.api import build_engineering_router
 from .project_store import (
-    ProjectStore,
+    ProjectStoreUnavailable,
     ProjectVersionConflict,
     WorkflowTooLargeError,
+    build_project_store,
 )
 from .runtime_paths import legacy_runtime_dirs, project_runtime_dir
 from .render_service import (
@@ -80,7 +84,24 @@ from .services.cloud_images import (
     cloud_primary_image_url,
     image_manifest_status,
 )
-from .postgres_catalog import catalog_provider_status, load_catalog as load_postgres_catalog
+from ..catalog.postgres_repository import (
+    CatalogQuery,
+    catalog_provider_mode,
+    catalog_provider_status,
+    catalog_summary as postgres_catalog_summary,
+    close_catalog_pools,
+    get_catalog_item as get_postgres_catalog_item,
+    load_catalog as load_postgres_catalog,
+    postgres_catalog_requested,
+    query_catalog_page as query_postgres_catalog,
+)
+from ..catalog.runtime_catalog_repository import (
+    RuntimeCatalogUnavailable,
+    load_runtime_design_styles,
+    load_runtime_external_import_index,
+    load_runtime_surface_catalog,
+    runtime_catalog_status,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -117,9 +138,13 @@ DATASET_DIR = PROJECT_DIR / "dataset"
 PLAN_DIR = PROJECT_DIR / "testdata" / "pic" / "temp"
 SAMPLE_GLB_DIR = PROJECT_DIR / "testdata" / "sample_glb"
 SAMPLE_FLOORPLAN_630 = PROJECT_DIR / "testdata" / "png" / "builder_plan_630.png"
-PROJECT_STORE = ProjectStore(project_runtime_dir(PROJECT_DIR))
-for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
-    PROJECT_STORE.import_runtime(legacy_runtime)
+PROJECT_STORE = build_project_store(
+    PROJECT_DIR,
+    project_runtime_dir(PROJECT_DIR),
+)
+if PROJECT_STORE.imports_legacy_on_startup:
+    for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
+        PROJECT_STORE.import_runtime(legacy_runtime)
 QUESTIONNAIRE_VISUAL_CATALOG = load_questionnaire_visual_catalog()
 QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
 _QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
@@ -170,6 +195,43 @@ _DATASET_GLB_ROOTS = [
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+app.include_router(catalog_admin_router)
+app.include_router(rag_router)
+app.include_router(
+    build_engineering_router(
+        project_store_getter=lambda: PROJECT_STORE,
+        project_dir=PROJECT_DIR,
+    )
+)
+
+
+@app.exception_handler(ProjectStoreUnavailable)
+async def project_store_unavailable_handler(_request, exc: ProjectStoreUnavailable):
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": {
+                "code": "project_store_unavailable",
+                "message": "PostgreSQL 專案保存目前不可用，請檢查資料庫與 Phase 3 schema。",
+                "reason": str(exc),
+            }
+        },
+    )
+
+
+@app.exception_handler(RuntimeCatalogUnavailable)
+async def runtime_catalog_unavailable_handler(_request, exc: RuntimeCatalogUnavailable):
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": {
+                "code": "runtime_catalog_unavailable",
+                "catalog": exc.catalog_key,
+                "message": "Phase 4 PostgreSQL runtime catalog 目前不可用，請先執行匯入流程。",
+                "reason": str(exc.reason),
+            }
+        },
+    )
 
 
 def _questionnaire_visual_store() -> QuestionnaireVisualStore:
@@ -437,18 +499,12 @@ def load_style_database() -> dict:
     )
 
 
-@lru_cache(maxsize=1)
 def load_surface_catalog() -> dict:
-    if not SURFACE_DB_PATH.exists():
-        return {"schema_version": "1.0", "surfaces": [], "style_surface_profiles": {}}
-    return json.loads(SURFACE_DB_PATH.read_text(encoding="utf-8"))
+    return load_runtime_surface_catalog(PROJECT_DIR, SURFACE_DB_PATH)
 
 
-@lru_cache(maxsize=1)
 def load_external_import_index() -> dict:
-    if not EXTERNAL_IMPORT_PATH.exists():
-        return {"schema_version": "1.0", "items": [], "archives": []}
-    return json.loads(EXTERNAL_IMPORT_PATH.read_text(encoding="utf-8"))
+    return load_runtime_external_import_index(PROJECT_DIR, EXTERNAL_IMPORT_PATH)
 
 
 def _style_surface_profile(surface_catalog: dict, style_id: str | None) -> dict:
@@ -877,15 +933,36 @@ def _furniture_card_payload(item: dict) -> dict:
 
 
 @lru_cache(maxsize=1)
+def _json_furniture_payload_cache() -> tuple[dict, ...]:
+    return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
+
+
 def _furniture_payload_cache() -> tuple[dict, ...]:
-    """Use Kai's versioned JSON unless PostgreSQL is explicitly requested."""
-    provider = os.getenv("ROOMPILOT_CATALOG_PROVIDER", "json").strip().casefold()
-    if provider in {"postgres", "database"}:
+    """Read SQL every time in formal mode; cache only explicit offline JSON."""
+    if catalog_provider_mode(PROJECT_DIR) == "postgres":
         try:
             return load_postgres_catalog(PROJECT_DIR)
         except Exception as exc:
-            print(f"[RoomPilot] PostgreSQL catalog unavailable; using Kai JSON: {type(exc).__name__}")
-    return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
+            raise RuntimeCatalogUnavailable("furniture_catalog", exc) from exc
+    return _json_furniture_payload_cache()
+
+
+def _clear_furniture_payload_cache() -> None:
+    _json_furniture_payload_cache.cache_clear()
+
+
+_furniture_payload_cache.cache_clear = _clear_furniture_payload_cache  # type: ignore[attr-defined]
+
+
+def _postgres_catalog_unavailable(exc: Exception) -> HTTPException:
+    return HTTPException(
+        status_code=503,
+        detail={
+            "code": "postgres_catalog_unavailable",
+            "message": "正式家具資料庫目前無法使用；請檢查 PostgreSQL 連線與 catalog view。",
+            "reason": type(exc).__name__,
+        },
+    )
 
 
 @lru_cache(maxsize=1)
@@ -972,23 +1049,34 @@ def _get_furniture_by_id(furniture_id: str) -> dict:
 
 
 def _get_external_furniture_by_id(furniture_id: str) -> dict:
-    data = load_external_import_index()
-    furniture = next((item for item in data.get("items", []) if item.get("furniture_id") == furniture_id), None)
-    if not furniture:
-        raise HTTPException(status_code=404, detail="找不到外部匯入家具。")
-    return furniture
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            f"外部匯入家具 {furniture_id} 位於 quarantine；"
+            "完成審查並移入正式 catalog 前不得由 API 使用。"
+        ),
+    )
 
 
-def _get_merged_furniture_by_id(furniture_id: str) -> dict:
-    for item in _furniture_payload_cache():
-        if str(item.get("furniture_id")) == str(furniture_id):
-            return item
+def _get_json_merged_furniture_by_id(furniture_id: str) -> dict:
     for item in _merged_furniture_catalog_cached():
         aliases = set(item.get("merged_furniture_ids") or [])
         aliases.add(str(item.get("furniture_id")))
         if furniture_id in aliases:
             return item
     raise HTTPException(status_code=404, detail="Furniture not found in merged catalog.")
+
+
+def _get_merged_furniture_by_id(furniture_id: str) -> dict:
+    if postgres_catalog_requested(PROJECT_DIR):
+        try:
+            item = get_postgres_catalog_item(PROJECT_DIR, furniture_id)
+        except Exception as exc:
+            raise _postgres_catalog_unavailable(exc) from exc
+        if item is not None:
+            return item
+        raise HTTPException(status_code=404, detail="Furniture not found in official catalog.")
+    return _get_json_merged_furniture_by_id(furniture_id)
 
 
 def _external_glb_bytes(furniture: dict) -> bytes:
@@ -1121,7 +1209,9 @@ def _image_bytes_from_glb(model_path_text: str, image_index: int) -> tuple[bytes
 
 
 def _style_payloads(raw: dict | None = None, surface_catalog: dict | None = None) -> list[dict]:
-    raw = raw or load_style_database()
+    raw = raw or {
+        "styles": load_runtime_design_styles(PROJECT_DIR, STYLE_PRESENTATION_DB_PATH)
+    }
     surface_catalog = surface_catalog or load_surface_catalog()
     styles = []
     for style in raw.get("styles", []):
@@ -1169,7 +1259,7 @@ def _style_ids_for_count(item: dict) -> set[str]:
 
 
 @lru_cache(maxsize=1)
-def _catalog_count_summary() -> dict:
+def _json_catalog_count_summary() -> dict:
     raw = load_style_database()
     items = list(raw.get("furniture", []))
     style_counts: dict[str, int] = {}
@@ -1414,18 +1504,55 @@ def _category_groups_for(style: str | None = None, has_model: bool | None = None
     ]
 
 
+_FURNITURE_STYLE_FILTER_OPTIONS = (
+    {"style_id": "scandinavian", "style_name_zh": "北歐風"},
+    {"style_id": "japanese", "style_name_zh": "日式"},
+    {"style_id": "modern_minimal", "style_name_zh": "現代簡約"},
+    {"style_id": "cream", "style_name_zh": "奶油風"},
+    {"style_id": "industrial", "style_name_zh": "工業風"},
+    {"style_id": "american", "style_name_zh": "美式"},
+)
+
+
 def _style_filter_options() -> list[dict]:
-    return [
-        {
-            "style_id": style.get("style_id"),
-            "style_name_zh": style.get("style_name_zh"),
+    # The furniture endpoint must not load the 8,557-row JSON merely to label
+    # the six stable UI filters.  Full style presentation remains /api/styles.
+    return [dict(style) for style in _FURNITURE_STYLE_FILTER_OPTIONS]
+
+
+def build_site_payload(*, include_furniture: bool = True) -> dict:
+    if catalog_provider_mode(PROJECT_DIR) == "postgres":
+        surface_catalog = load_surface_catalog()
+        summary = _catalog_count_summary()
+        furniture_payload = list(_furniture_payload_cache()) if include_furniture else []
+        return {
+            "project": {
+                "title": "AI 室內風格與家具配置展示系統",
+                "subtitle": "以平面圖、風格條件與既有 GLB 家具資料庫，自動配置並展示 3D 室內場景。",
+                "scope": [
+                    "上傳平面圖與需求文字",
+                    "由風格規則與家具資料庫挑選合適模型",
+                    "輸出可在網頁瀏覽的 Three.js 3D 室內場景",
+                ],
+                "not_scope": "本專題不是直接生成全新 3D 家具模型，而是用既有 GLB 資料庫做風格化配置。",
+            },
+            "summary": summary,
+            "styles": _style_payloads(surface_catalog=surface_catalog),
+            "taiwan_style_cards": load_taiwan_style_cards(),
+            "furniture": furniture_payload,
+            "surface_catalog": surface_catalog,
+            "catalog_merge_summary": {
+                "input_item_count": summary.get("total_furniture", 0),
+                "merged_count": len(furniture_payload),
+                "same_item_merged_count": 0,
+            },
+            "featured_models": [
+                item for item in furniture_payload if item["has_model"]
+            ][:24],
+            "missing_model_count": sum(
+                1 for item in furniture_payload if not item["has_model"]
+            ),
         }
-        for style in _style_payloads()
-    ]
-
-
-@lru_cache(maxsize=1)
-def build_site_payload() -> dict:
     raw = load_style_database()
     surface_catalog = load_surface_catalog()
     furniture_items = list(_merged_furniture_catalog_cached())
@@ -2058,7 +2185,7 @@ def floorplan_sample_630() -> FileResponse:
 
 @app.get("/api/site-data")
 def site_data() -> dict:
-    payload = dict(build_site_payload())
+    payload = dict(build_site_payload(include_furniture=False))
     payload["furniture"] = []
     payload["featured_models"] = []
     payload["catalog_merge_summary"] = {
@@ -2070,17 +2197,87 @@ def site_data() -> dict:
 
 def catalog_status() -> dict:
     """Describe active catalog providers without exposing credentials."""
-    furniture = dict(manifest_status())
-    furniture.pop("mode", None)
-    surfaces = load_surface_catalog().get("surfaces") or []
-    wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
-    floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
+    provider_mode = catalog_provider_mode(PROJECT_DIR)
+    provider_status = catalog_provider_status(PROJECT_DIR)
+    phase4_status = runtime_catalog_status(PROJECT_DIR)
+    if provider_mode == "postgres":
+        assets = provider_status.get("assets") or {}
+        item_count = int(provider_status.get("count") or 0)
+        model_count = int(assets.get("model_count") or 0)
+        complete_image_item_count = int(assets.get("complete_image_item_count") or 0)
+        verified_image_count = sum(
+            int(assets.get(key) or 0)
+            for key in ("front_image_count", "side_image_count", "angle_45_image_count")
+        )
+        cloudfront_base_url = os.getenv(
+            "ROOMPILOT_CLOUDFRONT_BASE_URL",
+            "https://ddgsm1yg3xikc.cloudfront.net",
+        ).strip()
+        furniture = {
+            "provider": "aws_cloudfront",
+            "metadata_provider": "kai_postgresql",
+            "manifest_ready": (
+                bool(provider_status.get("available"))
+                and item_count > 0
+                and model_count == item_count
+            ),
+            "manifest_error": (
+                None
+                if provider_status.get("available") and model_count == item_count
+                else provider_status.get("reason") or "postgres_asset_incomplete"
+            ),
+            "verified_model_count": model_count,
+            "cloudfront_base_url": cloudfront_base_url,
+        }
+        furniture_images = {
+            "metadata_provider": "kai_postgresql",
+            "manifest_ready": (
+                bool(provider_status.get("available"))
+                and item_count > 0
+                and complete_image_item_count == item_count
+            ),
+            "manifest_error": (
+                None
+                if provider_status.get("available")
+                and complete_image_item_count == item_count
+                else provider_status.get("reason") or "postgres_image_asset_incomplete"
+            ),
+            "verified_item_count": complete_image_item_count,
+            "verified_image_count": verified_image_count,
+            "cloudfront_base_url": cloudfront_base_url,
+        }
+    else:
+        furniture = dict(manifest_status())
+        furniture.pop("mode", None)
+        furniture_images = image_manifest_status()
+    if provider_mode == "postgres":
+        wall_count = int(phase4_status.get("wall_surface_count") or 0)
+        floor_count = int(phase4_status.get("floor_surface_count") or 0)
+        style_card_count = int(phase4_status.get("style_card_count") or 0)
+    else:
+        surfaces = load_surface_catalog().get("surfaces") or []
+        wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
+        floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
+        style_card_count = len(load_taiwan_style_cards())
+    ready = bool(provider_status.get("ready")) and bool(phase4_status.get("ready"))
     return {
-        "catalog_provider": catalog_provider_status(PROJECT_DIR),
+        "ready": ready,
+        "source_of_truth": "postgresql" if provider_mode == "postgres" else "versioned_files",
+        "cache_policy": (
+            "database_read_through_no_runtime_file_cache"
+            if provider_mode == "postgres"
+            else "explicit_offline_file_cache"
+        ),
+        "catalog_provider": provider_status,
+        "runtime_catalogs": phase4_status,
         "furniture": furniture,
-        "furniture_images": image_manifest_status(),
+        "furniture_images": furniture_images,
         "surfaces": {
-            "provider": "local_pending_aws_manifest",
+            "provider": (
+                "local_pending_aws_manifest"
+                if provider_mode == "json"
+                else phase4_status["provider"]
+            ),
             "wall_count": wall_count,
             "floor_count": floor_count,
         },
@@ -2089,15 +2286,75 @@ def catalog_status() -> dict:
             "catalog_count": 0,
         },
         "style_cards": {
-            "provider": "local_allowed",
-            "count": len(load_taiwan_style_cards()),
+            "provider": (
+                "local_allowed"
+                if provider_mode == "json"
+                else phase4_status["provider"]
+            ),
+            "count": style_card_count,
         },
     }
+
+
+def _catalog_count_summary() -> dict:
+    if catalog_provider_mode(PROJECT_DIR) == "postgres":
+        try:
+            return postgres_catalog_summary(PROJECT_DIR)
+        except Exception as exc:
+            raise RuntimeCatalogUnavailable("furniture_catalog_summary", exc) from exc
+    return _json_catalog_count_summary()
+
+
+def _clear_catalog_count_summary() -> None:
+    _json_catalog_count_summary.cache_clear()
+
+
+_catalog_count_summary.cache_clear = _clear_catalog_count_summary  # type: ignore[attr-defined]
 
 
 @app.get("/api/catalog/status")
 def catalog_status_api() -> dict:
     return catalog_status()
+
+
+@app.get("/api/health")
+def api_health() -> JSONResponse:
+    catalog = catalog_status()
+    project_provider = str(getattr(PROJECT_STORE, "provider", "unknown"))
+    database = catalog.get("catalog_provider", {}).get("database") or {}
+    project_ready = project_provider == "postgres" and bool(
+        database.get("project_table_ready")
+    )
+    formal = (
+        catalog_provider_mode(PROJECT_DIR) == "postgres"
+        and project_provider == "postgres"
+    )
+    ready = bool(catalog.get("ready")) and project_ready
+    payload = {
+        "status": "ready" if ready else ("unavailable" if formal else "offline"),
+        "ready": ready,
+        "formal": formal,
+        "source_of_truth": catalog.get("source_of_truth"),
+        "catalog": catalog,
+        "project_store": {
+            "provider": project_provider,
+            "ready": project_ready,
+            "table": "roompilot.projects" if project_provider == "postgres" else None,
+        },
+    }
+    return JSONResponse(
+        status_code=200 if ready or not formal else 503,
+        content=payload,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/engineering")
+def engineering_page() -> FileResponse:
+    return FileResponse(
+        STATIC_DIR / "engineering.html",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/api/home-data")
@@ -2180,20 +2437,21 @@ def questionnaire_visual_image_api(image_id: str) -> dict:
         ) from exc
 
 
-@app.get("/api/furniture")
-def furniture_catalog(
-    style: str | None = Query(None),
-    group: str | None = Query(None),
-    item_type: str | None = Query(None, alias="type"),
-    q: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(24, ge=1, le=80),
-    has_model: bool | None = Query(None),
-    detail: str = Query("card"),
-    color: str | None = None,
-    material: str | None = None,
-    size: str | None = None,
+def _json_furniture_catalog_response(
+    *,
+    style: str | None,
+    group: str | None,
+    item_type: str | None,
+    q: str | None,
+    page: int,
+    page_size: int,
+    has_model: bool | None,
+    detail: str,
+    color: str | None,
+    material: str | None,
+    size: str | None,
 ) -> dict:
+    """Explicit/offline JSON implementation kept as a controlled fallback."""
     facet_items = _filter_furniture_payload(
         style=style,
         group=group,
@@ -2214,7 +2472,6 @@ def furniture_catalog(
     total = len(filtered)
     start = (page - 1) * page_size
     end = start + page_size
-    sample_files = _legacy_viewer_models(filtered)
     return {
         "items": [
             item if detail == "scene" else _furniture_card_payload(item)
@@ -2228,9 +2485,80 @@ def furniture_catalog(
         "type_options": _type_options_for(style, group, has_model),
         "category_groups": _category_groups_for(style, has_model),
         "filter_options": _furniture_filter_options(facet_items),
-        "furniture": sample_files,
+        "furniture": _legacy_viewer_models(filtered),
         "catalog_status": catalog_status(),
     }
+
+
+@app.get("/api/furniture")
+def furniture_catalog(
+    style: str | None = Query(None),
+    group: str | None = Query(None),
+    item_type: str | None = Query(None, alias="type"),
+    q: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(24, ge=1, le=80),
+    has_model: bool | None = Query(None),
+    detail: str = Query("card"),
+    color: str | None = None,
+    material: str | None = None,
+    size: str | None = None,
+) -> dict:
+    if postgres_catalog_requested(PROJECT_DIR):
+        try:
+            result = query_postgres_catalog(
+                PROJECT_DIR,
+                CatalogQuery(
+                    style=style,
+                    group=group,
+                    item_type=item_type,
+                    q=q,
+                    page=page,
+                    page_size=page_size,
+                    has_model=has_model,
+                    color=color,
+                    material=material,
+                    size=size,
+                ),
+            )
+        except Exception as exc:
+            raise _postgres_catalog_unavailable(exc) from exc
+        items = list(result.items)
+        sample_files = (
+            list(result.model_urls)
+            if cloudfront_required()
+            else _legacy_viewer_models(items)
+        )
+        return {
+            "items": [
+                item if detail == "scene" else _furniture_card_payload(item)
+                for item in items
+            ],
+            "page": result.page,
+            "page_size": result.page_size,
+            "total": result.total,
+            "has_next_page": result.has_next_page,
+            "styles": _style_filter_options(),
+            "type_options": list(result.type_options),
+            "category_groups": list(result.category_groups),
+            "filter_options": result.filter_options,
+            "furniture": sample_files,
+            "catalog_status": catalog_status(),
+        }
+
+    return _json_furniture_catalog_response(
+        style=style,
+        group=group,
+        item_type=item_type,
+        q=q,
+        page=page,
+        page_size=page_size,
+        has_model=has_model,
+        detail=detail,
+        color=color,
+        material=material,
+        size=size,
+    )
 
 
 def _legacy_viewer_models(items: list[dict]) -> list[str]:
@@ -2251,16 +2579,15 @@ def _legacy_viewer_models(items: list[dict]) -> list[str]:
 
 
 def _furniture_detail_payload(furniture_id: str) -> dict:
-    item = next(
-        (
-            candidate
-            for candidate in _furniture_payload_cache()
-            if str(candidate.get("furniture_id")) == str(furniture_id)
-        ),
-        None,
-    )
-    if item is None:
-        item = _furniture_payload_item(_get_merged_furniture_by_id(furniture_id))
+    if postgres_catalog_requested(PROJECT_DIR):
+        try:
+            item = get_postgres_catalog_item(PROJECT_DIR, furniture_id)
+        except Exception as exc:
+            raise _postgres_catalog_unavailable(exc) from exc
+        if item is None:
+            raise HTTPException(status_code=404, detail="Furniture not found in official catalog.")
+    else:
+        item = _furniture_payload_item(_get_json_merged_furniture_by_id(furniture_id))
     payload = dict(item)
     payload.update(
         {
@@ -2276,10 +2603,17 @@ def _furniture_detail_payload(furniture_id: str) -> dict:
 @app.on_event("startup")
 def warm_catalog_cache() -> None:
     try:
-        _furniture_payload_cache()
-        build_site_payload()
+        if catalog_provider_mode(PROJECT_DIR) == "json":
+            _furniture_payload_cache()
+            build_site_payload()
     except Exception as exc:
         print(f"[RoomPilot] catalog cache warmup skipped: {exc}")
+
+
+@app.on_event("shutdown")
+def close_catalog_connections() -> None:
+    close_catalog_pools()
+    PROJECT_STORE.close()
 
 
 @app.get("/api/scene/provider-status")

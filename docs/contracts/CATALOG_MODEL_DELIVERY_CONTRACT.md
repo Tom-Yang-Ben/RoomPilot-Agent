@@ -1,62 +1,84 @@
-# Kai 官方家具資料與模型交付契約
+# RoomPilot 家具模型交付契約
 
-更新日期：2026-07-30
-主要 owner：Kai（`JSON/`、`backend/catalog/`、`scripts/sql/`）
-協作 owner：Django（RAG metadata／向量）、Bella（FastAPI／正式前端 adapter）
+最後更新：2026-07-23
 
-## 唯一資料來源
+本文件定義家具 metadata、雲端 GLB 與網站之間的模型交付規則。
+正式家具 GLB 由已驗證的 CloudFront Manifest 提供。
 
-正式家具資料只讀取下列 Kai 交付檔案；不得再以
-`backend/catalog/data/furniture_catalog_cloud_9350.json` 或其 manifest 複本做推薦、模型
-可用性判斷或 SQL 匯入來源。
+## 資料來源
 
-| 用途 | 正式路徑 | 說明 |
-|---|---|---|
-| 家具身分、尺寸、風格、房型、RAG metadata | `JSON/furniture/furniture_official_catagory.json` | 最新 8,557 筆官方家具 |
-| GLB 可用性與 CloudFront URL | `JSON/manifests/glb_upload_all_result.csv` | 唯一模型交付憑據 |
-| 三視角圖片可用性 | `JSON/manifests/image_upload_all_result.csv` | front、side、angle-45 圖片憑據 |
-| Django 向量交付 | `JSON/RAG/furniture_embeddings_bge_m3.jsonl` | Git LFS 管理；7,958 筆 `rag_indexable` 家具，每筆為 BGE-M3 1024 維向量 |
+| 資料 | 來源 |
+|---|---|
+| 正式家具、尺寸、材質、顏色、六風格與 RAG | `JSON/furniture/furniture_official_catagory.json` |
+| Top-level style presentation | `backend/catalog/data/furniture_catalog_6styles_zh.json`，只讀 `styles`／`taxonomy`，忽略其 `furniture` array |
+| 家具 GLB | AWS CloudFront |
+| 未對應家具 | `backend/catalog/data/quarantine/unmatched_cloud_furniture/` |
+| 離線備援 | README 指定並通過驗證的外部 zip |
 
-`glb_upload_manifest.csv` 與 `image_upload_manifest.csv` 是上傳輸入；runtime 僅能信任
-對應的 `_all_result.csv`。只有 `upload_status` 已完成且有 HTTPS `delivery_url` 的資料才能
-出現在 `/api/furniture?has_model=true`。
+Manifest 位於：
 
-## 跨資料夾修改
-
-- 主要修改：Kai 的 `JSON/`、`backend/catalog/cloud_catalog.py`、`scripts/sql/`。
-- 消費端修改：Bella 的 `backend/server/main.py` 與 `backend/server/services/cloud_models.py`。
-- 資料契約：官方 JSON 提供家具 identity 與 RAG metadata；manifest 提供資產驗證；FastAPI
-  不得以舊型錄覆寫 ID、尺寸、房型、風格、GLB 或圖片 URL。
-- 為何跨資料夾：catalog、交付憑據、SQL 與 UI/API 是同一筆家具的 producer、persistence
-  與 consumer，單改其中一處會造成第 5 步推薦和第 6 步模型不一致。
-- 驗證：catalog ID 與 GLB result ID 一對一、模型 URL 為 HTTPS、API 僅輸出已驗證項目、
-  SQL 僅先執行 `--dry-run`。
-
-## RAG 與幾何邊界
-
-Django 的 RAG 只負責解析、檢索、排序與證據；不決定家具座標、不修改 `layout_json` 或
-`scene_json`。`backend/engine` 是碰撞、門窗淨空、走道與擺放合法性的唯一裁決者。
-
-總 catalog 有 8,557 筆；其中 7,958 筆為 `active_count`／`indexable_count`，會出現在
-RAG 向量檔。其餘 599 筆 `rag_indexable=false` 不得以缺向量視為下載失敗，也不應進入向量檢索。
-
-## 本機與 PostgreSQL
-
-FastAPI 預設使用同一份 `JSON/`；只有明確設定
-`ROOMPILOT_CATALOG_PROVIDER=postgres`，才會使用 Kai 的 current catalog view。資料庫匯入必須先：
-
-```powershell
-.\.venv\Scripts\python.exe scripts\sql\import_official_catalog_to_postgres.py --dry-run
+```text
+backend/catalog/data/manifests/glb_upload_all_result.csv
 ```
 
-乾跑成功不代表資料已寫入 PostgreSQL；實際匯入需由 Kai owner 或取得授權後另行執行。
+正式集合必須是官方 JSON 與四份 Manifest 完整共有的 9,349 個 ID；
+每件家具的 `style_primary` 與 `style_secondary` 只能是六個正式代碼。
+舊檔的家具列不得補官方 JSON、增加家具、改寫六風格或覆蓋 GLB／圖片
+URL；正式家具所有欄位只來自官方 JSON，Manifest 只提供資產交付證據。
 
-## 環境設定
+隔離項目在確認家具 ID、唯一品名或 Manifest 前，不得進入網頁、
+Agent 選件或 3D 場景，也不得猜測模型 URL。
+
+## 交付規則
+
+- 預設模式是 `cloudfront`。
+- 網頁、Agent 與 3D 只能列出正式 9,349 件，不得先載入其他集合再
+  於前端隱藏多餘資料。
+- 只有 Manifest 中狀態已完成且具 HTTPS URL 的模型可被發布。
+- 對應順序是家具 ID、合併後模型優先 ID、唯一標準化英文品名。
+- 同名對應超過一筆時拒絕猜測。
+- 雲端模式找不到模型時回報不可用，不回退本機 ZIP 或 GLB。
+- 舊的 glTF 拆解、buffer、圖片與 sample GLB 端點在雲端模式回傳 `410`。
+
+## 離線備援
+
+雲端無法連線時，管理者可使用 README 指定的 IKEA 中文命名備援包。
+啟用前必須執行 SHA-256 與型錄對應驗證。
+
+只有驗證成功後才可明確設定：
 
 ```dotenv
-ROOMPILOT_MODEL_DELIVERY_MODE=cloudfront
-ROOMPILOT_CLOUD_CATALOG_PATH=JSON/furniture/furniture_official_catagory.json
-ROOMPILOT_GLB_MANIFEST_PATH=JSON/manifests/glb_upload_all_result.csv
+ROOMPILOT_MODEL_DELIVERY_MODE=local
+ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS=D:\RoomPilot-assets\ikea抓取家具glb_中文命名版-20260703T022419Z-3-001.zip
 ```
 
-不要提交大型 GLB、PNG 原圖、模型快取、LFS materialize cache、資料庫檔案或密碼。
+設定 `ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS` 後，伺服器只讀指定的 zip 或
+目錄，不再掃描 Downloads 中其他壓縮包。這是人工災難切換，不是
+自動 failover；雲端恢復後必須改回 `cloudfront` 並重新啟動。
+
+## 部署覆寫
+
+部署時可覆寫：
+
+```dotenv
+ROOMPILOT_CLOUDFRONT_BASE_URL=https://ddgsm1yg3xikc.cloudfront.net
+ROOMPILOT_GLB_MANIFEST_PATH=backend/catalog/data/manifests/glb_upload_all_result.csv
+```
+
+## 驗證
+
+```text
+GET /api/catalog/status
+GET /api/furniture?has_model=true&page_size=3&detail=scene
+```
+
+第一個端點應回傳 `provider = aws_cloudfront`、`manifest_ready = true`
+且 `verified_model_count` 大於零。第二個端點只列出具有已驗證 HTTPS
+模型 URL 的家具。
+
+相關自動化測試：
+
+```powershell
+uv run pytest tests/test_cloud_models.py tests/test_cloud_catalog_bridge.py -q
+uv run pytest tests/test_cloud_quarantine.py tests/test_external_glb_resolution.py -q
+```

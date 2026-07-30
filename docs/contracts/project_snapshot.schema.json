@@ -1,0 +1,592 @@
+{
+  "$defs": {
+    "EquipmentRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "minLength": 1,
+          "title": "Category",
+          "type": "string"
+        },
+        "equipment_id": {
+          "minLength": 1,
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "quantity": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "source": {
+          "enum": [
+            "questionnaire",
+            "scene_context",
+            "designer"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "equipment_id",
+        "name",
+        "category",
+        "source"
+      ],
+      "title": "EquipmentRequirement",
+      "type": "object"
+    },
+    "FurniturePlacement": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Asset Url"
+        },
+        "catalog_furniture_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Catalog Furniture Id"
+        },
+        "category": {
+          "minLength": 1,
+          "title": "Category",
+          "type": "string"
+        },
+        "depth_cm": {
+          "exclusiveMinimum": 0,
+          "title": "Depth Cm",
+          "type": "number"
+        },
+        "furniture_id": {
+          "minLength": 1,
+          "title": "Furniture Id",
+          "type": "string"
+        },
+        "height_cm": {
+          "exclusiveMinimum": 0,
+          "title": "Height Cm",
+          "type": "number"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "needs_drain": {
+          "default": false,
+          "title": "Needs Drain",
+          "type": "boolean"
+        },
+        "needs_power": {
+          "default": false,
+          "title": "Needs Power",
+          "type": "boolean"
+        },
+        "needs_water": {
+          "default": false,
+          "title": "Needs Water",
+          "type": "boolean"
+        },
+        "placement_failed": {
+          "default": false,
+          "title": "Placement Failed",
+          "type": "boolean"
+        },
+        "placement_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placement Reason"
+        },
+        "position_reference": {
+          "const": "center",
+          "default": "center",
+          "title": "Position Reference",
+          "type": "string"
+        },
+        "quantity": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "rotation_deg": {
+          "default": 0,
+          "title": "Rotation Deg",
+          "type": "number"
+        },
+        "width_cm": {
+          "exclusiveMinimum": 0,
+          "title": "Width Cm",
+          "type": "number"
+        },
+        "x_cm": {
+          "default": 0,
+          "title": "X Cm",
+          "type": "number"
+        },
+        "y_cm": {
+          "default": 0,
+          "title": "Y Cm",
+          "type": "number"
+        }
+      },
+      "required": [
+        "furniture_id",
+        "name",
+        "category",
+        "width_cm",
+        "depth_cm",
+        "height_cm"
+      ],
+      "title": "FurniturePlacement",
+      "type": "object"
+    },
+    "MEPPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "point_id": {
+          "minLength": 1,
+          "title": "Point Id",
+          "type": "string"
+        },
+        "professional_status": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "confirmed",
+            "not_applicable"
+          ],
+          "title": "Professional Status",
+          "type": "string"
+        },
+        "purpose": {
+          "title": "Purpose",
+          "type": "string"
+        },
+        "quantity": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "system": {
+          "enum": [
+            "power",
+            "lighting",
+            "data",
+            "cold_water",
+            "hot_water",
+            "drain",
+            "hvac",
+            "other"
+          ],
+          "title": "System",
+          "type": "string"
+        },
+        "x_cm": {
+          "default": 0,
+          "title": "X Cm",
+          "type": "number"
+        },
+        "y_cm": {
+          "default": 0,
+          "title": "Y Cm",
+          "type": "number"
+        },
+        "z_cm": {
+          "default": 0,
+          "title": "Z Cm",
+          "type": "number"
+        }
+      },
+      "required": [
+        "point_id",
+        "system",
+        "purpose"
+      ],
+      "title": "MEPPoint",
+      "type": "object"
+    },
+    "MaterialSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "material_id": {
+          "minLength": 1,
+          "title": "Material Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "part": {
+          "enum": [
+            "floor",
+            "wall",
+            "ceiling",
+            "other"
+          ],
+          "title": "Part",
+          "type": "string"
+        },
+        "waste_rate": {
+          "default": 0.05,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Waste Rate",
+          "type": "number"
+        }
+      },
+      "required": [
+        "material_id",
+        "part",
+        "name"
+      ],
+      "title": "MaterialSelection",
+      "type": "object"
+    },
+    "PointCm": {
+      "additionalProperties": false,
+      "properties": {
+        "x_cm": {
+          "title": "X Cm",
+          "type": "number"
+        },
+        "y_cm": {
+          "title": "Y Cm",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x_cm",
+        "y_cm"
+      ],
+      "title": "PointCm",
+      "type": "object"
+    },
+    "RenderReference": {
+      "additionalProperties": false,
+      "properties": {
+        "prompt_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt Hash"
+        },
+        "render_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Render Id"
+        },
+        "render_url": {
+          "minLength": 1,
+          "title": "Render Url",
+          "type": "string"
+        },
+        "view_name": {
+          "minLength": 1,
+          "title": "View Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "render_url",
+        "view_name"
+      ],
+      "title": "RenderReference",
+      "type": "object"
+    },
+    "RoomGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "height_cm": {
+          "exclusiveMinimum": 0,
+          "title": "Height Cm",
+          "type": "number"
+        },
+        "length_cm": {
+          "exclusiveMinimum": 0,
+          "title": "Length Cm",
+          "type": "number"
+        },
+        "opening_area_m2": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Opening Area M2",
+          "type": "number"
+        },
+        "polygon_cm": {
+          "items": {
+            "$ref": "#/$defs/PointCm"
+          },
+          "title": "Polygon Cm",
+          "type": "array"
+        },
+        "width_cm": {
+          "exclusiveMinimum": 0,
+          "title": "Width Cm",
+          "type": "number"
+        }
+      },
+      "required": [
+        "length_cm",
+        "width_cm",
+        "height_cm"
+      ],
+      "title": "RoomGeometry",
+      "type": "object"
+    },
+    "RoomSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "equipment_requirements": {
+          "items": {
+            "$ref": "#/$defs/EquipmentRequirement"
+          },
+          "title": "Equipment Requirements",
+          "type": "array"
+        },
+        "furniture": {
+          "items": {
+            "$ref": "#/$defs/FurniturePlacement"
+          },
+          "title": "Furniture",
+          "type": "array"
+        },
+        "geometry": {
+          "$ref": "#/$defs/RoomGeometry"
+        },
+        "layout_json": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Layout Json"
+        },
+        "materials": {
+          "items": {
+            "$ref": "#/$defs/MaterialSelection"
+          },
+          "title": "Materials",
+          "type": "array"
+        },
+        "mep_points": {
+          "items": {
+            "$ref": "#/$defs/MEPPoint"
+          },
+          "title": "Mep Points",
+          "type": "array"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "renders": {
+          "items": {
+            "$ref": "#/$defs/RenderReference"
+          },
+          "title": "Renders",
+          "type": "array"
+        },
+        "room_id": {
+          "minLength": 1,
+          "title": "Room Id",
+          "type": "string"
+        },
+        "room_type": {
+          "minLength": 1,
+          "title": "Room Type",
+          "type": "string"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Style"
+        }
+      },
+      "required": [
+        "room_id",
+        "name",
+        "room_type",
+        "geometry"
+      ],
+      "title": "RoomSnapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "approval_status": {
+      "default": "draft",
+      "enum": [
+        "draft",
+        "designer_confirmed"
+      ],
+      "title": "Approval Status",
+      "type": "string"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "confirmed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confirmed At"
+    },
+    "confirmed_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confirmed By"
+    },
+    "coordinate_unit": {
+      "const": "cm",
+      "default": "cm",
+      "title": "Coordinate Unit",
+      "type": "string"
+    },
+    "pricing_basis_date": {
+      "format": "date",
+      "title": "Pricing Basis Date",
+      "type": "string"
+    },
+    "project_id": {
+      "minLength": 1,
+      "title": "Project Id",
+      "type": "string"
+    },
+    "project_name": {
+      "minLength": 1,
+      "title": "Project Name",
+      "type": "string"
+    },
+    "region": {
+      "default": "Taiwan",
+      "minLength": 1,
+      "title": "Region",
+      "type": "string"
+    },
+    "revision": {
+      "pattern": "^[A-Za-z0-9._-]{1,80}$",
+      "title": "Revision",
+      "type": "string"
+    },
+    "rooms": {
+      "items": {
+        "$ref": "#/$defs/RoomSnapshot"
+      },
+      "minItems": 1,
+      "title": "Rooms",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "roompilot.project-snapshot.v1",
+      "default": "roompilot.project-snapshot.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_project_revision": {
+      "minimum": 0,
+      "title": "Source Project Revision",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "project_id",
+    "project_name",
+    "revision",
+    "source_project_revision",
+    "pricing_basis_date",
+    "rooms"
+  ],
+  "title": "ProjectSnapshot",
+  "type": "object"
+}
