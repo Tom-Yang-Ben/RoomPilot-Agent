@@ -1,0 +1,3 @@
+/color_floor_01/
+/color_floor_10/
+/color_floor_20/

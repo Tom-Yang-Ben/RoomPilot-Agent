@@ -46,8 +46,9 @@ def test_reports_pipeline_and_scale(sample_bytes: bytes) -> None:
     assert result["cm_per_px"] > 0
     assert result["image"]["w"] > 0 and result["image"]["h"] > 0
     assert isinstance(result["adjacency"], list)
-    # 無語意快取時房型來源必須誠實標示，上游才知道這是降級結果。
-    assert result["room_label_source"] in {"cubicasa_semantic", "area_rules"}
+    # 語意層不可用時房型來源必須誠實標示，上游才知道這是降級結果。
+    # 2026-07-30 起真語意來源是 dinov2_semantic（CubiCasa 已整批移除）。
+    assert result["room_label_source"] in {"dinov2_semantic", "area_rules"}
 
 
 def test_does_not_write_pipeline_artifacts(sample_bytes: bytes, monkeypatch, tmp_path) -> None:
@@ -77,7 +78,7 @@ from backend.floorplan.vision.analysis import (  # noqa: E402
 )
 
 
-def _semantics(rooms, *, width=100, height=100, source="cubicasa_semantic"):
+def _semantics(rooms, *, width=100, height=100, source="dinov2_semantic"):
     """預設用真語意來源——降級來源不得覆蓋既有房型，另有專門測試涵蓋。"""
     return {
         "image": {"w": width, "h": height},
@@ -316,7 +317,7 @@ def test_area_rule_fallback_still_fills_rooms_with_no_type() -> None:
 
 
 def test_true_semantics_may_overwrite_a_confident_type() -> None:
-    """CubiCasa 語意是 TODO 指定的房型來源，優先於圖示規則。"""
+    """DINOv2 語意優先於圖示規則——圖示層的猜測自我標記「待確認」。"""
     rooms = [
         {"id": "kitchen-1", "type": "kitchen", "label": "廚房",
          "source": "furniture_icon_inference", "bbox_px": [10.0, 10.0, 30.0, 30.0]},
@@ -324,7 +325,7 @@ def test_true_semantics_may_overwrite_a_confident_type() -> None:
     applied = apply_floorplan2room_labels(
         rooms,
         _sem_with_source([{"label": "bed", "label_zh": "臥室", "area_m2": 12.0,
-                           "bbox": [0, 0, 50, 50]}], "cubicasa_semantic"),
+                           "bbox": [0, 0, 50, 50]}], "dinov2_semantic"),
         image_width=100,
         image_height=100,
     )

@@ -1,26 +1,29 @@
-"""floorplan2room 預設路徑必須脫離 current working directory。
+"""辨識期資產的預設路徑必須脫離 current working directory。
 
-`CC_WEIGHTS` 與 `CC_CACHE_DIR` 原本是相對字串，靠「從 repo 根執行」這個隱含前提
-才會對。實測從 `backend/floorplan/` 執行時，兩者各自疊成
-`backend/floorplan/backend/floorplan/model_finetuned_v5.pkl` 與
-`backend/floorplan/cubicasa/room/`，權重與 137 份語意快取同時查不到，語意辨識
-靜默退回面積規則、還會多觸發一次 200MB 下載嘗試。
+原本這支測的是 `CC_WEIGHTS` 與 `CC_CACHE_DIR`：兩者曾是相對字串，靠「從 repo 根
+執行」這個隱含前提才會對，從 `backend/floorplan/` 執行時會各自疊成
+`backend/floorplan/backend/floorplan/…`，權重與語意快取同時查不到。
 
-cody_adapter 走 HTTP 請求路徑時同樣吃這兩個常數（`_cc_path`），伺服器 cwd 不保證
-是 repo 根，所以錨定基準改成模組自身位置：權重在 `backend/floorplan/`、快取維持
-repo 根的 `cubicasa/room/`（`.gitignore` 與 CODY_MAIN_SYNC_TODO 標明是跨分支契約
-路徑，不可搬進套件目錄）。
+2026-07-30 CubiCasa 血統整批移除後那兩個常數不再存在，但**失效模式沒有消失，只是
+換了主角**。DINOv2 路徑同樣有兩個由模組位置推導的資產路徑：
+
+* `room_classifier.HEAD_PATH` → `backend/floorplan/room_head.npz`（15KB 線性頭）
+* `symbol_match.LIB_PATH` → `backend/floorplan/symbol_lib.npz`（943 條模板庫）
+
+兩者的共同危險在於**找不到檔不會報錯**——`_load()` 與 `load_lib()` 都回 None，
+房型靜默退回面積規則、模板比對靜默停用，只有評測分數悄悄掉下來。cody_adapter 走
+HTTP 請求路徑時伺服器 cwd 不保證是 repo 根，所以這裡把「絕對路徑 ＋ 錨定在套件
+目錄 ＋ 檔案真的在」三件事一起釘住。
 """
 from __future__ import annotations
 
-import hashlib
 import importlib
+import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 import textwrap
-import urllib.request
 
 import pytest
 
@@ -30,24 +33,50 @@ PIPELINE_DIR = REPO_ROOT / "backend" / "floorplan"
 
 
 @pytest.fixture(scope="module")
-def room_module():
-    return importlib.import_module("backend.floorplan.floorplan2room")
+def room_classifier():
+    return importlib.import_module("backend.floorplan.room_classifier")
 
 
-def test_default_weights_anchor_to_the_package_directory(room_module) -> None:
-    """權重與 floorplan2room.py 同層，路徑由模組位置推導而非 cwd。"""
-    weights = Path(room_module.CC_WEIGHTS)
-
-    assert weights.is_absolute(), "CC_WEIGHTS 預設值必須是絕對路徑"
-    assert weights == PIPELINE_DIR / "model_finetuned_v5.pkl"
+@pytest.fixture(scope="module")
+def symbol_match():
+    return importlib.import_module("backend.floorplan.symbol_match")
 
 
-def test_default_cache_dir_stays_at_the_repo_root_contract_path(room_module) -> None:
-    """`cubicasa/room/` 是跨分支契約路徑，錨定後位置不得改變。"""
-    cache_dir = Path(room_module.CC_CACHE_DIR)
+def test_room_head_anchors_to_the_package_directory(room_classifier) -> None:
+    """線性頭與 room_classifier.py 同層，路徑由模組位置推導而非 cwd。"""
+    head = Path(room_classifier.HEAD_PATH)
 
-    assert cache_dir.is_absolute(), "CC_CACHE_DIR 預設值必須是絕對路徑"
-    assert cache_dir == REPO_ROOT / "cubicasa" / "room"
+    assert head.is_absolute(), "HEAD_PATH 預設值必須是絕對路徑"
+    assert head == PIPELINE_DIR / "room_head.npz"
+
+
+def test_room_head_file_actually_exists(room_classifier) -> None:
+    """缺檔時 DINOv2 分類靜默停用（只印警告），故以測試釘住檔案真的在版控裡。"""
+    head = Path(room_classifier.HEAD_PATH)
+
+    assert head.is_file(), f"線性頭不在 {head}——房型會靜默退回面積規則"
+
+
+def test_symbol_lib_anchors_to_the_package_directory(symbol_match) -> None:
+    """模板庫與消費它的 symbol_match.py 同目錄（2026-07-29 由 repo 根移入）。
+
+    舊寫法由模組位置往上三層推導，只搬 `backend/floorplan/` 而不保持整個 repo
+    目錄結構就會解析到錯路徑——這正是 MAIN_SYNC_TODO 第 9 點記載的失效模式。
+    """
+    lib = Path(symbol_match.LIB_PATH)
+
+    assert lib.is_absolute(), "LIB_PATH 預設值必須是絕對路徑"
+    assert lib == PIPELINE_DIR / "symbol_lib.npz"
+
+
+def test_symbol_lib_loads_into_a_non_empty_library(symbol_match) -> None:
+    """`load_lib()` 找不到檔時回 None、`match_symbols()` 回空清單，不報錯。"""
+    lib = Path(symbol_match.LIB_PATH)
+    assert lib.is_file(), f"模板庫不在 {lib}——模板比對會靜默停用"
+
+    loaded = symbol_match.load_lib()
+    assert loaded is not None
+    assert len(loaded["rasters"]) > 0
 
 
 def test_defaults_resolve_identically_when_run_from_the_package_directory() -> None:
@@ -55,17 +84,16 @@ def test_defaults_resolve_identically_when_run_from_the_package_directory() -> N
     probe = textwrap.dedent(
         """
         import json
-        from backend.floorplan import floorplan2room as room
+        from backend.floorplan import room_classifier, symbol_match
 
         print(json.dumps({
-            "weights": room.CC_WEIGHTS,
-            "cache_dir": room.CC_CACHE_DIR,
+            "head": room_classifier.HEAD_PATH,
+            "lib": symbol_match.LIB_PATH,
         }))
         """
     )
     env = {**os.environ, "PYTHONPATH": str(REPO_ROOT)}
-    env.pop("CC_WEIGHTS", None)
-    env.pop("CC_CACHE_DIR", None)
+    env.pop("ROOM_HEAD", None)
 
     result = subprocess.run(
         [sys.executable, "-c", probe],
@@ -77,33 +105,26 @@ def test_defaults_resolve_identically_when_run_from_the_package_directory() -> N
     )
     assert result.returncode == 0, result.stderr
 
-    import json
-
     resolved = json.loads(result.stdout.strip().splitlines()[-1])
-    assert Path(resolved["weights"]) == PIPELINE_DIR / "model_finetuned_v5.pkl"
-    assert Path(resolved["cache_dir"]) == REPO_ROOT / "cubicasa" / "room"
+    assert Path(resolved["head"]) == PIPELINE_DIR / "room_head.npz"
+    assert Path(resolved["lib"]) == PIPELINE_DIR / "symbol_lib.npz"
 
 
-def test_environment_overrides_still_win(tmp_path: Path) -> None:
-    """CC_WEIGHTS / CC_CACHE_DIR 覆蓋機制是跨分支契約，錨定不得吃掉它。"""
+def test_room_head_environment_override_still_wins(tmp_path: Path) -> None:
+    """`ROOM_HEAD` 覆蓋機制是 A/B 驗收的入口，錨定不得吃掉它。"""
     probe = textwrap.dedent(
         """
         import json
-        from backend.floorplan import floorplan2room as room
+        from backend.floorplan import room_classifier
 
-        print(json.dumps({
-            "weights": room.CC_WEIGHTS,
-            "cache_dir": room.CC_CACHE_DIR,
-        }))
+        print(json.dumps({"head": room_classifier.HEAD_PATH}))
         """
     )
-    custom_weights = tmp_path / "ab_test.pkl"
-    custom_cache = tmp_path / "masks"
+    custom_head = tmp_path / "ab_head.npz"
     env = {
         **os.environ,
         "PYTHONPATH": str(REPO_ROOT),
-        "CC_WEIGHTS": str(custom_weights),
-        "CC_CACHE_DIR": str(custom_cache),
+        "ROOM_HEAD": str(custom_head),
     }
 
     result = subprocess.run(
@@ -116,39 +137,5 @@ def test_environment_overrides_still_win(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
 
-    import json
-
     resolved = json.loads(result.stdout.strip().splitlines()[-1])
-    assert Path(resolved["weights"]) == custom_weights
-    assert Path(resolved["cache_dir"]) == custom_cache
-
-
-def test_weights_download_creates_the_destination_directory(
-    room_module, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """下載前要先建目錄，否則 200MB 抓完才在寫檔時炸掉。
-
-    `vision/cody_semantic.py:201` 早就有 `weights.parent.mkdir`，這裡是漏掉的
-    對應實作。
-    """
-    payload = b"fake-weights-payload"
-    target = tmp_path / "missing" / "nested" / "model_finetuned_v5.pkl"
-    assert not target.parent.exists()
-
-    monkeypatch.delenv("CC_WEIGHTS", raising=False)
-    monkeypatch.setattr(room_module, "CC_WEIGHTS", str(target))
-    monkeypatch.setattr(
-        room_module, "CC_WEIGHTS_SHA256", hashlib.sha256(payload).hexdigest()
-    )
-    monkeypatch.setattr(room_module, "_resolve_weights_url", lambda: "https://example/w")
-
-    def _fake_retrieve(url: str, filename: str):
-        Path(filename).write_bytes(payload)
-        return filename, None
-
-    monkeypatch.setattr(urllib.request, "urlretrieve", _fake_retrieve)
-
-    assert room_module._ensure_cc_weights() is True
-    assert target.is_file()
-    assert target.read_bytes() == payload
-    assert not target.with_name(target.name + ".part").exists()
+    assert Path(resolved["head"]) == custom_head

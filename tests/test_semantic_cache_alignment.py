@@ -1,17 +1,17 @@
-"""語意快取鍵對齊與尺寸驗證（2026-07 盤點「房型語意斷鏈」的修復測試）。
+"""語意層鍵傳遞與房型對照（2026-07 盤點「房型語意斷鏈」的修復測試）。
 
-守住四件事：
+守住三件事：
 
-1. `analyze_floorplan_image` 必須把上傳檔名主幹傳給 `recognize_cody_rooms`——
-   `cubicasa/room/<stem>_mask.npz` 語意快取全以檔名為鍵，斷鍵即 100% 降級到
-   面積規則。
-2. 檔名鍵快取與影像尺寸錯配（floor10 案例：896×1200 對 419×687）必須被
-   `_cc_ok` 擋下，不得無檢查最近鄰縮放硬套。
-3. 語意層的 entry/storage/outdoor 房型不得再被 `CODY_ROOM_TYPE_MAP` 靜默丟棄。
-4. floor01 帶檔名鍵可端到端命中語意快取（`room_label_source ==
-   "cubicasa_semantic"`），且廚房／玄關能落到主線 rooms[].type。
+1. `analyze_floorplan_image` 必須把上傳檔名主幹傳給 `recognize_cody_rooms`。
+   原因已隨 2026-07-30 的 CubiCasa 移除改變——當時是為了命中
+   `cubicasa/room/<stem>_mask.npz` 快取，現在是為了讓暫存圖與 OCR 單格快取
+   有穩定命名，日誌與診斷追得回是哪張圖。
+2. 語意層的 entry/storage/outdoor 房型不得再被 `CODY_ROOM_TYPE_MAP` 靜默丟棄，
+   且新增的 stair 必須有明確映射（刻意為 None，見該處註解）。
+3. floor01 可端到端由 DINOv2 判出房型（`room_label_source == "dinov2_semantic"`），
+   且廚房／玄關能落到主線 rooms[].type。
 
-外部資產（testdata 圖與語意快取）不存在時安全跳過，符合 tests/AGENTS.md。
+外部資產（testdata 圖）不存在時安全跳過，符合 tests/AGENTS.md。
 """
 from __future__ import annotations
 
@@ -85,27 +85,10 @@ def _write_mask_npz(path: Path, shape: tuple[int, int]) -> None:
     )
 
 
-def test_cc_ok_accepts_matching_and_proportional_masks(tmp_path: Path) -> None:
-    cache = tmp_path / "x_mask.npz"
-    _write_mask_npz(cache, (100, 150))
-
-    assert floorplan2room._cc_ok(str(cache)) is True  # 建快取路徑：只問可用性
-    assert floorplan2room._cc_ok(str(cache), (100, 150)) is True
-    assert floorplan2room._cc_ok(str(cache), (200, 300)) is True  # 彩圖管線 2 倍
-
-
-def test_cc_ok_rejects_aspect_mismatched_mask(tmp_path: Path) -> None:
-    cache = tmp_path / "floor10_mask.npz"
-    _write_mask_npz(cache, (1200, 896))  # 已知錯配案例的快取尺寸
-
-    assert floorplan2room._cc_ok(str(cache), (687, 419)) is False
-
-
-def test_cc_ok_rejects_legacy_cache_without_room_channel(tmp_path: Path) -> None:
-    cache = tmp_path / "old_mask.npz"
-    np.savez(cache, wall=np.zeros((10, 10), dtype=np.uint8))
-
-    assert floorplan2room._cc_ok(str(cache), (10, 10)) is False
+# 2026-07-30：原本這一節有三支 `_cc_ok` 測試（尺寸相符/成比例接受、floor10 長寬比
+# 錯配拒絕、舊快取缺 room 通道拒絕）。CubiCasa 語意遮罩快取隨血統移除一併消失，
+# `_cc_ok` 與 `cubicasa/room/*_mask.npz` 都不存在了，這三支測的機制沒有了主體。
+# DINOv2 路徑無快取層——每次裁切現推，故不存在對應的錯配風險，不需要替代測試。
 
 
 # ── 3. 房型對照表 ────────────────────────────────────────────────
@@ -118,6 +101,9 @@ def test_room_type_map_lands_entry_storage_outdoor() -> None:
     assert analysis.CODY_ROOM_TYPE_MAP["outdoor"] == "balcony"
     assert analysis.CODY_ROOM_TYPE_MAP["garage"] is None
     assert analysis.CODY_ROOM_TYPE_MAP["room"] is None
+    # stair 是 2026-07-29 語意層新增的類（MAIN_SYNC_TODO 第 10 節）。刻意映射為
+    # None：樓梯區的產品語意是「不可擺設」，硬塞 circulation 會被當可佈置走道。
+    assert analysis.CODY_ROOM_TYPE_MAP["stair"] is None
 
 
 # ── 4. floor01 端到端：補鍵即命中語意快取 ───────────────────────
@@ -128,10 +114,10 @@ def test_floor01_cache_key_restores_semantic_rooms() -> None:
     result = recognize_cody_rooms(FLOOR01.read_bytes(), cache_key="floor01")
 
     assert result is not None
-    assert result["room_label_source"] == "cubicasa_semantic"
+    assert result["room_label_source"] == "dinov2_semantic"
     labels = {room["label"] for room in result["rooms"]}
-    assert "kitchen" in labels, "floor01 語意快取應認出廚房"
-    assert "entry" in labels, "floor01 語意快取應認出玄關"
+    assert "kitchen" in labels, "floor01 應認出廚房"
+    assert "entry" in labels, "floor01 應認出玄關"
 
 
 @needs_floor01_cache

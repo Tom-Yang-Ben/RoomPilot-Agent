@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-eval_windows.py — 用 testdata/pngans/ 的人工標準答案評分 training/chk/gray/ 的窗戶偵測結果
+eval_windows.py — 用 testdata/Identify_ans/pngans/gray/ 的人工標準答案評分 temp/chk/gray/ 的窗戶偵測結果
 
-    python3 eval_windows.py [答案目錄] [chk目錄]     (預設 testdata/pngans/ training/chk/gray/)
-
-答案目錄預設為主線的 testdata/pngans（21 張）。cody 分支上的對應目錄是
-testdata/Identify_ans/pngans/gray（38 張），該目錄尚未移植進主線，需要時
-以第一個參數指定。
+    python3 eval_windows.py [答案目錄] [chk目錄]     (預設 testdata/Identify_ans/pngans/gray/ temp/chk/gray/)
 
 兩邊都抽「綠色框」再互相配對：
   TP = chk 的綠框有對到答案的綠框(抓對)
@@ -65,8 +61,8 @@ def matched(a, b):
 
 
 def main():
-    ans_dir = sys.argv[1] if len(sys.argv) > 1 else "testdata/pngans"
-    chk_dir = sys.argv[2] if len(sys.argv) > 2 else "training/chk/gray"
+    ans_dir = sys.argv[1] if len(sys.argv) > 1 else "testdata/Identify_ans/pngans/gray"
+    chk_dir = sys.argv[2] if len(sys.argv) > 2 else "temp/chk/gray"
     ans_files = sorted(glob.glob(os.path.join(ans_dir, "*_ans.png")))
     if not ans_files:
         sys.exit(f"{ans_dir}/ 裡找不到 *_ans.png")

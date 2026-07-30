@@ -11,15 +11,42 @@ import cv2
 import numpy as np
 
 CANVAS = 48
-LIB_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "training", "symbol_lib.npz")
+LIB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "symbol_lib.npz")
+# 推論期資產，與消費它的模組同目錄（2026-07-29 由 repo 根移入）——
+# 只搬 backend/floorplan/ 的部署不會再解析到錯路徑（舊版往上三層推導，
+# 且找不到檔不報錯、靜默停用，是無聲失效的高風險寫法）
 # SVG class token → 證據 kind（oval/tubrect/stove 沿用既有計分；
 # shower/sinkicon 為新 kind，classify_rooms_cc 給保守小權重）
 TARGETS = {"Toilet": "oval", "Bathtub": "tubrect", "BathtubRound": "tubrect",
            "IntegratedStove": "stove", "Sink": "sinkicon", "Shower": "shower"}
-HU_THR = 0.15                # Hu 預篩門檻（matchShapes I1 等價）
-CH_THR = 2.0                 # chamfer 平均邊緣距離門檻（48px 畫布上的 px）
+
+# ── 比對閘門（2026-07-29 重構）────────────────────────────────────────
+# 舊：尺寸 → Hu 粗篩(HU_THR=0.15) → chamfer(2.0)
+# 新：尺寸 → chamfer(CH_THR)，Hu 粗篩整個移除
+#
+# 移除理由是實測而非推論：12 張灰階圖 2016 個輪廓候選，過尺寸閘門 509 個，
+# **過 Hu 者 0 個**——這道粗篩從未放行過任何東西，路線 B 整條是死碼。
+# 候選對全庫的最佳 Hu 距離，中位數 CubiCasa 系 8.67／Asset 系 3.98，
+# 最小值 0.484／0.178，全都遠在 0.15 之外。
+# 成因：Hu 矩對「向量渲染 vs 點陣化」極敏感，而查詢側是真實圖面裁出的輪廓
+# （斷線、鄰接墨水、雜訊）。0.15 應是拿模板對模板校出來的，對真實查詢無效。
+# 調高門檻已實測為淨負面（v2.18：bath precision 0.920→0.676），因為那是全域
+# 旋鈕，真假證據一起放行——真正該換的是「用什麼指標」與「開哪幾類」。
+CH_THR = 1.2                 # chamfer 平均邊緣距離門檻（48px 畫布上的 px）
+                             # 1.2 為 v2.18 §4 天花板量測所用值；舊 2.0 是搭配
+                             # Hu 粗篩的寬鬆值，粗篩移除後由它獨自把關故收緊
+
+# 只有這兩類的模板證據進得了計分。依 Readme v2.18 §4 的逐類品質分級：
+#   kstove/ksink  ✅ 四口爐與雙槽圖案獨特，是唯一穩定的真實增益
+#   wardrobe      ❌ 假陽性大戶——平面圖衣櫃＝長方形＋內部分隔線，與牆體
+#                    剖面線／樓梯踏步幾何同構，本質不可分辨
+#   chair/basin/sofa/tub ⚠️ 混雜，basin 是 bath precision 崩壞元凶之一
+#   bed/wc/dtable  準但量太少
+# 在 load_lib() 就濾掉，未啟用的類別連 chamfer 都不算（尺寸閘門也隨之收窄）。
+# SYMBOL_KINDS 環境變數可覆寫供 A/B 驗收（同 CC_WEIGHTS／CC_CACHE_DIR 慣例）。
+ENABLED_KINDS = tuple(
+    k for k in os.environ.get("SYMBOL_KINDS", "kstove,ksink").split(",") if k)
 _PATH_SAMPLES = 120
 
 
@@ -129,57 +156,104 @@ def hu_dist(hu_a, hu_b):
     return float(np.abs(ia - ib).sum())
 
 
+def dist_transform(raster):
+    """線稿 → 各像素到最近線點的距離場。模板側可預算，見 load_lib()。"""
+    return cv2.distanceTransform(255 - raster, cv2.DIST_L2, 3)
+
+
+def _one_way(a, dt_b):
+    pts = a > 0
+    if not pts.any():
+        return 1e9
+    return float(dt_b[pts].mean())
+
+
+def chamfer_dt(cand, dt_cand, tpl, dt_tpl):
+    """對稱 chamfer，距離場由呼叫端提供（模板側預算、候選側每候選算一次）。
+    與 chamfer_score 數值相同，只是把重複的 distanceTransform 提出迴圈——
+    Hu 粗篩移除後每個候選要對整個 kind 的模板算 chamfer，這是可行性關鍵。"""
+    return max(_one_way(cand, dt_tpl), _one_way(tpl, dt_cand))
+
+
 def chamfer_score(cand, tpl):
-    """對稱 chamfer：兩張 48×48 線稿互相取「線點到對方最近線點」平均距離(px)。"""
-    def one_way(a, b):
-        dt = cv2.distanceTransform(255 - b, cv2.DIST_L2, 3)
-        pts = a > 0
-        if not pts.any():
-            return 1e9
-        return float(dt[pts].mean())
-    return max(one_way(cand, tpl), one_way(tpl, cand))
+    """對稱 chamfer：兩張 48×48 線稿互相取「線點到對方最近線點」平均距離(px)。
+    參考實作（每次重算距離場）；熱路徑請用 chamfer_dt。"""
+    return chamfer_dt(cand, dist_transform(cand), tpl, dist_transform(tpl))
 
 
 _lib_cache = "unloaded"
 
 
-def load_lib(path=LIB_PATH):
-    """載入模板庫；檔案不存在回 None（管線行為不變）。模組級快取。"""
+def load_lib(path=LIB_PATH, kinds=ENABLED_KINDS):
+    """載入模板庫；檔案不存在回 None（管線行為不變）。模組級快取。
+
+    只保留 `kinds` 指定的類別——未啟用者連 chamfer 都不必算，且尺寸閘門
+    隨之收窄（少了 wardrobe/sofa 那些大尺寸區間，雜訊候選先被擋一輪）。
+    同時預算每條模板的距離場供 chamfer_dt 使用。"""
     global _lib_cache
     if _lib_cache == "unloaded":
         if not os.path.isfile(path):
             _lib_cache = None
-        else:
-            z = np.load(path, allow_pickle=False)
-            labels = [str(x) for x in z["labels"]]
-            kinds = sorted(set(labels))
-            _lib_cache = {
-                "rasters": z["rasters"], "hu": z["hu"], "labels": labels,
-                # 每 kind 的實體尺寸閘門：短邊/長邊的 P5~P95（svg 單位≈cm）
-                "size": {k: (np.percentile(z["wh"][[i for i, l in
-                             enumerate(labels) if l == k]].min(1), [5, 95]),
-                             np.percentile(z["wh"][[i for i, l in
-                             enumerate(labels) if l == k]].max(1), [5, 95]))
-                        for k in kinds},
-            }
+            return _lib_cache
+        z = np.load(path, allow_pickle=False)
+        all_labels = [str(x) for x in z["labels"]]
+        missing = sorted(set(kinds) - set(all_labels))
+        if missing:                    # 靜默停用是本模組的既有陷阱，這裡出聲
+            print(f"⚠ 模板庫無這些 kind：{', '.join(missing)}"
+                  f"（庫內有 {', '.join(sorted(set(all_labels)))}）")
+        keep = [i for i, l in enumerate(all_labels) if l in kinds]
+        if not keep:
+            print(f"⚠ 模板庫沒有任何啟用中的 kind → 模板比對停用")
+            _lib_cache = None
+            return _lib_cache
+        labels = [all_labels[i] for i in keep]
+        rasters = z["rasters"][keep]
+        wh = z["wh"][keep]
+        _lib_cache = {
+            "rasters": rasters,
+            "hu": z["hu"][keep],          # 保留供研發工具/去重用，比對已不讀
+            "labels": labels,
+            "dt": np.stack([dist_transform(r) for r in rasters]),
+            # 每 kind 的實體尺寸閘門：短邊/長邊的 P5~P95（svg 單位≈cm）
+            "size": {k: (np.percentile(wh[[i for i, l in enumerate(labels)
+                                           if l == k]].min(1), [5, 95]),
+                         np.percentile(wh[[i for i, l in enumerate(labels)
+                                           if l == k]].max(1), [5, 95]))
+                     for k in sorted(set(labels))},
+        }
     return _lib_cache
 
 
+def _in_text_box(x, y, w, h, boxes):
+    """候選 bbox 中心落在任一文字框內 → 判為圖面文字，不是家具符號。
+    floor06 的「LNDRY」「BALCONY」字樣 chamfer 1.58/1.68 曾被判成 ksink/sofa。"""
+    cx, cy = x + w / 2.0, y + h / 2.0
+    return any(x0 <= cx <= x1 and y0 <= cy <= y1 for x0, y0, x1, y1 in boxes)
+
+
 def match_symbols(det, lib=None):
-    """細線層輪廓對模板庫兩階段比對 → [(kind, cx, cy)]。
-    kind 為 TARGETS 的值域（oval/tubrect/stove/sinkicon/shower）。"""
+    """細線層輪廓對模板庫比對 → [(kind, cx, cy)]，kind ∈ ENABLED_KINDS。
+
+    閘門：文字抑制 → 尺寸(P5~P95 ±20%) → chamfer ≤ CH_THR。
+    Hu 粗篩已於 2026-07-29 移除（實測從未放行任何候選，見檔頭說明）。
+    `det["text_boxes"]` 缺席＝不抑制（彩圖管線無 OCR、deskew 開啟時亦然）。"""
     lib = lib if lib is not None else load_lib()
     thin, cm = det.get("thin"), det["cm"]
     if lib is None or thin is None:
         return []
+    boxes = det.get("text_boxes") or ()
     closed = cv2.morphologyEx(thin, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
     cnts, _ = cv2.findContours(closed, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-    hu_arr, rasters, labels = lib["hu"], lib["rasters"], lib["labels"]
+    rasters, dts, labels = lib["rasters"], lib["dt"], lib["labels"]
+    idx_of = {k: [i for i, l in enumerate(labels) if l == k]
+              for k in lib["size"]}
     syms = []
     for c in cnts:
         if len(c) < 20:
             continue
         x, y, w, h = cv2.boundingRect(c)
+        if _in_text_box(x, y, w, h, boxes):
+            continue
         lo, hi = sorted((w * cm, h * cm))
         # 尺寸閘門：至少落在一個 kind 的 P5~P95 ±20% 區間
         ok_kinds = [k for k, ((s5, s95), (l5, l95)) in lib["size"].items()
@@ -191,16 +265,11 @@ def match_symbols(det, lib=None):
         cand = crop_to_canvas(closed, x, y, w, h)
         if cand is None:
             continue
-        hc = hu_of(cand)
+        dt_cand = dist_transform(cand)
         best_kind, best_ch = None, 1e9
         for k in ok_kinds:
-            idx = [i for i, l in enumerate(labels) if l == k]
-            d = np.array([hu_dist(hc, hu_arr[i]) for i in idx])
-            top = np.argsort(d)[:5]                      # Hu 前 5 名進 chamfer
-            for j in top:
-                if d[j] > HU_THR:
-                    continue
-                ch = chamfer_score(cand, rasters[idx[j]])
+            for i in idx_of[k]:
+                ch = chamfer_dt(cand, dt_cand, rasters[i], dts[i])
                 if ch < best_ch:
                     best_kind, best_ch = k, ch
         if best_kind is not None and best_ch <= CH_THR:

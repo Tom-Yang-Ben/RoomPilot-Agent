@@ -1,296 +1,102 @@
+"""房型語意層可用性回報（DINOv2 路徑）。
+
+2026-07-30 CubiCasa 血統整批移除前，這支測的是一整套資產管理：200MB v5 權重的
+GitHub Release 下載鏈與 SHA-256 校驗、token 換 S3 簽名、`cubicasa/room/*_mask.npz`
+遮罩快取的欄位／尺寸驗證、`infer_cubicasa.py` 的 subprocess 呼叫。那 15 支測試
+連同它們守護的機制一併消失（權重、快取、推論腳本都不存在了）。
+
+DINOv2 路徑的判定簡單得多——只有「線性頭在不在」與「torch 裝了沒」兩個條件，
+所以本檔的職責縮回一件事：**狀態回報必須誠實**。這件事仍然要緊，因為 available
+為 False 時房型會靜默退回面積規則（own_eval 72 房 90.3% 掉回幾何猜測的水準），
+前端要靠這裡的 `reason` 與 `fallback` 才說得出為什麼降級。
+"""
 from __future__ import annotations
 
-import hashlib
-
-import numpy as np
-from backend.floorplan.vision import cody_semantic
 from backend.floorplan.vision.cody_semantic import (
+    DEFAULT_HEAD,
+    MODEL_VERSION,
     cody_semantic_room_labeler_status,
-    ensure_cody_semantic_masks,
-    ensure_cody_semantic_weights,
-    load_cody_semantic_mask,
 )
 
 
-def test_cody_semantic_room_labeler_reports_fallback_without_assets(tmp_path) -> None:
+def _head(tmp_path):
+    """在 tmp_path 下造出線性頭。內容不重要——狀態檢查只看檔案存在與否，
+    真正的載入驗證在 room_classifier._load()（那裡會讀 npz 欄位）。"""
+    target = tmp_path / DEFAULT_HEAD
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"fake-linear-head")
+    return target
+
+
+def test_reports_missing_head_when_asset_absent(tmp_path) -> None:
     status = cody_semantic_room_labeler_status(root=tmp_path, env={})
 
     assert status["available"] is False
-    assert status["reason"] == "missing_cody_cubicasa_weights_or_cache"
-    assert status["model_version"] == "cody_cubicasa_v5"
-    assert status["weights_path"].endswith(
-        "backend\\floorplan\\model_finetuned_v5.pkl"
-    ) or status["weights_path"].endswith("backend/floorplan/model_finetuned_v5.pkl")
-    assert status["weights_sha256"].startswith("b7a280d2")
-    assert status["fallback"] == "django_icon_zone_rules"
-    assert status["weights_present"] is False
-    assert status["cache_count"] == 0
+    assert status["reason"] == "missing_room_head"
+    assert status["head_present"] is False
+    assert status["fallback"] == "area_rules"
 
 
-def test_cody_semantic_room_labeler_can_use_precomputed_cache(tmp_path) -> None:
-    cache_dir = tmp_path / "cubicasa" / "room"
-    _write_room_mask(cache_dir / "floor15_mask.npz")
-
+def test_reports_ready_when_head_and_torch_are_both_present(tmp_path) -> None:
+    """torch 是本 repo 的實際安裝狀態——有裝才會走 ready 這條分支。"""
+    _head(tmp_path)
     status = cody_semantic_room_labeler_status(root=tmp_path, env={})
+
+    if not status["torch_present"]:
+        # 沒裝 torch 的環境（例如只做前端的隊員）應誠實回報缺 torch 而非 ready。
+        assert status["available"] is False
+        assert status["reason"] == "missing_torch"
+        assert status["fallback"] == "area_rules"
+        return
 
     assert status["available"] is True
     assert status["reason"] == "cody_semantic_ready"
-    assert status["cache_count"] == 1
+    assert status["fallback"] is None
 
 
-def test_cody_semantic_room_labeler_ignores_invalid_cache(tmp_path) -> None:
-    cache_dir = tmp_path / "cubicasa" / "room"
-    cache_dir.mkdir(parents=True)
-    (cache_dir / "floor15_mask.npz").write_bytes(b"placeholder")
-
+def test_head_path_reflects_the_root_it_was_asked_about(tmp_path) -> None:
+    """`root` 是測試注入點；產品走 cwd。回報的路徑必須是真的去看的那個。"""
+    head = _head(tmp_path)
     status = cody_semantic_room_labeler_status(root=tmp_path, env={})
 
+    assert status["head_path"] == str(head)
+    assert status["head_present"] is True
+
+
+def test_room_head_env_override_is_honoured(tmp_path) -> None:
+    """`ROOM_HEAD` 是 A/B 驗收的入口，狀態檢查必須跟著它走，否則會回報
+    「資產齊備」卻實際載入另一個檔——A/B 結果無從解釋。"""
+    custom = tmp_path / "ab" / "variant_head.npz"
+    custom.parent.mkdir(parents=True)
+    custom.write_bytes(b"variant")
+
+    status = cody_semantic_room_labeler_status(
+        root=tmp_path, env={"ROOM_HEAD": str(custom)}
+    )
+
+    assert status["head_path"] == str(custom)
+    assert status["head_present"] is True
+
+
+def test_env_override_pointing_at_nothing_is_reported_as_missing(tmp_path) -> None:
+    """覆寫到不存在的路徑不得因為預設位置有檔就回報 ready。"""
+    _head(tmp_path)  # 預設位置有檔，但覆寫指向別處
+
+    status = cody_semantic_room_labeler_status(
+        root=tmp_path, env={"ROOM_HEAD": str(tmp_path / "nope.npz")}
+    )
+
     assert status["available"] is False
-    assert status["reason"] == "missing_cody_cubicasa_weights_or_cache"
-    assert status["cache_count"] == 0
+    assert status["reason"] == "missing_room_head"
+    assert status["head_present"] is False
 
 
-def _fake_retrieve(payload: bytes):
-    def retrieve(_url, destination):
-        destination.write_bytes(payload)
+def test_status_declares_the_apache_licensed_backbone(tmp_path) -> None:
+    """授權欄位是這次改動的重點：CubiCasa5k 權重 CC BY-NC 禁商用，DINOv2 是
+    Apache 2.0 可商用。下游合規檢查讀這個欄位，不得回退成 CubiCasa 的描述。"""
+    status = cody_semantic_room_labeler_status(root=tmp_path, env={})
 
-    return retrieve
-
-
-def _write_room_mask(path):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    room = np.array([[3, 4], [5, 6]], dtype=np.uint8)
-    icon = np.array([[0, 1], [2, 0]], dtype=np.uint8)
-    wall = room == 2
-    window = icon == 1
-    door = icon == 2
-    np.savez_compressed(
-        path,
-        wall=wall,
-        window=window,
-        door=door,
-        room=room,
-        icon=icon,
-    )
-
-
-def test_cody_semantic_weights_existing_file_short_circuits(tmp_path, monkeypatch) -> None:
-    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
-    weights.parent.mkdir(parents=True)
-    weights.write_bytes(b"weights")
-    monkeypatch.setattr(
-        cody_semantic.urllib.request,
-        "urlretrieve",
-        lambda *args: (_ for _ in ()).throw(AssertionError("should not download")),
-    )
-
-    result = ensure_cody_semantic_weights(root=tmp_path, env={})
-
-    assert result["ok"] is True
-    assert result["reason"] == "weights_present"
-    assert result["downloaded"] is False
-
-
-def test_cody_semantic_weights_custom_override_is_not_downloaded(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr(
-        cody_semantic.urllib.request,
-        "urlretrieve",
-        lambda *args: (_ for _ in ()).throw(AssertionError("custom weights should not download")),
-    )
-
-    result = ensure_cody_semantic_weights(
-        root=tmp_path,
-        env={"CC_WEIGHTS": "custom.pkl"},
-    )
-
-    assert result["ok"] is False
-    assert result["reason"] == "custom_weights_missing"
-    assert not (tmp_path / "custom.pkl").exists()
-
-
-def test_cody_semantic_weights_checksum_mismatch_is_rejected(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr(cody_semantic, "_resolve_weights_url", lambda _env: "https://fake/weights")
-    monkeypatch.setattr(
-        cody_semantic.urllib.request,
-        "urlretrieve",
-        _fake_retrieve(b"tampered"),
-    )
-    monkeypatch.setattr(
-        cody_semantic,
-        "CODY_V5_WEIGHTS_SHA256",
-        hashlib.sha256(b"expected").hexdigest(),
-    )
-
-    result = ensure_cody_semantic_weights(root=tmp_path, env={})
-
-    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
-    assert result["ok"] is False
-    assert result["reason"] == "weights_checksum_mismatch"
-    assert not weights.exists()
-    assert not weights.with_name(weights.name + ".part").exists()
-
-
-def test_cody_semantic_weights_download_success(tmp_path, monkeypatch) -> None:
-    payload = b"good weights"
-    monkeypatch.setattr(cody_semantic, "_resolve_weights_url", lambda _env: "https://fake/weights")
-    monkeypatch.setattr(
-        cody_semantic.urllib.request,
-        "urlretrieve",
-        _fake_retrieve(payload),
-    )
-    monkeypatch.setattr(
-        cody_semantic,
-        "CODY_V5_WEIGHTS_SHA256",
-        hashlib.sha256(payload).hexdigest(),
-    )
-
-    result = ensure_cody_semantic_weights(root=tmp_path, env={})
-
-    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
-    assert result["ok"] is True
-    assert result["reason"] == "weights_downloaded"
-    assert weights.read_bytes() == payload
-    assert not weights.with_name(weights.name + ".part").exists()
-
-
-def test_cody_semantic_weights_no_download_channel_is_clear_failure(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr(cody_semantic, "_resolve_weights_url", lambda _env: None)
-
-    result = ensure_cody_semantic_weights(root=tmp_path, env={})
-
-    assert result["ok"] is False
-    assert result["reason"] == "weights_download_unavailable"
-
-
-def test_cody_semantic_masks_reuse_existing_cache_without_runner(tmp_path) -> None:
-    image = tmp_path / "uploads" / "plan.png"
-    image.parent.mkdir()
-    image.write_bytes(b"image")
-    _write_room_mask(tmp_path / "cubicasa" / "room" / "plan_mask.npz")
-
-    result = ensure_cody_semantic_masks(
-        [image],
-        root=tmp_path,
-        env={},
-        runner=lambda _command: (_ for _ in ()).throw(AssertionError("should not infer")),
-    )
-
-    assert result["ok"] is True
-    assert result["reason"] == "semantic_masks_cached"
-    assert result["generated"] == []
-
-
-def test_cody_semantic_mask_loader_validates_cody_fields(tmp_path) -> None:
-    mask = tmp_path / "cubicasa" / "room" / "plan_mask.npz"
-    _write_room_mask(mask)
-
-    result = load_cody_semantic_mask(mask)
-
-    assert result["shape"] == (2, 2)
-    assert result["arrays"]["room"].dtype == np.uint8
-    assert result["arrays"]["icon"].dtype == np.uint8
-    assert result["arrays"]["window"].dtype == bool
-    assert result["arrays"]["door"].dtype == bool
-
-
-def test_cody_semantic_masks_reject_incomplete_cache(tmp_path) -> None:
-    image = tmp_path / "uploads" / "plan.png"
-    image.parent.mkdir()
-    image.write_bytes(b"image")
-    cache = tmp_path / "cubicasa" / "room" / "plan_mask.npz"
-    cache.parent.mkdir(parents=True)
-    np.savez_compressed(cache, room=np.zeros((2, 2), dtype=np.uint8))
-    monkeypatch_error = AssertionError("should not infer without weights")
-
-    result = ensure_cody_semantic_masks(
-        [image],
-        root=tmp_path,
-        env={"CC_WEIGHTS": "missing.pkl"},
-        runner=lambda _command: (_ for _ in ()).throw(monkeypatch_error),
-    )
-
-    assert result["ok"] is False
-    assert result["reason"] == "custom_weights_missing"
-
-
-def test_cody_semantic_mask_loader_rejects_shape_mismatch(tmp_path) -> None:
-    mask = tmp_path / "bad_mask.npz"
-    np.savez_compressed(
-        mask,
-        wall=np.zeros((2, 2), dtype=bool),
-        window=np.zeros((2, 2), dtype=bool),
-        door=np.zeros((2, 2), dtype=bool),
-        room=np.zeros((2, 3), dtype=np.uint8),
-        icon=np.zeros((2, 2), dtype=np.uint8),
-    )
-
-    try:
-        load_cody_semantic_mask(mask)
-    except ValueError as exc:
-        assert "inconsistent shapes" in str(exc)
-    else:
-        raise AssertionError("shape mismatch should fail")
-
-
-def test_cody_semantic_masks_fail_clearly_without_inference_script(tmp_path) -> None:
-    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
-    weights.parent.mkdir(parents=True)
-    weights.write_bytes(b"weights")
-    image = tmp_path / "uploads" / "plan.png"
-    image.parent.mkdir()
-    image.write_bytes(b"image")
-
-    result = ensure_cody_semantic_masks([image], root=tmp_path, env={})
-
-    assert result["ok"] is False
-    assert result["reason"] == "inference_script_missing"
-    assert result["script_path"].endswith(
-        "backend\\floorplan\\infer_cubicasa.py"
-    ) or result["script_path"].endswith("backend/floorplan/infer_cubicasa.py")
-
-
-def test_cody_semantic_masks_runner_generates_missing_cache(tmp_path) -> None:
-    weights = tmp_path / "backend" / "floorplan" / "model_finetuned_v5.pkl"
-    weights.parent.mkdir(parents=True)
-    weights.write_bytes(b"weights")
-    script = tmp_path / "backend" / "floorplan" / "infer_cubicasa.py"
-    # 權重與推論腳本現在同在 backend/floorplan/，父目錄上一行已建立。
-    script.parent.mkdir(parents=True, exist_ok=True)
-    script.write_text("# fake cody inference script\n", encoding="utf-8")
-    image = tmp_path / "uploads" / "plan.png"
-    image.parent.mkdir()
-    image.write_bytes(b"image")
-    commands = []
-
-    def fake_runner(command):
-        commands.append(command)
-        cache_dir = tmp_path / "cubicasa" / "room"
-        _write_room_mask(cache_dir / "plan_mask.npz")
-
-    result = ensure_cody_semantic_masks([image], root=tmp_path, env={}, runner=fake_runner)
-
-    assert result["ok"] is True
-    assert result["reason"] == "semantic_masks_generated"
-    assert len(commands) == 1
-    assert commands[0][2] == str(weights)
-    assert commands[0][3].endswith("cubicasa\\room") or commands[0][3].endswith(
-        "cubicasa/room"
-    )
-    assert result["generated"] == [str(tmp_path / "cubicasa" / "room" / "plan_mask.npz")]
-
-
-def test_cody_semantic_masks_do_not_infer_when_weights_are_missing(tmp_path, monkeypatch) -> None:
-    image = tmp_path / "uploads" / "plan.png"
-    image.parent.mkdir()
-    image.write_bytes(b"image")
-    monkeypatch.setattr(cody_semantic, "_resolve_weights_url", lambda _env: None)
-
-    result = ensure_cody_semantic_masks(
-        [image],
-        root=tmp_path,
-        env={},
-        runner=lambda _command: (_ for _ in ()).throw(AssertionError("should not infer")),
-    )
-
-    assert result["ok"] is False
-    assert result["reason"] == "weights_download_unavailable"
+    assert status["license"] == "Apache-2.0"
+    assert status["backbone"] == "dinov2_vits14"
+    assert status["model_version"] == MODEL_VERSION
+    assert "cubicasa" not in str(status).lower()

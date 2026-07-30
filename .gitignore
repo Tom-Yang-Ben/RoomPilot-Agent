@@ -89,13 +89,15 @@ backend/server/static/texture_cache/
 # Windows 下載來源標記檔，由瀏覽器自動產生，不屬於專案內容。
 *Zone.Identifier
 
-# 平面圖語意權重與訓練產物體積以百 MB 計，只留在本機或物件儲存。
-# 例外：cubicasa/room/ 底下的語意快取是跨分支契約路徑，必須進版控，故不列入忽略。
-training/
+# 平面圖訓練材料體積以 GB 計，只留在本機；但研發工具與測試是程式碼，必須進版控。
+# 負向規則不可省：辨識率的驗證鏈（評測腳本＋107 支測試＋報表）全在這幾個子目錄，
+# 少了它們，cody-dev 宣稱的準確度數字在別台機器上無法重跑。
+training/*
+!training/scripts/
+!training/tests/
+!training/json/
+!training/*.npz
+training/tests/.pytest_cache/
+training.zip
 /model_finetuned_*.pkl
 /backend/floorplan/model_finetuned_*.pkl
-
-# CubiCasa5k 原始資料集與微調工作區屬大型下載產物，換機重新取得即可。
-cubicasa/room_ft/
-/cubicasa5k.zip
-training.zip
