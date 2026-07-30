@@ -54,9 +54,9 @@ Graph RAG 只補強 Kai/Django 的房間、風格、家具、材質、限制關�
 
 ### Kai catalog 與家電邊界
 
-- PostgreSQL `roompilot.furniture_catalog_current` 是第 6 步家具 API 的優先來源，目前有 9,349 筆啟用家具。
+- Kai 官方 JSON catalog 是第 6 步家具 API 的預設來源，目前有 8,557 筆。PostgreSQL `roompilot.furniture_catalog_current` 完成同批資料匯入後，才可透過環境變數啟用。
 - 每筆正式家具有 GLB 與 `front`、`side`、`angle-45` 三視角 CloudFront PNG。
-- PostgreSQL 不可用時，API 才回退到已驗證的 9,350 筆 JSON catalog，確保展示與開發不中斷。
+- 開發與展示預設讀取同一份 Kai JSON；PostgreSQL 連線失敗時也回退到這份 JSON，確保資料版本一致。
 - 冰箱、洗衣機等家電仍可由問卷收集，會寫入 `questionnaire.appliance_requirements` 與 `scene_json.render_context`，供 AI 生圖理解需求；它們不進第 6 步 2D/3D 自動配置、不出現在正式家具 API。
 
 ## 共用修改流程

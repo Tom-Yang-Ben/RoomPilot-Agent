@@ -114,7 +114,7 @@ def test_openings_only_cut_their_confirmed_host_wall() -> None:
     assert result == {"host": True, "adjacent": False}
 
 
-def test_open_door_leaves_snap_to_two_distinct_existing_wall_gaps() -> None:
+def test_confirmed_open_door_leaves_snap_to_two_distinct_existing_wall_gaps() -> None:
     result = run_workflow_script(
         f"""
         import {{
@@ -150,17 +150,21 @@ def test_open_door_leaves_snap_to_two_distinct_existing_wall_gaps() -> None:
         const doors = [
           {{
             id: "door-2",
+            confirmed: true,
             host_wall_id: "wall-2",
             width_cm: 113.41,
             start: {{x: -9.94, z: 61.39}},
             end: {{x: -123.35, z: 61.39}},
+            swing_end: {{x: -9.94, z: -52.02}},
           }},
           {{
             id: "door-3",
+            confirmed: true,
             host_wall_id: "wall-2",
             width_cm: 104.06,
             start: {{x: -19.29, z: 111.67}},
             end: {{x: -123.35, z: 111.67}},
+            swing_end: {{x: -19.29, z: 215.73}},
           }},
         ];
         const openings = doors.map((door) => doorOpeningForWallTopology(walls, door, 22));
@@ -176,10 +180,181 @@ def test_open_door_leaves_snap_to_two_distinct_existing_wall_gaps() -> None:
     assert result["cutsWrongWall"] == [False, False]
     assert result["openings"][0]["topology_gap"] is True
     assert result["openings"][1]["topology_gap"] is True
+    assert result["openings"][0]["opening_source"] == "swing_radius"
+    assert result["openings"][1]["opening_source"] == "swing_radius"
+    assert result["openings"][0]["topology_gap_key"] != result["openings"][1]["topology_gap_key"]
     assert result["openings"][0]["start"] == {"x": 0, "z": 63.14}
     assert result["openings"][0]["end"] == {"x": 0, "z": -47.93}
     assert result["openings"][1]["start"] == {"x": 0, "z": 222.16}
     assert result["openings"][1]["end"] == {"x": 0, "z": 112.25}
+
+
+def test_swing_door_uses_its_closed_arc_radius_even_when_open_leaf_touches_a_wall() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorOpeningForWallTopology }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const walls = [
+          {{ id: "wall-horizontal", start: {{x: 0, z: 0}}, end: {{x: 420, z: 0}} }},
+          {{ id: "wall-left", start: {{x: 500, z: -260}}, end: {{x: 500, z: -120}} }},
+          {{ id: "wall-right", start: {{x: 500, z: 0}}, end: {{x: 500, z: 110}} }},
+        ];
+        const doors = [
+          {{
+            id: "door-horizontal",
+            start: {{x: 120, z: 0}}, end: {{x: 240, z: 0}},
+            swing_end: {{x: 120, z: -120}}, width_cm: 120,
+          }},
+          {{
+            id: "door-vertical-gap",
+            start: {{x: 500, z: 0}}, end: {{x: 380, z: 0}},
+            swing_end: {{x: 500, z: -120}}, width_cm: 120,
+          }},
+        ];
+        const openings = doors.map((door) => doorOpeningForWallTopology(walls, door, 12));
+        const summary = openings.map((opening) => ({{
+          id: opening.id,
+          start: opening.start,
+          end: opening.end,
+          source: opening.opening_source,
+          topologyGap: Boolean(opening.topology_gap),
+          host: opening.host_wall_id || null,
+        }}));
+        console.log(JSON.stringify(summary));
+        """
+    )
+
+    assert result == [
+        {
+            "id": "door-horizontal",
+            "start": {"x": 120, "z": 0},
+            "end": {"x": 120, "z": -120},
+            "source": "swing_radius",
+            "topologyGap": False,
+            "host": None,
+        },
+        {
+            "id": "door-vertical-gap",
+            "start": {"x": 500, "z": -120},
+            "end": {"x": 500, "z": 0},
+            "source": "swing_radius",
+            "topologyGap": True,
+            "host": None,
+        },
+    ]
+
+
+def test_swing_door_never_falls_back_to_its_open_leaf_when_closed_radius_has_no_wall() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorOpeningForWallTopology }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const walls = [
+          {{ id: "wall-host", start: {{x: -11, z: 517}}, end: {{x: 169, z: 517}} }},
+          {{ id: "wall-end", start: {{x: 0, z: 271}}, end: {{x: 0, z: 370}} }},
+        ];
+        const door = {{
+          id: "door-1", width_cm: 128,
+          start: {{x: 8.64, z: 489.82}}, end: {{x: 135.38, z: 489.82}},
+          swing_end: {{x: 8.64, z: 363.095}},
+        }};
+        const opening = doorOpeningForWallTopology(walls, door, 12);
+        console.log(JSON.stringify({{
+          source: opening.opening_source,
+          host: opening.host_wall_id,
+          start: opening.start,
+          end: opening.end,
+        }}));
+        """
+    )
+
+    assert result == {
+        "source": "swing_radius",
+        "start": {"x": 8.64, "z": 489.82},
+        "end": {"x": 8.64, "z": 363.095},
+    }
+
+
+def test_persisted_closed_segment_overrides_open_leaf_and_arc_for_manual_correction() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorOpeningForWallTopology }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const walls = [
+          {{ id: "locked-wall", start: {{x: 0, z: 0}}, end: {{x: 0, z: 260}} }},
+          {{ id: "open-leaf-wall", start: {{x: 0, z: 100}}, end: {{x: 160, z: 100}} }},
+        ];
+        const door = {{
+          id: "door-locked",
+          host_wall_confirmed: true,
+          host_wall_id: "locked-wall",
+          start: {{x: 0, z: 100}}, end: {{x: 120, z: 100}},
+          swing_end: {{x: 0, z: 220}},
+          closed_segment: {{
+            start: {{x: 0, z: 90}}, end: {{x: 0, z: 210}}, source: "manual_confirmed",
+          }},
+          width_cm: 120,
+        }};
+        const opening = doorOpeningForWallTopology(walls, door, 12);
+        console.log(JSON.stringify({{
+          start: opening.start,
+          end: opening.end,
+          host: opening.host_wall_id,
+          source: opening.closed_segment.source,
+        }}));
+        """
+    )
+
+    assert result == {
+        "start": {"x": 0, "z": 90},
+        "end": {"x": 0, "z": 210},
+        "host": "locked-wall",
+        "source": "manual_confirmed",
+    }
+
+
+def test_confirmed_door_keeps_its_confirmed_host_wall_instead_of_nearby_gap() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{
+          doorOpeningForWallTopology,
+          openingWallInterval,
+        }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const walls = [
+          {{
+            id: "wall-host",
+            start: {{x: 0, z: 0}},
+            end: {{x: 500, z: 0}},
+          }},
+          {{
+            id: "gap-left",
+            start: {{x: 260, z: -260}},
+            end: {{x: 260, z: -140}},
+          }},
+          {{
+            id: "gap-right",
+            start: {{x: 260, z: -40}},
+            end: {{x: 260, z: 80}},
+          }},
+        ];
+        const door = {{
+          id: "door-confirmed",
+          confirmed: true,
+          host_wall_confirmed: true,
+          host_wall_id: "wall-host",
+          width_cm: 100,
+          start: {{x: 250, z: 24}},
+          end: {{x: 350, z: 24}},
+        }};
+        const opening = doorOpeningForWallTopology(walls, door, 12);
+        console.log(JSON.stringify({{
+          topologyGap: Boolean(opening.topology_gap),
+          hostWallId: opening.host_wall_id,
+          hostInterval: openingWallInterval(walls[0], opening, 12, 68),
+        }}));
+        """
+    )
+
+    assert result["topologyGap"] is False
+    assert result["hostWallId"] == "wall-host"
+    assert result["hostInterval"] is not None
 
 
 def test_gap_window_has_no_usable_span_inside_the_split_host_wall() -> None:
@@ -224,6 +399,8 @@ def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
     ).read_text(encoding="utf-8")
 
     assert "const missingWindows = windowSegments.filter" in viewer
+    assert "const missingDoors = doorSegments.filter((opening) =>" in viewer
+    assert "!renderedOpenings.has(openingId)" in viewer
     assert "openingWallInterval(segment, opening, wallThickness, 50)" in viewer
     assert "missingDoors,\n        missingWindows," in viewer
 

@@ -251,8 +251,9 @@ def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
     assert "Math.max(0, sillHeight - frameAllowanceCm)" in wall_builder
     assert "wallHeight - openingHeight - frameAllowanceCm" in wall_builder
     assert "wallThickness" in wall_builder
-    assert "const faceOffset = Math.max(Number(anchor.wallThickness || 12) / 2 + 0.35, 6)" in opening_builder
-    assert "glass.position.z = faceOffset - frameDepth / 2 - 0.08" in opening_builder
+    assert "const frameDepth = Math.max(Number(anchor.wallThickness || 12) + 0.4, 4.2)" in opening_builder
+    assert "const faceOffset = 0" in opening_builder
+    assert "glass.position.z = 0" in opening_builder
     assert "frame.position.set(x, y, faceOffset)" in opening_builder
     assert 'roompilotArchitecturalDetail = "flush-window-sill"' in opening_builder
     assert "Math.max(0, sillHeight - frameAllowanceCm)" in standalone_builder
@@ -277,16 +278,30 @@ def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protru
     assert "leftInside !== rightInside" in resolver
     assert "wallEndpointTouchesExteriorBounds" in resolver
     assert "resolveWallMaterial.exteriorMaterial = exteriorMaterial" in resolver
+    assert "const overrideAtPoint" in resolver
+    assert "resolveWallMaterial.faceMaterials" in resolver
+    assert "const materialForSide = (side)" in resolver
     assert "roompilotWallSurfaceRole = \"exterior\"" in resolver
     assert "isExteriorWallSegment(segment, floorplan, wallThickness)" in wall_builder
     assert "exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)" in wall_builder
     assert "wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)" in wall_builder
+    assert "wallMaterial.faceMaterials(segment, exteriorSideSign)" in wall_builder
     assert "interiorWallJunctionInsets(segment, exteriorSegments, wallThickness)" in wall_builder
     assert "const sectionMin" in wall_builder
     assert "const sectionMax" in wall_builder
     assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in wall_builder
     assert "Number(start.x) + unitX * capCenter" in wall_builder
     assert "sceneData.floorplan," in create_room
+
+
+def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "function findWalkLookTarget" in source
+    assert "const target = findWalkLookTarget(spawn, polygon);" in source
+    assert "walkPositionBlockedByFurniture(point)" in source
 
 
 def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:

@@ -97,7 +97,7 @@ def _project_path_from_env(name: str, default: Path) -> Path:
 
 STATIC_DIR = BASE_DIR / "static"
 MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
-STYLE_ENRICHMENT_DB_PATH = (
+STYLE_PRESENTATION_DB_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
 )
 OFFICIAL_FURNITURE_CATALOG_PATH = (
@@ -105,17 +105,11 @@ OFFICIAL_FURNITURE_CATALOG_PATH = (
 )
 CLOUD_CATALOG_PATH = _project_path_from_env(
     "ROOMPILOT_CLOUD_CATALOG_PATH",
-    OFFICIAL_FURNITURE_CATALOG_PATH
-    if OFFICIAL_FURNITURE_CATALOG_PATH.exists()
-    else BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json",
+    OFFICIAL_FURNITURE_CATALOG_PATH,
 )
 CLOUD_MANIFEST_PATH = _project_path_from_env(
     "ROOMPILOT_GLB_MANIFEST_PATH",
-    BASE_DIR.parent
-    / "catalog"
-    / "data"
-    / "manifests"
-    / "glb_upload_all_result.csv",
+    PROJECT_DIR / "JSON" / "manifests" / "glb_upload_all_result.csv",
 )
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
 EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風格與JSON" / "external_furniture_import_index.json"
@@ -438,7 +432,7 @@ def _model_status(furniture: dict) -> tuple[bool, str]:
 def load_style_database() -> dict:
     return load_official_catalog(
         CLOUD_CATALOG_PATH,
-        STYLE_ENRICHMENT_DB_PATH,
+        STYLE_PRESENTATION_DB_PATH,
         CLOUD_MANIFEST_PATH,
     )
 
@@ -884,13 +878,13 @@ def _furniture_card_payload(item: dict) -> dict:
 
 @lru_cache(maxsize=1)
 def _furniture_payload_cache() -> tuple[dict, ...]:
-    """Prefer Kai's reviewed PostgreSQL catalog, with a portable JSON fallback."""
-    provider = os.getenv("ROOMPILOT_CATALOG_PROVIDER", "postgres").strip().casefold()
-    if provider not in {"json", "local", "fallback"}:
+    """Use Kai's versioned JSON unless PostgreSQL is explicitly requested."""
+    provider = os.getenv("ROOMPILOT_CATALOG_PROVIDER", "json").strip().casefold()
+    if provider in {"postgres", "database"}:
         try:
             return load_postgres_catalog(PROJECT_DIR)
         except Exception as exc:
-            print(f"[RoomPilot] PostgreSQL catalog unavailable; using JSON fallback: {type(exc).__name__}")
+            print(f"[RoomPilot] PostgreSQL catalog unavailable; using Kai JSON: {type(exc).__name__}")
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
 
 

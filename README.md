@@ -98,7 +98,7 @@ git status --short
 -> 2 上傳 PNG/JPG/DXF 平面圖
 -> 3 兩點標定並確認公分尺度
 -> 4 校正空間、牆、門、窗、樑與柱
--> 5 與客戶完成六題初談，逐房勾選用途與家具，最後確認全屋需求與風格
+-> 5 先選全屋風格、材質與冷氣範圍，再逐房確認用途、家具類型、尺寸與數量
 -> 6 產生配置，在同一畫面同步編輯 2D/3D 家具與走動預覽
 -> 7 鎖定方案，每個空間選擇並微調生成視角
 -> 8 AI 渲染與成果包：依問卷、家具、材質、色卡與視角產生逐房成果
@@ -191,9 +191,10 @@ AI 或新成員開始修改前，必須依序閱讀：
 
 正式雲端 catalog 由 Kai 的資料流維護：
 
-- PostgreSQL 正式 view：9,349 筆啟用家具
+- Kai 官方 JSON catalog：8,557 筆；目前為 API 與本機開發的預設資料來源
+- PostgreSQL：完成 Kai 匯入後才以 `ROOMPILOT_CATALOG_PROVIDER=postgres` 明確啟用
 - 每筆具有 CloudFront GLB 與正面、側面、45 度 PNG
-- JSON 備援 catalog：9,350 筆，僅在 PostgreSQL 暫時不可連線時使用
+- 資料來源切換：預設讀取上述 Kai JSON；僅在明確設定 PostgreSQL provider 時才讀取資料庫
 - 家電問卷需求會保留給 AI 生圖，不會進入第 6 步 2D/3D 擺設
 
 先建立 `.env`：

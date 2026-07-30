@@ -25,9 +25,7 @@ if load_dotenv is not None:
     load_dotenv(PROJECT_DIR / ".env", override=False)
 DEFAULT_MANIFEST_PATH = (
     PROJECT_DIR
-    / "backend"
-    / "catalog"
-    / "data"
+    / "JSON"
     / "manifests"
     / "glb_upload_all_result.csv"
 )

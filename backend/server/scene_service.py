@@ -1127,15 +1127,27 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
         }
 
     def segment(item: dict[str, Any]) -> dict[str, Any]:
-        return {
+        converted = {
             **{
                 key: value
                 for key, value in item.items()
-                if key not in {"start", "end"}
+                if key not in {"start", "end", "swing_end"}
             },
             "start": centered_point(item.get("start")),
             "end": centered_point(item.get("end")),
         }
+        # 開合門的 swing_end 與門片端點必須在同一個場景座標系，否則
+        # 第 6 步會把關門洞口推到另一面牆上。
+        if item.get("swing_end"):
+            converted["swing_end"] = centered_point(item.get("swing_end"))
+            # 開合門的 start → end 是打開後的門片；牆洞與關門門片
+            # 必須使用鉸鏈 start 指向弧線另一端 swing_end 的線段。
+            converted["closed_segment"] = {
+                "start": dict(converted["start"]),
+                "end": dict(converted["swing_end"]),
+                "source": "swing_arc",
+            }
+        return converted
 
     wall_segments = [segment(item) for item in structures.get("walls") or []]
     door_segments = [segment(item) for item in structures.get("doors") or []]

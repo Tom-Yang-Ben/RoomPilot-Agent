@@ -1,21 +1,18 @@
-"""Build the official 9,350-item catalog from Kai's cloud asset inventory.
+"""Build the official 8,557-item catalog from Kai's versioned JSON source.
 
-The cloud catalog and upload-result manifest define the publishable furniture
-set.  The older six-style catalog is enrichment only: it may contribute style,
-taxonomy, and placement hints, but it cannot introduce additional furniture.
+The official JSON is the sole source of furniture identity and enrichment.
+The upload-result manifest supplies delivery evidence.  The metadata-only
+six-style file provides top-level style presentation definitions; its empty
+``furniture`` compatibility array is deliberately ignored.
 """
 from __future__ import annotations
 
 import csv
 import json
-import re
-import unicodedata
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-
-OFFICIAL_CATALOG_COUNT = 9_350
+OFFICIAL_CATALOG_COUNT = 8_557
 READY_UPLOAD_STATUSES = {
     "uploaded",
     "already_exists",
@@ -25,123 +22,57 @@ READY_UPLOAD_STATUSES = {
     "skipped_existing",
 }
 
-_IDENTITY_FIELDS = {
-    "furniture_id",
-    "name_en",
-    "name_zh",
-    "name_zh_raw",
-    "category_label",
-    "color",
-    "colors",
-    "material",
-    "materials",
-    "size_cm",
-    "glb_relative_path",
-    "glb_absolute_path",
-    "model_url",
-    "object_key",
+# Keep the JSON adapter independent from the optional PostgreSQL repository.
+# PostgreSQL may be unavailable during local questionnaire and API development.
+_GROUP_NAMES = {
+    "living": "客廳家具",
+    "dining_kitchen": "餐廚家具",
+    "bedroom": "臥室家具",
+    "study": "書房家具",
+    "storage": "收納家具",
+    "soft_decor": "軟裝與燈飾",
 }
 
-_ENRICHMENT_FIELDS = {
-    "normalized_type",
-    "can_rotate",
-    "must_against_wall",
-    "usable_for_moodboard",
-    "style_candidates",
-    "primary_style",
-    "style_confidence",
-    "style_rule_flags",
-    "taxonomy_group",
-    "taxonomy_group_zh",
-    "taxonomy_type_zh",
-    "catalog_scope",
-    "placement_hints",
-    "clearance_zones",
-    "layout_relations",
-    "rule",
-    "room_types",
-    "role",
-    "visual_weight",
-    "height_zone",
-    "size_class",
-    "price_twd",
-    "price_is_estimated",
-    "consistency_flag",
-    "consistency_severity",
-    "suggested_category",
-    "style_primary",
-    "style_secondary",
-    "pattern",
-    "mood_tags",
-    "description",
-    "confidence",
-    "desc_source",
-    "object_type_zh",
-    "shape_tags",
-    "features",
-    "search_keywords",
-    "rag_text",
+_GROUP_TYPES = {
+    "living": {"fabric-sofa", "leather-sofa", "sofa", "sofa-bed", "modular-sofa", "armchair", "coffee-table", "tv-bench", "tv-media-furniture"},
+    "dining_kitchen": {"dining-chair", "dining-table", "bar-table", "stool-bench", "table"},
+    "bedroom": {"bed", "bed-frame", "mattress", "bedside-table", "pax-wardrobe", "wardrobe"},
+    "study": {"desk", "office-chair", "gaming-chair", "work-lamp"},
+    "storage": {"bookcase", "cabinet-cupboard", "chests-of-drawer", "shelving-unit", "storage-boxes-basket", "storage-solution-system", "sideboard", "wall-shelf", "display-cabinet", "shoe-cabinet", "storage-furniture", "clothes-rack"},
 }
 
 
-def _normalized_name(value: object) -> str:
-    text = unicodedata.normalize("NFKC", str(value or "")).casefold()
-    text = text.replace("–", "-").replace("—", "-")
-    return re.sub(r"[^a-z0-9]+", " ", text).strip()
+def _catalog_group(item_type: str, room_types: list[str]) -> str:
+    for group, types in _GROUP_TYPES.items():
+        if item_type in types:
+            return group
+    if any(room in {"living_room", "dining_room", "kitchen"} for room in room_types):
+        return "living"
+    if "bedroom" in room_types:
+        return "bedroom"
+    if "study" in room_types:
+        return "study"
+    return "soft_decor"
 
 
-def _candidate_parts(candidate: object) -> tuple[str | None, float, list[str]]:
-    if isinstance(candidate, dict):
-        style_id = str(candidate.get("style_id") or "").strip() or None
-        try:
-            score = float(candidate.get("score", 0) or 0)
-        except (TypeError, ValueError):
-            score = 0.0
-        return style_id, score, list(candidate.get("reasons") or [])
-    if isinstance(candidate, (list, tuple)) and candidate:
-        style_id = str(candidate[0] or "").strip() or None
-        try:
-            score = float(candidate[1] or 0) if len(candidate) > 1 else 1.0
-        except (TypeError, ValueError):
-            score = 0.0
-        return style_id, score, []
-    if isinstance(candidate, str):
-        return candidate.strip() or None, 1.0, []
-    return None, 0.0, []
-
-
-def _merged_style_candidates(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    by_style: dict[str, dict[str, Any]] = {}
-    for entry in entries:
-        candidates = list(entry.get("style_candidates") or [])
-        primary_style = str(entry.get("primary_style") or "").strip()
-        if primary_style:
+def _official_style_candidates(item: dict[str, Any]) -> list[dict[str, Any]]:
+    try:
+        confidence = float(item.get("style_confidence") or item.get("confidence") or 1.0)
+    except (TypeError, ValueError):
+        confidence = 1.0
+    reasons = [str(item["style_reason"])] if item.get("style_reason") else []
+    candidates: list[dict[str, Any]] = []
+    for field in ("style_primary", "style_secondary"):
+        style_id = str(item.get(field) or "").strip()
+        if style_id and not any(candidate["style_id"] == style_id for candidate in candidates):
             candidates.append(
                 {
-                    "style_id": primary_style,
-                    "score": entry.get("style_confidence") or 0,
-                    "reasons": [],
+                    "style_id": style_id,
+                    "score": round(confidence, 3),
+                    "reasons": reasons,
                 }
             )
-        for candidate in candidates:
-            style_id, score, reasons = _candidate_parts(candidate)
-            if not style_id:
-                continue
-            existing = by_style.get(style_id)
-            if existing is None or score > existing["score"]:
-                by_style[style_id] = {
-                    "style_id": style_id,
-                    "score": round(score, 3),
-                    "reasons": sorted(set(reasons)),
-                }
-            elif reasons:
-                existing["reasons"] = sorted(
-                    set(existing.get("reasons", [])) | set(reasons)
-                )
-    return sorted(
-        by_style.values(),
-        key=lambda candidate: (-candidate["score"], candidate["style_id"]),
-    )
+    return candidates
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -155,12 +86,12 @@ def _load_manifest(path: Path) -> list[dict[str, str]]:
 
 def build_official_catalog(
     cloud_catalog: dict[str, Any],
-    style_enrichment: dict[str, Any],
+    style_presentation: dict[str, Any],
     manifest_rows: list[dict[str, str]],
 ) -> tuple[dict[str, Any], dict[str, int]]:
     """Return the publishable catalog and deterministic integration diagnostics."""
     canonical_items = list(cloud_catalog.get("items") or [])
-    legacy_items = list(style_enrichment.get("furniture") or [])
+    ignored_presentation_items = len(style_presentation.get("furniture") or [])
 
     if len(canonical_items) != OFFICIAL_CATALOG_COUNT:
         raise ValueError(
@@ -177,40 +108,20 @@ def build_official_catalog(
         for row in manifest_rows
         if str(row.get("item_id") or "").strip()
     }
-    if set(manifest_by_id) != set(canonical_ids):
-        missing = len(set(canonical_ids) - set(manifest_by_id))
-        extra = len(set(manifest_by_id) - set(canonical_ids))
+    excluded_ids = {
+        str(item.get("id") or "").strip()
+        for item in cloud_catalog.get("excluded_items") or []
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    missing_ids = set(canonical_ids) - set(manifest_by_id)
+    unexpected_ids = (set(manifest_by_id) - set(canonical_ids)) - excluded_ids
+    if missing_ids or unexpected_ids:
         raise ValueError(
-            f"cloud catalog and manifest IDs differ: missing={missing}, extra={extra}"
+            "official JSON and manifest IDs differ: "
+            f"missing={len(missing_ids)}, unexpected={len(unexpected_ids)}"
         )
 
     canonical_by_id = dict(zip(canonical_ids, canonical_items, strict=True))
-    canonical_by_name: dict[str, list[str]] = defaultdict(list)
-    for item_id, item in canonical_by_id.items():
-        canonical_by_name[_normalized_name(item.get("name_en"))].append(item_id)
-
-    enrichment_by_id: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    exact_matches = 0
-    unique_name_matches = 0
-    unused_legacy = 0
-    for entry in legacy_items:
-        legacy_id = str(entry.get("furniture_id") or "").strip()
-        target_id: str | None = None
-        if legacy_id in canonical_by_id:
-            target_id = legacy_id
-            exact_matches += 1
-        else:
-            candidates = canonical_by_name.get(
-                _normalized_name(entry.get("name_en")),
-                [],
-            )
-            if len(candidates) == 1:
-                target_id = candidates[0]
-                unique_name_matches += 1
-        if target_id is None:
-            unused_legacy += 1
-            continue
-        enrichment_by_id[target_id].append(entry)
 
     official_items: list[dict[str, Any]] = []
     for item_id in canonical_ids:
@@ -232,17 +143,19 @@ def build_official_catalog(
         height = canonical.get("height_cm")
         colors = list(canonical.get("colors") or [])
         materials = list(canonical.get("materials") or [])
-        entries = enrichment_by_id.get(item_id, [])
-        preferred = next(
-            (
-                entry
-                for entry in entries
-                if str(entry.get("furniture_id") or "") == item_id
-            ),
-            entries[0] if entries else {},
+        room_types = [str(value) for value in canonical.get("room_types") or []]
+        normalized_type = str(
+            canonical.get("normalized_type")
+            or manifest.get("type")
+            or canonical.get("canonical_category_zh")
+            or "furniture"
         )
-        style_candidates = _merged_style_candidates(entries)
-        primary_style = style_candidates[0]["style_id"] if style_candidates else None
+        taxonomy_group = str(
+            canonical.get("taxonomy_group")
+            or _catalog_group(normalized_type, room_types)
+        )
+        style_candidates = _official_style_candidates(canonical)
+        primary_style = str(canonical.get("style_primary") or "").strip() or None
         style_confidence = style_candidates[0]["score"] if style_candidates else 0.0
 
         item: dict[str, Any] = {
@@ -251,11 +164,13 @@ def build_official_catalog(
             "name_zh": canonical.get("name_zh"),
             "name_zh_raw": canonical.get("name_zh"),
             "category_label": canonical.get("canonical_category_zh"),
-            "normalized_type": (
-                preferred.get("normalized_type")
-                or manifest.get("type")
-                or canonical.get("canonical_category_zh")
-            ),
+            "normalized_type": normalized_type,
+            "taxonomy_group": taxonomy_group,
+            "taxonomy_group_zh": canonical.get("taxonomy_group_zh")
+            or _GROUP_NAMES.get(taxonomy_group, taxonomy_group),
+            "taxonomy_type_zh": canonical.get("taxonomy_type_zh")
+            or canonical.get("canonical_category_zh")
+            or normalized_type,
             "color": canonical.get("color") or (colors[0] if colors else ""),
             "colors": colors,
             "material": canonical.get("material")
@@ -278,85 +193,65 @@ def build_official_catalog(
             or manifest.get("source")
             or "",
             "source": manifest.get("source") or "",
-            "catalog_scope": preferred.get("catalog_scope") or "furniture",
-            "can_rotate": preferred.get("can_rotate", True),
-            "must_against_wall": preferred.get("must_against_wall", False),
-            "usable_for_moodboard": preferred.get("usable_for_moodboard", True),
+            "catalog_scope": canonical.get("catalog_scope") or "furniture",
+            "can_rotate": canonical.get("can_rotate", True),
+            "must_against_wall": canonical.get("must_against_wall", False),
+            "usable_for_moodboard": canonical.get("usable_for_moodboard", True),
             "style_candidates": style_candidates,
             "primary_style": primary_style,
             "style_confidence": style_confidence,
-            "style_assignment_source": (
-                "cloud_9350+legacy_6styles"
-                if entries
-                else "cloud_9350_unclassified"
-            ),
-            "legacy_enrichment_ids": [
-                str(entry.get("furniture_id"))
-                for entry in entries
-                if entry.get("furniture_id")
-            ],
+            "style_assignment_source": "official_json_6styles",
             "upload_status": upload_status,
         }
 
-        for field in _ENRICHMENT_FIELDS - _IDENTITY_FIELDS:
-            if canonical.get(field) is not None:
-                item[field] = canonical[field]
-        for field in _ENRICHMENT_FIELDS - _IDENTITY_FIELDS:
-            if field in {
-                "style_candidates",
-                "primary_style",
-                "style_confidence",
-                "catalog_scope",
-                "normalized_type",
-                "can_rotate",
-                "must_against_wall",
-                "usable_for_moodboard",
-            }:
-                continue
-            if preferred.get(field) is not None:
-                item[field] = preferred[field]
+        # Preserve every field delivered by the official JSON. Explicit runtime
+        # mappings and verified manifest URLs above keep precedence.
+        for field, value in canonical.items():
+            if field != "id" and value is not None:
+                item.setdefault(field, value)
         official_items.append(item)
 
     result = {
         key: value
-        for key, value in style_enrichment.items()
+        for key, value in style_presentation.items()
         if key not in {"furniture", "summary"}
     }
     result.update(
         {
-            "schema_version": "cloud-9350-enriched-v1",
+            "schema_version": "official-json-8557-v3",
             "catalog_name": "RoomPilot official CloudFront furniture catalog",
             "source_catalog": cloud_catalog.get("dataset_name"),
+            "source_style_presentation": style_presentation.get("catalog_name"),
             "furniture": official_items,
             "summary": {
                 "total_furniture": len(official_items),
                 "cloudfront_ready": len(official_items),
-                "style_enriched": len(enrichment_by_id),
-                "style_unclassified": len(official_items) - len(enrichment_by_id),
-                "legacy_rows_excluded": unused_legacy,
+                "style_enriched": sum(bool(item.get("primary_style")) for item in official_items),
+                "style_unclassified": sum(not item.get("primary_style") for item in official_items),
+                "manifest_excluded": len(set(manifest_by_id) - set(canonical_ids)),
+                "style_presentation_furniture_ignored": ignored_presentation_items,
             },
         }
     )
     diagnostics = {
         "official_items": len(official_items),
         "manifest_items": len(manifest_by_id),
-        "style_enriched_items": len(enrichment_by_id),
-        "style_unclassified_items": len(official_items) - len(enrichment_by_id),
-        "legacy_exact_matches": exact_matches,
-        "legacy_unique_name_matches": unique_name_matches,
-        "legacy_rows_excluded": unused_legacy,
+        "manifest_excluded_items": len(set(manifest_by_id) - set(canonical_ids)),
+        "style_enriched_items": sum(bool(item.get("primary_style")) for item in official_items),
+        "style_unclassified_items": sum(not item.get("primary_style") for item in official_items),
+        "style_presentation_furniture_ignored": ignored_presentation_items,
     }
     return result, diagnostics
 
 
 def load_official_catalog(
     cloud_catalog_path: Path,
-    style_enrichment_path: Path,
+    style_presentation_path: Path,
     manifest_path: Path,
 ) -> dict[str, Any]:
     catalog, _diagnostics = build_official_catalog(
         _load_json(cloud_catalog_path),
-        _load_json(style_enrichment_path),
+        _load_json(style_presentation_path),
         _load_manifest(manifest_path),
     )
     return catalog
@@ -364,12 +259,12 @@ def load_official_catalog(
 
 def official_catalog_diagnostics(
     cloud_catalog_path: Path,
-    style_enrichment_path: Path,
+    style_presentation_path: Path,
     manifest_path: Path,
 ) -> dict[str, int]:
     _catalog, diagnostics = build_official_catalog(
         _load_json(cloud_catalog_path),
-        _load_json(style_enrichment_path),
+        _load_json(style_presentation_path),
         _load_manifest(manifest_path),
     )
     return diagnostics

@@ -1,23 +1,61 @@
-# RoomPilot Kai Catalog Export
+# RoomPilot Official Catalog and Vector Handoff
 
-This directory preserves the source layout used by `origin/kai` for the
-10,550-item PostgreSQL catalog import.
+This directory contains Kai's portable handoff for the official 8,557-item
+furniture catalog and matching asset manifests, plus the RAG metadata and
+vector delivery maintained by Django.
 
-The canonical bella catalog data still lives under `backend/catalog/data/`.
-Files in this top-level `JSON/` directory are compatibility inputs for:
+## Official Files
+
+| Path | Rows | Purpose |
+|---|---:|---|
+| `furniture/furniture_official_catagory.json` | 8,557 | Official furniture identity, dimensions, product URLs, six-style/VLM annotations and RAG metadata |
+| `manifests/glb_upload_manifest.csv` | 8,557 | GLB upload manifest keyed by `item_id` |
+| `manifests/glb_upload_all_result.csv` | 8,557 | Verified S3/CloudFront GLB upload results |
+| `manifests/image_upload_manifest.csv` | 25,671 | Front, side and 45-degree product-image upload manifest |
+| `manifests/image_upload_all_result.csv` | 25,671 | Verified S3/CloudFront product-image upload results |
+| `RAG/furniture_embeddings_bge_m3.jsonl` | 7,958 | BGE-M3 vectors generated and delivered by Django for database persistence |
+
+The spelling of `furniture_official_catagory.json` follows the delivered source
+filename. Its 8,557 unique IDs must exactly match both GLB files and the 8,557
+item IDs represented by the image files. Every official item has one `front`,
+one `side`, and one `angle-45` image.
+
+The JSON includes raw VLM enrichment such as `style_primary`,
+`style_secondary`, `description`, `room_types`, `shape_tags`, `features`,
+`search_keywords`, and `rag_text`. These annotations enrich retrieval; they do
+not replace the validated six-style mapping or furniture-engine legality.
+All 8,557 catalog items carry VLM/RAG description fields, so general catalog
+metadata coverage uses the full 8,557-item count. The separate 7,958 figure is
+the current active, `rag_indexable` BGE-M3 vector set; the remaining 599 items
+stay outside the official API and vector RAG pending review.
+
+## RAG Ownership Boundary
+
+- Django owns RAG metadata and text, vector generation, retrieval, and quality.
+- Kai's only RAG responsibility is persisting Django's delivered vectors to
+  PostgreSQL/pgvector. Catalog and asset maintenance remain Kai's separate data
+  responsibility.
+- RAG supplies retrieval evidence only; furniture placement legality remains in
+  `backend/engine/`.
+
+`original_glb_path` and `original_image_path` are producer-relative provenance,
+not repository runtime paths. Do not replace them with machine-specific
+absolute paths. Runtime delivery uses the verified `object_key` and HTTPS
+`delivery_url`. Large GLB and product-image assets remain outside Git.
+
+## Legacy Data Policy
+
+The legacy 10,550-item and 9,349-item payloads are not retained in this project.
+The legacy PostgreSQL importer has also been removed from `scripts/sql/`.
+Appliances are not part of the current product; legacy rows must not enter the
+API, Agent, official furniture set, database, or scene. Validate the current
+8,557-item official set with:
 
 ```powershell
-python scripts/sql/import_catalog_to_postgres.py --strict --dry-run
+.\.venv\Scripts\python.exe scripts\sql\import_official_catalog_to_postgres.py --dry-run
+.\.venv\Scripts\python.exe scripts\sql\import_furniture_embeddings_to_postgres.py `
+  --catalog JSON\furniture\furniture_official_catagory.json `
+  --embeddings JSON\RAG\furniture_embeddings_bge_m3.jsonl `
+  --require-all `
+  --dry-run
 ```
-
-## Files
-
-| Path | Purpose |
-|---|---|
-| `furniture/all_furniture_appliance_catalog.json` | 10,550 furniture/appliance catalog records plus role/type metadata |
-| `manifests/glb_upload_manifest.csv` | GLB manifest rows keyed by `item_id` |
-| `manifests/glb_upload_all_result.csv` | S3/CloudFront upload results keyed by `item_id` |
-| `manifests/glb_upload_manifest_report.json` | Upload manifest summary used for import auditing |
-
-The importer validates that catalog, manifest, and upload-result IDs are
-one-to-one before it writes anything to PostgreSQL.

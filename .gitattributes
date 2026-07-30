@@ -1,0 +1,1 @@
+JSON/RAG/furniture_embeddings_bge_m3.jsonl filter=lfs diff=lfs merge=lfs -text

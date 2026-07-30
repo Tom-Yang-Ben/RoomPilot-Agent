@@ -65,6 +65,31 @@ def test_demolition_candidate_is_preserved_without_removing_engine_wall() -> Non
     assert len(room.walls) >= 1
 
 
+def test_editor_door_swing_endpoint_uses_the_same_scene_coordinates_as_its_leaf() -> None:
+    floorplan, _room = floorplan_from_editor_payload(
+        {
+            "coordinate_unit": "cm",
+            "width_cm": 1000,
+            "depth_cm": 800,
+            "structures": {
+                "doors": [
+                    {
+                        "id": "door-1",
+                        "start": {"x": 500, "y": 100},
+                        "end": {"x": 620, "y": 100},
+                        "swing_end": {"x": 500, "y": 220},
+                    }
+                ]
+            },
+        }
+    )
+
+    door = floorplan["door_segments"][0]
+    assert door["start"] == {"x": 0.0, "z": -300.0}
+    assert door["end"] == {"x": 120.0, "z": -300.0}
+    assert door["swing_end"] == {"x": 0.0, "z": -180.0}
+
+
 def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
     sofa = {
         "furniture_id": "sofa-existing",
