@@ -12095,8 +12095,8 @@ function bindEvents() {
       moveVisualQuestion(1);
     }
   });
-  $("#back-to-room-questionnaire").addEventListener("click", () => showQuestionnaireStage("rooms"));
-  $("#questionnaire-summary-back").addEventListener("click", () => showQuestionnaireStage("profile"));
+  $("#back-to-room-questionnaire")?.addEventListener("click", () => showQuestionnaireStage("rooms"));
+  $("#questionnaire-summary-back")?.addEventListener("click", () => showQuestionnaireStage("profile"));
   element.wholeHouseStyleTabs.addEventListener("click", (event) => {
     const button = event.target.closest("[data-whole-house-style]");
     if (!button) return;
