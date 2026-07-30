@@ -964,13 +964,14 @@ def recognize_cody_rooms(
     `training/json/room/` 並另存兩張預覽 PNG。主線 API 手上只有 image bytes，
     因此這裡不呼叫 `process()`，改直接串它的內部函式，並自行組裝 payload。
 
-    語意快取以內容雜湊為鍵，同一張圖跨請求穩定命中；呼叫端若知道原始檔名，
-    可用 `cache_key` 指定以沿用既有的 `cubicasa/room/<名>_mask.npz`。
+    `cache_key` 決定暫存圖的檔名（預設為內容雜湊），OCR 的單格快取以路徑為鍵，
+    同一張圖跨請求維持穩定命名。
 
-    刻意不在此觸發權重下載或 CubiCasa 推論：`_ensure_cc_weights()` 會同步抓
-    200MB 權重、推論每張約一分鐘，兩者都不該發生在 HTTP 請求路徑上。快取不在
-    時 `build_rooms` 自動退回面積規則，`room_label_source` 會誠實標示來源。
-    快取的產生交給 `backend/floorplan/vision/cody_semantic.py` 既有機制。
+    2026-07-30 起房型由 DINOv2 裁切分類判定，不再有 200MB 權重下載與每張一分鐘
+    的 CubiCasa subprocess 推論——這條路徑現在可以安全地留在 HTTP 請求裡。
+    骨幹 88MB 由 `torch.hub` 首次載入後快取於 `~/.cache/torch/hub/`；缺 torch／
+    骨幹／線性頭時 `build_rooms` 自動退回面積規則，`room_label_source` 會誠實
+    標示 `area_rules`。可用性檢查見 `backend/floorplan/vision/cody_semantic.py`。
 
     回傳 None 代表無法辨識，呼叫端應退回 django_icon_zone_rules。
     """
@@ -1004,14 +1005,24 @@ def recognize_cody_rooms(
                         replace(config, input=image_path, output="", preview=None)
                     )
                 room_pipeline.refine_scale(detection)
-                cache_file = room_pipeline._cc_path(image_path)
-                detection["cc_file"] = cache_file
+                # OCR 必須先於 detect_symbols——模板比對靠 text_boxes 抑制圖面
+                # 文字的假陽性（floor06 的 LNDRY/BALCONY 曾被判成 ksink/sofa），
+                # 且 texts 本身是房型證據層 5。順序反了不報錯、只靜默失效，
+                # 故與 floorplan2room.process() 保持同一順序。
+                detection["texts"] = room_pipeline.detect_room_text(
+                    image_path, detection["img_w"], detection["img_h"]
+                )
+                detection["text_boxes"] = room_pipeline.detect_text_boxes(
+                    image_path, detection["img_w"], detection["img_h"]
+                )
                 detection["symbols"] = room_pipeline.detect_symbols(detection)
                 _labels, rooms, _bridges, zones, edges = room_pipeline.build_rooms(detection)
 
+            # 房型來源：DINOv2 裁切分類可用即為模型判定，否則 build_rooms 已
+            # 靜默退回面積規則。缺 torch／骨幹／線性頭時前端該知道品質降級了。
             label_source = (
-                "cubicasa_semantic"
-                if room_pipeline._cc_ok(cache_file)
+                "dinov2_semantic"
+                if room_pipeline.room_classifier.available()
                 else "area_rules"
             )
             payload = _room_payload(

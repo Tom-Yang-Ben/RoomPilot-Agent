@@ -1,0 +1,1318 @@
+{
+ "summary": {
+  "n_images": 24,
+  "n_ok": 24,
+  "n_seg_fail": 0,
+  "n_skip": 0,
+  "gt_rooms": 157,
+  "pred_rooms": 157,
+  "matched": 157,
+  "hit_rate": 1.0,
+  "overseg": 1.0,
+  "mean_iou": 1.0,
+  "confusion": {
+   "kitchen": {
+    "kitchen": 18,
+    "living": 0,
+    "bed": 1,
+    "bath": 1,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 0,
+    "space": 2
+   },
+   "living": {
+    "kitchen": 0,
+    "living": 22,
+    "bed": 1,
+    "bath": 0,
+    "entry": 1,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 0,
+    "space": 1
+   },
+   "bed": {
+    "kitchen": 0,
+    "living": 1,
+    "bed": 32,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 1,
+    "space": 2
+   },
+   "bath": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 2,
+    "bath": 23,
+    "entry": 2,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 0,
+    "space": 0
+   },
+   "entry": {
+    "kitchen": 1,
+    "living": 0,
+    "bed": 1,
+    "bath": 0,
+    "entry": 14,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 0,
+    "space": 4
+   },
+   "storage": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 3,
+    "bath": 0,
+    "entry": 1,
+    "storage": 3,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 0,
+    "space": 2
+   },
+   "garage": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 0,
+    "space": 0
+   },
+   "outdoor": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 3,
+    "office": 0,
+    "stair": 0,
+    "space": 1
+   },
+   "office": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 5,
+    "bath": 1,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 0,
+    "space": 1
+   },
+   "stair": {
+    "kitchen": 0,
+    "living": 1,
+    "bed": 0,
+    "bath": 0,
+    "entry": 2,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 3,
+    "space": 1
+   },
+   "space": {
+    "kitchen": 0,
+    "living": 0,
+    "bed": 0,
+    "bath": 0,
+    "entry": 0,
+    "storage": 0,
+    "garage": 0,
+    "outdoor": 0,
+    "office": 0,
+    "stair": 0,
+    "space": 0
+   }
+  },
+  "iou_thr": 0.5,
+  "gt_seg_mode": true,
+  "own_eval_mode": true,
+  "per_class": {
+   "kitchen": {
+    "gt": 22,
+    "precision": 0.947,
+    "recall": 0.818
+   },
+   "living": {
+    "gt": 25,
+    "precision": 0.917,
+    "recall": 0.88
+   },
+   "bed": {
+    "gt": 36,
+    "precision": 0.711,
+    "recall": 0.889
+   },
+   "bath": {
+    "gt": 27,
+    "precision": 0.92,
+    "recall": 0.852
+   },
+   "entry": {
+    "gt": 20,
+    "precision": 0.7,
+    "recall": 0.7
+   },
+   "storage": {
+    "gt": 9,
+    "precision": 1.0,
+    "recall": 0.333
+   },
+   "garage": {
+    "gt": 0,
+    "precision": null,
+    "recall": null
+   },
+   "outdoor": {
+    "gt": 4,
+    "precision": 1.0,
+    "recall": 0.75
+   },
+   "office": {
+    "gt": 7,
+    "precision": null,
+    "recall": 0.0
+   },
+   "stair": {
+    "gt": 7,
+    "precision": 0.75,
+    "recall": 0.429
+   },
+   "space": {
+    "gt": 0,
+    "precision": 0.0,
+    "recall": null
+   }
+  }
+ },
+ "images": [
+  {
+   "id": "floor01",
+   "status": "ok",
+   "n_gt": 10,
+   "n_pred": 10,
+   "n_match": 10,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bath",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "storage",
+     "storage"
+    ],
+    [
+     "storage",
+     "bed"
+    ],
+    [
+     "storage",
+     "bed"
+    ],
+    [
+     "bath",
+     "entry"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor02",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "storage",
+     "storage"
+    ],
+    [
+     "outdoor",
+     "outdoor"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor03",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bath",
+     "bath"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor04",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "storage",
+     "storage"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "living",
+     "living"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor05",
+   "status": "ok",
+   "n_gt": 8,
+   "n_pred": 8,
+   "n_match": 8,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "entry",
+     "space"
+    ],
+    [
+     "outdoor",
+     "outdoor"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "living",
+     "living"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor06",
+   "status": "ok",
+   "n_gt": 7,
+   "n_pred": 7,
+   "n_match": 7,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "outdoor",
+     "outdoor"
+    ],
+    [
+     "bath",
+     "bath"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor07",
+   "status": "ok",
+   "n_gt": 8,
+   "n_pred": 8,
+   "n_match": 8,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bed",
+     "stair"
+    ],
+    [
+     "bed",
+     "living"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "office",
+     "space"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "living",
+     "space"
+    ],
+    [
+     "entry",
+     "space"
+    ],
+    [
+     "entry",
+     "entry"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor08",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bath",
+     "entry"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "living",
+     "entry"
+    ],
+    [
+     "storage",
+     "bed"
+    ],
+    [
+     "stair",
+     "living"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor09",
+   "status": "ok",
+   "n_gt": 7,
+   "n_pred": 7,
+   "n_match": 7,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "kitchen",
+     "space"
+    ],
+    [
+     "bed",
+     "space"
+    ],
+    [
+     "storage",
+     "entry"
+    ],
+    [
+     "entry",
+     "entry"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor12",
+   "status": "ok",
+   "n_gt": 7,
+   "n_pred": 7,
+   "n_match": 7,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "office",
+     "bed"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "stair",
+     "stair"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor13",
+   "status": "ok",
+   "n_gt": 10,
+   "n_pred": 10,
+   "n_match": 10,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bed",
+     "space"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "kitchen",
+     "space"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "stair",
+     "entry"
+    ],
+    [
+     "storage",
+     "space"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "bath",
+     "bath"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor15",
+   "status": "ok",
+   "n_gt": 3,
+   "n_pred": 3,
+   "n_match": 3,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "living",
+     "living"
+    ],
+    [
+     "office",
+     "bed"
+    ],
+    [
+     "entry",
+     "bed"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor19",
+   "status": "ok",
+   "n_gt": 4,
+   "n_pred": 4,
+   "n_match": 4,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "bed",
+     "bed"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor20",
+   "status": "ok",
+   "n_gt": 4,
+   "n_pred": 4,
+   "n_match": 4,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "bath",
+     "bath"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor31",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "office",
+     "bed"
+    ],
+    [
+     "stair",
+     "stair"
+    ],
+    [
+     "entry",
+     "entry"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor35",
+   "status": "ok",
+   "n_gt": 8,
+   "n_pred": 8,
+   "n_match": 8,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "living",
+     "living"
+    ],
+    [
+     "storage",
+     "space"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "outdoor",
+     "space"
+    ],
+    [
+     "living",
+     "bed"
+    ],
+    [
+     "entry",
+     "kitchen"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "kitchen",
+     "bath"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor38",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "kitchen",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "living",
+     "living"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor39",
+   "status": "ok",
+   "n_gt": 5,
+   "n_pred": 5,
+   "n_match": 5,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "living",
+     "living"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "bath",
+     "bath"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor40",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "stair",
+     "entry"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "office",
+     "bed"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "entry",
+     "space"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor44",
+   "status": "ok",
+   "n_gt": 5,
+   "n_pred": 5,
+   "n_match": 5,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "living",
+     "living"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor47",
+   "status": "ok",
+   "n_gt": 8,
+   "n_pred": 8,
+   "n_match": 8,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "bath",
+     "bed"
+    ],
+    [
+     "entry",
+     "entry"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor48",
+   "status": "ok",
+   "n_gt": 5,
+   "n_pred": 5,
+   "n_match": 5,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "living",
+     "living"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "entry",
+     "entry"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor52",
+   "status": "ok",
+   "n_gt": 7,
+   "n_pred": 7,
+   "n_match": 7,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "office",
+     "bed"
+    ],
+    [
+     "entry",
+     "space"
+    ],
+    [
+     "stair",
+     "stair"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor54",
+   "status": "ok",
+   "n_gt": 9,
+   "n_pred": 9,
+   "n_match": 9,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "office",
+     "bath"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "stair",
+     "space"
+    ],
+    [
+     "bath",
+     "bath"
+    ],
+    [
+     "living",
+     "living"
+    ],
+    [
+     "kitchen",
+     "kitchen"
+    ],
+    [
+     "bed",
+     "bed"
+    ],
+    [
+     "entry",
+     "entry"
+    ],
+    [
+     "bed",
+     "bed"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  }
+ ]
+}

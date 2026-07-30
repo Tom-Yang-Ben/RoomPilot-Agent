@@ -1,335 +1,65 @@
-"""Optional Cody/CubiCasa semantic room-label availability checks.
+"""房型語意標註層的可用性檢查（DINOv2 路徑）。
 
-Bella can use Django-style icon and zone rules without heavyweight model files.
-The Cody semantic path needs CubiCasa weights or precomputed room masks, so this
-module reports availability and keeps the production pipeline on a safe fallback
-when those assets are absent.
+Bella 的 Django 式 icon／zone 規則不需要任何模型檔就能跑，所以這個模組的職責是
+**誠實回報語意層能不能動**，讓產品在資產缺失時穩定退回 fallback，而不是在請求
+路徑上炸掉。
+
+2026-07-30 起本模組改指 DINOv2：房型命名層已由 CubiCasa 語意投票換成凍結
+DINOv2 ViT-S/14 ＋ 線性頭（own_eval 72 房保留集 79.2% → 90.3%）。隨之消失的是
+整套 CubiCasa 資產管理——200MB v5 權重、GitHub Release 下載鏈與 token 交換、
+`cubicasa/room/*_mask.npz` 遮罩快取、`infer_cubicasa.py` subprocess 推論。
+DINOv2 的判定條件簡單得多，故本模組由 368 行縮到現在的規模：
+
+* 線性頭 `backend/floorplan/room_head.npz`（15KB，進版控，clone 即得）
+* `torch`（CPU 版即可，只推論不訓練）
+* DINOv2 骨幹 88MB，`torch.hub` 首次下載後快取於 `~/.cache/torch/hub/`
+
+授權上這也是本次改動的重點：DINOv2 程式碼與權重皆 Apache 2.0 可商用，v2.15 就
+記載的「CubiCasa5k 權重 CC BY-NC 禁商用」硬閘至此解除。
 """
 
 from __future__ import annotations
 
-import hashlib
 import os
 from pathlib import Path
-import subprocess
-import sys
-from typing import Any, Mapping
-import urllib.error
-import urllib.request
-
-import numpy as np
+from typing import Mapping
 
 
-DEFAULT_WEIGHTS = Path("backend/floorplan/model_finetuned_v5.pkl")
-DEFAULT_CACHE_DIR = Path("cubicasa/room")
-DEFAULT_INFER_SCRIPT = Path("backend/floorplan/infer_cubicasa.py")
-REQUIRED_MASK_FIELDS = ("room", "wall", "window", "door", "icon")
-CODY_V5_WEIGHTS_URL = (
-    "https://github.com/Tom-Yang-Ben/RoomPilot-Agent/releases/download/"
-    "weights-v5/model_finetuned_v5.pkl"
-)
-CODY_V5_WEIGHTS_ASSET_API = (
-    "https://api.github.com/repos/Tom-Yang-Ben/RoomPilot-Agent/"
-    "releases/assets/489011637"
-)
-CODY_V5_WEIGHTS_SHA256 = (
-    "b7a280d2d7cf2dde580a947e1ebc7b4d12e53135c05581babb3b5797a166f4cf"
-)
+DEFAULT_HEAD = Path("backend/floorplan/room_head.npz")
+BACKBONE_CACHE_HINT = Path("~/.cache/torch/hub")
+MODEL_VERSION = "cody_dinov2_room_head_v1"
 
 
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, *args, **kwargs):  # noqa: D102
-        return None
-
-
-def _semantic_paths(
-    *,
-    root: Path | None = None,
-    env: Mapping[str, str] | None = None,
-) -> tuple[Path, Path, Mapping[str, str]]:
-    base = root or Path.cwd()
-    values = env if env is not None else os.environ
-    weights = Path(values.get("CC_WEIGHTS", str(DEFAULT_WEIGHTS)))
-    cache_dir = Path(values.get("CC_CACHE_DIR", str(DEFAULT_CACHE_DIR)))
-    if not weights.is_absolute():
-        weights = base / weights
-    if not cache_dir.is_absolute():
-        cache_dir = base / cache_dir
-    return weights, cache_dir, values
-
-
-def _infer_script_path(
+def _head_path(
     *,
     root: Path | None = None,
     env: Mapping[str, str] | None = None,
 ) -> Path:
-    base = root or Path.cwd()
+    """線性頭實際路徑。`ROOM_HEAD` 環境變數可覆寫（A/B 驗收用）。
+
+    `root` 只在測試裡指定；產品走 repo 根的相對路徑，與 `room_classifier.HEAD_PATH`
+    的預設同一個檔案。
+    """
     values = env if env is not None else os.environ
-    script = Path(values.get("CC_INFER_SCRIPT", str(DEFAULT_INFER_SCRIPT)))
-    if not script.is_absolute():
-        script = base / script
-    return script
+    override = values.get("ROOM_HEAD")
+    if override:
+        return Path(override)
+    base = root if root is not None else Path.cwd()
+    return base / DEFAULT_HEAD
 
 
-def _mask_path_for_image(cache_dir: Path, image_path: Path) -> Path:
-    return cache_dir / f"{image_path.stem}_mask.npz"
+def _torch_present() -> bool:
+    """torch 是否可匯入。
 
+    用 `find_spec` 而非真的 import：這個函式會被 API 的狀態端點呼叫，import torch
+    要數秒並吃掉數百 MB，不該發生在每次健康檢查上。
+    """
+    from importlib.util import find_spec
 
-def _has_room_mask(mask_path: Path) -> bool:
     try:
-        load_cody_semantic_mask(mask_path)
-        return True
-    except (OSError, ValueError):
+        return find_spec("torch") is not None
+    except (ImportError, ValueError):
         return False
-
-
-def load_cody_semantic_mask(mask_path: str | Path) -> dict[str, Any]:
-    """Load and validate a Cody/CubiCasa mask cache file.
-
-    Cody's inference output contains boolean wall/window/door masks plus uint8
-    room and icon argmax maps. Bella accepts the cache only when all arrays
-    share the same 2D shape, so downstream room and opening logic does not mix
-    incompatible evidence.
-    """
-    path = Path(mask_path)
-    if not path.is_file():
-        raise ValueError(f"semantic mask missing: {path}")
-    try:
-        with np.load(path, allow_pickle=False) as archive:
-            missing = [field for field in REQUIRED_MASK_FIELDS if field not in archive]
-            if missing:
-                raise ValueError(f"semantic mask missing fields: {', '.join(missing)}")
-            arrays = {field: archive[field] for field in REQUIRED_MASK_FIELDS}
-    except Exception as exc:
-        raise ValueError(f"invalid semantic mask: {path}") from exc
-
-    shapes = {field: array.shape for field, array in arrays.items()}
-    if any(len(shape) != 2 for shape in shapes.values()):
-        raise ValueError(f"semantic mask arrays must be 2D: {path}")
-    if len(set(shapes.values())) != 1:
-        raise ValueError(f"semantic mask arrays have inconsistent shapes: {path}")
-
-    for field in ("wall", "window", "door"):
-        arrays[field] = arrays[field].astype(bool, copy=False)
-    for field in ("room", "icon"):
-        arrays[field] = arrays[field].astype(np.uint8, copy=False)
-    return {
-        "path": str(path),
-        "shape": tuple(next(iter(shapes.values()))),
-        "arrays": arrays,
-    }
-
-
-def _gh_token(env: Mapping[str, str] | None = None) -> str | None:
-    values = env if env is not None else os.environ
-    return values.get("GITHUB_TOKEN") or values.get("GH_TOKEN")
-
-
-def _resolve_weights_url(env: Mapping[str, str] | None = None) -> str | None:
-    """Return a downloadable Release asset URL without leaking auth headers.
-
-    Public repositories can use the direct Release URL. Private repositories need
-    a token for the asset API, which responds with a short-lived signed URL in a
-    redirect location. The signed URL is returned so the download itself does
-    not forward the Authorization header to storage.
-    """
-    try:
-        urllib.request.urlopen(
-            urllib.request.Request(CODY_V5_WEIGHTS_URL, method="HEAD"),
-            timeout=15,
-        )
-        return CODY_V5_WEIGHTS_URL
-    except Exception:
-        pass
-
-    token = _gh_token(env)
-    if not token:
-        return None
-    request = urllib.request.Request(
-        CODY_V5_WEIGHTS_ASSET_API,
-        headers={
-            "Accept": "application/octet-stream",
-            "Authorization": f"Bearer {token}",
-        },
-    )
-    try:
-        urllib.request.build_opener(_NoRedirect()).open(request, timeout=30)
-    except urllib.error.HTTPError as exc:
-        if exc.code in (301, 302, 307, 308):
-            return exc.headers.get("Location")
-    except Exception:
-        pass
-    return None
-
-
-def ensure_cody_semantic_weights(
-    *,
-    root: Path | None = None,
-    env: Mapping[str, str] | None = None,
-) -> dict[str, object]:
-    """Ensure Cody v5 semantic weights exist, downloading only the default path.
-
-    A user-provided ``CC_WEIGHTS`` path is never auto-downloaded. That keeps A/B
-    tests honest: if an override is missing, callers get a clear failure instead
-    of silently falling back to the default model.
-    """
-    weights, _, values = _semantic_paths(root=root, env=env)
-    if weights.is_file():
-        return {
-            "ok": True,
-            "reason": "weights_present",
-            "weights_path": str(weights),
-            "downloaded": False,
-        }
-    if values.get("CC_WEIGHTS"):
-        return {
-            "ok": False,
-            "reason": "custom_weights_missing",
-            "weights_path": str(weights),
-            "downloaded": False,
-        }
-
-    url = _resolve_weights_url(values)
-    if not url:
-        return {
-            "ok": False,
-            "reason": "weights_download_unavailable",
-            "weights_path": str(weights),
-            "downloaded": False,
-        }
-
-    weights.parent.mkdir(parents=True, exist_ok=True)
-    tmp = weights.with_name(weights.name + ".part")
-    try:
-        urllib.request.urlretrieve(url, tmp)
-        digest = hashlib.sha256()
-        with tmp.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(1 << 20), b""):
-                digest.update(chunk)
-        if digest.hexdigest() != CODY_V5_WEIGHTS_SHA256:
-            tmp.unlink(missing_ok=True)
-            return {
-                "ok": False,
-                "reason": "weights_checksum_mismatch",
-                "weights_path": str(weights),
-                "downloaded": False,
-            }
-        os.replace(tmp, weights)
-        return {
-            "ok": True,
-            "reason": "weights_downloaded",
-            "weights_path": str(weights),
-            "downloaded": True,
-        }
-    except Exception as exc:
-        tmp.unlink(missing_ok=True)
-        return {
-            "ok": False,
-            "reason": "weights_download_failed",
-            "weights_path": str(weights),
-            "downloaded": False,
-            "error": str(exc),
-        }
-
-
-def ensure_cody_semantic_masks(
-    image_paths: list[str | Path],
-    *,
-    root: Path | None = None,
-    env: Mapping[str, str] | None = None,
-    runner: Any | None = None,
-) -> dict[str, object]:
-    """Ensure CubiCasa semantic mask cache files exist for uploaded images.
-
-    This is intentionally a thin adapter around Cody's heavyweight inference
-    script. Bella can verify orchestration without importing torch/cv2 at API
-    import time, and production gets a clear fallback reason when model assets
-    are absent.
-    """
-    weights, cache_dir, values = _semantic_paths(root=root, env=env)
-    base = root or Path.cwd()
-    images = [Path(path) for path in image_paths]
-    absolute_images = [path if path.is_absolute() else base / path for path in images]
-    mask_paths = [_mask_path_for_image(cache_dir, image) for image in absolute_images]
-    missing = [
-        image
-        for image, mask_path in zip(absolute_images, mask_paths)
-        if not _has_room_mask(mask_path)
-    ]
-    if not missing:
-        return {
-            "ok": True,
-            "reason": "semantic_masks_cached",
-            "cache_dir": str(cache_dir),
-            "cached": [str(path) for path in mask_paths],
-            "generated": [],
-        }
-
-    weight_result = ensure_cody_semantic_weights(root=root, env=values)
-    if not weight_result["ok"]:
-        return {
-            "ok": False,
-            "reason": weight_result["reason"],
-            "cache_dir": str(cache_dir),
-            "weights_path": str(weights),
-            "missing_images": [str(path) for path in missing],
-        }
-
-    script = _infer_script_path(root=root, env=values)
-    if not script.is_file():
-        return {
-            "ok": False,
-            "reason": "inference_script_missing",
-            "cache_dir": str(cache_dir),
-            "weights_path": str(weights),
-            "script_path": str(script),
-            "missing_images": [str(path) for path in missing],
-        }
-
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    command = [
-        sys.executable,
-        str(script),
-        str(weights),
-        str(cache_dir),
-        *[str(path) for path in missing],
-    ]
-    try:
-        if runner is None:
-            subprocess.run(command, check=True, capture_output=True, text=True)
-        else:
-            runner(command)
-    except Exception as exc:
-        return {
-            "ok": False,
-            "reason": "inference_failed",
-            "cache_dir": str(cache_dir),
-            "weights_path": str(weights),
-            "script_path": str(script),
-            "missing_images": [str(path) for path in missing],
-            "error": str(exc),
-        }
-
-    generated = [_mask_path_for_image(cache_dir, image) for image in missing]
-    invalid = [path for path in generated if not _has_room_mask(path)]
-    if invalid:
-        return {
-            "ok": False,
-            "reason": "inference_output_missing",
-            "cache_dir": str(cache_dir),
-            "weights_path": str(weights),
-            "script_path": str(script),
-            "invalid_outputs": [str(path) for path in invalid],
-        }
-    return {
-        "ok": True,
-        "reason": "semantic_masks_generated",
-        "cache_dir": str(cache_dir),
-        "weights_path": str(weights),
-        "script_path": str(script),
-        "cached": [str(path) for path in mask_paths],
-        "generated": [str(path) for path in generated],
-    }
 
 
 def cody_semantic_room_labeler_status(
@@ -337,32 +67,30 @@ def cody_semantic_room_labeler_status(
     root: Path | None = None,
     env: Mapping[str, str] | None = None,
 ) -> dict[str, object]:
-    """Return whether Cody's CubiCasa semantic room labeler can run locally."""
-    weights, cache_dir, _values = _semantic_paths(root=root, env=env)
-    cache_files = []
-    if cache_dir.is_dir():
-        cache_files = [
-            path for path in sorted(cache_dir.glob("*_mask.npz")) if _has_room_mask(path)
-        ]
-    has_weights = weights.is_file()
-    has_cache = bool(cache_files)
-    available = has_weights or has_cache
-    reason = (
-        "cody_semantic_ready"
-        if available
-        else "missing_cody_cubicasa_weights_or_cache"
-    )
+    """回報 DINOv2 房型標註層能否在本機執行。
+
+    `available` 為 False 時房型會退回面積規則（純幾何），品質明顯下降但不會中斷
+    ——呼叫端可依 `fallback` 欄位向使用者說明降級原因。
+    """
+    head = _head_path(root=root, env=env)
+    has_head = head.is_file()
+    has_torch = _torch_present()
+    available = has_head and has_torch
+    if available:
+        reason = "cody_semantic_ready"
+    elif not has_head:
+        reason = "missing_room_head"
+    else:
+        reason = "missing_torch"
     return {
         "available": available,
         "reason": reason,
-        "model_version": "cody_cubicasa_v5",
-        "weights_path": str(weights),
-        "weights_present": has_weights,
-        "inference_script_path": str(_infer_script_path(root=root, env=env)),
-        "weights_url": CODY_V5_WEIGHTS_URL,
-        "weights_asset_api": CODY_V5_WEIGHTS_ASSET_API,
-        "weights_sha256": CODY_V5_WEIGHTS_SHA256,
-        "cache_dir": str(cache_dir),
-        "cache_count": len(cache_files),
-        "fallback": None if available else "django_icon_zone_rules",
+        "model_version": MODEL_VERSION,
+        "head_path": str(head),
+        "head_present": has_head,
+        "torch_present": has_torch,
+        "backbone": "dinov2_vits14",
+        "backbone_cache_hint": str(BACKBONE_CACHE_HINT),
+        "license": "Apache-2.0",
+        "fallback": None if available else "area_rules",
     }

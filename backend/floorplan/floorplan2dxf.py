@@ -154,6 +154,9 @@ def load_config(path: str) -> Config:
 
 # ─────────────────────────── 前處理 ───────────────────────────
 def load_gray(cfg: Config):
+    # 不用 cv2.imread：它走 C 層 fopen，Windows 上非 ASCII 路徑（中文檔名／
+    # 使用者目錄）會直接回 None。改由 numpy 讀 bytes 再 imdecode，路徑編碼
+    # 交給 Python 處理。產品端上傳檔名不可控，這條是硬需求。
     try:
         encoded = np.fromfile(cfg.input, dtype=np.uint8)
         img = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED) if encoded.size else None
@@ -383,8 +386,8 @@ def detect_doors(thin, T: int, arc_pct: float):
                            minLineLength=int(1.2 * T), maxLineGap=int(0.4 * T))
     if segs is None:
         return []
-    # OpenCV 4 returns (N, 1, 4), while OpenCV 5 may return (1, N, 4).
-    # Treat both as a flat list of four-coordinate segments.
+    # OpenCV 4 回 (N, 1, 4)，OpenCV 5 可能回 (1, N, 4)。攤平成四座標一列的
+    # 平坦清單，兩個大版本都吃得下——鎖 <5 是防線，這裡是安全網。
     segs = np.asarray(segs).reshape(-1, 4)
     Hs, Vs = [], []
     for x1, y1, x2, y2 in segs:
@@ -1244,7 +1247,7 @@ def write_arch_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info,
     poly = _room_polygon(rects, wins, doors, img_w, img_h, T, T_out)
     cnt = poly.reshape(-1, 1, 2).astype(np.float32) if poly is not None else None
 
-    # training/json/gray/ 保留全部門(帶 score 給前端過濾)；training/json/arch/ 直接蓋白模：只收高信心門，
+    # temp/json/gray/ 保留全部門(帶 score 給前端過濾)；temp/json/arch/ 直接蓋白模：只收高信心門，
     # 且換算後門寬要合理(50~250cm)——高分小弧多半是櫃門/雙開門的半扇
     good = [d for d in doors if d[3] >= 0.85 and 50.0 <= d[2] * cm <= 250.0]
     door_list = []
@@ -1380,6 +1383,41 @@ def remove_solid_blobs(bw):
     return out, removed
 
 
+def derive_wall_T(bw):
+    """自動牆厚 T＝距離變換 max×2（現行式），加「磨牆害徵」防護。
+    max 會被黏在牆網上的粗塊綁架（remove_solid_blobs 清不掉：與牆同
+    連通塊、或內切圓 <16px）；T 撐爆時 0.35T 的 solid 開運算核超過細
+    隔間牆厚，牆整批被磨掉——floor13 實案：角塊拉到 T=30、隔間僅 8px、
+    下半牆全滅使房間灌通。
+    防護：以「長直段（≥1.5T）且 ≥5px 粗」為牆本體，量 solid 開運算後
+    的牆存活率——≥0.92 為正常（38 張考卷實測其餘皆 ≥0.94），T 原樣回傳
+    行為零改變；<0.92＝正在磨牆，迴退 p99.5×2 穩健值。
+    全域直接改 p99.5 已實測不可行：floor04 的 max 是誠實外牆厚，
+    p99.5 低估 → 窗全滅（P98/R96 → 97/88 大回歸），故只在害徵時介入。"""
+    dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
+    T = max(2, int(round(2.0 * float(dt.max()))))
+    solid = max(3, int(round(0.35 * T)))
+    L = max(9, int(round(1.5 * T)))
+    horiz = cv2.morphologyEx(bw, cv2.MORPH_OPEN,
+                             cv2.getStructuringElement(cv2.MORPH_RECT, (L, 1)))
+    vert = cv2.morphologyEx(bw, cv2.MORPH_OPEN,
+                            cv2.getStructuringElement(cv2.MORPH_RECT, (1, L)))
+    wallish = ((horiz > 0) | (vert > 0)) & (dt >= 2.5)
+    n_wall = int(np.count_nonzero(wallish))
+    if n_wall:
+        ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (solid, solid))
+        bw_open = cv2.morphologyEx(bw, cv2.MORPH_OPEN, ker)
+        surv = float(np.count_nonzero(wallish & (bw_open > 0))) / n_wall
+        if surv < 0.92:
+            on = dt[dt > 0]
+            t_rb = max(2, int(round(2.0 * float(np.percentile(on, 99.5)))))
+            if t_rb < T:
+                print(f"⚠ 牆存活率 {surv:.2f} <0.92（T={T} 遭粗塊撐爆）"
+                      f"→ 穩健牆厚 T={t_rb}")
+                T = t_rb
+    return T
+
+
 def run(cfg: Config):
     scale = (25.4 / cfg.dpi) if cfg.dpi else cfg.mm_per_px
     gray, bgr = load_gray(cfg)
@@ -1391,8 +1429,7 @@ def run(cfg: Config):
     bw, nblob = remove_solid_blobs(bw)           # 去掉大實心填充塊(非牆)
 
     # 自動量牆厚 T(最厚的水平/垂直線寬)，再依 T 推導所有 px 參數(空白者才推)
-    dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
-    T = max(2, int(round(2.0 * float(dt.max()))))
+    T = derive_wall_T(bw)
     pick = lambda v, d: (v if v not in (None, 0) else d)
     cfg.solid = pick(cfg.solid, max(3, int(round(0.35 * T))))
     cfg.h_len = pick(cfg.h_len, max(int(round(1.5 * T)), cfg.solid + 2))
@@ -1425,20 +1462,20 @@ def run(cfg: Config):
         if cfg.preview:
             preview_solid(bgr, rects, wins, cfg.preview)
 
-        # 門寬推比例(外圍牆厚≥15cm 把關) → 公分單位的 testdata/dxf/ + 前端交接 training/json/gray/
+        # 門寬推比例(外圍牆厚≥15cm 把關) → 公分單位的 testdata/dxf/ + 前端交接 temp/json/gray/
         T_out = outer_wall_thickness(rects, T)
         mmpp, sinfo = derive_door_scale(doors, T_out, cfg)
         sinfo["outer_wall_px"] = round(T_out, 1)
         base = os.path.splitext(os.path.basename(cfg.input))[0]
-        os.makedirs("training/json/gray", exist_ok=True)
-        os.makedirs("training/json/arch", exist_ok=True)
+        os.makedirs("temp/json/gray", exist_ok=True)
+        os.makedirs("temp/json/arch", exist_ok=True)
         if cfg.output:                       # 指令/config 有指定輸出就照用
             scale_out = cfg.output
         else:                                # 慣例：DXF(cm) → testdata/dxf/
             os.makedirs("testdata/dxf", exist_ok=True)
             scale_out = os.path.join("testdata/dxf", base + ".dxf")
-        json_out = os.path.join("training/json/gray", base + ".json")
-        arch_out = os.path.join("training/json/arch", base + ".json")
+        json_out = os.path.join("temp/json/gray", base + ".json")
+        arch_out = os.path.join("temp/json/arch", base + ".json")
         write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
         write_json(json_out, img_w, img_h, rects, wins, doors, mmpp, sinfo, cfg, scale_out)
         write_arch_json(arch_out, img_w, img_h, rects, wins, doors, mmpp, sinfo,
@@ -1475,12 +1512,12 @@ IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 training/chk/gray/ 供快速檢視。"""
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 temp/chk/gray/ 供快速檢視。"""
     pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
                   if p.lower().endswith(IMG_EXTS))
     if not pngs:
         sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
-    chk_dir = "training/chk/gray"
+    chk_dir = "temp/chk/gray"
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(chk_dir, exist_ok=True)
     ok = fail = 0
@@ -1500,13 +1537,13 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
     print(f"\n批次完成: 成功 {ok} / 失敗 {fail}")
     print(f"  DXF(cm) → {out_dir}/  (門寬推算比例、公分單位)")
     print(f"  疊圖 → {chk_dir}/  (原圖 + 紅實心牆 + 綠窗，一次翻完抓問題)")
-    print(f"  JSON → training/json/gray/ (前端交接)   白模 → training/json/arch/")
+    print(f"  JSON → temp/json/gray/ (前端交接)   白模 → temp/json/arch/")
 
 
 def main():
     p = argparse.ArgumentParser(
         description="平面圖 PNG/JPG/BMP → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
-                    "不帶參數 = 批次跑 testdata/png/ 目錄下所有圖檔 → testdata/dxf/ + training/chk/gray/")
+                    "不帶參數 = 批次跑 testdata/png/ 目錄下所有圖檔 → testdata/dxf/ + temp/chk/gray/")
     p.add_argument("input", nargs="?",
                    help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
@@ -1541,9 +1578,9 @@ def main():
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]
-    if not cfg.preview:                      # 慣例：疊圖 → training/chk/gray/
-        os.makedirs("training/chk/gray", exist_ok=True)
-        cfg.preview = os.path.join("training/chk/gray", base + "_chk.png")
+    if not cfg.preview:                      # 慣例：疊圖 → temp/chk/gray/
+        os.makedirs("temp/chk/gray", exist_ok=True)
+        cfg.preview = os.path.join("temp/chk/gray", base + "_chk.png")
     run(cfg)
 
 

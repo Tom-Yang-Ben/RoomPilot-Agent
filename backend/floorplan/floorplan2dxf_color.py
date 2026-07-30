@@ -8,9 +8,9 @@ floorplan2dxf_color.py — 彩色平面圖 PNG → DXF（floorplan2dxf.py 的彩
 指定別的設定檔：
     python3 floorplan2dxf_color.py 別的.ini
 
-輸出一律進 color 子目錄（training/chk/color/ testdata/dxf/ training/json/color/
-training/json/color_arch/），與主程式 floorplan2dxf.py 的 training/chk/gray/ testdata/dxf/gray/
-training/json/gray/ training/json/arch/ 完全分開，不互相覆蓋。
+輸出一律進 color 子目錄（temp/chk/color/ testdata/dxf/ temp/json/color/
+temp/json/color_arch/），與主程式 floorplan2dxf.py 的 temp/chk/gray/ testdata/dxf/gray/
+temp/json/gray/ temp/json/arch/ 完全分開，不互相覆蓋。
 
 核心：不描輪廓（會歪），改成偵測線條後把每條「建構」成純水平或純垂直，
       H 線兩端共用同一個 y、V 線兩端共用同一個 x，數學上不可能歪。
@@ -1461,7 +1461,7 @@ def write_arch_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info,
     poly = _room_polygon(rects, wins, doors, img_w, img_h, T, T_out)
     cnt = poly.reshape(-1, 1, 2).astype(np.float32) if poly is not None else None
 
-    # training/json/color/ 保留全部門(帶 score 給前端過濾)；training/json/color_arch/ 直接蓋白模：只收高信心門，
+    # temp/json/color/ 保留全部門(帶 score 給前端過濾)；temp/json/color_arch/ 直接蓋白模：只收高信心門，
     # 且換算後門寬要合理(50~250cm)——高分小弧多半是櫃門/雙開門的半扇
     good = [d for d in doors if d[3] >= 0.85 and 50.0 <= d[2] * cm <= 250.0]
     door_list = []
@@ -1889,12 +1889,12 @@ IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 training/chk/color/ 供快速檢視。"""
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 temp/chk/color/ 供快速檢視。"""
     pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
                   if p.lower().endswith(IMG_EXTS))
     if not pngs:
         sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
-    chk_dir = "training/chk/color"
+    chk_dir = "temp/chk/color"
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(chk_dir, exist_ok=True)
     ok = fail = 0
@@ -1914,13 +1914,13 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
     print(f"\n批次完成: 成功 {ok} / 失敗 {fail}")
     print(f"  DXF(cm) → {out_dir}/  (門寬推算比例、公分單位)")
     print(f"  疊圖 → {chk_dir}/  (原圖 + 紅實心牆 + 綠窗，一次翻完抓問題)")
-    print(f"  JSON → training/json/color/ (前端交接)   白模 → training/json/color_arch/")
+    print(f"  JSON → temp/json/color/ (前端交接)   白模 → temp/json/color_arch/")
 
 
 def main():
     p = argparse.ArgumentParser(
         description="彩色平面圖 PNG/JPG/BMP → DXF。參數見 config_color.ini；輸入/輸出可用指令覆蓋。\n"
-                    "不帶參數 = 批次跑 testdata/color_png/ 目錄下所有圖檔 → testdata/dxf/ + training/chk/color/")
+                    "不帶參數 = 批次跑 testdata/color_png/ 目錄下所有圖檔 → testdata/dxf/ + temp/chk/color/")
     p.add_argument("input", nargs="?",
                    help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
@@ -1956,9 +1956,9 @@ def main():
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]
-    if not cfg.preview:                      # 慣例：疊圖 → training/chk/color/
-        os.makedirs("training/chk/color", exist_ok=True)
-        cfg.preview = os.path.join("training/chk/color", base + "_chk.png")
+    if not cfg.preview:                      # 慣例：疊圖 → temp/chk/color/
+        os.makedirs("temp/chk/color", exist_ok=True)
+        cfg.preview = os.path.join("temp/chk/color", base + "_chk.png")
     run(cfg)
 
 

@@ -72,17 +72,24 @@ CODY_ROOM_TYPE_MAP: dict[str, str | None] = {
     "storage": "storage",
     "outdoor": "balcony",
     "garage": None,  # 台灣公寓場景罕見且無下游消費者，維持不採用
+    # 2026-07-29 語意層新增 stair 一類（MAIN_SYNC_TODO 第 10 節）。踏板幾何是
+    # 樓梯獨有的圖案，故它立得住；同批曾短暫存在的 office 已撤回併入 storage。
+    # 映射為 None 是刻意的：樓梯區的產品語意是「不可擺設」，主線契約詞彙裡沒有
+    # 對應鍵，硬塞既有鍵（如 circulation）會讓下游把它當可佈置的走道。
+    # 待前端推薦表新增 stair 契約鍵後再改指過去。
+    "stair": None,
     "room": None,
 }
 
 
 def _semantic_cache_key(filename: str | None) -> str | None:
-    """上傳檔名主幹 → `cubicasa/room/<stem>_mask.npz` 的語意快取鍵。
+    """上傳檔名主幹 → `recognize_cody_rooms` 的 `cache_key`。
 
-    既有語意快取全部以測資檔名為鍵；這裡若不把檔名傳給 recognize_cody_rooms，
-    鍵會退化成內容雜湊、快取 100% 落空（2026-07 盤點的房型斷鏈主因）。
+    2026-07-30 CubiCasa 遮罩快取整批移除後，這個鍵不再對應任何 `*_mask.npz`，
+    但仍有用：它決定 cody_adapter 寫暫存圖的檔名，而 OCR 那層的單格快取以路徑
+    為鍵——同一張圖跨請求維持穩定命名，日誌與診斷才追得回是哪張圖。
     只接受 ASCII 安全字元的主幹；其他（含中文檔名、帶空白）回 None，
-    讓 cody_adapter 沿用內容雜湊鍵，行為與快取未命中時完全一致。
+    讓 cody_adapter 退回內容雜湊鍵。
     """
     base = re.split(r"[\\/]", str(filename or ""))[-1]
     stem, _, _ext = base.rpartition(".")
@@ -153,7 +160,7 @@ def apply_floorplan2room_labels(
     所以 bbox 必須換算回原圖像素才對得上。
 
     覆蓋規則（2026-07-29 以 floor01/floor04 實測定案）：語意層可以填補空位、
-    可以更新圖示層自我標記「待確認」的猜測（僅限 cubicasa_semantic 來源），
+    可以更新圖示層自我標記「待確認」的猜測（僅限 dinov2_semantic 來源），
     但不得覆蓋印刷房名、七格局啟發式與使用者確認的判斷。
     """
     if not rooms or not semantics or not semantics.get("rooms"):
@@ -163,18 +170,18 @@ def apply_floorplan2room_labels(
     scale_x = image_width / max(1.0, float(source_size.get("w") or image_width))
     scale_y = image_height / max(1.0, float(source_size.get("h") or image_height))
 
-    semantic_may_update_icons = semantics.get("room_label_source") == "cubicasa_semantic"
+    semantic_may_update_icons = semantics.get("room_label_source") == "dinov2_semantic"
     applied = 0
     for room in rooms:
         # 2026-07-29 優先序定案（floor01 OCR 實跑＋floor04 黃金測試 A/B）：
         # (1) 空位（default）一律可填；
         # (2) 圖示層的猜測自我標記「待確認」（furniture_icon_inference），
-        #     可被真語意（cubicasa_semantic）更新——floor01 的 4 m² 假臥室
+        #     可被真語意（dinov2_semantic）更新——floor01 的 4 m² 假臥室
         #     即由此修正為玄關；降級的 area_rules 沒有這個資格；
         # (3) 其他一律不可覆蓋：印刷房名（ocr_room_label，floor01 實跑
         #     CLOSET 曾被蓋成廚房）、七格局啟發式（layout_heuristic，
         #     floor04 黃金測試曾因被覆蓋而四型全滅）、使用者確認。
-        # 最終順位：印刷房名/啟發式 > CubiCasa 語意 > 圖示待確認 > 面積規則。
+        # 最終順位：印刷房名/啟發式 > DINOv2 語意 > 圖示待確認 > 面積規則。
         room_type_value = room.get("type")
         if room_type_value in (None, "", "default"):
             pass
