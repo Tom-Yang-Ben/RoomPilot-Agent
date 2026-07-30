@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
+import io
+import logging
 import math
+import os
+import tempfile
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, Mapping
@@ -14,6 +20,9 @@ from . import floorplan2dxf as cody
 
 
 CONFIG_PATH = Path(__file__).with_name("config.ini")
+CONFIG_COLOR_PATH = Path(__file__).with_name("config_color.ini")
+
+logger = logging.getLogger(__name__)
 
 
 def _decode_image(image_bytes: bytes) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
@@ -891,3 +900,137 @@ def recognize_cody_geometry(
             "band_carve_count": len(band_carve_log),
         },
     }
+
+
+def _room_payload(det, rooms, zones, edges, is_color, colorful, label_source) -> dict[str, Any]:
+    """複製 floorplan2room.write_rooms_json 的欄位組裝，但留在記憶體不落地。"""
+    from . import floorplan2room as room_pipeline
+
+    cm = det["cm"]
+    return {
+        "image": {"w": det["img_w"], "h": det["img_h"]},
+        "is_color": bool(is_color),
+        "color_ratio": round(colorful, 4),
+        "pipeline": "floorplan2dxf_color" if is_color else "floorplan2dxf",
+        "cm_per_px": round(cm, 4),
+        "scale_info": det["scale_info"],
+        "walls": len(det["rects"]),
+        "windows": len(det["wins"]),
+        "door_ranges_cm": [list(r) for r in room_pipeline.DOOR_RANGES_CM],
+        "doors": [
+            {
+                "length_cm": round(d[2] * cm, 1),
+                "type": "double" if d[2] * cm >= 160.0 else "single",
+                "bbox": [
+                    round(min(p[0] for p in quad), 1),
+                    round(min(p[1] for p in quad), 1),
+                    round(max(p[0] for p in quad), 1),
+                    round(max(p[1] for p in quad), 1),
+                ],
+            }
+            for quad, d in zones
+        ],
+        "rooms": [
+            {
+                "id": r["id"],
+                "label": r["label"],
+                "label_zh": r["label_zh"],
+                "area_m2": r["area_m2"],
+                "bbox": list(r["bbox"]),
+                "center": [round(r["cx"], 1), round(r["cy"], 1)],
+                "aspect": r["aspect"],
+                "has_door": bool(r.get("has_door", False)),
+                "reach": bool(r.get("reach", False)),
+                "cc_share": r.get("cc_share"),
+                "icons_cm2": r.get("icons_cm2"),
+                "symbols": r.get("symbols"),
+            }
+            for r in rooms
+        ],
+        "adjacency": [list(e) for e in edges],
+        "room_label_source": label_source,
+    }
+
+
+def recognize_cody_rooms(
+    image_bytes: bytes,
+    *,
+    cache_key: str | None = None,
+) -> dict[str, Any] | None:
+    """走 cody floorplan2room 全鏈路取房型語意，結果留在記憶體。
+
+    `docs/CODY_MAIN_SYNC_TODO.md` 第 2 點的主線側實作。floorplan2room 是腳本
+    形狀——`process()` 吃檔案路徑、回傳 bool、把資料寫進硬編路徑
+    `training/json/room/` 並另存兩張預覽 PNG。主線 API 手上只有 image bytes，
+    因此這裡不呼叫 `process()`，改直接串它的內部函式，並自行組裝 payload。
+
+    `cache_key` 決定暫存圖的檔名（預設為內容雜湊），OCR 的單格快取以路徑為鍵，
+    同一張圖跨請求維持穩定命名。
+
+    2026-07-30 起房型由 DINOv2 裁切分類判定，不再有 200MB 權重下載與每張一分鐘
+    的 CubiCasa subprocess 推論——這條路徑現在可以安全地留在 HTTP 請求裡。
+    骨幹 88MB 由 `torch.hub` 首次載入後快取於 `~/.cache/torch/hub/`；缺 torch／
+    骨幹／線性頭時 `build_rooms` 自動退回面積規則，`room_label_source` 會誠實
+    標示 `area_rules`。可用性檢查見 `backend/floorplan/vision/cody_semantic.py`。
+
+    回傳 None 代表無法辨識，呼叫端應退回 django_icon_zone_rules。
+    """
+    if not image_bytes:
+        return None
+    if cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), cv2.IMREAD_COLOR) is None:
+        return None
+
+    # 延後匯入：floorplan2room 頂端會做 sys.path.insert，只有真的要用時才付這個代價。
+    from . import floorplan2dxf_color as cody_color
+    from . import floorplan2room as room_pipeline
+
+    stem = cache_key or hashlib.sha256(image_bytes).hexdigest()[:16]
+    chatter = io.StringIO()
+    try:
+        with tempfile.TemporaryDirectory() as workspace:
+            image_path = os.path.join(workspace, f"{stem}.png")
+            with open(image_path, "wb") as handle:
+                handle.write(image_bytes)
+
+            with contextlib.redirect_stdout(chatter):
+                is_color, colorful = room_pipeline.probe_color(image_path)
+                if is_color:
+                    config = cody_color.load_config(str(CONFIG_COLOR_PATH))
+                    detection = room_pipeline.detect_color(
+                        replace(config, input=image_path, output="", preview=None)
+                    )
+                else:
+                    config = cody.load_config(str(CONFIG_PATH))
+                    detection = room_pipeline.detect_bw(
+                        replace(config, input=image_path, output="", preview=None)
+                    )
+                room_pipeline.refine_scale(detection)
+                # OCR 必須先於 detect_symbols——模板比對靠 text_boxes 抑制圖面
+                # 文字的假陽性（floor06 的 LNDRY/BALCONY 曾被判成 ksink/sofa），
+                # 且 texts 本身是房型證據層 5。順序反了不報錯、只靜默失效，
+                # 故與 floorplan2room.process() 保持同一順序。
+                detection["texts"] = room_pipeline.detect_room_text(
+                    image_path, detection["img_w"], detection["img_h"]
+                )
+                detection["text_boxes"] = room_pipeline.detect_text_boxes(
+                    image_path, detection["img_w"], detection["img_h"]
+                )
+                detection["symbols"] = room_pipeline.detect_symbols(detection)
+                _labels, rooms, _bridges, zones, edges = room_pipeline.build_rooms(detection)
+
+            # 房型來源：DINOv2 裁切分類可用即為模型判定，否則 build_rooms 已
+            # 靜默退回面積規則。缺 torch／骨幹／線性頭時前端該知道品質降級了。
+            label_source = (
+                "dinov2_semantic"
+                if room_pipeline.room_classifier.available()
+                else "area_rules"
+            )
+            payload = _room_payload(
+                detection, rooms, zones, edges, is_color, colorful, label_source
+            )
+    except Exception:
+        logger.warning("cody floorplan2room 房型辨識失敗，退回上游 fallback", exc_info=True)
+        return None
+
+    payload["pipeline_log"] = chatter.getvalue().strip().splitlines()
+    return payload

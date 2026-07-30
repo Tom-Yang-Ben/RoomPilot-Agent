@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+from functools import lru_cache
 from typing import Any
 
 import numpy as np
 
 from .image import decode_image
+
+logger = logging.getLogger(__name__)
 
 
 class PaddleOCRProvider:
@@ -66,8 +70,20 @@ def _normalise_paddle_result(result: Any) -> list[dict[str, Any]]:
     return observations
 
 
+@lru_cache(maxsize=1)
 def default_ocr_provider() -> PaddleOCRProvider | None:
+    """建構共用的 PaddleOCR 供應者；重複呼叫回傳同一實例。
+
+    引擎初始化要載模型（首次執行還會下載），不能在每個 HTTP 請求重建，
+    因此以 lru_cache 做單例（2026-07 盤點第 3 項死碼接回請求路徑的前置）。
+    paddle 未安裝回 None——預期情況，安靜降級、行為與未接線時一致；
+    其他初始化錯誤（模型下載失敗等）記 log 後回 None，OCR 是輔助證據，
+    不得癱瘓辨識主流程。結果會被快取：安裝 paddle 後需重啟伺服器才生效。
+    """
     try:
         return PaddleOCRProvider()
     except (ImportError, ModuleNotFoundError):
+        return None
+    except Exception:
+        logger.exception("PaddleOCR 初始化失敗，OCR 證據停用")
         return None

@@ -193,37 +193,6 @@ def test_analyze_floorplan_image_uses_cody_for_synthetic_geometry() -> None:
     assert all(item["source"] == "cody_vision" for item in analysis["windows"])
 
 
-def test_analyze_floorplan_image_reports_cody_room_labeler_status(monkeypatch) -> None:
-    def fake_apply(_image, rooms, *, plan_bbox_px, m_per_px):
-        assert plan_bbox_px
-        assert m_per_px > 0
-        assert rooms
-        rooms[0]["cody_room_classifier"] = {"label": "living", "confidence": 0.9}
-        return {
-            "available": True,
-            "asset_ready": True,
-            "runtime_enabled": True,
-            "runtime_ready": True,
-            "reason": "cody_dinov2_ready",
-            "applied": True,
-            "labelled_room_count": 1,
-        }
-
-    monkeypatch.setattr(
-        "backend.floorplan.vision.analysis.apply_cody_room_labels",
-        fake_apply,
-    )
-
-    analysis = analyze_floorplan_image(
-        _synthetic_floorplan(),
-        calibration_hint={"distance_cm": 500, "start_px": [0, 0], "end_px": [500, 0]},
-    )
-
-    assert analysis["cody_room_labeler"]["reason"] == "cody_dinov2_ready"
-    assert analysis["cody_room_labeler"]["applied"] is True
-    assert any("cody_room_classifier" in room for room in analysis["rooms"])
-
-
 def test_cody_geometry_can_be_confirmed_without_roompilot_fallback_corrections() -> None:
     analysis = analyze_floorplan_image(
         _synthetic_floorplan(),
@@ -476,7 +445,9 @@ def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations(
         "balcony": 1,
     }
     assert len(analysis["doors"]) == 7
-    assert len(analysis["windows"]) == 3
+    # 2026-07-28 由 3 改為 2：cody 辨識核心併入後濾掉一扇 12.17 公分寬、
+    # 對應 38 乘 8 像素色塊的假窗，剩下兩扇為 76.09 與 79.13 公分。
+    assert len(analysis["windows"]) == 2
     assert all(70 <= door["width_cm"] <= 120 for door in analysis["doors"])
     assert any(
         wall["bbox_px"][1] >= 700

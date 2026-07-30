@@ -22,11 +22,17 @@ vision = [
     "numpy>=2.0",
     "opencv-python>=4.10,<5",
     "ezdxf>=1.3",
+    "svgpathtools>=1.6",
+    "rapidocr-onnxruntime>=1.4",
 ]
 # 尺度文字與繁中房名 OCR；模型較大，部署端按需安裝。
 ocr = [
     "paddleocr>=3.0,<4",
     "paddlepaddle>=3.0,<4",
+]
+semantic = [
+    "torch>=2.0",
+    "opencv-python-headless>=4.10,<5",
 ]
 # 型錄管線(scripts/):IKEA 下載 + 清洗 + 匯入 PostgreSQL
 catalog = [

@@ -33,6 +33,7 @@ from ..floorplan.vision import (
     confirm_floorplan_analysis,
     infer_room_requirements,
 )
+from ..floorplan.vision.ocr import default_ocr_provider
 from ..upgrade3d.dxf_parser import list_plans, parse_dxf_bytes, parse_dxf_file
 from .scene_service import (
     _largest_region_boundary,
@@ -123,6 +124,15 @@ QUESTIONNAIRE_VISUAL_CATALOG = load_questionnaire_visual_catalog()
 QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
 _QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
+
+
+def _floorplan_ocr_provider():
+    """Return the optional OCR provider for printed room names and dimensions."""
+    if os.environ.get("ROOMPILOT_OCR_DISABLED") == "1":
+        return None
+    return default_ocr_provider()
+
+
 MAX_RENDER_BYTES = 20 * 1024 * 1024
 WORKFLOW_STEPS = {
     "project",
@@ -1963,6 +1973,7 @@ def analyze_project_floorplan(project_id: str) -> dict:
             analysis = analyze_floorplan_image(
                 content,
                 filename=upload["filename"],
+                ocr_provider=_floorplan_ocr_provider(),
             )
         except (TypeError, ValueError) as exc:
             raise HTTPException(
@@ -2907,7 +2918,7 @@ async def floorplan_analyze(
     geometry = _floorplan_json_field(geometry_json, "geometry", [])
     observed_utilities = _floorplan_json_field(observed_utilities_json, "observed_utilities", [])
     brief = _floorplan_json_field(brief_json, "brief", {})
-    provider = None
+    provider = _floorplan_ocr_provider()
     try:
         analysis = analyze_floorplan_image(
             data,

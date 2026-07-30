@@ -21,9 +21,8 @@ import cv2
 import numpy as np
 
 _PKG_DIR = os.path.dirname(os.path.abspath(__file__))
-_ROOT = os.path.dirname(os.path.dirname(_PKG_DIR))
 HEAD_PATH = os.environ.get("ROOM_HEAD",
-                           os.path.join(_ROOT, ".runtime", "cody", "room_head.npz"))
+                           os.path.join(_PKG_DIR, "room_head.npz"))
 SIZE = 224
 MEAN = np.array([0.485, 0.456, 0.406], np.float32)
 STD = np.array([0.229, 0.224, 0.225], np.float32)
@@ -83,6 +82,15 @@ def _load():
               "w": z["weight"], "b": z["bias"],
               "classes": [str(x) for x in z["classes"]]}
     return _state
+
+
+def available():
+    """DINOv2 房型分類這條路是否可用（缺 torch／骨幹／線性頭則 False）。
+
+    給產品端標示 `room_label_source` 用：`build_rooms` 內部退回面積規則時不對外
+    拋訊號，呼叫端無從分辨房型是模型判的還是幾何猜的。`_load()` 是模組級快取，
+    重複呼叫不會重載骨幹。"""
+    return _load() is not None
 
 
 def crop_room(bgr, mask, margin=CROP_MARGIN):

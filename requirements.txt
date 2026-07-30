@@ -16,6 +16,9 @@ httpx==0.28.1
 # Floorplan recognition and spatial evaluation (Cody / Django / Ben)
 numpy==2.5.1
 opencv-python==4.13.0.92
+opencv-python-headless==4.13.0.92
+svgpathtools==1.7.1
+rapidocr-onnxruntime==1.4.4
 
 # Catalog, AWS metadata tooling and PostgreSQL import (Kai)
 requests==2.34.2
