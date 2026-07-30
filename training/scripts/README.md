@@ -73,13 +73,6 @@ python3 backend/floorplan/eval_doors.py [door目錄]
 python3 scripts/eval_color_walls.py [名稱 ...] [--vis]
 ```
 
-### eval_cc_masks.py
-與 eval_color_walls.py 同一套指標，但評的是 `cubicasa/color/<名>_mask.npz` 的 DL 原始 wall mask（不經矩形化）——判斷深度學習遮罩本身實力，決定融合策略。
-
-```bash
-python3 scripts/eval_cc_masks.py [名稱 ...] [--dir 目錄] [--vis]
-```
-
 ### eval_rooms_cc.py
 路線圖 A：用 CubiCasa5k model.svg 的 Space 多邊形當 ground truth，對 floorplan2room 的房間方塊算「分割 IoU＋房型混淆矩陣」。樣本取 val/test 的 high_quality_architectural 單層樓（train 留給微調）。`--gt-seg` 可解耦：GT 多邊形當房間，只評房型辨識層；`--own-eval` 用 own_eval 12 題保留集當 GT。
 

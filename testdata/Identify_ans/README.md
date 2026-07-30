@@ -5,7 +5,7 @@
 | 子目錄 | 內容 | 用途 |
 |---|---|---|
 | `pngans/gray/` | `*_ans.png` 像素級答案（38 張灰階） | 灰階管線牆／窗評分（eval_windows.py、score_compare.py） |
-| `pngans/color/` | `*_ans.png` 像素級答案（28 張彩色） | 彩色管線牆／窗評分（eval_color_walls.py、eval_cc_masks.py） |
+| `pngans/color/` | `*_ans.png` 像素級答案（28 張彩色） | 彩色管線牆／窗評分（eval_color_walls.py） |
 | `own_dataset/` | floor01~54 共 26 題 model.svg 標注（人工審定） | **微調訓練用**＋門位評分 GT（eval_door_match.py）；train/val 清單在其中 |
 | `own_eval/` | floor55~79 共 12 題 model.svg 標注（人工審定） | own 風格房型**保留評分集**，清單見 `own_eval/eval_list.txt` |
 
