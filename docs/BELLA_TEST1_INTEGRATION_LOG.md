@@ -4,11 +4,16 @@ Last updated: 2026-07-27
 Branch: `bella-test1`
 Remote push status: not pushed
 
+Current catalog count note (2026-07-31): this file is a historical integration
+log. The current formal dataset is 8,675 catalog/GLB records, 26,025 images,
+8,076 active/API/RAG records, and 599 inactive review records. Older counts in
+dated entries below describe the state observed at that time and are not the
+current contract.
+
 ## 2026-07-27 最新整合狀態
 
-- 已完成 Kai 正式 PostgreSQL catalog 匯入與 API adapter：
-  `roompilot.furniture_catalog_current` 有 9,349 筆啟用家具、37,400 筆
-  GLB/三視角資產與 9,350 筆 VLM 註解。
+- 此段記錄 2026-07-27 當時的 Kai PostgreSQL catalog 匯入與 API adapter；
+  現行正式數量以檔首的 2026-07-31 catalog count note 為準。
 - 第 6 步優先使用 PostgreSQL 的家具、CloudFront GLB 與三視角 PNG；
   資料庫暫時不可用才回退到已驗證 JSON catalog。
 - 冰箱、洗衣機等家電保留為問卷與 `scene_json.render_context` 的生圖

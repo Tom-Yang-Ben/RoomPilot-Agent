@@ -27,7 +27,7 @@ from .questionnaire_visuals import (
     load_questionnaire_visual_catalog,
 )
 from ..catalog.style_db import sanitize_size_cm
-from ..catalog.cloud_catalog import load_official_catalog
+from ..catalog.cloud_catalog import OFFICIAL_CATALOG_COUNT, load_official_catalog
 from ..floorplan.vision import (
     analyze_floorplan_image,
     confirm_floorplan_analysis,
@@ -714,9 +714,14 @@ def _merged_furniture_catalog_cached() -> tuple[dict, ...]:
         item["model_priority_ids"] = []
         item["catalog_merge_key"] = str(item.get("furniture_id") or "")
         item["source_count"] = 1
-        item["has_model"], reason = _model_status(item)
-        item["missing_model_reason"] = None if item["has_model"] else reason
-        item["model_url"] = _model_url_for_merged_item(item)
+        if "has_model" in item:
+            item["has_model"] = bool(item.get("has_model"))
+            item["missing_model_reason"] = None if item["has_model"] else item.get("missing_model_reason")
+            item["model_url"] = item.get("model_url") if item["has_model"] else None
+        else:
+            item["has_model"], reason = _model_status(item)
+            item["missing_model_reason"] = None if item["has_model"] else reason
+            item["model_url"] = _model_url_for_merged_item(item)
         active_items.append(item)
     return tuple(active_items)
 
@@ -883,7 +888,9 @@ def _furniture_payload_for_provider(provider: str) -> tuple[dict, ...]:
     changing questionnaire and scene-generation data underneath the user.
     """
     if provider == "postgres":
-        return load_postgres_catalog(PROJECT_DIR)
+        items = load_postgres_catalog(PROJECT_DIR)
+        if len(items) == OFFICIAL_CATALOG_COUNT:
+            return items
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
 
 

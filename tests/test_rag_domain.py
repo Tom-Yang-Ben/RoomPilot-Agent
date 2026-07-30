@@ -507,7 +507,7 @@ def test_service_groups_hydrates_and_deduplicates_results(tmp_path: Path) -> Non
     )
     service._require_ready = lambda: (
         settings,
-        {"database": {"current_embeddings": 7_958}},
+        {"database": {"current_embeddings": 8_076}},
     )
 
     progress_updates: list[tuple[int, str, str]] = []
@@ -520,7 +520,7 @@ def test_service_groups_hydrates_and_deduplicates_results(tmp_path: Path) -> Non
 
     assert payload["schema_version"] == "roompilot.rag.search.v1"
     assert payload["source"]["vector_store"] == "postgresql_pgvector"
-    assert payload["source"]["current_embeddings"] == 7_958
+    assert payload["source"]["current_embeddings"] == 8_076
     assert payload["boundary"] == "retrieval_only_no_geometry_legality"
     assert len(payload["blocks"][0]["hits"]) == 1
     furniture = payload["blocks"][0]["hits"][0]["furniture"]

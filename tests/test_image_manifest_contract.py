@@ -19,7 +19,7 @@ JSON_OFFICIAL_CATALOG = (
     ROOT / "JSON" / "furniture" / "furniture_official_catagory.json"
 )
 OFFICIAL_CATALOG = JSON_OFFICIAL_CATALOG
-EXPECTED_ITEM_COUNT = 8_557
+EXPECTED_ITEM_COUNT = 8_675
 EXPECTED_IMAGE_COUNT = EXPECTED_ITEM_COUNT * 3
 EXPECTED_IMAGE_ROLES = {"front", "side", "angle-45"}
 CLOUDFRONT_IMAGE_BASE = "https://ddgsm1yg3xikc.cloudfront.net/"

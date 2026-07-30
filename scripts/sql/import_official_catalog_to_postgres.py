@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""交易式驗證並匯入 8,557 筆官方家具與四份雲端資產 CSV。"""
+"""交易式驗證並匯入 8,675 筆官方家具與四份雲端資產 CSV。"""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ DEFAULT_IMAGE_MANIFEST = DEFAULT_MANIFEST_DIR / "image_upload_manifest.csv"
 DEFAULT_IMAGE_RESULT = DEFAULT_MANIFEST_DIR / "image_upload_all_result.csv"
 DEFAULT_SCHEMA = Path(__file__).with_name("roompilot_postgresql_schema.sql")
 
-EXPECTED_ITEM_COUNT = 8_557
+EXPECTED_ITEM_COUNT = 8_675
 EXPECTED_IMAGE_ROLES = {"front", "side", "angle-45"}
 IMPORT_ISSUE_SOURCE = "official_catalog_import"
 

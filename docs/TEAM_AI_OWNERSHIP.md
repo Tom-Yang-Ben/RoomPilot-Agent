@@ -8,7 +8,7 @@
 |---|---|---|---|
 | Bella | `origin/bella` | 整合、FastAPI、保存、正式 UI、八步 2D/3D 工作流 | 以 Bella test 分支完成可驗證整合後再推送 |
 | Cody | `origin/cody` | 辨識模型、測資評估、牆門窗房間 | 大型訓練資產不直接放入正式 runtime tree |
-| Django | `origin/django` | 房間推論、家具符號證據、空間資料與 RAG 標註 | 只移植相容演算法與 schema，不整包搬 Version4 |
+| Django | `origin/django` | 房間推論、家具符號證據、空間資料、家具 RAG 解析／檢索／排序 | 只移植相容演算法與 schema，不整包搬 Version4 |
 | Kai | `origin/kai`、`origin/kai-with-bellatest1` | catalog、AWS/CloudFront manifest、PostgreSQL 與資料交付 | Kai 資料庫為第 6 步家具主來源 |
 | Yen | `origin/yen` | 需求結構化、偏好、選件與修復決策 | 正式 UI 由 Bella 接入 |
 | Ancai | `origin/ancai`、`origin/ancai-dev` | 配置引擎與 2D+3D 互動原型 | scene-lab 類實驗必須經 Bella 驗證後進正式 UI |
@@ -21,7 +21,7 @@
 | `backend/server/` | Bella | 各 owner 的 adapter | HTTP、專案狀態、`layout_json`、需求 | FastAPI、保存、八步 UI、`scene_json` 調度 |
 | `backend/server/static/` | Bella | Yen、Ancai、Cody、Django | API payload | 正式 HTML/CSS/JS/Three.js 編輯介面 |
 | `backend/floorplan/` | Cody | Django、Ben | PNG/JPG/DXF、尺度校正 | 牆、門、窗、房間、信心度與 `layout_json` |
-| `backend/spatial_data/` | Django | Cody、Ancai、Bella | 已確認房間與開口幾何 | 空間尺寸、相鄰與 evaluation 記錄，不負責渲染 |
+| `backend/spatial_data/` | Django | Cody、Kai、Ancai、Bella | 已確認幾何或家具自然語言需求 | 空間 evaluation；家具 RAG 解析、檢索協調與排序，不負責渲染或幾何合法性 |
 | `backend/catalog/` | Kai | Django、Bella | 官方 catalog、資產 manifest | 已驗證家具/材質、三視角圖、RAG metadata |
 | `JSON/` | Kai | Bella | 匯入/匯出中介資料 | 家具 JSON 與 GLB/圖片 manifest |
 | `scripts/sql/` | Kai | Bella | 已驗證 JSON/CSV | PostgreSQL schema、dry-run、transactional import |
@@ -52,11 +52,15 @@
 
 Graph RAG 只補強 Kai/Django 的房間、風格、家具、材質、限制關係與可追溯證據；Ancai 仍是幾何與規則的唯一裁決者。
 
+家具向量 RAG 由 Django 維護查詢 schema、BGE-M3 與 reranker 品質，Kai 維護正式家具、metadata 與 pgvector 查詢，Bella 只提供 HTTP/UI adapter。第一版 `/rag` 不接管第 6 步候選家具。
+
 ### Kai catalog 與家電邊界
 
-- Kai 官方 JSON catalog 是第 6 步家具 API 的預設來源，目前有 8,557 筆。PostgreSQL `roompilot.furniture_catalog_current` 完成同批資料匯入後，才可透過環境變數啟用。
+- PostgreSQL 正式 catalog 共 8,675 筆家具；`roompilot.furniture_catalog_api_current` 是第 6 步家具 API 的正式來源，只提供其中 8,076 筆 active／RAG-indexable 家具與六個正式風格，另有 599 筆 inactive 家具保留複核且不得進正式 API／RAG。
 - 每筆正式家具有 GLB 與 `front`、`side`、`angle-45` 三視角 CloudFront PNG。
-- 開發與展示預設讀取同一份 Kai JSON；PostgreSQL 連線失敗時也回退到這份 JSON，確保資料版本一致。
+- 正式 `postgres` 模式不可用時 API 回傳 503；只有明確設定 `ROOMPILOT_CATALOG_PROVIDER=json` 才使用同一份 8,675 筆 JSON 離線資料，且公開家具仍只限其中 8,076 筆 active 資料。
+- Phase 2 家具管理 API 由 Kai 擁有 SQL transaction、啟用門檻與 audit，Bella 只接入受 Bearer token 保護的 FastAPI adapter；刪除一律為 `is_active=false`。
+- Phase 3 正式專案、workflow JSONB 與 render metadata 保存於 PostgreSQL；revision 交易、API 與保存契約由 Bella 維護，Kai 協助 schema 與一次性 SQLite migration。
 - 冰箱、洗衣機等家電仍可由問卷收集，會寫入 `questionnaire.appliance_requirements` 與 `scene_json.render_context`，供 AI 生圖理解需求；它們不進第 6 步 2D/3D 自動配置、不出現在正式家具 API。
 
 ## 共用修改流程

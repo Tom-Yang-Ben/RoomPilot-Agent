@@ -261,6 +261,6 @@ def test_bundled_kai_aws_manifest_is_the_default_cloud_source(monkeypatch):
         "provider": "aws_cloudfront",
         "manifest_ready": True,
         "manifest_error": None,
-        "verified_model_count": 8557,
+        "verified_model_count": 8675,
         "cloudfront_base_url": "https://ddgsm1yg3xikc.cloudfront.net",
     }

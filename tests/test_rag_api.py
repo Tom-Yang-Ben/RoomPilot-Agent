@@ -21,7 +21,7 @@ class _FakeService:
             "ready": True,
             "blockers": [],
             "parser": {"key_configured": True},
-            "database": {"current_embeddings": 7_958},
+            "database": {"current_embeddings": 8_076},
         }
 
     def search(self, request: object, progress=None) -> dict:
@@ -48,7 +48,7 @@ def test_rag_page_status_success_and_validation(monkeypatch) -> None:
 
     status = client.get("/api/rag/status")
     assert status.status_code == 200
-    assert status.json()["database"]["current_embeddings"] == 7_958
+    assert status.json()["database"]["current_embeddings"] == 8_076
     assert "server-secret" not in status.text
 
     response = client.post("/api/rag/search", json={"query": "米色沙發", "top_k": 3})

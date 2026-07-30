@@ -30,6 +30,8 @@
         -> 鎖定逐房相機 -> AI 渲染
 ```
 
+正式專案保存的 runtime adapter 使用 PostgreSQL `roompilot.projects.workflow_json` JSONB 與 `roompilot.render_outputs`；SQLite 僅供明確離線模式。現行 repository 缺少 Phase 3 schema／migration 工具與 engineering PostgreSQL tables，不能把歷史 migration 指令視為目前可重建流程。
+
 | Owner | 主要目錄 | 作用 |
 |---|---|---|
 | Bella | `backend/server/`、`backend/server/static/` | FastAPI、保存、八步流程與正式 UI 整合 |
@@ -52,7 +54,9 @@
 
 ## 家具、家電與資料庫
 
-第 6 步優先讀取 Kai PostgreSQL view `roompilot.furniture_catalog_current`。目前正式 view 有 9,349 筆啟用家具，每筆資料包含 GLB、正面/側面/45 度 PNG、房間類型、風格、材質、尺寸與 VLM/RAG 說明。資料庫暫時不可連線時，才使用 repository 內已驗證的 9,350 筆 JSON catalog。
+Kai 正式 catalog 共 8,675 筆家具，其中 8,076 筆為 active／RAG-indexable，透過 PostgreSQL view `roompilot.furniture_catalog_api_current` 提供給第 6 步與家具 RAG；另有 599 筆 inactive 家具保留複核且不得進正式 API／RAG。5 份匯入來源的 ID 已完整一致：8,675 筆 JSON items、8,675 筆 GLB，以及 26,025 筆正面／側面／45 度三視圖。每筆 catalog 家具都包含 GLB、三視角 PNG、房間類型、風格、材質、尺寸與 VLM/RAG metadata。正式 `postgres` 模式不可連線時 API 回傳 503；只有明確設定 `ROOMPILOT_CATALOG_PROVIDER=json` 才使用同一份 8,675 筆 JSON 離線資料，且公開家具仍只限 8,076 筆 active 資料。
+
+Phase 4、5 的 live PostgreSQL 目前有 6 個 design style profiles、18 張風格卡、571 筆牆面／地板材質、6 筆裝修單價、10,518 筆外部匯入隔離資料與 595 筆 RAG documents。正式 FastAPI 只做 SQL read-through，不掃描 JSON／CSV，也不保存會讓資料過期的 process cache。現行 repository 缺少 Phase 4 schema／importer，因此這些既有資料可讀，但新環境尚不能從本 repo 從零重建。
 
 冰箱、洗衣機等家電不是第 6 步可自動擺放家具：問卷仍會保存它們，並寫入 `questionnaire.appliance_requirements` 與 `scene_json.render_context`，讓第 8 步生圖能反映使用者需求。
 
@@ -68,8 +72,9 @@
 | `/api/floorplan/confirm` | 確認並取得 `layout_json` |
 | `/api/scene/generate` | 依需求與 `layout_json` 生成 `scene_json` |
 | `/api/scene/layout`、`/api/scene/validate` | Ancai 配置與單件合法性驗證 |
-| `/api/furniture` | 搜尋 Kai PostgreSQL 優先的家具 catalog |
+| `/api/furniture` | 由 Kai PostgreSQL 執行搜尋、篩選、facet 與分頁 |
 | `/api/catalog/status` | 查看目前使用的 catalog provider |
+| `/api/health` | 檢查正式家具、runtime catalog 與 project store 的 PostgreSQL readiness |
 | `/api/projects/{project_id}/render-jobs` | 送出鎖定視角的 AI 渲染任務 |
 
 ## 協作與驗證

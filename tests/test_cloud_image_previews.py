@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 IMAGE_UPLOAD_RESULT = (
     ROOT / "backend" / "catalog" / "data" / "manifests" / "image_upload_all_result.csv"
 )
-CATALOG_COUNT = 9_350
+CATALOG_COUNT = 8_675
 IMAGE_ROLES = {"front", "side", "angle-45"}
 
 

@@ -12,22 +12,20 @@ from backend.catalog.cloud_catalog import (
 from backend.server import main
 
 
-def _clear_catalog_caches(monkeypatch: pytest.MonkeyPatch | None = None) -> None:
-    if monkeypatch is not None:
-        monkeypatch.setenv("ROOMPILOT_CATALOG_PROVIDER", "json")
+def _clear_catalog_caches() -> None:
     main.load_style_database.cache_clear()
     main._merged_furniture_catalog_cached.cache_clear()
     main._furniture_payload_cache.cache_clear()
     main._catalog_count_summary.cache_clear()
 
 
-def test_official_catalog_uses_only_the_8557_json_items(monkeypatch):
-    _clear_catalog_caches(monkeypatch)
+def test_official_catalog_uses_only_the_8675_json_items():
+    _clear_catalog_caches()
     catalog = main.load_style_database()
     items = catalog["furniture"]
 
-    assert len(items) == 8_557
-    assert len({item["furniture_id"] for item in items}) == 8_557
+    assert len(items) == 8_675
+    assert len({item["furniture_id"] for item in items}) == 8_675
     assert all(item["glb_url"].startswith("https://ddgsm1yg3xikc.cloudfront.net/") for item in items)
     assert all(item["upload_status"] == "uploaded" for item in items)
     assert {item["primary_style"] for item in items} == {
@@ -54,10 +52,10 @@ def test_style_presentation_metadata_does_not_retain_furniture_rows():
     )
 
     assert diagnostics == {
-        "official_items": 8_557,
-        "manifest_items": 8_557,
+        "official_items": 8_675,
+        "manifest_items": 8_675,
         "manifest_excluded_items": 0,
-        "style_enriched_items": 8_557,
+        "style_enriched_items": 8_675,
         "style_unclassified_items": 0,
         "style_presentation_furniture_ignored": 0,
     }
@@ -91,11 +89,11 @@ def test_style_presentation_cannot_overwrite_official_furniture_fields():
     assert diagnostics["style_presentation_furniture_ignored"] == 1
 
 
-def test_furniture_api_cache_contains_only_verified_cloud_items(monkeypatch):
-    _clear_catalog_caches(monkeypatch)
+def test_furniture_api_cache_contains_only_verified_cloud_items():
+    _clear_catalog_caches()
     items = main._furniture_payload_cache()
 
-    assert len(items) == 8_557
+    assert len(items) == 8_675
     assert all(item["has_model"] is True for item in items)
     assert all(
         item["model_url"].startswith("https://ddgsm1yg3xikc.cloudfront.net/")
@@ -103,13 +101,13 @@ def test_furniture_api_cache_contains_only_verified_cloud_items(monkeypatch):
     )
 
 
-def test_furniture_api_exposes_kai_room_role_and_rag_enrichment(monkeypatch):
-    _clear_catalog_caches(monkeypatch)
+def test_furniture_api_exposes_kai_room_role_and_rag_enrichment():
+    _clear_catalog_caches()
     items = main._furniture_payload_cache()
 
     enriched = [item for item in items if item.get("rag_text")]
 
-    assert len(enriched) == 8_557
+    assert len(enriched) == 8_675
     assert all(item.get("room_types") for item in enriched[:100])
     assert all(item.get("catalog_role") for item in enriched[:100])
     assert all(item.get("description") for item in enriched[:100])

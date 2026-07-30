@@ -1,4 +1,4 @@
-"""Build the official 8,557-item catalog from Kai's versioned JSON source.
+"""Build the official 8,675-item catalog from Kai's versioned JSON source.
 
 The official JSON is the sole source of furniture identity and enrichment.
 The upload-result manifest supplies delivery evidence.  The metadata-only
@@ -12,7 +12,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-OFFICIAL_CATALOG_COUNT = 8_557
+from .postgres_repository import _GROUP_NAMES, _catalog_group
+
+
+OFFICIAL_CATALOG_COUNT = 8_675
 READY_UPLOAD_STATUSES = {
     "uploaded",
     "already_exists",
@@ -21,38 +24,6 @@ READY_UPLOAD_STATUSES = {
     "success",
     "skipped_existing",
 }
-
-# Keep the JSON adapter independent from the optional PostgreSQL repository.
-# PostgreSQL may be unavailable during local questionnaire and API development.
-_GROUP_NAMES = {
-    "living": "客廳家具",
-    "dining_kitchen": "餐廚家具",
-    "bedroom": "臥室家具",
-    "study": "書房家具",
-    "storage": "收納家具",
-    "soft_decor": "軟裝與燈飾",
-}
-
-_GROUP_TYPES = {
-    "living": {"fabric-sofa", "leather-sofa", "sofa", "sofa-bed", "modular-sofa", "armchair", "coffee-table", "tv-bench", "tv-media-furniture"},
-    "dining_kitchen": {"dining-chair", "dining-table", "bar-table", "stool-bench", "table"},
-    "bedroom": {"bed", "bed-frame", "mattress", "bedside-table", "pax-wardrobe", "wardrobe"},
-    "study": {"desk", "office-chair", "gaming-chair", "work-lamp"},
-    "storage": {"bookcase", "cabinet-cupboard", "chests-of-drawer", "shelving-unit", "storage-boxes-basket", "storage-solution-system", "sideboard", "wall-shelf", "display-cabinet", "shoe-cabinet", "storage-furniture", "clothes-rack"},
-}
-
-
-def _catalog_group(item_type: str, room_types: list[str]) -> str:
-    for group, types in _GROUP_TYPES.items():
-        if item_type in types:
-            return group
-    if any(room in {"living_room", "dining_room", "kitchen"} for room in room_types):
-        return "living"
-    if "bedroom" in room_types:
-        return "bedroom"
-    if "study" in room_types:
-        return "study"
-    return "soft_decor"
 
 
 def _official_style_candidates(item: dict[str, Any]) -> list[dict[str, Any]]:
@@ -218,7 +189,7 @@ def build_official_catalog(
     }
     result.update(
         {
-            "schema_version": "official-json-8557-v3",
+            "schema_version": "official-json-8675-v3",
             "catalog_name": "RoomPilot official CloudFront furniture catalog",
             "source_catalog": cloud_catalog.get("dataset_name"),
             "source_style_presentation": style_presentation.get("catalog_name"),
