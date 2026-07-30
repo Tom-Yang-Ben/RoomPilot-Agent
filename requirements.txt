@@ -27,6 +27,12 @@ SQLAlchemy==2.0.51
 psycopg2-binary==2.9.12
 python-dotenv==1.2.2
 
+# Furniture RAG (Kai PostgreSQL/pgvector runtime)
+# The BGE models are downloaded to the local Hugging Face cache on first use.
+openai==2.16.0
+torch==2.9.1
+sentence-transformers==5.2.0
+
 # Team verification
 pytest==9.1.1
 
@@ -35,4 +41,3 @@ pytest==9.1.1
 #   paddleocr==3.7.0
 #   paddlepaddle==3.3.1
 # Use the command documented in README.md.
-

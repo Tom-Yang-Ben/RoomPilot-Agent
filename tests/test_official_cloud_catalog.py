@@ -12,15 +12,17 @@ from backend.catalog.cloud_catalog import (
 from backend.server import main
 
 
-def _clear_catalog_caches() -> None:
+def _clear_catalog_caches(monkeypatch: pytest.MonkeyPatch | None = None) -> None:
+    if monkeypatch is not None:
+        monkeypatch.setenv("ROOMPILOT_CATALOG_PROVIDER", "json")
     main.load_style_database.cache_clear()
     main._merged_furniture_catalog_cached.cache_clear()
     main._furniture_payload_cache.cache_clear()
     main._catalog_count_summary.cache_clear()
 
 
-def test_official_catalog_uses_only_the_8557_json_items():
-    _clear_catalog_caches()
+def test_official_catalog_uses_only_the_8557_json_items(monkeypatch):
+    _clear_catalog_caches(monkeypatch)
     catalog = main.load_style_database()
     items = catalog["furniture"]
 
@@ -89,8 +91,8 @@ def test_style_presentation_cannot_overwrite_official_furniture_fields():
     assert diagnostics["style_presentation_furniture_ignored"] == 1
 
 
-def test_furniture_api_cache_contains_only_verified_cloud_items():
-    _clear_catalog_caches()
+def test_furniture_api_cache_contains_only_verified_cloud_items(monkeypatch):
+    _clear_catalog_caches(monkeypatch)
     items = main._furniture_payload_cache()
 
     assert len(items) == 8_557
@@ -101,8 +103,8 @@ def test_furniture_api_cache_contains_only_verified_cloud_items():
     )
 
 
-def test_furniture_api_exposes_kai_room_role_and_rag_enrichment():
-    _clear_catalog_caches()
+def test_furniture_api_exposes_kai_room_role_and_rag_enrichment(monkeypatch):
+    _clear_catalog_caches(monkeypatch)
     items = main._furniture_payload_cache()
 
     enriched = [item for item in items if item.get("rag_text")]

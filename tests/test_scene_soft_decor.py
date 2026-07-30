@@ -90,7 +90,7 @@ def test_editor_door_swing_endpoint_uses_the_same_scene_coordinates_as_its_leaf(
     assert door["swing_end"] == {"x": 0.0, "z": -180.0}
 
 
-def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
+def test_auto_decor_skips_unavailable_catalog_roles_without_blocking_scene_generation() -> None:
     sofa = {
         "furniture_id": "sofa-existing",
         "normalized_type": "sofa",
@@ -114,12 +114,8 @@ def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
     assert response.status_code == 200
     payload = response.json()
     generated = [item for item in payload["scene_objects"] if item.get("auto_decor_role")]
-    assert {item["auto_decor_role"] for item in generated} == {
-        "curtain",
-        "rug",
-        "plant",
-        "light",
-    }
+    assert {item["auto_decor_role"] for item in generated} == {"curtain", "rug", "plant"}
+    assert payload["decor_summary"]["unavailable"] == ["light"]
     assert all(item["model_url"] for item in generated)
     assert all(item["placement_engine"] == "furniture_engine" for item in generated)
     assert all(item["placement_failed"] is False for item in generated)
@@ -208,7 +204,7 @@ def test_confirmed_bedroom_type_prevents_generic_plant_scatter() -> None:
         for item in response.json()["scene_objects"]
         if item.get("auto_decor_role")
     }
-    assert roles == {"rug", "light"}
+    assert roles == {"rug"}
 
 
 def test_decor_does_not_use_furniture_assigned_to_another_room() -> None:

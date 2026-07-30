@@ -66,6 +66,7 @@ def test_cloudfront_mode_never_falls_back_to_local_model(monkeypatch, tmp_path):
 def test_catalog_status_exposes_provider_and_verified_count(monkeypatch, tmp_path):
     manifest = tmp_path / "manifest.csv"
     _manifest(manifest)
+    monkeypatch.setenv("ROOMPILOT_CATALOG_PROVIDER", "json")
     monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "cloudfront")
     monkeypatch.setenv("ROOMPILOT_GLB_MANIFEST_PATH", str(manifest))
     monkeypatch.setenv("ROOMPILOT_CLOUDFRONT_BASE_URL", "https://cdn.example")

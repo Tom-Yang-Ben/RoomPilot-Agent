@@ -74,7 +74,12 @@ from .services.cloud_images import (
     cloud_primary_image_url,
     image_manifest_status,
 )
-from .postgres_catalog import catalog_provider_status, load_catalog as load_postgres_catalog
+from .rag_api import router as rag_router
+from ..catalog.postgres_repository import (
+    catalog_provider_mode,
+    catalog_provider_status,
+    load_catalog as load_postgres_catalog,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -152,6 +157,7 @@ _DATASET_GLB_ROOTS = [
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+app.include_router(rag_router)
 
 
 def _questionnaire_visual_store() -> QuestionnaireVisualStore:
@@ -858,16 +864,22 @@ def _furniture_card_payload(item: dict) -> dict:
     }
 
 
+@lru_cache(maxsize=2)
+def _furniture_payload_for_provider(provider: str) -> tuple[dict, ...]:
+    """Keep every consumer on one explicitly selected catalog source.
+
+    PostgreSQL is Kai's canonical runtime catalog.  JSON is retained only for an
+    explicit offline mode; a database failure must be visible instead of silently
+    changing questionnaire and scene-generation data underneath the user.
+    """
+    if provider == "postgres":
+        return load_postgres_catalog(PROJECT_DIR)
+    return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
+
+
 @lru_cache(maxsize=1)
 def _furniture_payload_cache() -> tuple[dict, ...]:
-    """Use Kai's versioned JSON unless PostgreSQL is explicitly requested."""
-    provider = os.getenv("ROOMPILOT_CATALOG_PROVIDER", "json").strip().casefold()
-    if provider in {"postgres", "database"}:
-        try:
-            return load_postgres_catalog(PROJECT_DIR)
-        except Exception as exc:
-            print(f"[RoomPilot] PostgreSQL catalog unavailable; using Kai JSON: {type(exc).__name__}")
-    return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
+    return _furniture_payload_for_provider(catalog_provider_mode(PROJECT_DIR))
 
 
 @lru_cache(maxsize=1)
@@ -1406,11 +1418,11 @@ def _style_filter_options() -> list[dict]:
     ]
 
 
-@lru_cache(maxsize=1)
-def build_site_payload() -> dict:
+@lru_cache(maxsize=2)
+def _build_site_payload_for_provider(provider: str) -> dict:
     raw = load_style_database()
     surface_catalog = load_surface_catalog()
-    furniture_items = list(_merged_furniture_catalog_cached())
+    furniture_items = list(_furniture_payload_for_provider(provider))
     furniture_by_id = {}
     for item in furniture_items:
         furniture_by_id[item.get("furniture_id")] = item
@@ -1451,7 +1463,7 @@ def build_site_payload() -> dict:
                     ),
                     "has_model": has_model,
                     "missing_model_reason": None if has_model else model_reason,
-                    "model_url": _model_url_for_merged_item(furniture) if has_model else None,
+                    "model_url": furniture.get("model_url") if has_model else None,
                     **_candidate_schema_fields(furniture, has_model),
                 }
             )
@@ -1487,7 +1499,7 @@ def build_site_payload() -> dict:
             }
         )
 
-    furniture_payload = list(_furniture_payload_cache())
+    furniture_payload = list(furniture_items)
 
     featured_models = [item for item in furniture_payload if item["has_model"]][:24]
     type_counts: dict[str, int] = {}
@@ -1533,6 +1545,11 @@ def build_site_payload() -> dict:
         "featured_models": featured_models,
         "missing_model_count": sum(1 for item in furniture_payload if not item["has_model"]),
     }
+
+
+def build_site_payload() -> dict:
+    """Build the scene payload from the same provider used by /api/furniture."""
+    return _build_site_payload_for_provider(catalog_provider_mode(PROJECT_DIR))
 
 
 def _page(name: str) -> FileResponse:
@@ -2019,15 +2036,37 @@ def site_data() -> dict:
 
 def catalog_status() -> dict:
     """Describe active catalog providers without exposing credentials."""
-    furniture = dict(manifest_status())
-    furniture.pop("mode", None)
+    provider = catalog_provider_status(PROJECT_DIR)
+    if provider.get("provider") == "kai_postgresql" and provider.get("available"):
+        assets = provider.get("assets") or {}
+        furniture = {
+            "provider": "kai_postgresql",
+            "manifest_ready": True,
+            "verified_model_count": int(assets.get("model_count") or 0),
+            "catalog_count": int(provider.get("count") or 0),
+            "source_of_truth": "postgresql",
+        }
+        furniture_images = {
+            "provider": "kai_postgresql",
+            "manifest_ready": True,
+            "verified_item_count": int(assets.get("complete_image_item_count") or 0),
+            "verified_image_count": sum(
+                int(assets.get(key) or 0)
+                for key in ("front_image_count", "side_image_count", "angle_45_image_count")
+            ),
+            "source_of_truth": "postgresql",
+        }
+    else:
+        furniture = dict(manifest_status())
+        furniture.pop("mode", None)
+        furniture_images = image_manifest_status()
     surfaces = load_surface_catalog().get("surfaces") or []
     wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
     floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
     return {
-        "catalog_provider": catalog_provider_status(PROJECT_DIR),
+        "catalog_provider": provider,
         "furniture": furniture,
-        "furniture_images": image_manifest_status(),
+        "furniture_images": furniture_images,
         "surfaces": {
             "provider": "local_pending_aws_manifest",
             "wall_count": wall_count,
@@ -2673,14 +2712,21 @@ async def scene_decorate(payload: dict) -> dict:
         min(boundary_width_cm, float(rug_anchor_size.get("width") or boundary_width_cm)),
         min(boundary_depth_cm, float(rug_anchor_size.get("depth") or boundary_depth_cm)),
     )
+    unavailable_roles: list[str] = []
     for role in ("rug", "plant", "light"):
         if role in requested_roles:
-            addition = _auto_decor_catalog_item(
-                role,
-                payload.get("style"),
-                used_ids,
-                rug_max_footprint if role == "rug" else None,
-            )
+            try:
+                addition = _auto_decor_catalog_item(
+                    role,
+                    payload.get("style"),
+                    used_ids,
+                    rug_max_footprint if role == "rug" else None,
+                )
+            except HTTPException as exc:
+                if exc.status_code != 409:
+                    raise
+                unavailable_roles.append(role)
+                continue
             additions.append(addition)
             used_ids.add(str(addition.get("furniture_id")))
     for item in additions:
@@ -2728,6 +2774,7 @@ async def scene_decorate(payload: dict) -> dict:
                 for item in scene_objects
                 if item.get("auto_decor_role") and not item.get("placement_failed")
             ],
+            "unavailable": unavailable_roles,
             "engine": "furniture_engine",
         },
     }

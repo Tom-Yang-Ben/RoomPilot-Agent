@@ -53,6 +53,14 @@ def test_requirements_step_has_randomized_test_skip_button() -> None:
     assert 'showQuestionnaireStage("summary")' in source
 
 
+def test_questionnaire_rag_uses_non_blocking_fast_retrieval() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "async function startQuestionnaireRag" in source
+    assert 'body: JSON.stringify({ query, top_k: 6, fast: true })' in source
+    assert "void startQuestionnaireRag(room)" in source
+
+
 def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     css = (STATIC / "site.css").read_text(encoding="utf-8")
