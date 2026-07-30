@@ -21,10 +21,10 @@ import {
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-c996c98814de";
+} from "./scene_architecture.js?v=sha256-2050441b51ed";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
-import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
-import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
+import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
+import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {
   clampWalkPosition,
   computeExactModelScale,
@@ -32,7 +32,7 @@ import {
   findNearestWalkablePosition,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-ec24b81ffb81";
+} from "./scene_visual_contracts.js?v=sha256-1af8f0fccfa5";
 
 const CM_PER_METER = 100;
 
