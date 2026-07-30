@@ -2372,7 +2372,7 @@ function renderRooms() {
     const dimensions = roomDimensions(selectedRoom);
     const reviewHint = roomReviewHint(selectedRoom);
     element.roomEditor.hidden = false;
-    element.roomName.value = roomNameOptionFor(room).id;
+    element.roomName.value = roomNameOptionFor(selectedRoom).id;
     element.roomArea.textContent =
       `系統依目前框選計算：${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm，${dimensions.areaM2.toFixed(2)} m²`;
   } else {
