@@ -15,8 +15,12 @@
 1. 第 1 節看辨識率證據（可自行重跑，指令都列了）
 2. 第 2 節看 cody-dev 帶來什麼
 3. 第 3 節看四處衝突怎麼裁的——**這裡最需要 ben 端覆核**
-4. 第 4 節是 ben 還要自己動手的事（含三個需要 ben 拍板的決定）
+4. 第 4 節是還要動手的事：4.1 ben 必做、4.2 三項建議、4.3 圖檔集收斂的知悉事項
 5. 第 5 節是已知風險
+
+**本檔的敘述時態**：所有「已完成／已改／已刪除」都是 `cody-dev` 當前提交的實際
+狀態，可用 `git diff ben cody-dev` 逐項核對。尚未執行的事只出現在第 4.1／4.2 節，
+且都明寫是留給 ben 的。
 
 ---
 
@@ -63,7 +67,10 @@ python backend/floorplan/eval_windows.py                  # 窗戶評分
 | :--- | :--- | :--- | :--- |
 | 門過濾率 | 84/86 = 98% | **84/86 = 98%** | 一致 |
 | 窗戶 P/R | 99%/94~95% | **98%/95%**（TP 127／FP 3／FN 6） | 一致範圍內 |
-| 批次成功率 | — | **44/44 成功、0 失敗** | — |
+| 批次成功率 | — | **37/37 成功、0 失敗** | — |
+
+> 批次數字是第 4.3 節圖檔收斂**之後**的 37 張圖檔集。門過濾與窗戶分數在刪除前後
+> 逐項相同（刪除前批次為 44/44），因為被刪的圖本來就沒有人工答案、不參與計分。
 
 ### 1.3 裁定 1 的產品契約仍然成立
 
@@ -207,24 +214,106 @@ cody 的 `Readme.md`（85KB，全是 cody 的 changelog）與 ben 的 `README.md
       `~/.cache/torch/hub/`。實測封鎖網路仍可載入，**非執行期連網需求**；
       離線部署預先放好該快取或設 `TORCH_HOME`。
 
-### 4.2 需要 ben 拍板的三個決定
+### 4.2 三項建議（附理由與建議做法，最終由 ben 拍板）
 
-| # | 決定 | 背景 |
-| :-- | :--- | :--- |
-| 1 | **torch 要不要進全隊 baseline** | 7/30 的結論是「torch 由 optional extra 升為必要依賴」，但安裝體積約 2GB，對只做前端／catalog 的隊員是純負擔。目前 `requirements.txt` 以註解記錄此爭點、**未加入 pin**，`pyproject.toml` 維持 `semantic` extra。缺 torch 時房型退回面積規則、服務不中斷但會印警告 |
-| 2 | **兩個 OCR 引擎是否收斂** | cody 的房型文字證據層（`floorplan2room` 層 5）用 `rapidocr-onnxruntime`（純 pip／CPU、免系統套件）；ben 的 `vision/ocr.py` 用 `paddleocr`（`requirements-ocr.txt`，體積大、平台相依）。兩者服務不同層，可共存，但重複的模型下載與維護成本要不要收掉是 ben 的判斷 |
-| 3 | **前端要不要新增 `stair` 契約鍵** | `rooms[].label` 新增 `"stair"`（樓梯，own_eval P=1.0/R=1.0）。產品語意是**不可擺設**，而主線契約詞彙沒有對應鍵，故 `CODY_ROOM_TYPE_MAP["stair"]` 暫設 `None`（硬塞 `circulation` 會被下游當成可佈置走道）。前端推薦表（`scene_layout2d.js`）新增 `stair` 鍵後即可改指過去 |
+#### 建議 1：torch 列為**辨識服務端的必要依賴**——它在產品執行路徑上
 
-### 4.3 需要 ben 確認的一項資料差異
+先釐清一件常被誤會的事：**torch 不是只有驗證才需要**。呼叫鏈全在 HTTP 請求裡：
 
-`testdata/png/` 的 **floor11／floor14／floor18／floor21 是 ben 獨有的測試圖**
-（cody 沒有），新管線在這 4 張上的牆體幾何與 ben 提交的 `.dxf` 不同
-（分別 362／924／538／322 行座標變動；其餘 39 張只有 ezdxf 時戳與 GUID 變動，
-幾何零差異）。
+```
+vision/analysis.py:530   recognize_cody_rooms(image_bytes, cache_key=...)
+  → cody_adapter.py       build_rooms(detection)
+  → floorplan2room.py:852 room_classifier.classify(det["bgr"], labels, rooms)
+  → room_classifier.py    import torch
+```
 
-**這 4 張沒有人工答案**（不在 `testdata/Identify_ans/` 內），所以無法評分誰對誰錯。
-本分支**未提交**重新產生的 dxf，維持 ben 的原版。請 ben 端目視確認
-`temp/chk/gray/floor{11,14,18,21}_chk.png` 後決定是否更新。
+缺 torch 不會崩（`classify()` 回 `None`、退回面積規則），但**房型品質從 90.3%
+掉回純幾何猜測的水準，且一定印警告**。既然 cody 分支執行辨識就必須有它，
+合併後同樣必須有。
+
+**建議做法**（兼顧只做前端／catalog 的隊員不必背 2GB）：
+
+- `pyproject.toml` 的 `semantic` extra **維持獨立**，不強迫全隊安裝
+- 但**任何要提供房型辨識的部署環境視為必裝**，寫進 README 部署章節
+- `requirements.txt` 目前以註解記錄此點、未加 pin。若 ben 認同「凡執行辨識即必要」，
+  就把 `torch==2.13.0` 移進 baseline；反之維持現狀即可，程式行為不變
+
+#### 建議 2：兩個 OCR 引擎——短期保留、中期收斂到 `rapidocr`
+
+兩者服務不同層，目前可共存：
+
+| 引擎 | 位置 | 用途 |
+| :--- | :--- | :--- |
+| `rapidocr-onnxruntime` | `floorplan2room` 層 5 | 房型文字證據（圖面印的 KITCHEN/DORMITORY…） |
+| `paddleocr` | `vision/ocr.py` | 產品側印刷房名 `ocr_room_label`（覆蓋優先序最高） |
+
+**建議中期收斂到 `rapidocr`**：純 pip／CPU、免系統套件（cody 當初捨 tesseract 正是
+因為它需要 apt），而 paddle 體積大且平台相依。短期不動——paddle 本來就在獨立的
+`requirements-ocr.txt`、不進預設環境，沒有立即成本。
+
+#### 建議 3：前端新增 `stair` 契約鍵，比照 `circulation` 零家具處理
+
+`rooms[].label` 新增 `"stair"`（own_eval **P=1.0／R=1.0**，是本次表現最好的類別
+之一）。產品語意是**不可擺設**（v2.14 使用者裁決的硬需求）。
+
+目前 `CODY_ROOM_TYPE_MAP["stair"] = None`：主線契約詞彙沒有對應鍵，硬塞
+`circulation` 會被下游當成可佈置走道。**建議**在前端推薦表（`scene_layout2d.js`）
+新增 `stair` 鍵並設為零家具——`circulation` 已經是這樣處理的，模式現成。
+改完把映射由 `None` 改指 `"stair"` 即可，一行。
+
+### 4.3 floor 圖檔集已收斂到 `Identify_ans/`——ben 端請知悉刪除範圍
+
+**規則（使用者裁定）**：`floor*.png` 一律以 `testdata/Identify_ans/` 的人工答案集
+為準，沒有對應答案的圖一律刪除。理由是答案集才是「這張圖算不算分」的唯一依據，
+留著無答案的圖只會讓後續有人以為它在評測範圍內。
+
+**已刪除 58 檔**：
+
+| 目錄 | 已刪除 | 為什麼沒有答案 |
+| :--- | :--- | :--- |
+| `testdata/png/` | floor10、11、14、16、17、18、21（7 張） | 見下表逐張理由 |
+| `testdata/color_png/` | color_floor_11（1 張） | 彩色答案集 28 張中無它 |
+| `testdata/dxf/` | 上述 8 張的 `.dxf` 輸出 | 來源圖已刪，輸出成孤兒 |
+| `testdata/pngans/` | ben 的舊答案目錄（21 檔） | 已被 `Identify_ans/pngans/gray/`（37 張）取代；`eval_windows.py` 預設早已指向新路徑 |
+| `testdata/chk/` | ben 提交的疊圖（21 檔） | cody 起疊圖寫入 `temp/`（已 gitignore），版控裡的是過時產物 |
+
+刪除前已驗證無程式碼引用那兩個目錄：`pngans` 的消費者（`eval_windows.py`、
+`eval_color_walls.py`、`score_compare.py`）全指向 `Identify_ans/`，`chk` 全指向 `temp/`。
+
+**刪除後重跑，分數零變動**（證實被刪的圖本來就不參與計分）：
+
+| 項目 | 刪除前 | 刪除後 |
+| :--- | :--- | :--- |
+| 門過濾率 | 84/86 = 98% | **84/86 = 98%**（相同） |
+| 窗戶 P/R | 98%/95%（TP 127／FP 3／FN 6） | **98%/95%（TP 127／FP 3／FN 6，逐項相同）** |
+| 灰階批次 | 44/44 成功 | **37/37 成功、0 失敗** |
+
+逐張理由（依據 `docs/CODY_PIPELINE_README.md:378` 與 `:99`）：
+
+| 圖 | 原屬 | 理由 |
+| :--- | :--- | :--- |
+| floor10 | 兩邊都有 | 與 floor38 像素級相同；**答案與重複對矛盾，確認標錯後已刪除**（2026/7/13），以 floor38 計分 |
+| floor14 | ben 獨有 | 與 floor61 像素級相同，同上，以 floor61 計分 |
+| floor16 | ben 獨有 | 與 floor46 像素級相同，而 floor46 屬 own_wip 淘汰 5 題 |
+| floor17 | ben 獨有 | **own_wip 定案淘汰 5 題之一**（floor17/24/30/34/46） |
+| floor18 | ben 獨有 | 與 floor54 像素級相同，以 floor54 計分 |
+| floor11、floor21 | ben 獨有 | cody 答案集無此二題，亦無重複對應記載 |
+
+**明確保留**（使用者確認）`testdata/png/builder_plan_630.png` 與其
+`_annotations.json`：它不是 `floor*.png`，是 ben 裁定 1 的產品測試案例
+（第 1.3 節用它驗證牆 28 未變）。
+
+> ⚠ **一項先前判斷的更正**：本檔早先的草稿曾說 floor11/14/18/21「無人工答案」，
+> 那是只查了 `Identify_ans/` 的結論。實際上 **ben 的 `testdata/pngans/` 裡有
+> 這些圖的答案**——只是那是被 `Identify_ans/` 取代的舊答案集，且 cody 已判定
+> 其中 floor10／floor14 兩張標錯並刪除對應答案。刪除整個舊答案目錄正是為了
+> 消除兩套答案集並存的歧義。
+
+**cody 端待清理（不在本分支處理，屬 cody 自己的既有狀態）**：
+`testdata/dxf/` 仍有 floor24／30／34／46／49 五個 `.dxf`，其來源 png 在 cody 上
+本來就不存在（24/30/34/46 是 own_wip 淘汰題；floor49 是 floor12 的重複對，
+答案存在其名下但無獨立圖檔）。另有 ben 獨有的 `floor01_center.dxf`／
+`floor01_outline.dxf` 兩個衍生輸出，floor01 本身有答案故保留，但用途需 ben 確認。
 
 ---
 
