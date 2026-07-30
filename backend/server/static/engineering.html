@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RoomPilot 工程估算與文件</title>
+    <style>
+      :root { --ink:#253127; --muted:#657068; --line:#d9dfda; --paper:#fff; --bg:#eef1ed; --green:#335f47; --green2:#e0ece4; --amber:#fff0a8; --red:#a51d1d; }
+      * { box-sizing:border-box; }
+      body { margin:0; color:var(--ink); background:var(--bg); font:15px/1.55 system-ui,"Noto Sans TC",sans-serif; }
+      button,input { font:inherit; }
+      a { color:var(--green); }
+      .topbar { min-height:64px; padding:12px 28px; background:#fff; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:18px; }
+      .brand { color:var(--ink); text-decoration:none; font-size:20px; font-weight:800; }
+      .shell { max-width:1240px; margin:26px auto; padding:0 22px 60px; }
+      .hero,.card { background:var(--paper); border:1px solid var(--line); border-radius:18px; box-shadow:0 8px 30px #2431280d; }
+      .hero { padding:28px 32px; display:flex; align-items:flex-start; justify-content:space-between; gap:28px; }
+      .hero h1 { margin:3px 0 8px; font-size:30px; }
+      .eyebrow { color:var(--green); font-size:12px; font-weight:800; letter-spacing:.12em; }
+      .status-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:18px 0; }
+      .metric { background:#f6f8f5; border:1px solid var(--line); border-radius:14px; padding:14px; }
+      .metric span { display:block; color:var(--muted); font-size:12px; }
+      .metric strong { display:block; margin-top:5px; font-size:18px; overflow-wrap:anywhere; }
+      .grid { display:grid; grid-template-columns:minmax(310px,.8fr) minmax(0,1.4fr); gap:18px; align-items:start; }
+      .card { padding:24px; margin-bottom:18px; }
+      .card h2 { margin-top:0; }
+      .actions { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0; }
+      button,.button { border:0; border-radius:10px; padding:10px 15px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+      button.primary { background:var(--green); color:#fff; font-weight:750; }
+      button.secondary,.button { background:var(--green2); color:var(--green); font-weight:700; }
+      button:disabled { opacity:.45; cursor:not-allowed; }
+      label { display:block; margin:14px 0; font-weight:700; }
+      input { width:100%; margin-top:6px; border:1px solid #bbc6bd; border-radius:10px; padding:10px 12px; }
+      .banner { border-radius:12px; padding:14px 16px; margin:14px 0; background:#eef3ef; }
+      .banner.demo { background:var(--red); color:#fff; border:5px solid #ffd66b; font-size:17px; font-weight:800; }
+      .banner.mock { background:var(--amber); color:#633f09; }
+      progress { width:100%; height:18px; accent-color:var(--green); }
+      .error { color:var(--red); font-weight:700; white-space:pre-wrap; }
+      .muted { color:var(--muted); }
+      ul { padding-left:20px; }
+      .downloads { display:flex; flex-wrap:wrap; gap:10px; }
+      iframe { width:100%; min-height:650px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+      pre { max-height:420px; overflow:auto; background:#17231b; color:#e4f2e8; padding:16px; border-radius:12px; font:12px/1.5 ui-monospace,monospace; }
+      details { margin-top:14px; }
+      @media(max-width:850px) { .status-grid,.grid { grid-template-columns:1fr; } .hero { flex-direction:column; } }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">RoomPilot</a>
+      <a id="back-to-project" href="/scene">返回設計專案</a>
+    </header>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <span class="eyebrow">DESIGNER-LOCKED ENGINEERING MVP</span>
+          <h1>工程估算與文件生成</h1>
+          <p class="muted">從現有專案 state 建立不可覆寫的鎖定 revision，再由同一份 ProjectSnapshot 產生 HTML、XLSX 與 JSON。</p>
+        </div>
+        <button id="refresh-state" class="secondary" type="button">重新讀取目前專案</button>
+      </section>
+
+      <div id="demo-banner" class="banner demo" hidden>示範資料，非正式報價。價格與工率只供流程展示。</div>
+      <div id="retriever-banner" class="banner mock">正在讀取 Advanced RAG Adapter 狀態…</div>
+
+      <section class="status-grid" aria-live="polite">
+        <div class="metric"><span>專案</span><strong id="project-name">—</strong></div>
+        <div class="metric"><span>工程 Revision</span><strong id="revision">—</strong></div>
+        <div class="metric"><span>Snapshot 完整性</span><strong id="completeness">—</strong></div>
+        <div class="metric"><span>鎖定狀態</span><strong id="lock-status">—</strong></div>
+      </section>
+
+      <div class="grid">
+        <div>
+          <section class="card">
+            <h2>1. 保存與鎖定</h2>
+            <p>Adapter 只讀目前 project API 回傳的 workflow，不在瀏覽器計算價格、工期、碰撞或合法座標。</p>
+            <label>設計師／確認者
+              <input id="confirmed-by" type="text" placeholder="例如：王設計師" />
+            </label>
+            <div class="actions">
+              <button id="save-draft" class="secondary" type="button">保存 Draft Snapshot</button>
+              <button id="lock-revision" class="primary" type="button" disabled>鎖定此 Revision</button>
+            </div>
+            <p id="snapshot-status" class="muted">等待載入專案。</p>
+            <h3>完整性與待確認</h3>
+            <ul id="completeness-list"><li>尚未分析</li></ul>
+          </section>
+
+          <section class="card">
+            <h2>2. 生成工程文件</h2>
+            <button id="generate-package" class="primary" type="button" disabled>生成 HTML／XLSX／JSON</button>
+            <p id="job-stage" class="muted">Revision 鎖定後才能生成。</p>
+            <progress id="job-progress" max="100" value="0"></progress>
+            <p id="job-error" class="error" aria-live="assertive"></p>
+            <div id="download-links" class="downloads"></div>
+          </section>
+        </div>
+
+        <section class="card">
+          <h2>文件預覽</h2>
+          <p id="preview-placeholder" class="muted">生成完成後會在此預覽設計工程提案。</p>
+          <iframe id="html-preview" title="設計工程提案預覽" hidden></iframe>
+          <details id="json-details" hidden>
+            <summary>查看 report_payload.json（除錯／前端預覽）</summary>
+            <pre id="json-preview"></pre>
+          </details>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="/static/engineering.js?v=sha256-b5f0b28e2de2"></script>
+  </body>
+</html>

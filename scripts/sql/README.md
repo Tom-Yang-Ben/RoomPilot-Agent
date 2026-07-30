@@ -1,86 +1,81 @@
-# RoomPilot PostgreSQL 匯入
+# RoomPilot 家具與向量 PostgreSQL 匯入
 
-本資料夾目前版本專門匯入 **8,557 筆 Kai 官方家具 catalog**。本機 API 預設也讀取同一份 JSON；完成 PostgreSQL 匯入後，才以環境變數明確切換資料來源。
+本資料夾是目前 RoomPilot 的正式家具 PostgreSQL 匯入入口，處理 **8,557 筆 catalog 家具**與其中 **7,958 筆啟用／可建立 RAG 向量的家具**。舊版 9,349 筆家具與 37,396 筆資產數量已不適用。
 
-安裝方式請依團隊環境選擇：
+原生 Windows 安裝與第一次匯入請直接依照 [PostgreSQL 17.10 安裝與資料匯入指南](./PostgreSQL%2017.10%20安裝與資料匯入指南.md)。本 README 與該指南就是目前保留的家具及向量 SQL 操作入口。
 
-- 原生 Windows PostgreSQL：[PostgreSQL 17.10 安裝與資料匯入指南](./PostgreSQL%2017.10%20安裝與資料匯入指南.md)。每位組員依 pgvector 官方 Windows 方式直接編譯安裝 v0.8.2。
-- Docker（團隊環境一致性較高）：[Docker PostgreSQL 17.10 與資料匯入流程](./Docker%20PostgreSQL%2017.10%20與資料匯入流程.md)。組員不需要另外安裝 PostgreSQL、Visual Studio 或 pgvector。
+RAG metadata／文字、向量生成、檢索與品質由 Django 負責；Kai 在 RAG 流程只負責把 Django 交付的向量存入 PostgreSQL／pgvector。本資料夾的向量 schema 與 importer 只服務這個保存邊界。
 
-## 新版輸入資料
+## 目前資料夾內容
+
+| 檔案 | 用途 |
+|---|---|
+| `roompilot_postgresql_schema.sql` | 家具、分類、風格、房間、VLM、資產、品質問題、staging 與 API views |
+| `import_official_catalog_to_postgres.py` | 驗證官方 JSON 與四份 manifest，交易式 UPSERT 家具資料 |
+| `roompilot_furniture_embeddings_schema.sql` | pgvector table、向量來源 view 與搜尋 functions |
+| `import_furniture_embeddings_to_postgres.py` | 驗證文字、hash、模型、維度與向量後 UPSERT |
+| `PostgreSQL 17.10 安裝與資料匯入指南.md` | Windows 安裝、第一次匯入與驗收方式 |
+| `README.md` | 本流程的快速操作入口 |
+
+目前 `scripts/sql/` 只保留家具 catalog 與家具向量匯入流程；舊版 Phase 3 project migration、Phase 4 runtime catalog 與排除項目 manifest 維護腳本已不在目前的 `scripts/` 工具樹中，請勿沿用舊路徑指令。
+
+## 正式輸入與數量
 
 | 資料 | 預設路徑 | 預期筆數 |
 |---|---|---:|
-| 官方家具與 VLM 結果 | `JSON/furniture/furniture_official_catagory.json` | 9,350 |
-| GLB manifest | `JSON/manifests/glb_upload_manifest.csv` | 9,350 |
-| GLB upload result | `JSON/manifests/glb_upload_all_result.csv` | 9,350 |
-| 圖片 manifest | `JSON/manifests/image_upload_manifest.csv` | 28,050 |
-| 圖片 upload result | `JSON/manifests/image_upload_all_result.csv` | 28,050 |
+| 官方家具、VLM 與 RAG metadata | `JSON/furniture/furniture_official_catagory.json` | 8,557 |
+| GLB manifest | `JSON/manifests/glb_upload_manifest.csv` | 8,557 |
+| GLB upload result | `JSON/manifests/glb_upload_all_result.csv` | 8,557 |
+| 三視角圖片 manifest | `JSON/manifests/image_upload_manifest.csv` | 25,671 |
+| 三視角圖片 upload result | `JSON/manifests/image_upload_all_result.csv` | 25,671 |
+| BGE-M3 向量 | `JSON/RAG/furniture_embeddings_bge_m3.jsonl` | 7,958 |
 
-五個來源的 `item_id` 必須完整一致。每件家具必須有 1 個 GLB，以及 `front`、`side`、`angle-45` 各 1 張圖片。
+目前狀態邊界：
 
-## 資料表
+- 7,958 筆 `is_active=true`，可進正式 API 與家具向量 RAG。
+- 599 筆 `is_active=false` 且 `rag_indexable=false`，保留人工複核，但不進正式 API／RAG。
+- 已從 catalog 與本機 manifest 移除 792 筆燈具／燈具分類；本流程不刪除既有雲端資產。
+- 每件 catalog 家具必須對應 1 個 GLB，以及 `front`、`side`、`angle-45` 各 1 張圖片。
+- VLM 敘述與 RAG metadata 是正式輸入，不應由匯入器自行改寫。
 
-正式資料位於 `roompilot` schema：
+## 最快驗證方式
 
-1. `furniture_categories`
-2. `furniture_items`
-3. `styles`
-4. `furniture_styles`
-5. `rooms`
-6. `furniture_rooms`
-7. `furniture_vlm_annotations`
-8. `furniture_assets`
-9. `furniture_embeddings`（只有 PostgreSQL 已安裝並可啟用 pgvector 時建立）
-10. `furniture_quality_issues`
-
-原始來源列會另存到 `staging.stg_furniture_catalog`、`stg_glb_manifest`、`stg_glb_upload_result`、`stg_image_manifest`、`stg_image_upload_result`。五個輸入檔的 SHA-256 會產生同一個 `batch_key` 識別 staging 批次；正式表則依 `item_id` 與各資料表的業務唯一鍵安全 UPSERT。
-
-`roompilot.furniture_catalog_current` 是 API 常用 view，會彙整目前 VLM 標註、主次風格、房間、GLB URL 與三視角圖片 URL。
-
-## 先執行 Dry Run
-
-Dry Run 只讀取檔案，不連線資料庫：
+所有 PowerShell 指令都從 repo 根目錄執行：
 
 ```powershell
-python scripts/sql/import_official_catalog_to_postgres.py --dry-run
+Set-Location 'D:\RoomPilot-Agent'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+.\.venv\Scripts\python.exe scripts\sql\import_official_catalog_to_postgres.py --dry-run
+.\.venv\Scripts\python.exe scripts\sql\import_furniture_embeddings_to_postgres.py `
+  --catalog JSON\furniture\furniture_official_catagory.json `
+  --embeddings JSON\RAG\furniture_embeddings_bge_m3.jsonl `
+  --require-all `
+  --dry-run
 ```
 
-成功時應看到：
+預期輸出重點：
 
 ```text
-家具：9,350
-分類／風格／房間：64／12／9
-GLB／三視角圖片：9,350／28,050
-VLM 標註：9,350
-品質問題：2,102
+家具：8,557
+分類／風格／房間：55／6／9
+GLB／三視角圖片：8,557／25,671
+VLM 標註：8,557
+品質問題：1,647
+embedded_text／text_hash：7,958
+實際向量：7,958
 ```
 
-詳細欄位、檔案 SHA-256、來源列數與品質問題統計會寫到 `scripts/sql/postgres_import_validation.json`。
-
-## PostgreSQL 準備
-
-基本家具匯入需要 PostgreSQL 與 `pg_trgm`；只有建立 `furniture_embeddings` 時才需要 [pgvector](https://github.com/pgvector/pgvector)。安裝專案依賴（包含 `psycopg2-binary`）：
+Dry-run 不連線 PostgreSQL，也不寫入資料庫。家具匯入器預設不留下驗證報告；只有真的需要 JSON 報告時才明確指定：
 
 ```powershell
-python -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe scripts\sql\import_official_catalog_to_postgres.py `
+  --dry-run `
+  --validation-report D:\指定位置\postgres_import_validation.json
 ```
 
-正式執行 schema 前可先在 `roompilot_db` 查詢 pgvector 是否可用及是否已啟用：
+## PostgreSQL 設定
 
-```sql
-SELECT name, default_version, installed_version
-FROM pg_available_extensions
-WHERE name = 'vector';
-
-SELECT extname, extversion
-FROM pg_extension
-WHERE extname = 'vector';
-```
-
-查得到 `vector` 時，主 schema 會啟用 extension 並建立 `furniture_embeddings` 與索引；查不到時會顯示 `NOTICE` 並跳過這三部分，其餘家具 catalog 表與 9,350 筆匯入不受影響。
-
-在專案根目錄 `.env` 設定：
+從 `.env.example` 建立本機 `.env`，並填入自己的 PostgreSQL 密碼：
 
 ```dotenv
 DB_HOST=localhost
@@ -88,44 +83,88 @@ DB_PORT=5432
 DB_NAME=roompilot_db
 DB_ADMIN_DB=postgres
 DB_USER=postgres
-DB_PASSWORD=安裝PostgreSQL17時設定的密碼
+DB_PASSWORD=請填入本機密碼
 DB_SSLMODE=disable
 DB_CONNECT_TIMEOUT=10
 DB_APPLICATION_NAME=roompilot_catalog_import
 ```
 
-## 正式匯入
+`.env` 不可提交。第一次建立 schema 與向量 extension 的帳號需要足夠的 `CREATEDB`、schema 與 extension 權限。
 
-確認專案根目錄的 `.env` 已填入正確的 PostgreSQL 密碼。第一次正式匯入請直接在 PowerShell 執行：
+## 正式家具匯入
 
-```powershell
-Set-Location 'D:\RoomPilot-Agent'
-python .\scripts\sql\import_official_catalog_to_postgres.py --create-database
-```
-
-`--create-database` 會在 `roompilot_db` 不存在時，先透過 `DB_ADMIN_DB=postgres` 建立資料庫。程式接著會在同一個 transaction 內執行 schema、寫入 staging、UPSERT 正式表並核對筆數。
-
-之後需要重新匯入或更新資料，而且 `roompilot_db` 已經存在時，執行：
+第一次建立 `roompilot_db`：
 
 ```powershell
-Set-Location 'D:\RoomPilot-Agent'
-python .\scripts\sql\import_official_catalog_to_postgres.py
+.\.venv\Scripts\python.exe scripts\sql\import_official_catalog_to_postgres.py --create-database
 ```
+
+資料庫已存在時做一般 UPSERT：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\sql\import_official_catalog_to_postgres.py
+```
+
+需要完整重建家具 catalog 時：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\sql\import_official_catalog_to_postgres.py --replace-existing
+```
+
+`--replace-existing` 只重建家具 tables、views 與 staging，不影響 project、render 或 runtime catalog；但它會移除 `furniture_embeddings`，所以執行後必須重新匯入向量。匯入與筆數核對都在同一個 transaction，失敗會 rollback。
 
 常用選項：
 
-- `--skip-schema`：資料表已由 migration 管理時，不執行 schema SQL。
-- `--skip-staging`：不保存本批原始來源列，只 UPSERT 正式表。
-- `--allow-incomplete-uploads`：允許 upload result 不是全數 `uploaded` / `ready`；正式資料不建議使用。
-- `--page-size 500`：調整 PostgreSQL 批次寫入大小。
-- 各輸入檔也都能用 `--catalog`、`--glb-manifest`、`--glb-upload-result`、`--image-manifest`、`--image-upload-result` 個別覆寫。
+- `--skip-schema`：schema 已由 migration 管理時不重跑 SQL；不可與 `--replace-existing` 同用。
+- `--skip-staging`：不保存本批原始來源列，只更新正式表。
+- `--allow-incomplete-uploads`：允許未完成 upload result；正式資料不建議使用。
+- `--page-size 500`：調整批次寫入大小。
+- `--catalog` 與四個 manifest/result 參數：覆寫預設輸入路徑。
 
-## 匯入規則
+## 正式向量匯入
 
-- `item_id` 是所有資料表共用的家具識別碼。
-- 分類由 `canonical_category_zh` 建立，穩定的 `category_code` 取該分類最常見的來源 `type`。
-- 主風格為 `style_rank = 1`，次風格為 `style_rank = 2`。來源中有 79 筆兩個 rank 相同，因此主鍵是 `(item_id, style_rank)`。
-- VLM 欄位使用內容 hash 保存版本，每件家具只允許一筆 `is_current = TRUE`。
-- GLB 與圖片以 `(item_id, asset_type, view_role)` 保證一個資產槽只有一筆正式紀錄；原始 manifest/result 完整保留在 JSONB。
-- catalog 內的分類衝突、重複群組、尺寸待複查、缺主色與缺 `object_type_zh` 會寫入 `furniture_quality_issues`。
-- 若 pgvector 可用，`furniture_embeddings` 先允許不同向量維度；選定正式 embedding 模型與固定維度後，再建立對應的 HNSW index。
+家具資料必須先匯入，因為向量 item ID 外鍵指向 `roompilot.furniture_items`：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\sql\import_furniture_embeddings_to_postgres.py `
+  --catalog JSON\furniture\furniture_official_catagory.json `
+  --embeddings JSON\RAG\furniture_embeddings_bge_m3.jsonl `
+  --require-all
+```
+
+目前正式契約為 `BAAI/bge-m3`、1024 維、cosine、L2 normalized。Importer 會拒絕非 active／非 RAG-indexable item、過期文字或 hash、錯誤維度、NaN／Infinity，以及不符合 normalization 契約的向量。
+
+## 主要資料表與 views
+
+正式資料位於 `roompilot` schema：
+
+- `furniture_categories`、`furniture_items`
+- `styles`、`furniture_styles`
+- `rooms`、`furniture_rooms`
+- `furniture_vlm_annotations`
+- `furniture_assets`
+- `furniture_quality_issues`
+- `furniture_embeddings`
+- `furniture_catalog_current`
+- `furniture_catalog_api_current`
+- `furniture_embedding_source_current`
+
+五個 catalog／manifest 輸入另存於 `staging` schema。正式 API views 只提供 7,958 筆 active 家具；599 筆 inactive 家具仍留在 `furniture_items` 供複核。
+
+## 最低驗證
+
+```powershell
+.\.venv\Scripts\python.exe scripts\sql\import_official_catalog_to_postgres.py --dry-run
+.\.venv\Scripts\python.exe scripts\sql\import_furniture_embeddings_to_postgres.py `
+  --catalog JSON\furniture\furniture_official_catagory.json `
+  --embeddings JSON\RAG\furniture_embeddings_bge_m3.jsonl `
+  --require-all `
+  --dry-run
+.\.venv\Scripts\python.exe -m pytest -q tests\test_furniture_embeddings_sql.py tests\test_official_cloud_catalog.py tests\test_image_manifest_contract.py
+git diff --check
+git status --short
+```
+
+目前 `tests/test_official_catalog_sql.py` 仍匯入已不在工具樹中的 `scripts.catalog.remove_excluded_catalog_assets_from_manifests`，會在測試收集階段失敗；在腳本或測試責任重新對齊前，不把它列入可執行的最低驗證。
+
+本流程不建立第二套家具主表，也不把 Chroma、JSON fallback 或 quarantine 資料當成正式家具來源。

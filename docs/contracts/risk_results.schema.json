@@ -1,0 +1,165 @@
+{
+  "$defs": {
+    "RiskItem": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "measured_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measured Value"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "professional_confirmation_required": {
+          "default": false,
+          "title": "Professional Confirmation Required",
+          "type": "boolean"
+        },
+        "related_items": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Items",
+          "type": "array"
+        },
+        "room_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Room Id"
+        },
+        "rule": {
+          "title": "Rule",
+          "type": "string"
+        },
+        "rule_source": {
+          "enum": [
+            "ancai_engine",
+            "mvp_advisory",
+            "professional_confirmation"
+          ],
+          "title": "Rule Source",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "threshold_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "id",
+        "rule",
+        "rule_source",
+        "severity",
+        "passed",
+        "message"
+      ],
+      "title": "RiskItem",
+      "type": "object"
+    },
+    "RiskSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "pass_count": {
+          "title": "Pass Count",
+          "type": "integer"
+        },
+        "risk_count": {
+          "title": "Risk Count",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "has_risk"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "risk_count",
+        "pass_count",
+        "status"
+      ],
+      "title": "RiskSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "engine_adapter": {
+      "title": "Engine Adapter",
+      "type": "string"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/RiskItem"
+      },
+      "title": "Results",
+      "type": "array"
+    },
+    "summary": {
+      "$ref": "#/$defs/RiskSummary"
+    }
+  },
+  "required": [
+    "summary",
+    "results",
+    "engine_adapter"
+  ],
+  "title": "RiskResult",
+  "type": "object"
+}

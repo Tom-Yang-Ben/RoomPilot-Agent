@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 from copy import deepcopy
-import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping
+
+from ..catalog.runtime_catalog_repository import load_runtime_cost_catalog
 
 
 DISCLAIMER_ZH = "網路公開行情概算；施工前須現場丈量並取得正式報價。"
 DEFAULT_CATALOG_PATH = Path(__file__).resolve().parents[1] / "catalog" / "data" / "taiwan_renovation_price_seed.json"
+PROJECT_DIR = Path(__file__).resolve().parents[2]
 
 
 def load_default_cost_catalog() -> dict[str, Any]:
-    """讀取已人工核對、可離線重現的台灣公開網路行情種子。"""
-    return json.loads(DEFAULT_CATALOG_PATH.read_text(encoding="utf-8"))
+    """由 Phase 4 provider 讀取具來源的台灣裝修行情。"""
+    return load_runtime_cost_catalog(PROJECT_DIR, DEFAULT_CATALOG_PATH)
 
 
 def _validate_catalog(catalog: Mapping[str, Any]) -> None:

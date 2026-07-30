@@ -1,0 +1,2423 @@
+{
+  "components": {
+    "schemas": {
+      "ConstructionNote": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "contractor_confirmed"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "professional_confirmation_required": {
+            "default": false,
+            "title": "Professional Confirmation Required",
+            "type": "boolean"
+          },
+          "room_id": {
+            "title": "Room Id",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "room_id",
+          "title",
+          "content",
+          "source_id",
+          "confidence"
+        ],
+        "title": "ConstructionNote",
+        "type": "object"
+      },
+      "DocumentManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "byte_size": {
+            "minimum": 0.0,
+            "title": "Byte Size",
+            "type": "integer"
+          },
+          "content_type": {
+            "title": "Content Type",
+            "type": "string"
+          },
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "document_type": {
+            "enum": [
+              "report_json",
+              "report_html",
+              "estimate_xlsx"
+            ],
+            "title": "Document Type",
+            "type": "string"
+          },
+          "download_url": {
+            "title": "Download Url",
+            "type": "string"
+          },
+          "file_name": {
+            "title": "File Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "document_type",
+          "file_name",
+          "content_type",
+          "download_url",
+          "byte_size"
+        ],
+        "title": "DocumentManifest",
+        "type": "object"
+      },
+      "EngineeringPackageRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "documents": {
+            "items": {
+              "enum": [
+                "report_json",
+                "report_html",
+                "estimate_xlsx"
+              ],
+              "type": "string"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "revision": {
+            "pattern": "^[A-Za-z0-9._-]{1,80}$",
+            "title": "Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "title": "EngineeringPackageRequest",
+        "type": "object"
+      },
+      "EquipmentRequirement": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "minLength": 1,
+            "title": "Category",
+            "type": "string"
+          },
+          "equipment_id": {
+            "minLength": 1,
+            "title": "Equipment Id",
+            "type": "string"
+          },
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "quantity": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "questionnaire",
+              "scene_context",
+              "designer"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "equipment_id",
+          "name",
+          "category",
+          "source"
+        ],
+        "title": "EquipmentRequirement",
+        "type": "object"
+      },
+      "EstimateLine": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "contractor_confirmed"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "labor_unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labor Unit Price"
+          },
+          "material_unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Material Unit Price"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "other_unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Other Unit Price"
+          },
+          "price_effective_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Effective Date"
+          },
+          "price_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Record Id"
+          },
+          "price_region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Region"
+          },
+          "price_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Source"
+          },
+          "pricing_quantity": {
+            "title": "Pricing Quantity",
+            "type": "number"
+          },
+          "raw_quantity": {
+            "title": "Raw Quantity",
+            "type": "number"
+          },
+          "room_id": {
+            "title": "Room Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "priced",
+              "pending_quote"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subtotal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtotal"
+          },
+          "trade": {
+            "title": "Trade",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "waste_rate": {
+            "title": "Waste Rate",
+            "type": "number"
+          },
+          "work_item_code": {
+            "title": "Work Item Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "room_id",
+          "work_item_code",
+          "trade",
+          "name",
+          "unit",
+          "raw_quantity",
+          "waste_rate",
+          "pricing_quantity",
+          "material_unit_price",
+          "labor_unit_price",
+          "other_unit_price",
+          "subtotal",
+          "price_record_id",
+          "price_source",
+          "price_effective_date",
+          "price_region",
+          "status",
+          "confidence"
+        ],
+        "title": "EstimateLine",
+        "type": "object"
+      },
+      "EstimateResult": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "const": "TWD",
+            "default": "TWD",
+            "title": "Currency",
+            "type": "string"
+          },
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "estimated_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Total"
+          },
+          "known_subtotal": {
+            "title": "Known Subtotal",
+            "type": "number"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/EstimateLine"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "pending_quote_count": {
+            "title": "Pending Quote Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lines",
+          "known_subtotal",
+          "estimated_total",
+          "pending_quote_count",
+          "disclaimer"
+        ],
+        "title": "EstimateResult",
+        "type": "object"
+      },
+      "FurniturePlacement": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Url"
+          },
+          "catalog_furniture_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog Furniture Id"
+          },
+          "category": {
+            "minLength": 1,
+            "title": "Category",
+            "type": "string"
+          },
+          "depth_cm": {
+            "exclusiveMinimum": 0.0,
+            "title": "Depth Cm",
+            "type": "number"
+          },
+          "furniture_id": {
+            "minLength": 1,
+            "title": "Furniture Id",
+            "type": "string"
+          },
+          "height_cm": {
+            "exclusiveMinimum": 0.0,
+            "title": "Height Cm",
+            "type": "number"
+          },
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "needs_drain": {
+            "default": false,
+            "title": "Needs Drain",
+            "type": "boolean"
+          },
+          "needs_power": {
+            "default": false,
+            "title": "Needs Power",
+            "type": "boolean"
+          },
+          "needs_water": {
+            "default": false,
+            "title": "Needs Water",
+            "type": "boolean"
+          },
+          "placement_failed": {
+            "default": false,
+            "title": "Placement Failed",
+            "type": "boolean"
+          },
+          "placement_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placement Reason"
+          },
+          "position_reference": {
+            "const": "center",
+            "default": "center",
+            "title": "Position Reference",
+            "type": "string"
+          },
+          "quantity": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "rotation_deg": {
+            "default": 0,
+            "title": "Rotation Deg",
+            "type": "number"
+          },
+          "width_cm": {
+            "exclusiveMinimum": 0.0,
+            "title": "Width Cm",
+            "type": "number"
+          },
+          "x_cm": {
+            "default": 0,
+            "title": "X Cm",
+            "type": "number"
+          },
+          "y_cm": {
+            "default": 0,
+            "title": "Y Cm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "furniture_id",
+          "name",
+          "category",
+          "width_cm",
+          "depth_cm",
+          "height_cm"
+        ],
+        "title": "FurniturePlacement",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "JobStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentManifest"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "package_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Id"
+          },
+          "progress": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Progress",
+            "type": "integer"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "string"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "processing",
+              "completed",
+              "completed_with_warnings",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "project_id",
+          "revision",
+          "status",
+          "progress",
+          "stage"
+        ],
+        "title": "JobStatus",
+        "type": "object"
+      },
+      "LockRevisionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed_by": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Confirmed By",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmed_by"
+        ],
+        "title": "LockRevisionRequest",
+        "type": "object"
+      },
+      "MEPPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "point_id": {
+            "minLength": 1,
+            "title": "Point Id",
+            "type": "string"
+          },
+          "professional_status": {
+            "default": "pending",
+            "enum": [
+              "pending",
+              "confirmed",
+              "not_applicable"
+            ],
+            "title": "Professional Status",
+            "type": "string"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "quantity": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "system": {
+            "enum": [
+              "power",
+              "lighting",
+              "data",
+              "cold_water",
+              "hot_water",
+              "drain",
+              "hvac",
+              "other"
+            ],
+            "title": "System",
+            "type": "string"
+          },
+          "x_cm": {
+            "default": 0,
+            "title": "X Cm",
+            "type": "number"
+          },
+          "y_cm": {
+            "default": 0,
+            "title": "Y Cm",
+            "type": "number"
+          },
+          "z_cm": {
+            "default": 0,
+            "title": "Z Cm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "point_id",
+          "system",
+          "purpose"
+        ],
+        "title": "MEPPoint",
+        "type": "object"
+      },
+      "MEPSuggestion": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "contractor_confirmed"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "covered_by_existing_point": {
+            "title": "Covered By Existing Point",
+            "type": "boolean"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "related_item_id": {
+            "title": "Related Item Id",
+            "type": "string"
+          },
+          "related_item_name": {
+            "title": "Related Item Name",
+            "type": "string"
+          },
+          "room_id": {
+            "title": "Room Id",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "system": {
+            "title": "System",
+            "type": "string"
+          }
+        },
+        "required": [
+          "room_id",
+          "related_item_id",
+          "related_item_name",
+          "system",
+          "reason",
+          "covered_by_existing_point",
+          "source_id",
+          "confidence"
+        ],
+        "title": "MEPSuggestion",
+        "type": "object"
+      },
+      "MaterialSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "material_id": {
+            "minLength": 1,
+            "title": "Material Id",
+            "type": "string"
+          },
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "part": {
+            "enum": [
+              "floor",
+              "wall",
+              "ceiling",
+              "other"
+            ],
+            "title": "Part",
+            "type": "string"
+          },
+          "waste_rate": {
+            "default": 0.05,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Waste Rate",
+            "type": "number"
+          }
+        },
+        "required": [
+          "material_id",
+          "part",
+          "name"
+        ],
+        "title": "MaterialSelection",
+        "type": "object"
+      },
+      "NarrativeResult": {
+        "additionalProperties": false,
+        "properties": {
+          "construction_summary": {
+            "title": "Construction Summary",
+            "type": "string"
+          },
+          "cost_summary": {
+            "title": "Cost Summary",
+            "type": "string"
+          },
+          "design_summary": {
+            "title": "Design Summary",
+            "type": "string"
+          },
+          "risk_summary": {
+            "title": "Risk Summary",
+            "type": "string"
+          },
+          "schedule_summary": {
+            "title": "Schedule Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "design_summary",
+          "construction_summary",
+          "cost_summary",
+          "schedule_summary",
+          "risk_summary"
+        ],
+        "title": "NarrativeResult",
+        "type": "object"
+      },
+      "PointCm": {
+        "additionalProperties": false,
+        "properties": {
+          "x_cm": {
+            "title": "X Cm",
+            "type": "number"
+          },
+          "y_cm": {
+            "title": "Y Cm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x_cm",
+          "y_cm"
+        ],
+        "title": "PointCm",
+        "type": "object"
+      },
+      "ProjectSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_status": {
+            "default": "draft",
+            "enum": [
+              "draft",
+              "designer_confirmed"
+            ],
+            "title": "Approval Status",
+            "type": "string"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          },
+          "confirmed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed By"
+          },
+          "coordinate_unit": {
+            "const": "cm",
+            "default": "cm",
+            "title": "Coordinate Unit",
+            "type": "string"
+          },
+          "pricing_basis_date": {
+            "format": "date",
+            "title": "Pricing Basis Date",
+            "type": "string"
+          },
+          "project_id": {
+            "minLength": 1,
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "minLength": 1,
+            "title": "Project Name",
+            "type": "string"
+          },
+          "region": {
+            "default": "Taiwan",
+            "minLength": 1,
+            "title": "Region",
+            "type": "string"
+          },
+          "revision": {
+            "pattern": "^[A-Za-z0-9._-]{1,80}$",
+            "title": "Revision",
+            "type": "string"
+          },
+          "rooms": {
+            "items": {
+              "$ref": "#/components/schemas/RoomSnapshot"
+            },
+            "minItems": 1,
+            "title": "Rooms",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "roompilot.project-snapshot.v1",
+            "default": "roompilot.project-snapshot.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_project_revision": {
+            "minimum": 0.0,
+            "title": "Source Project Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "project_id",
+          "project_name",
+          "revision",
+          "source_project_revision",
+          "pricing_basis_date",
+          "rooms"
+        ],
+        "title": "ProjectSnapshot",
+        "type": "object"
+      },
+      "QuantityResult": {
+        "additionalProperties": false,
+        "properties": {
+          "rooms": {
+            "items": {
+              "$ref": "#/components/schemas/RoomQuantity"
+            },
+            "title": "Rooms",
+            "type": "array"
+          },
+          "total_ceiling_area_m2": {
+            "title": "Total Ceiling Area M2",
+            "type": "number"
+          },
+          "total_floor_area_m2": {
+            "title": "Total Floor Area M2",
+            "type": "number"
+          },
+          "total_net_wall_area_m2": {
+            "title": "Total Net Wall Area M2",
+            "type": "number"
+          }
+        },
+        "required": [
+          "rooms",
+          "total_floor_area_m2",
+          "total_ceiling_area_m2",
+          "total_net_wall_area_m2"
+        ],
+        "title": "QuantityResult",
+        "type": "object"
+      },
+      "RenderReference": {
+        "additionalProperties": false,
+        "properties": {
+          "prompt_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Hash"
+          },
+          "render_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Render Id"
+          },
+          "render_url": {
+            "minLength": 1,
+            "title": "Render Url",
+            "type": "string"
+          },
+          "view_name": {
+            "minLength": 1,
+            "title": "View Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "render_url",
+          "view_name"
+        ],
+        "title": "RenderReference",
+        "type": "object"
+      },
+      "ReportPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "demo_disclaimer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Demo Disclaimer"
+          },
+          "demo_mode": {
+            "title": "Demo Mode",
+            "type": "boolean"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentManifest"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "estimate": {
+            "$ref": "#/components/schemas/EstimateResult"
+          },
+          "exclusions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Exclusions",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "narratives": {
+            "$ref": "#/components/schemas/NarrativeResult"
+          },
+          "package_id": {
+            "title": "Package Id",
+            "type": "string"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "quantities": {
+            "$ref": "#/components/schemas/QuantityResult"
+          },
+          "retrieval": {
+            "$ref": "#/components/schemas/RetrievalResult"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "string"
+          },
+          "risks": {
+            "$ref": "#/components/schemas/RiskResult"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/ScheduleResult"
+          },
+          "schema_version": {
+            "const": "roompilot.report-payload.v1",
+            "default": "roompilot.report-payload.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/ProjectSnapshot"
+          },
+          "snapshot_hash": {
+            "title": "Snapshot Hash",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "completed",
+              "completed_with_warnings"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "package_id",
+          "project_id",
+          "revision",
+          "generated_at",
+          "status",
+          "snapshot_hash",
+          "demo_mode",
+          "demo_disclaimer",
+          "snapshot",
+          "quantities",
+          "retrieval",
+          "risks",
+          "estimate",
+          "schedule",
+          "narratives",
+          "assumptions",
+          "exclusions"
+        ],
+        "title": "ReportPayload",
+        "type": "object"
+      },
+      "RetrievalEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "contractor_confirmed"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "retrieval_modes": {
+            "items": {
+              "enum": [
+                "structured",
+                "vector"
+              ],
+              "type": "string"
+            },
+            "title": "Retrieval Modes",
+            "type": "array"
+          },
+          "score": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "source_type",
+          "score",
+          "confidence",
+          "reason",
+          "retrieval_modes"
+        ],
+        "title": "RetrievalEvidence",
+        "type": "object"
+      },
+      "RetrievalResult": {
+        "additionalProperties": false,
+        "properties": {
+          "retrieval_version": {
+            "default": "advanced-rag-v1",
+            "title": "Retrieval Version",
+            "type": "string"
+          },
+          "rooms": {
+            "items": {
+              "$ref": "#/components/schemas/RoomRetrieval"
+            },
+            "title": "Rooms",
+            "type": "array"
+          },
+          "semantic_retriever": {
+            "$ref": "#/components/schemas/RetrieverStatus"
+          },
+          "structured_retrieval": {
+            "const": "active",
+            "default": "active",
+            "title": "Structured Retrieval",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rooms",
+          "semantic_retriever"
+        ],
+        "title": "RetrievalResult",
+        "type": "object"
+      },
+      "RetrievedWorkItem": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/RetrievalEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "professional_confirmation_required": {
+            "default": false,
+            "title": "Professional Confirmation Required",
+            "type": "boolean"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "number"
+          },
+          "quantity_key": {
+            "title": "Quantity Key",
+            "type": "string"
+          },
+          "room_id": {
+            "title": "Room Id",
+            "type": "string"
+          },
+          "trade": {
+            "title": "Trade",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "waste_rate": {
+            "default": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Waste Rate",
+            "type": "number"
+          },
+          "work_item_code": {
+            "title": "Work Item Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "room_id",
+          "work_item_code",
+          "trade",
+          "name",
+          "unit",
+          "quantity_key",
+          "quantity",
+          "description"
+        ],
+        "title": "RetrievedWorkItem",
+        "type": "object"
+      },
+      "RetrieverStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "title": "Adapter",
+            "type": "string"
+          },
+          "is_real_vector_retrieval": {
+            "title": "Is Real Vector Retrieval",
+            "type": "boolean"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "noop",
+              "vector"
+            ],
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "adapter",
+          "mode",
+          "is_real_vector_retrieval",
+          "message"
+        ],
+        "title": "RetrieverStatus",
+        "type": "object"
+      },
+      "RiskItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "measured_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured Value"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "professional_confirmation_required": {
+            "default": false,
+            "title": "Professional Confirmation Required",
+            "type": "boolean"
+          },
+          "related_items": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Items",
+            "type": "array"
+          },
+          "room_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room Id"
+          },
+          "rule": {
+            "title": "Rule",
+            "type": "string"
+          },
+          "rule_source": {
+            "enum": [
+              "ancai_engine",
+              "mvp_advisory",
+              "professional_confirmation"
+            ],
+            "title": "Rule Source",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "threshold_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Value"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "id",
+          "rule",
+          "rule_source",
+          "severity",
+          "passed",
+          "message"
+        ],
+        "title": "RiskItem",
+        "type": "object"
+      },
+      "RiskResult": {
+        "additionalProperties": false,
+        "properties": {
+          "engine_adapter": {
+            "title": "Engine Adapter",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RiskItem"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/RiskSummary"
+          }
+        },
+        "required": [
+          "summary",
+          "results",
+          "engine_adapter"
+        ],
+        "title": "RiskResult",
+        "type": "object"
+      },
+      "RiskSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "pass_count": {
+            "title": "Pass Count",
+            "type": "integer"
+          },
+          "risk_count": {
+            "title": "Risk Count",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "has_risk"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "risk_count",
+          "pass_count",
+          "status"
+        ],
+        "title": "RiskSummary",
+        "type": "object"
+      },
+      "RoomGeometry": {
+        "additionalProperties": false,
+        "properties": {
+          "height_cm": {
+            "exclusiveMinimum": 0.0,
+            "title": "Height Cm",
+            "type": "number"
+          },
+          "length_cm": {
+            "exclusiveMinimum": 0.0,
+            "title": "Length Cm",
+            "type": "number"
+          },
+          "opening_area_m2": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Opening Area M2",
+            "type": "number"
+          },
+          "polygon_cm": {
+            "items": {
+              "$ref": "#/components/schemas/PointCm"
+            },
+            "title": "Polygon Cm",
+            "type": "array"
+          },
+          "width_cm": {
+            "exclusiveMinimum": 0.0,
+            "title": "Width Cm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "length_cm",
+          "width_cm",
+          "height_cm"
+        ],
+        "title": "RoomGeometry",
+        "type": "object"
+      },
+      "RoomQuantity": {
+        "additionalProperties": false,
+        "properties": {
+          "ceiling_area_m2": {
+            "title": "Ceiling Area M2",
+            "type": "number"
+          },
+          "floor_area_m2": {
+            "title": "Floor Area M2",
+            "type": "number"
+          },
+          "geometry_source": {
+            "enum": [
+              "polygon_cm",
+              "rectangle_cm"
+            ],
+            "title": "Geometry Source",
+            "type": "string"
+          },
+          "gross_wall_area_m2": {
+            "title": "Gross Wall Area M2",
+            "type": "number"
+          },
+          "height_cm": {
+            "title": "Height Cm",
+            "type": "number"
+          },
+          "length_cm": {
+            "title": "Length Cm",
+            "type": "number"
+          },
+          "net_wall_area_m2": {
+            "title": "Net Wall Area M2",
+            "type": "number"
+          },
+          "opening_area_m2": {
+            "title": "Opening Area M2",
+            "type": "number"
+          },
+          "perimeter_m": {
+            "title": "Perimeter M",
+            "type": "number"
+          },
+          "room_id": {
+            "title": "Room Id",
+            "type": "string"
+          },
+          "width_cm": {
+            "title": "Width Cm",
+            "type": "number"
+          }
+        },
+        "required": [
+          "room_id",
+          "length_cm",
+          "width_cm",
+          "height_cm",
+          "floor_area_m2",
+          "ceiling_area_m2",
+          "perimeter_m",
+          "gross_wall_area_m2",
+          "opening_area_m2",
+          "net_wall_area_m2",
+          "geometry_source"
+        ],
+        "title": "RoomQuantity",
+        "type": "object"
+      },
+      "RoomRetrieval": {
+        "additionalProperties": false,
+        "properties": {
+          "construction_notes": {
+            "items": {
+              "$ref": "#/components/schemas/ConstructionNote"
+            },
+            "title": "Construction Notes",
+            "type": "array"
+          },
+          "mep_suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/MEPSuggestion"
+            },
+            "title": "Mep Suggestions",
+            "type": "array"
+          },
+          "room_id": {
+            "title": "Room Id",
+            "type": "string"
+          },
+          "semantic_query": {
+            "title": "Semantic Query",
+            "type": "string"
+          },
+          "work_items": {
+            "items": {
+              "$ref": "#/components/schemas/RetrievedWorkItem"
+            },
+            "title": "Work Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "room_id",
+          "semantic_query",
+          "work_items",
+          "mep_suggestions",
+          "construction_notes"
+        ],
+        "title": "RoomRetrieval",
+        "type": "object"
+      },
+      "RoomSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "equipment_requirements": {
+            "items": {
+              "$ref": "#/components/schemas/EquipmentRequirement"
+            },
+            "title": "Equipment Requirements",
+            "type": "array"
+          },
+          "furniture": {
+            "items": {
+              "$ref": "#/components/schemas/FurniturePlacement"
+            },
+            "title": "Furniture",
+            "type": "array"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/RoomGeometry"
+          },
+          "layout_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layout Json"
+          },
+          "materials": {
+            "items": {
+              "$ref": "#/components/schemas/MaterialSelection"
+            },
+            "title": "Materials",
+            "type": "array"
+          },
+          "mep_points": {
+            "items": {
+              "$ref": "#/components/schemas/MEPPoint"
+            },
+            "title": "Mep Points",
+            "type": "array"
+          },
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "renders": {
+            "items": {
+              "$ref": "#/components/schemas/RenderReference"
+            },
+            "title": "Renders",
+            "type": "array"
+          },
+          "room_id": {
+            "minLength": 1,
+            "title": "Room Id",
+            "type": "string"
+          },
+          "room_type": {
+            "minLength": 1,
+            "title": "Room Type",
+            "type": "string"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style"
+          }
+        },
+        "required": [
+          "room_id",
+          "name",
+          "room_type",
+          "geometry"
+        ],
+        "title": "RoomSnapshot",
+        "type": "object"
+      },
+      "ScheduleResult": {
+        "additionalProperties": false,
+        "properties": {
+          "disclaimer": {
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "estimated_total_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Total Days"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleTask"
+            },
+            "title": "Tasks",
+            "type": "array"
+          },
+          "unknown_duration_count": {
+            "title": "Unknown Duration Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tasks",
+          "estimated_total_days",
+          "unknown_duration_count",
+          "disclaimer"
+        ],
+        "title": "ScheduleResult",
+        "type": "object"
+      },
+      "ScheduleTask": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "contractor_confirmed"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "construction_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Construction Days"
+          },
+          "crew_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crew Count"
+          },
+          "daily_productivity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daily Productivity"
+          },
+          "finish_day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finish Day"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "predecessor_task_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Predecessor Task Ids",
+            "type": "array"
+          },
+          "preparation_days": {
+            "title": "Preparation Days",
+            "type": "number"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "number"
+          },
+          "room_id": {
+            "title": "Room Id",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "start_day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Day"
+          },
+          "status": {
+            "enum": [
+              "estimated",
+              "productivity_data_missing"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "total_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Days"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "waiting_days": {
+            "title": "Waiting Days",
+            "type": "number"
+          },
+          "work_item_code": {
+            "title": "Work Item Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "room_id",
+          "work_item_code",
+          "name",
+          "quantity",
+          "unit",
+          "daily_productivity",
+          "crew_count",
+          "preparation_days",
+          "construction_days",
+          "waiting_days",
+          "total_days",
+          "start_day",
+          "finish_day",
+          "source",
+          "confidence",
+          "status"
+        ],
+        "title": "ScheduleTask",
+        "type": "object"
+      },
+      "SnapshotCompleteness": {
+        "additionalProperties": false,
+        "properties": {
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "score": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "integer"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "score",
+          "complete",
+          "missing",
+          "warnings"
+        ],
+        "title": "SnapshotCompleteness",
+        "type": "object"
+      },
+      "SnapshotEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "completeness": {
+            "$ref": "#/components/schemas/SnapshotCompleteness"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/ProjectSnapshot"
+          }
+        },
+        "required": [
+          "snapshot",
+          "completeness"
+        ],
+        "title": "SnapshotEnvelope",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "由目前 FastAPI route 與 Pydantic 模型輸出的工程文件 API；前端不得直連 LLM、Vector Index 或資料庫。",
+    "title": "RoomPilot Designer-Locked Engineering API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/documents/{document_id}/download": {
+      "get": {
+        "operationId": "download_document_api_v1_documents__document_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "preview",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Preview",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Document",
+        "tags": [
+          "engineering-documents"
+        ]
+      }
+    },
+    "/api/v1/engineering/health": {
+      "get": {
+        "operationId": "health_api_v1_engineering_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Api V1 Engineering Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "engineering-documents"
+        ]
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_job_api_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job",
+        "tags": [
+          "engineering-documents"
+        ]
+      }
+    },
+    "/api/v1/packages/{package_id}": {
+      "get": {
+        "operationId": "get_package_api_v1_packages__package_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportPayload"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Package",
+        "tags": [
+          "engineering-documents"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/engineering-packages": {
+      "post": {
+        "operationId": "create_engineering_package_api_v1_projects__project_id__engineering_packages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngineeringPackageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Engineering Package",
+        "tags": [
+          "engineering-documents"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/revisions/{revision}/lock": {
+      "post": {
+        "operationId": "lock_revision_api_v1_projects__project_id__revisions__revision__lock_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LockRevisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lock Revision",
+        "tags": [
+          "engineering-documents"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/revisions/{revision}/snapshot": {
+      "get": {
+        "operationId": "get_snapshot_api_v1_projects__project_id__revisions__revision__snapshot_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Snapshot",
+        "tags": [
+          "engineering-documents"
+        ]
+      },
+      "put": {
+        "operationId": "save_snapshot_api_v1_projects__project_id__revisions__revision__snapshot_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectSnapshot"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Snapshot",
+        "tags": [
+          "engineering-documents"
+        ]
+      }
+    }
+  }
+}
