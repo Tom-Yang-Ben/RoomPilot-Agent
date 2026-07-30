@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 
 from ..cody_adapter import recognize_cody_geometry
+from .cody_room_labeler import apply_cody_room_labels, cody_room_labeler_status
 from .cody_semantic import cody_semantic_room_labeler_status
 from .evaluation import summarize_room_polygons
 from .geometry import transform_confirmed_geometry
@@ -376,6 +377,15 @@ def analyze_floorplan_image(
             room["polygon_source"] = "reference_annotation"
             room["polygon_confidence"] = reference_match["match"]["inlier_ratio"]
 
+    cody_room_labeler = cody_room_labeler_status()
+    if scale and geometry["walls"] and geometry.get("plan_bbox_px") and rooms:
+        cody_room_labeler = apply_cody_room_labels(
+            image,
+            rooms,
+            plan_bbox_px=geometry["plan_bbox_px"],
+            m_per_px=float(scale["m_per_px"]),
+        )
+
     room_icon_evidence: list[dict[str, Any]] = []
     if scale and geometry["walls"] and geometry.get("plan_bbox_px") and rooms:
         room_icon_evidence = detect_room_icons(
@@ -407,6 +417,7 @@ def analyze_floorplan_image(
         "plan_bbox_px": geometry.get("plan_bbox_px"),
         "rooms": rooms,
         "room_icon_evidence": room_icon_evidence,
+        "cody_room_labeler": cody_room_labeler,
         "cody_semantic_room_labeler": cody_semantic_room_labeler_status(),
         "evidence": [evidence] if evidence else [],
         "cody_diagnostics": cody_diagnostics,

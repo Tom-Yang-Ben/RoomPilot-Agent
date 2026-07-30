@@ -193,6 +193,37 @@ def test_analyze_floorplan_image_uses_cody_for_synthetic_geometry() -> None:
     assert all(item["source"] == "cody_vision" for item in analysis["windows"])
 
 
+def test_analyze_floorplan_image_reports_cody_room_labeler_status(monkeypatch) -> None:
+    def fake_apply(_image, rooms, *, plan_bbox_px, m_per_px):
+        assert plan_bbox_px
+        assert m_per_px > 0
+        assert rooms
+        rooms[0]["cody_room_classifier"] = {"label": "living", "confidence": 0.9}
+        return {
+            "available": True,
+            "asset_ready": True,
+            "runtime_enabled": True,
+            "runtime_ready": True,
+            "reason": "cody_dinov2_ready",
+            "applied": True,
+            "labelled_room_count": 1,
+        }
+
+    monkeypatch.setattr(
+        "backend.floorplan.vision.analysis.apply_cody_room_labels",
+        fake_apply,
+    )
+
+    analysis = analyze_floorplan_image(
+        _synthetic_floorplan(),
+        calibration_hint={"distance_cm": 500, "start_px": [0, 0], "end_px": [500, 0]},
+    )
+
+    assert analysis["cody_room_labeler"]["reason"] == "cody_dinov2_ready"
+    assert analysis["cody_room_labeler"]["applied"] is True
+    assert any("cody_room_classifier" in room for room in analysis["rooms"])
+
+
 def test_cody_geometry_can_be_confirmed_without_roompilot_fallback_corrections() -> None:
     analysis = analyze_floorplan_image(
         _synthetic_floorplan(),
