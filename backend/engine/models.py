@@ -1,76 +1,198 @@
 """
-資料結構定義:Room、Wall、ClearanceZone、FurnitureCatalogItem、PlacedFurniture
+資料結構定義：Room、Wall、ClearanceZone、FurnitureCatalogItem、PlacedFurniture。
 
-對應 SSOT 文件第 8 節「資料結構」:
-- 型錄屬性(type/name/size/color/style/price)
-- 擺放屬性(pos_x/pos_y/rotation) —— 這是 place_furniture / adjust_furniture 算出來要存的東西
-- 淨空屬性(clearance)—— 開合家具(衣櫃/冰箱/五斗櫃)所需的保留空間
-
-單位與座標約定:
-- 長度一律公分(cm);X 向右、Y 向上,原點在平面圖左下角
-- position 指物件中心點;rotation 為逆時針角度(度),0 度時家具正面朝 +Y
-- width 沿本地 X、depth 沿本地 Y、height 沿 Z
+單位與座標約定：
+- 長度一律公分(cm)；X 向右、Y 向上，原點在平面圖左下角。
+- position 是物件中心；rotation 是逆時針角度，0 度時家具正面朝 +Y。
+- width 沿本地 X、depth 沿本地 Y、height 沿 Z。
 """
 from dataclasses import dataclass, field
+from typing import Literal
+
+
+ClearanceKind = Literal["operation", "access"]
+ClearanceMode = Literal["all", "any"]
+IssueSeverity = Literal["error", "warning"]
 
 
 @dataclass
 class Wall:
-    """一段牆,用起點跟終點表示(對應 2Dto3D.html 裡的 WALL_SEGS)"""
+    """一段有厚度的牆，所有欄位皆為公分。"""
+
     x1: float
     y1: float
     x2: float
     y2: float
-    thickness: float = 10.0  # 牆厚度(公分),預留給碰撞判斷用
+    thickness: float = 10.0
 
 
 @dataclass
 class Room:
-    """房間邊界 + 牆體清單"""
-    width: float   # 對應 ROOM.w
-    depth: float   # 對應 ROOM.d
+    """房間矩形邊界與牆體清單。"""
+
+    width: float
+    depth: float
     walls: list[Wall] = field(default_factory=list)
 
 
 @dataclass
 class ClearanceZone:
-    """開合淨空需求:家具的哪一面需要保留多少空間
+    """家具某一面的淨空需求。
 
-    side 以「未旋轉時家具自己的方向」為準:
-      front = +y 方向(面向房間)、back = -y、left = -x、right = +x
-    家具旋轉時,淨空範圍會跟著 rotation 一起轉(在 clearance.py 處理)。
+    ``depth`` 是 v0.1 相容欄位；只給 depth 時，理想值與最低值都等於它。
+    新資料應給 ``ideal_cm`` 與 ``floor_cm``。``operation`` 是門／抽屜等
+    必須保留的空間；``access`` 是舒適使用空間，只產生警告。
     """
-    side: str          # "front" / "back" / "left" / "right"
-    depth: float       # 開合所需額外深度(公分),如抽屜拉出 50、門扇打開 60
+
+    side: str
+    depth: float | None = None
+    kind: ClearanceKind = "operation"
+    ideal_cm: float | None = None
+    floor_cm: float | None = None
+    reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.side not in {"front", "back", "left", "right"}:
+            raise ValueError(f"不支援的淨空方向: {self.side}")
+        if self.kind not in {"operation", "access"}:
+            raise ValueError(f"不支援的淨空種類: {self.kind}")
+
+        legacy = self.depth
+        floor = self.floor_cm if self.floor_cm is not None else legacy
+        ideal = self.ideal_cm if self.ideal_cm is not None else legacy
+        if floor is None:
+            floor = ideal
+        if ideal is None:
+            ideal = floor
+        if floor is None or ideal is None:
+            raise ValueError("淨空必須提供 depth，或同時提供 ideal_cm / floor_cm")
+
+        floor = float(floor)
+        ideal = float(ideal)
+        if floor <= 0 or ideal <= 0:
+            raise ValueError("淨空距離必須大於 0 公分")
+        if ideal < floor:
+            raise ValueError("理想淨空不能小於最低淨空")
+
+        # depth 永遠保留最低可接受距離，讓 v0.1 呼叫端繼續正常運作。
+        self.depth = floor
+        self.floor_cm = floor
+        self.ideal_cm = ideal
+
+
+
+@dataclass
+class ClearanceSpec:
+    """一面或多面淨空需求的組合規則。
+
+    ``mode="all"``：每一面都要滿足。
+    ``mode="any"``：至少一面滿足（例如床左右長側）。
+    ``enforce_floor=True``：即使 zone.kind 是 access，低於 floor_cm 也會擋下
+    （床／餐桌使用空間的硬門檻）。
+    """
+
+    zones: list[ClearanceZone]
+    mode: ClearanceMode = "all"
+    enforce_floor: bool = False
+
+    def __post_init__(self) -> None:
+        if self.mode not in {"all", "any"}:
+            raise ValueError(f"不支援的淨空模式: {self.mode}")
+        if not self.zones:
+            raise ValueError("clearance_spec 至少要有一個淨空方向")
 
 
 @dataclass
 class FurnitureCatalogItem:
-    """型錄屬性:描述「這是什麼家具」,不含座標"""
-    type: str          # e.g. "sofa", "bed", "table"
-    name: str          # e.g. "三人座沙發"
-    width: float       # 對應 size.w(公分)
-    depth: float       # 對應 size.d(公分)
-    height: float = 80.0  # 對應 size.h(公分)
+    """家具型錄屬性，不含座標。"""
+
+    type: str
+    name: str
+    width: float
+    depth: float
+    height: float = 80.0
     style: str | None = None
     price: float | None = None
     glb_path: str | None = None
-    clearance: ClearanceZone | None = None   # None = 此家具無開合淨空需求(如沙發、茶几)
+    clearance: ClearanceZone | None = None
+    clearance_spec: ClearanceSpec | None = None
 
 
 @dataclass
 class PlacedFurniture:
-    """擺放屬性:place_furniture / adjust_furniture 的輸出結果
+    """已放置家具，平面座標與尺寸皆為公分。"""
 
-    這正是 SSOT 文件第 8 節說「沒有這幾欄,配置算得出來卻無處存」的欄位。
-    """
-    id: str                     # 唯一識別碼,e.g. "sofa_1"
+    id: str
     catalog: FurnitureCatalogItem
     pos_x: float = 0.0
-    pos_y: float = 0.0          # 對應原型的 z 軸(平面座標,注意不是高度)
-    rotation: float = 0.0       # 角度,單位:度(0~360)
+    pos_y: float = 0.0
+    rotation: float = 0.0
 
     def bounds(self) -> tuple[float, float, float, float]:
-        """回傳未旋轉時的邊界 (min_x, min_y, max_x, max_y),旋轉版在 geometry.py 處理"""
+        """回傳未旋轉邊界；旋轉版由 geometry.py 處理。"""
         hw, hd = self.catalog.width / 2, self.catalog.depth / 2
         return (self.pos_x - hw, self.pos_y - hd, self.pos_x + hw, self.pos_y + hd)
+
+
+@dataclass
+class PlacementIssue:
+    """一條可由 Agent／後端直接使用的結構化驗證結果。"""
+
+    code: str
+    message_zh: str
+    item_id: str
+    rule: str
+    severity: IssueSeverity = "error"
+    related_item_id: str | None = None
+    required_cm: float | None = None
+    available_cm: float | None = None
+    shortfall_cm: float | None = None
+
+    def to_dict(self) -> dict:
+        payload = {
+            "code": self.code,
+            "message_zh": self.message_zh,
+            "item_id": self.item_id,
+            "rule": self.rule,
+            "severity": self.severity,
+        }
+        optional = {
+            "related_item_id": self.related_item_id,
+            "required_cm": self.required_cm,
+            "available_cm": self.available_cm,
+            "shortfall_cm": self.shortfall_cm,
+        }
+        payload.update({key: value for key, value in optional.items() if value is not None})
+        return payload
+
+
+@dataclass
+class PlacementValidation:
+    """完整驗證結果；errors 會擋下，warnings 只供提示／評分。"""
+
+    errors: list[PlacementIssue] = field(default_factory=list)
+    warnings: list[PlacementIssue] = field(default_factory=list)
+
+    @property
+    def legal(self) -> bool:
+        return not self.errors
+
+    def to_dict(self) -> dict:
+        return {
+            "legal": self.legal,
+            "errors": [issue.to_dict() for issue in self.errors],
+            "warnings": [issue.to_dict() for issue in self.warnings],
+        }
+
+
+def resolved_clearance_spec(catalog: FurnitureCatalogItem) -> ClearanceSpec | None:
+    """優先使用 clearance_spec；否則把單一 clearance 包成 all 模式。"""
+    if catalog.clearance_spec is not None:
+        return catalog.clearance_spec
+    if catalog.clearance is not None:
+        return ClearanceSpec(
+            zones=[catalog.clearance],
+            mode="all",
+            enforce_floor=catalog.clearance.kind == "operation",
+        )
+    return None

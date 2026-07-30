@@ -10,7 +10,12 @@ schema.py — furniture_engine 對外介面定義(v0.1 提案)
 
 版本狀態:v0.1 草案,待與 Agent 核心對齊後定版
 """
-from backend.engine.models import FurnitureCatalogItem, PlacedFurniture
+from backend.engine.models import (
+    ClearanceSpec,
+    ClearanceZone,
+    FurnitureCatalogItem,
+    PlacedFurniture,
+)
 
 
 # ---------- 序列化:Python 物件 <-> JSON dict ----------
@@ -32,8 +37,45 @@ def placed_to_dict(item: PlacedFurniture) -> dict:
     }
 
 
+def _zone_from_dict(raw: dict) -> ClearanceZone:
+    if not isinstance(raw, dict):
+        raise ValueError("clearance_zones 的項目必須是物件")
+    return ClearanceZone(
+        side=str(raw["side"]),
+        depth=float(raw["depth"]) if raw.get("depth") is not None else None,
+        kind=str(raw.get("kind") or "operation"),
+        ideal_cm=(
+            float(raw["ideal_cm"]) if raw.get("ideal_cm") is not None else None
+        ),
+        floor_cm=(
+            float(raw["floor_cm"]) if raw.get("floor_cm") is not None else None
+        ),
+        reason=str(raw["reason"]) if raw.get("reason") else None,
+    )
+
+
+def _clearance_fields_from_dict(d: dict) -> tuple[ClearanceZone | None, ClearanceSpec | None]:
+    """讀取 clearance_zones；一面時同時填 legacy clearance，多面用 clearance_spec。"""
+    raw_zones = d.get("clearance_zones")
+    if raw_zones is None and isinstance(d.get("clearance"), dict):
+        raw_zones = [d["clearance"]]
+    if raw_zones in (None, []):
+        return None, None
+    if not isinstance(raw_zones, list):
+        raise ValueError("clearance_zones 必須是陣列")
+    zones = [_zone_from_dict(raw) for raw in raw_zones]
+    mode = str(d.get("clearance_mode") or "all")
+    enforce_raw = d.get("clearance_enforce_floor")
+    enforce_floor = bool(enforce_raw) if enforce_raw is not None else False
+    if len(zones) == 1 and mode == "all" and not enforce_floor:
+        # 相容舊單面資料：仍走 clearance 欄位語意。
+        return zones[0], None
+    return None, ClearanceSpec(zones=zones, mode=mode, enforce_floor=enforce_floor)
+
+
 def catalog_from_dict(d: dict) -> FurnitureCatalogItem:
-    """JSON dict -> FurnitureCatalogItem(Agent 丟進來的家具描述)"""
+    """JSON dict -> FurnitureCatalogItem；所有長度仍為公分。"""
+    clearance, clearance_spec = _clearance_fields_from_dict(d)
     return FurnitureCatalogItem(
         type=d["type"],
         name=d["name"],
@@ -41,6 +83,8 @@ def catalog_from_dict(d: dict) -> FurnitureCatalogItem:
         depth=float(d["depth"]),
         height=float(d.get("height", 80)),
         style=d.get("style"),
+        clearance=clearance,
+        clearance_spec=clearance_spec,
     )
 
 
@@ -73,6 +117,21 @@ PLACE_FURNITURE_TOOL = {
                         "name": {"type": "string", "description": "顯示名稱,如 三人沙發"},
                         "width": {"type": "number", "description": "寬(公分)"},
                         "depth": {"type": "number", "description": "深(公分)"},
+                        "clearance_zones": {
+                            "type": "array",
+                                                        "description": "一面或多面淨空；多面時搭配 clearance_mode=all|any",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "side": {"type": "string", "enum": ["front", "back", "left", "right"]},
+                                    "kind": {"type": "string", "enum": ["operation", "access"]},
+                                    "ideal_cm": {"type": "number"},
+                                    "floor_cm": {"type": "number"},
+                                    "reason": {"type": "string"},
+                                },
+                                "required": ["side", "kind", "ideal_cm", "floor_cm"],
+                            },
+                        },
                     },
                     "required": ["type", "name", "width", "depth"],
                 },

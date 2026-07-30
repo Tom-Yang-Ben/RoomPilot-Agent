@@ -4,15 +4,16 @@
 
 - Owner:蔡承安(副手:林柏彥)
 - 對應 SSOT:第 4 節 F3/F6、第 8 節資料結構、第 11.2 節分工
-- 狀態:P0 完成(v0.1),等待 Agent 核心/後端對接後迭代
+- 狀態：v0.1 相容介面保留；v1.2／v1.3 已由正式第 6 步 adapter 套用類型預設淨空
 
 ## 模組結構
 
 | 檔案 | 職責 |
 |---|---|
-| `models.py` | 資料結構:`Room` / `Wall` / `ClearanceZone` / `FurnitureCatalogItem` / `PlacedFurniture` |
+| `models.py` | 資料結構:`Room` / `Wall` / `ClearanceZone` / `ClearanceSpec` / `FurnitureCatalogItem` / `PlacedFurniture` |
 | `geometry.py` | 本體碰撞判斷(Shapely):出界 / 穿牆 / 家具重疊 |
-| `clearance.py` | 淨空運算:開合空間(衣櫃門、抽屜等)的衝突檢查 |
+| `clearance.py` | 本體＋必要開啟空間＋舒適使用空間；結構化錯誤／警告 |
+| `clearance_defaults.py` | 依家具原始詳細類型提供 opt-in 預設；單品指定優先 |
 | `placement.py` | `place_furniture`:自動找合法位置(單件 + 批次) |
 | `adjustment.py` | `adjust_furniture`:move(軸分離)/ rotate,吃結構化指令 |
 | `schema.py` | 對外介面 v0.1:JSON 序列化 + LLM function-calling tool 定義 |
@@ -21,7 +22,7 @@
 
 ```bash
 uv sync                                  # 安裝依賴(shapely, pytest)
-uv run pytest tests/ -v                  # 跑測試(25 cases)
+uv run pytest tests/test_placement.py tests/test_clearance.py -q
 uv run python demo_agent_flow.py         # 看 Agent <-> Engine 的完整互動範例
 ```
 
@@ -34,6 +35,22 @@ uv run python demo_agent_flow.py         # 看 Agent <-> Engine 的完整互動�
 
 ### 家具 id 規則
 `{type}_{該類型流水號}`,每個類型各自從 1 開始編號。例:`sofa_1`、`table_1`、`sofa_2`。
+
+### v1.2／v1.3 淨空與驗證（第 6 步已套類型預設）
+
+- `ClearanceZone(side, depth=...)` 舊寫法仍可用；舊 `depth` 會同時成為理想值與最低值。
+- 新寫法使用 `kind="operation"|"access"`、`ideal_cm`、`floor_cm`、`reason`。
+- `operation`（門片／抽屜）低於最低值會擋下；理想值不足但最低值足夠時回 `clearance_compressed` 警告。
+- `access`（取物／入座）預設只警告。呼叫端可傳 `companion_pairs`，讓餐椅／辦公椅等配套件占用主件的舒適使用空間；此豁免絕不適用於門片／抽屜空間。
+- v1.3：`ClearanceSpec(zones, mode="all"|"any", enforce_floor=...)` 支援多面。
+  - 床／`bed-frame`／`mattress`：左右長側 `mode="any"` + `enforce_floor`（至少一側達 60；理想 75；床尾不算）。
+  - 餐桌／`table`：宣告有椅的面才檢查；預設四面；`enforce_floor`；配套椅可佔 access。
+  - `sofa-bed` 不套用床側規則。
+- `validate_placement_with_clearance()` 回 `PlacementValidation(errors, warnings)`；舊 `check_placement_with_clearance()` 仍回第一條錯誤字串或 `None`。
+- `place_furniture()` 失敗時保留舊 `reason`，並增加 `reason_detail`。
+- `clearance_defaults.catalog_with_default_clearance()` 仍是 opt-in API；正式第 6 步 adapter 已明確呼叫。單品指定值仍優先。
+- JSON 可帶多面 `clearance_zones`，並用 `clearance_mode` / `clearance_enforce_floor`。
+
 
 ### 檢查順序(重要)
 `check_placement_with_clearance` 的判斷順序固定為:
@@ -74,7 +91,8 @@ uv run python demo_agent_flow.py         # 看 Agent <-> Engine 的完整互動�
 
 - F6 的 add / remove(規格內,v0.2)
 - 相對方位指令解析(toward_window / next_to 等)
-- 擺放評分機制(目前 first-fit,擺得合法但不見得好看)
+- 擺放評分機制（目前已由 13 個固定點升級為中心／沿牆／15cm 網格搜尋，但仍是 first-fit，不是全局最佳化）
 - 非矩形房間(L 型)支援
+- 餐桌四面淨空、床左右至少保留一側
 - 走道連通性檢查(B 選項加分)
 - `Door` 資料結構與門扇開闔弧判斷

@@ -9,7 +9,8 @@ furniture_engine 核心邏輯測試
 """
 import pytest
 
-from backend.engine.models import Room, Wall, FurnitureCatalogItem, PlacedFurniture
+from backend.engine.models import ClearanceZone, FurnitureCatalogItem, PlacedFurniture, Room, Wall
+from backend.engine.clearance import check_placement_with_clearance
 from backend.engine.geometry import check_placement
 from backend.engine.placement import (
     place_adjacent_to_furniture,
@@ -18,7 +19,7 @@ from backend.engine.placement import (
     place_overlay_on_furniture,
 )
 from backend.engine.adjustment import adjust_furniture
-from backend.engine.schema import placed_to_dict
+from backend.engine.schema import catalog_from_dict, placed_to_dict
 
 
 # ---------- 共用測資 ----------
@@ -229,3 +230,96 @@ def test_unknown_action_returns_failure(room, sofa_catalog):
     result = adjust_furniture(room, sofa, [], {"action": "teleport"})
     assert result["success"] is False
     assert "未知的動作" in result["reason"]
+
+
+# ---------- v1.2 候選搜尋與結構化失敗 ----------
+
+def test_wall_scan_finds_small_room_wardrobe_position_with_fifty_cm_clearance() -> None:
+    small_room = Room(width=240, depth=240, walls=[])
+    single_bed = PlacedFurniture(
+        id="bed_1",
+        catalog=FurnitureCatalogItem(type="bed", name="單人床", width=105, depth=190),
+        pos_x=120,
+        pos_y=52.5,
+        rotation=90,
+    )
+    wardrobe = FurnitureCatalogItem(
+        type="wardrobe",
+        name="衣櫃",
+        width=100,
+        depth=60,
+        clearance=ClearanceZone(
+            side="front", kind="operation", ideal_cm=90, floor_cm=50
+        ),
+    )
+
+    result = place_furniture(small_room, wardrobe, "wardrobe_1", [single_bed])
+
+    assert result["success"] is True
+    placed = result["placed"]
+    assert placed is not None
+    assert placed.pos_x == pytest.approx(50)
+    assert placed.pos_y == pytest.approx(150)
+    assert check_placement_with_clearance(placed, small_room, [single_bed]) is None
+
+
+def test_failed_placement_includes_structured_reason_detail(sofa_catalog) -> None:
+    tiny_room = Room(width=100, depth=100, walls=[])
+
+    result = place_furniture(tiny_room, sofa_catalog, "sofa_1", [])
+
+    assert result["success"] is False
+    assert result["reason"] == "找不到合法擺放位置"
+    assert result["reason_detail"]["code"] == "no_legal_position"
+    assert result["reason_detail"]["item_id"] == "sofa_1"
+    assert result["reason_detail"]["rule"] == "placement_search"
+    assert result["reason_detail"]["attempted_candidates"] > 0
+    assert result["reason_detail"]["last_issue"]["code"] == "out_of_bounds"
+
+
+# ---------- v1.2 JSON 輸入契約 ----------
+
+def test_catalog_json_accepts_one_v12_clearance_zone() -> None:
+    catalog = catalog_from_dict(
+        {
+            "type": "wardrobe",
+            "name": "衣櫃",
+            "width": 120,
+            "depth": 60,
+            "clearance_zones": [
+                {
+                    "side": "front",
+                    "kind": "operation",
+                    "ideal_cm": 90,
+                    "floor_cm": 50,
+                    "reason": "門扇開啟",
+                }
+            ],
+        }
+    )
+
+    assert catalog.clearance is not None
+    assert catalog.clearance.kind == "operation"
+    assert catalog.clearance.ideal_cm == pytest.approx(90)
+    assert catalog.clearance.floor_cm == pytest.approx(50)
+
+
+def test_catalog_json_accepts_multiple_clearance_zones_with_mode() -> None:
+    catalog = catalog_from_dict(
+        {
+            "type": "bed",
+            "name": "床",
+            "width": 150,
+            "depth": 200,
+            "clearance_mode": "any",
+            "clearance_enforce_floor": True,
+            "clearance_zones": [
+                {"side": "left", "kind": "access", "ideal_cm": 75, "floor_cm": 60},
+                {"side": "right", "kind": "access", "ideal_cm": 75, "floor_cm": 60},
+            ],
+        }
+    )
+    assert catalog.clearance_spec is not None
+    assert catalog.clearance_spec.mode == "any"
+    assert catalog.clearance_spec.enforce_floor is True
+    assert len(catalog.clearance_spec.zones) == 2

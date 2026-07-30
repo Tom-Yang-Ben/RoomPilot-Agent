@@ -42,6 +42,50 @@ def test_window_clearance_rejects_furniture_in_front_of_confirmed_window() -> No
     assert "窗戶" in result["reason"]
 
 
+def test_step6_validation_applies_engine_default_bed_clearance() -> None:
+    result = validate_single_placement(
+        {
+            "coordinate_unit": "cm",
+            "width_cm": 260,
+            "depth_cm": 300,
+        },
+        {
+            "furniture_id": "bed-1",
+            "normalized_type": "bed",
+            "name_zh_raw": "床",
+            "size_cm": {"width": 160, "depth": 200, "height": 50},
+            "position_cm": {"x": 0, "z": 0},
+            "rotation_y_deg": 0,
+        },
+        [],
+    )
+
+    assert result["ok"] is False
+    assert "至少一面" in result["reason"]
+
+
+def test_step6_validation_replaces_legacy_sideboard_clearance_default() -> None:
+    result = validate_single_placement(
+        {
+            "coordinate_unit": "cm",
+            "width_cm": 300,
+            "depth_cm": 200,
+        },
+        {
+            "furniture_id": "sideboard-1",
+            "normalized_type": "sideboard",
+            "name_zh_raw": "餐邊櫃",
+            "size_cm": {"width": 100, "depth": 40, "height": 80},
+            "position_cm": {"x": 0, "z": 40},
+            "rotation_y_deg": 0,
+        },
+        [],
+    )
+
+    assert result["ok"] is False
+    assert "開合空間" in result["reason"]
+
+
 def test_automatic_chair_faces_the_nearest_desk() -> None:
     scene_objects = [
         {

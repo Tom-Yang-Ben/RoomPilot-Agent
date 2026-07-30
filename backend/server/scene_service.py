@@ -5,6 +5,7 @@ import math
 import os
 import random
 import uuid
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from urllib import error, request
@@ -15,9 +16,10 @@ from shapely.ops import unary_union
 from ..agent.place import resolve_placements
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
+from ..engine.clearance_defaults import catalog_with_default_clearance
 from ..engine.dxf_room import build_room_from_dxf
 from ..engine.geometry import furniture_polygon
-from ..engine.models import PlacedFurniture, Room, Wall
+from ..engine.models import FurnitureCatalogItem, PlacedFurniture, Room, Wall
 from ..engine.placement import (
     place_adjacent_to_furniture,
     place_furniture,
@@ -1179,10 +1181,26 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
     return floorplan, room_from_payload(floorplan)
 
 
+def _catalog_item_with_engine_defaults(
+    item_type: str | None,
+    name: str | None,
+    width_cm: float,
+    depth_cm: float,
+    height_cm: float,
+) -> FurnitureCatalogItem:
+    """將場景家具轉成 catalog，並以 Engine 的類型淨空取代舊 adapter 預設。"""
+    catalog = catalog_item_from_scene_object(
+        item_type, name, width_cm, depth_cm, height_cm
+    )
+    # style_db 的 clearance 是舊類型預設，不是 catalog 單品明示值；先清除才能
+    # 由 Engine 的 v1.3 單一規則表補上 ideal/floor 與多面規則。
+    return catalog_with_default_clearance(replace(catalog, clearance=None))
+
+
 def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: float) -> PlacedFurniture:
     """payload 場景物件(公分、中心原點、three 旋轉) → 引擎 PlacedFurniture。"""
     size = obj.get("size_cm") or {}
-    catalog = catalog_item_from_scene_object(
+    catalog = _catalog_item_with_engine_defaults(
         obj.get("normalized_type"),
         obj.get("name_zh_raw") or obj.get("furniture_id"),
         float(size.get("width") or 120),
@@ -1413,7 +1431,7 @@ def generate_layout(
             )
             if curtain_hint:
                 width = curtain_hint[3]
-        catalog = catalog_item_from_scene_object(
+        catalog = _catalog_item_with_engine_defaults(
             item_type, item.get("name_zh_raw") or item.get("furniture_id"), width, depth, height
         )
         item_id = f"{item_type or 'item'}_{index + 1}"
