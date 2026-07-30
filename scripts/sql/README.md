@@ -1,6 +1,6 @@
 # RoomPilot PostgreSQL 匯入
 
-本資料夾目前版本專門匯入 **9,350 筆官方家具 catalog**，不再包含舊的 10,550 筆 catalog 匯入流程。
+本資料夾目前版本專門匯入 **8,557 筆 Kai 官方家具 catalog**。本機 API 預設也讀取同一份 JSON；完成 PostgreSQL 匯入後，才以環境變數明確切換資料來源。
 
 安裝方式請依團隊環境選擇：
 

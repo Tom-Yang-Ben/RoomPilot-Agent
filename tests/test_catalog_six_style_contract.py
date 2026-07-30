@@ -40,13 +40,13 @@ def test_active_catalog_uses_the_official_cloud_set_and_only_confirmed_styles():
     assert {style["style_id"] for style in catalog["styles"]} == CANONICAL_STYLE_IDS
 
     furniture = catalog["furniture"]
-    assert len(furniture) == 9_350
+    assert len(furniture) == 8_557
     assert all(item.get("name_zh") and re.search(r"[\u4e00-\u9fff]", item["name_zh"]) for item in furniture)
 
     classified = [item for item in furniture if item.get("primary_style")]
     unclassified = [item for item in furniture if not item.get("primary_style")]
-    assert len(classified) == 9_021
-    assert len(unclassified) == 329
+    assert len(classified) == 8_557
+    assert len(unclassified) == 0
     assert all(item["primary_style"] in CANONICAL_STYLE_IDS for item in classified)
     assert all(
         set(candidate["style_id"] for candidate in item.get("style_candidates", []))

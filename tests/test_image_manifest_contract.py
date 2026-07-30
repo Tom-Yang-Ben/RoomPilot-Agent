@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import json
 from collections import Counter, defaultdict
-import hashlib
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlparse
 
@@ -11,8 +10,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST_DIR = ROOT / "backend" / "catalog" / "data" / "manifests"
-JSON_MANIFEST_DIR = ROOT / "JSON" / "manifests"
+MANIFEST_DIR = ROOT / "JSON" / "manifests"
 IMAGE_MANIFEST = MANIFEST_DIR / "image_upload_manifest.csv"
 IMAGE_UPLOAD_RESULT = MANIFEST_DIR / "image_upload_all_result.csv"
 GLB_MANIFEST = MANIFEST_DIR / "glb_upload_manifest.csv"
@@ -20,10 +18,8 @@ GLB_UPLOAD_RESULT = MANIFEST_DIR / "glb_upload_all_result.csv"
 JSON_OFFICIAL_CATALOG = (
     ROOT / "JSON" / "furniture" / "furniture_official_catagory.json"
 )
-OFFICIAL_CATALOG = (
-    ROOT / "backend" / "catalog" / "data" / "furniture_catalog_cloud_9350.json"
-)
-EXPECTED_ITEM_COUNT = 9_350
+OFFICIAL_CATALOG = JSON_OFFICIAL_CATALOG
+EXPECTED_ITEM_COUNT = 8_557
 EXPECTED_IMAGE_COUNT = EXPECTED_ITEM_COUNT * 3
 EXPECTED_IMAGE_ROLES = {"front", "side", "angle-45"}
 CLOUDFRONT_IMAGE_BASE = "https://ddgsm1yg3xikc.cloudfront.net/"
@@ -33,10 +29,6 @@ CLOUDFRONT_MODEL_BASE = "https://ddgsm1yg3xikc.cloudfront.net/"
 def _load_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as handle:
         return list(csv.DictReader(handle))
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 @pytest.fixture(scope="module")
@@ -168,27 +160,27 @@ def test_glb_manifest_and_upload_result_match_the_official_catalog() -> None:
     assert len(delivery_urls) == EXPECTED_ITEM_COUNT
 
 
-def test_json_handoff_manifests_match_the_backend_official_manifests() -> None:
+def test_runtime_contract_uses_kai_json_manifests_as_the_single_source() -> None:
+    assert MANIFEST_DIR == ROOT / "JSON" / "manifests"
+    assert OFFICIAL_CATALOG == JSON_OFFICIAL_CATALOG
     for filename in (
         "glb_upload_manifest.csv",
         "glb_upload_all_result.csv",
         "image_upload_manifest.csv",
         "image_upload_all_result.csv",
     ):
-        assert _sha256(JSON_MANIFEST_DIR / filename) == _sha256(
-            MANIFEST_DIR / filename
-        )
+        assert (MANIFEST_DIR / filename).is_file()
 
 
 def test_json_official_catalog_contains_vlm_enrichment_and_matching_assets() -> None:
     payload = json.loads(JSON_OFFICIAL_CATALOG.read_text(encoding="utf-8"))
     items = list(payload["items"])
-    result_rows = _load_csv(JSON_MANIFEST_DIR / "glb_upload_all_result.csv")
+    result_rows = _load_csv(MANIFEST_DIR / "glb_upload_all_result.csv")
     result_by_id = {row["item_id"]: row for row in result_rows}
     item_ids = [str(item["id"]) for item in items]
 
     assert payload["count"] == EXPECTED_ITEM_COUNT
-    assert "vlm_annotated" in payload["schema_version"]
+    assert "rag_ready" in payload["schema_version"]
     assert len(items) == EXPECTED_ITEM_COUNT
     assert len(set(item_ids)) == EXPECTED_ITEM_COUNT
     assert set(item_ids) == set(result_by_id)
@@ -208,4 +200,4 @@ def test_json_official_catalog_contains_vlm_enrichment_and_matching_assets() -> 
         assert item["glb_url"] == result_by_id[item["id"]]["delivery_url"]
         assert item["object_key"] == result_by_id[item["id"]]["object_key"]
 
-    assert sum(bool(item.get("rag_text")) for item in items) >= 9_200
+    assert sum(bool(item.get("rag_text")) for item in items) == EXPECTED_ITEM_COUNT

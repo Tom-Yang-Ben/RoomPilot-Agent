@@ -180,9 +180,10 @@ AI 或新成員開始修改前，必須依序閱讀：
 
 正式雲端 catalog 由 Kai 的資料流維護：
 
-- PostgreSQL 正式 view：9,349 筆啟用家具
+- Kai 官方 JSON catalog：8,557 筆；目前為 API 與本機開發的預設資料來源
+- PostgreSQL：完成 Kai 匯入後才以 `ROOMPILOT_CATALOG_PROVIDER=postgres` 明確啟用
 - 每筆具有 CloudFront GLB 與正面、側面、45 度 PNG
-- JSON 備援 catalog：9,350 筆，僅在 PostgreSQL 暫時不可連線時使用
+- 資料來源切換：預設讀取上述 Kai JSON；僅在明確設定 PostgreSQL provider 時才讀取資料庫
 - 家電問卷需求會保留給 AI 生圖，不會進入第 6 步 2D/3D 擺設
 
 先建立 `.env`：

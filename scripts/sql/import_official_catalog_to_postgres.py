@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""驗證並匯入 RoomPilot 9,350 筆官方家具 catalog 與四份雲端資產 CSV。"""
+"""交易式驗證並匯入 8,557 筆官方家具與四份雲端資產 CSV。"""
 
 from __future__ import annotations
 
@@ -24,26 +24,49 @@ DEFAULT_GLB_RESULT = DEFAULT_MANIFEST_DIR / "glb_upload_all_result.csv"
 DEFAULT_IMAGE_MANIFEST = DEFAULT_MANIFEST_DIR / "image_upload_manifest.csv"
 DEFAULT_IMAGE_RESULT = DEFAULT_MANIFEST_DIR / "image_upload_all_result.csv"
 DEFAULT_SCHEMA = Path(__file__).with_name("roompilot_postgresql_schema.sql")
-DEFAULT_REPORT = Path(__file__).with_name("postgres_import_validation.json")
 
-EXPECTED_ITEM_COUNT = 9_350
+EXPECTED_ITEM_COUNT = 8_557
 EXPECTED_IMAGE_ROLES = {"front", "side", "angle-45"}
 IMPORT_ISSUE_SOURCE = "official_catalog_import"
 
 STYLE_NAMES_ZH = {
-    "american_classic": "美式經典風",
-    "boho": "波希米亞風",
-    "contemporary": "當代風",
-    "french_country": "法式鄉村風",
+    "american": "美式風",
+    "cream": "奶油風",
     "industrial": "工業風",
-    "japandi": "日式北歐風",
-    "mid_century": "中世紀現代風",
-    "minimalist": "簡約風",
-    "modern": "現代風",
-    "nordic": "北歐風",
-    "rustic": "鄉村風",
-    "scandi_luxe": "北歐輕奢風",
+    "japanese": "日式風",
+    "modern_minimal": "現代簡約風",
+    "scandinavian": "北歐風",
 }
+
+RESET_CATALOG_SQL = """
+DROP VIEW IF EXISTS roompilot.furniture_catalog_api_current;
+DROP VIEW IF EXISTS roompilot.furniture_catalog_current;
+DO $block$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vector') THEN
+        EXECUTE 'DROP FUNCTION IF EXISTS roompilot.search_furniture_embeddings_filtered(vector, character varying, integer, character varying, text[], integer, integer, numeric, numeric, character varying, character varying)';
+        EXECUTE 'DROP FUNCTION IF EXISTS roompilot.search_furniture_embeddings(vector, character varying, integer)';
+    END IF;
+END
+$block$;
+DROP VIEW IF EXISTS roompilot.furniture_embedding_source_current;
+DROP TABLE IF EXISTS roompilot.furniture_embeddings;
+DROP TABLE IF EXISTS roompilot.furniture_admin_audit;
+DROP TABLE IF EXISTS roompilot.furniture_quality_issues;
+DROP TABLE IF EXISTS roompilot.furniture_assets;
+DROP TABLE IF EXISTS roompilot.furniture_vlm_annotations;
+DROP TABLE IF EXISTS roompilot.furniture_rooms;
+DROP TABLE IF EXISTS roompilot.furniture_styles;
+DROP TABLE IF EXISTS roompilot.furniture_items;
+DROP TABLE IF EXISTS roompilot.rooms;
+DROP TABLE IF EXISTS roompilot.styles;
+DROP TABLE IF EXISTS roompilot.furniture_categories;
+DROP TABLE IF EXISTS staging.stg_image_upload_result;
+DROP TABLE IF EXISTS staging.stg_image_manifest;
+DROP TABLE IF EXISTS staging.stg_glb_upload_result;
+DROP TABLE IF EXISTS staging.stg_glb_manifest;
+DROP TABLE IF EXISTS staging.stg_furniture_catalog;
+"""
 
 ROOM_NAMES_ZH = {
     "bathroom": "浴室",
@@ -120,7 +143,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--image-manifest", type=Path, default=DEFAULT_IMAGE_MANIFEST)
     parser.add_argument("--image-upload-result", type=Path, default=DEFAULT_IMAGE_RESULT)
     parser.add_argument("--schema-sql", type=Path, default=DEFAULT_SCHEMA)
-    parser.add_argument("--validation-report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument(
+        "--validation-report",
+        type=Path,
+        help="選擇性輸出 JSON 驗證報告；預設不保留報告檔。",
+    )
     parser.add_argument("--env", type=Path, default=PROJECT_ROOT / ".env")
     parser.add_argument("--page-size", type=int, default=500)
     parser.add_argument("--dry-run", action="store_true")
@@ -143,6 +170,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--allow-incomplete-uploads",
         action="store_true",
         help="允許 upload result 含非 uploaded/ready 狀態；預設視為驗證錯誤。",
+    )
+    parser.add_argument(
+        "--replace-existing",
+        action="store_true",
+        help=(
+            "在同一 transaction 內只刪除家具 catalog tables/views/staging，"
+            "重建 schema 後匯入；不影響 project、render 或 runtime catalog tables。"
+        ),
     )
     return parser.parse_args(argv)
 
@@ -257,10 +292,15 @@ def index_unique(
 
 
 def compare_id_sets(
-    expected: set[str], actual: set[str], label: str, errors: list[str]
+    expected: set[str],
+    actual: set[str],
+    label: str,
+    errors: list[str],
+    *,
+    allowed_extra: set[str] | None = None,
 ) -> None:
     missing = sorted(expected - actual)
-    extra = sorted(actual - expected)
+    extra = sorted((actual - expected) - (allowed_extra or set()))
     if missing:
         errors.append(f"{label}: 缺少 {len(missing):,} 個 item_id，例如 {missing[:5]}。")
     if extra:
@@ -282,6 +322,22 @@ def validate_inputs(
         errors.append(f"catalog metadata.count={metadata_count!r}，實際為 {len(items):,}。")
     if len(items) != EXPECTED_ITEM_COUNT:
         errors.append(f"官方 catalog 應為 {EXPECTED_ITEM_COUNT:,} 筆，實際為 {len(items):,}。")
+
+    excluded_rows = metadata.get("excluded_items") or []
+    if not isinstance(excluded_rows, list):
+        errors.append("catalog metadata.excluded_items 必須是 array。")
+        excluded_rows = []
+    excluded_item_ids = {
+        item_id
+        for row in excluded_rows
+        if isinstance(row, dict) and (item_id := clean_text(row.get("id")))
+    }
+    source_item_count = metadata.get("source_item_count")
+    if source_item_count is not None and source_item_count != len(items) + len(excluded_item_ids):
+        errors.append(
+            "catalog metadata.source_item_count 必須等於正式家具加排除項目："
+            f"{source_item_count!r} != {len(items):,} + {len(excluded_item_ids):,}。"
+        )
 
     item_index: dict[str, dict[str, Any]] = {}
     missing_item_fields: Counter[str] = Counter()
@@ -325,19 +381,33 @@ def validate_inputs(
     }
 
     catalog_ids = set(item_index)
-    compare_id_sets(catalog_ids, set(indexes["glb_manifest"]), "glb_manifest", errors)
-    compare_id_sets(catalog_ids, set(indexes["glb_result"]), "glb_result", errors)
+    compare_id_sets(
+        catalog_ids,
+        set(indexes["glb_manifest"]),
+        "glb_manifest",
+        errors,
+        allowed_extra=excluded_item_ids,
+    )
+    compare_id_sets(
+        catalog_ids,
+        set(indexes["glb_result"]),
+        "glb_result",
+        errors,
+        allowed_extra=excluded_item_ids,
+    )
     compare_id_sets(
         catalog_ids,
         {clean_text(row.get("item_id")) or "" for row in csv_payloads["image_manifest"][1]},
         "image_manifest",
         errors,
+        allowed_extra=excluded_item_ids,
     )
     compare_id_sets(
         catalog_ids,
         {clean_text(row.get("item_id")) or "" for row in csv_payloads["image_result"][1]},
         "image_result",
         errors,
+        allowed_extra=excluded_item_ids,
     )
 
     glb_mismatches: list[str] = []
@@ -399,6 +469,7 @@ def validate_inputs(
         "valid": not errors,
         "batch_key": batch_key,
         "catalog_metadata": metadata,
+        "excluded_item_ids": sorted(excluded_item_ids),
         "input_files": {},
         "source_counts": {
             "catalog_items": len(items),
@@ -1097,12 +1168,14 @@ def import_formal_tables(
         glb_assets,
         args.page_size,
     )
+    official_item_ids = set(indexes["items"])
     image_assets = [
         asset_tuple(
             "image", result["image_role"], image_id,
             indexes["image_manifest"][image_id], result, Jsonb,
         )
         for image_id, result in sorted(indexes["image_result"].items())
+        if clean_text(result.get("item_id")) in official_item_ids
     ]
     execute_many(
         cursor,
@@ -1204,7 +1277,11 @@ def verify_counts(
     return counts
 
 
-def expected_counts(prepared: dict[str, Any], include_staging: bool) -> dict[str, int]:
+def expected_counts(
+    prepared: dict[str, Any],
+    include_staging: bool,
+    csv_payloads: dict[str, tuple[list[str], list[dict[str, str]]]] | None = None,
+) -> dict[str, int]:
     counts = {
         "furniture_items": len(prepared["items"]),
         "furniture_styles": len(prepared["style_links"]),
@@ -1214,13 +1291,29 @@ def expected_counts(prepared: dict[str, Any], include_staging: bool) -> dict[str
         "quality_issues": len(prepared["quality_issues"]),
     }
     if include_staging:
+        glb_manifest_count = (
+            len(csv_payloads["glb_manifest"][1]) if csv_payloads else len(prepared["items"])
+        )
+        glb_result_count = (
+            len(csv_payloads["glb_result"][1]) if csv_payloads else len(prepared["items"])
+        )
+        image_manifest_count = (
+            len(csv_payloads["image_manifest"][1])
+            if csv_payloads
+            else len(prepared["items"]) * 3
+        )
+        image_result_count = (
+            len(csv_payloads["image_result"][1])
+            if csv_payloads
+            else len(prepared["items"]) * 3
+        )
         counts.update(
             {
                 "stg_catalog": len(prepared["items"]),
-                "stg_glb_manifest": len(prepared["items"]),
-                "stg_glb_result": len(prepared["items"]),
-                "stg_image_manifest": len(prepared["items"]) * 3,
-                "stg_image_result": len(prepared["items"]) * 3,
+                "stg_glb_manifest": glb_manifest_count,
+                "stg_glb_result": glb_result_count,
+                "stg_image_manifest": image_manifest_count,
+                "stg_image_result": image_result_count,
             }
         )
     return counts
@@ -1243,6 +1336,8 @@ def run_import(
 
     with psycopg.connect(**db_config(args.env)) as connection:
         with connection.cursor() as cursor:
+            if args.replace_existing:
+                cursor.execute(RESET_CATALOG_SQL)
             if not args.skip_schema:
                 if not args.schema_sql.is_file():
                     raise FileNotFoundError(f"找不到 schema SQL：{args.schema_sql}")
@@ -1257,7 +1352,11 @@ def run_import(
                 include_staging=not args.skip_staging,
             )
 
-            expected = expected_counts(prepared, include_staging=not args.skip_staging)
+            expected = expected_counts(
+                prepared,
+                include_staging=not args.skip_staging,
+                csv_payloads=csv_payloads,
+            )
             mismatches = {
                 key: {"expected": value, "actual": counts.get(key)}
                 for key, value in expected.items()
@@ -1275,6 +1374,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.page_size <= 0:
         raise ValueError("--page-size 必須大於 0。")
+    if args.replace_existing and args.skip_schema:
+        raise ValueError("--replace-existing 不可與 --skip-schema 同時使用。")
 
     paths = {
         "catalog": args.catalog,
@@ -1300,11 +1401,13 @@ def main(argv: list[str] | None = None) -> int:
         args, items, metadata, csv_payloads, input_hashes
     )
     if report["errors"]:
-        write_report(args.validation_report, report)
+        if args.validation_report is not None:
+            write_report(args.validation_report, report)
         print("資料驗證失敗：", file=sys.stderr)
         for error in report["errors"]:
             print(f"- {error}", file=sys.stderr)
-        print(f"驗證報告：{args.validation_report}", file=sys.stderr)
+        if args.validation_report is not None:
+            print(f"驗證報告：{args.validation_report}", file=sys.stderr)
         return 2
 
     prepared = prepare_rows(items, indexes)
@@ -1322,7 +1425,8 @@ def main(argv: list[str] | None = None) -> int:
     report["quality_issue_counts"] = dict(
         sorted(Counter(row["issue_type"] for row in prepared["quality_issues"]).items())
     )
-    write_report(args.validation_report, report)
+    if args.validation_report is not None:
+        write_report(args.validation_report, report)
 
     print("資料驗證完成")
     print(f"- 家具：{len(prepared['items']):,}")
@@ -1330,7 +1434,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"- GLB／三視角圖片：{len(prepared['items']):,}／{len(prepared['items']) * 3:,}")
     print(f"- VLM 標註：{len(prepared['annotations']):,}")
     print(f"- 品質問題：{len(prepared['quality_issues']):,}")
-    print(f"- 驗證報告：{args.validation_report}")
+    if args.validation_report is not None:
+        print(f"- 驗證報告：{args.validation_report}")
 
     if args.dry_run:
         print("Dry Run 完成；未連線 PostgreSQL，也未寫入資料庫。")
@@ -1346,7 +1451,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     report["post_import_counts"] = counts
     report["imported_at"] = datetime.now(timezone.utc).isoformat()
-    write_report(args.validation_report, report)
+    if args.validation_report is not None:
+        write_report(args.validation_report, report)
     print("PostgreSQL 匯入完成；所有正式表與 staging 筆數均已核對。")
     return 0
 
