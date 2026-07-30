@@ -6,6 +6,10 @@
 - ``place.py`` 透過 ``COMPANION_OF`` 安排主件、泛用件、副件的順序，
   並在引擎回報放不下時避免副件脫離主件單獨存在。
 
+房型最少預設與砍件策略的人讀規格見：
+``backend/engine/room_strategy/README.md``。本模組是 Agent 執行用的
+機器可讀對照；兩者衝突時以 room_strategy 拍板為準並回修此檔。
+
 型錄的 ``normalized_type`` 會先經 ``family_of()`` 摺疊成擺位族系。
 本模組只放宣告式知識，不放幾何；座標一律由 :mod:`backend.engine` 計算。
 """
@@ -22,12 +26,16 @@ FAMILY_OF: dict[str, str] = {
     "sofa-bed": "sofa",
     "bed-frame": "bed",
     "pax-wardrobe": "wardrobe",
-    "cabinets-cupboard": "wardrobe",
-    "storage-solution-system": "wardrobe",
-    "chests-of-drawer": "sideboard",
+    # 櫃體／收納系統不併入衣櫃族，避免廚房／儲藏選件被臥室親和性誤丟。
+    # 抽屜櫃必須自立，不可併成餐邊櫃。
+    "storage-solution-system": "shelving-unit",
+    "chest-of-drawers": "chests-of-drawer",
     "tv-media-furniture": "tv-bench",
     "table": "dining-table",
-    "shelving-unit": "bookcase",
+    "bar-table": "dining-table",
+    "shelving-unit": "shelving-unit",
+    # 儲藏室最少件：層架或收納家具擇一即可滿足。
+    "storage-furniture": "shelving-unit",
 }
 
 
@@ -35,6 +43,24 @@ def family_of(normalized_type: str | None) -> str:
     """把型錄類型摺疊成擺位族系；未知類型原樣返回。"""
     key = str(normalized_type or "")
     return FAMILY_OF.get(key, key)
+
+
+# 第 4 步細分房型 → 策略／規則用的正規房型。
+ROOM_TYPE_ALIASES: dict[str, str] = {
+    "primary_bedroom": "bedroom",
+    "secondary_bedroom": "bedroom",
+    "entryway": "entry",
+    "study": "workspace",
+    "circulation": "hallway",
+    "flex": "multifunction",
+    "foyer": "entry",
+}
+
+
+def normalize_room_type(room_type: str | None) -> str:
+    """把 UI／問卷房型摺成策略規則使用的正規鍵。"""
+    key = str(room_type or "").strip()
+    return ROOM_TYPE_ALIASES.get(key, key)
 
 
 # 副件 → 可接受主件。選件時若房內沒有主件就不選副件；擺位時主件
@@ -47,62 +73,107 @@ COMPANION_OF: dict[str, tuple[str, ...]] = {
     "office-chair": ("desk",),
 }
 
-# 族系 → 適用房型。未列出的書櫃、邊櫃、書桌等視為泛用家具。
-# wardrobe 刻意不限房型，因為收納系統也可能用在廚房、儲藏室或家事間。
+# 族系 → 適用房型。未列出的視為泛用（仍受成組規則約束）。
 ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
     "bed": ("bedroom",),
     "bedside-table": ("bedroom",),
-    "sofa": ("living_room",),
+    "wardrobe": ("bedroom",),
+    "chests-of-drawer": ("bedroom",),
+    "sofa": ("living_room", "multifunction"),
     "tv-bench": ("living_room",),
     "coffee-table": ("living_room",),
+    "armchair": ("living_room",),
     "dining-table": ("dining_room",),
     "dining-chair": ("dining_room",),
+    "sideboard": ("dining_room",),
+    "desk": ("workspace", "bedroom", "multifunction"),
+    "office-chair": ("workspace", "bedroom", "multifunction"),
+    "shoe-cabinet": ("entry",),
+    "shelving-unit": ("storage", "workspace", "balcony"),
 }
 
+# 各房「最少自動配置」族系。空 tuple = 該房預設不自動塞家具
+# （廚房／浴室／陽台／走道：家電與動線優先，見 room_strategy）。
+ROOM_MINIMUM_FAMILIES: dict[str, tuple[str, ...]] = {
+    "bedroom": ("bed", "wardrobe", "bedside-table"),
+    "living_room": ("sofa", "tv-bench"),
+    "dining_room": ("dining-table", "dining-chair"),
+    "workspace": ("desk", "office-chair"),
+    "entry": ("shoe-cabinet",),
+    "storage": ("shelving-unit",),
+    "kitchen": (),
+    "bathroom": (),
+    "balcony": (),
+    "hallway": (),
+    "multifunction": (),
+}
+
+
+def required_families_for_room(room_type: str | None) -> tuple[str, ...]:
+    """回傳該房選件必須齊的族系；未知房型不強制。"""
+    return ROOM_MINIMUM_FAMILIES.get(normalize_room_type(room_type), ())
+
+
 # 成組擺放的主件優先取得牆位，泛用件其次，COMPANION_OF 副件最後。
-ANCHOR_FAMILIES: tuple[str, ...] = ("bed", "sofa", "dining-table", "desk")
+ANCHOR_FAMILIES: tuple[str, ...] = ("bed", "sofa", "dining-table", "desk", "wardrobe")
 
 # 族系 → 成組語意標籤。此資料只進入提示，不參與座標計算。
 GROUP_OF: dict[str, str] = {
     "bed": "sleeping",
     "bedside-table": "sleeping",
+    "wardrobe": "sleeping",
+    "chests-of-drawer": "sleeping",
     "sofa": "seating",
     "coffee-table": "seating",
     "tv-bench": "seating",
     "armchair": "seating",
     "dining-table": "dining",
     "dining-chair": "dining",
+    "sideboard": "dining",
     "desk": "work",
     "office-chair": "work",
+    "shoe-cabinet": "entry",
+    "shelving-unit": "storage",
 }
 
 FAMILY_ZH: dict[str, str] = {
     "bed": "床",
     "bedside-table": "床頭櫃",
     "wardrobe": "衣櫃",
+    "chests-of-drawer": "抽屜櫃",
     "sofa": "沙發",
     "tv-bench": "電視櫃",
-    "coffee-table": "茶幾",
+    "coffee-table": "茶几",
     "dining-table": "餐桌",
     "dining-chair": "餐椅",
     "desk": "書桌",
     "office-chair": "辦公椅",
     "bookcase": "書櫃",
-    "sideboard": "邊櫃",
+    "sideboard": "餐邊櫃",
     "armchair": "單人椅",
     "wall-shelf": "壁架",
+    "shoe-cabinet": "鞋櫃",
+    "shelving-unit": "層架／收納",
 }
 
 ROOM_TYPE_ZH: dict[str, str] = {
     "living_room": "客廳",
     "bedroom": "臥室",
+    "primary_bedroom": "主臥",
+    "secondary_bedroom": "次臥",
     "dining_room": "餐廳",
     "study": "書房",
-    "workspace": "工作區",
+    "workspace": "書房／工作區",
     "kitchen": "廚房",
+    "bathroom": "浴室",
     "entry": "玄關",
+    "entryway": "玄關",
     "balcony": "陽台",
     "storage": "儲藏室",
+    "hallway": "走道／動線",
+    "circulation": "走道／動線",
+    "multifunction": "多功能室",
+    "flex": "多功能室",
     "laundry": "家事間",
 }
 
@@ -126,6 +197,13 @@ def prompt_rules() -> str:
     for rooms, families in grouped.items():
         room_text = "、".join(ROOM_TYPE_ZH.get(room, room) for room in rooms)
         lines.append(f"- {'、'.join(families)}只適合{room_text}，其他空間不要選。")
-    lines.append("- 床頭櫃慣例成對（count=2）；餐椅依餐桌人數（count=4，小餐廳 count=2）。")
+
+    lines.append("- 臥室最少：床、衣櫃、床頭櫃（預設 1；空間夠才加第二件）。")
+    lines.append("- 客廳最少：沙發、電視櫃；茶几／單椅／書櫃為可選。無獨立電視機。")
+    lines.append("- 餐廳最少：餐桌＋餐椅；餐椅人數跟問卷（常見 2／4／6，上限 6）。")
+    lines.append("- 書房／工作區最少：書桌＋辦公椅。")
+    lines.append("- 玄關最少：鞋櫃。儲藏室最少：層架或收納家具。")
+    lines.append("- 廚房、浴室、陽台、走道：不要為了自動配置硬塞家具；家電只留問卷／生圖。")
+    lines.append("- 地毯、燈、抱枕等軟裝不要當自動配置必備。")
     lines.append("- 空間放不下時由擺位引擎換小或減量，不由 LLM 硬塞座標。")
     return "\n".join(lines)

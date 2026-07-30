@@ -1,5 +1,70 @@
 # RoomPilot-Agent
 
+## Ancai 本機進度接手（2026-07-30）
+
+分支：`ancai`。以下是目前可接續的狀態；正式產品邊界仍以八步流程與 `AGENTS.md` 為準。
+
+### 已完成
+
+- **Engine 房間策略**：`backend/engine/room_strategy/README.md`（各空間最少家具／可空置規則）
+- **Agent 選件對齊**：`backend/agent/knowledge.py`、`select.py`（臥室床＋衣櫃＋床頭櫃；客廳沙發＋電視櫃；廚房／浴室／陽台／走道不硬塞）
+- **官方家具 JSON**：改為 Kai 8557 包（啟用／可 RAG 約 7958）；舊家電 catalog 移到 `JSON/furniture/legacy/`
+- **Django RAG runtime（最小移植，非整包合併）**
+  - 程式：`backend/spatial_data/rag/`、`backend/server/rag_api.py`、`/rag` 靜態頁
+  - Parser：支援 `openrouter`／`openai`／`anthropic`；本機預設 OpenRouter（`openai/gpt-4o-mini`）
+  - 依賴：`pyproject.toml` optional-extra `rag`、`requirements-rag.txt`
+- **本機 RAG 已跑通**（開發機狀態，不入 git）
+  - Docker：`roompilot-pg`（`pgvector/pgvector:pg16`，port `5432`）
+  - 匯入：家具 8,557 + embeddings 7,958
+  - HF 快取：`BAAI/bge-m3`、`BAAI/bge-reranker-v2-m3`
+  - 驗證：`GET /api/rag/status` → `ready: true`；`POST /api/rag/search` → 200
+  - 頁面：<http://127.0.0.1:8002/rag>
+
+### 本機恢復 RAG（下次開機）
+
+```bash
+# 1) 啟動 Postgres（若容器已存在）
+docker start roompilot-pg
+# 或新建：
+# docker run -d --name roompilot-pg -e POSTGRES_PASSWORD=roompilot_local \
+#   -e POSTGRES_USER=postgres -e POSTGRES_DB=roompilot_db -p 5432:5432 pgvector/pgvector:pg16
+
+# 2) .env 重點（勿提交 .env）
+# ROOMPILOT_RAG_ENABLED=true
+# ROOMPILOT_RAG_PARSER_PROVIDER=openrouter
+# ROOMPILOT_RAG_OPENROUTER_MODELS=openai/gpt-4o-mini,cohere/north-mini-code:free
+# ROOMPILOT_RAG_DEVICE=cpu
+# OPENROUTER_API_KEY=...
+# DB_HOST=localhost DB_PORT=5432 DB_NAME=roompilot_db DB_USER=postgres DB_PASSWORD=...
+
+# 3) 依賴
+uv pip install --python .venv/bin/python -r requirements-rag.txt
+# 或：uv sync --extra server --extra vision --extra catalog --extra rag --group dev
+
+# 4) 若 DB 是空的，再匯入
+# git lfs pull --include="JSON/RAG/furniture_embeddings_bge_m3.jsonl"
+# .venv/bin/python scripts/sql/import_official_catalog_to_postgres.py
+# .venv/bin/python scripts/sql/import_furniture_embeddings_to_postgres.py \
+#   --embeddings JSON/RAG/furniture_embeddings_bge_m3.jsonl
+
+# 5) 伺服器
+.venv/bin/python -m uvicorn backend.server.main:app --host 127.0.0.1 --port 8002 --reload
+```
+
+### 已知限制／下一步
+
+- 伺服器 catalog cache 仍有「預期 9350、實際 8557」提示；RAG 搜尋不受阻，第 6 步正式 catalog 契約需再對齊 Kai／Bella。
+- 多數 OpenRouter `:free` 模型目前 404；RAG parser 請用付費小模型或仍可用的 free slug。
+- 尚未做：Agent `placement_hints`／失敗原因驅動換件接到 Engine 第 6 步；Bella 問卷預設清單仍可能偏舊。
+- Graph RAG **只檢索**，幾何合法性仍只由 `backend/engine/` 判定。
+
+### 建議驗證
+
+```bash
+.venv/bin/python -m pytest -q tests/test_rag_domain.py tests/test_rag_api.py tests/test_agent_select.py
+curl -sS http://127.0.0.1:8002/api/rag/status
+```
+
 ## IKEA 地端 GLB 備援（尚未完成）
 
 Kai 的 CloudFront catalog 目前仍是唯一正式模型來源。Django 與 Kai 後續會共同完成本機 IKEA GLB 備援的 JSON 對照、固定備份路徑與 API 模式；完成前請勿在 `.env` 啟用本機模式，也不要將大型 GLB 提交到 Git。已清洗的網站 PBR 紋理可提交至 `backend/server/static/pbr_assets/`。
@@ -180,9 +245,9 @@ AI 或新成員開始修改前，必須依序閱讀：
 
 正式雲端 catalog 由 Kai 的資料流維護：
 
-- PostgreSQL 正式 view：9,349 筆啟用家具
+- PostgreSQL 正式 view：目前本機 Kai 包為 8,557 筆（啟用／可 RAG 約 7,958）；舊文件若寫 9,349 需以實際 view 為準
 - 每筆具有 CloudFront GLB 與正面、側面、45 度 PNG
-- JSON 備援 catalog：9,350 筆，僅在 PostgreSQL 暫時不可連線時使用
+- JSON 備援 catalog：`JSON/furniture/furniture_official_catagory.json`（8,557），僅在 PostgreSQL 暫時不可連線時使用
 - 家電問卷需求會保留給 AI 生圖，不會進入第 6 步 2D/3D 擺設
 
 先建立 `.env`：

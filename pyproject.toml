@@ -39,6 +39,14 @@ catalog = [
     "psycopg2-binary>=2.9",
     "python-dotenv>=1.2",
 ]
+# Django 家具 RAG runtime（向量檢索／rerank；權重另下載不入 git）
+rag = [
+    "openai>=2.50",
+    "anthropic>=0.117",
+    "torch>=2.5",
+    "sentence-transformers>=5.0",
+    "huggingface-hub>=0.30",
+]
 
 [dependency-groups]
 dev = [

@@ -75,6 +75,7 @@ from .services.cloud_images import (
     image_manifest_status,
 )
 from .postgres_catalog import catalog_provider_status, load_catalog as load_postgres_catalog
+from .rag_api import router as rag_router
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -157,6 +158,7 @@ _DATASET_GLB_ROOTS = [
 ]
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
+app.include_router(rag_router)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 

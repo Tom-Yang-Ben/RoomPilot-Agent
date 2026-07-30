@@ -1,4 +1,4 @@
--- RoomPilot 9,350 筆官方家具資料 PostgreSQL schema
+-- RoomPilot 8,557 筆官方家具資料 PostgreSQL schema
 --
 -- 正式資料放在 roompilot schema；每次匯入的原始 JSON/CSV 列放在 staging schema。
 -- item_id 是家具、GLB、三視角圖片、VLM 標註與 embedding 共用的核心鍵。
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS roompilot.furniture_items (
         CHECK (price_twd IS NULL OR price_twd >= 0)
 );
 
--- 3. 風格字典（目前為 12 種）
+-- 3. 風格字典（目前為 6 種正式風格）
 CREATE TABLE IF NOT EXISTS roompilot.styles (
     style_id    SERIAL PRIMARY KEY,
     style_code  VARCHAR(50) NOT NULL UNIQUE,
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS roompilot.styles (
     is_active   BOOLEAN NOT NULL DEFAULT TRUE
 );
 
--- 4. 家具與主/次風格。實際資料有 79 筆主、次風格相同，故以 rank 為鍵保留原始資料。
+-- 4. 家具與主/次風格。實際資料有 1,039 筆主、次風格相同，故以 rank 為鍵保留原始資料。
 CREATE TABLE IF NOT EXISTS roompilot.furniture_styles (
     item_id    TEXT NOT NULL
                REFERENCES roompilot.furniture_items(item_id) ON DELETE CASCADE,
@@ -260,6 +260,21 @@ CREATE TABLE IF NOT EXISTS roompilot.furniture_quality_issues (
         CHECK (status IN ('open', 'confirmed', 'fixed', 'ignored'))
 );
 
+-- Phase 2 管理 API 稽核紀錄。與家具異動寫在同一個 transaction，
+-- 不存 Authorization token，並保留軟刪除前後的資料快照。
+CREATE TABLE IF NOT EXISTS roompilot.furniture_admin_audit (
+    event_id       BIGSERIAL PRIMARY KEY,
+    item_id        TEXT NOT NULL,
+    action         VARCHAR(30) NOT NULL,
+    actor          VARCHAR(100) NOT NULL,
+    changed_fields TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    before_data    JSONB,
+    after_data     JSONB NOT NULL,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT furniture_admin_audit_action_valid
+        CHECK (action IN ('create', 'update', 'soft_delete'))
+);
+
 -- 原始來源 staging。batch_key 由五個輸入檔的 SHA-256 產生，可重複執行而不混批。
 CREATE TABLE IF NOT EXISTS staging.stg_furniture_catalog (
     batch_key   VARCHAR(64) NOT NULL,
@@ -356,6 +371,8 @@ $furniture_embeddings_index$;
 CREATE INDEX IF NOT EXISTS idx_furniture_quality_open
     ON roompilot.furniture_quality_issues(item_id, severity)
     WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS idx_furniture_admin_audit_item_created
+    ON roompilot.furniture_admin_audit(item_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_stg_glb_manifest_item
     ON staging.stg_glb_manifest(item_id);
 CREATE INDEX IF NOT EXISTS idx_stg_glb_result_item
@@ -396,12 +413,27 @@ SELECT
     asset_data.glb_url,
     asset_data.front_image_url,
     asset_data.side_image_url,
-    asset_data.angle_45_image_url
+    asset_data.angle_45_image_url,
+    style_data.style_confidences,
+    annotation.role,
+    annotation.visual_weight,
+    annotation.height_zone,
+    annotation.size_class,
+    annotation.pattern,
+    annotation.mood_tags,
+    annotation.features,
+    annotation.search_keywords,
+    (style_data.style_confidences)[1] AS style_confidence,
+    annotation.confidence AS annotation_confidence,
+    COALESCE(annotation.description_source, 'kai_postgresql_vlm')
+        AS style_assignment_source
 FROM roompilot.furniture_items AS i
 LEFT JOIN roompilot.furniture_categories AS c
     ON c.category_id = i.category_id
 LEFT JOIN LATERAL (
-    SELECT ARRAY_AGG(s.style_code ORDER BY fs.style_rank) AS style_codes
+    SELECT
+        ARRAY_AGG(s.style_code ORDER BY fs.style_rank) AS style_codes,
+        ARRAY_AGG(fs.confidence ORDER BY fs.style_rank) AS style_confidences
     FROM roompilot.furniture_styles AS fs
     JOIN roompilot.styles AS s ON s.style_id = fs.style_id
     WHERE fs.item_id = i.item_id
@@ -428,8 +460,110 @@ LEFT JOIN LATERAL (
         ) AS angle_45_image_url
     FROM roompilot.furniture_assets AS a
     WHERE a.item_id = i.item_id
+      AND LOWER(COALESCE(a.upload_status, '')) IN (
+          'already_exists', 'complete', 'completed', 'skipped_existing',
+          'success', 'uploaded'
+      )
+      AND LOWER(COALESCE(a.validation_status, 'ready')) IN (
+          '', 'ready', 'success', 'valid'
+      )
 ) AS asset_data ON TRUE
 WHERE i.is_active;
+
+-- FastAPI 專用的穩定 read model。UI 所需的分類與安全預設集中在 SQL view，
+-- repository 只負責查詢；資料庫與目前 UI 均使用相同的 6 種正式風格。
+CREATE OR REPLACE VIEW roompilot.furniture_catalog_api_current AS
+SELECT
+    catalog.*,
+    CASE
+        WHEN catalog.category_code = 'planter' THEN 'flower-pots-planter'
+        ELSE COALESCE(catalog.category_code, catalog.source_type, 'furniture')
+    END AS normalized_type,
+    CASE
+        WHEN catalog.category_code IN (
+            'armchair', 'coffee-table', 'fabric-sofa', 'leather-sofa',
+            'modular-sofa', 'sofa', 'sofa-bed', 'tv-bench', 'tv-media-furniture'
+        ) THEN 'living'
+        WHEN catalog.category_code IN (
+            'bar-table', 'dining-chair', 'dining-table', 'stool-bench', 'table'
+        ) THEN 'dining_kitchen'
+        WHEN catalog.category_code IN (
+            'bed', 'bed-frame', 'bedside-table', 'mattress', 'pax-wardrobe', 'wardrobe'
+        ) THEN 'bedroom'
+        WHEN catalog.category_code IN ('desk', 'gaming-chair', 'office-chair', 'work-lamp')
+            THEN 'study'
+        WHEN catalog.category_code IN (
+            'bookcase', 'cabinet-cupboard', 'chests-of-drawer', 'clothes-rack',
+            'display-cabinet', 'shelving-unit', 'shoe-cabinet', 'sideboard',
+            'storage-boxes-basket', 'storage-furniture', 'storage-solution-system',
+            'wall-shelf'
+        ) THEN 'storage'
+        WHEN catalog.category_code IN (
+            'ceiling-lamp', 'decoration', 'door-mat', 'floor-lamp', 'handmade-rug',
+            'lamp', 'lamp-shades-base', 'large-medium-rug', 'large-mirror', 'mirror',
+            'outdoor-rug', 'pendant-lamp', 'pillow-cushion', 'planter', 'round-rug',
+            'runner-small-rug', 'sheepskins-cowhide', 'standing-mirror', 'table-lamp',
+            'vase', 'wall-art', 'wall-lamp', 'wall-mirror'
+        ) THEN 'soft_decor'
+        WHEN 'study' = ANY(COALESCE(catalog.room_codes, ARRAY[]::TEXT[])) THEN 'study'
+        WHEN 'bedroom' = ANY(COALESCE(catalog.room_codes, ARRAY[]::TEXT[])) THEN 'bedroom'
+        WHEN 'dining_room' = ANY(COALESCE(catalog.room_codes, ARRAY[]::TEXT[]))
+            THEN 'dining_kitchen'
+        WHEN 'living_room' = ANY(COALESCE(catalog.room_codes, ARRAY[]::TEXT[]))
+            THEN 'living'
+        ELSE 'soft_decor'
+    END AS taxonomy_group,
+    CASE
+        WHEN catalog.category_code IN (
+            'armchair', 'coffee-table', 'fabric-sofa', 'leather-sofa',
+            'modular-sofa', 'sofa', 'sofa-bed', 'tv-bench', 'tv-media-furniture'
+        ) THEN '客廳家具'
+        WHEN catalog.category_code IN (
+            'bar-table', 'dining-chair', 'dining-table', 'stool-bench', 'table'
+        ) THEN '餐廚家具'
+        WHEN catalog.category_code IN (
+            'bed', 'bed-frame', 'bedside-table', 'mattress', 'pax-wardrobe', 'wardrobe'
+        ) THEN '臥室家具'
+        WHEN catalog.category_code IN ('desk', 'gaming-chair', 'office-chair', 'work-lamp')
+            THEN '書房家具'
+        WHEN catalog.category_code IN (
+            'bookcase', 'cabinet-cupboard', 'chests-of-drawer', 'clothes-rack',
+            'display-cabinet', 'shelving-unit', 'shoe-cabinet', 'sideboard',
+            'storage-boxes-basket', 'storage-furniture', 'storage-solution-system',
+            'wall-shelf'
+        ) THEN '收納家具'
+        WHEN catalog.category_code IN (
+            'ceiling-lamp', 'decoration', 'door-mat', 'floor-lamp', 'handmade-rug',
+            'lamp', 'lamp-shades-base', 'large-medium-rug', 'large-mirror', 'mirror',
+            'outdoor-rug', 'pendant-lamp', 'pillow-cushion', 'planter', 'round-rug',
+            'runner-small-rug', 'sheepskins-cowhide', 'standing-mirror', 'table-lamp',
+            'vase', 'wall-art', 'wall-lamp', 'wall-mirror'
+        ) THEN '軟裝與燈飾'
+        WHEN 'study' = ANY(COALESCE(catalog.room_codes, ARRAY[]::TEXT[])) THEN '書房家具'
+        WHEN 'bedroom' = ANY(COALESCE(catalog.room_codes, ARRAY[]::TEXT[])) THEN '臥室家具'
+        WHEN 'dining_room' = ANY(COALESCE(catalog.room_codes, ARRAY[]::TEXT[]))
+            THEN '餐廚家具'
+        WHEN 'living_room' = ANY(COALESCE(catalog.room_codes, ARRAY[]::TEXT[]))
+            THEN '客廳家具'
+        ELSE '軟裝與燈飾'
+    END AS taxonomy_group_zh,
+    COALESCE(
+        catalog.category_name_zh,
+        catalog.category_code,
+        catalog.source_type,
+        'furniture'
+    ) AS taxonomy_type_zh,
+    COALESCE(
+        catalog.category_name_zh,
+        catalog.category_code,
+        catalog.source_type,
+        'furniture'
+    ) AS category_label,
+    'kai_postgresql'::TEXT AS catalog_scope,
+    FALSE AS must_against_wall,
+    TRUE AS can_rotate,
+    TRUE AS usable_for_moodboard
+FROM roompilot.furniture_catalog_current AS catalog;
 
 CREATE OR REPLACE FUNCTION roompilot.set_updated_at()
 RETURNS TRIGGER
