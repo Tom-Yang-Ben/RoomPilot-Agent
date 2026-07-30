@@ -15,7 +15,7 @@
 | 家具身分、尺寸、風格、房型、RAG metadata | `JSON/furniture/furniture_official_catagory.json` | 最新 8,557 筆官方家具 |
 | GLB 可用性與 CloudFront URL | `JSON/manifests/glb_upload_all_result.csv` | 唯一模型交付憑據 |
 | 三視角圖片可用性 | `JSON/manifests/image_upload_all_result.csv` | front、side、angle-45 圖片憑據 |
-| Django 向量交付 | `JSON/RAG/furniture_embeddings_bge_m3.jsonl` | Git LFS 管理；未 materialize 時不得啟用向量查詢 |
+| Django 向量交付 | `JSON/RAG/furniture_embeddings_bge_m3.jsonl` | Git LFS 管理；7,958 筆 `rag_indexable` 家具，每筆為 BGE-M3 1024 維向量 |
 
 `glb_upload_manifest.csv` 與 `image_upload_manifest.csv` 是上傳輸入；runtime 僅能信任
 對應的 `_all_result.csv`。只有 `upload_status` 已完成且有 HTTPS `delivery_url` 的資料才能
@@ -36,6 +36,9 @@
 
 Django 的 RAG 只負責解析、檢索、排序與證據；不決定家具座標、不修改 `layout_json` 或
 `scene_json`。`backend/engine` 是碰撞、門窗淨空、走道與擺放合法性的唯一裁決者。
+
+總 catalog 有 8,557 筆；其中 7,958 筆為 `active_count`／`indexable_count`，會出現在
+RAG 向量檔。其餘 599 筆 `rag_indexable=false` 不得以缺向量視為下載失敗，也不應進入向量檢索。
 
 ## 本機與 PostgreSQL
 
