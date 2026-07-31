@@ -1,4 +1,4 @@
-"""Build the official 9,350-item catalog from Kai's cloud asset inventory.
+"""Build the official catalog from Kai's cloud asset inventory.
 
 The cloud catalog and upload-result manifest define the publishable furniture
 set.  The older six-style catalog is enrichment only: it may contribute style,
@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any
 
 
-OFFICIAL_CATALOG_COUNT = 9_350
 READY_UPLOAD_STATUSES = {
     "uploaded",
     "already_exists",
@@ -162,14 +161,11 @@ def build_official_catalog(
     canonical_items = list(cloud_catalog.get("items") or [])
     legacy_items = list(style_enrichment.get("furniture") or [])
 
-    if len(canonical_items) != OFFICIAL_CATALOG_COUNT:
-        raise ValueError(
-            f"cloud catalog must contain {OFFICIAL_CATALOG_COUNT} items; "
-            f"got {len(canonical_items)}"
-        )
+    if not canonical_items:
+        raise ValueError("cloud catalog must contain at least one item; got 0")
 
     canonical_ids = [str(item.get("id") or "").strip() for item in canonical_items]
-    if not all(canonical_ids) or len(set(canonical_ids)) != OFFICIAL_CATALOG_COUNT:
+    if not all(canonical_ids) or len(set(canonical_ids)) != len(canonical_items):
         raise ValueError("cloud catalog item IDs must be present and unique")
 
     manifest_by_id = {
@@ -177,11 +173,13 @@ def build_official_catalog(
         for row in manifest_rows
         if str(row.get("item_id") or "").strip()
     }
-    if set(manifest_by_id) != set(canonical_ids):
-        missing = len(set(canonical_ids) - set(manifest_by_id))
-        extra = len(set(manifest_by_id) - set(canonical_ids))
+    # The manifest is an upload log and may retain rows for items that have since
+    # left the catalog; only items still in the catalog are ever read from it, so
+    # leftovers are tolerated while gaps stay fatal.
+    missing_ids = set(canonical_ids) - set(manifest_by_id)
+    if missing_ids:
         raise ValueError(
-            f"cloud catalog and manifest IDs differ: missing={missing}, extra={extra}"
+            f"cloud catalog items missing from manifest: {len(missing_ids)}"
         )
 
     canonical_by_id = dict(zip(canonical_ids, canonical_items, strict=True))
