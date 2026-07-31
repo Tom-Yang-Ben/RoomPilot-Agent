@@ -473,6 +473,8 @@ const element = {
   masterViewStatus: $("#master-view-status"),
   lockedSchemeLabel: $("#locked-scheme-label"),
   aiRenderStatus: $("#ai-render-status"),
+  aiRenderError: $("#ai-render-error"),
+  proposalReviewError: $("#proposal-review-error"),
   aiRenderViewTitle: $("#ai-render-view-title"),
   aiRenderProviderState: $("#ai-render-provider-state"),
   paletteRenderOptions: $("#palette-render-options"),
@@ -11580,23 +11582,58 @@ function downloadViewerPng(viewer, prefix) {
   }
 }
 
+// 第 7、8 步的 #*-status 是交給 createSceneViewer 的檢視器狀態列，檢視器每次載入場景或
+// 換視角都會覆寫它——把遠端渲染的失敗寫進去，訊息會在下一則檢視器訊息時消失，使用者
+// 看到的就是「按了像沒事發生」。這裡給渲染動作一個檢視器不會碰的錯誤欄位。
+function renderStepErrorSlot() {
+  return state.workflow?.currentStep === "proposal_review"
+    ? element.proposalReviewError
+    : element.aiRenderError;
+}
+
+function reportRenderActionError(error) {
+  const message = errorMessage(error);
+  const code = typeof error?.detail === "object" ? error.detail?.code || "" : "";
+  const detail = [error?.status ? `HTTP ${error.status}` : "", code].filter(Boolean).join(" · ");
+  const text = detail ? `${message}（${detail}）` : message;
+  const slot = renderStepErrorSlot();
+  if (slot) slot.textContent = text;
+  setStatus(text, "error");
+  return text;
+}
+
+function clearRenderActionError() {
+  if (element.aiRenderError) element.aiRenderError.textContent = "";
+  if (element.proposalReviewError) element.proposalReviewError.textContent = "";
+}
+
 async function saveViewerPngToProject(viewer) {
   // 2026-07 盤點第 9 項修復（其二）：capturePng 與後端 browser_capture 入庫
   // 端點（tests/test_project_store_hardening.py 已覆蓋）早已各自完工，
   // 缺的只是這條接線。POST 帶 expected_revision 樂觀鎖，衝突回 409 明話。
   const dataUrl = viewer.capturePng();
   const blob = await (await fetch(dataUrl)).blob();
-  const form = new FormData();
-  form.append("file", blob, "roompilot-view.png");
-  form.append("expected_revision", String(Number(state.project?.revision ?? 0)));
-  form.append(
-    "style_card_id",
-    String(state.proposalReview?.confirmedStyleCardId || state.activeStylePackId || "unassigned"),
-  );
-  const result = await api(`/api/projects/${state.projectId}/renders`, {
-    method: "POST",
-    body: form,
-  });
+  const send = () => {
+    const form = new FormData();
+    form.append("file", blob, "roompilot-view.png");
+    form.append("expected_revision", String(Number(state.project?.revision ?? 0)));
+    form.append(
+      "style_card_id",
+      String(state.proposalReview?.confirmedStyleCardId || state.activeStylePackId || "unassigned"),
+    );
+    return api(`/api/projects/${state.projectId}/renders`, { method: "POST", body: form });
+  };
+  let result;
+  try {
+    result = await send();
+  } catch (error) {
+    // 409 幾乎都是 expected_revision 落後：背景的工作流保存剛寫入，state.project 還是舊版。
+    // 這不是使用者能自己解的衝突，重新取一次版本再送一次。
+    if (error?.status !== 409) throw error;
+    const latest = await api(`/api/projects/${state.projectId}`);
+    if (latest?.project) state.project = latest.project;
+    result = await send();
+  }
   if (result?.project) state.project = result.project;
   await refreshSavedRenders();
   setStatus("截圖已保存到專案成果清單。");
@@ -11669,15 +11706,22 @@ function confirmRenderPalette() {
 }
 
 async function prepareAiRender() {
-  if (!state.sceneData || !state.proposalReview.masterView) return;
-  await aiRenderViewer.loadScene(state.sceneData);
-  aiRenderViewer.setCameraState(state.proposalReview.masterView.camera);
-  aiRenderViewer.lockRenderCamera(true);
+  if (!state.sceneData || !state.proposalReview.masterView) {
+    reportRenderActionError(new Error(
+      "尚未鎖定第 7 步的色卡比較視角，無法準備渲染；請先回第 7 步鎖定視角。",
+    ));
+    return;
+  }
+  // 控制項不能排在 3D 載入的 await 後面：這個場景的 shader 編譯要好幾秒，
+  // 期間色卡區是一整片空白，使用者按下去只會得到「至少選擇一張色卡」。
   renderPaletteOptions();
   renderRemoteJobs();
   renderPaletteResults();
   refreshSavedRenders();
   element.roomRenderSection.hidden = !state.proposalReview.confirmedStyleCardId;
+  await aiRenderViewer.loadScene(state.sceneData);
+  aiRenderViewer.setCameraState(state.proposalReview.masterView.camera);
+  aiRenderViewer.lockRenderCamera(true);
   element.aiRenderProviderState.textContent = "正在檢查遠端服務…";
   try {
     const status = await api("/api/render-provider/status");
@@ -11752,8 +11796,9 @@ function renderRequestPayload(mode, styleCardIds, roomViews = []) {
 
 async function requestPaletteRenders() {
   const styleCardIds = $$("[data-render-style-card]:checked").map((input) => input.value);
+  clearRenderActionError();
   if (!styleCardIds.length) {
-    element.aiRenderStatus.textContent = "至少選擇一張色卡。";
+    reportRenderActionError(new Error("至少選擇一張色卡。"));
     return;
   }
   try {
@@ -11784,14 +11829,15 @@ async function requestPaletteRenders() {
       : "任務已送出，等待遠端渲染回圖。";
     refreshSavedRenders();
   } catch (error) {
-    element.aiRenderStatus.textContent = errorMessage(error);
+    reportRenderActionError(error);
   }
 }
 
 async function submitRoomRenders() {
   const roomViews = Object.values(state.proposalReview.roomViews);
+  clearRenderActionError();
   if (!roomViews.length) {
-    element.aiRenderStatus.textContent = "請至少保存一個房間視角。";
+    reportRenderActionError(new Error("請至少保存一個房間視角。"));
     return;
   }
   try {
@@ -11815,7 +11861,7 @@ async function submitRoomRenders() {
       : `已送出 ${roomViews.length} 個房間渲染任務。`;
     refreshSavedRenders();
   } catch (error) {
-    element.aiRenderStatus.textContent = errorMessage(error);
+    reportRenderActionError(error);
   }
 }
 
@@ -13036,18 +13082,20 @@ function bindEvents() {
   $("#save-room-view").addEventListener("click", saveSelectedRoomView);
   $("#download-proposal-view")?.addEventListener("click", () => downloadViewerPng(proposalViewer, "RoomPilot-方案視角"));
   $("#save-proposal-view-png")?.addEventListener("click", async () => {
+    clearRenderActionError();
     try {
       await saveViewerPngToProject(proposalViewer);
     } catch (error) {
-      setStatus(errorMessage(error), "error");
+      reportRenderActionError(error);
     }
   });
   $("#download-render-view")?.addEventListener("click", () => downloadViewerPng(aiRenderViewer, "RoomPilot-渲染視角"));
   $("#save-render-view-png")?.addEventListener("click", async () => {
+    clearRenderActionError();
     try {
       await saveViewerPngToProject(aiRenderViewer);
     } catch (error) {
-      setStatus(errorMessage(error), "error");
+      reportRenderActionError(error);
     }
   });
   $("#submit-room-renders").addEventListener("click", submitRoomRenders);

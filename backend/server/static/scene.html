@@ -970,6 +970,7 @@
               <button id="lock-master-view" type="button" class="primary-action">鎖定此視角並進入第 8 步</button>
               <button id="download-proposal-view" type="button" class="secondary-action">下載目前視角 PNG</button>
               <button id="save-proposal-view-png" type="button" class="secondary-action">保存截圖到專案</button>
+              <p id="proposal-review-error" class="rp-field-error" aria-live="polite"></p>
               <p id="master-view-status" class="rp-field-hint" aria-live="polite">尚未鎖定比較視角。</p>
             </section>
           </aside>
@@ -989,6 +990,7 @@
           <aside class="rp-control-pane rp-style-sidebar">
             <span class="eyebrow">REMOTE RENDER</span>
             <h2>色卡比較與逐房渲染</h2>
+            <p id="ai-render-error" class="rp-field-error" aria-live="polite"></p>
             <section class="rp-editor-box">
               <h3>1. 色卡比較</h3>
               <p>固定第 7 步視角、家具與格局，只改指定色卡，產生低解析度比較圖。</p>
@@ -1087,6 +1089,6 @@
       }
     </script>
   <script type="module" src="/static/engineering_link.js?v=sha256-3d5c1057884c"></script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-e0980195a6ac"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-1aaa2f7b0280"></script>
   </body>
 </html>

@@ -7,6 +7,10 @@ function createViewerDouble() {
       if (property === "getDiagnostics") {
         return () => ({ failedFurniture: [], visibleFurnitureCount: 0 });
       }
+      // capturePng 在真實檢視器是同步回傳 data URL，不是 promise。
+      if (property === "capturePng") {
+        return () => "data:image/png;base64,iVBORw0KGgo=";
+      }
       if (!cache.has(property)) cache.set(property, async () => undefined);
       return cache.get(property);
     },

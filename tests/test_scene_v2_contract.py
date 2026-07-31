@@ -2727,6 +2727,27 @@ def test_step_six_repair_actions_cannot_fail_silently() -> None:
     assert "reportConfigurationActionError" in replacement
 
 
+def test_remote_render_failures_land_in_a_slot_the_viewer_cannot_overwrite() -> None:
+    """第 8 步的 502／409 曾經完全沉默：錯誤被寫進 3D 檢視器的狀態列，下一則訊息就蓋掉。"""
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="ai-render-error"' in html
+    assert 'id="proposal-review-error"' in html
+    # #ai-render-status 是交給 createSceneViewer 的檢視器狀態列，不能拿來放錯誤。
+    assert 'createSceneViewer($("#ai-render-viewer"), element.aiRenderStatus)' in source
+    assert "function reportRenderActionError" in source
+    assert "element.aiRenderStatus.textContent = errorMessage(error)" not in source
+    # 後端的 code 也要帶出來，才知道是 image_provider_no_image_returned 這類原因。
+    assert "error.detail?.code" in source
+
+    save = source.split("async function saveViewerPngToProject", 1)[1].split(
+        "async function refreshSavedRenders", 1
+    )[0]
+    assert "error?.status !== 409" in save
+    assert "state.project = latest.project" in save
+
+
 def test_replacement_drawer_explains_an_empty_candidate_list() -> None:
     """候選清單空白時必須說出是哪一關擋掉的，而不是留一片空白讓使用者猜。"""
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
