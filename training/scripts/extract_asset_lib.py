@@ -34,9 +34,9 @@ from symbol_match import CANVAS, LIB_PATH, hu_of
 
 # Asset 目錄 → (kind, (短邊lo, 短邊hi, 長邊lo, 長邊hi) cm)
 ASSET_KINDS = [
-    ("bathroom/wc",           ("wc",       (35, 60, 50, 85))),
-    ("bathroom/tub",          ("tub",      (70, 95, 140, 190))),
-    ("bathroom/washbasin",    ("basin",    (30, 60, 40, 95))),
+    ("bath/wc",               ("wc",       (35, 60, 50, 85))),
+    ("bath/tub",              ("tub",      (70, 95, 140, 190))),
+    ("bath/washbasin",        ("basin",    (30, 60, 40, 95))),
     ("kitchen/cook_stove",    ("kstove",   (50, 75, 55, 95))),
     ("kitchen/sink",          ("ksink",    (40, 70, 45, 120))),
     ("kitchen/dinner_table",  ("dtable",   (70, 120, 90, 220))),
