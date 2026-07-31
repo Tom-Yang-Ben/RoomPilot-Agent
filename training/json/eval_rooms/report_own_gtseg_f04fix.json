@@ -1,0 +1,709 @@
+{
+ "summary": {
+  "n_images": 12,
+  "n_ok": 12,
+  "n_seg_fail": 0,
+  "n_skip": 0,
+  "gt_rooms": 72,
+  "pred_rooms": 72,
+  "matched": 72,
+  "hit_rate": 1.0,
+  "overseg": 1.0,
+  "mean_iou": 1.0,
+  "confusion": {
+   "Kitchen": {
+    "Kitchen": 7,
+    "LivingRoom": 1,
+    "Bedroom": 0,
+    "Bath": 0,
+    "Entry": 0,
+    "Storage": 0,
+    "Garage": 0,
+    "Balcony": 0,
+    "Stair": 0,
+    "Hallway": 2
+   },
+   "LivingRoom": {
+    "Kitchen": 1,
+    "LivingRoom": 9,
+    "Bedroom": 0,
+    "Bath": 1,
+    "Entry": 0,
+    "Storage": 1,
+    "Garage": 0,
+    "Balcony": 0,
+    "Stair": 0,
+    "Hallway": 0
+   },
+   "Bedroom": {
+    "Kitchen": 0,
+    "LivingRoom": 0,
+    "Bedroom": 20,
+    "Bath": 0,
+    "Entry": 0,
+    "Storage": 0,
+    "Garage": 0,
+    "Balcony": 0,
+    "Stair": 0,
+    "Hallway": 0
+   },
+   "Bath": {
+    "Kitchen": 0,
+    "LivingRoom": 0,
+    "Bedroom": 0,
+    "Bath": 14,
+    "Entry": 0,
+    "Storage": 0,
+    "Garage": 0,
+    "Balcony": 0,
+    "Stair": 0,
+    "Hallway": 0
+   },
+   "Entry": {
+    "Kitchen": 0,
+    "LivingRoom": 0,
+    "Bedroom": 0,
+    "Bath": 0,
+    "Entry": 2,
+    "Storage": 0,
+    "Garage": 0,
+    "Balcony": 0,
+    "Stair": 0,
+    "Hallway": 1
+   },
+   "Storage": {
+    "Kitchen": 0,
+    "LivingRoom": 0,
+    "Bedroom": 1,
+    "Bath": 1,
+    "Entry": 0,
+    "Storage": 2,
+    "Garage": 0,
+    "Balcony": 0,
+    "Stair": 0,
+    "Hallway": 0
+   },
+   "Garage": {
+    "Kitchen": 0,
+    "LivingRoom": 0,
+    "Bedroom": 0,
+    "Bath": 0,
+    "Entry": 0,
+    "Storage": 0,
+    "Garage": 0,
+    "Balcony": 0,
+    "Stair": 0,
+    "Hallway": 0
+   },
+   "Balcony": {
+    "Kitchen": 0,
+    "LivingRoom": 0,
+    "Bedroom": 0,
+    "Bath": 0,
+    "Entry": 0,
+    "Storage": 0,
+    "Garage": 0,
+    "Balcony": 1,
+    "Stair": 0,
+    "Hallway": 0
+   },
+   "Stair": {
+    "Kitchen": 0,
+    "LivingRoom": 0,
+    "Bedroom": 0,
+    "Bath": 0,
+    "Entry": 0,
+    "Storage": 0,
+    "Garage": 0,
+    "Balcony": 0,
+    "Stair": 4,
+    "Hallway": 0
+   },
+   "Hallway": {
+    "Kitchen": 0,
+    "LivingRoom": 0,
+    "Bedroom": 1,
+    "Bath": 0,
+    "Entry": 0,
+    "Storage": 0,
+    "Garage": 0,
+    "Balcony": 0,
+    "Stair": 0,
+    "Hallway": 3
+   }
+  },
+  "iou_thr": 0.5,
+  "gt_seg_mode": true,
+  "own_eval_mode": true,
+  "per_class": {
+   "Kitchen": {
+    "gt": 10,
+    "precision": 0.875,
+    "recall": 0.7
+   },
+   "LivingRoom": {
+    "gt": 12,
+    "precision": 0.9,
+    "recall": 0.75
+   },
+   "Bedroom": {
+    "gt": 20,
+    "precision": 0.909,
+    "recall": 1.0
+   },
+   "Bath": {
+    "gt": 14,
+    "precision": 0.875,
+    "recall": 1.0
+   },
+   "Entry": {
+    "gt": 3,
+    "precision": 1.0,
+    "recall": 0.667
+   },
+   "Storage": {
+    "gt": 4,
+    "precision": 0.667,
+    "recall": 0.5
+   },
+   "Garage": {
+    "gt": 0,
+    "precision": null,
+    "recall": null
+   },
+   "Balcony": {
+    "gt": 1,
+    "precision": 1.0,
+    "recall": 1.0
+   },
+   "Stair": {
+    "gt": 4,
+    "precision": 1.0,
+    "recall": 1.0
+   },
+   "Hallway": {
+    "gt": 4,
+    "precision": 0.5,
+    "recall": 0.75
+   }
+  }
+ },
+ "images": [
+  {
+   "id": "floor55",
+   "status": "ok",
+   "n_gt": 4,
+   "n_pred": 4,
+   "n_match": 4,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "LivingRoom",
+     "LivingRoom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Kitchen",
+     "Kitchen"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor58",
+   "status": "ok",
+   "n_gt": 8,
+   "n_pred": 8,
+   "n_match": 8,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "LivingRoom",
+     "Kitchen"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Kitchen",
+     "LivingRoom"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "LivingRoom",
+     "Bath"
+    ],
+    [
+     "Stair",
+     "Stair"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor60",
+   "status": "ok",
+   "n_gt": 5,
+   "n_pred": 5,
+   "n_match": 5,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "LivingRoom",
+     "LivingRoom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Kitchen",
+     "Kitchen"
+    ],
+    [
+     "Balcony",
+     "Balcony"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor61",
+   "status": "ok",
+   "n_gt": 7,
+   "n_pred": 7,
+   "n_match": 7,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "Stair",
+     "Stair"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Hallway",
+     "Bedroom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "LivingRoom",
+     "LivingRoom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor64",
+   "status": "ok",
+   "n_gt": 4,
+   "n_pred": 4,
+   "n_match": 4,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "Kitchen",
+     "Kitchen"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "Entry",
+     "Entry"
+    ],
+    [
+     "LivingRoom",
+     "LivingRoom"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor69",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "LivingRoom",
+     "LivingRoom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "Hallway",
+     "Hallway"
+    ],
+    [
+     "Kitchen",
+     "Hallway"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor70",
+   "status": "ok",
+   "n_gt": 4,
+   "n_pred": 4,
+   "n_match": 4,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "LivingRoom",
+     "LivingRoom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Kitchen",
+     "Hallway"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor73",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "Entry",
+     "Entry"
+    ],
+    [
+     "LivingRoom",
+     "Storage"
+    ],
+    [
+     "Kitchen",
+     "Kitchen"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor74",
+   "status": "ok",
+   "n_gt": 8,
+   "n_pred": 8,
+   "n_match": 8,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Hallway",
+     "Hallway"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "Storage",
+     "Storage"
+    ],
+    [
+     "Storage",
+     "Bath"
+    ],
+    [
+     "Kitchen",
+     "Kitchen"
+    ],
+    [
+     "LivingRoom",
+     "LivingRoom"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor76",
+   "status": "ok",
+   "n_gt": 8,
+   "n_pred": 8,
+   "n_match": 8,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Hallway",
+     "Hallway"
+    ],
+    [
+     "Storage",
+     "Bedroom"
+    ],
+    [
+     "Stair",
+     "Stair"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor78",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "LivingRoom",
+     "LivingRoom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Storage",
+     "Storage"
+    ],
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "Stair",
+     "Stair"
+    ],
+    [
+     "Kitchen",
+     "Kitchen"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  },
+  {
+   "id": "floor79",
+   "status": "ok",
+   "n_gt": 6,
+   "n_pred": 6,
+   "n_match": 6,
+   "mean_iou": 1.0,
+   "pairs": [
+    [
+     "Bath",
+     "Bath"
+    ],
+    [
+     "Entry",
+     "Hallway"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ],
+    [
+     "Kitchen",
+     "Kitchen"
+    ],
+    [
+     "LivingRoom",
+     "LivingRoom"
+    ],
+    [
+     "Bedroom",
+     "Bedroom"
+    ]
+   ],
+   "ious": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "split": "own"
+  }
+ ]
+}
