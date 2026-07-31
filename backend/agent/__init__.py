@@ -1,37 +1,49 @@
-"""backend.agent —— 選件 + 擺位紀律 agent(room_pilot2 移植版,2026-07-21)。
+"""RoomPilot Agent：Master state machine ＋ 四個 sub-agent（skills / tools 分層）。
 
-取代原 layout_intent / recovery 提示鏈。哲學與鐵律不變且更徹底:LLM 只決定
-「選哪些件」(select),座標一律由 backend.engine 計算;擺放潛規則
-(knowledge)是單一事實源,同時餵給選件 prompt、系統邊界驗證與擺位紀律
-(place:主件先行、副件成組、寧缺勿亂 + 確定性換小)。
+新架構（2026-07 提案定案版）：
 
-LLM 呼叫器(complete)與擺放函式(place_fn)由呼叫端注入 —— 本套件不
-import backend.server、不碰網路;無 key 時 select 由呼叫端降級本機規則,
-place 全程確定性,離線測試可行。
+- ``master``：程式固定流程 state machine——HITL 暫停點、修復迴圈 ≤3、
+  改圖 ≤1、生圖失敗 3 次 fallback、checkpoint 可恢復上一動。
+- ``subagents``：Furniture／Validation／Gen_Pic／Report。
+- ``skills``：系統提示詞＋流程模板＋輸出 schema（LLM 語意決策、離線 fallback）。
+- ``tools``：帶輸入/輸出契約的 deterministic 函式（engine 與 RAG 邊界）。
+- ``documents``：Docs 層 blackboard 與 ``DocStore``。
+- ``llm``：OpenRouter gateway（文字＋nano banana 生圖、fallback nano banana 2）。
+
+邊界不變：座標與合法性只來自 :mod:`backend.engine`；RAG 只檢索排序；
+家電只進生圖 context。
+
+（歷史模組 ``knowledge`` / ``select`` / ``place`` 仍由 backend/server 現行
+流程 import，維持原樣不動；新功能一律使用上述新架構。）
 """
-from .knowledge import COMPANION_OF, ROOM_AFFINITY, family_of, prompt_rules
-from .place import pick_smaller_model, placement_hints, resolve_placements
-from .select import (
-    SelectedItem,
-    SelectionParseError,
-    SelectionUnavailableError,
-    build_select_messages,
-    parse_selections,
-    request_selections,
+from .documents import DocKey, DocStore
+from .llm import LLMError, OpenRouterGateway
+from .master import MasterAgent, MasterConfig, MasterState, PauseInfo
+from .runtime import build_gateway, build_master
+from .subagents import (
+    FurnitureAgent,
+    GenPicAgent,
+    GenPicFailure,
+    ImagePolicy,
+    ReportAgent,
+    ValidationAgent,
 )
 
 __all__ = [
-    "COMPANION_OF",
-    "ROOM_AFFINITY",
-    "family_of",
-    "prompt_rules",
-    "pick_smaller_model",
-    "placement_hints",
-    "resolve_placements",
-    "SelectedItem",
-    "SelectionParseError",
-    "SelectionUnavailableError",
-    "build_select_messages",
-    "parse_selections",
-    "request_selections",
+    "DocKey",
+    "DocStore",
+    "LLMError",
+    "OpenRouterGateway",
+    "MasterAgent",
+    "MasterConfig",
+    "MasterState",
+    "PauseInfo",
+    "build_gateway",
+    "build_master",
+    "FurnitureAgent",
+    "ValidationAgent",
+    "GenPicAgent",
+    "GenPicFailure",
+    "ImagePolicy",
+    "ReportAgent",
 ]

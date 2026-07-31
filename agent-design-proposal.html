@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoomPilot Agent 架構提案 — 討論結論</title>
+<style>
+  :root{
+    --ink:#1f2430; --muted:#5c6470; --line:#e3e6ec; --paper:#ffffff; --bg:#f4f5f8;
+    --agent:#be3455; --agent-bg:#fdeef2; --agent-line:#f3c2cf;
+    --skill:#8a6d1f; --skill-bg:#faf3dc; --skill-line:#e8d9a8;
+    --tool:#1f7a4d; --tool-bg:#e9f6ee; --tool-line:#bfe3cd;
+    --doc:#2a5da8; --doc-bg:#eaf1fb; --doc-line:#c2d5f0;
+    --master:#3d3a52; --master-bg:#edecf5;
+    --warn:#a34a00; --warn-bg:#fdf1e4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.65; font-size:15px;
+    padding:32px 16px 64px;
+  }
+  .page{max-width:1120px; margin:0 auto;}
+  header.hero{
+    background:var(--paper); border:1px solid var(--line); border-radius:14px;
+    padding:28px 32px; margin-bottom:20px;
+  }
+  h1{font-size:26px; letter-spacing:.5px;}
+  .hero p.sub{color:var(--muted); margin-top:6px;}
+  .meta{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .meta span{
+    font-size:12.5px; border:1px solid var(--line); border-radius:999px;
+    padding:3px 12px; background:var(--bg); color:var(--muted);
+  }
+  section{
+    background:var(--paper); border:1px solid var(--line); border-radius:14px;
+    padding:24px 32px; margin-bottom:20px;
+  }
+  h2{font-size:19px; margin-bottom:4px;}
+  h2 .no{color:var(--muted); font-weight:600; margin-right:8px;}
+  .lead{color:var(--muted); font-size:13.5px; margin-bottom:16px;}
+  h3{font-size:15px; margin-bottom:8px;}
+
+  /* 決策卡 */
+  .decisions{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:12px;}
+  .decision{border:1px solid var(--line); border-left:4px solid var(--master); border-radius:10px; padding:12px 16px; background:#fbfbfd;}
+  .decision b{display:block; font-size:14px; margin-bottom:2px;}
+  .decision p{font-size:13.5px; color:var(--muted);}
+
+  /* 圖例與架構 */
+  .legend{display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; font-size:12.5px;}
+  .legend i{display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:5px; vertical-align:-1px;}
+  .master-bar{
+    background:var(--master-bg); border:1.5px solid var(--master); border-radius:10px;
+    padding:12px 18px; text-align:center; margin-bottom:6px;
+  }
+  .master-bar b{color:var(--master); font-size:15px;}
+  .master-bar div{font-size:13px; color:var(--muted); margin-top:2px;}
+  .down{ text-align:center; color:var(--muted); font-size:16px; line-height:1; margin:2px 0 8px;}
+  .agents{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  @media (max-width:900px){ .agents{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:560px){ .agents{grid-template-columns:1fr;} .decisions{grid-template-columns:1fr;} section,header.hero{padding:20px;} }
+  .agent-col{border:1px solid var(--agent-line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column;}
+  .agent-col header{background:var(--agent-bg); padding:9px 12px; border-bottom:1px solid var(--agent-line);}
+  .agent-col header b{color:var(--agent); font-size:14px;}
+  .agent-col header small{display:block; color:var(--muted); font-size:12px; line-height:1.4; margin-top:1px;}
+  .grp{padding:8px 12px 10px;}
+  .grp + .grp{border-top:1px dashed var(--line);}
+  .grp .cap{font-size:11px; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; margin-bottom:5px;}
+  .chip{
+    display:inline-block; font-size:12.5px; border-radius:7px; padding:2px 9px; margin:2px 3px 2px 0;
+    border:1px solid; line-height:1.5;
+  }
+  .chip.skill{color:var(--skill); background:var(--skill-bg); border-color:var(--skill-line);}
+  .chip.tool{color:var(--tool); background:var(--tool-bg); border-color:var(--tool-line);}
+  .chip.doc{color:var(--doc); background:var(--doc-bg); border-color:var(--doc-line);}
+  .chip .tag{font-size:10.5px; opacity:.75;}
+  .docs-bus{
+    margin-top:14px; border:1px dashed var(--doc-line); background:var(--doc-bg);
+    border-radius:10px; padding:10px 14px; font-size:13px;
+  }
+  .docs-bus b{color:var(--doc);}
+
+  /* 流程 */
+  .flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:6px;}
+  .step{
+    border:1px solid var(--line); border-radius:9px; padding:7px 11px; background:#fbfbfd;
+    font-size:13px; min-width:118px;
+  }
+  .step b{display:block; font-size:13px;}
+  .step small{color:var(--muted); font-size:11.5px; line-height:1.4; display:block;}
+  .step.hitl{border-color:#caa53d; background:var(--skill-bg);}
+  .step.hitl b::before{content:"👤 "; font-size:11px;}
+  .arr{align-self:center; color:var(--muted); font-size:15px;}
+  .flow-note{margin-top:12px; font-size:13px; color:var(--muted);}
+  .loopbox{
+    margin-top:10px; border-left:4px solid var(--warn); background:var(--warn-bg);
+    border-radius:8px; padding:9px 14px; font-size:13.5px;
+  }
+
+  /* sub-agent 詳表 */
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:820px){ .cards{grid-template-columns:1fr;} }
+  .card{border:1px solid var(--line); border-radius:12px; padding:16px 18px;}
+  .card h3{color:var(--agent); display:flex; justify-content:space-between; align-items:baseline;}
+  .card h3 small{color:var(--muted); font-weight:400; font-size:12px;}
+  .card ul{margin:6px 0 0 18px; font-size:13.5px;}
+  .card li{margin-bottom:4px;}
+  .split{display:flex; gap:10px; margin-top:10px;}
+  .split div{flex:1; border-radius:8px; padding:8px 11px; font-size:12.5px;}
+  .split .llm{background:var(--skill-bg); border:1px solid var(--skill-line);}
+  .split .not{background:var(--tool-bg); border:1px solid var(--tool-line);}
+  .split b{display:block; font-size:12px; margin-bottom:3px;}
+
+  /* 表格 */
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--bg); font-size:12.5px;}
+  td.new{background:var(--doc-bg);}
+  .newtag{font-size:11px; color:var(--doc); border:1px solid var(--doc-line); border-radius:5px; padding:0 5px; margin-left:4px;}
+
+  .rules{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:10px;}
+  .rule{border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:13.5px; background:#fbfbfd;}
+  .rule b{color:var(--agent);}
+
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:820px){ .twocol{grid-template-columns:1fr;} }
+  .twocol ul{margin-left:18px; font-size:13.5px;}
+  .twocol li{margin-bottom:5px;}
+  footer{color:var(--muted); font-size:12.5px; text-align:center; margin-top:8px;}
+  @media print{ body{background:#fff; padding:0;} section,header.hero{border:none; padding:16px 8px; margin-bottom:8px;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="hero">
+  <h1>RoomPilot Agent 架構提案 — 討論結論</h1>
+  <p class="sub">Master Agent 編排四個 sub-agent，覆蓋「問卷需求 → RAG 選件 → 擺放 → 驗證 → 兩階段生圖 → 改圖 → 設計手冊」全流程。本頁為討論定案版架構提案，不含實作。</p>
+  <div class="meta">
+    <span>2026-07-31</span>
+    <span>定位：純架構提案文件</span>
+    <span>來源：image.png（架構草圖）＋ Userflow.png（產品流程）</span>
+    <span>目標落地：現有八步 FastAPI 產品（不建第二套系統）</span>
+  </div>
+</header>
+
+<section>
+  <h2><span class="no">1</span>已定案的關鍵決策</h2>
+  <p class="lead">以下七點為本次討論拍板的結論，後續章節皆以此為前提。</p>
+  <div class="decisions">
+    <div class="decision"><b>編排模式：程式固定流程</b><p>Master 是 state machine：順序、迴圈上限、暫停點、改圖計數全由程式控制；LLM 只在各 sub-agent 內做語意決策。可預測、好測試、天然支援「可恢復上一動」。</p></div>
+    <div class="decision"><b>實作框架：文件保持中立，建議自建</b><p>skill＝系統提示詞＋流程模板＋輸出 schema；tool＝帶輸入/輸出契約的函式。建議實作為自建 FastAPI + function calling，文字 LLM 經 OpenRouter 可替換。不採 Claude Agent SDK：非授權問題（Anthropic 允許商用），而是模型綁定、固定流程用不到自主迴圈、整合成本。</p></div>
+    <div class="decision"><b>生圖模型：nano banana，經 OpenRouter 呼叫</b><p>與文字 LLM 走同一個 OpenRouter gateway。視角畫面＝Three.js 場景截圖，作為構圖/結構參考連同提示詞送入。改圖僅限一次（成本考量）；生圖失敗上限 3 次，達上限提示失敗原因並改用 nano banana 2——計數與切換均由 Master 強制。</p></div>
+    <div class="decision"><b>擺放潛規則：語意類，放 agent 層</b><p>沙發面向電視、床不正對門、風格一致等語意潛規則放 agent knowledge（軟規則，違反僅警告）；幾何合法性（碰撞/淨空/超界）仍全由 backend/engine/ 判定（硬規則，違反即擋）。</p></div>
+    <div class="decision"><b>設計手冊：新的統整型手冊，PDF 輸出</b><p>Report Agent 產出統整手冊（需求摘要、平面配置、家具清單、材質色卡、逐房渲染圖），以 PDF 格式交付；現有工程文件 MVP 的預算/工序報告併為其中一章。</p></div>
+    <div class="decision"><b>範圍補齊：A/B 方案＋兩階段生圖</b><p>Furniture Agent 以兩種策略產 A/B 兩套擺放方案供擇一；生圖採兩階段：先單房 × 色卡方案比對、使用者選定後才全房生圖（省成本的漏斗設計）。</p></div>
+    <div class="decision"><b>需求三分流</b><p>需求整理必須把問卷拆成：硬約束（尺寸/預算/必備家具）、軟偏好（風格/色系）、家電需求（冰箱/洗衣機/冷氣——依專案契約只進生圖 context，不進 2D/3D 擺設）。</p></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">2</span>架構總覽</h2>
+  <p class="lead">沿用原架構圖的四層（Agent / Skills / Tools / Docs），補上討論新增的節點（標「新增」）。共用 tool 於各欄重複列出並標「共用」。</p>
+  <div class="legend">
+    <span><i style="background:var(--agent-bg); border:1px solid var(--agent-line)"></i>Sub-agent</span>
+    <span><i style="background:var(--skill-bg); border:1px solid var(--skill-line)"></i>Skill（提示詞＋流程模板＋輸出 schema）</span>
+    <span><i style="background:var(--tool-bg); border:1px solid var(--tool-line)"></i>Tool（帶輸入/輸出契約的函式）</span>
+    <span><i style="background:var(--doc-bg); border:1px solid var(--doc-line)"></i>Doc（共享文件）</span>
+  </div>
+
+  <div class="master-bar">
+    <b>Master Agent（state machine 編排器，非 LLM）</b>
+    <div>流程推進與暫停點 · Furniture↔Validation 修復迴圈上限 · 改圖一次計數 · 生圖失敗 3 次即 fallback · 每步 checkpoint（可恢復上一動） · 成本漏斗控制</div>
+  </div>
+  <div class="down">↓ ↓ ↓ ↓</div>
+
+  <div class="agents">
+    <div class="agent-col">
+      <header><b>Furniture Agent</b><small>任務 1–3：需求整理、RAG 選件、挑擺 A/B 方案</small></header>
+      <div class="grp"><div class="cap">Skills</div>
+        <span class="chip skill">需求整理</span><span class="chip skill">家具</span>
+      </div>
+      <div class="grp"><div class="cap">Tools</div>
+        <span class="chip tool">RAG 家具</span><span class="chip tool">挑家具</span><span class="chip tool">擺家具<span class="tag">（呼叫 engine）</span></span><span class="chip tool">讀室內架構 <span class="tag">共用</span></span><span class="chip tool">讀規則/需求 <span class="tag">共用</span></span>
+      </div>
+      <div class="grp"><div class="cap">產出 Docs</div>
+        <span class="chip doc">需求文件</span><span class="chip doc">候選家具清單</span><span class="chip doc">家具清單</span><span class="chip doc">場景配置文件 A/B</span>
+      </div>
+    </div>
+    <div class="agent-col">
+      <header><b>Validation Agent</b><small>任務 4：雙軌驗證與修復建議</small></header>
+      <div class="grp"><div class="cap">Skills</div>
+        <span class="chip skill">驗證規則/需求</span>
+      </div>
+      <div class="grp"><div class="cap">Tools</div>
+        <span class="chip tool">讀規則/需求 <span class="tag">共用</span></span><span class="chip tool">讀室內架構 <span class="tag">共用</span></span><span class="chip tool">engine 驗證<span class="tag">（硬規則）</span></span>
+      </div>
+      <div class="grp"><div class="cap">產出 Docs</div>
+        <span class="chip doc">驗證報告 <span class="tag">新增</span></span>
+      </div>
+    </div>
+    <div class="agent-col">
+      <header><b>Gen_Pic Agent</b><small>任務 5–6：兩階段生圖與一次改圖</small></header>
+      <div class="grp"><div class="cap">Skills</div>
+        <span class="chip skill">生圖</span><span class="chip skill">改圖</span>
+      </div>
+      <div class="grp"><div class="cap">Tools</div>
+        <span class="chip tool">生圖資訊整理</span><span class="chip tool">拿舊圖</span><span class="chip tool">nano banana（OpenRouter）</span>
+      </div>
+      <div class="grp"><div class="cap">產出 Docs</div>
+        <span class="chip doc">生圖片（含版本）</span><span class="chip doc">鎖定清單 <span class="tag">新增</span></span>
+      </div>
+    </div>
+    <div class="agent-col">
+      <header><b>Report Agent</b><small>任務 7：統整輸出設計手冊</small></header>
+      <div class="grp"><div class="cap">Skills</div>
+        <span class="chip skill">報告整理輸出</span>
+      </div>
+      <div class="grp"><div class="cap">Tools</div>
+        <span class="chip tool">讀全部文件 <span class="tag">新增</span></span><span class="chip tool">組版輸出 <span class="tag">新增</span></span><span class="chip tool">工程報告產出<span class="tag">（併現有 MVP）</span></span>
+      </div>
+      <div class="grp"><div class="cap">產出 Docs</div>
+        <span class="chip doc">設計手冊 <span class="tag">新增</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="docs-bus"><b>Docs 層＝共享文件庫（blackboard）：</b>需求文件 · 候選家具清單 · 家具清單 · 室內架構文件 · 規則文件（硬/軟兩節）· 場景配置文件 A/B · 驗證報告 · 鎖定清單 · 生圖片 · 設計手冊。全部存現有 PostgreSQL project store（JSONB＋revision 控制），checkpoint 即「可恢復上一動」的依據。</div>
+</section>
+
+<section>
+  <h2><span class="no">3</span>Master 主流程（state machine）</h2>
+  <p class="lead">黃色節點＝human-in-the-loop 暫停點，由 Master 停等使用者輸入後才推進；每個狀態完成即寫入 checkpoint。</p>
+  <div class="flow">
+    <div class="step hitl"><b>問卷完成</b><small>材質/家電/額外需求</small></div><div class="arr">→</div>
+    <div class="step"><b>S1 需求整理</b><small>三分流成需求文件</small></div><div class="arr">→</div>
+    <div class="step"><b>S2 RAG 過濾</b><small>檢索排序 → 候選清單</small></div><div class="arr">→</div>
+    <div class="step"><b>S3 挑＋擺</b><small>產 A/B 兩套場景</small></div><div class="arr">→</div>
+    <div class="step"><b>S4 驗證</b><small>硬規則 engine／軟規則 LLM</small></div><div class="arr">→</div>
+    <div class="step hitl"><b>A/B 擇一＋微調</b><small>2D/3D CRUD、選視角</small></div><div class="arr">→</div>
+    <div class="step"><b>S5a 單房色卡生圖</b><small>一房 × 各色卡方案</small></div><div class="arr">→</div>
+    <div class="step hitl"><b>色卡擇一</b><small>全房色調定案</small></div><div class="arr">→</div>
+    <div class="step"><b>S5b 全房生圖</b><small>逐房視角渲染</small></div><div class="arr">→</div>
+    <div class="step hitl"><b>生圖意見</b><small>可略過</small></div><div class="arr">→</div>
+    <div class="step"><b>S6 改圖</b><small>僅限 1 次（計數）</small></div><div class="arr">→</div>
+    <div class="step"><b>S7 設計手冊</b><small>統整輸出＋工程章節</small></div>
+  </div>
+  <div class="loopbox"><b>修復迴圈：</b>S4 驗證失敗 → 退回 S3 修復（先換位置、再換家具），迴圈上限建議 3 次；超過上限不硬猜，帶著驗證報告回報使用者裁決。迴圈次數由 Master 控制，修復「內容」由 LLM 決定。</div>
+  <div class="loopbox"><b>生圖失敗政策：</b>單一生圖/改圖請求失敗上限 3 次；達上限向使用者提示失敗原因，並改用 OpenRouter 上的 nano banana 2 重試。失敗計數與模型切換由 Master 控制；失敗重試不消耗「改圖僅一次」的額度。</div>
+  <p class="flow-note">使用者在 2D/3D 的手動 CRUD 與微調發生在暫停點區間，agent 不介入；結構變更回到平面圖校正步驟時，沿用現行系統的家具重驗機制。</p>
+</section>
+
+<section>
+  <h2><span class="no">4</span>Sub-agent 職責詳表</h2>
+  <div class="cards">
+    <div class="card">
+      <h3>Furniture Agent <small>對應任務 1–3</small></h3>
+      <ul>
+        <li><b>需求整理 skill</b>：問卷答案 → 需求文件（硬約束／軟偏好／家電 context 三分流）。</li>
+        <li><b>RAG 家具 tool</b>：需求文件 → 沿用現有 RAG 串聯（BGE-M3＋reranker）檢索排序 PostgreSQL <code>furniture_catalog_current</code> → 候選家具清單（含排序理由）。</li>
+        <li><b>挑家具 tool</b>：候選清單＋室內架構＋軟潛規則 → LLM 選件（需求對應、風格一致、尺寸粗篩）→ 家具清單。</li>
+        <li><b>擺家具 tool</b>：LLM 產出語意擺位意圖（哪件、哪個功能區、朝向關係，如「沙發面向電視牆」）→ engine 計算合法座標 → 場景配置文件。</li>
+        <li><b>A/B 方案</b>：以兩種策略各跑一輪（例：動線優先 vs 收納優先）產兩套場景。</li>
+      </ul>
+      <div class="split">
+        <div class="llm"><b>LLM 決定</b>需求歸納、選件、擺位意圖、修復方案</div>
+        <div class="not"><b>不歸 LLM</b>座標與合法性 → engine；檢索排序 → RAG</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Validation Agent <small>對應任務 4</small></h3>
+      <ul>
+        <li><b>硬規則軌</b>：呼叫 engine API 檢查碰撞、淨空、超界、門窗迴轉——違反即擋，結果是 deterministic 的。</li>
+        <li><b>軟規則軌</b>：LLM 讀場景結構化摘要，評語意潛規則（沙發面向電視、床不正對門…）與需求滿足度（雙人床是否真的在主臥）——違反僅警告。</li>
+        <li><b>輸出驗證報告</b>：違規清單、原因解讀、修復建議（給 Furniture 迴圈用，也是設計手冊素材）。</li>
+      </ul>
+      <div class="split">
+        <div class="llm"><b>LLM 決定</b>違規解讀、修復建議、軟規則與需求滿足評估</div>
+        <div class="not"><b>不歸 LLM</b>幾何檢查全由 engine；迴圈次數由 Master</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Gen_Pic Agent <small>對應任務 5–6</small></h3>
+      <ul>
+        <li><b>生圖 skill（兩階段）</b>：階段一產「單房 × 各色卡方案」供比對；使用者選定後階段二全房逐房生圖。</li>
+        <li><b>生圖資訊整理 tool</b>：場景配置＋需求文件（含家電 context）＋材質色卡＋視角 → 提示詞包；連同 Three.js 視角截圖（構圖參考）經 OpenRouter 送 nano banana。</li>
+        <li><b>改圖 skill</b>：「拿舊圖」取回原圖；使用者意見 → 編輯指令＋<b>鎖定清單</b>（家具位置、材質、視角等不可變元素），明確要求「只改這些、其餘保持」；僅一次，由 Master 計數。</li>
+        <li><b>失敗處理</b>：同一請求失敗上限 3 次；達上限提示使用者失敗原因，切換 nano banana 2 重試（失敗重試不消耗改圖額度）。</li>
+      </ul>
+      <div class="split">
+        <div class="llm"><b>LLM 決定</b>提示詞組稿、意見轉編輯指令、鎖定清單內容</div>
+        <div class="not"><b>不歸 LLM</b>成圖 → nano banana（OpenRouter）；次數、失敗 fallback 與階段推進 → Master</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Report Agent <small>對應任務 7</small></h3>
+      <ul>
+        <li><b>讀全部文件</b>：需求文件、家具清單、場景配置、驗證報告、生圖片、色卡/材質與使用者歷程決策。</li>
+        <li><b>組版輸出設計手冊（PDF）</b>：需求摘要 → 平面配置 → 逐房家具清單（含來源與尺寸）→ 材質色卡 → 渲染成果 → <b>工程與預算章節</b>（沿用現有工程文件 MVP 的 ReportPayload 產出，併為一章）。</li>
+      </ul>
+      <div class="split">
+        <div class="llm"><b>LLM 決定</b>各章敘事摘要、決策脈絡整理</div>
+        <div class="not"><b>不歸 LLM</b>數量/預算計算沿用工程 MVP 既有規則流程</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">5</span>不可違反的邊界（沿用專案契約）</h2>
+  <div class="rules">
+    <div class="rule"><b>幾何只歸 engine。</b>家具合法位置只由 <code>backend/engine/</code> 判定；LLM 不產座標、不判碰撞淨空。</div>
+    <div class="rule"><b>RAG 只檢索排序。</b>家具向量 RAG 只解析需求、檢索與排序資料庫家具，不取代選件決策與幾何判定。</div>
+    <div class="rule"><b>家電不進 2D/3D。</b>冰箱、洗衣機、冷氣等家電需求保留在問卷與生圖 context，不進自動配置與正式家具 API。</div>
+    <div class="rule"><b>資料契約沿用。</b>公分制 <code>_cm</code>／<code>_m2</code>、辨識輸出 <code>layout_json</code>、方案輸出 <code>scene_json</code>；quarantine 資料不進場景。</div>
+    <div class="rule"><b>不建第二套系統。</b>Agent 層嵌入現有 FastAPI 產品流程，重用 Yen 需求/選件、Django RAG、Kai catalog、Ancai engine、Bella 渲染與報告。</div>
+    <div class="rule"><b>成本護欄由程式強制。</b>改圖一次、單房先行的生圖漏斗、修復迴圈上限、生圖失敗三次即提示原因並切換 nano banana 2，全在 Master 的 state machine，不交給 LLM 自律。</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">6</span>Docs 層文件契約</h2>
+  <table>
+    <thead><tr><th>文件</th><th>產出者</th><th>主要消費者</th><th>內容要點</th></tr></thead>
+    <tbody>
+      <tr><td>需求文件</td><td>需求整理 skill</td><td>RAG／挑／擺／驗證／生圖／報告</td><td>硬約束、軟偏好、家電 context 三分流；追溯到問卷題目</td></tr>
+      <tr><td>候選家具清單</td><td>RAG 家具 tool</td><td>挑家具</td><td>檢索與排序結果、比對理由、資料庫 id</td></tr>
+      <tr><td>家具清單</td><td>挑家具 tool</td><td>擺家具／報告</td><td>定案選件、對應的需求條目與尺寸</td></tr>
+      <tr><td>室內架構文件</td><td>現有流程（layout_json）</td><td>挑／擺／驗證</td><td>房間、牆門窗樑柱、公分尺寸</td></tr>
+      <tr><td>規則文件</td><td>預先定義（版控）</td><td>擺／驗證</td><td>硬規則（engine 執行）＋軟潛規則（語意，agent 參考）兩節</td></tr>
+      <tr><td>場景配置文件 A/B</td><td>擺家具（engine 座標）</td><td>驗證／生圖／報告</td><td>scene_json 兩套方案與策略說明</td></tr>
+      <tr><td class="new">驗證報告<span class="newtag">新增</span></td><td>Validation</td><td>Furniture 修復／報告</td><td>硬/軟違規清單、原因解讀、修復建議、輪次</td></tr>
+      <tr><td class="new">鎖定清單<span class="newtag">新增</span></td><td>生圖資訊整理 tool</td><td>改圖 skill</td><td>該房不可變元素（家具位置、材質、視角），改圖時隨指令送出</td></tr>
+      <tr><td>生圖片</td><td>生圖／改圖 skill</td><td>拿舊圖／報告</td><td>各房各階段版本化保存（色卡比對版、全房版、改圖版）</td></tr>
+      <tr><td class="new">設計手冊<span class="newtag">新增</span></td><td>報告整理輸出 skill</td><td>使用者</td><td>PDF 統整輸出；工程與預算為其中一章</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="no">7</span>建議實作方向與待辦</h2>
+  <div class="twocol">
+    <div>
+      <h3>建議實作（落地時）</h3>
+      <ul>
+        <li>FastAPI 內新增 agent orchestrator 模組承載 Master；文字與生圖統一經 OpenRouter 呼叫——文字 LLM 可替換，生圖用 nano banana、失敗 fallback 為 nano banana 2；單一 gateway 便於金鑰與計費管理。</li>
+        <li>skill／tool 依中立定義實作：skill＝提示詞＋流程模板＋輸出 schema；tool＝函式（function calling schema），共用 tool 只實作一份。</li>
+        <li>Agent 狀態與 Docs 全存現有 PostgreSQL project store（revision 控制天然支援「可恢復上一動」）。</li>
+        <li>Ownership 對應：Furniture＝Yen <code>backend/agent/</code> 擴充（knowledge/select/place 已有雛形）、幾何＝Ancai engine API、RAG＝Django/Kai 現有串聯、Master／Report＝server 層；跨資料夾修改依 AGENTS.md 格式申報。</li>
+      </ul>
+    </div>
+    <div>
+      <h3>待辦／後續討論</h3>
+      <ul>
+        <li>修復迴圈上限 N 的實測調校（暫定 3）。</li>
+        <li>A/B 兩套方案的策略定義（例：動線優先 vs 收納優先）與提示詞模板。</li>
+        <li>鎖定清單欄位規格與改圖後的一致性抽查方式。</li>
+        <li>設計手冊 PDF 版型與排版工具選型、與工程 MVP ReportPayload 的欄位對接。</li>
+        <li>生圖「未報錯但品質不佳」的判定與處理——API 失敗政策已定（3 次→提示原因→改用 nano banana 2），品質面尚未定義。</li>
+        <li>各 skill 的評測方式：需求整理正確率、選件對應率、軟規則檢出率。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>RoomPilot Agent 架構提案 · 依 image.png／Userflow.png 與 2026-07-31 討論定案 · 相關規範：AGENTS.md、docs/TEAM_AI_OWNERSHIP.md、docs/contracts/</footer>
+</div>
+</body>
+</html>

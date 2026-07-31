@@ -71,3 +71,4 @@ PERSONAL_*.md
 .DS_Store
 # 分割模型權重 93MB — 進 git 前組長決定
 backend/floorplan/models/*.onnx
+graphify-out/*
