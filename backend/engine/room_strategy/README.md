@@ -138,11 +138,28 @@
 | `backend/agent/knowledge.py` `ROOM_MINIMUM_FAMILIES` | 對齊到 v0；**v1 尚未對齊**（見下） |
 | `select.py` 必要族系驗證 | 對齊到 v0 |
 | `scene_service.SPACE_DEFAULTS` | 未接 |
+| **`scene_layout2d.js` `recommendedFurnitureForRoom`（前端）** | **未接，且第 6 步實際採用的是這張** ⚠️ |
 | 前端 `ROOM_QUESTION_TEMPLATES` | 未接 |
 | RAG `offers` 契約 | 未接 |
 | Engine companion／hints 完整灌入第 6 步 | 未接 |
 
 改策略時：**先改本檔 → 再改 `knowledge.py` → 補測試**。
+
+### ⚠️ 同一房型有四張清單（2026-07-31 實測確認）
+
+以主臥為例，專案內存在四個互相矛盾的答案：
+
+| 來源 | 主臥放什麼 |
+|---|---|
+| **本檔 v1（正式規格）** | `bed`、`wardrobe`／`pax-wardrobe`、`bedside-table`**×2** |
+| `agent/knowledge.py` | `bed`、`wardrobe`、`bedside-table` |
+| `scene_service.py` `SPACE_DEFAULTS` | `bed`、`bedside-table`、`bookcase`、**地毯**（違反 G4） |
+| `scene_layout2d.js`（**第 6 步實際使用**） | `bed`、`wardrobe` |
+
+**後果**：只改 `knowledge.py` 對齊 v1 **不會讓第 6 步生效**——第 6 步走的是前端那張表。
+任何對帳測試都必須**同時涵蓋這四張表**，否則會誤判為已修好。
+
+證據與完整因果鏈見 [`../notes/engine實測驗證紀錄_2026-07-31.md`](../notes/engine實測驗證紀錄_2026-07-31.md) §5、§6。
 
 ### v0 → v1 差異（`knowledge.py` 待補的六項）
 
@@ -172,11 +189,13 @@
 ## 接線檢查清單
 
 1. [x] 策略表寫定（本檔，v1 定版 2026-07-31）  
-2. [ ] Agent `knowledge.py`／`select.py` 對齊 **v1 六項差異**＋測試  
-3. [ ] Bella：`SPACE_DEFAULTS`／問卷模板  
-4. [ ] Agent：hints 排序、companion 傳 Engine、失敗原因回餵  
-5. [ ] RAG：依最少槽位產 `offers`  
-6. [ ] 回歸：floor04＋正常／偏小尺寸  
+2. [ ] **四張清單對帳測試**（本檔／`knowledge.py`／`SPACE_DEFAULTS`／`scene_layout2d.js`）——**先做這項，它是後續所有修改的量尺**  
+3. [ ] Agent `knowledge.py`／`select.py` 對齊 **v1 六項差異**＋測試  
+4. [ ] Bella：`SPACE_DEFAULTS`／前端 `recommendedFurnitureForRoom`／問卷模板  
+5. [ ] Bella：房型缺失（`roomType="default"`）需有處理分支——目前直接回空清單且不報錯  
+6. [ ] Agent：hints 排序、companion 傳 Engine、失敗原因回餵  
+7. [ ] RAG：依最少槽位產 `offers`  
+8. [ ] 回歸：floor04＋正常／偏小尺寸  
 
 ### 驗證
 
