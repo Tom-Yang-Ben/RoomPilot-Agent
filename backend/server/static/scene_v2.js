@@ -8900,6 +8900,8 @@ async function deferAllBlockingConfigurationFurniture() {
       reportConfigurationActionError("目前沒有待處理家具需要暫緩。");
       return;
     }
+    // 3D 重載要好幾秒；先把「正在做」說出來，不然按鈕看起來又是沒反應。
+    setStatus(`正在暫緩 ${blocking.length} 件放不下的家具…`);
     const modelFailures = configurationModelFailures();
     const blockingIds = new Set(blocking.map((item) => String(item.id)));
     blocking.forEach((item) => {
@@ -8938,12 +8940,13 @@ async function deferAllBlockingConfigurationFurniture() {
     }
     state.selectedFurniture2dId = null;
     state.selectedSceneIndex = 0;
-    if (state.sceneData) await whiteViewer.loadScene(state.sceneData);
+    // 先更新 2D 與待處理清單再等 3D 重載，讓清單立刻清空而不是等好幾秒。
     renderLayoutRoomFilter();
     renderLayoutFurniture();
-    renderSceneObjectList();
     renderConfigurationPlan();
     scheduleSave("white_model_3d");
+    if (state.sceneData) await whiteViewer.loadScene(state.sceneData);
+    renderSceneObjectList();
     setStatus(
       `已暫緩 ${blocking.length} 件放不下的家具，現在可以進入第 7 步；暫緩清單留在待處理面板下方。`,
     );
