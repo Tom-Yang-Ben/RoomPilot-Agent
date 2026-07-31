@@ -608,7 +608,111 @@ DINO_W = 1.0            # DINOv2 機率的權重。設 1.0 使其與 OCR(1.3) �
                         # 而符號證據(0.15~0.6)只在模型沒把握時才翻得動總分
 
 
-def classify_rooms_dino(det, labels, rooms, probs):
+def exterior_mask(det, labels=None):
+    """牆/窗（可選：已知房間）當屏障，自影像邊界灌水 → 屋外自由區遮罩。
+
+    `build_rooms` 的 outside 由 `segment_rooms` 一併算出，不需要本函式；這裡
+    是給**沒跑分割的路徑**用的——量尺的 GT 解耦模式（`--gt-seg`）直接拿 GT
+    多邊形當房間，不呼叫 segment_rooms，卻同樣需要屋外資訊才能判 Entry。
+
+    把已知房間一併當屏障是必要的：牆偵測有缺口時，單靠牆會讓灌水從缺口漏進
+    室內，整棟房子都變成「貼外牆」。"""
+    rects, wins = det.get("rects") or (), det.get("wins") or ()
+    if not rects:
+        return None
+    h = det.get("img_h") or (labels.shape[0] if labels is not None else 0)
+    w = det.get("img_w") or (labels.shape[1] if labels is not None else 0)
+    if not (h and w):
+        return None
+    barrier = np.zeros((h, w), np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for _o, x0, y0, x1, y1 in wins:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    if labels is not None:
+        barrier[labels > 0] = 255
+    ff = np.pad(barrier, 1).copy()
+    cv2.floodFill(ff, None, (0, 0), 128)
+    return ff[1:-1, 1:-1] == 128
+
+
+def touches_exterior(labels, outside, rid, T_out):
+    """房間是否貼著建物外牆——遮罩往外膨脹一個外牆厚，碰得到屋外自由區即是。
+
+    回 None＝無屋外資訊（呼叫端不得據此改判）。"""
+    if labels is None or outside is None:
+        return None
+    m = (labels == rid)
+    if not m.any():
+        return None
+    k = 2 * max(2, int(round(1.5 * max(1.0, T_out)))) + 1
+    grown = cv2.dilate(m.astype(np.uint8), np.ones((k, k), np.uint8))
+    return bool((grown.astype(bool) & outside).any())
+
+
+def rooms_with_exterior_door(det, labels, outside):
+    """有門直通屋外的房間 id 集合——玄關的判準（使用者裁決 2026-08-01）。
+
+    **為什麼不是「貼外牆」**：初版規則用貼牆判定，own_eval 只救回 4 間走道中
+    的 1 間。floor74/76 的走道沿著外牆走卻沒有對外的門，照樣被判成玄關。
+    玄關的定義是「走得出去」，該看的是門而不是牆。
+
+    作法同 `fp_c.room_graph` 的門兩側取樣：沿門洞法線逐步走，一側走到房間、
+    另一側走到屋外，那扇門就是大門。無法取得門位或屋外資訊時回 None（不表態，
+    呼叫端不得據此改判）。"""
+    rects, wins = det.get("rects") or (), det.get("wins") or ()
+    doors, T, cm = det.get("doors") or (), det.get("T"), det.get("cm")
+    if outside is None or labels is None or not rects or not doors or not T:
+        return None
+    wall = np.zeros(labels.shape, np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(wall, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for _o, x0, y0, x1, y1 in wins:
+        cv2.rectangle(wall, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    H, W = labels.shape
+
+    def sample(mx, my, sx, sy):
+        """房間id(>0) / -1=室外 / -2=沒撞牆走完 / 0=撞牆。同 room_graph 語義。"""
+        k = 0.5 * T
+        while k <= 4.0 * T:
+            x, y = int(round(mx + sx * k)), int(round(my + sy * k))
+            if not (0 <= x < W and 0 <= y < H):
+                return -1
+            if labels[y, x] > 0:
+                return int(labels[y, x])
+            if outside[y, x]:
+                return -1
+            if wall[y, x]:
+                return 0
+            k += max(2.0, 0.35 * T)
+        return -2
+
+    out = set()
+    for _quad, d in fp_c.door_zones(doors, rects, T, cm or 1.0):
+        _h, (mx, my), _a, s = fp_c._door_geometry(d, rects, T)
+        ra, rb = sample(mx, my, s[0], s[1]), sample(mx, my, -s[0], -s[1])
+        if ra > 0 and rb == -1:
+            out.add(ra)
+        elif rb > 0 and ra == -1:
+            out.add(rb)
+    return out
+
+
+def _entry_or_hallway(lab, rid, ext_doors):
+    """玄關必須有門直通屋外，否則改判走道（使用者裁決 2026-08-01）。
+
+    Entry 與 Hallway 都是「沒有東西的空房間」，裁切圖上長得一模一樣，DINOv2
+    結構上分不開——own_eval 實測 GT 4 間走道被判成 Entry 3、Bedroom 1，
+    Hallway 的 P/R 掛零。分水嶺不在外觀而在通行關係：玄關走得出去，走道不行。
+
+    單向規則：有大門不足以證明是玄關（客廳也可能直接對外），故只降級不升級。
+    `ext_doors` 為 None（無門位/屋外資訊）時不表態，維持原判。"""
+    if lab != "Entry" or ext_doors is None:
+        return lab
+    return lab if rid in ext_doors else "Hallway"
+
+
+def classify_rooms_dino(det, labels, rooms, probs, outside=None):
     """辨識式房型——**去 CubiCasa 版本**（層 1 換成 DINOv2 裁切分類）。
 
     證據層：
@@ -622,6 +726,7 @@ def classify_rooms_dino(det, labels, rooms, probs):
     `open_living` 原以 CubiCasa 的 living/kitchen 票判定，改用 DINOv2 機率同義：
     客廳機率夠高且遠勝廚房 → 客餐廚一體，廚房系證據不加分。"""
     cm = det["cm"]
+    ext_doors = rooms_with_exterior_door(det, labels, outside)
     for r, pr in zip(rooms, probs):
         r["area_m2"] = round(r["area_px"] * cm * cm / 1e4, 2)
         score = {lab: 0.0 for lab in
@@ -640,6 +745,7 @@ def classify_rooms_dino(det, labels, rooms, probs):
         _apply_evidence(det, labels, r, score, open_living)
         lab, val = max(score.items(), key=lambda kv: kv[1])
         r["label"] = lab if val >= 0.15 else "room"
+        r["label"] = _entry_or_hallway(r["label"], r["id"], ext_doors)
         r["label_zh"] = ROOM_ZH_EX[r["label"]]
         r["cc_share"] = {k: round(v, 3) for k, v in score.items() if v >= 0.02}
         r["icons_cm2"] = {}                    # 契約鍵保留（來源已移除）
@@ -863,7 +969,7 @@ def build_rooms(det):
     #   2) 面積規則（純幾何兜底）——缺 torch/骨幹/線性頭時
     probs = room_classifier.classify(det.get("bgr"), labels, rooms)
     if probs is not None:
-        classify_rooms_dino(det, labels, rooms, probs)
+        classify_rooms_dino(det, labels, rooms, probs, outside)
     else:
         print("⚠ DINOv2 房型分類不可用 → 房型退回面積規則（品質明顯較差）")
         fp_c.classify_rooms(rooms, cm, det["thin"], labels)

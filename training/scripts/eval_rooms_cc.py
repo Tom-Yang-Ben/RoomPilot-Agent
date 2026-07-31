@@ -258,7 +258,10 @@ def eval_gt_seg(sid, gt, bgr, cfg_bw, cfg_color):
     probs = room_classifier.classify(det.get("bgr"), labels, rooms)
     if probs is None:
         return {"id": sid, "status": "no_room_classifier"}
-    f2r.classify_rooms_dino(det, labels, rooms, probs)
+    # 屋外遮罩：本模式不跑 segment_rooms，故由牆/窗＋GT 房間灌水求得，
+    # Entry/Hallway 的幾何判別才有依據（否則規則靜默不生效）
+    f2r.classify_rooms_dino(det, labels, rooms, probs,
+                            f2r.exterior_mask(det, labels))
     preds = [(norm_label(r["label"]), labels == r["id"]) for r in rooms]
     matched = [(gt[i][0], preds[i][0]) for i in range(len(gt))]  # 配對=恆等
     _overlay(bgr, preds, os.path.join(CHK_DIR, sid + "_gtpred.png"))
