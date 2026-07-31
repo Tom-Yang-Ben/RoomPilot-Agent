@@ -248,6 +248,8 @@ const configurationReflowInFlight = new Set();
 const questionnaireFurnitureInFlight = new Set();
 let configurationPendingClickToken = 0;
 let configurationPendingHandledToken = -1;
+let configurationPendingPointerDown = false;
+let deferredConfigurationPendingMarkup = null;
 
 const panels = new Map(
   $$(".rp-step-panel").map((panel) => [panel.dataset.panel, panel]),
@@ -8574,6 +8576,7 @@ function clearConfigurationActionError() {
   if (slot) slot.textContent = "";
 }
 
+const CONFIGURATION_PENDING_LIST_SELECTOR = "#configuration-pending-list";
 const CONFIGURATION_PENDING_ACTION_ATTRIBUTES = [
   "data-prioritize-configuration-room",
   "data-replace-configuration-furniture",
@@ -8585,10 +8588,29 @@ const CONFIGURATION_PENDING_ACTION_SELECTOR = CONFIGURATION_PENDING_ACTION_ATTRI
   .map((name) => `[${name}]`)
   .join(",");
 
+// 待處理清單是 innerHTML 全量重繪。若在使用者按住按鈕時換掉節點，瀏覽器就不會送出
+// click（mousedown 與 mouseup 落在不同節點），整段修復動作會靜默消失。按住期間先把
+// 新畫面存起來，等 pointerup 之後再補畫。
+function writeConfigurationPendingList(markup) {
+  if (configurationPendingPointerDown) {
+    deferredConfigurationPendingMarkup = markup;
+    return;
+  }
+  deferredConfigurationPendingMarkup = null;
+  element.configurationPendingList.innerHTML = markup;
+}
+
+function flushDeferredConfigurationPendingList() {
+  if (deferredConfigurationPendingMarkup == null) return;
+  const markup = deferredConfigurationPendingMarkup;
+  deferredConfigurationPendingMarkup = null;
+  element.configurationPendingList.innerHTML = markup;
+}
+
 function configurationPendingActionKey(node) {
   if (!(node instanceof Element)) return "";
   const action = node.closest(CONFIGURATION_PENDING_ACTION_SELECTOR);
-  if (!action || !element.configurationPendingList?.contains(action)) return "";
+  if (!action || !action.closest(CONFIGURATION_PENDING_LIST_SELECTOR)) return "";
   const attribute = CONFIGURATION_PENDING_ACTION_ATTRIBUTES.find(
     (name) => action.hasAttribute(name),
   );
@@ -8766,15 +8788,13 @@ function renderConfigurationPlan() {
       </div>
     `
     : "";
-  element.configurationPendingList.innerHTML = blockingMarkup
-    || deferredMarkup
-    || "<p class=\"rp-configuration-clear\">目前沒有待處理家具。</p>";
-  if (blockingMarkup && deferredMarkup) {
-    element.configurationPendingList.insertAdjacentHTML("beforeend", deferredMarkup);
-  }
-  if (escapeHatchMarkup) {
-    element.configurationPendingList.insertAdjacentHTML("beforeend", escapeHatchMarkup);
-  }
+  writeConfigurationPendingList(
+    (blockingMarkup
+      || deferredMarkup
+      || "<p class=\"rp-configuration-clear\">目前沒有待處理家具。</p>")
+    + (blockingMarkup && deferredMarkup ? deferredMarkup : "")
+    + escapeHatchMarkup,
+  );
 
   const confirmButton = $("#confirm-white-model");
   if (confirmButton) {
@@ -9401,9 +9421,7 @@ async function previewReplacementCandidate(candidate) {
     element.replacement3dStatus.textContent = "這件家具沒有可載入的 3D 模型。";
     return;
   }
-  const current = state.furniture2d.find(
-    (item) => item.id === state.selectedFurniture2dId,
-  );
+  const current = furniture2dById(state.selectedFurniture2dId);
   const baseScene = state.sceneData || activeScheme()?.sceneData;
   const previewFurnitureId = `replacement-preview-${candidate.furniture_id}`;
   let previewIndex = 0;
@@ -9440,7 +9458,31 @@ async function previewReplacementCandidate(candidate) {
   replacementViewer.selectObjectByIndex(previewIndex, { focus: false });
 }
 
-function renderReplacementCandidates(candidates) {
+function showReplacementEmptyState(message) {
+  element.replacementError.textContent = message;
+  element.replacementResults.dataset.items = "[]";
+  element.replacementResults.innerHTML = `<p>${escapeHtml(message)}</p>`;
+}
+
+// 候選為空時要說清楚是哪一關擋掉的：型錄沒回、沒有可用模型、還是放不進房間。
+// 只丟一句「沒有符合的家具」等於讓使用者自己猜。
+function replacementEmptyStateMarkup({ room, catalogCount = 0, availableCount = 0 } = {}) {
+  if (!catalogCount) {
+    return "<p>家具資料庫沒有回傳這個類型的候選。請改選「瀏覽全部家具資料庫」，或換個關鍵字搜尋。</p>";
+  }
+  if (!availableCount) {
+    return `<p>找到 ${catalogCount} 筆候選，但都沒有可用的 3D 模型。請改選「瀏覽全部家具資料庫」。</p>`;
+  }
+  const dimensions = room ? roomDimensions(room) : null;
+  if (!dimensions?.widthCm || !dimensions?.depthCm) {
+    return `<p>「${escapeHtml(room?.label || "目前房間")}」沒有可用的房間尺寸，無法判斷哪些家具放得下；請回第 4 步確認房間邊界。</p>`;
+  }
+  return `<p>找到 ${availableCount} 筆候選，但都放不進「${escapeHtml(room.label)}」`
+    + `（可用 ${Math.round(dimensions.widthCm)} × ${Math.round(dimensions.depthCm)} cm，另需 20 cm 淨空）。`
+    + "請改選「瀏覽全部家具資料庫」或挑更小的類型。</p>";
+}
+
+function renderReplacementCandidates(candidates, context = {}) {
   element.replacementResults.dataset.items = JSON.stringify(candidates);
   element.replacementResults.innerHTML = candidates.map((candidate, index) => {
     const title = candidate.name_zh || candidate.name_zh_raw || candidate.name_en || "家具";
@@ -9467,16 +9509,28 @@ function renderReplacementCandidates(candidates) {
         <button type="button" class="primary-action" data-confirm-replacement="${escapeHtml(candidate.furniture_id)}">以此家具取代</button>
       </article>
     `;
-  }).join("") || "<p>目前沒有同類型、同風格且尺寸放得下的 3D 家具。</p>";
+  }).join("") || replacementEmptyStateMarkup(context);
   if (candidates[0]) previewReplacementCandidate(candidates[0]);
 }
 
 async function loadReplacementCandidates() {
-  const current = state.furniture2d.find(
-    (candidate) => candidate.id === state.selectedFurniture2dId,
+  const current = furniture2dById(state.selectedFurniture2dId);
+  if (!current) {
+    // 原本這裡是裸 return，候選區會停在前一次的內容或整片空白，使用者看不到任何原因。
+    showReplacementEmptyState(
+      "找不到目前選取的家具，請關閉視窗後重新選取再更換。",
+    );
+    return;
+  }
+  const room = state.rooms.find(
+    (candidate) => String(candidate.id) === String(current.roomId),
   );
-  const room = state.rooms.find((candidate) => candidate.id === current?.roomId);
-  if (!current || !room) return;
+  if (!room) {
+    showReplacementEmptyState(
+      `「${current.label}」沒有對應的房間，無法用房間尺寸挑選候選家具；請回第 4 步確認房間後再試。`,
+    );
+    return;
+  }
   element.replacementError.textContent = "";
   element.replacementResults.innerHTML = "<p>正在搜尋可放入目前房間的家具...</p>";
   const filterMode = element.replacementSearch.value || "same-type";
@@ -9497,17 +9551,21 @@ async function loadReplacementCandidates() {
     catalogType,
     searchAll: filterMode === "same-style" || filterMode === "all",
   });
-  const candidates = rankCatalogFurniture(catalogCandidates, request)
-    .filter(
-      (candidate) => !knownUnavailableCatalogFurnitureIds().has(
-        String(candidate.furniture_id),
-      ),
-    )
+  const available = rankCatalogFurniture(catalogCandidates, request).filter(
+    (candidate) => !knownUnavailableCatalogFurnitureIds().has(
+      String(candidate.furniture_id),
+    ),
+  );
+  const candidates = available
     .filter((candidate) => replacementCandidateFitsRoom(candidate, room))
     .slice(0, 24);
   element.replacementFilterSummary.textContent =
     `${room.label} · ${current.label} · ${style || "目前風格"} · 房間內可配置尺寸`;
-  renderReplacementCandidates(candidates);
+  renderReplacementCandidates(candidates, {
+    room,
+    catalogCount: catalogCandidates.length,
+    availableCount: available.length,
+  });
 }
 
 function renderReplacementTypeOptions(current) {
@@ -12748,7 +12806,13 @@ function bindEvents() {
     "click",
     selectConfigurationFurniture,
   );
-  element.configurationPendingList.addEventListener("click", (event) => {
+  // 待處理清單每次重繪都會整段換掉 innerHTML。把委派掛在清單節點上，只要清單或它的
+  // 祖先被換掉，監聽就跟著消失；問卷家具卡片早先踩過同一個坑（見下方 document 捕獲的
+  // 註解），這裡套同一個模式：在 document root 捕獲，再自行判斷事件是否落在清單裡。
+  document.addEventListener("click", (event) => {
+    if (!(event.target instanceof Element)) return;
+    // 用選擇器判斷歸屬，不用啟動時抓到的節點：清單節點若被重繪換掉，快取的參照會失效。
+    if (!event.target.closest(CONFIGURATION_PENDING_LIST_SELECTOR)) return;
     configurationPendingHandledToken = configurationPendingClickToken;
     clearConfigurationActionError();
     try {
@@ -12792,27 +12856,34 @@ function bindEvents() {
     } catch (error) {
       reportConfigurationActionError(errorMessage(error));
     }
-  });
-  // 待處理清單每次重繪都會換掉節點。若按鈕在 pointerdown 與 pointerup 之間被換掉，
-  // 瀏覽器就不會送出 click，上面的委派監聽整段不會執行——使用者只會看到「按了沒反應」。
-  // 這裡在 document 捕獲階段記下按下的動作，事件派送結束後確認委派監聽真的跑過。
+  }, true);
+  // 捕獲階段的委派解決「監聽跟著節點消失」，但解決不了「按住期間重繪、瀏覽器根本不送
+  // click」。按住時凍結清單重繪（writeConfigurationPendingList），放開後補畫；並在事件
+  // 派送結束後確認委派真的跑過，沒跑過就把失敗說出來，不再是一片沉默。
   let pressedConfigurationPendingAction = "";
   document.addEventListener("pointerdown", (event) => {
     pressedConfigurationPendingAction = configurationPendingActionKey(event.target);
+    configurationPendingPointerDown = Boolean(pressedConfigurationPendingAction);
     if (pressedConfigurationPendingAction) configurationPendingClickToken += 1;
   }, true);
-  document.addEventListener("pointerup", (event) => {
+  const releaseConfigurationPendingPointer = (event) => {
     const pressed = pressedConfigurationPendingAction;
     pressedConfigurationPendingAction = "";
-    if (!pressed || configurationPendingActionKey(event.target) !== pressed) return;
+    configurationPendingPointerDown = false;
     const token = configurationPendingClickToken;
+    const matched = pressed
+      && event.type === "pointerup"
+      && configurationPendingActionKey(event.target) === pressed;
     setTimeout(() => {
-      if (configurationPendingHandledToken === token) return;
+      flushDeferredConfigurationPendingList();
+      if (!matched || configurationPendingHandledToken === token) return;
       reportConfigurationActionError(
         "待處理家具的操作沒有送達（畫面在點擊過程中重繪）。請再按一次；若持續發生請回報。",
       );
-    }, 250);
-  }, true);
+    }, matched ? 250 : 0);
+  };
+  document.addEventListener("pointerup", releaseConfigurationPendingPointer, true);
+  document.addEventListener("pointercancel", releaseConfigurationPendingPointer, true);
   element.configurationPlanImage.addEventListener("load", renderConfigurationPlan);
   element.configurationPlanToggle.addEventListener("click", () => {
     const collapsed = element.configurationPlanPanel.classList.toggle("is-collapsed");

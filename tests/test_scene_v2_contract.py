@@ -2663,7 +2663,7 @@ def test_configuration_pending_actions_distinguish_model_and_placement_failures(
         "const blockingRooms = configurationBlockingFurnitureByRoom", 1
     )[1].split("const confirmButton", 1)[0]
     handlers = source.split(
-        'element.configurationPendingList.addEventListener("click"', 1
+        'if (!event.target.closest(CONFIGURATION_PENDING_LIST_SELECTOR)) return;', 1
     )[1].split(
         'element.configurationPlanImage.addEventListener("load"', 1
     )[0]
@@ -2702,11 +2702,20 @@ def test_step_six_repair_actions_cannot_fail_silently() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     handlers = source.split(
-        'element.configurationPendingList.addEventListener("click"', 1
+        'if (!event.target.closest(CONFIGURATION_PENDING_LIST_SELECTOR)) return;', 1
     )[1].split("element.configurationPlanImage.addEventListener(\"load\"", 1)[0]
 
     assert "function reportConfigurationActionError" in source
     assert "reportConfigurationActionError(errorMessage(error))" in handlers
+    # 委派掛在 document 捕獲階段：清單是 innerHTML 全量重繪，掛在清單節點上的監聽
+    # 會跟著被換掉的節點一起消失（問卷家具卡片已用過同一個模式）。
+    assert 'document.addEventListener("click", (event) => {' in source
+    assert 'CONFIGURATION_PENDING_LIST_SELECTOR = "#configuration-pending-list"' in source
+    assert "event.target.closest(CONFIGURATION_PENDING_LIST_SELECTOR)" in source
+    # 按住按鈕期間凍結重繪，否則瀏覽器不會送出 click，整段動作靜默消失。
+    assert "function writeConfigurationPendingList" in source
+    assert "configurationPendingPointerDown" in source
+    assert "element.configurationPendingList.innerHTML = markup" in source
     # 重排的鎖必須是單件的：全域鎖會讓一件卡住就停掉整份清單的按鈕。
     assert "configurationReflowInFlight.size > 0" not in source
     # dataset 的 id 一律是字串，嚴格相等比對會讓「更換較小款」靜默找不到家具。
@@ -2716,6 +2725,24 @@ def test_step_six_repair_actions_cannot_fail_silently() -> None:
     )[0]
     assert "element.layoutError.textContent" not in replacement
     assert "reportConfigurationActionError" in replacement
+
+
+def test_replacement_drawer_explains_an_empty_candidate_list() -> None:
+    """候選清單空白時必須說出是哪一關擋掉的，而不是留一片空白讓使用者猜。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    loader = source.split("async function loadReplacementCandidates", 1)[1].split(
+        "function renderReplacementTypeOptions", 1
+    )[0]
+
+    assert "furniture2dById(state.selectedFurniture2dId)" in loader
+    # 房間比對原本是嚴格相等，型別一不同就靜默 return，抽屜整片空白。
+    assert "String(candidate.id) === String(current.roomId)" in loader
+    assert "showReplacementEmptyState(" in loader
+    assert "function replacementEmptyStateMarkup" in source
+    assert "家具資料庫沒有回傳這個類型的候選" in source
+    assert "都沒有可用的 3D 模型" in source
+    assert "沒有可用的房間尺寸" in source
 
 
 def test_room_priority_can_defer_unloadable_models_without_bypassing_review() -> None:

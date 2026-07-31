@@ -59,6 +59,45 @@ for (const action of ACTIONS) {
   });
 }
 
+test("待處理清單節點被整個換掉之後，修復動作仍然有反應", async () => {
+  const { document } = await bootScenePage();
+  const status = document.querySelector("#global-status");
+  const host = document.querySelector("#configuration-pending-list").parentElement;
+
+  // 模擬祖先重繪：清單節點本身被換成一個全新的節點。委派若掛在啟動時抓到的節點上，
+  // 這一步就會讓所有修復按鈕再次變成沉默無效。
+  host.innerHTML = host.innerHTML;
+  const replaced = document.querySelector("#configuration-pending-list");
+  status.textContent = "";
+
+  replaced.innerHTML =
+    '<button type="button" data-defer-all-configuration-furniture>暫緩全部待處理家具並繼續</button>';
+  replaced.querySelector("button").dispatchEvent(
+    new document.defaultView.MouseEvent("click", { bubbles: true, cancelable: true }),
+  );
+  await flush();
+
+  assert.notEqual(status.textContent.trim(), "");
+});
+
+test("更換家具彈窗載不出候選時會說明原因，而不是留一片空白", async () => {
+  const { document } = await bootScenePage();
+  const results = document.querySelector("#replacement-furniture-results");
+  const drawerError = document.querySelector("#replacement-furniture-error");
+  results.innerHTML = "";
+  drawerError.textContent = "";
+
+  // 重新搜尋走的就是 loadReplacementCandidates；它原本在找不到家具或房間時裸 return，
+  // 候選區會停在空白，使用者看不到任何原因。
+  document.querySelector("#replacement-furniture-search").dispatchEvent(
+    new document.defaultView.Event("change", { bubbles: true }),
+  );
+  await flush();
+
+  assert.notEqual(results.textContent.trim(), "", "候選區留白，使用者不知道發生什麼事");
+  assert.notEqual(drawerError.textContent.trim(), "");
+});
+
 test("點擊待處理清單的空白處不會被當成失敗", async () => {
   const { document } = await bootScenePage();
   const status = document.querySelector("#global-status");
