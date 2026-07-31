@@ -37,7 +37,7 @@ def _create_payload() -> dict:
         "width_cm": 45,
         "depth_cm": 52,
         "height_cm": 82,
-        "styles": [{"style_code": "modern", "confidence": 0.9}],
+        "styles": [{"style_code": "modern_minimal", "confidence": 0.9}],
         "room_codes": ["dining_room"],
         "annotation": {
             "object_type_zh": "餐椅",
