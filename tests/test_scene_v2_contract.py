@@ -1293,7 +1293,9 @@ def test_single_furniture_reflow_is_locked_until_the_request_finishes() -> None:
     assert "configurationReflowInFlight.add(furnitureKey)" in source
     assert "configurationReflowInFlight.delete(furnitureKey)" in source
     assert "finally {" in source
-    assert "reflowLocked ? \"disabled\"" in source
+    # 只鎖住正在重排的那一件；全域鎖會讓一件卡住就停掉整份待處理清單的按鈕。
+    assert "reflowing ? \"disabled\"" in source
+    assert "reflowLocked" not in source
 
 
 def test_3d_viewer_flips_scene_z_at_the_visual_boundary_only() -> None:
@@ -2673,6 +2675,47 @@ def test_configuration_pending_actions_distinguish_model_and_placement_failures(
     assert "只重排此家具" in pending
     assert 'closest("[data-replace-configuration-furniture]")' in handlers
     assert "void openFurnitureReplacement()" in handlers
+
+
+def test_step_six_pending_rows_offer_removal_and_an_escape_hatch() -> None:
+    """待處理清單必須自己就能走完：移除單件，或整批暫緩後進入第 7 步。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    pending = source.split(
+        "const blockingRooms = configurationBlockingFurnitureByRoom", 1
+    )[1].split("const confirmButton", 1)[0]
+
+    assert 'data-remove-configuration-furniture="' in pending
+    assert "移除此家具" in pending
+    assert "data-defer-all-configuration-furniture" in pending
+    assert "暫緩全部待處理家具並繼續" in pending
+    assert "async function removeConfigurationFurniture" in source
+    assert "async function deferAllBlockingConfigurationFurniture" in source
+    # 暫緩只是把家具移出本次配置並記進 deferred，不放寬 backend/engine 的合法性閘門。
+    assert "confirmButton.disabled = blocking.length > 0" in source
+    assert ".rp-configuration-pending-escape" in css
+
+
+def test_step_six_repair_actions_cannot_fail_silently() -> None:
+    """每條失敗路徑都要寫進目前步驟看得到的欄位，而不是靜默 return 或寫去第 5 步。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    handlers = source.split(
+        'element.configurationPendingList.addEventListener("click"', 1
+    )[1].split("element.configurationPlanImage.addEventListener(\"load\"", 1)[0]
+
+    assert "function reportConfigurationActionError" in source
+    assert "reportConfigurationActionError(errorMessage(error))" in handlers
+    # 重排的鎖必須是單件的：全域鎖會讓一件卡住就停掉整份清單的按鈕。
+    assert "configurationReflowInFlight.size > 0" not in source
+    # dataset 的 id 一律是字串，嚴格相等比對會讓「更換較小款」靜默找不到家具。
+    assert "function furniture2dById" in source
+    replacement = source.split("async function openFurnitureReplacement", 1)[1].split(
+        "async function replaceSelectedLayoutFurniture", 1
+    )[0]
+    assert "element.layoutError.textContent" not in replacement
+    assert "reportConfigurationActionError" in replacement
 
 
 def test_room_priority_can_defer_unloadable_models_without_bypassing_review() -> None:

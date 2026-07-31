@@ -246,6 +246,8 @@ let visualCustomSaveTimer = null;
 let firstMeetingSaveTimer = null;
 const configurationReflowInFlight = new Set();
 const questionnaireFurnitureInFlight = new Set();
+let configurationPendingClickToken = 0;
+let configurationPendingHandledToken = -1;
 
 const panels = new Map(
   $$(".rp-step-panel").map((panel) => [panel.dataset.panel, panel]),
@@ -8546,6 +8548,53 @@ function configurationModelFailures() {
   );
 }
 
+// dataset 讀出來的 id 一律是字串，state.furniture2d 的 id 不一定是；用嚴格相等比對會靜默找不到。
+function furniture2dById(furnitureId) {
+  return state.furniture2d.find(
+    (candidate) => String(candidate.id) === String(furnitureId),
+  ) || null;
+}
+
+function configurationErrorSlot() {
+  return state.workflow?.currentStep === "white_model_3d"
+    ? element.whiteError
+    : element.layoutError;
+}
+
+// 第 6 步的修復動作只要靜默 return，使用者看到的就是「按了沒反應」。所有失敗路徑都必須
+// 走這裡，訊息才會同時落在目前步驟的錯誤欄位與狀態列，不會被寫進看不到的第 5 步欄位。
+function reportConfigurationActionError(message) {
+  const slot = configurationErrorSlot();
+  if (slot) slot.textContent = message;
+  setStatus(message, "error");
+}
+
+function clearConfigurationActionError() {
+  const slot = configurationErrorSlot();
+  if (slot) slot.textContent = "";
+}
+
+const CONFIGURATION_PENDING_ACTION_ATTRIBUTES = [
+  "data-prioritize-configuration-room",
+  "data-replace-configuration-furniture",
+  "data-reflow-configuration-furniture",
+  "data-remove-configuration-furniture",
+  "data-defer-all-configuration-furniture",
+];
+const CONFIGURATION_PENDING_ACTION_SELECTOR = CONFIGURATION_PENDING_ACTION_ATTRIBUTES
+  .map((name) => `[${name}]`)
+  .join(",");
+
+function configurationPendingActionKey(node) {
+  if (!(node instanceof Element)) return "";
+  const action = node.closest(CONFIGURATION_PENDING_ACTION_SELECTOR);
+  if (!action || !element.configurationPendingList?.contains(action)) return "";
+  const attribute = CONFIGURATION_PENDING_ACTION_ATTRIBUTES.find(
+    (name) => action.hasAttribute(name),
+  );
+  return attribute ? `${attribute}=${action.getAttribute(attribute)}` : "";
+}
+
 function syncFinalValidationToConfiguration(validatedObjects = []) {
   if (!state.sceneData || !Array.isArray(validatedObjects) || !validatedObjects.length) {
     return configurationBlockingFurniture();
@@ -8667,12 +8716,12 @@ function renderConfigurationPlan() {
         || item.placementReason
         || "家具碰撞、超出房間或淨空不足。";
       const modelFailed = modelFailures.has(furnitureKey);
+      // 重排的鎖必須是單件的：用全域 size > 0 會讓任何一件卡住就停掉整份清單的按鈕。
       const reflowing = configurationReflowInFlight.has(furnitureKey);
-      const reflowLocked = configurationReflowInFlight.size > 0;
       const repairAction = modelFailed
         ? `<button type="button" data-replace-configuration-furniture="${escapeHtml(item.id)}">更換家具</button>`
         : `<button type="button" data-reflow-configuration-furniture="${escapeHtml(item.id)}"
-            ${reflowLocked ? "disabled" : ""}>${reflowing ? "重新配置中…" : "只重排此家具"}</button>
+            ${reflowing ? "disabled" : ""}>${reflowing ? "重新配置中…" : "只重排此家具"}</button>
           <button type="button" data-replace-configuration-furniture="${escapeHtml(item.id)}">更換較小款</button>`;
       return `
         <div class="rp-configuration-pending-item">
@@ -8681,6 +8730,8 @@ function renderConfigurationPlan() {
           <div>
             <button type="button" data-select-configuration-furniture="${escapeHtml(item.id)}">定位</button>
             ${repairAction}
+            <button type="button" class="danger-action"
+              data-remove-configuration-furniture="${escapeHtml(item.id)}">移除此家具</button>
           </div>
         </div>
       `;
@@ -8705,11 +8756,24 @@ function renderConfigurationPlan() {
       ).join("")}</ul>
     </section>
   `).join("");
+  // 逃生口：家具引擎判定不合法的家具永遠不會進場景，但使用者也不能被永久卡在第 6 步。
+  // 暫緩會把它們移出本次配置並記進 deferred，之後仍可回來重新加入。
+  const escapeHatchMarkup = blocking.length
+    ? `
+      <div class="rp-configuration-pending-escape">
+        <button type="button" data-defer-all-configuration-furniture>暫緩全部待處理家具並繼續</button>
+        <small>放不下的家具會移出本次配置並記錄在「已暫緩」，第 6 步就不會被卡住。</small>
+      </div>
+    `
+    : "";
   element.configurationPendingList.innerHTML = blockingMarkup
     || deferredMarkup
     || "<p class=\"rp-configuration-clear\">目前沒有待處理家具。</p>";
   if (blockingMarkup && deferredMarkup) {
     element.configurationPendingList.insertAdjacentHTML("beforeend", deferredMarkup);
+  }
+  if (escapeHatchMarkup) {
+    element.configurationPendingList.insertAdjacentHTML("beforeend", escapeHatchMarkup);
   }
 
   const confirmButton = $("#confirm-white-model");
@@ -8723,13 +8787,14 @@ function renderConfigurationPlan() {
 
 async function reflowSingleConfigurationFurniture(furnitureId) {
   const furnitureKey = String(furnitureId);
-  if (configurationReflowInFlight.has(furnitureKey) || configurationReflowInFlight.size > 0) {
-    return;
-  }
+  if (configurationReflowInFlight.has(furnitureKey)) return;
   const item = state.furniture2d.find(
     (candidate) => String(candidate.id) === furnitureKey,
   );
-  if (!item) return;
+  if (!item) {
+    reportConfigurationActionError("找不到這件家具，請重新整理第 6 步後再試一次。");
+    return;
+  }
   configurationReflowInFlight.add(furnitureKey);
   renderConfigurationPlan();
   setStatus(`正在只重新配置「${item.label}」…`);
@@ -8774,6 +8839,99 @@ async function reflowSingleConfigurationFurniture(furnitureId) {
   }
 }
 
+async function removeConfigurationFurniture(furnitureId) {
+  const furnitureKey = String(furnitureId);
+  try {
+    const sceneIndex = sceneObjectIndexByFurnitureId(furnitureKey);
+    if (sceneIndex >= 0) {
+      state.selectedSceneIndex = sceneIndex;
+      await deleteSelectedSceneFurniture();
+      return;
+    }
+    // 只存在於 2D 清單、還沒進場景的家具沒有 scene_object 可刪，直接從 2D 移除。
+    const remaining = state.furniture2d.filter(
+      (item) => String(item.id) !== furnitureKey,
+    );
+    if (remaining.length === state.furniture2d.length) {
+      reportConfigurationActionError("找不到這件家具，請重新整理第 6 步後再試一次。");
+      return;
+    }
+    state.furniture2d = remaining;
+    syncFurnitureInventoryAcrossSchemes();
+    if (String(state.selectedFurniture2dId) === furnitureKey) {
+      state.selectedFurniture2dId = null;
+    }
+    renderLayoutRoomFilter();
+    renderLayoutFurniture();
+    renderConfigurationPlan();
+    scheduleSave("white_model_3d");
+    setStatus("已移除這件家具，其餘家具位置保持不變。");
+  } catch (error) {
+    reportConfigurationActionError(errorMessage(error));
+  }
+}
+
+// 家具引擎判定不合法的家具不會被塞進場景；這裡只是把它們記進 deferred 並移出本次配置，
+// 讓第 6 步的確認閘門可以通過，而不是放寬幾何合法性。
+async function deferAllBlockingConfigurationFurniture() {
+  try {
+    const blocking = configurationBlockingFurniture();
+    if (!blocking.length) {
+      reportConfigurationActionError("目前沒有待處理家具需要暫緩。");
+      return;
+    }
+    const modelFailures = configurationModelFailures();
+    const blockingIds = new Set(blocking.map((item) => String(item.id)));
+    blocking.forEach((item) => {
+      const furniture = roomFurnitureRequirement(item.roomId);
+      if (!furniture) return;
+      furniture.deferred = [
+        ...(furniture.deferred || []).filter(
+          (entry) => String(entry.id) !== String(item.id),
+        ),
+        {
+          id: item.id,
+          furniture_id: item.catalogFurnitureId || item.id,
+          normalized_type: item.type,
+          label: item.label,
+          reason: modelFailures.has(String(item.id))
+            ? "資料庫模型無法載入，使用者同意本次暫不放入"
+            : "空間放不下，使用者同意本次暫不放入",
+        },
+      ];
+    });
+    state.furniture2d = state.furniture2d.filter(
+      (item) => !blockingIds.has(String(item.id)),
+    );
+    if (state.sceneData) {
+      state.sceneData.scene_objects = (state.sceneData.scene_objects || []).filter(
+        (item) => !blockingIds.has(String(item.furniture_id)),
+      );
+    }
+    syncFurnitureInventoryAcrossSchemes();
+    const scheme = activeScheme();
+    if (scheme) {
+      scheme.furniture = JSON.parse(JSON.stringify(state.furniture2d));
+      if (state.sceneData) {
+        scheme.sceneData = JSON.parse(JSON.stringify(state.sceneData));
+      }
+    }
+    state.selectedFurniture2dId = null;
+    state.selectedSceneIndex = 0;
+    if (state.sceneData) await whiteViewer.loadScene(state.sceneData);
+    renderLayoutRoomFilter();
+    renderLayoutFurniture();
+    renderSceneObjectList();
+    renderConfigurationPlan();
+    scheduleSave("white_model_3d");
+    setStatus(
+      `已暫緩 ${blocking.length} 件放不下的家具，現在可以進入第 7 步；暫緩清單留在待處理面板下方。`,
+    );
+  } catch (error) {
+    reportConfigurationActionError(errorMessage(error));
+  }
+}
+
 function configurationFurniturePriority(item) {
   const essentialTypes = new Set([
     "bed",
@@ -8805,11 +8963,23 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
   const room = state.rooms.find(
     (candidate) => String(candidate.id) === String(roomId),
   );
-  if (!room || !state.sceneData) return;
+  if (!room) {
+    reportConfigurationActionError(
+      `這組待處理家具沒有對應的房間（${roomId}），無法擇優配置；請改用「移除此家具」或「暫緩全部待處理家具並繼續」。`,
+    );
+    return;
+  }
+  if (!state.sceneData) {
+    reportConfigurationActionError("目前沒有可調整的 3D 場景，請先重新產生第 6 步配置。");
+    return;
+  }
   const originalItems = state.furniture2d
     .filter((item) => String(item.roomId) === String(roomId))
     .sort(compareConfigurationFurniturePriority);
-  if (!originalItems.length) return;
+  if (!originalItems.length) {
+    reportConfigurationActionError(`「${room.label}」目前沒有可重新配置的家具。`);
+    return;
+  }
   const modelFailureIds = new Set(configurationModelFailures().keys());
   const retained = originalItems.filter(
     (item) => !modelFailureIds.has(String(item.id)),
@@ -8883,15 +9053,17 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
       })),
     ];
     const furniture = roomFurnitureRequirement(room.id);
-    furniture.deferred = deferred.map((item) => ({
-      id: item.id,
-      furniture_id: item.catalogFurnitureId || item.id,
-      normalized_type: item.type,
-      label: item.label,
-      reason: modelFailureIds.has(String(item.id))
-        ? "資料庫模型無法載入，使用者同意本次暫不放入"
-        : "使用者同意依空間尺寸擇優配置，本次暫不放入",
-    }));
+    if (furniture) {
+      furniture.deferred = deferred.map((item) => ({
+        id: item.id,
+        furniture_id: item.catalogFurnitureId || item.id,
+        normalized_type: item.type,
+        label: item.label,
+        reason: modelFailureIds.has(String(item.id))
+          ? "資料庫模型無法載入，使用者同意本次暫不放入"
+          : "使用者同意依空間尺寸擇優配置，本次暫不放入",
+      }));
+    }
     const scheme = activeScheme();
     scheme.furniture = JSON.parse(JSON.stringify(state.furniture2d));
     scheme.sceneData = JSON.parse(JSON.stringify(state.sceneData));
@@ -9376,14 +9548,12 @@ function setReplacementDrawerOpen(open) {
 
 async function openFurnitureReplacement() {
   if (!state.selectedFurniture2dId) {
-    element.layoutError.textContent = "請先選取一件要更換的家具。";
+    reportConfigurationActionError("請先選取一件要更換的家具。");
     return;
   }
-  const current = state.furniture2d.find(
-    (candidate) => candidate.id === state.selectedFurniture2dId,
-  );
+  const current = furniture2dById(state.selectedFurniture2dId);
   if (!current) {
-    element.layoutError.textContent = "找不到目前選取的家具，請重新選取後再更換。";
+    reportConfigurationActionError("找不到目前選取的家具，請重新選取後再更換。");
     return;
   }
   renderReplacementTypeOptions(current);
@@ -9398,10 +9568,13 @@ async function openFurnitureReplacement() {
 async function replaceSelectedLayoutFurniture(furnitureId) {
   const candidates = JSON.parse(element.replacementResults.dataset.items || "[]");
   const catalogItem = candidates.find((candidate) => candidate.furniture_id === furnitureId);
-  const current = state.furniture2d.find(
-    (candidate) => candidate.id === state.selectedFurniture2dId,
-  );
-  if (!catalogItem || !current) return;
+  const current = furniture2dById(state.selectedFurniture2dId);
+  if (!catalogItem || !current) {
+    element.replacementError.textContent = catalogItem
+      ? "找不到目前選取的家具，請關閉視窗後重新選取。"
+      : "找不到這個候選款式，請重新搜尋家具資料庫。";
+    return;
+  }
   const size = catalogItem.size_cm || {};
   const candidate = {
     ...current,
@@ -12551,7 +12724,10 @@ function bindEvents() {
     if (!button) return;
     const fromPlan = event.currentTarget === element.configurationPlanLayer;
     const fromFurnitureList = event.currentTarget === element.configurationPlanFurnitureList;
-    state.selectedFurniture2dId = button.dataset.selectConfigurationFurniture;
+    // 存回型錄上的 id 而不是 dataset 字串，下游的嚴格相等比對才不會靜默失配。
+    state.selectedFurniture2dId =
+      furniture2dById(button.dataset.selectConfigurationFurniture)?.id
+      ?? button.dataset.selectConfigurationFurniture;
     if (fromFurnitureList) void openFurnitureReplacement();
     renderLayoutFurniture();
     renderConfigurationPlan();
@@ -12559,9 +12735,7 @@ function bindEvents() {
       ? syncSelected2dFurnitureToScene({ focus: false })
       : syncSelected2dFurnitureToScene({ focus: true });
     if (fromPlan) {
-      const item = state.furniture2d.find(
-        (candidate) => candidate.id === state.selectedFurniture2dId,
-      );
+      const item = furniture2dById(state.selectedFurniture2dId);
       setStatus(
         focused && item
           ? `已在 3D 定位家具 ${configurationFurnitureNumber(item)}「${item.label}」。`
@@ -12575,31 +12749,70 @@ function bindEvents() {
     selectConfigurationFurniture,
   );
   element.configurationPendingList.addEventListener("click", (event) => {
-    const prioritizeButton = event.target.closest("[data-prioritize-configuration-room]");
-    if (prioritizeButton) {
-      void prioritizeConfigurationRoomFurniture(
-        prioritizeButton.dataset.prioritizeConfigurationRoom,
-      );
-      return;
+    configurationPendingHandledToken = configurationPendingClickToken;
+    clearConfigurationActionError();
+    try {
+      const prioritizeButton = event.target.closest("[data-prioritize-configuration-room]");
+      if (prioritizeButton) {
+        void prioritizeConfigurationRoomFurniture(
+          prioritizeButton.dataset.prioritizeConfigurationRoom,
+        );
+        return;
+      }
+      const replaceButton = event.target.closest("[data-replace-configuration-furniture]");
+      if (replaceButton) {
+        state.selectedFurniture2dId =
+          furniture2dById(replaceButton.dataset.replaceConfigurationFurniture)?.id
+          ?? replaceButton.dataset.replaceConfigurationFurniture;
+        renderLayoutFurniture();
+        renderConfigurationPlan();
+        syncSelected2dFurnitureToScene({ focus: true });
+        void openFurnitureReplacement();
+        return;
+      }
+      const reflowButton = event.target.closest("[data-reflow-configuration-furniture]");
+      if (reflowButton) {
+        void reflowSingleConfigurationFurniture(
+          reflowButton.dataset.reflowConfigurationFurniture,
+        );
+        return;
+      }
+      const removeButton = event.target.closest("[data-remove-configuration-furniture]");
+      if (removeButton) {
+        void removeConfigurationFurniture(
+          removeButton.dataset.removeConfigurationFurniture,
+        );
+        return;
+      }
+      if (event.target.closest("[data-defer-all-configuration-furniture]")) {
+        void deferAllBlockingConfigurationFurniture();
+        return;
+      }
+      selectConfigurationFurniture(event);
+    } catch (error) {
+      reportConfigurationActionError(errorMessage(error));
     }
-    const replaceButton = event.target.closest("[data-replace-configuration-furniture]");
-    if (replaceButton) {
-      state.selectedFurniture2dId = replaceButton.dataset.replaceConfigurationFurniture;
-      renderLayoutFurniture();
-      renderConfigurationPlan();
-      syncSelected2dFurnitureToScene({ focus: true });
-      void openFurnitureReplacement();
-      return;
-    }
-    const reflowButton = event.target.closest("[data-reflow-configuration-furniture]");
-    if (reflowButton) {
-      void reflowSingleConfigurationFurniture(
-        reflowButton.dataset.reflowConfigurationFurniture,
-      );
-      return;
-    }
-    selectConfigurationFurniture(event);
   });
+  // 待處理清單每次重繪都會換掉節點。若按鈕在 pointerdown 與 pointerup 之間被換掉，
+  // 瀏覽器就不會送出 click，上面的委派監聽整段不會執行——使用者只會看到「按了沒反應」。
+  // 這裡在 document 捕獲階段記下按下的動作，事件派送結束後確認委派監聽真的跑過。
+  let pressedConfigurationPendingAction = "";
+  document.addEventListener("pointerdown", (event) => {
+    pressedConfigurationPendingAction = configurationPendingActionKey(event.target);
+    if (pressedConfigurationPendingAction) configurationPendingClickToken += 1;
+  }, true);
+  document.addEventListener("pointerup", (event) => {
+    const pressed = pressedConfigurationPendingAction;
+    pressedConfigurationPendingAction = "";
+    if (!pressed || configurationPendingActionKey(event.target) !== pressed) return;
+    const token = configurationPendingClickToken;
+    setTimeout(() => {
+      if (configurationPendingHandledToken === token) return;
+      reportConfigurationActionError(
+        "待處理家具的操作沒有送達（畫面在點擊過程中重繪）。請再按一次；若持續發生請回報。",
+      );
+    }, 250);
+  }, true);
   element.configurationPlanImage.addEventListener("load", renderConfigurationPlan);
   element.configurationPlanToggle.addEventListener("click", () => {
     const collapsed = element.configurationPlanPanel.classList.toggle("is-collapsed");

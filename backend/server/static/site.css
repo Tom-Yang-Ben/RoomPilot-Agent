@@ -9350,9 +9350,44 @@ body.rp-workflow-page .danger-action {
   white-space: nowrap;
 }
 
-.rp-configuration-pending-item > div button:last-child {
+.rp-configuration-pending-item > div button[data-replace-configuration-furniture] {
   background: #7b3c2d;
   color: #fff;
+}
+
+body.rp-workflow-page
+  .rp-configuration-pending-item > div button[data-remove-configuration-furniture] {
+  min-height: 30px;
+  border: 1px solid #b94935;
+  background: #fff;
+  color: #a43e2c;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.rp-configuration-pending-escape {
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px dashed #b8ada3;
+  border-radius: 5px;
+  background: #faf8f5;
+}
+
+body.rp-workflow-page .rp-configuration-pending-escape button {
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid #5b554f;
+  border-radius: 4px;
+  background: #fff;
+  color: #3d3934;
+  font-size: 12px;
+}
+
+.rp-configuration-pending-escape small {
+  color: var(--rp-muted);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .rp-configuration-clear {
