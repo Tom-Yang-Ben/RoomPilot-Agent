@@ -10853,6 +10853,7 @@ async function ensureAutomaticSoftDecor(pack) {
   const targetRooms = state.rooms.length
     ? state.rooms
     : [{ id: state.selectedRoomId || "default" }];
+  const skippedDecor = new Map();
   for (const room of targetRooms) {
     const result = await api("/api/scene/decorate", {
       method: "POST",
@@ -10865,6 +10866,18 @@ async function ensureAutomaticSoftDecor(pack) {
       }),
     });
     state.sceneData.scene_objects = result.scene_objects;
+    (result.decor_summary?.skipped || []).forEach((entry) => {
+      skippedDecor.set(entry.role, entry);
+    });
+  }
+  if (skippedDecor.size) {
+    // 型錄缺某個角色的 GLB 不再中止整間房的軟裝，但也不能默默略過。
+    setStatus(
+      `軟裝已完成，但略過：${[...skippedDecor.values()]
+        .map((entry) => entry.reason || entry.label)
+        .join("；")}`,
+      "warning",
+    );
   }
   const failed = (state.sceneData.scene_objects || []).filter(
     (item) => item.auto_decor_role && item.placement_failed,

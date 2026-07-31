@@ -381,7 +381,7 @@ project → upload → recognition → calibration → space_confirmation → re
 - **請求體**: `{"scene_objects", "floorplan"|"floorplan_editor", "placement_room_id", "room": {"type": "..."}, "style"}`
 - **行為**: 依房內既有家具與房型決定加 `light`/`rug`/`plant`/`curtain`;先移除該房舊 auto_decor 再重算(重跑=重算而非累加);放不下的軟裝直接捨棄不硬塞。布簾用固定假想品項 `model_url: "/static/models/roompilot-curtain.glb"`(main.py:2446)——**注意:該 GLB 實際不存在**(`find backend/server/static -name '*.glb'` 為 0,`static/models/` 目錄不存在)。前端已有兜底:scene_viewer.js 的 `loader.loadAsync` 失敗會被 catch,改放同尺寸白色替代物並在狀態列列為「GLB 載入失敗,已顯示同尺寸白色替代物」(scene_viewer.js:2907、2935-2938、2954-2957),故此 404 不會中斷場景
 - **回應**: `{"scene_objects": [...], "decor_summary": {"requested": ["light","rug"], "placed": ["light"], "engine": "furniture_engine"}}`
-- **錯誤**: 409 `decor_model_missing`(型錄找不到對應角色的 GLB)
+- **錯誤**: 型錄缺某角色 GLB **不再回 409**;該角色列進 `decor_summary.skipped`,其餘照常配置。舊行為 409 `decor_model_missing`(型錄找不到對應角色的 GLB)
 
 #### `POST /api/scene/validate` - 單件家具落點驗證(F6 拖曳)
 

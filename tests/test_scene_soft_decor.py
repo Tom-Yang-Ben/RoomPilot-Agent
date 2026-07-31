@@ -334,3 +334,49 @@ def test_scene_contract_preserves_2d_room_assignment() -> None:
     [placed] = generate_layout(700, 500, [item])
 
     assert placed["placement_room_id"] == "bedroom-1"
+
+
+def test_missing_decor_glb_skips_that_role_instead_of_aborting_the_room(monkeypatch) -> None:
+    """QA #7：燈具型錄沒有可用 GLB 時，整間房的軟裝都被 409 中止。
+
+    少一個角色的模型不該讓地毯與植栽一起消失；跳過並在 decor_summary.skipped 說明。
+    """
+    from backend.server import main as server_main
+
+    original = server_main._auto_decor_catalog_item
+
+    def without_lights(role, style_id, excluded_ids=None, max_footprint_cm=None):
+        if role == "light":
+            return None
+        return original(role, style_id, excluded_ids, max_footprint_cm)
+
+    monkeypatch.setattr(server_main, "_auto_decor_catalog_item", without_lights)
+
+    sofa = {
+        "furniture_id": "sofa-existing",
+        "normalized_type": "sofa",
+        "name_zh_raw": "既有沙發",
+        "size_cm": {"width": 210, "depth": 90, "height": 82},
+        "position_cm": {"x": 0, "z": 120},
+        "rotation_y_deg": 180,
+        "position_locked": True,
+    }
+
+    response = client.post(
+        "/api/scene/decorate",
+        json={
+            "style": "scandinavian",
+            "floorplan_editor": _floorplan_editor(),
+            "placement_room_id": "living-1",
+            "scene_objects": [sofa],
+        },
+    )
+
+    assert response.status_code == 200
+    summary = response.json()["decor_summary"]
+    assert "light" in summary["requested"]
+    assert "light" not in summary["placed"]
+    assert {entry["role"] for entry in summary["skipped"]} == {"light"}
+    assert "燈具" in summary["skipped"][0]["reason"]
+    # 其餘角色照常放進場景，不會被缺件拖累。
+    assert {"rug", "plant"} <= set(summary["placed"])

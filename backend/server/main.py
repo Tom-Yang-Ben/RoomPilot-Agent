@@ -2917,14 +2917,10 @@ def _auto_decor_catalog_item(
                 fitting.append(item)
         if fitting:
             candidates = fitting
+    # 少一個角色的 GLB 不該讓整間房的軟裝一起中止：地毯、植栽照樣放得下就該放。
+    # 回 None 由呼叫端跳過並記進 decor_summary.skipped，前端再據此告知使用者。
     if not candidates:
-        raise HTTPException(
-            409,
-            {
-                "code": "decor_model_missing",
-                "message": f"型錄中找不到可用的{_AUTO_DECOR_LABELS[role]} GLB，已停止自動配置。",
-            },
-        )
+        return None
 
     def score(item: dict) -> tuple[int, float]:
         style_match = item.get("primary_style") == style_id or any(
@@ -3055,6 +3051,7 @@ async def scene_decorate(payload: dict) -> dict:
         min(boundary_width_cm, float(rug_anchor_size.get("width") or boundary_width_cm)),
         min(boundary_depth_cm, float(rug_anchor_size.get("depth") or boundary_depth_cm)),
     )
+    skipped_roles: list[dict] = []
     for role in ("rug", "plant", "light"):
         if role in requested_roles:
             addition = _auto_decor_catalog_item(
@@ -3063,6 +3060,15 @@ async def scene_decorate(payload: dict) -> dict:
                 used_ids,
                 rug_max_footprint if role == "rug" else None,
             )
+            if addition is None:
+                skipped_roles.append(
+                    {
+                        "role": role,
+                        "label": _AUTO_DECOR_LABELS[role],
+                        "reason": f"型錄中沒有可用的{_AUTO_DECOR_LABELS[role]} GLB，本次略過。",
+                    }
+                )
+                continue
             additions.append(addition)
             used_ids.add(str(addition.get("furniture_id")))
     for item in additions:
@@ -3110,6 +3116,7 @@ async def scene_decorate(payload: dict) -> dict:
                 for item in scene_objects
                 if item.get("auto_decor_role") and not item.get("placement_failed")
             ],
+            "skipped": skipped_roles,
             "engine": "furniture_engine",
         },
     }
