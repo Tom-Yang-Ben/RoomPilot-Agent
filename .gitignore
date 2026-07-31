@@ -36,5 +36,9 @@ training.zip
 temp/
 .mcp.json
 
+# 應用程式執行狀態（跑 RoomPilot 時自動生成）：專案資料庫、使用者上傳的
+# 平面圖、算圖輸出。每台機器各自累積，不該互相覆蓋
+.runtime/
+
 # macOS Finder 中繼檔（ben 端 macOS 工作機會持續產生）
 .DS_Store
