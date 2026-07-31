@@ -42,14 +42,15 @@ def _pts(points):
     return "".join(f"{float(x):.1f},{float(y):.1f} " for x, y in points)
 
 
-# 顯示樣式（人工修正用；House 訓練解析只讀 g/polygon 結構，不受影響）
+# 顯示樣式（人工修正用；訓練解析只讀 g/polygon 結構，不受影響）
 FILL = {"Wall": ("#cc2222", 0.45), "Window": ("#22aa22", 0.6),
         "Door": ("#ddaa00", 0.6)}
+# 鍵＝2026-08-01 定案的 10 類 token（＋Undefined 供人工補標）。舊寫法
+# （Outdoor/Office/StairWell/HallWay/WashRoom）已隨答案集歸一消失，不再列入。
 SPACE_FILL = {"Bedroom": "#4a90d9", "Bath": "#3dbdbd", "Kitchen": "#e8843c",
               "LivingRoom": "#7dc37d", "Entry": "#8f5fc6", "Storage": "#b8a06a",
-              "Garage": "#909090", "Outdoor": "#b5368f", "Undefined": "#d9d9d9",
-              "Office": "#c9b458", "StairWell": "#a89cc8", "HallWay": "#c9a0dc",
-              "WashRoom": "#d97a8f"}
+              "Garage": "#909090", "Balcony": "#b5368f", "Stair": "#a89cc8",
+              "Hallway": "#c9a0dc", "Undefined": "#d9d9d9"}
 
 
 def _g_poly(doc, points, gid=None, cls=None, fill=None, opacity=0.4,
@@ -94,6 +95,34 @@ def room_polygons(labels, rooms):
         if len(ap) >= 3:
             out.append((r.get("label"), ap))
     return out
+
+
+def verify_draft(svg_path, h, w):
+    """草稿回讀驗證——自持解析，**不經 CubiCasa 的 `House`**。
+
+    原本用 `House(svg_path, h, w)` 檢查「回讀後有牆像素」，但 House 的
+    `room_name_map` 是 CubiCasa 詞彙的硬編碼表，且 `house.py:548` 該處查表
+    無防護——遇到 2026-08-01 定案的 `Hallway`／`Stair`／`Balcony` 直接
+    `KeyError`，等於新詞彙的草稿永遠產不出來。那份是 CC BY-NC 的外部
+    checkout，不改它，改走自家解析器。
+
+    （`parse_gt` 仍借 `floortrans.loaders.svg_utils.get_polygon` 做多邊形
+    光柵化——那是純幾何函式，沒有詞彙表問題。）
+
+    回傳 (房間數, 牆多邊形數)；不合格 raise ValueError。"""
+    from eval_rooms_cc import CLASSES, parse_gt
+    doc = minidom.parse(svg_path)
+    walls = [e for e in doc.getElementsByTagName("g")
+             if e.getAttribute("class").split(" ")[:1] == ["Wall"]]
+    if not walls:
+        raise ValueError("回讀無牆多邊形")
+    gt = parse_gt(svg_path, h, w)
+    if gt is None:
+        raise ValueError("回讀對位不符（多邊形超出圖面）")
+    unknown = sorted({lab for lab, _m in gt} - set(CLASSES))
+    if unknown:
+        raise ValueError(f"回讀出現量尺外的房型：{unknown}")
+    return len(gt), len(walls)
 
 
 def build_svg(w, h, rects, wins, zones, spaces, symbols):
@@ -168,7 +197,6 @@ def main():
     _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, os.path.join(_root, "training/CubiCasa5k"))
     sys.path.insert(0, os.path.join(_root, "backend", "floorplan"))  # 管線模組在 backend/floorplan/
-    from floortrans.loaders.house import House
     import floorplan2dxf as fp_bw
     import floorplan2dxf_color as fp_c
     import floorplan2room as f2r
@@ -201,9 +229,8 @@ def main():
             svg_path = os.path.join(d, "model.svg")
             with open(svg_path, "w") as f:
                 f.write(doc.toprettyxml(indent=" "))
-            house = House(svg_path, h, w)          # round-trip 驗證
-            if int(np.count_nonzero(house.walls == 2)) == 0:
-                raise ValueError("round-trip 無牆像素")
+            n_room, n_wall = verify_draft(svg_path, h, w)   # round-trip 驗證
+            print(f"  ✓ 房間 {n_room}、牆 {n_wall}")
             ok.append(name)
         except Exception as e:
             fail.append((name, repr(e)))
