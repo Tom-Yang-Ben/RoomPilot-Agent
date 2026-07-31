@@ -1,13 +1,13 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-7264a751b632";
-import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
-import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-62744c6da26d";
+import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-e48e66f9829a";
+import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-ec29c3988ca1";
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-} from "./scene_unit_contracts.js?v=sha256-3f3f1160d1ae";
+} from "./scene_unit_contracts.js?v=sha256-6a193452d1e5";
 import {
   repairLoadedRoomPolygon,
-} from "./scene_room_geometry.js?v=sha256-fea08f0d5f34";
+} from "./scene_room_geometry.js?v=sha256-d863939b9c06";
 import {
   createWorkflow,
   restoreWorkflow,
@@ -17,11 +17,11 @@ import {
   shouldReplayPendingSave,
   WORKFLOW_PANEL_BY_STEP,
   WORKFLOW_STEPS,
-} from "./scene_workflow.js?v=sha256-13a58f49a774";
+} from "./scene_workflow.js?v=sha256-1731ab127eab";
 import {
   buildScaleCalibration,
   calibrationActionState,
-} from "./scene_calibration.js?v=sha256-a1eb97980af1";
+} from "./scene_calibration.js?v=sha256-175dc2c59c64";
 import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
@@ -35,18 +35,18 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-58b7ecf1ea90";
+} from "./scene_layout2d.js?v=sha256-f67614a99b5a";
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-4229260e286c";
+} from "./scene_configuration_sync.js?v=sha256-5d58be033c8a";
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
-} from "./scene_furniture_retrieval.js?v=sha256-3624ecae3813";
+} from "./scene_furniture_retrieval.js?v=sha256-a6e991da74a1";
 import {
   WHOLE_HOUSE_QUESTIONS,
-} from "./scene_requirements.js?v=sha256-097f1470f5a3";
+} from "./scene_requirements.js?v=sha256-25bc74aeafba";
 import {
   applyVisualPreferencesToSpecs,
   finishesGate,
@@ -57,10 +57,10 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-27b4202238a9";
+} from "./scene_questionnaire_test2.js?v=sha256-541428dd376b";
 import {
   reloadViewerPreservingState,
-} from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
+} from "./scene_viewer_reload.js?v=sha256-4adbd0d35e57";
 import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
@@ -68,7 +68,7 @@ import {
   conditionalOptionId,
   evaluateConditionalOption,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-68f14d3fdc6f";
+} from "./scene_room_requirements.js?v=sha256-37d1ad8ccecf";
 import {
   applyStylePack,
   CEILING_STYLES,
@@ -87,7 +87,7 @@ import {
   firstMeetingSummary,
   legacyBasicAnswersFromFirstMeeting,
   normalizeFirstMeeting,
-} from "./scene_first_meeting.js?v=sha256-ed5e5f907eaa";
+} from "./scene_first_meeting.js?v=sha256-58cfff70d2cd";
 import {
   beamDragGeometry,
   canMarkWallForDemolition,
@@ -96,19 +96,19 @@ import {
   translateOpeningAlongAxis,
   wallBoundarySide,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=sha256-41e8428ea1c8";
-import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-9d866df171b3";
+} from "./scene_structure_utils.js?v=sha256-4e110623e339";
+import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-2e7650196b86";
 import {
   findStructureWallCollision,
   resolveStructureWallCollisions,
   validateColumnDimensionsCm,
-} from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
+} from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
   applyWindowTypePreset,
   normalizedWindowType,
   WINDOW_TYPES,
-} from "./scene_window_types.js?v=sha256-ebe4923f97c0";
+} from "./scene_window_types.js?v=sha256-990e2abb3240";
 import {
   activateScheme,
   attachedOpenings,
@@ -120,7 +120,7 @@ import {
   normalizeDesignSchemes,
   persistActiveScheme,
   structuresForScheme,
-} from "./scene_design_schemes.js?v=sha256-9cae7554d27d";
+} from "./scene_design_schemes.js?v=sha256-087006a5b5b3";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
