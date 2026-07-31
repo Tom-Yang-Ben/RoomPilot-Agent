@@ -33,42 +33,71 @@ OWN_DIR = "testdata/Identify_ans/own_eval"
 IN_DIR = "training/eval_rooms/input"
 CHK_DIR = "training/eval_rooms/chk"
 REPORT = "training/json/eval_rooms/report.json"
-CLASSES = ["kitchen", "living", "bed", "bath", "entry",
-           "storage", "garage", "outdoor", "stair", "space"]
-# CubiCasa 的 rooms_selected 把 Office 與 StairWell 都塌成 11(Undefined)，
-# 塌陷後三者不可分——先攔這兩個具名 token，其餘才走 CubiCasa 映射。
-# 不這麼做的後果：space 成為「書房＋樓梯間＋真未定義」混合桶（recall 0.286）。
+# 2026-08-01 定案的 10 類（使用者裁決）。名稱刻意與答案集 model.svg 的 Space
+# token 同形，讓「標注寫什麼」與「量尺算什麼」是同一個字串，中間不再有翻譯層
+# ——HallWay 被 CubiCasa 慣例悄悄算成玄關，正是那層翻譯造成的。
 #
-# `Office` 併入 `storage`（2026-07-29 使用者裁決）：實務上兩者是同一種空間的
-# 兩個狀態——放東西叫書房、空著叫儲藏、書房堆滿了又變回儲藏。實測佐證：
-# DINOv2 裁切分類器在 72 房上**從未把兩者互相搞混**（三個相關錯誤全是跨家族的
-# living→office、office→bath、storage→bed），合併前後正確率完全相同 65/72，
-# 亦即分開標並不帶來任何可量測的資訊。
-GT_CLASS_EXTRA = {"Office": "storage", "StairWell": "stair"}
+# 兩處更名的理由：
+#   space→Hallway  桶裡裝的本來就是走道與無名通行空間，叫「空間」大到什麼都
+#                  能塞，讀報表分不出「模型放棄了」還是「這裡真的是走道」。
+#   outdoor→Balcony 管線本來就有 balcony 這個鍵，outdoor 是 CubiCasa 留下的
+#                  第二個名字，同一種空間掛兩個名字還得靠 norm_label 折回去。
+CLASSES = ["Kitchen", "LivingRoom", "Bedroom", "Bath", "Entry",
+           "Storage", "Garage", "Balcony", "Stair", "Hallway"]
+
+# GT token → 類別。標準詞彙為 identity，其餘是答案集歸一前的舊寫法別名，
+# 兩種寫法都讀得動（歸一是分批進行的，color 集尚未處理）。
+#
+# `Office`→`Storage`（2026-07-29 裁決）：實務上是同一種空間的兩個狀態，放東西
+# 叫書房、空著叫儲藏。DINOv2 在 72 房上從未把兩者互相搞混，合併前後正確率
+# 完全相同 65/72——分開標不帶來任何可量測的資訊。
+#
+# `HallWay`→`Hallway`（2026-08-01 裁決）：CubiCasa 的 rooms_selected 給
+# HallWay=7，與 Entry 同碼 → 走道被評成玄關。答案集 13 檔共 14 個 HallWay，
+# 其中 floor07/35/54 三檔 HallWay 與 Entry 併存，證明標注者視為兩種空間。
+GT_TOKEN2CLASS = {
+    "Kitchen": "Kitchen", "LivingRoom": "LivingRoom", "Bedroom": "Bedroom",
+    "Bath": "Bath", "Entry": "Entry", "Storage": "Storage",
+    "Garage": "Garage", "Balcony": "Balcony", "Stair": "Stair",
+    "Hallway": "Hallway",
+    # 歸一前的舊寫法
+    "WashRoom": "Bath", "Office": "Storage", "Outdoor": "Balcony",
+    "StairWell": "Stair", "HallWay": "Hallway",
+    # TODO(color 集)：104 個 Undefined 全在 *_color，語意是「標注者沒指定」而
+    # 非「這裡是走道」，暫維持既有歸類。使用者 2026-08-01 表示要逐一修正，
+    # 修完後這一列應改為 skip 或移除。
+    "Undefined": "Hallway",
+}
+GT_TOKEN_SKIP = ("Wall", "Railing", "Background")   # 不是房間
+_warned_tokens = set()
 
 
 def norm_label(k):
-    """管線房型 key → 評分 11 類：balcony 併 outdoor、room/None 併 space。
-    office/stair 為具名類，原樣通過（不得再併入 space）。"""
+    """管線房型 key → 評分 10 類：`room`／None（總分未過門檻）併 Hallway，
+    其餘原樣通過——2026-08-01 起兩側同名，不再有任何折疊。"""
     if k in (None, "", "room"):
-        return "space"
-    return "outdoor" if k == "balcony" else k
+        return "Hallway"
+    return k
 
 
 def gt_label_of(cls_token):
     """model.svg 的 `class="Space <token>"` → 評分類別；None＝不是房間。
 
-    背景(0)/牆(2)/欄杆(8) 回 None 供呼叫端跳過。CubiCasa 模型本身沒有
-    office/stair 輸出通道，這兩類只在 GT 側具名——預測側靠證據層（OCR／樓梯
-    幾何）產出，量尺兩邊才對得上。"""
-    if cls_token in GT_CLASS_EXTRA:
-        return GT_CLASS_EXTRA[cls_token]
-    from floortrans.loaders.house import rooms_selected
-    import floorplan2room as f2r
-    cid = rooms_selected.get(cls_token, 11)
-    if cid in (0, 2, 8):
+    2026-08-01 起不再經 CubiCasa 的 `rooms_selected`：那張表把 Office 與
+    StairWell 塌成 Undefined、把 HallWay 併進 Entry，是本專案三次房型錯誤的
+    共同來源。改為自持對照表後，答案集寫什麼就是什麼。
+
+    未知 token 仍歸 Hallway（同舊行為），但會出聲一次——靜默吞掉會讓答案集
+    的錯字變成看不見的失分。"""
+    if cls_token in GT_TOKEN_SKIP:
         return None
-    return norm_label(f2r.CC_ROOM_LABEL.get(cid))
+    lab = GT_TOKEN2CLASS.get(cls_token)
+    if lab is None:
+        if cls_token not in _warned_tokens:
+            _warned_tokens.add(cls_token)
+            print(f"⚠ 答案集出現未知房型 token「{cls_token}」→ 暫歸 Hallway")
+        return "Hallway"
+    return lab
 
 
 def match_rooms(gt_masks, pred_masks, thr=0.5):
@@ -144,7 +173,7 @@ def report_path_for(own, gt_seg):
 
 
 def parse_gt(svg_path, h, w):
-    """model.svg Space 多邊形 → [(11類label, bool mask)]；對位不符回 None。
+    """model.svg Space 多邊形 → [(10類label, bool mask)]；對位不符回 None。
 
     多邊形座標＝F1_scaled.png 像素（實證疊圖驗證）；SVG 的 width/height
     宣告與圖面尺寸普遍不符（三子集抽查皆然），不可用來驗對位——

@@ -3,7 +3,7 @@
 從 own_dataset（訓練）與 own_eval（測試，永不進訓練）的 model.svg 取每個
 Space 多邊形，以 bbox＋邊距從 F1_scaled.png 裁出房間圖塊，供「裁切分類」
 路線（DINOv2 linear probe / VLM 探測）使用。標籤沿用 eval_rooms_cc 的
-9 類正規化（Undefined→space、Balcony→outdoor…）。
+10 類正規化（Undefined→hallway、HallWay→hallway、Balcony→outdoor…）。
 
 用法：python scripts/extract_room_crops.py [--margin 0.15] [--out training/room_crops]
 輸出：<out>/{train,test}/<floor>_<idx>_<label>.png ＋ <out>/manifest.json

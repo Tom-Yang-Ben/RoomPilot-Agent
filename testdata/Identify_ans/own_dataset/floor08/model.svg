@@ -57,7 +57,7 @@
     <g id="Door" class="Door">
       <polygon fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon18-4" points="265.579,470.109 174.575,470.109 174.575,516.074 265.579,516.074 "/>
     </g>
-    <g class="Space WashRoom" id="g19">
+    <g class="Space Bath" id="g19">
       <polygon points="29.0,32.0 29.0,92.0 212.0,92.0 212.0,32.0 " fill="#d97a8f" fill-opacity="0.35" stroke="#d97a8f" stroke-width="2" id="polygon19"/>
     </g>
     <g class="Space Bedroom" id="g20">
@@ -72,7 +72,7 @@
     <g class="Space Storage" id="g23">
       <polygon points="29.0,467.0 29.0,604.0 215.0,604.0 212.0,467.0 " fill="#b8a06a" fill-opacity="0.35" stroke="#b8a06a" stroke-width="2" id="polygon23"/>
     </g>
-    <g class="Space StairWell" id="g23-6">
+    <g class="Space Stair" id="g23-6">
       <polygon id="polygon23-1" style="fill:#a89cc8;fill-opacity:0.35;stroke:#a89cc8;stroke-width:2" sodipodi:nodetypes="ccccc" points="212.145,409.02 29.8441,409.812 29.8441,458.779 212.719,458.779 "/>
     </g>
   </g>

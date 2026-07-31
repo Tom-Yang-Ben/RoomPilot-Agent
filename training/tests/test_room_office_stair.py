@@ -17,31 +17,33 @@ from eval_rooms_cc import CLASSES, gt_label_of, norm_label
 
 # ─────────────────────────── 詞彙表與色表 ───────────────────────────
 def test_label_tables_cover_new_kinds():
-    assert fp.ROOM_ZH_EX["stair"] == "樓梯"
-    assert "stair" in fp.ROOM_BGR_EX
+    assert fp.ROOM_ZH_EX["Stair"] == "樓梯"
+    assert "Stair" in fp.ROOM_BGR_EX
     assert "office" not in fp.ROOM_ZH_EX      # 已併入 storage，勿再長回來
 
 
 def test_new_labels_are_scoreable_keys():
     """兩類不在 CC_ROOM_LABEL（模型無此輸出通道），必須另行播種進 score，
-    否則 OCR 層的 `if lab_t in score` 防呆會把證據靜默丟掉。"""
-    assert set(fp.EXTRA_LABELS) == {"stair"}
+    否則 OCR 層的 `if lab_t in score` 防呆會把證據靜默丟掉。
+    Hallway 2026-08-01 一併播種——未播種時實測 P=R=0，量尺看得到、管線
+    永遠答不出來。"""
+    assert set(fp.EXTRA_LABELS) == {"Stair", "Hallway"}
     assert not set(fp.EXTRA_LABELS) & set(fp.CC_ROOM_LABEL.values())
 
 
 # ─────────────────────────── 層 5：OCR 文字 ───────────────────────────
 def test_ocr_words_map_to_new_kinds():
-    for word, lab in (("OFFICE", "storage"), ("STUDY", "storage"),
-                      ("WORKROOM", "storage"), ("DEN", "storage"),
-                      ("STAIR", "stair"), ("STAIRS", "stair"),
-                      ("STAIRWELL", "stair"), ("STAIRCASE", "stair")):
+    for word, lab in (("OFFICE", "Storage"), ("STUDY", "Storage"),
+                      ("WORKROOM", "Storage"), ("DEN", "Storage"),
+                      ("STAIR", "Stair"), ("STAIRS", "Stair"),
+                      ("STAIRWELL", "Stair"), ("STAIRCASE", "Stair")):
         assert fp.ocr_room_label(word) == lab, word
 
 
 def test_ocr_short_key_needs_exact_match():
     """DEN 僅 3 字，依 ocr_room_label 規則只走精確比對——
     GARDEN/WARDEN 這類含 DEN 的雜訊詞不得誤收。"""
-    assert fp.ocr_room_label("GARDEN") != "storage"
+    assert fp.ocr_room_label("GARDEN") != "Storage"
 
 
 # ─────────────────────────── 層 4：樓梯幾何 ───────────────────────────
@@ -94,53 +96,66 @@ def _mk(tmp_path, symbols=(), texts=()):
            "symbols": [(k, 10.0, 10.0) for k in symbols],
            "texts": [(lab, 10.0, 10.0, lab.upper()) for lab in texts]}
     rooms = [{"id": 1, "area_px": 400}, {"id": 2, "area_px": 400}]
-    return det, labels, rooms, [{}, {"living": 1.0}]
+    return det, labels, rooms, [{}, {"LivingRoom": 1.0}]
 
 
 def test_stair_symbol_names_room(tmp_path):
     det, labels, rooms, probs = _mk(tmp_path, symbols=["stair"])
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "stair"
+    assert rooms[0]["label"] == "Stair"
 
 
 def test_ocr_text_names_storage(tmp_path):
     """書房系文字（OFFICE/STUDY…）走 OCR 落到 storage。"""
-    det, labels, rooms, probs = _mk(tmp_path, texts=["storage"])
+    det, labels, rooms, probs = _mk(tmp_path, texts=["Storage"])
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "storage"
+    assert rooms[0]["label"] == "Storage"
 
 
 def test_new_kinds_do_not_leak_into_other_rooms(tmp_path):
     """無證據時不得憑空冒出 stair（0 分播種不是 0.15 門檻的免死金牌）。"""
     det, labels, rooms, probs = _mk(tmp_path)
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] != "stair"
+    assert rooms[0]["label"] != "Stair"
 
 
 def test_stair_survives_singleton_demotion(tmp_path):
     """living/kitchen 限額降級時，次高分挑選不得被新類的 0 分播種干擾。"""
     det, labels, rooms, probs = _mk(tmp_path, symbols=["stair"])
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[1]["label"] == "living"       # 錨房不受影響
+    assert rooms[1]["label"] == "LivingRoom"       # 錨房不受影響
 
 
-# ─────────────────────────── GT 側：不再混入 space ───────────────────────────
+# ─────────────────────────── GT 側：不再混入 hallway ─────────────────────────
 def test_eval_classes_include_new_kinds():
-    assert "stair" in CLASSES and "office" not in CLASSES
+    """2026-08-01 定案：10 類、CamelCase、與答案集 token 同形。
+    舊寫法（office/space/outdoor/living/bed…）一律不得再出現。"""
+    assert "Stair" in CLASSES and "Hallway" in CLASSES
+    for gone in ("office", "space", "outdoor", "living", "bed", "kitchen"):
+        assert gone not in CLASSES, gone
     assert len(CLASSES) == len(set(CLASSES)) == 10
 
 
 def test_gt_label_separates_office_and_stairwell():
-    """Office 與 StairWell 在 rooms_selected 同為 11，塌陷前必須先攔下來，
-    否則兩者連同真正的 Undefined 一起變成 space 混合桶（recall 0.286 的成因）。
-    Office 攔下後併入 storage（2026-07-29 裁決），不再是獨立類別。"""
-    assert gt_label_of("Office") == "storage"
-    assert gt_label_of("StairWell") == "stair"
-    assert gt_label_of("Undefined") == "space"
-    assert gt_label_of("Kitchen") == "kitchen"
-    assert gt_label_of("Bath") == "bath"
+    """Office 與 StairWell 在 CubiCasa 的 rooms_selected 同為 11(Undefined)，
+    照抄那張表會讓兩者連同真正的 Undefined 變成一個混合桶（recall 0.286）。
+    2026-08-01 起量尺自持對照表，這兩個 token 直接具名。
+    Office 併入 Storage（2026-07-29 裁決），不再是獨立類別。"""
+    assert gt_label_of("Office") == "Storage"
+    assert gt_label_of("StairWell") == "Stair"
+    assert gt_label_of("Undefined") == "Hallway"
+    assert gt_label_of("Kitchen") == "Kitchen"
+    assert gt_label_of("Bath") == "Bath"
+
+
+def test_gt_label_routes_hallway_to_hallway_not_entry():
+    """CubiCasa 慣例 rooms_selected["HallWay"]=7 → entry，會把走道說成玄關。
+    答案集 13 檔共 14 個 HallWay 多邊形，其中 floor07/35/54 三檔 HallWay 與
+    Entry 併存——標注者顯然視為兩種空間，塌成同類就再也分不開。"""
+    assert gt_label_of("HallWay") == "Hallway"
+    assert gt_label_of("Entry") == "Entry"      # 玄關本身不受影響
 
 
 def test_norm_label_passes_new_kinds_through():
-    assert norm_label("stair") == "stair"
-    assert norm_label("room") == "space"
+    assert norm_label("Stair") == "Stair"
+    assert norm_label("room") == "Hallway"

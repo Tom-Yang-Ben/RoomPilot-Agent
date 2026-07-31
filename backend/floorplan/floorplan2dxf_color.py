@@ -1088,11 +1088,13 @@ def _room_polygon(rects, wins, doors, img_w, img_h, T, T_out):
 
 
 # ──────────────── 空間標籤（v1.9：分割/分類/門位框/連通檢查） ────────────────
-ROOM_ZH = {"living": "客廳", "kitchen": "廚房", "bed": "臥室",
-           "bath": "浴廁", "balcony": "陽台", "room": "空間"}
-ROOM_BGR = {"living": (90, 190, 90), "kitchen": (60, 140, 235),
-            "bed": (220, 140, 70), "bath": (210, 200, 60),
-            "balcony": (200, 90, 200), "room": (150, 150, 150)}
+# 房型詞彙 2026-08-01 統一為 CamelCase 10 類（與答案集 token、量尺 CLASSES
+# 同形）。`room` 不是類別，是「總分低於門檻、不表態」的兜底哨兵，保留原樣。
+ROOM_ZH = {"LivingRoom": "客廳", "Kitchen": "廚房", "Bedroom": "臥室",
+           "Bath": "浴廁", "Balcony": "陽台", "room": "空間"}
+ROOM_BGR = {"LivingRoom": (90, 190, 90), "Kitchen": (60, 140, 235),
+            "Bedroom": (220, 140, 70), "Bath": (210, 200, 60),
+            "Balcony": (200, 90, 200), "room": (150, 150, 150)}
 _FONT_PATHS = ["/mnt/c/Windows/Fonts/msjh.ttc",
                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -1194,7 +1196,7 @@ def classify_rooms(rooms, cm, thin=None, labels=None):
         else:
             r["density"] = 0.0
     order = sorted(rooms, key=lambda r: -r["area_px"])
-    order[0]["label"] = "living"
+    order[0]["label"] = "LivingRoom"
     rest = order[1:]
     dens = sorted(r["density"] for r in rest)
     med = dens[len(dens) // 2] if dens else 0.0
@@ -1204,17 +1206,17 @@ def classify_rooms(rooms, cm, thin=None, labels=None):
     for r in rest:                               # 陽台：貼外圍、細長、空(設備線少)
         if r["label"] is None and r["aspect"] >= 2.3 \
                 and r.get("touch_env") and r["density"] <= med:
-            r["label"] = "balcony"
+            r["label"] = "Balcony"
     for r in rest:                               # 浴廁：1.8~5.5m²
         if r["label"] is None and r["area_m2"] <= 5.5:
-            r["label"] = "bath"
+            r["label"] = "Bath"
     cand = [r for r in rest if r["label"] is None
             and r["area_m2"] <= 8.0 and r["density"] > med]
     if cand:                                     # 廚房：跟浴廁差不多大，設備線最密
-        max(cand, key=lambda r: (r["density"], r["aspect"]))["label"] = "kitchen"
+        max(cand, key=lambda r: (r["density"], r["aspect"]))["label"] = "Kitchen"
     for r in rest:
         if r["label"] is None:
-            r["label"] = "bed"                   # 居中尺寸(通常近正方) → 臥室
+            r["label"] = "Bedroom"               # 居中尺寸(通常近正方) → 臥室
     for r in rooms:
         r["label_zh"] = ROOM_ZH[r["label"] or "room"]
 
@@ -1370,7 +1372,8 @@ def room_graph(labels, outside, rooms, zones, rects, wins, T, max_doors=None):
                 by_id[rid]["via_hall"] = True
     for r in rooms:
         r.setdefault("has_door", False)
-    living = next((r["id"] for r in rooms if r["label"] == "living"), rooms[0]["id"])
+    living = next((r["id"] for r in rooms if r["label"] == "LivingRoom"),
+                  rooms[0]["id"])
     adj = {}
     for a_, b_ in edges:
         adj.setdefault(a_, set()).add(b_)

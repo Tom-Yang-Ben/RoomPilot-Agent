@@ -17,10 +17,12 @@ from xml.dom import minidom
 import cv2
 import numpy as np
 
-# 管線 label → CubiCasa 房型 class（rooms_selected 的鍵值域）
-CUBI_CLASS = {"bed": "Bedroom", "bath": "Bath", "kitchen": "Kitchen",
-              "living": "LivingRoom", "entry": "Entry", "storage": "Storage",
-              "garage": "Garage", "outdoor": "Outdoor", "balcony": "Outdoor",
+# 管線 label → 答案集 Space token。2026-08-01 兩側詞彙統一後幾乎是 identity，
+# 只剩「未表態」要落回 Undefined 供人工補標。
+CUBI_CLASS = {"Bedroom": "Bedroom", "Bath": "Bath", "Kitchen": "Kitchen",
+              "LivingRoom": "LivingRoom", "Entry": "Entry",
+              "Storage": "Storage", "Garage": "Garage",
+              "Balcony": "Balcony", "Stair": "Stair", "Hallway": "Hallway",
               "room": "Undefined", None: "Undefined", "": "Undefined"}
 # 符號 kind → FixedFurniture class 與名義尺寸(px 於 cm=1 時)。
 # bedrect 不輸出——CubiCasa 圖示分類法沒有床（床的訊息在房間類別）

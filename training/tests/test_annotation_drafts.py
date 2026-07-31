@@ -17,15 +17,15 @@ def test_mapping_covers_all_pipeline_labels():
     for k in keys:
         assert to_cubicasa_class(k), f"label {k!r} 無映射"
     assert to_cubicasa_class(None) == "Undefined"
-    assert to_cubicasa_class("bed") == "Bedroom"
-    assert to_cubicasa_class("balcony") == "Outdoor"
+    assert to_cubicasa_class("Bedroom") == "Bedroom"
+    assert to_cubicasa_class("Balcony") == "Balcony"   # 2026-08-01 詞彙統一
 
 
 def _sample_svg():
     rects = [(10.0, 10.0, 100.0, 18.0), (10.0, 10.0, 18.0, 100.0)]
     wins = [(0, 40.0, 10.0, 60.0, 18.0)]
     zones = [([(70.0, 10.0), (90.0, 10.0), (90.0, 18.0), (70.0, 18.0)], None)]
-    spaces = [("bed", np.array([[20, 20], [95, 20], [95, 95], [20, 95]]))]
+    spaces = [("Bedroom", np.array([[20, 20], [95, 20], [95, 95], [20, 95]]))]
     symbols = [("oval", 50.0, 50.0)]
     return build_svg(120, 120, rects, wins, zones, spaces, symbols)
 

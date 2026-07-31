@@ -41,6 +41,19 @@ def test_crop_room_empty_mask_returns_none():
                         np.zeros((10, 10), bool)) is None
 
 
+def test_shipped_head_classes_match_eval_scale():
+    """出貨線性頭的 classes 必須與量尺 CLASSES 逐項同序——三方（訓練／量尺／
+    產品）共用同一份類別空間，漂掉的話 softmax 機率會對到錯的房型名而無聲。
+    2026-08-01 space→hallway 改名就是靠這條在 npz 未同步時擋下來。"""
+    import os
+    from eval_rooms_cc import CLASSES
+    if not os.path.isfile(rc.HEAD_PATH):
+        pytest.skip(f"未出貨線性頭 {rc.HEAD_PATH}")
+    z = np.load(rc.HEAD_PATH, allow_pickle=False)
+    assert [str(x) for x in z["classes"]] == CLASSES
+    assert z["weight"].shape[0] == len(CLASSES)
+
+
 def test_classify_disabled_returns_none_loudly(monkeypatch, capsys, tmp_path):
     """缺件即停用是契約，但**必須出聲**——靜默降級會讓分數悄悄退回
     CubiCasa 路徑而沒人發現（同 symbol_match 的既有陷阱）。"""
@@ -62,10 +75,10 @@ def _mk(probs, symbols=(), texts=(), anchor=None):
            "symbols": [(k, 10.0, 10.0) for k in symbols],
            "texts": [(lab, 10.0, 10.0, lab.upper()) for lab in texts]}
     rooms = [{"id": 1, "area_px": 400}, {"id": 2, "area_px": 400}]
-    return det, labels, rooms, [probs, anchor or {"living": 1.0}]
+    return det, labels, rooms, [probs, anchor or {"LivingRoom": 1.0}]
 
 
-@pytest.mark.parametrize("lab", ["bed", "bath", "kitchen", "storage", "stair"])
+@pytest.mark.parametrize("lab", ["Bedroom", "Bath", "Kitchen", "Storage", "Stair"])
 def test_dino_probability_names_room(lab):
     det, labels, rooms, probs = _mk({lab: 0.95})
     fp.classify_rooms_dino(det, labels, rooms, probs)
@@ -75,37 +88,37 @@ def test_dino_probability_names_room(lab):
 def test_ocr_overrides_confident_model():
     """圖面文字是作者親口說的答案，權重(1.3)刻意高於模型滿票(1.0)——
     v2.17 記載 CubiCasa 會在美式線稿上『自信地錯』，此性質須沿用到新路徑。"""
-    det, labels, rooms, probs = _mk({"living": 1.0}, texts=["kitchen"])
+    det, labels, rooms, probs = _mk({"LivingRoom": 1.0}, texts=["Kitchen"])
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "kitchen"
+    assert rooms[0]["label"] == "Kitchen"
 
 
 def test_symbols_tip_only_when_model_unsure():
     """符號證據(0.15~0.6)不該翻動有把握的模型判斷，但模型猶豫時要能作用。"""
-    det, labels, rooms, probs = _mk({"bath": 0.95, "kitchen": 0.05},
+    det, labels, rooms, probs = _mk({"Bath": 0.95, "Kitchen": 0.05},
                                     symbols=["kstove"])
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "bath"       # 0.95 vs 0.05+0.35 → 模型勝
+    assert rooms[0]["label"] == "Bath"       # 0.95 vs 0.05+0.35 → 模型勝
 
-    det, labels, rooms, probs = _mk({"bath": 0.30, "kitchen": 0.28},
+    det, labels, rooms, probs = _mk({"Bath": 0.30, "Kitchen": 0.28},
                                     symbols=["kstove"])
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "kitchen"    # 0.30 vs 0.28+0.35 → 證據翻盤
+    assert rooms[0]["label"] == "Kitchen"    # 0.30 vs 0.28+0.35 → 證據翻盤
 
 
 def test_open_living_suppresses_kitchen_evidence():
     """客餐廚一體：客廳機率強且遠勝廚房時，爐台水槽只是角落，不加廚房分。"""
-    det, labels, rooms, probs = _mk({"living": 0.80, "kitchen": 0.10},
+    det, labels, rooms, probs = _mk({"LivingRoom": 0.80, "Kitchen": 0.10},
                                     symbols=["kstove", "ksink"],
-                                    anchor={"bed": 1.0})
+                                    anchor={"Bedroom": 1.0})
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "living"
+    assert rooms[0]["label"] == "LivingRoom"
 
 
 def test_contract_keys_preserved():
     """main 消費 rooms[] 的 label/label_zh/area_m2/cc_share/icons_cm2，
     換命名層不得少鍵（icons_cm2 來源已移除，保留空 dict）。"""
-    det, labels, rooms, probs = _mk({"bed": 0.9})
+    det, labels, rooms, probs = _mk({"Bedroom": 0.9})
     fp.classify_rooms_dino(det, labels, rooms, probs)
     r = rooms[0]
     for k in ("label", "label_zh", "area_m2", "cc_share", "icons_cm2"):
@@ -121,17 +134,17 @@ def test_singleton_rule_still_applies():
     det = {"cm": 1.0, "thin": None, "symbols": [], "texts": []}
     rooms = [{"id": 1, "area_px": 900}, {"id": 2, "area_px": 400},
              {"id": 3, "area_px": 100}]
-    probs = [{"living": 0.9}, {"living": 0.9, "bed": 0.6}, {"kitchen": 0.9}]
+    probs = [{"LivingRoom": 0.9}, {"LivingRoom": 0.9, "Bedroom": 0.6}, {"Kitchen": 0.9}]
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert sum(r["label"] == "living" for r in rooms) == 1
-    assert rooms[0]["label"] == "living"     # 面積最大者保留
+    assert sum(r["label"] == "LivingRoom" for r in rooms) == 1
+    assert rooms[0]["label"] == "LivingRoom"     # 面積最大者保留
 
 
 def test_no_probs_falls_back_to_evidence_only():
     """機率空 dict（裁不出圖）時不得炸，且證據層仍能命名。"""
     det, labels, rooms, probs = _mk({}, symbols=["kstove"])
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "kitchen"
+    assert rooms[0]["label"] == "Kitchen"
 
 
 def test_singleton_rule_choices_are_measured_not_assumed():
@@ -146,11 +159,11 @@ def test_singleton_rule_choices_are_measured_not_assumed():
     labels[:, :20], labels[:, 20:] = 1, 2
     det = {"cm": 1.0, "thin": None, "symbols": [], "texts": []}
     rooms = [{"id": 1, "area_px": 300}, {"id": 2, "area_px": 900}]
-    probs = [{"kitchen": 1.00}, {"kitchen": 0.60, "bed": 0.30}]
+    probs = [{"Kitchen": 1.00}, {"Kitchen": 0.60, "Bedroom": 0.30}]
     fp.classify_rooms_dino(det, labels, rooms, probs)
     # 面積最大者留住限額類（即使分數較低）——這是現行且實測最佳的行為
-    assert rooms[1]["label"] in ("kitchen", "living")
-    assert rooms[0]["relabel_from"] == "kitchen"
+    assert rooms[1]["label"] in ("Kitchen", "LivingRoom")
+    assert rooms[0]["relabel_from"] == "Kitchen"
 
 
 def test_demotion_never_flows_to_another_unique_label():
@@ -162,9 +175,9 @@ def test_demotion_never_flows_to_another_unique_label():
     det = {"cm": 1.0, "thin": None, "symbols": [], "texts": []}
     rooms = [{"id": i, "area_px": 400} for i in (1, 2, 3)]
     # 房2/房3 都會被從 kitchen 降級，次高分是 living 但不得取用
-    probs = [{"kitchen": 0.9}, {"kitchen": 0.6, "living": 0.3, "bed": 0.1},
-             {"kitchen": 0.5, "living": 0.4, "bath": 0.1}]
+    probs = [{"Kitchen": 0.9}, {"Kitchen": 0.6, "LivingRoom": 0.3, "Bedroom": 0.1},
+             {"Kitchen": 0.5, "LivingRoom": 0.4, "Bath": 0.1}]
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[1]["relabel_from"] == "kitchen"
-    assert rooms[2]["relabel_from"] == "kitchen"
-    assert rooms[1]["label"] != "living" and rooms[2]["label"] != "living"
+    assert rooms[1]["relabel_from"] == "Kitchen"
+    assert rooms[2]["relabel_from"] == "Kitchen"
+    assert rooms[1]["label"] != "LivingRoom" and rooms[2]["label"] != "LivingRoom"

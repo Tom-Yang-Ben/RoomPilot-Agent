@@ -364,22 +364,28 @@ OCR_CONF_MIN = 0.7                     # rapidocr 實測正字信心 0.99+，0.7
 OCR_TEXT_W = 1.3                       # 壓過語意滿票+加成(1.12)：floor04 實測 DEPOSIT
                                        # →living 語意 1.0「自信地錯」，TODO 草案 0.65
                                        # 壓不過；語意+圖示鐵證聯手(≥1.7)仍可反壓誤讀
+# 鍵＝圖面文字（一律大寫比對），值＝2026-08-01 定案的 10 類詞彙。
 OCR_WORD2LABEL = {
-    "DORMITORY": "bed", "BEDROOM": "bed",
-    "KITCHEN": "kitchen",
-    "BATH": "bath", "BATHROOM": "bath", "WC": "bath", "TOILET": "bath",
-    "LIVING": "living", "LIVINGROOM": "living", "LOUNGE": "living",
-    "DEPOSIT": "storage", "STORAGE": "storage", "CLOSET": "storage",
-    "CIRCULATION": "entry", "HALL": "entry", "HALLWAY": "entry",
-    "ENTRY": "entry",
-    "BALCONY": "outdoor", "TERRACE": "outdoor",
-    "GARAGE": "garage",
-    # 書房系詞彙 → storage（office 已於 2026-07-29 併入 storage）。
-    # STAIRWELL/STAIRCASE 含 STAIR，片語比對取最長鍵仍是 stair。
-    "OFFICE": "storage", "STUDY": "storage", "WORKROOM": "storage",
-    "DEN": "storage", "LIBRARY": "storage",
-    "STAIR": "stair", "STAIRS": "stair", "STAIRWELL": "stair",
-    "STAIRCASE": "stair",
+    "DORMITORY": "Bedroom", "BEDROOM": "Bedroom",
+    "KITCHEN": "Kitchen",
+    "BATH": "Bath", "BATHROOM": "Bath", "WC": "Bath", "TOILET": "Bath",
+    "LIVING": "LivingRoom", "LIVINGROOM": "LivingRoom",
+    "LOUNGE": "LivingRoom",
+    "DEPOSIT": "Storage", "STORAGE": "Storage", "CLOSET": "Storage",
+    # 走道系詞彙 2026-08-01 從 Entry 改指 Hallway：圖面寫 CIRCULATION／HALLWAY
+    # 的就是走道，玄關另有 ENTRY／ENTRANCE。舊映射把三者都算成玄關，是
+    # 「Entry 與 Hallway 難分」在 OCR 層的同一個病灶。
+    "CIRCULATION": "Hallway", "HALL": "Hallway", "HALLWAY": "Hallway",
+    "CORRIDOR": "Hallway", "PASSAGE": "Hallway",
+    "ENTRY": "Entry", "ENTRANCE": "Entry", "FOYER": "Entry",
+    "BALCONY": "Balcony", "TERRACE": "Balcony",
+    "GARAGE": "Garage",
+    # 書房系詞彙 → Storage（office 已於 2026-07-29 併入 storage）。
+    # STAIRWELL/STAIRCASE 含 STAIR，片語比對取最長鍵仍是 Stair。
+    "OFFICE": "Storage", "STUDY": "Storage", "WORKROOM": "Storage",
+    "DEN": "Storage", "LIBRARY": "Storage",
+    "STAIR": "Stair", "STAIRS": "Stair", "STAIRWELL": "Stair",
+    "STAIRCASE": "Stair",
 }
 
 _ocr_engine = None                     # 模組級單例：模型載入 ~1s，批次只付一次
@@ -479,8 +485,11 @@ def detect_text_boxes(img_path, dst_w=None, dst_h=None):
 # id 沿用 CubiCasa5k 標注格式的 room class 編碼——GT 標注仍是該格式的 SVG，
 # `eval_rooms_cc.gt_label_of` 需要這層映射把標注 token 轉成類別。產品推論路徑
 # 只用到 `.values()`（類別集合），不碰 CubiCasa 的任何模型、權重或程式碼。
-CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
-                 7: "entry", 9: "storage", 10: "garage", 1: "outdoor"}
+# 2026-08-01 `outdoor` 更名為 `balcony`（使用者裁決）：管線本來就有 balcony
+# 這個鍵（fp_c.ROOM_ZH），outdoor 是 CubiCasa 詞彙留下的第二個名字，同一種
+# 空間掛兩個名字，量尺還得靠 norm_label 把 balcony 折回 outdoor 才對得上。
+CC_ROOM_LABEL = {3: "Kitchen", 4: "LivingRoom", 5: "Bedroom", 6: "Bath",
+                 7: "Entry", 9: "Storage", 10: "Garage", 1: "Balcony"}
 # 模型盲區類：DINOv2 的線性頭雖有 stair 通道，但該類的證據仍主要來自
 # 層 4 的 detect_stairs 踏板幾何。必須另行播種進 score，否則 OCR 層的
 # `if lab_t in score` 防呆會靜默丟掉證據。
@@ -488,14 +497,15 @@ CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
 # 註：曾短暫存在的 `office`（書房）已於 2026-07-29 併入 `storage`（使用者裁決）
 # ——兩者實務上是同一空間的兩個狀態，且 DINOv2 實測從未把它們互相搞混，
 # 分開標不帶來可量測資訊。書房系 OCR 詞彙改指向 storage。
-EXTRA_LABELS = ("stair",)
-ROOM_ZH_EX = {**fp_c.ROOM_ZH, "entry": "玄關", "storage": "儲藏室",
-              "garage": "車庫", "outdoor": "陽台/戶外",
-              "stair": "樓梯"}
-ROOM_BGR_EX = {**fp_c.ROOM_BGR, "entry": (120, 210, 250),
-               "storage": (180, 180, 120), "garage": (130, 130, 130),
-               "outdoor": fp_c.ROOM_BGR["balcony"],
-               "stair": (70, 70, 200)}
+# `hallway` 2026-08-01 一併播種：它與 stair 同樣不在 CC_ROOM_LABEL 裡，
+# 不播種的話 `if lab in score` 會靜默丟掉證據，且 _entry_or_hallway 也無處
+# 可寫——量尺看得到這一類、管線卻永遠答不出來（實測 P=R=0，賠掉 3 房）。
+EXTRA_LABELS = ("Stair", "Hallway")
+ROOM_ZH_EX = {**fp_c.ROOM_ZH, "Entry": "玄關", "Storage": "儲藏室",
+              "Garage": "車庫", "Stair": "樓梯", "Hallway": "走道"}
+ROOM_BGR_EX = {**fp_c.ROOM_BGR, "Entry": (120, 210, 250),
+               "Storage": (180, 180, 120), "Garage": (130, 130, 130),
+               "Stair": (70, 70, 200), "Hallway": (170, 170, 210)}
 
 
 
@@ -535,44 +545,46 @@ def _apply_evidence(det, labels, r, score, open_living):
         if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
                 and labels[iy, ix] == r["id"]:
             n[kind] += 1
+    # 注意：`n` 的鍵是符號種類（bed＝床的圖示、stair＝踏板），與房型類別名
+    # 同形但不同義，2026-08-01 房型改 CamelCase 時不得一併改動。
     if n["oval"]:                                # 馬桶/洗手台橢圓
-        score["bath"] += 0.45 + 0.2 * min(n["oval"] - 1, 2)
+        score["Bath"] += 0.45 + 0.2 * min(n["oval"] - 1, 2)
         if n["tubrect"]:                         # 浴缸矩形＋橢圓同室 → 鐵證
-            score["bath"] += 0.3
+            score["Bath"] += 0.3
     if n["stove"] and not open_living:           # 爐台燃燒圈
-        score["kitchen"] += 0.5
+        score["Kitchen"] += 0.5
     if n["bedrect"]:                             # 雙人床矩形
-        score["bed"] += 0.5
+        score["Bedroom"] += 0.5
     if n["shower"]:                              # 模板：淋浴間（保守權重）
-        score["bath"] += 0.3
+        score["Bath"] += 0.3
     if n["sinkicon"] and not open_living:        # 模板：水槽（保守權重）
-        score["kitchen"] += 0.15
+        score["Kitchen"] += 0.15
     # Asset 家具模板證據（存在制不疊加，權重保守——模板與考卷畫風
     # 有落差，寧漏勿誤；廚房系沿用 open_living 防呆）
     if n["wc"]:
-        score["bath"] += 0.4
+        score["Bath"] += 0.4
     if n["tub"]:
-        score["bath"] += 0.3
+        score["Bath"] += 0.3
     if n["basin"]:
-        score["bath"] += 0.2
+        score["Bath"] += 0.2
     if n["kstove"] and not open_living:
-        score["kitchen"] += 0.35
+        score["Kitchen"] += 0.35
     if n["ksink"] and not open_living:
-        score["kitchen"] += 0.2
+        score["Kitchen"] += 0.2
     if n["dtable"] and not open_living:          # user 裁決：餐桌歸廚房
-        score["kitchen"] += 0.25
+        score["Kitchen"] += 0.25
     if n["bed"]:
-        score["bed"] += 0.4
+        score["Bedroom"] += 0.4
     if n["wardrobe"]:
-        score["bed"] += 0.2
+        score["Bedroom"] += 0.2
     if n["sofa"]:
-        score["living"] += 0.3
+        score["LivingRoom"] += 0.3
     if n["chair"]:                               # user 裁決：單人沙發＝客廳
-        score["living"] += 0.15
+        score["LivingRoom"] += 0.15
     if n["stair"]:                               # 樓梯踏板（detect_stairs）
-        # 權重高於一般家具：4+ 條等距等長踏板是強幾何約束，且 stair 沒有
+        # 權重高於一般家具：4+ 條等距等長踏板是強幾何約束，且 Stair 沒有
         # 語意票可搭配（模型盲區類），證據不夠力就永遠叫不出這個名字
-        score["stair"] += 0.6
+        score["Stair"] += 0.6
     r["symbols"] = {k: v for k, v in n.items() if v}
     # OCR 文字證據（層 5）：字框中心落在這間房 → 該房型加分。
     # 同房同型多字只加一次（重複字樣不疊權），異型各加（衝突交給總分裁決）
@@ -623,8 +635,8 @@ def classify_rooms_dino(det, labels, rooms, probs):
         # 便繼續加分把它推成 kitchen，再經限額鏈砍掉真正的廚房。
         # `>= 0.15` 的下限保留：模型對該房完全沒有 living 概念時（floor73 的
         # 真廚房 living 0.00）不該套用此防呆。
-        open_living = (score["living"] >= 0.15
-                       and score["living"] > score["kitchen"])
+        open_living = (score["LivingRoom"] >= 0.15
+                       and score["LivingRoom"] > score["Kitchen"])
         _apply_evidence(det, labels, r, score, open_living)
         lab, val = max(score.items(), key=lambda kv: kv[1])
         r["label"] = lab if val >= 0.15 else "room"
@@ -637,7 +649,7 @@ def classify_rooms_dino(det, labels, rooms, probs):
         del r["_score"]
 
 
-UNIQUE_LABELS = ("living", "kitchen")          # user spec：全戶各最多一間
+UNIQUE_LABELS = ("LivingRoom", "Kitchen")      # user spec：全戶各最多一間
 
 
 def _enforce_singletons(rooms):
@@ -659,7 +671,7 @@ def _enforce_singletons(rooms):
     兩者都修好了 floor64，卻在 floor69/70 賠更多：那兩張的真客廳被 DINOv2
     判成 kitchen（living 僅 0.06~0.08，開放式客餐廚），**現行規則靠「留最大
     的那間 → 下方有廚無廳改叫客廳」這條鏈歪打正著救回來**，改了就斷。
-    要真正解決得從 `open_living` 防呆下手（它用 `score["living"]>=0.15`
+    要真正解決得從 `open_living` 防呆下手（它用 `score["LivingRoom"]>=0.15`
     判定，模型把開放空間判成廚房時根本不觸發），而非動限額規則。"""
     for lab in UNIQUE_LABELS:
         cand = [r for r in rooms if r["label"] == lab]
@@ -670,16 +682,16 @@ def _enforce_singletons(rooms):
             r["relabel_from"] = lab
             r["label"] = alt_lab if alt_val >= 0.15 else "room"
             r["label_zh"] = ROOM_ZH_EX[r["label"]]
-    if not any(r["label"] == "living" for r in rooms):
-        for r in rooms:                        # 限額後 kitchen 至多一間
-            # 門檻：模型對該房完全沒有 living 概念時（floor73 的真廚房
-            # living 0.00），它就只是一間獨立廚房，不是客餐廚一體，別改名
-            if r["label"] == "kitchen" \
-                    and r["_score"].get("living", 0.0) >= 0.05 \
-                    and "kitchen" not in (r.get("ocr_text") or {}):
-                r["relabel_from"] = "kitchen"
-                r["label"] = "living"
-                r["label_zh"] = ROOM_ZH_EX["living"]
+    if not any(r["label"] == "LivingRoom" for r in rooms):
+        for r in rooms:                        # 限額後 Kitchen 至多一間
+            # 門檻：模型對該房完全沒有 LivingRoom 概念時（floor73 的真廚房
+            # 0.00），它就只是一間獨立廚房，不是客餐廚一體，別改名
+            if r["label"] == "Kitchen" \
+                    and r["_score"].get("LivingRoom", 0.0) >= 0.05 \
+                    and "Kitchen" not in (r.get("ocr_text") or {}):
+                r["relabel_from"] = "Kitchen"
+                r["label"] = "LivingRoom"
+                r["label_zh"] = ROOM_ZH_EX["LivingRoom"]
 
 
 # ─────────────────────────── 房間方塊 ───────────────────────────

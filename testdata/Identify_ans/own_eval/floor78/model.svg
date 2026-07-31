@@ -76,7 +76,7 @@
       <polygon points="640.0,163.0 640.0,357.0 789.0,357.0 789.0,163.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2" id="polygon22" style="fill:#3dbdbd;fill-opacity:0.35;stroke:#3dbdbd;stroke-opacity:1"/>
       
     </g>
-    <g class="Space StairWell" id="g24">
+    <g class="Space Stair" id="g24">
       <polygon fill="#a89cc8" fill-opacity="0.35" stroke="#a89cc8" stroke-width="2" id="polygon24" points="646.697,370.92 351.647,370.92 351.647,468.42 646.697,468.42 "/>
       
     </g>

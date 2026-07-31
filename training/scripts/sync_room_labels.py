@@ -25,9 +25,10 @@ import xml.etree.ElementTree as ET
 
 SVG_NS = "{http://www.w3.org/2000/svg}"
 
-# 人工文字寫法 → CubiCasa rooms_selected 詞彙（鍵一律小寫、去空格比對）
-# Study/Stair 在 CubiCasa 12 類中仍歸 class 11（Undefined/other），但寫成
-# 正式詞彙可與「真正沒標」區分，也讓 House 解析不會遇到陌生名稱。
+# 人工文字寫法 → 答案集 Space token（鍵一律小寫、去空格比對）。
+# 值域＝2026-08-01 定案的 10 類，不再是 CubiCasa 的 rooms_selected 詞彙：
+# 那張表把 hallway 併進 Entry、把 Study/Stair 塌成 Undefined，正是走道被評成
+# 玄關、書房樓梯混成一桶的來源。`Undefined` 僅供「真的還沒標」使用。
 LABEL_MAP = {
     "bedroom": "Bedroom",
     "livingroom": "LivingRoom",
@@ -35,17 +36,17 @@ LABEL_MAP = {
     "bath": "Bath",
     "bathroom": "Bath",
     "washroom": "Bath",
-    "hallway": "HallWay",
+    "hallway": "Hallway",
     "entrance": "Entry",
     "entry": "Entry",
     "storage": "Storage",
-    "study": "Office",
-    "stair": "StairWell",
-    "terrace": "Outdoor",
-    "outdoor": "Outdoor",
+    "study": "Storage",
+    "stair": "Stair",
+    "terrace": "Balcony",
+    "balcony": "Balcony",
+    "outdoor": "Balcony",
     "garage": "Garage",
-    "closet": "Closet",
-    "sauna": "Sauna",
+    "closet": "Storage",
     "undefined": "Undefined",
 }
 

@@ -114,11 +114,11 @@
       <polygon points="13.0,512.0 13.0,635.0 265.0,635.0 265.0,512.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2" id="polygon35" style="fill:#3dbdbd;fill-opacity:0.35;stroke:#3dbdbd;stroke-opacity:1"/>
       
     </g>
-    <g class="Space WashRoom" id="g35-2">
+    <g class="Space Bath" id="g35-2">
       <polygon fill="#d97a8f" fill-opacity="0.35" stroke="#d97a8f" stroke-width="2" id="polygon35-3" style="fill:#d97a8f;fill-opacity:0.35;stroke:#d97a8f;stroke-opacity:1;stroke-width:2.00022432;stroke-dasharray:none" points="14.7861,498.394 276.914,498.394 276.914,383.227 14.7861,383.227 "/>
       
     </g>
-    <g class="Space HallWay" id="g36">
+    <g class="Space Hallway" id="g36">
       <polygon id="polygon36" style="fill:#c9a0dc;fill-opacity:0.35;stroke:#c9a0dc;stroke-width:1.22986;stroke-dasharray:none" sodipodi:nodetypes="ccccccc" points="726.55,341.008 278.626,342.13 278.626,612.333 387.496,612.238 387.496,418.851 728.795,420.908 " fill="#c9a0dc" fill-opacity="0.35" stroke="#c9a0dc" stroke-width="2"/>
       
     </g>

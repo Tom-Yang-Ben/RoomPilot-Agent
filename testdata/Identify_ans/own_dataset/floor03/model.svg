@@ -111,7 +111,7 @@
     <g class="Space Kitchen" id="g35-9">
       <polygon fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2" id="polygon35-4" style="fill:#e8843b;fill-opacity:0.34999999" points="349.18,425.37 567.708,425.37 567.708,127.056 349.18,127.056 "/>
     </g>
-    <g class="Space HallWay" id="g37">
+    <g class="Space Hallway" id="g37">
       <polygon fill="#c9a0dc" fill-opacity="0.35" stroke="#c9a0dc" stroke-width="2" id="polygon37" points="346.155,444.978 346.155,359.022 258.092,359.022 258.092,444.978 "/>
     </g>
     <g class="Space Bedroom" id="g38">

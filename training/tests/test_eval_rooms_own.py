@@ -100,8 +100,8 @@ def test_crop_labels_share_one_source_of_truth():
     import extract_room_crops as ex
     from eval_rooms_cc import gt_label_of
     assert not hasattr(ex, "norm_label")        # 副本已移除，勿再長回來
-    assert gt_label_of("Office") == "storage"
-    assert gt_label_of("StairWell") == "stair"
+    assert gt_label_of("Office") == "Storage"
+    assert gt_label_of("StairWell") == "Stair"
 
 
 def test_rebuild_split_by_seeds_and_polygon():
