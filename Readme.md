@@ -26,12 +26,29 @@
 切割失敗會讓命名層無事可做——這也是 `--gt-seg` 評測模式存在的理由：
 用 GT 多邊形當房間、只評命名層，把兩層的分數拆開量。
 
+## 房型詞彙（10 類，2026-08-01 定案）
+
+`Kitchen`／`LivingRoom`／`Bedroom`／`Bath`／`Entry`／`Storage`／`Garage`／
+`Balcony`／`Stair`／`Hallway`。
+
+單一真相來源是 `eval_rooms_cc.CLASSES`，答案集 `model.svg` 的 Space token、
+產品輸出的 `rooms[].label`、`room_head.npz` 的 classes 三者**同名同序**——
+中間不再有任何翻譯層。以前有，而那層翻譯（CubiCasa 的 `rooms_selected`）
+按它自己的慣例把 `HallWay` 併進 `Entry`、把 `Office`／`StairWell` 塌成
+`Undefined`，是本專案三次房型錯誤的共同來源。
+
+總分低於 0.15 門檻時給哨兵值 `room`（顯示「空間」），它不是類別；量尺以
+`norm_label()` 把它歸入 `Hallway`。
+
 ## 命名（優先序三選一）
 
 | 順位 | 路徑 | own_eval 72 房 | 授權 |
 | :--- | :--- | ---: | :--- |
-| 1 | `classify_rooms_dino()` — DINOv2 裁切分類 | **90.3%** | Apache 2.0 可商用 |
+| 1 | `classify_rooms_dino()` — DINOv2 裁切分類 | **87.5%** | Apache 2.0 可商用 |
 | 2 | `fp_c.classify_rooms()` — 面積規則 | （明顯更差） | — |
+
+**分數與 v2.21 的 90.3% 不可直接比較**：GT 慣例改嚴了。舊慣例下走道叫成
+玄關算對，新慣例下算錯。同一份答案集的 A/B 已隔離確認這個落差。
 
 缺件（torch / DINOv2 骨幹 / `room_head.npz`）才會降級，且**一定印警告**。
 CubiCasa 語意投票已於 2026-07-30 整批移除——**產品推論路徑不再有任何
@@ -50,6 +67,28 @@ CC BY-NC 成分**。
 總分最高者勝，`<0.15` 標中性「空間」。OCR 權重 1.3 刻意高於模型滿票 1.0
 ——圖面文字是作者親口說的答案，可壓過「自信地錯」的模型。
 
+`Stair` 與 `Hallway` 不在 `CC_ROOM_LABEL` 裡（模型無此輸出通道的歷史包袱），
+必須由 `EXTRA_LABELS` 另行播種進 score，否則 OCR 層的 `if lab_t in score`
+防呆會把證據靜默丟掉——`Hallway` 未播種時實測 P=R=0。
+
+## 命名時的一道幾何判別
+
+`_entry_or_hallway()`：判成 `Entry` 的房間若**沒有門直通屋外**，改判
+`Hallway`。
+
+Entry 與 Hallway 都是「沒有東西的空房間」，裁切圖上長得一模一樣，DINOv2
+結構上分不開（實測 GT 4 間走道被判成 Entry 3、Bedroom 1，Hallway 掛零）。
+再多訓練資料也學不到——外觀證據裡根本沒有區分資訊。分水嶺在通行關係：
+玄關走得出去，走道不行。
+
+判準用「有無對外門」而非「有無貼外牆」：貼牆版只救回 4 間中的 1 間，
+floor74/76 的走道沿著外牆走卻沒有對外的門。門位取樣沿用
+`fp_c.room_graph` 的語義；屋外遮罩在產品路徑取自 `segment_rooms()`，
+在 `--gt-seg` 量尺路徑取自 `exterior_mask()`。
+
+規則刻意單向且保守——只降級不升級（客廳也可能直接對外），且缺門位或
+屋外資訊時不表態。「偵測不到門」與「沒有對外門」是兩件事。
+
 ## 命名後的兩道跨房後處理
 
 - `_enforce_singletons()`：客廳/廚房全戶各限一間，同類多間**留面積最大**者，
@@ -64,6 +103,82 @@ CC BY-NC 成分**。
 - floor69/70 的真廚房仍被限額規則犧牲（見 `_enforce_singletons` docstring
   的對照表——三種替代方案實測皆更差，是取捨不是疏漏）
 - 分割層仍是最大瓶頸：灰階主尺切割命中 72.6%，命名層再準也吃不到
+- `Garage` 在答案集中 0 樣本，該類無法量測、線性頭該通道未經訓練
+- color 集 104 個 `Undefined` 待人工逐一標注；在那之前量尺暫將其歸入
+  `Hallway`（見 `eval_rooms_cc.GT_TOKEN2CLASS` 的 TODO）。灰階集無此問題
+- floor61 的走道被 DINOv2 判成 `Bedroom` 0.70，不經 `Entry` 就進不了幾何
+  規則，需另循他途
+- `MAIN_SYNC_TODO.md` 已整份移除，待重新分析 ben 分支後重建
+
+---
+
+2026/8/1 v.2.22 變更（房型詞彙統一為 10 類 CamelCase，答案集與量尺不再需要翻譯層；Entry 靠「有無對外門」與 Hallway 分家；線性頭以新詞彙重訓）
+
+### 一、詞彙統一（破壞性變更）
+
+房型名字長期有三套：管線 `bed`/`living`、答案集 `Bedroom`/`LivingRoom`、
+量尺再用 CubiCasa 的 `rooms_selected` 把後者翻回前者。那層翻譯不是中立的，
+它按 CubiCasa 的慣例做了三個與本專案需求相反的決定：
+
+- `HallWay` 與 `Entry` 同碼 7 → 走道一律被評成玄關。答案集 13 檔共 14 個
+  `HallWay`，其中 floor07/35/54 三檔與 `Entry` 併存，證明標注者視為兩種
+  空間。v2.14 早記載「走道不算玄關」的慣例，但 `sync_room_labels` 仍把
+  走道寫成 `HallWay`，慣例與實作長期背離
+- `Office`／`StairWell` 同塌成 `Undefined`（v2.19 已個別攔截）
+- `outdoor` 與管線既有的 `balcony` 是同一種空間的兩個名字
+
+只要翻譯層還在這類錯誤就會再犯，故取消：類別名直接採用答案集 token 寫法。
+`space`→`Hallway`（桶裡本來就是走道，叫「空間」讀報表時分不出「模型放棄
+了」還是「這裡真的是走道」）、`outdoor`→`Balcony`（消掉重複命名）。
+
+- `gt_label_of()` 改自持對照表，不再 import `rooms_selected`；未知 token
+  歸 `Hallway` 但**出聲一次**，答案集的錯字不再是看不見的失分
+- 灰階答案集 25 檔 43 個多邊形歸一（`HallWay`×14、`StairWell`×11、
+  `Office`×9、`Outdoor`×5、`WashRoom`×4），只改 token 不動座標
+- `testdata/Asset/bathroom/` → `bath/`，與類別名對齊
+- **破壞性**：`rooms[].label` 值域改為 CamelCase 10 類，下游須同步
+
+### 二、Entry / Hallway 幾何分家（86.1%→88.9%）
+
+詞彙改對之後量尺立刻誠實了：走道不再算玄關，分數從 90.3%(舊 GT) 掉到
+86.1%(新 GT)，而 `Hallway` 的 P/R 是 **0**——管線結構上答不出這一類。
+兩個原因：`Hallway` 沒播種進 score；DINOv2 看空房間的裁切圖分不出玄關
+與走道（外觀證據裡沒有區分資訊，這不是資料量問題）。
+
+補播種＋改用「有無門直通屋外」判別後 86.1%→88.9%，`Hallway` recall
+0→0.75、`Entry` precision 0.6→1.0。**有一項退步須留意**：GT `Entry`
+3 間裡有 1 間因該圖未偵測到對外門而被誤降級（recall 1.0→0.667），淨 +2。
+
+初版按「貼外牆」判定只救回 4 間中的 1 間，已被「對外門」取代。
+
+### 三、線性頭重訓（88.9%→87.5%，淨負面但採用）
+
+舊頭是在「走道＝Entry」的舊慣例下訓練的，與統一後的答案集矛盾；且其第
+10 通道（原 `space`）在灰階訓練集裡樣本數為 0，結構上永遠不會預測
+`Hallway`。重訓後 `Hallway` 首次取得 10 個訓練樣本。
+
+**如實記錄這是淨負面量測**：88.9%→87.5%，唯一差異是一間 `LivingRoom`
+被判成 `Kitchen`；`Hallway` 新舊頭同為 3/4，走道辨識的功勞全在對外門規則。
+仍採用，理由是留著矛盾標籤訓出的權重是會在日後反咬的隱形陷阱，而 1/72
+在此樣本量下難與雜訊區分。若後續證明是穩定退步，`git revert` 即可。
+
+### 四、量尺數字對照（own_eval 72 房，同一份答案集）
+
+| 版本 | 命中 | 分數 |
+| :--- | ---: | ---: |
+| v2.21（舊 GT，走道算玄關） | 65/72 | 90.3% |
+| 新 GT，無幾何規則 | 62/72 | 86.1% |
+| ＋貼外牆規則 | 63/72 | 87.5% |
+| ＋對外門規則 | 64/72 | 88.9% |
+| ＋線性頭重訓（**現行**） | 63/72 | **87.5%** |
+
+跨 GT 慣例的數字不可直接比較。A/B 隔離證據見
+`training/json/eval_rooms/report_own_gtseg_ab_{A_before,B_after}.json`。
+
+### 五、其他
+
+- `MAIN_SYNC_TODO.md` 整份移除（內容留在 git 歷史），待重新分析 ben 後重建
+- 新增 `test_room_entry_hallway.py`（12 項），測試總數 109→121
 
 ---
 
