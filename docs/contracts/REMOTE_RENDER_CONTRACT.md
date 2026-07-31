@@ -69,3 +69,13 @@ ROOMPILOT_RENDER_PROVIDER_TIMEOUT_SECONDS=60
 ```
 
 未設定或無法連線時回 `503`，不得回傳假圖片或假成功狀態。
+
+## 內建生圖供應者（2026-07-30 增補）
+
+未設定 `ROOMPILOT_RENDER_PROVIDER_URL`、但環境有 `OPENROUTER_API_KEY` 時，
+FastAPI 以內建轉接層直接呼叫 OpenRouter 生圖模型（預設
+`google/gemini-2.5-flash-image`，`ROOMPILOT_RENDER_IMAGE_MODEL` 可覆蓋）：
+同步生成、回圖以 `provider="openrouter_image"` 入庫專案成果，回應仍為本契約
+JSON 形狀，但 `status` 直接是 `completed` 且附 `preview_url`。鎖定條件由
+prompt 明文表達（結構、家具、相機不得變動）。`ROOMPILOT_RENDER_IMAGE_DISABLED=1`
+停用此路徑，回到 503 行為。

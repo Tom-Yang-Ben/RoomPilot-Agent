@@ -1,0 +1,226 @@
+[
+  {
+    "mapping_id": "MAP-EQP-001",
+    "categories": [
+      "television",
+      "tv",
+      "電視"
+    ],
+    "required_systems": [
+      "power",
+      "data"
+    ],
+    "direct_work_items": [],
+    "reason": "電視設備通常需要電源與網路／訊號需求；實際點位由設計師及水電確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-002",
+    "categories": [
+      "floor_lamp",
+      "table_lamp",
+      "lamp",
+      "落地燈",
+      "檯燈"
+    ],
+    "required_systems": [
+      "power"
+    ],
+    "direct_work_items": [
+      {
+        "code": "LIGHT-FIXTURE-INSTALL",
+        "quantity_mode": "furniture_quantity"
+      }
+    ],
+    "reason": "可移動燈具需要鄰近電源點位，安裝方式依產品確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-003",
+    "categories": [
+      "ceiling_light",
+      "pendant_light",
+      "chandelier",
+      "downlight",
+      "track_light",
+      "吸頂燈",
+      "吊燈",
+      "崁燈",
+      "軌道燈"
+    ],
+    "required_systems": [
+      "lighting"
+    ],
+    "direct_work_items": [
+      {
+        "code": "LIGHT-FIXTURE-INSTALL",
+        "quantity_mode": "furniture_quantity"
+      }
+    ],
+    "reason": "固定燈具需要照明出線與控制點位；迴路與負載需水電確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-004",
+    "categories": [
+      "refrigerator",
+      "冰箱"
+    ],
+    "required_systems": [
+      "power"
+    ],
+    "direct_work_items": [],
+    "reason": "設備電壓、負載與插座位置需依型號確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-005",
+    "categories": [
+      "oven",
+      "microwave",
+      "induction_cooker",
+      "烤箱",
+      "微波爐",
+      "電磁爐"
+    ],
+    "required_systems": [
+      "power"
+    ],
+    "direct_work_items": [],
+    "reason": "高負載廚房設備可能需要專用迴路，實際依銘牌及配電容量確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-006",
+    "categories": [
+      "dishwasher",
+      "洗碗機"
+    ],
+    "required_systems": [
+      "power",
+      "cold_water",
+      "drain"
+    ],
+    "direct_work_items": [],
+    "reason": "洗碗機通常需要電源、給水與排水；型號、管徑與路徑需確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-007",
+    "categories": [
+      "washing_machine",
+      "洗衣機"
+    ],
+    "required_systems": [
+      "power",
+      "cold_water",
+      "drain"
+    ],
+    "direct_work_items": [],
+    "reason": "洗衣機通常需要電源、冷水與排水；防水、地排與設備尺寸需確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-008",
+    "categories": [
+      "sink",
+      "washbasin",
+      "洗手台",
+      "水槽"
+    ],
+    "required_systems": [
+      "cold_water",
+      "hot_water",
+      "drain"
+    ],
+    "direct_work_items": [],
+    "reason": "洗手台或水槽通常需要冷熱水與排水，實際管路由水電確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-009",
+    "categories": [
+      "shower",
+      "淋浴",
+      "花灑"
+    ],
+    "required_systems": [
+      "cold_water",
+      "hot_water",
+      "drain"
+    ],
+    "direct_work_items": [],
+    "reason": "淋浴設備需要冷熱水與排水，防水、坡度及熱源另確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-010",
+    "categories": [
+      "air_conditioner",
+      "ac",
+      "冷氣",
+      "空調"
+    ],
+    "required_systems": [
+      "power",
+      "drain",
+      "hvac"
+    ],
+    "direct_work_items": [],
+    "reason": "空調需確認電源、冷媒與排水介面，容量及室外機位置由專業人員確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-011",
+    "categories": [
+      "electric_curtain",
+      "電動窗簾"
+    ],
+    "required_systems": [
+      "power"
+    ],
+    "direct_work_items": [
+      {
+        "code": "CURTAIN-TRACK-INSTALL",
+        "quantity_mode": "furniture_quantity"
+      }
+    ],
+    "reason": "電動窗簾需要電源與控制方式，窗簾盒深度與維修空間需確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-012",
+    "categories": [
+      "curtain",
+      "窗簾"
+    ],
+    "required_systems": [],
+    "direct_work_items": [
+      {
+        "code": "CURTAIN-TRACK-INSTALL",
+        "quantity_mode": "furniture_quantity"
+      }
+    ],
+    "reason": "窗簾軌道型式、寬度與固定基底需現場確認。",
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-EQP-013",
+    "categories": [
+      "built_in_cabinet",
+      "system_cabinet",
+      "fixed_cabinet",
+      "系統櫃",
+      "固定櫃"
+    ],
+    "required_systems": [],
+    "direct_work_items": [
+      {
+        "code": "BUILTIN-CABINET-INSTALL",
+        "quantity_mode": "furniture_quantity"
+      }
+    ],
+    "reason": "固定櫃體需依圖面、展開尺寸、板材與五金另行報價。",
+    "confidence": "low"
+  }
+]

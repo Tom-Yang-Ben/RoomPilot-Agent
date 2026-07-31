@@ -16,6 +16,13 @@ httpx==0.28.1
 # Floorplan recognition and spatial evaluation (Cody / Django / Ben)
 numpy==2.5.1
 opencv-python==4.13.0.92
+# opencv-python-headless 必須同步鎖 <5：torch 生態會把它拉進來蓋掉 cv2，而
+# OpenCV 5.0 改了 HoughLinesP 的回傳 shape，門偵測會當場失效。
+opencv-python-headless==4.13.0.92
+# symbol_match 解析模板庫的 SVG path——推論期依賴，不是研發工具。
+svgpathtools==1.7.1
+# 房型 OCR 文字證據層（floorplan2room 層 5）。純 pip／CPU，不需系統套件。
+rapidocr-onnxruntime==1.4.4
 
 # Catalog, AWS metadata tooling and PostgreSQL import (Kai)
 requests==2.34.2
@@ -35,4 +42,17 @@ pytest==9.1.1
 #   paddleocr==3.7.0
 #   paddlepaddle==3.3.1
 # Use the command documented in README.md.
+
+# 房型語意層（DINOv2 凍結骨幹 ＋ 線性頭）。2026-07-30 CubiCasa 血統移除後，
+# torch 由 optional extra 升為辨識品質的必要依賴：
+#   torch==2.13.0        (CPU 版即可，只推論不訓練)
+# 缺它房型退回面積規則——服務不會中斷，但 own_eval 72 房準確度由 90.3% 掉回
+# 幾何猜測的水準，且一定印警告。骨幹權重 88MB 由 torch.hub 首次下載後快取於
+# ~/.cache/torch/hub/（實測封鎖網路仍可載入，非執行期連網需求）；離線部署
+# 預先放好該快取或設 TORCH_HOME。線性頭 backend/floorplan/room_head.npz
+# 僅 15KB 且已進版控，clone 即得。
+#
+# ⚠ 尚未併入本 baseline 的 pin：torch 安裝體積約 2GB，對只做前端／catalog 的
+# 隊員是純負擔。是否全隊必裝、或維持 `uv sync --extra semantic` 由辨識端自理，
+# 見 MAIN_SYNC_TODO.md——這是 ben 端要拍的板。
 

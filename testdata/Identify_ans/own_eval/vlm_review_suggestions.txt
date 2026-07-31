@@ -1,0 +1,52 @@
+# own_eval 標注覆核——已於 2026-07-23 完成並套用
+# 47 筆 VLM/GT 分歧經人工逐筆覆核（review.html），決定如下並已改入各 model.svg：
+
+floor55#00  → living
+floor55#01  → bed
+floor55#03  → entry
+floor55#04  → bath
+floor58#01  → bath
+floor58#02  → living
+floor58#05  → kitchen
+floor58#06  → bath
+floor58#07  → living
+floor60#01  → living
+floor60#02  → bed
+floor60#03  → kitchen
+floor60#05  → outdoor
+floor61#00  → entry
+floor61#01  → bath
+floor61#04  → entry
+floor61#05  → bed
+floor61#06  → living
+floor61#07  → bed
+floor64#01  → entry
+floor64#02  → living
+floor69#00  → living
+floor69#01  → bed
+floor69#02  → bed
+floor69#04  → space
+floor69#05  → kitchen
+floor70#00  → living
+floor70#02  → kitchen
+floor73#00  → bed
+floor73#01  → bed
+floor73#03  → entry
+floor73#04  → living
+floor74#00  → bed
+floor74#02  → bed
+floor74#04  → living
+floor74#05  → kitchen
+floor76#00  → living
+floor76#04  → bed
+floor76#05  → bath
+floor76#06  → bath
+floor78#00  → living
+floor78#03  → bath
+floor78#05  → kitchen
+floor79#00  → bath
+floor79#01  → entry
+floor79#02  → bed
+floor79#04  → living
+
+# 遺留：floor64/74/76 各一個空 Space Undefined 群組（無幾何，評分自動跳過，可留可刪）

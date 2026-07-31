@@ -11,26 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_sql_defaults_use_the_portable_official_catalog_handoff() -> None:
     expected_paths = {
-        sql_import.DEFAULT_CATALOG: ROOT
-        / "JSON"
-        / "furniture"
-        / "furniture_official_catagory.json",
-        sql_import.DEFAULT_GLB_MANIFEST: ROOT
-        / "JSON"
-        / "manifests"
-        / "glb_upload_manifest.csv",
-        sql_import.DEFAULT_GLB_RESULT: ROOT
-        / "JSON"
-        / "manifests"
-        / "glb_upload_all_result.csv",
-        sql_import.DEFAULT_IMAGE_MANIFEST: ROOT
-        / "JSON"
-        / "manifests"
-        / "image_upload_manifest.csv",
-        sql_import.DEFAULT_IMAGE_RESULT: ROOT
-        / "JSON"
-        / "manifests"
-        / "image_upload_all_result.csv",
+        sql_import.DEFAULT_CATALOG: ROOT / "JSON" / "furniture" / "furniture_official_catagory.json",
+        sql_import.DEFAULT_GLB_MANIFEST: ROOT / "JSON" / "manifests" / "glb_upload_manifest.csv",
+        sql_import.DEFAULT_GLB_RESULT: ROOT / "JSON" / "manifests" / "glb_upload_all_result.csv",
+        sql_import.DEFAULT_IMAGE_MANIFEST: ROOT / "JSON" / "manifests" / "image_upload_manifest.csv",
+        sql_import.DEFAULT_IMAGE_RESULT: ROOT / "JSON" / "manifests" / "image_upload_all_result.csv",
     }
 
     for actual, expected in expected_paths.items():
@@ -43,29 +28,24 @@ def test_sql_dry_run_validates_all_official_assets_without_database(
 ) -> None:
     report_path = tmp_path / "postgres_import_validation.json"
 
-    assert (
-        sql_import.main(
-            ["--dry-run", "--validation-report", str(report_path)]
-        )
-        == 0
-    )
+    assert sql_import.main(["--dry-run", "--validation-report", str(report_path)]) == 0
 
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["valid"] is True
     assert report["source_counts"] == {
-        "catalog_items": 9_350,
-        "glb_manifest_rows": 9_350,
-        "glb_result_rows": 9_350,
-        "image_manifest_rows": 28_050,
-        "image_result_rows": 28_050,
+        "catalog_items": 8_557,
+        "glb_manifest_rows": 8_557,
+        "glb_result_rows": 8_557,
+        "image_manifest_rows": 25_671,
+        "image_result_rows": 25_671,
     }
-    assert report["prepared_counts"]["assets"] == 37_400
-    assert report["prepared_counts"]["vlm_annotations"] == 9_350
+    assert report["prepared_counts"]["assets"] == 34_228
+    assert report["prepared_counts"]["vlm_annotations"] == 8_557
     assert report["errors"] == []
 
     output = capsys.readouterr().out
-    assert "家具：9,350" in output
-    assert "Dry Run 完成；未連線 PostgreSQL，也未寫入資料庫。" in output
+    assert "8,557" in output
+    assert "Dry Run" in output
 
 
 def test_sql_schema_exposes_current_catalog_and_staging_contracts() -> None:

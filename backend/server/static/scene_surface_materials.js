@@ -16,7 +16,7 @@ const PRESET_SURFACE_IDS = Object.freeze({
     light_oak: "wood_cc0_wood_textures_planks039",
     herringbone_oak: "wood_cc0_wood_textures_planks033b",
     walnut: "wood_cc0_wood_textures_woodfloor039",
-    stone_gray: "tile_ccity_tile_flooring_cal288001",
+    stone_gray: "wood_tile_ccity_tile_flooring_cal288001",
     marble: "tile_ccity_tile_flooring_cal330121",
     microcement: "tile_ccity_tile_flooring_cci12610",
   },

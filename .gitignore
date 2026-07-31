@@ -15,6 +15,13 @@ node_modules/
 _local_archive_not_for_push/
 *_local_archive_not_for_push*/
 
+# 僅限本機的資料集與暫存輸出（體積以 GB 計，不進版控）
+# 必須用開頭斜線錨定在倉庫根目錄：未錨定的 data/ 會連 backend/catalog/data/ 一起吞掉。
+/tmp/
+/temp/
+/data/
+/dataset/
+
 # 文件目錄只提交 Markdown、契約與已核准的 moodboard 圖片。
 docs/*
 !docs/*.md
@@ -26,6 +33,8 @@ docs/*
 !docs/moodboard_assets/**
 !docs/owners/
 !docs/owners/*.md
+!docs/vibecoding/
+!docs/vibecoding/*.md
 
 # 個人或工具產生的本機設定與筆記不提交。
 .codex/
@@ -71,3 +80,24 @@ backend/server/static/texture_cache/
 # 正式 PBR 材質（含 KTX2 壓縮貼圖）是網站執行期資產，必須上傳。
 !backend/server/static/pbr_assets/
 !backend/server/static/pbr_assets/**
+
+# 自 cody 分支併入的忽略規則（僅取安全與大型產物必要項目）。
+# MCP 設定含 API key，是主線先前缺少的安全漏洞，優先補上。
+.mcp.json
+!.mcp.json.*.example
+
+# Windows 下載來源標記檔，由瀏覽器自動產生，不屬於專案內容。
+*Zone.Identifier
+
+# 平面圖訓練材料體積以 GB 計，只留在本機；但研發工具與測試是程式碼，必須進版控。
+# 負向規則不可省：辨識率的驗證鏈（評測腳本＋107 支測試＋報表）全在這幾個子目錄，
+# 少了它們，cody-dev 宣稱的準確度數字在別台機器上無法重跑。
+training/*
+!training/scripts/
+!training/tests/
+!training/json/
+!training/*.npz
+training/tests/.pytest_cache/
+training.zip
+/model_finetuned_*.pkl
+/backend/floorplan/model_finetuned_*.pkl

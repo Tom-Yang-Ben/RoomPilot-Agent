@@ -41,16 +41,16 @@ def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
     assert result.returncode == 0, result.stderr
 
 
-def test_requirements_step_has_randomized_test_skip_button() -> None:
+def test_requirements_step_has_first_meeting_demo_shortcut() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="randomize-requirements"' in html
     assert "async function randomizeRequirementsForTesting" in source
-    assert "ROOM_REQUIREMENT_POLAR_AXES" in source
-    assert "state.basicConfirmed = true" in source
-    assert "requirement.confirmed = true" in source
-    assert 'showQuestionnaireStage("summary")' in source
+    assert 'state.firstMeetingStep = "summary"' in source
+    assert 'goalIds: ["circulation", "storage", "daylight"]' in source
+    assert "likedStylePackIds: packs.slice(0, 2)" in source
+    assert "dislikedStylePackId:" in source
 
 
 def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
@@ -100,7 +100,7 @@ def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() 
     assert "background-blend-mode: multiply;" not in css
 
 
-def test_room_surfaces_keep_one_main_floor_with_functional_exceptions() -> None:
+def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "const INDEPENDENT_FLOOR_ROOM_TYPES" in source
@@ -109,14 +109,52 @@ def test_room_surfaces_keep_one_main_floor_with_functional_exceptions() -> None:
     assert '"entry"' in source
     assert '"balcony"' in source
     assert "function wholeHouseMainFloorSurface" in source
+    assert "function wholeHouseMainWallSurface" in source
     assert "function normalizedRoomSurfaces" in source
     assert "function applyWholeHouseSurfaceConsistency" in source
+    assert "function normalizeSavedSceneWallSurfaces" in source
+    assert "roomKeepsExplicitWallOverride" in source
     assert "trimAccentWallSurfaces" in source
-    assert "wallSurfaceIds: [...(surfaces.wallSurfaceIds || [])].slice(0, 1)" in source
-    assert "Object.entries(surfaces.wallOverrides || {}).slice(0, 1)" in source
+    assert "wallSurfaceIds: []" in source
+    assert "wallOverrides: {}" in source
     assert "if (!roomAllowsIndependentFloor(room) && mainFloor)" in source
+    assert "if (mainWall && !roomKeepsExplicitWallOverride(room, next))" in source
+    assert "const restoredWallSurfaceRepairs" in source
     assert "const surfaces = normalizedRoomSurfaces(room, requirement?.surfaces || {})" in source
     assert "const surfaces = normalizedRoomSurfaces(room, rawSurfaces || {})" in source
+
+
+def test_circulation_style_inherits_living_room_until_user_confirms_override() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function isCirculationRoom" in source
+    assert "function copyLivingRoomStyleToCirculation" in source
+    assert "function synchronizeCirculationStyles" in source
+    assert "circulationStyleOverrideApproved" in source
+    assert "走道目前沿用" in source
+
+
+def test_interior_walls_butt_against_exterior_inner_face_without_a_visible_gap() -> None:
+    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    junction_helper = source.split("function interiorWallJunctionInsets", 1)[1].split(
+        "function polygonShape", 1
+    )[0]
+    assert "Number(wallThickness) / 2, 0" in junction_helper
+    assert "Number(wallThickness) / 2 + 1" not in junction_helper
+
+
+def test_whole_house_wall_finish_keeps_texture_while_avoiding_lighting_variation() -> None:
+    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function createWallMaterial(wallOption, surfaceCatalog, { tintOnly = false } = {})" in source
+    assert "const usesOneWholeHouseWall" in source
+    assert "map: material.map || null," in source
+    assert "{ tintOnly: false }" in source
+    assert "function stabilizeWholeHouseWallAppearance(material)" in source
+    assert "new THREE.MeshBasicMaterial" in source
+    assert "toneMapped: false" in source
+    assert "exteriorWallMaterial = stabilizeWholeHouseWallAppearance(exteriorWallMaterial);" in source
 
 
 def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> None:
@@ -126,6 +164,8 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
 
     assert 'id="questionnaire-furniture-options"' in html
     assert 'id="questionnaire-furniture-status"' in html
+    assert 'id="questionnaire-furniture-preference"' in html
+    assert 'id="refresh-questionnaire-furniture"' in html
     assert 'id="questionnaire-room-usage-options"' in html
     assert "function ensureQuestionnaireFurnitureRecommendations" in source
     assert "function renderQuestionnaireFurnitureRecommendations" in source
@@ -136,8 +176,34 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert "user_selected: true" in source
     assert "selection_priority:" in source
     assert "function knownUnavailableCatalogFurnitureIds" in source
+    assert "function catalogFallbackOffersForSpec" in source
+    assert "recommendation_tier: \"similar\"" in source
+    assert "function applyDefaultQuestionnaireFurnitureSelections" in source
+    assert "const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS" in source
+    assert 'defaults: ["bed", "wardrobe"]' in source
+    assert 'required: ["bed"]' in source
+    assert "function questionnaireFurnitureRole" in source
+    assert "QUESTIONNAIRE_FURNITURE_SHORT_LABELS" in source
+    assert "function questionnaireFurnitureDisplayLabel" in source
+    assert "function questionnaireBedSizeFamily" in source
+    assert "function questionnaireOffersWithSizeChoices" in source
+    assert 'return "單人床"' in source
+    assert 'return "標準雙人床"' in source
+    assert 'return "加大雙人床"' in source
+    assert 'read: [["desk", "compact"], ["office-chair", "task"]]' in source
+    assert "data-questionnaire-furniture-variant-type" in source
+    assert "function updateQuestionnaireFurnitureVariant" in source
+    assert "function updateQuestionnaireFurnitureQuantity" in source
+    assert "function refreshQuestionnaireFurnitureRecommendations" in source
+    assert "data-questionnaire-furniture-quantity" in source
+    assert "preferenceText" in source
+    assert "selectedCatalogFurniture.flatMap" in source
+    assert "data-open-questionnaire-furniture-catalog" in source
     assert "unavailableCatalogIds.has(String(offer.furniture_id))" in source
-    assert "const visibleCandidates = fittingCandidates.length ? fittingCandidates : candidates;" in source
+    assert "questionnaireOffersWithSizeChoices(spec[0], candidates)" in source
+    assert "第 6 步將檢查實際 GLB、門窗與走道" in source
+    assert 'id="questionnaire-furniture-preference-tags"' in html
+    assert "QUESTIONNAIRE_FURNITURE_PREFERENCE_TAGS" in source
     assert 'model_load_verification: "deferred"' in source
     assert ".rp-questionnaire-furniture-options" in css
     assert ".rp-questionnaire-room-usage-options" in css
@@ -228,6 +294,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     dependency_edges = {
         "scene_v2.js": [
             "scene_viewer.js",
+            "scene_workflow.js",
             "scene_unit_contracts.js",
             "scene_calibration.js",
             "scene_room_geometry.js",
@@ -342,6 +409,39 @@ def test_nearby_parallel_door_leaves_remain_distinct() -> None:
     )
 
     assert len(result["doors"]) == 2
+    assert result["removed"] == 0
+
+
+def test_unconfirmed_nearby_parallel_door_leaves_are_not_merged() -> None:
+    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ dedupeDoorCandidates }} from {json.dumps(module_uri)};
+        const result = dedupeDoorCandidates([
+          {{
+            id: "door-2",
+            source: "cody_vision",
+            confidence: 1,
+            host_wall_id: "wall-2",
+            width_cm: 113.41,
+            start: {{x: -9.94, z: 61.39}},
+            end: {{x: -123.35, z: 61.39}},
+          }},
+          {{
+            id: "door-3",
+            source: "cody_vision",
+            confidence: 1,
+            host_wall_id: "wall-2",
+            width_cm: 104.06,
+            start: {{x: -19.29, z: 111.67}},
+            end: {{x: -123.35, z: 111.67}},
+          }},
+        ]);
+        console.log(JSON.stringify(result));
+        """
+    )
+
+    assert [door["id"] for door in result["doors"]] == ["door-2", "door-3"]
     assert result["removed"] == 0
 
 
@@ -748,7 +848,8 @@ def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
     assert "opening?.topology_gap !== true" in wall_builder
     assert "const topologyGapDoors = doorSegments.filter" in wall_builder
     assert "opening?.topology_gap === true" in wall_builder
-    assert "const missingDoors = topologyGapDoors;" in wall_builder
+    assert "const missingDoors = doorSegments.filter((opening) =>" in wall_builder
+    assert "!renderedOpenings.has(openingId)" in wall_builder
     assert "[...wallDoorSegments.map" in wall_builder
 
 
@@ -757,10 +858,48 @@ def test_3d_door_openings_merge_overlapping_spans_on_the_same_host_wall() -> Non
 
     assert "function openingWallCoverage" in viewer
     assert "function openingsShareWallCoverage" in viewer
+    assert "left.topology_gap_key === right.topology_gap_key" in viewer
     assert "overlap >= Math.max(24, narrowerWidth * 0.55)" in viewer
     assert "openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness)" in viewer
     assert "dedupeArchitecturalOpeningsFor3d(" in viewer
     assert "      wallSegments,\n      wallThickness," in viewer
+
+
+def test_3d_door_openings_keep_distinct_confirmed_step4_ids() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert 'const openingId = String(opening?.id || "").trim();' in viewer
+    assert "if (openingId && candidateId) return candidateId === openingId;" in viewer
+    assert "distinct IDs must never be collapsed" in viewer
+    assert "roompilotArchitecturalId" in viewer
+    assert "expectedIds: expectedDoorIds" in viewer
+    assert "renderedIds: renderedDoorIds" in viewer
+    assert "leafCount" in viewer
+    assert "renderedDoors," in viewer
+
+
+def test_3d_world_coordinate_conversion_flips_door_swing_endpoint() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "swing_end: segment.swing_end ? flipPointZ(segment.swing_end)" in viewer
+
+
+def test_step4_shows_the_closed_door_line_from_the_swing_arc() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'const closedLine = item.swing_end' in source
+    assert 'stroke="#1598dc"' in source
+    assert '${dragTarget}${line}${closedLine}<path' in source
+
+
+def test_step4_can_lock_a_manually_corrected_door_opening() -> None:
+    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+
+    assert 'id="lock-selected-door-opening"' in html
+    assert "function lockSelectedDoorOpening()" in viewer
+    assert 'item.opening_source = "manual_confirmed";' in viewer
+    assert '$("#lock-selected-door-opening").addEventListener("click", lockSelectedDoorOpening);' in viewer
 
 
 def test_requirements_generate_the_white_model_without_an_intermediate_2d_confirmation() -> None:
@@ -768,10 +907,11 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
 
     assert "async function generateWhiteModelFromRequirements" in viewer
-    assert "await generateWhiteModelFromRequirements({ returnToRequirementsOnFailure: true });" in viewer
+    assert "const generated = await generateWhiteModelFromRequirements({" in viewer
     assert 'state.workflow?.goTo("layout_2d")' in viewer
     assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });' in viewer
-    assert viewer.count('await confirmLayout2d({ allowPendingFurniture: false });') >= 2
+    assert viewer.count('await confirmLayout2d({ allowPendingFurniture: true });') >= 2
+    assert 'state.designSchemes.schemes.B && !state.designSchemes.schemes.B.stale' in viewer
     assert "方案 A、B 的 2D+3D 配置已建立" in viewer
     assert 'state.workflow.currentStep === "white_model_3d"' in viewer
     assert 'state.workflow.currentStep === "layout_2d"' in viewer
@@ -784,6 +924,39 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "尚未找到可用的資料庫 GLB" in viewer
     assert "selected_furniture_exact: !allowPendingFurniture" in viewer
     assert "完成需求並建立 2D+3D 配置" in html
+
+
+def test_requirement_generation_defers_a_single_failed_room_without_breaking_step_six() -> None:
+    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    auto_layout = viewer.split("async function autoLayoutFurniture()", 1)[1].split(
+        "async function relayoutFurnitureForScheme", 1
+    )[0]
+    assert 'console.warn("Room furniture layout deferred", room.id, error);' in auto_layout
+    assert "item.placementFailed = true;" in auto_layout
+    assert "item.placementReason = errorMessage(error);" in auto_layout
+    assert "renderLayout2d();" not in viewer
+    assert "renderLayoutRoomFilter();\n      renderLayoutFurniture();\n      return;" in viewer
+
+
+def test_questionnaire_applies_whole_house_defaults_before_room_furniture() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+
+    assert 'id="whole-house-style-editor"' in html
+    assert 'id="whole-house-wall-options"' in html
+    assert 'id="whole-house-floor-options"' in html
+    assert 'data-questionnaire-stage="profile" class="is-active"' in html
+    assert 'data-questionnaire-stage="rooms" disabled' in html
+    assert 'id="whole-house-style-all"' in html
+    assert 'id="whole-house-air-conditioning-all"' in html
+    assert "function applyWholeHouseFinishes()" in source
+    assert "applyWholeHouseFinishes();" in source
+    assert 'if (stage === "profile") return true;' in source
+    assert 'if (stage === "rooms") return state.basicConfirmed;' in source
+    assert 'showQuestionnaireStage("rooms");' in source
+    assert 'if (state.questionnaireStage === "rooms")' in source
+    assert "逐房用途與家具" in html
 
 
 def test_step_six_defaults_to_free_rotation_with_grouped_tools() -> None:
@@ -859,7 +1032,7 @@ def test_structure_step_explains_pending_manual_door_directions() -> None:
     assert "一鍵確認全部門" in html
     assert "confirmAllButton.disabled = !collection.length || allConfirmed" in source
     assert "`一鍵確認全部${meta.label}`" in source
-    assert "開門側與鉸鏈端" in source
+    assert "門向與鉸鏈端" in source
 
 
 def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> None:
@@ -1102,12 +1275,15 @@ def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects(
     assert "syncFinalValidationToConfiguration" in controller
 
 
-def test_step_six_progress_entry_prefers_the_integrated_3d_workspace() -> None:
+def test_step_six_progress_entry_reopens_the_dedicated_2d_workspace() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    progress_navigation = source.split(
+        '$$(".rp-progress button").forEach((button) => button.addEventListener("click", () => {',
+        1,
+    )[1].split('$("#reset-project")', 1)[0]
 
-    assert 'if (step === "layout_2d")' in source
-    assert 'state.workflow?.canEnter("white_model_3d")' in source
-    assert 'goTo("white_model_3d")' in source
+    assert 'goTo("white_model_3d")' not in progress_navigation
+    assert "if (state.workflow?.canEnter(step)) goTo(step);" in progress_navigation
 
 
 def test_single_furniture_reflow_is_locked_until_the_request_finishes() -> None:
@@ -1428,7 +1604,8 @@ def test_step_six_prunes_retired_appliances_from_restored_projects() -> None:
     assert "removeRetiredAppliancesFromSceneData(state.sceneData)" in source
     assert "Object.values(state.designSchemes?.schemes || {}).forEach" in source
     assert "const restoredRetiredAppliancesRemoved = pruneRetiredAppliances" in source
-    assert "if (sceneRecoveredFromLayout || restoredRetiredAppliancesRemoved > 0)" in source
+    assert "restoredDoorSwingEndpoints > 0" in source
+    assert "restoredRetiredAppliancesRemoved > 0" in source
     assert "pruneRetiredAppliances();" in source.split("function renderConfigurationPlan", 1)[1].split(
         "const planSource",
         1,
@@ -1593,7 +1770,7 @@ def test_each_door_requires_explicit_confirmation_and_supports_hinge_end_reversa
     assert "[item.start, item.end] = [item.end, item.start]" in source
     assert "pendingStructureKind" in source
     assert "一鍵確認全部門" in html
-    assert "door.confirmed = false" in source
+    assert "item.confirmed = false" in source
 
 
 def test_add_door_mode_takes_priority_over_wall_selection_and_can_be_cancelled() -> None:
@@ -1665,22 +1842,24 @@ def test_structure_legend_uses_heading_space_and_window_markers_match_review_num
     assert '$("#plan-structure-legend").hidden = rooms;' in source
 
 
-def test_room_editor_is_embedded_in_the_plan_heading() -> None:
+def test_room_editor_is_embedded_in_the_guided_review_card() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     css = (STATIC / "site.css").read_text(encoding="utf-8")
-    stage_start = html.index('id="space-plan-stage"')
-    heading_html = _space_heading_html(html)
+    room_panel_start = html.index('id="room-confirmation-panel"')
+    room_list_start = html.index('id="room-list"')
+    guided_review_html = html[room_panel_start:room_list_start]
 
-    assert 'class="rp-plan-heading-tools"' in heading_html
-    assert 'id="room-editor"' in heading_html
-    assert 'class="rp-editor-box rp-room-toolbar-editor"' in heading_html
-    assert 'id="room-editor"' not in html[stage_start:]
+    assert 'id="current-room-review"' in guided_review_html
+    assert 'id="room-editor"' in guided_review_html
+    assert 'class="rp-room-review-editor"' in guided_review_html
+    assert 'id="confirm-current-room"' in guided_review_html
+    assert 'id="skip-current-room"' in guided_review_html
+    assert 'id="room-more-actions"' in html
     assert ".rp-room-floating-editor" not in css
-    assert "#space-step .rp-plan-heading-tools" in css
-    assert "#space-step .rp-room-editor-summary" in css
-    assert "display: contents" in css
-    assert "#space-step #show-all-rooms" in css
-    assert "height: 38px" in css
+    assert "#space-step .rp-current-room-card" in css
+    assert "#space-step .rp-current-room-actions" in css
+    assert "#space-step .rp-room-review-queue" in css
+    assert "#space-step .rp-space-completion-bar" in css
 
 
 def test_all_structure_kinds_share_numbering_sizing_and_crud_contract() -> None:
@@ -1867,7 +2046,10 @@ def test_room_confirmation_is_isolated_and_supports_confirm_merge_and_split() ->
     assert 'data-room-geometry-mode="split"' in html
     assert 'id="apply-room-merge"' in html
     assert 'id="cancel-room-geometry"' in html
-    assert 'data-confirm-room="${escapeHtml(room.id)}"' in source
+    assert 'id="confirm-current-room"' in html
+    assert "function confirmCurrentRoomAndAdvance()" in source
+    assert "function nextRoomForReview(roomId)" in source
+    assert "function skipCurrentRoomReview()" in source
     assert 'state.spaceMode === "structure" ? renderStructureSvg() : ""' in source
     assert "function confirmRoom(roomId)" in source
     assert "function mergeSelectedRooms()" in source
@@ -2522,7 +2704,8 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert "rotateSelectedStructure(15)" in controller
     assert 'id="flip-selected-door"' in html
     assert 'id="rotate-selected-door-180"' in html
-    assert 'class="rp-questionnaire-workspace"' in html
+    assert 'id="first-meeting-questionnaire"' in html
+    assert 'class="rp-questionnaire-workspace rp-legacy-questionnaire" hidden' in html
     assert 'data-questionnaire-panel="rooms"' in html
     assert 'id="visual-space-nav"' in html
     assert 'id="room-furniture-select"' not in html
@@ -2722,9 +2905,10 @@ def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
     assert "await ensureAutomaticSoftDecor(pack)" in source
     assert "item.auto_decor_role && item.placement_failed" in source
     assert "saveSequence = saveSequence.catch" in source
+    assert "safeStorageSetItem(localStorage, pendingSaveStorageKey(), serialized)" in source
     assert "roompilot.pending-save." in source
     assert "for (let attempt = 0; attempt < 3; attempt += 1)" in source
-    assert "const pendingSave = localStorage.getItem(pendingSaveStorageKey())" in source
+    assert "const pendingSave = safeStorageGetItem(localStorage, pendingSaveStorageKey())" in source
     assert "base_updated_at: state.project?.updated_at || null" in source
     assert "shouldReplayPendingSave(pendingSave, result.project)" in source
     assert "replay_pending: true" in source
@@ -2758,3 +2942,32 @@ def test_step_seven_requires_one_locked_room_view_before_batch_rendering() -> No
     )[0]
     assert "state.proposalReview.roomViews = {};" not in palette_handler
     assert "將沿用第 7 步鎖定的逐房視角" in palette_handler
+
+
+def test_scheme_generation_degrades_per_item_instead_of_total_failure() -> None:
+    """2026-07 盤點方案 B 修復：任一件家具失敗不得再讓整包方案歸零。
+
+    失敗件改列該房「暫不放入」（deferred）清單，其餘照常成案；
+    自動推薦另設尺寸預檢，小房間從源頭不被推薦塞不下的家具。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "? null : placedFurniture" not in source, "全有或全無的 null 回傳必須拆除"
+    assert "function deferFailedPlacements(" in source
+    assert "function specFitsRoomDimensions(" in source
+    assert "已列入「暫不放入」" in source
+    assert "方案 B 無法在保留問卷家具需求下產生合法配置" not in source
+    assert "目前格局無法在保留問卷需求下產生方案 B 的合法配置" not in source
+
+
+def test_step_four_plan_stays_fixed_and_resyncs_overlays_after_panel_changes() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert "function observePlanStageResizes()" in source
+    assert "new ResizeObserver(scheduleOverlaySync)" in source
+    assert "planStageResizeObserver.observe(stage)" in source
+    assert 'window.addEventListener("resize", scheduleOverlaySync)' in source
+    assert "#space-step .rp-space-review-workspace" in css
+    assert "align-items: start;" in css.split(
+        "#space-step .rp-space-review-workspace", 1
+    )[1].split("}", 1)[0]

@@ -14,17 +14,17 @@ import {
   furniturePbrProfile,
   surfacePbrProfile,
   surfaceTint,
-} from "./scene_pbr_contracts.js?v=sha256-075ad1cedc62";
+} from "./scene_pbr_contracts.js?v=sha256-d695a0f07d33";
 import {
   doorOpeningForWallTopology,
   openingBelongsToWall,
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-f10efe4286e2";
+} from "./scene_architecture.js?v=sha256-2050441b51ed";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
-import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
-import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
+import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
+import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {
   clampWalkPosition,
   computeExactModelScale,
@@ -32,7 +32,7 @@ import {
   findNearestWalkablePosition,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-b73f02baf64c";
+} from "./scene_visual_contracts.js?v=sha256-1af8f0fccfa5";
 
 const CM_PER_METER = 100;
 
@@ -64,6 +64,12 @@ function architecturalOpeningVector(opening = {}) {
 }
 
 function architecturalOpeningsOverlap(left = {}, right = {}) {
+  if (left.topology_gap === true || right.topology_gap === true) {
+    return left.topology_gap === true
+      && right.topology_gap === true
+      && Boolean(left.topology_gap_key)
+      && left.topology_gap_key === right.topology_gap_key;
+  }
   const leftVector = architecturalOpeningVector(left);
   const rightVector = architecturalOpeningVector(right);
   if (leftVector.length < 4 || rightVector.length < 4) return false;
@@ -134,9 +140,16 @@ function architecturalOpeningScore(opening = {}, wallSegments = [], wallThicknes
 function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wallThickness = 12) {
   const result = [];
   openings.filter(Boolean).forEach((opening) => {
+    const openingId = String(opening?.id || "").trim();
     const duplicateIndex = result.findIndex(
-      (candidate) => architecturalOpeningsOverlap(candidate, opening)
-        || openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness),
+      (candidate) => {
+        const candidateId = String(candidate?.id || "").trim();
+        // A confirmed Step 4 opening has a stable identity.  Geometry can be
+        // close for adjacent doors, but distinct IDs must never be collapsed.
+        if (openingId && candidateId) return candidateId === openingId;
+        return architecturalOpeningsOverlap(candidate, opening)
+          || openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness);
+      },
     );
     if (duplicateIndex < 0) {
       result.push(opening);
@@ -189,6 +202,7 @@ function flipSegmentZ(segment) {
     ...segment,
     start: flipPointZ(segment.start),
     end: flipPointZ(segment.end),
+    swing_end: segment.swing_end ? flipPointZ(segment.swing_end) : segment.swing_end,
     rotation_deg: "rotation_deg" in segment
       ? sceneToWorldRotationDeg(segment.rotation_deg)
       : segment.rotation_deg,
@@ -850,6 +864,28 @@ export function createSceneViewer(
     ));
   }
 
+  function stabilizeWholeHouseWallAppearance(material) {
+    if (!material?.color) return material;
+    // A whole-house paint is a visual commitment, not a lighting experiment.
+    // MeshPhysicalMaterial still shaded identical paint differently per wall
+    // direction.  Use an unlit finish only for this explicit uniform mode so
+    // every interior face presents the selected colour exactly the same way.
+    const stableMaterial = new THREE.MeshBasicMaterial({
+      color: material.color.clone(),
+      // Keep the selected plaster or tile image.  MeshBasicMaterial removes
+      // directional-light differences without discarding the material itself.
+      map: material.map || null,
+      side: material.side || THREE.DoubleSide,
+      transparent: false,
+      opacity: 1,
+      toneMapped: false,
+    });
+    stableMaterial.userData.roompilotWholeHouseWall = true;
+    stableMaterial.userData.roompilotImageSurface = Boolean(material.map);
+    stableMaterial.userData.roompilotSurfaceUsage = "wall";
+    return stableMaterial;
+  }
+
   function createWoodTexture(base, grain, seam, repeatX, repeatY) {
     return makeCanvasTexture({
       repeatX,
@@ -1153,8 +1189,14 @@ export function createSceneViewer(
     return (presets[floorOption] ?? presets.auto)();
   }
 
-  function createWallMaterial(wallOption, surfaceCatalog) {
-    const surface = findSurface(surfaceCatalog, wallOption, "wall");
+  function createWallMaterial(wallOption, surfaceCatalog, { tintOnly = false } = {}) {
+    const requestedSurface = findSurface(surfaceCatalog, wallOption, "wall");
+    // Most imported wall records retain their original remote preview URL.
+    // The viewer must still work offline, so render those with our bundled
+    // plaster texture while preserving the selected wall colour and ID in data.
+    const surface = requestedSurface?.texture_url?.startsWith("http")
+      ? findSurface(surfaceCatalog, "wall_ambientcg_plaster006", "wall")
+      : requestedSurface;
     if (surface) {
       const material = createSurfaceImageMaterial(surface, "wall", {
         roughness: 0.9,
@@ -1162,6 +1204,13 @@ export function createSceneViewer(
         repeat: surface.repeat?.wall || [2.4, 1.8],
         side: THREE.DoubleSide,
       });
+      if (tintOnly) {
+        // Keep the catalog texture as subtle relief, but never let its source color
+        // override a whole-house wall color selected by the user.
+        material.map = null;
+        material.userData.roompilotImageSurface = false;
+        material.userData.roompilotWallTintOnly = true;
+      }
       material.transparent = false;
       material.opacity = 1;
       material.depthWrite = true;
@@ -1339,6 +1388,7 @@ export function createSceneViewer(
             from,
             to,
             kind,
+            id: opening.id || null,
             width: wallInterval.width,
             opening,
             windowMetrics,
@@ -1356,9 +1406,11 @@ export function createSceneViewer(
         const sectionTo = span.to;
         const center = (sectionFrom + sectionTo) / 2;
         const sectionGeometry = new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness);
-        const sectionMaterials = exteriorWall
-          ? wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)
-          : sectionMaterial.clone();
+        const sectionMaterials = typeof wallMaterial.faceMaterials === "function"
+          ? wallMaterial.faceMaterials(segment, exteriorSideSign)
+          : (exteriorWall
+            ? wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)
+            : sectionMaterial.clone());
         const wallMesh = new THREE.Mesh(
           sectionGeometry,
           sectionMaterials,
@@ -1454,7 +1506,15 @@ export function createSceneViewer(
       roomGroupRef.add(topCap);
     });
 
-    const missingDoors = topologyGapDoors;
+    // A door may have a valid closed segment but no recognised wall span yet.
+    // It must still be rendered once at that closed position; otherwise a
+    // confirmed Step 4 door silently disappears in Step 6.
+    const missingDoors = doorSegments.filter((opening) => {
+      const openingId = String(opening?.id || "").trim();
+      return opening?.topology_gap === true
+        || !openingId
+        || !renderedOpenings.has(openingId);
+    });
     const missingWindows = windowSegments.filter((opening) => !segments.some(
       (segment) => openingWallInterval(segment, opening, wallThickness, 50),
     ));
@@ -1491,11 +1551,14 @@ export function createSceneViewer(
     assembly.position.set(anchor.x, 0, anchor.z);
     assembly.rotation.y = anchor.rotationY;
     assembly.userData.roompilotArchitecturalDetail = interval.kind;
+    assembly.userData.roompilotArchitecturalId = String(
+      interval.id || interval.opening?.id || "",
+    ).trim();
 
     if (isWindow) {
-      const frameDepth = 3.2;
+      const frameDepth = Math.max(Number(anchor.wallThickness || 12) + 0.4, 4.2);
       const frameThickness = 4.2;
-      const faceOffset = Math.max(Number(anchor.wallThickness || 12) / 2 + 0.35, 6);
+      const faceOffset = 0;
       const bottomY = centerY - height / 2;
       const topY = centerY + height / 2;
       const glass = new THREE.Mesh(
@@ -1507,7 +1570,7 @@ export function createSceneViewer(
         }),
       );
       glass.position.y = centerY;
-      glass.position.z = faceOffset - frameDepth / 2 - 0.08;
+      glass.position.z = 0;
       glass.castShadow = false;
       assembly.add(glass);
       const mullionPositions = [0];
@@ -1531,7 +1594,7 @@ export function createSceneViewer(
         new THREE.BoxGeometry(interval.width + 8, 2.2, frameDepth + 4),
         frameMaterial,
       );
-      sill.position.set(0, bottomY - 1.1, faceOffset);
+      sill.position.set(0, bottomY - 1.1, 0);
       sill.castShadow = true;
       sill.receiveShadow = true;
       sill.userData.roompilotArchitecturalDetail = "flush-window-sill";
@@ -1583,6 +1646,7 @@ export function createSceneViewer(
         roomGroupRef,
         {
           kind,
+          id: opening.id || null,
           width: openingWidth,
           opening,
           windowMetrics,
@@ -2109,6 +2173,11 @@ export function createSceneViewer(
   function wallMaterialResolver(sceneData, defaultMaterial, exteriorMaterial = defaultMaterial) {
     const overrides = sceneData.surface_overrides || [];
     const cache = new Map();
+    const firstOverride = overrides[0] || null;
+    const usesOneWholeHouseWall = Boolean(firstOverride) && overrides.every((override) => (
+      override.wall_option === firstOverride.wall_option
+        && override.wall_color_hex === firstOverride.wall_color_hex
+    ));
     const pointToSegmentDistance = (point, start, end) => {
       const dx = Number(end.x) - Number(start.x);
       const dz = Number(end.z) - Number(start.z);
@@ -2127,6 +2196,32 @@ export function createSceneViewer(
         point.z - (Number(start.z) + projection * dz),
       );
     };
+    const overrideAtPoint = (point) => overrides.findLast((item) => {
+      const polygon = item.room_polygon_cm || [];
+      return polygon.length >= 3
+        ? ringContainsPoint(point, polygon)
+        : (item.room_bounds_cm && pointInBounds(point, item.room_bounds_cm, 18));
+    });
+    const materialForOverride = (override) => {
+      if (!override) return defaultMaterial;
+      const cacheKey = override.room_id;
+      if (!cache.has(cacheKey)) {
+        let material = createWallMaterial(
+          override.wall_option
+            || "auto",
+          sceneData.surface_catalog,
+          { tintOnly: false },
+        );
+        applySurfaceTint(
+          material,
+          override.wall_color_hex,
+        );
+        if (usesOneWholeHouseWall) material = stabilizeWholeHouseWallAppearance(material);
+        material.userData.roompilotWallSurfaceId = override.room_id;
+        cache.set(cacheKey, material);
+      }
+      return cache.get(cacheKey);
+    };
     const resolveWallMaterial = (segment) => {
       if (isExteriorWallSegment(segment, sceneData.floorplan)) {
         exteriorMaterial.userData.roompilotWallSurfaceRole = "exterior";
@@ -2136,42 +2231,37 @@ export function createSceneViewer(
         x: (Number(segment.start?.x || 0) + Number(segment.end?.x || 0)) / 2,
         z: (Number(segment.start?.z || 0) + Number(segment.end?.z || 0)) / 2,
       };
-      const override = overrides.findLast(
-        (item) => item.room_bounds_cm
-          && pointInBounds(midpoint, item.room_bounds_cm, 18),
-      );
-      if (!override) return defaultMaterial;
-      const polygon = override.room_polygon_cm || [];
-      let surfaceId = null;
-      let nearestDistance = Infinity;
-      polygon.forEach((point, index) => {
-        const next = polygon[(index + 1) % polygon.length];
-        const distance = pointToSegmentDistance(midpoint, point, next);
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          surfaceId = `${override.room_id}:wall:${index}`;
-        }
-      });
-      const surfaceOverride = nearestDistance <= 32
-        ? override.wall_overrides?.[surfaceId]
-        : null;
-      const cacheKey = surfaceOverride ? surfaceId : override.room_id;
-      if (!cache.has(cacheKey)) {
-        const material = createWallMaterial(
-          surfaceOverride?.materialId
-            || surfaceOverride?.material_id
-            || override.wall_option
-            || "auto",
-          sceneData.surface_catalog,
-        );
-        applySurfaceTint(
-          material,
-          surfaceOverride?.color || surfaceOverride?.color_hex || override.wall_color_hex,
-        );
-        material.userData.roompilotWallSurfaceId = surfaceId;
-        cache.set(cacheKey, material);
-      }
-      return cache.get(cacheKey);
+      return materialForOverride(overrideAtPoint(midpoint));
+    };
+    resolveWallMaterial.faceMaterials = (segment, exteriorSideSign = 1) => {
+      const start = segment.start || {};
+      const end = segment.end || {};
+      const dx = Number(end.x || 0) - Number(start.x || 0);
+      const dz = Number(end.z || 0) - Number(start.z || 0);
+      const length = Math.hypot(dx, dz);
+      if (length < 4) return null;
+      const midpoint = {
+        x: (Number(start.x || 0) + Number(end.x || 0)) / 2,
+        z: (Number(start.z || 0) + Number(end.z || 0)) / 2,
+      };
+      const normal = { x: -dz / length, z: dx / length };
+      const exterior = isExteriorWallSegment(segment, sceneData.floorplan);
+      const materialForSide = (side) => {
+        if (exterior && side === exteriorSideSign) return exteriorMaterial;
+        const sample = {
+          x: midpoint.x + normal.x * side * 16,
+          z: midpoint.z + normal.z * side * 16,
+        };
+        return materialForOverride(overrideAtPoint(sample));
+      };
+      const positiveSide = materialForSide(1);
+      const negativeSide = materialForSide(-1);
+      const interior = resolveWallMaterial(segment);
+      const materials = [
+        interior.clone(), interior.clone(), interior.clone(),
+        interior.clone(), positiveSide.clone(), negativeSide.clone(),
+      ];
+      return materials;
     };
     resolveWallMaterial.exteriorMaterial = exteriorMaterial;
     return resolveWallMaterial;
@@ -2387,7 +2477,8 @@ export function createSceneViewer(
   }
 
   function interiorWallJunctionInsets(segment, exteriorSegments, wallThickness) {
-    const insetCm = Math.max(Number(wallThickness) / 2 + 1, 6);
+    // 內牆應貼齊外牆的內側面；先前多退 1 cm 會在每個交界留下可見縫隙。
+    const insetCm = Math.max(Number(wallThickness) / 2, 0);
     const toleranceCm = Math.max(Number(wallThickness) / 2 + 2, 8);
     const endpointTouchesExterior = (key) => {
       const point = wallSegmentPoint(segment, key);
@@ -2513,7 +2604,7 @@ export function createSceneViewer(
       || sceneData.style_card?.palette_hex?.[1];
     applySurfaceTint(floorMaterial, floorColor);
     if (floorPbr.roughness != null) floorMaterial.roughness = floorPbr.roughness;
-    const exteriorWallMaterial = createWallMaterial(
+    let exteriorWallMaterial = createWallMaterial(
       sceneData.design_choices?.exterior_wall_option || "auto",
       sceneData.surface_catalog,
     );
@@ -2521,6 +2612,7 @@ export function createSceneViewer(
       exteriorWallMaterial,
       sceneData.design_choices?.exterior_wall_color_hex || "#e7e3dc",
     );
+    exteriorWallMaterial = stabilizeWholeHouseWallAppearance(exteriorWallMaterial);
     exteriorWallMaterial.userData.roompilotWallSurfaceRole = "exterior";
     if (floorPbr.metalness != null) floorMaterial.metalness = floorPbr.metalness;
     const floor = new THREE.Mesh(
@@ -2665,6 +2757,36 @@ export function createSceneViewer(
       const rightWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, wallHeight, depthCm), wallMaterial.clone());
       rightWall.position.set(widthCm / 2, wallHeight / 2, 0);
       roomGroup.add(registerWall(rightWall));
+    }
+
+    // Keep a DOM-visible diagnostic for project-page verification. It measures
+    // the assemblies actually added to this viewer, not merely input records.
+    if (!catalogThumbnailMode) {
+      const expectedDoorIds = (sceneData.floorplan?.door_segments || [])
+        .map((door) => String(door?.id || "").trim())
+        .filter(Boolean);
+      const renderedDoors = roomGroup.children
+        .filter((child) => child.userData?.roompilotArchitecturalDetail === "door")
+        .map((child) => ({
+          id: child.userData?.roompilotArchitecturalId || "",
+          leafCount: child.children.filter(
+            (mesh) => mesh.userData?.roompilotArchitecturalDetail === "closed-door-leaf",
+          ).length,
+          anchor: {
+            x: Math.round(child.position.x * 100) / 100,
+            z: Math.round(child.position.z * 100) / 100,
+          },
+        }))
+        .filter((door) => door.id);
+      const renderedDoorIds = renderedDoors.map((door) => door.id);
+      container.dataset.roompilotDoorDiagnostics = JSON.stringify({
+        expected: expectedDoorIds.length,
+        resolved: doorSegments.length,
+        rendered: renderedDoorIds.length,
+        expectedIds: expectedDoorIds,
+        renderedIds: renderedDoorIds,
+        renderedDoors,
+      });
     }
 
     if (!catalogThumbnailMode && hasAccurateFloorplan) {
@@ -3168,13 +3290,47 @@ export function createSceneViewer(
     }
     setViewMode("walk");
     perspectiveCamera.position.set(spawn.x, eyeHeight, spawn.z);
-    controls.target.set(spawn.x, 108, spawn.z - 100);
+    const target = findWalkLookTarget(spawn, polygon);
+    controls.target.set(target.x, 108, target.z);
     walkDestination = null;
     walkMarker.visible = false;
     setStatus(
       `走動模式：已進入「${room.label || "選取空間"}」，門片已隱藏；點地板移動，家具不會被選取。`,
     );
     return true;
+  }
+
+  function findWalkLookTarget(spawn, polygon = []) {
+    const directions = [
+      { x: 0, z: -1 }, { x: 1, z: 0 }, { x: 0, z: 1 }, { x: -1, z: 0 },
+      { x: 0.707, z: -0.707 }, { x: 0.707, z: 0.707 },
+      { x: -0.707, z: 0.707 }, { x: -0.707, z: -0.707 },
+    ];
+    const isInsideSelectedRoom = (point) => (
+      !polygon.length || pointInRing(point, polygon)
+    );
+    const scored = directions.map((direction) => {
+      let clearance = 0;
+      for (let distance = 30; distance <= 210; distance += 30) {
+        const point = {
+          x: spawn.x + direction.x * distance,
+          y: spawn.y,
+          z: spawn.z + direction.z * distance,
+        };
+        if (!isInsideSelectedRoom(point)
+          || !walkPositionInsideFloor(point)
+          || walkPositionBlocked(point)
+          || walkPositionBlockedByFurniture(point)) break;
+        clearance = distance;
+      }
+      return { direction, clearance };
+    });
+    const best = scored.sort((left, right) => right.clearance - left.clearance)[0];
+    const distance = Math.max(80, Math.min(best?.clearance || 100, 160));
+    return {
+      x: spawn.x + (best?.direction.x || 0) * distance,
+      z: spawn.z + (best?.direction.z || -1) * distance,
+    };
   }
 
   function toggleCameraLock(force) {

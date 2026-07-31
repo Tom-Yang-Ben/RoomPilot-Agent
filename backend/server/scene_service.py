@@ -102,6 +102,15 @@ SPACE_DEFAULTS = {
     "workspace": ["desk", "office-chair", "bookcase", "wall-shelf"],
     "dining_room": ["dining-table", "dining-chair", "sideboard"],
     "studio": ["sofa-bed", "coffee-table", "desk", "bookcase"],
+    # 2026-07 盤點第 5 項修復：前端「空間用途」下拉開放後，使用者會真的選到
+    # 廚房／浴廁／儲藏／陽台／走道——這些型別先前不在表內，會一律退成客廳
+    # 家具（浴室被塞沙發）。circulation 刻意零家具（動線空間不自動配置）。
+    # 詞彙一致性由 tests/test_room_type_vocabulary.py 鎖住。
+    "kitchen": ["appliance-cabinet"],
+    "bathroom": ["bathroom-vanity", "mirror-cabinet"],
+    "storage": ["storage-cabinet"],
+    "balcony": ["flower-pots-planter"],
+    "circulation": [],
 }
 
 FURNITURE_ALIASES = {
@@ -201,9 +210,16 @@ def _normalize_openrouter_plan(
     if not normalized_required:
         return None
 
-    layout_rules = raw_plan.get("layout_rules", [])
-    if not isinstance(layout_rules, list):
-        layout_rules = []
+    raw_layout_rules = raw_plan.get("layout_rules", [])
+    if not isinstance(raw_layout_rules, list):
+        raw_layout_rules = []
+    # LLM 常把規則回成字串陣列；下游 must_keep 直接呼叫 rule.get("message")，
+    # 在邊界一律轉成 dict，無法取出訊息的項目直接丟棄。
+    layout_rules = [
+        item if isinstance(item, dict) else {"rule": "llm_rule", "message": item.strip()}
+        for item in raw_layout_rules
+        if isinstance(item, dict) or (isinstance(item, str) and item.strip())
+    ]
 
     preferred_colors = raw_plan.get("preferred_colors", questionnaire.get("preferred_colors", []))
     if not isinstance(preferred_colors, list):
@@ -1113,15 +1129,27 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
         }
 
     def segment(item: dict[str, Any]) -> dict[str, Any]:
-        return {
+        converted = {
             **{
                 key: value
                 for key, value in item.items()
-                if key not in {"start", "end"}
+                if key not in {"start", "end", "swing_end"}
             },
             "start": centered_point(item.get("start")),
             "end": centered_point(item.get("end")),
         }
+        # 開合門的 swing_end 與門片端點必須在同一個場景座標系，否則
+        # 第 6 步會把關門洞口推到另一面牆上。
+        if item.get("swing_end"):
+            converted["swing_end"] = centered_point(item.get("swing_end"))
+            # 開合門的 start → end 是打開後的門片；牆洞與關門門片
+            # 必須使用鉸鏈 start 指向弧線另一端 swing_end 的線段。
+            converted["closed_segment"] = {
+                "start": dict(converted["start"]),
+                "end": dict(converted["swing_end"]),
+                "source": "swing_arc",
+            }
+        return converted
 
     wall_segments = [segment(item) for item in structures.get("walls") or []]
     door_segments = [segment(item) for item in structures.get("doors") or []]

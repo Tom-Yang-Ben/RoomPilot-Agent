@@ -1,0 +1,479 @@
+[
+  {
+    "work_item_code": "PREP-PROTECTION",
+    "trade": "保護工程",
+    "name": "室內地坪與主要動線保護",
+    "unit": "m2",
+    "quantity_key": "floor_area_m2",
+    "description": "依房間地坪面積建立基本保護工程量；電梯、公共區域與特殊成品保護另計。",
+    "default_for_room": true,
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-001",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "保護",
+      "進場",
+      "地坪"
+    ]
+  },
+  {
+    "work_item_code": "CLEAN-FINAL",
+    "trade": "清潔工程",
+    "name": "完工細部清潔",
+    "unit": "m2",
+    "quantity_key": "floor_area_m2",
+    "description": "依房間地坪面積估算完工清潔；大量廢棄物清運與特殊汙染另計。",
+    "default_for_room": true,
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-002",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "清潔",
+      "完工"
+    ]
+  },
+  {
+    "work_item_code": "FLOOR-SUBSTRATE-CHECK",
+    "trade": "地坪工程",
+    "name": "地坪基層平整與含水狀況檢查",
+    "unit": "m2",
+    "quantity_key": "floor_area_m2",
+    "description": "施工前檢查平整、乾燥與既有面層狀況；修補範圍需現勘確認。",
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-003",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "地坪",
+      "基層",
+      "檢查"
+    ]
+  },
+  {
+    "work_item_code": "FLOOR-LEVELING",
+    "trade": "地坪工程",
+    "name": "地坪局部整平",
+    "unit": "m2",
+    "quantity_key": "floor_area_m2",
+    "description": "僅供初估；實際厚度、材料與面積由現場平整度決定。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-004",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "low",
+    "tags": [
+      "地坪",
+      "整平"
+    ]
+  },
+  {
+    "work_item_code": "FLOOR-SPC",
+    "trade": "地坪工程",
+    "name": "SPC 地板供料與鋪設",
+    "unit": "m2",
+    "quantity_key": "floor_area_m2",
+    "description": "依地坪面積估算，需確認基底、伸縮縫、收邊與材料型號。",
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-005",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "SPC",
+      "塑膠地板",
+      "地坪"
+    ]
+  },
+  {
+    "work_item_code": "FLOOR-LAMINATE",
+    "trade": "地坪工程",
+    "name": "超耐磨木地板供料與鋪設",
+    "unit": "m2",
+    "quantity_key": "floor_area_m2",
+    "description": "依地坪面積估算，防潮墊、收邊與門片淨高需確認。",
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-006",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "超耐磨",
+      "木地板"
+    ]
+  },
+  {
+    "work_item_code": "FLOOR-ENGINEERED-WOOD",
+    "trade": "地坪工程",
+    "name": "海島型／工程木地板供料與鋪設",
+    "unit": "m2",
+    "quantity_key": "floor_area_m2",
+    "description": "依地坪面積估算，鋪法、基底、防潮與材料等級需確認。",
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-007",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "海島型木地板",
+      "工程木地板"
+    ]
+  },
+  {
+    "work_item_code": "FLOOR-TILE",
+    "trade": "泥作工程",
+    "name": "地坪磁磚鋪貼與填縫",
+    "unit": "m2",
+    "quantity_key": "floor_area_m2",
+    "description": "依地坪面積估算，磁磚尺寸、拼法、打底厚度與洩水坡度另確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-008",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "磁磚",
+      "地磚",
+      "泥作"
+    ]
+  },
+  {
+    "work_item_code": "FLOOR-SKIRTING",
+    "trade": "地坪工程",
+    "name": "踢腳板安裝",
+    "unit": "m",
+    "quantity_key": "perimeter_m",
+    "description": "MVP 以房間周長估算，尚未扣除門洞、櫃體與無需施作區段。",
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-009",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "low",
+    "tags": [
+      "踢腳板",
+      "收邊"
+    ]
+  },
+  {
+    "work_item_code": "WALL-PREP",
+    "trade": "油漆工程",
+    "name": "牆面局部修補與批土研磨",
+    "unit": "m2",
+    "quantity_key": "net_wall_area_m2",
+    "description": "依牆面淨面積初估，老屋裂縫、壁癌與大面積剝落需另行評估。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-010",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "low",
+    "tags": [
+      "牆面",
+      "批土",
+      "修補"
+    ]
+  },
+  {
+    "work_item_code": "PAINT-WALL",
+    "trade": "油漆工程",
+    "name": "室內牆面底漆與乳膠漆塗裝",
+    "unit": "m2",
+    "quantity_key": "net_wall_area_m2",
+    "description": "依牆面淨面積估算；漆種、色數、遍數與基底狀況由設計師及廠商確認。",
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-011",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "乳膠漆",
+      "油漆",
+      "牆漆"
+    ]
+  },
+  {
+    "work_item_code": "WALL-WALLPAPER",
+    "trade": "壁紙工程",
+    "name": "室內壁紙／壁布施作",
+    "unit": "m2",
+    "quantity_key": "net_wall_area_m2",
+    "description": "依牆面淨面積估算；花距損耗、基底處理及材料批號另確認。",
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-012",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "壁紙",
+      "壁布"
+    ]
+  },
+  {
+    "work_item_code": "WALL-WOOD-PANEL",
+    "trade": "木作工程",
+    "name": "牆面木作飾板施作",
+    "unit": "m2",
+    "quantity_key": "net_wall_area_m2",
+    "description": "依牆面淨面積初估；骨架、板材、防火與收邊細節需設計師確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-013",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "low",
+    "tags": [
+      "木飾板",
+      "木作牆"
+    ]
+  },
+  {
+    "work_item_code": "WALL-TILE",
+    "trade": "泥作工程",
+    "name": "牆面磁磚鋪貼與填縫",
+    "unit": "m2",
+    "quantity_key": "net_wall_area_m2",
+    "description": "依牆面淨面積初估；防水高度、磁磚尺寸與轉角收邊另確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-014",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "壁磚",
+      "牆磚",
+      "磁磚"
+    ]
+  },
+  {
+    "work_item_code": "PAINT-CEILING",
+    "trade": "油漆工程",
+    "name": "天花板底漆與乳膠漆塗裝",
+    "unit": "m2",
+    "quantity_key": "ceiling_area_m2",
+    "description": "依天花面積估算；造型天花、燈槽與檢修口需另列。",
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-015",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "天花漆",
+      "乳膠漆"
+    ]
+  },
+  {
+    "work_item_code": "CEILING-GYPSUM",
+    "trade": "天花工程",
+    "name": "平釘石膏板天花施作",
+    "unit": "m2",
+    "quantity_key": "ceiling_area_m2",
+    "description": "依天花面積初估；骨架、降板高度、防火材料與設備開孔需確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-016",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "low",
+    "tags": [
+      "石膏板天花",
+      "平釘天花"
+    ]
+  },
+  {
+    "work_item_code": "CEILING-LIGHT-TROUGH",
+    "trade": "天花工程",
+    "name": "間接照明燈槽施作",
+    "unit": "m",
+    "quantity_key": "perimeter_m",
+    "description": "MVP 以房間周長作上限估算；實際燈槽長度應由圖面線段計算。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-017",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "low",
+    "tags": [
+      "燈槽",
+      "間接照明"
+    ]
+  },
+  {
+    "work_item_code": "WATERPROOF-FLOOR",
+    "trade": "防水工程",
+    "name": "地坪防水層施作與試水需求",
+    "unit": "m2",
+    "quantity_key": "floor_area_m2",
+    "description": "僅供濕區初估；材料系統、上翻高度、層數與試水方式由專業人員確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-018",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "防水",
+      "浴室",
+      "陽台"
+    ]
+  },
+  {
+    "work_item_code": "WATERPROOF-WALL",
+    "trade": "防水工程",
+    "name": "牆面防水層施作",
+    "unit": "m2",
+    "quantity_key": "net_wall_area_m2",
+    "description": "MVP 以牆面淨面積估算上限；實際施作高度與範圍需圖面及現場確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-019",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "low",
+    "tags": [
+      "牆面防水",
+      "濕區"
+    ]
+  },
+  {
+    "work_item_code": "ELEC-POWER-POINT",
+    "trade": "水電工程",
+    "name": "一般電源點位需求",
+    "unit": "point",
+    "quantity_key": "suggested_power_point_count",
+    "description": "僅為設備需求點數；迴路、線徑、負載與施工路徑由水電專業人員確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-020",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "插座",
+      "電源"
+    ]
+  },
+  {
+    "work_item_code": "ELEC-LIGHT-POINT",
+    "trade": "水電工程",
+    "name": "照明出線／控制點位需求",
+    "unit": "point",
+    "quantity_key": "suggested_lighting_point_count",
+    "description": "僅為照明需求數；開關迴路、控制方式與負載由水電專業人員確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-021",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "照明",
+      "開關",
+      "出線"
+    ]
+  },
+  {
+    "work_item_code": "DATA-POINT",
+    "trade": "水電工程",
+    "name": "弱電／網路點位需求",
+    "unit": "point",
+    "quantity_key": "suggested_data_point_count",
+    "description": "依設備需求建立點位草案；配管、網路設備與訊號規格另確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-022",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "網路",
+      "弱電",
+      "訊號"
+    ]
+  },
+  {
+    "work_item_code": "PLUMB-COLD-WATER",
+    "trade": "水電工程",
+    "name": "冷水給水點需求",
+    "unit": "point",
+    "quantity_key": "suggested_cold_water_point_count",
+    "description": "僅為設備需求；水壓、管徑、路徑與既有立管需現場確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-023",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "冷水",
+      "給水"
+    ]
+  },
+  {
+    "work_item_code": "PLUMB-HOT-WATER",
+    "trade": "水電工程",
+    "name": "熱水給水點需求",
+    "unit": "point",
+    "quantity_key": "suggested_hot_water_point_count",
+    "description": "僅為設備需求；熱源、管徑、保溫與路徑由水電專業人員確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-024",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "熱水",
+      "給水"
+    ]
+  },
+  {
+    "work_item_code": "PLUMB-DRAIN",
+    "trade": "水電工程",
+    "name": "排水點需求",
+    "unit": "point",
+    "quantity_key": "suggested_drain_point_count",
+    "description": "僅為設備需求；排水坡度、管徑、立管與穿孔位置由專業人員確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-025",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "排水",
+      "地排"
+    ]
+  },
+  {
+    "work_item_code": "HVAC-CONNECTION",
+    "trade": "空調工程",
+    "name": "空調設備電源、冷媒與排水介面確認",
+    "unit": "point",
+    "quantity_key": "suggested_hvac_point_count",
+    "description": "僅列設備介面需求；容量、機型、冷媒管長、排水與室外機位置由空調專業人員確認。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-026",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "冷氣",
+      "空調"
+    ]
+  },
+  {
+    "work_item_code": "LIGHT-FIXTURE-INSTALL",
+    "trade": "燈具工程",
+    "name": "成品燈具安裝",
+    "unit": "unit",
+    "quantity_key": "direct_item_count",
+    "description": "依家具／設備清單中的燈具數量估算；高空、特殊吊重與控制系統另計。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-027",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "medium",
+    "tags": [
+      "燈具",
+      "安裝"
+    ]
+  },
+  {
+    "work_item_code": "CURTAIN-TRACK-INSTALL",
+    "trade": "家具軟裝",
+    "name": "窗簾軌道／窗簾安裝",
+    "unit": "unit",
+    "quantity_key": "direct_item_count",
+    "description": "MVP 以窗簾項目數量估算；實際寬度、軌道型式與電動控制另確認。",
+    "professional_confirmation_required": false,
+    "source_id": "KB-WORK-028",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "low",
+    "tags": [
+      "窗簾",
+      "軌道"
+    ]
+  },
+  {
+    "work_item_code": "BUILTIN-CABINET-INSTALL",
+    "trade": "系統櫃",
+    "name": "固定櫃體定位與安裝",
+    "unit": "unit",
+    "quantity_key": "direct_item_count",
+    "description": "僅估安裝項目數；正式價格應依展開尺寸、板材、五金與圖面報價。",
+    "professional_confirmation_required": true,
+    "source_id": "KB-WORK-029",
+    "source_type": "mvp_seed_knowledge",
+    "confidence": "low",
+    "tags": [
+      "系統櫃",
+      "固定櫃",
+      "櫃體"
+    ]
+  }
+]

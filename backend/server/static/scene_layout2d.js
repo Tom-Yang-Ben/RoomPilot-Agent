@@ -211,7 +211,7 @@ export function recommendCompanionFurniture(roomType, selectedTypes = []) {
   return recommendations;
 }
 
-function roomTypeFromName(room = {}) {
+export function roomTypeFromName(room = {}) {
   const explicitType = String(room.type || room.room_type || "default").toLowerCase();
   if (explicitType && !["default", "unknown", "other"].includes(explicitType)) {
     return explicitType;
@@ -226,6 +226,7 @@ function roomTypeFromName(room = {}) {
     ["dining_room", /dining\s*room|飯廳|餐廳/],
     ["balcony", /balcony|terrace|陽台/],
     ["circulation", /circulation|corridor|hallway|走道|走廊|玄關/],
+    ["workspace", /study|office|den|書房|工作室/],
   ];
   return rules.find(([, pattern]) => pattern.test(label))?.[0] || "default";
 }
@@ -238,6 +239,7 @@ export function recommendedFurnitureForRoom(room = {}) {
     dining_room: [["dining-table", "round-4"], ["dining-chair", "standard"]],
     kitchen: [["appliance-cabinet", "standard"]],
     storage: [["storage-cabinet", "tall"]],
+    workspace: [["desk", "standard"], ["office-chair", "task"]],
     bathroom: [["bathroom-vanity", "standard"], ["mirror-cabinet", "standard"]],
     balcony: [["flower-pots-planter", "floor"]],
     circulation: [],

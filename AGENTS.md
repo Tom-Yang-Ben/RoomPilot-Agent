@@ -35,7 +35,7 @@
 |---|---|---|
 | `backend/server/` | Bella | FastAPI、專案保存、八步 UI、2D/3D 調度 |
 | `backend/floorplan/` | Cody | 影像/DXF 辨識、牆門窗房間、`layout_json` |
-| `backend/spatial_data/` | Django | 空間尺寸、房間關係、layout evaluation schema |
+| `backend/spatial_data/` | Django | 空間尺寸、房間關係、layout evaluation schema、家具 RAG 檢索與排序 |
 | `backend/catalog/`、`JSON/`、`scripts/sql/` | Kai | 正式家具、CloudFront 資產、PostgreSQL 匯入與 RAG metadata |
 | `backend/agent/` | Yen | 需求結構化、選件、修復意圖與說明 |
 | `backend/engine/` | Ancai | 配置、碰撞、淨空、移動與幾何合法性 |
@@ -51,6 +51,7 @@
 - 舊欄位 `width`、`depth`、`pos_x`、`pos_y` 必須同時帶 `coordinate_unit: "cm"` 與 schema version。
 - 平面圖辨識輸出是 `layout_json`；方案生成與編輯輸出是 `scene_json`。
 - Graph RAG 只檢索房間、家具、風格、材質與限制的關係與證據，不決定幾何、碰撞、淨空或結構合法性。
+- 家具向量 RAG 只解析需求、檢索與排序 Kai PostgreSQL 家具；不得取代 Yen 選件決策或 Ancai 幾何判定。
 - 家具合法位置只由 `backend/engine/` 判定。
 - 第 6 步正式家具以 Kai PostgreSQL `roompilot.furniture_catalog_current` 優先；資料庫不可用時才回退已驗證 JSON。
 - 冰箱、洗衣機等家電保留為問卷與 AI 生圖上下文，不能進入 2D/3D 自動配置或正式家具 API。
