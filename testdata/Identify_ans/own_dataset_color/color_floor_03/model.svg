@@ -1,6 +1,6 @@
 <?xml version="1.0" ?><svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" width="588" height="533" viewBox="0 0 588 533" version="1.1" id="svg77" sodipodi:docname="model.svg" inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)">
   <defs id="defs77"/>
-  <sodipodi:namedview id="namedview77" pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:zoom="0.78517824" inkscape:cx="588.40143" inkscape:cy="533" inkscape:window-width="1920" inkscape:window-height="1017" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Model"/>
+  <sodipodi:namedview id="namedview77" pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:zoom="2.2208194" inkscape:cx="316.32468" inkscape:cy="368.55765" inkscape:window-width="1920" inkscape:window-height="1009" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Model"/>
   <image xlink:href="F1_scaled.png" x="0" y="0" width="588" height="533" id="image1"/>
   <g id="Model" class="Model">
     <g id="Wall" class="Wall">
@@ -118,28 +118,22 @@
       <polygon points="418.56,278.61 418.56,230.39 360.55,230.39 360.55,278.61" fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon66"/>
     </g>
     <g class="Space Bedroom" id="g71">
-      <polygon points="111.50,46.00 111.00,223.00 298.00,223.00 298.00,42.00 158.50,42.00 158.00,46.00 111.50,46.00" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon71" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
-      
+      <polygon points="111.00,223.00 298.00,223.00 298.00,42.00 111.69,41.85 111.00,223.00" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
     </g>
     <g class="Space Bedroom" id="g72">
-      <polygon points="307.00,42.00 307.00,222.00 521.00,222.00 521.00,47.50 510.50,47.50 510.00,45.50 495.00,45.50 494.50,42.00 307.00,42.00" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon72" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
-      
+      <polygon points="307.00,42.00 307.00,222.00 521.00,222.00 520.50,42.36 307.00,42.00" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
     </g>
     <g class="Space Kitchen" id="g73">
-      <polygon points="303.76,231.26 17.00,231.26 16.68,315.28 134.81,314.60 133.53,485.83 153.91,486.39 154.55,511.15 303.76,509.88 303.76,231.26" style="fill:#e8843c;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
-      
+      <polygon points="303.76,231.26 17.00,231.26 16.68,315.28 134.81,314.60 133.53,485.83 153.91,486.39 154.55,511.15 305.56,510.33 303.76,231.26" style="fill:#e8843c;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
     </g>
     <g class="Space LivingRoom" id="g74">
-      <polygon points="498.75,486.82 543.80,486.42 542.28,327.47 368.40,327.78 366.91,232.62 305.97,232.62 307.89,510.35 498.60,512.44 498.75,486.82" style="fill:#7dc37d;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
-      
+      <polygon points="498.75,486.82 543.80,486.42 542.28,327.47 368.40,327.78 366.91,232.62 305.97,232.62 307.89,510.35 498.60,512.44 498.75,486.82" style="fill:#7dc37d;fill-opacity:0.4;stroke:#000000;stroke-width:1" id="polygon29"/>
     </g>
     <g class="Space Bath" id="g75">
-      <polygon points="519.92,298.83 519.92,231.17 377.20,231.17 377.20,315.38 465.12,315.38 465.14,298.19 519.92,298.83" style="fill:#3dbdbd;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
-      
+      <polygon points="519.92,298.83 519.92,231.17 377.20,231.17 377.20,315.38 465.12,315.38 465.14,298.19 519.92,298.83" style="fill:#3dbdbd;fill-opacity:0.4;stroke:#000000;stroke-width:1" id="polygon30"/>
     </g>
     <g class="Space Balcony" id="g77">
-      <polygon points="16.05,518.66 98.55,518.02 99.69,485.89 121.95,485.89 121.95,329.05 16.05,329.05 16.05,518.66" style="fill:#b5368f;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
-      
+      <polygon points="16.05,518.66 98.55,518.02 99.69,485.89 121.95,485.89 121.95,329.05 16.05,329.05 16.05,518.66" style="fill:#b5368f;fill-opacity:0.4;stroke:#000000;stroke-width:1" id="polygon31"/>
     </g>
     <g id="g65-8" class="Door">
       <polygon points="307.56,529.02 307.56,450.50 371.27,450.50 371.27,529.02" fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon65-6"/>
@@ -151,4 +145,5 @@
     <polygon points="132.19,363.10 132.19,487.88 123.44,487.88 123.44,363.10" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon39-7-8-24-5"/>
     <polygon points="54.63,219.61 100.36,219.61 100.36,228.36 54.63,228.36" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon33-8-6-9-0-7-2"/>
   </g>
-<g id="RoomLabels"><text x="204" y="132" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="414" y="132" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="160" y="371" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Kitchen</text><text x="425" y="373" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">LivingRoom</text><text x="449" y="273" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Bath</text><text x="69" y="424" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Balcony</text></g></svg>
+  
+<g id="RoomLabels"><text x="204" y="132" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="414" y="132" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="161" y="371" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Kitchen</text><text x="425" y="373" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">LivingRoom</text><text x="449" y="273" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Bath</text><text x="69" y="424" style="font-family:Arial;font-size:19px;font-weight:bold;text-anchor:middle;fill:#000000">Balcony</text></g></svg>
