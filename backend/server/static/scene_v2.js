@@ -1726,6 +1726,87 @@ function calibrationPointerMove(event) {
   renderCalibration();
 }
 
+function applyCalibrationToAnalysis(analysis, calibration) {
+  if (!analysis || typeof analysis !== "object") throw new Error("recognition_result_missing");
+  const next = JSON.parse(JSON.stringify(analysis));
+  const previousScale = next.scale || {};
+  const previousCmPerPx = Number(previousScale.cm_per_px)
+    || Number(previousScale.m_per_px) * 100;
+  const nextCmPerPx = Number(calibration.cm_per_px);
+  if (!(nextCmPerPx > 0)) throw new Error("calibration_measurement_invalid");
+  const factor = previousCmPerPx > 0 ? nextCmPerPx / previousCmPerPx : 1;
+  const scalePoint = (point) => {
+    if (!point || typeof point !== "object") return;
+    ["x", "y", "z"].forEach((key) => {
+      if (Number.isFinite(Number(point[key]))) point[key] = Number(point[key]) * factor;
+    });
+  };
+  const scalePointList = (points) => {
+    if (!Array.isArray(points)) return;
+    points.forEach((point) => {
+      if (Array.isArray(point)) {
+        point.forEach((value, index) => {
+          if (Number.isFinite(Number(value))) point[index] = Number(value) * factor;
+        });
+      } else {
+        scalePoint(point);
+      }
+    });
+  };
+  const scaleLengthFields = (item) => {
+    ["width_cm", "height_cm", "depth_cm", "thickness_cm", "clearance_radius_cm", "width_m", "height_m", "depth_m", "thickness_m", "clearance_radius_m"].forEach((key) => {
+      if (Number.isFinite(Number(item?.[key]))) item[key] = Number(item[key]) * factor;
+    });
+  };
+  ["walls", "doors", "windows"].forEach((kind) => {
+    (next[kind] || []).forEach((item) => {
+      scalePoint(item.start);
+      scalePoint(item.end);
+      scalePoint(item.swing_end);
+      scaleLengthFields(item);
+    });
+  });
+  (next.rooms || []).forEach((room) => {
+    ["polygon_cm", "polygon_m", "polygon", "exterior"].forEach((key) => scalePointList(room[key]));
+    scalePoint(room.centroid_cm);
+    scalePoint(room.centroid_m);
+    ["area_cm2", "area_m2"].forEach((key) => {
+      if (Number.isFinite(Number(room[key]))) room[key] = Number(room[key]) * factor * factor;
+    });
+    scaleLengthFields(room);
+  });
+  const geometryUsesCentimeters = Number(previousScale.cm_per_px) > 0
+    || ["cm", "centimeter", "centimetre"].includes(String(next.coordinate_system?.unit || "").toLowerCase());
+  next.scale = {
+    ...previousScale,
+    pixel_distance: Number(calibration.pixel_distance),
+    source: "manual_confirmation",
+    confidence: 1,
+  };
+  if (geometryUsesCentimeters) {
+    next.scale.distance_cm = Number(calibration.distance_cm);
+    next.scale.cm_per_px = nextCmPerPx;
+    delete next.scale.distance_m;
+    delete next.scale.m_per_px;
+  } else {
+    next.scale.distance_m = Number(calibration.distance_cm) / 100;
+    next.scale.m_per_px = nextCmPerPx / 100;
+    delete next.scale.distance_cm;
+    delete next.scale.cm_per_px;
+  }
+  next.evidence = [{
+    text: `${Number(calibration.distance_cm)} cm`,
+    confidence: 1,
+    distance_cm: Number(calibration.distance_cm),
+    start_px: calibration.start_px,
+    end_px: calibration.end_px,
+    pixel_distance: Number(calibration.pixel_distance),
+  }];
+  next.issues = (next.issues || []).filter((issue) => issue !== "scale_anchor_missing" && issue !== "scale_confirmation_required");
+  next.requires_scale_confirmation = false;
+  return next;
+}
+
 async function applyCalibration() {
   const action = updateCalibrationAction();
   if (!action.ready) {
@@ -1735,17 +1816,9 @@ async function applyCalibration() {
   const distanceCm = Number(element.scaleInput.value);
   try {
     const calibration = buildScaleCalibration(state.calibrationPoints, distanceCm);
-    setStatus("正在依確認的公分尺度重新計算房間與結構…");
+    setStatus("正在套用確認的公分尺度…");
     if (state.sourceExtension !== ".dxf") {
-      const sourceResponse = await fetch(`/api/projects/${state.projectId}/floorplan/source`);
-      const sourceBlob = await sourceResponse.blob();
-      const form = new FormData();
-      form.append("file", new File([sourceBlob], state.pendingFile?.name || "floorplan.png", {
-        type: sourceBlob.type || "image/png",
-      }));
-      form.append("calibration_json", JSON.stringify(calibration));
-      const analyzed = await api("/api/floorplan/analyze", { method: "POST", body: form });
-      state.analysis = analyzed.analysis;
+      state.analysis = applyCalibrationToAnalysis(state.analysis, calibration);
     }
     state.confirmedFloorplan = {
       floorplan: state.analysis.floorplan || state.analysis,

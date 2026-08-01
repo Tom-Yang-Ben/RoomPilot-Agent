@@ -1044,6 +1044,18 @@ def test_questionnaire_selects_one_whole_house_style_before_room_specific_finish
     assert "逐房用途與家具" in html
 
 
+def test_scale_confirmation_reuses_existing_recognition_without_reuploading_the_floorplan() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    calibration = source.split("async function applyCalibration()", 1)[1].split(
+        "function planGeometry", 1
+    )[0]
+
+    assert "function applyCalibrationToAnalysis" in source
+    assert "state.analysis = applyCalibrationToAnalysis(state.analysis, calibration)" in calibration
+    assert 'api("/api/floorplan/analyze"' not in calibration
+    assert "/floorplan/source" not in calibration
+
+
 def test_step_six_defaults_to_free_rotation_with_grouped_tools() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
