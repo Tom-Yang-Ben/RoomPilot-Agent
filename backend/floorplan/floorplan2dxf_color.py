@@ -1184,7 +1184,11 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
         if bad.size:
             interior[np.isin(lab0, bad) & (closed > 0)] = 0
         n, lab, st, cent = cv2.connectedComponentsWithStats(interior, 8)
-        amin = (2 * T) ** 2 if keep_small \
+        # keep_small 樓地板以實體面積 0.8m² 封頂：(2T)² 隨牆厚平方暴漲
+        # （floor38 實案：T=31 時門檻等效 1.0m²，0.94m² 的浴缸格差 6%
+        # 死在門檻下），厚牆圖的小浴格才活得進合併階段
+        amin = min((2 * T) ** 2, int(8000.0 / max(cm * cm, 1e-6))) \
+            if keep_small \
             else max(int(0.003 * bbox_area), 2 * (2 * T) ** 2)  # 走道/玄關也要留下
         rooms, labels = [], np.zeros(lab.shape, np.int32)
         for i in range(1, n):

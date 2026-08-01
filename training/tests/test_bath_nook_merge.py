@@ -72,6 +72,28 @@ def test_kitchen_symbol_vetoes_candidacy():
     assert len(out) == 2, "含廚房符號的房不該被吸進浴室"
 
 
+def test_extra_absorbed_only_with_two_seeds():
+    # 吸收制：無浴具小格鄰接「≥2 種子」的群才被吸收（floor38 浴缸格
+    # 無配對符號）；單種子不吸——真浴室不得吞隔壁儲藏室
+    labels = np.zeros((300, 300), np.int32)
+    labels[20:90, 20:120] = 1                    # 種子：馬桶格
+    labels[110:180, 20:120] = 2                  # 種子：洗手台格
+    labels[200:270, 20:120] = 3                  # 無浴具的浴缸格
+    rooms = _rooms_from_labels(labels)
+    det = {"symbols": [("wc", 60.0, 50.0), ("basin", 60.0, 140.0)],
+           "cm": 1.0}
+    out = fp._merge_bath_nooks(labels, rooms, det, T=10)
+    assert len(out) == 1, f"三格應併一間，實得 {len(out)}"
+
+    labels2 = np.zeros((300, 300), np.int32)
+    labels2[20:90, 20:120] = 1                   # 唯一種子
+    labels2[110:180, 20:120] = 2                 # 鄰接無浴具小格（儲藏室）
+    rooms2 = _rooms_from_labels(labels2)
+    det2 = {"symbols": [("wc", 60.0, 50.0)], "cm": 1.0}
+    out2 = fp._merge_bath_nooks(labels2, rooms2, det2, T=10)
+    assert len(out2) == 2, "單種子不得吸收鄰格"
+
+
 def test_far_apart_nooks_not_merged():
     labels = np.zeros((200, 500), np.int32)
     labels[20:90, 20:120] = 1

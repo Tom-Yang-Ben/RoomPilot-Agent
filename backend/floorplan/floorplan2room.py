@@ -1111,7 +1111,7 @@ def _merge_bath_nooks(labels, rooms, det, T):
     tub/wc 依品質掃描啟用後證據到位，機制重新上線。"""
     cm = det.get("cm", 1.0)
     h, w = labels.shape
-    cand = []
+    cand, extras = [], []
     for r in rooms:
         if r["area_px"] * cm * cm >= 80000.0:    # ≥8m² 非浴室碎格
             continue
@@ -1125,8 +1125,12 @@ def _merge_bath_nooks(labels, rooms, det, T):
             has_kitchen = has_kitchen or kind in _KITCHEN_SYMS
         # 廚房系符號是強反證（floor39 實案：wc 模板在廚房打假陽性，
         # 廚房被當浴具碎格與樓下真浴室誤併）——含爐台/水槽者不候選
-        if has_fix and not has_kitchen:
+        if has_kitchen:
+            continue
+        if has_fix:
             cand.append(r)
+        elif r["area_px"] * cm * cm < 40000.0:
+            extras.append(r)                     # 無浴具小格＝可吸收候補
     if len(cand) < 2:
         return rooms
     k = 4 * int(T) + 3                           # 膨脹半徑 2T+1＝隔屏牆厚度帶
@@ -1149,6 +1153,19 @@ def _merge_bath_nooks(labels, rooms, det, T):
     groups = {}
     for r in cand:
         groups.setdefault(_find(r["id"]), []).append(r)
+    # 吸收制（floor38/44 實案）：浴缸格/梳妝格常無配對到的浴具符號，
+    # 但被隔屏切出的碎格群不完整就蓋不滿 GT 浴室。無浴具的 <4m² 小格
+    # 若鄰接「≥2 個種子」的群則吸收——單種子不吸，避免真浴室把隔壁
+    # 儲藏室吞掉
+    for root, members in list(groups.items()):
+        if len(members) < 2:
+            continue
+        for e in extras:
+            if e in members:
+                continue
+            if any((dil[s["id"]] & (labels == e["id"])).any()
+                   for s in members if s["id"] in dil):
+                members.append(e)
     out = list(rooms)
     for _root, members in groups.items():
         if len(members) < 2:
