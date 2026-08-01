@@ -976,12 +976,19 @@ def test_3d_door_openings_merge_overlapping_spans_on_the_same_host_wall() -> Non
     assert "      wallSegments,\n      wallThickness," in viewer
 
 
-def test_3d_door_openings_keep_distinct_confirmed_step4_ids() -> None:
+def test_3d_door_openings_merge_overlapping_automatic_detections_but_keep_manual_locks() -> None:
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'const openingId = String(opening?.id || "").trim();' in viewer
-    assert "if (openingId && candidateId) return candidateId === openingId;" in viewer
-    assert "distinct IDs must never be collapsed" in viewer
+    assert "function openingIsManuallyLocked" in viewer
+    assert "openingIsManuallyLocked(candidate)" in viewer
+    assert "openingIsManuallyLocked(opening)" in viewer
+    assert "const samePhysicalSpan = architecturalOpeningsOverlap(candidate, opening)" in viewer
+    assert "return samePhysicalSpan;" in viewer
+    assert "Automatic detections can contain both sides of the same door symbol." in viewer
+    assert "function openingAnchorOnWall" in viewer
+    assert "anchorDistance <= 1" in viewer
+    assert "mergedDoorIds" in viewer
     assert "roompilotArchitecturalId" in viewer
     assert "expectedIds: expectedDoorIds" in viewer
     assert "renderedIds: renderedDoorIds" in viewer

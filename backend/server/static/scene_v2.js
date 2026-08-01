@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-73dcb6e6887c";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-ba512e4c4a83";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd27184d7e";
@@ -513,10 +513,13 @@ $("#white-model-viewer")?.addEventListener("roompilot-door-diagnostics", (event)
   const matched = (diagnostics.comparisons || []).filter((item) => item.status === "matched").length;
   const expected = Number(diagnostics.expected) || 0;
   const mismatch = expected - matched;
+  const merged = (diagnostics.mergedDoorIds || []).length;
   element.whiteStatus.dataset.doorAlignment = mismatch ? "mismatch" : "matched";
   element.whiteStatus.textContent = mismatch
     ? `門位對照：${matched}/${expected} 扇與第 4 步不一致，未確認前不會額外切出牆洞。`
-    : `門位對照完成：${matched}/${expected} 扇門洞與第 4 步辨識位置一致。`;
+    : merged
+      ? `門位對照完成：${matched}/${expected} 扇門洞與第 4 步位置一致；已合併 ${merged} 筆重複辨識。`
+      : `門位對照完成：${matched}/${expected} 扇門洞與第 4 步位置一致。`;
 });
 const realisticViewer = createSceneViewer($("#realistic-viewer"), element.realisticStatus, {
   onSceneChange: () => markRealisticSceneEdited(),

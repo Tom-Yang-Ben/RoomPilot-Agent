@@ -103,6 +103,25 @@ function openingWallCoverage(opening = {}, wallSegments = [], wallThickness = 12
   return { hostSegment, interval };
 }
 
+function openingAnchorOnWall(segment, interval) {
+  const start = segment?.start || {};
+  const end = segment?.end || {};
+  const dx = Number(end.x) - Number(start.x);
+  const dz = Number(end.z) - Number(start.z);
+  const length = Math.hypot(dx, dz);
+  if (length < 0.001 || !interval) return null;
+  const center = (Number(interval.from) + Number(interval.to)) / 2;
+  return {
+    x: Number(start.x) + (dx / length) * center,
+    z: Number(start.z) + (dz / length) * center,
+  };
+}
+
+function openingAnchorForWallTopology(opening = {}, wallSegments = [], wallThickness = 12) {
+  const coverage = openingWallCoverage(opening, wallSegments, wallThickness);
+  return coverage ? openingAnchorOnWall(coverage.hostSegment, coverage.interval) : null;
+}
+
 function openingsShareWallCoverage(left = {}, right = {}, wallSegments = [], wallThickness = 12) {
   const leftCoverage = openingWallCoverage(left, wallSegments, wallThickness);
   const rightCoverage = openingWallCoverage(right, wallSegments, wallThickness);
@@ -137,6 +156,12 @@ function architecturalOpeningScore(opening = {}, wallSegments = [], wallThicknes
     - Math.min(30, centerOffset * 0.25);
 }
 
+function openingIsManuallyLocked(opening = {}) {
+  return opening?.source === "manual"
+    || opening?.opening_source === "manual_confirmed"
+    || opening?.host_wall_confirmed === true;
+}
+
 function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wallThickness = 12) {
   const result = [];
   openings.filter(Boolean).forEach((opening) => {
@@ -144,11 +169,20 @@ function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wall
     const duplicateIndex = result.findIndex(
       (candidate) => {
         const candidateId = String(candidate?.id || "").trim();
-        // A confirmed Step 4 opening has a stable identity.  Geometry can be
-        // close for adjacent doors, but distinct IDs must never be collapsed.
-        if (openingId && candidateId) return candidateId === openingId;
-        return architecturalOpeningsOverlap(candidate, opening)
+        if (openingId && candidateId && openingId === candidateId) return true;
+        // Automatic detections can contain both sides of the same door symbol.
+        // Only distinct doors that the user has manually locked stay separate.
+        if (
+          openingId
+          && candidateId
+          && openingIsManuallyLocked(candidate)
+          && openingIsManuallyLocked(opening)
+        ) {
+          return false;
+        }
+        const samePhysicalSpan = architecturalOpeningsOverlap(candidate, opening)
           || openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness);
+        return samePhysicalSpan;
       },
     );
     if (duplicateIndex < 0) {
@@ -1475,8 +1509,7 @@ export function createSceneViewer(
             roomGroupRef,
             interval,
             {
-              x: Number(start.x) + unitX * ((interval.from + interval.to) / 2),
-              z: Number(start.z) + unitZ * ((interval.from + interval.to) / 2),
+              ...openingAnchorOnWall(segment, interval),
               rotationY,
               wallThickness,
             },
@@ -2762,9 +2795,13 @@ export function createSceneViewer(
     // Keep a DOM-visible diagnostic for project-page verification. It measures
     // the assemblies actually added to this viewer, not merely input records.
     if (!catalogThumbnailMode) {
-      const expectedDoorIds = (sceneData.floorplan?.door_segments || [])
+      const sourceDoorIds = (sceneData.floorplan?.door_segments || [])
         .map((door) => String(door?.id || "").trim())
         .filter(Boolean);
+      const expectedDoorIds = doorSegments
+        .map((door) => String(door?.id || "").trim())
+        .filter(Boolean);
+      const mergedDoorIds = sourceDoorIds.filter((id) => !expectedDoorIds.includes(id));
       const renderedDoors = roomGroup.children
         .filter((child) => child.userData?.roompilotArchitecturalDetail === "door")
         .map((child) => ({
@@ -2789,6 +2826,7 @@ export function createSceneViewer(
         const source = sourceDoorById.get(id);
         const resolved = resolvedDoorById.get(id);
         const rendered = renderedDoors.find((door) => door.id === id);
+        const expectedAnchor = openingAnchorForWallTopology(resolved, wallSegments, wallThickness);
         const endpointDistance = source && resolved
           ? Math.min(
             Math.hypot(source.start.x - resolved.start.x, source.start.z - resolved.start.z)
@@ -2797,16 +2835,28 @@ export function createSceneViewer(
               + Math.hypot(source.end.x - resolved.start.x, source.end.z - resolved.start.z),
           )
           : Infinity;
+        const anchorDistance = expectedAnchor && rendered
+          ? Math.hypot(
+            expectedAnchor.x - rendered.anchor.x,
+            expectedAnchor.z - rendered.anchor.z,
+          )
+          : Infinity;
         return {
           id,
           source: source ? { start: source.start, end: source.end, hostWallId: source.host_wall_id || null } : null,
           resolved: resolved ? { start: resolved.start, end: resolved.end, hostWallId: resolved.host_wall_id || null } : null,
+          expectedAnchor,
+          anchorDistance: Number.isFinite(anchorDistance)
+            ? Math.round(anchorDistance * 100) / 100
+            : null,
           rendered: Boolean(rendered),
-          status: endpointDistance <= 1 && Boolean(rendered) ? "matched" : "mismatch",
+          status: endpointDistance <= 1 && anchorDistance <= 1 ? "matched" : "mismatch",
         };
       });
       const doorDiagnostics = {
         expected: expectedDoorIds.length,
+        recognized: sourceDoorIds.length,
+        mergedDoorIds,
         resolved: doorSegments.length,
         rendered: renderedDoorIds.length,
         expectedIds: expectedDoorIds,
