@@ -56,8 +56,12 @@ def parse_frontend_2d() -> dict[str, set[str]]:
     text = (REPO_ROOT / "backend/server/static/scene_layout2d.js").read_text(encoding="utf-8")
     body = text.split("const recommendations = {", 1)[1].split("};", 1)[0]
     rows: dict[str, set[str]] = {}
-    for m in re.finditer(r"(\w+):\s*\[(.*?)\](?:,|\s*$)", body, re.S):
-        rows[m.group(1)] = set(re.findall(r'\["([a-z0-9-]+)"', m.group(2)))
+    # 每房一行；非貪婪跨行匹配會在第一個 ] 停下，只抓到第一件家具
+    #（首版 bug，害前端差距被灌水），改為逐行解析。
+    for line in body.splitlines():
+        m = re.match(r"\s*(\w+):\s*\[(.*)\],?\s*$", line)
+        if m:
+            rows[m.group(1)] = set(re.findall(r'\["([a-z0-9-]+)"', m.group(2)))
     return rows
 
 
