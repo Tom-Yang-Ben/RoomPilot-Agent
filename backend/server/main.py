@@ -26,6 +26,7 @@ from ..agent.knowledge import (
     normalize_room_type,
     required_families_for_room,
 )
+from ..agent.place import resolve_placements
 from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
 from .questionnaire_visuals import (
     QuestionnaireVisualStore,
@@ -2676,6 +2677,118 @@ def _normalize_selection_offers(raw_offers: object) -> dict[str, list[dict]]:
     return offers
 
 
+# ---------------------------------------------------------------------------
+# RAG 選件快取：offers 的第一順位來源。
+#
+# 由 scripts/build_rag_offer_cache.py 離線產生（bge-m3 向量 × pgvector，
+# 不經 LLM、不經 role 過濾）。線上只查表，毫秒級——這就是「RAG 選件」
+# 接進第 6 步的實際形態；缺的族系仍由後面的補件（_backfill）保底。
+# ---------------------------------------------------------------------------
+_RAG_OFFER_CACHE_TOGGLE_ENV = "ROOMPILOT_RAG_OFFER_CACHE"
+_RAG_OFFER_CACHE_PATH_ENV = "ROOMPILOT_RAG_OFFER_CACHE_PATH"
+_rag_offer_cache_state: dict[str, object] = {"path": None, "mtime": None, "entries": {}}
+
+
+def _rag_offer_cache_enabled() -> bool:
+    value = os.environ.get(_RAG_OFFER_CACHE_TOGGLE_ENV, "").strip().lower()
+    return value not in {"0", "false", "off", "no"}
+
+
+def _rag_offer_cache_path() -> Path:
+    override = os.environ.get(_RAG_OFFER_CACHE_PATH_ENV, "").strip()
+    if override:
+        return Path(override)
+    return project_runtime_dir(Path(__file__).resolve().parents[2]) / "rag_offer_cache.json"
+
+
+def _rag_offer_cache_entries() -> dict[str, list[str]]:
+    """讀取快取（以路徑＋mtime 判斷是否重載）；壞檔或缺檔一律回空，不擋流程。"""
+    path = _rag_offer_cache_path()
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        return {}
+    state = _rag_offer_cache_state
+    if state["path"] == str(path) and state["mtime"] == mtime:
+        return state["entries"]  # type: ignore[return-value]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        entries = payload.get("entries") or {}
+        if not isinstance(entries, dict):
+            entries = {}
+    except (OSError, ValueError):
+        entries = {}
+    state.update({"path": str(path), "mtime": mtime, "entries": entries})
+    return entries
+
+
+def _rag_cache_offers(
+    rooms: list[dict],
+    offers: dict[str, list[dict]],
+    style_id: object,
+) -> dict[str, list[dict]]:
+    """把 RAG 快取的第一名插到各族系最前，讓「每族系取第一件」選中它。
+
+    範圍＝該房必備族系 ∪ 種子 offers 已有的族系（所以可選件如茶几也會
+    吃到語意排序）。使用者指定的家具（user_required／user_selected）
+    所在族系一律不動。快取沒有的族系交給後面的補件保底。
+    """
+    if not _rag_offer_cache_enabled():
+        return offers
+    entries = _rag_offer_cache_entries()
+    if not entries:
+        return offers
+    style = str(style_id or "").strip()
+    payload_by_id = {
+        str(item.get("furniture_id") or ""): item for item in _furniture_payload_cache()
+    }
+
+    for room in rooms:
+        room_id = str(room.get("room_id") or "")
+        room_type = normalize_room_type(room.get("room_type"))
+        if not room_id or not room_type:
+            continue
+        room_offers = list(offers.get(room_id) or [])
+        families = set(required_families_for_room(room_type))
+        families.update(family_of(item.get("normalized_type")) for item in room_offers)
+        families.discard("")
+        used_ids = {str(item.get("furniture_id") or "") for item in room_offers}
+        changed = False
+        for family in sorted(families):
+            protected = any(
+                family_of(item.get("normalized_type")) == family
+                and (item.get("user_required") or item.get("user_selected"))
+                for item in room_offers
+            )
+            if protected:
+                continue
+            ids = entries.get(f"{family}|{style}") or entries.get(f"{family}|*") or []
+            pick = None
+            for candidate_id in ids:
+                if candidate_id in used_ids:
+                    pick = None  # 種子已含快取第一名，不必重複插入
+                    break
+                item = payload_by_id.get(candidate_id)
+                if item and item.get("model_url") and item.get("has_model"):
+                    pick = item
+                    break
+            if pick is None:
+                continue
+            offer = dict(pick)
+            offer.setdefault("variant_id", "standard")
+            offer["selection_source"] = "rag_cache"
+            offer["reason"] = (
+                f"RAG 語意快取推薦{FAMILY_ZH.get(family, family)}"
+                + (f"（{style}）" if style else "")
+            )
+            room_offers.insert(0, offer)
+            used_ids.add(str(offer.get("furniture_id") or ""))
+            changed = True
+        if changed:
+            offers[room_id] = room_offers
+    return offers
+
+
 def _backfill_required_offers(
     rooms: list[dict],
     offers: dict[str, list[dict]],
@@ -2844,7 +2957,9 @@ async def agent_furniture_select(payload: dict) -> dict:
         })
     offers = _normalize_selection_offers(payload.get("offers"))
     style_id = payload.get("style_id")
-    # Agent 補件：必備族系缺席或全無 3D 模型時，先由型錄補上真品再進入選件。
+    # 選件來源順序：RAG 語意快取第一（插到各族系最前）→ Agent 補件保底
+    # （必備族系缺席或全無 3D 模型時由型錄補真品）→ 本地規則驗證。
+    offers = _rag_cache_offers(rooms, offers, style_id)
     offers = _backfill_required_offers(rooms, offers, style_id)
     context = payload.get("context") if isinstance(payload.get("context"), dict) else None
     llm_selection = payload.get("llm_selection")
@@ -2963,19 +3078,46 @@ async def scene_layout(payload: dict) -> dict:
         _region_boundary_by_id(floorplan, room, placement_room_id)
         or _largest_region_boundary(floorplan, room)
     )
-    return {
-        "floorplan": floorplan,
-        "scene_objects": generate_layout(
+    room_type = room_type_by_id(floorplan, placement_room_id)
+
+    def _place(items: list[dict]) -> list[dict]:
+        return generate_layout(
             room.width,
             room.depth,
-            objects,
+            items,
             room=room,
             regions_boundary=_regions_boundary(floorplan, room),
             place_boundary=place_boundary,
             floorplan=floorplan,
             placement_variant=placement_variant,
-            room_type=room_type_by_id(floorplan, placement_room_id),
+            room_type=room_type,
         )
+
+    placed_objects = _place(objects)
+    report: list[dict] = []
+    # G1「放不下先換小款」：有未鎖定家具擺放失敗時，走 Agent 的換小／退場
+    # 紀律（resolve_placements）再由引擎重擺。RAG 快取只管語意排序不看尺寸，
+    # 挑到太大件時由這一段收尾——放不下換同族系較小真品，仍不行才誠實移除。
+    if any(
+        item.get("placement_failed") and not item.get("position_locked")
+        for item in placed_objects
+    ):
+        protected_ids = {
+            str(item.get("furniture_id") or "")
+            for item in objects
+            if item.get("position_locked") or item.get("user_required")
+        }
+        placed_objects, _final_items, report = resolve_placements(
+            placed_objects,
+            [dict(item) for item in objects],
+            list(_furniture_payload_cache()),
+            engine_place_fn=_place,
+            protected_ids=protected_ids,
+        )
+    return {
+        "floorplan": floorplan,
+        "scene_objects": placed_objects,
+        "placement_resolution_report": report,
     }
 
 

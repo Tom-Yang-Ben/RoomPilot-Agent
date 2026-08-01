@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
@@ -40,7 +41,9 @@ def _family_types(*families: str) -> set[str]:
     return types
 
 
-def test_agent_furniture_selection_falls_back_when_llm_violates_room_rules() -> None:
+def test_agent_furniture_selection_falls_back_when_llm_violates_room_rules(monkeypatch) -> None:
+    # 本測試驗「種子 offers＋規則驗證＋補件」的原始契約，隔離 RAG 快取。
+    monkeypatch.setenv("ROOMPILOT_RAG_OFFER_CACHE", "0")
     response = client.post(
         "/api/agent/furniture/select",
         json={
@@ -71,7 +74,8 @@ def test_agent_furniture_selection_falls_back_when_llm_violates_room_rules() -> 
     assert all(item["normalized_type"] != "bed" for item in items)
 
 
-def test_agent_furniture_selection_uses_server_side_local_rules_without_llm() -> None:
+def test_agent_furniture_selection_uses_server_side_local_rules_without_llm(monkeypatch) -> None:
+    monkeypatch.setenv("ROOMPILOT_RAG_OFFER_CACHE", "0")
     response = client.post(
         "/api/agent/furniture/select",
         json={
@@ -98,7 +102,8 @@ def test_agent_furniture_selection_uses_server_side_local_rules_without_llm() ->
     assert backfilled[0]["model_url"]
 
 
-def test_agent_backfill_replaces_model_less_required_offer_with_catalog_item() -> None:
+def test_agent_backfill_replaces_model_less_required_offer_with_catalog_item(monkeypatch) -> None:
+    monkeypatch.setenv("ROOMPILOT_RAG_OFFER_CACHE", "0")
     """必備族系的候選全是無 3D 模型的假件時，Agent 要換成型錄真品。
 
     這正是第 6 步「灰方塊衣櫃」的根因：瀏覽器對不到 catalog 就捏造無
@@ -131,7 +136,8 @@ def test_agent_backfill_replaces_model_less_required_offer_with_catalog_item() -
     assert wardrobe_items[0]["selection_source"] == "agent_backfill"
 
 
-def test_agent_backfill_fills_all_minimums_when_offers_are_empty() -> None:
+def test_agent_backfill_fills_all_minimums_when_offers_are_empty(monkeypatch) -> None:
+    monkeypatch.setenv("ROOMPILOT_RAG_OFFER_CACHE", "0")
     """offers 全空時，Agent 依 knowledge 的房型最少配置自己補齊（沒接 RAG 也放得出正確家具）。"""
     response = client.post(
         "/api/agent/furniture/select",
@@ -803,3 +809,74 @@ def test_floorplan_upload_rejects_binary_dxf_with_ascii_hint() -> None:
     detail = rejected.json()["detail"]
     assert detail["code"] == "binary_dxf_unsupported"
     assert "ASCII" in detail["message"]
+
+
+def _first_catalog_item(normalized_type: str) -> dict:
+    from backend.server.main import _furniture_payload_cache
+
+    for item in _furniture_payload_cache():
+        if (
+            item.get("normalized_type") == normalized_type
+            and item.get("model_url")
+            and item.get("has_model")
+        ):
+            return item
+    raise AssertionError(f"catalog 缺少可用的 {normalized_type}")
+
+
+def test_rag_offer_cache_leads_the_selection(tmp_path: Path, monkeypatch) -> None:
+    """RAG 快取存在時，該族系的第一名由快取決定（selection_source=rag_cache）。"""
+    bed = _first_catalog_item("bed")
+    cache = tmp_path / "rag_offer_cache.json"
+    cache.write_text(
+        json.dumps(
+            {
+                "schema_version": "roompilot.rag_offer_cache.v1",
+                "entries": {"bed|scandinavian": [bed["furniture_id"]]},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ROOMPILOT_RAG_OFFER_CACHE_PATH", str(cache))
+
+    response = client.post(
+        "/api/agent/furniture/select",
+        json={
+            "rooms": [{"room_id": "bedroom-1", "room_type": "bedroom"}],
+            "offers": {"bedroom-1": []},
+            "style_id": "scandinavian",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"] == "local_rules"
+    items = payload["rooms"][0]["items"]
+    bed_items = [item for item in items if item["normalized_type"] in _family_types("bed")]
+    assert bed_items and bed_items[0]["furniture_id"] == bed["furniture_id"]
+    assert bed_items[0]["selection_source"] == "rag_cache"
+    # 快取沒涵蓋的必備族系仍由補件保底
+    assert any(item["selection_source"] == "agent_backfill" for item in items)
+
+
+def test_rag_offer_cache_can_be_disabled(tmp_path: Path, monkeypatch) -> None:
+    bed = _first_catalog_item("bed")
+    cache = tmp_path / "rag_offer_cache.json"
+    cache.write_text(
+        json.dumps({"entries": {"bed|scandinavian": [bed["furniture_id"]]}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("ROOMPILOT_RAG_OFFER_CACHE_PATH", str(cache))
+    monkeypatch.setenv("ROOMPILOT_RAG_OFFER_CACHE", "0")
+
+    response = client.post(
+        "/api/agent/furniture/select",
+        json={
+            "rooms": [{"room_id": "bedroom-1", "room_type": "bedroom"}],
+            "offers": {"bedroom-1": []},
+            "style_id": "scandinavian",
+        },
+    )
+    assert response.status_code == 200
+    items = response.json()["rooms"][0]["items"]
+    assert items and all(item["selection_source"] != "rag_cache" for item in items)
