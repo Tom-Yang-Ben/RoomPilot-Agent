@@ -1,5 +1,8 @@
 # 私密設定
 .env
+# .env 的備份（例如合併前留的 .env.bak-*）同樣含密鑰，一併排除
+.env.*
+!.env.example
 
 # Python、Node 與測試快取
 .venv/
