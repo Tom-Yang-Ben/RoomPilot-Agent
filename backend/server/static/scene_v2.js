@@ -35,7 +35,7 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-58b7ecf1ea90";
+} from "./scene_layout2d.js?v=sha256-5c69ec326e70";
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,

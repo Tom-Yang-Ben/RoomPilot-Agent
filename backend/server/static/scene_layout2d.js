@@ -248,8 +248,29 @@ export function recommendedFurnitureForRoom(room = {}) {
 }
 
 export function createFurniture2DItem(type, variantId, overrides = {}) {
-  const match = findFurniture2DVariant(type, variantId);
-  if (!match) throw new Error(`unknown_furniture_type:${type}`);
+  let match = findFurniture2DVariant(type, variantId);
+  if (!match) {
+    // 型錄有 65 型，本圖示庫只登記 25 型。RAG／補件選中未登記型別時，
+    // 過去直接 throw（unknown_furniture_type），該件就從 2D 與 3D 無聲
+    // 消失——2026-08-02 實測殺過 shelving-unit；fabric-sofa 等 987 件
+    // 必備族系同屬地雷。改為：帶得出尺寸（型錄品項必有 size_cm）就用
+    // 通用圖示建檔，3D 照樣載入該件真實 GLB；沒有尺寸的未知型別仍視為
+    // 資料錯誤，維持拋錯。
+    const width = Number(overrides.widthCm);
+    const depth = Number(overrides.depthCm);
+    if (!width || !depth) throw new Error(`unknown_furniture_type:${type}`);
+    match = {
+      category: { type, label: "資料庫家具" },
+      selected: variant(
+        "generic",
+        type,
+        width,
+        depth,
+        ICONS.cabinet,
+        Number(overrides.heightCm) || 75,
+      ),
+    };
+  }
   const { category, selected } = match;
   return {
     id: overrides.id || `${type}-${selected.id}-${Math.random().toString(36).slice(2, 8)}`,

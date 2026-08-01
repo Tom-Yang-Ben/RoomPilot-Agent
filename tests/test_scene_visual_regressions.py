@@ -515,3 +515,36 @@ def test_selected_furniture_resolves_catalog_truth_via_catalog_furniture_id() ->
     assert len(selected) == 1
     assert selected[0]["normalized_type"] == "bed"
     assert selected[0]["model_url"]
+
+
+def test_unknown_catalog_type_falls_back_to_generic_2d_item() -> None:
+    """未登記在 2D 圖示庫的型錄型別，帶尺寸時以通用圖示建檔而非拋錯。
+
+    型錄 65 型、圖示庫僅 25 型；RAG／補件選中未登記型別（如 fabric-sofa
+    987 件、shelving-unit）時，舊行為 unknown_furniture_type 直接拋錯，
+    該件從 2D/3D 無聲消失（2026-08-02 實測）。無尺寸的未知型別仍須拋錯。
+    """
+    script = """
+      import { createFurniture2DItem } from MODULE;
+      const ok = createFurniture2DItem("fabric-sofa", "standard",
+        { widthCm: 220, depthCm: 95, heightCm: 80 });
+      let threw = false;
+      try { createFurniture2DItem("mystery-type", "standard", {}); }
+      catch (e) { threw = String(e.message).includes("unknown_furniture_type"); }
+      const legacy = createFurniture2DItem("bed", "double", {});
+      console.log(JSON.stringify({
+        type: ok.type, variantId: ok.variantId,
+        width: ok.widthCm, hasIcon: Boolean(ok.iconPath),
+        threw, legacyLabel: legacy.label,
+      }));
+    """
+    module_uri = (
+        ROOT / "backend" / "server" / "static" / "scene_layout2d.js"
+    ).as_uri()
+    result = run_workflow_script(script.replace("MODULE", json.dumps(module_uri)))
+    assert result["type"] == "fabric-sofa"
+    assert result["variantId"] == "generic"
+    assert result["width"] == 220
+    assert result["hasIcon"] is True
+    assert result["threw"] is True
+    assert result["legacyLabel"] == "雙人床"
