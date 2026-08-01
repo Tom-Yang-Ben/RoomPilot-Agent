@@ -160,6 +160,25 @@ def normalize(svg_path, W, H):
             except ValueError as e:
                 report.append(f"{n}: path 無法轉換（{e}）← 需人工")
                 continue
+            # path 分支同樣要烘焙 transform（floor_27 右浴實案：帶
+            # transform 的 path 轉 polygon 後座標跑回原始位置）
+            mt = IDENTITY
+            anc, node = [], p
+            while node is not None and node.nodeType == 1:
+                t = node.getAttribute("transform")
+                if t: anc.append((node, parse_transform(t)))
+                node = node.parentNode
+            for _nd, m_ in reversed(anc):
+                mt = mat_mul(mt, m_)
+            if anc:
+                a_, b_, c_, d_, e_, f_ = mt
+                px = a_*pts[:,0] + c_*pts[:,1] + e_
+                py = b_*pts[:,0] + d_*pts[:,1] + f_
+                pts = np.stack([px, py], 1)
+                for nd, _m in anc:
+                    if nd is p or nd is g:
+                        nd.removeAttribute("transform")
+                report.append(f"{n}: path transform 烘焙")
             if len(pts) < 3 or poly_area(pts) < MIN_AREA:
                 g.removeChild(p)
                 report.append(f"{n}: 刪殘筆 path（{len(pts)} 點，"
