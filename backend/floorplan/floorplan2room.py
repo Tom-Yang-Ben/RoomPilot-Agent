@@ -332,7 +332,11 @@ def _stair_runs(segs, cm, horiz):
         used.update(run)
         pos_c = sum(cand[k][0] for k in run) / len(run)
         lat_c = sum((cand[k][1] + cand[k][2]) / 2.0 for k in run) / len(run)
-        out.append((lat_c, pos_c) if horiz else (pos_c, lat_c))
+        pos0, pos1 = cand[run[0]][0], cand[run[-1]][0]
+        lat0 = min(cand[k][1] for k in run)
+        lat1 = max(cand[k][2] for k in run)
+        box = (lat0, pos0, lat1, pos1) if horiz else (pos0, lat0, pos1, lat1)
+        out.append(((lat_c, pos_c) if horiz else (pos_c, lat_c)) + (box,))
     return out
 
 
@@ -351,8 +355,30 @@ def detect_stairs(det):
         return []
     out = []
     for horiz in (True, False):
-        for cx, cy in _stair_runs(_axis_segments(lines, cm, horiz), cm, horiz):
+        for cx, cy, _box in _stair_runs(_axis_segments(lines, cm, horiz),
+                                        cm, horiz):
             out.append(("stair", cx, cy))
+    return out
+
+
+def detect_stair_boxes(det):
+    """踏板串外框 [(x0,y0,x1,y1)]，供 _carve_stairs 切房。
+    與 detect_stairs 同源同參數，只是保留 _stair_runs 的 box。"""
+    thin, cm = det.get("thin"), det["cm"]
+    if thin is None:
+        return []
+    min_len = max(8, int(round(STAIR_RUN_CM[0] / cm)))
+    lines = cv2.HoughLinesP(thin, 1, np.pi / 180,
+                            threshold=max(15, int(min_len * 0.5)),
+                            minLineLength=min_len,
+                            maxLineGap=max(2, int(round(5.0 / cm))))
+    if lines is None:
+        return []
+    out = []
+    for horiz in (True, False):
+        for _cx, _cy, box in _stair_runs(_axis_segments(lines, cm, horiz),
+                                         cm, horiz):
+            out.append(box)
     return out
 
 
@@ -903,6 +929,99 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
 
 
 
+def _carve_stairs(labels, rooms, boxes, T, cm=1.0):
+    """樓梯足跡切分：把踏板串外框從所屬房間切出成獨立房（labels 就地改，
+    回傳新 rooms）。開放區嵌樓梯（floor08/12/31 實案）沒有牆可封，
+    純封口規則切不出——這是功能區切分的第一塊，切線一律軸對齊
+    （使用者域約束：房間只有直角矩形系）。
+
+    規則：同座梯段先併——相鄰（間隙 <2T，迴轉梯）或對齊隔平台
+    （間隙 <140cm，floor40 上下段梯隔 55cm 平台）；足跡 ≥(2T)² 且
+    ≥70% 落在同一房、≤50% 該房面積、且未佔滿宿主同向尺寸 85%
+    （樓梯間本有牆自成一房，floor40 曾被再切一刀）才動刀。"""
+    if not boxes:
+        return rooms
+    boxes = [tuple(float(v) for v in b) for b in boxes]
+    land = max(2.0 * T, 140.0 / max(cm, 1e-6))   # 平台合併距離（px）
+    merged = True                                # 同座梯段合併
+    while merged:
+        merged = False
+        for i in range(len(boxes)):
+            for j in range(i + 1, len(boxes)):
+                ax0, ay0, ax1, ay1 = boxes[i]
+                bx0, by0, bx1, by1 = boxes[j]
+                near = (ax0 - 2 * T < bx1 and ax1 + 2 * T > bx0
+                        and ay0 - 2 * T < by1 and ay1 + 2 * T > by0)
+                ov_x = min(ax1, bx1) - max(ax0, bx0)     # 對齊隔平台：
+                ov_y = min(ay1, by1) - max(ay0, by0)     # 一軸重疊 ≥60%、
+                wx = min(ax1 - ax0, bx1 - bx0)           # 另一軸間隙 <land
+                wy = min(ay1 - ay0, by1 - by0)
+                aligned = ((ov_x >= 0.6 * wx and -land < ov_y <= 0)
+                           or (ov_y >= 0.6 * wy and -land < ov_x <= 0))
+                if near or aligned:
+                    boxes[i] = (min(ax0, bx0), min(ay0, by0),
+                                max(ax1, bx1), max(ay1, by1))
+                    del boxes[j]
+                    merged = True
+                    break
+            if merged:
+                break
+    h, w = labels.shape
+    out = list(rooms)
+    by_id = {r["id"]: r for r in out}
+    nid = max((r["id"] for r in out), default=0)
+    for x0, y0, x1, y1 in boxes:
+        ix0, iy0 = max(0, int(x0)), max(0, int(y0))
+        ix1, iy1 = min(w, int(x1)), min(h, int(y1))
+        if ix1 - ix0 < 2 or iy1 - iy0 < 2:
+            continue
+        win = labels[iy0:iy1, ix0:ix1]
+        area_box = (ix1 - ix0) * (iy1 - iy0)
+        if area_box < (2 * T) ** 2:
+            continue                             # 過小＝雜訊串
+        ids, counts = np.unique(win[win > 0], return_counts=True)
+        if not len(ids):
+            continue
+        host_id = int(ids[np.argmax(counts)])
+        host_n = int(counts.max())
+        host = by_id.get(host_id)
+        if host is None or host_n < 0.7 * area_box:
+            continue                             # 足跡沒安坐在單一房裡
+        if host_n > 0.5 * host["area_px"]:
+            continue                             # 樓梯間本有牆自成一房
+        hx0, hy0, hx1, hy1 = host["bbox"]        # 佔滿宿主同向尺寸＝樓梯間
+        if (ix1 - ix0) >= 0.85 * (hx1 - hx0) or (iy1 - iy0) >= 0.85 * (hy1 - hy0):
+            continue
+        nid += 1
+        region = win == host_id
+        win[region] = nid
+        ys, xs = np.nonzero(labels == nid)
+        stair = {"id": nid, "area_px": int(len(xs)),
+                 "bbox": (int(xs.min()), int(ys.min()),
+                          int(xs.max() + 1), int(ys.max() + 1)),
+                 "cx": float(xs.mean()), "cy": float(ys.mean()),
+                 "aspect": round(
+                     max(xs.max() - xs.min() + 1, ys.max() - ys.min() + 1)
+                     / max(1.0, min(xs.max() - xs.min() + 1,
+                                    ys.max() - ys.min() + 1)), 2),
+                 "touch_env": host.get("touch_env", False)}
+        out.append(stair)
+        by_id[nid] = stair
+        m = labels == host_id                    # 主房統計同步扣除
+        ys, xs = np.nonzero(m)
+        if not len(xs):
+            out.remove(host)
+            del by_id[host_id]
+            continue
+        w_, h_ = int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)
+        host.update(area_px=int(m.sum()),
+                    bbox=(int(xs.min()), int(ys.min()),
+                          int(xs.max() + 1), int(ys.max() + 1)),
+                    cx=float(xs.mean()), cy=float(ys.mean()),
+                    aspect=round(max(w_, h_) / max(1.0, min(w_, h_)), 2))
+    return out
+
+
 def _bridge_has_door_ink(det, horiz, g0, g1, b0, b1):
     """門位證據：門扇迴轉區（開口兩側各 1.1×開口深）扣掉 OCR 文字框後的
     細線墨水密度。真門畫弧/門扇必留墨（floor04 浴廁虛線弧 1.45%），
@@ -989,6 +1108,8 @@ def build_rooms(det):
     zones = [_bridge_zone(*b) for b in bridges
              if any(lo <= (b[2] - b[1]) * cm <= hi for lo, hi in DOOR_RANGES_CM)
              and _bridge_has_door_ink(det, *b)]  # 迴轉區無墨=開放通道非門
+    # 樓梯足跡切分：開放區嵌樓梯無牆可封，踏板串外框直接切出成房
+    rooms = _carve_stairs(labels, rooms, detect_stair_boxes(det), T, cm)
     # 房型命名（2026-07-30 起只剩兩層，CubiCasa 語意投票已整批移除）：
     #   1) DINOv2 裁切分類（room_classifier）——own_eval 72 房 90.3%
     #   2) 面積規則（純幾何兜底）——缺 torch/骨幹/線性頭時
