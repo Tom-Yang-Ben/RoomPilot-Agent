@@ -43,10 +43,10 @@ python training/scripts/eval_rooms_cc.py \
 ## 待驗證進度（checklist）
 
 ### Phase 0 — Baseline
-- [ ] own_dataset_color 19 張跑通（無 error/svg_mismatch）
-- [ ] own_eval_color 9 張跑通
-- [ ] 基準數字記入本文件「Baseline 結果」節
-- [ ] 失因初步歸類（seg 層 vs 命名層 vs 偵測層），加權重排序
+- [x] own_dataset_color 19 張跑通（18 ok＋1 seg_fail，無 error/svg_mismatch）
+- [x] own_eval_color 9 張跑通（9 ok）
+- [x] 基準數字記入本文件「Baseline 結果」節
+- [ ] 失因初步歸類（seg 層 vs 命名層 vs 偵測層），逐張看疊圖加權重排序
 
 ### Phase 1 — Color 調優（依 baseline 失因決定攻擊順序，逐輪補記）
 - [ ] 第一輪：攻擊最大失因（待 baseline 出爐後填）
@@ -62,6 +62,45 @@ python training/scripts/eval_rooms_cc.py \
       舊報表 157 房基準不可比，需重跑 baseline 後才能比較
 - [ ] own_eval 保留集收尾量測
 
-## Baseline 結果（Phase 0 跑完回填）
+## Baseline 結果（2026-08-01）
 
-（待填）
+| 指標 | 開發集（19 張） | 保留集（9 張） |
+| :--- | :--- | :--- |
+| 命中率（IoU≥0.5） | **59.2%**（84/142） | **67.7%**（42/62） |
+| 核心五類命中 | **56.7%**（38/67） | **72.2%**（26/36） |
+| 過切率 | 1.08 | 1.39 |
+| 配對平均 IoU | 0.857 | 0.789 |
+| seg_fail | 1（floor_07） | 0 |
+
+報表：`temp/json/eval_rooms/report_own_own_{dataset,eval}_color_baseline.json`
+
+### 逐張命中（開發集）
+
+| 張 | 命中 | 張 | 命中 |
+| :- | :--- | :- | :--- |
+| 01 | 4/7 | 12 | 10/12 |
+| 02 | 5/9 | 13 | 5/9 |
+| 03 | 3/6 | 14 | 6/9 |
+| 04 | 8/10 | 15 | 3/5 |
+| 05 | 5/10 | 16 | 3/5 |
+| 06 | 6/9 | 17 | 9/10 |
+| 07 | **seg_fail** | 18 | 5/7 |
+| 08 | **1/7** | 19 | 3/5 |
+| 09 | **1/7** | 20 | **2/5** |
+| 10 | 5/10 | | |
+
+保留集低分張：floor_25（2/6）、floor_21/29（3/6）。
+
+### 初步觀察（待逐張疊圖確認）
+
+1. **分割層是最大失因**：floor_07 seg_fail、floor_08/09 只配 1/7、floor_20
+   2/5——配上的 IoU 都 0.95+，代表其餘房間沒被切出（黏成大塊或漏切），
+   不是切歪。這一項至少吃掉開發集 ~25 間。
+2. **命名層系統性弱點**（兩集一致）：
+   - **Balcony R=0.0（兩集全滅）**，開發集 6 個被叫成 Stair——陽台磚紋
+     疑似觸發樓梯特徵。
+   - **Bath R 低**（dev 0.22 / holdout 0.46），常被叫 Bedroom/Storage。
+   - **Kitchen R=0.33**（兩集同數字）。
+3. **比例尺**：color 圖開口樣本常為 0（floor_30 量出 0.46 cm/px、開口樣本
+   0、退回 wall_mid），門寬鐵律在 color 線稿上偵測不到門弧，比例尺品質
+   待查。
