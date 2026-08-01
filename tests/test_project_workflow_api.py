@@ -880,3 +880,68 @@ def test_rag_offer_cache_can_be_disabled(tmp_path: Path, monkeypatch) -> None:
     assert response.status_code == 200
     items = response.json()["rooms"][0]["items"]
     assert items and all(item["selection_source"] != "rag_cache" for item in items)
+
+
+def test_scene_layout_preserves_every_furniture_id(monkeypatch) -> None:
+    """/api/scene/layout 的契約：送 N 件、以原 furniture_id 回 N 件。
+
+    前端用原 id 對表更新座標；id 被換掉或少件，家具會直接從畫面消失
+    （2026-08-01 換小迴圈誤掛此端點時實際發生）。放不下必須保留原件並標
+    placement_failed，不得替換或移除。
+    """
+    monkeypatch.setenv("ROOMPILOT_RAG_OFFER_CACHE", "0")
+    width, depth = 338, 310
+    editor = {
+        "width_cm": width,
+        "depth_cm": depth,
+        "coordinate_unit": "cm",
+        "rooms": [
+            {
+                "id": "room-1",
+                "label": "主臥",
+                "type": "bedroom",
+                "polygon_cm": [
+                    {"x": 0, "z": 0},
+                    {"x": width, "z": 0},
+                    {"x": width, "z": depth},
+                    {"x": 0, "z": depth},
+                ],
+            }
+        ],
+        "structures": {"walls": [], "doors": [], "windows": []},
+    }
+
+    def obj(fid, type_, w, d, h):
+        return {
+            "furniture_id": fid,
+            "normalized_type": type_,
+            "name_zh_raw": fid,
+            "has_model": True,
+            "model_url": "https://example.test/x.glb",
+            "size_cm": {"width": w, "depth": d, "height": h},
+            "position_cm": {"x": 0, "z": 0},
+            "rotation_y_deg": 0,
+            "position_locked": False,
+        }
+
+    sent = [
+        obj("room-1-bed-1", "bed", 152, 200, 55),
+        obj("room-1-wardrobe-1", "wardrobe", 100, 60, 200),
+        # 故意塞一件大到不可能放進去的，逼出「放不下」路徑
+        obj("room-1-wardrobe-2", "wardrobe", 400, 200, 200),
+    ]
+    response = client.post(
+        "/api/scene/layout",
+        json={
+            "floorplan_editor": editor,
+            "placement_room_id": "room-1",
+            "placement_variant": "A",
+            "scene_objects": sent,
+        },
+    )
+    assert response.status_code == 200
+    returned = response.json()["scene_objects"]
+    assert [item["furniture_id"] for item in returned] == [item["furniture_id"] for item in sent]
+    oversized = next(item for item in returned if item["furniture_id"] == "room-1-wardrobe-2")
+    assert oversized["placement_failed"] is True
+    assert oversized["placement_reason"]

@@ -26,7 +26,6 @@ from ..agent.knowledge import (
     normalize_room_type,
     required_families_for_room,
 )
-from ..agent.place import resolve_placements
 from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
 from .questionnaire_visuals import (
     QuestionnaireVisualStore,
@@ -3078,46 +3077,24 @@ async def scene_layout(payload: dict) -> dict:
         _region_boundary_by_id(floorplan, room, placement_room_id)
         or _largest_region_boundary(floorplan, room)
     )
-    room_type = room_type_by_id(floorplan, placement_room_id)
-
-    def _place(items: list[dict]) -> list[dict]:
-        return generate_layout(
+    # ⚠️ 本端點的契約：前端送 N 件、以「原 furniture_id」回 N 件——前端用
+    # 原 id 對表更新座標，id 換掉或少件會讓家具直接從畫面消失（2026-08-01
+    # 實際發生過：換小迴圈在此換 id，整批家具人間蒸發）。因此放不下一律
+    # 保留原件並標 placement_failed＋原因，換小交給前端「更換較小款」或
+    # /api/scene/generate 那條有選件清單語意的路。
+    return {
+        "floorplan": floorplan,
+        "scene_objects": generate_layout(
             room.width,
             room.depth,
-            items,
+            objects,
             room=room,
             regions_boundary=_regions_boundary(floorplan, room),
             place_boundary=place_boundary,
             floorplan=floorplan,
             placement_variant=placement_variant,
-            room_type=room_type,
-        )
-
-    placed_objects = _place(objects)
-    report: list[dict] = []
-    # G1「放不下先換小款」：有未鎖定家具擺放失敗時，走 Agent 的換小／退場
-    # 紀律（resolve_placements）再由引擎重擺。RAG 快取只管語意排序不看尺寸，
-    # 挑到太大件時由這一段收尾——放不下換同族系較小真品，仍不行才誠實移除。
-    if any(
-        item.get("placement_failed") and not item.get("position_locked")
-        for item in placed_objects
-    ):
-        protected_ids = {
-            str(item.get("furniture_id") or "")
-            for item in objects
-            if item.get("position_locked") or item.get("user_required")
-        }
-        placed_objects, _final_items, report = resolve_placements(
-            placed_objects,
-            [dict(item) for item in objects],
-            list(_furniture_payload_cache()),
-            engine_place_fn=_place,
-            protected_ids=protected_ids,
-        )
-    return {
-        "floorplan": floorplan,
-        "scene_objects": placed_objects,
-        "placement_resolution_report": report,
+            room_type=room_type_by_id(floorplan, placement_room_id),
+        ),
     }
 
 
