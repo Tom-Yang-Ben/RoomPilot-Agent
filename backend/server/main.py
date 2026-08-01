@@ -3496,10 +3496,12 @@ async def scene_validate(payload: dict) -> dict:
     floorplan = _payload_mapping(payload, "floorplan") or None
     if isinstance(editor_floorplan, dict) and editor_floorplan:
         floorplan, _ = floorplan_from_editor_payload(editor_floorplan)
+    # 帶上偏好,拖曳驗證才會和 /api/scene/layout 用同一份禁區規則。
     return validate_single_placement(
         floorplan,
         _payload_mapping(payload, "item"),
         _payload_sequence(payload, "others"),
+        _payload_mapping(payload, "placement_preferences"),
     )
 
 

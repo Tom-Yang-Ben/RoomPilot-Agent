@@ -39,7 +39,7 @@ def test_window_clearance_rejects_furniture_in_front_of_confirmed_window() -> No
     )
 
     assert result["ok"] is False
-    assert "窗戶" in result["reason"]
+    assert "落地窗" in result["reason"]
 
 
 def test_automatic_chair_faces_the_nearest_desk() -> None:

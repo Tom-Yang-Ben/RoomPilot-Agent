@@ -5,6 +5,7 @@ import math
 import os
 import random
 import uuid
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 from urllib import error, request
@@ -982,7 +983,7 @@ def _grid_place_in_boundary(
     room,
     placed,
     boundary,
-    forbidden_zones: list[Polygon] | None = None,
+    forbidden_zones: list[PlacementZone] | None = None,
 ):
     """非矩形房間的最後防線:沿房間多邊形內部以 50cm 網格搜尋(由質心向外)。
 
@@ -1039,48 +1040,246 @@ def _floorplan_coordinate_scale_cm(floorplan: dict[str, Any] | None) -> float:
     return 1.0 if (floorplan or {}).get("coordinate_unit") == "cm" else 100.0
 
 
-_WINDOW_CLEARANCE_EXEMPT_TYPES = {"curtain"}
+_WINDOW_CLEARANCE_EXEMPT_TYPES = frozenset({"curtain"})
+
+# 一般窗前的判斷帶寬度(公分)。帶內只擋「高過窗台」的家具,矮櫃與臥榻可以進;
+# 問卷的 window_zone 偏好可以把這條帶整個關掉。
+WINDOW_CLEARANCE_DEPTH_CM = 70.0
+# 落地窗前的硬淨空(公分):採光與進出動線,任何高度的家具都不能進,不受偏好影響。
+FLOOR_WINDOW_CLEARANCE_CM = 50.0
+# 窗台離地高的後備值(公分),對齊編輯器 scene_window_types.js 的一般窗預設。
+STANDARD_WINDOW_SILL_FALLBACK_CM = 90.0
+# 窗台低於此高度就當落地窗處理(編輯器落地窗預設 sill_height_cm = 0)。
+FLOOR_WINDOW_SILL_MAX_CM = 30.0
+# 門弧離散化段數:12 段足以讓 90 度扇形的弦誤差小於 1 公分。
+_DOOR_ARC_SEGMENTS = 12
+
+
+@dataclass(frozen=True)
+class PlacementZone:
+    """擺放禁區。
+
+    ``max_height_cm`` 是「這塊區域可以容忍的最大家具高度」:
+    ``None`` 代表任何高度都不准進(落地窗、門弧);有值代表只擋高過它的家具
+    ——一般窗前的矮櫃、臥榻因此仍然合法,這正是窗台高度規則的表達方式。
+    """
+
+    polygon: Polygon
+    kind: str
+    reason: str
+    max_height_cm: float | None = None
+    exempt_types: frozenset[str] = field(default_factory=frozenset)
+
+
+def _opening_line(
+    opening: dict[str, Any],
+    room: Room,
+    scale: float,
+    *,
+    start_key: str = "start",
+    end_key: str = "end",
+) -> LineString | None:
+    """把 payload 的中心原點線段轉成引擎的角落原點線段。"""
+    try:
+        start = opening[start_key]
+        end = opening[end_key]
+    except (KeyError, TypeError):
+        return None
+    try:
+        line = LineString(
+            [
+                (
+                    float(start["x"]) * scale + room.width / 2,
+                    float(start["z"]) * scale + room.depth / 2,
+                ),
+                (
+                    float(end["x"]) * scale + room.width / 2,
+                    float(end["z"]) * scale + room.depth / 2,
+                ),
+            ]
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+    return line if line.length >= 4 else None
+
+
+def _is_floor_to_ceiling(opening: dict[str, Any]) -> bool:
+    """落地窗判定。舊資料寫過 ``floor-to-ceiling``,兩種寫法都要認得。"""
+    raw = opening.get("window_type")
+    return str(raw or "").strip().lower().replace("-", "_") == "floor_to_ceiling"
+
+
+def _window_sill_height_cm(opening: dict[str, Any]) -> float:
+    """窗台離地高。落地窗是 0,一般窗沒填就用編輯器同一個預設值。"""
+    if _is_floor_to_ceiling(opening):
+        return 0.0
+    raw = opening.get("sill_height_cm")
+    if raw is None:
+        return STANDARD_WINDOW_SILL_FALLBACK_CM
+    try:
+        return max(0.0, float(raw))
+    except (TypeError, ValueError):
+        return STANDARD_WINDOW_SILL_FALLBACK_CM
 
 
 def window_clearance_zones(
     floorplan: dict[str, Any] | None,
     room: Room,
-    depth_cm: float = 70.0,
-) -> list[Polygon]:
-    """Build no-furniture bands around confirmed window and balcony openings."""
+    depth_cm: float = WINDOW_CLEARANCE_DEPTH_CM,
+) -> list[PlacementZone]:
+    """窗前禁區:落地窗是硬淨空,一般窗只擋高過窗台的家具。
+
+    ``depth_cm`` 只影響一般窗的判斷帶寬度(問卷 window_zone 偏好可調);
+    落地窗固定 ``FLOOR_WINDOW_CLEARANCE_CM``,那是通行與採光的工程值,
+    不是使用者偏好可以放寬的東西。
+    """
     scale = _floorplan_coordinate_scale_cm(floorplan)
-    zones: list[Polygon] = []
+    zones: list[PlacementZone] = []
     for opening in (floorplan or {}).get("window_segments") or []:
-        try:
-            start = opening["start"]
-            end = opening["end"]
-            line = LineString(
-                [
-                    (
-                        float(start["x"]) * scale + room.width / 2,
-                        float(start["z"]) * scale + room.depth / 2,
-                    ),
-                    (
-                        float(end["x"]) * scale + room.width / 2,
-                        float(end["z"]) * scale + room.depth / 2,
-                    ),
-                ]
-            )
-            if line.length >= 4:
-                zones.append(line.buffer(depth_cm, cap_style=2))
-        except (KeyError, TypeError, ValueError):
+        if not isinstance(opening, dict):
             continue
+        line = _opening_line(opening, room, scale)
+        if line is None:
+            continue
+        sill_cm = _window_sill_height_cm(opening)
+        if sill_cm <= FLOOR_WINDOW_SILL_MAX_CM:
+            zones.append(
+                PlacementZone(
+                    polygon=line.buffer(FLOOR_WINDOW_CLEARANCE_CM, cap_style=2),
+                    kind="floor_window",
+                    reason=(
+                        f"落地窗前需保留 {FLOOR_WINDOW_CLEARANCE_CM:.0f} 公分淨空,不能擺放家具。"
+                    ),
+                    max_height_cm=None,
+                    exempt_types=_WINDOW_CLEARANCE_EXEMPT_TYPES,
+                )
+            )
+        elif depth_cm > 0:
+            zones.append(
+                PlacementZone(
+                    polygon=line.buffer(depth_cm, cap_style=2),
+                    kind="window",
+                    reason=(
+                        f"窗前家具不可高過窗台({sill_cm:.0f} 公分),會擋住窗戶。"
+                    ),
+                    max_height_cm=sill_cm,
+                    exempt_types=_WINDOW_CLEARANCE_EXEMPT_TYPES,
+                )
+            )
     return zones
+
+
+def _door_swing_polygon(
+    hinge: tuple[float, float],
+    open_end: tuple[float, float],
+    closed_end: tuple[float, float],
+) -> Polygon | None:
+    """門片從開到關掃過的扇形(圓心 = 鉸鏈,半徑 = 門片長)。
+
+    走兩個端點之間的短弧——門扇是 90 度上下,短弧才是真正掃過的那一邊。
+    """
+    radius = math.dist(hinge, open_end)
+    if radius < 1:
+        return None
+    start_angle = math.atan2(open_end[1] - hinge[1], open_end[0] - hinge[0])
+    end_angle = math.atan2(closed_end[1] - hinge[1], closed_end[0] - hinge[0])
+    sweep = (end_angle - start_angle + math.pi) % (2 * math.pi) - math.pi
+    if abs(sweep) < math.radians(5):
+        return None
+    points = [hinge]
+    for step in range(_DOOR_ARC_SEGMENTS + 1):
+        angle = start_angle + sweep * step / _DOOR_ARC_SEGMENTS
+        points.append((hinge[0] + radius * math.cos(angle), hinge[1] + radius * math.sin(angle)))
+    polygon = Polygon(points)
+    if not polygon.is_valid:
+        polygon = polygon.buffer(0)
+    return polygon if not polygon.is_empty else None
+
+
+def door_swing_zones(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+) -> list[PlacementZone]:
+    """門扇開闔弧掃過的地面禁區——第 4 步畫的那個扇形,任何家具都不能進。
+
+    payload 的 ``start`` 是鉸鏈、``end`` 是打開後的門片端點、``swing_end`` 是
+    關門後的門片端點(``floorplan_from_editor_payload`` 建立)。沒有 ``swing_end``
+    的舊資料與 DXF 匯入門,退回和前端同一條後備規則:門片繞鉸鏈轉 90 度。
+    """
+    scale = _floorplan_coordinate_scale_cm(floorplan)
+    zones: list[PlacementZone] = []
+    for door in (floorplan or {}).get("door_segments") or []:
+        if not isinstance(door, dict):
+            continue
+        line = _opening_line(door, room, scale)
+        if line is None:
+            continue
+        hinge, open_end = line.coords[0], line.coords[-1]
+        swing_line = _opening_line(
+            door, room, scale, start_key="start", end_key="swing_end"
+        )
+        if swing_line is not None:
+            closed_end = swing_line.coords[-1]
+        else:
+            # 前端 scene_v2.js 沒有 swing_end 時畫的也是這個垂直後備,兩邊要一致。
+            closed_end = (
+                hinge[0] + (open_end[1] - hinge[1]),
+                hinge[1] - (open_end[0] - hinge[0]),
+            )
+        polygon = _door_swing_polygon(tuple(hinge), tuple(open_end), tuple(closed_end))
+        if polygon is None:
+            continue
+        zones.append(
+            PlacementZone(
+                polygon=polygon,
+                kind="door_swing",
+                reason="門的開闔範圍必須淨空,不能擺放家具。",
+                max_height_cm=None,
+            )
+        )
+    return zones
+
+
+def placement_forbidden_zones(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+    window_clearance_cm: float = WINDOW_CLEARANCE_DEPTH_CM,
+) -> list[PlacementZone]:
+    """自動配置與拖曳驗證共用的禁區清單,兩邊必須看到同一份規則。"""
+    return door_swing_zones(floorplan, room) + window_clearance_zones(
+        floorplan, room, window_clearance_cm
+    )
+
+
+def _blocking_zone(
+    candidate: PlacedFurniture,
+    zones: list[PlacementZone] | None,
+) -> PlacementZone | None:
+    """回傳第一個擋住這件家具的禁區,沒有就回 None。
+
+    型別與高度都從 ``candidate.catalog`` 取,呼叫端不必再自己判斷豁免——
+    以前豁免寫在呼叫端,窗簾會連門弧一起被放行。
+    """
+    if not zones:
+        return None
+    item_type = candidate.catalog.type
+    height_cm = float(candidate.catalog.height or 0)
+    footprint = furniture_polygon(candidate)
+    for zone in zones:
+        if item_type in zone.exempt_types:
+            continue
+        if zone.max_height_cm is not None and height_cm <= zone.max_height_cm:
+            continue
+        if footprint.intersects(zone.polygon):
+            return zone
+    return None
 
 
 def _placement_intersects_zones(
     candidate: PlacedFurniture,
-    zones: list[Polygon] | None,
+    zones: list[PlacementZone] | None,
 ) -> bool:
-    if not zones:
-        return False
-    footprint = furniture_polygon(candidate)
-    return any(footprint.intersects(zone) for zone in zones)
+    return _blocking_zone(candidate, zones) is not None
 
 
 def _scene_rotation_toward(
@@ -1283,7 +1482,7 @@ def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: fl
 
 DEFAULT_WALK_MARGIN_CM = 8.0
 WIDE_WALK_MARGIN_CM = 20.0
-WINDOW_CLEARANCE_DEPTH_CM = 70.0
+# WINDOW_CLEARANCE_DEPTH_CM 移到禁區常數區(與落地窗、窗台高度的值放在一起)。
 
 
 def door_openings_from_segments(
@@ -1488,8 +1687,13 @@ def validate_single_placement(
     floorplan: dict[str, Any] | None,
     item: dict[str, Any],
     others: list[dict[str, Any]],
+    placement_preferences: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
+    """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。
+
+    禁區必須跟 ``generate_layout`` 走同一份 ``placement_forbidden_zones``,
+    否則自動配置放得下的位置,使用者手動拖過去會被判違規。
+    """
     room = room_from_payload(floorplan)
     # 拖曳可放進「任何一間房」(聯集);沒有房間資訊才退回最大房間環
     boundary = _regions_boundary(floorplan, room) or _shrunk_boundary(room)
@@ -1500,16 +1704,21 @@ def validate_single_placement(
     if not _inside_boundary(moving, boundary):
         return {"ok": False, "reason": "超出房間範圍(需完整放在某一間房內,不能跨牆)"}
 
+    # 門弧與窗前禁區對所有型別一律適用——地毯與壁架也不能卡住門扇。
+    _, window_clearance_cm, _applied, _ignored = resolve_placement_preferences(
+        placement_preferences
+    )
+    blocking = _blocking_zone(
+        moving, placement_forbidden_zones(floorplan, room, window_clearance_cm)
+    )
+    if blocking is not None:
+        return {"ok": False, "reason": blocking.reason}
+
     if item.get("normalized_type") in _OVERLAY_TYPES:
         reason = check_placement_with_clearance(moving, room, [])
         return {"ok": reason is None, "reason": reason}
     if item.get("normalized_type") in _IGNORE_COLLISION_TYPES:
         return {"ok": True, "reason": None}
-    if (
-        item.get("normalized_type") not in _WINDOW_CLEARANCE_EXEMPT_TYPES
-        and _placement_intersects_zones(moving, window_clearance_zones(floorplan, room))
-    ):
-        return {"ok": False, "reason": "家具不可遮擋窗戶或落地窗前方淨空。"}
 
     placed_others = [
         _scene_object_to_placed(o, half_w_cm, half_d_cm)
@@ -1560,11 +1769,9 @@ def generate_layout(
                 boundary = widened
     else:
         boundary = _shrunk_boundary(room, walk_margin_cm)
-    forbidden_zones = (
-        window_clearance_zones(floorplan, room, window_clearance_cm)
-        if window_clearance_cm > 0
-        else []
-    )
+    # window_clearance_cm = 0(問卷選窗邊臥榻)只關掉一般窗的判斷帶;
+    # 門弧與落地窗淨空是安全與動線,不受偏好影響。
+    forbidden_zones = placement_forbidden_zones(floorplan, room, window_clearance_cm)
 
     room_w_cm = room.width
     room_d_cm = room.depth
@@ -1632,10 +1839,7 @@ def generate_layout(
                     and check_placement_with_clearance(candidate, room, []) is None
                 )
                 or check_placement_with_clearance(candidate, room, placed) is None
-            ) and (
-                item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES
-                or not _placement_intersects_zones(candidate, forbidden_zones)
-            )
+            ) and not _placement_intersects_zones(candidate, forbidden_zones)
             if ok:
                 x_cm = float(item["position_cm"].get("x") or 0)
                 z_cm = float(item["position_cm"].get("z") or 0)
@@ -1784,10 +1988,7 @@ def generate_layout(
                 )
                 if (
                     _inside_boundary(candidate, boundary)
-                    and (
-                        item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES
-                        or not _placement_intersects_zones(candidate, forbidden_zones)
-                    )
+                    and not _placement_intersects_zones(candidate, forbidden_zones)
                     and check_placement_with_clearance(candidate, room, placed) is None
                 ):
                     x_cm, z_cm, rotation = cand_x, cand_z, rot
@@ -1799,10 +2000,8 @@ def generate_layout(
                 engine_item = result["placed"] if result["success"] else None
                 if engine_item is not None and not _inside_boundary(engine_item, boundary):
                     engine_item = None
-                if (
-                    engine_item is not None
-                    and item_type not in _WINDOW_CLEARANCE_EXEMPT_TYPES
-                    and _placement_intersects_zones(engine_item, forbidden_zones)
+                if engine_item is not None and _placement_intersects_zones(
+                    engine_item, forbidden_zones
                 ):
                     engine_item = None
                 if engine_item is None and boundary is not None:

@@ -1,0 +1,49 @@
+{
+  "status": "valid",
+  "errors": [],
+  "counts": {
+    "style_groups": 6,
+    "style_cards": 18,
+    "design_style_profiles": 6,
+    "surface_materials": 571,
+    "style_surface_profiles": 12,
+    "renovation_cost_rates": 6,
+    "renovation_cost_sources": 4,
+    "external_import_quarantine": 7495,
+    "unmatched_cloud_quarantine": 1514,
+    "sf3d_legacy_quarantine": 1509,
+    "sf3d_legacy_duplicate_ids": 1,
+    "quarantine_total": 10518,
+    "rag_documents": 595
+  },
+  "sources": {
+    "style_cards": {
+      "path": "backend/catalog/data/taiwan_style_cards.json",
+      "sha256": "2fa3744b62b829c3b0566de8f36d2b7251a51e175714a83325ab949c7077c141"
+    },
+    "design_style_profiles": {
+      "path": "backend/catalog/data/furniture_catalog_6styles_zh.json",
+      "sha256": "3ea20c6925421d08c49df4b81c06fa3d3d562d6290201fce6286415460ec81a6"
+    },
+    "surface_materials": {
+      "path": "backend/catalog/data/surface_catalog.json",
+      "sha256": "d736e22152b52ea58fd34771915a38a03a453b88add3e81fa4ee6aff4cae235f"
+    },
+    "renovation_costs": {
+      "path": "backend/catalog/data/taiwan_renovation_price_seed.json",
+      "sha256": "4173c12c0f6614e07ffdcf59f1ab65820b72cacfa368ca4129e1ac15273acda6"
+    },
+    "external_import": {
+      "path": "backend/catalog/data/舊友：12種風格與JSON/external_furniture_import_index.json",
+      "sha256": "191b335594b6ce22a399b96aeeb25558e0d619e53407fb0103c039e6855e1c3a"
+    },
+    "unmatched_cloud": {
+      "path": "backend/catalog/data/quarantine/unmatched_cloud_furniture/unmatched_catalog_items.json",
+      "sha256": "e8c8d34fdbbdb999ef6212d2e6304db9e7a2bbc288f9b77ae8d91389f7d9aad4"
+    },
+    "sf3d_legacy": {
+      "path": "backend/catalog/data/quarantine/sf3d_legacy/ikea_furniture_style_database.json",
+      "sha256": "43ae900ebf3d4db58fd9919d1369d1003f02a4d11658dafeaa7738cf57e995c4"
+    }
+  }
+}
