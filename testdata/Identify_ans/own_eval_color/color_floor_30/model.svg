@@ -1,6 +1,6 @@
 <?xml version="1.0" ?><svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" width="1042" height="998" viewBox="0 0 1042 998" version="1.1" id="svg46" sodipodi:docname="model.svg" inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)">
   <defs id="defs46"/>
-  <sodipodi:namedview id="namedview46" pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:zoom="0.81663327" inkscape:cx="1047.5939" inkscape:cy="499" inkscape:window-width="1920" inkscape:window-height="1009" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Model"/>
+  <sodipodi:namedview id="namedview46" pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:zoom="0.81663327" inkscape:cx="622.67852" inkscape:cy="266.33742" inkscape:window-width="1920" inkscape:window-height="1009" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Model"/>
   <image xlink:href="F1_scaled.png" x="0" y="0" width="1042" height="998" id="image1"/>
   <g id="Model" class="Model">
     <g id="Wall" class="Wall">
@@ -79,32 +79,25 @@
       <polygon points="650,652 650,551 448,551 448,652 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon35-7-3-5" transform="matrix(0.49422545,0,0,0.8145358,420.37018,343.82584)"/>
     </g>
     <g class="Space LivingRoom" id="g38">
-      <polygon id="polygon38" style="fill:#7dc37d;fill-opacity:0.4;stroke:#000000;stroke-width:1" sodipodi:nodetypes="ccccccc" points="601.85,34.22 602.54,366.04 985.45,364.79 987.45,55.20 896.57,56.43 895.57,31.78 601.85,34.22"/>
-      
+      <polygon points="601.85,34.22 600.09,363.59 985.45,364.79 987.45,55.20 896.57,56.43 895.57,31.78 601.85,34.22" style="fill:#7dc37d;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
     </g>
     <g class="Space Balcony" id="g39">
       <polygon id="polygon39" style="fill:#b5368f;fill-opacity:0.4;stroke:#000000;stroke-width:1" sodipodi:nodetypes="ccccccccc" points="90.08,358.86 241.10,358.86 240.49,118.17 230.08,117.49 230.08,34.08 124.36,32.86 125.18,64.69 90.08,67.14 90.08,358.86"/>
-      
     </g>
     <g class="Space Bedroom" id="g40">
-      <polygon points="125.00,379.00 123.00,651.00 541.00,651.00 541.00,379.00 125.00,379.00" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon40" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
-      
+      <polygon points="125.00,379.00 123.00,651.00 539.78,652.22 541.00,379.00 125.00,379.00" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
     </g>
     <g class="Space Bath" id="g41">
       <polygon id="polygon41" style="fill:#3dbdbd;fill-opacity:0.4;stroke:#000000;stroke-width:1" sodipodi:nodetypes="ccccccc" points="846.64,773.40 845.39,722.21 982.41,722.21 982.41,611.41 674.11,611.41 674.11,774.62 846.64,773.40"/>
-      
     </g>
     <g class="Space Bedroom" id="g43">
-      <polygon fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon43" points="123.13,908.92 135.85,909.92 135.85,960.87 654.75,960.87 654.75,665.13 123.13,665.13 123.13,908.92" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
-      
+      <polygon points="123.18,960.86 654.75,960.87 654.75,665.13 123.13,665.13 123.18,960.86" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
     </g>
     <g class="Space Bath" id="g45">
-      <polygon id="polygon45" style="fill:#3dbdbd;fill-opacity:0.4;stroke:#000000;stroke-width:1" sodipodi:nodetypes="ccccccc" points="866.23,962.42 868.04,927.55 981.46,928.78 979.02,791.40 674.08,791.40 674.08,960.59 866.23,962.42"/>
-      
+      <polygon points="866.23,962.42 868.04,927.55 983.91,927.55 982.69,791.40 674.08,791.40 674.08,960.59 866.23,962.42" style="fill:#3dbdbd;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
     </g>
     <g class="Space Kitchen" id="g45-6">
-      <polygon fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon40-1" style="fill:#e8843c;fill-opacity:0.4;stroke:#000000;stroke-width:1" points="260.32,356.57 597.55,356.57 597.55,34.35 261.94,34.35 260.32,356.57"/>
-      
+      <polygon points="257.87,359.02 596.33,359.02 597.55,34.35 261.94,34.35 257.87,359.02" style="fill:#e8843c;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
     </g>
     <polygon points="218,1039 218,682 243,682 243,1039 " fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon39-7-8" transform="matrix(0.70645844,0,0,0.52896745,-50.114628,75.704902)"/>
     <polygon points="218,1039 218,682 243,682 243,1039 " fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon39-7-8-1" transform="matrix(0.69971631,0,0,0.69327752,88.907876,-359.38744)"/>
@@ -114,8 +107,8 @@
       <polygon fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon5-2" points="658.578,380.666 658.578,366.666 1004.58,366.666 1004.58,380.666 "/>
     </g>
     <g class="Space Storage" id="g38-6">
-      <polygon id="polygon38-0" style="fill:#b8a06a;fill-opacity:0.4;stroke:#000000;stroke-width:1" sodipodi:nodetypes="ccccccc" points="559.98,383.33 558.28,651.44 656.79,650.63 654.88,595.94 984.14,593.09 981.09,381.79 559.98,383.33"/>
-      
+      <polygon points="557.53,380.88 558.28,651.44 656.79,650.63 657.33,593.49 984.14,593.09 981.09,381.79 557.53,380.88" style="fill:#b8a06a;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
     </g>
   </g>
-<g id="RoomLabels"><text x="795" y="199" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">LivingRoom</text><text x="166" y="196" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Balcony</text><text x="332" y="515" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="828" y="693" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Bath</text><text x="389" y="813" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="828" y="877" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Bath</text><text x="429" y="195" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Kitchen</text><text x="771" y="517" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Storage</text></g></svg>
+  
+<g id="RoomLabels"><text x="794" y="198" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">LivingRoom</text><text x="166" y="196" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Balcony</text><text x="332" y="516" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="828" y="693" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Bath</text><text x="389" y="813" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="829" y="877" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Bath</text><text x="428" y="197" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Kitchen</text><text x="771" y="516" style="font-family:Arial;font-size:36px;font-weight:bold;text-anchor:middle;fill:#000000">Storage</text></g></svg>
