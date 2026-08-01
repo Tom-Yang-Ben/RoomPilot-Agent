@@ -5920,7 +5920,7 @@ function questionnaireMaterialPairsForPack(pack, room = activeQuestionnaireRoom(
     floor,
     score: materialPairScore("wall", wall, pack, room) + materialPairScore("floor", floor, pack, room),
   }))).sort((left, right) => right.score - left.score)
-    .slice(0, 3);
+    .slice(0, 1);
 }
 
 function repairAutomaticMaterialRecommendation(room, draft, pack) {
@@ -5977,9 +5977,9 @@ function questionnaireMaterialPairCards(pack) {
   if (currentIsRecommended) {
     return [current, ...recommendations.filter((pair) => (
       pair.wall.id !== current.wall.id || pair.floor.id !== current.floor.id
-    ))].slice(0, 3);
+    ))].slice(0, 1);
   }
-  return [...recommendations, { ...current, isCustomSelection: true }].slice(0, 3);
+  return [...recommendations, { ...current, isCustomSelection: true }].slice(0, 1);
 }
 
 function renderQuestionnaireMaterialPairs(pack) {
@@ -5989,7 +5989,7 @@ function renderQuestionnaireMaterialPairs(pack) {
   if (!host) return pairs;
   host.hidden = false;
   host.innerHTML = `
-    <div class="rp-questionnaire-section-heading"><div><span class="eyebrow">本房推薦</span><h3>牆與地板搭配</h3></div><p>每張卡都是一組可直接套用的牆＋地板；需要個別調整時，再從下方材質庫選擇。</p></div>
+    <div class="rp-questionnaire-section-heading"><div><span class="eyebrow">本房推薦</span><h3>牆與地板搭配</h3></div><p>這是依房型與全屋風格產生的一組預設搭配；需要調整時，再從下方材質庫選擇。</p></div>
     <div class="rp-material-pair-grid">${pairs.map((pair, index) => `
       <button type="button" class="rp-material-pair-card ${draft.wallMaterial === pair.wall.id && draft.floorMaterial === pair.floor.id ? "is-active" : ""}"
         data-questionnaire-material-pair="${index}" aria-pressed="${draft.wallMaterial === pair.wall.id && draft.floorMaterial === pair.floor.id}">

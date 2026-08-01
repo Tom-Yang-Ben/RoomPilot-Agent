@@ -284,6 +284,7 @@ def test_questionnaire_renders_room_material_choices_and_pair_recommendations() 
     assert 'renderQuestionnaireMaterialOptions("wall", pack);' in source
     assert 'renderQuestionnaireMaterialOptions("floor", pack);' in source
     assert "renderQuestionnaireMaterialPairs(pack);" in source
+    assert ".slice(0, 1);" in source
 
 
 def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
