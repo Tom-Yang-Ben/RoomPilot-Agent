@@ -1,6 +1,6 @@
 # scripts/ 腳本說明
 
-本目錄共 21 個 Python 腳本，依功能分為六組。整體工作流：
+本目錄共 18 個 Python 腳本，依功能分為六組。整體工作流：
 
 **主管線**（`backend/floorplan/`）產出 → **eval 系列**守門評分 → **infer 系列**提供 DL 證據融合 → **路線圖 B/C 腳本**建符號庫與微調資料。
 
@@ -81,13 +81,6 @@ python scripts/eval_rooms_cc.py [--n-test 40] [--n-val 30] [--smoke N] [--thr 0.
 # 輸出：temp/json/eval_rooms/report[_own][_gtseg].json、temp/eval_rooms/chk/<id>_{gt,pred,gtpred}.png
 ```
 
-### score_compare.py
-我們的 CV 管線 vs CubiCasa5k 正面對決：在 `testdata/Identify_ans/pngans/` 21 張人工答案上比牆（像素級 P/R/F1，±3px 容差）與窗（綠框配對，同 eval_windows.py 規則）。
-
-```bash
-python scripts/score_compare.py <repo_dir> <cc_out_dir>
-```
-
 ---
 
 ## 符號比對（路線圖 B）
@@ -125,14 +118,6 @@ python scripts/fix_annotation_paths.py [--check]   # --check 只掃描回報，�
 
 ```bash
 python scripts/sync_room_labels.py [--dry-run] [--no-validate]
-```
-
-### pack_finetune_data.py
-打包微調資料 zip：testdata/Identify_ans/own_dataset（人工修正後）＋ hq_arch train 前 300 張（防災難性遺忘），own 樣本 ×3 過採樣混合。own_val.txt 僅作訓練監控，正式驗收永遠走路線 A 的 val/test 評分集。
-
-```bash
-python scripts/pack_finetune_data.py [--n-hq 300] [--oversample 3]
-# 產出：training/finetune_data.zip（本機訓練解壓用；亦可上傳雲端環境）
 ```
 
 ---
