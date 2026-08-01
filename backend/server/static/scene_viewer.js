@@ -1355,6 +1355,7 @@ export function createSceneViewer(
     windowSegments = [],
     floorplan = null,
     surfaceCatalog = null,
+    confirmedOpenings = [],
   ) {
     const renderedOpenings = new Set();
     const wallDoorSegments = doorSegments.filter((opening) => (
@@ -1364,6 +1365,89 @@ export function createSceneViewer(
     const exteriorSegments = segments.filter((segment) => (
       isExteriorWallSegment(segment, floorplan, wallThickness)
     ));
+    const protectedOpenings = [...confirmedOpenings, ...windowSegments]
+      .map((opening) => opening?.wall_opening_segment || opening)
+      .filter((opening) => opening?.start && opening?.end);
+
+    function buildConfirmedWallJunctionFills() {
+      const junctionToleranceCm = Math.max(36, Number(wallThickness) * 2);
+      const endpoints = segments.flatMap((segment, segmentIndex) => (
+        ["start", "end"].flatMap((key) => {
+          const endpoint = wallSegmentPoint(segment, key);
+          return endpoint
+            ? [{
+              key: `${segment.id || segmentIndex}:${key}`,
+              segment,
+              point: endpoint,
+            }]
+            : [];
+        })
+      ));
+      const usedEndpoints = new Set();
+      const bridgeTouchesProtectedOpening = (start, end) => {
+        const midpoint = {
+          x: (start.x + end.x) / 2,
+          z: (start.z + end.z) / 2,
+        };
+        const toleranceCm = Math.max(Number(wallThickness) * 0.6, 7);
+        return protectedOpenings.some((opening) => {
+          const openingSegment = { start: opening.start, end: opening.end };
+          return pointToWallSegmentDistance(midpoint, openingSegment) <= toleranceCm
+            && (
+              pointToWallSegmentDistance(start, openingSegment) <= toleranceCm
+              || pointToWallSegmentDistance(end, openingSegment) <= toleranceCm
+            );
+        });
+      };
+
+      endpoints.forEach((endpoint, index) => {
+        if (usedEndpoints.has(endpoint.key)) return;
+        const neighbor = endpoints
+          .slice(index + 1)
+          .filter((candidate) => (
+            candidate.segment !== endpoint.segment
+            && !usedEndpoints.has(candidate.key)
+          ))
+          .map((candidate) => ({
+            candidate,
+            distance: Math.hypot(
+              candidate.point.x - endpoint.point.x,
+              candidate.point.z - endpoint.point.z,
+            ),
+          }))
+          .filter(({ distance }) => distance > 0.8 && distance <= junctionToleranceCm)
+          .sort((left, right) => left.distance - right.distance)[0];
+        if (!neighbor) return;
+
+        const start = endpoint.point;
+        const end = neighbor.candidate.point;
+        if (bridgeTouchesProtectedOpening(start, end)) return;
+        const dx = end.x - start.x;
+        const dz = end.z - start.z;
+        const length = Math.hypot(dx, dz);
+        if (length < 0.8) return;
+        const bridgeSegment = { start, end };
+        const bridgeMaterial = typeof wallMaterial === "function"
+          ? (wallMaterial.faceMaterials?.(bridgeSegment, 0) || wallMaterial(bridgeSegment))
+          : wallMaterial.clone();
+        const bridge = new THREE.Mesh(
+          new THREE.BoxGeometry(length + Number(wallThickness), wallHeight, wallThickness),
+          bridgeMaterial,
+        );
+        bridge.position.set(
+          (start.x + end.x) / 2,
+          wallHeight / 2,
+          (start.z + end.z) / 2,
+        );
+        bridge.rotation.y = Math.atan2(-dz, dx);
+        bridge.castShadow = true;
+        bridge.receiveShadow = true;
+        bridge.userData.roompilotArchitecturalDetail = "confirmed-wall-junction-fill";
+        roomGroupRef.add(registerWall(bridge));
+        usedEndpoints.add(endpoint.key);
+        usedEndpoints.add(neighbor.candidate.key);
+      });
+    }
 
     segments.forEach((segment) => {
       const start = segment.start;
@@ -1528,6 +1612,8 @@ export function createSceneViewer(
       topCap.receiveShadow = true;
       roomGroupRef.add(topCap);
     });
+
+    buildConfirmedWallJunctionFills();
 
     // A door may have a valid closed segment but no recognised wall span yet.
     // It must still be rendered once at that closed position; otherwise a
@@ -2881,6 +2967,7 @@ export function createSceneViewer(
         windowSegments,
         sceneData.floorplan,
         sceneData.surface_catalog,
+        doorSegments,
       );
       buildConfirmedDoorLeaves(
         roomGroup,

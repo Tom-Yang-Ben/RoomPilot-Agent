@@ -233,6 +233,21 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
     assert "roomGroupRef.add(topCap)" in wall_builder
 
 
+def test_confirmed_step4_wall_junctions_fill_only_micro_gaps_outside_openings() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildConfirmedDoorLeaves", 1
+    )[0]
+
+    assert "function buildConfirmedWallJunctionFills" in wall_builder
+    assert "const junctionToleranceCm = Math.max(36, Number(wallThickness) * 2);" in wall_builder
+    assert "const bridgeTouchesProtectedOpening" in wall_builder
+    assert 'roompilotArchitecturalDetail = "confirmed-wall-junction-fill"' in wall_builder
+    assert "buildConfirmedWallJunctionFills();" in wall_builder
+
+
 def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
