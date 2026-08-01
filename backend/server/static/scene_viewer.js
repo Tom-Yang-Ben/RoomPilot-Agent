@@ -1598,9 +1598,12 @@ export function createSceneViewer(
 
       const capLength = sectionMax - sectionMin;
       const capCenter = (sectionMin + sectionMax) / 2;
+      const topCapMaterials = typeof wallMaterial.faceMaterials === "function"
+        ? wallMaterial.faceMaterials(segment, exteriorSideSign)
+        : material.clone();
       const topCap = new THREE.Mesh(
         new THREE.BoxGeometry(capLength, 2.5, wallThickness),
-        material.clone(),
+        topCapMaterials,
       );
       topCap.position.set(
         Number(start.x) + unitX * capCenter,
@@ -1829,6 +1832,9 @@ export function createSceneViewer(
       const openingWallMaterial = typeof wallMaterial === "function"
         ? wallMaterial(opening)
         : wallMaterial;
+      const openingWallMaterials = typeof wallMaterial?.faceMaterials === "function"
+        ? wallMaterial.faceMaterials(opening)
+        : openingWallMaterial.clone();
       const start = opening.start || {};
       const end = opening.end || {};
       const dx = Number(end.x || 0) - Number(start.x || 0);
@@ -1874,7 +1880,7 @@ export function createSceneViewer(
             height,
             wallThickness,
           ),
-          openingWallMaterial.clone(),
+          openingWallMaterials,
         );
         section.position.set(
           (Number(start.x || 0) + Number(end.x || 0)) / 2,

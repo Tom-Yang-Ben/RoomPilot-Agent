@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-ccc79ae312c8";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-c2735297ddd2";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";

@@ -230,6 +230,8 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
     assert "buildOpeningAssembly" in wall_builder
     assert 'roompilotArchitecturalDetail = "baseboard"' in wall_builder
     assert "const topCap = new THREE.Mesh(" in wall_builder
+    assert "const topCapMaterials = typeof wallMaterial.faceMaterials === \"function\"" in wall_builder
+    assert "topCapMaterials," in wall_builder
     assert "roomGroupRef.add(topCap)" in wall_builder
 
 
@@ -272,6 +274,8 @@ def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
     assert "frame.position.set(x, y, faceOffset)" in opening_builder
     assert 'roompilotArchitecturalDetail = "flush-window-sill"' in opening_builder
     assert "Math.max(0, sillHeight - frameAllowanceCm)" in standalone_builder
+    assert "const openingWallMaterials = typeof wallMaterial?.faceMaterials === \"function\"" in standalone_builder
+    assert "openingWallMaterials," in standalone_builder
 
 
 def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -> None:
