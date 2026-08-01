@@ -945,3 +945,25 @@ def test_scene_layout_preserves_every_furniture_id(monkeypatch) -> None:
     oversized = next(item for item in returned if item["furniture_id"] == "room-1-wardrobe-2")
     assert oversized["placement_failed"] is True
     assert oversized["placement_reason"]
+
+
+def test_bedroom_bedside_table_defaults_to_a_pair(monkeypatch) -> None:
+    """2026-08-02 拍板：主／次臥共用預設，床頭櫃統一成對（count=2）。
+
+    前端 specsFromSelectionResponse 依 count 展開成兩件，引擎再把兩件
+    對稱貼到床頭兩側。
+    """
+    monkeypatch.setenv("ROOMPILOT_RAG_OFFER_CACHE", "0")  # 走補件路徑驗 count
+    response = client.post(
+        "/api/agent/furniture/select",
+        json={
+            "rooms": [{"room_id": "bedroom-1", "room_type": "bedroom"}],
+            "offers": {"bedroom-1": []},
+        },
+    )
+    assert response.status_code == 200
+    items = response.json()["rooms"][0]["items"]
+    bedside = [i for i in items if i["normalized_type"] in _family_types("bedside-table")]
+    assert bedside and bedside[0]["count"] == 2
+    bed = [i for i in items if i["normalized_type"] in _family_types("bed")]
+    assert bed and bed[0]["count"] == 1

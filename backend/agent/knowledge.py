@@ -112,9 +112,23 @@ ROOM_MINIMUM_FAMILIES: dict[str, tuple[str, ...]] = {
 }
 
 
+# 各必備族系的預設件數；未列出者為 1。
+# 2026-08-02 Ancai 拍板：測試階段只有一間臥室，主／次臥共用同一套預設，
+# 床頭櫃統一成對（×2）——不做「最大間＝主臥」推定，資料裡兩者都叫 bedroom。
+ROOM_MINIMUM_FAMILY_COUNTS: dict[str, dict[str, int]] = {
+    "bedroom": {"bedside-table": 2},
+}
+
+
 def required_families_for_room(room_type: str | None) -> tuple[str, ...]:
     """回傳該房選件必須齊的族系；未知房型不強制。"""
     return ROOM_MINIMUM_FAMILIES.get(normalize_room_type(room_type), ())
+
+
+def required_family_count(room_type: str | None, family: str) -> int:
+    """該房型此必備族系的預設件數（未指定＝1）。"""
+    counts = ROOM_MINIMUM_FAMILY_COUNTS.get(normalize_room_type(room_type), {})
+    return int(counts.get(family, 1))
 
 
 # 成組擺放的主件優先取得牆位，泛用件其次，COMPANION_OF 副件最後。

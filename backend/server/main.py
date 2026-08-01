@@ -25,6 +25,7 @@ from ..agent.knowledge import (
     family_of,
     normalize_room_type,
     required_families_for_room,
+    required_family_count,
 )
 from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
 from .questionnaire_visuals import (
@@ -2775,6 +2776,7 @@ def _rag_cache_offers(
                 continue
             offer = dict(pick)
             offer.setdefault("variant_id", "standard")
+            offer["count"] = required_family_count(room_type, family)
             offer["selection_source"] = "rag_cache"
             offer["reason"] = (
                 f"RAG 語意快取推薦{FAMILY_ZH.get(family, family)}"
@@ -2868,6 +2870,9 @@ def _backfill_required_offers(
                 continue  # 型錄也沒有 → 維持原狀，讓驗證誠實失敗
             offer = dict(replacement)
             offer.setdefault("variant_id", "standard")
+            offer["count"] = required_family_count(
+                normalize_room_type(room.get("room_type")), family
+            )
             offer["selection_source"] = "agent_backfill"
             family_zh = FAMILY_ZH.get(family, family)
             if in_family:
