@@ -61,7 +61,12 @@ def test_hints_prefer_instance_id_and_are_deterministic() -> None:
     assert placement_hints(items) == placement_hints(list(reversed(items)))
 
 
-def test_pick_smaller_prefers_smallest_same_type_then_family() -> None:
+def test_pick_smaller_steps_down_one_size_same_type_then_family() -> None:
+    """G1「換小款」＝換小一號（cap 內取最大），不是直接跳最小。
+
+    直接跳最小的舊行為實測把 122cm 衣櫃換成 25cm 收納組合——家具等同
+    換不見。階梯由 resolve 迴圈負責：放不下再以新品 footprint 續降。
+    """
     pool = [
         _item("large", "fabric-sofa", 300, 120),
         _item("medium", "fabric-sofa", 200, 90),
@@ -69,9 +74,27 @@ def test_pick_smaller_prefers_smallest_same_type_then_family() -> None:
         _item("leather", "leather-sofa", 120, 70),
     ]
     picked = pick_smaller_model(pool, "fabric-sofa", 300 * 120, {"large"})
-    assert picked and picked["furniture_id"] == "small"
+    assert picked and picked["furniture_id"] == "medium"
     family_only = pick_smaller_model([pool[-1]], "fabric-sofa", 300 * 120, set())
     assert family_only and family_only["furniture_id"] == "leather"
+
+
+def test_resolve_ladders_down_until_it_fits() -> None:
+    """換小階梯：500 放不下→先試 200（仍放不下）→再試 140（成功）。"""
+    large = _item("large", "fabric-sofa", 500, 200, instance_id="sofa-1")
+    medium = _item("medium", "fabric-sofa", 200, 90)
+    small = _item("small", "fabric-sofa", 140, 80)
+    objects, final, report = resolve_placements(
+        [_failed_object(large)],
+        [large],
+        [large, medium, small],
+        engine_place_fn=_threshold_engine(150),
+    )
+    assert all(not obj["placement_failed"] for obj in objects)
+    assert [item["furniture_id"] for item in final] == ["small"]
+    replaces = [entry for entry in report if entry["action"] == "replace"]
+    assert [entry["to"] for entry in replaces][-1] == small["name_zh_raw"]
+    assert len(replaces) == 2, "應先試小一號、再降一階，而非一步跳最小"
 
 
 def test_resolve_replaces_oversized_anchor_with_smaller_model() -> None:

@@ -81,7 +81,11 @@ def pick_smaller_model(
 ) -> dict[str, Any] | None:
     """挑選同型、有 3D 模型且 footprint 更小的確定性替代品。
 
-    找不到相同 ``normalized_type`` 時，才放寬到相同擺位族系。
+    「換小」＝換**小一號**（cap 內取最大），不是直接跳最小——G1 的語意是
+    保住核心體驗，一步跳到迷你款（實測 122cm 衣櫃被換成 25cm 收納組合）
+    等於把家具換不見。放不下時 resolve 迴圈會以新品的 footprint 為新 cap
+    再往下走一階，自然形成階梯。找不到相同 ``normalized_type`` 時，才放寬
+    到相同擺位族系。
     """
 
     def candidates(predicate: Callable[[dict[str, Any]], bool]) -> list[dict[str, Any]]:
@@ -100,7 +104,8 @@ def pick_smaller_model(
         found = candidates(lambda item: family_of(item.get("normalized_type")) == family)
     if not found:
         return None
-    return min(found, key=lambda item: (_footprint_cm2(item), str(item.get("furniture_id"))))
+    # cap 內最大者優先；同面積以 id 決勝，維持完全確定性。
+    return min(found, key=lambda item: (-_footprint_cm2(item), str(item.get("furniture_id"))))
 
 
 def _replacement_item(item: dict[str, Any], smaller: dict[str, Any]) -> dict[str, Any]:
@@ -209,8 +214,10 @@ def resolve_placements(
 
             key = _key(obj)
             failure_counts[key] = failure_counts.get(key, 0) + 1
-            if failure_counts[key] >= 2:
-                # 同一品項連續兩輪失敗後停止替換，避免在候選間反覆震盪。
+            if failure_counts[key] >= 3:
+                # 同一品項三次失敗後停止替換。上限從 2 放寬到 3，讓「換小一號」
+                # 的階梯有兩階可走（原尺寸→小一號→再小一號），與 max_rounds=3
+                # 對齊；仍防止在候選間無界震盪。
                 remove(item, obj, f"多次嘗試仍放不下，移除「{_name(item)}」。")
                 changed = True
                 continue
