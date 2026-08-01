@@ -1102,7 +1102,7 @@ _FONT_PATHS = ["/mnt/c/Windows/Fonts/msjh.ttc",
 
 
 def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
-                  keep_small=False, thin=None):
+                  keep_small=False, thin=None, seal_hi=260.0):
     """把牆(方塊)圍出的內部切成一間間空間：牆+窗+門洞畫實 → 閉運算封小縫 →
     影像邊界灌水分內外 → 室內扣掉牆 = 各房間連通塊。封口核逐步放大，
     直到室內總面積與涵蓋範圍合理(同 _room_polygon 的驗收)。
@@ -1132,7 +1132,7 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
         cv2.line(mask, (int(round(cx)), int(round(cy))), p2, 255, max(2, int(T)))
     # 牆縫開口精準封口(40~260cm，含落地窗滑門)——不靠大核閉運算，
     # 大核會把窄長的房間/走道整個填掉
-    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, wins, T, cm, 40.0, 260.0):
+    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, wins, T, cm, 40.0, seal_hi):
         if horiz:
             cv2.rectangle(mask, (int(g0), int(b0)), (int(g1), int(b1)), 255, -1)
         else:

@@ -1198,6 +1198,16 @@ def build_rooms(det):
                                                 img_w, img_h, T, T_out, cm,
                                                 keep_small=True,
                                                 thin=det.get("thin"))
+    if labels is None:
+        # 救援階梯第三級（floor02 實案）：寬封口 360cm 全域用是淨負向
+        # （走道被寬封口切碎，A/B 實測 −2 命中/−10 命名），但對「常規
+        # ＋細線圍欄都救不回」的整圖失敗，360cm 能封住 L 型大開口。
+        # 只在整圖失敗時重試，通過的圖零觸碰
+        labels, rooms, outside = fp_c.segment_rooms(rects, wins, doors,
+                                                    img_w, img_h, T, T_out,
+                                                    cm, keep_small=True,
+                                                    thin=det.get("thin"),
+                                                    seal_hi=360.0)
     if labels is None or not rooms:
         zones = [_bridge_zone(*b) for b in bridges
                  if any(lo <= (b[2] - b[1]) * cm <= hi
