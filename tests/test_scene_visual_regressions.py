@@ -476,3 +476,42 @@ def test_wardrobe_masquerading_as_bed_is_still_rejected() -> None:
         },
         "bed",
     ) is False
+
+
+def test_selected_furniture_resolves_catalog_truth_via_catalog_furniture_id() -> None:
+    """客戶端品項以房間流水號為 furniture_id、型錄真身在 catalog_furniture_id。
+
+    server 過去只用流水號查型錄，查不到 → 床拿不到 rag_text 語意證據 →
+    被語意關誤殺（只有床要過這關），造成床每一輪無聲消失的第二現場。
+    """
+    from backend.server.scene_service import selected_furniture_items_from_questionnaire
+
+    catalog = [
+        {
+            "furniture_id": "abo-beds-22-movian-cinca",
+            "normalized_type": "bed",
+            "name_en": "Movian Cinca",
+            "rag_text": ["白色床架搭配淺木色飾條", "簡約床"],
+            "model_url": "https://example.test/cinca.glb",
+            "has_model": True,
+            "size_cm": {"width": 167, "depth": 205, "height": 98},
+        }
+    ]
+    questionnaire = {
+        "selected_furniture": [
+            {
+                "furniture_id": "room-1-bed-3",
+                "catalog_furniture_id": "abo-beds-22-movian-cinca",
+                "normalized_type": "bed",
+                "name_zh_raw": "床 - Movian Cinca",
+                "model_url": "https://example.test/cinca.glb",
+                "size_cm": {"width": 167, "depth": 205, "height": 98},
+                "position_cm": {"x": 0, "z": 0},
+                "rotation_y_deg": 180,
+            }
+        ]
+    }
+    selected = selected_furniture_items_from_questionnaire(questionnaire, catalog)
+    assert len(selected) == 1
+    assert selected[0]["normalized_type"] == "bed"
+    assert selected[0]["model_url"]

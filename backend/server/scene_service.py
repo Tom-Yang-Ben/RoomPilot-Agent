@@ -656,7 +656,15 @@ def selected_furniture_items_from_questionnaire(
             # Appliances remain questionnaire/render context, never 2D/3D objects.
             continue
 
-        catalog_item = catalog_by_id.get(furniture_id, {})
+        # 客戶端 2D 品項的 furniture_id 是房間流水號（如 room-1-bed-3），
+        # 型錄真身另放在 catalog_furniture_id。只用流水號查型錄必然落空，
+        # 合併結果就沒有 rag_text 等語意證據——而床是唯一要過語意關的類型，
+        # 結果「只有床、每一輪都無聲消失」（2026-08-02 結案的第二現場）。
+        catalog_item = (
+            catalog_by_id.get(furniture_id)
+            or catalog_by_id.get(str(raw.get("catalog_furniture_id") or ""))
+            or {}
+        )
         merged = {**catalog_item, **raw}
         size = raw.get("size_cm") or raw.get("dimensions") or catalog_item.get("size_cm") or {}
         merged["size_cm"] = {
