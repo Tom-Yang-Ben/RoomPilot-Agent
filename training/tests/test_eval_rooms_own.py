@@ -17,10 +17,10 @@ def test_pick_own_samples_twelve_complete():
 
 
 def test_report_path_for_all_modes():
-    assert ev.report_path_for(False, False) == "training/json/eval_rooms/report.json"
-    assert ev.report_path_for(False, True) == "training/json/eval_rooms/report_gtseg.json"
-    assert ev.report_path_for(True, False) == "training/json/eval_rooms/report_own.json"
-    assert ev.report_path_for(True, True) == "training/json/eval_rooms/report_own_gtseg.json"
+    assert ev.report_path_for(False, False) == "temp/json/eval_rooms/report.json"
+    assert ev.report_path_for(False, True) == "temp/json/eval_rooms/report_gtseg.json"
+    assert ev.report_path_for(True, False) == "temp/json/eval_rooms/report_own.json"
+    assert ev.report_path_for(True, True) == "temp/json/eval_rooms/report_own_gtseg.json"
 
 
 def test_transform_baking_matrix_translate_scale():

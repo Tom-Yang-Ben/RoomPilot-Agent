@@ -9,6 +9,9 @@ __pycache__/
 .mcp.json
 !.mcp.json.*.example
 
+# 環境變數（含金鑰，不可提交）
+.env
+
 # 編譯後二進位（無原始碼，不進版控）
 *.exe
 
@@ -16,9 +19,11 @@ __pycache__/
 
 # 本機自管大檔，不 push：訓練產物（打包件/微調模型/驗收快取）＋
 # CubiCasa5k 程式庫與資料集＋官方權重 model_best_val_loss_var.pkl＋
-# 管線預覽輸出 chk/＋房型評分工作區 eval_rooms/
-# 換機：大檔整包 training.zip 搬運解壓；程式碼/測試/模板庫/評測報告走版控（下方負向規則）
+# 換機：大檔整包 training.zip 搬運解壓；程式碼/測試/模板庫走版控（下方負向規則）
 # （人工答案在 Identify_ans/ 進版控）
+# training/ 只放訓練材料——辨識/評分的產出一律走 temp/（不進版控）。
+# json/ 例外保留當警示網：現行 code 已不寫這裡，任何冒出來的檔案＝
+# 某台機器還在跑舊版腳本，讓它在 git status 現形，不要無聲失蹤
 training/*
 !training/scripts/
 !training/tests/

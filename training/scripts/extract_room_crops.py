@@ -17,8 +17,8 @@ import cv2
 import numpy as np
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(_ROOT, "training/CubiCasa5k"))
 sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))
+# CubiCasa5k 程式庫已不需要——GT 解析走自家 svg_poly
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # eval_rooms_cc
 
@@ -32,7 +32,7 @@ def iter_rooms(svg_path):
     標籤走 eval_rooms_cc.gt_label_of（單一真相來源）——含 2026-07-29 新增的
     office/stair 拆分，分類器的類別空間才與量尺、管線三方一致。"""
     from xml.dom import minidom
-    from floortrans.loaders.svg_utils import get_polygon
+    from svg_poly import get_polygon    # 自家抄本，逐位元同 floortrans 原版
     from eval_rooms_cc import gt_label_of
     doc = minidom.parse(svg_path)
     for e in doc.getElementsByTagName("g"):

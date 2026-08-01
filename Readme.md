@@ -172,8 +172,9 @@ floor74/76 的走道沿著外牆走卻沒有對外的門。門位取樣沿用
 | ＋對外門規則 | 64/72 | 88.9% |
 | ＋線性頭重訓（**現行**） | 63/72 | **87.5%** |
 
-跨 GT 慣例的數字不可直接比較。A/B 隔離證據見
-`training/json/eval_rooms/report_own_gtseg_ab_{A_before,B_after}.json`。
+跨 GT 慣例的數字不可直接比較。A/B 隔離證據原存
+`training/json/eval_rooms/report_own_gtseg_ab_{A_before,B_after}.json`，量測報表已改為
+產出到 `temp/json/eval_rooms/`（不進版控），舊檔留在 commit `1df9107` 的歷史裡。
 
 ### 五、其他
 

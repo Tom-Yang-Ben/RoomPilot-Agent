@@ -11,7 +11,7 @@ eval_color_walls.py — 彩色管線「牆體(含建築基柱)」偵測評分
 用法:
     python3 eval_color_walls.py                    (跑 testdata/Identify_ans/pngans/color/ 全部)
     python3 eval_color_walls.py color_floor_01     (只跑指定幾張)
-    python3 eval_color_walls.py --vis              (另存差異圖 training/chk/color/eval_*.png)
+    python3 eval_color_walls.py --vis              (另存差異圖 temp/chk/color_eval/eval_*.png)
 
 指標(像素級):
     精準率 = 預測牆中真的是牆的比例   (低 = 多抓假牆)
@@ -64,8 +64,8 @@ def save_vis(name, ans_bgr, gt, pr):
     vis[(gt == 1) & (pr == 1)] = (255, 255, 255)
     vis[(gt == 0) & (pr == 1)] = (0, 0, 255)
     vis[(gt == 1) & (pr == 0)] = (0, 200, 0)
-    os.makedirs("training/chk/color", exist_ok=True)
-    out = os.path.join("training/chk/color", f"eval_{name}.png")
+    os.makedirs("temp/chk/color_eval", exist_ok=True)   # 與管線疊圖 temp/chk/color/ 分開放
+    out = os.path.join("temp/chk/color_eval", f"eval_{name}.png")
     cv2.imwrite(out, vis)
     return out
 
@@ -74,7 +74,7 @@ def main():
     p = argparse.ArgumentParser(description="彩色管線牆體偵測評分")
     p.add_argument("names", nargs="*", help="指定圖名(如 color_floor_01)；不給就全部")
     p.add_argument("--config", default="config_color.ini")
-    p.add_argument("--vis", action="store_true", help="另存差異圖到 training/chk/color/")
+    p.add_argument("--vis", action="store_true", help="另存差異圖到 temp/chk/color_eval/")
     a = p.parse_args()
 
     ans_files = sorted(glob.glob(os.path.join(ANS_DIR, "*_ans.png")))

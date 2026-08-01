@@ -8,8 +8,9 @@ CubiCasa5k model.svg 的 Space 多邊形當 ground truth，對 floorplan2room
       [--gt-seg]（GT 分割解耦：GT 多邊形當房間，只評房型辨識層）
       [--own-eval]（own 風格量尺：testdata/Identify_ans/own_eval 12 題保留集當 GT，
                     此集永不進訓練，微調 A/B 驗收在產品風格上的可信分數）
-輸出：training/json/eval_rooms/report[_own][_gtseg].json、
-      training/eval_rooms/chk/<id>_{gt,pred,gtpred}.png
+輸出（一律 temp/，不落 training/）：
+      temp/json/eval_rooms/report[_own][_gtseg].json
+      temp/eval_rooms/chk/<id>_{gt,pred,gtpred}.png
 """
 import argparse
 import json
@@ -24,15 +25,15 @@ import numpy as np
 
 _ROOT = os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(_ROOT, "training/CubiCasa5k"))
 sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))  # 管線模組在 backend/floorplan/
+# CubiCasa5k 程式庫已不需要——GT 解析走自家 svg_poly；資料集檔案（DATA）僅 CubiCasa 模式讀
 
 DATA = "training/CubiCasa5k/data/cubicasa5k"
 SUBSET = "high_quality_architectural"
 OWN_DIR = "testdata/Identify_ans/own_eval"
-IN_DIR = "training/eval_rooms/input"
-CHK_DIR = "training/eval_rooms/chk"
-REPORT = "training/json/eval_rooms/report.json"
+IN_DIR = "temp/eval_rooms/input"        # 樣本圖複本＝過程產物，不進 training/
+CHK_DIR = "temp/eval_rooms/chk"         # 疊圖＝過程產物，不進 training/
+REPORT = "temp/json/eval_rooms/report.json"    # 報表＝辨識產出，不進 training/
 # 2026-08-01 定案的 10 類（使用者裁決）。名稱刻意與答案集 model.svg 的 Space
 # token 同形，讓「標注寫什麼」與「量尺算什麼」是同一個字串，中間不再有翻譯層
 # ——HallWay 被 CubiCasa 慣例悄悄算成玄關，正是那層翻譯造成的。
@@ -178,7 +179,7 @@ def parse_gt(svg_path, h, w):
     多邊形座標＝F1_scaled.png 像素（實證疊圖驗證）；SVG 的 width/height
     宣告與圖面尺寸普遍不符（三子集抽查皆然），不可用來驗對位——
     改以「多邊形範圍不得超出圖面 2%」守門。"""
-    from floortrans.loaders.svg_utils import get_polygon
+    from svg_poly import get_polygon    # 自家抄本，逐位元同 floortrans 原版（見 test_svg_poly_parity）
     doc = minidom.parse(svg_path)
     gt = []
     for e in doc.getElementsByTagName("g"):

@@ -6,7 +6,7 @@ testdata/Asset/door/ 是人工剪裁的各類型門圖示（白底黑線，type0
 8 向變體（4 旋轉 × 鏡射）展開後去重，存 door_lib.npz。
 
 用途：door_match.py 對主管線的門候選做模板比對，救回弧吻合度低於
-0.85 但樣式明確的真門（見 training/json/gray 的 score_fused 欄位）。
+0.85 但樣式明確的真門（見 temp/json/gray 的 score_fused 欄位）。
 
 用法：python scripts/extract_door_lib.py [--src testdata/Asset/door] [--out door_lib.npz]
 """
