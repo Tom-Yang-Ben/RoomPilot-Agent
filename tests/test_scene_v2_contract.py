@@ -1309,7 +1309,11 @@ def test_3d_viewer_flips_scene_z_at_the_visual_boundary_only() -> None:
     assert "z: Math.round(-Number(position.z || 0) * 100) / 100" in viewer
     assert "function sceneDataForWorld" in viewer
     assert "lastWorldSceneData = sceneDataForWorld(sceneData)" in viewer
-    assert "createRoom(lastWorldSceneData)" in viewer
+    # 房間外殼一律由世界座標資料建；重建與否由 rebuildRoomIfChanged 的指紋決定，
+    # 但輸入不能繞過 lastWorldSceneData，否則 Z 翻轉邊界就破了。
+    assert "rebuildRoomIfChanged(lastWorldSceneData)" in viewer
+    assert "createRoom(worldSceneData)" in viewer
+    assert "createRoom(sceneData)" not in viewer.replace("function createRoom(sceneData)", "")
     assert "const worldPosition = sceneToWorldPosition(item.position_cm || {})" in viewer
     assert "callback(worldToScenePosition(planeHit))" in viewer
     assert "function topdownPointerDeltaCm" in viewer

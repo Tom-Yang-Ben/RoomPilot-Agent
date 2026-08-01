@@ -606,6 +606,166 @@ export function createSceneViewer(
   const textureLoader = new THREE.TextureLoader();
   textureLoader.setCrossOrigin?.("anonymous");
 
+  // ── 家具資產快取 ──
+  // 原本每次 loadScene 都重跑 loadAsync + applyStyleSkin，產生全新的 material 實例，
+  // 而 clearGroup 又把上一輪的 material dispose 掉。three.js 以 refcount 管理編譯後的
+  // WebGLProgram，refcount 歸零就刪掉，於是下一次載入必須整場重編 shader
+  // ——這是第 6 步每個動作都要等 10–16 秒的主因。
+  // 這裡保留「已套皮的模板」，實例用 clone 產生並共用 geometry/material/texture，
+  // program refcount 不歸零，shader 就不會重編。
+  const MODEL_TEMPLATE_LIMIT = 64;
+  const GLTF_SOURCE_LIMIT = 96;
+  const modelTemplates = new Map(); // styleKey -> { root, url }
+  const gltfSources = new Map(); // model_url -> Promise<GLTF>
+  const MATERIAL_MAP_KEYS = [
+    "map",
+    "normalMap",
+    "roughnessMap",
+    "metalnessMap",
+    "alphaMap",
+    "aoMap",
+    "emissiveMap",
+  ];
+
+  function eachMaterial(object, visit) {
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    materials.filter(Boolean).forEach(visit);
+  }
+
+  // 標記為快取資產後，clearGroup 只會把它從場景移除，不會 dispose。
+  function markCachedAsset(asset) {
+    if (asset) asset.userData.roompilotCachedAsset = true;
+  }
+
+  function markTemplateAssetsCached(root) {
+    root.traverse((object) => {
+      markCachedAsset(object.geometry);
+      eachMaterial(object, (material) => {
+        markCachedAsset(material);
+        MATERIAL_MAP_KEYS.forEach((key) => markCachedAsset(material[key]));
+      });
+    });
+  }
+
+  // applyStyleSkin 讀到的每一個輸入都要進 key，否則會共用到錯的材質。
+  // 有 per-item override 的家具因此自然落在獨立模板，不會被同型號的其他件連動。
+  function furnitureStyleKey(item, sceneData) {
+    return JSON.stringify([
+      item.model_url,
+      sceneData.use_original_materials === true,
+      sceneData.style_card?.palette_hex || sceneData.style?.palette_hex || null,
+      sceneData.material_role_overrides || null,
+      item.normalized_type || null,
+      item.user_specified === true,
+      item.material_locked === true,
+      item.material_override || null,
+      item.material_overrides || null,
+    ]);
+  }
+
+  function loadGltfSource(url) {
+    let pending = gltfSources.get(url);
+    if (pending) {
+      // LRU：命中就移到尾端。
+      gltfSources.delete(url);
+      gltfSources.set(url, pending);
+      return pending;
+    }
+    pending = loader.loadAsync(url).catch((error) => {
+      // 失敗不留快取，下次仍可重試。
+      gltfSources.delete(url);
+      throw error;
+    });
+    gltfSources.set(url, pending);
+    return pending;
+  }
+
+  // 模板自己產生的 material 才由模板釋放；geometry 與 texture 是整個 GLB 共用的，
+  // 由 gltfSources 那層負責，這裡不能碰。
+  function disposeTemplate(template) {
+    template.root.traverse((object) => {
+      eachMaterial(object, (material) => {
+        if (material.userData.roompilotTemplateOwned === true) material.dispose();
+      });
+    });
+  }
+
+  async function disposeGltfSource(url, pending) {
+    let gltf = null;
+    try {
+      gltf = await pending;
+    } catch {
+      return;
+    }
+    gltf.scene.traverse((object) => {
+      object.geometry?.dispose?.();
+      eachMaterial(object, (material) => {
+        MATERIAL_MAP_KEYS.forEach((key) => material[key]?.dispose?.());
+        material.dispose();
+      });
+    });
+  }
+
+  function trimModelCaches() {
+    while (modelTemplates.size > MODEL_TEMPLATE_LIMIT) {
+      const oldestKey = modelTemplates.keys().next().value;
+      const evicted = modelTemplates.get(oldestKey);
+      modelTemplates.delete(oldestKey);
+      if (evicted) disposeTemplate(evicted);
+    }
+    if (gltfSources.size <= GLTF_SOURCE_LIMIT) return;
+    const urlsInUse = new Set([...modelTemplates.values()].map((template) => template.url));
+    for (const [url, pending] of gltfSources) {
+      if (gltfSources.size <= GLTF_SOURCE_LIMIT) break;
+      if (urlsInUse.has(url)) continue;
+      gltfSources.delete(url);
+      disposeGltfSource(url, pending);
+    }
+  }
+
+  function prepareFurnitureModel(root, item, sceneData) {
+    applyStyleSkin(root, sceneData, item);
+    root.traverse((object) => {
+      if (object.isMesh) {
+        object.castShadow = true;
+        object.receiveShadow = true;
+      }
+    });
+    return root;
+  }
+
+  async function acquireFurnitureModel(item, sceneData) {
+    const gltf = await loadGltfSource(item.model_url);
+    // 帶骨架的模型 clone 後骨骼綁定會指回原始物件，不進快取，維持原本每次重建的行為。
+    let skinned = false;
+    gltf.scene.traverse((object) => {
+      if (object.isSkinnedMesh) skinned = true;
+    });
+    if (skinned) return prepareFurnitureModel(gltf.scene.clone(true), item, sceneData);
+
+    const styleKey = furnitureStyleKey(item, sceneData);
+    const cached = modelTemplates.get(styleKey);
+    if (cached) {
+      modelTemplates.delete(styleKey);
+      modelTemplates.set(styleKey, cached);
+      return cached.root.clone(true);
+    }
+
+    const sharedMaterials = new Set();
+    gltf.scene.traverse((object) => eachMaterial(object, (material) => sharedMaterials.add(material)));
+    // 模板保持未縮放的原始姿態，尺寸由每個實例各自 fitToTargetSize。
+    const root = prepareFurnitureModel(gltf.scene.clone(true), item, sceneData);
+    root.traverse((object) => {
+      eachMaterial(object, (material) => {
+        if (!sharedMaterials.has(material)) material.userData.roompilotTemplateOwned = true;
+      });
+    });
+    markTemplateAssetsCached(root);
+    modelTemplates.set(styleKey, { root, url: item.model_url });
+    trimModelCaches();
+    return root.clone(true);
+  }
+
   const wallMeshes = [];
 
   function setStatus(message) {
@@ -624,13 +784,15 @@ export function createSceneViewer(
       if (!child) break;
       group.remove(child);
       child.traverse?.((object) => {
-        if (object.geometry) {
+        // 快取持有的資產只從場景移除，dispose 交給 trimModelCaches；
+        // 在這裡 dispose 會讓已編譯的 shader 被釋放，下次載入整場重編。
+        if (object.geometry && object.geometry.userData?.roompilotCachedAsset !== true) {
           object.geometry.dispose();
         }
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
-        materials.filter(Boolean).forEach((material) => {
-          ["map", "normalMap", "roughnessMap", "metalnessMap", "alphaMap", "aoMap", "emissiveMap"].forEach((key) => {
-            if (material[key]) {
+        eachMaterial(object, (material) => {
+          if (material.userData?.roompilotCachedAsset === true) return;
+          MATERIAL_MAP_KEYS.forEach((key) => {
+            if (material[key] && material[key].userData?.roompilotCachedAsset !== true) {
               material[key].dispose();
             }
           });
@@ -2578,6 +2740,30 @@ export function createSceneViewer(
     return geometry;
   }
 
+  // 單件家具操作不會動到房間外殼，但原本每次 loadScene 都無條件重建，
+  // 連帶重跑 createWoodTexture／createMarbleTexture 那些 1024×1024 逐像素 canvas 迴圈。
+  // 以「家具以外的輸入」當指紋，沒變就整個跳過。
+  let lastRoomFingerprint = null;
+
+  function roomFingerprint(worldSceneData) {
+    const { scene_objects: _furniture, ...roomInputs } = worldSceneData || {};
+    try {
+      return JSON.stringify(roomInputs);
+    } catch {
+      return null; // 無法序列化就當作有變動，維持原本每次重建的行為
+    }
+  }
+
+  function rebuildRoomIfChanged(worldSceneData) {
+    const fingerprint = roomFingerprint(worldSceneData);
+    if (fingerprint !== null && fingerprint === lastRoomFingerprint && roomGroup.children.length) {
+      return false;
+    }
+    createRoom(worldSceneData);
+    lastRoomFingerprint = fingerprint;
+    return true;
+  }
+
   function createRoom(sceneData) {
     clearGroup(roomGroup);
     clearGroup(ceilingGroup);
@@ -3591,6 +3777,8 @@ export function createSceneViewer(
     context.fillRect(0, 0, 256, 256);
     contactShadowTexture = new THREE.CanvasTexture(canvas);
     contactShadowTexture.colorSpace = THREE.NoColorSpace;
+    // 這是跨場景共用的單例，不能讓 clearGroup 跟著家具一起 dispose 掉。
+    markCachedAsset(contactShadowTexture);
     return contactShadowTexture;
   }
 
@@ -3676,7 +3864,7 @@ export function createSceneViewer(
     disposeGuide();
     clearGroup(furnitureGroup);
     applyRenderingProfile(sceneData);
-    createRoom(lastWorldSceneData);
+    rebuildRoomIfChanged(lastWorldSceneData);
     setStatus("正在生成 3D 場景...");
 
     const objects = sceneData.scene_objects || [];
@@ -3701,16 +3889,8 @@ export function createSceneViewer(
         }
 
         try {
-          const gltf = await loader.loadAsync(item.model_url);
-          applyStyleSkin(gltf.scene, sceneData, item);
-          gltf.scene.traverse((object) => {
-            if (object.isMesh) {
-              object.castShadow = true;
-              object.receiveShadow = true;
-            }
-          });
+          const modelRoot = await acquireFurnitureModel(item, sceneData);
           const wrapper = new THREE.Group();
-          const modelRoot = gltf.scene;
           wrapper.add(modelRoot);
           fitToTargetSize(modelRoot, item.size_cm || {});
           modelRoot.traverse((object) => {
