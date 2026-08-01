@@ -76,6 +76,22 @@ kstove/ksink/tub/wc/bed/chair 啟用（逐類 chamfer 門檻
 總分低於 0.15 門檻時給哨兵值 `room`（顯示「空間」），它不是類別；量尺以
 `norm_label()` 把它歸入 `Hallway`。
 
+### 答案集標準色（2026-08-01 定案，單一真相源 `make_annotation_drafts.SPACE_FILL`）
+
+| 類別 | 色碼 | | 類別 | 色碼 |
+| :--- | :--- | :--- | :--- | :--- |
+| Kitchen | `#e8843c` 橙 | | Storage | `#b8a06a` 棕褐 |
+| LivingRoom | `#7dc37d` 綠 | | **Garage** | **`#909090` 水泥灰** |
+| Bedroom | `#4a90d9` 藍 | | Balcony | `#b5368f` 洋紅 |
+| Bath | `#3dbdbd` 青 | | Stair | `#a89cc8` 灰紫 |
+| Entry | `#8f5fc6` 紫 | | Hallway | `#c9a0dc` 淡紫 |
+
+`Undefined`（人工補標暫置）＝`#d9d9d9` 淺灰。Garage 選水泥灰的
+理由：與九類皆異、與 Undefined 中灰 vs 淺灰可辨，且不撞疊圖結構色
+（牆紅 `#cc2222`／門琥珀 `#ddaa00`／窗綠 `#22aa22`——磚紅、黃、深綠
+因此不可用）。答案集 SVG 的多邊形 fill、文字標籤、Space class 三層
+須一致（2026-08-01 已全數歸一並以本表為準）。
+
 ## 命名（優先序三選一）
 
 | 順位 | 路徑 | own_eval 72 房 | 授權 |
