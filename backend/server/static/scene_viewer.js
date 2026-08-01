@@ -1394,9 +1394,6 @@ export function createSceneViewer(
       const material = typeof wallMaterial === "function"
         ? wallMaterial(segment)
         : wallMaterial;
-      const exteriorSurfaceMaterial = typeof wallMaterial === "function"
-        ? (wallMaterial.exteriorMaterial || material)
-        : material;
       const openingIntervals = [...wallDoorSegments.map((opening) => ({ opening, kind: "door" })),
         ...windowSegments.map((opening) => ({ opening, kind: "window" }))]
         .map(({ opening, kind }, index) => {
@@ -1437,9 +1434,7 @@ export function createSceneViewer(
         const sectionGeometry = new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness);
         const sectionMaterials = typeof wallMaterial.faceMaterials === "function"
           ? wallMaterial.faceMaterials(segment, exteriorSideSign)
-          : (exteriorWall
-            ? wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)
-            : sectionMaterial.clone());
+          : sectionMaterial.clone();
         const wallMesh = new THREE.Mesh(
           sectionGeometry,
           sectionMaterials,
@@ -2289,7 +2284,7 @@ export function createSceneViewer(
     });
   }
 
-  function wallMaterialResolver(sceneData, defaultMaterial, exteriorMaterial = defaultMaterial) {
+  function wallMaterialResolver(sceneData, defaultMaterial) {
     // A room can be saved more than once while the questionnaire auto-saves.
     // Only the most recent record for that room may influence the final scene.
     const canonicalOverrides = new Map();
@@ -2378,10 +2373,6 @@ export function createSceneViewer(
       return cache.get(cacheKey);
     };
     const resolveWallMaterial = (segment) => {
-      if (isExteriorWallSegment(segment, sceneData.floorplan)) {
-        exteriorMaterial.userData.roompilotWallSurfaceRole = "exterior";
-        return exteriorMaterial;
-      }
       const midpoint = {
         x: (Number(segment.start?.x || 0) + Number(segment.end?.x || 0)) / 2,
         z: (Number(segment.start?.z || 0) + Number(segment.end?.z || 0)) / 2,
@@ -2400,9 +2391,7 @@ export function createSceneViewer(
         z: (Number(start.z || 0) + Number(end.z || 0)) / 2,
       };
       const normal = { x: -dz / length, z: dx / length };
-      const exterior = isExteriorWallSegment(segment, sceneData.floorplan);
       const materialForSide = (side) => {
-        if (exterior && side === exteriorSideSign) return exteriorMaterial;
         const sample = {
           x: midpoint.x + normal.x * side * 16,
           z: midpoint.z + normal.z * side * 16,
@@ -2418,7 +2407,6 @@ export function createSceneViewer(
       ];
       return materials;
     };
-    resolveWallMaterial.exteriorMaterial = exteriorMaterial;
     return resolveWallMaterial;
   }
 
@@ -2761,16 +2749,6 @@ export function createSceneViewer(
       || sceneData.style_card?.palette_hex?.[1];
     applySurfaceTint(floorMaterial, floorColor);
     if (floorPbr.roughness != null) floorMaterial.roughness = floorPbr.roughness;
-    let exteriorWallMaterial = createWallMaterial(
-      sceneData.design_choices?.exterior_wall_option || "auto",
-      sceneData.surface_catalog,
-    );
-    applySurfaceTint(
-      exteriorWallMaterial,
-      sceneData.design_choices?.exterior_wall_color_hex || "#e7e3dc",
-    );
-    exteriorWallMaterial = stabilizeWholeHouseWallAppearance(exteriorWallMaterial);
-    exteriorWallMaterial.userData.roompilotWallSurfaceRole = "exterior";
     if (floorPbr.metalness != null) floorMaterial.metalness = floorPbr.metalness;
     const floor = new THREE.Mesh(
       createFloorGeometry(sceneData.floorplan, widthCm, depthCm),
@@ -2896,7 +2874,7 @@ export function createSceneViewer(
       buildSegmentWalls(
         roomGroup,
         wallSegments,
-        wallMaterialResolver(sceneData, wallMaterial, exteriorWallMaterial),
+        wallMaterialResolver(sceneData, wallMaterial),
         wallHeight,
         wallThickness,
         [],
@@ -2907,7 +2885,7 @@ export function createSceneViewer(
       buildConfirmedDoorLeaves(
         roomGroup,
         doorSegments,
-        wallMaterialResolver(sceneData, wallMaterial, exteriorWallMaterial),
+        wallMaterialResolver(sceneData, wallMaterial),
         wallHeight,
         wallThickness,
         sceneData.surface_catalog,

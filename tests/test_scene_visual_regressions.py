@@ -259,7 +259,7 @@ def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
     assert "Math.max(0, sillHeight - frameAllowanceCm)" in standalone_builder
 
 
-def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protrude() -> None:
+def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
@@ -273,18 +273,17 @@ def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protru
         "function buildFloorPlanOverlay", 1
     )[0]
 
-    assert "isExteriorWallSegment(segment, sceneData.floorplan)" in resolver
     assert "pointInsideAnyFloorplanRoom" in resolver
     assert "leftInside !== rightInside" in resolver
     assert "wallEndpointTouchesExteriorBounds" in resolver
-    assert "resolveWallMaterial.exteriorMaterial = exteriorMaterial" in resolver
     assert "function roomOverrideForInteriorPoint" in resolver
     assert "resolveWallMaterial.faceMaterials" in resolver
     assert "const materialForSide = (side)" in resolver
-    assert "roompilotWallSurfaceRole = \"exterior\"" in resolver
+    assert "if (exterior && side === exteriorSideSign) return exteriorMaterial;" not in resolver
+    assert "return materialForOverride(roomOverrideForInteriorPoint(sample));" in resolver
+    assert "resolveWallMaterial.exteriorMaterial" not in resolver
     assert "isExteriorWallSegment(segment, floorplan, wallThickness)" in wall_builder
     assert "exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)" in wall_builder
-    assert "wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)" in wall_builder
     assert "wallMaterial.faceMaterials(segment, exteriorSideSign)" in wall_builder
     assert "interiorWallJunctionInsets(segment, exteriorSegments, wallThickness)" in wall_builder
     assert "const sectionMin" in wall_builder

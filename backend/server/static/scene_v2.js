@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-87edaee15f12";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-9f42c4f66ada";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -689,7 +689,12 @@ function questionnaireRagQuery(room) {
     .map((item) => item.name_zh || item.normalized_type)
     .filter(Boolean)
     .join("、");
-  let preference = String(furniture.preferenceText || "").trim();
+  const preferenceTags = Array.isArray(furniture.preferenceTags)
+    ? furniture.preferenceTags.filter(Boolean).join("、")
+    : "";
+  let preference = [String(furniture.preferenceText || "").trim(), preferenceTags]
+    .filter(Boolean)
+    .join("、");
   const paletteId = requirement.surfaces?.paletteId || wholeHouseFinishDraft().stylePackId;
   const styleId = STYLE_PACKS.find((pack) => pack.id === paletteId)?.styleId || "";
   preference = `${preference} style:${styleId}`.trim();
@@ -717,6 +722,16 @@ function questionnaireRagQuery(room) {
 
 async function startQuestionnaireRag(room) {
   if (!room) return;
+  const selected = roomFurnitureRequirement(room.id)?.selected || [];
+  if (String(room.type || room.room_type || "") === "stair" && !selected.length) {
+    state.roomRagJobs[room.id] = {
+      status: "no_furniture_rag_required",
+      query: "",
+      reason: "stair_has_no_movable_furniture",
+    };
+    scheduleSave("requirements");
+    return;
+  }
   const query = questionnaireRagQuery(room);
   if (!query) return;
   try {
@@ -8158,28 +8173,28 @@ async function catalogOffersForRoomPlans(roomPlans) {
 const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS = Object.freeze({
   bedroom: {
     defaults: ["bed", "wardrobe"],
-    required: ["bed"],
+    required: [],
     labels: { bed: "睡眠的基本配置", wardrobe: "日常衣物收納", "bedside-table": "床邊置物" },
   },
   living_room: {
     defaults: ["sofa"],
     fallbackDefaults: ["lounge-chair"],
-    required: ["sofa"],
+    required: [],
     labels: { sofa: "休息與招待的基本配置", "coffee-table": "客廳置物與活動中心", "tv-bench": "影音設備收納", "lounge-chair": "閱讀或獨立休息" },
   },
   kitchen: {
-    defaults: ["dining-table", "dining-chair", "appliance-cabinet"],
-    required: ["dining-table"],
+    defaults: ["dining-table", "dining-chair"],
+    required: [],
     labels: { "dining-table": "用餐的基本配置", "dining-chair": "搭配餐桌的座位", "appliance-cabinet": "備餐與廚房收納", "storage-cabinet": "補充收納" },
   },
   storage: {
-    defaults: ["desk", "office-chair", "storage-cabinet"],
+    defaults: ["storage-cabinet"],
     required: [],
     labels: { desk: "工作或閱讀的基本配置", "office-chair": "搭配書桌的座位", "storage-cabinet": "文件與用品收納" },
   },
   bathroom: {
-    defaults: ["bathroom-vanity", "mirror-cabinet"],
-    required: ["bathroom-vanity"],
+    defaults: [],
+    required: [],
     labels: { "bathroom-vanity": "盥洗與收納的基本配置", "mirror-cabinet": "鏡面與用品收納" },
   },
   balcony: {
@@ -8187,8 +8202,9 @@ const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS = Object.freeze({
     required: [],
     labels: { "flower-pots-planter": "陽台綠化", "lounge-chair": "短暫休憩" },
   },
-  hallway: { defaults: [], required: [], labels: {} },
-  stair: { defaults: [], required: [], labels: {} },
+  entryway: { defaults: [], required: [], labels: { mirror: "玄關整理與出門前使用" } },
+  hallway: { defaults: [], required: [], labels: { mirror: "保留走道淨寬；只建議薄型靠牆物件" } },
+  stair: { defaults: [], required: [], labels: { lighting: "樓梯僅提供照明；不配置可移動家具" } },
   garage: { defaults: [], required: [], labels: { "storage-cabinet": "工具與用品收納" } },
   default: { defaults: [], required: [], labels: {} },
 });
@@ -8349,11 +8365,15 @@ const ROOM_USAGE_OPTIONS = Object.freeze({
     { id: "watch", label: "看電視／影音" },
     { id: "host", label: "接待客人" },
     { id: "read", label: "閱讀休息" },
+    { id: "work", label: "閱讀／工作" },
+    { id: "shared_dining", label: "客餐廳共用" },
+    { id: "kids", label: "兒童使用" },
   ],
   bedroom: [
     { id: "sleep", label: "睡眠休息" },
     { id: "work", label: "閱讀／工作" },
     { id: "dressing", label: "收納更衣" },
+    { id: "kids", label: "兒童使用" },
   ],
   kitchen: [
     { id: "cook", label: "日常下廚" },
@@ -8364,6 +8384,8 @@ const ROOM_USAGE_OPTIONS = Object.freeze({
   storage: [
     { id: "store", label: "集中收納" },
     { id: "laundry", label: "洗衣整理" },
+    { id: "work", label: "閱讀／工作" },
+    { id: "kids", label: "兒童使用" },
   ],
   bathroom: [
     { id: "bathe", label: "盥洗淋浴" },
@@ -8376,6 +8398,17 @@ const ROOM_USAGE_OPTIONS = Object.freeze({
   garage: [
     { id: "store", label: "工具與用品收納" },
     { id: "flex", label: "保留停車淨空" },
+  ],
+  entryway: [
+    { id: "arrival", label: "出入整理" },
+    { id: "store", label: "鞋物收納" },
+  ],
+  hallway: [
+    { id: "passage", label: "通行動線" },
+    { id: "store", label: "薄型收納" },
+  ],
+  stair: [
+    { id: "passage", label: "上下通行" },
   ],
   default: [
     { id: "flex", label: "彈性使用" },
@@ -8393,6 +8426,10 @@ const ROOM_USAGE_FURNITURE_SPECS = Object.freeze({
   prep: [["storage-cabinet", "low"]],
   store: [["storage-cabinet", "tall"]],
   laundry: [["storage-cabinet", "low"]],
+  shared_dining: [["dining-table", "round-4"], ["dining-chair", "standard"]],
+  arrival: [["mirror", "wall"]],
+  passage: [["lighting", "wall"]],
+  kids: [["storage-cabinet", "low"]],
 });
 
 function roomUsageOptions(room) {

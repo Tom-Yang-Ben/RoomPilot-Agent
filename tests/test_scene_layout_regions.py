@@ -67,7 +67,7 @@ def test_automatic_chair_faces_the_nearest_desk() -> None:
     assert oriented[1]["facing_target_id"] == "desk-1"
 
 
-def test_viewer_keeps_boundary_walls_exterior_and_door_inside_snapped_assembly() -> None:
+def test_viewer_keeps_boundary_walls_in_room_finish_and_door_inside_snapped_assembly() -> None:
     source = (
         ROOT / "backend" / "server" / "static" / "scene_viewer.js"
     ).read_text(encoding="utf-8")
@@ -78,9 +78,9 @@ def test_viewer_keeps_boundary_walls_exterior_and_door_inside_snapped_assembly()
         "function buildStandaloneOpeningAssemblies", 1
     )[0]
 
-    assert "isExteriorWallSegment(segment, sceneData.floorplan)" in resolver
-    assert "segment.boundary_side" in resolver
-    assert 'roompilotWallSurfaceRole = "exterior"' in resolver
+    assert "function roomOverrideForInteriorPoint" in resolver
+    assert "return materialForOverride(roomOverrideForInteriorPoint(sample));" in resolver
+    assert 'roompilotWallSurfaceRole = "exterior"' not in resolver
     assert "leaf.position.set(0, centerY, 0)" in opening
     assert "assembly.add(leaf)" in opening
     assert "roomGroupRef.add(hingeGroup)" not in opening
