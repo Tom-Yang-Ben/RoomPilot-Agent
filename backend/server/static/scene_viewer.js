@@ -1566,7 +1566,14 @@ export function createSceneViewer(
     }
   }
 
-  function buildConfirmedDoorLeaves(roomGroupRef, doorSegments, wallThickness, surfaceCatalog = null) {
+  function buildConfirmedDoorLeaves(
+    roomGroupRef,
+    doorSegments,
+    wallMaterial,
+    wallHeight,
+    wallThickness,
+    surfaceCatalog = null,
+  ) {
     const renderedDoorIds = new Set();
     doorSegments.forEach((door, index) => {
       const closedLeaf = door?.closed_leaf_segment;
@@ -1578,6 +1585,31 @@ export function createSceneViewer(
       if (width < 4) return;
       const id = String(door?.id || `door-${index + 1}`);
       if (renderedDoorIds.has(id)) return;
+      const doorHeight = Math.min(
+        Math.max(Number(door.height_cm || door.height) || 205, 180),
+        wallHeight - 8,
+      );
+      const headerHeight = wallHeight - doorHeight;
+      if (headerHeight >= 2.5) {
+        const headerMaterial = typeof wallMaterial === "function"
+          ? wallMaterial({ start, end })
+          : wallMaterial;
+        const header = new THREE.Mesh(
+          new THREE.BoxGeometry(width, headerHeight, wallThickness),
+          headerMaterial.clone(),
+        );
+        header.position.set(
+          (Number(start.x) + Number(end.x)) / 2,
+          doorHeight + headerHeight / 2,
+          (Number(start.z) + Number(end.z)) / 2,
+        );
+        header.rotation.y = Math.atan2(-dz, dx);
+        header.castShadow = true;
+        header.receiveShadow = true;
+        header.userData.roompilotArchitecturalDetail = "door-header-wall";
+        header.userData.roompilotArchitecturalId = id;
+        roomGroupRef.add(registerWall(header));
+      }
       buildOpeningAssembly(
         roomGroupRef,
         {
@@ -2825,6 +2857,8 @@ export function createSceneViewer(
       buildConfirmedDoorLeaves(
         roomGroup,
         doorSegments,
+        wallMaterialResolver(sceneData, wallMaterial, exteriorWallMaterial),
+        wallHeight,
         wallThickness,
         sceneData.surface_catalog,
       );

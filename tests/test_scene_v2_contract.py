@@ -944,6 +944,8 @@ def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() 
     )
     assert "buildSegmentWalls(" in viewer
     assert "buildConfirmedDoorLeaves(" in viewer
+    assert 'roompilotArchitecturalDetail = "door-header-wall"' in viewer
+    assert "const headerHeight = wallHeight - doorHeight;" in viewer
     assert "        [],\n        windowSegments," in viewer
     assert "const mullionPositions = [0];" in viewer
 
