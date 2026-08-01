@@ -7,6 +7,8 @@
   模型切換不在這裡決定——那是 Master 的職責（見 ``subagents/genpic_agent.py``）。
 - 本模組不做任何流程控制，只提供「一次呼叫」的薄封裝與可注入的
   ``LLMGateway`` 介面，測試以假件替換、不碰網路。
+- HTTP 走 stdlib ``urllib``＋``certifi``（若已安裝）：業務碼禁止 import
+  httpx（CLAUDE.md 依賴規範；dev 群組的 httpx2 只供 fastapi.testclient）。
 
 環境變數：
 
@@ -142,40 +144,58 @@ class OpenRouterGateway:
     def available(self) -> bool:
         return bool(self.api_key)
 
-    # -- 內部：一次 HTTP 呼叫 --
+    # -- 內部：一次 HTTP 呼叫（stdlib urllib；業務碼禁 httpx，見 CLAUDE.md） --
+
+    def _ssl_context(self):
+        try:
+            import ssl
+
+            import certifi
+
+            return ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            return None  # 系統憑證鏈可用時退回預設
 
     def _post(self, payload: dict, *, model: str) -> dict:
         if not self.api_key:
             raise LLMError("OPENROUTER_API_KEY 未設定", model=model)
+        import urllib.error
+        import urllib.request
+
+        request = urllib.request.Request(
+            OPENROUTER_URL,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": self.site_url,
+                "X-Title": self.app_name,
+            },
+            method="POST",
+        )
         try:
-            import httpx
-        except ImportError as exc:  # pragma: no cover - baseline 環境必有 httpx
-            raise LLMError(f"httpx 未安裝：{exc}", model=model) from exc
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": self.site_url,
-            "X-Title": self.app_name,
-        }
-        try:
-            response = httpx.post(
-                OPENROUTER_URL, json=payload, headers=headers, timeout=self.timeout_seconds
-            )
+            with urllib.request.urlopen(
+                request, timeout=self.timeout_seconds, context=self._ssl_context()
+            ) as response:
+                raw = response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            try:
+                detail = exc.read().decode("utf-8", "replace")[:300]
+            except Exception:
+                detail = ""
+            raise LLMError(
+                f"OpenRouter 回應 {exc.code}：{detail}", status=exc.code, model=model
+            ) from exc
         except Exception as exc:
             raise LLMError(f"OpenRouter 連線失敗：{exc}", model=model) from exc
-        if response.status_code >= 400:
-            detail = response.text[:300]
-            raise LLMError(
-                f"OpenRouter 回應 {response.status_code}：{detail}",
-                status=response.status_code,
-                model=model,
-            )
         try:
-            data = response.json()
+            data = json.loads(raw)
         except ValueError as exc:
             raise LLMError(f"OpenRouter 回應非 JSON：{exc}", model=model) from exc
-        if data.get("error"):
+        if isinstance(data, dict) and data.get("error"):
             raise LLMError(f"OpenRouter 錯誤：{data['error']}", model=model)
+        if not isinstance(data, dict):
+            raise LLMError("OpenRouter 回應格式異常", model=model)
         return data
 
     # -- 文字 --

@@ -14,17 +14,18 @@
 | `backend/agent/AGENTS.md` | 改寫（記錄新架構與邊界） |
 | 其他全部 | 新增檔案，均在 `backend/agent/` 內（含 `tests/`） |
 
-### 為何保留 legacy 模組（knowledge.py / select.py / place.py / prompts/）
+### room_pilot2 移植版三模組（knowledge.py / select.py / place.py）必須保留
 
-使用者允許刪除舊內容，但以下活代碼仍 import 它們，刪除會弄壞正式 server：
+以下活代碼經套件 `__init__` import 它們，移除 re-export 會弄壞 server
+（2026-08-01 已因此壞過一次並修復）：
 
-- `backend/server/main.py:23-24`（`family_of`、`parse_selections`、`request_selections` 等）
-- `backend/server/scene_service.py:15`（`resolve_placements`）
+- `backend/server/services/layout_service.py:17`（`parse_selections`、
+  `request_selections`、`placement_hints`、`resolve_placements` 等）
+- `backend/server/services/scene_service.py:15`（`placement_hints`、`resolve_placements`）
 - `tests/test_agent_knowledge.py`、`tests/test_agent_select.py`、`tests/test_agent_place.py`
 
-因此 legacy 模組**原樣保留、未動一行**；新架構為本資料夾的正式內容。
-未來要移除 legacy 時，需同步改上述 5 個檔案並依 AGENTS.md 跨資料夾格式申報
-（主要 owner：Yen；協作 owner：Bella）。
+因此三模組**原樣保留、未動一行**，且 `__init__.py` 同時輸出
+room_pilot2 re-export 與新架構 API（見檔內註記）。
 
 ## 架構對應（提案 → 程式）
 
@@ -53,14 +54,17 @@
 
 - 建立 orchestrator：`from backend.agent import build_master`；
   `master.start(layout_json)` → `master.submit(payload)` → `master.undo()`。
-- 保存/恢復：`master.to_dict()` / `master.restore()` 直接進 PostgreSQL
-  project store JSONB（revision 控制即可支援可恢復上一動）。
-- layout 欄位以 `scene_service.room_from_payload` 與
-  `docs/contracts/LAYOUT_SCENE_BOUNDARY_CONTRACT.md` 對齊（`ReadLayoutTool`
-  目前接受容錯的簡化房間清單）。
-- RAG 回傳欄位映射（`tools/rag_furniture._as_candidate`）需對
-  `docs/contracts/POSTGRESQL_FURNITURE_RAG_RUNTIME.md` 實測校準。
-- 設計手冊第七章預留與工程文件 MVP `ReportPayload` 的併章掛點。
+- 保存/恢復：`master.to_dict()` / `master.restore()` 為 plain dict，可直接
+  存進 `backend/server/storage/` 的 SQLite 專案狀態（`.runtime/`）。
+- layout 欄位以 `backend/server/services/scene_service.room_from_payload`
+  對齊（`ReadLayoutTool` 目前接受容錯的簡化房間清單；注意 payload 的
+  牆/窗段為公尺、`position_cm` 為房間中心原點——轉換集中在 scene_service）。
+- RAG 檢索器：`SpatialRagRetriever` 包 `backend/spatial_data/rag`，其在本
+  分支的可用性與回傳欄位需實測校準；不可用時 `RagFurnitureTool` 回報
+  可讀錯誤，選件可由呼叫端注入其他候選來源（如 `backend/catalog/style_db`
+  轉接的候選白名單）。
+- 設計手冊第七章為工程/預算章節的預留掛點（本分支尚無工程文件模組，
+  缺價一律保留待確認、不補猜）。
 
 ## 環境變數
 
@@ -75,18 +79,36 @@
 
 生圖模型 id 依 OpenRouter 目錄為準，部署時以 `.env` 覆蓋。
 
-## 驗證結果（2026-07-31）
+## 2026-08-01 yen 分支遷移適配
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q backend/agent/tests   # 21 passed
-.\.venv\Scripts\python.exe -m pytest -q --continue-on-collection-errors
-# 6 failed, 575 passed, 4 skipped, 3 errors
+本架構以 commit `9fbd079` 落到 `yen` 分支後，依該分支現況做了五項適配：
+
+1. `__init__.py` 恢復 room_pilot2 re-export 並與新架構 API 並存
+   （否則 `backend/server/services/` ImportError）。
+2. `tools/place_furniture.py` 改為 engine 能力偵測：本分支引擎只有
+   `place_furniture`／`place_furniture_batch`，adjacent／overlay 意圖降級
+   free 自由擺放（座標仍全由 engine 決定，agent 不補幾何）。
+3. `llm.py` 由 httpx 改 stdlib `urllib`＋`certifi`——CLAUDE.md 規定業務碼
+   禁 import httpx（dev 群組 httpx2 只供 fastapi.testclient）。
+4. 場景列的 `schema_version: "2.0"` 假設移除（本分支 `placed_to_dict`
+   無版本欄），改由擺家具 tool 附加 `coordinate_unit: "cm"` 標記。
+5. 驗證指令改用 uv（`requirements.txt` 已廢除）。
+
+範圍註記：現行五階段產品「不做 ControlNet 圖像生成、不做自然語言換風格」，
+終點是 3D 白模取景＋提案 PNG。本架構的 Gen_Pic（nano banana 生圖/改圖）
+與設計手冊 PDF 屬**提案功能**，超出現行 Demo 範圍；未設定
+`OPENROUTER_API_KEY` 時 Master 會在生圖階段以可讀原因暫停並可 skip，
+其餘流程完整可用，不影響五階段主線。
+
+## 驗證結果（2026-08-01，yen 分支）
+
+```bash
+uv run pytest backend/agent/tests -q   # 24 passed
+uv run pytest tests/ -q                # 122 passed, 1 skipped
 ```
 
-全套的 6 failed（engineering/rag/scene 靜態 hash 與 postgres schema 契約）
-與 3 errors（test_official_catalog_sql / test_postgres_project_store /
-test_runtime_catalog_phase4 收集錯誤）為本分支既有基線，與本次改動無關、
-數量與清單完全一致。
+root tests 全綠（含經 `backend.agent` 套件 import 的 test_layout_api、
+test_requirements_api 與 room_pilot2 三模組自身的 test_agent_*）。
 
 ## 已知限制
 

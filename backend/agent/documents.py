@@ -7,7 +7,7 @@ dataclass 只是建構與讀取時的型別化外殼（``to_dict()`` / ``from_di
 邊界提醒：
 
 - 座標與長度一律公分；場景 placed 條目沿用 ``backend.engine.schema.placed_to_dict``
-  的欄位（``schema_version: "2.0"``、``coordinate_unit: "cm"``）。
+  的欄位，並由擺家具 tool 附加 ``coordinate_unit: "cm"`` 標記。
 - 家電（appliances）只作為問卷與生圖 context，永遠不得混入家具清單或場景。
 - 文件內不記錄任何由 LLM 發明的座標；座標只能來自 engine 的結果。
 """
@@ -266,7 +266,8 @@ class SceneDoc:
     variant: str = "A"
     strategy: str = ""
     rooms: dict[str, dict] = field(default_factory=dict)
-    # rooms[room_id] = {"placed": [engine placed dict...], "failed": [{"id","reason"}...]}
+    # rooms[room_id] = {"placed": [engine placed dict＋agent 附加欄位...],
+    #                   "failed": [{"id","reason"}...]}；長度/座標一律公分。
     notes: str = ""
     schema_version: str = f"{SCHEMA_PREFIX}.scene.v1"
 

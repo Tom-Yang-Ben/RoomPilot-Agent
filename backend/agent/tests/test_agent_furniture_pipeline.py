@@ -82,8 +82,8 @@ def test_engine_places_furniture_inside_rooms(pipeline, layout):
         placed = scene.placed_in(room.room_id)
         assert placed, f"{room.name} 應至少擺入一件家具"
         for row in placed:
-            assert row["schema_version"] == "2.0"
             assert row["coordinate_unit"] == "cm"
+            assert {"id", "type", "name", "width", "depth", "pos_x", "pos_y"} <= set(row)
             assert 0 <= row["pos_x"] <= room.width_cm
             assert 0 <= row["pos_y"] <= room.depth_cm
     # 主臥的床是硬需求，必須成功擺入

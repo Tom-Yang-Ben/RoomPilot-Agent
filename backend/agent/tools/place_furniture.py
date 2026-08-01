@@ -1,8 +1,13 @@
 """擺家具 tool：把家具清單（語意意圖）交給 engine 計算合法座標。
 
-邊界（AGENTS.md）：家具合法位置只由 ``backend/engine/`` 判定。本 tool 把
+邊界（CLAUDE.md）：家具座標只有 ``backend.engine`` 能算。本 tool 把
 ``PlacementHint``（free / adjacent / overlay）翻成對應的 engine 呼叫；
 所有座標與失敗原因都來自 engine，agent 不得自行發明或修改座標。
+
+engine 能力偵測：現行引擎必有 ``place_furniture``；``place_adjacent_to_furniture``
+與 ``place_overlay_on_furniture`` 為選配（部分分支尚未提供）。缺少時
+adjacent / overlay 意圖降級為 free 自由擺放（仍由 engine 決定座標），
+並在 hint note 註記——agent 層不自行實作幾何來補位。
 
 場景 placed 條目沿用 ``backend.engine.schema.placed_to_dict``
 （``schema_version: "2.0"``、``coordinate_unit: "cm"``），並附加
@@ -10,18 +15,18 @@ catalog 追溯欄位（catalog_id、style、price、clearance、matched_requirem
 """
 from __future__ import annotations
 
+from backend.engine import placement as engine_placement
 from backend.engine.models import ClearanceZone, FurnitureCatalogItem, PlacedFurniture
-from backend.engine.placement import (
-    place_adjacent_to_furniture,
-    place_furniture,
-    place_overlay_on_furniture,
-)
 from backend.engine.schema import placed_to_dict
 
 from ..documents import ChosenItem, FurnitureListDoc, LayoutDoc, SceneDoc
-from .base import ToolContract, ToolError
+from .base import ToolContract
 from .pick_furniture import order_for_placement
 from .read_layout import to_engine_room
+
+# 選配的 engine 進階擺位；不存在時為 None（意圖降級 free）。
+_place_adjacent = getattr(engine_placement, "place_adjacent_to_furniture", None)
+_place_overlay = getattr(engine_placement, "place_overlay_on_furniture", None)
 
 
 def clearance_zone(data: dict | None) -> ClearanceZone | None:
@@ -86,6 +91,7 @@ class PlaceFurnitureTool:
                     row = placed_to_dict(placed)
                     row.update(
                         {
+                            "coordinate_unit": "cm",
                             "catalog_id": item.catalog_id,
                             "style": item.style,
                             "price": item.price,
@@ -119,14 +125,23 @@ class PlaceFurnitureTool:
         catalog_item = to_engine_item(item)
         method = item.hint.method
         anchor = placed_by_id.get(item.hint.anchor_item_id or "")
-        if method == "adjacent" and anchor is not None:
-            result = place_adjacent_to_furniture(
+        if method == "adjacent" and anchor is not None and _place_adjacent is not None:
+            result = _place_adjacent(
                 engine_room, catalog_item, item.item_id, anchor, placed_objs
             )
             if result["success"]:
                 return result
             # 主件周圍放不下時退回自由擺放，仍由 engine 決定座標。
-            return place_furniture(engine_room, catalog_item, item.item_id, placed_objs)
-        if method == "overlay" and anchor is not None:
-            return place_overlay_on_furniture(engine_room, catalog_item, item.item_id, anchor)
-        return place_furniture(engine_room, catalog_item, item.item_id, placed_objs)
+            return engine_placement.place_furniture(
+                engine_room, catalog_item, item.item_id, placed_objs
+            )
+        if method == "overlay" and anchor is not None and _place_overlay is not None:
+            return _place_overlay(engine_room, catalog_item, item.item_id, anchor)
+        if method in ("adjacent", "overlay") and (
+            (method == "adjacent" and _place_adjacent is None)
+            or (method == "overlay" and _place_overlay is None)
+        ):
+            item.hint.note = (item.hint.note + "（引擎無此擺位模式，降級自由擺放）").strip()
+        return engine_placement.place_furniture(
+            engine_room, catalog_item, item.item_id, placed_objs
+        )
