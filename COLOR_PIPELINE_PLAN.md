@@ -50,9 +50,20 @@ python training/scripts/eval_rooms_cc.py \
       「失因加權歸類」節）
 
 ### Phase 1 — Color 調優（依 baseline 失因決定攻擊順序，逐輪補記）
-- [ ] 第一輪：**分割黏連/漏切**（floor_07 seg_fail、08 整戶一塊、09 右半
-      一塊＋左半漏切、20 邊界跨房）——先逐張查 detect_color 的牆萃取輸出，
-      判定是牆漆色未進牆層還是灌水屏障失效；每案先寫重現測試
+- [x] 第一輪：**分割黏連/漏切**——dev 84→92 命中（60.5%）、seg_fail 歸零、
+      零退化。三個機制（皆 TDD）：
+      1. `hollow_wall_rects`：空心雙線牆（細深描邊夾白填充）補抓；
+      2. `color_window_layers`＋detect_color 接回窗封口（floor_09 型的
+         窗帶灌水漏）；thin 只以 `det["fence"]` 供救援輪，不當墨水證據
+         （彩圖細線滿是磁磚/家具線，會壓制走道橫斷合併）；
+      3. `window_side_gate`：假窗物理判別（真窗恰一側通室外；屏障加
+         1.5T 閉運算補殼縫、探針跳閉運算帶）。
+      成績：floor_07 seg_fail→4/10、floor_20 2→4、floor_01/03 各 +1。
+      **殘留**：floor_08 內牆含「近白暗示牆」（描邊 gray 189~200，灰度
+      不可偵測，需語意或色塊分割路線）；floor_09 仍 1/7（窗封口不夠，
+      漏點另查）；floor_07 剩 6 間未中。
+      **教訓**：eval 暫存檔名含 color 會強制彩圖路（2x），手動診斷須用
+      staged 檔重現，用原檔名會走灰階路得到不同結果。
 - [ ] 第二輪：**Balcony 全滅**（切不出 16＋叫錯 12，dev 6 個誤判 Stair）
       ——查陽台是否被室外過濾吃掉、磚紋為何觸發 Stair 特徵
 - [ ] 第三輪：**Bath/Kitchen 命名**（Bath 配對 18 只對 4；Kitchen R=0.33）
