@@ -133,6 +133,7 @@ export function openingBelongsToWall(segment, opening, wallThickness = 12) {
   const hostWallId = String(opening.host_wall_id || opening.hostWallId || "");
   const wallId = segmentId(segment);
   if (hostWallId && wallId) return hostWallId === wallId;
+  if (opening?.step4_confirmed === true) return false;
 
   const parallel = Math.abs(
     wall.unitX * aperture.unitX + wall.unitZ * aperture.unitZ,
@@ -177,10 +178,23 @@ export function doorOpeningForWallTopology(
     ? { start: { ...closedLeaf.start }, end: { ...closedLeaf.end } }
     : { start: { ...leaf.start }, end: { ...leaf.end } };
 
+  if (door.step4_confirmed === true && door.step4_skip_wall_cut === true) {
+    return {
+      ...closedOpening,
+      host_wall_id: null,
+      topology_gap: false,
+      step4_skip_wall_cut: true,
+      opening_source: "step4_unassigned",
+      door_leaf_segment: { start: { ...leaf.start }, end: { ...leaf.end } },
+      closed_leaf_segment: closedLeafSegment,
+    };
+  }
+
   // 「已確認有這扇門」不等於「已人工確認它屬於這面牆」。辨識器
   // 預填的 host_wall_id 仍可能錯誤；只有使用者手動貼齊後才可鎖牆。
   const confirmedHost = (
     door.host_wall_confirmed === true
+    || door.step4_confirmed === true
     || door.source === "manual"
   )
     ? wallSegmentForOpening(segments, closedOpening, wallThickness)

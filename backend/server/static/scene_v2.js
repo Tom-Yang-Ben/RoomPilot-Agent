@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-02b1baef0426";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-a6762e3c3135";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd27184d7e";
@@ -158,6 +158,7 @@ const state = {
   sourceExtension: null,
   analysis: null,
   confirmedFloorplan: null,
+  confirmedStructureSnapshot: null,
   calibrationPoints: [],
   calibrationDragIndex: null,
   rooms: [],
@@ -932,6 +933,7 @@ function workflowPayload() {
           coordinate_unit: "cm",
           rooms: state.rooms,
           structures: state.structures,
+          confirmed_structure_snapshot: state.confirmedStructureSnapshot,
           dismissed_auto_room_ids: state.dismissedAutoRoomIds,
           design_schemes: compactDesignSchemesForSpace(state.designSchemes),
         }
@@ -1100,6 +1102,7 @@ function invalidateDownstreamFrom(step, message = "") {
     state.selectedRenderRoomId = null;
   }
   if (step === "space_confirmation") {
+    state.confirmedStructureSnapshot = null;
     persistActiveScheme(state.designSchemes, {
       furniture: state.furniture2d,
       sceneData: state.sceneData,
@@ -1853,6 +1856,14 @@ function planGeometry() {
 }
 
 function confirmedFloorplanEditor(schemeId = activeSchemeId()) {
+  if (
+    !state.confirmedStructureSnapshot
+    && state.workflow?.completed.includes("space_confirmation")
+  ) {
+    // Old saved projects did not persist this snapshot. Build it once from
+    // their already-confirmed Step 4 structures, then keep it authoritative.
+    state.confirmedStructureSnapshot = captureConfirmedStructureSnapshot();
+  }
   const { scale, bbox } = planGeometry();
   const recognizedWidthCm = Math.max(240, (bbox[2] - bbox[0]) * scale);
   const recognizedDepthCm = Math.max(240, (bbox[3] - bbox[1]) * scale);
@@ -1868,8 +1879,29 @@ function confirmedFloorplanEditor(schemeId = activeSchemeId()) {
       state.confirmedFloorplan?.floorplan?.room_height_cm || 270,
     ),
     rooms: JSON.parse(JSON.stringify(state.rooms)),
-    structures: structuresForScheme(state.structures, schemeId),
+    structures: structuresForScheme(
+      state.confirmedStructureSnapshot || state.structures,
+      schemeId,
+    ),
   };
+}
+
+function captureConfirmedStructureSnapshot() {
+  const snapshot = JSON.parse(JSON.stringify(state.structures));
+  ["doors", "windows"].forEach((kind) => {
+    snapshot[kind] = (snapshot[kind] || []).map((opening) => {
+      const liveOpening = state.structures[kind]?.find((item) => item.id === opening.id) || opening;
+      const host = openingHostWall(liveOpening);
+      return {
+        ...opening,
+        host_wall_id: host?.id || null,
+        host_wall_confirmed: Boolean(host),
+        step4_confirmed: true,
+        step4_skip_wall_cut: !host,
+      };
+    });
+  });
+  return snapshot;
 }
 
 function confirmedRoomHeightCm() {
@@ -5454,6 +5486,7 @@ function confirmDimensionedPlan() {
     element.dimensionReviewError.textContent = "目前沒有可確認的空間尺寸，請返回調整空間或重新校正比例尺。";
     return;
   }
+  state.confirmedStructureSnapshot = captureConfirmedStructureSnapshot();
   state.workflow.complete("space_confirmation", {
     roomsConfirmed: true,
     structureConfirmed: true,
@@ -14178,6 +14211,8 @@ async function restoreProject() {
     state.structures = serverState.space_confirmation
       ? savedSpace.structures
       : state.structures;
+    state.confirmedStructureSnapshot = serverState.space_confirmation
+      ?.confirmed_structure_snapshot || null;
     state.rooms = applyCanonicalRoomLabels(preparedAutoRoomLabels(state.rooms, state.structures.walls || []));
     const lockedWallCandidates = normalizeWallDemolitionCandidates();
     repairLoadedStructureWallCollisions();

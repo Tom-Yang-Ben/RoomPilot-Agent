@@ -1009,6 +1009,21 @@ def test_step4_shows_open_leaf_in_blue_and_closed_radius_in_green() -> None:
     assert '${dragTarget}${line}${openLeafLine}${closedLeafLine}<path' in source
 
 
+def test_step6_uses_only_the_confirmed_step4_wall_opening_snapshot() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    architecture = (STATIC / "scene_architecture.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function captureConfirmedStructureSnapshot()" in controller
+    assert "confirmed_structure_snapshot: state.confirmedStructureSnapshot" in controller
+    assert "state.confirmedStructureSnapshot = captureConfirmedStructureSnapshot();" in controller
+    assert "state.confirmedStructureSnapshot || state.structures" in controller
+    assert "Old saved projects did not persist this snapshot." in controller
+    assert "if (opening?.step4_confirmed === true) return false;" in architecture
+    assert "door.step4_confirmed === true && door.step4_skip_wall_cut === true" in architecture
+    assert "opening?.step4_skip_wall_cut !== true" in viewer
+
+
 def test_step4_can_lock_a_manually_corrected_door_opening() -> None:
     viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     html = (STATIC / "scene.html").read_text(encoding="utf-8")

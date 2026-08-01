@@ -21,7 +21,7 @@ import {
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-2f582667f484";
+} from "./scene_architecture.js?v=sha256-42e224332e99";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -1357,7 +1357,9 @@ export function createSceneViewer(
     surfaceCatalog = null,
   ) {
     const renderedOpenings = new Set();
-    const wallDoorSegments = doorSegments.filter((opening) => opening?.topology_gap !== true);
+    const wallDoorSegments = doorSegments.filter((opening) => (
+      opening?.topology_gap !== true && opening?.step4_skip_wall_cut !== true
+    ));
     const topologyGapDoors = doorSegments.filter((opening) => opening?.topology_gap === true);
     const exteriorSegments = segments.filter((segment) => (
       isExteriorWallSegment(segment, floorplan, wallThickness)
@@ -1538,12 +1540,13 @@ export function createSceneViewer(
     const missingDoors = doorSegments.filter((opening) => {
       const openingId = String(opening?.id || "").trim();
       return opening?.topology_gap === true
+        || opening?.step4_skip_wall_cut === true
         || !openingId
         || !renderedOpenings.has(openingId);
-    });
+    }).filter((opening) => opening?.step4_skip_wall_cut !== true);
     const missingWindows = windowSegments.filter((opening) => !segments.some(
       (segment) => openingWallInterval(segment, opening, wallThickness, 50),
-    ));
+    ) && opening?.step4_skip_wall_cut !== true);
     if (missingDoors.length || missingWindows.length) {
       const standaloneWallMaterial = typeof wallMaterial === "function"
         ? (opening) => {
