@@ -323,4 +323,8 @@ def test_prompt_rules_match_room_strategy_minimums() -> None:
     text = prompt_rules()
     assert "床、衣櫃、床頭櫃" in text
     assert "沙發、電視櫃" in text
-    assert "count=2" not in text
+    # v0 時代此處斷言「不得出現 count=2」（床頭櫃預設 1）；v1 定版改為
+    # 主臥床頭櫃 ×2、次臥 ×1（room_strategy 2026-07-31），提示詞須教 LLM
+    # 以 count 表達成對，本斷言隨規格反轉。
+    assert "count=2" in text
+    assert "次臥 1 件" in text

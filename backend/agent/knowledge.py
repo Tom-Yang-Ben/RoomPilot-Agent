@@ -54,6 +54,9 @@ ROOM_TYPE_ALIASES: dict[str, str] = {
     "circulation": "hallway",
     "flex": "multifunction",
     "foyer": "entry",
+    # catalog 的房間碼用 outdoor（236 件），策略房型叫 balcony；缺這條別名
+    # 陽台永遠撈到零候選（room_strategy v1「v0→v1 差異」第 1 項）。
+    "outdoor": "balcony",
 }
 
 
@@ -198,7 +201,10 @@ def prompt_rules() -> str:
         room_text = "、".join(ROOM_TYPE_ZH.get(room, room) for room in rooms)
         lines.append(f"- {'、'.join(families)}只適合{room_text}，其他空間不要選。")
 
-    lines.append("- 臥室最少：床、衣櫃、床頭櫃（預設 1；空間夠才加第二件）。")
+    lines.append(
+        "- 臥室最少：床、衣櫃、床頭櫃。主臥床頭櫃建議成對，同一款以 count=2 表達；"
+        "次臥 1 件即可（空間不足時先減到 1）。"
+    )
     lines.append("- 客廳最少：沙發、電視櫃；茶几／單椅／書櫃為可選。無獨立電視機。")
     lines.append("- 餐廳最少：餐桌＋餐椅；餐椅人數跟問卷（常見 2／4／6，上限 6）。")
     lines.append("- 書房／工作區最少：書桌＋辦公椅。")
