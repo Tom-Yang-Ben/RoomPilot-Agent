@@ -298,6 +298,9 @@ def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -
     assert "function roomOverrideForInteriorPoint" in resolver
     assert "resolveWallMaterial.faceMaterials" in resolver
     assert "const materialForSide = (side)" in resolver
+    assert "const adjacentInteriorMaterial = materialForSide(-exteriorSideSign);" in resolver
+    assert "positiveSide = adjacentInteriorMaterial;" in resolver
+    assert "negativeSide = adjacentInteriorMaterial;" in resolver
     assert "if (exterior && side === exteriorSideSign) return exteriorMaterial;" not in resolver
     assert "return materialForOverride(roomOverrideForInteriorPoint(sample));" in resolver
     assert "resolveWallMaterial.exteriorMaterial" not in resolver

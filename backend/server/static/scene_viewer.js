@@ -2490,8 +2490,16 @@ export function createSceneViewer(
         };
         return materialForOverride(roomOverrideForInteriorPoint(sample));
       };
-      const positiveSide = materialForSide(1);
-      const negativeSide = materialForSide(-1);
+      let positiveSide = materialForSide(1);
+      let negativeSide = materialForSide(-1);
+      // The outside of a perimeter wall has no room polygon to sample.  It
+      // therefore inherits the finish from the room on the opposite side,
+      // instead of silently reverting to the generic wall material.
+      if (exteriorSideSign) {
+        const adjacentInteriorMaterial = materialForSide(-exteriorSideSign);
+        if (exteriorSideSign > 0) positiveSide = adjacentInteriorMaterial;
+        else negativeSide = adjacentInteriorMaterial;
+      }
       const interior = resolveWallMaterial(segment);
       const materials = [
         interior.clone(), interior.clone(), interior.clone(),
