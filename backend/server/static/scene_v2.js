@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-7264a751b632";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-25f54edbde7e";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
 import {
@@ -57,7 +57,7 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-27b4202238a9";
+} from "./scene_questionnaire_test2.js?v=sha256-e9af7fe08f6e";
 import {
   reloadViewerPreservingState,
 } from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
@@ -682,28 +682,41 @@ function restoreDoorSwingEndpointsFromConfirmedStructures(sceneData) {
   return repaired;
 }
 
+// catalogFurnitureId 是型錄產品編號，不是實例識別碼：兩個房間放同一款床就會共用。
+// 以前把它和實例 id 混在同一組比對，兩件家具會指到同一個 scene object——側欄編號
+// 重複，「定位」與「移除此家具」也會選到別間房的那件。實例 id 優先，型錄編號只在
+// 唯一命中時才採信。
 function sceneObjectIndexByFurnitureId(furnitureId) {
   if (!furnitureId || !state.sceneData?.scene_objects?.length) return -1;
   const id = String(furnitureId);
+  const objects = state.sceneData.scene_objects;
   const layoutItem = state.furniture2d.find(
     (item) => String(item.id) === id,
   );
-  const identifiers = new Set([
-    id,
-    layoutItem?.catalogFurnitureId,
-    layoutItem?.furniture_id,
-  ].filter(Boolean).map(String));
-  return state.sceneData.scene_objects.findIndex((item) => {
-    const sceneIdentifiers = [
-      item.furniture_id,
-      item.catalog_furniture_id,
-      item.catalogFurnitureId,
-      item.layout_furniture_id,
-      item.source_furniture_id,
-      item.id,
-    ].filter(Boolean).map(String);
-    return sceneIdentifiers.some((candidate) => identifiers.has(candidate));
-  });
+  const instanceIds = new Set(
+    [id, layoutItem?.furniture_id].filter(Boolean).map(String),
+  );
+  const sceneInstanceIds = (item) => [
+    item.furniture_id,
+    item.layout_furniture_id,
+    item.source_furniture_id,
+    item.id,
+  ].filter(Boolean).map(String);
+  const exact = objects.findIndex(
+    (item) => sceneInstanceIds(item).some((candidate) => instanceIds.has(candidate)),
+  );
+  if (exact >= 0) return exact;
+  const catalogId = layoutItem?.catalogFurnitureId
+    ? String(layoutItem.catalogFurnitureId)
+    : "";
+  if (!catalogId) return -1;
+  const catalogMatches = objects.reduce((found, item, index) => {
+    const ids = [item.catalog_furniture_id, item.catalogFurnitureId]
+      .filter(Boolean)
+      .map(String);
+    return ids.includes(catalogId) ? [...found, index] : found;
+  }, []);
+  return catalogMatches.length === 1 ? catalogMatches[0] : -1;
 }
 
 function selectSceneObjectByFurnitureId(furnitureId, {
@@ -2294,18 +2307,22 @@ function roomReviewHint(room) {
   return "";
 }
 
+// 標題列與畫布工具列各有一顆「查看全部空間」。以前兩顆共用同一個 id，
+// $() 只會抓到第一顆，第二顆完全沒有綁定也不會更新狀態。
+const SHOW_ALL_ROOMS_BUTTONS = ["#show-all-rooms", "#show-all-rooms-canvas"];
+
 function updateShowAllRoomsButton() {
-  const button = $("#show-all-rooms");
-  if (!button) return;
   const hasMultipleRooms = state.rooms.length > 1;
-  button.disabled = !hasMultipleRooms;
-  button.setAttribute(
-    "aria-disabled",
-    hasMultipleRooms ? "false" : "true",
-  );
-  button.title = hasMultipleRooms
-    ? "顯示所有已框選的空間"
-    : "目前只有一個空間，沒有其他框選可顯示";
+  SHOW_ALL_ROOMS_BUTTONS.map((selector) => $(selector)).filter(Boolean).forEach((button) => {
+    button.disabled = !hasMultipleRooms;
+    button.setAttribute(
+      "aria-disabled",
+      hasMultipleRooms ? "false" : "true",
+    );
+    button.title = hasMultipleRooms
+      ? "顯示所有已框選的空間"
+      : "目前只有一個空間，沒有其他框選可顯示";
+  });
 }
 
 function roomsAfter(roomId) {
@@ -7203,14 +7220,24 @@ async function catalogCandidatesForType(
   return candidateGroups.flat();
 }
 
+// 型錄用 placement_surface 宣告品項是落地家具、桌面擺飾、壁掛還是地面覆蓋物
+// （backend/catalog/placement_surface.py）。第 6 步的牆界、碰撞與淨空只對落地家具
+// 有意義；18 公分的玻璃花瓶、抱枕、壁掛層架被當成落地家具送進去算，就會「放不下」
+// 而永遠卡在待處理清單（QA #7）。這裡只遵守型錄宣告的欄位，不自行用尺寸猜類別。
+function isFloorPlacedCatalogItem(candidate = {}) {
+  const surface = candidate.placement_surface;
+  return !surface || surface === "floor";
+}
+
 async function catalogOffersForSpec(room, spec, index) {
   const request = questionnaireFurnitureRequest(room, spec);
   const candidates = await catalogCandidatesForType(spec[0], {
     styleId: request.styleId,
     query: request.queryText,
   });
-  const matchingCandidates = candidates.filter((candidate) =>
-    isQuestionnaireFallbackTypeMatch(candidate, spec[0]));
+  const matchingCandidates = candidates
+    .filter(isFloorPlacedCatalogItem)
+    .filter((candidate) => isQuestionnaireFallbackTypeMatch(candidate, spec[0]));
   const ranked = rankCatalogFurniture(matchingCandidates, request);
   return questionnaireOffersWithSizeChoices(spec[0], ranked).map((candidate) => catalogFurnitureOffer(candidate, {
     roomId: room.id,
@@ -11711,11 +11738,24 @@ function confirmRenderPalette() {
     return;
   }
   state.proposalReview.confirmedStyleCardId = selected.value;
-  element.roomRenderSection.hidden = false;
+  setRoomRenderSectionLocked(false);
   state.selectedRenderRoomId = state.selectedProposalRoomId || state.rooms[0]?.id || null;
   if (state.selectedRenderRoomId) selectRenderRoom(state.selectedRenderRoomId);
   scheduleSave("ai_render");
   element.aiRenderStatus.textContent = "色卡已確認；將沿用第 7 步鎖定的逐房視角。";
+}
+
+// 第 2 段以前用 hidden 藏起來，面板編號就會從「1. 色卡比較」直接跳「3. 截圖成果」。
+// 改成一直看得見，未確認色卡時鎖住操作並說明原因。
+function setRoomRenderSectionLocked(locked) {
+  element.roomRenderSection.hidden = false;
+  element.roomRenderSection.classList.toggle("is-locked", locked);
+  const hint = $("#room-render-lock-hint");
+  if (hint) hint.hidden = !locked;
+  ["#save-room-view", "#submit-room-renders"].forEach((selector) => {
+    const button = $(selector);
+    if (button) button.disabled = locked;
+  });
 }
 
 async function prepareAiRender() {
@@ -11731,7 +11771,7 @@ async function prepareAiRender() {
   renderRemoteJobs();
   renderPaletteResults();
   refreshSavedRenders();
-  element.roomRenderSection.hidden = !state.proposalReview.confirmedStyleCardId;
+  setRoomRenderSectionLocked(!state.proposalReview.confirmedStyleCardId);
   await aiRenderViewer.loadScene(state.sceneData);
   aiRenderViewer.setCameraState(state.proposalReview.masterView.camera);
   aiRenderViewer.lockRenderCamera(true);
@@ -11997,15 +12037,17 @@ function bindEvents() {
   ["#structure-confirmed", "#estimated-size-ack"].forEach((selector) => {
     $(selector).addEventListener("change", updateSpaceCompletionState);
   });
-  $("#show-all-rooms").addEventListener("click", () => {
-    if (state.rooms.length <= 1) {
-      setStatus("目前只有一個空間，沒有其他框選可顯示。");
-      updateShowAllRoomsButton();
-      return;
-    }
-    state.showAllRooms = true;
-    renderSpaceOverlay();
-    setStatus("已顯示全部空間框選。");
+  SHOW_ALL_ROOMS_BUTTONS.map((selector) => $(selector)).filter(Boolean).forEach((button) => {
+    button.addEventListener("click", () => {
+      if (state.rooms.length <= 1) {
+        setStatus("目前只有一個空間，沒有其他框選可顯示。");
+        updateShowAllRoomsButton();
+        return;
+      }
+      state.showAllRooms = true;
+      renderSpaceOverlay();
+      setStatus("已顯示全部空間框選。");
+    });
   });
   $("#save-room").addEventListener("click", saveRoom);
   element.roomType?.addEventListener("change", applyRoomTypeSelection);

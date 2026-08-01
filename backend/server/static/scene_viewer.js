@@ -5073,9 +5073,33 @@ export function createSceneViewer(
     }
   });
 
+  const wallCullCameraDir = new THREE.Vector3();
+  const wallCullWallDir = new THREE.Vector3();
+  const wallCullWallCenter = new THREE.Vector3();
+
+  // 這個函式以前只是把每面牆強制設回 visible，所以外部視角永遠隔著近牆看房子——
+  // 第 6 步的預設 corner 鏡頭因此整片畫面都是牆的外側。orbit／dollhouse 這種站在
+  // 房子外面的視角，要讓夾在鏡頭與注視點之間的近牆讓路；walk 是站在室內，不能動。
   function updateWallVisibility() {
+    // 只在 orbit 讓近牆讓路。dollhouse 是俯視娃娃屋，四面牆都看得到才是它的樣子，
+    // 那個「全部牆保持可見」是既有契約（test_dollhouse_keeps_all_walls_visible…）。
+    const cullNearWalls = viewMode.mode === "orbit";
+    wallCullCameraDir.copy(camera.position).sub(controls.target).setY(0);
+    const cameraDistance = wallCullCameraDir.length();
+    if (cameraDistance > 0) wallCullCameraDir.divideScalar(cameraDistance);
     wallMeshes.forEach((wall) => {
-      wall.visible = true;
+      let culled = false;
+      if (cullNearWalls && cameraDistance > 0) {
+        wall.getWorldPosition(wallCullWallCenter);
+        wallCullWallDir.copy(wallCullWallCenter).sub(controls.target).setY(0);
+        const wallDistance = wallCullWallDir.length();
+        if (wallDistance > 1) {
+          wallCullWallDir.divideScalar(wallDistance);
+          // 約 70 度的圓錐：角落視角會讓相鄰的兩面近牆一起讓開。
+          culled = wallCullWallDir.dot(wallCullCameraDir) > 0.35;
+        }
+      }
+      wall.visible = !culled;
       const materials = Array.isArray(wall.material) ? wall.material : [wall.material];
       materials.filter(Boolean).forEach((material) => {
         material.transparent = false;

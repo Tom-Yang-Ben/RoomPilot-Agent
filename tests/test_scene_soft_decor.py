@@ -380,3 +380,26 @@ def test_missing_decor_glb_skips_that_role_instead_of_aborting_the_room(monkeypa
     assert "燈具" in summary["skipped"][0]["reason"]
     # 其餘角色照常放進場景，不會被缺件拖累。
     assert {"rug", "plant"} <= set(summary["placed"])
+
+
+def test_catalog_declares_a_placement_surface_for_every_item() -> None:
+    """QA #7：型錄沒有落地／桌面的分類，18cm 玻璃花瓶被拿去算落地淨空然後放不下。"""
+    from backend.catalog.placement_surface import PLACEMENT_SURFACES, placement_surface_for
+    from backend.server.main import _furniture_payload_cache
+
+    assert placement_surface_for("vase") == "tabletop"
+    assert placement_surface_for("pillow-cushion") == "tabletop"
+    assert placement_surface_for("wall-shelf") == "wall"
+    assert placement_surface_for("large-mirror") == "wall"
+    assert placement_surface_for("large-medium-rug") == "floor_covering"
+    assert placement_surface_for("sofa") == "floor"
+    assert placement_surface_for("bed") == "floor"
+    # 未知型別保守當落地家具，不會靜默從配置中消失。
+    assert placement_surface_for("something-new") == "floor"
+    assert placement_surface_for(None) == "floor"
+
+    items = _furniture_payload_cache()
+    assert items, "型錄是空的，無法驗證擺放面標記"
+    surfaces = {item.get("placement_surface") for item in items}
+    assert surfaces <= set(PLACEMENT_SURFACES)
+    assert None not in surfaces

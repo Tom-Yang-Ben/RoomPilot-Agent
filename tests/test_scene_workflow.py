@@ -529,20 +529,21 @@ def test_scene_wizard_exposes_one_panel_for_each_confirmed_step() -> None:
 
 def test_scene_exposes_the_final_eight_step_workflow() -> None:
     html = SCENE_HTML.read_text(encoding="utf-8")
+    # 編號在 <b>，名稱在 <span>；兩邊都帶數字會顯示成「① 1 建立專案」。
     labels = [
-        "1 建立專案",
-        "2 上傳平面圖",
-        "3 確定尺寸",
-        "4 空間與結構",
-        "5 需求問卷",
-        "6 配置與預覽",
-        "7 方案鎖定與視角",
-        "8 AI 渲染與成果包",
+        (1, "建立專案"),
+        (2, "上傳平面圖"),
+        (3, "確定尺寸"),
+        (4, "空間與結構"),
+        (5, "需求問卷"),
+        (6, "配置與預覽"),
+        (7, "方案鎖定與視角"),
+        (8, "AI 渲染與成果包"),
     ]
 
     assert 'data-workflow-count="8"' in html
-    for label in labels:
-        assert label in html
+    for number, label in labels:
+        assert f"<b>{number}</b><span>{label}</span>" in html
     assert "進入 RoomPilot" not in html
 
 

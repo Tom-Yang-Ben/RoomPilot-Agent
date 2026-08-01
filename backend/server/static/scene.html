@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-d52ed231485f" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-81cfac0a8730" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -22,14 +22,14 @@
 
     <main class="rp-workflow-shell">
       <nav class="rp-progress" aria-label="空間規劃流程" data-workflow-count="8">
-        <button type="button" data-step="project" class="is-active"><b>1</b><span>1 建立專案</span></button>
-        <button type="button" data-step="upload"><b>2</b><span>2 上傳平面圖</span></button>
-        <button type="button" data-step="recognition"><b>3</b><span>3 確定尺寸</span></button>
-        <button type="button" data-step="space_confirmation"><b>4</b><span>4 空間與結構</span></button>
-        <button type="button" data-step="requirements"><b>5</b><span>5 需求問卷</span></button>
-        <button type="button" data-step="layout_2d"><b>6</b><span>6 配置與預覽</span></button>
-        <button type="button" data-step="proposal_review"><b>7</b><span>7 方案鎖定與視角</span></button>
-        <button type="button" data-step="ai_render"><b>8</b><span>8 AI 渲染與成果包</span></button>
+        <button type="button" data-step="project" class="is-active"><b>1</b><span>建立專案</span></button>
+        <button type="button" data-step="upload"><b>2</b><span>上傳平面圖</span></button>
+        <button type="button" data-step="recognition"><b>3</b><span>確定尺寸</span></button>
+        <button type="button" data-step="space_confirmation"><b>4</b><span>空間與結構</span></button>
+        <button type="button" data-step="requirements"><b>5</b><span>需求問卷</span></button>
+        <button type="button" data-step="layout_2d"><b>6</b><span>配置與預覽</span></button>
+        <button type="button" data-step="proposal_review"><b>7</b><span>方案鎖定與視角</span></button>
+        <button type="button" data-step="ai_render"><b>8</b><span>AI 渲染與成果包</span></button>
       </nav>
 
       <section class="rp-guidance-band" aria-live="polite">
@@ -214,7 +214,7 @@
             </div>
             <div class="rp-space-canvas-toolbar" aria-label="圖面檢視工具">
               <span>檢視模式</span>
-              <button id="show-all-rooms" type="button" class="secondary-action">查看全部空間</button>
+              <button id="show-all-rooms-canvas" type="button" class="secondary-action">查看全部空間</button>
               <p>點選框線即可切換房間；拖曳節點可調整範圍。</p>
             </div>
             <div id="space-plan-stage" class="rp-plan-stage rp-editable-plan" aria-label="空間與結構確認圖">
@@ -999,9 +999,10 @@
               <div id="palette-render-results" class="rp-render-result-grid"></div>
               <button id="confirm-render-palette" type="button" class="secondary-action" hidden>確認選取色卡並開始逐房間視角</button>
             </section>
-            <section id="room-render-section" class="rp-editor-box" hidden>
+            <section id="room-render-section" class="rp-editor-box">
               <h3>2. 逐房間視角</h3>
               <p>系統會先定位房間；可小幅調整後保存。每個房間都有獨立任務，可單獨重試。</p>
+              <p id="room-render-lock-hint" class="rp-control-hint">請先在上方選定並確認一張色卡，這一段才會解鎖。</p>
               <div id="render-room-list" class="rp-render-room-list"></div>
               <button id="save-room-view" type="button" class="secondary-action">保存目前房間視角</button>
               <button id="submit-room-renders" type="button" class="primary-action">送出已保存的房間渲染</button>
@@ -1089,6 +1090,6 @@
       }
     </script>
   <script type="module" src="/static/engineering_link.js?v=sha256-3d5c1057884c"></script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-b517313f1883"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-a33cf2326964"></script>
   </body>
 </html>

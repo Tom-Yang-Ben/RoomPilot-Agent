@@ -26,6 +26,7 @@ from .questionnaire_visuals import (
     QuestionnaireVisualStore,
     load_questionnaire_visual_catalog,
 )
+from ..catalog.placement_surface import placement_surface_for
 from ..catalog.style_db import sanitize_size_cm
 from ..catalog.cloud_catalog import load_official_catalog
 from ..floorplan.vision import (
@@ -937,14 +938,33 @@ def _json_furniture_payload_cache() -> tuple[dict, ...]:
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
 
 
+def _with_placement_surface(items: tuple[dict, ...]) -> tuple[dict, ...]:
+    """在 PostgreSQL 與離線 JSON 的共同出口標上擺放面。
+
+    第 6 步的牆界、碰撞與淨空只對落地家具有意義；花瓶、抱枕、壁掛層架帶著 footprint
+    進去算，就會「放不下」而卡在待處理清單（QA #7）。分類規則由
+    backend/catalog/placement_surface.py 定義，這裡只負責標記。
+    """
+    stamped = []
+    for item in items:
+        entry = dict(item)
+        entry.setdefault(
+            "placement_surface", placement_surface_for(entry.get("normalized_type"))
+        )
+        stamped.append(entry)
+    return tuple(stamped)
+
+
 def _furniture_payload_cache() -> tuple[dict, ...]:
     """Read SQL every time in formal mode; cache only explicit offline JSON."""
     if catalog_provider_mode(PROJECT_DIR) == "postgres":
         try:
-            return load_postgres_catalog(PROJECT_DIR)
+            return _with_placement_surface(load_postgres_catalog(PROJECT_DIR))
+        except RuntimeCatalogUnavailable:
+            raise
         except Exception as exc:
             raise RuntimeCatalogUnavailable("furniture_catalog", exc) from exc
-    return _json_furniture_payload_cache()
+    return _with_placement_surface(_json_furniture_payload_cache())
 
 
 def _clear_furniture_payload_cache() -> None:

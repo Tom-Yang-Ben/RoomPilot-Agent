@@ -333,8 +333,11 @@ def test_dollhouse_keeps_all_walls_visible_and_orbit_controls_enabled() -> None:
     assert "controls.enableRotate = true" in dollhouse
     assert "controls.enablePan = true" in dollhouse
     assert "controls.enableZoom = true" in dollhouse
-    assert "wall.visible = true" in visibility
-    assert "wall.visible = !shouldHide" not in visibility
+    # dollhouse 是俯視娃娃屋，四面牆都要看得到。近牆讓路只在 orbit 生效——第 6 步的
+    # 預設 corner 鏡頭站在房子外面，不讓近牆讓開就只看得到一片牆的外側（QA #4）。
+    assert 'const cullNearWalls = viewMode.mode === "orbit";' in visibility
+    assert 'viewMode.mode === "dollhouse"' not in visibility
+    assert "wall.visible = !culled" in visibility
     assert "wallBlocksRoom" not in visibility
     assert "wallTooClose" not in visibility
 

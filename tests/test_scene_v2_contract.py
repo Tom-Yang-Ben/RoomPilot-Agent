@@ -1038,17 +1038,19 @@ def test_structure_step_explains_pending_manual_door_directions() -> None:
 def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
 
-    for label in (
-        "1 建立專案",
-        "2 上傳平面圖",
-        "3 確定尺寸",
-        "4 空間與結構",
-        "5 需求問卷",
-        "6 配置與預覽",
-        "7 方案鎖定與視角",
-        "8 AI 渲染與成果包",
+    # 編號由 <b> 呈現，<span> 只放名稱；兩邊都帶數字會顯示成「① 1 建立專案」。
+    for number, label in (
+        (1, "建立專案"),
+        (2, "上傳平面圖"),
+        (3, "確定尺寸"),
+        (4, "空間與結構"),
+        (5, "需求問卷"),
+        (6, "配置與預覽"),
+        (7, "方案鎖定與視角"),
+        (8, "AI 渲染與成果包"),
     ):
-        assert label in html
+        assert f"<b>{number}</b><span>{label}</span>" in html
+        assert f"<span>{number} {label}</span>" not in html
 
     assert 'data-workflow-count="8"' in html
     assert html.count('data-step="') == 8
@@ -3062,3 +3064,32 @@ def test_step_four_plan_stays_fixed_and_resyncs_overlays_after_panel_changes() -
     assert "align-items: start;" in css.split(
         "#space-step .rp-space-review-workspace", 1
     )[1].split("}", 1)[0]
+
+
+def test_primary_bedroom_is_chosen_by_area_not_recognition_order() -> None:
+    """QA #6：辨識順序第一間臥室被當成主臥，7.29 m² 因此蓋過 8.04 m² 的真主臥。"""
+    module_uri = (STATIC / "scene_questionnaire_test2.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ questionsForIndividualRooms }} from {json.dumps(module_uri)};
+        const square = (metres) => {{
+          const side = Math.sqrt(metres) * 100;
+          return [
+            {{ x: 0, y: 0 }}, {{ x: side, y: 0 }}, {{ x: side, y: side }}, {{ x: 0, y: side }},
+          ];
+        }};
+        const rooms = [
+          {{ id: "small", type: "bedroom", polygon_cm: square(7.29) }},
+          {{ id: "large", type: "bedroom", polygon_cm: square(8.04) }},
+        ];
+        const questions = [
+          {{ question_id: "q-primary", space_type: "primary_bedroom" }},
+          {{ question_id: "q-secondary", space_type: "secondary_bedroom" }},
+        ];
+        const mapped = questionsForIndividualRooms(questions, rooms);
+        console.log(JSON.stringify(mapped.map((item) => [item.room_id, item.source_question_id])));
+        """
+    )
+
+    assert ["large", "q-primary"] in [list(entry) for entry in result]
+    assert ["small", "q-secondary"] in [list(entry) for entry in result]

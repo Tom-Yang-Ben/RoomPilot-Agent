@@ -41,7 +41,11 @@ body.rp-workflow-page #space-step {
 
 #space-step .rp-plan-pane > .rp-pane-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* 第二欄原本是 auto，而 .rp-plan-heading-tools 裡放的是整個房間編輯器（最小寬度
+     約 380px）。auto 會依內容撐開，minmax(0,1fr) 的標題欄就被壓到 min-content——
+     實測 h2 只剩 18px 寬、360px 高，變成一個字一行的直排。改成單欄，標題拿回整列，
+     編輯器落到下一列。 */
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   align-items: end;
   gap: 10px 24px;
@@ -494,6 +498,11 @@ body.rp-workflow-page #space-step {
 }
 
 #space-step .rp-space-completion-bar {
+  /* 完成列原本在整頁最下方（實測 y=1138，1000px 視窗看不到），使用者找不到
+     「還缺兩個勾選」的提示與按鈕，會以為第 4 步壞掉。釘在視窗底部。 */
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
   grid-column: 1 / -1;
   display: flex;
   min-width: 0;
@@ -15456,4 +15465,13 @@ body[data-workflow-step="requirements"] #requirements-step {
     grid-column: 2;
     grid-row: 1;
   }
+}
+
+/* 第 8 步第 2 段在色卡確認前是鎖住而不是隱藏，面板編號才不會 1 直接跳 3。 */
+.rp-editor-box.is-locked {
+  opacity: 0.62;
+}
+
+.rp-editor-box.is-locked .rp-render-room-list {
+  pointer-events: none;
 }
