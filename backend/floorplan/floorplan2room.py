@@ -1363,7 +1363,8 @@ def build_rooms(det):
                                                     img_w, img_h, T, T_out,
                                                     cm, keep_small=True,
                                                     thin=det.get("thin"),
-                                                    seal_hi=360.0)
+                                                    seal_hi=360.0,
+                                                    stub_guard=False)
     if labels is None or not rooms:
         zones = [_bridge_zone(*b) for b in bridges
                  if any(lo <= (b[2] - b[1]) * cm <= hi

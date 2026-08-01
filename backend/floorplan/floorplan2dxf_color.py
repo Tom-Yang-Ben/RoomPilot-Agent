@@ -1102,7 +1102,8 @@ _FONT_PATHS = ["/mnt/c/Windows/Fonts/msjh.ttc",
 
 
 def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
-                  keep_small=False, thin=None, seal_hi=260.0):
+                  keep_small=False, thin=None, seal_hi=260.0,
+                  stub_guard=True):
     """把牆(方塊)圍出的內部切成一間間空間：牆+窗+門洞畫實 → 閉運算封小縫 →
     影像邊界灌水分內外 → 室內扣掉牆 = 各房間連通塊。封口核逐步放大，
     直到室內總面積與涵蓋範圍合理(同 _room_polygon 的驗收)。
@@ -1132,7 +1133,8 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
         cv2.line(mask, (int(round(cx)), int(round(cy))), p2, 255, max(2, int(T)))
     # 牆縫開口精準封口(40~260cm，含落地窗滑門)——不靠大核閉運算，
     # 大核會把窄長的房間/走道整個填掉
-    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, wins, T, cm, 40.0, seal_hi):
+    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, wins, T, cm, 40.0, seal_hi,
+                                            stub_guard=stub_guard):
         if horiz:
             cv2.rectangle(mask, (int(g0), int(b0)), (int(g1), int(b1)), 255, -1)
         else:
@@ -1289,7 +1291,7 @@ def door_zones(doors, rects, T, cm):
     return zones
 
 
-def _wall_gaps(rects, wins, T, cm, lo_cm, hi_cm):
+def _wall_gaps(rects, wins, T, cm, lo_cm, hi_cm, stub_guard=True):
     """牆端沿軸射線找最近的任何牆(厚度帶重疊≥50%)，中間 lo~hi cm 的空縫
     (無牆無窗)＝開口。涵蓋 牆端↔牆端 與 牆端↔牆面(T字門洞)。
     回傳 [(horiz, g0, g1, band0, band1)]。"""
@@ -1315,6 +1317,15 @@ def _wall_gaps(rects, wins, T, cm, lo_cm, hi_cm):
                 if gap >= -1 and (best is None or gap < best[0]):
                     best = (gap, lo if sgn > 0 else hi)
             if best is None or not (lo_cm <= best[0] * cm <= hi_cm):
+                continue
+            # 來源長度守門（floor35 實案）：陽台側壁 56px 短柱往下射出
+            # 160px（216cm）封口直貫廚房切成三條。牆柱不得投出 >2× 自身
+            # 長度的封口。門尺寸範圍 60~200cm 豁免——floor08 實案：19px
+            # 短柱與 75cm 真門縫、對側無長牆救援，被守門誤殺；殺手級
+            # 亂射（216cm+）都在豁免外
+            src_len = (ax1 - ax0) if horiz else (ay1 - ay0)
+            if (stub_guard and best[0] > 2.0 * src_len
+                    and not 60.0 <= best[0] * cm <= 200.0):
                 continue
             g0, g1 = (start, best[1]) if sgn > 0 else (best[1], start)
             if horiz:                            # 縫盒(略縮避免貼牆誤碰)
