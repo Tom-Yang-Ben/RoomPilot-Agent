@@ -18,10 +18,11 @@
 比例尺以門寬鐵律校正（refine_scale）：單門 85cm / 雙門 175cm / 牆厚 17.5cm。
 房型以辨識決定：DINOv2 房間裁切分類 + 古典符號偵測 + OCR 文字證據。
 
-用法：
-  python floorplan2room.py              # 批次 testdata/png/ → chk/room/
-  python floorplan2room.py 圖.png       # 單張
-  python floorplan2room.py 目錄 [輸出]  # 批次指定目錄
+用法（不帶參數不跑，會要求給圖檔或目錄）：
+  python floorplan2room.py 圖.png         # 單張，路徑相對當前目錄
+  python floorplan2room.py png            # 批次 testdata/png/ → chk/room/
+  python floorplan2room.py color_png      # 批次 testdata/color_png/
+  python floorplan2room.py 目錄 [輸出]    # 批次指定目錄（相對當前目錄的路徑照用）
 """
 import argparse
 import difflib
@@ -1110,11 +1111,24 @@ def process(path, out_dir, cfg_bw, cfg_color):
     return bool(rooms)
 
 
+def resolve_input(arg):
+    """輸入參數 → 實際路徑。當前目錄找得到就照用（單張圖檔一律當相對路徑），
+    否則把簡名當成 testdata/ 底下的同名目錄：`png` → testdata/png/、
+    `color_png` → testdata/color_png/。都找不到就原樣回傳，交給呼叫端報錯。"""
+    if os.path.exists(arg):
+        return arg
+    cand = os.path.join(_ROOT, "testdata", arg)
+    if os.path.isdir(cand):
+        return cand
+    return arg
+
+
 def main():
     p = argparse.ArgumentParser(
-        description="平面圖 → 房間方塊（自動判黑白/彩色，調用對應管線，不出 DXF）。\n"
-                    "不帶參數 = 批次跑 testdata/png/ 目錄 → chk/room/")
-    p.add_argument("input", nargs="?", help="輸入圖檔(單張)或目錄(批次)；預設 png/")
+        description="平面圖 → 房間方塊（自動判黑白/彩色，調用對應管線，不出 DXF）。")
+    p.add_argument("input", nargs="?",
+                   help="輸入圖檔(單張)或目錄(批次)；目錄簡名如 png/color_png 會解成 "
+                        "testdata/ 底下的同名目錄")
     p.add_argument("output", nargs="?", help="輸出目錄（預設 chk/room/）")
     p.add_argument("--config", default="config.ini", help="黑白管線設定檔")
     p.add_argument("--config-color", default="config_color.ini", help="彩色管線設定檔")
@@ -1125,13 +1139,18 @@ def main():
     out_dir = a.output or os.path.join("temp/chk", "room")
     os.makedirs(out_dir, exist_ok=True)
 
-    if a.input and os.path.isfile(a.input):
-        process(a.input, out_dir, cfg_bw, cfg_color)
+    if not a.input:
+        sys.exit("請給要處理的圖檔或目錄"
+                 "  (單張：floorplan2room.py 圖.png；批次：floorplan2room.py png)")
+
+    src = resolve_input(a.input)
+    if os.path.isfile(src):
+        process(src, out_dir, cfg_bw, cfg_color)
         return
 
-    in_dir = a.input or "testdata/png"
+    in_dir = src
     if not os.path.isdir(in_dir):
-        sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去，或給單張圖檔路徑)")
+        sys.exit(f"找不到 {a.input}  (也試過 testdata/{a.input}/)")
     imgs = sorted(p_ for p_ in glob.glob(os.path.join(in_dir, "*"))
                   if p_.lower().endswith(IMG_EXTS))
     if not imgs:
