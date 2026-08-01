@@ -1,10 +1,14 @@
 # color 答案集歸一收尾：文字/色彩推 class → path→polygon → 裁畫布 →
 # 三層（class/text/fill）對齊標準 → 刪微小殘筆（有報告不靜默）。
+import os
 import re
 import sys
 from xml.dom import minidom
 
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fix_annotation_paths import parse_transform, mat_mul, IDENTITY
 
 CANON = {"Kitchen": "#e8843c", "LivingRoom": "#7dc37d", "Bedroom": "#4a90d9",
          "Bath": "#3dbdbd", "Entry": "#8f5fc6", "Storage": "#b8a06a",
@@ -82,6 +86,24 @@ def group_text(g):
     return out
 
 
+def _label_pole(pts, W, H):
+    """標籤位置：外接框中心（視覺置中，使用者規格）；L 形等凹多邊形
+    中心落在房外時，退回距離變換極點（房內最深處）。"""
+    import cv2
+    m = np.zeros((int(H), int(W)), np.uint8)
+    cv2.fillPoly(m, [pts.astype(np.int32)], 255)
+    if not m.any():
+        return float(pts[:, 0].mean()), float(pts[:, 1].mean())
+    bx = (pts[:, 0].min() + pts[:, 0].max()) / 2.0
+    by = (pts[:, 1].min() + pts[:, 1].max()) / 2.0
+    iy, ix = int(round(by)), int(round(bx))
+    if 0 <= iy < m.shape[0] and 0 <= ix < m.shape[1] and m[iy, ix]:
+        return float(bx), float(by)
+    dt = cv2.distanceTransform(m, cv2.DIST_L2, 3)
+    iy, ix = np.unravel_index(int(dt.argmax()), dt.shape)
+    return float(ix), float(iy)
+
+
 def normalize(svg_path, W, H):
     doc = minidom.parse(svg_path)
     fill_re = re.compile(r'fill:\s*([^;"\s]+)')
@@ -155,6 +177,30 @@ def normalize(svg_path, W, H):
         for p in list(g.getElementsByTagName("polygon")):
             raw = p.getAttribute("points").replace(",", " ").split()
             pts = np.array([float(v) for v in raw], float).reshape(-1, 2)
+            # transform 烘焙（fix_own_floor 慣例）：Inkscape 縮放/搬移常寫成
+            # transform 而非改點，量尺 get_polygon 不讀 transform 會讀到舊形
+            mt = IDENTITY
+            anc, node = [], p
+            while node is not None and node.nodeType == 1:
+                t = node.getAttribute("transform")
+                if t: anc.append((node, parse_transform(t)))
+                node = node.parentNode
+            for _nd, m_ in reversed(anc):
+                mt = mat_mul(mt, m_)
+            if anc:
+                a_, b_, c_, d_, e_, f_ = mt
+                px = a_*pts[:,0] + c_*pts[:,1] + e_
+                py = b_*pts[:,0] + d_*pts[:,1] + f_
+                pts = np.stack([px, py], 1)
+                for nd, _m in anc:
+                    if nd is p or nd is g:
+                        nd.removeAttribute("transform")
+                    else:
+                        report.append(f"{n}: 上層 <{nd.nodeName}> 帶 transform"
+                                      f"，已烘焙但未移除 ← 檢查是否波及他物")
+                p.setAttribute("points",
+                               " ".join(f"{x:.2f},{y:.2f}" for x, y in pts))
+                report.append(f"{n}: transform 烘焙進座標")
             if len(pts) >= 3 and not np.allclose(pts[0], pts[-1]):
                 pts = np.vstack([pts, pts[0]])
                 p.setAttribute("points",
@@ -187,7 +233,7 @@ def normalize(svg_path, W, H):
         if polys1:
             raw = polys1[0].getAttribute("points").replace(",", " ").split()
             pp = np.array([float(v) for v in raw], float).reshape(-1, 2)
-            pending_labels.append((target, pp[:, 0].mean(), pp[:, 1].mean()))
+            pending_labels.append((target, _label_pole(pp, W, H)))
     # 標籤層：先清舊層再重建，附加為 <svg> 最後子節點（浮在最上）
     root = doc.documentElement
     for old in list(doc.getElementsByTagName("g")):
@@ -195,12 +241,12 @@ def normalize(svg_path, W, H):
             old.parentNode.removeChild(old)
     layer = doc.createElement("g")
     layer.setAttribute("id", "RoomLabels")
-    for name, cx, cy in pending_labels:
+    for name, (cx, cy) in pending_labels:
         t = doc.createElement("text")
         t.setAttribute("x", f"{cx:.0f}")
         t.setAttribute("y", f"{cy:.0f}")
         t.setAttribute("style",
-                       "font-family:Arial;font-size:22px;font-weight:bold;"
+                       "font-family:Arial;font-size:36px;font-weight:bold;"
                        "text-anchor:middle;fill:#000000")
         t.appendChild(doc.createTextNode(name))
         layer.appendChild(t)
