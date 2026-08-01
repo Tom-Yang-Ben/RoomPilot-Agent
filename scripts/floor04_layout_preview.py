@@ -32,6 +32,12 @@ from backend.engine.models import FurnitureCatalogItem, PlacedFurniture, Room
 # 代表尺寸（公分）：寬 × 深 × 高。接 RAG／catalog 之後這張表會被真實單品取代。
 REPRESENTATIVE_ITEMS: dict[str, tuple[float, float, float]] = {
     "bed": (150, 200, 45),
+    "dining-table": (140, 80, 75),
+    "dining-chair": (48, 52, 82),
+    "desk": (120, 60, 75),
+    "office-chair": (60, 60, 90),
+    "bookcase": (80, 30, 202),
+    "shoe-cabinet": (80, 35, 120),
     "wardrobe": (100, 60, 200),
     "bedside-table": (40, 40, 55),
     "sofa": (220, 90, 85),
@@ -44,6 +50,9 @@ REPRESENTATIVE_ITEMS: dict[str, tuple[float, float, float]] = {
 # 依 room_strategy/README.md v1 的最少自動配置。空清單 = 規格明訂留空。
 ROOM_PLAN: dict[str, list[str]] = {
     "bedroom": ["bed", "wardrobe", "bedside-table", "bedside-table"],
+    "dining_room": ["dining-table", "dining-chair", "dining-chair", "dining-chair", "dining-chair"],
+    "workspace": ["desk", "office-chair", "bookcase"],
+    "entry": ["shoe-cabinet"],
     "living_room": ["sofa", "tv-bench", "coffee-table"],
     "storage": ["shelving-unit", "shelving-unit", "cabinet-cupboard"],
     "kitchen": [],
@@ -114,7 +123,7 @@ def describe(placed: PlacedFurniture, room: Room, room_type: str) -> tuple[str, 
         touching.append("北")
     may_float = rule_for(
         normalize_room_type(room_type), family_of(placed.catalog.type)
-    ).attach in {"front", "free"}
+    ).attach in {"front", "free", "center", "around"}
     if touching:
         where = f"貼{''.join(touching)}牆"
         stray = False
@@ -135,7 +144,8 @@ def describe(placed: PlacedFurniture, room: Room, room_type: str) -> tuple[str, 
 LEGEND: dict[str, str] = {
     "bed": "B", "wardrobe": "W", "bedside-table": "n", "sofa": "S",
     "tv-bench": "T", "coffee-table": "c", "shelving-unit": "s",
-    "cabinet-cupboard": "C",
+    "cabinet-cupboard": "C", "dining-table": "D", "dining-chair": "d",
+    "desk": "K", "office-chair": "k", "bookcase": "b", "shoe-cabinet": "G",
 }
 
 
@@ -199,6 +209,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", default="testdata/png/floor04.png")
     parser.add_argument("--no-draw", action="store_true", help="只印座標，不畫平面圖")
+    parser.add_argument(
+        "--retype", action="append", default=[], metavar="ROOM_ID=TYPE",
+        help="把辨識出的房間改定義成別的房型（floor04 空間輪流定義用），例如 --retype room-2=dining_room",
+    )
     args = parser.parse_args()
 
     image_path = (REPO_ROOT / args.image).resolve()
@@ -216,11 +230,14 @@ def main() -> int:
     print(f"辨識到 {len(layout.get('rooms') or [])} 間房、"
           f"{len(layout.get('doors') or [])} 道門、{len(layout.get('windows') or [])} 扇窗\n")
 
+    retype = dict(pair.split("=", 1) for pair in args.retype)
     total_placed = 0
     total_failed = 0
     floating = 0
 
     for build in rooms_from_layout_json(layout):
+        if build.room_id in retype:
+            build.room_type = retype[build.room_id]
         room = build.room
         doors = len(room.doors())
         windows = len(room.windows())

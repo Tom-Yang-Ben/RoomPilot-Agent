@@ -430,6 +430,7 @@ def place_in_front_of(
     existing: list[PlacedFurniture],
     *,
     gap: float = 45.0,
+    face: str = "same",
     companion_pairs: CompanionPairs | None = None,
     extra_check: ExtraCheck | None = None,
 ) -> dict:
@@ -452,7 +453,9 @@ def place_in_front_of(
     center_y = (target_bottom + target_top) / 2
 
     for attempt in (gap, gap * 0.75, gap * 0.5):
-        if attempt < 10.0:
+        # 下限 2 公分：茶几類 gap 45 有退讓空間；辦公椅類 gap 8 也要試得到
+        #（原本寫 10 導致 gap<10 的貼附一次都沒試就放棄）。
+        if attempt < 2.0:
             continue
         if direction == (0, 1):
             pos_x, pos_y = center_x, target_top + attempt + item_depth / 2
@@ -463,12 +466,14 @@ def place_in_front_of(
         else:
             pos_x, pos_y = target_left - attempt - item_width / 2, center_y
 
+        # face="target"（辦公椅面向書桌）＝與主件反向 180 度。
+        own_rotation = rotation if face == "same" else (rotation + 180) % 360
         placed = PlacedFurniture(
             id=item_id,
             catalog=catalog,
             pos_x=pos_x,
             pos_y=pos_y,
-            rotation=rotation,
+            rotation=own_rotation,
         )
         if _is_legal(placed, room, existing, swing_boxes, pairs, extra_check):
             return {
@@ -489,6 +494,147 @@ def place_in_front_of(
             "message_zh": reason,
             "item_id": item_id,
             "rule": "attach_front",
+            "related_item_id": target.id,
+        },
+    }
+
+
+def place_at_center(
+    room: Room,
+    catalog: FurnitureCatalogItem,
+    item_id: str,
+    existing: list[PlacedFurniture],
+    *,
+    companion_pairs: CompanionPairs | None = None,
+    extra_check: ExtraCheck | None = None,
+) -> dict:
+    """把家具擺在房間中央——餐桌專用的「刻意不貼牆」。
+
+    先試正中，再試 90 度與少量偏移；引擎的四面入座淨空（餐桌 spec）會
+    自動保證桌邊留得出椅子與走位空間。
+    """
+    swing_boxes = door_swing_boxes(room)
+    center_x, center_y = room.width / 2, room.depth / 2
+    offsets = (
+        (0.0, 0.0), (0.0, 30.0), (0.0, -30.0), (30.0, 0.0), (-30.0, 0.0),
+        (0.0, 60.0), (0.0, -60.0), (60.0, 0.0), (-60.0, 0.0),
+    )
+    attempted = 0
+    for rotation in (0, 90):
+        for dx, dy in offsets:
+            attempted += 1
+            placed = PlacedFurniture(
+                id=item_id,
+                catalog=catalog,
+                pos_x=center_x + dx,
+                pos_y=center_y + dy,
+                rotation=rotation,
+            )
+            if _is_legal(placed, room, existing, swing_boxes, companion_pairs, extra_check):
+                return {"success": True, "placed": placed, "reason": None}
+    reason = f"「{catalog.name}」在房間中央附近放不下"
+    return {
+        "success": False,
+        "placed": None,
+        "reason": reason,
+        "reason_detail": {
+            "code": "no_legal_center_position",
+            "message_zh": reason,
+            "item_id": item_id,
+            "rule": "attach_center",
+            "attempted_candidates": attempted,
+        },
+    }
+
+
+def _seat_spots(
+    target: PlacedFurniture,
+    seat: FurnitureCatalogItem,
+    gap: float,
+) -> list[tuple[float, float, int]]:
+    """主家具（餐桌）四邊的入座點：先每邊中點，長邊夠長再加兩側座位。
+
+    回傳 (x, y, 自身 rotation)，rotation 使椅子正面朝向桌心。
+    """
+    left, bottom, right, top = _bounds(target)
+    width = right - left
+    depth = top - bottom
+    center_x = (left + right) / 2
+    center_y = (bottom + top) / 2
+    seat_w, seat_d = seat.width, seat.depth
+
+    spots: list[tuple[float, float, int]] = []
+
+    # rotation 0 時正面朝 +Y：南側椅面北=0、北側面南=180、
+    # 西側要面東=270、東側要面西=90（_WALL_ROTATION 同一套語意）。
+    def south(x): spots.append((x, bottom - gap - seat_d / 2, 0))
+    def north(x): spots.append((x, top + gap + seat_d / 2, 180))
+    def west(y): spots.append((left - gap - seat_d / 2, y, 270))
+    def east(y): spots.append((right + gap + seat_d / 2, y, 90))
+
+    # 長邊坐得下兩張（含椅距）就直接 2+2——六人桌的現實配置；
+    # 坐不下才回到每邊置中一張。座位順序＝長邊優先，先湊滿對坐。
+    def side_positions(length: float, center: float) -> list[float]:
+        if length >= seat_w * 2 + 3 * 12:
+            return [center - length / 4, center + length / 4]
+        return [center]
+
+    for x in side_positions(width, center_x):
+        south(x)
+    for x in side_positions(width, center_x):
+        north(x)
+    for y in side_positions(depth, center_y):
+        west(y)
+    for y in side_positions(depth, center_y):
+        east(y)
+    return spots
+
+
+def place_around(
+    room: Room,
+    catalog: FurnitureCatalogItem,
+    item_id: str,
+    target: PlacedFurniture,
+    existing: list[PlacedFurniture],
+    *,
+    gap: float = 6.0,
+    companion_pairs: CompanionPairs | None = None,
+    extra_check: ExtraCheck | None = None,
+) -> dict:
+    """餐椅環繞餐桌：依序試四邊入座點，正面一律朝桌心。
+
+    多張椅子逐一呼叫本函式即可——已被前一張佔走的座位，會因本體重疊
+    被合法性檢查自然跳過。椅子與桌子自動建立配套（可進桌子的入座淨空）。
+    """
+    pairs: CompanionPairs = set(companion_pairs or set())
+    pairs.add(frozenset((target.id, item_id)))
+    swing_boxes = door_swing_boxes(room)
+    for pos_x, pos_y, rotation in _seat_spots(target, catalog, gap):
+        placed = PlacedFurniture(
+            id=item_id,
+            catalog=catalog,
+            pos_x=pos_x,
+            pos_y=pos_y,
+            rotation=rotation,
+        )
+        if _is_legal(placed, room, existing, swing_boxes, pairs, extra_check):
+            return {
+                "success": True,
+                "placed": placed,
+                "companion_pair": frozenset((target.id, item_id)),
+                "reason": None,
+            }
+    reason = f"「{catalog.name}」在餐桌四周已無座位"
+    return {
+        "success": False,
+        "placed": None,
+        "companion_pair": None,
+        "reason": reason,
+        "reason_detail": {
+            "code": "no_legal_seat_position",
+            "message_zh": reason,
+            "item_id": item_id,
+            "rule": "attach_around",
             "related_item_id": target.id,
         },
     }
@@ -615,6 +761,8 @@ class PlacementRule:
     attach_end: str = "head"
     gap_cm: float = 5.0
     order: int = 50
+    # 貼附時自身朝向："same"＝與主件同向（茶几）；"target"＝面向主件（辦公椅面桌）。
+    face: str = "same"
 
 
 _WALL_ITEM = PlacementRule()
@@ -635,6 +783,9 @@ ROOM_RULES: dict[str, dict[str, PlacementRule]] = {
         "bedside-table": PlacementRule(
             attach="beside", attach_to=("bed",), attach_end="head", gap_cm=5.0, order=20
         ),
+        "office-chair": PlacementRule(
+            attach="front", attach_to=("desk",), gap_cm=8.0, face="target", order=25
+        ),
     },
     "living_room": {
         "sofa": PlacementRule(anchor=True, order=0),
@@ -648,6 +799,27 @@ ROOM_RULES: dict[str, dict[str, PlacementRule]] = {
     "storage": {
         "shelving-unit": PlacementRule(anchor=True, order=0),
         "cabinet-cupboard": PlacementRule(order=10),
+    },
+    "dining_room": {
+        # 餐桌是全系統唯一「刻意置中」的錨點；椅子環繞、收納靠牆。
+        "dining-table": PlacementRule(anchor=True, attach="center", order=0),
+        "sideboard": PlacementRule(order=10),
+        "display-cabinet": PlacementRule(order=12),
+        "dining-chair": PlacementRule(
+            attach="around", attach_to=("dining-table",), gap_cm=6.0, order=20
+        ),
+    },
+    "workspace": {
+        "desk": PlacementRule(anchor=True, order=0),
+        "bookcase": PlacementRule(order=10),
+        "shelving-unit": PlacementRule(order=12),
+        "office-chair": PlacementRule(
+            attach="front", attach_to=("desk",), gap_cm=8.0, face="target", order=20
+        ),
+    },
+    "entry": {
+        "shoe-cabinet": PlacementRule(anchor=True, order=0),
+        "clothes-rack": PlacementRule(order=10),
     },
 }
 
@@ -720,7 +892,18 @@ def place_room(
         rule = entry.rule
         result: dict
 
-        if rule.attach in {"beside", "front"}:
+        if rule.attach == "center":
+            result = place_at_center(
+                room, entry.catalog, entry.item_id, placed,
+                companion_pairs=pairs, extra_check=extra_check,
+            )
+            if result["success"]:
+                remember(result["placed"], None)
+            else:
+                failed.append(_failure(entry, result))
+            continue
+
+        if rule.attach in {"beside", "front", "around"}:
             target = find_target(rule.attach_to)
             if target is None:
                 result = {
@@ -730,6 +913,18 @@ def place_room(
                 }
             elif rule.attach == "front":
                 result = place_in_front_of(
+                    room,
+                    entry.catalog,
+                    entry.item_id,
+                    target,
+                    placed,
+                    gap=rule.gap_cm,
+                    face=rule.face,
+                    companion_pairs=pairs,
+                    extra_check=extra_check,
+                )
+            elif rule.attach == "around":
+                result = place_around(
                     room,
                     entry.catalog,
                     entry.item_id,
@@ -816,6 +1011,8 @@ __all__ = [
     "place_against_wall",
     "place_beside",
     "place_in_front_of",
+    "place_at_center",
+    "place_around",
     "place_room",
     "rank_wall_candidates",
     "rule_for",

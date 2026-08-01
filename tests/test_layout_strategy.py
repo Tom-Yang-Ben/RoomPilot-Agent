@@ -538,3 +538,90 @@ def test_generate_layout_places_anchors_first_regardless_of_item_order():
     assert not bed.get("placement_failed"), bed.get("placement_reason")
     bed_top = bed["position_cm"]["z"] + depth / 2 + bed["footprint_cm"]["depth"] / 2
     assert bed_top >= depth - 10, f"床頭應貼北牆，實際上緣在 {bed_top:.0f}"
+
+
+# --- 餐廳：置中錨點＋環繞入座 -----------------------------------------------
+
+
+def test_dining_table_sits_at_room_center_not_against_a_wall():
+    room = bare_room(width=340, depth=300)
+    result = place_room(
+        room,
+        "dining_room",
+        [(item("dining-table", "餐桌", 140, 80, height=75), "dining-table_1")],
+    )
+    table = result["placed"][0]
+    assert not touches_wall(table, room), "餐桌是唯一刻意置中的錨點"
+    assert table.pos_x == pytest.approx(170, abs=35)
+    assert table.pos_y == pytest.approx(150, abs=35)
+
+
+def test_four_dining_chairs_surround_the_table_facing_it():
+    room = bare_room(width=380, depth=340)
+    items = [(item("dining-table", "餐桌", 140, 80, height=75), "dining-table_1")]
+    for i in range(4):
+        items.append((item("dining-chair", "餐椅", 48, 52, height=82), f"dining-chair_{i+1}"))
+    result = place_room(room, "dining_room", items)
+    assert not result["failed"], result["failed"]
+    table = next(p for p in result["placed"] if p.catalog.type == "dining-table")
+    chairs = [p for p in result["placed"] if p.catalog.type == "dining-chair"]
+    assert len(chairs) == 4
+    for chair in chairs:
+        # 正面向量必須指向桌心（內積為正）
+        front = {0: (0, 1), 90: (-1, 0), 180: (0, -1), 270: (1, 0)}[int(chair.rotation) % 360]
+        to_table = (table.pos_x - chair.pos_x, table.pos_y - chair.pos_y)
+        assert front[0] * to_table[0] + front[1] * to_table[1] > 0, "餐椅沒有朝向桌心"
+    # 140 桌的現實配置是長邊 2+2 對坐；至少要出現兩個相對的方位。
+    sides = set()
+    for chair in chairs:
+        dx = chair.pos_x - table.pos_x
+        dy = chair.pos_y - table.pos_y
+        sides.add("x" + ("+" if dx > 0 else "-") if abs(dx) > abs(dy) else "y" + ("+" if dy > 0 else "-"))
+    assert {"y+", "y-"} <= sides or {"x+", "x-"} <= sides
+
+
+def test_six_chairs_fit_around_a_long_table():
+    room = bare_room(width=460, depth=380)
+    items = [(item("dining-table", "餐桌", 180, 90, height=75), "dining-table_1")]
+    for i in range(6):
+        items.append((item("dining-chair", "餐椅", 48, 52, height=82), f"dining-chair_{i+1}"))
+    result = place_room(room, "dining_room", items)
+    chairs = [p for p in result["placed"] if p.catalog.type == "dining-chair"]
+    assert len(chairs) == 6, result["failed"]
+
+
+# --- 書房：桌貼牆、椅面桌 ---------------------------------------------------
+
+
+def test_office_chair_faces_the_desk():
+    room = bare_room(width=300, depth=260)
+    result = place_room(
+        room,
+        "workspace",
+        [
+            (item("desk", "書桌", 120, 60, height=75), "desk_1"),
+            (item("office-chair", "辦公椅", 60, 60, height=90), "office-chair_1"),
+        ],
+    )
+    assert not result["failed"], result["failed"]
+    desk = next(p for p in result["placed"] if p.catalog.type == "desk")
+    chair = next(p for p in result["placed"] if p.catalog.type == "office-chair")
+    assert touches_wall(desk, room)
+    # 椅子的正面向量指向書桌
+    front = {0: (0, 1), 90: (-1, 0), 180: (0, -1), 270: (1, 0)}[int(chair.rotation) % 360]
+    to_desk = (desk.pos_x - chair.pos_x, desk.pos_y - chair.pos_y)
+    assert front[0] * to_desk[0] + front[1] * to_desk[1] > 0, "辦公椅沒有面向書桌"
+
+
+# --- 玄關 --------------------------------------------------------------------
+
+
+def test_entry_shoe_cabinet_hugs_a_wall():
+    room = bare_room(width=200, depth=180)
+    result = place_room(
+        room,
+        "entry",
+        [(item("shoe-cabinet", "鞋櫃", 80, 35, height=120), "shoe-cabinet_1")],
+    )
+    assert not result["failed"], result["failed"]
+    assert touches_wall(result["placed"][0], room)
