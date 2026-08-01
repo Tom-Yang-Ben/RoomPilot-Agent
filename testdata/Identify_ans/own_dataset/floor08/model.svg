@@ -58,7 +58,7 @@
       <polygon fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon18-4" points="265.579,470.109 174.575,470.109 174.575,516.074 265.579,516.074 "/>
     </g>
     <g class="Space Bath" id="g19">
-      <polygon points="29.0,32.0 29.0,92.0 212.0,92.0 212.0,32.0 " fill="#d97a8f" fill-opacity="0.35" stroke="#d97a8f" stroke-width="2" id="polygon19"/>
+      <polygon points="29.0,32.0 29.0,92.0 212.0,92.0 212.0,32.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2" id="polygon19"/>
     </g>
     <g class="Space Bedroom" id="g20">
       <polygon fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon20" style="fill:#4a90d9;fill-opacity:0.35;stroke:#4a90d9;stroke-opacity:1" points="223.583,31.2062 223.583,325.21 454.794,325.21 454.794,31.2062 "/>
