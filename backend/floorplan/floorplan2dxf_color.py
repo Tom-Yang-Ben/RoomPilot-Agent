@@ -1132,6 +1132,13 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0):
     X0 = min(r_[0] for r_ in rects); Y0 = min(r_[1] for r_ in rects)
     X1 = max(r_[2] for r_ in rects); Y1 = max(r_[3] for r_ in rects)
     bbox_area = max(1.0, (X1 - X0) * (Y1 - Y0))
+    # 牆扣除與灌水屏障解耦（floor13/35 實案：走道高 ~45px，最小封口核
+    # 1.5T=65px 的閉運算把走道整個填成牆，走道與只經走道出入的浴室/儲藏
+    # 整片消失）。大核 closed 只當灌水屏障判內外；室內面積用「原始牆遮罩
+    # ＋髮絲縫小核」扣——偵測噪聲的細縫仍封死，門寬尺度的窄房間活下來。
+    kh = 2 * max(2, int(round(0.5 * T))) + 1
+    hair = cv2.morphologyEx(mask, cv2.MORPH_CLOSE,
+                            np.ones((kh, kh), np.uint8))
     best = None                                  # 跑完所有封口輪次，取覆蓋率最好的
     for g in (1.5, 2.5, 3.5, 4.5):
         k = 2 * max(2, int(round(g * T))) + 1
@@ -1140,7 +1147,7 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0):
         ff = np.pad(closed, 1).copy()
         cv2.floodFill(ff, None, (0, 0), 128)     # 外部自由區→128
         inside = (ff[1:-1, 1:-1] != 128)         # 建物(含牆)
-        interior = (inside & (closed == 0)).astype(np.uint8) * 255
+        interior = (inside & (hair == 0)).astype(np.uint8) * 255
         n, lab, st, cent = cv2.connectedComponentsWithStats(interior, 8)
         amin = max(int(0.003 * bbox_area), 2 * (2 * T) ** 2)    # 走道/玄關也要留下
         rooms, labels = [], np.zeros(lab.shape, np.int32)
