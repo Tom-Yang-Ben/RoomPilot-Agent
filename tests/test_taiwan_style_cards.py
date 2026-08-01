@@ -54,14 +54,65 @@ def test_unresolvable_external_furniture_does_not_steal_glb_priority():
 
 
 def test_scene_accepts_style_card_handoff_from_styles_page():
-    javascript = (ROOT / "backend" / "server" / "static" / "scene.js").read_text(encoding="utf-8")
+    """交接必須實作在正式頁面 scene_v2.js。
+
+    這個斷言原本指著已停用的 scene.js，所以「風格頁挑的色卡進不了設計流程」
+    在 QA 前一直是綠燈——測試盯著一份沒有人載入的檔案。
+    """
+    javascript = (ROOT / "backend" / "server" / "static" / "scene_v2.js").read_text(encoding="utf-8")
+    styles = (ROOT / "backend" / "server" / "static" / "styles.js").read_text(encoding="utf-8")
     main = (ROOT / "backend" / "server" / "main.py").read_text(encoding="utf-8")
     service = (ROOT / "backend" / "server" / "scene_service.py").read_text(encoding="utf-8")
+
+    # 產生端：風格頁確實會帶 style_card 參數過去。
+    assert "style_card: card.card_id" in styles
+    # 消費端：正式頁面要讀得到，並把它套成目前的色卡。
     assert 'sceneQuery.get("style_card")' in javascript
-    assert "applyStyleCardFromQuery" in javascript
-    assert "style_card_id: requestedStyleCardId" in javascript
+    assert "function applyStyleCardFromQuery" in javascript
+    assert "state.activeStylePackId = pack.id" in javascript
     assert '"style_card_id": payload.get("style_card_id")' in main
     assert 'questionnaire.get("style_card_id")' in service
+
+
+def test_style_pack_ids_match_the_taiwan_style_card_ids():
+    """兩邊的 id 空間必須一致，色卡交接才有意義。"""
+    import json
+    import subprocess
+
+    from backend.server.style_cards import load_taiwan_style_cards
+
+    module = (ROOT / "backend" / "server" / "static" / "scene_style_packs.js").as_uri()
+    completed = subprocess.run(
+        [
+            "node",
+            "--input-type=module",
+            "--eval",
+            f'import {{ STYLE_PACKS }} from {json.dumps(module)};'
+            " console.log(JSON.stringify(STYLE_PACKS.map((pack) => pack.id)));",
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    pack_ids = set(json.loads(completed.stdout))
+
+    card_ids = set()
+
+    def walk(node):
+        if isinstance(node, dict):
+            if "card_id" in node:
+                card_ids.add(node["card_id"])
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(load_taiwan_style_cards())
+
+    assert pack_ids == card_ids
 
 
 def test_scene_viewer_exposes_skin_lighting_and_interior_rotation_contract():

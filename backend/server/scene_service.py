@@ -1286,6 +1286,46 @@ WIDE_WALK_MARGIN_CM = 20.0
 WINDOW_CLEARANCE_DEPTH_CM = 70.0
 
 
+def door_openings_from_segments(
+    parsed_floorplan: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """門在牆上的開口。
+
+    走動視角靠這份清單豁免門洞；``scene_json`` 少了它，每一扇門在第 7 步都是
+    實牆，人走到門口就被擋住。開合門要用 hinge → swing_end 的
+    ``closed_segment``——``start`` → ``end`` 是打開後的門片，不是牆洞。
+    """
+    openings: list[dict[str, Any]] = []
+    for door in (parsed_floorplan or {}).get("door_segments") or []:
+        if not isinstance(door, dict):
+            continue
+        closed = door.get("closed_segment")
+        hole = closed if isinstance(closed, dict) else door
+        start = hole.get("start") if isinstance(hole.get("start"), dict) else None
+        end = hole.get("end") if isinstance(hole.get("end"), dict) else None
+        if not start or not end:
+            continue
+        try:
+            start_x, start_z = float(start.get("x", 0)), float(start.get("z", 0))
+            end_x, end_z = float(end.get("x", 0)), float(end.get("z", 0))
+        except (TypeError, ValueError):
+            continue
+        measured_cm = math.hypot(end_x - start_x, end_z - start_z)
+        try:
+            declared_cm = float(door.get("width_cm") or 0)
+        except (TypeError, ValueError):
+            declared_cm = 0.0
+        openings.append(
+            {
+                "start": {"x": start_x, "z": start_z},
+                "end": {"x": end_x, "z": end_z},
+                "width_cm": round(declared_cm or measured_cm, 2),
+                "kind": "door",
+            }
+        )
+    return openings
+
+
 def _shrunk_boundary(room: Room, margin_cm: float = DEFAULT_WALK_MARGIN_CM) -> Polygon | None:
     boundary = _room_boundary_polygon(room)
     if boundary is None:
@@ -2127,6 +2167,7 @@ def build_scene_payload(
             "wall_polys": parsed_floorplan.get("wall_polys", []) if parsed_floorplan else [],
             "plan_segments": parsed_floorplan.get("plan_segments", []) if parsed_floorplan else [],
             "door_segments": parsed_floorplan.get("door_segments", []) if parsed_floorplan else [],
+            "door_openings": door_openings_from_segments(parsed_floorplan),
             "window_segments": parsed_floorplan["window_segments"] if parsed_floorplan else [],
             "beam_segments": parsed_floorplan.get("beam_segments", []) if parsed_floorplan else [],
             "columns": parsed_floorplan.get("columns", []) if parsed_floorplan else [],

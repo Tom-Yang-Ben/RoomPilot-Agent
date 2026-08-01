@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-62cbd91b376d";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-ffc625d8b24f";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
 import {
@@ -35,7 +35,7 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-58b7ecf1ea90";
+} from "./scene_layout2d.js?v=sha256-f9a1ab67a2dd";
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
@@ -8559,6 +8559,9 @@ function itemCollision(item) {
   ) return true;
   return state.furniture2d.some((other) => {
     if (other.id === item.id || other.roomId !== item.roomId) return false;
+    // 與伺服器的 placed_others 同一套標準（scene_service.py）：放不下的家具
+    // 停在 (0,0) 當佔位，拿它去比對會把房間中央附近所有合法家具打成待處理。
+    if (other.placementFailed === true) return false;
     const otherFootprint = furnitureCollisionFootprintCm(other);
     return Math.abs(other.xCm - item.xCm) < (otherFootprint.width + footprint.width) / 2
       && Math.abs(other.yCm - item.yCm) < (otherFootprint.depth + footprint.depth) / 2;
@@ -8838,23 +8841,32 @@ function renderConfigurationPlan() {
     const placementFailures = group.items.filter(
       (item) => !modelFailures.has(String(item.id)),
     );
-    const summary = placementFailures.length
-      ? `${placementFailures.length} 件因碰撞、淨空或房間尺寸無法放入`
-      : "資料庫模型無法載入，可更換或同意本次暫緩";
+    // 沒有歸屬房間的家具算不出房間尺寸：重排、換小、擇優三個動作都必然失敗。
+    // 照樣把按鈕畫出來只會讓使用者一直按一直失敗（QA 2026-08-01 #6 的死路）。
+    const unassigned = group.roomId === "unassigned";
+    const summary = unassigned
+      ? "沒有對應的房間，無法用房間尺寸配置；請移除或暫緩"
+      : placementFailures.length
+        ? `${placementFailures.length} 件因碰撞、淨空或房間尺寸無法放入`
+        : "資料庫模型無法載入，可更換或同意本次暫緩";
     const items = group.items.map((item) => {
       const furnitureNumber = configurationFurnitureNumber(item);
       const furnitureKey = String(item.id);
-      const reason = modelFailures.get(furnitureKey)
-        || item.placementReason
-        || "家具碰撞、超出房間或淨空不足。";
+      const reason = unassigned
+        ? "這件家具沒有歸屬房間，無法計算可用尺寸；請移除或暫緩後再從房間內重新加入。"
+        : modelFailures.get(furnitureKey)
+          || item.placementReason
+          || "家具碰撞、超出房間或淨空不足。";
       const modelFailed = modelFailures.has(furnitureKey);
       // 重排的鎖必須是單件的：用全域 size > 0 會讓任何一件卡住就停掉整份清單的按鈕。
       const reflowing = configurationReflowInFlight.has(furnitureKey);
-      const repairAction = modelFailed
-        ? `<button type="button" data-replace-configuration-furniture="${escapeHtml(item.id)}">更換家具</button>`
-        : `<button type="button" data-reflow-configuration-furniture="${escapeHtml(item.id)}"
-            ${reflowing ? "disabled" : ""}>${reflowing ? "重新配置中…" : "只重排此家具"}</button>
-          <button type="button" data-replace-configuration-furniture="${escapeHtml(item.id)}">更換較小款</button>`;
+      const repairAction = unassigned
+        ? ""
+        : modelFailed
+          ? `<button type="button" data-replace-configuration-furniture="${escapeHtml(item.id)}">更換家具</button>`
+          : `<button type="button" data-reflow-configuration-furniture="${escapeHtml(item.id)}"
+              ${reflowing ? "disabled" : ""}>${reflowing ? "重新配置中…" : "只重排此家具"}</button>
+            <button type="button" data-replace-configuration-furniture="${escapeHtml(item.id)}">更換較小款</button>`;
       return `
         <div class="rp-configuration-pending-item">
           <b>${furnitureNumber}</b>
@@ -8872,7 +8884,7 @@ function renderConfigurationPlan() {
       <section class="rp-configuration-pending-room">
         <header>
           <div><strong>${escapeHtml(group.roomLabel)}</strong><small>${escapeHtml(summary)}</small></div>
-          ${group.items.length ? `<button type="button"
+          ${group.items.length && !unassigned ? `<button type="button"
             data-prioritize-configuration-room="${escapeHtml(group.roomId)}">同意擇優配置</button>` : ""}
         </header>
         ${items}
@@ -11777,13 +11789,65 @@ async function refreshSavedRenders() {
   }
 }
 
+const RENDER_JOB_STATUS_LABELS = {
+  completed: "已完成",
+  failed: "失敗",
+  queued: "排隊中",
+  running: "生成中",
+};
+
 function renderRemoteJobs() {
-  element.remoteRenderJobs.innerHTML = state.proposalReview.jobs.map((job) => `
-    <article>
-      <strong>${escapeHtml(job.label || job.job_id || "渲染任務")}</strong>
-      <span>${escapeHtml(job.status || "queued")}</span>
-    </article>
-  `).join("");
+  element.remoteRenderJobs.innerHTML = state.proposalReview.jobs.map((job) => {
+    const status = String(job.status || "queued");
+    const failed = status === "failed";
+    // 失敗的房間留成可單獨重試的卡片：舊版整批中止，使用者只看得到一片空白。
+    return `
+      <article class="${failed ? "is-failed" : ""}">
+        <strong>${escapeHtml(job.label || job.job_id || "渲染任務")}</strong>
+        <span>${escapeHtml(RENDER_JOB_STATUS_LABELS[status] || status)}</span>
+        ${failed ? `<small>${escapeHtml(job.message_zh || "這個房間的生圖失敗。")}</small>
+          <button type="button" data-retry-room-render="${escapeHtml(job.room_id || "")}">
+            重試這個房間</button>` : ""}
+      </article>
+    `;
+  }).join("");
+}
+
+async function retryRoomRender(roomId) {
+  const roomView = state.proposalReview.roomViews?.[roomId];
+  if (!roomView) {
+    reportRenderActionError(new Error("找不到這個房間已保存的視角，請回第 7 步重新保存。"));
+    return;
+  }
+  clearRenderActionError();
+  element.aiRenderStatus.textContent = `正在重試「${roomView.room_label || roomId}」…`;
+  try {
+    const result = await api(`/api/projects/${state.projectId}/render-jobs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(renderRequestPayload(
+        "room_final",
+        [state.proposalReview.confirmedStyleCardId],
+        [roomView],
+      )),
+    });
+    const retried = (result.jobs || [result.job]).filter(Boolean);
+    // 用新結果換掉這個房間的舊任務，避免同一間房留下兩張卡。
+    state.proposalReview.jobs = [
+      ...state.proposalReview.jobs.filter(
+        (job) => String(job.room_id || "") !== String(roomId),
+      ),
+      ...retried,
+    ];
+    renderRemoteJobs();
+    refreshSavedRenders();
+    scheduleSave("ai_render");
+    element.aiRenderStatus.textContent = retried.some((job) => job.status === "completed")
+      ? `「${roomView.room_label || roomId}」已重新生成。`
+      : `「${roomView.room_label || roomId}」重試後仍未成功。`;
+  } catch (error) {
+    reportRenderActionError(error);
+  }
 }
 
 function renderPaletteResults() {
@@ -11987,9 +12051,16 @@ async function submitRoomRenders() {
     renderRemoteJobs();
     scheduleSave("ai_render");
     const completedRooms = roomJobs.filter((job) => job.status === "completed").length;
+    const failedRooms = roomJobs.filter((job) => job.status === "failed").length;
     element.aiRenderStatus.textContent = completedRooms
-      ? `已完成 ${completedRooms} 張房間渲染圖，成果已入專案清單。`
+      ? `已完成 ${completedRooms} 張房間渲染圖${
+        failedRooms ? `，${failedRooms} 間失敗可單獨重試` : ""}，成果已入專案清單。`
       : `已送出 ${roomViews.length} 個房間渲染任務。`;
+    if (failedRooms) {
+      reportRenderActionError(new Error(
+        `有 ${failedRooms} 個房間生圖失敗，其餘已完成；可在任務清單單獨重試。`,
+      ));
+    }
     refreshSavedRenders();
   } catch (error) {
     reportRenderActionError(error);
@@ -13232,6 +13303,11 @@ function bindEvents() {
     }
   });
   $("#submit-room-renders").addEventListener("click", submitRoomRenders);
+  element.remoteRenderJobs.addEventListener("click", (event) => {
+    const retry = event.target.closest("[data-retry-room-render]");
+    if (!retry) return;
+    retryRoomRender(retry.dataset.retryRoomRender);
+  });
   $("#apply-surface-colors").addEventListener("click", () => {
     markRealisticSceneEdited();
     applySurfaceOverrides({ userInitiated: true });
@@ -13685,8 +13761,40 @@ async function recoverConfirmedFloorplan() {
   return state.confirmedFloorplan;
 }
 
+/**
+ * 從風格頁帶進來的色卡。
+ *
+ * styles.js 產生的連結是 `/scene?style=<風格>&style_card=<色卡>`，並把同一份
+ * 選擇寫進 localStorage。這段交接原本只實作在已停用的 scene.js 裡，正式頁面
+ * 完全沒接——使用者在風格頁挑的色卡，一進設計流程就被丟掉。
+ */
+function applyStyleCardFromQuery() {
+  const sceneQuery = new URLSearchParams(window.location.search);
+  let stored = null;
+  try {
+    stored = JSON.parse(localStorage.getItem("roompilot:selectedStyleCard") || "null");
+  } catch {
+    stored = null;
+  }
+  const requestedCardId = sceneQuery.get("style_card") || stored?.style_card || null;
+  const requestedStyleId = sceneQuery.get("style") || stored?.style || stored?.style_id || null;
+
+  const pack = requestedCardId
+    ? STYLE_PACKS.find((candidate) => candidate.id === requestedCardId)
+    : null;
+  if (pack) {
+    state.activeStyleId = pack.styleId;
+    state.activeStylePackId = pack.id;
+    return;
+  }
+  if (requestedStyleId && STYLE_PACKS.some((candidate) => candidate.styleId === requestedStyleId)) {
+    state.activeStyleId = requestedStyleId;
+  }
+}
+
 bindEvents();
 renderFurnitureLibrary();
+applyStyleCardFromQuery();
 renderStyleControls();
 evaluateCeilingConflicts();
 restoreProject();

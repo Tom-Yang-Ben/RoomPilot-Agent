@@ -352,3 +352,37 @@ def test_garbage_provider_response_is_rejected_not_stored(monkeypatch) -> None:
     assert response.status_code == 502
     assert response.json()["detail"]["code"] == "image_provider_no_image_returned"
     assert client.get(f"/api/projects/{project_id}/renders").json()["renders"] == []
+
+
+def test_one_failed_room_does_not_take_down_the_whole_batch(monkeypatch) -> None:
+    """QA 2026-08-01 #7：逐房批次遇首個 502 即整批中止，成功的房間也一起消失。"""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key-not-real")
+    monkeypatch.delenv("ROOMPILOT_RENDER_PROVIDER_URL", raising=False)
+    monkeypatch.delenv("ROOMPILOT_RENDER_IMAGE_DISABLED", raising=False)
+
+    calls = {"count": 0}
+
+    async def flaky_post(body: dict, headers: dict) -> dict:
+        calls["count"] += 1
+        if calls["count"] == 1:
+            return {"choices": [{"message": {"content": "抱歉，我無法生成圖片"}}]}
+        image_url = "data:image/png;base64," + base64.b64encode(_png_bytes()).decode()
+        return {"choices": [{"message": {"images": [{"image_url": {"url": image_url}}]}}]}
+
+    monkeypatch.setattr(render_providers, "_post_openrouter", flaky_post)
+    project_id = _create_project()
+
+    response = client.post(
+        f"/api/projects/{project_id}/render-jobs",
+        json=_payload(project_id, mode="room_final"),
+    )
+
+    assert response.status_code == 202, response.text
+    body = response.json()
+    by_room = {job["room_id"]: job for job in body["jobs"]}
+    assert by_room["living-1"]["status"] == "failed"
+    assert by_room["living-1"]["message_zh"]
+    assert by_room["bedroom-1"]["status"] == "completed"
+    assert body["failed_count"] == 1
+    # 成功的那張必須真的入庫，不能跟著失敗一起消失。
+    assert len(client.get(f"/api/projects/{project_id}/renders").json()["renders"]) == 1

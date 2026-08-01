@@ -3449,15 +3449,17 @@ export function createSceneViewer(
       controls.enableZoom = false;
       const room = roomGroup.userData.roomSize || { widthCm: 420, depthCm: 360, wallHeight: 270 };
       const clamped = clampWalkPosition(perspectiveCamera.position, room);
-      const spawn = findNearestWalkablePosition(
-        clamped,
-        room,
-        (point) => (
-          walkPositionInsideFloor(point)
-          && !walkPositionBlocked(point)
-          && !walkPositionBlockedByFurniture(point)
-        ),
-      ) || clamped;
+      const walkable = (point) => (
+        walkPositionInsideFloor(point)
+        && !walkPositionBlocked(point)
+        && !walkPositionBlockedByFurniture(point)
+      );
+      // 出生點原本只從目前鏡頭位置往外找。軌道鏡頭在屋外，夾進全戶矩形後常
+      // 落在牆體裡，找不到就直接用那個點——人一進走動模式就卡在牆中。家具一
+      // 定在房間內且與鏡頭同一個世界座標框，拿它當第二個種子最穩。
+      const spawn = findNearestWalkablePosition(clamped, room, walkable)
+        || findNearestWalkablePosition(furnitureAnchorPosition(clamped), room, walkable)
+        || clamped;
       const spawnOffset = new THREE.Vector3(
         spawn.x - perspectiveCamera.position.x,
         spawn.y - perspectiveCamera.position.y,
@@ -4140,6 +4142,27 @@ export function createSceneViewer(
       if (crosses && position.x < edgeX) inside = !inside;
     }
     return inside;
+  }
+
+  function furnitureAnchorPosition(fallback) {
+    // 已擺好的家具必定在房間內，且與鏡頭共用世界座標框；取平均值當作
+    // 「屋內某處」的種子，比用屋外的軌道鏡頭位置可靠得多。
+    const positions = [];
+    furnitureGroup.children.forEach((wrapper) => {
+      if (!wrapper?.visible || !wrapper.userData?.sceneObject) return;
+      if (wrapper.userData.sceneObject.placement_failed === true) return;
+      positions.push(wrapper.position);
+    });
+    if (!positions.length) return fallback;
+    const sum = positions.reduce(
+      (total, position) => ({ x: total.x + position.x, z: total.z + position.z }),
+      { x: 0, z: 0 },
+    );
+    return {
+      x: sum.x / positions.length,
+      y: fallback?.y ?? 0,
+      z: sum.z / positions.length,
+    };
   }
 
   function walkPositionInsideFloor(position) {
@@ -5255,6 +5278,8 @@ export function createSceneViewer(
     }[direction];
     if (!delta) return false;
 
+    const beforeX = selectedWrapper.position.x;
+    const beforeZ = selectedWrapper.position.z;
     const candidate = constrainTransform(
       item,
       selectedWrapper.position.x + delta.x,
@@ -5277,12 +5302,27 @@ export function createSceneViewer(
       return false;
     }
 
+    // 位移會被 clampTransformToRoom 夾短，所以要報實際走的距離而不是 step；
+    // 固定寫「已移動 25 公分」在貼牆時是騙人的，使用者也不知道為什麼回不去。
+    const movedCm = Math.round(
+      Math.hypot(candidate.x - beforeX, candidate.z - beforeZ),
+    );
+    if (movedCm < 1) {
+      updateFootprintGuide(selectedWrapper, "blocked");
+      setStatus(`${label} 已經在可用範圍邊緣，這個方向沒有空間了。`);
+      return false;
+    }
+
     selectedWrapper.position.set(candidate.x, selectedWrapper.position.y, candidate.z);
     item.position_cm = nextPositionCm;
     item.position_locked = true;
     updateFootprintGuide(selectedWrapper, candidate.kind);
     notifySceneChange(item);
-    setStatus(`${label} 已移動 ${Math.round(step)} 公分。`);
+    setStatus(
+      movedCm < step
+        ? `${label} 已移動 ${movedCm} 公分（碰到可用範圍邊緣，未走滿 ${step} 公分）。`
+        : `${label} 已移動 ${movedCm} 公分。`,
+    );
     return true;
   }
 

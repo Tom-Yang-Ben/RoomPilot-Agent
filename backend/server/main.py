@@ -2211,7 +2211,14 @@ def download_project_render(project_id: str, render_id: str) -> FileResponse:
             410,
             {"code": "render_file_missing", "message": "PNG 紀錄存在，但檔案已遺失。"},
         )
-    return FileResponse(path, media_type="image/png", filename=render["filename"])
+    # 產出的 PNG 是不可變的：render_id 換了才會有新內容。沒有 Cache-Control 時
+    # 瀏覽器每次都重抓 1.45MB，QA 實測 load 事件被拖到 24 秒。
+    return FileResponse(
+        path,
+        media_type="image/png",
+        filename=render["filename"],
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @app.get("/api/render-provider/status")

@@ -367,11 +367,32 @@ async def run_direct_render_jobs(project_id: str, payload: dict[str, Any], store
                 tasks.append({"style_card_id": str(card_id), "room_view": None})
 
     jobs: list[dict[str, Any]] = []
+    failures = 0
+    last_failure: Exception | None = None
     for task in tasks:
         style_pack = _style_pack_for(prepared, task["style_card_id"])
         prompt = build_render_prompt(prepared, style_pack, task["room_view"])
         reference = _reference_data_url(prepared, task["room_view"])
-        png = await _generate_one(prompt, reference)
+        try:
+            png = await _generate_one(prompt, reference)
+        except (RenderProviderRejected, RenderProviderUnavailable) as exc:
+            # 一間房失敗不該讓整批消失：其餘房間照樣產出，失敗的留成可重試的
+            # 任務卡（QA 2026-08-01 #7：遇首個 502 即整批中止）。
+            failures += 1
+            last_failure = exc
+            room_view = task["room_view"] or {}
+            jobs.append(
+                {
+                    "job_id": None,
+                    "style_card_id": task["style_card_id"],
+                    "room_id": room_view.get("room_id"),
+                    "status": "failed",
+                    "error_code": str(exc),
+                    "message_zh": "這個房間的生圖失敗，可單獨重試。",
+                    "label": room_view.get("room_label"),
+                }
+            )
+            continue
 
         revision = int(store.get_project(project_id).get("revision") or 0)
         try:
@@ -410,8 +431,14 @@ async def run_direct_render_jobs(project_id: str, payload: dict[str, Any], store
                 "label": room_view.get("room_label"),
             }
         )
+    if tasks and failures == len(tasks) and last_failure is not None:
+        # 全軍覆沒才算整批失敗。原樣拋回最後一個原因，錯誤碼才不會被泛用碼
+        # 蓋掉——呼叫端與既有 502／503 契約都靠那個碼判斷發生了什麼。
+        raise last_failure
+
     return {
         "request_id": prepared.get("request_id"),
         "provider": direct_image_provider_status()["provider"],
         "jobs": jobs,
+        "failed_count": failures,
     }
