@@ -27,7 +27,8 @@ COUNT_MAX = 6
 REQUIRED_FAMILIES_BY_ROOM = {
     "bedroom": ("bed",),
     "living_room": ("sofa",),
-    "dining_room": ("dining-table", "dining-chair"),
+    # 第 4 步房名收斂後不再有獨立餐廳。餐桌餐椅改由 ROOM_AFFINITY 開放給客廳，
+    # 但不列為必備，否則每間客廳都會被硬塞一組餐桌。
 }
 
 

@@ -7,6 +7,10 @@ const ROOM_TO_VISUAL_SPACES = Object.freeze({
   workspace: ["study"],
   balcony: ["balcony"],
   storage: ["storage"],
+  // 第 4 步房名收斂後新增的型別。樓梯與車庫沒有軟裝題目，只讓走道問得到動線題。
+  circulation: ["circulation"],
+  stair: [],
+  garage: [],
 });
 
 export const VISUAL_SPACE_LABELS = Object.freeze({

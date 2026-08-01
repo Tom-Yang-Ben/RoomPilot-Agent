@@ -57,7 +57,7 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-e9af7fe08f6e";
+} from "./scene_questionnaire_test2.js?v=sha256-720dd7117f78";
 import {
   reloadViewerPreservingState,
 } from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
@@ -135,31 +135,44 @@ const escapeHtml = (value) => String(value ?? "").replace(
   })[character],
 );
 
+// 空間名稱與辨識層的類別集對齊（backend/floorplan/floorplan2room.py 的 ROOM_ZH_EX：
+// living / kitchen / bed / bath / balcony / entry / storage / garage / outdoor / stair）。
+// 餐廳與書房辨識層本來就標不出來，已移除；書房系詞彙在 2026-07-29 就已併入儲藏室。
+// 主臥與次臥合併成單一臥室——辨識層只有一個 bed 類，主次仍由第 5 步問卷依面積推導。
+// 走道辨識層沒有對應類別，維持 circulation 型別以沿用「走道跟隨客廳風格」的既有行為。
 const ROOM_NAME_OPTIONS = Object.freeze([
   { id: "entryway", label: "玄關", type: "entry" },
   { id: "living_room", label: "客廳", type: "living_room" },
-  { id: "dining_room", label: "餐廳", type: "dining_room" },
   { id: "kitchen", label: "廚房", type: "kitchen" },
-  { id: "primary_bedroom", label: "主臥", type: "bedroom" },
-  { id: "secondary_bedroom", label: "次臥", type: "bedroom" },
+  { id: "bedroom", label: "臥室", type: "bedroom" },
   { id: "bathroom", label: "浴室", type: "bathroom" },
-  { id: "study", label: "書房／工作區", type: "workspace" },
   { id: "balcony", label: "陽台", type: "balcony" },
   { id: "storage", label: "儲藏室", type: "storage" },
-  { id: "circulation", label: "走道／動線", type: "circulation" },
-  { id: "multi_purpose", label: "多功能室", type: "default" },
+  { id: "hallway", label: "走道", type: "circulation" },
+  { id: "stair", label: "樓梯", type: "stair" },
+  { id: "garage", label: "車庫", type: "garage" },
 ]);
 
+// 舊專案存下來的 visual_space_type 仍要認得，否則回頭開會掉成預設值。
+const LEGACY_ROOM_NAME_IDS = Object.freeze({
+  primary_bedroom: "bedroom",
+  secondary_bedroom: "bedroom",
+  circulation: "hallway",
+  dining_room: "living_room",
+  study: "storage",
+  multi_purpose: "hallway",
+});
+
 function roomNameOptionFor(room = {}) {
-  const selected = String(room.visual_space_type || "");
+  const rawSelected = String(room.visual_space_type || "");
+  const selected = LEGACY_ROOM_NAME_IDS[rawSelected] || rawSelected;
   const label = String(room.label || room.name || "");
   const type = String(room.type || room.room_type || "");
   return ROOM_NAME_OPTIONS.find((option) => option.id === selected)
     || ROOM_NAME_OPTIONS.find((option) => option.label === label)
-    || (type === "bedroom"
-      ? ROOM_NAME_OPTIONS.find((option) => option.id === (label.includes("次臥") ? "secondary_bedroom" : "primary_bedroom"))
-      : ROOM_NAME_OPTIONS.find((option) => option.type === type))
-    || ROOM_NAME_OPTIONS.find((option) => option.id === "multi_purpose");
+    || ROOM_NAME_OPTIONS.find((option) => option.type === type)
+    // 辨識層分不出來的空間（它的 room／空間 類）落到走道，會沿用客廳風格。
+    || ROOM_NAME_OPTIONS.find((option) => option.id === "hallway");
 }
 
 const state = {

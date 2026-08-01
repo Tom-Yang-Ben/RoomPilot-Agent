@@ -164,18 +164,37 @@ def test_parse_never_silently_drops_preselected_item_when_anchor_is_missing() ->
         )
 
 
-def test_dining_room_requires_both_table_and_chair() -> None:
-    rooms = [{"room_id": "dining-1", "room_type": "dining_room"}]
-    offers = {"dining-1": [
-        _candidate("table", "dining-table"),
-        _candidate("chair", "dining-chair"),
-    ]}
-    with pytest.raises(SelectionParseError, match="dining-chair"):
-        parse_selections(
-            {"selections": [_selection("dining-1", "table")]},
-            rooms,
-            offers,
-        )
+def test_dining_furniture_belongs_to_the_living_room_and_is_not_forced() -> None:
+    # 第 4 步房名收斂到辨識層的類別集後不再有獨立餐廳，餐桌餐椅改掛客廳（餐客合一）。
+    # 刻意不列為必備：否則每間客廳都會被硬塞一組餐桌。
+    offers = _offers()
+    offers["living-1"].append(_candidate("table-1", "dining-table", 130, 90))
+    offers["living-1"].append(_candidate("chair-1", "dining-chair", 45, 50))
+
+    result = parse_selections(
+        {"selections": [_selection("living-1", "sofa-1", "table-1")]},
+        _living_only(),
+        offers,
+    )
+
+    ids = [entry.item["furniture_id"] for entry in result["living-1"]]
+    assert "table-1" in ids
+
+
+def test_dining_furniture_is_dropped_outside_the_living_room() -> None:
+    # 房型不合的選件是丟棄並記錄，不是拋錯——LLM 選錯房間不該中止整份配置。
+    offers = _offers()
+    offers["bedroom-1"].append(_candidate("table-1", "dining-table", 130, 90))
+
+    result = parse_selections(
+        {"selections": [_selection("bedroom-1", "bed-1", "table-1")]},
+        _bedroom_only(),
+        offers,
+    )
+
+    ids = [entry.item["furniture_id"] for entry in result["bedroom-1"]]
+    assert "bed-1" in ids
+    assert "table-1" not in ids
 
 
 def test_preselected_item_is_protected_and_takes_family_slot() -> None:
