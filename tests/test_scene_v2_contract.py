@@ -1023,17 +1023,18 @@ def test_requirement_generation_defers_a_single_failed_room_without_breaking_ste
     assert "renderLayoutRoomFilter();\n      renderLayoutFurniture();\n      return;" in viewer
 
 
-def test_questionnaire_applies_whole_house_defaults_before_room_furniture() -> None:
+def test_questionnaire_selects_one_whole_house_style_before_room_specific_finishes() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
 
     assert 'id="whole-house-style-editor"' in html
-    assert 'id="whole-house-wall-options"' in html
-    assert 'id="whole-house-floor-options"' in html
+    assert 'id="whole-house-style-selection"' in html
+    assert 'id="whole-house-wall-options"' not in html
+    assert 'id="whole-house-floor-options"' not in html
+    assert 'id="whole-house-ceiling-material"' not in html
     assert 'data-questionnaire-stage="profile" class="is-active"' in html
     assert 'data-questionnaire-stage="rooms" disabled' in html
-    assert 'id="whole-house-style-all"' in html
-    assert 'id="whole-house-air-conditioning-all"' in html
+    assert '確認全屋風格，開始逐房設定' in html
     assert "function applyWholeHouseFinishes()" in source
     assert "applyWholeHouseFinishes();" in source
     assert 'if (stage === "profile") return true;' in source

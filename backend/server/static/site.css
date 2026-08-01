@@ -12581,9 +12581,38 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 
 #whole-house-style-grid > button small {
   display: block;
-  padding: 0 14px 14px;
+  padding: 0 14px 4px;
   color: #52665f;
   font-size: .9rem;
+}
+
+#whole-house-style-grid > button em {
+  display: block;
+  min-height: 34px;
+  padding: 0 14px 14px;
+  color: #6b655e;
+  font-size: .82rem;
+  font-style: normal;
+}
+
+#whole-house-style-grid > button.is-active em {
+  color: #176d58;
+  font-weight: 700;
+}
+
+#whole-house-style-grid > button.is-active {
+  border-color: var(--rp-green);
+  box-shadow: inset 0 0 0 1px var(--rp-green);
+  background: #f5faf7;
+}
+
+.rp-style-selection-status {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--rp-green);
+  background: #edf6f1;
+  color: #205746;
+  line-height: 1.5;
 }
 
 #questionnaire-finishes.is-room-needs-only > .rp-style-tabs,

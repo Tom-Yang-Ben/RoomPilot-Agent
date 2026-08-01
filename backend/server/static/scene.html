@@ -398,47 +398,15 @@
             <div id="whole-house-fields" class="rp-test2-profile-grid" hidden></div>
             <section id="whole-house-style-editor" class="rp-whole-house-style-editor">
               <div class="rp-questionnaire-section-heading">
-                <div><span class="eyebrow">全屋風格</span><h3>選一組風格，再微調材質</h3></div>
-                <p>一般室內空間會先共用這組牆面、地板、天花與照明設定；廚房、浴室與陽台可在第 6 步個別調整。</p>
+                <div><span class="eyebrow">全屋主風格</span><h3>選定全屋一致的設計方向</h3></div>
+                <p>點選一種風格後，逐房問卷會依此推薦牆面、地板、天花與照明；你可在各房分別調整。</p>
               </div>
               <div id="whole-house-style-tabs" class="rp-style-tabs" aria-label="全屋風格類型"></div>
               <div id="whole-house-style-grid" class="rp-style-grid rp-questionnaire-style-grid"></div>
-              <div class="rp-questionnaire-material-grid">
-                <fieldset>
-                  <legend>牆壁材質</legend>
-                  <div id="whole-house-wall-options" class="rp-questionnaire-material-options"></div>
-                  <label><span>牆壁顏色</span><input id="whole-house-wall-color" type="color" value="#f2f0ec" /></label>
-                </fieldset>
-                <fieldset>
-                  <legend>地板材質</legend>
-                  <div id="whole-house-floor-options" class="rp-questionnaire-material-options"></div>
-                  <label><span>地板顏色</span><input id="whole-house-floor-color" type="color" value="#b99b78" /></label>
-                </fieldset>
-                <fieldset>
-                  <legend>天花與設備</legend>
-                  <label><span>天花材質</span><select id="whole-house-ceiling-material">
-                    <option value="flat-paint">平光乳膠漆</option>
-                    <option value="mineral-paint">礦物塗料</option>
-                    <option value="wood-veneer">木質飾板</option>
-                    <option value="exposed-concrete">清水混凝土</option>
-                  </select></label>
-                  <label><span>天花形式</span><select id="whole-house-ceiling-style"></select></label>
-                  <label><span>照明形式</span><select id="whole-house-light-style"></select></label>
-                  <label><span>冷氣形式</span><select id="whole-house-air-conditioning">
-                    <option value="auto">依房間條件建議</option>
-                    <option value="wall-split">壁掛分離式</option>
-                    <option value="ceiling-cassette">嵌入式四方吹</option>
-                    <option value="ducted">隱藏式風管</option>
-                    <option value="none">暫不規劃冷氣</option>
-                  </select></label>
-                  <label><span>天花顏色</span><input id="whole-house-ceiling-color" type="color" value="#f4f1eb" /></label>
-                  <label class="rp-questionnaire-default-toggle"><input id="whole-house-style-all" type="checkbox" checked /> <span>先套用至全部房間，之後可於第 6 步個別調整</span></label>
-                  <label class="rp-questionnaire-default-toggle"><input id="whole-house-air-conditioning-all" type="checkbox" checked /> <span>冷氣預設套用客廳、臥室與書房</span></label>
-                </fieldset>
-              </div>
+              <p id="whole-house-style-selection" class="rp-style-selection-status" aria-live="polite"></p>
             </section>
             <div class="rp-action-row">
-              <button id="confirm-basic-questionnaire" type="button" class="primary-action">確認全屋風格與設備，開始逐房選家具</button>
+              <button id="confirm-basic-questionnaire" type="button" class="primary-action">確認全屋風格，開始逐房設定</button>
             </div>
           </section>
 
