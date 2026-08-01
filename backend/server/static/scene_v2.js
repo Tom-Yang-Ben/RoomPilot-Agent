@@ -75,7 +75,7 @@ import {
   STYLE_FAMILIES,
   STYLE_MATERIAL_OPTIONS,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-d49dfb7f8b1a";
+} from "./scene_style_packs.js?v=sha256-e8e4ed1badaf";
 import {
   beamDragGeometry,
   canMarkWallForDemolition,
@@ -7034,8 +7034,10 @@ function openQuestionnaireCeilingDesignStyle(styleId) {
   element.questionnaireCeilingPickerHelp.textContent = "每張卡的材質、天花形式與照明已經過相容檢查，選取後一次套用三項。";
   element.questionnaireCeilingPickerOptions.innerHTML = designs.map((design) => {
     const active = draft.ceilingMaterial === design.material && draft.ceilingStyle === design.ceilingStyle && draft.lightStyle === design.lightStyle;
+    const lighting = LIGHT_STYLES.find((item) => item.id === design.lightStyle);
     return `<button type="button" class="rp-ceiling-picker-card ${active ? "is-active" : ""}" data-questionnaire-ceiling-design-pack="${escapeHtml(design.id)}" aria-pressed="${active}">
-      <span class="rp-light-choice-visual" data-light-style-visual="${escapeHtml(design.lightStyle)}"></span><strong>${escapeHtml(design.label)}</strong>
+      <span class="rp-ceiling-choice-visual" data-ceiling-style-visual="${escapeHtml(design.ceilingStyle)}"></span>
+      <strong>${escapeHtml(design.label)}</strong><small>照明：${escapeHtml(lighting?.label || "未指定")}</small>
     </button>`;
   }).join("");
   element.questionnaireCeilingPickerDialog.showModal();

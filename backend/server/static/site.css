@@ -12417,7 +12417,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-ceiling-choice-visual[data-ceiling-style-visual="exposed"] { background-image: url("/static/questionnaire_images/ceiling-exposed-reference.jpg"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="flat"] { background-image: url("/static/questionnaire_images/ceiling-flat-reference.jpg"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="cove"] { background-image: url("/static/questionnaire_images/ceiling-cove-reference.jpg"); }
-.rp-ceiling-choice-visual[data-ceiling-style-visual="floating"] { background-image: url("/static/questionnaire_images/ceiling-floating-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="floating"] { background-image: url("/static/questionnaire_images/ceiling-floating-reference-v2.png"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="linear"] { background-image: url("/static/questionnaire_images/ceiling-linear-reference.jpg"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="feature-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="wood-grid"] { background-image: url("/static/questionnaire_images/ceiling-wood-grid-reference.jpg"); }
@@ -12561,9 +12561,10 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-ceiling-picker-card.is-active { border-color: #27715d; box-shadow: inset 0 0 0 1px #27715d; }
-.rp-ceiling-picker-card .rp-ceiling-choice-visual { aspect-ratio: 1 / 1; }
+.rp-ceiling-picker-card .rp-ceiling-choice-visual { aspect-ratio: 16 / 9; }
 .rp-ceiling-picker-card .rp-light-choice-visual { aspect-ratio: 16 / 9; }
 .rp-ceiling-picker-card strong { display: block; padding: 10px 12px 0; }
+.rp-ceiling-picker-card small { display: block; padding: 4px 12px 0; color: #5f5b54; }
 
 @media (max-width: 760px) {
   .rp-questionnaire-ceiling-quick-choices,

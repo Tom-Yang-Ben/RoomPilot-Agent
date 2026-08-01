@@ -950,6 +950,21 @@ def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() 
     assert "const mullionPositions = [0];" in viewer
 
 
+def test_ceiling_picker_uses_the_selected_ceiling_photo_not_a_lighting_sprite() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    style_packs = (STATIC / "scene_style_packs.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    picker = controller.split("function openQuestionnaireCeilingDesignStyle", 1)[1].split(
+        "function selectQuestionnaireCeilingDesignPack", 1
+    )[0]
+    assert 'data-ceiling-style-visual="${escapeHtml(design.ceilingStyle)}"' in picker
+    assert '照明：${escapeHtml(lighting?.label || "未指定")}' in picker
+    assert 'id: "floating-downlight"' in style_packs
+    assert 'id: "floating-no-main"' in style_packs
+    assert "ceiling-floating-reference-v2.png" in css
+
+
 def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
