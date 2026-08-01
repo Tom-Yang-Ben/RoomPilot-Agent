@@ -56,6 +56,26 @@ def test_image_margin_is_not_a_room():
             and y1 < H + 2 * off - 2, f"房間 bbox 觸及影像邊界: {r['bbox']}"
 
 
+def test_keep_small_defers_area_floor():
+    # floor13 實案：走道被跨走道封口盒切成 ~3600px 碎片，正好卡在
+    # amin=2*(2T)^2=3200~3528 邊緣線上，碎片死在門檻、橋合併無從救起。
+    # 修法：keep_small=True 時門檻降為 (2T)^2，碎片先活著進橋合併，
+    # 面積終篩由 build_rooms 在合併後執行。
+    rects, W, H = _corridor_plan()
+    # 加一間 55×55=3025px 的小房（< 2*(2T)^2=3200、> (2T)^2=1600）：
+    # 右下角以牆隔出，完全封閉
+    rects += [
+        (505, 325, 580, 345),                # 小房上壁
+        (505, 345, 525, 400),                # 小房左壁
+    ]                                        # 右/下沿用外牆，內部 55×55=3025px
+    labels, rooms, outside = fp_c.segment_rooms(
+        rects, [], [], W, H, T=20, T_out=20, cm=1.0)
+    assert len(rooms) == 3, f"預設行為：小房仍被門檻淘汰，實得 {len(rooms)}"
+    labels, rooms, outside = fp_c.segment_rooms(
+        rects, [], [], W, H, T=20, T_out=20, cm=1.0, keep_small=True)
+    assert len(rooms) == 4, f"keep_small：小房應存活，實得 {len(rooms)}"
+
+
 def test_room_area_reaches_wall_edge():
     # 牆扣除改用原始遮罩後，房間面積應貼回真牆邊——上房內部
     # (T..W-T)×(T..150) 的涵蓋率應 >0.9（舊行為被大核吃掉一圈）。

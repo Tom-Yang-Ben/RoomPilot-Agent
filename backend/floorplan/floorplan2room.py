@@ -836,6 +836,14 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
         if any(_arc_at_bridge(d) for d in doors):
             kept.append((horiz, g0, g1, b0, b1))
             continue                             # 有門弧 → 是門
+        # 門弧清單空≠無門（floor13 實案：門偵測整圖 0、真門只剩墨水
+        # 證據，浴室因此被走道碎片誤併）——墨水密度否決補上這個盲區。
+        # thin 缺席時 _bridge_has_door_ink 回 True 是門位語境的「不濾
+        # 照舊」；合併語境相反——無細線層＝無證據，不得憑空否決
+        if det.get("thin") is not None \
+                and _bridge_has_door_ink(det, horiz, g0, g1, b0, b1):
+            kept.append((horiz, g0, g1, b0, b1))
+            continue                             # 有門扇墨水 → 是門
         # 橋兩側取樣（跳過封口線附近的牆帶，往外找到第一個房間像素）
         side = [0, 0]
         for k, sign in ((0, -1), (1, 1)):
@@ -954,7 +962,8 @@ def build_rooms(det):
     # 牆端連線（「紅色線端點連到另一端」）：40~260cm 的牆縫開口全封
     bridges = fp_c._wall_gaps(rects, wins, T, cm, 40.0, 260.0)
     labels, rooms, outside = fp_c.segment_rooms(rects, wins, doors,
-                                                img_w, img_h, T, T_out, cm)
+                                                img_w, img_h, T, T_out, cm,
+                                                keep_small=True)
     if labels is None or not rooms:
         zones = [_bridge_zone(*b) for b in bridges
                  if any(lo <= (b[2] - b[1]) * cm <= hi
@@ -962,6 +971,21 @@ def build_rooms(det):
         return None, [], bridges, zones, []
     # 走道橫斷橋合併後即失效：疊圖不再畫、恰為門尺寸者的假門位一併移除
     rooms, bridges = _merge_nondoor_bridges(labels, rooms, bridges, det)
+    # 面積終篩（keep_small 的另一半）：走道碎片已在上一步併回整條，
+    # 這裡才執行原本的面積門檻——未被合併救回的碎片與雜訊小塊在此淘汰
+    X0 = min(r_[0] for r_ in rects); Y0 = min(r_[1] for r_ in rects)
+    X1 = max(r_[2] for r_ in rects); Y1 = max(r_[3] for r_ in rects)
+    amin = max(int(0.003 * (X1 - X0) * (Y1 - Y0)), 2 * (2 * T) ** 2)
+    dropped = [r for r in rooms if r["area_px"] < amin]
+    if dropped:
+        for r in dropped:
+            labels[labels == r["id"]] = 0
+        rooms = [r for r in rooms if r["area_px"] >= amin]
+    if not rooms:
+        zones = [_bridge_zone(*b) for b in bridges
+                 if any(lo <= (b[2] - b[1]) * cm <= hi
+                        for lo, hi in DOOR_RANGES_CM)]
+        return None, [], bridges, zones, []
     zones = [_bridge_zone(*b) for b in bridges
              if any(lo <= (b[2] - b[1]) * cm <= hi for lo, hi in DOOR_RANGES_CM)
              and _bridge_has_door_ink(det, *b)]  # 迴轉區無墨=開放通道非門

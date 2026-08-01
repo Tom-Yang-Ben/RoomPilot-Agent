@@ -1101,10 +1101,14 @@ _FONT_PATHS = ["/mnt/c/Windows/Fonts/msjh.ttc",
                "C:/Windows/Fonts/msjh.ttc"]
 
 
-def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0):
+def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
+                  keep_small=False):
     """把牆(方塊)圍出的內部切成一間間空間：牆+窗+門洞畫實 → 閉運算封小縫 →
     影像邊界灌水分內外 → 室內扣掉牆 = 各房間連通塊。封口核逐步放大，
     直到室內總面積與涵蓋範圍合理(同 _room_polygon 的驗收)。
+    keep_small：面積門檻降為 (2T)²，供 build_rooms 讓「被跨走道封口盒
+    切碎的走道片」活著進橋合併（floor13 實案：碎片 ~3600px 卡在
+    2*(2T)²=3528 門檻線上），面積終篩由呼叫端在合併後補做。
     回傳 (labels影像, rooms清單, outside遮罩)；失敗 (None, [], None)。"""
     if not rects:
         return None, [], None
@@ -1162,7 +1166,8 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0):
         if bad.size:
             interior[np.isin(lab0, bad) & (closed > 0)] = 0
         n, lab, st, cent = cv2.connectedComponentsWithStats(interior, 8)
-        amin = max(int(0.003 * bbox_area), 2 * (2 * T) ** 2)    # 走道/玄關也要留下
+        amin = (2 * T) ** 2 if keep_small \
+            else max(int(0.003 * bbox_area), 2 * (2 * T) ** 2)  # 走道/玄關也要留下
         rooms, labels = [], np.zeros(lab.shape, np.int32)
         for i in range(1, n):
             if st[i, cv2.CC_STAT_AREA] < amin:
