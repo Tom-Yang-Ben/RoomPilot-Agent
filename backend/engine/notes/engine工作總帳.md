@@ -102,6 +102,9 @@ Agent 在規則下呼叫引擎擺放
 | `.gitignore` 排除 `.env.*`（備份檔含密鑰卻沒被擋） | 08-01 |
 | **瀏覽器路徑啟用策略層**（`/api/scene/layout` 補 `room_type`＋逐件處理依錨點排序） | 08-01 |
 | **Agent 補件權**（必備族系缺席→型錄補真品；假件→換真 GLB；20cm 錯件防呆） | 08-01 |
+| **RAG 語意快取接進第 6 步**（315 組離線 top-12，選件 1.4s；`build_rag_offer_cache.py`） | 08-01 |
+| **床消失案雙修**（語意關認中文描述＋型錄對 `catalog_furniture_id`；使用者確認全鏈通） | 08-02 |
+| **家具消失稽核工具＋skill**（`audit_furniture_vanish.py`＋`furniture-vanish-audit`） | 08-02 |
 
 備份分支 `backup/ancai-20260731` 指向合併前的 `e98c3a9`，**只在本機，沒推遠端**。
 
@@ -128,6 +131,8 @@ Agent 在規則下呼叫引擎擺放
 | 08-01 | 今天 | 補 `bedside-table` 淨空規則（DB 54 件，引擎零規則） | ✅ engine 內 | 未做 |
 | 08-01 | 今天 | 房型白名單 | ✅ engine 內 | 未做 |
 | 08-01 | 今天 | **餐廳／書房／玄關／次臥的擺放規則** | ✅ engine 內 | 未做。目前只有主臥、儲藏室、客廳三套 |
+| **08-02** | 新 | 🔴 **前端 2D 圖示庫缺 40 型**（`unknown_furniture_type` 即死；含 fabric-sofa 987 件等 8 個必備族系——RAG 挑中即消失，實測已殺 shelving-unit） | ⚠️ 跨 Bella（`scene_layout2d.js`） | **未做**。修法：generic 圖示 fallback 取代 throw |
+| **08-02** | 新 | 床語意關現擋 21 件（多為抽屜櫃冒充床的既知錯件）——清單交 Kai 覆核 | ⚠️ Kai 資料 | 稽核工具可重印清單 |
 | 08-01 | 今天 | 給床頭櫃等家具貼 `placement_relation` 標籤 | ⚠️ 跨 Bella（`main.py`） | 未做 |
 | 08-01 | 今天 | RAG `role` 硬過濾 | ⚠️ 跨 Django | 未修，但**已繞過**：第 6 步快取路線不經 role；僅 /rag 自由文字頁仍受影響（且實測猜測不穩定） |
 
