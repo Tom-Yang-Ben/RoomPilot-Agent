@@ -15,14 +15,29 @@ from backend.server.runtime_paths import legacy_runtime_dirs, project_runtime_di
 client = TestClient(app)
 
 
-def _selection_candidate(fid: str, kind: str) -> dict:
-    return {
+def _selection_candidate(fid: str, kind: str, *, with_model: bool = True) -> dict:
+    # 正式流程的候選（瀏覽器從 catalog 撈的）一定帶 model_url；缺 model_url
+    # 的假候選（furnitureOfferFromSpec）另以 with_model=False 模擬。
+    candidate = {
         "furniture_id": fid,
         "normalized_type": kind,
         "variant_id": "standard",
         "name_zh_raw": fid,
         "size_cm": {"width": 120, "depth": 60, "height": 80},
     }
+    if with_model:
+        candidate["model_url"] = f"https://example.test/{fid}.glb"
+        candidate["has_model"] = True
+    return candidate
+
+
+def _family_types(*families: str) -> set[str]:
+    from backend.agent.knowledge import FAMILY_OF
+
+    wanted = set(families)
+    types = set(wanted)
+    types.update(key for key, value in FAMILY_OF.items() if value in wanted)
+    return types
 
 
 def test_agent_furniture_selection_falls_back_when_llm_violates_room_rules() -> None:
@@ -46,10 +61,14 @@ def test_agent_furniture_selection_falls_back_when_llm_violates_room_rules() -> 
     payload = response.json()
     assert payload["source"] == "local_rules"
     assert payload["warnings"]
-    assert [
-        item["furniture_id"]
-        for item in payload["rooms"][0]["items"]
-    ] == ["sofa-1"]
+    items = payload["rooms"][0]["items"]
+    # 床不屬於客廳，遭規則剔除；沙發保留；缺席的必備電視櫃由 Agent 從型錄補上。
+    assert items[0]["furniture_id"] == "sofa-1"
+    backfilled = [item for item in items if item.get("selection_source") == "agent_backfill"]
+    assert len(backfilled) == 1
+    assert backfilled[0]["normalized_type"] in _family_types("tv-bench")
+    assert backfilled[0]["model_url"]
+    assert all(item["normalized_type"] != "bed" for item in items)
 
 
 def test_agent_furniture_selection_uses_server_side_local_rules_without_llm() -> None:
@@ -70,10 +89,67 @@ def test_agent_furniture_selection_uses_server_side_local_rules_without_llm() ->
     assert response.status_code == 200
     payload = response.json()
     assert payload["source"] == "local_rules"
-    assert [
-        item["furniture_id"]
-        for item in payload["rooms"][0]["items"]
-    ] == ["bed-1", "nightstand-1"]
+    items = payload["rooms"][0]["items"]
+    # 同族系（bed 與 bed-frame）只取第一件；缺席的必備衣櫃由 Agent 從型錄補上。
+    assert [item["furniture_id"] for item in items[:2]] == ["bed-1", "nightstand-1"]
+    backfilled = [item for item in items if item.get("selection_source") == "agent_backfill"]
+    assert len(backfilled) == 1
+    assert backfilled[0]["normalized_type"] in _family_types("wardrobe")
+    assert backfilled[0]["model_url"]
+
+
+def test_agent_backfill_replaces_model_less_required_offer_with_catalog_item() -> None:
+    """必備族系的候選全是無 3D 模型的假件時，Agent 要換成型錄真品。
+
+    這正是第 6 步「灰方塊衣櫃」的根因：瀏覽器對不到 catalog 就捏造無
+    model_url 的假 offer，舊行為會照單全收讓 3D 畫出灰色方塊。
+    """
+    response = client.post(
+        "/api/agent/furniture/select",
+        json={
+            "rooms": [{"room_id": "bedroom-1", "room_type": "bedroom"}],
+            "offers": {
+                "bedroom-1": [
+                    _selection_candidate("bed-1", "bed"),
+                    _selection_candidate("nightstand-1", "bedside-table"),
+                    _selection_candidate("fake-wardrobe", "wardrobe", with_model=False),
+                ]
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"] == "local_rules"
+    items = payload["rooms"][0]["items"]
+    wardrobe_items = [
+        item for item in items if item["normalized_type"] in _family_types("wardrobe")
+    ]
+    assert len(wardrobe_items) == 1
+    assert wardrobe_items[0]["furniture_id"] != "fake-wardrobe"
+    assert wardrobe_items[0]["model_url"]
+    assert wardrobe_items[0]["selection_source"] == "agent_backfill"
+
+
+def test_agent_backfill_fills_all_minimums_when_offers_are_empty() -> None:
+    """offers 全空時，Agent 依 knowledge 的房型最少配置自己補齊（沒接 RAG 也放得出正確家具）。"""
+    response = client.post(
+        "/api/agent/furniture/select",
+        json={
+            "rooms": [{"room_id": "bedroom-1", "room_type": "bedroom"}],
+            "offers": {"bedroom-1": []},
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"] == "local_rules"
+    items = payload["rooms"][0]["items"]
+    families = {item["normalized_type"] for item in items}
+    assert families & _family_types("bed")
+    assert families & _family_types("wardrobe")
+    assert families & _family_types("bedside-table")
+    assert all(item["model_url"] for item in items)
 
 
 def test_worktree_uses_the_main_repository_runtime_directory(tmp_path: Path) -> None:

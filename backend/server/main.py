@@ -20,7 +20,12 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
-from ..agent.knowledge import family_of
+from ..agent.knowledge import (
+    FAMILY_ZH,
+    family_of,
+    normalize_room_type,
+    required_families_for_room,
+)
 from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
 from .questionnaire_visuals import (
     QuestionnaireVisualStore,
@@ -2671,6 +2676,102 @@ def _normalize_selection_offers(raw_offers: object) -> dict[str, list[dict]]:
     return offers
 
 
+def _backfill_required_offers(
+    rooms: list[dict],
+    offers: dict[str, list[dict]],
+    style_id: object,
+) -> dict[str, list[dict]]:
+    """房型必備族系缺席、或候選全無 3D 模型時，由伺服器端型錄補上真品。
+
+    設計依據 `backend/agent/knowledge.py` 的 ``ROOM_MINIMUM_FAMILIES``（機器
+    SSOT，對齊 `backend/engine/room_strategy/README.md`）：Agent 對選件不只
+    有否決權，也要有補件權——前端清單只是種子，缺必備家具由這裡補齊，
+    不再仰賴瀏覽器寫死的房型表。未來 RAG offers 接上後，本函式退居保底。
+
+    只動必備族系；可選族系一律不碰，避免替使用者添購沒要求的家具。
+    型錄也找不到時保持原狀，讓後續驗證誠實回報，不硬塞。
+    """
+    style = str(style_id or "")
+    catalog: tuple[dict, ...] | None = None
+
+    def _footprint(item: dict) -> tuple[float, float]:
+        size = item.get("size_cm") or {}
+        try:
+            return float(size.get("width") or 0), float(size.get("depth") or 0)
+        except (TypeError, ValueError):
+            return 0.0, 0.0
+
+    def pick(family: str, exclude_ids: set[str], target_area: float | None) -> dict | None:
+        nonlocal catalog
+        if catalog is None:
+            catalog = _furniture_payload_cache()
+        best: dict | None = None
+        best_key: tuple[int, float, str] | None = None
+        for item in catalog:
+            if family_of(item.get("normalized_type")) != family:
+                continue
+            if not item.get("model_url") or not item.get("has_model"):
+                continue
+            furniture_id = str(item.get("furniture_id") or "")
+            if not furniture_id or furniture_id in exclude_ids:
+                continue
+            width, depth = _footprint(item)
+            # 型錄含錯件（實測抓過 32×1.3 公分的「衣櫃」，應是 PAX 門片）；
+            # 任一邊小於 20 公分就不可能是可自動擺放的主家具，直接跳過。
+            if width < 20 or depth < 20:
+                continue
+            area = width * depth
+            # 確定性挑選：同風格優先；有原宣告尺寸（替換無模型假件）就挑
+            # 面積最接近的，沒有（族系整個缺席）就挑最小的——對齊 G1
+            # 「放不下先換小款」，先求放得下，美感交給 RAG。id 決勝，無隨機。
+            size_rank = abs(area - target_area) if target_area else area
+            key = (
+                0 if style and str(item.get("primary_style") or "") == style else 1,
+                size_rank,
+                furniture_id,
+            )
+            if best_key is None or key < best_key:
+                best, best_key = item, key
+        return best
+
+    for room in rooms:
+        room_id = str(room.get("room_id") or "")
+        required = required_families_for_room(normalize_room_type(room.get("room_type")))
+        if not room_id or not required:
+            continue
+        room_offers = list(offers.get(room_id) or [])
+        used_ids = {str(item.get("furniture_id") or "") for item in room_offers}
+        changed = False
+        for family in required:
+            in_family = [
+                item for item in room_offers
+                if family_of(item.get("normalized_type")) == family
+            ]
+            if in_family and any(item.get("model_url") for item in in_family):
+                continue  # 已有帶真模型的候選，不干涉
+            declared_w, declared_d = (_footprint(in_family[0]) if in_family else (0.0, 0.0))
+            target_area = declared_w * declared_d if declared_w > 0 and declared_d > 0 else None
+            replacement = pick(family, used_ids, target_area)
+            if replacement is None:
+                continue  # 型錄也沒有 → 維持原狀，讓驗證誠實失敗
+            offer = dict(replacement)
+            offer.setdefault("variant_id", "standard")
+            offer["selection_source"] = "agent_backfill"
+            family_zh = FAMILY_ZH.get(family, family)
+            if in_family:
+                # 既有候選全是無模型假件：真品插到最前，讓「每族系取第一件」選中它。
+                offer["reason"] = f"候選缺 3D 模型，改用型錄同類補上{family_zh}"
+                room_offers.insert(0, offer)
+            else:
+                offer["reason"] = f"依房型最少配置自動補上{family_zh}"
+                room_offers.append(offer)
+            used_ids.add(str(offer.get("furniture_id") or ""))
+            changed = True
+        if changed:
+            offers[room_id] = room_offers
+    return offers
+
+
 def _local_selection_raw(rooms: list[dict], offers: dict[str, list[dict]]) -> dict:
     selections: list[dict] = []
     for room in rooms:
@@ -2743,6 +2844,8 @@ async def agent_furniture_select(payload: dict) -> dict:
         })
     offers = _normalize_selection_offers(payload.get("offers"))
     style_id = payload.get("style_id")
+    # Agent 補件：必備族系缺席或全無 3D 模型時，先由型錄補上真品再進入選件。
+    offers = _backfill_required_offers(rooms, offers, style_id)
     context = payload.get("context") if isinstance(payload.get("context"), dict) else None
     llm_selection = payload.get("llm_selection")
     warnings: list[str] = []
