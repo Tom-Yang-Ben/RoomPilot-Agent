@@ -161,11 +161,41 @@ floor74/76 的走道沿著外牆走卻沒有對外的門。門位取樣沿用
   品質）、floor64 中距開口、無證據玄關。
   詳見 `SEG_FAILURE_ANALYSIS.md` 與 `docs/superpowers/plans/2026-08-01-seg-attribution.md`
 - `Garage` 在答案集中 0 樣本，該類無法量測、線性頭該通道未經訓練
-- color 集 104 個 `Undefined` 待人工逐一標注；在那之前量尺暫將其歸入
-  `Hallway`（見 `eval_rooms_cc.GT_TOKEN2CLASS` 的 TODO）。灰階集無此問題
+- ~~color 集 104 個 `Undefined` 待人工逐一標注~~ **2026-08-02 已全數
+  人工審定完成**（28 張 214 間 0 Undefined；重複的 color_floor_11 與
+  洩漏的灰階 floor19 已移除）
 - floor61 的走道被 DINOv2 判成 `Bedroom` 0.70，不經 `Entry` 就進不了幾何
   規則，需另循他途
 - `MAIN_SYNC_TODO.md` 已整份移除，待重新分析 ben 分支後重建
+
+---
+
+2026/8/2 v.2.25 變更（color 管線首循環——答案集定稿、窗封口/空心牆/雙頭命名；dev 59.2%→63.8%、配對房命名 62%→90%、端到端全對 +42%）
+
+### 一、color 答案集定稿與衛生
+- own_dataset_color 19 張（152 間）與 own_eval_color 9 張（62 間）全數與使用者逐間審定，0 Undefined、parse_gt 全過；`COLOR_PIPELINE_PLAN.md` 記錄三階段計劃與逐輪結果
+- 重複清理：color_floor_11 與 floor_04 同圖（連源頭 color_png 刪除）；灰階 floor19 與保留集 floor60 同圖（開發/保留洩漏，刪開發集側三處，own_dataset 25→24 張、own_train.txt 同步，**灰階開發集舊報表 157 房分母不可比**）
+
+### 二、分割層（第一輪，dev 84→92）
+- `hollow_wall_rects`：空心雙線牆（細深描邊夾白色中性填充，floor_07/08 畫法）補抓——單向閉運算搭縫、厚度/長度/深色佔比驗收；floor_07 由 seg_fail 救回
+- `color_window_layers` 抽共用＋`detect_color` 接回窗與細線層：外牆窗帶不再是灌水的洞（floor_09 型「半戶被判室外」）；thin 只以 `det["fence"]` 供救援輪，不當墨水證據（彩圖細線滿是磁磚/家具線，會壓制走道橫斷合併）
+- `window_side_gate`：假窗物理判別——牆＋封口＋全候選畫屏障、1.5T 閉運算補殼縫後灌水，真窗恰一側通室外；距離外圈/兩端錨定實測都分不開真假（floor_04/05/10 三案）
+- fence 救援輪加紮實度驗收（<0.60 讓路）：深磁磚圖的紋理噪點屏障不再拼碎房（floor_30 5→1→5 復原）
+
+### 三、命名層（第二輪，配對房命名 62%→90%）
+- DINOv2 分域雙頭：color 答案集餵進訓練；混訓實測傷灰階（86.1%→80.6%）改 `--domain` 分域——灰階頭原封不動、color 頭 83.9% 出貨 `room_head_color.npz`，`build_rooms` 依 `det["fence"]` 選頭。灰階基準自 90.3% 移至 86.1% 係答案卷標籤修正所致（新舊頭同分、非退化）
+- `_harvest_balcony_pockets`：圍欄補屏障重灌水收殼外封閉口袋（純加法），閉運算防圍欄線切碎；Balcony 配對 5→16、配對到的命名全對（先前 11 間全錯、6 個誤判 Stair）
+
+### 四、量測（`--own-dir` color 集，IoU≥0.5）
+| 指標 | baseline | v2.25 |
+| :--- | :--- | :--- |
+| dev 命中 | 59.2%（84/142，1 seg_fail） | **63.8%（97/152，0 seg_fail）** |
+| dev 配對房命名 | — | 95.9%（核心 5 類 96.0%） |
+| holdout 命中 | 67.7%（42/62） | 66.1%（41/62，floor_27 -1） |
+| holdout 配對房命名 | 62%（26/42） | **90%（37/41）**、核心 5 類 72%→**94%** |
+| holdout 端到端全對 | 26 間 | **37 間（+42%）** |
+
+殘留（下循環）：Balcony 漏切 13 間（圍欄未進細線層）、floor_08 近白暗示牆（描邊 gray 189~200 灰度不可偵測，需語意/色塊分割路線）、floor_09 窗外漏點、floor_27 -1。診斷教訓：eval 暫存檔名含 color 強制彩圖路（2x），手動診斷須用 staged 檔重現。
 
 ---
 
