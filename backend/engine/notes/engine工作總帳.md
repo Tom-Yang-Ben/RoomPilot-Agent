@@ -100,6 +100,8 @@ Agent 在規則下呼叫引擎擺放
 | 合併 ben 分支（第 6 步三個阻斷點全解），commit `890a0c4` | 08-01 |
 | 修 503（`.env` 補兩行，見參考手冊 §5.3） | 08-01 |
 | `.gitignore` 排除 `.env.*`（備份檔含密鑰卻沒被擋） | 08-01 |
+| **瀏覽器路徑啟用策略層**（`/api/scene/layout` 補 `room_type`＋逐件處理依錨點排序） | 08-01 |
+| **Agent 補件權**（必備族系缺席→型錄補真品；假件→換真 GLB；20cm 錯件防呆） | 08-01 |
 
 備份分支 `backup/ancai-20260731` 指向合併前的 `e98c3a9`，**只在本機，沒推遠端**。
 
@@ -308,7 +310,7 @@ placement_relation = { "kind": "adjacent", "target_types": ["bed", ...] }
 | 元件 | 接上主流程了嗎 | 證據 |
 |---|---|---|
 | **AGENT 擺放** `agent/place.py` | ✅ **有** | `scene_service.py:16` import、`:1962` 呼叫 |
-| **AGENT 選件** `agent/select.py`＋`knowledge.py` | ❌ **沒有** | 全專案**只有測試檔**在 import |
+| **AGENT 選件** `agent/select.py`＋`knowledge.py` | ⚠️ **半接**（08-01） | 驗證＋**補件**已上線（`_backfill_required_offers`，讀 `ROOM_MINIMUM_FAMILIES` 從型錄補真品）；LLM 選件仍不可能執行 |
 | **RAG** | ❌ **沒有** | `scene_service.py` 一次都沒提到 rag；RAG 只掛獨立的 `/api/rag/*`，只有 `static/rag.js` 在打 |
 | **引擎擺放策略層**（08-01 新增） | ❌ **沒有** | `scene_service` 仍用自己的 `_placement_candidates` |
 
@@ -423,6 +425,32 @@ anchor 且在價格帶內  38 件   ← 全被丟掉，且不報錯
 
 ---
 
+### 5.7 前端持有的決策點盤點（2026-08-01 確認，Ancai 拍板方向：agent＋RAG＋引擎主導 2D/3D）
+
+三份正式文件都規定前端只做呈現：
+
+1. `CLAUDE.md` 禁止事項：「將幾何決策移到 Graph RAG、**瀏覽器**或 LLM」
+2. `backend/server/AGENTS.md`：「Adapt owner modules; **do not copy their algorithms into `main.py` or JS**」
+3. `engine/README.md` 分工圖：前端只出現在最末端的「2D／3D **呈現**」
+
+實際盤點，前端目前握有 **9 個決策點**：
+
+| # | 位置 | 它在決定什麼 | 應歸誰 | 拆除時機 |
+|---|---|---|---|---|
+| 1 | `scene_layout2d.js:238` `recommendedFurnitureForRoom` | 各房放什麼＋型號 | Agent（knowledge.py ← 你的策略表） | Agent 補件後降為種子，之後刪 |
+| 2 | `scene_v2.js:7261` `QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS` | 問卷預設／必選 | Agent | 同上 |
+| 3 | `scene_layout2d.js:50-100` `FURNITURE_2D_LIBRARY` | 型號與尺寸（雙人床 152×200 等寫死規格） | catalog（Kai，真家具尺寸） | 選件全走 catalog 後只留圖示 |
+| 4 | `scene_layout2d.js:187` `recommendCompanionFurniture` | 成組補件 | Agent `COMPANION_OF` | Agent 補件後刪 |
+| 5 | `scene_furniture_retrieval.js` 整檔 188 行 | **選哪件**（關鍵字打分，假 RAG） | RAG（Django） | RAG offers 接上後刪 |
+| 6 | `scene_v2.js:8279` `specFitsRoomDimensions` | **塞不塞得下（幾何！）** | 引擎 | ⚠️ **直接違反 CLAUDE.md 禁令**，引擎驗證已可信即拆 |
+| 7 | `scene_v2.js:8029` `specsAllowedByRoomFeasibility` | 可行性硬規則（浴缸等） | Agent／引擎 | 同上 |
+| 8 | `scene_layout2d.js:214` `roomTypeFromName` | 用名字 regex 猜房型 | 第 4 步資料（Cody） | 房型欄位可信後刪 |
+| 9 | `scene_v2.js` `furnitureOfferFromSpec` | **捏造無 GLB 的假 offer**（灰方塊來源） | 不該存在 | Agent 補件後刪 |
+
+註解自白：#5 的 catch 寫著 `"Catalog RAG retrieval fallback"`、#6 的註解自稱「2026-07 盤點修復的治本**半**」——**墊檔性質有據，但沒有一處寫時程**，不拆就是永久。
+
+⚠️ 更正一條舊記錄：先前記「前端在廚房自動加冰箱／陽台加洗衣機，違反 G5」——合併 ben 後 `recommendCompanionFurniture:189` 已用 `retiredApplianceTypes` 擋掉，**行為已無違規**，僅殘留死碼。
+
 ## 6. 想法衝突
 
 ### 6.1 同一房型有四張清單（07-31 實測確認，仍未解）
@@ -512,7 +540,7 @@ anchor 且在價格帶內  38 件   ← 全被丟掉，且不報錯
 | 3 | **窗要分兩類還是三類**？前端只有 `standard`／`floor_to_ceiling`，設計定案是三類——缺「可通行落地窗門」，底線 **30 vs 60 差一倍**，逃生等級不同 | 落地窗禁放帶的欄位設計 | 07-31 |
 | 4 | **窗型要不要自動猜**？辨識端完全不產生窗的類型（只有寬度），目前一律預設一般窗、靠人在第 4 步手動切換 | 第 4 步 UI（跨 Bella） | 08-01 |
 | 5 | 6 個 catalog 測試期望值要不要改成 8,557？（取決於資料是否定版） | catalog 測試 | 07-31 |
-| 6 | `test_project_workflow_api` 2 個失敗：改 ben 的測試，還是放寬 `knowledge.py`？ | 全庫綠燈 | 08-01 |
+| ~~6~~ | ~~`test_project_workflow_api` 2 個失敗~~ | ✅ **08-01 已解**：第三條路——Agent 補件讓驗證通過，測試更新為新契約後轉綠（832→836 passed） | — |
 | 7 | **接線走法**：要不要動 `scene_service.py` 讓第 6 步真的顯示策略層的結果？ | 所有 08-01 的成果 | 08-01 |
 
 **浴室要不要留空**已由 v1 規格回答（**空白**），不再是待決項。
