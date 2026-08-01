@@ -129,9 +129,73 @@ def describe(placed: PlacedFurniture, room: Room, room_type: str) -> tuple[str, 
     return line, stray
 
 
+LEGEND: dict[str, str] = {
+    "bed": "B", "wardrobe": "W", "bedside-table": "n", "sofa": "S",
+    "tv-bench": "T", "coffee-table": "c", "shelving-unit": "s",
+    "cabinet-cupboard": "C",
+}
+
+
+def draw(room: Room, placed: list[PlacedFurniture], cols: int = 54, rows: int = 20) -> list[str]:
+    """把一間房畫成字元平面圖，北在上。"""
+    sx, sy = room.width / cols, room.depth / rows
+    grid = [[" "] * cols for _ in range(rows)]
+    for item in placed:
+        fw, fd = footprint(item)
+        mark = LEGEND.get(item.catalog.type, "?")
+        for r in range(rows):
+            for c in range(cols):
+                x, y = (c + 0.5) * sx, (r + 0.5) * sy
+                if abs(x - item.pos_x) <= fw / 2 and abs(y - item.pos_y) <= fd / 2:
+                    grid[r][c] = mark
+
+    def marks_on(side: str) -> set[int]:
+        """該面牆上被門窗佔用的格子索引。"""
+        taken: set[int] = set()
+        for opening in room.openings:
+            low_x, high_x = opening.span_along("x")
+            low_y, high_y = opening.span_along("y")
+            if side in ("south", "north"):
+                on_wall = abs(low_y - (0 if side == "south" else room.depth)) <= 8 and \
+                          abs(high_y - (0 if side == "south" else room.depth)) <= 8
+                span, step, count = (low_x, high_x), sx, cols
+            else:
+                on_wall = abs(low_x - (0 if side == "west" else room.width)) <= 8 and \
+                          abs(high_x - (0 if side == "west" else room.width)) <= 8
+                span, step, count = (low_y, high_y), sy, rows
+            if not on_wall:
+                continue
+            for i in range(count):
+                if span[0] <= (i + 0.5) * step <= span[1]:
+                    taken.add(i if opening.kind == "window" else -i - 1)
+        return taken
+
+    def wall_line(side: str, count: int, char_open: str) -> str:
+        taken = marks_on(side)
+        out = ""
+        for i in range(count):
+            if -i - 1 in taken:
+                out += "▓"
+            elif i in taken:
+                out += "▒"
+            else:
+                out += char_open
+        return out
+
+    west, east = marks_on("west"), marks_on("east")
+    lines = ["┌" + wall_line("north", cols, "─") + "┐"]
+    for r in range(rows - 1, -1, -1):
+        left = "▓" if -r - 1 in west else ("▒" if r in west else "│")
+        right = "▓" if -r - 1 in east else ("▒" if r in east else "│")
+        lines.append(left + "".join(grid[r]) + right)
+    lines.append("└" + wall_line("south", cols, "─") + "┘")
+    return lines
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", default="testdata/png/floor04.png")
+    parser.add_argument("--no-draw", action="store_true", help="只印座標，不畫平面圖")
     args = parser.parse_args()
 
     image_path = (REPO_ROOT / args.image).resolve()
@@ -183,6 +247,13 @@ def main() -> int:
         for failure in result["failed"]:
             print(f"  ✗ {failure['id']:20} {failure['reason']}")
             total_failed += 1
+        if not args.no_draw and result["placed"]:
+            print()
+            for line in draw(room, result["placed"]):
+                print("  " + line)
+            used = sorted({p.catalog.type for p in result["placed"]})
+            print("  " + "  ".join(f"{LEGEND.get(t, '?')}={t}" for t in used))
+            print("  ▒=窗  ▓=門（含開門扇形所在牆段）")
         print()
 
     print("─" * 72)
