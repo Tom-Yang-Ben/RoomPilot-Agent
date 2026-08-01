@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import json
 import os
 from typing import Any
 
@@ -37,6 +38,14 @@ from .render_service import (
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image"
 MAX_REFERENCE_BYTES = 20 * 1024 * 1024
+
+# 單張圖的家具鎖定上限。實測案子單房最多 18 件，40 件已留足餘裕；
+# 真的超過時 prompt 會明寫截斷數量，不做無聲截斷。
+MAX_LOCKED_FURNITURE = 40
+# 家具中心距房間外框多近才算「貼牆」。
+WALL_SNAP_CM = 30.0
+# 價格是報價資料，不是視覺條件，不進 prompt。
+_EXCLUDED_ITEM_KEYS = frozenset({"price", "price_twd", "price_ntd"})
 
 
 def direct_image_provider_available() -> bool:
@@ -64,6 +73,137 @@ def _style_pack_for(prepared: dict[str, Any], card_id: str) -> dict[str, Any]:
     return {"card_id": card_id}
 
 
+def _scene_objects(prepared: dict[str, Any]) -> list[dict[str, Any]]:
+    objects = (prepared.get("scene") or {}).get("scene_objects")
+    return [item for item in objects or [] if isinstance(item, dict)]
+
+
+def _object_room_id(item: dict[str, Any]) -> str:
+    return str(item.get("placement_room_id") or item.get("auto_decor_room_id") or "")
+
+
+def _room_region(prepared: dict[str, Any], room_id: str) -> dict[str, Any] | None:
+    regions = ((prepared.get("scene") or {}).get("floorplan") or {}).get("room_regions")
+    for region in regions or []:
+        if isinstance(region, dict) and str(region.get("room_id")) == str(room_id):
+            return region
+    return None
+
+
+def _wall_hint(item: dict[str, Any], region: dict[str, Any] | None) -> str:
+    """描述家具貼哪一面牆。
+
+    只是把 backend/engine/ 已定案的座標翻成文字，不做任何幾何判定——
+    生圖端不得成為第二套幾何來源。座標框沿用 scene_service._flip_parsed_z：
+    +z 朝南、+x 朝東。
+    """
+    ring = (region or {}).get("exterior") or []
+    position = item.get("position_cm") or {}
+    try:
+        x = float(position["x"])
+        z = float(position["z"])
+        xs = [float(point[0]) for point in ring]
+        zs = [float(point[1]) for point in ring]
+    except (KeyError, TypeError, ValueError, IndexError):
+        return ""
+    if not xs or not zs:
+        return ""
+    sides = (
+        ("西側牆", x - min(xs)),
+        ("東側牆", max(xs) - x),
+        ("北側牆", z - min(zs)),
+        ("南側牆", max(zs) - z),
+    )
+    nearest, distance = min(sides, key=lambda pair: pair[1])
+    if distance > WALL_SNAP_CM:
+        return "位於房間中央區域"
+    return f"貼{nearest}"
+
+
+def locked_furniture(
+    prepared: dict[str, Any],
+    room_view: dict[str, Any] | None = None,
+) -> tuple[list[dict[str, Any]], int]:
+    """把 scene_json 已定案的家具整理成生圖鎖定清單，回傳（清單, 被截斷件數）。
+
+    這是「參考截圖 + 一句請保留家具」以外的第二層保險：模型看圖猜家具會產生
+    幻覺（換型號、多一張椅子、沙發換位），明文列出身分與座標才鎖得住。
+
+    兩個排除規則：
+    - ``placement_failed`` 的項目沒有進場景，參考截圖裡也看不到，列進 prompt
+      等於要求模型畫出畫面上不存在的東西。
+    - 價格欄位與生圖無關（見 ``_EXCLUDED_ITEM_KEYS``）。
+
+    家具身分一律取自 ``prepared["scene"]``，不繞 ``requirements``——後者會過
+    ``render_service._strip_private_fields``，而 ``name`` 在 PRIVATE_KEYS 裡，
+    繞過去家具名稱會被整個剝掉。
+    """
+    room_id = str((room_view or {}).get("room_id") or "")
+    region = _room_region(prepared, room_id) if room_id else None
+    items: list[dict[str, Any]] = []
+    for item in _scene_objects(prepared):
+        if item.get("placement_failed"):
+            continue
+        if room_id and _object_room_id(item) != room_id:
+            continue
+        size = item.get("size_cm") or {}
+        position = item.get("position_cm") or {}
+        entry = {
+            "catalog_id": str(
+                item.get("catalog_furniture_id") or item.get("furniture_id") or ""
+            ),
+            "name": str(item.get("name_zh_raw") or ""),
+            "type": str(item.get("normalized_type") or ""),
+            "material": item.get("material"),
+            "style": item.get("primary_style"),
+            "size_cm": {
+                "width": size.get("width"),
+                "depth": size.get("depth"),
+                "height": size.get("height"),
+            },
+            "position_cm": {"x": position.get("x"), "z": position.get("z")},
+            "rotation_deg": item.get("rotation_y_deg"),
+            "wall_hint": _wall_hint(item, region),
+        }
+        items.append({key: value for key, value in entry.items() if value not in (None, "")})
+
+    truncated = max(0, len(items) - MAX_LOCKED_FURNITURE)
+    return items[:MAX_LOCKED_FURNITURE], truncated
+
+
+def _furniture_lock_sections(
+    prepared: dict[str, Any],
+    room_view: dict[str, Any] | None,
+) -> tuple[str, str]:
+    """回傳（清單摘要, JSON 附錄）。兩者都空字串代表場景沒有可鎖定的家具。"""
+    items, truncated = locked_furniture(prepared, room_view)
+    if not items:
+        return "", ""
+
+    lines = [f"畫面中的家具共 {len(items)} 件，逐件如下（數量與品項不得增減）："]
+    for index, item in enumerate(items, start=1):
+        size = item.get("size_cm") or {}
+        descriptors = [
+            item.get("name") or item.get("type") or f"家具{index}",
+            f"型號 {item['catalog_id']}" if item.get("catalog_id") else "",
+            "×".join(
+                str(size[key]) for key in ("width", "depth", "height") if size.get(key)
+            ),
+            f"材質 {item['material']}" if item.get("material") else "",
+            item.get("wall_hint") or "",
+        ]
+        lines.append(f"{index}. " + "、".join(part for part in descriptors if part))
+    if truncated:
+        lines.append(f"（另有 {truncated} 件未列出，同樣不得增減或移動。）")
+
+    appendix = (
+        "以下 JSON 是上述家具的精確定位（單位公分，座標與角度均已定案，"
+        "僅供你確認位置，不得依此重新排列）：\n"
+        + json.dumps(items, ensure_ascii=False, separators=(",", ":"))
+    )
+    return "\n".join(lines), appendix
+
+
 def build_render_prompt(
     prepared: dict[str, Any],
     style_pack: dict[str, Any],
@@ -82,6 +222,11 @@ def build_render_prompt(
         "不得新增、刪除或移動任何家具與結構；相機視角必須與參考圖一致。",
         f"設計風格：{style_name}。",
     ]
+    # 家具清單緊接在鎖定語句之後：模型對 prompt 前段的指令權重最高，而
+    # 「畫面上有哪些家具」正是最容易被幻覺改寫的部分。
+    inventory, furniture_appendix = _furniture_lock_sections(prepared, room_view)
+    if inventory:
+        parts.append(inventory)
     if isinstance(palette, list) and palette:
         parts.append("主色調（hex）：" + "、".join(str(color) for color in palette[:6]) + "。")
     for key, label in (("wall", "牆面"), ("floor", "地板"), ("lighting", "燈光"), ("rendering", "渲染語言")):
@@ -96,6 +241,8 @@ def build_render_prompt(
         room_label = str(room_view.get("room_label") or room_view.get("room_id") or "").strip()
         if room_label:
             parts.append(f"本張聚焦房間：{room_label}，以該房間視角出圖。")
+    if furniture_appendix:
+        parts.append(furniture_appendix)
     parts.append(
         "輸出：單張高品質寫實渲染圖，自然光影、真實材質質感，"
         "photorealistic interior rendering, high detail, no text, no watermark."

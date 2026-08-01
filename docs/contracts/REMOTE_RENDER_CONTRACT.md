@@ -79,3 +79,27 @@ FastAPI 以內建轉接層直接呼叫 OpenRouter 生圖模型（預設
 JSON 形狀，但 `status` 直接是 `completed` 且附 `preview_url`。鎖定條件由
 prompt 明文表達（結構、家具、相機不得變動）。`ROOMPILOT_RENDER_IMAGE_DISABLED=1`
 停用此路徑，回到 503 行為。
+
+## 家具鎖定清單（2026-08-02 增補）
+
+原本內建路徑只送出參考截圖加上一句「請保留家具」，`scene` 雖然是必填卻沒有
+被 prompt 讀取，等於要求模型看圖自行辨認家具——實測會換型號、多補座椅或
+移動沙發。現在 `build_render_prompt` 會從 `scene.scene_objects` 逐件展開：
+
+- 身分：`catalog_furniture_id`（缺值退 `furniture_id`）、`name_zh_raw`、
+  `normalized_type`、`material`、`primary_style`。
+- 幾何：`size_cm`、`position_cm`、`rotation_y_deg`，另附由 `floorplan.room_regions`
+  外框推得的貼牆描述。這只是把 `backend/engine/` 已定案的座標翻成文字，
+  生圖端不得成為第二套幾何來源。
+- `room_final` 依 `placement_room_id` / `auto_decor_room_id` 逐房過濾；
+  `palette_comparison` 是全景視角，帶整個場景。
+
+排除規則：
+
+- `placement_failed` 的品項不列入——它們沒有進場景，參考截圖裡也看不到。
+- 價格欄位（`price`、`price_twd`、`price_ntd`）不進 prompt。
+- 家具身分一律取自 `scene`，不得改繞 `requirements`：後者會過
+  `_strip_private_fields`，而 `name` 在 `PRIVATE_KEYS` 內，繞過去名稱會被剝掉。
+
+單張上限 `MAX_LOCKED_FURNITURE`（40 件）。超過時 prompt 會明寫未列出的件數，
+不做無聲截斷。

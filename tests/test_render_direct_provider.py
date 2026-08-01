@@ -38,6 +38,75 @@ def _camera() -> dict:
     return {"position_cm": [420, 165, 380], "target_cm": [210, 120, 190], "fov_deg": 52}
 
 
+def _room_regions() -> list[dict]:
+    return [
+        {
+            "room_id": "living-1",
+            "label": "客廳",
+            "room_type": "living_room",
+            "exterior": [[0, 0], [400, 0], [400, 300], [0, 300]],
+        },
+        {
+            "room_id": "bedroom-1",
+            "label": "主臥",
+            "room_type": "bedroom",
+            "exterior": [[400, 0], [700, 0], [700, 300], [400, 300]],
+        },
+    ]
+
+
+def _scene_objects() -> list[dict]:
+    """模擬第 8 步定案後的 scene_objects（欄位名對齊 scene_service）。"""
+    return [
+        {
+            "furniture_id": "f-1",
+            "catalog_furniture_id": "IKEA-SOFA-001",
+            "name_zh_raw": "三人座布沙發",
+            "normalized_type": "sofa",
+            "material": "亞麻布",
+            "primary_style": "nordic",
+            "price_twd": 28900,
+            "size_cm": {"width": 210, "depth": 90, "height": 75},
+            "position_cm": {"x": 200, "z": 20},
+            "rotation_y_deg": 0,
+            "placement_room_id": "living-1",
+        },
+        {
+            "furniture_id": "f-2",
+            "catalog_furniture_id": "IKEA-TV-014",
+            "name_zh_raw": "低檯面電視櫃",
+            "normalized_type": "tv-stand",
+            "size_cm": {"width": 180, "depth": 40, "height": 45},
+            "position_cm": {"x": 200, "z": 280},
+            "rotation_y_deg": 180,
+            "placement_room_id": "living-1",
+        },
+        {
+            "furniture_id": "f-3",
+            "catalog_furniture_id": "ABO-BED-777",
+            "name_zh_raw": "雙人加大床架",
+            "normalized_type": "bed",
+            "size_cm": {"width": 180, "depth": 210, "height": 40},
+            "position_cm": {"x": 550, "z": 150},
+            "rotation_y_deg": 90,
+            "placement_room_id": "bedroom-1",
+        },
+        {
+            # 引擎放不下的品項不在截圖裡，列進 prompt 等於要模型畫出不存在的東西。
+            "furniture_id": "f-4",
+            "catalog_furniture_id": "IKEA-SHELF-909",
+            "name_zh_raw": "頂天書櫃",
+            "normalized_type": "bookcase",
+            "size_cm": {"width": 80, "depth": 30, "height": 220},
+            "position_cm": {"x": 0, "z": 0},
+            "rotation_y_deg": 0,
+            "placement_room_id": "living-1",
+            "placement_failed": True,
+            "placement_reason": "no_valid_position",
+        },
+    ]
+
+
 def _payload(project_id: str, mode: str = "palette_comparison") -> dict:
     payload = {
         "schema_version": "1.0",
@@ -50,7 +119,11 @@ def _payload(project_id: str, mode: str = "palette_comparison") -> dict:
              "wall": "暖白乳膠漆", "floor": "淺橡木超耐磨木地板", "lighting": "3000K 間接光"},
             {"card_id": "card-2", "name": "現代深色風", "palette_hex": ["#2E2E2E"]},
         ],
-        "scene": {"scene_id": "scene-1", "scene_objects": []},
+        "scene": {
+            "scene_id": "scene-1",
+            "floorplan": {"room_regions": _room_regions()},
+            "scene_objects": _scene_objects(),
+        },
         "locks": {"furniture": True, "structure": True, "surfaces": True, "style_card_id": "card-1"},
         "requirements": {"basic": {"household": "兩大一小", "name": "Ada", "phone": "0900"}},
         "master_view": {"camera": _camera()},
@@ -138,6 +211,87 @@ def test_prompt_locks_structure_and_carries_style_language(direct_provider) -> N
     assert "Ada" not in prompt
     assert "0900" not in prompt
     assert "兩大一小" in prompt, "家庭組成是設計脈絡，應保留"
+
+
+def test_prompt_enumerates_furniture_identity_so_model_cannot_hallucinate(
+    direct_provider,
+) -> None:
+    project_id = _create_project()
+    client.post(f"/api/projects/{project_id}/render-jobs", json=_payload(project_id))
+
+    prompt = direct_provider[0]["body"]["messages"][0]["content"][0]["text"]
+    # 身分：型號與名稱都要明文，模型才不會自行換一張沙發。
+    assert "IKEA-SOFA-001" in prompt
+    assert "三人座布沙發" in prompt
+    assert "ABO-BED-777" in prompt
+    # 位置：精確座標與角度必須附上。
+    assert '"position_cm":{"x":200,"z":20}' in prompt
+    assert '"rotation_deg":0' in prompt
+    # 數量：明講件數，避免模型補一張椅子。
+    assert "共 3 件" in prompt
+    # 引擎放不下的品項不得出現在畫面描述裡。
+    assert "頂天書櫃" not in prompt
+    assert "IKEA-SHELF-909" not in prompt
+    # 價格是報價資料，不是視覺條件。
+    assert "28900" not in prompt
+
+
+def test_room_final_prompt_carries_only_that_rooms_furniture(direct_provider) -> None:
+    project_id = _create_project()
+    client.post(
+        f"/api/projects/{project_id}/render-jobs",
+        json=_payload(project_id, mode="room_final"),
+    )
+
+    living, bedroom = (
+        call["body"]["messages"][0]["content"][0]["text"] for call in direct_provider
+    )
+    assert "三人座布沙發" in living
+    assert "雙人加大床架" not in living, "客廳那張不該帶主臥家具，逐房出圖才鎖得準"
+    assert "雙人加大床架" in bedroom
+    assert "三人座布沙發" not in bedroom
+
+
+def test_locked_furniture_reports_wall_adjacency_from_engine_coordinates() -> None:
+    prepared = render_providers.prepare_render_payload(_payload("p-1", mode="room_final"))
+
+    items, truncated = render_providers.locked_furniture(
+        prepared, {"room_id": "living-1"}
+    )
+
+    assert truncated == 0
+    hints = {item["name"]: item["wall_hint"] for item in items}
+    assert hints["三人座布沙發"] == "貼北側牆"  # z=20，距 z 最小邊 20cm
+    assert hints["低檯面電視櫃"] == "貼南側牆"  # z=280，距 z 最大邊 20cm
+    bedroom_items, _ = render_providers.locked_furniture(
+        prepared, {"room_id": "bedroom-1"}
+    )
+    assert bedroom_items[0]["wall_hint"] == "位於房間中央區域"
+
+
+def test_furniture_lock_truncation_is_declared_not_silent(monkeypatch) -> None:
+    monkeypatch.setattr(render_providers, "MAX_LOCKED_FURNITURE", 2)
+    prepared = render_providers.prepare_render_payload(_payload("p-1"))
+
+    items, truncated = render_providers.locked_furniture(prepared)
+    prompt = render_providers.build_render_prompt(prepared, {"card_id": "card-1"})
+
+    assert len(items) == 2
+    assert truncated == 1
+    assert "另有 1 件未列出" in prompt, "截斷必須寫進 prompt，不能無聲砍掉"
+
+
+def test_prompt_survives_scene_without_furniture(direct_provider) -> None:
+    project_id = _create_project()
+    payload = _payload(project_id)
+    payload["scene"] = {"scene_id": "scene-1", "scene_objects": []}
+
+    response = client.post(f"/api/projects/{project_id}/render-jobs", json=payload)
+
+    assert response.status_code == 202
+    prompt = direct_provider[0]["body"]["messages"][0]["content"][0]["text"]
+    assert "共 0 件" not in prompt
+    assert "不得新增、刪除或移動" in prompt
 
 
 def test_disabled_flag_restores_503_behavior(monkeypatch) -> None:
