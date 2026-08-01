@@ -1097,6 +1097,73 @@ def _symbol_anchors(det, labels, rooms):
     return out
 
 
+_BATH_SYMS = ("oval", "tubrect", "wc", "tub", "basin", "shower")
+
+
+def _merge_bath_nooks(labels, rooms, det, T):
+    """浴室隔屏碎格合併（labels 就地改，回傳新 rooms）。floor38/44
+    實案：浴缸屏/馬桶半牆＋封口盒把一間浴室切成 3~4 格，每格對 GT
+    整間浴室 IoU 皆 <0.5，或碎格死在面積終篩。
+    規則：面積 <8m² 且含浴具符號的碎房，彼此間距 ≤2T 者併成一間。
+    大房不參與（浴具誤偵測不至於把臥室吸進浴室）。須在面積終篩前
+    執行——合併後的浴室才活得過門檻。
+    2026-08-01 二落：首落時浴具模板未啟用、開發集零觸發而還原；
+    tub/wc 依品質掃描啟用後證據到位，機制重新上線。"""
+    cm = det.get("cm", 1.0)
+    h, w = labels.shape
+    cand = []
+    for r in rooms:
+        if r["area_px"] * cm * cm >= 80000.0:    # ≥8m² 非浴室碎格
+            continue
+        has_fix, has_kitchen = False, False
+        for kind, sx, sy in det.get("symbols", ()):
+            iy, ix = int(round(sy)), int(round(sx))
+            if not (0 <= iy < h and 0 <= ix < w
+                    and labels[iy, ix] == r["id"]):
+                continue
+            has_fix = has_fix or kind in _BATH_SYMS
+            has_kitchen = has_kitchen or kind in _KITCHEN_SYMS
+        # 廚房系符號是強反證（floor39 實案：wc 模板在廚房打假陽性，
+        # 廚房被當浴具碎格與樓下真浴室誤併）——含爐台/水槽者不候選
+        if has_fix and not has_kitchen:
+            cand.append(r)
+    if len(cand) < 2:
+        return rooms
+    k = 4 * int(T) + 3                           # 膨脹半徑 2T+1＝隔屏牆厚度帶
+    ker = np.ones((k, k), np.uint8)
+    dil = {r["id"]: cv2.dilate((labels == r["id"]).astype(np.uint8), ker) > 0
+           for r in cand}
+    parent = {r["id"]: r["id"] for r in cand}    # 鄰接群組（union-find 簡版）
+
+    def _find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for i in range(len(cand)):
+        for j in range(i + 1, len(cand)):
+            a, b = cand[i]["id"], cand[j]["id"]
+            if (dil[a] & (labels == b)).any():
+                parent[_find(a)] = _find(b)
+    groups = {}
+    for r in cand:
+        groups.setdefault(_find(r["id"]), []).append(r)
+    out = list(rooms)
+    for _root, members in groups.items():
+        if len(members) < 2:
+            continue
+        keep = max(members, key=lambda r: r["area_px"])
+        for r in members:
+            if r is keep:
+                continue
+            labels[labels == r["id"]] = keep["id"]
+            out.remove(r)
+        upd = _room_stats(labels, keep["id"], keep.get("touch_env", False))
+        keep.update(upd)
+    return out
+
+
 def _room_stats(labels, rid, touch_env):
     """依 labels 重算單一房間統計；該 id 已無像素時回 None。"""
     ys, xs = np.nonzero(labels == rid)
@@ -1287,6 +1354,9 @@ def build_rooms(det):
         return None, [], bridges, zones, []
     # 走道橫斷橋合併後即失效：疊圖不再畫、恰為門尺寸者的假門位一併移除
     rooms, bridges = _merge_nondoor_bridges(labels, rooms, bridges, det)
+    # 浴室隔屏碎格合併（floor38/44 實案）——須在面積終篩前，
+    # 合併後的浴室才活得過門檻
+    rooms = _merge_bath_nooks(labels, rooms, det, T)
     # 面積終篩（keep_small 的另一半）：走道碎片已在上一步併回整條，
     # 這裡才執行原本的面積門檻——未被合併救回的碎片與雜訊小塊在此淘汰
     X0 = min(r_[0] for r_ in rects); Y0 = min(r_[1] for r_ in rects)

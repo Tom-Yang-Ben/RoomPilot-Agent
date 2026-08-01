@@ -34,19 +34,36 @@ TARGETS = {"Toilet": "oval", "Bathtub": "tubrect", "BathtubRound": "tubrect",
 # 調高門檻已實測為淨負面（v2.18：bath precision 0.920→0.676），因為那是全域
 # 旋鈕，真假證據一起放行——真正該換的是「用什麼指標」與「開哪幾類」。
 CH_THR = 1.2                 # chamfer 平均邊緣距離門檻（48px 畫布上的 px）
-                             # 1.2 為 v2.18 §4 天花板量測所用值；舊 2.0 是搭配
-                             # Hu 粗篩的寬鬆值，粗篩移除後由它獨自把關故收緊
+                             # 1.2 為 v2.18 §4 天花板量測所用值；2026-08-01
+                             # 起為預設值，逐類覆寫見 CH_THR_BY_KIND
+# 逐類門檻（2026-08-01 偵測層強化輪）：probe_symbol_quality.py 對
+# own_dataset 24 題以 GT 房型多邊形當弱標籤逐模板掃描，各 kind 的
+# TP/FP–門檻曲線量出的甜蜜點——tub 在 0.8 是 11TP/2FP（P=0.85），
+# 放到 1.2 則 FP 翻五倍；wc 在 1.2 即有 P=0.86。
+CH_THR_BY_KIND = {"tub": 0.8, "bed": 0.8, "chair": 0.8, "basin": 1.35}
 
-# 只有這兩類的模板證據進得了計分。依 Readme v2.18 §4 的逐類品質分級：
-#   kstove/ksink  ✅ 四口爐與雙槽圖案獨特，是唯一穩定的真實增益
-#   wardrobe      ❌ 假陽性大戶——平面圖衣櫃＝長方形＋內部分隔線，與牆體
-#                    剖面線／樓梯踏步幾何同構，本質不可分辨
-#   chair/basin/sofa/tub ⚠️ 混雜，basin 是 bath precision 崩壞元凶之一
-#   bed/wc/dtable  準但量太少
+# 模板白名單（npz 全域序號）：類別整體混雜但個別模板乾淨時的外科手術。
+# basin 全類 P=0.33（tpl 157 一條就打 45 個 FP），但這七條在 1.35 門檻
+# 下合計 ~8TP/0FP——floor38 浴室漏切正缺 basin 證據（tpl 235@1.277）。
+# 未列名的類別＝全部模板可用。
+TPL_WHITELIST = {"basin": (174, 178, 179, 235, 243, 249, 251)}
+# 模板黑名單：類別整體乾淨但個別模板出格。tub 主力是 tpl 118
+#（10TP 全在浴室），119/128 在 0.8 嚴門檻內仍各打一次臥室/客廳
+# 假陽性（floor38/31 實測），剪除。
+TPL_BLACKLIST = {"tub": (119, 128)}
+
+# 啟用清單依 2026-08-01 逐模板品質掃描（temp/json/symbol_quality.json）：
+#   kstove/ksink  ✅ 沿用（v2.18 判定的穩定增益）
+#   tub/wc        ✅ 新啟用——P 0.85/0.86，正是 floor38/44 浴室漏切缺的證據
+#   bed/chair     ✅ 新啟用（0.8 嚴門檻下 0 FP，量少但乾淨）
+#   sofa          ❌ P≤0.5，本畫風沙發比對不穩，續停
+#   basin/wardrobe/dtable ❌ P≤0.5，v2.18 的判斷獲弱標籤掃描證實
 # 在 load_lib() 就濾掉，未啟用的類別連 chamfer 都不算（尺寸閘門也隨之收窄）。
 # SYMBOL_KINDS 環境變數可覆寫供 A/B 驗收（同 CC_WEIGHTS／CC_CACHE_DIR 慣例）。
 ENABLED_KINDS = tuple(
-    k for k in os.environ.get("SYMBOL_KINDS", "kstove,ksink").split(",") if k)
+    k for k in os.environ.get(
+        "SYMBOL_KINDS", "kstove,ksink,tub,wc,bed,chair,basin").split(",")
+    if k)
 _PATH_SAMPLES = 120
 
 
@@ -201,7 +218,10 @@ def load_lib(path=LIB_PATH, kinds=ENABLED_KINDS):
         if missing:                    # 靜默停用是本模組的既有陷阱，這裡出聲
             print(f"⚠ 模板庫無這些 kind：{', '.join(missing)}"
                   f"（庫內有 {', '.join(sorted(set(all_labels)))}）")
-        keep = [i for i, l in enumerate(all_labels) if l in kinds]
+        keep = [i for i, l in enumerate(all_labels)
+                if l in kinds
+                and (l not in TPL_WHITELIST or i in TPL_WHITELIST[l])
+                and i not in TPL_BLACKLIST.get(l, ())]
         if not keep:
             print(f"⚠ 模板庫沒有任何啟用中的 kind → 模板比對停用")
             _lib_cache = None
@@ -266,12 +286,16 @@ def match_symbols(det, lib=None):
         if cand is None:
             continue
         dt_cand = dist_transform(cand)
+        # 「各自門檻內的最佳者」勝出——不是全域最佳再驗門檻。逐類門檻
+        # 引入後兩者不同：嚴門檻類（tub 0.8）以 0.9 搶下全域最佳會讓
+        # 整個候選被丟棄，而寬門檻類（wc 1.2）的 0.95 本可合格
         best_kind, best_ch = None, 1e9
         for k in ok_kinds:
+            thr_k = CH_THR_BY_KIND.get(k, CH_THR)
             for i in idx_of[k]:
                 ch = chamfer_dt(cand, dt_cand, rasters[i], dts[i])
-                if ch < best_ch:
+                if ch <= thr_k and ch < best_ch:
                     best_kind, best_ch = k, ch
-        if best_kind is not None and best_ch <= CH_THR:
+        if best_kind is not None:
             syms.append((best_kind, x + w / 2.0, y + h / 2.0))
     return syms
