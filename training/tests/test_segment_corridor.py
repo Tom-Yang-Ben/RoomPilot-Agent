@@ -37,6 +37,25 @@ def test_narrow_corridor_survives_closing_kernel():
     assert heights[0] <= 45, f"最矮的空間應是 ~40px 走道，實得 {heights}"
 
 
+def test_image_margin_is_not_a_room():
+    # floor19 實案：外牆與影像邊界間的窄邊條，舊行為被大核閉運算填掉而
+    # 隱性排除；牆扣除改髮絲核後邊條裸露成「室內」，整圈白邊變假房間。
+    # 要求：把建物平移離影像邊 60px 後，仍只切出 3 間，且無任何房間
+    # 的 bbox 觸及影像邊界。
+    rects, W, H = _corridor_plan()
+    off = 60
+    rects = [(x0 + off, y0 + off, x1 + off, y1 + off)
+             for x0, y0, x1, y1 in rects]
+    labels, rooms, outside = fp_c.segment_rooms(
+        rects, [], [], W + 2 * off, H + 2 * off, T=20, T_out=20, cm=1.0)
+    assert labels is not None
+    assert len(rooms) == 3, f"邊條不應成房，應 3 間，實得 {len(rooms)}"
+    for r in rooms:
+        x0, y0, x1, y1 = r["bbox"]
+        assert x0 > 2 and y0 > 2 and x1 < W + 2 * off - 2 \
+            and y1 < H + 2 * off - 2, f"房間 bbox 觸及影像邊界: {r['bbox']}"
+
+
 def test_room_area_reaches_wall_edge():
     # 牆扣除改用原始遮罩後，房間面積應貼回真牆邊——上房內部
     # (T..W-T)×(T..150) 的涵蓋率應 >0.9（舊行為被大核吃掉一圈）。

@@ -1148,6 +1148,19 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0):
         cv2.floodFill(ff, None, (0, 0), 128)     # 外部自由區→128
         inside = (ff[1:-1, 1:-1] != 128)         # 建物(含牆)
         interior = (inside & (hair == 0)).astype(np.uint8) * 255
+        # 室外接觸過濾（floor19 實案：外牆與影像邊界的窄邊條被大核填掉
+        # 而隱性排除，改髮絲核後裸露成整圈假房間）：碰到影像邊界或室外
+        # 的連通塊，扣掉其中大核封口覆蓋的部分——邊條整條消失；被大核
+        # 封住開口的凹口（陽台）保留本體，若殘餘過小由面積門檻淘汰
+        _n0, lab0 = cv2.connectedComponents((interior > 0).astype(np.uint8), 8)
+        edge = np.zeros(interior.shape, bool)
+        edge[0, :] = edge[-1, :] = True
+        edge[:, 0] = edge[:, -1] = True
+        outd = cv2.dilate((~inside).astype(np.uint8),
+                          np.ones((3, 3), np.uint8)) > 0
+        bad = np.unique(lab0[(edge | outd) & (lab0 > 0)])
+        if bad.size:
+            interior[np.isin(lab0, bad) & (closed > 0)] = 0
         n, lab, st, cent = cv2.connectedComponentsWithStats(interior, 8)
         amin = max(int(0.003 * bbox_area), 2 * (2 * T) ** 2)    # 走道/玄關也要留下
         rooms, labels = [], np.zeros(lab.shape, np.int32)
