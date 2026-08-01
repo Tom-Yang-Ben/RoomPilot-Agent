@@ -28,7 +28,14 @@ from ..engine.layout_strategy import (
     rule_for as layout_rule_for,
     side_for_rotation,
 )
-from ..engine.models import FurnitureCatalogItem, Opening, PlacedFurniture, Room, Wall
+from ..engine.models import (
+    FurnitureCatalogItem,
+    Opening,
+    PlacedFurniture,
+    Room,
+    STANDARD_WINDOW_SILL_CM,
+    Wall,
+)
 from ..engine.placement import (
     place_adjacent_to_furniture,
     place_furniture,
@@ -999,14 +1006,36 @@ def _floorplan_coordinate_scale_cm(floorplan: dict[str, Any] | None) -> float:
 _WINDOW_CLEARANCE_EXEMPT_TYPES = {"curtain"}
 
 
-def window_clearance_zones(
+# 窗前帶保險開關：設 1/true 退回舊的「70cm 平頭帶」（不看家具高度）。
+_WINDOW_BAND_FLAT_ENV = "ROOMPILOT_WINDOW_BAND_FLAT"
+
+
+def _window_band_is_flat() -> bool:
+    return os.environ.get(_WINDOW_BAND_FLAT_ENV, "").strip().lower() in {"1", "true", "on", "yes"}
+
+
+def _window_sill_cm(opening: dict[str, Any]) -> float:
+    """單一窗段的窗台高度。未標窗型一律當一般窗（窗台 90，與前端
+    scene_window_types.js 的預設一致）；標了落地窗窗台為 0，任何家具都擋。
+    window_type 同時接受底線與連字號拼法（歷史資料兩種都有）。"""
+    sill = opening.get("sill_height_cm")
+    if isinstance(sill, (int, float)):
+        return max(0.0, float(sill))
+    window_type = str(opening.get("window_type") or "").replace("-", "_")
+    if window_type == "floor_to_ceiling":
+        return 0.0
+    return STANDARD_WINDOW_SILL_CM
+
+
+def _window_zones_with_sill(
     floorplan: dict[str, Any] | None,
     room: Room,
     depth_cm: float = 70.0,
-) -> list[Polygon]:
-    """Build no-furniture bands around confirmed window and balcony openings."""
+) -> list[tuple[Polygon, float]]:
+    """Build no-furniture bands around confirmed window openings, keeping each
+    window's sill height so callers can exempt furniture shorter than the sill."""
     scale = _floorplan_coordinate_scale_cm(floorplan)
-    zones: list[Polygon] = []
+    zones: list[tuple[Polygon, float]] = []
     for opening in (floorplan or {}).get("window_segments") or []:
         try:
             start = opening["start"]
@@ -1024,10 +1053,41 @@ def window_clearance_zones(
                 ]
             )
             if line.length >= 4:
-                zones.append(line.buffer(depth_cm, cap_style=2))
+                zones.append((line.buffer(depth_cm, cap_style=2), _window_sill_cm(opening)))
         except (KeyError, TypeError, ValueError):
             continue
     return zones
+
+
+def _zones_blocking_item(
+    zones_with_sill: list[tuple[Polygon, float]],
+    item_height_cm: float | None,
+) -> list[Polygon]:
+    """這件家具實際會被哪些窗前帶擋。
+
+    比窗台矮的家具（床 55、床頭櫃 55、電視櫃 50）擋不到一般窗（窗台 90），
+    不再一律禁放——與引擎 layout_strategy 的窗台高度語意同一套。落地窗
+    （窗台 0）任何高度都擋。保險開關開啟時退回舊平頭帶。
+    """
+    if _window_band_is_flat():
+        return [zone for zone, _ in zones_with_sill]
+    try:
+        height = float(item_height_cm or 0)
+    except (TypeError, ValueError):
+        height = 0.0
+    if height <= 0:
+        # 沒有高度資料時保守處理：全部視為會擋。
+        return [zone for zone, _ in zones_with_sill]
+    return [zone for zone, sill in zones_with_sill if height > sill]
+
+
+def window_clearance_zones(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+    depth_cm: float = 70.0,
+) -> list[Polygon]:
+    """向下相容包裝：只回帶狀範圍，不帶窗台高度。"""
+    return [zone for zone, _ in _window_zones_with_sill(floorplan, room, depth_cm)]
 
 
 def _placement_intersects_zones(
@@ -1179,7 +1239,9 @@ def room_openings_from_floorplan(
             else:
                 (wall_a, wall_b), tip = (start, end), None
 
-            window_type = segment.get("window_type") if kind == "window" else None
+            window_type = (
+                str(segment.get("window_type") or "").replace("-", "_") or None
+            ) if kind == "window" else None
             sill = segment.get("sill_height_cm")
             openings.append(
                 Opening(
@@ -1590,7 +1652,13 @@ def validate_single_placement(
         return {"ok": True, "reason": None}
     if (
         item.get("normalized_type") not in _WINDOW_CLEARANCE_EXEMPT_TYPES
-        and _placement_intersects_zones(moving, window_clearance_zones(floorplan, room))
+        and _placement_intersects_zones(
+            moving,
+            _zones_blocking_item(
+                _window_zones_with_sill(floorplan, room),
+                moving.catalog.height,
+            ),
+        )
     ):
         return {"ok": False, "reason": "家具不可遮擋窗戶或落地窗前方淨空。"}
 
@@ -1639,7 +1707,7 @@ def generate_layout(
     # 矩形房由牆環重建(等價於 bbox)。注意 DXF fallback 模式的 Room.walls
     # 是多個獨立環,不能拿去重建多邊形 —— 所以 DXF 一律走傳入的 place_boundary。
     boundary = place_boundary if place_boundary is not None else _shrunk_boundary(room)
-    forbidden_zones = window_clearance_zones(floorplan, room)
+    window_zones_sill = _window_zones_with_sill(floorplan, room)
 
     room_w_cm = room.width
     room_d_cm = room.depth
@@ -1685,6 +1753,8 @@ def generate_layout(
         width = _size_cm(item, "width", 120)
         depth = _size_cm(item, "depth", 60)
         height = _size_cm(item, "height", 80)
+        # 窗前帶依「這件」的高度過濾：矮於窗台就不擋（落地窗窗台 0 全擋）。
+        forbidden_zones = _zones_blocking_item(window_zones_sill, height)
         curtain_hint = None
         if item_type == "curtain":
             curtain_hint = curtain_window_hint(

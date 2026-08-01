@@ -322,3 +322,76 @@ def test_step6_drag_commits_backend_wall_snap_inside_original_room() -> None:
     assert "placement_room_id: item.roomId" in resolve_position
     assert "placement_hint_cm" in resolve_position
     assert "position_locked: true" in resolve_position
+
+
+def test_window_band_allows_short_furniture_under_a_standard_window() -> None:
+    """一般窗窗台 90：比窗台矮的家具可以放在窗前（不再被 70cm 平頭帶誤殺）。"""
+    floorplan = {
+        "coordinate_unit": "cm",
+        "width_cm": 600,
+        "depth_cm": 500,
+        "window_segments": [
+            {"start": {"x": -100, "z": -250}, "end": {"x": 100, "z": -250}}
+        ],
+    }
+    result = validate_single_placement(
+        floorplan,
+        {
+            "furniture_id": "chair-1",
+            "normalized_type": "armchair",
+            "size_cm": {"width": 80, "depth": 80, "height": 80},
+            "position_cm": {"x": 0, "z": -170},
+            "rotation_y_deg": 0,
+        },
+        [],
+    )
+    assert result["ok"] is True, result["reason"]
+
+
+def test_window_band_still_rejects_tall_furniture_under_a_standard_window() -> None:
+    floorplan = {
+        "coordinate_unit": "cm",
+        "width_cm": 600,
+        "depth_cm": 500,
+        "window_segments": [
+            {"start": {"x": -100, "z": -250}, "end": {"x": 100, "z": -250}}
+        ],
+    }
+    result = validate_single_placement(
+        floorplan,
+        {
+            "furniture_id": "wardrobe-1",
+            "normalized_type": "wardrobe",
+            "size_cm": {"width": 100, "depth": 60, "height": 205},
+            "position_cm": {"x": 0, "z": -170},
+            "rotation_y_deg": 0,
+        },
+        [],
+    )
+    assert result["ok"] is False
+    assert "窗戶" in result["reason"]
+
+
+def test_window_band_flat_env_restores_legacy_behaviour(monkeypatch) -> None:
+    """保險開關 ROOMPILOT_WINDOW_BAND_FLAT=1：退回不看高度的平頭帶。"""
+    monkeypatch.setenv("ROOMPILOT_WINDOW_BAND_FLAT", "1")
+    floorplan = {
+        "coordinate_unit": "cm",
+        "width_cm": 600,
+        "depth_cm": 500,
+        "window_segments": [
+            {"start": {"x": -100, "z": -250}, "end": {"x": 100, "z": -250}}
+        ],
+    }
+    result = validate_single_placement(
+        floorplan,
+        {
+            "furniture_id": "chair-1",
+            "normalized_type": "armchair",
+            "size_cm": {"width": 80, "depth": 80, "height": 80},
+            "position_cm": {"x": 0, "z": -170},
+            "rotation_y_deg": 0,
+        },
+        [],
+    )
+    assert result["ok"] is False
