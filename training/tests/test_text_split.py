@@ -46,6 +46,32 @@ def test_three_anchors_two_cuts():
     assert len(out) == 3, f"三錨點應切成 3 區，實得 {len(out)}"
 
 
+def test_cut_snaps_to_shape_step():
+    # 使用者裁決（2026-08-01）：分區位置取決於「切給誰較方正」。
+    # L 型連通塊（左窄高、右寬矮）的正確切線在輪廓階梯 x=150 處，
+    # 而非錨點中點 x=200——階梯切出兩個完整矩形，方正度最高。
+    labels = np.zeros((200, 400), np.int32)
+    labels[20:180, 20:150] = 1                   # 左：窄高矩形（廚房）
+    labels[80:180, 150:380] = 1                  # 右：寬矮矩形（客廳）
+    m = labels == 1
+    ys, xs = np.nonzero(m)
+    rooms = [{"id": 1, "area_px": int(m.sum()), "bbox": (20, 20, 380, 180),
+              "cx": float(xs.mean()), "cy": float(ys.mean()),
+              "aspect": 1.0, "touch_env": True}]
+    texts = [("Kitchen", 85.0, 100.0, "KITCHEN"),
+             ("LivingRoom", 315.0, 130.0, "LIVING")]
+    out = fp._split_by_text_anchors(labels, rooms, texts, T=8, cm=1.0,
+                                    amin=1000)
+    assert len(out) == 2
+    left = min(out, key=lambda r: r["cx"])
+    assert abs(left["bbox"][2] - 150) <= 6, \
+        f"切線應貼齊階梯 x=150，實得左房 bbox={left['bbox']}"
+    for r in out:                                # 兩側皆應接近滿版矩形
+        bx0, by0, bx1, by1 = r["bbox"]
+        fill = r["area_px"] / ((bx1 - bx0) * (by1 - by0))
+        assert fill > 0.95, f"方正度 {fill:.2f} 應 >0.95：{r['bbox']}"
+
+
 def test_single_anchor_no_split():
     labels, rooms = _room()
     texts = [("Kitchen", 200.0, 100.0, "KITCHEN")]

@@ -398,20 +398,21 @@ OCR_WORD2LABEL = {
     "BATH": "Bath", "BATHROOM": "Bath", "WC": "Bath", "TOILET": "Bath",
     "LIVING": "LivingRoom", "LIVINGROOM": "LivingRoom",
     "LOUNGE": "LivingRoom",
-    # 2026-08-01 功能區切分補詞：FAMILY/DINING 是美式圖常用的客餐區
-    # 標注（floor01 的 FAMILY ROOM/DINNING AREA 因缺詞湊不滿兩錨點）。
-    # DINNING 是圖面常見錯拼，照收
+    # 2026-08-01 使用者裁決：10 類別以外的「子區印字」不做辨識證據——
+    # DINING/FOYER 這類無牆子區（餐區、門廳）不成房也不觸發切分，
+    # 其歸屬由切線方正度決定（floor05 的 FOYER 區 GT 實測併入客廳）。
+    # FAMILY ROOM／WASHROOM 是房型同義詞（起居室/浴廁）非子區詞，保留
     "FAMILY": "LivingRoom", "FAMILYROOM": "LivingRoom",
-    "DINING": "LivingRoom", "DINNING": "LivingRoom",
-    "WASHROOM": "Bath", "WASHAREA": "Bath",
-    "LAUNDRY": "Bath", "LNDRY": "Bath",
+    "WASHROOM": "Bath",
     "DEPOSIT": "Storage", "STORAGE": "Storage", "CLOSET": "Storage",
     # 走道系詞彙 2026-08-01 從 Entry 改指 Hallway：圖面寫 CIRCULATION／HALLWAY
     # 的就是走道，玄關另有 ENTRY／ENTRANCE。舊映射把三者都算成玄關，是
     # 「Entry 與 Hallway 難分」在 OCR 層的同一個病灶。
     "CIRCULATION": "Hallway", "HALL": "Hallway", "HALLWAY": "Hallway",
     "CORRIDOR": "Hallway", "PASSAGE": "Hallway",
-    "ENTRY": "Entry", "ENTRANCE": "Entry", "FOYER": "Entry",
+    # FOYER 於 2026-08-01 移除：門廳是無牆子區印字（floor05 GT 實測
+    # 該區併入客廳），依「10 類別以外的字不採用」裁決不做辨識證據
+    "ENTRY": "Entry", "ENTRANCE": "Entry",
     "BALCONY": "Balcony", "TERRACE": "Balcony",
     "GARAGE": "Garage",
     # 書房系詞彙 → Storage（office 已於 2026-07-29 併入 storage）。
@@ -1061,6 +1062,13 @@ def _split_by_text_anchors(labels, rooms, texts, T, cm, amin):
     xs_grid = np.arange(w)[None, :]
     ys_grid = np.arange(h)[:, None]
 
+    def _rectness(m):
+        ys, xs = np.nonzero(m)
+        if not len(xs):
+            return 0.0
+        return len(xs) / float((xs.max() - xs.min() + 1)
+                               * (ys.max() - ys.min() + 1))
+
     def _cut(region, anchors):
         if len(anchors) == 1:
             return [region]
@@ -1070,10 +1078,26 @@ def _split_by_text_anchors(labels, rooms, texts, T, cm, amin):
         vals = sorted(anchors, key=lambda a: a[key])
         gi = max(range(len(vals) - 1),
                  key=lambda i: vals[i + 1][key] - vals[i][key])
-        cut = (vals[gi][key] + vals[gi + 1][key]) / 2.0
+        lo, hi = vals[gi][key], vals[gi + 1][key]
         grid = xs_grid if key == 1 else ys_grid
-        return (_cut(region & (grid < cut), vals[:gi + 1])
-                + _cut(region & (grid >= cut), vals[gi + 1:]))
+        # 切線位置（使用者裁決 2026-08-01）：取決於「切給誰較方正」——
+        # 候選＝兩錨點間的輪廓階梯（剖面寬跳變 >T 處），逐一評兩側
+        # 方正度（面積/外接矩形），最高者勝；無階梯（純矩形）退回中點
+        prof = region.sum(axis=0 if key == 1 else 1)
+        a0, b0 = int(lo) + 2, int(hi) - 1
+        cands = [float(c) for c in range(max(a0, 1), b0)
+                 if abs(int(prof[c]) - int(prof[c - 1])) > T]
+        cands.append((lo + hi) / 2.0)
+        best_c, best_s = cands[-1], -1.0
+        for c in cands:
+            left, right = region & (grid < c), region & (grid >= c)
+            if not left.any() or not right.any():
+                continue
+            s = _rectness(left) + _rectness(right)
+            if s > best_s:
+                best_s, best_c = s, c
+        return (_cut(region & (grid < best_c), vals[:gi + 1])
+                + _cut(region & (grid >= best_c), vals[gi + 1:]))
 
     for room in rooms:
         rid = room["id"]
