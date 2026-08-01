@@ -480,7 +480,7 @@
     },
     {
       "question_id": "dining-table-type",
-      "space_type": "dining_room",
+      "space_type": "kitchen",
       "title_zh": "用獨立餐桌，還是以中島兼作餐桌？",
       "purpose_zh": "決定用餐家具與廚房關係。",
       "selection_rule": "exclusive",
@@ -524,7 +524,7 @@
     },
     {
       "question_id": "dining-capacity",
-      "space_type": "dining_room",
+      "space_type": "kitchen",
       "title_zh": "餐桌維持日常尺寸，還是預留多人擴充？",
       "purpose_zh": "確認日常與聚餐座位需求。",
       "selection_rule": "weighted",
@@ -564,7 +564,7 @@
     },
     {
       "question_id": "dining-entertaining",
-      "space_type": "dining_room",
+      "space_type": "kitchen",
       "title_zh": "用餐區偏日常快速使用，還是偏聚會招待？",
       "purpose_zh": "確認餐區周邊機能。",
       "selection_rule": "weighted",
@@ -607,7 +607,7 @@
     },
     {
       "question_id": "dining-storage",
-      "space_type": "dining_room",
+      "space_type": "kitchen",
       "title_zh": "餐廳保持清爽，還是配置完整餐邊櫃？",
       "purpose_zh": "決定餐具與小家電收納。",
       "selection_rule": "weighted",
@@ -916,7 +916,7 @@
     },
     {
       "question_id": "primary-bed-circulation",
-      "space_type": "primary_bedroom",
+      "space_type": "bedroom",
       "title_zh": "主臥要放大床，還是保留更寬走道？",
       "purpose_zh": "確認床尺寸與三側通行。",
       "selection_rule": "exclusive",
@@ -956,7 +956,7 @@
     },
     {
       "question_id": "primary-wardrobe",
-      "space_type": "primary_bedroom",
+      "space_type": "bedroom",
       "title_zh": "衣物採整面衣櫃，還是獨立更衣區？",
       "purpose_zh": "決定衣物收納與分區方式。",
       "selection_rule": "exclusive",
@@ -998,7 +998,7 @@
     },
     {
       "question_id": "primary-vanity-desk",
-      "space_type": "primary_bedroom",
+      "space_type": "bedroom",
       "title_zh": "房內工作檯偏梳妝，還是偏辦公？",
       "purpose_zh": "選擇桌面深度、收納與照明。",
       "selection_rule": "exclusive",
@@ -1040,7 +1040,7 @@
     },
     {
       "question_id": "primary-bedside",
-      "space_type": "primary_bedroom",
+      "space_type": "bedroom",
       "title_zh": "床兩側要對稱完整，還是集中單側機能？",
       "purpose_zh": "決定床頭櫃、插座和衣櫃衝突。",
       "selection_rule": "exclusive",
@@ -1082,7 +1082,7 @@
     },
     {
       "question_id": "primary-relaxation",
-      "space_type": "primary_bedroom",
+      "space_type": "bedroom",
       "title_zh": "主臥要保留電視，還是改成閱讀休息角？",
       "purpose_zh": "確認睡前活動及家具需求。",
       "selection_rule": "exclusive",
@@ -1124,7 +1124,7 @@
     },
     {
       "question_id": "secondary-occupancy",
-      "space_type": "secondary_bedroom",
+      "space_type": "bedroom",
       "title_zh": "次臥是每日居住，還是偶爾留宿？",
       "purpose_zh": "決定床、衣櫃與彈性家具。",
       "selection_rule": "exclusive",
@@ -1164,7 +1164,7 @@
     },
     {
       "question_id": "secondary-bed-work",
-      "space_type": "secondary_bedroom",
+      "space_type": "bedroom",
       "title_zh": "次臥偏完整雙人床，還是單人床加書桌？",
       "purpose_zh": "決定睡眠與學習工作的比例。",
       "selection_rule": "exclusive",
@@ -1207,7 +1207,7 @@
     },
     {
       "question_id": "secondary-storage",
-      "space_type": "secondary_bedroom",
+      "space_type": "bedroom",
       "title_zh": "次臥偏大型衣櫃，還是保留活動空間？",
       "purpose_zh": "確認收納與地面淨空。",
       "selection_rule": "weighted",
@@ -1247,7 +1247,7 @@
     },
     {
       "question_id": "secondary-flexibility",
-      "space_type": "secondary_bedroom",
+      "space_type": "bedroom",
       "title_zh": "次臥維持固定用途，還是能隨家庭變化調整？",
       "purpose_zh": "確認未來用途變更。",
       "selection_rule": "exclusive",
@@ -1287,7 +1287,7 @@
     },
     {
       "question_id": "study-focus-collaboration",
-      "space_type": "study",
+      "space_type": "storage",
       "title_zh": "書房偏安靜專注，還是方便共同討論？",
       "purpose_zh": "決定座位方向與聲音需求。",
       "selection_rule": "exclusive",
@@ -1329,7 +1329,7 @@
     },
     {
       "question_id": "study-boundary",
-      "space_type": "study",
+      "space_type": "storage",
       "title_zh": "書房要開放連接，還是能關門隔音？",
       "purpose_zh": "決定書房隔間與隱私。",
       "selection_rule": "exclusive",
@@ -1372,7 +1372,7 @@
     },
     {
       "question_id": "study-workstations",
-      "space_type": "study",
+      "space_type": "storage",
       "title_zh": "需要雙人並排工作，還是單人桌加閱讀角？",
       "purpose_zh": "確認工作人數與輔助活動。",
       "selection_rule": "exclusive",
@@ -1416,7 +1416,7 @@
     },
     {
       "question_id": "study-books-display",
-      "space_type": "study",
+      "space_type": "storage",
       "title_zh": "書牆偏大量典藏，還是精選展示？",
       "purpose_zh": "決定書櫃深度、數量與開放比例。",
       "selection_rule": "weighted",
@@ -1935,7 +1935,7 @@
     },
     {
       "question_id": "circulation-straight-turn",
-      "space_type": "circulation",
+      "space_type": "hallway",
       "title_zh": "主要走道偏直達，還是用轉折增加隱私？",
       "purpose_zh": "決定室內視線與移動路徑。",
       "selection_rule": "exclusive",
@@ -1977,7 +1977,7 @@
     },
     {
       "question_id": "circulation-display-clear",
-      "space_type": "circulation",
+      "space_type": "hallway",
       "title_zh": "走道牆面要展示收納，還是完全保持清空？",
       "purpose_zh": "決定走道有效寬度與牆面利用。",
       "selection_rule": "weighted",

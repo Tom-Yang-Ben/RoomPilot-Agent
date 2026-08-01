@@ -64,8 +64,8 @@ ICON_RULES: dict[str, dict[str, Any]] = {
         "threshold": 0.56,
     },
     "dining_set": {
-        "room_type": "dining_room",
-        "label": "餐廳",
+        "room_type": "kitchen",
+        "label": "廚房／餐廳",
         "weight": 0.90,
         "long_cm": (90, 360),
         "short_cm": 60,

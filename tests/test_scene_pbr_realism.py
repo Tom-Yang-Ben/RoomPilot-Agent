@@ -114,7 +114,7 @@ def test_openings_only_cut_their_confirmed_host_wall() -> None:
     assert result == {"host": True, "adjacent": False}
 
 
-def test_confirmed_open_door_leaves_snap_to_two_distinct_existing_wall_gaps() -> None:
+def test_detected_wall_spans_remain_the_only_two_distinct_door_openings() -> None:
     result = run_workflow_script(
         f"""
         import {{
@@ -177,19 +177,16 @@ def test_confirmed_open_door_leaves_snap_to_two_distinct_existing_wall_gaps() ->
         """
     )
 
-    assert result["cutsWrongWall"] == [False, False]
-    assert result["openings"][0]["topology_gap"] is True
-    assert result["openings"][1]["topology_gap"] is True
-    assert result["openings"][0]["opening_source"] == "swing_radius"
-    assert result["openings"][1]["opening_source"] == "swing_radius"
-    assert result["openings"][0]["topology_gap_key"] != result["openings"][1]["topology_gap_key"]
-    assert result["openings"][0]["start"] == {"x": 0, "z": 63.14}
-    assert result["openings"][0]["end"] == {"x": 0, "z": -47.93}
-    assert result["openings"][1]["start"] == {"x": 0, "z": 222.16}
-    assert result["openings"][1]["end"] == {"x": 0, "z": 112.25}
+    assert result["cutsWrongWall"] == [True, True]
+    assert [opening["topology_gap"] for opening in result["openings"]] == [False, False]
+    assert [opening["opening_source"] for opening in result["openings"]] == ["recognised_wall_span"] * 2
+    assert result["openings"][0]["start"] == {"x": -9.94, "z": 61.39}
+    assert result["openings"][0]["end"] == {"x": -123.35, "z": 61.39}
+    assert result["openings"][1]["start"] == {"x": -19.29, "z": 111.67}
+    assert result["openings"][1]["end"] == {"x": -123.35, "z": 111.67}
 
 
-def test_swing_door_uses_its_closed_arc_radius_even_when_open_leaf_touches_a_wall() -> None:
+def test_swing_arc_never_replaces_the_recognised_wall_span() -> None:
     result = run_workflow_script(
         f"""
         import {{ doorOpeningForWallTopology }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
@@ -227,23 +224,23 @@ def test_swing_door_uses_its_closed_arc_radius_even_when_open_leaf_touches_a_wal
         {
             "id": "door-horizontal",
             "start": {"x": 120, "z": 0},
-            "end": {"x": 120, "z": -120},
-            "source": "swing_radius",
+            "end": {"x": 240, "z": 0},
+            "source": "recognised_wall_span",
             "topologyGap": False,
-            "host": None,
+            "host": "wall-horizontal",
         },
         {
             "id": "door-vertical-gap",
-            "start": {"x": 500, "z": -120},
-            "end": {"x": 500, "z": 0},
-            "source": "swing_radius",
-            "topologyGap": True,
-            "host": None,
+            "start": {"x": 500, "z": 0},
+            "end": {"x": 380, "z": 0},
+            "source": "recognised_wall_span",
+            "topologyGap": False,
+            "host": "wall-horizontal",
         },
     ]
 
 
-def test_swing_door_never_falls_back_to_its_open_leaf_when_closed_radius_has_no_wall() -> None:
+def test_detected_host_span_wins_over_open_leaf_arc() -> None:
     result = run_workflow_script(
         f"""
         import {{ doorOpeningForWallTopology }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
@@ -267,9 +264,42 @@ def test_swing_door_never_falls_back_to_its_open_leaf_when_closed_radius_has_no_
     )
 
     assert result == {
-        "source": "swing_radius",
+        "source": "recognised_wall_span",
+        "host": "wall-host",
         "start": {"x": 8.64, "z": 489.82},
-        "end": {"x": 8.64, "z": 363.095},
+        "end": {"x": 135.38, "z": 489.82},
+    }
+
+
+def test_unresolved_vision_host_never_cuts_a_second_wrong_wall_opening() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorOpeningForWallTopology }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const opening = doorOpeningForWallTopology([
+          {{ id: "wall-stale", start: {{x: 0, z: 0}}, end: {{x: 0, z: 320}} }},
+        ], {{
+          id: "door-1", host_wall_id: "wall-stale", width_cm: 90,
+          start: {{x: 180, z: 40}}, end: {{x: 270, z: 40}},
+          swing_end: {{x: 180, z: 130}},
+        }}, 12);
+        console.log(JSON.stringify({{
+          host: opening.host_wall_id,
+          originalHost: opening.original_host_wall_id,
+          topologyGap: opening.topology_gap,
+          manual: opening.needs_manual_host_confirmation,
+          leaf: opening.door_leaf_segment,
+        }}));
+        """
+    )
+
+    assert result == {
+        "originalHost": "wall-stale",
+        "topologyGap": True,
+        "manual": True,
+        "leaf": {
+            "start": {"x": 180, "z": 40},
+            "end": {"x": 270, "z": 40},
+        },
     }
 
 

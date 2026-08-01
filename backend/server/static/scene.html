@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-d11ae34ab038" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-92b908bc625f" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -692,6 +692,11 @@
                 </section>
               </div>
             </section>
+            <section class="rp-editor-box" aria-labelledby="room-scheme-gate-title">
+              <h3 id="room-scheme-gate-title">逐房確認方案</h3>
+              <p id="room-scheme-gate-status" class="rp-field-hint" aria-live="polite">請逐房比較 A/B 的 2D 與 3D 配置後，再開始微調。</p>
+              <button id="open-room-scheme-selection" type="button" class="secondary-action">逐房比較方案</button>
+            </section>
             <section class="rp-editor-box rp-white-beam-editor" aria-labelledby="white-model-beam-title">
               <h3 id="white-model-beam-title">天花板樑</h3>
               <p>結構已在第 4 步鎖定。若要新增或調整樑，請返回「空間與結構」，確認後再重新產生此方案。</p>
@@ -820,6 +825,12 @@
             <h2>確認送往渲染的方案</h2>
             <p>家具、結構或材質需要修改時請返回第 6 步。鎖定後會建立不可混用的場景版本。</p>
             <div id="proposal-review-summary" class="rp-review-summary"></div>
+            <section class="rp-editor-box">
+              <h3>選擇同風格色卡</h3>
+              <p>只會顯示全屋主風格的三張色卡；這張色卡會和已確認的問卷、家具、牆地與視角一起交給遠端生圖。</p>
+              <div id="proposal-palette-grid" class="rp-questionnaire-style-grid" role="list"></div>
+              <p id="proposal-palette-status" class="rp-field-hint" aria-live="polite"></p>
+            </section>
             <div class="rp-check-row">
               <input id="proposal-content-confirmed" type="checkbox" />
               <label for="proposal-content-confirmed">我已確認家具、牆、地板、色卡與個人需求</label>
@@ -870,6 +881,25 @@
         </div>
       </section>
 
+      <dialog id="room-scheme-selection-dialog" class="rp-task-dialog" aria-labelledby="room-scheme-dialog-title">
+        <div class="rp-task-dialog-shell">
+          <header class="rp-task-dialog-header">
+            <div>
+              <p class="eyebrow">逐房 A/B 比較</p>
+              <h2 id="room-scheme-dialog-title">選擇每個房間的配置方案</h2>
+              <p id="room-scheme-status" aria-live="polite"></p>
+            </div>
+            <button id="close-room-scheme-selection" type="button" class="rp-icon-command" aria-label="關閉">×</button>
+          </header>
+          <div id="room-scheme-list" class="rp-room-scheme-list" aria-label="房間列表"></div>
+          <div id="room-scheme-choice-grid" class="rp-scheme-choice-grid" aria-live="polite"></div>
+          <p id="room-scheme-warning" class="rp-task-dialog-warning" aria-live="polite"></p>
+          <footer class="rp-task-dialog-actions">
+            <button id="room-scheme-cancel" type="button" class="secondary-action">稍後選擇</button>
+            <button id="room-scheme-complete" type="button" class="primary-action">完成選擇並開始微調</button>
+          </footer>
+        </div>
+      </dialog>
     </main>
 
     <dialog id="furniture-replacement-drawer" class="rp-replacement-drawer">
@@ -937,6 +967,6 @@
         }
       }
     </script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-5661bd50b677"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-a7bb0d1f7a49"></script>
   </body>
 </html>

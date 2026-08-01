@@ -8,7 +8,7 @@ const workflowMeta = [
   },
   {
     title: "選擇風格條件",
-    description: "從 12 種室內風格中挑選方向，也能指定牆面、地板、色系與個人偏好。",
+    description: "從 6 種全屋風格中挑選方向，再依各房需求推薦牆面、地板、色系與家具。",
     iconClass: "palette-step",
   },
   {

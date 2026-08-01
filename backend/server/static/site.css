@@ -7598,6 +7598,430 @@ body.rp-workflow-page .danger-action {
   background: rgba(24, 22, 20, 0.58);
 }
 
+/* Step 5: room context stays visible while one decision group is completed at a time. */
+#requirements-step .rp-test2-questionnaire {
+  width: min(1360px, calc(100% - 40px));
+}
+
+.rp-questionnaire-stage-nav {
+  display: inline-flex;
+  width: auto;
+  margin: 18px 0 28px;
+  border: 1px solid #ddd9d0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.rp-questionnaire-stage-nav button {
+  min-height: 46px;
+  padding: 8px 22px;
+}
+
+.rp-room-questionnaire-layout {
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.rp-room-questionnaire-plan {
+  top: 112px;
+  padding: 16px;
+  border: 1px solid #ddd9d0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.rp-room-context-heading {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.rp-questionnaire-plan-stage {
+  min-height: 0;
+  aspect-ratio: 4 / 3;
+}
+
+.rp-visual-space-nav button {
+  padding: 12px 4px;
+}
+
+.rp-visual-space-nav button small {
+  grid-column: 1 / -1;
+  white-space: normal;
+  color: #6d716c;
+}
+
+.rp-room-questionnaire-editor {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr);
+  gap: 0 24px;
+  align-items: start;
+}
+
+.rp-room-questionnaire-editor-heading,
+.rp-room-questionnaire-editor > [hidden][aria-hidden="true"],
+.rp-room-questionnaire-editor > .rp-visual-question-card {
+  grid-column: 1 / -1;
+}
+
+.rp-room-questionnaire-editor-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ddd9d0;
+}
+
+.rp-room-questionnaire-editor-heading h3 {
+  margin: 4px 0 0;
+  font-size: 22px;
+}
+
+.rp-room-questionnaire-editor-heading p {
+  margin: 0;
+  color: #6d716c;
+  font-size: 14px;
+}
+
+.rp-questionnaire-room-section-nav {
+  position: sticky;
+  top: 112px;
+  display: grid;
+  gap: 4px;
+  padding: 18px 0;
+}
+
+.rp-questionnaire-room-section-nav button {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  min-height: 57px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #6d716c;
+  text-align: left;
+}
+
+.rp-questionnaire-room-section-nav button b {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #c6c4bd;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.rp-questionnaire-room-section-nav button span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rp-questionnaire-room-section-nav button small {
+  overflow: hidden;
+  color: inherit;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-questionnaire-room-section-nav button.is-active {
+  border-color: #216b59;
+  background: #e7f0ec;
+  color: #174d3e;
+}
+
+.rp-questionnaire-room-section-nav button.is-complete b,
+.rp-questionnaire-room-section-nav button.is-active b {
+  border-color: #216b59;
+  background: #216b59;
+  color: #fff;
+}
+
+.rp-room-finish-editor {
+  grid-column: 2;
+  min-width: 0;
+  padding: 18px 0 96px;
+}
+
+.rp-room-finish-editor > .rp-questionnaire-section-heading:first-child {
+  display: none;
+}
+
+.rp-room-questionnaire-editor [data-room-section-panel] {
+  display: none !important;
+}
+
+.rp-room-questionnaire-editor[data-room-section="usage"] [data-room-section-panel="usage"],
+.rp-room-questionnaire-editor[data-room-section="equipment"] [data-room-section-panel="equipment"],
+.rp-room-questionnaire-editor[data-room-section="furniture"] [data-room-section-panel="furniture"],
+.rp-room-questionnaire-editor[data-room-section="surfaces"] [data-room-section-panel="surfaces"],
+.rp-room-questionnaire-editor[data-room-section="ceiling"] [data-room-section-panel="ceiling"],
+.rp-room-questionnaire-editor[data-room-section="review"] [data-room-section-panel="review"] {
+  display: block !important;
+}
+
+.rp-room-questionnaire-editor[data-room-section="surfaces"] .rp-questionnaire-material-grid,
+.rp-room-questionnaire-editor[data-room-section="ceiling"] .rp-questionnaire-material-grid {
+  display: grid !important;
+}
+
+.rp-room-questionnaire-editor[data-room-section="surfaces"] .rp-questionnaire-material-grid > fieldset:nth-child(3),
+.rp-room-questionnaire-editor[data-room-section="ceiling"] .rp-questionnaire-material-grid > fieldset:nth-child(-n + 2) {
+  display: none;
+}
+
+.rp-questionnaire-room-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: -80px;
+  padding: 14px 16px;
+  border: 1px solid #ddd9d0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 -8px 20px rgba(46, 48, 42, .06);
+}
+
+.rp-questionnaire-room-action-bar p { margin: 0; color: #6d716c; font-size: 14px; }
+.rp-questionnaire-room-action-bar > div { display: flex; gap: 10px; }
+.rp-questionnaire-room-action-bar button { min-height: 44px; }
+
+.rp-questionnaire-room-review { display: grid; gap: 18px; }
+.rp-room-review-list { display: grid; gap: 8px; }
+.rp-room-review-list button { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 58px; padding: 12px 14px; border: 1px solid #ddd9d0; border-radius: 8px; background: #fff; text-align: left; }
+.rp-room-review-list button span { color: #6d716c; }
+.rp-room-review-list button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-room-review-list button em { color: #216b59; font-style: normal; }
+.rp-surface-preference { display: grid; gap: 6px; margin-top: 12px; }
+.rp-surface-preference textarea { min-height: 78px; resize: vertical; }
+.rp-surface-preference small { color: #6d716c; line-height: 1.45; }
+.rp-room-review-preview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rp-room-review-preview article { min-width: 0; overflow: hidden; border: 1px solid #ddd9d0; border-radius: 8px; background: #fff; }
+.rp-room-review-finish, .rp-room-review-ceiling, .rp-room-review-furniture { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 88px; padding: 8px; }
+.rp-room-review-material, .rp-room-review-ceiling .rp-ceiling-choice-visual { display: block; width: 72px; height: 72px; border-radius: 5px; background-position: center; background-size: cover; }
+.rp-room-review-preview small { display: block; color: #6d716c; font-size: 12px; }
+.rp-room-review-preview strong { display: -webkit-box; overflow: hidden; font-size: 14px; line-height: 1.35; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.rp-room-review-furniture-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; width: 72px; height: 72px; overflow: hidden; border-radius: 5px; background: #eeece5; }
+.rp-room-review-furniture-images img { width: 100%; height: 72px; object-fit: cover; }
+.rp-room-review-furniture-images span { display: grid; place-items: center; padding: 5px; color: #6d716c; font-size: 11px; text-align: center; }
+
+@media (max-width: 980px) {
+  .rp-room-questionnaire-layout { grid-template-columns: 1fr; }
+  .rp-room-questionnaire-plan { position: static; }
+  .rp-room-questionnaire-editor { grid-template-columns: 1fr; }
+  .rp-questionnaire-room-section-nav { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rp-questionnaire-room-section-nav button { grid-template-columns: 24px minmax(0, 1fr); }
+  .rp-room-finish-editor, .rp-questionnaire-room-action-bar { grid-column: 1; }
+  .rp-questionnaire-room-action-bar { margin-top: -80px; }
+}
+
+@media (max-width: 640px) {
+  #requirements-step .rp-test2-questionnaire { width: min(100% - 24px, 1360px); }
+  .rp-questionnaire-stage-nav { display: grid; width: 100%; grid-template-columns: 1fr; }
+  .rp-questionnaire-stage-nav button { justify-content: flex-start; border-right: 0; border-bottom: 1px solid #ddd9d0; }
+  .rp-questionnaire-room-section-nav { grid-template-columns: 1fr 1fr; }
+  .rp-room-questionnaire-editor-heading, .rp-questionnaire-room-action-bar { align-items: stretch; flex-direction: column; }
+  .rp-questionnaire-room-action-bar > div { display: grid; grid-template-columns: 1fr 1fr; }
+  .rp-room-review-list button { grid-template-columns: 1fr auto; }
+  .rp-room-review-list button strong { grid-column: 1 / -1; }
+  .rp-room-review-preview { grid-template-columns: 1fr 1fr; }
+}
+
+.rp-task-dialog {
+  width: min(920px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(820px, calc(100vh - 32px));
+  padding: 0;
+  border: 1px solid #c9c1b8;
+  border-radius: 8px;
+  background: #fffdfa;
+  color: #2d2925;
+}
+
+.rp-task-dialog::backdrop {
+  background: rgba(24, 22, 20, 0.58);
+}
+
+.rp-task-dialog-shell {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.rp-task-dialog-header,
+.rp-task-dialog-actions,
+.rp-task-dialog-room-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-task-dialog-header h2,
+.rp-task-dialog-header p {
+  margin: 0;
+}
+
+.rp-task-dialog-header p,
+.rp-task-dialog-note,
+.rp-task-dialog-impact {
+  color: #6d655d;
+  line-height: 1.55;
+}
+
+.rp-room-scheme-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rp-room-scheme-list button {
+  min-width: 118px;
+  text-align: left;
+}
+
+.rp-room-scheme-list button small {
+  display: block;
+  margin-top: 3px;
+  color: #776d64;
+}
+
+.rp-room-scheme-list button.is-active {
+  border-color: #286f5c;
+  background: #e3f0eb;
+  color: #155444;
+}
+
+.rp-scheme-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rp-scheme-choice-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #d8d0c8;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.rp-scheme-choice-card.is-selected {
+  border: 2px solid #286f5c;
+  background: #f1f8f5;
+}
+
+.rp-scheme-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.rp-scheme-preview {
+  min-height: 132px;
+  overflow: hidden;
+  border: 1px solid #e1d9d1;
+  border-radius: 4px;
+  background: #f5f2ee;
+}
+
+.rp-scheme-preview img {
+  display: block;
+  width: 100%;
+  height: 132px;
+  object-fit: cover;
+}
+
+.rp-scheme-preview .rp-render-placeholder {
+  display: grid;
+  min-height: 132px;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  color: #776d64;
+}
+
+.rp-task-dialog-warning {
+  padding: 12px;
+  border-left: 4px solid #b06b25;
+  background: #fff5e6;
+  color: #6f4518;
+}
+
+.rp-task-dialog-actions {
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid #e5ded7;
+}
+
+.rp-generation-help {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #c78b3e;
+  border-left: 4px solid #a25b17;
+  border-radius: 6px;
+  background: #fff8e9;
+  color: #4a3420;
+}
+
+.rp-generation-help h3,
+.rp-generation-help p,
+.rp-generation-help ol {
+  margin: 0;
+}
+
+.rp-generation-help ol {
+  padding-left: 22px;
+  line-height: 1.6;
+}
+
+.rp-task-command-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rp-task-dialog-transfer {
+  display: grid;
+  gap: 14px;
+  max-height: min(560px, calc(100vh - 250px));
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.rp-task-dialog-transfer .rp-style-pack-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.rp-task-dialog-transfer .rp-surface-editor,
+.rp-task-dialog-transfer .rp-ceiling-editor {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .rp-task-dialog-shell { padding: 16px; }
+  .rp-scheme-choice-grid { grid-template-columns: 1fr; }
+  .rp-task-dialog-header,
+  .rp-task-dialog-actions { align-items: stretch; flex-direction: column; }
+  .rp-task-dialog-actions > * { width: 100%; }
+  .rp-task-command-grid { grid-template-columns: 1fr; }
+  .rp-task-dialog-transfer .rp-style-pack-grid { grid-template-columns: 1fr; }
+}
+
 .rp-replacement-drawer-shell {
   display: grid;
   gap: 14px;
@@ -8180,8 +8604,8 @@ body.rp-workflow-page .danger-action {
 
 .rp-style-card-preview {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  aspect-ratio: 3 / 2;
+  object-fit: contain;
   object-position: center;
   border: 1px solid #c8c3bc;
   border-radius: 3px;
@@ -11238,11 +11662,6 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   border-right: 0;
 }
 
-.rp-test2-profile-grid > label:last-child {
-  grid-column: 1 / -1;
-  border-right: 0;
-}
-
 .rp-test2-profile-grid select,
 .rp-test2-profile-grid textarea,
 .rp-test2-room-editor textarea,
@@ -11566,6 +11985,32 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   margin-bottom: 28px;
 }
 
+.rp-questionnaire-style-grid.is-fixed-style {
+  grid-template-columns: minmax(0, 520px);
+}
+
+.rp-fixed-style-reference {
+  overflow: hidden;
+  border: 1px solid #c9c5bd;
+  background: #fff;
+}
+
+.rp-fixed-style-reference > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.rp-fixed-style-reference strong,
+.rp-fixed-style-reference small {
+  display: block;
+}
+
+.rp-fixed-style-reference small {
+  color: #6a625b;
+  line-height: 1.45;
+}
+
 .rp-questionnaire-furniture {
   margin: 24px 0;
   padding: 20px 0;
@@ -11611,7 +12056,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 
 .rp-questionnaire-furniture-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -11690,7 +12135,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-questionnaire-furniture-options > article {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(250px, auto);
   align-items: center;
   gap: 10px;
   min-height: 116px;
@@ -11758,6 +12203,8 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 
 .rp-questionnaire-furniture-card-actions {
   display: grid;
+  grid-template-columns: minmax(200px, 1fr) auto auto;
+  align-items: center;
   justify-items: end;
   gap: 7px;
 }
@@ -11816,7 +12263,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-furniture-quantity-limit {
-  max-width: 132px;
+  max-width: 96px;
   margin: 0;
   color: #6e6962;
   font-size: 11px;
@@ -11838,6 +12285,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   }
 
   .rp-questionnaire-furniture-card-actions {
+    grid-template-columns: minmax(0, 1fr) auto auto;
     justify-items: start;
   }
 }
@@ -11853,9 +12301,9 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-questionnaire-style-grid .rp-style-card-preview {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 2;
   max-height: none;
-  object-fit: cover;
+  object-fit: contain;
   background: #f2f0eb;
 }
 
@@ -11893,6 +12341,101 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   font-weight: 700;
 }
 
+.rp-questionnaire-generative-equipment {
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid #d3ccc1;
+  border-left: 4px solid #27715d;
+  background: #fbfaf7;
+  display: grid;
+  gap: 14px;
+}
+
+.rp-questionnaire-generative-equipment > label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.rp-questionnaire-generative-equipment fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.rp-questionnaire-generative-equipment legend {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.rp-ceiling-design {
+  display: grid;
+  gap: 20px;
+}
+
+.rp-ceiling-choice-step {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-ceiling-choice-heading { display: grid; gap: 3px; }
+.rp-ceiling-choice-heading > span { color: #6a665e; font-size: .82rem; }
+.rp-ceiling-choice-heading > strong { font-size: 1.05rem; }
+.rp-ceiling-choice-heading > small { color: #6a665e; line-height: 1.45; }
+
+.rp-ceiling-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rp-ceiling-choice-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 0 10px;
+  border: 1px solid #cbc7bf;
+  border-radius: 5px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-ceiling-choice-card.is-active,
+.rp-ceiling-chip.is-active { border-color: #27715d; box-shadow: inset 0 0 0 1px #27715d; }
+
+.rp-ceiling-choice-visual {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.rp-ceiling-choice-visual[data-ceiling-style-visual="exposed"] { background-image: url("/static/questionnaire_images/ceiling-exposed-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="flat"] { background-image: url("/static/questionnaire_images/ceiling-flat-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="cove"] { background-image: url("/static/questionnaire_images/ceiling-cove-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="floating"] { background-image: url("/static/questionnaire_images/ceiling-floating-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="linear"] { background-image: url("/static/questionnaire_images/ceiling-linear-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="feature-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="wood-grid"] { background-image: url("/static/questionnaire_images/ceiling-wood-grid-reference.jpg"); }
+
+.rp-ceiling-choice-card strong,
+.rp-ceiling-choice-card small,
+.rp-ceiling-choice-card em { display: block; padding: 0 10px; }
+.rp-ceiling-choice-card strong { margin-top: 9px; }
+.rp-ceiling-choice-card small { margin-top: 3px; color: #5f5b54; line-height: 1.35; }
+.rp-ceiling-choice-card em { margin-top: 5px; color: #27715d; font-size: .8rem; font-style: normal; }
+
+.rp-ceiling-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.rp-ceiling-chip { padding: 9px 12px; border: 1px solid #cbc7bf; border-radius: 4px; background: #fff; color: #37342f; }
+
+@media (max-width: 760px) {
+  .rp-ceiling-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 .rp-questionnaire-material-grid label {
   display: grid;
   gap: 6px;
@@ -11905,10 +12448,142 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   padding: 4px;
 }
 
+.rp-questionnaire-native-ceiling-control { display: none !important; }
+
+.rp-questionnaire-ceiling-quick-choices {
+  display: block;
+  margin: 12px 0 14px;
+}
+
+.rp-ceiling-design-packs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rp-ceiling-design-pack {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #cbc7bf;
+  border-radius: 5px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-ceiling-design-pack.is-active { border-color: #27715d; box-shadow: inset 0 0 0 1px #27715d; }
+.rp-ceiling-design-pack > span:last-child { display: grid; gap: 4px; padding: 10px; }
+.rp-ceiling-design-pack small { color: #67615a; line-height: 1.35; }
+.rp-ceiling-design-pack em { color: #27715d; font-size: .8rem; font-style: normal; }
+
+.rp-questionnaire-ceiling-summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 10px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #cbc7bf;
+  border-radius: 5px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-questionnaire-ceiling-summary > span:last-child {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 10px 10px 10px 0;
+}
+
+.rp-questionnaire-ceiling-summary small { color: #6a665e; }
+.rp-questionnaire-ceiling-summary strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rp-questionnaire-ceiling-summary .rp-ceiling-choice-visual,
+.rp-questionnaire-ceiling-summary .rp-light-choice-visual { min-height: 84px; }
+
+.rp-light-choice-visual {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-image: url("/static/questionnaire_images/lighting-systems-reference-v1.png");
+  background-repeat: no-repeat;
+  background-size: 500% 100%;
+}
+
+.rp-light-choice-visual[data-light-style-visual="no-main-light"] { background-position: 0 0; }
+.rp-light-choice-visual[data-light-style-visual="track"] { background-position: 25% 0; }
+.rp-light-choice-visual[data-light-style-visual="pendant"] { background-position: 50% 0; }
+.rp-light-choice-visual[data-light-style-visual="downlight"] { background-position: 75% 0; }
+.rp-light-choice-visual[data-light-style-visual="paper"] { background-position: 100% 0; }
+
+.rp-ceiling-picker-dialog { width: min(1060px, calc(100vw - 32px)); }
+
+.rp-material-catalog-search {
+  display: grid;
+  gap: 6px;
+  margin: 16px 0 6px;
+  font-weight: 700;
+}
+
+.rp-material-catalog-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.rp-material-catalog-filters > div { display: grid; gap: 7px; font-weight: 700; }
+.rp-filter-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.rp-filter-chip { padding: 7px 10px; border: 1px solid #cbc7bf; border-radius: 4px; background: #fff; color: #37342f; }
+.rp-filter-chip.is-active { border-color: #27715d; background: #edf5f1; color: #185b48; }
+
+.rp-material-catalog-search input { width: 100%; }
+.rp-material-catalog-result-count { margin: 0 0 12px; color: #6a665e; font-size: .9rem; }
+
+.rp-ceiling-picker-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rp-ceiling-picker-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 0 12px;
+  border: 1px solid #cbc7bf;
+  border-radius: 5px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-ceiling-picker-card.is-active { border-color: #27715d; box-shadow: inset 0 0 0 1px #27715d; }
+.rp-ceiling-picker-card .rp-ceiling-choice-visual { aspect-ratio: 1 / 1; }
+.rp-ceiling-picker-card .rp-light-choice-visual { aspect-ratio: 16 / 9; }
+.rp-ceiling-picker-card strong { display: block; padding: 10px 12px 0; }
+
+@media (max-width: 760px) {
+  .rp-questionnaire-ceiling-quick-choices,
+  .rp-ceiling-picker-options,
+  .rp-ceiling-design-packs { grid-template-columns: 1fr; }
+}
+
 .rp-whole-house-style-editor {
-  margin-top: 28px;
-  padding-top: 24px;
-  border-top: 1px solid #d8d5ce;
+  margin: 0 0 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-whole-house-profile-heading { margin: 0 0 14px; }
+
+#whole-house-style-grid > button small {
+  display: block;
+  padding: 0 14px 14px;
+  color: #52665f;
+  font-size: .9rem;
 }
 
 #questionnaire-finishes.is-room-needs-only > .rp-style-tabs,
@@ -11940,7 +12615,8 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   display: block;
   width: 100%;
   max-height: none;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 2;
+  object-fit: contain;
   object-fit: contain;
   background: #f2f0eb;
 }
@@ -11991,7 +12667,8 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   background-position: center;
   background-repeat: no-repeat;
   /* PNG catalog previews can include transparent margins. Crop to the material centre. */
-  background-size: auto 230%;
+  background-position: center;
+  background-size: cover;
 }
 
 .rp-questionnaire-material-options strong {
@@ -12015,6 +12692,126 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   flex: 0 0 auto;
   color: #27715d;
   font-style: normal;
+}
+
+.rp-open-material-catalog {
+  margin: 10px 0 14px;
+}
+
+.rp-material-pair-recommendations {
+  margin: 24px 0;
+  padding: 20px 0;
+  border-top: 1px solid #d8d5ce;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-material-pair-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.rp-material-pair-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #cbc7bf;
+  border-radius: 6px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-material-pair-card.is-active {
+  border-color: #27715d;
+  box-shadow: inset 0 0 0 2px #27715d;
+}
+
+.rp-material-pair-card canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  background: #f1ede6;
+}
+
+.rp-material-pair-card > span {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.rp-material-pair-card strong,
+.rp-material-pair-card small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-material-pair-card small { color: #67615a; }
+
+@media (max-width: 740px) {
+  .rp-material-pair-grid { grid-template-columns: 1fr; }
+}
+
+.rp-material-catalog-dialog {
+  width: min(900px, calc(100vw - 32px));
+  max-height: min(780px, calc(100vh - 32px));
+  border: 1px solid #cfc9bf;
+  border-radius: 8px;
+  padding: 20px;
+  color: #252421;
+  background: #fbfaf7;
+}
+
+.rp-material-catalog-dialog::backdrop {
+  background: rgba(28, 33, 31, .45);
+}
+
+.rp-dialog-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.rp-dialog-heading h3 { margin: 4px 0 0; }
+
+.rp-material-catalog-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rp-material-catalog-options button {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 92px;
+  padding: 8px;
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid #d4cec4;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.rp-material-catalog-options img {
+  width: 80px;
+  height: 74px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #e7e2d8;
+}
+
+.rp-material-catalog-options span,
+.rp-material-catalog-options small { min-width: 0; }
+.rp-material-catalog-options small { display: block; margin-top: 5px; color: #6e6962; }
+
+@media (max-width: 740px) {
+  .rp-material-catalog-options { grid-template-columns: 1fr; }
+  .rp-material-catalog-filters { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 740px) {
@@ -12343,4 +13140,98 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   .rp-questionnaire-stage .rp-action-row > button {
     width: 100%;
   }
+}
+
+/* Late cascade for the compact Step 5 room workflow. */
+#requirements-step .rp-test2-questionnaire { width: min(1360px, calc(100% - 40px)); }
+.rp-questionnaire-stage-nav { display: inline-flex; width: auto; margin: 18px 0 28px; border: 1px solid #ddd9d0; border-radius: 8px; overflow: hidden; }
+.rp-questionnaire-stage-nav button { min-height: 46px; padding: 8px 22px; }
+.rp-room-questionnaire-layout { grid-template-columns: 320px minmax(0, 1fr); gap: 24px; }
+.rp-room-questionnaire-plan { top: 112px; padding: 16px; border: 1px solid #ddd9d0; border-radius: 10px; background: #fff; }
+.rp-questionnaire-plan-stage { min-height: 0; aspect-ratio: 4 / 3; }
+.rp-room-questionnaire-editor { display: grid; grid-template-columns: 184px minmax(0, 1fr); gap: 0 24px; align-items: start; }
+.rp-room-questionnaire-editor-heading, .rp-room-questionnaire-editor > [hidden][aria-hidden="true"], .rp-room-questionnaire-editor > .rp-visual-question-card { grid-column: 1 / -1; }
+.rp-room-questionnaire-editor-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #ddd9d0; }
+.rp-room-questionnaire-editor-heading h3 { margin: 4px 0 0; font-size: 22px; }
+.rp-room-questionnaire-editor-heading p { margin: 0; color: #6d716c; font-size: 14px; }
+.rp-questionnaire-room-section-nav { position: sticky; top: 112px; display: grid; gap: 4px; padding: 18px 0; }
+.rp-questionnaire-room-section-nav button { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 9px; min-height: 57px; padding: 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #6d716c; text-align: left; }
+.rp-questionnaire-room-section-nav button b { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid #c6c4bd; border-radius: 50%; font-size: 12px; }
+.rp-questionnaire-room-section-nav button span { display: grid; gap: 2px; min-width: 0; }
+.rp-questionnaire-room-section-nav button small { overflow: hidden; color: inherit; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.rp-questionnaire-room-section-nav button.is-active { border-color: #216b59; background: #e7f0ec; color: #174d3e; }
+.rp-questionnaire-room-section-nav button.is-complete b, .rp-questionnaire-room-section-nav button.is-active b { border-color: #216b59; background: #216b59; color: #fff; }
+.rp-room-finish-editor { grid-column: 2; min-width: 0; padding: 18px 0 96px; }
+.rp-room-finish-editor > .rp-questionnaire-section-heading:first-child { display: none; }
+.rp-room-questionnaire-editor [data-room-section-panel] { display: none !important; }
+.rp-room-questionnaire-editor[data-room-section="usage"] [data-room-section-panel="usage"], .rp-room-questionnaire-editor[data-room-section="equipment"] [data-room-section-panel="equipment"], .rp-room-questionnaire-editor[data-room-section="furniture"] [data-room-section-panel="furniture"], .rp-room-questionnaire-editor[data-room-section="surfaces"] [data-room-section-panel="surfaces"], .rp-room-questionnaire-editor[data-room-section="review"] [data-room-section-panel="review"] { display: block !important; }
+.rp-room-questionnaire-editor[data-room-section="surfaces"] .rp-questionnaire-material-grid, .rp-room-questionnaire-editor[data-room-section="ceiling"] .rp-questionnaire-material-grid { display: grid !important; }
+.rp-room-questionnaire-editor[data-room-section="surfaces"] .rp-questionnaire-material-grid > fieldset:nth-child(3), .rp-room-questionnaire-editor[data-room-section="ceiling"] .rp-questionnaire-material-grid > fieldset:nth-child(-n + 2) { display: none; }
+.rp-questionnaire-room-action-bar { position: sticky; bottom: 0; z-index: 5; grid-column: 2; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: -80px; padding: 14px 16px; border: 1px solid #ddd9d0; border-radius: 8px; background: rgba(255, 255, 255, .96); box-shadow: 0 -8px 20px rgba(46, 48, 42, .06); }
+.rp-questionnaire-room-action-bar p { margin: 0; color: #6d716c; font-size: 14px; }.rp-questionnaire-room-action-bar > div { display: flex; gap: 10px; }.rp-questionnaire-room-action-bar button { min-height: 44px; }
+.rp-questionnaire-room-review { display: grid; gap: 18px; }.rp-room-review-list { display: grid; gap: 8px; }.rp-room-review-list button { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 58px; padding: 12px 14px; border: 1px solid #ddd9d0; border-radius: 8px; background: #fff; text-align: left; }.rp-room-review-list button span { color: #6d716c; }.rp-room-review-list button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.rp-room-review-list button em { color: #216b59; font-style: normal; }
+@media (max-width: 980px) { .rp-room-questionnaire-layout { grid-template-columns: 1fr; }.rp-room-questionnaire-plan { position: static; }.rp-room-questionnaire-editor { grid-template-columns: 1fr; }.rp-questionnaire-room-section-nav { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }.rp-room-finish-editor, .rp-questionnaire-room-action-bar { grid-column: 1; } }
+@media (max-width: 640px) { #requirements-step .rp-test2-questionnaire { width: min(100% - 24px, 1360px); }.rp-questionnaire-stage-nav { display: grid; width: 100%; grid-template-columns: 1fr; }.rp-questionnaire-stage-nav button { justify-content: flex-start; border-right: 0; border-bottom: 1px solid #ddd9d0; }.rp-questionnaire-room-section-nav { grid-template-columns: 1fr 1fr; }.rp-room-questionnaire-editor-heading, .rp-questionnaire-room-action-bar { align-items: stretch; flex-direction: column; }.rp-questionnaire-room-action-bar > div { display: grid; grid-template-columns: 1fr 1fr; }.rp-room-review-list button { grid-template-columns: 1fr auto; }.rp-room-review-list button strong { grid-column: 1 / -1; } }
+
+/* Focus the global workflow on Step 5 while this questionnaire is open. */
+body:has(#requirements-step:not([hidden])) .rp-progress {
+  display: none;
+}
+
+.rp-questionnaire-heading-actions { position: relative; flex-wrap: wrap; justify-content: flex-end; }
+.rp-questionnaire-heading-actions > #requirements-progress { display: none; }
+.rp-questionnaire-step-meter { display: grid; gap: 6px; width: 176px; color: #4f554f; font-size: 13px; font-weight: 700; }
+.rp-questionnaire-step-meter i { display: block; height: 5px; overflow: hidden; border-radius: 999px; background: #e2e4df; }
+.rp-questionnaire-step-meter b { display: block; width: 62.5%; height: 100%; border-radius: inherit; background: #216b59; }
+.rp-questionnaire-workflow-menu { position: relative; }
+.rp-questionnaire-workflow-menu summary { min-height: 36px; display: flex; align-items: center; padding: 0 10px; border: 1px solid #d2d0c9; border-radius: 6px; color: #3f4843; cursor: pointer; font-size: 13px; list-style: none; }
+.rp-questionnaire-workflow-menu summary::-webkit-details-marker { display: none; }
+.rp-questionnaire-workflow-menu summary::after { content: "⌄"; margin-left: 7px; color: #216b59; }
+.rp-questionnaire-workflow-menu ol { position: absolute; z-index: 20; top: calc(100% + 7px); right: 0; width: 220px; display: grid; gap: 2px; margin: 0; padding: 10px; border: 1px solid #ddd9d0; border-radius: 8px; background: #fff; box-shadow: 0 12px 30px rgba(34, 39, 36, .13); list-style-position: inside; font-size: 13px; }
+.rp-questionnaire-workflow-menu li { padding: 5px 6px; color: #6d716c; }.rp-questionnaire-workflow-menu li.is-current { border-radius: 5px; background: #e7f0ec; color: #174d3e; font-weight: 700; }
+
+.rp-room-questionnaire-plan { box-shadow: 0 10px 24px rgba(37, 49, 43, .045); }
+.rp-room-context-heading strong { color: #242522; font-size: 16px; }
+.rp-visual-space-nav button { position: relative; transition: background .16s ease, border-color .16s ease; }
+.rp-visual-space-nav button.is-active::before { content: "填寫中"; position: absolute; right: 4px; top: 10px; padding: 2px 6px; border-radius: 999px; background: #e7f0ec; color: #216b59; font-size: 11px; font-weight: 700; }
+.rp-questionnaire-room-section-nav { border-right: 1px solid #e4e1da; padding-right: 12px; }
+.rp-questionnaire-room-section-nav button { transition: background .16s ease, border-color .16s ease; }
+.rp-room-finish-editor { padding-left: 2px; }
+.rp-questionnaire-room-action-bar { border-color: #cbd8d1; }
+
+/* Furniture cards show the catalog image, or the same GLB thumbnail fallback as the catalog drawer. */
+.rp-questionnaire-furniture-refresh-note { margin: -4px 0 2px; color: #6d716c; font-size: 12px; line-height: 1.45; }
+.rp-questionnaire-furniture-options > article { grid-template-columns: 96px minmax(170px, 1fr) minmax(250px, auto); }
+.rp-questionnaire-furniture-preview { position: relative; width: 96px; height: 92px; overflow: hidden; border: 1px solid #ddd9d0; border-radius: 5px; background: #f7f6f2; }
+.rp-questionnaire-furniture-preview img { width: 100%; height: 100%; display: block; object-fit: contain; }
+.rp-questionnaire-furniture-preview span { position: absolute; inset: 0; display: none; place-items: center; padding: 8px; color: #77746d; font-size: 12px; text-align: center; }
+.rp-questionnaire-furniture-preview img.is-loading + span { display: grid; }
+.rp-questionnaire-furniture-reason { color: #216b59 !important; line-height: 1.35; }
+
+.rp-questionnaire-catalog-controls { display: grid; grid-template-columns: 172px minmax(220px, 1fr); gap: 14px 16px; align-items: end; }
+.rp-questionnaire-catalog-controls .rp-catalog-scope { display: inline-flex; min-height: 42px; overflow: hidden; border: 1px solid #c9c5bd; border-radius: 6px; background: #fff; }
+.rp-catalog-scope button { flex: 1; padding: 8px 10px; border: 0; border-right: 1px solid #d9d5ce; border-radius: 0; background: #fff; color: #4a4b46; font-size: 13px; white-space: nowrap; }
+.rp-catalog-scope button:last-child { border-right: 0; }
+.rp-catalog-scope button.is-active { background: #216b59; color: #fff; }
+.rp-questionnaire-catalog-controls .rp-search-field { margin: 0; }
+.rp-questionnaire-catalog-filters { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.rp-questionnaire-catalog-filters label { display: grid; gap: 5px; color: #57564f; font-size: 12px; font-weight: 700; }
+.rp-questionnaire-catalog-filters select { min-height: 38px; padding: 7px 30px 7px 9px; border: 1px solid #c9c5bd; border-radius: 5px; background: #fff; color: #34332f; font: inherit; }
+.rp-questionnaire-catalog-controls + #standard-catalog-search + #search-glb-furniture { margin-top: 12px; }
+
+@media (max-width: 700px) {
+  .rp-questionnaire-catalog-controls { grid-template-columns: 1fr; }
+  .rp-questionnaire-catalog-filters { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 820px) {
+  .rp-questionnaire-furniture-options > article { grid-template-columns: 82px minmax(0, 1fr); }
+  .rp-questionnaire-furniture-preview { width: 82px; height: 78px; }
+  .rp-questionnaire-furniture-card-actions { grid-column: 1 / -1; justify-items: stretch; }
+}
+
+@media (max-width: 740px) {
+  body:has(#requirements-step:not([hidden])) .rp-progress { padding: 0 16px; }
+  .rp-questionnaire-heading-actions { justify-content: flex-start; }
+  .rp-questionnaire-workflow-menu ol { left: 0; right: auto; }
 }

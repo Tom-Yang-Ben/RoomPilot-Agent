@@ -421,7 +421,7 @@ def test_builder_plan_630_cody_geometry_keeps_room_semantics_review_separate() -
     room_types = [room["type"] for room in analysis["rooms"]]
     assert room_types.count("bedroom") == 3
     assert room_types.count("bathroom") == 2
-    assert {"kitchen", "dining_room", "living_room"}.issubset(room_types)
+    assert {"kitchen", "living_room"}.issubset(room_types)
     assert analysis["walls"]
     assert analysis["recognition_engine"] == "cody"
     assert analysis["requires_confirmation"] is True
@@ -439,8 +439,7 @@ def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations(
     assert analysis["spatial_report"]["room_counts"] == {
         "bedroom": 3,
         "bathroom": 2,
-        "kitchen": 1,
-        "dining_room": 1,
+        "kitchen": 2,
         "living_room": 1,
         "balcony": 1,
     }
@@ -489,7 +488,7 @@ def test_floor04_visible_swing_arcs_produce_door_candidates() -> None:
         "bedroom",
         "kitchen",
         "storage",
-        "circulation",
+        "hallway",
         "bathroom",
         "living_room",
         "balcony",

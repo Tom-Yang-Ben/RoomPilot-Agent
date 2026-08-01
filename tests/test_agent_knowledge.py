@@ -15,14 +15,14 @@ from backend.agent.knowledge import (
 KNOWN_ROOM_TYPES = {
     "living_room",
     "bedroom",
-    "dining_room",
-    "study",
-    "workspace",
     "kitchen",
-    "entry",
+    "entryway",
     "balcony",
     "storage",
-    "laundry",
+    "bathroom",
+    "hallway",
+    "stair",
+    "garage",
 }
 
 

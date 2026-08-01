@@ -97,9 +97,14 @@ STYLE_FALLBACKS = {
 SPACE_DEFAULTS = {
     "living_room": ["sofa", "coffee-table", "tv-bench", "armchair", "bookcase"],
     "bedroom": ["bed", "bedside-table", "bookcase", "runner-small-rug"],
-    "workspace": ["desk", "office-chair", "bookcase", "wall-shelf"],
-    "dining_room": ["dining-table", "dining-chair", "sideboard"],
-    "studio": ["sofa-bed", "coffee-table", "desk", "bookcase"],
+    "storage": ["desk", "office-chair", "bookcase", "wall-shelf", "storage-cabinet"],
+    "kitchen": ["dining-table", "dining-chair", "sideboard", "appliance-cabinet"],
+    "bathroom": [],
+    "balcony": [],
+    "entryway": [],
+    "hallway": [],
+    "stair": [],
+    "garage": ["storage-cabinet", "wall-shelf"],
 }
 
 FURNITURE_ALIASES = {
@@ -1126,17 +1131,24 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
             converted["swing_end"] = centered_point(item.get("swing_end"))
             # 開合門的 start → end 是打開後的門片；牆洞與關門門片
             # 必須使用鉸鏈 start 指向弧線另一端 swing_end 的線段。
-            converted["closed_segment"] = {
-                "start": dict(converted["start"]),
-                "end": dict(converted["swing_end"]),
-                "source": "swing_arc",
-            }
         return converted
 
-    wall_segments = [segment(item) for item in structures.get("walls") or []]
-    door_segments = [segment(item) for item in structures.get("doors") or []]
-    window_segments = [segment(item) for item in structures.get("windows") or []]
-    beam_segments = [segment(item) for item in structures.get("beams") or []]
+    def identified_segments(items: list[dict[str, Any]], kind: str) -> list[dict[str, Any]]:
+        """Preserve editor ids and create stable ids for older saved projects."""
+        return [
+            segment({
+                **item,
+                "id": str(item.get("id") or f"{kind}-{index}"),
+                # Wall demolition is no longer a RoomPilot structure mode.
+                **({"demolition_candidate": False} if kind == "wall" else {}),
+            })
+            for index, item in enumerate(items or [], start=1)
+        ]
+
+    wall_segments = identified_segments(structures.get("walls") or [], "wall")
+    door_segments = identified_segments(structures.get("doors") or [], "door")
+    window_segments = identified_segments(structures.get("windows") or [], "window")
+    beam_segments = identified_segments(structures.get("beams") or [], "beam")
     columns = [
         {
             **{

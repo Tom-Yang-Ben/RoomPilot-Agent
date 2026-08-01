@@ -44,14 +44,17 @@ ROOM_LABELS = (
                   "bathroom", "bath", "toilet", "washroom", "lavatory", "wc")),
     ("living_room", ("客廳", "起居室", "livingroom", "living", "lounge", "familyroom")),
     ("kitchen", ("廚房", "厨房", "kitchen")),
-    ("dining_room", ("餐廳", "餐室", "diningroom", "dining")),
+    ("kitchen", ("餐廳", "餐室", "diningroom", "dining")),
     ("bedroom", ("主臥室", "主臥", "次臥", "臥室", "卧室", "bedroom", "masterbed")),
     ("balcony", ("陽台", "工作陽台", "balcony", "terrace", "patio")),
-    ("workspace", ("書房", "工作室", "study", "office", "den")),
+    ("storage", ("書房", "工作室", "study", "office", "den")),
     # 語意層 entry/storage 的落地型別（2026-07 盤點修正）。circulation 與
     # storage 同時是前端推薦表 scene_layout2d.js 的既有契約鍵。
-    ("circulation", ("玄關", "走道", "走廊", "hallway", "hall", "foyer", "entry", "corridor")),
+    ("entryway", ("玄關", "foyer", "entry")),
+    ("hallway", ("走道", "走廊", "hallway", "hall", "corridor")),
+    ("stair", ("樓梯", "梯間", "stair", "staircase")),
     ("storage", ("儲藏室", "儲藏", "儲物間", "收納間", "closet", "storage", "pantry")),
+    ("garage", ("車庫", "garage")),
 )
 
 # cody floorplan2room 的房型詞彙 → 上面 ROOM_LABELS 的主線契約詞彙。
@@ -68,16 +71,16 @@ CODY_ROOM_TYPE_MAP: dict[str, str | None] = {
     # 語意層另會輸出 entry/storage/garage/outdoor 四型；先前未映射會被靜默丟棄，
     # 玄關與儲藏室永遠落不了地（2026-07 盤點確認）。circulation 與 storage 是
     # 前端推薦表既有的契約鍵（circulation 刻意零家具，正好避免小空間被硬塞）。
-    "entry": "circulation",
+    "entry": "entryway",
     "storage": "storage",
     "outdoor": "balcony",
-    "garage": None,  # 台灣公寓場景罕見且無下游消費者，維持不採用
+    "garage": "garage",
     # 2026-07-29 語意層新增 stair 一類（MAIN_SYNC_TODO 第 10 節）。踏板幾何是
     # 樓梯獨有的圖案，故它立得住；同批曾短暫存在的 office 已撤回併入 storage。
     # 映射為 None 是刻意的：樓梯區的產品語意是「不可擺設」，主線契約詞彙裡沒有
     # 對應鍵，硬塞既有鍵（如 circulation）會讓下游把它當可佈置的走道。
     # 待前端推薦表新增 stair 契約鍵後再改指過去。
-    "stair": None,
+    "stair": "stair",
     "room": None,
 }
 

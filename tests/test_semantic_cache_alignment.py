@@ -94,16 +94,15 @@ def _write_mask_npz(path: Path, shape: tuple[int, int]) -> None:
 # ── 3. 房型對照表 ────────────────────────────────────────────────
 
 
-def test_room_type_map_lands_entry_storage_outdoor() -> None:
-    # circulation 與 storage 是前端推薦表（scene_layout2d.js）的既有契約鍵。
-    assert analysis.CODY_ROOM_TYPE_MAP["entry"] == "circulation"
+def test_room_type_map_lands_entry_storage_outdoor_stair_and_garage() -> None:
+    assert analysis.CODY_ROOM_TYPE_MAP["entry"] == "entryway"
     assert analysis.CODY_ROOM_TYPE_MAP["storage"] == "storage"
     assert analysis.CODY_ROOM_TYPE_MAP["outdoor"] == "balcony"
-    assert analysis.CODY_ROOM_TYPE_MAP["garage"] is None
+    assert analysis.CODY_ROOM_TYPE_MAP["garage"] == "garage"
     assert analysis.CODY_ROOM_TYPE_MAP["room"] is None
     # stair 是 2026-07-29 語意層新增的類（MAIN_SYNC_TODO 第 10 節）。刻意映射為
     # None：樓梯區的產品語意是「不可擺設」，硬塞 circulation 會被當可佈置走道。
-    assert analysis.CODY_ROOM_TYPE_MAP["stair"] is None
+    assert analysis.CODY_ROOM_TYPE_MAP["stair"] == "stair"
 
 
 # ── 4. floor01 端到端：補鍵即命中語意快取 ───────────────────────

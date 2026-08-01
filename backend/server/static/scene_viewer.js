@@ -21,7 +21,7 @@ import {
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-15774e4e668f";
+} from "./scene_architecture.js?v=sha256-a686f1f5f6f2";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -2779,14 +2779,45 @@ export function createSceneViewer(
         }))
         .filter((door) => door.id);
       const renderedDoorIds = renderedDoors.map((door) => door.id);
-      container.dataset.roompilotDoorDiagnostics = JSON.stringify({
+      const sourceDoorById = new Map(
+        (sceneData.floorplan?.door_segments || []).map((door) => [String(door?.id || ""), door]),
+      );
+      const resolvedDoorById = new Map(
+        doorSegments.map((door) => [String(door?.id || ""), door]),
+      );
+      const comparisons = expectedDoorIds.map((id) => {
+        const source = sourceDoorById.get(id);
+        const resolved = resolvedDoorById.get(id);
+        const rendered = renderedDoors.find((door) => door.id === id);
+        const endpointDistance = source && resolved
+          ? Math.min(
+            Math.hypot(source.start.x - resolved.start.x, source.start.z - resolved.start.z)
+              + Math.hypot(source.end.x - resolved.end.x, source.end.z - resolved.end.z),
+            Math.hypot(source.start.x - resolved.end.x, source.start.z - resolved.end.z)
+              + Math.hypot(source.end.x - resolved.start.x, source.end.z - resolved.start.z),
+          )
+          : Infinity;
+        return {
+          id,
+          source: source ? { start: source.start, end: source.end, hostWallId: source.host_wall_id || null } : null,
+          resolved: resolved ? { start: resolved.start, end: resolved.end, hostWallId: resolved.host_wall_id || null } : null,
+          rendered: Boolean(rendered),
+          status: endpointDistance <= 1 && Boolean(rendered) ? "matched" : "mismatch",
+        };
+      });
+      const doorDiagnostics = {
         expected: expectedDoorIds.length,
         resolved: doorSegments.length,
         rendered: renderedDoorIds.length,
         expectedIds: expectedDoorIds,
         renderedIds: renderedDoorIds,
         renderedDoors,
-      });
+        comparisons,
+      };
+      container.dataset.roompilotDoorDiagnostics = JSON.stringify(doorDiagnostics);
+      container.dispatchEvent(new CustomEvent("roompilot-door-diagnostics", {
+        detail: doorDiagnostics,
+      }));
     }
 
     if (!catalogThumbnailMode && hasAccurateFloorplan) {
@@ -2880,10 +2911,10 @@ export function createSceneViewer(
       );
       return;
     }
-    if (ceilingStyle === "floating") {
+    if (ceilingStyle === "floating" || ceilingStyle === "feature-pendant") {
       addPanel(
-        Math.max(room.widthCm - 70, 50),
-        Math.max(room.depthCm - 70, 50),
+        ceilingStyle === "feature-pendant" ? Math.max(room.widthCm * 0.58, 120) : Math.max(room.widthCm - 70, 50),
+        ceilingStyle === "feature-pendant" ? Math.max(room.depthCm * 0.42, 100) : Math.max(room.depthCm - 70, 50),
         room.ceilingHeight,
         baseMaterial,
         12,
@@ -3787,6 +3818,13 @@ export function createSceneViewer(
       setStatus(`場景已生成，但部分家具未載入：${failures.join("、")}`);
     } else {
       setStatus("場景已生成：拖曳家具可移動（放手時檢查碰撞），點選後按 R 旋轉。");
+    }
+
+    // Keep the source-versus-rendered door result visible after the generic load status.
+    if (container.dataset.roompilotDoorDiagnostics) {
+      container.dispatchEvent(new CustomEvent("roompilot-door-diagnostics", {
+        detail: JSON.parse(container.dataset.roompilotDoorDiagnostics),
+      }));
     }
   }
 

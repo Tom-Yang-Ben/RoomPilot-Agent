@@ -22,6 +22,7 @@ def _run_room_requirement_helper(script: str) -> dict:
               import {{
                 buildSpecialRequestAnswer,
                 conditionalOptionId,
+                normalizeRoomRequirements,
               }} from {json.dumps(ROOM_REQUIREMENTS.resolve().as_uri())};
               {script}
             """,
@@ -42,6 +43,24 @@ def test_room_requirement_contract_is_room_scoped_and_versioned() -> None:
     assert "wallSurfaceIds" in SOURCE
     assert "ceiling" in SOURCE
     assert "airConditioning" in SOURCE
+    assert "generativeEquipment" in SOURCE
+    assert "structuralIntentAcknowledged" in SOURCE
+
+
+def test_generation_space_requirements_are_versioned_and_preserved() -> None:
+    result = _run_room_requirement_helper(
+        """
+          const model = normalizeRoomRequirements({}, [{
+            id: "bath-1", type: "bathroom", label: "Bathroom",
+          }]);
+          console.log(JSON.stringify(model.roomRequirements["bath-1"].generativeEquipment));
+        """
+    )
+
+    assert result["required"] is True
+    assert result["primaryUse"] is None
+    assert result["equipmentDirection"] == []
+    assert result["fitStatus"] == "pending"
 
 
 def test_apply_scope_keeps_independent_room_copies() -> None:
@@ -50,6 +69,26 @@ def test_apply_scope_keeps_independent_room_copies() -> None:
     assert "same-type" in SOURCE
     assert "selected" in SOURCE
     assert "all" in SOURCE
+
+
+def test_normalize_preserves_unassigned_deferred_furniture() -> None:
+    result = _run_room_requirement_helper(
+        """
+          const model = normalizeRoomRequirements({
+            unassignedDeferredFurniture: [{
+              furniture_id: "loose-chair-1",
+              normalized_type: "chair",
+              label: "Loose chair",
+            }],
+          }, [{ id: "room-1", type: "bedroom", label: "Bedroom" }]);
+          console.log(JSON.stringify({
+            count: model.unassignedDeferredFurniture.length,
+            label: model.unassignedDeferredFurniture[0].label,
+          }));
+        """
+    )
+
+    assert result == {"count": 1, "label": "Loose chair"}
 
 
 def test_feasibility_checks_room_geometry_and_openings() -> None:

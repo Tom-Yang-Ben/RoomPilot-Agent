@@ -1,66 +1,47 @@
 const ROOM_TO_VISUAL_SPACES = Object.freeze({
-  entry: ["entryway"],
+  entryway: ["entryway"],
   living_room: ["living_room"],
-  dining_room: ["dining_room"],
   kitchen: ["kitchen"],
+  bedroom: ["bedroom"],
   bathroom: ["bathroom"],
-  workspace: ["study"],
   balcony: ["balcony"],
   storage: ["storage"],
+  hallway: ["hallway"],
+  garage: ["garage"],
 });
 
 export const VISUAL_SPACE_LABELS = Object.freeze({
   entryway: "玄關",
   living_room: "客廳",
-  dining_room: "餐廳",
   kitchen: "廚房",
-  primary_bedroom: "主臥",
-  secondary_bedroom: "次臥",
+  bedroom: "臥室",
   bathroom: "浴室",
-  study: "書房／工作區",
+  storage: "書房／儲藏室",
   balcony: "陽台",
-  storage: "儲藏空間",
-  circulation: "走道／動線",
+  hallway: "走道／動線",
+  garage: "車庫",
   all_rooms: "全屋共通",
 });
 
 export function questionsForRooms(questions = [], rooms = []) {
-  let bedroomIndex = 0;
   const roomSpaces = new Set();
   rooms.forEach((room) => {
-    if (["primary_bedroom", "secondary_bedroom"].includes(room.visual_space_type)) {
-      roomSpaces.add(room.visual_space_type);
-      return;
-    }
-    if (room.type === "bedroom") {
-      roomSpaces.add(bedroomIndex === 0 ? "primary_bedroom" : "secondary_bedroom");
-      bedroomIndex += 1;
-      return;
-    }
     (ROOM_TO_VISUAL_SPACES[room.type] || []).forEach((space) => roomSpaces.add(space));
   });
-  const sharedSpaces = new Set(["circulation", "all_rooms"]);
+  const sharedSpaces = new Set(["all_rooms"]);
   return questions.filter(
     (question) => roomSpaces.has(question.space_type)
       || sharedSpaces.has(question.space_type),
   );
 }
 
-function visualSpaceForRoom(room, bedroomIndex = 0) {
-  if (["primary_bedroom", "secondary_bedroom"].includes(room.visual_space_type)) {
-    return room.visual_space_type;
-  }
-  if (room.type === "bedroom") {
-    return bedroomIndex === 0 ? "primary_bedroom" : "secondary_bedroom";
-  }
+function visualSpaceForRoom(room) {
   return ROOM_TO_VISUAL_SPACES[room.type]?.[0] || null;
 }
 
 export function questionsForIndividualRooms(questions = [], rooms = []) {
-  let bedroomIndex = 0;
   return rooms.flatMap((room) => {
-    const roomSpace = visualSpaceForRoom(room, bedroomIndex);
-    if (room.type === "bedroom") bedroomIndex += 1;
+    const roomSpace = visualSpaceForRoom(room);
     const matching = questions.filter((question) =>
       question.space_type === roomSpace || question.space_type === "all_rooms"
     );

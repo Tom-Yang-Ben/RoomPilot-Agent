@@ -46,7 +46,12 @@ def _payload(project_id: str) -> dict:
 
 
 def test_render_payload_keeps_design_needs_but_removes_identity_fields() -> None:
-    prepared = prepare_render_payload(_payload("project-1"))
+    payload = _payload("project-1")
+    payload["render_brief"] = {
+        "user_notes": "Keep a warm reading corner.",
+        "phone": "0900000000",
+    }
+    prepared = prepare_render_payload(payload)
 
     assert "name" not in prepared["requirements"]["basic"]
     assert "fullName" not in prepared["requirements"]["basic"]
@@ -55,6 +60,8 @@ def test_render_payload_keeps_design_needs_but_removes_identity_fields() -> None
     bedroom = prepared["requirements"]["rooms"]["bedroom-1"]
     assert bedroom["personalNeeds"] == "quiet reading corner and soft lighting"
     assert "address" not in bedroom
+    assert prepared["render_brief"]["user_notes"] == "Keep a warm reading corner."
+    assert "phone" not in prepared["render_brief"]
 
 
 def test_room_render_requires_each_room_view_to_have_a_locked_camera() -> None:

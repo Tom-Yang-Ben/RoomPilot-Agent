@@ -55,8 +55,8 @@ ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
     "sofa": ("living_room",),
     "tv-bench": ("living_room",),
     "coffee-table": ("living_room",),
-    "dining-table": ("dining_room",),
-    "dining-chair": ("dining_room",),
+    "dining-table": ("kitchen",),
+    "dining-chair": ("kitchen",),
 }
 
 # 成組擺放的主件優先取得牆位，泛用件其次，COMPANION_OF 副件最後。
@@ -96,14 +96,14 @@ FAMILY_ZH: dict[str, str] = {
 ROOM_TYPE_ZH: dict[str, str] = {
     "living_room": "客廳",
     "bedroom": "臥室",
-    "dining_room": "餐廳",
-    "study": "書房",
-    "workspace": "工作區",
     "kitchen": "廚房",
-    "entry": "玄關",
+    "entryway": "玄關",
     "balcony": "陽台",
-    "storage": "儲藏室",
-    "laundry": "家事間",
+    "storage": "書房／儲藏室",
+    "bathroom": "浴室",
+    "hallway": "走道／動線",
+    "stair": "樓梯",
+    "garage": "車庫",
 }
 
 

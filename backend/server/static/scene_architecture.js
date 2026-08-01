@@ -57,33 +57,31 @@ function geometricOpeningWallInterval(segment, opening, wallThickness = 12) {
   return { perpendicular };
 }
 
-export function closedDoorSegment(door = {}) {
+export function closedDoorSegment(door = {}, segments = [], wallThickness = 12) {
   const primary = segmentVector(door);
   if (primary.length < 4) return null;
 
   const persisted = segmentVector(door.closed_segment || {});
-  if (persisted.length >= 4) {
+  const persistedSource = String(door.closed_segment?.source || "").toLowerCase();
+  if (persisted.length >= 4 && ["manual", "manual_confirmed", "confirmed"].includes(persistedSource)) {
     return {
-      source: door.closed_segment?.source || "closed_segment",
+      source: persistedSource,
       start: persisted.start,
       end: persisted.end,
     };
   }
-  if (!door.swing_end) {
-    return { source: "primary_segment", start: primary.start, end: primary.end };
+  // The recogniser's primary span is the only automatic closed opening.
+  // swing_end describes the open door arc and must never create a second hole.
+  const opening = { ...door, start: primary.start, end: primary.end };
+  const hostId = String(door.host_wall_id || door.hostWallId || "");
+  const host = segments.find((segment) => hostId && segmentId(segment) === hostId);
+  if (host && geometricOpeningWallInterval(host, opening, wallThickness)) {
+    return { source: "recognised_wall_span", start: primary.start, end: primary.end };
   }
-  const swingEnd = point(door.swing_end);
-  const swingLength = pointDistance(primary.start, swingEnd);
-  const cross = primary.dx * (swingEnd.z - primary.start.z)
-    - primary.dz * (swingEnd.x - primary.start.x);
-  const sameRadius = Math.abs(swingLength - primary.length) <= Math.max(18, primary.length * 0.18);
-  const perpendicular = primary.length && swingLength
-    ? Math.abs((primary.dx * (swingEnd.x - primary.start.x)
-      + primary.dz * (swingEnd.z - primary.start.z)) / (primary.length * swingLength))
-    : 1;
-  if (sameRadius && perpendicular <= 0.3 && Math.abs(cross) > 0.1) {
-    return { source: "swing_radius", start: primary.start, end: swingEnd };
+  if (segments.some((segment) => geometricOpeningWallInterval(segment, opening, wallThickness))) {
+    return { source: "recognised_wall_span", start: primary.start, end: primary.end };
   }
+  return { source: "recognised_wall_span", start: primary.start, end: primary.end };
   // 弧線不完整時不可把另一條半徑當成候選門洞，只保留原線待人工校正。
   return { source: "primary_segment", start: primary.start, end: primary.end };
 }
@@ -163,6 +161,7 @@ export function doorOpeningForWallTopology(
   const leaf = segmentVector(door);
   const closed = closedDoorSegment(door);
   if (leaf.length < 4 || !closed) return door;
+
   const closedOpening = {
     ...door,
     start: { ...closed.start },
@@ -190,9 +189,33 @@ export function doorOpeningForWallTopology(
     };
   }
 
+  // Automatic openings are already the recognised wall span.  Prefer its
+  // matching wall before considering any visual gap; an arc may be adjacent
+  // to another wall and must never win this decision.
+  if (closed.source === "recognised_wall_span") {
+    const recognisedHost = segments.map((segment) => ({
+      segment,
+      interval: geometricOpeningWallInterval(segment, closedOpening, wallThickness),
+    }))
+      .filter((candidate) => candidate.interval)
+      .sort((left, right) => left.interval.perpendicular - right.interval.perpendicular)[0];
+    if (recognisedHost) {
+      return {
+        ...closedOpening,
+        host_wall_id: segmentId(recognisedHost.segment) || null,
+        original_host_wall_id: door.host_wall_id || null,
+        topology_gap: false,
+        opening_source: closed.source,
+        door_leaf_segment: { start: { ...leaf.start }, end: { ...leaf.end } },
+      };
+    }
+  }
+
   // 開合門的關門線已由 closedDoorSegment 正規化。原始主線是打開後的
   // 門片，只保留供第 4 步顯示與鉸鏈判讀，絕不可再成為第二個門洞。
-  const gapCandidate = candidateGapForDoor(segments, closedOpening, wallThickness);
+  const gapCandidate = closed.source === "recognised_wall_span"
+    ? null
+    : candidateGapForDoor(segments, closedOpening, wallThickness);
   if (gapCandidate) {
     const best = gapCandidate;
     return {
@@ -295,6 +318,16 @@ export function doorOpeningForWallTopology(
   if (!candidates.length) {
     return {
       ...closedOpening,
+      // An unconfirmed vision host must never be used to cut a wall after the
+      // geometry lookup failed.  It used to make one wrong hole while the leaf
+      // renderer independently used the closed segment, producing two holes.
+      original_host_wall_id: door.host_wall_id || null,
+      host_wall_id: undefined,
+      topology_gap: Boolean(door.host_wall_id),
+      door_leaf_segment: {
+        start: { ...leaf.start },
+        end: { ...leaf.end },
+      },
       opening_source: closed.source,
       needs_manual_host_confirmation: true,
     };

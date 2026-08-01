@@ -10,13 +10,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 RoomType = Literal[
     "living_room",
     "bedroom",
-    "dining_room",
-    "study",
     "entryway",
-    "kids_room",
-    "outdoor",
     "bathroom",
     "kitchen",
+    "storage",
+    "balcony",
+    "hallway",
+    "garage",
 ]
 StyleId = Literal[
     "scandinavian", "japanese", "modern_minimal", "cream", "industrial", "american"

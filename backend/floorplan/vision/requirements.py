@@ -49,10 +49,7 @@ ROOM_REQUIREMENTS = {
         _item("electricity", "general_power", "床頭、一般插座與照明迴路"),
         _item("electricity", "air_conditioning", "空調專用電源與排水位置", status="conditional", confirmation=True),
     ],
-    "dining_room": [
-        _item("electricity", "general_power", "餐桌周邊插座與照明迴路"),
-    ],
-    "workspace": [
+    "storage": [
         _item("electricity", "workstation_power", "工作桌插座、網路與照明"),
     ],
     "balcony": [

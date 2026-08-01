@@ -2,10 +2,12 @@ export const ROOM_LABELS = Object.freeze({
   bedroom: "臥室",
   bathroom: "浴廁",
   kitchen: "廚房",
-  dining_room: "餐廳",
   living_room: "客廳",
   balcony: "陽台",
-  workspace: "工作空間",
+  storage: "書房／儲藏室",
+  entryway: "玄關",
+  hallway: "走道／動線",
+  garage: "車庫",
 });
 
 const REVIEW_REASON_LABELS = Object.freeze({

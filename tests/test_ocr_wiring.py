@@ -242,7 +242,8 @@ def test_room_type_matches_english_printed_labels() -> None:
     assert analysis._room_type("KITCHEN") == "kitchen"
     assert analysis._room_type("LIVING ROOM") == "living_room"
     assert analysis._room_type("WALK-IN CLOSET") == "storage"
-    assert analysis._room_type("HALL") == "circulation"
+    assert analysis._room_type("HALL") == "hallway"
+    assert analysis._room_type("STAIR") == "stair"
     # 中文別名不受 casefold 影響。
     assert analysis._room_type("主臥室") == "bedroom"
     assert analysis._room_type("儲藏室") == "storage"

@@ -1253,6 +1253,49 @@ def _furniture_search_text(item: dict) -> str:
     ).casefold()
 
 
+_FURNITURE_SEARCH_TYPE_INTENTS = {
+    # The catalog has supplier names in several languages. Map the common
+    # customer-facing words to stable taxonomy types before doing text search.
+    "椅子": (
+        "armchair",
+        "dining-chair",
+        "office-chair",
+        "gaming-chair",
+        "kids-chairs-stool",
+        "chair",
+        "stool-bench",
+    ),
+    "單人椅": ("armchair",),
+    "扶手椅": ("armchair",),
+    "餐椅": ("dining-chair",),
+    "辦公椅": ("office-chair",),
+    "電競椅": ("gaming-chair",),
+    "椅凳": ("stool-bench",),
+}
+
+
+def _furniture_search_intent(query: str) -> tuple[str, ...]:
+    """Return taxonomy types implied by a customer-facing furniture term."""
+    return _FURNITURE_SEARCH_TYPE_INTENTS.get(query.casefold(), ())
+
+
+def _furniture_matches_query(item: dict, query: str, intent_types: tuple[str, ...]) -> bool:
+    if not query:
+        return True
+    if query in _furniture_search_text(item):
+        return True
+    return str(item.get("normalized_type") or "") in intent_types
+
+
+def _furniture_query_sort_key(item: dict, query: str, intent_types: tuple[str, ...]) -> tuple[int, int, str]:
+    """Keep exact matches useful, while placing intended taxonomy types first."""
+    item_type = str(item.get("normalized_type") or "")
+    search_text = _furniture_search_text(item)
+    if intent_types and item_type in intent_types:
+        return (0, intent_types.index(item_type), str(item.get("name_zh") or item.get("name_en") or ""))
+    return (1, 0 if query in search_text else 1, str(item.get("name_zh") or item.get("name_en") or ""))
+
+
 _FURNITURE_FACET_TRANSLATIONS = {
     "color": {
         "white": "白色",
@@ -1308,6 +1351,7 @@ def _filter_furniture_payload(
     size: str | None = None,
 ) -> list[dict]:
     query = (q or "").strip().casefold()
+    intent_types = _furniture_search_intent(query)
     color_query = _normalize_furniture_facet_value(color, "color").casefold()
     material_query = _normalize_furniture_facet_value(material, "material").casefold()
     items = []
@@ -1326,9 +1370,11 @@ def _filter_furniture_payload(
             continue
         if size and _furniture_size_bucket(item) != size:
             continue
-        if query and query not in _furniture_search_text(item):
+        if not _furniture_matches_query(item, query, intent_types):
             continue
         items.append(item)
+    if query:
+        items.sort(key=lambda item: _furniture_query_sort_key(item, query, intent_types))
     return items
 
 

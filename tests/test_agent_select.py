@@ -164,15 +164,15 @@ def test_parse_never_silently_drops_preselected_item_when_anchor_is_missing() ->
         )
 
 
-def test_dining_room_requires_both_table_and_chair() -> None:
-    rooms = [{"room_id": "dining-1", "room_type": "dining_room"}]
-    offers = {"dining-1": [
+def test_kitchen_requires_both_table_and_chair() -> None:
+    rooms = [{"room_id": "kitchen-1", "room_type": "kitchen"}]
+    offers = {"kitchen-1": [
         _candidate("table", "dining-table"),
         _candidate("chair", "dining-chair"),
     ]}
     with pytest.raises(SelectionParseError, match="dining-chair"):
         parse_selections(
-            {"selections": [_selection("dining-1", "table")]},
+            {"selections": [_selection("kitchen-1", "table")]},
             rooms,
             offers,
         )

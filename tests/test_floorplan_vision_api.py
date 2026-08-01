@@ -189,8 +189,7 @@ def test_builder_plan_630_upload_is_automatically_recognized_without_annotation_
     assert analysis["spatial_report"]["room_counts"] == {
         "bedroom": 3,
         "bathroom": 2,
-        "kitchen": 1,
-        "dining_room": 1,
+        "kitchen": 2,
         "living_room": 1,
         "balcony": 1,
     }

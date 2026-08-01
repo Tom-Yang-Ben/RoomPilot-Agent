@@ -14,55 +14,67 @@ const STYLE_DEFINITIONS = Object.freeze([
   {
     id: "scandinavian",
     label: "北歐風",
+    selectionCue: "淺木、留白、自然採光",
+    referenceImage: "/static/style_images/taiwan_residential/scandinavian-v2.png",
     cards: [
-      styleCard("scandinavian_1", "自然木質", ["#FAF4EE", "#DAAE7E", "#E0D4C8", "#7F8266"], "/static/style_cards/01_北歐/01_北歐_自然木質.png", ["模組布沙發", "淺橡木電視櫃", "淺木茶几"], ["藤編吊燈", "窗邊植栽", "亞麻地毯"], { wallOption: "warm_white", floorOption: "light_oak" }),
-      styleCard("scandinavian_2", "清新明亮", ["#F1F1F1", "#DABFA0", "#8294A2", "#C6C3BF"], "/static/style_cards/01_北歐/02_北歐_清新明亮.png", ["低扶手沙發", "圓形茶几", "開放層架"], ["白紗簾", "輕量吊燈", "小型植栽"], { wallOption: "warm_white", floorOption: "light_oak" }),
-      styleCard("scandinavian_3", "低彩度質感", ["#BAAFA3", "#383736", "#77685C", "#2E2E2D"], "/static/style_cards/01_北歐/03_北歐_低彩度質感.png", ["柔角直線沙發", "低矮影音櫃", "簡潔邊桌"], ["低彩度地毯", "植物掛畫", "暖色間接光"], { wallOption: "limewash", floorOption: "stone_gray" }),
+      styleCard("scandinavian_1", "自然木質", ["#FAF4EE", "#DAAE7E", "#E0D4C8", "#7F8266"], "/static/style_cards/taiwan_residential/scandinavian_1.png", ["模組布沙發", "淺橡木電視櫃", "淺木茶几"], ["藤編吊燈", "窗邊植栽", "亞麻地毯"], { wallOption: "warm_white", floorOption: "light_oak" }),
+      styleCard("scandinavian_2", "清新明亮", ["#F1F1F1", "#DABFA0", "#8294A2", "#C6C3BF"], "/static/style_cards/taiwan_residential/scandinavian_2.png", ["低扶手沙發", "圓形茶几", "開放層架"], ["白紗簾", "輕量吊燈", "小型植栽"], { wallOption: "warm_white", floorOption: "light_oak" }),
+      styleCard("scandinavian_3", "低彩度質感", ["#BAAFA3", "#383736", "#77685C", "#2E2E2D"], "/static/style_cards/taiwan_residential/scandinavian_3.png", ["柔角直線沙發", "低矮影音櫃", "簡潔邊桌"], ["低彩度地毯", "植物掛畫", "暖色間接光"], { wallOption: "limewash", floorOption: "stone_gray" }),
     ],
   },
   {
     id: "japanese",
     label: "日式風",
+    selectionCue: "低矮家具、木格柵、和紙燈",
+    referenceImage: "/static/style_images/taiwan_residential/japanese-v2.png",
     cards: [
-      styleCard("japanese_1", "侘寂自然", ["#D1C1AC", "#685C51", "#A88462", "#242424"], "/static/style_cards/02_日式/01_日式_侘寂自然.png", ["低床架", "低木桌", "素木層架"], ["和紙吊燈", "陶器花器", "枯枝植栽"], { wallOption: "limewash", floorOption: "light_oak" }),
-      styleCard("japanese_2", "茶室禪意", ["#C8A774", "#492B19", "#8A825C", "#705434"], "/static/style_cards/02_日式/02_日式_茶室禪意.png", ["矮茶桌", "低座椅", "木格柵櫃"], ["和紙燈籠", "暖色間接光", "極簡陶器"], { lightingProfile: "warm_evening", wallOption: "limewash", floorOption: "walnut" }),
-      styleCard("japanese_3", "現代和風", ["#DED7D0", "#958C83", "#C6A88A", "#2B2D1C"], "/static/style_cards/02_日式/03_日式_現代和風.png", ["低背沙發", "平台床", "格柵收納櫃"], ["線性和紙燈", "隱藏燈帶", "留白掛畫"], { wallOption: "warm_white", floorOption: "light_oak" }),
+      styleCard("japanese_1", "侘寂自然", ["#D1C1AC", "#685C51", "#A88462", "#242424"], "/static/style_cards/taiwan_residential/japanese_1.png", ["低床架", "低木桌", "素木層架"], ["和紙吊燈", "陶器花器", "枯枝植栽"], { wallOption: "limewash", floorOption: "light_oak" }),
+      styleCard("japanese_2", "茶室禪意", ["#C8A774", "#492B19", "#8A825C", "#705434"], "/static/style_cards/taiwan_residential/japanese_2.png", ["矮茶桌", "低座椅", "木格柵櫃"], ["和紙燈籠", "暖色間接光", "極簡陶器"], { lightingProfile: "warm_evening", wallOption: "limewash", floorOption: "walnut" }),
+      styleCard("japanese_3", "現代和風", ["#DED7D0", "#958C83", "#C6A88A", "#2B2D1C"], "/static/style_cards/taiwan_residential/japanese_3.png", ["低背沙發", "平台床", "格柵收納櫃"], ["線性和紙燈", "隱藏燈帶", "留白掛畫"], { wallOption: "warm_white", floorOption: "light_oak" }),
     ],
   },
   {
     id: "modern_minimal",
     label: "現代簡約",
+    selectionCue: "石材、直線、隱藏收納",
+    referenceImage: "/static/style_images/taiwan_residential/modern-minimal-v2.png",
     cards: [
-      styleCard("modern_minimal_1", "黑白俐落", ["#F7F4F1", "#2C2B2B", "#AEA79F", "#AE8661"], "/static/style_cards/03_現代簡約/01_現代簡約_黑白俐落.png", ["俐落直線沙發", "玻璃石材茶几", "黑白影音櫃"], ["軌道燈", "單幅抽象畫", "素色地毯"], { wallOption: "warm_white", floorOption: "stone_gray" }),
-      styleCard("modern_minimal_2", "暖灰質感", ["#AFA79E", "#B49778", "#998D83", "#5E5E5D"], "/static/style_cards/03_現代簡約/02_現代簡約_暖灰質感.png", ["模組沙發", "窄框收納櫃", "圓角長桌"], ["暖金屬飾件", "間接燈", "灰褐地毯"], { wallOption: "light_gray", floorOption: "stone_gray" }),
-      styleCard("modern_minimal_3", "自然留白", ["#F0EADF", "#BDB9B7", "#D2B493", "#93937E"], "/static/style_cards/03_現代簡約/03_現代簡約_自然留白.png", ["整合式低櫃", "簡潔床架", "精簡餐桌"], ["隱藏燈帶", "單件主飾品", "留白牆面"], { wallOption: "warm_white", floorOption: "light_oak" }),
+      styleCard("modern_minimal_1", "黑白俐落", ["#F7F4F1", "#2C2B2B", "#AEA79F", "#AE8661"], "/static/style_cards/taiwan_residential/modern_minimal_1.png", ["俐落直線沙發", "玻璃石材茶几", "黑白影音櫃"], ["軌道燈", "單幅抽象畫", "素色地毯"], { wallOption: "warm_white", floorOption: "stone_gray" }),
+      styleCard("modern_minimal_2", "暖灰質感", ["#AFA79E", "#B49778", "#998D83", "#5E5E5D"], "/static/style_cards/taiwan_residential/modern_minimal_2.png", ["模組沙發", "窄框收納櫃", "圓角長桌"], ["暖金屬飾件", "間接燈", "灰褐地毯"], { wallOption: "light_gray", floorOption: "stone_gray" }),
+      styleCard("modern_minimal_3", "自然留白", ["#F0EADF", "#BDB9B7", "#D2B493", "#93937E"], "/static/style_cards/taiwan_residential/modern_minimal_3.png", ["整合式低櫃", "簡潔床架", "精簡餐桌"], ["隱藏燈帶", "單件主飾品", "留白牆面"], { wallOption: "warm_white", floorOption: "light_oak" }),
     ],
   },
   {
     id: "cream",
     label: "奶油風",
+    selectionCue: "圓弧、柔霧、暖奶白",
+    referenceImage: "/static/style_images/taiwan_residential/cream-v2.png",
     cards: [
-      styleCard("cream_1", "奶油米白", ["#E7DCD0", "#C8A27C", "#CDB59A", "#A36643"], "/static/style_cards/04_奶油風/01_奶油風_奶油米白.png", ["弧形沙發", "圓形茶几", "包覆餐椅"], ["暖色吊燈", "白紗簾", "柔軟地毯"], { lightingProfile: "warm_evening", wallOption: "limewash", floorOption: "light_oak" }),
-      styleCard("cream_2", "法式柔霧", ["#EEE6DD", "#B0978F", "#CCBAA6", "#866040"], "/static/style_cards/04_奶油風/02_奶油風_法式柔霧.png", ["曲線沙發", "優雅餐桌椅", "拱形鏡"], ["小型吊燈", "間接燈槽", "低調線板"], { lightingProfile: "warm_evening", wallOption: "warm_white", floorOption: "marble" }),
-      styleCard("cream_3", "奶茶木質", ["#C4AC96", "#E5D9CD", "#B97E44", "#89572A"], "/static/style_cards/04_奶油風/03_奶油風_奶茶木質.png", ["暖木收納櫃", "柔角沙發", "圓角桌"], ["亞麻窗簾", "暖色燈帶", "奶茶色織品"], { lightingProfile: "warm_evening", wallOption: "limewash", floorOption: "light_oak" }),
+      styleCard("cream_1", "奶油米白", ["#E7DCD0", "#C8A27C", "#CDB59A", "#A36643"], "/static/style_cards/taiwan_residential/cream_1.png", ["弧形沙發", "圓形茶几", "包覆餐椅"], ["暖色吊燈", "白紗簾", "柔軟地毯"], { lightingProfile: "warm_evening", wallOption: "limewash", floorOption: "light_oak" }),
+      styleCard("cream_2", "法式柔霧", ["#EEE6DD", "#B0978F", "#CCBAA6", "#866040"], "/static/style_cards/taiwan_residential/cream_2.png", ["曲線沙發", "優雅餐桌椅", "拱形鏡"], ["小型吊燈", "間接燈槽", "低調線板"], { lightingProfile: "warm_evening", wallOption: "warm_white", floorOption: "marble" }),
+      styleCard("cream_3", "奶茶木質", ["#C4AC96", "#E5D9CD", "#B97E44", "#89572A"], "/static/style_cards/taiwan_residential/cream_3.png", ["暖木收納櫃", "柔角沙發", "圓角桌"], ["亞麻窗簾", "暖色燈帶", "奶茶色織品"], { lightingProfile: "warm_evening", wallOption: "limewash", floorOption: "light_oak" }),
     ],
   },
   {
     id: "industrial",
     label: "工業風",
+    selectionCue: "清水模、黑鐵、皮革",
+    referenceImage: "/static/style_images/taiwan_residential/industrial-v2.png",
     cards: [
-      styleCard("industrial_1", "黑鐵水泥", ["#A19B93", "#422A1D", "#323233", "#5C3826"], "/static/style_cards/05_工業風/01_工業風_黑鐵水泥.png", ["皮革沙發", "黑鐵層架", "深木茶几"], ["軌道燈", "網格櫃", "外露層架"], { lightingProfile: "industrial_contrast", wallOption: "light_gray", floorOption: "microcement" }),
-      styleCard("industrial_2", "復古工坊", ["#7B4025", "#735333", "#442718", "#292929"], "/static/style_cards/05_工業風/02_工業風_復古工坊.png", ["皮革單椅", "工作桌餐桌", "開放層架"], ["鎢絲吊燈", "黑色軌道燈", "復古時鐘"], { lightingProfile: "industrial_contrast", wallOption: "charcoal", floorOption: "stone_gray" }),
-      styleCard("industrial_3", "極簡冷調", ["#E3DED9", "#343436", "#959493", "#747272"], "/static/style_cards/05_工業風/03_工業風_極簡冷調.png", ["直線深色沙發", "極簡黑櫃", "黑鐵木桌"], ["冷色軌道燈", "稀疏金屬飾品", "灰色地毯"], { lightingProfile: "industrial_contrast", wallOption: "light_gray", floorOption: "microcement" }),
+      styleCard("industrial_1", "黑鐵水泥", ["#A19B93", "#422A1D", "#323233", "#5C3826"], "/static/style_cards/taiwan_residential/industrial_1.png", ["皮革沙發", "黑鐵層架", "深木茶几"], ["軌道燈", "網格櫃", "外露層架"], { lightingProfile: "industrial_contrast", wallOption: "light_gray", floorOption: "microcement" }),
+      styleCard("industrial_2", "復古工坊", ["#7B4025", "#735333", "#442718", "#292929"], "/static/style_cards/taiwan_residential/industrial_2.png", ["皮革單椅", "工作桌餐桌", "開放層架"], ["鎢絲吊燈", "黑色軌道燈", "復古時鐘"], { lightingProfile: "industrial_contrast", wallOption: "charcoal", floorOption: "stone_gray" }),
+      styleCard("industrial_3", "極簡冷調", ["#E3DED9", "#343436", "#959493", "#747272"], "/static/style_cards/taiwan_residential/industrial_3.png", ["直線深色沙發", "極簡黑櫃", "黑鐵木桌"], ["冷色軌道燈", "稀疏金屬飾品", "灰色地毯"], { lightingProfile: "industrial_contrast", wallOption: "light_gray", floorOption: "microcement" }),
     ],
   },
   {
     id: "american",
     label: "美式風",
+    selectionCue: "線板、胡桃木、經典家具",
+    referenceImage: "/static/style_images/taiwan_residential/american-v2.png",
     cards: [
-      styleCard("american_1", "鄉村溫馨", ["#E5DFD4", "#C49F73", "#CDBAA0", "#949370"], "/static/style_cards/06_美式/01_美式_鄉村溫馨.png", ["大尺寸沙發", "扶手椅", "木質茶几"], ["桌燈", "花紋地毯", "框畫"], { lightingProfile: "warm_evening", wallOption: "warm_white", floorOption: "walnut" }),
-      styleCard("american_2", "經典優雅", ["#DED4CA", "#744521", "#5E3A25", "#A17846"], "/static/style_cards/06_美式/02_美式_經典優雅.png", ["對稱沙發單椅", "古典餐桌", "線板展示櫃"], ["枝形吊燈", "成對桌燈", "典雅框畫"], { lightingProfile: "warm_evening", wallOption: "warm_white", floorOption: "light_oak" }),
-      styleCard("american_3", "現代輕奢", ["#ADA297", "#E4E1DE", "#121D2C", "#AD8850"], "/static/style_cards/06_美式/03_美式_現代輕奢.png", ["俐落大沙發", "大理石玻璃茶几", "金屬邊桌"], ["黃銅燈具", "精緻飾品", "層次窗簾"], { lightingProfile: "gallery_neutral", wallOption: "limewash", floorOption: "walnut" }),
+      styleCard("american_1", "鄉村溫馨", ["#E5DFD4", "#C49F73", "#CDBAA0", "#949370"], "/static/style_cards/taiwan_residential/american_1.png", ["大尺寸沙發", "扶手椅", "木質茶几"], ["桌燈", "花紋地毯", "框畫"], { lightingProfile: "warm_evening", wallOption: "warm_white", floorOption: "walnut" }),
+      styleCard("american_2", "經典優雅", ["#DED4CA", "#744521", "#5E3A25", "#A17846"], "/static/style_cards/taiwan_residential/american_2.png", ["對稱沙發單椅", "古典餐桌", "線板展示櫃"], ["枝形吊燈", "成對桌燈", "典雅框畫"], { lightingProfile: "warm_evening", wallOption: "warm_white", floorOption: "light_oak" }),
+      styleCard("american_3", "現代輕奢", ["#ADA297", "#E4E1DE", "#121D2C", "#AD8850"], "/static/style_cards/taiwan_residential/american_3.png", ["俐落大沙發", "大理石玻璃茶几", "金屬邊桌"], ["黃銅燈具", "精緻飾品", "層次窗簾"], { lightingProfile: "gallery_neutral", wallOption: "limewash", floorOption: "walnut" }),
     ],
   },
 ]);
@@ -292,6 +304,18 @@ export const STYLE_PACKS = Object.freeze(
   ),
 );
 
+// A whole-home style is chosen once in questionnaire stage 1. Palette packs
+// remain a later, same-style decision for render preparation in stage 7.
+export const STYLE_FAMILIES = Object.freeze(
+  STYLE_DEFINITIONS.map((style) => Object.freeze({
+    id: style.id,
+    label: style.label,
+    selectionCue: style.selectionCue,
+    referenceImage: style.referenceImage,
+    defaultPackId: style.cards[0].id,
+  })),
+);
+
 export const STYLE_MATERIAL_OPTIONS = Object.freeze({
   scandinavian: {
     wall: [
@@ -406,15 +430,33 @@ export const CEILING_STYLES = Object.freeze([
   { id: "cove", label: "間接燈槽", styles: ["modern_minimal", "cream", "american"], dropCm: 18 },
   { id: "floating", label: "懸浮天花", styles: ["modern_minimal", "cream"], dropCm: 20 },
   { id: "linear", label: "線性燈天花", styles: ["modern_minimal", "industrial"], dropCm: 15 },
-  { id: "no-main-light", label: "無主燈", styles: ["scandinavian", "modern_minimal"], dropCm: 10 },
+  { id: "feature-pendant", label: "局部造型吊燈", styles: ["cream", "american", "japanese"], dropCm: 18 },
   { id: "wood-grid", label: "木格柵", styles: ["japanese", "american"], dropCm: 16 },
 ]);
 
 export const LIGHT_STYLES = Object.freeze([
+  { id: "no-main-light", label: "無主燈配置", styles: ["scandinavian", "modern_minimal"], lumens: 820, beamAngle: 50, installationDepthCm: 10 },
   { id: "track", label: "軌道燈", styles: ["industrial", "modern_minimal"], lumens: 900, beamAngle: 36, installationDepthCm: 0 },
   { id: "pendant", label: "吊燈", styles: ["scandinavian", "cream", "american"], lumens: 1200, beamAngle: 60, installationDepthCm: 5 },
   { id: "downlight", label: "崁燈", styles: ["modern_minimal", "cream"], lumens: 720, beamAngle: 50, installationDepthCm: 12 },
   { id: "paper", label: "和紙燈", styles: ["japanese"], lumens: 800, beamAngle: 90, installationDepthCm: 5 },
+]);
+
+// These are installable combinations, not independent decoration choices.
+export const CEILING_DESIGN_PACKS = Object.freeze([
+  { id: "scandinavian-soft", label: "明亮平釘", material: "flat-paint", ceilingStyle: "flat", lightStyle: "no-main-light", styles: ["scandinavian", "modern_minimal"], note: "平釘天花配均勻無主燈，保留乾淨高度" },
+  { id: "flat-downlight", label: "平釘＋崁燈", material: "flat-paint", ceilingStyle: "flat", lightStyle: "downlight", styles: ["scandinavian", "cream", "modern_minimal"], note: "平釘天花整合崁燈，適合一般住宅基礎照明" },
+  { id: "soft-cove", label: "柔光燈槽", material: "mineral-paint", ceilingStyle: "cove", lightStyle: "no-main-light", styles: ["cream", "scandinavian", "japanese"], note: "局部燈槽配無主燈，保留柔和漫射光" },
+  { id: "cream-cove", label: "暖光燈槽", material: "mineral-paint", ceilingStyle: "cove", lightStyle: "downlight", styles: ["cream", "modern_minimal", "american"], note: "礦物漆平釘與間接燈槽，光線柔和" },
+  { id: "modern-linear", label: "線性照明", material: "flat-paint", ceilingStyle: "linear", lightStyle: "track", styles: ["modern_minimal", "industrial"], note: "平整天花整合線性與軌道照明" },
+  { id: "linear-soft", label: "線性無主燈", material: "flat-paint", ceilingStyle: "linear", lightStyle: "no-main-light", styles: ["modern_minimal", "scandinavian", "japanese"], note: "線型燈溝搭無主燈，視覺更安靜" },
+  { id: "floating-soft", label: "懸浮層次", material: "mineral-paint", ceilingStyle: "floating", lightStyle: "downlight", styles: ["cream", "modern_minimal"], note: "局部降板搭配崁燈，保留空間層次" },
+  { id: "floating-pendant", label: "局部造型吊燈", material: "mineral-paint", ceilingStyle: "feature-pendant", lightStyle: "pendant", styles: ["cream", "american", "japanese"], note: "局部造型天花定義餐區，再以吊燈聚焦" },
+  { id: "japanese-slat", label: "木格柵暖光", material: "wood-veneer", ceilingStyle: "wood-grid", lightStyle: "paper", styles: ["japanese"], note: "木格柵搭和紙燈，保留溫潤木質感" },
+  { id: "american-slat", label: "木格柵吊燈", material: "wood-veneer", ceilingStyle: "wood-grid", lightStyle: "pendant", styles: ["american"], note: "局部木格柵配吊燈，形成餐區重點" },
+  { id: "slat-downlight", label: "木格柵崁燈", material: "wood-veneer", ceilingStyle: "wood-grid", lightStyle: "downlight", styles: ["japanese", "modern_minimal", "american"], note: "格柵局部搭配崁燈，讓木質紋理更清楚" },
+  { id: "industrial-exposed", label: "裸頂軌道", material: "exposed-concrete", ceilingStyle: "exposed", lightStyle: "track", styles: ["industrial"], note: "清水混凝土裸頂搭外露軌道燈" },
+  { id: "exposed-pendant", label: "裸頂吊燈", material: "exposed-concrete", ceilingStyle: "exposed", lightStyle: "pendant", styles: ["industrial", "japanese", "modern_minimal"], note: "裸頂保留結構高度，以吊燈界定桌面區域" },
 ]);
 
 export function detectCeilingConflicts({

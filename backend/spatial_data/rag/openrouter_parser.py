@@ -62,7 +62,7 @@ def _fallback_plan(text: str) -> RagQueryPlan:
     explicit_items = _explicit_intent_items(text)
     room_type = (
         "bedroom" if any(token in text for token in ("\u81e5\u5ba4", "\u7761\u7720", "\u5e8a"))
-        else "study" if any(token in text for token in ("\u66f8\u684c", "\u95b1\u8b80", "\u5de5\u4f5c"))
+        else "storage" if any(token in text for token in ("\u66f8\u684c", "\u95b1\u8b80", "\u5de5\u4f5c"))
         else "living_room" if any(token in text for token in ("\u5ba2\u5ef3", "\u6c99\u767c"))
         else None
     )
@@ -199,14 +199,14 @@ def _fast_room_type(text: str) -> str | None:
     normalized = text.casefold()
     rooms = [
         ("bedroom", ("bedroom", "\\u4e3b\\u81e5", "\\u6b21\\u81e5", "\\u81e5\\u5ba4")),
-        ("living_room", ("living_room", "\\u5ba2\\u5ef3", "\\u591a\\u529f\\u80fd")),
-        ("dining_room", ("dining_room", "\\u9910\\u5ef3")),
-        ("kitchen", ("kitchen", "\\u5eda\\u623f")),
+        ("living_room", ("living_room", "\\u5ba2\\u5ef3")),
+        ("kitchen", ("kitchen", "dining_room", "\\u5eda\\u623f", "\\u9910\\u5ef3")),
         ("bathroom", ("bathroom", "\\u6d74\\u5ba4")),
-        ("study", ("study", "\\u66f8\\u623f", "\\u5de5\\u4f5c\\u5340")),
-        ("outdoor", ("outdoor", "\\u967d\\u53f0")),
-        ("kids_room", ("kids_room", "\\u5152\\u7ae5\\u623f")),
-        ("entryway", ("entryway", "\\u7384\\u95dc", "\\u8d70\\u9053", "\\u52d5\\u7dda", "\\u5132\\u85cf")),
+        ("storage", ("storage", "study", "\\u66f8\\u623f", "\\u5de5\\u4f5c\\u5340", "\\u5132\\u85cf")),
+        ("balcony", ("balcony", "outdoor", "\\u967d\\u53f0")),
+        ("entryway", ("entryway", "\\u7384\\u95dc")),
+        ("hallway", ("hallway", "\\u8d70\\u9053", "\\u52d5\\u7dda")),
+        ("garage", ("garage", "\\u8eca\\u5eab")),
     ]
     return next((room for room, hints in rooms if _matches_hints(normalized, hints)), None)
 

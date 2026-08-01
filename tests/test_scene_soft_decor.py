@@ -40,7 +40,7 @@ def _floorplan_editor() -> dict:
     }
 
 
-def test_demolition_candidate_is_preserved_without_removing_engine_wall() -> None:
+def test_legacy_demolition_candidate_is_cleared_without_removing_engine_wall() -> None:
     floorplan, room = floorplan_from_editor_payload(
         {
             "coordinate_unit": "cm",
@@ -60,7 +60,7 @@ def test_demolition_candidate_is_preserved_without_removing_engine_wall() -> Non
         }
     )
 
-    assert floorplan["wall_segments"][0]["demolition_candidate"] is True
+    assert floorplan["wall_segments"][0]["demolition_candidate"] is False
     assert floorplan["wall_count"] == 1
     assert len(room.walls) >= 1
 
@@ -88,6 +88,23 @@ def test_editor_door_swing_endpoint_uses_the_same_scene_coordinates_as_its_leaf(
     assert door["start"] == {"x": 0.0, "z": -300.0}
     assert door["end"] == {"x": 120.0, "z": -300.0}
     assert door["swing_end"] == {"x": 0.0, "z": -180.0}
+
+
+def test_editor_assigns_stable_architecture_ids_when_loading_older_projects() -> None:
+    floorplan, _room = floorplan_from_editor_payload(
+        {
+            "coordinate_unit": "cm",
+            "width_cm": 400,
+            "depth_cm": 300,
+            "structures": {
+                "walls": [{"start": {"x": 0, "y": 0}, "end": {"x": 400, "y": 0}}],
+                "doors": [{"start": {"x": 100, "y": 0}, "end": {"x": 190, "y": 0}}],
+            },
+        }
+    )
+
+    assert floorplan["wall_segments"][0]["id"] == "wall-1"
+    assert floorplan["door_segments"][0]["id"] == "door-1"
 
 
 def test_auto_decor_uses_verified_floor_lamp_catalog_items() -> None:

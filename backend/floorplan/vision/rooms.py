@@ -102,7 +102,7 @@ def _apply_layout_label_suggestions(
         (top[0], "bedroom", "臥室"),
         (top[1], "kitchen", "廚房"),
         (middle[0], "storage", "儲藏室"),
-        (middle[1], "circulation", "走道"),
+        (middle[1], "hallway", "走道"),
         (middle[2], "bathroom", "浴室"),
         (bottom[0], "balcony", "陽台"),
         (bottom[1], "living_room", "客廳"),

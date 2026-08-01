@@ -27,7 +27,7 @@ COUNT_MAX = 6
 REQUIRED_FAMILIES_BY_ROOM = {
     "bedroom": ("bed",),
     "living_room": ("sofa",),
-    "dining_room": ("dining-table", "dining-chair"),
+    "kitchen": ("dining-table", "dining-chair"),
 }
 
 

@@ -12,22 +12,10 @@ export const WHOLE_HOUSE_QUESTIONS = Object.freeze([
     options: ["新成屋自住", "中古屋翻新自住", "出租", "局部改造"],
   },
   {
-    id: "aiAssistance",
-    label: "希望 RoomPilot 如何協助",
-    type: "select",
-    options: ["引導我選擇", "提供推薦後由我確認", "我想採用 AI 推薦"],
-  },
-  {
     id: "membersAndPets",
     label: "年齡層、孩童與寵物",
     type: "select",
     options: ["皆為成人、無寵物", "有幼兒", "有長輩", "有貓", "有狗", "其他（於特殊條件補充）"],
-  },
-  {
-    id: "lifestyle",
-    label: "日常生活習慣",
-    type: "select",
-    options: ["休息與日常生活", "常在家工作", "常聚餐", "重視大量收納", "其他（於特殊條件補充）"],
   },
   {
     id: "budgetTimeline",
@@ -41,13 +29,6 @@ export const WHOLE_HOUSE_QUESTIONS = Object.freeze([
     type: "select",
     options: ["北歐風", "奶油風", "工業風", "美式風", "日式風", "現代風", "各房依逐房色卡"],
   },
-  {
-    id: "immutableNeeds",
-    label: "特殊或不可變條件",
-    type: "text",
-    required: false,
-    placeholder: "只有特殊需求才輸入，例如：廚衛主排水不動、保留鋼琴",
-  },
 ]);
 
 export const ROOM_QUESTION_TEMPLATES = Object.freeze({
@@ -59,13 +40,9 @@ export const ROOM_QUESTION_TEMPLATES = Object.freeze({
     uses: ["睡眠休息", "閱讀", "更衣", "化妝保養", "簡易工作"],
     furniture: ["床", "床頭櫃", "衣櫃", "梳妝台", "書桌"],
   },
-  dining_room: {
-    uses: ["日常用餐", "多人聚餐", "工作閱讀", "親子手作"],
-    furniture: ["圓桌", "長桌", "餐椅", "餐邊櫃"],
-  },
   kitchen: {
-    uses: ["簡易料理", "每日下廚", "烘焙", "多人共煮"],
-    furniture: ["冰箱", "電器櫃", "中島", "餐櫃"],
+    uses: ["簡易料理", "每日下廚", "烘焙", "多人共煮", "日常用餐", "多人聚餐"],
+    furniture: ["冰箱", "電器櫃", "中島", "餐櫃", "餐桌", "餐椅"],
   },
   bathroom: {
     uses: ["淋浴", "泡澡", "乾濕分離", "衣物收納"],

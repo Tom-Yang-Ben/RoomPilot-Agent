@@ -1,4 +1,4 @@
-export const ROOM_REQUIREMENTS_SCHEMA_VERSION = 1;
+export const ROOM_REQUIREMENTS_SCHEMA_VERSION = 2;
 
 const clone = (value) => {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -98,8 +98,20 @@ function emptyRoomRequirement(room = {}) {
     climate: {
       airConditioning: null,
     },
+    generativeEquipment: {
+      required: ["kitchen", "bathroom", "balcony"].includes(room.type || room.room_type),
+      primaryUse: null,
+      equipmentDirection: [],
+      mustNotHave: [],
+      priority: null,
+      fitStatus: "pending",
+      generationNotes: "",
+      structuralIntentAcknowledged: false,
+    },
     surfaces: {
       paletteId: null,
+      wallPreference: "",
+      floorPreference: "",
       wallDefault: {
         materialId: null,
         color: null,
@@ -172,6 +184,12 @@ export function normalizeRoomRequirements(
         ...migrated.climate,
         ...(restored.climate || {}),
       },
+      generativeEquipment: {
+        ...migrated.generativeEquipment,
+        ...(restored.generativeEquipment || {}),
+        equipmentDirection: clone(restored.generativeEquipment?.equipmentDirection || []),
+        mustNotHave: clone(restored.generativeEquipment?.mustNotHave || []),
+      },
       surfaces: {
         ...migrated.surfaces,
         ...(restored.surfaces || {}),
@@ -196,6 +214,7 @@ export function normalizeRoomRequirements(
     schemaVersion: ROOM_REQUIREMENTS_SCHEMA_VERSION,
     activeRoomId: saved.activeRoomId || rooms[0]?.id || null,
     roomRequirements,
+    unassignedDeferredFurniture: clone(saved.unassignedDeferredFurniture || []),
     globalProfile: clone(saved.globalProfile || legacy.basic || {}),
     globalConfirmed: saved.globalConfirmed === true || legacy.basicConfirmed === true,
   };

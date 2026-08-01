@@ -1,9 +1,57 @@
 from pathlib import Path
 
+from backend.server import main
 from backend.server.main import furniture_catalog
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_catalog_search_interprets_common_chinese_furniture_terms(monkeypatch) -> None:
+    monkeypatch.setattr(
+        main,
+        "_furniture_payload_cache",
+        lambda: (
+            {
+                "furniture_id": "armchair-1",
+                "name_zh": "閱讀椅",
+                "name_en": "Reading lounge chair",
+                "normalized_type": "armchair",
+                "has_model": True,
+            },
+            {
+                "furniture_id": "dining-chair-1",
+                "name_zh": "餐椅",
+                "name_en": "Dining chair",
+                "normalized_type": "dining-chair",
+                "has_model": True,
+            },
+            {
+                "furniture_id": "chair-art-1",
+                "name_zh": "椅子掛畫",
+                "name_en": "Chair wall art",
+                "normalized_type": "wall-art",
+                "has_model": True,
+            },
+        ),
+    )
+
+    payload = furniture_catalog(
+        style=None,
+        group=None,
+        item_type=None,
+        q="椅子",
+        page=1,
+        page_size=24,
+        has_model=True,
+        detail="card",
+    )
+
+    assert [item["furniture_id"] for item in payload["items"]] == [
+        "armchair-1",
+        "dining-chair-1",
+        "chair-art-1",
+    ]
 
 
 def test_mode_one_catalog_only_returns_loadable_models_and_matching_taxonomy() -> None:

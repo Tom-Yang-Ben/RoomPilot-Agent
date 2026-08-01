@@ -40,14 +40,28 @@ export function normalizeDesignSchemes(saved = {}, legacy = {}) {
     ? saved.locked_scheme_id
     : null;
   return {
-    schema_version: 1,
+    schema_version: 2,
     active_scheme_id: activeId,
     locked_scheme_id: lockedId,
+    room_selections: validRoomSelections(saved.room_selections),
+    configuration_snapshot: saved.configuration_snapshot
+      && typeof saved.configuration_snapshot === "object"
+      ? clone(saved.configuration_snapshot)
+      : null,
     schemes: {
       A: schemeA,
       ...(schemeB ? { B: schemeB } : {}),
     },
   };
+}
+
+function validRoomSelections(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([roomId, schemeId]) => String(roomId).trim() && ["A", "B"].includes(schemeId))
+      .map(([roomId, schemeId]) => [String(roomId), schemeId]),
+  );
 }
 
 export function compactDesignSchemesForSpace(designSchemes = {}) {
@@ -66,11 +80,10 @@ export function compactDesignSchemesForSpace(designSchemes = {}) {
 }
 
 export function hasRenovationChanges(structures = {}) {
-  const walls = structures.walls || [];
-  if (walls.some((wall) => wall.demolition_candidate === true)) return true;
-  return COLLECTIONS.some((collection) =>
-    (structures[collection] || []).some((item) => item.scheme_id === "B")
-  );
+  // 方案不再承載結構改造。第 4 步確認後，牆、門、窗、樑、柱是全案共用
+  // 的基準資料；A、B 僅比較家具的選擇、位置與朝向。
+  void structures;
+  return false;
 }
 
 export function ensureSchemeB(designSchemes, { reason = "manual" } = {}) {
@@ -99,29 +112,13 @@ export function markSchemeLayoutsStale(designSchemes, reason) {
 }
 
 export function structuresForScheme(structures = {}, schemeId = "A") {
-  const output = Object.fromEntries(
+  void schemeId;
+  return Object.fromEntries(
     COLLECTIONS.map((collection) => [
       collection,
-      clone((structures[collection] || []).filter((item) =>
-        schemeId === "B" || item.scheme_id !== "B"
-      )),
+      clone(structures[collection] || []),
     ]),
   );
-  if (schemeId !== "B") return output;
-
-  const demolishedWallIds = new Set(
-    output.walls
-      .filter((wall) => wall.demolition_candidate === true)
-      .map((wall) => wall.id),
-  );
-  output.walls = output.walls.filter((wall) => !demolishedWallIds.has(wall.id));
-  for (const collection of ["doors", "windows"]) {
-    output[collection] = output[collection].filter((opening) => {
-      if (!demolishedWallIds.has(opening.host_wall_id)) return true;
-      return opening.host_wall_relation_uncertain === true;
-    });
-  }
-  return output;
 }
 
 export function attachedOpenings(structures = {}, wallId) {
@@ -146,5 +143,27 @@ export function activateScheme(designSchemes, schemeId) {
   if (!designSchemes.schemes[schemeId]) return null;
   designSchemes.active_scheme_id = schemeId;
   return clone(designSchemes.schemes[schemeId]);
+}
+
+export function selectSchemeForRoom(designSchemes, roomId, schemeId) {
+  if (!designSchemes?.schemes?.[schemeId] || !["A", "B"].includes(schemeId)) return false;
+  const normalizedRoomId = String(roomId || "").trim();
+  if (!normalizedRoomId) return false;
+  designSchemes.room_selections = validRoomSelections(designSchemes.room_selections);
+  designSchemes.room_selections[normalizedRoomId] = schemeId;
+  designSchemes.configuration_snapshot = null;
+  designSchemes.locked_scheme_id = null;
+  return true;
+}
+
+export function allRoomsHaveSchemeSelections(designSchemes, rooms = []) {
+  if (!rooms.length) return false;
+  const selections = validRoomSelections(designSchemes?.room_selections);
+  return rooms.every((room) => ["A", "B"].includes(selections[String(room.id)]));
+}
+
+export function selectedSchemeForRoom(designSchemes, roomId, fallback = "A") {
+  const selected = validRoomSelections(designSchemes?.room_selections)[String(roomId)];
+  return ["A", "B"].includes(selected) ? selected : fallback;
 }
 

@@ -223,9 +223,11 @@ function roomTypeFromName(room = {}) {
     ["storage", /deposit|storage|store\s*room|儲藏|儲物|收納/],
     ["bathroom", /bathroom|toilet|washroom|浴室|浴廁|衛生間|廁所/],
     ["living_room", /living\s*room|lounge|客廳/],
-    ["dining_room", /dining\s*room|飯廳|餐廳/],
+    ["kitchen", /dining\s*room|飯廳|餐廳/],
     ["balcony", /balcony|terrace|陽台/],
-    ["circulation", /circulation|corridor|hallway|走道|走廊|玄關/],
+    ["entryway", /entryway|玄關/],
+    ["hallway", /hallway|corridor|走道|走廊|動線/],
+    ["garage", /garage|車庫/],
   ];
   return rules.find(([, pattern]) => pattern.test(label))?.[0] || "default";
 }
@@ -235,12 +237,13 @@ export function recommendedFurnitureForRoom(room = {}) {
   const recommendations = {
     living_room: [["sofa", "three-seat"], ["coffee-table", "rect"], ["tv-bench", "low"]],
     bedroom: [["bed", "double"], ["wardrobe", "two-door"]],
-    dining_room: [["dining-table", "round-4"], ["dining-chair", "standard"]],
-    kitchen: [["appliance-cabinet", "standard"]],
+    kitchen: [["dining-table", "round-4"], ["dining-chair", "standard"], ["appliance-cabinet", "standard"]],
     storage: [["storage-cabinet", "tall"]],
     bathroom: [["bathroom-vanity", "standard"], ["mirror-cabinet", "standard"]],
     balcony: [["flower-pots-planter", "floor"]],
-    circulation: [],
+    entryway: [],
+    hallway: [],
+    garage: [["storage-cabinet", "standard"]],
   };
   return recommendations[roomType] || [];
 }
