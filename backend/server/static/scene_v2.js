@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-da2a452ac73e";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-30fa975f4865";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
 import {
@@ -495,18 +495,25 @@ const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteSta
   },
   onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item),
 });
+// 風格、提案、生圖與更換預覽都是給人看成果的，不掛編號與名稱標籤；
+// 只有第 6 步的白模配置需要標籤對應待處理清單。
 const realisticViewer = createSceneViewer($("#realistic-viewer"), element.realisticStatus, {
   onSceneChange: () => markRealisticSceneEdited(),
   onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item),
+  showFurnitureAnnotations: false,
 });
 const proposalViewer = createSceneViewer(
   $("#proposal-review-viewer"),
   element.proposalReviewStatus,
+  { showFurnitureAnnotations: false },
 );
-const aiRenderViewer = createSceneViewer($("#ai-render-viewer"), element.aiRenderStatus);
+const aiRenderViewer = createSceneViewer($("#ai-render-viewer"), element.aiRenderStatus, {
+  showFurnitureAnnotations: false,
+});
 const replacementViewer = createSceneViewer(
   $("#replacement-3d-preview"),
   element.replacement3dStatus,
+  { showFurnitureAnnotations: false },
 );
 const glbThumbnailViewer = createSceneViewer(
   $("#glb-thumbnail-viewer"),

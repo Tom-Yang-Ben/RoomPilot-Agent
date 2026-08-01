@@ -279,7 +279,13 @@ function sceneDataForWorld(sceneData) {
 export function createSceneViewer(
   container,
   statusElement,
-  { onSceneChange = null, onObjectSelect = null } = {},
+  {
+    onSceneChange = null,
+    onObjectSelect = null,
+    // 編號與名稱標籤是第 6 步白模配置的作業輔助；風格與提案檢視是給人看成果的，
+    // 不該掛著標籤。由建立者決定，不要用場景資料判斷。
+    showFurnitureAnnotations = true,
+  } = {},
 ) {
   if ("createImageBitmap" in globalThis) {
     globalThis.createImageBitmap = undefined;
@@ -3356,6 +3362,16 @@ export function createSceneViewer(
     });
   }
 
+  // 重建場景會產生一批預設可見的標記與全新的牆體，把當前檢視模式的設定沖掉。
+  // 這些設定原本只在 setViewMode 時套用，所以每次 loadScene 之後都要重新套一次。
+  function reapplyViewPresentation() {
+    const mode = viewMode.mode;
+    configureWallsForView(mode);
+    configurePlanLabels(mode);
+    configureCirculationForView(mode);
+    configureOpeningsForView(mode);
+  }
+
   function setViewMode(mode) {
     cameraLocked = false;
     interactionMode = mode === "walk" ? "walk" : "camera";
@@ -3753,6 +3769,7 @@ export function createSceneViewer(
   }
 
   function furnitureAnnotationsEnabled() {
+    if (!showFurnitureAnnotations) return false;
     return lastWorldSceneData?.design_choices?.catalog_thumbnail_mode !== true;
   }
 
@@ -3964,6 +3981,8 @@ export function createSceneViewer(
     lastDiagnostics.fallbackFurnitureCount = furnitureGroup.children.filter(
       (wrapper) => wrapper.userData.fallbackFurniture === true,
     ).length;
+
+    reapplyViewPresentation();
 
     if (failures.length) {
       setStatus(`場景已生成，但部分家具未載入：${failures.join("、")}`);
@@ -4672,8 +4691,12 @@ export function createSceneViewer(
   const WALL_GAP = 6;
   const DRAG_GRID = 5;
 
+  // 只做 0–360 環繞，不吸附到 90 度。
+  // 原本會四捨五入到最近的 90 度，導致「左轉／右轉 15°」與 R 鍵每次都被吸回原角度，
+  // 而且不會累積，旋轉等於完全失效。後端 backend/engine 用 shapely 對任意角度做碰撞與
+  // 淨空計算（geometry.py:21、clearance.py:51），不需要前端先量化。
   function normalizedRotationDeg(rotationDeg = 0) {
-    return ((Math.round(rotationDeg / 90) * 90) % 360 + 360) % 360;
+    return ((Number(rotationDeg) || 0) % 360 + 360) % 360;
   }
 
   function halfExtentsForRotation(item, rotationDeg = 0) {

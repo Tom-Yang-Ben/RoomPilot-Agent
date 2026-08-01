@@ -2741,7 +2741,8 @@ def test_remote_render_failures_land_in_a_slot_the_viewer_cannot_overwrite() -> 
     assert 'id="ai-render-error"' in html
     assert 'id="proposal-review-error"' in html
     # #ai-render-status 是交給 createSceneViewer 的檢視器狀態列，不能拿來放錯誤。
-    assert 'createSceneViewer($("#ai-render-viewer"), element.aiRenderStatus)' in source
+    # 要守的是狀態列仍交給檢視器、錯誤另有專屬欄位；建立選項可以增加。
+    assert 'createSceneViewer($("#ai-render-viewer"), element.aiRenderStatus' in source
     assert "function reportRenderActionError" in source
     assert "element.aiRenderStatus.textContent = errorMessage(error)" not in source
     # 後端的 code 也要帶出來，才知道是 image_provider_no_image_returned 這類原因。

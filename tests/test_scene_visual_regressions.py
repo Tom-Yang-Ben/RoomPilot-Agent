@@ -109,7 +109,9 @@ def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
         encoding="utf-8"
     )
 
-    assert "{ onSceneChange = null, onObjectSelect = null } = {}" in viewer
+    # 要守的是兩個回呼仍是建立選項，選項本身可以增加（例如標註開關）。
+    assert "onSceneChange = null," in viewer
+    assert "onObjectSelect = null," in viewer
     assert "notifySceneChange(item)" in viewer
     assert "onSceneChange: (item) => {" in controller
     assert 'scheduleSave("white_model_3d")' in controller
