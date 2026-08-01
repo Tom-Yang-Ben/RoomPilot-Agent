@@ -122,12 +122,32 @@ def detect_bw(cfg):
 
 def detect_color(cfg):
     """彩色渲染圖：直接用 fp_c.detect_walls 共用流程（含基柱/灰度過濾/語意融合）。
-    彩色管線現階段門/窗停用 → doors/wins 空，封口全靠牆縫開口偵測。"""
-    rects, bgr, _bw, _bw_open, T, img_w, img_h, _is_color = fp_c.detect_walls(cfg)
+    窗與細線層接回（floor_09 實案：外牆窗帶沒封口，灌水從窗漏到影像
+    邊界，左半客廳/主臥被室外過濾整片剪掉）——窗封灌水的洞、thin 供
+    segment_rooms 救援輪與門墨水否決。門弧偵測在彩圖未驗證，doors
+    維持空，只借給 detect_windows 做誤判抑制。"""
+    rects, bgr, bw, bw_open, T, img_w, img_h, _is_color = fp_c.detect_walls(cfg)
     T_out = fp_c.outer_wall_thickness(rects, T)
+    orig_win, soft, thin = fp_c.color_window_layers(bgr, bw, bw_open)
+    wins = []
+    if cfg.windows and rects:
+        arc_doors = fp_c.detect_doors(thin, T, cfg.door_arc_pct)
+        cand = fp_c.detect_windows(orig_win, rects, cfg, T, arc_doors,
+                                   thin, soft)
+        # 內外側守門：彩圖窗偵測 P 63%，室內誤判窗（floor_04 中央假窗、
+        # floor_05 房內白櫃）畫進封口遮罩會把房間攔腰切。真窗物理特徵
+        # ＝恰好一側通室外；距離外圈/兩端錨定實測都分不開真假
+        wins = fp_c.window_side_gate(cand, rects, T,
+                                     fp_c.derive_door_scale(
+                                         [], T_out, cfg)[0] / 10.0,
+                                     img_w, img_h)
     mmpp, sinfo = fp_c.derive_door_scale([], T_out, cfg)
-    return {"rects": rects, "wins": [], "doors": [], "T": T, "T_out": T_out,
-            "cm": mmpp / 10.0, "bgr": bgr, "thin": None,
+    # thin 只以 fence 身分供 segment_rooms 救援輪擋灌水；det["thin"] 維持
+    # None——彩圖細線層滿是磁磚/家具中性線，墨水密度否決會把每道橋都
+    # 當「有門墨水」，走道橫斷合併全被壓制（r1 實測過切 1.08→1.43、
+    # floor_04 命中 8→3）
+    return {"rects": rects, "wins": wins, "doors": [], "T": T, "T_out": T_out,
+            "cm": mmpp / 10.0, "bgr": bgr, "thin": None, "fence": thin,
             "img_w": img_w, "img_h": img_h, "scale_info": sinfo}
 
 
@@ -1350,10 +1370,13 @@ def build_rooms(det):
 
     # 牆端連線（「紅色線端點連到另一端」）：40~260cm 的牆縫開口全封
     bridges = fp_c._wall_gaps(rects, wins, T, cm, 40.0, 260.0)
+    # 灌水圍欄：灰階用墨水細線層；彩圖 thin 充當墨水證據太吵（磁磚/
+    # 家具線），只以 det["fence"] 身分供救援輪，其他 thin 語意維持 None
+    fence = det.get("thin") if det.get("thin") is not None else det.get("fence")
     labels, rooms, outside = fp_c.segment_rooms(rects, wins, doors,
                                                 img_w, img_h, T, T_out, cm,
                                                 keep_small=True,
-                                                thin=det.get("thin"))
+                                                thin=fence)
     if labels is None:
         # 救援階梯第三級（floor02 實案）：寬封口 360cm 全域用是淨負向
         # （走道被寬封口切碎，A/B 實測 −2 命中/−10 命名），但對「常規
@@ -1362,7 +1385,7 @@ def build_rooms(det):
         labels, rooms, outside = fp_c.segment_rooms(rects, wins, doors,
                                                     img_w, img_h, T, T_out,
                                                     cm, keep_small=True,
-                                                    thin=det.get("thin"),
+                                                    thin=fence,
                                                     seal_hi=360.0,
                                                     stub_guard=False)
     if labels is None or not rooms:

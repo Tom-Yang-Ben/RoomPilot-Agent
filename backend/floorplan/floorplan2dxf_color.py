@@ -1697,6 +1697,141 @@ def remove_solid_blobs(bw):
     return out, removed
 
 
+def color_window_layers(bgr, bw, bw_open):
+    """彩色圖的窗/細線層萃取（run() 色彩分支與 detect_color 共用）。
+
+    彩色渲染圖的窗是「淺灰細線描邊的白條」，牆二值化(留最深2層)會整條
+    濾掉——窗層用獨立門檻：淺灰(gray<215/235)＋中性色(chroma<40，
+    彩色家具/色塊排除)；thin＝窗層減去牆體膨脹＝細線墨水層
+    （供 detect_doors、segment_rooms 救援輪、門墨水否決）。
+    bgr 可能比 bw 小一倍（彩圖管線 2x 放大），各層輸出 bw 尺寸。
+    回傳 (orig_win, soft, thin)。"""
+    gray0 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    chroma0 = (bgr.max(axis=2).astype(np.int16)
+               - bgr.min(axis=2).astype(np.int16)).astype(np.uint8)
+    if gray0.shape != bw.shape:
+        gray0 = cv2.resize(gray0, (bw.shape[1], bw.shape[0]),
+                           interpolation=cv2.INTER_LINEAR)
+        chroma0 = cv2.resize(chroma0, (bw.shape[1], bw.shape[0]),
+                             interpolation=cv2.INTER_LINEAR)
+    neutral = chroma0 < 40
+    orig_win = (((gray0 < 215) & neutral).astype(np.uint8)) * 255
+    soft = (((gray0 < 235) & neutral).astype(np.uint8)) * 255
+    thin = cv2.subtract(orig_win, cv2.dilate(bw_open, np.ones((3, 3), np.uint8)))
+    return orig_win, soft, thin
+
+
+def window_side_gate(cand, rects, T, cm, img_w, img_h):
+    """窗內外側守門：真窗恰好一側通室外（floor_05 實案：房內白色櫃體
+    被誤判成窗，距離/錨定都分不開，畫進封口遮罩把房攔腰切）。
+
+    屏障＝牆＋牆縫封口(40~260cm)＋全部候選窗（含受測窗本身，避免灌水
+    從自己的洞鑽進室內），從影像邊界灌水得室外區；逐窗在帶的兩垂直側
+    各探一點：恰一側室外＝真窗；兩側皆室內（家具）或皆室外（懸空
+    雜訊）＝剔除。陽台圍欄非牆不擋灌水，陽台側算室外，內側滑窗成立。"""
+    if not cand:
+        return []
+    barrier = np.zeros((img_h, img_w), np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, [], T, cm, 40.0, 260.0):
+        if horiz:
+            cv2.rectangle(barrier, (int(g0), int(b0)), (int(g1), int(b1)), 255, -1)
+        else:
+            cv2.rectangle(barrier, (int(b0), int(g0)), (int(b1), int(g1)), 255, -1)
+    for _o, x0, y0, x1, y1 in cand:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    # 屏障補 1.5T 閉運算（同 segment_rooms 首輪）：偵測殼的細縫在分割
+    # 時由閉運算封住，這裡不封的話灌水鑽縫進室內，真窗兩側都變室外
+    # 而被誤刪（floor_10 2x 實測 5/10→0/10）
+    k = 2 * max(2, int(round(1.5 * T))) + 1
+    closed = cv2.morphologyEx(barrier, cv2.MORPH_CLOSE, np.ones((k, k), np.uint8))
+    ff = np.pad(closed, 1).copy()
+    cv2.floodFill(ff, None, (0, 0), 128)
+    exterior = ff[1:-1, 1:-1] == 128
+    kept = []
+    lim = int(3 * T)
+    for w in cand:
+        _o, x0, y0, x1, y1 = w
+        mx, my = int((x0 + x1) / 2), int((y0 + y1) / 2)
+        horiz = (x1 - x0) >= (y1 - y0)
+        # 由帶緣向外走：跳過閉運算後的屏障像素（貼窗牆線與閉運算黏連
+        # 帶都算），第一個開放像素定內外；走出影像＝室外；3T 內全是
+        # 屏障＝視為室內（被牆包住）
+        hits = 0
+        for sign, edge in ((-1, y0 if horiz else x0), (1, y1 if horiz else x1)):
+            for step in range(1, lim + 1):
+                v = int(edge + sign * step)
+                ix, iy = (mx, v) if horiz else (v, my)
+                if not (0 <= iy < img_h and 0 <= ix < img_w):
+                    hits += 1
+                    break
+                if closed[iy, ix]:
+                    continue
+                if exterior[iy, ix]:
+                    hits += 1
+                break
+        if hits == 1:
+            kept.append(w)
+    return kept
+
+
+def hollow_wall_rects(bw, gray, chroma, T):
+    """空心雙線牆偵測——color 圖第二種牆畫法（floor_07/08 實案）。
+
+    內牆畫成「兩條細深描邊夾白色中性填充」，外牆/基柱才是實心黑；
+    detect_solid 只認實心深色條，雙線牆全漏 → 整戶黏成一塊。
+    作法：單向閉運算把「深線之間 ≤~1.8T 的縫」搭起來，只收縫內為
+    白色中性（gray≥200、chroma≤12）的填充；逐填充連通塊驗收——
+    厚度 ≤2T、長度 ≥3T、長寬比 ≥2，向兩側擴進深描邊後，整帶深色
+    佔比 0.15~0.75（實心牆無填充不會進來；家具彩面被白色門檻擋）。
+    回傳牆帶 rects（與 detect_solid 同格式），呼叫端負責去重。"""
+    white = ((gray >= 200) & (chroma <= 12)).astype(np.uint8) * 255
+    k = 2 * max(2, int(round(0.9 * T))) + 1      # 填充跨距上限 ~1.8T
+    out = []
+    for axis in (0, 1):                          # 0=垂直牆(補橫向縫) 1=水平牆
+        ker = np.ones((1, k), np.uint8) if axis == 0 else np.ones((k, 1), np.uint8)
+        closed = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, ker)
+        fill = cv2.bitwise_and(cv2.subtract(closed, bw), white)
+        n, lab, st, _ = cv2.connectedComponentsWithStats(
+            (fill > 0).astype(np.uint8), 8)
+        for i in range(1, n):
+            x, y, w, h = (int(st[i, cv2.CC_STAT_LEFT]),
+                          int(st[i, cv2.CC_STAT_TOP]),
+                          int(st[i, cv2.CC_STAT_WIDTH]),
+                          int(st[i, cv2.CC_STAT_HEIGHT]))
+            th, ln = (w, h) if axis == 0 else (h, w)
+            if th > 2.0 * T or ln < 3 * T or ln < 2 * th:
+                continue
+            # 向兩側擴進深描邊（描邊覆蓋該行/列 ≥30% 才算牆線）
+            x0, y0, x1, y1 = x, y, x + w, y + h
+            grow = int(round(1.5 * T))
+            if axis == 0:
+                while x0 > 0 and x - x0 < grow and \
+                        np.count_nonzero(bw[y0:y1, x0 - 1]) >= 0.3 * h:
+                    x0 -= 1
+                while x1 < bw.shape[1] and x1 - (x + w) < grow and \
+                        np.count_nonzero(bw[y0:y1, x1]) >= 0.3 * h:
+                    x1 += 1
+                if x0 == x or x1 == x + w:
+                    continue                     # 缺一側描邊＝不是雙線牆
+            else:
+                while y0 > 0 and y - y0 < grow and \
+                        np.count_nonzero(bw[y0 - 1, x0:x1]) >= 0.3 * w:
+                    y0 -= 1
+                while y1 < bw.shape[0] and y1 - (y + h) < grow and \
+                        np.count_nonzero(bw[y1, x0:x1]) >= 0.3 * w:
+                    y1 += 1
+                if y0 == y or y1 == y + h:
+                    continue
+            band = bw[y0:y1, x0:x1]
+            dark = float(np.count_nonzero(band)) / max(1, band.size)
+            if not 0.15 <= dark <= 0.75:
+                continue
+            out.append((x0, y0, x1, y1))
+    return out
+
+
 def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T,
                      cc=None, cc_veto_cov=0.3):
     """自適應過濾假牆——兩段規則，皆以矩形內遮罩像素在「原彩圖」的統計判定：
@@ -1879,6 +2014,28 @@ def detect_walls(cfg: Config):
         if rescued:
             print(f"語意救回 : 補 {len(rescued)} 段遮罩有偵測、古典管線漏抓的牆")
         rects = rects + rescued
+    if is_color:
+        # 空心雙線牆（floor_07/08 畫法）：實心偵測全流程跑完後補抓，
+        # 與既有牆帶重疊 ≥50% 者不重複收
+        g0h = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+        ch = (bgr.max(axis=2).astype(np.int16)
+              - bgr.min(axis=2).astype(np.int16)).astype(np.uint8)
+        if g0h.shape != bw.shape:
+            g0h = cv2.resize(g0h, (bw.shape[1], bw.shape[0]),
+                             interpolation=cv2.INTER_LINEAR)
+            ch = cv2.resize(ch, (bw.shape[1], bw.shape[0]),
+                            interpolation=cv2.INTER_LINEAR)
+        covered = np.zeros(bw.shape, np.uint8)
+        for x0, y0, x1, y1 in rects + pillar_rects:
+            cv2.rectangle(covered, (int(x0), int(y0)),
+                          (max(int(x1) - 1, 0), max(int(y1) - 1, 0)), 1, -1)
+        hollow = []
+        for x0, y0, x1, y1 in hollow_wall_rects(bw, g0h, ch, T):
+            if covered[y0:y1, x0:x1].mean() < 0.5:
+                hollow.append((x0, y0, x1, y1))
+        if hollow:
+            print(f"空心雙線牆 : 補 {len(hollow)} 段(細描邊夾白填充)")
+            rects = rects + hollow
     rects = rects + pillar_rects
     return rects, bgr, bw, bw_open, T, img_w, img_h, is_color
 
@@ -1893,21 +2050,7 @@ def run(cfg: Config):
         # doors 先抓供 _near_door 抑制門弧誤判成窗
         wins, doors = [], []
         if cfg.windows:
-            # 彩色渲染圖的窗是「淺灰細線描邊的白條」，牆二值化(留最深2層)
-            # 會整條濾掉——窗用二值層獨立做：淺灰門檻＋色度過濾
-            # (中性灰線稿留下、彩色家具/色塊排除)，比照牆前處理的 chroma<40
-            gray0 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-            chroma0 = (bgr.max(axis=2).astype(np.int16)
-                       - bgr.min(axis=2).astype(np.int16)).astype(np.uint8)
-            if gray0.shape != bw.shape:      # 彩圖管線可能 2 倍放大
-                gray0 = cv2.resize(gray0, (bw.shape[1], bw.shape[0]),
-                                   interpolation=cv2.INTER_LINEAR)
-                chroma0 = cv2.resize(chroma0, (bw.shape[1], bw.shape[0]),
-                                     interpolation=cv2.INTER_LINEAR)
-            neutral = chroma0 < 40
-            orig_win = (((gray0 < 215) & neutral).astype(np.uint8)) * 255
-            soft = (((gray0 < 235) & neutral).astype(np.uint8)) * 255
-            thin = cv2.subtract(orig_win, cv2.dilate(bw_open, np.ones((3, 3), np.uint8)))
+            orig_win, soft, thin = color_window_layers(bgr, bw, bw_open)
             doors = detect_doors(thin, T, cfg.door_arc_pct)
             wins = detect_windows(orig_win, rects, cfg, T, doors, thin, soft)
         if cfg.preview:
