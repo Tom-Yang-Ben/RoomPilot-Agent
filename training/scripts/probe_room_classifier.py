@@ -133,9 +133,16 @@ def main():
     ap.add_argument("--save-head", metavar="PATH",
                     help="訓練完把線性頭存檔供推論用（預設 backend/floorplan/"
                          "room_head.npz）。只用 train split 訓練，own_eval 保持乾淨")
+    ap.add_argument("--domain", choices=("gray", "color"), default=None,
+                    help="只用單一畫風子集（floor 名含 color 與否）訓練＋"
+                         "測試。混訓實測傷灰階基準（90.3%%→80.6%%），"
+                         "產品改雙頭：灰階/彩圖各自成頭、依管線路線選用")
     a = ap.parse_args()
 
     manifest = json.load(open(os.path.join(a.crops, "manifest.json")))
+    if a.domain:
+        want = a.domain == "color"
+        manifest = [m for m in manifest if ("color" in m["floor"]) == want]
     train = [m for m in manifest if m["split"] == "train"]
     test = [m for m in manifest if m["split"] == "test"]
     dev = "cuda" if torch.cuda.is_available() else "cpu"

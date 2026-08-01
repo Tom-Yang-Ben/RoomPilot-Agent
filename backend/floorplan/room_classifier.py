@@ -21,14 +21,21 @@ import cv2
 import numpy as np
 
 _PKG_DIR = os.path.dirname(os.path.abspath(__file__))
-HEAD_PATH = os.environ.get("ROOM_HEAD",
-                           os.path.join(_PKG_DIR, "room_head.npz"))
+# 雙頭（2026-08-02）：灰階/彩圖畫風各自成頭。混訓實測傷灰階基準
+# （own_eval 72 房 90.3%→80.6%），分域訓練兩者都保住；缺 color 頭時
+# 彩圖退回灰階頭（行為同雙頭之前）
+HEAD_PATHS = {
+    "gray": os.environ.get("ROOM_HEAD",
+                           os.path.join(_PKG_DIR, "room_head.npz")),
+    "color": os.environ.get("ROOM_HEAD_COLOR",
+                            os.path.join(_PKG_DIR, "room_head_color.npz")),
+}
 SIZE = 224
 MEAN = np.array([0.485, 0.456, 0.406], np.float32)
 STD = np.array([0.229, 0.224, 0.225], np.float32)
 CROP_MARGIN = 0.15          # 與 extract_room_crops.py 的預設一致（含鄰接牆上下文）
 
-_state = "unloaded"         # "unloaded" | None(停用) | dict
+_states = {}                # variant → None(停用) | dict；骨幹跨頭共用
 
 
 def letterbox(img):
@@ -52,36 +59,50 @@ def variants(img):
     return out
 
 
-def _load():
-    """(backbone, head_w, head_b, classes) 或 None。模組級快取，只載一次。"""
-    global _state
-    if _state != "unloaded":
-        return _state
-    _state = None
-    if not os.path.isfile(HEAD_PATH):
-        print(f"⚠ 找不到房型線性頭 {HEAD_PATH} → DINOv2 房型分類停用")
-        return _state
+def _load(variant="gray"):
+    """(backbone, head_w, head_b, classes) 或 None。逐 variant 快取，
+    骨幹跨頭共用。color 頭缺檔時退回灰階頭（出聲，不靜默）。"""
+    if variant in _states:
+        return _states[variant]
+    path = HEAD_PATHS.get(variant, HEAD_PATHS["gray"])
+    if variant != "gray" and not os.path.isfile(path):
+        print(f"⚠ 找不到 {variant} 線性頭 {path} → 退回灰階頭")
+        _states[variant] = _load("gray")
+        return _states[variant]
+    _states[variant] = None
+    if not os.path.isfile(path):
+        print(f"⚠ 找不到房型線性頭 {path} → DINOv2 房型分類停用")
+        return _states[variant]
     try:
         import torch
     except ImportError:
         print("⚠ torch 未安裝 → DINOv2 房型分類停用")
-        return _state
-    z = np.load(HEAD_PATH, allow_pickle=False)
+        return _states[variant]
+    z = np.load(path, allow_pickle=False)
     if bool(z["use_ink"]) or bool(z["use_area"]):
         print("⚠ 線性頭帶額外特徵（ink/area），本推論路徑未實作 → 停用")
-        return _state
-    try:
-        model = torch.hub.load("facebookresearch/dinov2", str(z["backbone"]),
-                               trust_repo=True, verbose=False)
-    except Exception as e:                       # 離線、hub 快取缺失等
-        print(f"⚠ DINOv2 骨幹載入失敗（{type(e).__name__}）→ 房型分類停用")
-        return _state
-    model.eval()
-    torch.set_num_threads(os.cpu_count() or 4)
-    _state = {"torch": torch, "model": model,
-              "w": z["weight"], "b": z["bias"],
-              "classes": [str(x) for x in z["classes"]]}
-    return _state
+        return _states[variant]
+    model = None
+    for st in _states.values():                  # 骨幹共用（84MB 只載一次）
+        if st and str(z["backbone"]) == st.get("backbone"):
+            model = st["model"]
+            torch = st["torch"]
+            break
+    if model is None:
+        try:
+            model = torch.hub.load("facebookresearch/dinov2",
+                                   str(z["backbone"]),
+                                   trust_repo=True, verbose=False)
+        except Exception as e:                   # 離線、hub 快取缺失等
+            print(f"⚠ DINOv2 骨幹載入失敗（{type(e).__name__}）→ 房型分類停用")
+            return _states[variant]
+        model.eval()
+        torch.set_num_threads(os.cpu_count() or 4)
+    _states[variant] = {"torch": torch, "model": model,
+                        "backbone": str(z["backbone"]),
+                        "w": z["weight"], "b": z["bias"],
+                        "classes": [str(x) for x in z["classes"]]}
+    return _states[variant]
 
 
 def crop_room(bgr, mask, margin=CROP_MARGIN):
@@ -97,12 +118,13 @@ def crop_room(bgr, mask, margin=CROP_MARGIN):
     return crop if crop.size else None
 
 
-def classify(bgr, labels, rooms):
+def classify(bgr, labels, rooms, variant="gray"):
     """[room] → [{label: 機率}]（順序同 rooms）；停用時回 None。
 
     每間房以 bbox＋邊距裁切、8 視角 TTA 平均特徵後過線性頭 softmax。
-    裁不出圖的房間給空 dict（呼叫端當作無證據）。"""
-    st = _load()
+    裁不出圖的房間給空 dict（呼叫端當作無證據）。
+    variant："gray"（預設）或 "color"——彩圖畫風用專屬頭。"""
+    st = _load(variant)
     if st is None or bgr is None or labels is None or not rooms:
         return None
     torch, model = st["torch"], st["model"]

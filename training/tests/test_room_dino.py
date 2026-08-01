@@ -47,22 +47,27 @@ def test_shipped_head_classes_match_eval_scale():
     2026-08-01 space→hallway 改名就是靠這條在 npz 未同步時擋下來。"""
     import os
     from eval_rooms_cc import CLASSES
-    if not os.path.isfile(rc.HEAD_PATH):
-        pytest.skip(f"未出貨線性頭 {rc.HEAD_PATH}")
-    z = np.load(rc.HEAD_PATH, allow_pickle=False)
-    assert [str(x) for x in z["classes"]] == CLASSES
-    assert z["weight"].shape[0] == len(CLASSES)
+    if not os.path.isfile(rc.HEAD_PATHS["gray"]):
+        pytest.skip(f"未出貨線性頭 {rc.HEAD_PATHS['gray']}")
+    for variant, path in rc.HEAD_PATHS.items():   # 雙頭一併驗（color 缺檔可跳）
+        if not os.path.isfile(path):
+            continue
+        z = np.load(path, allow_pickle=False)
+        assert [str(x) for x in z["classes"]] == CLASSES, variant
+        assert z["weight"].shape[0] == len(CLASSES), variant
 
 
 def test_classify_disabled_returns_none_loudly(monkeypatch, capsys, tmp_path):
     """缺件即停用是契約，但**必須出聲**——靜默降級會讓分數悄悄退回
     CubiCasa 路徑而沒人發現（同 symbol_match 的既有陷阱）。"""
-    monkeypatch.setattr(rc, "HEAD_PATH", str(tmp_path / "nope.npz"))
-    monkeypatch.setattr(rc, "_state", "unloaded")
+    monkeypatch.setattr(rc, "HEAD_PATHS",
+                        {"gray": str(tmp_path / "nope.npz"),
+                         "color": str(tmp_path / "nope_color.npz")})
+    monkeypatch.setattr(rc, "_states", {})
     assert rc.classify(np.zeros((4, 4, 3), np.uint8),
                        np.zeros((4, 4), np.int32), [{"id": 1}]) is None
     assert "room_head" in capsys.readouterr().out or True
-    monkeypatch.setattr(rc, "_state", "unloaded")
+    monkeypatch.setattr(rc, "_states", {})
 
 
 # ─────────────────────────── 計分整合 ───────────────────────────

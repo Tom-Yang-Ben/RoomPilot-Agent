@@ -23,7 +23,13 @@ sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # eval_rooms_cc
 
 SETS = [("train", "testdata/Identify_ans/own_dataset", "own_train.txt"),
-        ("test", "testdata/Identify_ans/own_eval", "eval_list.txt")]
+        ("test", "testdata/Identify_ans/own_eval", "eval_list.txt"),
+        # color 答案集（2026-08-02 全數人工審定後加入）：彩圖房型對灰階
+        # 訓的線性頭是 OOD——dev 實測配對到的 Balcony 11 間全叫錯（磚紋
+        # 誤認樓梯踏板 Stair×5）。listfile None＝收目錄下全部含 model.svg
+        # 的子目錄；own_eval_color 只當 test，永不進訓練
+        ("train", "testdata/Identify_ans/own_dataset_color", None),
+        ("test", "testdata/Identify_ans/own_eval_color", None)]
 
 
 def iter_rooms(svg_path):
@@ -71,8 +77,12 @@ def main():
     for split, root, listfile in SETS:
         out_dir = os.path.join(a.out, split)
         os.makedirs(out_dir, exist_ok=True)
-        with open(os.path.join(root, listfile)) as f:
-            ids = [ln.strip().strip("/") for ln in f if ln.strip()]
+        if listfile:
+            with open(os.path.join(root, listfile)) as f:
+                ids = [ln.strip().strip("/") for ln in f if ln.strip()]
+        else:
+            ids = sorted(d for d in os.listdir(root)
+                         if os.path.isfile(os.path.join(root, d, "model.svg")))
         for sid in ids:
             img = cv2.imread(os.path.join(root, sid, "F1_scaled.png"))
             if img is None:

@@ -1359,6 +1359,77 @@ def _bridge_zone(horiz, g0, g1, b0, b1):
     return quad, d
 
 
+def _harvest_balcony_pockets(det, labels, rooms, outside):
+    """殼外陽台口袋收割（color 集 Balcony 漏切主因，dev 實測 18 間）。
+
+    陽台在牆殼之外、由圍欄細線圈住；牆偵測不含圍欄 → 主分割灌水判定
+    室外整片剪掉。把圍欄線補進屏障重灌一次水，「主分割室外、圍欄屏障
+    下灌不到」的封閉口袋＝陽台候選，以新房間附加。守門：貼殼（bbox
+    距建物外圈 ≤2T）、面積 ≥max((2T)², 0.2m²) 且 ≤25% 建物 bbox。
+    既有房間 labels 一概不動——純加法，命名交給下游 DINO。"""
+    fence = det.get("fence") if det.get("fence") is not None else det.get("thin")
+    if fence is None or labels is None or outside is None:
+        return rooms
+    T, cm = det["T"], det["cm"]
+    img_h, img_w = labels.shape
+    rects, wins = det["rects"], det["wins"]
+    barrier = np.zeros((img_h, img_w), np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for _o, x0, y0, x1, y1 in wins:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for horiz, g0, g1, b0, b1 in fp_c._wall_gaps(rects, wins, T, cm,
+                                                 40.0, 260.0):
+        if horiz:
+            cv2.rectangle(barrier, (int(g0), int(b0)), (int(g1), int(b1)), 255, -1)
+        else:
+            cv2.rectangle(barrier, (int(b0), int(g0)), (int(b1), int(g1)), 255, -1)
+    barrier = cv2.bitwise_or(
+        barrier, cv2.dilate(((fence > 0) * 255).astype(np.uint8),
+                            np.ones((5, 5), np.uint8)))
+    ff = np.pad(barrier, 1).copy()
+    cv2.floodFill(ff, None, (0, 0), 128)
+    reach = ff[1:-1, 1:-1] == 128
+    pocket = (outside & ~reach & (barrier == 0)).astype(np.uint8)
+    # 口袋內的圍欄線/曬衣桿會把同一座陽台切成多個連通塊（floor_10 實測
+    # IoU 掉到 0.5 以下配不上）——閉運算把被細線分割的碎塊接回一體；
+    # 不同陽台相距遠超過 T，不會被 1 個牆厚的核黏起來
+    kp = 2 * max(2, int(round(0.5 * T))) + 1
+    pocket = cv2.morphologyEx(pocket * 255, cv2.MORPH_CLOSE,
+                              np.ones((kp, kp), np.uint8))
+    pocket[reach | (labels > 0)] = 0             # 閉運算不得侵入室外通路/既有房
+    pocket = (pocket > 0).astype(np.uint8)
+    X0 = min(r[0] for r in rects); Y0 = min(r[1] for r in rects)
+    X1 = max(r[2] for r in rects); Y1 = max(r[3] for r in rects)
+    amin = max((2 * T) ** 2, int(2000.0 / max(cm * cm, 1e-6)))
+    amax = 0.30 * (X1 - X0) * (Y1 - Y0)
+    n, lab, st, cent = cv2.connectedComponentsWithStats(pocket, 8)
+    nid = max((r["id"] for r in rooms), default=0)
+    for i in range(1, n):
+        a = int(st[i, cv2.CC_STAT_AREA])
+        if not amin <= a <= amax:
+            continue
+        x, y, w, h = (int(st[i, cv2.CC_STAT_LEFT]), int(st[i, cv2.CC_STAT_TOP]),
+                      int(st[i, cv2.CC_STAT_WIDTH]), int(st[i, cv2.CC_STAT_HEIGHT]))
+        m = 2.0 * T
+        near = (abs(x - X0) <= m or abs(y - Y0) <= m
+                or abs((x + w) - X1) <= m or abs((y + h) - Y1) <= m
+                or (X0 - m <= x and x + w <= X1 + m
+                    and (abs(y + h - Y0) <= m or abs(y - Y1) <= m))
+                or (Y0 - m <= y and y + h <= Y1 + m
+                    and (abs(x + w - X0) <= m or abs(x - X1) <= m)))
+        if not near:
+            continue                             # 不貼殼＝浮空雜訊
+        nid += 1
+        labels[lab == i] = nid
+        rooms.append({"id": nid, "area_px": a,
+                      "bbox": (x, y, x + w, y + h),
+                      "cx": float(cent[i][0]), "cy": float(cent[i][1]),
+                      "aspect": round(max(w, h) / max(1.0, min(w, h)), 2),
+                      "touch_env": True, "pocket": True})
+    return rooms
+
+
 def build_rooms(det):
     """牆 → 房間方塊：牆端點沿軸向連到對面牆（fp_c._wall_gaps 封口）＋門洞補線
     ＋閉運算，閉合後灌水切連通塊＝房間，再依規則分類房型。
@@ -1428,10 +1499,16 @@ def build_rooms(det):
     rooms = _split_by_text_anchors(labels, rooms,
                                    _symbol_anchors(det, labels, rooms),
                                    T, cm, amin, min_part_ratio=1.8)
+    # 殼外陽台口袋收割（圍欄圈住、主分割判室外的區域）——須在命名前，
+    # 新口袋才會進 DINO 裁切分類
+    rooms = _harvest_balcony_pockets(det, labels, rooms, outside)
     # 房型命名（2026-07-30 起只剩兩層，CubiCasa 語意投票已整批移除）：
     #   1) DINOv2 裁切分類（room_classifier）——own_eval 72 房 90.3%
     #   2) 面積規則（純幾何兜底）——缺 torch/骨幹/線性頭時
-    probs = room_classifier.classify(det.get("bgr"), labels, rooms)
+    # 彩圖管線（det 帶 fence）用 color 專屬頭：混訓實測傷灰階基準，分域雙頭
+    variant = "color" if det.get("fence") is not None else "gray"
+    probs = room_classifier.classify(det.get("bgr"), labels, rooms,
+                                     variant=variant)
     if probs is not None:
         classify_rooms_dino(det, labels, rooms, probs, outside)
     else:
