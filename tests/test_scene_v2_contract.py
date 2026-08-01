@@ -976,16 +976,12 @@ def test_3d_door_openings_merge_overlapping_spans_on_the_same_host_wall() -> Non
     assert "      wallSegments,\n      wallThickness," in viewer
 
 
-def test_3d_door_openings_merge_overlapping_automatic_detections_but_keep_manual_locks() -> None:
+def test_3d_door_openings_keep_each_confirmed_step4_door_id() -> None:
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'const openingId = String(opening?.id || "").trim();' in viewer
-    assert "function openingIsManuallyLocked" in viewer
-    assert "openingIsManuallyLocked(candidate)" in viewer
-    assert "openingIsManuallyLocked(opening)" in viewer
-    assert "const samePhysicalSpan = architecturalOpeningsOverlap(candidate, opening)" in viewer
-    assert "return samePhysicalSpan;" in viewer
-    assert "Automatic detections can contain both sides of the same door symbol." in viewer
+    assert "Step 4 owns door identity; Step 6 must never merge distinct doors." in viewer
+    assert "if (openingId && candidateId) return false;" in viewer
     assert "function openingAnchorOnWall" in viewer
     assert "anchorDistance <= 1" in viewer
     assert "mergedDoorIds" in viewer
@@ -1002,12 +998,15 @@ def test_3d_world_coordinate_conversion_flips_door_swing_endpoint() -> None:
     assert "swing_end: segment.swing_end ? flipPointZ(segment.swing_end)" in viewer
 
 
-def test_step4_shows_the_recognised_wall_span_as_the_closed_door_line() -> None:
+def test_step4_shows_open_leaf_in_blue_and_closed_radius_in_green() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert 'const closedLine = `<line x1="${hinge.x}" y1="${hinge.y}" x2="${end.x}" y2="${end.y}"' in source
+    assert 'const openLeafLine = `<line x1="${hinge.x}" y1="${hinge.y}" x2="${end.x}" y2="${end.y}"' in source
     assert 'stroke="#1598dc"' in source
-    assert '${dragTarget}${line}${closedLine}<path' in source
+    assert "const closedLeafLine = item.swing_end ? `<line" in source
+    assert 'x2="${swingEnd.x}" y2="${swingEnd.y}"' in source
+    assert 'stroke="#258b45"' in source
+    assert '${dragTarget}${line}${openLeafLine}${closedLeafLine}<path' in source
 
 
 def test_step4_can_lock_a_manually_corrected_door_opening() -> None:

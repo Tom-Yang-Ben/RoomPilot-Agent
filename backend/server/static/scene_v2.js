@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-ba512e4c4a83";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-02b1baef0426";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd27184d7e";
@@ -3626,13 +3626,15 @@ function renderStructureSvg() {
           <title>拖曳此端調整門寬</title>
         </circle>`
       : "";
-    // Blue marks the recognised wall span that Step 6 uses as the closed opening.
-    const closedLine = `<line x1="${hinge.x}" y1="${hinge.y}" x2="${end.x}" y2="${end.y}"
+    // Blue is the Step 4 open leaf. Green is the Step 6 closed leaf, both sharing one hinge.
+    const openLeafLine = `<line x1="${hinge.x}" y1="${hinge.y}" x2="${end.x}" y2="${end.y}"
       stroke="#1598dc" stroke-width="5" stroke-linecap="round" pointer-events="none"/>`;
+    const closedLeafLine = item.swing_end ? `<line x1="${hinge.x}" y1="${hinge.y}" x2="${swingEnd.x}" y2="${swingEnd.y}"
+      stroke="#258b45" stroke-width="5" stroke-linecap="round" pointer-events="none"/>` : "";
     return structureGroup(
       item,
       "door",
-      `${dragTarget}${line}${closedLine}<path d="M ${end.x} ${end.y} A ${radius} ${radius} 0 0 ${sweep} ${swingEnd.x} ${swingEnd.y}" fill="none" stroke="#bd5c36" stroke-width="3"/>${marker}${handles}`,
+      `${dragTarget}${line}${openLeafLine}${closedLeafLine}<path d="M ${end.x} ${end.y} A ${radius} ${radius} 0 0 ${sweep} ${swingEnd.x} ${swingEnd.y}" fill="none" stroke="#bd5c36" stroke-width="3"/>${marker}${handles}`,
     );
   }).join("") : "";
   const beams = state.activeStructureKind === "beam" ? state.structures.beams.map((item, index) => {

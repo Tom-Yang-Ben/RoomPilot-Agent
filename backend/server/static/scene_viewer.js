@@ -21,7 +21,7 @@ import {
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-a686f1f5f6f2";
+} from "./scene_architecture.js?v=sha256-2f582667f484";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -170,16 +170,9 @@ function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wall
       (candidate) => {
         const candidateId = String(candidate?.id || "").trim();
         if (openingId && candidateId && openingId === candidateId) return true;
-        // Automatic detections can contain both sides of the same door symbol.
-        // Only distinct doors that the user has manually locked stay separate.
-        if (
-          openingId
-          && candidateId
-          && openingIsManuallyLocked(candidate)
-          && openingIsManuallyLocked(opening)
-        ) {
-          return false;
-        }
+        // Step 4 owns door identity; Step 6 must never merge distinct doors.
+        // Each persisted door ID represents a separately confirmed physical door.
+        if (openingId && candidateId) return false;
         const samePhysicalSpan = architecturalOpeningsOverlap(candidate, opening)
           || openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness);
         return samePhysicalSpan;
@@ -1633,8 +1626,22 @@ export function createSceneViewer(
       sill.userData.roompilotArchitecturalDetail = "flush-window-sill";
       assembly.add(sill);
     } else {
+      const closedLeaf = interval.opening?.closed_leaf_segment;
+      const closedStart = closedLeaf?.start || null;
+      const closedEnd = closedLeaf?.end || null;
+      const closedDx = Number(closedEnd?.x) - Number(closedStart?.x);
+      const closedDz = Number(closedEnd?.z) - Number(closedStart?.z);
+      const closedLength = Math.hypot(closedDx, closedDz);
+      if (closedLength >= 4) {
+        assembly.position.set(
+          (Number(closedStart.x) + Number(closedEnd.x)) / 2,
+          0,
+          (Number(closedStart.z) + Number(closedEnd.z)) / 2,
+        );
+        assembly.rotation.y = Math.atan2(-closedDz, closedDx);
+      }
       const leaf = new THREE.Mesh(
-        new THREE.BoxGeometry(Math.max(interval.width * 0.94, 60), height, 4.5),
+        new THREE.BoxGeometry(Math.max((closedLength || interval.width) * 0.94, 60), height, 4.5),
         frameMaterial,
       );
       leaf.position.set(0, centerY, 0);

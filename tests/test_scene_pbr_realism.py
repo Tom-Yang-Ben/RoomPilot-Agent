@@ -240,6 +240,36 @@ def test_swing_arc_never_replaces_the_recognised_wall_span() -> None:
     ]
 
 
+def test_step6_closed_leaf_uses_step4_hinge_and_swing_endpoint() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorOpeningForWallTopology }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const opening = doorOpeningForWallTopology(
+          [{{ id: "wall-1", start: {{x: 0, z: 0}}, end: {{x: 180, z: 0}} }}],
+          {{
+            id: "door-2",
+            start: {{x: 80, z: 0}}, end: {{x: 0, z: 0}},
+            swing_end: {{x: 80, z: 80}}, width_cm: 80,
+          }},
+          12,
+        );
+        console.log(JSON.stringify({{
+          id: opening.id,
+          opening: {{ start: opening.start, end: opening.end }},
+          openLeaf: opening.door_leaf_segment,
+          closedLeaf: opening.closed_leaf_segment,
+        }}));
+        """
+    )
+
+    assert result == {
+        "id": "door-2",
+        "opening": {"start": {"x": 80, "z": 0}, "end": {"x": 0, "z": 0}},
+        "openLeaf": {"start": {"x": 80, "z": 0}, "end": {"x": 0, "z": 0}},
+        "closedLeaf": {"start": {"x": 80, "z": 0}, "end": {"x": 80, "z": 80}},
+    }
+
+
 def test_detected_host_span_wins_over_open_leaf_arc() -> None:
     result = run_workflow_script(
         f"""

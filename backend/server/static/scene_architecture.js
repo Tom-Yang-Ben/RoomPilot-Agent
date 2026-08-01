@@ -172,6 +172,10 @@ export function doorOpeningForWallTopology(
       source: closed.source,
     },
   };
+  const closedLeaf = segmentVector({ start: leaf.start, end: door.swing_end });
+  const closedLeafSegment = closedLeaf.length >= 4
+    ? { start: { ...closedLeaf.start }, end: { ...closedLeaf.end } }
+    : { start: { ...leaf.start }, end: { ...leaf.end } };
 
   // 「已確認有這扇門」不等於「已人工確認它屬於這面牆」。辨識器
   // 預填的 host_wall_id 仍可能錯誤；只有使用者手動貼齊後才可鎖牆。
@@ -186,6 +190,8 @@ export function doorOpeningForWallTopology(
       ...closedOpening,
       topology_gap: false,
       original_host_wall_id: null,
+      door_leaf_segment: { start: { ...leaf.start }, end: { ...leaf.end } },
+      closed_leaf_segment: closedLeafSegment,
     };
   }
 
@@ -207,6 +213,7 @@ export function doorOpeningForWallTopology(
         topology_gap: false,
         opening_source: closed.source,
         door_leaf_segment: { start: { ...leaf.start }, end: { ...leaf.end } },
+        closed_leaf_segment: closedLeafSegment,
       };
     }
   }
@@ -231,6 +238,7 @@ export function doorOpeningForWallTopology(
         start: { ...leaf.start },
         end: { ...leaf.end },
       },
+      closed_leaf_segment: closedLeafSegment,
     };
   }
 
@@ -256,6 +264,7 @@ export function doorOpeningForWallTopology(
         start: { ...leaf.start },
         end: { ...leaf.end },
       },
+      closed_leaf_segment: closedLeafSegment,
     };
   }
 
@@ -328,6 +337,7 @@ export function doorOpeningForWallTopology(
         start: { ...leaf.start },
         end: { ...leaf.end },
       },
+      closed_leaf_segment: closedLeafSegment,
       opening_source: closed.source,
       needs_manual_host_confirmation: true,
     };
@@ -345,6 +355,7 @@ export function doorOpeningForWallTopology(
       start: { ...leaf.start },
       end: { ...leaf.end },
     },
+    closed_leaf_segment: closedLeafSegment,
   };
 }
 
