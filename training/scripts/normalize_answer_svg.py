@@ -126,9 +126,12 @@ def normalize(svg_path, W, H):
                 f = p.getAttribute("fill")
                 if f and f != "none":
                     fills.add(f.lower())
-        # 推 class：文字優先 → 色彩 → 既有 token
+        # 推 class：有效 10 類 token 最優先（審定後的 class 是權威，
+        # floor_30 實案：審定 Balcony 被舊填色推回 Bath）→ 文字 → 色彩
         target = None
-        for t in texts:
+        if tok in CANON:
+            target = tok
+        for t in ([] if target else texts):
             key = t.strip().lower()
             if key in TEXT_ALIAS:
                 target = TEXT_ALIAS[key]
