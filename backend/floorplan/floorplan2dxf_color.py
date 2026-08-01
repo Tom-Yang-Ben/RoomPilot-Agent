@@ -1733,6 +1733,32 @@ def color_window_layers(bgr, bw, bw_open):
     return orig_win, soft, thin
 
 
+def envelope_gap_seals(rects, wins, T, cm):
+    """外圈封口：建物外圈（bbox 周邊 3T 內）的 260~600cm 牆縫再封一輪。
+
+    floor_09 實案：外牆窗帶寬過 260cm、窗偵測 R 僅 38%，常規封口
+    （40~260cm）擋不住，灌水自外圈滲入把半戶判成室外。窗只會出現在
+    外圈；室內大開口（客餐一體）遠離外圈不受影響。
+    回傳 win 格式 tuples [(0, x0, y0, x1, y1)]，呼叫端併進分割用 wins。"""
+    if not rects:
+        return []
+    X0 = min(r[0] for r in rects); Y0 = min(r[1] for r in rects)
+    X1 = max(r[2] for r in rects); Y1 = max(r[3] for r in rects)
+    m = 3.0 * T
+    out = []
+    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, wins, T, cm,
+                                            260.0, 600.0):
+        if horiz:
+            on_env = (b0 - Y0 <= m or Y1 - b1 <= m)
+            box = (0, g0, b0, g1, b1)
+        else:
+            on_env = (b0 - X0 <= m or X1 - b1 <= m)
+            box = (0, b0, g0, b1, g1)
+        if on_env:
+            out.append(box)
+    return out
+
+
 def window_side_gate(cand, rects, T, cm, img_w, img_h):
     """窗內外側守門：真窗恰好一側通室外（floor_05 實案：房內白色櫃體
     被誤判成窗，距離/錨定都分不開，畫進封口遮罩把房攔腰切）。
@@ -1844,6 +1870,12 @@ def hollow_wall_rects(bw, gray, chroma, T):
     return out
 
 
+WALL_RESCUE_LONG = bool(int(os.environ.get("WALL_RESCUE_LONG", "0")))
+# 長牆豁免開關（A/B 用）：floor_09 實測救回 7 段真牆讓全戶圈住，但衣櫃
+# 長邊同樣是「長細深木紋」也被救回當牆、室內切線帶歪，dev 淨 ±0。
+# 預設關閉；後續若找到牆/衣櫃的可分維度（如兩端接牆網）再啟用
+
+
 def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T,
                      cc=None, cc_veto_cov=0.3):
     """自適應過濾假牆——兩段規則，皆以矩形內遮罩像素在「原彩圖」的統計判定：
@@ -1898,6 +1930,7 @@ def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T,
         if st is not None:
             mean, p25, spread, chr_, cov = st
             thick = min(r[2] - r[0], r[3] - r[1])
+            length = max(r[2] - r[0], r[3] - r[1])
             if is_pillar:
                 drop = mean > ref + 2 * delta
             else:
@@ -1907,6 +1940,15 @@ def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T,
                     (mean > ref + 10 or chr_ > 8 or spread > 20):
                 drop = True
             by_chroma = not drop and (chr_ > 18 or (chr_ > 12 and spread > 30))
+            # 長牆豁免（floor_09 實案）：暖棕木紋牆被色度/紋理規則整段
+            # 刪掉，左半戶灌水漏成室外。與家具邊線的可分維度是長度——
+            # 實測家具 <5T、真牆 ≥8T。核心夠暗（p25）＋中低色度（≤30，
+            # 暖棕可過、彩色家具面不行）＋牆厚條才豁免
+            if WALL_RESCUE_LONG and by_chroma and not is_pillar \
+                    and thick <= 1.5 * T \
+                    and length >= 8 * T and p25 <= ref + delta / 2 \
+                    and chr_ <= 30:
+                by_chroma = False
         if drop or by_chroma:
             dropped += 1
             if by_chroma:

@@ -1444,7 +1444,12 @@ def build_rooms(det):
     # 灌水圍欄：灰階用墨水細線層；彩圖 thin 充當墨水證據太吵（磁磚/
     # 家具線），只以 det["fence"] 身分供救援輪，其他 thin 語意維持 None
     fence = det.get("thin") if det.get("thin") is not None else det.get("fence")
-    labels, rooms, outside = fp_c.segment_rooms(rects, wins, doors,
+    # 外圈封口（彩圖）：外牆寬窗帶（>260cm、窗偵測漏抓）另開 600cm 輪，
+    # 只在建物外圈生效——floor_09 型「半戶被灌水判室外」的最後防線
+    seg_wins = wins
+    if det.get("fence") is not None:
+        seg_wins = wins + fp_c.envelope_gap_seals(rects, wins, T, cm)
+    labels, rooms, outside = fp_c.segment_rooms(rects, seg_wins, doors,
                                                 img_w, img_h, T, T_out, cm,
                                                 keep_small=True,
                                                 thin=fence)
@@ -1453,7 +1458,7 @@ def build_rooms(det):
         # （走道被寬封口切碎，A/B 實測 −2 命中/−10 命名），但對「常規
         # ＋細線圍欄都救不回」的整圖失敗，360cm 能封住 L 型大開口。
         # 只在整圖失敗時重試，通過的圖零觸碰
-        labels, rooms, outside = fp_c.segment_rooms(rects, wins, doors,
+        labels, rooms, outside = fp_c.segment_rooms(rects, seg_wins, doors,
                                                     img_w, img_h, T, T_out,
                                                     cm, keep_small=True,
                                                     thin=fence,
