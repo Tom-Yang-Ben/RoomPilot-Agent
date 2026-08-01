@@ -267,8 +267,9 @@ def normalize(svg_path, W, H):
         t = doc.createElement("text")
         t.setAttribute("x", f"{cx:.0f}")
         t.setAttribute("y", f"{cy:.0f}")
+        fs = max(14, min(40, int(round(min(W, H) * 0.035))))
         t.setAttribute("style",
-                       "font-family:Arial;font-size:36px;font-weight:bold;"
+                       f"font-family:Arial;font-size:{fs}px;font-weight:bold;"
                        "text-anchor:middle;fill:#000000")
         t.appendChild(doc.createTextNode(name))
         layer.appendChild(t)
