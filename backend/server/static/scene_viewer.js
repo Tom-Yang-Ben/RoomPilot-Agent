@@ -613,8 +613,10 @@ export function createSceneViewer(
   // ——這是第 6 步每個動作都要等 10–16 秒的主因。
   // 這裡保留「已套皮的模板」，實例用 clone 產生並共用 geometry/material/texture，
   // program refcount 不歸零，shader 就不會重編。
-  const MODEL_TEMPLATE_LIMIT = 64;
-  const GLTF_SOURCE_LIMIT = 96;
+  // 型錄的 GLB 目前平均約 16MB／件（實測 8 件 132MB），上限要照這個尺寸抓，
+  // 否則快取等於放任記憶體無限成長。一般場景約 8–20 個不同模型，這個額度夠用。
+  const MODEL_TEMPLATE_LIMIT = 32;
+  const GLTF_SOURCE_LIMIT = 24;
   const modelTemplates = new Map(); // styleKey -> { root, url }
   const gltfSources = new Map(); // model_url -> Promise<GLTF>
   const MATERIAL_MAP_KEYS = [

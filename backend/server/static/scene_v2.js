@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-6bb4c1905e8f";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-da2a452ac73e";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
 import {
