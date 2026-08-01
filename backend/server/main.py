@@ -938,33 +938,57 @@ def _json_furniture_payload_cache() -> tuple[dict, ...]:
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
 
 
-def _with_placement_surface(items: tuple[dict, ...]) -> tuple[dict, ...]:
-    """在 PostgreSQL 與離線 JSON 的共同出口標上擺放面。
+def _dedupe_style_candidates(candidates: object) -> list[dict]:
+    """同一個 style_id 只留分數最高的一筆。
 
-    第 6 步的牆界、碰撞與淨空只對落地家具有意義；花瓶、抱枕、壁掛層架帶著 footprint
-    進去算，就會「放不下」而卡在待處理清單（QA #7）。分類規則由
-    backend/catalog/placement_surface.py 定義，這裡只負責標記。
+    JSON 路徑走 _merge_style_candidates 已經去重，PostgreSQL 路徑沒有——實測 7958 筆
+    裡有 781 筆帶著重複的 style_id，排序與信心值都會被灌水（QA 型錄項）。
     """
-    stamped = []
+    if not isinstance(candidates, list):
+        return []
+    best: dict[str, dict] = {}
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        style_id = str(candidate.get("style_id") or "").strip()
+        if not style_id:
+            continue
+        current = best.get(style_id)
+        if current is None or _candidate_score(candidate) > _candidate_score(current):
+            best[style_id] = candidate
+    return sorted(best.values(), key=_candidate_score, reverse=True)
+
+
+def _normalize_catalog_payload(items: tuple[dict, ...]) -> tuple[dict, ...]:
+    """PostgreSQL 與離線 JSON 的共同出口，統一補上兩件事。
+
+    1. placement_surface：第 6 步的牆界、碰撞與淨空只對落地家具有意義；花瓶、抱枕、
+       壁掛層架帶著 footprint 進去算就會「放不下」而卡在待處理清單（QA #7）。
+       分類規則由 backend/catalog/placement_surface.py 定義，這裡只負責標記。
+    2. style_candidates 去重，避免同一個 style_id 重複灌高排序。
+    """
+    normalized = []
     for item in items:
         entry = dict(item)
         entry.setdefault(
             "placement_surface", placement_surface_for(entry.get("normalized_type"))
         )
-        stamped.append(entry)
-    return tuple(stamped)
+        if entry.get("style_candidates"):
+            entry["style_candidates"] = _dedupe_style_candidates(entry["style_candidates"])
+        normalized.append(entry)
+    return tuple(normalized)
 
 
 def _furniture_payload_cache() -> tuple[dict, ...]:
     """Read SQL every time in formal mode; cache only explicit offline JSON."""
     if catalog_provider_mode(PROJECT_DIR) == "postgres":
         try:
-            return _with_placement_surface(load_postgres_catalog(PROJECT_DIR))
+            return _normalize_catalog_payload(load_postgres_catalog(PROJECT_DIR))
         except RuntimeCatalogUnavailable:
             raise
         except Exception as exc:
             raise RuntimeCatalogUnavailable("furniture_catalog", exc) from exc
-    return _with_placement_surface(_json_furniture_payload_cache())
+    return _normalize_catalog_payload(_json_furniture_payload_cache())
 
 
 def _clear_furniture_payload_cache() -> None:
@@ -2964,13 +2988,25 @@ def _auto_decor_catalog_item(
     return selected
 
 
-def _curtain_catalog_item() -> dict:
+_CURTAIN_MODEL_PATH = "models/roompilot-curtain.glb"
+
+
+def _curtain_catalog_item() -> dict | None:
+    """布簾是固定假想品項，不走型錄查找。
+
+    以前它無條件宣告 model_url 指向 /static/models/roompilot-curtain.glb，但那個檔案
+    不在 repo 裡（static/ 底下沒有任何 .glb），所以每次自動軟裝都保證產生一個 404，
+    3D 只能靠白色替代物兜底。與其硬塞一個壞掉的品項，不如照其他軟裝角色的作法：
+    檔案不存在就回 None，由呼叫端列進 decor_summary.skipped 說明原因。
+    """
+    if not (STATIC_DIR / _CURTAIN_MODEL_PATH).is_file():
+        return None
     return {
         "furniture_id": "roompilot-auto-curtain",
         "normalized_type": "curtain",
         "name_zh_raw": "自動配置布簾",
         "size_cm": {"width": 240, "depth": 12, "height": 240},
-        "model_url": "/static/models/roompilot-curtain.glb",
+        "model_url": f"/static/{_CURTAIN_MODEL_PATH}",
         "has_model": True,
         "auto_decor_role": "curtain",
         "position_locked": False,
@@ -3050,8 +3086,19 @@ async def scene_decorate(payload: dict) -> dict:
         requested_roles.append("curtain")
 
     additions: list[dict] = []
+    skipped_roles: list[dict] = []
     if "curtain" in requested_roles:
-        additions.append(_curtain_catalog_item())
+        curtain = _curtain_catalog_item()
+        if curtain is None:
+            skipped_roles.append(
+                {
+                    "role": "curtain",
+                    "label": "布簾",
+                    "reason": "布簾模型檔尚未進版控，本次略過（3D 不會出現缺檔的替代方塊）。",
+                }
+            )
+        else:
+            additions.append(curtain)
     used_ids = {str(item.get("furniture_id")) for item in existing}
     boundary_width_cm = boundary_depth_cm = 0.0
     if place_boundary is not None:
@@ -3071,7 +3118,6 @@ async def scene_decorate(payload: dict) -> dict:
         min(boundary_width_cm, float(rug_anchor_size.get("width") or boundary_width_cm)),
         min(boundary_depth_cm, float(rug_anchor_size.get("depth") or boundary_depth_cm)),
     )
-    skipped_roles: list[dict] = []
     for role in ("rug", "plant", "light"):
         if role in requested_roles:
             addition = _auto_decor_catalog_item(

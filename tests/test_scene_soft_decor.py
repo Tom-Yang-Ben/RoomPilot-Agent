@@ -90,6 +90,13 @@ def test_editor_door_swing_endpoint_uses_the_same_scene_coordinates_as_its_leaf(
     assert door["swing_end"] == {"x": 0.0, "z": -180.0}
 
 
+def _curtain_model_available() -> bool:
+    """布簾模型檔目前不在版控裡；缺檔時 decorate 會把 curtain 列進 skipped 而不是硬塞。"""
+    from backend.server.main import _CURTAIN_MODEL_PATH, STATIC_DIR
+
+    return (STATIC_DIR / _CURTAIN_MODEL_PATH).is_file()
+
+
 def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
     sofa = {
         "furniture_id": "sofa-existing",
@@ -114,12 +121,12 @@ def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
     assert response.status_code == 200
     payload = response.json()
     generated = [item for item in payload["scene_objects"] if item.get("auto_decor_role")]
-    assert {item["auto_decor_role"] for item in generated} == {
-        "curtain",
-        "rug",
-        "plant",
-        "light",
-    }
+    expected_roles = {"rug", "plant", "light"}
+    if _curtain_model_available():
+        expected_roles.add("curtain")
+    else:
+        assert "curtain" in {entry["role"] for entry in payload["decor_summary"]["skipped"]}
+    assert {item["auto_decor_role"] for item in generated} == expected_roles
     assert all(item["model_url"] for item in generated)
     assert all(item["placement_engine"] == "furniture_engine" for item in generated)
     assert all(item["placement_failed"] is False for item in generated)
@@ -127,10 +134,11 @@ def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
     rug = next(item for item in generated if item["auto_decor_role"] == "rug")
     assert rug["position_cm"] == sofa["position_cm"]
 
-    curtain = next(item for item in generated if item["auto_decor_role"] == "curtain")
-    assert curtain["size_cm"]["width"] == 330
-    assert curtain["position_cm"]["z"] < -200
-    assert curtain["rotation_y_deg"] == 0
+    if _curtain_model_available():
+        curtain = next(item for item in generated if item["auto_decor_role"] == "curtain")
+        assert curtain["size_cm"]["width"] == 330
+        assert curtain["position_cm"]["z"] < -200
+        assert curtain["rotation_y_deg"] == 0
 
 
 def test_rug_relation_is_validated_by_the_engine() -> None:
@@ -170,7 +178,9 @@ def test_empty_room_does_not_receive_scattered_decor() -> None:
         for item in response.json()["scene_objects"]
         if item.get("auto_decor_role")
     ]
-    assert {item["auto_decor_role"] for item in generated} == {"curtain"}
+    # 空房間不該被灑軟裝；布簾是唯一與家具無關的角色，缺模型檔時連它也不進場景。
+    expected = {"curtain"} if _curtain_model_available() else set()
+    assert {item["auto_decor_role"] for item in generated} == expected
 
 
 def test_confirmed_bedroom_type_prevents_generic_plant_scatter() -> None:
@@ -376,8 +386,10 @@ def test_missing_decor_glb_skips_that_role_instead_of_aborting_the_room(monkeypa
     summary = response.json()["decor_summary"]
     assert "light" in summary["requested"]
     assert "light" not in summary["placed"]
-    assert {entry["role"] for entry in summary["skipped"]} == {"light"}
-    assert "燈具" in summary["skipped"][0]["reason"]
+    skipped_roles = {entry["role"] for entry in summary["skipped"]}
+    assert "light" in skipped_roles
+    light_entry = next(entry for entry in summary["skipped"] if entry["role"] == "light")
+    assert "燈具" in light_entry["reason"]
     # 其餘角色照常放進場景，不會被缺件拖累。
     assert {"rug", "plant"} <= set(summary["placed"])
 
@@ -403,3 +415,20 @@ def test_catalog_declares_a_placement_surface_for_every_item() -> None:
     surfaces = {item.get("placement_surface") for item in items}
     assert surfaces <= set(PLACEMENT_SURFACES)
     assert None not in surfaces
+
+
+def test_catalog_payload_has_no_duplicate_style_candidates() -> None:
+    """PostgreSQL 路徑不走 _merge_style_candidates，實測有 781 筆帶重複 style_id。"""
+    from backend.server.main import _furniture_payload_cache
+
+    offenders = []
+    for item in _furniture_payload_cache():
+        ids = [
+            candidate.get("style_id")
+            for candidate in item.get("style_candidates") or []
+            if isinstance(candidate, dict)
+        ]
+        if len(ids) != len(set(ids)):
+            offenders.append(item.get("furniture_id"))
+
+    assert not offenders, f"{len(offenders)} 筆型錄品項的 style_candidates 有重複 style_id"
