@@ -583,8 +583,22 @@ def catalog_item_matches_type_semantics(item: dict[str, Any], requested_type: st
         str(item.get(key) or "")
         for key in ("name_en", "name_zh_raw", "category_label", "source_archive", "source_archive_path", "zip_entry")
     ).casefold()
+    # Amazon 系床品常以型號命名（Movian Cinca／Lagan…），名稱裡沒有任何
+    # bed／床 字樣，只看名稱會把整批真床誤殺——2026-08-01 實測 RAG 選出的
+    # 床全數消失即此因。身分判定因此加入中文描述證據（rag_text／描述滿是
+    # 「床架」「雙人床」），衝突判定維持原樣：名字疑似櫃體又無床身分的
+    # 錯件（如 7/30 的 Corona Wardrobe）依然擋得住。
+    description_text = " ".join(
+        [
+            str(item.get("object_type_zh") or ""),
+            str(item.get("description") or ""),
+            " ".join(str(t) for t in (item.get("rag_text") or []) if t),
+        ]
+    ).casefold()
     has_conflict = any(token in evidence_text for token in _BED_CONFLICT_TOKENS)
-    has_bed_identity = any(token in name_text for token in _BED_IDENTITY_TOKENS)
+    has_bed_identity = any(token in name_text for token in _BED_IDENTITY_TOKENS) or (
+        not has_conflict and ("床" in description_text or "bed" in description_text)
+    )
     if has_conflict and not has_bed_identity:
         return False
     if not has_bed_identity:

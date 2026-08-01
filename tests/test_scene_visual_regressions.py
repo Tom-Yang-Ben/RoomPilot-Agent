@@ -446,3 +446,33 @@ def test_bed_selection_rejects_wardrobe_and_drawer_models() -> None:
 
     assert chosen == []
     assert unavailable == ["bed"]
+
+
+def test_model_number_named_bed_with_chinese_description_is_a_real_bed() -> None:
+    """Amazon 系床品以型號命名（名稱無 bed／床 字樣），身分改由中文描述證據判定。
+
+    2026-08-01 實測：RAG 選出的 Movian 系床全數被舊規則誤殺，第 6 步的床
+    在 3D 中連續多輪無聲消失，即此因。
+    """
+    assert catalog_item_matches_type_semantics(
+        {
+            "normalized_type": "bed",
+            "name_en": "Movian Cinca",
+            "rag_text": ["白色床架搭配淺木色飾條", "簡約床；木質床架"],
+            "size_cm": {"width": 167, "depth": 205, "height": 98},
+        },
+        "bed",
+    ) is True
+
+
+def test_wardrobe_masquerading_as_bed_is_still_rejected() -> None:
+    """7/30 QA 的原始錯件（名稱與描述都是衣櫃）仍須擋下，防呆不因放寬而失守。"""
+    assert catalog_item_matches_type_semantics(
+        {
+            "normalized_type": "bed",
+            "name_en": "Vida Designs Corona Wardrobe, 3 Door",
+            "rag_text": ["三門衣櫃", "實木衣櫃"],
+            "size_cm": {"width": 150, "depth": 200, "height": 180},
+        },
+        "bed",
+    ) is False
