@@ -995,8 +995,9 @@ def _carve_stairs(labels, rooms, boxes, T, cm=1.0):
         host = by_id.get(host_id)
         if host is None or host_n < 0.7 * area_box:
             continue                             # 足跡沒安坐在單一房裡
-        if host_n > 0.5 * host["area_px"]:
-            continue                             # 樓梯間本有牆自成一房
+        if host_n > 0.25 * host["area_px"]:
+            continue                             # 樓梯間本有牆自成一房：宿主
+                                                 # 須 ≥4× 足跡（真大開放區）才切
         hx0, hy0, hx1, hy1 = host["bbox"]        # 佔滿宿主同向尺寸＝樓梯間
         if (ix1 - ix0) >= 0.85 * (hx1 - hx0) or (iy1 - iy0) >= 0.85 * (hy1 - hy0):
             continue
