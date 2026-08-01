@@ -608,10 +608,50 @@ export function createSceneViewer(
 
   const wallMeshes = [];
 
+  // 微調/旋轉/驗證被拒時，原本唯一的回饋是下方一行灰色小字，使用者與除錯
+  // 都看不見（總帳 §3.6 A 案）。改為同步在 3D 畫面上方浮出提示氣泡。
+  let statusToast = null;
+  let statusToastTimer = null;
+  function showStatusToast(message) {
+    const text = String(message || "").trim();
+    if (!text) return;
+    if (!statusToast) {
+      statusToast = document.createElement("div");
+      statusToast.className = "scene-status-toast";
+      Object.assign(statusToast.style, {
+        position: "absolute",
+        left: "50%",
+        top: "14px",
+        transform: "translateX(-50%)",
+        maxWidth: "72%",
+        padding: "8px 14px",
+        borderRadius: "8px",
+        background: "rgba(28,28,28,0.92)",
+        color: "#fff",
+        fontSize: "14px",
+        lineHeight: "1.5",
+        zIndex: "60",
+        pointerEvents: "none",
+        transition: "opacity .25s",
+        opacity: "0",
+        boxShadow: "0 4px 14px rgba(0,0,0,.35)",
+      });
+      if (!container.style.position) container.style.position = "relative";
+      container.appendChild(statusToast);
+    }
+    statusToast.textContent = text;
+    statusToast.style.opacity = "1";
+    if (statusToastTimer) clearTimeout(statusToastTimer);
+    statusToastTimer = setTimeout(() => {
+      if (statusToast) statusToast.style.opacity = "0";
+    }, 2800);
+  }
+
   function setStatus(message) {
     if (statusElement) {
       statusElement.textContent = message;
     }
+    showStatusToast(message);
   }
 
   function notifySceneChange(item) {
@@ -3755,11 +3795,13 @@ export function createSceneViewer(
       const wrapper = furnitureGroup.children.find(
         (wrapper) => wrapper.userData.sceneObject === item,
       );
+      const label = item.name_zh_raw || item.normalized_type || item.furniture_id;
       if (wrapper?.userData.modelLoadFailed === true) {
         lastDiagnostics.failedFurniture.push({
           id: item.furniture_id,
           reason: wrapper.userData.fallbackReason,
         });
+        failures.push(`${label}（${wrapper.userData.fallbackReason}）`);
         return;
       }
       if (wrapper) return;
@@ -3770,6 +3812,8 @@ export function createSceneViewer(
         });
         return;
       }
+      // GLB 下載/解析失敗以前只默默記進 diagnostics，狀態列照樣顯示
+      // 「場景已生成」——使用者看到的就是家具無聲消失。一律浮上來點名。
       const reason = item.model_url
           ? "GLB 載入失敗，請檢查資料庫模型權限或網址"
           : "資料庫尚未提供 GLB";
@@ -3777,6 +3821,7 @@ export function createSceneViewer(
         id: item.furniture_id,
         reason,
       });
+      failures.push(`${label}（${reason}）`);
     });
     lastDiagnostics.visibleFurnitureCount = furnitureGroup.children.length;
     lastDiagnostics.fallbackFurnitureCount = furnitureGroup.children.filter(
