@@ -313,6 +313,26 @@ def test_room_wall_finish_is_canonical_and_door_headers_share_wall_faces() -> No
     assert "width + headerOverlapCm" in door_builder
 
 
+def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf() -> None:
+    architecture = (ROOT / "backend" / "server" / "static" / "scene_architecture.js").read_text(
+        encoding="utf-8"
+    )
+    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    door_builder = viewer.split("function buildConfirmedDoorLeaves", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+
+    assert "function confirmedWallGapForDoor" in architecture
+    assert "const wallGap = confirmedWallGapForDoor" in architecture
+    assert "wall_opening_segment" in architecture
+    assert "start: { ...wallGap.start }" in architecture
+    assert "end: { ...wallGap.end }" in architecture
+    assert "door?.wall_opening_segment || door?.closed_leaf_segment" in door_builder
+    assert "const headerSegment = door?.wall_opening_segment" in door_builder
+
+
 def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"

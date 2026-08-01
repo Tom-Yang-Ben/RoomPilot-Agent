@@ -21,7 +21,7 @@ import {
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-3d179065a777";
+} from "./scene_architecture.js?v=sha256-db3a4d24fb35";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -1576,9 +1576,11 @@ export function createSceneViewer(
   ) {
     const renderedDoorIds = new Set();
     doorSegments.forEach((door, index) => {
-      const closedLeaf = door?.closed_leaf_segment;
-      const start = closedLeaf?.start;
-      const end = closedLeaf?.end;
+      // The Step 4 wall gap is authoritative for every wall component.  The
+      // closed leaf may be shown on it, but must never define a second opening.
+      const headerSegment = door?.wall_opening_segment || door?.closed_leaf_segment;
+      const start = headerSegment?.start;
+      const end = headerSegment?.end;
       const dx = Number(end?.x) - Number(start?.x);
       const dz = Number(end?.z) - Number(start?.z);
       const width = Math.hypot(dx, dz);
