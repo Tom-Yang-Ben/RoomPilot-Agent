@@ -252,7 +252,13 @@ def _intersects_any_box(
 
 
 def _positions_along(span_start: float, span_end: float, half_extent: float) -> list[float]:
-    """沿區段由中心向兩側產生候選座標，最後補上兩端貼齊的位置。"""
+    """沿區段產生候選座標：**置中優先，其次貼齊兩端，最後才是中間的偏移量**。
+
+    順序很重要。若把兩端擺到最後（早期版本的做法），小房間會出現「床離牆
+    10 公分」這種死縫——因為置中被淨空擋掉之後，往外掃到某個中間位置就先
+    合法了，永遠掃不到真正貼齊牆角的那個點。人在小房間本來就會把床推到底，
+    所以貼齊要排在中間偏移之前。
+    """
     low = span_start + half_extent
     high = span_end - half_extent
     if low > high + 1e-6:
@@ -260,7 +266,7 @@ def _positions_along(span_start: float, span_end: float, half_extent: float) -> 
     center = (span_start + span_end) / 2
     center = min(max(center, low), high)
 
-    values = [center]
+    values = [center, low, high]
     offset = _SEARCH_STEP_CM
     while center - offset >= low or center + offset <= high:
         if center - offset >= low:
@@ -268,7 +274,6 @@ def _positions_along(span_start: float, span_end: float, half_extent: float) -> 
         if center + offset <= high:
             values.append(center + offset)
         offset += _SEARCH_STEP_CM
-    values.extend((low, high))
 
     unique: list[float] = []
     seen: set[float] = set()

@@ -438,3 +438,44 @@ def test_coffee_table_without_a_sofa_reports_a_structured_failure():
     )
     assert result["placed"] == []
     assert result["failed"][0]["id"] == "coffee-table_1"
+
+
+# --- 小房間：置中不行就貼齊牆角，不要留死縫 -------------------------------
+
+
+def test_small_room_bed_hugs_the_corner_instead_of_leaving_a_dead_gap():
+    """260×240 小房：置中會讓兩側淨空都不足，退讓時應貼齊牆角。
+
+    早期版本會停在「離牆 10 公分」的中間位置——合法，但那 10 公分既走不了
+    人也放不了東西，是純粹的死空間。
+    """
+    room = bare_room(
+        width=260,
+        depth=240,
+        openings=[door(170, 0, 255, 0, swing=(170, 85))],
+    )
+    result = place_room(
+        room,
+        "bedroom",
+        [
+            (item("bed", "雙人床", 150, 200, height=45), "bed_1"),
+            (item("bedside-table", "床頭櫃", 40, 40, height=55), "bedside-table_1"),
+        ],
+    )
+    placed_by_id = {placed.id: placed for placed in result["placed"]}
+    assert "bed_1" in placed_by_id, result["failed"]
+    left, _, right, _ = bounds(placed_by_id["bed_1"])
+    gap = min(left, room.width - right)
+    assert gap <= 1.0, f"床離牆 {gap:.0f} 公分，應該貼齊"
+
+
+def test_centered_placement_still_wins_when_it_is_legal():
+    """大房間不受影響：置中合法時仍然置中，不會被貼齊搶走。"""
+    room = bare_room(width=338, depth=310)
+    result = place_room(
+        room,
+        "bedroom",
+        [(item("bed", "雙人床", 150, 200, height=45), "bed_1")],
+    )
+    bed = result["placed"][0]
+    assert bed.pos_x == pytest.approx(room.width / 2, abs=1.0)
