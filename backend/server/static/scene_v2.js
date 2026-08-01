@@ -7106,6 +7106,8 @@ function renderQuestionnaireFinishes() {
       <div><span class="eyebrow">已選全屋主風格</span><strong>${escapeHtml(family.label)}</strong><small>逐房僅調整相容的牆面、地板、天花與照明；色卡將在第 7 步統一選擇。</small></div>
     </article>
   `;
+  renderQuestionnaireMaterialOptions("wall", pack);
+  renderQuestionnaireMaterialOptions("floor", pack);
   renderQuestionnaireMaterialPairs(pack);
   element.questionnaireWallColor.value =
     draft.wallColor || pack.wall.color;

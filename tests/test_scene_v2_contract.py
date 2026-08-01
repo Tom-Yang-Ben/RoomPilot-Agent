@@ -274,6 +274,18 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert ".rp-questionnaire-room-usage-options" in css
 
 
+def test_questionnaire_renders_room_material_choices_and_pair_recommendations() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="questionnaire-material-pairs"' in html
+    assert 'id="questionnaire-wall-options"' in html
+    assert 'id="questionnaire-floor-options"' in html
+    assert 'renderQuestionnaireMaterialOptions("wall", pack);' in source
+    assert 'renderQuestionnaireMaterialOptions("floor", pack);' in source
+    assert "renderQuestionnaireMaterialPairs(pack);" in source
+
+
 def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     auto_layout = source.split("async function autoLayoutFurniture()", 1)[1].split(
