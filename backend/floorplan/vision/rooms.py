@@ -248,8 +248,16 @@ def infer_rooms_from_walls(
         if len(polygon_m) < 3:
             continue
 
-        matching_label = None
-        for candidate in label_candidates:
+        # OCR 房名的錨點是「文字方塊中心」，不是房間幾何中心，所以印在交界附近的
+        # 房名很容易落進隔壁房。舊寫法有兩個問題：(1) 取 label_candidates 的第一個
+        # 命中就 break，順序決定勝負，不看信心值也不看離邊界多遠；(2) 命中後不把它
+        # 從候選清單移除，同一個房名會被多個空間重複認領，連 id 都重複。
+        # 實際後果就是 QA #6：圖上「主臥室」被配到 7.29 m² 的小房，8.04 m² 的真主臥
+        # 只拿到通用標籤。改成在所有落在此多邊形內的候選中取信心最高者，同分時取
+        # 離邊界最遠（最深入房內）者，並在認領後移出候選。
+        matching_index = None
+        best_score: tuple[float, float] | None = None
+        for index, candidate in enumerate(label_candidates):
             centroid = candidate.get("centroid_m")
             if not isinstance(centroid, Mapping):
                 continue
@@ -257,9 +265,16 @@ def infer_rooms_from_walls(
                 float(centroid.get("x") or 0) * pixels_per_m,
                 (depth_m - float(centroid.get("y") or 0)) * pixels_per_m,
             )
-            if cv2.pointPolygonTest(contour, test_point, False) >= 0:
-                matching_label = candidate
-                break
+            depth_inside = float(cv2.pointPolygonTest(contour, test_point, True))
+            if depth_inside < 0:
+                continue
+            score = (float(candidate.get("confidence") or 0.0), depth_inside)
+            if best_score is None or score > best_score:
+                best_score = score
+                matching_index = index
+        matching_label = (
+            label_candidates.pop(matching_index) if matching_index is not None else None
+        )
         room_index = len(inferred) + 1
         inferred.append(
             {
