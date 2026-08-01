@@ -1384,13 +1384,18 @@ def _harvest_balcony_pockets(det, labels, rooms, outside):
             cv2.rectangle(barrier, (int(g0), int(b0)), (int(g1), int(b1)), 255, -1)
         else:
             cv2.rectangle(barrier, (int(b0), int(g0)), (int(b1), int(g1)), 255, -1)
+    walls_only = barrier.copy()                  # 牆＋窗＋封口（不含 fence）
     barrier = cv2.bitwise_or(
         barrier, cv2.dilate(((fence > 0) * 255).astype(np.uint8),
                             np.ones((5, 5), np.uint8)))
     ff = np.pad(barrier, 1).copy()
     cv2.floodFill(ff, None, (0, 0), 128)
     reach = ff[1:-1, 1:-1] == 128
-    pocket = (outside & ~reach & (barrier == 0)).astype(np.uint8)
+    # 「未分配」而非「室外」：主分割大核閉運算會把露台整片吞成牆
+    # （inside 但 labels=0，floor_17 頂部露台實案），outside 條件收不到。
+    # 排除遮罩只用牆/封口——露台內部的植栽/磁磚紋理也在 fence 層，
+    # 用含 fence 的 barrier 會把口袋自己蓋掉（fence 只負責擋 reach）
+    pocket = ((labels == 0) & ~reach & (walls_only == 0)).astype(np.uint8)
     # 口袋內的圍欄線/曬衣桿會把同一座陽台切成多個連通塊（floor_10 實測
     # IoU 掉到 0.5 以下配不上）——閉運算把被細線分割的碎塊接回一體；
     # 不同陽台相距遠超過 T，不會被 1 個牆厚的核黏起來
@@ -1402,7 +1407,7 @@ def _harvest_balcony_pockets(det, labels, rooms, outside):
     X0 = min(r[0] for r in rects); Y0 = min(r[1] for r in rects)
     X1 = max(r[2] for r in rects); Y1 = max(r[3] for r in rects)
     amin = max((2 * T) ** 2, int(2000.0 / max(cm * cm, 1e-6)))
-    amax = 0.30 * (X1 - X0) * (Y1 - Y0)
+    amax = 0.35 * (X1 - X0) * (Y1 - Y0)   # 圍欄環併入口袋後上修（0.30 會誤殺）
     n, lab, st, cent = cv2.connectedComponentsWithStats(pocket, 8)
     nid = max((r["id"] for r in rooms), default=0)
     for i in range(1, n):
