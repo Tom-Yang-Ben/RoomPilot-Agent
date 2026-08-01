@@ -13,13 +13,22 @@ from urllib import error, request
 from shapely.geometry import LineString, Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
+from ..agent.knowledge import family_of, normalize_room_type
 from ..agent.place import resolve_placements
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.clearance_defaults import catalog_with_default_clearance
 from ..engine.dxf_room import build_room_from_dxf
 from ..engine.geometry import furniture_polygon
-from ..engine.models import FurnitureCatalogItem, PlacedFurniture, Room, Wall
+from ..engine.layout_strategy import (
+    opposite_side,
+    place_against_wall,
+    place_beside,
+    place_in_front_of,
+    rule_for as layout_rule_for,
+    side_for_rotation,
+)
+from ..engine.models import FurnitureCatalogItem, Opening, PlacedFurniture, Room, Wall
 from ..engine.placement import (
     place_adjacent_to_furniture,
     place_furniture,
@@ -1112,6 +1121,86 @@ def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
     return Room(width=width, depth=depth, walls=walls)
 
 
+def _distance_to_nearest_wall(point: tuple[float, float], width: float, depth: float) -> float:
+    x, y = point
+    return min(x, width - x, y, depth - y)
+
+
+def room_openings_from_floorplan(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+) -> list[Opening]:
+    """把 floorplan 的門窗線段轉成引擎 `Room.openings`（房間局部座標，公分）。
+
+    floorplan 的座標是**中心原點**且可能以公尺儲存，所以要 ``* scale + 半寬``
+    才會變成引擎的左下原點座標——與 `room_from_payload` 對牆段做的換算相同。
+
+    開合門的兩種來源慣例不一致（辨識管線的 ``start → end`` 沿牆，第 4 步編輯器
+    的 ``start → end`` 是打開後的門片），所以這裡不預設哪一段是牆洞，改成挑
+    「兩端離牆最近」的那一段當牆洞，剩下那個端點當門扇掃過的另一端。
+    """
+    floorplan = floorplan or {}
+    scale = _floorplan_coordinate_scale_cm(floorplan)
+    width, depth = room.width, room.depth
+
+    def point(raw: dict[str, Any] | None) -> tuple[float, float] | None:
+        if not isinstance(raw, dict):
+            return None
+        try:
+            return (
+                float(raw.get("x") or 0) * scale + width / 2,
+                float(raw.get("z") or 0) * scale + depth / 2,
+            )
+        except (TypeError, ValueError):
+            return None
+
+    openings: list[Opening] = []
+    sources = (
+        ("window", floorplan.get("window_segments") or []),
+        ("door", floorplan.get("door_segments") or floorplan.get("doors") or []),
+    )
+    for kind, segments in sources:
+        for segment in segments:
+            if not isinstance(segment, dict):
+                continue
+            start = point(segment.get("start"))
+            end = point(segment.get("end"))
+            if start is None or end is None:
+                continue
+            swing = point(segment.get("swing_end")) if kind == "door" else None
+
+            if swing is not None:
+                options = (((start, end), swing), ((start, swing), end))
+                (wall_a, wall_b), tip = min(
+                    options,
+                    key=lambda option: _distance_to_nearest_wall(option[0][0], width, depth)
+                    + _distance_to_nearest_wall(option[0][1], width, depth),
+                )
+            else:
+                (wall_a, wall_b), tip = (start, end), None
+
+            window_type = segment.get("window_type") if kind == "window" else None
+            sill = segment.get("sill_height_cm")
+            openings.append(
+                Opening(
+                    kind=kind,
+                    x1=wall_a[0],
+                    y1=wall_a[1],
+                    x2=wall_b[0],
+                    y2=wall_b[1],
+                    window_type=(
+                        window_type
+                        if window_type in {"standard", "floor_to_ceiling"}
+                        else None
+                    ),
+                    sill_height_cm=float(sill) if isinstance(sill, (int, float)) else None,
+                    swing_x=None if tip is None else tip[0],
+                    swing_y=None if tip is None else tip[1],
+                )
+            )
+    return openings
+
+
 def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any], Room]:
     """Convert the corner-origin centimeter editor state into the 3D contract."""
     width_cm = max(float(editor.get("width_cm") or 420), 240)
@@ -1243,6 +1332,111 @@ def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: fl
         pos_y=float(pos.get("z") or 0) + half_d_cm,
         rotation=(-float(obj.get("rotation_y_deg") or 0)) % 360,
     )
+
+
+# 擺放策略層開關。設成 0／false／off 就完全退回舊的候選表行為。
+_LAYOUT_STRATEGY_ENV = "ROOMPILOT_LAYOUT_STRATEGY"
+
+# 策略層貼牆時保留的視覺邊距，與 `_shrunk_boundary` 內縮的 8 公分一致。
+# 不留這段，家具會比現行行為更貼牆，3D 有機會與牆面互相穿透。
+_STRATEGY_WALL_MARGIN_CM = 8.0
+
+# 策略層刻意不接管的類型：地毯與壁架走覆蓋／略過碰撞的分支，窗簾要對齊窗戶，
+# 三者都有自己的既有邏輯，交給策略層只會變糟。
+_STRATEGY_SKIP_TYPES = frozenset({"curtain"})
+
+
+def _layout_strategy_enabled() -> bool:
+    value = os.environ.get(_LAYOUT_STRATEGY_ENV, "1").strip().lower()
+    return value not in {"0", "false", "off", "no"}
+
+
+def _strategy_placement(
+    *,
+    room: Room,
+    room_type: str | None,
+    item_type: str | None,
+    catalog: FurnitureCatalogItem,
+    item_id: str,
+    placed: list[PlacedFurniture],
+    placed_by_type: dict[str, list[PlacedFurniture]],
+    boundary: Polygon | None,
+    forbidden_zones: list[Polygon],
+    margin_cm: float,
+) -> PlacedFurniture | None:
+    """先請引擎的擺放策略層找位置；任何一關不過就回 None，交還舊候選表。
+
+    策略層算的是「好不好」（貼牆、朝向、貼床頭、與沙發對望），合法性仍由
+    既有的碰撞／淨空驗證把關。這裡另外補兩道舊路徑本來就有的檢查——房間
+    多邊形邊界與窗前禁放帶——因為策略層只認得矩形房間，不知道這兩件事。
+    """
+    if not room_type or not item_type:
+        return None
+    if item_type in _STRATEGY_SKIP_TYPES:
+        return None
+    if item_type in _OVERLAY_TYPES or item_type in _IGNORE_COLLISION_TYPES:
+        return None
+
+    # 房型與家具都先換成 Agent 的正規鍵：`primary_bedroom` → `bedroom`、
+    # `fabric-sofa` → `sofa`。不換的話具體型別查不到規則，電視櫃也會找不到
+    # 要對望的沙發。這層摺疊放在整合端，不讓引擎反向相依 Agent 模組。
+    room_key = normalize_room_type(room_type)
+    item_family = family_of(item_type)
+    rule = layout_rule_for(room_key, item_family)
+
+    def allowed(candidate: PlacedFurniture) -> bool:
+        """舊路徑本來就有的兩道檢查：房間多邊形邊界與窗前禁放帶。
+
+        必須交給策略層在搜尋迴圈裡逐一判斷，不能等它挑完再否決——否則一被
+        擋下就整個放棄，不會去試同一面牆的其他位置，也不會換一面牆。
+        """
+        if not _inside_boundary(candidate, boundary):
+            return False
+        if item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES:
+            return True
+        return not _placement_intersects_zones(candidate, forbidden_zones)
+
+    def find_target() -> PlacedFurniture | None:
+        """依族系找主家具——`placed_by_type` 的鍵是型錄原始型別。"""
+        for wanted in rule.attach_to:
+            for placed_type, found in placed_by_type.items():
+                if found and family_of(placed_type) == wanted:
+                    return found[-1]
+        return None
+
+    if rule.attach in {"beside", "front"}:
+        target = find_target()
+        if target is None:
+            return None
+        if rule.attach == "beside":
+            result = place_beside(
+                room, catalog, item_id, target, placed,
+                end=rule.attach_end, gap=rule.gap_cm, extra_check=allowed,
+            )
+        else:
+            result = place_in_front_of(
+                room, catalog, item_id, target, placed, gap=rule.gap_cm,
+                extra_check=allowed,
+            )
+    else:
+        sides = None
+        if rule.attach == "opposite":
+            target = find_target()
+            target_side = side_for_rotation(target.rotation) if target is not None else None
+            if target_side is not None:
+                sides = [opposite_side(target_side)]
+        result = place_against_wall(
+            room, catalog, item_id, placed, sides=sides, margin_cm=margin_cm,
+            extra_check=allowed,
+        )
+        if not result["success"] and sides is not None:
+            # 對面牆放不下（例如那面牆整片是窗或被窗前禁放帶佔住）時**不**改擺
+            # 別面牆。電視櫃隨便貼一面牆會變成不面對沙發——比舊行為更糟。
+            # 交還舊候選表，讓現況至少不退步。要真正解掉，得讓沙發與電視櫃
+            # 「成對挑一組相對牆」，那需要先拍板沙發背窗政策。
+            return None
+
+    return result["placed"] if result["success"] else None
 
 
 def _shrunk_boundary(room: Room) -> Polygon | None:
@@ -1403,6 +1597,7 @@ def generate_layout(
     floorplan: dict[str, Any] | None = None,
     preserve_existing_count: int = 0,
     placement_variant: str = "A",
+    room_type: str | None = None,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
@@ -1415,6 +1610,14 @@ def generate_layout(
     """
     if room is None:
         room = _four_wall_room(max(room_width_cm, 240), max(room_depth_cm, 240))
+
+    # 引擎的 Room 預設沒有門窗；策略層要靠它們才知道哪面牆能用、哪裡不能擋。
+    # 失敗時保持空清單，策略層會退化成「只看牆長」，不會壞掉。
+    if not room.openings and floorplan:
+        try:
+            room = replace(room, openings=room_openings_from_floorplan(floorplan, room))
+        except Exception:  # noqa: BLE001 - 門窗缺失不該擋住整個場景產生
+            pass
 
     # 擺放搜尋邊界(內縮 8cm 邊距):DXF 模式傳入最大自由空間;
     # 矩形房由牆環重建(等價於 bbox)。注意 DXF fallback 模式的 Room.walls
@@ -1502,8 +1705,33 @@ def generate_layout(
                     placed.append(candidate)
                     placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
 
+        # 先問擺放策略層（貼牆、朝向、貼床頭、與沙發對望）。方案 B 刻意不走
+        # 這條：策略層是確定性的，兩個方案會變得一模一樣，使用者切換沒反應。
+        strategy_item = (
+            _strategy_placement(
+                room=room,
+                room_type=room_type,
+                item_type=item_type,
+                catalog=catalog,
+                item_id=item_id,
+                placed=placed,
+                placed_by_type=placed_by_type,
+                boundary=boundary,
+                forbidden_zones=forbidden_zones,
+                margin_cm=_STRATEGY_WALL_MARGIN_CM,
+            )
+            if not kept_position and placement_variant != "B" and _layout_strategy_enabled()
+            else None
+        )
+
         if kept_position:
             pass
+        elif strategy_item is not None:
+            placed.append(strategy_item)
+            placed_by_type.setdefault(item_type or "furniture", []).append(strategy_item)
+            x_cm = strategy_item.pos_x - half_w_cm
+            z_cm = strategy_item.pos_y - half_d_cm
+            rotation = (-strategy_item.rotation) % 360
         elif item_type in _OVERLAY_TYPES:
             relation = item.get("placement_relation") or {}
             target_types = relation.get("target_types") or ["sofa", "sofa-bed", "bed", "bed-frame"]
@@ -1957,6 +2185,7 @@ def build_scene_payload(
                 room=engine_room,
                 regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
                 place_boundary=_largest_region_boundary(parsed_floorplan, engine_room) if engine_room else None,
+                room_type=plan.get("space_type"),
             )
 
         objects, selected_items, placement_resolution_report = resolve_placements(

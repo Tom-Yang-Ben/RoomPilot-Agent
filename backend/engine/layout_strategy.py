@@ -13,6 +13,7 @@ rotation 為逆時針角度，0 度時家具正面朝 +Y。
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from backend.engine.clearance import (
@@ -53,6 +54,19 @@ def wall_rotation(side: str) -> int:
         return _WALL_ROTATION[side]
     except KeyError:
         raise ValueError(f"不支援的牆面: {side}") from None
+
+
+def side_for_rotation(rotation: float) -> str | None:
+    """由家具的 rotation 反推它背貼哪一面牆；不是四個正角就回 None。"""
+    for side, value in _WALL_ROTATION.items():
+        if int(rotation) % 360 == value:
+            return side
+    return None
+
+
+def opposite_side(side: str) -> str:
+    """回傳正對面那面牆。"""
+    return _OPPOSITE_SIDE[side]
 
 
 def wall_length(room: Room, side: str) -> float:
@@ -291,10 +305,12 @@ def _wall_placement(
     item_id: str,
     side: str,
     along: float,
+    *,
+    margin_cm: float = 0.0,
 ) -> PlacedFurniture:
     """把家具背貼 ``side`` 這面牆，沿牆位置為 ``along``。"""
     rotation = wall_rotation(side)
-    offset = catalog.depth / 2
+    offset = catalog.depth / 2 + margin_cm
     if side == "south":
         pos_x, pos_y = along, offset
     elif side == "north":
@@ -312,14 +328,23 @@ def _wall_placement(
     )
 
 
+# 呼叫端可額外否決一個候選位置（例如房間多邊形邊界、窗前禁放帶）。
+# 回傳 True 表示允許。放在搜尋迴圈裡而不是事後檢查，否則被否決時
+# 就直接放棄了，不會去試同一面牆的其他位置或別面牆。
+ExtraCheck = Callable[[PlacedFurniture], bool]
+
+
 def _is_legal(
     candidate: PlacedFurniture,
     room: Room,
     existing: list[PlacedFurniture],
     swing_boxes: list[tuple[float, float, float, float]],
     companion_pairs: CompanionPairs | None,
+    extra_check: ExtraCheck | None = None,
 ) -> bool:
     if _intersects_any_box(candidate, swing_boxes):
+        return False
+    if extra_check is not None and not extra_check(candidate):
         return False
     validation = validate_placement_with_clearance(
         candidate,
@@ -337,9 +362,16 @@ def place_against_wall(
     existing: list[PlacedFurniture],
     *,
     sides: list[str] | tuple[str, ...] | None = None,
+    margin_cm: float = 0.0,
     companion_pairs: CompanionPairs | None = None,
+    extra_check: ExtraCheck | None = None,
 ) -> dict:
-    """把家具背貼牆放置，正面朝房間內；找不到就誠實回報失敗。"""
+    """把家具背貼牆放置，正面朝房間內；找不到就誠實回報失敗。
+
+    ``margin_cm`` 是離牆的視覺留白。引擎預設 0（真正貼齊），但呼叫端若本來
+    就有內縮邊距（例如第 6 步的 8 公分），要傳進來，否則家具會比現行行為更
+    貼牆，3D 有機會與牆面互相穿透。
+    """
     swing_boxes = door_swing_boxes(room)
     candidates = rank_wall_candidates(
         room,
@@ -349,10 +381,20 @@ def place_against_wall(
     )
     attempted = 0
     for candidate in candidates:
-        for along in _positions_along(candidate.start, candidate.end, catalog.width / 2):
+        # 邊距只在「房間兩端」生效。牆中間被門窗切出來的區段，家具可以緊鄰
+        # 窗框擺放——那不是牆，不會穿模，硬留 8 公分只會白白放不下。
+        wall_extent = wall_length(room, candidate.side)
+        positions = _positions_along(
+            max(candidate.start, margin_cm),
+            min(candidate.end, wall_extent - margin_cm),
+            catalog.width / 2,
+        )
+        for along in positions:
             attempted += 1
-            placed = _wall_placement(room, catalog, item_id, candidate.side, along)
-            if _is_legal(placed, room, existing, swing_boxes, companion_pairs):
+            placed = _wall_placement(
+                room, catalog, item_id, candidate.side, along, margin_cm=margin_cm
+            )
+            if _is_legal(placed, room, existing, swing_boxes, companion_pairs, extra_check):
                 return {
                     "success": True,
                     "placed": placed,
@@ -389,6 +431,7 @@ def place_in_front_of(
     *,
     gap: float = 45.0,
     companion_pairs: CompanionPairs | None = None,
+    extra_check: ExtraCheck | None = None,
 ) -> dict:
     """把家具放在主家具的正前方並對齊中線——茶几對沙發就是這個關係。
 
@@ -427,7 +470,7 @@ def place_in_front_of(
             pos_y=pos_y,
             rotation=rotation,
         )
-        if _is_legal(placed, room, existing, swing_boxes, pairs):
+        if _is_legal(placed, room, existing, swing_boxes, pairs, extra_check):
             return {
                 "success": True,
                 "placed": placed,
@@ -469,6 +512,7 @@ def place_beside(
     end: str = "head",
     gap: float = 5.0,
     companion_pairs: CompanionPairs | None = None,
+    extra_check: ExtraCheck | None = None,
 ) -> dict:
     """把家具貼在主家具的側邊，並對齊指定的那一端。
 
@@ -526,7 +570,7 @@ def place_beside(
             pos_y=pos_y,
             rotation=rotation,
         )
-        if _is_legal(placed, room, existing, swing_boxes, pairs):
+        if _is_legal(placed, room, existing, swing_boxes, pairs, extra_check):
             return {
                 "success": True,
                 "placed": placed,
@@ -575,40 +619,47 @@ class PlacementRule:
 
 _WALL_ITEM = PlacementRule()
 
+# 鍵一律使用 **擺位族系**（`backend.agent.knowledge.family_of` 摺疊後的值），
+# 不是型錄的原始 normalized_type。否則 `fabric-sofa`／`leather-sofa` 這類
+# 具體型別會查不到規則，連帶讓電視櫃找不到要對望的沙發。
+#
+# `order` 對齊 `agent/knowledge.py` 的宣告：**錨點（ANCHOR_FAMILIES）先拿牆位
+# → 泛用件其次 → COMPANION_OF 副件最後**。錨點 0–9、泛用 10–19、副件 20+。
 ROOM_RULES: dict[str, dict[str, PlacementRule]] = {
     "bedroom": {
         "bed": PlacementRule(anchor=True, order=0),
+        "wardrobe": PlacementRule(anchor=True, order=5),
+        "chests-of-drawer": PlacementRule(order=10),
+        "desk": PlacementRule(order=12),
+        "bookcase": PlacementRule(order=15),
         "bedside-table": PlacementRule(
-            attach="beside", attach_to=("bed",), attach_end="head", gap_cm=5.0, order=10
+            attach="beside", attach_to=("bed",), attach_end="head", gap_cm=5.0, order=20
         ),
-        "wardrobe": PlacementRule(order=20),
-        "pax-wardrobe": PlacementRule(order=20),
-        "chests-of-drawer": PlacementRule(order=30),
-        "bookcase": PlacementRule(order=40),
-        "desk": PlacementRule(order=35),
     },
     "living_room": {
         "sofa": PlacementRule(anchor=True, order=0),
-        "tv-bench": PlacementRule(attach="opposite", attach_to=("sofa",), order=10),
-        "tv-media-furniture": PlacementRule(attach="opposite", attach_to=("sofa",), order=10),
+        "bookcase": PlacementRule(order=10),
+        "armchair": PlacementRule(order=15),
+        "tv-bench": PlacementRule(attach="opposite", attach_to=("sofa",), order=20),
         "coffee-table": PlacementRule(
-            attach="front", attach_to=("sofa",), gap_cm=45.0, order=20
+            attach="front", attach_to=("sofa",), gap_cm=45.0, order=25
         ),
-        "armchair": PlacementRule(order=30),
-        "bookcase": PlacementRule(order=40),
     },
     "storage": {
         "shelving-unit": PlacementRule(anchor=True, order=0),
-        "storage-furniture": PlacementRule(order=10),
-        "storage-solution-system": PlacementRule(order=15),
-        "cabinet-cupboard": PlacementRule(order=20),
+        "cabinet-cupboard": PlacementRule(order=10),
     },
 }
 
 
-def rule_for(room_type: str, furniture_type: str) -> PlacementRule:
-    """查規則；沒登記的家具一律當「背貼牆」處理。"""
-    return ROOM_RULES.get(room_type, {}).get(furniture_type, _WALL_ITEM)
+def rule_for(room_type: str, furniture_family: str) -> PlacementRule:
+    """查規則；沒登記的家具一律當「背貼牆」處理。
+
+    兩個參數都必須是**已正規化**的鍵：房型經 `normalize_room_type()`、家具經
+    `family_of()`（皆在 `backend.agent.knowledge`）。引擎本身不做這層摺疊，
+    是為了不讓幾何模組反向相依 Agent 模組；由整合端負責換算。
+    """
+    return ROOM_RULES.get(room_type, {}).get(furniture_family, _WALL_ITEM)
 
 
 @dataclass
@@ -624,7 +675,9 @@ def place_room(
     room_type: str,
     items: list[tuple[FurnitureCatalogItem, str]],
     *,
+    margin_cm: float = 0.0,
     companion_pairs: CompanionPairs | None = None,
+    extra_check: ExtraCheck | None = None,
 ) -> dict:
     """依房型規則擺一整間房：錨點先、跟隨件後，全部貼牆或貼人。
 
@@ -684,6 +737,7 @@ def place_room(
                     placed,
                     gap=rule.gap_cm,
                     companion_pairs=pairs,
+                    extra_check=extra_check,
                 )
             else:
                 result = place_beside(
@@ -695,6 +749,7 @@ def place_room(
                     end=rule.attach_end,
                     gap=rule.gap_cm,
                     companion_pairs=pairs,
+                    extra_check=extra_check,
                 )
             if result["success"]:
                 remember(result["placed"], None)
@@ -717,7 +772,9 @@ def place_room(
             entry.item_id,
             placed,
             sides=sides,
+            margin_cm=margin_cm,
             companion_pairs=pairs,
+            extra_check=extra_check,
         )
         if not result["success"] and sides is not None:
             # 對面牆放不下時退回一般貼牆，但仍然不允許浮在房間中央。
@@ -726,7 +783,9 @@ def place_room(
                 entry.catalog,
                 entry.item_id,
                 placed,
+                margin_cm=margin_cm,
                 companion_pairs=pairs,
+                extra_check=extra_check,
             )
         if result["success"]:
             remember(result["placed"], result.get("side"))
@@ -749,6 +808,7 @@ __all__ = [
     "PlacementRule",
     "ROOM_RULES",
     "WALL_SIDES",
+    "ExtraCheck",
     "WallCandidate",
     "door_swing_boxes",
     "free_spans",
@@ -759,6 +819,8 @@ __all__ = [
     "place_room",
     "rank_wall_candidates",
     "rule_for",
+    "opposite_side",
+    "side_for_rotation",
     "wall_length",
     "wall_rotation",
 ]

@@ -24,6 +24,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from backend.engine.clearance_defaults import catalog_with_default_clearance
 from backend.engine.layout_room import rooms_from_layout_json
+from backend.agent.knowledge import family_of, normalize_room_type
 from backend.engine.layout_strategy import ROOM_RULES, place_room, rule_for
 from backend.engine.models import FurnitureCatalogItem, PlacedFurniture, Room
 
@@ -111,7 +112,9 @@ def describe(placed: PlacedFurniture, room: Room, room_type: str) -> tuple[str, 
         touching.append("南")
     if top >= room.depth - 1.0:
         touching.append("北")
-    may_float = rule_for(room_type, placed.catalog.type).attach in {"front", "free"}
+    may_float = rule_for(
+        normalize_room_type(room_type), family_of(placed.catalog.type)
+    ).attach in {"front", "free"}
     if touching:
         where = f"貼{''.join(touching)}牆"
         stray = False
@@ -234,10 +237,10 @@ def main() -> int:
             print(f"  （不擺放：{reason}）\n")
             continue
 
-        if build.room_type not in ROOM_RULES:
+        if normalize_room_type(build.room_type) not in ROOM_RULES:
             print(f"  ⚠ 房型 {build.room_type} 沒有擺放規則，全部當一般貼牆處理")
 
-        result = place_room(room, build.room_type, items)
+        result = place_room(room, normalize_room_type(build.room_type), items)
         for placed in result["placed"]:
             line, stray = describe(placed, room, build.room_type)
             if stray:
