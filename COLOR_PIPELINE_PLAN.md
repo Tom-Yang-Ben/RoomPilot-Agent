@@ -46,10 +46,18 @@ python training/scripts/eval_rooms_cc.py \
 - [x] own_dataset_color 19 張跑通（18 ok＋1 seg_fail，無 error/svg_mismatch）
 - [x] own_eval_color 9 張跑通（9 ok）
 - [x] 基準數字記入本文件「Baseline 結果」節
-- [ ] 失因初步歸類（seg 層 vs 命名層 vs 偵測層），逐張看疊圖加權重排序
+- [x] 失因初步歸類（seg 層 vs 命名層 vs 偵測層），加權重排序（見
+      「失因加權歸類」節）
 
 ### Phase 1 — Color 調優（依 baseline 失因決定攻擊順序，逐輪補記）
-- [ ] 第一輪：攻擊最大失因（待 baseline 出爐後填）
+- [ ] 第一輪：**分割黏連/漏切**（floor_07 seg_fail、08 整戶一塊、09 右半
+      一塊＋左半漏切、20 邊界跨房）——先逐張查 detect_color 的牆萃取輸出，
+      判定是牆漆色未進牆層還是灌水屏障失效；每案先寫重現測試
+- [ ] 第二輪：**Balcony 全滅**（切不出 16＋叫錯 12，dev 6 個誤判 Stair）
+      ——查陽台是否被室外過濾吃掉、磚紋為何觸發 Stair 特徵
+- [ ] 第三輪：**Bath/Kitchen 命名**（Bath 配對 18 只對 4；Kitchen R=0.33）
+      ——查 DINOv2 線性頭是否用 color 樣本訓過、symbol 證據在 color 圖的
+      命中率
 - [ ] 每輪收尾：own_eval_color 量一次，記遷移數字
 - [ ] 達標判定：dev 命中 ≥ 80% 且核心五類 ≥ 85%，holdout 無明顯落差（< 5pp）
 - [ ] Readme changelog 補版本節
@@ -104,3 +112,27 @@ python training/scripts/eval_rooms_cc.py \
 3. **比例尺**：color 圖開口樣本常為 0（floor_30 量出 0.46 cm/px、開口樣本
    0、退回 wall_mid），門寬鐵律在 color 線稿上偵測不到門弧，比例尺品質
    待查。
+
+## 失因加權歸類（開發集，GT 142 間＝命中 84＋漏切 58；命中中叫錯 46）
+
+漏切 58 間的類別分佈（GT 總數 − 混淆矩陣列和）：
+
+| 類別 | 漏切/GT | 備註 |
+| :--- | :--- | :--- |
+| Balcony | 16/28 | 切出來的 12 個又全叫錯 → 端到端 0/28 |
+| Bath | 10/28 | 配對到的 18 個只有 4 個叫對 |
+| Bedroom | 10/39 | |
+| LivingRoom | 8/18 | |
+| Kitchen | 7/16 | 配對 9 個只對 3 |
+| Hallway | 5/9、Entry 1/2、Storage 1/2 | 小類 |
+
+**加權排序（影響間數，dev）**：
+
+1. **分割黏連/漏切 ~35 間**——floor_07（seg_fail，10 間全失）、floor_08
+   （整戶黏成一塊，6 間失）、floor_09（右半一塊＋左半漏切，6 間失）、
+   floor_20（邊界跨房，3 間失）＋散在各張的單間漏切。疊圖：
+   `temp/eval_rooms/chk/color_floor_{08,09,20}_pred.png`。
+2. **Balcony 線 28 間**——漏切 16＋命名全錯 12（其中 6 個 → Stair）。
+3. **Bath 命名 14 間**——誤向 Bedroom(6)/Storage(4)/Hallway(4)。
+4. **Kitchen 12 間**——漏切 7＋叫錯 6（誤向 LivingRoom/Bath/Bedroom）。
+5. **Hallway 過報**——P=0.23，各類都往 Hallway 漏（過切殘塊常被叫走道）。
