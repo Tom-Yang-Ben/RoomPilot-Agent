@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-81cfac0a8730" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-5693fe5d95c5" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -174,36 +174,8 @@
               <div><span class="eyebrow">4 空間與結構</span><h2>確認房間，再確認牆、門、窗、樑、柱</h2></div>
               <div class="rp-plan-heading-tools">
                 <button id="show-all-rooms" type="button" class="secondary-action">查看全部空間框選</button>
-                <div id="room-editor" class="rp-editor-box rp-room-toolbar-editor" hidden>
-                  <div class="rp-room-editor-summary">
-                    <label for="room-name">空間名稱</label>
-                    <div class="rp-room-name-control">
-                      <select id="room-name">
-                        <option value="entryway">玄關</option>
-                        <option value="living_room">客廳</option>
-                        <option value="dining_room">餐廳</option>
-                        <option value="kitchen">廚房</option>
-                        <option value="primary_bedroom">主臥</option>
-                        <option value="secondary_bedroom">次臥</option>
-                        <option value="bathroom">浴室</option>
-                        <option value="study">書房／工作區</option>
-                        <option value="balcony">陽台</option>
-                        <option value="storage">儲藏室</option>
-                        <option value="circulation">走道／動線</option>
-                        <option value="multi_purpose">多功能室</option>
-                      </select>
-                      <button id="save-room" type="button" class="secondary-action">套用名稱</button>
-                    </div>
-                    <p id="room-area"></p>
-                  </div>
-                  <div class="rp-room-node-tools">
-                    <button type="button" data-room-node-mode="merge" class="secondary-action">合併節點</button>
-                  <button type="button" data-room-node-mode="split" class="secondary-action">切割邊線新增節點</button>
-                  <button id="apply-node-merge" type="button" class="primary-action" hidden>合併所選兩個節點</button>
-                  <button id="cancel-node-edit" type="button" class="secondary-action" hidden>取消節點編輯</button>
-                </div>
-                  <p id="room-node-guidance" class="rp-control-hint">拖曳左圖紫色節點後，尺寸與面積會自動重新計算。也可合併節點或在邊線新增節點。</p>
-                </div>
+                <!-- 房間編輯器只留 #current-room-review 裡那一份。這裡原本有第二份，
+                     七組 id 重複讓 querySelector 一半接到工具列、一半接到引導卡。 -->
               </div>
               <div id="plan-structure-legend" class="rp-structure-legend rp-plan-structure-legend" aria-label="結構標示說明" hidden>
                 <span><i class="rp-legend-line is-selected"></i>橘黃＝目前選取</span>
@@ -267,7 +239,9 @@
                   <div class="rp-room-editor-summary">
                     <label for="room-name">空間名稱</label>
                     <div class="rp-room-name-control">
-                      <input id="room-name" type="text" />
+                      <!-- 選項由 scene_v2.js 的 ROOM_NAME_OPTIONS 生成，見 renderRoomNameSelect()。
+                           寫死在這裡會與辨識層的類別集脫鉤。 -->
+                      <select id="room-name"></select>
                       <button id="save-room" type="button" class="secondary-action">套用名稱</button>
                     </div>
                     <label for="room-type">空間用途</label>
@@ -285,7 +259,7 @@
                       <button id="apply-node-merge" type="button" class="primary-action" hidden>合併所選兩個節點</button>
                       <button id="cancel-node-edit" type="button" class="secondary-action" hidden>取消節點編輯</button>
                     </div>
-                    <p id="room-node-guidance" class="rp-control-hint">拖曳左圖節點後，尺寸與面積會自動重新計算。</p>
+                    <p id="room-node-guidance" class="rp-control-hint">拖曳左圖紫色節點後，尺寸與面積會自動重新計算。也可合併節點或在邊線新增節點。</p>
                   </details>
                 </div>
                 <div class="rp-current-room-actions">
@@ -1090,6 +1064,6 @@
       }
     </script>
   <script type="module" src="/static/engineering_link.js?v=sha256-3d5c1057884c"></script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-070ebe470b2d"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-0d200d56413e"></script>
   </body>
 </html>

@@ -20,6 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
+from ..agent.place import resolve_placements
 from ..agent.select import (
     SelectionParseError,
     SelectionUnavailableError,
@@ -64,6 +65,7 @@ from .catalog_admin import router as catalog_admin_router
 from .rag_api import router as rag_router
 from .engineering.api import build_engineering_router
 from .project_store import (
+    ProjectStoreBusy,
     ProjectStoreUnavailable,
     ProjectVersionConflict,
     WorkflowTooLargeError,
@@ -94,6 +96,7 @@ from .services.cloud_images import (
     image_manifest_status,
 )
 from ..catalog.postgres_repository import (
+    CatalogPoolTimeout,
     CatalogQuery,
     catalog_provider_mode,
     catalog_provider_status,
@@ -216,12 +219,18 @@ app.include_router(
 
 @app.exception_handler(ProjectStoreUnavailable)
 async def project_store_unavailable_handler(_request, exc: ProjectStoreUnavailable):
+    busy = isinstance(exc, ProjectStoreBusy)
     return JSONResponse(
         status_code=503,
+        headers={"Retry-After": "2"} if busy else None,
         content={
             "detail": {
-                "code": "project_store_unavailable",
-                "message": "PostgreSQL 專案保存目前不可用，請檢查資料庫與 Phase 3 schema。",
+                "code": "project_store_busy" if busy else "project_store_unavailable",
+                "message": (
+                    "專案資料庫同時處理的請求過多，請稍後再試。"
+                    if busy
+                    else "PostgreSQL 專案保存目前不可用，請檢查資料庫與 Phase 3 schema。"
+                ),
                 "reason": str(exc),
             }
         },
@@ -230,13 +239,21 @@ async def project_store_unavailable_handler(_request, exc: ProjectStoreUnavailab
 
 @app.exception_handler(RuntimeCatalogUnavailable)
 async def runtime_catalog_unavailable_handler(_request, exc: RuntimeCatalogUnavailable):
+    # 瞬時滿載與「型錄沒匯入」的處置完全不同，訊息不能混為一談：QA 實測
+    # 併發 10 就被導去執行匯入流程，等於把使用者送去修一個沒壞的東西。
+    busy = isinstance(exc.reason, CatalogPoolTimeout)
     return JSONResponse(
         status_code=503,
+        headers={"Retry-After": "2"} if busy else None,
         content={
             "detail": {
-                "code": "runtime_catalog_unavailable",
+                "code": "catalog_pool_busy" if busy else "runtime_catalog_unavailable",
                 "catalog": exc.catalog_key,
-                "message": "Phase 4 PostgreSQL runtime catalog 目前不可用，請先執行匯入流程。",
+                "message": (
+                    "型錄資料庫同時處理的查詢過多，請稍後再試。"
+                    if busy
+                    else "Phase 4 PostgreSQL runtime catalog 目前不可用，請先執行匯入流程。"
+                ),
                 "reason": str(exc.reason),
             }
         },
@@ -2912,12 +2929,57 @@ async def generate_scene(payload: dict) -> dict:
     }
 
 
+def _repair_ready_items(objects: list) -> tuple[list[dict], dict[str, str | None]]:
+    """把前端場景物件轉成擺放紀律看得懂的形狀。
+
+    第 6 步的 scene_objects 用 ``furniture_id`` 當「這一件」的身分，型錄 id 放在
+    ``catalog_furniture_id``；Yen 的 ``resolve_placements`` 反過來——``instance_id``
+    是身分，``furniture_id`` 要能和候選池比對才換得了小款。這裡換過去，修完再換
+    回來，前端拿到的身分才不會在換小款時整個換掉。
+    """
+    original_catalog: dict[str, str | None] = {}
+    items: list[dict] = []
+    for obj in objects:
+        if not isinstance(obj, dict):
+            continue
+        instance_id = str(obj.get("furniture_id") or "")
+        catalog_id = obj.get("catalog_furniture_id")
+        original_catalog[instance_id] = str(catalog_id) if catalog_id else None
+        items.append({
+            **obj,
+            "instance_id": instance_id,
+            "furniture_id": str(catalog_id or instance_id),
+        })
+    return items, original_catalog
+
+
+def _restore_scene_identity(objects: list, original_catalog: dict[str, str | None]) -> list[dict]:
+    """把 instance_id 換回 furniture_id，換過小款的則帶上新的型錄 id。"""
+    restored: list[dict] = []
+    for obj in objects:
+        instance_id = str(obj.get("instance_id") or "")
+        if not instance_id:
+            restored.append(obj)
+            continue
+        catalog_id = str(obj.get("furniture_id") or "")
+        item = dict(obj)
+        item.pop("instance_id", None)
+        item["furniture_id"] = instance_id
+        item["catalog_furniture_id"] = (
+            catalog_id if catalog_id and catalog_id != instance_id
+            else original_catalog.get(instance_id)
+        )
+        restored.append(item)
+    return restored
+
+
 @app.post("/api/scene/layout")
 async def scene_layout(payload: dict) -> dict:
     """前端本地操作(替換/移除/新增/重抽)後,由 furniture_engine 重算全場座標。
 
     傳 floorplan(含 wall_segments)可重建 DXF 房間形狀;
     scene_objects 帶 position_locked 的項目(使用者拖曳過)位置仍合法就不重排。
+    放不下的家具走與 /api/scene/generate 相同的擺放紀律:換小、移除或升級人工。
     """
     objects = payload.get("scene_objects", [])
     editor_floorplan = payload.get("floorplan_editor")
@@ -2934,18 +2996,53 @@ async def scene_layout(payload: dict) -> dict:
         _region_boundary_by_id(floorplan, room, placement_room_id)
         or _largest_region_boundary(floorplan, room)
     )
-    return {
-        "floorplan": floorplan,
-        "scene_objects": generate_layout(
+
+    items, original_catalog = _repair_ready_items(objects)
+
+    def place(working_items: list[dict]) -> list[dict]:
+        return generate_layout(
             room.width,
             room.depth,
-            objects,
+            working_items,
             room=room,
             regions_boundary=_regions_boundary(floorplan, room),
             place_boundary=place_boundary,
             floorplan=floorplan,
             placement_variant=placement_variant,
         )
+
+    scene_objects = place(items)
+    report: list[dict] = []
+    if any(obj.get("placement_failed") for obj in scene_objects):
+        # 第一次擺放失敗時才付出重算成本。這裡不修的話,第 6 步換上放不下的
+        # 家具只會留下一張紅色待處理卡,永遠等不到自動換小款。
+        protected_ids = {
+            str(item.get("furniture_id"))
+            for item in items
+            if item.get("furniture_id")
+            and (
+                item.get("user_specified")
+                or item.get("user_required")
+                or item.get("position_locked")
+            )
+        }
+        try:
+            pool = list(_furniture_payload_cache())
+        except RuntimeCatalogUnavailable:
+            # 型錄暫時讀不到就只回報,不要因為換小款失敗而擋掉整次重排。
+            pool = []
+        scene_objects, _items, report = resolve_placements(
+            scene_objects,
+            items,
+            pool,
+            engine_place_fn=place,
+            protected_ids=protected_ids,
+        )
+
+    return {
+        "floorplan": floorplan,
+        "scene_objects": _restore_scene_identity(scene_objects, original_catalog),
+        "placement_resolution_report": report,
     }
 
 

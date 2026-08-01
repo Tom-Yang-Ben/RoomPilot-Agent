@@ -1714,6 +1714,9 @@ def generate_layout(
         fp_w, fp_d = _rotated_footprint(width, depth, rotation)
         results[index] = {
             "furniture_id": item["furniture_id"],
+            # 多實例家具的身分鍵。擺放紀律用它對位物件與品項，沒有它就只能
+            # 退回 furniture_id，同型號的第二件會被誤認成第一件。
+            "instance_id": item.get("instance_id"),
             "catalog_furniture_id": item.get("catalog_furniture_id"),
             "name_zh_raw": item.get("name_zh_raw"),
             "normalized_type": item_type,

@@ -62,6 +62,9 @@ import {
   reloadViewerPreservingState,
 } from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
 import {
+  roomCameraSuggestion as roomCameraSuggestionCm,
+} from "./scene_camera.js?v=sha256-20260802-world-z";
+import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
   buildRoomRequirementsPayload,
@@ -2415,7 +2418,7 @@ function renderRooms() {
     const dimensions = roomDimensions(selectedRoom);
     const reviewHint = roomReviewHint(selectedRoom);
     element.roomEditor.hidden = false;
-    element.roomName.value = roomNameOptionFor(selectedRoom).id;
+    renderRoomNameSelect(selectedRoom);
     element.roomArea.textContent =
       `系統依目前框選計算：${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm，${dimensions.areaM2.toFixed(2)} m²`;
   } else {
@@ -4647,6 +4650,19 @@ function normalizedRoomTypeValue(type) {
   return ROOM_TYPE_LABELS.has(String(type || "")) ? String(type) : "default";
 }
 
+function renderRoomNameSelect(room) {
+  // 選項一律由 ROOM_NAME_OPTIONS 生成。寫死在 scene.html 的舊 12 類會與這張表
+  // 脫鉤：臥室選不到、主臥／次臥等舊值按套用時被判成「請選擇空間名稱」。
+  if (!element.roomName) return;
+  const current = roomNameOptionFor(room || {}).id;
+  element.roomName.innerHTML = ROOM_NAME_OPTIONS.map(
+    (option) =>
+      `<option value="${escapeHtml(option.id)}" ${option.id === current ? "selected" : ""}>`
+      + `${escapeHtml(option.label)}</option>`,
+  ).join("");
+  element.roomName.value = current;
+}
+
 function renderRoomTypeSelect(room) {
   if (!element.roomType) return;
   const current = normalizedRoomTypeValue(room?.type);
@@ -4673,7 +4689,8 @@ function applyRoomTypeSelection() {
   // 名稱還是自動編號時，順手帶入型別中文名，讓清單一眼可讀。
   if (/^(空間\s*\d+|未命名空間)/.test(String(room.label || "")) && nextType !== "default") {
     room.label = ROOM_TYPE_LABELS.get(nextType);
-    if (element.roomName) element.roomName.value = room.label;
+    // 下拉的 value 是選項 id，不是中文標籤；直接塞標籤只會讓選單靜默落回第一項。
+    renderRoomNameSelect(room);
   }
   renderRooms();
   renderSpaceOverlay();
@@ -4700,7 +4717,7 @@ function saveRoom() {
   // 2026-07 盤點第 5 項修復：改名不再只是字串——名稱可推斷房型且目前尚未
   // 指定時，同步回寫 room.type，讓後端與 agent 拿到真用途而非 default。
   if (normalizedRoomTypeValue(room.type) === "default") {
-    const derived = roomTypeFromName({ label: name });
+    const derived = roomTypeFromName({ label: option.label });
     if (derived && derived !== "default") room.type = normalizedRoomTypeValue(derived);
   }
   renderRoomTypeSelect(room);
@@ -8104,6 +8121,7 @@ function specsAllowedByRoomFeasibility(requirement, specs) {
 
 async function autoLayoutFurniture() {
   state.furniture2d = [];
+  const placementResolutions = [];
   const roomPlans = state.rooms.map((room) => {
     const requirement = state.roomRequirementModel.roomRequirements[room.id];
     const selectedCatalogFurniture = requirement?.furniture?.selected || [];
@@ -8261,12 +8279,15 @@ async function autoLayoutFurniture() {
       });
       continue;
     }
+    placementResolutions.push(...(layout.placement_resolution_report || []));
     const placedById = new Map(
       (layout.scene_objects || []).map((item) => [item.furniture_id, item]),
     );
     roomItems.forEach((item) => {
       const placed = placedById.get(item.id);
+      // 沒回來的是被擺放紀律移除的家具，報告會說明原因，這裡不要偷偷留著。
       if (!placed) return;
+      applyPlacedCatalogSwap(item, placed);
       item.xCm = Number(placed.position_cm?.x || 0);
       item.yCm = Number(placed.position_cm?.z || 0);
       item.rotationDeg = Number(placed.rotation_y_deg || 0);
@@ -8274,6 +8295,11 @@ async function autoLayoutFurniture() {
       item.placementReason = placed.placement_reason || "";
       state.furniture2d.push(item);
     });
+  }
+  const resolutionText = placementResolutionText(placementResolutions);
+  if (resolutionText) {
+    element.layoutError.textContent = resolutionText;
+    setStatus(resolutionText, "warn");
   }
   state.selectedFurniture2dId = state.furniture2d[0]?.id || null;
   const scheme = activeScheme();
@@ -8315,6 +8341,7 @@ async function relayoutFurnitureForScheme(sourceFurniture, schemeId) {
     roomItems.forEach((item) => {
       const placed = placedById.get(item.id);
       if (!placed) return;
+      applyPlacedCatalogSwap(item, placed);
       item.xCm = Number(placed.position_cm?.x || 0);
       item.yCm = Number(placed.position_cm?.z || 0);
       item.rotationDeg = Number(placed.rotation_y_deg || 0);
@@ -9797,6 +9824,21 @@ async function resolveCatalogFurniture(item) {
     console.warn(error);
     return toSceneFurniture(item);
   }
+}
+
+function applyPlacedCatalogSwap(item, placed) {
+  // 後端換小款之後，2D 卡片與 3D 都必須跟著換型號；只更新座標的話畫面上還是
+  // 那件放不下的家具，使用者會以為系統騙他。
+  const swappedId = String(placed?.catalog_furniture_id || "");
+  if (!swappedId || swappedId === String(item.catalogFurnitureId || "")) return false;
+  item.catalogFurnitureId = swappedId;
+  if (placed.name_zh_raw) item.label = placed.name_zh_raw;
+  if (placed.model_url) item.model_url = placed.model_url;
+  const size = placed.size_cm || {};
+  if (Number(size.width) > 0) item.widthCm = Number(size.width);
+  if (Number(size.depth) > 0) item.depthCm = Number(size.depth);
+  if (Number(size.height) > 0) item.heightCm = Number(size.height);
+  return true;
 }
 
 function placementResolutionText(report = []) {
@@ -11390,25 +11432,7 @@ function renderPaletteOptions() {
 }
 
 function roomCameraSuggestion(room) {
-  const polygon = room?.polygon_cm || [];
-  const planWidth = Number(state.sceneData?.floorplan?.width_cm || 420);
-  const planDepth = Number(state.sceneData?.floorplan?.depth_cm || 360);
-  const xs = polygon.map((point) => Number(point.x));
-  const zs = polygon.map((point) => Number(point.y));
-  const centerX = (xs.reduce((sum, value) => sum + value, 0) / Math.max(xs.length, 1)) - planWidth / 2;
-  const centerZ = (zs.reduce((sum, value) => sum + value, 0) / Math.max(zs.length, 1)) - planDepth / 2;
-  const width = xs.length ? Math.max(...xs) - Math.min(...xs) : 320;
-  const depth = zs.length ? Math.max(...zs) - Math.min(...zs) : 280;
-  return {
-    camera_type: "perspective",
-    view_mode: "orbit",
-    preset: "room",
-    position_cm: [centerX + width * 0.28, 145, centerZ + depth * 0.28],
-    target_cm: [centerX, 82, centerZ],
-    up: [0, 1, 0],
-    fov_deg: 58,
-    zoom: 1,
-  };
+  return roomCameraSuggestionCm(room, state.sceneData?.floorplan);
 }
 
 function proposalRoomCameraCandidates(room) {

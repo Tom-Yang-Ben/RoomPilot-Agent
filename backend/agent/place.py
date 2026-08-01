@@ -197,8 +197,11 @@ def resolve_placements(
                 continue
 
             family = family_of(obj.get("normalized_type"))
-            if family in COMPANION_OF:
-                # 副件只准與主件成組；副件本身放不下就直接退場，不換小獨活。
+            anchors = COMPANION_OF.get(family)
+            if anchors and not {
+                family_of(candidate.get("normalized_type")) for candidate in working
+            }.intersection(anchors):
+                # 主件不在場時副件不換小獨活，直接退場。
                 remove(
                     item,
                     obj,
@@ -206,6 +209,8 @@ def resolve_placements(
                 )
                 changed = True
                 continue
+            # 主件在場的副件照一般家具處理：先換小，換不到才移除。整組退場會讓
+            # 使用者平白失去一件明明有小尺寸可選的家具（QA 2026-08-01 的電視櫃）。
 
             key = _key(obj)
             failure_counts[key] = failure_counts.get(key, 0) + 1

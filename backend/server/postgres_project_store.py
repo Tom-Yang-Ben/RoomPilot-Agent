@@ -8,12 +8,13 @@ import shutil
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from threading import Lock
+from threading import BoundedSemaphore, Lock
 from typing import Any, Iterator
 from uuid import uuid4
 
 from .project_store import (
     MAX_WORKFLOW_BYTES,
+    ProjectStoreBusy,
     ProjectStoreUnavailable,
     ProjectVersionConflict,
     WorkflowTooLargeError,
@@ -44,6 +45,8 @@ class PostgresProjectStore:
         self.render_dir.mkdir(parents=True, exist_ok=True)
         self._pool_lock = Lock()
         self._pool_value: Any | None = None
+        self._pool_permits: BoundedSemaphore | None = None
+        self._pool_timeout_seconds = 10.0
         self._database_error: type[Exception] | None = None
 
     def _setting(self, name: str, default: str = "") -> str:
@@ -85,7 +88,7 @@ class PostgresProjectStore:
                 minimum,
                 int(
                     self._setting(
-                        "DB_PROJECT_POOL_MAX", self._setting("DB_POOL_MAX", "8")
+                        "DB_PROJECT_POOL_MAX", self._setting("DB_POOL_MAX", "24")
                     )
                 ),
             )
@@ -97,15 +100,30 @@ class PostgresProjectStore:
                 )
             except psycopg2.Error as exc:
                 raise ProjectStoreUnavailable(type(exc).__name__) from exc
+            self._pool_permits = BoundedSemaphore(maximum)
+            self._pool_timeout_seconds = max(
+                0.0, float(self._setting("DB_POOL_TIMEOUT", "10"))
+            )
             self._database_error = psycopg2.Error
             return self._pool_value
 
     @contextmanager
     def _connection(self) -> Iterator[Any]:
         pool = self._pool()
+        permits = self._pool_permits
+        # getconn() 在池滿時立刻丟 PoolError 而不排隊；先用號誌排隊，等不到
+        # 才回報「忙碌」而不是把瞬時滿載說成資料庫不可用。
+        if permits is not None and not permits.acquire(
+            timeout=self._pool_timeout_seconds
+        ):
+            raise ProjectStoreBusy(
+                f"等待專案資料庫連線超過 {self._pool_timeout_seconds:.0f} 秒"
+            )
         try:
             connection = pool.getconn()
         except Exception as exc:
+            if permits is not None:
+                permits.release()
             raise ProjectStoreUnavailable(type(exc).__name__) from exc
         try:
             connection.autocommit = False
@@ -118,10 +136,14 @@ class PostgresProjectStore:
                 raise ProjectStoreUnavailable(type(exc).__name__) from exc
             raise
         finally:
-            pool.putconn(
-                connection,
-                close=bool(getattr(connection, "closed", False)),
-            )
+            try:
+                pool.putconn(
+                    connection,
+                    close=bool(getattr(connection, "closed", False)),
+                )
+            finally:
+                if permits is not None:
+                    permits.release()
 
     @staticmethod
     def _cursor(connection: Any):

@@ -11,7 +11,7 @@ import os
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from threading import Lock
+from threading import BoundedSemaphore, Lock
 from typing import Any, Iterator
 
 
@@ -221,11 +221,22 @@ def _database_config(project_dir: Path) -> dict[str, Any]:
     }
 
 
+class CatalogPoolTimeout(RuntimeError):
+    """在等待逾時內都借不到連線；代表瞬時滿載，不是型錄沒匯入。"""
+
+
+@dataclass(frozen=True)
+class _PoolHandle:
+    pool: Any
+    permits: BoundedSemaphore
+    timeout_seconds: float
+
+
 _POOL_LOCK = Lock()
-_POOLS: dict[tuple[tuple[str, Any], ...], Any] = {}
+_POOLS: dict[tuple[tuple[str, Any], ...], _PoolHandle] = {}
 
 
-def _connection_pool(project_dir: Path):
+def _connection_pool(project_dir: Path) -> _PoolHandle:
     try:
         from psycopg2.pool import ThreadedConnectionPool
     except ImportError as exc:  # pragma: no cover - depends on deployment extra
@@ -234,19 +245,35 @@ def _connection_pool(project_dir: Path):
     config = _database_config(project_dir)
     key = tuple(sorted(config.items()))
     with _POOL_LOCK:
-        pool = _POOLS.get(key)
-        if pool is None:
+        handle = _POOLS.get(key)
+        if handle is None:
             minimum = max(1, int(_setting(project_dir, "DB_POOL_MIN", "1")))
-            maximum = max(minimum, int(_setting(project_dir, "DB_POOL_MAX", "8")))
-            pool = ThreadedConnectionPool(minimum, maximum, **config)
-            _POOLS[key] = pool
-    return pool
+            maximum = max(minimum, int(_setting(project_dir, "DB_POOL_MAX", "24")))
+            timeout = max(0.0, float(_setting(project_dir, "DB_POOL_TIMEOUT", "10")))
+            handle = _PoolHandle(
+                pool=ThreadedConnectionPool(minimum, maximum, **config),
+                permits=BoundedSemaphore(maximum),
+                timeout_seconds=timeout,
+            )
+            _POOLS[key] = handle
+    return handle
 
 
 @contextmanager
 def _borrow_connection(project_dir: Path) -> Iterator[Any]:
-    pool = _connection_pool(project_dir)
-    connection = pool.getconn()
+    handle = _connection_pool(project_dir)
+    # psycopg2 的 getconn() 在池滿時立刻丟 PoolError 而不排隊，第 N+1 個併發
+    # 請求就會 503。號誌把等待排成佇列，只有真的等不到才放棄並說明原因。
+    if not handle.permits.acquire(timeout=handle.timeout_seconds):
+        raise CatalogPoolTimeout(
+            f"等待 PostgreSQL 連線超過 {handle.timeout_seconds:.0f} 秒；"
+            "同時進行的查詢已達 DB_POOL_MAX。"
+        )
+    try:
+        connection = handle.pool.getconn()
+    except Exception:
+        handle.permits.release()
+        raise
     try:
         connection.autocommit = True
         yield connection
@@ -255,7 +282,12 @@ def _borrow_connection(project_dir: Path) -> Iterator[Any]:
             connection.rollback()
         raise
     finally:
-        pool.putconn(connection, close=bool(getattr(connection, "closed", False)))
+        try:
+            handle.pool.putconn(
+                connection, close=bool(getattr(connection, "closed", False))
+            )
+        finally:
+            handle.permits.release()
 
 
 @contextmanager
@@ -267,10 +299,10 @@ def borrow_catalog_connection(project_dir: Path) -> Iterator[Any]:
 
 def close_catalog_pools() -> None:
     with _POOL_LOCK:
-        pools = list(_POOLS.values())
+        handles = list(_POOLS.values())
         _POOLS.clear()
-    for pool in pools:
-        pool.closeall()
+    for handle in handles:
+        handle.pool.closeall()
 
 
 def _as_list(value: Any) -> list[str]:

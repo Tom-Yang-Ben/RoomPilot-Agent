@@ -74,4 +74,36 @@ def test_room_type_select_is_wired_in_the_review_card() -> None:
         STATIC / "scene_layout2d.js"
     ).read_text(encoding="utf-8")
     # 改名時若尚未指定型別，必須嘗試由名稱回寫 room.type。
-    assert "roomTypeFromName({ label: name })" in source
+    # 舊版傳的 `name` 是未宣告變數，回寫等於永遠拿不到型別。
+    assert "roomTypeFromName({ label: option.label })" in source
+    assert "roomTypeFromName({ label: name })" not in source
+
+
+def test_room_name_select_is_generated_from_the_single_option_table() -> None:
+    """房名下拉不得寫死在 HTML（QA 2026-08-01 迴歸）。
+
+    7242f0b 把房名收斂到辨識層的 10 類，但 scene.html 仍留著舊 12 類硬編碼
+    <option>：臥室選不到、主臥／次臥等 6 個舊值按「套用名稱」會被判成
+    「請選擇空間名稱」——錯誤訊息還把資料脫鉤說成使用者沒選。
+    """
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="room-name"' in html
+    assert "function renderRoomNameSelect" in source
+    assert "renderRoomNameSelect(selectedRoom)" in source
+    # 選項只能由 ROOM_NAME_OPTIONS 生成，HTML 不得自己列。
+    for legacy in ("primary_bedroom", "secondary_bedroom", "dining_room", "multi_purpose"):
+        assert f'<option value="{legacy}"' not in html
+    assert 'ROOM_NAME_OPTIONS.map' in source
+
+
+def test_scene_html_has_no_duplicate_element_ids() -> None:
+    """重複 id 讓 querySelector 只拿得到第一個，另一半 UI 變成死的。"""
+    import collections
+
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    counts = collections.Counter(re.findall(r'\sid="([^"]+)"', html))
+    duplicates = {name: count for name, count in counts.items() if count > 1}
+
+    assert duplicates == {}

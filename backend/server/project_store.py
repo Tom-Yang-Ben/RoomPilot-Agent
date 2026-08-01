@@ -43,6 +43,10 @@ class ProjectStoreUnavailable(RuntimeError):
     """The configured project persistence provider cannot serve requests."""
 
 
+class ProjectStoreBusy(ProjectStoreUnavailable):
+    """瞬時滿載：連線池排隊逾時。與「provider 不可用」分開才不會誤導。"""
+
+
 _DISPLAY_TEXT_KEYS = {
     "name",
     "name_en",
