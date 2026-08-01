@@ -20,8 +20,15 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
-from ..agent.knowledge import family_of
-from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
+from ..agent.select import (
+    SelectionParseError,
+    SelectionUnavailableError,
+    local_selection_raw,
+    parse_selections,
+    preselected_from_requirements,
+    request_selections,
+    requirements_from_context,
+)
 from .questionnaire_visuals import (
     QuestionnaireVisualStore,
     load_questionnaire_visual_catalog,
@@ -48,6 +55,7 @@ from .scene_service import (
     parse_floorplan_with_engine,
     room_from_payload,
     scene_object_in_boundary,
+    selection_complete_fn,
     validate_single_placement,
 )
 from .intake_service import advance_intake, start_intake
@@ -2714,28 +2722,30 @@ def _normalize_selection_offers(raw_offers: object) -> dict[str, list[dict]]:
     return offers
 
 
-def _local_selection_raw(rooms: list[dict], offers: dict[str, list[dict]]) -> dict:
-    selections: list[dict] = []
-    for room in rooms:
-        room_id = str(room.get("room_id") or room.get("id") or "")
-        used_families: set[str] = set()
-        items: list[dict] = []
-        for item in offers.get(room_id, []):
-            family = family_of(item.get("normalized_type"))
-            if family in used_families:
-                continue
-            used_families.add(family)
-            try:
-                count = int(item.get("count") or 1)
-            except (TypeError, ValueError):
-                count = 1
-            items.append({
-                "furniture_id": item.get("furniture_id"),
-                "count": max(1, min(6, count)),
-            })
-        if items:
-            selections.append({"room_id": room_id, "items": items})
-    return {"selections": selections}
+def _without_deferred(room_id: str, items: list[dict], requirements: dict) -> list[dict]:
+    """濾掉使用者在第 4 步按過暫緩的家具。"""
+    requirement = requirements.get(room_id)
+    if requirement is None or not requirement.deferred_furniture_ids:
+        return items
+    return [
+        item
+        for item in items
+        if str(item.get("furniture_id") or "") not in requirement.deferred_furniture_ids
+    ]
+
+
+def _selection_llm_context(context: dict | None) -> dict | None:
+    """只把與選件有關的問卷結論送進提示。
+
+    完整 ``room_requirements`` 含牆面、色票與逐面材質，動輒數十 KB；逐房
+    需求已由 ``requirements_from_context`` 收斂後隨房間送出，這裡再塞一次
+    只會稀釋規則並拖慢呼叫。
+    """
+    if not isinstance(context, dict):
+        return None
+    keep = ("basic_answers", "visual_preferences")
+    trimmed = {key: context[key] for key in keep if context.get(key)}
+    return trimmed or None
 
 
 def _selection_response(
@@ -2790,24 +2800,45 @@ async def agent_furniture_select(payload: dict) -> dict:
     llm_selection = payload.get("llm_selection")
     warnings: list[str] = []
 
-    if isinstance(llm_selection, dict):
+    # 逐房問卷需求是兩條路徑共用的輸入：LLM 走提示，本地規則走確定性挑選。
+    requirements = requirements_from_context(context)
+    preselected = preselected_from_requirements(rooms, offers, requirements)
+
+    # payload 帶 llm_selection 時視為外部已算好的結果，只做驗證；否則由
+    # 伺服器自己呼叫 OpenRouter，前端不需要也不應該持有 API 金鑰。
+    complete = (
+        (lambda _messages: ("payload/llm_selection", llm_selection))
+        if isinstance(llm_selection, dict)
+        else selection_complete_fn()
+    )
+
+    if complete is not None:
         try:
             selected, model = request_selections(
                 rooms,
                 offers,
                 str(style_id) if style_id else None,
-                complete=lambda _messages: ("payload/llm_selection", llm_selection),
-                context=context,
+                complete=complete,
+                preselected=preselected,
+                context=_selection_llm_context(context),
+                requirements=requirements,
             )
             return _selection_response(selected, source="openrouter", model=model)
         except (SelectionParseError, SelectionUnavailableError) as exc:
             warnings.append(f"LLM 選擇未通過規則驗證，已改用本地規則：{exc}")
 
     try:
-        selected = parse_selections(_local_selection_raw(rooms, offers), rooms, offers)
+        selected = parse_selections(
+            local_selection_raw(rooms, offers, requirements),
+            rooms,
+            offers,
+            preselected=preselected,
+            requirements=requirements,
+        )
         return _selection_response(selected, source="local_rules", warnings=warnings)
     except SelectionParseError as exc:
         warnings.append(f"本地規則無法完整驗證候選家具，已保留第一批候選：{exc}")
+        # 連驗證都過不了時仍守住一條線：使用者暫緩的家具在任何路徑都不回填。
         return {
             "source": "local_rules_unvalidated",
             "model": None,
@@ -2821,7 +2852,7 @@ async def agent_furniture_select(payload: dict) -> dict:
                             "count": int(item.get("count") or 1),
                             "selection_source": item.get("selection_source") or "local_rules_unvalidated",
                         }
-                        for item in items[:8]
+                        for item in _without_deferred(room_id, items, requirements)[:8]
                     ],
                 }
                 for room_id, items in offers.items()

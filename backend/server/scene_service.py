@@ -6,7 +6,7 @@ import os
 import random
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib import error, request
 
 from shapely.geometry import LineString, Point, Polygon, box as shapely_box
@@ -85,7 +85,61 @@ def get_openrouter_status() -> dict[str, Any]:
         "model_count": len(models),
         "provider": "openrouter" if api_key and models else "fallback",
         "scene_planning_enabled": os.getenv("OPENROUTER_SCENE_PLANNING_ENABLED") == "1",
+        "selection_enabled": selection_enabled(),
     }
+
+
+def selection_enabled() -> bool:
+    """選件 agent 是否可呼叫 LLM。
+
+    與第 1 步問卷規劃相反，選件預設隨 ``OPENROUTER_API_KEY`` 啟用：它的
+    輸出一律經 Yen 的白名單驗證，失敗會退回本地規則，沒有讓 LLM 決定
+    座標的風險。要完全離線時設 ``OPENROUTER_SELECTION_ENABLED=0``。
+    """
+    load_local_env()
+    if not os.getenv("OPENROUTER_API_KEY", "").strip():
+        return False
+    if not get_openrouter_models():
+        return False
+    return os.getenv("OPENROUTER_SELECTION_ENABLED", "1") != "0"
+
+
+def selection_complete_fn() -> Callable[[list[dict[str, str]]], tuple[str, dict[str, Any]] | None] | None:
+    """回傳選件用的 OpenRouter 呼叫器；停用時回 None 讓呼叫端走本地規則。
+
+    依 ``OPENROUTER_MODELS`` 順序重試，任一模型回出可解析的 JSON 物件就
+    採用；全部失敗回 None，由 ``request_selections`` 轉成
+    ``SelectionUnavailableError``。
+    """
+    if not selection_enabled():
+        return None
+
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    models = get_openrouter_models()
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": os.getenv("OPENROUTER_SITE_URL", "http://127.0.0.1:8000"),
+        "X-Title": os.getenv("OPENROUTER_APP_NAME", "RoomPilot furniture selection"),
+    }
+
+    def complete(messages: list[dict[str, str]]) -> tuple[str, dict[str, Any]] | None:
+        for model in models:
+            body = _post_openrouter_chat(
+                {
+                    "model": model,
+                    "messages": messages,
+                    "temperature": 0.2,
+                    "response_format": {"type": "json_object"},
+                },
+                headers,
+            )
+            parsed = _load_json_response(body) if body else None
+            if isinstance(parsed, dict):
+                return model, parsed
+        return None
+
+    return complete
 
 
 STYLE_FALLBACKS = {

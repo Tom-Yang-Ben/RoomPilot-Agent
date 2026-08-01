@@ -1,6 +1,6 @@
 # RoomPilot Agent 前後端契約
 
-最後更新：2026-07-23
+最後更新：2026-08-02
 
 ## 目的
 
@@ -118,10 +118,35 @@ Request：
     ]
   },
   "style_id": "japanese",
-  "context": {},
+  "context": {
+    "room_requirements": {
+      "living-1": {
+        "roomId": "living-1",
+        "usage": ["招待訪客"],
+        "furniture": {
+          "required": ["sofa"],
+          "selected": [
+            {"furniture_id": "sofa-001", "normalized_type": "sofa", "count": 1}
+          ],
+          "deferred": []
+        },
+        "specialRequests": []
+      }
+    }
+  },
   "llm_selection": null
 }
 ```
+
+`context.room_requirements` 是第 4 步逐房問卷的結論，由
+`requirements_from_context()` 收斂成每房一筆需求後同時餵給兩條路徑。
+`context.questionnaire.roomRequirements`（陣列形狀）等價。它的作用是：
+
+- `furniture.selected` 進入保護名單，數量沿用問卷填的 `count`。
+- `furniture.required` 折成擺位族系後成為該房必備；候選白名單裡沒有該
+  族系時自動略過，不讓型錄缺貨拖垮整間房。
+- `furniture.deferred` 的家具兩條路徑都不得選入。
+- `usage` 與 `specialRequests` 只進入 LLM 提示，不改變驗證結果。
 
 Response：
 
@@ -150,12 +175,31 @@ Response：
 `request_selections()`／`parse_selections()` 驗證：
 
 - 不得選擇白名單外的家具。
-- 每個房間必須符合必要家具族系。
+- 每個房間必須符合必要家具族系（房型必備 + 問卷指定且候選有貨的族系）。
 - 同族系不得產生不合理重複。
 - 數量限制為 1 到 6。
+- 使用者暫緩的家具不得選入。
 - LLM 結果無效時改用本地規則，原因放入 `warnings`。
 
 前端只使用 response 中的結果，不自行實作 Yen 選件規則。
+
+### 選件 agent 的觸發
+
+伺服器自行注入 OpenRouter 呼叫器（`selection_complete_fn()`），前端不需要
+也不應該持有 API 金鑰。判斷順序：
+
+1. payload 帶 `llm_selection` 物件時視為外部已算好的結果，只做驗證。
+2. 否則有 `OPENROUTER_API_KEY` 且 `OPENROUTER_SELECTION_ENABLED != 0`
+   就實際呼叫 LLM，依 `OPENROUTER_MODELS` 順序重試。
+3. 未啟用、呼叫失敗或驗證不過，一律退回 `local_rules`，
+   原因寫入 `warnings`。
+
+`source` 仍只有 `openrouter`、`local_rules`、`local_rules_unvalidated`
+三種值。`GET /api/scene/llm-status` 增加 `selection_enabled` 欄位。
+
+本地規則同樣讀得到問卷需求：`local_selection_raw()` 以「問卷勾選 →
+問卷指定族系 → 同族一件補齊」的確定性順序挑選，再走與 LLM 相同的
+`parse_selections()` 驗證，因此 LLM 關閉時選件品質不會退回忽略需求。
 
 ## 場景生成與擺放修復
 
@@ -209,5 +253,6 @@ AN engine 初次擺放後若出現 `placement_failed`，
 
 ```powershell
 uv run pytest tests/test_agent_select.py tests/test_agent_place.py -q
+uv run pytest tests/test_agent_requirement_chain.py tests/test_agent_selection_api.py -q
 uv run pytest tests/test_project_workflow_api.py tests/test_roompilot_quality_guardrails.py -q
 ```

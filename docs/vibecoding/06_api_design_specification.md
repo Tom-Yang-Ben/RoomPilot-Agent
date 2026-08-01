@@ -324,7 +324,7 @@ project → upload → recognition → calibration → space_confirmation → re
 
 #### `GET /api/scene/provider-status` - OpenRouter 場景規劃狀態
 
-- **回應**: `{"enabled", "has_api_key", "has_model", "model", "models", "model_count", "provider": "openrouter"|"fallback", "scene_planning_enabled"}`;`enabled` 需同時有 `OPENROUTER_API_KEY` 且 `OPENROUTER_SCENE_PLANNING_ENABLED=1`
+- **回應**: `{"enabled", "has_api_key", "has_model", "model", "models", "model_count", "provider": "openrouter"|"fallback", "scene_planning_enabled", "selection_enabled"}`;`enabled` 需同時有 `OPENROUTER_API_KEY` 且 `OPENROUTER_SCENE_PLANNING_ENABLED=1`。`selection_enabled` 是第 6 步選件 agent，有金鑰即預設開啟，設 `OPENROUTER_SELECTION_ENABLED=0` 才關閉
 
 #### `POST /api/agent/intake/start` - 開始引導式需求訪談
 
