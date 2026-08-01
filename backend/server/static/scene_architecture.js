@@ -163,6 +163,25 @@ export function doorOpeningForWallTopology(
   const closed = closedDoorSegment(door);
   if (leaf.length < 4 || !closed) return door;
 
+  const closedLeaf = segmentVector({ start: leaf.start, end: door.swing_end });
+  const closedLeafSegment = closedLeaf.length >= 4
+    ? { start: { ...closedLeaf.start }, end: { ...closedLeaf.end } }
+    : { start: { ...leaf.start }, end: { ...leaf.end } };
+
+  // A Step 4-confirmed door never creates a wall cut.  Its opening is the
+  // natural gap already present between the persisted Step 4 wall segments.
+  // Keep the green closed-leaf segment for the Step 6 mesh only.
+  if (door.step4_confirmed === true) {
+    return {
+      ...door,
+      topology_gap: true,
+      step4_skip_wall_cut: true,
+      opening_source: "confirmed_wall_gap",
+      door_leaf_segment: { start: { ...leaf.start }, end: { ...leaf.end } },
+      closed_leaf_segment: closedLeafSegment,
+    };
+  }
+
   const closedOpening = {
     ...door,
     start: { ...closed.start },
@@ -173,23 +192,6 @@ export function doorOpeningForWallTopology(
       source: closed.source,
     },
   };
-  const closedLeaf = segmentVector({ start: leaf.start, end: door.swing_end });
-  const closedLeafSegment = closedLeaf.length >= 4
-    ? { start: { ...closedLeaf.start }, end: { ...closedLeaf.end } }
-    : { start: { ...leaf.start }, end: { ...leaf.end } };
-
-  if (door.step4_confirmed === true && door.step4_skip_wall_cut === true) {
-    return {
-      ...closedOpening,
-      host_wall_id: null,
-      topology_gap: false,
-      step4_skip_wall_cut: true,
-      opening_source: "step4_unassigned",
-      door_leaf_segment: { start: { ...leaf.start }, end: { ...leaf.end } },
-      closed_leaf_segment: closedLeafSegment,
-    };
-  }
-
   // 「已確認有這扇門」不等於「已人工確認它屬於這面牆」。辨識器
   // 預填的 host_wall_id 仍可能錯誤；只有使用者手動貼齊後才可鎖牆。
   const confirmedHost = (

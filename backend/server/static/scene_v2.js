@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-a6762e3c3135";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-721a7d5340b5";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd27184d7e";
@@ -1888,18 +1888,30 @@ function confirmedFloorplanEditor(schemeId = activeSchemeId()) {
 
 function captureConfirmedStructureSnapshot() {
   const snapshot = JSON.parse(JSON.stringify(state.structures));
-  ["doors", "windows"].forEach((kind) => {
-    snapshot[kind] = (snapshot[kind] || []).map((opening) => {
-      const liveOpening = state.structures[kind]?.find((item) => item.id === opening.id) || opening;
-      const host = openingHostWall(liveOpening);
-      return {
-        ...opening,
-        host_wall_id: host?.id || null,
-        host_wall_confirmed: Boolean(host),
-        step4_confirmed: true,
-        step4_skip_wall_cut: !host,
-      };
-    });
+  // Step 4 wall segments are the sole source of door apertures.  A door's
+  // visible blue leaf is its open position, so it must never select or split
+  // a host wall in Step 6.  The green swing radius is used only to render the
+  // closed leaf inside the existing gap between confirmed wall segments.
+  snapshot.doors = (snapshot.doors || []).map((door) => ({
+    ...door,
+    host_wall_id: null,
+    host_wall_confirmed: false,
+    step4_confirmed: true,
+    step4_skip_wall_cut: true,
+    doorway_source: "confirmed_wall_gap",
+  }));
+  // Windows are actual wall apertures, so they retain their confirmed host
+  // wall and may cut that wall in the Step 6 model.
+  snapshot.windows = (snapshot.windows || []).map((window) => {
+    const liveWindow = state.structures.windows?.find((item) => item.id === window.id) || window;
+    const host = openingHostWall(liveWindow);
+    return {
+      ...window,
+      host_wall_id: host?.id || null,
+      host_wall_confirmed: Boolean(host),
+      step4_confirmed: true,
+      step4_skip_wall_cut: !host,
+    };
   });
   return snapshot;
 }

@@ -21,7 +21,7 @@ import {
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-42e224332e99";
+} from "./scene_architecture.js?v=sha256-3d179065a777";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -1566,6 +1566,38 @@ export function createSceneViewer(
     }
   }
 
+  function buildConfirmedDoorLeaves(roomGroupRef, doorSegments, wallThickness, surfaceCatalog = null) {
+    const renderedDoorIds = new Set();
+    doorSegments.forEach((door, index) => {
+      const closedLeaf = door?.closed_leaf_segment;
+      const start = closedLeaf?.start;
+      const end = closedLeaf?.end;
+      const dx = Number(end?.x) - Number(start?.x);
+      const dz = Number(end?.z) - Number(start?.z);
+      const width = Math.hypot(dx, dz);
+      if (width < 4) return;
+      const id = String(door?.id || `door-${index + 1}`);
+      if (renderedDoorIds.has(id)) return;
+      buildOpeningAssembly(
+        roomGroupRef,
+        {
+          kind: "door",
+          id,
+          width: Math.max(Number(door.width_cm || door.width) || width, 60),
+          opening: door,
+        },
+        {
+          x: (Number(start.x) + Number(end.x)) / 2,
+          z: (Number(start.z) + Number(end.z)) / 2,
+          rotationY: Math.atan2(-dz, dx),
+          wallThickness,
+        },
+        surfaceCatalog,
+      );
+      renderedDoorIds.add(id);
+    });
+  }
+
   function buildOpeningAssembly(roomGroupRef, interval, anchor, surfaceCatalog = null) {
     const isWindow = interval.kind === "window";
     const frameMaterial = createArchitecturalMaterial(
@@ -2749,8 +2781,10 @@ export function createSceneViewer(
     ceilingGroup.visible = false;
 
     // 12 cm 接近住宅隔間牆；原先 4 cm 會讓雙線牆與轉角看起來像中空。
-    const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;
-    const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !hasWallOpenings
+    // Persisted Step 4 wall segments already contain true door gaps.  Always
+    // use them for a confirmed multi-room plan so a blue open-door leaf can
+    // never punch an invented opening through an otherwise continuous wall.
+    const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !wallSegments.length
       ? buildWallMass(
         roomGroup,
         sceneData.floorplan,
@@ -2783,9 +2817,15 @@ export function createSceneViewer(
         wallMaterialResolver(sceneData, wallMaterial, exteriorWallMaterial),
         wallHeight,
         wallThickness,
-        doorSegments,
+        [],
         windowSegments,
         sceneData.floorplan,
+        sceneData.surface_catalog,
+      );
+      buildConfirmedDoorLeaves(
+        roomGroup,
+        doorSegments,
+        wallThickness,
         sceneData.surface_catalog,
       );
     } else {
@@ -2836,7 +2876,13 @@ export function createSceneViewer(
         const source = sourceDoorById.get(id);
         const resolved = resolvedDoorById.get(id);
         const rendered = renderedDoors.find((door) => door.id === id);
-        const expectedAnchor = openingAnchorForWallTopology(resolved, wallSegments, wallThickness);
+        const closedLeaf = resolved?.closed_leaf_segment;
+        const expectedAnchor = closedLeaf?.start && closedLeaf?.end
+          ? {
+            x: (Number(closedLeaf.start.x) + Number(closedLeaf.end.x)) / 2,
+            z: (Number(closedLeaf.start.z) + Number(closedLeaf.end.z)) / 2,
+          }
+          : openingAnchorForWallTopology(resolved, wallSegments, wallThickness);
         const endpointDistance = source && resolved
           ? Math.min(
             Math.hypot(source.start.x - resolved.start.x, source.start.z - resolved.start.z)

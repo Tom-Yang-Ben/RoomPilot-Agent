@@ -931,18 +931,20 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
     assert "windowOpeningMetrics" in viewer
 
 
-def test_accurate_floorplan_uses_segment_walls_when_openings_exist() -> None:
+def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() -> None:
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert (
-        "const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;"
+        "Persisted Step 4 wall segments already contain true door gaps."
         in viewer
     )
     assert (
-        "const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !hasWallOpenings"
+        "const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !wallSegments.length"
         in viewer
     )
     assert "buildSegmentWalls(" in viewer
+    assert "buildConfirmedDoorLeaves(" in viewer
+    assert "        [],\n        windowSegments," in viewer
     assert "const mullionPositions = [0];" in viewer
 
 
@@ -1020,7 +1022,8 @@ def test_step6_uses_only_the_confirmed_step4_wall_opening_snapshot() -> None:
     assert "state.confirmedStructureSnapshot || state.structures" in controller
     assert "Old saved projects did not persist this snapshot." in controller
     assert "if (opening?.step4_confirmed === true) return false;" in architecture
-    assert "door.step4_confirmed === true && door.step4_skip_wall_cut === true" in architecture
+    assert "A Step 4-confirmed door never creates a wall cut." in architecture
+    assert 'doorway_source: "confirmed_wall_gap"' in controller
     assert "opening?.step4_skip_wall_cut !== true" in viewer
 
 
