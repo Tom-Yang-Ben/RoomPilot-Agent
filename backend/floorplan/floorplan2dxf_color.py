@@ -1206,6 +1206,18 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
                           "aspect": round(max(w, h) / max(1.0, min(w, h)), 2)})
         if not rooms:
             continue
+        if extra is not None:
+            # fence 輪驗收（floor30 實案）：彩圖細線層在深磁磚地板滿是
+            # 紋理噪點，當屏障會拼出大片蛀孔碎房「成功」，反而搶走
+            # build_rooms 第三級救援的路。直角房間的面積/bbox 紮實度
+            # ~0.9，蛀孔碎片遠低於此——不紮實就讓路
+            sol = float(np.mean([
+                r_["area_px"] / max(1.0,
+                                    (r_["bbox"][2] - r_["bbox"][0])
+                                    * (r_["bbox"][3] - r_["bbox"][1]))
+                for r_ in rooms]))
+            if sol < 0.60:
+                continue
         tot = sum(r_["area_px"] for r_ in rooms)
         ux0 = min(r_["bbox"][0] for r_ in rooms); uy0 = min(r_["bbox"][1] for r_ in rooms)
         ux1 = max(r_["bbox"][2] for r_ in rooms); uy1 = max(r_["bbox"][3] for r_ in rooms)

@@ -112,3 +112,27 @@ def test_room_area_reaches_wall_edge():
     top = (W - 2 * 20) * (150 - 20)
     got = max(int((labels[:150, :] == r["id"]).sum()) for r in rooms)
     assert got > 0.9 * top, f"上房涵蓋率 {got / top:.2f} 應 >0.9"
+
+
+def test_noisy_fence_round_rejected():
+    # floor30 實案（color 保留集）：深色磁磚地板讓細線層在室內佈滿噪點，
+    # 常規輪全敗時 fence 輪用噪點屏障拼出 25 塊碎片房「成功」，反而搶走
+    # build_rooms 第三級救援（360cm 封口）的路——碎片房紮實度低
+    # （面積/bbox 遠小於直角房間的 ~0.9），fence 輪須驗收後讓路
+    rects = [
+        (0, 0, 600, 20),
+        (0, 0, 20, 420),
+        (580, 0, 600, 420),
+        (0, 400, 200, 420),                  # 同 rescue 測試的大開口
+    ]
+    W, H = 600, 420
+    rng = np.random.RandomState(9)
+    coarse = (rng.rand(H // 24, W // 24) < 0.35).astype(np.uint8) * 255
+    tile = np.kron(coarse, np.ones((24, 24), np.uint8))
+    thin = np.zeros((H, W), np.uint8)
+    thin[:tile.shape[0], :tile.shape[1]] = tile[:H, :W]
+    # 磁磚紋理是塊狀而非鹽噪——留下的大塊碎片才過得了面積門檻
+    labels, rooms, _ = fp_c.segment_rooms(rects, [], [], W, H,
+                                          T=20, T_out=20, cm=1.0, thin=thin)
+    assert labels is None, \
+        f"噪點 fence 輪應驗收失敗讓路給上層救援，實得 {len(rooms)} 房"
