@@ -14,6 +14,7 @@ from shapely.geometry import LineString, Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
 from ..agent.place import resolve_placements
+from ..catalog.placement_surface import FLOOR_COVERING, WALL, placement_surface_for
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
@@ -884,9 +885,20 @@ def _hinted_wall_candidate(
     return min(candidates, key=lambda candidate: math.hypot(candidate[0] - hint_x, candidate[1] - hint_z))
 
 
-# 地毯可與目標家具重疊，但仍須由引擎驗證牆與房間邊界。
-_OVERLAY_TYPES = {"large-medium-rug", "runner-small-rug"}
-_IGNORE_COLLISION_TYPES = {"wall-shelf"}
+# 擺放面分類的單一事實在型錄層(backend/catalog/placement_surface.py),第 6 步
+# 只把它翻成擺放行為,不再自己維護第二份型別名單。
+#
+# 以前這裡硬編碼 2 種地毯與 1 種壁掛,型錄實際宣告 7 種與 4 種——rug、
+# handmade-rug、round-rug、outdoor-rug、door-mat、mirror、large-mirror、
+# mirror-cabinet 全部被當成落地家具去算碰撞與淨空,放不下就卡進待處理清單。
+def _is_overlay_item(item_type: str | None, name: str | None = None) -> bool:
+    """地面覆蓋物:可與目標家具重疊,但仍要通過牆與房間邊界驗證。"""
+    return placement_surface_for(item_type, name) == FLOOR_COVERING
+
+
+def _is_collision_exempt_item(item_type: str | None, name: str | None = None) -> bool:
+    """壁掛品項:佔的是牆面不是地板,不進碰撞與淨空。"""
+    return placement_surface_for(item_type, name) == WALL
 
 
 def curtain_window_hint(
@@ -1714,16 +1726,18 @@ def validate_single_placement(
     if blocking is not None:
         return {"ok": False, "reason": blocking.reason}
 
-    if item.get("normalized_type") in _OVERLAY_TYPES:
+    item_name = item.get("name_zh_raw")
+    if _is_overlay_item(item.get("normalized_type"), item_name):
         reason = check_placement_with_clearance(moving, room, [])
         return {"ok": reason is None, "reason": reason}
-    if item.get("normalized_type") in _IGNORE_COLLISION_TYPES:
+    if _is_collision_exempt_item(item.get("normalized_type"), item_name):
         return {"ok": True, "reason": None}
 
     placed_others = [
         _scene_object_to_placed(o, half_w_cm, half_d_cm)
         for o in others
-        if o.get("normalized_type") not in _IGNORE_COLLISION_TYPES and not o.get("placement_failed")
+        if not _is_collision_exempt_item(o.get("normalized_type"), o.get("name_zh_raw"))
+        and not o.get("placement_failed")
     ]
     reason = check_placement_with_clearance(moving, room, placed_others)
     return {"ok": reason is None, "reason": reason}
@@ -1797,6 +1811,9 @@ def generate_layout(
     for index in order:
         item = items[index]
         item_type = item.get("normalized_type")
+        item_name = item.get("name_zh_raw")
+        is_overlay = _is_overlay_item(item_type, item_name)
+        collision_exempt = _is_collision_exempt_item(item_type, item_name)
         width = _size_cm(item, "width", 120)
         depth = _size_cm(item, "depth", 60)
         height = _size_cm(item, "height", 80)
@@ -1833,9 +1850,9 @@ def generate_layout(
             if locked_boundary is not None:
                 locked_boundary = locked_boundary.buffer(12)
             ok = _inside_boundary(candidate, locked_boundary) and (
-                item_type in _IGNORE_COLLISION_TYPES
+                collision_exempt
                 or (
-                    item_type in _OVERLAY_TYPES
+                    is_overlay
                     and check_placement_with_clearance(candidate, room, []) is None
                 )
                 or check_placement_with_clearance(candidate, room, placed) is None
@@ -1846,13 +1863,13 @@ def generate_layout(
                 rotation = float(item.get("rotation_y_deg") or 0)
                 locked = bool(item.get("position_locked"))
                 kept_position = True
-                if item_type not in _IGNORE_COLLISION_TYPES and item_type not in _OVERLAY_TYPES:
+                if not collision_exempt and not is_overlay:
                     placed.append(candidate)
                     placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
 
         if kept_position:
             pass
-        elif item_type in _OVERLAY_TYPES:
+        elif is_overlay:
             relation = item.get("placement_relation") or {}
             target_types = relation.get("target_types") or ["sofa", "sofa-bed", "bed", "bed-frame"]
             target = next(
@@ -1931,12 +1948,10 @@ def generate_layout(
             else:
                 failed_reason = adjacent["reason"] or "主家具旁沒有合法位置"
                 x_cm, z_cm = 0.0, 0.0
-        elif item_type in _IGNORE_COLLISION_TYPES:
-            if item_type == "wall-shelf":
-                x_cm = -half_w_cm + width / 2 + 15
-                z_cm = -half_d_cm + depth / 2 + 12
-            else:
-                x_cm, z_cm = 0.0, 0.0
+        elif collision_exempt:
+            # 壁掛品項掛在牆上,不是站在房間中央——鏡子、層架一律貼牆角起算。
+            x_cm = -half_w_cm + width / 2 + 15
+            z_cm = -half_d_cm + depth / 2 + 12
             # 非矩形房間:固定點可能落在房間多邊形外(牆體裡),退到多邊形內部代表點
             probe = PlacedFurniture(
                 id=item_id, catalog=catalog,
@@ -2041,11 +2056,7 @@ def generate_layout(
             "position_locked": locked,
             "placement_failed": bool(failed_reason),
             "placement_reason": failed_reason,
-            "placement_engine": (
-                "boundary_rule"
-                if item_type in _IGNORE_COLLISION_TYPES
-                else "furniture_engine"
-            ),
+            "placement_engine": "boundary_rule" if collision_exempt else "furniture_engine",
             "auto_decor_role": item.get("auto_decor_role"),
             "auto_decor_room_id": item.get("auto_decor_room_id"),
             "placement_relation": item.get("placement_relation"),
