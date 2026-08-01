@@ -278,7 +278,7 @@ def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protru
     assert "leftInside !== rightInside" in resolver
     assert "wallEndpointTouchesExteriorBounds" in resolver
     assert "resolveWallMaterial.exteriorMaterial = exteriorMaterial" in resolver
-    assert "const overrideAtPoint" in resolver
+    assert "function roomOverrideForInteriorPoint" in resolver
     assert "resolveWallMaterial.faceMaterials" in resolver
     assert "const materialForSide = (side)" in resolver
     assert "roompilotWallSurfaceRole = \"exterior\"" in resolver
@@ -292,6 +292,25 @@ def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protru
     assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in wall_builder
     assert "Number(start.x) + unitX * capCenter" in wall_builder
     assert "sceneData.floorplan," in create_room
+
+
+def test_room_wall_finish_is_canonical_and_door_headers_share_wall_faces() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    resolver = source.split("function wallMaterialResolver", 1)[1].split(
+        "function wallSegmentPoint", 1
+    )[0]
+    door_builder = source.split("function buildConfirmedDoorLeaves", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+
+    assert "const canonicalOverrides = new Map()" in resolver
+    assert "const roomOverrides = [...canonicalOverrides.values()]" in resolver
+    assert "function roomOverrideForInteriorPoint" in resolver
+    assert "roomOverrideForInteriorPoint(sample)" in resolver
+    assert "wallMaterial.faceMaterials({ start, end })" in door_builder
+    assert "width + headerOverlapCm" in door_builder
 
 
 def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> None:

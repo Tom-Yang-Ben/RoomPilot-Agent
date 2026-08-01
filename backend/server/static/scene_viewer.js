@@ -1594,9 +1594,19 @@ export function createSceneViewer(
         const headerMaterial = typeof wallMaterial === "function"
           ? wallMaterial({ start, end })
           : wallMaterial;
+        const headerMaterials = typeof wallMaterial?.faceMaterials === "function"
+          ? wallMaterial.faceMaterials({ start, end })
+          : headerMaterial.clone();
+        // Extend the lintel fractionally into both jambs so it becomes one
+        // continuous wall assembly instead of a visibly floating thin slab.
+        const headerOverlapCm = 0.8;
         const header = new THREE.Mesh(
-          new THREE.BoxGeometry(width, headerHeight, wallThickness),
-          headerMaterial.clone(),
+          new THREE.BoxGeometry(
+            width + headerOverlapCm,
+            headerHeight,
+            wallThickness + headerOverlapCm,
+          ),
+          headerMaterials,
         );
         header.position.set(
           (Number(start.x) + Number(end.x)) / 2,
@@ -2278,10 +2288,17 @@ export function createSceneViewer(
   }
 
   function wallMaterialResolver(sceneData, defaultMaterial, exteriorMaterial = defaultMaterial) {
-    const overrides = sceneData.surface_overrides || [];
+    // A room can be saved more than once while the questionnaire auto-saves.
+    // Only the most recent record for that room may influence the final scene.
+    const canonicalOverrides = new Map();
+    (sceneData.surface_overrides || []).forEach((override) => {
+      const roomId = String(override?.room_id || "").trim();
+      if (roomId) canonicalOverrides.set(roomId, override);
+    });
+    const roomOverrides = [...canonicalOverrides.values()];
     const cache = new Map();
-    const firstOverride = overrides[0] || null;
-    const usesOneWholeHouseWall = Boolean(firstOverride) && overrides.every((override) => (
+    const firstOverride = roomOverrides[0] || null;
+    const usesOneWholeHouseWall = Boolean(firstOverride) && roomOverrides.every((override) => (
       override.wall_option === firstOverride.wall_option
         && override.wall_color_hex === firstOverride.wall_color_hex
     ));
@@ -2303,12 +2320,41 @@ export function createSceneViewer(
         point.z - (Number(start.z) + projection * dz),
       );
     };
-    const overrideAtPoint = (point) => overrides.findLast((item) => {
-      const polygon = item.room_polygon_cm || [];
-      return polygon.length >= 3
-        ? ringContainsPoint(point, polygon)
-        : (item.room_bounds_cm && pointInBounds(point, item.room_bounds_cm, 18));
-    });
+    const distanceToRoomBoundary = (point, override) => {
+      const polygon = override.room_polygon_cm || [];
+      if (polygon.length >= 3) {
+        return polygon.reduce((nearest, current, index) => {
+          const next = polygon[(index + 1) % polygon.length];
+          const start = ringPointCoordinates(current);
+          const end = ringPointCoordinates(next);
+          return (!start || !end)
+            ? nearest
+            : Math.min(nearest, pointToSegmentDistance(point, start, end));
+        }, Infinity);
+      }
+      const bounds = override.room_bounds_cm;
+      if (!bounds) return Infinity;
+      const nearestX = THREE.MathUtils.clamp(point.x, Number(bounds.minX), Number(bounds.maxX));
+      const nearestZ = THREE.MathUtils.clamp(point.z, Number(bounds.minZ), Number(bounds.maxZ));
+      return Math.hypot(point.x - nearestX, point.z - nearestZ);
+    };
+    function roomOverrideForInteriorPoint(point) {
+      const exact = roomOverrides.filter((item) => {
+        const polygon = item.room_polygon_cm || [];
+        return polygon.length >= 3
+          ? ringContainsPoint(point, polygon)
+          : (item.room_bounds_cm && pointInBounds(point, item.room_bounds_cm, 18));
+      });
+      if (exact.length) return exact[0];
+
+      // A wall face lies exactly on the room boundary.  Imperfect OCR polygons
+      // can leave a few centimetres of drift, so retain the closest room rather
+      // than falling back to an unrelated exterior/default finish.
+      const nearest = roomOverrides
+        .map((item) => ({ item, distance: distanceToRoomBoundary(point, item) }))
+        .sort((left, right) => left.distance - right.distance)[0];
+      return nearest?.distance <= 28 ? nearest.item : null;
+    }
     const materialForOverride = (override) => {
       if (!override) return defaultMaterial;
       const cacheKey = override.room_id;
@@ -2338,7 +2384,7 @@ export function createSceneViewer(
         x: (Number(segment.start?.x || 0) + Number(segment.end?.x || 0)) / 2,
         z: (Number(segment.start?.z || 0) + Number(segment.end?.z || 0)) / 2,
       };
-      return materialForOverride(overrideAtPoint(midpoint));
+      return materialForOverride(roomOverrideForInteriorPoint(midpoint));
     };
     resolveWallMaterial.faceMaterials = (segment, exteriorSideSign = 1) => {
       const start = segment.start || {};
@@ -2359,7 +2405,7 @@ export function createSceneViewer(
           x: midpoint.x + normal.x * side * 16,
           z: midpoint.z + normal.z * side * 16,
         };
-        return materialForOverride(overrideAtPoint(sample));
+        return materialForOverride(roomOverrideForInteriorPoint(sample));
       };
       const positiveSide = materialForSide(1);
       const negativeSide = materialForSide(-1);
