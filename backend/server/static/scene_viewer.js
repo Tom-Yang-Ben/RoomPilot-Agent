@@ -137,6 +137,50 @@ function architecturalOpeningScore(opening = {}, wallSegments = [], wallThicknes
     - Math.min(30, centerOffset * 0.25);
 }
 
+// 辨識層給的門常常超出它自己給的牆段（實測 7 個門有 6 個如此，溢出 19–62cm）。
+// openingWallInterval 會把開口區間夾進 [0, wall.length]，而門片放在區間中心，
+// 所以截斷等於把門沿著牆平移——這就是「門不在第 3 步定的位置」的成因。
+// 以門為準：把宿主牆沿自身方向延長到足以容納整個開口，夾取就變成無作用。
+function wallSegmentsExtendedForOpenings(wallSegments = [], openings = [], wallThickness = 12) {
+  if (!openings.length) return wallSegments;
+  return wallSegments.map((segment) => {
+    const start = segment?.start || {};
+    const end = segment?.end || {};
+    const startX = Number(start.x || 0);
+    const startZ = Number(start.z || 0);
+    const length = Math.hypot(Number(end.x || 0) - startX, Number(end.z || 0) - startZ);
+    if (length < 4) return segment;
+    const unitX = (Number(end.x || 0) - startX) / length;
+    const unitZ = (Number(end.z || 0) - startZ) / length;
+
+    let minAlong = 0;
+    let maxAlong = length;
+    openings.forEach((opening) => {
+      if (!opening || !openingBelongsToWall(segment, opening, wallThickness)) return;
+      const openingStart = opening.start || {};
+      const openingEnd = opening.end || {};
+      const centerX = (Number(openingStart.x || 0) + Number(openingEnd.x || 0)) / 2;
+      const centerZ = (Number(openingStart.z || 0) + Number(openingEnd.z || 0)) / 2;
+      const along = (centerX - startX) * unitX + (centerZ - startZ) * unitZ;
+      const width = Number(opening.width_cm || opening.width)
+        || Math.hypot(
+          Number(openingEnd.x || 0) - Number(openingStart.x || 0),
+          Number(openingEnd.z || 0) - Number(openingStart.z || 0),
+        );
+      minAlong = Math.min(minAlong, along - width / 2);
+      maxAlong = Math.max(maxAlong, along + width / 2);
+    });
+    if (minAlong >= -0.5 && maxAlong <= length + 0.5) return segment;
+
+    return {
+      ...segment,
+      start: { ...start, x: startX + unitX * minAlong, z: startZ + unitZ * minAlong },
+      end: { ...end, x: startX + unitX * maxAlong, z: startZ + unitZ * maxAlong },
+      roompilot_extended_for_openings: true,
+    };
+  });
+}
+
 function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wallThickness = 12) {
   const result = [];
   openings.filter(Boolean).forEach((opening) => {
@@ -2857,16 +2901,23 @@ export function createSceneViewer(
     if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
     const wallThickness = 12;
-    const wallSegments = sceneData.floorplan?.wall_segments || [];
+    const rawDoorSegments = sceneData.floorplan?.door_segments || [];
+    const rawWindowSegments = sceneData.floorplan?.window_segments || [];
+    // 先把牆延伸到容納開口，之後的比對與建構全部用延伸後的牆。
+    const wallSegments = wallSegmentsExtendedForOpenings(
+      sceneData.floorplan?.wall_segments || [],
+      [...rawDoorSegments, ...rawWindowSegments],
+      wallThickness,
+    );
     const doorSegments = dedupeArchitecturalOpeningsFor3d(
-      (sceneData.floorplan?.door_segments || []).map(
+      rawDoorSegments.map(
         (door) => doorOpeningForWallTopology(wallSegments, door, wallThickness),
       ),
       wallSegments,
       wallThickness,
     );
     const windowSegments = dedupeArchitecturalOpeningsFor3d(
-      sceneData.floorplan?.window_segments || [],
+      rawWindowSegments,
       wallSegments,
       wallThickness,
     );
