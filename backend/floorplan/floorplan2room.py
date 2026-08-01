@@ -398,6 +398,13 @@ OCR_WORD2LABEL = {
     "BATH": "Bath", "BATHROOM": "Bath", "WC": "Bath", "TOILET": "Bath",
     "LIVING": "LivingRoom", "LIVINGROOM": "LivingRoom",
     "LOUNGE": "LivingRoom",
+    # 2026-08-01 功能區切分補詞：FAMILY/DINING 是美式圖常用的客餐區
+    # 標注（floor01 的 FAMILY ROOM/DINNING AREA 因缺詞湊不滿兩錨點）。
+    # DINNING 是圖面常見錯拼，照收
+    "FAMILY": "LivingRoom", "FAMILYROOM": "LivingRoom",
+    "DINING": "LivingRoom", "DINNING": "LivingRoom",
+    "WASHROOM": "Bath", "WASHAREA": "Bath",
+    "LAUNDRY": "Bath", "LNDRY": "Bath",
     "DEPOSIT": "Storage", "STORAGE": "Storage", "CLOSET": "Storage",
     # 走道系詞彙 2026-08-01 從 Entry 改指 Hallway：圖面寫 CIRCULATION／HALLWAY
     # 的就是走道，玄關另有 ENTRY／ENTRANCE。舊映射把三者都算成玄關，是
@@ -1022,6 +1029,88 @@ def _carve_stairs(labels, rooms, boxes, T, cm=1.0):
     return out
 
 
+def _room_stats(labels, rid, touch_env):
+    """依 labels 重算單一房間統計；該 id 已無像素時回 None。"""
+    ys, xs = np.nonzero(labels == rid)
+    if not len(xs):
+        return None
+    w_, h_ = int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)
+    return {"id": rid, "area_px": int(len(xs)),
+            "bbox": (int(xs.min()), int(ys.min()),
+                     int(xs.max() + 1), int(ys.max() + 1)),
+            "cx": float(xs.mean()), "cy": float(ys.mean()),
+            "aspect": round(max(w_, h_) / max(1.0, min(w_, h_)), 2),
+            "touch_env": touch_env}
+
+
+def _split_by_text_anchors(labels, rooms, texts, T, cm, amin):
+    """OCR 房名錨點功能區切分（labels 就地改，回傳新 rooms）。
+    E1 誤併型態：廚/餐/客一體、玄關-走道虛線分界——GT 沿無牆邊界分區，
+    封口規則無牆可封。圖面文字是作者親口說的答案：一房含 2+ 個房名
+    錨點＝作者標了 2+ 個功能區，沿主軸在錨點間隙中點下軸對齊直刀
+    （使用者域約束：房間只有直角矩形系，切線只有水平/垂直）。
+
+    防呆：同標籤錨點相距 <200cm 視為同一區（折行文字）；任一切塊
+    低於 amin 則整房放棄不切；錨點取字框中心、落在該房 labels 上
+    才算數。"""
+    if not texts:
+        return rooms
+    h, w = labels.shape
+    out = list(rooms)
+    nid = max((r["id"] for r in out), default=0)
+    xs_grid = np.arange(w)[None, :]
+    ys_grid = np.arange(h)[:, None]
+
+    def _cut(region, anchors):
+        if len(anchors) == 1:
+            return [region]
+        sx = max(a[1] for a in anchors) - min(a[1] for a in anchors)
+        sy = max(a[2] for a in anchors) - min(a[2] for a in anchors)
+        key = 1 if sx >= sy else 2               # 主軸＝錨點散得開的那軸
+        vals = sorted(anchors, key=lambda a: a[key])
+        gi = max(range(len(vals) - 1),
+                 key=lambda i: vals[i + 1][key] - vals[i][key])
+        cut = (vals[gi][key] + vals[gi + 1][key]) / 2.0
+        grid = xs_grid if key == 1 else ys_grid
+        return (_cut(region & (grid < cut), vals[:gi + 1])
+                + _cut(region & (grid >= cut), vals[gi + 1:]))
+
+    for room in rooms:
+        rid = room["id"]
+        anch = []
+        for t in texts:
+            lab, cx, cy = t[0], float(t[1]), float(t[2])
+            ix, iy = int(round(cx)), int(round(cy))
+            if 0 <= iy < h and 0 <= ix < w and labels[iy, ix] == rid:
+                anch.append([lab, cx, cy])
+        merged = []                              # 折行文字＝同區
+        for lab, cx, cy in anch:
+            hit = next((m for m in merged
+                        if m[0] == lab and abs(m[1] - cx) * cm < 200
+                        and abs(m[2] - cy) * cm < 200), None)
+            if hit:
+                hit[1] = (hit[1] + cx) / 2.0
+                hit[2] = (hit[2] + cy) / 2.0
+            else:
+                merged.append([lab, cx, cy])
+        if len(merged) < 2:
+            continue
+        parts = _cut(labels == rid, merged)
+        if any(int(p.sum()) < amin for p in parts):
+            continue                             # 有碎屑 → 整房放棄不切
+        for p in parts[1:]:
+            nid += 1
+            labels[p] = nid
+        te = room.get("touch_env", False)
+        out.remove(room)
+        for r_ in filter(None, (_room_stats(labels, rid, te),
+                                *(_room_stats(labels, i, te)
+                                  for i in range(nid - len(parts) + 2,
+                                                 nid + 1)))):
+            out.append(r_)
+    return out
+
+
 def _bridge_has_door_ink(det, horiz, g0, g1, b0, b1):
     """門位證據：門扇迴轉區（開口兩側各 1.1×開口深）扣掉 OCR 文字框後的
     細線墨水密度。真門畫弧/門扇必留墨（floor04 浴廁虛線弧 1.45%），
@@ -1110,6 +1199,9 @@ def build_rooms(det):
              and _bridge_has_door_ink(det, *b)]  # 迴轉區無墨=開放通道非門
     # 樓梯足跡切分：開放區嵌樓梯無牆可封，踏板串外框直接切出成房
     rooms = _carve_stairs(labels, rooms, detect_stair_boxes(det), T, cm)
+    # OCR 錨點功能區切分：一房含 2+ 房名文字＝作者標了 2+ 個功能區
+    rooms = _split_by_text_anchors(labels, rooms, det.get("texts") or [],
+                                   T, cm, amin)
     # 房型命名（2026-07-30 起只剩兩層，CubiCasa 語意投票已整批移除）：
     #   1) DINOv2 裁切分類（room_classifier）——own_eval 72 房 90.3%
     #   2) 面積規則（純幾何兜底）——缺 torch/骨幹/線性頭時
