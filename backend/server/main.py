@@ -54,6 +54,7 @@ from .scene_service import (
     generate_layout,
     get_openrouter_status,
     parse_floorplan_with_engine,
+    resolve_placement_preferences,
     room_from_payload,
     scene_object_in_boundary,
     selection_complete_fn,
@@ -174,6 +175,11 @@ def _floorplan_ocr_provider():
         return None
     return default_ocr_provider()
 MAX_RENDER_BYTES = 20 * 1024 * 1024
+# 平面圖是 DXF 或掃描圖，正常在數 MB 以內。無界 read() 會把整份檔案讀進記憶體，
+# QA 實測 60MB 照收；上限比照最終 PNG，超過就明確回 413 而不是慢慢吃光記憶體。
+MAX_FLOORPLAN_BYTES = 20 * 1024 * 1024
+MAX_PROJECT_NAME_CHARS = 120
+MAX_PROJECT_NOTES_CHARS = 2000
 WORKFLOW_STEPS = {
     "project",
     "upload",
@@ -1004,6 +1010,75 @@ def _normalize_catalog_payload(items: tuple[dict, ...]) -> tuple[dict, ...]:
     return tuple(normalized)
 
 
+async def _read_upload(file: UploadFile, limit_bytes: int, label: str) -> bytes:
+    """多讀一個 byte 就知道有沒有超標，避免先把超大檔整份讀進記憶體。"""
+    content = await file.read(limit_bytes + 1)
+    if len(content) > limit_bytes:
+        raise HTTPException(
+            413,
+            {
+                "code": "upload_too_large",
+                "message": f"{label}不可超過 {limit_bytes // (1024 * 1024)} MB。",
+            },
+        )
+    return content
+
+
+def _payload_number(
+    payload: dict,
+    key: str,
+    default: float | None = None,
+    *,
+    minimum: float | None = None,
+) -> float | None:
+    """把 payload 的數值欄位轉成 float。
+
+    型別錯誤是呼叫端的問題，要回 422 說清楚哪個欄位錯；直接 float() 讓
+    ValueError 冒到 FastAPI 只會變成 500，前端只看得到「操作失敗」。
+    """
+    raw = payload.get(key)
+    if raw is None or raw == "":
+        return default
+    if isinstance(raw, bool) or not isinstance(raw, (int, float, str)):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是數字。")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是數字。") from None
+    if value != value or value in (float("inf"), float("-inf")):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是有限數字。")
+    if minimum is not None and value < minimum:
+        raise HTTPException(status_code=422, detail=f"{key} 不得小於 {minimum:g}。")
+    return value
+
+
+def _payload_mapping(payload: dict, key: str) -> dict:
+    raw = payload.get(key)
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是物件。")
+    return raw
+
+
+def _payload_sequence(payload: dict, key: str) -> list:
+    raw = payload.get(key)
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是陣列。")
+    return raw
+
+
+def _normalize_catalog_item(item: dict) -> dict:
+    """單筆版的 :func:`_normalize_catalog_payload`。
+
+    單品查詢也必須走同一道正規化，否則第 6 步從清單點進詳情時，同一件家具的
+    placement_surface 與 style_candidates 會前後不一致。
+    """
+    return _normalize_catalog_payload((item,))[0]
+
+
 def _furniture_payload_cache() -> tuple[dict, ...]:
     """Read SQL every time in formal mode; cache only explicit offline JSON."""
     if catalog_provider_mode(PROJECT_DIR) == "postgres":
@@ -1141,7 +1216,7 @@ def _get_merged_furniture_by_id(furniture_id: str) -> dict:
         except Exception as exc:
             raise _postgres_catalog_unavailable(exc) from exc
         if item is not None:
-            return item
+            return _normalize_catalog_item(item)
         raise HTTPException(status_code=404, detail="Furniture not found in official catalog.")
     return _get_json_merged_furniture_by_id(furniture_id)
 
@@ -1797,8 +1872,10 @@ def _stored_project(project_id: str) -> dict:
         raise HTTPException(
             404,
             {
+                # 產品沒有專案列表頁，也沒有 list/DELETE API。舊訊息把使用者
+                # 指向一個不存在的地方，等於告訴他「去一個沒有的畫面」。
                 "code": "project_not_found",
-                "message": "找不到這個專案，請返回專案列表重新選擇。",
+                "message": "找不到這個專案，可能已被刪除或連結有誤；請回首頁重新開始設計。",
             },
         ) from exc
 
@@ -1880,9 +1957,35 @@ def _validate_floorplan_bytes(extension: str, content: bytes) -> str:
     return "image/png" if extension == ".png" else "image/jpeg"
 
 
+def _project_text(payload: dict, key: str, label: str, *, limit: int) -> str:
+    """專案文字欄位的共同入口。
+
+    舊版直接 ``str()`` 硬轉：送 dict 進來會把 Python repr 存成專案名稱，等於把
+    伺服器內部資料結構回顯給使用者；長度也沒有上限。
+    """
+    raw = payload.get(key)
+    if raw is None:
+        return ""
+    if not isinstance(raw, str):
+        raise HTTPException(
+            422,
+            {"code": f"invalid_project_{key}", "message": f"{label}必須是文字。"},
+        )
+    text = raw.strip()
+    if len(text) > limit:
+        raise HTTPException(
+            422,
+            {
+                "code": f"project_{key}_too_long",
+                "message": f"{label}不可超過 {limit} 個字。",
+            },
+        )
+    return text
+
+
 @app.post("/api/projects", status_code=201)
 def create_project(payload: dict) -> dict:
-    name = str(payload.get("name") or "").strip()
+    name = _project_text(payload, "name", "專案名稱", limit=MAX_PROJECT_NAME_CHARS)
     if not name:
         raise HTTPException(
             422,
@@ -1892,7 +1995,7 @@ def create_project(payload: dict) -> dict:
                 "focus": "project-name",
             },
         )
-    notes = str(payload.get("notes") or "").strip()
+    notes = _project_text(payload, "notes", "備註", limit=MAX_PROJECT_NOTES_CHARS)
     return {"project": PROJECT_STORE.create_project(name=name, notes=notes)}
 
 
@@ -1971,7 +2074,7 @@ async def save_project_floorplan(
                 "allowed_extensions": list(FLOORPLAN_EXTENSIONS),
             },
         )
-    content = await file.read()
+    content = await _read_upload(file, MAX_FLOORPLAN_BYTES, "平面圖")
     mime_type = _validate_floorplan_bytes(extension, content)
     try:
         upload = PROJECT_STORE.save_upload(
@@ -2589,7 +2692,10 @@ def furniture_catalog(
             )
         except Exception as exc:
             raise _postgres_catalog_unavailable(exc) from exc
-        items = list(result.items)
+        # 這條 REST 路徑原本直接吐 SQL 列，繞過 scene/agent/site 都會走的正規化：
+        # placement_surface 全缺（第 6 步把壁掛與擺飾當落地家具算碰撞），
+        # style_candidates 也沒去重（同一個 style_id 重複灌高排序）。
+        items = list(_normalize_catalog_payload(tuple(result.items)))
         sample_files = (
             list(result.model_urls)
             if cloudfront_required()
@@ -2652,6 +2758,7 @@ def _furniture_detail_payload(furniture_id: str) -> dict:
             raise _postgres_catalog_unavailable(exc) from exc
         if item is None:
             raise HTTPException(status_code=404, detail="Furniture not found in official catalog.")
+        item = _normalize_catalog_item(item)
     else:
         item = _furniture_payload_item(_get_json_merged_furniture_by_id(furniture_id))
     payload = dict(item)
@@ -2882,11 +2989,11 @@ async def agent_furniture_select(payload: dict) -> dict:
 async def generate_scene(payload: dict) -> dict:
     site_payload = build_site_payload()
 
-    client_brief = payload.get("client_brief") or {}
-    brief_space = client_brief.get("space") or {}
-    brief_style = client_brief.get("style") or {}
-    brief_occupants = client_brief.get("occupants") or {}
-    test2_questionnaire = payload.get("questionnaire") or {}
+    client_brief = _payload_mapping(payload, "client_brief")
+    brief_space = _payload_mapping(client_brief, "space")
+    brief_style = _payload_mapping(client_brief, "style")
+    brief_occupants = _payload_mapping(client_brief, "occupants")
+    test2_questionnaire = _payload_mapping(payload, "questionnaire")
 
     questionnaire = {
         "space_type": payload.get("space_type") or brief_space.get("type") or "living_room",
@@ -2920,8 +3027,16 @@ async def generate_scene(payload: dict) -> dict:
         site_payload=site_payload,
         questionnaire=questionnaire,
         floorplan_path=payload.get("floorplan_filename"),
-        room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
-        room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
+        room_width_cm=(
+            _payload_number(payload, "room_width_cm", minimum=0)
+            or _payload_number(brief_space, "width_cm", minimum=0)
+            or 420
+        ),
+        room_depth_cm=(
+            _payload_number(payload, "room_depth_cm", minimum=0)
+            or _payload_number(brief_space, "depth_cm", minimum=0)
+            or 360
+        ),
     )
     return {
         **scene_payload,
@@ -2981,12 +3096,12 @@ async def scene_layout(payload: dict) -> dict:
     scene_objects 帶 position_locked 的項目(使用者拖曳過)位置仍合法就不重排。
     放不下的家具走與 /api/scene/generate 相同的擺放紀律:換小、移除或升級人工。
     """
-    objects = payload.get("scene_objects", [])
+    objects = _payload_sequence(payload, "scene_objects")
     editor_floorplan = payload.get("floorplan_editor")
     if isinstance(editor_floorplan, dict) and editor_floorplan:
         floorplan, room = floorplan_from_editor_payload(editor_floorplan)
     else:
-        floorplan = payload.get("floorplan") or {}
+        floorplan = _payload_mapping(payload, "floorplan")
         room = room_from_payload(floorplan)
     placement_room_id = payload.get("placement_room_id")
     placement_variant = str(payload.get("placement_variant") or "A").upper()
@@ -2995,6 +3110,10 @@ async def scene_layout(payload: dict) -> dict:
     place_boundary = (
         _region_boundary_by_id(floorplan, room, placement_room_id)
         or _largest_region_boundary(floorplan, room)
+    )
+    placement_preferences = _payload_mapping(payload, "placement_preferences")
+    _margin, _clearance, applied_preferences, ignored_preferences = (
+        resolve_placement_preferences(placement_preferences)
     )
 
     items, original_catalog = _repair_ready_items(objects)
@@ -3009,6 +3128,7 @@ async def scene_layout(payload: dict) -> dict:
             place_boundary=place_boundary,
             floorplan=floorplan,
             placement_variant=placement_variant,
+            placement_preferences=placement_preferences,
         )
 
     scene_objects = place(items)
@@ -3043,6 +3163,9 @@ async def scene_layout(payload: dict) -> dict:
         "floorplan": floorplan,
         "scene_objects": _restore_scene_identity(scene_objects, original_catalog),
         "placement_resolution_report": report,
+        # 明說哪些偏好真的進了引擎、哪些還沒有對應動作，避免整條 no-op 又沒人發現。
+        "placement_preferences_applied": applied_preferences,
+        "placement_preferences_ignored": ignored_preferences,
     }
 
 
@@ -3144,11 +3267,12 @@ def _curtain_catalog_item() -> dict | None:
 @app.post("/api/scene/decorate")
 async def scene_decorate(payload: dict) -> dict:
     """依風格加入軟裝，所有最終座標仍由家具引擎決定。"""
+    _payload_sequence(payload, "scene_objects")
     editor_floorplan = payload.get("floorplan_editor")
     if isinstance(editor_floorplan, dict) and editor_floorplan:
         floorplan, room = floorplan_from_editor_payload(editor_floorplan)
     else:
-        floorplan = payload.get("floorplan") or {}
+        floorplan = _payload_mapping(payload, "floorplan")
         room = room_from_payload(floorplan)
 
     placement_room_id = payload.get("placement_room_id")
@@ -3320,13 +3444,13 @@ async def scene_decorate(payload: dict) -> dict:
 async def scene_validate(payload: dict) -> dict:
     """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
     editor_floorplan = payload.get("floorplan_editor")
-    floorplan = payload.get("floorplan")
+    floorplan = _payload_mapping(payload, "floorplan") or None
     if isinstance(editor_floorplan, dict) and editor_floorplan:
         floorplan, _ = floorplan_from_editor_payload(editor_floorplan)
     return validate_single_placement(
         floorplan,
-        payload.get("item") or {},
-        payload.get("others") or [],
+        _payload_mapping(payload, "item"),
+        _payload_sequence(payload, "others"),
     )
 
 
@@ -3401,7 +3525,7 @@ async def upload(
     thickness: float = Query(0.18, gt=0, le=2),
     height: float = Query(2.7, gt=0, le=10),
 ):
-    data = await file.read()
+    data = await _read_upload(file, MAX_FLOORPLAN_BYTES, "平面圖")
     try:
         return parse_dxf_bytes(data, file.filename or "upload.dxf", scale_m, thickness, height)
     except Exception as e:
@@ -3437,7 +3561,7 @@ async def floorplan_analyze(
     extension = Path(file.filename or "").suffix.lower()
     if extension not in {".png", ".jpg", ".jpeg"}:
         raise HTTPException(415, "floorplan_image_required")
-    data = await file.read()
+    data = await _read_upload(file, MAX_FLOORPLAN_BYTES, "平面圖")
     calibration = _floorplan_json_field(calibration_json, "calibration", None)
     observations = _floorplan_json_field(ocr_json, "ocr", [])
     geometry = _floorplan_json_field(geometry_json, "geometry", [])

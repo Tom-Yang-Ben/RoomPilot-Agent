@@ -2,10 +2,11 @@ import {
   fetchFurniturePage,
   formatSize,
   initBackgroundFx,
+  reportPageBootFailure,
   scrollPageTop,
   shouldUseDarkFurnitureStage,
   styleNameMap,
-} from "./common.js?v=20260711g";
+} from "./common.js?v=20260802a";
 import { createViewer } from "./viewer.js?v=20260708a";
 import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260708c";
 
@@ -751,4 +752,9 @@ elements.spinModel.addEventListener("click", () => {
 });
 
 initBackgroundFx();
-await bootstrapModeOne();
+// 型錄 503 不該讓整頁停在白畫布：事件都綁好了，只是清單空著並說明原因。
+try {
+  await bootstrapModeOne();
+} catch (error) {
+  reportPageBootFailure(error, "家具型錄");
+}

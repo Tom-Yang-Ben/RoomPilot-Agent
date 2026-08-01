@@ -7502,9 +7502,43 @@ function questionnaireFurnitureRole(room, offer) {
   return { rank: 2, label: "可選配置", reason: program.labels[type] || "依用途與偏好推薦" };
 }
 
+function roomAreaM2(room) {
+  const dimensions = roomDimensions(room);
+  return Number(dimensions?.areaM2) || 0;
+}
+
+/**
+ * 這間臥室是主臥還是次臥。
+ *
+ * 第 4 步的房名收斂後只有單一「臥室」類，主次由面積推導：最大的那間是主臥。
+ * 沒有這個判斷，兒童房也會拿到主臥的雙人床配置。
+ */
+function bedroomRoleFor(room) {
+  const bedrooms = state.rooms.filter(
+    (candidate) => normalizedRoomTypeValue(candidate.type) === "bedroom",
+  );
+  if (bedrooms.length <= 1) return "primary";
+  const ranked = [...bedrooms].sort((a, b) => roomAreaM2(b) - roomAreaM2(a));
+  return String(ranked[0]?.id) === String(room.id) ? "primary" : "secondary";
+}
+
+function occupancyForRoom(room) {
+  const residents = state.firstMeeting?.residents || {};
+  const adults = Math.max(0, Number(residents.adults) || 0);
+  const children = Math.max(0, Number(residents.children) || 0);
+  const elderly = Math.max(0, Number(residents.elderly) || 0);
+  return {
+    adults,
+    children,
+    // 用餐人數＝全體住戶，至少兩人；沒有這個數字餐椅永遠只有一張。
+    diningSeats: Math.max(2, adults + children + elderly),
+    bedroomRole: bedroomRoleFor(room),
+  };
+}
+
 function questionnaireFurnitureSpecsForRoom(room) {
   const recommended = applyVisualPreferencesToSpecs(
-    recommendedFurnitureForRoom(room),
+    recommendedFurnitureForRoom(room, occupancyForRoom(room)),
     visualPreferencesForRoom(room),
   );
   const usageSpecs = ensureRoomUsage(room).flatMap(
@@ -8137,7 +8171,7 @@ async function autoLayoutFurniture() {
     });
     const requestedSpecs = userSelectedSpecs.length
       ? userSelectedSpecs
-      : recommendedFurnitureForRoom(room);
+      : recommendedFurnitureForRoom(room, occupancyForRoom(room));
     const visualPreferences = visualPreferencesForRoom(room);
     const preferredSpecs = userSelectedSpecs.length
       ? requestedSpecs

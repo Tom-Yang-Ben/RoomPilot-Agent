@@ -1,4 +1,8 @@
-import { fetchHomeData, initBackgroundFx } from "./common.js?v=20260711g";
+import {
+  fetchHomeData,
+  initBackgroundFx,
+  reportPageBootFailure,
+} from "./common.js?v=20260802a";
 
 const workflowMeta = [
   {
@@ -28,7 +32,13 @@ const workflowMeta = [
   },
 ];
 
-const data = await fetchHomeData();
+// 型錄不可用時仍要把靜態說明畫出來，只是數字顯示為「-」並掛上錯誤橫幅。
+let data = {};
+try {
+  data = await fetchHomeData();
+} catch (error) {
+  reportPageBootFailure(error, "首頁資料");
+}
 const furnitureMetric = document.getElementById("metric-furniture");
 if (furnitureMetric) {
   furnitureMetric.textContent = String(data.summary?.total_furniture || "-");

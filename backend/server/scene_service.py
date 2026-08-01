@@ -1281,12 +1281,63 @@ def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: fl
     )
 
 
-def _shrunk_boundary(room: Room) -> Polygon | None:
+DEFAULT_WALK_MARGIN_CM = 8.0
+WIDE_WALK_MARGIN_CM = 20.0
+WINDOW_CLEARANCE_DEPTH_CM = 70.0
+
+
+def _shrunk_boundary(room: Room, margin_cm: float = DEFAULT_WALK_MARGIN_CM) -> Polygon | None:
     boundary = _room_boundary_polygon(room)
     if boundary is None:
         return None
-    shrunk = boundary.buffer(-8.0)
+    shrunk = boundary.buffer(-abs(margin_cm))
     return boundary if shrunk.is_empty else shrunk
+
+
+# 問卷擺位偏好 → 引擎真的做得到的動作。表以外的 key 一律回報成「未套用」，
+# 不要讓前端以為送出去就會生效（QA 2026-08-01 #10：整條 no-op）。
+PLACEMENT_PREFERENCE_EFFECTS: dict[str, dict[str, str]] = {
+    "circulation_priority": {"wide": "walk_margin", "storage": "walk_margin"},
+    "bed_priority": {"clearance": "walk_margin", "large": "walk_margin"},
+    "window_zone": {"clear": "window_clearance", "seat_storage": "window_clearance"},
+}
+
+
+def resolve_placement_preferences(
+    preferences: dict[str, Any] | None,
+) -> tuple[float, float, list[str], list[str]]:
+    """把問卷偏好翻成引擎參數。
+
+    回傳 ``(走道邊距, 窗前淨空深度, 已套用的 key, 未套用的 key)``。未套用清單
+    會回到 API 回應，讓「送了但沒生效」看得見而不是靜默。
+    """
+    preferences = preferences if isinstance(preferences, dict) else {}
+    walk_margin_cm = DEFAULT_WALK_MARGIN_CM
+    window_clearance_cm = WINDOW_CLEARANCE_DEPTH_CM
+    applied: list[str] = []
+    ignored: list[str] = []
+
+    for key, raw_value in preferences.items():
+        value = raw_value if isinstance(raw_value, str) else str(raw_value).lower()
+        known_values = PLACEMENT_PREFERENCE_EFFECTS.get(str(key))
+        if not known_values or value not in known_values:
+            ignored.append(str(key))
+            continue
+        if key == "circulation_priority":
+            walk_margin_cm = (
+                WIDE_WALK_MARGIN_CM if value == "wide" else DEFAULT_WALK_MARGIN_CM
+            )
+        elif key == "bed_priority":
+            walk_margin_cm = max(
+                walk_margin_cm,
+                WIDE_WALK_MARGIN_CM if value == "clearance" else DEFAULT_WALK_MARGIN_CM,
+            )
+        elif key == "window_zone":
+            # 使用者要窗邊臥榻／收納時，窗前淨空帶就是障礙而不是保護。
+            window_clearance_cm = 0.0 if value == "seat_storage" else WINDOW_CLEARANCE_DEPTH_CM
+        applied.append(str(key))
+
+    return walk_margin_cm, window_clearance_cm, applied, ignored
 
 
 def _regions_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon | None:
@@ -1439,6 +1490,7 @@ def generate_layout(
     floorplan: dict[str, Any] | None = None,
     preserve_existing_count: int = 0,
     placement_variant: str = "A",
+    placement_preferences: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
@@ -1455,8 +1507,24 @@ def generate_layout(
     # 擺放搜尋邊界(內縮 8cm 邊距):DXF 模式傳入最大自由空間;
     # 矩形房由牆環重建(等價於 bbox)。注意 DXF fallback 模式的 Room.walls
     # 是多個獨立環,不能拿去重建多邊形 —— 所以 DXF 一律走傳入的 place_boundary。
-    boundary = place_boundary if place_boundary is not None else _shrunk_boundary(room)
-    forbidden_zones = window_clearance_zones(floorplan, room)
+    walk_margin_cm, window_clearance_cm, _applied, _ignored = resolve_placement_preferences(
+        placement_preferences
+    )
+    if place_boundary is not None:
+        boundary = place_boundary
+        # DXF／多房路徑的邊界由呼叫端算好，這裡只補上偏好要的額外走道寬度。
+        extra_margin_cm = walk_margin_cm - DEFAULT_WALK_MARGIN_CM
+        if extra_margin_cm > 0:
+            widened = place_boundary.buffer(-extra_margin_cm)
+            if not widened.is_empty:
+                boundary = widened
+    else:
+        boundary = _shrunk_boundary(room, walk_margin_cm)
+    forbidden_zones = (
+        window_clearance_zones(floorplan, room, window_clearance_cm)
+        if window_clearance_cm > 0
+        else []
+    )
 
     room_w_cm = room.width
     room_d_cm = room.depth
