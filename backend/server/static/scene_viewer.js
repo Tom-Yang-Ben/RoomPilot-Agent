@@ -4487,7 +4487,10 @@ export function createSceneViewer(
 
   // ── 拖曳吸附:靠近牆段時貼齊(留 10cm,大於後端 8cm 邊距故吸附後必過驗證),平時 5cm 格點 ──
   const SNAP_RANGE = 30;
-  const WALL_GAP = 6;
+  // 後端邊界檢查是「嚴格在內」且內縮 8cm（scene_service._shrunk_boundary +
+  // _inside_boundary 用 contains）；前端夾位若只留 6，貼極限的旋轉/移動會
+  // 永遠差 2 公分被「超出房間範圍」拒絕。取 9 保證嚴格大於後端的 8。
+  const WALL_GAP = 9;
   const DRAG_GRID = 5;
 
   function normalizedRotationDeg(rotationDeg = 0) {
