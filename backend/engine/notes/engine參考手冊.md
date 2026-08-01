@@ -18,6 +18,8 @@
 5. [環境重建](#5-環境重建每台機器都要做一次)
 6. [驗證指令](#6-驗證指令)
 7. [踩過的坑](#7-踩過的坑)
+8. [已解除的疑慮](#8-已解除的疑慮別再當成問題)
+9. **[2D／3D 擺放程式碼地圖（改引擎前必查）](#9-2d3d-擺放程式碼地圖改引擎前必查)**
 
 ---
 
@@ -342,3 +344,121 @@ ss -ltnp | grep python
 | 房型策略表待勾選，是 P0 阻塞 | **早已拍板**，v1 定版於 `../room_strategy/README.md` | 讀正式 README |
 | `chests-of-drawer` 對碼有缺口 | **DB 實際就是 `chests-of-drawer`(129 筆)**，與引擎完全一致，不需改碼 | 查 DB 分類 |
 | 靠牆衣櫃的 front 會不會朝室內？ | **會**。正面朝牆時淨空跑到牆外，引擎自己就擋掉了 | 2026-08-01 實測 rotation 0 legal / 180 illegal |
+
+---
+
+## 9. 2D／3D 擺放程式碼地圖（**改引擎前必查**）
+
+> 2026-08-01 全庫掃描結果。擺放這件事散在 **6 層、13 個檔案**。
+> 只改引擎而沒改對應的上層，常見結果是「改了但畫面沒變」或「規則被別的地方蓋掉」。
+
+### 9.1 資料流：誰決定什麼
+
+```
+第 4 步 房型與門窗
+   ↓
+[1] 房型清單「放什麼」      ← 4 套並存，第 6 步實際只吃前端那套
+   ↓
+[2] 選件「選哪一件」        ← scene_service 評分＋亂數（不是 RAG）
+   ↓
+[3] 尺寸與淨空「要留多少」   ← 3 套並存，引擎那套勝出
+   ↓
+[4] 擺放策略「放哪裡、朝哪」 ← 引擎策略層優先，舊候選表 fallback
+   ↓
+[5] 合法性「能不能放」       ← 引擎＋scene_service 各有一半
+   ↓
+[6] 呈現 2D SVG／3D three.js
+```
+
+### 9.2 逐層檔案清單
+
+#### [1] 房型清單「放什麼」——**4 套並存**
+
+| # | 位置 | 內容 | 第 6 步吃嗎 |
+|---|---|---|---|
+| 1 | `backend/engine/room_strategy/README.md` | v1 正式規格（人讀） | ❌ |
+| 2 | `backend/agent/knowledge.py:97` `ROOM_MINIMUM_FAMILIES` | Agent 機器可讀 | ❌ |
+| 3 | `backend/server/scene_service.py:108` `SPACE_DEFAULTS` | 後端預設 | 只有直接打 API 時 |
+| 4 | `backend/server/static/scene_layout2d.js:234` `recommendedFurnitureForRoom` | 前端 | ✅ **走瀏覽器時實際用這張** |
+
+#### [2] 選件「選哪一件」
+
+| 位置 | 內容 |
+|---|---|
+| `scene_service.py:409` `choose_furniture_items` | 風格／顏色／尺度四項評分 ＋ **亂數 0~8 分**，取第一名 |
+| `scene_service.py:125` `FURNITURE_ALIASES` | 中文→型別；**仍含 2 個死鍵**（`bed-frame`／`cabinets-cupboard`） |
+| `scene_service.py:534` `_BED_CONFLICT_TOKENS` | 防「床的槽位跑出衣櫃」的字串防呆 |
+| `backend/spatial_data/rag/` | 真 RAG，**沒接主流程**，只掛 `/api/rag/*` |
+| `backend/agent/select.py` | LLM 選件，**結構上不可能被呼叫** |
+
+#### [3] 尺寸與淨空「要留多少」——**3 套並存**
+
+| # | 位置 | 涵蓋 | 實際生效？ |
+|---|---|---|---|
+| 1 | `backend/engine/clearance_defaults.py` | 17 單面＋6 多面 | ✅ **勝出** |
+| 2 | `backend/catalog/style_db.py:185` `CLEARANCE_BY_TYPE` | 只有 4 個類型 | ❌ **死碼**——`scene_service.py:1313` 會 `replace(catalog, clearance=None)` 明確清掉再補引擎的 |
+| 3 | `backend/server/engineering/rules.py:208` | 走道 80cm advisory | ⚠️ 只進工程報告警告，不擋擺放 |
+
+⚠️ **`style_db.CLEARANCE_BY_TYPE` 是陷阱**：數字與引擎不同（sideboard 40 vs 60、desk 硬 50 vs 軟 75），看起來像規則但**永遠不會生效**。改它沒用，別被誤導。
+
+#### [4] 擺放策略「放哪裡、朝哪」
+
+| 位置 | 內容 | 順序 |
+|---|---|---|
+| `backend/engine/layout_strategy.py` | 選牆／貼牆／正面朝內／貼床頭端／正前方／擺放順序 | **1️⃣ 優先** |
+| `scene_service.py:726` `_placement_candidates` | 80 行寫死的位置＋角度表，17 種家具 | 2️⃣ fallback |
+| `scene_service.py:706` `_WALL_ANCHORED_TYPES` | 貼牆清單（供上表用） | — |
+| `scene_service.py:806` `_hinted_wall_candidate` | 使用者拖曳留下的牆面提示 | 插在候選最前 |
+| `scene_service.py:848` `curtain_window_hint` | 窗簾對齊窗戶 | 插在候選最前 |
+| `backend/engine/placement.py` | 中心→四面牆→15cm 網格，first-fit | 3️⃣ 最後備援 |
+| `backend/agent/place.py` | 順序／換小／降級，**不算座標** | 包在最外層 |
+| `backend/server/main.py:3072` | 貼 `placement_relation` 標籤 | **只給地毯／植栽／燈** |
+
+#### [5] 合法性「能不能放」
+
+| 位置 | 內容 |
+|---|---|
+| `backend/engine/clearance.py` | 淨空七道檢查（順序見 `../README.md`） |
+| `backend/engine/geometry.py` | 出界／穿牆／重疊 |
+| `scene_service.py:1002` `window_clearance_zones` | **窗前 70cm 禁放帶**，平頭硬擋，不分窗型不看高度 |
+| `scene_service.py:844` `_OVERLAY_TYPES` | 地毯可壓在別人身上 |
+| `scene_service.py:845` `_IGNORE_COLLISION_TYPES` | 壁架**完全跳過碰撞** |
+| `scene_service.py:1442` `_shrunk_boundary` | 全房內縮 **8cm** |
+| `scene_service.py:1450`～`:1534` | 非矩形房間／多區域邊界 |
+
+#### [6] 呈現
+
+| 位置 | 行數 | 內容 |
+|---|---|---|
+| `static/scene_layout2d.js` | 368 | 2D SVG；`toSceneFurniture` **預設 `position_locked=true`** |
+| `static/scene_viewer.js` | 5,235 | 3D three.js；**8 處**會把 `position_locked` 設 true |
+| `static/scene_v2.js` | 13,224 | 第 6 步主控；`autoLayoutFurniture`:8052、`relayoutFurnitureForScheme`:8236 |
+| `static/scene.js` | 3,128 | 舊版場景頁 |
+| `frontend3d/src/snap.js` | 137 | **完全獨立的貼牆吸附**，**公尺制**，次要原型，與正式產品無關 |
+
+### 9.3 改引擎時的連動檢查表
+
+| 你要改引擎的 | 一定要一起改 | 否則 |
+|---|---|---|
+| **堆疊層（地毯）** | `scene_service.py:844` `_OVERLAY_TYPES` 分支 | 地毯走 overlay 分支，策略層碰不到，**完全吃不到** |
+| **落地窗留距** | `scene_service.py:1002` `window_clearance_zones` | 70cm 平頭帶取嚴，**細緻規則被蓋掉** |
+| **清死鍵** | `scene_service.py:125` `FURNITURE_ALIASES` | 問卷打「床架」「收納櫃」**照樣回 0 件** |
+| **房型白名單** | 上面 [1] 的 4 套清單 | 變成第 5 套，第 6 步仍走前端那張 |
+| **壁架碰撞** | `scene_service.py:845` `_IGNORE_COLLISION_TYPES` | 壁架跳過碰撞，引擎規則無效 |
+| **貼牆邊距** | `scene_service.py:1442` `_shrunk_boundary`（8cm） | 兩套邊距疊加，家具離牆變 16cm |
+| 淨空數字 | 無（`style_db` 那套是死碼） | ✅ 安全 |
+| 成組擺放、選牆、朝向 | 無（已接線） | ✅ 安全 |
+
+### 9.4 五個容易踩的陷阱
+
+1. **`position_locked`**：2D／3D 拖過的家具會被鎖住，之後重排**不會動它**。測引擎改動時若用舊專案，可能整批家具都是鎖定的，看起來像「改了沒效」。
+2. **`@lru_cache`**：`main.py` 的 `_furniture_payload_cache()` 有快取，改 DB 或 `.env` 後**要重啟 server** 才生效（RAG 走連線池，不用重啟）。
+3. **`style_db.CLEARANCE_BY_TYPE`**：看起來是規則，實際是死碼（見 [3]）。
+4. **方案 A／B**：方案 B **刻意不走策略層**（策略層是確定性的，否則兩案會一模一樣）。測策略層時要確認在方案 A。
+5. **`frontend3d/` 是公尺制**，正式產品是公分制。那份 `snap.js` 與生產流程無關，別拿去對照。
+
+### 9.5 開關
+
+```bash
+ROOMPILOT_LAYOUT_STRATEGY=0   # 關掉擺放策略層，100% 退回接線前行為
+```
