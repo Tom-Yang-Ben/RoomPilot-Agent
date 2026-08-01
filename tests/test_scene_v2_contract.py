@@ -230,6 +230,8 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert 'id="questionnaire-furniture-preference"' in html
     assert 'id="refresh-questionnaire-furniture"' in html
     assert 'id="questionnaire-room-usage-options"' in html
+    assert 'id="questionnaire-wall-preference"' in html
+    assert 'id="questionnaire-floor-preference"' in html
     assert "function ensureQuestionnaireFurnitureRecommendations" in source
     assert "function renderQuestionnaireFurnitureRecommendations" in source
     assert "const ROOM_USAGE_OPTIONS" in source
