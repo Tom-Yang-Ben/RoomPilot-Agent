@@ -497,15 +497,16 @@
                     </fieldset>
                     <fieldset>
                       <legend>天花板與照明</legend>
-                      <label><span>天花板材質</span><select id="questionnaire-ceiling-material">
+                      <div id="questionnaire-ceiling-quick-choices" class="rp-questionnaire-ceiling-quick-choices" aria-live="polite"></div>
+                      <label class="rp-questionnaire-native-ceiling-control"><span>天花板材質</span><select id="questionnaire-ceiling-material">
                         <option value="flat-paint">平光乳膠漆</option>
                         <option value="mineral-paint">礦物塗料</option>
                         <option value="wood-veneer">木皮飾面</option>
                         <option value="exposed-concrete">清水混凝土</option>
                       </select></label>
-                      <label><span>天花板形式</span><select id="questionnaire-ceiling-style"></select></label>
-                      <label><span>照明形式</span><select id="questionnaire-light-style"></select></label>
-                      <label><span>天花板顏色</span><input id="questionnaire-ceiling-color" type="color" value="#f4f1eb" /></label>
+                      <label class="rp-questionnaire-native-ceiling-control"><span>天花板形式</span><select id="questionnaire-ceiling-style"></select></label>
+                      <label class="rp-questionnaire-native-ceiling-control"><span>照明形式</span><select id="questionnaire-light-style"></select></label>
+                      <label class="rp-questionnaire-native-ceiling-control"><span>天花板顏色</span><input id="questionnaire-ceiling-color" type="color" value="#f4f1eb" /></label>
                     </fieldset>
                   </div>
                   <div class="rp-room-finish-apply" hidden>
@@ -927,6 +928,20 @@
       </div>
     </dialog>
 
+    <dialog id="questionnaire-ceiling-picker-dialog" class="rp-task-dialog rp-ceiling-picker-dialog" aria-labelledby="questionnaire-ceiling-picker-title">
+      <div class="rp-task-dialog-shell">
+        <header class="rp-task-dialog-header">
+          <div>
+            <p class="eyebrow">施工與光感參考</p>
+            <h2 id="questionnaire-ceiling-picker-title">選擇天花搭配</h2>
+            <p id="questionnaire-ceiling-picker-help"></p>
+          </div>
+          <button id="close-questionnaire-ceiling-picker" type="button" class="rp-icon-button" aria-label="關閉天花板選擇" title="關閉">×</button>
+        </header>
+        <div id="questionnaire-ceiling-picker-options" class="rp-ceiling-picker-options" aria-live="polite"></div>
+      </div>
+    </dialog>
+
     <div id="glb-thumbnail-viewer" class="rp-offscreen-thumbnail-viewer" aria-hidden="true"></div>
     <p id="glb-thumbnail-status" hidden aria-hidden="true"></p>
 
@@ -938,6 +953,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-82edf4f3cd34"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-a2ab4c369216"></script>
   </body>
 </html>

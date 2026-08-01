@@ -287,6 +287,18 @@ def test_questionnaire_renders_room_material_choices_and_pair_recommendations() 
     assert ".slice(0, 1);" in source
 
 
+def test_questionnaire_restores_visual_ceiling_selection_flow() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'id="questionnaire-ceiling-quick-choices"' in html
+    assert 'id="questionnaire-ceiling-picker-dialog"' in html
+    assert 'id="questionnaire-ceiling-picker-options"' in html
+    assert 'class="rp-questionnaire-native-ceiling-control"' in html
+    assert "renderQuestionnaireCeilingQuickChoices(draft);" in source
+    assert "openQuestionnaireCeilingDesignStyle" in source
+
+
 def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     auto_layout = source.split("async function autoLayoutFurniture()", 1)[1].split(

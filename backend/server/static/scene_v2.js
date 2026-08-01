@@ -386,6 +386,7 @@ const element = {
   questionnaireCeilingPickerTitle: $("#questionnaire-ceiling-picker-title"),
   questionnaireCeilingPickerHelp: $("#questionnaire-ceiling-picker-help"),
   questionnaireCeilingPickerOptions: $("#questionnaire-ceiling-picker-options"),
+  closeQuestionnaireCeilingPicker: $("#close-questionnaire-ceiling-picker"),
   questionnaireCeilingColor: $("#questionnaire-ceiling-color"),
   questionnaireAirConditioning: $("#questionnaire-air-conditioning"),
   questionnaireRoomUsageOptions: $("#questionnaire-room-usage-options"),
@@ -13379,6 +13380,10 @@ function bindEvents() {
     const button = event.target.closest("[data-questionnaire-ceiling-picker-item]");
     if (!button) return;
     selectQuestionnaireCeilingPickerItem(button.dataset.questionnaireCeilingPickerItem);
+  });
+  element.closeQuestionnaireCeilingPicker?.addEventListener("click", () => {
+    element.questionnaireCeilingPickerDialog?.close();
+    questionnaireCeilingPickerKind = null;
   });
   element.questionnaireFinishScope?.addEventListener("change", () => {
     element.questionnaireFinishRoomTargets.hidden =
