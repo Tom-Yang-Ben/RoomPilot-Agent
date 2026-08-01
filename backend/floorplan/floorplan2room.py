@@ -1031,6 +1031,72 @@ def _carve_stairs(labels, rooms, boxes, T, cm=1.0):
     return out
 
 
+# 符號錨點的兩系詞彙：只做「廚 vs 客」這一種誤併（v2.23 殘餘 36 件中
+# 14 件的型態），臥浴不參與——bed+sofa 同室是套房、oval 到處有，寧漏勿誤。
+# dtable→廚房系沿 extract_asset_lib 的使用者裁決；chair（單人沙發椅）
+# 常出現在臥室，單獨不構成客廳證據，故不入表。
+_KITCHEN_SYMS = ("stove", "kstove", "ksink", "sinkicon", "dtable")
+_LIVING_SYMS = ("sofa",)
+
+
+_KITCHEN_STRONG = ("stove", "kstove", "ksink")   # 弱證據（sinkicon/dtable）
+                                                 # 不得單獨撐起單側切分
+
+
+def _symbol_anchors(det, labels, rooms):
+    """無文字開放區的錨點補位（格式同 detect_room_text）。兩條路徑：
+    1) 雙系：廚房系＋客廳系符號群同房、質心相距 ≥200cm → 各出一錨點；
+    2) 單側廚房（實測主力）：沙發模板在多數畫風上比對不到（floor31/
+       54/52 客廳側符號全滅），改以「大房間裡緊湊且偏心的廚房符號群」
+       單側觸發——對側錨點＝離群較遠那半房間質量的質心。
+       防呆四道：強廚房符號 ≥1、符號群跨距 ≤350cm（散開＝假陽性）、
+       房 ≥15m²（小房不會是開放廚客）、群質心偏離房質心 ≥200cm
+       （居中＝這房就是廚房，不切）。"""
+    cm = det.get("cm", 1.0)
+    h, w = labels.shape
+    out = []
+    for r in rooms:
+        kit, kit_strong, liv = [], 0, []
+        for kind, sx, sy in det.get("symbols", ()):
+            iy, ix = int(round(sy)), int(round(sx))
+            if not (0 <= iy < h and 0 <= ix < w and labels[iy, ix] == r["id"]):
+                continue
+            if kind in _KITCHEN_SYMS:
+                kit.append((float(sx), float(sy)))
+                kit_strong += kind in _KITCHEN_STRONG
+            elif kind in _LIVING_SYMS:
+                liv.append((float(sx), float(sy)))
+        if not kit:
+            continue
+        kx = sum(p[0] for p in kit) / len(kit)
+        ky = sum(p[1] for p in kit) / len(kit)
+        if liv:                                  # 路徑 1：雙系
+            lx = sum(p[0] for p in liv) / len(liv)
+            ly = sum(p[1] for p in liv) / len(liv)
+            if ((kx - lx) ** 2 + (ky - ly) ** 2) ** 0.5 * cm >= 200.0:
+                out.append(("Kitchen", kx, ky, f"sym:{len(kit)}"))
+                out.append(("LivingRoom", lx, ly, f"sym:{len(liv)}"))
+            continue
+        # 路徑 2：單側廚房
+        if not kit_strong:
+            continue
+        span = max(max(p[0] for p in kit) - min(p[0] for p in kit),
+                   max(p[1] for p in kit) - min(p[1] for p in kit))
+        if span * cm > 350.0:
+            continue                             # 符號散開＝假陽性風險
+        if r["area_px"] * cm * cm < 150000.0:
+            continue                             # <15m² 不會是開放廚客
+        if ((kx - r["cx"]) ** 2 + (ky - r["cy"]) ** 2) ** 0.5 * cm < 200.0:
+            continue                             # 居中＝這房就是廚房
+        ys, xs = np.nonzero(labels == r["id"])
+        d2 = (xs - kx) ** 2 + (ys - ky) ** 2
+        far = d2 > np.median(d2)                 # 離廚房群較遠那半的質心
+        out.append(("Kitchen", kx, ky, f"sym:{len(kit)}"))
+        out.append(("LivingRoom", float(xs[far].mean()),
+                    float(ys[far].mean()), "sym:far-half"))
+    return out
+
+
 def _room_stats(labels, rid, touch_env):
     """依 labels 重算單一房間統計；該 id 已無像素時回 None。"""
     ys, xs = np.nonzero(labels == rid)
@@ -1045,7 +1111,8 @@ def _room_stats(labels, rid, touch_env):
             "touch_env": touch_env}
 
 
-def _split_by_text_anchors(labels, rooms, texts, T, cm, amin):
+def _split_by_text_anchors(labels, rooms, texts, T, cm, amin,
+                           min_part_ratio=None):
     """OCR 房名錨點功能區切分（labels 就地改，回傳新 rooms）。
     E1 誤併型態：廚/餐/客一體、玄關-走道虛線分界——GT 沿無牆邊界分區，
     封口規則無牆可封。圖面文字是作者親口說的答案：一房含 2+ 個房名
@@ -1123,6 +1190,11 @@ def _split_by_text_anchors(labels, rooms, texts, T, cm, amin):
         parts = _cut(labels == rid, merged)
         if any(int(p.sum()) < amin for p in parts):
             continue                             # 有碎屑 → 整房放棄不切
+        if min_part_ratio and len(parts) == 2:
+            a_, b_ = int(parts[0].sum()), int(parts[1].sum())
+            if max(a_, b_) < min_part_ratio * min(a_, b_):
+                continue                         # 兩半約等大＝廚餐一體
+                                                 # （子區歸主房慣例），不切
         for p in parts[1:]:
             nid += 1
             labels[p] = nid
@@ -1238,6 +1310,13 @@ def build_rooms(det):
     # OCR 錨點功能區切分：一房含 2+ 房名文字＝作者標了 2+ 個功能區
     rooms = _split_by_text_anchors(labels, rooms, det.get("texts") or [],
                                    T, cm, amin)
+    # 符號錨點補位（無文字圖）：廚房系符號群觸發廚客分家。
+    # 文字已切開的房不會再有雙系符號，兩機制天然互補不重疊。
+    # min_part_ratio=1.8：廚餐一體房（子區歸主房慣例）兩半約等大，
+    # 真開放廚客的客廳側遠大於廚房側——floor07 實案的守門
+    rooms = _split_by_text_anchors(labels, rooms,
+                                   _symbol_anchors(det, labels, rooms),
+                                   T, cm, amin, min_part_ratio=1.8)
     # 房型命名（2026-07-30 起只剩兩層，CubiCasa 語意投票已整批移除）：
     #   1) DINOv2 裁切分類（room_classifier）——own_eval 72 房 90.3%
     #   2) 面積規則（純幾何兜底）——缺 torch/骨幹/線性頭時
