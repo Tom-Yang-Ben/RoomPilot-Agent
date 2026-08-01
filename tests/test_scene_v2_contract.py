@@ -203,7 +203,7 @@ def test_interior_walls_butt_against_exterior_inner_face_without_a_visible_gap()
     junction_helper = source.split("function interiorWallJunctionInsets", 1)[1].split(
         "function polygonShape", 1
     )[0]
-    assert "Number(wallThickness) / 2, 0" in junction_helper
+    assert "const insetCm = 0;" in junction_helper
     assert "Number(wallThickness) / 2 + 1" not in junction_helper
 
 
@@ -1041,6 +1041,9 @@ def test_step6_uses_only_the_confirmed_step4_wall_opening_snapshot() -> None:
     assert "if (opening?.step4_confirmed === true) return false;" in architecture
     assert "A Step 4-confirmed door never creates a wall cut." in architecture
     assert 'doorway_source: "confirmed_wall_gap"' in controller
+    assert "confirmed_wall_opening: confirmedWallOpeningForSnapshot(" in controller
+    assert "function hydrateConfirmedStructureSnapshot(" in controller
+    assert "persisted_step4_wall_gap" in architecture
     assert "opening?.step4_skip_wall_cut !== true" in viewer
 
 

@@ -124,7 +124,7 @@ function candidateGapForDoor(segments, opening, wallThickness = 12) {
   return candidates.sort((left, right) => left.score - right.score)[0] || null;
 }
 
-function confirmedWallGapForDoor(segments, door, wallThickness = 12) {
+export function confirmedWallGapForDoor(segments, door, wallThickness = 12) {
   const closedLeaf = segmentVector({ start: door.start, end: door.swing_end });
   if (closedLeaf.length < 24) return null;
 
@@ -194,15 +194,21 @@ export function doorOpeningForWallTopology(
   // natural gap already present between the persisted Step 4 wall segments.
   // Keep the green closed-leaf segment for the Step 6 mesh only.
   if (door.step4_confirmed === true) {
+    const persistedOpening = segmentVector(door.confirmed_wall_opening || {});
     const wallGap = confirmedWallGapForDoor(segments, door, wallThickness);
+    const confirmedOpening = persistedOpening.length >= 4
+      ? { start: { ...persistedOpening.start }, end: { ...persistedOpening.end } }
+      : wallGap;
     return {
       ...door,
       topology_gap: true,
       step4_skip_wall_cut: true,
-      opening_source: "confirmed_wall_gap",
-      wall_opening_segment: wallGap,
-      topology_gap_key: wallGap
-        ? topologyGapKey(wallGap.start, wallGap.end)
+      opening_source: persistedOpening.length >= 4
+        ? "persisted_step4_wall_gap"
+        : "confirmed_wall_gap",
+      wall_opening_segment: confirmedOpening,
+      topology_gap_key: confirmedOpening
+        ? topologyGapKey(confirmedOpening.start, confirmedOpening.end)
         : undefined,
       door_leaf_segment: { start: { ...leaf.start }, end: { ...leaf.end } },
       // The green Step 4 radius is immutable in Step 6.  A detected wall gap

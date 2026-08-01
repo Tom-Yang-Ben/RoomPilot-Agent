@@ -1131,6 +1131,15 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
             converted["swing_end"] = centered_point(item.get("swing_end"))
             # 開合門的 start → end 是打開後的門片；牆洞與關門門片
             # 必須使用鉸鏈 start 指向弧線另一端 swing_end 的線段。
+        confirmed_opening = item.get("confirmed_wall_opening")
+        if isinstance(confirmed_opening, dict):
+            opening_start = confirmed_opening.get("start")
+            opening_end = confirmed_opening.get("end")
+            if isinstance(opening_start, dict) and isinstance(opening_end, dict):
+                converted["confirmed_wall_opening"] = {
+                    "start": centered_point(opening_start),
+                    "end": centered_point(opening_end),
+                }
         return converted
 
     def identified_segments(items: list[dict[str, Any]], kind: str) -> list[dict[str, Any]]:

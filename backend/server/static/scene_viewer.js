@@ -21,7 +21,7 @@ import {
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-4d3d9416f84f";
+} from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -2632,8 +2632,10 @@ export function createSceneViewer(
   }
 
   function interiorWallJunctionInsets(segment, exteriorSegments, wallThickness) {
-    // 內牆應貼齊外牆的內側面；先前多退 1 cm 會在每個交界留下可見縫隙。
-    const insetCm = Math.max(Number(wallThickness) / 2, 0);
+    // Confirmed wall endpoints already describe the real junction.  Do not
+    // retract them by half a wall thickness, or a false white slit appears
+    // between otherwise continuous walls in the Step 6 model.
+    const insetCm = 0;
     const toleranceCm = Math.max(Number(wallThickness) / 2 + 2, 8);
     const endpointTouchesExterior = (key) => {
       const point = wallSegmentPoint(segment, key);

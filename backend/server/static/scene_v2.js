@@ -1,4 +1,5 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-75194aac30a4";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-87edaee15f12";
+import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd27184d7e";
@@ -1899,6 +1900,10 @@ function captureConfirmedStructureSnapshot() {
     step4_confirmed: true,
     step4_skip_wall_cut: true,
     doorway_source: "confirmed_wall_gap",
+    confirmed_wall_opening: confirmedWallOpeningForSnapshot(
+      door,
+      snapshot.walls || [],
+    ),
   }));
   // Windows are actual wall apertures, so they retain their confirmed host
   // wall and may cut that wall in the Step 6 model.
@@ -1914,6 +1919,73 @@ function captureConfirmedStructureSnapshot() {
     };
   });
   return snapshot;
+}
+
+function structuralSnapshotPoint(point = {}) {
+  return {
+    x: Number(point.x),
+    z: Number(point.y),
+  };
+}
+
+function isStructuralSnapshotPoint(point = {}) {
+  return Number.isFinite(Number(point.x)) && Number.isFinite(Number(point.y));
+}
+
+function confirmedWallOpeningForSnapshot(door = {}, walls = []) {
+  const persisted = door.confirmed_wall_opening;
+  if (
+    isStructuralSnapshotPoint(persisted?.start)
+    && isStructuralSnapshotPoint(persisted?.end)
+  ) {
+    return {
+      start: { ...persisted.start },
+      end: { ...persisted.end },
+    };
+  }
+
+  const sceneWalls = walls
+    .filter((wall) => isStructuralSnapshotPoint(wall.start) && isStructuralSnapshotPoint(wall.end))
+    .map((wall) => ({
+      ...wall,
+      start: structuralSnapshotPoint(wall.start),
+      end: structuralSnapshotPoint(wall.end),
+    }));
+  const sceneDoor = (
+    isStructuralSnapshotPoint(door.start)
+    && isStructuralSnapshotPoint(door.end)
+    && isStructuralSnapshotPoint(door.swing_end)
+  )
+    ? {
+      ...door,
+      start: structuralSnapshotPoint(door.start),
+      end: structuralSnapshotPoint(door.end),
+      swing_end: structuralSnapshotPoint(door.swing_end),
+    }
+    : null;
+  const gap = sceneDoor
+    ? confirmedWallGapForDoor(sceneWalls, sceneDoor, 12)
+    : null;
+  return gap
+    ? {
+      start: { x: gap.start.x, y: gap.start.z },
+      end: { x: gap.end.x, y: gap.end.z },
+    }
+    : null;
+}
+
+function hydrateConfirmedStructureSnapshot(snapshot, fallbackStructures = state.structures) {
+  if (!snapshot) return null;
+  const walls = snapshot.walls?.length
+    ? snapshot.walls
+    : (fallbackStructures?.walls || []);
+  return {
+    ...snapshot,
+    doors: (snapshot.doors || []).map((door) => ({
+      ...door,
+      confirmed_wall_opening: confirmedWallOpeningForSnapshot(door, walls),
+    })),
+  };
 }
 
 function confirmedRoomHeightCm() {
@@ -14225,8 +14297,10 @@ async function restoreProject() {
     state.structures = serverState.space_confirmation
       ? savedSpace.structures
       : state.structures;
-    state.confirmedStructureSnapshot = serverState.space_confirmation
-      ?.confirmed_structure_snapshot || null;
+    state.confirmedStructureSnapshot = hydrateConfirmedStructureSnapshot(
+      serverState.space_confirmation?.confirmed_structure_snapshot || null,
+      state.structures,
+    );
     state.rooms = applyCanonicalRoomLabels(preparedAutoRoomLabels(state.rooms, state.structures.walls || []));
     const lockedWallCandidates = normalizeWallDemolitionCandidates();
     repairLoadedStructureWallCollisions();

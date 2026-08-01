@@ -90,6 +90,36 @@ def test_editor_door_swing_endpoint_uses_the_same_scene_coordinates_as_its_leaf(
     assert door["swing_end"] == {"x": 0.0, "z": -180.0}
 
 
+def test_editor_preserves_confirmed_doorway_in_the_same_scene_coordinates() -> None:
+    floorplan, _room = floorplan_from_editor_payload(
+        {
+            "coordinate_unit": "cm",
+            "width_cm": 1000,
+            "depth_cm": 800,
+            "structures": {
+                "doors": [
+                    {
+                        "id": "door-1",
+                        "start": {"x": 500, "y": 100},
+                        "end": {"x": 620, "y": 100},
+                        "swing_end": {"x": 500, "y": 220},
+                        "confirmed_wall_opening": {
+                            "start": {"x": 500, "y": 220},
+                            "end": {"x": 620, "y": 220},
+                        },
+                    }
+                ]
+            },
+        }
+    )
+
+    doorway = floorplan["door_segments"][0]["confirmed_wall_opening"]
+    assert doorway == {
+        "start": {"x": 0.0, "z": -180.0},
+        "end": {"x": 120.0, "z": -180.0},
+    }
+
+
 def test_editor_assigns_stable_architecture_ids_when_loading_older_projects() -> None:
     floorplan, _room = floorplan_from_editor_payload(
         {
