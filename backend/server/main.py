@@ -34,7 +34,7 @@ from .questionnaire_visuals import (
     QuestionnaireVisualStore,
     load_questionnaire_visual_catalog,
 )
-from ..catalog.placement_surface import placement_surface_for
+from ..catalog.placement_surface import FLOOR, placement_surface_for
 from ..catalog.style_db import sanitize_size_cm
 from ..catalog.cloud_catalog import load_official_catalog
 from ..floorplan.vision import (
@@ -1002,10 +1002,22 @@ def _normalize_catalog_payload(items: tuple[dict, ...]) -> tuple[dict, ...]:
     for item in items:
         entry = dict(item)
         entry.setdefault(
-            "placement_surface", placement_surface_for(entry.get("normalized_type"))
+            "placement_surface",
+            placement_surface_for(
+                entry.get("normalized_type"),
+                entry.get("name_zh_raw") or entry.get("name_zh") or entry.get("name_en"),
+            ),
         )
         if entry.get("style_candidates"):
             entry["style_candidates"] = _dedupe_style_candidates(entry["style_candidates"])
+        if isinstance(entry.get("style_codes"), list):
+            # 來源 view 有 781 筆 style_codes 內部重複，會讓同一個風格被重複灌高排序。
+            entry["style_codes"] = list(dict.fromkeys(entry["style_codes"]))
+        if _implausible_for_type(entry):
+            # 468cm 寬的「床」其實是斗櫃。留在型錄可查，但不參與自動選件與擺放，
+            # 否則整間臥室會被一件標錯的家具吃掉。
+            entry["size_is_implausible"] = True
+            entry["placement_surface"] = entry.get("placement_surface") or FLOOR
         normalized.append(entry)
     return tuple(normalized)
 
@@ -1068,6 +1080,32 @@ def _payload_sequence(payload: dict, key: str) -> list:
     if not isinstance(raw, list):
         raise HTTPException(status_code=422, detail=f"{key} 必須是陣列。")
     return raw
+
+
+# 各族系的合理最大邊長（公分）。超過就代表這一列的型別標錯了——QA 實測
+# abo-beds-19 是一個 468cm 寬的六斗櫃，卻被標成 bed。
+_MAX_PLAUSIBLE_WIDTH_CM = {
+    "bed": 260.0,
+    "bed-frame": 260.0,
+    "bedside-table": 120.0,
+    "dining-chair": 90.0,
+    "office-chair": 100.0,
+    "coffee-table": 200.0,
+    "tv-bench": 320.0,
+    "desk": 320.0,
+}
+
+
+def _implausible_for_type(item: dict) -> bool:
+    limit = _MAX_PLAUSIBLE_WIDTH_CM.get(str(item.get("normalized_type") or ""))
+    if limit is None:
+        return False
+    size = item.get("size_cm") or {}
+    try:
+        width = float(size.get("width") or item.get("width_cm") or 0)
+    except (TypeError, ValueError):
+        return False
+    return width > limit
 
 
 def _normalize_catalog_item(item: dict) -> dict:
@@ -3154,7 +3192,11 @@ async def scene_layout(payload: dict) -> dict:
             )
         }
         try:
-            pool = list(_furniture_payload_cache())
+            pool = [
+                candidate
+                for candidate in _furniture_payload_cache()
+                if not candidate.get("size_is_implausible")
+            ]
         except RuntimeCatalogUnavailable:
             # 型錄暫時讀不到就只回報,不要因為換小款失敗而擋掉整次重排。
             pool = []

@@ -7262,6 +7262,9 @@ async function catalogCandidatesForType(
 // 有意義；18 公分的玻璃花瓶、抱枕、壁掛層架被當成落地家具送進去算，就會「放不下」
 // 而永遠卡在待處理清單（QA #7）。這裡只遵守型錄宣告的欄位，不自行用尺寸猜類別。
 function isFloorPlacedCatalogItem(candidate = {}) {
+  // 型別與尺寸兜不起來的列（例如標成 bed 的 468cm 斗櫃）不進自動選件，
+  // 否則整間臥室會被一件標錯的家具吃掉。型錄仍查得到，只是不自動選。
+  if (candidate.size_is_implausible === true) return false;
   const surface = candidate.placement_surface;
   return !surface || surface === "floor";
 }
