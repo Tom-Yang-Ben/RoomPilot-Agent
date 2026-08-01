@@ -302,6 +302,35 @@ def test_confirmed_step4_door_keeps_the_wall_gap_and_only_moves_the_leaf() -> No
     }
 
 
+def test_confirmed_step4_door_never_moves_to_a_nearby_parallel_wall_gap() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorOpeningForWallTopology }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const opening = doorOpeningForWallTopology(
+          [
+            {{ id: "nearby-left", start: {{x: 40, z: 0}}, end: {{x: 40, z: 100}} }},
+            {{ id: "nearby-right", start: {{x: 140, z: 100}}, end: {{x: 140, z: 0}} }},
+          ],
+          {{
+            id: "door-3", step4_confirmed: true, width_cm: 100,
+            start: {{x: 300, z: 0}}, end: {{x: 400, z: 0}},
+            swing_end: {{x: 300, z: 100}},
+          }},
+          12,
+        );
+        console.log(JSON.stringify({{
+          wallGap: opening.wall_opening_segment,
+          closedLeaf: opening.closed_leaf_segment,
+        }}));
+        """
+    )
+
+    assert result == {
+        "wallGap": None,
+        "closedLeaf": {"start": {"x": 300, "z": 0}, "end": {"x": 300, "z": 100}},
+    }
+
+
 def test_detected_host_span_wins_over_open_leaf_arc() -> None:
     result = run_workflow_script(
         f"""

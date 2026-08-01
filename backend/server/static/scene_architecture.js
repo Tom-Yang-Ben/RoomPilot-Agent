@@ -125,68 +125,24 @@ function candidateGapForDoor(segments, opening, wallThickness = 12) {
 }
 
 function confirmedWallGapForDoor(segments, door, wallThickness = 12) {
-  const recognisedLeaf = segmentVector(door);
   const closedLeaf = segmentVector({ start: door.start, end: door.swing_end });
-  const requestedWidth = Number(door.width_cm || door.width)
-    || Math.max(recognisedLeaf.length, closedLeaf.length);
-  if (requestedWidth < 24) return null;
+  if (closedLeaf.length < 24) return null;
 
-  // Step 4 stores walls as separate spans around a real doorway.  The blue
-  // open leaf and green closed leaf are visual states, so use them only to
-  // locate the gap; never use either as the wall opening itself.
-  const anchors = [
-    recognisedLeaf.start,
-    recognisedLeaf.end,
-    ...(closedLeaf.length >= 4 ? [closedLeaf.start, closedLeaf.end] : []),
-  ].filter((anchor) => Number.isFinite(anchor?.x) && Number.isFinite(anchor?.z));
-  const maximumGap = Math.max(180, requestedWidth * 1.45);
-  const anchorTolerance = Math.max(55, Number(wallThickness) * 3.5, requestedWidth * 0.8);
-  const candidates = [];
-
-  segments.forEach((first, firstIndex) => {
-    const firstVector = segmentVector(first);
-    if (firstVector.length < 4) return;
-    segments.slice(firstIndex + 1).forEach((second) => {
-      const secondVector = segmentVector(second);
-      if (secondVector.length < 4) return;
-      const parallel = Math.abs(
-        firstVector.unitX * secondVector.unitX + firstVector.unitZ * secondVector.unitZ,
-      );
-      if (parallel < 0.98) return;
-
-      [firstVector.start, firstVector.end].forEach((firstEndpoint) => {
-        [secondVector.start, secondVector.end].forEach((secondEndpoint) => {
-          const gapX = secondEndpoint.x - firstEndpoint.x;
-          const gapZ = secondEndpoint.z - firstEndpoint.z;
-          const gapLength = Math.hypot(gapX, gapZ);
-          if (gapLength < 50 || gapLength > maximumGap) return;
-          const gapUnitX = gapX / gapLength;
-          const gapUnitZ = gapZ / gapLength;
-          const followsWall = Math.abs(
-            gapUnitX * firstVector.unitX + gapUnitZ * firstVector.unitZ,
-          );
-          if (followsWall < 0.98) return;
-
-          const anchorDistance = Math.min(...anchors.flatMap((anchor) => [
-            pointDistance(anchor, firstEndpoint),
-            pointDistance(anchor, secondEndpoint),
-          ]));
-          const widthDifference = Math.abs(gapLength - requestedWidth);
-          if (anchorDistance > anchorTolerance) return;
-          if (widthDifference > Math.max(35, requestedWidth * 0.35)) return;
-          candidates.push({
-            start: firstEndpoint,
-            end: secondEndpoint,
-            score: anchorDistance + widthDifference * 0.5,
-          });
-        });
-      });
-    });
-  });
-
-  const best = candidates.sort((left, right) => left.score - right.score)[0];
-  return best
-    ? { start: { ...best.start }, end: { ...best.end } }
+  // A closed leaf is the only Step 4 coordinate that may select the gap.  Do
+  // not include the blue open leaf or nearby parallel walls in this decision:
+  // otherwise Step 6 can move a correctly confirmed door to another opening.
+  const gap = candidateGapForDoor(
+    segments,
+    {
+      ...door,
+      start: closedLeaf.start,
+      end: closedLeaf.end,
+      width_cm: Number(door.width_cm || door.width) || closedLeaf.length,
+    },
+    wallThickness,
+  );
+  return gap
+    ? { start: { ...gap.firstEndpoint }, end: { ...gap.secondEndpoint } }
     : null;
 }
 
@@ -249,9 +205,9 @@ export function doorOpeningForWallTopology(
         ? topologyGapKey(wallGap.start, wallGap.end)
         : undefined,
       door_leaf_segment: { start: { ...leaf.start }, end: { ...leaf.end } },
-      closed_leaf_segment: wallGap
-        ? { start: { ...wallGap.start }, end: { ...wallGap.end } }
-        : closedLeafSegment,
+      // The green Step 4 radius is immutable in Step 6.  A detected wall gap
+      // may supply a lintel, but may never move the closed door leaf.
+      closed_leaf_segment: closedLeafSegment,
     };
   }
 

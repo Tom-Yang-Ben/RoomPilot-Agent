@@ -327,8 +327,9 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
     assert "function confirmedWallGapForDoor" in architecture
     assert "const wallGap = confirmedWallGapForDoor" in architecture
     assert "wall_opening_segment" in architecture
-    assert "start: { ...wallGap.start }" in architecture
-    assert "end: { ...wallGap.end }" in architecture
+    assert "start: closedLeaf.start" in architecture
+    assert "end: closedLeaf.end" in architecture
+    assert "closed_leaf_segment: closedLeafSegment" in architecture
     assert "door?.wall_opening_segment || door?.closed_leaf_segment" in door_builder
     assert "const headerSegment = door?.wall_opening_segment" in door_builder
 
