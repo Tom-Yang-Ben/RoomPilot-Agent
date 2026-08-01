@@ -76,6 +76,32 @@ def test_keep_small_defers_area_floor():
     assert len(rooms) == 4, f"keep_small：小房應存活，實得 {len(rooms)}"
 
 
+def test_thin_fence_rescue_round():
+    # floor02 實案：通往露臺的 L 型開口 ~185px，牆端射線與大核閉運算
+    # 都搭不到橋，室外灌進客餐廳，覆蓋率 0.27 < 0.30 整圖被拒。
+    # 救援輪：四輪全敗時用細線層（露臺圍欄線）當灌水屏障再試一次。
+    rects = [
+        (0, 0, 600, 20),                     # 上外牆
+        (0, 0, 20, 420),                     # 左外牆
+        (580, 0, 600, 420),                  # 右外牆
+        (0, 400, 200, 420),                  # 下外牆只蓋左 1/3——右側 380px
+    ]                                        # 大開口通往「露臺」，無牆可封
+    W, H = 600, 420
+    thin = np.zeros((H, W), np.uint8)
+    thin[410:412, 180:600] = 255             # 露臺圍欄細線把開口圍住
+    thin[300:302, 300:500] = 255             # 室內雜線（家具），不影響
+    no_rescue = fp_c.segment_rooms(rects, [], [], W, H, T=20, T_out=20,
+                                   cm=1.0)
+    assert no_rescue[0] is None, "無細線層時本圖應整圖失敗（前置條件）"
+    labels, rooms, outside = fp_c.segment_rooms(rects, [], [], W, H,
+                                                T=20, T_out=20, cm=1.0,
+                                                thin=thin)
+    assert labels is not None, "細線圍欄救援輪應把室內救回來"
+    assert len(rooms) >= 1
+    tot = sum(r["area_px"] for r in rooms)
+    assert tot > 0.5 * (560 * 380), f"室內覆蓋應過半，實得 {tot}"
+
+
 def test_room_area_reaches_wall_edge():
     # 牆扣除改用原始遮罩後，房間面積應貼回真牆邊——上房內部
     # (T..W-T)×(T..150) 的涵蓋率應 >0.9（舊行為被大核吃掉一圈）。

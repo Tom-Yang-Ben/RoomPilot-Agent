@@ -1171,7 +1171,8 @@ def build_rooms(det):
     bridges = fp_c._wall_gaps(rects, wins, T, cm, 40.0, 260.0)
     labels, rooms, outside = fp_c.segment_rooms(rects, wins, doors,
                                                 img_w, img_h, T, T_out, cm,
-                                                keep_small=True)
+                                                keep_small=True,
+                                                thin=det.get("thin"))
     if labels is None or not rooms:
         zones = [_bridge_zone(*b) for b in bridges
                  if any(lo <= (b[2] - b[1]) * cm <= hi

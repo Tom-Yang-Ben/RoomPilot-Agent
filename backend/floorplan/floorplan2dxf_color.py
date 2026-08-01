@@ -1102,13 +1102,17 @@ _FONT_PATHS = ["/mnt/c/Windows/Fonts/msjh.ttc",
 
 
 def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
-                  keep_small=False):
+                  keep_small=False, thin=None):
     """把牆(方塊)圍出的內部切成一間間空間：牆+窗+門洞畫實 → 閉運算封小縫 →
     影像邊界灌水分內外 → 室內扣掉牆 = 各房間連通塊。封口核逐步放大，
     直到室內總面積與涵蓋範圍合理(同 _room_polygon 的驗收)。
     keep_small：面積門檻降為 (2T)²，供 build_rooms 讓「被跨走道封口盒
     切碎的走道片」活著進橋合併（floor13 實案：碎片 ~3600px 卡在
     2*(2T)²=3528 門檻線上），面積終篩由呼叫端在合併後補做。
+    thin：細線層（灰階管線才有）。四輪封口全敗時的救援輪把它併進
+    灌水屏障——floor02 實案：通往露臺的 L 型開口 ~185px，牆端射線與
+    大核閉運算都搭不到橋，但露臺圍欄的細線是連續的，擋灌水足夠。
+    只在原本會整圖失敗時啟用，現有通過的圖零觸碰。
     回傳 (labels影像, rooms清單, outside遮罩)；失敗 (None, [], None)。"""
     if not rects:
         return None, [], None
@@ -1144,14 +1148,28 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
     hair = cv2.morphologyEx(mask, cv2.MORPH_CLOSE,
                             np.ones((kh, kh), np.uint8))
     best = None                                  # 跑完所有封口輪次，取覆蓋率最好的
-    for g in (1.5, 2.5, 3.5, 4.5):
+    rounds = [(g, None) for g in (1.5, 2.5, 3.5, 4.5)]
+    if thin is not None:                         # 救援輪：細線圍欄併進屏障
+        rounds.append((1.5, thin))
+    for g, extra in rounds:
         k = 2 * max(2, int(round(g * T))) + 1
         ker = np.ones((k, k), np.uint8)
         closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, ker)   # 封縫但牆位置不動
+        sub = hair                               # 室內扣除遮罩（見上）
+        if extra is not None:
+            if best is not None:
+                break                            # 常規輪已成，救援輪不啟用
+            # 圍欄線與建物角落常有 1~2px 細縫（floor02 實測 cov 0.28→0.35），
+            # 輕度膨脹補縫後才當屏障；且圍欄視同牆一併從室內扣除——
+            # 否則圍欄像素把室內連到灌水邊界，整片被室外接觸過濾剪掉
+            fence = cv2.dilate(((extra > 0) * 255).astype(np.uint8),
+                               np.ones((5, 5), np.uint8))
+            closed = cv2.bitwise_or(closed, fence)
+            sub = cv2.bitwise_or(hair, fence)
         ff = np.pad(closed, 1).copy()
         cv2.floodFill(ff, None, (0, 0), 128)     # 外部自由區→128
         inside = (ff[1:-1, 1:-1] != 128)         # 建物(含牆)
-        interior = (inside & (hair == 0)).astype(np.uint8) * 255
+        interior = (inside & (sub == 0)).astype(np.uint8) * 255
         # 室外接觸過濾（floor19 實案：外牆與影像邊界的窄邊條被大核填掉
         # 而隱性排除，改髮絲核後裸露成整圈假房間）：碰到影像邊界或室外
         # 的連通塊，扣掉其中大核封口覆蓋的部分——邊條整條消失；被大核
