@@ -27,7 +27,7 @@
 
 ## 0. 三分鐘上手
 
-**現在的位置**：引擎**會擺對了**，但**第 6 步還看不到**。
+**現在的位置**：**全鏈已接通**——問卷風格 → RAG 語意快取選件 → Agent 補件/換小 → 引擎擺位 → 2D/3D，全程 4.6 秒。
 
 - 2026-08-01 之前：家具擺得出來但擺不對——床浮在房間正中央、床頭櫃一個貼床頭一個貼床尾、沙發背對電視櫃、衣櫃直接放不下。
 - 2026-08-01 之後：新增擺放策略層並**已接進第 6 步**（策略層優先、舊候選表 fallback、環境變數可關）。
@@ -129,7 +129,7 @@ Agent 在規則下呼叫引擎擺放
 | 08-01 | 今天 | 房型白名單 | ✅ engine 內 | 未做 |
 | 08-01 | 今天 | **餐廳／書房／玄關／次臥的擺放規則** | ✅ engine 內 | 未做。目前只有主臥、儲藏室、客廳三套 |
 | 08-01 | 今天 | 給床頭櫃等家具貼 `placement_relation` 標籤 | ⚠️ 跨 Bella（`main.py`） | 未做 |
-| 08-01 | 今天 | RAG `role` 硬過濾（電視櫃永遠回 0 件） | ⚠️ 跨 Django | 未做，見 §5.3 |
+| 08-01 | 今天 | RAG `role` 硬過濾 | ⚠️ 跨 Django | 未修，但**已繞過**：第 6 步快取路線不經 role；僅 /rag 自由文字頁仍受影響（且實測猜測不穩定） |
 
 ### 2.1 四（五）大設計落地狀況
 
@@ -338,7 +338,7 @@ placement_relation = { "kind": "adjacent", "target_types": ["bed", ...] }
 |---|---|---|
 | **AGENT 擺放** `agent/place.py` | ✅ **有** | `scene_service.py:16` import、`:1962` 呼叫 |
 | **AGENT 選件** `agent/select.py`＋`knowledge.py` | ⚠️ **半接**（08-01） | 驗證＋**補件**已上線（`_backfill_required_offers`，讀 `ROOM_MINIMUM_FAMILIES` 從型錄補真品）；LLM 選件仍不可能執行 |
-| **RAG** | ❌ **沒有** | `scene_service.py` 一次都沒提到 rag；RAG 只掛獨立的 `/api/rag/*`，只有 `static/rag.js` 在打 |
+| **RAG** | ✅ **已接（08-01 快取版）** | 離線快取（`scripts/build_rag_offer_cache.py`＋`.runtime/rag_offer_cache.json`）由 select 端點讀取，語意第一名主導選件；線上 /rag 頁照舊 |
 | **引擎擺放策略層**（08-01 新增） | ❌ **沒有** | `scene_service` 仍用自己的 `_placement_candidates` |
 
 第 6 步實際選件是 `scene_service.py:498`：**類型字串硬比對 catalog → 風格／顏色／尺度四項評分 + 亂數 0~8 分 → 取第一名**。沒有語意理解、沒有向量、沒有 LLM。
