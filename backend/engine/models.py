@@ -13,6 +13,12 @@ from typing import Literal
 ClearanceKind = Literal["operation", "access"]
 ClearanceMode = Literal["all", "any"]
 IssueSeverity = Literal["error", "warning"]
+OpeningKind = Literal["door", "window"]
+WindowType = Literal["standard", "floor_to_ceiling"]
+
+# 前端 scene_window_types.js 的預設窗台高；引擎沿用同一組數字，避免兩邊各有一套。
+STANDARD_WINDOW_SILL_CM = 90.0
+FLOOR_TO_CEILING_SILL_CM = 0.0
 
 
 @dataclass
@@ -27,12 +33,70 @@ class Wall:
 
 
 @dataclass
+class Opening:
+    """房間邊界上的一段門或窗，座標為房間局部座標（公分）。
+
+    資料來自 ``layout_json`` 的 doors／windows，由呼叫端換算成房間局部座標後傳入；
+    引擎本身不讀取檔案，也不呼叫辨識管線。
+
+    ``swing_x``／``swing_y`` 是門扇打開後掃過的另一端點（對應 layout_json 的
+    ``swing_end``）。有值時代表這道門會往房內掃出一塊不可佔用的區域。
+    """
+
+    kind: OpeningKind
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    window_type: WindowType | None = None
+    sill_height_cm: float | None = None
+    swing_x: float | None = None
+    swing_y: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.kind not in {"door", "window"}:
+            raise ValueError(f"不支援的開口種類: {self.kind}")
+        if self.kind == "window" and self.window_type is None:
+            # 與前端一致：未標示時一律當一般窗，落地窗必須明確標記。
+            self.window_type = "standard"
+
+    @property
+    def sill_cm(self) -> float:
+        """窗台高度；門一律 0（人要走過去，任何高度都算擋住）。"""
+        if self.sill_height_cm is not None:
+            return float(self.sill_height_cm)
+        if self.kind == "door" or self.window_type == "floor_to_ceiling":
+            return FLOOR_TO_CEILING_SILL_CM
+        return STANDARD_WINDOW_SILL_CM
+
+    def span_along(self, axis: str) -> tuple[float, float]:
+        """回傳開口在指定軸上的投影區間，``axis`` 為 ``"x"`` 或 ``"y"``。"""
+        if axis == "x":
+            low, high = sorted((self.x1, self.x2))
+        elif axis == "y":
+            low, high = sorted((self.y1, self.y2))
+        else:
+            raise ValueError(f"不支援的軸: {axis}")
+        return low, high
+
+
+@dataclass
 class Room:
-    """房間矩形邊界與牆體清單。"""
+    """房間矩形邊界、牆體清單與門窗開口。
+
+    ``openings`` 預設為空：舊呼叫端不傳時，行為與加入本欄位之前完全相同。
+    """
 
     width: float
     depth: float
     walls: list[Wall] = field(default_factory=list)
+    openings: list[Opening] = field(default_factory=list)
+
+    def doors(self) -> list[Opening]:
+        return [item for item in self.openings if item.kind == "door"]
+
+    def windows(self) -> list[Opening]:
+        return [item for item in self.openings if item.kind == "window"]
 
 
 @dataclass
