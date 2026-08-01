@@ -112,20 +112,25 @@ STYLE_FALLBACKS = {
     "": "scandinavian",
 }
 
+# 問卷完全沒指定家具時的最後備援，只在 /api/scene/generate 的方案換算生效。
+# 2026-08-02 對齊 room_strategy v1「最少自動配置」欄（Ancai 授權）：
+#   - 只放必備（可選件交給問卷／RAG／補件），臥室補回衣櫃、退場地毯（G4）。
+#   - 廚房／浴室／陽台 v1 明訂空白；鍵仍必須存在——表外型別會退成客廳家具
+#     （2026-07 盤點實測：浴室被塞沙發），顯式空清單≠表外退化。
+#   - storage-cabinet／appliance-cabinet 等舊值是型錄 0 件的死鍵（只會生灰盒）。
+#   - studio 不在 v1 十二房型，維持原樣另議。
+# 詞彙一致性由 tests/test_room_type_vocabulary.py 鎖住；對帳工具
+# scripts/audit_room_programs.py 改前改後各跑一次。
 SPACE_DEFAULTS = {
-    "living_room": ["sofa", "coffee-table", "tv-bench", "armchair", "bookcase"],
-    "bedroom": ["bed", "bedside-table", "bookcase", "runner-small-rug"],
-    "workspace": ["desk", "office-chair", "bookcase", "wall-shelf"],
-    "dining_room": ["dining-table", "dining-chair", "sideboard"],
+    "living_room": ["sofa", "tv-bench"],
+    "bedroom": ["bed", "wardrobe", "bedside-table"],
+    "workspace": ["desk", "office-chair"],
+    "dining_room": ["dining-table", "dining-chair"],
     "studio": ["sofa-bed", "coffee-table", "desk", "bookcase"],
-    # 2026-07 盤點第 5 項修復：前端「空間用途」下拉開放後，使用者會真的選到
-    # 廚房／浴廁／儲藏／陽台／走道——這些型別先前不在表內，會一律退成客廳
-    # 家具（浴室被塞沙發）。circulation 刻意零家具（動線空間不自動配置）。
-    # 詞彙一致性由 tests/test_room_type_vocabulary.py 鎖住。
-    "kitchen": ["appliance-cabinet"],
-    "bathroom": ["bathroom-vanity", "mirror-cabinet"],
-    "storage": ["storage-cabinet"],
-    "balcony": ["flower-pots-planter"],
+    "kitchen": [],
+    "bathroom": [],
+    "storage": ["shelving-unit"],
+    "balcony": [],
     "circulation": [],
 }
 
