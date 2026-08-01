@@ -1495,6 +1495,22 @@ def _largest_region_boundary(floorplan: dict[str, Any] | None, room: Room) -> Po
     return best if shrunk.is_empty else shrunk
 
 
+def room_type_by_id(floorplan: dict[str, Any] | None, room_id: str | None) -> str | None:
+    """由 `room_regions` 查出該房的房型；查不到回 None（策略層會整個跳過）。
+
+    第 6 步逐房重排走 `/api/scene/layout`，那條路只知道 `placement_room_id`，
+    不像 `/api/scene/generate` 有完整的 `plan`。沒有這個查表，`room_type`
+    會是 None，擺放策略層就永遠不會被啟用。
+    """
+    if not room_id:
+        return None
+    for region in (floorplan or {}).get("room_regions") or []:
+        if str(region.get("room_id")) == str(room_id):
+            room_type = str(region.get("room_type") or "").strip()
+            return room_type or None
+    return None
+
+
 def _region_boundary_by_id(
     floorplan: dict[str, Any] | None,
     room: Room,
@@ -1643,8 +1659,25 @@ def generate_layout(
     placed_by_type: dict[str, list[PlacedFurniture]] = {}
     results: dict[int, dict[str, Any]] = {}
 
-    # 鎖定位置(使用者拖曳過)的先處理,避免被後放的家具擠掉
-    order = sorted(range(len(items)), key=lambda i: 0 if items[i].get("position_locked") else 1)
+    # 鎖定位置(使用者拖曳過)的先處理,避免被後放的家具擠掉。
+    # 策略層啟用時再依房型規則的錨點順序排（床、沙發先搶牆位），否則清單
+    # 順序決定誰先拿到最好的牆——實測補件的衣櫃排第一時會把床擠去貼窗牆。
+    # 策略層關閉或無房型時 rule order 恆為 0，排序退化為原本的行為。
+    def _strategy_rank(item: dict[str, Any]) -> int:
+        if placement_variant == "B" or not room_type or not _layout_strategy_enabled():
+            return 0
+        return layout_rule_for(
+            normalize_room_type(room_type), family_of(item.get("normalized_type"))
+        ).order
+
+    order = sorted(
+        range(len(items)),
+        key=lambda i: (
+            0 if items[i].get("position_locked") else 1,
+            _strategy_rank(items[i]),
+            i,
+        ),
+    )
 
     for index in order:
         item = items[index]

@@ -479,3 +479,62 @@ def test_centered_placement_still_wins_when_it_is_legal():
     )
     bed = result["placed"][0]
     assert bed.pos_x == pytest.approx(room.width / 2, abs=1.0)
+
+
+# --- 整合：scene_service 的逐件迴圈必須尊重錨點順序 -------------------------
+
+
+def test_generate_layout_places_anchors_first_regardless_of_item_order():
+    """衣櫃排在清單第一位時，床仍須先搶到最好的牆（床頭貼無門無窗的北牆）。
+
+    引擎的 place_room() 自己會排序，但第 6 步走的是 scene_service 的逐件
+    迴圈——實測 Agent 補件把衣櫃插到清單最前時，衣櫃先佔走北牆，床被擠去
+    貼窗牆。本測試鎖住「處理順序依房型規則的錨點優先，與清單順序無關」。
+    """
+    from backend.server.scene_service import generate_layout, room_from_payload
+
+    width, depth = 338.0, 310.0
+
+    def centered(x, y):
+        return {"x": x - width / 2, "z": y - depth / 2}
+
+    floorplan = {
+        "width_cm": width,
+        "depth_cm": depth,
+        "coordinate_unit": "cm",
+        "wall_segments": [],
+        "door_segments": [
+            {"start": centered(255, 0), "end": centered(337, 0), "swing_end": centered(255, 91)}
+        ],
+        "window_segments": [{"start": centered(0, 103), "end": centered(0, 207)}],
+    }
+    engine_room = room_from_payload(floorplan)
+
+    def payload_item(fid, type_, w, d, h):
+        return {
+            "furniture_id": fid,
+            "normalized_type": type_,
+            "name_zh_raw": fid,
+            "has_model": True,
+            "model_url": "https://example.test/x.glb",
+            "size_cm": {"width": w, "depth": d, "height": h},
+        }
+
+    # 衣櫃刻意排第一——Agent 補件（無模型假件換真品時前插）就是這個順序。
+    objects = generate_layout(
+        width,
+        depth,
+        [
+            payload_item("wardrobe-1", "wardrobe", 100, 60, 210),
+            payload_item("bed-1", "bed", 152, 200, 55),
+            payload_item("table-1", "bedside-table", 45, 40, 55),
+        ],
+        room=engine_room,
+        floorplan=floorplan,
+        room_type="bedroom",
+    )
+    by_type = {obj["normalized_type"]: obj for obj in objects}
+    bed = by_type["bed"]
+    assert not bed.get("placement_failed"), bed.get("placement_reason")
+    bed_top = bed["position_cm"]["z"] + depth / 2 + bed["footprint_cm"]["depth"] / 2
+    assert bed_top >= depth - 10, f"床頭應貼北牆，實際上緣在 {bed_top:.0f}"

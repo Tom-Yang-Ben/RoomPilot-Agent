@@ -46,6 +46,7 @@ from .scene_service import (
     get_openrouter_status,
     parse_floorplan_with_engine,
     room_from_payload,
+    room_type_by_id,
     scene_object_in_boundary,
     validate_single_placement,
 )
@@ -2870,6 +2871,7 @@ async def scene_layout(payload: dict) -> dict:
             place_boundary=place_boundary,
             floorplan=floorplan,
             placement_variant=placement_variant,
+            room_type=room_type_by_id(floorplan, placement_room_id),
         )
     }
 
