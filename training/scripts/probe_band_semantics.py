@@ -122,6 +122,56 @@ _MEAN = np.array([0.485, 0.456, 0.406], np.float32)
 _STD = np.array([0.229, 0.224, 0.225], np.float32)
 
 
+def _strip_feat(st, strip):
+    """單條帶狀影像 → resize 14×W → 1 patch 列 → mean 向量。"""
+    torch, model = st["torch"], st["model"]
+    h, w = strip.shape[:2]
+    if h == 0 or w == 0:
+        return None
+    tw = int(np.clip(round(w * (14.0 / h) / 14.0) * 14, 14, 518))
+    img = cv2.resize(strip, (tw, 14), interpolation=cv2.INTER_AREA)
+    x = (cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
+         / 255.0 - _MEAN) / _STD
+    with torch.no_grad():
+        t = torch.from_numpy(x.transpose(2, 0, 1)[None])
+        f = model.get_intermediate_layers(t, 1, reshape=True)[0]
+    return f[0].cpu().numpy().mean(axis=(1, 2))
+
+
+def band_dino_features_v2(st, bgr, band, T):
+    """精確對齊版：帶身條帶與兩側翼條帶各自裁切、各自 1 patch 列前向。
+    v1 的「region 置中假設」在圖緣帶（外圈真牆）失準，本版不依賴置中。
+    回傳 [身, 翼mean, 身−翼] 串接。"""
+    x0, y0, x1, y1 = [int(round(v)) for v in band]
+    H, W = bgr.shape[:2]
+    horiz = (x1 - x0) >= (y1 - y0)
+    off = int(round(FLANK_T * T))
+    def cut(a0, b0, a1, b1):
+        a0, b0 = max(0, a0), max(0, b0)
+        a1, b1 = min(W, a1), min(H, b1)
+        if a1 <= a0 or b1 <= b0:
+            return None
+        s = bgr[b0:b1, a0:a1]
+        return np.ascontiguousarray(np.rot90(s)) if not horiz else s
+    if horiz:
+        body = cut(x0, y0, x1, y1)
+        f1 = cut(x0, y0 - off, x1, y0)
+        f2 = cut(x0, y1, x1, y1 + off)
+    else:
+        body = cut(x0, y0, x1, y1)
+        f1 = cut(x0 - off, y0, x0, y1)
+        f2 = cut(x1, y0, x1 + off, y1)
+    if body is None:
+        return None
+    fb = _strip_feat(st, body)
+    fls = [f for f in (_strip_feat(st, s) if s is not None else None
+                       for s in (f1, f2)) if f is not None]
+    if fb is None or not fls:
+        return None
+    fl = np.mean(fls, axis=0)
+    return np.concatenate([fb, fl, fb - fl]).astype(np.float32)
+
+
 def band_dino_features(st, bgr, band, T):
     """帶身＋側翼區域一次前向：resize 到 3 patch 列(42px)，中列＝帶身、
     上下列＝側翼。回傳 [mean(帶身), mean(側翼), 差] 串接（3×C 維）。"""
@@ -231,7 +281,10 @@ def main():
             lab = band_gt_label(band, gt)
             if lab is None:
                 continue
-            fd = band_dino_features(st, bgr1, band, T1)
+            extract = (band_dino_features_v2
+                       if os.environ.get("BAND_FEAT") == "v2"
+                       else band_dino_features)
+            fd = extract(st, bgr1, band, T1)
             if fd is None:
                 continue
             fh = band_hand_features(bgr1, band, T1, dark1)
@@ -255,6 +308,11 @@ def main():
         print(f"AUC[{tag}] = {auc:.3f}")
     print(f"樣本: {len(rows)}（true {int(y.sum())} / fake {int((1-y).sum())}）")
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    # 原始特徵落 npz 供離線變體實驗（PCA/差分/加權），免重抽
+    np.savez_compressed(OUT.replace(".json", ".npz"),
+                        Xd=Xd, Xh=Xh, y=y,
+                        groups=np.array(groups),
+                        bands=np.array([r["band"] for r in rows], np.float32))
     json.dump({"auc": res, "n": len(rows),
                "n_true": int(y.sum()), "n_fake": int((1 - y).sum()),
                "details": [{k: v for k, v in r.items() if k != "dino"}
