@@ -116,7 +116,7 @@ def detect_bw(cfg):
     T_out = fp_bw.outer_wall_thickness(rects, T)
     mmpp, sinfo = fp_bw.derive_door_scale(doors, T_out, cfg)
     return {"rects": rects, "wins": wins, "doors": doors, "T": T, "T_out": T_out,
-            "cm": mmpp / 10.0, "bgr": bgr, "thin": thin,
+            "cm": mmpp / 10.0, "bgr": bgr, "thin": thin, "domain": "gray",
             "img_w": img_w, "img_h": img_h, "scale_info": sinfo}
 
 
@@ -148,6 +148,7 @@ def detect_color(cfg):
     # floor_04 命中 8→3）
     return {"rects": rects, "wins": wins, "doors": [], "T": T, "T_out": T_out,
             "cm": mmpp / 10.0, "bgr": bgr, "thin": None, "fence": thin,
+            "domain": "color",
             "img_w": img_w, "img_h": img_h, "scale_info": sinfo}
 
 
@@ -1103,6 +1104,9 @@ def _symbol_anchors(det, labels, rooms):
         span = max(max(p[0] for p in kit) - min(p[0] for p in kit),
                    max(p[1] for p in kit) - min(p[1] for p in kit))
         if span * cm > 350.0:
+            if det.get("domain") != "color":
+                continue                         # 灰階維持一票否決（畫風
+                                                 # 分流：color 機制不進灰階）
             # 跨距超限不整組否決（floor47/52 實案：一顆離群假陽性毀
             # 全局）——改取最緊密子群：以每顆為中心、半徑 175cm 內
             # 成員最多者；子群須 ≥2 顆且含強符號才續行
@@ -1471,18 +1475,23 @@ def build_rooms(det):
 
     # 牆端連線（「紅色線端點連到另一端」）：40~260cm 的牆縫開口全封
     bridges = fp_c._wall_gaps(rects, wins, T, cm, 40.0, 260.0)
-    # 灌水圍欄：灰階用墨水細線層；彩圖 thin 充當墨水證據太吵（磁磚/
-    # 家具線），只以 det["fence"] 身分供救援輪，其他 thin 語意維持 None
+    # 畫風分流（使用者裁定 2026-08-02）：灰階路凍結維護，color 循環的
+    # 新機制一律以 domain 閘門，不進灰階——共用路徑的變更必須雙量尺
+    # 護航，但預設灰階零接觸
+    is_color_dom = det.get("domain") == "color"
+    # 灌水圍欄：灰階用墨水細線層（v2.23 救援輪，灰階自有機制）；
+    # 彩圖 thin 太吵只以 det["fence"] 身分供救援輪
     fence = det.get("thin") if det.get("thin") is not None else det.get("fence")
-    # 外圈封口（彩圖）：外牆寬窗帶（>260cm、窗偵測漏抓）另開 600cm 輪，
-    # 只在建物外圈生效——floor_09 型「半戶被灌水判室外」的最後防線
+    # 外圈封口（彩圖限定）：外牆寬窗帶（>260cm、窗偵測漏抓）另開 600cm
+    # 輪，只在建物外圈生效——floor_09 型「半戶被灌水判室外」的最後防線
     seg_wins = wins
-    if det.get("fence") is not None:
+    if is_color_dom:
         seg_wins = wins + fp_c.envelope_gap_seals(rects, wins, T, cm)
     labels, rooms, outside = fp_c.segment_rooms(rects, seg_wins, doors,
                                                 img_w, img_h, T, T_out, cm,
                                                 keep_small=True,
-                                                thin=fence)
+                                                thin=fence,
+                                                fence_guard=is_color_dom)
     if labels is None:
         # 救援階梯第三級（floor02 實案）：寬封口 360cm 全域用是淨負向
         # （走道被寬封口切碎，A/B 實測 −2 命中/−10 命名），但對「常規
@@ -1493,7 +1502,8 @@ def build_rooms(det):
                                                     cm, keep_small=True,
                                                     thin=fence,
                                                     seal_hi=360.0,
-                                                    stub_guard=False)
+                                                    stub_guard=False,
+                                                    fence_guard=is_color_dom)
     if labels is None or not rooms:
         zones = [_bridge_zone(*b) for b in bridges
                  if any(lo <= (b[2] - b[1]) * cm <= hi
@@ -1538,7 +1548,7 @@ def build_rooms(det):
         tmp = np.zeros(labels.shape, np.int32)
         tmp[parts[0]] = 1
         tmp[parts[1]] = 2
-        variant = "color" if det.get("fence") is not None else "gray"
+        variant = "color" if is_color_dom else "gray"
         probs = room_classifier.classify(det.get("bgr"), tmp,
                                          [{"id": 1}, {"id": 2}],
                                          variant=variant)
@@ -1558,15 +1568,18 @@ def build_rooms(det):
     rooms = _split_by_text_anchors(labels, rooms,
                                    _symbol_anchors(det, labels, rooms),
                                    T, cm, amin, min_part_ratio=1.8,
-                                   verify=_dino_verify)
-    # 殼外陽台口袋收割（圍欄圈住、主分割判室外的區域）——須在命名前，
-    # 新口袋才會進 DINO 裁切分類
-    rooms = _harvest_balcony_pockets(det, labels, rooms, outside)
+                                   verify=_dino_verify if is_color_dom
+                                   else None)
+    # 殼外陽台口袋收割（彩圖限定，畫風分流原則）——須在命名前，
+    # 新口袋才會進 DINO 裁切分類。灰階曾實測正向但依「color 機制不進
+    # 灰階路」裁定關閉，灰階回歸 v2.24 行為
+    if is_color_dom:
+        rooms = _harvest_balcony_pockets(det, labels, rooms, outside)
     # 房型命名（2026-07-30 起只剩兩層，CubiCasa 語意投票已整批移除）：
     #   1) DINOv2 裁切分類（room_classifier）——own_eval 72 房 90.3%
     #   2) 面積規則（純幾何兜底）——缺 torch/骨幹/線性頭時
     # 彩圖管線（det 帶 fence）用 color 專屬頭：混訓實測傷灰階基準，分域雙頭
-    variant = "color" if det.get("fence") is not None else "gray"
+    variant = "color" if is_color_dom else "gray"
     probs = room_classifier.classify(det.get("bgr"), labels, rooms,
                                      variant=variant)
     if probs is not None:

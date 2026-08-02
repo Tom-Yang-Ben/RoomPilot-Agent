@@ -166,7 +166,7 @@ def test_outlier_symbol_does_not_veto_cluster():
               "aspect": 2.5, "touch_env": True}]
     det = {"symbols": [("kstove", 60.0, 60.0), ("ksink", 80.0, 100.0),
                        ("kstove", 600.0, 240.0)],   # 離群假陽性
-           "cm": 1.2}                               # 跨距 540*1.2=648cm 超限
+           "cm": 1.2, "domain": "color"}            # 跨距超限；彩圖限定機制
     anch = fp._symbol_anchors(det, labels, rooms)
     labs = sorted(a[0] for a in anch)
     assert labs == ["Kitchen", "LivingRoom"], \

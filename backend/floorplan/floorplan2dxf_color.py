@@ -1103,7 +1103,7 @@ _FONT_PATHS = ["/mnt/c/Windows/Fonts/msjh.ttc",
 
 def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
                   keep_small=False, thin=None, seal_hi=260.0,
-                  stub_guard=True):
+                  stub_guard=True, fence_guard=False):
     """把牆(方塊)圍出的內部切成一間間空間：牆+窗+門洞畫實 → 閉運算封小縫 →
     影像邊界灌水分內外 → 室內扣掉牆 = 各房間連通塊。封口核逐步放大，
     直到室內總面積與涵蓋範圍合理(同 _room_polygon 的驗收)。
@@ -1206,11 +1206,12 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
                           "aspect": round(max(w, h) / max(1.0, min(w, h)), 2)})
         if not rooms:
             continue
-        if extra is not None:
-            # fence 輪驗收（floor30 實案）：彩圖細線層在深磁磚地板滿是
-            # 紋理噪點，當屏障會拼出大片蛀孔碎房「成功」，反而搶走
-            # build_rooms 第三級救援的路。直角房間的面積/bbox 紮實度
-            # ~0.9，蛀孔碎片遠低於此——不紮實就讓路
+        if extra is not None and fence_guard:
+            # fence 輪驗收（floor30 實案，fence_guard＝彩圖限定）：彩圖
+            # 細線層在深磁磚地板滿是紋理噪點，當屏障會拼出大片蛀孔碎房
+            # 「成功」，反而搶走 build_rooms 第三級救援的路。直角房間的
+            # 面積/bbox 紮實度 ~0.9，蛀孔碎片遠低於此——不紮實就讓路。
+            # 灰階墨水稀疏無此病，依畫風分流原則不掛守門
             sol = float(np.mean([
                 r_["area_px"] / max(1.0,
                                     (r_["bbox"][2] - r_["bbox"][0])
