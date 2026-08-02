@@ -11,7 +11,7 @@ RAG metadata／文字、向量生成、檢索與品質由 Django 負責；Kai �
 | 檔案 | 用途 |
 |---|---|
 | `roompilot_postgresql_schema.sql` | 家具、分類、風格、房間、VLM、資產、品質問題、staging 與 API views |
-| `import_official_catalog_to_postgres.py` | 驗證官方 JSON 與四份 manifest，交易式 UPSERT 家具資料 |
+| `import_official_catalog_to_postgres.py` | 驗證官方 JSON 與四份資產 CSV，依 JSON 正規化欄位後交易式 UPSERT |
 | `roompilot_furniture_embeddings_schema.sql` | pgvector table、向量來源 view 與搜尋 functions |
 | `import_furniture_embeddings_to_postgres.py` | 驗證文字、hash、模型、維度與向量後 UPSERT |
 | `PostgreSQL 17.10 安裝與資料匯入指南.md` | Windows 安裝、第一次匯入與驗收方式 |
@@ -29,6 +29,18 @@ RAG metadata／文字、向量生成、檢索與品質由 Django 負責；Kai �
 | 三視角圖片 manifest | `JSON/manifests/image_upload_manifest.csv` | 26,025 |
 | 三視角圖片 upload result | `JSON/manifests/image_upload_all_result.csv` | 26,025 |
 | BGE-M3 向量 | `JSON/RAG/furniture_embeddings_bge_m3.jsonl` | 8,076 |
+
+## 欄位來源規則
+
+正式匯入遵守「家具資料看 JSON、CSV 只處理資產」：
+
+- `furniture_official_catagory.json` 是家具名稱、`category_final`、顏色、材質、尺寸、價格、風格、房間、VLM、`is_active` 與 `rag_indexable` 的唯一來源。
+- 分類優先使用 `category_final`；`canonical_category_zh` 只留在 `raw_data` 供追溯，不再決定 SQL 正式分類。
+- `primary_color` 優先使用 `colors[0]`，`primary_material` 優先使用 `materials[0]`；不需要手動改寫 JSON。
+- `kind` 固定寫入 `furniture`；`source` 由 JSON 的 `object_key`（`models/{source}/furniture/...`）取得。
+- GLB upload result 的正式用途是提供並核對 `delivery_url`；GLB `item_id` 與 `object_key` 以 JSON 為準。
+- 圖片 CSV 仍需 `image_id`、`item_id`、`image_role`、`object_key` 與 `delivery_url`，才能建立 front／side／angle-45 三張資產關聯。
+- manifest 與 CSV 的其他欄位只保留在 staging、`raw_manifest`、`raw_upload_result` 做稽核，不會覆蓋家具主表。
 
 目前狀態邊界：
 

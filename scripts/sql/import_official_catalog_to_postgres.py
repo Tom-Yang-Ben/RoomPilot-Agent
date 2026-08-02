@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""交易式驗證並匯入 8,675 筆官方家具與四份雲端資產 CSV。"""
+"""交易式驗證並匯入 8,675 筆官方家具與雲端資產。
+
+家具分類、名稱、顏色、材質、尺寸、風格、房間、VLM 與啟用狀態
+一律以官方 JSON 為準；CSV 只提供資產識別、上傳狀態與 delivery URL，
+不再反向覆蓋家具欄位。
+"""
 
 from __future__ import annotations
 
@@ -36,6 +41,68 @@ STYLE_NAMES_ZH = {
     "japanese": "日式風",
     "modern_minimal": "現代簡約風",
     "scandinavian": "北歐風",
+}
+
+# category_final 是目前 56 種正式分類的唯一來源。
+# 固定 mapping 可避免 CSV type、舊 canonical_category_zh 或資料順序改變時，
+# category_code 被重新推導成錯誤或帶 hash 的不穩定值。
+CATEGORY_CODES_ZH = {
+    "PAX 衣櫃": "pax-wardrobe",
+    "兒童凳子與長凳": "childrens-stools-bench",
+    "兒童家具": "childrens-furniture",
+    "兒童桌": "childrens-table",
+    "兒童椅與凳子": "kids-chairs-stool",
+    "凳子與長凳": "stool-bench",
+    "吧檯桌": "bar-table",
+    "圓形地毯": "round-rug",
+    "地毯": "rug",
+    "壁架": "wall-shelf",
+    "大型與中型地毯": "large-medium-rug",
+    "大型鏡子": "large-mirror",
+    "屏風與隔間": "room-divider",
+    "展示櫃": "display-cabinet",
+    "層架": "shelving-unit",
+    "布沙發": "fabric-sofa",
+    "床": "bed",
+    "床墊": "mattress",
+    "床邊桌": "bedside-table",
+    "戶外地毯": "outdoor-rug",
+    "手工地毯": "handmade-rug",
+    "扶手椅": "armchair",
+    "抱枕靠墊": "pillow-cushion",
+    "抽屜櫃": "chests-of-drawer",
+    "收納家具": "storage-furniture",
+    "收納盒與籃子": "storage-boxes-basket",
+    "收納系統": "storage-solution-system",
+    "書桌": "desk",
+    "書櫃": "bookcase",
+    "桌子": "table",
+    "椅子": "chair",
+    "模組沙發": "modular-sofa",
+    "櫃體": "cabinet-cupboard",
+    "沙發": "sofa",
+    "沙發床": "sofa-bed",
+    "皮沙發": "leather-sofa",
+    "盆栽植器": "planter",
+    "羊皮與牛皮地毯": "sheepskins-cowhide",
+    "花器": "vase",
+    "茶几": "coffee-table",
+    "落地燈": "floor-lamp",
+    "衣帽架": "clothes-rack",
+    "衣櫃": "wardrobe",
+    "裝飾配件": "decoration",
+    "走道地毯與小地毯": "runner-small-rug",
+    "辦公椅": "office-chair",
+    "鏡子": "mirror",
+    "鏡櫃": "mirror-cabinet",
+    "門墊": "door-mat",
+    "電競椅": "gaming-chair",
+    "電視櫃": "tv-bench",
+    "電視與影音家具": "tv-media-furniture",
+    "鞋櫃": "shoe-cabinet",
+    "餐桌": "dining-table",
+    "餐椅": "dining-chair",
+    "餐邊櫃": "sideboard",
 }
 
 RESET_CATALOG_SQL = """
@@ -100,36 +167,24 @@ VLM_FIELDS = (
 REQUIRED_ITEM_FIELDS = {
     "id",
     "name_en",
-    "canonical_category_zh",
+    "category_final",
     "object_key",
     "glb_url",
+    "colors",
+    "materials",
     "style_primary",
     "style_secondary",
     "room_types",
+    "rag_indexable",
 }
 
-REQUIRED_GLB_FIELDS = {
-    "item_id",
-    "source",
-    "source_group",
-    "catalog",
-    "kind",
-    "type",
-    "name_en",
-    "object_key",
-    "validation_status",
-    "upload_status",
+# CSV 的正式用途只有資產關聯與 delivery URL；家具欄位不再依賴 CSV。
+REQUIRED_GLB_MANIFEST_FIELDS = {"item_id"}
+REQUIRED_GLB_RESULT_FIELDS = {"item_id", "delivery_url"}
+REQUIRED_IMAGE_MANIFEST_FIELDS = {
+    "image_id", "item_id", "image_role", "object_key"
 }
-
-REQUIRED_IMAGE_FIELDS = REQUIRED_GLB_FIELDS | {"image_id", "image_role"}
-REQUIRED_RESULT_FIELDS = {
-    "s3_uri",
-    "s3_https_url",
-    "delivery_url",
-    "delivery_url_type",
-    "s3_etag",
-    "uploaded_at",
-}
+REQUIRED_IMAGE_RESULT_FIELDS = REQUIRED_IMAGE_MANIFEST_FIELDS | {"delivery_url"}
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -226,6 +281,37 @@ def text_list(value: Any, field: str, item_id: str) -> list[str]:
         if text is not None:
             result.append(text)
     return result
+
+
+def final_category_zh(item: dict[str, Any]) -> str:
+    """以 category_final 為準，舊欄位只作向後相容 fallback。"""
+    value = clean_text(item.get("category_final")) or clean_text(
+        item.get("canonical_category_zh")
+    )
+    if value is None:
+        raise ValueError(f"{item.get('id')}: 缺少 category_final。")
+    return value
+
+
+def source_from_object_key(object_key: Any, item_id: str) -> str:
+    """由 JSON object_key 的 models/{source}/furniture/... 取得來源。"""
+    key = clean_text(object_key)
+    if key is None:
+        raise ValueError(f"{item_id}: 缺少 object_key。")
+    parts = key.replace("\\", "/").split("/")
+    if len(parts) < 4 or parts[0] != "models" or parts[2] != "furniture":
+        raise ValueError(
+            f"{item_id}: object_key 不符合 models/{{source}}/furniture/...：{key!r}"
+        )
+    source = clean_text(parts[1])
+    if source is None:
+        raise ValueError(f"{item_id}: 無法由 object_key 取得 source。")
+    return source.casefold()
+
+
+def first_or_fallback(values: list[str], fallback: Any) -> str | None:
+    """主顏色／主材質優先使用正式陣列第一個值。"""
+    return values[0] if values else clean_text(fallback)
 
 
 def repo_path(path: Path) -> str:
@@ -361,10 +447,10 @@ def validate_inputs(
         errors.append(f"catalog 唯一且非空的 item_id 為 {len(item_index):,}，列數為 {len(items):,}。")
 
     required_by_label = {
-        "glb_manifest": REQUIRED_GLB_FIELDS,
-        "glb_result": REQUIRED_GLB_FIELDS | REQUIRED_RESULT_FIELDS,
-        "image_manifest": REQUIRED_IMAGE_FIELDS,
-        "image_result": REQUIRED_IMAGE_FIELDS | REQUIRED_RESULT_FIELDS,
+        "glb_manifest": REQUIRED_GLB_MANIFEST_FIELDS,
+        "glb_result": REQUIRED_GLB_RESULT_FIELDS,
+        "image_manifest": REQUIRED_IMAGE_MANIFEST_FIELDS,
+        "image_result": REQUIRED_IMAGE_RESULT_FIELDS,
     }
     for label, required in required_by_label.items():
         headers = set(csv_payloads[label][0])
@@ -411,31 +497,37 @@ def validate_inputs(
     )
 
     glb_mismatches: list[str] = []
-    for item_id in sorted(catalog_ids & set(indexes["glb_manifest"]) & set(indexes["glb_result"])):
+    for item_id in sorted(catalog_ids & set(indexes["glb_result"])):
         item = item_index[item_id]
-        manifest = indexes["glb_manifest"][item_id]
+        manifest = indexes["glb_manifest"].get(item_id, {})
         result = indexes["glb_result"][item_id]
-        if not (
-            item.get("object_key") == manifest.get("object_key") == result.get("object_key")
-            and item.get("glb_url") == result.get("delivery_url")
-            and manifest.get("source") == result.get("source")
-            and manifest.get("type") == result.get("type")
-        ):
+        json_object_key = clean_text(item.get("object_key"))
+        json_delivery_url = clean_text(item.get("glb_url"))
+        manifest_object_key = clean_text(manifest.get("object_key"))
+        result_object_key = clean_text(result.get("object_key"))
+        object_key_ok = all(
+            value in {None, json_object_key}
+            for value in (manifest_object_key, result_object_key)
+        )
+        if not object_key_ok or json_delivery_url != clean_text(result.get("delivery_url")):
             if len(glb_mismatches) < 5:
                 glb_mismatches.append(item_id)
     if glb_mismatches:
-        errors.append(f"catalog/GLB manifest/result 欄位不一致，例如 {glb_mismatches}。")
+        errors.append(
+            "JSON object_key/glb_url 與 GLB 資產 CSV 不一致，例如 "
+            f"{glb_mismatches}。"
+        )
 
     image_pair_mismatches: list[str] = []
     for image_id in sorted(set(indexes["image_manifest"]) & set(indexes["image_result"])):
         manifest = indexes["image_manifest"][image_id]
         result = indexes["image_result"][image_id]
-        compared = ("item_id", "image_role", "object_key", "source", "type")
-        if any(manifest.get(field) != result.get(field) for field in compared):
+        compared = ("item_id", "image_role", "object_key")
+        if any(clean_text(manifest.get(field)) != clean_text(result.get(field)) for field in compared):
             if len(image_pair_mismatches) < 5:
                 image_pair_mismatches.append(image_id)
     if image_pair_mismatches:
-        errors.append(f"image manifest/result 欄位不一致，例如 {image_pair_mismatches}。")
+        errors.append(f"image manifest/result 資產欄位不一致，例如 {image_pair_mismatches}。")
 
     role_counts: dict[str, Counter[str]] = defaultdict(Counter)
     for row in csv_payloads["image_result"][1]:
@@ -454,13 +546,22 @@ def validate_inputs(
 
     if not args.allow_incomplete_uploads:
         for label in ("glb_result", "image_result"):
-            rows = csv_payloads[label][1]
-            upload_status = Counter(row.get("upload_status", "") for row in rows)
-            validation_status = Counter(row.get("validation_status", "") for row in rows)
-            if upload_status != Counter({"uploaded": len(rows)}):
-                errors.append(f"{label} upload_status 非全數 uploaded：{dict(upload_status)}。")
-            if validation_status != Counter({"ready": len(rows)}):
-                errors.append(f"{label} validation_status 非全數 ready：{dict(validation_status)}。")
+            headers, rows = csv_payloads[label]
+            if "upload_status" in headers:
+                upload_status = Counter(row.get("upload_status", "") for row in rows)
+                if upload_status != Counter({"uploaded": len(rows)}):
+                    errors.append(
+                        f"{label} upload_status 非全數 uploaded：{dict(upload_status)}。"
+                    )
+            if "validation_status" in headers:
+                validation_status = Counter(
+                    row.get("validation_status", "") for row in rows
+                )
+                if validation_status != Counter({"ready": len(rows)}):
+                    errors.append(
+                        f"{label} validation_status 非全數 ready："
+                        f"{dict(validation_status)}。"
+                    )
 
     batch_material = "|".join(f"{key}:{input_hashes[key]}" for key in sorted(input_hashes))
     batch_key = hashlib.sha256(batch_material.encode("utf-8")).hexdigest()
@@ -497,27 +598,15 @@ def validate_inputs(
     return report, indexes
 
 
-def category_code_map(
-    items: list[dict[str, Any]], glb_result: dict[str, dict[str, Any]]
-) -> dict[str, str]:
-    source_types: dict[str, Counter[str]] = defaultdict(Counter)
-    for item in items:
-        category = str(item["canonical_category_zh"])
-        source_type = clean_text(glb_result[str(item["id"])].get("type")) or "category"
-        source_types[category][source_type] += 1
-
-    result: dict[str, str] = {}
-    used: set[str] = set()
-    for category in sorted(source_types):
-        counts = source_types[category]
-        base = sorted(counts, key=lambda code: (-counts[code], code))[0]
-        code = base
-        if code in used:
-            suffix = hashlib.sha1(category.encode("utf-8")).hexdigest()[:8]
-            code = f"{base}-{suffix}"
-        used.add(code)
-        result[category] = code
-    return result
+def category_code_map(items: list[dict[str, Any]]) -> dict[str, str]:
+    categories = {final_category_zh(item) for item in items}
+    unknown = sorted(categories - set(CATEGORY_CODES_ZH))
+    missing = sorted(set(CATEGORY_CODES_ZH) - categories)
+    if unknown:
+        raise ValueError(f"category_final 缺少 category_code mapping：{unknown}")
+    if missing:
+        raise ValueError(f"CATEGORY_CODES_ZH 含目前 catalog 未使用分類：{missing}")
+    return {category: CATEGORY_CODES_ZH[category] for category in sorted(categories)}
 
 
 def make_quality_issues(item: dict[str, Any]) -> list[dict[str, Any]]:
@@ -536,8 +625,9 @@ def make_quality_issues(item: dict[str, Any]) -> list[dict[str, Any]]:
                     "name_en": item.get("name_en"),
                     "name_zh": item.get("name_zh"),
                     "canonical_category_zh": item.get("canonical_category_zh"),
+                    "category_final": item.get("category_final"),
                 },
-                "suggested_value": {"canonical_category_zh": item.get("suggested_category")},
+                "suggested_value": {"category_final": item.get("suggested_category")},
             }
         )
     duplicate_group = clean_text(item.get("duplicate_group"))
@@ -593,7 +683,7 @@ def make_quality_issues(item: dict[str, Any]) -> list[dict[str, Any]]:
 def prepare_rows(
     items: list[dict[str, Any]], indexes: dict[str, dict[str, dict[str, Any]]]
 ) -> dict[str, Any]:
-    category_codes = category_code_map(items, indexes["glb_result"])
+    category_codes = category_code_map(items)
     categories = []
     for category_zh, code in sorted(category_codes.items(), key=lambda pair: pair[1]):
         categories.append(
@@ -630,28 +720,37 @@ def prepare_rows(
 
     for item in items:
         item_id = str(item["id"])
-        source = indexes["glb_result"][item_id]
-        category_zh = str(item["canonical_category_zh"])
+        category_zh = final_category_zh(item)
+        category_code = category_codes[category_zh]
+        source = source_from_object_key(item.get("object_key"), item_id)
+        colors = text_list(item.get("colors"), "colors", item_id)
+        materials = text_list(item.get("materials"), "materials", item_id)
         item_rows.append(
             {
                 "item_id": item_id,
-                "category_code": category_codes[category_zh],
-                "source": source.get("source"),
-                "source_group": clean_text(source.get("source_group")),
-                "catalog": clean_text(source.get("catalog")),
-                "kind": clean_text(source.get("kind")),
-                "source_type": clean_text(source.get("type")),
-                "name_en": item.get("name_en"),
+                "category_code": category_code,
+                "source": source,
+                "source_group": "IKEA" if source == "ikea" else "non-IKEA",
+                "catalog": f"{source}_furniture",
+                "kind": "furniture",
+                # JSON 沒有獨立 source_type；使用正式 category_code，
+                # 避免再由 CSV type 覆蓋已修正的 category_final。
+                "source_type": category_code,
+                "name_en": clean_text(item.get("name_en")),
                 "name_zh": clean_text(item.get("name_zh")),
-                "primary_color": clean_text(item.get("color")),
-                "colors": text_list(item.get("colors"), "colors", item_id),
-                "primary_material": clean_text(item.get("material")),
-                "materials": text_list(item.get("materials"), "materials", item_id),
+                "primary_color": first_or_fallback(colors, item.get("color")),
+                "colors": colors,
+                "primary_material": first_or_fallback(
+                    materials, item.get("material")
+                ),
+                "materials": materials,
                 "width_cm": parse_float(item.get("width_cm")),
                 "depth_cm": parse_float(item.get("depth_cm")),
                 "height_cm": parse_float(item.get("height_cm")),
                 "price_twd": parse_int(item.get("price_twd")),
-                "price_is_estimated": parse_bool(item.get("price_is_estimated"), False),
+                "price_is_estimated": parse_bool(
+                    item.get("price_is_estimated"), False
+                ),
                 "product_url": clean_text(item.get("product_url")),
                 "is_active": parse_bool(item.get("is_active"), True),
                 "raw_data": item,
@@ -823,35 +922,59 @@ def asset_tuple(
     manifest: dict[str, Any],
     result: dict[str, Any],
     Jsonb,
+    *,
+    item_id_override: str | None = None,
+    object_key_override: str | None = None,
+    delivery_url_override: str | None = None,
+    default_content_type: str | None = None,
 ) -> tuple[Any, ...]:
+    """建立資產列；家具 GLB 的 item_id/object_key 以 JSON 為準。"""
     source_field = "original_glb_path" if asset_type == "glb" else "original_image_path"
+    item_id = item_id_override or clean_text(result.get("item_id")) or clean_text(
+        manifest.get("item_id")
+    )
+    object_key = object_key_override or clean_text(result.get("object_key")) or clean_text(
+        manifest.get("object_key")
+    )
+    delivery_url = delivery_url_override or clean_text(result.get("delivery_url"))
+    if item_id is None or object_key is None or delivery_url is None:
+        raise ValueError(
+            f"資產缺少 item_id/object_key/delivery_url：external_id={external_id!r}"
+        )
     return (
         external_id,
-        result["item_id"],
+        item_id,
         asset_type,
         view_role,
         clean_text(result.get(source_field)) or clean_text(manifest.get(source_field)),
-        parse_bool(result.get("local_file_exists"), parse_bool(manifest.get("local_file_exists"))),
-        result["object_key"],
+        parse_bool(
+            result.get("local_file_exists"),
+            parse_bool(manifest.get("local_file_exists")),
+        ),
+        object_key,
         s3_bucket(result.get("s3_uri")),
         clean_text(result.get("s3_uri")),
         clean_text(result.get("s3_https_url")),
-        clean_text(result.get("delivery_url")),
-        clean_text(result.get("delivery_url_type")),
-        clean_text(result.get("content_type")),
-        parse_int(result.get("file_size_bytes")) or parse_int(manifest.get("file_size_bytes")),
+        delivery_url,
+        clean_text(result.get("delivery_url_type")) or "cloudfront",
+        clean_text(result.get("content_type"))
+        or clean_text(manifest.get("content_type"))
+        or default_content_type,
+        parse_int(result.get("file_size_bytes"))
+        or parse_int(manifest.get("file_size_bytes")),
         parse_int(result.get("width_px")) or parse_int(manifest.get("width_px")),
         parse_int(result.get("height_px")) or parse_int(manifest.get("height_px")),
         clean_text(result.get("sha256")) or clean_text(manifest.get("sha256")),
         clean_text(result.get("s3_etag")),
-        clean_text(result.get("upload_status")),
-        clean_text(result.get("validation_status")),
+        clean_text(result.get("upload_status")) or "uploaded",
+        clean_text(result.get("validation_status")) or "ready",
         clean_text(result.get("validation_message")),
         clean_text(result.get("upload_error")),
         clean_text(result.get("uploaded_at")),
         clean_text(result.get("s3_last_modified")),
         clean_text(result.get("s3_version_id")),
-        clean_text(result.get("manifest_version")) or clean_text(manifest.get("manifest_version")),
+        clean_text(result.get("manifest_version"))
+        or clean_text(manifest.get("manifest_version")),
         Jsonb(manifest),
         Jsonb(result),
     )
@@ -1155,13 +1278,27 @@ def import_formal_tables(
             raw_manifest = EXCLUDED.raw_manifest,
             raw_upload_result = EXCLUDED.raw_upload_result
     """
-    glb_assets = [
-        asset_tuple(
-            "glb", None, item_id,
-            indexes["glb_manifest"][item_id], indexes["glb_result"][item_id], Jsonb,
+    glb_assets = []
+    for item_id in sorted(indexes["items"]):
+        item = indexes["items"][item_id]
+        glb_assets.append(
+            asset_tuple(
+                "glb",
+                None,
+                item_id,
+                indexes["glb_manifest"].get(item_id, {}),
+                indexes["glb_result"][item_id],
+                Jsonb,
+                item_id_override=item_id,
+                object_key_override=clean_text(item.get("object_key")),
+                # delivery URL 取 upload result；驗證階段已確認與 JSON glb_url 相同。
+                delivery_url_override=clean_text(
+                    indexes["glb_result"][item_id].get("delivery_url")
+                )
+                or clean_text(item.get("glb_url")),
+                default_content_type="model/gltf-binary",
+            )
         )
-        for item_id in sorted(indexes["items"])
-    ]
     execute_many(
         cursor,
         asset_statement_prefix + " ON CONFLICT (item_id) WHERE asset_type = 'glb' " + asset_update,
@@ -1171,8 +1308,13 @@ def import_formal_tables(
     official_item_ids = set(indexes["items"])
     image_assets = [
         asset_tuple(
-            "image", result["image_role"], image_id,
-            indexes["image_manifest"][image_id], result, Jsonb,
+            "image",
+            result["image_role"],
+            image_id,
+            indexes["image_manifest"][image_id],
+            result,
+            Jsonb,
+            default_content_type="image/png",
         )
         for image_id, result in sorted(indexes["image_result"].items())
         if clean_text(result.get("item_id")) in official_item_ids

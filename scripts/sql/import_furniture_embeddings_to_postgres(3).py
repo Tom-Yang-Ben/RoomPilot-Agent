@@ -113,9 +113,9 @@ def load_catalog(
             errors.append(f"item_id 缺漏或重複：{item_id!r}")
             continue
         seen_item_ids.add(item_id)
-        if not bool(item.get("is_active", True)) or not bool(
-            item.get("rag_indexable", True)
-        ):
+        is_active = catalog_import.parse_bool(item.get("is_active"), True)
+        rag_indexable = catalog_import.parse_bool(item.get("rag_indexable"), True)
+        if is_active is not True or rag_indexable is not True:
             continue
         text = str(item.get("embedded_text") or "").strip()
         text_hash = str(item.get("text_hash") or "").strip().lower()

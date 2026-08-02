@@ -73,6 +73,7 @@ LEFT JOIN LATERAL (
 ) AS annotation ON TRUE
 WHERE item.kind = 'furniture'
   AND item.is_active
+  AND COALESCE((item.raw_data ->> 'rag_indexable')::BOOLEAN, TRUE)
   AND COALESCE(item.raw_data ->> 'embedded_text', '') <> ''
   AND COALESCE(item.raw_data ->> 'text_hash', '') ~ '^[0-9A-Fa-f]{64}$';
 

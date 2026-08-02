@@ -175,6 +175,20 @@ $roompilotImportFiles | ForEach-Object {
 
 只要有一個檔案缺少就停止正式匯入。Catalog、GLB manifest 與 GLB result 必須有完全相同的 8,675 個 item ID；圖片兩檔必須各有 26,025 列，代表每件家具三個視角。
 
+### 正式欄位來源
+
+不需要人工整理或重輸出家具 JSON。匯入程式會在記憶體中完成下列正規化：
+
+- 家具正式分類使用 JSON `category_final`，不使用 CSV `type`，也不會被舊 `canonical_category_zh` 蓋回去。
+- 主顏色使用 `colors[0]`，陣列沒有值時才退回 `color`。
+- 主材質使用 `materials[0]`，陣列沒有值時才退回 `material`。
+- JSON 沒有 `is_active` 時預設為 `true`；明確為 `false` 的 599 筆維持 inactive。
+- `kind` 固定為 `furniture`，`source` 從 JSON `object_key` 取得。
+- GLB CSV 只提供資產上傳資訊與 `delivery_url`；家具名稱、分類、材質、顏色、尺寸、風格與房間都不從 CSV 讀取。
+- 圖片結果仍需 `image_id`、`item_id`、`image_role`、`object_key`、`delivery_url` 來建立三視角關聯。
+
+完整原始 JSON 仍保存於 `furniture_items.raw_data`，四份 CSV 原始列仍保存在 staging 與資產 raw 欄位，方便日後稽核。
+
 ## 7. 先執行 dry-run
 
 Dry-run 只讀取並驗證資料，不連線 PostgreSQL，也不寫入資料庫：

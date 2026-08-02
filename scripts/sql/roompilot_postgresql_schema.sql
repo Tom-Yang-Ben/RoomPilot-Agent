@@ -26,7 +26,7 @@ $pgvector_extension$;
 CREATE SCHEMA IF NOT EXISTS roompilot;
 CREATE SCHEMA IF NOT EXISTS staging;
 
--- 1. 家具分類字典（目前官方 catalog 為 64 類）
+-- 1. 家具分類字典（目前官方 catalog 為 56 類）
 CREATE TABLE IF NOT EXISTS roompilot.furniture_categories (
     category_id        SERIAL PRIMARY KEY,
     category_code      VARCHAR(100) NOT NULL UNIQUE,
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS roompilot.furniture_items (
     source             VARCHAR(30) NOT NULL,
     source_group       VARCHAR(50),
     catalog            VARCHAR(100),
-    kind               VARCHAR(50),
+    kind               VARCHAR(50) NOT NULL DEFAULT 'furniture',
     source_type        VARCHAR(100),
     name_en            TEXT NOT NULL,
     name_zh            TEXT,
@@ -70,7 +70,9 @@ CREATE TABLE IF NOT EXISTS roompilot.furniture_items (
     CONSTRAINT furniture_items_height_positive
         CHECK (height_cm IS NULL OR height_cm > 0),
     CONSTRAINT furniture_items_price_nonnegative
-        CHECK (price_twd IS NULL OR price_twd >= 0)
+        CHECK (price_twd IS NULL OR price_twd >= 0),
+    CONSTRAINT furniture_items_kind_furniture
+        CHECK (kind = 'furniture')
 );
 
 -- 3. 風格字典（目前為 6 種正式風格）
@@ -228,7 +230,9 @@ BEGIN
                 CONSTRAINT furniture_embeddings_dimension_positive
                     CHECK (embedding_dimension > 0),
                 CONSTRAINT furniture_embeddings_dimension_matches
-                    CHECK (vector_dims(embedding) = embedding_dimension)
+                    CHECK (vector_dims(embedding) = embedding_dimension),
+                CONSTRAINT furniture_embeddings_text_hash_sha256
+                    CHECK (text_hash ~ '^[0-9a-f]{64}$')
             )
         $embedding_table_sql$;
     ELSE
