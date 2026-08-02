@@ -56,34 +56,45 @@ def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> N
     # 機制不復存在）。仍要保證：舊專案存檔裡的 axisAnswers 權重在摘要頁
     # 讀得出中文標籤，且 A/B 強迫作答的 UI 不會回歸。
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    # 佇列 7 第五批：權重表與標籤函式純搬家到 scene_questionnaire_data.js，
+    # 定義改掃新檔；scene_v2.js 保留摘要頁的呼叫點。
+    data = (STATIC_DIR / "scene_questionnaire_data.js").read_text(encoding="utf-8")
 
-    assert "PREFERENCE_WEIGHT_OPTIONS" in source
-    assert "function preferenceWeightLabel" in source
+    assert "PREFERENCE_WEIGHT_OPTIONS" in data
+    assert "function preferenceWeightLabel" in data
     assert "preferenceWeightLabel(answer.preferenceWeight)" in source
     assert "function selectPreferenceWeight" not in source
+    assert "function selectPreferenceWeight" not in data
     assert 'data-preference-weight="${item.value}"' not in source
 
 
 def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    # 佇列 7 第五批：隨機草稿與材質推薦函式純搬家到 scene_questionnaire_data.js，
+    # 定義與草稿內容改掃新檔；渲染呼叫點仍在 scene_v2.js。
+    data = (STATIC_DIR / "scene_questionnaire_data.js").read_text(encoding="utf-8")
 
-    assert "QUESTIONNAIRE_MATERIAL_RECOMMENDATION_COUNT = 4" in source
-    assert "function questionnaireMaterialOptionsForPack" in source
-    assert 'const wallOption = randomItem(questionnaireMaterialOptionsForPack("wall", pack), null)' in source
-    assert 'const floorOption = randomItem(questionnaireMaterialOptionsForPack("floor", pack), null)' in source
+    assert "QUESTIONNAIRE_MATERIAL_RECOMMENDATION_COUNT = 4" in data
+    assert "function questionnaireMaterialOptionsForPack" in data
+    assert 'const wallOption = randomItem(questionnaireMaterialOptionsForPack("wall", pack), null)' in data
+    assert 'const floorOption = randomItem(questionnaireMaterialOptionsForPack("floor", pack), null)' in data
     assert "const options = questionnaireMaterialOptionsForPack(kind, pack)" in source
-    assert "defaultWallMaterial: wallMaterial" in source
-    assert "floorMaterial" in source
+    assert "defaultWallMaterial: wallMaterial" in data
+    assert "floorMaterial" in data
 
 
 def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
+    # 佇列 7 第五批：materialOptionForPack 純搬家到 scene_questionnaire_data.js，
+    # 材質卡函式體改掃新檔；畫面字串仍在 scene_v2.js。
+    data = (STATIC_DIR / "scene_questionnaire_data.js").read_text(encoding="utf-8")
 
-    material_option = source.split("function materialOptionForPack", 1)[1].split(
+    material_option = data.split("function materialOptionForPack", 1)[1].split(
         "function questionnaireMaterialOptionsForPack", 1
     )[0]
     assert "packMaterialColor" not in source
+    assert "packMaterialColor" not in data
     assert "color: packMaterialColor" not in material_option
     assert "note: option.note" in material_option
     assert "recommendation: pack.name" in material_option
@@ -99,12 +110,15 @@ def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() 
 
 def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    # 佇列 7 第五批：獨立地板房型表純搬家到 scene_questionnaire_data.js，
+    # 名單改掃新檔；全屋一致性函式仍在 scene_v2.js。
+    data = (STATIC_DIR / "scene_questionnaire_data.js").read_text(encoding="utf-8")
 
-    assert "const INDEPENDENT_FLOOR_ROOM_TYPES" in source
-    assert '"bathroom"' in source
-    assert '"kitchen"' in source
-    assert '"entry"' in source
-    assert '"balcony"' in source
+    assert "const INDEPENDENT_FLOOR_ROOM_TYPES" in data
+    assert '"bathroom"' in data
+    assert '"kitchen"' in data
+    assert '"entry"' in data
+    assert '"balcony"' in data
     assert "function wholeHouseMainFloorSurface" in source
     assert "function wholeHouseMainWallSurface" in source
     assert "function normalizedRoomSurfaces" in source
@@ -123,8 +137,11 @@ def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions()
 
 def test_circulation_style_inherits_living_room_until_user_confirms_override() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    # 佇列 7 第五批：isCirculationRoom 純搬家到 scene_questionnaire_data.js，
+    # 定義改掃新檔；沿用/覆寫的 state 邏輯仍在 scene_v2.js。
+    data = (STATIC_DIR / "scene_questionnaire_data.js").read_text(encoding="utf-8")
 
-    assert "function isCirculationRoom" in source
+    assert "function isCirculationRoom" in data
     assert "function copyLivingRoomStyleToCirculation" in source
     assert "function synchronizeCirculationStyles" in source
     assert "circulationStyleOverrideApproved" in source
@@ -158,6 +175,9 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
+    # 佇列 7 第五批：家具程式表、用途表與 offer 標籤函式純搬家到
+    # scene_questionnaire_data.js，定義改掃新檔；渲染與 state 邏輯仍在 scene_v2.js。
+    data = (STATIC_DIR / "scene_questionnaire_data.js").read_text(encoding="utf-8")
 
     assert 'id="questionnaire-furniture-options"' in html
     assert 'id="questionnaire-furniture-status"' in html
@@ -166,7 +186,7 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert 'id="questionnaire-room-usage-options"' in html
     assert "function ensureQuestionnaireFurnitureRecommendations" in source
     assert "function renderQuestionnaireFurnitureRecommendations" in source
-    assert "const ROOM_USAGE_OPTIONS" in source
+    assert "const ROOM_USAGE_OPTIONS" in data
     assert "function renderQuestionnaireRoomUsage" in source
     assert "data-questionnaire-room-usage" in source
     assert 'data-questionnaire-furniture-id="' in source
@@ -176,18 +196,18 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert "function catalogFallbackOffersForSpec" in source
     assert "recommendation_tier: \"similar\"" in source
     assert "function applyDefaultQuestionnaireFurnitureSelections" in source
-    assert "const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS" in source
-    assert 'defaults: ["bed", "wardrobe"]' in source
-    assert 'required: ["bed"]' in source
-    assert "function questionnaireFurnitureRole" in source
-    assert "QUESTIONNAIRE_FURNITURE_SHORT_LABELS" in source
-    assert "function questionnaireFurnitureDisplayLabel" in source
-    assert "function questionnaireBedSizeFamily" in source
-    assert "function questionnaireOffersWithSizeChoices" in source
-    assert 'return "單人床"' in source
-    assert 'return "標準雙人床"' in source
-    assert 'return "加大雙人床"' in source
-    assert 'read: [["desk", "compact"], ["office-chair", "task"]]' in source
+    assert "const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS" in data
+    assert 'defaults: ["bed", "wardrobe"]' in data
+    assert 'required: ["bed"]' in data
+    assert "function questionnaireFurnitureRole" in data
+    assert "QUESTIONNAIRE_FURNITURE_SHORT_LABELS" in data
+    assert "function questionnaireFurnitureDisplayLabel" in data
+    assert "function questionnaireBedSizeFamily" in data
+    assert "function questionnaireOffersWithSizeChoices" in data
+    assert 'return "單人床"' in data
+    assert 'return "標準雙人床"' in data
+    assert 'return "加大雙人床"' in data
+    assert 'read: [["desk", "compact"], ["office-chair", "task"]]' in data
     assert "data-questionnaire-furniture-variant-type" in source
     assert "function updateQuestionnaireFurnitureVariant" in source
     assert "function updateQuestionnaireFurnitureQuantity" in source
@@ -304,8 +324,15 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_window_types.js",
             "scene_design_schemes.js",
             "scene_questionnaire_test2.js",
+            "scene_questionnaire_data.js",
             "scene_configuration_sync.js",
             "scene_viewer_reload.js",
+        ],
+        "scene_questionnaire_data.js": [
+            "scene_layout2d.js",
+            "scene_plan_geometry.js",
+            "scene_requirements.js",
+            "scene_style_packs.js",
         ],
         "scene_viewer.js": [
             "scene_architecture.js",

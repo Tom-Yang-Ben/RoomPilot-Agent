@@ -131,8 +131,10 @@ def test_types_without_a_size_rule_are_left_alone() -> None:
 
 
 def test_implausible_rows_are_kept_out_of_automatic_selection() -> None:
+    # 佇列 7 第五批：isFloorPlacedCatalogItem 純搬家到 scene_questionnaire_data.js，
+    # 過濾條件改掃新檔；scene_v2.js 仍 import 它供自動選件使用。
     source = (
-        STATIC_DIR / "scene_v2.js"
+        STATIC_DIR / "scene_questionnaire_data.js"
     ).read_text(encoding="utf-8")
 
     # 前端自動選件與後端換小款兩條路徑都要濾掉。
