@@ -3218,8 +3218,18 @@ async def scene_layout(payload: dict) -> dict:
     }
 
 
+# 自動軟裝的候選型別。地毯原本只認 large-medium-rug 與 runner-small-rug，
+# 型錄實際有 7 種地面覆蓋物，另外 3 種室內地毯一直選不到。
+# outdoor-rug 與 door-mat 刻意排除：戶外地毯與門口踏墊不是室內軟裝，
+# 自動配置把踏墊放進臥室比少放一張地毯糟糕。
 _AUTO_DECOR_TYPES = {
-    "rug": ("large-medium-rug", "runner-small-rug"),
+    "rug": (
+        "rug",
+        "large-medium-rug",
+        "runner-small-rug",
+        "handmade-rug",
+        "round-rug",
+    ),
     "plant": ("flower-pots-planter",),
     "light": ("floor-lamp", "lamp"),
 }

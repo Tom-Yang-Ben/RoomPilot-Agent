@@ -99,6 +99,18 @@ def test_name_hints_downgrade_mistyped_accessories() -> None:
     assert _is_collision_exempt_item("desk", "電競桌，附層板") is False
 
 
+def test_auto_decor_rugs_cover_the_indoor_catalog_types() -> None:
+    """自動軟裝原本只認 2 種地毯,型錄有 7 種——另外 3 種室內地毯一直選不到。"""
+    from backend.server.main import _AUTO_DECOR_TYPES
+
+    rug_types = set(_AUTO_DECOR_TYPES["rug"])
+
+    assert rug_types <= _FLOOR_COVERING_TYPES, "自動軟裝不能挑型錄沒宣告成地面覆蓋物的型別"
+    assert {"rug", "handmade-rug", "round-rug"} <= rug_types
+    # 戶外地毯與門口踏墊不是室內軟裝,放進臥室比少放一張地毯糟糕。
+    assert rug_types.isdisjoint({"outdoor-rug", "door-mat"})
+
+
 def test_scene_service_no_longer_keeps_a_second_type_vocabulary() -> None:
     source = inspect.getsource(scene_service)
     assert "_OVERLAY_TYPES" not in source
