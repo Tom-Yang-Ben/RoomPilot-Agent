@@ -198,13 +198,24 @@ def test_circulation_style_inherits_living_room_until_user_confirms_override() -
 
 
 def test_interior_walls_butt_against_exterior_inner_face_without_a_visible_gap() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
-
-    junction_helper = source.split("function interiorWallJunctionInsets", 1)[1].split(
-        "function polygonShape", 1
-    )[0]
-    assert "const insetCm = 0;" in junction_helper
-    assert "Number(wallThickness) / 2 + 1" not in junction_helper
+    # 已確認的牆端點即是真實交界:純函式層不得把內牆退縮半個牆厚,
+    # 否則內外牆之間出現白縫。牆段盒必須跨滿整段長度。
+    result = run_workflow_script(
+        f"""
+        import {{ buildSceneModel, shellConfig }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const model = buildSceneModel({{
+          walls: [
+            {{ id: "exterior", start: {{x: -200, z: 0}}, end: {{x: 200, z: 0}} }},
+            {{ id: "interior", start: {{x: 0, z: 0}}, end: {{x: 0, z: 180}} }},
+          ],
+        }}, shellConfig({{}}));
+        const interior = model.boxes.find((box) => (
+          box.role === "wall-section" && box.meta.segmentIndex === 1
+        ));
+        console.log(JSON.stringify(interior.size));
+        """
+    )
+    assert result[0] == 180
 
 
 def test_whole_house_wall_finish_keeps_texture_while_avoiding_lighting_variation() -> None:
@@ -401,6 +412,11 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_structure_geometry.js",
             "scene_window_types.js",
             "scene_visual_contracts.js",
+            "scene_shell_geometry.js",
+        ],
+        "scene_shell_geometry.js": [
+            "scene_architecture.js",
+            "scene_window_types.js",
         ],
         "scene_structure_preview.js": ["scene_structure_geometry.js"],
     }
@@ -933,6 +949,7 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
 
 def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() -> None:
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    shell = (STATIC / "scene_shell_geometry.js").read_text(encoding="utf-8")
 
     assert (
         "Persisted Step 4 wall segments already contain true door gaps."
@@ -942,12 +959,37 @@ def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() 
         "const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !wallSegments.length"
         in viewer
     )
-    assert "buildSegmentWalls(" in viewer
-    assert "buildConfirmedDoorLeaves(" in viewer
-    assert 'roompilotArchitecturalDetail = "door-header-wall"' in viewer
-    assert "const headerHeight = wallHeight - doorHeight;" in viewer
-    assert "        [],\n        windowSegments," in viewer
+    assert "buildShellBoxes(" in viewer
+    assert "buildStandaloneOpeningAssemblies(" in viewer
     assert "const mullionPositions = [0];" in viewer
+    # 牆段只被 hosted 窗切分;門縫由第 4 步牆段自帶,門只補門楣。
+    assert "Step 4 已確認的牆段自帶門縫" in shell
+    assert "const intervals = windows" in shell
+    assert '"door-lintel"' in shell
+
+    # 行為驗證:牆段中間的門不切牆(仍是一整段),門楣件照出。
+    result = run_workflow_script(
+        f"""
+        import {{ buildSceneModel, shellConfig }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const model = buildSceneModel({{
+          walls: [{{ id: "wall-1", start: {{x: -200, z: 0}}, end: {{x: 200, z: 0}} }}],
+          doors: [{{
+            id: "door-1", width_cm: 90, height_cm: 210, host_wall_id: "wall-1",
+            start: {{x: -45, z: 0}}, end: {{x: 45, z: 0}},
+          }}],
+        }}, shellConfig({{}}));
+        const sections = model.boxes.filter((box) => box.role === "wall-section");
+        const lintels = model.boxes.filter((box) => box.role === "door-lintel");
+        console.log(JSON.stringify({{
+          sections: sections.length,
+          fullSpan: sections[0]?.size?.[0] || 0,
+          lintels: lintels.length,
+        }}));
+        """
+    )
+    assert result["sections"] == 1
+    assert result["fullSpan"] == 400
+    assert result["lintels"] == 1
 
 
 def test_ceiling_picker_uses_the_selected_ceiling_photo_not_a_lighting_sprite() -> None:
@@ -966,41 +1008,68 @@ def test_ceiling_picker_uses_the_selected_ceiling_photo_not_a_lighting_sprite() 
 
 
 def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
+    # 門先經 doorOpeningForWallTopology 映射到第 4 步牆縫,再由 Union-Find
+    # 群聚去重;兩者都在純函式層完成,viewer 只消費 shellModel.openings。
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    shell = (STATIC / "scene_shell_geometry.js").read_text(encoding="utf-8")
 
-    assert "function dedupeArchitecturalOpeningsFor3d" in viewer
-    assert "const doorSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
-    assert "doorOpeningForWallTopology(wallSegments, door, wallThickness)" in viewer
-    wall_builder = viewer.split("function buildSegmentWalls", 1)[1].split(
-        "function buildOpeningAssembly", 1
-    )[0]
-    assert "const wallDoorSegments = doorSegments.filter" in wall_builder
-    assert "opening?.topology_gap !== true" in wall_builder
-    assert "const topologyGapDoors = doorSegments.filter" in wall_builder
-    assert "opening?.topology_gap === true" in wall_builder
-    assert "const missingDoors = doorSegments.filter((opening) =>" in wall_builder
-    assert "!renderedOpenings.has(openingId)" in wall_builder
-    assert "[...wallDoorSegments.map" in wall_builder
+    assert "const doorSegments = shellModel.openings.doors" in viewer
+    assert (
+        "doorOpeningForWallTopology(walls, door, cfg.wallThicknessCm)" in shell
+    )
+    assert "clusterOpeningSegments(" in shell
+
+    result = run_workflow_script(
+        f"""
+        import {{ clusterOpeningSegments, DEFAULT_SCENE_CONFIG }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const reps = clusterOpeningSegments([
+          {{ id: "door-1", start: {{x: 0, z: 0}}, end: {{x: 92, z: 0}} }},
+          {{ start: {{x: 2, z: 6}}, end: {{x: 90, z: 6}} }},
+        ], DEFAULT_SCENE_CONFIG, "door");
+        console.log(JSON.stringify(reps.map((rep) => rep.id || null)));
+        """
+    )
+    assert result == ["door-1"]
 
 
 def test_3d_door_openings_merge_overlapping_spans_on_the_same_host_wall() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
-
-    assert "function openingWallCoverage" in viewer
-    assert "function openingsShareWallCoverage" in viewer
-    assert "left.topology_gap_key === right.topology_gap_key" in viewer
-    assert "overlap >= Math.max(24, narrowerWidth * 0.55)" in viewer
-    assert "openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness)" in viewer
-    assert "dedupeArchitecturalOpeningsFor3d(" in viewer
-    assert "      wallSegments,\n      wallThickness," in viewer
+    # 重複辨識可能偏離牆線幾公分,但仍是同一道實體門:無 ID 的重複線
+    # 依「中點距 ≤30cm 且夾角 ≤10°」合併,代表段取較長者。
+    result = run_workflow_script(
+        f"""
+        import {{ clusterOpeningSegments, DEFAULT_SCENE_CONFIG }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const reps = clusterOpeningSegments([
+          {{ id: "door-7", start: {{x: 100, z: 200}}, end: {{x: 192, z: 200}} }},
+          {{ start: {{x: 104, z: 208}}, end: {{x: 188, z: 208}} }},
+          {{ id: "door-8", start: {{x: 320, z: 200}}, end: {{x: 410, z: 200}} }},
+        ], DEFAULT_SCENE_CONFIG, "door");
+        console.log(JSON.stringify(reps.map((rep) => rep.id)));
+        """
+    )
+    assert result == ["door-7", "door-8"]
 
 
 def test_3d_door_openings_keep_each_confirmed_step4_door_id() -> None:
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    shell = (STATIC / "scene_shell_geometry.js").read_text(encoding="utf-8")
 
-    assert 'const openingId = String(opening?.id || "").trim();' in viewer
-    assert "Step 4 owns door identity; Step 6 must never merge distinct doors." in viewer
-    assert "if (openingId && candidateId) return false;" in viewer
+    # 第 4 步擁有門的身份:兩個非空且不同的 ID 永不合併(純函式層群聚守則)。
+    assert "if (leftId && rightId && leftId !== rightId) continue;" in shell
+    assert "第 4 步擁有門窗身份" in shell
+
+    result = run_workflow_script(
+        f"""
+        import {{ clusterOpeningSegments, DEFAULT_SCENE_CONFIG }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const reps = clusterOpeningSegments([
+          {{ id: "door-a", start: {{x: 0, z: 0}}, end: {{x: 90, z: 0}} }},
+          {{ id: "door-b", start: {{x: 0, z: 12}}, end: {{x: 90, z: 12}} }},
+        ], DEFAULT_SCENE_CONFIG, "door");
+        console.log(JSON.stringify(reps.map((rep) => rep.id)));
+        """
+    )
+    assert result == ["door-a", "door-b"]
+
+    # 診斷輸出仍逐 ID 對帳實際渲染的門組件。
     assert "function openingAnchorOnWall" in viewer
     assert "anchorDistance <= 1" in viewer
     assert "mergedDoorIds" in viewer
@@ -1044,7 +1113,9 @@ def test_step6_uses_only_the_confirmed_step4_wall_opening_snapshot() -> None:
     assert "confirmed_wall_opening: confirmedWallOpeningForSnapshot(" in controller
     assert "function hydrateConfirmedStructureSnapshot(" in controller
     assert "persisted_step4_wall_gap" in architecture
-    assert "opening?.step4_skip_wall_cut !== true" in viewer
+    # step4_skip_wall_cut 的開口過濾移入純函式層(activeOpenings)。
+    shell = (STATIC / "scene_shell_geometry.js").read_text(encoding="utf-8")
+    assert "opening.step4_skip_wall_cut !== true" in shell
 
 
 def test_step4_can_lock_a_manually_corrected_door_opening() -> None:

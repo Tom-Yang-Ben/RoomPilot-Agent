@@ -16,83 +16,29 @@ import {
   surfaceTint,
 } from "./scene_pbr_contracts.js?v=sha256-075ad1cedc62";
 import {
-  doorOpeningForWallTopology,
   openingBelongsToWall,
   openingWallInterval,
-  wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-25568bdd96c1";
+} from "./scene_architecture.js?v=sha256-4e6be1d95f62";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
 import {
   clampWalkPosition,
   computeExactModelScale,
-  expandedFloorSlabRing,
   fallbackMaterialRole,
   findNearestWalkablePosition,
-  synchronizedFloorRegions,
   viewPresentation,
 } from "./scene_visual_contracts.js?v=sha256-ffab73a6296a";
+import {
+  buildSceneModel,
+  shellConfig,
+} from "./scene_shell_geometry.js?v=sha256-83a84676fd6f";
 
 const CM_PER_METER = 100;
 
 function normalizeSceneRotationDeg(rotationDeg = 0) {
   return ((Number(rotationDeg) % 360) + 360) % 360;
-}
-
-function architecturalOpeningVector(opening = {}) {
-  const start = opening.start || {};
-  const end = opening.end || {};
-  const startX = Number(start.x || 0);
-  const startZ = Number(start.z || 0);
-  const endX = Number(end.x || 0);
-  const endZ = Number(end.z || 0);
-  const dx = endX - startX;
-  const dz = endZ - startZ;
-  const length = Math.hypot(dx, dz);
-  return {
-    startX,
-    startZ,
-    endX,
-    endZ,
-    centerX: (startX + endX) / 2,
-    centerZ: (startZ + endZ) / 2,
-    length,
-    unitX: length ? dx / length : 0,
-    unitZ: length ? dz / length : 0,
-  };
-}
-
-function architecturalOpeningsOverlap(left = {}, right = {}) {
-  if (left.topology_gap === true || right.topology_gap === true) {
-    return left.topology_gap === true
-      && right.topology_gap === true
-      && Boolean(left.topology_gap_key)
-      && left.topology_gap_key === right.topology_gap_key;
-  }
-  const leftVector = architecturalOpeningVector(left);
-  const rightVector = architecturalOpeningVector(right);
-  if (leftVector.length < 4 || rightVector.length < 4) return false;
-  const parallel = Math.abs(
-    leftVector.unitX * rightVector.unitX + leftVector.unitZ * rightVector.unitZ,
-  );
-  if (parallel < 0.82) return false;
-  const centerDistance = Math.hypot(
-    leftVector.centerX - rightVector.centerX,
-    leftVector.centerZ - rightVector.centerZ,
-  );
-  const endpointDistance = Math.min(
-    Math.hypot(leftVector.startX - rightVector.startX, leftVector.startZ - rightVector.startZ)
-      + Math.hypot(leftVector.endX - rightVector.endX, leftVector.endZ - rightVector.endZ),
-    Math.hypot(leftVector.startX - rightVector.endX, leftVector.startZ - rightVector.endZ)
-      + Math.hypot(leftVector.endX - rightVector.startX, leftVector.endZ - rightVector.startZ),
-  );
-  const width = Math.min(
-    Number(left.width_cm || left.width || leftVector.length) || leftVector.length,
-    Number(right.width_cm || right.width || rightVector.length) || rightVector.length,
-  );
-  return centerDistance <= Math.max(18, width * 0.28) || endpointDistance <= 36;
 }
 
 function openingWallCoverage(opening = {}, wallSegments = [], wallThickness = 12) {
@@ -121,76 +67,6 @@ function openingAnchorOnWall(segment, interval) {
 function openingAnchorForWallTopology(opening = {}, wallSegments = [], wallThickness = 12) {
   const coverage = openingWallCoverage(opening, wallSegments, wallThickness);
   return coverage ? openingAnchorOnWall(coverage.hostSegment, coverage.interval) : null;
-}
-
-function openingsShareWallCoverage(left = {}, right = {}, wallSegments = [], wallThickness = 12) {
-  const leftCoverage = openingWallCoverage(left, wallSegments, wallThickness);
-  const rightCoverage = openingWallCoverage(right, wallSegments, wallThickness);
-  if (!leftCoverage || !rightCoverage || leftCoverage.hostSegment !== rightCoverage.hostSegment) {
-    return false;
-  }
-  const overlap = Math.min(leftCoverage.interval.to, rightCoverage.interval.to)
-    - Math.max(leftCoverage.interval.from, rightCoverage.interval.from);
-  const narrowerWidth = Math.min(
-    leftCoverage.interval.to - leftCoverage.interval.from,
-    rightCoverage.interval.to - rightCoverage.interval.from,
-  );
-  // A repeated recognition can be offset from the wall line, but still cuts the
-  // same physical span. Do not collapse neighbouring, genuinely separate doors.
-  return overlap >= Math.max(24, narrowerWidth * 0.55);
-}
-
-function architecturalOpeningScore(opening = {}, wallSegments = [], wallThickness = 12) {
-  const coverage = openingWallCoverage(opening, wallSegments, wallThickness);
-  const vector = architecturalOpeningVector(opening);
-  const host = coverage ? architecturalOpeningVector(coverage.hostSegment) : null;
-  const centerOffset = host
-    ? Math.abs(
-      (vector.centerX - host.startX) * -host.unitZ
-      + (vector.centerZ - host.startZ) * host.unitX,
-    )
-    : 0;
-  return (opening.topology_gap ? 100 : 0)
-    + (opening.confirmed ? 18 : 0)
-    + (opening.source === "manual" ? 14 : 0)
-    + Math.min(12, Number(opening.confidence || 0) * 12)
-    - Math.min(30, centerOffset * 0.25);
-}
-
-function openingIsManuallyLocked(opening = {}) {
-  return opening?.source === "manual"
-    || opening?.opening_source === "manual_confirmed"
-    || opening?.host_wall_confirmed === true;
-}
-
-function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wallThickness = 12) {
-  const result = [];
-  openings.filter(Boolean).forEach((opening) => {
-    const openingId = String(opening?.id || "").trim();
-    const duplicateIndex = result.findIndex(
-      (candidate) => {
-        const candidateId = String(candidate?.id || "").trim();
-        if (openingId && candidateId && openingId === candidateId) return true;
-        // Step 4 owns door identity; Step 6 must never merge distinct doors.
-        // Each persisted door ID represents a separately confirmed physical door.
-        if (openingId && candidateId) return false;
-        const samePhysicalSpan = architecturalOpeningsOverlap(candidate, opening)
-          || openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness);
-        return samePhysicalSpan;
-      },
-    );
-    if (duplicateIndex < 0) {
-      result.push(opening);
-      return;
-    }
-    if (
-      architecturalOpeningScore(opening, wallSegments, wallThickness)
-      > architecturalOpeningScore(result[duplicateIndex], wallSegments, wallThickness)
-    ) {
-      result[duplicateIndex] = opening;
-    }
-  });
-  return result;
 }
 
 function sceneToWorldPosition(position = {}) {
@@ -680,6 +556,9 @@ export function createSceneViewer(
       configureWallsForView("orbit");
     }
     const room = roomGroup.userData.roomSize || { widthCm: 420, depthCm: 360, wallHeight: 270 };
+    // 文件 §5.7:初始 corner 取位依結構 bbox 推算(fitCameraPose:span×1.2、
+    // XZ 0.7 / Y 0.9),各檔尺度差異大不可寫死;模型尚未建立時退回手調公式。
+    const fitPose = roomGroup.userData.shellModel?.cameraPose || null;
     const presets = {
       overview: {
         position: [0, Math.max(room.widthCm, room.depthCm) * 1.12 + 210, 8],
@@ -689,10 +568,15 @@ export function createSceneViewer(
         position: [0, 172, room.depthCm / 2 + 115],
         target: [0, 105, -room.depthCm * 0.16],
       },
-      corner: {
-        position: [room.widthCm * 0.55 + 115, 272, room.depthCm * 0.55 + 135],
-        target: [0, 85, 0],
-      },
+      corner: fitPose
+        ? {
+          position: [...fitPose.position],
+          target: [...fitPose.target],
+        }
+        : {
+          position: [room.widthCm * 0.55 + 115, 272, room.depthCm * 0.55 + 135],
+          target: [0, 85, 0],
+        },
       inside: {
         position: [0, 145, Math.max(room.depthCm * 0.28, 95)],
         target: [0, 108, -Math.max(room.depthCm * 0.14, 48)],
@@ -1346,384 +1230,102 @@ export function createSceneViewer(
     return wallMesh;
   }
 
-  function buildSegmentWalls(
+  // 描述 → mesh 薄層:外殼幾何(牆段切分/補實/玻璃/門楣/橋接/頂蓋)一律由
+  // scene_shell_geometry.buildSceneModel 計算;這裡只把 BoxDesc 變成 mesh、
+  // 配產品材質(逐房 override、外牆雙面)與踢腳板。
+  function buildShellBoxes(
     roomGroupRef,
-    segments,
+    shellModelRef,
     wallMaterial,
-    wallHeight,
+    sceneData,
     wallThickness,
-    doorSegments = [],
-    windowSegments = [],
-    floorplan = null,
-    surfaceCatalog = null,
-    confirmedOpenings = [],
   ) {
-    const renderedOpenings = new Set();
-    const wallDoorSegments = doorSegments.filter((opening) => (
-      opening?.topology_gap !== true && opening?.step4_skip_wall_cut !== true
-    ));
-    const topologyGapDoors = doorSegments.filter((opening) => opening?.topology_gap === true);
-    const exteriorSegments = segments.filter((segment) => (
-      isExteriorWallSegment(segment, floorplan, wallThickness)
-    ));
-    const protectedOpenings = [...confirmedOpenings, ...windowSegments]
-      .map((opening) => opening?.wall_opening_segment || opening)
-      .filter((opening) => opening?.start && opening?.end);
-
-    function buildConfirmedWallJunctionFills() {
-      const junctionToleranceCm = Math.max(36, Number(wallThickness) * 2);
-      const endpoints = segments.flatMap((segment, segmentIndex) => (
-        ["start", "end"].flatMap((key) => {
-          const endpoint = wallSegmentPoint(segment, key);
-          return endpoint
-            ? [{
-              key: `${segment.id || segmentIndex}:${key}`,
-              segment,
-              point: endpoint,
-            }]
-            : [];
-        })
-      ));
-      const usedEndpoints = new Set();
-      const bridgeTouchesProtectedOpening = (start, end) => {
-        const midpoint = {
-          x: (start.x + end.x) / 2,
-          z: (start.z + end.z) / 2,
-        };
-        const toleranceCm = Math.max(Number(wallThickness) * 0.6, 7);
-        return protectedOpenings.some((opening) => {
-          const openingSegment = { start: opening.start, end: opening.end };
-          return pointToWallSegmentDistance(midpoint, openingSegment) <= toleranceCm
-            && (
-              pointToWallSegmentDistance(start, openingSegment) <= toleranceCm
-              || pointToWallSegmentDistance(end, openingSegment) <= toleranceCm
-            );
-        });
-      };
-
-      endpoints.forEach((endpoint, index) => {
-        if (usedEndpoints.has(endpoint.key)) return;
-        const neighbor = endpoints
-          .slice(index + 1)
-          .filter((candidate) => (
-            candidate.segment !== endpoint.segment
-            && !usedEndpoints.has(candidate.key)
-          ))
-          .map((candidate) => ({
-            candidate,
-            distance: Math.hypot(
-              candidate.point.x - endpoint.point.x,
-              candidate.point.z - endpoint.point.z,
-            ),
-          }))
-          .filter(({ distance }) => distance > 0.8 && distance <= junctionToleranceCm)
-          .sort((left, right) => left.distance - right.distance)[0];
-        if (!neighbor) return;
-
-        const start = endpoint.point;
-        const end = neighbor.candidate.point;
-        if (bridgeTouchesProtectedOpening(start, end)) return;
-        const dx = end.x - start.x;
-        const dz = end.z - start.z;
+    const floorplan = sceneData?.floorplan || {};
+    const wallSegments = floorplan.wall_segments || [];
+    const openingById = new Map(
+      [
+        ...(shellModelRef?.openings?.windows || []),
+        ...(shellModelRef?.openings?.doors || []),
+      ]
+        .filter((opening) => String(opening?.id || "").trim())
+        .map((opening) => [String(opening.id).trim(), opening]),
+    );
+    const trimMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xf5f1ea,
+      roughness: 0.62,
+      metalness: 0,
+      clearcoat: 0.08,
+      clearcoatRoughness: 0.68,
+    });
+    const materialsForBox = (desc, segment) => {
+      if (typeof wallMaterial !== "function") return wallMaterial.clone();
+      if (segment && typeof wallMaterial.faceMaterials === "function") {
+        const start = segment.start || {};
+        const end = segment.end || {};
+        const dx = Number(end.x || 0) - Number(start.x || 0);
+        const dz = Number(end.z || 0) - Number(start.z || 0);
         const length = Math.hypot(dx, dz);
-        if (length < 0.8) return;
-        const bridgeSegment = { start, end };
-        const bridgeMaterial = typeof wallMaterial === "function"
-          ? (wallMaterial.faceMaterials?.(bridgeSegment, 0) || wallMaterial(bridgeSegment))
-          : wallMaterial.clone();
-        const bridge = new THREE.Mesh(
-          new THREE.BoxGeometry(length + Number(wallThickness), wallHeight, wallThickness),
-          bridgeMaterial,
-        );
-        bridge.position.set(
-          (start.x + end.x) / 2,
-          wallHeight / 2,
-          (start.z + end.z) / 2,
-        );
-        bridge.rotation.y = Math.atan2(-dz, dx);
-        bridge.castShadow = true;
-        bridge.receiveShadow = true;
-        bridge.userData.roompilotArchitecturalDetail = "confirmed-wall-junction-fill";
-        roomGroupRef.add(registerWall(bridge));
-        usedEndpoints.add(endpoint.key);
-        usedEndpoints.add(neighbor.candidate.key);
-      });
-    }
+        const exteriorWall = isExteriorWallSegment(segment, floorplan, wallThickness);
+        const exteriorSideSign = exteriorWall && length
+          ? exteriorWallOutwardSideSign(segment, floorplan, dx / length, dz / length)
+          : 0;
+        const faces = wallMaterial.faceMaterials(segment, exteriorSideSign);
+        if (faces) return faces;
+      }
+      const source = segment
+        || openingById.get(String(desc.meta?.openingId || "").trim())
+        || {};
+      return wallMaterial(source).clone();
+    };
 
-    segments.forEach((segment) => {
-      const start = segment.start;
-      const end = segment.end;
-      if (!start || !end) return;
-
-      const dx = Number(end.x) - Number(start.x);
-      const dz = Number(end.z) - Number(start.z);
-      const length = Math.hypot(dx, dz);
-      if (length < 4) return;
-      const unitX = dx / length;
-      const unitZ = dz / length;
-      const rotationY = Math.atan2(-dz, dx);
-      const exteriorWall = isExteriorWallSegment(segment, floorplan, wallThickness);
-      const exteriorSideSign = exteriorWall
-        ? exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)
-        : 0;
-      const wallJunctionInsets = exteriorWall
-        ? { start: 0, end: 0 }
-        : interiorWallJunctionInsets(segment, exteriorSegments, wallThickness);
-      const sectionMin = Math.min(Math.max(wallJunctionInsets.start, 0), length / 2);
-      const sectionMax = Math.max(
-        sectionMin,
-        length - Math.min(Math.max(wallJunctionInsets.end, 0), length / 2),
+    (shellModelRef?.boxes || []).forEach((desc) => {
+      const [alongCm, heightCm, thicknessCm] = desc.size;
+      if (alongCm < 0.5 || heightCm < 0.5) return;
+      if (desc.kind === "glass") {
+        const glass = new THREE.Mesh(
+          new THREE.BoxGeometry(alongCm, heightCm, thicknessCm),
+          new THREE.MeshPhysicalMaterial({
+            color: 0xd9edf2,
+            ...architecturalPbrProfile("glass"),
+            side: THREE.DoubleSide,
+          }),
+        );
+        glass.position.set(desc.center[0], desc.center[1], desc.center[2]);
+        glass.rotation.y = desc.rotationY;
+        glass.castShadow = false;
+        glass.userData.roompilotArchitecturalDetail = desc.meta?.detail || desc.role;
+        roomGroupRef.add(glass);
+        return;
+      }
+      const segment = Number.isInteger(desc.meta?.segmentIndex)
+        ? wallSegments[desc.meta.segmentIndex] || null
+        : null;
+      const wallMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(alongCm, heightCm, thicknessCm),
+        materialsForBox(desc, segment),
       );
-      if (sectionMax - sectionMin < 4) return;
-
-      const material = typeof wallMaterial === "function"
-        ? wallMaterial(segment)
-        : wallMaterial;
-      const openingIntervals = [...wallDoorSegments.map((opening) => ({ opening, kind: "door" })),
-        ...windowSegments.map((opening) => ({ opening, kind: "window" }))]
-        .map(({ opening, kind }, index) => {
-          const wallInterval = openingWallInterval(
-            segment,
-            opening,
-            wallThickness,
-            kind === "door" ? 68 : 50,
-          );
-          if (!wallInterval) return null;
-          const windowMetrics = kind === "window"
-            ? windowOpeningMetrics(opening, wallHeight)
-            : null;
-          const from = Math.max(wallInterval.from, sectionMin);
-          const to = Math.min(wallInterval.to, sectionMax);
-          if (to - from < 2.5) return null;
-          return {
-            from,
-            to,
-            kind,
-            id: opening.id || null,
-            width: wallInterval.width,
-            opening,
-            windowMetrics,
-            key: opening.id
-              || `${kind}-${index}-${wallInterval.centerX.toFixed(2)}-${wallInterval.centerZ.toFixed(2)}`,
-          };
-        })
-        .filter(Boolean)
-        .sort((left, right) => left.from - right.from);
-
-      const addWallSection = (from, to, bottom, height, sectionMaterial = material) => {
-        if (to - from < 2.5 || height < 2.5) return;
-        const span = wallSectionSpan(from, to, length);
-        const sectionFrom = span.from;
-        const sectionTo = span.to;
-        const center = (sectionFrom + sectionTo) / 2;
-        const sectionGeometry = new THREE.BoxGeometry(sectionTo - sectionFrom, height, wallThickness);
-        const sectionMaterials = typeof wallMaterial.faceMaterials === "function"
-          ? wallMaterial.faceMaterials(segment, exteriorSideSign)
-          : sectionMaterial.clone();
-        const wallMesh = new THREE.Mesh(
-          sectionGeometry,
-          sectionMaterials,
-        );
-        wallMesh.position.set(
-          Number(start.x) + unitX * center,
-          bottom + height / 2,
-          Number(start.z) + unitZ * center,
-        );
-        wallMesh.rotation.y = rotationY;
+      wallMesh.position.set(desc.center[0], desc.center[1], desc.center[2]);
+      wallMesh.rotation.y = desc.rotationY;
+      wallMesh.userData.roompilotArchitecturalDetail = desc.meta?.detail || desc.role;
+      if (desc.role === "top-cap") {
+        wallMesh.castShadow = true;
+        wallMesh.receiveShadow = true;
+        roomGroupRef.add(wallMesh);
+      } else {
         roomGroupRef.add(registerWall(wallMesh));
-      };
-
-      const trimMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0xf5f1ea,
-        roughness: 0.62,
-        metalness: 0,
-        clearcoat: 0.08,
-        clearcoatRoughness: 0.68,
-      });
-      const addBaseboard = (from, to) => {
-        if (to - from < 4) return;
-        const center = (from + to) / 2;
+      }
+      if (desc.role === "wall-section") {
         const trim = new THREE.Mesh(
-          new THREE.BoxGeometry(to - from, 7.5, wallThickness + 2.2),
+          new THREE.BoxGeometry(alongCm, 7.5, thicknessCm + 2.2),
           trimMaterial,
         );
-        trim.position.set(
-          Number(start.x) + unitX * center,
-          3.8,
-          Number(start.z) + unitZ * center,
-        );
-        trim.rotation.y = rotationY;
+        trim.position.set(desc.center[0], 3.8, desc.center[2]);
+        trim.rotation.y = desc.rotationY;
         trim.castShadow = true;
         trim.receiveShadow = true;
         trim.userData.roompilotArchitecturalDetail = "baseboard";
         roomGroupRef.add(trim);
-      };
-
-      let cursor = sectionMin;
-      openingIntervals.forEach((interval) => {
-        addWallSection(cursor, interval.from, 0, wallHeight);
-        addBaseboard(cursor, interval.from);
-        const openingHeight = interval.kind === "door"
-          ? Math.min(Number(interval.opening.height_cm || 210), wallHeight - 8)
-          : interval.windowMetrics.headHeightCm;
-        if (interval.kind === "window") {
-          const sillHeight = interval.windowMetrics.sillHeightCm;
-          const frameAllowanceCm = 0.6;
-          addWallSection(interval.from, interval.to, 0, Math.max(0, sillHeight - frameAllowanceCm));
-          addWallSection(
-            interval.from,
-            interval.to,
-            openingHeight + frameAllowanceCm,
-            Math.max(0, wallHeight - openingHeight - frameAllowanceCm),
-          );
-        } else {
-          addWallSection(interval.from, interval.to, openingHeight, wallHeight - openingHeight);
-        }
-        if (!renderedOpenings.has(interval.key)) {
-          buildOpeningAssembly(
-            roomGroupRef,
-            interval,
-            {
-              ...openingAnchorOnWall(segment, interval),
-              rotationY,
-              wallThickness,
-            },
-            surfaceCatalog,
-          );
-          renderedOpenings.add(interval.key);
-        }
-        cursor = Math.max(cursor, interval.to);
-      });
-      addWallSection(cursor, sectionMax, 0, wallHeight);
-      addBaseboard(cursor, sectionMax);
-
-      const capLength = sectionMax - sectionMin;
-      const capCenter = (sectionMin + sectionMax) / 2;
-      const topCapMaterials = typeof wallMaterial.faceMaterials === "function"
-        ? wallMaterial.faceMaterials(segment, exteriorSideSign)
-        : material.clone();
-      const topCap = new THREE.Mesh(
-        new THREE.BoxGeometry(capLength, 2.5, wallThickness),
-        topCapMaterials,
-      );
-      topCap.position.set(
-        Number(start.x) + unitX * capCenter,
-        wallHeight + 1.25,
-        Number(start.z) + unitZ * capCenter,
-      );
-      topCap.rotation.y = rotationY;
-      topCap.castShadow = true;
-      topCap.receiveShadow = true;
-      roomGroupRef.add(topCap);
-    });
-
-    buildConfirmedWallJunctionFills();
-
-    // A door may have a valid closed segment but no recognised wall span yet.
-    // It must still be rendered once at that closed position; otherwise a
-    // confirmed Step 4 door silently disappears in Step 6.
-    const missingDoors = doorSegments.filter((opening) => {
-      const openingId = String(opening?.id || "").trim();
-      return opening?.topology_gap === true
-        || opening?.step4_skip_wall_cut === true
-        || !openingId
-        || !renderedOpenings.has(openingId);
-    }).filter((opening) => opening?.step4_skip_wall_cut !== true);
-    const missingWindows = windowSegments.filter((opening) => !segments.some(
-      (segment) => openingWallInterval(segment, opening, wallThickness, 50),
-    ) && opening?.step4_skip_wall_cut !== true);
-    if (missingDoors.length || missingWindows.length) {
-      const standaloneWallMaterial = typeof wallMaterial === "function"
-        ? (opening) => {
-          const hostSegment = wallSegmentForOpening(segments, opening, wallThickness);
-          return wallMaterial(hostSegment || segments[0] || {});
-        }
-        : wallMaterial;
-      buildStandaloneOpeningAssemblies(
-        roomGroupRef,
-        missingDoors,
-        missingWindows,
-        standaloneWallMaterial,
-        wallHeight,
-        wallThickness,
-        surfaceCatalog,
-      );
-    }
-  }
-
-  function buildConfirmedDoorLeaves(
-    roomGroupRef,
-    doorSegments,
-    wallMaterial,
-    wallHeight,
-    wallThickness,
-    surfaceCatalog = null,
-  ) {
-    const renderedDoorIds = new Set();
-    doorSegments.forEach((door, index) => {
-      // The Step 4 wall gap is authoritative for every wall component.  The
-      // closed leaf may be shown on it, but must never define a second opening.
-      const headerSegment = door?.wall_opening_segment || door?.closed_leaf_segment;
-      const start = headerSegment?.start;
-      const end = headerSegment?.end;
-      const dx = Number(end?.x) - Number(start?.x);
-      const dz = Number(end?.z) - Number(start?.z);
-      const width = Math.hypot(dx, dz);
-      if (width < 4) return;
-      const id = String(door?.id || `door-${index + 1}`);
-      if (renderedDoorIds.has(id)) return;
-      const doorHeight = Math.min(
-        Math.max(Number(door.height_cm || door.height) || 205, 180),
-        wallHeight - 8,
-      );
-      const headerHeight = wallHeight - doorHeight;
-      if (headerHeight >= 2.5) {
-        const headerMaterial = typeof wallMaterial === "function"
-          ? wallMaterial({ start, end })
-          : wallMaterial;
-        const headerMaterials = typeof wallMaterial?.faceMaterials === "function"
-          ? wallMaterial.faceMaterials({ start, end })
-          : headerMaterial.clone();
-        // Extend the lintel fractionally into both jambs so it becomes one
-        // continuous wall assembly instead of a visibly floating thin slab.
-        const headerOverlapCm = 0.8;
-        const header = new THREE.Mesh(
-          new THREE.BoxGeometry(
-            width + headerOverlapCm,
-            headerHeight,
-            wallThickness + headerOverlapCm,
-          ),
-          headerMaterials,
-        );
-        header.position.set(
-          (Number(start.x) + Number(end.x)) / 2,
-          doorHeight + headerHeight / 2,
-          (Number(start.z) + Number(end.z)) / 2,
-        );
-        header.rotation.y = Math.atan2(-dz, dx);
-        header.castShadow = true;
-        header.receiveShadow = true;
-        header.userData.roompilotArchitecturalDetail = "door-header-wall";
-        header.userData.roompilotArchitecturalId = id;
-        roomGroupRef.add(registerWall(header));
       }
-      buildOpeningAssembly(
-        roomGroupRef,
-        {
-          kind: "door",
-          id,
-          width: Math.max(Number(door.width_cm || door.width) || width, 60),
-          opening: door,
-        },
-        {
-          x: (Number(start.x) + Number(end.x)) / 2,
-          z: (Number(start.z) + Number(end.z)) / 2,
-          rotationY: Math.atan2(-dz, dx),
-          wallThickness,
-        },
-        surfaceCatalog,
-      );
-      renderedDoorIds.add(id);
     });
   }
 
@@ -1751,18 +1353,7 @@ export function createSceneViewer(
       const faceOffset = 0;
       const bottomY = centerY - height / 2;
       const topY = centerY + height / 2;
-      const glass = new THREE.Mesh(
-        new THREE.PlaneGeometry(Math.max(interval.width - frameThickness * 2, 12), Math.max(height - frameThickness * 2, 12)),
-        new THREE.MeshPhysicalMaterial({
-          color: 0xd9edf2,
-          ...architecturalPbrProfile("glass"),
-          side: THREE.DoubleSide,
-        }),
-      );
-      glass.position.y = centerY;
-      glass.position.z = 0;
-      glass.castShadow = false;
-      assembly.add(glass);
+      // 玻璃由 SceneModel 的 window-glass BoxDesc 供給;組件只畫框、豎櫺與窗台。
       const mullionPositions = [0];
       [
         [interval.width, frameThickness, 0, bottomY],
@@ -1817,11 +1408,12 @@ export function createSceneViewer(
     roomGroupRef.add(assembly);
   }
 
+  // 開口的窗框/門葉組件(附加層):牆補實、門楣與玻璃一律由 SceneModel 供給,
+  // 這裡只放置框件與門葉。門以第 4 步的牆縫線段(wall_opening_segment)定位。
   function buildStandaloneOpeningAssemblies(
     roomGroupRef,
     doorSegments,
     windowSegments,
-    wallMaterial,
     wallHeight,
     wallThickness,
     surfaceCatalog = null,
@@ -1830,14 +1422,11 @@ export function createSceneViewer(
       ...doorSegments.map((opening) => ({ opening, kind: "door" })),
       ...windowSegments.map((opening) => ({ opening, kind: "window" })),
     ].forEach(({ opening, kind }) => {
-      const openingWallMaterial = typeof wallMaterial === "function"
-        ? wallMaterial(opening)
-        : wallMaterial;
-      const openingWallMaterials = typeof wallMaterial?.faceMaterials === "function"
-        ? wallMaterial.faceMaterials(opening)
-        : openingWallMaterial.clone();
-      const start = opening.start || {};
-      const end = opening.end || {};
+      const anchorSegment = kind === "door"
+        ? (opening.wall_opening_segment || opening.closed_leaf_segment || opening)
+        : opening;
+      const start = anchorSegment.start || {};
+      const end = anchorSegment.end || {};
       const dx = Number(end.x || 0) - Number(start.x || 0);
       const dz = Number(end.z || 0) - Number(start.z || 0);
       const measuredWidth = Math.hypot(dx, dz);
@@ -1846,9 +1435,6 @@ export function createSceneViewer(
         Number(opening.width_cm || opening.width || measuredWidth),
         kind === "door" ? 68 : 50,
       );
-      const windowMetrics = kind === "window"
-        ? windowOpeningMetrics(opening, wallHeight)
-        : null;
       buildOpeningAssembly(
         roomGroupRef,
         {
@@ -1856,7 +1442,9 @@ export function createSceneViewer(
           id: opening.id || null,
           width: openingWidth,
           opening,
-          windowMetrics,
+          windowMetrics: kind === "window"
+            ? windowOpeningMetrics(opening, wallHeight)
+            : null,
         },
         {
           x: (Number(start.x || 0) + Number(end.x || 0)) / 2,
@@ -1866,47 +1454,6 @@ export function createSceneViewer(
         },
         surfaceCatalog,
       );
-      const isWindow = kind === "window";
-      const openingHeight = isWindow
-        ? windowMetrics.headHeightCm
-        : Math.min(Number(opening.height_cm || 210), wallHeight - 8);
-      const sillHeight = isWindow
-        ? windowMetrics.sillHeightCm
-        : 0;
-      const addOpeningWallSection = (bottom, height, detail) => {
-        if (height < 2.5) return;
-        const section = new THREE.Mesh(
-          new THREE.BoxGeometry(
-            openingWidth,
-            height,
-            wallThickness,
-          ),
-          openingWallMaterials,
-        );
-        section.position.set(
-          (Number(start.x || 0) + Number(end.x || 0)) / 2,
-          bottom + height / 2,
-          (Number(start.z || 0) + Number(end.z || 0)) / 2,
-        );
-        section.rotation.y = Math.atan2(-dz, dx);
-        section.userData.roompilotArchitecturalDetail = detail;
-        roomGroupRef.add(registerWall(section));
-      };
-      if (isWindow) {
-        const frameAllowanceCm = 0.6;
-        addOpeningWallSection(0, Math.max(0, sillHeight - frameAllowanceCm), "window-wall-sill");
-        addOpeningWallSection(
-          openingHeight + frameAllowanceCm,
-          Math.max(0, wallHeight - openingHeight - frameAllowanceCm),
-          "window-wall-header",
-        );
-      } else {
-        addOpeningWallSection(
-          openingHeight,
-          wallHeight - openingHeight,
-          "door-wall-header",
-        );
-      }
     });
   }
 
@@ -2705,41 +2252,6 @@ export function createSceneViewer(
     return 1;
   }
 
-  function wallSectionFaceMaterials(sectionMaterial, exteriorMaterial, exteriorSideSign = 1) {
-    const interior = sectionMaterial.clone();
-    const exterior = exteriorMaterial.clone();
-    const materials = [
-      interior.clone(),
-      interior.clone(),
-      interior.clone(),
-      interior.clone(),
-      interior.clone(),
-      interior.clone(),
-    ];
-    materials[exteriorSideSign >= 0 ? 4 : 5] = exterior;
-    return materials;
-  }
-
-  function interiorWallJunctionInsets(segment, exteriorSegments, wallThickness) {
-    // Confirmed wall endpoints already describe the real junction.  Do not
-    // retract them by half a wall thickness, or a false white slit appears
-    // between otherwise continuous walls in the Step 6 model.
-    const insetCm = 0;
-    const toleranceCm = Math.max(Number(wallThickness) / 2 + 2, 8);
-    const endpointTouchesExterior = (key) => {
-      const point = wallSegmentPoint(segment, key);
-      if (!point) return false;
-      return exteriorSegments.some((exteriorSegment) => (
-        exteriorSegment !== segment
-          && pointToWallSegmentDistance(point, exteriorSegment) <= toleranceCm
-      ));
-    };
-    return {
-      start: endpointTouchesExterior("start") ? insetCm : 0,
-      end: endpointTouchesExterior("end") ? insetCm : 0,
-    };
-  }
-
   function polygonShape(region = {}, includeHoles = true) {
     const exterior = region.exterior || [];
     if (exterior.length < 3) return null;
@@ -2770,17 +2282,18 @@ export function createSceneViewer(
     return shape;
   }
 
-  function buildWallMass(roomGroupRef, floorplan, material, wallHeight) {
-    const wallMassRegions = (floorplan?.wall_polys || []).filter(
-      (region) => region?.exterior?.length >= 3,
-    );
-    if (!wallMassRegions.length) return false;
+  // 文件 §5.5:多邊形牆擠出 Shape(x,-z) + ExtrudeGeometry(depth=牆高) +
+  // rotateX(-90°)。polygonWalls 描述來自 SceneModel;100×100 環 → 世界 bbox
+  // x[0,100]、y[0,牆高]、z[-100,0]…在本 repo 的世界對齊平面等價於 z[0,100]。
+  function buildWallMass(roomGroupRef, shellModelRef, material) {
+    const polygonWalls = shellModelRef?.polygonWalls || [];
+    if (!polygonWalls.length) return false;
 
-    wallMassRegions.forEach((region) => {
+    polygonWalls.forEach(({ region, heightCm }) => {
       const shape = polygonShape(region, true);
       if (!shape) return;
       const geometry = new THREE.ExtrudeGeometry(shape, {
-        depth: wallHeight,
+        depth: heightCm,
         bevelEnabled: false,
         curveSegments: 1,
       });
@@ -2795,11 +2308,8 @@ export function createSceneViewer(
     return true;
   }
 
-  function buildWallMassTopCaps(roomGroupRef, floorplan, material, wallHeight) {
-    const wallMassRegions = (floorplan?.wall_polys || []).filter(
-      (region) => region?.exterior?.length >= 3,
-    );
-    wallMassRegions.forEach((region) => {
+  function buildWallMassTopCaps(roomGroupRef, shellModelRef, material) {
+    (shellModelRef?.polygonWalls || []).forEach(({ region, heightCm }) => {
       const shape = polygonShape(region, true);
       if (!shape) return;
       const cap = new THREE.Mesh(
@@ -2807,32 +2317,12 @@ export function createSceneViewer(
         material.clone(),
       );
       cap.rotation.x = -Math.PI / 2;
-      cap.position.y = wallHeight + 0.4;
+      cap.position.y = heightCm + 0.4;
       cap.userData.roompilotArchitecturalDetail = "continuous-wall-mass-top-cap";
       cap.castShadow = true;
       cap.receiveShadow = true;
       roomGroupRef.add(cap);
     });
-  }
-
-  // 基底樓板外擴量:room_regions 是「室內淨空」環,相鄰房之間隔著整條牆帶
-  // (floor04 實測 26.9cm),門洞下方與牆體下方原本完全沒有地板,俯視/斜視
-  // 會露出背景形成一條條破口。外擴 14cm 讓兩側樓板在牆帶中線會合、蓋住門檻,
-  // 又仍在外牆外緣之內(外牆段中心線距 region 邊 ≥ 14cm + 半牆厚)。
-  const FLOOR_SLAB_BLEED_CM = 14;
-
-  function createFloorGeometry(floorplan, widthCm, depthCm) {
-    // 逐房材質(createRoomSurfaceOverrides)仍用未外擴的房間多邊形,
-    // 材質分界與房間線一致;只有這層共用基底樓板做外擴。
-    const shapes = synchronizedFloorRegions(floorplan, widthCm, depthCm)
-      .map((region) => polygonShape({
-        ...region,
-        exterior: expandedFloorSlabRing(region.exterior, FLOOR_SLAB_BLEED_CM),
-      }, true))
-      .filter(Boolean);
-    const geometry = new THREE.ShapeGeometry(shapes);
-    geometry.computeVertexNormals();
-    return geometry;
   }
 
   function createRoom(sceneData) {
@@ -2844,10 +2334,22 @@ export function createSceneViewer(
 
     const widthCm = Math.max(sceneData.floorplan.width_cm, 240);
     const depthCm = Math.max(sceneData.floorplan.depth_cm, 240);
-    const wallHeight = Math.max(
-      Number(sceneData.floorplan.room_height_cm || 270),
-      210,
-    );
+    // 外殼幾何唯一來源:scene_shell_geometry 純函式層(常數集中於
+    // DEFAULT_SCENE_CONFIG,資料 room_height_cm 優先於預設牆高)。
+    const shellCfg = shellConfig({
+      wallHeightCm: Number(sceneData.floorplan.room_height_cm),
+    });
+    const wallHeight = shellCfg.wallHeightCm;
+    const wallThickness = shellCfg.wallThicknessCm;
+    const shellModel = buildSceneModel({
+      walls: sceneData.floorplan?.wall_segments || [],
+      wallPolygons: sceneData.floorplan?.wall_polys || [],
+      windows: sceneData.floorplan?.window_segments || [],
+      doors: sceneData.floorplan?.door_segments || [],
+      widthCm,
+      depthCm,
+    }, shellCfg);
+    roomGroup.userData.shellModel = shellModel;
     const floorOption = sceneData.design_choices?.floor_option || "auto";
     const wallOption = sceneData.design_choices?.wall_option || "auto";
 
@@ -2862,14 +2364,25 @@ export function createSceneViewer(
     applySurfaceTint(floorMaterial, floorColor);
     if (floorPbr.roughness != null) floorMaterial.roughness = floorPbr.roughness;
     if (floorPbr.metalness != null) floorMaterial.metalness = floorPbr.metalness;
-    const floor = new THREE.Mesh(
-      createFloorGeometry(sceneData.floorplan, widthCm, depthCm),
-      floorMaterial,
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
-    floor.receiveShadow = true;
-    if (!catalogThumbnailMode) roomGroup.add(floor);
+    // 文件 §5.6:基底樓板 = 結構 bbox 外擴 floorMarginCm 的薄盒(y ∈ [-厚,0])。
+    // 逐房材質(createRoomSurfaceOverrides)仍用房間多邊形,分界與房間線一致。
+    if (shellModel.floor && !catalogThumbnailMode) {
+      const floor = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          shellModel.floor.size[0],
+          shellModel.floor.size[1],
+          shellModel.floor.size[2],
+        ),
+        floorMaterial,
+      );
+      floor.position.set(
+        shellModel.floor.center[0],
+        shellModel.floor.center[1],
+        shellModel.floor.center[2],
+      );
+      floor.receiveShadow = true;
+      roomGroup.add(floor);
+    }
     const presentationGround = new THREE.Mesh(
       new THREE.CircleGeometry(Math.max(widthCm, depthCm) * 1.15, 96),
       new THREE.MeshPhysicalMaterial({
@@ -2880,7 +2393,8 @@ export function createSceneViewer(
       }),
     );
     presentationGround.rotation.x = -Math.PI / 2;
-    presentationGround.position.y = -3.2;
+    // 位於 5cm 厚基底樓板盒之下,避免與樓板側面交疊。
+    presentationGround.position.y = -6.2;
     presentationGround.receiveShadow = true;
     presentationGround.userData.roompilotArchitecturalDetail = "shadow-ground";
     if (!catalogThumbnailMode) roomGroup.add(presentationGround);
@@ -2909,20 +2423,10 @@ export function createSceneViewer(
     applySurfaceTint(wallMaterial, wallColor);
     if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
-    const wallThickness = 12;
     const wallSegments = sceneData.floorplan?.wall_segments || [];
-    const doorSegments = dedupeArchitecturalOpeningsFor3d(
-      (sceneData.floorplan?.door_segments || []).map(
-        (door) => doorOpeningForWallTopology(wallSegments, door, wallThickness),
-      ),
-      wallSegments,
-      wallThickness,
-    );
-    const windowSegments = dedupeArchitecturalOpeningsFor3d(
-      sceneData.floorplan?.window_segments || [],
-      wallSegments,
-      wallThickness,
-    );
+    // 開口去重/群聚(Union-Find)與門的拓撲映射在純函式層完成。
+    const doorSegments = shellModel.openings.doors;
+    const windowSegments = shellModel.openings.windows;
     const hasAccurateFloorplan = ["dxf", "user_confirmed"].includes(
       sceneData.floorplan?.source,
     );
@@ -2957,48 +2461,37 @@ export function createSceneViewer(
     // use them for a confirmed multi-room plan so a blue open-door leaf can
     // never punch an invented opening through an otherwise continuous wall.
     const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !wallSegments.length
-      ? buildWallMass(
-        roomGroup,
-        sceneData.floorplan,
-        wallMaterial,
-        wallHeight,
-      )
+      ? buildWallMass(roomGroup, shellModel, wallMaterial)
       : false;
     if (catalogThumbnailMode) {
       // Product thumbnails intentionally omit room geometry.
     } else if (builtWallMass) {
-      buildWallMassTopCaps(
-        roomGroup,
-        sceneData.floorplan,
-        wallMaterial,
-        wallHeight,
-      );
+      buildWallMassTopCaps(roomGroup, shellModel, wallMaterial);
+      // 文件路徑 B:開口補實牆(estimateProfile 斷面推定)與貼玻璃來自
+      // SceneModel;窗不再畫框組件(文件外觀),門保留門葉。
+      buildShellBoxes(roomGroup, shellModel, wallMaterial, sceneData, wallThickness);
       buildStandaloneOpeningAssemblies(
         roomGroup,
         doorSegments,
-        windowSegments,
-        wallMaterial,
+        [],
         wallHeight,
         wallThickness,
         sceneData.surface_catalog,
       );
     } else if (!builtWallMass && !singleRoomMode && wallSegments.length >= 2) {
-      buildSegmentWalls(
+      // 文件路徑 A:牆段切分、sill/head 補實、玻璃、門楣、橋接與頂蓋
+      // 全部來自 SceneModel;組件只補窗框與門葉。
+      buildShellBoxes(
         roomGroup,
-        wallSegments,
+        shellModel,
         wallMaterialResolver(sceneData, wallMaterial),
-        wallHeight,
+        sceneData,
         wallThickness,
-        [],
-        windowSegments,
-        sceneData.floorplan,
-        sceneData.surface_catalog,
-        doorSegments,
       );
-      buildConfirmedDoorLeaves(
+      buildStandaloneOpeningAssemblies(
         roomGroup,
         doorSegments,
-        wallMaterialResolver(sceneData, wallMaterial),
+        windowSegments,
         wallHeight,
         wallThickness,
         sceneData.surface_catalog,

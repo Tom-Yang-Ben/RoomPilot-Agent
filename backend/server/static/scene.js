@@ -1,5 +1,5 @@
 import { fetchFurniturePage, fetchSceneBootstrap, formatFurnitureName, formatSize, formatTypeLabel, initBackgroundFx } from "./common.js?v=20260711g";
-import { createSceneViewer } from "./scene_viewer.js?v=20260717e";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-cd6dc093ae1f";
 import { WORKFLOW_STEPS, restoreWorkflow } from "./scene_workflow.js?v=20260712b";
 import { applyMaterialScheme, classifyMaterialSlot, generateMaterialSchemes, restoreOriginalMaterials, updateFurnitureMaterialOverride } from "./scene_material_schemes.js?v=20260712c";
 import { buildDeliveryManifest } from "./scene_delivery.js?v=20260712b";

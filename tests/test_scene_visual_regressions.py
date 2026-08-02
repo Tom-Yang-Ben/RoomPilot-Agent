@@ -239,71 +239,118 @@ def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation
 
 
 def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
+    """牆段切分/開口件/頂蓋來自 SceneModel;踢腳板由 buildShellBoxes 沿
+    wall-section 佈置。窗帶被切出、上下補實與玻璃齊備、每段一個頂蓋。"""
+    shell_module = ROOT / "backend" / "server" / "static" / "scene_shell_geometry.js"
+    result = run_workflow_script(
+        f"""
+        import {{ buildSceneModel, shellConfig }} from {json.dumps(shell_module.as_uri())};
+        const model = buildSceneModel({{
+          walls: [{{ id: "wall-1", start: {{x: -200, z: 0}}, end: {{x: 200, z: 0}} }}],
+          windows: [{{
+            id: "w-1", host_wall_id: "wall-1", width_cm: 100,
+            sill_height_cm: 90, height_cm: 120,
+            start: {{x: -50, z: 0}}, end: {{x: 50, z: 0}},
+          }}],
+        }}, shellConfig({{}}));
+        const roles = model.boxes.map((box) => box.role);
+        const cap = model.boxes.find((box) => box.role === "top-cap");
+        console.log(JSON.stringify({{ roles, capSize: cap.size, capCenterY: cap.center[1] }}));
+        """
+    )
+    assert result["roles"].count("wall-section") == 2
+    assert "window-glass" in result["roles"]
+    assert "window-sill-infill" in result["roles"]
+    assert "window-head-infill" in result["roles"]
+    assert result["roles"].count("top-cap") == 1
+    assert result["capSize"][1] == 2.5
+    assert result["capCenterY"] == 281.25
+
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
-    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
-        "function buildStructuralMembers", 1
+    shell_boxes = source.split("function buildShellBoxes", 1)[1].split(
+        "function buildOpeningAssembly", 1
     )[0]
-
-    assert "const openingIntervals" in wall_builder
-    assert "addWallSection(cursor, interval.from, 0, wallHeight)" in wall_builder
-    assert "buildOpeningAssembly" in wall_builder
-    assert 'roompilotArchitecturalDetail = "baseboard"' in wall_builder
-    assert "const topCap = new THREE.Mesh(" in wall_builder
-    assert "const topCapMaterials = typeof wallMaterial.faceMaterials === \"function\"" in wall_builder
-    assert "topCapMaterials," in wall_builder
-    assert "roomGroupRef.add(topCap)" in wall_builder
+    assert 'roompilotArchitecturalDetail = "baseboard"' in shell_boxes
+    assert 'if (desc.role === "top-cap")' in shell_boxes
+    assert "roomGroupRef.add(registerWall(wallMesh))" in shell_boxes
 
 
 def test_confirmed_step4_wall_junctions_fill_only_micro_gaps_outside_openings() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
+    """已確認牆端點間 ≤ max(36, 2·牆厚) 的微縫以橋接牆補上;超過門檻的
+    大縫(真實通道)不得補。橋接為 SceneModel 的 junction-fill 盒。"""
+    shell_module = ROOT / "backend" / "server" / "static" / "scene_shell_geometry.js"
+    result = run_workflow_script(
+        f"""
+        import {{ buildSceneModel, shellConfig }} from {json.dumps(shell_module.as_uri())};
+        const cfg = shellConfig({{}});
+        const plan = (gapCm) => ({{
+          walls: [
+            {{ id: "wall-a", start: {{x: -300, z: 0}}, end: {{x: -gapCm / 2, z: 0}} }},
+            {{ id: "wall-b", start: {{x: gapCm / 2, z: 0}}, end: {{x: 300, z: 0}} }},
+          ],
+        }});
+        const fills = (gapCm) => buildSceneModel(plan(gapCm), cfg).boxes
+          .filter((box) => box.role === "junction-fill");
+        const micro = fills(20);
+        console.log(JSON.stringify({{
+          micro: micro.length,
+          detail: micro[0]?.meta?.detail || null,
+          wide: fills(80).length,
+        }}));
+        """
     )
-    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
-        "function buildConfirmedDoorLeaves", 1
-    )[0]
+    assert result["micro"] == 1
+    assert result["detail"] == "confirmed-wall-junction-fill"
+    assert result["wide"] == 0
 
-    assert "function buildConfirmedWallJunctionFills" in wall_builder
-    assert "const junctionToleranceCm = Math.max(36, Number(wallThickness) * 2);" in wall_builder
-    assert "const bridgeTouchesProtectedOpening" in wall_builder
-    assert 'roompilotArchitecturalDetail = "confirmed-wall-junction-fill"' in wall_builder
-    assert "buildConfirmedWallJunctionFills();" in wall_builder
+    shell = shell_module.read_text(encoding="utf-8")
+    assert "junction: Object.freeze({ minGapCm: 0.8, maxGapFactor: 2, maxGapFloorCm: 36 })" in shell
+    assert "const touchesOpening" in shell
 
 
 def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
+    """補實件以 frameAllowance 讓出框位、厚度內縮 2·epsilon 防 z-fighting;
+    框件貼齊牆面(faceOffset 0),玻璃盒由 SceneModel 置中於開口線。"""
+    shell_module = ROOT / "backend" / "server" / "static" / "scene_shell_geometry.js"
+    result = run_workflow_script(
+        f"""
+        import {{ windowPieces, shellConfig }} from {json.dumps(shell_module.as_uri())};
+        const pieces = windowPieces({{
+          id: "w-1", sill_height_cm: 90, height_cm: 120,
+          start: {{x: 0, z: 0}}, end: {{x: 150, z: 0}},
+        }}, shellConfig({{}}), {{ kind: "window" }});
+        console.log(JSON.stringify(pieces));
+        """
+    )
+    by_role = {piece["role"]: piece for piece in result}
+    sill = by_role["window-sill-infill"]
+    head = by_role["window-head-infill"]
+    glass = by_role["window-glass"]
+    assert sill["size"][1] == 89.4  # 90 - frameAllowance 0.6
+    assert head["center"][1] == 245.3  # (210 + 0.6 + 280) / 2
+    assert sill["size"][2] == 11.6  # 12 - 2·epsilon
+    assert glass["center"] == [75, 150, 0]
+    assert glass["size"][2] == 2
+
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
-    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
-        "function buildStandaloneOpeningAssemblies", 1
-    )[0]
     opening_builder = source.split("function buildOpeningAssembly", 1)[1].split(
         "function buildStandaloneOpeningAssemblies", 1
     )[0]
-    standalone_builder = source.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
-        "function buildStructuralMembers", 1
-    )[0]
-
-    assert "const frameAllowanceCm = 0.6" in wall_builder
-    assert "Math.max(0, sillHeight - frameAllowanceCm)" in wall_builder
-    assert "wallHeight - openingHeight - frameAllowanceCm" in wall_builder
-    assert "wallThickness" in wall_builder
     assert "const frameDepth = Math.max(Number(anchor.wallThickness || 12) + 0.4, 4.2)" in opening_builder
     assert "const faceOffset = 0" in opening_builder
-    assert "glass.position.z = 0" in opening_builder
     assert "frame.position.set(x, y, faceOffset)" in opening_builder
     assert 'roompilotArchitecturalDetail = "flush-window-sill"' in opening_builder
-    assert "Math.max(0, sillHeight - frameAllowanceCm)" in standalone_builder
-    assert "const openingWallMaterials = typeof wallMaterial?.faceMaterials === \"function\"" in standalone_builder
-    assert "openingWallMaterials," in standalone_builder
 
 
 def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
-    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+    wall_builder = source.split("function buildShellBoxes", 1)[1].split(
         "function buildOpeningAssembly", 1
     )[0]
     resolver = source.split("function wallMaterialResolver", 1)[1].split(
@@ -326,14 +373,9 @@ def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -
     assert "return materialForOverride(roomOverrideForInteriorPoint(sample));" in resolver
     assert "resolveWallMaterial.exteriorMaterial" not in resolver
     assert "isExteriorWallSegment(segment, floorplan, wallThickness)" in wall_builder
-    assert "exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)" in wall_builder
+    assert "exteriorWallOutwardSideSign(segment, floorplan, dx / length, dz / length)" in wall_builder
     assert "wallMaterial.faceMaterials(segment, exteriorSideSign)" in wall_builder
-    assert "interiorWallJunctionInsets(segment, exteriorSegments, wallThickness)" in wall_builder
-    assert "const sectionMin" in wall_builder
-    assert "const sectionMax" in wall_builder
-    assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in wall_builder
-    assert "Number(start.x) + unitX * capCenter" in wall_builder
-    assert "sceneData.floorplan," in create_room
+    assert "walls: sceneData.floorplan?.wall_segments || []" in create_room
 
 
 def test_room_wall_finish_is_canonical_and_door_headers_share_wall_faces() -> None:
@@ -343,7 +385,7 @@ def test_room_wall_finish_is_canonical_and_door_headers_share_wall_faces() -> No
     resolver = source.split("function wallMaterialResolver", 1)[1].split(
         "function wallSegmentPoint", 1
     )[0]
-    door_builder = source.split("function buildConfirmedDoorLeaves", 1)[1].split(
+    shell_boxes = source.split("function buildShellBoxes", 1)[1].split(
         "function buildOpeningAssembly", 1
     )[0]
 
@@ -351,8 +393,10 @@ def test_room_wall_finish_is_canonical_and_door_headers_share_wall_faces() -> No
     assert "const roomOverrides = [...canonicalOverrides.values()]" in resolver
     assert "function roomOverrideForInteriorPoint" in resolver
     assert "roomOverrideForInteriorPoint(sample)" in resolver
-    assert "wallMaterial.faceMaterials({ start, end })" in door_builder
-    assert "width + headerOverlapCm" in door_builder
+    # 門楣(door-lintel)是 SceneModel 牆盒:材質經 openingId 找回開口,
+    # 由 resolver 依中點採樣同房間牆面,與相鄰牆共用面材。
+    assert "openingById.get(String(desc.meta?.openingId" in shell_boxes
+    assert "return wallMaterial(source).clone()" in shell_boxes
 
 
 def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf() -> None:
@@ -362,8 +406,8 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
     viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
-    door_builder = viewer.split("function buildConfirmedDoorLeaves", 1)[1].split(
-        "function buildOpeningAssembly", 1
+    standalone = viewer.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
+        "function buildStructuralMembers", 1
     )[0]
 
     assert "function confirmedWallGapForDoor" in architecture
@@ -372,8 +416,8 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
     assert "start: closedLeaf.start" in architecture
     assert "end: closedLeaf.end" in architecture
     assert "closed_leaf_segment: closedLeafSegment" in architecture
-    assert "door?.wall_opening_segment || door?.closed_leaf_segment" in door_builder
-    assert "const headerSegment = door?.wall_opening_segment" in door_builder
+    # 門葉組件以第 4 步牆縫線段定位;門楣由 SceneModel 的 door-lintel 供給。
+    assert "opening.wall_opening_segment || opening.closed_leaf_segment || opening" in standalone
 
 
 def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> None:

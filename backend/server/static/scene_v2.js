@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-13570dfbcf52";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-cd6dc093ae1f";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -6,7 +6,7 @@ import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-} from "./scene_unit_contracts.js?v=sha256-66d8d568f445";
+} from "./scene_unit_contracts.js?v=sha256-6a193452d1e5";
 import {
   repairLoadedRoomPolygon,
 } from "./scene_room_geometry.js?v=sha256-d863939b9c06";
@@ -37,7 +37,7 @@ import {
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-4229260e286c";
+} from "./scene_configuration_sync.js?v=sha256-5d58be033c8a";
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
@@ -55,10 +55,10 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-e474d1b8c555";
+} from "./scene_questionnaire_test2.js?v=sha256-9feb70ecc7cb";
 import {
   reloadViewerPreservingState,
-} from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
+} from "./scene_viewer_reload.js?v=sha256-4adbd0d35e57";
 import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
@@ -84,7 +84,7 @@ import {
   dedupeWindowCandidates,
   wallBoundarySide,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=sha256-d56a61642343";
+} from "./scene_structure_utils.js?v=sha256-1cbee35fc90f";
 import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-2e7650196b86";
 import {
   findStructureWallCollision,
@@ -111,7 +111,7 @@ import {
   selectSchemeForRoom,
   selectedSchemeForRoom,
   structuresForScheme,
-} from "./scene_design_schemes.js?v=sha256-07e6d0f65dce";
+} from "./scene_design_schemes.js?v=sha256-3bf1ebdf336d";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
