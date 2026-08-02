@@ -29,14 +29,17 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
 
 
 def test_space_editor_exposes_only_the_canonical_room_taxonomy() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     expected = {
         "entryway", "living_room", "kitchen", "bedroom", "bathroom",
         "storage", "balcony", "hallway", "stair", "garage",
     }
-    actual = set(re.findall(r'<option value="([a-z_]+)">', html))
-    assert expected <= actual
-    assert not {"dining_room", "primary_bedroom", "secondary_bedroom", "multi_purpose", "circulation", "study"} & actual
+    # The room-name menu is rendered from the canonical JS model, not duplicated
+    # as stale static HTML options.
+    assert all(f'id: "{room_type}"' in source for room_type in expected)
+    assert not any(f'id: "{room_type}"' in source for room_type in {
+        "dining_room", "primary_bedroom", "secondary_bedroom", "multi_purpose", "circulation", "study",
+    })
 
 
 def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
@@ -217,7 +220,7 @@ def test_whole_house_wall_finish_keeps_texture_while_avoiding_lighting_variation
     assert "function stabilizeWholeHouseWallAppearance(material)" in source
     assert "new THREE.MeshBasicMaterial" in source
     assert "toneMapped: false" in source
-    assert "exteriorWallMaterial = stabilizeWholeHouseWallAppearance(exteriorWallMaterial);" in source
+    assert "if (usesOneWholeHouseWall) material = stabilizeWholeHouseWallAppearance(material);" in source
 
 
 def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> None:
@@ -246,7 +249,9 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert "function applyDefaultQuestionnaireFurnitureSelections" in source
     assert "const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS" in source
     assert 'defaults: ["bed", "wardrobe"]' in source
-    assert 'required: ["bed"]' in source
+    # The bedroom starts with a recommended bed, but users may leave any room
+    # empty and resolve a later placement issue in step 6.
+    assert 'required: []' in source
     assert "function questionnaireFurnitureRole" in source
     assert "QUESTIONNAIRE_FURNITURE_SHORT_LABELS" in source
     assert "function questionnaireFurnitureDisplayLabel" in source
@@ -1054,7 +1059,7 @@ def test_step4_can_lock_a_manually_corrected_door_opening() -> None:
     assert 'id="lock-selected-door-opening"' in html
     assert "function lockSelectedDoorOpening()" in viewer
     assert 'item.opening_source = "manual_confirmed";' in viewer
-    assert '$("#lock-selected-door-opening").addEventListener("click", lockSelectedDoorOpening);' in viewer
+    assert '$("#lock-selected-door-opening")?.addEventListener("click", lockSelectedDoorOpening);' in viewer
 
 
 def test_requirements_generate_the_white_model_without_an_intermediate_2d_confirmation() -> None:
@@ -1981,7 +1986,7 @@ def test_selected_door_has_large_drag_target_and_resizable_endpoint_handles() ->
     assert "function resizeOpeningFromPointer(" in source
     assert "function snapOpeningToHostWall(" in source
     assert "function setSelectedOpeningWidthCm(" in source
-    assert 'openingWidthSlider.addEventListener("input"' in source
+    assert 'element.openingWidthSlider?.addEventListener("input"' in source
     assert "nearestPointOnLine(requested, item.start, item.end)" in source
     assert "item.width_cm = Math.hypot(" in source
     assert "item.confirmed = false" in source
@@ -2251,7 +2256,7 @@ def test_room_review_can_confirm_all_rooms_at_once() -> None:
     assert "一鍵確認全部房間" in html
     assert "function confirmAllRooms()" in source
     assert 'room.source = "manual_confirmation"' in source
-    assert '$("#confirm-all-rooms").addEventListener("click", confirmAllRooms)' in source
+    assert '$("#confirm-all-rooms")?.addEventListener("click", confirmAllRooms)' in source
     assert 'confirmAllRoomsButton.disabled = !state.rooms.length || allConfirmed' in source
 
 
@@ -2427,7 +2432,7 @@ def test_confirmed_rooms_and_structures_are_the_only_3d_floorplan_source() -> No
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function confirmedFloorplanEditor(schemeId = activeSchemeId())" in controller
-    assert "structures: structuresForScheme(state.structures, schemeId)" in controller
+    assert "structures: structuresForScheme(" in controller
     assert "floorplan_editor: confirmedFloorplanEditor()" in controller
     assert "floorplan_dxf_text: state.confirmedFloorplan?.dxf_text" not in controller
     assert "floorplan.beam_segments" in viewer
@@ -2458,7 +2463,7 @@ def test_project_workflow_brand_confirms_before_returning_home() -> None:
     assert 'aria-label="離開專案並返回首頁"' in html
     assert "async function confirmProjectExit(event)" in controller
     assert "要離開目前專案並返回首頁嗎？" in controller
-    assert '$("#exit-project").addEventListener("click", confirmProjectExit);' in controller
+    assert '$("#exit-project")?.addEventListener("click", confirmProjectExit);' in controller
     assert "await saveSequence.catch(() => null);" in controller
     assert 'location.assign("/");' in controller
     assert "專案尚未完成保存，請稍後再試。" in controller
@@ -2830,7 +2835,7 @@ def test_configuration_pending_actions_distinguish_model_and_placement_failures(
         "const blockingRooms = configurationBlockingFurnitureByRoom", 1
     )[1].split("const confirmButton", 1)[0]
     handlers = source.split(
-        'element.configurationPendingList.addEventListener("click"', 1
+        'element.configurationPendingList?.addEventListener("click"', 1
     )[1].split(
         'element.configurationPlanImage.addEventListener("load"', 1
     )[0]

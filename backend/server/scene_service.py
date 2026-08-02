@@ -1860,6 +1860,85 @@ def parse_floorplan_with_engine(dxf_text: str) -> tuple[dict[str, Any] | None, R
     return floorplan, room
 
 
+def build_agent_generation_handoff(
+    questionnaire: dict[str, Any],
+    floorplan: dict[str, Any],
+    scene_objects: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Create the durable payload consumed by the external render agent.
+
+    It deliberately keeps generative equipment separate from Step 6 movable
+    furniture.  The former is context for image generation; the latter has the
+    final, user-adjusted 2D/3D position which must be preserved in a render.
+    """
+    test2 = questionnaire.get("test2_questionnaire") or {}
+    requirements = test2.get("room_requirements") or {}
+    rag_jobs = test2.get("rag_jobs") or {}
+    regions = {
+        str(region.get("id") or region.get("room_id")): region
+        for region in floorplan.get("room_regions", [])
+        if isinstance(region, dict)
+    }
+    objects_by_room: dict[str, list[dict[str, Any]]] = {}
+    for scene_object in scene_objects:
+        room_id = str(scene_object.get("room_id") or scene_object.get("roomId") or "")
+        objects_by_room.setdefault(room_id, []).append({
+            "instance_id": scene_object.get("id"),
+            "catalog_item_id": scene_object.get("catalog_furniture_id") or scene_object.get("furniture_id"),
+            "normalized_type": scene_object.get("normalized_type") or scene_object.get("type"),
+            "name_zh": scene_object.get("name_zh_raw") or scene_object.get("name_zh"),
+            "position_cm": scene_object.get("position_cm") or scene_object.get("position"),
+            "rotation_deg": (
+                scene_object.get("rotation_y_deg")
+                if scene_object.get("rotation_y_deg") is not None
+                else scene_object.get("rotation_deg", scene_object.get("rotation"))
+            ),
+            "size_cm": scene_object.get("size_cm") or scene_object.get("dimensions"),
+            "position_locked": bool(scene_object.get("position_locked")),
+        })
+
+    rooms: list[dict[str, Any]] = []
+    for room_id, requirement in requirements.items():
+        if not isinstance(requirement, dict):
+            continue
+        furniture = requirement.get("furniture") or {}
+        equipment = requirement.get("generativeEquipment") or {}
+        surfaces = requirement.get("surfaces") or {}
+        rooms.append({
+            "room_id": str(room_id),
+            "room_type": requirement.get("roomType"),
+            "room_label": requirement.get("roomLabel"),
+            "geometry": regions.get(str(room_id), {}),
+            "usage": requirement.get("usage") or [],
+            "furniture_preference": {
+                "tags": furniture.get("preferenceTags") or [],
+                "description": furniture.get("preferenceText") or "",
+            },
+            "selected_catalog_furniture": furniture.get("selected") or [],
+            "final_step6_furniture": objects_by_room.get(str(room_id), []),
+            "generative_equipment": equipment,
+            "surfaces": surfaces,
+            "rag": rag_jobs.get(str(room_id), {}),
+        })
+    return {
+        "schema_version": "1.0",
+        "purpose": "external_image_generation_after_step6",
+        "space_constraints_are_fixed": True,
+        "floorplan": {
+            "coordinate_unit": floorplan.get("coordinate_unit", "cm"),
+            "width_cm": floorplan.get("width_cm"),
+            "depth_cm": floorplan.get("depth_cm"),
+            "room_height_cm": floorplan.get("room_height_cm"),
+            "door_segments": floorplan.get("door_segments", []),
+            "window_segments": floorplan.get("window_segments", []),
+            "wall_segments": floorplan.get("wall_segments", []),
+        },
+        "global_profile": test2.get("basic") or {},
+        "style": test2.get("finishes") or {},
+        "rooms": rooms,
+    }
+
+
 def build_scene_payload(
     site_payload: dict[str, Any],
     questionnaire: dict[str, Any],
@@ -1964,6 +2043,20 @@ def build_scene_payload(
     )
     surface_catalog = site_payload.get("surface_catalog", {})
 
+    agent_generation_handoff = build_agent_generation_handoff(
+        questionnaire,
+        {
+            "coordinate_unit": "cm",
+            "width_cm": effective_width_cm,
+            "depth_cm": effective_depth_cm,
+            "room_height_cm": parsed_floorplan.get("room_height_cm", 270) if parsed_floorplan else 270,
+            "door_segments": parsed_floorplan.get("door_segments", []) if parsed_floorplan else [],
+            "window_segments": parsed_floorplan.get("window_segments", []) if parsed_floorplan else [],
+            "wall_segments": parsed_floorplan.get("wall_segments", []) if parsed_floorplan else [],
+            "room_regions": parsed_floorplan.get("room_regions", []) if parsed_floorplan else [],
+        },
+        objects,
+    )
     return {
         "scene_id": f"scene_{uuid.uuid4().hex[:10]}",
         "llm_mode": llm_mode,
@@ -2057,6 +2150,7 @@ def build_scene_payload(
             ],
             "unavailable_types": unavailable_types,
         },
+        "agent_generation_handoff": agent_generation_handoff,
     }
 
 

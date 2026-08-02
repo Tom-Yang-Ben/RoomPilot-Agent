@@ -241,28 +241,6 @@
                 <p id="structure-review-guidance">新增門後會磁吸最近牆；可拖曳、調整寬度與門向，再逐扇確認。</p>
                 <strong id="structure-review-progress">已確認 0 / 0 扇門</strong>
                 <div id="structure-review-list" class="rp-door-review-list"></div>
-                <section id="wall-removal-preview" class="rp-wall-removal-preview" hidden>
-                  <header>
-                    <div>
-                      <strong>格局方案預覽</strong>
-                      <p id="wall-removal-preview-summary">尚未標記可拆牆。</p>
-                    </div>
-                    <span>僅供規劃比較</span>
-                  </header>
-                  <div class="rp-wall-removal-compare">
-                    <figure>
-                      <figcaption>保留全部牆體</figcaption>
-                      <svg id="wall-retained-preview-svg" role="img" aria-label="保留全部牆體的格局預覽"></svg>
-                    </figure>
-                    <figure>
-                      <figcaption>模擬拆除可拆牆</figcaption>
-                      <svg id="wall-demolished-preview-svg" role="img" aria-label="模擬拆除可拆牆的格局預覽"></svg>
-                    </figure>
-                  </div>
-                  <p class="rp-wall-safety-notice">
-                    「可拆牆」只是方案候選，不代表可施工；是否能拆仍須由建築師、結構技師或現場專業人員確認。
-                  </p>
-                </section>
               </div>
               <button id="cancel-structure-interaction" type="button" class="secondary-action">取消目前操作／選取</button>
               <section id="selected-structure-editor" class="rp-editor-box" hidden>
@@ -460,6 +438,18 @@
                       <p>可複選。系統已依房型預設一項，用途會影響下方家具推薦。</p>
                     </div>
                     <div id="questionnaire-room-usage-options" class="rp-questionnaire-room-usage-options"></div>
+                  </section>
+                  <section id="questionnaire-generative-equipment" class="rp-questionnaire-generative-equipment" hidden>
+                    <div class="rp-questionnaire-section-heading">
+                      <div><span class="eyebrow">設備與生圖</span><h3>說明這個空間需要的固定設備</h3></div>
+                      <p>這些設備會依房間尺寸與固定結構送入 RAG 和生圖；第 6 步不會放入大型設備模型。</p>
+                    </div>
+                    <label>主要使用方式<select id="questionnaire-generative-primary-use"></select></label>
+                    <fieldset><legend>偏好的配置方向</legend><div id="questionnaire-generative-directions"></div></fieldset>
+                    <fieldset><legend>不需要的項目</legend><div id="questionnaire-generative-exclusions"></div></fieldset>
+                    <label for="questionnaire-generation-notes">補充給設計與生圖（選填）</label>
+                    <textarea id="questionnaire-generation-notes" rows="3" placeholder="例如：爐具靠窗、冰箱靠入口；會保留現有房間大小與牆門窗位置。"></textarea>
+                    <p id="questionnaire-generation-warning" class="rp-field-hint" aria-live="polite"></p>
                   </section>
                   <section class="rp-questionnaire-furniture">
                     <div class="rp-questionnaire-section-heading">
@@ -953,6 +943,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-ea581edbe25a"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-3b147ce5e193"></script>
   </body>
 </html>
