@@ -1438,6 +1438,14 @@ def test_to_scene_furniture_carries_model_orientation_offset() -> None:
     assert result == {"rot": 90, "off": 180}
 
 
+def test_rotate_controls_retreat_before_giving_up() -> None:
+    """§3.6 層 D：貼牆家具原地轉 15° 幾乎必掃出房——旋轉被拒時必須先自動
+    朝房內退開重試（rotateWithRetreat），不得直接放棄只留灰色小字。"""
+    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    assert source.count("rotateWithRetreat") >= 2, "需要定義＋rotateSelectedFromControls 接線"
+    assert "自動內移" in source
+
+
 def test_scene_viewer_applies_model_orientation_offset() -> None:
     source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
     assert source.count("model_orientation_deg") >= 3, "三條 wrapper 旋轉路徑都要吃模型朝向修正"

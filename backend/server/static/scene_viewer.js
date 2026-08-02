@@ -5016,8 +5016,13 @@ export function createSceneViewer(
     setStatus(`${label} 旋轉檢查中...`);
     const verdict = await validatePlacement(item, nextPositionCm, nextRotation);
     if (!verdict.ok) {
+      // 貼牆家具原地轉 15° 幾乎必掃出房或穿牆（總帳 §3.6 層 D）——朝房內
+      // 逐步退開重試，自動「先離牆再轉」；全敗才放棄並把理由講清楚。
+      if (await rotateWithRetreat(item, nextWorldRotation, nextRotation, label)) {
+        return true;
+      }
       updateFootprintGuide(selectedWrapper, "blocked");
-      setStatus(`${label} 目前不能旋轉：${verdict.reason || "位置不合法"}。`);
+      setStatus(`⚠️ ${label} 目前不能旋轉：${verdict.reason || "位置不合法"}（已嘗試自動內移仍無合法位）。`);
       return false;
     }
 
@@ -5030,6 +5035,36 @@ export function createSceneViewer(
     notifySceneChange(item);
     setStatus(`${label} 已旋轉到 ${nextRotation} 度。`);
     return true;
+  }
+
+  async function rotateWithRetreat(item, nextWorldRotation, nextRotation, label) {
+    // 朝整屋中心方向逐步內移（15cm 一步、最多 90cm），找到第一個轉得動的
+    // 合法位。方向對貼外牆件＝往房內；內牆件方向可能不準，但 constrain＋
+    // validate 把關，最壞只是重試不中、回到原本的失敗訊息。
+    const px = selectedWrapper.position.x;
+    const pz = selectedWrapper.position.z;
+    const norm = Math.hypot(px, pz);
+    if (!norm) return false;
+    const dir = { x: -px / norm, z: -pz / norm };
+    for (let step = 15; step <= 90; step += 15) {
+      const cand = constrainTransform(
+        item, px + dir.x * step, pz + dir.z * step, nextWorldRotation,
+      );
+      if (cand.blocked) continue;
+      const posCm = scenePositionCm(cand.x, cand.z);
+      const verdict = await validatePlacement(item, posCm, nextRotation);
+      if (!verdict.ok) continue;
+      selectedWrapper.position.set(cand.x, selectedWrapper.position.y, cand.z);
+      selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextWorldRotation);
+      item.position_cm = posCm;
+      item.rotation_y_deg = nextRotation;
+      item.position_locked = true;
+      updateFootprintGuide(selectedWrapper, cand.kind);
+      notifySceneChange(item);
+      setStatus(`${label} 已旋轉到 ${nextRotation} 度（自動內移 ${step} 公分讓出旋轉空間）。`);
+      return true;
+    }
+    return false;
   }
 
   async function moveSelectedFromControls(direction) {
