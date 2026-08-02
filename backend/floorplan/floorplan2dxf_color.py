@@ -1822,7 +1822,7 @@ def window_side_gate(cand, rects, T, cm, img_w, img_h):
     return kept
 
 
-def white_wall_rects(bgr, T):
+def white_wall_rects(bgr, T, dark_rects=None):
     """白牆帶偵測——色塊分割線（棄守畫風 floor_07/08/09 的牆＝兩片
     色染地板之間的白色窄帶，描邊 gray 189~200 暗色偵測原理性抓不到）。
 
@@ -1837,7 +1837,15 @@ def white_wall_rects(bgr, T):
     b_ = lab[:, :, 2].astype(np.int16) - 128
     chroma = np.sqrt(a_ * a_ + b_ * b_)
     L = lab[:, :, 0]
-    white = ((chroma <= 12) & (L > 185)).astype(np.uint8) * 255
+    # 白閘用「原始像素」色度（中值濾波去斑）：meanshift 會把兩片飽和
+    # 色染之間的白牆帶混染（floor_08 黃走道/木地板夾的牆 chroma 超閘
+    # 而消失）；色染側翼仍用平滑版（抗紋理）
+    labr = cv2.cvtColor(cv2.medianBlur(bgr, 3), cv2.COLOR_BGR2LAB)
+    ar_ = labr[:, :, 1].astype(np.int16) - 128
+    br_ = labr[:, :, 2].astype(np.int16) - 128
+    chroma_r = np.sqrt(ar_ * ar_ + br_ * br_)
+    Lr = labr[:, :, 0]
+    white = ((chroma_r <= 12) & (Lr > 185)).astype(np.uint8) * 255
     tint = (chroma > 10) & (L > 60)
     dark = L < 60
     k = 2 * int(1.5 * T) + 1
@@ -1886,8 +1894,34 @@ def white_wall_rects(bgr, T):
                 continue
             tf = [s / samples for s in side_tint]
             rf = [s / samples for s in side_room]
-            if max(tf) >= 0.5 and min(rf) >= 0.5:
-                out.append((x, y, x + w, y + h))
+            if not (max(tf) >= 0.5 and min(rf) >= 0.5):
+                continue
+            if dark_rects is not None:
+                # 暗牆網對齊驗證：真白牆與暗牆同屬一套直角牆網——
+                # 共線（帶中心線落在某暗牆段的軸線 ±0.7T）或兩端接
+                # 暗牆/柱（≤2T）；家具/地毯緣、磁磚帶懸空不對齊
+                cx_line = y + h / 2.0 if horiz else x + w / 2.0
+                aligned = False
+                for rx0, ry0, rx1, ry1 in dark_rects:
+                    r_horiz = (rx1 - rx0) >= (ry1 - ry0)
+                    if r_horiz == horiz:
+                        rc = (ry0 + ry1) / 2.0 if horiz else (rx0 + rx1) / 2.0
+                        if abs(rc - cx_line) <= 0.7 * T:
+                            aligned = True
+                            break
+                if not aligned:
+                    ends = (((x, y + h / 2.0), (x + w, y + h / 2.0)) if horiz
+                            else ((x + w / 2.0, y), (x + w / 2.0, y + h)))
+                    n_end = 0
+                    for ex, ey in ends:
+                        for rx0, ry0, rx1, ry1 in dark_rects:
+                            if rx0 - 2 * T <= ex <= rx1 + 2 * T                                     and ry0 - 2 * T <= ey <= ry1 + 2 * T:
+                                n_end += 1
+                                break
+                    aligned = n_end >= 2
+                if not aligned:
+                    continue
+            out.append((x, y, x + w, y + h))
     return out
 
 

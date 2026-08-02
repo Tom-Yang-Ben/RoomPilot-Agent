@@ -1689,20 +1689,27 @@ def build_rooms(det):
                                                  # 但 16 房正常，房數條件擋誤觸
             bgr1 = det.get("bgr")
             sc = img_w / float(bgr1.shape[1])
-            ww = fp_c.white_wall_rects(bgr1, max(6, int(round(T / sc))))
+            ww = fp_c.white_wall_rects(
+                bgr1, max(6, int(round(T / sc))),
+                dark_rects=[(r_[0] / sc, r_[1] / sc, r_[2] / sc, r_[3] / sc)
+                            for r_ in rects])
             ww2 = [(x0 * sc, y0 * sc, x1 * sc, y1 * sc)
                    for x0, y0, x1, y1 in ww]
             if ww2:
                 labels_w, rooms_w, outside_w = fp_c.segment_rooms(
                     rects + ww2, seg_wins, doors, img_w, img_h, T, T_out,
-                    cm, keep_small=True, thin=fence, fence_guard=True)
+                    cm, keep_small=True, thin=fence, fence_guard=True,
+                    seal_hi=360.0, stub_guard=False)
                 if labels_w is not None and rooms_w:
                     cov_w = sum(r_["area_px"] for r_ in rooms_w) / env_a
                     ok_cov = cov_w >= 0.55 and cov_w > cov + 0.10
-                    ok_blob = big_blob and cov_w >= max(0.55, cov - 0.05)                         and len(rooms_w) > len(rooms)
+                    ok_blob = big_blob and cov_w >= 0.55                         and len(rooms_w) > len(rooms)
                     if ok_cov or ok_blob:        # 半修復（floor_09 46% 採用
                                                  # 反而 2→1）不如不修——絕對
-                                                 # 覆蓋 ≥55% 才接手
+                                                 # 覆蓋 ≥55% 才接手；巨塊型
+                                                 # 切牆後覆蓋自然下降，只要
+                                                 # ≥55% 且房數增加即採
+                                                 # （floor_08 73%→66%/3→6）
                         print(f"白牆救援 : 覆蓋 {cov:.0%}→{cov_w:.0%}，"
                               f"補 {len(ww2)} 段白牆帶")
                         labels, rooms, outside = labels_w, rooms_w, outside_w
