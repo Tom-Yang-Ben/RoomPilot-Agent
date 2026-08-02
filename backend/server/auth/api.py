@@ -12,9 +12,12 @@ from .dependencies import (
     get_user_store,
     project_owner,
     project_reader,
+    require_system_role,
 )
 from .models import (
     AddProjectMemberRequest,
+    AdminResetPasswordRequest,
+    ChangePasswordRequest,
     LoginRequest,
     ProjectMember,
     ProjectSummary,
@@ -26,6 +29,7 @@ from .models import (
 from .service import AuthenticationFailed, RegistrationFailed
 from .throttle import LoginThrottle
 from .tokens import TokenError
+from .user_store import UserNotFound
 
 
 def _client_key(request: Request, email: str) -> str:
@@ -111,6 +115,44 @@ def build_auth_router() -> APIRouter:
     @router.get("/auth/me", response_model=UserPublic)
     def me(user: dict[str, Any] = Depends(current_user)) -> UserPublic:
         return UserPublic(**user)
+
+    @router.post("/auth/password", response_model=TokenPair)
+    def change_password(
+        body: ChangePasswordRequest,
+        user: dict[str, Any] = Depends(current_user),
+    ) -> TokenPair:
+        try:
+            result = get_auth_service().change_password(
+                user["user_id"], body.current_password, body.new_password
+            )
+        except AuthenticationFailed as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error_code": "CURRENT_PASSWORD_INCORRECT",
+                    "message": "目前密碼不正確",
+                },
+            ) from exc
+        return TokenPair(**result)
+
+    @router.post("/auth/admin/reset-password", response_model=UserPublic)
+    def admin_reset_password(
+        body: AdminResetPasswordRequest,
+        _admin: dict[str, Any] = Depends(require_system_role("admin")),
+    ) -> UserPublic:
+        try:
+            record = get_auth_service().admin_reset_password(
+                body.email, body.new_password
+            )
+        except UserNotFound as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error_code": "USER_NOT_FOUND",
+                    "message": "找不到這個 email 的帳號",
+                },
+            ) from exc
+        return UserPublic(**record)
 
     @router.get("/projects", response_model=list[ProjectSummary])
     def list_my_projects(

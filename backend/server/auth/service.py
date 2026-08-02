@@ -98,7 +98,39 @@ class AuthService:
             self.user_store.update_password_hash(
                 record["user_id"], hash_password(request.password)
             )
+        # 順手清掉整庫已過期的 refresh token——這張表沒有其他清理排程，
+        # 登入是唯一夠頻繁又已經在寫庫的時機。
+        self.user_store.purge_expired_refresh_tokens()
         return self.issue_tokens(record)
+
+    def change_password(
+        self, user_id: str, current_password: str, new_password: str
+    ) -> dict[str, Any]:
+        """已登入者改密碼。舊密碼驗證失敗拋 AuthenticationFailed。
+
+        改密碼視同懷疑舊憑證外洩：撤銷該帳號所有 refresh token，回傳一組
+        新憑證給目前這個 session，其他裝置一律要重新登入。
+        """
+        record = self.user_store.get_user_by_id(user_id)
+        if not verify_password(current_password, record["password_hash"]):
+            raise AuthenticationFailed()
+        self.user_store.update_password_hash(user_id, hash_password(new_password))
+        self.user_store.revoke_all_refresh_tokens(user_id)
+        return self.issue_tokens(record)
+
+    def admin_reset_password(self, email: str, new_password: str) -> dict[str, Any]:
+        """管理員重設他人密碼（無寄信基礎設施的「忘記密碼」替代方案）。
+
+        撤銷目標帳號所有 refresh token；找不到帳號拋 UserNotFound。
+        """
+        record = self.user_store.find_user_by_email(email)
+        if record is None:
+            raise UserNotFound(email)
+        self.user_store.update_password_hash(
+            record["user_id"], hash_password(new_password)
+        )
+        self.user_store.revoke_all_refresh_tokens(record["user_id"])
+        return public_user(record)
 
     def issue_tokens(self, record: dict[str, Any]) -> dict[str, Any]:
         access_token, expires_at = self.token_service.issue_access_token(

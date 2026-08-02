@@ -222,6 +222,33 @@ document.getElementById("sign-out").addEventListener("click", async () => {
   window.location.href = "/login";
 });
 
+document.getElementById("change-password-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const errorNode = document.getElementById("change-password-error");
+  errorNode.hidden = true;
+  try {
+    const response = await fetch("/api/auth/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        current_password: document.getElementById("current-password").value,
+        new_password: document.getElementById("new-password").value,
+      }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail?.message || "密碼更新失敗。");
+    }
+    // 改密碼會撤銷所有既有 refresh token（含本機這組）；直接要求重新登入，
+    // 比悄悄換掉本機 session 更能讓使用者確認新密碼真的可用。
+    await logout();
+    window.location.href = "/login?changed=1";
+  } catch (error) {
+    errorNode.textContent = error?.message || "密碼更新失敗。";
+    errorNode.hidden = false;
+  }
+});
+
 if (requireSignedIn()) {
   renderIdentity();
   loadProjects().catch((error) => {

@@ -87,6 +87,21 @@ class UserPublic(StrictModel):
     created_at: datetime
 
 
+class ChangePasswordRequest(StrictModel):
+    """已登入者自行改密碼；目前密碼驗證失敗一律 400，不洩漏其他資訊。"""
+
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=8, max_length=1024)
+
+
+class AdminResetPasswordRequest(StrictModel):
+    """管理員重設他人密碼——本產品無寄信基礎設施，「忘記密碼」由 admin
+    設一組臨時密碼並口頭／訊息告知，使用者登入後再自行修改。"""
+
+    email: EmailAddress
+    new_password: str = Field(min_length=8, max_length=1024)
+
+
 class TokenPair(StrictModel):
     access_token: str
     refresh_token: str

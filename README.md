@@ -100,6 +100,9 @@ git status --short
 - 角色：`designer` 建立與編輯專案、鎖版出報告；`client` 只檢視被分享的專案；
   `admin` 可跨帳號維運。
 - 專案可分享給其他帳號，成員角色為 `editor`（可編輯）或 `viewer`（唯讀）。
+- 改密碼：「我的專案」頁的帳號設定；成功後撤銷所有既有 session，需重新登入。
+- 忘記密碼：本產品無寄信基礎設施，由 admin 以
+  `POST /api/auth/admin/reset-password` 設臨時密碼並口頭告知，登入後自行修改。
 
 簽章金鑰請在 `.env` 明確設定，否則每個節點會各自產生一把，token 無法跨節點驗證：
 

@@ -65,11 +65,27 @@
 
       <p class="auth-error" id="projects-error" role="alert" hidden></p>
 
+      <details class="projects-account" id="account-settings">
+        <summary>帳號設定：修改密碼</summary>
+        <form id="change-password-form" class="projects-create">
+          <label>目前密碼
+            <input type="password" id="current-password" autocomplete="current-password" required minlength="1" />
+          </label>
+          <label>新密碼（至少 8 個字元）
+            <input type="password" id="new-password" autocomplete="new-password" required minlength="8" />
+          </label>
+          <div>
+            <button type="submit" class="auth-submit">更新密碼</button>
+          </div>
+          <p class="auth-error" id="change-password-error" role="alert" hidden></p>
+        </form>
+      </details>
+
       <section id="projects-list" class="projects-list" aria-live="polite">
         <p class="projects-empty">載入中…</p>
       </section>
     </main>
 
-    <script type="module" src="/static/projects.js?v=sha256-671ad5a0cdc7"></script>
+    <script type="module" src="/static/projects.js?v=sha256-0e9a14818518"></script>
   </body>
 </html>
