@@ -408,8 +408,17 @@ export function fitCameraPose(bbox, cfg = DEFAULT_SCENE_CONFIG) {
   });
 }
 
-function activeOpenings(openings) {
-  return openings.filter((opening) => opening.step4_skip_wall_cut !== true);
+// step4_skip_wall_cut 的語意是「牆體幾何已由第 4 步處理,不得再切牆」——
+// 不是「不畫補實件」。hosted 窗照切照補;縫內窗帶旗標才整組略過
+// (沿用舊 missingWindows 行為);門楣一律要有(舊 buildConfirmedDoorLeaves
+// 對每扇有牆縫線段的門都補 header,旗標從不參與)。
+function pieceWindowsOf(windows, walls, cfg) {
+  return windows.filter((opening) => (
+    opening.step4_skip_wall_cut !== true
+    || walls.some((wall) => openingWallInterval(
+      wall, opening, cfg.wallThicknessCm, cfg.minOpeningIntervalWidthCm.window,
+    ))
+  ));
 }
 
 // 現行 buildConfirmedWallJunctionFills 的純幾何部分:已確認牆端點間
@@ -547,8 +556,8 @@ export function buildSceneModel(plan = {}, cfg = DEFAULT_SCENE_CONFIG) {
     cfg,
     "door",
   );
-  const pieceWindows = activeOpenings(windows);
-  const pieceDoors = activeOpenings(doors);
+  const pieceWindows = pieceWindowsOf(windows, walls, cfg);
+  const pieceDoors = doors;
   const infill = polygons.length > 0 && !walls.length;
   const boxes = [];
   const polygonWalls = infill
@@ -567,11 +576,33 @@ export function buildSceneModel(plan = {}, cfg = DEFAULT_SCENE_CONFIG) {
   } else if (walls.length) {
     boxes.push(...segmentWallBoxes(walls, pieceWindows, cfg));
     boxes.push(...junctionFillBoxes(walls, [...pieceDoors, ...pieceWindows], cfg));
+    // 縫內開口(牆段在開口兩側斷開、未被任何牆段 host)的補實件只到牆高,
+    // 左右牆的頂蓋卻到牆高 + topCapHeightCm —— 開口跨距會矮一截。
+    // 補上開口自身的頂蓋,讓頂線跨過門窗連續;hosted 開口由牆段整段頂蓋涵蓋。
+    const hostedOnAnyWall = (opening, minWidthCm) => walls.some((wall) => (
+      openingWallInterval(wall, opening, cfg.wallThicknessCm, minWidthCm)
+    ));
+    const gapTopCap = (opening) => {
+      const frame = segmentFrame(opening);
+      if (frame.length < cfg.minSegmentLengthCm) return [];
+      return [boxAlongSegment(
+        frame, "top-cap", "wall", 0, frame.length,
+        cfg.wallHeightCm, cfg.wallHeightCm + cfg.topCapHeightCm,
+        cfg.wallThicknessCm, 0,
+        { openingId: openingId(opening) || null },
+      )];
+    };
     pieceWindows.forEach((opening) => {
       boxes.push(...windowPieces(opening, cfg, { kind: "window" }));
+      if (!hostedOnAnyWall(opening, cfg.minOpeningIntervalWidthCm.window)) {
+        boxes.push(...gapTopCap(opening));
+      }
     });
     pieceDoors.forEach((opening) => {
       boxes.push(...windowPieces(opening, cfg, { kind: "door" }));
+      if (!hostedOnAnyWall(opening, cfg.minOpeningIntervalWidthCm.door)) {
+        boxes.push(...gapTopCap(opening));
+      }
     });
   }
 

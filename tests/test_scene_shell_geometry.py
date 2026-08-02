@@ -281,3 +281,53 @@ def test_build_scene_model_uses_infill_switch() -> None:
 
     # 地板：結構 bbox（牆 400×窗同線 → 400×0…含窗 z=0 帶）外擴 50。
     assert result["floorSize"][0] == 500
+
+
+def test_gap_openings_get_their_own_top_cap_for_a_continuous_roofline() -> None:
+    # 縫內開口（牆段兩側斷開）：補實件只到牆高，左右牆頂蓋到牆高+2.5，
+    # 開口跨距會矮 2.5cm（feedback.png「有窗的牆比左右稍矮」）。
+    # 縫內窗/門必須有自己的頂蓋補齊頂線；hosted 窗沿用牆段整段頂蓋、不重複。
+    result = run_shell_script(
+        f"""
+        {module_import('buildSceneModel, shellConfig')}
+        const cfg = shellConfig({{}});
+        const gapPlan = {{
+          walls: [
+            {{ id: "wall-a", start: {{x: -300, z: 0}}, end: {{x: -60, z: 0}} }},
+            {{ id: "wall-b", start: {{x: 60, z: 0}}, end: {{x: 300, z: 0}} }},
+          ],
+          windows: [{{
+            id: "w-gap", sill_height_cm: 90, height_cm: 120,
+            start: {{x: -58, z: 0}}, end: {{x: 58, z: 0}},
+          }}],
+        }};
+        const hostedPlan = {{
+          walls: [{{ id: "wall-1", start: {{x: -200, z: 0}}, end: {{x: 200, z: 0}} }}],
+          windows: [{{
+            id: "w-hosted", host_wall_id: "wall-1", width_cm: 100,
+            sill_height_cm: 90, height_cm: 120,
+            start: {{x: -50, z: 0}}, end: {{x: 50, z: 0}},
+          }}],
+        }};
+        const caps = (model) => model.boxes
+          .filter((box) => box.role === "top-cap")
+          .map((box) => ({{
+            openingId: box.meta.openingId || null,
+            topY: box.center[1] + box.size[1] / 2,
+          }}));
+        console.log(JSON.stringify({{
+          gap: caps(buildSceneModel(gapPlan, cfg)),
+          hosted: caps(buildSceneModel(hostedPlan, cfg)),
+        }}));
+        """
+    )
+    gap_caps = result["gap"]
+    # 兩段牆各一 + 縫內窗自己的一個，頂線同高。
+    assert len(gap_caps) == 3
+    assert any(cap["openingId"] == "w-gap" for cap in gap_caps)
+    assert len({cap["topY"] for cap in gap_caps}) == 1
+
+    hosted_caps = result["hosted"]
+    # hosted 窗：牆段整段頂蓋已涵蓋，不重複發蓋。
+    assert len(hosted_caps) == 1
+    assert hosted_caps[0]["openingId"] is None

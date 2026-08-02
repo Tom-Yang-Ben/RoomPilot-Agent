@@ -565,7 +565,10 @@ def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
           .map((box) => box.role)));
         """
     )
-    assert set(result) == {"window-glass", "window-sill-infill", "window-head-infill"}
+    # 縫內(未 hosted)開口除玻璃與補實外,還有自己的頂蓋補齊頂線。
+    assert set(result) == {
+        "window-glass", "window-sill-infill", "window-head-infill", "top-cap",
+    }
 
     viewer = VIEWER.read_text(encoding="utf-8")
     assert "buildStandaloneOpeningAssemblies(" in viewer

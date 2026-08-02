@@ -33,7 +33,7 @@ import {
 import {
   buildSceneModel,
   shellConfig,
-} from "./scene_shell_geometry.js?v=sha256-83a84676fd6f";
+} from "./scene_shell_geometry.js?v=sha256-e8d0fb701690";
 
 const CM_PER_METER = 100;
 

@@ -1352,6 +1352,9 @@ def orient_layout_toward_targets(
         "office-chair": ("desk",),
         "dining-chair": ("dining-table",),
         "armchair": ("coffee-table", "sofa", "sofa-bed"),
+        # lounge-chair 原本不在名單:泛用候選給 rot=0 後就永遠面向 +z,
+        # 在客廳常變成面對牆或背對沙發組(feedback.png)。與 armchair 同規則。
+        "lounge-chair": ("coffee-table", "sofa", "sofa-bed"),
     }
     valid = [
         item for item in scene_objects
@@ -2452,6 +2455,11 @@ def build_scene_payload(
         room=engine_room,
         floorplan=parsed_floorplan,
         regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
+        # agent 的擺位紀律(主件先、成組語意)必須從第一次擺位就生效:
+        # 沒有 hints 時 generate_layout 不登記 neighbors,成組候選
+        # (電視櫃在沙發對面牆、茶几在沙發正前)整條路是死的,電視櫃
+        # 會被靠牆掃描放到任一面長牆,與沙發呈 L 型(feedback.png)。
+        hints=placement_hints(selected_items),
     )
     placement_resolution_report: list[dict[str, Any]] = []
     if any(obj.get("placement_failed") for obj in objects):
