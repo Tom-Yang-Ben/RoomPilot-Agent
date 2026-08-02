@@ -48,7 +48,7 @@
 2. 辨識輸出是 `layout_json`；設計、配置、編輯輸出是 `scene_json`。
 3. Graph RAG 只負責關係檢索與證據，不負責幾何、碰撞、淨空或結構決策。
 4. 家具合法性只能由 `backend/engine/` 判定；前端只呈現與送出操作。
-5. 正式 production frontend 只有 `backend/server/static/`；`frontend3d/` 是次要原型。
+5. 正式 production frontend 只有 `backend/server/static/`。
 
 ## 家具、家電與資料庫
 

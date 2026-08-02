@@ -122,6 +122,6 @@ def build_room_from_dxf(
 
 
 def room_from_dxf(parsed: dict, mode: str = "largest", **kw) -> Room:
-    """便捷版:只回 Room(demo_app / 引擎直接用)。需要座標映射時改用 build_room_from_dxf。"""
+    """便捷版:只回 Room(引擎直接用)。需要座標映射時改用 build_room_from_dxf。"""
     return build_room_from_dxf(parsed, mode, **kw).room
 

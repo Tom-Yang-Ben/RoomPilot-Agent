@@ -3554,7 +3554,9 @@ def furniture_model_image(furniture_id: str, image_index: int) -> Response:
 
 
 # ---------------------------------------------------------------------------
-# 以下路由自原 app/backend/main.py 移植,供 frontend3d(React Three Fiber)使用
+# 以下路由自原 app/backend/main.py 移植,原本供已移除的 frontend3d 原型使用。
+# /api/floorplan/analyze 仍由 backend/server/static/ 呼叫;其餘只剩測試在用,
+# 待確認無外部消費者後可一併移除。
 # ---------------------------------------------------------------------------
 
 

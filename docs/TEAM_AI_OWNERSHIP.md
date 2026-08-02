@@ -28,7 +28,6 @@
 | `backend/agent/` | Yen | Kai、Ancai、Bella | 需求、房間、候選家具 | 選件、說明、修復意圖；不輸出合法座標 |
 | `backend/engine/` | Ancai | Yen、Bella | 房間、牆、候選家具 | 擺放、碰撞、淨空、移動與合法性 |
 | `backend/upgrade3d/` | Cody | Ancai、Bella | 已確認 DXF/layout | 3D 可用的牆、地板、門窗幾何 |
-| `frontend3d/` | Bella | Ancai review | DXF/scene API | 次要 React/R3F 原型，不取代正式流程 |
 | `testdata/` | Cody | Django、Ben | 圖片/DXF/ground truth | 可重現辨識測資 |
 | `tests/` | 對應 owner | Bella 整合 | 公開行為 | 單元、API、契約與視覺回歸門檻 |
 | `docs/contracts/` | Bella | 受影響 owner | 已協議介面 | 跨目錄 schema 與生命週期唯一依據 |

@@ -15,7 +15,6 @@ RoomPilot 是 AIPE03 第四組的 AI 室內設計系統。它把平面圖辨識�
 - Windows 10/11 64-bit
 - Python 3.12
 - Git
-- Node.js 24 與 npm 11 僅供 `frontend3d/` 原型使用
 - PostgreSQL 17：第 6 步正式家具 catalog 的優先資料來源
 
 ### 方式一：Python venv 與 requirements.txt
@@ -161,7 +160,6 @@ AI 或新成員開始修改前，必須依序閱讀：
 | `backend/spatial_data/` | 空間關係與 evaluation 的共享邊界 |
 | `backend/server/` | 正式 FastAPI 與 production frontend |
 | `backend/upgrade3d/` | 已確認格局轉 3D 幾何 |
-| `frontend3d/` | 次要 React/R3F 原型 |
 | `JSON/` | Catalog/manifest 交接資料 |
 | `scripts/sql/` | PostgreSQL schema 與匯入 |
 | `testdata/` | 小型辨識測資與 ground truth |
@@ -177,8 +175,7 @@ AI 或新成員開始修改前，必須依序閱讀：
 - 平面圖辨識輸出是 `layout_json`。
 - 方案生成與編輯輸出是 `scene_json`。
 - 家具是否合法只能由 `backend/engine/` 判斷。
-- Production frontend 位於 `backend/server/static/`；`frontend3d/` 不是
-  第二套正式流程。
+- Production frontend 只有 `backend/server/static/` 一套，不另建第二套。
 
 更多契約：
 
@@ -233,22 +230,6 @@ Dry-run：
 [現行版本總覽](docs/RoomPilot_現行版本總覽.md) 與
 [團隊 AI 責任與整合架構](docs/TEAM_AI_OWNERSHIP.md)。
 
-## React/R3F 原型
-
-正式網站不需要另開 frontend server。只有開發 `frontend3d/` 原型時：
-
-```powershell
-Set-Location frontend3d
-npm.cmd ci
-npm.cmd run dev
-```
-
-Build 驗證：
-
-```powershell
-npm.cmd run build
-```
-
 ## 套件版本
 
 Python baseline 經實際測試：
@@ -266,13 +247,8 @@ Python baseline 經實際測試：
 完整 Python 直接依賴版本以 [requirements.txt](requirements.txt) 為準。
 可選 OCR 版本由 `pyproject.toml` 與 `uv.lock` 管理。
 
-`frontend3d/package-lock.json` 鎖定：
-
-- React `18.3.1`
-- React Three Fiber `8.18.0`
-- Drei `9.122.0`
-- Three.js `0.160.1`
-- Vite `8.1.0`
+前端不經打包：`backend/server/static/` 直接以原生 ES module 載入
+`vendor/three/`，沒有 Node.js 建置步驟。
 
 ## 版本控制與整合
 

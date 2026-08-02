@@ -12,7 +12,7 @@
                -> 保存 layout_json / requirements_json / scene_json
 ```
 
-`backend/server/static/` 是 production frontend；`frontend3d/` 僅是次要 React/R3F 原型。
+`backend/server/static/` 是唯一的 production frontend。
 
 第 6 步使用 Kai PostgreSQL catalog 優先。第 5 步家電需求必須保存給 AI 生圖，但不得變成 2D/3D 自動擺設。第 6 步位置、碰撞與淨空仍由 Ancai 引擎決定。
 

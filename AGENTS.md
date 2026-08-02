@@ -40,7 +40,6 @@
 | `backend/agent/` | Yen | 需求結構化、選件、修復意圖與說明 |
 | `backend/engine/` | Ancai | 配置、碰撞、淨空、移動與幾何合法性 |
 | `backend/upgrade3d/` | Cody | 已確認 layout 轉為 3D 可用結構 |
-| `frontend3d/` | Bella | 次要 React/R3F 原型，不是正式流程 |
 | `testdata/` | Cody | 辨識測資；Django 協助空間標註檢視 |
 | `tests/` | 對應模組 owner | 契約與回歸；Bella 維護端到端整合門檻 |
 | `docs/contracts/` | Bella 整合 | 跨目錄公開契約，受影響 owner 必須共同確認 |
@@ -56,7 +55,7 @@
 - 第 6 步正式家具以 Kai PostgreSQL `roompilot.furniture_catalog_current` 優先；資料庫不可用時才回退已驗證 JSON。
 - 冰箱、洗衣機等家電保留為問卷與 AI 生圖上下文，不能進入 2D/3D 自動配置或正式家具 API。
 - 隔離區或未匹配資料不得進 API 或場景。
-- 正式網頁在 `backend/server/static/`；不得以 `frontend3d/` 取代，除非已明確核准遷移。
+- 正式網頁只有 `backend/server/static/` 一套；不得新建第二套前端。
 - 不得提交 `.env`、本機 runtime、快取、模型權重或大型 GLB 壓縮檔。
 
 ## 驗證矩陣

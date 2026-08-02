@@ -29,4 +29,4 @@
 
 第 6 步家具資料以 Kai PostgreSQL view `roompilot.furniture_catalog_current` 優先；只有資料庫暫時不可用才使用已驗證 JSON。家電需求留在問卷與 `scene_json.render_context` 協助第 8 步生圖，不列入 2D/3D 擺設。
 
-`frontend3d/` 是次要原型。責任、遠端分支與整合證據以 `docs/TEAM_AI_OWNERSHIP.md` 為準，不可只依 Git author 推論。
+責任、遠端分支與整合證據以 `docs/TEAM_AI_OWNERSHIP.md` 為準，不可只依 Git author 推論。

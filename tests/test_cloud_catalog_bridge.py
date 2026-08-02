@@ -128,10 +128,3 @@ def test_strict_catalog_legacy_viewer_alias_contains_only_cloudfront_urls(monkey
     assert main._legacy_viewer_models(items) == [
         "https://cdn.example/models/chair.glb"
     ]
-
-
-def test_frontend3d_accepts_cloudfront_model_urls():
-    source = (
-        main.PROJECT_DIR / "frontend3d" / "src" / "Furniture.jsx"
-    ).read_text(encoding="utf-8")
-    assert "file.startsWith('https://')" in source
