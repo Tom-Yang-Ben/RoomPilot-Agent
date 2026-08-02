@@ -1412,9 +1412,10 @@ def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> 
     )
 
     assert {item[0] for item in result["bedroom"]} >= {"bed", "wardrobe"}
-    assert {item[0] for item in result["kitchen"]} == {"appliance-cabinet"}
-    assert {item[0] for item in result["storage"]} == {"storage-cabinet"}
-    assert {item[0] for item in result["bathroom"]} >= {"bathroom-vanity", "mirror-cabinet"}
+    # 2026-08-02 假家具案：種子只放型錄有貨的型別（詳 test_scene_seed_dead_keys.py）
+    assert result["kitchen"] == []
+    assert {item[0] for item in result["storage"]} == {"shelving-unit"}
+    assert {item[0] for item in result["bathroom"]} == {"mirror-cabinet"}
     assert {item[0] for item in result["living"]} >= {"sofa", "coffee-table", "tv-bench"}
     assert {item[0] for item in result["balcony"]} == {"flower-pots-planter"}
     assert result["circulation"] == []

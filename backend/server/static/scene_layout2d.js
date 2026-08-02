@@ -102,6 +102,12 @@ export const FURNITURE_2D_LIBRARY = Object.freeze([
     ],
   },
   {
+    type: "shelving-unit",
+    label: "層架",
+    // 80×40×120：型錄 80 件 shelving-unit 中位（83×37×122）圓整
+    variants: [variant("standard", "層架", 80, 40, ICONS.cabinet, 120)],
+  },
+  {
     type: "vanity-table",
     label: "梳妝台",
     variants: [variant("standard", "梳妝台", 100, 48, ICONS.desk, 75)],
@@ -233,14 +239,15 @@ export function roomTypeFromName(room = {}) {
 
 export function recommendedFurnitureForRoom(room = {}) {
   const roomType = roomTypeFromName(room);
+  // 種子只放型錄有貨的型別；0 件死鍵會生無 GLB 假件（鎖於 tests/test_scene_seed_dead_keys.py）
   const recommendations = {
     living_room: [["sofa", "three-seat"], ["coffee-table", "rect"], ["tv-bench", "low"]],
     bedroom: [["bed", "double"], ["wardrobe", "two-door"]],
     dining_room: [["dining-table", "round-4"], ["dining-chair", "standard"]],
-    kitchen: [["appliance-cabinet", "standard"]],
-    storage: [["storage-cabinet", "tall"]],
+    kitchen: [],
+    storage: [["shelving-unit", "standard"]],
     workspace: [["desk", "standard"], ["office-chair", "task"]],
-    bathroom: [["bathroom-vanity", "standard"], ["mirror-cabinet", "standard"]],
+    bathroom: [["mirror-cabinet", "standard"]],
     balcony: [["flower-pots-planter", "floor"]],
     circulation: [],
   };

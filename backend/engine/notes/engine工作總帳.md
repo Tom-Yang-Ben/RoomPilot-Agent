@@ -97,7 +97,7 @@ Agent 在規則下呼叫引擎擺放
 
 ### 給其他成員的交接單（不是你的活，開單即可）
 
-- **Bella**：前端兩張表對齊 v1（床頭櫃種子缺席、玄關房型未登記、儲藏室 storage-cabinet 死鍵、問卷客廳缺電視櫃、廚浴陽台塞件）；旋轉 A/D 的 UX；「產生配置」後自動重建 3D 或提示；換小 old→new id 協定。
+- **Bella**：前端兩張表對齊 v1（床頭櫃種子缺席、玄關房型未登記、問卷表死鍵三型＋新增對話框過濾〔種子表側 08-02 已拔，見 §2.3〕、問卷客廳缺電視櫃、廚浴陽台塞件）；旋轉 A/D 的 UX；「產生配置」後自動重建 3D 或提示；換小 old→new id 協定。
 - **Yen**：過目 knowledge 的 count 欄位與 outdoor 別名（commit 訊息都有知會段落）。
 - **Kai**：21 件掛床分類的非床品項清單（audit 關卡 1 輸出）。
 
@@ -229,6 +229,10 @@ Agent 在規則下呼叫引擎擺放
 | `washer` | 陽台（自動加）← **違反 G5** |
 
 **結論**：即使房型標對，廚房／儲藏室／浴室／陽台在前端那條路仍必然空白。
+
+**08-02 live 實證（第一個真實案例）**：使用者專案 `b2b2c83f` 走 skill SOP 差集驗屍，2D 14 件 vs 3D 11 件，差集正好 3 件全是死鍵假件——`appliance-cabinet`（#4 電器櫃）、`storage-cabinet`（#10 高收納櫃）、`bathroom-vanity`（使用者手動新增也中招）。三件皆 model_url 無／catalogId 無／placementFailed=False，2D 側欄照標「合法」（合法＝引擎擺放判定，與有無型錄真身無關），3D 端 diagnostics 11 請求／11 可見／0 失敗——3D 無罪，件是在送 3D 前就被 generate 合併剔除。靜態掃描關卡 3 的預測與 live 個案 100% 吻合。
+
+**08-02 已修（種子表側，Ancai 拍板「平面上只留有 GLB 真身的件」）**：`recommendedFurnitureForRoom` 三死鍵拔除——廚房清空（對齊 v1）、儲藏室換 `shelving-unit`（型錄 80 件真貨；新登記 2D 變體 80×40×120＝中位 83×37×122 圓整）、浴室拔 `bathroom-vanity` 留 `mirror-cabinet`（17 件真身，完整 v1 對齊仍歸 Bella）。專案 `b2b2c83f` 三假件已從 autosave 清除（rev 295→296，2D 11 件＝3D 11 件，備份在 scratchpad）。回歸鎖 `tests/test_scene_seed_dead_keys.py`（死鍵不得進種子表＋核心真身型不得被誤清）。另 `flower-pots-planter` 型錄已補貨 235 件、自死鍵除名。**仍留給 Bella**：問卷表（`scene_v2.js` defaults/required）三死鍵、「新增家具」對話框仍可選死鍵型（手動浴櫃假件就是這條路來的）。
 
 ---
 
