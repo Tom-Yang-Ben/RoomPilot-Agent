@@ -221,6 +221,62 @@ MOUNT_HEIGHT_BY_TYPE: dict[str, float] = {
 }
 
 
+# 檯面小物的宿主相容表（2026-08-03 Ben 拍板「檯面吸附最小模型」）。
+# 鍵是 placement_surface 的 TABLETOP 型別，值是可承載它的家具型別。
+# 這裡只回答「能不能站上去」；平面包含判定在 engine.geometry.rests_within_host，
+# 3D 呈現高度由前端依宿主決定。
+_SURFACE_HOST_TYPES: frozenset[str] = frozenset({
+    "dining-table",
+    "coffee-table",
+    "sideboard",
+    "bedside-table",
+    "chests-of-drawer",
+    "tv-bench",
+    "tv-media-furniture",
+    "desk",
+    "bookcase",
+    "shelving-unit",
+    "cabinet-cupboard",
+    "table",
+    "bar-table",
+})
+
+_SEATING_HOST_TYPES: frozenset[str] = frozenset({
+    "sofa",
+    "fabric-sofa",
+    "leather-sofa",
+    "modular-sofa",
+    "sofa-bed",
+    "armchair",
+    "bed",
+    "stool-bench",
+})
+
+TABLETOP_HOST_TYPES: dict[str, frozenset[str]] = {
+    "vase": _SURFACE_HOST_TYPES,
+    "decoration": _SURFACE_HOST_TYPES | frozenset({"display-cabinet"}),
+    "storage-boxes-basket": frozenset({
+        "bookcase",
+        "shelving-unit",
+        "storage-solution-system",
+        "storage-furniture",
+        "cabinet-cupboard",
+        "chests-of-drawer",
+        "tv-bench",
+        "wardrobe",
+        "pax-wardrobe",
+    }),
+    # 抱枕與皮毛毯搭在座面或床上，不是硬檯面。
+    "pillow-cushion": _SEATING_HOST_TYPES,
+    "sheepskins-cowhide": _SEATING_HOST_TYPES,
+}
+
+
+def allowed_host_types(tabletop_type: str | None) -> frozenset[str]:
+    """回傳可承載此檯面型別的宿主家具型別；未知型別回空集合（保守不吸附）。"""
+    return TABLETOP_HOST_TYPES.get(str(tabletop_type or "").strip().lower(), frozenset())
+
+
 # 垂直帶重疊、但實務上本來就該塞在一起的成對例外。只放高度表達不了的關係。
 #
 # 「成組」不等於「可重疊」:backend/agent/knowledge.py 的 COMPANION_OF 也把

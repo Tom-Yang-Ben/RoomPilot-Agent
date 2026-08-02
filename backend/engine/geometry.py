@@ -93,6 +93,23 @@ def out_of_bounds(item: PlacedFurniture, room: Room) -> bool:
     return not poly.within(room_polygon(room))
 
 
+def rests_within_host(
+    item: PlacedFurniture,
+    host: PlacedFurniture,
+    tolerance_cm: float = 2.0,
+) -> bool:
+    """檯面小物的腳印是否落在宿主家具的檯面範圍內。
+
+    容差預設 2 公分：花瓶貼著桌緣是正常擺法，浮點誤差不該打成違規。
+    只做平面包含判定——哪些型別可以當宿主由 catalog 層的
+    ``TABLETOP_HOST_TYPES`` 決定，這裡不重複那個知識。
+    """
+    if host.catalog.width <= 0 or host.catalog.depth <= 0:
+        return False
+    host_poly = furniture_polygon(host).buffer(max(0.0, tolerance_cm))
+    return furniture_polygon(item).within(host_poly)
+
+
 def check_placement(item: PlacedFurniture, room: Room, others: list[PlacedFurniture]) -> str | None:
     """統一檢查入口,回傳 None 表示合法,否則回傳失敗原因(繁中訊息)"""
     # 壁掛品項掛在牆面上:穿牆與探出房間邊界是它的正常狀態,只檢查與
