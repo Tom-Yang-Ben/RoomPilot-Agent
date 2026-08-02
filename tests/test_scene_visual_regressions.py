@@ -121,6 +121,20 @@ def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
     assert 'scheduleSave("realistic_3d")' in mark_body
 
 
+def test_3d_furniture_micro_rotation_preserves_fifteen_degree_steps() -> None:
+    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    controls = viewer.split("async function rotateSelectedFromControls", 1)[1].split(
+        "async function moveSelectedFromControls", 1
+    )[0]
+
+    assert "function normalizedFreeRotationDeg" in viewer
+    assert "const nextWorldRotation = normalizedFreeRotationDeg(currentWorldRotation + deltaDeg);" in controls
+    assert "normalizedRotationDeg(currentWorldRotation + deltaDeg)" not in controls
+    assert "rotationDeg: normalizedFreeRotationDeg(rotationDeg)" in viewer
+
+
 def test_formal_3d_columns_use_confirmed_rectangular_dimensions_and_rotation() -> None:
     viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
@@ -215,6 +229,21 @@ def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation
     assert "前方是牆面" in source
     assert "controls.enableRotate = true" in source
     assert "walkKeys.add" in source
+
+
+def test_walk_mode_crosses_rooms_only_through_confirmed_step4_door_openings() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+
+    walk_collision = source.split("function walkDoorOpenings", 1)[1].split(
+        "function walkPositionBlockedByFurniture", 1
+    )[0]
+
+    assert "floorplan.door_segments" in walk_collision
+    assert "wall_opening_segment" in walk_collision
+    assert "confirmed_wall_opening" in walk_collision
+    assert "walkDoorOpenings().some" in walk_collision
 
 
 def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
@@ -353,6 +382,19 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
     assert "closed_leaf_segment: closedLeafSegment" in architecture
     assert "door?.wall_opening_segment || door?.closed_leaf_segment" in door_builder
     assert "const headerSegment = door?.wall_opening_segment" in door_builder
+
+
+def test_door_leaf_stays_centered_in_the_confirmed_wall_opening() -> None:
+    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    opening_builder = viewer.split("function buildOpeningAssembly", 1)[1].split(
+        "function buildStandaloneOpeningAssemblies", 1
+    )[0]
+
+    assert "interval.opening?.closed_leaf_segment" not in opening_builder
+    assert "const doorLeafInsetCm = 0.6;" in opening_builder
+    assert "Math.max(interval.width - doorLeafInsetCm, 60)" in opening_builder
 
 
 def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> None:

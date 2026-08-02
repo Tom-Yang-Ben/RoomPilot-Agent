@@ -230,6 +230,15 @@ function flipSegmentZ(segment) {
     start: flipPointZ(segment.start),
     end: flipPointZ(segment.end),
     swing_end: segment.swing_end ? flipPointZ(segment.swing_end) : segment.swing_end,
+    confirmed_wall_opening: segment.confirmed_wall_opening
+      ? flipSegmentZ(segment.confirmed_wall_opening)
+      : segment.confirmed_wall_opening,
+    wall_opening_segment: segment.wall_opening_segment
+      ? flipSegmentZ(segment.wall_opening_segment)
+      : segment.wall_opening_segment,
+    closed_leaf_segment: segment.closed_leaf_segment
+      ? flipSegmentZ(segment.closed_leaf_segment)
+      : segment.closed_leaf_segment,
     rotation_deg: "rotation_deg" in segment
       ? sceneToWorldRotationDeg(segment.rotation_deg)
       : segment.rotation_deg,
@@ -1789,22 +1798,12 @@ export function createSceneViewer(
       sill.userData.roompilotArchitecturalDetail = "flush-window-sill";
       assembly.add(sill);
     } else {
-      const closedLeaf = interval.opening?.closed_leaf_segment;
-      const closedStart = closedLeaf?.start || null;
-      const closedEnd = closedLeaf?.end || null;
-      const closedDx = Number(closedEnd?.x) - Number(closedStart?.x);
-      const closedDz = Number(closedEnd?.z) - Number(closedStart?.z);
-      const closedLength = Math.hypot(closedDx, closedDz);
-      if (closedLength >= 4) {
-        assembly.position.set(
-          (Number(closedStart.x) + Number(closedEnd.x)) / 2,
-          0,
-          (Number(closedStart.z) + Number(closedEnd.z)) / 2,
-        );
-        assembly.rotation.y = Math.atan2(-closedDz, closedDx);
-      }
+      // The wall opening is the single Step 4 source of truth.  A separately
+      // inferred leaf line can be slightly offset and must not pull the door
+      // out of its actual opening in the Step 6 scene.
+      const doorLeafInsetCm = 0.6;
       const leaf = new THREE.Mesh(
-        new THREE.BoxGeometry(Math.max((closedLength || interval.width) * 0.94, 60), height, 4.5),
+        new THREE.BoxGeometry(Math.max(interval.width - doorLeafInsetCm, 60), height, 4.5),
         frameMaterial,
       );
       leaf.position.set(0, centerY, 0);
@@ -3561,8 +3560,27 @@ export function createSceneViewer(
 
   function setWalkRoom(room = {}) {
     if (!lastSceneData) return false;
-    const requested = sceneToWorldPosition(room.center_cm || {});
-    const polygon = (room.polygon_cm || []).map(sceneToWorldPosition);
+    const floorplan = lastWorldSceneData?.floorplan || {};
+    // Step 6 may repair and re-center the Step 4 geometry.  Enter the region
+    // actually rendered in this scene, never a stale questionnaire polygon.
+    const resolvedRegion = (floorplan?.room_regions || []).find(
+      (region) => String(region.room_id || region.id || "") === String(room.id || ""),
+    );
+    const activeRoom = resolvedRegion
+      ? { ...room, label: resolvedRegion.label || room.label }
+      : room;
+    const polygon = resolvedRegion
+      ? (resolvedRegion.exterior || resolvedRegion.polygon_cm || []).map((point) => ({
+        x: Number(Array.isArray(point) ? point[0] : point?.x || 0),
+        z: Number(Array.isArray(point) ? point[1] : point?.z || 0),
+      }))
+      : (room.polygon_cm || []).map(sceneToWorldPosition);
+    const requested = polygon.length
+      ? polygon.reduce((sum, point) => ({
+        x: sum.x + point.x / polygon.length,
+        z: sum.z + point.z / polygon.length,
+      }), { x: 0, z: 0 })
+      : sceneToWorldPosition(room.center_cm || {});
     const roomSize = roomGroup.userData.roomSize || {
       widthCm: 420,
       depthCm: 360,
@@ -3585,7 +3603,7 @@ export function createSceneViewer(
       ),
     );
     if (!spawn) {
-      setStatus(`無法進入「${room.label || "選取空間"}」：找不到可安全站立的位置。`);
+      setStatus(`無法進入「${activeRoom.label || "選取空間"}」：找不到可安全站立的位置。`);
       return false;
     }
     setViewMode("walk");
@@ -3595,7 +3613,7 @@ export function createSceneViewer(
     walkDestination = null;
     walkMarker.visible = false;
     setStatus(
-      `走動模式：已進入「${room.label || "選取空間"}」，門片已隱藏；點地板移動，家具不會被選取。`,
+      `走動模式：已進入「${activeRoom.label || "選取空間"}」，門片已隱藏；點地板移動，家具不會被選取。`,
     );
     return true;
   }
@@ -4207,6 +4225,30 @@ export function createSceneViewer(
     });
   }
 
+  function walkDoorOpenings() {
+    const floorplan = lastWorldSceneData?.floorplan || {};
+    const candidates = [
+      ...(floorplan.door_openings || []),
+      ...(floorplan.door_segments || []),
+    ];
+    const seen = new Set();
+    return candidates.flatMap((door, index) => {
+      const opening = door?.wall_opening_segment
+        || door?.confirmed_wall_opening
+        || door?.closed_leaf_segment
+        || door;
+      if (!opening?.start || !opening?.end) return [];
+      const key = String(
+        door?.id
+        || opening.id
+        || `${opening.start.x}:${opening.start.z}:${opening.end.x}:${opening.end.z}:${index}`,
+      );
+      if (seen.has(key)) return [];
+      seen.add(key);
+      return [{ ...door, ...opening }];
+    });
+  }
+
   function walkPositionBlocked(position, clearanceCm = 20) {
     return (lastWorldSceneData?.floorplan?.wall_segments || []).some((segment) => {
       const start = segment.start;
@@ -4224,7 +4266,7 @@ export function createSceneViewer(
       );
       const closestX = Number(start.x) + projection * dx;
       const closestZ = Number(start.z) + projection * dz;
-      const insideDoorOpening = (lastWorldSceneData?.floorplan?.door_openings || []).some((opening) => {
+      const insideDoorOpening = walkDoorOpenings().some((opening) => {
         if (!openingBelongsToWall(segment, opening, 24)) return false;
         const openingStart = opening.start || opening.hinge || {};
         const openingEnd = opening.end || {};
@@ -4260,7 +4302,7 @@ export function createSceneViewer(
       if (!item) return false;
       const size = sizeCentimeters(item);
       const radians = THREE.MathUtils.degToRad(
-        normalizedRotationDeg(item.rotation_y_deg || 0),
+        normalizedFreeRotationDeg(item.rotation_y_deg || 0),
       );
       const halfWidth = (
         Math.abs(Math.cos(radians)) * size.width
@@ -4801,9 +4843,14 @@ export function createSceneViewer(
     return ((Math.round(rotationDeg / 90) * 90) % 360 + 360) % 360;
   }
 
+  function normalizedFreeRotationDeg(rotationDeg = 0) {
+    const value = Number(rotationDeg);
+    return ((Number.isFinite(value) ? value : 0) % 360 + 360) % 360;
+  }
+
   function halfExtentsForRotation(item, rotationDeg = 0) {
     const size = sizeCentimeters(item);
-    const radians = (Math.abs(normalizedRotationDeg(rotationDeg) % 180) * Math.PI) / 180;
+    const radians = (Math.abs(normalizedFreeRotationDeg(rotationDeg) % 180) * Math.PI) / 180;
     return {
       x: (size.width * Math.abs(Math.cos(radians)) + size.depth * Math.abs(Math.sin(radians))) / 2,
       z: (size.width * Math.abs(Math.sin(radians)) + size.depth * Math.abs(Math.cos(radians))) / 2,
@@ -4843,7 +4890,7 @@ export function createSceneViewer(
     const size = sizeCentimeters(item);
     const hw = size.width / 2;
     const hd = size.depth / 2;
-    const radians = THREE.MathUtils.degToRad(normalizedRotationDeg(rotationDeg));
+    const radians = THREE.MathUtils.degToRad(normalizedFreeRotationDeg(rotationDeg));
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
 
@@ -4921,7 +4968,7 @@ export function createSceneViewer(
     return {
       x: clamped.x,
       z: clamped.z,
-      rotationDeg: normalizedRotationDeg(rotationDeg),
+      rotationDeg: normalizedFreeRotationDeg(rotationDeg),
       kind: allowed ? "grid" : "blocked",
       blocked: !allowed,
     };
@@ -5084,7 +5131,8 @@ export function createSceneViewer(
     renderer.domElement.style.cursor = selectedWrapper ? "grab" : "";
 
     const movedCm = Math.hypot(wrapper.position.x - startPosition.x, wrapper.position.z - startPosition.z);
-    const rotated = normalizedRotationDeg(pendingRotationDeg) !== normalizedRotationDeg(startRotationDeg);
+    const rotated = normalizedFreeRotationDeg(pendingRotationDeg)
+      !== normalizedFreeRotationDeg(startRotationDeg);
     if (movedCm < 1 && !rotated) return;  // 只是點選,沒有拖
 
     const label = item.name_zh_raw || item.normalized_type || "家具";
@@ -5152,7 +5200,7 @@ export function createSceneViewer(
     if (!item) return false;
 
     const label = item.name_zh_raw || item.normalized_type || "家具";
-    const nextRotation = normalizedRotationDeg((item.rotation_y_deg || 0) + deltaDeg);
+    const nextRotation = normalizedFreeRotationDeg((item.rotation_y_deg || 0) + deltaDeg);
     const nextWorldRotation = sceneToWorldRotationDeg(nextRotation);
     const currentPositionCm = wrapperPositionCm(selectedWrapper);
     const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextWorldRotation);
@@ -5200,7 +5248,7 @@ export function createSceneViewer(
     }[direction];
     if (!delta) return false;
 
-    const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
+    const rotationDeg = normalizedFreeRotationDeg(item.rotation_y_deg || 0);
     const worldRotationDeg = sceneToWorldRotationDeg(rotationDeg);
     const candidate = constrainTransform(
       item,
@@ -5254,7 +5302,7 @@ export function createSceneViewer(
     if (!item) return false;
     const label = selectedObjectLabel(item);
     const currentWorldRotation = sceneToWorldRotationDeg(item.rotation_y_deg || 0);
-    const nextWorldRotation = normalizedRotationDeg(currentWorldRotation + deltaDeg);
+    const nextWorldRotation = normalizedFreeRotationDeg(currentWorldRotation + deltaDeg);
     const nextRotation = worldToSceneRotationDeg(nextWorldRotation);
     const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextWorldRotation);
     if (candidate.blocked) {
@@ -5292,7 +5340,7 @@ export function createSceneViewer(
     const item = selectedWrapper.userData.sceneObject;
     if (!item) return false;
     const label = selectedObjectLabel(item);
-    const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
+    const rotationDeg = normalizedFreeRotationDeg(item.rotation_y_deg || 0);
     const worldRotationDeg = sceneToWorldRotationDeg(rotationDeg);
     const radians = THREE.MathUtils.degToRad(worldRotationDeg);
     const step = 25;

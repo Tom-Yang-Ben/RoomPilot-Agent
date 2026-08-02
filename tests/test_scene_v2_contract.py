@@ -30,14 +30,17 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
 
 def test_space_editor_exposes_only_the_canonical_room_taxonomy() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
     expected = {
         "entryway", "living_room", "kitchen", "bedroom", "bathroom",
         "storage", "balcony", "hallway", "stair", "garage",
     }
-    # The room-name menu is rendered from the canonical JS model, not duplicated
-    # as stale static HTML options.
     assert all(f'id: "{room_type}"' in source for room_type in expected)
+    assert all(f'<option value="{room_type}">' in html for room_type in expected)
     assert not any(f'id: "{room_type}"' in source for room_type in {
+        "dining_room", "primary_bedroom", "secondary_bedroom", "multi_purpose", "circulation", "study",
+    })
+    assert not any(f'<option value="{room_type}">' in html for room_type in {
         "dining_room", "primary_bedroom", "secondary_bedroom", "multi_purpose", "circulation", "study",
     })
 
@@ -101,6 +104,11 @@ def test_questionnaire_rag_uses_non_blocking_fast_retrieval() -> None:
     assert "async function startQuestionnaireRag" in source
     assert 'body: JSON.stringify({ query, top_k: 6, fast: true })' in source
     assert "void startQuestionnaireRag(room)" in source
+    assert "function restoreRagFurnitureDefaults" in source
+    assert 'status: "superseded"' in source
+    assert "RAG 工作狀態：${snapshot.status || \"unknown\"}" in source
+    assert "room_fit_checked: false" in source
+    assert "ids=${encodeURIComponent(missingIds.join(\",\"))}" in source
 
 
 def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
@@ -231,7 +239,11 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert 'id="questionnaire-furniture-options"' in html
     assert 'id="questionnaire-furniture-status"' in html
     assert 'id="questionnaire-furniture-preference"' in html
-    assert 'id="refresh-questionnaire-furniture"' in html
+    assert 'id="refresh-questionnaire-furniture"' not in html
+    assert "搜尋相似風格的家具" in html
+    assert "Agent 生圖使用" in html
+    assert "function applyRagFurnitureHitsToDefaultSelection" in source
+    assert "selection_source: \"questionnaire_rag_hit\"" in source
     assert 'id="questionnaire-room-usage-options"' in html
     assert 'id="questionnaire-wall-preference"' in html
     assert 'id="questionnaire-floor-preference"' in html
@@ -273,10 +285,12 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert "questionnaireOffersWithSizeChoices(spec[0], candidates)" in source
     assert "第 6 步將檢查實際 GLB、門窗與走道" in source
     assert 'id="questionnaire-furniture-preference-tags"' in html
+    assert 'data-open-questionnaire-furniture-catalog=""' in html
     assert "QUESTIONNAIRE_FURNITURE_PREFERENCE_TAGS" in source
     assert 'model_load_verification: "deferred"' in source
     assert ".rp-questionnaire-furniture-options" in css
     assert ".rp-questionnaire-room-usage-options" in css
+    assert "第 5 步採用純文字家具清單" in css
 
 
 def test_questionnaire_renders_room_material_choices_and_pair_recommendations() -> None:

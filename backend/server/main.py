@@ -2245,6 +2245,7 @@ def furniture_catalog(
     color: str | None = None,
     material: str | None = None,
     size: str | None = None,
+    ids: str | None = None,
 ) -> dict:
     facet_items = _filter_furniture_payload(
         style=style,
@@ -2263,6 +2264,9 @@ def furniture_catalog(
         material=material,
         size=size,
     )
+    if ids:
+        requested_ids = {value.strip() for value in ids.split(",") if value.strip()}
+        filtered = [item for item in filtered if str(item.get("furniture_id")) in requested_ids]
     total = len(filtered)
     start = (page - 1) * page_size
     end = start + page_size

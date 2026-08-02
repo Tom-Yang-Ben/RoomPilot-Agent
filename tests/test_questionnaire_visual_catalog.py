@@ -232,7 +232,7 @@ def test_questionnaire_ui_keeps_visual_catalog_for_rag_but_not_as_required_quest
 
     assert "全屋設定" in html
     assert "逐房需求與材質" in html
-    assert 'id="whole-house-air-conditioning-all"' in html
+    assert 'id="apply-air-conditioning-all"' in html
     assert 'id="questionnaire-furniture-preference-tags"' in html
     assert 'const profileQuestions = WHOLE_HOUSE_QUESTIONS.filter((question) => question.id !== "overallStyle");' in javascript
     assert 'answers.overallStyle = selectedFamily?.label || "";' in javascript

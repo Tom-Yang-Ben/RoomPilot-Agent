@@ -38,6 +38,17 @@ def test_walk_mode_hides_door_leaves_and_cannot_select_furniture() -> None:
     assert "if (!whiteViewer.setWalkRoom(room))" in CONTROLLER
 
 
+def test_walk_room_uses_the_rendered_floorplan_region_matched_by_room_id() -> None:
+    walk_room = VIEWER.split("function setWalkRoom(room", 1)[1].split(
+        "function findWalkLookTarget", 1
+    )[0]
+
+    assert "floorplan?.room_regions" in walk_room
+    assert "region.room_id" in walk_room
+    assert "activeRoom.label" in walk_room
+    assert "resolvedRegion.exterior" in walk_room
+
+
 def test_edit_mode_is_required_before_dragging_furniture() -> None:
     assert 'interactionMode !== "edit"' in VIEWER
     assert "cameraLocked = true" in VIEWER

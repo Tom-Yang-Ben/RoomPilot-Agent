@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-b0d341647435" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-e61788d8b5ef" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -141,16 +141,14 @@
                       <select id="room-name">
                         <option value="entryway">玄關</option>
                         <option value="living_room">客廳</option>
-                        <option value="dining_room">餐廳</option>
                         <option value="kitchen">廚房</option>
-                        <option value="primary_bedroom">主臥</option>
-                        <option value="secondary_bedroom">次臥</option>
+                        <option value="bedroom">臥室</option>
                         <option value="bathroom">浴室</option>
-                        <option value="study">書房／工作區</option>
                         <option value="balcony">陽台</option>
                         <option value="storage">儲藏室</option>
-                        <option value="circulation">走道／動線</option>
-                        <option value="multi_purpose">多功能室</option>
+                        <option value="hallway">走道／動線</option>
+                        <option value="stair">樓梯</option>
+                        <option value="garage">車庫</option>
                       </select>
                       <button id="save-room" type="button" class="secondary-action">套用名稱</button>
                     </div>
@@ -363,8 +361,8 @@
           </header>
 
           <nav id="questionnaire-stage-nav" class="rp-questionnaire-stage-nav" aria-label="需求問卷進度">
-            <button type="button" data-questionnaire-stage="profile" class="is-active"><b>1</b><span>全屋風格與設備</span></button>
-            <button type="button" data-questionnaire-stage="rooms" disabled><b>2</b><span>逐房用途與家具</span></button>
+            <button type="button" data-questionnaire-stage="profile" class="is-active"><b>1</b><span>全屋設定與風格</span></button>
+            <button type="button" data-questionnaire-stage="rooms" disabled><b>2</b><span>逐房需求與材質</span></button>
             <button type="button" data-questionnaire-stage="summary" disabled><b>3</b><span>確認方案</span></button>
           </nav>
 
@@ -454,6 +452,7 @@
                   <section class="rp-questionnaire-furniture">
                     <div class="rp-questionnaire-section-heading">
                       <div><span class="eyebrow">本房家具</span><h3>勾選想帶入配置的資料庫家具</h3></div>
+                      <button id="open-questionnaire-furniture-catalog" type="button" class="secondary-action" data-open-questionnaire-furniture-catalog="">＋ 新增家具</button>
                       <p id="questionnaire-furniture-status" aria-live="polite">系統依房型、全屋風格與你的選擇推薦。第 5 步不會阻擋；第 6 步會驗證實際 GLB 與位置。</p>
                     </div>
                     <div class="rp-questionnaire-furniture-preference">
@@ -461,8 +460,8 @@
                       <div>
                         <textarea id="questionnaire-furniture-preference" rows="2"
                           placeholder="例如：淺木色、圓角、可收納；想要一張靠窗閱讀椅。"></textarea>
-                        <button id="refresh-questionnaire-furniture" type="button" class="secondary-action">更新推薦</button>
                       </div>
+                      <p class="rp-field-hint">確認本房後，系統會用這些描述搜尋相似風格的家具，並連同房間尺寸、已選家具與設計需求交給後續 Agent 生圖使用。</p>
                       <div id="questionnaire-furniture-preference-tags" class="rp-questionnaire-preference-tags" aria-label="家具特徵快速選擇"></div>
                     </div>
                     <div id="questionnaire-furniture-options"
@@ -530,6 +529,13 @@
           </section>
 
           <p id="requirements-error" class="rp-field-error" aria-live="polite"></p>
+          <section id="requirements-generation-help" class="rp-generation-help" hidden aria-live="polite">
+            <p id="requirements-generation-help-detail"></p>
+            <div class="rp-inline-actions">
+              <button id="retry-configuration-catalog-check" type="button" class="secondary-action">重新檢查型錄</button>
+              <button id="return-to-room-requirements" type="button" class="secondary-action">返回逐房需求</button>
+            </div>
+          </section>
         </div>
         </div>
       </section>
@@ -715,9 +721,16 @@
               <div id="realistic-scene-object-list" class="rp-object-list"></div>
               <button id="delete-realistic-furniture" type="button" class="danger-action">刪除選取家具</button>
             </section>
-            <div id="style-pack-tabs" class="rp-style-tabs"></div>
-            <div id="style-pack-grid" class="rp-style-pack-grid"></div>
-            <section class="rp-surface-editor">
+            <div class="rp-inline-actions rp-step-six-task-actions">
+              <button id="open-surface-adjustment" type="button" class="secondary-action">調整牆面與地板</button>
+              <button id="open-lighting-adjustment" type="button" class="secondary-action">調整天花與照明</button>
+            </div>
+            <div id="style-pack-dialog-origin" class="rp-task-control-origin">
+              <div id="style-pack-tabs" class="rp-style-tabs"></div>
+              <div id="style-pack-grid" class="rp-style-pack-grid"></div>
+            </div>
+            <div id="surface-editor-origin" class="rp-task-control-origin">
+            <section id="surface-editor" class="rp-surface-editor">
               <h3>逐項材質設定</h3>
               <p class="rp-control-hint">3D 上即時預覽此風格的牆面、地板與燈光。</p>
               <label><span>套用範圍</span><select id="surface-scope"><option value="room">選取房間</option><option value="house">全屋</option></select></label>
@@ -753,12 +766,15 @@
               </div>
               <p id="material-boundary-status">尚未建立混搭界線。</p>
             </section>
-            <section class="rp-ceiling-editor">
+            </div>
+            <div id="lighting-editor-origin" class="rp-task-control-origin">
+            <section id="lighting-editor" class="rp-ceiling-editor">
               <h3>天花與風格燈具</h3>
               <label><span>天花方案</span><select id="ceiling-style"></select></label>
               <label><span>燈具</span><select id="light-style"></select></label>
               <div id="ceiling-conflicts" class="rp-conflict-list"></div>
             </section>
+            </div>
             <button id="undo-style-change" type="button" class="secondary-action">復原上一次 StylePack</button>
             <button id="save-realistic-scene" type="button" class="primary-action">保存即時寫實方案</button>
           </aside>
@@ -843,6 +859,41 @@
         </div>
       </section>
 
+      <dialog id="surface-adjustment-dialog" class="rp-task-dialog" aria-labelledby="surface-adjustment-title">
+        <div class="rp-task-dialog-shell">
+          <header class="rp-task-dialog-header">
+            <div><p class="eyebrow">第 6 步</p><h2 id="surface-adjustment-title">調整牆面與地板</h2></div>
+            <button id="close-surface-adjustment" type="button" class="rp-icon-command" aria-label="關閉">×</button>
+          </header>
+          <div id="surface-adjustment-content"></div>
+          <footer class="rp-task-dialog-actions"><button id="surface-adjustment-done" type="button" class="primary-action">完成材質調整</button></footer>
+        </div>
+      </dialog>
+
+      <dialog id="lighting-adjustment-dialog" class="rp-task-dialog" aria-labelledby="lighting-adjustment-title">
+        <div class="rp-task-dialog-shell">
+          <header class="rp-task-dialog-header">
+            <div><p class="eyebrow">第 6 步</p><h2 id="lighting-adjustment-title">調整天花與照明</h2></div>
+            <button id="close-lighting-adjustment" type="button" class="rp-icon-command" aria-label="關閉">×</button>
+          </header>
+          <div id="lighting-adjustment-content"></div>
+          <footer class="rp-task-dialog-actions"><button id="lighting-adjustment-done" type="button" class="primary-action">完成天花與照明調整</button></footer>
+        </div>
+      </dialog>
+
+      <dialog id="render-brief-dialog" class="rp-task-dialog" aria-labelledby="render-brief-title">
+        <div class="rp-task-dialog-shell">
+          <header class="rp-task-dialog-header"><div><p class="eyebrow">送出生圖前確認</p><h2 id="render-brief-title">確認生圖內容</h2></div></header>
+          <div id="render-brief-summary" class="rp-review-summary"></div>
+          <label><span>補充給設計與生圖</span><textarea id="render-brief-notes" rows="4" placeholder="可補充氛圍或材質；避免要求改牆、擴大空間等與平面圖衝突的描述。"></textarea></label>
+          <p id="render-brief-warning" class="rp-task-dialog-warning" hidden aria-live="polite"></p>
+          <footer class="rp-task-dialog-actions">
+            <button id="render-brief-cancel" type="button" class="secondary-action">返回修改</button>
+            <button id="render-brief-confirm" type="button" class="primary-action">確認並送出生圖</button>
+          </footer>
+        </div>
+      </dialog>
+
       <dialog id="room-scheme-selection-dialog" class="rp-task-dialog" aria-labelledby="room-scheme-dialog-title">
         <div class="rp-task-dialog-shell">
           <header class="rp-task-dialog-header">
@@ -914,6 +965,24 @@
           <input id="glb-furniture-search" type="search" placeholder="輸入家具名稱" />
         </label>
         <button id="search-glb-furniture" type="button" class="secondary-action">搜尋可用 GLB</button>
+        <section id="questionnaire-catalog-controls" class="rp-catalog-filter-controls" hidden aria-label="家具篩選">
+          <label>
+            <span>家具類別</span>
+            <select id="questionnaire-catalog-type"><option value="">全部類別</option></select>
+          </label>
+          <label>
+            <span>顏色</span>
+            <select id="questionnaire-catalog-color"><option value="">全部顏色</option></select>
+          </label>
+          <label>
+            <span>材質</span>
+            <select id="questionnaire-catalog-material"><option value="">全部材質</option></select>
+          </label>
+          <div id="questionnaire-catalog-batch" class="rp-catalog-batch" hidden>
+            <span id="questionnaire-catalog-selected-count">尚未選擇家具</span>
+            <button id="add-selected-questionnaire-furniture" type="button" class="primary-action" disabled>加入本房</button>
+          </div>
+        </section>
         <div id="glb-search-results" class="rp-glb-results rp-catalog-results" aria-live="polite"></div>
       </div>
     </dialog>
@@ -943,6 +1012,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-3b147ce5e193"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-7ba093c04fac"></script>
   </body>
 </html>

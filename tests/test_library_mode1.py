@@ -54,6 +54,32 @@ def test_catalog_search_interprets_common_chinese_furniture_terms(monkeypatch) -
     ]
 
 
+def test_catalog_can_fetch_exact_furniture_ids_for_rag_hydration(monkeypatch) -> None:
+    monkeypatch.setattr(
+        main,
+        "_furniture_payload_cache",
+        lambda: (
+            {"furniture_id": "chair-1", "name_en": "Chair", "has_model": True},
+            {"furniture_id": "chair-2", "name_en": "Chair", "has_model": True},
+            {"furniture_id": "table-1", "name_en": "Table", "has_model": True},
+        ),
+    )
+
+    payload = furniture_catalog(
+        style=None,
+        group=None,
+        item_type=None,
+        q=None,
+        page=1,
+        page_size=80,
+        has_model=True,
+        detail="scene",
+        ids="table-1,chair-2",
+    )
+
+    assert {item["furniture_id"] for item in payload["items"]} == {"chair-2", "table-1"}
+
+
 def test_mode_one_catalog_only_returns_loadable_models_and_matching_taxonomy() -> None:
     payload = furniture_catalog(
         style=None,
