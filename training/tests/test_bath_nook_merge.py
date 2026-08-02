@@ -103,3 +103,29 @@ def test_far_apart_nooks_not_merged():
            "cm": 1.0}
     out = fp._merge_bath_nooks(labels, rooms, det, T=10)
     assert len(out) == 2
+
+
+def test_dino_seed_path_merges_without_symbols():
+    # 彩圖限定：無符號證據，改由 DINO 種子（seed_ids）驅動合併
+    # ——floor_05/10 實案：浴具邊被當牆把浴室切碎，彩圖 symbols=[]
+    # 灰階符號路完全啞火
+    labels = np.zeros((200, 300), np.int32)
+    labels[20:90, 20:120] = 1
+    labels[110:180, 20:120] = 2
+    rooms = _rooms_from_labels(labels)
+    det = {"cm": 1.0, "symbols": []}
+    out = fp._merge_bath_nooks(labels.copy(), list(rooms), det, T=10,
+                               seed_ids={1, 2})
+    assert len(out) == 1, "DINO 種子路應合併兩碎格"
+
+
+def test_dino_veto_blocks_merge():
+    # DINO 判 Kitchen 的格子是反證——不併（floor39 型誤併防護的 DINO 版）
+    labels = np.zeros((200, 300), np.int32)
+    labels[20:90, 20:120] = 1
+    labels[110:180, 20:120] = 2
+    rooms = _rooms_from_labels(labels)
+    det = {"cm": 1.0, "symbols": []}
+    out = fp._merge_bath_nooks(labels.copy(), list(rooms), det, T=10,
+                               seed_ids={1, 2}, veto_ids={2})
+    assert len(out) == 2, "被否決的格子不得併入"

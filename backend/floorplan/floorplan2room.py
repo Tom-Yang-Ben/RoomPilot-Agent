@@ -1145,7 +1145,7 @@ def _symbol_anchors(det, labels, rooms):
 _BATH_SYMS = ("oval", "tubrect", "wc", "tub", "basin", "shower")
 
 
-def _merge_bath_nooks(labels, rooms, det, T):
+def _merge_bath_nooks(labels, rooms, det, T, seed_ids=None, veto_ids=None):
     """浴室隔屏碎格合併（labels 就地改，回傳新 rooms）。floor38/44
     實案：浴缸屏/馬桶半牆＋封口盒把一間浴室切成 3~4 格，每格對 GT
     整間浴室 IoU 皆 <0.5，或碎格死在面積終篩。
@@ -1160,14 +1160,20 @@ def _merge_bath_nooks(labels, rooms, det, T):
     for r in rooms:
         if r["area_px"] * cm * cm >= 80000.0:    # ≥8m² 非浴室碎格
             continue
-        has_fix, has_kitchen = False, False
-        for kind, sx, sy in det.get("symbols", ()):
-            iy, ix = int(round(sy)), int(round(sx))
-            if not (0 <= iy < h and 0 <= ix < w
-                    and labels[iy, ix] == r["id"]):
-                continue
-            has_fix = has_fix or kind in _BATH_SYMS
-            has_kitchen = has_kitchen or kind in _KITCHEN_SYMS
+        if seed_ids is not None:
+            # DINO 種子路（彩圖限定）：symbols=[] 時由呼叫端以 DINO
+            # 判 Bath 的碎房當種子、判 Kitchen 者當反證
+            has_fix = r["id"] in seed_ids
+            has_kitchen = bool(veto_ids) and r["id"] in veto_ids
+        else:
+            has_fix = has_kitchen = False
+            for kind, sx, sy in det.get("symbols", ()):
+                iy, ix = int(round(sy)), int(round(sx))
+                if not (0 <= iy < h and 0 <= ix < w
+                        and labels[iy, ix] == r["id"]):
+                    continue
+                has_fix = has_fix or kind in _BATH_SYMS
+                has_kitchen = has_kitchen or kind in _KITCHEN_SYMS
         # 廚房系符號是強反證（floor39 實案：wc 模板在廚房打假陽性，
         # 廚房被當浴具碎格與樓下真浴室誤併）——含爐台/水槽者不候選
         if has_kitchen:
@@ -1640,7 +1646,34 @@ def build_rooms(det):
     rooms, bridges = _merge_nondoor_bridges(labels, rooms, bridges, det)
     # 浴室隔屏碎格合併（floor38/44 實案）——須在面積終篩前，
     # 合併後的浴室才活得過門檻
-    rooms = _merge_bath_nooks(labels, rooms, det, T)
+    if is_color_dom:
+        # 彩圖無符號證據，浴室碎格合併改走 DINO 種子路：<8m² 碎房
+        # 先過分類器，判 Bath（≥0.5）＝種子、判 Kitchen＝反證
+        # 口袋房（陽台收割）不進種子也不可被吸收——磁磚陽台的裁切
+        # 常被判 Bath，bath1 實測 -4 的主因。上限 4m²（非灰階路的
+        # 8m²）：已成形的浴室不動，只併真碎格——bath2 實測 8m² 會把
+        # floor_19 已配上的浴室吸進去稀釋
+        small = [r for r in rooms
+                 if r["area_px"] * cm * cm < 40000.0
+                 and not r.get("pocket")]
+        seeds, vetos = set(), set()
+        if len(small) >= 2:
+            probs_s = room_classifier.classify(det.get("bgr"), labels, small,
+                                               variant="color")
+            if probs_s is not None:
+                for r_, pr in zip(small, probs_s):
+                    if not pr:
+                        continue
+                    top = max(pr, key=pr.get)
+                    if top == "Bath" and pr[top] >= 0.7:
+                        seeds.add(r_["id"])
+                    elif top != "Bath":
+                        vetos.add(r_["id"])
+        vetos |= {r_["id"] for r_ in rooms if r_.get("pocket")}
+        rooms = _merge_bath_nooks(labels, rooms, det, T,
+                                  seed_ids=seeds, veto_ids=vetos)
+    else:
+        rooms = _merge_bath_nooks(labels, rooms, det, T)
     # 面積終篩（keep_small 的另一半）：走道碎片已在上一步併回整條，
     # 這裡才執行原本的面積門檻——未被合併救回的碎片與雜訊小塊在此淘汰
     X0 = min(r_[0] for r_ in rects); Y0 = min(r_[1] for r_ in rects)
