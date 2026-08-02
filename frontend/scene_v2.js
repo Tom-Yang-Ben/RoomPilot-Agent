@@ -2386,7 +2386,13 @@ function unresolvedRecognitionReviewRooms() {
 }
 
 function recognitionReviewSuffix() {
-  const flagged = unresolvedReviewRooms(analysisReviewItems(), state.rooms).length;
+  const items = analysisReviewItems();
+  if (!items.length) return "";
+  // 第 3 步時 state.rooms 尚未 ingestion，以房間清單為基準會算成 0；
+  // 房間還沒進來就直接數被標記的房間數。
+  const flagged = state.rooms.length
+    ? unresolvedReviewRooms(items, state.rooms).length
+    : new Set(items.map((item) => String(item.room_id))).size;
   return flagged ? `；系統標記 ${flagged} 間房需人工複核` : "";
 }
 
