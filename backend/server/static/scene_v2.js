@@ -7351,9 +7351,15 @@ function confirmQuestionnaireFinishes() {
   const draft = activeRoomFinishDraft();
   if (!room || !requirement) return;
   if (state.questionnaireStage === "rooms") {
+    // 只看 missing,不看 finishGate.ready —— ready 還要求 finishes.confirmed === true,
+    // 而 confirmed 正是本函式下面才會寫入的值。用 ready 當前置條件會形成死結:
+    // 八項材質全部選完仍過不了關,錯誤訊息還會顯示成「請完成本房材質:」後面空白
+    // (missing 是空陣列)。confirmed 是這個動作的結果,不是它的前提。
+    // finishesGate() 本身不動 —— 最終送出的呼叫端(送出前所有房必須已 confirmed)
+    // 仍需要 ready 的完整語意。
     const finishGate = finishesGate(draft);
-    if (!finishGate.ready) {
-      element.requirementsError.textContent = `請完成本房材質：${finishGate.missing.join("、")}`;
+    if (finishGate.missing.length) {
+      element.requirementsError.textContent = `請完成本房材質:${finishGate.missing.join("、")}`;
       setStatus(element.requirementsError.textContent, "error");
       return;
     }
@@ -8463,14 +8469,19 @@ function renderQuestionnaireRoomUsage(room = activeQuestionnaireRoom()) {
 function roomFurnitureRequirement(roomId) {
   const requirement = state.roomRequirementModel.roomRequirements[roomId];
   if (!requirement) return null;
-  requirement.furniture = {
-    required: [],
-    optional: [],
-    selected: [],
-    deferred: [],
-    ...(requirement.furniture || {}),
-  };
-  return requirement.furniture;
+  // 就地補齊預設值並回傳「同一個」物件參考。
+  // 原本每次呼叫都重建 requirement.furniture,呼叫端拿到的參考會在下一次呼叫
+  // 後失效 —— 例如 updateQuestionnaireFurnitureSelection 先取得參考,接著
+  // questionnaireFurnitureOffers() 內部又呼叫一次本函式,state 就被換成新物件,
+  // 之後所有 furniture.selected = ... 都寫進脫鉤的舊物件,使用者的勾選與數量
+  // 調整因此完全不會生效(2026-08-02 逐房問卷實測發現)。
+  if (!requirement.furniture) requirement.furniture = {};
+  const furniture = requirement.furniture;
+  if (!Array.isArray(furniture.required)) furniture.required = [];
+  if (!Array.isArray(furniture.optional)) furniture.optional = [];
+  if (!Array.isArray(furniture.selected)) furniture.selected = [];
+  if (!Array.isArray(furniture.deferred)) furniture.deferred = [];
+  return furniture;
 }
 
 function questionnaireFurnitureSelectionItem(offer, selectionPriority) {
