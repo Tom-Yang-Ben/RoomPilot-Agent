@@ -57,7 +57,7 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-720dd7117f78";
+} from "./scene_questionnaire_test2.js?v=sha256-8a2cbc61a6b0";
 import {
   reloadViewerPreservingState,
 } from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
@@ -144,7 +144,7 @@ const escapeHtml = (value) => String(value ?? "").replace(
 // 主臥與次臥合併成單一臥室——辨識層只有一個 bed 類，主次仍由第 5 步問卷依面積推導。
 // 走道辨識層沒有對應類別，維持 circulation 型別以沿用「走道跟隨客廳風格」的既有行為。
 const ROOM_NAME_OPTIONS = Object.freeze([
-  { id: "entryway", label: "玄關", type: "entry" },
+  { id: "entryway", label: "玄關", type: "circulation" },
   { id: "living_room", label: "客廳", type: "living_room" },
   { id: "kitchen", label: "廚房", type: "kitchen" },
   { id: "bedroom", label: "臥室", type: "bedroom" },
@@ -152,9 +152,20 @@ const ROOM_NAME_OPTIONS = Object.freeze([
   { id: "balcony", label: "陽台", type: "balcony" },
   { id: "storage", label: "儲藏室", type: "storage" },
   { id: "hallway", label: "走道", type: "circulation" },
-  { id: "stair", label: "樓梯", type: "stair" },
-  { id: "garage", label: "車庫", type: "garage" },
+  { id: "stair", label: "樓梯", type: "circulation" },
+  { id: "garage", label: "車庫", type: "storage" },
 ]);
+
+// 7242f0bf 收斂房名時給玄關／樓梯／車庫配了 entry／stair／garage 三個新 type，
+// 但正典 vision/analysis.ROOM_LABELS 只有九類，SPACE_DEFAULTS 也沒有這三個鍵
+// ——normalize_required_furniture 表外即退成客廳家具，玄關會被塞沙發。
+// 這裡把三者併回正典：玄關與樓梯歸 circulation（預設零家具，且沿用「走道跟隨
+// 客廳風格」），車庫歸 storage（storage-cabinet）。顯示名稱仍是十類。
+const LEGACY_ROOM_TYPES = Object.freeze({
+  entry: "circulation",
+  stair: "circulation",
+  garage: "storage",
+});
 
 // 舊專案存下來的 visual_space_type 仍要認得，否則回頭開會掉成預設值。
 const LEGACY_ROOM_NAME_IDS = Object.freeze({
@@ -4654,7 +4665,11 @@ const ROOM_TYPE_SOURCE_LABELS = {
 };
 
 function normalizedRoomTypeValue(type) {
-  return ROOM_TYPE_LABELS.has(String(type || "")) ? String(type) : "default";
+  // 舊專案存了 entry／stair／garage，直接查表會落到 default，回頭開啟時用途
+  // 會顯示「其他／未指定」並拿到客廳家具。先過一次遷移表再判定。
+  const raw = String(type || "");
+  const migrated = LEGACY_ROOM_TYPES[raw] || raw;
+  return ROOM_TYPE_LABELS.has(migrated) ? migrated : "default";
 }
 
 function renderRoomNameSelect(room) {

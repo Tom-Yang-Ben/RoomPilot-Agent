@@ -1,3 +1,20 @@
+// 空間名稱（room.visual_space_type）決定問哪些題；空間用途（room.type）只決定
+// 家具。2026-08-02 把玄關／樓梯／車庫的 type 併回正典九類之後，問卷不能再從
+// type 反推——那會讓玄關拿到走道的題目、車庫拿到儲藏室的題目。
+const VISUAL_SPACES_BY_ROOM_NAME = Object.freeze({
+  entryway: ["entryway"],
+  living_room: ["living_room"],
+  kitchen: ["kitchen"],
+  bathroom: ["bathroom"],
+  balcony: ["balcony"],
+  storage: ["storage"],
+  hallway: ["circulation"],
+  // 樓梯與車庫沒有軟裝題目。
+  stair: [],
+  garage: [],
+});
+
+// 名稱缺漏時（舊專案、或辨識層直接給的房型）才退回用途反推。
 const ROOM_TO_VISUAL_SPACES = Object.freeze({
   entry: ["entryway"],
   living_room: ["living_room"],
@@ -7,11 +24,15 @@ const ROOM_TO_VISUAL_SPACES = Object.freeze({
   workspace: ["study"],
   balcony: ["balcony"],
   storage: ["storage"],
-  // 第 4 步房名收斂後新增的型別。樓梯與車庫沒有軟裝題目，只讓走道問得到動線題。
   circulation: ["circulation"],
   stair: [],
   garage: [],
 });
+
+function visualSpacesFor(room = {}) {
+  const byName = VISUAL_SPACES_BY_ROOM_NAME[room.visual_space_type];
+  return byName || ROOM_TO_VISUAL_SPACES[room.type] || [];
+}
 
 export const VISUAL_SPACE_LABELS = Object.freeze({
   entryway: "玄關",
@@ -69,7 +90,7 @@ export function questionsForRooms(questions = [], rooms = []) {
       roomSpaces.add(room.id === primaryId ? "primary_bedroom" : "secondary_bedroom");
       return;
     }
-    (ROOM_TO_VISUAL_SPACES[room.type] || []).forEach((space) => roomSpaces.add(space));
+    visualSpacesFor(room).forEach((space) => roomSpaces.add(space));
   });
   const sharedSpaces = new Set(["circulation", "all_rooms"]);
   return questions.filter(
@@ -85,7 +106,7 @@ function visualSpaceForRoom(room, primaryId = null) {
   if (room.type === "bedroom") {
     return room.id === primaryId ? "primary_bedroom" : "secondary_bedroom";
   }
-  return ROOM_TO_VISUAL_SPACES[room.type]?.[0] || null;
+  return visualSpacesFor(room)[0] || null;
 }
 
 export function questionsForIndividualRooms(questions = [], rooms = []) {

@@ -98,6 +98,54 @@ def test_room_name_select_is_generated_from_the_single_option_table() -> None:
     assert 'ROOM_NAME_OPTIONS.map' in source
 
 
+def test_room_name_options_only_emit_canonical_room_types() -> None:
+    """「空間名稱」寫進 room.type 的值，每一個都必須在正典裡。
+
+    這條邊原本沒鎖：7242f0b 給玄關／樓梯／車庫配了 entry／stair／garage 三個
+    正典外的 type，第 4 步「空間用途」因此顯示「其他／未指定」，而
+    normalize_required_furniture 對表外型別會退成 SPACE_DEFAULTS["living_room"]
+    ——玄關被塞沙發、茶几與電視櫃。dropdown 那條契約是綠的，因為它只檢查
+    ROOM_TYPE_OPTIONS，不檢查 ROOM_NAME_OPTIONS 產出的值。
+    """
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    block = source.split("const ROOM_NAME_OPTIONS = Object.freeze([", 1)[1].split("]);", 1)[0]
+    emitted = set(re.findall(r'type:\s*"([a-z_]+)"', block))
+
+    assert emitted, "ROOM_NAME_OPTIONS 解析失敗"
+    outside = emitted - CANONICAL
+    assert not outside, f"空間名稱寫出正典外的用途：{sorted(outside)}"
+    # 每一個都必須有家具預設，否則會靜默退成客廳家具。
+    assert not emitted - set(SPACE_DEFAULTS), sorted(emitted - set(SPACE_DEFAULTS))
+
+
+def test_legacy_room_types_migrate_into_canonical_vocabulary() -> None:
+    """舊專案存下來的 entry／stair／garage 必須遷移，不能落到 default。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    block = source.split("const LEGACY_ROOM_TYPES = Object.freeze({", 1)[1].split("});", 1)[0]
+    migration = dict(re.findall(r'(\w+):\s*"([a-z_]+)"', block))
+
+    assert set(migration) == {"entry", "stair", "garage"}
+    assert set(migration.values()) <= CANONICAL
+    assert "LEGACY_ROOM_TYPES[raw] || raw" in source
+
+
+def test_questionnaire_routes_by_room_name_not_room_type() -> None:
+    """問卷分派看空間名稱，不看空間用途。
+
+    玄關與樓梯的 type 都併成 circulation 之後，若還從 type 反推，玄關會拿到
+    走道的 2 題而不是自己的 4 題。
+    """
+    source = (STATIC / "scene_questionnaire_test2.js").read_text(encoding="utf-8")
+    block = source.split("const VISUAL_SPACES_BY_ROOM_NAME = Object.freeze({", 1)[1].split("});", 1)[0]
+
+    assert re.search(r'entryway:\s*\["entryway"\]', block)
+    assert re.search(r'hallway:\s*\["circulation"\]', block)
+    assert re.search(r'stair:\s*\[\]', block)
+    assert re.search(r'garage:\s*\[\]', block)
+    assert "function visualSpacesFor" in source
+    assert "ROOM_TO_VISUAL_SPACES[room.type] || []" in source, "名稱缺漏時仍要能退回用途"
+
+
 def test_scene_html_has_no_duplicate_element_ids() -> None:
     """重複 id 讓 querySelector 只拿得到第一個，另一半 UI 變成死的。"""
     import collections
