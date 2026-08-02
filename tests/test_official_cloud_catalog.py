@@ -89,7 +89,8 @@ def test_style_presentation_cannot_overwrite_official_furniture_fields():
     assert diagnostics["style_presentation_furniture_ignored"] == 1
 
 
-def test_furniture_api_cache_contains_only_verified_cloud_items():
+def test_furniture_api_cache_contains_only_verified_cloud_items(monkeypatch):
+    monkeypatch.setenv("ROOMPILOT_CATALOG_PROVIDER", "json")
     _clear_catalog_caches()
     items = main._furniture_payload_cache()
 
@@ -101,7 +102,8 @@ def test_furniture_api_cache_contains_only_verified_cloud_items():
     )
 
 
-def test_furniture_api_exposes_kai_room_role_and_rag_enrichment():
+def test_furniture_api_exposes_kai_room_role_and_rag_enrichment(monkeypatch):
+    monkeypatch.setenv("ROOMPILOT_CATALOG_PROVIDER", "json")
     _clear_catalog_caches()
     items = main._furniture_payload_cache()
 
@@ -112,6 +114,14 @@ def test_furniture_api_exposes_kai_room_role_and_rag_enrichment():
     assert all(item.get("catalog_role") for item in enriched[:100])
     assert all(item.get("description") for item in enriched[:100])
     assert any("bedroom" in item.get("room_types", []) for item in enriched)
+
+
+def test_postgres_provider_never_falls_back_to_the_8675_json_rows(monkeypatch):
+    postgres_items = ({"furniture_id": "active-item"},)
+    monkeypatch.setattr(main, "load_postgres_catalog", lambda _project_dir: postgres_items)
+    main._furniture_payload_for_provider.cache_clear()
+
+    assert main._furniture_payload_for_provider("postgres") == postgres_items
 
 
 def test_runtime_catalog_rejects_manifest_rows_that_are_not_uploaded():

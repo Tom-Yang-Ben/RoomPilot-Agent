@@ -1,0 +1,3327 @@
+{
+  "schema_version": "1.0",
+  "basis": "RoomPilot working-tree sources reviewed for safe Codex conversion",
+  "source_roots": [
+    ".claude",
+    "VibeCoding_Workflow_Templates"
+  ],
+  "summary": {
+    "files": 364,
+    "document_like_files": 350,
+    "bytes": 7186204,
+    "by_disposition": {
+      "adapted-coordination-template": 2,
+      "adapted-empty-context-structure": 9,
+      "adapted-output-recipe": 16,
+      "adapted-skill-method": 35,
+      "adapted-vibecoding-source": 19,
+      "excluded-claude-hooks": 8,
+      "excluded-claude-permissions": 1,
+      "excluded-runtime": 4,
+      "excluded-skill": 63,
+      "excluded-statusline-oauth-binary": 5,
+      "excluded-tool-and-secret-config": 1,
+      "reviewed-reference-only": 158,
+      "reviewed-skill-index-or-note": 2,
+      "synthesized-agent-role": 13,
+      "synthesized-command-workflow": 17,
+      "synthesized-core-workflow": 3,
+      "synthesized-rule": 8
+    },
+    "by_extension": {
+      ".csv": 30,
+      ".dot": 1,
+      ".exe": 1,
+      ".js": 1,
+      ".json": 23,
+      ".jsonl": 1,
+      ".log": 1,
+      ".md": 277,
+      ".png": 2,
+      ".py": 4,
+      ".sh": 11,
+      ".ts": 1,
+      ".txt": 1,
+      ".yml": 1,
+      "<none>": 9
+    }
+  },
+  "files": [
+    {
+      "path": ".claude/agents/architect.md",
+      "bytes": 3460,
+      "sha256": "92d9de004a86ab92185180d85a9340849696e0d9d29fafe55942a4c75afa9459",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/build-error-resolver.md",
+      "bytes": 3095,
+      "sha256": "bed54697393e99d2a373c7d562deda68a40222462dcba1fbd0caf86dfe2110e4",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/code-quality-specialist.md",
+      "bytes": 3050,
+      "sha256": "5394eca92ce49e841c5755504c726cb868681ee719c358f500fb14dedab48bac",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/deployment-expert.md",
+      "bytes": 1973,
+      "sha256": "e59ff8521caa9c1ff22f85d2a1961342733ba89a9f13741f167c3b9380617023",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/documentation-specialist.md",
+      "bytes": 2833,
+      "sha256": "772e5507dd656b9e9523a51133324ff7d16327eb31f8d2dcff18e9e9633cb158",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/e2e-validation-specialist.md",
+      "bytes": 2859,
+      "sha256": "9aeaf50ccb040928b424458cbfe4aa6f64993195535b5bb233d2d9c28521b89d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/general-purpose.md",
+      "bytes": 1384,
+      "sha256": "c70bfcca29d066028f29bddeaaff9a35d91cdd8f59c57cc6b2353b1f4bea0300",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/planner.md",
+      "bytes": 2820,
+      "sha256": "b66fd50ae7dc008d83ceccf6341d8db2ab890d0ea174756adf36935279f94052",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/refactor-cleaner.md",
+      "bytes": 2476,
+      "sha256": "6fbd1033268a85ee58247531317cc6adbbeb414ba3ed1688da7ed98f202a13e9",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/security-infrastructure-auditor.md",
+      "bytes": 3112,
+      "sha256": "95da0e368b0dd25bc1bb547d76e611ad3d95af23e7dac3433b7f6ab9fc6143d5",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/tdd-guide.md",
+      "bytes": 2365,
+      "sha256": "f53286583d5347a1572e9484ddb14ae35f903292f53d9858fc5a649608d3bec7",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/test-automation-engineer.md",
+      "bytes": 2384,
+      "sha256": "5ac5b03a27dd734fdcc489b775c7f72f175f872850f019432ee58cff62fb892a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/agents/workflow-template-manager.md",
+      "bytes": 2466,
+      "sha256": "4861624c7d30527a26321991da5cf824f6ee6336869b00e378458a11b96d7cd9",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-agent-role",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/CLAUDE.md",
+      "bytes": 669,
+      "sha256": "dddabc68aacef2643c6ea6b0f726cba22a4e8f1d6eda4fdb8ad1b4c72432c57e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-core-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/build-fix.md",
+      "bytes": 2110,
+      "sha256": "2d06e11f86a4f47999572e5c1b6442c63e04faf61973cf17cfa9c1f5f0c4fc97",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/check-quality.md",
+      "bytes": 1083,
+      "sha256": "a5423c3448b59e0880b9ffbc34fcd9fdcdb058c4ae695d6e91175a84ff043e9b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/e2e.md",
+      "bytes": 2151,
+      "sha256": "22405f0b8bb2ef8fa61a961dad1d744c0f04af6a91da5359fa5b635db0a2b3d5",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/hub-delegate.md",
+      "bytes": 1592,
+      "sha256": "2fb23a8a51019cc9d52c0f727aec99a56e4f74054d867a16cd7ea58adf6d4ebc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/learn.md",
+      "bytes": 1555,
+      "sha256": "457c2d2362e522f0e2278b03294cc910d6369dfb70592e5151d139d212ad61cf",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/plan.md",
+      "bytes": 1313,
+      "sha256": "13cc5382da2e52a8e4ef9c85599721793b3669d02d7df4947dfa3519e6928852",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/refactor-clean.md",
+      "bytes": 2368,
+      "sha256": "26787204cdebeb720bc474a8e234458e0bd31614e61af451870c9ee63b4b4be5",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/review-code.md",
+      "bytes": 1825,
+      "sha256": "1a9979c7412cb91f0cff74ff64777bc08947d84c664da2244bac4b33a36d3c83",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/save-session.md",
+      "bytes": 2520,
+      "sha256": "862bbf3ea56d586f7ddfabf538ca06e015dd529fae468ff6ac87f337634902a3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/suggest-mode.md",
+      "bytes": 1107,
+      "sha256": "2b4295288df1eea820cc3d8b178e81334f9b705459ee5916aa7c4c6d28d7546c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/task-init.md",
+      "bytes": 2753,
+      "sha256": "6a170a4978fed289c6b0d1fa81671fdef6338e63a57ca3f25192afa087eef6cc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/task-next.md",
+      "bytes": 1776,
+      "sha256": "b83db7b2b258284a5237bfa321f7f21c1c889ac9b5795d7afe1135a59195ac5b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/task-status.md",
+      "bytes": 2230,
+      "sha256": "134d7de6843afec64cab898dcf9e3e14287fee9bddca4dd3680bd882088fa2c9",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/tdd.md",
+      "bytes": 1783,
+      "sha256": "17496d23e756c56c0447ff989bfcfa708b30701d22c6f666b52e28fbf77f8163",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/template-check.md",
+      "bytes": 1922,
+      "sha256": "6e3a96538e9565855604bcae38fc4f16d529f88000e7ddc02987dd6705ce24b3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/time-log.md",
+      "bytes": 4209,
+      "sha256": "50d3cd397901f67a5ec8fbb1bacbbabb7187dff6ee4c0fd692fa7bf029471201",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/commands/verify.md",
+      "bytes": 1154,
+      "sha256": "b0bbc8816c1826af7cf6be767e0d6c7f16f6384a2d496c2486040e78a791aec1",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-command-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/context/decisions/README.md",
+      "bytes": 10002,
+      "sha256": "9bb3382fd5cd7d17127fc241247b79aa9e1340a75c0757ac17f23b6e630b81d0",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-empty-context-structure",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/context/deployment/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "extension": "",
+      "document_like": false,
+      "disposition": "adapted-empty-context-structure",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/context/docs/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "extension": "",
+      "document_like": false,
+      "disposition": "adapted-empty-context-structure",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/context/e2e/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "extension": "",
+      "document_like": false,
+      "disposition": "adapted-empty-context-structure",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/context/quality/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "extension": "",
+      "document_like": false,
+      "disposition": "adapted-empty-context-structure",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/context/README.md",
+      "bytes": 4200,
+      "sha256": "ae8c0b3c351a212a7f1918173440f305be9e65f1968bcb1b6c90e0bf434ec7a2",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-empty-context-structure",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/context/security/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "extension": "",
+      "document_like": false,
+      "disposition": "adapted-empty-context-structure",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/context/testing/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "extension": "",
+      "document_like": false,
+      "disposition": "adapted-empty-context-structure",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/context/workflow/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "extension": "",
+      "document_like": false,
+      "disposition": "adapted-empty-context-structure",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/coordination/human_ai_collaboration_config.md",
+      "bytes": 7260,
+      "sha256": "8e03d3fc14c7f0ed46900e430cc13ad494e0d409b534d24c8f435f919fe37670",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-coordination-template",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/coordination/README.md",
+      "bytes": 4074,
+      "sha256": "7a1b174aaa72d946a5bc02f96f3794ceafd2b4e732d3f4b60eae459df2132748",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-coordination-template",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/hooks/agent-monitor.sh",
+      "bytes": 5327,
+      "sha256": "e25545b1e0accba452a5e19d5af8312e8cd26f1a9a762bbd0a48b0978741bcce",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-claude-hooks",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/hooks/hook-utils.sh",
+      "bytes": 6420,
+      "sha256": "c5a6a0e5f62cadce5d56f4150b19d421013a56410385316ce700a1ad697cbe31",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-claude-hooks",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/hooks/post-write.sh",
+      "bytes": 4968,
+      "sha256": "7ef766aa3edf80c1d3d5183684414810596140a21a6af568ea0647119e9a320e",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-claude-hooks",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/hooks/pre-tool-use.sh",
+      "bytes": 2935,
+      "sha256": "bd81f5b07079d6368ef6b1edcdb9f3ac7c5e09817f014433061b271b97194c0d",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-claude-hooks",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/hooks/README.md",
+      "bytes": 5287,
+      "sha256": "2dbe5c74d273f8674bd8980dd1370ca246bee780467a4d050aaf275e0e9baeed",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-claude-hooks",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/hooks/session-start.sh",
+      "bytes": 8123,
+      "sha256": "2173db0d6cedb4f722b0ca0366f2dff7f6b4a599e7e3d22c70123ab894a2b8a8",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-claude-hooks",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/hooks/user-prompt-submit.sh",
+      "bytes": 2569,
+      "sha256": "320a85158cfc298ed75813ec744cb15ad17bcdea57e11fde57be216c1d38ee49",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-claude-hooks",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/hooks/watch-agents.sh",
+      "bytes": 1982,
+      "sha256": "b3b1a805dc005ab69914a989a3a69548dafcf993027d7c0996fb09d8ea96d4c8",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-claude-hooks",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/logs/.gitignore",
+      "bytes": 14,
+      "sha256": "a3d8135574b0e919c8c79ebdf9418a2f6c6918be9e0e10721eadaef53ed37c91",
+      "extension": "",
+      "document_like": false,
+      "disposition": "excluded-runtime",
+      "mutable_runtime": true
+    },
+    {
+      "path": ".claude/logs/hooks.log",
+      "bytes": 2061,
+      "sha256": "95602e6785da46870faf0840eeb157ecf1d8af83b3793aaabd6af7041eca93b1",
+      "extension": ".log",
+      "document_like": false,
+      "disposition": "excluded-runtime",
+      "mutable_runtime": true
+    },
+    {
+      "path": ".claude/mcp-configs/README.md",
+      "bytes": 1877,
+      "sha256": "8ab41619a3a1477af9c9b67cc9661422ddf6e2385ad1e8446f5adbec065b7107",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-tool-and-secret-config",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/01-prd-product-spec.md",
+      "bytes": 5154,
+      "sha256": "c146f33f8762db1df39e7d31fb495a31243c2b2e2cd42639320bec1464c7e4de",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/02-bdd-scenario-spec.md",
+      "bytes": 9500,
+      "sha256": "5662207084eed964eb03d1ceeb8e01bfcf213321bddb865e4e448638854160f1",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/03-architecture-design-doc.md",
+      "bytes": 15458,
+      "sha256": "e3432a4bd1d53b421698eb17f5351b785ca9362395f426e5ecf9c352c480a1ba",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/04-ddd-aggregate-spec.md",
+      "bytes": 16963,
+      "sha256": "1afb59ad3a51f7042547c4d3efe8c9e84645d60951f7b972631dd45e33b6e878",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/05-api-contract-spec.md",
+      "bytes": 19942,
+      "sha256": "37ae9f0555d894eacdc9f626ace6974d180c2945a8fbc6d483fcf2aa5b6b83d2",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/06-tdd-unit-spec.md",
+      "bytes": 15357,
+      "sha256": "9d61bdf2d36178f18cc5485362d374396511e7886918f39d9628f7c537505add",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/07-code-review-checklist.md",
+      "bytes": 15599,
+      "sha256": "a5439e033a8b046be5a4123601a66ec9555f291920c2aa92c18888e12ae9d3e8",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/08-security-checklist.md",
+      "bytes": 16731,
+      "sha256": "6ef19aa84bc538dc31490796f3550a824698502af4654183c64ddd4e8869e2b9",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/09-database-schema-spec.md",
+      "bytes": 18942,
+      "sha256": "925fd1cec8eb02e03c1c7d0efb11e3da2b378ee17fcb5937b75a3ddbb45075dc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/10-backend-python-impl.md",
+      "bytes": 32571,
+      "sha256": "c333d280676c656811b42e19a45ec28fd96844baff98b3ca37c4c8b7185670c1",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/11-frontend-component-bdd.md",
+      "bytes": 18302,
+      "sha256": "ed7ce90ec5b6bd9bc8e370cbe16682fe2358184d26cd5dab9a0100e4695c2117",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/12-integration-contract-suite.md",
+      "bytes": 20383,
+      "sha256": "2bb9c304b87e95d7c58cdb60f07c7c3296ac177fff5202c6c2e8b5a360f70523",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/13-data-contract-evolution.md",
+      "bytes": 1769,
+      "sha256": "d16ba70d3045fb31922276655152bd863ea87ef8192889539efb57e34d29a119",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/14-ci-quality-gates.md",
+      "bytes": 2568,
+      "sha256": "cd56804e0983291422fb2dbd291ed46c56eee6e20642e55a4f7b64b380c672ed",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/15-Vision-output.md",
+      "bytes": 4438,
+      "sha256": "9a0231a217170f1fe5b38c411dc3eb168a9686eb0bae40e2dc5b4438e28c0e2c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/output-styles/README.md",
+      "bytes": 11909,
+      "sha256": "41b9d689ec9e8dde7fddf38861ff2e3d19e08365a984613f509a6f0eb5f00d6f",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-output-recipe",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/README.md",
+      "bytes": 6818,
+      "sha256": "9b324c575c93aaac2000c517a569081a60ca6d89ec1658177c596f386aa24603",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-core-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/rules/coding-style.md",
+      "bytes": 1243,
+      "sha256": "84d915f0cc440360ca553f22779538042b2257277a0f542a44420a5aadec0f2d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-rule",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/rules/development-workflow.md",
+      "bytes": 2079,
+      "sha256": "d9cb615c79e130639258f0181a16039044a922785c65702117b02b3d8f22994e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-rule",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/rules/git-workflow.md",
+      "bytes": 3809,
+      "sha256": "0770b3ba332d4083c496e19628fd5f5b016f269997b451cc9e8f826cad251fa9",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-rule",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/rules/patterns.md",
+      "bytes": 725,
+      "sha256": "c90df0e7491b117e1a8e26c144c82d72292beef7d5dff47ea617f6c52c38834d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-rule",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/rules/performance.md",
+      "bytes": 772,
+      "sha256": "24a4b34065abb6e19e6c6b0c8d18f6da6b718e160c259234f3f681de2831576d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-rule",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/rules/security.md",
+      "bytes": 964,
+      "sha256": "7a0d511b2a900c46b06e50fc4f7f93ed0df3651b60ebdc544f6463009394b062",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-rule",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/rules/subagent-context.md",
+      "bytes": 1876,
+      "sha256": "216760010001325f7306edf64a6325b1905c0ee3710e8fdc61dde204ba7bb01e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-rule",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/rules/testing.md",
+      "bytes": 556,
+      "sha256": "0fb19dd2b73eaf62a110c45394c4418c5f08eef64037f1a116a2ce1259b5a60e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-rule",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/settings.json",
+      "bytes": 2608,
+      "sha256": "f1aecaefda356758f1f12e85e9b9f21a2612e516fd96b02eaa8a6054a39b0078",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "excluded-claude-permissions",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-a11y-audit/SKILL.md",
+      "bytes": 6765,
+      "sha256": "23b250d3a43632b61fc154bb548a1b8357de3c046ebe2e5c848dd4d389144dad",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-frontend-design/LICENSE.txt",
+      "bytes": 10174,
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "extension": ".txt",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-frontend-design/SKILL.md",
+      "bytes": 4450,
+      "sha256": "08897ee4cb85a0907fd5c224f57e850c15b4078634ab35609134d3710af57d00",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/AGENTS.md",
+      "bytes": 22627,
+      "sha256": "89e3ddd58fcf99a53a50e25dfd21b8cde1be5f10b7df6bacd3dfa6796932f516",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/metadata.json",
+      "bytes": 530,
+      "sha256": "49262ed5cb4186f31ee980cf8d990be0170c51efed4908d0464a1cff9905bd05",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/README.md",
+      "bytes": 2140,
+      "sha256": "85915a43a6f0b4efe525e3cf6398dd866166da2025837c4460468a24a940da94",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/_sections.md",
+      "bytes": 829,
+      "sha256": "a174213b87e6911e2b766995a2cbaf8d1534057076e82fb79fe3f0ecb38047df",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/_template.md",
+      "bytes": 329,
+      "sha256": "587f7d16b0660eb61fee4a4d3d7df2b3077d6835de170602c7d6e60bee559131",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/architecture-avoid-boolean-props.md",
+      "bytes": 2267,
+      "sha256": "007555ebb020f4d552582a2c4db194db71a1fd33094012e5187bcfa4f8c392d5",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/architecture-compound-components.md",
+      "bytes": 2600,
+      "sha256": "f246af13dc269b521cf20eb8ad99a0cb645beac381c8c9b117262c34612c8457",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/patterns-children-over-render-props.md",
+      "bytes": 1886,
+      "sha256": "7c45a0d21b3c4126a32cba916ee31adeae195386ad1dbbe6634aedb7457aa0ad",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/patterns-explicit-variants.md",
+      "bytes": 2395,
+      "sha256": "8c19e596e61807549d01ce8c6954c6358199f97a8511c0c02c625ec0efda8c0e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/react19-no-forwardref.md",
+      "bytes": 953,
+      "sha256": "881830adb7534c4b2d70db426556646ad9837f5478f744f35641f635ada22227",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/state-context-interface.md",
+      "bytes": 4974,
+      "sha256": "09e73afbf9285fa416679cc864a287b9e8b821d0969272ab784295386d8c9bc3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/state-decouple-implementation.md",
+      "bytes": 2699,
+      "sha256": "76a8c1eb29a70d8996ab3f71260345af2f7bc89deab815a421d6c87c6591a9c3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/rules/state-lift-state.md",
+      "bytes": 3224,
+      "sha256": "74c54038a6c554c748fe31cec673b80861b5d920b7553cf78cdf10d18b4b759b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-composition/SKILL.md",
+      "bytes": 2886,
+      "sha256": "eae3e8c5859448c936707be2b47bdb2d0f785953c1c027a01a45c110d6c0983e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/AGENTS.md",
+      "bytes": 73771,
+      "sha256": "72996343b8260800fbeb9af63ddaed91f14b65dc547e0922f9f8e9bd72076cbf",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/metadata.json",
+      "bytes": 896,
+      "sha256": "59ee2274cadbd95b2220727028f0dbc26d3e0251e7937226edc9e7640756ba21",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/README.md",
+      "bytes": 5064,
+      "sha256": "d60d7623005a833b928be6a109ed9d14dea43d7217fb534e8f2e4de5fc1f0ddf",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/_sections.md",
+      "bytes": 2228,
+      "sha256": "21d7445e92bd7d393b420118c3fb9ebbf30aaf123a15143afb6c0b1b562cfdfd",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/_template.md",
+      "bytes": 631,
+      "sha256": "99df2a3ea088c6c22de2484ddc7e964d0e9923846f44c63380343ecc64455442",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/animation-derived-value.md",
+      "bytes": 1373,
+      "sha256": "689228e9d59227934f296563963951aa9368be0afb2a188f650de161203b1862",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/animation-gesture-detector-press.md",
+      "bytes": 2559,
+      "sha256": "69408d4be669e74689d865c5f50a22fc3a802d521fe493371761abd20526e58e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/animation-gpu-properties.md",
+      "bytes": 2059,
+      "sha256": "f885e4179445da27cbc225e0a4aa3ed9016fc3507ca6f864392ba7a9d0bd7516",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/design-system-compound-components.md",
+      "bytes": 1625,
+      "sha256": "dcb10900a58fcf57cca2e27c062d02df2325a7949e08fb45e9e05cc2b132b1a6",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/fonts-config-plugin.md",
+      "bytes": 1393,
+      "sha256": "b92568774064a604e7a479d4c8d7263aed5609740e9161d2f2764bfff761905d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/imports-design-system-folder.md",
+      "bytes": 1418,
+      "sha256": "aa6337f7f2869a46a9141ec65e02c3da5c3bf051023899b82e0f0aef5bff8423",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/js-hoist-intl.md",
+      "bytes": 1645,
+      "sha256": "b4b08622465ffcd5e5961878eb8c6d7359aa242d16c990b59941c9111962fe46",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/list-performance-callbacks.md",
+      "bytes": 1059,
+      "sha256": "db800e9dfe0080eb4954b96e2a362ee8344d08e08b1ed06bc8059450f3e6f0dd",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/list-performance-function-references.md",
+      "bytes": 4133,
+      "sha256": "b54470e41d578b207ee3223f6853efb7fbf8e5f83d9aecf8da16989072f99544",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/list-performance-images.md",
+      "bytes": 1417,
+      "sha256": "e88f16ac113c29230d674b7aa2c66c31d5772a74b1ea378d48a97b1143fe6c19",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/list-performance-inline-objects.md",
+      "bytes": 2308,
+      "sha256": "e2a80aac0f29c6abaf0163c1cc273d09cc8a0030ec077ca2022bbf5c309e4625",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/list-performance-item-expensive.md",
+      "bytes": 2466,
+      "sha256": "a68cc8ec5dba3c55761bd5df9dfd3d98485f63076868d3e03af15f1e58907ce3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/list-performance-item-memo.md",
+      "bytes": 2250,
+      "sha256": "38ec1d149ee485434d11c2b9e2101dfc914afadae4a0738ca905f26b05f708c1",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/list-performance-item-types.md",
+      "bytes": 2749,
+      "sha256": "eed225f4e9e504bfa7db01f5395d1402545cc47de8adf1829a9408cd5d158cf6",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/list-performance-virtualize.md",
+      "bytes": 1742,
+      "sha256": "98cad308118acb4d6e8e975c0168ce56e2d48ca52ed47f23bc9a30667c066ada",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/monorepo-native-deps-in-app.md",
+      "bytes": 1091,
+      "sha256": "8368b109027fcec1b8a81bfb99718aef2b64edaba77107f73d7c465cc5a14217",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/monorepo-single-dependency-versions.md",
+      "bytes": 1351,
+      "sha256": "61c01b9eaab1e319bf078204231fb573bdfea3c43a6eb99e7ef73ee95d474ccc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/navigation-native-navigators.md",
+      "bytes": 4941,
+      "sha256": "6642dedb57e72f0b56df5fbc3d5b8aaa91fc4456932c12712cfd076d393f32c6",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/react-compiler-destructure-functions.md",
+      "bytes": 1274,
+      "sha256": "8048926a4fa3fbd28fc0ecf4ba4c383a2f0ed06c2fd7330dd4a15d7f4e548044",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/react-compiler-reanimated-shared-values.md",
+      "bytes": 1268,
+      "sha256": "3174303a72b6849ff0eda5cd9f9650f26baa5f31ed28d35a75076af714fb2ffc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/react-state-dispatcher.md",
+      "bytes": 2255,
+      "sha256": "7ec5b653e3ff8d9ca97d8d66981cce5590c0e49fa79ab708fd6324542b588870",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/react-state-fallback.md",
+      "bytes": 1735,
+      "sha256": "eb76e386d71680bfdfc0ab64dba1221f4d3d0fdcb4980bb4a871381d58e9e58b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/react-state-minimize.md",
+      "bytes": 1740,
+      "sha256": "31b989de61defda1c61d8578c4700efd64a427218c3f3dbb7062a1666e1cbe43",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/rendering-no-falsy-and.md",
+      "bytes": 1812,
+      "sha256": "7300fa45ac3a4968db144727a21052421bc62de9b5e9f6f59e28bd16d2fff001",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/rendering-text-in-text-component.md",
+      "bytes": 697,
+      "sha256": "fc67897b6126b6b5574f4d284a6c5b2282528fe89de8ec08e6cfd2a86ab5b235",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/scroll-position-no-state.md",
+      "bytes": 1936,
+      "sha256": "70aa1ee679e755556d7b01b326431fe898d3c23ddba40d0da6bdac23c87a1525",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/state-ground-truth.md",
+      "bytes": 2172,
+      "sha256": "9f3efc73d2e66a5deb3199c9774f42524cd6a0f69784af38301946be5d747cb5",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/ui-expo-image.md",
+      "bytes": 1648,
+      "sha256": "c3c13cce3dd2cc7f8a9b4861e5743af98f62e28f5699f72f492e79a335cfae55",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/ui-image-gallery.md",
+      "bytes": 2546,
+      "sha256": "b34d1ba03710ed9622187716541ae618968e7d03bc28895c2ac918d3cc5853f1",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/ui-measure-views.md",
+      "bytes": 2232,
+      "sha256": "170d058abc4900ea9e851e54f5e8b437ffffc2c9d3847ae35e30a515c8990c3d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/ui-menus.md",
+      "bytes": 4598,
+      "sha256": "5964adbecfe9aeb28d736a4eaacec6469a1c4ca3f48779d243eb38b6d181cfe9",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/ui-native-modals.md",
+      "bytes": 1859,
+      "sha256": "d803493b3046ad31cbb2c189f1fffb948fd0055050e3c322589bd548421e23a8",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/ui-pressable.md",
+      "bytes": 1534,
+      "sha256": "52cdbad127d713d7d32c59ef74ab1bbd6dca211edc9b25993453f7f4545e79fa",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/ui-safe-area-scroll.md",
+      "bytes": 1579,
+      "sha256": "3dd776caef2344d73529010940b50042861d06d31a192122a4df64bc06aed0e8",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/ui-scrollview-content-inset.md",
+      "bytes": 1317,
+      "sha256": "89e4bbe5e9a602660f4155e9d4c0dee09db1adf21c73f47213cd67ec896e5a13",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/rules/ui-styling.md",
+      "bytes": 2212,
+      "sha256": "cdef4d8b1a097b844e5992ab78e66a2dc604faf1e90f8d325a0eb116e8ef6a7e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-native/SKILL.md",
+      "bytes": 4435,
+      "sha256": "7cf73fc36c5fb183f66c6f320f32acad4c25d747b8b0faf4884b0dd4d141362c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/AGENTS.md",
+      "bytes": 108261,
+      "sha256": "fc93e7421177bbf869cce892bc60a6c83a4517d974bc3bf65c4e2c1e58a6ccf6",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/metadata.json",
+      "bytes": 921,
+      "sha256": "c4e18bac3290fbe1b471a605867d4df68b03144ea26b8befdbe8f9d8fd124354",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/README.md",
+      "bytes": 3360,
+      "sha256": "9eafb2123d3b8b2aef41fba0db2648a3f4f49996f8c7c8bb2c86263befd8b48a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/_sections.md",
+      "bytes": 1554,
+      "sha256": "01c59969e4e867f0708c8f8ef9c6d87fab9a07d0586244f429ff84013db8a115",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/_template.md",
+      "bytes": 631,
+      "sha256": "99df2a3ea088c6c22de2484ddc7e964d0e9923846f44c63380343ecc64455442",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/advanced-effect-event-deps.md",
+      "bytes": 1802,
+      "sha256": "55ed8f9f27a1bff803d6fa55828176207714b02123cbb97ddb8a90d88024a723",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/advanced-event-handler-refs.md",
+      "bytes": 1483,
+      "sha256": "a3097edeecfb2ff6851cd66ed8cdf0617c3c88180504bee824aa6e75a215bbbc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/advanced-init-once.md",
+      "bytes": 958,
+      "sha256": "3e4dc22173eb0e2b6dcf583e3babd862b8696328f8f59aee7c4d746c5bc05f6c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/advanced-use-latest.md",
+      "bytes": 1072,
+      "sha256": "8a3f64dfe5a77d1564248faf17fe662ae75b55d497a243cb30b38eb07ccbbf9a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/async-api-routes.md",
+      "bytes": 1125,
+      "sha256": "523338540d73427dc14c0cbb19f2741ebccdf8b105a7b2c1b33d2905cf237a42",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/async-cheap-condition-before-await.md",
+      "bytes": 1220,
+      "sha256": "03107c1f70a293cd58a8abc5474c5548e20ea4efdf01b6d45aae7ad0ac1cb32c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/async-defer-await.md",
+      "bytes": 2208,
+      "sha256": "f3c142d090615abdcc99d31c123be37b31f0f1ed8d9ec9f7789a3bc6883ae0fb",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/async-dependencies.md",
+      "bytes": 1293,
+      "sha256": "16ef469f877e30c6b8e1e1b4bc3e527312fa3c6318cb785a4eca186ea236131a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/async-parallel.md",
+      "bytes": 654,
+      "sha256": "6d2f841896279e976dfcdc1ac89e70771ac188baadfd43c096b5706cb838b961",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/async-suspense-boundaries.md",
+      "bytes": 2510,
+      "sha256": "de05fedac2eb7ae563b887b5a424464ec3dfaf84e5b7797467ebe2a796ac8afc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/bundle-analyzable-paths.md",
+      "bytes": 2382,
+      "sha256": "62090b5c815fd71bf1133dce754f51abc16a9456d0ccd025fd627de27726e92a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/bundle-barrel-imports.md",
+      "bytes": 2795,
+      "sha256": "e648f6d54525f07a691357040ca5bff6ea3424788a91ff63812adb29622a671b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/bundle-conditional.md",
+      "bytes": 949,
+      "sha256": "09c8259c3efb04fc0abb8e412ccbda217c222ae8118516283e571c995fe3a7d4",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/bundle-defer-third-party.md",
+      "bytes": 920,
+      "sha256": "3719fb47b191e8db4fe22686ec88448ad5af9e6838585425abbe103d0b642e37",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/bundle-dynamic-imports.md",
+      "bytes": 791,
+      "sha256": "401817a7369f315fc5a68a1095742ff7d53d0461906880dc9d64a41495ee1986",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/bundle-preload.md",
+      "bytes": 1149,
+      "sha256": "d1f7cc28da7cd5ab249acd287edc5b761afcfb194e9cb62cd44c5f3543db2de2",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/client-event-listeners.md",
+      "bytes": 1969,
+      "sha256": "242a873349febc1ce685e85617994784dbab92c2eaa68aed7fed5a83e7680e93",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/client-localstorage-schema.md",
+      "bytes": 1950,
+      "sha256": "0fb7cdf9dc93fdf22f87e3669f953fb9d4ac9b0be42eec4a29fe9a2560610b88",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/client-passive-event-listeners.md",
+      "bytes": 1644,
+      "sha256": "1f35016f9053de69e884ee9be00654e37979c2ca85f5e57764dc2626ff7acb4b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/client-swr-dedup.md",
+      "bytes": 1159,
+      "sha256": "644652c39c6cc00de8d1c77a7273612e868dc3f7edda30764164c12ec0f764a3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-batch-dom-css.md",
+      "bytes": 3266,
+      "sha256": "480b891b9eaf96e929dc1e964274a4828e3a78009b7d00ccd965a0d425215959",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-cache-function-results.md",
+      "bytes": 1949,
+      "sha256": "3daaa11d24f4295cb6be8bc6f407f2ce83cc7b5bd1f0e68891ea8ab835721dc7",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-cache-property-access.md",
+      "bytes": 532,
+      "sha256": "73e47431e74878a927061bf0ddc7cd91a7556cb35d2573f3421e82300d9ae311",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-cache-storage.md",
+      "bytes": 1651,
+      "sha256": "11b826b0433898c1ece2d3547010d8e77db9fb240185748c45db91493de9b6cc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-combine-iterations.md",
+      "bytes": 753,
+      "sha256": "71add08aeeb43091d4ff4c0b2842cce8b4bdef8ad3e732cc034bb5a84827e746",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-early-exit.md",
+      "bytes": 1133,
+      "sha256": "925ce5ce87f3347186ca62212f29cc6baa2b8c85a96d2720ad07c3d0abf781c0",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-flatmap-filter.md",
+      "bytes": 1411,
+      "sha256": "9e5b166a41914d975bef7635467f8fb32cd98b5c3126c0bc6f163490812fb5f0",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-hoist-regexp.md",
+      "bytes": 1028,
+      "sha256": "f9e9aef2f7c2307dd7310f283df85dcada45fc43e9bb941b0c3aa414dec21ec4",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-index-maps.md",
+      "bytes": 837,
+      "sha256": "5df1bdc2cfabb2c98abd55d26762e5c18189535c2e686184f426082e62920391",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-length-check-first.md",
+      "bytes": 1747,
+      "sha256": "8b54a311c826b299272f29187fc58bc55772a04c4a72eeb29456ee96dc9fc624",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-min-max-loop.md",
+      "bytes": 2290,
+      "sha256": "87dfb67e2f39df6ad8bcfb5b78c5fb364d3c07554ad188a202408d99f3763421",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-request-idle-callback.md",
+      "bytes": 2647,
+      "sha256": "ee08f83905b4011abbc33d594033157d77561b5bbd9b36b04f0f409581ffec32",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-set-map-lookups.md",
+      "bytes": 532,
+      "sha256": "a7fd781a6ba9ad49065961b6f9a90ef486bf6b648390e1a08704025f98e1642b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/js-tosorted-immutable.md",
+      "bytes": 1782,
+      "sha256": "d0a5e1b0fec48a0a81397957e2f068e224329f7c42cb5feeed8aae6fa64025e8",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-activity.md",
+      "bytes": 564,
+      "sha256": "1e5e7eaf3555e61d6a2e900089c676527d26259501db5594f59544b6c664f85a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-animate-svg-wrapper.md",
+      "bytes": 1185,
+      "sha256": "9c6ae0ca7a51434e803887c64cded760956579a1452ccb80a461a03f9c937c77",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-conditional-render.md",
+      "bytes": 980,
+      "sha256": "2ec2fa23c4148285144687050c52369adba3da2fbe3d486f8d3e0aad8f06f2bc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-content-visibility.md",
+      "bytes": 815,
+      "sha256": "64eee6d5b916fe74df33363994b27fc7f71bea3bcedc7ee04bda23107ca3e6e4",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-hoist-jsx.md",
+      "bytes": 1039,
+      "sha256": "93b229560fae92005ed9a2a829064607b39b2e984e92d221d05b2d41df2b7c0e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-hydration-no-flicker.md",
+      "bytes": 2308,
+      "sha256": "dc7ab358c67c177bca6e6f360fbc935ebe4efa928c0ba3ebd3f9f3d9e2000ca3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-hydration-suppress-warning.md",
+      "bytes": 872,
+      "sha256": "915bacb934e2927d84b37a3f3d225a47b309ac8f9e494ed2bcb66ce07c5676a2",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-resource-hints.md",
+      "bytes": 2549,
+      "sha256": "351b1095d641717b930f1b2253282b7120af3023bc74e06c17675168d4286864",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-script-defer-async.md",
+      "bytes": 1868,
+      "sha256": "4cea07b7875ba7fc2c7465ff23b63a2bb334f90aaf2d9293d38d67b05fdb32ab",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-svg-precision.md",
+      "bytes": 588,
+      "sha256": "ed468533f6e95f622859c884b122cf21f9f593ed6bb3d500a54de4b9f9bcb9fb",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rendering-usetransition-loading.md",
+      "bytes": 2074,
+      "sha256": "3a1249c3f13026b6f54ab5712c388df219d6af01b12aa542749acd99a46f4bc1",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-defer-reads.md",
+      "bytes": 973,
+      "sha256": "234050a77faf50cb306be10a9e15bd4421134ab5907e75f13e6d78e2bd262dc9",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-dependencies.md",
+      "bytes": 824,
+      "sha256": "17eb5830956fb56486fd3cfc7431f5849d39751730c05ad9e77dd4f0c27169c5",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-derived-state-no-effect.md",
+      "bytes": 1201,
+      "sha256": "cb11ec76f50aa7b6847269f02d79b120c889a30d9ecd2c1d578f75144419c77a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-derived-state.md",
+      "bytes": 728,
+      "sha256": "1c326bb67b01fb084eb00c8911b0a7cff54681c2315b629f88e49b64eaa6481d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-functional-setstate.md",
+      "bytes": 2968,
+      "sha256": "5e68df6b2ae8058e67f476ff1ac67bde159f5a9d18df439e46eabcdeb7b52e58",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-lazy-state-init.md",
+      "bytes": 2016,
+      "sha256": "4ae844740f266fc8cbf050701230286624a2440ec5be67b9a63d9edc3c580573",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-memo-with-default-value.md",
+      "bytes": 1173,
+      "sha256": "81c47476564ad8a79fc68fc442734255ca7d6829424359464503fda0a9f9a0dd",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-memo.md",
+      "bytes": 1148,
+      "sha256": "1f258990c2f27ff6256b3cc5c43300631bb3f0d81f749aed08d07fcdcc131dd1",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-move-effect-to-event.md",
+      "bytes": 1268,
+      "sha256": "abc2cbf167bee056743023351e96806a411d3398da8802093620aecf0721f029",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-no-inline-components.md",
+      "bytes": 2135,
+      "sha256": "1cc32907a770272524ba682eef9e7efdd8ad4533b6f89b718a1fcd7d1d0eb6a3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-simple-expression-in-memo.md",
+      "bytes": 1018,
+      "sha256": "5bdcf2d1558ba5204e643c887b7b4060f89630969425651eb68e96427d97f800",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-split-combined-hooks.md",
+      "bytes": 1844,
+      "sha256": "6f45d703343484ef9acef9388397f3642966ae6a5a258899a0cf1f9977cfbf6c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-transitions.md",
+      "bytes": 1055,
+      "sha256": "60f4033909a62df5e5b8c601494f9e50a562e2f8c1c2d81eac24f38142265f1c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-use-deferred-value.md",
+      "bytes": 1846,
+      "sha256": "8c3579576a61a949884167745dcfaf1d5426ba305cc61fd0a79602d70fda4909",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/rerender-use-ref-transient-values.md",
+      "bytes": 1742,
+      "sha256": "f1a649af9d1d0b5c762f6c9c4c1c70c90d7df82aa10296ee87aadb78c1b76c54",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-after-nonblocking.md",
+      "bytes": 2012,
+      "sha256": "d0b8d24a3db9f0f65f9e2bddbf230b0e03a5f60e1229d93a4a18f5e7a991c7c2",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-auth-actions.md",
+      "bytes": 2649,
+      "sha256": "a2ca8aa102839251c7971ec784560fab943c20b36fe6f80365d4110c13260c23",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-cache-lru.md",
+      "bytes": 1353,
+      "sha256": "1924b64561841923b88a657085097a0aeba3e0ba2d5470b9f5c15cc10d6ae70f",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-cache-react.md",
+      "bytes": 2228,
+      "sha256": "fddeea6c870bb3da4134b61d54b7d09b83d2603f929b7547cd3dc1dc269edd5c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-dedup-props.md",
+      "bytes": 2060,
+      "sha256": "c2747424cdac46be62f835f245a0aa887b0090b416d28e2ac8676702645eeb37",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-hoist-static-io.md",
+      "bytes": 4423,
+      "sha256": "5abea4dd882b13661bd5f7dfb93f9e547d5f08176c61c448ade91b210ed5d49f",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-no-shared-module-state.md",
+      "bytes": 1766,
+      "sha256": "4d869bf1cd2f1632e5ca4c0e64b1cf0e71c5f5a0f940bc8a22174d205e735ed7",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-parallel-fetching.md",
+      "bytes": 1554,
+      "sha256": "569a2e9fc04f9606686cd75c5894ef8781b502786a7fffe241396846c7733472",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-parallel-nested-fetching.md",
+      "bytes": 992,
+      "sha256": "ad5d9656984d4a959997a2367bf59cc6632297b4634a1dd13a087939d83f30b3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/rules/server-serialization.md",
+      "bytes": 996,
+      "sha256": "f4c7d68b29c82381baad059c4a7f09e868e71ec9c3115a26ad3ae7d24c0dfe1f",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-react-performance/SKILL.md",
+      "bytes": 7251,
+      "sha256": "52c515445a0888f525062df766e9eddb7364dced27a31d1571eab0d3c118dd70",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/_sync_all.py",
+      "bytes": 21832,
+      "sha256": "b540b3a4f87598ae29048b3cceae1fc17b39b629aee2cbe5c802ffc7b48abf6d",
+      "extension": ".py",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/app-interface.csv",
+      "bytes": 9743,
+      "sha256": "2a17ef810dab715ce1f339861817a8fbe3ccc38142b70517301e874803e838ac",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/charts.csv",
+      "bytes": 19391,
+      "sha256": "ebb565308115f955791b0431797a89d9b3587c25d5babb9428d10712c4924817",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/colors.csv",
+      "bytes": 32432,
+      "sha256": "69ee8c1147b269599d20ca418bdd6f32563a9aa2d962fb9a9b8dec66bf7b1ba4",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/design.csv",
+      "bytes": 106144,
+      "sha256": "6f0ae42f16b3cbfa3f07050268387557859ff666e2651b1b82763f099d724b3f",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/draft.csv",
+      "bytes": 106266,
+      "sha256": "e190c796b707858a5436dc4c27f9ee9bb6618014ca73f533e423abe5ce9e4d06",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/google-fonts.csv",
+      "bytes": 745196,
+      "sha256": "2c03a3cd134d126bd9d6a7dc2a6360dc5272219ad6df3eb9315b031f806e1487",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/icons.csv",
+      "bytes": 20637,
+      "sha256": "f376c29fb4df37b4bdb366a5aa70cb211ba3dd8b435390aaa03152a64b07d2e8",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/landing.csv",
+      "bytes": 16720,
+      "sha256": "080cedbcd61ff8ec9520f33929baa76bee9589e783f83b2f8d824a466b6a46d7",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/products.csv",
+      "bytes": 58006,
+      "sha256": "9fd9e776ba847cf44c1ea78f95fe5e33b2c56bb7e186e3cfff9c49bc7fcb691b",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/react-performance.csv",
+      "bytes": 14822,
+      "sha256": "904c8afcda229629545912dde0e8ac37503757131f0169f80b016f1f58c4fd3f",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/angular.csv",
+      "bytes": 18269,
+      "sha256": "dd7cc2a2b34cd8f0508bd05b067545e7a44f7724440c432d491d92a61a8fb6c1",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/astro.csv",
+      "bytes": 11868,
+      "sha256": "ad18dae3ab6d148d37d144592df80dc1825b6c9e86d9d2d68fdda77434206a37",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/flutter.csv",
+      "bytes": 10416,
+      "sha256": "fe36d404c799781e8ba6e9a8179b45799ed5126a545528550cd2eb0f2346e8c5",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/html-tailwind.csv",
+      "bytes": 11305,
+      "sha256": "7aef38e75c53559470afcfa91580a9917ca8b7dbf8b92110389e23e93703ac52",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/jetpack-compose.csv",
+      "bytes": 8195,
+      "sha256": "6c8fd4b0391c342c12b0af15610cd5becbeccaef0bbe8dcfc01d928c3195d93e",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/laravel.csv",
+      "bytes": 18378,
+      "sha256": "50e11e60a64b30f329af25ae71f4b8bbdb43bafc1865451b74f9f540a88964d5",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/nextjs.csv",
+      "bytes": 12493,
+      "sha256": "e828ccc04843742f52f545a068e8a9ab0d2b97c0e771f7e93bf0cef74da05554",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/nuxt-ui.csv",
+      "bytes": 14010,
+      "sha256": "05d6e74501b2b6a636faed32450622759f49a5bcafad971f5f4e7eba0eb7be71",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/nuxtjs.csv",
+      "bytes": 16539,
+      "sha256": "f7a3f2d9542856d00199f85c6c023b7c284cc698e2e6e12d61afce2edacb24d6",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/react-native.csv",
+      "bytes": 10035,
+      "sha256": "a08ca77fcf6b6d9531982dce465366296013bfcf12d2938ac72ad57cf0c4f085",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/react.csv",
+      "bytes": 12962,
+      "sha256": "e5624ab41d33427d88e41d07581ce4eca59b37b36ab72a6ad43a9c8e2d0a1c72",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/shadcn.csv",
+      "bytes": 15921,
+      "sha256": "395c2e415ef6f48a474acccdc8eb2c7258a6ed751a5037ba171a2d8823e02ded",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/svelte.csv",
+      "bytes": 11009,
+      "sha256": "71af52d64f266c88070b91dbbaa900c2f8074b6baae9f35eaea6ba9cec6fd803",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/swiftui.csv",
+      "bytes": 10821,
+      "sha256": "c9c2d2510f8e66281a2514e8dd0125a6b653b9ef53a71281b5e7dfe003d5b569",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/threejs.csv",
+      "bytes": 44787,
+      "sha256": "f1c05f8f269fc4784170c837f4ff43b50042f00bbd6ba7dbef2896081a052544",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/stacks/vue.csv",
+      "bytes": 11006,
+      "sha256": "c2724915d3c11cd67263f25896cff721f787a0fdd8326002d31e9f5806dfd8f8",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/styles.csv",
+      "bytes": 142673,
+      "sha256": "9b5089dcde8999333b36878252a255cc3bacbb2fe7b836c76cc7f7aa2abb643d",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/typography.csv",
+      "bytes": 49667,
+      "sha256": "dbea262a54e3bfa2e6c3b15989a365d5ef4c43349316aff46635e82ca825adce",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/ui-reasoning.csv",
+      "bytes": 53070,
+      "sha256": "41976082ecae1100da937c949215dc6694393e03f3c2a7444dd92a9edb43cb11",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/data/ux-guidelines.csv",
+      "bytes": 18766,
+      "sha256": "1870ee048f2a2bdd60709f8f7adf7f3b6dcad560bc005c8b2915a8ac8639820d",
+      "extension": ".csv",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/scripts/core.py",
+      "bytes": 12393,
+      "sha256": "772b4d567c7a948c5d4a10343473b4123fec04238d250c9ffce31d0733f752c0",
+      "extension": ".py",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/scripts/design_system.py",
+      "bytes": 47070,
+      "sha256": "f7a21e83739c5ac6ca3738846220f6a9eb7f3c1ae7a44989c5aaa2061ca60310",
+      "extension": ".py",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/scripts/search.py",
+      "bytes": 5607,
+      "sha256": "6a565f960a672e16dd064ccadd3406db999bfd1a4bff4d609b36a8d4c6450b86",
+      "extension": ".py",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/SKILL.md",
+      "bytes": 44789,
+      "sha256": "d9c9ae7194ea7dc975833e05494fbaca589d7a84f892c0770813d44de4e9b449",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/base/quick-reference.md",
+      "bytes": 24510,
+      "sha256": "4a61c80f2922124d65ef74bfe724bed93b73052fd645cd33c6b7ef02a242924b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/base/skill-content.md",
+      "bytes": 19026,
+      "sha256": "9b35220eb71f26102dc40b4aec10368614da28baaa30144af0af4deb4047cb21",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/agent.json",
+      "bytes": 908,
+      "sha256": "836dadf7eb6edb8bc9bb8ffa83af7ab8c1f7c55b41d7056868c74e0f4c290db5",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/augment.json",
+      "bytes": 650,
+      "sha256": "2f0115b146f2707414e9959b9ebf5a164a9350b07c2c26cf92ac9582091015b7",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/claude.json",
+      "bytes": 1600,
+      "sha256": "03b44cd70388a00c76c1fe5323f3943b147ebe9f984c55f038009fa4691a7e26",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/codebuddy.json",
+      "bytes": 758,
+      "sha256": "48755bb0ccbec1b12dd8d03b18219ed28514c3b8eaea7b42b2a12c5d5dc98901",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/codex.json",
+      "bytes": 746,
+      "sha256": "373830433bdbb8afb9e9d69f3e48f832917398f81799c45a9abad59b510ccb22",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/continue.json",
+      "bytes": 755,
+      "sha256": "4c1fa66109eabef8b88afb1d1252de52ec511d295c27d5379e00738b693d69be",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/copilot.json",
+      "bytes": 897,
+      "sha256": "4977c8b7d98a6a44ebfb8c5ca38a5b8384a773cf2a6781480afe53fa135d0add",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/cursor.json",
+      "bytes": 882,
+      "sha256": "d1b61849f3dd821ac6e5df220ac9c000768f17339e7be6b9deff5cf26050c7f8",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/droid.json",
+      "bytes": 1475,
+      "sha256": "83a9877318e21823154905317a712fa213ab626229e8d51b2c27e43d84162a4d",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/gemini.json",
+      "bytes": 753,
+      "sha256": "4d92020569b512c711351fc6ff757009160bfd4134fefe8954c7b20e753f6ee7",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/kilocode.json",
+      "bytes": 888,
+      "sha256": "7e39af7ad9ab577f0f4bb928bef932e1da6a98df46b2f81dd04528ab0e449268",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/kiro.json",
+      "bytes": 883,
+      "sha256": "591249f4e513caf9a4c12ddb59a82f60439c20c562c28f19ce2126b59a051647",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/opencode.json",
+      "bytes": 755,
+      "sha256": "bfcfa1f024aeb924d70420e19889d3f8cc03ca743eb0bb6c2e3f187a088645dd",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/qoder.json",
+      "bytes": 746,
+      "sha256": "0807f393da1ec64d9aad43fe82dd4916a3388c7fd24ecc5a9bfba8726726b82d",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/roocode.json",
+      "bytes": 885,
+      "sha256": "24c188819d3be48b0101c095bc909c209afc132ebdca0e98236021d8c4c1e923",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/trae.json",
+      "bytes": 743,
+      "sha256": "d48b3d0150c0c11958d446ca3248deb6631efa7d3dcb19f9028c22ef1af58b0c",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/warp.json",
+      "bytes": 641,
+      "sha256": "f092ce1e3ed927837e7639dfe3b4294ca8f36199a713379aaa34f3f569d16cf3",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ui-design-system/templates/platforms/windsurf.json",
+      "bytes": 888,
+      "sha256": "adf433e301b4a286ea4d86bcdc01be2e1ff3742501afb1d217faa76210dc251f",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-controlled/ACCESSIBILITY.md",
+      "bytes": 17407,
+      "sha256": "ba7d327be54585794ae98a24c43f133923419cf0a0f9e5245565551966b5f37e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-controlled/DESIGN-SYSTEM-TEMPLATE.md",
+      "bytes": 15193,
+      "sha256": "2672d177b8026da9486f5b076090372969e9301788eb3c10e73e4c5029e9b77b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-controlled/MOTION-SPEC.md",
+      "bytes": 11162,
+      "sha256": "a10ded27926a82853ce5406938648fd97e2bdf7dc16ad99d39918585d15a4f46",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-controlled/RESPONSIVE-DESIGN.md",
+      "bytes": 12666,
+      "sha256": "2e37c4dc036125ed0a907d7f7a1b4855081a5ce9c989c9f1859a8b2cd9233398",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-controlled/SKILL.md",
+      "bytes": 27193,
+      "sha256": "c8d952c71fbbc0d6235404e9b34c7493c8c05e5472850910d564f3fda2d822ab",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-innovative/ACCESSIBILITY.md",
+      "bytes": 2801,
+      "sha256": "514bece60489d5ee1cd35448e0364a138191100730e506dd55a9be97b8e2833f",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-innovative/DESIGN-SYSTEM-TEMPLATE.md",
+      "bytes": 15193,
+      "sha256": "2672d177b8026da9486f5b076090372969e9301788eb3c10e73e4c5029e9b77b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-innovative/MOTION-SPEC.md",
+      "bytes": 2046,
+      "sha256": "bb44c1408df49bd9b53eaaab77d5b8e0873a218a38afc5534a5c296dc2127eba",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-innovative/RESPONSIVE-DESIGN.md",
+      "bytes": 2333,
+      "sha256": "b58327438ea636d3b5c2f0ec7a547128418964ce27897747867af26ba899b46d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-ux-bencium-innovative/SKILL.md",
+      "bytes": 28170,
+      "sha256": "642920aec5a5b3592a72fac8ddd6032d07c8fdcbfc68abc9293ec5b97dbfe5fa",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/community-web-guidelines/SKILL.md",
+      "bytes": 1234,
+      "sha256": "e6a549ac727cb43f294d2950a2ece270621b0cd9249ae8f162492944dd1ba2ec",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/INDEX.md",
+      "bytes": 2712,
+      "sha256": "89a5ef6a96d5f53b16c13284ffb7ac444b810c17f7dad198665dab5c7c2dbb57",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-skill-index-or-note",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-api-design/SKILL.md",
+      "bytes": 13120,
+      "sha256": "e1a7c4844db50e99e7500c402449b6cd794ebca8665dd5a055a9451a07e89f48",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-architecture-review/architecture-reviewer.md",
+      "bytes": 6879,
+      "sha256": "1cb604b219931a46de6ebff96c4a0b7f0efc8353a2513fcfdbc4361b3f285c5a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-architecture-review/SKILL.md",
+      "bytes": 11857,
+      "sha256": "e1751e17dc7fa6ca8449a25d0552da303746a6624b66c5f59a8e0bb78c124c50",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-architecture-review/terminology.md",
+      "bytes": 14642,
+      "sha256": "bb9131e1318a9677ead6165ae563609aea854260b2bec3cf6024782bbc64a86e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-branch-lifecycle/SKILL.md",
+      "bytes": 10019,
+      "sha256": "6311744e47f5a80bf981e2a5f6c62845c841dc11ea7a52701cbb84b99ac4833d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-code-review/code-reviewer.md",
+      "bytes": 3385,
+      "sha256": "7f5328dca12cb200005ae9d4386f63a9b0acb735ece57f82db206b4a3189ccae",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-code-review/SKILL.md",
+      "bytes": 14118,
+      "sha256": "8154345f4bca9500360869e79e0dfa0c9f1f3217f58db6b7cf7da04f4a81e847",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/condition-based-waiting-example.ts",
+      "bytes": 5054,
+      "sha256": "40ae5ebe497fdf310200e43fe986552546d0a22837c0d39e855db1cfd33eb88e",
+      "extension": ".ts",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/condition-based-waiting.md",
+      "bytes": 3516,
+      "sha256": "e89fec8400d6cd50f43407cec9fab50976ba4d55d0ec2eb51c0bd68036b54c26",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/CREATION-LOG.md",
+      "bytes": 4268,
+      "sha256": "b482ef9a918fbfc6c369729e8160633ddfa2332466dd362ee73f1527c239ef8b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/defense-in-depth.md",
+      "bytes": 3650,
+      "sha256": "1e175fb86fc357e58c6aebf5441e481e1b7868b4380c0456b63a17eefbd18ba7",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/find-polluter.sh",
+      "bytes": 1528,
+      "sha256": "6462747eae9b175ac145b78bcfaeab755654a75e32637f08eb633f065a9e1d7c",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/root-cause-tracing.md",
+      "bytes": 5327,
+      "sha256": "a81bee9448794d261b4aca8487c595d11ff4bd4e10a5f96bca1117dd32527050",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/SKILL.md",
+      "bytes": 10000,
+      "sha256": "ac66714246cb58f999eb69b9a9b0a1d441bd8ba48c5a97e472ae163fd0ac7054",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/test-academic.md",
+      "bytes": 653,
+      "sha256": "fe2ba480d78ac0d686dc025f41c2a32a43d642bf533f91b0c6053a04d35d6486",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/test-pressure-1.md",
+      "bytes": 1900,
+      "sha256": "0b6a915db0054577819834c79be9eb614e97bddba10d73768e1fbe91cfed048a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/test-pressure-2.md",
+      "bytes": 2283,
+      "sha256": "b2030aeffba07050e8ad573ddf87486457c4a016a786bb326235bebd856f2016",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-debugging/test-pressure-3.md",
+      "bytes": 2692,
+      "sha256": "96b50a52e2c7989c9cf20fb752c47c1e9a3a70dc362f8f7989f8f5b64dac7708",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-deep-research/SKILL.md",
+      "bytes": 4592,
+      "sha256": "ebed5e651153348e861042005c00148d3e35b360245acf603fd0e969b828b9ad",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-design/SKILL.md",
+      "bytes": 17278,
+      "sha256": "df43d2ebd66046182f9c21354c979bacf74130a5e476df5daf2cab659add0f0e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-infrastructure/SKILL.md",
+      "bytes": 16061,
+      "sha256": "207d70d1d130238546b8a1ad43f4e716e86883a519c2cf19966dee8479c4f956",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-parallel-agents/SKILL.md",
+      "bytes": 6577,
+      "sha256": "594a3d3eea0b3f6633846fc0e1665aa85c0caf2dcee190d53e7eab2c4b069f09",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/golang-general-backend-security.md",
+      "bytes": 38659,
+      "sha256": "a73c47c34497b120672d48411fe51dc90d426a571801a0b3f649e2ce4ec658b4",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/javascript-express-web-server-security.md",
+      "bytes": 49357,
+      "sha256": "427835cbb5be7ba96172ea6ca9af80ddd4419c833e9ebf870996740c80d8406c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/javascript-general-web-frontend-security.md",
+      "bytes": 38638,
+      "sha256": "3a7bc7b3f6e7ff043db9dbaa8933894d7a19d987d0607e4ddae5d70184a63d63",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/javascript-jquery-web-frontend-security.md",
+      "bytes": 33581,
+      "sha256": "bcbad2fa6c2a02709e47e889e70102c76886bf36bc798624d27db570eccf40da",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/javascript-typescript-nextjs-web-server-security.md",
+      "bytes": 43423,
+      "sha256": "71c773f7a97ce60c853adfa100b3d88b3b7bc4c6b8acaef1432ffabd923ee182",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/javascript-typescript-react-web-frontend-security.md",
+      "bytes": 41686,
+      "sha256": "d3030c0f24bddb56b9bbb91bbec1ee49eb7778bce4d3e0297b2641b2fc6b0d9c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/javascript-typescript-vue-web-frontend-security.md",
+      "bytes": 31445,
+      "sha256": "77c6a747f9f17e3df03aad0fcb20d99ac7898001b81aef8b80908e45ac14a688",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/python-django-web-server-security.md",
+      "bytes": 38661,
+      "sha256": "4fb69b5d45f10e588d1a8c35cdc5f59e18910f6b46a93e2d342d90f286f8dfd2",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/python-fastapi-web-server-security.md",
+      "bytes": 44926,
+      "sha256": "7383c7f4fc271190b05e562ada7e825982a2c76b6c79a9f95a1da7687b65a616",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/references/python-flask-web-server-security.md",
+      "bytes": 31748,
+      "sha256": "9606d69190c04c167fdeac57e61297547a57b0542fd89dede36f355970446929",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-security/SKILL.md",
+      "bytes": 15515,
+      "sha256": "d6a715805cec6f89da7dff1e1345b0c87c99ea57b4e0c672559cd3afc8abfa3a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/agents/openai.yml",
+      "bytes": 238,
+      "sha256": "35db91b1eef58b2abe01da9b88577de5a44e233b740cd93d692ddeeadd2afe4d",
+      "extension": ".yml",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/assets/shadcn-small.png",
+      "bytes": 1049,
+      "sha256": "0ecc62d682727f68fc4937eed19960c706714fa084d44f63028d611ae02bf3d7",
+      "extension": ".png",
+      "document_like": false,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/assets/shadcn.png",
+      "bytes": 3852,
+      "sha256": "7d60ad6fec4d89a0d44ba5a3c9283d2fea0047af5467f9227040e20d927d39b7",
+      "extension": ".png",
+      "document_like": false,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/cli.md",
+      "bytes": 15290,
+      "sha256": "ba3bc1f4466daf1fafee42bc21b3a8b1d4fc76d4c109a7c936074d9cf8293c4b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/customization.md",
+      "bytes": 5969,
+      "sha256": "12e4d5fd4ae05ec4cef759035d3a70fec474d857298fe0a0effa8880112f8a54",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/evals/evals.json",
+      "bytes": 3118,
+      "sha256": "97ebb931d690578ee64e445d84f406be2a8799812d38d3cb1bb216e68291eb2b",
+      "extension": ".json",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/mcp.md",
+      "bytes": 2385,
+      "sha256": "f391dc7acbe609dd3fe04b1ae5cd2005ded6b6d51a238201ea41d7d16a6da26a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/rules/base-vs-radix.md",
+      "bytes": 6954,
+      "sha256": "2b2deb47d004285220c1fc6b38bb2edc2d0ccbcdafd031b0b189d5d8ed0d1ba8",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/rules/composition.md",
+      "bytes": 4268,
+      "sha256": "de068e5aa5351dd8e4af7bfb7a6333302445c15527eaeee521d8591e95e7d709",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/rules/forms.md",
+      "bytes": 4857,
+      "sha256": "29593e14381e34626f8e0e9c15c59f3394b92a0623af6a6ec94585400123853c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/rules/icons.md",
+      "bytes": 1958,
+      "sha256": "d4a58266648872d9ee07d0c2368843a1cb88b8253b7f528dd7bda9d68b6c2535",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/rules/styling.md",
+      "bytes": 3795,
+      "sha256": "4a71da3fc53d8efbedac26946e5b13b53d1edf71583d62088ccc2b8cc7b5fef7",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/SKILL.md",
+      "bytes": 16485,
+      "sha256": "a2fcf2a8ed9d1c60c443acf33f79eba8a58a435c3b0071320db3eff80ca28bb7",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-shadcn-ui/USAGE-zh-TW.md",
+      "bytes": 3338,
+      "sha256": "aa646d40f57c44ac12ebd24e6fe27bdadc7711b48da4984de212aa53bfb806b2",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-skill",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-skill-authoring/anthropic-best-practices.md",
+      "bytes": 45820,
+      "sha256": "20914c2fda31670c75fe91710e18a53d413ce0d00b5102acfa251d75c9226e3f",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-skill-authoring/examples/CLAUDE_MD_TESTING.md",
+      "bytes": 5423,
+      "sha256": "0b379a3415e185d3c434b3ad283d8aa132f3022c2a4f210f168865b5986bcef0",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-skill-authoring/graphviz-conventions.dot",
+      "bytes": 5970,
+      "sha256": "e2890a593c91370e384b42f2f67b1a6232c9e69dddea7891a0c1c46d7b20b694",
+      "extension": ".dot",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-skill-authoring/persuasion-principles.md",
+      "bytes": 5908,
+      "sha256": "c3c84f572a51dd8b6d4fc6e5cbdc2bc3b9e07ba381a45bdabfce7ad2894dd828",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-skill-authoring/render-graphs.js",
+      "bytes": 4857,
+      "sha256": "ccda971a87bb185f8febf81c56b556a20d026fa980c17b35fa3e8824fbb37852",
+      "extension": ".js",
+      "document_like": false,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-skill-authoring/SKILL.md",
+      "bytes": 22754,
+      "sha256": "f026a1bc99a6a68a99079b1970e496c8323374c82e5d946b448b3b2df80411ca",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-skill-authoring/testing-skills-with-subagents.md",
+      "bytes": 12558,
+      "sha256": "c711346852c911b24a84aa161e0cff06a4cd7f4e2fa9e9c0a266cead5afcbade",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-reference-only",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/sunnydata-testing/SKILL.md",
+      "bytes": 14562,
+      "sha256": "1b80765277025a8ac7fe70dc8658ef2fe92ce37e5eb69ff094326489a9ec706d",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-skill-method",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/skills/SUPERPOWERS-EXTRAS-USAGE-zh-TW.md",
+      "bytes": 1531,
+      "sha256": "bb9b0f988fc946ac3910cd38393f24eb9f17ba0ed76b86e91f1ef76335f4792c",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "reviewed-skill-index-or-note",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/statusline-debug.sh",
+      "bytes": 222,
+      "sha256": "4b50b27f37755fd03f38d8c02ba47ba704a79c196750cd405f0dc67fc9759a2f",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-statusline-oauth-binary",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/statusline-go.exe",
+      "bytes": 3486208,
+      "sha256": "6ed22871cebc39b47300446faefcb183135aececf8032ac9fbb303b2765285c2",
+      "extension": ".exe",
+      "document_like": false,
+      "disposition": "excluded-statusline-oauth-binary",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/statusline-linux.sh",
+      "bytes": 15213,
+      "sha256": "2a83f0ecb6c03be4df35dfffef17cca56a04c3238f6ea3626012bb71a5c5e7a8",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-statusline-oauth-binary",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/statusline.sh",
+      "bytes": 15135,
+      "sha256": "b31eaa40039c9d12ef640529219e5b1b8430bc7e32cc1910b05765c36b18a9c0",
+      "extension": ".sh",
+      "document_like": true,
+      "disposition": "excluded-statusline-oauth-binary",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/STATUSLINE_GUIDE.md",
+      "bytes": 11224,
+      "sha256": "2ddfdf181a365a08d24c9129e599d96b97eca9fc580e6953c037cee1c74552a9",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "excluded-statusline-oauth-binary",
+      "mutable_runtime": false
+    },
+    {
+      "path": ".claude/taskmaster-data/.session-start",
+      "bytes": 6,
+      "sha256": "a25e71356c36f578bff9c951d1d5a4934985b8533f6c406298a9e4d6bcdc33a5",
+      "extension": "",
+      "document_like": false,
+      "disposition": "excluded-runtime",
+      "mutable_runtime": true
+    },
+    {
+      "path": ".claude/taskmaster-data/timelog.jsonl",
+      "bytes": 1145,
+      "sha256": "7bd76d608de4f7291b7ad745a2d4cd765d36ddde8a20054b8240e2e5e5a127d1",
+      "extension": ".jsonl",
+      "document_like": true,
+      "disposition": "excluded-runtime",
+      "mutable_runtime": true
+    },
+    {
+      "path": ".claude/WORKFLOW.md",
+      "bytes": 4526,
+      "sha256": "c984d09f2f3d960a48f6ac5c09a73f9ba2d4181535e4fe6842a21854f3742e92",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "synthesized-core-workflow",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/01_workflow_manual.md",
+      "bytes": 3631,
+      "sha256": "f04d5ec8942072ba7efbb4d159ee4d3ab2af60d7759a79c58bfa6e10da3d5dbf",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/02_project_brief_and_prd.md",
+      "bytes": 1523,
+      "sha256": "5f4d92a82bdd8bb5ec7cad6f7d04ed72e1a385a70a95844b9de09fa83f968552",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/03_behavior_driven_development_guide.md",
+      "bytes": 1478,
+      "sha256": "c93425383863d9b30adffc19ae9c0664cc3559c8dc6940afcad6813765a580f3",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/04_architecture_decision_record_template.md",
+      "bytes": 1134,
+      "sha256": "bb3b6feb30d39affc5a9b6dae3d88b89a27ee659b620176a497d64477cf9d40e",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/05_architecture_and_design_document.md",
+      "bytes": 16028,
+      "sha256": "30fc2b1a265d77c1145a3300adb30c83ba3324bc52a0c7810724d269c576d2e0",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/06_api_design_specification.md",
+      "bytes": 3085,
+      "sha256": "56a4ca68c0b5c975feb813e641f026798526f32fa12291a9957687abb0684c23",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/07_module_specification_and_tests.md",
+      "bytes": 1232,
+      "sha256": "52103ddececad6c2b9b753c7c3993457501378255590d4cdf06d7a14edbf8b47",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/08_project_structure_guide.md",
+      "bytes": 2574,
+      "sha256": "23bf03119b3401faacc263c55cbdb33509d760ca0301a7cc778dd5890ec82fdc",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/09_file_dependencies_template.md",
+      "bytes": 1929,
+      "sha256": "7fe2a1e28ad719348fb437056ebe87d8ce096bffff01a09a85340ee87806f92f",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/10_class_relationships_template.md",
+      "bytes": 2310,
+      "sha256": "8b121e2c9f4059f39bc4b0489e8799e5751f79b12d761d725629f8e45ac71492",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/11_code_review_and_refactoring_guide.md",
+      "bytes": 1856,
+      "sha256": "3fdea4a99c7461671ae197d116c67a6588dd4acf41788fbe197b916d2657ab62",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/12_frontend_architecture_specification.md",
+      "bytes": 7986,
+      "sha256": "7f0d7e6ea4ee2beabea532d7e73f2747bddc7cecc12f04d913c0cf73d1020db6",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/13_security_and_readiness_checklists.md",
+      "bytes": 3016,
+      "sha256": "acfe48e2e4ba19703b55256468417153663552ec0e49303f05f1bda7858e775f",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/14_deployment_and_operations_guide.md",
+      "bytes": 3007,
+      "sha256": "49b5805c98c5594b558d09967d3afff2abb68bfcae0ef4348259c1ab70df0791",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/15_documentation_and_maintenance_guide.md",
+      "bytes": 2161,
+      "sha256": "514fbd446e80ef0563373f19debb9127d15c7194802d0313954cab1afcbac3e1",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/16_wbs_development_plan_template.md",
+      "bytes": 3194,
+      "sha256": "51053f6fa40a1a28846afe1983201fcfc51f9879165404e7dbc6eb7bcd92e91b",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/17_frontend_information_architecture_template.md",
+      "bytes": 7373,
+      "sha256": "e7dbbb10b7f17c96a47d200b41774ca4675c92877ef555e23283f5ff5803a66a",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/INDEX.md",
+      "bytes": 3662,
+      "sha256": "0c9c48af10c14efab0322e8253b3c0a5b8e807a9c92b24d39ada65a3c0d77bdf",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    },
+    {
+      "path": "VibeCoding_Workflow_Templates/output_style.md",
+      "bytes": 20971,
+      "sha256": "d6ec9490a68ad4abc941a9cfcd25c47793a0f4c21dd07805ca9c433d9216f270",
+      "extension": ".md",
+      "document_like": true,
+      "disposition": "adapted-vibecoding-source",
+      "mutable_runtime": false
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RoomPilot Workflow Max"
+  short_description: "RoomPilot owner-aware delivery and parallel validation"
+  default_prompt: "Use $roompilot-workflow-max to plan and execute this RoomPilot change with owner-aware contracts, safe maximum parallelism, and complete validation."

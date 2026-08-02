@@ -888,9 +888,7 @@ def _furniture_payload_for_provider(provider: str) -> tuple[dict, ...]:
     changing questionnaire and scene-generation data underneath the user.
     """
     if provider == "postgres":
-        items = load_postgres_catalog(PROJECT_DIR)
-        if len(items) == OFFICIAL_CATALOG_COUNT:
-            return items
+        return load_postgres_catalog(PROJECT_DIR)
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
 
 

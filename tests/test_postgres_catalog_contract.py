@@ -1,4 +1,9 @@
+from backend.catalog.postgres_repository import _VIEW
 from backend.server.postgres_catalog import _payload_from_row
+
+
+def test_fastapi_uses_the_active_postgres_catalog_view() -> None:
+    assert _VIEW == "roompilot.furniture_catalog_api_current"
 
 
 def test_kai_postgres_row_maps_to_the_scene_catalog_contract() -> None:

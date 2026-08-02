@@ -15,9 +15,9 @@ from threading import Lock
 from typing import Any, Iterator
 
 
-# The imported Kai migration currently publishes this compatibility view.  Keep
-# the runtime on it until Django owns the api_current view migration as well.
-_VIEW = "roompilot.furniture_catalog_current"
+# Public FastAPI and RAG reads must exclude the 599 inactive review rows.  The
+# imported Kai migration publishes the active, API-safe contract through this view.
+_VIEW = "roompilot.furniture_catalog_api_current"
 
 _STYLE_ID_MAP = {
     "american": "american",
@@ -209,7 +209,7 @@ def postgres_catalog_requested(project_dir: Path) -> bool:
 
 
 def _database_config(project_dir: Path) -> dict[str, Any]:
-    return {
+    config: dict[str, Any] = {
         "host": _setting(project_dir, "DB_HOST", "localhost"),
         "port": int(_setting(project_dir, "DB_PORT", "5432")),
         "dbname": _setting(project_dir, "DB_NAME", "roompilot_db"),
@@ -221,6 +221,10 @@ def _database_config(project_dir: Path) -> dict[str, Any]:
             project_dir, "DB_APPLICATION_NAME", "roompilot_catalog_api"
         ),
     }
+    sslrootcert = _setting(project_dir, "PGSSLROOTCERT")
+    if sslrootcert:
+        config["sslrootcert"] = sslrootcert
+    return config
 
 
 _POOL_LOCK = Lock()
@@ -671,7 +675,7 @@ def get_catalog_items_by_ids(
 
 
 def load_catalog(project_dir: Path) -> tuple[dict[str, Any], ...]:
-    """Compatibility loader for non-API consumers that still require all rows."""
+    """Compatibility loader for consumers that require all API-visible rows."""
     with _borrow_connection(project_dir) as connection:
         with _dict_cursor(connection) as cursor:
             cursor.execute(
@@ -803,7 +807,7 @@ def catalog_provider_status(project_dir: Path) -> dict[str, Any]:
                     SELECT
                         CURRENT_DATABASE(),
                         CURRENT_SETTING('server_version'),
-                        TO_REGCLASS('roompilot.furniture_catalog_current') IS NOT NULL,
+                        TO_REGCLASS('roompilot.furniture_catalog_api_current') IS NOT NULL,
                         FALSE AS project_table_ready,
                         NULL::TIMESTAMPTZ AS data_revision,
                         NULL::BIGINT AS project_count
@@ -828,7 +832,7 @@ def catalog_provider_status(project_dir: Path) -> dict[str, Any]:
             "assets": assets,
             "strict": mode == "postgres",
             "source_of_truth": "postgresql",
-            "api_view": "roompilot.furniture_catalog_current",
+            "api_view": "roompilot.furniture_catalog_api_current",
             "data_revision": database[4].isoformat() if database[4] else None,
             "import_batch": import_batch,
             "database": {
