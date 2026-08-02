@@ -25,7 +25,7 @@ vision = [
     # symbol_match 解析模板庫的 SVG path——推論期依賴，不是研發工具。
     "svgpathtools>=1.6",
     # 房型 OCR 文字證據層(floorplan2room 層 5)。純 pip/CPU，免系統套件；
-    # 與上方 ocr extra 的 PaddleOCR 是不同層的兩個引擎，見 MAIN_SYNC_TODO。
+    # 與上方 ocr extra 的 PaddleOCR 是不同層的兩個引擎。
     "rapidocr-onnxruntime>=1.4",
 ]
 # 尺度文字與繁中房名 OCR；模型較大，部署端按需安裝。

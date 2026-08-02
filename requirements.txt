@@ -54,5 +54,5 @@ pytest==9.1.1
 #
 # ⚠ 尚未併入本 baseline 的 pin：torch 安裝體積約 2GB，對只做前端／catalog 的
 # 隊員是純負擔。是否全隊必裝、或維持 `uv sync --extra semantic` 由辨識端自理，
-# 見 MAIN_SYNC_TODO.md——這是 ben 端要拍的板。
+# 這是 ben 端還沒拍的板。
 
