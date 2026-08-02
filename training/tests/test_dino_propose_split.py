@@ -82,3 +82,44 @@ def test_small_room_not_touched(monkeypatch):
            "domain": "color"}
     out = fp._dino_propose_splits(det, labels, rooms, T=10, cm=1.0, amin=100)
     assert len(out) == 1, "小房不提案"
+
+
+def _probs_by_x_pair(split_x, left_lab, right_lab, p=0.9):
+    def classify(bgr, labels, rooms, variant="gray"):
+        out = []
+        for r in rooms:
+            ys, xs = np.nonzero(labels == r["id"])
+            lab = left_lab if xs.mean() < split_x else right_lab
+            rest = (1 - p) / 2
+            out.append({lab: p, "Bath": rest, "Storage": rest})
+        return out
+    return classify
+
+
+def test_balcony_pair_split_with_fence_line(monkeypatch):
+    # floor_04/18/19 型：陽台與客廳/臥室之間的窗帶沒被窗偵測抓到，
+    # 兩區黏成一房。窗帶在 fence 層是長直線 → 提案器以 fence 線密度
+    # 峰當切刀候選；兩半判 {Balcony, LivingRoom} 對也該收
+    labels, rooms = _big_room()                  # 房 (20,20)-(780,380)
+    fence = np.zeros((400, 800), np.uint8)
+    fence[20:380, 600:603] = 255                 # 窗帶直線在 x=600
+    monkeypatch.setattr(fp.room_classifier, "classify",
+                        _probs_by_x_pair(600, "LivingRoom", "Balcony"))
+    det = {"cm": 1.0, "bgr": np.zeros((400, 800, 3), np.uint8),
+           "domain": "color", "fence": fence}
+    out = fp._dino_propose_splits(det, labels, rooms, T=10, cm=1.0, amin=1000)
+    assert len(out) == 2, "Balcony 對＋fence 刀應切二"
+    areas = sorted(int((labels == r["id"]).sum()) for r in out)
+    assert areas[0] < areas[1] and areas[0] > 50000, \
+        f"切線應在 fence 線附近（右半 ~180×360），實得 {areas}"
+
+
+def test_balcony_bath_pair_rejected(monkeypatch):
+    # {Balcony, Bath} 不在接受對——不切（寧漏勿誤）
+    labels, rooms = _big_room()
+    monkeypatch.setattr(fp.room_classifier, "classify",
+                        _probs_by_x_pair(400, "Bath", "Balcony"))
+    det = {"cm": 1.0, "bgr": np.zeros((400, 800, 3), np.uint8),
+           "domain": "color"}
+    out = fp._dino_propose_splits(det, labels, rooms, T=10, cm=1.0, amin=1000)
+    assert len(out) == 1

@@ -1445,15 +1445,16 @@ def _harvest_balcony_pockets(det, labels, rooms, outside):
             continue
         x, y, w, h = (int(st[i, cv2.CC_STAT_LEFT]), int(st[i, cv2.CC_STAT_TOP]),
                       int(st[i, cv2.CC_STAT_WIDTH]), int(st[i, cv2.CC_STAT_HEIGHT]))
+        # 貼殼＝bbox 與外圈「環帶」相交：貼圈、跨圈（floor_17 頂部露台
+        # 橫跨外圈上緣，舊的邊緣鄰近判定收不到）都算；完全在圈內深處
+        # （室內縫隙）或懸空遠處（雜訊）都不算
         m = 2.0 * T
-        near = (abs(x - X0) <= m or abs(y - Y0) <= m
-                or abs((x + w) - X1) <= m or abs((y + h) - Y1) <= m
-                or (X0 - m <= x and x + w <= X1 + m
-                    and (abs(y + h - Y0) <= m or abs(y - Y1) <= m))
-                or (Y0 - m <= y and y + h <= Y1 + m
-                    and (abs(x + w - X0) <= m or abs(x - X1) <= m)))
-        if not near:
-            continue                             # 不貼殼＝浮空雜訊
+        overlaps = not (x > X1 + m or x + w < X0 - m
+                        or y > Y1 + m or y + h < Y0 - m)
+        deep_inside = (X0 + m < x and x + w < X1 - m
+                       and Y0 + m < y and y + h < Y1 - m)
+        if not overlaps or deep_inside:
+            continue                             # 不貼殼＝浮空雜訊/室內縫
         nid += 1
         labels[lab == i] = nid
         rooms.append({"id": nid, "area_px": a,
@@ -1470,27 +1471,74 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
     floor02/03 彩型開放 LDK）。彩圖無 OCR 也無符號證據、灰階符號召回
     被模板庫卡死，這些誤併沒有任何錨點可用。
 
-    對面積 ≥25m² 的房：沿主軸輪廓階梯（剖面跳變 >T）出候選刀＋中點，
-    每刀切兩半交 DINO；兩半 top-1 恰為 {Kitchen, LivingRoom} 對且雙方
-    信心 ≥p_min 才收，取信心和最高的一刀。寧漏勿誤：驗證不過整房不動。
-    labels 就地改，回傳新 rooms。"""
+    對面積 ≥25m² 的房：沿主軸輪廓階梯（剖面跳變 >T）＋fence 線密度峰
+    （窗帶/圍欄在細線層是長直線——floor_04/18/19 型「陽台被鄰房吞」的
+    分界帶）＋中點出候選刀，每刀切兩半交 DINO；兩半 top-1 為
+    {Kitchen, LivingRoom} 對、或 {Balcony}×{Kitchen/LivingRoom/Bedroom}
+    對，且雙方信心 ≥p_min 才收，取信心和最高的一刀。
+    寧漏勿誤：驗證不過整房不動。labels 就地改，回傳新 rooms。"""
     h, w = labels.shape
     out = list(rooms)
     nid = max((r["id"] for r in out), default=0)
     variant = "color" if det.get("domain") == "color" else "gray"
     xs_grid = np.arange(w)[None, :]
     ys_grid = np.arange(h)[:, None]
+    fence = det.get("fence") if det.get("fence") is not None else None
+    rects_env = det.get("rects") or ()
+    if rects_env:
+        eX0 = min(r_[0] for r_ in rects_env); eY0 = min(r_[1] for r_ in rects_env)
+        eX1 = max(r_[2] for r_ in rects_env); eY1 = max(r_[3] for r_ in rects_env)
+    else:
+        eX0 = eY0 = 0; eX1 = w; eY1 = h
+
+    def _on_env(mask):
+        """Balcony 半必須貼建物外圈（陽台在殼緣；室內磁磚被誤判
+        Balcony 的假半不貼圈——floor_05 客廳誤切的守門）。"""
+        ys, xs = np.nonzero(mask)
+        if not len(xs):
+            return False
+        m = 2.5 * T
+        return (xs.min() - eX0 <= m or eX1 - xs.max() <= m
+                or ys.min() - eY0 <= m or eY1 - ys.max() <= m)
     for room in rooms:
-        if room["area_px"] * cm * cm < min_m2:
+        area_m2 = room["area_px"] * cm * cm
+        if area_m2 < 80000.0:                    # <8m² 一律不提案
             continue
+        big = area_m2 >= min_m2
         region = labels == room["id"]
         x0, y0, x1, y1 = room["bbox"]
+        # fence 刀：孤立高密度線才可信——窗帶/圍欄是 1~2 條長直線，
+        # 磁磚格是幾十條（floor_05 客廳被磁磚紋誤切的教訓）。同軸
+        # 高密度「線列（連續段）」超過 3 條＝紋理，整軸 fence 刀作廢
+        fence_knives = {1: [], 2: []}
+        if fence is not None:
+            fmask = (fence > 0) & region
+            for key in (1, 2):
+                prof = region.sum(axis=0 if key == 1 else 1)
+                fprof = fmask.sum(axis=0 if key == 1 else 1)
+                lo, hi = (x0, x1) if key == 1 else (y0, y1)
+                hits = [c for c in range(int(lo) + 2 * T, int(hi) - 2 * T)
+                        if prof[c] > 0 and fprof[c] >= 0.7 * prof[c]]
+                runs = []
+                for c in hits:
+                    if runs and c - runs[-1][-1] <= 2:
+                        runs[-1].append(c)
+                    else:
+                        runs.append([c])
+                if 1 <= len(runs) <= 3:
+                    fence_knives[key] = [float(r_[len(r_) // 2])
+                                         for r_ in runs]
+        if not big and not (fence_knives[1] or fence_knives[2]):
+            continue                             # 小房須有 fence 刀證據
         best = None                              # (score, part_a, part_b)
         for key, grid, lo, hi in ((1, xs_grid, x0, x1), (2, ys_grid, y0, y1)):
             prof = region.sum(axis=0 if key == 1 else 1)
-            cands = [float(c) for c in range(int(lo) + 2 * T, int(hi) - 2 * T)
-                     if abs(int(prof[c]) - int(prof[c - 1])) > T]
-            cands.append((lo + hi) / 2.0)
+            cands = list(fence_knives[key])
+            if big:
+                cands += [float(c)
+                          for c in range(int(lo) + 2 * T, int(hi) - 2 * T)
+                          if abs(int(prof[c]) - int(prof[c - 1])) > T]
+                cands.append((lo + hi) / 2.0)
             seen = set()
             for c in cands:
                 b = int(c // max(T, 1))          # 相鄰候選去重（一桶一刀）
@@ -1512,9 +1560,20 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                 if not pa or not pb:
                     continue
                 la, lb = max(pa, key=pa.get), max(pb, key=pb.get)
-                if {la, lb} != {"Kitchen", "LivingRoom"}:
+                pair = {la, lb}
+                if pair == {"Kitchen", "LivingRoom"} and big:
+                    thr_pair = p_min
+                elif ("Balcony" in pair
+                      and (pair - {"Balcony"}) <= {"Kitchen", "LivingRoom",
+                                                   "Bedroom"}):
+                    thr_pair = 0.65              # Balcony 對從嚴（磁磚客廳
+                                                 # 半邊易被誤判 Balcony）
+                    bal_half = a_ if la == "Balcony" else b_
+                    if not _on_env(bal_half):
+                        continue                 # 假陽台半不貼殼緣
+                else:
                     continue
-                if pa[la] < p_min or pb[lb] < p_min:
+                if pa[la] < thr_pair or pb[lb] < thr_pair:
                     continue
                 score = pa[la] + pb[lb]
                 if best is None or score > best[0]:
