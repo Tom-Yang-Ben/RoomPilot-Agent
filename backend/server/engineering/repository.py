@@ -493,6 +493,36 @@ class EngineeringRepository:
                 ).fetchone()
         return Path(row["file_path"]).resolve() if row else None
 
+    def get_document_project_id(self, document_id: str) -> str | None:
+        """回推文件所屬專案，供下載端點做授權；查無資料回 None。"""
+        if getattr(self._store(), "provider", "sqlite") == "postgres":
+            store = self._store()
+            with store._connection() as connection:  # noqa: SLF001
+                with store._cursor(connection) as cursor:  # noqa: SLF001
+                    cursor.execute(
+                        """
+                        SELECT p.project_id
+                        FROM roompilot.engineering_documents AS d
+                        JOIN roompilot.engineering_packages AS p
+                            ON p.package_id = d.package_id
+                        WHERE d.document_id = %s
+                        """,
+                        (document_id,),
+                    )
+                    row = cursor.fetchone()
+        else:
+            with self._sqlite() as connection:
+                row = connection.execute(
+                    """
+                    SELECT p.project_id
+                    FROM engineering_documents AS d
+                    JOIN engineering_packages AS p ON p.package_id = d.package_id
+                    WHERE d.document_id = ?
+                    """,
+                    (document_id,),
+                ).fetchone()
+        return row["project_id"] if row else None
+
     def _read_json_column(
         self,
         *,

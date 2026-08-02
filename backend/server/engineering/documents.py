@@ -171,6 +171,137 @@ class DocumentService:
             raise WorkbookGenerationUnavailable(reason[-1000:])
 
     @staticmethod
+    def _render_design_section(report: ReportPayload, esc) -> str:
+        """設計風格與語彙章節。所有內容都來自知識庫或快照，不在此處生成文字。"""
+        design = report.design_narrative
+        if design.style_id is None and not design.rooms:
+            return ""
+        bullets = lambda items: "".join(f"<li>{esc(item)}</li>" for item in items)
+
+        color = ""
+        if design.color is not None:
+            swatches = "".join(
+                f'<div class="swatch"><span style="background:{esc(role.hex)}"></span>'
+                f"<b>{esc(role.hex)}</b><small>{esc(role.usage_zh)}</small></div>"
+                for role in design.color.roles
+            ) or '<p class="empty">查無可用色票。</p>'
+            ratios = ""
+            if design.color.dominant_ratio is not None:
+                ratios = (
+                    f"<p>建議面積比例：主色 {design.color.dominant_ratio:.0%}／"
+                    f"次色 {design.color.secondary_ratio:.0%}／"
+                    f"點綴 {design.color.accent_ratio:.0%}</p>"
+                )
+            color = f"""
+            <h3>色彩策略</h3>
+            <p class="muted">色票來源：{esc(design.color.palette_source_detail)}</p>
+            <div class="swatches">{swatches}</div>
+            {ratios}
+            <ul>
+              <li><b>色溫</b>：{esc(design.color.temperature_zh)}</li>
+              <li><b>明度對比</b>：{esc(design.color.value_contrast_zh)}</li>
+              <li><b>彩度上限</b>：{esc(design.color.saturation_ceiling_zh)}</li>
+              <li><b>判讀規則</b>：{esc(design.color.reading_rule_zh)}</li>
+            </ul>"""
+
+        material = ""
+        if design.material is not None:
+            selected = bullets(design.material.selected_materials_zh) or (
+                "<li>快照尚未指定裝修材料</li>"
+            )
+            material = f"""
+            <h3>材質語彙</h3>
+            <div class="two">
+              <div><h4>本案實際選用（來自快照）</h4><ul>{selected}</ul></div>
+              <div><h4>風格建議主材</h4><ul>
+                {bullets(design.material.primary_materials_zh) or '<li>—</li>'}
+              </ul></div>
+            </div>
+            <ul>
+              <li><b>表面處理</b>：{esc(design.material.finish_rule_zh)}</li>
+              <li><b>對比邏輯</b>：{esc(design.material.contrast_logic_zh)}</li>
+              <li><b>地牆關係</b>：{esc(design.material.floor_wall_relationship_zh)}</li>
+            </ul>
+            <h4>應避免的組合</h4>
+            <ul>{bullets(design.material.avoid_combinations_zh) or '<li>—</li>'}</ul>"""
+
+        rooms = "".join(
+            f"""
+            <div class="design-room">
+              <h4>{esc(room.room_name)} <small>{esc(room.room_name_zh or room.room_type)}</small></h4>
+              <p>{esc(room.furniture_summary_zh)}</p>
+              {'<p><b>設計重點</b>：' + esc(room.design_focus_zh) + '</p>' if room.design_focus_zh else ''}
+              {'<p><b>動線</b>：' + esc(room.circulation_zh) + '</p>' if room.circulation_zh else ''}
+              {'<p><b>照明</b>：' + esc(room.lighting_zh) + '</p>' if room.lighting_zh else ''}
+              {'<p><b>收納</b>：' + esc(room.storage_zh) + '</p>' if room.storage_zh else ''}
+              {'<p class="muted">此房型未收錄設計語彙，僅列快照事實。</p>' if not room.knowledge_available else ''}
+            </div>"""
+            for room in design.rooms
+        )
+
+        evidence = "".join(
+            f"<li>{esc(item.source_id)}（{esc(item.scope)}／{esc(item.confidence)}）"
+            f"{'：' + esc(item.caveat_zh) if item.caveat_zh else ''}</li>"
+            for item in design.evidence
+        )
+        form = "".join(
+            f"<li><b>{esc(key)}</b>：{esc(value)}</li>"
+            for key, value in design.form_vocabulary_zh.items()
+        )
+        return f"""
+        <section><h2>設計風格與語彙</h2>
+        <div class="meta"><span>風格：{esc(design.style_name_zh or '未設定')}</span>
+        <span>{esc(design.style_id or '—')}</span></div>
+        <p class="muted">{esc(design.style_resolution_zh)}</p>
+        {'<p>' + esc(design.positioning_zh) + '</p>' if design.positioning_zh else ''}
+        {'<h3>造型語言</h3><p>' + esc(design.design_language_zh) + '</p>' if design.design_language_zh else ''}
+        {'<ul>' + form + '</ul>' if form else ''}
+        {'<h4>代表元素</h4><ul>' + bullets(design.signature_elements_zh) + '</ul>' if design.signature_elements_zh else ''}
+        {'<h4>照明手法</h4><p>' + esc(design.lighting_approach_zh) + '</p>' if design.lighting_approach_zh else ''}
+        {'<h4>應避免</h4><ul>' + bullets(design.avoid_zh) + '</ul>' if design.avoid_zh else ''}
+        {color}
+        {material}
+        <h3>逐房設計說明</h3>{rooms}
+        <h4>資料來源與可信度</h4><ul>{evidence}</ul>
+        <p class="muted">{esc(design.disclaimer_zh)}</p>
+        </section>"""
+
+    @staticmethod
+    def _render_furniture_section(report: ReportPayload, esc) -> str:
+        """家具採購明細。與工程施工費分開列示，兩者不合計。"""
+        estimate = report.furniture_estimate
+        if not estimate.lines:
+            return ""
+        rows = "".join(
+            f"""<tr class="{'unpriced' if line.status != 'priced' else ''}">
+              <td>{esc(line.room_name)}</td>
+              <td>{esc(line.name)}<br><small>{esc(line.category)}</small></td>
+              <td>{line.width_cm:g}×{line.depth_cm:g}×{line.height_cm:g}</td>
+              <td class="num">{line.quantity}</td>
+              <td class="num">{f'{line.unit_price_twd:,}' if line.unit_price_twd is not None else '待詢價'}
+                {'<br><small>推估價</small>' if line.price_is_estimated else ''}</td>
+              <td class="num">{f'{line.subtotal_twd:,}' if line.subtotal_twd is not None else '—'}</td>
+            </tr>"""
+            for line in estimate.lines
+        )
+        total = (
+            f"NT$ {estimate.estimated_total_twd:,}"
+            if estimate.estimated_total_twd is not None
+            else f"NT$ {estimate.known_subtotal_twd:,}（不完整）"
+        )
+        return f"""
+        <section><h2>家具採購明細</h2>
+        <div class="meta"><span>已知小計：NT$ {estimate.known_subtotal_twd:,}</span>
+        <span>採購總價：{total}</span><span>已報價 {estimate.priced_count} 項</span>
+        <span>待詢價 {estimate.unpriced_count} 項</span>
+        <span>型錄來源：{esc(estimate.catalog_provider)}</span></div>
+        <table><thead><tr><th>空間</th><th>品項</th><th>尺寸 (cm)</th>
+        <th>數量</th><th>單價 (TWD)</th><th>小計 (TWD)</th></tr></thead>
+        <tbody>{rows}</tbody></table>
+        <p class="muted">{esc(estimate.disclaimer)}</p>
+        </section>"""
+
+    @staticmethod
     def _render_html(report: ReportPayload) -> str:
         esc = lambda value: html.escape(str(value if value is not None else ""))
         quantity_by_room = {item.room_id: item for item in report.quantities.rooms}
@@ -232,6 +363,8 @@ class DocumentService:
                 </section>
                 """
             )
+        design_section = DocumentService._render_design_section(report, esc)
+        furniture_section = DocumentService._render_furniture_section(report, esc)
         assumptions = "".join(f"<li>{esc(item)}</li>" for item in report.assumptions)
         exclusions = "".join(f"<li>{esc(item)}</li>" for item in report.exclusions)
         demo_banner = (
@@ -252,7 +385,18 @@ small,.muted{{color:var(--muted)}}.meta,.metrics{{display:flex;flex-wrap:wrap;ga
 .room{{padding:28px 0;border-top:1px solid var(--line)}}.renders{{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}}
 figure{{margin:0}}img{{width:100%;max-height:430px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}}figcaption{{color:var(--muted)}}
 .two{{display:grid;grid-template-columns:1fr 1fr;gap:28px}}li{{margin:5px 0}}.risk-high{{color:#a51d1d}}.risk-medium{{color:var(--warn)}}
-.empty{{padding:16px;background:#f7f8f6;color:var(--muted)}}@media(max-width:700px){{main{{margin:0;padding:24px}}.two{{grid-template-columns:1fr}}}}
+.empty{{padding:16px;background:#f7f8f6;color:var(--muted)}}
+.swatches{{display:flex;flex-wrap:wrap;gap:14px;margin:14px 0}}
+.swatch{{display:flex;flex-direction:column;gap:4px;min-width:150px}}
+.swatch span{{height:52px;border-radius:8px;border:1px solid var(--line)}}
+.design-room{{padding:14px 0;border-top:1px dashed var(--line)}}
+.design-room h4{{margin:0 0 6px}}.design-room p{{margin:4px 0}}
+table{{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}}
+th,td{{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}}
+th{{background:#eef3ef}}td.num{{text-align:right;white-space:nowrap}}
+tr.unpriced td{{color:var(--warn)}}
+@media(max-width:700px){{main{{margin:0;padding:24px}}.two{{grid-template-columns:1fr}}
+table{{display:block;overflow-x:auto}}}}
 @media print{{body{{background:white}}main{{box-shadow:none;margin:0;max-width:none}}}}
 </style></head><body><main>
 <header><p class="muted">RoomPilot DESIGNER-LOCKED ENGINEERING MVP</p><h1>設計工程提案</h1>
@@ -260,6 +404,8 @@ figure{{margin:0}}img{{width:100%;max-height:430px;object-fit:cover;border-radiu
 <span>Revision：{esc(report.revision)}</span><span>鎖定者：{esc(report.snapshot.confirmed_by)}</span>
 <span>產生時間：{esc(report.generated_at.isoformat())}</span></div>{demo_banner}
 <p>{esc(report.narratives.design_summary)}</p></header>
+{design_section}
+{furniture_section}
 <section><h2>工程摘要</h2><p>{esc(report.narratives.construction_summary)}</p><p>{esc(report.narratives.cost_summary)}</p><p>{esc(report.narratives.schedule_summary)}</p><p>{esc(report.narratives.risk_summary)}</p>
 <p><b>Advanced RAG：</b>Structured Retrieval active；Semantic Adapter = {esc(retriever.adapter)}；{esc(retriever.message)}</p></section>
 {''.join(room_sections)}

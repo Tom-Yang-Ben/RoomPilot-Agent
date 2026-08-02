@@ -700,6 +700,38 @@ def get_catalog_items_by_ids(
     }
 
 
+def get_furniture_prices(
+    project_dir: Path, furniture_ids: list[str]
+) -> dict[str, dict[str, Any]]:
+    """取得指定家具的牌價，供成果報告產生採購明細。
+
+    刻意不併進 ``_payload_from_row``：那份 payload 是 2D/3D 擺設與型錄瀏覽的
+    共用契約，多帶價格會讓所有消費端跟著改。這裡只回價格三欄。
+
+    ``price_is_estimated`` 必須原樣往上傳，報告要能區分牌價與推估價。
+    """
+    unique_ids = list(
+        dict.fromkeys(str(item_id) for item_id in furniture_ids if item_id)
+    )
+    if not unique_ids:
+        return {}
+    with _borrow_connection(project_dir) as connection:
+        with _dict_cursor(connection) as cursor:
+            cursor.execute(
+                f"SELECT item_id, price_twd, price_is_estimated FROM {_VIEW} "
+                "WHERE kind = 'furniture' AND item_id = ANY(%s::TEXT[])",
+                (unique_ids,),
+            )
+            rows = cursor.fetchall()
+    return {
+        str(row["item_id"]): {
+            "price_twd": _as_number(row.get("price_twd")),
+            "price_is_estimated": bool(row.get("price_is_estimated")),
+        }
+        for row in rows
+    }
+
+
 def load_catalog(project_dir: Path) -> tuple[dict[str, Any], ...]:
     """Compatibility loader for non-API consumers that still require all rows."""
     with _borrow_connection(project_dir) as connection:

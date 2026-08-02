@@ -1,0 +1,68 @@
+[
+  {
+    "style_id": "scandinavian",
+    "primary_materials_zh": ["淺色實木／木皮", "水性乳膠漆或礦物塗料", "羊毛與棉麻織品"],
+    "secondary_materials_zh": ["霧面陶瓷", "藤編", "淺色磐多魔或超耐磨木地板"],
+    "finish_rule_zh": "以霧面與微紋理為主，光澤度控制在低反射；同一空間木種盡量統一",
+    "contrast_logic_zh": "硬材（木、陶）與軟材（羊毛、棉麻）的觸感對比，而不是顏色對比",
+    "floor_wall_relationship_zh": "地坪明度略深於牆面，兩者色相同屬暖中性，形成連續而非分割",
+    "avoid_combinations_zh": ["拋光大理石配淺木", "亮面烤漆大面積使用", "深色木地板配深色牆"],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "japanese",
+    "primary_materials_zh": ["溫潤木皮（橡木、胡桃淺色調）", "紙感塗料或和紙質牆面", "格柵木作"],
+    "secondary_materials_zh": ["榻榻米或編織地墊", "霧面陶土", "亞麻織品"],
+    "finish_rule_zh": "全霧面；木作採自然塗裝保留木紋觸感，不做高亮處理",
+    "contrast_logic_zh": "以格柵的疏密、木紋的方向與紙材的透光度製造層次",
+    "floor_wall_relationship_zh": "地坪與木作立面同一木色系，牆面明度最高作為背景",
+    "avoid_combinations_zh": ["亮面石材配木作", "金屬感強烈的立面", "高反射玻璃隔間"],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "modern_minimal",
+    "primary_materials_zh": ["大尺寸磁磚或石英石", "平光烤漆立面", "微水泥"],
+    "secondary_materials_zh": ["深色金屬收邊", "霧面玻璃", "單一木質作為溫度來源"],
+    "finish_rule_zh": "平光到半光；收邊精度比材質本身更關鍵，接縫寬度全室統一",
+    "contrast_logic_zh": "以明度差與量體邊界製造層次，材質種類刻意壓到三種以內",
+    "floor_wall_relationship_zh": "地坪與牆面可同色不同質感，強調面的連續與轉折的乾淨",
+    "avoid_combinations_zh": ["三種以上主材同時出現", "外露螺絲與可見五金", "拼花與馬賽克"],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "cream",
+    "primary_materials_zh": ["微水泥或藝術塗料", "米色系軟包與布質", "霧面木皮"],
+    "secondary_materials_zh": ["奶油色人造石", "霧面香檳金五金", "厚絨與羊毛"],
+    "finish_rule_zh": "全霧面且無明顯接縫；轉角導大圓角，連材質收邊都避免銳利",
+    "contrast_logic_zh": "同色相下以絨、棉、石、木的觸感差異建立層次",
+    "floor_wall_relationship_zh": "地坪與牆面明度接近，靠地毯與軟裝界定區域",
+    "avoid_combinations_zh": ["冷色石材配暖白牆", "亮面金屬大面積使用", "粗糙工業質感"],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "industrial",
+    "primary_materials_zh": ["水泥粉光或仿水泥塗料", "黑鐵與鍍鋅金屬", "厚實原木"],
+    "secondary_materials_zh": ["紅磚或磚紋磚", "皮革", "裸露的鐵件管線"],
+    "finish_rule_zh": "保留材質原貌與施工痕跡；金屬允許自然氧化，木料保留節疤",
+    "contrast_logic_zh": "冷硬（水泥、金屬）與溫厚（木、皮革）的直接對撞",
+    "floor_wall_relationship_zh": "地坪與牆面可同為水泥質感，靠單一重點磚牆打破單調",
+    "avoid_combinations_zh": ["高光烤漆配水泥", "精緻線板配外露管線", "粉嫩色布藝"],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "american",
+    "primary_materials_zh": ["實木或木紋美耐板", "白色線板與框飾", "布藝軟裝"],
+    "secondary_materials_zh": ["天然石材檯面", "古銅或霧黑五金", "圖騰地毯"],
+    "finish_rule_zh": "線板採平光白漆，木質保留中深色調；五金統一同一金屬色",
+    "contrast_logic_zh": "白色線板與深色木質的明度高對比，是風格辨識的核心",
+    "floor_wall_relationship_zh": "深色木地板配淺色牆面與白色踢腳線板，三層明度清楚分離",
+    "avoid_combinations_zh": ["無線板的平板門片", "水泥質感牆面", "細金屬骨架家具"],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  }
+]

@@ -1,3 +1,10 @@
+// 接管 window.fetch 以附加身分；成果報告端點全部需要登入。
+import {
+  authorizedObjectUrl,
+  downloadAuthorized,
+  requireSignedIn,
+} from "./auth_client.js?v=sha256-b35a4ff11b37";
+
 const $ = (selector) => document.querySelector(selector);
 
 const state = {
@@ -435,20 +442,91 @@ async function generatePackage() {
       estimate_xlsx: "下載工程估價與排程 XLSX",
       report_json: "下載 ReportPayload JSON",
     };
-    $("#download-links").innerHTML = state.report.documents.map((document) => (
-      `<a class="button" href="${document.download_url}">${labels[document.document_type] || document.file_name}</a>`
-    )).join("");
+    // 下載與預覽都由瀏覽器直接發請求，不會經過 fetch 攔截器，因此改走
+    // 帶身分的 fetch 再轉 blob；直接用 href/src 會一律 401。
+    const downloads = $("#download-links");
+    downloads.replaceChildren();
+    state.report.documents.forEach((entry) => {
+      const button = window.document.createElement("button");
+      button.type = "button";
+      button.className = "button";
+      button.textContent = labels[entry.document_type] || entry.file_name;
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          await downloadAuthorized(entry.download_url, entry.file_name);
+        } catch (error) {
+          $("#job-error").textContent = errorMessage(error);
+        } finally {
+          button.disabled = false;
+        }
+      });
+      downloads.append(button);
+    });
     const htmlDocument = state.report.documents.find((item) => item.document_type === "report_html");
     if (htmlDocument) {
-      $("#html-preview").src = `${htmlDocument.download_url}?preview=1`;
+      $("#html-preview").src = await authorizedObjectUrl(
+        `${htmlDocument.download_url}?preview=1`,
+        { cacheKey: "report-preview" },
+      );
       $("#html-preview").hidden = false;
       $("#preview-placeholder").hidden = true;
     }
+    renderReportSummary(state.report);
     $("#json-preview").textContent = JSON.stringify(state.report, null, 2);
     $("#json-details").hidden = false;
   } catch (error) {
     $("#job-error").textContent = errorMessage(error);
   }
+}
+
+const twd = (value) => (
+  typeof value === "number" ? `NT$ ${value.toLocaleString("zh-TW")}` : "—"
+);
+
+/** 讓使用者不必開 HTML 就看得到四種數字的重點，以及它們各自的完整度。 */
+function renderReportSummary(report) {
+  const design = report.design_narrative || {};
+  const furniture = report.furniture_estimate || {};
+  const entries = [
+    ["設計風格", design.style_name_zh || "未設定"],
+    [
+      "家具採購",
+      furniture.estimated_total_twd !== null
+      && furniture.estimated_total_twd !== undefined
+        ? twd(furniture.estimated_total_twd)
+        : `${twd(furniture.known_subtotal_twd)}（尚有 ${furniture.unpriced_count || 0} 項待詢價）`,
+    ],
+    [
+      "工程施工費",
+      report.estimate.estimated_total !== null
+      && report.estimate.estimated_total !== undefined
+        ? twd(report.estimate.estimated_total)
+        : `${twd(report.estimate.known_subtotal)}（尚有 ${report.estimate.pending_quote_count} 項待詢價）`,
+    ],
+    [
+      "初步工期",
+      report.schedule.estimated_total_days !== null
+      && report.schedule.estimated_total_days !== undefined
+        ? `${report.schedule.estimated_total_days} 日`
+        : `無法推算（${report.schedule.unknown_duration_count} 項缺工率）`,
+    ],
+    ["風險與待確認", `${report.risks.summary.risk_count} 項`],
+  ];
+  const grid = $("#report-summary-grid");
+  grid.replaceChildren();
+  entries.forEach(([label, value]) => {
+    const term = window.document.createElement("dt");
+    term.textContent = label;
+    const definition = window.document.createElement("dd");
+    definition.textContent = value;
+    grid.append(term, definition);
+  });
+  // 兩種金額分開列示；相加會混淆「買家具」與「做工程」兩種預算。
+  $("#report-summary-note").textContent =
+    "家具採購與工程施工費為兩筆獨立預算，報告不予合計。"
+    + (design.disclaimer_zh ? ` ${design.disclaimer_zh}` : "");
+  $("#report-summary").hidden = false;
 }
 
 $("#refresh-state").addEventListener("click", () => loadCurrentProject().catch((error) => {
@@ -458,8 +536,10 @@ $("#save-draft").addEventListener("click", saveDraft);
 $("#lock-revision").addEventListener("click", lockRevision);
 $("#generate-package").addEventListener("click", generatePackage);
 
-loadCurrentProject().catch((error) => {
-  $("#job-error").textContent = errorMessage(error);
-  $("#snapshot-status").textContent = errorMessage(error);
-  renderState();
-});
+if (requireSignedIn()) {
+  loadCurrentProject().catch((error) => {
+    $("#job-error").textContent = errorMessage(error);
+    $("#snapshot-status").textContent = errorMessage(error);
+    renderState();
+  });
+}

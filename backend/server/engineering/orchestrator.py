@@ -8,7 +8,9 @@ from uuid import uuid4
 
 from .advanced_rag import AdvancedRAGService
 from .cost import CostService
+from .design_narrative import DesignNarrativeService
 from .documents import DocumentService
+from .furniture_cost import FurnitureEstimateService
 from .models import ProjectSnapshot, ReportPayload
 from .narrative import TemplateNarrativeService
 from .quantity import QuantityService
@@ -27,8 +29,10 @@ class EngineeringOrchestrator:
         rag_service: AdvancedRAGService,
         rule_service: ExistingEngineRuleService,
         cost_service: CostService,
+        furniture_estimate_service: FurnitureEstimateService,
         schedule_service: ScheduleService,
         narrative_service: TemplateNarrativeService,
+        design_narrative_service: DesignNarrativeService,
         document_service: DocumentService,
         demo_mode: bool,
     ) -> None:
@@ -36,8 +40,10 @@ class EngineeringOrchestrator:
         self.rag_service = rag_service
         self.rule_service = rule_service
         self.cost_service = cost_service
+        self.furniture_estimate_service = furniture_estimate_service
         self.schedule_service = schedule_service
         self.narrative_service = narrative_service
+        self.design_narrative_service = design_narrative_service
         self.document_service = document_service
         self.demo_mode = demo_mode
 
@@ -57,11 +63,13 @@ class EngineeringOrchestrator:
         retrieval = self.rag_service.retrieve(snapshot, quantities)
         update(45, "rules")
         risks = self.rule_service.validate(snapshot, quantities, retrieval)
-        update(60, "cost")
+        update(58, "cost")
         estimate = self.cost_service.estimate(snapshot, quantities, retrieval)
-        update(72, "schedule")
+        update(66, "furniture_cost")
+        furniture_estimate = self.furniture_estimate_service.estimate(snapshot)
+        update(74, "schedule")
         schedule = self.schedule_service.plan(snapshot, quantities, retrieval)
-        update(82, "narrative")
+        update(80, "narrative")
         narratives = self.narrative_service.generate(
             snapshot,
             quantities,
@@ -70,6 +78,8 @@ class EngineeringOrchestrator:
             estimate,
             schedule,
         )
+        update(86, "design_narrative")
+        design_narrative = self.design_narrative_service.generate(snapshot)
 
         snapshot_json = json.dumps(
             snapshot.model_dump(mode="json"),
@@ -87,6 +97,7 @@ class EngineeringOrchestrator:
             if item not in assumptions:
                 assumptions.append(item)
         exclusions = [
+            "家具採購金額與工程施工費分開列示，兩者都不含設計監造費與稅金。",
             "不自動判定承重牆或可拆除結構。",
             "不自動決定電力迴路、線徑、管徑與設備負載。",
             "不自動決定排水坡度、防水層規格與試水標準。",
@@ -96,6 +107,7 @@ class EngineeringOrchestrator:
         has_warning = (
             risks.summary.risk_count > 0
             or estimate.pending_quote_count > 0
+            or furniture_estimate.unpriced_count > 0
             or schedule.unknown_duration_count > 0
         )
         report = ReportPayload(
@@ -116,8 +128,10 @@ class EngineeringOrchestrator:
             retrieval=retrieval,
             risks=risks,
             estimate=estimate,
+            furniture_estimate=furniture_estimate,
             schedule=schedule,
             narratives=narratives,
+            design_narrative=design_narrative,
             assumptions=assumptions,
             exclusions=exclusions,
             documents=[],

@@ -39,6 +39,9 @@
       .muted { color:var(--muted); }
       ul { padding-left:20px; }
       .downloads { display:flex; flex-wrap:wrap; gap:10px; }
+      .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin:0 0 12px; }
+      .summary-grid dt { font-size:13px; color:var(--muted); margin-bottom:4px; }
+      .summary-grid dd { margin:0; font-size:17px; font-weight:700; }
       iframe { width:100%; min-height:650px; border:1px solid var(--line); border-radius:12px; background:#fff; }
       pre { max-height:420px; overflow:auto; background:#17231b; color:#e4f2e8; padding:16px; border-radius:12px; font:12px/1.5 ui-monospace,monospace; }
       details { margin-top:14px; }
@@ -97,6 +100,12 @@
           </section>
         </div>
 
+        <section class="card" id="report-summary" hidden>
+          <h2>成果摘要</h2>
+          <dl id="report-summary-grid" class="summary-grid"></dl>
+          <p id="report-summary-note" class="muted"></p>
+        </section>
+
         <section class="card">
           <h2>文件預覽</h2>
           <p id="preview-placeholder" class="muted">生成完成後會在此預覽設計工程提案。</p>
@@ -108,6 +117,6 @@
         </section>
       </div>
     </main>
-    <script type="module" src="/static/engineering.js?v=sha256-b5f0b28e2de2"></script>
+    <script type="module" src="/static/engineering.js?v=sha256-517277a2a80f"></script>
   </body>
 </html>

@@ -210,11 +210,142 @@ schedule.freezePanes.freezeRows(6);
 setColumnWidths(schedule, scheduleEnd, [31, 14, 21, 26, 11, 9, 11, 9, 10, 10, 10, 10, 10, 10, 35, 28, 38, 10]);
 schedule.getRange(`A1:R${scheduleEnd}`).format.wrapText = true;
 
+// 家具採購與工程施工費刻意分成兩張表：一個是買家具的錢，一個是施工的錢，
+// 放同一張會讓屋主把兩種預算加成一個看起來很嚇人的數字。
+const furnitureEstimate = report.furniture_estimate || { lines: [] };
+const furniture = workbook.worksheets.add("家具採購");
+furniture.showGridLines = false;
+const furnitureHeaders = [
+  "空間", "品項", "分類", "型錄ID", "寬(cm)", "深(cm)", "高(cm)",
+  "數量", "單價(TWD)", "小計(TWD)", "狀態", "推估價", "價格來源", "信心",
+];
+writeRows(furniture, 1, [
+  ["RoomPilot 家具採購明細"],
+  ["專案ID", report.project_id, null, "版本", report.revision],
+  ["已知小計", furnitureEstimate.known_subtotal_twd || 0, null, "待詢價品項", furnitureEstimate.unpriced_count || 0],
+  ["型錄來源", furnitureEstimate.catalog_provider || "unknown", null, "推估價品項", furnitureEstimate.estimated_price_count || 0],
+  [`重要聲明：${furnitureEstimate.disclaimer || ""}`],
+  [],
+  furnitureHeaders,
+]);
+styleTitle(furniture, "N");
+furniture.getRange("B2:C2").merge();
+furniture.getRange("B3:C3").merge();
+furniture.getRange("B4:C4").merge();
+furniture.getRange("A5:N5").merge();
+furniture.getRange("A5:N5").format = {
+  fill: "#F3F5F2",
+  font: { bold: true, color: "#59635B" },
+  wrapText: true,
+};
+furniture.getRange("A2:E4").format.wrapText = true;
+styleHeader(furniture, 7, "N");
+const furnitureStart = 8;
+const furnitureRows = (furnitureEstimate.lines || []).map((line) => [
+  line.room_name, line.name, line.category, line.catalog_furniture_id,
+  line.width_cm, line.depth_cm, line.height_cm, line.quantity,
+  line.unit_price_twd, null, line.status,
+  line.price_is_estimated ? "是" : "否", line.price_source, line.confidence,
+]);
+writeRows(furniture, furnitureStart, furnitureRows);
+const furnitureEnd = Math.max(furnitureStart, furnitureStart + furnitureRows.length - 1);
+if (furnitureRows.length) {
+  // 查無單價時小計留空，不能變成 0——0 會被當成「免費」而不是「未知」。
+  furniture.getRange(`J${furnitureStart}`).formulas = [[
+    `=IF(I${furnitureStart}="","",I${furnitureStart}*H${furnitureStart})`,
+  ]];
+  furniture.getRange(`J${furnitureStart}:J${furnitureEnd}`).fillDown();
+  furniture.getRange(`A${furnitureStart}:N${furnitureEnd}`).format.borders = {
+    preset: "all", style: "thin", color: "#E0E5E1",
+  };
+  furniture.getRange(`E${furnitureStart}:G${furnitureEnd}`).format.numberFormat = "#,##0";
+  furniture.getRange(`I${furnitureStart}:J${furnitureEnd}`).format.numberFormat = "#,##0";
+  furniture.getRange(`K${furnitureStart}:K${furnitureEnd}`).conditionalFormats.add(
+    "containsText",
+    { text: "price_unavailable", format: { fill: "#FFF0A8", font: { color: "#9A1F1F", bold: true } } },
+  );
+}
+const furnitureTotalRow = furnitureEnd + 2;
+writeRows(furniture, furnitureTotalRow, [["公式已知小計"]]);
+furniture.getRange(`J${furnitureTotalRow}`).formulas = [[
+  furnitureRows.length ? `=SUM(J${furnitureStart}:J${furnitureEnd})` : "=0",
+]];
+furniture.getRange(`A${furnitureTotalRow}:N${furnitureTotalRow}`).format = {
+  fill: "#EEF3EF", font: { bold: true },
+  borders: { preset: "doubleBottom", style: "thin", color: "#335F47" },
+};
+furniture.getRange(`J${furnitureTotalRow}`).format.numberFormat = "#,##0";
+furniture.freezePanes.freezeRows(7);
+setColumnWidths(furniture, furnitureTotalRow, [16, 32, 16, 34, 10, 10, 10, 8, 13, 14, 18, 10, 22, 10]);
+furniture.getRange(`A1:N${furnitureTotalRow}`).format.wrapText = true;
+
+const designNarrative = report.design_narrative || {};
+const design = workbook.worksheets.add("設計語彙");
+design.showGridLines = false;
+const joinList = (items) => (Array.isArray(items) && items.length ? items.join("、") : "—");
+const color = designNarrative.color || {};
+const material = designNarrative.material || {};
+const designRows = [
+  ["RoomPilot 設計風格與語彙"],
+  ["風格", designNarrative.style_name_zh || "未設定", null, "風格ID", designNarrative.style_id || "—"],
+  ["判定方式", designNarrative.style_resolution_zh || "—"],
+  [`可信度聲明：${designNarrative.disclaimer_zh || ""}`],
+  [],
+  ["項目", "內容"],
+  ["風格定位", designNarrative.positioning_zh || "—"],
+  ["造型語言", designNarrative.design_language_zh || "—"],
+  ["代表元素", joinList(designNarrative.signature_elements_zh)],
+  ["照明手法", designNarrative.lighting_approach_zh || "—"],
+  ["應避免", joinList(designNarrative.avoid_zh)],
+  ["色票", joinList((color.roles || []).map((role) => `${role.hex}（${role.role}）`))],
+  ["色票來源", color.palette_source_detail || "—"],
+  ["色溫", color.temperature_zh || "—"],
+  ["明度對比", color.value_contrast_zh || "—"],
+  ["本案選用材質", joinList(material.selected_materials_zh)],
+  ["風格建議主材", joinList(material.primary_materials_zh)],
+  ["表面處理", material.finish_rule_zh || "—"],
+  ["對比邏輯", material.contrast_logic_zh || "—"],
+  [],
+  ["空間", "家具配置（快照事實）", "設計重點", "動線", "照明", "收納"],
+];
+for (const room of designNarrative.rooms || []) {
+  designRows.push([
+    `${room.room_name}（${room.room_name_zh || room.room_type}）`,
+    room.furniture_summary_zh || "—",
+    room.design_focus_zh || "—",
+    room.circulation_zh || "—",
+    room.lighting_zh || "—",
+    room.storage_zh || "—",
+  ]);
+}
+designRows.push([]);
+designRows.push(["來源", "範圍", "信心", "備註"]);
+for (const item of designNarrative.evidence || []) {
+  designRows.push([item.source_id, item.scope, item.confidence, item.caveat_zh || ""]);
+}
+writeRows(design, 1, designRows);
+styleTitle(design, "F");
+design.getRange("A4:F4").merge();
+design.getRange("A4:F4").format = {
+  fill: "#F3F5F2", font: { bold: true, color: "#59635B" }, wrapText: true,
+};
+styleHeader(design, 6, "B");
+const designRoomHeaderRow = 21;
+styleHeader(design, designRoomHeaderRow, "F");
+const designEnd = designRows.length;
+setColumnWidths(design, designEnd, [26, 46, 46, 40, 40, 34]);
+design.getRange(`A1:F${designEnd}`).format.wrapText = true;
+
 if (previewDir) {
   await fs.mkdir(previewDir, { recursive: true });
-  for (const sheetName of ["工程估價", "初步排程"]) {
+  for (const sheetName of ["工程估價", "初步排程", "家具採購", "設計語彙"]) {
     const preview = await workbook.render({ sheetName, autoCrop: "all", scale: 1, format: "png" });
-    const fileName = sheetName === "工程估價" ? "estimate-preview.png" : "schedule-preview.png";
+    const fileName = {
+      "工程估價": "estimate-preview.png",
+      "初步排程": "schedule-preview.png",
+      "家具採購": "furniture-preview.png",
+      "設計語彙": "design-preview.png",
+    }[sheetName];
     await fs.writeFile(path.join(previewDir, fileName), new Uint8Array(await preview.arrayBuffer()));
   }
 }
@@ -226,6 +357,8 @@ if (inspectPath) {
   inspections.push((await workbook.inspect({ kind: "formula", sheetId: "工程估價", range: `A1:Q${estimateTotalRow}`, maxChars: 5000 })).ndjson);
   inspections.push((await workbook.inspect({ kind: "region", sheetId: "初步排程", range: `A1:R${Math.min(scheduleEnd, 18)}`, maxChars: 7000 })).ndjson);
   inspections.push((await workbook.inspect({ kind: "formula", sheetId: "初步排程", range: `A1:R${scheduleEnd}`, maxChars: 5000 })).ndjson);
+  inspections.push((await workbook.inspect({ kind: "region", sheetId: "家具採購", range: `A1:N${Math.min(furnitureTotalRow, 18)}`, maxChars: 7000 })).ndjson);
+  inspections.push((await workbook.inspect({ kind: "formula", sheetId: "家具採購", range: `A1:N${furnitureTotalRow}`, maxChars: 5000 })).ndjson);
   const errorPattern = /#REF!|#DIV\/0!|#VALUE!|#NAME\?|#N\/A/g;
   const errors = inspections.flatMap((item) => String(item || "").match(errorPattern) || []);
   await fs.writeFile(inspectPath, `${inspections.join("\n")}\nFORMULA_ERRORS=${JSON.stringify(errors)}\n`, "utf8");

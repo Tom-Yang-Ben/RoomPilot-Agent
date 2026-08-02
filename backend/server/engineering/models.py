@@ -109,6 +109,9 @@ class RoomSnapshot(StrictModel):
     name: str = Field(min_length=1)
     room_type: str = Field(min_length=1)
     style: str | None = None
+    # 第 5 步實際選定的色卡。缺值時設計論述退回該風格的預設色票並註明來源，
+    # 不會自行發明顏色。
+    style_card_id: str | None = None
     geometry: RoomGeometry
     layout_json: dict[str, Any] | None = None
     materials: list[MaterialSelection] = Field(default_factory=list)
@@ -313,6 +316,38 @@ class EstimateResult(StrictModel):
     disclaimer: str
 
 
+class FurnitureEstimateLine(StrictModel):
+    room_id: str
+    room_name: str
+    furniture_id: str
+    catalog_furniture_id: str | None
+    name: str
+    category: str
+    width_cm: float
+    depth_cm: float
+    height_cm: float
+    quantity: int = Field(ge=1)
+    unit_price_twd: int | None
+    subtotal_twd: int | None
+    # 型錄把推估價與實際牌價分開標示，報告不能把兩者混為一談。
+    price_is_estimated: bool = False
+    price_source: str
+    status: Literal["priced", "price_unavailable"]
+    confidence: Confidence
+
+
+class FurnitureEstimateResult(StrictModel):
+    lines: list[FurnitureEstimateLine] = Field(default_factory=list)
+    known_subtotal_twd: int = 0
+    estimated_total_twd: int | None = None
+    priced_count: int = 0
+    unpriced_count: int = 0
+    estimated_price_count: int = 0
+    currency: Literal["TWD"] = "TWD"
+    catalog_provider: str
+    disclaimer: str
+
+
 class ScheduleTask(StrictModel):
     task_id: str
     room_id: str
@@ -349,6 +384,78 @@ class NarrativeResult(StrictModel):
     risk_summary: str
 
 
+class DesignEvidence(StrictModel):
+    source_id: str
+    scope: Literal["style", "color", "material", "room", "snapshot"]
+    confidence: Confidence
+    caveat_zh: str | None = None
+
+
+class PaletteRole(StrictModel):
+    hex: str
+    role: Literal["dominant", "secondary", "accent"]
+    relative_luminance: float = Field(ge=0, le=1)
+    usage_zh: str
+
+
+class ColorNarrative(StrictModel):
+    palette_hex: list[str]
+    palette_source: Literal["style_card", "style_default", "unavailable"]
+    palette_source_detail: str
+    roles: list[PaletteRole]
+    dominant_ratio: float | None = None
+    secondary_ratio: float | None = None
+    accent_ratio: float | None = None
+    temperature_zh: str | None = None
+    value_contrast_zh: str | None = None
+    saturation_ceiling_zh: str | None = None
+    reading_rule_zh: str | None = None
+
+
+class MaterialNarrative(StrictModel):
+    primary_materials_zh: list[str] = Field(default_factory=list)
+    secondary_materials_zh: list[str] = Field(default_factory=list)
+    finish_rule_zh: str | None = None
+    contrast_logic_zh: str | None = None
+    floor_wall_relationship_zh: str | None = None
+    avoid_combinations_zh: list[str] = Field(default_factory=list)
+    # 快照中實際選定的材質；語彙是建議，這裡是事實。
+    selected_materials_zh: list[str] = Field(default_factory=list)
+
+
+class RoomDesignNarrative(StrictModel):
+    room_id: str
+    room_name: str
+    room_type: str
+    room_name_zh: str | None = None
+    design_focus_zh: str | None = None
+    circulation_zh: str | None = None
+    lighting_zh: str | None = None
+    storage_zh: str | None = None
+    common_pitfalls_zh: list[str] = Field(default_factory=list)
+    # 以下兩項全部來自鎖定版快照，不由語彙模板產生。
+    furniture_summary_zh: str
+    applied_materials_zh: list[str] = Field(default_factory=list)
+    knowledge_available: bool = True
+
+
+class DesignNarrative(StrictModel):
+    style_id: str | None
+    style_name_zh: str | None
+    style_resolution_zh: str
+    positioning_zh: str | None = None
+    design_language_zh: str | None = None
+    signature_elements_zh: list[str] = Field(default_factory=list)
+    form_vocabulary_zh: dict[str, str] = Field(default_factory=dict)
+    lighting_approach_zh: str | None = None
+    avoid_zh: list[str] = Field(default_factory=list)
+    color: ColorNarrative | None = None
+    material: MaterialNarrative | None = None
+    rooms: list[RoomDesignNarrative] = Field(default_factory=list)
+    evidence: list[DesignEvidence] = Field(default_factory=list)
+    disclaimer_zh: str
+
+
 class DocumentManifest(StrictModel):
     document_id: str
     document_type: Literal["report_json", "report_html", "estimate_xlsx"]
@@ -373,8 +480,10 @@ class ReportPayload(StrictModel):
     retrieval: RetrievalResult
     risks: RiskResult
     estimate: EstimateResult
+    furniture_estimate: FurnitureEstimateResult
     schedule: ScheduleResult
     narratives: NarrativeResult
+    design_narrative: DesignNarrative
     assumptions: list[str]
     exclusions: list[str]
     documents: list[DocumentManifest] = Field(default_factory=list)

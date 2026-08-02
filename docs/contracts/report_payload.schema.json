@@ -1,5 +1,129 @@
 {
   "$defs": {
+    "ColorNarrative": {
+      "additionalProperties": false,
+      "properties": {
+        "accent_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Accent Ratio"
+        },
+        "dominant_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dominant Ratio"
+        },
+        "palette_hex": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Palette Hex",
+          "type": "array"
+        },
+        "palette_source": {
+          "enum": [
+            "style_card",
+            "style_default",
+            "unavailable"
+          ],
+          "title": "Palette Source",
+          "type": "string"
+        },
+        "palette_source_detail": {
+          "title": "Palette Source Detail",
+          "type": "string"
+        },
+        "reading_rule_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reading Rule Zh"
+        },
+        "roles": {
+          "items": {
+            "$ref": "#/$defs/PaletteRole"
+          },
+          "title": "Roles",
+          "type": "array"
+        },
+        "saturation_ceiling_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Saturation Ceiling Zh"
+        },
+        "secondary_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Secondary Ratio"
+        },
+        "temperature_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Temperature Zh"
+        },
+        "value_contrast_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value Contrast Zh"
+        }
+      },
+      "required": [
+        "palette_hex",
+        "palette_source",
+        "palette_source_detail",
+        "roles"
+      ],
+      "title": "ColorNarrative",
+      "type": "object"
+    },
     "ConstructionNote": {
       "additionalProperties": false,
       "properties": {
@@ -43,6 +167,191 @@
         "confidence"
       ],
       "title": "ConstructionNote",
+      "type": "object"
+    },
+    "DesignEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "caveat_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caveat Zh"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "contractor_confirmed"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "style",
+            "color",
+            "material",
+            "room",
+            "snapshot"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "scope",
+        "confidence"
+      ],
+      "title": "DesignEvidence",
+      "type": "object"
+    },
+    "DesignNarrative": {
+      "additionalProperties": false,
+      "properties": {
+        "avoid_zh": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Avoid Zh",
+          "type": "array"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColorNarrative"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "design_language_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Design Language Zh"
+        },
+        "disclaimer_zh": {
+          "title": "Disclaimer Zh",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/DesignEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "form_vocabulary_zh": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Form Vocabulary Zh",
+          "type": "object"
+        },
+        "lighting_approach_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lighting Approach Zh"
+        },
+        "material": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MaterialNarrative"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "positioning_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Positioning Zh"
+        },
+        "rooms": {
+          "items": {
+            "$ref": "#/$defs/RoomDesignNarrative"
+          },
+          "title": "Rooms",
+          "type": "array"
+        },
+        "signature_elements_zh": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Signature Elements Zh",
+          "type": "array"
+        },
+        "style_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Style Id"
+        },
+        "style_name_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Style Name Zh"
+        },
+        "style_resolution_zh": {
+          "title": "Style Resolution Zh",
+          "type": "string"
+        }
+      },
+      "required": [
+        "style_id",
+        "style_name_zh",
+        "style_resolution_zh",
+        "disclaimer_zh"
+      ],
+      "title": "DesignNarrative",
       "type": "object"
     },
     "DocumentManifest": {
@@ -349,6 +658,191 @@
       "title": "EstimateResult",
       "type": "object"
     },
+    "FurnitureEstimateLine": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog_furniture_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Catalog Furniture Id"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "contractor_confirmed"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "depth_cm": {
+          "title": "Depth Cm",
+          "type": "number"
+        },
+        "furniture_id": {
+          "title": "Furniture Id",
+          "type": "string"
+        },
+        "height_cm": {
+          "title": "Height Cm",
+          "type": "number"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "price_is_estimated": {
+          "default": false,
+          "title": "Price Is Estimated",
+          "type": "boolean"
+        },
+        "price_source": {
+          "title": "Price Source",
+          "type": "string"
+        },
+        "quantity": {
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "room_id": {
+          "title": "Room Id",
+          "type": "string"
+        },
+        "room_name": {
+          "title": "Room Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "priced",
+            "price_unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "subtotal_twd": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Subtotal Twd"
+        },
+        "unit_price_twd": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit Price Twd"
+        },
+        "width_cm": {
+          "title": "Width Cm",
+          "type": "number"
+        }
+      },
+      "required": [
+        "room_id",
+        "room_name",
+        "furniture_id",
+        "catalog_furniture_id",
+        "name",
+        "category",
+        "width_cm",
+        "depth_cm",
+        "height_cm",
+        "quantity",
+        "unit_price_twd",
+        "subtotal_twd",
+        "price_source",
+        "status",
+        "confidence"
+      ],
+      "title": "FurnitureEstimateLine",
+      "type": "object"
+    },
+    "FurnitureEstimateResult": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog_provider": {
+          "title": "Catalog Provider",
+          "type": "string"
+        },
+        "currency": {
+          "const": "TWD",
+          "default": "TWD",
+          "title": "Currency",
+          "type": "string"
+        },
+        "disclaimer": {
+          "title": "Disclaimer",
+          "type": "string"
+        },
+        "estimated_price_count": {
+          "default": 0,
+          "title": "Estimated Price Count",
+          "type": "integer"
+        },
+        "estimated_total_twd": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Total Twd"
+        },
+        "known_subtotal_twd": {
+          "default": 0,
+          "title": "Known Subtotal Twd",
+          "type": "integer"
+        },
+        "lines": {
+          "items": {
+            "$ref": "#/$defs/FurnitureEstimateLine"
+          },
+          "title": "Lines",
+          "type": "array"
+        },
+        "priced_count": {
+          "default": 0,
+          "title": "Priced Count",
+          "type": "integer"
+        },
+        "unpriced_count": {
+          "default": 0,
+          "title": "Unpriced Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "catalog_provider",
+        "disclaimer"
+      ],
+      "title": "FurnitureEstimateResult",
+      "type": "object"
+    },
     "FurniturePlacement": {
       "additionalProperties": false,
       "properties": {
@@ -598,6 +1092,77 @@
       "title": "MEPSuggestion",
       "type": "object"
     },
+    "MaterialNarrative": {
+      "additionalProperties": false,
+      "properties": {
+        "avoid_combinations_zh": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Avoid Combinations Zh",
+          "type": "array"
+        },
+        "contrast_logic_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contrast Logic Zh"
+        },
+        "finish_rule_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finish Rule Zh"
+        },
+        "floor_wall_relationship_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Floor Wall Relationship Zh"
+        },
+        "primary_materials_zh": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Primary Materials Zh",
+          "type": "array"
+        },
+        "secondary_materials_zh": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Secondary Materials Zh",
+          "type": "array"
+        },
+        "selected_materials_zh": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Selected Materials Zh",
+          "type": "array"
+        }
+      },
+      "title": "MaterialNarrative",
+      "type": "object"
+    },
     "MaterialSelection": {
       "additionalProperties": false,
       "properties": {
@@ -681,6 +1246,42 @@
         "risk_summary"
       ],
       "title": "NarrativeResult",
+      "type": "object"
+    },
+    "PaletteRole": {
+      "additionalProperties": false,
+      "properties": {
+        "hex": {
+          "title": "Hex",
+          "type": "string"
+        },
+        "relative_luminance": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Relative Luminance",
+          "type": "number"
+        },
+        "role": {
+          "enum": [
+            "dominant",
+            "secondary",
+            "accent"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "usage_zh": {
+          "title": "Usage Zh",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hex",
+        "role",
+        "relative_luminance",
+        "usage_zh"
+      ],
+      "title": "PaletteRole",
       "type": "object"
     },
     "PointCm": {
@@ -1236,6 +1837,114 @@
       "title": "RiskSummary",
       "type": "object"
     },
+    "RoomDesignNarrative": {
+      "additionalProperties": false,
+      "properties": {
+        "applied_materials_zh": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Applied Materials Zh",
+          "type": "array"
+        },
+        "circulation_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Circulation Zh"
+        },
+        "common_pitfalls_zh": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Common Pitfalls Zh",
+          "type": "array"
+        },
+        "design_focus_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Design Focus Zh"
+        },
+        "furniture_summary_zh": {
+          "title": "Furniture Summary Zh",
+          "type": "string"
+        },
+        "knowledge_available": {
+          "default": true,
+          "title": "Knowledge Available",
+          "type": "boolean"
+        },
+        "lighting_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lighting Zh"
+        },
+        "room_id": {
+          "title": "Room Id",
+          "type": "string"
+        },
+        "room_name": {
+          "title": "Room Name",
+          "type": "string"
+        },
+        "room_name_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Room Name Zh"
+        },
+        "room_type": {
+          "title": "Room Type",
+          "type": "string"
+        },
+        "storage_zh": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Storage Zh"
+        }
+      },
+      "required": [
+        "room_id",
+        "room_name",
+        "room_type",
+        "furniture_summary_zh"
+      ],
+      "title": "RoomDesignNarrative",
+      "type": "object"
+    },
     "RoomGeometry": {
       "additionalProperties": false,
       "properties": {
@@ -1467,6 +2176,18 @@
           ],
           "default": null,
           "title": "Style"
+        },
+        "style_card_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Style Card Id"
         }
       },
       "required": [
@@ -1702,6 +2423,9 @@
       "title": "Demo Mode",
       "type": "boolean"
     },
+    "design_narrative": {
+      "$ref": "#/$defs/DesignNarrative"
+    },
     "documents": {
       "items": {
         "$ref": "#/$defs/DocumentManifest"
@@ -1718,6 +2442,9 @@
       },
       "title": "Exclusions",
       "type": "array"
+    },
+    "furniture_estimate": {
+      "$ref": "#/$defs/FurnitureEstimateResult"
     },
     "generated_at": {
       "format": "date-time",
@@ -1787,8 +2514,10 @@
     "retrieval",
     "risks",
     "estimate",
+    "furniture_estimate",
     "schedule",
     "narratives",
+    "design_narrative",
     "assumptions",
     "exclusions"
   ],

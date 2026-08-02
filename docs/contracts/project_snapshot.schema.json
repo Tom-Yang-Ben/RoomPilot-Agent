@@ -472,6 +472,18 @@
           ],
           "default": null,
           "title": "Style"
+        },
+        "style_card_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Style Card Id"
         }
       },
       "required": [

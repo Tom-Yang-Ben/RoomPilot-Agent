@@ -1,0 +1,35 @@
+[
+  {
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "title": "RoomPilot 設計語彙編纂基準 v1",
+    "publisher": "RoomPilot 團隊",
+    "source_type": "internal_design_editorial",
+    "retrieved_date": "2026-08-02",
+    "use": "六種正典風格的造型語言、色彩策略與材質語彙，供成果報告產生設計論述",
+    "external_reference": false,
+    "confidence": "medium",
+    "caveat_zh": "本檔為團隊內部編纂的設計語彙基準，不是外部權威引用。內容可用於設計溝通與提案論述，但不得當作法規、標準或第三方權威依據。若要升級為 high confidence，必須補上可查證的出版品或標準出處並改寫 source_type。"
+  },
+  {
+    "source_id": "SRC-DESIGN-CATALOG-STYLE-CARDS",
+    "title": "RoomPilot 六風格色卡（taiwan_style_cards.json）",
+    "publisher": "RoomPilot 團隊（Kai catalog）",
+    "source_type": "internal_catalog_data",
+    "retrieved_date": "2026-08-02",
+    "use": "色卡 palette_hex 是設計論述中色彩比例與色溫判讀的唯一數值來源",
+    "external_reference": false,
+    "confidence": "high",
+    "caveat_zh": "色票數值取自專案既有色卡資料，與第 5 步使用者實際選定的色卡一致；此處只做判讀，不另外發明顏色。"
+  },
+  {
+    "source_id": "SRC-DESIGN-SNAPSHOT-GEOMETRY",
+    "title": "鎖定版 ProjectSnapshot 幾何與家具配置",
+    "publisher": "RoomPilot（Ancai engine / Bella scene_json）",
+    "source_type": "internal_project_snapshot",
+    "retrieved_date": "2026-08-02",
+    "use": "面積、開口、家具品項與數量等敘述中的事實，全部取自鎖定版快照",
+    "external_reference": false,
+    "confidence": "contractor_confirmed",
+    "caveat_zh": "設計論述引用的任何數字都必須來自快照，不得由語彙模板自行產生。"
+  }
+]

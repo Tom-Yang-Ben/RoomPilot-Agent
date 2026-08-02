@@ -1,0 +1,152 @@
+[
+  {
+    "room_type": "living_room",
+    "room_name_zh": "客廳",
+    "design_focus_zh": "以主要視線與座位關係決定佈局；先定沙發面向，其餘家具再依附。",
+    "circulation_zh": "沙發與茶几之間留出通行與伸腿距離，主動線不穿越談話區。",
+    "lighting_zh": "分層照明：環境光打亮天花與牆面，重點光給主牆或藝術品，情境光給角落。避免單一主燈打平所有陰影。",
+    "storage_zh": "以電視主牆整合收納，維持立面完整；開放層板比例控制在三成以內避免視覺雜亂。",
+    "common_pitfalls_zh": [
+      "沙發背對主要動線造成穿越干擾",
+      "茶几過大壓縮通行寬度",
+      "電視與窗戶同向造成逆光反射"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "room_type": "bedroom",
+    "room_name_zh": "臥室",
+    "design_focus_zh": "床位優先於一切；先確定床頭牆，再安排衣櫃與走道。",
+    "circulation_zh": "雙人床至少單側留出完整通行；雙側進出時兩側都要能站立與開抽屜。",
+    "lighting_zh": "床頭需獨立可調光源，主燈不設在床正上方。色溫偏暖，避免冷白影響睡眠。",
+    "storage_zh": "衣櫃深度以吊掛需求決定；門片開啟半徑不得與床或動線衝突。",
+    "common_pitfalls_zh": [
+      "床頭靠窗導致採光與隔音同時受損",
+      "衣櫃門開啟範圍與床腳打架",
+      "主燈正對床面造成躺臥時直視眩光"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "room_type": "workspace",
+    "room_name_zh": "書房／工作區",
+    "design_focus_zh": "以工作面採光與視線深度為核心；螢幕不正對窗也不背對窗。",
+    "circulation_zh": "座椅後方需留出退開與起身空間，書櫃前需能完全蹲下取物。",
+    "lighting_zh": "工作面照度高於環境照度，桌燈方向避開慣用手投影；色溫 4000K 左右維持專注。",
+    "storage_zh": "常用品在坐姿伸手可及範圍，低頻使用品往上或往下收。",
+    "common_pitfalls_zh": [
+      "螢幕背對窗造成畫面反光",
+      "書櫃過深導致內側物品拿不到",
+      "缺少桌面出線孔造成線材外露"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "room_type": "dining_room",
+    "room_name_zh": "餐廳",
+    "design_focus_zh": "餐桌是空間中心，先定桌位再定燈位；燈具中心必須對準桌面中心。",
+    "circulation_zh": "餐椅拉開後仍需可通行；桌邊到牆或櫃體的距離要能讓人側身通過。",
+    "lighting_zh": "吊燈高度以坐姿不遮視線、站姿不碰頭為準；顯色性優先，色溫 2700K–3000K 讓食物顯色自然。",
+    "storage_zh": "餐邊櫃兼作備餐檯面，深度不宜佔用餐椅退開空間。",
+    "common_pitfalls_zh": [
+      "吊燈中心未對齊餐桌造成視覺歪斜",
+      "餐椅拉開後阻斷主動線",
+      "餐邊櫃過深壓縮通行"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "room_type": "studio",
+    "room_name_zh": "套房／開放式",
+    "design_focus_zh": "以家具本身界定機能分區，取代實體隔間；用地坪材質或天花變化強化分區。",
+    "circulation_zh": "維持一條貫穿的主動線，各機能區從動線兩側展開而非切斷它。",
+    "lighting_zh": "分區獨立開關是關鍵；睡眠區與活動區不共用同一迴路。",
+    "storage_zh": "以一面完整高櫃集中收納，換取其餘牆面的開闊。",
+    "common_pitfalls_zh": [
+      "家具散置導致沒有明確分區",
+      "全室單一迴路造成睡眠區無法獨立控光",
+      "收納分散在多面牆造成視覺零碎"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "room_type": "kitchen",
+    "room_name_zh": "廚房",
+    "design_focus_zh": "以洗、切、煮的作業順序決定檯面配置；三者之間的移動距離是效率核心。",
+    "circulation_zh": "雙排或中島配置時，兩側檯面之間需容納彎腰開門與兩人錯身。",
+    "lighting_zh": "檯面需獨立局部照明，避免人站在主燈與檯面之間形成自身陰影。",
+    "storage_zh": "重物與大型鍋具收在下櫃，高頻輕物在上櫃，最上層留給低頻季節性物品。",
+    "common_pitfalls_zh": [
+      "水槽與爐具之間缺少備料檯面",
+      "冰箱開門方向擋住動線",
+      "只靠天花主燈導致操作時檯面在自身陰影中"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "room_type": "bathroom",
+    "room_name_zh": "衛浴",
+    "design_focus_zh": "乾濕分離是首要決策；先定淋浴區位置，再排洗手檯與馬桶。",
+    "circulation_zh": "門片開啟不得與馬桶或洗手檯衝突；淋浴門開啟半徑需完整。",
+    "lighting_zh": "鏡前燈應從兩側或正面打光避免臉部陰影；濕區燈具需符合防潮等級。",
+    "storage_zh": "鏡櫃承擔主要收納，檯面保持淨空以利清潔。",
+    "common_pitfalls_zh": [
+      "鏡前燈設於頭頂正上方造成臉部陰影",
+      "淋浴門開啟方向與馬桶衝突",
+      "洗手檯下方收納擋住排水管檢修"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "room_type": "storage",
+    "room_name_zh": "儲藏",
+    "design_focus_zh": "以物品尺寸決定層板間距；可調層板優於固定層板。",
+    "circulation_zh": "深度超過伸手可及時需能整個人進入，否則內側形成死角。",
+    "lighting_zh": "需獨立照明，開門即亮；避免只靠室外光造成內部昏暗。",
+    "storage_zh": "分層規劃：常用在腰部高度，重物在底層，輕量低頻在頂層。",
+    "common_pitfalls_zh": [
+      "過深且無法進入導致內側成為死角",
+      "固定層板無法適應物品尺寸變化",
+      "沒有照明造成實際使用率極低"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "room_type": "balcony",
+    "room_name_zh": "陽台",
+    "design_focus_zh": "先確認法定用途與排水，再談機能；晾曬、綠植與休憩三者通常需取捨。",
+    "circulation_zh": "維持通往排水口與門窗的清空路徑，設備不得阻擋逃生與檢修。",
+    "lighting_zh": "戶外等級燈具；夜間以低位照明為主，避免影響室內與鄰棟。",
+    "storage_zh": "收納櫃需防水防曬，離地架高以免積水。",
+    "common_pitfalls_zh": [
+      "設備或收納阻擋排水造成積水",
+      "使用非戶外等級材質導致快速劣化",
+      "外推或增設影響法定空地與逃生"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "room_type": "circulation",
+    "room_name_zh": "走道／動線",
+    "design_focus_zh": "動線空間本身不放家具；它的價值在於連接品質而非利用率。",
+    "circulation_zh": "淨寬需容納兩人錯身或單人搬運物品；轉角處視線不可完全遮蔽。",
+    "lighting_zh": "均勻低照度即可，重點在避免明暗落差造成的視覺適應延遲。",
+    "storage_zh": "僅在淨寬充裕時考慮薄型收納，且不得侵入通行寬度。",
+    "common_pitfalls_zh": [
+      "沿走道放置家具壓縮通行淨寬",
+      "轉角無照明造成夜間安全疑慮",
+      "把走道當成收納空間導致動線劣化"
+    ],
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  }
+]

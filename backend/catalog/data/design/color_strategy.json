@@ -1,0 +1,92 @@
+[
+  {
+    "style_id": "scandinavian",
+    "distribution_zh": {
+      "dominant_ratio": 0.65,
+      "secondary_ratio": 0.25,
+      "accent_ratio": 0.1,
+      "note_zh": "主色給牆面與天花，次色給木質家具與地坪，點綴色只出現在織品"
+    },
+    "temperature_zh": "暖中性；牆面偏暖白，木質提供色溫的溫暖來源",
+    "value_contrast_zh": "低至中，明度差集中在木質與牆面之間",
+    "saturation_ceiling_zh": "點綴色以外不超過中低彩度",
+    "reading_rule_zh": "色卡三色由淺到深依序對應：牆與天花、木質與軟裝、深色收邊或單品",
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "japanese",
+    "distribution_zh": {
+      "dominant_ratio": 0.7,
+      "secondary_ratio": 0.22,
+      "accent_ratio": 0.08,
+      "note_zh": "主色是紙感牆面，次色是木作立面，點綴色僅用於單一織品或器物"
+    },
+    "temperature_zh": "暖中性偏低彩度；避免任何冷色介入",
+    "value_contrast_zh": "低；靠質感差而非明度差建立層次",
+    "saturation_ceiling_zh": "全室低彩度，點綴色亦不高彩",
+    "reading_rule_zh": "最淺色給牆面，中間色給木作立面，最深色只用於地坪收邊或單一低座家具",
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "modern_minimal",
+    "distribution_zh": {
+      "dominant_ratio": 0.75,
+      "secondary_ratio": 0.2,
+      "accent_ratio": 0.05,
+      "note_zh": "主色壓過全室，次色界定量體，點綴色極度節制"
+    },
+    "temperature_zh": "中性；可偏冷，靠光源色溫調節",
+    "value_contrast_zh": "中至高；明度差是主要層次來源",
+    "saturation_ceiling_zh": "近無彩度，點綴色為唯一例外",
+    "reading_rule_zh": "最淺色鋪滿牆面天花，中間色給地坪，最深色集中在單一量體或線性元素",
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "cream",
+    "distribution_zh": {
+      "dominant_ratio": 0.6,
+      "secondary_ratio": 0.32,
+      "accent_ratio": 0.08,
+      "note_zh": "主次色刻意接近，靠面積與質感區分而非色相"
+    },
+    "temperature_zh": "全暖；不允許冷色進入主色與次色",
+    "value_contrast_zh": "極低；三色都在同一明度帶內",
+    "saturation_ceiling_zh": "低彩度，點綴色僅提高一級彩度",
+    "reading_rule_zh": "三色視為同一色相的三個明度階，最深色用於軟裝與地坪，不用於整面牆",
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "industrial",
+    "distribution_zh": {
+      "dominant_ratio": 0.55,
+      "secondary_ratio": 0.3,
+      "accent_ratio": 0.15,
+      "note_zh": "主色為水泥灰或深色底，次色為木質，點綴色為金屬與紅磚"
+    },
+    "temperature_zh": "冷底暖點；水泥灰的冷與木質皮革的暖形成張力",
+    "value_contrast_zh": "高；明暗對比是風格的一部分",
+    "saturation_ceiling_zh": "中低，紅磚與鏽色是唯一允許的彩度高點",
+    "reading_rule_zh": "最深色給天花與管線，中間色給牆面，最淺或最暖色給木質檯面與皮革",
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  },
+  {
+    "style_id": "american",
+    "distribution_zh": {
+      "dominant_ratio": 0.6,
+      "secondary_ratio": 0.28,
+      "accent_ratio": 0.12,
+      "note_zh": "主色給牆面，次色給線板與門片，點綴色給布藝與主牆"
+    },
+    "temperature_zh": "暖；深木色與白線板的組合為基調",
+    "value_contrast_zh": "高；白色線板與深色木質的對比是識別特徵",
+    "saturation_ceiling_zh": "中；布藝可用中彩度的藍綠或酒紅",
+    "reading_rule_zh": "最淺色給線板與門框，中間色給牆面，最深色給木質家具與地坪",
+    "source_id": "SRC-DESIGN-EDITORIAL-V1",
+    "confidence": "medium"
+  }
+]
