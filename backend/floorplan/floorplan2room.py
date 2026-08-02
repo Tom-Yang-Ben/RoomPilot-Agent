@@ -1530,7 +1530,9 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
         area_m2 = room["area_px"] * cm * cm
         if area_m2 < 80000.0:                    # <8m² 一律不提案
             continue
-        big = area_m2 >= min_m2
+        big = area_m2 >= (100000.0 if det.get("_ww_adopted") else min_m2)
+        # 救援採用張的複合房常 12~20m²（floor_08 臥+走+客 17.6m²），
+        # 25m² 門檻會全擋——災難張降 10m²
         region = labels == room["id"]
         x0, y0, x1, y1 = room["bbox"]
         # fence 刀：孤立高密度線才可信——窗帶/圍欄是 1~2 條長直線，
@@ -1566,10 +1568,13 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
             bt = lab_t[:, :, 2].astype(np.int16) - 128
             cls1 = np.zeros(lab_t.shape[:2], np.int8)   # 0=中性
             strong = (np.abs(at) + np.abs(bt)) > 14
-            cls1[strong & (at >= 0) & (bt >= 0)] = 1
-            cls1[strong & (at >= 0) & (bt < 0)] = 2
-            cls1[strong & (at < 0) & (bt >= 0)] = 3
-            cls1[strong & (at < 0) & (bt < 0)] = 4
+            hue = np.arctan2(bt.astype(np.float32),
+                             at.astype(np.float32))       # -π~π
+            hue_bin = ((hue + np.pi) / (2 * np.pi) * 8).astype(np.int8) % 8
+            cls1[strong] = hue_bin[strong] + 1           # 1~8 色相桶
+                                                 # （ab 四象限太粗：黃與木棕
+                                                 # 同象限無轉換點，floor_08
+                                                 # 走道/臥室界抓不到）
             cls = cv2.resize(cls1, (labels.shape[1], labels.shape[0]),
                              interpolation=cv2.INTER_NEAREST)
             for key in (1, 2):
@@ -1580,7 +1585,7 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                     if not colm.any():
                         continue
                     vals = (cls[:, c] if key == 1 else cls[c, :])[colm]
-                    bc = np.bincount(vals, minlength=5)
+                    bc = np.bincount(vals, minlength=9)
                     maj[c] = int(bc.argmax())
                 run_len = 0
                 prev = -9
@@ -1644,6 +1649,14 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                     if max(ra, rb) > 8 * min(ra, rb):
                         continue                 # 60:1 細條（floor_05 客廳
                                                  # 底緣地毯界）非真色界切分
+                elif det.get("_ww_adopted") and variant == "color"                         and big and la != lb:
+                    # 救援採用張（災難張）開放任意對：已無可失，雙 0.7
+                    # 信心＋比例守門把關（floor_08 實測三塊大房各有
+                    # 0.8+/0.9+ 的可切對但不在白名單）
+                    thr_pair = 0.70
+                    ra, rb = int(a_.sum()), int(b_.sum())
+                    if max(ra, rb) > 8 * min(ra, rb):
+                        continue
                 elif pair == {"Entry", "LivingRoom"} and big:
                     # floor52 實案：玄關半 DINO 0.62/客廳半 0.99，只因不
                     # 在接受對而沒開刀。Entry 誤判常見，從嚴 0.6 且
@@ -1757,6 +1770,7 @@ def build_rooms(det):
                                                  # 切牆後覆蓋自然下降，只要
                                                  # ≥55% 且房數增加即採
                                                  # （floor_08 73%→66%/3→6）
+                        det["_ww_adopted"] = True
                         print(f"白牆救援 : 覆蓋 {cov:.0%}→{cov_w:.0%}，"
                               f"補 {len(ww2)} 段白牆帶")
                         labels, rooms, outside = labels_w, rooms_w, outside_w
