@@ -223,6 +223,47 @@ def test_questionnaire_ui_keeps_visual_catalog_for_rag_but_not_as_required_quest
     assert "applyAirConditioningToEligibleRooms" in javascript
 
 
+def test_render_only_detail_questions_never_reach_the_placement_engine() -> None:
+    """生圖細節只走 prompt，不得變成擺放參數。
+
+    這幾個軸在 3D 場景裡沒有對應物件，問了是為了讓第 8 步生圖照需求補完；
+    一旦流進 placement_preferences，走道邊距與窗前淨空就會跟著變，既有配置
+    會無預警位移——那是使用者沒有要求的副作用。
+    """
+    from backend.server.scene_service import PLACEMENT_PREFERENCE_EFFECTS
+
+    static = ROOT / "backend" / "server" / "static"
+    html = (static / "scene.html").read_text(encoding="utf-8")
+    javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
+
+    render_detail_ids = [
+        "whole-house-indirect-light",
+        "whole-house-ceiling-zoning",
+        "whole-house-airflow-strategy",
+        "whole-house-service-visibility",
+        "whole-house-ceiling-fan",
+        "whole-house-appliance-visibility",
+    ]
+    for element_id in render_detail_ids:
+        assert f'id="{element_id}"' in html, element_id
+    # 留白＝依設計師建議，不阻擋問卷完成（沿用 f0f1139f 的原則）。
+    assert "生圖細節（可留白）" in html
+
+    assert "RENDER_DETAIL_FIELDS" in javascript
+    assert "render_details: renderDetailChoices(finishes)" in javascript
+    # 這些 key 不在引擎的偏好表裡，就算誤送也不會改變幾何。
+    for key in ("indirectLight", "ceilingZoning", "airflowStrategy",
+                "serviceVisibility", "ceilingFan", "applianceVisibility"):
+        assert key not in PLACEMENT_PREFERENCE_EFFECTS
+
+    # 天花形式、照明形式與冷氣形式由既有的「天花與設備」負責，不得重複問。
+    assert "whole-house-ceiling-style" in html
+    assert "whole-house-light-style" in html
+    assert "whole-house-air-conditioning" in html
+    assert 'id="whole-house-ceiling-plane"' not in html
+    assert 'id="whole-house-lighting-bias"' not in html
+
+
 def test_questionnaire_catalog_json_remains_the_versioned_source() -> None:
     path = (
         ROOT

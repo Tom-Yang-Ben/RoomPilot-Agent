@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-5693fe5d95c5" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-37eb7932a386" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -540,6 +540,40 @@
                   <label class="rp-questionnaire-default-toggle"><input id="whole-house-style-all" type="checkbox" checked /> <span>先套用至全部房間，之後可於第 6 步個別調整</span></label>
                   <label class="rp-questionnaire-default-toggle"><input id="whole-house-air-conditioning-all" type="checkbox" checked /> <span>冷氣預設套用客廳、臥室與書房</span></label>
                 </fieldset>
+                <fieldset id="whole-house-render-detail">
+                  <legend>生圖細節（可留白）</legend>
+                  <p class="rp-field-hint">這幾項 3D 場景不會顯示，只在第 8 步生圖用。留在「依設計師建議」就交給 AI 判斷。</p>
+                  <label><span>間接光</span><select id="whole-house-indirect-light">
+                    <option value="">依設計師建議</option>
+                    <option value="minimal">維持乾淨，少用間接光</option>
+                    <option value="featured">以間接光為主要氛圍</option>
+                  </select></label>
+                  <label><span>天花分區</span><select id="whole-house-ceiling-zoning">
+                    <option value="">依設計師建議</option>
+                    <option value="room">每個空間各自造型</option>
+                    <option value="continuous">全屋連續同一平面</option>
+                  </select></label>
+                  <label><span>送風方式</span><select id="whole-house-airflow-strategy">
+                    <option value="">依設計師建議</option>
+                    <option value="direct">直吹，出風口明顯</option>
+                    <option value="indirect">導流，避免直吹人</option>
+                  </select></label>
+                  <label><span>維修口</span><select id="whole-house-service-visibility">
+                    <option value="">依設計師建議</option>
+                    <option value="hidden">盡量隱藏</option>
+                    <option value="accessible">保留明顯好維修</option>
+                  </select></label>
+                  <label><span>吊扇</span><select id="whole-house-ceiling-fan">
+                    <option value="">依設計師建議</option>
+                    <option value="yes">要有吊扇</option>
+                    <option value="no">不要吊扇</option>
+                  </select></label>
+                  <label><span>廚房家電</span><select id="whole-house-appliance-visibility">
+                    <option value="">依設計師建議</option>
+                    <option value="integrated">嵌入櫃體隱藏</option>
+                    <option value="visible">外露看得到</option>
+                  </select></label>
+                </fieldset>
               </div>
             </section>
             <div class="rp-action-row">
@@ -1064,6 +1098,6 @@
       }
     </script>
   <script type="module" src="/static/engineering_link.js?v=sha256-3d5c1057884c"></script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-2b6c5cfb066e"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-52778f539cd3"></script>
   </body>
 </html>

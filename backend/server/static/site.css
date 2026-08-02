@@ -13145,6 +13145,14 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   border: 0;
 }
 
+/* 生圖細節區塊的說明：這幾項 3D 看不到，需要一行字說明為什麼還要問。 */
+.rp-field-hint {
+  margin: 0 0 12px;
+  color: #6b6257;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .rp-questionnaire-material-grid legend {
   margin-bottom: 12px;
   font-weight: 700;

@@ -398,6 +398,12 @@ const element = {
   wholeHouseAirConditioning: $("#whole-house-air-conditioning"),
   wholeHouseStyleAll: $("#whole-house-style-all"),
   wholeHouseAirConditioningAll: $("#whole-house-air-conditioning-all"),
+  wholeHouseIndirectLight: $("#whole-house-indirect-light"),
+  wholeHouseCeilingZoning: $("#whole-house-ceiling-zoning"),
+  wholeHouseAirflowStrategy: $("#whole-house-airflow-strategy"),
+  wholeHouseServiceVisibility: $("#whole-house-service-visibility"),
+  wholeHouseCeilingFan: $("#whole-house-ceiling-fan"),
+  wholeHouseApplianceVisibility: $("#whole-house-appliance-visibility"),
   requirementsProgress: $("#requirements-progress"),
   requirementsError: $("#requirements-error"),
   randomizeRequirements: $("#randomize-requirements"),
@@ -6741,6 +6747,65 @@ function renderWholeHouseQuestionnaire() {
   renderWholeHouseStyleEditor();
 }
 
+// 第 8 步生圖才用得到的細節。這些軸在 3D 場景裡沒有對應物件，模型本來就得
+// 自行補完；問了之後是把「亂補」變成「照需求補」，不會與家具鎖定衝突，也
+// 完全不進引擎——擺放參數不受影響，既有配置不會因此位移。
+// 天花形式、照明形式與冷氣形式不列在這裡：上方「天花與設備」已經在問，而且
+// 選項比視覺題庫的二選一更細，重複問只會產生互相矛盾的答案。
+const RENDER_DETAIL_FIELDS = Object.freeze([
+  {
+    key: "indirectLight",
+    element: "wholeHouseIndirectLight",
+    label: "間接光",
+    labels: { minimal: "維持乾淨，少用間接光", featured: "以間接光為主要氛圍" },
+  },
+  {
+    key: "ceilingZoning",
+    element: "wholeHouseCeilingZoning",
+    label: "天花分區",
+    labels: { room: "每個空間各自造型", continuous: "全屋連續同一平面" },
+  },
+  {
+    key: "airflowStrategy",
+    element: "wholeHouseAirflowStrategy",
+    label: "送風方式",
+    labels: { direct: "直吹，出風口明顯", indirect: "導流，避免直吹人" },
+  },
+  {
+    key: "serviceVisibility",
+    element: "wholeHouseServiceVisibility",
+    label: "維修口",
+    labels: { hidden: "盡量隱藏", accessible: "保留明顯好維修" },
+  },
+  {
+    key: "ceilingFan",
+    element: "wholeHouseCeilingFan",
+    label: "吊扇",
+    labels: { yes: "要有吊扇", no: "不要吊扇" },
+  },
+  {
+    key: "applianceVisibility",
+    element: "wholeHouseApplianceVisibility",
+    label: "廚房家電",
+    labels: { integrated: "嵌入櫃體隱藏", visible: "外露看得到" },
+  },
+]);
+
+function renderDetailInputs() {
+  return Object.fromEntries(RENDER_DETAIL_FIELDS.map(
+    ({ key, element: name }) => [key, element[name]?.value || ""],
+  ));
+}
+
+// 只回傳使用者真的選過的項目；留白代表「依設計師建議」，不進 prompt。
+function renderDetailChoices(finishes = state.questionnaireFinishes || {}) {
+  return RENDER_DETAIL_FIELDS.flatMap(({ key, label, labels }) => {
+    const value = finishes[key];
+    if (!value) return [];
+    return [`${label}：${labels[value] || value}`];
+  });
+}
+
 function wholeHouseFinishDraft() {
   const fallbackPack = STYLE_PACKS.find(
     (pack) => pack.id === state.activeStylePackId,
@@ -6759,6 +6824,11 @@ function wholeHouseFinishDraft() {
     airConditioning: draft.airConditioning || "auto",
     applyStyleToAllRooms: draft.applyStyleToAllRooms !== false,
     applyAirConditioningToEligibleRooms: draft.applyAirConditioningToEligibleRooms !== false,
+    // 生圖細節：3D 場景沒有對應物件，只在第 8 步 prompt 用。空字串＝未指定，
+    // 交給生圖模型自行判斷，不阻擋問卷完成。
+    ...Object.fromEntries(RENDER_DETAIL_FIELDS.map(
+      ({ key }) => [key, draft[key] || ""],
+    )),
   };
 }
 
@@ -6822,6 +6892,9 @@ function renderWholeHouseStyleEditor() {
   element.wholeHouseAirConditioning.value = draft.airConditioning;
   element.wholeHouseStyleAll.checked = draft.applyStyleToAllRooms;
   element.wholeHouseAirConditioningAll.checked = draft.applyAirConditioningToEligibleRooms;
+  RENDER_DETAIL_FIELDS.forEach(({ key, element: name }) => {
+    if (element[name]) element[name].value = draft[key] || "";
+  });
 }
 
 function selectWholeHouseStylePack(packId) {
@@ -6859,6 +6932,7 @@ function saveWholeHouseFinishInputs() {
     airConditioning: element.wholeHouseAirConditioning.value || "auto",
     applyStyleToAllRooms: element.wholeHouseStyleAll.checked,
     applyAirConditioningToEligibleRooms: element.wholeHouseAirConditioningAll.checked,
+    ...renderDetailInputs(),
   };
   scheduleSave("requirements");
 }
@@ -6877,6 +6951,7 @@ function applyWholeHouseFinishes() {
     airConditioning: element.wholeHouseAirConditioning.value || "auto",
     applyStyleToAllRooms: element.wholeHouseStyleAll.checked,
     applyAirConditioningToEligibleRooms: element.wholeHouseAirConditioningAll.checked,
+    ...renderDetailInputs(),
   };
   state.questionnaireFinishes = draft;
   state.activeStyleId = pack.styleId;
@@ -7145,6 +7220,7 @@ function renderRequirementsDigest() {
         finishes.ceilingColor,
       ),
       lighting: styleCatalogLabel(LIGHT_STYLES, finishes.lightStyle),
+      render_details: renderDetailChoices(finishes),
     },
     rooms,
   };

@@ -120,6 +120,11 @@ def _requirements_digest() -> dict:
             "floor": "淺橡木地板 #D9B985",
             "ceiling": "間接燈槽 #f4f1eb",
             "lighting": "崁燈",
+            "render_details": [
+                "間接光：以間接光為主要氛圍",
+                "吊扇：不要吊扇",
+                "廚房家電：嵌入櫃體隱藏",
+            ],
         },
         "rooms": [
             {
@@ -351,6 +356,20 @@ def test_prompt_carries_questionnaire_visual_requirements(direct_provider) -> No
     assert "客廳——" in prompt
     assert "主臥——" in prompt
     assert "壁掛式" in prompt
+
+
+def test_prompt_carries_render_only_detail_choices(direct_provider) -> None:
+    """天花分區、送風、吊扇這類軸 3D 場景畫不出來，只能靠 prompt 表達。"""
+    project_id = _create_project()
+    client.post(f"/api/projects/{project_id}/render-jobs", json=_payload(project_id))
+
+    prompt = direct_provider[0]["body"]["messages"][0]["content"][0]["text"]
+    assert "間接光：以間接光為主要氛圍" in prompt
+    assert "吊扇：不要吊扇" in prompt
+    assert "廚房家電：嵌入櫃體隱藏" in prompt
+    # 使用者留白的軸前端不會送，prompt 也就不該憑空出現。
+    assert "維修口" not in prompt
+    assert "送風方式" not in prompt
 
 
 def test_room_final_prompt_carries_only_that_rooms_requirements(direct_provider) -> None:

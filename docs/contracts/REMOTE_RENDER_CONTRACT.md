@@ -117,7 +117,8 @@ prompt 明文表達（結構、家具、相機不得變動）。`ROOMPILOT_RENDE
   "schema_version": "1.0",
   "whole_house": {
     "household": "", "members_and_pets": "", "lifestyle": "", "immutable_needs": "",
-    "wall": "暖白礦物漆 #F7F3EA", "floor": "", "ceiling": "", "lighting": ""
+    "wall": "暖白礦物漆 #F7F3EA", "floor": "", "ceiling": "", "lighting": "",
+    "render_details": ["間接光：以間接光為主要氛圍", "吊扇：不要吊扇"]
   },
   "rooms": [
     {"room_id": "", "room_label": "", "wall": "", "floor": "",
@@ -141,3 +142,20 @@ prompt 明文表達（結構、家具、相機不得變動）。`ROOMPILOT_RENDE
 
 `room_final` 只帶該房間那筆，全屋層級的需求兩者都帶。`digest` 缺漏或型別
 不符時整段略過，prompt 其餘部分照常組裝。
+
+### `render_details`：只影響生圖的六個軸
+
+第 5 步「全屋風格與設備」新增「生圖細節（可留白）」，收六個 3D 場景表現不
+出來的軸：間接光、天花分區、送風方式、維修口、吊扇、廚房家電外露。前端
+`RENDER_DETAIL_FIELDS` 是唯一定義處，已解析成中文才送出。
+
+- 留白＝「依設計師建議」，不會出現在 `render_details`，prompt 也就不提。
+  問卷不因此被阻擋完成，沿用 `f0f1139f` 的原則。
+- **不得進 `placement_preferences`**。這六個 key 不在
+  `scene_service.PLACEMENT_PREFERENCE_EFFECTS` 裡，走道邊距與窗前淨空不受
+  影響，既有配置不會因為多問這幾題而位移。
+  `tests/test_questionnaire_visual_catalog.py` 有守門測試釘住這條界線。
+- 天花形式、照明形式與冷氣形式**不列入**：「天花與設備」既有欄位已經在問，
+  而且選項比視覺題庫的二選一更細，重複問只會產生互相矛盾的答案。這三項
+  仍由 `digest.whole_house.ceiling` / `lighting` 與逐房 `air_conditioning`
+  帶進 prompt。

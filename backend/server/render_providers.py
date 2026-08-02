@@ -241,6 +241,12 @@ def requirement_notes(
             ("ceiling", "全屋天花"),
             ("lighting", "全屋燈具"),
         )))
+        # 生圖細節：3D 場景沒有對應物件，模型本來就得自行補完；使用者留白
+        # 的項目前端不會送過來，這裡也就不會出現在 prompt。
+        for detail in whole_house.get("render_details") or []:
+            text = str(detail).strip()
+            if text:
+                notes.append(text)
         immutable = str(whole_house.get("immutable_needs") or "").strip()
         if immutable:
             notes.append(f"不可變更的條件：{immutable}")
