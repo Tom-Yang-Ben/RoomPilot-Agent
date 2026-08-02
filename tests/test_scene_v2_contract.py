@@ -1438,6 +1438,15 @@ def test_to_scene_furniture_carries_model_orientation_offset() -> None:
     assert result == {"rot": 90, "off": 180}
 
 
+def test_rotate_controls_use_real_angles_not_90_snap() -> None:
+    """90 度 snap 不得吃掉 15 度微調（08-03 沙發案：+15 被 round 回原角，
+    「已旋轉到 0 度」＝永遠轉不動）。吃實際角度的路徑必須用
+    normalizeSceneRotationDeg。"""
+    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    assert "normalizeSceneRotationDeg(currentWorldRotation + deltaDeg)" in source
+    assert "normalizedRotationDeg(currentWorldRotation" not in source
+
+
 def test_rotate_controls_retreat_before_giving_up() -> None:
     """§3.6 層 D：貼牆家具原地轉 15° 幾乎必掃出房——旋轉被拒時必須先自動
     朝房內退開重試（rotateWithRetreat），不得直接放棄只留灰色小字。"""

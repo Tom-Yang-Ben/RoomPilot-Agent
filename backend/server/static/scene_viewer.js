@@ -4002,7 +4002,7 @@ export function createSceneViewer(
       if (!item) return false;
       const size = sizeCentimeters(item);
       const radians = THREE.MathUtils.degToRad(
-        normalizedRotationDeg(item.rotation_y_deg || 0),
+        normalizeSceneRotationDeg(item.rotation_y_deg || 0),
       );
       const halfWidth = (
         Math.abs(Math.cos(radians)) * size.width
@@ -4544,13 +4544,17 @@ export function createSceneViewer(
   const WALL_GAP = 9;
   const DRAG_GRID = 5;
 
+  // ⚠️ 90 度吸附——僅供拖曳的直角語意（rotated 判斷）。任何吃「實際角度」的
+  // 路徑（15° 微調、bbox、夾位、讀現角）必須用 normalizeSceneRotationDeg：
+  // 這顆 snap 曾把 +15° 吸回原角，讓微調面板「永遠轉不動」（08-03 沙發案，
+  // §3.6 漏掉的第五層根因）。
   function normalizedRotationDeg(rotationDeg = 0) {
     return ((Math.round(rotationDeg / 90) * 90) % 360 + 360) % 360;
   }
 
   function halfExtentsForRotation(item, rotationDeg = 0) {
     const size = sizeCentimeters(item);
-    const radians = (Math.abs(normalizedRotationDeg(rotationDeg) % 180) * Math.PI) / 180;
+    const radians = (Math.abs(normalizeSceneRotationDeg(rotationDeg) % 180) * Math.PI) / 180;
     return {
       x: (size.width * Math.abs(Math.cos(radians)) + size.depth * Math.abs(Math.sin(radians))) / 2,
       z: (size.width * Math.abs(Math.sin(radians)) + size.depth * Math.abs(Math.cos(radians))) / 2,
@@ -4590,7 +4594,7 @@ export function createSceneViewer(
     const size = sizeCentimeters(item);
     const hw = size.width / 2;
     const hd = size.depth / 2;
-    const radians = THREE.MathUtils.degToRad(normalizedRotationDeg(rotationDeg));
+    const radians = THREE.MathUtils.degToRad(normalizeSceneRotationDeg(rotationDeg));
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
 
@@ -4668,7 +4672,7 @@ export function createSceneViewer(
     return {
       x: clamped.x,
       z: clamped.z,
-      rotationDeg: normalizedRotationDeg(rotationDeg),
+      rotationDeg: normalizeSceneRotationDeg(rotationDeg),
       kind: allowed ? "grid" : "blocked",
       blocked: !allowed,
     };
@@ -4901,7 +4905,7 @@ export function createSceneViewer(
     if (!item) return false;
 
     const label = item.name_zh_raw || item.normalized_type || "家具";
-    const nextRotation = normalizedRotationDeg((item.rotation_y_deg || 0) + deltaDeg);
+    const nextRotation = normalizeSceneRotationDeg((item.rotation_y_deg || 0) + deltaDeg);
     const nextWorldRotation = sceneToWorldRotationDeg(nextRotation);
     const currentPositionCm = wrapperPositionCm(selectedWrapper);
     const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextWorldRotation);
@@ -4949,7 +4953,7 @@ export function createSceneViewer(
     }[direction];
     if (!delta) return false;
 
-    const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
+    const rotationDeg = normalizeSceneRotationDeg(item.rotation_y_deg || 0);
     const worldRotationDeg = sceneToWorldRotationDeg(rotationDeg);
     const candidate = constrainTransform(
       item,
@@ -5003,7 +5007,7 @@ export function createSceneViewer(
     if (!item) return false;
     const label = selectedObjectLabel(item);
     const currentWorldRotation = sceneToWorldRotationDeg(item.rotation_y_deg || 0);
-    const nextWorldRotation = normalizedRotationDeg(currentWorldRotation + deltaDeg);
+    const nextWorldRotation = normalizeSceneRotationDeg(currentWorldRotation + deltaDeg);
     const nextRotation = worldToSceneRotationDeg(nextWorldRotation);
     const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextWorldRotation);
     if (candidate.blocked) {
@@ -5076,7 +5080,7 @@ export function createSceneViewer(
     const item = selectedWrapper.userData.sceneObject;
     if (!item) return false;
     const label = selectedObjectLabel(item);
-    const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
+    const rotationDeg = normalizeSceneRotationDeg(item.rotation_y_deg || 0);
     const worldRotationDeg = sceneToWorldRotationDeg(rotationDeg);
     const radians = THREE.MathUtils.degToRad(worldRotationDeg);
     const step = 25;
