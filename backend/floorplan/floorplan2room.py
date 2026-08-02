@@ -1491,6 +1491,95 @@ def _harvest_balcony_pockets(det, labels, rooms, outside):
     return rooms
 
 
+def _ww_suture_merge(det, labels, rooms, T, cm, p_min=0.70):
+    """假帶縫合輪——白牆救援採用張的過切殘塊回併（floor_08 實案：
+    救援白帶的假陽性把客廳切出 21k px 殘片，殘塊無符號無門被叫
+    Hallway，主體 IoU 0.38 差線；縫回後 0.61 跨線）。
+
+    寧漏勿誤，四道門全過才併：
+    1. det["_ww_adopted"]——災難張限定，正常張零接觸；
+    2. 相鄰面不是真暗牆（邊界帶與暗牆重疊 <0.3）——救援張的白帶/
+       fence/封口切都是重跑期人工物（floor_08 實測殘塊多為 fence 切，
+       邊界 dark 0.03/band 0.00），信任交給門 4，暗牆分隔的兩房不動；
+    3. 一方是 Hallway/room（過切殘塊的典型歸宿）或兩方同名——
+       兩個有正名的房不併；
+    4. DINO 聯集重分類 top-1 == 主體房型且信心 ≥p_min——縫錯會被
+       聯集的異質外觀壓信心。
+    labels 就地改，回傳新 rooms。greedy 迭代至無可併（上限 4 併）。"""
+    if not det.get("_ww_adopted") or len(rooms) < 2:
+        return rooms
+    h, w = labels.shape
+    dark_m = np.zeros((h, w), np.uint8)
+    for x0, y0, x1, y1 in det.get("rects") or []:
+        cv2.rectangle(dark_m, (int(x0), int(y0)),
+                      (int(x1) - 1, int(y1) - 1), 1, -1)
+    ker = np.ones((2 * int(1.5 * T) + 1,) * 2, np.uint8)
+    out = list(rooms)
+    residue_lab = (None, "", "room", "Hallway")
+    for _ in range(4):
+        cand = None                              # (p, 主體, 殘塊, 主體名)
+        dil = {r["id"]: cv2.dilate((labels == r["id"]).astype(np.uint8),
+                                   ker) for r in out}
+        for i, ra in enumerate(out):
+            for rb in out[i + 1:]:
+                la, lb = ra.get("label"), rb.get("label")
+                a_res = la in residue_lab
+                b_res = lb in residue_lab
+                if not (a_res or b_res or la == lb):
+                    continue                     # 門 3：兩正名不併
+                # 主體＝非殘塊方（同名/雙殘取大者）
+                if a_res == b_res:
+                    host, res = (ra, rb) if ra["area_px"] >= rb["area_px"] \
+                        else (rb, ra)
+                else:
+                    host, res = (rb, ra) if a_res else (ra, rb)
+                if host.get("label") in residue_lab:
+                    continue                     # 雙殘塊無主體房型可驗
+                bound = (dil[ra["id"]] & dil[rb["id"]]) > 0
+                nb = int(bound.sum())
+                if not nb:
+                    continue                     # 不相鄰
+                f_dark = int(dark_m[bound].sum()) / nb
+                ww_dbg = os.environ.get("WW_DEBUG") == "1"
+                if f_dark >= 0.3:
+                    if ww_dbg:
+                        print(f"WW_DEBUG 縫合拒: {host['label']}"
+                              f"({host['area_px']})×{res.get('label')}"
+                              f"({res['area_px']}) 門2 "
+                              f"dark {f_dark:.2f}")
+                    continue                     # 門 2：真暗牆分隔
+                tmp = np.zeros_like(labels)
+                tmp[(labels == ra["id"]) | (labels == rb["id"])] = 1
+                probs = room_classifier.classify(det.get("bgr"), tmp,
+                                                 [{"id": 1}],
+                                                 variant="color")
+                pu = (probs[0] or {}) if probs else {}
+                if not pu:
+                    continue
+                top = max(pu, key=pu.get)
+                if top != host["label"] or pu[top] < p_min:
+                    if ww_dbg:
+                        print(f"WW_DEBUG 縫合拒: {host['label']}"
+                              f"({host['area_px']})×{res.get('label')}"
+                              f"({res['area_px']}) 門4 "
+                              f"top {top} {pu[top]:.2f}")
+                    continue                     # 門 4：聯集驗證
+                if cand is None or pu[top] > cand[0]:
+                    cand = (pu[top], host, res, top)
+        if cand is None:
+            break
+        _p, host, res, top = cand
+        labels[labels == res["id"]] = host["id"]
+        keep = _room_stats(labels, host["id"], host.get("touch_env", False))
+        keep["label"] = top
+        keep["area_m2"] = round(keep["area_px"] * cm * cm / 1e4, 2)
+        print(f"假帶縫合 : {res.get('label')}({res['area_px']}px) 併回 "
+              f"{top}（聯集信心 {_p:.2f}）")
+        out = [r for r in out if r["id"] not in (host["id"], res["id"])]
+        out.append(keep)
+    return out
+
+
 def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                          min_m2=250000.0, p_min=0.55):
     """DINO 提案式切分——無錨點大房的最後切分手段（floor47/52/13 灰、
@@ -1742,6 +1831,10 @@ def build_rooms(det):
         cov = sum(r_["area_px"] for r_ in rooms) / env_a
         big_blob = (len(rooms) <= 5
                     and max(r_["area_px"] for r_ in rooms) / env_a > 0.35)
+        ww_dbg = os.environ.get("WW_DEBUG") == "1"
+        if ww_dbg:
+            print(f"WW_DEBUG 主分割: cov {cov:.3f} rooms {len(rooms)} "
+                  f"big_blob {big_blob}")
         if (cov < 0.50 and len(rooms) < 8) or big_blob:
                                                  # 災難張＝低覆蓋房少（09 型）
                                                  # 或巨塊黏連（08 型）；
@@ -1764,6 +1857,15 @@ def build_rooms(det):
                     cov_w = sum(r_["area_px"] for r_ in rooms_w) / env_a
                     ok_cov = cov_w >= 0.55 and cov_w > cov + 0.10
                     ok_blob = big_blob and cov_w >= 0.55                         and len(rooms_w) > len(rooms)
+                    if ww_dbg:
+                        print(f"WW_DEBUG 救援輪: 白牆帶 {len(ww2)} 段 "
+                              f"cov_w {cov_w:.3f} rooms_w {len(rooms_w)} "
+                              f"ok_cov {ok_cov} ok_blob {ok_blob}")
+                        det["_ww_debug"] = {
+                            "ww2": ww2, "labels_w": labels_w,
+                            "rooms_w": rooms_w, "outside_w": outside_w,
+                            "cov": cov, "cov_w": cov_w,
+                            "rects": rects, "T": T}
                     if ok_cov or ok_blob:        # 半修復（floor_09 46% 採用
                                                  # 反而 2→1）不如不修——絕對
                                                  # 覆蓋 ≥55% 才接手；巨塊型
@@ -1771,6 +1873,7 @@ def build_rooms(det):
                                                  # ≥55% 且房數增加即採
                                                  # （floor_08 73%→66%/3→6）
                         det["_ww_adopted"] = True
+                        det["_ww_bands"] = ww2   # 縫合輪要分辨白帶/暗牆分隔
                         print(f"白牆救援 : 覆蓋 {cov:.0%}→{cov_w:.0%}，"
                               f"補 {len(ww2)} 段白牆帶")
                         labels, rooms, outside = labels_w, rooms_w, outside_w
@@ -1909,6 +2012,8 @@ def build_rooms(det):
                                      variant=variant)
     if probs is not None:
         classify_rooms_dino(det, labels, rooms, probs, outside)
+        # 假帶縫合輪（救援採用張限定）：命名後才知道誰是 Hallway 殘塊
+        rooms = _ww_suture_merge(det, labels, rooms, T, cm)
     else:
         print("⚠ DINOv2 房型分類不可用 → 房型退回面積規則（品質明顯較差）")
         fp_c.classify_rooms(rooms, cm, det["thin"], labels)
