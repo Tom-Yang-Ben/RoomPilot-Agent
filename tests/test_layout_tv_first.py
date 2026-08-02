@@ -266,6 +266,59 @@ def test_generate_layout_passes_model_orientation_through():
     assert out[0]["model_orientation_deg"] == 180
 
 
+def test_validate_far_item_not_blocked_by_others_companion_pairs():
+    """單件驗證的 companion 配對必須含「others 彼此」：床頭櫃貼床是合法配套，
+    重驗床的 any 側淨空時不能把它當障礙——否則床一側被自家床頭櫃「佔用」，
+    另一側整片變禁區，遠在 2.6m 外的桌子都被判「擋住床單側空間」
+    （08-03 靠左案實錘）。"""
+    from backend.server.scene_service import floorplan_from_editor_payload, validate_single_placement
+
+    editor = {
+        "coordinate_unit": "cm", "width_cm": 600, "depth_cm": 560, "room_height_cm": 270,
+        "rooms": [{"id": "r", "type": "bedroom", "label": "臥室",
+                   "polygon_cm": [{"x": 0, "y": 0}, {"x": 600, "y": 0},
+                                   {"x": 600, "y": 560}, {"x": 0, "y": 560}]}],
+        "structures": {"walls": [
+            {"start": {"x": 0, "y": 0}, "end": {"x": 600, "y": 0}},
+            {"start": {"x": 600, "y": 0}, "end": {"x": 600, "y": 560}},
+            {"start": {"x": 600, "y": 560}, "end": {"x": 0, "y": 560}},
+            {"start": {"x": 0, "y": 560}, "end": {"x": 0, "y": 0}},
+        ], "doors": [], "windows": [], "beams": [], "columns": []},
+    }
+    floorplan, _room = floorplan_from_editor_payload(editor)
+
+    from backend.server.scene_service import generate_layout
+
+    def obj(fid, t, w, d, h, x=0.0, z=0.0, rot=0, locked=False):
+        return {"furniture_id": fid, "normalized_type": t, "name_zh_raw": fid,
+                "size_cm": {"width": w, "depth": d, "height": h},
+                "position_cm": {"x": x, "z": z}, "rotation_y_deg": rot,
+                "position_locked": locked}
+
+    room = _room
+    first = generate_layout(
+        room.width, room.depth,
+        [obj("bed", "bed", 167, 205, 90), obj("bt1", "bedside-table", 50, 37, 76),
+         obj("bt2", "bedside-table", 50, 37, 76)],
+        room=room, floorplan=floorplan, placement_variant="A", room_type="bedroom",
+    )
+    assert all(not o.get("placement_failed") for o in first), first
+    others = [
+        obj(o["furniture_id"], o["normalized_type"],
+            o["size_cm"]["width"], o["size_cm"]["depth"], o["size_cm"]["height"],
+            x=o["position_cm"]["x"], z=o["position_cm"]["z"],
+            rot=o["rotation_y_deg"], locked=True)
+        for o in first
+    ]
+    bed_out = next(o for o in first if o["normalized_type"] == "bed")
+    # 桌放床組對角（引擎擺床貼哪面牆不重要，取反向角落、相距 2m+）
+    dk_x = -bed_out["position_cm"]["x"] if abs(bed_out["position_cm"]["x"]) > 50 else -180.0
+    dk_z = -bed_out["position_cm"]["z"] if abs(bed_out["position_cm"]["z"]) > 50 else -180.0
+    desk = obj("dk", "desk", 120, 62, 92, x=dk_x, z=dk_z, rot=0, locked=True)
+    result = validate_single_placement(floorplan, desk, others)
+    assert result["ok"], result["reason"]
+
+
 def test_living_room_desk_set_chair_faces_desk():
     """配套池的桌椅組（電競角）進客廳也要成組：椅貼桌前 8cm、面向桌。
     （隨機配套拍板：desk-set 可出現在臥室或客廳。）"""

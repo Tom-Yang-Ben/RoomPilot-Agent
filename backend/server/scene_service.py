@@ -1716,16 +1716,20 @@ def validate_single_placement(
         if o.get("normalized_type") not in _IGNORE_COLLISION_TYPES and not o.get("placement_failed")
     ]
     placed_others = [_scene_object_to_placed(o, half_w_cm, half_d_cm) for o in kept_others]
-    # 配套（床頭櫃↔床、茶几↔沙發）在拖曳驗證同樣可進主件舒適空間，
-    # 缺了會把引擎自己擺的合法配套件標紅。
-    moving_family = family_of(item.get("normalized_type"))
+    # 配套（床頭櫃↔床、茶几↔沙發）在拖曳驗證同樣可進主件舒適空間。配對必須
+    # 建「全體兩兩」而非只有 moving↔others：反向淨空重驗（reverse_clearance_any）
+    # 會拿 others 彼此當障礙——床頭櫃缺配對時床的一側被自家櫃「佔用」、另一側
+    # 整片變禁區，2.6m 外的桌子都被判擋床（08-03 靠左案實錘）。
+    entities = [(item, moving)] + list(zip(kept_others, placed_others))
     pairs: set[frozenset[str]] = set()
-    for other, placed_other in zip(kept_others, placed_others):
-        other_family = family_of(other.get("normalized_type"))
-        if other_family in (COMPANION_OF.get(moving_family) or ()) or moving_family in (
-            COMPANION_OF.get(other_family) or ()
-        ):
-            pairs.add(frozenset((moving.id, placed_other.id)))
+    for i, (raw_a, placed_a) in enumerate(entities):
+        fam_a = family_of(raw_a.get("normalized_type"))
+        for raw_b, placed_b in entities[i + 1:]:
+            fam_b = family_of(raw_b.get("normalized_type"))
+            if fam_b in (COMPANION_OF.get(fam_a) or ()) or fam_a in (
+                COMPANION_OF.get(fam_b) or ()
+            ):
+                pairs.add(frozenset((placed_a.id, placed_b.id)))
     reason = check_placement_with_clearance(moving, room, placed_others, companion_pairs=pairs)
     return {"ok": reason is None, "reason": reason}
 
