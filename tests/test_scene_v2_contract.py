@@ -3097,3 +3097,35 @@ def test_primary_bedroom_is_chosen_by_area_not_recognition_order() -> None:
 
     assert ["large", "q-primary"] in [list(entry) for entry in result]
     assert ["small", "q-secondary"] in [list(entry) for entry in result]
+
+
+def test_step_one_button_continues_loaded_project_instead_of_creating_again() -> None:
+    """URL 已帶專案時，第 1 步按鈕是「繼續」不是「再建一個」。
+
+    2026-08-03 QA 實測：每按一次「建立專案並繼續」就多一個同名專案。
+    """
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    block = source.split("async function createProject(", 1)[1].split(
+        "function floorplanExtension(", 1
+    )[0]
+
+    assert "if (state.projectId && state.project)" in block
+    guard = block.split('await api("/api/projects"', 1)[0]
+    assert "return;" in guard, "已載入專案時必須在 POST 之前就返回"
+    assert "繼續此專案" in source, "按鈕標籤要隨載入狀態切換"
+
+
+def test_restore_skips_floorplan_source_until_upload_completed() -> None:
+    """還沒上傳平面圖的專案不能去抓 source。
+
+    端點對無上傳專案回 409，抓了會把整段還原誤判為失敗——新專案一進來
+    就顯示「畫面還原失敗：HTTP 409」（2026-08-03 QA）。
+    """
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    block = source.split("hydrateSceneWallMass();", 1)[1].split(
+        "await renderRestoredStep()", 1
+    )[0]
+
+    assert block.index('completed.includes("upload")') < block.index("floorplan/source"), (
+        "抓 floorplan/source 前必須先確認 upload 步驟已完成"
+    )

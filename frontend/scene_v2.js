@@ -1206,6 +1206,11 @@ function activePanelName(step) {
 }
 
 function showStep(step) {
+  // 已載入專案時第 1 步的按鈕語意是「繼續」不是「再建一個」。
+  const createProjectButton = $("#create-project");
+  if (createProjectButton) {
+    createProjectButton.textContent = state.projectId ? "繼續此專案" : "建立專案並繼續";
+  }
   const panelName = activePanelName(step);
   panels.forEach((panel, name) => {
     const visible = name === panelName;
@@ -1342,6 +1347,13 @@ function firstWorkflowBlocker(step) {
 async function createProject(event) {
   event.preventDefault();
   element.projectError.textContent = "";
+  // URL 已帶專案時這顆按鈕是「繼續」，不是再建一個——2026-08-03 QA 實測
+  // 每按一次就多一個同名專案。要開新專案請走「我的專案」。
+  if (state.projectId && state.project) {
+    setStatus(`繼續專案「${state.project.name}」；要開新專案請回「我的專案」。`);
+    goTo(state.workflow?.currentStep === "project" ? "upload" : state.workflow.currentStep);
+    return;
+  }
   const name = element.projectName.value.trim();
   if (!name) {
     element.projectError.textContent = "請輸入專案名稱，才能建立專案。";
@@ -14140,16 +14152,20 @@ async function restoreProject() {
       console.warn("Unable to rebuild saved 3D scene from layout.", error);
     }
     hydrateSceneWallMass();
-    state.sourceUrl = state.sourceExtension === ".dxf"
-      ? configureDxfPreview(state.analysis)
-      // DXF 走 data URL；影像平面圖要帶身分取回再轉 blob，直接指向 API 會 401。
-      : await authorizedObjectUrl(
-        `/api/projects/${state.projectId}/floorplan/source?v=${Date.now()}`,
-        { cacheKey: `floorplan:${state.projectId}` },
-      );
+    // 還沒上傳過平面圖的專案不能去抓 source——端點會回 409，整段還原會被
+    // 誤判為失敗（2026-08-03 QA：新專案一進來就顯示「畫面還原失敗：HTTP 409」）。
     if (state.workflow.completed.includes("upload")) {
+      state.sourceUrl = state.sourceExtension === ".dxf"
+        ? configureDxfPreview(state.analysis)
+        // DXF 走 data URL；影像平面圖要帶身分取回再轉 blob，直接指向 API 會 401。
+        : await authorizedObjectUrl(
+          `/api/projects/${state.projectId}/floorplan/source?v=${Date.now()}`,
+          { cacheKey: `floorplan:${state.projectId}` },
+        );
       setPlanImages(state.sourceUrl);
       showUploadedPreview(state.sourceUrl, state.sourceExtension);
+    } else {
+      state.sourceUrl = null;
     }
     showStep(state.workflow.currentStep || "project");
     await renderRestoredStep();
