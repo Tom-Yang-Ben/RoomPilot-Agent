@@ -16,14 +16,26 @@ server = [
     "ezdxf>=1.3",
     "python-multipart>=0.0.9",
     "certifi>=2024",     # OpenRouter VLM 呼叫的 SSL 憑證鏈(macOS 系統 Python 沒有)
+    "httpx>=0.28",       # bella-test1 併入:backend/server/render_service.py 呼叫遠端算圖供應商
 ]
 # 平面辨識(backend/floorplan):PNG → DXF
 vision = [
     "numpy>=2.0",
-    "opencv-python>=4.10",
+    "opencv-python>=4.10,<5",
     "ezdxf>=1.3",
     "onnxruntime>=1.20",   # 分割模型融合(floorseg.onnx);缺這個管線自動退回純規則
     "certifi>=2024",       # VLM 選配呼叫的 SSL 憑證鏈
+    "svgpathtools>=1.6",           # bella-test1:彩色管線
+    "rapidocr-onnxruntime>=1.4",   # bella-test1:圖面文字辨識
+]
+# 尺度文字與繁中房名 OCR；模型較大，部署端按需安裝。
+ocr = [
+    "paddleocr>=3.0,<4",
+    "paddlepaddle>=3.0,<4",
+]
+semantic = [
+    "torch>=2.0",
+    "opencv-python-headless>=4.10,<5",
 ]
 # 型錄管線(原 scripts/,2026-07-22 重組時移除;extra 暫留供合併含該管線的舊分支)
 catalog = [
@@ -39,10 +51,14 @@ catalog = [
 
 [dependency-groups]
 dev = [
-    # 僅供 fastapi.testclient 的傳輸層;業務碼禁止 import(LLM 一律 OpenRouter,見 CLAUDE.md)
+    # 僅供 fastapi.testclient 的傳輸層;LLM 一律 OpenRouter,見 CLAUDE.md
     "httpx2>=2.7",
+    "httpx>=0.28",
     "pytest>=9.1.1",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.setuptools]
+packages = ["backend"]

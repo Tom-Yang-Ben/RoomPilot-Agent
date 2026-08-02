@@ -5,14 +5,20 @@ furniture_engine 核心邏輯測試
 - place_furniture:合法放置 / 重疊偵測 / 出界偵測 / 穿牆偵測
 - adjust_furniture:移動(軸分離)/ 旋轉
 
-單位:一律公分(cm),與引擎契約一致(2026-07-08 公分化)。
+單位:一律公分(cm),與引擎契約一致。
 """
 import pytest
 
 from backend.engine.models import Room, Wall, FurnitureCatalogItem, PlacedFurniture
 from backend.engine.geometry import check_placement
-from backend.engine.placement import place_furniture, place_furniture_batch
+from backend.engine.placement import (
+    place_adjacent_to_furniture,
+    place_furniture,
+    place_furniture_batch,
+    place_overlay_on_furniture,
+)
 from backend.engine.adjustment import adjust_furniture
+from backend.engine.schema import placed_to_dict
 
 
 # ---------- 共用測資 ----------
@@ -39,6 +45,23 @@ def sofa_catalog() -> FurnitureCatalogItem:
 @pytest.fixture
 def table_catalog() -> FurnitureCatalogItem:
     return FurnitureCatalogItem(type="table", name="茶几", width=100, depth=60)
+
+
+def test_placed_furniture_payload_declares_centimeter_contract(sofa_catalog) -> None:
+    payload = placed_to_dict(
+        PlacedFurniture(
+            id="sofa-1",
+            catalog=sofa_catalog,
+            pos_x=150,
+            pos_y=90,
+            rotation=0,
+        )
+    )
+
+    assert payload["schema_version"] == "2.0"
+    assert payload["coordinate_unit"] == "cm"
+    assert payload["width"] == 200
+    assert payload["pos_x"] == 150
 
 
 # ---------- check_placement 基本案例 ----------
@@ -106,6 +129,39 @@ def test_place_furniture_fails_when_room_too_small(sofa_catalog):
     result = place_furniture(tiny_room, sofa_catalog, "sofa_1", [])
     assert result["success"] is False
     assert result["reason"] == "找不到合法擺放位置"
+
+
+def test_overlay_keeps_target_coordinates_in_centimeters(room, sofa_catalog):
+    sofa = PlacedFurniture(
+        id="sofa_1",
+        catalog=sofa_catalog,
+        pos_x=250,
+        pos_y=200,
+    )
+    rug = FurnitureCatalogItem(type="rug", name="地毯", width=180, depth=120)
+
+    result = place_overlay_on_furniture(room, rug, "rug_1", sofa)
+
+    assert result["success"] is True
+    assert result["placed"].pos_x == pytest.approx(250)
+    assert result["placed"].pos_y == pytest.approx(200)
+
+
+def test_adjacent_accessory_uses_twelve_centimeter_gap(room, table_catalog):
+    target = PlacedFurniture(
+        id="table_1",
+        catalog=table_catalog,
+        pos_x=250,
+        pos_y=200,
+    )
+    plant = FurnitureCatalogItem(type="plant", name="植栽", width=40, depth=40)
+
+    result = place_adjacent_to_furniture(room, plant, "plant_1", target, [target])
+
+    assert result["success"] is True
+    placed = result["placed"]
+    expected_offset = table_catalog.width / 2 + plant.width / 2 + 12
+    assert abs(placed.pos_x - target.pos_x) == pytest.approx(expected_offset)
 
 
 # ---------- adjust_furniture：移動 ----------

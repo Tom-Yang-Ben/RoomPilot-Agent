@@ -24,16 +24,6 @@ const MODE_ONE_SPACES = [
   ["outdoor", "戶外", "戶外桌椅、戶外地毯與休閒家具"],
 ];
 
-const MODE_ONE_CATEGORY_DEFS = [
-  { label: "沙發", aliases: ["sofa", "fabric-sofa", "leather-sofa", "modular-sofa", "sofa-bed"] },
-  { label: "茶几", aliases: ["coffee-table", "side-table"] },
-  { label: "餐桌椅", aliases: ["dining-table", "dining-chair", "table"] },
-  { label: "收納櫃", aliases: ["cabinet-cupboard", "cabinets-cupboard", "tv-bench", "shelving-unit", "wardrobe"] },
-  { label: "燈具", aliases: ["lamp", "floor-lamp", "table-lamp"] },
-  { label: "地毯", aliases: ["rug", "large-medium-rug", "runner-small-rug"] },
-  { label: "裝飾品", aliases: ["decoration", "wall-art", "planter", "flower-pots-planter"] },
-];
-
 const COLOR_LABELS = {
   white: "白色",
   black: "黑色",
@@ -78,6 +68,16 @@ const TYPE_ICON_PATHS = {
   lamp: '<path d="M9 4h6l3 7H6l3-7Zm3 7v7m-4 2h8"/>',
   rug: '<rect x="4" y="5" width="16" height="14" rx="1.5"/><path d="M7 8c2 0 2 3 4 3s2-3 4-3 2 3 2 3M7 15c2 0 2-2 4-2s2 2 4 2 2-2 2-2"/>',
   decor: '<path d="M8 20h8M9 20l1-9h4l1 9M8 7c0-2 1.8-4 4-4s4 2 4 4c0 1.8-1.3 3.2-4 4-2.7-.8-4-2.2-4-4Z"/>',
+  bed: '<path d="M3 18V8m18 10v-7a3 3 0 0 0-3-3h-7v7"/><path d="M3 15h18M6 8h5v7H6a3 3 0 0 1-3-3v-1a3 3 0 0 1 3-3Z"/>',
+  mattress: '<rect x="3" y="7" width="18" height="10" rx="2"/><path d="M3 12h18M7 9h.01m5 0h.01m5 0h.01"/>',
+  wardrobe: '<rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M12 3v18M9 12h.01m6 0h.01"/>',
+  desk: '<path d="M4 8h16v5H4zM7 13v8m10-8v8M9 17h6"/>',
+  chair: '<path d="M7 4v9h10V7m-10 6v8m10-8v8M7 17h10"/>',
+  shelf: '<path d="M5 4h14v16H5zM5 9h14M5 15h14"/>',
+  kids: '<circle cx="12" cy="7" r="3"/><path d="M7 21v-4a5 5 0 0 1 10 0v4M9 12l-3 3m9-3 3 3"/>',
+  outdoor: '<path d="M3 13h18M6 13l-2 8m14-8 2 8M8 13l1-6h6l1 6M12 7V3"/>',
+  appliance: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M6 9h12M10 6h.01m4 0h.01"/>',
+  mirror: '<ellipse cx="12" cy="10" rx="6" ry="8"/><path d="M12 18v3m-4 0h8"/>',
   fallback: '<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9z"/>',
 };
 
@@ -387,22 +387,38 @@ function renderSpaceChoices() {
 }
 
 function getPreferredTypesForGroup(group) {
-  const allTypes = new Map(data.allTypeOptions.map((item) => [item.type, item]));
-  const preferred = MODE_ONE_CATEGORY_DEFS.flatMap((definition) => {
-    const item = definition.aliases.map((type) => allTypes.get(type)).find(Boolean);
-    return item ? [{ ...item, displayLabel: definition.label }] : [];
+  const availableTypes = new Map(data.allTypeOptions.map((item) => [item.type, item]));
+  const seen = new Set();
+  return (group?.types || []).flatMap((groupType) => {
+    const type = groupType?.type;
+    if (!type || seen.has(type) || !availableTypes.has(type)) return [];
+    seen.add(type);
+    return [{
+      ...availableTypes.get(type),
+      ...groupType,
+      displayLabel: safeText(groupType.type_name_zh, formatTypeName(type)),
+    }];
   });
-  return preferred.slice(0, 7);
 }
 
 function typeIconKey(type) {
   if (!type) return "all";
   if (/sofa/.test(type)) return "sofa";
+  if (/mattress/.test(type)) return "mattress";
+  if (/bed/.test(type)) return "bed";
+  if (/wardrobe|clothes-rack/.test(type)) return "wardrobe";
+  if (/desk/.test(type)) return "desk";
+  if (/chair|stool|bench/.test(type)) return "chair";
   if (/coffee-table|side-table/.test(type)) return "table";
   if (/dining|table$/.test(type)) return "dining";
-  if (/cabinet|cupboard|wardrobe|shelving|tv-bench/.test(type)) return "storage";
+  if (/shelf|bookcase/.test(type)) return "shelf";
+  if (/cabinet|cupboard|drawer|storage|tv-bench|sideboard/.test(type)) return "storage";
   if (/lamp/.test(type)) return "lamp";
   if (/rug|mat/.test(type)) return "rug";
+  if (/mirror/.test(type)) return "mirror";
+  if (/child|kids/.test(type)) return "kids";
+  if (/outdoor|sun-lounger|hammock/.test(type)) return "outdoor";
+  if (/appliance|fridge|oven|hood/.test(type)) return "appliance";
   if (/decor|wall-art|planter|flower/.test(type)) return "decor";
   return "fallback";
 }

@@ -1,5 +1,11 @@
 import { fetchFurniturePage, fetchSceneBootstrap, formatFurnitureName, formatSize, formatTypeLabel, initBackgroundFx } from "./common.js?v=20260711g";
-import { createSceneViewer } from "./scene_viewer.js?v=20260711n";
+import { createSceneViewer } from "./scene_viewer.js?v=20260717e";
+import { WORKFLOW_STEPS, restoreWorkflow } from "./scene_workflow.js?v=20260712b";
+import { applyMaterialScheme, classifyMaterialSlot, generateMaterialSchemes, restoreOriginalMaterials, updateFurnitureMaterialOverride } from "./scene_material_schemes.js?v=20260712c";
+import { buildDeliveryManifest } from "./scene_delivery.js?v=20260712b";
+import { buildExplainableRecommendation, buildFloorplanConfirmationCorrections, buildRecognitionPresentation, localizeEvidence } from "./scene_guidance.js?v=20260712e";
+import { buildEmptyAffected, buildSceneWallSegment, buildSpaceChangeReport, buildWallBoxingComparison } from "./scene_space_change_report.js?v=20260712e";
+import { buildScaleCalibration, pointerToImagePoint } from "./scene_calibration.js?v=20260712a";
 
 const siteData = await fetchSceneBootstrap();
 const providerStatus = await fetch("/api/scene/provider-status").then((response) => response.json());
@@ -17,8 +23,8 @@ function readStoredStyleCardSelection() {
 }
 
 const storedStyleCardSelection = readStoredStyleCardSelection();
-const requestedStyleId = sceneQuery.get("style") || storedStyleCardSelection?.style || storedStyleCardSelection?.style_id || null;
-const requestedStyleCardId = sceneQuery.get("style_card") || storedStyleCardSelection?.style_card || null;
+let requestedStyleId = sceneQuery.get("style") || storedStyleCardSelection?.style || storedStyleCardSelection?.style_id || null;
+let requestedStyleCardId = sceneQuery.get("style_card") || storedStyleCardSelection?.style_card || null;
 const surfaceCatalog = siteData.surface_catalog || { surfaces: [], style_surface_profiles: {} };
 const surfaceById = new Map((surfaceCatalog.surfaces || []).map((surface) => [surface.surface_id, surface]));
 
@@ -111,6 +117,43 @@ const elements = {
   floorplanFilename: document.getElementById("floorplan-filename"),
   floorplanStatus: document.getElementById("floorplan-status"),
   continueToChat: document.getElementById("continue-to-chat"),
+  floorplanReviewStep: document.getElementById("scene-floorplan-review-step"),
+  floorplanAnalysisSummary: document.getElementById("recognized-space-summary"),
+  recognizedRoomMap: document.getElementById("recognized-room-map"),
+  recognitionCorrectionPanel: document.getElementById("recognition-correction-panel"),
+  floorplanCalibrationPanel: document.getElementById("floorplan-calibration-panel"),
+  floorplanCalibrationStage: document.getElementById("floorplan-calibration-stage"),
+  floorplanCalibrationImage: document.getElementById("floorplan-calibration-image"),
+  floorplanCalibrationOverlay: document.getElementById("floorplan-calibration-overlay"),
+  floorplanCalibrationStatus: document.getElementById("floorplan-calibration-status"),
+  resetFloorplanCalibration: document.getElementById("reset-floorplan-calibration"),
+  applyFloorplanCalibration: document.getElementById("apply-floorplan-calibration"),
+  floorplanScaleCm: document.getElementById("floorplan-scale-cm"),
+  privacyConsent: document.getElementById("privacy-consent"),
+  profileHousehold: document.getElementById("profile-household"),
+  profileProjectStatus: document.getElementById("profile-project-status"),
+  profileAiAssistance: document.getElementById("profile-ai-assistance"),
+  roomInterviewNav: document.getElementById("room-interview-nav"),
+  guidedRoomRecommendation: document.getElementById("guided-room-recommendation"),
+  guidedRoomTitle: document.getElementById("guided-room-title"),
+  guidedChoiceList: document.getElementById("guided-choice-list"),
+  recommendationReason: document.getElementById("recommendation-reason"),
+  recommendationEvidence: document.getElementById("recommendation-evidence"),
+  recommendationTradeoff: document.getElementById("recommendation-tradeoff"),
+  recommendationConfidence: document.getElementById("recommendation-confidence"),
+  recommendationAssumptions: document.getElementById("recommendation-assumptions"),
+  acceptAiRecommendation: document.getElementById("accept-ai-recommendation"),
+  spaceChangeReportContent: document.getElementById("space-change-report-content"),
+  reportAudienceCustomer: document.getElementById("report-audience-customer"),
+  reportAudienceDesigner: document.getElementById("report-audience-designer"),
+  wallBoxingRoom: document.getElementById("wall-boxing-room"),
+  wallBoxingKind: document.getElementById("wall-boxing-kind"),
+  wallBoxingSide: document.getElementById("wall-boxing-side"),
+  wallBoxingThickness: document.getElementById("wall-boxing-thickness"),
+  createWallBoxingChange: document.getElementById("create-wall-boxing-change"),
+  wallBoxingAdvisorResult: document.getElementById("wall-boxing-advisor-result"),
+  confirmFloorplanAnalysis: document.getElementById("confirm-floorplan-analysis"),
+  floorplanReviewBack: document.getElementById("floorplan-review-back"),
   chatPanel: document.getElementById("scene-chat-panel"),
   viewerSide: document.getElementById("scene-viewer-side"),
   stylePreference: document.getElementById("style-preference"),
@@ -125,21 +168,16 @@ const elements = {
   spaceType: document.getElementById("space-type"),
   floorplan: document.getElementById("floorplan"),
   pickFloorplan: document.getElementById("pick-floorplan"),
+  loadFloorplan630: document.getElementById("load-floorplan-630"),
   personalNotes: document.getElementById("personal-notes"),
   keepWindowClear: document.getElementById("keep-window-clear"),
   keepDoorClear: document.getElementById("keep-door-clear"),
   needStorage: document.getElementById("need-storage"),
   preferLowSaturation: document.getElementById("prefer-low-saturation"),
   generateScene: document.getElementById("generate-scene"),
-  scaleCalibration: document.getElementById("scale-calibration"),
-  calibrationCanvas: document.getElementById("calibration-canvas"),
-  calibrationLength: document.getElementById("calibration-length"),
-  applyCalibration: document.getElementById("apply-calibration"),
-  resetCalibration: document.getElementById("reset-calibration"),
-  calibrationStatus: document.getElementById("calibration-status"),
-  openPanorama: document.getElementById("open-panorama"),
   randomFurniture: document.getElementById("random-furniture"),
   resetSceneView: document.getElementById("reset-scene-view"),
+  lockSceneCamera: document.getElementById("lock-scene-camera"),
   rotateFurnitureLeft: document.getElementById("rotate-furniture-left"),
   rotateFurnitureRight: document.getElementById("rotate-furniture-right"),
   addFurnitureType: document.getElementById("add-furniture-type"),
@@ -154,7 +192,13 @@ const elements = {
   sceneSelectedItems: document.getElementById("scene-selected-items"),
   sceneStatus: document.getElementById("scene-status"),
   sceneViewerCanvas: document.getElementById("scene-viewer-canvas"),
+  sceneViewModeHint: document.getElementById("scene-view-mode-hint"),
   selectedStyleCard: document.getElementById("scene-selected-style-card"),
+  selectedStyleSummary: document.getElementById("scene-selected-style-summary"),
+  selectedStyleName: document.getElementById("scene-selected-style-name"),
+  selectedStyleNote: document.getElementById("scene-selected-style-note"),
+  selectedStylePalette: document.getElementById("scene-selected-style-palette"),
+  changeStyle: document.getElementById("scene-change-style"),
   proposalCard: document.getElementById("scene-proposal-card"),
   proposalSummary: document.getElementById("scene-proposal-summary"),
   proposalList: document.getElementById("scene-proposal-list"),
@@ -174,21 +218,53 @@ const elements = {
   chatConfirm: document.getElementById("scene-chat-confirm"),
   briefPanel: document.getElementById("scene-brief-panel"),
   briefSummary: document.getElementById("scene-brief-summary"),
+  generatingStep: document.getElementById("scene-generating-step"),
+  materialStep: document.getElementById("scene-material-step"),
+  materialSchemeList: document.getElementById("material-scheme-list"),
+  furnitureMaterialEditor: document.getElementById("furniture-material-editor"),
+  applyMaterialScheme: document.getElementById("apply-material-scheme"),
+  restoreOriginalMaterials: document.getElementById("restore-original-materials"),
+  materialBack: document.getElementById("material-back"),
+  reviewStep: document.getElementById("scene-review-step"),
+  reviewBack: document.getElementById("review-back"),
+  confirmSceneReview: document.getElementById("confirm-scene-review"),
+  budgetStep: document.getElementById("scene-budget-step"),
+  sceneBomTable: document.getElementById("scene-bom-table"),
+  budgetBack: document.getElementById("budget-back"),
+  confirmBudget: document.getElementById("confirm-budget"),
+  deliveryStep: document.getElementById("scene-delivery-step"),
+  viewModeButtons: document.querySelectorAll("[data-view-mode]"),
+  downloadViewPng: document.getElementById("download-view-png"),
+  downloadSceneGlb: document.getElementById("download-scene-glb"),
+  downloadFloorplanDxf: document.getElementById("download-floorplan-dxf"),
+  printProjectPdf: document.getElementById("print-project-pdf"),
+  workflowCounter: document.getElementById("scene-workflow-counter"),
+  resetProject: document.getElementById("scene-reset-project"),
   styleCardPanel: document.getElementById("style-card-panel"),
+  stylePickerTabs: document.getElementById("style-picker-tabs"),
   styleCardGrid: document.getElementById("style-card-grid"),
   confirmStyleCard: document.getElementById("confirm-style-card"),
+  closeStylePicker: document.getElementById("close-style-picker"),
+  styleFurnitureDecision: document.getElementById("style-furniture-decision"),
+  keepStyleFurniture: document.getElementById("keep-style-furniture"),
+  replaceStyleFurniture: document.getElementById("replace-style-furniture"),
   toggleCeiling: document.getElementById("toggle-ceiling"),
   toggleWalkMode: document.getElementById("toggle-walk-mode"),
 };
 
 const viewer = createSceneViewer(elements.sceneViewerCanvas, elements.sceneStatus);
+const workflowProjectId = new URLSearchParams(window.location.search).get("project_id") || "roompilot-local-project";
+const workflow = restoreWorkflow({ projectId: workflowProjectId });
 let uploadedDxfText = null;
+let floorplanAnalysis = null;
+let confirmedFloorplanPayload = null;
+let confirmedFloorplanRequirements = null;
+let floorplanCalibrationPoints = [];
+let floorplanCalibrationFile = null;
+let materialSchemes = [];
+let selectedMaterialSchemeId = null;
 let furnitureRandomSeed = Date.now();
 let currentSceneData = null;
-let floorplanScaleM = null;      // F2a 校正後的全圖跨距(公尺);null = 交給解析器自動猜
-let calibrationParsed = null;    // /api/upload 回來的解析結果(目前比例下的公尺座標)
-let calibrationPoints = [];      // 使用者點的兩個世界座標點
-let calibrationTransform = null; // 畫布 ↔ 世界座標轉換
 let intakeState = { sessionId: null, step: null, clientBrief: null, confirmed: false };
 let wallOptionLabelMap = new Map();
 let floorOptionLabelMap = new Map();
@@ -206,7 +282,10 @@ const STYLE_CARD_TO_INTAKE_STYLE = {
   american: "american",
 };
 let selectedStyleCardContext = null;
+let pendingStyleCardContext = null;
+let activeStylePickerGroup = null;
 let libraryProposal = null;
+const IMAGE_PALETTE_SWATCH_COUNT = 4;
 
 function escapeForHtml(value) {
   return String(value ?? "").replace(/[&<>\"']/g, (character) => ({
@@ -216,6 +295,15 @@ function escapeForHtml(value) {
     '"': "&quot;",
     "'": "&#39;",
   })[character]);
+}
+
+function renderImagePaletteSwatches(card) {
+  if (!card?.image_url) return "";
+  const imageUrl = escapeForHtml(card.image_url);
+  return Array.from({ length: IMAGE_PALETTE_SWATCH_COUNT }, (_, index) => {
+    const horizontalPosition = (index / (IMAGE_PALETTE_SWATCH_COUNT - 1)) * 100;
+    return `<span class="scene-image-palette-swatch" style="--palette-image:url(&quot;${imageUrl}&quot;);--palette-x:${horizontalPosition}%"></span>`;
+  }).join("");
 }
 
 function readLibraryProposal() {
@@ -459,19 +547,35 @@ function configureSceneIntakeControls() {
   });
 }
 
-function startSceneFromEntryState() {
+async function startSceneFromEntryState() {
   libraryProposal = readLibraryProposal();
   renderLibraryProposalSummary();
   applyLibraryProposalDefaults();
+  const savedWorkflow = workflow.data;
+  uploadedDxfText = savedWorkflow.floorplan_review?.dxfText || uploadedDxfText;
+  confirmedFloorplanRequirements = savedWorkflow.floorplan_review?.requirements || confirmedFloorplanRequirements;
+  if (savedWorkflow.brief?.clientBrief) {
+    intakeState = { sessionId: null, step: null, clientBrief: savedWorkflow.brief.clientBrief, confirmed: true };
+    syncClientBriefToLegacyFields();
+    renderClientBrief();
+  }
+  const savedSceneData = savedWorkflow.material?.sceneData || savedWorkflow.generating?.sceneData;
+  if (savedSceneData) {
+    currentSceneData = savedSceneData;
+    await refreshCurrentScene("已恢復上次自動儲存的 3D 專案。");
+    prepareMaterialSchemes();
+    if (workflow.currentStep === "budget" || workflow.currentStep === "delivery") renderBom();
+    showWizardSection(workflow.currentStep);
+    return;
+  }
   if (libraryProposal?.furniture?.length) {
-    showWizardSection("chat");
-    startGuidedIntake();
-    elements.sceneStatus.textContent = "已帶入家具資料庫清單，請先補空間類型與房間尺寸。";
+    showWizardSection("floorplan");
+    elements.sceneStatus.textContent = "已帶入家具資料庫清單；請先上傳並確認平面圖。";
     return;
   }
   if (selectedStyleCardContext || requestedStyleId || requestedStyleCardId) {
-    showWizardSection("chat");
-    startGuidedIntake();
+    showWizardSection("floorplan");
+    elements.sceneStatus.textContent = "已保留選定風格；請先上傳並確認平面圖。";
     return;
   }
   showWizardSection("floorplan");
@@ -495,22 +599,193 @@ function renderSelectedStyleCard() {
   if (!elements.selectedStyleCard) return;
   const context = selectedStyleCardContext || findSelectedStyleCardContext();
   selectedStyleCardContext = context;
-  if (!context) {
+  const styleId = context?.group?.scene_style_id || requestedStyleId || elements.stylePreference?.value;
+  const style = (siteData.styles || []).find((item) => item.style_id === styleId);
+  if (!context && !style) {
     elements.selectedStyleCard.hidden = true;
-    elements.selectedStyleCard.innerHTML = "";
     return;
   }
-  const palette = (context.card.palette_hex || [])
-    .map((color) => `<span style="--swatch:${escapeForHtml(color)}"></span>`)
-    .join("");
+  const palette = renderImagePaletteSwatches(context?.card);
   elements.selectedStyleCard.hidden = false;
-  elements.selectedStyleCard.innerHTML = `
-    <div>
-      <span>已選風格</span>
-      <strong>${escapeForHtml(context.group.style_name_zh)}｜${escapeForHtml(context.card.name_zh)}</strong>
-    </div>
-    <div class="scene-selected-style-palette" aria-label="已選色票">${palette}</div>
-  `;
+  elements.selectedStyleName.textContent = context
+    ? `${context.group.style_name_zh}｜${context.card.name_zh}`
+    : style.style_name_zh || styleId;
+  elements.selectedStylePalette.innerHTML = palette;
+  elements.selectedStyleNote.hidden = Boolean(context);
+  elements.selectedStyleNote.textContent = context ? "" : "尚未指定生活色調，將依目前風格自動搭配。";
+}
+
+function renderStylePicker() {
+  if (!elements.stylePickerTabs || !elements.styleCardGrid) return;
+  const groups = siteData.taiwan_style_cards || [];
+  const activeGroup = activeStylePickerGroup || pendingStyleCardContext?.group || selectedStyleCardContext?.group || groups[0];
+  if (!activeGroup) return;
+  activeStylePickerGroup = activeGroup;
+  elements.stylePickerTabs.innerHTML = groups.map((group) => {
+    const tone = group.cards?.[0]?.palette_hex?.[1] || group.cards?.[0]?.palette_hex?.[0] || "#d4bea5";
+    return `
+      <button type="button" class="scene-style-picker-tab ${group.style_id === activeGroup.style_id ? "is-active" : ""}"
+        data-style-picker-group="${escapeForHtml(group.style_id)}" style="--style-tone:${escapeForHtml(tone)}">
+        ${escapeForHtml(group.style_name_zh)}
+      </button>
+    `;
+  }).join("");
+  elements.styleCardGrid.innerHTML = (activeGroup.cards || []).map((card) => {
+    const isSelected = pendingStyleCardContext?.card?.card_id === card.card_id;
+    const swatches = renderImagePaletteSwatches(card);
+    return `
+      <button type="button" class="scene-style-picker-card ${isSelected ? "is-selected" : ""}"
+        data-style-picker-card="${escapeForHtml(card.card_id)}" aria-pressed="${isSelected ? "true" : "false"}">
+        <img src="${escapeForHtml(card.image_url)}" alt="${escapeForHtml(activeGroup.style_name_zh)} ${escapeForHtml(card.name_zh)}" loading="lazy" />
+        <span class="scene-style-picker-card-copy">
+          <span class="scene-style-picker-card-swatches" aria-label="圖中四色材質色卡">${swatches}</span>
+          <strong>${escapeForHtml(card.name_zh)}</strong>
+        </span>
+      </button>
+    `;
+  }).join("");
+  elements.confirmStyleCard.disabled = !pendingStyleCardContext;
+}
+
+function openStylePicker() {
+  const groups = siteData.taiwan_style_cards || [];
+  pendingStyleCardContext = selectedStyleCardContext || findSelectedStyleCardContext();
+  activeStylePickerGroup = pendingStyleCardContext?.group || groups.find((group) => group.scene_style_id === elements.stylePreference?.value) || groups[0] || null;
+  if (!pendingStyleCardContext && activeStylePickerGroup?.cards?.length) {
+    pendingStyleCardContext = { group: activeStylePickerGroup, card: activeStylePickerGroup.cards[0] };
+  }
+  elements.styleFurnitureDecision.hidden = true;
+  elements.styleCardPanel.hidden = false;
+  elements.selectedStyleSummary?.setAttribute("aria-expanded", "true");
+  renderStylePicker();
+  elements.styleCardPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function closeStylePicker(message = "") {
+  elements.styleCardPanel.hidden = true;
+  elements.styleFurnitureDecision.hidden = true;
+  elements.selectedStyleSummary?.setAttribute("aria-expanded", "false");
+  if (message) elements.sceneStatus.textContent = message;
+}
+
+function rememberSceneStyleCard(group, card) {
+  try {
+    sessionStorage.setItem(STYLE_CARD_STORAGE_KEY, JSON.stringify({
+      style: group.scene_style_id,
+      style_id: group.style_id,
+      style_name_zh: group.style_name_zh,
+      style_card: card.card_id,
+      card_name_zh: card.name_zh,
+      palette_hex: card.palette_hex || [],
+    }));
+  } catch (error) {
+    console.warn("無法儲存已選風格色調", error);
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set("style", group.scene_style_id);
+  url.searchParams.set("style_card", card.card_id);
+  history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function furnitureNeedsStyleDecision(styleId) {
+  const proposalItems = getLibraryProposalFurniture();
+  const sceneItems = currentSceneData?.scene_objects || [];
+  return [...proposalItems, ...sceneItems].some((item) => !styleMatchesFurniture(item, styleId));
+}
+
+async function applyPendingStyleCard() {
+  if (!pendingStyleCardContext) return;
+  const { group, card } = pendingStyleCardContext;
+  requestedStyleId = group.scene_style_id;
+  requestedStyleCardId = card.card_id;
+  selectedStyleCardContext = { group, card };
+  rememberSceneStyleCard(group, card);
+  if ((siteData.styles || []).some((style) => style.style_id === group.scene_style_id)) {
+    elements.stylePreference.value = group.scene_style_id;
+  }
+  elements.customColors.value = (card.palette_hex || []).join(", ");
+  surfaceSearchQueries.floor = "";
+  surfaceStyleOnly.floor = false;
+  surfaceVisibleLimits.floor = 12;
+  syncSurfaceChoicesToStyle();
+  if (intakeState.clientBrief) {
+    intakeState.clientBrief = applySelectedStyleToBrief(intakeState.clientBrief);
+    renderClientBrief();
+  }
+  if (currentSceneData) {
+    const style = (siteData.styles || []).find((item) => item.style_id === group.scene_style_id) || {};
+    currentSceneData.style = { ...(currentSceneData.style || {}), ...style, style_id: group.scene_style_id };
+    currentSceneData.style_card = { ...card };
+    currentSceneData.design_choices = {
+      ...(currentSceneData.design_choices || {}),
+      style_card_id: card.card_id,
+    };
+  }
+  renderSelectedStyleCard();
+  renderStylePicker();
+  appendChatMessage("ai", `風格已更換為「${group.style_name_zh}｜${card.name_zh}」。先前填寫的房型、尺寸與特殊需求都已保留。`);
+  await applySurfaceChoiceToCurrentScene();
+  if (furnitureNeedsStyleDecision(group.scene_style_id)) {
+    elements.styleFurnitureDecision.hidden = false;
+    elements.confirmStyleCard.disabled = true;
+    elements.sceneStatus.textContent = `已改為「${group.style_name_zh}｜${card.name_zh}」，請決定是否替換不相符的家具。`;
+    return;
+  }
+  closeStylePicker(`已套用「${group.style_name_zh}｜${card.name_zh}」，空間資料與聊天需求均已保留。`);
+}
+
+async function replaceFurnitureForSelectedStyle() {
+  const styleId = selectedStyleCardContext?.group?.scene_style_id || requestedStyleId;
+  if (!styleId) return;
+  elements.replaceStyleFurniture.disabled = true;
+  elements.replaceStyleFurniture.textContent = "替換中...";
+  let replacedCount = 0;
+  let retainedCount = 0;
+  const usedIds = new Set();
+
+  if (libraryProposal?.furniture?.length) {
+    const replacements = [];
+    for (const item of libraryProposal.furniture) {
+      const type = item.normalized_type || item.type || item.category;
+      const candidate = type ? await fetchStyledFurnitureCandidate(type, styleId, usedIds, false) : null;
+      if (candidate) {
+        replacements.push(candidate);
+        usedIds.add(candidate.furniture_id);
+        replacedCount += 1;
+      } else {
+        replacements.push(item);
+        retainedCount += 1;
+      }
+    }
+    libraryProposal.furniture = replacements;
+    saveLibraryProposal();
+    renderLibraryProposalSummary();
+  }
+
+  if (currentSceneData?.scene_objects?.length) {
+    const replacements = [];
+    for (const item of currentSceneData.scene_objects) {
+      const candidate = await fetchStyledFurnitureCandidate(item.normalized_type, styleId, usedIds, false);
+      if (candidate) {
+        replacements.push(sceneObjectFromFurniture(candidate));
+        usedIds.add(candidate.furniture_id);
+        replacedCount += 1;
+      } else {
+        replacements.push(item);
+        retainedCount += 1;
+      }
+    }
+    currentSceneData.scene_objects = replacements;
+    await reflowSceneObjects(currentSceneData);
+    await refreshCurrentScene();
+  }
+
+  intakeState.clientBrief = seedClientBriefFromCurrentForm(intakeState.clientBrief);
+  renderClientBrief();
+  elements.replaceStyleFurniture.disabled = false;
+  elements.replaceStyleFurniture.textContent = "依新風格替換";
+  const retainedMessage = retainedCount ? `；${retainedCount} 件找不到同類型新風格模型，已保留原家具` : "";
+  closeStylePicker(`已依新風格替換 ${replacedCount} 件家具${retainedMessage}。空間與聊天需求未變更。`);
 }
 
 function applySelectedStyleToBrief(brief) {
@@ -519,7 +794,9 @@ function applySelectedStyleToBrief(brief) {
   if (!context || !brief) return brief;
   brief.style = brief.style || {};
   const intakeStyle = STYLE_CARD_TO_INTAKE_STYLE[context.group.scene_style_id] || context.group.scene_style_id;
-  brief.style.preferred = Array.from(new Set([...(brief.style.preferred || []), intakeStyle].filter(Boolean)));
+  const knownStyles = new Set([...Object.keys(STYLE_CARD_TO_INTAKE_STYLE), ...Object.values(STYLE_CARD_TO_INTAKE_STYLE)]);
+  const retainedStyles = (brief.style.preferred || []).filter((style) => !knownStyles.has(style));
+  brief.style.preferred = Array.from(new Set([...retainedStyles, intakeStyle].filter(Boolean)));
   brief.style.selected_card_id = context.card.card_id;
   brief.style.selected_card_name_zh = context.card.name_zh;
   brief.style.selected_style_name_zh = context.group.style_name_zh;
@@ -579,31 +856,59 @@ function mergeUserAnswerIntoBrief(answer) {
 }
 
 function showWizardSection(section) {
+  const normalizedSection = section === "final" ? "scene_review" : section;
+  if (WORKFLOW_STEPS.includes(normalizedSection) && normalizedSection !== workflow.currentStep) {
+    if (!workflow.goTo(normalizedSection)) {
+      elements.sceneStatus.textContent = "請先完成目前步驟，才能繼續。";
+      return false;
+    }
+  }
   const sections = {
     welcome: elements.welcomePanel,
     floorplan: elements.floorplanStep,
+    floorplan_review: elements.floorplanReviewStep,
     chat: elements.chatPanel,
     brief: elements.briefPanel,
-    style: elements.styleCardPanel,
+    generating: elements.generatingStep,
+    material: elements.materialStep,
+    scene_review: elements.reviewStep,
+    budget: elements.budgetStep,
+    delivery: elements.deliveryStep,
   };
   Object.entries(sections).forEach(([key, element]) => {
     if (element) {
-      element.hidden = key !== section;
-      if (key === section) {
+      element.hidden = key !== normalizedSection;
+      if (key === normalizedSection) {
         element.classList.remove("wizard-enter");
         void element.offsetWidth;
         element.classList.add("wizard-enter");
       }
     }
   });
-  const isFinal = section === "final";
-  if (elements.formPanel) elements.formPanel.hidden = isFinal;
-  if (elements.viewerSide) elements.viewerSide.hidden = !isFinal;
-  document.body.dataset.sceneStage = section;
+  const viewerSteps = new Set(["material", "scene_review", "budget", "delivery"]);
+  if (elements.formPanel) elements.formPanel.hidden = false;
+  if (elements.viewerSide) elements.viewerSide.hidden = !viewerSteps.has(normalizedSection);
+  document.body.dataset.sceneStage = normalizedSection;
+  if (normalizedSection === "delivery") renderSpaceChangeReport("customer");
+  const pdfStepByWorkflow = {
+    floorplan: 3,
+    floorplan_review: 5,
+    chat: 6,
+    brief: 7,
+    generating: 8,
+    material: 9,
+    scene_review: 10,
+    budget: 10,
+    delivery: 10,
+  };
+  const pdfStep = pdfStepByWorkflow[normalizedSection] || 1;
+  if (elements.workflowCounter) elements.workflowCounter.textContent = `第 ${pdfStep} 步／共 10 步`;
   document.querySelectorAll("[data-wizard-step]").forEach((item) => {
-    item.classList.toggle("is-active", item.dataset.wizardStep === section);
-    item.classList.toggle("is-complete", ["chat", "brief", "final"].includes(section) && item.dataset.wizardStep === "floorplan");
+    const itemPdfStep = Number(item.dataset.pdfStep || 0);
+    item.classList.toggle("is-active", itemPdfStep === pdfStep);
+    item.classList.toggle("is-complete", itemPdfStep > 0 && itemPdfStep < pdfStep);
   });
+  return true;
 }
 
 const SURFACE_DISPLAY = {
@@ -1131,18 +1436,21 @@ function styleMatchesFurniture(item, styleId) {
   );
 }
 
-async function pickFurnitureCandidate(type, usedIds = new Set()) {
-  if (!currentSceneData) return null;
-  const styleId = currentSceneData.style.style_id;
+async function fetchStyledFurnitureCandidate(type, styleId, usedIds = new Set(), allowFallback = true) {
   const styledResult = await fetchFurniturePage({ style: styleId, type, page: 1, page_size: 80, has_model: true, detail: "scene" });
   let pool = (styledResult.items || []).filter((item) => !usedIds.has(item.furniture_id));
-  if (!pool.length) {
+  if (!pool.length && allowFallback) {
     const fallbackResult = await fetchFurniturePage({ type, page: 1, page_size: 80, has_model: true, detail: "scene" });
     pool = (fallbackResult.items || []).filter((item) => !usedIds.has(item.furniture_id));
   }
   if (!pool.length) return null;
   const topPool = pool.slice(0, Math.min(pool.length, 28));
   return topPool[Math.floor(Math.random() * topPool.length)];
+}
+
+async function pickFurnitureCandidate(type, usedIds = new Set()) {
+  if (!currentSceneData) return null;
+  return fetchStyledFurnitureCandidate(type, currentSceneData.style.style_id, usedIds, true);
 }
 
 function sceneObjectFromFurniture(item) {
@@ -1165,7 +1473,7 @@ function sceneObjectFromFurniture(item) {
   };
 }
 
-async function reflowSceneObjects(sceneData) {
+async function reflowSceneObjects(sceneData, placementRoomId = null) {
   try {
     const response = await fetch("/api/scene/layout", {
       method: "POST",
@@ -1175,6 +1483,7 @@ async function reflowSceneObjects(sceneData) {
         room_depth_cm: Number(sceneData.floorplan?.depth_cm) || 360,
         floorplan: sceneData.floorplan || null,
         scene_objects: sceneData.scene_objects,
+        placement_room_id: placementRoomId,
       }),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1271,15 +1580,15 @@ function renderInitialProviderStatus() {
 }
 
 function applyStyleCardFromQuery() {
+  selectedStyleCardContext = findSelectedStyleCardContext();
   const requestedStyle = (siteData.styles || []).find((style) => style.style_id === requestedStyleId);
   if (requestedStyle) {
     elements.stylePreference.value = requestedStyle.style_id;
   }
-  const styleGroup = (siteData.taiwan_style_cards || []).find((group) => group.cards?.some((card) => card.card_id === requestedStyleCardId));
-  const card = styleGroup?.cards?.find((item) => item.card_id === requestedStyleCardId);
-  if (!card) return;
-  elements.customColors.value = card.palette_hex.join(", ");
-  elements.sceneStatus.textContent = `已帶入「${styleGroup.style_name_zh}｜${card.name_zh}」色卡，生成時會同步套用。`;
+  renderSelectedStyleCard();
+  if (!selectedStyleCardContext) return;
+  elements.customColors.value = (selectedStyleCardContext.card.palette_hex || []).join(", ");
+  elements.sceneStatus.textContent = `已帶入「${selectedStyleCardContext.group.style_name_zh}｜${selectedStyleCardContext.card.name_zh}」色卡，生成時會同步套用。`;
 }
 
 function appendChatMessage(role, text) {
@@ -1491,7 +1800,122 @@ function drawDxfPreview(plan) {
   return canvas;
 }
 
+function floorplanNeedsCalibration(analysis = floorplanAnalysis) {
+  if (!analysis || analysis.source === "dxf") return false;
+  return !analysis.scale
+    || analysis.requires_scale_confirmation === true
+    || (analysis.walls || []).length === 0;
+}
+
+function resetFloorplanCalibration() {
+  floorplanCalibrationPoints = [];
+  renderFloorplanCalibration();
+}
+
+function renderFloorplanCalibration() {
+  const image = elements.floorplanCalibrationImage;
+  const overlay = elements.floorplanCalibrationOverlay;
+  if (!image || !overlay) return;
+  const width = Number(image.naturalWidth || 1);
+  const height = Number(image.naturalHeight || 1);
+  overlay.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  const radius = Math.max(width, height) * 0.012;
+  const circles = floorplanCalibrationPoints
+    .map((point, index) => `<circle cx="${point.x}" cy="${point.y}" r="${radius}" fill="${index ? "#c9563f" : "#2f6f5e"}" stroke="#fff" stroke-width="${Math.max(2, radius / 3)}" />`)
+    .join("");
+  const line = floorplanCalibrationPoints.length === 2
+    ? `<line x1="${floorplanCalibrationPoints[0].x}" y1="${floorplanCalibrationPoints[0].y}" x2="${floorplanCalibrationPoints[1].x}" y2="${floorplanCalibrationPoints[1].y}" stroke="#c9563f" stroke-width="${Math.max(3, radius / 2)}" stroke-dasharray="${radius} ${radius / 2}" />`
+    : "";
+  overlay.innerHTML = `${line}${circles}`;
+  if (elements.floorplanCalibrationStatus) {
+    if (!floorplanCalibrationPoints.length) {
+      elements.floorplanCalibrationStatus.textContent = "尚未選點：請先點尺寸線起點。";
+    } else if (floorplanCalibrationPoints.length === 1) {
+      elements.floorplanCalibrationStatus.textContent = "已選起點：請再點尺寸線終點。";
+    } else {
+      const distanceCm = Number(elements.floorplanScaleCm?.value || 0);
+      if (distanceCm > 0) {
+        const calibration = buildScaleCalibration(floorplanCalibrationPoints, distanceCm);
+        elements.floorplanCalibrationStatus.textContent = `已選取 ${calibration.pixel_distance.toFixed(1)} px；將對應 ${calibration.distance_cm.toFixed(1)} cm。`;
+      } else {
+        elements.floorplanCalibrationStatus.textContent = "兩點已選取，請輸入這一段的實際公分數。";
+      }
+    }
+  }
+  if (elements.applyFloorplanCalibration) {
+    elements.applyFloorplanCalibration.disabled = floorplanCalibrationPoints.length !== 2 || !(Number(elements.floorplanScaleCm?.value) > 0);
+  }
+}
+
+function prepareFloorplanCalibration(file) {
+  floorplanCalibrationFile = file;
+  floorplanCalibrationPoints = [];
+  if (!elements.floorplanCalibrationImage) return;
+  const objectUrl = URL.createObjectURL(file);
+  elements.floorplanCalibrationImage.onload = () => {
+    URL.revokeObjectURL(objectUrl);
+    renderFloorplanCalibration();
+  };
+  elements.floorplanCalibrationImage.src = objectUrl;
+}
+
+function selectFloorplanCalibrationPoint(event) {
+  const image = elements.floorplanCalibrationImage;
+  if (!image?.naturalWidth) return;
+  const point = pointerToImagePoint(event, image.getBoundingClientRect(), {
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+  });
+  floorplanCalibrationPoints = floorplanCalibrationPoints.length >= 2 ? [point] : [...floorplanCalibrationPoints, point];
+  renderFloorplanCalibration();
+}
+
+async function applyFloorplanCalibration() {
+  if (!floorplanCalibrationFile) return;
+  try {
+    const calibration = buildScaleCalibration(floorplanCalibrationPoints, Number(elements.floorplanScaleCm?.value || 0));
+    elements.applyFloorplanCalibration.disabled = true;
+    elements.floorplanCalibrationStatus.textContent = "正在依照你標定的尺度重新辨識牆、門窗與房間…";
+    const formData = new FormData();
+    formData.append("file", floorplanCalibrationFile);
+    formData.append("calibration_json", JSON.stringify({
+      distance_cm: calibration.distance_cm,
+      start_px: calibration.start_px,
+      end_px: calibration.end_px,
+    }));
+    const response = await fetch("/api/floorplan/analyze", { method: "POST", body: formData });
+    if (!response.ok) throw new Error(`重新辨識失敗 HTTP ${response.status}`);
+    const result = await response.json();
+    floorplanAnalysis = result.analysis;
+    floorplanAnalysis.requirements = result.requirements;
+    confirmedFloorplanPayload = null;
+    renderFloorplanAnalysisReview();
+    elements.floorplanCalibrationStatus.textContent = floorplanNeedsCalibration()
+      ? "尺度已套用，但牆體仍不足；請確認兩點是否落在同一條標註尺寸線上。"
+      : "尺度校正完成，已重新計算牆、門窗、房間尺寸與面積。";
+  } catch (error) {
+    console.error(error);
+    elements.floorplanCalibrationStatus.textContent = error.message || "尺度校正失敗，請重選兩點。";
+    renderFloorplanCalibration();
+  }
+}
+
 async function previewFloorplan() {
+  workflow.setPrivacyConsent({
+    accepted: elements.privacyConsent?.checked === true,
+    projectOnly: elements.privacyConsent?.checked === true,
+    noTraining: elements.privacyConsent?.checked === true,
+  });
+  workflow.setBasicProfile({
+    household: elements.profileHousehold?.value,
+    projectStatus: elements.profileProjectStatus?.value,
+    aiAssistance: elements.profileAiAssistance?.value,
+  });
+  if (!workflow.canAnalyzeFloorplan()) {
+    elements.sceneStatus.textContent = "請先閱讀隱私說明，並完成家庭成員、房屋狀態與 AI 協助方式。";
+    if (elements.floorplan) elements.floorplan.value = "";
+    return;
+  }
   const file = elements.floorplan.files?.[0];
   if (!file) return;
   elements.floorplanPreview.hidden = false;
@@ -1520,14 +1944,52 @@ async function previewFloorplan() {
       const doorCount = (plan.door_segments || plan.doors || []).length;
       const windowCount = (plan.window_segments || plan.windows || []).length;
       elements.floorplanStatus.textContent = `${widthCm.toFixed(1)} × ${depthCm.toFixed(1)} cm｜牆 ${segmentCount} · 門 ${doorCount} · 窗 ${windowCount}`;
+      floorplanAnalysis = {
+        source: "dxf",
+        scale: { distance_m: widthCm / 100, source: "dxf_geometry" },
+        walls: plan.wall_segments || plan.plan_segments || [],
+        doors: plan.door_segments || plan.doors || [],
+        windows: plan.window_segments || plan.windows || [],
+        rooms: plan.rooms || [],
+        requires_confirmation: false,
+        requirements: {
+          rooms: [{
+            room_id: "dxf-plan",
+            room_type: "unclassified",
+            label: "全屋／待需求訪談分房",
+            requirements: [
+              ["electricity", "general_power", "一般用電"],
+              ["water", "water_supply", "給水"],
+              ["drainage", "drainage", "排水"],
+              ["gas", "gas_supply", "瓦斯（條件式）"],
+            ].map(([utility, code, description_zh]) => ({ utility, code, description_zh, status: "conditional", source: "user_confirmation", requires_confirmation: true })),
+          }],
+        },
+      };
+      confirmedFloorplanPayload = { ready_for_design: true, floorplan: plan, dxf_text: uploadedDxfText, requirements: { rooms: [] } };
     } else {
+      prepareFloorplanCalibration(file);
       const image = document.createElement("img");
       image.src = URL.createObjectURL(file);
       image.alt = "已上傳的平面圖預覽";
       image.onload = () => URL.revokeObjectURL(image.src);
       elements.floorplanPreviewContent.appendChild(image);
-      elements.floorplanStatus.textContent = "平面圖已載入";
+      elements.floorplanStatus.textContent = "正在辨識尺度、牆、門窗與房間...";
+      const formData = new FormData();
+      formData.append("file", file);
+      const analysisResponse = await fetch("/api/floorplan/analyze", { method: "POST", body: formData });
+      if (!analysisResponse.ok) throw new Error(`辨識失敗 HTTP ${analysisResponse.status}`);
+      const result = await analysisResponse.json();
+      floorplanAnalysis = result.analysis;
+      floorplanAnalysis.requirements = result.requirements;
+      confirmedFloorplanPayload = null;
+      const distanceCm = Number(floorplanAnalysis.scale?.distance_m || 0) * 100;
+      elements.floorplanStatus.textContent = distanceCm
+        ? `辨識尺度 ${distanceCm.toFixed(1)} cm｜請進入下一步核對`
+        : "未找到可靠尺度｜請在下一步輸入標註尺寸";
     }
+    workflow.complete("floorplan", { filename: file.name, kind: extension.slice(1) });
+    renderFloorplanAnalysisReview();
     elements.continueToChat.disabled = false;
     elements.sceneStatus.textContent = "空間預覽完成，接下來一起整理你的需求。";
   } catch (error) {
@@ -1535,6 +1997,186 @@ async function previewFloorplan() {
     elements.floorplanStatus.textContent = error.message === "DWG_UNSUPPORTED"
       ? "DWG 目前請先轉存為 DXF"
       : "讀取失敗，請重新選擇檔案";
+  }
+}
+
+function renderFloorplanAnalysisReview() {
+  if (!floorplanAnalysis || !elements.floorplanAnalysisSummary) return;
+  const scaleCm = Number(floorplanAnalysis.scale?.distance_m || 0) * 100;
+  if (elements.floorplanScaleCm) elements.floorplanScaleCm.value = scaleCm ? scaleCm.toFixed(1) : "";
+  const needsCalibration = floorplanNeedsCalibration(floorplanAnalysis);
+  if (elements.floorplanCalibrationPanel) {
+    elements.floorplanCalibrationPanel.hidden = floorplanAnalysis.source === "dxf";
+    elements.floorplanCalibrationPanel.classList.toggle("needs-calibration", needsCalibration);
+  }
+  if (elements.confirmFloorplanAnalysis) elements.confirmFloorplanAnalysis.disabled = needsCalibration;
+  renderFloorplanCalibration();
+  const presentation = buildRecognitionPresentation(floorplanAnalysis);
+  const requirements = floorplanAnalysis.requirements?.rooms || [];
+  const utilities = new Set();
+  requirements.forEach((room) => (room.requirements || []).forEach((item) => utilities.add(item.utility)));
+  const utilityLabels = { electricity: "電", water: "給水", drainage: "排水", gas: "瓦斯", ventilation: "通風" };
+  const countText = presentation.summaryItems
+    .map((item) => `${item.label} ${item.count} 間`)
+    .join("、");
+  elements.floorplanAnalysisSummary.innerHTML = `
+    <div><span>尺度</span><strong>${scaleCm ? `${scaleCm.toFixed(1)} cm` : "待人工輸入"}</strong></div>
+    <div><span>結構</span><strong>牆 ${(floorplanAnalysis.walls || []).length} · 門 ${(floorplanAnalysis.doors || []).length} · 窗 ${(floorplanAnalysis.windows || []).length}</strong></div>
+    <div><span>空間辨識</span><strong>${escapeForHtml(countText || "尚未辨識")}</strong></div>
+    <div><span>機電需求</span><strong>${[...utilities].map((item) => utilityLabels[item] || item).join("、") || "待需求訪談確認"}</strong></div>
+  `;
+  if (elements.recognizedRoomMap) elements.recognizedRoomMap.innerHTML = presentation.rooms.map((room) => `
+    <button type="button" class="recognized-room-card ${room.needsReview ? "needs-review" : "is-accepted"}" data-room-id="${escapeForHtml(room.roomId)}">
+      <strong>${escapeForHtml(room.label)}</strong><span>${escapeForHtml(room.dimensionLabel)}</span><small>${room.needsReview ? "需要局部修正" : `高信心 ${(Number(room.confidence?.score || 0) * 100).toFixed(0)}%`}</small>
+    </button>`).join("");
+  if (elements.recognitionCorrectionPanel) elements.recognitionCorrectionPanel.innerHTML = presentation.correctionPrompts.length
+    ? `<strong>只需修正以下疑點</strong>${presentation.correctionPrompts.map((item) => `<div class="targeted-correction"><span>${escapeForHtml(item.roomId)}：${escapeForHtml(item.reasonLabel)}</span><select data-finding-choice="${escapeForHtml(item.findingId)}">${item.reason === "room_geometry_low_confidence" ? '<option value="accept_assumption">採用目前邊界並記錄人工確認</option>' : ""}<option value="professional_redraw">保留為待設計師重畫</option></select><button type="button" data-finding-id="${escapeForHtml(item.findingId)}" data-room-id="${escapeForHtml(item.roomId)}">套用這項決定</button></div>`).join("")}`
+    : "<p>辨識證據與幾何檢查已通過，可直接繼續。</p>";
+  workflow.setRecognition({
+    rooms: presentation.rooms.map((room) => ({ id: room.roomId, type: room.roomType, label: room.label })),
+    reviewItems: presentation.correctionPrompts.map((item) => ({ id: item.findingId, room_id: item.roomId, status: "needs_targeted_review" })),
+  });
+  if (elements.roomInterviewNav) elements.roomInterviewNav.innerHTML = presentation.rooms.map((room) => `
+    <button type="button" data-room-id="${escapeForHtml(room.roomId)}" data-room-status="not_started">
+      <strong>${escapeForHtml(room.label)}</strong><small>尚未訪談</small>
+    </button>`).join("");
+  if (elements.wallBoxingRoom) elements.wallBoxingRoom.innerHTML = `<option value="">請選擇房間</option>${presentation.rooms
+    .filter((room) => !room.needsReview)
+    .map((room) => `<option value="${escapeForHtml(room.roomId)}">${escapeForHtml(room.label)}｜${escapeForHtml(room.dimensionLabel)}</option>`)
+    .join("")}`;
+  elements.roomInterviewNav?.querySelectorAll("[data-room-id]").forEach((button) => button.addEventListener("click", () => openRoomInterview(button.dataset.roomId)));
+  elements.recognitionCorrectionPanel?.querySelectorAll("[data-finding-id]").forEach((button) => button.addEventListener("click", () => {
+    const choice = elements.recognitionCorrectionPanel.querySelector(`[data-finding-choice="${CSS.escape(button.dataset.findingId)}"]`)?.value;
+    if (choice === "professional_redraw") {
+      elements.sceneStatus.textContent = "此項已保留給設計師重畫，完成前不會進入正式方案。";
+      return;
+    }
+    const correctedRoom = floorplanAnalysis.rooms?.find((room) => room.id === button.dataset.roomId);
+    if (correctedRoom) {
+      correctedRoom.confidence = 1;
+      correctedRoom.polygon_confidence = 1;
+      correctedRoom.source = "manual_confirmation";
+      correctedRoom.polygon_source = correctedRoom.polygon_source || "manual_confirmation";
+    }
+    workflow.resolveReviewItem(button.dataset.findingId, { acceptedCurrentGeometry: true, assumptionRecorded: true });
+    button.disabled = true;
+    button.textContent = "已完成此項局部修正";
+  }));
+}
+
+function openRoomInterview(roomId) {
+  const room = floorplanAnalysis?.spatial_report?.rooms?.find((item) => item.room_id === roomId);
+  if (!room || !elements.guidedRoomRecommendation) return;
+  const choicesByType = {
+    bedroom: ["睡眠優先、保留寬敞走道", "收納優先、增加整面櫃", "彈性使用、兼作工作空間"],
+    bathroom: ["安全與乾濕分離優先", "收納與清潔優先", "設備舒適度優先"],
+    kitchen: ["日常快煮與好清潔", "完整備餐與電器收納", "開放互動與用餐整合"],
+    living_room: ["家庭交流與舒適座位", "影音觀賞優先", "親子活動與彈性留白"],
+    dining_room: ["日常用餐優先", "餐桌兼工作桌", "聚會與多人用餐"],
+    balcony: ["洗曬機能優先", "植栽休憩優先", "收納與家務整合"],
+  };
+  const choices = (choicesByType[room.room_type] || ["維持彈性", "收納優先", "舒適優先"]).map((label, index) => ({ label, recommended: index === 0 }));
+  const recommendation = buildExplainableRecommendation({
+    recommendation: choices[0].label,
+    evidence: room.evidence || [],
+    customerNeeds: [workflow.data.basic_profile?.household || "家庭成員待補充"],
+    rules: ["依房間淨尺寸、門窗與必要通道判斷"],
+    tradeoffs: ["採用推薦後仍需依現場丈量微調家具與機電位置"],
+    assumptions: room.assumptions || [],
+    confidence: room.confidence || { level: "low", score: 0 },
+    choices,
+  });
+  elements.guidedRoomRecommendation.hidden = false;
+  elements.guidedRoomRecommendation.dataset.roomId = roomId;
+  elements.guidedRoomTitle.textContent = `${room.label || room.room_type}：請選擇最接近你的生活方式`;
+  elements.guidedChoiceList.innerHTML = recommendation.choices.map((choice) => `<button type="button" data-room-choice="${escapeForHtml(choice.label)}" data-recommended="${choice.recommended}">${choice.recommended ? "AI 推薦｜" : ""}${escapeForHtml(choice.label)}</button>`).join("");
+  elements.recommendationReason.textContent = `建議：${recommendation.recommendation}。依據房間實際尺寸與你的家庭資料。`;
+  elements.recommendationEvidence.textContent = `圖面證據：${recommendation.evidence.map((item) => item.displayLabel).join("、") || "待補充"}`;
+  elements.recommendationTradeoff.textContent = `取捨：${recommendation.tradeoffs.join("；")}`;
+  elements.recommendationConfidence.textContent = `信心：${recommendation.confidence.level}（${Math.round(Number(recommendation.confidence.score || 0) * 100)}%）`;
+  elements.recommendationAssumptions.textContent = `假設：${recommendation.assumptions.join("；") || "無"}`;
+  elements.guidedChoiceList.querySelectorAll("[data-room-choice]").forEach((button) => button.addEventListener("click", () => {
+    completeRoomBrief(roomId, {
+      status: "confirmed",
+      accepted: true,
+      selectedChoice: button.dataset.roomChoice,
+      wasAiRecommended: button.dataset.recommended === "true",
+    });
+  }));
+}
+
+function completeRoomBrief(roomId, brief) {
+  workflow.setRoomBrief(roomId, { ...brief, confirmedAt: new Date().toISOString() });
+  const navButton = elements.roomInterviewNav?.querySelector(`[data-room-id="${CSS.escape(roomId)}"]`);
+  if (navButton) {
+    navButton.dataset.roomStatus = brief.status;
+    const status = navButton.querySelector("small");
+    if (status) status.textContent = brief.status === "ai_recommended" ? "AI 建議已採用" : "需求已確認";
+  }
+  elements.guidedRoomRecommendation.hidden = true;
+  if (elements.chatHint) elements.chatHint.textContent = workflow.getDesignReadiness().incompleteRooms.length
+    ? "已記錄此空間，請繼續下一個空間。"
+    : "所有空間需求都已確認，可以完成需求摘要。";
+}
+
+async function confirmFloorplanAndContinue() {
+  if (!floorplanAnalysis) {
+    elements.sceneStatus.textContent = "請先上傳並完成平面圖辨識。";
+    return;
+  }
+  if (workflow.getDesignReadiness().blockers.includes("recognition_review_incomplete")) {
+    elements.sceneStatus.textContent = "請只處理畫面列出的低信心疑點。";
+    return;
+  }
+  if (floorplanNeedsCalibration()) {
+    elements.sceneStatus.textContent = "請先在平面圖尺寸線兩端點選定位，輸入實際尺寸，再按「依此尺度重新辨識」。";
+    elements.floorplanCalibrationPanel?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  const scaleCm = Number(elements.floorplanScaleCm?.value || 0);
+  if (!(scaleCm > 0)) {
+    elements.sceneStatus.textContent = "請輸入有效的標註尺寸（公分）。";
+    return;
+  }
+  elements.confirmFloorplanAnalysis.disabled = true;
+  try {
+    if (floorplanAnalysis.source !== "dxf") {
+      const corrections = buildFloorplanConfirmationCorrections(floorplanAnalysis, scaleCm);
+      const response = await fetch("/api/floorplan/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysis: floorplanAnalysis, corrections }),
+      });
+      if (!response.ok) {
+        const detail = await response.json().catch(() => ({}));
+        throw new Error(detail.detail || `HTTP ${response.status}`);
+      }
+      confirmedFloorplanPayload = await response.json();
+      confirmedFloorplanRequirements = confirmedFloorplanPayload.requirements;
+      uploadedDxfText = confirmedFloorplanPayload.dxf_text;
+    } else {
+      confirmedFloorplanRequirements = floorplanAnalysis.requirements || { rooms: [] };
+    }
+    workflow.complete("floorplan_review", {
+      scaleCm,
+      confirmed: true,
+      wallCount: (floorplanAnalysis.walls || []).length,
+      doorCount: (floorplanAnalysis.doors || []).length,
+      windowCount: (floorplanAnalysis.windows || []).length,
+      dxfText: uploadedDxfText,
+      requirements: confirmedFloorplanRequirements,
+    });
+    if (showWizardSection("chat")) {
+      elements.chatInput?.focus();
+      startGuidedIntake();
+    }
+  } catch (error) {
+    console.error(error);
+    elements.sceneStatus.textContent = error.message === "scale_reference_required"
+      ? "無法建立尺度基準，請重新上傳完整包含尺寸線的平面圖。"
+      : `圖面尚未通過確認：${error.message}`;
+  } finally {
+    elements.confirmFloorplanAnalysis.disabled = false;
   }
 }
 
@@ -1549,9 +2191,7 @@ function acceptDroppedFloorplan(event) {
 }
 
 function enterGuidedChat() {
-  showWizardSection("chat");
-  elements.chatInput?.focus();
-  startGuidedIntake();
+  if (showWizardSection("floorplan_review")) renderFloorplanAnalysisReview();
 }
 
 async function sendGuidedAnswer() {
@@ -1610,13 +2250,13 @@ async function generateScene(event) {
     elements.sceneStatus.textContent = "請先完成並確認需求 JSON。";
     return;
   }
-  showWizardSection("final");
+  showWizardSection("generating");
   setGeneratingState(true);
   try {
     const floorplanFile = elements.floorplan.files?.[0];
-    uploadedDxfText = floorplanFile && floorplanFile.name.toLowerCase().endsWith(".dxf")
-      ? await floorplanFile.text()
-      : null;
+    if (floorplanFile && floorplanFile.name.toLowerCase().endsWith(".dxf")) {
+      uploadedDxfText = await floorplanFile.text();
+    }
     const sceneLook = getStyleSceneLook();
     const payload = {
       client_brief: intakeState.clientBrief,
@@ -1638,7 +2278,6 @@ async function generateScene(event) {
       prefer_low_saturation: elements.preferLowSaturation.checked,
       floorplan_filename: floorplanFile ? floorplanFile.name : null,
       floorplan_dxf_text: uploadedDxfText,
-      floorplan_scale_m: floorplanScaleM,
       wall_option: getResolvedSurfaceChoice(elements.wallOptions, "wall-option", sceneLook.wall),
       floor_option: getResolvedSurfaceChoice(elements.floorOptions, "floor-option", sceneLook.floor),
       furniture_random_seed: furnitureRandomSeed,
@@ -1650,13 +2289,19 @@ async function generateScene(event) {
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     currentSceneData = await response.json();
+    if (confirmedFloorplanPayload?.floorplan?.room_regions?.length && currentSceneData.floorplan) {
+      currentSceneData.floorplan.room_regions = structuredClone(confirmedFloorplanPayload.floorplan.room_regions);
+      currentSceneData.floorplan.recognition_report = structuredClone(confirmedFloorplanPayload.floorplan.recognition_report || {});
+    }
     const emptySceneReason = explainEmptyScene(currentSceneData);
     if (emptySceneReason) {
-      elements.sceneStatus.textContent = emptySceneReason;
-      await refreshCurrentScene(emptySceneReason);
-      return;
+      await refreshCurrentScene(`白模已生成；${emptySceneReason}`);
+    } else {
+      await refreshCurrentScene("場景已生成，請鎖定視角並選擇智慧材質方案。");
     }
-    await refreshCurrentScene("場景已生成，可在右側清單替換或移除家具。");
+    workflow.complete("generating", { sceneObjectCount: currentSceneData.scene_objects?.length || 0, sceneData: currentSceneData });
+    prepareMaterialSchemes();
+    showWizardSection("material");
   } catch (error) {
     console.error(error);
     elements.sceneStatus.textContent = "場景生成失敗，請檢查條件或稍後再試。";
@@ -1733,56 +2378,12 @@ seedClientBriefFromCurrentForm = function seedClientBriefFromCurrentFormFixed(br
   const selectedStyleId = elements.stylePreference?.value;
   if (selectedStyleId) {
     next.style = next.style || {};
-    next.style.preferred = Array.from(new Set([...(next.style.preferred || []), selectedStyleId]));
+    const intakeStyle = STYLE_CARD_TO_INTAKE_STYLE[selectedStyleId] || selectedStyleId;
+    const knownStyles = new Set([...Object.keys(STYLE_CARD_TO_INTAKE_STYLE), ...Object.values(STYLE_CARD_TO_INTAKE_STYLE)]);
+    const retainedStyles = (next.style.preferred || []).filter((style) => !knownStyles.has(style));
+    next.style.preferred = Array.from(new Set([...retainedStyles, intakeStyle]));
   }
   return next;
-};
-
-renderSelectedStyleCard = function renderSelectedStyleCardFixed() {
-  if (!elements.selectedStyleCard) return;
-  const context = selectedStyleCardContext || findSelectedStyleCardContext();
-  selectedStyleCardContext = context;
-  if (context) {
-    const palette = (context.card.palette_hex || [])
-      .map((color) => `<span style="--swatch:${escapeForHtml(color)}"></span>`)
-      .join("");
-    elements.selectedStyleCard.hidden = false;
-    elements.selectedStyleCard.innerHTML = `
-      <div>
-        <span>已選風格</span>
-        <strong>${escapeForHtml(context.group.style_name_zh)}｜${escapeForHtml(context.card.name_zh)}</strong>
-      </div>
-      <div class="scene-selected-style-palette" aria-label="已選色票">${palette}</div>
-    `;
-    return;
-  }
-  const selectedStyleId = requestedStyleId || elements.stylePreference?.value;
-  const style = (siteData.styles || []).find((item) => item.style_id === selectedStyleId);
-  if (!style) {
-    elements.selectedStyleCard.hidden = true;
-    elements.selectedStyleCard.innerHTML = "";
-    return;
-  }
-  elements.selectedStyleCard.hidden = false;
-  elements.selectedStyleCard.innerHTML = `
-    <div>
-      <span>已選風格</span>
-      <strong>${escapeForHtml(style.style_name_zh || selectedStyleId)}</strong>
-    </div>
-    <small>尚未指定生活色調，將依目前風格自動搭配牆面、地板與家具。</small>
-  `;
-};
-
-applyStyleCardFromQuery = function applyStyleCardFromQueryFixed() {
-  selectedStyleCardContext = findSelectedStyleCardContext();
-  renderSelectedStyleCard();
-  const requestedStyle = (siteData.styles || []).find((style) => style.style_id === requestedStyleId);
-  if (requestedStyle) {
-    elements.stylePreference.value = requestedStyle.style_id;
-  }
-  if (!selectedStyleCardContext) return;
-  elements.customColors.value = (selectedStyleCardContext.card.palette_hex || []).join(", ");
-  elements.sceneStatus.textContent = `已帶入「${selectedStyleCardContext.group.style_name_zh}｜${selectedStyleCardContext.card.name_zh}」色卡，生成時會同步套用。`;
 };
 
 renderClientBrief = function renderClientBriefFixed() {
@@ -1875,6 +2476,7 @@ startGuidedIntake = async function startGuidedIntakeFixed() {
       clientBrief: seedClientBriefFromCurrentForm(result.client_brief),
       confirmed: false,
     };
+    intakeState.clientBrief.floorplan_requirements = confirmedFloorplanRequirements;
     const selected = selectedStyleCardContext || findSelectedStyleCardContext();
     appendChatMessage("ai", selected
       ? `已套用「${selected.group.style_name_zh}｜${selected.card.name_zh}」。請補充：這個空間主要給誰使用、想放哪些家具、需要哪些生活功能？`
@@ -1888,6 +2490,7 @@ startGuidedIntake = async function startGuidedIntakeFixed() {
       clientBrief: seedClientBriefFromCurrentForm(),
       confirmed: false,
     };
+    intakeState.clientBrief.floorplan_requirements = confirmedFloorplanRequirements;
     const selected = selectedStyleCardContext || findSelectedStyleCardContext();
     appendChatMessage("ai", selected
       ? `已套用「${selected.group.style_name_zh}｜${selected.card.name_zh}」。目前訪談服務暫時無法連線，先用快速模式整理需求：請用一句話說明使用者、家具與生活功能。`
@@ -1927,6 +2530,7 @@ sendGuidedAnswer = async function sendGuidedAnswerFixed() {
     intakeState.step = result.ready_for_confirmation ? null : result.step;
     renderClientBrief();
     if (result.ready_for_confirmation) {
+      workflow.complete("chat", { answered: true });
       showWizardSection("brief");
       elements.generateScene.disabled = false;
       elements.sceneStatus.textContent = "需求已整理完成，確認後即可生成 3D 場景。";
@@ -1940,6 +2544,7 @@ sendGuidedAnswer = async function sendGuidedAnswerFixed() {
     intakeState.step = null;
     intakeState.confirmed = false;
     renderClientBrief();
+    workflow.complete("chat", { answered: true, fallback: true });
     showWizardSection("brief");
     elements.generateScene.disabled = false;
     elements.sceneStatus.textContent = "已用本機快速模式整理需求，確認後即可生成 3D 場景。";
@@ -1949,14 +2554,42 @@ sendGuidedAnswer = async function sendGuidedAnswerFixed() {
   }
 };
 
+function applyDelegatedRoomRecommendations() {
+  if (elements.profileAiAssistance?.value !== "delegate") return;
+  const rooms = workflow.data.recognition?.rooms || [];
+  const roomBriefs = workflow.data.room_briefs || {};
+  rooms.forEach((room) => {
+    const existing = roomBriefs[room.id] || {};
+    if (
+      existing.status === "confirmed"
+      || (existing.status === "ai_recommended" && existing.accepted === true)
+    ) {
+      return;
+    }
+    completeRoomBrief(room.id, {
+      status: "ai_recommended",
+      accepted: true,
+      selectedChoice: "AI 自動推薦",
+      wasAiRecommended: true,
+    });
+  });
+}
+
 confirmClientBrief = function confirmClientBriefFixed() {
   if (!intakeState.clientBrief || intakeState.step) return;
+  applyDelegatedRoomRecommendations();
+  const readiness = workflow.getDesignReadiness();
+  if (readiness.incompleteRooms.length) {
+    if (elements.chatHint) elements.chatHint.textContent = `請先完成每個空間需求；尚有 ${readiness.incompleteRooms.length} 個空間未確認。也可以逐房採用 AI 推薦。`;
+    return;
+  }
   intakeState.clientBrief = seedClientBriefFromCurrentForm(intakeState.clientBrief);
   intakeState.clientBrief.confirmation = {
     status: "confirmed",
     confirmed_at: new Date().toISOString(),
   };
   intakeState.confirmed = true;
+  workflow.complete("brief", { confirmed: true, clientBrief: intakeState.clientBrief });
   syncClientBriefToLegacyFields();
   renderClientBrief();
   if (elements.chatConfirm) {
@@ -1966,9 +2599,17 @@ confirmClientBrief = function confirmClientBriefFixed() {
   elements.generateScene.disabled = false;
   elements.generateScene.textContent = "生成 3D 場景";
   elements.sceneStatus.textContent = "需求已確認，可以生成 3D 場景。";
+  showWizardSection("brief");
 };
 
 generateScene = async function generateSceneFixed(event) {
+  if (!intakeState.clientBrief) {
+    intakeState.clientBrief = seedClientBriefFromCurrentForm();
+    intakeState.step = null;
+  }
+  if (!intakeState.confirmed && intakeState.clientBrief && !intakeState.step) {
+    confirmClientBrief();
+  }
   const validation = validateScenePrerequisites();
   if (!validation.ok) {
     event?.preventDefault?.();
@@ -1977,15 +2618,170 @@ generateScene = async function generateSceneFixed(event) {
     elements.sceneStatus.textContent = validation.message;
     return;
   }
-  if (!intakeState.clientBrief) {
-    intakeState.clientBrief = seedClientBriefFromCurrentForm();
-    intakeState.step = null;
-  }
-  if (!intakeState.confirmed && intakeState.clientBrief && !intakeState.step) {
-    confirmClientBrief();
-  }
   return originalGenerateScene(event);
 };
+
+function materialSlotsForFurniture(item) {
+  const type = String(item.normalized_type || "").toLowerCase();
+  const source = String(item.material || "").toLowerCase();
+  const slots = [];
+  if (/sofa|chair|bed|bench|stool/.test(type)) slots.push("seat_fabric", "wood_frame", "metal_leg");
+  if (/table|desk|counter/.test(type)) slots.push(/glass|玻璃/.test(source) ? "glass_top" : /stone|marble|石/.test(source) ? "stone_top" : "wood_top", "metal_leg");
+  if (/cabinet|shelf|wardrobe|storage|dresser/.test(type)) slots.push("wood_body", "metal_handle");
+  if (/lamp|light/.test(type)) slots.push("metal_frame", "glass_shade");
+  if (!slots.length && source) slots.push(source);
+  return slots.length ? slots : ["unknown_original"];
+}
+
+function prepareMaterialSchemes() {
+  if (!currentSceneData) return;
+  currentSceneData.scene_objects = (currentSceneData.scene_objects || []).map((item) => ({
+    ...item,
+    material_slots: item.material_slots?.length ? item.material_slots : materialSlotsForFurniture(item),
+  }));
+  materialSchemes = generateMaterialSchemes(currentSceneData, surfaceCatalog);
+  selectedMaterialSchemeId = null;
+  renderMaterialSchemes();
+}
+
+function renderMaterialSchemes() {
+  if (!elements.materialSchemeList) return;
+  elements.materialSchemeList.innerHTML = materialSchemes.map((scheme) => {
+    const floor = surfaceById.get(scheme.floorSurfaceId);
+    const colors = Object.values(scheme.roleOverrides || {}).map((item) => item.colorHex).filter(Boolean).slice(0, 5);
+    const roleNames = (scheme.changeSummary?.furnitureRoles || []).map((role) => MATERIAL_ROLE_LABELS[role] || role);
+    return `
+      <button type="button" class="material-scheme-card ${selectedMaterialSchemeId === scheme.id ? "is-selected" : ""}" data-material-scheme="${scheme.id}" aria-pressed="${selectedMaterialSchemeId === scheme.id}">
+        <span class="material-scheme-code">方案 ${scheme.id}</span>
+        <strong>${escapeForHtml(scheme.name)}</strong>
+        <span class="material-scheme-swatches">${colors.map((color) => `<i style="--swatch:${escapeForHtml(color)}"></i>`).join("")}</span>
+        <span class="material-change-row"><b>牆面</b>${escapeForHtml(scheme.changeSummary?.wall?.before)} → <strong style="--preview-color:${escapeForHtml(scheme.wallColorHex)}">${escapeForHtml(scheme.wallColorHex)}</strong></span>
+        <span class="material-change-row"><b>地板</b>${escapeForHtml(scheme.changeSummary?.floor?.before)} → ${escapeForHtml(floor?.name_zh || floor?.surface_id || "保留原材質")}</span>
+        <span class="material-change-row"><b>家具貼皮</b>${scheme.changeSummary?.furnitureCount || 0} 件；${escapeForHtml(roleNames.join("、") || "保留原材質")}</span>
+      </button>
+    `;
+  }).join("");
+  elements.applyMaterialScheme.disabled = !selectedMaterialSchemeId;
+  renderFurnitureMaterialEditor();
+}
+
+const MATERIAL_FINISH_OPTIONS = {
+  fabric: [["fabric", "布料"], ["leather", "皮革"]],
+  wood: [["wood", "木紋"], ["paint", "烤漆"]],
+  metal: [["matte_metal", "霧面金屬"], ["brushed_metal", "拉絲金屬"]],
+  glass: [["transparent_glass", "透明玻璃"]],
+  stone: [["stone", "石材"], ["wood", "木質檯面"]],
+};
+const MATERIAL_ROLE_LABELS = { fabric: "布料", wood: "木質", metal: "金屬", glass: "玻璃", stone: "石材" };
+
+function renderFurnitureMaterialEditor() {
+  if (!elements.furnitureMaterialEditor || !currentSceneData) return;
+  if (!currentSceneData.design_choices?.material_scheme_id) {
+    elements.furnitureMaterialEditor.innerHTML = "<h3>家具貼皮服務</h3><p>點選 A／B／C 會立即在 3D 預覽牆面、地板與家具顏色；套用後可逐件選擇布料／皮革、木紋／烤漆與金屬表面。</p>";
+    return;
+  }
+  const cards = (currentSceneData.scene_objects || []).map((item) => {
+    const roles = [...new Set((item.material_slots || []).map(classifyMaterialSlot).filter((role) => role !== "unknown"))];
+    if (!roles.length) return "";
+    return `<section class="furniture-material-card"><strong>${escapeForHtml(formatFurnitureName(item))}</strong>${roles.map((role) => {
+      const override = item.material_overrides?.[`role:${role}`] || currentSceneData.material_role_overrides?.[role] || {};
+      const options = MATERIAL_FINISH_OPTIONS[role] || [];
+      const selectedFinish = override.finish || options[0]?.[0];
+      const roleLabel = MATERIAL_ROLE_LABELS[role] || "材質";
+      return `<div class="furniture-material-row"><span>${escapeForHtml(roleLabel)}</span><select data-furniture-material-id="${escapeForHtml(item.furniture_id)}" data-material-role="${role}">${options.map(([value, label]) => `<option value="${value}" ${value === selectedFinish ? "selected" : ""}>${label}</option>`).join("")}</select><input type="color" aria-label="${escapeForHtml(formatFurnitureName(item))} ${roleLabel}顏色" data-furniture-color-id="${escapeForHtml(item.furniture_id)}" data-material-role="${role}" value="${escapeForHtml(override.colorHex || "#b58b63")}" ${role === "glass" ? "disabled" : ""} /></div>`;
+    }).join("")}</section>`;
+  }).filter(Boolean);
+  elements.furnitureMaterialEditor.innerHTML = cards.length ? `<h3>家具逐件材質與顏色</h3>${cards.join("")}` : "<p>目前家具模型沒有可安全分類的材質 slot，已保留原材質。</p>";
+}
+
+async function handleFurnitureMaterialEdit(event) {
+  const control = event.target.closest("[data-furniture-material-id], [data-furniture-color-id]");
+  if (!control || !currentSceneData) return;
+  const furnitureId = control.dataset.furnitureMaterialId || control.dataset.furnitureColorId;
+  const role = control.dataset.materialRole;
+  const card = control.closest(".furniture-material-card");
+  const finish = card.querySelector(`[data-furniture-material-id="${CSS.escape(furnitureId)}"][data-material-role="${role}"]`)?.value || MATERIAL_FINISH_OPTIONS[role]?.[0]?.[0];
+  const colorHex = card.querySelector(`[data-furniture-color-id="${CSS.escape(furnitureId)}"][data-material-role="${role}"]`)?.value;
+  currentSceneData = updateFurnitureMaterialOverride(currentSceneData, { furnitureId, slot: role, finish, colorHex });
+  await refreshCurrentScene(`已更新 ${formatFurnitureName(currentSceneData.scene_objects.find((item) => item.furniture_id === furnitureId))} 的${MATERIAL_ROLE_LABELS[role] || "材質"}；座標保持不變。`);
+  workflow.complete("material", { schemeId: selectedMaterialSchemeId || "custom", sceneData: currentSceneData });
+  renderFurnitureMaterialEditor();
+}
+
+async function applySelectedMaterialScheme() {
+  const scheme = materialSchemes.find((item) => item.id === selectedMaterialSchemeId);
+  if (!scheme || !currentSceneData) return;
+  const positionsBefore = JSON.stringify(currentSceneData.scene_objects.map((item) => [item.position_cm, item.rotation_y_deg]));
+  currentSceneData = applyMaterialScheme(currentSceneData, scheme);
+  const positionsAfter = JSON.stringify(currentSceneData.scene_objects.map((item) => [item.position_cm, item.rotation_y_deg]));
+  if (positionsBefore !== positionsAfter) throw new Error("材質套用不得改變家具座標");
+  await refreshCurrentScene(`已套用材質方案 ${scheme.id}；可在審查步驟繼續微調。`);
+  workflow.complete("material", { schemeId: scheme.id, sceneData: currentSceneData });
+  renderFurnitureMaterialEditor();
+  showWizardSection("scene_review");
+}
+
+function renderBom() {
+  if (!elements.sceneBomTable || !currentSceneData) return;
+  const manifest = buildDeliveryManifest(currentSceneData, {
+    hasConfirmedDxf: Boolean(uploadedDxfText),
+    costReport: workflow.data.cost_report || null,
+  });
+  const rows = manifest.bom.items.map((bomItem, index) => {
+    const item = currentSceneData.scene_objects[index];
+    return `<div class="scene-bom-row"><span>${index + 1}. ${escapeForHtml(bomItem.name)}</span><span>${escapeForHtml(item.material || "原模型材質／智慧配色")}</span><strong>${bomItem.priceStatus === "known" ? `NT$ ${bomItem.priceTwd.toLocaleString("zh-TW")}` : "待估價"}</strong></div>`;
+  });
+  const estimate = manifest.engineeringEstimate;
+  elements.sceneBomTable.innerHTML = `${rows.join("")}<div class="scene-bom-total"><span>家具已知價格小計</span><strong>NT$ ${manifest.bom.knownSubtotalTwd.toLocaleString("zh-TW")}</strong><small>待估價家具不列入小計</small></div>
+    <div class="scene-bom-total"><span>工程概算（低／基準／高）</span><strong>NT$ ${estimate.totalsTwd.low.toLocaleString("zh-TW")}／${estimate.totalsTwd.base.toLocaleString("zh-TW")}／${estimate.totalsTwd.high.toLocaleString("zh-TW")}</strong><small>${escapeForHtml(estimate.disclaimerZh)}${estimate.sourceIds.length ? `｜來源 ${escapeForHtml(estimate.sourceIds.join("、"))}` : "｜尚未建立工程項目"}</small></div>`;
+}
+
+function renderSpaceChangeReport(audience = "customer") {
+  if (!elements.spaceChangeReportContent) return;
+  const changes = workflow.data.space_changes || [];
+  const report = buildSpaceChangeReport(changes, { audience });
+  elements.spaceChangeReportContent.innerHTML = report.changes.length ? report.changes.map((change) => `
+    <article class="space-change-card" data-change-id="${escapeForHtml(change.id)}">
+      <strong>${escapeForHtml(change.title || change.id)}</strong>
+      <p>完成後尺寸：${change.afterDimensionsM.width.toFixed(2)} × ${change.afterDimensionsM.depth.toFixed(2)} m｜減少 ${change.lostAreaM2.toFixed(2)} m²</p>
+      <p>風險：${escapeForHtml((change.risks || []).join("、") || "無已知風險")}</p>
+      ${audience === "designer" ? `<p>受影響機電：${escapeForHtml((change.affected?.mep || []).join("、") || "無")}</p><p>證據：${escapeForHtml(localizeEvidence(change.evidence || []).map((item) => item.ref ? `${item.displayLabel}（${item.ref}）` : item.displayLabel).join("、"))}</p>` : ""}
+    </article>`).join("") : "<p>目前沒有包牆或空間變更。新增變更後，這裡會同步顯示平面、剖面與 3D 前後比較。</p>";
+  elements.spaceChangeReportContent.insertAdjacentHTML("beforeend", `<small>${escapeForHtml(report.disclaimer)}</small>`);
+  const change = report.changes[0];
+  const planVisual = document.getElementById("wall-boxing-plan-visual");
+  const sectionVisual = document.getElementById("wall-boxing-section-visual");
+  const modelVisual = document.getElementById("wall-boxing-3d-visual");
+  if (change && planVisual && sectionVisual && modelVisual) {
+    const svgPolygon = (points, stroke, offsetX = 0) => {
+      const xs = points.map((point) => point.x), ys = points.map((point) => point.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      const scale = Math.min(100 / Math.max(maxX - minX, 0.01), 76 / Math.max(maxY - minY, 0.01));
+      const value = points.map((point) => `${offsetX + 8 + (point.x - minX) * scale},${88 - (point.y - minY) * scale}`).join(" ");
+      return `<polygon points="${value}" fill="${stroke}22" stroke="${stroke}" stroke-width="3" />`;
+    };
+    planVisual.innerHTML = `<strong>平面圖前後</strong><svg viewBox="0 0 240 100" role="img" aria-label="包牆前後平面幾何">${svgPolygon(change.beforePolygonM, "#8a735f", 0)}${svgPolygon(change.afterPolygonM, "#2f7d66", 120)}</svg>`;
+    const sectionThickness = Math.max(change.beforeDimensionsM.width - change.afterDimensionsM.width, change.beforeDimensionsM.depth - change.afterDimensionsM.depth);
+    sectionVisual.innerHTML = `<strong>剖面構造</strong><svg viewBox="0 0 240 100" role="img" aria-label="包牆剖面"><rect x="20" y="18" width="30" height="68" fill="#9c8b7a"/><rect x="50" y="18" width="${Math.max(8, sectionThickness * 70)}" height="68" fill="#d4a96a"/><text x="20" y="98" font-size="11">原牆＋${(sectionThickness * 100).toFixed(1)} cm 包覆完成面</text></svg>`;
+    modelVisual.innerHTML = `<strong>3D 前後</strong><svg viewBox="0 0 240 100" role="img" aria-label="包牆三維前後示意"><g><polygon points="8,78 62,88 108,68 54,58" fill="#d8c4aa"/><polygon points="54,58 108,68 108,28 54,18" fill="#b8a28b"/><text x="38" y="98" font-size="10">施工前</text></g><g transform="translate(120 0)"><polygon points="8,78 62,88 108,68 54,58" fill="#d8c4aa"/><polygon points="49,58 108,68 108,28 49,17" fill="#c79258"/><polygon points="49,58 54,58 54,18 49,17" fill="#8f623b"/><text x="38" y="98" font-size="10">施工後</text></g></svg>`;
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadDataUrl(dataUrl, filename) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = filename;
+  link.click();
+}
 
 renderStyleOptions();
 applyStyleCardFromQuery();
@@ -2003,9 +2799,148 @@ elements.startFlow?.addEventListener("click", () => {
   elements.floorplan?.focus();
 });
 elements.floorplan?.addEventListener("change", previewFloorplan);
+elements.acceptAiRecommendation?.addEventListener("click", () => {
+  const roomId = elements.guidedRoomRecommendation?.dataset.roomId;
+  if (!roomId) return;
+  completeRoomBrief(roomId, {
+    status: "ai_recommended",
+    accepted: true,
+    recommendation: elements.recommendationReason?.textContent || "",
+  });
+});
+elements.reportAudienceCustomer?.addEventListener("click", () => renderSpaceChangeReport("customer"));
+elements.reportAudienceDesigner?.addEventListener("click", () => renderSpaceChangeReport("designer"));
+elements.createWallBoxingChange?.addEventListener("click", async () => {
+  const roomId = elements.wallBoxingRoom?.value;
+  const room = floorplanAnalysis?.spatial_report?.rooms?.find((item) => item.room_id === roomId);
+  const thicknessM = Number(elements.wallBoxingThickness?.value || 0) / 100;
+  if (!room || !(thicknessM > 0)) {
+    if (elements.wallBoxingAdvisorResult) elements.wallBoxingAdvisorResult.textContent = "請先選擇已通過辨識的房間與有效厚度。";
+    return;
+  }
+  const dimensions = room.inner_dimensions_m;
+  const change = {
+    id: `wall-boxing-${roomId}`,
+    roomId,
+    title: `${room.label}包牆`,
+    kind: elements.wallBoxingKind?.value || "functional_wall_boxing",
+    target: elements.wallBoxingKind?.value === "decorative_wall_cladding" ? "finish" : "column",
+    axis: ["top", "bottom"].includes(elements.wallBoxingSide?.value) ? "depth" : "width",
+    wallSide: elements.wallBoxingSide?.value || "right",
+    thicknessM,
+    wallLengthM: ["top", "bottom"].includes(elements.wallBoxingSide?.value) ? Number(dimensions.width) : Number(dimensions.depth),
+    beforeDimensionsM: { width: Number(dimensions.width), depth: Number(dimensions.depth) },
+    roomPolygonM: room.polygon_m,
+    affected: buildEmptyAffected(),
+    risks: ["厚度會減少房間淨寬", "施工前須確認樑柱、管線與維修需求"],
+    costEstimateId: `estimate-wall-boxing-${roomId}`,
+    visualRefs: { plan: `plan-${roomId}`, section: `section-${roomId}`, model3d: `model3d-${roomId}` },
+    evidence: room.evidence || [],
+    confidence: room.confidence,
+    assumptions: ["以目前辨識牆長估算，尚未含拆除、清運、機電移位與稅金"],
+    status: "field_measurement_required",
+  };
+  const comparison = buildWallBoxingComparison(change);
+  change.afterPolygonM = comparison.afterPolygonM;
+  const selectedBoundary = comparison.wallSide;
+  const beforeXs = comparison.beforePolygonM.map((point) => point.x), beforeYs = comparison.beforePolygonM.map((point) => point.y);
+  const boundaryValue = selectedBoundary === "right" ? Math.max(...beforeXs) : selectedBoundary === "left" ? Math.min(...beforeXs) : selectedBoundary === "top" ? Math.max(...beforeYs) : Math.min(...beforeYs);
+  const openingTouchesWall = (opening) => {
+    const points = [opening.start, opening.end].filter(Boolean);
+    return points.some((point) => Math.abs(Number(selectedBoundary === "right" || selectedBoundary === "left" ? point.x : point.y) - boundaryValue) <= 0.2);
+  };
+  change.affected.doors = (floorplanAnalysis?.doors || []).map((opening, index) => ({ opening, id: `door-${index + 1}` })).filter(({ opening }) => opening.room_ids?.includes(roomId) && openingTouchesWall(opening)).map(({ id }) => id);
+  change.affected.windows = (floorplanAnalysis?.windows || []).map((opening, index) => ({ opening, id: `window-${index + 1}` })).filter(({ opening }) => opening.room_ids?.includes(roomId) && openingTouchesWall(opening)).map(({ id }) => id);
+  const allChanges = [...(workflow.data.space_changes || []).filter((item) => item.id !== change.id), change];
+  workflow.setSpaceChanges(allChanges);
+  if (currentSceneData?.floorplan) {
+    const floorplan = currentSceneData.floorplan;
+    const widthCm = Number(floorplan.width_cm || 0);
+    const depthCm = Number(floorplan.depth_cm || 0);
+    floorplan.wall_segments = (floorplan.wall_segments || []).filter((segment) => segment.change_id !== change.id);
+    floorplan.wall_segments.push(buildSceneWallSegment(comparison, floorplan, change.id));
+    floorplan.room_regions = (floorplan.room_regions || []).map((region) => region.room_id === roomId ? {
+      ...region,
+      polygon_m: comparison.afterPolygonM,
+      inner_dimensions_m: comparison.afterDimensionsM,
+      net_area_m2: Number((comparison.afterDimensionsM.width * comparison.afterDimensionsM.depth).toFixed(3)),
+      geometry_change_id: change.id,
+      exterior: comparison.afterPolygonM.map((point) => [point.x - widthCm / 200, point.y - depthCm / 200]),
+      holes: [],
+    } : region);
+    const sceneWall = floorplan.wall_segments.find((segment) => segment.change_id === change.id);
+    const wallCoordinateCm = (selectedBoundary === "right" || selectedBoundary === "left") ? sceneWall.start.x * 100 : sceneWall.start.z * 100;
+    change.affected.furniture = (currentSceneData.scene_objects || []).filter((item) => {
+      const position = item.position_cm || {};
+      const size = item.size_cm || {};
+      if (selectedBoundary === "right") return Number(position.x || 0) + Number(size.width || 0) / 2 >= wallCoordinateCm;
+      if (selectedBoundary === "left") return Number(position.x || 0) - Number(size.width || 0) / 2 <= wallCoordinateCm;
+      if (selectedBoundary === "top") return Number(position.z || 0) + Number(size.depth || 0) / 2 >= wallCoordinateCm;
+      return Number(position.z || 0) - Number(size.depth || 0) / 2 <= wallCoordinateCm;
+    }).map((item) => item.furniture_id);
+    workflow.setSpaceChanges(allChanges.map((item) => item.id === change.id ? change : item));
+    await reflowSceneObjects(currentSceneData, roomId);
+    await viewer.loadScene(currentSceneData);
+  }
+  try {
+    const workItems = allChanges.map((item) => {
+      const isDecorative = item.kind === "decorative_wall_cladding";
+      return {
+        id: item.costEstimateId,
+        work_code: isDecorative ? "wall_cladding.single_face" : "wall_wrap.carpentry",
+        description: item.title,
+        quantity: isDecorative ? { value: Number((item.wallLengthM * 2.7 / 3.3058).toFixed(3)), unit: "ping" } : { value: item.wallLengthM, unit: "m" },
+        quantity_evidence: [item.id, item.roomId, "room_polygon"],
+        assumptions: item.assumptions,
+      };
+    });
+    const response = await fetch("/api/cost/estimate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: workItems }),
+    });
+    if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail || `HTTP ${response.status}`);
+    const costReport = await response.json();
+    costReport.needs_quote.push({ id: `${change.id}-mep`, reason: "機電移位待現場確認" });
+    workflow.setCostReport(costReport);
+    const { low, high } = costReport.totals_twd;
+    const source = costReport.items[0]?.sources?.[0];
+    if (elements.wallBoxingAdvisorResult) elements.wallBoxingAdvisorResult.innerHTML = `<strong>包牆前後</strong><p>${comparison.beforeDimensionsM.width.toFixed(2)} × ${comparison.beforeDimensionsM.depth.toFixed(2)} m → ${comparison.afterDimensionsM.width.toFixed(2)} × ${comparison.afterDimensionsM.depth.toFixed(2)} m</p><p>減少約 ${comparison.lostAreaM2.toFixed(2)} m²｜概算 NT$ ${low.toLocaleString("zh-TW")}～${high.toLocaleString("zh-TW")}</p><small>來源：${escapeForHtml(source?.publisher || "公開網路行情")}（查詢 ${escapeForHtml(source?.retrieved_on || "日期未提供")}）；不含 ${escapeForHtml((costReport.items[0]?.exclusions || []).join("、"))}。</small>`;
+  } catch (error) {
+    if (elements.wallBoxingAdvisorResult) elements.wallBoxingAdvisorResult.textContent = `概算暫時無法建立：${error.message}`;
+  }
+});
+elements.privacyConsent?.addEventListener("change", () => workflow.setPrivacyConsent({
+  accepted: elements.privacyConsent.checked,
+  projectOnly: elements.privacyConsent.checked,
+  noTraining: elements.privacyConsent.checked,
+}));
+[elements.profileHousehold, elements.profileProjectStatus, elements.profileAiAssistance].forEach((input) => input?.addEventListener("change", () => workflow.setBasicProfile({
+  household: elements.profileHousehold?.value,
+  projectStatus: elements.profileProjectStatus?.value,
+  aiAssistance: elements.profileAiAssistance?.value,
+})));
 elements.pickFloorplan?.addEventListener("click", (event) => {
   event.preventDefault();
   elements.floorplan?.click();
+});
+elements.loadFloorplan630?.addEventListener("click", async (event) => {
+  event.preventDefault();
+  elements.loadFloorplan630.disabled = true;
+  try {
+    const response = await fetch("/api/floorplan/sample/630");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const file = new File([await response.blob()], "builder_plan_630.png", { type: "image/png" });
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    elements.floorplan.files = transfer.files;
+    await previewFloorplan();
+  } catch (error) {
+    console.error(error);
+    elements.sceneStatus.textContent = "630 驗收圖載入失敗，請稍後再試。";
+  } finally {
+    elements.loadFloorplan630.disabled = false;
+  }
 });
 elements.floorplan?.closest(".scene-upload-zone")?.addEventListener("dragover", (event) => {
   event.preventDefault();
@@ -2019,6 +2954,115 @@ elements.floorplan?.closest(".scene-upload-zone")?.addEventListener("drop", (eve
   acceptDroppedFloorplan(event);
 });
 elements.continueToChat?.addEventListener("click", enterGuidedChat);
+elements.confirmFloorplanAnalysis?.addEventListener("click", confirmFloorplanAndContinue);
+elements.floorplanCalibrationStage?.addEventListener("click", selectFloorplanCalibrationPoint);
+elements.resetFloorplanCalibration?.addEventListener("click", resetFloorplanCalibration);
+elements.applyFloorplanCalibration?.addEventListener("click", applyFloorplanCalibration);
+elements.floorplanScaleCm?.addEventListener("input", renderFloorplanCalibration);
+elements.floorplanReviewBack?.addEventListener("click", () => showWizardSection("floorplan"));
+elements.resetProject?.addEventListener("click", () => {
+  if (!window.confirm("要清除這個專案的流程紀錄並重新開始嗎？")) return;
+  workflow.reset();
+  window.location.reload();
+});
+elements.materialSchemeList?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-material-scheme]");
+  if (!button) return;
+  selectedMaterialSchemeId = button.dataset.materialScheme;
+  renderMaterialSchemes();
+  const scheme = materialSchemes.find((item) => item.id === selectedMaterialSchemeId);
+  if (scheme && currentSceneData) {
+    await viewer.loadScene(applyMaterialScheme(currentSceneData, scheme));
+    if (elements.sceneViewModeHint) elements.sceneViewModeHint.textContent = `正在預覽方案 ${scheme.id}：牆面、地板與家具貼皮尚未正式套用。`;
+  }
+});
+elements.furnitureMaterialEditor?.addEventListener("change", handleFurnitureMaterialEdit);
+elements.applyMaterialScheme?.addEventListener("click", applySelectedMaterialScheme);
+elements.restoreOriginalMaterials?.addEventListener("click", async () => {
+  if (!currentSceneData) return;
+  currentSceneData = restoreOriginalMaterials(currentSceneData);
+  await refreshCurrentScene("已恢復 GLB 原始材質與原始牆地選擇。");
+});
+elements.materialBack?.addEventListener("click", () => showWizardSection("brief"));
+elements.reviewBack?.addEventListener("click", () => showWizardSection("material"));
+elements.confirmSceneReview?.addEventListener("click", () => {
+  workflow.complete("scene_review", { confirmed: true });
+  renderBom();
+  showWizardSection("budget");
+});
+elements.budgetBack?.addEventListener("click", () => showWizardSection("scene_review"));
+elements.confirmBudget?.addEventListener("click", () => {
+  workflow.complete("budget", { confirmed: true });
+  showWizardSection("delivery");
+});
+elements.viewModeButtons?.forEach((button) => {
+  button.addEventListener("click", () => {
+    viewer.setViewMode(button.dataset.viewMode);
+    elements.viewModeButtons.forEach((item) => item.classList.toggle("is-active", item === button));
+    const message = button.dataset.viewMode === "walk"
+      ? "室內行走：使用 W/A/S/D 或方向鍵移動，拖曳滑鼠轉向。"
+      : button.dataset.viewMode === "topdown"
+        ? "2D 正交俯視：牆體已壓平，可平移與縮放。"
+        : button.dataset.viewMode === "dollhouse"
+          ? "立體俯視：正交相機保留牆高與家具比例，可旋轉、平移與縮放。"
+          : "完整 3D 旋轉：拖曳旋轉、滾輪縮放。";
+    elements.sceneStatus.textContent = message;
+    if (elements.sceneViewModeHint) elements.sceneViewModeHint.textContent = message;
+  });
+});
+elements.lockSceneCamera?.addEventListener("click", () => {
+  const locked = viewer.toggleCameraLock();
+  elements.lockSceneCamera.setAttribute("aria-pressed", String(locked));
+  elements.lockSceneCamera.textContent = locked ? "解除視角鎖定" : "鎖定目前視角";
+  elements.sceneStatus.textContent = locked
+    ? "目前視角已鎖定；切換風格時相機不會移動。"
+    : "視角已解除鎖定，可以繼續旋轉、平移與縮放。";
+});
+elements.downloadViewPng?.addEventListener("click", () => downloadDataUrl(viewer.capturePng(), `RoomPilot-${workflowProjectId}-view.png`));
+elements.downloadSceneGlb?.addEventListener("click", async () => {
+  elements.downloadSceneGlb.disabled = true;
+  try {
+    const buffer = await viewer.exportGlb();
+    downloadBlob(new Blob([buffer], { type: "model/gltf-binary" }), `RoomPilot-${workflowProjectId}.glb`);
+  } finally {
+    elements.downloadSceneGlb.disabled = false;
+  }
+});
+elements.downloadFloorplanDxf?.addEventListener("click", () => {
+  if (!uploadedDxfText) {
+    elements.sceneStatus.textContent = "目前沒有已確認的 DXF 可下載。";
+    return;
+  }
+  downloadBlob(new Blob([uploadedDxfText], { type: "application/dxf" }), `RoomPilot-${workflowProjectId}.dxf`);
+});
+elements.printProjectPdf?.addEventListener("click", () => window.print());
+elements.selectedStyleSummary?.addEventListener("click", openStylePicker);
+elements.changeStyle?.addEventListener("click", openStylePicker);
+elements.closeStylePicker?.addEventListener("click", () => closeStylePicker());
+elements.stylePickerTabs?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-style-picker-group]");
+  if (!button) return;
+  const group = (siteData.taiwan_style_cards || []).find((item) => item.style_id === button.dataset.stylePickerGroup);
+  if (!group) return;
+  activeStylePickerGroup = group;
+  pendingStyleCardContext = { group, card: group.cards?.[0] };
+  elements.styleFurnitureDecision.hidden = true;
+  renderStylePicker();
+});
+elements.styleCardGrid?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-style-picker-card]");
+  if (!button || !activeStylePickerGroup) return;
+  const card = activeStylePickerGroup.cards?.find((item) => item.card_id === button.dataset.stylePickerCard);
+  if (!card) return;
+  pendingStyleCardContext = { group: activeStylePickerGroup, card };
+  elements.styleFurnitureDecision.hidden = true;
+  renderStylePicker();
+});
+elements.confirmStyleCard?.addEventListener("click", applyPendingStyleCard);
+elements.keepStyleFurniture?.addEventListener("click", () => {
+  closeStylePicker("已保留原家具；新風格、牆面與地板已更新，其他 Step 2 資料不變。");
+});
+elements.replaceStyleFurniture?.addEventListener("click", replaceFurnitureForSelectedStyle);
 elements.proposalList?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-proposal-remove]");
   if (!button) return;
@@ -2063,7 +3107,7 @@ elements.floorOptions.addEventListener("input", handleSurfaceSearchInput);
 elements.wallOptions.addEventListener("change", applySurfaceChoiceToCurrentScene);
 elements.floorOptions.addEventListener("change", applySurfaceChoiceToCurrentScene);
 elements.spaceType.addEventListener("change", setDefaultFurnitureBySpace);
-elements.resetSceneView.addEventListener("click", () => viewer.resetCamera());
+elements.resetSceneView.addEventListener("click", () => viewer.setViewMode("orbit"));
 elements.rotateFurnitureLeft?.addEventListener("click", () => viewer.rotateSelected(-90));
 elements.rotateFurnitureRight?.addEventListener("click", () => viewer.rotateSelected(90));
 elements.toggleCeiling?.addEventListener("click", () => {
@@ -2071,9 +3115,10 @@ elements.toggleCeiling?.addEventListener("click", () => {
   elements.toggleCeiling.textContent = visible ? "隱藏天花板" : "顯示天花板";
 });
 elements.toggleWalkMode?.addEventListener("click", () => {
-  viewer.setCameraPreset("inside");
+  viewer.setViewMode("walk");
   elements.toggleWalkMode.textContent = "已進入室內觀看";
-  elements.sceneStatus.textContent = "目前為室內觀看視角；可用滑鼠檢視空間，室內行走控制列入下一階段。";
+  elements.sceneStatus.textContent = "室內行走已啟用；使用 W/A/S/D 或方向鍵移動，拖曳滑鼠轉向。";
+  if (elements.sceneViewModeHint) elements.sceneViewModeHint.textContent = "室內行走：相機限制在房間內，使用 W/A/S/D 或方向鍵移動。";
 });
 elements.viewPresetButtons.forEach((button) => {
   button.addEventListener("click", () => viewer.setCameraPreset(button.dataset.viewPreset));
@@ -2081,200 +3126,3 @@ elements.viewPresetButtons.forEach((button) => {
 
 initBackgroundFx();
 startSceneFromEntryState();
-
-// ── F2a 手動拉比例(兩點標定,main 主線功能移植)──
-function drawCalibrationPreview() {
-  const canvas = elements.calibrationCanvas;
-  const context = canvas.getContext("2d");
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  if (!calibrationParsed) return;
-
-  const bbox = calibrationParsed.bbox;
-  const pad = 30;
-  const spanX = Math.max(bbox.maxx - bbox.minx, 0.01);
-  const spanZ = Math.max(bbox.maxz - bbox.minz, 0.01);
-  const scale = Math.min((canvas.width - pad * 2) / spanX, (canvas.height - pad * 2) / spanZ);
-  const originX = (canvas.width - spanX * scale) / 2;
-  const originY = (canvas.height - spanZ * scale) / 2;
-  calibrationTransform = {
-    toCanvas(x, z) {
-      return [originX + (x - bbox.minx) * scale, originY + (bbox.maxz - z) * scale];
-    },
-    toWorld(canvasX, canvasY) {
-      return {
-        x: bbox.minx + (canvasX - originX) / scale,
-        z: bbox.maxz - (canvasY - originY) / scale,
-      };
-    },
-  };
-
-  // 牆體(多邊形外環+洞)
-  context.strokeStyle = "#6b513b";
-  context.lineWidth = 1.6;
-  (calibrationParsed.wall_polys || []).forEach((poly) => {
-    [poly.exterior, ...(poly.holes || [])].filter(Boolean).forEach((ring) => {
-      if (ring.length < 2) return;
-      context.beginPath();
-      ring.forEach(([x, z], index) => {
-        const [cx, cy] = calibrationTransform.toCanvas(x, z);
-        if (index === 0) context.moveTo(cx, cy);
-        else context.lineTo(cx, cy);
-      });
-      context.closePath();
-      context.stroke();
-    });
-  });
-
-  const drawSegments = (segments, color) => {
-    context.strokeStyle = color;
-    context.lineWidth = 2.4;
-    (segments || []).forEach((segment) => {
-      context.beginPath();
-      context.moveTo(...calibrationTransform.toCanvas(segment.x1, segment.z1));
-      context.lineTo(...calibrationTransform.toCanvas(segment.x2, segment.z2));
-      context.stroke();
-    });
-  };
-  drawSegments(calibrationParsed.doors, "#b9773f");
-  drawSegments(calibrationParsed.windows, "#5b8aa6");
-
-  // 標定點與連線
-  calibrationPoints.forEach((point, index) => {
-    const [cx, cy] = calibrationTransform.toCanvas(point.x, point.z);
-    context.beginPath();
-    context.arc(cx, cy, 6, 0, Math.PI * 2);
-    context.fillStyle = "#b9773f";
-    context.fill();
-    context.strokeStyle = "#fff";
-    context.lineWidth = 2;
-    context.stroke();
-    context.fillStyle = "#3a2c22";
-    context.font = "bold 12px 'Noto Sans TC', sans-serif";
-    context.fillText(String(index + 1), cx + 9, cy - 8);
-  });
-  if (calibrationPoints.length === 2) {
-    const [a, b] = calibrationPoints;
-    context.beginPath();
-    context.moveTo(...calibrationTransform.toCanvas(a.x, a.z));
-    context.lineTo(...calibrationTransform.toCanvas(b.x, b.z));
-    context.strokeStyle = "#b9773f";
-    context.lineWidth = 2;
-    context.setLineDash([6, 4]);
-    context.stroke();
-    context.setLineDash([]);
-  }
-}
-
-function calibrationMeasuredMeters() {
-  if (calibrationPoints.length !== 2) return null;
-  const [a, b] = calibrationPoints;
-  return Math.hypot(a.x - b.x, a.z - b.z);
-}
-
-function updateCalibrationStatus() {
-  const stats = calibrationParsed?.stats;
-  const measured = calibrationMeasuredMeters();
-  const dims = stats ? `目前解析寬 ${stats.width_m} m × 深 ${stats.depth_m} m(${calibrationParsed.scale_basis === "manual" ? "已手動校正" : "自動推測"})。` : "";
-  if (measured) {
-    elements.calibrationStatus.textContent =
-      `${dims} 兩點在目前比例下距離 ${(measured * 100).toFixed(1)} 公分 — 輸入實際公分後按「套用比例」。`;
-  } else {
-    elements.calibrationStatus.textContent =
-      `${dims} 請在圖上點兩個點(已點 ${calibrationPoints.length}/2)。`;
-  }
-}
-
-async function parseFloorplanPreview(file, scaleM = null) {
-  const formData = new FormData();
-  formData.append("file", file);
-  const query = scaleM ? `?scale_m=${encodeURIComponent(scaleM)}` : "";
-  const response = await fetch(`/api/upload${query}`, { method: "POST", body: formData });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.json();
-}
-
-async function onFloorplanFileChanged() {
-  const file = elements.floorplan.files?.[0];
-  calibrationPoints = [];
-  floorplanScaleM = null;
-  calibrationParsed = null;
-
-  if (!file || !file.name.toLowerCase().endsWith(".dxf")) {
-    elements.scaleCalibration.hidden = true;
-    return;
-  }
-
-  try {
-    uploadedDxfText = await file.text();
-    calibrationParsed = await parseFloorplanPreview(file);
-    elements.scaleCalibration.hidden = false;
-    drawCalibrationPreview();
-    updateCalibrationStatus();
-  } catch (error) {
-    console.error(error);
-    elements.scaleCalibration.hidden = true;
-    elements.sceneStatus.textContent = "DXF 預覽解析失敗,仍可直接生成(比例採自動推測)。";
-  }
-}
-
-async function applyCalibrationScale() {
-  const measured = calibrationMeasuredMeters();
-  const realCm = Number(elements.calibrationLength.value);
-  if (!calibrationParsed || !measured) {
-    elements.calibrationStatus.textContent = "請先在圖上點兩個點。";
-    return;
-  }
-  if (!Number.isFinite(realCm) || realCm < 10) {
-    elements.calibrationStatus.textContent = "請輸入合理的實際距離(至少 10 公分)。";
-    return;
-  }
-
-  // 距離校正因子 → 換算全圖長邊跨距,交給解析器的 scale_m 覆寫
-  const factor = realCm / 100 / measured;
-  floorplanScaleM = Math.round(calibrationParsed.scale_m * factor * 1000) / 1000;
-
-  try {
-    const file = elements.floorplan.files?.[0];
-    calibrationParsed = await parseFloorplanPreview(file, floorplanScaleM);
-    calibrationPoints = calibrationPoints.map((point) => ({ x: point.x * factor, z: point.z * factor }));
-    drawCalibrationPreview();
-    const stats = calibrationParsed.stats;
-    elements.calibrationStatus.textContent =
-      `✅ 已套用比例:全圖跨距 ${floorplanScaleM} m,寬 ${stats.width_m} m × 深 ${stats.depth_m} m。生成 3D 場景會用這個尺寸。`;
-  } catch (error) {
-    console.error(error);
-    elements.calibrationStatus.textContent = "套用比例後重新解析失敗,請重試。";
-  }
-}
-
-function resetCalibrationState() {
-  calibrationPoints = [];
-  floorplanScaleM = null;
-  elements.calibrationLength.value = "";
-  onFloorplanFileChanged();
-}
-
-elements.floorplan.addEventListener("change", onFloorplanFileChanged);
-elements.applyCalibration.addEventListener("click", applyCalibrationScale);
-elements.resetCalibration.addEventListener("click", resetCalibrationState);
-elements.calibrationCanvas.addEventListener("click", (event) => {
-  if (!calibrationTransform) return;
-  const rect = elements.calibrationCanvas.getBoundingClientRect();
-  const canvasX = ((event.clientX - rect.left) / rect.width) * elements.calibrationCanvas.width;
-  const canvasY = ((event.clientY - rect.top) / rect.height) * elements.calibrationCanvas.height;
-  if (calibrationPoints.length >= 2) calibrationPoints = [];
-  calibrationPoints.push(calibrationTransform.toWorld(canvasX, canvasY));
-  drawCalibrationPreview();
-  updateCalibrationStatus();
-});
-
-// ── 720° 環景漫遊(main 主線功能移植)──
-elements.openPanorama.addEventListener("click", () => {
-  // 交棒目前場景給環景頁;沒生成過就讓環景頁自己做示範場景
-  if (currentSceneData) {
-    sessionStorage.setItem("roompilot.panorama.scene", JSON.stringify(currentSceneData));
-  } else {
-    sessionStorage.removeItem("roompilot.panorama.scene");
-  }
-  window.open("/panorama", "_blank");
-});

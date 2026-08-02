@@ -139,11 +139,16 @@ def resolve_placements(
     objects: list[dict[str, Any]],
     items: list[dict[str, Any]],
     pool: list[dict[str, Any]],
-    place_fn: PlaceFn,
+    place_fn: PlaceFn | None = None,
     protected_ids: set[str] | None = None,
     max_rounds: int = 3,
+    *,
+    engine_place_fn: PlaceFn | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """讀引擎的 placement_failed → 寧缺勿亂 / 換小 / 移除 → 重擺至收斂或到上限。
+
+    ``engine_place_fn`` 是 ``place_fn`` 的別名(2026-08-02 合併 bella-test1 時保留
+    ——server 端以該名呼叫)。兩者擇一提供即可,同時給以 ``place_fn`` 為準。
 
     回傳 (objects, final_items, report):
     - objects:修復後的擺放結果(座標仍 100% 由 place_fn / 引擎算)。
@@ -151,6 +156,9 @@ def resolve_placements(
     - report:每筆動作 {furniture_id, type, action(replace|remove|escalate),
       from, to, message_zh},繁中訊息直接給使用者看。
     """
+    place_fn = place_fn or engine_place_fn
+    if place_fn is None:
+        raise TypeError("resolve_placements 需要 place_fn(或別名 engine_place_fn)")
     working = [dict(item) for item in items]
     protected_ids = protected_ids or set()
     report: list[dict[str, Any]] = []

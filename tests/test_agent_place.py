@@ -12,7 +12,7 @@ from backend.agent.place import (
     placement_hints,
     resolve_placements,
 )
-from backend.server.services.scene_service import _placement_candidates, generate_layout
+from backend.server.scene_service import _placement_candidates, generate_layout
 
 
 def _item(fid, ftype, w, d, h=80, **extra):

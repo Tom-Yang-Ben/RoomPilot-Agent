@@ -4,7 +4,7 @@ clearance.py 淨空運算測試
 涵蓋:無淨空家具、淨空撞牆、淨空撞家具本體、
 淨空互撞、反向檢查(本體壓到別人的淨空)、旋轉後淨空方向正確
 
-單位:一律公分(cm),與引擎契約一致(2026-07-08 公分化)。
+單位:一律公分(cm),與引擎契約一致。
 """
 import pytest
 
@@ -103,7 +103,7 @@ def test_clearance_blocked_by_furniture_body(room):
 
 def test_two_clearances_conflict(room):
     """兩個衣櫃面對面、淨空區重疊 → 淨空互撞"""
-    w1 = make_wardrobe(pos_x=250, pos_y=50, rotation=0)      # 淨空 80~140
+    w1 = make_wardrobe(pos_x=250, pos_y=50, rotation=0)       # 淨空 80~140
     w2 = make_wardrobe(pos_x=250, pos_y=200, rotation=180)    # 淨空 110~170,與 w1 重疊
     w2.id = "wardrobe_2"
     reason = clearance_conflict(w1, room, [w2])

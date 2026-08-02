@@ -1,0 +1,254 @@
+const ROOM_TO_VISUAL_SPACES = Object.freeze({
+  entryway: ["entryway"],
+  living_room: ["living_room"],
+  kitchen: ["kitchen"],
+  bedroom: ["bedroom"],
+  bathroom: ["bathroom"],
+  balcony: ["balcony"],
+  storage: ["storage"],
+  hallway: ["hallway"],
+  garage: ["garage"],
+});
+
+export const VISUAL_SPACE_LABELS = Object.freeze({
+  entryway: "玄關",
+  living_room: "客廳",
+  kitchen: "廚房",
+  bedroom: "臥室",
+  bathroom: "浴室",
+  storage: "書房／儲藏室",
+  balcony: "陽台",
+  hallway: "走道／動線",
+  garage: "車庫",
+  all_rooms: "全屋共通",
+});
+
+export function questionsForRooms(questions = [], rooms = []) {
+  const roomSpaces = new Set();
+  rooms.forEach((room) => {
+    (ROOM_TO_VISUAL_SPACES[room.type] || []).forEach((space) => roomSpaces.add(space));
+  });
+  const sharedSpaces = new Set(["all_rooms"]);
+  return questions.filter(
+    (question) => roomSpaces.has(question.space_type)
+      || sharedSpaces.has(question.space_type),
+  );
+}
+
+function visualSpaceForRoom(room) {
+  return ROOM_TO_VISUAL_SPACES[room.type]?.[0] || null;
+}
+
+export function questionsForIndividualRooms(questions = [], rooms = []) {
+  return rooms.flatMap((room) => {
+    const roomSpace = visualSpaceForRoom(room);
+    const matching = questions.filter((question) =>
+      question.space_type === roomSpace || question.space_type === "all_rooms"
+    );
+    return matching.map((question) => ({
+      ...question,
+      source_question_id: question.question_id,
+      question_id: `${room.id}:${question.question_id}`,
+      room_id: room.id,
+      room_label: room.name || room.label || VISUAL_SPACE_LABELS[roomSpace] || roomSpace,
+      room_type: room.type,
+    }));
+  });
+}
+
+export function suggestSharedRoomAnswers({
+  questions = [],
+  answers = {},
+  sourceRoomId,
+  targetRoomId,
+} = {}) {
+  const sourceAnswers = new Map();
+  questions
+    .filter(
+      (question) => String(question.room_id) === String(sourceRoomId)
+        && question.space_type === "all_rooms",
+    )
+    .forEach((question) => {
+      const answer = answers[question.question_id];
+      if (!answer?.optionId) return;
+      sourceAnswers.set(question.source_question_id || question.question_id, answer);
+    });
+
+  return Object.fromEntries(
+    questions
+      .filter(
+        (question) => String(question.room_id) === String(targetRoomId)
+          && question.space_type === "all_rooms"
+          && !answers[question.question_id]?.optionId,
+      )
+      .flatMap((question) => {
+        const sourceQuestionId = question.source_question_id || question.question_id;
+        const sourceAnswer = sourceAnswers.get(sourceQuestionId);
+        if (!sourceAnswer) return [];
+        const optionExists = sourceAnswer.optionId === "both"
+          ? question.allow_both === true
+          : question.options?.some(
+            (option) => option.option_id === sourceAnswer.optionId,
+          );
+        if (!optionExists) return [];
+        return [[question.question_id, {
+          optionId: sourceAnswer.optionId,
+          custom: sourceAnswer.custom || "",
+          suggested: true,
+          suggestedFromRoomId: String(sourceRoomId),
+        }]];
+      }),
+  );
+}
+
+export function occupantsFromBasicAnswers(basic = {}) {
+  const occupants = { adults: 2, children: 0, elderly: 0, pets: 0 };
+  const household = basic.household || "";
+  if (household === "一人") occupants.adults = 1;
+  if (household === "親子家庭") occupants.children = 1;
+  if (household === "三代同堂") {
+    occupants.children = 1;
+    occupants.elderly = 1;
+  }
+  const membersAndPets = basic.membersAndPets || "";
+  if (membersAndPets === "有幼兒") occupants.children = Math.max(1, occupants.children);
+  if (membersAndPets === "有長輩") occupants.elderly = Math.max(1, occupants.elderly);
+  if (membersAndPets === "有貓" || membersAndPets === "有狗") occupants.pets = 1;
+  return occupants;
+}
+
+export function answeredVisualQuestionIds(answers = {}) {
+  return Object.entries(answers)
+    .filter(([, answer]) => Boolean(answer?.optionId))
+    .map(([questionId]) => questionId);
+}
+
+export function applyVisualPreferencesToSpecs(specs = [], visualPreferences = []) {
+  const next = specs.map((spec) => [...spec]);
+  const effects = Object.assign(
+    {},
+    ...visualPreferences.map((preference) => preference.engine_effects || {}),
+  );
+  next.forEach((spec) => {
+    if (effects.sofa_layout === "sectional" && spec[0] === "sofa") {
+      spec[1] = "l-shape";
+      spec[2] = "極與極偏好：L 型沙發配置";
+    }
+    if (Number(effects.dining_capacity) >= 6 && spec[0] === "dining-table") {
+      spec[1] = "rect-6";
+      spec[2] = "極與極偏好：六人用餐";
+    } else if (Number(effects.dining_capacity) === 4 && spec[0] === "dining-table") {
+      spec[1] = "rect-4";
+      spec[2] = "極與極偏好：日常四人用餐";
+    }
+  });
+  const ensureAutoFurniture = (enabled, type, variant, reason) => {
+    if (enabled && !next.some(([candidate]) => candidate === type)) {
+      next.push([type, variant, reason, true]);
+    }
+  };
+  ensureAutoFurniture(
+    effects.entry_seat === true,
+    "lounge-chair",
+    "accent",
+    "極與極偏好：玄關需要坐下換鞋",
+  );
+  ensureAutoFurniture(
+    effects.entry_storage_priority === "high"
+      || effects.storage_strategy === "distributed",
+    "storage-cabinet",
+    "tall",
+    "極與極偏好：提高收納配置",
+  );
+  ensureAutoFurniture(
+    effects.dining_anchor === "island",
+    "kitchen-island",
+    "standard",
+    "極與極偏好：中島用餐",
+  );
+  return next;
+}
+
+export function visualQuestionnaireProgress({
+  questions = [],
+  answers = {},
+  skippedSpaceTypes = [],
+} = {}) {
+  const skipped = new Set(skippedSpaceTypes);
+  const resolved = questions.filter(
+    (question) => answers[question.question_id]?.optionId
+      || skipped.has(question.space_type),
+  );
+  return {
+    completed: resolved.length,
+    total: questions.length,
+    ready: questions.length > 0 && resolved.length === questions.length,
+  };
+}
+
+export function finishesGate(finishes = {}) {
+  const missing = [];
+  if (!finishes.stylePackId) missing.push("style_card");
+  if (!finishes.wallMaterial) missing.push("wall_material");
+  if (!finishes.wallColor) missing.push("wall_color");
+  if (!finishes.floorMaterial) missing.push("floor_material");
+  if (!finishes.floorColor) missing.push("floor_color");
+  if (!finishes.ceilingMaterial) missing.push("ceiling_material");
+  if (!finishes.ceilingStyle) missing.push("ceiling_style");
+  if (!finishes.lightStyle) missing.push("light_style");
+  return {
+    ready: missing.length === 0 && finishes.confirmed === true,
+    missing,
+  };
+}
+
+export function questionnaireSummary({
+  basic = {},
+  visualQuestions = [],
+  visualAnswers = {},
+  skippedSpaceTypes = [],
+  finishes = {},
+  stylePacks = [],
+} = {}) {
+  const stylePack = stylePacks.find((pack) => pack.id === finishes.stylePackId);
+  const visualSelections = visualQuestions
+    .map((question) => {
+      const answer = visualAnswers[question.question_id];
+      if (!answer?.optionId) return null;
+      const option = question.options.find(
+        (candidate) => candidate.option_id === answer.optionId,
+      );
+      return {
+        questionId: question.question_id,
+        question: question.title_zh,
+        answer: answer.optionId === "both"
+          ? "兩者平衡"
+          : option?.label_zh || answer.optionId,
+        custom: answer.custom || "",
+      };
+    })
+    .filter(Boolean);
+  return {
+    basic,
+    answeredSpaceCount: new Set(
+      visualQuestions
+        .filter((question) => visualAnswers[question.question_id]?.optionId)
+        .map((question) => question.space_type),
+    ).size,
+    skippedSpaceCount: new Set(skippedSpaceTypes).size,
+    visualSelections,
+    finishes: {
+      style: stylePack
+        ? `${stylePack.styleLabel}｜${stylePack.name}`
+        : finishes.stylePackId || "",
+      wallMaterial: finishes.wallMaterial || "",
+      wallColor: finishes.wallColor || "",
+      floorMaterial: finishes.floorMaterial || "",
+      floorColor: finishes.floorColor || "",
+      ceilingMaterial: finishes.ceilingMaterial || "",
+      ceilingStyle: finishes.ceilingStyle || "",
+      lightStyle: finishes.lightStyle || "",
+      ceilingColor: finishes.ceilingColor || "",
+    },
+  };
+}

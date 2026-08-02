@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="RoomPilot PostgreSQL 向量家具 RAG 測試台" />
+    <title>家具 RAG 測試台｜RoomPilot</title>
+    <link rel="stylesheet" href="/static/site.css?v=20260711i" />
+    <link rel="stylesheet" href="/static/rag.css?v=sha256-994184e13edf0440a78a4ea093f3927206780b8e7444caf7eb6155e977d14bef" />
+  </head>
+  <body data-page="rag" class="rag-page">
+    <header class="topbar app-topbar">
+      <a class="brand app-brand" href="/" aria-label="RoomPilot 首頁">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>RoomPilot</span>
+      </a>
+      <nav class="topnav" aria-label="主要導覽">
+        <a href="/">探索功能</a>
+        <a href="/styles">風格類型</a>
+        <a href="/library">家具資料庫</a>
+        <a href="/scene">3D 場景展示</a>
+      </nav>
+    </header>
+
+    <main class="rag-shell">
+      <section class="rag-hero" aria-labelledby="rag-title">
+        <div class="rag-hero-copy">
+          <p class="rag-kicker">DJANGO RAG × KAI POSTGRESQL</p>
+          <h1 id="rag-title">用一句需求，驗證真正的向量家具檢索</h1>
+          <p>
+            你選擇的 OpenAI 或 Anthropic 只負責理解需求；BGE-M3、pgvector 與 Django reranker
+            會在 9,349 筆正式家具中留下可檢查的檢索證據。
+          </p>
+          <div class="rag-boundary" role="note" data-boundary="retrieval_only_no_geometry_legality">
+            <span aria-hidden="true">i</span>
+            本頁只測試檢索與排序，不判斷碰撞、淨空或家具合法位置。
+          </div>
+        </div>
+
+        <aside class="rag-status-card" aria-labelledby="rag-status-title">
+          <div class="rag-status-heading">
+            <div>
+              <p class="rag-kicker">PIPELINE STATUS</p>
+              <h2 id="rag-status-title">服務狀態</h2>
+            </div>
+            <span id="rag-ready-badge" class="rag-ready-badge is-checking">檢查中</span>
+          </div>
+          <div id="rag-stage-list" class="rag-stage-list" aria-live="polite"></div>
+          <p id="rag-status-note" class="rag-status-note">正在確認 RAG parser、模型快取與 PostgreSQL。</p>
+          <button id="rag-refresh-status" class="rag-ghost-button" type="button">重新檢查</button>
+        </aside>
+      </section>
+
+      <section class="rag-query-panel" aria-labelledby="rag-query-title">
+        <div class="rag-query-heading">
+          <div>
+            <p class="rag-kicker">NATURAL LANGUAGE QUERY</p>
+            <h2 id="rag-query-title">描述你想找的家具</h2>
+          </div>
+          <span class="rag-source-pill">PostgreSQL pgvector</span>
+        </div>
+
+        <form id="rag-search-form" class="rag-search-form">
+          <label for="rag-query">家具需求</label>
+          <textarea
+            id="rag-query"
+            name="query"
+            rows="4"
+            maxlength="1000"
+            required
+            placeholder="例如：幫我找一組適合小客廳的北歐風沙發和茶几，總預算 35,000 元，沙發寬度不要超過 180 公分。"
+          ></textarea>
+          <div class="rag-form-footer">
+            <span id="rag-query-count" class="rag-character-count">0 / 1000</span>
+            <button id="rag-submit" class="rag-primary-button" type="submit">
+              <span>開始向量檢索</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="rag-examples" aria-label="範例查詢">
+          <span>快速範例</span>
+          <button type="button" data-example="我想找一張日式低矮雙人床，預算一萬五千元以內，氛圍自然寧靜。">日式臥室</button>
+          <button type="button" data-example="幫我搭配現代簡約小客廳，需要沙發、茶几和落地燈，總預算四萬元。">小客廳整組</button>
+          <button type="button" data-example="找一張寬度不超過 120 公分的工業風書桌，想要沉穩粗獷一點。">尺寸限制書桌</button>
+        </div>
+        <p id="rag-form-error" class="rag-form-error" role="alert"></p>
+      </section>
+
+      <section id="rag-loading" class="rag-loading" hidden aria-live="polite">
+        <div class="rag-progress-heading">
+          <div>
+            <p class="rag-kicker">LIVE PIPELINE</p>
+            <strong id="rag-progress-stage">準備 RAG 搜尋</strong>
+          </div>
+          <span id="rag-progress-percent" class="rag-progress-percent">0%</span>
+        </div>
+        <div
+          id="rag-progress-track"
+          class="rag-progress-track"
+          role="progressbar"
+          aria-label="RAG 搜尋進度"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <span id="rag-progress-fill" class="rag-progress-fill"></span>
+        </div>
+        <div class="rag-progress-meta">
+          <p id="rag-progress-message">建立背景搜尋工作。</p>
+          <p id="rag-progress-elapsed">已等待 0 秒</p>
+        </div>
+        <p class="rag-progress-hint">百分比代表後端已完成的實際階段；大型模型推論期間可能停留較久。</p>
+      </section>
+
+      <section id="rag-results" class="rag-results" hidden aria-live="polite">
+        <div id="rag-result-summary"></div>
+        <div id="rag-clarification"></div>
+        <div id="rag-result-blocks" class="rag-result-blocks"></div>
+        <details class="rag-debug-panel">
+          <summary>查看 LLM 結構化解析與執行資訊</summary>
+          <pre id="rag-debug-json"></pre>
+        </details>
+      </section>
+    </main>
+
+    <script type="module" src="/static/rag.js?v=sha256-f32457f109481378727e0d42944088b769de522ee8de972582980e98f3ea9887"></script>
+  </body>
+</html>

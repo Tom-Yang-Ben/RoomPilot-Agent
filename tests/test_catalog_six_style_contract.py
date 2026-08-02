@@ -3,11 +3,16 @@ import re
 
 import pytest
 
-from backend.server.services import intake_service
-from backend.server.routes.library import furniture_catalog
-from backend.server.routes.pages import site_data
-from backend.server.services.catalog_service import _get_merged_furniture_by_id, load_style_database
-from backend.server.services.glb_assets import _model_response_for_merged_furniture, _model_status, _resolve_external_zip_entry
+from backend.server import intake_service
+from backend.server.main import (
+    _merged_furniture_catalog_cached,
+    _model_response_for_merged_furniture,
+    _model_status,
+    _resolve_external_zip_entry,
+    furniture_catalog,
+    load_style_database,
+    site_data,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,23 +35,25 @@ def test_old_twelve_style_json_is_archived_outside_the_active_catalog():
     assert (ARCHIVE_DIR / "README.md").is_file()
 
 
-def test_active_catalog_uses_only_the_confirmed_six_styles_and_chinese_names():
+def test_active_catalog_uses_the_official_cloud_set_and_only_confirmed_styles():
     catalog = load_style_database()
     assert {style["style_id"] for style in catalog["styles"]} == CANONICAL_STYLE_IDS
 
     furniture = catalog["furniture"]
-    assert furniture
+    assert len(furniture) == 8_675
     assert all(item.get("name_zh") and re.search(r"[\u4e00-\u9fff]", item["name_zh"]) for item in furniture)
 
-    non_equipment = [item for item in furniture if item.get("catalog_scope") == "furniture"]
-    assert non_equipment
-    assert all(item.get("primary_style") in CANONICAL_STYLE_IDS for item in non_equipment)
-    assert all(1 <= len(item.get("style_candidates", [])) <= 2 for item in non_equipment)
-
-    equipment = [item for item in furniture if item.get("catalog_scope") == "equipment"]
-    assert equipment
-    assert all(item.get("primary_style") is None for item in equipment)
-    assert all(item.get("style_candidates") == [] for item in equipment)
+    classified = [item for item in furniture if item.get("primary_style")]
+    unclassified = [item for item in furniture if not item.get("primary_style")]
+    assert len(classified) == 8_675
+    assert len(unclassified) == 0
+    assert all(item["primary_style"] in CANONICAL_STYLE_IDS for item in classified)
+    assert all(
+        set(candidate["style_id"] for candidate in item.get("style_candidates", []))
+        <= CANONICAL_STYLE_IDS
+        for item in classified
+    )
+    assert all(item.get("style_candidates") == [] for item in unclassified)
 
 
 def test_library_exposes_hierarchical_category_options():
@@ -61,16 +68,30 @@ def test_library_exposes_hierarchical_category_options():
         detail="card",
     )
     groups = payload["category_groups"]
-    assert {group["group_id"] for group in groups} >= {"living", "dining_kitchen", "bedroom", "study", "storage", "soft_decor", "equipment"}
+    assert {group["group_id"] for group in groups} >= {
+        "living",
+        "dining_kitchen",
+        "bedroom",
+        "study",
+        "storage",
+        "soft_decor",
+    }
+    assert "equipment" not in {group["group_id"] for group in groups}
     assert all(group["group_name_zh"] and group["types"] for group in groups)
 
 
-def test_known_external_model_resolves_to_a_real_glb_response():
-    furniture = _get_merged_furniture_by_id("ext_ae38fbb0527bdf")
-    # 外部 GLB zip 是機器本地資源(不進版控);找不到就 skip,不算失敗 —— 系統
-    # 對缺檔的正確行為由 test_unverified_remote_glb_is_not_advertised_as_available 把關。
-    if _resolve_external_zip_entry(furniture) is None:
-        pytest.skip("外部 GLB zip 不在本機(ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS 未配置),略過實體解析驗證")
+def test_an_available_external_model_resolves_to_a_real_glb_response(monkeypatch):
+    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "local")
+    furniture = next(
+        (
+        item
+        for item in _merged_furniture_catalog_cached()
+        if _resolve_external_zip_entry(item) is not None
+        ),
+        None,
+    )
+    if furniture is None:
+        pytest.skip("未設定外部離線 GLB 備援包")
     response = _model_response_for_merged_furniture(furniture)
     assert response.body[:4] == b"glTF"
 
@@ -81,13 +102,17 @@ def test_site_data_is_a_small_bootstrap_payload_not_the_full_catalog():
     assert payload["catalog_merge_summary"]["delivery"] == "請使用 /api/furniture 分頁取得家具資料。"
 
 
-def test_unverified_remote_glb_is_not_advertised_as_available():
-    assert _model_status({"glb_url": "https://example.test/furniture.glb"})[0] is False
+def test_remote_glb_is_advertised_when_the_server_proxy_can_load_it(monkeypatch):
+    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "local")
+    available, reason = _model_status({"glb_url": "https://example.test/furniture.glb"})
+
+    assert available is True
+    assert "代理" in reason
 
 
 def test_intake_has_a_single_short_default_llm_attempt():
-    # intake 的模型清單已與 scene_service 共用;預設池必須維持單一模型,
-    # 對話式 intake 才不會因多模型輪詢拖長首問延遲。
-    from backend.server.services.scene_service import DEFAULT_OPENROUTER_MODELS
+    assert len(intake_service.DEFAULT_MODELS) == 1
 
-    assert len(DEFAULT_OPENROUTER_MODELS) == 1
+
+def test_intake_service_resolves_repository_root():
+    assert Path(intake_service.PROJECT_DIR) == ROOT

@@ -1,9 +1,57 @@
 from pathlib import Path
 
-from backend.server.routes.library import furniture_catalog
+from backend.server import main
+from backend.server.main import furniture_catalog
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_catalog_search_interprets_common_chinese_furniture_terms(monkeypatch) -> None:
+    monkeypatch.setattr(
+        main,
+        "_furniture_payload_cache",
+        lambda: (
+            {
+                "furniture_id": "armchair-1",
+                "name_zh": "閱讀椅",
+                "name_en": "Reading lounge chair",
+                "normalized_type": "armchair",
+                "has_model": True,
+            },
+            {
+                "furniture_id": "dining-chair-1",
+                "name_zh": "餐椅",
+                "name_en": "Dining chair",
+                "normalized_type": "dining-chair",
+                "has_model": True,
+            },
+            {
+                "furniture_id": "chair-art-1",
+                "name_zh": "椅子掛畫",
+                "name_en": "Chair wall art",
+                "normalized_type": "wall-art",
+                "has_model": True,
+            },
+        ),
+    )
+
+    payload = furniture_catalog(
+        style=None,
+        group=None,
+        item_type=None,
+        q="椅子",
+        page=1,
+        page_size=24,
+        has_model=True,
+        detail="card",
+    )
+
+    assert [item["furniture_id"] for item in payload["items"]] == [
+        "armchair-1",
+        "dining-chair-1",
+        "chair-art-1",
+    ]
 
 
 def test_mode_one_catalog_only_returns_loadable_models_and_matching_taxonomy() -> None:
@@ -99,6 +147,7 @@ def test_library_exposes_mode_one_room_type_and_proposal_contract() -> None:
     for element_id in (
         "mode1-space-grid",
         "mode1-space-select",
+        "style-filter",
         "mode1-type-step",
         "mode1-type-grid",
         "mode1-type-next",
@@ -116,6 +165,20 @@ def test_library_exposes_mode_one_room_type_and_proposal_contract() -> None:
     assert "selectDefaultFurnitureForPage" in script
     assert "mode1-card-favorite" in script
     assert "mode1-card-add" in script
+    assert "return (group?.types || [])" in script
+    assert "groupType.type_name_zh" in script
+    assert "MODE_ONE_CATEGORY_DEFS" not in script
+
+
+def test_library_places_style_next_to_space_selector() -> None:
+    html = (ROOT / "backend/server/static/library.html").read_text(encoding="utf-8")
+
+    controls_start = html.index('<div class="mode1-space-controls">')
+    controls_end = html.index("</div>", controls_start)
+    controls = html[controls_start:controls_end]
+    assert 'id="style-filter"' in controls
+    assert 'id="mode1-space-select"' in controls
+    assert html.count('id="style-filter"') == 1
 
 
 def test_library_mode_one_handoffs_selected_furniture_to_scene() -> None:

@@ -1,23 +1,28 @@
+# 私密設定
 .env
-web_fastapi/.env
+
+# Python、Node 與測試快取
 .venv/
 .venv_triposr/
+.uv-cache/
 .pytest_cache/
 frontend/node_modules/
 frontend/dist/
+node_modules/
 __pycache__/
 *.pyc
 tmp/
+.tmp/
 .runtime/
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 web_fastapi/uploads/
 web_fastapi/__pycache__/
 Miniconda3-latest-Windows-x86_64.exe
-# floorplan2dxf 單檔模式的疊圖輸出(在 cwd 下產生;批次模式輸出在 testdata/chk/)
+# floorplan2dxf 單檔模式的疊圖輸出(在 cwd 下產生;批次模式輸出在 data/testdata/chk/)
 /chk/
 
-# Local-only archives / cleanup holding area
+# 僅限本機的封存與清理暫存區
 _local_archive_not_for_push/
 *_local_archive_not_for_push*/
 
@@ -44,6 +49,8 @@ web_fastapi/static/model_probe.*
 
 # docs/ 只保留團隊專案文件，一律納入版控。
 # 個人筆記、復刻研究與過時狀態稿已於 2026-07-21 移出 repo 封存。
+# 註:bella-test1 原本的 `docs/*` 白名單會誤忽略 01_專題進度/、04_契約與規格/、
+# archive/、ai-harness/,合併時移除,改由本規則統一納管。
 
 # 2026-07-22 重組:data/ 現為版控資料夾(data/dataset + data/testdata),不再整包忽略
 # dataset/ 已於 2026-07-07 進版控(blob 早已在 origin 歷史中,git 去重後零額外成本)
@@ -51,7 +58,10 @@ downloaded-files/
 舊的翻譯資料/
 needed.md
 
-# Local/personal generated Markdown, not for bella uploads
+# 個人或工具產生的本機設定與筆記不提交。
+.codex/
+.claude/
+CLAUDE.md
 PROJECT_CONTEXT.md
 CODEX_PROJECT_RULES.md
 LOCAL_*.md
@@ -64,8 +74,31 @@ PERSONAL_*.md
 *_private.md
 *_personal.md
 
-# 新增 3D 模型屬大型資產，進版控前先由組長確認。
+# AI 協作規則必須版本化(路徑已對齊 2026-07-22 重組後的佈局)。
+!AGENTS.md
+!CLAUDE.md
+!backend/**/AGENTS.md
+!frontend/AGENTS.md
+!data/testdata/AGENTS.md
+!tests/AGENTS.md
+
+# 大型 3D 模型、原始下載與批次預覽只保留在物件儲存或本機。
+# 已清洗、可在網站直接使用的 PBR 紋理必須提交版本控制。
 *.glb
+*.gltf
+*.bin
+*.ktx2
+*.hdr
+*.exr
+backend/catalog/data/staging/
+backend/catalog/data/quarantine/lighting/
+backend/catalog/assets/
+backend/server/static/lighting_assets/
+backend/server/static/texture_cache/
+
+# 正式 PBR 材質（含 KTX2 壓縮貼圖）是網站執行期資產，必須上傳。
+!backend/server/static/pbr_assets/
+!backend/server/static/pbr_assets/**
 
 # macOS 系統殘留(入倉三規則:禁止提交)
 .DS_Store

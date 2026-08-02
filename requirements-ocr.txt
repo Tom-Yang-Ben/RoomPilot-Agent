@@ -1,0 +1,6 @@
+-r requirements.txt
+
+# Optional OCR stack resolved in uv.lock. Keep it separate from the normal
+# web/vision install because Paddle is large and platform-specific.
+paddleocr==3.7.0
+paddlepaddle==3.3.1

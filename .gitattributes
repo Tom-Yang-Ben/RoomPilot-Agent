@@ -5,3 +5,6 @@ frontend/** text=auto eol=lf
 
 # Vite 建置產物視為原樣位元組,git 不做任何行尾轉換。
 backend/server/static/frontend3d/** -text
+
+# bella-test1 帶入:RAG 向量檔走 Git LFS。
+JSON/RAG/furniture_embeddings_bge_m3.jsonl filter=lfs diff=lfs merge=lfs -text

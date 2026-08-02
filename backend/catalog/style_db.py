@@ -1,4 +1,4 @@
-"""家具型錄轉接層:把 sf3d 風格資料庫的家具項目轉成 furniture_engine 的型錄物件。
+"""家具型錄轉接層：把家具資料庫項目轉成擺放引擎的型錄物件。
 
 尺寸一律公分(2026-07-11 全案公分化後,此層不再做 cm↔m 換算)。
 淨空(clearance)依家具類型給預設值 —— 風格資料庫本身沒有這個欄位。
@@ -39,6 +39,9 @@ _SIZE_RULES: dict[str, tuple[float, float, float, float, tuple[float, float, flo
     "large-medium-rug": (130, 400, 90, 300, (200, 140, 1)),
     "runner-small-rug": (50, 250, 40, 200, (120, 80, 1)),
     "wall-shelf": (30, 200, 15, 40, (80, 25, 25)),
+    "flower-pots-planter": (10, 90, 10, 90, (35, 35, 80)),
+    "floor-lamp": (15, 80, 15, 80, (35, 35, 145)),
+    "curtain": (80, 500, 5, 30, (240, 12, 240)),
     "mirror": (10, 250, 1, 12, (60, 3, 90)),
     "large-mirror": (20, 250, 1, 12, (78, 3, 196)),
     "standing-mirror": (20, 250, 1, 18, (50, 4, 160)),

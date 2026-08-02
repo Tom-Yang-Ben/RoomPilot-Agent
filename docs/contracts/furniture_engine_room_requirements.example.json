@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0",
+  "project_id": "example-project-id",
+  "layout_version_id": "layout-v4-confirmed",
+  "layout_json": {
+    "source": "第4步已確認格局",
+    "rooms": [
+      {"room_id": "room-1", "room_type": "bedroom"},
+      {"room_id": "room-2", "room_type": "kitchen"},
+      {"room_id": "room-3", "room_type": "living_room"}
+    ],
+    "openings": [],
+    "clearance_zones": []
+  },
+  "global_defaults": {
+    "style_palette_id": "scandinavian_3",
+    "apply_style_to_all_rooms": true,
+    "air_conditioning": {
+      "mode": "wall-split",
+      "apply_to_all_rooms": true,
+      "eligible_room_types": ["living_room", "bedroom", "study"]
+    },
+    "surface_policy": {
+      "standard_rooms": "inherit_global_style",
+      "kitchen_bathroom_balcony": "inherit_style_with_functional_materials"
+    }
+  },
+  "rooms": [
+    {
+      "room_id": "room-1",
+      "room_type": "bedroom",
+      "usage": ["sleep", "read_work"],
+      "air_conditioning": "inherit",
+      "furniture_preference": {
+        "tags": ["淺木色", "圓角", "可收納"],
+        "free_text": "床邊想保留閱讀燈的位置",
+        "apply_to_all_room_furniture": true
+      },
+      "furniture_slots": [
+        {
+          "slot_id": "bed",
+          "required": true,
+          "quantity": 1,
+          "selection_mode": "size_then_catalog",
+          "size_options": ["single", "small_double", "double", "queen", "king"],
+          "selected_size": "double",
+          "catalog_item_id": null,
+          "placement_preference": "against_wall",
+          "status": "pending_rag",
+          "fit_risk": null,
+          "missing_glb": false
+        },
+        {
+          "slot_id": "wardrobe",
+          "required": false,
+          "quantity": 1,
+          "selection_mode": "size_then_catalog",
+          "size_options": ["single_door", "double_door", "triple_door", "large"],
+          "selected_size": "double_door",
+          "catalog_item_id": null,
+          "placement_preference": "against_wall",
+          "status": "pending_rag"
+        },
+        {
+          "slot_id": "desk",
+          "required": false,
+          "quantity": 1,
+          "selection_mode": "size_then_catalog",
+          "size_options": ["compact", "standard", "wide"],
+          "selected_size": "compact",
+          "catalog_item_id": null,
+          "placement_preference": "near_window_without_blocking",
+          "status": "pending_rag"
+        },
+        {
+          "slot_id": "office_chair",
+          "required": false,
+          "quantity": 1,
+          "selection_mode": "size_then_catalog",
+          "size_options": ["standard"],
+          "selected_size": "standard",
+          "catalog_item_id": null,
+          "placement_preference": "face_desk",
+          "status": "pending_rag"
+        }
+      ]
+    },
+    {
+      "room_id": "room-2",
+      "room_type": "kitchen",
+      "usage": ["cook"],
+      "air_conditioning": "not_applicable",
+      "furniture_slots": [],
+      "surface_mode": "functional_same_style",
+      "allow_empty": true
+    },
+    {
+      "room_id": "room-3",
+      "room_type": "living_room",
+      "usage": ["rest"],
+      "air_conditioning": "inherit",
+      "furniture_slots": [
+        {
+          "slot_id": "sofa",
+          "required": true,
+          "quantity": 1,
+          "selection_mode": "size_then_catalog",
+          "size_options": ["two_seat", "three_seat", "sectional"],
+          "selected_size": "three_seat",
+          "catalog_item_id": null,
+          "placement_preference": "against_wall",
+          "status": "pending_rag"
+        }
+      ]
+    }
+  ],
+  "engine_rules": {
+    "catalog_item_must_match_slot_type": true,
+    "show_unfit_items_with_reason": true,
+    "suggest_smaller_same_style_alternative": true,
+    "allow_empty_room_when_confirmed": true,
+    "place_only_catalog_glb": true,
+    "never_fallback_to_white_model": true,
+    "validate_door_window_walkway_and_orientation": true
+  }
+}

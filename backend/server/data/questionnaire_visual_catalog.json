@@ -1,0 +1,2372 @@
+{
+  "version": "1.0.0",
+  "notice_zh": "目前只選擇格局；色卡與風格尚未定義。",
+  "question_count": 55,
+  "image_count": 110,
+  "prompt_contract": {
+    "prompt_contract_id": "roompilot-layout-neutral-v1",
+    "use_case": "photorealistic-natural",
+    "aspect_ratio": "3:2",
+    "camera": "eye-level 24–28mm wide angle",
+    "palette": "restrained warm-neutral",
+    "comparison_rule": "paired options keep the same camera and architectural shell; change only the named decision axis",
+    "style_rule": "layout only; no named interior style and no color-card decision",
+    "watermark": "RoomPilot",
+    "avoid": [
+      "people",
+      "logos",
+      "labels",
+      "fisheye distortion",
+      "impossible geometry",
+      "luxury showroom staging"
+    ]
+  },
+  "questions": [
+    {
+      "question_id": "entry-transition",
+      "space_type": "entryway",
+      "title_zh": "進門後想立即看見公共空間，還是先有轉折？",
+      "purpose_zh": "確認玄關進入方式與第一視線。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：以半高櫃形成轉折，但仍保留採光。",
+      "risk_triggers": [
+        "wall_change"
+      ],
+      "options": [
+        {
+          "option_id": "direct",
+          "label_zh": "直接開放",
+          "visual_brief_zh": "玄關直接連到明亮客廳，視線通透且走道直接。",
+          "rag_tags": [
+            "entryway",
+            "open_sightline"
+          ],
+          "engine_effects": {
+            "entry_transition": "direct"
+          },
+          "image_id": "qv-entry-transition-direct",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "buffered",
+          "label_zh": "轉折緩衝",
+          "visual_brief_zh": "玄關以短牆或櫃體形成轉折，避免一開門看完整室內。",
+          "rag_tags": [
+            "entryway",
+            "privacy_buffer"
+          ],
+          "engine_effects": {
+            "entry_transition": "buffered"
+          },
+          "image_id": "qv-entry-transition-buffered",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "entry-shoe-storage",
+      "space_type": "entryway",
+      "title_zh": "玄關要留更多空間，還是放大鞋物收納？",
+      "purpose_zh": "確認玄關淨空與鞋櫃容量的取捨。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：常穿鞋開放放置，其餘做封閉櫃。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "open",
+          "label_zh": "偏重寬敞落塵區",
+          "visual_brief_zh": "玄關保留寬敞換鞋與雙人通行空間，鞋櫃精簡。",
+          "rag_tags": [
+            "entryway",
+            "wide_clearance"
+          ],
+          "engine_effects": {
+            "entry_storage_priority": "low"
+          },
+          "image_id": "qv-entry-shoe-storage-open",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "storage",
+          "label_zh": "偏重大容量鞋櫃",
+          "visual_brief_zh": "玄關配置完整落地鞋櫃與雜物收納，通道較緊湊但可用。",
+          "rag_tags": [
+            "entryway",
+            "shoe_storage"
+          ],
+          "engine_effects": {
+            "entry_storage_priority": "high"
+          },
+          "image_id": "qv-entry-shoe-storage-storage",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "entry-seating",
+      "space_type": "entryway",
+      "title_zh": "換鞋需要固定座位，還是保持地面淨空？",
+      "purpose_zh": "決定是否配置換鞋椅及其占用範圍。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：使用可收折或藏入櫃體的換鞋椅。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "bench",
+          "label_zh": "固定換鞋座",
+          "visual_brief_zh": "玄關有合宜高度的固定換鞋椅及穿鞋操作空間。",
+          "rag_tags": [
+            "entryway",
+            "bench"
+          ],
+          "engine_effects": {
+            "entry_seat": true
+          },
+          "image_id": "qv-entry-seating-bench",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "clear",
+          "label_zh": "保持淨空",
+          "visual_brief_zh": "玄關不放固定座椅，保留推車、行李與多人進出空間。",
+          "rag_tags": [
+            "entryway",
+            "clear_floor"
+          ],
+          "engine_effects": {
+            "entry_seat": false
+          },
+          "image_id": "qv-entry-seating-clear",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "entry-privacy",
+      "space_type": "entryway",
+      "title_zh": "玄關偏向採光穿透，還是完整遮蔽？",
+      "purpose_zh": "選擇玄關屏風與隱私程度。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：格柵下半部遮蔽、上半部透光。",
+      "risk_triggers": [
+        "wall_change"
+      ],
+      "options": [
+        {
+          "option_id": "permeable",
+          "label_zh": "透光屏風",
+          "visual_brief_zh": "玄關以格柵或長虹玻璃界定，仍能引入客廳自然光。",
+          "rag_tags": [
+            "entryway",
+            "permeable_screen"
+          ],
+          "engine_effects": {
+            "entry_privacy": "partial"
+          },
+          "image_id": "qv-entry-privacy-permeable",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "solid",
+          "label_zh": "完整遮蔽",
+          "visual_brief_zh": "玄關以實牆或封閉櫃遮蔽室內，形成完整視線屏障。",
+          "rag_tags": [
+            "entryway",
+            "solid_screen"
+          ],
+          "engine_effects": {
+            "entry_privacy": "full"
+          },
+          "image_id": "qv-entry-privacy-solid",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "living-circulation-storage",
+      "space_type": "living_room",
+      "title_zh": "客廳要寬大走道，還是增加整面收納？",
+      "purpose_zh": "確認主要動線與收納容量的偏重。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：走道至少保留 100 公分，其餘牆面再做收納。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "wide",
+          "image_id": "qv-living-circulation-wide",
+          "label_zh": "偏重寬大走道",
+          "visual_brief_zh": "客廳通往開放式廚房的主要走道寬敞連續，只有必要矮櫃。",
+          "rag_tags": [
+            "living_room",
+            "wide_circulation",
+            "open_path"
+          ],
+          "engine_effects": {
+            "circulation_priority": "wide"
+          },
+          "generation_status": "ready",
+          "image_sha256": "181b8bb202d29288543b1c1da34f03a816b00a36c02d270e93d0552d76e8baa6"
+        },
+        {
+          "option_id": "storage",
+          "image_id": "qv-living-circulation-storage",
+          "label_zh": "偏重整面收納",
+          "visual_brief_zh": "同一客廳增加連續落地櫃與電視收納，走道較緊湊但仍可使用。",
+          "rag_tags": [
+            "living_room",
+            "full_height_storage",
+            "compact_path"
+          ],
+          "engine_effects": {
+            "circulation_priority": "storage"
+          },
+          "generation_status": "ready",
+          "image_sha256": "3e7354425f533b3e23f48da4a98d8ecb0ba08c274602e7e40c086352811b0c55"
+        }
+      ]
+    },
+    {
+      "question_id": "living-focus",
+      "space_type": "living_room",
+      "title_zh": "客廳以電視為中心，還是以面對面交流為中心？",
+      "purpose_zh": "決定主要座向與家具關係。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：電視採側牆配置，沙發仍可面向彼此。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "tv",
+          "label_zh": "電視觀看優先",
+          "visual_brief_zh": "沙發正對電視牆，觀看距離合理，主要座位朝向一致。",
+          "rag_tags": [
+            "living_room",
+            "tv_focus"
+          ],
+          "engine_effects": {
+            "living_focus": "tv"
+          },
+          "image_id": "qv-living-focus-tv",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "conversation",
+          "label_zh": "面對面交流優先",
+          "visual_brief_zh": "沙發與扶手椅圍繞茶几面對面，電視不是主要視覺中心。",
+          "rag_tags": [
+            "living_room",
+            "conversation_layout"
+          ],
+          "engine_effects": {
+            "living_focus": "conversation"
+          },
+          "image_id": "qv-living-focus-conversation",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "living-sofa-layout",
+      "space_type": "living_room",
+      "title_zh": "偏好一字型沙發，還是 L 型包覆座位？",
+      "purpose_zh": "確認沙發占地、座位數與轉角關係。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：一字型沙發另加一張可移動單椅。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "linear",
+          "label_zh": "一字型沙發",
+          "visual_brief_zh": "單一一字型沙發靠牆，保留側向通行與彈性。",
+          "rag_tags": [
+            "living_room",
+            "linear_sofa"
+          ],
+          "engine_effects": {
+            "sofa_layout": "linear"
+          },
+          "image_id": "qv-living-sofa-layout-linear",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "sectional",
+          "label_zh": "L 型沙發",
+          "visual_brief_zh": "L 型沙發形成包覆座位，增加躺靠但占用更多地面。",
+          "rag_tags": [
+            "living_room",
+            "sectional_sofa"
+          ],
+          "engine_effects": {
+            "sofa_layout": "sectional"
+          },
+          "image_id": "qv-living-sofa-layout-sectional",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "living-flexibility",
+      "space_type": "living_room",
+      "title_zh": "客廳家具要容易變動，還是固定整合？",
+      "purpose_zh": "決定可移動家具與固定櫃體比例。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：電視櫃固定，邊几與單椅維持可移動。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "flexible",
+          "label_zh": "偏重彈性移動",
+          "visual_brief_zh": "以可移動沙發、邊几和單椅構成，可快速改變使用情境。",
+          "rag_tags": [
+            "living_room",
+            "flexible_furniture"
+          ],
+          "engine_effects": {
+            "furniture_flexibility": "high"
+          },
+          "image_id": "qv-living-flexibility-flexible",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "built_in",
+          "label_zh": "偏重固定整合",
+          "visual_brief_zh": "電視牆、座榻和收納採固定整合，畫面完整但調整有限。",
+          "rag_tags": [
+            "living_room",
+            "built_in_furniture"
+          ],
+          "engine_effects": {
+            "furniture_flexibility": "low"
+          },
+          "image_id": "qv-living-flexibility-built_in",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "living-dining-relation",
+      "space_type": "living_room",
+      "title_zh": "客餐廳想連成一體，還是清楚分區？",
+      "purpose_zh": "確認公共空間的連續性。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：維持開放，但用矮櫃或地毯分區。",
+      "risk_triggers": [
+        "wall_change"
+      ],
+      "options": [
+        {
+          "option_id": "integrated",
+          "label_zh": "客餐一體",
+          "visual_brief_zh": "客廳與餐桌連續配置，沒有固定分隔，動線互通。",
+          "rag_tags": [
+            "living_room",
+            "open_plan"
+          ],
+          "engine_effects": {
+            "living_dining_relation": "integrated"
+          },
+          "image_id": "qv-living-dining-relation-integrated",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "zoned",
+          "label_zh": "清楚分區",
+          "visual_brief_zh": "以矮牆、櫃體或通道使客廳與餐廳具有清楚界線。",
+          "rag_tags": [
+            "living_room",
+            "zoned_plan"
+          ],
+          "engine_effects": {
+            "living_dining_relation": "zoned"
+          },
+          "image_id": "qv-living-dining-relation-zoned",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "living-display-conceal",
+      "space_type": "living_room",
+      "title_zh": "物品要展示出來，還是盡量收進櫃內？",
+      "purpose_zh": "決定開放展示與封閉收納比例。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：收藏品開放展示，日用品全部用門片遮蔽。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "display",
+          "label_zh": "偏重開放展示",
+          "visual_brief_zh": "客廳使用開放層架展示書籍、收藏和物件。",
+          "rag_tags": [
+            "living_room",
+            "open_display"
+          ],
+          "engine_effects": {
+            "storage_front": "open"
+          },
+          "image_id": "qv-living-display-conceal-display",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "concealed",
+          "label_zh": "偏重封閉收納",
+          "visual_brief_zh": "客廳使用無把手封閉櫃，日常物品不外露。",
+          "rag_tags": [
+            "living_room",
+            "concealed_storage"
+          ],
+          "engine_effects": {
+            "storage_front": "closed"
+          },
+          "image_id": "qv-living-display-conceal-concealed",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "living-window-use",
+      "space_type": "living_room",
+      "title_zh": "窗邊要完全留空，還是安排座榻與收納？",
+      "purpose_zh": "確認採光面前的家具需求。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：窗下做低矮抽屜，但不高於窗台。",
+      "risk_triggers": [
+        "air_conditioning"
+      ],
+      "options": [
+        {
+          "option_id": "clear",
+          "label_zh": "窗前完全留空",
+          "visual_brief_zh": "落地窗前保持淨空，窗簾、採光和出入不被家具阻擋。",
+          "rag_tags": [
+            "living_room",
+            "window_clearance"
+          ],
+          "engine_effects": {
+            "window_zone": "clear"
+          },
+          "image_id": "qv-living-window-use-clear",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "window_seat",
+          "label_zh": "窗邊座榻收納",
+          "visual_brief_zh": "窗下安排低矮座榻及抽屜，保留開窗與窗簾操作。",
+          "rag_tags": [
+            "living_room",
+            "window_seat"
+          ],
+          "engine_effects": {
+            "window_zone": "seat_storage"
+          },
+          "image_id": "qv-living-window-use-window_seat",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "dining-table-type",
+      "space_type": "kitchen",
+      "title_zh": "用獨立餐桌，還是以中島兼作餐桌？",
+      "purpose_zh": "決定用餐家具與廚房關係。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：中島只供早餐，另保留小型伸縮餐桌。",
+      "risk_triggers": [
+        "electrical",
+        "water",
+        "gas"
+      ],
+      "options": [
+        {
+          "option_id": "table",
+          "label_zh": "獨立餐桌",
+          "visual_brief_zh": "用餐區以獨立餐桌為中心，四周拉椅與通行完整。",
+          "rag_tags": [
+            "dining_room",
+            "dining_table"
+          ],
+          "engine_effects": {
+            "dining_anchor": "table"
+          },
+          "image_id": "qv-dining-table-type-table",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "island",
+          "label_zh": "中島兼餐桌",
+          "visual_brief_zh": "廚房中島延伸為主要用餐位置，減少另一張餐桌。",
+          "rag_tags": [
+            "dining_room",
+            "island_dining"
+          ],
+          "engine_effects": {
+            "dining_anchor": "island"
+          },
+          "image_id": "qv-dining-table-type-island",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "dining-capacity",
+      "space_type": "kitchen",
+      "title_zh": "餐桌維持日常尺寸，還是預留多人擴充？",
+      "purpose_zh": "確認日常與聚餐座位需求。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：平日四人、展開後可坐六至八人。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "daily",
+          "label_zh": "偏重日常精簡",
+          "visual_brief_zh": "四人餐桌尺寸精簡，保留周邊走道。",
+          "rag_tags": [
+            "dining_room",
+            "four_seat"
+          ],
+          "engine_effects": {
+            "dining_capacity": 4
+          },
+          "image_id": "qv-dining-capacity-daily",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "extendable",
+          "label_zh": "偏重多人擴充",
+          "visual_brief_zh": "可伸縮餐桌展開後容納六至八人，預留拉伸與座椅空間。",
+          "rag_tags": [
+            "dining_room",
+            "extendable_table"
+          ],
+          "engine_effects": {
+            "dining_capacity": 8
+          },
+          "image_id": "qv-dining-capacity-extendable",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "dining-entertaining",
+      "space_type": "kitchen",
+      "title_zh": "用餐區偏日常快速使用，還是偏聚會招待？",
+      "purpose_zh": "確認餐區周邊機能。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：平日用餐簡單，但需要一個飲料與咖啡角。",
+      "risk_triggers": [
+        "electrical",
+        "water"
+      ],
+      "options": [
+        {
+          "option_id": "daily",
+          "label_zh": "偏重日常用餐",
+          "visual_brief_zh": "餐桌鄰近廚房，配置簡潔，服務動線短。",
+          "rag_tags": [
+            "dining_room",
+            "daily_meal"
+          ],
+          "engine_effects": {
+            "entertaining_priority": "low"
+          },
+          "image_id": "qv-dining-entertaining-daily",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "hosting",
+          "label_zh": "偏重聚會招待",
+          "visual_brief_zh": "餐區增加備餐檯、飲料櫃與多人停留空間。",
+          "rag_tags": [
+            "dining_room",
+            "hosting"
+          ],
+          "engine_effects": {
+            "entertaining_priority": "high"
+          },
+          "image_id": "qv-dining-entertaining-hosting",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "dining-storage",
+      "space_type": "kitchen",
+      "title_zh": "餐廳保持清爽，還是配置完整餐邊櫃？",
+      "purpose_zh": "決定餐具與小家電收納。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：只做 120 公分餐邊櫃並保留掃地機位置。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "minimal",
+          "label_zh": "偏重清爽留白",
+          "visual_brief_zh": "餐桌周邊只有必要家具，牆面保持留白。",
+          "rag_tags": [
+            "dining_room",
+            "minimal_storage"
+          ],
+          "engine_effects": {
+            "dining_storage": "minimal"
+          },
+          "image_id": "qv-dining-storage-minimal",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "sideboard",
+          "label_zh": "偏重餐邊收納",
+          "visual_brief_zh": "餐桌旁配置完整餐邊櫃、小家電檯面與插座。",
+          "rag_tags": [
+            "dining_room",
+            "sideboard"
+          ],
+          "engine_effects": {
+            "dining_storage": "sideboard"
+          },
+          "image_id": "qv-dining-storage-sideboard",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "kitchen-boundary",
+      "space_type": "kitchen",
+      "title_zh": "廚房要完全開放，還是能隔絕油煙？",
+      "purpose_zh": "決定廚房隔間、門與公共空間關係。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：中間保留玻璃拉門，平時打開、重油煙時關閉。",
+      "risk_triggers": [
+        "wall_removal",
+        "gas",
+        "exhaust"
+      ],
+      "options": [
+        {
+          "option_id": "open",
+          "label_zh": "完全開放式廚房",
+          "visual_brief_zh": "客餐廳直接連到廚房，沒有全高隔間或門。",
+          "rag_tags": [
+            "kitchen",
+            "open_kitchen",
+            "social_cooking"
+          ],
+          "engine_effects": {
+            "kitchen_boundary": "open"
+          },
+          "generation_status": "ready",
+          "image_id": "qv-kitchen-boundary-open",
+          "image_sha256": "b22e0c790e35c6ca14096b15b6d7085e14befd0bc5e20fa67d0e3c75b032703f"
+        },
+        {
+          "option_id": "enclosed",
+          "label_zh": "可封閉式廚房",
+          "visual_brief_zh": "廚房以全高隔間與門分離，可隔絕油煙與噪音。",
+          "rag_tags": [
+            "kitchen",
+            "enclosed_kitchen",
+            "fume_control"
+          ],
+          "engine_effects": {
+            "kitchen_boundary": "enclosed"
+          },
+          "generation_status": "ready",
+          "image_id": "qv-kitchen-boundary-enclosed",
+          "image_sha256": "c838b73ea8fda5596b4c4c5446fb05493695d33dcfcf74fc8afec47de089c002"
+        }
+      ]
+    },
+    {
+      "question_id": "kitchen-layout",
+      "space_type": "kitchen",
+      "title_zh": "廚具集中一側，還是採 L 型增加檯面？",
+      "purpose_zh": "確認廚房工作檯面與通道。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：主要一字型，冰箱旁短邊只做電器櫃。",
+      "risk_triggers": [
+        "water",
+        "gas",
+        "electrical",
+        "exhaust"
+      ],
+      "options": [
+        {
+          "option_id": "one_wall",
+          "label_zh": "一字型廚房",
+          "visual_brief_zh": "冰箱、水槽與爐具沿同一側牆排列，另一側走道完整。",
+          "rag_tags": [
+            "kitchen",
+            "one_wall"
+          ],
+          "engine_effects": {
+            "kitchen_layout": "one_wall"
+          },
+          "image_id": "qv-kitchen-layout-one_wall",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "l_shape",
+          "label_zh": "L 型廚房",
+          "visual_brief_zh": "廚具沿兩側相鄰牆配置，轉角增加連續檯面。",
+          "rag_tags": [
+            "kitchen",
+            "l_shape"
+          ],
+          "engine_effects": {
+            "kitchen_layout": "l_shape"
+          },
+          "image_id": "qv-kitchen-layout-l_shape",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "kitchen-island-table",
+      "space_type": "kitchen",
+      "title_zh": "中央空間放工作中島，還是保留獨立餐桌？",
+      "purpose_zh": "決定中央家具及機電需求。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：使用無水無電的移動中島，旁邊仍放小餐桌。",
+      "risk_triggers": [
+        "water",
+        "gas",
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "island",
+          "label_zh": "工作中島",
+          "visual_brief_zh": "廚房中央配置有備餐檯面的中島，周邊通道合理。",
+          "rag_tags": [
+            "kitchen",
+            "work_island"
+          ],
+          "engine_effects": {
+            "kitchen_center": "island"
+          },
+          "image_id": "qv-kitchen-island-table-island",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "table",
+          "label_zh": "獨立餐桌",
+          "visual_brief_zh": "中央保留獨立餐桌，廚房工作檯集中牆邊。",
+          "rag_tags": [
+            "kitchen",
+            "dining_table"
+          ],
+          "engine_effects": {
+            "kitchen_center": "table"
+          },
+          "image_id": "qv-kitchen-island-table-table",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "kitchen-pantry-counter",
+      "space_type": "kitchen",
+      "title_zh": "要更多高櫃儲藏，還是更多連續工作檯？",
+      "purpose_zh": "確認垂直收納與備餐面的偏重。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：保留一座食品高櫃，其餘維持連續檯面。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "pantry",
+          "label_zh": "偏重高櫃儲藏",
+          "visual_brief_zh": "廚房配置多座食品與電器高櫃，工作檯較短。",
+          "rag_tags": [
+            "kitchen",
+            "pantry_tall_unit"
+          ],
+          "engine_effects": {
+            "kitchen_priority": "pantry"
+          },
+          "image_id": "qv-kitchen-pantry-counter-pantry",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "counter",
+          "label_zh": "偏重連續檯面",
+          "visual_brief_zh": "廚房保留長而連續的備餐檯，高櫃數量精簡。",
+          "rag_tags": [
+            "kitchen",
+            "continuous_counter"
+          ],
+          "engine_effects": {
+            "kitchen_priority": "counter"
+          },
+          "image_id": "qv-kitchen-pantry-counter-counter",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "kitchen-appliance-visibility",
+      "space_type": "kitchen",
+      "title_zh": "家電方便外露，還是整合進門片？",
+      "purpose_zh": "決定電器使用便利與視覺整齊。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：常用咖啡機外露，微波爐與烤箱嵌入高櫃。",
+      "risk_triggers": [
+        "electrical",
+        "ventilation"
+      ],
+      "options": [
+        {
+          "option_id": "visible",
+          "label_zh": "偏重隨手可用",
+          "visual_brief_zh": "常用小家電放在檯面，插座與散熱空間清楚。",
+          "rag_tags": [
+            "kitchen",
+            "visible_appliances"
+          ],
+          "engine_effects": {
+            "appliance_visibility": "visible"
+          },
+          "image_id": "qv-kitchen-appliance-visibility-visible",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "integrated",
+          "label_zh": "偏重整合隱藏",
+          "visual_brief_zh": "主要家電嵌入櫃體或藏於電器櫃，檯面保持清爽。",
+          "rag_tags": [
+            "kitchen",
+            "integrated_appliances"
+          ],
+          "engine_effects": {
+            "appliance_visibility": "integrated"
+          },
+          "image_id": "qv-kitchen-appliance-visibility-integrated",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "kitchen-workflow",
+      "space_type": "kitchen",
+      "title_zh": "廚房偏緊湊高效率，還是偏多人寬鬆操作？",
+      "purpose_zh": "決定工作三角與通道寬度。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：平時一人料理，但週末要容納兩人並行。",
+      "risk_triggers": [
+        "water",
+        "gas",
+        "electrical",
+        "exhaust"
+      ],
+      "options": [
+        {
+          "option_id": "compact",
+          "label_zh": "偏重一人高效率",
+          "visual_brief_zh": "冰箱、水槽和爐具距離緊湊，一人轉身即可操作。",
+          "rag_tags": [
+            "kitchen",
+            "compact_work_triangle"
+          ],
+          "engine_effects": {
+            "kitchen_workflow": "compact"
+          },
+          "image_id": "qv-kitchen-workflow-compact",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "multi_user",
+          "label_zh": "偏重多人操作",
+          "visual_brief_zh": "廚房通道加寬並分散工作站，兩人可同時備餐。",
+          "rag_tags": [
+            "kitchen",
+            "multi_user"
+          ],
+          "engine_effects": {
+            "kitchen_workflow": "multi_user"
+          },
+          "image_id": "qv-kitchen-workflow-multi_user",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "primary-bed-circulation",
+      "space_type": "bedroom",
+      "title_zh": "主臥要放大床，還是保留更寬走道？",
+      "purpose_zh": "確認床尺寸與三側通行。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：使用標準雙人床，床尾至少保留 90 公分。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "large_bed",
+          "label_zh": "大床優先",
+          "visual_brief_zh": "主臥配置加大床，床側走道較緊湊但可通行。",
+          "rag_tags": [
+            "primary_bedroom",
+            "king_bed"
+          ],
+          "engine_effects": {
+            "bed_priority": "large"
+          },
+          "image_id": "qv-primary-bed-circulation-large_bed",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "wide_clearance",
+          "label_zh": "寬走道優先",
+          "visual_brief_zh": "主臥使用較精簡床型，床側與床尾保留寬走道。",
+          "rag_tags": [
+            "primary_bedroom",
+            "wide_bed_clearance"
+          ],
+          "engine_effects": {
+            "bed_priority": "clearance"
+          },
+          "image_id": "qv-primary-bed-circulation-wide_clearance",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "primary-wardrobe",
+      "space_type": "bedroom",
+      "title_zh": "衣物採整面衣櫃，還是獨立更衣區？",
+      "purpose_zh": "決定衣物收納與分區方式。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：整面衣櫃中加入一個可進入的轉角收納。",
+      "risk_triggers": [
+        "wall_change"
+      ],
+      "options": [
+        {
+          "option_id": "wall",
+          "label_zh": "整面衣櫃",
+          "visual_brief_zh": "衣櫃沿單側牆連續配置，不另隔更衣室。",
+          "rag_tags": [
+            "primary_bedroom",
+            "wall_wardrobe"
+          ],
+          "engine_effects": {
+            "wardrobe_type": "wall"
+          },
+          "image_id": "qv-primary-wardrobe-wall",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "walk_in",
+          "label_zh": "獨立更衣區",
+          "visual_brief_zh": "以隔間形成可進入更衣區，衣櫃集中在其中。",
+          "rag_tags": [
+            "primary_bedroom",
+            "walk_in_closet"
+          ],
+          "engine_effects": {
+            "wardrobe_type": "walk_in"
+          },
+          "image_id": "qv-primary-wardrobe-walk_in",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "primary-vanity-desk",
+      "space_type": "bedroom",
+      "title_zh": "房內工作檯偏梳妝，還是偏辦公？",
+      "purpose_zh": "選擇桌面深度、收納與照明。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：同一桌面左側梳妝、右側放筆電。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "vanity",
+          "label_zh": "梳妝使用",
+          "visual_brief_zh": "床邊配置帶鏡面與化妝收納的梳妝桌。",
+          "rag_tags": [
+            "primary_bedroom",
+            "vanity"
+          ],
+          "engine_effects": {
+            "bedroom_desk": "vanity"
+          },
+          "image_id": "qv-primary-vanity-desk-vanity",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "workdesk",
+          "label_zh": "辦公使用",
+          "visual_brief_zh": "床邊配置符合筆電與螢幕深度的工作桌及插座。",
+          "rag_tags": [
+            "primary_bedroom",
+            "workdesk"
+          ],
+          "engine_effects": {
+            "bedroom_desk": "workdesk"
+          },
+          "image_id": "qv-primary-vanity-desk-workdesk",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "primary-bedside",
+      "space_type": "bedroom",
+      "title_zh": "床兩側要對稱完整，還是集中單側機能？",
+      "purpose_zh": "決定床頭櫃、插座和衣櫃衝突。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：一側床頭櫃，另一側保留嬰兒床位置。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "symmetric",
+          "label_zh": "雙側對稱",
+          "visual_brief_zh": "床兩側都有床頭櫃、閱讀燈與等寬通道。",
+          "rag_tags": [
+            "primary_bedroom",
+            "symmetric_bedside"
+          ],
+          "engine_effects": {
+            "bedside_layout": "symmetric"
+          },
+          "image_id": "qv-primary-bedside-symmetric",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "single_side",
+          "label_zh": "單側集中",
+          "visual_brief_zh": "床靠近一側，主要床頭收納與通道集中另一側。",
+          "rag_tags": [
+            "primary_bedroom",
+            "single_side_bed"
+          ],
+          "engine_effects": {
+            "bedside_layout": "single_side"
+          },
+          "image_id": "qv-primary-bedside-single_side",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "primary-relaxation",
+      "space_type": "bedroom",
+      "title_zh": "主臥要保留電視，還是改成閱讀休息角？",
+      "purpose_zh": "確認睡前活動及家具需求。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：不裝電視，只保留可放平板的壁架。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "tv",
+          "label_zh": "臥室電視",
+          "visual_brief_zh": "床尾配置電視與必要設備，觀看距離合理。",
+          "rag_tags": [
+            "primary_bedroom",
+            "bedroom_tv"
+          ],
+          "engine_effects": {
+            "bedroom_relaxation": "tv"
+          },
+          "image_id": "qv-primary-relaxation-tv",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "reading",
+          "label_zh": "閱讀休息角",
+          "visual_brief_zh": "取消床尾電視，改設單椅、立燈與小邊几。",
+          "rag_tags": [
+            "primary_bedroom",
+            "reading_corner"
+          ],
+          "engine_effects": {
+            "bedroom_relaxation": "reading"
+          },
+          "image_id": "qv-primary-relaxation-reading",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "secondary-occupancy",
+      "space_type": "bedroom",
+      "title_zh": "次臥是每日居住，還是偶爾留宿？",
+      "purpose_zh": "決定床、衣櫃與彈性家具。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：平日書房，每月有家人留宿兩三天。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "daily",
+          "label_zh": "每日居住",
+          "visual_brief_zh": "次臥有完整床、衣櫃、床邊與每日動線。",
+          "rag_tags": [
+            "secondary_bedroom",
+            "daily_occupant"
+          ],
+          "engine_effects": {
+            "secondary_use": "daily"
+          },
+          "image_id": "qv-secondary-occupancy-daily",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "guest",
+          "label_zh": "偶爾留宿",
+          "visual_brief_zh": "次臥使用沙發床或壁床，平日保留其他用途空間。",
+          "rag_tags": [
+            "secondary_bedroom",
+            "guest_room"
+          ],
+          "engine_effects": {
+            "secondary_use": "guest"
+          },
+          "image_id": "qv-secondary-occupancy-guest",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "secondary-bed-work",
+      "space_type": "bedroom",
+      "title_zh": "次臥偏完整雙人床，還是單人床加書桌？",
+      "purpose_zh": "決定睡眠與學習工作的比例。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：加寬單人床並配置 120 公分書桌。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "double_bed",
+          "label_zh": "完整雙人床",
+          "visual_brief_zh": "次臥以雙人床為主，其他家具精簡。",
+          "rag_tags": [
+            "secondary_bedroom",
+            "double_bed"
+          ],
+          "engine_effects": {
+            "secondary_bed": "double"
+          },
+          "image_id": "qv-secondary-bed-work-double_bed",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "single_desk",
+          "label_zh": "單人床加書桌",
+          "visual_brief_zh": "次臥配置單人床與完整書桌，兩者動線互不衝突。",
+          "rag_tags": [
+            "secondary_bedroom",
+            "single_bed",
+            "desk"
+          ],
+          "engine_effects": {
+            "secondary_bed": "single_with_desk"
+          },
+          "image_id": "qv-secondary-bed-work-single_desk",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "secondary-storage",
+      "space_type": "bedroom",
+      "title_zh": "次臥偏大型衣櫃，還是保留活動空間？",
+      "purpose_zh": "確認收納與地面淨空。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：衣櫃做到頂，但只做 120 公分寬。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "wardrobe",
+          "label_zh": "偏重大型衣櫃",
+          "visual_brief_zh": "次臥有完整落地衣櫃，地面活動空間較少。",
+          "rag_tags": [
+            "secondary_bedroom",
+            "large_wardrobe"
+          ],
+          "engine_effects": {
+            "secondary_storage": "high"
+          },
+          "image_id": "qv-secondary-storage-wardrobe",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "open_floor",
+          "label_zh": "偏重活動空間",
+          "visual_brief_zh": "次臥衣櫃精簡，保留兒童遊戲、瑜伽或臨時使用地面。",
+          "rag_tags": [
+            "secondary_bedroom",
+            "open_floor"
+          ],
+          "engine_effects": {
+            "secondary_storage": "low"
+          },
+          "image_id": "qv-secondary-storage-open_floor",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "secondary-flexibility",
+      "space_type": "bedroom",
+      "title_zh": "次臥維持固定用途，還是能隨家庭變化調整？",
+      "purpose_zh": "確認未來用途變更。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：先作幼兒房，家具尺寸預留未來更換單人床。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "fixed",
+          "label_zh": "固定專用",
+          "visual_brief_zh": "家具依目前使用者完整定製，收納與床位固定。",
+          "rag_tags": [
+            "secondary_bedroom",
+            "fixed_use"
+          ],
+          "engine_effects": {
+            "secondary_flexibility": "low"
+          },
+          "image_id": "qv-secondary-flexibility-fixed",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "adaptable",
+          "label_zh": "可轉換用途",
+          "visual_brief_zh": "使用模組家具與可移動配置，可由書房轉為兒童或客房。",
+          "rag_tags": [
+            "secondary_bedroom",
+            "adaptable_room"
+          ],
+          "engine_effects": {
+            "secondary_flexibility": "high"
+          },
+          "image_id": "qv-secondary-flexibility-adaptable",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "study-focus-collaboration",
+      "space_type": "storage",
+      "title_zh": "書房偏安靜專注，還是方便共同討論？",
+      "purpose_zh": "決定座位方向與聲音需求。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：兩張桌平時各自工作，中間保留共用討論檯。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "focus",
+          "label_zh": "安靜專注",
+          "visual_brief_zh": "單人工作桌面向牆或窗，背景干擾少並有吸音考量。",
+          "rag_tags": [
+            "study",
+            "focus_work"
+          ],
+          "engine_effects": {
+            "study_mode": "focus"
+          },
+          "image_id": "qv-study-focus-collaboration-focus",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "collaboration",
+          "label_zh": "共同討論",
+          "visual_brief_zh": "雙人或對坐桌面，中央可共同查看資料與討論。",
+          "rag_tags": [
+            "study",
+            "collaboration"
+          ],
+          "engine_effects": {
+            "study_mode": "collaboration"
+          },
+          "image_id": "qv-study-focus-collaboration-collaboration",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "study-boundary",
+      "space_type": "storage",
+      "title_zh": "書房要開放連接，還是能關門隔音？",
+      "purpose_zh": "決定書房隔間與隱私。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：使用玻璃拉門，保留採光並能暫時隔音。",
+      "risk_triggers": [
+        "wall_change",
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "open",
+          "label_zh": "開放式書房",
+          "visual_brief_zh": "書房與公共空間直接連接，視線與採光連續。",
+          "rag_tags": [
+            "study",
+            "open_study"
+          ],
+          "engine_effects": {
+            "study_boundary": "open"
+          },
+          "image_id": "qv-study-boundary-open",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "enclosed",
+          "label_zh": "可關門書房",
+          "visual_brief_zh": "書房有完整隔間與門，可進行視訊與安靜工作。",
+          "rag_tags": [
+            "study",
+            "enclosed_study"
+          ],
+          "engine_effects": {
+            "study_boundary": "enclosed"
+          },
+          "image_id": "qv-study-boundary-enclosed",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "study-workstations",
+      "space_type": "storage",
+      "title_zh": "需要雙人並排工作，還是單人桌加閱讀角？",
+      "purpose_zh": "確認工作人數與輔助活動。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：一張長桌可坐兩人，另留一張可移動單椅。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "dual",
+          "label_zh": "雙人工作站",
+          "visual_brief_zh": "長桌可同時容納兩套螢幕、座椅與線路。",
+          "rag_tags": [
+            "study",
+            "dual_workstation"
+          ],
+          "engine_effects": {
+            "workstation_count": 2
+          },
+          "image_id": "qv-study-workstations-dual",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "single_reading",
+          "label_zh": "單人桌加閱讀角",
+          "visual_brief_zh": "一套完整工作桌之外另有舒適閱讀椅與立燈。",
+          "rag_tags": [
+            "study",
+            "single_workstation",
+            "reading_corner"
+          ],
+          "engine_effects": {
+            "workstation_count": 1,
+            "reading_corner": true
+          },
+          "image_id": "qv-study-workstations-single_reading",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "study-books-display",
+      "space_type": "storage",
+      "title_zh": "書牆偏大量典藏，還是精選展示？",
+      "purpose_zh": "決定書櫃深度、數量與開放比例。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：常用書開放，文件與雜物用下櫃門片遮蔽。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "archive",
+          "label_zh": "偏重大量典藏",
+          "visual_brief_zh": "整面到頂書櫃容納大量書籍與文件，留有取書通道。",
+          "rag_tags": [
+            "study",
+            "book_archive"
+          ],
+          "engine_effects": {
+            "book_storage": "high"
+          },
+          "image_id": "qv-study-books-display-archive",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "curated",
+          "label_zh": "偏重精選展示",
+          "visual_brief_zh": "少量開放層板陳列精選書籍，牆面保留留白。",
+          "rag_tags": [
+            "study",
+            "curated_display"
+          ],
+          "engine_effects": {
+            "book_storage": "low"
+          },
+          "image_id": "qv-study-books-display-curated",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "bathroom-wet-dry",
+      "space_type": "bathroom",
+      "title_zh": "浴室要完整乾濕分離，還是採開放濕區？",
+      "purpose_zh": "決定淋浴隔間、排水坡度與使用空間。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：只做單片玻璃擋水，不設完整門片。",
+      "risk_triggers": [
+        "water",
+        "drainage",
+        "ventilation"
+      ],
+      "options": [
+        {
+          "option_id": "separated",
+          "image_id": "qv-bathroom-wetdry-separated",
+          "label_zh": "完整乾濕分離",
+          "visual_brief_zh": "淋浴區有玻璃門與門檻，馬桶及浴櫃保持乾燥。",
+          "rag_tags": [
+            "bathroom",
+            "wet_dry_separation",
+            "glass_enclosure"
+          ],
+          "engine_effects": {
+            "wet_zone": "enclosed"
+          },
+          "generation_status": "ready",
+          "image_sha256": "d4e8c178927a478288dbf94ff50c5232e6ac3afc986298494bd54c59feba6caa"
+        },
+        {
+          "option_id": "open",
+          "image_id": "qv-bathroom-wetroom-open",
+          "label_zh": "開放濕區",
+          "visual_brief_zh": "移除完整淋浴門，連續地坪排水並以單片玻璃擋水。",
+          "rag_tags": [
+            "bathroom",
+            "open_wet_room",
+            "continuous_floor"
+          ],
+          "engine_effects": {
+            "wet_zone": "open"
+          },
+          "generation_status": "ready",
+          "image_sha256": "4714f1c2dabfe34bfab3fe21124c9f2bc0a02f23d17092f657acf03f9bdf767b"
+        }
+      ]
+    },
+    {
+      "question_id": "bathroom-bath-shower",
+      "space_type": "bathroom",
+      "title_zh": "浴室保留浴缸，還是放大淋浴空間？",
+      "purpose_zh": "決定主要沐浴設備及占地。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：使用短浴缸並把淋浴整合在浴缸上方。",
+      "risk_triggers": [
+        "water",
+        "drainage",
+        "structure_load"
+      ],
+      "options": [
+        {
+          "option_id": "tub",
+          "label_zh": "保留浴缸",
+          "visual_brief_zh": "緊湊浴室內配置合宜尺寸浴缸，出入和清潔空間可用。",
+          "rag_tags": [
+            "bathroom",
+            "bathtub"
+          ],
+          "engine_effects": {
+            "bath_fixture": "tub"
+          },
+          "image_id": "qv-bathroom-bath-shower-tub",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "shower",
+          "label_zh": "放大淋浴",
+          "visual_brief_zh": "取消浴缸並形成寬敞淋浴區，轉身和輔助使用更容易。",
+          "rag_tags": [
+            "bathroom",
+            "large_shower"
+          ],
+          "engine_effects": {
+            "bath_fixture": "shower"
+          },
+          "image_id": "qv-bathroom-bath-shower-shower",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "bathroom-vanity-storage",
+      "space_type": "bathroom",
+      "title_zh": "洗手檯偏雙人使用，還是增加高櫃收納？",
+      "purpose_zh": "決定檯面寬度與垂直收納。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：單盆加寬檯面，旁邊保留窄高櫃。",
+      "risk_triggers": [
+        "water",
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "double",
+          "label_zh": "雙人洗手檯",
+          "visual_brief_zh": "浴室配置雙盆或雙人寬檯面，兩人可同時使用。",
+          "rag_tags": [
+            "bathroom",
+            "double_vanity"
+          ],
+          "engine_effects": {
+            "vanity_priority": "double"
+          },
+          "image_id": "qv-bathroom-vanity-storage-double",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "storage",
+          "label_zh": "高櫃收納",
+          "visual_brief_zh": "使用單盆浴櫃並加入毛巾與備品高櫃。",
+          "rag_tags": [
+            "bathroom",
+            "linen_tower"
+          ],
+          "engine_effects": {
+            "vanity_priority": "storage"
+          },
+          "image_id": "qv-bathroom-vanity-storage-storage",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "bathroom-laundry",
+      "space_type": "bathroom",
+      "title_zh": "洗衣設備整合進浴室，還是移到其他服務區？",
+      "purpose_zh": "確認洗衣機給排水與浴室動線。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：洗衣機放陽台，浴室只保留手洗槽。",
+      "risk_triggers": [
+        "water",
+        "drainage",
+        "electrical",
+        "ventilation"
+      ],
+      "options": [
+        {
+          "option_id": "integrated",
+          "label_zh": "浴室整合洗衣",
+          "visual_brief_zh": "洗衣機納入浴室乾區櫃體，給排水與通風合理。",
+          "rag_tags": [
+            "bathroom",
+            "laundry_integrated"
+          ],
+          "engine_effects": {
+            "laundry_location": "bathroom"
+          },
+          "image_id": "qv-bathroom-laundry-integrated",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "separate",
+          "label_zh": "洗衣設備外移",
+          "visual_brief_zh": "浴室不放洗衣機，釋出空間給收納或使用動線。",
+          "rag_tags": [
+            "bathroom",
+            "laundry_separate"
+          ],
+          "engine_effects": {
+            "laundry_location": "other"
+          },
+          "image_id": "qv-bathroom-laundry-separate",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "bathroom-fixture-floor",
+      "space_type": "bathroom",
+      "title_zh": "設備偏壁掛易清潔，還是採傳統落地易維修？",
+      "purpose_zh": "決定馬桶與浴櫃的固定方式。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：浴櫃壁掛，但馬桶維持傳統落地式。",
+      "risk_triggers": [
+        "water",
+        "drainage",
+        "wall_change"
+      ],
+      "options": [
+        {
+          "option_id": "wall_hung",
+          "label_zh": "偏重壁掛設備",
+          "visual_brief_zh": "壁掛馬桶與浴櫃離地，地面連續且容易清潔。",
+          "rag_tags": [
+            "bathroom",
+            "wall_hung_fixture"
+          ],
+          "engine_effects": {
+            "bath_fixture_mount": "wall_hung"
+          },
+          "image_id": "qv-bathroom-fixture-floor-wall_hung",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "floor",
+          "label_zh": "偏重落地設備",
+          "visual_brief_zh": "使用傳統落地馬桶與浴櫃，管線維修路徑直接。",
+          "rag_tags": [
+            "bathroom",
+            "floor_mounted_fixture"
+          ],
+          "engine_effects": {
+            "bath_fixture_mount": "floor"
+          },
+          "image_id": "qv-bathroom-fixture-floor-floor",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "balcony-service-leisure",
+      "space_type": "balcony",
+      "title_zh": "陽台偏洗曬服務，還是休閒停留？",
+      "purpose_zh": "確認陽台主要用途與設備。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：一半洗曬、一半放一張可折疊休閒椅。",
+      "risk_triggers": [
+        "water",
+        "drainage",
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "service",
+          "label_zh": "洗曬服務",
+          "visual_brief_zh": "陽台以洗衣機、洗衣槽和完整曬衣空間為主。",
+          "rag_tags": [
+            "balcony",
+            "laundry_service"
+          ],
+          "engine_effects": {
+            "balcony_use": "service"
+          },
+          "image_id": "qv-balcony-service-leisure-service",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "leisure",
+          "label_zh": "休閒停留",
+          "visual_brief_zh": "陽台以戶外座椅、邊几與舒適停留空間為主。",
+          "rag_tags": [
+            "balcony",
+            "leisure"
+          ],
+          "engine_effects": {
+            "balcony_use": "leisure"
+          },
+          "image_id": "qv-balcony-service-leisure-leisure",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "balcony-planting-storage",
+      "space_type": "balcony",
+      "title_zh": "陽台偏植栽景觀，還是耐候收納？",
+      "purpose_zh": "決定牆面和地面的使用。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：下方防水櫃收工具，上方使用吊盆。",
+      "risk_triggers": [
+        "water",
+        "drainage"
+      ],
+      "options": [
+        {
+          "option_id": "planting",
+          "label_zh": "偏重植栽",
+          "visual_brief_zh": "陽台留出盆栽、澆水與日照區，排水維持通暢。",
+          "rag_tags": [
+            "balcony",
+            "planting"
+          ],
+          "engine_effects": {
+            "balcony_priority": "planting"
+          },
+          "image_id": "qv-balcony-planting-storage-planting",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "storage",
+          "label_zh": "偏重耐候收納",
+          "visual_brief_zh": "陽台配置防水耐候櫃，保留排水孔與設備維修。",
+          "rag_tags": [
+            "balcony",
+            "weatherproof_storage"
+          ],
+          "engine_effects": {
+            "balcony_priority": "storage"
+          },
+          "image_id": "qv-balcony-planting-storage-storage",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "balcony-boundary",
+      "space_type": "balcony",
+      "title_zh": "陽台維持明確分隔，還是形成室內延伸感？",
+      "purpose_zh": "確認門檻、拉門與地坪連續性。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：保留原門窗與防水，但室內外使用相近色地坪。",
+      "risk_triggers": [
+        "waterproofing",
+        "drainage",
+        "wall_change"
+      ],
+      "options": [
+        {
+          "option_id": "separate",
+          "label_zh": "明確室內外分隔",
+          "visual_brief_zh": "保留門檻與完整門窗，室內外材料和使用清楚分開。",
+          "rag_tags": [
+            "balcony",
+            "separated_boundary"
+          ],
+          "engine_effects": {
+            "balcony_boundary": "separate"
+          },
+          "image_id": "qv-balcony-boundary-separate",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "extended",
+          "label_zh": "室內延伸感",
+          "visual_brief_zh": "視覺地坪連續、開口放大，但仍保留合法防水與外窗界線。",
+          "rag_tags": [
+            "balcony",
+            "visual_extension"
+          ],
+          "engine_effects": {
+            "balcony_boundary": "extended"
+          },
+          "image_id": "qv-balcony-boundary-extended",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "storage-open-concealed",
+      "space_type": "storage",
+      "title_zh": "收納內容要容易看到，還是全部遮蔽？",
+      "purpose_zh": "決定層架、門片與取用方式。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：常用品開放，雜物區用門片遮蔽。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "open",
+          "label_zh": "偏重開放層架",
+          "visual_brief_zh": "常用品放在可一眼看見的開放層架與掛牆系統。",
+          "rag_tags": [
+            "storage",
+            "open_shelf"
+          ],
+          "engine_effects": {
+            "storage_access": "open"
+          },
+          "image_id": "qv-storage-open-concealed-open",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "concealed",
+          "label_zh": "偏重封閉櫃",
+          "visual_brief_zh": "雜物以完整門片遮蔽，外觀整齊但需開門取用。",
+          "rag_tags": [
+            "storage",
+            "concealed_cabinet"
+          ],
+          "engine_effects": {
+            "storage_access": "concealed"
+          },
+          "image_id": "qv-storage-open-concealed-concealed",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "storage-distributed-central",
+      "space_type": "storage",
+      "title_zh": "收納分散各房，還是集中成一個儲藏區？",
+      "purpose_zh": "確認收納位置與動線。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：清潔用品集中，衣物仍分散在各臥室。",
+      "risk_triggers": [
+        "wall_change"
+      ],
+      "options": [
+        {
+          "option_id": "distributed",
+          "label_zh": "分散各房",
+          "visual_brief_zh": "每個房間都有貼近使用位置的專用收納櫃。",
+          "rag_tags": [
+            "storage",
+            "distributed_storage"
+          ],
+          "engine_effects": {
+            "storage_strategy": "distributed"
+          },
+          "image_id": "qv-storage-distributed-central-distributed",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "central",
+          "label_zh": "集中儲藏",
+          "visual_brief_zh": "住宅內形成完整儲藏室或集中高櫃區，其他房間較清爽。",
+          "rag_tags": [
+            "storage",
+            "central_storage"
+          ],
+          "engine_effects": {
+            "storage_strategy": "central"
+          },
+          "image_id": "qv-storage-distributed-central-central",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "storage-pantry-builtins",
+      "space_type": "storage",
+      "title_zh": "大型物品集中收進儲藏室，還是嵌入各處櫃體？",
+      "purpose_zh": "決定大型雜物與吸塵器位置。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：行李箱集中，掃地與吸塵設備放玄關高櫃。",
+      "risk_triggers": [
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "room",
+          "label_zh": "獨立儲藏室",
+          "visual_brief_zh": "大型物品、行李與備品集中在可進入的小型儲藏室。",
+          "rag_tags": [
+            "storage",
+            "storage_room"
+          ],
+          "engine_effects": {
+            "large_item_storage": "room"
+          },
+          "image_id": "qv-storage-pantry-builtins-room",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "builtins",
+          "label_zh": "分散嵌入櫃",
+          "visual_brief_zh": "大型物品依使用位置收進玄關、走道或房間的深櫃。",
+          "rag_tags": [
+            "storage",
+            "distributed_builtins"
+          ],
+          "engine_effects": {
+            "large_item_storage": "builtins"
+          },
+          "image_id": "qv-storage-pantry-builtins-builtins",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "circulation-straight-turn",
+      "space_type": "hallway",
+      "title_zh": "主要走道偏直達，還是用轉折增加隱私？",
+      "purpose_zh": "決定室內視線與移動路徑。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：入口直達客廳，但臥室區以短牆轉折遮擋。",
+      "risk_triggers": [
+        "wall_change"
+      ],
+      "options": [
+        {
+          "option_id": "direct",
+          "label_zh": "直達動線",
+          "visual_brief_zh": "入口到公共空間及主要房間的路徑清楚直接。",
+          "rag_tags": [
+            "circulation",
+            "direct_path"
+          ],
+          "engine_effects": {
+            "circulation_shape": "direct"
+          },
+          "image_id": "qv-circulation-straight-turn-direct",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "turned",
+          "label_zh": "隱私轉折",
+          "visual_brief_zh": "主要路徑透過短牆或櫃體轉折，房門不直接暴露。",
+          "rag_tags": [
+            "circulation",
+            "privacy_turn"
+          ],
+          "engine_effects": {
+            "circulation_shape": "turned"
+          },
+          "image_id": "qv-circulation-straight-turn-turned",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "circulation-display-clear",
+      "space_type": "hallway",
+      "title_zh": "走道牆面要展示收納，還是完全保持清空？",
+      "purpose_zh": "決定走道有效寬度與牆面利用。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：只在較寬段落設置 20 公分深展示櫃。",
+      "risk_triggers": [],
+      "options": [
+        {
+          "option_id": "display",
+          "label_zh": "偏重牆面利用",
+          "visual_brief_zh": "較寬走道側配置薄櫃、壁龕或展示層板。",
+          "rag_tags": [
+            "circulation",
+            "corridor_display"
+          ],
+          "engine_effects": {
+            "corridor_wall_use": "display"
+          },
+          "image_id": "qv-circulation-display-clear-display",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "clear",
+          "label_zh": "偏重完全淨空",
+          "visual_brief_zh": "走道兩側不設突出家具，保持最大有效寬度。",
+          "rag_tags": [
+            "circulation",
+            "clear_corridor"
+          ],
+          "engine_effects": {
+            "corridor_wall_use": "clear"
+          },
+          "image_id": "qv-circulation-display-clear-clear",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "ceiling-lighting-bias",
+      "space_type": "all_rooms",
+      "title_zh": "照明系統偏重崁入式，還是偏重明裝式？",
+      "purpose_zh": "決定燈具型態與天花施工需求。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：走道用崁燈，客廳中央以明裝軌道燈為主。",
+      "risk_triggers": [
+        "electrical",
+        "ceiling_height"
+      ],
+      "options": [
+        {
+          "option_id": "recessed",
+          "image_id": "qv-ceiling-lighting-recessed",
+          "label_zh": "偏重崁入式照明",
+          "visual_brief_zh": "平整天花以規律崁燈為主，少量明裝燈只作補充。",
+          "rag_tags": [
+            "ceiling",
+            "recessed_lighting",
+            "flat_plane"
+          ],
+          "engine_effects": {
+            "lighting_bias": "recessed"
+          },
+          "generation_status": "ready",
+          "image_sha256": "6226ac53325e1582eb3b26d7cffa5bc48b2982ff6f3bbb6cf8c3929b5c6c8159"
+        },
+        {
+          "option_id": "surface",
+          "image_id": "qv-ceiling-lighting-surface",
+          "label_zh": "偏重明裝式照明",
+          "visual_brief_zh": "同一空間以明裝筒燈與短軌道為主，少量崁燈補足。",
+          "rag_tags": [
+            "ceiling",
+            "surface_lighting",
+            "track_light"
+          ],
+          "engine_effects": {
+            "lighting_bias": "surface"
+          },
+          "generation_status": "ready",
+          "image_sha256": "657d4b5a731f430345eabf3e6f8f7ed579af1cb71654c88fab0f71277dbf623e"
+        }
+      ]
+    },
+    {
+      "question_id": "ceiling-plane",
+      "space_type": "all_rooms",
+      "title_zh": "天花偏完整平整，還是以局部降板界定區域？",
+      "purpose_zh": "決定天花造型與完成淨高。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：房間維持平頂，只在空調與窗簾盒處局部降板。",
+      "risk_triggers": [
+        "ceiling_height",
+        "air_conditioning",
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "flat",
+          "label_zh": "偏重平整天花",
+          "visual_brief_zh": "空間大部分保持同一高度的平整天花，造型精簡。",
+          "rag_tags": [
+            "ceiling",
+            "flat_ceiling"
+          ],
+          "engine_effects": {
+            "ceiling_plane": "flat"
+          },
+          "image_id": "qv-ceiling-plane-flat",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "dropped",
+          "label_zh": "偏重局部降板",
+          "visual_brief_zh": "僅在必要區域以局部降板界定空間並整合設備。",
+          "rag_tags": [
+            "ceiling",
+            "partial_drop"
+          ],
+          "engine_effects": {
+            "ceiling_plane": "partial_drop"
+          },
+          "image_id": "qv-ceiling-plane-dropped",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "ceiling-indirect-light",
+      "space_type": "all_rooms",
+      "title_zh": "照明偏直接清楚，還是加入間接光營造層次？",
+      "purpose_zh": "決定燈槽、迴路與維護。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：只在電視牆上方保留一段間接光。",
+      "risk_triggers": [
+        "electrical",
+        "ceiling_height"
+      ],
+      "options": [
+        {
+          "option_id": "direct",
+          "label_zh": "偏重直接照明",
+          "visual_brief_zh": "以直接燈具提供清楚均勻照度，不設大型燈槽。",
+          "rag_tags": [
+            "ceiling",
+            "direct_lighting"
+          ],
+          "engine_effects": {
+            "indirect_light": "minimal"
+          },
+          "image_id": "qv-ceiling-indirect-light-direct",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "indirect",
+          "label_zh": "偏重間接光",
+          "visual_brief_zh": "天花或牆邊加入可維修的間接燈槽，形成柔和層次。",
+          "rag_tags": [
+            "ceiling",
+            "indirect_lighting"
+          ],
+          "engine_effects": {
+            "indirect_light": "featured"
+          },
+          "image_id": "qv-ceiling-indirect-light-indirect",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "ceiling-ac-form",
+      "space_type": "all_rooms",
+      "title_zh": "冷氣偏壁掛機，還是隱藏式出風？",
+      "purpose_zh": "決定冷氣機型、包覆與維修口。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：客廳用隱藏式，臥室維持壁掛機。",
+      "risk_triggers": [
+        "air_conditioning",
+        "ceiling_height",
+        "drainage",
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "wall",
+          "label_zh": "壁掛式冷氣",
+          "visual_brief_zh": "壁掛室內機位置合理，不直吹主要座位並可排水維修。",
+          "rag_tags": [
+            "ceiling",
+            "wall_ac"
+          ],
+          "engine_effects": {
+            "ac_type": "wall"
+          },
+          "image_id": "qv-ceiling-ac-form-wall",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "concealed",
+          "label_zh": "隱藏式冷氣",
+          "visual_brief_zh": "天花內配置隱藏式室內機、出回風口與完整維修口。",
+          "rag_tags": [
+            "ceiling",
+            "concealed_ac"
+          ],
+          "engine_effects": {
+            "ac_type": "concealed"
+          },
+          "image_id": "qv-ceiling-ac-form-concealed",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "ceiling-ac-airflow",
+      "space_type": "all_rooms",
+      "title_zh": "冷氣偏快速直送，還是避免直吹的側向循環？",
+      "purpose_zh": "確認出風方向與家具位置。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：出風沿走道側送，避開床頭與沙發正上方。",
+      "risk_triggers": [
+        "air_conditioning",
+        "ceiling_height"
+      ],
+      "options": [
+        {
+          "option_id": "direct",
+          "label_zh": "快速直送",
+          "visual_brief_zh": "冷氣出風朝主要空間直接送風，但不近距離吹向人體。",
+          "rag_tags": [
+            "ceiling",
+            "direct_airflow"
+          ],
+          "engine_effects": {
+            "airflow_strategy": "direct"
+          },
+          "image_id": "qv-ceiling-ac-airflow-direct",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "indirect",
+          "label_zh": "避免直吹循環",
+          "visual_brief_zh": "出風沿側牆或通道送出，利用空間循環避免直吹座位床位。",
+          "rag_tags": [
+            "ceiling",
+            "indirect_airflow"
+          ],
+          "engine_effects": {
+            "airflow_strategy": "indirect"
+          },
+          "image_id": "qv-ceiling-ac-airflow-indirect",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "ceiling-fan",
+      "space_type": "all_rooms",
+      "title_zh": "需要吊扇循環，還是維持完整淨空天花？",
+      "purpose_zh": "決定吊扇、燈具與安全淨高。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：只有客廳裝低厚度吊扇，臥室不裝。",
+      "risk_triggers": [
+        "ceiling_height",
+        "electrical"
+      ],
+      "options": [
+        {
+          "option_id": "fan",
+          "label_zh": "配置吊扇",
+          "visual_brief_zh": "天花配置比例合宜吊扇，扇葉與燈具、櫃體保持安全距離。",
+          "rag_tags": [
+            "ceiling",
+            "ceiling_fan"
+          ],
+          "engine_effects": {
+            "ceiling_fan": true
+          },
+          "image_id": "qv-ceiling-fan-fan",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "clear",
+          "label_zh": "天花保持淨空",
+          "visual_brief_zh": "不設吊扇，天花中央保持平整淨空，以其他方式循環空氣。",
+          "rag_tags": [
+            "ceiling",
+            "clear_ceiling"
+          ],
+          "engine_effects": {
+            "ceiling_fan": false
+          },
+          "image_id": "qv-ceiling-fan-clear",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "ceiling-zoning",
+      "space_type": "all_rooms",
+      "title_zh": "天花界線要跟隨房間，還是連續跨越開放空間？",
+      "purpose_zh": "決定開放區域的天花分區。",
+      "selection_rule": "exclusive",
+      "allow_both": false,
+      "custom_input_example_zh": "例如：客餐廳連續，只有廚房以不同高度界定。",
+      "risk_triggers": [
+        "ceiling_height",
+        "electrical",
+        "air_conditioning"
+      ],
+      "options": [
+        {
+          "option_id": "room_zoned",
+          "label_zh": "依房間分區",
+          "visual_brief_zh": "客廳、餐廳與走道透過天花高差和燈具各自界定。",
+          "rag_tags": [
+            "ceiling",
+            "room_zoning"
+          ],
+          "engine_effects": {
+            "ceiling_zoning": "room"
+          },
+          "image_id": "qv-ceiling-zoning-room_zoned",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "continuous",
+          "label_zh": "開放區連續",
+          "visual_brief_zh": "客餐廳使用連續天花平面與一致燈具節奏，視覺更完整。",
+          "rag_tags": [
+            "ceiling",
+            "continuous_plane"
+          ],
+          "engine_effects": {
+            "ceiling_zoning": "continuous"
+          },
+          "image_id": "qv-ceiling-zoning-continuous",
+          "generation_status": "planned"
+        }
+      ]
+    },
+    {
+      "question_id": "ceiling-maintenance",
+      "space_type": "all_rooms",
+      "title_zh": "設備偏完整隱藏，還是保留明確好維修的檢修方式？",
+      "purpose_zh": "確認設備包覆與後續維護。",
+      "selection_rule": "weighted",
+      "allow_both": true,
+      "custom_input_example_zh": "例如：主要設備隱藏，但檢修口與濾網不可被櫃體阻擋。",
+      "risk_triggers": [
+        "air_conditioning",
+        "electrical",
+        "ceiling_height"
+      ],
+      "options": [
+        {
+          "option_id": "hidden",
+          "label_zh": "偏重完整隱藏",
+          "visual_brief_zh": "設備與管線盡量藏入天花，表面簡潔並保留最低限度檢修口。",
+          "rag_tags": [
+            "ceiling",
+            "hidden_services"
+          ],
+          "engine_effects": {
+            "service_visibility": "hidden"
+          },
+          "image_id": "qv-ceiling-maintenance-hidden",
+          "generation_status": "planned"
+        },
+        {
+          "option_id": "accessible",
+          "label_zh": "偏重容易維修",
+          "visual_brief_zh": "檢修口、濾網與設備路徑清楚可達，包覆較少。",
+          "rag_tags": [
+            "ceiling",
+            "maintenance_access"
+          ],
+          "engine_effects": {
+            "service_visibility": "accessible"
+          },
+          "image_id": "qv-ceiling-maintenance-accessible",
+          "generation_status": "planned"
+        }
+      ]
+    }
+  ]
+}

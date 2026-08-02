@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>家具資料庫｜RoomPilot</title>
-    <link rel="stylesheet" href="/static/site.css?v=20260711o" />
+    <link rel="stylesheet" href="/static/site.css?v=sha256-43a09f4a31d4" />
   </head>
   <body data-page="library">
     <canvas id="fx-canvas" aria-hidden="true"></canvas>
@@ -41,12 +41,18 @@
               </div>
             </div>
             <div id="mode1-space-grid" class="mode1-space-grid" hidden aria-live="polite"></div>
-            <label class="mode1-space-select-host" for="mode1-space-select">
-              <span class="mode1-space-select-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="img"><path d="M4 18v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6M6 10V7.5A2.5 2.5 0 0 1 8.5 5h7A2.5 2.5 0 0 1 18 7.5V10M3 18h18M6 18v2m12-2v2" /></svg>
-              </span>
-              <select id="mode1-space-select" aria-label="選擇空間"></select>
-            </label>
+            <div class="mode1-space-controls">
+              <label class="mode1-style-select-host" for="style-filter">
+                <span class="mode1-control-label">風格</span>
+                <select id="style-filter"><option value="">全部風格</option></select>
+              </label>
+              <label class="mode1-space-select-host" for="mode1-space-select">
+                <span class="mode1-space-select-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="img"><path d="M4 18v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6M6 10V7.5A2.5 2.5 0 0 1 8.5 5h7A2.5 2.5 0 0 1 18 7.5V10M3 18h18M6 18v2m12-2v2" /></svg>
+                </span>
+                <select id="mode1-space-select" aria-label="選擇空間"></select>
+              </label>
+            </div>
           </div>
 
           <section id="mode1-type-step" class="mode1-type-step" hidden aria-labelledby="mode1-type-heading">
@@ -68,10 +74,6 @@
           <label class="library-search-field" for="search-input">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
             <input id="search-input" type="search" placeholder="搜尋家具名稱、風格、材質..." />
-          </label>
-          <label class="library-compact-filter">
-            <span>風格</span>
-            <select id="style-filter"><option value="">全部風格</option></select>
           </label>
           <label class="library-compact-filter">
             <span>尺寸</span>
@@ -164,6 +166,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/library.js?v=20260711o"></script>
+    <script type="module" src="/static/library.js?v=sha256-5977655d4b9c"></script>
   </body>
 </html>

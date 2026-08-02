@@ -5,6 +5,7 @@ place_furniture:依需求把家具自動放進房間,回傳合法座標。
 """
 from backend.engine.models import Room, PlacedFurniture, FurnitureCatalogItem
 from backend.engine.clearance import check_placement_with_clearance as check_placement
+from backend.engine.geometry import check_placement as check_body_placement
 
 def place_furniture(
     room: Room,
@@ -44,6 +45,71 @@ def place_furniture(
                 return {"success": True, "placed": candidate, "reason": None}
 
     return {"success": False, "placed": None, "reason": "找不到合法擺放位置"}
+
+
+def place_overlay_on_furniture(
+    room: Room,
+    catalog_item: FurnitureCatalogItem,
+    item_id: str,
+    target: PlacedFurniture,
+) -> dict:
+    """將地毯等地面覆蓋物置於目標家具下，並由引擎驗證牆與房間邊界。"""
+    candidate = PlacedFurniture(
+        id=item_id,
+        catalog=catalog_item,
+        pos_x=target.pos_x,
+        pos_y=target.pos_y,
+        rotation=target.rotation,
+    )
+    reason = check_body_placement(candidate, room, [])
+    return {
+        "success": reason is None,
+        "placed": candidate if reason is None else None,
+        "reason": reason,
+    }
+
+
+def place_adjacent_to_furniture(
+    room: Room,
+    catalog_item: FurnitureCatalogItem,
+    item_id: str,
+    target: PlacedFurniture,
+    existing: list[PlacedFurniture],
+    gap: float = 12.0,
+) -> dict:
+    """把燈具、植栽等配件放在主家具四周，而不是散落在房間角落。"""
+    target_width = target.catalog.width
+    target_depth = target.catalog.depth
+    item_width = catalog_item.width
+    item_depth = catalog_item.depth
+    side_x = target_width / 2 + item_width / 2 + gap
+    side_y = target_depth / 2 + item_depth / 2 + gap
+    offsets = (
+        (side_x, 0),
+        (-side_x, 0),
+        (side_x, target_depth * 0.32),
+        (side_x, -target_depth * 0.32),
+        (-side_x, target_depth * 0.32),
+        (-side_x, -target_depth * 0.32),
+        (0, side_y),
+        (0, -side_y),
+        (target_width * 0.32, side_y),
+        (-target_width * 0.32, side_y),
+        (target_width * 0.32, -side_y),
+        (-target_width * 0.32, -side_y),
+    )
+    for dx, dy in offsets:
+        candidate = PlacedFurniture(
+            id=item_id,
+            catalog=catalog_item,
+            pos_x=target.pos_x + dx,
+            pos_y=target.pos_y + dy,
+            rotation=target.rotation,
+        )
+        reason = check_placement(candidate, room, existing)
+        if reason is None:
+            return {"success": True, "placed": candidate, "reason": None}
+    return {"success": False, "placed": None, "reason": "主家具周圍沒有合法的軟裝位置"}
 
 
 def place_furniture_batch(

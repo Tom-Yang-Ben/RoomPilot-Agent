@@ -1,0 +1,48 @@
+{
+  "ocr": [
+    {"text": "630", "bbox": [325, 0, 371, 28], "confidence": 0.99},
+    {"text": "臥室", "bbox": [210, 175, 270, 205], "confidence": 0.95},
+    {"text": "主臥室", "bbox": [430, 187, 500, 215], "confidence": 0.95},
+    {"text": "臥室", "bbox": [210, 350, 270, 390], "confidence": 0.95},
+    {"text": "浴廁", "bbox": [425, 325, 475, 355], "confidence": 0.95},
+    {"text": "浴廁", "bbox": [425, 445, 475, 475], "confidence": 0.95},
+    {"text": "廚房", "bbox": [185, 490, 245, 520], "confidence": 0.95},
+    {"text": "餐廳", "bbox": [185, 635, 245, 670], "confidence": 0.95},
+    {"text": "客廳", "bbox": [455, 635, 520, 670], "confidence": 0.95},
+    {"text": "陽台", "bbox": [48, 635, 100, 670], "confidence": 0.95}
+  ],
+  "geometry": [
+    {"kind": "wall", "start_px": [128, 121], "end_px": [520, 121]},
+    {"kind": "wall", "start_px": [128, 121], "end_px": [128, 710]},
+    {"kind": "wall", "start_px": [520, 121], "end_px": [520, 710]},
+    {"kind": "wall", "start_px": [22, 710], "end_px": [635, 710]},
+    {"kind": "wall", "start_px": [326, 121], "end_px": [326, 210]},
+    {"kind": "wall", "start_px": [128, 280], "end_px": [295, 280]},
+    {"kind": "wall", "start_px": [128, 455], "end_px": [295, 455]},
+    {"kind": "wall", "start_px": [295, 280], "end_px": [295, 556]},
+    {"kind": "wall", "start_px": [365, 300], "end_px": [520, 300]},
+    {"kind": "wall", "start_px": [365, 410], "end_px": [520, 410]},
+    {"kind": "wall", "start_px": [365, 512], "end_px": [520, 512]},
+    {"kind": "wall", "start_px": [365, 300], "end_px": [365, 512]},
+    {"kind": "wall", "start_px": [490, 300], "end_px": [490, 512]},
+    {"kind": "wall", "start_px": [118, 500], "end_px": [295, 500]},
+    {"kind": "wall", "start_px": [118, 556], "end_px": [295, 556]},
+    {"kind": "wall", "start_px": [22, 440], "end_px": [118, 440]},
+    {"kind": "wall", "start_px": [22, 440], "end_px": [22, 710]},
+    {"kind": "wall", "start_px": [118, 440], "end_px": [118, 710]},
+
+    {"kind": "door", "start_px": [235, 280], "end_px": [295, 280]},
+    {"kind": "door", "start_px": [235, 330], "end_px": [295, 330]},
+    {"kind": "door", "start_px": [365, 300], "end_px": [420, 300]},
+    {"kind": "door", "start_px": [365, 455], "end_px": [420, 455]},
+    {"kind": "door", "start_px": [365, 512], "end_px": [420, 512]},
+    {"kind": "door", "start_px": [67, 500], "end_px": [118, 500]},
+    {"kind": "door", "start_px": [560, 640], "end_px": [620, 640]},
+
+    {"kind": "window", "start_px": [180, 100], "end_px": [275, 100]},
+    {"kind": "window", "start_px": [428, 100], "end_px": [506, 100]},
+    {"kind": "window", "start_px": [110, 125], "end_px": [110, 193]},
+    {"kind": "window", "start_px": [110, 330], "end_px": [110, 405]},
+    {"kind": "window", "start_px": [118, 560], "end_px": [118, 690]}
+  ]
+}
