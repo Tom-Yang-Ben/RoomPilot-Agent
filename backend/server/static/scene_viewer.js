@@ -3527,6 +3527,7 @@ export function createSceneViewer(
           const wrapper = new THREE.Group();
           const modelRoot = gltf.scene;
           wrapper.add(modelRoot);
+          modelRoot.rotation.y = Math.PI;   // 型錄 GLB 正面朝 +z，補 180° 對齊場景約定(-z)
           fitToTargetSize(modelRoot, item.size_cm || {});
           modelRoot.traverse((object) => {
             if (object.isMesh || object.isSkinnedMesh) {
