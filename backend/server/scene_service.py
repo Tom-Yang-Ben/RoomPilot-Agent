@@ -1033,6 +1033,45 @@ def _grid_place_in_boundary(
     return None
 
 
+def _place_wall_mounted(
+    catalog,
+    item_id: str,
+    room: Room,
+    placed: list[PlacedFurniture],
+    forbidden_zones: list[PlacementZone] | None = None,
+) -> PlacedFurniture | None:
+    """壁掛品項沿牆面找位置。
+
+    引擎已經豁免壁掛的出界與穿牆(掛在牆上是它的正常狀態),這裡只需要
+    避開垂直帶會打架的家具。固定角落座標會讓每一件壁掛都疊在同一點。
+    """
+    width, depth = catalog.width, catalog.depth
+    step = 40.0
+    margin_x, margin_y = width / 2 + 15, depth / 2 + 12
+    candidates: list[tuple[float, float, float]] = []
+
+    x = margin_x
+    while x <= max(margin_x, room.width - margin_x):
+        candidates.append((x, margin_y, 0.0))
+        candidates.append((x, room.depth - margin_y, 180.0))
+        x += step
+    y = margin_y
+    while y <= max(margin_y, room.depth - margin_y):
+        candidates.append((margin_y, y, 90.0))
+        candidates.append((room.width - margin_y, y, 270.0))
+        y += step
+
+    for pos_x, pos_y, rotation in candidates:
+        candidate = PlacedFurniture(
+            id=item_id, catalog=catalog, pos_x=pos_x, pos_y=pos_y, rotation=rotation
+        )
+        if _placement_intersects_zones(candidate, forbidden_zones):
+            continue
+        if check_placement_with_clearance(candidate, room, placed) is None:
+            return candidate
+    return None
+
+
 def _four_wall_room(width_cm: float, depth_cm: float) -> Room:
     """手動輸入尺寸時的矩形房間(引擎座標:角落原點、公分)。"""
     return Room(
@@ -1878,34 +1917,35 @@ def generate_layout(
                 ),
                 None,
             )
+            engine_item = None
+            overlay_reason: str | None = None
             if target is not None:
+                # 鋪在主家具下是首選,但主家具貼牆時大尺寸地毯會探出房間。
+                # 鋪不下就退回自由擺放——地毯放房間中央仍然合理,直接判失敗
+                # 會讓修復層一路換小到整件移除,使用者看到的是「沒有地毯」。
                 overlay = place_overlay_on_furniture(room, catalog, item_id, target)
-                engine_item = overlay["placed"] if overlay["success"] else None
-                if engine_item is not None and _inside_boundary(engine_item, boundary):
-                    x_cm = engine_item.pos_x - half_w_cm
-                    z_cm = engine_item.pos_y - half_d_cm
-                    rotation = (-engine_item.rotation) % 360
+                candidate = overlay["placed"] if overlay["success"] else None
+                if candidate is not None and _inside_boundary(candidate, boundary):
+                    engine_item = candidate
                 else:
-                    failed_reason = overlay["reason"] or "地毯超出房間或碰到牆面"
-                    x_cm, z_cm = 0.0, 0.0
-            else:
+                    overlay_reason = overlay["reason"]
+            if engine_item is None:
                 overlay = place_furniture(room, catalog, item_id, [])
-                engine_item = overlay["placed"] if overlay["success"] else None
-                if engine_item is not None and _inside_boundary(engine_item, boundary):
-                    x_cm = engine_item.pos_x - half_w_cm
-                    z_cm = engine_item.pos_y - half_d_cm
-                    rotation = (-engine_item.rotation) % 360
+                candidate = overlay["placed"] if overlay["success"] else None
+                if candidate is not None and _inside_boundary(candidate, boundary):
+                    engine_item = candidate
                 else:
+                    overlay_reason = overlay["reason"] or overlay_reason
                     engine_item = _grid_place_in_boundary(
                         catalog, item_id, room, [], boundary, forbidden_zones
                     )
-                    if engine_item is not None:
-                        x_cm = engine_item.pos_x - half_w_cm
-                        z_cm = engine_item.pos_y - half_d_cm
-                        rotation = (-engine_item.rotation) % 360
-                    else:
-                        failed_reason = overlay["reason"] or "地毯找不到合法位置"
-                        x_cm, z_cm = 0.0, 0.0
+            if engine_item is not None:
+                x_cm = engine_item.pos_x - half_w_cm
+                z_cm = engine_item.pos_y - half_d_cm
+                rotation = (-engine_item.rotation) % 360
+            else:
+                failed_reason = overlay_reason or "地毯找不到合法位置"
+                x_cm, z_cm = 0.0, 0.0
         elif (item.get("placement_relation") or {}).get("kind") == "adjacent":
             relation = item.get("placement_relation") or {}
             target_types = relation.get("target_types") or [
@@ -1943,9 +1983,20 @@ def generate_layout(
                 failed_reason = adjacent["reason"] or "主家具旁沒有合法位置"
                 x_cm, z_cm = 0.0, 0.0
         elif collision_exempt:
-            # 壁掛品項掛在牆上,不是站在房間中央——鏡子、層架一律貼牆角起算。
-            x_cm = -half_w_cm + width / 2 + 15
-            z_cm = -half_d_cm + depth / 2 + 12
+            # 壁掛品項掛在牆上,不是站在房間中央。沿牆找第一個不與既有家具
+            # 打架的位置——固定角落會讓層架與掛鏡疊在同一點。
+            engine_item = _place_wall_mounted(
+                catalog, item_id, room, placed, forbidden_zones
+            )
+            if engine_item is not None:
+                x_cm = engine_item.pos_x - half_w_cm
+                z_cm = engine_item.pos_y - half_d_cm
+                rotation = (-engine_item.rotation) % 360
+                placed.append(engine_item)
+                placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
+            else:
+                x_cm = -half_w_cm + width / 2 + 15
+                z_cm = -half_d_cm + depth / 2 + 12
             # 非矩形房間:固定點可能落在房間多邊形外(牆體裡),退到多邊形內部代表點
             probe = PlacedFurniture(
                 id=item_id, catalog=catalog,
