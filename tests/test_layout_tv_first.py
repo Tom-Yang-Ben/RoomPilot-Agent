@@ -220,6 +220,54 @@ def test_generate_layout_adapter_honours_tv_first():
     assert not ct.get("placement_failed")
 
 
+def test_generate_layout_passes_model_orientation_through():
+    """GLB 出廠朝向修正（model_orientation_deg）必須穿過 server 的輸出白名單
+    ——第一版漏了這層：2D 存 180、sceneData 拿到 None，桌椅照樣反向
+    （使用者二度回報實錘）。三層傳遞鏈每層都要有守門。"""
+    from backend.server.scene_service import floorplan_from_editor_payload, generate_layout
+
+    editor = {
+        "coordinate_unit": "cm",
+        "width_cm": 500,
+        "depth_cm": 400,
+        "room_height_cm": 270,
+        "rooms": [
+            {
+                "id": "r",
+                "type": "bedroom",
+                "label": "臥室",
+                "polygon_cm": [
+                    {"x": 0, "y": 0},
+                    {"x": 500, "y": 0},
+                    {"x": 500, "y": 400},
+                    {"x": 0, "y": 400},
+                ],
+            }
+        ],
+        "structures": {
+            "walls": [
+                {"start": {"x": 0, "y": 0}, "end": {"x": 500, "y": 0}},
+                {"start": {"x": 500, "y": 0}, "end": {"x": 500, "y": 400}},
+                {"start": {"x": 500, "y": 400}, "end": {"x": 0, "y": 400}},
+                {"start": {"x": 0, "y": 400}, "end": {"x": 0, "y": 0}},
+            ],
+            "doors": [], "windows": [], "beams": [], "columns": [],
+        },
+    }
+    floorplan, room = floorplan_from_editor_payload(editor)
+    out = generate_layout(
+        room.width, room.depth,
+        [{
+            "furniture_id": "dk", "normalized_type": "desk", "name_zh_raw": "桌",
+            "size_cm": {"width": 120, "depth": 60, "height": 75},
+            "position_cm": {"x": 0, "z": -100}, "rotation_y_deg": 0,
+            "position_locked": True, "model_orientation_deg": 180,
+        }],
+        room=room, floorplan=floorplan, placement_variant="A", room_type="bedroom",
+    )
+    assert out[0]["model_orientation_deg"] == 180
+
+
 def test_living_room_desk_set_chair_faces_desk():
     """配套池的桌椅組（電競角）進客廳也要成組：椅貼桌前 8cm、面向桌。
     （隨機配套拍板：desk-set 可出現在臥室或客廳。）"""

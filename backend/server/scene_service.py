@@ -2111,6 +2111,9 @@ def generate_layout(
             "footprint_cm": {"width": round(fp_w, 2), "depth": round(fp_d, 2)},
             "position_cm": {"x": round(x_cm, 2), "z": round(z_cm, 2)},
             "rotation_y_deg": rotation,
+            # GLB 出廠朝向修正（渲染層專用）——必須穿過本白名單，否則 2D 標了
+            # 180、3D 拿到空值照樣反向（2026-08-02 桌椅二度反向實案）。
+            "model_orientation_deg": item.get("model_orientation_deg"),
             "position_locked": locked,
             "placement_failed": bool(failed_reason),
             "placement_reason": failed_reason,
