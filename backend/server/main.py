@@ -63,8 +63,6 @@ from .scene_service import (
     selection_complete_fn,
     validate_single_placement,
 )
-from .intake_service import advance_intake, start_intake
-from .cost_estimation import estimate_project_cost, load_default_cost_catalog
 from .catalog_admin import router as catalog_admin_router
 from .rag_api import router as rag_router
 from .engineering.api import build_engineering_router
@@ -3065,28 +3063,6 @@ def scene_provider_status() -> dict:
     return get_openrouter_status()
 
 
-@app.post("/api/agent/intake/start")
-async def agent_intake_start(payload: dict | None = None) -> dict:
-    """Start the Agent-ready intake contract without calling an LLM yet."""
-    payload = payload or {}
-    return start_intake(str(payload.get("session_id") or "roompilot-local"))
-
-
-@app.post("/api/agent/intake/answer")
-async def agent_intake_answer(payload: dict) -> dict:
-    """Advance one guided intake turn; future LLM adapters keep this shape."""
-    step = str(payload.get("step") or "")
-    answer = str(payload.get("answer") or "").strip()
-    if not step or not answer:
-        raise HTTPException(status_code=422, detail="step 與 answer 皆為必要欄位。")
-    return advance_intake(
-        session_id=str(payload.get("session_id") or "roompilot-local"),
-        step=step,
-        answer=answer,
-        brief=payload.get("client_brief"),
-    )
-
-
 def _normalize_selection_offers(raw_offers: object) -> dict[str, list[dict]]:
     if not isinstance(raw_offers, dict):
         return {}
@@ -3889,18 +3865,6 @@ def floorplan_confirm(payload: dict):
         raise HTTPException(422, "analysis_required")
     try:
         return confirm_floorplan_analysis(analysis, corrections)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-
-
-@app.post("/api/cost/estimate")
-def cost_estimate(payload: dict):
-    """以版控內的台灣公開網路行情，產生可追溯的概念工程概算。"""
-    items = payload.get("items") if isinstance(payload, dict) else None
-    if not isinstance(items, list):
-        raise HTTPException(422, "cost_items_required")
-    try:
-        return estimate_project_cost(items, catalog=load_default_cost_catalog())
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
 

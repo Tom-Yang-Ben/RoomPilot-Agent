@@ -3,7 +3,6 @@ import re
 
 import pytest
 
-from backend.server import intake_service
 from backend.server.main import (
     _merged_furniture_catalog_cached,
     _model_response_for_merged_furniture,
@@ -110,9 +109,5 @@ def test_remote_glb_is_advertised_when_the_server_proxy_can_load_it(monkeypatch)
     assert "代理" in reason
 
 
-def test_intake_has_a_single_short_default_llm_attempt():
-    assert len(intake_service.DEFAULT_MODELS) == 1
-
-
-def test_intake_service_resolves_repository_root():
-    assert Path(intake_service.PROJECT_DIR) == ROOT
+# intake_service 已於 2026-08-03 隨舊對談問卷一併下架（前端零引用），
+# 原本釘在它身上的兩條契約測試隨之移除。

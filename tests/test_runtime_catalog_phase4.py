@@ -117,14 +117,12 @@ def test_fastapi_phase4_loaders_delegate_to_catalog_repository() -> None:
     style_source = (ROOT / "backend" / "server" / "style_cards.py").read_text(
         encoding="utf-8"
     )
-    cost_source = (ROOT / "backend" / "server" / "cost_estimation.py").read_text(
-        encoding="utf-8"
-    )
-
     assert "return load_runtime_surface_catalog(PROJECT_DIR, SURFACE_DB_PATH)" in main_source
     assert "return load_runtime_external_import_index(PROJECT_DIR, EXTERNAL_IMPORT_PATH)" in main_source
     assert "load_runtime_style_cards(PROJECT_DIR, STYLE_CARDS_PATH)" in style_source
-    assert "load_runtime_cost_catalog(PROJECT_DIR, DEFAULT_CATALOG_PATH)" in cost_source
+    # cost_estimation.py 已於 2026-08-03 下架（被 engineering/cost.py 取代且
+    # 前端零引用）；runtime 造價資料（renovation_cost_sources/rates）目前沒有
+    # runtime 消費端，資料表保留，重新接上時要恢復這條 delegate 斷言。
 
 
 @pytest.mark.skipif(
