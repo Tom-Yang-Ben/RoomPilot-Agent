@@ -547,10 +547,16 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         band = soft[max(0, y0):min(Himg, y1), max(0, x0):min(Wimg, x1)]
         if not band.size or (band.max(axis=1 - along_axis) > 0).mean() < thr:
             return False
-        if (band > 0).mean() > 0.45:     # 0.60 實測 R+2/P-4（FP+9）淨負
-            return False                     # 向——彩窗要的是開口枚舉與覆蓋
-                                             # 結構的專輪重做，非門檻微調
-        if line_groups(band, along_axis) < 2:
+        # 彩圖窗線常極淡（floor_28 實測 gray 122~194、局部淡出 >235），
+        # soft 貫穿線在淡出段斷裂：貫穿覆蓋 0.8→0.65。墨跡總量上限
+        # （0.45/0.60 皆實測不可兼得）改為結構化判定——「非貫穿線列」
+        # 的殘餘墨跡 ≤0.25：玻璃帶＝線＋留白，貼窗裝飾只影響線列本身
+        # 不再誤殺整帶；樓梯踏板/斜線填充的非線列墨跡高照樣擋
+        line_cov0 = (band > 0).mean(axis=along_axis)
+        nonline = line_cov0 < 0.65
+        if nonline.any() and float(line_cov0[nonline].mean()) > 0.25:
+            return False
+        if line_groups(band, along_axis, cov=0.65) < 2:
             return False
         if edge_hug:
             line_cov = (band > 0).mean(axis=along_axis)
