@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import pytest
 
+from shapely.geometry import Point, Polygon
+
 from backend.engine.dxf_room import Room, Wall
-from backend.server.scene_service import generate_layout
+from backend.server.scene_service import generate_layout, generate_layout_by_room
 
 ROOM_W = 450.0
 ROOM_D = 380.0
@@ -203,6 +205,109 @@ def test_failed_placement_reports_a_reason():
     obj = objects[0]
     if obj["placement_failed"]:
         assert obj["placement_reason"]
+
+
+# ── 逐房擺位:家具必須落在自己被指派的房間 ────────────────────────────
+# 迴歸來源:floor04.png 實測時 13 件家具全部被擠進「最大的那一間」(廚房,只比臥室
+# 大 0.04 m²)。原因是 build_scene_payload 只呼叫一次 generate_layout,place_boundary
+# 固定用 _largest_region_boundary,其餘房間都被遮罩當成房外。
+
+# 兩房平面圖:左房 x[0,400] / 右房 x[420,820],共用 z[0,400]
+_TWO_ROOM_FLOORPLAN = {
+    # 不標 coordinate_unit 會被 _floorplan_coordinate_scale_cm 當成公尺並 ×100
+    "coordinate_unit": "cm",
+    "room_regions": [
+        {
+            "room_id": "left", "label": "臥室", "room_type": "bedroom",
+            "exterior": [[-410, -200], [-10, -200], [-10, 200], [-410, 200]], "holes": [],
+        },
+        {
+            # 右房刻意大一點,確保它才是 _largest_region_boundary 選中的那間
+            "room_id": "right", "label": "客廳", "room_type": "living_room",
+            "exterior": [[10, -200], [420, -200], [420, 200], [10, 200]], "holes": [],
+        },
+    ],
+}
+_TWO_ROOM_W = 840.0
+_TWO_ROOM_D = 400.0
+
+
+def _two_room_polygons():
+    return {
+        region["room_id"]: Polygon([(p[0], p[1]) for p in region["exterior"]])
+        for region in _TWO_ROOM_FLOORPLAN["room_regions"]
+    }
+
+
+def test_items_are_placed_inside_their_assigned_room():
+    items = [
+        _item("bed", "bed-frame", 160, 200, h=120.0, placement_room_id="left"),
+        _item("wardrobe", "pax-wardrobe", 150, 60, h=200.0, placement_room_id="left"),
+        _item("sofa", "fabric-sofa", 200, 90, placement_room_id="right"),
+        _item("cabinet", "storage-cabinet", 120, 45, h=200.0, placement_room_id="right"),
+    ]
+    objects = generate_layout_by_room(
+        _TWO_ROOM_W, _TWO_ROOM_D, items,
+        room=_rect_room(_TWO_ROOM_W, _TWO_ROOM_D),
+        floorplan=_TWO_ROOM_FLOORPLAN,
+    )
+    polys = _two_room_polygons()
+    for item, obj in zip(items, objects):
+        assert not obj["placement_failed"], f"{item['furniture_id']} 放不下"
+        point = Point(obj["position_cm"]["x"], obj["position_cm"]["z"])
+        want = item["placement_room_id"]
+        assert polys[want].contains(point), (
+            f"{item['furniture_id']} 指定 {want},卻落在 "
+            f"({obj['position_cm']['x']:.1f}, {obj['position_cm']['z']:.1f})"
+        )
+
+
+def test_unassigned_items_follow_room_affinity():
+    """沒有 placement_room_id 時依 ROOM_AFFINITY 找房型相符的房間。
+
+    左房是 bedroom、右房是 living_room。床沒有指定房也該進左房 ——
+    否則會像 floor04 實測那樣,沙發被丟進廚房。
+    """
+    items = [
+        _item("bed", "bed-frame", 160, 200, h=120.0),      # → bedroom = left
+        _item("sofa", "fabric-sofa", 200, 90),              # → living_room = right
+    ]
+    objects = generate_layout_by_room(
+        _TWO_ROOM_W, _TWO_ROOM_D, items,
+        room=_rect_room(_TWO_ROOM_W, _TWO_ROOM_D),
+        floorplan=_TWO_ROOM_FLOORPLAN,
+    )
+    polys = _two_room_polygons()
+    assert polys["left"].contains(Point(objects[0]["position_cm"]["x"], objects[0]["position_cm"]["z"]))
+    assert polys["right"].contains(Point(objects[1]["position_cm"]["x"], objects[1]["position_cm"]["z"]))
+
+
+def test_items_without_affinity_fall_back_to_the_largest_region():
+    """房型適配表查不到的品項仍走最大區域,不得因分組而消失。"""
+    items = [_item("lamp", "floor-lamp", 40, 40, h=150.0)]
+    objects = generate_layout_by_room(
+        _TWO_ROOM_W, _TWO_ROOM_D, items,
+        room=_rect_room(_TWO_ROOM_W, _TWO_ROOM_D),
+        floorplan=_TWO_ROOM_FLOORPLAN,
+    )
+    assert len(objects) == 1
+    assert not objects[0]["placement_failed"]
+    point = Point(objects[0]["position_cm"]["x"], objects[0]["position_cm"]["z"])
+    assert _two_room_polygons()["right"].contains(point)
+
+
+def test_per_room_placement_preserves_input_order():
+    items = [
+        _item("a", "fabric-sofa", 200, 90, placement_room_id="right"),
+        _item("b", "bed-frame", 160, 200, h=120.0, placement_room_id="left"),
+        _item("c", "storage-cabinet", 120, 45, h=200.0, placement_room_id="right"),
+    ]
+    objects = generate_layout_by_room(
+        _TWO_ROOM_W, _TWO_ROOM_D, items,
+        room=_rect_room(_TWO_ROOM_W, _TWO_ROOM_D),
+        floorplan=_TWO_ROOM_FLOORPLAN,
+    )
+    assert [o["furniture_id"] for o in objects] == ["a", "b", "c"]
 
 
 # ── §12 決定性:同輸入必得同輸出 ────────────────────────────────────

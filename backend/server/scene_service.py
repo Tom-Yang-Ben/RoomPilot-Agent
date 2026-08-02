@@ -1531,6 +1531,116 @@ def _largest_region_boundary(floorplan: dict[str, Any] | None, room: Room) -> Po
     return best if shrunk.is_empty else shrunk
 
 
+def _affinity_room_id(
+    floorplan: dict[str, Any] | None,
+    normalized_type: str | None,
+) -> str | None:
+    """沒有指定房間的品項:依 ``knowledge.ROOM_AFFINITY`` 找房型相符的房間。
+
+    沙發、茶几、電視櫃屬 living_room;床、床頭櫃屬 bedroom…。找不到相符房型
+    (例如平面圖沒有餐廳)回 None,由呼叫端退回最大區域。
+    同一房型有多間時取面積最大的那間,結果具決定性。
+    """
+    from ..agent.knowledge import ROOM_AFFINITY
+
+    wanted = ROOM_AFFINITY.get(family_of(normalized_type))
+    if not wanted:
+        return None
+    candidates = [
+        region
+        for region in (floorplan or {}).get("room_regions") or []
+        if str(region.get("room_type") or "") in wanted
+    ]
+    if not candidates:
+        return None
+
+    def _area(region: dict[str, Any]) -> float:
+        ring = region.get("exterior") or []
+        total = 0.0
+        for i in range(len(ring)):
+            x0, z0 = ring[i][0], ring[i][1]
+            x1, z1 = ring[(i + 1) % len(ring)][0], ring[(i + 1) % len(ring)][1]
+            total += x0 * z1 - x1 * z0
+        return abs(total) / 2
+
+    best = max(candidates, key=lambda region: (_area(region), str(region.get("room_id"))))
+    return str(best.get("room_id"))
+
+
+def generate_layout_by_room(
+    room_width_cm: float,
+    room_depth_cm: float,
+    items: list[dict[str, Any]],
+    *,
+    room: Room | None,
+    floorplan: dict[str, Any] | None,
+    regions_boundary: Polygon | None = None,
+    preserve_existing_count: int = 0,
+    placement_variant: str = "A",
+    hints: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """依 ``placement_room_id`` 分組,**每間房各自在自己的邊界內**擺位。
+
+    原本 build_scene_payload 只呼叫一次 generate_layout,且 place_boundary 固定是
+    ``_largest_region_boundary`` —— 整層樓共用「最大那一間」的邊界,遮罩把其餘房間
+    全部視為房外,於是所有家具不分房型都被擠進最大的房間(floor04 實測:13 件全部
+    落在只比臥室大 0.04 m² 的廚房)。這與 docs/擺位計算邏輯.md §1.2 的「逐房 →
+    禁放遮罩 → 房型規則」管線相違。
+
+    沒有 ``placement_room_id`` 的品項改依 ``knowledge.ROOM_AFFINITY`` 找房型相符的
+    房間(沙發/茶几/電視櫃 → living_room…);找不到相符房型才退回最大區域。
+    回傳順序與 ``items`` 相同,payload 契約不變。
+    """
+    if room is None or not items:
+        return generate_layout(
+            room_width_cm, room_depth_cm, items, room=room,
+            regions_boundary=regions_boundary,
+            place_boundary=_largest_region_boundary(floorplan, room) if room else None,
+            floorplan=floorplan, preserve_existing_count=preserve_existing_count,
+            placement_variant=placement_variant, hints=hints,
+        )
+
+    groups: dict[str, list[int]] = {}
+    affinity_assigned: dict[int, str] = {}
+    for index, item in enumerate(items):
+        key = str(item.get("placement_room_id") or item.get("auto_decor_room_id") or "")
+        if not key:
+            routed = _affinity_room_id(floorplan, item.get("normalized_type"))
+            if routed:
+                key = routed
+                affinity_assigned[index] = routed
+        groups.setdefault(key, []).append(index)
+
+    fallback = _largest_region_boundary(floorplan, room)
+    results: dict[int, dict[str, Any]] = {}
+    for room_id, indexes in groups.items():
+        boundary = _region_boundary_by_id(floorplan, room, room_id) or fallback
+        subset = [items[i] for i in indexes]
+        # preserve_existing_count 是「原始清單前 N 筆」的語意;分組保持相對順序,
+        # 所以該組的保留筆數 = 該組中原始索引 < N 的數量。
+        subset_preserve = sum(1 for i in indexes if i < preserve_existing_count)
+        placed = generate_layout(
+            room_width_cm,
+            room_depth_cm,
+            subset,
+            room=room,
+            regions_boundary=regions_boundary,
+            place_boundary=boundary,
+            floorplan=floorplan,
+            preserve_existing_count=subset_preserve,
+            placement_variant=placement_variant,
+            hints=hints,
+        )
+        for original_index, obj in zip(indexes, placed):
+            # 由適配表決定的房間要寫回 payload,否則前端會照空的 placement_room_id
+            # 把它們歸進「未指定空間」,與實際落點不符。
+            routed = affinity_assigned.get(original_index)
+            if routed and not obj.get("placement_room_id"):
+                obj = {**obj, "placement_room_id": routed}
+            results[original_index] = obj
+    return [results[i] for i in range(len(items))]
+
+
 def _region_boundary_by_id(
     floorplan: dict[str, Any] | None,
     room: Room,
@@ -2232,13 +2342,13 @@ def build_scene_payload(
                 and item.get("normalized_type") not in exact_types
             ],
         ]
-    objects = generate_layout(
+    objects = generate_layout_by_room(
         effective_width_cm,
         effective_depth_cm,
         selected_items,
         room=engine_room,
+        floorplan=parsed_floorplan,
         regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
-        place_boundary=_largest_region_boundary(parsed_floorplan, engine_room) if engine_room else None,
     )
     placement_resolution_report: list[dict[str, Any]] = []
     if any(obj.get("placement_failed") for obj in objects):
@@ -2254,13 +2364,13 @@ def build_scene_payload(
         }
 
         def replace_and_place(working_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-            return generate_layout(
+            return generate_layout_by_room(
                 effective_width_cm,
                 effective_depth_cm,
                 working_items,
                 room=engine_room,
+                floorplan=parsed_floorplan,
                 regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
-                place_boundary=_largest_region_boundary(parsed_floorplan, engine_room) if engine_room else None,
                 # 提示每次依潛規則重算,換小/移除後主副件順序仍正確
                 hints=placement_hints(working_items),
             )
