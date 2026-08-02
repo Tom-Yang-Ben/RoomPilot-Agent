@@ -297,6 +297,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_recognition_review.js",
             "scene_tabletop_hosts.js",
             "scene_room_geometry.js",
+            "scene_plan_geometry.js",
             "scene_structure_utils.js",
             "scene_structure_preview.js",
             "scene_structure_geometry.js",
@@ -2076,7 +2077,11 @@ def test_room_polygon_nodes_can_be_merged_or_split_on_an_edge() -> None:
     assert 'id="cancel-node-edit"' in html
     assert "function mergeSelectedRoomNodes()" in source
     assert "function insertRoomNodeAt(point)" in source
-    assert "function nearestPointOnRoomEdge(" in source
+    # 佇列 7 拆分第二批：nearestPointOnRoomEdge 純搬家到 scene_plan_geometry.js，
+    # 定義改掃新檔；scene_v2.js 仍須 import 它供節點編輯使用。
+    geometry_source = (STATIC_DIR / "scene_plan_geometry.js").read_text(encoding="utf-8")
+    assert "function nearestPointOnRoomEdge(" in geometry_source
+    assert "nearestPointOnRoomEdge," in source
     assert "state.selectedRoomNodeIndices.length === 2" in source
     assert 'data-room-point="${index}"' in source
     assert "room.confirmed = false" in source
