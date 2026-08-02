@@ -1443,6 +1443,26 @@ def _harvest_balcony_pockets(det, labels, rooms, outside):
     X1 = max(r[2] for r in rects); Y1 = max(r[3] for r in rects)
     amin = max((2 * T) ** 2, int(2000.0 / max(cm * cm, 1e-6)))
     amax = 0.35 * (X1 - X0) * (Y1 - Y0)   # 圍欄環併入口袋後上修（0.30 會誤殺）
+    # 低紮實度口袋頸縮分裂（floor_10 實案：陽台與殼緣窄條黏成 solidity
+    # 0.08 的細長 L，IoU 只到 0.49）——erode 斷頸後窄條死於面積門檻，
+    # 陽台本體以核心回膨脹活下來
+    n0, lab0, st0, _c0 = cv2.connectedComponentsWithStats(pocket, 8)
+    for i in range(1, n0):
+        a0 = int(st0[i, cv2.CC_STAT_AREA])
+        bb = st0[i, cv2.CC_STAT_WIDTH] * st0[i, cv2.CC_STAT_HEIGHT]
+        if a0 < amin or a0 / max(1.0, float(bb)) >= 0.35:
+            continue                             # 0.35~0.5 的鬆散口袋常仍
+                                                 # 配得上（floor_13），只剝
+                                                 # 極端細長者（floor_10 0.08）
+        cc = (lab0 == i).astype(np.uint8)
+        ke = np.ones((max(3, T // 2) | 1,) * 2, np.uint8)
+        core = cv2.erode(cc, ke)
+        grown = cv2.dilate(core, ke) & cc        # 核心回膨脹但不出原 CC
+        if int(grown.sum()) < 0.4 * a0:
+            continue                             # 核心保不住四成（環狀薄形
+                                                 # 整顆蒸發，floor_13 陽台）
+                                                 # → 整顆不動
+        pocket[(cc > 0) & (grown == 0)] = 0      # 窄頸/細條剝除
     n, lab, st, cent = cv2.connectedComponentsWithStats(pocket, 8)
     nid = max((r["id"] for r in rooms), default=0)
     for i in range(1, n):
