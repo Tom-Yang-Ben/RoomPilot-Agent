@@ -28,6 +28,8 @@ import cv2
 import numpy as np
 import ezdxf
 
+import floorplan2dxf_color as fp_c     # 共用牆縫門位（門偵測重建，單一事實來源）
+
 
 # ─────────────────────────── 參數 ───────────────────────────
 @dataclass
@@ -1361,7 +1363,21 @@ def run(cfg: Config):
         json_out = os.path.join("temp/json/gray", base + ".json")
         arch_out = os.path.join("temp/json/arch", base + ".json")
         write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
-        write_json(json_out, img_w, img_h, rects, wins, doors, mmpp, sinfo, cfg, scale_out)
+        # 門偵測重建（2026-08-02）：前端 json 的 doors 改源牆縫門位
+        # （fp_c.gap_door_zones）——弧掃描 detect_doors（P 0.38/R 0.17）
+        # 僅保留給比例尺推導與窗偵測抑制、arch 白模（鉸鏈/開向需要弧
+        # 幾何，zones 無此資訊，另輪處理）。門尺寸過濾用 gap_scale
+        # 精修比例（wall_min 退路的 1.25~1.36 會讓門尺寸窗全滅、R 減
+        # 半）；DXF/json 整體輸出比例維持 mmpp 不動——下游白模凍結
+        cm_doors, _m, _n = fp_c.gap_scale(rects, wins, T, T_out, mmpp / 10.0)
+        zone_doors = [(sum(p[0] for p in quad) / 4.0,
+                       sum(p[1] for p in quad) / 4.0, d[2], 1.0)
+                      for quad, d in fp_c.gap_door_zones(
+                          rects, wins, T, cm_doors,
+                          thin=thin if cfg.windows else None,
+                          ranges=fp_c.DOOR_JSON_RANGES_CM)]
+        write_json(json_out, img_w, img_h, rects, wins, zone_doors, mmpp,
+                   sinfo, cfg, scale_out)
         write_arch_json(arch_out, img_w, img_h, rects, wins, doors, mmpp, sinfo,
                         cfg, T, T_out)
 

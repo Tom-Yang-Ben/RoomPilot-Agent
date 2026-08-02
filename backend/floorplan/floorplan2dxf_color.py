@@ -1311,6 +1311,109 @@ def door_zones(doors, rects, T, cm):
     return zones
 
 
+DOOR_SIZE_RANGES_CM = ((75.0, 100.0), (160.0, 190.0))  # 單門 / 雙開門（房間層嚴窗）
+# JSON 產品路放寬窗（門偵測重建，2026-08-02 全集掃描定案）：漏門主宰
+# 型態是擦邊（105/74/70cm 差 1~5cm），放寬 R 0.71→0.81、P 僅 -2pp
+# （F1 0.77→0.82）；再寬 P 開始崩（65-115 掉到 0.78）。房間層分割
+# 的門縫封口維持嚴窗不動
+DOOR_JSON_RANGES_CM = ((70.0, 110.0), (150.0, 200.0))
+DOOR_SINGLE_ANCHOR_CM = 85.0                 # 單門錨點：80~90(最多95) 取中值
+DOOR_DOUBLE_ANCHOR_CM = 175.0                # 雙開門錨點：160~190 取中值
+WALL_MID_ANCHOR_CM = 17.5                    # 人住建築牆厚 15~20cm 取中點
+
+
+def gap_scale(rects, wins, T, T_out, cm0):
+    """牆縫開口比例尺（user spec 門寬鐵律）：單門候選群中位數＝85cm
+    反推比例（樣本多、分布緊，最強錨點）；無單門候選用雙門群＝
+    175cm；都沒有回退外牆厚=17.5cm。外牆換算落 10~25cm 之外視為
+    錨錯，同樣回退。回傳 (cm_per_px, method, n_used)。
+    floorplan2room.refine_scale 與 DXF 批次門位過濾共用此核心。"""
+    gaps = [g1 - g0 for _h, g0, g1, _b0, _b1
+            in _wall_gaps(rects, wins, T, cm0, 40.0, 300.0)]
+    singles = [g for g in gaps if 60.0 <= g * cm0 <= 130.0]
+    doubles = [g for g in gaps if 140.0 <= g * cm0 <= 240.0]
+    if singles:
+        cm1, method, used = (DOOR_SINGLE_ANCHOR_CM / float(np.median(singles)),
+                             "door_single", len(singles))
+    elif doubles:
+        cm1, method, used = (DOOR_DOUBLE_ANCHOR_CM / float(np.median(doubles)),
+                             "door_double", len(doubles))
+    else:
+        cm1, method, used = WALL_MID_ANCHOR_CM / T_out, "wall_mid", 0
+    if not (10.0 <= T_out * cm1 <= 25.0):        # 門錨算出離譜外牆 → 回退
+        cm1, method, used = WALL_MID_ANCHOR_CM / T_out, "wall_mid", 0
+    return cm1, method, used
+
+
+def door_ink_evidence(thin, text_boxes, horiz, g0, g1, b0, b1):
+    """門位證據：門扇迴轉區（開口兩側各 1.1×開口深）扣掉 OCR 文字框後
+    的細線墨水密度。真門畫弧/門扇必留墨（floor04 浴廁虛線弧 1.45%），
+    開放通道空白（走道↔客廳 0%）；文字墨水（CIRCULATION 4.8%）已扣，
+    門檻取 0.5%。弧掃描對虛線弧眼盲，故用密度而非形狀。
+    thin=None（彩圖管線）不濾照舊回 True。"""
+    if thin is None:
+        return True
+    ink = thin.copy()
+    for x0, y0, x1, y1 in text_boxes or ():
+        ink[max(0, int(y0) - 2):int(y1) + 3,
+            max(0, int(x0) - 2):int(x1) + 3] = 0
+    gap = g1 - g0
+    H, W = ink.shape
+    # 三個證據區：開口帶本身（雙開/滑門門扇畫在開口內）＋兩側迴轉區
+    regions = [(b0, b1)] + [(b0 - 1.1 * gap, b0), (b1, b1 + 1.1 * gap)]
+    for lo, hi in regions:
+        if horiz:
+            y0, y1, x0, x1 = lo, hi, g0, g1
+        else:
+            x0, x1, y0, y1 = lo, hi, g0, g1
+        box = ink[max(0, int(y0)):min(H, int(y1)),
+                  max(0, int(x0)):min(W, int(x1))]
+        if box.size and np.count_nonzero(box) / box.size >= 0.005:
+            return True
+    return False
+
+
+def door_zone_quad(horiz, g0, g1, b0, b1):
+    """牆縫 → 門位框：沿牆=縫長，垂直牆前後各一倍（1:2 黃框），
+    door tuple 同 gap_openings 格式。"""
+    gap = g1 - g0
+    m = (b0 + b1) / 2.0
+    if horiz:
+        d = (g0, m, gap, 1.0, 1.0, 1.0)
+        mx, my = (g0 + g1) / 2.0, m
+        ax, ay, sx, sy = gap / 2.0, 0.0, 0.0, gap
+    else:
+        d = (m, g0, gap, 1.0, 1.0, 1.0)
+        mx, my = m, (g0 + g1) / 2.0
+        ax, ay, sx, sy = 0.0, gap / 2.0, gap, 0.0
+    quad = [(mx - ax - sx, my - ay - sy), (mx + ax - sx, my + ay - sy),
+            (mx + ax + sx, my + ay + sy), (mx - ax + sx, my - ay + sy)]
+    return quad, d
+
+
+def gap_door_zones(rects, wins, T, cm, thin=None, text_boxes=(),
+                   ranges=DOOR_SIZE_RANGES_CM):
+    """產品門位（門偵測重建 2026-08-02）：門尺寸牆縫＋門扇墨水證據。
+
+    弧掃描 detect_doors 的產品門位 P 0.38/R 0.17 遠低於可用線；
+    build_rooms 的 zones 同機制實測 P 0.86/R 0.75。做成不需房間層/
+    DINO 的輕量函式，DXF 批次 json 的 doors 欄位直接改源；
+    floorplan2room 的 zones 亦委派本組（單一事實來源）。
+    ranges 可覆蓋門尺寸窗——JSON 產品路用放寬窗撈擦邊真門（漏門
+    逐案：105/74/70cm 全是差 1~5cm 的邊界犧牲），房間層分割維持
+    預設嚴窗。回傳 [(quad, door_tuple)]，同 gap_openings 格式。"""
+    bridges = _wall_gaps(rects, wins, T, cm, 40.0, 260.0)
+    out = []
+    for horiz, g0, g1, b0, b1 in bridges:
+        w_cm = (g1 - g0) * cm
+        if not any(lo <= w_cm <= hi for lo, hi in ranges):
+            continue
+        if not door_ink_evidence(thin, text_boxes, horiz, g0, g1, b0, b1):
+            continue
+        out.append(door_zone_quad(horiz, g0, g1, b0, b1))
+    return out
+
+
 def _wall_gaps(rects, wins, T, cm, lo_cm, hi_cm, stub_guard=True):
     """牆端沿軸射線找最近的任何牆(厚度帶重疊≥50%)，中間 lo~hi cm 的空縫
     (無牆無窗)＝開口。涵蓋 牆端↔牆端 與 牆端↔牆面(T字門洞)。

@@ -153,14 +153,15 @@ def detect_color(cfg):
 
 
 # ─────────────────────────── 比例尺校正 ───────────────────────────
-DOOR_RANGES_CM = ((75.0, 100.0), (160.0, 190.0))  # 單門 / 雙開門。單門原 user spec
-                                                   # 80~95，門位掛上墨水證據後放寬
+DOOR_RANGES_CM = fp_c.DOOR_SIZE_RANGES_CM          # 單門/雙開門，門偵測重建後
+                                                   # 與 DXF 批次同源。單門原 user
+                                                   # spec 80~95，門位掛上墨水證據後放寬
                                                    # 75~100：own 集門 GT 實測 R 0.56→0.73、
                                                    # P 0.90→0.86（floor04 比例尺被走道假開
                                                    # 口拉偏，真門量成 78cm 全漏）
-DOOR_SINGLE_CM = 85.0                              # 單門錨點：80~90(最多95) 取中值
-DOOR_DOUBLE_CM = 175.0                             # 雙開門錨點：160~190 取中值
-WALL_MID_CM = 17.5                                 # 人住建築牆厚 15~20cm 取中點
+DOOR_SINGLE_CM = fp_c.DOOR_SINGLE_ANCHOR_CM        # 錨點常數移居 fp_c
+DOOR_DOUBLE_CM = fp_c.DOOR_DOUBLE_ANCHOR_CM        # （gap_scale 單一事實來源）
+WALL_MID_CM = fp_c.WALL_MID_ANCHOR_CM
 
 
 def refine_scale(det):
@@ -171,22 +172,8 @@ def refine_scale(det):
     都沒有則回退 外牆厚=17.5cm。外牆換算落在 10~25cm 之外視為錨錯，同樣回退。"""
     rects, wins = det["rects"], det["wins"]
     T, T_out, cm0 = det["T"], det["T_out"], det["cm"]
-    gaps = [g1 - g0 for _h, g0, g1, _b0, _b1
-            in fp_c._wall_gaps(rects, wins, T, cm0, 40.0, 300.0)]
-    singles = [g for g in gaps if 60.0 <= g * cm0 <= 130.0]
-    doubles = [g for g in gaps if 140.0 <= g * cm0 <= 240.0]
-    if singles:
-        cm1, method, used = DOOR_SINGLE_CM / float(np.median(singles)), \
-            "door_single", len(singles)
-    elif doubles:
-        cm1, method, used = DOOR_DOUBLE_CM / float(np.median(doubles)), \
-            "door_double", len(doubles)
-    else:
-        cm1, method, used = WALL_MID_CM / T_out, "wall_mid", 0
+    cm1, method, used = fp_c.gap_scale(rects, wins, T, T_out, cm0)
     wall_cm = T_out * cm1
-    if not (10.0 <= wall_cm <= 25.0):            # 門錨算出離譜外牆 → 回退牆厚中點
-        cm1, method, used = WALL_MID_CM / T_out, "wall_mid", 0
-        wall_cm = WALL_MID_CM
     det["cm"] = cm1
     det["scale_info"] = {
         "method": method, "gaps_used": used,
@@ -1348,50 +1335,15 @@ def _split_by_text_anchors(labels, rooms, texts, T, cm, amin,
 
 
 def _bridge_has_door_ink(det, horiz, g0, g1, b0, b1):
-    """門位證據：門扇迴轉區（開口兩側各 1.1×開口深）扣掉 OCR 文字框後的
-    細線墨水密度。真門畫弧/門扇必留墨（floor04 浴廁虛線弧 1.45%），
-    開放通道空白（走道↔客廳 0%）；文字墨水（CIRCULATION 4.8%）已扣，
-    門檻取 0.5%。弧掃描（_has_door_swing 0.9 覆蓋率）對虛線弧眼盲、
-    detect_doors 亦然，故用密度而非形狀。thin 缺席（彩圖管線）不濾照舊。"""
-    thin = det.get("thin")
-    if thin is None:
-        return True
-    ink = thin.copy()
-    for x0, y0, x1, y1 in det.get("text_boxes", ()):
-        ink[max(0, int(y0) - 2):int(y1) + 3,
-            max(0, int(x0) - 2):int(x1) + 3] = 0
-    gap = g1 - g0
-    H, W = ink.shape
-    # 三個證據區：開口帶本身（雙開/滑門門扇畫在開口內）＋兩側迴轉區（單開門弧）
-    regions = [(b0, b1)] + [(b0 - 1.1 * gap, b0), (b1, b1 + 1.1 * gap)]
-    for lo, hi in regions:
-        if horiz:
-            y0, y1, x0, x1 = lo, hi, g0, g1
-        else:
-            x0, x1, y0, y1 = lo, hi, g0, g1
-        box = ink[max(0, int(y0)):min(H, int(y1)),
-                  max(0, int(x0)):min(W, int(x1))]
-        if box.size and np.count_nonzero(box) / box.size >= 0.005:
-            return True
-    return False
+    """門位證據——委派 fp_c.door_ink_evidence（門偵測重建後單一事實
+    來源，DXF 批次 json 與 room zones 用同一把尺）。"""
+    return fp_c.door_ink_evidence(det.get("thin"), det.get("text_boxes", ()),
+                                  horiz, g0, g1, b0, b1)
 
 
 def _bridge_zone(horiz, g0, g1, b0, b1):
-    """牆端連線 → 門位框：沿牆=連線長，垂直牆前後各一倍（1:2 黃框，
-    同 fp_c.gap_openings 的格式，door tuple 供 room_graph 幾何驗證）。"""
-    gap = g1 - g0
-    m = (b0 + b1) / 2.0
-    if horiz:
-        d = (g0, m, gap, 1.0, 1.0, 1.0)
-        mx, my = (g0 + g1) / 2.0, m
-        ax, ay, sx, sy = gap / 2.0, 0.0, 0.0, gap
-    else:
-        d = (m, g0, gap, 1.0, 1.0, 1.0)
-        mx, my = m, (g0 + g1) / 2.0
-        ax, ay, sx, sy = 0.0, gap / 2.0, gap, 0.0
-    quad = [(mx - ax - sx, my - ay - sy), (mx + ax - sx, my + ay - sy),
-            (mx + ax + sx, my + ay + sy), (mx - ax + sx, my - ay + sy)]
-    return quad, d
+    """牆端連線 → 門位框——委派 fp_c.door_zone_quad（同上）。"""
+    return fp_c.door_zone_quad(horiz, g0, g1, b0, b1)
 
 
 def _harvest_balcony_pockets(det, labels, rooms, outside):
