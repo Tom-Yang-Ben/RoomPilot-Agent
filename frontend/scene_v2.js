@@ -7529,7 +7529,38 @@ function isFloorPlacedCatalogItem(candidate = {}) {
 // ── 家具候選集（第 5 步問卷送出時由後端 RAG 建立）──────────────────────
 // 候選集把 8,557 筆型錄縮成每房數十筆，選件與擺放都只在這個子集上跑。
 // 這裡只換「候選從哪來」，排序、尺寸選項與 offer 轉換全部沿用既有邏輯。
-const shortlistState = { fingerprint: "", byRoom: new Map(), loading: null };
+const shortlistState = {
+  fingerprint: "",
+  byRoom: new Map(),
+  loading: null,
+  // 家具來源的誠實回報：候選集失效或某些族系退回全型錄時，使用者要看得到，
+  // 不能只留 console.warn（QA 2026-08-03：靜默退化會讓人以為在用候選集）。
+  active: false,
+  notice: "",
+  fallbackTypes: new Set(),
+};
+
+function renderFurnitureSourceNotice() {
+  const node = $("#furniture-source-notice");
+  if (!node) return;
+  const parts = [];
+  if (shortlistState.notice) parts.push(shortlistState.notice);
+  if (shortlistState.active && shortlistState.fallbackTypes.size) {
+    const labels = [...shortlistState.fallbackTypes]
+      .map((type) => REPLACEMENT_TYPE_LABELS[type] || type);
+    parts.push(`候選集中查無「${labels.join("、")}」，這幾類已改用全型錄補搜。`);
+  }
+  node.textContent = parts.join(" ");
+  node.hidden = !parts.length;
+}
+
+function noteShortlistFallback(type) {
+  // 整份候選集都不存在時主通知已經說明是全型錄模式，逐類記錄只是雜訊。
+  if (!shortlistState.active) return;
+  if (shortlistState.fallbackTypes.has(type)) return;
+  shortlistState.fallbackTypes.add(type);
+  renderFurnitureSourceNotice();
+}
 
 function storedFurnitureShortlist() {
   return state.project?.workflow?.furniture_shortlist || null;
@@ -7606,12 +7637,26 @@ async function ensureFurnitureShortlist() {
     const total = result.summary?.total_items || 0;
     const missing = (result.summary?.rooms || [])
       .filter((room) => (room.missing_families || []).length);
-    if (missing.length) {
+    shortlistState.active = total > 0;
+    shortlistState.fallbackTypes = new Set();
+    if (!shortlistState.active) {
+      shortlistState.notice = "這個專案沒有建立家具候選集，選件將以全型錄搜尋，載入較慢。";
+    } else if (missing.length) {
+      shortlistState.notice =
+        `候選集已建立；${missing.length} 個空間有需求在型錄查無對應品項，該類會以全型錄補搜。`;
       console.warn("部分空間沒有候選家具，將退回全型錄搜尋", missing);
+    } else {
+      shortlistState.notice = "";
     }
+    renderFurnitureSourceNotice();
     return total > 0;
   } catch (error) {
     // 模型尚未載入、資料庫不可用或專案還沒確認空間都會走到這裡。
+    // 不擋流程，但退化必須可見：全型錄模式載入明顯較慢，使用者要知道原因。
+    shortlistState.active = false;
+    shortlistState.notice =
+      `候選集建立失敗（${errorMessage(error)}），本次選件改用全型錄搜尋，載入較慢。`;
+    renderFurnitureSourceNotice();
     console.warn("候選集建立失敗，改用全型錄搜尋", error);
     return false;
   }
@@ -7626,6 +7671,7 @@ async function catalogOffersForSpec(room, spec, index) {
     .filter(isFloorPlacedCatalogItem)
     .filter((candidate) => isQuestionnaireFallbackTypeMatch(candidate, spec[0]));
   if (!matchingCandidates.length) {
+    noteShortlistFallback(spec[0]);
     const candidates = await catalogCandidatesForType(spec[0], {
       styleId: request.styleId,
       query: request.queryText,
@@ -7648,6 +7694,8 @@ async function catalogFallbackOffersForSpec(room, spec, index) {
   const request = questionnaireFurnitureRequest(room, spec);
   const rule = QUESTIONNAIRE_FALLBACK_CATALOG_RULES[spec[0]] || {};
   const label = rule.query || REPLACEMENT_TYPE_LABELS[spec[0]] || spec[0];
+  // 「找相似」本來就是全型錄補搜；候選集啟用時記下來，讓來源通知誠實列出。
+  noteShortlistFallback(spec[0]);
   let candidates = await catalogCandidatesForType(spec[0], {
     query: label,
     searchAll: true,
@@ -7673,8 +7721,16 @@ async function catalogOffersForRoomPlans(roomPlans) {
   // 重新開啟既有專案時不會經過問卷送出，這裡補上候選集載入；已載入或
   // 專案沒有候選集時都是零成本。
   try {
-    await loadShortlistCandidates();
+    const byRoom = await loadShortlistCandidates();
+    shortlistState.active = byRoom.size > 0;
+    if (!shortlistState.active && storedFurnitureShortlist()) {
+      shortlistState.notice = "候選集載入失敗，本次選件改用全型錄搜尋，載入較慢。";
+    }
+    renderFurnitureSourceNotice();
   } catch (error) {
+    shortlistState.active = false;
+    shortlistState.notice = "候選集載入失敗，本次選件改用全型錄搜尋，載入較慢。";
+    renderFurnitureSourceNotice();
     console.warn("候選集載入失敗，改用全型錄搜尋", error);
   }
   return Object.fromEntries(await Promise.all(roomPlans.map(async ({ room, specs }) => {

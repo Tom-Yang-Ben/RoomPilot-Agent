@@ -182,3 +182,37 @@ def test_semantic_product_name_rejects_wrongly_classified_catalog_rows() -> None
         "sofa": ["couch", "chair"],
         "washer": ["machine", "pedestal"],
     }
+
+
+def test_shortlist_degradation_is_visible_not_console_only() -> None:
+    """候選集失效或某族系退回全型錄時，使用者必須看得到（QA 2026-08-03）。
+
+    退化只留 console.warn 的後果：使用者以為在用候選集，實際整輪全型錄，
+    載入慢還不知道原因。這裡釘住三個誠實回報點。
+    """
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+
+    assert 'id="furniture-source-notice"' in html, "第 6 步必須有家具來源通知元素"
+
+    ensure_block = source.split("async function ensureFurnitureShortlist(", 1)[1].split(
+        "async function catalogOffersForSpec(", 1
+    )[0]
+    assert ensure_block.count("renderFurnitureSourceNotice()") >= 2, (
+        "候選集建立成功與失敗兩條路徑都要更新來源通知"
+    )
+    assert "shortlistState.notice" in ensure_block
+
+    offers_block = source.split("async function catalogOffersForSpec(", 1)[1].split(
+        "async function catalogFallbackOffersForSpec(", 1
+    )[0]
+    assert "noteShortlistFallback(spec[0])" in offers_block, (
+        "候選集查無該族系而退回全型錄時必須記錄"
+    )
+
+    fallback_block = source.split("async function catalogFallbackOffersForSpec(", 1)[1].split(
+        "async function catalogOffersForRoomPlans(", 1
+    )[0]
+    assert "noteShortlistFallback(spec[0])" in fallback_block, (
+        "「找相似」全型錄補搜也必須記錄"
+    )
