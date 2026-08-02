@@ -8,7 +8,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { classifyMaterialSlot } from "./scene_material_schemes.js?v=20260712b";
+import { classifyMaterialSlot } from "./scene_material_schemes.js?v=sha256-74eb894736af";
 import {
   architecturalPbrProfile,
   furniturePbrProfile,
@@ -22,7 +22,7 @@ import {
   wallSectionSpan,
   wallSegmentForOpening,
 } from "./scene_architecture.js?v=sha256-2050441b51ed";
-import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
+import { createViewModeState } from "./scene_view_modes.js?v=sha256-13bc85e6a748";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {

@@ -4,7 +4,7 @@ import {
   formatTypeLabel,
   initBackgroundFx,
   reportPageBootFailure,
-} from "./common.js?v=20260802a";
+} from "./common.js?v=sha256-5e0e1418411f";
 
 // 型錄 503 時退回空資料集：畫面會是空的風格牆加一條錯誤橫幅，而不是白畫布。
 let data = {};

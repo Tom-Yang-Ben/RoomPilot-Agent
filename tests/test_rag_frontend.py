@@ -12,11 +12,13 @@ def _sha256(path: Path) -> str:
 
 def test_rag_page_assets_have_matching_content_hashes() -> None:
     html = (STATIC_DIR / "rag.html").read_text(encoding="utf-8")
-    css_hash = re.search(r"rag\.css\?v=sha256-([0-9a-f]{64})", html)
-    js_hash = re.search(r"rag\.js\?v=sha256-([0-9a-f]{64})", html)
+    # 2026-08-03 全庫 cache key 收斂為 12 位 sha256 前綴（與
+    # test_frontend_cache_keys 的正典一致），這裡改為前綴比對。
+    css_hash = re.search(r"rag\.css\?v=sha256-([0-9a-f]{12,64})", html)
+    js_hash = re.search(r"rag\.js\?v=sha256-([0-9a-f]{12,64})", html)
 
-    assert css_hash and css_hash.group(1) == _sha256(STATIC_DIR / "rag.css")
-    assert js_hash and js_hash.group(1) == _sha256(STATIC_DIR / "rag.js")
+    assert css_hash and _sha256(STATIC_DIR / "rag.css").startswith(css_hash.group(1))
+    assert js_hash and _sha256(STATIC_DIR / "rag.js").startswith(js_hash.group(1))
 
 
 def test_rag_navigation_is_hidden_from_formal_pages() -> None:

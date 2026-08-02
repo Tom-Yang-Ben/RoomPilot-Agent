@@ -2,7 +2,7 @@ import {
   fetchHomeData,
   initBackgroundFx,
   reportPageBootFailure,
-} from "./common.js?v=20260802a";
+} from "./common.js?v=sha256-5e0e1418411f";
 
 const workflowMeta = [
   {
