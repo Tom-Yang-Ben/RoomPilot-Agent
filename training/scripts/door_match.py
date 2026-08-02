@@ -73,7 +73,7 @@ def match_door(ol, cx, cy, w, lib, margin=0.15):
 
 
 def rescore_file(jpath, png_dir, lib):
-    data = json.load(open(jpath))
+    data = json.load(open(jpath, encoding="utf-8"))
     img_file = data["image"]["file"]
     img_path = os.path.join(png_dir, img_file)
     if not os.path.isfile(img_path):
@@ -89,7 +89,7 @@ def rescore_file(jpath, png_dir, lib):
         hit = ch <= CH_STRONG
         d["score_fused"] = round(max(d["score"], RESCUE), 3) if hit else d["score"]
         n_hit += hit
-    with open(jpath, "w") as fp:
+    with open(jpath, "w", encoding="utf-8") as fp:
         json.dump(data, fp, ensure_ascii=False, indent=2)
     return len(data.get("doors", [])), n_hit
 

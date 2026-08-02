@@ -49,7 +49,7 @@ def evaluate(thr, tol, key):
         if not os.path.isfile(jpath):
             continue
         quads = gt_quads(svg_path)
-        doors = json.load(open(jpath)).get("doors", [])
+        doors = json.load(open(jpath, encoding="utf-8")).get("doors", [])
         sel = [d for d in doors if d.get(key, d["score"]) >= thr]
         hit_gt = set()
         for d in sel:

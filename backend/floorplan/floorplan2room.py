@@ -1702,6 +1702,27 @@ def build_rooms(det):
                                   seed_ids=seeds, veto_ids=vetos)
     else:
         rooms = _merge_bath_nooks(labels, rooms, det, T)
+        # 灰階符號種子不足時（floor06 實案：整圖只偵測到 kstove，
+        # 浴室碎格無種子可併）補一輪 DINO 種子路，守門同彩圖
+        small = [r for r in rooms
+                 if r["area_px"] * cm * cm < 40000.0
+                 and not r.get("pocket")]
+        if len(small) >= 2:
+            probs_s = room_classifier.classify(det.get("bgr"), labels, small,
+                                               variant="gray")
+            if probs_s is not None:
+                seeds, vetos = set(), set()
+                for r_, pr in zip(small, probs_s):
+                    if not pr:
+                        continue
+                    top = max(pr, key=pr.get)
+                    if top == "Bath" and pr[top] >= 0.7:
+                        seeds.add(r_["id"])
+                    elif top != "Bath":
+                        vetos.add(r_["id"])
+                vetos |= {r_["id"] for r_ in rooms if r_.get("pocket")}
+                rooms = _merge_bath_nooks(labels, rooms, det, T,
+                                          seed_ids=seeds, veto_ids=vetos)
     # 面積終篩（keep_small 的另一半）：走道碎片已在上一步併回整條，
     # 這裡才執行原本的面積門檻——未被合併救回的碎片與雜訊小塊在此淘汰
     X0 = min(r_[0] for r_ in rects); Y0 = min(r_[1] for r_ in rects)
@@ -1758,11 +1779,10 @@ def build_rooms(det):
                                    T, cm, amin, min_part_ratio=1.8,
                                    verify=_dino_verify if is_color_dom
                                    else None)
-    # 殼外陽台口袋收割（彩圖限定，畫風分流原則）——須在命名前，
-    # 新口袋才會進 DINO 裁切分類。灰階曾實測正向但依「color 機制不進
-    # 灰階路」裁定關閉，灰階回歸 v2.24 行為
-    if is_color_dom:
-        rooms = _harvest_balcony_pockets(det, labels, rooms, outside)
+    # 殼外陽台口袋收割——彩圖常駐；灰階以自屬開關回收（2026-08-02
+    # floor06 露台實案＋早前實測 dev +3/holdout +1，依分流原則另以灰階
+    # 量尺獨立 A/B 後啟用）
+    rooms = _harvest_balcony_pockets(det, labels, rooms, outside)
     # DINO 提案式切分：無錨點大房（無 OCR 房名、無符號可用）的開放
     # LDK 最後手段。房內已有作者房名文字者不提案（作者說了算）
     h_, w_ = labels.shape
