@@ -63,6 +63,9 @@ class Config:
     v_len: int | None
     wall_min_pct: float     # 牆厚低於 T 的此 % 者不畫出來
     windows: bool           # 在窗的開口畫窗戶符號
+    emit_openings: bool     # 門/窗畫進交付物（DXF/json）。2026-08-02 使用者
+                            # 裁定：彩窗 P61/R42、彩門 P38 低於可用線，預設
+                            # False 交後端補建；偵測仍執行（封口/比例尺要用）
     win_cover_pct: float    # 開口長度被細線覆蓋超過此 % = 窗；其餘是門/空，留開
     win_min_pct: float      # 窗的跨牆寬度需 ≥ 牆厚的(100-此值)%；太薄的不算窗
     door_arc_pct: float     # 門偵測:L形等長線兩端連接弧的吻合度門檻(%)
@@ -152,7 +155,9 @@ def load_config(path: str) -> Config:
         solid=io_("solid"), style=s("style", "center"),
         h_len=io_("h_len"), v_len=io_("v_len"),
         wall_min_pct=f("wall_min_pct", 3.0),
-        windows=b("windows", True), win_cover_pct=f("win_cover_pct", 70.0),
+        windows=b("windows", True),
+        emit_openings=b("emit_openings", False),
+        win_cover_pct=f("win_cover_pct", 70.0),
         win_min_pct=f("win_min_pct", 20.0),
         door_arc_pct=f("door_arc_pct", 50.0),
         door_width_cm=f("door_width_cm", 90.0),
@@ -1728,6 +1733,12 @@ def preview(bgr, H, V, path):
     cv2.imwrite(path, vis)
 
 
+def openings_for_output(cfg: Config, wins):
+    """門/窗輸出閘：emit_openings 關（彩色預設）→ 交付物不畫窗，
+    偵測結果僅供內部（封口/比例尺/房間層）使用。"""
+    return wins if cfg.emit_openings else []
+
+
 def write_solid_dxf(rects, wins, img_h, scale, cfg: Config, out=None, insunits=4,
                     zones=None):
     """牆：封閉矩形 + SOLID HATCH。窗：開口矩形 + 4 條玻璃線 + 兩端封口(照正規檔)。
@@ -2330,10 +2341,13 @@ def run(cfg: Config):
         else:                                # 慣例：DXF(cm) → testdata/dxf/
             os.makedirs("testdata/dxf", exist_ok=True)
             scale_out = os.path.join("testdata/dxf", base + ".dxf")
-        write_solid_dxf(rects, wins, img_h, scale / 10.0, cfg, out=scale_out, insunits=5)
+        write_solid_dxf(rects, openings_for_output(cfg, wins), img_h,
+                        scale / 10.0, cfg, out=scale_out, insunits=5)
 
         print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid")
-        print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個   門候選 : {len(doors)} 個")
+        print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個"
+              f"{'（輸出抑制）' if not cfg.emit_openings else ''}"
+              f"   門候選 : {len(doors)} 個")
         print(f"輸出   : {scale_out} (cm)"
               + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
         return

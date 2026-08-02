@@ -2072,8 +2072,13 @@ def preview_doors(det, zones, path):
     cv2.imwrite(path, vis)
 
 
-def write_rooms_json(path, det, rooms, zones, edges, is_color, colorful):
+def write_rooms_json(path, det, rooms, zones, edges, is_color, colorful,
+                     emit_openings=True):
+    """emit_openings=False（彩色預設，2026-08-02 使用者裁定）→ doors 發空
+    清單交後端補建：彩門 P 0.38/R 0.47 低於可用線，畫出來反增人工刪除。
+    灰階 zones 路 P 0.85/R 0.71 照常發射。"""
     data = {
+        "openings_suppressed": not emit_openings,
         "image": {"w": det["img_w"], "h": det["img_h"]},
         "is_color": bool(is_color),
         "color_ratio": round(colorful, 4),
@@ -2090,7 +2095,7 @@ def write_rooms_json(path, det, rooms, zones, edges, is_color, colorful):
                      round(min(p[1] for p in quad), 1),
                      round(max(p[0] for p in quad), 1),
                      round(max(p[1] for p in quad), 1)],
-        } for quad, d in zones],
+        } for quad, d in (zones if emit_openings else [])],
         "rooms": [{
             "id": r["id"], "label": r["label"], "label_zh": r["label_zh"],
             "area_m2": r["area_m2"], "bbox": list(r["bbox"]),
@@ -2140,7 +2145,8 @@ def process(path, out_dir, cfg_bw, cfg_color):
     json_out = os.path.join("temp/json/room", base + "_room.json")
     preview_rooms(det, labels, rooms, bridges, png_out)
     preview_doors(det, zones, door_out)
-    write_rooms_json(json_out, det, rooms, zones, edges, is_color, colorful)
+    write_rooms_json(json_out, det, rooms, zones, edges, is_color, colorful,
+                     emit_openings=(not is_color) or cfg_color.emit_openings)
 
     if rooms:
         names = "、".join(f'{r["label_zh"]}{r["area_m2"]}m²' for r in rooms)
