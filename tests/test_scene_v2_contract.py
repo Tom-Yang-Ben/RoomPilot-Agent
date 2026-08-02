@@ -52,16 +52,15 @@ def test_requirements_step_has_first_meeting_demo_shortcut() -> None:
 
 
 def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
+    # 2026-08-03 圖片式視覺問卷整條死鏈已拆除（selectPreferenceWeight 等作答
+    # 機制不復存在）。仍要保證：舊專案存檔裡的 axisAnswers 權重在摘要頁
+    # 讀得出中文標籤，且 A/B 強迫作答的 UI 不會回歸。
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert "PREFERENCE_WEIGHT_OPTIONS" in source
-    assert "function selectPreferenceWeight" in source
-    assert "preferenceWeight: weight" in source
-    assert "preferenceDirection: answerWeightDirection(weight)" in source
-    assert "preference_weight: Number(answer.preferenceWeight ?? 0)" in source
-    assert "preference_direction: answer.preferenceDirection" in source
-    assert ".rp-preference-weight" in css
+    assert "function preferenceWeightLabel" in source
+    assert "preferenceWeightLabel(answer.preferenceWeight)" in source
+    assert "function selectPreferenceWeight" not in source
     assert 'data-preference-weight="${item.value}"' not in source
 
 
@@ -2807,7 +2806,6 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert 'data-questionnaire-panel="rooms"' in html
     assert 'id="visual-space-nav"' in html
     assert 'id="room-furniture-select"' not in html
-    assert "visualPreferencesForRoom(room)" in controller
     assert 'id="layout-room-filter"' in html
     assert "state.activeLayoutRoomId" in controller
     assert "placement_room_id: room.id" in controller

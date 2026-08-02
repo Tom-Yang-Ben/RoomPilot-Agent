@@ -33,10 +33,6 @@ from ..agent.select import (
     request_selections,
     requirements_from_context,
 )
-from .questionnaire_visuals import (
-    QuestionnaireVisualStore,
-    load_questionnaire_visual_catalog,
-)
 from ..catalog.placement_surface import FLOOR, placement_surface_for
 from ..catalog.style_db import sanitize_size_cm
 from ..catalog.cloud_catalog import load_official_catalog
@@ -207,9 +203,6 @@ def _adopt_unowned_projects_on_startup() -> None:
 
 
 _adopt_unowned_projects_on_startup()
-QUESTIONNAIRE_VISUAL_CATALOG = load_questionnaire_visual_catalog()
-QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
-_QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
 
 
@@ -324,22 +317,6 @@ async def runtime_catalog_unavailable_handler(_request, exc: RuntimeCatalogUnava
         },
     )
 
-
-def _questionnaire_visual_store() -> QuestionnaireVisualStore:
-    """Build the worktree-local query index only when the questionnaire is used."""
-    global QUESTIONNAIRE_VISUAL_STORE
-    if QUESTIONNAIRE_VISUAL_STORE is not None:
-        return QUESTIONNAIRE_VISUAL_STORE
-    with _QUESTIONNAIRE_VISUAL_STORE_LOCK:
-        if QUESTIONNAIRE_VISUAL_STORE is None:
-            store = QuestionnaireVisualStore(
-                project_runtime_dir(PROJECT_DIR)
-                / "indexes"
-                / "questionnaire_visuals.sqlite3"
-            )
-            store.sync(QUESTIONNAIRE_VISUAL_CATALOG)
-            QUESTIONNAIRE_VISUAL_STORE = store
-    return QUESTIONNAIRE_VISUAL_STORE
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
@@ -2765,40 +2742,6 @@ def scene_bootstrap() -> dict:
         "surface_catalog": load_surface_catalog(),
         "catalog_status": catalog_status(),
     }
-
-
-@app.get("/api/questionnaire/visual-catalog")
-def questionnaire_visual_catalog_api(
-    space_type: str | None = Query(None),
-    ready_only: bool = Query(False),
-) -> dict:
-    questions = _questionnaire_visual_store().list_questions(
-        space_type=space_type,
-        ready_only=ready_only,
-    )
-    return {
-        "version": QUESTIONNAIRE_VISUAL_CATALOG["version"],
-        "notice_zh": QUESTIONNAIRE_VISUAL_CATALOG["notice_zh"],
-        "question_count": QUESTIONNAIRE_VISUAL_CATALOG["question_count"],
-        "image_count": QUESTIONNAIRE_VISUAL_CATALOG["image_count"],
-        "ready_image_count": sum(
-            option["generation_status"] == "ready"
-            for question in QUESTIONNAIRE_VISUAL_CATALOG["questions"]
-            for option in question["options"]
-        ),
-        "questions": questions,
-    }
-
-
-@app.get("/api/questionnaire/visual-images/{image_id}")
-def questionnaire_visual_image_api(image_id: str) -> dict:
-    try:
-        return _questionnaire_visual_store().get_image(image_id)
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail="questionnaire_image_not_found",
-        ) from exc
 
 
 def _json_furniture_catalog_response(
