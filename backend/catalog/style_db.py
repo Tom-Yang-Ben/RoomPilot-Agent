@@ -197,11 +197,27 @@ CLEARANCE_BY_TYPE: dict[str, ClearanceZone] = {
 # 數值取自台灣常見安裝慣例:層架掛在視線上方、掛鏡中心對齊站立視高、
 # 浴櫃鏡櫃接在檯面上方。沒有把握的型別不要進表——留空就是落地家具(0)，
 # 那是保守的一邊(會多擋，不會漏擋)。
+# 注意：型別在這張表裡不代表「這個型別都是壁掛」——高度只作用在
+# placement_surface_for() 判定為壁掛的品項（多數靠名稱判準的子集，例如
+# cabinet-cupboard 146 筆裡只有 BESTÅ 上牆式那 10 筆吃得到 130）。
+# 2026-08-03 Ben 拍板全套。
 MOUNT_HEIGHT_BY_TYPE: dict[str, float] = {
     "wall-shelf": 120.0,
     "mirror": 100.0,
     "large-mirror": 90.0,
     "mirror-cabinet": 85.0,
+    # 上牆式收納櫃：慣例頂緣 ≤200、櫃體多 64 高 → 底緣 130；沙發背、
+    # 餐邊櫃（~85）上方可共存。
+    "cabinet-cupboard": 130.0,
+    # 浮動牆架與名稱命中層板的層架單元，與 wall-shelf 同慣例。
+    "bookcase": 120.0,
+    "shelving-unit": 120.0,
+    # 壁掛花盆掛視線高度，沙發與矮櫃上方可共存。
+    "planter": 120.0,
+    # 壁掛床邊桌對齊床墊面（台灣床架＋床墊約 45–55）。
+    "bedside-table": 45.0,
+    # 壁掛衣帽架：大衣下襬要離地。
+    "clothes-rack": 150.0,
 }
 
 

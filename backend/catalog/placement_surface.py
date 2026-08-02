@@ -71,9 +71,21 @@ _TABLETOP_NAME_HINTS = (
 _WALL_NAME_HINTS = (
     "層板",
     "壁掛",
+    "上牆式",
+    "壁櫃",
+    "吊櫃",
+    "浮動",
     "shelf board",
     "wall panel",
+    "floating",
+    "wall-mount",
+    "wall mount",
 )
+
+# 這些型別即使名稱帶壁掛字眼也維持落地：壁掛折疊桌的桌面下要容納椅子
+# 與腿部空間，佔用地面使用權才符合實際使用（2026-08-03 Ben 拍板高度表
+# 時一併決定）。實測命中：floating desk 1 筆、NORBERG 壁掛折疊桌 1 筆。
+_WALL_HINT_EXCLUDED_TYPES = frozenset({"desk", "bar-table"})
 
 # 「附層板電競桌」「床邊桌，附 1 抽屜附層板」的主體是桌子，層板只是配備。
 # 出現「附」就代表那個詞在描述配備而不是品項本身。
@@ -106,7 +118,10 @@ def placement_surface_for(normalized_type: str | None, name: str | None = None) 
         return WALL
     if key in _FLOOR_COVERING_TYPES:
         return FLOOR_COVERING
-    return _name_hint_surface(str(name or "")) or FLOOR
+    hinted = _name_hint_surface(str(name or ""))
+    if hinted == WALL and key in _WALL_HINT_EXCLUDED_TYPES:
+        return FLOOR
+    return hinted or FLOOR
 
 
 def is_floor_furniture(normalized_type: str | None, name: str | None = None) -> bool:

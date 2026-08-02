@@ -61,11 +61,58 @@ def test_wall_mounted_items_start_above_the_floor() -> None:
     assert shelf.is_wall_mounted() is True
 
 
+# 高度表的型別不一定「整個型別都是壁掛」——cabinet-cupboard 等型別只有
+# 名稱命中壁掛判準的子集吃得到高度，所以用壁掛名稱建構才進得了 WALL 分支。
 @pytest.mark.parametrize("item_type,mount", sorted(MOUNT_HEIGHT_BY_TYPE.items()))
 def test_mount_height_table_reaches_the_engine(item_type: str, mount: float) -> None:
-    catalog = _catalog(item_type, item_type, 60, 20, 40)
+    catalog = _catalog(item_type, f"壁掛{item_type}", 60, 20, 40)
     assert catalog.mount_height_cm == mount
     assert catalog.vertical_span() == (mount, mount + 40)
+
+
+# ── 2026-08-03 高度表擴充（Ben 拍板全套）────────────────────────────────
+
+def test_wall_hung_besta_cabinet_floats_above_a_sofa() -> None:
+    """180cm 寬的上牆式收納櫃不該再擋掉一整面牆的地板。"""
+    cabinet = _catalog("cabinet-cupboard", "BESTÅ - 上牆式收納櫃組合, 白色", 180, 42, 64)
+    sofa = _catalog("sofa", "三人座沙發", 200, 90, 80)
+    assert cabinet.vertical_span() == (130.0, 194.0)
+    assert cabinet.is_wall_mounted() is True
+    # 帶 [130,194] 對沙發 [0,80]：垂直不重疊，平面可以共存。
+    assert vertical_overlap(_placed("cabinet", cabinet), _placed("sofa", sofa)) is False
+
+
+def test_plain_floor_cabinet_keeps_floor_span() -> None:
+    """同型別、沒有壁掛名稱的一般櫃子不受高度表影響。"""
+    cabinet = _catalog("cabinet-cupboard", "BESTÅ 收納櫃組合, 白色", 120, 40, 74)
+    assert cabinet.vertical_span() == (0.0, 74.0)
+    assert cabinet.is_wall_mounted() is False
+
+
+def test_wall_hung_bedside_table_aligns_with_mattress_top() -> None:
+    table = _catalog("bedside-table", "STOMSÖ 壁掛床邊桌", 36, 29, 20)
+    assert table.vertical_span() == (45.0, 65.0)
+    floor_table = _catalog("bedside-table", "HEMNES 床邊桌", 46, 35, 70)
+    assert floor_table.vertical_span() == (0.0, 70.0)
+
+
+def test_wall_hint_never_lifts_desks_off_the_floor() -> None:
+    """壁掛折疊桌的桌下要容椅子與腿，維持落地佔用才符合實際使用。"""
+    desk = _catalog("desk", "floating wall-mounted desk", 74, 60, 74)
+    assert desk.vertical_span() == (0.0, 74.0)
+    assert desk.is_wall_mounted() is False
+    folding = _catalog("bar-table", "NORBERG 壁掛折疊桌，白色", 74, 60, 74)
+    assert folding.vertical_span() == (0.0, 74.0)
+
+
+def test_feature_marker_keeps_ambiguous_wall_cabinet_on_the_floor() -> None:
+    """「附」配備標記的已知保守誤判：EKET 附2抽屜壁櫃其實是壁櫃。
+
+    「附」在型錄裡幾乎都描述配備（附層板電競桌），拿掉標記會誤傷更多真
+    落地家具；這一筆接受多擋不漏擋。
+    """
+    eket = _catalog("bedside-table", "EKET 附2抽屜壁櫃，胡桃木紋", 35, 35, 35)
+    assert eket.vertical_span() == (0.0, 35.0)
 
 
 # ── 重疊判定 ──────────────────────────────────────────────────────────
