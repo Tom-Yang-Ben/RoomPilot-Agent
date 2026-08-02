@@ -705,9 +705,15 @@ _WALL_ANCHORED_TYPES = {
 
 
 def _facing(rotation: float) -> tuple[float, float]:
-    """three.js Y 軸旋轉 → 家具正面的單位向量(平面 x, z)。rot=0 面向 -z(房內上方)。"""
+    """three.js Y 軸旋轉 → 家具正面的單位向量(場景座標 x, z)。
+
+    本 repo 場景座標的朝向慣例:rot=0 正面朝 +z、rot=90 朝 +x、rot=180 朝 -z
+    (與 _placement_candidates 靠牆候選、_scene_rotation_toward 及 3D 渲染鏈一致;
+    渲染端 world 對 z 鏡像並以 -rot 套用,GLB 原始朝向 -z,兩次翻轉互相抵銷)。
+    舊實作誤用規格 y 軸向上版公式 (sin, -cos),導致成組候選把副件擺到主件背面。
+    """
     rad = math.radians(rotation)
-    return (round(math.sin(rad), 6), round(-math.cos(rad), 6))
+    return (round(math.sin(rad), 6), round(math.cos(rad), 6))
 
 
 def _placement_candidates(
@@ -749,7 +755,8 @@ def _placement_candidates(
     elif item_type == "coffee-table":
         candidates.extend([(center_x, center_z + 12, 0), (center_x, center_z - 18, 0)])
     elif item_type == "armchair":
-        candidates.extend([(right - width / 2 - 30, center_z + 35, -35), (left + width / 2 + 30, center_z + 35, 35)])
+        # 靠右牆面向 -x、靠左牆面向 +x;原本寫死 ±35° 斜角,2D/3D 看起來像擺歪
+        candidates.extend([(right - width / 2 - 30, center_z + 35, 270), (left + width / 2 + 30, center_z + 35, 90)])
     elif item_type in {
         "appliance-cabinet", "bathroom-vanity", "bookcase", "cabinet",
         "mirror-cabinet", "refrigerator", "storage-cabinet", "wardrobe", "washer",
@@ -762,15 +769,18 @@ def _placement_candidates(
     elif item_type in {"bed", "bed-frame", "sofa-bed"}:
         candidates.extend([(center_x, bottom - depth / 2 - wall_gap, 180), (left + depth / 2 + wall_gap, center_z, 90)])
     elif item_type == "bedside-table":
-        candidates.extend([(right - width / 2 - 22, bottom - depth / 2 - 34, 0), (left + width / 2 + 22, bottom - depth / 2 - 34, 0)])
+        # 位於下牆(+z 側),正面要朝 -z(房內) → 180;rot=0 會臉貼牆
+        candidates.extend([(right - width / 2 - 22, bottom - depth / 2 - 34, 180), (left + width / 2 + 22, bottom - depth / 2 - 34, 180)])
     elif item_type == "desk":
         candidates.extend([(center_x, top + depth / 2 + wall_gap, 0), (left + depth / 2 + wall_gap, center_z, 90)])
     elif item_type == "office-chair":
-        candidates.extend([(center_x, top + depth + 88, 180), (left + width / 2 + 80, center_z, 90)])
+        # 第二候選:書桌貼左牆面向 +x 時,椅子在其正前方要回頭面向 -x → 270
+        candidates.extend([(center_x, top + depth + 88, 180), (left + width / 2 + 80, center_z, 270)])
     elif item_type == "dining-table":
         candidates.extend([(center_x, center_z, 0), (center_x, center_z + 36, 0)])
     elif item_type == "dining-chair":
-        candidates.extend([(right - width / 2 - 40, center_z, 90), (left + width / 2 + 40, center_z, -90), (center_x, center_z + 80, 180)])
+        # 靠右側的椅子面向 -x(桌在中央)、靠左側面向 +x;原本左右互換,臉朝牆
+        candidates.extend([(right - width / 2 - 40, center_z, 270), (left + width / 2 + 40, center_z, 90), (center_x, center_z + 80, 180)])
     elif item_type == "sideboard":
         candidates.extend([(center_x, top + depth / 2 + wall_gap, 0), (center_x, bottom - depth / 2 - wall_gap, 180)])
     elif item_type == "wall-shelf":
@@ -909,7 +919,8 @@ def _hinted_wall_candidate(
 
     left, right, top, bottom = bounds_cm
     candidates: list[tuple[float, float, float]] = []
-    for rotation, side in ((0.0, "top"), (0.0, "bottom"), (90.0, "left"), (90.0, "right")):
+    # 旋轉值 = 背貼該牆、正面朝房內(rot=0 朝 +z):上牆 0、下牆 180、左牆 90、右牆 270
+    for rotation, side in ((0.0, "top"), (180.0, "bottom"), (90.0, "left"), (270.0, "right")):
         footprint_width, footprint_depth = _rotated_footprint(width, depth, rotation)
         if side == "top":
             x = _clamp_axis(hint_x, left, right, footprint_width, 0)
@@ -1157,6 +1168,16 @@ def build_raster_context(
         ring = [
             (0.0, 0.0), (room.width, 0.0), (room.width, room.depth), (0.0, room.depth),
         ]
+    # 引擎輪廓邊約定「室內恆在邊的左側」(Edge.inward = 左法線),
+    # 但 Shapely buffer 的外環是順時針 —— 不翻轉的話 inward 全指向房外,
+    # 靠牆錨定掃描會把候選點推出邊界而全數被遮罩否決。
+    area2 = sum(
+        ring[i][0] * ring[(i + 1) % len(ring)][1]
+        - ring[(i + 1) % len(ring)][0] * ring[i][1]
+        for i in range(len(ring))
+    )
+    if area2 < 0:
+        ring = ring[::-1]
 
     doors = _floorplan_segments_cm(floorplan, "door_segments", room)
     windows = _floorplan_segments_cm(floorplan, "window_segments", room)
@@ -1206,7 +1227,10 @@ def raster_free(
     """
     if ctx is None:
         return True                       # 建不出脈絡時交還舊路徑判斷
-    obb = Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, width, depth, rotation_deg)
+    # 場景 rotation(three Y 角)與引擎平面角互為鏡像(z 軸同向、握向相反),
+    # 進柵格必須取負,否則非 90° 倍數的家具(45° 拖曳)會驗到鏡像後的足跡。
+    # 與舊 Shapely 路徑 _scene_object_to_placed 的 (-rot) % 360 同一約定。
+    obb = Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, width, depth, -rotation_deg)
     if item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES:
         mask = ctx.masks.low               # 窗簾本來就該貼窗
     else:
@@ -1235,8 +1259,50 @@ def raster_commit(
     stamp_obb(
         ctx.placed,
         ctx.grid,
-        Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, width, depth, rotation_deg),
+        # 同 raster_free:場景角進柵格取負(90° 倍數不受影響)
+        Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, width, depth, -rotation_deg),
     )
+
+
+def _raster_wall_anchor(
+    ctx: RasterContext | None,
+    item_type: str | None,
+    width: float,
+    depth: float,
+    height: float,
+    half_w_cm: float,
+    half_d_cm: float,
+) -> tuple[float, float, float] | None:
+    """靠牆錨定掃描(docs/擺位計算邏輯.md §6 的場景座標版)。
+
+    沿房間輪廓邊(長邊優先)跑完整錨點序列,背面貼齊可放邊界、正面朝室內;
+    合法性由同一套柵格遮罩(含已放家具)判定。輪廓環已內縮 8cm,故不再疊加
+    規格的 WALL_GAP_CM。回傳 ``(x_cm, z_cm, rotation_y_deg)``(房間中心原點、
+    場景旋轉);所有邊都放不下回 None,由呼叫端續走網格散點與引擎後援。
+    """
+    if ctx is None:
+        return None
+    from ..engine.rules import anchor_ts, candidate_edges
+
+    mask = ctx.masks.for_height(height)
+    for edge in candidate_edges(ctx.edges, width):
+        nx, nz = edge.inward()
+        # 場景朝向慣例 rot=0 → +z(見 _facing),面向室內法線 n 的角度 = atan2(nx, nz)
+        rotation = math.degrees(math.atan2(nx + 0.0, nz + 0.0)) % 360
+        off = depth / 2
+        for t in anchor_ts(edge.length, width):
+            px, pz = edge.point_at(t)
+            cx = px + nx * off
+            cz = pz + nz * off
+            # 場景角進柵格取負(同 raster_free);斜牆邊的非 90° 角也因此驗到
+            # 與渲染一致的足跡
+            obb = Obb.from_deg(cx, cz, width, depth, -rotation)
+            if obb_blocked(mask, ctx.grid, obb):
+                continue
+            if obb_blocked(ctx.placed, ctx.grid, obb):
+                continue
+            return (cx - half_w_cm, cz - half_d_cm, round(rotation, 2))
+    return None
 
 
 def _floorplan_segments_cm(
@@ -1275,14 +1341,17 @@ def _scene_rotation_toward(
 def orient_layout_toward_targets(
     scene_objects: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Orient automatically placed seating and work furniture toward useful targets."""
+    """自由座椅類轉向最近的目標家具;角度貼齊 90° 倍數。
+
+    只轉「不靠牆」的座椅 —— 沙發/沙發床/書桌屬 _WALL_ANCHORED_TYPES,朝向
+    由所靠的牆決定;原本也把它們轉向最近的茶几,會產生斜角且脫離牆面,
+    而且轉完不再驗證合法性(feedback.png 中斜擺的沙發即由此而來)。
+    貼齊 90° 讓椅子與其他家具同為軸對齊,旋轉後足跡不變、無需重新驗證。
+    """
     target_types = {
         "office-chair": ("desk",),
         "dining-chair": ("dining-table",),
         "armchair": ("coffee-table", "sofa", "sofa-bed"),
-        "sofa": ("tv-bench", "coffee-table"),
-        "sofa-bed": ("tv-bench", "coffee-table"),
-        "desk": ("office-chair",),
     }
     valid = [
         item for item in scene_objects
@@ -1306,7 +1375,8 @@ def orient_layout_toward_targets(
                 float(candidate["position_cm"].get("z") or 0) - float(source.get("z") or 0)
             ) ** 2,
         )
-        item["rotation_y_deg"] = _scene_rotation_toward(source, target["position_cm"])
+        toward = _scene_rotation_toward(source, target["position_cm"])
+        item["rotation_y_deg"] = round(toward / 90.0) * 90.0 % 360
         item["facing_target_id"] = target.get("furniture_id")
     return scene_objects
 
@@ -1993,8 +2063,12 @@ def generate_layout(
                 hint=_hint_for(item),
                 neighbors=neighbors,
             )
-            if placement_variant == "B" and len(candidates) > 1:
-                # 方案 B 仍走相同碰撞/淨空驗證，只改由另一端開始搜尋合法解。
+            if placement_variant == "B" and len(candidates) > 9:
+                # 方案 B 仍走相同碰撞/淨空驗證,只反轉「類型錨點」的嘗試順序
+                # (換一面牆開始)。3×3 網格散點維持在最後 —— 原本整串反轉會讓
+                # B 案的靠牆家具從房間中央的網格點開始試,永遠貼不了牆。
+                candidates = list(reversed(candidates[:-9])) + candidates[-9:]
+            elif placement_variant == "B" and len(candidates) > 1:
                 candidates = list(reversed(candidates))
             hinted_wall_candidate = _hinted_wall_candidate(
                 item_type,
@@ -2007,35 +2081,63 @@ def generate_layout(
                 candidates.insert(0, hinted_wall_candidate)
             if curtain_hint:
                 candidates.insert(0, curtain_hint[:3])
-            for raw_x, raw_z, rot in candidates:
+            def _try_candidate(raw_x: float, raw_z: float, rot: float, *, clamp: bool = True) -> tuple[float, float] | None:
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
-                wall_anchored = item_type in _WALL_ANCHORED_TYPES
-                clamp_margin = 0 if wall_anchored else 18
+                clamp_margin = 0 if item_type in _WALL_ANCHORED_TYPES else 18
                 candidate_left, candidate_right, candidate_top, candidate_bottom = (
                     placement_bounds_cm
                     or (-half_w_cm, half_w_cm, -half_d_cm, half_d_cm)
                 )
-                cand_x = _clamp_axis(raw_x, candidate_left, candidate_right, fp_w, clamp_margin)
-                cand_z = _clamp_axis(raw_z, candidate_top, candidate_bottom, fp_d, clamp_margin)
-                candidate = PlacedFurniture(
-                    id=item_id,
-                    catalog=catalog,
-                    pos_x=cand_x + half_w_cm,
-                    pos_y=cand_z + half_d_cm,
-                    rotation=(-rot) % 360,
-                )
+                cand_x = _clamp_axis(raw_x, candidate_left, candidate_right, fp_w, clamp_margin) if clamp else raw_x
+                cand_z = _clamp_axis(raw_z, candidate_top, candidate_bottom, fp_d, clamp_margin) if clamp else raw_z
                 if raster_free(
                     raster, item_type, width, depth, height,
                     cand_x, cand_z, rot, half_w_cm, half_d_cm,
                 ):
-                    x_cm, z_cm, rotation = cand_x, cand_z, rot
-                    placed.append(candidate)
-                    placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
-                    raster_commit(
-                        raster, item_type, width, depth,
-                        cand_x, cand_z, rot, half_w_cm, half_d_cm,
-                    )
+                    return cand_x, cand_z
+                return None
+
+            # 嘗試順序:類型錨點 → 靠牆錨定掃描(僅靠牆類)→ 3×3 網格散點。
+            # 網格散點原本緊接在類型錨點之後 —— 門前動線帶恰好壓掉每面牆僅有的
+            # 2-3 個錨點時,靠牆家具就直接落在房間中央的網格點(floor04 客廳實測:
+            # 沙發/電視櫃/茶几全數散落網格點)。掃描沿輪廓邊補完整錨點序列。
+            anchor_list = candidates
+            grid_list: list[tuple[float, float, float]] = []
+            if item_type in _WALL_ANCHORED_TYPES and len(candidates) > 9:
+                anchor_list, grid_list = candidates[:-9], candidates[-9:]
+
+            chosen: tuple[float, float, float] | None = None
+            for raw_x, raw_z, rot in anchor_list:
+                accepted = _try_candidate(raw_x, raw_z, rot)
+                if accepted is not None:
+                    chosen = (accepted[0], accepted[1], rot)
                     break
+            if chosen is None and item_type in _WALL_ANCHORED_TYPES:
+                chosen = _raster_wall_anchor(
+                    raster, item_type, width, depth, height, half_w_cm, half_d_cm,
+                )
+            if chosen is None:
+                for raw_x, raw_z, rot in grid_list:
+                    accepted = _try_candidate(raw_x, raw_z, rot)
+                    if accepted is not None:
+                        chosen = (accepted[0], accepted[1], rot)
+                        break
+
+            if chosen is not None:
+                x_cm, z_cm, rotation = chosen
+                candidate = PlacedFurniture(
+                    id=item_id,
+                    catalog=catalog,
+                    pos_x=x_cm + half_w_cm,
+                    pos_y=z_cm + half_d_cm,
+                    rotation=(-rotation) % 360,
+                )
+                placed.append(candidate)
+                placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
+                raster_commit(
+                    raster, item_type, width, depth,
+                    x_cm, z_cm, rotation, half_w_cm, half_d_cm,
+                )
             else:
                 result = place_furniture(room, catalog, item_id, placed)
                 engine_item = result["placed"] if result["success"] else None
@@ -2079,7 +2181,8 @@ def generate_layout(
             "catalog_size_cm": item.get("catalog_size_cm"),
             "footprint_cm": {"width": round(fp_w, 2), "depth": round(fp_d, 2)},
             "position_cm": {"x": round(x_cm, 2), "z": round(z_cm, 2)},
-            "rotation_y_deg": rotation,
+            # 契約:0 ≤ rotation_y_deg < 360(候選表沿用 -90 慣寫,出口正規化)
+            "rotation_y_deg": rotation % 360,
             "position_locked": locked,
             "placement_failed": bool(failed_reason),
             "placement_reason": failed_reason,

@@ -67,6 +67,45 @@ def test_automatic_chair_faces_the_nearest_desk() -> None:
     assert oriented[1]["facing_target_id"] == "desk-1"
 
 
+def test_orientation_pass_keeps_wall_anchored_sofa_and_snaps_chairs_to_axis() -> None:
+    """沙發朝向由所靠的牆決定,orientation pass 不得再把它轉向最近的茶几;
+    自由座椅(扶手椅)轉向目標時角度貼齊 90°,不產生斜角足跡。"""
+    scene_objects = [
+        {
+            "furniture_id": "sofa-1",
+            "normalized_type": "sofa",
+            "position_cm": {"x": 0, "z": 150},
+            "rotation_y_deg": 180,
+            "position_locked": False,
+            "placement_failed": False,
+        },
+        {
+            "furniture_id": "ct-1",
+            "normalized_type": "coffee-table",
+            "position_cm": {"x": 80, "z": 40},
+            "rotation_y_deg": 0,
+            "position_locked": False,
+            "placement_failed": False,
+        },
+        {
+            "furniture_id": "armchair-1",
+            "normalized_type": "armchair",
+            "position_cm": {"x": -30, "z": 40},
+            "rotation_y_deg": 0,
+            "position_locked": False,
+            "placement_failed": False,
+        },
+    ]
+
+    oriented = orient_layout_toward_targets(scene_objects)
+
+    assert oriented[0]["rotation_y_deg"] == 180
+    assert "facing_target_id" not in oriented[0]
+    # 扶手椅最近目標是茶几(dx=110, dz=0),atan2 → 90°,貼齊後仍 90°
+    assert oriented[2]["rotation_y_deg"] == 90
+    assert oriented[2]["facing_target_id"] == "ct-1"
+
+
 def test_viewer_keeps_boundary_walls_in_room_finish_and_door_inside_snapped_assembly() -> None:
     source = (
         ROOT / "backend" / "server" / "static" / "scene_viewer.js"
@@ -258,7 +297,9 @@ def test_manual_wall_snap_is_resolved_by_the_backend_layout_engine() -> None:
     item = response.json()["scene_objects"][0]
     assert item["placement_failed"] is False
     assert -60 <= item["position_cm"]["x"] <= -20
-    assert item["rotation_y_deg"] == 90
+    # 貼右牆(x 較大側)背對牆、正面朝 -x(房內)= 270。
+    # 舊值 90 是鏡像慣例的特徵化殘留:rot=0 正面朝 +z,90 會臉貼右牆。
+    assert item["rotation_y_deg"] == 270
 
 
 def test_step6_drag_commits_backend_wall_snap_inside_original_room() -> None:

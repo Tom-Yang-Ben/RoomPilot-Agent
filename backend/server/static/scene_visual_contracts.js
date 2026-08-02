@@ -133,6 +133,54 @@ export function synchronizedFloorRegions(floorplan = {}, widthCm = 420, depthCm 
   }];
 }
 
+export function expandedFloorSlabRing(ring = [], bleedCm = 0) {
+  // 房間 region 是「室內淨空」多邊形:相鄰房之間隔著整條牆帶(floor04 實測約
+  // 26.9cm),門洞下方與牆體下方因此完全沒有地板,俯視會看到一條條透到背景的
+  // 破口。基底樓板把每個 region 外環向外偏移 bleedCm,讓地板延伸到牆體下方與
+  // 門檻;偏移量以「蓋住半條牆帶」為準,仍小於外牆外緣,不會露出屋外。
+  // 純幾何、不依賴 three:每條邊沿外法線平移後與相鄰邊求交(miter)。
+  const pts = ring
+    .map((point) => ({
+      x: Number(Array.isArray(point) ? point[0] : point?.x),
+      z: Number(Array.isArray(point) ? point[1] : point?.z),
+    }))
+    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.z));
+  if (pts.length > 1
+    && pts[0].x === pts[pts.length - 1].x
+    && pts[0].z === pts[pts.length - 1].z) {
+    pts.pop();
+  }
+  if (pts.length < 3 || !(Number(bleedCm) > 0)) {
+    return pts.map((point) => [point.x, point.z]);
+  }
+
+  let doubledArea = 0;
+  for (let i = 0; i < pts.length; i += 1) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    doubledArea += a.x * b.z - b.x * a.z;
+  }
+  const outwardSign = doubledArea >= 0 ? 1 : -1;
+
+  const offsetEdges = pts.map((a, i) => {
+    const b = pts[(i + 1) % pts.length];
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const length = Math.hypot(dx, dz) || 1;
+    const nx = (outwardSign * dz) / length;
+    const nz = (outwardSign * -dx) / length;
+    return { ax: a.x + nx * bleedCm, az: a.z + nz * bleedCm, dx, dz };
+  });
+
+  return offsetEdges.map((edge, i) => {
+    const prev = offsetEdges[(i - 1 + offsetEdges.length) % offsetEdges.length];
+    const det = prev.dx * edge.dz - prev.dz * edge.dx;
+    if (Math.abs(det) < 1e-9) return [edge.ax, edge.az];
+    const t = ((edge.ax - prev.ax) * edge.dz - (edge.az - prev.az) * edge.dx) / det;
+    return [prev.ax + prev.dx * t, prev.az + prev.dz * t];
+  });
+}
+
 export function doorLeafTransform(opening = {}, swingDegrees = 0) {
   const start = opening.start || {};
   const end = opening.end || {};

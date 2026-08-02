@@ -28,11 +28,12 @@ import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3
 import {
   clampWalkPosition,
   computeExactModelScale,
+  expandedFloorSlabRing,
   fallbackMaterialRole,
   findNearestWalkablePosition,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-b73f02baf64c";
+} from "./scene_visual_contracts.js?v=sha256-ffab73a6296a";
 
 const CM_PER_METER = 100;
 
@@ -2814,9 +2815,20 @@ export function createSceneViewer(
     });
   }
 
+  // 基底樓板外擴量:room_regions 是「室內淨空」環,相鄰房之間隔著整條牆帶
+  // (floor04 實測 26.9cm),門洞下方與牆體下方原本完全沒有地板,俯視/斜視
+  // 會露出背景形成一條條破口。外擴 14cm 讓兩側樓板在牆帶中線會合、蓋住門檻,
+  // 又仍在外牆外緣之內(外牆段中心線距 region 邊 ≥ 14cm + 半牆厚)。
+  const FLOOR_SLAB_BLEED_CM = 14;
+
   function createFloorGeometry(floorplan, widthCm, depthCm) {
+    // 逐房材質(createRoomSurfaceOverrides)仍用未外擴的房間多邊形,
+    // 材質分界與房間線一致;只有這層共用基底樓板做外擴。
     const shapes = synchronizedFloorRegions(floorplan, widthCm, depthCm)
-      .map((region) => polygonShape(region, true))
+      .map((region) => polygonShape({
+        ...region,
+        exterior: expandedFloorSlabRing(region.exterior, FLOOR_SLAB_BLEED_CM),
+      }, true))
       .filter(Boolean);
     const geometry = new THREE.ShapeGeometry(shapes);
     geometry.computeVertexNormals();

@@ -728,7 +728,9 @@ def test_floor_is_clipped_to_cody_floorplan_exterior() -> None:
 
     assert "function createFloorGeometry" in source
     assert "synchronizedFloorRegions(floorplan, widthCm, depthCm)" in source
-    assert ".map((region) => polygonShape(region, true))" in source
+    # 基底樓板外擴 14cm 蓋住牆帶與門檻;逐房材質 override 仍用未外擴的房間環
+    assert "expandedFloorSlabRing(region.exterior, FLOOR_SLAB_BLEED_CM)" in source
+    assert "const FLOOR_SLAB_BLEED_CM = 14" in source
     assert "new THREE.ShapeGeometry(shapes)" in source
     assert "createFloorGeometry(sceneData.floorplan, widthCm, depthCm)" in source
 

@@ -310,6 +310,65 @@ def test_per_room_placement_preserves_input_order():
     assert [o["furniture_id"] for o in objects] == ["a", "b", "c"]
 
 
+# ── 靠牆錨定掃描:門前動線壓掉類型錨點時,靠牆家具仍須貼牆 ────────────
+# 迴歸來源:floor04.png 客廳,門前 75cm 動線帶恰好蓋住沙發/電視櫃在該面牆的
+# 2-3 個固定錨點,家具全數落到 3×3 網格散點(房間中央)。
+
+_DOOR_BLOCK_FLOORPLAN = {
+    "coordinate_unit": "cm",
+    "room_regions": [{
+        "room_id": "living",
+        "room_type": "living_room",
+        "exterior": [[-225, -190], [225, -190], [225, 190], [-225, 190]],
+        "holes": [],
+    }],
+    # 下牆中央的門:75cm 動線帶涵蓋沙發在下牆的兩個類型錨點
+    "door_segments": [
+        {"start": {"x": -60, "z": 190}, "end": {"x": 60, "z": 190}},
+    ],
+}
+
+
+def _nearest_wall_gap(obj, exterior):
+    xs = [p[0] for p in exterior]
+    zs = [p[1] for p in exterior]
+    x, z = obj["position_cm"]["x"], obj["position_cm"]["z"]
+    fw, fd = obj["footprint_cm"]["width"], obj["footprint_cm"]["depth"]
+    return min(
+        (x - fw / 2) - min(xs),
+        max(xs) - (x + fw / 2),
+        (z - fd / 2) - min(zs),
+        max(zs) - (z + fd / 2),
+    )
+
+
+def test_wall_anchored_furniture_scans_other_walls_when_door_band_blocks_anchors():
+    items = [_item("sofa", "sofa", 200, 90, placement_room_id="living")]
+    objects = generate_layout_by_room(
+        450.0, 380.0, items,
+        room=_rect_room(450.0, 380.0),
+        floorplan=_DOOR_BLOCK_FLOORPLAN,
+    )
+    obj = objects[0]
+    assert not obj["placement_failed"]
+    # 貼牆:最近一面牆的縫 ≤ 15cm(邊界內縮 8cm + 柵格量化);
+    # 若退化回網格散點,離最近牆至少 90cm,此斷言必炸
+    gap = _nearest_wall_gap(obj, _DOOR_BLOCK_FLOORPLAN["room_regions"][0]["exterior"])
+    assert gap <= 15, f"沙發離最近牆 {gap:.1f}cm,未貼牆"
+    # 朝向:軸對齊且正面朝房內(rot=0 面向 +z)
+    assert obj["rotation_y_deg"] in {0.0, 90.0, 180.0, 270.0}
+
+
+def test_bedside_table_candidate_faces_into_the_room():
+    # 床頭櫃候選位於下牆(+z 側),正面必須朝 -z(房內)= 180;
+    # 舊候選寫 0,櫃子臉貼牆、抽屜開不了
+    objects = generate_layout(
+        400.0, 400.0, [_item("ns", "bedside-table", 40, 40)], room=_rect_room(400.0, 400.0),
+    )
+    assert not objects[0]["placement_failed"]
+    assert objects[0]["rotation_y_deg"] == 180
+
+
 # ── §12 決定性:同輸入必得同輸出 ────────────────────────────────────
 def test_layout_is_deterministic():
     items = [

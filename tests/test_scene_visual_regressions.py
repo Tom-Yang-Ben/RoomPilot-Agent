@@ -45,7 +45,28 @@ def test_all_confirmed_room_regions_share_the_initial_floor_surface() -> None:
     assert all(len(item["exterior"]) == 4 for item in result)
 
 
-def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
+def test_floor_slab_ring_expands_outward_to_cover_wall_bands_and_thresholds() -> None:
+    """基底樓板外擴:兩個相距 26.9cm 的 region 外擴 14cm 後必須交疊,
+    蓋住牆帶與門檻(feedback.png 的地板破口);順/逆時針環都要向外。"""
+    result = run_workflow_script(
+        f"""
+        import {{ expandedFloorSlabRing }} from {json.dumps(VISUAL_MODULE.as_uri())};
+        const ccw = expandedFloorSlabRing([[0, 0], [100, 0], [100, 80], [0, 80]], 14);
+        const cw = expandedFloorSlabRing([[0, 0], [0, 80], [100, 80], [100, 0]], 14);
+        const untouched = expandedFloorSlabRing([[0, 0], [100, 0], [100, 80], [0, 80]], 0);
+        console.log(JSON.stringify({{ ccw, cw, untouched }}));
+        """
+    )
+
+    def bounds(ring):
+        xs = [p[0] for p in ring]
+        zs = [p[1] for p in ring]
+        return min(xs), max(xs), min(zs), max(zs)
+
+    for key in ("ccw", "cw"):
+        min_x, max_x, min_z, max_z = bounds(result[key])
+        assert (min_x, max_x, min_z, max_z) == (-14, 114, -14, 94), key
+    assert bounds(result["untouched"]) == (0, 100, 0, 80)
     result = run_workflow_script(
         f"""
         import {{ doorLeafTransform }} from {json.dumps(VISUAL_MODULE.as_uri())};
