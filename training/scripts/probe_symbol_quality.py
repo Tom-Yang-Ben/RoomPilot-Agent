@@ -34,14 +34,15 @@ import floorplan2dxf_color as fp_c
 import symbol_match as sm
 
 ALL_KINDS = ("basin", "bed", "chair", "dtable", "ksink", "kstove",
-             "sofa", "tub", "wc", "wardrobe")
+             "sofa", "trashcan", "tub", "wc", "wardrobe")
 # kind → 預期 GT 房型（弱標籤）。dtable 依使用者裁決屬廚房系，但餐桌
 # 實際常擺在 GT LivingRoom（餐區歸客廳慣例），兩者皆算 TP。
 EXPECT = {"basin": {"Bath"}, "tub": {"Bath"}, "wc": {"Bath"},
           "kstove": {"Kitchen"}, "ksink": {"Kitchen"},
           "dtable": {"Kitchen", "LivingRoom"},
           "sofa": {"LivingRoom"}, "chair": {"LivingRoom", "Bedroom"},
-          "bed": {"Bedroom"}, "wardrobe": {"Bedroom", "Storage"}}
+          "bed": {"Bedroom"}, "wardrobe": {"Bedroom", "Storage"},
+          "trashcan": {"Kitchen"}}
 OUT = "temp/json/symbol_quality.json"
 
 

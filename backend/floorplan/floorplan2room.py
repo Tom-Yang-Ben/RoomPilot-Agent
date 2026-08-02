@@ -582,7 +582,7 @@ def _apply_evidence(det, labels, r, score, open_living):
          "shower": 0, "sinkicon": 0,
          "wc": 0, "tub": 0, "basin": 0, "kstove": 0, "ksink": 0,
          "dtable": 0, "bed": 0, "wardrobe": 0, "sofa": 0, "chair": 0,
-         "stair": 0}
+         "stair": 0, "trashcan": 0}
     for kind, sx, sy in det.get("symbols", ()):
         iy, ix = int(round(sy)), int(round(sx))
         if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
@@ -616,6 +616,8 @@ def _apply_evidence(det, labels, r, score, open_living):
         score["Kitchen"] += 0.2
     if n["dtable"] and not open_living:          # user 裁決：餐桌歸廚房
         score["Kitchen"] += 0.25
+    if n["trashcan"] and not open_living:        # 美式畫風廚房垃圾桶（弱證據）
+        score["Kitchen"] += 0.15
     if n["bed"]:
         score["Bedroom"] += 0.4
     if n["wardrobe"]:
@@ -1043,7 +1045,8 @@ def _carve_stairs(labels, rooms, boxes, T, cm=1.0):
 # 14 件的型態），臥浴不參與——bed+sofa 同室是套房、oval 到處有，寧漏勿誤。
 # dtable→廚房系沿 extract_asset_lib 的使用者裁決；chair（單人沙發椅）
 # 常出現在臥室，單獨不構成客廳證據，故不入表。
-_KITCHEN_SYMS = ("stove", "kstove", "ksink", "sinkicon", "dtable")
+_KITCHEN_SYMS = ("stove", "kstove", "ksink", "sinkicon", "dtable",
+                 "trashcan")   # 美式素材輪新增（弱證據，不入 STRONG）
 _LIVING_SYMS = ("sofa",)
 
 
