@@ -137,7 +137,6 @@ def _project_path_from_env(name: str, default: Path) -> Path:
     return path if path.is_absolute() else PROJECT_DIR / path
 
 
-MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
 STYLE_PRESENTATION_DB_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
 )
@@ -343,7 +342,6 @@ def _questionnaire_visual_store() -> QuestionnaireVisualStore:
     return QUESTIONNAIRE_VISUAL_STORE
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/docs-assets", StaticFiles(directory=MOODBOARD_DIR), name="docs-assets")
 
 
 def _normalize_posix_path(path_text: str) -> str:
@@ -1478,10 +1476,6 @@ def _style_payloads(raw: dict | None = None, surface_catalog: dict | None = None
                 "visual_theme": style.get("visual_theme", {}),
                 "palette_hex": style.get("palette_hex", []),
                 "stats": style.get("stats", {}),
-                "moodboard_image_url": _safe_relative_url(
-                    (style.get("moodboard_card_path") or "").replace("docs/moodboard_assets/", "", 1),
-                    "/docs-assets",
-                ),
             }
         )
     return styles
@@ -1821,10 +1815,7 @@ def build_site_payload(*, include_furniture: bool = True) -> dict:
     styles = []
     for style in raw.get("styles", []):
         representative_cards = []
-        for furniture_id, card_path in zip(
-            style.get("representative_furniture_ids", []),
-            style.get("representative_furniture_cards", []),
-        ):
+        for furniture_id in style.get("representative_furniture_ids", []):
             furniture = furniture_by_id.get(furniture_id)
             if not furniture:
                 continue
@@ -1844,12 +1835,6 @@ def build_site_payload(*, include_furniture: bool = True) -> dict:
                     "color": furniture.get("color"),
                     "material": furniture.get("material"),
                     "size_cm": sanitize_size_cm(furniture),
-                    "card_image_url": _safe_relative_url(
-                        card_path.replace("docs/moodboard_assets/", "", 1)
-                        if card_path.startswith("docs/moodboard_assets/")
-                        else card_path,
-                        "/docs-assets",
-                    ),
                     "has_model": has_model,
                     "missing_model_reason": None if has_model else model_reason,
                     "model_url": _model_url_for_merged_item(furniture) if has_model else None,
@@ -1880,10 +1865,6 @@ def build_site_payload(*, include_furniture: bool = True) -> dict:
                 "visual_theme": style.get("visual_theme", {}),
                 "palette_hex": style.get("palette_hex", []),
                 "stats": style.get("stats", {}),
-                "moodboard_image_url": _safe_relative_url(
-                    (style.get("moodboard_card_path") or "").replace("docs/moodboard_assets/", "", 1),
-                    "/docs-assets",
-                ),
                 "representative_furniture": representative_cards,
             }
         )
