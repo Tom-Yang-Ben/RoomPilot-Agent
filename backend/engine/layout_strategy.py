@@ -799,10 +799,10 @@ ROOM_RULES: dict[str, dict[str, PlacementRule]] = {
         # TV-first（2026-08-02 拍板）：先定電視牆（無門無窗最長段），沙發面對電視、
         # 觀影距離按房深比例，茶几居中其間。avoid_windows＝電視不進窗下（逆光）。
         "tv-bench": PlacementRule(anchor=True, avoid_windows=True, order=0),
-        "sofa": PlacementRule(
-            attach="front", attach_to=("tv-bench",), face="target",
-            gap_ratio_depth=0.45, order=5,
-        ),
+        # 沙發＝貼電視對面牆、背有靠、面向電視（08-02 拍板）：觀影距離是
+        # 「兩牆間距」的純幾何比例結果，零絕對公分——未重定標的巨人屋平面
+        # 下規則不失真。比例 0.45 版會讓沙發漂房中背後懸空，棄用。
+        "sofa": PlacementRule(attach="opposite", attach_to=("tv-bench",), order=5),
         "bookcase": PlacementRule(order=10),
         "armchair": PlacementRule(order=15),
         # 配套池的桌椅組（含電競角）可進客廳：椅貼桌前、面向桌（同臥室規則）。

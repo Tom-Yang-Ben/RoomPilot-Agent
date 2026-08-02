@@ -81,32 +81,31 @@ def test_avoid_windows_rejects_low_furniture_sneaking_under_the_window():
     assert strict["success"] and strict["side"] != "north"
 
 
-def test_tv_first_group_faces_and_viewing_distance():
+def test_tv_first_group_sofa_backs_on_opposite_wall():
+    """2026-08-02 拍板：沙發＝貼電視對面牆、背有靠、面向電視——觀影距離是
+    「兩牆間距」的純幾何結果（比例語意，零絕對公分），巨人屋（未重定標
+    平面）下規則不失真。使用者實測：比例 0.45 版沙發漂房中背後懸空、
+    絕對夾限在巨人屋下語意錯亂，都棄用。"""
     room, tv, sofa, ct = _run_living(600.0)
     assert tv.pos_y == pytest.approx(20.0)  # 貼南牆（北牆有窗，avoid_windows）
     assert tv.rotation == 0  # 正面朝房內
     assert sofa.rotation == 180  # 面向電視
-    assert sofa.pos_x == pytest.approx(tv.pos_x)  # 對齊中線
-    gap = _bounds(sofa)[1] - _bounds(tv)[3]
-    assert gap == pytest.approx(600.0 * 0.45)  # 觀影距離按房深比例
+    assert sofa.pos_x == pytest.approx(tv.pos_x)  # 三件套對齊中線
+    assert _bounds(sofa)[3] == pytest.approx(600.0)  # 背貼北牆（電視對面）
     assert _bounds(tv)[3] < ct.pos_y < _bounds(sofa)[1]  # 茶几在電視與沙發之間
     assert ct.pos_x == pytest.approx(sofa.pos_x)
 
 
-def test_viewing_distance_clamps_at_the_floor():
-    _, tv, sofa, _ = _run_living(500.0)  # 0.45×500=225 → 夾到 250
-    gap = _bounds(sofa)[1] - _bounds(tv)[3]
-    assert gap == pytest.approx(250.0)
-
-
-def test_viewing_distance_clamps_at_the_ceiling():
-    # 寬 > 深，讓最長淨牆維持在南牆；0.45×1700=765 → 夾到 700。
-    room = Room(width=1800.0, depth=1700.0, openings=[window(50, 1700, 650, 1700)])
-    result = place_room(room, "living_room", [(TV, "tv"), (SOFA, "sofa"), (COFFEE, "ct")])
-    assert not result["failed"], result["failed"]
-    by_id = {p.id: p for p in result["placed"]}
-    gap = _bounds(by_id["sofa"])[1] - _bounds(by_id["tv"])[3]
-    assert gap == pytest.approx(700.0)
+def test_sofa_scales_with_room_no_absolute_distance():
+    # 任何房深下沙發都貼對面牆：距離＝房深−兩件深，純比例、無絕對夾限。
+    for depth in (500.0, 1700.0):
+        room = Room(width=1800.0, depth=depth, openings=[window(50, depth, 650, depth)])
+        result = place_room(room, "living_room", [(TV, "tv"), (SOFA, "sofa"), (COFFEE, "ct")])
+        assert not result["failed"], (depth, result["failed"])
+        by_id = {p.id: p for p in result["placed"]}
+        assert _bounds(by_id["sofa"])[3] == pytest.approx(depth)
+        gap = _bounds(by_id["sofa"])[1] - _bounds(by_id["tv"])[3]
+        assert gap == pytest.approx(depth - 40.0 - 80.0)
 
 
 def test_front_attach_steps_down_when_ideal_distance_is_blocked():
@@ -210,13 +209,12 @@ def test_generate_layout_adapter_honours_tv_first():
     by_id = {str(o["furniture_id"]): o for o in out}
     tv, sofa, ct = by_id["tv"], by_id["sofa"], by_id["ct"]
     assert not tv.get("placement_failed") and not sofa.get("placement_failed")
-    # 面對面＋中線對齊＋觀影淨距 clamp(0.45×房深)＝270（中心距＝270＋半深和 60）。
-    # adapter 的比例基準是「內縮 8cm 的可擺邊界」而非名目房深（600−16＝584），
-    # 觀影距離差 <8cm 無感知差異，允許 ±10。
+    # 沙發貼電視對面牆（opposite）：中心距＝房深−半深和（600−60），
+    # 容差涵蓋兩側 8cm 貼牆內縮。
     assert abs((tv["rotation_y_deg"] - sofa["rotation_y_deg"]) % 360) == 180
     assert tv["position_cm"]["x"] == pytest.approx(sofa["position_cm"]["x"], abs=1.0)
     center_gap = abs(sofa["position_cm"]["z"] - tv["position_cm"]["z"])
-    assert center_gap == pytest.approx(270.0 + 20.0 + 40.0, abs=10.0)
+    assert center_gap == pytest.approx(600.0 - 60.0, abs=20.0)
     assert not ct.get("placement_failed")
 
 
