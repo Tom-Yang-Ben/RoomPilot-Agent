@@ -363,6 +363,7 @@ def place_against_wall(
     *,
     sides: list[str] | tuple[str, ...] | None = None,
     margin_cm: float = 0.0,
+    treat_windows_as_blocking: bool = False,
     companion_pairs: CompanionPairs | None = None,
     extra_check: ExtraCheck | None = None,
 ) -> dict:
@@ -376,7 +377,8 @@ def place_against_wall(
     candidates = rank_wall_candidates(
         room,
         needed_cm=catalog.width,
-        item_height_cm=catalog.height,
+        # avoid_windows：高度傳 None → 窗段一律視為阻擋（電視不鑽窗下、床頭不靠窗）。
+        item_height_cm=None if treat_windows_as_blocking else catalog.height,
         sides=sides,
     )
     attempted = 0
@@ -763,6 +765,12 @@ class PlacementRule:
     order: int = 50
     # 貼附時自身朝向："same"＝與主件同向（茶几）；"target"＝面向主件（辦公椅面桌）。
     face: str = "same"
+    # 「按房深比例」的間距（觀影距離）：有值時蓋過 gap_cm，取
+    # clamp(room.depth × gap_ratio_depth, *gap_clamp_cm)。夾限在平面圖重定標前刻意放寬。
+    gap_ratio_depth: float | None = None
+    gap_clamp_cm: tuple[float, float] = (250.0, 700.0)
+    # 逆光／床頭不靠窗：選牆時窗段一律視為阻擋（不看家具高度），並吃「無窗優先」降權。
+    avoid_windows: bool = False
 
 
 _WALL_ITEM = PlacementRule()
@@ -775,7 +783,7 @@ _WALL_ITEM = PlacementRule()
 # → 泛用件其次 → COMPANION_OF 副件最後**。錨點 0–9、泛用 10–19、副件 20+。
 ROOM_RULES: dict[str, dict[str, PlacementRule]] = {
     "bedroom": {
-        "bed": PlacementRule(anchor=True, order=0),
+        "bed": PlacementRule(anchor=True, avoid_windows=True, order=0),  # 床頭不靠窗（08-02 拍板）
         "wardrobe": PlacementRule(anchor=True, order=5),
         "chests-of-drawer": PlacementRule(order=10),
         "desk": PlacementRule(order=12),
@@ -788,10 +796,15 @@ ROOM_RULES: dict[str, dict[str, PlacementRule]] = {
         ),
     },
     "living_room": {
-        "sofa": PlacementRule(anchor=True, order=0),
+        # TV-first（2026-08-02 拍板）：先定電視牆（無門無窗最長段），沙發面對電視、
+        # 觀影距離按房深比例，茶几居中其間。avoid_windows＝電視不進窗下（逆光）。
+        "tv-bench": PlacementRule(anchor=True, avoid_windows=True, order=0),
+        "sofa": PlacementRule(
+            attach="front", attach_to=("tv-bench",), face="target",
+            gap_ratio_depth=0.45, order=5,
+        ),
         "bookcase": PlacementRule(order=10),
         "armchair": PlacementRule(order=15),
-        "tv-bench": PlacementRule(attach="opposite", attach_to=("sofa",), order=20),
         "coffee-table": PlacementRule(
             attach="front", attach_to=("sofa",), gap_cm=45.0, order=25
         ),
@@ -912,13 +925,17 @@ def place_room(
                     "reason": f"找不到要貼附的主家具（{'／'.join(rule.attach_to)}）",
                 }
             elif rule.attach == "front":
+                gap_cm = rule.gap_cm
+                if rule.gap_ratio_depth is not None:
+                    low, high = rule.gap_clamp_cm
+                    gap_cm = min(max(room.depth * rule.gap_ratio_depth, low), high)
                 result = place_in_front_of(
                     room,
                     entry.catalog,
                     entry.item_id,
                     target,
                     placed,
-                    gap=rule.gap_cm,
+                    gap=gap_cm,
                     face=rule.face,
                     companion_pairs=pairs,
                     extra_check=extra_check,
@@ -968,20 +985,12 @@ def place_room(
             placed,
             sides=sides,
             margin_cm=margin_cm,
+            treat_windows_as_blocking=rule.avoid_windows,
             companion_pairs=pairs,
             extra_check=extra_check,
         )
-        if not result["success"] and sides is not None:
-            # 對面牆放不下時退回一般貼牆，但仍然不允許浮在房間中央。
-            result = place_against_wall(
-                room,
-                entry.catalog,
-                entry.item_id,
-                placed,
-                margin_cm=margin_cm,
-                companion_pairs=pairs,
-                extra_check=extra_check,
-            )
+        # opposite 對面放不下時，過去退回「任意牆」——電視因此跟沙發擠同一面牆
+        # （2026-08-01 專案 b2b2c83f 怪局根因）。拍板改為誠實失敗，換牆交給上游。
         if result["success"]:
             remember(result["placed"], result.get("side"))
         else:

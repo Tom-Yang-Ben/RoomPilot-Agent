@@ -232,7 +232,21 @@ Agent 在規則下呼叫引擎擺放
 
 **08-02 live 實證（第一個真實案例）**：使用者專案 `b2b2c83f` 走 skill SOP 差集驗屍，2D 14 件 vs 3D 11 件，差集正好 3 件全是死鍵假件——`appliance-cabinet`（#4 電器櫃）、`storage-cabinet`（#10 高收納櫃）、`bathroom-vanity`（使用者手動新增也中招）。三件皆 model_url 無／catalogId 無／placementFailed=False，2D 側欄照標「合法」（合法＝引擎擺放判定，與有無型錄真身無關），3D 端 diagnostics 11 請求／11 可見／0 失敗——3D 無罪，件是在送 3D 前就被 generate 合併剔除。靜態掃描關卡 3 的預測與 live 個案 100% 吻合。
 
-**08-02 已修（種子表側，Ancai 拍板「平面上只留有 GLB 真身的件」）**：`recommendedFurnitureForRoom` 三死鍵拔除——廚房清空（對齊 v1）、儲藏室換 `shelving-unit`（型錄 80 件真貨；新登記 2D 變體 80×40×120＝中位 83×37×122 圓整）、浴室拔 `bathroom-vanity` 留 `mirror-cabinet`（17 件真身，完整 v1 對齊仍歸 Bella）。專案 `b2b2c83f` 三假件已從 autosave 清除（rev 295→296，2D 11 件＝3D 11 件，備份在 scratchpad）。回歸鎖 `tests/test_scene_seed_dead_keys.py`（死鍵不得進種子表＋核心真身型不得被誤清）。另 `flower-pots-planter` 型錄已補貨 235 件、自死鍵除名。**仍留給 Bella**：問卷表（`scene_v2.js` defaults/required）三死鍵、「新增家具」對話框仍可選死鍵型（手動浴櫃假件就是這條路來的）。
+**08-02 已修（種子表側，Ancai 拍板「平面上只留有 GLB 真身的件」）**：`recommendedFurnitureForRoom` 三死鍵拔除——廚房清空（對齊 v1）、儲藏室換 `shelving-unit`（型錄 80 件真貨；新登記 2D 變體 80×40×120＝中位 83×37×122 圓整）、浴室拔 `bathroom-vanity` 留 `mirror-cabinet`（17 件真身，完整 v1 對齊仍歸 Bella）。專案 `b2b2c83f` 三假件已從 autosave 清除（rev 295→296，2D 11 件＝3D 11 件，備份在 scratchpad）。回歸鎖 `tests/test_scene_seed_dead_keys.py`（死鍵不得進種子表＋核心真身型不得被誤清）。另 `flower-pots-planter` 型錄已補貨 235 件、自死鍵除名。**仍留給 Bella**：問卷表（`scene_v2.js` defaults/required）三死鍵、「新增家具」對話框仍可選死鍵型。〔更正：浴櫃假件不是手動加件——`room-manual` 是**手動劃的房間**，浴櫃是房型種子自動生的。〕
+
+**08-02 續發現（同日下午）**：
+1. **方案快照復活閘門**：第一次清理只清 `layout_2d.furniture` 頂層，前端從 `schemes[A/B]` 快照恢復假件並以合法 revision 寫回（rev 296→297 假件全回魂）。二次清理三處全清（top＋scheme A＋B，rev 298）。教訓已入 skill 判讀表。
+2. **門前淨空實際零生效**：引擎扇形 ✔、`scene_service.py:1729` 接線 ✔，但本專案 5 樘門 `opening_direction` 全是 `manual_review`、**無 `swing_end`** → `room_openings_from_floorplan` 只建門洞、不建扇形。要生效：第 4 步人工確認門開向；或（待拍板）引擎/服務端做「開向未確認 → 預設門前通行帶」fallback。另留疑點：該轉換器解析 `raw.get("z")`，而 `confirmed_floorplan.doors` 座標是 x/**y**——餵入來源格式需查證。
+3. **無房間件**：ROCKSJÖN 扶手椅、BILLY 書櫃 `roomId=null`（id 為型錄樣式 `fi-…`/`jp-…`，selectionSource 空，來源待查），落點在廚房範圍，前端因「無房」判 invalid 紅框——與淨空無關。〔已依 Ancai 拍板移除；儲藏室兩件改走正規管線 `/api/agent/furniture/select`（RAG 快取選件）＋`/api/scene/layout`（逐房擺位）補齊，rev 301。〕
+4. **validate 與 layout 房界判定分歧**（全屋體檢發現）：臥室床邊桌 bbox 四方向皆在 room polygon 內（超出 0cm），`/api/scene/validate`（F6 拖曳那套）仍判「超出房間範圍/跨牆」，`/api/scene/layout` 全局重擺卻原位認可（位移 0）。兩套房界演算法（polygon vs 牆段重建）在牆邊 ~10cm 級別意見不同→使用者拖到引擎自己擺的位置也可能被標紅。歸 scene_service，待開單。
+5. **全屋擺位體檢（rev 301）**：11 件 10 合法；陽台／浴室／儲藏室現況＝引擎理想位（位移 0）；客廳沙發 36cm、茶几 85cm 偏離 08-01 新策略理想位（成組對齊 x=171＋貼牆），合法但未套新策略。臥室床頭櫃現況 1 只 vs 拍板必備 ×2（`required_family_count('bedroom','bedside-table')=2`），缺 1。另：客廳理想位把電視櫃與沙發擺到**同一面牆**（y 皆 -531，`attach="opposite"` 疑似 fallback）——TV-first 成組規格（Ancai 提案：先定 TV 牆→沙發按房深比例距離→茶几居中；LLM 只接管選牆意圖、座標留引擎）待拍板動工。
+**08-02 傍晚戰果（TV-first 三項拍板全落地，pytest 771/12/0，playwright 實操驗畢）**：
+1. **TV-first 客廳**：`layout_strategy` 規則表反轉（電視櫃 anchor＋`avoid_windows`；沙發 `front of` 電視 `face=target`、觀影距離＝房深×0.45 夾 250–700；茶几居中）；`opposite`「退任意牆」fallback 死刑。PlacementRule 新欄位 `gap_ratio_depth`／`gap_clamp_cm`／`avoid_windows`（高度視 None→窗段全擋，一個機制吃「電視避窗＋床頭不靠窗」兩拍板）。
+2. **窗帶分級**：落地窗 60cm（§2.1 懸案 30/60 拍板取 60）、一般窗 70＋窗台豁免照舊（`scene_service._window_zones_with_sill`）。
+3. **§5.4 雙寫陷阱應驗**：引擎改完、API 重演仍同牆——`_strategy_placement`（整合端複製品）逐參數補同步（gap 比例〔逐房基準＝boundary 深，非全屋 room.depth〕、face、avoid_windows）。回歸鎖 `test_generate_layout_adapter_honours_tv_first`。
+4. **companion 全鏈補洞**：`scene_service` 原本零 companion——「確認 2D」鎖位重驗把引擎自擺的對稱床頭櫃判「侵入床側淨空」（一只進待處理、一只被重排到廚房，live 實案 rev 305）。鎖位驗證／網格後援／策略層／F6 單件驗證全帶 `companion_pairs`；**id 雙體系陷阱**：鎖位件＝furniture_id、重擺件＝`type_N` 流水號，pairs 兩套 alias 都建。回歸鎖 `test_locked_companion_pair_survives_confirm_revalidation`（確認流程不得自打臉）。
+5. **實操驗證（playwright headless，chromium+deps 已裝）**：`/scene?project_id=` 入口→`#confirm-layout-2d`（hidden 子 section，JS click 即觸發真 handler）→3D 重建→sceneData 幾何覆核：客廳同軸 x=170.6 三件、面對面 0/180、中心距 310；床頭櫃 ×2 對稱中點＝床心（殘差 0）；12/13/0 全可見。專案 rev 307。註：headless 的「GLB 載入失敗 ×11」為環境網路所致，氣泡點名機制（1ad4a50）正常運作，真機瀏覽器無此況。小房（<330 深）TV-first 下茶几會誠實失敗→砍件歸 Agent（v1：茶几可選）。
+6. **新規格提案（Ancai 口頭，細則待拍板）**：AI 自動配置每房**上限 5 件**（必備＋配套），使用者手動新增不限。巧合：v1 主臥（床＋衣櫃＋床頭櫃×2＋五斗櫃）＝5、次臥（床＋衣櫃＋床頭櫃×1＋桌椅組）＝5，天然契合。待定義：companion 成組計件方式、decor（植栽／地毯／燈）是否豁免上限（建議走 `/api/scene/decorate` 不吃槽）。配套池＝v1「可選」欄 × 型錄有貨；電競桌椅＝desk 池 gaming 語意件（62 件）＋gaming-chair（11 件，族系歸屬待補 knowledge）。附帶發現：auto-decor 的燈類（floor-lamp/lamp）型錄 0 件＝裝飾死鍵。
 
 ---
 

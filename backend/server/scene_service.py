@@ -13,7 +13,7 @@ from urllib import error, request
 from shapely.geometry import LineString, Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
-from ..agent.knowledge import family_of, normalize_room_type
+from ..agent.knowledge import COMPANION_OF, family_of, normalize_room_type
 from ..agent.place import resolve_placements
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
@@ -974,6 +974,8 @@ def _grid_place_in_boundary(
     placed,
     boundary,
     forbidden_zones: list[Polygon] | None = None,
+    *,
+    companion_pairs: set[frozenset[str]] | None = None,
 ):
     """非矩形房間的最後防線:沿房間多邊形內部以 50cm 網格搜尋(由質心向外)。
 
@@ -1005,7 +1007,9 @@ def _grid_place_in_boundary(
             if (
                 _inside_boundary(cand, boundary)
                 and not _placement_intersects_zones(cand, forbidden_zones)
-                and check_placement_with_clearance(cand, room, placed) is None
+                and check_placement_with_clearance(
+                    cand, room, placed, companion_pairs=companion_pairs
+                ) is None
             ):
                 return cand
     return None
@@ -1080,7 +1084,11 @@ def _window_zones_with_sill(
                 ]
             )
             if line.length >= 4:
-                zones.append((line.buffer(depth_cm, cap_style=2), _window_sill_cm(opening)))
+                sill = _window_sill_cm(opening)
+                # 落地窗擋所有家具，帶太深會廢掉整條牆：拍板 60cm 通行帶
+                # （總帳 §2.1 懸案 30/60 取 60）；一般窗維持 depth_cm（70，矮於窗台放行）。
+                band = 60.0 if sill <= 0 else depth_cm
+                zones.append((line.buffer(band, cap_style=2), sill))
         except (KeyError, TypeError, ValueError):
             continue
     return zones
@@ -1452,6 +1460,7 @@ def _strategy_placement(
     boundary: Polygon | None,
     forbidden_zones: list[Polygon],
     margin_cm: float,
+    companion_pairs: set[frozenset[str]] | None = None,
 ) -> PlacedFurniture | None:
     """先請引擎的擺放策略層找位置；任何一關不過就回 None，交還舊候選表。
 
@@ -1500,12 +1509,23 @@ def _strategy_placement(
         if rule.attach == "beside":
             result = place_beside(
                 room, catalog, item_id, target, placed,
-                end=rule.attach_end, gap=rule.gap_cm, extra_check=allowed,
+                end=rule.attach_end, gap=rule.gap_cm,
+                companion_pairs=companion_pairs, extra_check=allowed,
             )
         else:
+            # 與引擎執行層同步（總帳 §5.4 雙寫警告）：觀影距離按「該房」深度
+            # 的比例夾限——逐房模式的 room 是整張平面，房深要取 boundary。
+            gap_cm = rule.gap_cm
+            if rule.gap_ratio_depth is not None:
+                low, high = rule.gap_clamp_cm
+                base_depth = room.depth
+                if boundary is not None:
+                    _, min_y, _, max_y = boundary.bounds
+                    base_depth = max_y - min_y
+                gap_cm = min(max(base_depth * rule.gap_ratio_depth, low), high)
             result = place_in_front_of(
-                room, catalog, item_id, target, placed, gap=rule.gap_cm,
-                extra_check=allowed,
+                room, catalog, item_id, target, placed, gap=gap_cm,
+                face=rule.face, companion_pairs=companion_pairs, extra_check=allowed,
             )
     else:
         sides = None
@@ -1516,7 +1536,8 @@ def _strategy_placement(
                 sides = [opposite_side(target_side)]
         result = place_against_wall(
             room, catalog, item_id, placed, sides=sides, margin_cm=margin_cm,
-            extra_check=allowed,
+            treat_windows_as_blocking=rule.avoid_windows,
+            companion_pairs=companion_pairs, extra_check=allowed,
         )
         if not result["success"] and sides is not None:
             # 對面牆放不下（例如那面牆整片是窗或被窗前禁放帶佔住）時**不**改擺
@@ -1689,12 +1710,23 @@ def validate_single_placement(
     ):
         return {"ok": False, "reason": "家具不可遮擋窗戶或落地窗前方淨空。"}
 
-    placed_others = [
-        _scene_object_to_placed(o, half_w_cm, half_d_cm)
+    kept_others = [
+        o
         for o in others
         if o.get("normalized_type") not in _IGNORE_COLLISION_TYPES and not o.get("placement_failed")
     ]
-    reason = check_placement_with_clearance(moving, room, placed_others)
+    placed_others = [_scene_object_to_placed(o, half_w_cm, half_d_cm) for o in kept_others]
+    # 配套（床頭櫃↔床、茶几↔沙發）在拖曳驗證同樣可進主件舒適空間，
+    # 缺了會把引擎自己擺的合法配套件標紅。
+    moving_family = family_of(item.get("normalized_type"))
+    pairs: set[frozenset[str]] = set()
+    for other, placed_other in zip(kept_others, placed_others):
+        other_family = family_of(other.get("normalized_type"))
+        if other_family in (COMPANION_OF.get(moving_family) or ()) or moving_family in (
+            COMPANION_OF.get(other_family) or ()
+        ):
+            pairs.add(frozenset((moving.id, placed_other.id)))
+    reason = check_placement_with_clearance(moving, room, placed_others, companion_pairs=pairs)
     return {"ok": reason is None, "reason": reason}
 
 
@@ -1749,6 +1781,27 @@ def generate_layout(
             min_y - half_d_cm,
             max_y - half_d_cm,
         )
+
+    # 配套家具（床頭櫃-床、茶几／電視櫃-沙發）可進主件舒適空間。鎖位重驗、
+    # 網格後援與策略層都要帶：引擎自擺的對稱床頭櫃，曾在「確認 2D」鎖位重驗
+    # 因缺這層被判侵入床側淨空——一只進待處理、一只被重排到廚房（08-02 案）。
+    engine_item_ids = [
+        f"{(entry.get('normalized_type') or 'item')}_{i + 1}" for i, entry in enumerate(items)
+    ]
+    item_families = [family_of(entry.get("normalized_type")) for entry in items]
+    # 兩套 id 都要建對：鎖位件（_scene_object_to_placed）用 furniture_id、
+    # 重擺件用引擎流水 id（type_N），placed 清單裡兩種並存。
+    id_aliases = [
+        {engine_item_ids[i], str(entry.get("furniture_id") or engine_item_ids[i])}
+        for i, entry in enumerate(items)
+    ]
+    companion_pairs: set[frozenset[str]] = set()
+    for i, fam_i in enumerate(item_families):
+        for j, fam_j in enumerate(item_families):
+            if i != j and fam_j in (COMPANION_OF.get(fam_i) or ()):
+                for alias_i in id_aliases[i]:
+                    for alias_j in id_aliases[j]:
+                        companion_pairs.add(frozenset((alias_i, alias_j)))
 
     placed: list[PlacedFurniture] = []
     placed_by_type: dict[str, list[PlacedFurniture]] = {}
@@ -1820,7 +1873,9 @@ def generate_layout(
                     item_type in _OVERLAY_TYPES
                     and check_placement_with_clearance(candidate, room, []) is None
                 )
-                or check_placement_with_clearance(candidate, room, placed) is None
+                or check_placement_with_clearance(
+                    candidate, room, placed, companion_pairs=companion_pairs
+                ) is None
             ) and (
                 item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES
                 or not _placement_intersects_zones(candidate, forbidden_zones)
@@ -1849,6 +1904,7 @@ def generate_layout(
                 boundary=boundary,
                 forbidden_zones=forbidden_zones,
                 margin_cm=_STRATEGY_WALL_MARGIN_CM,
+                companion_pairs=companion_pairs,
             )
             if not kept_position and placement_variant != "B" and _layout_strategy_enabled()
             else None
@@ -2002,14 +2058,18 @@ def generate_layout(
                         item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES
                         or not _placement_intersects_zones(candidate, forbidden_zones)
                     )
-                    and check_placement_with_clearance(candidate, room, placed) is None
+                    and check_placement_with_clearance(
+                        candidate, room, placed, companion_pairs=companion_pairs
+                    ) is None
                 ):
                     x_cm, z_cm, rotation = cand_x, cand_z, rot
                     placed.append(candidate)
                     placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
                     break
             else:
-                result = place_furniture(room, catalog, item_id, placed)
+                result = place_furniture(
+                    room, catalog, item_id, placed, companion_pairs=companion_pairs
+                )
                 engine_item = result["placed"] if result["success"] else None
                 if engine_item is not None and not _inside_boundary(engine_item, boundary):
                     engine_item = None
@@ -2021,7 +2081,8 @@ def generate_layout(
                     engine_item = None
                 if engine_item is None and boundary is not None:
                     engine_item = _grid_place_in_boundary(
-                        catalog, item_id, room, placed, boundary, forbidden_zones
+                        catalog, item_id, room, placed, boundary, forbidden_zones,
+                        companion_pairs=companion_pairs,
                     )
                 if engine_item is not None:
                     placed.append(engine_item)

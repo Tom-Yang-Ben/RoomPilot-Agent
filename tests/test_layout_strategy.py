@@ -406,7 +406,9 @@ def test_all_wall_sides_are_covered():
 
 
 def test_coffee_table_sits_in_front_of_the_sofa_not_against_a_wall():
-    room = bare_room(width=338, depth=298)
+    # TV-first（08-02）後，298 深的小房塞不下「電視＋觀影距離＋沙發＋茶几帶」，
+    # 引擎誠實失敗、砍茶几歸 Agent（v1：茶几可選）。本測試改用放得下的房深。
+    room = bare_room(width=338, depth=500)
     result = place_room(
         room,
         "living_room",
