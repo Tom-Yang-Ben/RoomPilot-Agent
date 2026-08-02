@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
 from ..agent.knowledge import family_of
+from ..agent.place import placement_hints
 from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
 from .questionnaire_visuals import (
     QuestionnaireVisualStore,
@@ -2591,6 +2592,11 @@ async def scene_layout(payload: dict) -> dict:
             place_boundary=place_boundary,
             floorplan=floorplan,
             placement_variant=placement_variant,
+            # 重排/替換/新增/逐房操作也要有 agent 擺位紀律:沒有 hints 時
+            # generate_layout 不登記 neighbors,成組配對(電視櫃對面、茶几
+            # 沙發前)與自由座椅後置整條路是死的 —— 首次產生正確,一按
+            # 重排就退化(feedback:躺椅回到沙發前、茶几被擠走)。
+            hints=placement_hints(objects),
         )
     }
 
@@ -2822,6 +2828,7 @@ async def scene_decorate(payload: dict) -> dict:
         place_boundary=place_boundary,
         floorplan=floorplan,
         preserve_existing_count=len(existing),
+        hints=placement_hints([*existing, *additions]),
     )
     # 自動軟裝放不下就不硬塞，也不把失敗標記留在 3D 場景裡。
     scene_objects = [

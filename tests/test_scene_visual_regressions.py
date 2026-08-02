@@ -419,6 +419,17 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
     # 門葉組件以第 4 步牆縫線段定位;門楣由 SceneModel 的 door-lintel 供給。
     assert "opening.wall_opening_segment || opening.closed_leaf_segment || opening" in standalone
 
+    # 門片本體也吸牆縫線段(closed_leaf 是門扇符號、離牆線 7~16cm,吸過去
+    # 就是門與牆之間一條大縫);寬貼縫寬 −2cm、厚 = 牆厚 −1cm。
+    opening_builder = viewer.split("function buildOpeningAssembly", 1)[1].split(
+        "function buildStandaloneOpeningAssemblies", 1
+    )[0]
+    assert "interval.opening?.wall_opening_segment" in opening_builder
+    assert "|| interval.opening?.closed_leaf_segment" in opening_builder
+    assert "Math.max((leafLength || interval.width) - 2, 60)" in opening_builder
+    assert "Math.max(Number(anchor.wallThickness || 12) - 1, 3)" in opening_builder
+    assert "* 0.94" not in opening_builder
+
 
 def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(

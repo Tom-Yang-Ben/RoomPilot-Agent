@@ -1381,22 +1381,32 @@ export function createSceneViewer(
       sill.userData.roompilotArchitecturalDetail = "flush-window-sill";
       assembly.add(sill);
     } else {
-      const closedLeaf = interval.opening?.closed_leaf_segment;
-      const closedStart = closedLeaf?.start || null;
-      const closedEnd = closedLeaf?.end || null;
-      const closedDx = Number(closedEnd?.x) - Number(closedStart?.x);
-      const closedDz = Number(closedEnd?.z) - Number(closedStart?.z);
-      const closedLength = Math.hypot(closedDx, closedDz);
-      if (closedLength >= 4) {
+      // 門片必須落在第 4 步的牆縫線段:closed_leaf_segment 是辨識的門扇
+      // 符號,實測與牆平行但外偏 7~16cm,吸過去門與牆之間就是一條大縫、
+      // 整扇門不在牆面上。優先序與門楣一致(wall_opening_segment 優先)。
+      const leafSegment = interval.opening?.wall_opening_segment
+        || interval.opening?.closed_leaf_segment;
+      const leafStart = leafSegment?.start || null;
+      const leafEnd = leafSegment?.end || null;
+      const leafDx = Number(leafEnd?.x) - Number(leafStart?.x);
+      const leafDz = Number(leafEnd?.z) - Number(leafStart?.z);
+      const leafLength = Math.hypot(leafDx, leafDz);
+      if (leafLength >= 4) {
         assembly.position.set(
-          (Number(closedStart.x) + Number(closedEnd.x)) / 2,
+          (Number(leafStart.x) + Number(leafEnd.x)) / 2,
           0,
-          (Number(closedStart.z) + Number(closedEnd.z)) / 2,
+          (Number(leafStart.z) + Number(leafEnd.z)) / 2,
         );
-        assembly.rotation.y = Math.atan2(-closedDz, closedDx);
+        assembly.rotation.y = Math.atan2(-leafDz, leafDx);
       }
+      // 寬 = 牆縫實寬 − 2cm(兩側各留 1cm 門縫;原 ×0.94 在寬門會留到 10cm);
+      // 厚 = 牆厚 − 1cm(門比牆薄約一公分,略內縮不與牆面共面)。
       const leaf = new THREE.Mesh(
-        new THREE.BoxGeometry(Math.max((closedLength || interval.width) * 0.94, 60), height, 4.5),
+        new THREE.BoxGeometry(
+          Math.max((leafLength || interval.width) - 2, 60),
+          height,
+          Math.max(Number(anchor.wallThickness || 12) - 1, 3),
+        ),
         frameMaterial,
       );
       leaf.position.set(0, centerY, 0);

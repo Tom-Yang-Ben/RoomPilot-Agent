@@ -42,6 +42,38 @@ def test_window_clearance_rejects_furniture_in_front_of_confirmed_window() -> No
     assert "窗戶" in result["reason"]
 
 
+def test_relayout_endpoint_pairs_tv_bench_opposite_the_sofa() -> None:
+    """重排端點(替換/移除/逐房操作)也必須有 agent 擺位紀律:
+    原本不帶 hints → neighbors 永遠空、成組配對死,首次產生正確、
+    一按重排就退化(躺椅回到沙發前、電視櫃與沙發呈 L 型)。"""
+    response = client.post(
+        "/api/scene/layout",
+        json={
+            "floorplan": {"coordinate_unit": "cm", "width_cm": 500, "depth_cm": 400},
+            "scene_objects": [
+                {
+                    "furniture_id": "sofa-1",
+                    "normalized_type": "sofa",
+                    "size_cm": {"width": 200, "depth": 90, "height": 80},
+                },
+                {
+                    "furniture_id": "tv-1",
+                    "normalized_type": "tv-bench",
+                    "size_cm": {"width": 120, "depth": 40, "height": 50},
+                },
+            ],
+        },
+    )
+    assert response.status_code == 200
+    objects = response.json()["scene_objects"]
+    sofa = next(item for item in objects if item["normalized_type"] == "sofa")
+    tv = next(item for item in objects if item["normalized_type"] == "tv-bench")
+    assert sofa.get("placement_failed") is not True
+    assert tv.get("placement_failed") is not True
+    # 成組:電視櫃在沙發正面朝向的對面,rotation 相差 180°(面對面)。
+    assert (float(tv["rotation_y_deg"]) - float(sofa["rotation_y_deg"])) % 360 == 180
+
+
 def test_automatic_chair_faces_the_nearest_desk() -> None:
     scene_objects = [
         {
