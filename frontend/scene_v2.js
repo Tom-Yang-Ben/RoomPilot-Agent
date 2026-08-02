@@ -63,7 +63,7 @@ import {
 } from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
 import {
   roomCameraSuggestion as roomCameraSuggestionCm,
-} from "./scene_camera.js?v=sha256-20260802-world-z";
+} from "./scene_camera.js?v=sha256-8814d2e43094";
 import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
