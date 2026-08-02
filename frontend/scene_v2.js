@@ -12144,12 +12144,33 @@ async function refreshSavedRenders() {
     if (element.savedRendersCount) {
       element.savedRendersCount.textContent = renders.length ? `${renders.length} 張` : "尚無";
     }
-    element.savedRendersList.innerHTML = renders.map((record) => `
-      <a class="rp-render-result" href="${escapeHtml(record.download_url || "")}" download>
-        <img src="${escapeHtml(record.download_url || "")}" alt="已保存的截圖成果" loading="lazy" />
+    // download_url 需要身分，而 <img src> 與 <a download> 由瀏覽器直接發請求、
+    // 不經 fetch 攔截器、不帶 token，直接塞網址會整排 401 破圖。先逐筆取成
+    // 帶身分的 blob URL；PNG 端點有 immutable Cache-Control，重複整理清單
+    // 走瀏覽器快取不會重下載。單筆失敗只影響那一張，不殺整排清單。
+    const entries = await Promise.all(renders.map(async (record) => {
+      try {
+        const objectUrl = record.download_url
+          ? await authorizedObjectUrl(record.download_url, {
+              cacheKey: `render:${record.render_id || record.download_url}`,
+            })
+          : "";
+        return { record, objectUrl };
+      } catch {
+        return { record, objectUrl: "" };
+      }
+    }));
+    element.savedRendersList.innerHTML = entries.map(({ record, objectUrl }) => (objectUrl ? `
+      <a class="rp-render-result" href="${escapeHtml(objectUrl)}"
+        download="${escapeHtml(`${record.render_id || "render"}.png`)}">
+        <img src="${escapeHtml(objectUrl)}" alt="已保存的截圖成果" loading="lazy" />
         <span>${escapeHtml(record.created_at || record.render_id || "截圖")}</span>
       </a>
-    `).join("") || '<p class="rp-control-hint">尚未保存任何截圖。</p>';
+    ` : `
+      <span class="rp-render-result">
+        <span>${escapeHtml(record.created_at || record.render_id || "截圖")}（載入失敗，重新整理清單再試）</span>
+      </span>
+    `)).join("") || '<p class="rp-control-hint">尚未保存任何截圖。</p>';
   } catch {
     // 清單載入失敗不得阻擋渲染流程；下次進入第 8 步會再試。
   }

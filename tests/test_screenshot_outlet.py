@@ -52,6 +52,29 @@ def test_saved_renders_list_uses_backend_download_url() -> None:
     )[0], "進入第 8 步時必須載入已保存清單"
 
 
+def test_saved_renders_list_fetches_download_url_with_authorization() -> None:
+    """download_url 需要身分（project_reader）。
+
+    <img src> 與 <a href download> 由瀏覽器直接發請求，不經 fetch 攔截器、
+    不帶 token——直接塞網址會整排 401 破圖（2026-08-03 瀏覽器 QA 病史）。
+    必須先經 authorizedObjectUrl 取成 blob URL。
+    """
+    source = _source()
+    block = source.split("async function refreshSavedRenders(", 1)[1].split(
+        "const RENDER_JOB_STATUS_LABELS", 1
+    )[0]
+
+    assert "authorizedObjectUrl(record.download_url" in block, (
+        "已保存截圖清單必須用帶身分的 blob URL"
+    )
+    assert 'src="${escapeHtml(record.download_url' not in block, (
+        "不得把需授權的 download_url 直接塞 img src"
+    )
+    assert 'href="${escapeHtml(record.download_url' not in block, (
+        "不得把需授權的 download_url 直接塞 a href"
+    )
+
+
 def test_download_works_without_any_remote_provider() -> None:
     source = _source()
 
