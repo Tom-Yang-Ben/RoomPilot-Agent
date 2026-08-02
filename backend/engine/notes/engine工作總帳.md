@@ -60,7 +60,54 @@ Agent 在規則下呼叫引擎擺放
 
 ---
 
-## 0.5 明日接手指南（2026-08-02 凌晨收官，給下一個 Claude Code）
+## 0.5 明日接手指南（**2026-08-03 凌晨收官版**——先讀這段，0802 版在後面）
+
+> Ancai 指示：寫紀錄、確認明天可自行交接。8/2 中午～8/3 凌晨連續作戰十四小時的完整收官。
+
+### 倉庫與環境狀態
+
+- 分支 `ancai`，本日 **12 個 commit**（`b16f880`…`5d3dff5`＋本交接 commit），收官時全部 push。
+- 產品測試庫：`pytest -q tests/` → **784 passed / 12 skipped / 0 failed**。
+- 8002 server 由本 session 以 `--reload` 拉起；重開機後要手動啟（指令見 0802 版）。
+- **python playwright＋chromium headless（含系統 deps）已裝好可直接用**；實操腳本樣式見 skill `placement-spec-verify`。
+
+### 專案 `b2b2c83f`（123）狀態
+
+- rev 475、**16 件全型錄真身**、GLB 全可載；客廳四件組（電視/沙發/茶几/植栽）已 **locked**＋定版樣本 `room_strategy/samples/living_room_floor04_v1.md`。
+- 反向 GLB 已標注五件式清單見 skill（FREDDE 桌/LÖPARBANA 椅/AmazonBasics 沙發/Movian Cinca 床＝180）。
+
+### 本日拍板（全部已落地，不要重新討論）
+
+1. **平面上只留有 GLB 真身的件**——種子死鍵拔除＋回歸鎖。
+2. **隨機配套池**：預設最少＋隨機配套到 5 槽、成組佔一槽、單元跨房型（電競桌椅＝臥室/客廳皆可）、手動新增不限。
+3. **擺放邏輯全比例、零絕對公分**（巨人屋免疫）；沙發＝貼電視對面牆（opposite）背有靠。
+4. 模型視覺朝向走 `modelOrientationDeg` 渲染層欄位，**絕不動擺位 rotation**。
+5. 旋轉微調：90° snap 禁入 15° 路徑；被拒自動「先離牆再轉」（retreat）。
+
+### 明日優先序
+
+| # | 事 | 誰 | 備註 |
+|---|---|---|---|
+| 1 | **VLM 朝向批次標注工具**（8,557 件） | 引擎/工具 | 四顆反向實錘，`library_thumbnails` 有縮圖管線可借；根治「每顆新模型都要人肉問」 |
+| 2 | **分割線開口資料**（分割房間時生成門/開口進 structures） | 引擎+前端 | 陽台門盲區：電視曾坐門口；任何分割房都會重演 |
+| 3 | **平面圖重定標** | Ancai（瀏覽器 2 分鐘） | 949.52cm/383.758px≈2.474；巨人屋一日不除、絕對尺寸一日失真 |
+| 4 | validate/layout 房界演算法統一（牆邊 ~10cm 灰帶） | scene_service | 手擺全靠 margin 探測的根源 |
+| 5 | ⚠️ OpenRouter API key 輪換 | Ancai | **7/31 曝光至今未換** |
+| 6 | 問卷表死鍵＋對話框過濾＋5 槽裁剪 | Bella | 單在 0802 版交接段 |
+
+### 自檢三板斧＋skill
+
+```bash
+.venv/bin/python -m pytest -q tests/
+.venv/bin/python scripts/audit_room_programs.py
+.venv/bin/python scripts/audit_furniture_vanish.py
+```
+
+家具消失→skill `furniture-vanish-audit`；改擺位規則/要畫面驗證→skill `placement-spec-verify`（本日新增，含 24 條陷阱速查與反向模型名冊）。細節戰記：§0.5 續發現 1–9、§3.6 五層旋轉案。
+
+---
+
+## 0.5-舊 明日接手指南（2026-08-02 凌晨收官，給下一個 Claude Code）
 
 > Ancai 指示：記錄總結讓明天完美接上，同一個環境作業。本節就是交接單，讀完即可上工。
 
@@ -324,6 +371,8 @@ rotation=180 （正面朝牆）    → legal = False
 修法選單與進度：**B ✅ 08-01 已修**（6→**9**，非 8——後端 contains 是嚴格判定，8 會壓線失敗；hash 連鎖已更新）；
 **C ✅ 08-01 已修**（窗帶看窗台高度，`ROOMPILOT_WINDOW_BAND_FLAT=1` 可退回；床 55cm 靠窗轉 90° live 實測 ok）；
 **A**（回饋顯眼化）與 **D**（先離牆再轉）留給 Bella——貼牆家具原地轉 15° 仍會被物理擋下，訊息仍是小字。
+👉 **第五層（真主兇）✅ 08-03 破案**：`normalizedRotationDeg` 是 90 度吸附（round(deg/90)×90）——15° 微調按鈕從加入起每一按都被 snap 回原角（status 實錘「已旋轉到 0 度」），四層全是從犯。七處改用 `normalizeSceneRotationDeg`（mod 360），90° 件不受影響；playwright 真按鈕實測 0→345→0 還原、每步寫庫。引擎任意角本來就放行（API 重演 0.0s ok）。
+👉 **D ✅ 08-03 落地**（使用者再度回報實錘後）：`rotateSelectedFromControls` 被拒改走 `rotateWithRetreat`——朝屋心逐步內移（15cm×6 步）找第一個轉得動的合法位，成功明講「自動內移 N 公分」；全敗訊息加 ⚠️。契約測試鎖接線。A 的整體回饋改版仍歸 Bella。
 另註：`scene_viewer.js` R 鍵 handler 內有 `return` 後的死碼（舊 90° 邏輯），僅記錄。
 
 ### 3.7 「更換家具」查證（08-01，機制正常、回饋誤導）
