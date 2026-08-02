@@ -103,6 +103,8 @@ git status --short
 - 改密碼：「我的專案」頁的帳號設定；成功後撤銷所有既有 session，需重新登入。
 - 忘記密碼：本產品無寄信基礎設施，由 admin 以
   `POST /api/auth/admin/reset-password` 設臨時密碼並口頭告知，登入後自行修改。
+- 停用帳號：admin 以 `POST /api/auth/admin/set-active` 停用／恢復；停用立即
+  生效（登入 403、既有 token 全部失效），不能停用自己。
 
 簽章金鑰請在 `.env` 明確設定，否則每個節點會各自產生一把，token 無法跨節點驗證：
 

@@ -17,6 +17,7 @@ from .dependencies import (
 from .models import (
     AddProjectMemberRequest,
     AdminResetPasswordRequest,
+    AdminSetActiveRequest,
     ChangePasswordRequest,
     LoginRequest,
     ProjectMember,
@@ -26,7 +27,12 @@ from .models import (
     TokenPair,
     UserPublic,
 )
-from .service import AuthenticationFailed, RegistrationFailed
+from .service import (
+    AccountDisabled,
+    AuthenticationFailed,
+    RegistrationFailed,
+    SelfDeactivationBlocked,
+)
 from .throttle import LoginThrottle
 from .tokens import TokenError
 from .user_store import UserNotFound
@@ -92,6 +98,15 @@ def build_auth_router() -> APIRouter:
                     "message": "email 或密碼不正確",
                 },
             ) from exc
+        except AccountDisabled as exc:
+            # 密碼驗證通過後才會走到這裡，訊息明確不會洩漏帳號存在性。
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error_code": "ACCOUNT_DISABLED",
+                    "message": "此帳號已停用，請聯絡管理員",
+                },
+            ) from exc
         throttle.reset(key)
         return TokenPair(**result)
 
@@ -150,6 +165,35 @@ def build_auth_router() -> APIRouter:
                 detail={
                     "error_code": "USER_NOT_FOUND",
                     "message": "找不到這個 email 的帳號",
+                },
+            ) from exc
+        return UserPublic(**record)
+
+    @router.post("/auth/admin/set-active", response_model=UserPublic)
+    def admin_set_active(
+        body: AdminSetActiveRequest,
+        admin: dict[str, Any] = Depends(require_system_role("admin")),
+    ) -> UserPublic:
+        try:
+            record = get_auth_service().set_account_active(
+                actor_user_id=admin["user_id"],
+                email=body.email,
+                active=body.is_active,
+            )
+        except UserNotFound as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error_code": "USER_NOT_FOUND",
+                    "message": "找不到這個 email 的帳號",
+                },
+            ) from exc
+        except SelfDeactivationBlocked as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "error_code": "SELF_DEACTIVATION_BLOCKED",
+                    "message": "不能停用自己的帳號，請由另一位管理員操作",
                 },
             ) from exc
         return UserPublic(**record)

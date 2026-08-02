@@ -132,3 +132,56 @@ def test_login_purges_expired_refresh_tokens() -> None:
     )
     assert login.status_code == 200
     assert store.purge_expired_refresh_tokens() == 0, "登入時就該把過期的清掉"
+
+
+def test_admin_can_deactivate_and_reactivate_an_account() -> None:
+    target = _register("disable-me-123")
+    email = target["user"]["email"]
+    # 停用（conftest 預設 admin 身分）。
+    response = client.post(
+        "/api/auth/admin/set-active", json={"email": email, "is_active": False}
+    )
+    assert response.status_code == 200
+    assert response.json()["is_active"] is False
+
+    # 停用立即生效：登入 403、既有 access token 401、refresh 401。
+    login = client.post(
+        "/api/auth/login", json={"email": email, "password": "disable-me-123"}
+    )
+    assert login.status_code == 403
+    assert login.json()["detail"]["error_code"] == "ACCOUNT_DISABLED"
+    assert client.get("/api/auth/me", headers=_bearer(target)).status_code == 401
+    assert client.post(
+        "/api/auth/refresh", json={"refresh_token": target["refresh_token"]}
+    ).status_code == 401
+
+    # 恢復後可重新登入。
+    restore = client.post(
+        "/api/auth/admin/set-active", json={"email": email, "is_active": True}
+    )
+    assert restore.status_code == 200
+    assert client.post(
+        "/api/auth/login", json={"email": email, "password": "disable-me-123"}
+    ).status_code == 200
+
+
+def test_admin_cannot_deactivate_their_own_account() -> None:
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200
+    response = client.post(
+        "/api/auth/admin/set-active",
+        json={"email": me.json()["email"], "is_active": False},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["error_code"] == "SELF_DEACTIVATION_BLOCKED"
+
+
+def test_set_active_is_admin_only() -> None:
+    designer = _register()
+    target = _register()
+    response = client.post(
+        "/api/auth/admin/set-active",
+        json={"email": target["user"]["email"], "is_active": False},
+        headers=_bearer(designer),
+    )
+    assert response.status_code == 403

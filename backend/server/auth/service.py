@@ -20,6 +20,14 @@ class AuthenticationFailed(Exception):
     """帳密錯誤；對外一律是同一句訊息，不區分 email 不存在或密碼錯誤。"""
 
 
+class AccountDisabled(Exception):
+    """帳號已被管理員停用。密碼驗證通過後才拋，不洩漏帳號存在性。"""
+
+
+class SelfDeactivationBlocked(Exception):
+    """不允許停用自己——最後一個 admin 把自己鎖在門外就沒人能解鎖了。"""
+
+
 class RegistrationFailed(Exception):
     def __init__(self, reason: str) -> None:
         super().__init__(reason)
@@ -93,6 +101,8 @@ class AuthService:
         matched = verify_password(request.password, stored_hash)
         if record is None or not matched:
             raise AuthenticationFailed()
+        if not record.get("is_active", True):
+            raise AccountDisabled()
         if needs_rehash(stored_hash):
             # 雜湊參數調高後，趁本次已驗證的明文順手升級。
             self.user_store.update_password_hash(
@@ -162,6 +172,8 @@ class AuthService:
             record = self.user_store.get_user_by_id(claims.user_id)
         except UserNotFound as exc:
             raise TokenError("USER_NOT_FOUND") from exc
+        if not record.get("is_active", True):
+            raise TokenError("ACCOUNT_DISABLED")
         # 輪替：舊 refresh token 立即作廢，被竊取的舊憑證無法繼續換發。
         self.user_store.revoke_refresh_token(claims.jti)
         return self.issue_tokens(record)
@@ -180,4 +192,22 @@ class AuthService:
             record = self.user_store.get_user_by_id(claims.user_id)
         except UserNotFound as exc:
             raise TokenError("USER_NOT_FOUND") from exc
+        # 每次驗證都撈使用者紀錄，停用因此立即生效——尚未過期的 access
+        # token 不必等 30 分鐘 TTL 走完。
+        if not record.get("is_active", True):
+            raise TokenError("ACCOUNT_DISABLED")
         return public_user(record)
+
+    def set_account_active(
+        self, *, actor_user_id: str, email: str, active: bool
+    ) -> dict[str, Any]:
+        """管理員停用／恢復帳號。停用同時撤銷該帳號全部 refresh token。"""
+        record = self.user_store.find_user_by_email(email)
+        if record is None:
+            raise UserNotFound(email)
+        if record["user_id"] == actor_user_id and not active:
+            raise SelfDeactivationBlocked()
+        self.user_store.set_user_active(record["user_id"], active)
+        if not active:
+            self.user_store.revoke_all_refresh_tokens(record["user_id"])
+        return public_user(self.user_store.get_user_by_id(record["user_id"]))

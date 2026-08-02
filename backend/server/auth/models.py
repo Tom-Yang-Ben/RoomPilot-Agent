@@ -85,6 +85,14 @@ class UserPublic(StrictModel):
     display_name: str
     role: SystemRole
     created_at: datetime
+    is_active: bool = True
+
+
+class AdminSetActiveRequest(StrictModel):
+    """管理員停用／恢復帳號；停用同時撤銷目標全部 refresh token。"""
+
+    email: EmailAddress
+    is_active: bool
 
 
 class ChangePasswordRequest(StrictModel):

@@ -58,6 +58,8 @@ def _user(row: Any) -> dict[str, Any]:
         "role": row["role"],
         "password_hash": row["password_hash"],
         "created_at": _parse_datetime(row["created_at"]),
+        # 舊資料庫沒有這一欄時視為啟用——停用是明確的管理動作，不該由缺欄推定。
+        "is_active": bool(row["is_active"]) if "is_active" in row.keys() else True,
     }
 
 
@@ -100,10 +102,19 @@ class SqliteUserStore:
                     password_hash TEXT NOT NULL,
                     display_name TEXT NOT NULL,
                     role TEXT NOT NULL,
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    is_active INTEGER NOT NULL DEFAULT 1
                 )
                 """
             )
+            # 帳戶端首發（2026-08-03 前）建立的舊庫沒有 is_active，補欄位。
+            existing_columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(users)")
+            }
+            if "is_active" not in existing_columns:
+                connection.execute(
+                    "ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1"
+                )
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS refresh_tokens (
@@ -194,6 +205,15 @@ class SqliteUserStore:
                 "UPDATE users SET password_hash = ? WHERE user_id = ?",
                 (password_hash, user_id),
             )
+
+    def set_user_active(self, user_id: str, active: bool) -> None:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "UPDATE users SET is_active = ? WHERE user_id = ?",
+                (1 if active else 0, user_id),
+            )
+            if cursor.rowcount == 0:
+                raise UserNotFound(user_id)
 
     def count_users(self) -> int:
         with self._connect() as connection:
@@ -432,6 +452,16 @@ class PostgresUserStore:
                     "UPDATE roompilot.users SET password_hash = %s WHERE user_id = %s",
                     (password_hash, user_id),
                 )
+
+    def set_user_active(self, user_id: str, active: bool) -> None:
+        with self._connection() as connection:
+            with self._cursor(connection) as cursor:
+                cursor.execute(
+                    "UPDATE roompilot.users SET is_active = %s WHERE user_id = %s",
+                    (active, user_id),
+                )
+                if cursor.rowcount == 0:
+                    raise UserNotFound(user_id)
 
     def count_users(self) -> int:
         with self._connection() as connection:

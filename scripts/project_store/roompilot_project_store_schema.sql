@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS roompilot.users (
     display_name  TEXT NOT NULL,
     role          VARCHAR(20) NOT NULL,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    is_active     BOOLEAN NOT NULL DEFAULT TRUE,
     CONSTRAINT users_role_known CHECK (role IN ('admin', 'designer', 'client')),
     CONSTRAINT users_email_lowercase CHECK (email = LOWER(email))
 );
@@ -156,6 +157,10 @@ CREATE TABLE IF NOT EXISTS roompilot.project_members (
     CONSTRAINT project_members_role_known
         CHECK (project_role IN ('owner', 'editor', 'viewer'))
 );
+
+-- 停用帳號欄位（2026-08-03）；首發帳戶端建立的庫沒有這一欄。
+ALTER TABLE roompilot.users
+    ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- 帳戶端上線前建立的資料庫沒有 owner_id；補欄位後由遷移指令回填。
 ALTER TABLE roompilot.projects
