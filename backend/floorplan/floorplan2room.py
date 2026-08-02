@@ -1103,7 +1103,28 @@ def _symbol_anchors(det, labels, rooms):
         span = max(max(p[0] for p in kit) - min(p[0] for p in kit),
                    max(p[1] for p in kit) - min(p[1] for p in kit))
         if span * cm > 350.0:
-            continue                             # 符號散開＝假陽性風險
+            # 跨距超限不整組否決（floor47/52 實案：一顆離群假陽性毀
+            # 全局）——改取最緊密子群：以每顆為中心、半徑 175cm 內
+            # 成員最多者；子群須 ≥2 顆且含強符號才續行
+            r175 = 175.0 / max(cm, 1e-6)
+            best = []
+            for cx0, cy0 in kit:
+                sub = [p for p in kit
+                       if ((p[0] - cx0) ** 2 + (p[1] - cy0) ** 2) ** 0.5
+                       <= r175]
+                if len(sub) > len(best):
+                    best = sub
+            strong_in = sum(
+                1 for kind, sx, sy in det.get("symbols", ())
+                if kind in _KITCHEN_STRONG and (float(sx), float(sy)) in
+                {(p[0], p[1]) for p in best})
+            if len(best) < 2 or not strong_in:
+                continue                         # 子群須 ≥2 顆＋強符號：
+                                                 # 兩顆孤立遠距強符號分不出
+                                                 # 誰真誰假，維持不觸發
+            kit = best
+            kx = sum(p[0] for p in kit) / len(kit)
+            ky = sum(p[1] for p in kit) / len(kit)
         if r["area_px"] * cm * cm < 150000.0:
             continue                             # <15m² 不會是開放廚客
         if ((kx - r["cx"]) ** 2 + (ky - r["cy"]) ** 2) ** 0.5 * cm < 200.0:
@@ -1216,7 +1237,7 @@ def _room_stats(labels, rid, touch_env):
 
 
 def _split_by_text_anchors(labels, rooms, texts, T, cm, amin,
-                           min_part_ratio=None):
+                           min_part_ratio=None, verify=None):
     """OCR 房名錨點功能區切分（labels 就地改，回傳新 rooms）。
     E1 誤併型態：廚/餐/客一體、玄關-走道虛線分界——GT 沿無牆邊界分區，
     封口規則無牆可封。圖面文字是作者親口說的答案：一房含 2+ 個房名
@@ -1296,9 +1317,13 @@ def _split_by_text_anchors(labels, rooms, texts, T, cm, amin,
             continue                             # 有碎屑 → 整房放棄不切
         if min_part_ratio and len(parts) == 2:
             a_, b_ = int(parts[0].sum()), int(parts[1].sum())
-            if max(a_, b_) < min_part_ratio * min(a_, b_):
+            if max(a_, b_) < min_part_ratio * min(a_, b_) \
+                    and not (verify and verify(parts, merged)):
                 continue                         # 兩半約等大＝廚餐一體
-                                                 # （子區歸主房慣例），不切
+                                                 # （子區歸主房慣例），不切；
+                                                 # verify 回呼（DINO 兩半驗證）
+                                                 # 判真可放行（floor47/52 型
+                                                 # 開放 LDK 的廚客真切分）
         for p in parts[1:]:
             nid += 1
             labels[p] = nid
@@ -1506,9 +1531,34 @@ def build_rooms(det):
     # 文字已切開的房不會再有雙系符號，兩機制天然互補不重疊。
     # min_part_ratio=1.8：廚餐一體房（子區歸主房慣例）兩半約等大，
     # 真開放廚客的客廳側遠大於廚房側——floor07 實案的守門
+    # 方正守門讓行：兩半近等大時用 DINO 驗證兩半各自像不像錨點房型
+    # （floor47/52/13 型開放 LDK 的廚客真切分兩半 ~1:1，硬守門會擋掉；
+    # floor07 廚餐一體房的餐半不會被判成 LivingRoom，仍被擋）
+    def _dino_verify(parts, merged):
+        tmp = np.zeros(labels.shape, np.int32)
+        tmp[parts[0]] = 1
+        tmp[parts[1]] = 2
+        variant = "color" if det.get("fence") is not None else "gray"
+        probs = room_classifier.classify(det.get("bgr"), tmp,
+                                         [{"id": 1}, {"id": 2}],
+                                         variant=variant)
+        if probs is None:
+            return False
+        ok = 0
+        for lab_a, cx, cy in merged:
+            iy, ix = int(round(cy)), int(round(cx))
+            if not (0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1]):
+                return False
+            pi = 0 if parts[0][iy, ix] else 1
+            pr = probs[pi] or {}
+            if pr and max(pr, key=pr.get) == lab_a:
+                ok += 1
+        return ok == len(merged)                 # 兩半 top-1 都對才放行
+
     rooms = _split_by_text_anchors(labels, rooms,
                                    _symbol_anchors(det, labels, rooms),
-                                   T, cm, amin, min_part_ratio=1.8)
+                                   T, cm, amin, min_part_ratio=1.8,
+                                   verify=_dino_verify)
     # 殼外陽台口袋收割（圍欄圈住、主分割判室外的區域）——須在命名前，
     # 新口袋才會進 DINO 裁切分類
     rooms = _harvest_balcony_pockets(det, labels, rooms, outside)
