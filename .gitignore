@@ -1,5 +1,6 @@
-# 私密設定
-.env
+# 私密設定（.env* 連備份檔一起擋，只放行進版本庫的範本）
+.env*
+!.env.example
 
 # Python、Node 與測試快取
 .venv/
