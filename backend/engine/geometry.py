@@ -49,10 +49,25 @@ def hits_wall(item: PlacedFurniture, room: Room) -> bool:
     return False
 
 
+def vertical_overlap(a: PlacedFurniture, b: PlacedFurniture) -> bool:
+    """兩件家具的垂直佔用帶是否重疊。
+
+    地毯與桌面擺飾沒有垂直佔用帶,永遠不衝突——沙發腳踩在地毯上是正常的。
+    壁架(120–150)與矮櫃(0–80)不重疊;與 200 公分高衣櫃重疊,就該擋。
+    """
+    span_a = a.catalog.vertical_span()
+    span_b = b.catalog.vertical_span()
+    if span_a is None or span_b is None:
+        return False
+    return span_a[0] < span_b[1] and span_b[0] < span_a[1]
+
+
 def hits_furniture(item: PlacedFurniture, others: list[PlacedFurniture]) -> PlacedFurniture | None:
     poly = furniture_polygon(item)
     for other in others:
         if other.id == item.id:
+            continue
+        if not vertical_overlap(item, other):
             continue
         if poly.intersects(furniture_polygon(other)):
             return other
@@ -66,10 +81,13 @@ def out_of_bounds(item: PlacedFurniture, room: Room) -> bool:
 
 def check_placement(item: PlacedFurniture, room: Room, others: list[PlacedFurniture]) -> str | None:
     """統一檢查入口,回傳 None 表示合法,否則回傳失敗原因(繁中訊息)"""
-    if out_of_bounds(item, room):
-        return "物件超出空間範圍"
-    if hits_wall(item, room):
-        return "與牆體穿透"
+    # 壁掛品項掛在牆面上:穿牆與探出房間邊界是它的正常狀態,只檢查與
+    # 垂直帶重疊的家具有沒有撞在一起。
+    if not item.catalog.is_wall_mounted():
+        if out_of_bounds(item, room):
+            return "物件超出空間範圍"
+        if hits_wall(item, room):
+            return "與牆體穿透"
     other = hits_furniture(item, others)
     if other:
         return f"與「{other.catalog.name}」重疊"

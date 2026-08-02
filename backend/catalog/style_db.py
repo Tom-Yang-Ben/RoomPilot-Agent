@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 
 from ..engine.models import ClearanceZone, FurnitureCatalogItem
+from .placement_surface import FLOOR_COVERING, TABLETOP, WALL, placement_surface_for
 
 # IKEA 名稱裡的尺寸,如「90x55 公分」「140x200」「80x30x202 cm」
 _NAME_DIMS = re.compile(
@@ -190,6 +191,20 @@ CLEARANCE_BY_TYPE: dict[str, ClearanceZone] = {
 }
 
 
+# 壁掛品項的離地高度(公分)——引擎用它算垂直佔用帶,判斷平面重疊時
+# 兩件家具是不是真的會撞在一起。型錄沒有逐筆的安裝高度，這裡給類型預設值。
+#
+# 數值取自台灣常見安裝慣例:層架掛在視線上方、掛鏡中心對齊站立視高、
+# 浴櫃鏡櫃接在檯面上方。沒有把握的型別不要進表——留空就是落地家具(0)，
+# 那是保守的一邊(會多擋，不會漏擋)。
+MOUNT_HEIGHT_BY_TYPE: dict[str, float] = {
+    "wall-shelf": 120.0,
+    "mirror": 100.0,
+    "large-mirror": 90.0,
+    "mirror-cabinet": 85.0,
+}
+
+
 def catalog_item_from_scene_object(
     item_type: str | None,
     name: str | None,
@@ -198,11 +213,16 @@ def catalog_item_from_scene_object(
     height_cm: float,
 ) -> FurnitureCatalogItem:
     """場景物件轉為公分引擎型錄物件，不做單位換算。"""
+    key = item_type or ""
+    surface = placement_surface_for(item_type, name)
     return FurnitureCatalogItem(
         type=item_type or "furniture",
         name=name or item_type or "家具",
         width=width_cm,
         depth=depth_cm,
         height=height_cm,
-        clearance=CLEARANCE_BY_TYPE.get(item_type or ""),
+        clearance=CLEARANCE_BY_TYPE.get(key),
+        mount_height_cm=MOUNT_HEIGHT_BY_TYPE.get(key, 0.0) if surface == WALL else 0.0,
+        # 地毯與桌面擺飾不佔垂直空間:家具站在它們上面是正常的。
+        occupies_floor_space=surface not in (FLOOR_COVERING, TABLETOP),
     )

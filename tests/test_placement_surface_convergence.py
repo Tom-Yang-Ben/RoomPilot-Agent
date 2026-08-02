@@ -71,24 +71,37 @@ def test_rug_types_beyond_the_old_hardcoded_pair_overlap_furniture() -> None:
     assert result["ok"] is True, result["reason"]
 
 
-def test_mirror_beyond_the_old_hardcoded_type_ignores_floor_collision() -> None:
-    """large-mirror 掛在牆上,不該和落地家具算碰撞。"""
+def test_wall_mirror_clears_low_furniture_but_not_a_tall_wardrobe() -> None:
+    """壁掛的合法性靠垂直佔用帶,不是「壁掛一律不算碰撞」的開關。
+
+    large-mirror 掛在 90 公分、自身高 160 → 佔 90–250。
+    矮櫃 0–80 不重疊,可以掛在它上方;衣櫃 0–200 重疊,會撞在一起。
+    """
     floorplan = _floorplan()
-    wardrobe = _item(
-        "wardrobe",
-        furniture_id="wardrobe-1",
-        size_cm={"width": 120, "depth": 60, "height": 200},
-        position_cm={"x": 0, "z": 0},
-    )
     mirror = _item(
         "large-mirror",
         size_cm={"width": 60, "depth": 5, "height": 160},
         position_cm={"x": 0, "z": 0},
     )
+    low_cabinet = _item(
+        "sideboard",
+        furniture_id="sideboard-1",
+        size_cm={"width": 120, "depth": 40, "height": 80},
+        position_cm={"x": 0, "z": 0},
+    )
+    tall_wardrobe = _item(
+        "wardrobe",
+        furniture_id="wardrobe-1",
+        size_cm={"width": 120, "depth": 60, "height": 200},
+        position_cm={"x": 0, "z": 0},
+    )
 
-    result = validate_single_placement(floorplan, mirror, [wardrobe])
+    over_low = validate_single_placement(floorplan, mirror, [low_cabinet])
+    assert over_low["ok"] is True, over_low["reason"]
 
-    assert result["ok"] is True, result["reason"]
+    over_tall = validate_single_placement(floorplan, mirror, [tall_wardrobe])
+    assert over_tall["ok"] is False
+    assert "重疊" in over_tall["reason"]
 
 
 def test_name_hints_downgrade_mistyped_accessories() -> None:

@@ -1726,18 +1726,12 @@ def validate_single_placement(
     if blocking is not None:
         return {"ok": False, "reason": blocking.reason}
 
-    item_name = item.get("name_zh_raw")
-    if _is_overlay_item(item.get("normalized_type"), item_name):
-        reason = check_placement_with_clearance(moving, room, [])
-        return {"ok": reason is None, "reason": reason}
-    if _is_collision_exempt_item(item.get("normalized_type"), item_name):
-        return {"ok": True, "reason": None}
-
+    # 誰能和誰重疊由引擎的垂直佔用帶判定(backend/engine/geometry.py),
+    # 這裡不再用型別名單先把地毯與壁掛挑出來繞過碰撞。
     placed_others = [
         _scene_object_to_placed(o, half_w_cm, half_d_cm)
         for o in others
-        if not _is_collision_exempt_item(o.get("normalized_type"), o.get("name_zh_raw"))
-        and not o.get("placement_failed")
+        if not o.get("placement_failed")
     ]
     reason = check_placement_with_clearance(moving, room, placed_others)
     return {"ok": reason is None, "reason": reason}

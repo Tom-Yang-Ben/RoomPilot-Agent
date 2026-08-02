@@ -56,6 +56,21 @@ class FurnitureCatalogItem:
     price: float | None = None
     glb_path: str | None = None
     clearance: ClearanceZone | None = None   # None = 此家具無開合淨空需求(如沙發、茶几)
+    # 垂直佔用帶:兩件家具的平面可以重疊,只要垂直不重疊。
+    # 這取代了「這個型別要不要算碰撞」的二元開關——開關講不出
+    # 「壁架跟矮櫃可以,跟高衣櫃不行」,一個離地高度就講得出來。
+    mount_height_cm: float = 0.0       # 離地高度;落地家具 0,壁掛品項 > 0
+    occupies_floor_space: bool = True  # False = 地毯、桌面擺飾,不佔垂直空間
+
+    def vertical_span(self) -> tuple[float, float] | None:
+        """回傳 (下緣, 上緣);None 代表不佔垂直空間,與任何家具都不衝突。"""
+        if not self.occupies_floor_space:
+            return None
+        return (self.mount_height_cm, self.mount_height_cm + max(0.0, self.height))
+
+    def is_wall_mounted(self) -> bool:
+        """掛在牆上的品項。穿牆與出界是它的正常狀態,不該當成違規。"""
+        return self.occupies_floor_space and self.mount_height_cm > 0
 
 
 @dataclass
