@@ -237,17 +237,30 @@ def test_render_only_detail_questions_never_reach_the_placement_engine() -> None
     javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
 
     render_detail_ids = [
-        "whole-house-indirect-light",
-        "whole-house-ceiling-zoning",
-        "whole-house-airflow-strategy",
-        "whole-house-service-visibility",
-        "whole-house-ceiling-fan",
-        "whole-house-appliance-visibility",
+        "render-detail-indirect-light",
+        "render-detail-ceiling-zoning",
+        "render-detail-airflow-strategy",
+        "render-detail-service-visibility",
+        "render-detail-ceiling-fan",
+        "render-detail-appliance-visibility",
     ]
     for element_id in render_detail_ids:
         assert f'id="{element_id}"' in html, element_id
-    # 留白＝依設計師建議，不阻擋問卷完成（沿用 f0f1139f 的原則）。
+    # 留白＝依設計師建議，不強迫作答（沿用 f0f1139f 的原則）。
     assert "生圖細節（可留白）" in html
+
+    # 控制項必須在第 8 步生圖側欄，不能回到第 5 步的 legacy 問卷——後者自
+    # 614ae3a4 起就被 display:none !important 關閉，放進去使用者永遠看不到。
+    # 2026-08-02 瀏覽器實測踩過這個坑，用測試釘住。
+    ai_render_panel = html.split('data-panel="ai-render"', 1)[1]
+    legacy_panel = html.split("rp-legacy-questionnaire", 1)[1].split(
+        'data-panel="ai-render"', 1
+    )[0]
+    for element_id in render_detail_ids:
+        assert f'id="{element_id}"' in ai_render_panel, element_id
+        assert f'id="{element_id}"' not in legacy_panel, element_id
+    assert 'class="rp-questionnaire-workspace rp-legacy-questionnaire" hidden' in html
+    assert "renderRenderDetailControls" in javascript
 
     assert "RENDER_DETAIL_FIELDS" in javascript
     assert "render_details: renderDetailChoices(finishes)" in javascript
@@ -256,12 +269,14 @@ def test_render_only_detail_questions_never_reach_the_placement_engine() -> None
                 "serviceVisibility", "ceilingFan", "applianceVisibility"):
         assert key not in PLACEMENT_PREFERENCE_EFFECTS
 
-    # 天花形式、照明形式與冷氣形式由既有的「天花與設備」負責，不得重複問。
-    assert "whole-house-ceiling-style" in html
-    assert "whole-house-light-style" in html
-    assert "whole-house-air-conditioning" in html
-    assert 'id="whole-house-ceiling-plane"' not in html
-    assert 'id="whole-house-lighting-bias"' not in html
+    # 天花形式、照明形式與冷氣形式不列進這六項：初談確認時
+    # applyFirstMeetingToRequirements 會依選定色卡推導 ceilingStyle／lightStyle／
+    # airConditioning 寫進 questionnaireFinishes，digest 既有欄位已經帶進 prompt。
+    # 再問一次只會產生互相矛盾的答案。
+    assert "ceilingStyle: ceiling.id" in javascript
+    assert "lightStyle: light.id" in javascript
+    assert 'id="render-detail-ceiling-plane"' not in html
+    assert 'id="render-detail-lighting-bias"' not in html
 
 
 def test_questionnaire_catalog_json_remains_the_versioned_source() -> None:

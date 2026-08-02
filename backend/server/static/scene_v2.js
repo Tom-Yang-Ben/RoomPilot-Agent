@@ -398,12 +398,13 @@ const element = {
   wholeHouseAirConditioning: $("#whole-house-air-conditioning"),
   wholeHouseStyleAll: $("#whole-house-style-all"),
   wholeHouseAirConditioningAll: $("#whole-house-air-conditioning-all"),
-  wholeHouseIndirectLight: $("#whole-house-indirect-light"),
-  wholeHouseCeilingZoning: $("#whole-house-ceiling-zoning"),
-  wholeHouseAirflowStrategy: $("#whole-house-airflow-strategy"),
-  wholeHouseServiceVisibility: $("#whole-house-service-visibility"),
-  wholeHouseCeilingFan: $("#whole-house-ceiling-fan"),
-  wholeHouseApplianceVisibility: $("#whole-house-appliance-visibility"),
+  renderDetailBox: $("#render-detail-box"),
+  renderDetailIndirectLight: $("#render-detail-indirect-light"),
+  renderDetailCeilingZoning: $("#render-detail-ceiling-zoning"),
+  renderDetailAirflowStrategy: $("#render-detail-airflow-strategy"),
+  renderDetailServiceVisibility: $("#render-detail-service-visibility"),
+  renderDetailCeilingFan: $("#render-detail-ceiling-fan"),
+  renderDetailApplianceVisibility: $("#render-detail-appliance-visibility"),
   requirementsProgress: $("#requirements-progress"),
   requirementsError: $("#requirements-error"),
   randomizeRequirements: $("#randomize-requirements"),
@@ -6755,37 +6756,37 @@ function renderWholeHouseQuestionnaire() {
 const RENDER_DETAIL_FIELDS = Object.freeze([
   {
     key: "indirectLight",
-    element: "wholeHouseIndirectLight",
+    element: "renderDetailIndirectLight",
     label: "間接光",
     labels: { minimal: "維持乾淨，少用間接光", featured: "以間接光為主要氛圍" },
   },
   {
     key: "ceilingZoning",
-    element: "wholeHouseCeilingZoning",
+    element: "renderDetailCeilingZoning",
     label: "天花分區",
     labels: { room: "每個空間各自造型", continuous: "全屋連續同一平面" },
   },
   {
     key: "airflowStrategy",
-    element: "wholeHouseAirflowStrategy",
+    element: "renderDetailAirflowStrategy",
     label: "送風方式",
     labels: { direct: "直吹，出風口明顯", indirect: "導流，避免直吹人" },
   },
   {
     key: "serviceVisibility",
-    element: "wholeHouseServiceVisibility",
+    element: "renderDetailServiceVisibility",
     label: "維修口",
     labels: { hidden: "盡量隱藏", accessible: "保留明顯好維修" },
   },
   {
     key: "ceilingFan",
-    element: "wholeHouseCeilingFan",
+    element: "renderDetailCeilingFan",
     label: "吊扇",
     labels: { yes: "要有吊扇", no: "不要吊扇" },
   },
   {
     key: "applianceVisibility",
-    element: "wholeHouseApplianceVisibility",
+    element: "renderDetailApplianceVisibility",
     label: "廚房家電",
     labels: { integrated: "嵌入櫃體隱藏", visible: "外露看得到" },
   },
@@ -6795,6 +6796,23 @@ function renderDetailInputs() {
   return Object.fromEntries(RENDER_DETAIL_FIELDS.map(
     ({ key, element: name }) => [key, element[name]?.value || ""],
   ));
+}
+
+// 控制項放在第 8 步側欄：第 5 步的初談問卷刻意把「家具、材質與設備留到方案
+// 階段再談」，而這幾項只有生圖用得到，放在按下生圖之前才符合那條界線。
+function renderRenderDetailControls() {
+  const finishes = state.questionnaireFinishes || {};
+  RENDER_DETAIL_FIELDS.forEach(({ key, element: name }) => {
+    if (element[name]) element[name].value = finishes[key] || "";
+  });
+}
+
+function saveRenderDetailInputs() {
+  state.questionnaireFinishes = {
+    ...(state.questionnaireFinishes || {}),
+    ...renderDetailInputs(),
+  };
+  scheduleSave("ai_render");
 }
 
 // 只回傳使用者真的選過的項目；留白代表「依設計師建議」，不進 prompt。
@@ -6892,9 +6910,6 @@ function renderWholeHouseStyleEditor() {
   element.wholeHouseAirConditioning.value = draft.airConditioning;
   element.wholeHouseStyleAll.checked = draft.applyStyleToAllRooms;
   element.wholeHouseAirConditioningAll.checked = draft.applyAirConditioningToEligibleRooms;
-  RENDER_DETAIL_FIELDS.forEach(({ key, element: name }) => {
-    if (element[name]) element[name].value = draft[key] || "";
-  });
 }
 
 function selectWholeHouseStylePack(packId) {
@@ -6932,7 +6947,6 @@ function saveWholeHouseFinishInputs() {
     airConditioning: element.wholeHouseAirConditioning.value || "auto",
     applyStyleToAllRooms: element.wholeHouseStyleAll.checked,
     applyAirConditioningToEligibleRooms: element.wholeHouseAirConditioningAll.checked,
-    ...renderDetailInputs(),
   };
   scheduleSave("requirements");
 }
@@ -6951,7 +6965,6 @@ function applyWholeHouseFinishes() {
     airConditioning: element.wholeHouseAirConditioning.value || "auto",
     applyStyleToAllRooms: element.wholeHouseStyleAll.checked,
     applyAirConditioningToEligibleRooms: element.wholeHouseAirConditioningAll.checked,
-    ...renderDetailInputs(),
   };
   state.questionnaireFinishes = draft;
   state.activeStyleId = pack.styleId;
@@ -12056,6 +12069,7 @@ async function prepareAiRender() {
   }
   // 控制項不能排在 3D 載入的 await 後面：這個場景的 shader 編譯要好幾秒，
   // 期間色卡區是一整片空白，使用者按下去只會得到「至少選擇一張色卡」。
+  renderRenderDetailControls();
   renderPaletteOptions();
   renderRemoteJobs();
   renderPaletteResults();
@@ -12780,6 +12794,9 @@ function bindEvents() {
     element.wholeHouseAirConditioningAll,
   ].forEach((control) => {
     control.addEventListener("change", saveWholeHouseFinishInputs);
+  });
+  RENDER_DETAIL_FIELDS.forEach(({ element: name }) => {
+    element[name]?.addEventListener("change", saveRenderDetailInputs);
   });
   element.questionnaireFurniturePreferenceTags.addEventListener("click", (event) => {
     const button = event.target.closest("[data-questionnaire-furniture-tag]");
