@@ -3684,7 +3684,9 @@ export function createSceneViewer(
     );
     wrapper.position.x = worldPosition.x;
     wrapper.position.z = worldPosition.z;
-    wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
+    wrapper.rotation.y = THREE.MathUtils.degToRad(
+      sceneToWorldRotationDeg(item.rotation_y_deg || 0) + Number(item.model_orientation_deg || 0),
+    );
     wrapper.userData.sceneIndex = index + 1;
     wrapper.userData.sceneObject = item;
     wrapper.userData.fallbackFurniture = true;
@@ -3764,7 +3766,9 @@ export function createSceneViewer(
           const worldPosition = sceneToWorldPosition(item.position_cm || {});
           wrapper.position.x = worldPosition.x;
           wrapper.position.z = worldPosition.z;
-          wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
+          wrapper.rotation.y = THREE.MathUtils.degToRad(
+      sceneToWorldRotationDeg(item.rotation_y_deg || 0) + Number(item.model_orientation_deg || 0),
+    );
 
           const size = sizeCentimeters(item);
           addFurnitureContactShadow(wrapper, item.size_cm || {});
@@ -4113,7 +4117,9 @@ export function createSceneViewer(
     const item = wrapper?.userData?.sceneObject;
     if (!item) return false;
     const size = sizeCentimeters(item);
-    const radians = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
+    const radians = THREE.MathUtils.degToRad(
+      sceneToWorldRotationDeg(item.rotation_y_deg || 0) + Number(item.model_orientation_deg || 0),
+    );
     const dx = x - wrapper.position.x;
     const dz = z - wrapper.position.z;
     const localX = dx * Math.cos(radians) + dz * Math.sin(radians);
@@ -4839,7 +4845,9 @@ export function createSceneViewer(
       const worldPosition = sceneToWorldPosition(item.position_cm || {});
       wrapper.position.x = worldPosition.x;
       wrapper.position.z = worldPosition.z;
-      wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
+      wrapper.rotation.y = THREE.MathUtils.degToRad(
+      sceneToWorldRotationDeg(item.rotation_y_deg || 0) + Number(item.model_orientation_deg || 0),
+    );
       updateFootprintGuide(wrapper);
       setStatus(`已移動「${label}」，靠近牆面時會自動貼齊並旋轉。`);
       item.position_locked = true;  // 之後的重排/替換不會沖掉手動位置

@@ -372,6 +372,10 @@ export function toSceneFurniture(item, { positionLocked = true } = {}) {
     },
     position_cm: { x: item.xCm, z: item.yCm },
     rotation_y_deg: item.rotationDeg,
+    // 模型出廠朝向修正（three 系，僅渲染層用）：GLB 面向出廠不一（IKEA
+    // FREDDE 桌／LÖPARBANA 椅實測反 180°），擺位 rotation 的引擎「正面」
+    // 語意不得被污染，視覺修正走這個獨立欄位。
+    model_orientation_deg: Number(item.modelOrientationDeg || 0),
     position_locked: positionLocked,
     user_specified: item.locked === true,
     user_required: item.userRequired === true,

@@ -1421,6 +1421,28 @@ def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> 
     assert result["circulation"] == []
 
 
+def test_to_scene_furniture_carries_model_orientation_offset() -> None:
+    """模型出廠朝向修正（GLB 面向不一，IKEA 桌椅實測反 180°）走渲染層
+    專用欄位 model_orientation_deg——擺位 rotation 的引擎語意不得被污染。"""
+    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ toSceneFurniture }} from {json.dumps(module_uri)};
+        const out = toSceneFurniture({{
+          id: "x", type: "desk", rotationDeg: 90, modelOrientationDeg: 180,
+          widthCm: 100, depthCm: 50, heightCm: 70, xCm: 0, yCm: 0,
+        }});
+        console.log(JSON.stringify({{ rot: out.rotation_y_deg, off: out.model_orientation_deg }}));
+        """
+    )
+    assert result == {"rot": 90, "off": 180}
+
+
+def test_scene_viewer_applies_model_orientation_offset() -> None:
+    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    assert source.count("model_orientation_deg") >= 3, "三條 wrapper 旋轉路徑都要吃模型朝向修正"
+
+
 def test_2d_furniture_pointer_selection_reads_the_rendered_data_attribute() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     handler = source.split("function layoutPointerDown", 1)[1].split(

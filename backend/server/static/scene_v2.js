@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-11351b95a109";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-77b66bb57f5f";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
 import {
@@ -35,7 +35,7 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-5c69ec326e70";
+} from "./scene_layout2d.js?v=sha256-a9f7bd3d49e3";
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
