@@ -62,7 +62,8 @@ def test_scene_accepts_style_card_handoff_from_styles_page():
     """
     javascript = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     styles = (STATIC_DIR / "styles.js").read_text(encoding="utf-8")
-    main = (ROOT / "backend" / "server" / "main.py").read_text(encoding="utf-8")
+    # /api/scene/generate 於佇列 7 拆分第三批自 main.py 搬進 scene_api.py。
+    scene_api = (ROOT / "backend" / "server" / "scene_api.py").read_text(encoding="utf-8")
     service = (ROOT / "backend" / "server" / "scene_service.py").read_text(encoding="utf-8")
 
     # 產生端：風格頁確實會帶 style_card 參數過去。
@@ -71,7 +72,7 @@ def test_scene_accepts_style_card_handoff_from_styles_page():
     assert 'sceneQuery.get("style_card")' in javascript
     assert "function applyStyleCardFromQuery" in javascript
     assert "state.activeStylePackId = pack.id" in javascript
-    assert '"style_card_id": payload.get("style_card_id")' in main
+    assert '"style_card_id": payload.get("style_card_id")' in scene_api
     assert 'questionnaire.get("style_card_id")' in service
 
 

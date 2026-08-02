@@ -137,5 +137,6 @@ def test_implausible_rows_are_kept_out_of_automatic_selection() -> None:
 
     # 前端自動選件與後端換小款兩條路徑都要濾掉。
     assert "candidate.size_is_implausible === true" in source
-    main = (SERVER_DIR / "main.py").read_text(encoding="utf-8")
-    assert 'not candidate.get("size_is_implausible")' in main
+    # 換小款候選池在 /api/scene/layout；佇列 7 拆分第三批把它搬進 scene_api.py。
+    scene_api = (SERVER_DIR / "scene_api.py").read_text(encoding="utf-8")
+    assert 'not candidate.get("size_is_implausible")' in scene_api
