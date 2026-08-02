@@ -547,8 +547,9 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         band = soft[max(0, y0):min(Himg, y1), max(0, x0):min(Wimg, x1)]
         if not band.size or (band.max(axis=1 - along_axis) > 0).mean() < thr:
             return False
-        if (band > 0).mean() > 0.45:
-            return False
+        if (band > 0).mean() > 0.45:     # 0.60 實測 R+2/P-4（FP+9）淨負
+            return False                     # 向——彩窗要的是開口枚舉與覆蓋
+                                             # 結構的專輪重做，非門檻微調
         if line_groups(band, along_axis) < 2:
             return False
         if edge_hug:
