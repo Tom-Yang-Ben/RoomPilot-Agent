@@ -2,7 +2,23 @@
 
 ## 狀態
 
-待執行。前端要不要接、第 3 步 UI 怎麼呈現，需要 Bella 拍板；後端不必改。
+**2026-08-03 已接線**（Ben 指示動工）。實作與本文「最小可用範圍」對齊：
+
+- 前端消費端：`frontend/scene_recognition_review.js`（理由標籤表以後端
+  `reason` 值為準，正是下方「接線時的注意事項」要求的重寫版）＋
+  `scene_v2.js` 第 4 步房間面板的「系統標記需人工複核」清單，點擊即跳到
+  該房間改名／調整；第 3 步辨識摘要附註標記房數。
+- resolved 語意：被標記房間經使用者逐一確認（含改名後確認）即視為已複核；
+  房間被刪除／合併／切割（id 消失）視為人工介入。「一鍵確認全部房間」會
+  跳過被標記的房間，訊號不能被整批略過。
+- 伺服器閘門（延伸原範圍）：`main.py` 的 `_unresolved_recognition_review`
+  在 workflow 宣告 `space_confirmation` 完成時做 `confirmation.py` 的等值
+  檢查，未複核回 422 `recognition_review_unresolved`——正式前端不走
+  `/api/floorplan/confirm` 的缺口由此補上。
+- 契約測試：`tests/test_recognition_review_wiring.py`（後端每個 reason 值
+  必須有前端標籤，新增未補即紅；一鍵確認必須跳過被標記房間；閘門三案例）。
+
+以下原始分析留作背景。
 
 ## 問題
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-02cc09c3a5bc" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-3c504fac953a" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -233,6 +233,13 @@
                 </div>
                 <strong id="room-confirmation-progress">0 / 0</strong>
               </header>
+              <section id="recognition-review-summary" class="rp-review-summary" aria-live="polite" hidden>
+                <h3>系統標記需人工複核</h3>
+                <p class="rp-review-summary-hint">
+                  下列房間的辨識結果有疑點，請逐一點開確認名稱與範圍；一鍵確認不會涵蓋這些房間。
+                </p>
+                <ul id="recognition-review-list" class="rp-review-summary-list"></ul>
+              </section>
               <section id="current-room-review" class="rp-current-room-card" aria-live="polite" hidden>
                 <div id="current-room-status" class="rp-current-room-label">目前檢視</div>
                 <div id="room-editor" class="rp-room-review-editor" hidden>
@@ -1098,6 +1105,6 @@
       }
     </script>
   <script type="module" src="/static/engineering_link.js?v=sha256-3d5c1057884c"></script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-8aacb1507e0e"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-bf24fd8642a6"></script>
   </body>
 </html>

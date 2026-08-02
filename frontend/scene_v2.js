@@ -26,6 +26,11 @@ import {
   calibrationActionState,
 } from "./scene_calibration.js?v=sha256-a1eb97980af1";
 import {
+  reviewItemsFromAnalysis,
+  reviewReasonLabel,
+  unresolvedReviewRooms,
+} from "./scene_recognition_review.js?v=sha256-14ba9b03b7c5";
+import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
   findFurniture2DVariant,
@@ -348,6 +353,8 @@ const element = {
   calibrationMeasureStatus: $("#calibration-task-measure-status"),
   calibrationConfirmStatus: $("#calibration-task-confirm-status"),
   recognitionSummary: $("#recognition-summary"),
+  recognitionReviewSummary: $("#recognition-review-summary"),
+  recognitionReviewList: $("#recognition-review-list"),
   spaceImage: $("#space-plan-image"),
   spaceStage: $("#space-plan-stage"),
   spaceOverlay: $("#space-plan-overlay"),
@@ -1487,7 +1494,7 @@ async function confirmUpload() {
       doors: state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0,
       windows: state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0,
     };
-    element.recognitionSummary.textContent = `辨識結果：牆 ${count.walls}、門 ${count.doors}、窗 ${count.windows}`;
+    element.recognitionSummary.textContent = `辨識結果：牆 ${count.walls}、門 ${count.doors}、窗 ${count.windows}${recognitionReviewSuffix()}`;
     if (Number(state.analysis.scale?.distance_cm) > 0) {
       element.scaleInput.value = Number(state.analysis.scale.distance_cm);
     } else if (Number(state.analysis.scale?.distance_m) > 0) {
@@ -2353,7 +2360,52 @@ function roomReviewHint(room) {
   if (reasons.includes("room_icon_low_confidence")) {
     return "圖示辨識信心不足，請確認空間名稱。";
   }
+  // 統一複核清單（spatial_report.review_items）的理由。圖示層的提示比較具體
+  // 所以在前面優先；沒有圖示提示時退到這裡，幾何信心與不規則形狀只有這一層。
+  const reviewReasons = reviewReasonsForRoom(room.id);
+  if (reviewReasons.length) return reviewReasonLabel(reviewReasons[0]);
   return "";
+}
+
+function analysisReviewItems() {
+  return reviewItemsFromAnalysis(state.analysis);
+}
+
+function reviewReasonsForRoom(roomId) {
+  const key = String(roomId);
+  const reasons = [];
+  for (const item of analysisReviewItems()) {
+    if (String(item.room_id) !== key) continue;
+    if (!reasons.includes(item.reason)) reasons.push(item.reason);
+  }
+  return reasons;
+}
+
+function unresolvedRecognitionReviewRooms() {
+  return unresolvedReviewRooms(analysisReviewItems(), state.rooms);
+}
+
+function recognitionReviewSuffix() {
+  const flagged = unresolvedReviewRooms(analysisReviewItems(), state.rooms).length;
+  return flagged ? `；系統標記 ${flagged} 間房需人工複核` : "";
+}
+
+function renderRecognitionReviewSummary() {
+  if (!element.recognitionReviewSummary || !element.recognitionReviewList) return;
+  const pending = unresolvedRecognitionReviewRooms();
+  element.recognitionReviewSummary.hidden = pending.length === 0;
+  if (!pending.length) {
+    element.recognitionReviewList.innerHTML = "";
+    return;
+  }
+  element.recognitionReviewList.innerHTML = pending.map(({ room, reasons }) => `
+    <li class="rp-review-summary-item">
+      <button type="button" data-review-room-id="${escapeHtml(room.id)}" class="rp-review-room-jump">
+        <strong>${escapeHtml(room.label || "未命名空間")}</strong>
+        ${reasons.map((reason) => `<small>${escapeHtml(reviewReasonLabel(reason))}</small>`).join("")}
+      </button>
+    </li>
+  `).join("");
 }
 
 // 標題列與畫布工具列各有一顆「查看全部空間」。以前兩顆共用同一個 id，
@@ -2438,6 +2490,7 @@ function renderRooms() {
   }
   const deleteCurrentRoomButton = $("#delete-current-room");
   if (deleteCurrentRoomButton) deleteCurrentRoomButton.disabled = state.rooms.length <= 1;
+  renderRecognitionReviewSummary();
   updateShowAllRoomsButton();
   element.currentRoomReview.hidden = !selectedRoom;
   if (selectedRoom) {
@@ -2503,7 +2556,13 @@ function skipCurrentRoomReview() {
 
 function confirmAllRooms() {
   if (!state.rooms.length) return;
-  state.rooms.forEach((room) => {
+  // 系統標記需複核的房間不吃一鍵確認：複核訊號的意義就是「這幾間要人看過」，
+  // 讓它們留在待確認狀態，逐一經 confirmRoom 才算數。
+  const flaggedIds = new Set(
+    unresolvedRecognitionReviewRooms().map(({ room }) => String(room.id)),
+  );
+  const confirmable = state.rooms.filter((room) => !flaggedIds.has(String(room.id)));
+  confirmable.forEach((room) => {
     room.confirmed = true;
     room.confidence = 1;
     room.source = "manual_confirmation";
@@ -2513,7 +2572,11 @@ function confirmAllRooms() {
   renderRooms();
   renderSpaceOverlay();
   scheduleSave("space_confirmation");
-  setStatus(`已一次確認 ${state.rooms.length} 個房間；仍可逐房修改名稱或框選。`);
+  setStatus(
+    flaggedIds.size
+      ? `已確認 ${confirmable.length} 個房間；另有 ${flaggedIds.size} 間被系統標記需逐一檢查，清單見「系統標記需人工複核」。`
+      : `已一次確認 ${state.rooms.length} 個房間；仍可逐房修改名稱或框選。`,
+  );
 }
 
 function deleteRoom(roomId = state.selectedRoomId) {
@@ -5153,6 +5216,10 @@ function confirmDimensionedPlan() {
     proportionsConfirmed: true,
     dimensionedPlanConfirmed: true,
     totalAreaM2: annotation.totalAreaM2,
+    // 完成當下不可能還有未複核房間（未確認的房間到不了這裡），記數字供
+    // 伺服器端 recognition_review_unresolved 閘門與之後追溯。
+    recognitionReviewItemCount: analysisReviewItems().length,
+    recognitionReviewResolved: true,
   });
   renderWholeHouseQuestionnaire();
   setStatus("尺寸標註平面圖與結構均已確認。現在開始基本問卷。");
@@ -12464,6 +12531,12 @@ function bindEvents() {
     const button = event.target.closest("[data-room-id]");
     if (button) selectRoom(button.dataset.roomId);
   });
+  element.recognitionReviewList?.addEventListener("click", (event) => {
+    const jump = event.target.closest("[data-review-room-id]");
+    if (!jump) return;
+    selectRoom(jump.dataset.reviewRoomId);
+    element.currentRoomReview?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   element.skipCurrentRoom.addEventListener("click", skipCurrentRoomReview);
   element.confirmCurrentRoom.addEventListener("click", confirmCurrentRoomAndAdvance);
   $("#delete-current-room").addEventListener("click", () => deleteRoom());
@@ -13842,7 +13915,7 @@ async function restoreProject() {
       element.scaleInput.value = Math.round(Number(state.analysis.scale.distance_m) * 1000) / 10;
     }
     if (state.analysis) {
-      element.recognitionSummary.textContent = `辨識結果：牆 ${state.analysis.walls?.length || state.analysis.floorplan?.wall_count || 0}、門 ${state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0}、窗 ${state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0}`;
+      element.recognitionSummary.textContent = `辨識結果：牆 ${state.analysis.walls?.length || state.analysis.floorplan?.wall_count || 0}、門 ${state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0}、窗 ${state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0}${recognitionReviewSuffix()}`;
       element.uploadFileState.textContent =
         state.analysis.filename || state.workflow.data.upload?.filename || "已上傳平面圖";
     }

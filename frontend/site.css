@@ -15751,3 +15751,60 @@ body.is-registering .auth-register-only {
   border: 1px solid rgba(142, 118, 96, 0.32);
   color: rgba(47, 41, 37, 0.78);
 }
+
+/* ── 辨識複核：系統標記需人工確認的房間清單（第 4 步房間面板） ────────── */
+.rp-review-summary {
+  border: 1px solid rgba(176, 120, 24, 0.45);
+  border-left: 4px solid #b07818;
+  background: rgba(248, 239, 221, 0.65);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 0 0 14px;
+}
+.rp-review-summary h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: #8a5c10;
+}
+.rp-review-summary-hint {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: rgba(90, 70, 30, 0.85);
+  line-height: 1.6;
+}
+.rp-review-summary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rp-review-room-jump {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(176, 120, 24, 0.35);
+  background: rgba(255, 253, 248, 0.9);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+.rp-review-room-jump:hover,
+.rp-review-room-jump:focus-visible {
+  border-color: #b07818;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(176, 120, 24, 0.25);
+}
+.rp-review-room-jump strong {
+  font-size: 13.5px;
+  color: #5a4014;
+}
+.rp-review-room-jump small {
+  font-size: 12px;
+  color: rgba(90, 70, 30, 0.8);
+  line-height: 1.5;
+}
