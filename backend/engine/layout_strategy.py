@@ -805,8 +805,13 @@ ROOM_RULES: dict[str, dict[str, PlacementRule]] = {
         ),
         "bookcase": PlacementRule(order=10),
         "armchair": PlacementRule(order=15),
+        # 配套池的桌椅組（含電競角）可進客廳：椅貼桌前、面向桌（同臥室規則）。
+        "desk": PlacementRule(order=18),
         "coffee-table": PlacementRule(
             attach="front", attach_to=("sofa",), gap_cm=45.0, order=25
+        ),
+        "office-chair": PlacementRule(
+            attach="front", attach_to=("desk",), gap_cm=8.0, face="target", order=30
         ),
     },
     "storage": {

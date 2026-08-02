@@ -220,6 +220,25 @@ def test_generate_layout_adapter_honours_tv_first():
     assert not ct.get("placement_failed")
 
 
+def test_living_room_desk_set_chair_faces_desk():
+    """配套池的桌椅組（電競角）進客廳也要成組：椅貼桌前 8cm、面向桌。
+    （隨機配套拍板：desk-set 可出現在臥室或客廳。）"""
+    import math
+
+    desk = item("desk", "電競桌", 118, 60, height=75)
+    chair = item("office-chair", "電競椅", 67, 65, height=90)
+    room = Room(width=700.0, depth=600.0, openings=[window(50, 600, 650, 600)])
+    result = place_room(
+        room, "living_room", [(TV, "tv"), (SOFA, "sofa"), (desk, "dk"), (chair, "ch")]
+    )
+    assert not result["failed"], result["failed"]
+    by_id = {p.id: p for p in result["placed"]}
+    dk, ch = by_id["dk"], by_id["ch"]
+    assert abs((dk.rotation - ch.rotation) % 360) == 180
+    dist = math.hypot(ch.pos_x - dk.pos_x, ch.pos_y - dk.pos_y)
+    assert dist == pytest.approx(60 / 2 + 8 + 65 / 2, abs=1.0)
+
+
 def test_locked_companion_pair_survives_confirm_revalidation():
     """「確認 2D」把引擎自擺座標鎖位重驗（confirmLayout2d 不帶 placement_room_id
     → room_type=None 的路徑）。companion（床頭櫃貼床 5cm）必須帶配套語意，

@@ -81,18 +81,20 @@ ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
     "bed": ("bedroom",),
     "bedside-table": ("bedroom",),
     "wardrobe": ("bedroom",),
-    "chests-of-drawer": ("bedroom",),
+    "chests-of-drawer": ("bedroom", "storage"),
     "sofa": ("living_room", "multifunction"),
     "tv-bench": ("living_room",),
     "coffee-table": ("living_room",),
-    "armchair": ("living_room",),
+    "armchair": ("living_room", "bedroom"),  # 臥室閱讀角（隨機配套池）
     "dining-table": ("dining_room",),
     "dining-chair": ("dining_room",),
     "sideboard": ("dining_room",),
-    "desk": ("workspace", "bedroom", "multifunction"),
-    "office-chair": ("workspace", "bedroom", "multifunction"),
+    # living_room：2026-08-02 Ancai 拍板——桌椅組（含電競角）與層架可進客廳
+    # （隨機配套池單元跨房型，池與本表必須一致，鎖於 test_agent_addon_pool）。
+    "desk": ("workspace", "bedroom", "multifunction", "living_room"),
+    "office-chair": ("workspace", "bedroom", "multifunction", "living_room"),
     "shoe-cabinet": ("entry",),
-    "shelving-unit": ("storage", "workspace", "balcony"),
+    "shelving-unit": ("storage", "workspace", "balcony", "living_room"),
 }
 
 # 各房「最少自動配置」族系。空 tuple = 該房預設不自動塞家具
@@ -118,6 +120,51 @@ ROOM_MINIMUM_FAMILIES: dict[str, tuple[str, ...]] = {
 ROOM_MINIMUM_FAMILY_COUNTS: dict[str, dict[str, int]] = {
     "bedroom": {"bedside-table": 2},
 }
+
+
+# ── 隨機配套池（2026-08-02 Ancai 拍板：預設最少＋隨機配套，達到設計效果）──
+# 必備之上的「合理加購」：AI 配置在必備族系外隨機抽「配套單元」補到每房
+# 5 槽上限——必備族系各佔一槽（床頭櫃 ×2 屬同一族系槽）、成組單元佔一槽
+# （桌椅組＝1 槽 2 件）；decor（植栽／地毯／燈）走 decorate 不吃槽。
+# 池內容＝v1「可選」欄 × 型錄有貨（08-02 實測件數）；同一單元可跨房型
+# （拍板原文：電競桌椅可以出現在房間，也可以出現在客廳）。
+# flavors＝語意風味候選，抽中後用於挑種子件（"" ＝一般款）。
+ADDON_UNITS: dict[str, dict] = {
+    "chest": {"families": ("chests-of-drawer",), "label": "五斗櫃"},
+    "bookcase": {"families": ("bookcase",), "label": "書櫃"},
+    "armchair": {"families": ("armchair",), "label": "單人扶手椅"},
+    "desk-set": {
+        "families": ("desk", "office-chair"),
+        "label": "書桌椅組",
+        "flavors": ("", "gaming"),
+    },
+    "display": {"families": ("display-cabinet",), "label": "展示櫃"},
+    "shelving": {"families": ("shelving-unit",), "label": "層架"},
+    "sideboard": {"families": ("sideboard",), "label": "餐邊櫃"},
+    # 註：storage-solution-system 族系折疊歸 shelving-unit（儲藏室必備），
+    # 不能做配套單元——會被必備過濾成永遠抽不中的死單元。
+    "cupboard": {"families": ("cabinet-cupboard",), "label": "收納櫃"},
+    "bench": {"families": ("stool-bench",), "label": "凳椅"},
+    "mirror": {"families": ("mirror",), "label": "立鏡"},
+}
+
+ROOM_ADDON_POOLS: dict[str, tuple[str, ...]] = {
+    "bedroom": ("chest", "bookcase", "desk-set", "armchair"),
+    "living_room": ("armchair", "bookcase", "desk-set", "display", "shelving"),
+    "workspace": ("bookcase", "shelving"),
+    "dining_room": ("sideboard", "display"),
+    "storage": ("cupboard", "chest"),
+    "entry": ("bench", "mirror"),
+}
+
+# 每房 AI 配置的槽位上限；使用者手動新增不受此限。
+ROOM_SLOT_LIMIT = 5
+
+
+def addon_units_for_room(room_type: str | None) -> tuple[dict, ...]:
+    """該房型的配套單元池（含單元 key），未知房型回空。"""
+    keys = ROOM_ADDON_POOLS.get(normalize_room_type(room_type), ())
+    return tuple({"key": key, **ADDON_UNITS[key]} for key in keys)
 
 
 def required_families_for_room(room_type: str | None) -> tuple[str, ...]:

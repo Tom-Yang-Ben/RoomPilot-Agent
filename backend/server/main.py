@@ -4,6 +4,7 @@ import io
 import csv
 import json
 import os
+import random
 import re
 import unicodedata
 import urllib.error
@@ -22,6 +23,8 @@ from PIL import Image
 
 from ..agent.knowledge import (
     FAMILY_ZH,
+    ROOM_SLOT_LIMIT,
+    addon_units_for_room,
     family_of,
     normalize_room_type,
     required_families_for_room,
@@ -2722,6 +2725,79 @@ def _rag_offer_cache_entries() -> dict[str, list[str]]:
     return entries
 
 
+def _addon_seed_item(pool: list[dict], flavor: str, rng: random.Random) -> dict:
+    """從族系候選挑種子件；有風味（gaming）就優先語意命中款，無貨退一般款。"""
+    if flavor:
+        flavored = [
+            item for item in pool
+            if flavor in str(item.get("name_en") or "").lower()
+            or "電競" in str(item.get("name_zh") or "")
+        ]
+        if flavored:
+            return rng.choice(flavored)
+    return rng.choice(pool)
+
+
+def _addon_offers(
+    rooms: list[dict],
+    offers: dict[str, list[dict]],
+    rng: random.Random | None = None,
+    catalog: list[dict] | None = None,
+) -> tuple[dict[str, list[dict]], list[dict]]:
+    """隨機配套（2026-08-02 拍板：預設最少＋隨機配套，達到設計效果）。
+
+    在必備族系之外，為每房從 knowledge 配套池隨機抽單元補到 5 槽上限
+    （必備族系與 offers 既有非必備族系各佔一槽、成組單元佔一槽），把該
+    族系的種子候選塞進 offers——後續 `_rag_cache_offers` 會為這些族系插
+    語意第一名、`parse_selections` 每族系取一件成選。抽樣即設計變化：
+    同一份問卷每次「產生配置」可得不同但合理的配套（電競桌椅可進臥室
+    或客廳）。只補不裁：offers 已超槽（問卷塞好塞滿）就不抽。
+    """
+    rng = rng or random.Random()
+    source = catalog if catalog is not None else list(_furniture_payload_cache())
+    by_family: dict[str, list[dict]] = {}
+    for item in source:
+        if not item.get("model_url"):
+            continue
+        by_family.setdefault(family_of(str(item.get("normalized_type") or "")), []).append(item)
+
+    picked: list[dict] = []
+    for room in rooms:
+        room_id = str(room.get("room_id") or "")
+        pool = addon_units_for_room(room.get("room_type"))
+        if not room_id or not pool:
+            continue
+        required = set(required_families_for_room(room.get("room_type")))
+        existing = {
+            family_of(str(o.get("normalized_type") or o.get("type") or ""))
+            for o in offers.get(room_id, [])
+        }
+        existing.discard("")
+        free_slots = ROOM_SLOT_LIMIT - len(required) - len(existing - required)
+        if free_slots <= 0:
+            continue
+        candidates = [
+            unit for unit in pool
+            if not (set(unit["families"]) & required)
+            and not (set(unit["families"]) & existing)
+            and all(by_family.get(f) for f in unit["families"])  # 型錄有貨才進抽
+        ]
+        rng.shuffle(candidates)
+        for unit in candidates[:free_slots]:
+            flavor = rng.choice(tuple(unit.get("flavors") or ("",)))
+            for fam in unit["families"]:
+                seed = _addon_seed_item(by_family[fam], flavor, rng)
+                # 鋪整個型錄 item（model_url／size_cm／名稱都要），選件回應
+                # 才是可入場的真品，不是無真身佔位。
+                offers.setdefault(room_id, []).append(
+                    {**seed, "variant_id": "standard", "selection_source": "addon_random"}
+                )
+            picked.append(
+                {"room_id": room_id, "unit": unit["key"], "label": unit["label"], "flavor": flavor}
+            )
+    return offers, picked
+
+
 def _rag_cache_offers(
     rooms: list[dict],
     offers: dict[str, list[dict]],
@@ -2961,8 +3037,10 @@ async def agent_furniture_select(payload: dict) -> dict:
         })
     offers = _normalize_selection_offers(payload.get("offers"))
     style_id = payload.get("style_id")
-    # 選件來源順序：RAG 語意快取第一（插到各族系最前）→ Agent 補件保底
-    # （必備族系缺席或全無 3D 模型時由型錄補真品）→ 本地規則驗證。
+    # 選件來源順序：隨機配套抽樣（必備外補到 5 槽）→ RAG 語意快取
+    # （插到各族系最前，含抽中的配套族系）→ Agent 補件保底（必備族系
+    # 缺席或全無 3D 模型時由型錄補真品）→ 本地規則驗證。
+    offers, addon_picks = _addon_offers(rooms, offers)
     offers = _rag_cache_offers(rooms, offers, style_id)
     offers = _backfill_required_offers(rooms, offers, style_id)
     context = payload.get("context") if isinstance(payload.get("context"), dict) else None
@@ -2978,19 +3056,24 @@ async def agent_furniture_select(payload: dict) -> dict:
                 complete=lambda _messages: ("payload/llm_selection", llm_selection),
                 context=context,
             )
-            return _selection_response(selected, source="openrouter", model=model)
+            response = _selection_response(selected, source="openrouter", model=model)
+            response["addons"] = addon_picks
+            return response
         except (SelectionParseError, SelectionUnavailableError) as exc:
             warnings.append(f"LLM 選擇未通過規則驗證，已改用本地規則：{exc}")
 
     try:
         selected = parse_selections(_local_selection_raw(rooms, offers), rooms, offers)
-        return _selection_response(selected, source="local_rules", warnings=warnings)
+        response = _selection_response(selected, source="local_rules", warnings=warnings)
+        response["addons"] = addon_picks
+        return response
     except SelectionParseError as exc:
         warnings.append(f"本地規則無法完整驗證候選家具，已保留第一批候選：{exc}")
         return {
             "source": "local_rules_unvalidated",
             "model": None,
             "warnings": warnings,
+            "addons": addon_picks,
             "rooms": [
                 {
                     "room_id": room_id,
