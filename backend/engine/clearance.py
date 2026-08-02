@@ -14,7 +14,7 @@ from shapely.geometry import Polygon, box
 from shapely.affinity import rotate
 
 from backend.engine.models import Room, PlacedFurniture
-from backend.engine.geometry import furniture_polygon, vertical_overlap, wall_polygon
+from backend.engine.geometry import furniture_polygon, may_share_floor_space, wall_polygon
 
 
 _SIDE_OFFSETS = {
@@ -77,7 +77,8 @@ def clearance_conflict(
             continue
         # 開合空間的高度就是家具本身的高度:垂直帶不重疊的東西擋不到門片。
         # 地毯鋪進衣櫃門前是正常的,不該判成「開合空間被擋住」。
-        if not vertical_overlap(item, other):
+        # 成對例外同理——書桌的前方淨空本來就是給辦公椅用的。
+        if may_share_floor_space(item, other):
             continue
         # 2. 淨空 vs 其他家具本體
         if zone.intersects(furniture_polygon(other)):
@@ -111,7 +112,7 @@ def check_placement_with_clearance(
     for other in others:
         if other.id == item.id:
             continue
-        if not vertical_overlap(item, other):
+        if may_share_floor_space(item, other):
             continue
         other_zone = clearance_polygon(other)
         if other_zone is not None and body.intersects(other_zone):

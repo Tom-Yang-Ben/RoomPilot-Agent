@@ -205,6 +205,31 @@ MOUNT_HEIGHT_BY_TYPE: dict[str, float] = {
 }
 
 
+# 垂直帶重疊、但實務上本來就該塞在一起的成對例外。只放高度表達不了的關係。
+#
+# 「成組」不等於「可重疊」:backend/agent/knowledge.py 的 COMPANION_OF 也把
+# 床頭櫃配床、茶几配沙發列為成組,但那是選件關係——它們該並排,不該疊在
+# 一起。這裡只收真的推得進去的那兩對。
+#
+# 表刻意收得很緊。多放一對就是多開一個重疊漏洞,而漏擋比多擋難發現。
+_OVERLAP_ALLOWED_PAIRS: tuple[tuple[str, str], ...] = (
+    ("dining-chair", "dining-table"),
+    ("office-chair", "desk"),
+)
+
+
+def _build_overlap_allowed() -> dict[str, frozenset[str]]:
+    """把配對展開成雙向查表,避免只寫單向造成 A 查得到 B、B 查不到 A。"""
+    pairs: dict[str, set[str]] = {}
+    for left, right in _OVERLAP_ALLOWED_PAIRS:
+        pairs.setdefault(left, set()).add(right)
+        pairs.setdefault(right, set()).add(left)
+    return {key: frozenset(value) for key, value in pairs.items()}
+
+
+OVERLAP_ALLOWED_BY_TYPE: dict[str, frozenset[str]] = _build_overlap_allowed()
+
+
 def catalog_item_from_scene_object(
     item_type: str | None,
     name: str | None,
@@ -225,4 +250,5 @@ def catalog_item_from_scene_object(
         mount_height_cm=MOUNT_HEIGHT_BY_TYPE.get(key, 0.0) if surface == WALL else 0.0,
         # 地毯與桌面擺飾不佔垂直空間:家具站在它們上面是正常的。
         occupies_floor_space=surface not in (FLOOR_COVERING, TABLETOP),
+        overlap_allowed_types=OVERLAP_ALLOWED_BY_TYPE.get(key, frozenset()),
     )

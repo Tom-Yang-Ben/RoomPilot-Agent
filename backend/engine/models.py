@@ -61,6 +61,10 @@ class FurnitureCatalogItem:
     # 「壁架跟矮櫃可以,跟高衣櫃不行」,一個離地高度就講得出來。
     mount_height_cm: float = 0.0       # 離地高度;落地家具 0,壁掛品項 > 0
     occupies_floor_space: bool = True  # False = 地毯、桌面擺飾,不佔垂直空間
+    # 垂直帶重疊、但實務上本來就該塞在一起的成對例外(餐椅推進餐桌下)。
+    # 只放高度表達不了的關係;「成組」不等於「可重疊」——床頭櫃配床、
+    # 茶几配沙發都是成組,但都不該重疊。
+    overlap_allowed_types: frozenset[str] = field(default_factory=frozenset)
 
     def vertical_span(self) -> tuple[float, float] | None:
         """回傳 (下緣, 上緣);None 代表不佔垂直空間,與任何家具都不衝突。"""

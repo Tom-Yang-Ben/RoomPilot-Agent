@@ -5,8 +5,18 @@
 """
 import pytest
 
-from backend.catalog.style_db import MOUNT_HEIGHT_BY_TYPE, catalog_item_from_scene_object
-from backend.engine.geometry import check_placement, hits_furniture, vertical_overlap
+from backend.catalog.style_db import (
+    MOUNT_HEIGHT_BY_TYPE,
+    OVERLAP_ALLOWED_BY_TYPE,
+    catalog_item_from_scene_object,
+)
+from backend.engine.clearance import check_placement_with_clearance
+from backend.engine.geometry import (
+    check_placement,
+    hits_furniture,
+    may_share_floor_space,
+    vertical_overlap,
+)
 from backend.engine.models import FurnitureCatalogItem, PlacedFurniture, Room, Wall
 
 
@@ -92,6 +102,55 @@ def test_two_floor_items_still_collide() -> None:
 
     assert vertical_overlap(sofa, table) is True
     assert hits_furniture(sofa, [table]) is table
+
+
+# ── 成對例外(Phase 3) ────────────────────────────────────────────────
+
+def test_pair_table_is_symmetric() -> None:
+    """單向寫表會造成 A 查得到 B、B 查不到 A。"""
+    for item_type, partners in OVERLAP_ALLOWED_BY_TYPE.items():
+        for partner in partners:
+            assert item_type in OVERLAP_ALLOWED_BY_TYPE[partner]
+
+
+def test_dining_chair_tucks_under_the_table() -> None:
+    table = _placed("tbl_1", _catalog("dining-table", "餐桌", 160, 90, 75))
+    chair = _placed("chr_1", _catalog("dining-chair", "餐椅", 45, 50, 90))
+
+    assert vertical_overlap(chair, table) is True, "兩者垂直帶確實重疊,靠例外放行"
+    assert may_share_floor_space(chair, table) is True
+    assert hits_furniture(chair, [table]) is None
+    assert hits_furniture(table, [chair]) is None
+
+
+def test_office_chair_tucks_under_the_desk_including_its_clearance() -> None:
+    """書桌的前方淨空本來就是給辦公椅用的,不該判成擋住開合空間。"""
+    room = _room()
+    desk = _placed("desk_1", _catalog("desk", "書桌", 140, 70, 75))
+    chair = _placed("chr_1", _catalog("office-chair", "辦公椅", 60, 60, 95), y=190.0)
+
+    assert desk.catalog.clearance is not None, "書桌本來就有前方淨空"
+    assert check_placement_with_clearance(chair, room, [desk]) is None
+    assert check_placement_with_clearance(desk, room, [chair]) is None
+
+
+def test_grouped_but_not_overlappable_pairs_still_collide() -> None:
+    """成組不等於可重疊:床頭櫃配床、茶几配沙發該並排,不該疊在一起。"""
+    bed = _placed("bed_1", _catalog("bed", "雙人床", 160, 200, 50))
+    bedside = _placed("bs_1", _catalog("bedside-table", "床頭櫃", 45, 40, 55))
+    assert hits_furniture(bedside, [bed]) is bed
+
+    sofa = _placed("sofa_1", _catalog("sofa", "沙發", 200, 90, 80))
+    coffee = _placed("cof_1", _catalog("coffee-table", "茶几", 100, 55, 40))
+    assert hits_furniture(coffee, [sofa]) is sofa
+
+
+def test_chair_still_collides_with_furniture_outside_the_pair() -> None:
+    chair = _placed("chr_1", _catalog("dining-chair", "餐椅", 45, 50, 90))
+    wardrobe = _placed("wr_1", _catalog("wardrobe", "衣櫃", 120, 60, 200))
+
+    assert may_share_floor_space(chair, wardrobe) is False
+    assert hits_furniture(chair, [wardrobe]) is wardrobe
 
 
 # ── 牆與邊界 ──────────────────────────────────────────────────────────

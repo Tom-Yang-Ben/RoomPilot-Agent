@@ -62,12 +62,26 @@ def vertical_overlap(a: PlacedFurniture, b: PlacedFurniture) -> bool:
     return span_a[0] < span_b[1] and span_b[0] < span_a[1]
 
 
+def may_share_floor_space(a: PlacedFurniture, b: PlacedFurniture) -> bool:
+    """這兩件家具是否被允許共用同一塊平面空間。
+
+    先看垂直帶——不重疊就本來不會撞。垂直帶重疊時再查成對例外:
+    餐椅推進餐桌下、辦公椅推進書桌下是正常配置,不是違規。
+    """
+    if not vertical_overlap(a, b):
+        return True
+    return (
+        b.catalog.type in a.catalog.overlap_allowed_types
+        or a.catalog.type in b.catalog.overlap_allowed_types
+    )
+
+
 def hits_furniture(item: PlacedFurniture, others: list[PlacedFurniture]) -> PlacedFurniture | None:
     poly = furniture_polygon(item)
     for other in others:
         if other.id == item.id:
             continue
-        if not vertical_overlap(item, other):
+        if may_share_floor_space(item, other):
             continue
         if poly.intersects(furniture_polygon(other)):
             return other

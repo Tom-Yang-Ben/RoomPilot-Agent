@@ -52,6 +52,15 @@ uv run python demo_agent_flow.py         # 看 Agent <-> Engine 的完整互動�
 `mount_height_cm > 0` 的壁掛品項**跳過出界與穿牆檢查**:掛在牆面上,穿牆是
 它的正常狀態。它只跟垂直帶重疊的家具比對本體碰撞。
 
+### 成對例外
+垂直帶重疊、但實務上本來就該塞在一起的配對,列在 `style_db.py` 的
+`OVERLAP_ALLOWED_BY_TYPE`(目前只有餐椅↔餐桌、辦公椅↔書桌)。例外同時
+適用於本體碰撞與淨空——書桌的前方淨空本來就是給辦公椅用的。
+
+「成組」不等於「可重疊」:`backend/agent/knowledge.py` 的 `COMPANION_OF`
+也把床頭櫃配床、茶几配沙發列為成組,但那是選件關係,它們該並排不該重疊。
+這張表刻意收得很緊,多放一對就是多開一個重疊漏洞。
+
 ### 檢查順序(重要)
 `check_placement_with_clearance` 的判斷順序固定為:
 
