@@ -103,3 +103,41 @@ prompt 明文表達（結構、家具、相機不得變動）。`ROOMPILOT_RENDE
 
 單張上限 `MAX_LOCKED_FURNITURE`（40 件）。超過時 prompt 會明寫未列出的件數，
 不做無聲截斷。
+
+## `requirements.digest`：問卷視覺需求（2026-08-02 增補）
+
+`requirements` 原本送了五組問卷資料，但 prompt 只讀得到 `basic.household`。
+使用者選的材質、天花方案、燈具與空調完全沒有進生圖，模型只能自行亂補。
+
+前端 `renderRequirementsDigest()` 會把這些需求**先解析成中文標籤**再送出，
+後端不必維護第二份型錄對照表：
+
+```json
+{
+  "schema_version": "1.0",
+  "whole_house": {
+    "household": "", "members_and_pets": "", "lifestyle": "", "immutable_needs": "",
+    "wall": "暖白礦物漆 #F7F3EA", "floor": "", "ceiling": "", "lighting": ""
+  },
+  "rooms": [
+    {"room_id": "", "room_label": "", "wall": "", "floor": "",
+     "ceiling": "", "lighting": "", "air_conditioning": ""}
+  ]
+}
+```
+
+收錄範圍只限「3D 場景表現不出來、因此不可能與參考截圖打架」的軸：材質、
+天花、燈具、空調與氛圍描述。理由是這些軸在場景裡沒有對應物件，模型本來就
+得自行補完，給了答案是把「亂補」變成「照需求補」。
+
+明確排除：
+
+- **家具品項與數量**不走這條，改由 `locked_furniture` 直接讀 `scene_json`。
+  問卷是「想要什麼」，scene 是「實際擺了什麼」，兩者可能不一致；把後者當
+  唯一畫面依據才不會出現自相矛盾的敘述。
+- **`overallStyle`** 排除：第 9 步確認的色卡（`style_packs`）才是風格依據，
+  重述問卷初選會與 `style_pack` 打架。
+- 預算、工程狀態、協助方式與視覺無關，不收。
+
+`room_final` 只帶該房間那筆，全屋層級的需求兩者都帶。`digest` 缺漏或型別
+不符時整段略過，prompt 其餘部分照常組裝。

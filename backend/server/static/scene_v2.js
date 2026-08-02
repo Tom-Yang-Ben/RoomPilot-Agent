@@ -7082,6 +7082,74 @@ function roomSurfaceAssignments() {
   });
 }
 
+// 第 8 步生圖要的是「人看得懂的需求」，不是 materialId。這裡在前端就解析成
+// 使用者在畫面上看到的同一組標籤，後端不必再維護第二份型錄對照表。
+function surfaceMaterialLabel(kind, materialId) {
+  if (!materialId) return "";
+  const match = uniqueMaterialOptions(kind).find((option) => option.id === materialId);
+  return match?.label || String(materialId);
+}
+
+function styleCatalogLabel(catalog, id) {
+  if (!id) return "";
+  return catalog.find((item) => item.id === id)?.label || String(id);
+}
+
+function surfacePhrase(label, colorHex) {
+  return [label, colorHex].filter(Boolean).join(" ");
+}
+
+// 只收「3D 場景表現不出來、因此不可能與參考截圖打架」的需求：材質、天花、
+// 燈具、冷氣與氛圍描述。家具品項與數量一律不進這裡——那條由後端直接讀
+// scene_json 鎖定，兩邊各自負責才不會出現互相矛盾的敘述。
+// overallStyle 也刻意排除：第 9 步確認的色卡才是風格依據，重述問卷初選會
+// 與 style_pack 打架。
+function renderRequirementsDigest() {
+  const finishes = state.questionnaireFinishes || {};
+  const basic = state.basicAnswers || {};
+  const rooms = roomSurfaceAssignments().map((assignment) => ({
+    room_id: assignment.room_id,
+    room_label: assignment.room_label,
+    wall: surfacePhrase(
+      surfaceMaterialLabel("wall", assignment.wall_material_id),
+      assignment.wall_color_hex,
+    ),
+    floor: surfacePhrase(
+      surfaceMaterialLabel("floor", assignment.floor_material_id),
+      assignment.floor_color_hex,
+    ),
+    ceiling: surfacePhrase(
+      styleCatalogLabel(CEILING_STYLES, assignment.ceiling_style_id),
+      assignment.ceiling_color_hex,
+    ),
+    lighting: styleCatalogLabel(LIGHT_STYLES, assignment.lighting_id),
+    air_conditioning: assignment.air_conditioning || "",
+  }));
+  return {
+    schema_version: "1.0",
+    whole_house: {
+      household: basic.household || "",
+      members_and_pets: basic.membersAndPets || "",
+      lifestyle: basic.lifestyle || "",
+      immutable_needs: basic.immutableNeeds || "",
+      wall: surfacePhrase(
+        surfaceMaterialLabel("wall", finishes.wallMaterial),
+        finishes.wallColor,
+      ),
+      floor: surfacePhrase(
+        surfaceMaterialLabel("floor", finishes.floorMaterial),
+        finishes.floorColor,
+      ),
+      ceiling: surfacePhrase(
+        styleCatalogLabel(CEILING_STYLES, finishes.ceilingStyle),
+        finishes.ceilingColor,
+      ),
+      lighting: styleCatalogLabel(LIGHT_STYLES, finishes.lightStyle),
+    },
+    rooms,
+  };
+}
+
 function planCenterCm() {
   const { bbox, scale } = planGeometry();
   return {
@@ -11984,6 +12052,8 @@ function renderRequestPayload(mode, styleCardIds, roomViews = []) {
       finishes: state.questionnaireFinishes,
       room_requirements: roomRequirementsPayload.roomRequirements,
       ready_for_rag: roomRequirementsPayload.readyForRag,
+      // 已解析成中文的需求摘要，供生圖 prompt 直接引用（見 REMOTE_RENDER_CONTRACT）。
+      digest: renderRequirementsDigest(),
     },
     room_surface_assignments: roomSurfaceAssignments(),
     master_view: state.proposalReview.masterView,

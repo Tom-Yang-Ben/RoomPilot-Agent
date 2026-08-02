@@ -107,6 +107,43 @@ def _scene_objects() -> list[dict]:
     ]
 
 
+def _requirements_digest() -> dict:
+    """前端 renderRequirementsDigest() 的輸出形狀（標籤已解析成中文）。"""
+    return {
+        "schema_version": "1.0",
+        "whole_house": {
+            "household": "兩大一小",
+            "members_and_pets": "有幼兒",
+            "lifestyle": "常在家工作",
+            "immutable_needs": "廚衛主排水不動",
+            "wall": "暖白礦物漆 #F7F3EA",
+            "floor": "淺橡木地板 #D9B985",
+            "ceiling": "間接燈槽 #f4f1eb",
+            "lighting": "崁燈",
+        },
+        "rooms": [
+            {
+                "room_id": "living-1",
+                "room_label": "客廳",
+                "wall": "柔霧石灰洗 #EDE5D8",
+                "floor": "淺橡木地板 #D9B985",
+                "ceiling": "線性燈天花",
+                "lighting": "軌道燈",
+                "air_conditioning": "壁掛式",
+            },
+            {
+                "room_id": "bedroom-1",
+                "room_label": "主臥",
+                "wall": "暖白礦物漆 #F7F3EA",
+                "floor": "深胡桃木地板",
+                "ceiling": "平釘天花",
+                "lighting": "吊燈",
+                "air_conditioning": "隱藏式",
+            },
+        ],
+    }
+
+
 def _payload(project_id: str, mode: str = "palette_comparison") -> dict:
     payload = {
         "schema_version": "1.0",
@@ -125,7 +162,10 @@ def _payload(project_id: str, mode: str = "palette_comparison") -> dict:
             "scene_objects": _scene_objects(),
         },
         "locks": {"furniture": True, "structure": True, "surfaces": True, "style_card_id": "card-1"},
-        "requirements": {"basic": {"household": "兩大一小", "name": "Ada", "phone": "0900"}},
+        "requirements": {
+            "basic": {"household": "兩大一小", "name": "Ada", "phone": "0900"},
+            "digest": _requirements_digest(),
+        },
         "master_view": {"camera": _camera()},
         "room_views": [],
         "reference_png_data_url": _png_data_url(),
@@ -291,6 +331,66 @@ def test_prompt_survives_scene_without_furniture(direct_provider) -> None:
     assert response.status_code == 202
     prompt = direct_provider[0]["body"]["messages"][0]["content"][0]["text"]
     assert "共 0 件" not in prompt
+    assert "不得新增、刪除或移動" in prompt
+
+
+def test_prompt_carries_questionnaire_visual_requirements(direct_provider) -> None:
+    project_id = _create_project()
+    client.post(f"/api/projects/{project_id}/render-jobs", json=_payload(project_id))
+
+    prompt = direct_provider[0]["body"]["messages"][0]["content"][0]["text"]
+    assert "需求問卷重點" in prompt
+    # 材質、天花、燈具是 3D 場景表現不出來的軸，必須靠 prompt 表達。
+    assert "暖白礦物漆" in prompt
+    assert "間接燈槽" in prompt
+    assert "崁燈" in prompt
+    assert "有幼兒" in prompt
+    assert "常在家工作" in prompt
+    assert "廚衛主排水不動" in prompt
+    # 全景模式帶所有房間。
+    assert "客廳——" in prompt
+    assert "主臥——" in prompt
+    assert "壁掛式" in prompt
+
+
+def test_room_final_prompt_carries_only_that_rooms_requirements(direct_provider) -> None:
+    project_id = _create_project()
+    client.post(
+        f"/api/projects/{project_id}/render-jobs",
+        json=_payload(project_id, mode="room_final"),
+    )
+
+    living, bedroom = (
+        call["body"]["messages"][0]["content"][0]["text"] for call in direct_provider
+    )
+    assert "線性燈天花" in living and "軌道燈" in living
+    assert "平釘天花" not in living, "客廳那張不該帶主臥的天花方案"
+    assert "平釘天花" in bedroom and "隱藏式" in bedroom
+    assert "線性燈天花" not in bedroom
+    # 全屋層級的需求兩張都要有。
+    assert "廚衛主排水不動" in living and "廚衛主排水不動" in bedroom
+
+
+def test_requirement_notes_never_carry_furniture_identity() -> None:
+    """問卷說「想要什麼」，scene 說「實際擺了什麼」；後者才是畫面依據。"""
+    prepared = render_providers.prepare_render_payload(_payload("p-1"))
+
+    notes = "".join(render_providers.requirement_notes(prepared))
+
+    assert "沙發" not in notes
+    assert "IKEA-SOFA-001" not in notes
+
+
+def test_prompt_survives_missing_or_malformed_digest(direct_provider) -> None:
+    project_id = _create_project()
+    payload = _payload(project_id)
+    payload["requirements"]["digest"] = "not-a-dict"
+
+    response = client.post(f"/api/projects/{project_id}/render-jobs", json=payload)
+
+    assert response.status_code == 202
+    prompt = direct_provider[0]["body"]["messages"][0]["content"][0]["text"]
+    assert "需求問卷重點" not in prompt
     assert "不得新增、刪除或移動" in prompt
 
 

@@ -204,6 +204,66 @@ def _furniture_lock_sections(
     return "\n".join(lines), appendix
 
 
+def _digest_lines(source: dict[str, Any], fields: tuple[tuple[str, str], ...]) -> list[str]:
+    lines = []
+    for key, label in fields:
+        value = str(source.get(key) or "").strip()
+        if value:
+            lines.append(f"{label}：{value}")
+    return lines
+
+
+def requirement_notes(
+    prepared: dict[str, Any],
+    room_view: dict[str, Any] | None = None,
+) -> list[str]:
+    """把問卷摘要翻成 prompt 段落。
+
+    只收 ``requirements.digest``——那是前端已經解析成中文標籤的視覺需求
+    （材質、天花、燈具、冷氣與氛圍）。家具品項與數量刻意不走這條，改由
+    ``locked_furniture`` 直接讀 scene_json：問卷是「想要什麼」，scene 是
+    「實際擺了什麼」，兩者可能不一致，把後者當唯一畫面依據才不會自相矛盾。
+
+    逐房出圖時只帶該房間那筆，避免整份摘要稀釋掉本張要聚焦的資訊。
+    """
+    digest = ((prepared.get("requirements") or {}).get("digest")) or {}
+    if not isinstance(digest, dict):
+        return []
+
+    notes: list[str] = []
+    whole_house = digest.get("whole_house")
+    if isinstance(whole_house, dict):
+        notes.extend(_digest_lines(whole_house, (
+            ("members_and_pets", "成員與寵物"),
+            ("lifestyle", "生活型態"),
+            ("wall", "全屋牆面"),
+            ("floor", "全屋地板"),
+            ("ceiling", "全屋天花"),
+            ("lighting", "全屋燈具"),
+        )))
+        immutable = str(whole_house.get("immutable_needs") or "").strip()
+        if immutable:
+            notes.append(f"不可變更的條件：{immutable}")
+
+    room_id = str((room_view or {}).get("room_id") or "")
+    for room in digest.get("rooms") or []:
+        if not isinstance(room, dict):
+            continue
+        if room_id and str(room.get("room_id")) != room_id:
+            continue
+        detail = _digest_lines(room, (
+            ("wall", "牆面"),
+            ("floor", "地板"),
+            ("ceiling", "天花"),
+            ("lighting", "燈具"),
+            ("air_conditioning", "空調"),
+        ))
+        if detail:
+            label = str(room.get("room_label") or room.get("room_id") or "此空間")
+            notes.append(f"{label}——" + "、".join(detail))
+    return notes
+
+
 def build_render_prompt(
     prepared: dict[str, Any],
     style_pack: dict[str, Any],
@@ -237,6 +297,14 @@ def build_render_prompt(
     household = (requirements.get("basic") or {}).get("household")
     if household:
         parts.append(f"居住情境：{household}。")
+    # 問卷的視覺需求：材質、天花、燈具與空調在 3D 場景裡沒有對應物件，模型
+    # 本來就得自行補完。給了答案是把「亂補」變成「照需求補」，不會與家具鎖
+    # 定衝突。
+    notes = requirement_notes(prepared, room_view)
+    if notes:
+        parts.append("使用者的需求問卷重點（必須反映在畫面上）：\n" + "\n".join(
+            f"- {note}" for note in notes
+        ))
     if room_view is not None:
         room_label = str(room_view.get("room_label") or room_view.get("room_id") or "").strip()
         if room_label:
