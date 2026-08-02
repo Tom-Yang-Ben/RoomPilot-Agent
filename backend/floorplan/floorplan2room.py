@@ -1835,10 +1835,20 @@ def build_rooms(det):
                                                  # WW_FORCE 僅供離線診斷探測
             bgr1 = det.get("bgr")
             sc = img_w / float(bgr1.shape[1])
+            T1x = max(6, int(round(T / sc)))
             ww = fp_c.white_wall_rects(
-                bgr1, max(6, int(round(T / sc))),
+                bgr1, T1x,
                 dark_rects=[(r_[0] / sc, r_[1] / sc, r_[2] / sc, r_[3] / sc)
                             for r_ in rects])
+            # 語意牆帶（分割頭，2026-08-03）：近白暗示牆的白帶/暗色都抓
+            # 不到，DINO patch 機率圖的低機率脊線補上；門洞照走既有門
+            # 尺寸縫封口。資產缺檔＝空清單，行為不變。SEG_BANDS=0 供 A/B
+            if os.environ.get("SEG_BANDS", "1") == "1":
+                import seg_head
+                sb = seg_head.wall_bands(bgr1, T1x)
+                if sb:
+                    print(f"語意牆帶 : {len(sb)} 段（seg_head）")
+                    ww = ww + sb
             ww2 = [(x0 * sc, y0 * sc, x1 * sc, y1 * sc)
                    for x0, y0, x1, y1 in ww]
             if ww2:

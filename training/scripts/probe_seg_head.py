@@ -91,8 +91,14 @@ def auc_of(y, s):
 
 
 def main():
+    import argparse
     import eval_rooms_cc as ev
     import room_classifier as rc
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--fit-final", action="store_true",
+                    help="19 張全訓、寫出 backend/floorplan/seg_head.npz"
+                         "（dev 量測因此帶訓練偏差，真實成績以 holdout 判）")
+    args = ap.parse_args()
     st = rc._load("color")
     assert st is not None
     os.makedirs(VIS_DIR, exist_ok=True)
@@ -115,6 +121,15 @@ def main():
         print(f"{sid}: grid {gh}x{gw} 房內 {int(lab.sum())}/{lab.size}")
 
     ids = sorted(data)
+    if args.fit_final:
+        X = np.vstack([data[s]["X"] for s in ids])
+        yy = np.concatenate([data[s]["y"] for s in ids])
+        w, b, mu, sd = fit_head(X, yy.astype(np.float64))
+        out = os.path.join(_ROOT, "backend", "floorplan", "seg_head.npz")
+        np.savez_compressed(out, w=w, b=b, mu=mu, sd=sd,
+                            backbone=st["backbone"], max_side=MAX_SIDE)
+        print(f"出貨資產 → {out}（樣本 {len(yy)}）")
+        return
     rep = {}
     for sid in ids:
         Xtr = np.vstack([data[s]["X"] for s in ids if s != sid])
