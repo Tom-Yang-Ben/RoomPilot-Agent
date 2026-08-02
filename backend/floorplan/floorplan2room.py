@@ -1597,6 +1597,14 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                     bal_half = a_ if la == "Balcony" else b_
                     if not _on_env(bal_half):
                         continue                 # 假陽台半不貼殼緣
+                elif pair == {"Entry", "LivingRoom"} and big:
+                    # floor52 實案：玄關半 DINO 0.62/客廳半 0.99，只因不
+                    # 在接受對而沒開刀。Entry 誤判常見，從嚴 0.6 且
+                    # Entry 半須貼殼緣（玄關必有對外門）
+                    thr_pair = 0.60
+                    ent_half = a_ if la == "Entry" else b_
+                    if not _on_env(ent_half):
+                        continue
                 else:
                     continue
                 if pa[la] < thr_pair or pb[lb] < thr_pair:
