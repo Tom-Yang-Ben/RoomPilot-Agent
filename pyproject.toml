@@ -5,6 +5,9 @@ description = "RoomPilot — 室內設計即時提案溝通 Agent(AIPE03 第四�
 requires-python = ">=3.12"
 dependencies = [
     "shapely>=2.1.2",
+    # 柵格擺位引擎(backend/engine/raster.py 等)的布林網格運算。shapely 本來就
+    # 間接帶入 numpy,但引擎層直接 import,依賴必須顯式宣告。
+    "numpy>=2.0",
 ]
 
 [project.optional-dependencies]

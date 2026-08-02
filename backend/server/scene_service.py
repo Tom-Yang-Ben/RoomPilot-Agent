@@ -17,6 +17,8 @@ from ..agent.place import placement_hints, resolve_placements
 from ..catalog.style_db import CLEARANCE_BY_TYPE, catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
+from ..engine.layout_model import Placement as RasterPlacement, RoomContext as RasterContext
+from ..engine.obb import Obb, obb_blocked, stamp_obb
 from ..engine.geometry import furniture_polygon
 from ..engine.models import PlacedFurniture, Room, Wall
 from ..engine.placement import (
@@ -1126,6 +1128,139 @@ def _placement_intersects_zones(
     return any(footprint.intersects(zone) for zone in zones)
 
 
+# ── 柵格擺位引擎接線(docs/擺位計算邏輯.md)──────────────────────────
+# 2026-08-02 起碰撞判定的唯一權威是 backend/engine 的布林網格,不再是 Shapely。
+# 邊界(¬room_mask)、門前動線、窗前採光帶全部併進遮罩,因此原本分散在
+# _inside_boundary / _placement_intersects_zones / check_placement_with_clearance
+# 的三段檢查在此收斂成一次 obb_blocked。
+
+
+def build_raster_context(
+    room: Room,
+    boundary: Polygon | None,
+    floorplan: dict[str, Any] | None,
+) -> RasterContext | None:
+    """由房間邊界與門窗建出柵格擺位脈絡(角落原點公分)。
+
+    ``boundary`` 已是「可擺區域」(內縮 8cm 或 DXF 最大自由空間),直接當房間環;
+    取不到環時回 None,呼叫端退回舊 Shapely 路徑(手動矩形模式的極端案例)。
+    """
+    from ..engine.constraints import blocked_masks
+    from ..engine.layout_model import RoomContext, polygon_centroid, room_edges
+    from ..engine.raster import build_occupancy
+
+    ring: list[tuple[float, float]] = []
+    if boundary is not None and not boundary.is_empty:
+        geom = max(boundary.geoms, key=lambda g: g.area) if hasattr(boundary, "geoms") else boundary
+        ring = [(float(x), float(y)) for x, y in geom.exterior.coords]
+    if len(ring) < 4:
+        ring = [
+            (0.0, 0.0), (room.width, 0.0), (room.width, room.depth), (0.0, room.depth),
+        ]
+
+    doors = _floorplan_segments_cm(floorplan, "door_segments", room)
+    windows = _floorplan_segments_cm(floorplan, "window_segments", room)
+    plan = {
+        "bbox": [
+            min(p[0] for p in ring), min(p[1] for p in ring),
+            max(p[0] for p in ring), max(p[1] for p in ring),
+        ],
+        "walls": [(w.x1, w.y1, w.x2, w.y2) for w in room.walls or []],
+        "wall_polygons": [],
+        "doors": doors,
+        "windows": windows,
+    }
+    grid = build_occupancy(plan)
+    # occ 已含牆線;房間環本身就是可擺區域,牆體不再重複扣一次
+    grid.occ[:] = False
+    masks = blocked_masks(grid, ring, doors=doors, windows=windows)
+    return RoomContext(
+        grid=grid,
+        masks=masks,
+        edges=room_edges(ring),
+        centroid=polygon_centroid(ring),
+        room_id="scene",
+        label="default",
+    )
+
+
+def raster_free(
+    ctx: RasterContext | None,
+    item_type: str | None,
+    width: float,
+    depth: float,
+    height: float,
+    x_cm: float,
+    z_cm: float,
+    rotation_deg: float,
+    half_w_cm: float,
+    half_d_cm: float,
+    *,
+    check_placed: bool = True,
+) -> bool:
+    """柵格版合法性(`docs/擺位計算邏輯.md` §5.3)。
+
+    一次判完「房外 / 牆體 / 門前動線 / 窗前採光帶 / 已放家具」。
+    ``item_type`` 只用來套規格的兩個豁免:``curtain`` 不受窗前帶約束、
+    ``wall-shelf`` 掛牆不參與地面碰撞。
+    """
+    if ctx is None:
+        return True                       # 建不出脈絡時交還舊路徑判斷
+    obb = Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, width, depth, rotation_deg)
+    if item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES:
+        mask = ctx.masks.low               # 窗簾本來就該貼窗
+    else:
+        mask = ctx.masks.for_height(height)
+    if obb_blocked(mask, ctx.grid, obb):
+        return False
+    if check_placed and item_type not in _IGNORE_COLLISION_TYPES:
+        return not obb_blocked(ctx.placed, ctx.grid, obb)
+    return True
+
+
+def raster_commit(
+    ctx: RasterContext | None,
+    item_type: str | None,
+    width: float,
+    depth: float,
+    x_cm: float,
+    z_cm: float,
+    rotation_deg: float,
+    half_w_cm: float,
+    half_d_cm: float,
+) -> None:
+    """把已定案的家具烙進累計遮罩。地毯(overlay)與層板不烙印。"""
+    if ctx is None or item_type in _OVERLAY_TYPES or item_type in _IGNORE_COLLISION_TYPES:
+        return
+    stamp_obb(
+        ctx.placed,
+        ctx.grid,
+        Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, width, depth, rotation_deg),
+    )
+
+
+def _floorplan_segments_cm(
+    floorplan: dict[str, Any] | None,
+    key: str,
+    room: Room,
+) -> list[tuple[float, float, float, float]]:
+    """payload 的門/窗段 → 角落原點公分線段(與 window_clearance_zones 同一換算)。"""
+    scale = _floorplan_coordinate_scale_cm(floorplan)
+    out: list[tuple[float, float, float, float]] = []
+    for opening in (floorplan or {}).get(key) or []:
+        try:
+            start, end = opening["start"], opening["end"]
+            out.append((
+                float(start["x"]) * scale + room.width / 2,
+                float(start["z"]) * scale + room.depth / 2,
+                float(end["x"]) * scale + room.width / 2,
+                float(end["z"]) * scale + room.depth / 2,
+            ))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
 def _scene_rotation_toward(
     source: dict[str, float],
     target: dict[str, float],
@@ -1541,6 +1676,22 @@ def generate_layout(
     placed_by_type: dict[str, list[PlacedFurniture]] = {}
     results: dict[int, dict[str, Any]] = {}
 
+    # 碰撞判定的唯一權威(docs/擺位計算邏輯.md §3、§5):房間環、門前動線與
+    # 窗前採光帶全部烘進布林網格,取代原本 Shapely 的三段分散檢查。
+    raster = build_raster_context(room, boundary, floorplan)
+
+    def _raster_accepts(engine_item: PlacedFurniture | None, kind: str | None) -> bool:
+        """Shapely 提議、柵格裁決:引擎回的候選仍須通過布林網格才算合法。"""
+        if engine_item is None:
+            return False
+        return raster_free(
+            raster, kind,
+            engine_item.catalog.width, engine_item.catalog.depth, engine_item.catalog.height,
+            engine_item.pos_x - half_w_cm, engine_item.pos_y - half_d_cm,
+            (-engine_item.rotation) % 360, half_w_cm, half_d_cm,
+            check_placed=kind not in _OVERLAY_TYPES,
+        )
+
     def _hint_for(item: dict[str, Any]) -> dict[str, Any] | None:
         if not hints:
             return None
@@ -1601,16 +1752,15 @@ def generate_layout(
             # 後會被誤判超界並跳到其他房間。
             if locked_boundary is not None:
                 locked_boundary = locked_boundary.buffer(12)
-            ok = _inside_boundary(candidate, locked_boundary) and (
-                item_type in _IGNORE_COLLISION_TYPES
-                or (
-                    item_type in _OVERLAY_TYPES
-                    and check_placement_with_clearance(candidate, room, []) is None
-                )
-                or check_placement_with_clearance(candidate, room, placed) is None
-            ) and (
-                item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES
-                or not _placement_intersects_zones(candidate, forbidden_zones)
+            # 使用者拖曳過的位置改用柵格覆核;跨房間容差仍由 locked_boundary
+            # 的 12cm 緩衝表達(換 GLB 後尺寸微變不該被踢掉)。
+            lock_rot = float(item.get("rotation_y_deg") or 0)
+            ok = _inside_boundary(candidate, locked_boundary) and raster_free(
+                raster, item_type, width, depth, height,
+                float(item["position_cm"].get("x") or 0),
+                float(item["position_cm"].get("z") or 0),
+                lock_rot, half_w_cm, half_d_cm,
+                check_placed=item_type not in _OVERLAY_TYPES,
             )
             if ok:
                 x_cm = float(item["position_cm"].get("x") or 0)
@@ -1621,6 +1771,10 @@ def generate_layout(
                 if item_type not in _IGNORE_COLLISION_TYPES and item_type not in _OVERLAY_TYPES:
                     placed.append(candidate)
                     placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
+                    raster_commit(
+                        raster, item_type, width, depth,
+                        x_cm, z_cm, rotation, half_w_cm, half_d_cm,
+                    )
 
         if kept_position:
             pass
@@ -1642,7 +1796,7 @@ def generate_layout(
             if target is not None:
                 overlay = place_overlay_on_furniture(room, catalog, item_id, target)
                 engine_item = overlay["placed"] if overlay["success"] else None
-                if engine_item is not None and _inside_boundary(engine_item, boundary):
+                if _raster_accepts(engine_item, item_type):
                     x_cm = engine_item.pos_x - half_w_cm
                     z_cm = engine_item.pos_y - half_d_cm
                     rotation = (-engine_item.rotation) % 360
@@ -1652,7 +1806,7 @@ def generate_layout(
             else:
                 overlay = place_furniture(room, catalog, item_id, [])
                 engine_item = overlay["placed"] if overlay["success"] else None
-                if engine_item is not None and _inside_boundary(engine_item, boundary):
+                if _raster_accepts(engine_item, item_type):
                     x_cm = engine_item.pos_x - half_w_cm
                     z_cm = engine_item.pos_y - half_d_cm
                     rotation = (-engine_item.rotation) % 360
@@ -1690,16 +1844,16 @@ def generate_layout(
                 else {"success": False, "placed": None, "reason": "房間內沒有可依附的主家具"}
             )
             engine_item = adjacent["placed"] if adjacent["success"] else None
-            if (
-                engine_item is not None
-                and _inside_boundary(engine_item, boundary)
-                and not _placement_intersects_zones(engine_item, forbidden_zones)
-            ):
+            if _raster_accepts(engine_item, item_type):
                 placed.append(engine_item)
                 placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
                 x_cm = engine_item.pos_x - half_w_cm
                 z_cm = engine_item.pos_y - half_d_cm
                 rotation = (-engine_item.rotation) % 360
+                raster_commit(
+                    raster, item_type, catalog.width, catalog.depth,
+                    x_cm, z_cm, rotation, half_w_cm, half_d_cm,
+                )
             else:
                 failed_reason = adjacent["reason"] or "主家具旁沒有合法位置"
                 x_cm, z_cm = 0.0, 0.0
@@ -1760,39 +1914,39 @@ def generate_layout(
                     pos_y=cand_z + half_d_cm,
                     rotation=(-rot) % 360,
                 )
-                if (
-                    _inside_boundary(candidate, boundary)
-                    and (
-                        item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES
-                        or not _placement_intersects_zones(candidate, forbidden_zones)
-                    )
-                    and check_placement_with_clearance(candidate, room, placed) is None
+                if raster_free(
+                    raster, item_type, width, depth, height,
+                    cand_x, cand_z, rot, half_w_cm, half_d_cm,
                 ):
                     x_cm, z_cm, rotation = cand_x, cand_z, rot
                     placed.append(candidate)
                     placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
+                    raster_commit(
+                        raster, item_type, width, depth,
+                        cand_x, cand_z, rot, half_w_cm, half_d_cm,
+                    )
                     break
             else:
                 result = place_furniture(room, catalog, item_id, placed)
                 engine_item = result["placed"] if result["success"] else None
-                if engine_item is not None and not _inside_boundary(engine_item, boundary):
-                    engine_item = None
-                if (
-                    engine_item is not None
-                    and item_type not in _WINDOW_CLEARANCE_EXEMPT_TYPES
-                    and _placement_intersects_zones(engine_item, forbidden_zones)
-                ):
+                if not _raster_accepts(engine_item, item_type):
                     engine_item = None
                 if engine_item is None and boundary is not None:
                     engine_item = _grid_place_in_boundary(
                         catalog, item_id, room, placed, boundary, forbidden_zones
                     )
+                    if not _raster_accepts(engine_item, item_type):
+                        engine_item = None
                 if engine_item is not None:
                     placed.append(engine_item)
                     placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
                     x_cm = engine_item.pos_x - half_w_cm
                     z_cm = engine_item.pos_y - half_d_cm
                     rotation = (-engine_item.rotation) % 360
+                    raster_commit(
+                        raster, item_type, catalog.width, catalog.depth,
+                        x_cm, z_cm, rotation, half_w_cm, half_d_cm,
+                    )
                 else:
                     failed_reason = result["reason"] or "找不到落在房間形狀內的合法位置"
                     x_cm, z_cm = 0.0, 0.0
