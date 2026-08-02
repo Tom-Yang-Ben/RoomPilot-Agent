@@ -3904,6 +3904,7 @@ export function createSceneViewer(
     );
     wrapper.position.x = worldPosition.x;
     wrapper.position.z = worldPosition.z;
+    wrapper.position.y = Math.max(0, Number(item.host_surface_height_cm) || 0);
     wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
     wrapper.userData.sceneIndex = index + 1;
     wrapper.userData.sceneObject = item;
@@ -3976,6 +3977,8 @@ export function createSceneViewer(
           const worldPosition = sceneToWorldPosition(item.position_cm || {});
           wrapper.position.x = worldPosition.x;
           wrapper.position.z = worldPosition.z;
+          // 檯面小物站在宿主家具的表面高度上；落地家具此欄為 0，維持踩地。
+          wrapper.position.y = Math.max(0, Number(item.host_surface_height_cm) || 0);
           wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
 
           const size = sizeCentimeters(item);

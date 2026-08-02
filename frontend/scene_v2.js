@@ -1,7 +1,7 @@
 // 必須排在其他 import 之前：這個模組會接管 window.fetch 以附加身分並在
 // access token 過期時自動續期，晚載入的話最早幾個請求會漏掉 Authorization。
 import { authorizedObjectUrl, requireSignedIn } from "./auth_client.js?v=sha256-b35a4ff11b37";
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-ffc625d8b24f";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-036fd4eeb147";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
 import {
@@ -31,6 +31,12 @@ import {
   unresolvedReviewRooms,
 } from "./scene_recognition_review.js?v=sha256-14ba9b03b7c5";
 import {
+  findHostAt,
+  hostSurfaceHeightCm,
+  isTabletopType,
+  pointWithinItemFootprint,
+} from "./scene_tabletop_hosts.js?v=sha256-aac5f0a9d335";
+import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
   findFurniture2DVariant,
@@ -43,11 +49,11 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-f9a1ab67a2dd";
+} from "./scene_layout2d.js?v=sha256-4a2749522d19";
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-4229260e286c";
+} from "./scene_configuration_sync.js?v=sha256-39c0d4400e84";
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
@@ -8974,7 +8980,59 @@ function layoutPixelsPerCm() {
   return (1 / planGeometry().scale) * naturalRatio;
 }
 
+// ── 檯面小物宿主（2026-08-03 方案 B：檯面吸附最小模型）─────────────────
+
+/** 小物目前的有效宿主；宿主不存在或小物已滑出宿主腳印時回 null。 */
+function tabletopHostFor(item) {
+  if (!item?.hostObjectId) return null;
+  const host = state.furniture2d.find(
+    (candidate) => String(candidate.id) === String(item.hostObjectId),
+  );
+  if (!host || host.placementFailed === true) return null;
+  return pointWithinItemFootprint(item.xCm, item.yCm, host) ? host : null;
+}
+
+/** 放下／新增小物時嘗試吸附宿主；回傳是否有宿主。 */
+function snapTabletopItem(item, { announce = true } = {}) {
+  const host = findHostAt(
+    item.xCm,
+    item.yCm,
+    item.type,
+    state.furniture2d.filter(
+      (candidate) => candidate.id !== item.id
+        && candidate.roomId === item.roomId
+        && candidate.placementFailed !== true,
+    ),
+  );
+  if (host) {
+    item.hostObjectId = host.id;
+    item.hostSurfaceHeightCm = hostSurfaceHeightCm(host.type, host.heightCm);
+    item.placementFailed = false;
+    item.placementReason = "";
+    if (announce) setStatus(`已把「${item.label}」放上「${host.label}」的檯面。`);
+  } else {
+    item.hostObjectId = null;
+    item.hostSurfaceHeightCm = 0;
+    item.placementReason = "請放到相容家具的檯面上（例如餐桌、茶几或層架）。";
+    if (announce) setStatus(`「${item.label}」${item.placementReason}`, "error");
+  }
+  return Boolean(host);
+}
+
+/** 宿主被刪除時，站在它上面的小物全部落單並標待處理。 */
+function orphanTabletopDependents(hostIds) {
+  const ids = new Set([...hostIds].map(String));
+  state.furniture2d.forEach((item) => {
+    if (!item.hostObjectId || !ids.has(String(item.hostObjectId))) return;
+    item.hostObjectId = null;
+    item.hostSurfaceHeightCm = 0;
+    item.placementReason = "宿主家具已刪除，請把它放到其他相容檯面上。";
+  });
+}
+
 function itemCollision(item) {
+  // 檯面小物不算落地碰撞；它的合法性只看「有沒有站在有效宿主上」。
+  if (isTabletopType(item.type)) return tabletopHostFor(item) === null;
   const room = state.rooms.find((candidate) => candidate.id === item.roomId);
   if (!room) return true;
   const center = planCenterCm();
@@ -9478,6 +9536,7 @@ async function deferAllBlockingConfigurationFurniture() {
         },
       ];
     });
+    orphanTabletopDependents(blockingIds);
     state.furniture2d = state.furniture2d.filter(
       (item) => !blockingIds.has(String(item.id)),
     );
@@ -9748,6 +9807,14 @@ async function resolveFurniturePosition(item) {
 
 async function finishFurnitureDrag(drag) {
   if (!drag) return;
+  // 檯面小物不走引擎佈局（引擎管落地家具），放下時做宿主吸附。
+  if (isTabletopType(drag.item.type)) {
+    snapTabletopItem(drag.item);
+    renderLayoutFurniture();
+    invalidateDownstreamFrom("layout_2d", "2D 家具位置已修改，3D 家具配置與即時寫實需要重新產生。");
+    scheduleSave("layout_2d");
+    return;
+  }
   try {
     const resolved = await resolveFurniturePosition(drag.item);
     if (!resolved || resolved.placement_failed) {
@@ -9763,6 +9830,16 @@ async function finishFurnitureDrag(drag) {
       drag.item.placementFailed = false;
       drag.item.placementReason = "";
       element.layoutError.textContent = "";
+      // 宿主移動時，站在它檯面上的小物跟著走同樣的位移。
+      const deltaX = drag.item.xCm - drag.originalX;
+      const deltaY = drag.item.yCm - drag.originalY;
+      if (deltaX || deltaY) {
+        state.furniture2d.forEach((candidate) => {
+          if (String(candidate.hostObjectId || "") !== String(drag.item.id)) return;
+          candidate.xCm += deltaX;
+          candidate.yCm += deltaY;
+        });
+      }
       const room = state.rooms.find((candidate) => candidate.id === drag.item.roomId);
       setStatus(`已在「${room?.label || "目前房間"}」內貼齊最近有效牆面。`);
     }
@@ -10255,6 +10332,8 @@ function addFurnitureFromLibrary(type, variant) {
   item.roomId = room.id;
   item.reason = "使用者從 2D 圖示資料庫加入。";
   state.furniture2d.push(item);
+  // 檯面小物新增在房間中心通常沒有宿主：吸附失敗會標紅並提示拖到檯面上。
+  if (isTabletopType(item.type)) snapTabletopItem(item, { announce: false });
   syncFurnitureInventoryAcrossSchemes();
   state.selectedFurniture2dId = item.id;
   state.activeLayoutRoomId = room.id;
@@ -10811,6 +10890,7 @@ async function deleteSelectedSceneFurniture() {
     state.furniture2d,
     selected,
   );
+  orphanTabletopDependents([selected.furniture_id]);
   syncFurnitureInventoryAcrossSchemes();
   state.selectedSceneIndex = Math.max(0, Math.min(state.selectedSceneIndex, objects.length - 1));
   const nextSelected = objects[state.selectedSceneIndex] || null;
@@ -13446,6 +13526,7 @@ function bindEvents() {
     scheduleSave("layout_2d");
   });
   $("#delete-2d-furniture").addEventListener("click", () => {
+    orphanTabletopDependents([state.selectedFurniture2dId]);
     state.furniture2d = state.furniture2d.filter((item) => item.id !== state.selectedFurniture2dId);
     syncFurnitureInventoryAcrossSchemes();
     state.selectedFurniture2dId = state.furniture2d[0]?.id || null;

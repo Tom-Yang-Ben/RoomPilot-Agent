@@ -51,6 +51,11 @@ requirements have been collected.
 Allowed content:
 
 - Furniture items, GLB asset references, dimensions, placement, and rotation.
+- Optional tabletop-host fields on furniture items (2026-08-03, 方案 B):
+  `host_object_id`（檯面小物站在哪件家具上）與 `host_surface_height_cm`
+  （3D 呈現高度）。相容表在 `backend/catalog/style_db.py`
+  `TABLETOP_HOST_TYPES`，平面包含判定在
+  `backend/engine/geometry.rests_within_host`。
 - Wall, floor, ceiling, lighting, and air-conditioning decisions.
 - Style pack, material pack, render settings, and proposal metadata.
 - Geometry planner output and rule-check reports.

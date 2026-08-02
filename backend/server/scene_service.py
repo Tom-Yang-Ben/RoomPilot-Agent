@@ -14,11 +14,11 @@ from shapely.geometry import LineString, Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
 from ..agent.place import resolve_placements
-from ..catalog.placement_surface import FLOOR_COVERING, WALL, placement_surface_for
-from ..catalog.style_db import catalog_item_from_scene_object
+from ..catalog.placement_surface import FLOOR_COVERING, TABLETOP, WALL, placement_surface_for
+from ..catalog.style_db import allowed_host_types, catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
-from ..engine.geometry import furniture_polygon
+from ..engine.geometry import furniture_polygon, rests_within_host
 from ..engine.models import PlacedFurniture, Room, Wall
 from ..engine.placement import (
     place_adjacent_to_furniture,
@@ -1752,6 +1752,27 @@ def validate_single_placement(
     half_d_cm = room.depth / 2
 
     moving = _scene_object_to_placed(item, half_w_cm, half_d_cm)
+
+    # 檯面小物（2026-08-03 方案 B）：帶宿主時驗證「型別相容＋腳印落在宿主
+    # 檯面內」，通過即合法——它站在宿主上，邊界與門窗約束由宿主承擔。
+    # 未帶宿主維持舊行為（不擋），吸附與待處理提示由前端負責。
+    if placement_surface_for(item.get("normalized_type"), item.get("name_zh_raw")) == TABLETOP:
+        host_id = str(item.get("host_object_id") or "")
+        if host_id:
+            host_obj = next(
+                (o for o in others if str(o.get("furniture_id")) == host_id),
+                None,
+            )
+            if host_obj is None:
+                return {"ok": False, "reason": "宿主家具不存在，請重新放置這件擺飾"}
+            host_type = str(host_obj.get("normalized_type") or "").strip().lower()
+            if host_type not in allowed_host_types(item.get("normalized_type")):
+                return {"ok": False, "reason": "這類擺飾不能放在該家具的檯面上"}
+            host_placed = _scene_object_to_placed(host_obj, half_w_cm, half_d_cm)
+            if not rests_within_host(moving, host_placed):
+                return {"ok": False, "reason": "擺飾超出了宿主家具的檯面範圍"}
+            return {"ok": True, "reason": None}
+
     if not _inside_boundary(moving, boundary):
         return {"ok": False, "reason": "超出房間範圍(需完整放在某一間房內,不能跨牆)"}
 

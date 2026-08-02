@@ -296,6 +296,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_unit_contracts.js",
             "scene_calibration.js",
             "scene_recognition_review.js",
+            "scene_tabletop_hosts.js",
             "scene_room_geometry.js",
             "scene_structure_utils.js",
             "scene_structure_preview.js",

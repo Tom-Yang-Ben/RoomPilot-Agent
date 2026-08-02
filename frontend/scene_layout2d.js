@@ -296,6 +296,9 @@ export function createFurniture2DItem(type, variantId, overrides = {}) {
     categoryLabel: category.label,
     roomId: overrides.roomId || null,
     reason: overrides.reason || "",
+    // 檯面小物的宿主（花瓶站在哪張桌上）；落地家具一律 null。
+    hostObjectId: overrides.hostObjectId || null,
+    hostSurfaceHeightCm: Number(overrides.hostSurfaceHeightCm) || 0,
   };
 }
 
@@ -376,6 +379,9 @@ export function toSceneFurniture(item, { positionLocked = true } = {}) {
     user_specified: item.locked === true,
     user_required: item.userRequired === true,
     placement_room_id: item.roomId,
+    // 檯面小物的宿主關係（選填）：3D 以 host_surface_height_cm 決定 y。
+    host_object_id: item.hostObjectId || null,
+    host_surface_height_cm: Number(item.hostSurfaceHeightCm) || 0,
   };
 }
 

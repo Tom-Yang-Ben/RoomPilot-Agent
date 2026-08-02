@@ -65,6 +65,13 @@ export function upsertFurniture2dFromSceneObject(
     modelLocked: "model_locked" in sceneObject
       ? sceneObject.model_locked === true
       : (current.modelLocked ?? defaults.modelLocked ?? false),
+    // 檯面小物的宿主關係：3D↔2D 同步時不保留就會遺失。
+    hostObjectId: "host_object_id" in sceneObject
+      ? (sceneObject.host_object_id || null)
+      : (current.hostObjectId ?? null),
+    hostSurfaceHeightCm: "host_surface_height_cm" in sceneObject
+      ? numeric(sceneObject.host_surface_height_cm)
+      : numeric(current.hostSurfaceHeightCm),
   };
 
   if (index >= 0) items[index] = next;

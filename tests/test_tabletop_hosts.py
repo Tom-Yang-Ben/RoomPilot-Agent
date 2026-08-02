@@ -92,3 +92,62 @@ def test_zero_sized_host_never_carries_anything() -> None:
     )
     vase = _placed("vase-1", "vase", "花瓶", 18, 18, 30, x=300, y=250)
     assert rests_within_host(vase, ghost) is False
+
+
+# ── validate_single_placement 的宿主分支 ──────────────────────────────
+
+from backend.server.scene_service import validate_single_placement
+
+
+def _scene_object(furniture_id: str, item_type: str, name: str, w: float, d: float,
+                  h: float, x: float, z: float, host_id: str | None = None) -> dict:
+    payload = {
+        "furniture_id": furniture_id,
+        "normalized_type": item_type,
+        "name_zh_raw": name,
+        "size_cm": {"width": w, "depth": d, "height": h},
+        "position_cm": {"x": x, "z": z},
+        "rotation_y_deg": 0,
+    }
+    if host_id is not None:
+        payload["host_object_id"] = host_id
+    return payload
+
+
+_FLOORPLAN = {"width_cm": 600, "depth_cm": 500, "wall_segments": []}
+_TABLE = _scene_object("table-1", "dining-table", "餐桌", 160, 90, 74, 0, 0)
+
+
+def test_validate_accepts_a_vase_on_its_host_table() -> None:
+    vase = _scene_object("vase-1", "vase", "花瓶", 18, 18, 30, 0, 0, host_id="table-1")
+    result = validate_single_placement(_FLOORPLAN, vase, [_TABLE])
+    assert result == {"ok": True, "reason": None}
+
+
+def test_validate_rejects_a_vase_off_the_host_surface() -> None:
+    vase = _scene_object("vase-1", "vase", "花瓶", 18, 18, 30, 120, 0, host_id="table-1")
+    result = validate_single_placement(_FLOORPLAN, vase, [_TABLE])
+    assert result["ok"] is False
+    assert "檯面範圍" in result["reason"]
+
+
+def test_validate_rejects_an_incompatible_host_type() -> None:
+    sofa = _scene_object("sofa-1", "sofa", "沙發", 200, 90, 80, 0, 0)
+    vase = _scene_object("vase-1", "vase", "花瓶", 18, 18, 30, 0, 0, host_id="sofa-1")
+    result = validate_single_placement(_FLOORPLAN, vase, [sofa])
+    assert result["ok"] is False
+    assert "不能放在" in result["reason"]
+
+
+def test_validate_rejects_a_missing_host() -> None:
+    vase = _scene_object("vase-1", "vase", "花瓶", 18, 18, 30, 0, 0, host_id="ghost-9")
+    result = validate_single_placement(_FLOORPLAN, vase, [_TABLE])
+    assert result["ok"] is False
+    assert "宿主家具不存在" in result["reason"]
+
+
+def test_validate_keeps_legacy_behavior_for_hostless_tabletop_items() -> None:
+    """沒帶宿主的小物維持舊行為不擋——吸附與待處理提示由前端負責。"""
+    vase = _scene_object("vase-1", "vase", "花瓶", 18, 18, 30, 0, 0)
+    result = validate_single_placement(_FLOORPLAN, vase, [_TABLE])
+    assert result["ok"] is True
