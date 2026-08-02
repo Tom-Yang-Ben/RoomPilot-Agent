@@ -5,6 +5,19 @@
 
 CREATE SCHEMA IF NOT EXISTS roompilot;
 
+-- 帳戶端。密碼一律以 pbkdf2_sha256 雜湊字串儲存，資料庫不存明文也不存可逆值。
+-- 必須建立在 projects 之前：projects.owner_id 參照這張表。
+CREATE TABLE IF NOT EXISTS roompilot.users (
+    user_id       TEXT PRIMARY KEY,
+    email         TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    display_name  TEXT NOT NULL,
+    role          VARCHAR(20) NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT users_role_known CHECK (role IN ('admin', 'designer', 'client')),
+    CONSTRAINT users_email_lowercase CHECK (email = LOWER(email))
+);
+
 CREATE TABLE IF NOT EXISTS roompilot.projects (
     project_id       TEXT PRIMARY KEY,
     name             TEXT NOT NULL,
@@ -12,6 +25,7 @@ CREATE TABLE IF NOT EXISTS roompilot.projects (
     current_step     VARCHAR(50) NOT NULL,
     workflow_json    JSONB NOT NULL DEFAULT '{}'::JSONB,
     revision         INTEGER NOT NULL DEFAULT 0,
+    owner_id         TEXT REFERENCES roompilot.users(user_id) ON DELETE RESTRICT,
     upload_filename  TEXT,
     upload_extension VARCHAR(20),
     upload_mime      VARCHAR(100),
@@ -121,8 +135,44 @@ CREATE TABLE IF NOT EXISTS roompilot.engineering_documents (
     CONSTRAINT engineering_document_size_nonnegative CHECK (byte_size >= 0)
 );
 
+-- Refresh token 白名單。登出與換發時直接刪除該列，使舊 token 立即失效；
+-- JWT 本身無狀態，撤銷能力只能來自這張表。
+CREATE TABLE IF NOT EXISTS roompilot.refresh_tokens (
+    jti        TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES roompilot.users(user_id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 多租戶授權來源。owner 一定同時存在於這張表，授權查詢因此只需看這裡一處。
+CREATE TABLE IF NOT EXISTS roompilot.project_members (
+    project_id   TEXT NOT NULL
+                 REFERENCES roompilot.projects(project_id) ON DELETE CASCADE,
+    user_id      TEXT NOT NULL
+                 REFERENCES roompilot.users(user_id) ON DELETE CASCADE,
+    project_role VARCHAR(20) NOT NULL,
+    added_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (project_id, user_id),
+    CONSTRAINT project_members_role_known
+        CHECK (project_role IN ('owner', 'editor', 'viewer'))
+);
+
+-- 帳戶端上線前建立的資料庫沒有 owner_id；補欄位後由遷移指令回填。
+ALTER TABLE roompilot.projects
+    ADD COLUMN IF NOT EXISTS owner_id TEXT
+    REFERENCES roompilot.users(user_id) ON DELETE RESTRICT;
+
 CREATE INDEX IF NOT EXISTS idx_projects_updated_at
     ON roompilot.projects(updated_at DESC, project_id);
+
+CREATE INDEX IF NOT EXISTS idx_projects_owner
+    ON roompilot.projects(owner_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_project_members_user
+    ON roompilot.project_members(user_id, project_id);
+
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user
+    ON roompilot.refresh_tokens(user_id, expires_at);
 
 CREATE INDEX IF NOT EXISTS idx_render_outputs_project_created
     ON roompilot.render_outputs(project_id, created_at DESC, render_id DESC);

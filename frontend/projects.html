@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RoomPilot | 我的專案</title>
+    <link rel="stylesheet" href="/static/site.css?v=sha256-02cc09c3a5bc" />
+  </head>
+  <body data-page="projects">
+    <header class="topbar app-topbar">
+      <a class="brand app-brand" href="/" aria-label="RoomPilot 首頁">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>RoomPilot</span>
+      </a>
+      <nav class="topnav" aria-label="主要導覽">
+        <a href="/projects" class="active">我的專案</a>
+        <a href="/styles">風格類型</a>
+        <a href="/library">家具資料庫</a>
+        <button type="button" id="sign-out">登出</button>
+      </nav>
+    </header>
+
+    <main class="page-shell projects-shell">
+      <section class="projects-intro">
+        <div>
+          <h1>我的專案</h1>
+          <p class="projects-lead" id="projects-identity">載入中…</p>
+        </div>
+        <button type="button" class="projects-new" id="new-project">
+          建立新專案
+        </button>
+      </section>
+
+      <form class="projects-create" id="create-form" hidden>
+        <label class="auth-field" for="project-name">
+          <span>專案名稱</span>
+          <input
+            id="project-name"
+            name="name"
+            type="text"
+            maxlength="120"
+            required
+            placeholder="例如：大安區三房兩廳"
+          />
+        </label>
+        <label class="auth-field" for="project-notes">
+          <span>備註（選填）</span>
+          <textarea
+            id="project-notes"
+            name="notes"
+            maxlength="2000"
+            rows="2"
+            placeholder="屋主需求、預算範圍、時程限制…"
+          ></textarea>
+        </label>
+        <div class="projects-create-actions">
+          <button type="submit" class="auth-submit" id="create-submit">
+            建立並開始
+          </button>
+          <button type="button" class="projects-cancel" id="create-cancel">
+            取消
+          </button>
+        </div>
+      </form>
+
+      <p class="auth-error" id="projects-error" role="alert" hidden></p>
+
+      <section id="projects-list" class="projects-list" aria-live="polite">
+        <p class="projects-empty">載入中…</p>
+      </section>
+    </main>
+
+    <script type="module" src="/static/projects.js?v=sha256-671ad5a0cdc7"></script>
+  </body>
+</html>

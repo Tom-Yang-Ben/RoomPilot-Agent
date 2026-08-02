@@ -15413,3 +15413,341 @@ body[data-workflow-step="requirements"] #requirements-step {
 .rp-editor-box.is-locked .rp-render-room-list {
   pointer-events: none;
 }
+
+/* ── 帳戶端：登入與我的專案 ────────────────────────────────────────────
+   刻意不改既有頁面的選擇器群組，這兩頁的主題在這裡自成一段，
+   避免動到 home/library/scene/styles 已經穩定的配色。 */
+
+body[data-page="auth"],
+body[data-page="projects"] {
+  background:
+    radial-gradient(circle at top right, rgba(255, 245, 233, 0.9), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(233, 219, 205, 0.7), transparent 22%),
+    linear-gradient(180deg, #f7f2eb, #efe6db 60%, #f5efe7);
+  color: #2f2925;
+  font-family: var(--sans);
+  min-height: 100vh;
+}
+
+body[data-page="auth"] .brand,
+body[data-page="projects"] .brand {
+  color: #fffdf8;
+}
+
+body[data-page="auth"] .topnav a,
+body[data-page="projects"] .topnav a,
+body[data-page="projects"] .topnav button {
+  color: #fffdf8;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.34);
+  font: inherit;
+  cursor: pointer;
+}
+
+.auth-shell {
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 6vw, 72px) 20px;
+}
+
+.auth-card {
+  width: min(440px, 100%);
+  padding: clamp(24px, 4vw, 38px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(142, 118, 96, 0.18);
+  background: rgba(255, 252, 247, 0.94);
+  box-shadow: 0 22px 54px rgba(87, 63, 44, 0.14);
+}
+
+.auth-card h1 {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-size: 1.6rem;
+}
+
+.auth-lead {
+  margin: 0 0 22px;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: rgba(47, 41, 37, 0.72);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 22px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(142, 118, 96, 0.1);
+}
+
+.auth-tab {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(47, 41, 37, 0.66);
+  font: inherit;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.auth-tab.active {
+  background: #fffdf9;
+  color: #2f2925;
+  box-shadow: 0 6px 16px rgba(87, 63, 44, 0.12);
+}
+
+.auth-field {
+  display: block;
+  margin-bottom: 16px;
+  border: 0;
+  padding: 0;
+}
+
+.auth-field > span,
+.auth-field legend {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: rgba(47, 41, 37, 0.8);
+}
+
+.auth-field input[type="text"],
+.auth-field input[type="email"],
+.auth-field input[type="password"],
+.auth-field textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(142, 118, 96, 0.3);
+  background: #fffdfa;
+  color: #2f2925;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.auth-field input:focus,
+.auth-field textarea:focus {
+  outline: 2px solid rgba(131, 109, 92, 0.55);
+  outline-offset: 1px;
+}
+
+.auth-radio {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+/* 註冊才需要的欄位；登入時留在 DOM 但不佔位，切換不會讓版面跳動。 */
+.auth-register-only {
+  display: none;
+}
+
+body.is-registering .auth-register-only {
+  display: block;
+}
+
+.auth-error {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(178, 42, 42, 0.1);
+  border: 1px solid rgba(178, 42, 42, 0.28);
+  color: #8c1f1f;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.auth-submit {
+  width: 100%;
+  padding: 13px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #6b5443, #8e7460);
+  color: #fffaf3;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.auth-submit:hover:not(:disabled) {
+  box-shadow: 0 12px 28px rgba(87, 63, 44, 0.24);
+}
+
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.projects-shell {
+  max-width: 1080px;
+}
+
+.projects-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.projects-intro h1 {
+  margin: 0 0 6px;
+  font-family: var(--display);
+  font-size: 1.7rem;
+}
+
+.projects-lead {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(47, 41, 37, 0.68);
+}
+
+.projects-new {
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #6b5443, #8e7460);
+  color: #fffaf3;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.projects-create {
+  padding: 22px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(142, 118, 96, 0.18);
+  background: rgba(255, 252, 247, 0.94);
+}
+
+.projects-create-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.projects-create-actions .auth-submit {
+  width: auto;
+  padding: 11px 24px;
+}
+
+.projects-cancel {
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(142, 118, 96, 0.32);
+  background: transparent;
+  color: rgba(47, 41, 37, 0.78);
+  font: inherit;
+  cursor: pointer;
+}
+
+.projects-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.projects-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 34px;
+  border-radius: var(--radius);
+  border: 1px dashed rgba(142, 118, 96, 0.34);
+  text-align: center;
+  color: rgba(47, 41, 37, 0.6);
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(142, 118, 96, 0.18);
+  background: rgba(255, 252, 247, 0.94);
+  box-shadow: 0 14px 34px rgba(87, 63, 44, 0.09);
+}
+
+.project-card h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.project-card h2 a {
+  color: #2f2925;
+  text-decoration: none;
+}
+
+.project-card h2 a:hover {
+  text-decoration: underline;
+}
+
+.project-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.project-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(142, 118, 96, 0.14);
+  font-size: 0.76rem;
+  color: rgba(47, 41, 37, 0.78);
+}
+
+.project-badge.role-owner {
+  background: rgba(107, 84, 67, 0.9);
+  color: #fffaf3;
+}
+
+.project-badge.role-viewer {
+  background: rgba(142, 118, 96, 0.22);
+}
+
+.project-meta,
+.project-notes {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: rgba(47, 41, 37, 0.62);
+}
+
+.project-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.project-open,
+.project-share {
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.project-open {
+  background: linear-gradient(135deg, #6b5443, #8e7460);
+  color: #fffaf3;
+  border: 0;
+}
+
+.project-share {
+  background: transparent;
+  border: 1px solid rgba(142, 118, 96, 0.32);
+  color: rgba(47, 41, 37, 0.78);
+}

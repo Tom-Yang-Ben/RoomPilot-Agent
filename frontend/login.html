@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RoomPilot | 登入</title>
+    <link rel="stylesheet" href="/static/site.css?v=sha256-02cc09c3a5bc" />
+  </head>
+  <body data-page="auth">
+    <header class="topbar app-topbar">
+      <a class="brand app-brand" href="/" aria-label="RoomPilot 首頁">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>RoomPilot</span>
+      </a>
+      <nav class="topnav" aria-label="主要導覽">
+        <a href="/">探索功能</a>
+        <a href="/styles">風格類型</a>
+        <a href="/library">家具資料庫</a>
+      </nav>
+    </header>
+
+    <main class="auth-shell">
+      <section class="auth-card" aria-labelledby="auth-heading">
+        <h1 id="auth-heading">登入 RoomPilot</h1>
+        <p class="auth-lead">
+          專案、平面圖與成果報告都綁在帳號底下，只有你和你邀請的成員看得到。
+        </p>
+
+        <div class="auth-tabs" role="tablist" aria-label="登入或註冊">
+          <button
+            type="button"
+            id="tab-login"
+            class="auth-tab active"
+            role="tab"
+            aria-selected="true"
+            aria-controls="auth-form"
+          >
+            登入
+          </button>
+          <button
+            type="button"
+            id="tab-register"
+            class="auth-tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="auth-form"
+          >
+            註冊
+          </button>
+        </div>
+
+        <form id="auth-form" novalidate>
+          <label class="auth-field auth-register-only" for="display-name">
+            <span>顯示名稱</span>
+            <input
+              id="display-name"
+              name="display_name"
+              type="text"
+              autocomplete="name"
+              maxlength="100"
+              placeholder="王小明"
+            />
+          </label>
+
+          <label class="auth-field" for="email">
+            <span>Email</span>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              required
+              placeholder="you@example.com"
+            />
+          </label>
+
+          <label class="auth-field" for="password">
+            <span>密碼</span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              minlength="8"
+              placeholder="至少 8 個字元"
+            />
+          </label>
+
+          <fieldset class="auth-field auth-register-only" id="role-field">
+            <legend>你的身分</legend>
+            <label class="auth-radio">
+              <input type="radio" name="role" value="designer" checked />
+              <span>設計師 — 建立專案、鎖定版本、產生成果報告</span>
+            </label>
+            <label class="auth-radio">
+              <input type="radio" name="role" value="client" />
+              <span>屋主 — 檢視被分享的專案與報告</span>
+            </label>
+          </fieldset>
+
+          <p class="auth-error" id="auth-error" role="alert" hidden></p>
+
+          <button type="submit" class="auth-submit" id="auth-submit">登入</button>
+        </form>
+      </section>
+    </main>
+
+    <script type="module" src="/static/login.js?v=sha256-496ea0a0422a"></script>
+  </body>
+</html>

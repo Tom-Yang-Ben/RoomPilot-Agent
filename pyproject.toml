@@ -16,6 +16,8 @@ server = [
     "ezdxf>=1.3",
     "python-multipart>=0.0.9",
     "httpx>=0.28",
+    # 帳戶端 token 簽發/驗證；密碼雜湊用標準庫 pbkdf2_hmac,不引入編譯型套件。
+    "PyJWT>=2.10",
 ]
 # 平面辨識(backend/floorplan):PNG → DXF
 vision = [

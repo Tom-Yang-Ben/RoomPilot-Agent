@@ -12,6 +12,9 @@ pillow==12.3.0
 ezdxf==1.4.4
 python-multipart==0.0.32
 httpx==0.28.1
+# 帳戶端 access/refresh token 簽發與驗證。純 Python、無編譯鏈，刻意不引入
+# bcrypt/passlib——密碼雜湊走標準庫 hashlib.pbkdf2_hmac，不增加平台相依。
+PyJWT==2.12.1
 
 # Floorplan recognition and spatial evaluation (Cody / Django / Ben)
 numpy==2.5.1
