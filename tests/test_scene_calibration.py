@@ -2,11 +2,12 @@ import json
 
 from fastapi.testclient import TestClient
 
+from backend.paths import STATIC_DIR
 from backend.server.main import app
 from test_scene_workflow import ROOT, run_workflow_script
 
 
-CALIBRATION_MODULE = ROOT / "backend" / "server" / "static" / "scene_calibration.js"
+CALIBRATION_MODULE = STATIC_DIR / "scene_calibration.js"
 client = TestClient(app)
 
 

@@ -1,7 +1,7 @@
-from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from backend.paths import STATIC_DIR
 from backend.server.main import app
 
 
@@ -72,8 +72,8 @@ def test_cody4_room_furniture_survives_the_2d_to_3d_engine_gate() -> None:
 
 
 def test_cody4_3d_view_controls_remain_explicit_ci_contracts() -> None:
-    source = Path("backend/server/static/scene.html").read_text(encoding="utf-8")
-    controller = Path("backend/server/static/scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'data-view-mode="topdown"' in source
     assert 'data-white-interaction="walk"' in source

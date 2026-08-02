@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from backend.paths import STATIC_DIR
 from backend.server.main import _model_priority_ids, build_site_payload
 from backend.server.style_cards import find_taiwan_style_card
 
@@ -33,8 +34,8 @@ def test_style_card_lookup_is_safe_for_scene_handoff():
 
 
 def test_styles_page_is_the_six_style_gallery():
-    html = (ROOT / "backend" / "server" / "static" / "styles.html").read_text(encoding="utf-8")
-    javascript = (ROOT / "backend" / "server" / "static" / "styles.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "styles.html").read_text(encoding="utf-8")
+    javascript = (STATIC_DIR / "styles.js").read_text(encoding="utf-8")
     assert 'id="taiwan-style-gallery"' in html
     assert "renderTaiwanStyleGallery" in javascript
     assert "style_card" in javascript
@@ -59,8 +60,8 @@ def test_scene_accepts_style_card_handoff_from_styles_page():
     這個斷言原本指著已停用的 scene.js，所以「風格頁挑的色卡進不了設計流程」
     在 QA 前一直是綠燈——測試盯著一份沒有人載入的檔案。
     """
-    javascript = (ROOT / "backend" / "server" / "static" / "scene_v2.js").read_text(encoding="utf-8")
-    styles = (ROOT / "backend" / "server" / "static" / "styles.js").read_text(encoding="utf-8")
+    javascript = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    styles = (STATIC_DIR / "styles.js").read_text(encoding="utf-8")
     main = (ROOT / "backend" / "server" / "main.py").read_text(encoding="utf-8")
     service = (ROOT / "backend" / "server" / "scene_service.py").read_text(encoding="utf-8")
 
@@ -81,7 +82,7 @@ def test_style_pack_ids_match_the_taiwan_style_card_ids():
 
     from backend.server.style_cards import load_taiwan_style_cards
 
-    module = (ROOT / "backend" / "server" / "static" / "scene_style_packs.js").as_uri()
+    module = (STATIC_DIR / "scene_style_packs.js").as_uri()
     completed = subprocess.run(
         [
             "node",
@@ -116,7 +117,7 @@ def test_style_pack_ids_match_the_taiwan_style_card_ids():
 
 
 def test_scene_viewer_exposes_skin_lighting_and_interior_rotation_contract():
-    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
     assert "applyStyleSkin" in viewer
     assert "style_card" in viewer
     assert "createStyleLights" in viewer

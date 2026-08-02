@@ -17,6 +17,7 @@ from backend.catalog.surface_material_processing import (
     render_tileable_material,
     uv_repeat_for_span,
 )
+from backend.paths import STATIC_DIR
 from backend.server import main
 
 
@@ -128,10 +129,7 @@ def test_committed_catalog_defines_all_239_processed_materials():
     assert set(manifest_by_id) == {surface["surface_id"] for surface in candidates}
     for surface in candidates:
         processed_path = (
-            PROJECT_ROOT
-            / "backend"
-            / "server"
-            / "static"
+            STATIC_DIR
             / surface["texture_url"].removeprefix("/static/")
         )
         assert processed_path.is_file()
@@ -146,10 +144,7 @@ def test_committed_catalog_defines_all_239_processed_materials():
         }
         item = manifest_by_id[surface["surface_id"]]
         source_path = (
-            PROJECT_ROOT
-            / "backend"
-            / "server"
-            / "static"
+            STATIC_DIR
             / item["source_preview_url"].removeprefix("/static/")
         )
         assert item["processor_version"] == PROCESSOR_VERSION
@@ -241,7 +236,7 @@ def test_batch_failure_does_not_replace_existing_materials_or_catalog(tmp_path):
 
 def test_shape_geometry_uvs_are_normalized_before_physical_repeat(tmp_path):
     source = (
-            PROJECT_ROOT / "backend" / "server" / "static" / "scene_texture_uv.js"
+            STATIC_DIR / "scene_texture_uv.js"
     )
     module_path = tmp_path / "scene_texture_uv.mjs"
     module_path.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")

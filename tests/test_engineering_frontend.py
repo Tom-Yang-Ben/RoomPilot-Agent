@@ -6,10 +6,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from backend.paths import STATIC_DIR
 from backend.server.main import app
 
 
-STATIC = Path("backend/server/static")
 client = TestClient(app)
 
 
@@ -37,7 +37,7 @@ def test_engineering_page_is_official_fastapi_frontend() -> None:
 
 
 def test_frontend_adapter_maps_existing_state_without_direct_backends() -> None:
-    source = (STATIC / "engineering.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "engineering.js").read_text(encoding="utf-8")
     for required in (
         "buildProjectSnapshot",
         "space_confirmation",
@@ -69,8 +69,8 @@ def test_frontend_adapter_maps_existing_state_without_direct_backends() -> None:
 
 
 def test_static_module_hashes_are_current_and_scene_links_to_engineering() -> None:
-    engineering_html = (STATIC / "engineering.html").read_text(encoding="utf-8")
-    scene_html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    engineering_html = (STATIC_DIR / "engineering.html").read_text(encoding="utf-8")
+    scene_html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
     engineering_match = re.search(
         r"engineering\.js\?v=sha256-([0-9a-f]{12})", engineering_html
     )
@@ -79,6 +79,6 @@ def test_static_module_hashes_are_current_and_scene_links_to_engineering() -> No
     )
     assert engineering_match
     assert link_match
-    assert engineering_match.group(1) == _hash(STATIC / "engineering.js")
-    assert link_match.group(1) == _hash(STATIC / "engineering_link.js")
+    assert engineering_match.group(1) == _hash(STATIC_DIR / "engineering.js")
+    assert link_match.group(1) == _hash(STATIC_DIR / "engineering_link.js")
     assert 'id="engineering-documents-link"' in scene_html

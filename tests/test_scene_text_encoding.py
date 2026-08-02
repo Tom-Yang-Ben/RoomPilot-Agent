@@ -1,10 +1,11 @@
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-TEXT_MODULE = ROOT / "backend/server/static/scene_text_encoding.js"
-SCENE_CONTROLLER = ROOT / "backend/server/static/scene_v2.js"
+TEXT_MODULE = STATIC_DIR / "scene_text_encoding.js"
+SCENE_CONTROLLER = STATIC_DIR / "scene_v2.js"
 
 
 def test_mojibake_repair_restores_traditional_chinese_without_changing_valid_text() -> None:

@@ -3,13 +3,11 @@ from __future__ import annotations
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
-
-
-STATIC = ROOT / "backend" / "server" / "static"
+from backend.paths import STATIC_DIR
 
 
 def test_initial_interview_replaces_the_visible_legacy_questionnaire() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
     assert 'id="first-meeting-questionnaire"' in html
     assert 'id="first-meeting-progress"' in html
@@ -21,7 +19,7 @@ def test_initial_interview_replaces_the_visible_legacy_questionnaire() -> None:
 
 
 def test_first_meeting_requires_three_goals_two_likes_and_one_dislike() -> None:
-    module_uri = (STATIC / "scene_first_meeting.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_first_meeting.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ firstMeetingReady, normalizeFirstMeeting }} from {json.dumps(module_uri)};
@@ -57,7 +55,7 @@ def test_first_meeting_requires_three_goals_two_likes_and_one_dislike() -> None:
 
 
 def test_first_meeting_discards_removed_rooms_and_limits_priorities() -> None:
-    module_uri = (STATIC / "scene_first_meeting.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_first_meeting.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ normalizeFirstMeeting }} from {json.dumps(module_uri)};
@@ -75,7 +73,7 @@ def test_first_meeting_discards_removed_rooms_and_limits_priorities() -> None:
 
 
 def test_first_meeting_is_saved_and_translated_only_on_confirmation() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "firstMeetingStep: state.firstMeetingStep" in source
     assert "firstMeeting: state.firstMeeting" in source

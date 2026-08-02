@@ -1,9 +1,10 @@
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-REPORT_MODULE = ROOT / "backend" / "server" / "static" / "scene_space_change_report.js"
+REPORT_MODULE = STATIC_DIR / "scene_space_change_report.js"
 
 
 def test_wall_boxing_report_uses_one_change_for_customer_and_designer_views() -> None:

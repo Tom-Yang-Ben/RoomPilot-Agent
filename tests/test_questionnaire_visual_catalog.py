@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from backend.paths import STATIC_DIR
 from backend.server.questionnaire_visuals import (
     QuestionnaireVisualStore,
     load_questionnaire_visual_catalog,
@@ -18,7 +19,7 @@ from backend.server import main
 
 ROOT = Path(__file__).resolve().parents[1]
 QUESTIONNAIRE_HELPERS = (
-    ROOT / "backend" / "server" / "static" / "scene_questionnaire_test2.js"
+    STATIC_DIR / "scene_questionnaire_test2.js"
 )
 
 
@@ -148,7 +149,7 @@ def test_ready_questionnaire_images_are_valid_assets() -> None:
 
     assert len(ready) == 8
     for option in ready:
-        image_path = ROOT / "backend" / "server" / "static" / option["image_path"]
+        image_path = STATIC_DIR / option["image_path"]
         assert image_path.is_file()
         with Image.open(image_path) as image:
             assert image.size == (1536, 1024)
@@ -176,7 +177,7 @@ def test_visual_catalog_api_returns_planned_and_ready_questions(
 
 
 def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
-    static = ROOT / "backend" / "server" / "static"
+    static = STATIC_DIR
     html = (static / "scene.html").read_text(encoding="utf-8")
     javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
 
@@ -208,7 +209,7 @@ def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
 
 
 def test_questionnaire_ui_keeps_visual_catalog_for_rag_but_not_as_required_questions() -> None:
-    static = ROOT / "backend" / "server" / "static"
+    static = STATIC_DIR
     html = (static / "scene.html").read_text(encoding="utf-8")
     javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
 
@@ -232,7 +233,7 @@ def test_render_only_detail_questions_never_reach_the_placement_engine() -> None
     """
     from backend.server.scene_service import PLACEMENT_PREFERENCE_EFFECTS
 
-    static = ROOT / "backend" / "server" / "static"
+    static = STATIC_DIR
     html = (static / "scene.html").read_text(encoding="utf-8")
     javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
 
@@ -488,7 +489,7 @@ def test_extreme_preferences_change_furniture_specs_before_layout() -> None:
 
 def test_viewer_consumes_questionnaire_ceiling_finish() -> None:
     viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+        STATIC_DIR / "scene_viewer.js"
     ).read_text(encoding="utf-8")
 
     assert "sceneData.design_choices?.ceiling_color_hex" in viewer

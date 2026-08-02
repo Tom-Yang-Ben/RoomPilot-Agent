@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-STATIC = ROOT / "backend" / "server" / "static"
-PBR_MODULE = STATIC / "scene_pbr_contracts.js"
-ARCHITECTURE_MODULE = STATIC / "scene_architecture.js"
-VIEWER = STATIC / "scene_viewer.js"
-STYLE_PACKS_MODULE = STATIC / "scene_style_packs.js"
+PBR_MODULE = STATIC_DIR / "scene_pbr_contracts.js"
+ARCHITECTURE_MODULE = STATIC_DIR / "scene_architecture.js"
+VIEWER = STATIC_DIR / "scene_viewer.js"
+STYLE_PACKS_MODULE = STATIC_DIR / "scene_style_packs.js"
 
 
 def test_image_surfaces_keep_texture_detail_and_use_physical_profiles() -> None:
@@ -395,7 +395,7 @@ def test_gap_window_has_no_usable_span_inside_the_split_host_wall() -> None:
 
 def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
     viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+        STATIC_DIR / "scene_viewer.js"
     ).read_text(encoding="utf-8")
 
     assert "const missingWindows = windowSegments.filter" in viewer
@@ -431,7 +431,7 @@ def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
     assert result == {"openingEdge": True, "realCorner": False}
 
     viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+        STATIC_DIR / "scene_viewer.js"
     ).read_text(encoding="utf-8")
     assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in viewer
     assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in viewer
@@ -471,7 +471,7 @@ def test_gap_window_uses_its_own_host_wall_for_surface_material() -> None:
     assert result["material_id"] == "white-wall"
 
     viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+        STATIC_DIR / "scene_viewer.js"
     ).read_text(encoding="utf-8")
     assert "wallSegmentForOpening(segments, opening, wallThickness)" in viewer
     assert "wallMaterial(hostSegment || segments[0] || {})" in viewer
@@ -495,7 +495,7 @@ def test_gap_window_wall_sections_end_flush_with_the_opening() -> None:
     }
 
     viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+        STATIC_DIR / "scene_viewer.js"
     ).read_text(encoding="utf-8")
     wall_builder = viewer.split("function buildSegmentWalls", 1)[1].split(
         "function buildOpeningAssembly", 1

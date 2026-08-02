@@ -10,17 +10,15 @@
 """
 from __future__ import annotations
 
-from pathlib import Path
-
-STATIC = Path(__file__).resolve().parents[1] / "backend" / "server" / "static"
+from backend.paths import STATIC_DIR
 
 
 def _html() -> str:
-    return (STATIC / "scene.html").read_text(encoding="utf-8")
+    return (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
 
 def _source() -> str:
-    return (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    return (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
 
 def test_both_steps_expose_download_and_save_buttons() -> None:

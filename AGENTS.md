@@ -56,6 +56,9 @@
 - 冰箱、洗衣機等家電保留為問卷與 AI 生圖上下文，不能進入 2D/3D 自動配置或正式家具 API。
 - 隔離區或未匹配資料不得進 API 或場景。
 - 正式網頁只有 `backend/server/static/` 一套；不得新建第二套前端。
+- 前端在磁碟上的位置只由 `backend/paths.py` 的 `STATIC_DIR` 決定，Node 測試那側是
+  `tests/static/paths.mjs`。後端與測試一律 import，不得自行拼 `parents[n]` 或相對於
+  工作目錄的路徑。
 - 不得提交 `.env`、本機 runtime、快取、模型權重或大型 GLB 壓縮檔。
 
 ## 驗證矩陣

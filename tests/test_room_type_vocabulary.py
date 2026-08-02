@@ -14,18 +14,17 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 from backend.floorplan.vision.analysis import CODY_ROOM_TYPE_MAP, ROOM_LABELS
+from backend.paths import STATIC_DIR
 from backend.server.scene_service import SPACE_DEFAULTS
 
-STATIC = Path(__file__).resolve().parents[1] / "backend" / "server" / "static"
 
 CANONICAL = {room_type for room_type, _aliases in ROOM_LABELS}
 
 
 def _scene_v2_dropdown_types() -> set[str]:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     block = source.split("const ROOM_TYPE_OPTIONS = [", 1)[1].split("];", 1)[0]
     return set(re.findall(r'\[\s*"([a-z_]+)"\s*,', block))
 
@@ -56,7 +55,7 @@ def test_semantic_map_values_stay_inside_canonical_vocabulary() -> None:
 
 
 def test_frontend_recommendation_table_knows_every_canonical_type() -> None:
-    source = (STATIC / "scene_layout2d.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_layout2d.js").read_text(encoding="utf-8")
     block = source.split("const recommendations = {", 1)[1].split("};", 1)[0]
     known = set(re.findall(r"^\s*([a-z_]+):", block, re.MULTILINE))
     missing = CANONICAL - known
@@ -64,14 +63,14 @@ def test_frontend_recommendation_table_knows_every_canonical_type() -> None:
 
 
 def test_room_type_select_is_wired_in_the_review_card() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="room-type"' in html
     assert 'roomType: $("#room-type")' in source
     assert "applyRoomTypeSelection" in source
     assert "export function roomTypeFromName" in (
-        STATIC / "scene_layout2d.js"
+        STATIC_DIR / "scene_layout2d.js"
     ).read_text(encoding="utf-8")
     # 改名時若尚未指定型別，必須嘗試由名稱回寫 room.type。
     # 舊版傳的 `name` 是未宣告變數，回寫等於永遠拿不到型別。
@@ -86,8 +85,8 @@ def test_room_name_select_is_generated_from_the_single_option_table() -> None:
     <option>：臥室選不到、主臥／次臥等 6 個舊值按「套用名稱」會被判成
     「請選擇空間名稱」——錯誤訊息還把資料脫鉤說成使用者沒選。
     """
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="room-name"' in html
     assert "function renderRoomNameSelect" in source
@@ -107,7 +106,7 @@ def test_room_name_options_only_emit_canonical_room_types() -> None:
     ——玄關被塞沙發、茶几與電視櫃。dropdown 那條契約是綠的，因為它只檢查
     ROOM_TYPE_OPTIONS，不檢查 ROOM_NAME_OPTIONS 產出的值。
     """
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     block = source.split("const ROOM_NAME_OPTIONS = Object.freeze([", 1)[1].split("]);", 1)[0]
     emitted = set(re.findall(r'type:\s*"([a-z_]+)"', block))
 
@@ -120,7 +119,7 @@ def test_room_name_options_only_emit_canonical_room_types() -> None:
 
 def test_legacy_room_types_migrate_into_canonical_vocabulary() -> None:
     """舊專案存下來的 entry／stair／garage 必須遷移，不能落到 default。"""
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     block = source.split("const LEGACY_ROOM_TYPES = Object.freeze({", 1)[1].split("});", 1)[0]
     migration = dict(re.findall(r'(\w+):\s*"([a-z_]+)"', block))
 
@@ -135,7 +134,7 @@ def test_questionnaire_routes_by_room_name_not_room_type() -> None:
     玄關與樓梯的 type 都併成 circulation 之後，若還從 type 反推，玄關會拿到
     走道的 2 題而不是自己的 4 題。
     """
-    source = (STATIC / "scene_questionnaire_test2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_questionnaire_test2.js").read_text(encoding="utf-8")
     block = source.split("const VISUAL_SPACES_BY_ROOM_NAME = Object.freeze({", 1)[1].split("});", 1)[0]
 
     assert re.search(r'entryway:\s*\["entryway"\]', block)
@@ -150,7 +149,7 @@ def test_scene_html_has_no_duplicate_element_ids() -> None:
     """重複 id 讓 querySelector 只拿得到第一個，另一半 UI 變成死的。"""
     import collections
 
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
     counts = collections.Counter(re.findall(r'\sid="([^"]+)"', html))
     duplicates = {name: count for name, count in counts.items() if count > 1}
 

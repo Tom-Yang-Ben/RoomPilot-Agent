@@ -4,11 +4,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const STATIC_DIR = path.resolve(HERE, "..", "..", "backend", "server", "static");
+import { STATIC_DIR } from "./paths.mjs";
 
 test("啟動失敗會留下可見橫幅，且不洗掉既有內容", async () => {
   const dom = new JSDOM("<!doctype html><body><main id=\"content\">內容</main></body>");

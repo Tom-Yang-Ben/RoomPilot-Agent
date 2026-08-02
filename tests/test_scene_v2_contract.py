@@ -6,9 +6,7 @@ import re
 import subprocess
 
 from test_scene_workflow import ROOT, run_workflow_script
-
-
-STATIC = ROOT / "backend" / "server" / "static"
+from backend.paths import STATIC_DIR
 
 
 def _space_heading_html(html: str) -> str:
@@ -18,9 +16,9 @@ def _space_heading_html(html: str) -> str:
 
 
 def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    bundle = (STATIC / "scene_v2.js").read_bytes()
-    css = (STATIC / "site.css").read_bytes()
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    bundle = (STATIC_DIR / "scene_v2.js").read_bytes()
+    css = (STATIC_DIR / "site.css").read_bytes()
     expected_bundle = hashlib.sha256(bundle).hexdigest()[:12]
     expected_css = hashlib.sha256(css).hexdigest()[:12]
 
@@ -31,7 +29,7 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
 def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
     """Keep a browser-breaking syntax error from hiding behind API-only tests."""
     module_file = tmp_path / "scene_v2.mjs"
-    module_file.write_bytes((STATIC / "scene_v2.js").read_bytes())
+    module_file.write_bytes((STATIC_DIR / "scene_v2.js").read_bytes())
     result = subprocess.run(
         ["node", "--check", str(module_file)],
         capture_output=True,
@@ -42,8 +40,8 @@ def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
 
 
 def test_requirements_step_has_first_meeting_demo_shortcut() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="randomize-requirements"' in html
     assert "async function randomizeRequirementsForTesting" in source
@@ -54,8 +52,8 @@ def test_requirements_step_has_first_meeting_demo_shortcut() -> None:
 
 
 def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert "PREFERENCE_WEIGHT_OPTIONS" in source
     assert "function selectPreferenceWeight" in source
@@ -68,7 +66,7 @@ def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> N
 
 
 def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "QUESTIONNAIRE_MATERIAL_RECOMMENDATION_COUNT = 4" in source
     assert "function questionnaireMaterialOptionsForPack" in source
@@ -80,8 +78,8 @@ def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options(
 
 
 def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     material_option = source.split("function materialOptionForPack", 1)[1].split(
         "function questionnaireMaterialOptionsForPack", 1
@@ -101,7 +99,7 @@ def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() 
 
 
 def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "const INDEPENDENT_FLOOR_ROOM_TYPES" in source
     assert '"bathroom"' in source
@@ -125,7 +123,7 @@ def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions()
 
 
 def test_circulation_style_inherits_living_room_until_user_confirms_override() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function isCirculationRoom" in source
     assert "function copyLivingRoomStyleToCirculation" in source
@@ -135,7 +133,7 @@ def test_circulation_style_inherits_living_room_until_user_confirms_override() -
 
 
 def test_interior_walls_butt_against_exterior_inner_face_without_a_visible_gap() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     junction_helper = source.split("function interiorWallJunctionInsets", 1)[1].split(
         "function polygonShape", 1
@@ -145,7 +143,7 @@ def test_interior_walls_butt_against_exterior_inner_face_without_a_visible_gap()
 
 
 def test_whole_house_wall_finish_keeps_texture_while_avoiding_lighting_variation() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function createWallMaterial(wallOption, surfaceCatalog, { tintOnly = false } = {})" in source
     assert "const usesOneWholeHouseWall" in source
@@ -158,9 +156,9 @@ def test_whole_house_wall_finish_keeps_texture_while_avoiding_lighting_variation
 
 
 def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert 'id="questionnaire-furniture-options"' in html
     assert 'id="questionnaire-furniture-status"' in html
@@ -210,7 +208,7 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
 
 
 def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     auto_layout = source.split("async function autoLayoutFurniture()", 1)[1].split(
         "async function relayoutFurnitureForScheme", 1
     )[0]
@@ -223,7 +221,7 @@ def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> N
 
 
 def test_room_requirement_round_trip_preserves_selected_and_deferred_furniture() -> None:
-    module_uri = (STATIC / "scene_room_requirements.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_room_requirements.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{
@@ -279,8 +277,8 @@ def test_room_requirement_round_trip_preserves_selected_and_deferred_furniture()
 
 
 def test_step_six_groups_failures_by_room_and_offers_explicit_resolution() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert "function configurationBlockingFurnitureByRoom" in source
     assert 'data-prioritize-configuration-room="' in source
@@ -317,9 +315,9 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     }
 
     for importer_name, dependency_names in dependency_edges.items():
-        importer = (STATIC / importer_name).read_text(encoding="utf-8")
+        importer = (STATIC_DIR / importer_name).read_text(encoding="utf-8")
         for dependency_name in dependency_names:
-            dependency = (STATIC / dependency_name).read_bytes()
+            dependency = (STATIC_DIR / dependency_name).read_bytes()
             expected = hashlib.sha256(dependency).hexdigest()[:12]
             assert (
                 f'./{dependency_name}?v=sha256-{expected}' in importer
@@ -327,7 +325,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
 
 
 def test_space_save_does_not_duplicate_furniture_or_scene_payloads() -> None:
-    module_uri = (STATIC / "scene_design_schemes.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_design_schemes.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ compactDesignSchemesForSpace }} from {json.dumps(module_uri)};
@@ -358,7 +356,7 @@ def test_space_save_does_not_duplicate_furniture_or_scene_payloads() -> None:
 
 
 def test_loaded_door_candidates_drop_low_confidence_wide_and_duplicate_auto_doors() -> None:
-    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_structure_utils.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ dedupeDoorCandidates }} from {json.dumps(module_uri)};
@@ -378,7 +376,7 @@ def test_loaded_door_candidates_drop_low_confidence_wide_and_duplicate_auto_door
 
 
 def test_nearby_parallel_door_leaves_remain_distinct() -> None:
-    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_structure_utils.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ dedupeDoorCandidates }} from {json.dumps(module_uri)};
@@ -413,7 +411,7 @@ def test_nearby_parallel_door_leaves_remain_distinct() -> None:
 
 
 def test_unconfirmed_nearby_parallel_door_leaves_are_not_merged() -> None:
-    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_structure_utils.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ dedupeDoorCandidates }} from {json.dumps(module_uri)};
@@ -446,7 +444,7 @@ def test_unconfirmed_nearby_parallel_door_leaves_are_not_merged() -> None:
 
 
 def test_restored_scene_data_removes_duplicate_door_segments() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function normalizeSceneDoorSegments(sceneData)" in source
     assert "dedupeDoorCandidates(sceneData.floorplan.door_segments)" in source
@@ -454,7 +452,7 @@ def test_restored_scene_data_removes_duplicate_door_segments() -> None:
 
 
 def test_dimensioned_plan_draws_colored_room_outlines_and_size_lines() -> None:
-    module_uri = (STATIC / "scene_dimensioned_plan.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_dimensioned_plan.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ buildDimensionedPlanAnnotations }} from {json.dumps(module_uri)};
@@ -491,7 +489,7 @@ def test_dimensioned_plan_draws_colored_room_outlines_and_size_lines() -> None:
 
 
 def test_floor_to_ceiling_window_preset_reaches_from_floor_to_ceiling() -> None:
-    module_uri = (STATIC / "scene_window_types.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_window_types.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{
@@ -532,7 +530,7 @@ def test_floor_to_ceiling_window_preset_reaches_from_floor_to_ceiling() -> None:
 
 
 def test_only_internal_walls_can_be_marked_as_demolition_candidates() -> None:
-    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_structure_utils.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{
@@ -572,7 +570,7 @@ def test_only_internal_walls_can_be_marked_as_demolition_candidates() -> None:
 
 
 def test_saved_space_confirmation_migrates_legacy_meters_only_once() -> None:
-    module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_unit_contracts.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ normalizeSavedSpaceConfirmation }} from {json.dumps(module_uri)};
@@ -616,7 +614,7 @@ def test_saved_space_confirmation_migrates_legacy_meters_only_once() -> None:
 
 
 def test_saved_space_confirmation_migrates_each_field_by_its_own_unit() -> None:
-    module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_unit_contracts.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ normalizeSavedSpaceConfirmation }} from {json.dumps(module_uri)};
@@ -682,7 +680,7 @@ def test_saved_space_confirmation_migrates_each_field_by_its_own_unit() -> None:
 
 
 def test_saved_scene_data_migrates_only_legacy_floorplan_geometry_once() -> None:
-    module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_unit_contracts.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ normalizeSavedSceneData }} from {json.dumps(module_uri)};
@@ -725,7 +723,7 @@ def test_saved_scene_data_migrates_only_legacy_floorplan_geometry_once() -> None
 
 
 def test_saved_scene_data_migrates_mixed_floorplan_fields_independently() -> None:
-    module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_unit_contracts.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ normalizeSavedSceneData }} from {json.dumps(module_uri)};
@@ -778,7 +776,7 @@ def test_saved_scene_data_migrates_mixed_floorplan_fields_independently() -> Non
 
 
 def test_scene_generate_response_prefers_scene_json_with_legacy_fallback() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function sceneDataFromGenerateResponse(payload)" in source
     assert "return payload?.scene_json || payload;" in source
@@ -787,7 +785,7 @@ def test_scene_generate_response_prefers_scene_json_with_legacy_fallback() -> No
 
 
 def test_project_restore_normalizes_saved_scene_before_loading_viewers() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "normalizeSavedSceneData" in controller
     assert (
@@ -798,16 +796,16 @@ def test_project_restore_normalizes_saved_scene_before_loading_viewers() -> None
 
 
 def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'id="window-type-field"' in html
     assert 'id="selected-window-type"' in html
     assert 'value="floor_to_ceiling"' in html
     assert 'id="window-type-preview"' in html
     assert "黑鋁框左右兩扇玻璃參考" in html
-    assert (STATIC / "structure_assets" / "floor-to-ceiling-window.png").is_file()
+    assert (STATIC_DIR / "structure_assets" / "floor-to-ceiling-window.png").is_file()
     assert "function applySelectedWindowType" in controller
     assert "function applyWindowType(windowId, type)" in controller
     assert 'class="rp-window-type-toggle"' in controller
@@ -821,7 +819,7 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
 
 
 def test_accurate_floorplan_uses_segment_walls_when_openings_exist() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert (
         "const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;"
@@ -836,7 +834,7 @@ def test_accurate_floorplan_uses_segment_walls_when_openings_exist() -> None:
 
 
 def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function dedupeArchitecturalOpeningsFor3d" in viewer
     assert "const doorSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
@@ -854,7 +852,7 @@ def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
 
 
 def test_3d_door_openings_merge_overlapping_spans_on_the_same_host_wall() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function openingWallCoverage" in viewer
     assert "function openingsShareWallCoverage" in viewer
@@ -866,7 +864,7 @@ def test_3d_door_openings_merge_overlapping_spans_on_the_same_host_wall() -> Non
 
 
 def test_3d_door_openings_keep_distinct_confirmed_step4_ids() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'const openingId = String(opening?.id || "").trim();' in viewer
     assert "if (openingId && candidateId) return candidateId === openingId;" in viewer
@@ -879,13 +877,13 @@ def test_3d_door_openings_keep_distinct_confirmed_step4_ids() -> None:
 
 
 def test_3d_world_coordinate_conversion_flips_door_swing_endpoint() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "swing_end: segment.swing_end ? flipPointZ(segment.swing_end)" in viewer
 
 
 def test_step4_shows_the_closed_door_line_from_the_swing_arc() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'const closedLine = item.swing_end' in source
     assert 'stroke="#1598dc"' in source
@@ -893,8 +891,8 @@ def test_step4_shows_the_closed_door_line_from_the_swing_arc() -> None:
 
 
 def test_step4_can_lock_a_manually_corrected_door_opening() -> None:
-    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
     assert 'id="lock-selected-door-opening"' in html
     assert "function lockSelectedDoorOpening()" in viewer
@@ -903,8 +901,8 @@ def test_step4_can_lock_a_manually_corrected_door_opening() -> None:
 
 
 def test_requirements_generate_the_white_model_without_an_intermediate_2d_confirmation() -> None:
-    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
     assert "async function generateWhiteModelFromRequirements" in viewer
     assert "const generated = await generateWhiteModelFromRequirements({" in viewer
@@ -927,7 +925,7 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
 
 
 def test_requirement_generation_defers_a_single_failed_room_without_breaking_step_six() -> None:
-    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     auto_layout = viewer.split("async function autoLayoutFurniture()", 1)[1].split(
         "async function relayoutFurnitureForScheme", 1
@@ -940,8 +938,8 @@ def test_requirement_generation_defers_a_single_failed_room_without_breaking_ste
 
 
 def test_questionnaire_applies_whole_house_defaults_before_room_furniture() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
     assert 'id="whole-house-style-editor"' in html
     assert 'id="whole-house-wall-options"' in html
@@ -960,8 +958,8 @@ def test_questionnaire_applies_whole_house_defaults_before_room_furniture() -> N
 
 
 def test_step_six_defaults_to_free_rotation_with_grouped_tools() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'data-view-mode="orbit" class="is-active">自由旋轉' in html
     assert 'data-view-mode="dollhouse"' not in html
@@ -971,8 +969,8 @@ def test_step_six_defaults_to_free_rotation_with_grouped_tools() -> None:
 
 
 def test_step_four_has_a_dimensioned_floorplan_confirmation_page() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="space-editor-workspace"' in html
     assert 'id="space-dimension-review"' in html
@@ -1003,8 +1001,8 @@ def test_step_four_has_a_dimensioned_floorplan_confirmation_page() -> None:
 
 
 def test_upload_step_does_not_offer_the_internal_630_sample_button() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="load-sample-630"' not in html
     assert "function loadSample630" not in source
@@ -1012,7 +1010,7 @@ def test_upload_step_does_not_offer_the_internal_630_sample_button() -> None:
 
 
 def test_scene_sidebar_numbers_match_viewer_markers() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'class="rp-object-number">#${index + 1}' in source
     assert "function configurationFurnitureNumber" in source
@@ -1025,8 +1023,8 @@ def test_scene_sidebar_numbers_match_viewer_markers() -> None:
 
 
 def test_structure_step_explains_pending_manual_door_directions() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "待確認：" in source
     assert "一鍵確認全部門" in html
@@ -1036,7 +1034,7 @@ def test_structure_step_explains_pending_manual_door_directions() -> None:
 
 
 def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
     # 編號由 <b> 呈現，<span> 只放名稱；兩邊都帶數字會顯示成「① 1 建立專案」。
     for number, label in (
@@ -1072,9 +1070,9 @@ def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> Non
 
 
 def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     white_model = html.split('id="white-model-3d-step"', 1)[1].split(
         'id="realistic-3d-step"', 1
@@ -1108,8 +1106,8 @@ def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
 
 
 def test_configuration_markers_focus_3d_and_use_visible_selected_numbers() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
     handler = source.split("const selectConfigurationFurniture =", 1)[1].split(
         "element.configurationPlanLayer.addEventListener", 1
     )[0]
@@ -1127,7 +1125,7 @@ def test_configuration_markers_focus_3d_and_use_visible_selected_numbers() -> No
 
 
 def test_2d_furniture_library_has_top_view_icons_and_real_centimetre_sizes() -> None:
-    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ FURNITURE_2D_LIBRARY, createFurniture2DItem }} from {json.dumps(module_uri)};
@@ -1152,7 +1150,7 @@ def test_2d_furniture_library_has_top_view_icons_and_real_centimetre_sizes() -> 
 
 
 def test_2d_furniture_plan_coordinates_match_the_visible_image_layer() -> None:
-    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ planCmToLayerPixel }} from {json.dumps(module_uri)};
@@ -1169,7 +1167,7 @@ def test_2d_furniture_plan_coordinates_match_the_visible_image_layer() -> None:
 
 
 def test_scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function addFurniturePickProxy" in source
     assert "roompilotPickProxy" in source
@@ -1181,7 +1179,7 @@ def test_scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection() -> N
 
 
 def test_2d_furniture_selection_syncs_to_matching_3d_scene_object() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function sceneObjectIndexByFurnitureId" in source
     assert "String(item.furniture_id) === String(furnitureId)" in source
@@ -1192,8 +1190,8 @@ def test_2d_furniture_selection_syncs_to_matching_3d_scene_object() -> None:
 
 
 def test_3d_scene_selection_syncs_back_to_2d_furniture_state() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
     object_list_handler = controller.split("const selectSceneObject =", 1)[1].split(
         "element.objectList?.addEventListener", 1
     )[0]
@@ -1209,7 +1207,7 @@ def test_3d_scene_selection_syncs_back_to_2d_furniture_state() -> None:
 
 
 def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects() -> None:
-    module_uri = (STATIC / "scene_configuration_sync.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_configuration_sync.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{
@@ -1270,7 +1268,7 @@ def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects(
     assert result["failed"][1]["placementReason"] == "與牆面碰撞"
     assert [item["id"] for item in result["removed"]] == ["sofa-1"]
 
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     assert controller.count("upsertFurniture2dFromSceneObject(") >= 4
     assert "removeFurniture2dBySceneObject(" in controller
     assert "furniture2dDefaultsForSceneObject" in controller
@@ -1278,7 +1276,7 @@ def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects(
 
 
 def test_step_six_progress_entry_reopens_the_dedicated_2d_workspace() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     progress_navigation = source.split(
         '$$(".rp-progress button").forEach((button) => button.addEventListener("click", () => {',
         1,
@@ -1289,7 +1287,7 @@ def test_step_six_progress_entry_reopens_the_dedicated_2d_workspace() -> None:
 
 
 def test_single_furniture_reflow_is_locked_until_the_request_finishes() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "configurationReflowInFlight.has(furnitureKey)" in source
     assert "configurationReflowInFlight.add(furnitureKey)" in source
@@ -1301,7 +1299,7 @@ def test_single_furniture_reflow_is_locked_until_the_request_finishes() -> None:
 
 
 def test_3d_viewer_flips_scene_z_at_the_visual_boundary_only() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function sceneToWorldPosition" in viewer
     assert "z: -Number(position.z || 0)" in viewer
@@ -1324,8 +1322,8 @@ def test_3d_viewer_flips_scene_z_at_the_visual_boundary_only() -> None:
 
 
 def test_3d_viewer_keeps_manual_furniture_controls_and_number_markers() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function createNumberMarker" in viewer
     assert "roompilotNumberMarker" in viewer
@@ -1333,12 +1331,12 @@ def test_3d_viewer_keeps_manual_furniture_controls_and_number_markers() -> None:
     assert "function addSceneFurniture" in controller
     assert "function deleteSelectedSceneFurniture" in controller
     assert 'id="delete-replacement-furniture"' in (
-        STATIC / "scene.html"
+        STATIC_DIR / "scene.html"
     ).read_text(encoding="utf-8")
 
 
 def test_2d_collision_footprint_respects_furniture_rotation() -> None:
-    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ furnitureCollisionFootprintCm }} from {json.dumps(module_uri)};
@@ -1361,7 +1359,7 @@ def test_2d_collision_footprint_respects_furniture_rotation() -> None:
 
 
 def test_2d_collision_checker_uses_rotated_footprints_for_bounds_and_overlap() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     collision_function = source.split("function itemCollision", 1)[1].split(
         "function renderLayoutFurniture", 1
     )[0]
@@ -1373,7 +1371,7 @@ def test_2d_collision_checker_uses_rotated_footprints_for_bounds_and_overlap() -
 
 
 def test_2d_layout_defaults_to_showing_every_generated_furniture_item() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     auto_layout = source.split("async function autoLayoutFurniture", 1)[1].split(
         "function renderLayoutRoomFilter", 1
     )[0]
@@ -1383,7 +1381,7 @@ def test_2d_layout_defaults_to_showing_every_generated_furniture_item() -> None:
 
 
 def test_2d_furniture_scale_uses_the_visible_image_content_not_css_letterboxing() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     scale_function = source.split("function layoutPixelsPerCm", 1)[1].split(
         "function itemCollision", 1
     )[0]
@@ -1393,7 +1391,7 @@ def test_2d_furniture_scale_uses_the_visible_image_content_not_css_letterboxing(
 
 
 def test_2d_furniture_normal_and_invalid_colours_are_visually_distinct() -> None:
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
     normal_rule = css.split(".rp-2d-furniture {", 1)[1].split("}", 1)[0]
     invalid_rule = css.split(".rp-2d-furniture.is-invalid {", 1)[1].split("}", 1)[0]
 
@@ -1402,7 +1400,7 @@ def test_2d_furniture_normal_and_invalid_colours_are_visually_distinct() -> None
 
 
 def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> None:
-    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ recommendedFurnitureForRoom }} from {json.dumps(module_uri)};
@@ -1429,7 +1427,7 @@ def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> 
 
 
 def test_2d_furniture_pointer_selection_reads_the_rendered_data_attribute() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     handler = source.split("function layoutPointerDown", 1)[1].split(
         "function layoutPointerMove", 1
     )[0]
@@ -1438,7 +1436,7 @@ def test_2d_furniture_pointer_selection_reads_the_rendered_data_attribute() -> N
 
 
 def test_catalog_resolution_keeps_each_room_furniture_as_a_unique_scene_instance() -> None:
-    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ createFurniture2DItem, mergeCatalogFurniture }} from {json.dumps(module_uri)};
@@ -1476,7 +1474,7 @@ def test_catalog_resolution_keeps_each_room_furniture_as_a_unique_scene_instance
 
 
 def test_every_room_default_furniture_has_a_2d_icon_variant() -> None:
-    layout_uri = (STATIC / "scene_layout2d.js").as_uri()
+    layout_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{
@@ -1515,7 +1513,7 @@ def test_every_room_default_furniture_has_a_2d_icon_variant() -> None:
 
 
 def test_2d_form_replacement_preserves_position_and_uses_new_real_size() -> None:
-    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{
@@ -1543,7 +1541,7 @@ def test_2d_form_replacement_preserves_position_and_uses_new_real_size() -> None
 
 
 def test_2d_payload_marks_user_required_furniture_for_server_resolution() -> None:
-    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{
@@ -1575,7 +1573,7 @@ def test_2d_payload_marks_user_required_furniture_for_server_resolution() -> Non
 
 
 def test_room_usage_recommends_decor_without_restoring_retired_appliances() -> None:
-    module_uri = (STATIC / "scene_layout2d.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{
@@ -1601,7 +1599,7 @@ def test_room_usage_recommends_decor_without_restoring_retired_appliances() -> N
 
 
 def test_step_six_prunes_retired_appliances_from_restored_projects() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert '"refrigerator"' in source
     assert '"dishwasher"' in source
@@ -1621,8 +1619,8 @@ def test_step_six_prunes_retired_appliances_from_restored_projects() -> None:
 
 
 def test_2d_library_exposes_an_explicit_add_mode_separate_from_replacement() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="add-2d-furniture-mode"' in html
     assert "state.selectedFurniture2dId = null" in source
@@ -1630,8 +1628,8 @@ def test_2d_library_exposes_an_explicit_add_mode_separate_from_replacement() -> 
 
 
 def test_space_confirmation_can_add_a_missed_room_and_invalidates_downstream() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="add-missed-room"' in html
     assert "function addMissedRoom()" in source
@@ -1641,8 +1639,8 @@ def test_space_confirmation_can_add_a_missed_room_and_invalidates_downstream() -
 
 
 def test_room_review_explains_django_icon_conflict_reasons() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert "function roomReviewHint(room)" in source
     assert "function normalizeIconInferredRoomReview(room, polygonCm, index)" in source
@@ -1673,8 +1671,8 @@ def test_room_review_explains_django_icon_conflict_reasons() -> None:
 
 
 def test_room_size_is_computed_from_dragged_polygon_instead_of_typed() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="room-width-cm"' not in html
     assert 'id="room-depth-cm"' not in html
@@ -1684,8 +1682,8 @@ def test_room_size_is_computed_from_dragged_polygon_instead_of_typed() -> None:
 
 
 def test_structure_mode_hides_room_overlays_and_explains_selected_lines() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'spaceMode: "rooms"' in source
     assert 'state.spaceMode === "rooms"' in source
@@ -1697,8 +1695,8 @@ def test_structure_mode_hides_room_overlays_and_explains_selected_lines() -> Non
 
 
 def test_door_review_exposes_add_select_edit_rotate_and_delete_controls() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'data-structure-section="door"' in html
     assert 'id="add-active-structure"' in html
@@ -1715,8 +1713,8 @@ def test_door_review_exposes_add_select_edit_rotate_and_delete_controls() -> Non
 
 
 def test_structure_editor_uses_separate_pages_and_exposes_window_controls() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     for kind in ("door", "window", "wall", "beam", "column"):
         assert f'data-structure-section="{kind}"' in html
@@ -1737,8 +1735,8 @@ def test_structure_editor_uses_separate_pages_and_exposes_window_controls() -> N
 
 
 def test_beam_drag_guidance_only_appears_during_draw_mode() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="structure-review-guidance"' in html
     assert "按住左圖拖曳樑的起點至終點，放開即完成" in source
@@ -1748,9 +1746,9 @@ def test_beam_drag_guidance_only_appears_during_draw_mode() -> None:
 
 
 def test_wall_review_exposes_locked_perimeter_and_two_layout_previews() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert 'id="wall-removal-preview"' in html
     assert 'id="wall-retained-preview-svg"' in html
@@ -1766,8 +1764,8 @@ def test_wall_review_exposes_locked_perimeter_and_two_layout_previews() -> None:
 
 
 def test_each_door_requires_explicit_confirmation_and_supports_hinge_end_reversal() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="add-active-structure"' in html
     assert 'id="structure-review-progress"' in html
@@ -1782,8 +1780,8 @@ def test_each_door_requires_explicit_confirmation_and_supports_hinge_end_reversa
 
 
 def test_add_door_mode_takes_priority_over_wall_selection_and_can_be_cancelled() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     pointer_handler = source[source.index("function spacePointerDown"):source.index("function spacePointerMove")]
 
     assert 'id="cancel-structure-interaction"' in html
@@ -1797,8 +1795,8 @@ def test_add_door_mode_takes_priority_over_wall_selection_and_can_be_cancelled()
 
 
 def test_selected_door_has_large_drag_target_and_resizable_endpoint_handles() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="opening-width-controls"' in html
     assert 'id="opening-width-slider"' in html
@@ -1823,8 +1821,8 @@ def test_selected_door_has_large_drag_target_and_resizable_endpoint_handles() ->
 
 
 def test_selected_window_has_drag_handles_wall_snap_and_live_width_control() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="opening-width-controls"' in html
     assert 'id="opening-width-label"' in html
@@ -1836,8 +1834,8 @@ def test_selected_window_has_drag_handles_wall_snap_and_live_width_control() -> 
 
 
 def test_structure_legend_uses_heading_space_and_window_markers_match_review_numbers() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     stage_start = html.index('id="space-plan-stage"')
     stage_end = html.index('id="space-plan-caption"')
     heading_html = _space_heading_html(html)
@@ -1851,8 +1849,8 @@ def test_structure_legend_uses_heading_space_and_window_markers_match_review_num
 
 
 def test_room_editor_is_embedded_in_the_guided_review_card() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
     room_panel_start = html.index('id="room-confirmation-panel"')
     room_list_start = html.index('id="room-list"')
     guided_review_html = html[room_panel_start:room_list_start]
@@ -1871,8 +1869,8 @@ def test_room_editor_is_embedded_in_the_guided_review_card() -> None:
 
 
 def test_all_structure_kinds_share_numbering_sizing_and_crud_contract() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'data-structure-number-kind="${kind}"' in source
     for kind in ("wall", "door", "window", "beam", "column"):
@@ -1895,10 +1893,10 @@ def test_all_structure_kinds_share_numbering_sizing_and_crud_contract() -> None:
 
 
 def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
-    preview = (STATIC / "scene_structure_preview.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+    preview = (STATIC_DIR / "scene_structure_preview.js").read_text(encoding="utf-8")
 
     assert 'id="add-white-model-beam"' in html
     assert 'id="white-model-beam-width-cm"' in html
@@ -1931,7 +1929,7 @@ def test_beam_supports_drag_to_draw_true_width_and_3d_ceiling_placement() -> Non
 
 
 def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
-    geometry_uri = (STATIC / "scene_structure_geometry.js").as_uri()
+    geometry_uri = (STATIC_DIR / "scene_structure_geometry.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{
@@ -2028,8 +2026,8 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
     assert result["resolvedSupportedBeam"]["moved"] is True
     assert result["resolvedSupportedBeam"]["item"]["start"]["x"] >= 10
 
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
     assert 'id="structure-wall-collision-error"' in html
     assert 'id="structure-preview-dimension-hint"' in html
     assert "structureWallCollision" in source
@@ -2037,7 +2035,7 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
     assert "resolveStructureSizeDraft" in source
     assert "structureSizeDraft" in source
     assert "setActiveDimension(dimension)" in (
-        STATIC / "scene_structure_preview.js"
+        STATIC_DIR / "scene_structure_preview.js"
     ).read_text(encoding="utf-8")
     assert "樑柱不可穿過牆體" in source
     assert "confirmStructure" in source
@@ -2046,8 +2044,8 @@ def test_beams_and_columns_cannot_overlap_wall_footprints() -> None:
 
 
 def test_room_confirmation_is_isolated_and_supports_confirm_merge_and_split() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="room-confirmation-progress"' in html
     assert 'data-room-geometry-mode="merge"' in html
@@ -2068,8 +2066,8 @@ def test_room_confirmation_is_isolated_and_supports_confirm_merge_and_split() ->
 
 
 def test_room_polygon_nodes_can_be_merged_or_split_on_an_edge() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'data-room-node-mode="merge"' in html
     assert 'data-room-node-mode="split"' in html
@@ -2084,8 +2082,8 @@ def test_room_polygon_nodes_can_be_merged_or_split_on_an_edge() -> None:
 
 
 def test_room_review_can_confirm_all_rooms_at_once() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="confirm-all-rooms"' in html
     assert "一鍵確認全部房間" in html
@@ -2096,8 +2094,8 @@ def test_room_review_can_confirm_all_rooms_at_once() -> None:
 
 
 def test_loaded_cody_rooms_repair_narrow_spikes_before_rendering() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    module_uri = (STATIC / "scene_room_geometry.js").as_uri()
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    module_uri = (STATIC_DIR / "scene_room_geometry.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ repairLoadedRoomPolygon }} from {json.dumps(module_uri)};
@@ -2168,8 +2166,8 @@ def test_loaded_cody_rooms_repair_narrow_spikes_before_rendering() -> None:
 
 
 def test_manual_upstream_edits_clear_stale_3d_steps_before_saving() -> None:
-    workflow_uri = (STATIC / "scene_workflow.js").as_uri()
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    workflow_uri = (STATIC_DIR / "scene_workflow.js").as_uri()
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     result = run_workflow_script(
         f"""
         import {{ createWorkflow }} from {json.dumps(workflow_uri)};
@@ -2211,7 +2209,7 @@ def test_manual_upstream_edits_clear_stale_3d_steps_before_saving() -> None:
 
 
 def test_requirements_gate_allows_explicit_keep_existing_for_unfilled_rooms() -> None:
-    module_uri = (STATIC / "scene_requirements.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_requirements.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ requirementsGate }} from {json.dumps(module_uri)};
@@ -2238,7 +2236,7 @@ def test_requirements_gate_allows_explicit_keep_existing_for_unfilled_rooms() ->
 
 
 def test_requirements_gate_rejects_a_confirmed_room_without_a_usage_choice() -> None:
-    module_uri = (STATIC / "scene_requirements.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_requirements.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ requirementsGate }} from {json.dumps(module_uri)};
@@ -2256,15 +2254,15 @@ def test_requirements_gate_rejects_a_confirmed_room_without_a_usage_choice() -> 
 
 
 def test_scene_does_not_force_placeholder_furniture_for_an_empty_plan() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "目前沒有指定家具，先放入可刪除的雙人沙發" not in source
     assert "selected_furniture_exact: !allowPendingFurniture" in source
 
 
 def test_confirmed_rooms_and_structures_are_the_only_3d_floorplan_source() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function confirmedFloorplanEditor(schemeId = activeSchemeId())" in controller
     assert "structures: structuresForScheme(state.structures, schemeId)" in controller
@@ -2272,14 +2270,14 @@ def test_confirmed_rooms_and_structures_are_the_only_3d_floorplan_source() -> No
     assert "floorplan_dxf_text: state.confirmedFloorplan?.dxf_text" not in controller
     assert "floorplan.beam_segments" in viewer
     assert "floorplan.columns" in viewer
-    assert 'id="selected-structure-editor"' in (STATIC / "scene.html").read_text(encoding="utf-8")
+    assert 'id="selected-structure-editor"' in (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
     assert "function deleteSelectedStructure()" in controller
     assert "function applySelectedStructureSize()" in controller
     assert "structureDrag" in controller
 
 
 def test_column_height_is_locked_to_the_confirmed_floor_height() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function confirmedRoomHeightCm()" in controller
     assert "heightInput.readOnly = isColumn;" in controller
@@ -2291,8 +2289,8 @@ def test_column_height_is_locked_to_the_confirmed_floor_height() -> None:
 
 
 def test_project_workflow_brand_confirms_before_returning_home() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert '<a id="exit-project" class="brand app-brand" href="/"' in html
     assert 'aria-label="離開專案並返回首頁"' in html
@@ -2306,7 +2304,7 @@ def test_project_workflow_brand_confirms_before_returning_home() -> None:
 
 
 def test_dxf_rooms_and_structures_are_normalized_for_the_corner_origin_editor() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "floorplan.room_regions || []" in controller
     assert "room.polygon_cm || room.polygon_m || room.polygon || room.exterior" in controller
@@ -2320,7 +2318,7 @@ def test_dxf_rooms_and_structures_are_normalized_for_the_corner_origin_editor() 
 
 
 def test_2d_automatic_and_manual_positions_are_validated_by_the_engine() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'api("/api/scene/layout"' in source
     assert 'api("/api/scene/validate"' in source
@@ -2329,7 +2327,7 @@ def test_2d_automatic_and_manual_positions_are_validated_by_the_engine() -> None
 
 
 def test_all_18_style_cards_build_complete_four_colour_pbr_style_packs() -> None:
-    module_uri = (STATIC / "scene_style_packs.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_style_packs.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ STYLE_PACKS, applyStylePack }} from {json.dumps(module_uri)};
@@ -2404,8 +2402,8 @@ def test_all_18_style_cards_build_complete_four_colour_pbr_style_packs() -> None
 
 
 def test_realistic_viewer_uses_a_real_pbr_environment_and_gtao_pipeline() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "RoomEnvironment" in viewer
     assert "PMREMGenerator" in viewer
@@ -2426,9 +2424,9 @@ def test_realistic_viewer_uses_a_real_pbr_environment_and_gtao_pipeline() -> Non
 
 
 def test_style_switch_changes_unlocked_models_and_material_surface_types() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'id="wall-material"' in html
     assert 'id="floor-material"' in html
@@ -2452,9 +2450,9 @@ def test_style_switch_changes_unlocked_models_and_material_surface_types() -> No
 
 
 def test_step_six_locks_specified_furniture_from_3d_controls() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'id="mark-specified-furniture"' not in html
     assert 'id="specified-furniture-reviewed"' not in html
@@ -2472,8 +2470,8 @@ def test_step_six_locks_specified_furniture_from_3d_controls() -> None:
 
 
 def test_3d_furniture_can_be_deleted_and_each_item_keeps_its_own_material_override() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="delete-replacement-furniture"' in html
     assert 'id="scene-object-list"' not in html
@@ -2488,8 +2486,8 @@ def test_3d_furniture_can_be_deleted_and_each_item_keeps_its_own_material_overri
 
 
 def test_3d_catalog_supports_engine_validated_replacement_addition_and_final_gate() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'data-replace-furniture-id="' in controller
     assert 'data-add-furniture-id="' in controller
@@ -2503,7 +2501,7 @@ def test_3d_catalog_supports_engine_validated_replacement_addition_and_final_gat
 
 
 def test_added_and_deleted_furniture_refresh_numbering_and_stay_draggable() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function activateWhiteFurnitureEditing()" in controller
     assert "whiteViewer.setInteractionMode(\"edit\")" in controller
@@ -2532,7 +2530,7 @@ def test_added_and_deleted_furniture_refresh_numbering_and_stay_draggable() -> N
 
 
 def test_catalog_edits_keep_the_current_3d_camera_framing() -> None:
-    module_uri = (STATIC / "scene_viewer_reload.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_viewer_reload.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ reloadViewerPreservingState }} from {json.dumps(module_uri)};
@@ -2565,7 +2563,7 @@ def test_catalog_edits_keep_the_current_3d_camera_framing() -> None:
 
 
 def test_saved_layout_can_rebuild_a_missing_white_model_scene() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "async function recoverSceneDataFromSavedLayout()" in controller
     assert "floorplan: layout.floorplan" in controller
@@ -2581,7 +2579,7 @@ def test_saved_layout_can_rebuild_a_missing_white_model_scene() -> None:
 
 
 def test_ceiling_conflicts_use_real_obstruction_geometry_and_installation_depth() -> None:
-    module_uri = (STATIC / "scene_style_packs.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_style_packs.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ detectCeilingConflicts }} from {json.dumps(module_uri)};
@@ -2624,7 +2622,7 @@ def test_ceiling_conflicts_use_real_obstruction_geometry_and_installation_depth(
 
 
 def test_ceiling_and_light_choices_create_distinct_three_geometry() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function createCeilingGeometry(" in viewer
     assert 'ceilingStyle === "cove"' in viewer
@@ -2639,7 +2637,7 @@ def test_ceiling_and_light_choices_create_distinct_three_geometry() -> None:
 
 
 def test_viewer_keeps_missing_glbs_editable_without_pretending_the_proxy_is_valid() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     load_scene = source.split("async function loadScene", 1)[1].split(
         "let lastSceneData", 1
@@ -2663,7 +2661,7 @@ def test_viewer_keeps_missing_glbs_editable_without_pretending_the_proxy_is_vali
 
 
 def test_configuration_pending_actions_distinguish_model_and_placement_failures() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     pending = source.split(
         "const blockingRooms = configurationBlockingFurnitureByRoom", 1
@@ -2685,8 +2683,8 @@ def test_configuration_pending_actions_distinguish_model_and_placement_failures(
 
 def test_step_six_pending_rows_offer_removal_and_an_escape_hatch() -> None:
     """待處理清單必須自己就能走完：移除單件，或整批暫緩後進入第 7 步。"""
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     pending = source.split(
         "const blockingRooms = configurationBlockingFurnitureByRoom", 1
@@ -2705,7 +2703,7 @@ def test_step_six_pending_rows_offer_removal_and_an_escape_hatch() -> None:
 
 def test_step_six_repair_actions_cannot_fail_silently() -> None:
     """每條失敗路徑都要寫進目前步驟看得到的欄位，而不是靜默 return 或寫去第 5 步。"""
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     handlers = source.split(
         'if (!event.target.closest(CONFIGURATION_PENDING_LIST_SELECTOR)) return;', 1
@@ -2735,8 +2733,8 @@ def test_step_six_repair_actions_cannot_fail_silently() -> None:
 
 def test_remote_render_failures_land_in_a_slot_the_viewer_cannot_overwrite() -> None:
     """第 8 步的 502／409 曾經完全沉默：錯誤被寫進 3D 檢視器的狀態列，下一則訊息就蓋掉。"""
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="ai-render-error"' in html
     assert 'id="proposal-review-error"' in html
@@ -2757,7 +2755,7 @@ def test_remote_render_failures_land_in_a_slot_the_viewer_cannot_overwrite() -> 
 
 def test_replacement_drawer_explains_an_empty_candidate_list() -> None:
     """候選清單空白時必須說出是哪一關擋掉的，而不是留一片空白讓使用者猜。"""
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     loader = source.split("async function loadReplacementCandidates", 1)[1].split(
         "function renderReplacementTypeOptions", 1
@@ -2774,7 +2772,7 @@ def test_replacement_drawer_explains_an_empty_candidate_list() -> None:
 
 
 def test_room_priority_can_defer_unloadable_models_without_bypassing_review() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     pending = source.split(
         "const blockingRooms = configurationBlockingFurnitureByRoom", 1
@@ -2792,9 +2790,9 @@ def test_room_priority_can_defer_unloadable_models_without_bypassing_review() ->
 
 
 def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_editing() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'id="rotate-selected-structure-left"' in html
     assert 'id="rotate-selected-structure-right"' in html
@@ -2817,9 +2815,9 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
 
 
 def test_3d_view_controls_offer_free_rotation_and_grouped_workflows() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'data-view-mode="orbit"' in html
     assert 'data-view-mode="dollhouse"' not in html
@@ -2841,9 +2839,9 @@ def test_3d_view_controls_offer_free_rotation_and_grouped_workflows() -> None:
 
 
 def test_realtime_style_material_choices_are_grouped_by_style_with_previews() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    packs = (STATIC / "scene_style_packs.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    packs = (STATIC_DIR / "scene_style_packs.js").read_text(encoding="utf-8")
 
     assert "STYLE_MATERIAL_OPTIONS" in packs
     assert "materialPreview" in packs
@@ -2855,8 +2853,8 @@ def test_realtime_style_material_choices_are_grouped_by_style_with_previews() ->
 
 
 def test_realtime_style_cards_show_reference_images_and_sync_full_scene_rules() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert 'class="rp-style-card-preview"' in controller
     assert 'src="${escapeHtml(pack.sourceImage)}"' in controller
@@ -2870,14 +2868,14 @@ def test_realtime_style_cards_show_reference_images_and_sync_full_scene_rules() 
 
 
 def test_removed_questionnaire_floorplan_overlay_does_not_break_event_binding() -> None:
-    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "requirementsOverlay" not in controller
     assert "renderRequirementsOverlay" not in controller
 
 
 def test_project_resume_restores_flow_rooms_and_generated_scene() -> None:
-    workflow_uri = (STATIC / "scene_workflow.js").as_uri()
+    workflow_uri = (STATIC_DIR / "scene_workflow.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ createWorkflow, restoreWorkflow }} from {json.dumps(workflow_uri)};
@@ -2915,7 +2913,7 @@ def test_project_resume_restores_flow_rooms_and_generated_scene() -> None:
     ]
     assert result["canEnterSpace"] is True
 
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     assert "_flow: state.workflow?.toJSON()" in source
     assert "confirmed_floorplan: calibrationIsLive ? state.confirmedFloorplan : null" in source
     assert "active_scheme_id: state.designSchemes.active_scheme_id" in source
@@ -2923,9 +2921,9 @@ def test_project_resume_restores_flow_rooms_and_generated_scene() -> None:
 
 
 def test_step_four_shows_vertical_scheme_comparison_only_when_b_exists() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert 'id="design-scheme-compare"' in html
     assert html.index('id="scheme-a-plan-image"') < html.index('id="scheme-b-plan-image"')
@@ -2936,7 +2934,7 @@ def test_step_four_shows_vertical_scheme_comparison_only_when_b_exists() -> None
 
 
 def test_scheme_b_structure_contract_cascades_added_openings_and_follows_wall() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'scheme_id: "B"' in source
     assert "attachedOpeningUpdates" in source
@@ -2946,7 +2944,7 @@ def test_scheme_b_structure_contract_cascades_added_openings_and_follows_wall() 
 
 
 def test_questionnaire_is_preserved_when_structure_changes_mark_layouts_stale() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "markSchemeLayoutsStale(state.designSchemes, message)" in source
     assert "|| state.basicConfirmed" in source
@@ -2954,8 +2952,8 @@ def test_questionnaire_is_preserved_when_structure_changes_mark_layouts_stale() 
 
 
 def test_steps_six_to_nine_expose_scheme_switching_and_render_lock() -> None:
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert html.count('data-design-scheme="A"') >= 4
     assert html.count('data-design-scheme="B"') >= 4
@@ -2975,7 +2973,7 @@ def test_steps_six_to_nine_expose_scheme_switching_and_render_lock() -> None:
 
 
 def test_empty_scheme_a_does_not_persist_layout_before_layout_work_exists() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "const hasSchemeLayoutState = Boolean(state.designSchemes.schemes.B)" in source
     assert "layout_2d: layoutIsLive || hasSchemeLayoutState" in source
@@ -2985,7 +2983,7 @@ def test_empty_scheme_a_does_not_persist_layout_before_layout_work_exists() -> N
 
 
 def test_grouped_surface_cards_sync_their_material_ids_into_native_selects() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function syncSurfaceMaterialSelect(" in source
     assert "syncSurfaceMaterialSelect(kind, items, current)" in source
@@ -2994,7 +2992,7 @@ def test_grouped_surface_cards_sync_their_material_ids_into_native_selects() -> 
 
 
 def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'api("/api/scene/decorate"' in source
     assert "for (const room of targetRooms)" in source
@@ -3020,7 +3018,7 @@ def test_realtime_style_step_adds_soft_decor_and_flushes_persistence() -> None:
 
 
 def test_step_seven_requires_one_locked_room_view_before_batch_rendering() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function proposalRoomCameraCandidates" in source
     assert "function ensureProposalRoomCandidatePreviews" in source
@@ -3047,7 +3045,7 @@ def test_scheme_generation_degrades_per_item_instead_of_total_failure() -> None:
 
     失敗件改列該房「暫不放入」（deferred）清單，其餘照常成案；
     自動推薦另設尺寸預檢，小房間從源頭不被推薦塞不下的家具。"""
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "? null : placedFurniture" not in source, "全有或全無的 null 回傳必須拆除"
     assert "function deferFailedPlacements(" in source
@@ -3058,8 +3056,8 @@ def test_scheme_generation_degrades_per_item_instead_of_total_failure() -> None:
 
 
 def test_step_four_plan_stays_fixed_and_resyncs_overlays_after_panel_changes() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert "function observePlanStageResizes()" in source
     assert "new ResizeObserver(scheduleOverlaySync)" in source
@@ -3073,7 +3071,7 @@ def test_step_four_plan_stays_fixed_and_resyncs_overlays_after_panel_changes() -
 
 def test_primary_bedroom_is_chosen_by_area_not_recognition_order() -> None:
     """QA #6：辨識順序第一間臥室被當成主臥，7.29 m² 因此蓋過 8.04 m² 的真主臥。"""
-    module_uri = (STATIC / "scene_questionnaire_test2.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_questionnaire_test2.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ questionsForIndividualRooms }} from {json.dumps(module_uri)};

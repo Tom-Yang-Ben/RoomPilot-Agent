@@ -6,9 +6,11 @@ import sqlite3
 from copy import deepcopy
 from pathlib import Path
 
+from ..paths import STATIC_DIR
+
 
 CATALOG_PATH = Path(__file__).resolve().parent / "data" / "questionnaire_visual_catalog.json"
-STATIC_ROOT = Path(__file__).resolve().parents[1] / "server" / "static"
+STATIC_ROOT = STATIC_DIR
 ALLOWED_SELECTION_RULES = {"exclusive", "compatible", "weighted"}
 ALLOWED_GENERATION_STATUSES = {"planned", "ready"}
 

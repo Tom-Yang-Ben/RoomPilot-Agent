@@ -16,6 +16,7 @@ from backend.catalog.placement_surface import (
     is_floor_furniture,
     placement_surface_for,
 )
+from backend.paths import SERVER_DIR, STATIC_DIR
 from backend.server.main import _normalize_catalog_payload
 
 
@@ -131,10 +132,10 @@ def test_types_without_a_size_rule_are_left_alone() -> None:
 
 def test_implausible_rows_are_kept_out_of_automatic_selection() -> None:
     source = (
-        __import__("pathlib").Path("backend/server/static/scene_v2.js")
+        STATIC_DIR / "scene_v2.js"
     ).read_text(encoding="utf-8")
 
     # 前端自動選件與後端換小款兩條路徑都要濾掉。
     assert "candidate.size_is_implausible === true" in source
-    main = (__import__("pathlib").Path("backend/server/main.py")).read_text(encoding="utf-8")
+    main = (SERVER_DIR / "main.py").read_text(encoding="utf-8")
     assert 'not candidate.get("size_is_implausible")' in main

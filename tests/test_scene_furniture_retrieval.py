@@ -4,16 +4,16 @@ import json
 
 from fastapi.testclient import TestClient
 
+from backend.paths import STATIC_DIR
 from backend.server.main import app
 from test_scene_workflow import ROOT, run_workflow_script
 
 
-STATIC = ROOT / "backend" / "server" / "static"
 client = TestClient(app)
 
 
 def test_questionnaire_matching_catalog_glb_wins_over_size_only_candidate() -> None:
-    module_uri = (STATIC / "scene_furniture_retrieval.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_furniture_retrieval.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ rankCatalogFurniture }} from {json.dumps(module_uri)};
@@ -60,7 +60,7 @@ def test_questionnaire_matching_catalog_glb_wins_over_size_only_candidate() -> N
 
 
 def test_room_role_and_rag_text_influence_questionnaire_catalog_ranking() -> None:
-    module_uri = (STATIC / "scene_furniture_retrieval.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_furniture_retrieval.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ rankCatalogFurniture }} from {json.dumps(module_uri)};
@@ -106,8 +106,8 @@ def test_room_role_and_rag_text_influence_questionnaire_catalog_ranking() -> Non
 
 
 def test_step_six_contract_requires_catalog_models_instead_of_white_fallbacks() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
     assert "catalogOffersForRoomPlans" in source
     assert "missingCatalogModels" in source
@@ -126,7 +126,7 @@ def test_appliance_catalog_is_retired_from_step_six() -> None:
 
 
 def test_frontend_no_longer_maps_questionnaire_appliances_to_an_api() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'endpoint: "/api/appliances"' not in source
     assert '"/api/appliances"' not in source
@@ -135,7 +135,7 @@ def test_frontend_no_longer_maps_questionnaire_appliances_to_an_api() -> None:
 
 
 def test_semantic_product_name_rejects_wrongly_classified_catalog_rows() -> None:
-    module_uri = (STATIC / "scene_furniture_retrieval.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_furniture_retrieval.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ rankCatalogFurniture }} from {json.dumps(module_uri)};

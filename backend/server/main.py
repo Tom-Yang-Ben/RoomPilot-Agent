@@ -20,6 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
+from ..paths import STATIC_DIR
 from ..agent.place import resolve_placements
 from ..agent.select import (
     SelectionParseError,
@@ -129,7 +130,6 @@ def _project_path_from_env(name: str, default: Path) -> Path:
     return path if path.is_absolute() else PROJECT_DIR / path
 
 
-STATIC_DIR = BASE_DIR / "static"
 MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
 STYLE_PRESENTATION_DB_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"

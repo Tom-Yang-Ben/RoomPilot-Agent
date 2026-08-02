@@ -10,10 +10,10 @@ from __future__ import annotations
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-STATIC = ROOT / "backend" / "server" / "static"
-CAMERA_MODULE = STATIC / "scene_camera.js"
+CAMERA_MODULE = STATIC_DIR / "scene_camera.js"
 
 
 def _suggestion(room: dict, floorplan: dict) -> dict:

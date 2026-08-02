@@ -1,8 +1,7 @@
-from pathlib import Path
+from backend.paths import STATIC_DIR
 
 
-ROOT = Path(__file__).resolve().parents[1]
-SOURCE = (ROOT / "backend/server/static/scene_design_schemes.js").read_text(encoding="utf-8")
+SOURCE = (STATIC_DIR / "scene_design_schemes.js").read_text(encoding="utf-8")
 
 
 def test_design_scheme_contract_supports_legacy_projects() -> None:

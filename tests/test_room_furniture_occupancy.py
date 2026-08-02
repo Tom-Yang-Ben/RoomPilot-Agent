@@ -9,10 +9,10 @@ from __future__ import annotations
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-STATIC = ROOT / "backend" / "server" / "static"
-LAYOUT_MODULE = STATIC / "scene_layout2d.js"
+LAYOUT_MODULE = STATIC_DIR / "scene_layout2d.js"
 
 
 def _recommend(room: dict, occupancy: dict) -> list[list[str]]:
@@ -87,7 +87,7 @@ def test_missing_occupancy_still_returns_a_usable_default() -> None:
 
 
 def test_scene_bundle_feeds_occupancy_into_the_recommendation() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function occupancyForRoom" in source
     assert "function bedroomRoleFor" in source

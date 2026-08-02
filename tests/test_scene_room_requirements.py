@@ -1,15 +1,14 @@
 import json
 import subprocess
-from pathlib import Path
+from backend.paths import STATIC_DIR
 
 
-ROOT = Path(__file__).resolve().parents[1]
-SOURCE = (ROOT / "backend/server/static/scene_room_requirements.js").read_text(
+SOURCE = (STATIC_DIR / "scene_room_requirements.js").read_text(
     encoding="utf-8"
 )
-SCENE = (ROOT / "backend/server/static/scene_v2.js").read_text(encoding="utf-8")
-VIEWER = (ROOT / "backend/server/static/scene_viewer.js").read_text(encoding="utf-8")
-ROOM_REQUIREMENTS = ROOT / "backend/server/static/scene_room_requirements.js"
+SCENE = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+VIEWER = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+ROOM_REQUIREMENTS = STATIC_DIR / "scene_room_requirements.js"
 
 
 def _run_room_requirement_helper(script: str) -> dict:
@@ -119,7 +118,7 @@ def test_room_surfaces_flow_into_2d_3d_and_render_payloads() -> None:
     assert "state.sceneData.surface_overrides = roomSurfaces.map" in SCENE
     assert "room_surface_assignments: roomSurfaceAssignments()" in SCENE
     assert 'id="layout-room-materials"' in (
-        ROOT / "backend/server/static/scene.html"
+        STATIC_DIR / "scene.html"
     ).read_text(encoding="utf-8")
     assert "createRoomCeilingOverrides" in VIEWER
     assert "roompilotCeilingOverride" in VIEWER

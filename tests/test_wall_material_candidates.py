@@ -5,6 +5,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from backend.paths import STATIC_DIR
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -51,10 +53,7 @@ def test_generated_wall_materials_remain_validated_candidates_only():
         assert item["color_family"]
         assert item["material_id"] not in production_ids
         texture = (
-            PROJECT_ROOT
-            / "backend"
-            / "server"
-            / "static"
+            STATIC_DIR
             / item["texture_url"].removeprefix("/static/")
         )
         assert texture.is_file()
@@ -100,10 +99,7 @@ def test_every_taiwan_style_card_has_one_wall_texture_candidate():
         assert item["wall_material"]
         assert item["keywords"]
         texture = (
-            PROJECT_ROOT
-            / "backend"
-            / "server"
-            / "static"
+            STATIC_DIR
             / item["texture_url"].removeprefix("/static/")
         )
         assert texture.is_file()
@@ -150,10 +146,7 @@ def test_every_taiwan_style_card_has_one_accent_wall_candidate():
         assert item["wall_material"]
         assert item["keywords"]
         texture = (
-            PROJECT_ROOT
-            / "backend"
-            / "server"
-            / "static"
+            STATIC_DIR
             / item["texture_url"].removeprefix("/static/")
         )
         assert texture.is_file()

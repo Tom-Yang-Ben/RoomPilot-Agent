@@ -1,9 +1,8 @@
-from pathlib import Path
+from backend.paths import STATIC_DIR
 
 
-ROOT = Path(__file__).resolve().parents[1]
-HTML = (ROOT / "backend/server/static/scene.html").read_text(encoding="utf-8")
-SOURCE = (ROOT / "backend/server/static/scene_v2.js").read_text(encoding="utf-8")
+HTML = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+SOURCE = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
 
 def test_step6_has_a_dedicated_replacement_drawer() -> None:
@@ -68,7 +67,7 @@ def test_glb_thumbnail_mode_renders_only_the_furniture() -> None:
     search = SOURCE.split("function glbThumbnailScene", 1)[1].split(
         "async function styleFurnitureCandidate", 1
     )[0]
-    viewer = (ROOT / "backend/server/static/scene_viewer.js").read_text(
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
     room_builder = viewer.split("function createRoom(sceneData)", 1)[1].split(

@@ -3,10 +3,7 @@ from __future__ import annotations
 import hashlib
 import re
 from pathlib import Path
-
-
-ROOT = Path(__file__).resolve().parents[1]
-STATIC = ROOT / "backend" / "server" / "static"
+from backend.paths import STATIC_DIR
 
 
 def _sha256(path: Path) -> str:
@@ -14,22 +11,22 @@ def _sha256(path: Path) -> str:
 
 
 def test_rag_page_assets_have_matching_content_hashes() -> None:
-    html = (STATIC / "rag.html").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "rag.html").read_text(encoding="utf-8")
     css_hash = re.search(r"rag\.css\?v=sha256-([0-9a-f]{64})", html)
     js_hash = re.search(r"rag\.js\?v=sha256-([0-9a-f]{64})", html)
 
-    assert css_hash and css_hash.group(1) == _sha256(STATIC / "rag.css")
-    assert js_hash and js_hash.group(1) == _sha256(STATIC / "rag.js")
+    assert css_hash and css_hash.group(1) == _sha256(STATIC_DIR / "rag.css")
+    assert js_hash and js_hash.group(1) == _sha256(STATIC_DIR / "rag.js")
 
 
 def test_rag_navigation_is_hidden_from_formal_pages() -> None:
     for name in ("index.html", "styles.html", "library.html", "rag.html"):
-        html = (STATIC / name).read_text(encoding="utf-8")
+        html = (STATIC_DIR / name).read_text(encoding="utf-8")
         assert 'href="/rag"' not in html
 
 
 def test_rag_frontend_uses_safe_rendering_and_cancels_stale_requests() -> None:
-    source = (STATIC / "rag.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "rag.js").read_text(encoding="utf-8")
 
     assert "innerHTML" not in source
     assert "textContent" in source
@@ -45,8 +42,8 @@ def test_rag_frontend_uses_safe_rendering_and_cancels_stale_requests() -> None:
 
 
 def test_rag_page_states_and_boundary_are_visible() -> None:
-    html = (STATIC / "rag.html").read_text(encoding="utf-8")
-    js = (STATIC / "rag.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "rag.html").read_text(encoding="utf-8")
+    js = (STATIC_DIR / "rag.js").read_text(encoding="utf-8")
 
     for marker in (
         "rag-stage-list",

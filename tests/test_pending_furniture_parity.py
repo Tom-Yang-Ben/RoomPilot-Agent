@@ -9,13 +9,11 @@
 from __future__ import annotations
 
 from test_scene_workflow import ROOT
-
-
-STATIC = ROOT / "backend" / "server" / "static"
+from backend.paths import STATIC_DIR
 
 
 def _scene_v2() -> str:
-    return (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    return (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
 
 def _slice_function(source: str, name: str) -> str:
@@ -39,7 +37,7 @@ def test_server_still_excludes_failed_placements_from_collision() -> None:
 
 
 def test_move_reports_the_distance_actually_travelled() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "const movedCm = Math.round(" in viewer
     assert "已移動 ${movedCm} 公分" in viewer

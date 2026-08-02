@@ -1,13 +1,14 @@
 import json
 import subprocess
 from pathlib import Path
+from backend.paths import STATIC_DIR
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW_MODULE = ROOT / "backend" / "server" / "static" / "scene_workflow.js"
-SCENE_HTML = ROOT / "backend" / "server" / "static" / "scene.html"
-STRUCTURE_UTILS_MODULE = ROOT / "backend" / "server" / "static" / "scene_structure_utils.js"
-STRUCTURE_GEOMETRY_MODULE = ROOT / "backend" / "server" / "static" / "scene_structure_geometry.js"
+WORKFLOW_MODULE = STATIC_DIR / "scene_workflow.js"
+SCENE_HTML = STATIC_DIR / "scene.html"
+STRUCTURE_UTILS_MODULE = STATIC_DIR / "scene_structure_utils.js"
+STRUCTURE_GEOMETRY_MODULE = STATIC_DIR / "scene_structure_geometry.js"
 
 
 def run_workflow_script(script: str) -> dict:

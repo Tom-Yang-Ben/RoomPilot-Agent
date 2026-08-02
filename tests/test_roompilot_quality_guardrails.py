@@ -1,17 +1,17 @@
 from pathlib import Path
 
 import backend.server.scene_service as scene_service
+from backend.paths import STATIC_DIR
 from backend.server.scene_service import build_scene_payload
 from backend.upgrade3d.dxf_parser import parse_dxf_file
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STATIC = ROOT / "backend" / "server" / "static"
 
 
 def test_scene_starts_with_project_creation_and_exposes_the_strict_upload_contract():
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    javascript = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    javascript = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="project-step" class="rp-step-panel is-active"' in html
     assert 'id="upload-step"' in html
@@ -38,8 +38,8 @@ def test_dxf_parser_exposes_frontend_preview_contract():
 
 
 def test_scene_exposes_requirements_2d_library_and_visible_furniture_gate():
-    html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    javascript = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    javascript = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'id="whole-house-fields"' in html
     assert 'data-questionnaire-stage="rooms"' in html

@@ -3,10 +3,11 @@ import json
 from fastapi.testclient import TestClient
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 from backend.server.main import app
 
 
-DELIVERY_MODULE = ROOT / "backend" / "server" / "static" / "scene_delivery.js"
+DELIVERY_MODULE = STATIC_DIR / "scene_delivery.js"
 
 
 def test_delivery_manifest_has_four_views_four_outputs_and_truthful_bom() -> None:

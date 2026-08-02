@@ -10,6 +10,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
+from ..paths import STATIC_DIR
 from ..spatial_data.rag.errors import (
     RagDatabaseError,
     RagDependencyError,
@@ -21,7 +22,6 @@ from ..spatial_data.rag.service import FurnitureRagService
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
-STATIC_DIR = Path(__file__).resolve().parent / "static"
 RAG_SERVICE = FurnitureRagService(PROJECT_DIR)
 router = APIRouter()
 RAG_JOBS: dict[str, dict] = {}

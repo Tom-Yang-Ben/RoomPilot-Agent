@@ -3,14 +3,14 @@ from __future__ import annotations
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-STATIC = ROOT / "backend" / "server" / "static"
 SURFACE_CATALOG = ROOT / "backend" / "catalog" / "data" / "surface_catalog.json"
 
 
 def test_style_presets_resolve_to_real_catalog_textures() -> None:
-    module_uri = (STATIC / "scene_surface_materials.js").as_uri()
+    module_uri = (STATIC_DIR / "scene_surface_materials.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ readFileSync }} from "node:fs";
@@ -55,7 +55,7 @@ def test_style_presets_resolve_to_real_catalog_textures() -> None:
 
 
 def test_realtime_surface_recommendations_explain_and_vary_options() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "SURFACE_VARIANT_OPTIONS" in source
     assert "surfaceRecommendationScore" in source
@@ -72,7 +72,7 @@ def test_realtime_surface_recommendations_explain_and_vary_options() -> None:
 
 
 def test_surface_preset_mapping_no_longer_collapses_to_one_wall_material() -> None:
-    source = (STATIC / "scene_surface_materials.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_surface_materials.js").read_text(encoding="utf-8")
 
     assert 'warm_white: "wall_json_ambientcg_wall_paint_paintedplaster017"' in source
     assert 'limewash: "wall_json_ambientcg_wall_paint_plaster002"' in source
@@ -82,7 +82,7 @@ def test_surface_preset_mapping_no_longer_collapses_to_one_wall_material() -> No
 
 
 def test_scene_viewer_uses_image_texture_as_color_and_relief_maps() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "map: colorMap" in source
     assert "bumpMap" in source
@@ -93,7 +93,7 @@ def test_scene_viewer_uses_image_texture_as_color_and_relief_maps() -> None:
 
 
 def test_floor_texture_repeat_uses_catalog_physical_size() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "surface.source_size" in source
     assert "Number(physicalSize[1])" in source

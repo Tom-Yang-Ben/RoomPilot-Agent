@@ -1,9 +1,10 @@
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-VIEW_MODE_MODULE = ROOT / "backend" / "server" / "static" / "scene_view_modes.js"
+VIEW_MODE_MODULE = STATIC_DIR / "scene_view_modes.js"
 
 
 def test_three_view_modes_share_scene_without_changing_furniture_coordinates() -> None:

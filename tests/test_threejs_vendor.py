@@ -11,14 +11,14 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from backend.paths import STATIC_DIR
 
-STATIC = Path(__file__).resolve().parents[1] / "backend" / "server" / "static"
-VENDOR = STATIC / "vendor" / "three"
+VENDOR = STATIC_DIR / "vendor" / "three"
 
 
 def test_importmaps_point_to_local_vendor_not_cdn() -> None:
     for name in ("scene.html", "library.html"):
-        html = (STATIC / name).read_text(encoding="utf-8")
+        html = (STATIC_DIR / name).read_text(encoding="utf-8")
         assert "unpkg.com" not in html, f"{name} 仍依賴 unpkg CDN"
         assert '"three": "/static/vendor/three/build/three.module.js"' in html
         assert '"three/addons/": "/static/vendor/three/examples/jsm/"' in html
@@ -32,7 +32,7 @@ def test_vendored_three_core_exists_and_is_the_module_build() -> None:
 
 def test_every_imported_addon_and_its_dependencies_are_vendored() -> None:
     imported: set[str] = set()
-    for js in STATIC.glob("*.js"):
+    for js in STATIC_DIR.glob("*.js"):
         imported.update(
             re.findall(r"three/addons/([A-Za-z0-9_/.-]+\.js)", js.read_text(encoding="utf-8"))
         )

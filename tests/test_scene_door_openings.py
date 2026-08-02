@@ -6,6 +6,7 @@ scene_viewer.js 的走動碰撞會豁免 floorplan.door_openings，但後端從�
 
 from __future__ import annotations
 
+from backend.paths import STATIC_DIR
 from backend.server.scene_service import door_openings_from_segments
 
 
@@ -79,7 +80,7 @@ def test_scene_payload_exposes_door_openings_to_the_viewer() -> None:
     assert '"door_openings": door_openings_from_segments(parsed_floorplan)' in source
 
     viewer = (
-        scene_service.PROJECT_DIR / "backend" / "server" / "static" / "scene_viewer.js"
+        STATIC_DIR / "scene_viewer.js"
     ).read_text(encoding="utf-8")
     # 消費端的鍵名不能和生產端漂開。
     assert "floorplan?.door_openings" in viewer

@@ -12,15 +12,15 @@ import re
 import pytest
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-STATIC = ROOT / "backend" / "server" / "static"
 PAGES = ("home.js", "styles.js", "library.js")
 
 
 @pytest.mark.parametrize("page", PAGES)
 def test_top_level_await_is_guarded(page: str) -> None:
-    source = (STATIC / page).read_text(encoding="utf-8")
+    source = (STATIC_DIR / page).read_text(encoding="utf-8")
 
     assert "reportPageBootFailure" in source, f"{page} 沒有回報啟動失敗"
     # 每個頂層 await 都必須在 try 區塊裡（縮排代表它不在模組頂層）。
@@ -34,7 +34,7 @@ def test_top_level_await_is_guarded(page: str) -> None:
 
 def test_common_exports_the_shared_failure_reporter() -> None:
     """橫幅的實際 DOM 行為由 tests/static/page_boot_failure.test.mjs 驗證。"""
-    source = (STATIC / "common.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "common.js").read_text(encoding="utf-8")
 
     assert "export function reportPageBootFailure" in source
     assert 'id = "page-boot-error"' in source or '"page-boot-error"' in source

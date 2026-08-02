@@ -1,7 +1,7 @@
 import json
-from pathlib import Path
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 from backend.server.main import _merge_furniture_catalog
 from backend.server.scene_service import (
     catalog_item_matches_type_semantics,
@@ -9,8 +9,8 @@ from backend.server.scene_service import (
 )
 
 
-VISUAL_MODULE = ROOT / "backend" / "server" / "static" / "scene_visual_contracts.js"
-SCENE_HTML = ROOT / "backend" / "server" / "static" / "scene.html"
+VISUAL_MODULE = STATIC_DIR / "scene_visual_contracts.js"
+SCENE_HTML = STATIC_DIR / "scene.html"
 
 
 def test_model_scale_hits_catalog_width_depth_and_height() -> None:
@@ -91,7 +91,7 @@ def test_closed_door_leaf_lies_flat_inside_the_doorway() -> None:
 
 
 def test_3d_drag_preserves_the_user_position_after_backend_validation() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
@@ -102,10 +102,10 @@ def test_3d_drag_preserves_the_user_position_after_backend_validation() -> None:
 
 
 def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
-    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
-    controller = (ROOT / "backend" / "server" / "static" / "scene_v2.js").read_text(
+    controller = (STATIC_DIR / "scene_v2.js").read_text(
         encoding="utf-8"
     )
 
@@ -124,7 +124,7 @@ def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
 
 
 def test_formal_3d_columns_use_confirmed_rectangular_dimensions_and_rotation() -> None:
-    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
@@ -200,7 +200,7 @@ def test_walk_camera_finds_a_nearby_valid_spawn_when_the_default_is_on_a_wall() 
 
 
 def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
@@ -220,7 +220,7 @@ def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation
 
 
 def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
     wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
@@ -236,7 +236,7 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
 
 
 def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
     wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
@@ -262,7 +262,7 @@ def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
 
 
 def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protrude() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
     wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
@@ -297,7 +297,7 @@ def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protru
 
 
 def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
@@ -307,7 +307,7 @@ def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> Non
 
 
 def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
@@ -321,7 +321,7 @@ def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
 
 
 def test_dollhouse_keeps_all_walls_visible_and_orbit_controls_enabled() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
     dollhouse = source.split('} else if (mode === "dollhouse") {', 1)[1].split(
@@ -361,7 +361,7 @@ def test_generic_glb_material_gets_a_safe_furniture_role_fallback() -> None:
 
 
 def test_style_pack_preserves_real_texture_color_detail_with_subtle_tint() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+    source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
     room_creation = source.split("function createRoom(sceneData)", 1)[1].split(
@@ -377,7 +377,7 @@ def test_style_pack_preserves_real_texture_color_detail_with_subtle_tint() -> No
 
 
 def test_material_schemes_explain_surface_and_furniture_changes() -> None:
-    material_module = ROOT / "backend" / "server" / "static" / "scene_material_schemes.js"
+    material_module = STATIC_DIR / "scene_material_schemes.js"
     result = run_workflow_script(
         f"""
         import {{ generateMaterialSchemes }} from {json.dumps(material_module.as_uri())};

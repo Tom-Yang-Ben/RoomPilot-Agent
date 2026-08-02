@@ -1,9 +1,10 @@
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-GUIDANCE_MODULE = ROOT / "backend" / "server" / "static" / "scene_guidance.js"
+GUIDANCE_MODULE = STATIC_DIR / "scene_guidance.js"
 
 
 def test_manual_scale_confirmation_replaces_low_confidence_ocr_scale() -> None:

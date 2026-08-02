@@ -1,9 +1,10 @@
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
+from backend.paths import STATIC_DIR
 
 
-MATERIAL_MODULE = ROOT / "backend" / "server" / "static" / "scene_material_schemes.js"
+MATERIAL_MODULE = STATIC_DIR / "scene_material_schemes.js"
 
 
 def test_three_material_schemes_preserve_layout_and_only_override_compatible_slots() -> None:

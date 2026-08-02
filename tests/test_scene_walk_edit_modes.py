@@ -1,10 +1,9 @@
-from pathlib import Path
+from backend.paths import STATIC_DIR
 
 
-ROOT = Path(__file__).resolve().parents[1]
-HTML = (ROOT / "backend/server/static/scene.html").read_text(encoding="utf-8")
-CONTROLLER = (ROOT / "backend/server/static/scene_v2.js").read_text(encoding="utf-8")
-VIEWER = (ROOT / "backend/server/static/scene_viewer.js").read_text(encoding="utf-8")
+HTML = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+CONTROLLER = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+VIEWER = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
 
 def test_white_model_exposes_walk_and_furniture_edit_modes() -> None:

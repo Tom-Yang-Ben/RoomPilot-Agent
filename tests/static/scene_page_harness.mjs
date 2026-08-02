@@ -3,11 +3,10 @@
 import { readFileSync } from "node:fs";
 import { register } from "node:module";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-export const STATIC_DIR = path.resolve(HERE, "..", "..", "backend", "server", "static");
+import { STATIC_DIR } from "./paths.mjs";
 
 const WINDOW_GLOBALS = [
   "Element",
