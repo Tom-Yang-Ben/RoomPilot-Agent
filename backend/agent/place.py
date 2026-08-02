@@ -21,6 +21,7 @@ from .knowledge import (
     ANCHOR_FAMILIES,
     COMPANION_OF,
     FAMILY_ZH,
+    FREE_SEATING_FAMILIES,
     GROUP_OF,
     family_of,
 )
@@ -68,11 +69,15 @@ def placement_hints(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """確定性擺放提示:回 {instance_id|furniture_id: {"priority", "group"}}。
 
     優先序:主件(ANCHOR_FAMILIES,面積大到小)→ 泛用件(面積大到小)→
-    副件(COMPANION_OF,最後擺 —— 引擎的成組候選要有已就位的主件可貼)。
+    副件(COMPANION_OF —— 引擎的成組候選要有已就位的主件可貼)→
+    自由座椅(FREE_SEATING_FAMILIES,最後撿剩餘空間;先擺會以房間中央
+    泛用候選搶走沙發正前方,茶几/電視櫃的成組位就沒了)。
     只給順序與成組語意,不給座標;無 LLM 參與,結果可重現。
     """
     def _class(item: dict[str, Any]) -> int:
         family = family_of(item.get("normalized_type"))
+        if family in FREE_SEATING_FAMILIES:
+            return 3
         if family in COMPANION_OF:
             return 2
         if family in ANCHOR_FAMILIES:

@@ -221,6 +221,38 @@ function doorHeadCm(opening, cfg) {
   );
 }
 
+// 門楣/門頂蓋所在的「牆縫線段」:沿用舊 buildConfirmedDoorLeaves 的
+// headerSegment 優先序。回傳保留 id/height_cm 的線段物件;皆無回 null。
+function doorWallSegment(opening = {}) {
+  const gap = opening.wall_opening_segment || opening.closed_leaf_segment;
+  if (!gap?.start || !gap?.end) return null;
+  return {
+    id: opening.id,
+    height_cm: opening.height_cm,
+    start: gap.start,
+    end: gap.end,
+  };
+}
+
+// 縫線段防呆:doorOpeningForWallTopology 對缺 swing 資料的門會合成出
+// 離牆很遠的 closed leaf。門楣只能掛在貼近某條牆線(延長線容許縫寬)
+// 的線段上,否則寧可不畫 —— 畫錯位置就是懸空牆塊。
+function nearAnyWallLine(segment, walls, cfg) {
+  const frame = segmentFrame(segment);
+  const tolerance = cfg.wallThicknessCm * 2;
+  return walls.some((wall) => {
+    const line = segmentFrame(wall);
+    if (line.length < cfg.minSegmentLengthCm) return false;
+    const relX = frame.centerX - line.sx;
+    const relZ = frame.centerZ - line.sz;
+    const along = relX * line.unitX + relZ * line.unitZ;
+    const perpendicular = Math.abs(relX * line.normalX + relZ * line.normalZ);
+    return perpendicular <= tolerance
+      && along >= -frame.length
+      && along <= line.length + frame.length;
+  });
+}
+
 // 文件 §5.4 路徑 A:線段牆的開口件。窗 = 玻璃 + 窗台下補實 + 窗頂上補實;
 // 門(withGlass=false)= 只補門楣,底下留通行口。件全部落在開口自身線段上,
 // 因此同時涵蓋 hosted(牆被切分)與 standalone(牆已留縫)兩種資料。
@@ -570,8 +602,9 @@ export function buildSceneModel(plan = {}, cfg = DEFAULT_SCENE_CONFIG) {
       boxes.push(...openingInfill(opening, profile, cfg, { kind: "window" }));
     });
     pieceDoors.forEach((opening) => {
-      const profile = estimateProfile(opening, polygons, cfg);
-      boxes.push(...openingInfill(opening, profile, cfg, { kind: "door" }));
+      const doorSegment = doorWallSegment(opening) || opening;
+      const profile = estimateProfile(doorSegment, polygons, cfg);
+      boxes.push(...openingInfill(doorSegment, profile, cfg, { kind: "door" }));
     });
   } else if (walls.length) {
     boxes.push(...segmentWallBoxes(walls, pieceWindows, cfg));
@@ -598,10 +631,16 @@ export function buildSceneModel(plan = {}, cfg = DEFAULT_SCENE_CONFIG) {
         boxes.push(...gapTopCap(opening));
       }
     });
+    // 門的 2D 線段是門扇符號(常平行牆線外偏 20cm+,開門葉甚至與牆垂直),
+    // 不在牆平面上 —— 門楣/頂蓋畫在門段上會變成懸在門邊的牆塊。必須落在
+    // 第 4 步的牆縫線段;兩種縫線皆無則不畫(與舊 buildConfirmedDoorLeaves
+    // 的 headerSegment 同優先序、同缺省行為)。
     pieceDoors.forEach((opening) => {
-      boxes.push(...windowPieces(opening, cfg, { kind: "door" }));
-      if (!hostedOnAnyWall(opening, cfg.minOpeningIntervalWidthCm.door)) {
-        boxes.push(...gapTopCap(opening));
+      const doorSegment = doorWallSegment(opening);
+      if (!doorSegment || !nearAnyWallLine(doorSegment, walls, cfg)) return;
+      boxes.push(...windowPieces(doorSegment, cfg, { kind: "door" }));
+      if (!hostedOnAnyWall(doorSegment, cfg.minOpeningIntervalWidthCm.door)) {
+        boxes.push(...gapTopCap(doorSegment));
       }
     });
   }

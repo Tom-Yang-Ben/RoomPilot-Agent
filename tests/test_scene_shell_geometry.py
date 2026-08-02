@@ -331,3 +331,40 @@ def test_gap_openings_get_their_own_top_cap_for_a_continuous_roofline() -> None:
     # hosted 窗：牆段整段頂蓋已涵蓋，不重複發蓋。
     assert len(hosted_caps) == 1
     assert hosted_caps[0]["openingId"] is None
+
+
+def test_door_lintel_sits_on_the_wall_gap_not_the_leaf_symbol() -> None:
+    # 門的 2D 線段是門扇符號（常平行牆線外偏 20cm+，開門葉甚至與牆垂直），
+    # 不在牆平面上。門楣/門頂蓋必須落在第 4 步的牆縫線段
+    # （wall_opening_segment ‖ closed_leaf_segment）；兩者皆無則不畫
+    # ——畫在門扇線上會變成懸在門邊的牆塊（feedback.png）。
+    result = run_shell_script(
+        f"""
+        {module_import('buildSceneModel, shellConfig')}
+        const cfg = shellConfig({{}});
+        const model = buildSceneModel({{
+          walls: [
+            {{ id: "wall-a", start: {{x: -300, z: 0}}, end: {{x: -46, z: 0}} }},
+            {{ id: "wall-b", start: {{x: 46, z: 0}}, end: {{x: 300, z: 0}} }},
+          ],
+          doors: [
+            {{
+              id: "door-gap", step4_skip_wall_cut: true, topology_gap: true,
+              start: {{x: -46, z: 21}}, end: {{x: 46, z: 21}},
+              wall_opening_segment: {{ start: {{x: -46, z: 0}}, end: {{x: 46, z: 0}} }},
+            }},
+            {{
+              id: "door-orphan", step4_skip_wall_cut: true, topology_gap: true,
+              start: {{x: 200, z: 180}}, end: {{x: 290, z: 180}},
+            }},
+          ],
+        }}, cfg);
+        console.log(JSON.stringify(model.boxes
+          .filter((box) => box.role === "door-lintel")
+          .map((box) => ({{ openingId: box.meta.openingId, center: box.center }}))));
+        """
+    )
+    # 只有帶牆縫線段的門有門楣，且落在縫線（z=0）上而非門扇線（z=21）。
+    assert len(result) == 1
+    assert result[0]["openingId"] == "door-gap"
+    assert result[0]["center"][2] == 0

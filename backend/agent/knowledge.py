@@ -66,6 +66,12 @@ ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
 # 擺 —— 引擎的成組候選要有「已就位的主件」才貼得上去。
 ANCHOR_FAMILIES: tuple[str, ...] = ("bed", "sofa", "dining-table", "desk")
 
+# 自由座椅:不靠牆、不成組,擺在「副件之後」撿剩餘空間。它們的泛用候選
+# 是房間中央 —— 若照泛用件順位先擺,會搶走沙發正前方的成組位
+# (茶几/電視櫃還沒擺就被躺椅卡住,feedback.png 的躺椅擋在沙發前)。
+# 不列入 COMPANION_OF:躺椅可獨立存在(臥室閱讀椅),主件缺席不應被移除。
+FREE_SEATING_FAMILIES: tuple[str, ...] = ("armchair", "lounge-chair")
+
 # 族系 → 成組標籤(進 hints 的 group 欄;語意說明用,引擎不據此算座標)。
 GROUP_OF: dict[str, str] = {
     "bed": "sleeping",

@@ -751,7 +751,14 @@ def _placement_candidates(
     if item_type == "tv-bench":
         candidates.extend([(center_x, top + depth / 2 + wall_gap, 0), (center_x - candidate_width_cm * 0.22, top + depth / 2 + wall_gap, 0)])
     elif item_type == "sofa":
-        candidates.extend([(center_x, bottom - depth / 2 - wall_gap, 180), (center_x - candidate_width_cm * 0.18, bottom - depth / 2 - wall_gap, 180)])
+        # 下牆優先;下牆被門淨空/牆縫壓掉時改試左右牆(面向室內),
+        # 才不會落到「長邊優先」掃描的任意牆、讓對面沒有電視櫃的位置。
+        candidates.extend([
+            (center_x, bottom - depth / 2 - wall_gap, 180),
+            (center_x - candidate_width_cm * 0.18, bottom - depth / 2 - wall_gap, 180),
+            (left + depth / 2 + wall_gap, center_z, 90),
+            (right - depth / 2 - wall_gap, center_z, 270),
+        ])
     elif item_type == "coffee-table":
         candidates.extend([(center_x, center_z + 12, 0), (center_x, center_z - 18, 0)])
     elif item_type == "armchair":
@@ -874,12 +881,18 @@ def _agent_prepend_candidates(
         sofa = neighbors.get("sofa")
         if sofa:                                 # 電視櫃靠沙發正對面的牆
             fx, fz = _facing(sofa["rot"])
+            # 單一定點會被對面牆的門淨空帶/牆段缺口一票否決,整組退回靠牆
+            # 掃描而落到隨便一面長牆(與沙發呈 L 型)。沿對面牆多試側移點,
+            # 正對位優先、越偏越後,全部仍由柵格合法性把關。
+            lateral = (0.0, -80.0, 80.0, -160.0, 160.0)
             if abs(fx) >= abs(fz):
                 x = right - depth / 2 - gap if fx > 0 else left + depth / 2 + gap
-                paired.append((x, sofa["z"], 270.0 if fx > 0 else 90.0))
+                rot = 270.0 if fx > 0 else 90.0
+                paired.extend((x, sofa["z"] + off, rot) for off in lateral)
             else:
                 z = bottom - depth / 2 - gap if fz > 0 else top + depth / 2 + gap
-                paired.append((sofa["x"], z, 180.0 if fz > 0 else 0.0))
+                rot = 180.0 if fz > 0 else 0.0
+                paired.extend((sofa["x"] + off, z, rot) for off in lateral)
 
     anchor = (hint or {}).get("anchor")
     anchored: list[tuple[float, float, float]] = []

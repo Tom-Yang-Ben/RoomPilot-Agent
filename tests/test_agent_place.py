@@ -58,6 +58,19 @@ def test_hints_are_deterministic():
     assert placement_hints(items) == placement_hints(list(reversed(items)))
 
 
+def test_hints_place_free_seating_after_companions():
+    """自由座椅(躺椅/單人椅)最後擺:先擺會以房間中央泛用候選搶走
+    沙發正前方,茶几/電視櫃的成組位就沒了(feedback.png 躺椅擋沙發前)。"""
+    sofa = _item("sofa", "fabric-sofa", 200, 90)
+    lounge = _item("lounge", "lounge-chair", 90, 80)
+    coffee = _item("ct", "coffee-table", 100, 50)
+    tv = _item("tv", "tv-bench", 120, 40)
+    hints = placement_hints([lounge, tv, coffee, sofa])
+    assert hints["sofa"]["priority"] < hints["ct"]["priority"]
+    assert hints["ct"]["priority"] < hints["lounge"]["priority"]
+    assert hints["tv"]["priority"] < hints["lounge"]["priority"]
+
+
 # ---------- pick_smaller_model ----------
 
 def test_pick_smaller_returns_smallest_under_cap():
