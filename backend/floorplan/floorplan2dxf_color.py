@@ -1822,6 +1822,75 @@ def window_side_gate(cand, rects, T, cm, img_w, img_h):
     return kept
 
 
+def white_wall_rects(bgr, T):
+    """白牆帶偵測——色塊分割線（棄守畫風 floor_07/08/09 的牆＝兩片
+    色染地板之間的白色窄帶，描邊 gray 189~200 暗色偵測原理性抓不到）。
+
+    流程：meanshift 平滑 → 白遮罩（chroma≤12、L>185）top-hat（1.5T）
+    剝窄帶 → 方向性長核（5T）濾磁磚格 → 帶級側翼驗證：每條帶 CC 沿
+    法向兩側採樣（offset 0.5T~2.5T），≥一側色染佔比 ≥0.5 且兩側皆非
+    黑（房內），厚 ≤2.5T、長 ≥5T。輸入 1x bgr、回傳 1x rects；呼叫端
+    負責座標縮放與既有牆帶去重。"""
+    sm = cv2.pyrMeanShiftFiltering(bgr, 7, 18)
+    lab = cv2.cvtColor(sm, cv2.COLOR_BGR2LAB)
+    a_ = lab[:, :, 1].astype(np.int16) - 128
+    b_ = lab[:, :, 2].astype(np.int16) - 128
+    chroma = np.sqrt(a_ * a_ + b_ * b_)
+    L = lab[:, :, 0]
+    white = ((chroma <= 12) & (L > 185)).astype(np.uint8) * 255
+    tint = (chroma > 10) & (L > 60)
+    dark = L < 60
+    k = 2 * int(1.5 * T) + 1
+    ribbon = cv2.subtract(white, cv2.morphologyEx(
+        white, cv2.MORPH_OPEN, np.ones((k, k), np.uint8)))
+    hlen = 5 * T
+    out = []
+    for horiz, ker in ((True, cv2.getStructuringElement(cv2.MORPH_RECT,
+                                                        (hlen, 1))),
+                       (False, cv2.getStructuringElement(cv2.MORPH_RECT,
+                                                         (1, hlen)))):
+        band = cv2.morphologyEx(ribbon, cv2.MORPH_OPEN, ker)
+        n, lab_cc, st, _ = cv2.connectedComponentsWithStats(
+            (band > 0).astype(np.uint8), 8)
+        for i in range(1, n):
+            x, y, w, h = (int(st[i, 0]), int(st[i, 1]),
+                          int(st[i, 2]), int(st[i, 3]))
+            th, ln = (h, w) if horiz else (w, h)
+            if th > 2.5 * T or ln < 5 * T or ln < 3 * th:
+                continue
+            # 帶級側翼採樣：沿帶長取樣點，法向 offset 0.5T~2.5T
+            side_tint = [0, 0]
+            side_room = [0, 0]
+            samples = 0
+            step = max(1, ln // 20)
+            offs = [int(0.5 * T) + 2, int(1.5 * T), int(2.5 * T)]
+            H, W = tint.shape
+            for p in range(0, ln, step):
+                samples += 1
+                for si, sign in ((0, -1), (1, 1)):
+                    t_hit = r_hit = False
+                    for off in offs:
+                        if horiz:
+                            iy = (y - off) if sign < 0 else (y + h + off)
+                            ix = x + p
+                        else:
+                            ix = (x - off) if sign < 0 else (x + w + off)
+                            iy = y + p
+                        if not (0 <= iy < H and 0 <= ix < W):
+                            continue
+                        t_hit = t_hit or bool(tint[iy, ix])
+                        r_hit = r_hit or not bool(dark[iy, ix])
+                    side_tint[si] += t_hit
+                    side_room[si] += r_hit
+            if not samples:
+                continue
+            tf = [s / samples for s in side_tint]
+            rf = [s / samples for s in side_room]
+            if max(tf) >= 0.5 and min(rf) >= 0.5:
+                out.append((x, y, x + w, y + h))
+    return out
+
+
 def hollow_wall_rects(bw, gray, chroma, T):
     """空心雙線牆偵測——color 圖第二種牆畫法（floor_07/08 實案）。
 

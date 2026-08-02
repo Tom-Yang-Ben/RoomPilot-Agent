@@ -1670,6 +1670,42 @@ def build_rooms(det):
                  if any(lo <= (b[2] - b[1]) * cm <= hi
                         for lo, hi in DOOR_RANGES_CM)]
         return None, [], bridges, zones, []
+    # 白牆救援（色塊分割線，彩圖限定＋覆蓋率觸發）：棄守畫風的牆＝
+    # 色染間白窄帶，暗色偵測原理性抓不到（floor_08 整戶黏成一塊）。
+    # 只在主分割宣告面積 <50% 外圈時啟用（08/09 型災難張），以
+    # white_wall_rects 補牆重跑，覆蓋明顯改善（+10pp）才採用——正常
+    # 張零接觸，白牆帶的假陽性（床頭板/磁磚列）不波及
+    if is_color_dom and rects and os.environ.get("WW_RESCUE", "1") == "1":
+        eX0 = min(r_[0] for r_ in rects); eY0 = min(r_[1] for r_ in rects)
+        eX1 = max(r_[2] for r_ in rects); eY1 = max(r_[3] for r_ in rects)
+        env_a = max(1.0, (eX1 - eX0) * (eY1 - eY0))
+        cov = sum(r_["area_px"] for r_ in rooms) / env_a
+        big_blob = (len(rooms) <= 5
+                    and max(r_["area_px"] for r_ in rooms) / env_a > 0.35)
+        if (cov < 0.50 and len(rooms) < 8) or big_blob:
+                                                 # 災難張＝低覆蓋房少（09 型）
+                                                 # 或巨塊黏連（08 型）；
+                                                 # floor_04 覆蓋被外圈空地低估
+                                                 # 但 16 房正常，房數條件擋誤觸
+            bgr1 = det.get("bgr")
+            sc = img_w / float(bgr1.shape[1])
+            ww = fp_c.white_wall_rects(bgr1, max(6, int(round(T / sc))))
+            ww2 = [(x0 * sc, y0 * sc, x1 * sc, y1 * sc)
+                   for x0, y0, x1, y1 in ww]
+            if ww2:
+                labels_w, rooms_w, outside_w = fp_c.segment_rooms(
+                    rects + ww2, seg_wins, doors, img_w, img_h, T, T_out,
+                    cm, keep_small=True, thin=fence, fence_guard=True)
+                if labels_w is not None and rooms_w:
+                    cov_w = sum(r_["area_px"] for r_ in rooms_w) / env_a
+                    ok_cov = cov_w >= 0.55 and cov_w > cov + 0.10
+                    ok_blob = big_blob and cov_w >= max(0.55, cov - 0.05)                         and len(rooms_w) > len(rooms)
+                    if ok_cov or ok_blob:        # 半修復（floor_09 46% 採用
+                                                 # 反而 2→1）不如不修——絕對
+                                                 # 覆蓋 ≥55% 才接手
+                        print(f"白牆救援 : 覆蓋 {cov:.0%}→{cov_w:.0%}，"
+                              f"補 {len(ww2)} 段白牆帶")
+                        labels, rooms, outside = labels_w, rooms_w, outside_w
     # 走道橫斷橋合併後即失效：疊圖不再畫、恰為門尺寸者的假門位一併移除
     rooms, bridges = _merge_nondoor_bridges(labels, rooms, bridges, det)
     # 浴室隔屏碎格合併（floor38/44 實案）——須在面積終篩前，
