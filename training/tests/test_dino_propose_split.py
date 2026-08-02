@@ -139,3 +139,62 @@ def test_tint_boundary_knife_hallway_living(monkeypatch):
     assert len(out) == 2, "色染轉換刀＋Hallway 對應切二"
     areas = sorted(int((labels == r["id"]).sum()) for r in out)
     assert 90000 < areas[0] < 190000, f"切線應在色界附近：{areas}"
+
+
+def test_ww_adopted_small_blob_proposed(monkeypatch):
+    # floor_07 實案：救援採用張的臥+浴複合 blob 計算面積僅 7~8.6m²
+    # （比例尺低估），10m² big 線全擋、8m² 硬地板連場都進不了——
+    # 災難張門檻下修（硬地板 5m²、big 6m²），任意對 0.7 開刀。
+    # 5~10m² 帶只吃證據刀：色染轉換（左染右白）出刀、任意對 0.9 收
+    labels = np.zeros((300, 300), np.int32)
+    labels[10:290, 10:260] = 1                   # 70000px = 7m²@cm=1
+    m = labels == 1
+    ys, xs = np.nonzero(m)
+    rooms = [{"id": 1, "area_px": int(m.sum()), "bbox": (10, 10, 260, 290),
+              "cx": float(xs.mean()), "cy": float(ys.mean()),
+              "aspect": 1.1, "touch_env": True}]
+    bgr = np.full((300, 300, 3), 245, np.uint8)
+    bgr[:, :135] = (120, 230, 240)               # 左半色染、右半白＝色界
+    monkeypatch.setattr(fp.room_classifier, "classify",
+                        _probs_by_x_pair(135, "Bedroom", "Kitchen"))
+    det = {"cm": 1.0, "bgr": bgr, "domain": "color", "_ww_adopted": True}
+    out = fp._dino_propose_splits(det, labels, rooms, T=10, cm=1.0,
+                                  amin=1000)
+    assert len(out) == 2, f"災難張 7m² 複合房應依色界證據開刀，實得 {len(out)}"
+
+
+def test_ww_adopted_no_evidence_not_cut(monkeypatch):
+    # floor_08 左臥實案：7.2m² 乾淨單房無色界無 fence——中點/剖面
+    # 跳變等無證據亂刀在 5~10m² 帶全禁，即使切半對信心 0.9 也不切
+    labels = np.zeros((300, 300), np.int32)
+    labels[10:290, 10:260] = 1
+    m = labels == 1
+    ys, xs = np.nonzero(m)
+    rooms = [{"id": 1, "area_px": int(m.sum()), "bbox": (10, 10, 260, 290),
+              "cx": float(xs.mean()), "cy": float(ys.mean()),
+              "aspect": 1.1, "touch_env": True}]
+    monkeypatch.setattr(fp.room_classifier, "classify",
+                        _probs_by_x_pair(135, "Bedroom", "Kitchen"))
+    det = {"cm": 1.0, "bgr": np.full((300, 300, 3), 245, np.uint8),
+           "domain": "color", "_ww_adopted": True}
+    out = fp._dino_propose_splits(det, labels, rooms, T=10, cm=1.0,
+                                  amin=1000)
+    assert len(out) == 1, "無證據刀的 5~10m² 單房不得試切"
+
+
+def test_normal_small_room_floor_unchanged(monkeypatch):
+    # 非災難張：8m² 硬地板不動——7m² 房不得提案（防常規張亂切）
+    labels = np.zeros((300, 300), np.int32)
+    labels[10:290, 10:260] = 1
+    m = labels == 1
+    ys, xs = np.nonzero(m)
+    rooms = [{"id": 1, "area_px": int(m.sum()), "bbox": (10, 10, 260, 290),
+              "cx": float(xs.mean()), "cy": float(ys.mean()),
+              "aspect": 1.1, "touch_env": True}]
+    monkeypatch.setattr(fp.room_classifier, "classify",
+                        _probs_by_x_pair(135, "Bedroom", "Kitchen"))
+    det = {"cm": 1.0, "bgr": np.zeros((300, 300, 3), np.uint8),
+           "domain": "color"}
+    out = fp._dino_propose_splits(det, labels, rooms, T=10, cm=1.0,
+                                  amin=1000)
+    assert len(out) == 1, "常規張 7m² 房不得提案"

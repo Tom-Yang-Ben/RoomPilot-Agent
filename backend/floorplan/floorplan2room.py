@@ -1615,11 +1615,33 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
         m = 2.5 * T
         return (xs.min() - eX0 <= m or eX1 - xs.max() <= m
                 or ys.min() - eY0 <= m or eY1 - ys.max() <= m)
+    pp_dbg = os.environ.get("WW_DEBUG") == "1"
+    ww_adopted = bool(det.get("_ww_adopted"))
+    # 災難張門檻下修（floor_07 實案）：救援採用張的複合 blob（臥+浴、
+    # 臥+走道）計算面積僅 7~8.6m²——比例尺被門樣本稀少低估，10m²
+    # big 線全擋、8m² 硬地板連場都進不了。災難張已無可失且有 DINO
+    # 雙 0.7＋比例守門，硬地板降 5m²、big 線降 6m²；常規張兩門檻不動
+    floor_m2 = 50000.0 if ww_adopted else 80000.0
     for room in rooms:
         area_m2 = room["area_px"] * cm * cm
-        if area_m2 < 80000.0:                    # <8m² 一律不提案
+        if area_m2 < floor_m2:                   # 硬地板：太小不提案
+            if pp_dbg and area_m2 >= 40000.0:
+                print(f"WW_DEBUG 提案拒: id {room['id']} "
+                      f"{area_m2 / 1e4:.1f}m² < 硬地板")
             continue
-        big = area_m2 >= (100000.0 if det.get("_ww_adopted") else min_m2)
+        big = area_m2 >= (60000.0 if ww_adopted else min_m2)
+        bx0, by0, bx1, by1 = room["bbox"]
+        fill = room["area_px"] / max(1.0, float((bx1 - bx0) * (by1 - by0)))
+        if pp_dbg:
+            print(f"WW_DEBUG 提案評: id {room['id']} "
+                  f"{area_m2 / 1e4:.1f}m² big {big} fill {fill:.2f}")
+        # 門檻下修開放的 5~10m² 帶只吃證據刀（tint/fence/剖面跳變）：
+        # 中點是唯一無證據亂刀，小房被對半誤切的主因（floor_08 左臥
+        # 7.2m² 實案）；剖面跳變＝L 型幾何階梯，屬結構證據保留
+        # （floor_07 臥+浴 blob 的浴界只有軸2 跳變刀看得見）；整房
+        # DINO 信心在災難張是反向指標（floor_07 blob 整房 0.9+、
+        # floor_08 乾淨臥反而 <0.8），不可用
+        evidence_only = ww_adopted and area_m2 < 100000.0
         # 救援採用張的複合房常 12~20m²（floor_08 臥+走+客 17.6m²），
         # 25m² 門檻會全擋——災難張降 10m²
         region = labels == room["id"]
@@ -1686,6 +1708,8 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                             tint_knives[key].append(float(c))
                         prev, run_len = maj[c], 1
         if not big and not (fence_knives[1] or fence_knives[2]):
+            if pp_dbg:
+                print(f"WW_DEBUG 提案拒: id {room['id']} 非 big 且無 fence 刀")
             continue                             # 小房須有 fence 刀證據
         best = None                              # (score, part_a, part_b)
         for key, grid, lo, hi in ((1, xs_grid, x0, x1), (2, ys_grid, y0, y1)):
@@ -1695,7 +1719,8 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                 cands += [float(c)
                           for c in range(int(lo) + 2 * T, int(hi) - 2 * T)
                           if abs(int(prof[c]) - int(prof[c - 1])) > T]
-                cands.append((lo + hi) / 2.0)
+                if not evidence_only:
+                    cands.append((lo + hi) / 2.0)
             seen = set()
             for c in cands:
                 b = int(c // max(T, 1))          # 相鄰候選去重（一桶一刀）
@@ -1717,6 +1742,9 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                 if not pa or not pb:
                     continue
                 la, lb = max(pa, key=pa.get), max(pb, key=pb.get)
+                if pp_dbg and evidence_only:
+                    print(f"WW_DEBUG 提案候選: id {room['id']} 軸{key} "
+                          f"c {c:.0f} {la} {pa[la]:.2f} × {lb} {pb[lb]:.2f}")
                 pair = {la, lb}
                 if pair == {"Kitchen", "LivingRoom"} and big:
                     thr_pair = p_min
@@ -1762,6 +1790,10 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                 if best is None or score > best[0]:
                     best = (score, a_, b_)
         if best is None:
+            if pp_dbg:
+                print(f"WW_DEBUG 提案拒: id {room['id']} 候選刀全滅"
+                      f"（fence {len(fence_knives[1]) + len(fence_knives[2])}"
+                      f" tint {len(tint_knives[1]) + len(tint_knives[2])}）")
             continue
         _s, a_, b_ = best
         nid += 1
@@ -1835,11 +1867,17 @@ def build_rooms(det):
         if ww_dbg:
             print(f"WW_DEBUG 主分割: cov {cov:.3f} rooms {len(rooms)} "
                   f"big_blob {big_blob}")
-        if (cov < 0.50 and len(rooms) < 8) or big_blob:
-                                                 # 災難張＝低覆蓋房少（09 型）
-                                                 # 或巨塊黏連（08 型）；
-                                                 # floor_04 覆蓋被外圈空地低估
-                                                 # 但 16 房正常，房數條件擋誤觸
+        shatter = cov < 0.50 and len(rooms) >= 20
+        if (cov < 0.50 and len(rooms) < 8) or shatter \
+                or big_blob or os.environ.get("WW_FORCE") == "1":
+                                                 # 災難張三型：低覆蓋房少
+                                                 # （09 型）、巨塊黏連（08
+                                                 # 型）、低覆蓋碎裂（07 型：
+                                                 # cov 42%/58 房，白磁磚區
+                                                 # 全碎）。floor_04 覆蓋被
+                                                 # 外圈空地低估但 16 房正
+                                                 # 常，8~19 房安全窗擋誤觸
+                                                 # WW_FORCE 僅供離線診斷探測
             bgr1 = det.get("bgr")
             sc = img_w / float(bgr1.shape[1])
             ww = fp_c.white_wall_rects(
@@ -1856,6 +1894,11 @@ def build_rooms(det):
                 if labels_w is not None and rooms_w:
                     cov_w = sum(r_["area_px"] for r_ in rooms_w) / env_a
                     ok_cov = cov_w >= 0.55 and cov_w > cov + 0.10
+                    if shatter and len(rooms_w) >= len(rooms):
+                        # 碎裂型救援的天職是收斂（floor_07 58→13）；
+                        # 越補越碎（floor_04 22→41、9/10→6/10）＝白帶
+                        # 在正常張灑假牆，覆蓋過閘也不可採
+                        ok_cov = False
                     ok_blob = big_blob and cov_w >= 0.55                         and len(rooms_w) > len(rooms)
                     if ww_dbg:
                         print(f"WW_DEBUG 救援輪: 白牆帶 {len(ww2)} 段 "
