@@ -90,10 +90,36 @@ git status --short
 .\.venv\Scripts\python.exe -m pytest -q tests/test_scene_workflow.py tests/test_project_workflow_api.py tests/test_scene_v2_contract.py
 ```
 
+## 帳戶端
+
+八步流程之前需要登入。`/login` 註冊或登入後進入 `/projects`（我的專案），
+再從那裡建立或開啟專案。
+
+- 第一個註冊的帳號自動成為 `admin`，並收養帳戶端上線前建立的既有專案。
+  正式部署請在開放註冊前先建 admin，或設 `ROOMPILOT_AUTH_DISABLE_FIRST_ADMIN=1`。
+- 角色：`designer` 建立與編輯專案、鎖版出報告；`client` 只檢視被分享的專案；
+  `admin` 可跨帳號維運。
+- 專案可分享給其他帳號，成員角色為 `editor`（可編輯）或 `viewer`（唯讀）。
+
+簽章金鑰請在 `.env` 明確設定，否則每個節點會各自產生一把，token 無法跨節點驗證：
+
+```dotenv
+ROOMPILOT_AUTH_SECRET=用 python -c "import secrets;print(secrets.token_urlsafe(48))" 產生
+ROOMPILOT_AUTH_ACCESS_TTL_MINUTES=30
+ROOMPILOT_AUTH_REFRESH_TTL_DAYS=14
+```
+
+PostgreSQL 專案儲存需要先套用新增的使用者與成員資料表：
+
+```powershell
+psql -U postgres -d roompilot_db -f scripts/project_store/roompilot_project_store_schema.sql
+```
+
 ## 現行八步流程
 
 ```text
-1 建立專案
+0 註冊／登入並選擇專案
+-> 1 建立專案
 -> 2 上傳 PNG/JPG/DXF 平面圖
 -> 3 兩點標定並確認公分尺度
 -> 4 校正空間、牆、門、窗、樑與柱
@@ -101,7 +127,12 @@ git status --short
 -> 6 產生配置，在同一畫面同步編輯 2D/3D 家具與走動預覽
 -> 7 鎖定方案，每個空間選擇並微調生成視角
 -> 8 AI 渲染與成果包：依問卷、家具、材質、色卡與視角產生逐房成果
+-> 9 成果報告與明細：設計風格語彙、家具採購明細、工程施工費與初步工期
 ```
+
+第 9 步在 `/engineering`：把鎖定版 `ProjectSnapshot` 轉成 HTML／XLSX／JSON 三份
+文件。家具採購與工程施工費是兩筆獨立預算，報告不予合計；設計語彙來自
+`backend/catalog/data/design/`，屬團隊編纂（medium confidence），報告會如實標示。
 
 未處理的家具碰撞、淨空、超界或模型載入問題會阻擋下一步。結構變更
 必須回到第 4 步，系統會重新驗證目前家具。

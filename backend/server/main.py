@@ -13,8 +13,10 @@ from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
+from typing import Any
+from weakref import WeakKeyDictionary
 
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -66,6 +68,13 @@ from .cost_estimation import estimate_project_cost, load_default_cost_catalog
 from .catalog_admin import router as catalog_admin_router
 from .rag_api import router as rag_router
 from .engineering.api import build_engineering_router
+from .shortlist_api import build_shortlist_router
+from ..spatial_data.rag.preload import PRELOADER
+from .auth import dependencies as auth_dependencies
+from .auth.api import build_auth_router
+from .auth.service import AuthService
+from .auth.tokens import TokenService
+from .auth.user_store import build_user_store
 from .project_store import (
     ProjectStoreBusy,
     ProjectStoreUnavailable,
@@ -158,6 +167,49 @@ PROJECT_STORE = build_project_store(
 if PROJECT_STORE.imports_legacy_on_startup:
     for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
         PROJECT_STORE.import_runtime(legacy_runtime)
+_USER_STORE_CACHE: "WeakKeyDictionary[object, object]" = WeakKeyDictionary()
+_USER_STORE_LOCK = Lock()
+
+
+def user_store() -> Any:
+    """取得對應目前 PROJECT_STORE 的使用者儲存。
+
+    使用者、成員與專案必須在同一個資料庫，授權查詢才能 JOIN，也才不會出現
+    「專案建在 A 庫、擁有者寫進 B 庫」。PROJECT_STORE 可在執行期被替換
+    （測試會 monkeypatch，provider 也可能切換），所以這裡依當下的 store 解析
+    並以弱參考快取，不做模組級單例。
+    """
+    store = PROJECT_STORE
+    with _USER_STORE_LOCK:
+        cached = _USER_STORE_CACHE.get(store)
+        if cached is None:
+            cached = build_user_store(store)
+            _USER_STORE_CACHE[store] = cached
+        return cached
+
+
+AUTH_SERVICE = AuthService(
+    user_store,
+    TokenService.from_environment(PROJECT_DIR, project_runtime_dir(PROJECT_DIR)),
+)
+auth_dependencies.configure(auth_service=AUTH_SERVICE, user_store=user_store)
+
+
+def _adopt_unowned_projects_on_startup() -> None:
+    """升級既有部署：帳戶端之前建立的專案沒有 owner，交給最早的 admin。
+
+    best-effort：資料庫暫時不可用或使用者表還沒建立時不能讓服務起不來，
+    第一個 admin 註冊時還會再做一次，兩邊都是冪等的。
+    """
+    try:
+        admin = user_store().find_first_admin()
+        if admin is not None:
+            AUTH_SERVICE.adopt_unowned_projects(admin["user_id"])
+    except Exception:  # noqa: BLE001 - 啟動期不可因遷移失敗而中斷服務
+        pass
+
+
+_adopt_unowned_projects_on_startup()
 QUESTIONNAIRE_VISUAL_CATALOG = load_questionnaire_visual_catalog()
 QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
 _QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
@@ -213,6 +265,7 @@ _DATASET_GLB_ROOTS = [
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+app.include_router(build_auth_router())
 app.include_router(catalog_admin_router)
 app.include_router(rag_router)
 app.include_router(
@@ -221,6 +274,15 @@ app.include_router(
         project_dir=PROJECT_DIR,
     )
 )
+app.include_router(
+    build_shortlist_router(
+        project_store_getter=lambda: PROJECT_STORE,
+        project_dir=PROJECT_DIR,
+    )
+)
+# bge-m3 在 CPU 上首次載入約 34 秒。背景載入讓服務立即可用，未就緒時候選集
+# 檢索會退成純結構化過濾並標記為過期，模型就緒後下一次送出自動補算語意排序。
+PRELOADER.start(PROJECT_DIR)
 
 
 @app.exception_handler(ProjectStoreUnavailable)
@@ -1885,6 +1947,23 @@ def home() -> FileResponse:
     return _page("index.html")
 
 
+@app.get("/login")
+def login_page() -> FileResponse:
+    # 頁面本身公開；沒有身分就沒有專案可看，授權由 API 端點負責。
+    return FileResponse(
+        STATIC_DIR / "login.html",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/projects")
+def projects_page() -> FileResponse:
+    return FileResponse(
+        STATIC_DIR / "projects.html",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.get("/styles")
 def styles_page() -> FileResponse:
     return _page("styles.html")
@@ -2022,7 +2101,10 @@ def _project_text(payload: dict, key: str, label: str, *, limit: int) -> str:
 
 
 @app.post("/api/projects", status_code=201)
-def create_project(payload: dict) -> dict:
+def create_project(
+    payload: dict,
+    user: dict = Depends(auth_dependencies.require_system_role("designer")),
+) -> dict:
     name = _project_text(payload, "name", "專案名稱", limit=MAX_PROJECT_NAME_CHARS)
     if not name:
         raise HTTPException(
@@ -2034,17 +2116,28 @@ def create_project(payload: dict) -> dict:
             },
         )
     notes = _project_text(payload, "notes", "備註", limit=MAX_PROJECT_NOTES_CHARS)
-    return {"project": PROJECT_STORE.create_project(name=name, notes=notes)}
+    project = PROJECT_STORE.create_project(name=name, notes=notes)
+    # 建立者立刻成為 owner，否則專案會是沒人能存取的孤兒。
+    user_store().set_project_owner(project["project_id"], user["user_id"])
+    return {"project": project}
 
 
 @app.get("/api/projects/{project_id}")
-def get_project(project_id: str, response: Response) -> dict:
+def get_project(
+    project_id: str,
+    response: Response,
+    _user: dict = Depends(auth_dependencies.project_reader),
+) -> dict:
     response.headers["Cache-Control"] = "no-store"
     return {"project": _stored_project(project_id)}
 
 
 @app.put("/api/projects/{project_id}/workflow")
-def save_project_workflow(project_id: str, payload: dict) -> dict:
+def save_project_workflow(
+    project_id: str,
+    payload: dict,
+    _user: dict = Depends(auth_dependencies.project_editor),
+) -> dict:
     _stored_project(project_id)
     current_step = str(payload.get("current_step") or "").strip() or None
     if current_step and current_step not in WORKFLOW_STEPS:
@@ -2099,6 +2192,7 @@ async def save_project_floorplan(
     project_id: str,
     file: UploadFile = File(...),
     expected_revision: int | None = Form(None),
+    _user: dict = Depends(auth_dependencies.project_editor),
 ) -> dict:
     _stored_project(project_id)
     filename = Path(file.filename or "").name
@@ -2144,7 +2238,10 @@ async def save_project_floorplan(
 
 
 @app.get("/api/projects/{project_id}/floorplan/source")
-def get_project_floorplan_source(project_id: str) -> FileResponse:
+def get_project_floorplan_source(
+    project_id: str,
+    _user: dict = Depends(auth_dependencies.project_reader),
+) -> FileResponse:
     upload = _stored_floorplan(project_id)
     return FileResponse(
         upload["path"],
@@ -2171,6 +2268,7 @@ async def create_project_render(
     style_version: int = Form(0),
     style_card_id: str = Form("unassigned"),
     provider: str = Form("browser_capture"),
+    _user: dict = Depends(auth_dependencies.project_editor),
 ) -> dict:
     _stored_project(project_id)
     if expected_revision < 0:
@@ -2225,7 +2323,10 @@ async def create_project_render(
 
 
 @app.get("/api/projects/{project_id}/renders")
-def list_project_renders(project_id: str) -> dict:
+def list_project_renders(
+    project_id: str,
+    _user: dict = Depends(auth_dependencies.project_reader),
+) -> dict:
     try:
         renders = PROJECT_STORE.list_renders(project_id)
     except KeyError as exc:
@@ -2236,7 +2337,11 @@ def list_project_renders(project_id: str) -> dict:
 
 
 @app.get("/api/projects/{project_id}/renders/{render_id}/png")
-def download_project_render(project_id: str, render_id: str) -> FileResponse:
+def download_project_render(
+    project_id: str,
+    render_id: str,
+    _user: dict = Depends(auth_dependencies.project_reader),
+) -> FileResponse:
     try:
         render = PROJECT_STORE.get_render(project_id, render_id)
     except FileNotFoundError as exc:
@@ -2268,7 +2373,11 @@ def get_render_provider_status() -> dict:
 
 
 @app.post("/api/projects/{project_id}/render-jobs", status_code=202)
-async def create_project_render_jobs(project_id: str, payload: dict) -> dict:
+async def create_project_render_jobs(
+    project_id: str,
+    payload: dict,
+    _user: dict = Depends(auth_dependencies.project_editor),
+) -> dict:
     _stored_project(project_id)
     if payload.get("project_id") != project_id:
         raise HTTPException(
@@ -2313,7 +2422,10 @@ def _floorplan_is_confirmed(project: dict) -> bool:
 
 
 @app.post("/api/projects/{project_id}/floorplan/analyze")
-def analyze_project_floorplan(project_id: str) -> dict:
+def analyze_project_floorplan(
+    project_id: str,
+    _user: dict = Depends(auth_dependencies.project_editor),
+) -> dict:
     project = _stored_project(project_id)
     upload = _stored_floorplan(project_id)
     if not _floorplan_is_confirmed(project):
@@ -2700,6 +2812,60 @@ def _json_furniture_catalog_response(
         "category_groups": _category_groups_for(style, has_model),
         "filter_options": _furniture_filter_options(facet_items),
         "furniture": sample_files,
+        "catalog_status": catalog_status(),
+    }
+
+
+@app.post("/api/furniture/by-ids")
+def furniture_by_ids(payload: dict) -> dict:
+    """依 item_id 批次取家具，供第 6 步從候選集還原完整資料。
+
+    候選集（``scene_json.furniture_shortlist``）只存 id 與排序分數，圖片、GLB
+    與擺放屬性仍在型錄。沒有這條路徑的話前端得對每個房間每個家具類型各打一次
+    ``/api/furniture`` 分頁掃描——那正是候選集要消除的成本。
+
+    回傳沿用 ``/api/furniture`` 的正規化與卡片格式，前端不必分兩套解析。
+    """
+    raw_ids = payload.get("item_ids")
+    if not isinstance(raw_ids, list):
+        raise HTTPException(422, "item_ids must be a list")
+    # 在去重前先擋：去重後才檢查的話，送一百萬個重複 id 仍會先付完整個
+    # 正規化成本才被擋下。候選集實測 7 房約 260 筆，1000 已有充足餘裕。
+    if len(raw_ids) > 1000:
+        raise HTTPException(422, "item_ids exceeds 1000 entries")
+    item_ids = list(
+        dict.fromkeys(str(value).strip() for value in raw_ids if str(value or "").strip())
+    )
+    if not item_ids:
+        return {"items": [], "missing": [], "catalog_status": catalog_status()}
+
+    detail = str(payload.get("detail") or "card")
+    if catalog_provider_mode(PROJECT_DIR) == "postgres":
+        try:
+            from ..catalog.postgres_repository import get_catalog_items_by_ids
+
+            found = get_catalog_items_by_ids(PROJECT_DIR, item_ids)
+        except Exception as exc:
+            raise _postgres_catalog_unavailable(exc) from exc
+        ordered = [found[item_id] for item_id in item_ids if item_id in found]
+    else:
+        lookup = {
+            str(item.get("furniture_id") or item.get("id")): item
+            for item in _furniture_payload_cache()
+        }
+        ordered = [lookup[item_id] for item_id in item_ids if item_id in lookup]
+
+    items = list(_normalize_catalog_payload(tuple(ordered)))
+    resolved = {
+        str(item.get("furniture_id") or item.get("id")) for item in items
+    }
+    return {
+        "items": [
+            item if detail == "scene" else _furniture_card_payload(item)
+            for item in items
+        ],
+        # 型錄下架或 id 過期時要讓呼叫端知道，而不是靜默少幾筆。
+        "missing": [item_id for item_id in item_ids if item_id not in resolved],
         "catalog_status": catalog_status(),
     }
 

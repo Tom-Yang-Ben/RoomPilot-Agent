@@ -1,3 +1,6 @@
+// 必須排在其他 import 之前：這個模組會接管 window.fetch 以附加身分並在
+// access token 過期時自動續期，晚載入的話最早幾個請求會漏掉 Authorization。
+import { authorizedObjectUrl, requireSignedIn } from "./auth_client.js?v=sha256-b35a4ff11b37";
 import { createSceneViewer } from "./scene_viewer.js?v=sha256-ffc625d8b24f";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
@@ -1437,7 +1440,12 @@ async function confirmUpload() {
       method: "POST",
       body: form,
     });
-    state.sourceUrl = `${uploaded.upload.source_url}?v=${Date.now()}`;
+    // 平面圖端點需要身分，而 <img src> 由瀏覽器直接發請求不會帶 token；
+    // 先用帶身分的 fetch 取回再轉 blob URL。
+    state.sourceUrl = await authorizedObjectUrl(
+      `${uploaded.upload.source_url}?v=${Date.now()}`,
+      { cacheKey: `floorplan:${state.projectId}` },
+    );
     state.sourceExtension = uploaded.upload.extension;
     showUploadedPreview(state.sourceUrl, state.sourceExtension);
     state.workflow.setFloorplanConfirmation({ confirmed: true });
@@ -7099,6 +7107,10 @@ async function confirmRequirements() {
       interviewSchemaVersion: state.firstMeeting.schemaVersion,
     });
     renderFurnitureLibrary();
+    // 問卷送出後先建候選集：把全型錄縮成每房數十筆，第 6 步的選件與擺放
+    // 都只在這個子集上跑。失敗不擋流程，catalogOffersForSpec 會退回全庫。
+    setStatus("正在依你的需求檢索適合的家具…");
+    await ensureFurnitureShortlist();
     setStatus("正在載入方案 A 的資料庫家具與 3D 場景…");
     const generated = await generateWhiteModelFromRequirements({
       returnToRequirementsOnFailure: true,
@@ -7441,15 +7453,114 @@ function isFloorPlacedCatalogItem(candidate = {}) {
   return !surface || surface === "floor";
 }
 
+// ── 家具候選集（第 5 步問卷送出時由後端 RAG 建立）──────────────────────
+// 候選集把 8,557 筆型錄縮成每房數十筆，選件與擺放都只在這個子集上跑。
+// 這裡只換「候選從哪來」，排序、尺寸選項與 offer 轉換全部沿用既有邏輯。
+const shortlistState = { fingerprint: "", byRoom: new Map(), loading: null };
+
+function storedFurnitureShortlist() {
+  return state.project?.workflow?.furniture_shortlist || null;
+}
+
+/** 一次把整份候選集的完整型錄資料取回並依房間分組。 */
+async function loadShortlistCandidates() {
+  const shortlist = storedFurnitureShortlist();
+  if (!shortlist?.rooms?.length) {
+    shortlistState.byRoom = new Map();
+    shortlistState.fingerprint = "";
+    return shortlistState.byRoom;
+  }
+  if (shortlistState.fingerprint === shortlist.fingerprint && shortlistState.byRoom.size) {
+    return shortlistState.byRoom;
+  }
+  if (shortlistState.loading) return shortlistState.loading;
+
+  shortlistState.loading = (async () => {
+    const itemIds = [];
+    const roomOf = new Map();
+    shortlist.rooms.forEach((room) => {
+      (room.items || []).forEach((item) => {
+        itemIds.push(item.item_id);
+        if (!roomOf.has(item.item_id)) roomOf.set(item.item_id, []);
+        roomOf.get(item.item_id).push(room.room_id);
+      });
+    });
+    if (!itemIds.length) return new Map();
+    // detail: "scene" 才會帶 placement_surface 等第 6 步需要的欄位，
+    // 與 catalogCandidatesForType 走的是同一種 payload。
+    const payload = await api("/api/furniture/by-ids", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item_ids: itemIds, detail: "scene" }),
+    });
+    const byRoom = new Map();
+    (payload.items || []).forEach((item) => {
+      const id = item.furniture_id || item.id;
+      (roomOf.get(id) || []).forEach((roomId) => {
+        if (!byRoom.has(roomId)) byRoom.set(roomId, []);
+        byRoom.get(roomId).push(item);
+      });
+    });
+    shortlistState.byRoom = byRoom;
+    shortlistState.fingerprint = shortlist.fingerprint || "";
+    if ((payload.missing || []).length) {
+      console.warn("候選集有品項已不在型錄", payload.missing.length);
+    }
+    return byRoom;
+  })().finally(() => {
+    shortlistState.loading = null;
+  });
+  return shortlistState.loading;
+}
+
+function shortlistCandidatesForRoom(roomId) {
+  return shortlistState.byRoom.get(String(roomId)) || [];
+}
+
+/** 問卷送出時建立候選集。失敗不擋流程，第 6 步會退回既有的全庫路徑。 */
+async function ensureFurnitureShortlist() {
+  if (!state.projectId) return false;
+  try {
+    const result = await api(`/api/projects/${state.projectId}/furniture-shortlist`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (state.project?.workflow) {
+      state.project.workflow.furniture_shortlist = result.shortlist;
+    }
+    await loadShortlistCandidates();
+    const total = result.summary?.total_items || 0;
+    const missing = (result.summary?.rooms || [])
+      .filter((room) => (room.missing_families || []).length);
+    if (missing.length) {
+      console.warn("部分空間沒有候選家具，將退回全型錄搜尋", missing);
+    }
+    return total > 0;
+  } catch (error) {
+    // 模型尚未載入、資料庫不可用或專案還沒確認空間都會走到這裡。
+    console.warn("候選集建立失敗，改用全型錄搜尋", error);
+    return false;
+  }
+}
+
 async function catalogOffersForSpec(room, spec, index) {
   const request = questionnaireFurnitureRequest(room, spec);
-  const candidates = await catalogCandidatesForType(spec[0], {
-    styleId: request.styleId,
-    query: request.queryText,
-  });
-  const matchingCandidates = candidates
+  // 候選集優先：命中就省掉一次全型錄分頁查詢。篩不出這個族系時（例如
+  // 型錄該房型沒有對應品項）照舊走原本的路徑，行為不會比先前差。
+  const pooled = shortlistCandidatesForRoom(room.id);
+  let matchingCandidates = pooled
     .filter(isFloorPlacedCatalogItem)
     .filter((candidate) => isQuestionnaireFallbackTypeMatch(candidate, spec[0]));
+  if (!matchingCandidates.length) {
+    const candidates = await catalogCandidatesForType(spec[0], {
+      styleId: request.styleId,
+      query: request.queryText,
+    });
+    matchingCandidates = candidates
+      .filter(isFloorPlacedCatalogItem)
+      .filter((candidate) => isQuestionnaireFallbackTypeMatch(candidate, spec[0]));
+  }
   const ranked = rankCatalogFurniture(matchingCandidates, request);
   return questionnaireOffersWithSizeChoices(spec[0], ranked).map((candidate) => catalogFurnitureOffer(candidate, {
     roomId: room.id,
@@ -7486,6 +7597,13 @@ async function catalogFallbackOffersForSpec(room, spec, index) {
 }
 
 async function catalogOffersForRoomPlans(roomPlans) {
+  // 重新開啟既有專案時不會經過問卷送出，這裡補上候選集載入；已載入或
+  // 專案沒有候選集時都是零成本。
+  try {
+    await loadShortlistCandidates();
+  } catch (error) {
+    console.warn("候選集載入失敗，改用全型錄搜尋", error);
+  }
   return Object.fromEntries(await Promise.all(roomPlans.map(async ({ room, specs }) => {
     const groups = await Promise.all(specs.map(async (spec, index) => {
       try {
@@ -13868,7 +13986,11 @@ async function restoreProject() {
     hydrateSceneWallMass();
     state.sourceUrl = state.sourceExtension === ".dxf"
       ? configureDxfPreview(state.analysis)
-      : `/api/projects/${state.projectId}/floorplan/source?v=${Date.now()}`;
+      // DXF 走 data URL；影像平面圖要帶身分取回再轉 blob，直接指向 API 會 401。
+      : await authorizedObjectUrl(
+        `/api/projects/${state.projectId}/floorplan/source?v=${Date.now()}`,
+        { cacheKey: `floorplan:${state.projectId}` },
+      );
     if (state.workflow.completed.includes("upload")) {
       setPlanImages(state.sourceUrl);
       showUploadedPreview(state.sourceUrl, state.sourceExtension);
@@ -13978,4 +14100,7 @@ renderFurnitureLibrary();
 applyStyleCardFromQuery();
 renderStyleControls();
 evaluateCeilingConflicts();
-restoreProject();
+// 未登入就沒有專案可還原，直接導向登入頁；畫面已經先組好，登入回來即可續作。
+if (requireSignedIn()) {
+  restoreProject();
+}

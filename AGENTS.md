@@ -34,7 +34,9 @@
 | 路徑 | 主要 owner | 主要責任 |
 |---|---|---|
 | `backend/server/` | Bella | FastAPI、專案保存、`scene_json` 調度 |
-| `frontend/` | Bella | 正式網頁：六個頁面、八步 UI 與 Three.js 檢視器 |
+| `backend/server/auth/` | Bella | 帳戶、JWT、系統與專案角色授權 |
+| `backend/catalog/data/design/` | Kai 保管／Bella 消費 | 設計語彙知識庫，供成果報告產生設計論述 |
+| `frontend/` | Bella | 正式網頁：登入、我的專案、八步 UI 與 Three.js 檢視器 |
 | `backend/floorplan/` | Cody | 影像/DXF 辨識、牆門窗房間、`layout_json` |
 | `backend/spatial_data/` | Django | 空間尺寸、房間關係、layout evaluation schema、家具 RAG 檢索與排序 |
 | `backend/catalog/`、`JSON/`、`scripts/sql/` | Kai | 正式家具、CloudFront 資產、PostgreSQL 匯入與 RAG metadata |
@@ -53,6 +55,12 @@
 - Graph RAG 只檢索房間、家具、風格、材質與限制的關係與證據，不決定幾何、碰撞、淨空或結構合法性。
 - 家具向量 RAG 只解析需求、檢索與排序 Kai PostgreSQL 家具；不得取代 Yen 選件決策或 Ancai 幾何判定。
 - 家具合法位置只由 `backend/engine/` 判定。
+- 專案一律有 owner；`/api/projects/*` 與 `/api/v1/*` 的每個端點都要掛
+  `auth.dependencies` 的守衛，非成員回 404 而不是 403（403 會洩漏專案存在性）。
+- 設計語彙知識庫是團隊內部編纂，`confidence` 上限為 `medium`；報告裡的數字
+  一律來自鎖定版快照與工程知識庫，不由語彙模板產生。
+- 家具採購金額與工程施工費分開列示、不合計；查無價格者 `subtotal` 為 null，
+  不以已知小計冒充總價。
 - 第 6 步正式家具以 Kai PostgreSQL `roompilot.furniture_catalog_current` 優先；資料庫不可用時才回退已驗證 JSON。
 - 冰箱、洗衣機等家電保留為問卷與 AI 生圖上下文，不能進入 2D/3D 自動配置或正式家具 API。
 - 隔離區或未匹配資料不得進 API 或場景。

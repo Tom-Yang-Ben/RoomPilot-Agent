@@ -158,6 +158,14 @@ def test_project_store_unavailable_maps_to_explicit_503(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class OfflineStore:
+        provider = "sqlite"
+
+        @property
+        def database_path(self):
+            # 帳戶端上線後，授權會比 get_project 更早碰到儲存層。資料庫不可用
+            # 時這裡也必須是同一種失敗，否則會變成 401 而不是 503。
+            raise ProjectStoreUnavailable("OperationalError")
+
         def get_project(self, _project_id: str):
             raise ProjectStoreUnavailable("OperationalError")
 
