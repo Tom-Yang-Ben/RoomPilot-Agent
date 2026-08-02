@@ -1464,6 +1464,74 @@ def _harvest_balcony_pockets(det, labels, rooms, outside):
     return rooms
 
 
+def _dino_propose_splits(det, labels, rooms, T, cm, amin,
+                         min_m2=250000.0, p_min=0.55):
+    """DINO 提案式切分——無錨點大房的最後切分手段（floor47/52/13 灰、
+    floor02/03 彩型開放 LDK）。彩圖無 OCR 也無符號證據、灰階符號召回
+    被模板庫卡死，這些誤併沒有任何錨點可用。
+
+    對面積 ≥25m² 的房：沿主軸輪廓階梯（剖面跳變 >T）出候選刀＋中點，
+    每刀切兩半交 DINO；兩半 top-1 恰為 {Kitchen, LivingRoom} 對且雙方
+    信心 ≥p_min 才收，取信心和最高的一刀。寧漏勿誤：驗證不過整房不動。
+    labels 就地改，回傳新 rooms。"""
+    h, w = labels.shape
+    out = list(rooms)
+    nid = max((r["id"] for r in out), default=0)
+    variant = "color" if det.get("domain") == "color" else "gray"
+    xs_grid = np.arange(w)[None, :]
+    ys_grid = np.arange(h)[:, None]
+    for room in rooms:
+        if room["area_px"] * cm * cm < min_m2:
+            continue
+        region = labels == room["id"]
+        x0, y0, x1, y1 = room["bbox"]
+        best = None                              # (score, part_a, part_b)
+        for key, grid, lo, hi in ((1, xs_grid, x0, x1), (2, ys_grid, y0, y1)):
+            prof = region.sum(axis=0 if key == 1 else 1)
+            cands = [float(c) for c in range(int(lo) + 2 * T, int(hi) - 2 * T)
+                     if abs(int(prof[c]) - int(prof[c - 1])) > T]
+            cands.append((lo + hi) / 2.0)
+            seen = set()
+            for c in cands:
+                b = int(c // max(T, 1))          # 相鄰候選去重（一桶一刀）
+                if b in seen:
+                    continue
+                seen.add(b)
+                a_, b_ = region & (grid < c), region & (grid >= c)
+                if a_.sum() < amin or b_.sum() < amin:
+                    continue
+                tmp = np.zeros_like(labels)
+                tmp[a_] = 1
+                tmp[b_] = 2
+                probs = room_classifier.classify(det.get("bgr"), tmp,
+                                                 [{"id": 1}, {"id": 2}],
+                                                 variant=variant)
+                if probs is None:
+                    return out                   # 分類器缺席，整機制停用
+                pa, pb = probs[0] or {}, probs[1] or {}
+                if not pa or not pb:
+                    continue
+                la, lb = max(pa, key=pa.get), max(pb, key=pb.get)
+                if {la, lb} != {"Kitchen", "LivingRoom"}:
+                    continue
+                if pa[la] < p_min or pb[lb] < p_min:
+                    continue
+                score = pa[la] + pb[lb]
+                if best is None or score > best[0]:
+                    best = (score, a_, b_)
+        if best is None:
+            continue
+        _s, a_, b_ = best
+        nid += 1
+        labels[b_] = nid
+        te = room.get("touch_env", False)
+        out.remove(room)
+        for r_ in filter(None, (_room_stats(labels, room["id"], te),
+                                _room_stats(labels, nid, te))):
+            out.append(r_)
+    return out
+
+
 def build_rooms(det):
     """牆 → 房間方塊：牆端點沿軸向連到對面牆（fp_c._wall_gaps 封口）＋門洞補線
     ＋閉運算，閉合後灌水切連通塊＝房間，再依規則分類房型。
@@ -1575,6 +1643,19 @@ def build_rooms(det):
     # 灰階路」裁定關閉，灰階回歸 v2.24 行為
     if is_color_dom:
         rooms = _harvest_balcony_pockets(det, labels, rooms, outside)
+    # DINO 提案式切分：無錨點大房（無 OCR 房名、無符號可用）的開放
+    # LDK 最後手段。房內已有作者房名文字者不提案（作者說了算）
+    h_, w_ = labels.shape
+    texted = set()
+    for t in det.get("texts") or ():
+        iy, ix = int(round(t[2])), int(round(t[1]))
+        if 0 <= iy < h_ and 0 <= ix < w_ and labels[iy, ix] > 0:
+            texted.add(int(labels[iy, ix]))
+    untexted = [r for r in rooms if r["id"] not in texted]
+    if untexted:
+        kept_ids = {r["id"] for r in untexted}
+        merged_out = _dino_propose_splits(det, labels, untexted, T, cm, amin)
+        rooms = [r for r in rooms if r["id"] not in kept_ids] + merged_out
     # 房型命名（2026-07-30 起只剩兩層，CubiCasa 語意投票已整批移除）：
     #   1) DINOv2 裁切分類（room_classifier）——own_eval 72 房 90.3%
     #   2) 面積規則（純幾何兜底）——缺 torch/骨幹/線性頭時
