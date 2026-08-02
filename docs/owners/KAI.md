@@ -93,7 +93,7 @@ Kai catalog 候選 GLB / 外部 CC0 GLB
 | 正式 catalog | PostgreSQL `roompilot.furniture_catalog_current`，提供 `glb_url`、`thumbnail_url`、尺寸、類型、授權與驗證狀態。 |
 | Git 內 manifest | `backend/catalog/data/manifests/lighting_assets_manifest.csv`，只保存 item ID、CloudFront URL、checksum、授權、分類與驗證結果。 |
 | 原始下載、Blender 暫存、批次渲染 | 本機或物件儲存 staging；不得提交 Git。 |
-| PBR 紋理 | `backend/server/static/pbr_assets/`；這是網站執行期資產，必須提交版本控制。 |
+| PBR 紋理 | `frontend/pbr_assets/`；這是網站執行期資產，必須提交版本控制。 |
 
 執行期使用流程：Bella 的 `/api/furniture` 讀取 verified catalog item，前端以 `thumbnail_url` 顯示純物件 PNG、以 `glb_url` 載入 3D 模型；Yen RAG 與 Ancai 擺放器只可使用 `verification_status=verified` 的項目。
 

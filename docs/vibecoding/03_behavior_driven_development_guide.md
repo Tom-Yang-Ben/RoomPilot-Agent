@@ -41,7 +41,7 @@
 
 依據(本次逐一讀檔確認):
 
-- 有序步驟清單(11 個內部步驟)定義於 `backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS`;`recognition` 與 `calibration` 依 `WORKFLOW_PANEL_BY_STEP`(同檔 18-30 行)共用 `scale` 面板,所以 UI 只顯示 10 顆步驟按鈕(`backend/server/static/scene.html:22-32`,`data-workflow-count="10"`)。
+- 有序步驟清單(11 個內部步驟)定義於 `frontend/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS`;`recognition` 與 `calibration` 依 `WORKFLOW_PANEL_BY_STEP`(同檔 18-30 行)共用 `scale` 面板,所以 UI 只顯示 10 顆步驟按鈕(`frontend/scene.html:22-32`,`data-workflow-count="10"`)。
 - 伺服器端 `backend/server/main.py:113-125` 的 `WORKFLOW_STEPS` 是同樣 11 個名稱的 set(無序),只在 `PUT /api/projects/{id}/workflow` 驗證步驟名(`main.py:1546-1547`)。
 - 步驟前置依賴 `REQUIRED_COMPLETIONS` 只在前端強制(`scene_workflow.js:43-105`)。**已知落差:伺服器端不驗順序,無法阻止跳步驟寫入**——撰寫情境時,`Then` 不得宣稱「伺服器會擋跳步」。
 
@@ -118,7 +118,7 @@ Feature: 建立專案與上傳平面圖(步驟 project → upload)
 ```gherkin
 Feature: 平面圖辨識與兩點比例尺
   # 對應:backend/server/main.py:1797(POST /api/projects/{id}/floorplan/analyze)
-  # 比例尺 UI 行為:backend/server/static/scene_calibration.js(經 tests/test_scene_calibration.py 鎖定)
+  # 比例尺 UI 行為:frontend/scene_calibration.js(經 tests/test_scene_calibration.py 鎖定)
 
   Background:
     Given 我已建立專案並成功上傳平面圖
@@ -289,7 +289,7 @@ Feature: 2D 家具配置與拖曳驗證
 
 ```gherkin
 Feature: 3D 檢視閘門與自動軟裝
-  # 對應:backend/server/static/scene_workflow.js:43-105(前端閘門)、main.py:2453 起(POST /api/scene/decorate)
+  # 對應:frontend/scene_workflow.js:43-105(前端閘門)、main.py:2453 起(POST /api/scene/decorate)
 
   @happy-path
   Scenario: 步驟閘門依序解鎖
@@ -376,4 +376,4 @@ Feature: 3D 檢視閘門與自動軟裝
 2. **使用陳述式** -- `Then 我應該收到 409,錯誤碼為 project_revision_conflict`(非 `Then 系統回傳衝突`)
 3. **避免 UI 細節** -- `When 我確認平面圖內容正確`(非 `When 我點選綠色確認按鈕`)
 4. **從使用者角度編寫** -- 非技術人員也能讀懂
-5. **(RoomPilot 補充)步驟名與順序只認程式碼** -- 內部步驟鍵以 `backend/server/static/scene_workflow.js` 的 `WORKFLOW_STEPS` 為準;錯誤碼以 `backend/server/main.py` 為準;舊文件(含曾出現的「問卷開頭」「八步驟」口徑)一律不採用
+5. **(RoomPilot 補充)步驟名與順序只認程式碼** -- 內部步驟鍵以 `frontend/scene_workflow.js` 的 `WORKFLOW_STEPS` 為準;錯誤碼以 `backend/server/main.py` 為準;舊文件(含曾出現的「問卷開頭」「八步驟」口徑)一律不採用

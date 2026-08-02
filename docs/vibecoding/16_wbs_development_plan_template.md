@@ -57,7 +57,7 @@
 └── 3.6 Bella:FastAPI 伺服器(backend/server/)
 
 4.0 前端開發
-├── 4.1 主前端靜態頁(backend/server/static/,現行入口)
+├── 4.1 主前端靜態頁(frontend/,現行入口)
 └── 4.2 frontend3d(React Three Fiber)去留裁決
 
 5.0 測試與品質保證
@@ -158,7 +158,7 @@
 | 編號 | 任務 | 負責人 | 工時 | 狀態 | 完成日期 | 依賴 | 依據 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 3.6.1 | 修復 2 個紅燈測試:`scene.html` 的 cache-busting 雜湊與 `scene_v2.js` 現行內容 SHA-256 不一致 | Bella | | 待辦 | | - | 2026-07-26 實測 `pytest tests/test_scene_v2_contract.py` 2 failed(`test_scene_entrypoint_cache_key_matches_bundle_content` 等 2 項) |
-| 3.6.2 | 窗簾 GLB 缺檔:`/api/scene/decorate` 引用 `/static/models/roompilot-curtain.glb`,static/ 下實測 0 個 .glb;窗簾為固定假想品項不經型錄查找、不會觸發 409,而是瀏覽器載入 404 後由前端以同尺寸白色替代物兜底(409 `decor_model_missing` 屬燈/地毯/植栽等型錄角色查無 GLB 的情形) | Bella | | 待辦 | | - | `main.py:2440-2450` `_curtain_catalog_item` 與 `main.py:2409-2416` 409 路徑實測;`find backend/server/static -name '*.glb'` 為 0;`scene_viewer.js:2955-2957` 兜底實測 |
+| 3.6.2 | 窗簾 GLB 缺檔:`/api/scene/decorate` 引用 `/static/models/roompilot-curtain.glb`,static/ 下實測 0 個 .glb;窗簾為固定假想品項不經型錄查找、不會觸發 409,而是瀏覽器載入 404 後由前端以同尺寸白色替代物兜底(409 `decor_model_missing` 屬燈/地毯/植栽等型錄角色查無 GLB 的情形) | Bella | | 待辦 | | - | `main.py:2440-2450` `_curtain_catalog_item` 與 `main.py:2409-2416` 409 路徑實測;`find frontend -name '*.glb'` 為 0;`scene_viewer.js:2955-2957` 兜底實測 |
 | 3.6.3 | 伺服器端步驟順序防護:`main.py` 的 `WORKFLOW_STEPS` 是無序 set 只驗步驟名,前置依賴僅前端 `REQUIRED_COMPLETIONS` 強制,伺服器無法阻止跳步驟寫入 | Bella | | 待辦 | | - | `main.py:113-125`(set)與 `static/scene_workflow.js:43`(REQUIRED_COMPLETIONS)實測 |
 | 3.6.4 | `DATASET_DIR` 路徑修正:指向 repo 根 `dataset/`(不存在),實際 GLB 在 `data/dataset/`;cloudfront 模式不受影響,local 模式本機解析落空 | Bella | | 待辦 | | - | `main.py:101` 與 `ls dataset` No such file 實測 |
 | 3.6.5 | 問卷選項圖片補齊:110 個選項圖中 8 個 `ready`、102 個 `planned`;圖片未完成的題目以文字選項作答 | Bella(圖片來源負責人未查證) | | 進行中 | | - | `backend/server/data/questionnaire_visual_catalog.json` 實測統計(55 題/110 圖) |

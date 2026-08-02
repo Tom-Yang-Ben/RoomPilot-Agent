@@ -73,12 +73,12 @@ AGENTS.md
 backend/catalog/data/staging/
 backend/catalog/data/quarantine/lighting/
 backend/catalog/assets/
-backend/server/static/lighting_assets/
-backend/server/static/texture_cache/
+frontend/lighting_assets/
+frontend/texture_cache/
 
 # 正式 PBR 材質（含 KTX2 壓縮貼圖）是網站執行期資產，必須上傳。
-!backend/server/static/pbr_assets/
-!backend/server/static/pbr_assets/**
+!frontend/pbr_assets/
+!frontend/pbr_assets/**
 
 # 自 cody 分支併入的忽略規則（僅取安全與大型產物必要項目）。
 # MCP 設定含 API key，是主線先前缺少的安全漏洞，優先補上。

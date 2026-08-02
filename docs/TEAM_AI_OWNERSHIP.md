@@ -19,7 +19,7 @@
 | 目錄 | Owner | 協作方 | 輸入 | 輸出／功能 |
 |---|---|---|---|---|
 | `backend/server/` | Bella | 各 owner 的 adapter | HTTP、專案狀態、`layout_json`、需求 | FastAPI、保存、八步 UI、`scene_json` 調度 |
-| `backend/server/static/` | Bella | Yen、Ancai、Cody、Django | API payload | 正式 HTML/CSS/JS/Three.js 編輯介面 |
+| `frontend/` | Bella | Yen、Ancai、Cody、Django | API payload | 正式 HTML/CSS/JS/Three.js 編輯介面 |
 | `backend/floorplan/` | Cody | Django、Ben | PNG/JPG/DXF、尺度校正 | 牆、門、窗、房間、信心度與 `layout_json` |
 | `backend/spatial_data/` | Django | Cody、Ancai、Bella | 已確認房間與開口幾何 | 空間尺寸、相鄰與 evaluation 記錄，不負責渲染 |
 | `backend/catalog/` | Kai | Django、Bella | 官方 catalog、資產 manifest | 已驗證家具/材質、三視角圖、RAG metadata |

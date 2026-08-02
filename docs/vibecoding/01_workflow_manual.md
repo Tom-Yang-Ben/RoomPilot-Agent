@@ -24,7 +24,7 @@
 | AN | `backend/engine/` | 家具座標、碰撞與淨空檢查 |
 | Bella | `backend/server/`、`frontend3d/` | FastAPI、1–10 流程、2D/3D UI |
 
-補充現況:`backend/spatial_data/` 目前僅有 `.gitkeep` 佔位,無程式碼(實測);`frontend3d/` 為 React Three Fiber 子專案,現行主前端為 `backend/server/static/` 靜態頁。
+補充現況:`backend/spatial_data/` 目前僅有 `.gitkeep` 佔位,無程式碼(實測);`frontend3d/` 為 React Three Fiber 子專案,現行主前端為 `frontend/` 靜態頁。
 
 ---
 
@@ -88,7 +88,7 @@ graph LR
 
 ### 主流程(程式碼權威序)
 
-步驟順序一律以 backend/server 程式碼為準:`backend/server/static/scene_workflow.js` 的 `WORKFLOW_STEPS`(唯一有序來源)定義 11 個內部步驟;其中 `recognition` 與 `calibration` 共用同一 `scale` 面板(`WORKFLOW_PANEL_BY_STEP`),因此 `/scene` 頁面(`scene.html`)只顯示 10 顆步驟按鈕。伺服器端 `backend/server/main.py` 的 `WORKFLOW_STEPS` 是同名集合(set),只驗證步驟名稱、不強制順序;步驟前置依賴僅由前端強制。
+步驟順序一律以 backend/server 程式碼為準:`frontend/scene_workflow.js` 的 `WORKFLOW_STEPS`(唯一有序來源)定義 11 個內部步驟;其中 `recognition` 與 `calibration` 共用同一 `scale` 面板(`WORKFLOW_PANEL_BY_STEP`),因此 `/scene` 頁面(`scene.html`)只顯示 10 顆步驟按鈕。伺服器端 `backend/server/main.py` 的 `WORKFLOW_STEPS` 是同名集合(set),只驗證步驟名稱、不強制順序;步驟前置依賴僅由前端強制。
 
 | 內部步驟(有序) | UI 按鈕 | 名稱 |
 | :--- | :--- | :--- |

@@ -85,7 +85,7 @@ npm run preview
 - scripts 只有 dev/build/preview 三個,無測試無 lint(`frontend3d/package.json`)。
 - **`npm install` 依賴解析失敗(2026-07-26 `--dry-run` 實測)**:`@vitejs/plugin-react@4.7.0`(由 `^4.3.4` 解析而得)peer 只支援 vite ^4–^7,專案 devDependencies 要求 `vite ^8.1.0`,npm 11 嚴格模式回 ERESOLVE。繞法為 `--legacy-peer-deps` 或升級 plugin;依 `package-lock.json` 重放的 `npm ci` 與 `npm run build` 未實測。
 - 後端**沒有任何 CORS middleware**(grep 實測 backend/ 程式碼無 CORSMiddleware);瀏覽器直連只能同源,開發時靠 vite proxy 把 `/api` 轉到 8002。若後端不是跑在 8002,需自行改 `vite.config.js`。
-- 定位注意:正式 UI 是 `backend/server/static/` 由 FastAPI 直出;frontend3d 是輔助檢視器,`main.py:2072` 的 `_legacy_viewer_models` docstring 稱其為 retired R3F viewer,但對應路由(`/api/plans`、`/api/plan`、`/api/upload`、`/api/furniture`)仍存活。
+- 定位注意:正式 UI 是 `frontend/` 由 FastAPI 直出;frontend3d 是輔助檢視器,`main.py:2072` 的 `_legacy_viewer_models` docstring 稱其為 retired R3F viewer,但對應路由(`/api/plans`、`/api/plan`、`/api/upload`、`/api/furniture`)仍存活。
 - `frontend3d/README.md` 內容過時(寫 port 8000 與舊路徑),以 `vite.config.js` 與根 README 為準。
 
 ### 環境變數(全部 grep `backend/` 實測;範例檔=git 追蹤的 `.env.example`)

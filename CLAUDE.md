@@ -25,7 +25,7 @@
 
 ## 目前產品邊界
 
-正式產品是 `backend/server/` 與 `backend/server/static/` 的八步 FastAPI/Three.js 工作流：辨識止於 `layout_json`，方案與編輯使用 `scene_json`，家具合法性由 `backend/engine/` 計算。
+正式產品是 `backend/server/` 與 `frontend/` 的八步 FastAPI/Three.js 工作流：辨識止於 `layout_json`，方案與編輯使用 `scene_json`，家具合法性由 `backend/engine/` 計算。
 
 第 6 步家具資料以 Kai PostgreSQL view `roompilot.furniture_catalog_current` 優先；只有資料庫暫時不可用才使用已驗證 JSON。家電需求留在問卷與 `scene_json.render_context` 協助第 8 步生圖，不列入 2D/3D 擺設。
 

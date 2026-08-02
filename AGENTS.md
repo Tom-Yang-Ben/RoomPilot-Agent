@@ -33,7 +33,8 @@
 
 | 路徑 | 主要 owner | 主要責任 |
 |---|---|---|
-| `backend/server/` | Bella | FastAPI、專案保存、八步 UI、2D/3D 調度 |
+| `backend/server/` | Bella | FastAPI、專案保存、`scene_json` 調度 |
+| `frontend/` | Bella | 正式網頁：六個頁面、八步 UI 與 Three.js 檢視器 |
 | `backend/floorplan/` | Cody | 影像/DXF 辨識、牆門窗房間、`layout_json` |
 | `backend/spatial_data/` | Django | 空間尺寸、房間關係、layout evaluation schema、家具 RAG 檢索與排序 |
 | `backend/catalog/`、`JSON/`、`scripts/sql/` | Kai | 正式家具、CloudFront 資產、PostgreSQL 匯入與 RAG metadata |
@@ -55,7 +56,7 @@
 - 第 6 步正式家具以 Kai PostgreSQL `roompilot.furniture_catalog_current` 優先；資料庫不可用時才回退已驗證 JSON。
 - 冰箱、洗衣機等家電保留為問卷與 AI 生圖上下文，不能進入 2D/3D 自動配置或正式家具 API。
 - 隔離區或未匹配資料不得進 API 或場景。
-- 正式網頁只有 `backend/server/static/` 一套；不得新建第二套前端。
+- 正式網頁只有 `frontend/` 一套；不得新建第二套前端。
 - 前端在磁碟上的位置只由 `backend/paths.py` 的 `STATIC_DIR` 決定，Node 測試那側是
   `tests/static/paths.mjs`。後端與測試一律 import，不得自行拼 `parents[n]` 或相對於
   工作目錄的路徑。

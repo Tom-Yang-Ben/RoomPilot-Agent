@@ -12,7 +12,7 @@
                -> 保存 layout_json / requirements_json / scene_json
 ```
 
-`backend/server/static/` 是唯一的 production frontend。
+`frontend/` 是唯一的 production frontend。
 
 第 6 步使用 Kai PostgreSQL catalog 優先。第 5 步家電需求必須保存給 AI 生圖，但不得變成 2D/3D 自動擺設。第 6 步位置、碰撞與淨空仍由 Ancai 引擎決定。
 
@@ -35,7 +35,7 @@
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
-node --check backend/server/static/scene_v2.js
-node --check backend/server/static/scene_viewer.js
+node --check frontend/scene_v2.js
+node --check frontend/scene_viewer.js
 git diff --check
 ```

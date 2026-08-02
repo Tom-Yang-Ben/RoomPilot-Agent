@@ -125,7 +125,7 @@ API key、cache、權重、ChromaDB 或 Django Gradio runtime。
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q tests/test_rag_domain.py tests/test_rag_api.py tests/test_furniture_embeddings_sql.py
-node --check backend/server/static/rag.js
+node --check frontend/rag.js
 .\.venv\Scripts\python.exe -m pytest -q
 git diff --check
 ```

@@ -71,7 +71,7 @@ RoomPilot 的「關注點分離」有明文規則(README 團隊目錄表與共�
 - **座標紀律**:家具座標只能由 `backend/engine/` 計算(README 共同規則 3);`backend/agent/` 只決定選品、順序與失敗修復策略(`backend/agent/__init__.py` docstring)。審查時看到 agent 層或前端出現座標運算即退回。
 - **串接不複製**:Bella 可在 `backend/server/` 串接模組,但不複製其他人的演算法(README 共同規則 2)。
 - **API 變更**:新端點對照 `docs/vibecoding/06_api_design_specification.md` 與 `docs/contracts/`。現況 44 條路由全部定義在 `backend/server/main.py`(45 個 `@app.` 裝飾器 = 44 路由 + 1 個 `on_event`,無 APIRouter 拆分,grep 實測);新增路由要注意路徑匹配順序,例如 `GET /api/furniture/{name}`(main.py:2787)與 `GET /api/furniture/{furniture_id}/model` 並存,依定義順序匹配。
-- **主流程步驟序以程式碼為準**:唯一有序來源是 `backend/server/static/scene_workflow.js` 的 `WORKFLOW_STEPS`(11 個內部步驟,UI 顯示 10 顆按鈕);伺服器端 `backend/server/main.py:113` 的 `WORKFLOW_STEPS` 是 set,只驗名稱不驗順序。審查涉及流程的變更時,不要沿用任何舊文件的步驟順序(舊文件有「八個步驟」殘留,見 D-08)。
+- **主流程步驟序以程式碼為準**:唯一有序來源是 `frontend/scene_workflow.js` 的 `WORKFLOW_STEPS`(11 個內部步驟,UI 顯示 10 顆按鈕);伺服器端 `backend/server/main.py:113` 的 `WORKFLOW_STEPS` 是 set,只驗名稱不驗順序。審查涉及流程的變更時,不要沿用任何舊文件的步驟順序(舊文件有「八個步驟」殘留,見 D-08)。
 
 ### 3. 效能與安全
 
@@ -117,7 +117,7 @@ git log --oneline bella..origin/<member-branch>
 | `backend/agent/` | `backend/agent/` |
 | `backend/engine/` | `backend/engine/` |
 | `backend/server/` | `backend/server/` |
-| `frontend/` | 第一階段不覆蓋正式網頁;靜態網站維持 `backend/server/static/` |
+| `frontend/` | 第一階段不覆蓋正式網頁;靜態網站維持 `frontend/` |
 | `data/dataset/` | 不搬大型 GLB;型錄 metadata 放 `backend/catalog/data/` |
 | `data/testdata/` | `testdata/` |
 | `Final-Project_Version3/` | 只移植空間邏輯到 `backend/spatial_data/` |
@@ -157,16 +157,16 @@ git log --oneline bella..origin/<member-branch>
 | :--- | :--- | :--- | :--- |
 | D-01 | `backend/server/main.py` | 2,796 行單檔,44 條路由 + 型錄快取 + 工具函式全在其中,無 APIRouter 拆分 | 按資源拆 APIRouter(見重構策略) |
 | D-02 | `tests/test_scene_v2_contract.py` 兩條紅燈 | `scene.html`/`scene_v2.js` 的 sha256 快取鍵與現行 JS 內容不符 | 重生內容雜湊查詢參數,恢復全綠 |
-| D-03 | `backend/server/static/scene.js` | 3,128 行舊版場景程式,`static/` 內無任何 HTML/JS 引用(grep 實測);現役入口為 `scene_v2.js`(8,544 行) | 確認無外部引用後刪除 |
+| D-03 | `frontend/scene.js` | 3,128 行舊版場景程式,`static/` 內無任何 HTML/JS 引用(grep 實測);現役入口為 `scene_v2.js`(8,544 行) | 確認無外部引用後刪除 |
 | D-04 | `backend/floorplan/vision/geometry.py` 的 `detect_geometry`、`backend/floorplan/vision/ocr.py` 的 `default_ocr_provider` | `backend/` 與 `tests/` 皆無呼叫者(grep 實測),判定死碼;無法排除 repo 外系統使用 | 團隊確認後刪除或標記 deprecated |
-| D-05 | `backend/server/main.py:2446` | 軟裝布簾引用 `/static/models/roompilot-curtain.glb`,但 `backend/server/static/` 下找不到任何 `.glb`(find 實測 0 個) | 補檔或改走 CloudFront/移除假想品項 |
+| D-05 | `backend/server/main.py:2446` | 軟裝布簾引用 `/static/models/roompilot-curtain.glb`,但 `frontend/` 下找不到任何 `.glb`(find 實測 0 個) | 補檔或改走 CloudFront/移除假想品項 |
 | D-06 | `backend/server/main.py:2102` | `@app.on_event("startup")` 為 FastAPI 已棄用 API,pytest 實跑出現 `DeprecationWarning`(本日實錄) | 改用 lifespan 事件 |
 | D-07 | `backend/server/main.py:101` | `DATASET_DIR = PROJECT_DIR / "dataset"` 指向不存在的目錄(實際 GLB 在 `data/dataset/`,且 cloudfront 模式不走本機路徑) | 修正路徑或移除 local 模式殘留 |
 | D-08 | `docs/RoomPilot_現行版本總覽.md:12`、`README.md:5-7`、`frontend3d/README.md:15,22` | 文件腐化:總覽寫「目前固定為八個步驟」但同檔表格與程式碼為 10 顆按鈕/11 內部步驟;README 開頭有殘缺句(「不再建立/不再保留舊版巢狀後端命名」接不上);frontend3d README 寫 port 8000,實際 `vite.config.js:8` 代理到 8002 | 逐處修正(文件變更,不影響程式) |
 | D-09 | `backend/catalog/data/舊友：12種風格與JSON/`(git 追蹤)與 `舊有：12種風格與JSON/`(未追蹤) | 兩目錄僅 README.md 不同,其餘 4 個 JSON 相同(diff -rq 實測);`main.py` 的 `EXTERNAL_IMPORT_PATH` 指向「舊友」版 | 裁決保留哪一份,刪除另一份(裁決事項,待辦) |
 | D-10 | `backend/floorplan/__pycache__/`、`backend/upgrade3d/__pycache__/`、`backend/server/storage/` | 孤兒編譯殘留:`opening_classifier`/`room_analysis`/`seg_infer`/`vlm_judge`/`wall_openings` 的 `.pyc` 無對應 `.py`(ls 實測);`storage/` 目錄只剩 `__pycache__` | 清除 `__pycache__` 與空目錄 |
 | D-11 | `backend/catalog/data/surface_catalog.json` + `backend/server/main.py:426-428` | `style_surface_profiles` 有 12 個舊風格 key;現行 6 風格 ID(`taiwan_style_cards.json`:american/cream/industrial/japanese/modern_minimal/scandinavian)中 3 個恰同名命中(american/industrial/scandinavian),另 3 個(cream/japanese/modern_minimal)查無 profile、落到 `scandinavian` fallback;repo 內無任何 6→12 映射程式(`_style_surface_profile` 直接以 ID 查 dict) | 補齊 cream/japanese/modern_minimal 的 profile 或建立映射;此不一致是否有意設計無法自 repo 斷定(`surface_catalog.json` 係整合 commit `b04833c` 整檔新增 21,876 行帶入,未查證) |
-| D-12 | `backend/server/main.py:113` vs `backend/server/static/scene_workflow.js:4` | 伺服器端 `WORKFLOW_STEPS` 是 set 只驗步驟名,步驟前置依賴僅前端強制——伺服器無法阻止跳步驟寫入 | 評估是否在 `PUT /api/projects/{id}/workflow` 補伺服器端順序驗證 |
+| D-12 | `backend/server/main.py:113` vs `frontend/scene_workflow.js:4` | 伺服器端 `WORKFLOW_STEPS` 是 set 只驗步驟名,步驟前置依賴僅前端強制——伺服器無法阻止跳步驟寫入 | 評估是否在 `PUT /api/projects/{id}/workflow` 補伺服器端順序驗證 |
 
 ---
 

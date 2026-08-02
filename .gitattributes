@@ -3,4 +3,4 @@ JSON/RAG/furniture_embeddings_bge_m3.jsonl filter=lfs diff=lfs merge=lfs -text
 # 靜態資產的 cache key 是內容的 SHA-256，測試以 read_bytes() 逐位元組比對。
 # 若讓 core.autocrlf 在 Windows 檢出 CRLF，同一份檔案在不同平台會得到不同雜湊，
 # 使 cache key 測試只能在單一平台通過。強制 LF 讓工作區位元組與 git 儲存內容一致。
-backend/server/static/** text eol=lf
+frontend/** text eol=lf

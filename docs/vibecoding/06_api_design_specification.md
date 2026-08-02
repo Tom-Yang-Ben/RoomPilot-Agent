@@ -23,7 +23,7 @@
 
 ### 主流程步驟(程式碼權威順序)
 
-`PUT /api/projects/{project_id}/workflow` 的 `current_step` 只接受以下 11 個步驟名。有序來源是前端 `backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS`;伺服器端 `main.py:113-125` 的 `WORKFLOW_STEPS` 是同名集合(set,無序),只驗名稱不驗順序,步驟前置依賴僅由前端強制——伺服器無法阻止跳步驟寫入。
+`PUT /api/projects/{project_id}/workflow` 的 `current_step` 只接受以下 11 個步驟名。有序來源是前端 `frontend/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS`;伺服器端 `main.py:113-125` 的 `WORKFLOW_STEPS` 是同名集合(set,無序),只驗名稱不驗順序,步驟前置依賴僅由前端強制——伺服器無法阻止跳步驟寫入。
 
 ```
 project → upload → recognition → calibration → space_confirmation → requirements
@@ -137,8 +137,8 @@ project → upload → recognition → calibration → space_confirmation → re
 | `GET /styles` | 回 `static/styles.html`(風格頁) |
 | `GET /library` | 回 `static/library.html`(型錄頁) |
 | `GET /scene` | 回 `static/scene.html`(10 步主流程單頁應用),附 `Cache-Control: no-store` |
-| `MOUNT /static` | `backend/server/static/` 靜態檔(main.py:163) |
-| `MOUNT /docs-assets` | `backend/server/static/moodboard_assets/`(main.py:164) |
+| `MOUNT /static` | `frontend/` 靜態檔(main.py:163) |
+| `MOUNT /docs-assets` | `frontend/moodboard_assets/`(main.py:164) |
 
 ---
 
@@ -379,7 +379,7 @@ project → upload → recognition → calibration → space_confirmation → re
 #### `POST /api/scene/decorate` - 依房型自動軟裝
 
 - **請求體**: `{"scene_objects", "floorplan"|"floorplan_editor", "placement_room_id", "room": {"type": "..."}, "style"}`
-- **行為**: 依房內既有家具與房型決定加 `light`/`rug`/`plant`/`curtain`;先移除該房舊 auto_decor 再重算(重跑=重算而非累加);放不下的軟裝直接捨棄不硬塞。布簾用固定假想品項 `model_url: "/static/models/roompilot-curtain.glb"`(main.py:2446)——**注意:該 GLB 實際不存在**(`find backend/server/static -name '*.glb'` 為 0,`static/models/` 目錄不存在)。前端已有兜底:scene_viewer.js 的 `loader.loadAsync` 失敗會被 catch,改放同尺寸白色替代物並在狀態列列為「GLB 載入失敗,已顯示同尺寸白色替代物」(scene_viewer.js:2907、2935-2938、2954-2957),故此 404 不會中斷場景
+- **行為**: 依房內既有家具與房型決定加 `light`/`rug`/`plant`/`curtain`;先移除該房舊 auto_decor 再重算(重跑=重算而非累加);放不下的軟裝直接捨棄不硬塞。布簾用固定假想品項 `model_url: "/static/models/roompilot-curtain.glb"`(main.py:2446)——**注意:該 GLB 實際不存在**(`find frontend -name '*.glb'` 為 0,`static/models/` 目錄不存在)。前端已有兜底:scene_viewer.js 的 `loader.loadAsync` 失敗會被 catch,改放同尺寸白色替代物並在狀態列列為「GLB 載入失敗,已顯示同尺寸白色替代物」(scene_viewer.js:2907、2935-2938、2954-2957),故此 404 不會中斷場景
 - **回應**: `{"scene_objects": [...], "decor_summary": {"requested": ["light","rug"], "placed": ["light"], "engine": "furniture_engine"}}`
 - **錯誤**: 型錄缺某角色 GLB **不再回 409**;該角色列進 `decor_summary.skipped`,其餘照常配置。舊行為 409 `decor_model_missing`(型錄找不到對應角色的 GLB)
 

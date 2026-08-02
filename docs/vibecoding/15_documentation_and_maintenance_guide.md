@@ -43,7 +43,7 @@ docs/
 模組層文件(docs/ 之外):
 
 - `README.md`(repo 根,唯一根層 Markdown,ls 實測)
-- `backend/engine/README.md`、`backend/catalog/data/README.md`、`backend/catalog/data/quarantine/*/README.md`、`backend/catalog/data/舊友:12種風格與JSON/README.md`、`scripts/sql/README.md`、`frontend3d/README.md`、`examples/demo_app/README.md`、`backend/floorplan/vision/icon_templates/README.md`、`backend/server/static/vendor/draco/README.md`、`backend/agent/prompts/ROOMPILOT_LLM.md`(git ls-files `*.md` 實列)
+- `backend/engine/README.md`、`backend/catalog/data/README.md`、`backend/catalog/data/quarantine/*/README.md`、`backend/catalog/data/舊友:12種風格與JSON/README.md`、`scripts/sql/README.md`、`frontend3d/README.md`、`examples/demo_app/README.md`、`backend/floorplan/vision/icon_templates/README.md`、`frontend/vendor/draco/README.md`、`backend/agent/prompts/ROOMPILOT_LLM.md`(git ls-files `*.md` 實列)
 
 ### 各文件 SSOT 角色與更新時機
 
@@ -117,7 +117,7 @@ RoomPilot 是課程專題,無月/季營運節奏;模板的「每月/每季」對
 
 - [ ] 欄位或行為變更是否同步 `docs/contracts/` 對應契約?檔頭「最後更新」是否更新?
 - [ ] 流程步驟或接入狀態變更是否同步 `docs/RoomPilot_現行版本總覽.md` 與 `README.md`?
-- [ ] 步驟順序描述是否以程式碼為準?唯一有序來源是 `backend/server/static/scene_workflow.js` 的 `WORKFLOW_STEPS`(11 個內部步驟:project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render;recognition 與 calibration 共用 scale 面板,UI 顯示 10 顆按鈕)。伺服器端 `main.py` 的 `WORKFLOW_STEPS` 是無序 set,只驗名稱。
+- [ ] 步驟順序描述是否以程式碼為準?唯一有序來源是 `frontend/scene_workflow.js` 的 `WORKFLOW_STEPS`(11 個內部步驟:project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render;recognition 與 calibration 共用 scale 面板,UI 顯示 10 顆按鈕)。伺服器端 `main.py` 的 `WORKFLOW_STEPS` 是無序 set,只驗名稱。
 - [ ] 新增的文件是否落在 `.gitignore` 豁免範圍?(`git status` 看得到才算入庫)
 - [ ] 文件內的指令與數字是否仍可複測?(型錄 9,350、色卡 18、測試收集 392 等)
 

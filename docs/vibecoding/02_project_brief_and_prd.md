@@ -28,7 +28,7 @@
 
 ### 1.3 主流程(程式碼權威順序)
 
-順序以 `backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 為準,共 11 個內部步驟;其中 `recognition` 與 `calibration` 共用同一個「確定尺寸」UI 面板(`WORKFLOW_PANEL_BY_STEP`,同檔 18-30 行),因此 `/scene` 頁面只顯示 10 顆步驟按鈕(`scene.html:23-32`)。
+順序以 `frontend/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 為準,共 11 個內部步驟;其中 `recognition` 與 `calibration` 共用同一個「確定尺寸」UI 面板(`WORKFLOW_PANEL_BY_STEP`,同檔 18-30 行),因此 `/scene` 頁面只顯示 10 顆步驟按鈕(`scene.html:23-32`)。
 
 | # | 內部步驟 | UI 名稱 | 主要結果/伺服器行為(已對照程式碼) |
 | :--- | :--- | :--- | :--- |
@@ -106,7 +106,7 @@
 
 | ID | 描述 | 狀態 | 負責人 |
 | :--- | :--- | :--- | :--- |
-| Q-001 | `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`,但 `backend/server/static/` 下實測無任何 `.glb`;軟裝窗簾模型缺檔待處理(前端對載入失敗已有兜底:以同尺寸白色替代物顯示,`scene_viewer.js:2955-2957`,不中斷場景) | 待討論 | Bella |
+| Q-001 | `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`,但 `frontend/` 下實測無任何 `.glb`;軟裝窗簾模型缺檔待處理(前端對載入失敗已有兜底:以同尺寸白色替代物顯示,`scene_viewer.js:2955-2957`,不中斷場景) | 待討論 | Bella |
 | Q-002 | `surface_catalog.json` 的 `style_surface_profiles` 用 12 個舊風格 ID(實測:american、american_country、classical、eclectic、industrial、light_luxury、melad、minimalist_muji、modern、nordic_modern、scandinavian、wabi_sabi),與家具 6 風格體系不一致;6 個現行 style_id 中僅 `american`/`industrial`/`scandinavian` 有同名 profile,`japanese`/`modern_minimal`/`cream` 查無 → 落入 fallback `scandinavian`(`main.py:428`),映射是否有意設計待確認 | 待討論 | Kai、Bella |
 | Q-003 | `main.py` `DATASET_DIR` 指向 repo 根 `dataset/`(不存在),實際 GLB 在 `data/dataset/`;`cloudfront` 模式不受影響,但 `local` 模式的本機解析路徑落空 | 待討論 | Bella |
 | Q-004 | `docs/RoomPilot_現行版本總覽.md` 第 12 行寫「固定為八個步驟」但同檔表格列 10 步,為舊殘留,需修訂 | 待討論 | 文件維護(待補) |

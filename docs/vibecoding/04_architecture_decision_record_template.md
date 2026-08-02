@@ -191,7 +191,7 @@
 - DXF 路徑:`backend/engine/dxf_room.py`(`_M_TO_CM = 100.0`,第 38 行)把 dxf_parser 的公尺輸出 ×100 進引擎,並平移到角落原點。
 - 影像路徑:`backend/floorplan/vision/units.py` 的 `canonicalize_analysis_cm()`(第 30 行)是辨識結果公尺→公分的唯一轉換點。
 
-**主流程步驟(程式碼權威)**:`backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 定義 11 個有序內部步驟:project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render;其中 recognition 與 calibration 共用同一 `scale` 面板(`WORKFLOW_PANEL_BY_STEP`),故 UI 呈現為十步(`README.md:79-90` 的十步流程與此一致)。
+**主流程步驟(程式碼權威)**:`frontend/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 定義 11 個有序內部步驟:project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render;其中 recognition 與 calibration 共用同一 `scale` 面板(`WORKFLOW_PANEL_BY_STEP`),故 UI 呈現為十步(`README.md:79-90` 的十步流程與此一致)。
 
 ## 4. 後果
 

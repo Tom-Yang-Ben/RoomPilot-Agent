@@ -23,7 +23,7 @@
 ```mermaid
 graph TD
     FE3D[frontend3d<br/>React Three Fiber 檢視器] -.->|HTTP /api,vite proxy :8002| SRV
-    STATIC[backend/server/static<br/>四頁前端 index/styles/library/scene] -.->|HTTP /api| SRV
+    STATIC[frontend<br/>四頁前端 index/styles/library/scene] -.->|HTTP /api| SRV
 
     SRV[backend/server<br/>FastAPI 44 條路由 + 服務層] --> AGENT[backend/agent<br/>選件決策與失敗修復]
     SRV --> ENGINE[backend/engine<br/>幾何擺放引擎]
@@ -114,7 +114,7 @@ graph TD
 5. 若有物件標 `placement_failed` → `scene_service.py:1752` 呼叫 `backend/agent/place.resolve_placements`,`engine_place_fn=replace_and_place` 閉包注入(`scene_service.py:1756`)— agent 決定換小/移除/升級人工,引擎重算座標,最多 3 輪。
 6. 回傳含 `scene_objects`、`placement_resolution_report` 的場景 payload。
 
-此路徑也是主流程步驟 6(layout_2d,2D 家具配置)的後端實作;完整步驟序以程式碼 `backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 為準,共 11 個內部步驟(有序):project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render(recognition 與 calibration 共用面板,UI 顯示 10 顆按鈕;伺服器端 `main.py:113-125` 的同名 set 只驗步驟名不驗順序)。
+此路徑也是主流程步驟 6(layout_2d,2D 家具配置)的後端實作;完整步驟序以程式碼 `frontend/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 為準,共 11 個內部步驟(有序):project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render(recognition 與 calibration 共用面板,UI 顯示 10 顆按鈕;伺服器端 `main.py:113-125` 的同名 set 只驗步驟名不驗順序)。
 
 ---
 
@@ -127,7 +127,7 @@ graph TD
 | 路由單檔膨脹 | `main.py` 2796 行、44 條路由集中一檔,無 APIRouter 拆分;修改互相干擾風險隨檔案成長——是否拆分屬裁決事項,本文件只記錄現況 |
 | 腳本式 import | `backend/floorplan/eval_doors.py:20` 用裸 `import floorplan2dxf as fp`(非套件相對 import);`eval_doors.py:19` 先把腳本所在目錄插入 `sys.path`,故任何 cwd 都可直接執行,但會產生與 `backend.floorplan.floorplan2dxf` 不同的重複模組實例;離線評測腳本專用,不影響伺服器 |
 | 死碼殘留 | `backend/floorplan/vision/geometry.py` 的 `detect_geometry` 與 `ocr.py` 的 `default_ocr_provider` 全 repo 無呼叫者(grep 證實);`backend/engine/adjustment.py` 與 `schema.py` 的 tool 常數在 `backend/server` 無引用,只有 `examples/` 使用——文件與新人不應把它們當現行介面 |
-| 前端資產斷鏈 | `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`,但 `find backend/server/static -name "*.glb"` 零命中;404 時前端不會中斷——`scene_viewer.js:2953-2957` 對載入失敗的物件呼叫 `createFallbackFurnitureProxy`,以「同尺寸白色替代物」呈現並把原因寫入診斷;`main.py:101` 的 `DATASET_DIR` 指向 repo 根 `dataset/`(不存在,實際 GLB 在 `data/dataset/`),cloudfront 預設模式下不走本機路徑故未爆 |
+| 前端資產斷鏈 | `main.py:2446` 引用 `/static/models/roompilot-curtain.glb`,但 `find frontend -name "*.glb"` 零命中;404 時前端不會中斷——`scene_viewer.js:2953-2957` 對載入失敗的物件呼叫 `createFallbackFurnitureProxy`,以「同尺寸白色替代物」呈現並把原因寫入診斷;`main.py:101` 的 `DATASET_DIR` 指向 repo 根 `dataset/`(不存在,實際 GLB 在 `data/dataset/`),cloudfront 預設模式下不走本機路徑故未爆 |
 
 ---
 
@@ -162,7 +162,7 @@ graph TD
 | react / react-dom | 18.3.1 | UI | 低 |
 | vite / @vitejs/plugin-react | 8.1.0 / 4.7.0(dev) | 建置與 dev proxy | 中(`node_modules` 未安裝;實測 `npm install` 與 `npm ci` 皆因 ERESOLVE 失敗——lock 的 vite 8.1.0 超出 `@vitejs/plugin-react@4.7.0` 的 peer 範圍 `^4.2.0 || ^5 || ^6 || ^7`,需 `--legacy-peer-deps` 才能安裝) |
 
-另注意:主前端 `backend/server/static/scene.html:784-791` 的 importmap 自 unpkg CDN 載入 `three@0.165.0`,與 frontend3d 鎖定的 0.160.1 是兩套版本並存。
+另注意:主前端 `frontend/scene.html:784-791` 的 importmap 自 unpkg CDN 載入 `three@0.165.0`,與 frontend3d 鎖定的 0.160.1 是兩套版本並存。
 
 **更新策略**: Python 以 `uv.lock` 鎖定(repo 根實測存在)、JS 以 `package-lock.json` 鎖定;repo 無 `.github/` 目錄(ls 實測),故無 dependabot 等自動掃描——更新策略待補。
 

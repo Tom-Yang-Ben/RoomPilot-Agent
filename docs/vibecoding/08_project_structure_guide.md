@@ -116,7 +116,7 @@ backend/
 
 ### 主流程步驟(以程式碼為準)
 
-步驟順序的唯一有序權威是 `backend/server/static/scene_workflow.js` 的 `WORKFLOW_STEPS`(第 4-16 行),共 11 個內部步驟;`backend/server/main.py` 的同名常數(第 113-125 行)是無序 set,只驗步驟名:
+步驟順序的唯一有序權威是 `frontend/scene_workflow.js` 的 `WORKFLOW_STEPS`(第 4-16 行),共 11 個內部步驟;`backend/server/main.py` 的同名常數(第 113-125 行)是無序 set,只驗步驟名:
 
 ```plaintext
 project → upload → recognition → calibration → space_confirmation
@@ -132,7 +132,7 @@ UI 只顯示 10 顆步驟按鈕,因 `recognition` 與 `calibration` 共用同一
 |---|---|---|
 | `backend/server/main.py` | 2,796 | 全部路由(27 GET + 16 POST + 1 PUT)與型錄載入 |
 | `backend/server/scene_service.py` | 1,872 | 場景生成、擺位編排、OpenRouter 場景規劃 |
-| `backend/server/static/scene_v2.js` | 8,544 | `/scene` 十步驟頁面主程式(module,內容雜湊防快取) |
+| `frontend/scene_v2.js` | 8,544 | `/scene` 十步驟頁面主程式(module,內容雜湊防快取) |
 
 ---
 
@@ -214,7 +214,7 @@ docs/
 │                               #   佈局評估 schema、遠端渲染、StylePack 渲染)
 ├── backlog/                    # 待辦(現有 FLOORPLAN_DATASET_TUNING.md 1 檔)
 ├── moodboard_assets/           # 文件圖片資產;/docs-assets 掛載的是
-│                               #   backend/server/static/moodboard_assets/ 的同內容副本,非本目錄
+│                               #   frontend/moodboard_assets/ 的同內容副本,非本目錄
 └── vibecoding/                 # VibeCoding 模板導入文件(01–17 全套 + output_style.md,共 18 檔)
 ```
 

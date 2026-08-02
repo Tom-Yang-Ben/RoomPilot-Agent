@@ -84,7 +84,7 @@
 - 天花板材質來自 `surface_catalog`；家具燈具來自 Kai catalog；不得用家具 PNG 冒充表面 PBR 材質。
 - 冷氣在尚無正式模型前，只能以正確尺寸與位置的 placeholder／洞口表示，不能假裝是可配置家具。
 - 外部新增燈具只接受 CC0 或有明確商業授權、來源 URL、checksum 與授權紀錄的檔案。
-- 大型 GLB、原始下載與批次預覽不提交 Git；提交 manifest、資料 migration、程式與小型測試 fixture。已清洗、網站執行期需要的 PBR 紋理例外，必須提交至 `backend/server/static/pbr_assets/`。
+- 大型 GLB、原始下載與批次預覽不提交 Git；提交 manifest、資料 migration、程式與小型測試 fixture。已清洗、網站執行期需要的 PBR 紋理例外，必須提交至 `frontend/pbr_assets/`。
 
 ## UIUX 驗收原則
 
@@ -121,7 +121,7 @@
 > `checksum` 目前填 S3 ETag（欄位 `checksum_algo=s3-etag`），因為交付 manifest 的
 > `sha256` 欄整批是空的。若要改成真 SHA-256，需重新讀取 CloudFront 上的 GLB 計算。
 - Bella 前端以 API 回傳的 `thumbnail_url` 顯示純物件圖片，以 `glb_url` 載入模型；不可從前端直接猜測或組合 S3 路徑。
-- PBR 紋理是網站執行期資產，放在 `backend/server/static/pbr_assets/` 並提交 Git；它們不取代 GLB，也不進燈具 manifest。
+- PBR 紋理是網站執行期資產，放在 `frontend/pbr_assets/` 並提交 Git；它們不取代 GLB，也不進燈具 manifest。
 - 原始下載、Blender 暫存、批次預覽與失敗模型留在 staging/quarantine，不提交 Git、不由前端使用。
 
 詳細新增作業請依角色閱讀：

@@ -32,7 +32,7 @@
 
 | Owner | 主要目錄 | 作用 |
 |---|---|---|
-| Bella | `backend/server/`、`backend/server/static/` | FastAPI、保存、八步流程與正式 UI 整合 |
+| Bella | `backend/server/`、`frontend/` | FastAPI、保存、八步流程與正式 UI 整合 |
 | Cody | `backend/floorplan/`、`backend/upgrade3d/` | 平面圖辨識、開口/房間與 3D 結構 adapter |
 | Django | `backend/spatial_data/` | 尺寸、房間關係、layout evaluation 與 RAG 證據 |
 | Kai | `backend/catalog/`、`JSON/`、`scripts/sql/` | 正式家具、資產 manifest、PostgreSQL 與 RAG metadata |
@@ -48,7 +48,7 @@
 2. 辨識輸出是 `layout_json`；設計、配置、編輯輸出是 `scene_json`。
 3. Graph RAG 只負責關係檢索與證據，不負責幾何、碰撞、淨空或結構決策。
 4. 家具合法性只能由 `backend/engine/` 判定；前端只呈現與送出操作。
-5. 正式 production frontend 只有 `backend/server/static/`。
+5. 正式 production frontend 只有 `frontend/`。
 
 ## 家具、家電與資料庫
 

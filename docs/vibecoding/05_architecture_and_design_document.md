@@ -272,7 +272,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph container["Container: 瀏覽器十步驟前端（backend/server/static/）"]
+    subgraph container["Container: 瀏覽器十步驟前端（frontend/）"]
         scenehtml["scene.html（794 行）<br/>10 顆步驟按鈕 + importmap"]
         wf["scene_workflow.js<br/>WORKFLOW_STEPS：11 個內部步驟（有序，權威來源）<br/>+ 步驟前置依賴 REQUIRED_COMPLETIONS"]
         v2["scene_v2.js（8,544 行，module）<br/>十步驟主控 / three.js 場景 / 截圖上傳"]
@@ -522,7 +522,7 @@ Repo 未按 Clean Architecture 目錄命名，以下為模組邊界到邏輯分�
 
 ### 3.4 關鍵使用者旅程（Dynamic Diagrams，必填）
 
-> 主流程步驟順序以 `backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 為準（11 步）：`project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render`。以下按 Container 邊界拆三張 sequence 圖。
+> 主流程步驟順序以 `frontend/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 為準（11 步）：`project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render`。以下按 Container 邊界拆三張 sequence 圖。
 
 #### 3.4.1 建案與平面圖辨識（project → upload → recognition/calibration → space_confirmation）
 

@@ -60,8 +60,8 @@ c1182072 feat(floorplan): add cody semantic weight contract
   - Dragging, manual placement, and beam placement convert world coordinates back to scene coordinates before validation/saving.
   - Existing manual 3D add/delete controls and furniture number markers are preserved.
 - Verification:
-  - `node --check backend/server/static/scene_viewer.js`
-  - `node --check backend/server/static/scene_v2.js`
+  - `node --check frontend/scene_viewer.js`
+  - `node --check frontend/scene_v2.js`
   - `pytest tests/test_scene_v2_contract.py -k "scene_entrypoint_cache_key_matches_bundle_content or changed_scene_module_cache_keys_match_dependency_content or scene_viewer_uses_stable_furniture_pick_proxies_for_3d_selection or 2d_furniture_selection_syncs_to_matching_3d_scene_object or 3d_scene_selection_syncs_back_to_2d_furniture_state or 3d_viewer_flips_scene_z_at_the_visual_boundary_only or 3d_viewer_keeps_manual_furniture_controls_and_number_markers"`
 
 ### Layout / Scene Boundary Contract
@@ -407,7 +407,7 @@ Current verification after frontend `scene_json` fallback support:
 
 ```text
 node --check passed for:
-- backend/server/static/scene_v2.js
+- frontend/scene_v2.js
 
 3 passed, 96 deselected, 3 warnings
 
@@ -524,7 +524,7 @@ $env:TEMP=$env:TMP
   - clicking the active Step 6 progress item remains in the integrated 3D workspace
   - zero pending invalid furniture for the verified project
 - Verification:
-  - `node --check backend/server/static/scene_v2.js`
+  - `node --check frontend/scene_v2.js`
   - `git diff --check`
   - 117 focused scene workflow, contract, delivery, and walk/edit tests passed
   - full suite: 442 passed, 2 skipped

@@ -5,4 +5,4 @@ import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-export const STATIC_DIR = path.resolve(HERE, "..", "..", "backend", "server", "static");
+export const STATIC_DIR = path.resolve(HERE, "..", "..", "frontend");

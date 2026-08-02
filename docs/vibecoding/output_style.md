@@ -85,7 +85,7 @@ RoomPilot 採目錄負責人制(`README.md` 團隊目錄表,實測):Cody=`backen
 | API/合約 | 穩定對外交付 | `05-api-contract-spec` | OpenAPI/JSON Schema、錯誤語意、版本策略 | `backend/server/main.py` 44 條路由(grep 實測) |
 | BDD 規格 | 行為驅動與跨職能對齊 | `02-bdd-scenario-spec` | Feature/Scenario/Examples、步驟骨架 | 十一步內部工作流(`scene_workflow.js`) |
 | TDD(函式級) | 單元可靠性 | `06-tdd-unit-spec` | 測試清單、紅綠重構、特例/邊界 | `backend/engine/` 幾何函式 + `tests/` |
-| 前端元件 | 元件驅動 | `11-frontend-component-bdd` | 行為案例、互動測試、可存取性 | `frontend3d/`(React Three Fiber)+ `backend/server/static/` |
+| 前端元件 | 元件驅動 | `11-frontend-component-bdd` | 行為案例、互動測試、可存取性 | `frontend3d/`(React Three Fiber)+ `frontend/` |
 | 跨系統整合 | 合約穩定與測試 | `12-integration-contract-suite` | 同步/非同步合約測試、mock/fixture | 遠端渲染、OpenRouter、CloudFront 三條外部邊界 |
 | 數據契約/演進 | 模式治理 | `13-data-contract-evolution` | Schema 演進策略、稽核、漂移偵測 | 9,350 件雲端型錄 + manifest 一對一契約 |
 | 稽核/Review | 守門與拉齊 | `07-code-review-checklist` | 走查清單、錯誤類型庫、風險提示 | 公分制/座標轉換/agent-engine 分界 |
@@ -326,7 +326,7 @@ description: "Gherkin 可執行規格模板;Given/When/Then + 參數化範例與
 
 (Gherkin 關鍵詞與結構依 Cucumber 官方文檔。([cucumber.io][6]))
 
-**RoomPilot 套用**:repo 既有樣式 `02-bdd-scenario-spec`。寫主流程場景時,步驟順序一律以程式碼為準——`backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 共 11 個有序內部步驟(實測讀檔):`project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render`(recognition 與 calibration 共用同一 scale 面板,UI 顯示 10 顆步驟按鈕)。不要沿用任何舊文件的步驟順序。
+**RoomPilot 套用**:repo 既有樣式 `02-bdd-scenario-spec`。寫主流程場景時,步驟順序一律以程式碼為準——`frontend/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS` 共 11 個有序內部步驟(實測讀檔):`project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render`(recognition 與 calibration 共用同一 scale 面板,UI 顯示 10 顆步驟按鈕)。不要沿用任何舊文件的步驟順序。
 
 ---
 
@@ -392,7 +392,7 @@ description: "以行為描述元件;輸出 Stories(案例)、互動/可近用測
 
 (對應 Storybook 的互動/元件測試能力。([Storybook][7]))
 
-**RoomPilot 套用**:repo 既有樣式 `11-frontend-component-bdd`。已查證落點:快捷鍵行為在 `frontend3d/src/Furniture.jsx:187-202`(Escape/R/Delete/Backspace)與 `:253`(shiftKey 連續放置);`snap.js` 檔頭註解「no three.js import so it can be unit-tested in plain node」。注意雙前端現況:現行主前端是 `backend/server/static/` 的無框架靜態頁(`scene_v2.js` 8,544 行,`wc -l` 實測),`frontend3d/` 是獨立 Vite 子專案;新元件要先確認落在哪一邊。
+**RoomPilot 套用**:repo 既有樣式 `11-frontend-component-bdd`。已查證落點:快捷鍵行為在 `frontend3d/src/Furniture.jsx:187-202`(Escape/R/Delete/Backspace)與 `:253`(shiftKey 連續放置);`snap.js` 檔頭註解「no three.js import so it can be unit-tested in plain node」。注意雙前端現況:現行主前端是 `frontend/` 的無框架靜態頁(`scene_v2.js` 8,544 行,`wc -l` 實測),`frontend3d/` 是獨立 Vite 子專案;新元件要先確認落在哪一邊。
 
 ---
 
@@ -516,7 +516,7 @@ description: "把品質門檻寫進流水線;覆蓋率、靜態分析、合約�
 ## 3. 前/後端與跨系統的「風格建議」(RoomPilot 版)
 
 * **設計與實作流程**:建議採 `03-architecture-design-doc` → `04-ddd-aggregate-spec` → `09-database-schema-spec` → `10-backend-python-impl` → `05-api-contract-spec` 的順序,由宏觀到微觀;RoomPilot 的既有邊界(agent 決策/engine 幾何/公分制)是每一步的硬約束,不因樣式切換而放寬。
-* **前端開發**:以 `11-frontend-component-bdd` 為核心,用行為案例描述元件;先分清目標是 `backend/server/static/` 靜態頁還是 `frontend3d/` Vite 子專案。互動測試工具(Storybook 等)待補。([Storybook][7])
+* **前端開發**:以 `11-frontend-component-bdd` 為核心,用行為案例描述元件;先分清目標是 `frontend/` 靜態頁還是 `frontend3d/` Vite 子專案。互動測試工具(Storybook 等)待補。([Storybook][7])
 * **後端開發**:以 `06-tdd-unit-spec` 實踐紅綠重構;幾何與擺位函式(`backend/engine/`)是最高價值的 TDD 對象,證據一律 `uv run pytest`。
 * **整合與演進**:使用 `12-integration-contract-suite` 與 `13-data-contract-evolution` 守護三條外部邊界(遠端渲染/OpenRouter/CloudFront)與 9,350 件型錄契約。
 * **品質保證**:透過 `07-code-review-checklist` 進行人工審查;`14-ci-quality-gates` 目前只能描述目標狀態,因 repo 尚無 CI(實測)。

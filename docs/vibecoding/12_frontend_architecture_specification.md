@@ -25,7 +25,7 @@
 
 本專案同時存在兩套前端,模板其餘章節分別描述:
 
-| | A. `backend/server/static/`(**現行主要 UI**) | B. `frontend3d/`(R3F 子專案) |
+| | A. `frontend/`(**現行主要 UI**) | B. `frontend3d/`(R3F 子專案) |
 | :--- | :--- | :--- |
 | 型態 | 無建置步驟的靜態頁,由 FastAPI 直接供檔 | Vite + React 18 + React Three Fiber 的獨立子專案 |
 | 規模 | 4 個 HTML + 33 支 JS + site.css(頂層實測) | git 追蹤 11 檔;`src/` 6 檔共 960 行 |
@@ -37,7 +37,7 @@
 
 - `backend/server/main.py:2072` 的 `_legacy_viewer_models()` docstring 寫明 **"Feed the retired R3F viewer"**(退役的 R3F 檢視器),但供它使用的路由**全部存活**:main.py:2657 起有註解「以下路由自原 app/backend/main.py 移植,供 frontend3d(React Three Fiber)使用」,含 `GET /api/plans`、`GET /api/plan`、`POST /api/upload`、`GET /api/furniture/{name}`;`GET /api/furniture` 回應也保留 legacy 鍵 `furniture` 餵它(main.py:2066)。
 - `tests/test_cloud_catalog_bridge.py:133` 的 `test_frontend3d_accepts_cloudfront_model_urls` 仍直接讀 `frontend3d/src/Furniture.jsx` 原始碼驗證它能吃 CloudFront URL——CI 層面 frontend3d 仍被當作受保護的消費端。
-- `docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md:17` 把 `backend/server/static/` 與 `frontend3d/` 並列為前端職責範圍(蒐集需求、呼叫 API、呈現結果;禁止在瀏覽器自行推算合法家具座標)。
+- `docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md:17` 把 `frontend/` 與 `frontend3d/` 並列為前端職責範圍(蒐集需求、呼叫 API、呈現結果;禁止在瀏覽器自行推算合法家具座標)。
 - `frontend3d/README.md` 內容已過時:寫後端 port 8000、路徑 `app/backend/`/`app/frontend/`,與 `vite.config.js` 實際代理的 8002 及倉庫根 README 的啟動指令(`uv run uvicorn backend.server.main:app --port 8002`,README.md:185)矛盾。git 實測:該檔自 2026-07-06 重構 commit 85b4a92 後未再更動,內容沿用重組前 `app/` 佈局——屬未同步更新,非刻意標記。
 - `frontend3d/node_modules` 不存在(實測),依賴未安裝;`npm install --dry-run` 實測(2026-07-26)以 **ERESOLVE 失敗**:鎖定的 `@vitejs/plugin-react` 4.7.0 peer 只支援 vite ^4–^7,與宣告的 vite ^8.1.0 衝突,預設安裝直接中止(npm 提示需 `--legacy-peer-deps`/`--force`);`npm run dev`/`npm run build` 因依賴裝不起來仍無法驗證(未查證)。
 
@@ -62,7 +62,7 @@
 
 ## 第 2 部分: 系統化分層
 
-### 2.1 現行主要 UI(backend/server/static/)分層
+### 2.1 現行主要 UI(frontend/)分層
 
 ```
 用戶感知層    -- 4 個 HTML(index/styles/library/scene)+ site.css + scene.html 內部樣式

@@ -20,13 +20,13 @@
 > | 後端 API 端點的完整規格(main.py 路由總數 44,其中 `/api/*` 40 條) | **06** |
 > | 用什麼框架、效能數字、a11y 標準、元件分層 | **12** |
 
-**現況說明**:RoomPilot 目前的主 UI 是 `backend/server/static/` 下由 FastAPI 直接供應的 4 個靜態 HTML 頁面(無前端框架、無打包器,原生 ES module + Three.js importmap)。另有一個獨立的 Vite + React Three Fiber 子專案 `frontend3d/`(DXF 3D 白模檢視器),設計上經 `npm run dev` 啟動、不由 FastAPI 供頁——但 `node_modules` 未安裝且 `npm install` 因 ERESOLVE 依賴衝突直接失敗(2026-07-26 實測),現況無法啟動;後端 `main.py:2072` 的 `_legacy_viewer_models` docstring 稱其為 retired R3F viewer,但其 4 條對口 API 仍存活(定位待裁決,見 §6.5 與 12 §0)。
+**現況說明**:RoomPilot 目前的主 UI 是 `frontend/` 下由 FastAPI 直接供應的 4 個靜態 HTML 頁面(無前端框架、無打包器,原生 ES module + Three.js importmap)。另有一個獨立的 Vite + React Three Fiber 子專案 `frontend3d/`(DXF 3D 白模檢視器),設計上經 `npm run dev` 啟動、不由 FastAPI 供頁——但 `node_modules` 未安裝且 `npm install` 因 ERESOLVE 依賴衝突直接失敗(2026-07-26 實測),現況無法啟動;後端 `main.py:2072` 的 `_legacy_viewer_models` docstring 稱其為 retired R3F viewer,但其 4 條對口 API 仍存活(定位待裁決,見 §6.5 與 12 §0)。
 
 ---
 
 ## 1. 目的與範圍
 
-**目的**: 定義 RoomPilot Agent 前端的完整資訊架構,作為關於「頁面與旅程」的單一真實來源 (SSOT)。頁面名稱一律以檔案為準;主流程步驟順序一律以 `backend/server/static/scene_workflow.js` 的 `WORKFLOW_STEPS` 為準(程式碼權威,不沿用舊文件順序)。
+**目的**: 定義 RoomPilot Agent 前端的完整資訊架構,作為關於「頁面與旅程」的單一真實來源 (SSOT)。頁面名稱一律以檔案為準;主流程步驟順序一律以 `frontend/scene_workflow.js` 的 `WORKFLOW_STEPS` 為準(程式碼權威,不沿用舊文件順序)。
 
 | 範圍 | 說明 |
 | :--- | :--- |
@@ -83,10 +83,10 @@ graph TB
 
 | # | 路由 | 頁面檔案 | `<title>` | 主要職責 | 入口 script | 層級 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0 | `/` | `backend/server/static/index.html`(90 行) | RoomPilot \| AI 室內配置與 3D 預覽 | 行銷落地頁 + 功能導覽 | `home.js`(108 行) | L0 |
-| 1 | `/styles` | `backend/server/static/styles.html`(52 行) | 查看風格類型 | 6 風格 × 3 色系共 18 色卡瀏覽與選擇 | `styles.js`(1,243 行) | L1 |
-| 2 | `/library` | `backend/server/static/library.html`(171 行) | 家具資料庫｜RoomPilot | 家具型錄瀏覽 + 3D 檢視 + 方案清單 | `library.js`(754 行) | L1 |
-| 3 | `/scene` | `backend/server/static/scene.html`(794 行) | RoomPilot 空間規劃 | 十步驟空間規劃主工作流 | `scene_v2.js`(8,544 行) | L2 |
+| 0 | `/` | `frontend/index.html`(90 行) | RoomPilot \| AI 室內配置與 3D 預覽 | 行銷落地頁 + 功能導覽 | `home.js`(108 行) | L0 |
+| 1 | `/styles` | `frontend/styles.html`(52 行) | 查看風格類型 | 6 風格 × 3 色系共 18 色卡瀏覽與選擇 | `styles.js`(1,243 行) | L1 |
+| 2 | `/library` | `frontend/library.html`(171 行) | 家具資料庫｜RoomPilot | 家具型錄瀏覽 + 3D 檢視 + 方案清單 | `library.js`(754 行) | L1 |
+| 3 | `/scene` | `frontend/scene.html`(794 行) | RoomPilot 空間規劃 | 十步驟空間規劃主工作流 | `scene_v2.js`(8,544 行) | L2 |
 | — | (Vite dev,proxy 8002) | `frontend3d/index.html` | DXF → 3D 白模 | DXF 解析結果 R3F 檢視 + 家具手動擺放 | `src/main.jsx` → `App.jsx` | 獨立 |
 
 **總計:** FastAPI 供應 4 頁(main.py:1432-1452)+ 1 個獨立 Vite SPA。
@@ -101,7 +101,7 @@ graph TB
 
 ### 主要旅程(十步驟工作流,`/scene` 單頁內完成)
 
-程式碼權威順序 = `backend/server/static/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS`,共 **11 個內部步驟**;其中 `recognition` 與 `calibration` 共用同一個 `scale` 面板(`WORKFLOW_PANEL_BY_STEP`,scene_workflow.js:18-30),因此 UI 進度列只有 **10 顆按鈕**(scene.html:22-33,`data-workflow-count="10"`)。
+程式碼權威順序 = `frontend/scene_workflow.js:4-16` 的 `WORKFLOW_STEPS`,共 **11 個內部步驟**;其中 `recognition` 與 `calibration` 共用同一個 `scale` 面板(`WORKFLOW_PANEL_BY_STEP`,scene_workflow.js:18-30),因此 UI 進度列只有 **10 顆按鈕**(scene.html:22-33,`data-workflow-count="10"`)。
 
 ```mermaid
 graph LR
@@ -251,7 +251,7 @@ graph LR
 
 - 頁面路由:小寫單字(`/styles`、`/library`、`/scene`),無巢狀、無資源 ID 路徑。
 - 查詢參數:`snake_case`(`project_id`、`style_card`)。
-- 靜態資產:`/static/*`(掛載於 backend/server/static)與 `/docs-assets/*`(掛載於 static/moodboard_assets),main.py:163-164。
+- 靜態資產:`/static/*`(掛載於 frontend)與 `/docs-assets/*`(掛載於 static/moodboard_assets),main.py:163-164。
 - 資產快取破壞:JS/CSS 引用附 `?v=<sha256 片段或日期>` 查詢參數(各 HTML 實測)。
 - URL 不含機密:無 token;`project_id` 為伺服器產生的專案識別字(無認證保護,見下)。
 

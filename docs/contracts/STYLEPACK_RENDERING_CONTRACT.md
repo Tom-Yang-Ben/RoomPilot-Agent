@@ -26,8 +26,8 @@ RoomPilot 提供六種室內風格，每種風格包含三張色卡，共 18 張
 |---|---|
 | `backend/catalog/data/taiwan_style_cards.json` | 後端色卡 ID、名稱、圖片與基礎色票 |
 | `backend/server/style_cards.py` | 驗證與提供後端色卡資料 |
-| `backend/server/static/scene_style_packs.js` | 3D StylePack、材質、燈光及套用規則 |
-| `backend/server/static/scene_v2.js` | 使用者操作、狀態保存與 3D 場景更新 |
+| `frontend/scene_style_packs.js` | 3D StylePack、材質、燈光及套用規則 |
+| `frontend/scene_v2.js` | 使用者操作、狀態保存與 3D 場景更新 |
 
 調整色碼、PBR 數值、圖片路徑或燈光參數時，應直接修改上述資料並
 更新測試，不在本文件複製一份數值。

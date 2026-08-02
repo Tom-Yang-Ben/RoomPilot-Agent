@@ -2,7 +2,7 @@
 
 ## IKEA 地端 GLB 備援（尚未完成）
 
-Kai 的 CloudFront catalog 目前仍是唯一正式模型來源。Django 與 Kai 後續會共同完成本機 IKEA GLB 備援的 JSON 對照、固定備份路徑與 API 模式；完成前請勿在 `.env` 啟用本機模式，也不要將大型 GLB 提交到 Git。已清洗的網站 PBR 紋理可提交至 `backend/server/static/pbr_assets/`。
+Kai 的 CloudFront catalog 目前仍是唯一正式模型來源。Django 與 Kai 後續會共同完成本機 IKEA GLB 備援的 JSON 對照、固定備份路徑與 API 模式；完成前請勿在 `.env` 啟用本機模式，也不要將大型 GLB 提交到 Git。已清洗的網站 PBR 紋理可提交至 `frontend/pbr_assets/`。
 
 RoomPilot 是 AIPE03 第四組的 AI 室內設計系統。它把平面圖辨識、人工
 校正、逐房需求、家具資料庫、幾何配置、2D/3D 編輯、方案視角與 AI
@@ -130,7 +130,7 @@ Graph RAG 只負責房間、家具、風格、材質與限制關係的檢索和�
 
 | 分支／人員 | 主要路徑 | 功能 |
 |---|---|---|
-| Bella | `backend/server/`, `backend/server/static/` | FastAPI、專案、八步流程、2D/3D UI、整合 |
+| Bella | `backend/server/`, `frontend/` | FastAPI、專案、八步流程、2D/3D UI、整合 |
 | Cody | `backend/floorplan/`, `backend/upgrade3d/` | PNG/DXF、牆門窗房間辨識、`layout_json` |
 | Django | `backend/spatial_data/`, floorplan spatial helpers | 房間尺寸、面積、關係、layout evaluation、RAG 關係 |
 | Kai | `backend/catalog/`, `JSON/`, `scripts/sql/` | 家具型錄、AWS/CloudFront、Manifest、PostgreSQL |
@@ -175,7 +175,7 @@ AI 或新成員開始修改前，必須依序閱讀：
 - 平面圖辨識輸出是 `layout_json`。
 - 方案生成與編輯輸出是 `scene_json`。
 - 家具是否合法只能由 `backend/engine/` 判斷。
-- Production frontend 只有 `backend/server/static/` 一套，不另建第二套。
+- Production frontend 只有 `frontend/` 一套，不另建第二套。
 
 更多契約：
 
@@ -247,7 +247,7 @@ Python baseline 經實際測試：
 完整 Python 直接依賴版本以 [requirements.txt](requirements.txt) 為準。
 可選 OCR 版本由 `pyproject.toml` 與 `uv.lock` 管理。
 
-前端不經打包：`backend/server/static/` 直接以原生 ES module 載入
+前端不經打包：`frontend/` 直接以原生 ES module 載入
 `vendor/three/`，沒有 Node.js 建置步驟。
 
 ## 版本控制與整合
