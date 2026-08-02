@@ -275,6 +275,54 @@ CREATE TABLE IF NOT EXISTS roompilot.furniture_admin_audit (
         CHECK (action IN ('create', 'update', 'soft_delete'))
 );
 
+-- 燈具 lane（LIGHTING_CEILING_CATALOG_CONTRACT）。刻意不與 furniture_items 共用：
+-- 燈具透過 scene_json.surface_overrides.lighting_ids 引用，不參與第 6 步家具自動
+-- 選件與碰撞計算，分表才不會讓燈具從任何一條家具查詢路徑漏進配置。
+CREATE TABLE IF NOT EXISTS roompilot.lighting_assets (
+    item_id               TEXT PRIMARY KEY,
+    lighting_type         VARCHAR(30) NOT NULL,
+    classification_basis  TEXT,
+    source                VARCHAR(30) NOT NULL,
+    source_group          VARCHAR(50),
+    catalog               VARCHAR(100),
+    canonical_category_zh TEXT,
+    name_en               TEXT NOT NULL,
+    name_zh               TEXT,
+    width_cm              NUMERIC(10, 2),
+    depth_cm              NUMERIC(10, 2),
+    height_cm             NUMERIC(10, 2),
+    glb_url               TEXT NOT NULL,
+    thumbnail_url         TEXT,
+    object_key            TEXT NOT NULL UNIQUE,
+    checksum              TEXT,
+    checksum_algo         VARCHAR(20),
+    license               VARCHAR(50) NOT NULL,
+    style_primary         TEXT,
+    style_secondary       TEXT,
+    style_tags            TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    verification_status   VARCHAR(30) NOT NULL,
+    raw_data              JSONB NOT NULL,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- 契約列舉之外的三個桶留在表內而不是丟掉：資產已付費上架 CloudFront，
+    -- 紀錄消失就再也查不到交付網址。用 verification_status 擋住下游即可。
+    CONSTRAINT lighting_assets_type_valid CHECK (
+        lighting_type IN (
+            'pendant', 'track', 'downlight', 'wall', 'table', 'floor',
+            'shade_base', 'unclassified_lighting', 'not_lighting'
+        )
+    ),
+    CONSTRAINT lighting_assets_verification_valid CHECK (
+        verification_status IN ('verified', 'needs_review')
+    ),
+    CONSTRAINT lighting_assets_width_positive
+        CHECK (width_cm IS NULL OR width_cm > 0),
+    CONSTRAINT lighting_assets_depth_positive
+        CHECK (depth_cm IS NULL OR depth_cm > 0),
+    CONSTRAINT lighting_assets_height_positive
+        CHECK (height_cm IS NULL OR height_cm > 0)
+);
+
 -- 原始來源 staging。batch_key 由五個輸入檔的 SHA-256 產生，可重複執行而不混批。
 CREATE TABLE IF NOT EXISTS staging.stg_furniture_catalog (
     batch_key   VARCHAR(64) NOT NULL,
@@ -381,6 +429,18 @@ CREATE INDEX IF NOT EXISTS idx_stg_image_manifest_item
     ON staging.stg_image_manifest(item_id);
 CREATE INDEX IF NOT EXISTS idx_stg_image_result_item
     ON staging.stg_image_upload_result(item_id);
+CREATE INDEX IF NOT EXISTS idx_lighting_assets_type
+    ON roompilot.lighting_assets(lighting_type);
+CREATE INDEX IF NOT EXISTS idx_lighting_assets_verified
+    ON roompilot.lighting_assets(verification_status);
+
+-- 燈具的可交付 read model。契約規定 verification_status != verified 不得被 RAG 或
+-- 第 6 步自動配置使用，所以過濾寫在 view 裡，消費者查這一份就不會拿到待分流的資料。
+CREATE OR REPLACE VIEW roompilot.lighting_assets_current AS
+SELECT *
+FROM roompilot.lighting_assets
+WHERE verification_status = 'verified'
+  AND lighting_type IN ('pendant', 'track', 'downlight', 'wall', 'table', 'floor');
 
 -- API 常用的目前版家具 view；資產 URL 從 furniture_assets 聚合，不重複保存。
 CREATE OR REPLACE VIEW roompilot.furniture_catalog_current AS
@@ -597,4 +657,10 @@ DROP TRIGGER IF EXISTS trg_furniture_quality_updated_at
     ON roompilot.furniture_quality_issues;
 CREATE TRIGGER trg_furniture_quality_updated_at
 BEFORE UPDATE ON roompilot.furniture_quality_issues
+FOR EACH ROW EXECUTE FUNCTION roompilot.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_lighting_assets_updated_at
+    ON roompilot.lighting_assets;
+CREATE TRIGGER trg_lighting_assets_updated_at
+BEFORE UPDATE ON roompilot.lighting_assets
 FOR EACH ROW EXECUTE FUNCTION roompilot.set_updated_at();

@@ -109,7 +109,17 @@
 
 - 外部 CC0 燈具 GLB 與其純物件 PNG 上傳到 Kai 既有 S3 bucket，並透過 CloudFront URL 交付；大型 GLB 不提交 Git。
 - `backend/catalog/data/manifests/lighting_assets_manifest.csv` 是 Git 內的可審核交付清單，至少包含 `item_id`、`glb_url`、`thumbnail_url`、`checksum`、`license`、`lighting_type`、`verification_status`。
-- PostgreSQL catalog 儲存可查詢欄位與 URL；`roompilot.furniture_catalog_current` 只公開 `verified` 資產給 API。
+- PostgreSQL catalog 儲存可查詢欄位與 URL；只公開 `verified` 資產給 API。
+
+> **實作現況（2026-08-02，待 Kai／Django／Bella／Ancai 確認）**
+>
+> 燈具落在獨立的 `roompilot.lighting_assets` 表與 `lighting_assets_current` view，
+> 而不是本文件原先寫的 `roompilot.furniture_catalog_current`。分表的理由是燈具透過
+> `surface_overrides.lighting_ids` 引用、不參與第 6 步家具自動選件與碰撞計算；併入
+> 家具表的話，任何一條沒加 `kind` 條件的家具查詢都會讓燈具漏進配置。
+>
+> `checksum` 目前填 S3 ETag（欄位 `checksum_algo=s3-etag`），因為交付 manifest 的
+> `sha256` 欄整批是空的。若要改成真 SHA-256，需重新讀取 CloudFront 上的 GLB 計算。
 - Bella 前端以 API 回傳的 `thumbnail_url` 顯示純物件圖片，以 `glb_url` 載入模型；不可從前端直接猜測或組合 S3 路徑。
 - PBR 紋理是網站執行期資產，放在 `backend/server/static/pbr_assets/` 並提交 Git；它們不取代 GLB，也不進燈具 manifest。
 - 原始下載、Blender 暫存、批次預覽與失敗模型留在 staging/quarantine，不提交 Git、不由前端使用。

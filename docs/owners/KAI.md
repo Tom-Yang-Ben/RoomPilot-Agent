@@ -138,6 +138,32 @@ ROOMPILOT_LIGHTING_MANIFEST_PATH=backend/catalog/data/manifests/lighting_assets_
 .\.venv\Scripts\python.exe -m pytest -q tests/test_official_cloud_catalog.py tests/test_official_catalog_sql.py tests/test_image_manifest_contract.py
 ```
 
+### 燈具 lane
+
+2026-07-30 的型錄切換（`furniture_official_catagory.json` 的 `removed_lighting_*`）把
+793 筆燈具記錄從 `items` 移除，但沒有補上本文件指名的 `lighting_assets_manifest.csv`，
+那批資產因此卡在 CloudFront 上而產品讀不到。manifest 由差集重建，資料庫走獨立的
+`roompilot.lighting_assets`：
+
+```powershell
+# 從 GLB/圖片 manifest 差集 + 型錄 + VLM 標註重建交付清單
+.\.venv\Scripts\python.exe scripts\sql\build_lighting_manifest.py --dry-run
+.\.venv\Scripts\python.exe scripts\sql\build_lighting_manifest.py
+
+# 匯入（先 dry-run 驗證 manifest 完整性）
+.\.venv\Scripts\python.exe scripts\sql\import_lighting_assets_to_postgres.py --dry-run
+.\.venv\Scripts\python.exe scripts\sql\import_lighting_assets_to_postgres.py
+
+.\.venv\Scripts\python.exe -m pytest -q tests/test_lighting_assets_catalog.py
+```
+
+`lighting_type` 由 `backend/catalog/lighting_classification.py` 判定，證據優先序是
+canonical 分類 > VLM 描述 > 品名——被移除的那批記錄帶著「床 - 」錯誤前綴，單看品名會判錯。
+
+契約列舉之外的三個桶（`shade_base`、`unclassified_lighting`、`not_lighting`）留在表內
+但標 `verification_status=needs_review`，不會出現在 `lighting_assets_current`。留著是因為
+資產已上架 CloudFront，紀錄刪掉就查不回交付網址。這 156 筆待 Kai 人工分流。
+
 ## 跨資料夾改動規則
 
 - 修改 `backend/catalog/`、`scripts/sql/`、資料 schema：先更新 `docs/contracts/LIGHTING_CEILING_CATALOG_CONTRACT.md`，並告知 Django、Bella。
