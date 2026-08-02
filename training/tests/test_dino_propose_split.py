@@ -123,3 +123,19 @@ def test_balcony_bath_pair_rejected(monkeypatch):
            "domain": "color"}
     out = fp._dino_propose_splits(det, labels, rooms, T=10, cm=1.0, amin=1000)
     assert len(out) == 1
+
+
+def test_tint_boundary_knife_hallway_living(monkeypatch):
+    # floor_08 實案：黃走道與白磁磚客廳無牆、有清晰色界——色染轉換
+    # 位置該出候選刀；兩半判 {Hallway, LivingRoom} 對（0.65 從嚴）也收
+    labels, rooms = _big_room()                  # (20,20)-(780,380)
+    bgr = np.full((400, 800, 3), 240, np.uint8)
+    bgr[20:380, 20:500] = (120, 230, 240)        # 黃染左半
+    bgr[20:380, 500:780] = (245, 245, 245)       # 白磁磚右半
+    monkeypatch.setattr(fp.room_classifier, "classify",
+                        _probs_by_x_pair(500, "Hallway", "LivingRoom"))
+    det = {"cm": 1.0, "bgr": bgr, "domain": "color"}
+    out = fp._dino_propose_splits(det, labels, rooms, T=10, cm=1.0, amin=1000)
+    assert len(out) == 2, "色染轉換刀＋Hallway 對應切二"
+    areas = sorted(int((labels == r["id"]).sum()) for r in out)
+    assert 90000 < areas[0] < 190000, f"切線應在色界附近：{areas}"

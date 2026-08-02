@@ -1554,12 +1554,49 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                 if 1 <= len(runs) <= 3:
                     fence_knives[key] = [float(r_[len(r_) // 2])
                                          for r_ in runs]
+        # 色染轉換刀（floor_08 實案：黃走道/白客廳、浴/廚無牆有色界）
+        # ——房內逐列取主色染類（LAB ab 粗分桶），主類切換處出候選刀
+        tint_knives = {1: [], 2: []}
+        bgr_t = det.get("bgr")
+        if bgr_t is not None and big and variant == "color":
+            sc_t = labels.shape[1] / float(bgr_t.shape[1])
+            lab_t = cv2.cvtColor(cv2.pyrMeanShiftFiltering(bgr_t, 5, 16),
+                                 cv2.COLOR_BGR2LAB)
+            at = lab_t[:, :, 1].astype(np.int16) - 128
+            bt = lab_t[:, :, 2].astype(np.int16) - 128
+            cls1 = np.zeros(lab_t.shape[:2], np.int8)   # 0=中性
+            strong = (np.abs(at) + np.abs(bt)) > 14
+            cls1[strong & (at >= 0) & (bt >= 0)] = 1
+            cls1[strong & (at >= 0) & (bt < 0)] = 2
+            cls1[strong & (at < 0) & (bt >= 0)] = 3
+            cls1[strong & (at < 0) & (bt < 0)] = 4
+            cls = cv2.resize(cls1, (labels.shape[1], labels.shape[0]),
+                             interpolation=cv2.INTER_NEAREST)
+            for key in (1, 2):
+                lo, hi = (x0, x1) if key == 1 else (y0, y1)
+                maj = np.full(int(hi) + 1, -9, np.int16)
+                for c in range(int(lo), int(hi)):
+                    colm = region[:, c] if key == 1 else region[c, :]
+                    if not colm.any():
+                        continue
+                    vals = (cls[:, c] if key == 1 else cls[c, :])[colm]
+                    bc = np.bincount(vals, minlength=5)
+                    maj[c] = int(bc.argmax())
+                run_len = 0
+                prev = -9
+                for c in range(int(lo), int(hi)):
+                    if maj[c] == prev:
+                        run_len += 1
+                    else:
+                        if prev != -9 and run_len >= 2 * T and maj[c] != -9:
+                            tint_knives[key].append(float(c))
+                        prev, run_len = maj[c], 1
         if not big and not (fence_knives[1] or fence_knives[2]):
             continue                             # 小房須有 fence 刀證據
         best = None                              # (score, part_a, part_b)
         for key, grid, lo, hi in ((1, xs_grid, x0, x1), (2, ys_grid, y0, y1)):
             prof = region.sum(axis=0 if key == 1 else 1)
-            cands = list(fence_knives[key])
+            cands = list(fence_knives[key]) + list(tint_knives[key])
             if big:
                 cands += [float(c)
                           for c in range(int(lo) + 2 * T, int(hi) - 2 * T)
@@ -1597,6 +1634,16 @@ def _dino_propose_splits(det, labels, rooms, T, cm, amin,
                     bal_half = a_ if la == "Balcony" else b_
                     if not _on_env(bal_half):
                         continue                 # 假陽台半不貼殼緣
+                elif pair in ({"Hallway", "LivingRoom"},
+                              {"Kitchen", "Bath"}) and big                         and variant == "color":
+                    thr_pair = 0.65              # 色界對從嚴（floor_08 型
+                                                 # 黃走道/白客廳、浴/廚）；
+                                                 # 彩圖限定——灰階實測
+                                                 # floor47 被亂切 -2
+                    ra, rb = int(a_.sum()), int(b_.sum())
+                    if max(ra, rb) > 8 * min(ra, rb):
+                        continue                 # 60:1 細條（floor_05 客廳
+                                                 # 底緣地毯界）非真色界切分
                 elif pair == {"Entry", "LivingRoom"} and big:
                     # floor52 實案：玄關半 DINO 0.62/客廳半 0.99，只因不
                     # 在接受對而沒開刀。Entry 誤判常見，從嚴 0.6 且
