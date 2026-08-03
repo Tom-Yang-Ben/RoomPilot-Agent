@@ -651,7 +651,10 @@ def selected_furniture_items_from_questionnaire(
         if item.get("furniture_id")
     }
     selected: list[dict[str, Any]] = []
-    used_ids: set[str] = set()
+    # `furniture_id` 是 2D/3D 可編輯實例的身分鍵,`catalog_furniture_id` 指回
+    # 型錄來源(契約:BEN_第5第6步整合規格_中文.md「3D 預覽資料要求」)。
+    # 舊 payload 沒有拆分時兩者同值,fallback 保住既有存檔。
+    used_instance_ids: set[str] = set()
 
     appliance_types = {
         "refrigerator",
@@ -670,8 +673,13 @@ def selected_furniture_items_from_questionnaire(
     for raw in raw_items:
         if not isinstance(raw, dict):
             continue
-        furniture_id = raw.get("furniture_id")
-        if not furniture_id or furniture_id in used_ids:
+        instance_id = str(raw.get("furniture_id") or "")
+        catalog_furniture_id = str(
+            raw.get("catalog_furniture_id")
+            or raw.get("catalogFurnitureId")
+            or instance_id
+        )
+        if not instance_id or instance_id in used_instance_ids:
             continue
 
         raw_type = str(raw.get("normalized_type") or raw.get("type") or "").casefold()
@@ -680,8 +688,10 @@ def selected_furniture_items_from_questionnaire(
             # Appliances remain questionnaire/render context, never 2D/3D objects.
             continue
 
-        catalog_item = catalog_by_id.get(furniture_id, {})
+        catalog_item = catalog_by_id.get(catalog_furniture_id, {})
         merged = {**catalog_item, **raw}
+        merged["furniture_id"] = instance_id
+        merged["catalog_furniture_id"] = catalog_furniture_id
         size = raw.get("size_cm") or raw.get("dimensions") or catalog_item.get("size_cm") or {}
         merged["size_cm"] = {
             "width": size.get("width") or size.get("w"),
@@ -694,7 +704,7 @@ def selected_furniture_items_from_questionnaire(
             or catalog_item.get("name_zh_raw")
             or catalog_item.get("name_zh")
             or catalog_item.get("name_en")
-            or furniture_id
+            or catalog_furniture_id
         )
         merged["normalized_type"] = raw.get("normalized_type") or catalog_item.get("normalized_type")
         merged["model_url"] = raw.get("model_url") or catalog_item.get("model_url")
@@ -717,7 +727,7 @@ def selected_furniture_items_from_questionnaire(
             continue
 
         selected.append(merged)
-        used_ids.add(furniture_id)
+        used_instance_ids.add(instance_id)
 
     return selected
 

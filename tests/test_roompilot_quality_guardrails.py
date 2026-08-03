@@ -324,3 +324,55 @@ def test_agent_generation_handoff_accepts_list_shaped_room_requirements():
 
     assert handoff["rooms"][0]["room_id"] == "living-1"
     assert handoff["rooms"][0]["final_step6_furniture"] == []
+
+
+def test_replaced_instance_resolves_catalog_body_via_catalog_furniture_id():
+    catalog_sofa = {
+        "furniture_id": "catalog-sofa",
+        "name_zh_raw": "型錄沙發",
+        "normalized_type": "sofa",
+        "has_model": True,
+        "model_url": "/models/catalog-sofa.glb",
+        "primary_style": "scandinavian",
+        "size_cm": {"width": 160, "depth": 80, "height": 80},
+    }
+
+    selected = scene_service.selected_furniture_items_from_questionnaire(
+        {
+            "selected_furniture": [
+                {
+                    "furniture_id": "instance-7",
+                    "catalog_furniture_id": "catalog-sofa",
+                    "normalized_type": "sofa",
+                }
+            ]
+        },
+        [catalog_sofa],
+    )
+
+    assert len(selected) == 1
+    assert selected[0]["furniture_id"] == "instance-7"
+    assert selected[0]["catalog_furniture_id"] == "catalog-sofa"
+    assert selected[0]["model_url"] == "/models/catalog-sofa.glb"
+    assert selected[0]["name_zh_raw"] == "型錄沙發"
+
+
+def test_legacy_payload_without_split_still_resolves_catalog():
+    catalog_sofa = {
+        "furniture_id": "catalog-sofa",
+        "name_zh_raw": "型錄沙發",
+        "normalized_type": "sofa",
+        "has_model": True,
+        "model_url": "/models/catalog-sofa.glb",
+        "size_cm": {"width": 160, "depth": 80, "height": 80},
+    }
+
+    selected = scene_service.selected_furniture_items_from_questionnaire(
+        {"selected_furniture": [{"furniture_id": "catalog-sofa", "normalized_type": "sofa"}]},
+        [catalog_sofa],
+    )
+
+    assert len(selected) == 1
+    assert selected[0]["furniture_id"] == "catalog-sofa"
+    assert selected[0]["catalog_furniture_id"] == "catalog-sofa"
+    assert selected[0]["model_url"] == "/models/catalog-sofa.glb"
