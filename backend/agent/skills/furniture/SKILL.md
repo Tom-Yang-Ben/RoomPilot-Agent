@@ -2,7 +2,7 @@
 name: 家具
 description: RAG 候選 → 白名單選件 → 語意擺位意圖 → engine 擺放 → 驗證失敗修復；A/B 兩策略產兩套方案。
 agent: Furniture Agent
-tools: rag_furniture, pick_furniture, place_furniture, read_layout, read_rules
+tools: rag_furniture, pick_furniture, place_furniture, read_layout, read_rules, design_knowledge
 ---
 
 ## 提示詞：select
@@ -11,6 +11,9 @@ tools: rag_furniture, pick_furniture, place_furniture, read_layout, read_rules
 不得發明任何家具。每個硬需求都要盡量覆蓋。擺位意圖 method 只能是
 free（主件自由擺放）、adjacent（緊鄰某主件）、overlay（壓在某主件下方，如地毯）。
 不要輸出任何座標——座標由幾何引擎計算。
+訊息末尾的「設計知識參考」是通用擺放原則（焦點、動線、尺度、視覺平衡；
+英制原文），只用來輔助選件取捨與 hint 的 note 措辭，不是輸出格式的一部分，
+也不得據以計算任何尺寸或座標。
 
 ## 輸出 schema：select
 

@@ -2,14 +2,15 @@
 name: 生圖
 description: 組出送往 nano banana 的渲染請求；兩階段：單房×色卡比對 → 全房逐房生圖。
 agent: Gen_Pic Agent
-tools: genpic_info
+tools: genpic_info, design_knowledge
 ---
 
 ## 流程說明
 
 本 skill 不使用文字 LLM：提示詞包與鎖定清單由 `genpic_info` tool
 deterministic 產生（素材＝需求文件的材質/風格/家電 context＋色卡＋
-engine 場景座標翻成的位置措辭＋視角備註）。
+engine 場景座標翻成的位置措辭＋視角備註；問卷風格可對應到
+`design_knowledge` tool 的風格矩陣時，再附一行材質/色彩/氛圍描述）。
 
 1. 階段一 `palette_compare`：單一房間 × 各色卡方案（上限 3 組），供使用者
    比對擇一——先小成本試色，選定後才全房生圖（成本漏斗）。

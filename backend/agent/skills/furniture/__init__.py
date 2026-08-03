@@ -15,6 +15,7 @@ from ...documents import (
     ValidationReportDoc,
 )
 from ...llm import LLMGateway
+from ...tools.design_knowledge import selection_digest
 from ...tools.pick_furniture import PickFurnitureTool, default_hint
 from ...tools.place_furniture import PlaceFurnitureTool
 from ...tools.rag_furniture import RagFurnitureTool
@@ -168,7 +169,10 @@ class FurnitureSkill:
             f"策略：{strategy.label}——{strategy.directive}\n"
             f"硬需求：{json.dumps(musts, ensure_ascii=False)}\n"
             f"偏好：{json.dumps(prefs, ensure_ascii=False)}\n"
-            f"候選白名單：{json.dumps(pool, ensure_ascii=False)}"
+            f"候選白名單：{json.dumps(pool, ensure_ascii=False)}\n"
+            "設計知識參考（英制原文，僅供選件與擺位意圖的語意判斷；"
+            "不得輸出座標，幾何一律由 engine 以公分計算）：\n"
+            f"{selection_digest()}"
         )
 
     # -- 內部：補足未覆蓋的硬需求 --

@@ -12,8 +12,8 @@ sub-agent，分層為 `skills/`（LLM 語意決策）與 `tools/`（deterministi
 | `master.py` | 固定流程 state machine：HITL 暫停/resume、修復迴圈 ≤3、改圖 ≤1、生圖失敗 3 次→提示原因→fallback、checkpoint 可恢復上一動 |
 | `knowledge.py` / `select.py` / `place.py` | room_pilot2 移植版（2026-07-21）：`backend/server/services/` 經套件 `__init__` import，其 re-export 不可移除 |
 | `subagents/` | 四個 sub-agent 的組裝與服務介面 |
-| `skills/` | 每個 skill 一個資料夾＋一份 `SKILL.md`（宣告層：frontmatter＋提示詞＋輸出 schema＋流程說明，為提示詞唯一來源）＋`__init__.py`（流程層）：需求整理、家具（A/B 策略）、驗證（雙軌）、生圖（兩階段）、改圖（鎖定清單）、報告（PDF） |
-| `tools/` | read_layout、read_rules、rag_furniture、pick_furniture、place_furniture、engine_validate、genpic_info、fetch_image、read_docs、render_pdf |
+| `skills/` | 每個 skill 一個資料夾＋一份 `SKILL.md`（宣告層：frontmatter＋提示詞＋輸出 schema＋流程說明，為提示詞唯一來源）＋`__init__.py`（流程層）：需求整理、家具（A/B 策略）、驗證（雙軌）、生圖（兩階段）、改圖（鎖定清單）、報告（PDF）。另有兩份知識型 skill（`interior_design_principles`、`interior_designer`；foundry-skills 英文原文，只有 SKILL.md、無流程層），由 `design_knowledge` tool 節錄進選件提示與生圖措辭 |
+| `tools/` | read_layout、read_rules、rag_furniture、pick_furniture、place_furniture、engine_validate、genpic_info、fetch_image、read_docs、render_pdf、design_knowledge |
 | `documents.py` | Docs 層資料契約與 DocStore（plain dict、可整包存專案 storage、checkpoint/undo） |
 | `llm.py` | OpenRouter gateway：文字＋生圖（nano banana；fallback nano banana 2）；stdlib urllib＋certifi，業務碼禁 httpx |
 | `runtime.py` | 預設組裝 `build_master()` |

@@ -16,6 +16,7 @@ from ..documents import (
     SceneDoc,
 )
 from .base import ToolContract
+from .design_knowledge import style_note
 
 _ROTATION_FACING = {0: "面向上緣", 90: "面向左緣", 180: "面向下緣", 270: "面向右緣"}
 
@@ -95,6 +96,9 @@ class GenPicInfoTool:
         ]
         if requirements.styles:
             lines.append(f"整體風格：{'、'.join(requirements.styles[:2])}。")
+            note = style_note(requirements.styles)
+            if note:
+                lines.append(f"{note}。")
         if palette:
             colors = "、".join(str(c) for c in (palette.get("colors") or [])[:5])
             lines.append(f"色卡「{palette.get('name', palette.get('palette_id', ''))}」主色：{colors}。")
