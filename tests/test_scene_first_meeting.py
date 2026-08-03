@@ -74,11 +74,15 @@ def test_first_meeting_discards_removed_rooms_and_limits_priorities() -> None:
 
 def test_first_meeting_is_saved_and_translated_only_on_confirmation() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    # 佇列 7 第六批：applyFirstMeetingToRequirements 純搬家到
+    # scene_questionnaire_flow.js 工廠，確認時翻譯的本體改掃新檔；
+    # 保存欄位與完成旗標的呼叫點仍在 scene_v2.js。
+    flow = (STATIC_DIR / "scene_questionnaire_flow.js").read_text(encoding="utf-8")
 
     assert "firstMeetingStep: state.firstMeetingStep" in source
     assert "firstMeeting: state.firstMeeting" in source
-    assert "function applyFirstMeetingToRequirements()" in source
-    assert "legacyBasicAnswersFromFirstMeeting(state.firstMeeting, STYLE_PACKS)" in source
-    assert 'state.visualCatalogVersion = "first-meeting-1.0"' in source
-    assert 'airConditioning: "designer-review"' in source
+    assert "function applyFirstMeetingToRequirements()" in flow
+    assert "legacyBasicAnswersFromFirstMeeting(state.firstMeeting, STYLE_PACKS)" in flow
+    assert 'state.visualCatalogVersion = "first-meeting-1.0"' in flow
+    assert 'airConditioning: "designer-review"' in flow
     assert "firstMeetingConfirmed: true" in source

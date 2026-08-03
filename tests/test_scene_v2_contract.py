@@ -42,13 +42,17 @@ def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
 def test_requirements_step_has_first_meeting_demo_shortcut() -> None:
     html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    # 佇列 7 第六批：randomizeRequirementsForTesting 純搬家到
+    # scene_questionnaire_flow.js 工廠；Demo 內容改掃新檔，綁定呼叫點留在 scene_v2.js。
+    flow = (STATIC_DIR / "scene_questionnaire_flow.js").read_text(encoding="utf-8")
 
     assert 'id="randomize-requirements"' in html
-    assert "async function randomizeRequirementsForTesting" in source
-    assert 'state.firstMeetingStep = "summary"' in source
-    assert 'goalIds: ["circulation", "storage", "daylight"]' in source
-    assert "likedStylePackIds: packs.slice(0, 2)" in source
-    assert "dislikedStylePackId:" in source
+    assert "async function randomizeRequirementsForTesting" in flow
+    assert 'state.firstMeetingStep = "summary"' in flow
+    assert 'goalIds: ["circulation", "storage", "daylight"]' in flow
+    assert "likedStylePackIds: packs.slice(0, 2)" in flow
+    assert "dislikedStylePackId:" in flow
+    assert 'addEventListener("click", randomizeRequirementsForTesting)' in source
 
 
 def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
@@ -119,17 +123,20 @@ def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions()
     assert '"kitchen"' in data
     assert '"entry"' in data
     assert '"balcony"' in data
-    assert "function wholeHouseMainFloorSurface" in source
-    assert "function wholeHouseMainWallSurface" in source
-    assert "function normalizedRoomSurfaces" in source
-    assert "function applyWholeHouseSurfaceConsistency" in source
-    assert "function normalizeSavedSceneWallSurfaces" in source
-    assert "roomKeepsExplicitWallOverride" in source
-    assert "trimAccentWallSurfaces" in source
-    assert "wallSurfaceIds: []" in source
-    assert "wallOverrides: {}" in source
-    assert "if (!roomAllowsIndependentFloor(room) && mainFloor)" in source
-    assert "if (mainWall && !roomKeepsExplicitWallOverride(room, next))" in source
+    # 佇列 7 第六批：全屋表面一致性群純搬家到 scene_questionnaire_flow.js 工廠，
+    # 定義與判斷式改掃新檔；還原修復與摘要頁的呼叫點仍在 scene_v2.js。
+    flow = (STATIC_DIR / "scene_questionnaire_flow.js").read_text(encoding="utf-8")
+    assert "function wholeHouseMainFloorSurface" in flow
+    assert "function wholeHouseMainWallSurface" in flow
+    assert "function normalizedRoomSurfaces" in flow
+    assert "function applyWholeHouseSurfaceConsistency" in flow
+    assert "function normalizeSavedSceneWallSurfaces" in flow
+    assert "roomKeepsExplicitWallOverride" in flow
+    assert "trimAccentWallSurfaces" in flow
+    assert "wallSurfaceIds: []" in flow
+    assert "wallOverrides: {}" in flow
+    assert "if (!roomAllowsIndependentFloor(room) && mainFloor)" in flow
+    assert "if (mainWall && !roomKeepsExplicitWallOverride(room, next))" in flow
     assert "const restoredWallSurfaceRepairs" in source
     assert "const surfaces = normalizedRoomSurfaces(room, requirement?.surfaces || {})" in source
     assert "const surfaces = normalizedRoomSurfaces(room, rawSurfaces || {})" in source
@@ -142,8 +149,11 @@ def test_circulation_style_inherits_living_room_until_user_confirms_override() -
     data = (STATIC_DIR / "scene_questionnaire_data.js").read_text(encoding="utf-8")
 
     assert "function isCirculationRoom" in data
-    assert "function copyLivingRoomStyleToCirculation" in source
-    assert "function synchronizeCirculationStyles" in source
+    # 佇列 7 第六批：沿用/同步兩支函式純搬家到 scene_questionnaire_flow.js 工廠；
+    # 覆寫核可旗標與確認對話仍在 scene_v2.js。
+    flow = (STATIC_DIR / "scene_questionnaire_flow.js").read_text(encoding="utf-8")
+    assert "function copyLivingRoomStyleToCirculation" in flow
+    assert "function synchronizeCirculationStyles" in flow
     assert "circulationStyleOverrideApproved" in source
     assert "走道目前沿用" in source
 
@@ -325,6 +335,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_design_schemes.js",
             "scene_questionnaire_test2.js",
             "scene_questionnaire_data.js",
+            "scene_questionnaire_flow.js",
             "scene_configuration_sync.js",
             "scene_viewer_reload.js",
         ],
@@ -333,6 +344,14 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_plan_geometry.js",
             "scene_requirements.js",
             "scene_style_packs.js",
+        ],
+        # 佇列 7 第六批：問卷流程工廠的五條 import 邊。
+        "scene_questionnaire_flow.js": [
+            "scene_surface_materials.js",
+            "scene_first_meeting.js",
+            "scene_room_requirements.js",
+            "scene_style_packs.js",
+            "scene_questionnaire_data.js",
         ],
         "scene_viewer.js": [
             "scene_architecture.js",
@@ -982,7 +1001,10 @@ def test_questionnaire_applies_whole_house_defaults_before_room_furniture() -> N
     assert 'if (stage === "profile") return true;' in source
     assert 'if (stage === "rooms") return state.basicConfirmed;' in source
     assert 'showQuestionnaireStage("rooms");' in source
-    assert 'if (state.questionnaireStage === "rooms")' in source
+    # 佇列 7 第六批：confirmQuestionnaireFinishes 純搬家到
+    # scene_questionnaire_flow.js 工廠，逐房分支的判斷式改掃新檔。
+    flow = (STATIC_DIR / "scene_questionnaire_flow.js").read_text(encoding="utf-8")
+    assert 'if (state.questionnaireStage === "rooms")' in flow
     assert "逐房用途與家具" in html
 
 
