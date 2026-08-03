@@ -236,6 +236,11 @@ class RoomShortlist:
             "query_text": self.query_text,
             "items": [item.as_dict() for item in self.items],
             "missing_families": list(self.missing_families),
+            # 逐房終態(契約:BEN_第5第6步整合規格_中文.md「回應與狀態」)。
+            # 同步建構只會產生 completed / unavailable;failed 由 API 層的
+            # HTTP 錯誤承載,cancelled / expired 保留給非同步流程。
+            "status": "completed" if self.items else "unavailable",
+            "status_reason": "" if self.items else "型錄查無符合此房需求的候選",
         }
 
 
@@ -271,17 +276,21 @@ def needs_fingerprint(
     *,
     per_family: int = DEFAULT_PER_FAMILY,
     semantic: bool = True,
+    questionnaire_version: int | None = None,
 ) -> str:
     """算出這組需求的指紋。
 
     ``semantic`` 也要納入：純結構化過濾產生的候選集在模型就緒後應該重算，
-    否則使用者永遠拿到降級結果卻不知道。
+    否則使用者永遠拿到降級結果卻不知道。``questionnaire_version`` 是問卷
+    schema 的改版記號(契約要求 room_id+版本+內容雜湊構成工作識別):
+    版本升級代表欄位語意可能變了,內容雜湊相同也不得沿用舊 completed 結果。
     """
     payload = {
         "schema": SHORTLIST_SCHEMA_VERSION,
         "embedding_model": EMBED_MODEL,
         "per_family": per_family,
         "semantic": semantic,
+        "questionnaire_version": int(questionnaire_version or 1),
         "rooms": sorted(
             (need.fingerprint_payload() for need in needs),
             key=lambda item: item["room_id"],
@@ -296,6 +305,7 @@ def shortlist_is_current(
     needs: Sequence[RoomNeed],
     *,
     per_family: int = DEFAULT_PER_FAMILY,
+    questionnaire_version: int | None = None,
 ) -> bool:
     """已保存的候選集是否仍對應目前的需求。
 
@@ -308,7 +318,12 @@ def shortlist_is_current(
         return False
     if not stored.get("semantic"):
         return False
-    expected = needs_fingerprint(needs, per_family=per_family, semantic=True)
+    expected = needs_fingerprint(
+        needs,
+        per_family=per_family,
+        semantic=True,
+        questionnaire_version=questionnaire_version,
+    )
     return str(stored.get("fingerprint")) == expected
 
 
@@ -354,6 +369,7 @@ class FurnitureShortlistService:
         needs: Sequence[RoomNeed],
         *,
         per_family: int = DEFAULT_PER_FAMILY,
+        questionnaire_version: int | None = None,
     ) -> ShortlistResult:
         if not needs:
             return ShortlistResult(
@@ -361,7 +377,12 @@ class FurnitureShortlistService:
                 embedding_model=EMBED_MODEL,
                 generated_at=datetime.now(timezone.utc),
                 semantic=False,
-                fingerprint=needs_fingerprint((), per_family=per_family, semantic=False),
+                fingerprint=needs_fingerprint(
+                    (),
+                    per_family=per_family,
+                    semantic=False,
+                    questionnaire_version=questionnaire_version,
+                ),
                 stats={"rooms": 0, "items": 0},
             )
 
@@ -391,7 +412,10 @@ class FurnitureShortlistService:
             generated_at=datetime.now(timezone.utc),
             semantic=semantic,
             fingerprint=needs_fingerprint(
-                needs, per_family=per_family, semantic=semantic
+                needs,
+                per_family=per_family,
+                semantic=semantic,
+                questionnaire_version=questionnaire_version,
             ),
             stats=stats,
         )

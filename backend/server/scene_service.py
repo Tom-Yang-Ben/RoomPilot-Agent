@@ -2710,9 +2710,17 @@ def build_agent_generation_handoff(
     """
     # 逐房需求容忍 dict-by-room_id 與 list 兩種形狀,與 select.py 的
     # _requirement_entries 同一條紀律:問卷 schema 由 Bella 擁有且持續增欄,
-    # 讀不懂的欄位略過而不整批失敗。
+    # 讀不懂的欄位略過而不整批失敗。/api/scene/generate 把前端問卷掛在
+    # test2_questionnaire 底下,巢狀來源要先查。
+    test2 = (
+        questionnaire.get("test2_questionnaire")
+        if isinstance(questionnaire.get("test2_questionnaire"), dict)
+        else {}
+    )
     raw_requirements = (
-        questionnaire.get("roomRequirements")
+        test2.get("room_requirements")
+        or test2.get("roomRequirements")
+        or questionnaire.get("roomRequirements")
         or questionnaire.get("room_requirements")
         or {}
     )
@@ -2731,7 +2739,8 @@ def build_agent_generation_handoff(
     else:
         requirement_pairs = []
 
-    rag_jobs = questionnaire.get("rag_jobs") if isinstance(questionnaire.get("rag_jobs"), dict) else {}
+    raw_rag_jobs = test2.get("rag_jobs") or questionnaire.get("rag_jobs")
+    rag_jobs = raw_rag_jobs if isinstance(raw_rag_jobs, dict) else {}
     regions = {
         str(region.get("id") or region.get("room_id")): region
         for region in floorplan.get("room_regions", [])
@@ -2793,7 +2802,7 @@ def build_agent_generation_handoff(
         for key in ("space_type", "style_preference", "personal_notes")
         if questionnaire.get(key) not in (None, "", [])
     }
-    basic = questionnaire.get("basic")
+    basic = test2.get("basic") or questionnaire.get("basic")
     if isinstance(basic, dict):
         global_profile = {**basic, **global_profile}
 
@@ -2812,9 +2821,12 @@ def build_agent_generation_handoff(
         },
         "global_profile": global_profile,
         "style": {
-            key: questionnaire.get(key)
-            for key in ("style_card_id", "wall_option", "floor_option")
-            if questionnaire.get(key) is not None
+            **(test2.get("finishes") if isinstance(test2.get("finishes"), dict) else {}),
+            **{
+                key: questionnaire.get(key)
+                for key in ("style_card_id", "wall_option", "floor_option")
+                if questionnaire.get(key) is not None
+            },
         },
         "rooms": rooms,
     }

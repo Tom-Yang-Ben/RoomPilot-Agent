@@ -155,11 +155,30 @@ def build_needs_from_workflow(workflow: dict[str, Any]) -> list[RoomNeed]:
     return needs
 
 
+def _questionnaire_version(workflow: dict[str, Any]) -> int:
+    """問卷 schema 改版記號。前端還沒送版本欄位的舊 workflow 一律視為 1。"""
+    requirements = workflow.get("requirements") or {}
+    model = requirements.get("roomRequirementModel") or {}
+    for candidate in (
+        model.get("questionnaireVersion"),
+        requirements.get("questionnaireVersion"),
+        requirements.get("questionnaire_version"),
+    ):
+        try:
+            value = int(candidate)
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            return value
+    return 1
+
+
 def _fit_within_budget(
     service: FurnitureShortlistService,
     needs: list[RoomNeed],
     *,
     per_family: int,
+    questionnaire_version: int | None = None,
 ) -> tuple[ShortlistResult, dict[str, Any]]:
     """在體積上限內產生候選集，必要時降低每族系筆數重算。
 
@@ -169,7 +188,11 @@ def _fit_within_budget(
     attempts: list[dict[str, Any]] = []
     current = per_family
     while True:
-        result = service.build(needs, per_family=current)
+        result = service.build(
+            needs,
+            per_family=current,
+            questionnaire_version=questionnaire_version,
+        )
         payload = result.as_dict()
         size = len(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
         attempts.append({"per_family": current, "bytes": size})
@@ -239,15 +262,26 @@ def build_shortlist_router(
                 },
             )
 
+        questionnaire_version = _questionnaire_version(workflow)
         stored = workflow.get(WORKFLOW_KEY)
-        if not force and shortlist_is_current(stored, needs, per_family=per_family):
+        if not force and shortlist_is_current(
+            stored,
+            needs,
+            per_family=per_family,
+            questionnaire_version=questionnaire_version,
+        ):
             return {
                 "reused": True,
                 "shortlist": stored,
                 "summary": _summary(stored),
             }
 
-        result, meta = _fit_within_budget(service, needs, per_family=per_family)
+        result, meta = _fit_within_budget(
+            service,
+            needs,
+            per_family=per_family,
+            questionnaire_version=questionnaire_version,
+        )
         document = result.as_dict()
         # 檢索要跑數百毫秒到數秒，而前端問卷送出的同時就在自動存檔——用一開始
         # 讀到的 revision 寫回，幾乎必然撞上使用者自己的存檔而 409（2026-08-03

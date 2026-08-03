@@ -162,7 +162,7 @@ import {
 } from "./scene_questionnaire_flow.js?v=sha256-2c1cefcae3f5";
 import {
   createFurnitureOffers,
-} from "./scene_furniture_offers.js?v=sha256-cfdf29804ad6";
+} from "./scene_furniture_offers.js?v=sha256-85f241d370b0";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -5974,6 +5974,28 @@ const {
   verifiedCatalogModelUrls,
 });
 
+function ragJobsFromShortlist() {
+  // 把已保存的候選集收斂成逐房 RAG 工作紀錄(終態+原因+指紋)。舊存檔的
+  // 候選集沒有 status 欄位時就地推導,不強迫使用者重建。
+  const shortlist = state.project?.workflow?.furniture_shortlist;
+  if (!shortlist || !Array.isArray(shortlist.rooms)) return {};
+  const jobs = {};
+  shortlist.rooms.forEach((room) => {
+    const roomId = String(room.room_id || "");
+    if (!roomId) return;
+    const itemCount = Array.isArray(room.items) ? room.items.length : 0;
+    jobs[roomId] = {
+      status: room.status || (itemCount ? "completed" : "unavailable"),
+      reason: room.status_reason || (itemCount ? "" : "型錄查無符合此房需求的候選"),
+      fingerprint: String(shortlist.fingerprint || ""),
+      item_count: itemCount,
+      semantic: Boolean(shortlist.semantic),
+      generated_at: shortlist.generated_at || null,
+    };
+  });
+  return jobs;
+}
+
 function knownUnavailableCatalogFurnitureIds() {
   const failedInstanceIds = new Set(
     (whiteViewer.getDiagnostics()?.failedFurniture || [])
@@ -7896,6 +7918,9 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
           finishes: state.questionnaireFinishes,
           room_requirements: roomRequirementsPayload.roomRequirements,
           appliance_requirements: applianceRequirements,
+          // 逐房 RAG 終態隨問卷送進 scene_json,生圖交接檔(agent_generation_
+          // handoff)靠它說明每房候選是怎麼來的、失敗原因是什麼。
+          rag_jobs: ragJobsFromShortlist(),
         },
         room_surface_assignments: roomSurfaces,
         personal_notes: state.basicAnswers.immutableNeeds || "",

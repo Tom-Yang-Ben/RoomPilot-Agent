@@ -873,6 +873,21 @@ function renderQuestionnaireFurnitureRecommendations(room = activeQuestionnaireR
   }
 }
 
+function revokeStaleAutoRecommendations(room, offers) {
+  // 契約(BEN_第5第6步整合規格):RAG 重跑後沒結果的自動套用家具必須撤回,
+  // 使用者手選的家具(沒有 default_recommendation 標記)一律保留。
+  const furniture = roomFurnitureRequirement(room.id);
+  if (!furniture?.selected?.length) return;
+  const available = new Set(offers.map((offer) => String(offer.furniture_id)));
+  const kept = furniture.selected.filter((item) => (
+    item.selection_source !== "questionnaire_default_recommendation"
+    || available.has(String(item.furniture_id))
+  ));
+  if (kept.length === furniture.selected.length) return;
+  furniture.selected = kept;
+  furniture.required = [...new Set(kept.map((item) => item.normalized_type).filter(Boolean))];
+}
+
 function applyDefaultQuestionnaireFurnitureSelections(room, offers) {
   const furniture = roomFurnitureRequirement(room.id);
   if (!furniture || furniture.selected?.length || !offers.length) return;
@@ -940,6 +955,7 @@ async function ensureQuestionnaireFurnitureRecommendations(
       }));
     }));
     state.roomFurnitureRecommendations[room.id] = groups.flat();
+    revokeStaleAutoRecommendations(room, state.roomFurnitureRecommendations[room.id]);
     applyDefaultQuestionnaireFurnitureSelections(
       room,
       state.roomFurnitureRecommendations[room.id],

@@ -226,3 +226,61 @@ def test_shortlist_degradation_is_visible_not_console_only() -> None:
     assert "noteShortlistFallback(spec[0])" in fallback_block, (
         "「找相似」全型錄補搜也必須記錄"
     )
+
+
+def test_shortlist_fingerprint_changes_with_questionnaire_version() -> None:
+    from backend.spatial_data.rag.shortlist import needs_fingerprint
+
+    v1 = needs_fingerprint((), questionnaire_version=1)
+    v1_default = needs_fingerprint(())
+    v2 = needs_fingerprint((), questionnaire_version=2)
+
+    assert v1 == v1_default  # 舊 workflow 沒送版本欄位時視為版本 1
+    assert v1 != v2  # 問卷改版後不得沿用舊 completed 結果
+
+
+def test_shortlist_rooms_carry_terminal_status_and_reason() -> None:
+    from backend.spatial_data.rag.shortlist import RoomShortlist, ShortlistItem
+
+    hit = RoomShortlist(
+        room_id="bedroom-1",
+        room_type="bedroom",
+        query_text="淺木色",
+        items=(
+            ShortlistItem(
+                item_id="bed-1",
+                category_code="bed",
+                family="bed",
+                name_zh="床",
+                width_cm=150,
+                depth_cm=200,
+                height_cm=95,
+                price_twd=8990,
+                score=0.9,
+                has_model=True,
+            ),
+        ),
+    )
+    empty = RoomShortlist(
+        room_id="storage-1",
+        room_type="storage",
+        query_text="",
+        items=(),
+    )
+
+    assert hit.as_dict()["status"] == "completed"
+    assert hit.as_dict()["status_reason"] == ""
+    assert empty.as_dict()["status"] == "unavailable"
+    assert "型錄查無" in empty.as_dict()["status_reason"]
+
+
+def test_frontend_sends_rag_jobs_and_revokes_stale_auto_recommendations() -> None:
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    offers = (STATIC_DIR / "scene_furniture_offers.js").read_text(encoding="utf-8")
+
+    # 問卷送出時附上逐房 RAG 終態,供 agent_generation_handoff 交接生圖。
+    assert "rag_jobs: ragJobsFromShortlist()" in source
+    assert "function ragJobsFromShortlist()" in source
+    # RAG 重跑後沒結果的自動套用要撤回,手選家具保留。
+    assert "revokeStaleAutoRecommendations(room" in offers
+    assert 'selection_source !== "questionnaire_default_recommendation"' in offers
