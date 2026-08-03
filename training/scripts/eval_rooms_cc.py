@@ -179,7 +179,7 @@ def parse_gt(svg_path, h, w):
     多邊形座標＝F1_scaled.png 像素（實證疊圖驗證）；SVG 的 width/height
     宣告與圖面尺寸普遍不符（三子集抽查皆然），不可用來驗對位——
     改以「多邊形範圍不得超出圖面 2%」守門。"""
-    from svg_poly import get_polygon    # 自家抄本，逐位元同 floortrans 原版（見 test_svg_poly_parity）
+    from svg_poly import get_polygon    # 自家實作（2026-08-03 依 SVG 規格獨立重寫，全集對拍逐位元等價）
     doc = minidom.parse(svg_path)
     gt = []
     for e in doc.getElementsByTagName("g"):

@@ -106,8 +106,9 @@ def verify_draft(svg_path, h, w):
     `KeyError`，等於新詞彙的草稿永遠產不出來。那份是 CC BY-NC 的外部
     checkout，不改它，改走自家解析器。
 
-    （`parse_gt` 的多邊形光柵化已改走自家 `svg_poly.get_polygon`——
-    逐行抄自 floortrans 同名函式，逐位元對拍見 test_svg_poly_parity。）
+    （`parse_gt` 的多邊形光柵化走自家 `svg_poly.get_polygon`——
+    2026-08-03 依 SVG 規格獨立重寫，等價性以全答案集新舊對拍逐位元
+    驗證，歷程見 git 歷史。）
 
     回傳 (房間數, 牆多邊形數)；不合格 raise ValueError。"""
     from eval_rooms_cc import CLASSES, parse_gt
