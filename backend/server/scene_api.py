@@ -34,6 +34,7 @@ from .scene_service import (
     _regions_boundary,
     build_scene_payload,
     curtain_window_hint,
+    door_openings_from_segments,
     floorplan_from_editor_payload,
     generate_layout,
     get_openrouter_status,
@@ -42,6 +43,19 @@ from .scene_service import (
     scene_object_in_boundary,
     validate_single_placement,
 )
+
+
+def _floorplan_with_openings(floorplan: dict | None) -> dict | None:
+    """補上牆上的門洞，讓 layout 與 generate 兩條路徑回傳同一份契約。
+
+    少了這個鍵，前端還原時用 layout 的 floorplan 覆蓋場景，牆上的開口就
+    整批消失——門片還在原位，牆卻是實的，走動視角也走不過去。
+    """
+    if not isinstance(floorplan, dict):
+        return floorplan
+    if floorplan.get("door_openings"):
+        return floorplan
+    return {**floorplan, "door_openings": door_openings_from_segments(floorplan)}
 
 
 def _payload_number(
@@ -499,7 +513,10 @@ def build_scene_router(
             )
 
         return {
-            "floorplan": floorplan,
+            # door_openings 必須與 /api/scene/generate 同形狀：場景還原與重算
+            # 都走這條，回傳少了門洞就會把牆上的開口洗掉，門變成實牆
+            # （2026-08-03 Ben 實走發現，第 4 步確認的門位置其實是對的）。
+            "floorplan": _floorplan_with_openings(floorplan),
             "scene_objects": _restore_scene_identity(scene_objects, original_catalog),
             "placement_resolution_report": report,
             # 明說哪些偏好真的進了引擎、哪些還沒有對應動作，避免整條 no-op 又沒人發現。

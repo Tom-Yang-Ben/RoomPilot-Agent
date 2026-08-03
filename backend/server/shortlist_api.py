@@ -249,21 +249,34 @@ def build_shortlist_router(
 
         result, meta = _fit_within_budget(service, needs, per_family=per_family)
         document = result.as_dict()
+        # 檢索要跑數百毫秒到數秒，而前端問卷送出的同時就在自動存檔——用一開始
+        # 讀到的 revision 寫回，幾乎必然撞上使用者自己的存檔而 409（2026-08-03
+        # Ben 實走：整輪候選集因此沒建立，選件靜默退回全型錄）。
+        # 這裡只合併 furniture_shortlist 單一鍵、內容由需求指紋決定，衝突時
+        # 取最新版本重試一次即可；仍衝突才是真的多人同時編輯。
         try:
             updated = project_store_getter().update_workflow(
                 project_id,
                 workflow={WORKFLOW_KEY: document},
                 expected_revision=project.get("revision"),
             )
-        except ProjectVersionConflict as exc:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "error_code": "PROJECT_REVISION_CONFLICT",
-                    "message": "專案已在其他分頁更新，請重新載入後再送出。",
-                    "project": exc.project,
-                },
-            ) from exc
+        except ProjectVersionConflict:
+            latest = _load_project(project_store_getter, project_id)
+            try:
+                updated = project_store_getter().update_workflow(
+                    project_id,
+                    workflow={WORKFLOW_KEY: document},
+                    expected_revision=latest.get("revision"),
+                )
+            except ProjectVersionConflict as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "error_code": "PROJECT_REVISION_CONFLICT",
+                        "message": "專案已在其他分頁更新，請重新載入後再送出。",
+                        "project": exc.project,
+                    },
+                ) from exc
 
         return {
             "reused": False,

@@ -1454,8 +1454,13 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
         return converted
 
     wall_segments = [segment(item) for item in structures.get("walls") or []]
-    door_segments = [segment(item) for item in structures.get("doors") or []]
-    window_segments = [segment(item) for item in structures.get("windows") or []]
+    door_segments = _align_doors_to_wall_lines(
+        [segment(item) for item in structures.get("doors") or []], wall_segments
+    )
+    # 窗沒有開合語意，線段就是開口本身，貼回宿主牆是安全的。
+    window_segments = _snap_openings_to_walls(
+        [segment(item) for item in structures.get("windows") or []], wall_segments
+    )
     beam_segments = [segment(item) for item in structures.get("beams") or []]
     columns = [
         {
@@ -1534,6 +1539,247 @@ def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: fl
 DEFAULT_WALK_MARGIN_CM = 8.0
 WIDE_WALK_MARGIN_CM = 20.0
 # WINDOW_CLEARANCE_DEPTH_CM 移到禁區常數區(與落地窗、窗台高度的值放在一起)。
+
+
+SNAP_OPENING_TO_WALL_MAX_CM = 150.0
+ALIGN_DOOR_TO_WALL_LINE_MAX_CM = 60.0
+
+
+def _align_doors_to_wall_lines(
+    doors: list[dict[str, Any]],
+    walls: list[dict[str, Any]],
+    max_gap_cm: float = ALIGN_DOOR_TO_WALL_LINE_MAX_CM,
+) -> list[dict[str, Any]]:
+    """把門對齊到它所屬牆線上，用的是關閉門洞而不是打開的門片。
+
+    門在平面圖上是「鉸鏈 + 打開的門片 + 四分之一弧」：``start``→``end`` 是
+    打開後的門片，``start``→``swing_end`` 才是關起來時佔的那段牆洞。門本來
+    就坐落在兩段牆之間的缺口裡，所以要比對的是牆所在的**直線**（延伸線），
+    不是牆線段本身——量到線段端點會得到 50~70cm 的假距離，把門判成不屬於
+    那面牆（2026-08-03 Ben 實走，door-1 的真實偏移只有 10cm，約半個牆厚）。
+
+    只做垂直於牆的平移，沿牆方向的位置與門寬、門弧形狀全部保留。
+    """
+    if not doors or not walls:
+        return doors
+
+    def _pt(value: Any) -> tuple[float, float] | None:
+        if not isinstance(value, dict):
+            return None
+        try:
+            return float(value.get("x", 0.0)), float(value.get("z", 0.0))
+        except (TypeError, ValueError):
+            return None
+
+    aligned: list[dict[str, Any]] = []
+    for door in doors:
+        hinge = _pt(door.get("start"))
+        swing = _pt(door.get("swing_end"))
+        leaf_end = _pt(door.get("end"))
+        # 有門弧就用關閉門洞；沒有的話退回門片本身（直接開口的門）。
+        opening_a, opening_b = (hinge, swing) if hinge and swing else (hinge, leaf_end)
+        if opening_a is None or opening_b is None:
+            aligned.append(door)
+            continue
+        mid = ((opening_a[0] + opening_b[0]) / 2, (opening_a[1] + opening_b[1]) / 2)
+        dir_x, dir_z = opening_b[0] - opening_a[0], opening_b[1] - opening_a[1]
+        length = math.hypot(dir_x, dir_z)
+        if length <= 1e-6:
+            aligned.append(door)
+            continue
+        dir_x, dir_z = dir_x / length, dir_z / length
+
+        best: tuple[float, tuple[float, float]] | None = None
+        for wall in walls:
+            start, end = _pt(wall.get("start")), _pt(wall.get("end"))
+            if start is None or end is None:
+                continue
+            wx, wz = end[0] - start[0], end[1] - start[1]
+            wall_length = math.hypot(wx, wz)
+            if wall_length <= 1e-6:
+                continue
+            wx, wz = wx / wall_length, wz / wall_length
+            # 門洞必須與牆平行才可能屬於它（容許 ~15 度誤差）。
+            if abs(dir_x * wx + dir_z * wz) < 0.96:
+                continue
+            # 垂直距離量到牆的延伸線，門位在兩段牆之間的缺口也量得準。
+            offset_x, offset_z = mid[0] - start[0], mid[1] - start[1]
+            along = offset_x * wx + offset_z * wz
+            perp_x = offset_x - along * wx
+            perp_z = offset_z - along * wz
+            gap = math.hypot(perp_x, perp_z)
+            if best is None or gap < best[0]:
+                best = (gap, (-perp_x, -perp_z))
+        if best is None or best[0] > max_gap_cm or best[0] < 1e-6:
+            aligned.append(door)
+            continue
+        shift_x, shift_z = best[1]
+
+        def _moved(value: Any) -> Any:
+            point = _pt(value)
+            if point is None:
+                return value
+            return {**value, "x": point[0] + shift_x, "z": point[1] + shift_z}
+
+        moved = {
+            **door,
+            "start": _moved(door.get("start")),
+            "end": _moved(door.get("end")),
+        }
+        if isinstance(door.get("swing_end"), dict):
+            moved["swing_end"] = _moved(door["swing_end"])
+        closed = door.get("closed_segment")
+        if isinstance(closed, dict):
+            moved["closed_segment"] = {
+                **closed,
+                "start": _moved(closed.get("start")),
+                "end": _moved(closed.get("end")),
+            }
+        aligned.append(moved)
+    return aligned
+
+
+def _snap_openings_to_walls(
+    openings: list[dict[str, Any]],
+    walls: list[dict[str, Any]],
+    max_gap_cm: float = SNAP_OPENING_TO_WALL_MAX_CM,
+) -> list[dict[str, Any]]:
+    """把門窗平移到宿主牆的中心線上。
+
+    平面圖裡門弧與窗線本來就畫在牆「旁邊」，辨識照實記錄，第 4 步確認時
+    在 2D 圖上看也正常——但轉成 3D 之後那條線不在牆身上，門片浮在離牆
+    20~70 公分的空中，牆上也挖不出洞（2026-08-03 Ben 實走發現）。
+
+    用平移而不是把端點各自投影：平移保住開口的長度與門弧形狀，只把它
+    整個貼回牆面。超過 ``max_gap_cm`` 的不動——那種距離已經不是繪圖偏移，
+    硬拉過去只會把開口塞進不相干的牆。
+    """
+    if not openings or not walls:
+        return openings
+
+    def _point(value: Any) -> tuple[float, float] | None:
+        if not isinstance(value, dict):
+            return None
+        try:
+            return float(value.get("x", 0.0)), float(value.get("z", 0.0))
+        except (TypeError, ValueError):
+            return None
+
+    def _offset_to_wall(mid: tuple[float, float], wall: dict[str, Any]):
+        start, end = _point(wall.get("start")), _point(wall.get("end"))
+        if start is None or end is None:
+            return None
+        dx, dz = end[0] - start[0], end[1] - start[1]
+        length_sq = dx * dx + dz * dz
+        if length_sq <= 0:
+            return None
+        t = ((mid[0] - start[0]) * dx + (mid[1] - start[1]) * dz) / length_sq
+        t = max(0.0, min(1.0, t))
+        foot = (start[0] + t * dx, start[1] + t * dz)
+        return foot[0] - mid[0], foot[1] - mid[1]
+
+    walls_by_id = {str(wall.get("id")): wall for wall in walls if wall.get("id")}
+    snapped: list[dict[str, Any]] = []
+    for opening in openings:
+        start, end = _point(opening.get("start")), _point(opening.get("end"))
+        if start is None or end is None:
+            snapped.append(opening)
+            continue
+        mid = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+        host = walls_by_id.get(str(opening.get("host_wall_id")))
+        candidates = [host] if host else list(walls)
+        best: tuple[float, tuple[float, float]] | None = None
+        for wall in candidates:
+            if not isinstance(wall, dict):
+                continue
+            offset = _offset_to_wall(mid, wall)
+            if offset is None:
+                continue
+            gap = math.hypot(offset[0], offset[1])
+            if best is None or gap < best[0]:
+                best = (gap, offset)
+        if best is None or best[0] > max_gap_cm or best[0] < 1e-6:
+            snapped.append(opening)
+            continue
+        shift_x, shift_z = best[1]
+
+        def _moved(value: Any) -> Any:
+            point = _point(value)
+            if point is None:
+                return value
+            return {**value, "x": point[0] + shift_x, "z": point[1] + shift_z}
+
+        moved = {
+            **opening,
+            "start": _moved(opening.get("start")),
+            "end": _moved(opening.get("end")),
+        }
+        if isinstance(opening.get("swing_end"), dict):
+            moved["swing_end"] = _moved(opening["swing_end"])
+        closed = opening.get("closed_segment")
+        if isinstance(closed, dict):
+            moved["closed_segment"] = {
+                **closed,
+                "start": _moved(closed.get("start")),
+                "end": _moved(closed.get("end")),
+            }
+        snapped.append(moved)
+    return _dedupe_wall_openings(snapped)
+
+
+def _dedupe_wall_openings(
+    openings: list[dict[str, Any]],
+    overlap_ratio: float = 0.6,
+) -> list[dict[str, Any]]:
+    """合併貼牆後重疊的開口。
+
+    平面圖的一個門洞常被畫成牆兩側各一條門框線，辨識端照實記成兩扇門；
+    貼回牆面之後它們會疊在同一段牆上，看起來就是「門的數量與樣子都不對」
+    （2026-08-03 Ben 實走發現）。重疊超過 ``overlap_ratio`` 的視為同一個
+    開口，保留較寬的那個——寬度取自實際量測，窄的那條通常是內側門框。
+    """
+    kept: list[dict[str, Any]] = []
+    for opening in openings:
+        start, end = opening.get("start"), opening.get("end")
+        if not isinstance(start, dict) or not isinstance(end, dict):
+            kept.append(opening)
+            continue
+        span = math.hypot(
+            float(end.get("x", 0)) - float(start.get("x", 0)),
+            float(end.get("z", 0)) - float(start.get("z", 0)),
+        )
+        duplicate_index = None
+        for index, existing in enumerate(kept):
+            if str(existing.get("host_wall_id") or "") != str(opening.get("host_wall_id") or ""):
+                continue
+            other_start, other_end = existing.get("start"), existing.get("end")
+            if not isinstance(other_start, dict) or not isinstance(other_end, dict):
+                continue
+            other_span = math.hypot(
+                float(other_end.get("x", 0)) - float(other_start.get("x", 0)),
+                float(other_end.get("z", 0)) - float(other_start.get("z", 0)),
+            )
+            gap = math.hypot(
+                (float(start.get("x", 0)) + float(end.get("x", 0))) / 2
+                - (float(other_start.get("x", 0)) + float(other_end.get("x", 0))) / 2,
+                (float(start.get("z", 0)) + float(end.get("z", 0))) / 2
+                - (float(other_start.get("z", 0)) + float(other_end.get("z", 0))) / 2,
+            )
+            # 兩個開口的中心距離小於半長之和的一定比例＝實質重疊。
+            if gap <= (span + other_span) / 2 * (1 - overlap_ratio):
+                duplicate_index = index
+                break
+        if duplicate_index is None:
+            kept.append(opening)
+            continue
+        existing = kept[duplicate_index]
+        existing_span = math.hypot(
+            float(existing["end"].get("x", 0)) - float(existing["start"].get("x", 0)),
+            float(existing["end"].get("z", 0)) - float(existing["start"].get("z", 0)),
+        )
+        if span > existing_span:
+            kept[duplicate_index] = opening
+    return kept
 
 
 def door_openings_from_segments(

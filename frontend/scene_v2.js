@@ -7100,8 +7100,14 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
 
 function renderSelectedFurnitureEditor() {
   const item = state.furniture2d.find((candidate) => candidate.id === state.selectedFurniture2dId);
+  // 3D 主畫面與 2D 配置是互斥的 step panel：更換入口只放在 2D 那側時，
+  // 走 3D 主畫面的使用者永遠看不到它（2026-08-03 Ben 實走發現）。
+  // 這裡同步 3D 側的精簡版選取面板，兩條路都能更換。
+  const whitePanel = $("#white-model-selected-furniture");
+  const whiteName = $("#white-model-selected-name");
   if (!item) {
     element.selectedFurnitureEditor.hidden = true;
+    if (whitePanel) whitePanel.hidden = true;
     return;
   }
   element.selectedFurnitureEditor.hidden = false;
@@ -7109,6 +7115,10 @@ function renderSelectedFurnitureEditor() {
   element.selectedFurnitureReason.textContent = `配置原因：${item.reason || "使用者手動加入，可調整實際尺寸。"}`;
   element.selectedFurnitureWidth.value = item.widthCm;
   element.selectedFurnitureDepth.value = item.depthCm;
+  if (whitePanel && whiteName) {
+    whitePanel.hidden = false;
+    whiteName.textContent = item.label;
+  }
 }
 
 let furnitureDrag = null;
@@ -7615,6 +7625,26 @@ async function replaceSelectedLayoutFurniture(furnitureId) {
   state.furniture2d[index] = candidate;
   syncFurnitureInventoryAcrossSchemes();
   renderLayoutFurniture();
+  // 3D 主畫面也能叫出更換抽屜（2026-08-03 起），所以換完必須同步 scene_objects
+  // 並重載 viewer——只更新 2D 的話，使用者在 3D 看到的還是舊床架。
+  const sceneObjects = state.sceneData?.scene_objects;
+  const sceneIndex = (sceneObjects || []).findIndex(
+    (object) => String(object.furniture_id) === String(current.id),
+  );
+  if (sceneIndex >= 0) {
+    sceneObjects[sceneIndex] = {
+      ...sceneObjects[sceneIndex],
+      ...toSceneFurniture(candidate),
+      furniture_id: sceneObjects[sceneIndex].furniture_id,
+    };
+    renderConfigurationPlan();
+    try {
+      await whiteViewer.loadScene(state.sceneData);
+      renderSceneObjectList();
+    } catch (error) {
+      console.warn("更換家具後 3D 重載失敗", error);
+    }
+  }
   invalidateDownstreamFrom("layout_2d", "家具款式已更換，3D 家具配置與即時寫實需要重新產生。");
   scheduleSave("layout_2d");
   setReplacementDrawerOpen(false);
@@ -8469,11 +8499,22 @@ function addSceneFurniture(furnitureId) {
   const replacement = items.find((item) => item.furniture_id === furnitureId);
   if (!replacement || !state.sceneData) return;
   const started = whiteViewer.beginPlacement(async (positionCm) => {
+    // 用落點反推房間歸屬：少了 placement_room_id，2D 同步會拿到 roomId=null，
+    // 家具直接變成「未指定空間」的孤兒卡在待處理清單（2026-08-03 Ben 實走發現）。
+    const center = planCenterCm();
+    const dropPoint = {
+      x: center.x + Number(positionCm?.x || 0),
+      y: center.y + Number(positionCm?.z || 0),
+    };
+    const hostRoom = state.rooms.find(
+      (room) => Array.isArray(room.polygon_cm) && pointInPolygonCm(dropPoint, room.polygon_cm),
+    );
     const candidate = {
       ...replacement,
       furniture_id: `${replacement.furniture_id}-user-${Date.now()}`,
       catalog_furniture_id: replacement.furniture_id,
       name_zh_raw: replacement.name_zh || replacement.name_zh_raw || replacement.name_en,
+      placement_room_id: hostRoom?.id || null,
       position_cm: positionCm,
       rotation_y_deg: 0,
       position_locked: true,
@@ -8495,6 +8536,13 @@ function addSceneFurniture(furnitureId) {
       });
       if (!verdict.ok) {
         element.whiteError.textContent = `無法新增在該位置：${verdict.reason || "會碰撞、穿牆或超出房間"}。`;
+        setStatus(element.whiteError.textContent, "error");
+        return;
+      }
+      if (!hostRoom) {
+        // 落在房間之外就別讓它進場：沒有歸屬房間就無法計算可用尺寸，
+        // 進去也只會變成待處理清單裡無解的孤兒。
+        element.whiteError.textContent = "請放在某個房間範圍內：這個位置不屬於任何房間，無法計算可用尺寸。";
         setStatus(element.whiteError.textContent, "error");
         return;
       }
@@ -10957,6 +11005,7 @@ function bindEvents() {
     if (!collapsed) requestAnimationFrame(renderConfigurationPlan);
   });
   $("#replace-2d-furniture").addEventListener("click", openFurnitureReplacement);
+  $("#replace-white-model-furniture")?.addEventListener("click", openFurnitureReplacement);
   $("#close-furniture-replacement").addEventListener("click", () => {
     setReplacementDrawerOpen(false);
   });
@@ -11185,8 +11234,14 @@ function bindEvents() {
       goTo(state.workflow.completed.includes("calibration") ? "calibration" : "recognition");
       return;
     }
-    if (state.workflow?.canEnter(step)) goTo(step);
-    else setStatus(firstWorkflowBlocker(step), "error");
+    // 第 6 步的導覽鍵標的是 layout_2d，但使用者要的是「2D＋3D 一起看」的
+    // 3D 主畫面；純 2D 那個子畫面只在需要細調平面座標時才進（2026-08-03
+    // Ben 實走：從問卷進第 6 步不該落在只有 2D 的頁面）。
+    const target = step === "layout_2d" && state.workflow?.canEnter("white_model_3d")
+      ? "white_model_3d"
+      : step;
+    if (state.workflow?.canEnter(target)) goTo(target);
+    else setStatus(firstWorkflowBlocker(target), "error");
   }));
   $("#reset-project").addEventListener("click", () => {
     if (!confirm("要重新開始此專案嗎？目前頁面的本機流程狀態會清除。")) return;

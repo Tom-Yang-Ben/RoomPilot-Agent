@@ -1349,15 +1349,23 @@ def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects(
     assert "syncFinalValidationToConfiguration" in controller
 
 
-def test_step_six_progress_entry_reopens_the_dedicated_2d_workspace() -> None:
+def test_step_six_progress_entry_opens_the_3d_workspace() -> None:
+    """第 6 步導覽鍵進 3D 主畫面，不是純 2D 子畫面。
+
+    2026-08-03 Ben 實走後拍板：問卷完就要直接看到 3D，平面座標細調在 3D
+    右側側欄已經有了；純 2D 子畫面待正式移除（見
+    docs/backlog/WALL_GEOMETRY_BROKEN_IN_3D.md）。本測試取代原本釘住舊
+    行為的 test_step_six_progress_entry_reopens_the_dedicated_2d_workspace。
+    """
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     progress_navigation = source.split(
         '$$(".rp-progress button").forEach((button) => button.addEventListener("click", () => {',
         1,
     )[1].split('$("#reset-project")', 1)[0]
 
-    assert 'goTo("white_model_3d")' not in progress_navigation
-    assert "if (state.workflow?.canEnter(step)) goTo(step);" in progress_navigation
+    assert 'step === "layout_2d"' in progress_navigation
+    assert '"white_model_3d"' in progress_navigation
+    assert "if (state.workflow?.canEnter(target)) goTo(target);" in progress_navigation
 
 
 def test_single_furniture_reflow_is_locked_until_the_request_finishes() -> None:
