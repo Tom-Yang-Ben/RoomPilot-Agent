@@ -459,6 +459,21 @@ def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
     assert "!sentFurnitureIds.has(String(item.id))" in source
 
 
+def test_confirm_room_views_self_heals_and_reports_blockers() -> None:
+    """第 7 步「確認所有房間視角並進入第 8 步」不得無聲失敗:復原專案的
+    本機 workflow 缺尾段完成度時,以既有 masterView/逐房視角自我修復;
+    仍被閘門擋下就把原因寫進面板狀態列。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    confirm = source.split("function confirmProposalRoomViews()")[1].split(
+        "\nfunction "
+    )[0]
+
+    assert 'state.workflow.complete("realistic_3d", { confirmed: true })' in confirm
+    assert 'state.workflow.complete("proposal_review"' in confirm
+    assert 'if (!goTo("ai_render"))' in confirm
+    assert "尚不能進入第 8 步" in confirm
+
+
 def test_room_view_suggestions_use_world_coordinates() -> None:
     """逐房建議視角必須換算成 three.js 世界座標(世界 z = −場景 z):
     不取負的話第 7/8 步視角上下鏡像,「廚房視角」會框到對面的房間。"""

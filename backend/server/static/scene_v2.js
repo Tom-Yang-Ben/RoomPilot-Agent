@@ -12823,8 +12823,27 @@ function confirmProposalRoomViews() {
     return;
   }
   proposalViewer.lockRenderCamera(true);
+  // 復原的專案(換瀏覽器/清 localStorage)伺服器端有 masterView 與逐房
+  // 視角,但本機 workflow 完成度可能缺尾段 —— goTo 會被閘門默默擋下,
+  // 按鈕看起來沒反應。以既有資料自我修復完成度;仍被擋就把原因寫進
+  // 面板,不再無聲失敗。(realistic 先補,complete 會清下游完成度,
+  // proposal 必須在其後補回。)
+  if (!state.workflow.completed.includes("realistic_3d")) {
+    state.workflow.complete("realistic_3d", { confirmed: true });
+  }
+  if (
+    !state.workflow.completed.includes("proposal_review")
+    && state.proposalReview.masterView
+  ) {
+    state.workflow.complete("proposal_review", {
+      confirmed: true,
+      masterView: state.proposalReview.masterView,
+    });
+  }
   scheduleSave("proposal_review");
-  goTo("ai_render");
+  if (!goTo("ai_render")) {
+    status.textContent = `尚不能進入第 8 步：${firstWorkflowBlocker("ai_render")}`;
+  }
 }
 
 function renderRoomViewList() {
