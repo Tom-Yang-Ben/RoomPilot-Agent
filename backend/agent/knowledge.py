@@ -28,6 +28,8 @@ FAMILY_OF: dict[str, str] = {
     "tv-media-furniture": "tv-bench",
     "table": "dining-table",
     "shelving-unit": "bookcase",
+    # 電競椅摺進辦公椅族系:沿用 office-chair 的房型適配(臥室/儲藏)與成組(貼書桌)。
+    "gaming-chair": "office-chair",
 }
 
 
@@ -49,7 +51,12 @@ COMPANION_OF: dict[str, tuple[str, ...]] = {
     "office-chair": ("desk",),
 }
 
-# 族系 → 適用房型;缺項 = 不限(書櫃/邊櫃/書桌等泛用件各房皆宜)。
+# 族系 → 適用房型;缺項 = 不限(書櫃/邊櫃/衣櫃等泛用件各房皆宜)。
+# 房型鍵一律用 canonical taxonomy(見 scene.html 的 <option>,由
+# test_space_editor_exposes_only_the_canonical_room_taxonomy 強制):沒有
+# dining_room / study,餐廚歸 kitchen、辦公家具歸 bedroom 或 storage
+# (與 scene_service.SPACE_DEFAULTS 同步)。desk/office-chair/gaming-chair
+# 兩房皆許,平面圖多半有臥室、少有儲藏室,才不會 fallback 回最大區域(客廳)。
 # wardrobe 族系刻意不限:cabinets-cupboard / storage-solution-system 也歸
 # 此族,廚房、儲藏室、家事間的候選群組都用得到,限臥室會誤殺。
 ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
@@ -58,9 +65,21 @@ ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
     "sofa": ("living_room",),
     "tv-bench": ("living_room",),
     "coffee-table": ("living_room",),
-    "dining-table": ("dining_room",),
-    "dining-chair": ("dining_room",),
+    "dining-table": ("kitchen",),
+    "dining-chair": ("kitchen",),
+    "desk": ("bedroom", "storage"),
+    "office-chair": ("bedroom", "storage"),
 }
+
+
+def affinity_permits(normalized_type: str | None, room_type: str | None) -> bool:
+    """該家具是否適合放進此房型(§潛規則房型適配)。
+
+    ``ROOM_AFFINITY`` 未列的族系不限房型(泛用件)一律允許 —— 與
+    select._apply_conventions 的 short-circuit 同一判準,單房選件與多房路由共用。
+    """
+    allowed = ROOM_AFFINITY.get(family_of(normalized_type))
+    return not (allowed and room_type and room_type not in allowed)
 
 # 擺位主件(成組的錨):最先卡好牆位,泛用件次之,副件(COMPANION_OF)最後
 # 擺 —— 引擎的成組候選要有「已就位的主件」才貼得上去。

@@ -484,7 +484,21 @@ def choose_furniture_items(
             + rng.random() * 8
         )
 
-    for index, required_type in enumerate(plan.get("required_furniture", [])):
+    # 單房選件的房型適配:LLM/需求清單可能夾帶不合房型的家具(客廳點名雙人床、
+    # 電競椅)。單房沒有 room_regions,_affinity_room_id 使不上力,故在選件源頭
+    # 依 space_type 濾掉房型不符者;泛用件(未列 ROOM_AFFINITY)一律保留。
+    # space_type 未給時不套房型過濾(affinity_permits 對空房型一律放行)——
+    # 直接呼叫者(測試/舊路徑)無房型脈絡,不能拿預設 living_room 誤殺床。
+    from ..agent.knowledge import affinity_permits
+
+    space_type = plan.get("space_type")
+    required_types = [
+        required_type
+        for required_type in plan.get("required_furniture", [])
+        if affinity_permits(required_type, space_type)
+    ]
+
+    for index, required_type in enumerate(required_types):
         candidates = [
             item
             for item in furniture
