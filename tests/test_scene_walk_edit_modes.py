@@ -23,6 +23,23 @@ def test_walk_mode_moves_and_blocks_walls_and_large_furniture() -> None:
     assert 'walkKeys.has("w")' in VIEWER
 
 
+def test_walk_mode_bridges_doorways_between_room_polygons() -> None:
+    # 相鄰房間多邊形之間隔一個牆厚；門洞要同時通過地板判定與牆碰撞，
+    # 否則人會被擋在門口（移植自 bella-test1 的 walkDoorwayConnectsRooms）。
+    assert "function walkDoorwayConnectsRooms(position" in VIEWER
+    assert "roomFloorContainsPoint(position) || walkDoorwayConnectsRooms(position)" in VIEWER
+    assert "if (walkDoorwayConnectsRooms(position)) return false;" in VIEWER
+    assert "roomFloorContainsPoint(leftSide) && roomFloorContainsPoint(rightSide)" in VIEWER
+
+
+def test_walk_door_openings_use_the_closed_leaf_not_the_opened_one() -> None:
+    # 牆洞是 closed_segment（鉸鏈→swing_end）；拿打開的 start→end 當開口
+    # 會把走廊開在隔壁那面牆上（門座標語意，backlog 已記）。
+    assert "function walkDoorOpenings()" in VIEWER
+    assert "const closed = door?.closed_segment;" in VIEWER
+    assert "if (closed?.start && closed?.end) openings.push({ ...door, ...closed });" in VIEWER
+
+
 def test_walk_mode_hides_door_leaves_and_cannot_select_furniture() -> None:
     assert "function configureOpeningsForView(mode)" in VIEWER
     assert 'object.userData.roompilotArchitecturalDetail === "door"' in VIEWER

@@ -4179,7 +4179,7 @@ export function createSceneViewer(
     };
   }
 
-  function walkPositionInsideFloor(position) {
+  function roomFloorContainsPoint(position) {
     const regions = lastWorldSceneData?.floorplan?.room_regions || [];
     if (!regions.length) return true;
     return regions.some((region) => {
@@ -4189,7 +4189,82 @@ export function createSceneViewer(
     });
   }
 
+  function walkDoorOpenings() {
+    const floorplan = lastWorldSceneData?.floorplan || {};
+    const openings = [...(floorplan?.door_openings || [])];
+    // door_openings 缺席的舊場景改從 door_segments 補；牆洞是 closed_segment
+    // （鉸鏈→swing_end），start→end 是打開後的門片，拿它當開口會把走廊
+    // 開在隔壁那面牆上。
+    (floorplan.door_segments || []).forEach((door) => {
+      const closed = door?.closed_segment;
+      if (closed?.start && closed?.end) openings.push({ ...door, ...closed });
+    });
+    const seen = new Set();
+    return openings.filter((opening) => {
+      const start = opening?.start;
+      const end = opening?.end;
+      if (!start || !end) return false;
+      const key = `${start.x}:${start.z}:${end.x}:${end.z}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function walkDoorwayConnectsRooms(position, doorwayClearanceCm = 26) {
+    return walkDoorOpenings().some((opening) => {
+      const start = opening?.start || {};
+      const end = opening?.end || {};
+      const startX = Number(start.x);
+      const startZ = Number(start.z);
+      const endX = Number(end.x);
+      const endZ = Number(end.z);
+      if (![startX, startZ, endX, endZ].every(Number.isFinite)) return false;
+
+      const dx = endX - startX;
+      const dz = endZ - startZ;
+      const length = Math.hypot(dx, dz);
+      if (length < 24) return false;
+
+      const projection = THREE.MathUtils.clamp(
+        ((position.x - startX) * dx + (position.z - startZ) * dz) / (length * length),
+        0,
+        1,
+      );
+      const nearestX = startX + projection * dx;
+      const nearestZ = startZ + projection * dz;
+      if (Math.hypot(position.x - nearestX, position.z - nearestZ) > doorwayClearanceCm) {
+        return false;
+      }
+
+      // 門洞法線兩側都要落在確認過的房間地板內才可通行：這樣只橋接相鄰
+      // 房間多邊形之間的牆厚縫隙，不會放人穿過外牆。
+      const normalX = -dz / length;
+      const normalZ = dx / length;
+      const midpoint = { x: (startX + endX) / 2, z: (startZ + endZ) / 2 };
+      const sampleDistance = Math.max(doorwayClearanceCm + 14, 40);
+      const leftSide = {
+        x: midpoint.x + normalX * sampleDistance,
+        z: midpoint.z + normalZ * sampleDistance,
+      };
+      const rightSide = {
+        x: midpoint.x - normalX * sampleDistance,
+        z: midpoint.z - normalZ * sampleDistance,
+      };
+      return roomFloorContainsPoint(leftSide) && roomFloorContainsPoint(rightSide);
+    });
+  }
+
+  function walkPositionInsideFloor(position) {
+    // 相鄰房間的多邊形之間隔著一個牆厚，沒有門洞橋接的話人會被擋在門口。
+    return roomFloorContainsPoint(position) || walkDoorwayConnectsRooms(position);
+  }
+
   function walkPositionBlocked(position, clearanceCm = 20) {
+    // 確認過的室內門洞橋接兩塊房間地板，要贏過相鄰牆段——否則地板判定放行、
+    // 下一拍牆碰撞又把同一步擋回去。
+    if (walkDoorwayConnectsRooms(position)) return false;
+    const doorOpenings = walkDoorOpenings();
     return (lastWorldSceneData?.floorplan?.wall_segments || []).some((segment) => {
       const start = segment.start;
       const end = segment.end;
@@ -4206,7 +4281,7 @@ export function createSceneViewer(
       );
       const closestX = Number(start.x) + projection * dx;
       const closestZ = Number(start.z) + projection * dz;
-      const insideDoorOpening = (lastWorldSceneData?.floorplan?.door_openings || []).some((opening) => {
+      const insideDoorOpening = doorOpenings.some((opening) => {
         if (!openingBelongsToWall(segment, opening, 24)) return false;
         const openingStart = opening.start || opening.hinge || {};
         const openingEnd = opening.end || {};
