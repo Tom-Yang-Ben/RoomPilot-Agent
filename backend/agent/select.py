@@ -20,9 +20,11 @@ from typing import Any, Callable, Optional
 
 from .knowledge import (
     COMPANION_OF,
+    OUTDOOR_ROOM_TYPES,
     ROOM_AFFINITY,
     ROOM_TYPE_ZH,
     family_of,
+    is_outdoor_item,
     prompt_rules,
 )
 
@@ -146,6 +148,10 @@ def _apply_conventions(
         fid = selected.item.get("furniture_id")
         if fid in protected_ids:
             fit.append(selected)
+            continue
+        if is_outdoor_item(selected.item) and room_type not in OUTDOOR_ROOM_TYPES:
+            # 型錄把戶外躺椅歸類成 sofa/armchair,靠名稱記號在邊界擋下
+            logger.warning("潛規則丟棄 %s:戶外家具不入室內房型 %s", fid, room_type or "?")
             continue
         family = family_of(selected.item.get("normalized_type"))
         allowed = ROOM_AFFINITY.get(family)

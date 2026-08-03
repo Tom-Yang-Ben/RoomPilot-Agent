@@ -24,6 +24,7 @@ from .knowledge import (
     FREE_SEATING_FAMILIES,
     GROUP_OF,
     family_of,
+    is_outdoor_item,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,6 +116,7 @@ def pick_smaller_model(
             and match(p)
             and p.get("furniture_id") not in exclude_ids
             and 0 < _footprint(p) < footprint_cap
+            and not is_outdoor_item(p)   # 換小替補不得引入戶外家具(客廳戶外椅根因之一)
         ]
 
     found = _candidates(lambda p: p.get("normalized_type") == normalized_type)
@@ -146,11 +148,15 @@ def resolve_placements(
     pool: list[dict[str, Any]],
     place_fn: PlaceFn | None = None,
     protected_ids: set[str] | None = None,
-    max_rounds: int = 3,
+    max_rounds: int | None = None,
     *,
     engine_place_fn: PlaceFn | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    """讀引擎的 placement_failed → 寧缺勿亂 / 換小 / 移除 → 重擺至收斂或到上限。
+    """讀引擎的 placement_failed → 寧缺勿亂 / 換小 / 移除 → 重擺至收斂。
+
+    預設**不設輪數上限**,擺到合理為止:每輪對失敗件「換更小同型」或「移除」,
+    換小的 footprint 嚴格遞減、池又有限,移除嚴格減件,故必然收斂;整輪無任何
+    動作(全為使用者指定升級件)也停。``max_rounds`` 僅供測試/呼叫端顯式設限。
 
     ``engine_place_fn`` 是 ``place_fn`` 的別名(2026-08-02 合併 bella-test1 時保留
     ——server 端以該名呼叫)。兩者擇一提供即可,同時給以 ``place_fn`` 為準。
@@ -167,7 +173,6 @@ def resolve_placements(
     working = [dict(item) for item in items]
     protected_ids = protected_ids or set()
     report: list[dict[str, Any]] = []
-    fail_counts: dict[str, int] = {}
     escalated: set[str] = set()
 
     def _find_item(obj: dict[str, Any]) -> dict[str, Any] | None:
@@ -193,7 +198,9 @@ def resolve_placements(
             "message_zh": message,
         })
 
-    for _ in range(max_rounds):
+    rounds = 0
+    while max_rounds is None or rounds < max_rounds:
+        rounds += 1
         failed = [obj for obj in objects if obj.get("placement_failed")]
         changed = False
 
@@ -220,13 +227,8 @@ def resolve_placements(
                 _remove(item, obj, f"「{_name(item)}」需與{_anchors_zh(family)}成組擺放，目前放不下，先移除。")
                 changed = True
                 continue
-            key = _key(obj)
-            fail_counts[key] = fail_counts.get(key, 0) + 1
-            if fail_counts[key] >= 2:
-                # 卡住偵測:同一件連兩輪失敗 → 不再換,直接移除(防震盪)
-                _remove(item, obj, f"多次嘗試仍放不下，移除「{_name(item)}」。")
-                changed = True
-                continue
+            # 換小到無可換才移除:替補 footprint 嚴格小於現件,鏈必收斂,
+            # 不需要「連兩輪失敗就放棄」的防震盪計數。
             used_ids = {str(c.get("furniture_id")) for c in working}
             smaller = pick_smaller_model(
                 pool, obj.get("normalized_type"), _footprint(item), used_ids

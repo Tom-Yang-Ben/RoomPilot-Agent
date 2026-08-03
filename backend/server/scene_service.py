@@ -12,7 +12,7 @@ from urllib import error, request
 from shapely.geometry import LineString, Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
-from ..agent.knowledge import family_of
+from ..agent.knowledge import COMPANION_OF, FAMILY_ZH, family_of, is_outdoor_item
 from ..agent.place import placement_hints, resolve_placements
 from ..catalog.style_db import CLEARANCE_BY_TYPE, catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
@@ -506,6 +506,9 @@ def choose_furniture_items(
             and item.get("furniture_id") not in used_ids
             and item.get("normalized_type") == required_type
             and catalog_item_matches_type_semantics(item, required_type)
+            # 自動選件不挑戶外家具:型錄把庭院躺椅歸在 sofa/armchair 等室內
+            # 類型,不濾就會出現「客廳戶外椅」。使用者精選路徑不經此處。
+            and not is_outdoor_item(item)
         ]
 
         if not candidates:
@@ -907,6 +910,22 @@ def _agent_prepend_candidates(
                 z = bottom - depth / 2 - gap if fz > 0 else top + depth / 2 + gap
                 rot = 180.0 if fz > 0 else 0.0
                 paired.extend((sofa["x"] + off, z, rot) for off in lateral)
+    elif family == "dining-chair":
+        table = neighbors.get("dining-table")
+        if table:
+            # 餐椅貼餐桌兩長邊各 2 席、面向餐桌(對齊 engine rules §7.3 的
+            # CHAIR_GAP_CM=3);多張椅子依實例序消化席位,佔用由柵格把關。
+            fx, fz = _facing(table["rot"])
+            px, pz = fz, -fx                     # 桌面寬方向(沿桌緣)
+            dist = table["depth"] / 2 + depth / 2 + 3.0
+            for side in (1.0, -1.0):
+                seat_rot = (table["rot"] + 180.0) % 360 if side > 0 else table["rot"]
+                for along in (-table["width"] / 4, table["width"] / 4):
+                    paired.append((
+                        table["x"] + fx * dist * side + px * along,
+                        table["z"] + fz * dist * side + pz * along,
+                        seat_rot,
+                    ))
 
     anchor = (hint or {}).get("anchor")
     anchored: list[tuple[float, float, float]] = []
@@ -969,6 +988,12 @@ def _hinted_wall_candidate(
 # 地毯可與目標家具重疊，但仍須由引擎驗證牆與房間邊界。
 _OVERLAY_TYPES = {"large-medium-rug", "runner-small-rug"}
 _IGNORE_COLLISION_TYPES = {"wall-shelf"}
+
+# 允許進入沙發視聽走廊的類型:成組件(茶几/電視櫃)、平面件(地毯)、
+# 貼牆件(窗簾/層板)。其餘家具不得卡在沙發與電視櫃之間。
+_CORRIDOR_EXEMPT_TYPES = (
+    {"coffee-table", "tv-bench", "curtain"} | _OVERLAY_TYPES | _IGNORE_COLLISION_TYPES
+)
 
 
 def curtain_window_hint(
@@ -1066,11 +1091,16 @@ def _grid_place_in_boundary(
     placed,
     boundary,
     forbidden_zones: list[Polygon] | None = None,
+    accepts=None,
 ):
     """非矩形房間的最後防線:沿房間多邊形內部以 50cm 網格搜尋(由質心向外)。
 
     錨點與引擎網格都以 bbox 為座標基準,房間只佔 bbox 一角時全會撲空,
     這裡改以房間多邊形自己的範圍掃描。
+
+    ``accepts``(選填)是呼叫端的最終裁決(柵格遮罩/視聽走廊):不給則維持
+    舊行為。原本只回第一個 Shapely 合格點,再被柵格否決就整條後援作廢 ——
+    掃描時就讓裁決參與,側邊還有位就不會誤判成放不下。
     """
     from shapely.geometry import Point
     from shapely.prepared import prep
@@ -1098,6 +1128,7 @@ def _grid_place_in_boundary(
                 _inside_boundary(cand, boundary)
                 and not _placement_intersects_zones(cand, forbidden_zones)
                 and check_placement_with_clearance(cand, room, placed) is None
+                and (accepts is None or accepts(cand))
             ):
                 return cand
     return None
@@ -1896,15 +1927,59 @@ def generate_layout(
     # 窗前採光帶全部烘進布林網格,取代原本 Shapely 的三段分散檢查。
     raster = build_raster_context(room, boundary, floorplan)
 
+    # 視聽走廊:沙發正前到對面牆的帶狀區,只留給茶几/電視櫃/地毯(成組件),
+    # 其他家具不得插進沙發與電視櫃之間(feedback:躺椅/櫃體卡在觀影軸線)。
+    # 僅 agent 紀律(hints)啟用;寬 = 沙發寬,深 = 沙發前緣到可擺邊界。
+    corridor_mask = raster.grid.blank() if raster is not None and hints else None
+    corridor_stamped = False
+
+    def _corridor_blocks(kind: str | None, w: float, d: float, x_cm: float, z_cm: float, rot: float) -> bool:
+        if corridor_mask is None or not corridor_stamped or kind in _CORRIDOR_EXEMPT_TYPES:
+            return False
+        obb = Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, w, d, -rot)
+        return obb_blocked(corridor_mask, raster.grid, obb)
+
+    def _stamp_corridor(x_cm: float, z_cm: float, rot: float, w: float, d: float) -> None:
+        nonlocal corridor_stamped
+        if corridor_mask is None or corridor_stamped:
+            return                       # ponytail: 只護第一張沙發的軸線,多沙發房再說
+        fx, fz = _facing(rot)
+        b_left, b_right, b_top, b_bottom = (
+            placement_bounds_cm or (-half_w_cm, half_w_cm, -half_d_cm, half_d_cm)
+        )
+        front_x = x_cm + fx * d / 2
+        front_z = z_cm + fz * d / 2
+        # 斜擺沙發取主軸近似距離即可,合法性仍由柵格判
+        if abs(fx) >= abs(fz):
+            dist = (b_right - front_x) if fx > 0 else (front_x - b_left)
+        else:
+            dist = (b_bottom - front_z) if fz > 0 else (front_z - b_top)
+        if dist <= 0:
+            return
+        cx = front_x + fx * dist / 2
+        cz = front_z + fz * dist / 2
+        stamp_obb(
+            corridor_mask, raster.grid,
+            Obb.from_deg(cx + half_w_cm, cz + half_d_cm, w, dist, -rot),
+        )
+        corridor_stamped = True
+
     def _raster_accepts(engine_item: PlacedFurniture | None, kind: str | None) -> bool:
         """Shapely 提議、柵格裁決:引擎回的候選仍須通過布林網格才算合法。"""
         if engine_item is None:
             return False
+        x_rel = engine_item.pos_x - half_w_cm
+        z_rel = engine_item.pos_y - half_d_cm
+        rot_scene = (-engine_item.rotation) % 360
+        if _corridor_blocks(
+            kind, engine_item.catalog.width, engine_item.catalog.depth, x_rel, z_rel, rot_scene
+        ):
+            return False
         return raster_free(
             raster, kind,
             engine_item.catalog.width, engine_item.catalog.depth, engine_item.catalog.height,
-            engine_item.pos_x - half_w_cm, engine_item.pos_y - half_d_cm,
-            (-engine_item.rotation) % 360, half_w_cm, half_d_cm,
+            x_rel, z_rel,
+            rot_scene, half_w_cm, half_d_cm,
             check_placed=kind not in _OVERLAY_TYPES,
         )
 
@@ -2112,34 +2187,55 @@ def generate_layout(
                 x_cm = inner.x - half_w_cm
                 z_cm = inner.y - half_d_cm
         else:
-            candidates = _placement_candidates(
-                item_type,
-                width,
-                depth,
-                room_w_cm,
-                room_d_cm,
-                placement_bounds_cm,
-                hint=_hint_for(item),
-                neighbors=neighbors,
+            # 副件嚴格成組(agent 紀律,hints 時啟用):床頭櫃/茶几/電視櫃/餐椅/
+            # 辦公椅只准貼各自主件的成組候選 —— 原本成組位失敗會退到泛用候選
+            # 「亂放成功」,床頭櫃流落遠牆、引擎又不標失敗,寧缺勿亂永遠不觸發。
+            # 主件不在或成組位全被佔 → 標 placement_failed,交 resolve_placements
+            # 移除。使用者拖曳(placement_hint_cm)不受限,尊重手動意圖。
+            strict_pair = (
+                bool(hints)
+                and family_of(item_type) in COMPANION_OF
+                and not item.get("placement_hint_cm")
             )
-            if placement_variant == "B" and len(candidates) > 9:
-                # 方案 B 仍走相同碰撞/淨空驗證,只反轉「類型錨點」的嘗試順序
-                # (換一面牆開始)。3×3 網格散點維持在最後 —— 原本整串反轉會讓
-                # B 案的靠牆家具從房間中央的網格點開始試,永遠貼不了牆。
-                candidates = list(reversed(candidates[:-9])) + candidates[-9:]
-            elif placement_variant == "B" and len(candidates) > 1:
-                candidates = list(reversed(candidates))
-            hinted_wall_candidate = _hinted_wall_candidate(
-                item_type,
-                width,
-                depth,
-                item.get("placement_hint_cm"),
-                placement_bounds_cm,
-            )
-            if hinted_wall_candidate is not None:
-                candidates.insert(0, hinted_wall_candidate)
-            if curtain_hint:
-                candidates.insert(0, curtain_hint[:3])
+            if strict_pair:
+                b_left, b_right, b_top, b_bottom = (
+                    placement_bounds_cm
+                    or (-half_w_cm, half_w_cm, -half_d_cm, half_d_cm)
+                )
+                candidates = _agent_prepend_candidates(
+                    item_type, width, depth, None, neighbors,
+                    b_left, b_right, b_top, b_bottom,
+                    (b_left + b_right) / 2, (b_top + b_bottom) / 2,
+                )
+            else:
+                candidates = _placement_candidates(
+                    item_type,
+                    width,
+                    depth,
+                    room_w_cm,
+                    room_d_cm,
+                    placement_bounds_cm,
+                    hint=_hint_for(item),
+                    neighbors=neighbors,
+                )
+                if placement_variant == "B" and len(candidates) > 9:
+                    # 方案 B 仍走相同碰撞/淨空驗證,只反轉「類型錨點」的嘗試順序
+                    # (換一面牆開始)。3×3 網格散點維持在最後 —— 原本整串反轉會讓
+                    # B 案的靠牆家具從房間中央的網格點開始試,永遠貼不了牆。
+                    candidates = list(reversed(candidates[:-9])) + candidates[-9:]
+                elif placement_variant == "B" and len(candidates) > 1:
+                    candidates = list(reversed(candidates))
+                hinted_wall_candidate = _hinted_wall_candidate(
+                    item_type,
+                    width,
+                    depth,
+                    item.get("placement_hint_cm"),
+                    placement_bounds_cm,
+                )
+                if hinted_wall_candidate is not None:
+                    candidates.insert(0, hinted_wall_candidate)
+                if curtain_hint:
+                    candidates.insert(0, curtain_hint[:3])
             def _try_candidate(raw_x: float, raw_z: float, rot: float, *, clamp: bool = True) -> tuple[float, float] | None:
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
                 clamp_margin = 0 if item_type in _WALL_ANCHORED_TYPES else 18
@@ -2149,6 +2245,8 @@ def generate_layout(
                 )
                 cand_x = _clamp_axis(raw_x, candidate_left, candidate_right, fp_w, clamp_margin) if clamp else raw_x
                 cand_z = _clamp_axis(raw_z, candidate_top, candidate_bottom, fp_d, clamp_margin) if clamp else raw_z
+                if _corridor_blocks(item_type, width, depth, cand_x, cand_z, rot):
+                    return None
                 if raster_free(
                     raster, item_type, width, depth, height,
                     cand_x, cand_z, rot, half_w_cm, half_d_cm,
@@ -2160,9 +2258,10 @@ def generate_layout(
             # 網格散點原本緊接在類型錨點之後 —— 門前動線帶恰好壓掉每面牆僅有的
             # 2-3 個錨點時,靠牆家具就直接落在房間中央的網格點(floor04 客廳實測:
             # 沙發/電視櫃/茶几全數散落網格點)。掃描沿輪廓邊補完整錨點序列。
+            # 嚴格成組件只有成組候選,無網格散點、無靠牆掃描、無引擎後援。
             anchor_list = candidates
             grid_list: list[tuple[float, float, float]] = []
-            if item_type in _WALL_ANCHORED_TYPES and len(candidates) > 9:
+            if not strict_pair and item_type in _WALL_ANCHORED_TYPES and len(candidates) > 9:
                 anchor_list, grid_list = candidates[:-9], candidates[-9:]
 
             chosen: tuple[float, float, float] | None = None
@@ -2171,10 +2270,14 @@ def generate_layout(
                 if accepted is not None:
                     chosen = (accepted[0], accepted[1], rot)
                     break
-            if chosen is None and item_type in _WALL_ANCHORED_TYPES:
+            if chosen is None and not strict_pair and item_type in _WALL_ANCHORED_TYPES:
                 chosen = _raster_wall_anchor(
                     raster, item_type, width, depth, height, half_w_cm, half_d_cm,
                 )
+                if chosen is not None and _corridor_blocks(
+                    item_type, width, depth, chosen[0], chosen[1], chosen[2]
+                ):
+                    chosen = None        # 靠牆掃描不認得走廊,事後覆核
             if chosen is None:
                 for raw_x, raw_z, rot in grid_list:
                     accepted = _try_candidate(raw_x, raw_z, rot)
@@ -2182,7 +2285,13 @@ def generate_layout(
                         chosen = (accepted[0], accepted[1], rot)
                         break
 
-            if chosen is not None:
+            if strict_pair and chosen is None:
+                anchors_zh = "、".join(
+                    FAMILY_ZH.get(a, a) for a in COMPANION_OF[family_of(item_type)]
+                )
+                failed_reason = f"需與{anchors_zh}成組擺放，主件不在或旁邊沒有合法位置。"
+                x_cm, z_cm = 0.0, 0.0
+            elif chosen is not None:
                 x_cm, z_cm, rotation = chosen
                 candidate = PlacedFurniture(
                     id=item_id,
@@ -2203,11 +2312,11 @@ def generate_layout(
                 if not _raster_accepts(engine_item, item_type):
                     engine_item = None
                 if engine_item is None and boundary is not None:
+                    # 柵格/走廊裁決參與掃描:第一個合格點被走廊否決時繼續找側位
                     engine_item = _grid_place_in_boundary(
-                        catalog, item_id, room, placed, boundary, forbidden_zones
+                        catalog, item_id, room, placed, boundary, forbidden_zones,
+                        accepts=lambda cand: _raster_accepts(cand, item_type),
                     )
-                    if not _raster_accepts(engine_item, item_type):
-                        engine_item = None
                 if engine_item is not None:
                     placed.append(engine_item)
                     placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
@@ -2265,6 +2374,9 @@ def generate_layout(
                     "x": x_cm, "z": z_cm, "rot": rotation,
                     "width": width, "depth": depth,
                 }
+            if family == "sofa" and not validate_only:
+                # 沙發定位後保留正前視聽走廊,後續泛用件/自由座椅不得插入
+                _stamp_corridor(x_cm, z_cm, rotation, width, depth)
 
     return orient_layout_toward_targets([results[i] for i in range(len(items))])
 

@@ -567,6 +567,26 @@ def test_catalog_does_not_merge_same_named_bed_and_cabinet_models() -> None:
     assert len(merged) == 2
 
 
+def test_furniture_selection_rejects_outdoor_models_for_indoor_space() -> None:
+    """型錄把庭院躺椅歸在 armchair/sofa 等室內類型;自動選件必須靠名稱記號
+    擋下,否則客廳會出現戶外椅。"""
+    outdoor = {
+        "furniture_id": "outdoor-chaise",
+        "name_zh_raw": "全天候可調節戶外露臺泳池躺椅",
+        "name_en": "All-weather adjustable outdoor patio pool chaise lounge",
+        "normalized_type": "armchair",
+        "has_model": True,
+        "size_cm": {"width": 90, "depth": 80, "height": 80},
+    }
+    chosen, unavailable = choose_furniture_items(
+        {"style_id": "scandinavian", "required_furniture": ["armchair"], "space_type": "living_room"},
+        [outdoor],
+    )
+
+    assert chosen == []
+    assert unavailable == ["armchair"]
+
+
 def test_bed_selection_rejects_wardrobe_and_drawer_models() -> None:
     chosen, unavailable = choose_furniture_items(
         {"style_id": "scandinavian", "required_furniture": ["bed"]},
