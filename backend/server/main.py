@@ -2786,7 +2786,11 @@ async def scene_decorate(payload: dict) -> dict:
     rug_anchors = {"sofa", "sofa-bed", "bed", "bed-frame", "dining-table"}
     companion_anchors = rug_anchors | {"desk", "armchair"}
     requested_roles = []
-    if room_types & companion_anchors:
+    # 落地燈屬起居/閱讀情境;餐廚照明由天花吊燈方案處理,不放落地燈
+    # (feedback:廚房出現落地燈)。
+    if room_types & companion_anchors and room_type in {
+        "living_room", "bedroom", "storage", "default",
+    }:
         requested_roles.append("light")
     if room_types & rug_anchors:
         requested_roles.append("rug")
