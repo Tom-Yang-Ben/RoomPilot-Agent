@@ -352,3 +352,51 @@ def test_step6_drag_commits_backend_wall_snap_inside_original_room() -> None:
     assert "placement_room_id: item.roomId" in resolve_position
     assert "placement_hint_cm" in resolve_position
     assert "position_locked: true" in resolve_position
+
+
+def test_single_room_call_passes_other_rooms_furniture_through_verbatim() -> None:
+    """單房呼叫不得動別房家具:進即時寫實的逐房軟裝/重排把整屋清單塞進
+    單房請求時,別房鎖定件曾被該房柵格(房外即阻擋)誤殺、重排進本房或標
+    「放不下」。伺服器一律讓非目標房的件原樣通過。"""
+    floorplan = {
+        "coordinate_unit": "cm",
+        "width_cm": 840,
+        "depth_cm": 400,
+        "room_regions": [
+            {"room_id": "bed", "room_type": "bedroom",
+             "exterior": [[-412, -192], [-8, -192], [-8, 192], [-412, 192]], "holes": []},
+            {"room_id": "liv", "room_type": "living_room",
+             "exterior": [[8, -192], [412, -192], [412, 192], [8, 192]], "holes": []},
+        ],
+    }
+    sofa = {
+        "furniture_id": "sofa-1",
+        "normalized_type": "sofa",
+        "size_cm": {"width": 200, "depth": 90, "height": 96},
+        "position_cm": {"x": 210.0, "z": 137.0},
+        "rotation_y_deg": 180.0,
+        "position_locked": True,
+        "placement_room_id": "liv",
+    }
+    bed = {
+        "furniture_id": "bed-1",
+        "normalized_type": "bed",
+        "size_cm": {"width": 160, "depth": 200, "height": 120},
+        "position_cm": {"x": -210.0, "z": 85.0},
+        "rotation_y_deg": 180.0,
+        "position_locked": True,
+        "placement_room_id": "bed",
+    }
+    response = client.post(
+        "/api/scene/layout",
+        json={
+            "floorplan": floorplan,
+            "placement_room_id": "bed",
+            "scene_objects": [sofa, bed],
+        },
+    )
+    assert response.status_code == 200
+    by_id = {item["furniture_id"]: item for item in response.json()["scene_objects"]}
+    assert by_id["sofa-1"]["position_cm"] == {"x": 210.0, "z": 137.0}   # 原樣通過
+    assert not by_id["sofa-1"].get("placement_failed")
+    assert not by_id["bed-1"]["placement_failed"]
