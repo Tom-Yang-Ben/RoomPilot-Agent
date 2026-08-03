@@ -459,6 +459,15 @@ def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
     assert "!sentFurnitureIds.has(String(item.id))" in source
 
 
+def test_bedroom_layout_always_includes_a_bed_spec() -> None:
+    """臥室一定要有床:不論使用者勾選、agent 選件或尺寸過濾漏掉,
+    2D 佈局規格都要自動補上床(放不下時引擎只升級、不靜默移除)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "臥室必備床，已自動補上" in source
+    assert 'room.type === "bedroom"' in source
+
+
 def test_scheme_variants_share_confirmed_architecture() -> None:
     module_uri = (STATIC / "scene_design_schemes.js").as_uri()
     result = run_workflow_script(

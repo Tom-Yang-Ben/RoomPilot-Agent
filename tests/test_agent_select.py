@@ -179,6 +179,20 @@ def test_parse_all_invalid_raises():
         parse_selections({"no_selections": True}, _rooms(), _offers())
 
 
+def test_parse_guarantees_a_bed_for_answered_bedrooms():
+    """臥室一定要有床:LLM 有回答臥室但漏了床 → 從候選自動補第一張床;
+    候選沒有床時無從補,結果維持原樣(交擺位護欄升級)。"""
+    raw = {"selections": [_sel("r-bed", "ward-1")]}
+    result = parse_selections(raw, _rooms(), _offers())
+    ids = [s.item["furniture_id"] for s in result["r-bed"]]
+    assert "bed-1" in ids and "ward-1" in ids
+
+    offers = _offers()
+    offers["r-bed"] = [c for c in offers["r-bed"] if c["furniture_id"] != "bed-1"]
+    result = parse_selections(raw, _rooms(), offers)
+    assert [s.item["furniture_id"] for s in result["r-bed"]] == ["ward-1"]
+
+
 # ---------- request_selections ----------
 
 def test_request_without_candidates_skips_llm():

@@ -9106,6 +9106,14 @@ async function autoLayoutFurniture() {
         specsFromSelectionResponse(room, selection, specs),
       )
       : specs;
+    // 臥室一定要有床:不論使用者勾選、agent 選件或尺寸過濾漏掉,一律補上
+    //(放不下時引擎只升級回報、不會靜默移除)。
+    if (
+      room.type === "bedroom"
+      && !selectedSpecs.some(([type]) => type === "bed" || type === "sofa-bed")
+    ) {
+      selectedSpecs.push(["bed", "standard", "臥室必備床，已自動補上", true]);
+    }
     const roomItems = [];
     selectedSpecs.forEach(([type, variant, reason, autoAdded, catalogItem], index) => {
       try {

@@ -12,7 +12,13 @@ from urllib import error, request
 from shapely.geometry import LineString, Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
-from ..agent.knowledge import COMPANION_OF, FAMILY_ZH, family_of, is_outdoor_item
+from ..agent.knowledge import (
+    COMPANION_OF,
+    FAMILY_ZH,
+    FREE_SEATING_FAMILIES,
+    family_of,
+    is_outdoor_item,
+)
 from ..agent.place import placement_hints, resolve_placements
 from ..catalog.style_db import CLEARANCE_BY_TYPE, catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
@@ -150,6 +156,11 @@ def normalize_required_furniture(raw_items: list[str], space_type: str) -> list[
             normalized.append(mapped)
 
     if normalized:
+        # 臥室一定要有床:需求清單漏了就補在最前(主件優先擺)
+        if space_type == "bedroom" and not any(
+            item == "sofa-bed" or family_of(item) == "bed" for item in normalized
+        ):
+            normalized.insert(0, "bed")
         return normalized
 
     return SPACE_DEFAULTS.get(space_type, SPACE_DEFAULTS["living_room"]).copy()
@@ -768,11 +779,16 @@ def _placement_candidates(
     if item_type == "tv-bench":
         candidates.extend([(center_x, top + depth / 2 + wall_gap, 0), (center_x - candidate_width_cm * 0.22, top + depth / 2 + wall_gap, 0)])
     elif item_type == "sofa":
-        # 下牆優先;下牆被門淨空/牆縫壓掉時改試左右牆(面向室內),
-        # 才不會落到「長邊優先」掃描的任意牆、讓對面沒有電視櫃的位置。
+        # 下牆優先,正中最先、由中心向外滑位(feedback:沙發壓到陽台門時
+        # 「往旁邊移一點,盡量在正前方,有一定容錯」——滑位序列就是容錯);
+        # 同牆全被門淨空/通行縫壓掉才改試左右牆(面向室內),才不會落到
+        # 「長邊優先」掃描的任意牆、讓對面沒有電視櫃的位置。
+        sofa_z = bottom - depth / 2 - wall_gap
+        candidates.extend(
+            (center_x + candidate_width_cm * ratio, sofa_z, 180)
+            for ratio in (0.0, -0.09, 0.09, -0.18, 0.18, -0.27, 0.27, -0.36, 0.36)
+        )
         candidates.extend([
-            (center_x, bottom - depth / 2 - wall_gap, 180),
-            (center_x - candidate_width_cm * 0.18, bottom - depth / 2 - wall_gap, 180),
             (left + depth / 2 + wall_gap, center_z, 90),
             (right - depth / 2 - wall_gap, center_z, 270),
         ])
@@ -910,6 +926,23 @@ def _agent_prepend_candidates(
                 z = bottom - depth / 2 - gap if fz > 0 else top + depth / 2 + gap
                 rot = 180.0 if fz > 0 else 0.0
                 paired.extend((sofa["x"] + off, z, rot) for off in lateral)
+    elif family in FREE_SEATING_FAMILIES:
+        sofa = neighbors.get("sofa")
+        if sofa:
+            # 客廳休閒椅只准沙發左前/右前(對談 L 型),面向座位區中線;
+            # 走廊遮罩已保證這些點在視聽軸線之外。
+            fx, fz = _facing(sofa["rot"])
+            ux, uz = fz, -fx                     # 沙發側向
+            chair_half = max(width, depth) / 2
+            side_off = sofa["width"] / 2 + chair_half + 12.0
+            for forward in (sofa["depth"] / 2, sofa["depth"] / 2 + 40.0):
+                for side in (1.0, -1.0):
+                    rot = math.degrees(math.atan2(-ux * side, -uz * side)) % 360
+                    paired.append((
+                        sofa["x"] + ux * side * side_off + fx * forward,
+                        sofa["z"] + uz * side * side_off + fz * forward,
+                        rot,
+                    ))
     elif family == "dining-chair":
         table = neighbors.get("dining-table")
         if table:
@@ -1166,11 +1199,18 @@ def window_clearance_zones(
     floorplan: dict[str, Any] | None,
     room: Room,
     depth_cm: float = 70.0,
+    where=None,
 ) -> list[Polygon]:
-    """Build no-furniture bands around confirmed window and balcony openings."""
+    """Build no-furniture bands around confirmed window and balcony openings.
+
+    ``where``(選填)以原始 opening dict 過濾:一般窗與落地窗(出入口)
+    的淨空語意不同,拖曳驗證需要分流。
+    """
     scale = _floorplan_coordinate_scale_cm(floorplan)
     zones: list[Polygon] = []
     for opening in (floorplan or {}).get("window_segments") or []:
+        if where is not None and not where(opening):
+            continue
         try:
             start = opening["start"]
             end = opening["end"]
@@ -1245,6 +1285,15 @@ def build_raster_context(
 
     doors = _floorplan_segments_cm(floorplan, "door_segments", room)
     windows = _floorplan_segments_cm(floorplan, "window_segments", room)
+    # 落地窗(陽台門)是出入動線:當「通行縫」進 low 遮罩(75cm,與門同級),
+    # 矮家具與沙發都不得擋;一般窗維持 40cm 採光帶(沙發豁免、矮件可貼)。
+    access_windows = _floorplan_segments_cm(
+        floorplan, "window_segments", room, where=_is_access_window,
+    )
+    plain_windows = _floorplan_segments_cm(
+        floorplan, "window_segments", room,
+        where=lambda opening: not _is_access_window(opening),
+    )
     plan = {
         "bbox": [
             min(p[0] for p in ring), min(p[1] for p in ring),
@@ -1258,7 +1307,9 @@ def build_raster_context(
     grid = build_occupancy(plan)
     # occ 已含牆線;房間環本身就是可擺區域,牆體不再重複扣一次
     grid.occ[:] = False
-    masks = blocked_masks(grid, ring, doors=doors, windows=windows)
+    masks = blocked_masks(
+        grid, ring, doors=doors, windows=plain_windows, passages=access_windows,
+    )
     return RoomContext(
         grid=grid,
         masks=masks,
@@ -1373,15 +1424,36 @@ def _raster_wall_anchor(
     return None
 
 
+def _is_access_window(opening: dict[str, Any]) -> bool:
+    """落地窗(window_type=floor_to_ceiling 或窗台 ≤15cm)視為出入口。
+
+    陽台門常以落地窗身分存在於 window_segments;它是動線,不是採光帶,
+    沙發豁免與矮家具(電視櫃)通行都不適用。無型別資料(DXF 舊圖)一律
+    當一般窗,行為與過去相同。
+    """
+    if opening.get("window_type") == "floor_to_ceiling":
+        return True
+    try:
+        return float(opening["sill_height_cm"]) <= 15.0
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
 def _floorplan_segments_cm(
     floorplan: dict[str, Any] | None,
     key: str,
     room: Room,
+    where=None,
 ) -> list[tuple[float, float, float, float]]:
-    """payload 的門/窗段 → 角落原點公分線段(與 window_clearance_zones 同一換算)。"""
+    """payload 的門/窗段 → 角落原點公分線段(與 window_clearance_zones 同一換算)。
+
+    ``where``(選填)以原始 opening dict 過濾,供門窗依型別分流。
+    """
     scale = _floorplan_coordinate_scale_cm(floorplan)
     out: list[tuple[float, float, float, float]] = []
     for opening in (floorplan or {}).get(key) or []:
+        if where is not None and not where(opening):
+            continue
         try:
             start, end = opening["start"], opening["end"]
             out.append((
@@ -1859,11 +1931,22 @@ def validate_single_placement(
         return {"ok": reason is None, "reason": reason}
     if item.get("normalized_type") in _IGNORE_COLLISION_TYPES:
         return {"ok": True, "reason": None}
+    if item.get("normalized_type") != "curtain" and _placement_intersects_zones(
+        moving,
+        window_clearance_zones(floorplan, room, depth_cm=75.0, where=_is_access_window),
+    ):
+        return {"ok": False, "reason": "落地窗是陽台出入動線，家具不可擋在前方。"}
     if (
         item.get("normalized_type") not in _WINDOW_CLEARANCE_EXEMPT_TYPES
-        and _placement_intersects_zones(moving, window_clearance_zones(floorplan, room))
+        and _placement_intersects_zones(
+            moving,
+            window_clearance_zones(
+                floorplan, room,
+                where=lambda opening: not _is_access_window(opening),
+            ),
+        )
     ):
-        return {"ok": False, "reason": "家具不可遮擋窗戶或落地窗前方淨空。"}
+        return {"ok": False, "reason": "家具不可遮擋窗戶前方採光淨空。"}
 
     placed_others = [
         _scene_object_to_placed(o, half_w_cm, half_d_cm)
@@ -2200,12 +2283,18 @@ def generate_layout(
             # 副件嚴格成組(agent 紀律,hints 時啟用):床頭櫃/茶几/電視櫃/餐椅/
             # 辦公椅只准貼各自主件的成組候選 —— 原本成組位失敗會退到泛用候選
             # 「亂放成功」,床頭櫃流落遠牆、引擎又不標失敗,寧缺勿亂永遠不觸發。
+            # 休閒椅(armchair/lounge)在沙發已就位的房間同樣嚴格:只准沙發
+            # 左前/右前;沒有沙發的房間(書房閱讀椅)維持自由擺放。
             # 主件不在或成組位全被佔 → 標 placement_failed,交 resolve_placements
             # 移除。使用者拖曳(placement_hint_cm)不受限,尊重手動意圖。
+            item_family = family_of(item_type)
             strict_pair = (
                 bool(hints)
-                and family_of(item_type) in COMPANION_OF
                 and not item.get("placement_hint_cm")
+                and (
+                    item_family in COMPANION_OF
+                    or (item_family in FREE_SEATING_FAMILIES and "sofa" in neighbors)
+                )
             )
             if strict_pair:
                 b_left, b_right, b_top, b_bottom = (
@@ -2296,10 +2385,13 @@ def generate_layout(
                         break
 
             if strict_pair and chosen is None:
-                anchors_zh = "、".join(
-                    FAMILY_ZH.get(a, a) for a in COMPANION_OF[family_of(item_type)]
-                )
-                failed_reason = f"需與{anchors_zh}成組擺放，主件不在或旁邊沒有合法位置。"
+                if item_family in FREE_SEATING_FAMILIES:
+                    failed_reason = "休閒椅僅能擺在沙發左前或右前，目前沒有合法位置。"
+                else:
+                    anchors_zh = "、".join(
+                        FAMILY_ZH.get(a, a) for a in COMPANION_OF[item_family]
+                    )
+                    failed_reason = f"需與{anchors_zh}成組擺放，主件不在或旁邊沒有合法位置。"
                 x_cm, z_cm = 0.0, 0.0
             elif chosen is not None:
                 x_cm, z_cm, rotation = chosen

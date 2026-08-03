@@ -236,6 +236,19 @@ def resolve_placements(
                 pool, obj.get("normalized_type"), _footprint(item), used_ids
             )
             if smaller is None:
+                if family == "bed":
+                    # 臥室一定要有床:床絕不靜默移除,升級回報請使用者處理
+                    if fid not in escalated:
+                        escalated.add(fid)
+                        report.append({
+                            "furniture_id": obj.get("furniture_id"),
+                            "type": obj.get("normalized_type"),
+                            "action": "escalate",
+                            "from": _name(item),
+                            "to": None,
+                            "message_zh": f"臥室必須有床：「{_name(item)}」目前放不下，請調整空間或手動擺放。",
+                        })
+                    continue
                 _remove(item, obj, f"空間有限，暫時移除「{_name(item)}」以維持動線。")
                 changed = True
                 continue

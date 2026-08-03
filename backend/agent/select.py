@@ -253,9 +253,45 @@ def parse_selections(
         kept = _apply_conventions(room_type_by_id.get(room_id) or "", bucket, protected)
         if kept:
             result[room_id] = kept
+    _ensure_bedroom_beds(result, room_type_by_id, offers)
     if not result:
         raise SelectionParseError("LLM 選件結果驗證後無任何有效項目")
     return result
+
+
+def _ensure_bedroom_beds(
+    result: dict[str, list[SelectedItem]],
+    room_type_by_id: dict[str, str],
+    offers: dict[str, list[dict[str, Any]]],
+) -> None:
+    """臥室一定要有床:已回答的臥室缺床時,從該房候選補第一張有模型的床。
+
+    只補「有回答但漏床」的房;沒回答的房仍整間走本機規則(該路徑重新進
+    parse_selections 時同樣受本保證)。候選裡沒有床就無從補,記 log 交由
+    擺位護欄(床不移除只升級)接手。
+    """
+    for room_id, bucket in result.items():
+        if room_type_by_id.get(room_id) != "bedroom":
+            continue
+        if any(
+            family_of(selected.item.get("normalized_type")) == "bed"
+            for selected in bucket
+        ):
+            continue
+        bed = next(
+            (
+                offer
+                for offer in offers.get(room_id) or []
+                if family_of(offer.get("normalized_type")) == "bed"
+                and offer.get("has_model")
+            ),
+            None,
+        )
+        if bed is None:
+            logger.warning("臥室 %s 的候選中沒有床,無法自動補床", room_id)
+            continue
+        logger.info("臥室 %s 缺床,自動補入 %s", room_id, bed.get("furniture_id"))
+        bucket.append(SelectedItem(item=bed, count=1))
 
 
 def request_selections(
