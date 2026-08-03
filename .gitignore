@@ -18,24 +18,19 @@ __pycache__/
 # training/ 進版控走精簡集（2026-08-03 使用者裁定）：scripts/＋tests/
 # 即為「clone 回來就能續作」的全部——training.zip 換機機制退場。
 # 不入庫的三類：第三方 CubiCasa5k（需要時依 FloorTraining.md 另外
-# clone）、可重生中間產物（room_crops 由 extract_room_crops 重生、
-# asset_ckpt 為素材輪快取）、pytest 快取；辨識/評分產出一律走 temp/。
+# clone）、可重生中間產物（room_crops 重訓前必以 extract_room_crops
+# 重生、asset_ckpt 為素材輪斷點快取）、pytest 快取。
 training/CubiCasa5k/
 training/room_crops/
 training/asset_ckpt/
 training/tests/.pytest_cache/
+
+# 工作流模板個人快取（工具會自行生成）
 VibeCoding_Workflow_Templates/
-# 微調權重留專案根本地使用（200M 超 GitHub 100MB 限制），換機用 Drive/隨身碟帶
-/model_finetuned_*.pkl
-/backend/floorplan/model_finetuned_*.pkl
 
-# 工作暫存（漏門裁圖、未標房間標示圖等除錯產物）
+# 工作暫存（評測報表、chk 疊圖等一切產出，不限深度——含以
+# backend/floorplan/ 為 cwd 執行時落在該處的 temp/）
 temp/
-.mcp.json
 
-# 應用程式執行狀態（跑 RoomPilot 時自動生成）：專案資料庫、使用者上傳的
-# 平面圖、算圖輸出。每台機器各自累積，不該互相覆蓋
-.runtime/
-
-# macOS Finder 中繼檔（ben 端 macOS 工作機會持續產生）
+# macOS Finder 中繼檔（他端 macOS 工作機會產生）
 .DS_Store
