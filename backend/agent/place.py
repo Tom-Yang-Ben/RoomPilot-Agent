@@ -133,6 +133,8 @@ def _replacement_item(item: dict[str, Any], smaller: dict[str, Any]) -> dict[str
     return {
         **item,
         "furniture_id": smaller.get("furniture_id"),
+        # 前端 2D 對帳與 GLB 追溯都認 catalog id,跟著換,否則新件掛舊型錄
+        "catalog_furniture_id": smaller.get("furniture_id"),
         "name_zh_raw": smaller.get("name_zh_raw") or smaller.get("name_zh")
         or smaller.get("furniture_id"),
         "normalized_type": smaller.get("normalized_type"),
