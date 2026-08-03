@@ -355,6 +355,8 @@ const element = {
   requirementsGenerationHelpDetail: $("#requirements-generation-help-detail"),
   randomizeRequirements: $("#randomize-requirements"),
   confirmRequirements: $("#confirm-requirements"),
+  placementBusy: $("#placement-busy"),
+  placementBusyText: $("#placement-busy-text"),
   questionnaireStageNav: $("#questionnaire-stage-nav"),
   visualSpaceNav: $("#visual-space-nav"),
   visualQuestionProgress: $("#visual-question-progress"),
@@ -1262,6 +1264,23 @@ function markRealisticSceneEdited() {
 
 function activePanelName(step) {
   return WORKFLOW_PANEL_BY_STEP[step] || step;
+}
+
+// 擺放/生成期間的全畫面等待提示:agent 還在算就明確告訴使用者要等,
+// 深度計數讓巢狀流程(確認問卷 → 逐房擺位 → 生成 3D)只在全部結束後才收。
+let placementBusyDepth = 0;
+function beginPlacementBusy(text) {
+  placementBusyDepth += 1;
+  if (!element.placementBusy) return;
+  if (text && element.placementBusyText) element.placementBusyText.textContent = text;
+  element.placementBusy.hidden = false;
+}
+
+function endPlacementBusy() {
+  placementBusyDepth = Math.max(0, placementBusyDepth - 1);
+  if (placementBusyDepth === 0 && element.placementBusy) {
+    element.placementBusy.hidden = true;
+  }
 }
 
 function showStep(step) {
@@ -7825,6 +7844,7 @@ async function confirmRequirements() {
     setStatus("Kai 家具型錄尚未就緒，已保留問卷答案並停止建立配置。", "error");
     return;
   }
+  beginPlacementBusy("AI 正在為每間房挑選並擺放家具，請稍候…");
   try {
     setStatus("正在檢查空間規則並建立方案 A、B…");
     ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });
@@ -7865,6 +7885,8 @@ async function confirmRequirements() {
     element.requirementsError.textContent = errorMessage(error);
     showRequirementsGenerationHelp(`系統回報：${errorMessage(error)}。`);
     setStatus(errorMessage(error), "error");
+  } finally {
+    endPlacementBusy();
   }
 }
 
@@ -9968,6 +9990,7 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
   );
   let placedObjects = [];
   setStatus(`正在為「${room.label}」擇優配置，會保留優先家具並記錄未放入項目…`);
+  beginPlacementBusy(`AI 正在為「${room.label}」擇優擺放家具，請稍候…`);
   try {
     while (retained.length) {
       const layout = await api("/api/scene/layout", {
@@ -10054,6 +10077,8 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
     );
   } catch (error) {
     setStatus(errorMessage(error), "error");
+  } finally {
+    endPlacementBusy();
   }
 }
 
@@ -10685,6 +10710,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       activeScheme().staleReason || "方案 B 尚未產生合法家具配置。";
     return;
   }
+  beginPlacementBusy("AI 正在計算家具合法位置並載入 3D 模型，請稍候…");
   try {
     if (state.furniture2d.length) {
       const validation = await api("/api/scene/layout", {
@@ -10832,6 +10858,20 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       style_id: "white_model",
       palette_hex: ["#f4f1ec", "#e9e6e1", "#d8d3cc", "#bcb4aa"],
     };
+    // 修復迴圈可能把家具換小(furniture_id 變成新型錄款)或整件移除:
+    // 「送出去但沒回來」的 2D 條目要清掉,否則舊件永遠掛在待處理欄、
+    // 新件又照畫,2D 清單與 3D 對不上(feedback:廚房 11/12 鬼影)。
+    // 只清這次有送出的;因缺 GLB 而未送的待處理件不動。
+    const sentFurnitureIds = new Set(
+      sceneFurniture.map((item) => String(item.furniture_id)),
+    );
+    const returnedFurnitureIds = new Set(
+      (state.sceneData.scene_objects || []).map((item) => String(item.furniture_id)),
+    );
+    state.furniture2d = state.furniture2d.filter(
+      (item) => !sentFurnitureIds.has(String(item.id))
+        || returnedFurnitureIds.has(String(item.id)),
+    );
     state.sceneData.scene_objects.forEach((sceneObject) => {
       state.furniture2d = upsertFurniture2dFromSceneObject(
         state.furniture2d,
@@ -10874,6 +10914,8 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
   } catch (error) {
     element.layoutError.textContent = errorMessage(error);
     setStatus(errorMessage(error), "error");
+  } finally {
+    endPlacementBusy();
   }
 }
 
@@ -13711,6 +13753,7 @@ function bindEvents() {
   });
   $("#auto-layout-furniture")?.addEventListener("click", async () => {
     element.layoutError.textContent = "";
+    beginPlacementBusy("AI 正在重新擺放家具，請稍候…");
     try {
       setStatus("正在由家具引擎重新配置合法位置…");
       if (activeSchemeId() === "B" && state.designSchemes.schemes.A.furniture.length) {
@@ -13736,6 +13779,8 @@ function bindEvents() {
     } catch (error) {
       element.layoutError.textContent = errorMessage(error);
       setStatus(errorMessage(error), "error");
+    } finally {
+      endPlacementBusy();
     }
   });
   element.furnitureSearch?.addEventListener("input", () => renderFurnitureLibrary(element.furnitureSearch.value));

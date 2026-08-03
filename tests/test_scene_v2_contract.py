@@ -431,6 +431,34 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             ), f"{importer_name} has a stale cache key for {dependency_name}"
 
 
+def test_placement_busy_overlay_announces_waiting_during_layout() -> None:
+    """agent 還在擺放時,畫面必須明確顯示「請稍候」並擋住操作;
+    擺完才一次呈現最終結果(不逐步上畫面)。"""
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert 'id="placement-busy"' in html
+    assert 'id="placement-busy-text"' in html
+    assert "AI 正在擺放家具" in html
+    assert "function beginPlacementBusy" in source
+    assert "function endPlacementBusy" in source
+    # 四個擺位入口都要有等待提示:問卷確認、2D 確認生成、重新配置、逐房擇優
+    assert source.count("beginPlacementBusy(") >= 4
+    assert source.count("endPlacementBusy(") >= source.count("beginPlacementBusy(") - 1
+    assert ".rp-placement-busy" in css
+
+
+def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
+    """修復迴圈換小(新 furniture_id)或移除後,送出未回來的 2D 條目必須清掉,
+    否則舊件掛在待處理欄、新件又照畫,2D 清單與 3D 對不上(廚房鬼影)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "sentFurnitureIds" in source
+    assert "returnedFurnitureIds" in source
+    assert "!sentFurnitureIds.has(String(item.id))" in source
+
+
 def test_scheme_variants_share_confirmed_architecture() -> None:
     module_uri = (STATIC / "scene_design_schemes.js").as_uri()
     result = run_workflow_script(
