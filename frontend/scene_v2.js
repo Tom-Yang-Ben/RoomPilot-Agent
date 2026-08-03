@@ -1872,11 +1872,41 @@ function confirmedRoomHeightCm() {
   return Math.max(210, Number(confirmedFloorplanEditor().room_height_cm) || 270);
 }
 
-function hydrateSceneWallMass() {
-  if (!state.sceneData?.floorplan) return;
+async function refreshRestoredFloorplanStructure() {
+  const floorplan = state.sceneData?.floorplan;
+  if (!floorplan) return false;
+  if (floorplan.wall_polys_openings_cut === true) return false;
   const confirmedPolys = state.confirmedFloorplan?.floorplan?.wall_polys || [];
-  if (!state.sceneData.floorplan.wall_polys?.length && confirmedPolys.length) {
-    state.sceneData.floorplan.wall_polys = JSON.parse(JSON.stringify(confirmedPolys));
+  if (!floorplan.wall_polys?.length && confirmedPolys.length) {
+    // DXF 舊存檔：confirmed_floorplan 已帶（未開槽的）wall_polys，直接回填。
+    floorplan.wall_polys = JSON.parse(JSON.stringify(confirmedPolys));
+  }
+  // 第 6 步結構一律以第 4 步確認資料重建：存檔的 scene_json 是產生當下的
+  // 快照，後端幾何修正（如 wall_polys 開槽）到不了舊專案，牆會退回逐段
+  // 板片（2026-08-03 QA）。只刷新 floorplan 結構——scene_objects 傳空陣列，
+  // 家具座標維持存檔原樣、不重排。
+  if (floorplan.source !== "user_confirmed") return false;
+  if (!state.workflow?.completed?.includes("space_confirmation")) return false;
+  if (!(state.structures.walls || []).length) return false;
+  try {
+    const layout = await api("/api/scene/layout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        floorplan_editor: confirmedFloorplanEditor(),
+        scene_objects: [],
+      }),
+    });
+    if (!layout?.floorplan?.wall_polys?.length) return false;
+    state.sceneData.floorplan = { ...floorplan, ...layout.floorplan };
+    persistActiveScheme(state.designSchemes, {
+      furniture: state.furniture2d,
+      sceneData: state.sceneData,
+    });
+    return true;
+  } catch (error) {
+    console.warn("Unable to refresh restored floorplan structure.", error);
+    return false;
   }
 }
 
@@ -11547,7 +11577,7 @@ async function restoreProject() {
       sceneRecoveryError = error;
       console.warn("Unable to rebuild saved 3D scene from layout.", error);
     }
-    hydrateSceneWallMass();
+    const restoredFloorplanRefreshed = await refreshRestoredFloorplanStructure();
     // 還沒上傳過平面圖的專案不能去抓 source——端點會回 409，整段還原會被
     // 誤判為失敗（2026-08-03 QA：新專案一進來就顯示「畫面還原失敗：HTTP 409」）。
     if (state.workflow.completed.includes("upload")) {
@@ -11577,6 +11607,7 @@ async function restoreProject() {
     }
     if (
       sceneRecoveredFromLayout
+      || restoredFloorplanRefreshed
       || restoredRetiredAppliancesRemoved > 0
       || restoredWallSurfaceRepairs > 0
       || restoredDoorSwingEndpoints > 0

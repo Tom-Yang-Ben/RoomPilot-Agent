@@ -3222,10 +3222,34 @@ def test_restore_skips_floorplan_source_until_upload_completed() -> None:
     就顯示「畫面還原失敗：HTTP 409」（2026-08-03 QA）。
     """
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
-    block = source.split("hydrateSceneWallMass();", 1)[1].split(
-        "await renderRestoredStep()", 1
-    )[0]
+    block = source.split(
+        "await refreshRestoredFloorplanStructure();", 1
+    )[1].split("await renderRestoredStep()", 1)[0]
 
     assert block.index('completed.includes("upload")') < block.index("floorplan/source"), (
         "抓 floorplan/source 前必須先確認 upload 步驟已完成"
     )
+
+
+def test_restore_refreshes_stale_floorplan_from_step4_snapshot() -> None:
+    """存檔的 scene_json 是產生當下的快照；復原時結構必須以第 4 步確認資料
+    重建，否則後端幾何修正（wall_polys 開槽）永遠到不了舊專案，牆退回逐段
+    板片（2026-08-03 QA；原則同遠端 bella-test1 的第 4 步快照，但幾何仍由
+    後端計算）。家具不重排：scene_objects 一律傳空陣列。"""
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    refresh = source.split("async function refreshRestoredFloorplanStructure()", 1)[1].split(
+        "function cmToPixel(", 1
+    )[0]
+
+    # 已是新契約（開槽旗標為真）就不重打 API。
+    assert "if (floorplan.wall_polys_openings_cut === true) return false;" in refresh
+    # 只信第 4 步確認過的結構，手動矩形/DXF 各走原路。
+    assert 'if (floorplan.source !== "user_confirmed") return false;' in refresh
+    assert 'completed?.includes("space_confirmation")' in refresh
+    # 只刷新 floorplan，家具座標維持存檔原樣。
+    assert "scene_objects: []," in refresh
+    assert '"/api/scene/layout"' in refresh
+    assert "floorplan_editor: confirmedFloorplanEditor()" in refresh
+    assert "{ ...floorplan, ...layout.floorplan }" in refresh
+    # 刷新後要觸發保存，下次復原不必再打一次。
+    assert "restoredFloorplanRefreshed" in source
