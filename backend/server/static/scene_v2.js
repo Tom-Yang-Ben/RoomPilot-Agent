@@ -9360,6 +9360,8 @@ function renderLayoutFurniture() {
     state.selectedFurniture2dId = visibleFurniture[0]?.id || null;
   }
   element.layoutLayer.innerHTML = visibleFurniture.map((item) => {
+    // 擺不下的家具塌在 0,0,不畫進平面圖(只留清單/待處理欄);碰撞件仍畫標紅。
+    if (item.placementFailed === true) return "";
     const pixel = furniturePixelPosition(item);
     const style = furnitureFootprintStyle(item, scale);
     const invalid = item.placementFailed === true || itemCollision(item);
@@ -9699,6 +9701,9 @@ function renderConfigurationPlan() {
   const scale = configurationPlanPixelsPerCm();
   if (scale > 0) {
     element.configurationPlanLayer.innerHTML = state.furniture2d.map((item, index) => {
+      // 擺不下的家具(位置塌到 0,0)不畫進平面圖,只留在右側待處理欄手動擺放;
+      // 碰撞件仍畫(標紅),使用者要能拖它。編號改由 sceneIndex 決定,略過不影響。
+      if (item.placementFailed === true) return "";
       const pixel = configurationFurniturePixelPosition(item);
       const style = furnitureFootprintStyle(item, scale);
       const invalid = blockingIds.has(String(item.id));
