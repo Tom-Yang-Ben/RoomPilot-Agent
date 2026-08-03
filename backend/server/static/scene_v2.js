@@ -11649,6 +11649,10 @@ async function confirmWhiteModel() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        // 只驗不排:信任使用者已鎖定的配置,座標照舊,只回報是否合法。
+        // 少了這個旗標,伺服器會整場重排,把合法家具塌到 (0,0) 疊在一起,
+        // 又因 invalid 而卡在本步驟進不了即時寫實。
+        validate_only: true,
         floorplan_editor: confirmedFloorplanEditor(),
         scene_objects: (state.sceneData?.scene_objects || []).map((item) => ({
           ...item,
