@@ -18,10 +18,11 @@
 比例尺以門寬鐵律校正（refine_scale）：單門 85cm / 雙門 175cm / 牆厚 17.5cm。
 房型以辨識決定：DINOv2 房間裁切分類 + 古典符號偵測 + OCR 文字證據。
 
-用法：
-  python floorplan2room.py              # 批次 testdata/png/ → chk/room/
-  python floorplan2room.py 圖.png       # 單張
-  python floorplan2room.py 目錄 [輸出]  # 批次指定目錄
+用法（不帶參數不跑，會要求給圖檔或目錄）：
+  python floorplan2room.py 圖.png         # 單張，路徑相對當前目錄
+  python floorplan2room.py png            # 批次 testdata/png/ → chk/room/
+  python floorplan2room.py color_png      # 批次 testdata/color_png/
+  python floorplan2room.py 目錄 [輸出]    # 批次指定目錄（相對當前目錄的路徑照用）
 """
 import argparse
 import difflib
@@ -115,30 +116,58 @@ def detect_bw(cfg):
     T_out = fp_bw.outer_wall_thickness(rects, T)
     mmpp, sinfo = fp_bw.derive_door_scale(doors, T_out, cfg)
     return {"rects": rects, "wins": wins, "doors": doors, "T": T, "T_out": T_out,
-            "cm": mmpp / 10.0, "bgr": bgr, "thin": thin,
+            "cm": mmpp / 10.0, "bgr": bgr, "thin": thin, "domain": "gray",
             "img_w": img_w, "img_h": img_h, "scale_info": sinfo}
 
 
 def detect_color(cfg):
     """彩色渲染圖：直接用 fp_c.detect_walls 共用流程（含基柱/灰度過濾/語意融合）。
-    彩色管線現階段門/窗停用 → doors/wins 空，封口全靠牆縫開口偵測。"""
-    rects, bgr, _bw, _bw_open, T, img_w, img_h, _is_color = fp_c.detect_walls(cfg)
+    窗與細線層接回（floor_09 實案：外牆窗帶沒封口，灌水從窗漏到影像
+    邊界，左半客廳/主臥被室外過濾整片剪掉）——窗封灌水的洞、thin 供
+    segment_rooms 救援輪與門墨水否決。門弧偵測在彩圖未驗證，doors
+    維持空，只借給 detect_windows 做誤判抑制。"""
+    rects, bgr, bw, bw_open, T, img_w, img_h, _is_color = fp_c.detect_walls(cfg)
     T_out = fp_c.outer_wall_thickness(rects, T)
+    orig_win, soft, thin = fp_c.color_window_layers(bgr, bw, bw_open)
+    wins = []
+    if cfg.windows and rects:
+        arc_doors = fp_c.detect_doors(thin, T, cfg.door_arc_pct)
+        cand = fp_c.detect_windows(orig_win, rects, cfg, T, arc_doors,
+                                   thin, soft)
+        # 內外側守門：彩圖窗偵測 P 63%，室內誤判窗（floor_04 中央假窗、
+        # floor_05 房內白櫃）畫進封口遮罩會把房間攔腰切。真窗物理特徵
+        # ＝恰好一側通室外；距離外圈/兩端錨定實測都分不開真假
+        wins = fp_c.window_side_gate(cand, rects, T,
+                                     fp_c.derive_door_scale(
+                                         [], T_out, cfg)[0] / 10.0,
+                                     img_w, img_h)
     mmpp, sinfo = fp_c.derive_door_scale([], T_out, cfg)
-    return {"rects": rects, "wins": [], "doors": [], "T": T, "T_out": T_out,
-            "cm": mmpp / 10.0, "bgr": bgr, "thin": None,
+    # thin 只以 fence 身分供 segment_rooms 救援輪擋灌水；det["thin"] 維持
+    # None——彩圖細線層滿是磁磚/家具中性線，墨水密度否決會把每道橋都
+    # 當「有門墨水」，走道橫斷合併全被壓制（r1 實測過切 1.08→1.43、
+    # floor_04 命中 8→3）
+    return {"rects": rects, "wins": wins, "doors": [], "T": T, "T_out": T_out,
+            "cm": mmpp / 10.0, "bgr": bgr, "thin": None, "fence": thin,
+            "domain": "color",
             "img_w": img_w, "img_h": img_h, "scale_info": sinfo}
 
 
 # ─────────────────────────── 比例尺校正 ───────────────────────────
-DOOR_RANGES_CM = ((75.0, 100.0), (160.0, 190.0))  # 單門 / 雙開門。單門原 user spec
-                                                   # 80~95，門位掛上墨水證據後放寬
+# 門位「輸出」窗（2026-08-03 灰門專攻輪）：room json 的 zones 原用嚴窗
+# (75-100)+(160-190)，FN 逐樘分型實測 32 樘中 12 樘是範圍擦邊
+# （74.3/70.2/105.5/155.1cm 差 0.4~5.5cm）——DXF 批次路早已放寬到
+# (70-110)+(150-200)（v2.32 全集掃描定案），room json 對齊同窗。
+# 本常數五個用點全在輸出側（zones/預覽/json 中繼資料）；分割行為
+# （封口 40~260、非門橋合併 40~160＋弧證據）另有自己的判準，零波及。
+DOOR_RANGES_CM = fp_c.DOOR_JSON_RANGES_CM
+                                                   # 與 DXF 批次同源。單門原 user
+                                                   # spec 80~95，門位掛上墨水證據後放寬
                                                    # 75~100：own 集門 GT 實測 R 0.56→0.73、
                                                    # P 0.90→0.86（floor04 比例尺被走道假開
                                                    # 口拉偏，真門量成 78cm 全漏）
-DOOR_SINGLE_CM = 85.0                              # 單門錨點：80~90(最多95) 取中值
-DOOR_DOUBLE_CM = 175.0                             # 雙開門錨點：160~190 取中值
-WALL_MID_CM = 17.5                                 # 人住建築牆厚 15~20cm 取中點
+DOOR_SINGLE_CM = fp_c.DOOR_SINGLE_ANCHOR_CM        # 錨點常數移居 fp_c
+DOOR_DOUBLE_CM = fp_c.DOOR_DOUBLE_ANCHOR_CM        # （gap_scale 單一事實來源）
+WALL_MID_CM = fp_c.WALL_MID_ANCHOR_CM
 
 
 def refine_scale(det):
@@ -149,22 +178,8 @@ def refine_scale(det):
     都沒有則回退 外牆厚=17.5cm。外牆換算落在 10~25cm 之外視為錨錯，同樣回退。"""
     rects, wins = det["rects"], det["wins"]
     T, T_out, cm0 = det["T"], det["T_out"], det["cm"]
-    gaps = [g1 - g0 for _h, g0, g1, _b0, _b1
-            in fp_c._wall_gaps(rects, wins, T, cm0, 40.0, 300.0)]
-    singles = [g for g in gaps if 60.0 <= g * cm0 <= 130.0]
-    doubles = [g for g in gaps if 140.0 <= g * cm0 <= 240.0]
-    if singles:
-        cm1, method, used = DOOR_SINGLE_CM / float(np.median(singles)), \
-            "door_single", len(singles)
-    elif doubles:
-        cm1, method, used = DOOR_DOUBLE_CM / float(np.median(doubles)), \
-            "door_double", len(doubles)
-    else:
-        cm1, method, used = WALL_MID_CM / T_out, "wall_mid", 0
+    cm1, method, used = fp_c.gap_scale(rects, wins, T, T_out, cm0)
     wall_cm = T_out * cm1
-    if not (10.0 <= wall_cm <= 25.0):            # 門錨算出離譜外牆 → 回退牆厚中點
-        cm1, method, used = WALL_MID_CM / T_out, "wall_mid", 0
-        wall_cm = WALL_MID_CM
     det["cm"] = cm1
     det["scale_info"] = {
         "method": method, "gaps_used": used,
@@ -331,7 +346,11 @@ def _stair_runs(segs, cm, horiz):
         used.update(run)
         pos_c = sum(cand[k][0] for k in run) / len(run)
         lat_c = sum((cand[k][1] + cand[k][2]) / 2.0 for k in run) / len(run)
-        out.append((lat_c, pos_c) if horiz else (pos_c, lat_c))
+        pos0, pos1 = cand[run[0]][0], cand[run[-1]][0]
+        lat0 = min(cand[k][1] for k in run)
+        lat1 = max(cand[k][2] for k in run)
+        box = (lat0, pos0, lat1, pos1) if horiz else (pos0, lat0, pos1, lat1)
+        out.append(((lat_c, pos_c) if horiz else (pos_c, lat_c)) + (box,))
     return out
 
 
@@ -350,8 +369,30 @@ def detect_stairs(det):
         return []
     out = []
     for horiz in (True, False):
-        for cx, cy in _stair_runs(_axis_segments(lines, cm, horiz), cm, horiz):
+        for cx, cy, _box in _stair_runs(_axis_segments(lines, cm, horiz),
+                                        cm, horiz):
             out.append(("stair", cx, cy))
+    return out
+
+
+def detect_stair_boxes(det):
+    """踏板串外框 [(x0,y0,x1,y1)]，供 _carve_stairs 切房。
+    與 detect_stairs 同源同參數，只是保留 _stair_runs 的 box。"""
+    thin, cm = det.get("thin"), det["cm"]
+    if thin is None:
+        return []
+    min_len = max(8, int(round(STAIR_RUN_CM[0] / cm)))
+    lines = cv2.HoughLinesP(thin, 1, np.pi / 180,
+                            threshold=max(15, int(min_len * 0.5)),
+                            minLineLength=min_len,
+                            maxLineGap=max(2, int(round(5.0 / cm))))
+    if lines is None:
+        return []
+    out = []
+    for horiz in (True, False):
+        for _cx, _cy, box in _stair_runs(_axis_segments(lines, cm, horiz),
+                                         cm, horiz):
+            out.append(box)
     return out
 
 
@@ -364,22 +405,36 @@ OCR_CONF_MIN = 0.7                     # rapidocr 實測正字信心 0.99+，0.7
 OCR_TEXT_W = 1.3                       # 壓過語意滿票+加成(1.12)：floor04 實測 DEPOSIT
                                        # →living 語意 1.0「自信地錯」，TODO 草案 0.65
                                        # 壓不過；語意+圖示鐵證聯手(≥1.7)仍可反壓誤讀
+# 鍵＝圖面文字（一律大寫比對），值＝2026-08-01 定案的 10 類詞彙。
 OCR_WORD2LABEL = {
-    "DORMITORY": "bed", "BEDROOM": "bed",
-    "KITCHEN": "kitchen",
-    "BATH": "bath", "BATHROOM": "bath", "WC": "bath", "TOILET": "bath",
-    "LIVING": "living", "LIVINGROOM": "living", "LOUNGE": "living",
-    "DEPOSIT": "storage", "STORAGE": "storage", "CLOSET": "storage",
-    "CIRCULATION": "entry", "HALL": "entry", "HALLWAY": "entry",
-    "ENTRY": "entry",
-    "BALCONY": "outdoor", "TERRACE": "outdoor",
-    "GARAGE": "garage",
-    # 書房系詞彙 → storage（office 已於 2026-07-29 併入 storage）。
-    # STAIRWELL/STAIRCASE 含 STAIR，片語比對取最長鍵仍是 stair。
-    "OFFICE": "storage", "STUDY": "storage", "WORKROOM": "storage",
-    "DEN": "storage", "LIBRARY": "storage",
-    "STAIR": "stair", "STAIRS": "stair", "STAIRWELL": "stair",
-    "STAIRCASE": "stair",
+    "DORMITORY": "Bedroom", "BEDROOM": "Bedroom",
+    "KITCHEN": "Kitchen",
+    "BATH": "Bath", "BATHROOM": "Bath", "WC": "Bath", "TOILET": "Bath",
+    "LIVING": "LivingRoom", "LIVINGROOM": "LivingRoom",
+    "LOUNGE": "LivingRoom",
+    # 2026-08-01 使用者裁決：10 類別以外的「子區印字」不做辨識證據——
+    # DINING/FOYER 這類無牆子區（餐區、門廳）不成房也不觸發切分，
+    # 其歸屬由切線方正度決定（floor05 的 FOYER 區 GT 實測併入客廳）。
+    # FAMILY ROOM／WASHROOM 是房型同義詞（起居室/浴廁）非子區詞，保留
+    "FAMILY": "LivingRoom", "FAMILYROOM": "LivingRoom",
+    "WASHROOM": "Bath",
+    "DEPOSIT": "Storage", "STORAGE": "Storage", "CLOSET": "Storage",
+    # 走道系詞彙 2026-08-01 從 Entry 改指 Hallway：圖面寫 CIRCULATION／HALLWAY
+    # 的就是走道，玄關另有 ENTRY／ENTRANCE。舊映射把三者都算成玄關，是
+    # 「Entry 與 Hallway 難分」在 OCR 層的同一個病灶。
+    "CIRCULATION": "Hallway", "HALL": "Hallway", "HALLWAY": "Hallway",
+    "CORRIDOR": "Hallway", "PASSAGE": "Hallway",
+    # FOYER 於 2026-08-01 移除：門廳是無牆子區印字（floor05 GT 實測
+    # 該區併入客廳），依「10 類別以外的字不採用」裁決不做辨識證據
+    "ENTRY": "Entry", "ENTRANCE": "Entry",
+    "BALCONY": "Balcony", "TERRACE": "Balcony",
+    "GARAGE": "Garage",
+    # 書房系詞彙 → Storage（office 已於 2026-07-29 併入 storage）。
+    # STAIRWELL/STAIRCASE 含 STAIR，片語比對取最長鍵仍是 Stair。
+    "OFFICE": "Storage", "STUDY": "Storage", "WORKROOM": "Storage",
+    "DEN": "Storage", "LIBRARY": "Storage",
+    "STAIR": "Stair", "STAIRS": "Stair", "STAIRWELL": "Stair",
+    "STAIRCASE": "Stair",
 }
 
 _ocr_engine = None                     # 模組級單例：模型載入 ~1s，批次只付一次
@@ -479,8 +534,11 @@ def detect_text_boxes(img_path, dst_w=None, dst_h=None):
 # id 沿用 CubiCasa5k 標注格式的 room class 編碼——GT 標注仍是該格式的 SVG，
 # `eval_rooms_cc.gt_label_of` 需要這層映射把標注 token 轉成類別。產品推論路徑
 # 只用到 `.values()`（類別集合），不碰 CubiCasa 的任何模型、權重或程式碼。
-CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
-                 7: "entry", 9: "storage", 10: "garage", 1: "outdoor"}
+# 2026-08-01 `outdoor` 更名為 `balcony`（使用者裁決）：管線本來就有 balcony
+# 這個鍵（fp_c.ROOM_ZH），outdoor 是 CubiCasa 詞彙留下的第二個名字，同一種
+# 空間掛兩個名字，量尺還得靠 norm_label 把 balcony 折回 outdoor 才對得上。
+CC_ROOM_LABEL = {3: "Kitchen", 4: "LivingRoom", 5: "Bedroom", 6: "Bath",
+                 7: "Entry", 9: "Storage", 10: "Garage", 1: "Balcony"}
 # 模型盲區類：DINOv2 的線性頭雖有 stair 通道，但該類的證據仍主要來自
 # 層 4 的 detect_stairs 踏板幾何。必須另行播種進 score，否則 OCR 層的
 # `if lab_t in score` 防呆會靜默丟掉證據。
@@ -488,14 +546,15 @@ CC_ROOM_LABEL = {3: "kitchen", 4: "living", 5: "bed", 6: "bath",
 # 註：曾短暫存在的 `office`（書房）已於 2026-07-29 併入 `storage`（使用者裁決）
 # ——兩者實務上是同一空間的兩個狀態，且 DINOv2 實測從未把它們互相搞混，
 # 分開標不帶來可量測資訊。書房系 OCR 詞彙改指向 storage。
-EXTRA_LABELS = ("stair",)
-ROOM_ZH_EX = {**fp_c.ROOM_ZH, "entry": "玄關", "storage": "儲藏室",
-              "garage": "車庫", "outdoor": "陽台/戶外",
-              "stair": "樓梯"}
-ROOM_BGR_EX = {**fp_c.ROOM_BGR, "entry": (120, 210, 250),
-               "storage": (180, 180, 120), "garage": (130, 130, 130),
-               "outdoor": fp_c.ROOM_BGR["balcony"],
-               "stair": (70, 70, 200)}
+# `hallway` 2026-08-01 一併播種：它與 stair 同樣不在 CC_ROOM_LABEL 裡，
+# 不播種的話 `if lab in score` 會靜默丟掉證據，且 _entry_or_hallway 也無處
+# 可寫——量尺看得到這一類、管線卻永遠答不出來（實測 P=R=0，賠掉 3 房）。
+EXTRA_LABELS = ("Stair", "Hallway")
+ROOM_ZH_EX = {**fp_c.ROOM_ZH, "Entry": "玄關", "Storage": "儲藏室",
+              "Garage": "車庫", "Stair": "樓梯", "Hallway": "走道"}
+ROOM_BGR_EX = {**fp_c.ROOM_BGR, "Entry": (120, 210, 250),
+               "Storage": (180, 180, 120), "Garage": (130, 130, 130),
+               "Stair": (70, 70, 200), "Hallway": (170, 170, 210)}
 
 
 
@@ -529,50 +588,54 @@ def _apply_evidence(det, labels, r, score, open_living):
          "shower": 0, "sinkicon": 0,
          "wc": 0, "tub": 0, "basin": 0, "kstove": 0, "ksink": 0,
          "dtable": 0, "bed": 0, "wardrobe": 0, "sofa": 0, "chair": 0,
-         "stair": 0}
+         "stair": 0, "trashcan": 0}
     for kind, sx, sy in det.get("symbols", ()):
         iy, ix = int(round(sy)), int(round(sx))
         if 0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1] \
                 and labels[iy, ix] == r["id"]:
             n[kind] += 1
+    # 注意：`n` 的鍵是符號種類（bed＝床的圖示、stair＝踏板），與房型類別名
+    # 同形但不同義，2026-08-01 房型改 CamelCase 時不得一併改動。
     if n["oval"]:                                # 馬桶/洗手台橢圓
-        score["bath"] += 0.45 + 0.2 * min(n["oval"] - 1, 2)
+        score["Bath"] += 0.45 + 0.2 * min(n["oval"] - 1, 2)
         if n["tubrect"]:                         # 浴缸矩形＋橢圓同室 → 鐵證
-            score["bath"] += 0.3
+            score["Bath"] += 0.3
     if n["stove"] and not open_living:           # 爐台燃燒圈
-        score["kitchen"] += 0.5
+        score["Kitchen"] += 0.5
     if n["bedrect"]:                             # 雙人床矩形
-        score["bed"] += 0.5
+        score["Bedroom"] += 0.5
     if n["shower"]:                              # 模板：淋浴間（保守權重）
-        score["bath"] += 0.3
+        score["Bath"] += 0.3
     if n["sinkicon"] and not open_living:        # 模板：水槽（保守權重）
-        score["kitchen"] += 0.15
+        score["Kitchen"] += 0.15
     # Asset 家具模板證據（存在制不疊加，權重保守——模板與考卷畫風
     # 有落差，寧漏勿誤；廚房系沿用 open_living 防呆）
     if n["wc"]:
-        score["bath"] += 0.4
+        score["Bath"] += 0.4
     if n["tub"]:
-        score["bath"] += 0.3
+        score["Bath"] += 0.3
     if n["basin"]:
-        score["bath"] += 0.2
+        score["Bath"] += 0.2
     if n["kstove"] and not open_living:
-        score["kitchen"] += 0.35
+        score["Kitchen"] += 0.35
     if n["ksink"] and not open_living:
-        score["kitchen"] += 0.2
+        score["Kitchen"] += 0.2
     if n["dtable"] and not open_living:          # user 裁決：餐桌歸廚房
-        score["kitchen"] += 0.25
+        score["Kitchen"] += 0.25
+    if n["trashcan"] and not open_living:        # 美式畫風廚房垃圾桶（弱證據）
+        score["Kitchen"] += 0.15
     if n["bed"]:
-        score["bed"] += 0.4
+        score["Bedroom"] += 0.4
     if n["wardrobe"]:
-        score["bed"] += 0.2
+        score["Bedroom"] += 0.2
     if n["sofa"]:
-        score["living"] += 0.3
+        score["LivingRoom"] += 0.3
     if n["chair"]:                               # user 裁決：單人沙發＝客廳
-        score["living"] += 0.15
+        score["LivingRoom"] += 0.15
     if n["stair"]:                               # 樓梯踏板（detect_stairs）
-        # 權重高於一般家具：4+ 條等距等長踏板是強幾何約束，且 stair 沒有
+        # 權重高於一般家具：4+ 條等距等長踏板是強幾何約束，且 Stair 沒有
         # 語意票可搭配（模型盲區類），證據不夠力就永遠叫不出這個名字
-        score["stair"] += 0.6
+        score["Stair"] += 0.6
     r["symbols"] = {k: v for k, v in n.items() if v}
     # OCR 文字證據（層 5）：字框中心落在這間房 → 該房型加分。
     # 同房同型多字只加一次（重複字樣不疊權），異型各加（衝突交給總分裁決）
@@ -596,7 +659,111 @@ DINO_W = 1.0            # DINOv2 機率的權重。設 1.0 使其與 OCR(1.3) �
                         # 而符號證據(0.15~0.6)只在模型沒把握時才翻得動總分
 
 
-def classify_rooms_dino(det, labels, rooms, probs):
+def exterior_mask(det, labels=None):
+    """牆/窗（可選：已知房間）當屏障，自影像邊界灌水 → 屋外自由區遮罩。
+
+    `build_rooms` 的 outside 由 `segment_rooms` 一併算出，不需要本函式；這裡
+    是給**沒跑分割的路徑**用的——量尺的 GT 解耦模式（`--gt-seg`）直接拿 GT
+    多邊形當房間，不呼叫 segment_rooms，卻同樣需要屋外資訊才能判 Entry。
+
+    把已知房間一併當屏障是必要的：牆偵測有缺口時，單靠牆會讓灌水從缺口漏進
+    室內，整棟房子都變成「貼外牆」。"""
+    rects, wins = det.get("rects") or (), det.get("wins") or ()
+    if not rects:
+        return None
+    h = det.get("img_h") or (labels.shape[0] if labels is not None else 0)
+    w = det.get("img_w") or (labels.shape[1] if labels is not None else 0)
+    if not (h and w):
+        return None
+    barrier = np.zeros((h, w), np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for _o, x0, y0, x1, y1 in wins:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    if labels is not None:
+        barrier[labels > 0] = 255
+    ff = np.pad(barrier, 1).copy()
+    cv2.floodFill(ff, None, (0, 0), 128)
+    return ff[1:-1, 1:-1] == 128
+
+
+def touches_exterior(labels, outside, rid, T_out):
+    """房間是否貼著建物外牆——遮罩往外膨脹一個外牆厚，碰得到屋外自由區即是。
+
+    回 None＝無屋外資訊（呼叫端不得據此改判）。"""
+    if labels is None or outside is None:
+        return None
+    m = (labels == rid)
+    if not m.any():
+        return None
+    k = 2 * max(2, int(round(1.5 * max(1.0, T_out)))) + 1
+    grown = cv2.dilate(m.astype(np.uint8), np.ones((k, k), np.uint8))
+    return bool((grown.astype(bool) & outside).any())
+
+
+def rooms_with_exterior_door(det, labels, outside):
+    """有門直通屋外的房間 id 集合——玄關的判準（使用者裁決 2026-08-01）。
+
+    **為什麼不是「貼外牆」**：初版規則用貼牆判定，own_eval 只救回 4 間走道中
+    的 1 間。floor74/76 的走道沿著外牆走卻沒有對外的門，照樣被判成玄關。
+    玄關的定義是「走得出去」，該看的是門而不是牆。
+
+    作法同 `fp_c.room_graph` 的門兩側取樣：沿門洞法線逐步走，一側走到房間、
+    另一側走到屋外，那扇門就是大門。無法取得門位或屋外資訊時回 None（不表態，
+    呼叫端不得據此改判）。"""
+    rects, wins = det.get("rects") or (), det.get("wins") or ()
+    doors, T, cm = det.get("doors") or (), det.get("T"), det.get("cm")
+    if outside is None or labels is None or not rects or not doors or not T:
+        return None
+    wall = np.zeros(labels.shape, np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(wall, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for _o, x0, y0, x1, y1 in wins:
+        cv2.rectangle(wall, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    H, W = labels.shape
+
+    def sample(mx, my, sx, sy):
+        """房間id(>0) / -1=室外 / -2=沒撞牆走完 / 0=撞牆。同 room_graph 語義。"""
+        k = 0.5 * T
+        while k <= 4.0 * T:
+            x, y = int(round(mx + sx * k)), int(round(my + sy * k))
+            if not (0 <= x < W and 0 <= y < H):
+                return -1
+            if labels[y, x] > 0:
+                return int(labels[y, x])
+            if outside[y, x]:
+                return -1
+            if wall[y, x]:
+                return 0
+            k += max(2.0, 0.35 * T)
+        return -2
+
+    out = set()
+    for _quad, d in fp_c.door_zones(doors, rects, T, cm or 1.0):
+        _h, (mx, my), _a, s = fp_c._door_geometry(d, rects, T)
+        ra, rb = sample(mx, my, s[0], s[1]), sample(mx, my, -s[0], -s[1])
+        if ra > 0 and rb == -1:
+            out.add(ra)
+        elif rb > 0 and ra == -1:
+            out.add(rb)
+    return out
+
+
+def _entry_or_hallway(lab, rid, ext_doors):
+    """玄關必須有門直通屋外，否則改判走道（使用者裁決 2026-08-01）。
+
+    Entry 與 Hallway 都是「沒有東西的空房間」，裁切圖上長得一模一樣，DINOv2
+    結構上分不開——own_eval 實測 GT 4 間走道被判成 Entry 3、Bedroom 1，
+    Hallway 的 P/R 掛零。分水嶺不在外觀而在通行關係：玄關走得出去，走道不行。
+
+    單向規則：有大門不足以證明是玄關（客廳也可能直接對外），故只降級不升級。
+    `ext_doors` 為 None（無門位/屋外資訊）時不表態，維持原判。"""
+    if lab != "Entry" or ext_doors is None:
+        return lab
+    return lab if rid in ext_doors else "Hallway"
+
+
+def classify_rooms_dino(det, labels, rooms, probs, outside=None):
     """辨識式房型——**去 CubiCasa 版本**（層 1 換成 DINOv2 裁切分類）。
 
     證據層：
@@ -610,6 +777,7 @@ def classify_rooms_dino(det, labels, rooms, probs):
     `open_living` 原以 CubiCasa 的 living/kitchen 票判定，改用 DINOv2 機率同義：
     客廳機率夠高且遠勝廚房 → 客餐廚一體，廚房系證據不加分。"""
     cm = det["cm"]
+    ext_doors = rooms_with_exterior_door(det, labels, outside)
     for r, pr in zip(rooms, probs):
         r["area_m2"] = round(r["area_px"] * cm * cm / 1e4, 2)
         score = {lab: 0.0 for lab in
@@ -623,11 +791,12 @@ def classify_rooms_dino(det, labels, rooms, probs):
         # 便繼續加分把它推成 kitchen，再經限額鏈砍掉真正的廚房。
         # `>= 0.15` 的下限保留：模型對該房完全沒有 living 概念時（floor73 的
         # 真廚房 living 0.00）不該套用此防呆。
-        open_living = (score["living"] >= 0.15
-                       and score["living"] > score["kitchen"])
+        open_living = (score["LivingRoom"] >= 0.15
+                       and score["LivingRoom"] > score["Kitchen"])
         _apply_evidence(det, labels, r, score, open_living)
         lab, val = max(score.items(), key=lambda kv: kv[1])
         r["label"] = lab if val >= 0.15 else "room"
+        r["label"] = _entry_or_hallway(r["label"], r["id"], ext_doors)
         r["label_zh"] = ROOM_ZH_EX[r["label"]]
         r["cc_share"] = {k: round(v, 3) for k, v in score.items() if v >= 0.02}
         r["icons_cm2"] = {}                    # 契約鍵保留（來源已移除）
@@ -637,7 +806,7 @@ def classify_rooms_dino(det, labels, rooms, probs):
         del r["_score"]
 
 
-UNIQUE_LABELS = ("living", "kitchen")          # user spec：全戶各最多一間
+UNIQUE_LABELS = ("LivingRoom", "Kitchen")      # user spec：全戶各最多一間
 
 
 def _enforce_singletons(rooms):
@@ -659,7 +828,7 @@ def _enforce_singletons(rooms):
     兩者都修好了 floor64，卻在 floor69/70 賠更多：那兩張的真客廳被 DINOv2
     判成 kitchen（living 僅 0.06~0.08，開放式客餐廚），**現行規則靠「留最大
     的那間 → 下方有廚無廳改叫客廳」這條鏈歪打正著救回來**，改了就斷。
-    要真正解決得從 `open_living` 防呆下手（它用 `score["living"]>=0.15`
+    要真正解決得從 `open_living` 防呆下手（它用 `score["LivingRoom"]>=0.15`
     判定，模型把開放空間判成廚房時根本不觸發），而非動限額規則。"""
     for lab in UNIQUE_LABELS:
         cand = [r for r in rooms if r["label"] == lab]
@@ -670,16 +839,16 @@ def _enforce_singletons(rooms):
             r["relabel_from"] = lab
             r["label"] = alt_lab if alt_val >= 0.15 else "room"
             r["label_zh"] = ROOM_ZH_EX[r["label"]]
-    if not any(r["label"] == "living" for r in rooms):
-        for r in rooms:                        # 限額後 kitchen 至多一間
-            # 門檻：模型對該房完全沒有 living 概念時（floor73 的真廚房
-            # living 0.00），它就只是一間獨立廚房，不是客餐廚一體，別改名
-            if r["label"] == "kitchen" \
-                    and r["_score"].get("living", 0.0) >= 0.05 \
-                    and "kitchen" not in (r.get("ocr_text") or {}):
-                r["relabel_from"] = "kitchen"
-                r["label"] = "living"
-                r["label_zh"] = ROOM_ZH_EX["living"]
+    if not any(r["label"] == "LivingRoom" for r in rooms):
+        for r in rooms:                        # 限額後 Kitchen 至多一間
+            # 門檻：模型對該房完全沒有 LivingRoom 概念時（floor73 的真廚房
+            # 0.00），它就只是一間獨立廚房，不是客餐廚一體，別改名
+            if r["label"] == "Kitchen" \
+                    and r["_score"].get("LivingRoom", 0.0) >= 0.05 \
+                    and "Kitchen" not in (r.get("ocr_text") or {}):
+                r["relabel_from"] = "Kitchen"
+                r["label"] = "LivingRoom"
+                r["label_zh"] = ROOM_ZH_EX["LivingRoom"]
 
 
 # ─────────────────────────── 房間方塊 ───────────────────────────
@@ -717,6 +886,14 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
         if any(_arc_at_bridge(d) for d in doors):
             kept.append((horiz, g0, g1, b0, b1))
             continue                             # 有門弧 → 是門
+        # 門弧清單空≠無門（floor13 實案：門偵測整圖 0、真門只剩墨水
+        # 證據，浴室因此被走道碎片誤併）——墨水密度否決補上這個盲區。
+        # thin 缺席時 _bridge_has_door_ink 回 True 是門位語境的「不濾
+        # 照舊」；合併語境相反——無細線層＝無證據，不得憑空否決
+        if det.get("thin") is not None \
+                and _bridge_has_door_ink(det, horiz, g0, g1, b0, b1):
+            kept.append((horiz, g0, g1, b0, b1))
+            continue                             # 有門扇墨水 → 是門
         # 橋兩側取樣（跳過封口線附近的牆帶，往外找到第一個房間像素）
         side = [0, 0]
         for k, sign in ((0, -1), (1, 1)):
@@ -776,51 +953,818 @@ def _merge_nondoor_bridges(labels, rooms, bridges, det):
 
 
 
-def _bridge_has_door_ink(det, horiz, g0, g1, b0, b1):
-    """門位證據：門扇迴轉區（開口兩側各 1.1×開口深）扣掉 OCR 文字框後的
-    細線墨水密度。真門畫弧/門扇必留墨（floor04 浴廁虛線弧 1.45%），
-    開放通道空白（走道↔客廳 0%）；文字墨水（CIRCULATION 4.8%）已扣，
-    門檻取 0.5%。弧掃描（_has_door_swing 0.9 覆蓋率）對虛線弧眼盲、
-    detect_doors 亦然，故用密度而非形狀。thin 缺席（彩圖管線）不濾照舊。"""
-    thin = det.get("thin")
-    if thin is None:
-        return True
-    ink = thin.copy()
-    for x0, y0, x1, y1 in det.get("text_boxes", ()):
-        ink[max(0, int(y0) - 2):int(y1) + 3,
-            max(0, int(x0) - 2):int(x1) + 3] = 0
-    gap = g1 - g0
-    H, W = ink.shape
-    # 三個證據區：開口帶本身（雙開/滑門門扇畫在開口內）＋兩側迴轉區（單開門弧）
-    regions = [(b0, b1)] + [(b0 - 1.1 * gap, b0), (b1, b1 + 1.1 * gap)]
-    for lo, hi in regions:
-        if horiz:
-            y0, y1, x0, x1 = lo, hi, g0, g1
+def _carve_stairs(labels, rooms, boxes, T, cm=1.0):
+    """樓梯足跡切分：把踏板串外框從所屬房間切出成獨立房（labels 就地改，
+    回傳新 rooms）。開放區嵌樓梯（floor08/12/31 實案）沒有牆可封，
+    純封口規則切不出——這是功能區切分的第一塊，切線一律軸對齊
+    （使用者域約束：房間只有直角矩形系）。
+
+    規則：同座梯段先併——相鄰（間隙 <2T，迴轉梯）或對齊隔平台
+    （間隙 <140cm，floor40 上下段梯隔 55cm 平台）；足跡 ≥(2T)² 且
+    ≥70% 落在同一房、≤50% 該房面積、且未佔滿宿主同向尺寸 85%
+    （樓梯間本有牆自成一房，floor40 曾被再切一刀）才動刀。"""
+    if not boxes:
+        return rooms
+    boxes = [tuple(float(v) for v in b) for b in boxes]
+    land = max(2.0 * T, 140.0 / max(cm, 1e-6))   # 平台合併距離（px）
+    merged = True                                # 同座梯段合併
+    while merged:
+        merged = False
+        for i in range(len(boxes)):
+            for j in range(i + 1, len(boxes)):
+                ax0, ay0, ax1, ay1 = boxes[i]
+                bx0, by0, bx1, by1 = boxes[j]
+                near = (ax0 - 2 * T < bx1 and ax1 + 2 * T > bx0
+                        and ay0 - 2 * T < by1 and ay1 + 2 * T > by0)
+                ov_x = min(ax1, bx1) - max(ax0, bx0)     # 對齊隔平台：
+                ov_y = min(ay1, by1) - max(ay0, by0)     # 一軸重疊 ≥60%、
+                wx = min(ax1 - ax0, bx1 - bx0)           # 另一軸間隙 <land
+                wy = min(ay1 - ay0, by1 - by0)
+                aligned = ((ov_x >= 0.6 * wx and -land < ov_y <= 0)
+                           or (ov_y >= 0.6 * wy and -land < ov_x <= 0))
+                if near or aligned:
+                    boxes[i] = (min(ax0, bx0), min(ay0, by0),
+                                max(ax1, bx1), max(ay1, by1))
+                    del boxes[j]
+                    merged = True
+                    break
+            if merged:
+                break
+    h, w = labels.shape
+    out = list(rooms)
+    by_id = {r["id"]: r for r in out}
+    nid = max((r["id"] for r in out), default=0)
+    for x0, y0, x1, y1 in boxes:
+        ix0, iy0 = max(0, int(x0)), max(0, int(y0))
+        ix1, iy1 = min(w, int(x1)), min(h, int(y1))
+        if ix1 - ix0 < 2 or iy1 - iy0 < 2:
+            continue
+        win = labels[iy0:iy1, ix0:ix1]
+        area_box = (ix1 - ix0) * (iy1 - iy0)
+        if area_box < (2 * T) ** 2:
+            continue                             # 過小＝雜訊串
+        ids, counts = np.unique(win[win > 0], return_counts=True)
+        if not len(ids):
+            continue
+        host_id = int(ids[np.argmax(counts)])
+        host_n = int(counts.max())
+        host = by_id.get(host_id)
+        if host is None or host_n < 0.7 * area_box:
+            continue                             # 足跡沒安坐在單一房裡
+        if host_n > 0.25 * host["area_px"]:
+            continue                             # 樓梯間本有牆自成一房：宿主
+                                                 # 須 ≥4× 足跡（真大開放區）才切
+        hx0, hy0, hx1, hy1 = host["bbox"]        # 佔滿宿主同向尺寸＝樓梯間
+        if (ix1 - ix0) >= 0.85 * (hx1 - hx0) or (iy1 - iy0) >= 0.85 * (hy1 - hy0):
+            continue
+        nid += 1
+        region = win == host_id
+        win[region] = nid
+        ys, xs = np.nonzero(labels == nid)
+        stair = {"id": nid, "area_px": int(len(xs)),
+                 "bbox": (int(xs.min()), int(ys.min()),
+                          int(xs.max() + 1), int(ys.max() + 1)),
+                 "cx": float(xs.mean()), "cy": float(ys.mean()),
+                 "aspect": round(
+                     max(xs.max() - xs.min() + 1, ys.max() - ys.min() + 1)
+                     / max(1.0, min(xs.max() - xs.min() + 1,
+                                    ys.max() - ys.min() + 1)), 2),
+                 "touch_env": host.get("touch_env", False)}
+        out.append(stair)
+        by_id[nid] = stair
+        m = labels == host_id                    # 主房統計同步扣除
+        ys, xs = np.nonzero(m)
+        if not len(xs):
+            out.remove(host)
+            del by_id[host_id]
+            continue
+        w_, h_ = int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)
+        host.update(area_px=int(m.sum()),
+                    bbox=(int(xs.min()), int(ys.min()),
+                          int(xs.max() + 1), int(ys.max() + 1)),
+                    cx=float(xs.mean()), cy=float(ys.mean()),
+                    aspect=round(max(w_, h_) / max(1.0, min(w_, h_)), 2))
+    return out
+
+
+# 符號錨點的兩系詞彙：只做「廚 vs 客」這一種誤併（v2.23 殘餘 36 件中
+# 14 件的型態），臥浴不參與——bed+sofa 同室是套房、oval 到處有，寧漏勿誤。
+# dtable→廚房系沿 extract_asset_lib 的使用者裁決；chair（單人沙發椅）
+# 常出現在臥室，單獨不構成客廳證據，故不入表。
+_KITCHEN_SYMS = ("stove", "kstove", "ksink", "sinkicon", "dtable",
+                 "trashcan")   # 美式素材輪新增（弱證據，不入 STRONG）
+_LIVING_SYMS = ("sofa",)
+
+
+_KITCHEN_STRONG = ("stove", "kstove", "ksink")   # 弱證據（sinkicon/dtable）
+                                                 # 不得單獨撐起單側切分
+
+
+def _symbol_anchors(det, labels, rooms):
+    """無文字開放區的錨點補位（格式同 detect_room_text）。兩條路徑：
+    1) 雙系：廚房系＋客廳系符號群同房、質心相距 ≥200cm → 各出一錨點；
+    2) 單側廚房（實測主力）：沙發模板在多數畫風上比對不到（floor31/
+       54/52 客廳側符號全滅），改以「大房間裡緊湊且偏心的廚房符號群」
+       單側觸發——對側錨點＝離群較遠那半房間質量的質心。
+       防呆四道：強廚房符號 ≥1、符號群跨距 ≤350cm（散開＝假陽性）、
+       房 ≥15m²（小房不會是開放廚客）、群質心偏離房質心 ≥200cm
+       （居中＝這房就是廚房，不切）。"""
+    cm = det.get("cm", 1.0)
+    h, w = labels.shape
+    out = []
+    for r in rooms:
+        kit, kit_strong, liv = [], 0, []
+        for kind, sx, sy in det.get("symbols", ()):
+            iy, ix = int(round(sy)), int(round(sx))
+            if not (0 <= iy < h and 0 <= ix < w and labels[iy, ix] == r["id"]):
+                continue
+            if kind in _KITCHEN_SYMS:
+                kit.append((float(sx), float(sy)))
+                kit_strong += kind in _KITCHEN_STRONG
+            elif kind in _LIVING_SYMS:
+                liv.append((float(sx), float(sy)))
+        if not kit:
+            continue
+        kx = sum(p[0] for p in kit) / len(kit)
+        ky = sum(p[1] for p in kit) / len(kit)
+        if liv:                                  # 路徑 1：雙系
+            lx = sum(p[0] for p in liv) / len(liv)
+            ly = sum(p[1] for p in liv) / len(liv)
+            if ((kx - lx) ** 2 + (ky - ly) ** 2) ** 0.5 * cm >= 200.0:
+                out.append(("Kitchen", kx, ky, f"sym:{len(kit)}"))
+                out.append(("LivingRoom", lx, ly, f"sym:{len(liv)}"))
+            continue
+        # 路徑 2：單側廚房
+        if not kit_strong:
+            continue
+        span = max(max(p[0] for p in kit) - min(p[0] for p in kit),
+                   max(p[1] for p in kit) - min(p[1] for p in kit))
+        if span * cm > 350.0:
+            if det.get("domain") != "color":
+                continue                         # 灰階維持一票否決（畫風
+                                                 # 分流：color 機制不進灰階）
+            # 跨距超限不整組否決（floor47/52 實案：一顆離群假陽性毀
+            # 全局）——改取最緊密子群：以每顆為中心、半徑 175cm 內
+            # 成員最多者；子群須 ≥2 顆且含強符號才續行
+            r175 = 175.0 / max(cm, 1e-6)
+            best = []
+            for cx0, cy0 in kit:
+                sub = [p for p in kit
+                       if ((p[0] - cx0) ** 2 + (p[1] - cy0) ** 2) ** 0.5
+                       <= r175]
+                if len(sub) > len(best):
+                    best = sub
+            strong_in = sum(
+                1 for kind, sx, sy in det.get("symbols", ())
+                if kind in _KITCHEN_STRONG and (float(sx), float(sy)) in
+                {(p[0], p[1]) for p in best})
+            if len(best) < 2 or not strong_in:
+                continue                         # 子群須 ≥2 顆＋強符號：
+                                                 # 兩顆孤立遠距強符號分不出
+                                                 # 誰真誰假，維持不觸發
+            kit = best
+            kx = sum(p[0] for p in kit) / len(kit)
+            ky = sum(p[1] for p in kit) / len(kit)
+        if r["area_px"] * cm * cm < 150000.0:
+            continue                             # <15m² 不會是開放廚客
+        if ((kx - r["cx"]) ** 2 + (ky - r["cy"]) ** 2) ** 0.5 * cm < 200.0:
+            continue                             # 居中＝這房就是廚房
+        ys, xs = np.nonzero(labels == r["id"])
+        d2 = (xs - kx) ** 2 + (ys - ky) ** 2
+        far = d2 > np.median(d2)                 # 離廚房群較遠那半的質心
+        out.append(("Kitchen", kx, ky, f"sym:{len(kit)}"))
+        out.append(("LivingRoom", float(xs[far].mean()),
+                    float(ys[far].mean()), "sym:far-half"))
+    return out
+
+
+_BATH_SYMS = ("oval", "tubrect", "wc", "tub", "basin", "shower")
+
+
+def _merge_bath_nooks(labels, rooms, det, T, seed_ids=None, veto_ids=None):
+    """浴室隔屏碎格合併（labels 就地改，回傳新 rooms）。floor38/44
+    實案：浴缸屏/馬桶半牆＋封口盒把一間浴室切成 3~4 格，每格對 GT
+    整間浴室 IoU 皆 <0.5，或碎格死在面積終篩。
+    規則：面積 <8m² 且含浴具符號的碎房，彼此間距 ≤2T 者併成一間。
+    大房不參與（浴具誤偵測不至於把臥室吸進浴室）。須在面積終篩前
+    執行——合併後的浴室才活得過門檻。
+    2026-08-01 二落：首落時浴具模板未啟用、開發集零觸發而還原；
+    tub/wc 依品質掃描啟用後證據到位，機制重新上線。"""
+    cm = det.get("cm", 1.0)
+    h, w = labels.shape
+    cand, extras = [], []
+    for r in rooms:
+        if r["area_px"] * cm * cm >= 80000.0:    # ≥8m² 非浴室碎格
+            continue
+        if seed_ids is not None:
+            # DINO 種子路（彩圖限定）：symbols=[] 時由呼叫端以 DINO
+            # 判 Bath 的碎房當種子、判 Kitchen 者當反證
+            has_fix = r["id"] in seed_ids
+            has_kitchen = bool(veto_ids) and r["id"] in veto_ids
         else:
-            x0, x1, y0, y1 = lo, hi, g0, g1
-        box = ink[max(0, int(y0)):min(H, int(y1)),
-                  max(0, int(x0)):min(W, int(x1))]
-        if box.size and np.count_nonzero(box) / box.size >= 0.005:
-            return True
-    return False
+            has_fix = has_kitchen = False
+            for kind, sx, sy in det.get("symbols", ()):
+                iy, ix = int(round(sy)), int(round(sx))
+                if not (0 <= iy < h and 0 <= ix < w
+                        and labels[iy, ix] == r["id"]):
+                    continue
+                has_fix = has_fix or kind in _BATH_SYMS
+                has_kitchen = has_kitchen or kind in _KITCHEN_SYMS
+        # 廚房系符號是強反證（floor39 實案：wc 模板在廚房打假陽性，
+        # 廚房被當浴具碎格與樓下真浴室誤併）——含爐台/水槽者不候選
+        if has_kitchen:
+            continue
+        if has_fix:
+            cand.append(r)
+        elif r["area_px"] * cm * cm < 40000.0:
+            extras.append(r)                     # 無浴具小格＝可吸收候補
+    if len(cand) < 2:
+        return rooms
+    k = 4 * int(T) + 3                           # 膨脹半徑 2T+1＝隔屏牆厚度帶
+    ker = np.ones((k, k), np.uint8)
+    dil = {r["id"]: cv2.dilate((labels == r["id"]).astype(np.uint8), ker) > 0
+           for r in cand}
+    parent = {r["id"]: r["id"] for r in cand}    # 鄰接群組（union-find 簡版）
+
+    def _find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for i in range(len(cand)):
+        for j in range(i + 1, len(cand)):
+            a, b = cand[i]["id"], cand[j]["id"]
+            if (dil[a] & (labels == b)).any():
+                parent[_find(a)] = _find(b)
+    groups = {}
+    for r in cand:
+        groups.setdefault(_find(r["id"]), []).append(r)
+    # 吸收制（floor38/44 實案）：浴缸格/梳妝格常無配對到的浴具符號，
+    # 但被隔屏切出的碎格群不完整就蓋不滿 GT 浴室。無浴具的 <4m² 小格
+    # 若鄰接「≥2 個種子」的群則吸收——單種子不吸，避免真浴室把隔壁
+    # 儲藏室吞掉
+    for root, members in list(groups.items()):
+        if len(members) < 2:
+            continue
+        for e in extras:
+            if e in members:
+                continue
+            if any((dil[s["id"]] & (labels == e["id"])).any()
+                   for s in members if s["id"] in dil):
+                members.append(e)
+    out = list(rooms)
+    for _root, members in groups.items():
+        if len(members) < 2:
+            continue
+        keep = max(members, key=lambda r: r["area_px"])
+        for r in members:
+            if r is keep:
+                continue
+            labels[labels == r["id"]] = keep["id"]
+            out.remove(r)
+        upd = _room_stats(labels, keep["id"], keep.get("touch_env", False))
+        keep.update(upd)
+    return out
+
+
+def _room_stats(labels, rid, touch_env):
+    """依 labels 重算單一房間統計；該 id 已無像素時回 None。"""
+    ys, xs = np.nonzero(labels == rid)
+    if not len(xs):
+        return None
+    w_, h_ = int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)
+    return {"id": rid, "area_px": int(len(xs)),
+            "bbox": (int(xs.min()), int(ys.min()),
+                     int(xs.max() + 1), int(ys.max() + 1)),
+            "cx": float(xs.mean()), "cy": float(ys.mean()),
+            "aspect": round(max(w_, h_) / max(1.0, min(w_, h_)), 2),
+            "touch_env": touch_env}
+
+
+def _split_by_text_anchors(labels, rooms, texts, T, cm, amin,
+                           min_part_ratio=None, verify=None):
+    """OCR 房名錨點功能區切分（labels 就地改，回傳新 rooms）。
+    E1 誤併型態：廚/餐/客一體、玄關-走道虛線分界——GT 沿無牆邊界分區，
+    封口規則無牆可封。圖面文字是作者親口說的答案：一房含 2+ 個房名
+    錨點＝作者標了 2+ 個功能區，沿主軸在錨點間隙中點下軸對齊直刀
+    （使用者域約束：房間只有直角矩形系，切線只有水平/垂直）。
+
+    防呆：同標籤錨點相距 <200cm 視為同一區（折行文字）；任一切塊
+    低於 amin 則整房放棄不切；錨點取字框中心、落在該房 labels 上
+    才算數。"""
+    if not texts:
+        return rooms
+    h, w = labels.shape
+    out = list(rooms)
+    nid = max((r["id"] for r in out), default=0)
+    xs_grid = np.arange(w)[None, :]
+    ys_grid = np.arange(h)[:, None]
+
+    def _rectness(m):
+        ys, xs = np.nonzero(m)
+        if not len(xs):
+            return 0.0
+        return len(xs) / float((xs.max() - xs.min() + 1)
+                               * (ys.max() - ys.min() + 1))
+
+    def _cut(region, anchors):
+        if len(anchors) == 1:
+            return [region]
+        sx = max(a[1] for a in anchors) - min(a[1] for a in anchors)
+        sy = max(a[2] for a in anchors) - min(a[2] for a in anchors)
+        key = 1 if sx >= sy else 2               # 主軸＝錨點散得開的那軸
+        vals = sorted(anchors, key=lambda a: a[key])
+        gi = max(range(len(vals) - 1),
+                 key=lambda i: vals[i + 1][key] - vals[i][key])
+        lo, hi = vals[gi][key], vals[gi + 1][key]
+        grid = xs_grid if key == 1 else ys_grid
+        # 切線位置（使用者裁決 2026-08-01）：取決於「切給誰較方正」——
+        # 候選＝兩錨點間的輪廓階梯（剖面寬跳變 >T 處），逐一評兩側
+        # 方正度（面積/外接矩形），最高者勝；無階梯（純矩形）退回中點
+        prof = region.sum(axis=0 if key == 1 else 1)
+        a0, b0 = int(lo) + 2, int(hi) - 1
+        cands = [float(c) for c in range(max(a0, 1), b0)
+                 if abs(int(prof[c]) - int(prof[c - 1])) > T]
+        cands.append((lo + hi) / 2.0)
+        best_c, best_s = cands[-1], -1.0
+        for c in cands:
+            left, right = region & (grid < c), region & (grid >= c)
+            if not left.any() or not right.any():
+                continue
+            s = _rectness(left) + _rectness(right)
+            if s > best_s:
+                best_s, best_c = s, c
+        return (_cut(region & (grid < best_c), vals[:gi + 1])
+                + _cut(region & (grid >= best_c), vals[gi + 1:]))
+
+    for room in rooms:
+        rid = room["id"]
+        anch = []
+        for t in texts:
+            lab, cx, cy = t[0], float(t[1]), float(t[2])
+            ix, iy = int(round(cx)), int(round(cy))
+            if 0 <= iy < h and 0 <= ix < w and labels[iy, ix] == rid:
+                anch.append([lab, cx, cy])
+        merged = []                              # 折行文字＝同區
+        for lab, cx, cy in anch:
+            hit = next((m for m in merged
+                        if m[0] == lab and abs(m[1] - cx) * cm < 200
+                        and abs(m[2] - cy) * cm < 200), None)
+            if hit:
+                hit[1] = (hit[1] + cx) / 2.0
+                hit[2] = (hit[2] + cy) / 2.0
+            else:
+                merged.append([lab, cx, cy])
+        if len(merged) < 2:
+            continue
+        parts = _cut(labels == rid, merged)
+        if any(int(p.sum()) < amin for p in parts):
+            continue                             # 有碎屑 → 整房放棄不切
+        if min_part_ratio and len(parts) == 2:
+            a_, b_ = int(parts[0].sum()), int(parts[1].sum())
+            if max(a_, b_) < min_part_ratio * min(a_, b_) \
+                    and not (verify and verify(parts, merged)):
+                continue                         # 兩半約等大＝廚餐一體
+                                                 # （子區歸主房慣例），不切；
+                                                 # verify 回呼（DINO 兩半驗證）
+                                                 # 判真可放行（floor47/52 型
+                                                 # 開放 LDK 的廚客真切分）
+        for p in parts[1:]:
+            nid += 1
+            labels[p] = nid
+        te = room.get("touch_env", False)
+        out.remove(room)
+        for r_ in filter(None, (_room_stats(labels, rid, te),
+                                *(_room_stats(labels, i, te)
+                                  for i in range(nid - len(parts) + 2,
+                                                 nid + 1)))):
+            out.append(r_)
+    return out
+
+
+def _bridge_has_door_ink(det, horiz, g0, g1, b0, b1):
+    """門位證據——委派 fp_c.door_ink_evidence（門偵測重建後單一事實
+    來源，DXF 批次 json 與 room zones 用同一把尺）。"""
+    return fp_c.door_ink_evidence(det.get("thin"), det.get("text_boxes", ()),
+                                  horiz, g0, g1, b0, b1)
 
 
 def _bridge_zone(horiz, g0, g1, b0, b1):
-    """牆端連線 → 門位框：沿牆=連線長，垂直牆前後各一倍（1:2 黃框，
-    同 fp_c.gap_openings 的格式，door tuple 供 room_graph 幾何驗證）。"""
-    gap = g1 - g0
-    m = (b0 + b1) / 2.0
-    if horiz:
-        d = (g0, m, gap, 1.0, 1.0, 1.0)
-        mx, my = (g0 + g1) / 2.0, m
-        ax, ay, sx, sy = gap / 2.0, 0.0, 0.0, gap
+    """牆端連線 → 門位框——委派 fp_c.door_zone_quad（同上）。"""
+    return fp_c.door_zone_quad(horiz, g0, g1, b0, b1)
+
+
+def _harvest_balcony_pockets(det, labels, rooms, outside):
+    """殼外陽台口袋收割（color 集 Balcony 漏切主因，dev 實測 18 間）。
+
+    陽台在牆殼之外、由圍欄細線圈住；牆偵測不含圍欄 → 主分割灌水判定
+    室外整片剪掉。把圍欄線補進屏障重灌一次水，「主分割室外、圍欄屏障
+    下灌不到」的封閉口袋＝陽台候選，以新房間附加。守門：貼殼（bbox
+    距建物外圈 ≤2T）、面積 ≥max((2T)², 0.2m²) 且 ≤25% 建物 bbox。
+    既有房間 labels 一概不動——純加法，命名交給下游 DINO。"""
+    fence = det.get("fence") if det.get("fence") is not None else det.get("thin")
+    if fence is None or labels is None or outside is None:
+        return rooms
+    T, cm = det["T"], det["cm"]
+    img_h, img_w = labels.shape
+    rects, wins = det["rects"], det["wins"]
+    barrier = np.zeros((img_h, img_w), np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for _o, x0, y0, x1, y1 in wins:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for horiz, g0, g1, b0, b1 in fp_c._wall_gaps(rects, wins, T, cm,
+                                                 40.0, 260.0):
+        if horiz:
+            cv2.rectangle(barrier, (int(g0), int(b0)), (int(g1), int(b1)), 255, -1)
+        else:
+            cv2.rectangle(barrier, (int(b0), int(g0)), (int(b1), int(g1)), 255, -1)
+    walls_only = barrier.copy()                  # 牆＋窗＋封口（不含 fence）
+    barrier = cv2.bitwise_or(
+        barrier, cv2.dilate(((fence > 0) * 255).astype(np.uint8),
+                            np.ones((5, 5), np.uint8)))
+    ff = np.pad(barrier, 1).copy()
+    cv2.floodFill(ff, None, (0, 0), 128)
+    reach = ff[1:-1, 1:-1] == 128
+    # 「未分配」而非「室外」：主分割大核閉運算會把露台整片吞成牆
+    # （inside 但 labels=0，floor_17 頂部露台實案），outside 條件收不到。
+    # 排除遮罩只用牆/封口——露台內部的植栽/磁磚紋理也在 fence 層，
+    # 用含 fence 的 barrier 會把口袋自己蓋掉（fence 只負責擋 reach）
+    pocket = ((labels == 0) & ~reach & (walls_only == 0)).astype(np.uint8)
+    # 口袋內的圍欄線/曬衣桿會把同一座陽台切成多個連通塊（floor_10 實測
+    # IoU 掉到 0.5 以下配不上）——閉運算把被細線分割的碎塊接回一體；
+    # 不同陽台相距遠超過 T，不會被 1 個牆厚的核黏起來
+    kp = 2 * max(2, int(round(0.5 * T))) + 1
+    pocket = cv2.morphologyEx(pocket * 255, cv2.MORPH_CLOSE,
+                              np.ones((kp, kp), np.uint8))
+    pocket[reach | (labels > 0)] = 0             # 閉運算不得侵入室外通路/既有房
+    pocket = (pocket > 0).astype(np.uint8)
+    X0 = min(r[0] for r in rects); Y0 = min(r[1] for r in rects)
+    X1 = max(r[2] for r in rects); Y1 = max(r[3] for r in rects)
+    amin = max((2 * T) ** 2, int(2000.0 / max(cm * cm, 1e-6)))
+    amax = 0.35 * (X1 - X0) * (Y1 - Y0)   # 圍欄環併入口袋後上修（0.30 會誤殺）
+    # 低紮實度口袋頸縮分裂（floor_10 實案：陽台與殼緣窄條黏成 solidity
+    # 0.08 的細長 L，IoU 只到 0.49）——erode 斷頸後窄條死於面積門檻，
+    # 陽台本體以核心回膨脹活下來
+    n0, lab0, st0, _c0 = cv2.connectedComponentsWithStats(pocket, 8)
+    for i in range(1, n0):
+        a0 = int(st0[i, cv2.CC_STAT_AREA])
+        bb = st0[i, cv2.CC_STAT_WIDTH] * st0[i, cv2.CC_STAT_HEIGHT]
+        if a0 < amin or a0 / max(1.0, float(bb)) >= 0.35:
+            continue                             # 0.35~0.5 的鬆散口袋常仍
+                                                 # 配得上（floor_13），只剝
+                                                 # 極端細長者（floor_10 0.08）
+        cc = (lab0 == i).astype(np.uint8)
+        ke = np.ones((max(3, T // 2) | 1,) * 2, np.uint8)
+        core = cv2.erode(cc, ke)
+        grown = cv2.dilate(core, ke) & cc        # 核心回膨脹但不出原 CC
+        if int(grown.sum()) < 0.4 * a0:
+            continue                             # 核心保不住四成（環狀薄形
+                                                 # 整顆蒸發，floor_13 陽台）
+                                                 # → 整顆不動
+        pocket[(cc > 0) & (grown == 0)] = 0      # 窄頸/細條剝除
+    n, lab, st, cent = cv2.connectedComponentsWithStats(pocket, 8)
+    nid = max((r["id"] for r in rooms), default=0)
+    for i in range(1, n):
+        a = int(st[i, cv2.CC_STAT_AREA])
+        if not amin <= a <= amax:
+            continue
+        x, y, w, h = (int(st[i, cv2.CC_STAT_LEFT]), int(st[i, cv2.CC_STAT_TOP]),
+                      int(st[i, cv2.CC_STAT_WIDTH]), int(st[i, cv2.CC_STAT_HEIGHT]))
+        # 貼殼＝bbox 與外圈「環帶」相交：貼圈、跨圈（floor_17 頂部露台
+        # 橫跨外圈上緣，舊的邊緣鄰近判定收不到）都算；完全在圈內深處
+        # （室內縫隙）或懸空遠處（雜訊）都不算
+        m = 2.0 * T
+        overlaps = not (x > X1 + m or x + w < X0 - m
+                        or y > Y1 + m or y + h < Y0 - m)
+        deep_inside = (X0 + m < x and x + w < X1 - m
+                       and Y0 + m < y and y + h < Y1 - m)
+        if not overlaps or deep_inside:
+            continue                             # 不貼殼＝浮空雜訊/室內縫
+        nid += 1
+        labels[lab == i] = nid
+        rooms.append({"id": nid, "area_px": a,
+                      "bbox": (x, y, x + w, y + h),
+                      "cx": float(cent[i][0]), "cy": float(cent[i][1]),
+                      "aspect": round(max(w, h) / max(1.0, min(w, h)), 2),
+                      "touch_env": True, "pocket": True})
+    return rooms
+
+
+def _ww_suture_merge(det, labels, rooms, T, cm, p_min=0.70):
+    """假帶縫合輪——白牆救援採用張的過切殘塊回併（floor_08 實案：
+    救援白帶的假陽性把客廳切出 21k px 殘片，殘塊無符號無門被叫
+    Hallway，主體 IoU 0.38 差線；縫回後 0.61 跨線）。
+
+    寧漏勿誤，四道門全過才併：
+    1. det["_ww_adopted"]——災難張限定，正常張零接觸；
+    2. 相鄰面不是真暗牆（邊界帶與暗牆重疊 <0.3）——救援張的白帶/
+       fence/封口切都是重跑期人工物（floor_08 實測殘塊多為 fence 切，
+       邊界 dark 0.03/band 0.00），信任交給門 4，暗牆分隔的兩房不動；
+    3. 一方是 Hallway/room（過切殘塊的典型歸宿）或兩方同名——
+       兩個有正名的房不併；
+    4. DINO 聯集重分類 top-1 == 主體房型且信心 ≥p_min——縫錯會被
+       聯集的異質外觀壓信心。
+    labels 就地改，回傳新 rooms。greedy 迭代至無可併（上限 4 併）。"""
+    if not det.get("_ww_adopted") or len(rooms) < 2:
+        return rooms
+    h, w = labels.shape
+    dark_m = np.zeros((h, w), np.uint8)
+    for x0, y0, x1, y1 in det.get("rects") or []:
+        cv2.rectangle(dark_m, (int(x0), int(y0)),
+                      (int(x1) - 1, int(y1) - 1), 1, -1)
+    ker = np.ones((2 * int(1.5 * T) + 1,) * 2, np.uint8)
+    out = list(rooms)
+    residue_lab = (None, "", "room", "Hallway")
+    for _ in range(4):
+        cand = None                              # (p, 主體, 殘塊, 主體名)
+        dil = {r["id"]: cv2.dilate((labels == r["id"]).astype(np.uint8),
+                                   ker) for r in out}
+        for i, ra in enumerate(out):
+            for rb in out[i + 1:]:
+                la, lb = ra.get("label"), rb.get("label")
+                a_res = la in residue_lab
+                b_res = lb in residue_lab
+                if not (a_res or b_res or la == lb):
+                    continue                     # 門 3：兩正名不併
+                # 主體＝非殘塊方（同名/雙殘取大者）
+                if a_res == b_res:
+                    host, res = (ra, rb) if ra["area_px"] >= rb["area_px"] \
+                        else (rb, ra)
+                else:
+                    host, res = (rb, ra) if a_res else (ra, rb)
+                if host.get("label") in residue_lab:
+                    continue                     # 雙殘塊無主體房型可驗
+                bound = (dil[ra["id"]] & dil[rb["id"]]) > 0
+                nb = int(bound.sum())
+                if not nb:
+                    continue                     # 不相鄰
+                f_dark = int(dark_m[bound].sum()) / nb
+                ww_dbg = os.environ.get("WW_DEBUG") == "1"
+                if f_dark >= 0.3:
+                    if ww_dbg:
+                        print(f"WW_DEBUG 縫合拒: {host['label']}"
+                              f"({host['area_px']})×{res.get('label')}"
+                              f"({res['area_px']}) 門2 "
+                              f"dark {f_dark:.2f}")
+                    continue                     # 門 2：真暗牆分隔
+                tmp = np.zeros_like(labels)
+                tmp[(labels == ra["id"]) | (labels == rb["id"])] = 1
+                probs = room_classifier.classify(det.get("bgr"), tmp,
+                                                 [{"id": 1}],
+                                                 variant="color")
+                pu = (probs[0] or {}) if probs else {}
+                if not pu:
+                    continue
+                top = max(pu, key=pu.get)
+                if top != host["label"] or pu[top] < p_min:
+                    if ww_dbg:
+                        print(f"WW_DEBUG 縫合拒: {host['label']}"
+                              f"({host['area_px']})×{res.get('label')}"
+                              f"({res['area_px']}) 門4 "
+                              f"top {top} {pu[top]:.2f}")
+                    continue                     # 門 4：聯集驗證
+                if cand is None or pu[top] > cand[0]:
+                    cand = (pu[top], host, res, top)
+        if cand is None:
+            break
+        _p, host, res, top = cand
+        labels[labels == res["id"]] = host["id"]
+        keep = _room_stats(labels, host["id"], host.get("touch_env", False))
+        keep["label"] = top
+        keep["area_m2"] = round(keep["area_px"] * cm * cm / 1e4, 2)
+        print(f"假帶縫合 : {res.get('label')}({res['area_px']}px) 併回 "
+              f"{top}（聯集信心 {_p:.2f}）")
+        out = [r for r in out if r["id"] not in (host["id"], res["id"])]
+        out.append(keep)
+    return out
+
+
+def _dino_propose_splits(det, labels, rooms, T, cm, amin,
+                         min_m2=250000.0, p_min=0.55):
+    """DINO 提案式切分——無錨點大房的最後切分手段（floor47/52/13 灰、
+    floor02/03 彩型開放 LDK）。彩圖無 OCR 也無符號證據、灰階符號召回
+    被模板庫卡死，這些誤併沒有任何錨點可用。
+
+    對面積 ≥25m² 的房：沿主軸輪廓階梯（剖面跳變 >T）＋fence 線密度峰
+    （窗帶/圍欄在細線層是長直線——floor_04/18/19 型「陽台被鄰房吞」的
+    分界帶）＋中點出候選刀，每刀切兩半交 DINO；兩半 top-1 為
+    {Kitchen, LivingRoom} 對、或 {Balcony}×{Kitchen/LivingRoom/Bedroom}
+    對，且雙方信心 ≥p_min 才收，取信心和最高的一刀。
+    寧漏勿誤：驗證不過整房不動。labels 就地改，回傳新 rooms。"""
+    h, w = labels.shape
+    out = list(rooms)
+    nid = max((r["id"] for r in out), default=0)
+    variant = "color" if det.get("domain") == "color" else "gray"
+    xs_grid = np.arange(w)[None, :]
+    ys_grid = np.arange(h)[:, None]
+    fence = det.get("fence") if det.get("fence") is not None else None
+    rects_env = det.get("rects") or ()
+    if rects_env:
+        eX0 = min(r_[0] for r_ in rects_env); eY0 = min(r_[1] for r_ in rects_env)
+        eX1 = max(r_[2] for r_ in rects_env); eY1 = max(r_[3] for r_ in rects_env)
     else:
-        d = (m, g0, gap, 1.0, 1.0, 1.0)
-        mx, my = m, (g0 + g1) / 2.0
-        ax, ay, sx, sy = 0.0, gap / 2.0, gap, 0.0
-    quad = [(mx - ax - sx, my - ay - sy), (mx + ax - sx, my + ay - sy),
-            (mx + ax + sx, my + ay + sy), (mx - ax + sx, my - ay + sy)]
-    return quad, d
+        eX0 = eY0 = 0; eX1 = w; eY1 = h
+
+    def _on_env(mask):
+        """Balcony 半必須貼建物外圈（陽台在殼緣；室內磁磚被誤判
+        Balcony 的假半不貼圈——floor_05 客廳誤切的守門）。"""
+        ys, xs = np.nonzero(mask)
+        if not len(xs):
+            return False
+        m = 2.5 * T
+        return (xs.min() - eX0 <= m or eX1 - xs.max() <= m
+                or ys.min() - eY0 <= m or eY1 - ys.max() <= m)
+    pp_dbg = os.environ.get("WW_DEBUG") == "1"
+    ww_adopted = bool(det.get("_ww_adopted"))
+    # 災難張門檻下修（floor_07 實案）：救援採用張的複合 blob（臥+浴、
+    # 臥+走道）計算面積僅 7~8.6m²——比例尺被門樣本稀少低估，10m²
+    # big 線全擋、8m² 硬地板連場都進不了。災難張已無可失且有 DINO
+    # 雙 0.7＋比例守門，硬地板降 5m²、big 線降 6m²；常規張兩門檻不動
+    floor_m2 = 50000.0 if ww_adopted else 80000.0
+    for room in rooms:
+        area_m2 = room["area_px"] * cm * cm
+        if area_m2 < floor_m2:                   # 硬地板：太小不提案
+            if pp_dbg and area_m2 >= 40000.0:
+                print(f"WW_DEBUG 提案拒: id {room['id']} "
+                      f"{area_m2 / 1e4:.1f}m² < 硬地板")
+            continue
+        big = area_m2 >= (60000.0 if ww_adopted else min_m2)
+        bx0, by0, bx1, by1 = room["bbox"]
+        fill = room["area_px"] / max(1.0, float((bx1 - bx0) * (by1 - by0)))
+        if pp_dbg:
+            print(f"WW_DEBUG 提案評: id {room['id']} "
+                  f"{area_m2 / 1e4:.1f}m² big {big} fill {fill:.2f}")
+        # 門檻下修開放的 5~10m² 帶只吃證據刀（tint/fence/剖面跳變）：
+        # 中點是唯一無證據亂刀，小房被對半誤切的主因（floor_08 左臥
+        # 7.2m² 實案）；剖面跳變＝L 型幾何階梯，屬結構證據保留
+        # （floor_07 臥+浴 blob 的浴界只有軸2 跳變刀看得見）；整房
+        # DINO 信心在災難張是反向指標（floor_07 blob 整房 0.9+、
+        # floor_08 乾淨臥反而 <0.8），不可用
+        evidence_only = ww_adopted and area_m2 < 100000.0
+        # 救援採用張的複合房常 12~20m²（floor_08 臥+走+客 17.6m²），
+        # 25m² 門檻會全擋——災難張降 10m²
+        region = labels == room["id"]
+        x0, y0, x1, y1 = room["bbox"]
+        # fence 刀：孤立高密度線才可信——窗帶/圍欄是 1~2 條長直線，
+        # 磁磚格是幾十條（floor_05 客廳被磁磚紋誤切的教訓）。同軸
+        # 高密度「線列（連續段）」超過 3 條＝紋理，整軸 fence 刀作廢
+        fence_knives = {1: [], 2: []}
+        if fence is not None:
+            fmask = (fence > 0) & region
+            for key in (1, 2):
+                prof = region.sum(axis=0 if key == 1 else 1)
+                fprof = fmask.sum(axis=0 if key == 1 else 1)
+                lo, hi = (x0, x1) if key == 1 else (y0, y1)
+                hits = [c for c in range(int(lo) + 2 * T, int(hi) - 2 * T)
+                        if prof[c] > 0 and fprof[c] >= 0.7 * prof[c]]
+                runs = []
+                for c in hits:
+                    if runs and c - runs[-1][-1] <= 2:
+                        runs[-1].append(c)
+                    else:
+                        runs.append([c])
+                if 1 <= len(runs) <= 3:
+                    fence_knives[key] = [float(r_[len(r_) // 2])
+                                         for r_ in runs]
+        # 色染轉換刀（floor_08 實案：黃走道/白客廳、浴/廚無牆有色界）
+        # ——房內逐列取主色染類（LAB ab 粗分桶），主類切換處出候選刀
+        tint_knives = {1: [], 2: []}
+        bgr_t = det.get("bgr")
+        if bgr_t is not None and big and variant == "color":
+            sc_t = labels.shape[1] / float(bgr_t.shape[1])
+            lab_t = cv2.cvtColor(cv2.pyrMeanShiftFiltering(bgr_t, 5, 16),
+                                 cv2.COLOR_BGR2LAB)
+            at = lab_t[:, :, 1].astype(np.int16) - 128
+            bt = lab_t[:, :, 2].astype(np.int16) - 128
+            cls1 = np.zeros(lab_t.shape[:2], np.int8)   # 0=中性
+            strong = (np.abs(at) + np.abs(bt)) > 14
+            hue = np.arctan2(bt.astype(np.float32),
+                             at.astype(np.float32))       # -π~π
+            hue_bin = ((hue + np.pi) / (2 * np.pi) * 8).astype(np.int8) % 8
+            cls1[strong] = hue_bin[strong] + 1           # 1~8 色相桶
+                                                 # （ab 四象限太粗：黃與木棕
+                                                 # 同象限無轉換點，floor_08
+                                                 # 走道/臥室界抓不到）
+            cls = cv2.resize(cls1, (labels.shape[1], labels.shape[0]),
+                             interpolation=cv2.INTER_NEAREST)
+            for key in (1, 2):
+                lo, hi = (x0, x1) if key == 1 else (y0, y1)
+                maj = np.full(int(hi) + 1, -9, np.int16)
+                for c in range(int(lo), int(hi)):
+                    colm = region[:, c] if key == 1 else region[c, :]
+                    if not colm.any():
+                        continue
+                    vals = (cls[:, c] if key == 1 else cls[c, :])[colm]
+                    bc = np.bincount(vals, minlength=9)
+                    maj[c] = int(bc.argmax())
+                run_len = 0
+                prev = -9
+                for c in range(int(lo), int(hi)):
+                    if maj[c] == prev:
+                        run_len += 1
+                    else:
+                        if prev != -9 and run_len >= 2 * T and maj[c] != -9:
+                            tint_knives[key].append(float(c))
+                        prev, run_len = maj[c], 1
+        if not big and not (fence_knives[1] or fence_knives[2]):
+            if pp_dbg:
+                print(f"WW_DEBUG 提案拒: id {room['id']} 非 big 且無 fence 刀")
+            continue                             # 小房須有 fence 刀證據
+        best = None                              # (score, part_a, part_b)
+        for key, grid, lo, hi in ((1, xs_grid, x0, x1), (2, ys_grid, y0, y1)):
+            prof = region.sum(axis=0 if key == 1 else 1)
+            cands = list(fence_knives[key]) + list(tint_knives[key])
+            if big:
+                cands += [float(c)
+                          for c in range(int(lo) + 2 * T, int(hi) - 2 * T)
+                          if abs(int(prof[c]) - int(prof[c - 1])) > T]
+                if not evidence_only:
+                    cands.append((lo + hi) / 2.0)
+            seen = set()
+            for c in cands:
+                b = int(c // max(T, 1))          # 相鄰候選去重（一桶一刀）
+                if b in seen:
+                    continue
+                seen.add(b)
+                a_, b_ = region & (grid < c), region & (grid >= c)
+                if a_.sum() < amin or b_.sum() < amin:
+                    continue
+                tmp = np.zeros_like(labels)
+                tmp[a_] = 1
+                tmp[b_] = 2
+                probs = room_classifier.classify(det.get("bgr"), tmp,
+                                                 [{"id": 1}, {"id": 2}],
+                                                 variant=variant)
+                if probs is None:
+                    return out                   # 分類器缺席，整機制停用
+                pa, pb = probs[0] or {}, probs[1] or {}
+                if not pa or not pb:
+                    continue
+                la, lb = max(pa, key=pa.get), max(pb, key=pb.get)
+                if pp_dbg and evidence_only:
+                    print(f"WW_DEBUG 提案候選: id {room['id']} 軸{key} "
+                          f"c {c:.0f} {la} {pa[la]:.2f} × {lb} {pb[lb]:.2f}")
+                pair = {la, lb}
+                if pair == {"Kitchen", "LivingRoom"} and big:
+                    thr_pair = p_min
+                elif ("Balcony" in pair
+                      and (pair - {"Balcony"}) <= {"Kitchen", "LivingRoom",
+                                                   "Bedroom"}):
+                    thr_pair = 0.65              # Balcony 對從嚴（磁磚客廳
+                                                 # 半邊易被誤判 Balcony）
+                    bal_half = a_ if la == "Balcony" else b_
+                    if not _on_env(bal_half):
+                        continue                 # 假陽台半不貼殼緣
+                elif pair in ({"Hallway", "LivingRoom"},
+                              {"Kitchen", "Bath"}) and big                         and variant == "color":
+                    thr_pair = 0.65              # 色界對從嚴（floor_08 型
+                                                 # 黃走道/白客廳、浴/廚）；
+                                                 # 彩圖限定——灰階實測
+                                                 # floor47 被亂切 -2
+                    ra, rb = int(a_.sum()), int(b_.sum())
+                    if max(ra, rb) > 8 * min(ra, rb):
+                        continue                 # 60:1 細條（floor_05 客廳
+                                                 # 底緣地毯界）非真色界切分
+                elif det.get("_ww_adopted") and variant == "color"                         and big and la != lb:
+                    # 救援採用張（災難張）開放任意對：已無可失，雙 0.7
+                    # 信心＋比例守門把關（floor_08 實測三塊大房各有
+                    # 0.8+/0.9+ 的可切對但不在白名單）
+                    thr_pair = 0.70
+                    ra, rb = int(a_.sum()), int(b_.sum())
+                    if max(ra, rb) > 8 * min(ra, rb):
+                        continue
+                elif pair == {"Entry", "LivingRoom"} and big:
+                    # floor52 實案：玄關半 DINO 0.62/客廳半 0.99，只因不
+                    # 在接受對而沒開刀。Entry 誤判常見，從嚴 0.6 且
+                    # Entry 半須貼殼緣（玄關必有對外門）
+                    thr_pair = 0.60
+                    ent_half = a_ if la == "Entry" else b_
+                    if not _on_env(ent_half):
+                        continue
+                else:
+                    continue
+                if pa[la] < thr_pair or pb[lb] < thr_pair:
+                    continue
+                score = pa[la] + pb[lb]
+                if best is None or score > best[0]:
+                    best = (score, a_, b_)
+        if best is None:
+            if pp_dbg:
+                print(f"WW_DEBUG 提案拒: id {room['id']} 候選刀全滅"
+                      f"（fence {len(fence_knives[1]) + len(fence_knives[2])}"
+                      f" tint {len(tint_knives[1]) + len(tint_knives[2])}）")
+            continue
+        _s, a_, b_ = best
+        nid += 1
+        labels[b_] = nid
+        te = room.get("touch_env", False)
+        out.remove(room)
+        for r_ in filter(None, (_room_stats(labels, room["id"], te),
+                                _room_stats(labels, nid, te))):
+            out.append(r_)
+    return out
 
 
 def build_rooms(det):
@@ -834,24 +1778,256 @@ def build_rooms(det):
 
     # 牆端連線（「紅色線端點連到另一端」）：40~260cm 的牆縫開口全封
     bridges = fp_c._wall_gaps(rects, wins, T, cm, 40.0, 260.0)
-    labels, rooms, outside = fp_c.segment_rooms(rects, wins, doors,
-                                                img_w, img_h, T, T_out, cm)
+    # 畫風分流（使用者裁定 2026-08-02）：灰階路凍結維護，color 循環的
+    # 新機制一律以 domain 閘門，不進灰階——共用路徑的變更必須雙量尺
+    # 護航，但預設灰階零接觸
+    is_color_dom = det.get("domain") == "color"
+    # 灌水圍欄：灰階用墨水細線層（v2.23 救援輪，灰階自有機制）；
+    # 彩圖 thin 太吵只以 det["fence"] 身分供救援輪
+    fence = det.get("thin") if det.get("thin") is not None else det.get("fence")
+    # 外圈封口（彩圖限定）：外牆寬窗帶（>260cm、窗偵測漏抓）另開 600cm
+    # 輪，只在建物外圈生效——floor_09 型「半戶被灌水判室外」的最後防線
+    seg_wins = wins
+    if is_color_dom:
+        seg_wins = wins + fp_c.envelope_gap_seals(rects, wins, T, cm)
+    labels, rooms, outside = fp_c.segment_rooms(rects, seg_wins, doors,
+                                                img_w, img_h, T, T_out, cm,
+                                                keep_small=True,
+                                                thin=fence,
+                                                fence_guard=is_color_dom)
+    if labels is None:
+        # 救援階梯第三級（floor02 實案）：寬封口 360cm 全域用是淨負向
+        # （走道被寬封口切碎，A/B 實測 −2 命中/−10 命名），但對「常規
+        # ＋細線圍欄都救不回」的整圖失敗，360cm 能封住 L 型大開口。
+        # 只在整圖失敗時重試，通過的圖零觸碰
+        labels, rooms, outside = fp_c.segment_rooms(rects, seg_wins, doors,
+                                                    img_w, img_h, T, T_out,
+                                                    cm, keep_small=True,
+                                                    thin=fence,
+                                                    seal_hi=360.0,
+                                                    stub_guard=False,
+                                                    fence_guard=is_color_dom)
     if labels is None or not rooms:
         zones = [_bridge_zone(*b) for b in bridges
                  if any(lo <= (b[2] - b[1]) * cm <= hi
                         for lo, hi in DOOR_RANGES_CM)]
         return None, [], bridges, zones, []
+    # 白牆救援（色塊分割線，彩圖限定＋覆蓋率觸發）：棄守畫風的牆＝
+    # 色染間白窄帶，暗色偵測原理性抓不到（floor_08 整戶黏成一塊）。
+    # 只在主分割宣告面積 <50% 外圈時啟用（08/09 型災難張），以
+    # white_wall_rects 補牆重跑，覆蓋明顯改善（+10pp）才採用——正常
+    # 張零接觸，白牆帶的假陽性（床頭板/磁磚列）不波及
+    if is_color_dom and rects and os.environ.get("WW_RESCUE", "1") == "1":
+        eX0 = min(r_[0] for r_ in rects); eY0 = min(r_[1] for r_ in rects)
+        eX1 = max(r_[2] for r_ in rects); eY1 = max(r_[3] for r_ in rects)
+        env_a = max(1.0, (eX1 - eX0) * (eY1 - eY0))
+        cov = sum(r_["area_px"] for r_ in rooms) / env_a
+        big_blob = (len(rooms) <= 5
+                    and max(r_["area_px"] for r_ in rooms) / env_a > 0.35)
+        ww_dbg = os.environ.get("WW_DEBUG") == "1"
+        if ww_dbg:
+            print(f"WW_DEBUG 主分割: cov {cov:.3f} rooms {len(rooms)} "
+                  f"big_blob {big_blob}")
+        shatter = cov < 0.50 and len(rooms) >= 20
+        if (cov < 0.50 and len(rooms) < 8) or shatter \
+                or big_blob or os.environ.get("WW_FORCE") == "1":
+                                                 # 災難張三型：低覆蓋房少
+                                                 # （09 型）、巨塊黏連（08
+                                                 # 型）、低覆蓋碎裂（07 型：
+                                                 # cov 42%/58 房，白磁磚區
+                                                 # 全碎）。floor_04 覆蓋被
+                                                 # 外圈空地低估但 16 房正
+                                                 # 常，8~19 房安全窗擋誤觸
+                                                 # WW_FORCE 僅供離線診斷探測
+            bgr1 = det.get("bgr")
+            sc = img_w / float(bgr1.shape[1])
+            T1x = max(6, int(round(T / sc)))
+            ww = fp_c.white_wall_rects(
+                bgr1, T1x,
+                dark_rects=[(r_[0] / sc, r_[1] / sc, r_[2] / sc, r_[3] / sc)
+                            for r_ in rects])
+            # 語意牆帶（分割頭，2026-08-03）：近白暗示牆的白帶/暗色都抓
+            # 不到，DINO patch 機率圖的低機率脊線補上；門洞照走既有門
+            # 尺寸縫封口。資產缺檔＝空清單，行為不變。SEG_BANDS=0 供 A/B
+            if os.environ.get("SEG_BANDS", "1") == "1":
+                import seg_head
+                sb = seg_head.wall_bands(bgr1, T1x)
+                if sb:
+                    print(f"語意牆帶 : {len(sb)} 段（seg_head）")
+                    ww = ww + sb
+            ww2 = [(x0 * sc, y0 * sc, x1 * sc, y1 * sc)
+                   for x0, y0, x1, y1 in ww]
+            if ww2:
+                labels_w, rooms_w, outside_w = fp_c.segment_rooms(
+                    rects + ww2, seg_wins, doors, img_w, img_h, T, T_out,
+                    cm, keep_small=True, thin=fence, fence_guard=True,
+                    seal_hi=360.0, stub_guard=False)
+                if labels_w is not None and rooms_w:
+                    cov_w = sum(r_["area_px"] for r_ in rooms_w) / env_a
+                    ok_cov = cov_w >= 0.55 and cov_w > cov + 0.10
+                    if shatter and len(rooms_w) >= len(rooms):
+                        # 碎裂型救援的天職是收斂（floor_07 58→13）；
+                        # 越補越碎（floor_04 22→41、9/10→6/10）＝白帶
+                        # 在正常張灑假牆，覆蓋過閘也不可採
+                        ok_cov = False
+                    ok_blob = big_blob and cov_w >= 0.55                         and len(rooms_w) > len(rooms)
+                    if ww_dbg:
+                        print(f"WW_DEBUG 救援輪: 白牆帶 {len(ww2)} 段 "
+                              f"cov_w {cov_w:.3f} rooms_w {len(rooms_w)} "
+                              f"ok_cov {ok_cov} ok_blob {ok_blob}")
+                        det["_ww_debug"] = {
+                            "ww2": ww2, "labels_w": labels_w,
+                            "rooms_w": rooms_w, "outside_w": outside_w,
+                            "cov": cov, "cov_w": cov_w,
+                            "rects": rects, "T": T}
+                    if ok_cov or ok_blob:        # 半修復（floor_09 46% 採用
+                                                 # 反而 2→1）不如不修——絕對
+                                                 # 覆蓋 ≥55% 才接手；巨塊型
+                                                 # 切牆後覆蓋自然下降，只要
+                                                 # ≥55% 且房數增加即採
+                                                 # （floor_08 73%→66%/3→6）
+                        det["_ww_adopted"] = True
+                        det["_ww_bands"] = ww2   # 縫合輪要分辨白帶/暗牆分隔
+                        print(f"白牆救援 : 覆蓋 {cov:.0%}→{cov_w:.0%}，"
+                              f"補 {len(ww2)} 段白牆帶")
+                        labels, rooms, outside = labels_w, rooms_w, outside_w
     # 走道橫斷橋合併後即失效：疊圖不再畫、恰為門尺寸者的假門位一併移除
     rooms, bridges = _merge_nondoor_bridges(labels, rooms, bridges, det)
+    # 浴室隔屏碎格合併（floor38/44 實案）——須在面積終篩前，
+    # 合併後的浴室才活得過門檻
+    if is_color_dom:
+        # 彩圖無符號證據，浴室碎格合併改走 DINO 種子路：<8m² 碎房
+        # 先過分類器，判 Bath（≥0.5）＝種子、判 Kitchen＝反證
+        # 口袋房（陽台收割）不進種子也不可被吸收——磁磚陽台的裁切
+        # 常被判 Bath，bath1 實測 -4 的主因。上限 4m²（非灰階路的
+        # 8m²）：已成形的浴室不動，只併真碎格——bath2 實測 8m² 會把
+        # floor_19 已配上的浴室吸進去稀釋
+        small = [r for r in rooms
+                 if r["area_px"] * cm * cm < 40000.0
+                 and not r.get("pocket")]
+        seeds, vetos = set(), set()
+        if len(small) >= 2:
+            probs_s = room_classifier.classify(det.get("bgr"), labels, small,
+                                               variant="color")
+            if probs_s is not None:
+                for r_, pr in zip(small, probs_s):
+                    if not pr:
+                        continue
+                    top = max(pr, key=pr.get)
+                    if top == "Bath" and pr[top] >= 0.7:
+                        seeds.add(r_["id"])
+                    elif top != "Bath":
+                        vetos.add(r_["id"])
+        vetos |= {r_["id"] for r_ in rooms if r_.get("pocket")}
+        rooms = _merge_bath_nooks(labels, rooms, det, T,
+                                  seed_ids=seeds, veto_ids=vetos)
+    else:
+        rooms = _merge_bath_nooks(labels, rooms, det, T)
+        # 灰階符號種子不足時（floor06 實案：整圖只偵測到 kstove，
+        # 浴室碎格無種子可併）補一輪 DINO 種子路，守門同彩圖
+        small = [r for r in rooms
+                 if r["area_px"] * cm * cm < 40000.0
+                 and not r.get("pocket")]
+        if len(small) >= 2:
+            probs_s = room_classifier.classify(det.get("bgr"), labels, small,
+                                               variant="gray")
+            if probs_s is not None:
+                seeds, vetos = set(), set()
+                for r_, pr in zip(small, probs_s):
+                    if not pr:
+                        continue
+                    top = max(pr, key=pr.get)
+                    if top == "Bath" and pr[top] >= 0.7:
+                        seeds.add(r_["id"])
+                    elif top != "Bath":
+                        vetos.add(r_["id"])
+                vetos |= {r_["id"] for r_ in rooms if r_.get("pocket")}
+                rooms = _merge_bath_nooks(labels, rooms, det, T,
+                                          seed_ids=seeds, veto_ids=vetos)
+    # 面積終篩（keep_small 的另一半）：走道碎片已在上一步併回整條，
+    # 這裡才執行原本的面積門檻——未被合併救回的碎片與雜訊小塊在此淘汰
+    X0 = min(r_[0] for r_ in rects); Y0 = min(r_[1] for r_ in rects)
+    X1 = max(r_[2] for r_ in rects); Y1 = max(r_[3] for r_ in rects)
+    amin = max(int(0.003 * (X1 - X0) * (Y1 - Y0)), 2 * (2 * T) ** 2)
+    dropped = [r for r in rooms if r["area_px"] < amin]
+    if dropped:
+        for r in dropped:
+            labels[labels == r["id"]] = 0
+        rooms = [r for r in rooms if r["area_px"] >= amin]
+    if not rooms:
+        zones = [_bridge_zone(*b) for b in bridges
+                 if any(lo <= (b[2] - b[1]) * cm <= hi
+                        for lo, hi in DOOR_RANGES_CM)]
+        return None, [], bridges, zones, []
     zones = [_bridge_zone(*b) for b in bridges
              if any(lo <= (b[2] - b[1]) * cm <= hi for lo, hi in DOOR_RANGES_CM)
              and _bridge_has_door_ink(det, *b)]  # 迴轉區無墨=開放通道非門
+    # 樓梯足跡切分：開放區嵌樓梯無牆可封，踏板串外框直接切出成房
+    rooms = _carve_stairs(labels, rooms, detect_stair_boxes(det), T, cm)
+    # OCR 錨點功能區切分：一房含 2+ 房名文字＝作者標了 2+ 個功能區
+    rooms = _split_by_text_anchors(labels, rooms, det.get("texts") or [],
+                                   T, cm, amin)
+    # 符號錨點補位（無文字圖）：廚房系符號群觸發廚客分家。
+    # 文字已切開的房不會再有雙系符號，兩機制天然互補不重疊。
+    # min_part_ratio=1.8：廚餐一體房（子區歸主房慣例）兩半約等大，
+    # 真開放廚客的客廳側遠大於廚房側——floor07 實案的守門
+    # 方正守門讓行：兩半近等大時用 DINO 驗證兩半各自像不像錨點房型
+    # （floor47/52/13 型開放 LDK 的廚客真切分兩半 ~1:1，硬守門會擋掉；
+    # floor07 廚餐一體房的餐半不會被判成 LivingRoom，仍被擋）
+    def _dino_verify(parts, merged):
+        tmp = np.zeros(labels.shape, np.int32)
+        tmp[parts[0]] = 1
+        tmp[parts[1]] = 2
+        variant = "color" if is_color_dom else "gray"
+        probs = room_classifier.classify(det.get("bgr"), tmp,
+                                         [{"id": 1}, {"id": 2}],
+                                         variant=variant)
+        if probs is None:
+            return False
+        ok = 0
+        for lab_a, cx, cy in merged:
+            iy, ix = int(round(cy)), int(round(cx))
+            if not (0 <= iy < labels.shape[0] and 0 <= ix < labels.shape[1]):
+                return False
+            pi = 0 if parts[0][iy, ix] else 1
+            pr = probs[pi] or {}
+            if pr and max(pr, key=pr.get) == lab_a:
+                ok += 1
+        return ok == len(merged)                 # 兩半 top-1 都對才放行
+
+    rooms = _split_by_text_anchors(labels, rooms,
+                                   _symbol_anchors(det, labels, rooms),
+                                   T, cm, amin, min_part_ratio=1.8,
+                                   verify=_dino_verify if is_color_dom
+                                   else None)
+    # 殼外陽台口袋收割——彩圖常駐；灰階以自屬開關回收（2026-08-02
+    # floor06 露台實案＋早前實測 dev +3/holdout +1，依分流原則另以灰階
+    # 量尺獨立 A/B 後啟用）
+    rooms = _harvest_balcony_pockets(det, labels, rooms, outside)
+    # DINO 提案式切分：無錨點大房（無 OCR 房名、無符號可用）的開放
+    # LDK 最後手段。房內已有作者房名文字者不提案（作者說了算）
+    h_, w_ = labels.shape
+    texted = set()
+    for t in det.get("texts") or ():
+        iy, ix = int(round(t[2])), int(round(t[1]))
+        if 0 <= iy < h_ and 0 <= ix < w_ and labels[iy, ix] > 0:
+            texted.add(int(labels[iy, ix]))
+    untexted = [r for r in rooms if r["id"] not in texted]
+    if untexted:
+        kept_ids = {r["id"] for r in untexted}
+        merged_out = _dino_propose_splits(det, labels, untexted, T, cm, amin)
+        rooms = [r for r in rooms if r["id"] not in kept_ids] + merged_out
     # 房型命名（2026-07-30 起只剩兩層，CubiCasa 語意投票已整批移除）：
     #   1) DINOv2 裁切分類（room_classifier）——own_eval 72 房 90.3%
     #   2) 面積規則（純幾何兜底）——缺 torch/骨幹/線性頭時
-    probs = room_classifier.classify(det.get("bgr"), labels, rooms)
+    # 彩圖管線（det 帶 fence）用 color 專屬頭：混訓實測傷灰階基準，分域雙頭
+    variant = "color" if is_color_dom else "gray"
+    probs = room_classifier.classify(det.get("bgr"), labels, rooms,
+                                     variant=variant)
     if probs is not None:
-        classify_rooms_dino(det, labels, rooms, probs)
+        classify_rooms_dino(det, labels, rooms, probs, outside)
+        # 假帶縫合輪（救援採用張限定）：命名後才知道誰是 Hallway 殘塊
+        rooms = _ww_suture_merge(det, labels, rooms, T, cm)
     else:
         print("⚠ DINOv2 房型分類不可用 → 房型退回面積規則（品質明顯較差）")
         fp_c.classify_rooms(rooms, cm, det["thin"], labels)
@@ -912,8 +2088,13 @@ def preview_doors(det, zones, path):
     cv2.imwrite(path, vis)
 
 
-def write_rooms_json(path, det, rooms, zones, edges, is_color, colorful):
+def write_rooms_json(path, det, rooms, zones, edges, is_color, colorful,
+                     emit_openings=True):
+    """emit_openings=False（彩色預設，2026-08-02 使用者裁定）→ doors 發空
+    清單交後端補建：彩門 P 0.38/R 0.47 低於可用線，畫出來反增人工刪除。
+    灰階 zones 路 P 0.85/R 0.71 照常發射。"""
     data = {
+        "openings_suppressed": not emit_openings,
         "image": {"w": det["img_w"], "h": det["img_h"]},
         "is_color": bool(is_color),
         "color_ratio": round(colorful, 4),
@@ -930,7 +2111,7 @@ def write_rooms_json(path, det, rooms, zones, edges, is_color, colorful):
                      round(min(p[1] for p in quad), 1),
                      round(max(p[0] for p in quad), 1),
                      round(max(p[1] for p in quad), 1)],
-        } for quad, d in zones],
+        } for quad, d in (zones if emit_openings else [])],
         "rooms": [{
             "id": r["id"], "label": r["label"], "label_zh": r["label_zh"],
             "area_m2": r["area_m2"], "bbox": list(r["bbox"]),
@@ -980,7 +2161,8 @@ def process(path, out_dir, cfg_bw, cfg_color):
     json_out = os.path.join("temp/json/room", base + "_room.json")
     preview_rooms(det, labels, rooms, bridges, png_out)
     preview_doors(det, zones, door_out)
-    write_rooms_json(json_out, det, rooms, zones, edges, is_color, colorful)
+    write_rooms_json(json_out, det, rooms, zones, edges, is_color, colorful,
+                     emit_openings=(not is_color) or cfg_color.emit_openings)
 
     if rooms:
         names = "、".join(f'{r["label_zh"]}{r["area_m2"]}m²' for r in rooms)
@@ -992,11 +2174,24 @@ def process(path, out_dir, cfg_bw, cfg_color):
     return bool(rooms)
 
 
+def resolve_input(arg):
+    """輸入參數 → 實際路徑。當前目錄找得到就照用（單張圖檔一律當相對路徑），
+    否則把簡名當成 testdata/ 底下的同名目錄：`png` → testdata/png/、
+    `color_png` → testdata/color_png/。都找不到就原樣回傳，交給呼叫端報錯。"""
+    if os.path.exists(arg):
+        return arg
+    cand = os.path.join(_ROOT, "testdata", arg)
+    if os.path.isdir(cand):
+        return cand
+    return arg
+
+
 def main():
     p = argparse.ArgumentParser(
-        description="平面圖 → 房間方塊（自動判黑白/彩色，調用對應管線，不出 DXF）。\n"
-                    "不帶參數 = 批次跑 testdata/png/ 目錄 → chk/room/")
-    p.add_argument("input", nargs="?", help="輸入圖檔(單張)或目錄(批次)；預設 png/")
+        description="平面圖 → 房間方塊（自動判黑白/彩色，調用對應管線，不出 DXF）。")
+    p.add_argument("input", nargs="?",
+                   help="輸入圖檔(單張)或目錄(批次)；目錄簡名如 png/color_png 會解成 "
+                        "testdata/ 底下的同名目錄")
     p.add_argument("output", nargs="?", help="輸出目錄（預設 chk/room/）")
     p.add_argument("--config", default="config.ini", help="黑白管線設定檔")
     p.add_argument("--config-color", default="config_color.ini", help="彩色管線設定檔")
@@ -1007,13 +2202,18 @@ def main():
     out_dir = a.output or os.path.join("temp/chk", "room")
     os.makedirs(out_dir, exist_ok=True)
 
-    if a.input and os.path.isfile(a.input):
-        process(a.input, out_dir, cfg_bw, cfg_color)
+    if not a.input:
+        sys.exit("請給要處理的圖檔或目錄"
+                 "  (單張：floorplan2room.py 圖.png；批次：floorplan2room.py png)")
+
+    src = resolve_input(a.input)
+    if os.path.isfile(src):
+        process(src, out_dir, cfg_bw, cfg_color)
         return
 
-    in_dir = a.input or "testdata/png"
+    in_dir = src
     if not os.path.isdir(in_dir):
-        sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去，或給單張圖檔路徑)")
+        sys.exit(f"找不到 {a.input}  (也試過 testdata/{a.input}/)")
     imgs = sorted(p_ for p_ in glob.glob(os.path.join(in_dir, "*"))
                   if p_.lower().endswith(IMG_EXTS))
     if not imgs:

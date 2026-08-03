@@ -1,0 +1,347 @@
+<title>PNG → DXF：RoomPilot 管線解剖</title>
+<style>
+  :root {
+    --paper: #fafaf7;
+    --ink: #1c1e22;
+    --ink-2: #4b4f57;
+    --ink-3: #8a8f99;
+    --line: #d8d9d2;
+    --panel: #f1f1ec;
+    --wall: #c03a2b;
+    --win: #1e8449;
+    --door: #c8960c;
+    --glass: #2374ab;
+    --seg: #7d3c98;
+    --chip-bg: #eceee6;
+    --code-bg: #eef0e9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #17191d;
+      --ink: #e8e8e4;
+      --ink-2: #b0b3ba;
+      --ink-3: #767b85;
+      --line: #33363d;
+      --panel: #1e2126;
+      --wall: #e05a48;
+      --win: #38b26a;
+      --door: #e0b435;
+      --glass: #4d9fd6;
+      --seg: #b07cc6;
+      --chip-bg: #24272d;
+      --code-bg: #22252b;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #fafaf7; --ink: #1c1e22; --ink-2: #4b4f57; --ink-3: #8a8f99;
+    --line: #d8d9d2; --panel: #f1f1ec; --wall: #c03a2b; --win: #1e8449;
+    --door: #c8960c; --glass: #2374ab; --seg: #7d3c98;
+    --chip-bg: #eceee6; --code-bg: #eef0e9;
+  }
+  :root[data-theme="dark"] {
+    --paper: #17191d; --ink: #e8e8e4; --ink-2: #b0b3ba; --ink-3: #767b85;
+    --line: #33363d; --panel: #1e2126; --wall: #e05a48; --win: #38b26a;
+    --door: #e0b435; --glass: #4d9fd6; --seg: #b07cc6;
+    --chip-bg: #24272d; --code-bg: #22252b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    line-height: 1.75;
+    font-size: 16px;
+  }
+  .sheet { max-width: 880px; margin: 0 auto; padding: 48px 28px 80px; }
+  .eyebrow {
+    font-family: Bahnschrift, "Segoe UI", sans-serif;
+    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 10px;
+  }
+  h1 {
+    font-family: Bahnschrift, "Segoe UI Semibold", "Microsoft JhengHei", sans-serif;
+    font-size: clamp(28px, 5vw, 40px); font-weight: 600;
+    letter-spacing: 0.01em; line-height: 1.25; margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  h1 .mono-arrow { color: var(--ink-3); font-weight: 400; }
+  .lede { color: var(--ink-2); max-width: 62ch; margin: 0 0 26px; }
+  h2 {
+    font-family: Bahnschrift, "Segoe UI Semibold", "Microsoft JhengHei", sans-serif;
+    font-size: 21px; font-weight: 600; margin: 0;
+    text-wrap: balance;
+  }
+  code, .mono {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--code-bg);
+    padding: 1px 6px; border-radius: 3px;
+  }
+  .stage h2 code { font-size: 0.8em; }
+
+  /* 圖層圖例（沿用管線疊圖語彙） */
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 22px 0 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; color: var(--ink-2); }
+  .swatch { width: 22px; height: 12px; border-radius: 2px; flex: none; }
+
+  /* 首圖示意 */
+  .hero { margin: 34px 0 8px; border: 1px solid var(--line);
+    background: var(--panel); border-radius: 6px; padding: 22px 18px 8px;
+    overflow-x: auto; }
+  .hero svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .hero-cap { text-align: center; font-size: 13px; color: var(--ink-3);
+    margin: 6px 0 12px; }
+
+  /* 階段 */
+  .stages { display: flex; flex-direction: column; gap: 0; margin-top: 40px; }
+  .stage {
+    display: grid; grid-template-columns: 64px 1fr; gap: 0 22px;
+    padding: 30px 0 34px; border-top: 1px solid var(--line);
+    position: relative;
+  }
+  .stage-no {
+    font-family: Bahnschrift, "Segoe UI", sans-serif;
+    font-size: 26px; font-weight: 600; color: var(--ink-3);
+    font-variant-numeric: tabular-nums; line-height: 1.15;
+    padding-top: 2px;
+  }
+  .stage-no small { display: block; font-size: 10.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; font-weight: 400; margin-top: 2px; }
+  .stage-body p { margin: 10px 0 0; max-width: 66ch; }
+  .stage-body p.note { color: var(--ink-2); font-size: 14.5px; }
+  .mech { margin: 14px 0 0; padding: 0; list-style: none;
+    display: flex; flex-direction: column; gap: 8px; }
+  .mech li { padding-left: 18px; position: relative; max-width: 70ch;
+    font-size: 15px; color: var(--ink-2); }
+  .mech li::before { content: ""; position: absolute; left: 0; top: 0.62em;
+    width: 8px; height: 8px; border: 1.5px solid var(--ink-3);
+    background: transparent; }
+  .mech li b { color: var(--ink); font-weight: 600; }
+  .metric {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    background: var(--chip-bg); border-radius: 3px;
+    padding: 3px 10px; font-size: 13px; color: var(--ink-2);
+    margin: 14px 10px 0 0;
+  }
+  .metric b { font-family: Bahnschrift, "Segoe UI", sans-serif;
+    font-variant-numeric: tabular-nums; color: var(--ink); font-size: 14px; }
+
+  /* 灰彩分流雙欄 */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    margin-top: 14px; }
+  @media (max-width: 620px) { .split { grid-template-columns: 1fr; }
+    .stage { grid-template-columns: 44px 1fr; gap: 0 14px; }
+    .stage-no { font-size: 20px; } }
+  .lane { border: 1px solid var(--line); border-radius: 5px;
+    padding: 12px 16px 14px; background: var(--panel); }
+  .lane h3 { margin: 0 0 6px; font-size: 14px;
+    font-family: Bahnschrift, "Segoe UI Semibold", sans-serif;
+    letter-spacing: 0.06em; }
+  .lane p { margin: 0; font-size: 14px; color: var(--ink-2); }
+  .lane.gray h3 { color: var(--ink); }
+  .lane.color h3 { color: var(--seg); }
+
+  /* 輸出表 / 量測表 */
+  .tablewrap { overflow-x: auto; margin-top: 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; padding: 8px 14px 8px 0; vertical-align: top;
+    border-bottom: 1px solid var(--line); }
+  th { font-family: Bahnschrift, "Segoe UI Semibold", sans-serif;
+    font-weight: 600; font-size: 13px; letter-spacing: 0.05em;
+    color: var(--ink-2); }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .layer-dot { display: inline-block; width: 10px; height: 10px;
+    border-radius: 2px; margin-right: 8px; vertical-align: baseline; }
+
+  .foot { margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-3); }
+  .foot code { font-size: 12px; }
+</style>
+
+<div class="sheet">
+  <p class="eyebrow">RoomPilot Agent · Pipeline Anatomy</p>
+  <h1>從 PNG 平面圖到 DXF<span class="mono-arrow">：</span>七道工序的完整過程</h1>
+  <p class="lede">
+    輸入是一張點陣平面圖（掃描或匯出的 PNG），輸出是帶圖層的向量 CAD 檔
+    （DXF，公分單位）＋房間結構 JSON。中間的每一步都是「從像素裡還原建築語意」：
+    牆在哪、多厚、比例多少、哪裡是窗、哪裡是門、哪一塊是什麼房間。
+  </p>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--wall)"></i>牆（WALL 層）</span>
+    <span><i class="swatch" style="background:var(--win)"></i>窗（WINDOW 層）</span>
+    <span><i class="swatch" style="background:var(--door)"></i>門位（DOORZONE 層）</span>
+    <span><i class="swatch" style="background:var(--glass)"></i>玻璃線</span>
+    <span><i class="swatch" style="background:var(--seg)"></i>彩圖專屬機制</span>
+  </div>
+
+  <figure class="hero" role="img" aria-label="PNG 點陣圖經管線轉為分層 DXF 的示意圖">
+    <svg width="780" height="240" viewBox="0 0 780 240" fill="none">
+      <!-- 左：PNG 點陣 -->
+      <g>
+        <rect x="20" y="30" width="240" height="180" rx="3" fill="var(--panel)" stroke="var(--line)"/>
+        <!-- 模糊點陣感的牆：灰階粗筆 -->
+        <g stroke="var(--ink-2)" stroke-width="9" opacity="0.85">
+          <path d="M50 60 H230 M50 60 V180 M230 60 V180 M50 180 H230"/>
+          <path d="M140 60 V120 M50 132 H100"/>
+        </g>
+        <g stroke="var(--ink-3)" stroke-width="3" opacity="0.6">
+          <path d="M104 150 a26 26 0 0 1 26 26" fill="none"/>
+          <path d="M130 176 V150"/>
+        </g>
+        <rect x="166" y="56" width="40" height="8" fill="var(--ink-3)" opacity="0.5"/>
+        <text x="140" y="222" text-anchor="middle" font-family="Bahnschrift, Segoe UI" font-size="13" fill="var(--ink-3)">input.png（像素、無比例）</text>
+      </g>
+      <!-- 中：箭頭與工序 -->
+      <g>
+        <path d="M280 120 H480" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <path d="M480 120 l-9 -5 v10 z" fill="var(--ink-3)"/>
+        <text x="380" y="104" text-anchor="middle" font-family="Bahnschrift, Segoe UI" font-size="12" fill="var(--ink-2)" letter-spacing="1">01–07 七道工序</text>
+        <text x="380" y="142" text-anchor="middle" font-family="Cascadia Mono, Consolas" font-size="11" fill="var(--ink-3)">偵測 → 比例 → 開口 → 房間 → 輸出</text>
+      </g>
+      <!-- 右：DXF 向量分層 -->
+      <g>
+        <rect x="500" y="30" width="240" height="180" rx="3" fill="var(--panel)" stroke="var(--line)"/>
+        <g stroke="var(--wall)" stroke-width="6">
+          <path d="M530 60 H710 M530 60 V180 M710 60 V180 M530 180 H710"/>
+          <path d="M620 60 V120 M530 132 H580"/>
+        </g>
+        <!-- 窗：玻璃線 -->
+        <g stroke="var(--glass)" stroke-width="1.6">
+          <path d="M646 57 H700 M646 60 H700 M646 63 H700"/>
+        </g>
+        <rect x="644" y="55" width="58" height="10" stroke="var(--win)" stroke-width="1.6" fill="none"/>
+        <!-- 門位黃框 -->
+        <rect x="584" y="146" width="16" height="34" stroke="var(--door)" stroke-width="2" fill="none"/>
+        <text x="620" y="222" text-anchor="middle" font-family="Bahnschrift, Segoe UI" font-size="13" fill="var(--ink-3)">output.dxf（向量、公分、分層）</text>
+      </g>
+    </svg>
+    <figcaption class="hero-cap">同一戶：左為輸入像素，右為輸出向量——牆變實心塊、窗帶玻璃線、門位框黃框。</figcaption>
+  </figure>
+
+  <div class="stages">
+
+    <section class="stage">
+      <div class="stage-no">01<small>分流</small></div>
+      <div class="stage-body">
+        <h2>畫風判別——灰階路或彩色路 <code>probe_color</code></h2>
+        <p>先量整張圖的彩色像素比例，決定走哪條管線。兩條路共用同一套幾何機制，但前處理與證據層完全不同。</p>
+        <div class="split">
+          <div class="lane gray">
+            <h3>灰階路 floorplan2dxf</h3>
+            <p>直接二值化（Otsu／自適應），牆＝深色粗筆劃。證據乾淨，是主力路線。</p>
+          </div>
+          <div class="lane color">
+            <h3>彩色路 floorplan2dxf_color</h3>
+            <p>轉灰階淡化 5 層只留最深 2 層、色度 &lt;40 的灰黑才算牆，放大 2 倍再辨識——彩圖的家具、地板色染都是雜訊，要先剝掉。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage">
+      <div class="stage-no">02<small>牆</small></div>
+      <div class="stage-body">
+        <h2>牆偵測——像素變成軸對齊實心牆塊</h2>
+        <p>先自動估計「牆厚 T」（整張圖粗筆劃的眾數厚度），一切門檻都以 T 為單位自適應。接著用形態學把粗筆劃收斂成一組軸對齊矩形（rects），這就是之後所有幾何的地基。</p>
+        <ul class="mech">
+          <li><b>自動牆厚 T</b>：每張圖自己量，後續核大小、縫寬容差全部掛在 T 上。</li>
+          <li><b>假牆過濾</b>：自適應灰度／色度／紋理三重判別，刪掉被誤認成牆的深色家具與文字。</li>
+          <li><b>建築基柱</b>：黑色實心柱保留為牆。</li>
+          <li><b>空心雙線牆</b>：細描邊夾白填充的牆型（設計圖常見）另行補抓。</li>
+          <li><b>白牆帶＋語意牆帶</b>（彩圖災難張限定）：牆是「兩片色染地板之間的白縫」時暗色偵測原理性抓不到——白帶 top-hat 萃取，再加 DINOv2 分割頭機率圖的低機率脊線當語意牆證據，只在救援輪使用。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="stage">
+      <div class="stage-no">03<small>比例</small></div>
+      <div class="stage-body">
+        <h2>比例尺推定——門寬鐵律 <code>refine_scale / gap_scale</code></h2>
+        <p>PNG 沒有比例資訊，但建築有常數：<b>單開門 80–90 cm、雙開門 160–190 cm</b>。掃出所有門尺寸的牆縫開口，取中位數反推 cm/px。這一步錯了，後面所有以公分為單位的門檻（門寬、房間面積、封口範圍）全部跟著錯，所以它排在所有語意判斷之前。</p>
+        <span class="metric">典型輸出 <b>0.83–2.98 cm/px</b></span>
+        <span class="metric">錨點 <b>單門 85 cm／雙門 175 cm</b></span>
+      </div>
+    </section>
+
+    <section class="stage">
+      <div class="stage-no">04<small>窗</small></div>
+      <div class="stage-body">
+        <h2>窗偵測——開口上的玻璃線 <code>detect_windows</code></h2>
+        <p>牆上的開口如果被淺灰細線（玻璃線）覆蓋超過門檻比例，就是窗。窗跨牆厚要夠寬、太薄的是雜訊；門弧附近的開口先排除（那是門不是窗）。</p>
+        <span class="metric">灰階 <b>P 98%／R 92%</b></span>
+        <span class="metric">彩色 <b>P 61%／R 42%</b>（低於可用線，交付停畫、後端補建）</span>
+      </div>
+    </section>
+
+    <section class="stage">
+      <div class="stage-no">05<small>門</small></div>
+      <div class="stage-body">
+        <h2>門位偵測——門尺寸牆縫＋墨水證據 <code>gap_door_zones</code></h2>
+        <p>不靠門弧圖形辨識（實測 P 0.38），改用幾何：沿每面牆的端點射線找對面的牆，中間 70–110 或 150–200 cm 的空縫、且縫上有門扇墨水證據的，就是門。輸出成黃色 DOORZONE 框。</p>
+        <ul class="mech">
+          <li><b>射線搜縫</b>：牆端沿自身軸向找最近的牆（端對端、端對面 T 字門洞都涵蓋）。</li>
+          <li><b>門尺寸窗</b>：室內分割用嚴窗，輸出用放寬窗（70–110／150–200 cm）——擦邊 1–5 cm 的真門是最大漏偵來源。</li>
+          <li><b>墨水證據閘</b>：縫上要有門扇筆劃，擋掉單純的通道開口（顧精確率的關鍵）。</li>
+        </ul>
+        <span class="metric">灰階門位 <b>P 0.83／R 0.81</b>（F1 0.82）</span>
+        <span class="metric">彩色 <b>輸出關閉</b>（偵測 P 0.38）</span>
+      </div>
+    </section>
+
+    <section class="stage">
+      <div class="stage-no">06<small>房間</small></div>
+      <div class="stage-body">
+        <h2>房間層——封口、灌水、切房、命名 <code>floorplan2room</code></h2>
+        <p>牆是線，房間是面。先把 40–260 cm 的牆縫全部虛擬封口（門洞、開口先「關起來」），從影像邊界灌水分內外，室內扣掉牆之後的每個連通塊＝一間房。然後一連串修正機制輪番上陣：</p>
+        <ul class="mech">
+          <li><b>非門橋合併</b>：走道被門尺寸封口攔腰切開時，用「房寬 vs 縫寬」判別把它接回來。</li>
+          <li><b>OCR／符號錨點切分</b>：一房含兩個房名文字或「廚房符號群＋客廳」＝作者標了兩個功能區，沿軸對齊直刀切開（開放式 LDK 的主要武器）。</li>
+          <li><b>浴室碎格合併</b>：隔屏把浴室切成 3–4 格時，含浴具符號的小格互併。</li>
+          <li><b>陽台口袋收割</b>：圍欄細線圈住、主灌水判為室外的封閉口袋，補撈回來當陽台。</li>
+          <li><b>白牆救援＋縫合輪</b>（彩圖災難張限定）：主分割覆蓋率過低時以白牆帶＋語意牆帶重跑，殘塊以 DINO 信心縫回。</li>
+          <li><b>命名三層證據</b>：DINOv2 房間裁切分類（灰彩分域雙頭）＋家具符號模板（961 條、逐模板門檻外科啟用）＋OCR 房名文字，加權合成房型。</li>
+        </ul>
+        <span class="metric">灰階切割 <b>88.9%</b>（136/153）</span>
+        <span class="metric">彩色切割 <b>76.3%</b>（116/152）</span>
+        <span class="metric">灰階核心五類端到端 <b>91.8%</b></span>
+      </div>
+    </section>
+
+    <section class="stage">
+      <div class="stage-no">07<small>輸出</small></div>
+      <div class="stage-body">
+        <h2>DXF 寫出——向量、公分、分層 <code>write_solid_dxf</code></h2>
+        <p>所有幾何以 <code>cm/px</code> 換算成公分座標、Y 軸翻正，寫成 R2010 DXF（<code>INSUNITS=5</code> 公分單位），CAD 開啟即為 1:1 實際尺寸：</p>
+        <div class="tablewrap">
+          <table>
+            <tr><th>圖層</th><th>內容</th><th>幾何</th></tr>
+            <tr>
+              <td><i class="layer-dot" style="background:var(--wall)"></i>WALL</td>
+              <td>牆體</td><td>封閉 LWPOLYLINE ＋ SOLID HATCH 實心填充</td>
+            </tr>
+            <tr>
+              <td><i class="layer-dot" style="background:var(--win)"></i>WINDOW</td>
+              <td>窗</td><td>開口矩形＋4 條玻璃線＋兩端封口（照正規製圖）</td>
+            </tr>
+            <tr>
+              <td><i class="layer-dot" style="background:var(--door)"></i>DOORZONE</td>
+              <td>門位</td><td>1:2 黃色矩形框（門洞位置與開向帶）</td>
+            </tr>
+          </table>
+        </div>
+        <p class="note">同場加映的其他交付物：<code>*_room.json</code>（房間多邊形、房型、面積、鄰接關係、門位）、<code>*_room.png</code>／<code>*_door.png</code> 疊圖預覽、<code>architecture.json</code> 白模交接檔（牆高、窗台高用預設值——2D 平面圖量不到立面）。</p>
+      </div>
+    </section>
+  </div>
+
+  <p class="foot">
+    模組地圖：<code>floorplan2dxf.py</code>（灰階牆/窗/DXF）·
+    <code>floorplan2dxf_color.py</code>（彩色路＋牆縫/門位/分割共用核心）·
+    <code>floorplan2room.py</code>(房間層) ·
+    <code>room_classifier.py</code>／<code>seg_head.py</code>（DINOv2 命名與語意牆帶）·
+    <code>symbol_match.py</code>（家具符號模板）。
+    數字為 2026-08-03 v2.33 實測（開發集）。
+  </p>
+</div>

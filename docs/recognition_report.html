@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoomPilot 辨識能力總覽報表（2026-08-03・v2.33 收案版）</title>
+<style>
+:root{
+  color-scheme: light;
+  --surface:#fcfcfb; --page:#f9f9f7;
+  --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --baseline:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --good-text:#006300;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --surface:#1a1a19; --page:#0d0d0d;
+    --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,.10);
+    --s1:#3987e5; --s2:#d95926;
+    --good-text:#0ca30c;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;
+  line-height:1.6;}
+.wrap{max-width:980px;margin:0 auto;padding:32px 20px 64px}
+h1{font-size:24px;margin:0 0 4px}
+h2{font-size:18px;margin:40px 0 12px;padding-top:16px;border-top:1px solid var(--grid)}
+.sub{color:var(--ink2);font-size:13px;margin-bottom:24px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:20px 0}
+.tile{background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:14px 16px}
+.tile .v{font-size:28px;font-weight:650}
+.tile .k{font-size:12.5px;color:var(--ink2)}
+.tile .n{font-size:11.5px;color:var(--muted)}
+.tile.warn .v{color:var(--critical)}
+.tile.good .v{color:var(--good-text)}
+.card{background:var(--surface);border:1px solid var(--ring);border-radius:10px;
+  padding:16px 18px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{color:var(--muted);font-weight:500;text-align:left;font-size:12px;
+  border-bottom:1px solid var(--baseline);padding:6px 10px 6px 0}
+td{padding:7px 10px 7px 0;border-bottom:1px solid var(--grid);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.barcell{min-width:220px;width:45%}
+.bar{position:relative;height:14px;background:transparent}
+.bar::before{content:"";position:absolute;inset:0;border-left:2px solid var(--baseline)}
+.bar i{position:absolute;top:0;bottom:0;left:0;background:var(--s1);
+  border-radius:0 4px 4px 0;min-width:2px}
+.bar i.ref{background:var(--s2)}
+.bar i.dim{opacity:.45}
+.legend{display:flex;gap:18px;font-size:12px;color:var(--ink2);margin:8px 0 2px}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:3px;
+  vertical-align:-1px;margin-right:5px}
+.note{font-size:12.5px;color:var(--ink2);margin-top:10px}
+.badge{display:inline-block;font-size:11.5px;border:1px solid var(--ring);
+  border-radius:999px;padding:1px 9px;color:var(--ink2);background:var(--surface)}
+.flag{font-weight:600}
+.flag.crit{color:var(--critical)}
+.flag.good{color:var(--good-text)}
+ol.diag{padding-left:20px}
+ol.diag li{margin-bottom:8px}
+ul.mech{padding-left:20px;font-size:13.5px}
+ul.mech li{margin-bottom:6px}
+.gap{color:var(--muted);font-size:12.5px}
+footer{margin-top:44px;color:var(--muted);font-size:12px;border-top:1px solid var(--grid);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>RoomPilot 辨識能力總覽報表</h1>
+<div class="sub">評測日 2026-08-03（v2.33 收案版；前版為 2026-07-25 四層級報表）｜
+答案集全數人工審定：灰階 own_dataset 24 張 153 房＋own_eval 保留集 12 張 72 房、
+彩色 own_dataset_color 19 張 152 房＋own_eval_color 9 張 62 房（0 Undefined）、
+灰門 GT 111 樘、窗像素答案灰彩雙集｜保留集永不進訓練，只在循環收尾量測</div>
+
+<div class="tiles">
+  <div class="tile good"><div class="v">88.9%</div><div class="k">灰階空間切割（dev）</div><div class="n">136/153 房·IoU≥0.5</div></div>
+  <div class="tile good"><div class="v">76.3%</div><div class="k">彩色空間切割（dev）</div><div class="n">116/152 房·自 baseline 59.2% 起</div></div>
+  <div class="tile good"><div class="v">.83/.81</div><div class="k">灰階門 P/R（產品 json 路）</div><div class="n">90/111 樘·自 0.38/0.17 重建</div></div>
+  <div class="tile good"><div class="v">98/92</div><div class="k">灰階窗 P/R（%）</div><div class="n">彩窗彩門低於可用線→不生成</div></div>
+</div>
+
+<h2>(1) 房間指標——版本報表標準口徑（四量尺）</h2>
+<div class="card">
+<table>
+<tr><th>量尺</th><th>空間切割正確性</th><th class="barcell">0 ─ 100%</th><th>核心5項判讀率（端到端）</th></tr>
+<tr><td>灰階 dev（24 張 153 房）</td><td class="num"><span class="flag good">88.9%</span>（136/153）</td>
+  <td class="barcell"><div class="bar" title="88.9%"><i style="width:88.9%"></i></div></td>
+  <td class="num">91.8%（112/122）</td></tr>
+<tr><td>灰階 holdout（12 張 72 房）</td><td class="num">83.3%（60/72）</td>
+  <td class="barcell"><div class="bar" title="83.3%"><i style="width:83.3%"></i></div></td>
+  <td class="num">75.0%（45/60）</td></tr>
+<tr><td>彩色 dev（19 張 152 房）</td><td class="num"><span class="flag good">76.3%</span>（116/152）</td>
+  <td class="barcell"><div class="bar" title="76.3%"><i style="width:76.3%"></i></div>
+      <div class="bar" title="baseline 59.2%"><i class="ref dim" style="width:59.2%"></i></div></td>
+  <td class="num">74.5%（82/110）</td></tr>
+<tr><td>彩色 holdout（9 張 62 房）</td><td class="num">69.3%（43/62）</td>
+  <td class="barcell"><div class="bar" title="69.3%"><i style="width:69.3%"></i></div>
+      <div class="bar" title="baseline 67.7%"><i class="ref dim" style="width:67.7%"></i></div></td>
+  <td class="num">66.7%（34/51）</td></tr>
+</table>
+<div class="legend"><span><b style="background:var(--s1)"></b>v2.33 現況</span><span><b style="background:var(--s2)"></b>彩色 baseline（2026-08-01 首量）</span></div>
+<div class="note"><b>口徑定義</b>（2026-08-02 定案）：空間切割正確性＝切對的房間／全部 GT 房間（IoU≥0.5 配對率，不論命名）；
+核心5項判讀率＝切對<b>且</b>叫對的核心五類（Kitchen/LivingRoom/Bedroom/Storage/Bath）／核心五類 GT 總數——端到端口徑。
+彩色三輪調優：baseline 59.2% → 63.8%（分割黏連/陽台雙頭）→ 67.8%（口袋鬆綁）→ 75.0%（災難張三件套）→ 76.3%（分割頭語意牆帶）；
+holdout 端到端全對 26 → 39 間（+50%）。
+<span class="gap">誠實註記：彩 dev 的監督式分割頭訓練見過 dev 圖（比照分域雙頭慣例），無偏數字為 LOIO patch AUC 0.974／IoU 0.876；
+holdout 語意牆帶未觸發，泛化待新樣本回驗。</span></div>
+</div>
+
+<h2>(2) 門</h2>
+<div class="card">
+<table>
+<tr><th>項目</th><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th></tr>
+<tr><td rowspan="2">灰階 門位（產品 json doors，GT 111 樘）<br><span class="badge">牆縫門位 gap_door_zones·2026-08-02 重建</span></td>
+  <td>精準率</td><td class="num"><span class="flag good">0.83</span></td>
+  <td class="barcell"><div class="bar" title="P 0.83"><i style="width:83%"></i></div>
+      <div class="bar" title="舊弧掃描路 P 0.38"><i class="ref dim" style="width:38%"></i></div></td></tr>
+<tr><td>召回率</td><td class="num"><span class="flag good">0.81</span>（90/111）</td>
+  <td class="barcell"><div class="bar" title="R 0.81"><i style="width:81%"></i></div>
+      <div class="bar" title="舊弧掃描路 R 0.17"><i class="ref dim" style="width:17%"></i></div></td></tr>
+<tr><td>門誤判成窗的過濾（門過濾集）</td><td>過濾率</td><td class="num"><span class="flag good">98%</span>（84/86）</td>
+  <td class="barcell"><div class="bar" title="98%"><i style="width:98%"></i></div></td></tr>
+<tr><td>彩色 門（偵測現況）</td><td>精準率 / 召回率</td><td class="num"><span class="flag crit">0.38 / 0.47</span></td>
+  <td class="barcell"><div class="bar" title="P 0.38"><i style="width:38%"></i></div>
+      <div class="bar" title="R 0.47"><i style="width:47%"></i></div></td></tr>
+</table>
+<div class="legend"><span><b style="background:var(--s1)"></b>v2.33 現況</span><span><b style="background:var(--s2)"></b>重建前（弧掃描路）</span></div>
+<div class="note">灰門重建鏈：json doors 改源牆縫門位（<code>gap_door_zones</code> 共用核心，與 DXF 批次路口徑統一）＋範圍擦邊收割
+（FN 逐樘分型後最大桶＝門寬差嚴窗 0.4~5.5cm，JSON 產品路放寬窗 (70-110)+(150-200)，房間層分割維持嚴窗零退化）。
+殘餘 FN 19 樘已逐樘分型收案：seamless 10（牆縫射線原理性搭不到，「尖端對縫」實測 -3 房 revert）、halfgap 6（單邊半縫，合併前提不成立）、deadzone 3（110~150cm）。
+<b>彩色門低於可用線，交付停畫不生成</b>（見第 4 節裁定）；弧掃描偵測保留供比例尺推導、窗誤判抑制與 arch 白模（鉸鏈/開向需弧幾何，另輪）。</div>
+</div>
+
+<h2>(3) 窗</h2>
+<div class="card">
+<table>
+<tr><th>項目</th><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th></tr>
+<tr><td>灰階 窗（eval_windows 答案集）</td><td>精準率 / 召回率</td><td class="num"><span class="flag good">98% / 92%</span></td>
+  <td class="barcell"><div class="bar" title="P 98%"><i style="width:98%"></i></div>
+      <div class="bar" title="R 92%"><i style="width:92%"></i></div></td></tr>
+<tr><td>彩色 窗（偵測現況）</td><td>精準率 / 召回率</td><td class="num"><span class="flag crit">61% / 42%</span></td>
+  <td class="barcell"><div class="bar" title="P 61%"><i style="width:61%"></i></div>
+      <div class="bar" title="R 42%"><i style="width:42%"></i></div></td></tr>
+</table>
+<div class="note">灰階窗維持強項。彩窗 covered_soft 結構化調整（貫穿覆蓋 0.65、殘墨上限）後 F1 微升仍低於可用線；
+多數 FN 卡在開口枚舉層（牆角塊不在共線分群），三重門檻需按畫風分開校準——列為獨立待辦，<b>現況不生成</b>（見第 4 節裁定）。</div>
+</div>
+
+<h2>(4) 彩色門窗輸出裁定（2026-08-03・emit_openings 閘）</h2>
+<div class="card">
+<table>
+<tr><th>輸出路</th><th>現況</th><th>行為</th></tr>
+<tr><td>灰階 json doors / windows</td><td class="num"><span class="flag good">生成</span></td><td>門 P 0.83/R 0.81、窗 P 98/R 92，正常交付</td></tr>
+<tr><td>彩色 json doors / windows</td><td class="num"><span class="flag crit">不生成</span></td><td><code>emit_openings=false</code> 預設關；json 帶 <code>openings_suppressed</code> 標記供下游識別</td></tr>
+<tr><td>彩色 門窗偵測本身</td><td class="num">照常執行</td><td>結果只供內部使用：窗帶封口、比例尺推導、門縫抑制——不進交付</td></tr>
+</table>
+<div class="note"><b>裁定理由</b>：彩門 P 0.38／彩窗 P 61% 低於可用線，錯的門窗畫在圖上比沒有更糟——寧可停畫、由後端/使用者自建。
+彩門證據層四判別器（迴轉區 fence 密度、門弧近鄰、幾何錨定弧、門扇白淨度）全數實測不可分後收案；
+「中央最近牆縫」選拔規則離線 A/B 否決（R 0.47→0.07）。突破繫於彩圖牆縫品質整體提升，屬另立專輪。</div>
+</div>
+
+<h2>(5) 房型命名能力</h2>
+<div class="card">
+<table>
+<tr><th>機制</th><th class="num">數值</th><th>備註</th></tr>
+<tr><td>分域雙頭 DINOv2 線性頭（灰階頭）</td><td class="num">配對房命名 ~95%（dev）</td><td>room_head.npz·答案卷標籤修正後基準 86.1%（own_eval 命名口徑）</td></tr>
+<tr><td>分域雙頭 DINOv2 線性頭（彩色頭）</td><td class="num">83.9%（訓練驗收）</td><td>room_head_color.npz·混訓實測傷灰階（-5.5pp）故分域，依 fence 偵測選頭</td></tr>
+<tr><td>OCR 房名文字證據</td><td class="num">—</td><td>rapidocr·信心優先配對、防重複認領；印刷房名優先序高於語意頭</td></tr>
+<tr><td>符號證據層</td><td class="num">961 條模板</td><td>v225 量測驅動啟用（probe 弱標籤全掃 17TP/0FP@0.8）·TPL_THR 逐模板門檻·白/黑名單</td></tr>
+</table>
+<div class="note">房型詞彙 10 類 CamelCase（2026-08-01 定案）：Kitchen／LivingRoom／Bedroom／Bath／Entry／Storage／Garage／Hallway／Stair／Balcony＋中性 room。
+命名優先序：印刷房名（OCR）＞ DINOv2 語意 ＞ 幾何/面積規則；跨房後處理含單間限額與非門橋合併。</div>
+</div>
+
+<h2>(6) 分割機制清單（v2.25→v2.33 出貨鏈）</h2>
+<div class="card">
+<ul class="mech">
+<li><b>監督式分割頭語意牆帶</b>（seg_head.npz 7KB）：DINOv2 patch＋線性頭機率圖低機率脊線→語意牆帶→白牆救援 flood；近白暗示牆被語意層看見。彩 dev 114→116，灰 dev 逐位元一致；SEG_BANDS=0 可停用、資產缺檔零行為。</li>
+<li><b>白牆救援輪</b>：災難張三型觸發（低覆蓋房少／巨塊黏連／碎裂型 cov&lt;50% 且房數≥20）＋收斂採用閘＋證據刀限定；正常張零接觸。</li>
+<li><b>假帶縫合</b>（_ww_suture_merge）：過切殘塊四道門全過才併回（floor_08 客廳翻盤）。</li>
+<li><b>陽台口袋收割</b>：圍欄補屏障重灌水收殼外封閉口袋（彩 Balcony 端到端 0/28→19 間全對）。</li>
+<li><b>空心雙線牆補抓</b>（hollow_wall_rects）＋<b>假窗物理判別</b>（window_side_gate：真窗恰一側通室外）＋<b>外圈封口</b>（envelope_gap_seals 260~600cm 最後防線）。</li>
+<li><b>符號錨點切分</b>：開放 LDK 的 DINO 讓行鉤子＋符號子群離群剔除；{Entry, LivingRoom} 提案對。</li>
+<li><b>灰階 DINO 種子補位</b>：符號種子跑完後補一輪 DINO 種子合併（floor06/38 全中）。</li>
+</ul>
+<div class="note">全程紀律：每機制 TDD、逐輪 A/B 淨正向才收、失敗假設誠實記錄並 revert（floor52 假廚符污染、floor04 尖端對縫、
+帶級真/假三角度量測低天花板等負結果均入 changelog）；開發只看 dev、保留集只在循環收尾量測。</div>
+</div>
+
+<h2>診斷結論（收案時瓶頸排序）</h2>
+<div class="card">
+<ol class="diag">
+<li><b>彩色棄守畫風 floor_07/08/09</b>（dev 殘餘最大桶）：近白暗示牆／空心雙線／木紋牆，「用暗色找牆」古典路線原理極限；分割頭已咬回 2 間，其餘留分母如實計分。後路＝色塊分割大工程或按畫風模板先驗（另立案）。</li>
+<li><b>彩窗彩門</b>：低於可用線→不生成（第 4 節）。突破需彩圖牆縫/墨水證據層整體提升，非調參可解。</li>
+<li><b>灰門殘餘 19 樘</b>：seamless/halfgap/deadzone 三型皆原理性收案，工程手段實測淨負已 revert；arch 白模門弧幾何（鉸鏈/開向）另輪。</li>
+<li><b>符號召回</b>：12px 線稿（floor13 型）連同源模板都配不上，解析度天花板收案；美式畫風素材輪已補 961 條後到頂。</li>
+<li><b>強項維持</b>：灰階切割 88.9/83.3、核心五類判讀 91.8、灰窗 98/92、門過濾 98%。</li>
+</ol>
+</div>
+
+<footer>
+資料來源：eval_rooms_cc.py（--own-dir 四量尺）、eval_door_json.py、eval_doors.py、eval_windows.py、probe_symbol_quality.py｜
+歷程：Readme.md changelog v2.25~v2.33（含各輪 A/B 數字與誠實負結果）；架構總覽另見 docs/png2dxf_pipeline.html｜
+產出：2026-08-03，RoomPilot-Agent cody 分支 v2.33 收案版（前版 2026-07-25 報表見 git 歷史）
+</footer>
+</div>
+</body>
+</html>

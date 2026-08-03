@@ -489,7 +489,11 @@ $SKPOLY
   9
 $TDCREATE
  40
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+2461252.6446875
+========
 2461236.6410185187
+>>>>>>>> cody:testdata/dxf/floor46.dxf
   9
 $TDUCREATE
  40
@@ -497,7 +501,11 @@ $TDUCREATE
   9
 $TDUPDATE
  40
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+2461252.6446875
+========
 2461236.6410185187
+>>>>>>>> cody:testdata/dxf/floor46.dxf
   9
 $TDUUPDATE
  40
@@ -549,7 +557,11 @@ $SPLINESEGS
   9
 $HANDSEED
   5
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+33
+========
 52
+>>>>>>>> cody:testdata/dxf/floor46.dxf
   9
 $SURFTAB1
  70
@@ -929,11 +941,19 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+{08729D5F-421A-4BBA-B190-0D98A4B87697}
+  9
+$VERSIONGUID
+  2
+{1762FE09-4502-4557-A311-7A8FBB896854}
+========
 {70AE9DB9-0200-45CB-B74F-AB5E0025C68A}
   9
 $VERSIONGUID
   2
 {38DB5A39-21C8-4A4B-833A-B4950C232A90}
+>>>>>>>> cody:testdata/dxf/floor46.dxf
   9
 $EXTNAMES
 290
@@ -1749,7 +1769,11 @@ ACAD
   0
 APPID
   5
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+30
+========
 4F
+>>>>>>>> cody:testdata/dxf/floor46.dxf
 330
 3
 100
@@ -1763,7 +1787,11 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+31
+========
 50
+>>>>>>>> cody:testdata/dxf/floor46.dxf
 330
 3
 100
@@ -2071,6 +2099,8 @@ SECTION
   2
 ENTITIES
   0
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+========
 LWPOLYLINE
   5
 31
@@ -3223,6 +3253,7 @@ AcDbLine
  31
 0.0
   0
+>>>>>>>> cody:testdata/dxf/floor46.dxf
 ENDSEC
   0
 SECTION
@@ -4213,7 +4244,11 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+32
+========
 51
+>>>>>>>> cody:testdata/dxf/floor46.dxf
   0
 DICTIONARYVAR
   5
@@ -4225,11 +4260,19 @@ DictionaryVariables
 280
 0
   1
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+1.4.4 @ 2026-07-30T07:28:21.762481+00:00
+  0
+DICTIONARYVAR
+  5
+32
+========
 1.4.4 @ 2026-07-14T07:23:04.229184+00:00
   0
 DICTIONARYVAR
   5
 51
+>>>>>>>> cody:testdata/dxf/floor46.dxf
 330
 2D
 100
@@ -4237,7 +4280,11 @@ DictionaryVariables
 280
 0
   1
+<<<<<<<< HEAD:testdata/dxf/builder_plan_630.dxf
+1.4.4 @ 2026-07-30T07:28:21.763481+00:00
+========
 1.4.4 @ 2026-07-14T07:23:04.231726+00:00
+>>>>>>>> cody:testdata/dxf/floor46.dxf
   0
 ENDSEC
   0
