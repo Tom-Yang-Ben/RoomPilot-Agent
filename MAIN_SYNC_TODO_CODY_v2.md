@@ -1,10 +1,12 @@
-# ben 分支配合修改清單（cody-dev 2026-08-03 合併輪）
+# MAIN_SYNC_TODO_CODY_v2 — ben 分支配合修改清單（cody-dev 2026-08-03 合併輪）
 
-> 2026-08-03 由 `cody-dev` 分支發起。前一輪為 2026-07-30 的 `MAIN_SYNC_TODO.md`
-> （其成果已由 ben 於 a8f8b1ea／620698b9 吸收）；本檔是新一輪，結構沿用前檔。
-> 本輪為 **cody 側收尾輪**：彩色調優與灰門專攻已收案，工作計劃書
-> （COLOR_PIPELINE_PLAN.md／SEG_FAILURE_ANALYSIS.md）已自 cody 移除，
-> 歷程見 cody 分支 git 歷史與 `docs/CODY_PIPELINE_README.md` changelog。
+> 2026-08-03 由 `cody-dev` 分支發起。前一輪（v1）為 2026-07-30 的
+> `MAIN_SYNC_TODO.md`（其成果已由 ben 於 a8f8b1ea／620698b9 吸收）；
+> 本檔是新一輪，結構沿用前檔。
+> 本輪為 **cody 側收尾輪＝終版交付**：彩色調優與灰門專攻已收案，工作計劃書
+> （COLOR_PIPELINE_PLAN.md／SEG_FAILURE_ANALYSIS.md）與研發文檔已自 cody
+> 移除，歷程見 cody 分支 git 歷史與 `docs/CODY_PIPELINE_README.md` changelog。
+> 終版交付面的完整檔案清單見第 6 節。
 
 ## 這份文件怎麼用
 
@@ -64,20 +66,26 @@ git 歷史（`docs/superpowers/`，2026-08-03 前）。
 弧掃描路，實測 **P 0.38/R 0.17**；本輪改源牆縫門位（`fp_c.gap_door_zones`
 共用核心）＋範圍擦邊收割放寬窗，**P 0.83/R 0.81**，灰彩兩條產品路口徑統一。
 
-### 1.4 重跑指令（在 cody-dev 上，環境見 4.2-2）
+### 1.4 重跑指令（**在 cody 分支上執行**）
+
+**終版裁定（2026-08-03）**：評測與研發工具 `training/` 不交付、不進 ben
+（見 3.4／4.1），因此四量尺重跑要在 **cody 分支**上做——答案集
+（testdata/Identify_ans）兩邊同版，數字可對齊。cody-dev 上僅門過濾/窗
+兩支可直跑（它們在 backend/floorplan/ 交付面內）。
 
 ```bash
+# —— 以下在 cody 分支執行 ——
 # 房間四量尺（報表落 temp/json/）
 python training/scripts/eval_rooms_cc.py --own-dir testdata/Identify_ans/own_dataset          # 灰 dev
 python training/scripts/eval_rooms_cc.py --own-dir testdata/Identify_ans/own_eval             # 灰 holdout
 python training/scripts/eval_rooms_cc.py --own-dir testdata/Identify_ans/own_dataset_color    # 彩 dev
 python training/scripts/eval_rooms_cc.py --own-dir testdata/Identify_ans/own_eval_color       # 彩 holdout
-
-# 門（端到端 json 門位量尺）與窗
-python backend/floorplan/eval_doors.py
-python backend/floorplan/floorplan2dxf.py          # 產 temp/chk/gray/
-python backend/floorplan/eval_windows.py
 python training/scripts/eval_door_json.py          # 門 json 路 P/R
+
+# —— 以下 cody-dev / ben 上即可直跑 ——
+python backend/floorplan/eval_doors.py             # 門過濾
+python backend/floorplan/floorplan2dxf.py          # 產 temp/chk/gray/
+python backend/floorplan/eval_windows.py           # 窗評分
 ```
 
 **口徑註記（誠實揭露，ben 端審查請知悉）**：
@@ -155,8 +163,20 @@ Bath/Entry/Storage/Garage/Hallway/Stair/Balcony`＋中性 `room`
 - cody 根目錄 `Readme.md` → `docs/CODY_PIPELINE_README.md`（沿上輪裁定，
   更新至 v2.33；根目錄 README.md 維持 ben 版）。中繼 commit 18caabe3 為
   Windows 大小寫碰撞的機械性暫移，最終樹已恢復。
-- `backend/cabinetdesign/` 與 `docs/HANDOVER_finetune_v5.md` 沿上輪
-  裁定不帶入（後者已於 cody 收尾刪除）。
+- **`backend/cabinetdesign/` 終版帶入**（推翻上輪不帶入的裁定，
+  2026-08-03 使用者裁定）：ben 目前沒有消費者，但後續連接後要用，
+  先隨終版交付。兩檔：`__init__.py`、`cabinet_designer.py`，獨立模組
+  零依賴（不 import 其他 backend 模組、無人 import 它），對現行產品
+  零波及。
+- **`training/` 終版整目錄刪除**（2026-08-03 使用者裁定：ben 終版完全
+  沒有 training/）：評測/素材/回歸工具屬 cody 研發自用，產品推論路徑
+  零依賴（backend/ 對 training/ 零 import、管線輸出全走 temp/；ben 端
+  僅防護性測試釘住「不得寫入 training/」，是隔離保證非依賴）。
+  **注意：這包含移除 ben 於上一輪（a8f8b1ea）吸收的舊拷貝**——scripts/
+  tests/json/door_lib.npz 全部退場；.gitignore 的 training 白名單改為
+  整目錄封鎖，防止未來誤入。requirements.txt 同步收回 lmdb/scikit-image
+  兩條純研發依賴。量測重跑一律回 cody 分支（見 1.4）。
+- `docs/HANDOVER_finetune_v5.md` 沿上輪裁定不帶入（已於 cody 收尾刪除）。
 - `docs/superpowers/` plans/specs 已隨 cody 收尾移除（過程性文檔，
   完整內容在 cody 分支 git 歷史）；證據鏈改由
   `docs/CODY_PIPELINE_README.md` changelog 與
@@ -166,9 +186,8 @@ Bath/Entry/Storage/Garage/Hallway/Stair/Balcony`＋中性 `room`
 - `docs/png2dxf_pipeline.html`：v2.33 管線架構總覽（2026-08-03 產出）。
 - `.gitignore`／`requirements.txt`：ben 版為基底，附加 cody 段
   （lmdb/scikit-image 為 eval 鏈的 GT 解析依賴，產品推論不需要）。
-- `training/tests/test_annotation_drafts.py` 的 CubiCasa 案加
-  `pytest.importorskip`：`training/CubiCasa5k` 是本機自管 checkout
-  （gitignore 排除），沒有它的機器（含 ben 端）明確 skip 不誤報紅。
+- ~~training/tests 的 CubiCasa importorskip 守門~~——隨 training/ 整目錄
+  刪除而失效（該修正保留在 cody 分支）。
 
 ## 4. 還要動手的事
 
@@ -182,7 +201,8 @@ Bath/Entry/Storage/Garage/Hallway/Stair/Balcony`＋中性 `room`
       （R 0.81），但 zones 路**沒有鉸鏈/開向資訊**（hinge_px 由 ben 端
       swing 後備補）。`scene_service.py` 門渲染與 3D 白模請實測一輪。
 - [ ] **在 ben 環境跑完整測試套件**：cody 環境缺 psycopg2 等產品依賴，
-      本輪只驗了辨識相關 72 測試＋training 234 測試（全綠、2 skip）。
+      本輪在 cody-dev 上驗了辨識相關 tests/ 測試全綠（training/ 已依終版
+      裁定整目錄刪除，其 234 項回歸測試留在 cody 分支繼續看家）。
       catalog/server/engine 側請 ben 端自跑。
 - [ ] **torch 依賴決策落地確認**：雙頭與分割頭都吃 torch；缺 torch 時
       房型退面積規則、分割頭停用（皆出聲）。requirements.txt 註記已更新，
@@ -190,8 +210,8 @@ Bath/Entry/Storage/Garage/Hallway/Stair/Balcony`＋中性 `room`
 
 ### 4.2 建議
 
-- [ ] 評測環境補裝 `lmdb`、`scikit-image`（requirements.txt 已列），
-      即可在 ben 機器自行重跑 1.4 全部量尺。
+- [ ] 量測數字如需自證，於 cody 分支重跑 1.4 指令（training/ 評測工具
+      不交付 ben；答案集 testdata/ 兩邊同版可對齊）。
 - [ ] `scene_v2.js:141` 的詞彙註解仍寫舊小寫詞彙（功能鍵是 ben 契約型別
       不受影響）——順手更新註解防誤導。
 - [ ] 前端推薦表若新增 `stair` 契約鍵，`CODY_ROOM_TYPE_MAP` 的
@@ -216,3 +236,66 @@ Bath/Entry/Storage/Garage/Hallway/Stair/Balcony`＋中性 `room`
    使用者一起看」流程處理，不硬調管線遷就（沿 cody 紀律）。
 4. 中繼 commit 18caabe3（README 暫移）若 ben 端以 squash 方式吸收
    cody-dev 則自然消失；保留 merge 拓撲亦無害。
+
+## 6. 終版交付面檔案清單與樹狀（cody-dev 最終狀態）
+
+cody 交付面＝下列範圍；標注（ben）者為 ben 既有整合層檔案，列出供對照。
+
+```
+RoomPilot-Agent/
+├── MAIN_SYNC_TODO_CODY_v2.md            ← 本檔（前輪 MAIN_SYNC_TODO.md 之 v2）
+├── backend/
+│   ├── floorplan/                       ← 辨識管線主體（owner: Cody）
+│   │   ├── AGENTS.md
+│   │   ├── __init__.py
+│   │   ├── cody_adapter.py              （ben 整合層）
+│   │   ├── config.ini                   （灰階管線設定）
+│   │   ├── config_color.ini             （彩色管線設定，emit_openings=false）
+│   │   ├── eval_doors.py                （門過濾評測——交付面內可直跑）
+│   │   ├── eval_windows.py              （窗評測——交付面內可直跑）
+│   │   ├── floorplan2dxf.py             （灰階管線；含 ben 三處產品修正回植）
+│   │   ├── floorplan2dxf_color.py       （彩色管線＋gap_door_zones 門位共用核心）
+│   │   ├── floorplan2room.py            （管線主入口 process()/build_rooms()）
+│   │   ├── room_classifier.py           （分域雙頭 DINOv2＋available()）
+│   │   ├── room_head.npz                （灰階房型線性頭，15KB）
+│   │   ├── room_head_color.npz          （彩色房型線性頭·本輪新增）
+│   │   ├── seg_head.py                  （監督式分割頭語意牆帶·本輪新增）
+│   │   ├── seg_head.npz                 （分割頭權重 7KB·本輪新增）
+│   │   ├── symbol_match.py              （符號比對·TPL_THR 逐模板門檻）
+│   │   ├── symbol_lib.npz               （模板庫 961 條·v225）
+│   │   └── vision/                      （ben 整合層 28 檔；本輪僅
+│   │                                     analysis.py/evaluation.py 詞彙映射對齊）
+│   └── cabinetdesign/                   ← 終版帶入（後續連接用，現無消費者）
+│       ├── __init__.py
+│       └── cabinet_designer.py
+├── docs/
+│   ├── CODY_PIPELINE_README.md          （cody Readme v2.33 收編快照＋changelog）
+│   ├── recognition_report.html          （v2.33 辨識能力總覽·含 emit_openings 裁定）
+│   └── png2dxf_pipeline.html            （v2.33 管線架構解剖）
+├── testdata/                            ← 辨識測資（owner: Cody）共 2,316 檔
+│   ├── AGENTS.md
+│   ├── Asset/                           1,894 檔（符號模板素材庫）
+│   ├── Identify_ans/                      267 檔（人工審定答案集）
+│   │   ├── own_dataset/        74 檔（灰 dev 24 張 153 房）
+│   │   ├── own_eval/           38 檔（灰 holdout 12 張 72 房·永不進訓練）
+│   │   ├── own_dataset_color/  62 檔（彩 dev 19 張 152 房）
+│   │   ├── own_eval_color/     28 檔（彩 holdout 9 張 62 房·永不進訓練）
+│   │   ├── pngans/             64 檔（歷史答案卷）
+│   │   └── README.md
+│   ├── color_png/                          28 檔（彩色原圖集）
+│   ├── png/                                39 檔（灰階原圖集，含 ben 固定樣張
+│   │                                        ben_swing_case_04.png）
+│   ├── dxf/                                73 檔（DXF 測資）
+│   └── pic/                                14 檔（ben 既有）
+├── requirements.txt                     （ben 團隊基準；已收回純研發依賴）
+└── .gitignore                           （training/ 整目錄封鎖）
+```
+
+**不交付、僅存在 cody 分支**：`training/`（評測工具 eval_rooms_cc/
+eval_door_json、素材萃取、probe 工具、234 項回歸測試、door_lib.npz、
+CubiCasa 本機庫）；已刪除但 git 歷史可查：`COLOR_PIPELINE_PLAN.md`、
+`SEG_FAILURE_ANALYSIS.md`、`docs/superpowers/`、`docs/HANDOVER_finetune_v5.md`。
+
+**ben 端其餘目錄**（server/agent/engine/catalog/spatial_data/upgrade3d/
+frontend3d/JSON/scripts/examples/rag/tests 等）本輪除 3.2 詞彙對齊與
+3.3 樣張改名外一律未動，不在本清單展開。

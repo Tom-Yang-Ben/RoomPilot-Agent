@@ -56,8 +56,3 @@ pytest==9.1.1
 # 隊員是純負擔。是否全隊必裝、或維持 `uv sync --extra semantic` 由辨識端自理，
 # 見 MAIN_SYNC_TODO.md——這是 ben 端要拍的板。
 
-
-# ── training/ 評測與研發工具（產品推論不需要；2026-08-03 cody-dev 合併帶入）──
-# training/scripts/svg_poly.py 的 GT 標注解析（eval_rooms_cc 量測鏈用）
-lmdb>=1.4
-scikit-image>=0.24

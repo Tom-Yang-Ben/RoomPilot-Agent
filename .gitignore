@@ -92,12 +92,8 @@ backend/server/static/texture_cache/
 # 平面圖訓練材料體積以 GB 計，只留在本機；但研發工具與測試是程式碼，必須進版控。
 # 負向規則不可省：辨識率的驗證鏈（評測腳本＋107 支測試＋報表）全在這幾個子目錄，
 # 少了它們，cody-dev 宣稱的準確度數字在別台機器上無法重跑。
-training/*
-!training/scripts/
-!training/tests/
-!training/json/
-!training/*.npz
-training/tests/.pytest_cache/
+# 終版裁定（2026-08-03）：training/ 研發目錄不交付 ben，整目錄不進版控
+training/
 training.zip
 /model_finetuned_*.pkl
 /backend/floorplan/model_finetuned_*.pkl
