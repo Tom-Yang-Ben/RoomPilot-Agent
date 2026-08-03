@@ -459,6 +459,21 @@ def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
     assert "!sentFurnitureIds.has(String(item.id))" in source
 
 
+def test_realistic_entry_reveals_the_scene_exactly_once() -> None:
+    """進即時寫實一次呈現:第一張色卡的材質、軟裝與家具換款全部就緒才
+    載入場景(deferReload),進場不再連續自我刷新;其餘色卡等點選才套用,
+    期間有等待遮罩。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "applyStylePackToScene(preferredPack, { deferReload: true })" in source
+    assert "applySurfaceOverrides({ reload: false })" in source
+    assert "deferReload = false" in source
+    # 進場管線(confirmWhiteModel 後段)只留一次 loadScene
+    entry = source.split('showStep("realistic_3d");')[1].split("function renderStyleControls")[0]
+    assert entry.count("realisticViewer.loadScene(") == 1
+    assert "beginPlacementBusy" in entry and "endPlacementBusy" in entry
+
+
 def test_soft_decor_calls_send_only_the_target_rooms_furniture() -> None:
     """進即時寫實的自動軟裝是逐房 /api/scene/decorate:整屋家具塞進單房
     呼叫會被該房柵格(房外即阻擋)全數誤殺 —— 鎖定家具被擠走、其餘標
