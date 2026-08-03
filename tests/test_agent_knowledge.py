@@ -10,6 +10,7 @@ from backend.agent.knowledge import (
     GROUP_OF,
     ROOM_AFFINITY,
     ROOM_TYPE_ZH,
+    affinity_permits,
     family_of,
     prompt_rules,
 )
@@ -36,6 +37,30 @@ def test_room_affinity_room_types_are_known():
         assert rooms, f"{family} 空房型清單"
         for room_type in rooms:
             assert room_type in _KNOWN_ROOM_TYPES, f"{family} 的房型 {room_type} 未知"
+
+
+def test_gaming_chair_folds_into_office_chair_family():
+    """電競椅循 office-chair 族系:繼承房型適配(臥室/儲藏)與成組(貼書桌),
+    不再是無族系的野放件被丟進客廳。"""
+    assert family_of("gaming-chair") == "office-chair"
+
+
+def test_affinity_permits_enforces_canonical_room_rules():
+    # 限定房型的家具:房型不符 → 不允許
+    assert not affinity_permits("bed", "living_room")
+    assert affinity_permits("bed", "bedroom")
+    # 辦公家具兩房皆許(臥室 or 儲藏),客廳不許;電競椅循族系同規則
+    assert affinity_permits("office-chair", "bedroom")
+    assert affinity_permits("office-chair", "storage")
+    assert not affinity_permits("office-chair", "living_room")
+    assert not affinity_permits("gaming-chair", "living_room")
+    assert affinity_permits("gaming-chair", "bedroom")
+    # 餐廚歸 kitchen(canonical 無 dining_room)
+    assert affinity_permits("dining-table", "kitchen")
+    assert not affinity_permits("dining-table", "living_room")
+    # 泛用件(未列 affinity)與空房型一律允許
+    assert affinity_permits("bookcase", "living_room")
+    assert affinity_permits("bed", "")
 
 
 def test_family_of_folds_catalog_specific_types():
