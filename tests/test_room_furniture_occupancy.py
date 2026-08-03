@@ -88,9 +88,15 @@ def test_missing_occupancy_still_returns_a_usable_default() -> None:
 
 def test_scene_bundle_feeds_occupancy_into_the_recommendation() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    # 佇列 7 第六批（6B）：occupancyForRoom / bedroomRoleFor 純搬家到
+    # scene_furniture_offers.js 工廠，定義改掃新檔；autoLayoutFurniture 的
+    # 呼叫點仍在 scene_v2.js（occupancyForRoom 解構回同名 const）。
+    offers = (STATIC_DIR / "scene_furniture_offers.js").read_text(encoding="utf-8")
 
-    assert "function occupancyForRoom" in source
-    assert "function bedroomRoleFor" in source
+    assert "function occupancyForRoom" in offers
+    assert "function bedroomRoleFor" in offers
     assert "recommendedFurnitureForRoom(room, occupancyForRoom(room))" in source
+    assert "recommendedFurnitureForRoom(room, occupancyForRoom(room))" in offers
     # 沒有帶住戶資料的呼叫就是舊行為。
     assert "recommendedFurnitureForRoom(room)," not in source
+    assert "recommendedFurnitureForRoom(room)," not in offers

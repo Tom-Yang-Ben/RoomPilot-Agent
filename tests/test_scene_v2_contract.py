@@ -82,7 +82,10 @@ def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options(
     assert "function questionnaireMaterialOptionsForPack" in data
     assert 'const wallOption = randomItem(questionnaireMaterialOptionsForPack("wall", pack), null)' in data
     assert 'const floorOption = randomItem(questionnaireMaterialOptionsForPack("floor", pack), null)' in data
-    assert "const options = questionnaireMaterialOptionsForPack(kind, pack)" in source
+    # 佇列 7 第六批（6B）：renderQuestionnaireMaterialOptions 隨糾纏對搬到
+    # scene_furniture_offers.js 工廠，逐房材質卡的取卡呼叫改掃新檔。
+    offers = (STATIC_DIR / "scene_furniture_offers.js").read_text(encoding="utf-8")
+    assert "const options = questionnaireMaterialOptionsForPack(kind, pack)" in offers
     assert "defaultWallMaterial: wallMaterial" in data
     assert "floorMaterial" in data
 
@@ -103,7 +106,10 @@ def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() 
     assert "note: option.note" in material_option
     assert "recommendation: pack.name" in material_option
     assert "background-color:${escapeHtml(option.color)}" in source
-    assert "全房牆面目前使用：${wallLabel}" in source
+    # 佇列 7 第六批（6B）：renderQuestionnaireFinishes 搬到
+    # scene_furniture_offers.js 工廠，逐房牆面摘要字串改掃新檔。
+    offers = (STATIC_DIR / "scene_furniture_offers.js").read_text(encoding="utf-8")
+    assert "全房牆面目前使用：${wallLabel}" in offers
     assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in css
     assert "grid-auto-rows: 86px;" in css
     assert "width: 76px;" in css
@@ -188,24 +194,28 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     # 佇列 7 第五批：家具程式表、用途表與 offer 標籤函式純搬家到
     # scene_questionnaire_data.js，定義改掃新檔；渲染與 state 邏輯仍在 scene_v2.js。
     data = (STATIC_DIR / "scene_questionnaire_data.js").read_text(encoding="utf-8")
+    # 佇列 7 第六批（6B）：候選集/檢索群與家具推薦 UI 群純搬家到
+    # scene_furniture_offers.js 工廠，定義與卡片 markup 改掃新檔；
+    # 事件委派的呼叫點（data-* selector）仍在 scene_v2.js。
+    offers = (STATIC_DIR / "scene_furniture_offers.js").read_text(encoding="utf-8")
 
     assert 'id="questionnaire-furniture-options"' in html
     assert 'id="questionnaire-furniture-status"' in html
     assert 'id="questionnaire-furniture-preference"' in html
     assert 'id="refresh-questionnaire-furniture"' in html
     assert 'id="questionnaire-room-usage-options"' in html
-    assert "function ensureQuestionnaireFurnitureRecommendations" in source
-    assert "function renderQuestionnaireFurnitureRecommendations" in source
+    assert "function ensureQuestionnaireFurnitureRecommendations" in offers
+    assert "function renderQuestionnaireFurnitureRecommendations" in offers
     assert "const ROOM_USAGE_OPTIONS" in data
-    assert "function renderQuestionnaireRoomUsage" in source
+    assert "function renderQuestionnaireRoomUsage" in offers
     assert "data-questionnaire-room-usage" in source
-    assert 'data-questionnaire-furniture-id="' in source
-    assert "user_selected: true" in source
-    assert "selection_priority:" in source
+    assert 'data-questionnaire-furniture-id="' in offers
+    assert "user_selected: true" in offers
+    assert "selection_priority:" in offers
     assert "function knownUnavailableCatalogFurnitureIds" in source
-    assert "function catalogFallbackOffersForSpec" in source
-    assert "recommendation_tier: \"similar\"" in source
-    assert "function applyDefaultQuestionnaireFurnitureSelections" in source
+    assert "function catalogFallbackOffersForSpec" in offers
+    assert "recommendation_tier: \"similar\"" in offers
+    assert "function applyDefaultQuestionnaireFurnitureSelections" in offers
     assert "const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS" in data
     assert 'defaults: ["bed", "wardrobe"]' in data
     assert 'required: ["bed"]' in data
@@ -219,19 +229,19 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert 'return "加大雙人床"' in data
     assert 'read: [["desk", "compact"], ["office-chair", "task"]]' in data
     assert "data-questionnaire-furniture-variant-type" in source
-    assert "function updateQuestionnaireFurnitureVariant" in source
-    assert "function updateQuestionnaireFurnitureQuantity" in source
-    assert "function refreshQuestionnaireFurnitureRecommendations" in source
+    assert "function updateQuestionnaireFurnitureVariant" in offers
+    assert "function updateQuestionnaireFurnitureQuantity" in offers
+    assert "function refreshQuestionnaireFurnitureRecommendations" in offers
     assert "data-questionnaire-furniture-quantity" in source
-    assert "preferenceText" in source
+    assert "preferenceText" in offers
     assert "selectedCatalogFurniture.flatMap" in source
     assert "data-open-questionnaire-furniture-catalog" in source
-    assert "unavailableCatalogIds.has(String(offer.furniture_id))" in source
-    assert "questionnaireOffersWithSizeChoices(spec[0], candidates)" in source
-    assert "第 6 步將檢查實際 GLB、門窗與走道" in source
+    assert "unavailableCatalogIds.has(String(offer.furniture_id))" in offers
+    assert "questionnaireOffersWithSizeChoices(spec[0], candidates)" in offers
+    assert "第 6 步將檢查實際 GLB、門窗與走道" in offers
     assert 'id="questionnaire-furniture-preference-tags"' in html
-    assert "QUESTIONNAIRE_FURNITURE_PREFERENCE_TAGS" in source
-    assert 'model_load_verification: "deferred"' in source
+    assert "QUESTIONNAIRE_FURNITURE_PREFERENCE_TAGS" in offers
+    assert 'model_load_verification: "deferred"' in offers
     assert ".rp-questionnaire-furniture-options" in css
     assert ".rp-questionnaire-room-usage-options" in css
 
@@ -336,6 +346,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_questionnaire_test2.js",
             "scene_questionnaire_data.js",
             "scene_questionnaire_flow.js",
+            "scene_furniture_offers.js",
             "scene_configuration_sync.js",
             "scene_viewer_reload.js",
         ],
@@ -349,6 +360,15 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
         "scene_questionnaire_flow.js": [
             "scene_surface_materials.js",
             "scene_first_meeting.js",
+            "scene_room_requirements.js",
+            "scene_style_packs.js",
+            "scene_questionnaire_data.js",
+        ],
+        # 佇列 7 第六批（6B）：家具候選集/推薦 UI 工廠的六條 import 邊。
+        "scene_furniture_offers.js": [
+            "scene_furniture_retrieval.js",
+            "scene_layout2d.js",
+            "scene_plan_geometry.js",
             "scene_room_requirements.js",
             "scene_style_packs.js",
             "scene_questionnaire_data.js",
@@ -1233,7 +1253,10 @@ def test_2d_furniture_selection_syncs_to_matching_3d_scene_object() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function sceneObjectIndexByFurnitureId" in source
-    assert "String(item.furniture_id) === String(furnitureId)" in source
+    # 佇列 7 第六批（6B）：舊斷言的字面 "String(item.furniture_id) === String(furnitureId)"
+    # 其實只存在於問卷勾選函式（已搬到 scene_furniture_offers.js）；
+    # sceneObjectIndexByFurnitureId 本體早改成實例 id 集合比對。改釘實際的比對式。
+    assert "(item) => sceneInstanceIds(item).some((candidate) => instanceIds.has(candidate))" in source
     assert "function selectSceneObjectByFurnitureId" in source
     assert "function syncSelected2dFurnitureToScene" in source
     assert "syncSelected2dFurnitureToScene({ focus: true })" in source

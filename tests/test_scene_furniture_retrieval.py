@@ -127,9 +127,14 @@ def test_appliance_catalog_is_retired_from_step_six() -> None:
 
 def test_frontend_no_longer_maps_questionnaire_appliances_to_an_api() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    # 佇列 7 第六批（6B）：catalogCandidatesForType 的定義搬到
+    # scene_furniture_offers.js，家電端點的負向斷言要同時蓋住新檔。
+    offers = (STATIC_DIR / "scene_furniture_offers.js").read_text(encoding="utf-8")
 
     assert 'endpoint: "/api/appliances"' not in source
     assert '"/api/appliances"' not in source
+    assert 'endpoint: "/api/appliances"' not in offers
+    assert '"/api/appliances"' not in offers
     assert "catalogCandidatesForType(current.type" in source
     assert "rankCatalogFurniture(catalogCandidates, request)" in source
 
@@ -189,8 +194,13 @@ def test_shortlist_degradation_is_visible_not_console_only() -> None:
 
     退化只留 console.warn 的後果：使用者以為在用候選集，實際整輪全型錄，
     載入慢還不知道原因。這裡釘住三個誠實回報點。
+
+    佇列 7 第六批（6B）：候選集/檢索群純搬家到 scene_furniture_offers.js 的
+    createFurnitureOffers 工廠，三個回報點的函式本體改掃新檔；切塊仍以
+    函式邊界為準（新檔保留 ensureFurnitureShortlist → catalogOffersForSpec →
+    catalogFallbackOffersForSpec → catalogOffersForRoomPlans 的原始順序）。
     """
-    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_furniture_offers.js").read_text(encoding="utf-8")
     html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
     assert 'id="furniture-source-notice"' in html, "第 6 步必須有家具來源通知元素"
