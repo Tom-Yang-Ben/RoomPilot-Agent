@@ -459,6 +459,19 @@ def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
     assert "!sentFurnitureIds.has(String(item.id))" in source
 
 
+def test_soft_decor_calls_send_only_the_target_rooms_furniture() -> None:
+    """進即時寫實的自動軟裝是逐房 /api/scene/decorate:整屋家具塞進單房
+    呼叫會被該房柵格(房外即阻擋)全數誤殺 —— 鎖定家具被擠走、其餘標
+    「放不下」,整屋亂成一團。必須只送目標房的家具,回傳後按房合併。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    decor_body = source.split("async function ensureAutomaticSoftDecor")[1].split("\nasync function ")[0]
+
+    assert "const roomObjects = allObjects.filter" in decor_body
+    assert "scene_objects: roomObjects" in decor_body
+    assert "state.sceneData.scene_objects || []," not in decor_body.split("api(")[1]
+    assert "returnedById" in decor_body
+
+
 def test_set_furniture_shares_one_model_per_room() -> None:
     """成套家具統一規格:同一空間的餐椅(與成對床頭櫃)必須同款 ——
     GLB 逐件解析會讓自動補上的件各自找「最接近款」,同桌湊出雜牌椅。
