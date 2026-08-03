@@ -38,7 +38,10 @@ docs/*
 
 # 個人或工具產生的本機設定與筆記不提交。
 .codex/
-.claude/
+# .claude/ 本身不排除（否則無法再納回子目錄），只排除其下的本機設定；
+# .claude/skills/ 是共用的專案 skill，要進版控。
+.claude/*
+!.claude/skills/
 CLAUDE.md
 PROJECT_CONTEXT.md
 CODEX_PROJECT_RULES.md
