@@ -134,12 +134,13 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 本檔規格 | **v1 定版**（2026-07-31） |
-| `backend/agent/knowledge.py` `ROOM_MINIMUM_FAMILIES` | 對齊到 v0；**v1 尚未對齊**（見下） |
-| `select.py` 必要族系驗證 | 對齊到 v0 |
-| `scene_service.SPACE_DEFAULTS` | 未接 |
-| **`scene_layout2d.js` `recommendedFurnitureForRoom`（前端）** | **未接，且第 6 步實際採用的是這張** ⚠️ |
-| 前端 `ROOM_QUESTION_TEMPLATES` | 未接 |
+| 本檔規格 | **v1 定版**（2026-07-31）＋ 0802／0803 拍板增補 |
+| `backend/agent/knowledge.py` | **已對齊 v1**（0802：`outdoor` 別名、床頭櫃 ×2、隨機配套池） |
+| `select.py` 必要族系驗證 | 隨 knowledge 對齊 |
+| `scene_service.SPACE_DEFAULTS` | **已對齊 v1**（0802；殘餘：問卷詞彙未開放 `entry`） |
+| `scene_layout2d.js` `recommendedFurnitureForRoom`（前端 2D 種子） | **已對齊 v1**（0803：床頭櫃×2、餐椅×4、玄關鞋櫃、entry 房名判斷） |
+| `scene_v2.js` `QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS`（問卷預設） | **已對齊 v1**（0803：廚房清死鍵、儲藏換層架、浴室去 vanity 死鍵） |
+| 前端 `ROOM_QUESTION_TEMPLATES`（問卷字面選項） | 未接（家電字面留問卷供第 8 步生圖＝設計內，非偏離） |
 | RAG `offers` 契約 | 未接 |
 | Engine companion／hints 完整灌入第 6 步 | 未接 |
 
@@ -160,6 +161,18 @@
 任何對帳測試都必須**同時涵蓋這四張表**，否則會誤判為已修好。
 
 證據與完整因果鏈見 [`../notes/engine工作總帳.md`](../notes/engine工作總帳.md) §6.1（四張清單）與 §3（擺不對的因果鏈）。
+
+> **2026-08-03 已收斂**：四張機器表（knowledge／SPACE_DEFAULTS／前端 2D 種子／問卷預設）
+> 已全數照 v1 改平，`scripts/audit_room_programs.py` 為量尺（工具同日修三洞：study 別名、
+> 玄關「優先」語意、可選預設給放行）。殘餘缺口只剩玄關——後端問卷詞彙未開放 `entry`
+> 房型，SPACE_DEFAULTS／問卷表無從掛鍵（Bella 單）；前端 2D 以房名判斷先行。
+> 本節保留作歷史成因。
+
+### 可選預設給（2026-08-03 拍板）
+
+三件「可選」升級為**預設給、使用者可取消**：客廳 `coffee-table`、浴室 `mirror-cabinet`、
+陽台 `flower-pots-planter`（decor 不吃槽）。2D 種子與問卷預設可含此三件（對帳工具
+`OPTIONAL_DEFAULTS` 放行）；其餘可選件不預設。餐椅預設 4 張＝「人數缺失先 4」的落地。
 
 ### v0 → v1 差異（`knowledge.py` 待補的六項）
 

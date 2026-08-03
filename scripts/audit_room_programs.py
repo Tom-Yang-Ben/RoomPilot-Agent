@@ -31,6 +31,14 @@ from backend.agent.knowledge import (  # noqa: E402
 )
 from backend.server.scene_service import SPACE_DEFAULTS  # noqa: E402
 
+# 2026-08-03 Ancai 拍板「可選預設給」：v1 可選欄內三件升級為預設給、使用者可取消。
+# 前端種子／問卷含這三件不算偏離；其餘可選件不預設。
+OPTIONAL_DEFAULTS: dict[str, set[str]] = {
+    "living_room": {"coffee-table"},
+    "bathroom": {"mirror-cabinet"},
+    "balcony": {"flower-pots-planter"},
+}
+
 
 def fold(types) -> set[str]:
     return {family_of(t) for t in types if t}
@@ -47,8 +55,12 @@ def parse_v1_spec() -> dict[str, set[str]]:
         code, minimum = m.group(1), m.group(2)
         if "空白" in minimum:
             rows[code] = set()
-        else:
-            rows[code] = set(re.findall(r"`([a-z0-9-]+)`", minimum))
+            continue
+        # 「A 優先；不足退 B」＝最少只算 A；備援不是必備，逐字全數會生
+        # 玄關「缺 2／缺 3」假陽性（0802 已記錄，0803 根修於此）。
+        if "不足退" in minimum:
+            minimum = minimum.split("不足退", 1)[0]
+        rows[code] = set(re.findall(r"`([a-z0-9-]+)`", minimum))
     return rows
 
 
@@ -61,7 +73,10 @@ def parse_frontend_2d() -> dict[str, set[str]]:
     for line in body.splitlines():
         m = re.match(r"\s*(\w+):\s*\[(.*)\],?\s*$", line)
         if m:
-            rows[m.group(1)] = set(re.findall(r'\["([a-z0-9-]+)"', m.group(2)))
+            # 前端鍵折成正規房型（circulation→hallway 等），避免別名假偏離
+            rows[normalize_room_type(m.group(1))] = set(
+                re.findall(r'\["([a-z0-9-]+)"', m.group(2))
+            )
     return rows
 
 
@@ -70,8 +85,12 @@ def parse_frontend_questionnaire() -> dict[str, set[str]]:
     body = text.split("const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS = Object.freeze({", 1)[1]
     body = body.split("\n});", 1)[0]
     rows: dict[str, set[str]] = {}
-    for m in re.finditer(r"(\w+):\s*\{\s*defaults:\s*\[([^\]]*)\]", body):
-        rows[m.group(1)] = set(re.findall(r'"([a-z0-9-]+)"', m.group(2)))
+    for m in re.finditer(r"(\w+):\s*\{[^{}]*?defaults:\s*\[([^\]]*)\]", body):
+        # 問卷表用前端房型鍵（study/circulation），折成正規房型再比——
+        # 否則 workspace 永遠「缺 desk」（0803 發現的工具假陽性）。
+        rows[normalize_room_type(m.group(1))] = set(
+            re.findall(r'"([a-z0-9-]+)"', m.group(2))
+        )
     return rows
 
 
@@ -91,16 +110,15 @@ def main() -> int:
             "前端2D": fold(fe2d.get(room, set())),
             "問卷": fold(feq.get(room, set())),
         }
-        # 前端表用的別名房型（如 circulation/storage）另行對照
-        if room not in fe2d:
-            for alias, target in (("circulation", "hallway"), ("studio", None)):
-                if normalize_room_type(alias) == room and alias in fe2d:
-                    got["前端2D"] = fold(fe2d[alias])
-        diffs = {
-            name: (want - value, value - want)
-            for name, value in got.items()
-            if (want - value) or (value - want)
-        }
+        allowed_extra = OPTIONAL_DEFAULTS.get(room, set())
+        diffs = {}
+        for name, value in got.items():
+            missing = want - value
+            extra = value - want
+            if name in ("前端2D", "問卷"):
+                extra = extra - allowed_extra
+            if missing or extra:
+                diffs[name] = (missing, extra)
         flag = "❌" if diffs else "✅"
         if diffs:
             mismatch_rooms += 1

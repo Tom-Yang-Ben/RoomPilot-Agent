@@ -231,7 +231,10 @@ export function roomTypeFromName(room = {}) {
     ["living_room", /living\s*room|lounge|客廳/],
     ["dining_room", /dining\s*room|飯廳|餐廳/],
     ["balcony", /balcony|terrace|陽台/],
-    ["circulation", /circulation|corridor|hallway|走道|走廊|玄關/],
+    // 玄關獨立於走道：v1 玄關必備鞋櫃，混進 circulation 會永遠拿不到種子。
+    // 後端問卷詞彙未開放 entry 房型，玄關只能靠房名判斷（0803）。
+    ["entry", /entry|entrance|foyer|玄關/],
+    ["circulation", /circulation|corridor|hallway|走道|走廊/],
     ["workspace", /study|office|den|書房|工作室/],
   ];
   return rules.find(([, pattern]) => pattern.test(label))?.[0] || "default";
@@ -240,15 +243,19 @@ export function roomTypeFromName(room = {}) {
 export function recommendedFurnitureForRoom(room = {}) {
   const roomType = roomTypeFromName(room);
   // 種子只放型錄有貨的型別；0 件死鍵會生無 GLB 假件（鎖於 tests/test_scene_seed_dead_keys.py）
+  // 內容＝room_strategy v1 必備（0803 對齊）：床頭櫃成對 ×2、餐椅「人數缺失先 4」、
+  // 玄關鞋櫃；浴室鏡櫃／陽台植栽／客廳茶几＝「可選預設給」拍板，使用者可取消。
+  // 每房必須單行——scripts/audit_room_programs.py 逐行解析本表。
   const recommendations = {
     living_room: [["sofa", "three-seat"], ["coffee-table", "rect"], ["tv-bench", "low"]],
-    bedroom: [["bed", "double"], ["wardrobe", "two-door"]],
-    dining_room: [["dining-table", "round-4"], ["dining-chair", "standard"]],
+    bedroom: [["bed", "double"], ["wardrobe", "two-door"], ["bedside-table", "compact"], ["bedside-table", "compact"]],
+    dining_room: [["dining-table", "round-4"], ["dining-chair", "standard"], ["dining-chair", "standard"], ["dining-chair", "standard"], ["dining-chair", "standard"]],
     kitchen: [],
     storage: [["shelving-unit", "standard"]],
     workspace: [["desk", "standard"], ["office-chair", "task"]],
     bathroom: [["mirror-cabinet", "standard"]],
     balcony: [["flower-pots-planter", "floor"]],
+    entry: [["shoe-cabinet", "standard"]],
     circulation: [],
   };
   return recommendations[roomType] || [];

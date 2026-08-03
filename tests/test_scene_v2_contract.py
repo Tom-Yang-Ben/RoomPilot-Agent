@@ -180,7 +180,7 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert "recommendation_tier: \"similar\"" in source
     assert "function applyDefaultQuestionnaireFurnitureSelections" in source
     assert "const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS" in source
-    assert 'defaults: ["bed", "wardrobe"]' in source
+    assert 'defaults: ["bed", "wardrobe", "bedside-table"]' in source
     assert 'required: ["bed"]' in source
     assert "function questionnaireFurnitureRole" in source
     assert "QUESTIONNAIRE_FURNITURE_SHORT_LABELS" in source
@@ -293,6 +293,7 @@ def test_step_six_groups_failures_by_room_and_offers_explicit_resolution() -> No
 def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     dependency_edges = {
         "scene_v2.js": [
+            "scene_layout2d.js",
             "scene_viewer.js",
             "scene_workflow.js",
             "scene_unit_contracts.js",
@@ -1406,18 +1407,27 @@ def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> 
           living: recommendedFurnitureForRoom({{ type: "default", label: "LIVING ROOM" }}),
           balcony: recommendedFurnitureForRoom({{ type: "default", label: "BALCONY" }}),
           circulation: recommendedFurnitureForRoom({{ type: "default", label: "CIRCULATION" }}),
+          entry: recommendedFurnitureForRoom({{ type: "default", label: "玄關" }}),
+          dining: recommendedFurnitureForRoom({{ type: "default", label: "DINING ROOM" }}),
         }};
         console.log(JSON.stringify(samples));
         """
     )
 
-    assert {item[0] for item in result["bedroom"]} >= {"bed", "wardrobe"}
+    assert {item[0] for item in result["bedroom"]} >= {"bed", "wardrobe", "bedside-table"}
+    # 2026-08-03 對齊 v1：床頭櫃成對 ×2（主次臥共用，0802 拍板）
+    assert [item[0] for item in result["bedroom"]].count("bedside-table") == 2
     # 2026-08-02 假家具案：種子只放型錄有貨的型別（詳 test_scene_seed_dead_keys.py）
     assert result["kitchen"] == []
     assert {item[0] for item in result["storage"]} == {"shelving-unit"}
     assert {item[0] for item in result["bathroom"]} == {"mirror-cabinet"}
     assert {item[0] for item in result["living"]} >= {"sofa", "coffee-table", "tv-bench"}
     assert {item[0] for item in result["balcony"]} == {"flower-pots-planter"}
+    # 2026-08-03 對齊 v1：玄關（房名判斷，詞彙未開放 entry 型）給鞋櫃種子
+    assert {item[0] for item in result["entry"]} == {"shoe-cabinet"}
+    # 2026-08-03 對齊 v1：餐椅「人數缺失先 4」
+    assert {item[0] for item in result["dining"]} == {"dining-table", "dining-chair"}
+    assert [item[0] for item in result["dining"]].count("dining-chair") == 4
     assert result["circulation"] == []
 
 

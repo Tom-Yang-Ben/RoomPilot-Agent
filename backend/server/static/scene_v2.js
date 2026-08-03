@@ -35,7 +35,7 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-a9f7bd3d49e3";
+} from "./scene_layout2d.js?v=sha256-82ea4ead91c6";
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
@@ -7260,12 +7260,12 @@ async function catalogOffersForRoomPlans(roomPlans) {
 
 const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS = Object.freeze({
   bedroom: {
-    defaults: ["bed", "wardrobe"],
+    defaults: ["bed", "wardrobe", "bedside-table"],
     required: ["bed"],
     labels: { bed: "睡眠的基本配置", wardrobe: "日常衣物收納", "bedside-table": "床邊置物" },
   },
   living_room: {
-    defaults: ["sofa"],
+    defaults: ["sofa", "tv-bench"],
     required: ["sofa"],
     labels: { sofa: "休息與招待的基本配置", "coffee-table": "客廳置物與活動中心", "tv-bench": "影音設備收納", "lounge-chair": "閱讀或獨立休息" },
   },
@@ -7275,18 +7275,21 @@ const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS = Object.freeze({
     labels: { "dining-table": "用餐的基本配置", "dining-chair": "搭配餐桌的座位" },
   },
   kitchen: {
-    defaults: ["appliance-cabinet"],
-    required: ["appliance-cabinet"],
+    // v1 廚房留白＋G5 家電不進 2D/3D：不預設任何件；家電需求留問卷字面供生圖。
+    defaults: [],
+    required: [],
     labels: { "appliance-cabinet": "備餐與廚房收納", "storage-cabinet": "補充收納" },
   },
   storage: {
-    defaults: ["storage-cabinet"],
-    required: ["storage-cabinet"],
-    labels: { "storage-cabinet": "儲藏的基本配置" },
+    // v1 儲藏室必備＝shelving-unit 族；storage-cabinet 非型錄型別（死鍵）退為補充。
+    defaults: ["shelving-unit"],
+    required: ["shelving-unit"],
+    labels: { "shelving-unit": "儲藏的基本配置", "storage-cabinet": "補充收納" },
   },
   bathroom: {
-    defaults: ["bathroom-vanity", "mirror-cabinet"],
-    required: ["bathroom-vanity"],
+    // v1 浴室留白；鏡櫃＝「可選預設給」（0803 拍板）。bathroom-vanity 型錄無此型（死鍵）不預設。
+    defaults: ["mirror-cabinet"],
+    required: [],
     labels: { "bathroom-vanity": "盥洗與收納的基本配置", "mirror-cabinet": "鏡面與用品收納" },
   },
   balcony: {
@@ -7317,6 +7320,7 @@ const QUESTIONNAIRE_FURNITURE_SHORT_LABELS = Object.freeze({
   "dining-chair": "餐椅",
   "appliance-cabinet": "廚房收納櫃",
   "storage-cabinet": "收納櫃",
+  "shelving-unit": "層架",
   "bathroom-vanity": "浴櫃",
   "mirror-cabinet": "鏡櫃",
   "flower-pots-planter": "植栽",
