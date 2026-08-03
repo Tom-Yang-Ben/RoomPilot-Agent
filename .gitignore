@@ -15,27 +15,19 @@ __pycache__/
 # 編譯後二進位（無原始碼，不進版控）
 *.exe
 
-
-
-# 本機自管大檔，不 push：訓練產物（打包件/微調模型/驗收快取）＋
-# CubiCasa5k 程式庫與資料集＋官方權重 model_best_val_loss_var.pkl＋
-# 換機：大檔整包 training.zip 搬運解壓；程式碼/測試/模板庫走版控（下方負向規則）
-# （人工答案在 Identify_ans/ 進版控）
-# training/ 只放訓練材料——辨識/評分的產出一律走 temp/（不進版控）。
-# json/ 例外保留當警示網：現行 code 已不寫這裡，任何冒出來的檔案＝
-# 某台機器還在跑舊版腳本，讓它在 git status 現形，不要無聲失蹤
-training/*
-!training/scripts/
-!training/tests/
-!training/json/
-!training/*.npz
+# training/ 進版控走精簡集（2026-08-03 使用者裁定）：scripts/＋tests/
+# 即為「clone 回來就能續作」的全部——training.zip 換機機制退場。
+# 不入庫的三類：第三方 CubiCasa5k（需要時依 FloorTraining.md 另外
+# clone）、可重生中間產物（room_crops 由 extract_room_crops 重生、
+# asset_ckpt 為素材輪快取）、pytest 快取；辨識/評分產出一律走 temp/。
+training/CubiCasa5k/
+training/room_crops/
+training/asset_ckpt/
 training/tests/.pytest_cache/
 VibeCoding_Workflow_Templates/
-training.zip
 # 微調權重留專案根本地使用（200M 超 GitHub 100MB 限制），換機用 Drive/隨身碟帶
 /model_finetuned_*.pkl
 /backend/floorplan/model_finetuned_*.pkl
-/cubicasa5k.zip
 
 # 工作暫存（漏門裁圖、未標房間標示圖等除錯產物）
 temp/

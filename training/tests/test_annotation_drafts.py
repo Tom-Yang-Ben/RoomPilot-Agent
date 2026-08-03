@@ -104,6 +104,9 @@ def test_cubicasa_house_still_cannot_read_new_vocabulary():
     sys.path.insert(0, os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         "training/CubiCasa5k"))
+    # CubiCasa5k 是第三方本機 checkout（不入庫，需要時依 FloorTraining.md
+    # 另外 clone）；缺庫明確 skip，不誤報紅。
+    pytest.importorskip("floortrans", reason="training/CubiCasa5k 本機 checkout 不存在")
     from floortrans.loaders.house import House
     path = _written([("Hallway",
                       np.array([[20, 20], [95, 20], [95, 95], [20, 95]]))])

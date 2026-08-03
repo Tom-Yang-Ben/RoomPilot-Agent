@@ -1,4 +1,4 @@
-# TRAINING.MD — cody 分支研發工具指南（2026-08-03 收尾定版）
+# FloorTraining.md — cody 分支研發工具指南（2026-08-03 收尾定版）
 
 `training/` 是 cody 辨識管線的研發自用目錄：**量測、答案卷製作、模型頭重訓、
 符號素材入庫、回歸測試**。產品推論鏈（`backend/floorplan/`）對本目錄零依賴，
@@ -14,8 +14,12 @@ pip install -r requirements.txt   # 版本已釘實際開發環境（2026-08-03 
 ```
 
 - 產物一律落 `temp/`（gitignore，隨時可全刪重生）。
-- 本機可再生的中間產物：`training/room_crops/`（裁切資料集）、
-  `training/asset_ckpt/`（素材輪快取）——都不進版控，缺了就重跑對應腳本。
+- `training/` 進版控走**精簡集**（2026-08-03 裁定）：`scripts/`＋`tests/`
+  即為「從 git clone 回來就能續作」的全部，舊的 training.zip 換機機制
+  退場。不入庫、可重生的中間產物：
+  - `training/room_crops/`（裁切資料集）→ `python training/scripts/extract_room_crops.py` 重生
+  - `training/asset_ckpt/`（素材輪逐類快取）→ 素材輪流程（第 4 節）重生
+  - 第三方 `training/CubiCasa5k/` → 見第 5 節另外 clone。
 
 ## 1. 量測（改任何共用碼前後必跑）
 
@@ -84,15 +88,17 @@ holdout 只收尾看一次。
 importorskip 明確跳過）。**日常量測鏈完全不需要**（GT 解析走自寫的
 svg_poly，2026-08 已與 CubiCasa loader 脫鉤，lmdb 依賴同步移除）。
 
-需要時的安裝步驟：
+本機 checkout 已於 2026-08-03 收尾時整個移除（第三方內容不入庫、
+不隨身帶）。需要 House 回讀驗證時再安裝：
 
 ```bash
 git clone https://github.com/CubiCasa/CubiCasa5k training/CubiCasa5k
 python training/scripts/apply_cubicasa_patches.py   # numpy 2.x 相容補丁，冪等可重跑
 ```
 
-（dataset 圖集非必要，驗證只用程式庫；clone 後 6.6G 主要是資料集，
-磁碟緊張可只保留 `floortrans/` 目錄。）
+（該路徑在 .gitignore 永久封鎖，clone 也不會誤入版控；dataset 圖集
+非必要，驗證只用程式庫，磁碟緊張可只保留 `floortrans/` 目錄。
+缺庫時相關測試 importorskip 明確跳過，不誤報紅。）
 
 ## 6. 本次收尾刪除紀錄（2026-08-03，要復活找 git 歷史）
 

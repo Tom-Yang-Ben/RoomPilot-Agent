@@ -1,7 +1,7 @@
 # 現行管線架構（常駐說明，隨程式碼更新；以下 changelog 為歷史紀錄不回改）
 
 > 研發工具（量測／答案卷工序／模型頭重訓／符號素材入庫／CubiCasa5k 下載）
-> 見根目錄 `TRAINING.MD`；辨識能力總覽見 `docs/recognition_report.html`。
+> 見根目錄 `FloorTraining.md`；辨識能力總覽見 `docs/recognition_report.html`。
 
 ## 執行順序（`floorplan2room.process()`）
 
