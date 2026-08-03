@@ -1374,8 +1374,14 @@ async function createProject(event) {
   // URL 已帶專案時這顆按鈕是「繼續」，不是再建一個——2026-08-03 QA 實測
   // 每按一次就多一個同名專案。要開新專案請走「我的專案」。
   if (state.projectId && state.project) {
+    // 從「我的專案」建立的專案會停在第 1 步且未標記完成；不補完成就
+    // goTo("upload") 會被工作流的前置檢查默默拒絕（2026-08-03 實走發現）。
+    if (!state.workflow.completed.includes("project")) {
+      state.workflow.complete("project", { name: state.project.name });
+      scheduleSave("upload");
+    }
     setStatus(`繼續專案「${state.project.name}」；要開新專案請回「我的專案」。`);
-    goTo(state.workflow?.currentStep === "project" ? "upload" : state.workflow.currentStep);
+    goTo(state.workflow.currentStep === "project" ? "upload" : state.workflow.currentStep);
     return;
   }
   const name = element.projectName.value.trim();
@@ -2444,6 +2450,10 @@ function renderRooms() {
     const dimensions = roomDimensions(selectedRoom);
     const reviewHint = roomReviewHint(selectedRoom);
     element.roomEditor.hidden = false;
+    // disabled 是閂鎖：else 分支鎖上後，沒有這兩行就永遠不會解鎖——任何
+    // 一次無選中房間的渲染（如還原時的輪廓修復重算）都會把按鈕鎖死。
+    element.skipCurrentRoom.disabled = false;
+    element.confirmCurrentRoom.disabled = false;
     renderRoomNameSelect(selectedRoom);
     element.roomArea.textContent =
       `系統依目前框選計算：${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm，${dimensions.areaM2.toFixed(2)} m²`;
