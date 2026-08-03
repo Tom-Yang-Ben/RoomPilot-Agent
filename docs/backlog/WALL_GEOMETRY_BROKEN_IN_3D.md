@@ -16,7 +16,17 @@
 - 測試：`tests/test_wall_polys_from_editor.py` 新增 5 條；閘門契約測試改為
   `test_accurate_floorplan_walks_wall_mass_when_backend_cut_the_openings`。
 
-**尚未完成**：以 `testdata/png/floor01.png` 重跑八步的瀏覽器目視驗收；
+**目視驗收（2026-08-03）**：以本案復原路徑實開瀏覽器確認——俯視圖牆體為
+連續帶、轉角乾淨、開口都在牆上；旋轉視角門片嵌在牆面開口內、上方有補牆、
+窗玻璃帶在牆身上；門診斷 expected/resolved/rendered 5/5/5。尚未以
+`floor01.png` 從頭重跑八步（流程級驗證，非幾何驗證）。
+
+**與遠端 `bella-test1` 的關係**：該分支 8/1–8/2 已用另一條路修同一症狀
+（逐段牆路線：第 4 步 `confirmed_wall_opening` 快照、door-header-wall 門楣、
+接縫補齊），但基底較舊、前端仍在 `backend/server/static/`。本輪的
+`closed_segment` 對齊＋`door-wall-header`＋wall_polys 連續牆體已涵蓋其
+門/牆修正，不需移植；其逐房材質統一系列是另一件事，未搬。
+
 下方「純 2D 子畫面要移除」仍是待辦。以下保留當時的完整交接脈絡。
 
 ## 症狀（實機截圖確認，不是推測）
