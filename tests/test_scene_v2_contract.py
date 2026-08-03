@@ -459,6 +459,21 @@ def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
     assert "!sentFurnitureIds.has(String(item.id))" in source
 
 
+def test_set_furniture_shares_one_model_per_room() -> None:
+    """成套家具統一規格:同一空間的餐椅(與成對床頭櫃)必須同款 ——
+    GLB 逐件解析會讓自動補上的件各自找「最接近款」,同桌湊出雜牌椅。
+    統一必須發生在解析之後、缺模型檢查之前;使用者明選/鎖定的不覆寫。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function unifySetFurnitureModels" in source
+    assert '"dining-chair", "bedside-table"' in source
+    assert source.index("unifySetFurnitureModels(selectedFurniture)") \
+        < source.index("selectedFurniture.filter((item) => !item.model_url)")
+    assert "item.user_specified || item.model_locked" in source
+    # 自動補椅從源頭帶同款型錄品項
+    assert "chairCatalogItem" in source
+
+
 def test_room_layout_always_includes_essential_furniture_specs() -> None:
     """房型基礎家具保底:臥室床/客廳沙發/餐廚餐桌,不論使用者勾選、
     agent 選件或尺寸過濾漏掉,2D 佈局規格都要自動補上(放不下時引擎

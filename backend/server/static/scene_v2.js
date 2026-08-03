@@ -9129,8 +9129,11 @@ async function autoLayoutFurniture() {
     if (selectedSpecs.some(([type]) => type === "dining-table" || type === "table")) {
       const chairSpecs = selectedSpecs.filter(([type]) => type === "dining-chair");
       const chairVariant = chairSpecs[0]?.[1] || "standard";
+      const chairCatalogItem = chairSpecs[0]?.[4] || null;   // 同款成套,不湊雜牌
       for (let added = chairSpecs.length; added < 2; added += 1) {
-        selectedSpecs.push(["dining-chair", chairVariant, "餐桌成套餐椅，已自動補上", true]);
+        selectedSpecs.push([
+          "dining-chair", chairVariant, "餐桌成套餐椅，已自動補上", true, chairCatalogItem,
+        ]);
       }
     }
     const roomItems = [];
@@ -10717,6 +10720,45 @@ async function resolveCatalogFurniture(item) {
   }
 }
 
+// 成套家具(餐椅成套、床頭櫃成對)在同一空間必須統一規格:GLB 是逐件
+// 解析的,自動補上的件各自找「最接近款」會湊出雜牌餐椅(feedback:同桌
+// 一白一藍)。以使用者明選(或第一張有模型)的那件為準,其餘同步型錄
+// 欄位;使用者明選/鎖定的件不被覆寫。
+const UNIFIED_SET_TYPES = Object.freeze(["dining-chair", "bedside-table"]);
+
+function unifySetFurnitureModels(items) {
+  UNIFIED_SET_TYPES.forEach((setType) => {
+    const leadByRoom = new Map();
+    items.forEach((item) => {
+      if (item.normalized_type !== setType || !item.model_url) return;
+      const roomKey = String(item.placement_room_id || "");
+      const current = leadByRoom.get(roomKey);
+      const preferred = item.user_specified || item.model_locked;
+      if (!current || (preferred && !(current.user_specified || current.model_locked))) {
+        leadByRoom.set(roomKey, item);
+      }
+    });
+    items.forEach((item, index) => {
+      if (item.normalized_type !== setType) return;
+      const lead = leadByRoom.get(String(item.placement_room_id || ""));
+      if (!lead || lead === item) return;
+      if (item.user_specified || item.model_locked) return;
+      items[index] = {
+        ...item,
+        catalog_furniture_id: lead.catalog_furniture_id,
+        model_url: lead.model_url,
+        has_model: true,
+        name_zh_raw: lead.name_zh_raw,
+        primary_style: lead.primary_style,
+        color: lead.color,
+        material: lead.material,
+        size_cm: { ...(lead.size_cm || {}) },
+        catalog_size_cm: lead.catalog_size_cm,
+      };
+    });
+  });
+}
+
 function placementResolutionText(report = []) {
   if (!report.length) return "";
   return report
@@ -10764,6 +10806,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
     const applianceRequirements = applianceRequirementsForRendering(state.furniture2d);
     const placeableFurniture = removeRetiredAppliancesFromFurniture(state.furniture2d);
     const selectedFurniture = await Promise.all(placeableFurniture.map(resolveCatalogFurniture));
+    unifySetFurnitureModels(selectedFurniture);
     const missingCatalogModels = selectedFurniture.filter((item) => !item.model_url);
     if (missingCatalogModels.length && !allowPendingFurniture) {
       element.layoutError.textContent =
