@@ -1,6 +1,6 @@
 """seg_head 語意牆帶——監督式分割頭的管線接入面（TDD）。
 
-spec: docs/superpowers/specs/2026-08-03-seg-head-design.md
+spec: docs/superpowers/specs/2026-08-03-seg-head-design.md（已隨收尾移除，見 git 歷史）
 機率圖低機率脊線 → 軸對齊牆帶 rects（1x 座標），餵白牆救援 flood。
 資產 backend/floorplan/seg_head.npz 缺檔＝停用（回空清單、不炸）。
 """

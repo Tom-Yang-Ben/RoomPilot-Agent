@@ -48,9 +48,10 @@
 - 彩 holdout 端到端全對 26 間 → **39 間**（+50%）
 
 逐輪演進數字與失敗假設（誠實負結果一併記錄）見
-`docs/CODY_PIPELINE_README.md` changelog v2.25～v2.33，及
-`docs/superpowers/plans/2026-08-01-seg-attribution.md`（灰階歸因）、
-`docs/superpowers/specs/2026-08-03-seg-head-design.md`（分割頭設計）。
+`docs/CODY_PIPELINE_README.md` changelog v2.25～v2.33；能力總覽與
+彩窗彩門停畫裁定見 `docs/recognition_report.html`（v2.33 收案版）。
+研發過程的歸因 plans/specs 已隨 cody 收尾移除，需要時查 cody 分支
+git 歷史（`docs/superpowers/`，2026-08-03 前）。
 
 ### 1.3 門/窗指標
 
@@ -154,11 +155,14 @@ Bath/Entry/Storage/Garage/Hallway/Stair/Balcony`＋中性 `room`
 - cody 根目錄 `Readme.md` → `docs/CODY_PIPELINE_README.md`（沿上輪裁定，
   更新至 v2.33；根目錄 README.md 維持 ben 版）。中繼 commit 18caabe3 為
   Windows 大小寫碰撞的機械性暫移，最終樹已恢復。
-- `backend/cabinetdesign/`、`docs/HANDOVER_finetune_v5.md`、
-  `docs/recognition_report.html`（v2.17 舊報告）沿上輪裁定不帶入。
-- `docs/superpowers/` plans/specs **本輪帶入**（上輪未帶）：它們是 1.2
-  證據鏈的歸因文件，且 v2.33 的 Readme 與 seg_head.py docstring 指向它們。
-  若 ben 端 docs 政策不收，請告知，下輪改留 cody 分支。
+- `backend/cabinetdesign/` 與 `docs/HANDOVER_finetune_v5.md` 沿上輪
+  裁定不帶入（後者已於 cody 收尾刪除）。
+- `docs/superpowers/` plans/specs 已隨 cody 收尾移除（過程性文檔，
+  完整內容在 cody 分支 git 歷史）；證據鏈改由
+  `docs/CODY_PIPELINE_README.md` changelog 與
+  `docs/recognition_report.html` 承載。
+- `docs/recognition_report.html` **帶入 v2.33 收案版**（自 v2.17 四層級
+  報表全面改版：四量尺標準口徑、灰門重建對照、emit_openings 裁定專節）。
 - `docs/png2dxf_pipeline.html`：v2.33 管線架構總覽（2026-08-03 產出）。
 - `.gitignore`／`requirements.txt`：ben 版為基底，附加 cody 段
   （lmdb/scikit-image 為 eval 鏈的 GT 解析依賴，產品推論不需要）。

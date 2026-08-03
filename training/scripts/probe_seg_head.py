@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """probe_seg_head.py — 監督式分割頭可分性標定（階段 0）。
 
-spec: docs/superpowers/specs/2026-08-03-seg-head-design.md
+spec: docs/superpowers/specs/2026-08-03-seg-head-design.md（已隨收尾移除，見 git 歷史）
 
 19 張彩 dev：DINOv2 patch 特徵 → GT「房內/非房內」patch 標籤 →
 留一張 CV 線性頭。報告逐張 patch AUC/IoU，落預測機率圖供目視

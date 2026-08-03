@@ -1,6 +1,6 @@
 """帶級 DINO 語意判別——弱標籤器與帶幾何工具（白牆萃取品質輪，TDD）。
 
-spec: docs/superpowers/specs/2026-08-02-band-semantics-design.md
+spec: docs/superpowers/specs/2026-08-02-band-semantics-design.md（已隨收尾移除，見 git 歷史）
 帶 = (x0, y0, x1, y1) 軸對齊矩形（white_wall_rects 輸出，1x 座標）。
 """
 import os
