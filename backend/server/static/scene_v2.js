@@ -12030,6 +12030,14 @@ async function ensureAutomaticSoftDecor(pack) {
     ? state.rooms
     : [{ id: state.selectedRoomId || "default" }];
   for (const room of targetRooms) {
+    const allObjects = state.sceneData.scene_objects || [];
+    // 只送目標房間的家具:decorate 是「單房」重排呼叫,柵格對房外一律
+    // 視為阻擋 —— 整屋清單塞進去會把其他房的鎖定家具全數誤殺(重排進
+    // 該房或標放不下),迴圈跑完只剩最後一間房的殘件擠成一團,這正是
+    // 進即時寫實整屋亂掉的根因。沒房間標記的(使用者手動加入)不動。
+    const roomObjects = allObjects.filter((item) =>
+      String(item.placement_room_id || item.auto_decor_room_id || "") === String(room.id));
+    if (!roomObjects.length) continue;
     const result = await api("/api/scene/decorate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -12037,10 +12045,20 @@ async function ensureAutomaticSoftDecor(pack) {
         style: pack.styleId,
         floorplan_editor: confirmedFloorplanEditor(),
         placement_room_id: room.id,
-        scene_objects: state.sceneData.scene_objects || [],
+        scene_objects: roomObjects,
       }),
     });
-    state.sceneData.scene_objects = result.scene_objects;
+    const returned = result.scene_objects || [];
+    const returnedById = new Map(
+      returned.map((item) => [String(item.furniture_id), item]),
+    );
+    const knownIds = new Set(allObjects.map((item) => String(item.furniture_id)));
+    const merged = allObjects.map((item) =>
+      returnedById.get(String(item.furniture_id)) || item);
+    returned.forEach((item) => {
+      if (!knownIds.has(String(item.furniture_id))) merged.push(item);   // 新軟裝
+    });
+    state.sceneData.scene_objects = merged;
   }
   const failed = (state.sceneData.scene_objects || []).filter(
     (item) => item.auto_decor_role && item.placement_failed,
