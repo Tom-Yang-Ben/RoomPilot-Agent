@@ -16,6 +16,7 @@ from ..agent.knowledge import (
     COMPANION_OF,
     FAMILY_ZH,
     FREE_SEATING_FAMILIES,
+    ROOM_ESSENTIALS,
     family_of,
     is_outdoor_item,
 )
@@ -156,11 +157,20 @@ def normalize_required_furniture(raw_items: list[str], space_type: str) -> list[
             normalized.append(mapped)
 
     if normalized:
-        # 臥室一定要有床:需求清單漏了就補在最前(主件優先擺)
-        if space_type == "bedroom" and not any(
-            item == "sofa-bed" or family_of(item) == "bed" for item in normalized
+        # 房型基礎家具保底(knowledge.ROOM_ESSENTIALS):臥室床/客廳沙發/
+        # 餐廚餐桌,需求清單漏了就補在最前(基礎家具最優先擺);
+        # 沙發床視同床,臥室不重複補。
+        for essential in ROOM_ESSENTIALS.get(space_type, ()):
+            if not any(
+                (essential == "bed" and item == "sofa-bed") or family_of(item) == essential
+                for item in normalized
+            ):
+                normalized.insert(0, essential)
+        # 有餐桌就要有餐椅(張數保證在選件與 2D 規格層;此處保證型別存在)
+        if any(family_of(item) == "dining-table" for item in normalized) and not any(
+            family_of(item) == "dining-chair" for item in normalized
         ):
-            normalized.insert(0, "bed")
+            normalized.append("dining-chair")
         return normalized
 
     return SPACE_DEFAULTS.get(space_type, SPACE_DEFAULTS["living_room"]).copy()
@@ -1970,24 +1980,35 @@ def generate_layout(
     hints: dict[str, dict[str, Any]] | None = None,
     validate_only: bool = False,
 ) -> list[dict[str, Any]]:
-    """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
+    """家具座標一律由 furniture_engine 決定(柵格碰撞 + 淨空裁決)。
+
+    擺放邏輯(hints 啟用時,每件依序走第一個命中的路徑):
+
+    1. 鎖定/保留件:使用者擺過的位置仍合法就照舊,並登記進柵格。
+    2. 擺放順序:基礎家具(床/沙發/餐桌/書桌/衣櫃,knowledge.ESSENTIAL_
+       FAMILIES)最先卡位 → 泛用件 → 副件貼主件 → 自由座椅撿剩餘空間
+       (順序由 agent 的 placement_hints 提供,其他物件都依基礎家具的
+       位置再配置)。
+    3. 合法性三種遮罩一次判:房間邊界+門前動線+落地窗通行縫(low)、
+       窗前採光帶(band,沙發族系豁免)、沙發視聽走廊(corridor,
+       茶几/電視櫃/地毯豁免)。
+    4. 副件與休閒椅嚴格成組:只試主件旁的成組候選,貼不上標
+       placement_failed 交 resolve_placements 寧缺勿亂;不退泛用亂放。
+    5. 泛用件:類型錨點 → 靠牆錨定掃描 → 網格散點 → 引擎後援;全數
+       不合法才標 placement_failed。
 
     ``validate_only``:進入即時寫實前的最終確認用。信任使用者已鎖定的配置,
     每件座標一律照舊、**絕不重排**,只回報是否合法(房間邊界 + 門窗淨空;家具間
     碰撞由前端 config 檢查把關)。避免嚴格重排把合法配置塌成 (0,0) 疊在原點、
     並把「確認」擋在原步驟(見 scene_v2.confirmWhiteModel)。
 
-    類型錨點(_placement_candidates)只提供「視覺上合理」的候選順序;
-    合法性由引擎的 check_placement_with_clearance 把關,錨點全數不合法時
-    退回引擎的網格搜尋(place_furniture),再不行就標記 placement_failed。
-
     座標契約(對前端不變):position_cm 為房間中心原點、公分;rotation_y_deg
     為 three.js 的 Y 軸旋轉(與引擎旋轉方向相反,進出引擎時取負號)。
 
     hints(選填,2026-08-02 併入 yen agent 擺位紀律):以 instance_id 或
     furniture_id 為鍵的 ``{"priority", "group", "anchor"}``。只影響「試放順序」
-    ——priority 決定先擺誰、anchor 決定優先靠哪面牆;hints=None 時行為與併入前
-    相同。合法性一律仍由 check_placement_with_clearance 把關。
+    與嚴格成組的啟用;hints=None 時維持 bella 流程的舊行為(泛用候選、無
+    走廊、無嚴格成組),合法性一律仍由柵格把關。
     """
     if room is None:
         room = _four_wall_room(max(room_width_cm, 240), max(room_depth_cm, 240))
