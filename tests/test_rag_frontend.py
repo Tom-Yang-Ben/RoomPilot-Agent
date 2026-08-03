@@ -43,6 +43,16 @@ def test_rag_frontend_uses_safe_rendering_and_cancels_stale_requests() -> None:
     assert "safeHttpUrl" in source
 
 
+def test_rag_frontend_requires_sign_in_before_calling_the_api() -> None:
+    """`/api/rag/*` 需要 bearer token，頁面必須先取得身分才發第一個請求。"""
+    source = (STATIC_DIR / "rag.js").read_text(encoding="utf-8")
+
+    # 匯入 auth_client 同時安裝 fetch 攔截器，少了它每個請求都會是 401。
+    assert "auth_client.js" in source
+    assert "requireSignedIn" in source
+    assert "if (requireSignedIn()) {" in source
+
+
 def test_rag_page_states_and_boundary_are_visible() -> None:
     html = (STATIC_DIR / "rag.html").read_text(encoding="utf-8")
     js = (STATIC_DIR / "rag.js").read_text(encoding="utf-8")

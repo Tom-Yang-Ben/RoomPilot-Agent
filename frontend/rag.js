@@ -1,3 +1,6 @@
+// 匯入同時安裝 auth_client 的 fetch 攔截器，`/api/rag/*` 才會帶上 Authorization。
+import { requireSignedIn } from "./auth_client.js?v=sha256-b35a4ff11b37";
+
 const elements = {
   form: document.querySelector("#rag-search-form"),
   query: document.querySelector("#rag-query"),
@@ -363,5 +366,9 @@ for (const button of document.querySelectorAll("[data-example]")) {
   });
 }
 
-updateCount();
-refreshStatus();
+// 未登入直接導向登入頁：頁面骨架是公開的，但 RAG 狀態與檢索都需要身分，
+// 先擋在這裡才不會讓使用者對著一排 401 的空面板操作。
+if (requireSignedIn()) {
+  updateCount();
+  refreshStatus();
+}

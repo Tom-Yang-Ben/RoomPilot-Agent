@@ -7,7 +7,7 @@ from threading import Lock, Thread
 from time import monotonic
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
 from ..paths import STATIC_DIR
@@ -19,11 +19,17 @@ from ..spatial_data.rag.errors import (
 )
 from ..spatial_data.rag.models import RagSearchRequest
 from ..spatial_data.rag.service import FurnitureRagService
+from .auth.dependencies import current_user
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 RAG_SERVICE = FurnitureRagService(PROJECT_DIR)
+# `/rag` 頁面與 `/api/rag/*` 分成兩個 router：瀏覽器導覽不會帶 Authorization，
+# 頁面本身掛守衛只會變成裸 401，使用者永遠到不了登入頁。所以頁面比照
+# `/projects`、`/scene` 保持公開（HTML 本身沒有資料），身分由 rag.js 的
+# requireSignedIn() 導向登入，實際的資料與 RAG 執行則全部擋在 api_router。
 router = APIRouter()
+api_router = APIRouter(dependencies=[Depends(current_user)])
 RAG_JOBS: dict[str, dict] = {}
 RAG_JOBS_LOCK = Lock()
 RAG_JOB_TTL_SECONDS = 60 * 60
@@ -138,12 +144,12 @@ def rag_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "rag.html", headers={"Cache-Control": "no-store"})
 
 
-@router.get("/api/rag/status")
+@api_router.get("/api/rag/status")
 def rag_status() -> dict:
     return RAG_SERVICE.status()
 
 
-@router.post("/api/rag/search")
+@api_router.post("/api/rag/search")
 def rag_search(request: RagSearchRequest) -> dict:
     try:
         return RAG_SERVICE.search(request)
@@ -152,7 +158,7 @@ def rag_search(request: RagSearchRequest) -> dict:
         raise _service_error(status_code, code, message) from exc
 
 
-@router.post("/api/rag/search/jobs", status_code=202)
+@api_router.post("/api/rag/search/jobs", status_code=202)
 def create_rag_search_job(request: RagSearchRequest) -> dict:
     now = monotonic()
     with RAG_JOBS_LOCK:
@@ -184,7 +190,7 @@ def create_rag_search_job(request: RagSearchRequest) -> dict:
     return snapshot
 
 
-@router.get("/api/rag/search/jobs/{job_id}")
+@api_router.get("/api/rag/search/jobs/{job_id}")
 def get_rag_search_job(job_id: str) -> dict:
     with RAG_JOBS_LOCK:
         job = RAG_JOBS.get(job_id)
@@ -195,3 +201,8 @@ def get_rag_search_job(job_id: str) -> dict:
                 "RAG 搜尋工作不存在或已過期。",
             )
         return _job_snapshot(dict(job))
+
+
+# 守衛過的路由必須在頁面 router 之後併入，main.py 的 include_router(rag_router)
+# 語意不變。
+router.include_router(api_router)

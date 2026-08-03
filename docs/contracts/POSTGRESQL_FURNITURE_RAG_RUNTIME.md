@@ -56,6 +56,13 @@ v1 使用 exact cosine scan，固定模型為 `BAAI/bge-m3`、維度 1024；不�
 
 ## HTTP 介面
 
+`/api/rag/*` 四條路由一律需要 `Authorization: Bearer`，未登入回 401；守衛掛在
+`rag_api.api_router`，用的是 `auth.dependencies.current_user`。`GET /rag` 頁面本身
+公開（HTML 不含任何資料），因為瀏覽器導覽不會帶 Authorization，頁面掛守衛只會變成
+裸 401 而到不了登入頁——身分由 `rag.js` 的 `requireSignedIn()` 導向，比照
+`/projects`、`/scene`。前端不需自行附加 header，`auth_client.js` 的 fetch 攔截器會
+補上並在 401 時續期。
+
 ### `GET /api/rag/status`
 
 不得呼叫 OpenAI／Anthropic 或載入模型。回傳 provider/model/key/package/cache/load/database 狀態、
@@ -89,7 +96,8 @@ JSON、keyword search 或其他 LLM。
 
 同一 FastAPI 行程最多執行一個背景 RAG 工作，避免兩個 CPU 模型工作互相搶資源。
 完成／失敗工作保留一小時後清除；錯誤內容沿用同步 API 的安全映射，不回傳例外、key
-或連線資訊。
+或連線資訊。這個名額只擋得住併發，擋不住惡意佔用：目前任何已登入使用者都能持續
+佔住唯一名額，也能以 job_id 讀到別人的工作結果，兩者尚未有配額或擁有者隔離。
 
 ## 效能邊界
 

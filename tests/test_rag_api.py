@@ -60,6 +60,36 @@ def test_rag_page_status_success_and_validation(monkeypatch) -> None:
     assert client.post("/api/rag/search", json={"query": "沙發", "extra": True}).status_code == 422
 
 
+def test_rag_api_requires_signed_in_user(monkeypatch, anonymous_client) -> None:
+    """五條路由裡只有 `/rag` 頁面公開，資料與執行一律需要身分。
+
+    頁面刻意不掛守衛：瀏覽器導覽不會帶 Authorization，擋在這裡只會變成裸 401，
+    使用者到不了登入頁（比照 `/projects`、`/scene`）。rag.js 的 requireSignedIn()
+    負責導向。
+    """
+    monkeypatch.setattr(rag_api, "RAG_SERVICE", _FakeService())
+    with rag_api.RAG_JOBS_LOCK:
+        jobs_before = len(rag_api.RAG_JOBS)
+
+    assert anonymous_client.get("/rag").status_code == 200
+    assert anonymous_client.get("/api/rag/status").status_code == 401
+    assert (
+        anonymous_client.post("/api/rag/search", json={"query": "沙發", "top_k": 3})
+        .status_code
+        == 401
+    )
+    assert (
+        anonymous_client.post(
+            "/api/rag/search/jobs", json={"query": "沙發", "top_k": 3}
+        ).status_code
+        == 401
+    )
+    assert anonymous_client.get("/api/rag/search/jobs/any").status_code == 401
+    # 未登入不得建立背景工作，否則單一工作名額仍會被匿名請求佔死。
+    with rag_api.RAG_JOBS_LOCK:
+        assert len(rag_api.RAG_JOBS) == jobs_before
+
+
 @pytest.mark.parametrize(
     ("error", "expected_status", "expected_code"),
     [
