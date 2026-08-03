@@ -1,7 +1,7 @@
 // 必須排在其他 import 之前：這個模組會接管 window.fetch 以附加身分並在
 // access token 過期時自動續期，晚載入的話最早幾個請求會漏掉 Authorization。
 import { authorizedObjectUrl, requireSignedIn } from "./auth_client.js?v=sha256-b35a4ff11b37";
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-c8904e8d8447";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-ed5077dfc8be";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
 import {

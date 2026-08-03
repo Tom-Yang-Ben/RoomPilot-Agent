@@ -1414,6 +1414,126 @@ def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
     return Room(width=width, depth=depth, walls=walls)
 
 
+EDITOR_WALL_THICKNESS_CM = 12.0
+WALL_POLY_OPENING_PIERCE_CM = 1.0
+
+
+def _wall_polys_from_editor_segments(
+    walls: list[dict[str, Any]],
+    doors: list[dict[str, Any]],
+    windows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """牆中線 buffer 成連續實心牆團，門窗洞直接從牆身開槽。
+
+    dxf_parser 對 DXF 用同一套 shapely 作法（方形端帽讓相交牆在轉角重疊、
+    斜接讓外角保持直角）；第 4 步確認走的 editor 路徑過去完全沒有產
+    ``wall_polys``，第 6 步 3D 拿不到就退回逐段板片（2026-08-03 Ben 實走：
+    19 面牆不成面、門片站在空地上）。
+
+    門洞用 ``closed_segment``（鉸鏈→swing_end 的關門線，不是打開的門片），
+    窗洞用線段本身；兩者都已先貼回牆線。開槽是全高的，牆在開口上下的部分
+    由前端 wall-mass 路徑以 door-wall-header／window-wall-sill 補回。
+    """
+
+    def _pt(value: Any) -> tuple[float, float] | None:
+        if not isinstance(value, dict):
+            return None
+        try:
+            return float(value.get("x", 0.0)), float(value.get("z", 0.0))
+        except (TypeError, ValueError):
+            return None
+
+    solids = []
+    wall_lines: list[tuple[tuple[float, float], tuple[float, float], float]] = []
+    max_half = 0.0
+    for wall in walls:
+        start, end = _pt(wall.get("start")), _pt(wall.get("end"))
+        if start is None or end is None:
+            continue
+        if math.hypot(end[0] - start[0], end[1] - start[1]) <= 1e-6:
+            continue
+        try:
+            thickness = float(wall.get("thickness_cm") or EDITOR_WALL_THICKNESS_CM)
+        except (TypeError, ValueError):
+            thickness = EDITOR_WALL_THICKNESS_CM
+        half = min(max(thickness, 4.0), 60.0) / 2.0
+        max_half = max(max_half, half)
+        wall_lines.append((start, end, half))
+        solids.append(
+            LineString([start, end]).buffer(
+                half, cap_style=3, join_style=2, mitre_limit=5.0
+            )
+        )
+    if not solids:
+        return []
+    mass = unary_union(solids)
+    if not mass.is_valid:
+        mass = mass.buffer(0)
+
+    def _host_half(start: tuple[float, float], end: tuple[float, float]) -> float:
+        # 開槽半寬取宿主牆厚。門位在兩段牆之間的缺口，垂直距離要量到牆的
+        # 延伸線，量線段端點會得到假距離（同 _align_doors_to_wall_lines）。
+        mid = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+        dx, dz = end[0] - start[0], end[1] - start[1]
+        length = math.hypot(dx, dz)
+        ux, uz = dx / length, dz / length
+        best: tuple[float, float] | None = None
+        for wall_start, wall_end, half in wall_lines:
+            wx, wz = wall_end[0] - wall_start[0], wall_end[1] - wall_start[1]
+            wall_length = math.hypot(wx, wz)
+            wx, wz = wx / wall_length, wz / wall_length
+            if abs(ux * wx + uz * wz) < 0.96:
+                continue
+            offset_x, offset_z = mid[0] - wall_start[0], mid[1] - wall_start[1]
+            along = offset_x * wx + offset_z * wz
+            gap = math.hypot(offset_x - along * wx, offset_z - along * wz)
+            if best is None or gap < best[0]:
+                best = (gap, half)
+        return best[1] if best is not None else max_half
+
+    cuts = []
+    for opening in [*doors, *windows]:
+        if not isinstance(opening, dict):
+            continue
+        closed = opening.get("closed_segment")
+        hole = closed if isinstance(closed, dict) else opening
+        start, end = _pt(hole.get("start")), _pt(hole.get("end"))
+        if start is None or end is None:
+            continue
+        if math.hypot(end[0] - start[0], end[1] - start[1]) <= 1e-6:
+            continue
+        # 平端帽：槽只存在於開口跨距內，不吃掉兩旁的牆。
+        cuts.append(
+            LineString([start, end]).buffer(
+                _host_half(start, end) + WALL_POLY_OPENING_PIERCE_CM,
+                cap_style=2,
+                join_style=2,
+            )
+        )
+    if cuts:
+        mass = mass.difference(unary_union(cuts))
+        if not mass.is_valid:
+            mass = mass.buffer(0)
+
+    geoms = (
+        list(mass.geoms)
+        if mass.geom_type == "MultiPolygon"
+        else ([] if mass.is_empty else [mass])
+    )
+
+    def _ring(coords) -> list[list[float]]:
+        return [[round(x, 1), round(z, 1)] for x, z in coords]
+
+    return [
+        {
+            "exterior": _ring(geom.exterior.coords),
+            "holes": [_ring(ring.coords) for ring in geom.interiors],
+        }
+        for geom in geoms
+        if not geom.is_empty and geom.area >= 5.0
+    ]
+
+
 def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any], Room]:
     """Convert the corner-origin centimeter editor state into the 3D contract."""
     width_cm = max(float(editor.get("width_cm") or 420), 240)
@@ -1473,6 +1593,9 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
         }
         for item in structures.get("columns") or []
     ]
+    wall_polys = _wall_polys_from_editor_segments(
+        wall_segments, door_segments, window_segments
+    )
     room_regions = []
     for room_data in editor.get("rooms") or []:
         ring = []
@@ -1506,6 +1629,10 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
         "door_layers": [],
         "window_layers": [],
         "wall_segments": wall_segments,
+        "wall_polys": wall_polys,
+        # 這批 wall_polys 已把門窗洞開槽；前端據此決定帶著開口也走連續
+        # 牆體（DXF 產的 wall_polys 沒開槽，仍是無開口才走 mass）。
+        "wall_polys_openings_cut": bool(wall_polys),
         "plan_segments": wall_segments,
         "door_segments": door_segments,
         "window_segments": window_segments,
@@ -2687,6 +2814,9 @@ def build_scene_payload(
             "window_layers": parsed_floorplan.get("window_layers", []) if parsed_floorplan else [],
             "wall_segments": parsed_floorplan["wall_segments"] if parsed_floorplan else [],
             "wall_polys": parsed_floorplan.get("wall_polys", []) if parsed_floorplan else [],
+            "wall_polys_openings_cut": bool(parsed_floorplan.get("wall_polys_openings_cut"))
+            if parsed_floorplan
+            else False,
             "plan_segments": parsed_floorplan.get("plan_segments", []) if parsed_floorplan else [],
             "door_segments": parsed_floorplan.get("door_segments", []) if parsed_floorplan else [],
             "door_openings": door_openings_from_segments(parsed_floorplan),

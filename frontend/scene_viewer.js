@@ -242,11 +242,17 @@ function flipPointZ(point) {
 
 function flipSegmentZ(segment) {
   if (!segment || typeof segment !== "object") return segment;
+  const closed = segment.closed_segment;
   return {
     ...segment,
     start: flipPointZ(segment.start),
     end: flipPointZ(segment.end),
     swing_end: segment.swing_end ? flipPointZ(segment.swing_end) : segment.swing_end,
+    // closedDoorSegment 優先讀取持久化的 closed_segment；漏翻它的話，
+    // 關門門片與門洞會落在 z 鏡像的位置，嵌不進牆上開好的槽。
+    closed_segment: closed && typeof closed === "object"
+      ? { ...closed, start: flipPointZ(closed.start), end: flipPointZ(closed.end) }
+      : closed,
     rotation_deg: "rotation_deg" in segment
       ? sceneToWorldRotationDeg(segment.rotation_deg)
       : segment.rotation_deg,
@@ -2952,7 +2958,12 @@ export function createSceneViewer(
 
     // 12 cm 接近住宅隔間牆；原先 4 cm 會讓雙線牆與轉角看起來像中空。
     const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;
-    const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !hasWallOpenings
+    // 第 4 步確認的 wall_polys 在後端已把門窗洞全高開槽，帶著開口也能直接
+    // 擠出連續牆體，開口上下的牆由 door-wall-header／window-wall-* 補回；
+    // DXF 的 wall_polys 沒開槽，維持「無開口才走 mass」的舊閘門。
+    const wallPolysOpeningsCut = sceneData.floorplan?.wall_polys_openings_cut === true;
+    const builtWallMass = !singleRoomMode && hasAccurateFloorplan
+      && (!hasWallOpenings || wallPolysOpeningsCut)
       ? buildWallMass(
         roomGroup,
         sceneData.floorplan,

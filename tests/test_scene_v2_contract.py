@@ -886,7 +886,9 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
     assert "windowOpeningMetrics" in viewer
 
 
-def test_accurate_floorplan_uses_segment_walls_when_openings_exist() -> None:
+def test_accurate_floorplan_walks_wall_mass_when_backend_cut_the_openings() -> None:
+    """第 4 步確認的 wall_polys 已在後端把門窗洞開槽，帶著開口也走連續牆體；
+    DXF 的 wall_polys 沒開槽，維持「無開口才走 mass」，其餘退回逐段牆。"""
     viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert (
@@ -894,11 +896,25 @@ def test_accurate_floorplan_uses_segment_walls_when_openings_exist() -> None:
         in viewer
     )
     assert (
-        "const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !hasWallOpenings"
+        "const wallPolysOpeningsCut = sceneData.floorplan?.wall_polys_openings_cut === true;"
         in viewer
     )
+    assert "const builtWallMass = !singleRoomMode && hasAccurateFloorplan" in viewer
+    assert "&& (!hasWallOpenings || wallPolysOpeningsCut)" in viewer
     assert "buildSegmentWalls(" in viewer
     assert "const mullionPositions = [0];" in viewer
+
+
+def test_world_frame_flips_the_persisted_closed_door_segment() -> None:
+    """closedDoorSegment 優先讀取持久化的 closed_segment；floorplanForWorld
+    若漏翻它，門片與門洞會落在 z 鏡像位置，嵌不進牆上的槽。"""
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+    flip_segment = viewer.split("function flipSegmentZ", 1)[1].split(
+        "function flipBoundsZ", 1
+    )[0]
+
+    assert "start: flipPointZ(closed.start)" in flip_segment
+    assert "end: flipPointZ(closed.end)" in flip_segment
 
 
 def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:

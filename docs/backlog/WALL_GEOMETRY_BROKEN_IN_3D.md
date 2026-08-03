@@ -2,8 +2,22 @@
 
 ## 狀態
 
-**待修，最高優先。** 2026-08-03 Ben 實走 QA 發現，當天未修。
-這份文件是給下一輪的完整交接，不必重新摸索。
+**主體已修（2026-08-03），待瀏覽器目視驗收。** 修法照本文「修的方向」：
+
+- `floorplan_from_editor_payload()` 依各牆 `thickness_cm` 把中線 buffer 成
+  實心牆團（方形端帽＋斜接，同 `dxf_parser.py`），門洞用 `closed_segment`
+  （鉸鏈→swing_end）、窗洞用線段本身，以平端帽**全高開槽**後輸出
+  `wall_polys` 與 `wall_polys_openings_cut` 旗標；`build_scene_payload()`
+  透傳旗標。實資料驗證：本案 19 面牆 → 7 塊牆團，5 門 5 窗全部開槽成功。
+- `scene_viewer.js` 閘門改為「開槽過的 wall_polys 可帶著門窗走連續牆體」
+  （DXF 的 wall_polys 沒開槽，維持無開口才走 mass）；開口上下的牆由既有的
+  door-wall-header／window-wall-sill 補回。另修 `flipSegmentZ` 漏翻
+  `closed_segment` 的 z 鏡像——漏翻的話門片會嵌不進牆上的槽。
+- 測試：`tests/test_wall_polys_from_editor.py` 新增 5 條；閘門契約測試改為
+  `test_accurate_floorplan_walks_wall_mass_when_backend_cut_the_openings`。
+
+**尚未完成**：以 `testdata/png/floor01.png` 重跑八步的瀏覽器目視驗收；
+下方「純 2D 子畫面要移除」仍是待辦。以下保留當時的完整交接脈絡。
 
 ## 症狀（實機截圖確認，不是推測）
 
