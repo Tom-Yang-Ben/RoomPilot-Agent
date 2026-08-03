@@ -1270,33 +1270,51 @@ def build_raster_context(
     ``boundary`` 已是「可擺區域」(內縮 8cm 或 DXF 最大自由空間),直接當房間環;
     取不到環時回 None,呼叫端退回舊 Shapely 路徑(手動矩形模式的極端案例)。
     """
-    from ..engine.constraints import blocked_masks
+    from ..engine.constraints import (
+        BlockedMasks,
+        DOOR_CLEARANCE_CM,
+        WINDOW_CLEARANCE_CM,
+    )
     from ..engine.layout_model import RoomContext, polygon_centroid, room_edges
-    from ..engine.raster import build_occupancy
+    from ..engine.raster import build_occupancy, room_mask, stroke_segments
 
-    ring: list[tuple[float, float]] = []
+    # 多房聯集支援:整屋驗證/鎖定覆核(無 placement_room_id)時 boundary 是
+    # 所有房的 MultiPolygon。房間遮罩必須涵蓋每一間 —— obb_blocked 對「格外」
+    # 一律視為阻擋,只鋪最大房的柵格會把其他房的家具全數誤殺(最終確認
+    # 停留原畫面、配置全亂的根因)。
+    geoms: list[Any] = []
     if boundary is not None and not boundary.is_empty:
-        geom = max(boundary.geoms, key=lambda g: g.area) if hasattr(boundary, "geoms") else boundary
+        geoms = list(boundary.geoms) if hasattr(boundary, "geoms") else [boundary]
+    rings: list[list[tuple[float, float]]] = []
+    for geom in geoms:
         ring = [(float(x), float(y)) for x, y in geom.exterior.coords]
-    if len(ring) < 4:
-        ring = [
+        if len(ring) >= 4:
+            rings.append(ring)
+    if not rings:
+        rings = [[
             (0.0, 0.0), (room.width, 0.0), (room.width, room.depth), (0.0, room.depth),
-        ]
+        ]]
+
+    # 輪廓邊/質心用最大的環(靠牆錨定掃描的逐房呼叫本就單環)。
     # 引擎輪廓邊約定「室內恆在邊的左側」(Edge.inward = 左法線),
     # 但 Shapely buffer 的外環是順時針 —— 不翻轉的話 inward 全指向房外,
     # 靠牆錨定掃描會把候選點推出邊界而全數被遮罩否決。
-    area2 = sum(
-        ring[i][0] * ring[(i + 1) % len(ring)][1]
-        - ring[(i + 1) % len(ring)][0] * ring[i][1]
-        for i in range(len(ring))
-    )
-    if area2 < 0:
-        ring = ring[::-1]
+    def _area2(ring: list[tuple[float, float]]) -> float:
+        return sum(
+            ring[i][0] * ring[(i + 1) % len(ring)][1]
+            - ring[(i + 1) % len(ring)][0] * ring[i][1]
+            for i in range(len(ring))
+        )
+
+    main_ring = max(rings, key=lambda candidate: abs(_area2(candidate)))
+    if _area2(main_ring) < 0:
+        main_ring = main_ring[::-1]
 
     doors = _floorplan_segments_cm(floorplan, "door_segments", room)
     windows = _floorplan_segments_cm(floorplan, "window_segments", room)
     # 落地窗(陽台門)是出入動線:當「通行縫」進 low 遮罩(75cm,與門同級),
     # 矮家具與沙發都不得擋;一般窗維持 40cm 採光帶(沙發豁免、矮件可貼)。
+    # 窗簾例外:本來就掛在窗上,通行縫不適用(curtain_low 於描縫前快照)。
     access_windows = _floorplan_segments_cm(
         floorplan, "window_segments", room, where=_is_access_window,
     )
@@ -1304,10 +1322,11 @@ def build_raster_context(
         floorplan, "window_segments", room,
         where=lambda opening: not _is_access_window(opening),
     )
+    all_points = [point for ring in rings for point in ring]
     plan = {
         "bbox": [
-            min(p[0] for p in ring), min(p[1] for p in ring),
-            max(p[0] for p in ring), max(p[1] for p in ring),
+            min(p[0] for p in all_points), min(p[1] for p in all_points),
+            max(p[0] for p in all_points), max(p[1] for p in all_points),
         ],
         "walls": [(w.x1, w.y1, w.x2, w.y2) for w in room.walls or []],
         "wall_polygons": [],
@@ -1317,17 +1336,27 @@ def build_raster_context(
     grid = build_occupancy(plan)
     # occ 已含牆線;房間環本身就是可擺區域,牆體不再重複扣一次
     grid.occ[:] = False
-    masks = blocked_masks(
-        grid, ring, doors=doors, windows=plain_windows, passages=access_windows,
-    )
-    return RoomContext(
+    # 與 engine.constraints.blocked_masks 同構;差異只有兩點:inside 為多環
+    # 聯集、描通行縫前先快照窗簾用遮罩。
+    inside = grid.blank()
+    for ring in rings:
+        inside |= room_mask(grid, ring)
+    low = grid.occ | ~inside
+    stroke_segments(grid, low, doors, DOOR_CLEARANCE_CM)
+    curtain_low = low.copy()
+    stroke_segments(grid, low, access_windows, DOOR_CLEARANCE_CM)
+    window_band = grid.blank()
+    stroke_segments(grid, window_band, plain_windows, WINDOW_CLEARANCE_CM)
+    context = RoomContext(
         grid=grid,
-        masks=masks,
-        edges=room_edges(ring),
-        centroid=polygon_centroid(ring),
+        masks=BlockedMasks(low=low, band=low | window_band),
+        edges=room_edges(main_ring),
+        centroid=polygon_centroid(main_ring),
         room_id="scene",
         label="default",
     )
+    context.curtain_low = curtain_low  # type: ignore[attr-defined]
+    return context
 
 
 def raster_free(
@@ -1356,8 +1385,11 @@ def raster_free(
     # 進柵格必須取負,否則非 90° 倍數的家具(45° 拖曳)會驗到鏡像後的足跡。
     # 與舊 Shapely 路徑 _scene_object_to_placed 的 (-rot) % 360 同一約定。
     obb = Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, width, depth, -rotation_deg)
-    if item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES:
-        mask = ctx.masks.low               # 窗簾本來就該貼窗
+    if item_type == "curtain":
+        # 窗簾掛在窗上:採光帶與落地窗通行縫都不適用(仍受房界/門動線約束)
+        mask = getattr(ctx, "curtain_low", ctx.masks.low)
+    elif item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES:
+        mask = ctx.masks.low               # 沙發族系可背窗,但不得擋落地窗通行縫
     else:
         mask = ctx.masks.for_height(height)
     if obb_blocked(mask, ctx.grid, obb):
