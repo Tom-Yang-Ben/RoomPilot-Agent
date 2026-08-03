@@ -16,9 +16,14 @@ pip install -r requirements.txt   # 版本已釘實際開發環境（2026-08-03 
 - 產物一律落 `temp/`（gitignore，隨時可全刪重生）。
 - `training/` 進版控走**精簡集**（2026-08-03 裁定）：`scripts/`＋`tests/`
   即為「從 git clone 回來就能續作」的全部，舊的 training.zip 換機機制
-  退場。不入庫、可重生的中間產物：
-  - `training/room_crops/`（裁切資料集）→ `python training/scripts/extract_room_crops.py` 重生
-  - `training/asset_ckpt/`（素材輪逐類快取）→ 素材輪流程（第 4 節）重生
+  退場。三類東西不入庫（.gitignore 封鎖），2026-08-03 收尾時本機也已
+  清空：
+  - `training/room_crops/`（裁切資料集）——**重訓前必以
+    `python training/scripts/extract_room_crops.py` 從最新答案卷重生，
+    嚴禁沿用舊裁切**（答案卷標籤修正後，舊裁切＝舊標籤，會把已修正
+    的錯誤訓回去；收尾刪除的那批即為 7/29 舊標籤產物）。
+  - `training/asset_ckpt/`（素材輪逐類斷點快取）——出貨後即無下游；
+    留著反而讓下輪新素材被 checkpoint 靜默跳過（除非 `--redo`）。
   - 第三方 `training/CubiCasa5k/` → 見第 5 節另外 clone。
 
 ## 1. 量測（改任何共用碼前後必跑）
@@ -59,6 +64,10 @@ pip install -r requirements.txt   # 版本已釘實際開發環境（2026-08-03 
 （人工審定資產）。
 
 ## 3. 模型頭重訓（新增答案卷後）
+
+**鐵律：重訓一律先重跑 `extract_room_crops.py` 重生裁切**（`--crops` 預設
+`training/room_crops/`），不得沿用任何舊裁切——答案卷修正過標籤，舊裁切
+會把錯誤訓回去。
 
 | 頭 | 指令 | 輸出 |
 | :--- | :--- | :--- |
