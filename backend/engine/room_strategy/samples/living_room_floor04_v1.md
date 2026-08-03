@@ -40,7 +40,10 @@
 
 ## 模型朝向標注
 
-沙發（abo 系）`modelOrientationDeg=180`；電視櫃／茶几／植栽無需標注。
+沙發 Bartow `modelOrientationDeg=0`——**此顆 GLB 出廠正向，不需補正**
+（08-03 修正：原記的 180 是 AmazonBasics Canapé 舊沙發的標注被換款沿用，
+新版 viewer 生效後沙發反邊，已於 rev 493 改回 0 實錘）。
+電視櫃／茶几／植栽無需標注。標注屬單顆 GLB 事實，換款必重驗。
 
 ## 套樣方式
 
