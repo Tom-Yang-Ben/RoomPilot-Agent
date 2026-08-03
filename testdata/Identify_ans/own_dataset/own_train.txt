@@ -10,7 +10,6 @@
 /floor12/
 /floor13/
 /floor15/
-/floor19/
 /floor20/
 /floor31/
 /floor35/

@@ -322,7 +322,9 @@ def test_floorplan_analysis_explains_missing_confirmation_instead_of_stalling() 
 def test_rerunning_floorplan_analysis_invalidates_stale_structure_confirmation() -> None:
     project = _create_project()
     project_id = project["project_id"]
-    floor04 = Path(__file__).resolve().parents[1] / "testdata" / "png" / "floor04.png"
+    # 原 floor04.png；cody 圖檔集收斂後該編號已重用於他圖，本測試釘的五門
+    # 期望值屬 ben 固定樣張（testdata/png/ben_swing_case_04.png）
+    floor04 = Path(__file__).resolve().parents[1] / "testdata" / "png" / "ben_swing_case_04.png"
     uploaded = client.post(
         f"/api/projects/{project_id}/floorplan",
         files={"file": (floor04.name, floor04.read_bytes(), "image/png")},

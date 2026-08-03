@@ -63,6 +63,9 @@ class Config:
     v_len: int | None
     wall_min_pct: float     # 牆厚低於 T 的此 % 者不畫出來
     windows: bool           # 在窗的開口畫窗戶符號
+    emit_openings: bool     # 門/窗畫進交付物（DXF/json）。2026-08-02 使用者
+                            # 裁定：彩窗 P61/R42、彩門 P38 低於可用線，預設
+                            # False 交後端補建；偵測仍執行（封口/比例尺要用）
     win_cover_pct: float    # 開口長度被細線覆蓋超過此 % = 窗；其餘是門/空，留開
     win_min_pct: float      # 窗的跨牆寬度需 ≥ 牆厚的(100-此值)%；太薄的不算窗
     door_arc_pct: float     # 門偵測:L形等長線兩端連接弧的吻合度門檻(%)
@@ -152,7 +155,9 @@ def load_config(path: str) -> Config:
         solid=io_("solid"), style=s("style", "center"),
         h_len=io_("h_len"), v_len=io_("v_len"),
         wall_min_pct=f("wall_min_pct", 3.0),
-        windows=b("windows", True), win_cover_pct=f("win_cover_pct", 70.0),
+        windows=b("windows", True),
+        emit_openings=b("emit_openings", False),
+        win_cover_pct=f("win_cover_pct", 70.0),
         win_min_pct=f("win_min_pct", 20.0),
         door_arc_pct=f("door_arc_pct", 50.0),
         door_width_cm=f("door_width_cm", 90.0),
@@ -547,9 +552,16 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         band = soft[max(0, y0):min(Himg, y1), max(0, x0):min(Wimg, x1)]
         if not band.size or (band.max(axis=1 - along_axis) > 0).mean() < thr:
             return False
-        if (band > 0).mean() > 0.45:
+        # 彩圖窗線常極淡（floor_28 實測 gray 122~194、局部淡出 >235），
+        # soft 貫穿線在淡出段斷裂：貫穿覆蓋 0.8→0.65。墨跡總量上限
+        # （0.45/0.60 皆實測不可兼得）改為結構化判定——「非貫穿線列」
+        # 的殘餘墨跡 ≤0.25：玻璃帶＝線＋留白，貼窗裝飾只影響線列本身
+        # 不再誤殺整帶；樓梯踏板/斜線填充的非線列墨跡高照樣擋
+        line_cov0 = (band > 0).mean(axis=along_axis)
+        nonline = line_cov0 < 0.65
+        if nonline.any() and float(line_cov0[nonline].mean()) > 0.25:
             return False
-        if line_groups(band, along_axis) < 2:
+        if line_groups(band, along_axis, cov=0.65) < 2:
             return False
         if edge_hug:
             line_cov = (band > 0).mean(axis=along_axis)
@@ -1088,21 +1100,32 @@ def _room_polygon(rects, wins, doors, img_w, img_h, T, T_out):
 
 
 # ──────────────── 空間標籤（v1.9：分割/分類/門位框/連通檢查） ────────────────
-ROOM_ZH = {"living": "客廳", "kitchen": "廚房", "bed": "臥室",
-           "bath": "浴廁", "balcony": "陽台", "room": "空間"}
-ROOM_BGR = {"living": (90, 190, 90), "kitchen": (60, 140, 235),
-            "bed": (220, 140, 70), "bath": (210, 200, 60),
-            "balcony": (200, 90, 200), "room": (150, 150, 150)}
+# 房型詞彙 2026-08-01 統一為 CamelCase 10 類（與答案集 token、量尺 CLASSES
+# 同形）。`room` 不是類別，是「總分低於門檻、不表態」的兜底哨兵，保留原樣。
+ROOM_ZH = {"LivingRoom": "客廳", "Kitchen": "廚房", "Bedroom": "臥室",
+           "Bath": "浴廁", "Balcony": "陽台", "room": "空間"}
+ROOM_BGR = {"LivingRoom": (90, 190, 90), "Kitchen": (60, 140, 235),
+            "Bedroom": (220, 140, 70), "Bath": (210, 200, 60),
+            "Balcony": (200, 90, 200), "room": (150, 150, 150)}
 _FONT_PATHS = ["/mnt/c/Windows/Fonts/msjh.ttc",
                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
                "C:/Windows/Fonts/msjh.ttc"]
 
 
-def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0):
+def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0,
+                  keep_small=False, thin=None, seal_hi=260.0,
+                  stub_guard=True, fence_guard=False):
     """把牆(方塊)圍出的內部切成一間間空間：牆+窗+門洞畫實 → 閉運算封小縫 →
     影像邊界灌水分內外 → 室內扣掉牆 = 各房間連通塊。封口核逐步放大，
     直到室內總面積與涵蓋範圍合理(同 _room_polygon 的驗收)。
+    keep_small：面積門檻降為 (2T)²，供 build_rooms 讓「被跨走道封口盒
+    切碎的走道片」活著進橋合併（floor13 實案：碎片 ~3600px 卡在
+    2*(2T)²=3528 門檻線上），面積終篩由呼叫端在合併後補做。
+    thin：細線層（灰階管線才有）。四輪封口全敗時的救援輪把它併進
+    灌水屏障——floor02 實案：通往露臺的 L 型開口 ~185px，牆端射線與
+    大核閉運算都搭不到橋，但露臺圍欄的細線是連續的，擋灌水足夠。
+    只在原本會整圖失敗時啟用，現有通過的圖零觸碰。
     回傳 (labels影像, rooms清單, outside遮罩)；失敗 (None, [], None)。"""
     if not rects:
         return None, [], None
@@ -1122,7 +1145,8 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0):
         cv2.line(mask, (int(round(cx)), int(round(cy))), p2, 255, max(2, int(T)))
     # 牆縫開口精準封口(40~260cm，含落地窗滑門)——不靠大核閉運算，
     # 大核會把窄長的房間/走道整個填掉
-    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, wins, T, cm, 40.0, 260.0):
+    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, wins, T, cm, 40.0, seal_hi,
+                                            stub_guard=stub_guard):
         if horiz:
             cv2.rectangle(mask, (int(g0), int(b0)), (int(g1), int(b1)), 255, -1)
         else:
@@ -1130,17 +1154,56 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0):
     X0 = min(r_[0] for r_ in rects); Y0 = min(r_[1] for r_ in rects)
     X1 = max(r_[2] for r_ in rects); Y1 = max(r_[3] for r_ in rects)
     bbox_area = max(1.0, (X1 - X0) * (Y1 - Y0))
+    # 牆扣除與灌水屏障解耦（floor13/35 實案：走道高 ~45px，最小封口核
+    # 1.5T=65px 的閉運算把走道整個填成牆，走道與只經走道出入的浴室/儲藏
+    # 整片消失）。大核 closed 只當灌水屏障判內外；室內面積用「原始牆遮罩
+    # ＋髮絲縫小核」扣——偵測噪聲的細縫仍封死，門寬尺度的窄房間活下來。
+    kh = 2 * max(2, int(round(0.5 * T))) + 1
+    hair = cv2.morphologyEx(mask, cv2.MORPH_CLOSE,
+                            np.ones((kh, kh), np.uint8))
     best = None                                  # 跑完所有封口輪次，取覆蓋率最好的
-    for g in (1.5, 2.5, 3.5, 4.5):
+    rounds = [(g, None) for g in (1.5, 2.5, 3.5, 4.5)]
+    if thin is not None:                         # 救援輪：細線圍欄併進屏障
+        rounds.append((1.5, thin))
+    for g, extra in rounds:
         k = 2 * max(2, int(round(g * T))) + 1
         ker = np.ones((k, k), np.uint8)
         closed = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, ker)   # 封縫但牆位置不動
+        sub = hair                               # 室內扣除遮罩（見上）
+        if extra is not None:
+            if best is not None:
+                break                            # 常規輪已成，救援輪不啟用
+            # 圍欄線與建物角落常有 1~2px 細縫（floor02 實測 cov 0.28→0.35），
+            # 輕度膨脹補縫後才當屏障；且圍欄視同牆一併從室內扣除——
+            # 否則圍欄像素把室內連到灌水邊界，整片被室外接觸過濾剪掉
+            fence = cv2.dilate(((extra > 0) * 255).astype(np.uint8),
+                               np.ones((5, 5), np.uint8))
+            closed = cv2.bitwise_or(closed, fence)
+            sub = cv2.bitwise_or(hair, fence)
         ff = np.pad(closed, 1).copy()
         cv2.floodFill(ff, None, (0, 0), 128)     # 外部自由區→128
         inside = (ff[1:-1, 1:-1] != 128)         # 建物(含牆)
-        interior = (inside & (closed == 0)).astype(np.uint8) * 255
+        interior = (inside & (sub == 0)).astype(np.uint8) * 255
+        # 室外接觸過濾（floor19 實案：外牆與影像邊界的窄邊條被大核填掉
+        # 而隱性排除，改髮絲核後裸露成整圈假房間）：碰到影像邊界或室外
+        # 的連通塊，扣掉其中大核封口覆蓋的部分——邊條整條消失；被大核
+        # 封住開口的凹口（陽台）保留本體，若殘餘過小由面積門檻淘汰
+        _n0, lab0 = cv2.connectedComponents((interior > 0).astype(np.uint8), 8)
+        edge = np.zeros(interior.shape, bool)
+        edge[0, :] = edge[-1, :] = True
+        edge[:, 0] = edge[:, -1] = True
+        outd = cv2.dilate((~inside).astype(np.uint8),
+                          np.ones((3, 3), np.uint8)) > 0
+        bad = np.unique(lab0[(edge | outd) & (lab0 > 0)])
+        if bad.size:
+            interior[np.isin(lab0, bad) & (closed > 0)] = 0
         n, lab, st, cent = cv2.connectedComponentsWithStats(interior, 8)
-        amin = max(int(0.003 * bbox_area), 2 * (2 * T) ** 2)    # 走道/玄關也要留下
+        # keep_small 樓地板以實體面積 0.8m² 封頂：(2T)² 隨牆厚平方暴漲
+        # （floor38 實案：T=31 時門檻等效 1.0m²，0.94m² 的浴缸格差 6%
+        # 死在門檻下），厚牆圖的小浴格才活得進合併階段
+        amin = min((2 * T) ** 2, int(8000.0 / max(cm * cm, 1e-6))) \
+            if keep_small \
+            else max(int(0.003 * bbox_area), 2 * (2 * T) ** 2)  # 走道/玄關也要留下
         rooms, labels = [], np.zeros(lab.shape, np.int32)
         for i in range(1, n):
             if st[i, cv2.CC_STAT_AREA] < amin:
@@ -1155,6 +1218,19 @@ def segment_rooms(rects, wins, doors, img_w, img_h, T, T_out, cm=1.0):
                           "aspect": round(max(w, h) / max(1.0, min(w, h)), 2)})
         if not rooms:
             continue
+        if extra is not None and fence_guard:
+            # fence 輪驗收（floor30 實案，fence_guard＝彩圖限定）：彩圖
+            # 細線層在深磁磚地板滿是紋理噪點，當屏障會拼出大片蛀孔碎房
+            # 「成功」，反而搶走 build_rooms 第三級救援的路。直角房間的
+            # 面積/bbox 紮實度 ~0.9，蛀孔碎片遠低於此——不紮實就讓路。
+            # 灰階墨水稀疏無此病，依畫風分流原則不掛守門
+            sol = float(np.mean([
+                r_["area_px"] / max(1.0,
+                                    (r_["bbox"][2] - r_["bbox"][0])
+                                    * (r_["bbox"][3] - r_["bbox"][1]))
+                for r_ in rooms]))
+            if sol < 0.60:
+                continue
         tot = sum(r_["area_px"] for r_ in rooms)
         ux0 = min(r_["bbox"][0] for r_ in rooms); uy0 = min(r_["bbox"][1] for r_ in rooms)
         ux1 = max(r_["bbox"][2] for r_ in rooms); uy1 = max(r_["bbox"][3] for r_ in rooms)
@@ -1194,7 +1270,7 @@ def classify_rooms(rooms, cm, thin=None, labels=None):
         else:
             r["density"] = 0.0
     order = sorted(rooms, key=lambda r: -r["area_px"])
-    order[0]["label"] = "living"
+    order[0]["label"] = "LivingRoom"
     rest = order[1:]
     dens = sorted(r["density"] for r in rest)
     med = dens[len(dens) // 2] if dens else 0.0
@@ -1204,17 +1280,17 @@ def classify_rooms(rooms, cm, thin=None, labels=None):
     for r in rest:                               # 陽台：貼外圍、細長、空(設備線少)
         if r["label"] is None and r["aspect"] >= 2.3 \
                 and r.get("touch_env") and r["density"] <= med:
-            r["label"] = "balcony"
+            r["label"] = "Balcony"
     for r in rest:                               # 浴廁：1.8~5.5m²
         if r["label"] is None and r["area_m2"] <= 5.5:
-            r["label"] = "bath"
+            r["label"] = "Bath"
     cand = [r for r in rest if r["label"] is None
             and r["area_m2"] <= 8.0 and r["density"] > med]
     if cand:                                     # 廚房：跟浴廁差不多大，設備線最密
-        max(cand, key=lambda r: (r["density"], r["aspect"]))["label"] = "kitchen"
+        max(cand, key=lambda r: (r["density"], r["aspect"]))["label"] = "Kitchen"
     for r in rest:
         if r["label"] is None:
-            r["label"] = "bed"                   # 居中尺寸(通常近正方) → 臥室
+            r["label"] = "Bedroom"               # 居中尺寸(通常近正方) → 臥室
     for r in rooms:
         r["label_zh"] = ROOM_ZH[r["label"] or "room"]
 
@@ -1240,7 +1316,110 @@ def door_zones(doors, rects, T, cm):
     return zones
 
 
-def _wall_gaps(rects, wins, T, cm, lo_cm, hi_cm):
+DOOR_SIZE_RANGES_CM = ((75.0, 100.0), (160.0, 190.0))  # 單門 / 雙開門（房間層嚴窗）
+# JSON 產品路放寬窗（門偵測重建，2026-08-02 全集掃描定案）：漏門主宰
+# 型態是擦邊（105/74/70cm 差 1~5cm），放寬 R 0.71→0.81、P 僅 -2pp
+# （F1 0.77→0.82）；再寬 P 開始崩（65-115 掉到 0.78）。房間層分割
+# 的門縫封口維持嚴窗不動
+DOOR_JSON_RANGES_CM = ((70.0, 110.0), (150.0, 200.0))
+DOOR_SINGLE_ANCHOR_CM = 85.0                 # 單門錨點：80~90(最多95) 取中值
+DOOR_DOUBLE_ANCHOR_CM = 175.0                # 雙開門錨點：160~190 取中值
+WALL_MID_ANCHOR_CM = 17.5                    # 人住建築牆厚 15~20cm 取中點
+
+
+def gap_scale(rects, wins, T, T_out, cm0):
+    """牆縫開口比例尺（user spec 門寬鐵律）：單門候選群中位數＝85cm
+    反推比例（樣本多、分布緊，最強錨點）；無單門候選用雙門群＝
+    175cm；都沒有回退外牆厚=17.5cm。外牆換算落 10~25cm 之外視為
+    錨錯，同樣回退。回傳 (cm_per_px, method, n_used)。
+    floorplan2room.refine_scale 與 DXF 批次門位過濾共用此核心。"""
+    gaps = [g1 - g0 for _h, g0, g1, _b0, _b1
+            in _wall_gaps(rects, wins, T, cm0, 40.0, 300.0)]
+    singles = [g for g in gaps if 60.0 <= g * cm0 <= 130.0]
+    doubles = [g for g in gaps if 140.0 <= g * cm0 <= 240.0]
+    if singles:
+        cm1, method, used = (DOOR_SINGLE_ANCHOR_CM / float(np.median(singles)),
+                             "door_single", len(singles))
+    elif doubles:
+        cm1, method, used = (DOOR_DOUBLE_ANCHOR_CM / float(np.median(doubles)),
+                             "door_double", len(doubles))
+    else:
+        cm1, method, used = WALL_MID_ANCHOR_CM / T_out, "wall_mid", 0
+    if not (10.0 <= T_out * cm1 <= 25.0):        # 門錨算出離譜外牆 → 回退
+        cm1, method, used = WALL_MID_ANCHOR_CM / T_out, "wall_mid", 0
+    return cm1, method, used
+
+
+def door_ink_evidence(thin, text_boxes, horiz, g0, g1, b0, b1):
+    """門位證據：門扇迴轉區（開口兩側各 1.1×開口深）扣掉 OCR 文字框後
+    的細線墨水密度。真門畫弧/門扇必留墨（floor04 浴廁虛線弧 1.45%），
+    開放通道空白（走道↔客廳 0%）；文字墨水（CIRCULATION 4.8%）已扣，
+    門檻取 0.5%。弧掃描對虛線弧眼盲，故用密度而非形狀。
+    thin=None（彩圖管線）不濾照舊回 True。"""
+    if thin is None:
+        return True
+    ink = thin.copy()
+    for x0, y0, x1, y1 in text_boxes or ():
+        ink[max(0, int(y0) - 2):int(y1) + 3,
+            max(0, int(x0) - 2):int(x1) + 3] = 0
+    gap = g1 - g0
+    H, W = ink.shape
+    # 三個證據區：開口帶本身（雙開/滑門門扇畫在開口內）＋兩側迴轉區
+    regions = [(b0, b1)] + [(b0 - 1.1 * gap, b0), (b1, b1 + 1.1 * gap)]
+    for lo, hi in regions:
+        if horiz:
+            y0, y1, x0, x1 = lo, hi, g0, g1
+        else:
+            x0, x1, y0, y1 = lo, hi, g0, g1
+        box = ink[max(0, int(y0)):min(H, int(y1)),
+                  max(0, int(x0)):min(W, int(x1))]
+        if box.size and np.count_nonzero(box) / box.size >= 0.005:
+            return True
+    return False
+
+
+def door_zone_quad(horiz, g0, g1, b0, b1):
+    """牆縫 → 門位框：沿牆=縫長，垂直牆前後各一倍（1:2 黃框），
+    door tuple 同 gap_openings 格式。"""
+    gap = g1 - g0
+    m = (b0 + b1) / 2.0
+    if horiz:
+        d = (g0, m, gap, 1.0, 1.0, 1.0)
+        mx, my = (g0 + g1) / 2.0, m
+        ax, ay, sx, sy = gap / 2.0, 0.0, 0.0, gap
+    else:
+        d = (m, g0, gap, 1.0, 1.0, 1.0)
+        mx, my = m, (g0 + g1) / 2.0
+        ax, ay, sx, sy = 0.0, gap / 2.0, gap, 0.0
+    quad = [(mx - ax - sx, my - ay - sy), (mx + ax - sx, my + ay - sy),
+            (mx + ax + sx, my + ay + sy), (mx - ax + sx, my - ay + sy)]
+    return quad, d
+
+
+def gap_door_zones(rects, wins, T, cm, thin=None, text_boxes=(),
+                   ranges=DOOR_SIZE_RANGES_CM):
+    """產品門位（門偵測重建 2026-08-02）：門尺寸牆縫＋門扇墨水證據。
+
+    弧掃描 detect_doors 的產品門位 P 0.38/R 0.17 遠低於可用線；
+    build_rooms 的 zones 同機制實測 P 0.86/R 0.75。做成不需房間層/
+    DINO 的輕量函式，DXF 批次 json 的 doors 欄位直接改源；
+    floorplan2room 的 zones 亦委派本組（單一事實來源）。
+    ranges 可覆蓋門尺寸窗——JSON 產品路用放寬窗撈擦邊真門（漏門
+    逐案：105/74/70cm 全是差 1~5cm 的邊界犧牲），房間層分割維持
+    預設嚴窗。回傳 [(quad, door_tuple)]，同 gap_openings 格式。"""
+    bridges = _wall_gaps(rects, wins, T, cm, 40.0, 260.0)
+    out = []
+    for horiz, g0, g1, b0, b1 in bridges:
+        w_cm = (g1 - g0) * cm
+        if not any(lo <= w_cm <= hi for lo, hi in ranges):
+            continue
+        if not door_ink_evidence(thin, text_boxes, horiz, g0, g1, b0, b1):
+            continue
+        out.append(door_zone_quad(horiz, g0, g1, b0, b1))
+    return out
+
+
+def _wall_gaps(rects, wins, T, cm, lo_cm, hi_cm, stub_guard=True):
     """牆端沿軸射線找最近的任何牆(厚度帶重疊≥50%)，中間 lo~hi cm 的空縫
     (無牆無窗)＝開口。涵蓋 牆端↔牆端 與 牆端↔牆面(T字門洞)。
     回傳 [(horiz, g0, g1, band0, band1)]。"""
@@ -1266,6 +1445,15 @@ def _wall_gaps(rects, wins, T, cm, lo_cm, hi_cm):
                 if gap >= -1 and (best is None or gap < best[0]):
                     best = (gap, lo if sgn > 0 else hi)
             if best is None or not (lo_cm <= best[0] * cm <= hi_cm):
+                continue
+            # 來源長度守門（floor35 實案）：陽台側壁 56px 短柱往下射出
+            # 160px（216cm）封口直貫廚房切成三條。牆柱不得投出 >2× 自身
+            # 長度的封口。門尺寸範圍 60~200cm 豁免——floor08 實案：19px
+            # 短柱與 75cm 真門縫、對側無長牆救援，被守門誤殺；殺手級
+            # 亂射（216cm+）都在豁免外
+            src_len = (ax1 - ax0) if horiz else (ay1 - ay0)
+            if (stub_guard and best[0] > 2.0 * src_len
+                    and not 60.0 <= best[0] * cm <= 200.0):
                 continue
             g0, g1 = (start, best[1]) if sgn > 0 else (best[1], start)
             if horiz:                            # 縫盒(略縮避免貼牆誤碰)
@@ -1370,7 +1558,8 @@ def room_graph(labels, outside, rooms, zones, rects, wins, T, max_doors=None):
                 by_id[rid]["via_hall"] = True
     for r in rooms:
         r.setdefault("has_door", False)
-    living = next((r["id"] for r in rooms if r["label"] == "living"), rooms[0]["id"])
+    living = next((r["id"] for r in rooms if r["label"] == "LivingRoom"),
+                  rooms[0]["id"])
     adj = {}
     for a_, b_ in edges:
         adj.setdefault(a_, set()).add(b_)
@@ -1544,6 +1733,12 @@ def preview(bgr, H, V, path):
     cv2.imwrite(path, vis)
 
 
+def openings_for_output(cfg: Config, wins):
+    """門/窗輸出閘：emit_openings 關（彩色預設）→ 交付物不畫窗，
+    偵測結果僅供內部（封口/比例尺/房間層）使用。"""
+    return wins if cfg.emit_openings else []
+
+
 def write_solid_dxf(rects, wins, img_h, scale, cfg: Config, out=None, insunits=4,
                     zones=None):
     """牆：封閉矩形 + SOLID HATCH。窗：開口矩形 + 4 條玻璃線 + 兩端封口(照正規檔)。
@@ -1636,6 +1831,276 @@ def remove_solid_blobs(bw):
     return out, removed
 
 
+def color_window_layers(bgr, bw, bw_open):
+    """彩色圖的窗/細線層萃取（run() 色彩分支與 detect_color 共用）。
+
+    彩色渲染圖的窗是「淺灰細線描邊的白條」，牆二值化(留最深2層)會整條
+    濾掉——窗層用獨立門檻：淺灰(gray<215/235)＋中性色(chroma<40，
+    彩色家具/色塊排除)；thin＝窗層減去牆體膨脹＝細線墨水層
+    （供 detect_doors、segment_rooms 救援輪、門墨水否決）。
+    bgr 可能比 bw 小一倍（彩圖管線 2x 放大），各層輸出 bw 尺寸。
+    回傳 (orig_win, soft, thin)。"""
+    gray0 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    chroma0 = (bgr.max(axis=2).astype(np.int16)
+               - bgr.min(axis=2).astype(np.int16)).astype(np.uint8)
+    if gray0.shape != bw.shape:
+        gray0 = cv2.resize(gray0, (bw.shape[1], bw.shape[0]),
+                           interpolation=cv2.INTER_LINEAR)
+        chroma0 = cv2.resize(chroma0, (bw.shape[1], bw.shape[0]),
+                             interpolation=cv2.INTER_LINEAR)
+    neutral = chroma0 < 40
+    orig_win = (((gray0 < 215) & neutral).astype(np.uint8)) * 255
+    soft = (((gray0 < 235) & neutral).astype(np.uint8)) * 255
+    thin = cv2.subtract(orig_win, cv2.dilate(bw_open, np.ones((3, 3), np.uint8)))
+    return orig_win, soft, thin
+
+
+def envelope_gap_seals(rects, wins, T, cm):
+    """外圈封口：建物外圈（bbox 周邊 3T 內）的 260~600cm 牆縫再封一輪。
+
+    floor_09 實案：外牆窗帶寬過 260cm、窗偵測 R 僅 38%，常規封口
+    （40~260cm）擋不住，灌水自外圈滲入把半戶判成室外。窗只會出現在
+    外圈；室內大開口（客餐一體）遠離外圈不受影響。
+    回傳 win 格式 tuples [(0, x0, y0, x1, y1)]，呼叫端併進分割用 wins。"""
+    if not rects:
+        return []
+    X0 = min(r[0] for r in rects); Y0 = min(r[1] for r in rects)
+    X1 = max(r[2] for r in rects); Y1 = max(r[3] for r in rects)
+    m = 3.0 * T
+    out = []
+    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, wins, T, cm,
+                                            260.0, 600.0):
+        if horiz:
+            on_env = (b0 - Y0 <= m or Y1 - b1 <= m)
+            box = (0, g0, b0, g1, b1)
+        else:
+            on_env = (b0 - X0 <= m or X1 - b1 <= m)
+            box = (0, b0, g0, b1, g1)
+        if on_env:
+            out.append(box)
+    return out
+
+
+def window_side_gate(cand, rects, T, cm, img_w, img_h):
+    """窗內外側守門：真窗恰好一側通室外（floor_05 實案：房內白色櫃體
+    被誤判成窗，距離/錨定都分不開，畫進封口遮罩把房攔腰切）。
+
+    屏障＝牆＋牆縫封口(40~260cm)＋全部候選窗（含受測窗本身，避免灌水
+    從自己的洞鑽進室內），從影像邊界灌水得室外區；逐窗在帶的兩垂直側
+    各探一點：恰一側室外＝真窗；兩側皆室內（家具）或皆室外（懸空
+    雜訊）＝剔除。陽台圍欄非牆不擋灌水，陽台側算室外，內側滑窗成立。"""
+    if not cand:
+        return []
+    barrier = np.zeros((img_h, img_w), np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for horiz, g0, g1, b0, b1 in _wall_gaps(rects, [], T, cm, 40.0, 260.0):
+        if horiz:
+            cv2.rectangle(barrier, (int(g0), int(b0)), (int(g1), int(b1)), 255, -1)
+        else:
+            cv2.rectangle(barrier, (int(b0), int(g0)), (int(b1), int(g1)), 255, -1)
+    for _o, x0, y0, x1, y1 in cand:
+        cv2.rectangle(barrier, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    # 屏障補 1.5T 閉運算（同 segment_rooms 首輪）：偵測殼的細縫在分割
+    # 時由閉運算封住，這裡不封的話灌水鑽縫進室內，真窗兩側都變室外
+    # 而被誤刪（floor_10 2x 實測 5/10→0/10）
+    k = 2 * max(2, int(round(1.5 * T))) + 1
+    closed = cv2.morphologyEx(barrier, cv2.MORPH_CLOSE, np.ones((k, k), np.uint8))
+    ff = np.pad(closed, 1).copy()
+    cv2.floodFill(ff, None, (0, 0), 128)
+    exterior = ff[1:-1, 1:-1] == 128
+    kept = []
+    lim = int(3 * T)
+    for w in cand:
+        _o, x0, y0, x1, y1 = w
+        mx, my = int((x0 + x1) / 2), int((y0 + y1) / 2)
+        horiz = (x1 - x0) >= (y1 - y0)
+        # 由帶緣向外走：跳過閉運算後的屏障像素（貼窗牆線與閉運算黏連
+        # 帶都算），第一個開放像素定內外；走出影像＝室外；3T 內全是
+        # 屏障＝視為室內（被牆包住）
+        hits = 0
+        for sign, edge in ((-1, y0 if horiz else x0), (1, y1 if horiz else x1)):
+            for step in range(1, lim + 1):
+                v = int(edge + sign * step)
+                ix, iy = (mx, v) if horiz else (v, my)
+                if not (0 <= iy < img_h and 0 <= ix < img_w):
+                    hits += 1
+                    break
+                if closed[iy, ix]:
+                    continue
+                if exterior[iy, ix]:
+                    hits += 1
+                break
+        if hits == 1:
+            kept.append(w)
+    return kept
+
+
+def white_wall_rects(bgr, T, dark_rects=None):
+    """白牆帶偵測——色塊分割線（棄守畫風 floor_07/08/09 的牆＝兩片
+    色染地板之間的白色窄帶，描邊 gray 189~200 暗色偵測原理性抓不到）。
+
+    流程：meanshift 平滑 → 白遮罩（chroma≤12、L>185）top-hat（1.5T）
+    剝窄帶 → 方向性長核（5T）濾磁磚格 → 帶級側翼驗證：每條帶 CC 沿
+    法向兩側採樣（offset 0.5T~2.5T），≥一側色染佔比 ≥0.5 且兩側皆非
+    黑（房內），厚 ≤2.5T、長 ≥5T。輸入 1x bgr、回傳 1x rects；呼叫端
+    負責座標縮放與既有牆帶去重。"""
+    sm = cv2.pyrMeanShiftFiltering(bgr, 7, 18)
+    lab = cv2.cvtColor(sm, cv2.COLOR_BGR2LAB)
+    a_ = lab[:, :, 1].astype(np.int16) - 128
+    b_ = lab[:, :, 2].astype(np.int16) - 128
+    chroma = np.sqrt(a_ * a_ + b_ * b_)
+    L = lab[:, :, 0]
+    # 白閘用「原始像素」色度（中值濾波去斑）：meanshift 會把兩片飽和
+    # 色染之間的白牆帶混染（floor_08 黃走道/木地板夾的牆 chroma 超閘
+    # 而消失）；色染側翼仍用平滑版（抗紋理）
+    labr = cv2.cvtColor(cv2.medianBlur(bgr, 3), cv2.COLOR_BGR2LAB)
+    ar_ = labr[:, :, 1].astype(np.int16) - 128
+    br_ = labr[:, :, 2].astype(np.int16) - 128
+    chroma_r = np.sqrt(ar_ * ar_ + br_ * br_)
+    Lr = labr[:, :, 0]
+    white = ((chroma_r <= 12) & (Lr > 185)).astype(np.uint8) * 255
+    tint = (chroma > 10) & (L > 60)
+    dark = L < 60
+    k = 2 * int(1.5 * T) + 1
+    ribbon = cv2.subtract(white, cv2.morphologyEx(
+        white, cv2.MORPH_OPEN, np.ones((k, k), np.uint8)))
+    hlen = 5 * T
+    out = []
+    for horiz, ker in ((True, cv2.getStructuringElement(cv2.MORPH_RECT,
+                                                        (hlen, 1))),
+                       (False, cv2.getStructuringElement(cv2.MORPH_RECT,
+                                                         (1, hlen)))):
+        band = cv2.morphologyEx(ribbon, cv2.MORPH_OPEN, ker)
+        n, lab_cc, st, _ = cv2.connectedComponentsWithStats(
+            (band > 0).astype(np.uint8), 8)
+        for i in range(1, n):
+            x, y, w, h = (int(st[i, 0]), int(st[i, 1]),
+                          int(st[i, 2]), int(st[i, 3]))
+            th, ln = (h, w) if horiz else (w, h)
+            if th > 2.5 * T or ln < 5 * T or ln < 3 * th:
+                continue
+            # 帶級側翼採樣：沿帶長取樣點，法向 offset 0.5T~2.5T
+            side_tint = [0, 0]
+            side_room = [0, 0]
+            samples = 0
+            step = max(1, ln // 20)
+            offs = [int(0.5 * T) + 2, int(1.5 * T), int(2.5 * T)]
+            H, W = tint.shape
+            for p in range(0, ln, step):
+                samples += 1
+                for si, sign in ((0, -1), (1, 1)):
+                    t_hit = r_hit = False
+                    for off in offs:
+                        if horiz:
+                            iy = (y - off) if sign < 0 else (y + h + off)
+                            ix = x + p
+                        else:
+                            ix = (x - off) if sign < 0 else (x + w + off)
+                            iy = y + p
+                        if not (0 <= iy < H and 0 <= ix < W):
+                            continue
+                        t_hit = t_hit or bool(tint[iy, ix])
+                        r_hit = r_hit or not bool(dark[iy, ix])
+                    side_tint[si] += t_hit
+                    side_room[si] += r_hit
+            if not samples:
+                continue
+            tf = [s / samples for s in side_tint]
+            rf = [s / samples for s in side_room]
+            if not (max(tf) >= 0.5 and min(rf) >= 0.5):
+                continue
+            if dark_rects is not None:
+                # 暗牆網對齊驗證：真白牆與暗牆同屬一套直角牆網——
+                # 共線（帶中心線落在某暗牆段的軸線 ±0.7T）或兩端接
+                # 暗牆/柱（≤2T）；家具/地毯緣、磁磚帶懸空不對齊
+                cx_line = y + h / 2.0 if horiz else x + w / 2.0
+                aligned = False
+                for rx0, ry0, rx1, ry1 in dark_rects:
+                    r_horiz = (rx1 - rx0) >= (ry1 - ry0)
+                    if r_horiz == horiz:
+                        rc = (ry0 + ry1) / 2.0 if horiz else (rx0 + rx1) / 2.0
+                        if abs(rc - cx_line) <= 0.7 * T:
+                            aligned = True
+                            break
+                if not aligned:
+                    ends = (((x, y + h / 2.0), (x + w, y + h / 2.0)) if horiz
+                            else ((x + w / 2.0, y), (x + w / 2.0, y + h)))
+                    n_end = 0
+                    for ex, ey in ends:
+                        for rx0, ry0, rx1, ry1 in dark_rects:
+                            if rx0 - 2 * T <= ex <= rx1 + 2 * T                                     and ry0 - 2 * T <= ey <= ry1 + 2 * T:
+                                n_end += 1
+                                break
+                    aligned = n_end >= 2
+                if not aligned:
+                    continue
+            out.append((x, y, x + w, y + h))
+    return out
+
+
+def hollow_wall_rects(bw, gray, chroma, T):
+    """空心雙線牆偵測——color 圖第二種牆畫法（floor_07/08 實案）。
+
+    內牆畫成「兩條細深描邊夾白色中性填充」，外牆/基柱才是實心黑；
+    detect_solid 只認實心深色條，雙線牆全漏 → 整戶黏成一塊。
+    作法：單向閉運算把「深線之間 ≤~1.8T 的縫」搭起來，只收縫內為
+    白色中性（gray≥200、chroma≤12）的填充；逐填充連通塊驗收——
+    厚度 ≤2T、長度 ≥3T、長寬比 ≥2，向兩側擴進深描邊後，整帶深色
+    佔比 0.15~0.75（實心牆無填充不會進來；家具彩面被白色門檻擋）。
+    回傳牆帶 rects（與 detect_solid 同格式），呼叫端負責去重。"""
+    white = ((gray >= 200) & (chroma <= 12)).astype(np.uint8) * 255
+    k = 2 * max(2, int(round(0.9 * T))) + 1      # 填充跨距上限 ~1.8T
+    out = []
+    for axis in (0, 1):                          # 0=垂直牆(補橫向縫) 1=水平牆
+        ker = np.ones((1, k), np.uint8) if axis == 0 else np.ones((k, 1), np.uint8)
+        closed = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, ker)
+        fill = cv2.bitwise_and(cv2.subtract(closed, bw), white)
+        n, lab, st, _ = cv2.connectedComponentsWithStats(
+            (fill > 0).astype(np.uint8), 8)
+        for i in range(1, n):
+            x, y, w, h = (int(st[i, cv2.CC_STAT_LEFT]),
+                          int(st[i, cv2.CC_STAT_TOP]),
+                          int(st[i, cv2.CC_STAT_WIDTH]),
+                          int(st[i, cv2.CC_STAT_HEIGHT]))
+            th, ln = (w, h) if axis == 0 else (h, w)
+            if th > 2.0 * T or ln < 3 * T or ln < 2 * th:
+                continue
+            # 向兩側擴進深描邊（描邊覆蓋該行/列 ≥30% 才算牆線）
+            x0, y0, x1, y1 = x, y, x + w, y + h
+            grow = int(round(1.5 * T))
+            if axis == 0:
+                while x0 > 0 and x - x0 < grow and \
+                        np.count_nonzero(bw[y0:y1, x0 - 1]) >= 0.3 * h:
+                    x0 -= 1
+                while x1 < bw.shape[1] and x1 - (x + w) < grow and \
+                        np.count_nonzero(bw[y0:y1, x1]) >= 0.3 * h:
+                    x1 += 1
+                if x0 == x or x1 == x + w:
+                    continue                     # 缺一側描邊＝不是雙線牆
+            else:
+                while y0 > 0 and y - y0 < grow and \
+                        np.count_nonzero(bw[y0 - 1, x0:x1]) >= 0.3 * w:
+                    y0 -= 1
+                while y1 < bw.shape[0] and y1 - (y + h) < grow and \
+                        np.count_nonzero(bw[y1, x0:x1]) >= 0.3 * w:
+                    y1 += 1
+                if y0 == y or y1 == y + h:
+                    continue
+            band = bw[y0:y1, x0:x1]
+            dark = float(np.count_nonzero(band)) / max(1, band.size)
+            if not 0.15 <= dark <= 0.75:
+                continue
+            out.append((x0, y0, x1, y1))
+    return out
+
+
+WALL_RESCUE_LONG = bool(int(os.environ.get("WALL_RESCUE_LONG", "0")))
+# 長牆豁免開關（A/B 用）：floor_09 實測救回 7 段真牆讓全戶圈住，但衣櫃
+# 長邊同樣是「長細深木紋」也被救回當牆、室內切線帶歪，dev 淨 ±0。
+# 預設關閉；後續若找到牆/衣櫃的可分維度（如兩端接牆網）再啟用
+
+
 def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T,
                      cc=None, cc_veto_cov=0.3):
     """自適應過濾假牆——兩段規則，皆以矩形內遮罩像素在「原彩圖」的統計判定：
@@ -1690,6 +2155,7 @@ def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T,
         if st is not None:
             mean, p25, spread, chr_, cov = st
             thick = min(r[2] - r[0], r[3] - r[1])
+            length = max(r[2] - r[0], r[3] - r[1])
             if is_pillar:
                 drop = mean > ref + 2 * delta
             else:
@@ -1699,6 +2165,15 @@ def drop_light_rects(rects, pillars, bgr, bw_open, bw_full, delta, T,
                     (mean > ref + 10 or chr_ > 8 or spread > 20):
                 drop = True
             by_chroma = not drop and (chr_ > 18 or (chr_ > 12 and spread > 30))
+            # 長牆豁免（floor_09 實案）：暖棕木紋牆被色度/紋理規則整段
+            # 刪掉，左半戶灌水漏成室外。與家具邊線的可分維度是長度——
+            # 實測家具 <5T、真牆 ≥8T。核心夠暗（p25）＋中低色度（≤30，
+            # 暖棕可過、彩色家具面不行）＋牆厚條才豁免
+            if WALL_RESCUE_LONG and by_chroma and not is_pillar \
+                    and thick <= 1.5 * T \
+                    and length >= 8 * T and p25 <= ref + delta / 2 \
+                    and chr_ <= 30:
+                by_chroma = False
         if drop or by_chroma:
             dropped += 1
             if by_chroma:
@@ -1818,6 +2293,28 @@ def detect_walls(cfg: Config):
         if rescued:
             print(f"語意救回 : 補 {len(rescued)} 段遮罩有偵測、古典管線漏抓的牆")
         rects = rects + rescued
+    if is_color:
+        # 空心雙線牆（floor_07/08 畫法）：實心偵測全流程跑完後補抓，
+        # 與既有牆帶重疊 ≥50% 者不重複收
+        g0h = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+        ch = (bgr.max(axis=2).astype(np.int16)
+              - bgr.min(axis=2).astype(np.int16)).astype(np.uint8)
+        if g0h.shape != bw.shape:
+            g0h = cv2.resize(g0h, (bw.shape[1], bw.shape[0]),
+                             interpolation=cv2.INTER_LINEAR)
+            ch = cv2.resize(ch, (bw.shape[1], bw.shape[0]),
+                            interpolation=cv2.INTER_LINEAR)
+        covered = np.zeros(bw.shape, np.uint8)
+        for x0, y0, x1, y1 in rects + pillar_rects:
+            cv2.rectangle(covered, (int(x0), int(y0)),
+                          (max(int(x1) - 1, 0), max(int(y1) - 1, 0)), 1, -1)
+        hollow = []
+        for x0, y0, x1, y1 in hollow_wall_rects(bw, g0h, ch, T):
+            if covered[y0:y1, x0:x1].mean() < 0.5:
+                hollow.append((x0, y0, x1, y1))
+        if hollow:
+            print(f"空心雙線牆 : 補 {len(hollow)} 段(細描邊夾白填充)")
+            rects = rects + hollow
     rects = rects + pillar_rects
     return rects, bgr, bw, bw_open, T, img_w, img_h, is_color
 
@@ -1832,21 +2329,7 @@ def run(cfg: Config):
         # doors 先抓供 _near_door 抑制門弧誤判成窗
         wins, doors = [], []
         if cfg.windows:
-            # 彩色渲染圖的窗是「淺灰細線描邊的白條」，牆二值化(留最深2層)
-            # 會整條濾掉——窗用二值層獨立做：淺灰門檻＋色度過濾
-            # (中性灰線稿留下、彩色家具/色塊排除)，比照牆前處理的 chroma<40
-            gray0 = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-            chroma0 = (bgr.max(axis=2).astype(np.int16)
-                       - bgr.min(axis=2).astype(np.int16)).astype(np.uint8)
-            if gray0.shape != bw.shape:      # 彩圖管線可能 2 倍放大
-                gray0 = cv2.resize(gray0, (bw.shape[1], bw.shape[0]),
-                                   interpolation=cv2.INTER_LINEAR)
-                chroma0 = cv2.resize(chroma0, (bw.shape[1], bw.shape[0]),
-                                     interpolation=cv2.INTER_LINEAR)
-            neutral = chroma0 < 40
-            orig_win = (((gray0 < 215) & neutral).astype(np.uint8)) * 255
-            soft = (((gray0 < 235) & neutral).astype(np.uint8)) * 255
-            thin = cv2.subtract(orig_win, cv2.dilate(bw_open, np.ones((3, 3), np.uint8)))
+            orig_win, soft, thin = color_window_layers(bgr, bw, bw_open)
             doors = detect_doors(thin, T, cfg.door_arc_pct)
             wins = detect_windows(orig_win, rects, cfg, T, doors, thin, soft)
         if cfg.preview:
@@ -1858,10 +2341,13 @@ def run(cfg: Config):
         else:                                # 慣例：DXF(cm) → testdata/dxf/
             os.makedirs("testdata/dxf", exist_ok=True)
             scale_out = os.path.join("testdata/dxf", base + ".dxf")
-        write_solid_dxf(rects, wins, img_h, scale / 10.0, cfg, out=scale_out, insunits=5)
+        write_solid_dxf(rects, openings_for_output(cfg, wins), img_h,
+                        scale / 10.0, cfg, out=scale_out, insunits=5)
 
         print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid")
-        print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個   門候選 : {len(doors)} 個")
+        print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個"
+              f"{'（輸出抑制）' if not cfg.emit_openings else ''}"
+              f"   門候選 : {len(doors)} 個")
         print(f"輸出   : {scale_out} (cm)"
               + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
         return

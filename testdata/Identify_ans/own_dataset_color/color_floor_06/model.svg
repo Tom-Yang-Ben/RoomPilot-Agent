@@ -1,262 +1,206 @@
-<?xml version="1.0" ?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1256" height="1274" viewBox="0 0 1256 1274">
- <image xlink:href="F1_scaled.png" x="0" y="0" width="1256" height="1274"/>
- <g id="Model" class="Model">
-  <g id="Wall" class="Wall">
-   <polygon points="756.0,55.0 823.0,55.0 823.0,73.0 756.0,73.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1015.0,242.0 1207.0,242.0 1207.0,259.0 1015.0,259.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="733.0,509.0 1207.0,509.0 1207.0,529.0 733.0,529.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1015.0,553.0 1109.0,553.0 1109.0,571.0 1015.0,571.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="733.0,765.0 1031.0,765.0 1031.0,777.0 733.0,777.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="425.0,827.0 453.0,827.0 453.0,833.0 425.0,833.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="194.0,839.0 441.0,839.0 441.0,858.0 194.0,858.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="21.0,929.0 183.0,929.0 183.0,945.0 21.0,945.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="337.0,977.0 465.0,977.0 465.0,989.0 337.0,989.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="542.0,979.0 637.0,979.0 637.0,989.0 542.0,989.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="727.0,979.0 1031.0,979.0 1031.0,991.0 727.0,991.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1013.0,1085.0 1174.0,1085.0 1174.0,1103.0 1013.0,1103.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="339.0,1107.0 461.0,1107.0 461.0,1119.0 339.0,1119.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="21.0,1144.0 259.0,1144.0 259.0,1163.0 21.0,1163.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="342.0,1149.0 385.0,1149.0 385.0,1163.0 342.0,1163.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="620.0,1149.0 734.0,1149.0 734.0,1165.0 620.0,1165.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="921.0,1151.0 1005.0,1151.0 1005.0,1167.0 921.0,1167.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="819.0,158.0 820.0,158.0 820.0,185.0 819.0,185.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="731.0,181.0 745.0,181.0 745.0,359.0 731.0,359.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1012.0,184.0 1031.0,184.0 1031.0,357.0 1012.0,357.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="425.0,188.0 445.0,188.0 445.0,855.0 425.0,855.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1191.0,243.0 1207.0,243.0 1207.0,429.0 1191.0,429.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1013.0,433.0 1031.0,433.0 1031.0,602.0 1013.0,602.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="733.0,442.0 745.0,442.0 745.0,675.0 733.0,675.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1191.0,510.0 1207.0,510.0 1207.0,569.0 1191.0,569.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="733.0,758.0 745.0,758.0 745.0,887.0 733.0,887.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1015.0,759.0 1031.0,759.0 1031.0,793.0 1015.0,793.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1191.0,781.0 1205.0,781.0 1205.0,827.0 1191.0,827.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="162.0,870.0 181.0,870.0 181.0,945.0 162.0,945.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="23.0,929.0 37.0,929.0 37.0,965.0 23.0,965.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1015.0,954.0 1031.0,954.0 1031.0,995.0 1015.0,995.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="621.0,979.0 633.0,979.0 633.0,1165.0 621.0,1165.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="21.0,1070.0 37.0,1070.0 37.0,1163.0 21.0,1163.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1015.0,1081.0 1031.0,1081.0 1031.0,1138.0 1015.0,1138.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="449.0,1106.0 461.0,1106.0 461.0,1138.0 449.0,1138.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="342.0,1079.0 350.0,1079.0 350.0,1162.0 342.0,1162.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="398.0,48.0 482.0,48.0 482.0,75.0 398.0,75.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="398.0,75.0 482.0,75.0 482.0,97.0 398.0,97.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="398.0,97.0 410.0,97.0 410.0,111.0 398.0,111.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="398.0,111.0 410.0,111.0 410.0,122.0 398.0,122.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="398.0,122.0 410.0,122.0 410.0,131.0 398.0,131.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="390.0,131.0 410.0,131.0 410.0,170.0 390.0,170.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="410.0,97.0 491.0,97.0 491.0,187.0 410.0,187.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="995.0,50.0 1096.0,50.0 1096.0,183.0 995.0,183.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="722.0,54.0 755.0,54.0 755.0,92.0 722.0,92.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="722.0,116.0 744.0,116.0 744.0,128.0 722.0,128.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="722.0,128.0 755.0,128.0 755.0,152.0 722.0,152.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="712.0,152.0 744.0,152.0 744.0,180.0 712.0,180.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="162.0,838.0 193.0,838.0 193.0,869.0 162.0,869.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1188.0,1063.0 1206.0,1063.0 1206.0,1070.0 1188.0,1070.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1173.0,1070.0 1206.0,1070.0 1206.0,1102.0 1173.0,1102.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="258.0,1138.0 280.0,1138.0 280.0,1162.0 258.0,1162.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="280.0,1140.0 292.0,1140.0 292.0,1162.0 280.0,1162.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="292.0,1131.0 330.0,1131.0 330.0,1162.0 292.0,1162.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="330.0,1142.0 341.0,1142.0 341.0,1162.0 330.0,1162.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="384.0,1137.0 524.0,1137.0 524.0,1250.0 384.0,1250.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1004.0,1137.0 1034.0,1137.0 1034.0,1166.0 1004.0,1166.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1034.0,1148.0 1102.0,1148.0 1102.0,1166.0 1034.0,1166.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Wall" class="Wall">
-   <polygon points="1018.0,1166.0 1102.0,1166.0 1102.0,1248.0 1018.0,1248.0 " fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="823.0,-108.0 995.0,-108.0 995.0,236.0 823.0,236.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="1109.0,480.0 1191.0,480.0 1191.0,644.0 1109.0,644.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="637.0,894.0 727.0,894.0 727.0,1074.0 637.0,1074.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="461.0,953.0 621.0,953.0 621.0,1273.0 461.0,1273.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="734.0,970.0 921.0,970.0 921.0,1344.0 734.0,1344.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="734.5,73.0 734.5,158.0 904.5,158.0 904.5,73.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="655.0,359.0 655.0,442.0 821.0,442.0 821.0,359.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="1119.0,429.0 1119.0,509.0 1279.0,509.0 1279.0,429.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="656.0,675.0 656.0,758.0 822.0,758.0 822.0,675.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="647.0,887.0 647.0,979.0 831.0,979.0 831.0,887.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="862.0,793.0 862.0,954.0 1184.0,954.0 1184.0,793.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="937.0,995.0 937.0,1081.0 1109.0,1081.0 1109.0,995.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g id="Door" class="Door">
-   <polygon points="256.0,989.0 256.0,1079.0 436.0,1079.0 436.0,989.0 " fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2"/>
-  </g>
-  <g class="Space Storage">
-   <polygon points="746.0,181.0 746.0,508.0 1012.0,508.0 1011.0,184.0 994.0,183.0 994.0,153.0 821.0,153.0 820.0,186.0 818.0,181.0 " fill="#b8a06a" fill-opacity="0.35" stroke="#b8a06a" stroke-width="2"/>
-   <text x="885" y="249" font-size="22" text-anchor="middle" fill="#000000">Storage</text>
-  </g>
-  <g class="Space LivingRoom">
-   <polygon points="730.0,181.0 492.0,181.0 491.0,188.0 446.0,188.0 446.0,826.0 453.0,826.0 454.0,833.0 446.0,834.0 446.0,855.0 441.0,859.0 194.0,859.0 193.0,870.0 182.0,870.0 182.0,1143.0 257.0,1143.0 258.0,1137.0 291.0,1137.0 292.0,1130.0 338.0,1130.0 338.0,1107.0 341.0,1106.0 341.0,990.0 336.0,989.0 337.0,976.0 732.0,978.0 " fill="#7dc37d" fill-opacity="0.35" stroke="#7dc37d" stroke-width="2"/>
-   <text x="378" y="853" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text>
-  </g>
-  <g class="Space Bath">
-   <polygon points="1032.0,260.0 1032.0,508.0 1190.0,508.0 1190.0,260.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2"/>
-   <text x="1111" y="384" font-size="22" text-anchor="middle" fill="#000000">Bath</text>
-  </g>
-  <g class="Space Bedroom">
-   <polygon points="746.0,530.0 746.0,764.0 1012.0,764.0 1012.0,530.0 " fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2"/>
-   <text x="879" y="647" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text>
-  </g>
-  <g class="Space Outdoor">
-   <polygon points="1032.0,572.0 1032.0,1084.0 1172.0,1084.0 1172.0,1070.0 1187.0,1069.0 1187.0,1063.0 1190.0,1062.0 1190.0,572.0 " fill="#c77dbb" fill-opacity="0.35" stroke="#c77dbb" stroke-width="2"/>
-   <text x="1145" y="947" font-size="22" text-anchor="middle" fill="#000000">Outdoor</text>
-  </g>
-  <g class="Space Undefined">
-   <polygon points="746.0,778.0 746.0,978.0 1014.0,978.0 1014.0,778.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
-   <text x="880" y="878" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
-  </g>
-  <g class="Space Storage">
-   <polygon points="38.0,946.0 38.0,1143.0 161.0,1143.0 161.0,946.0 " fill="#b8a06a" fill-opacity="0.35" stroke="#b8a06a" stroke-width="2"/>
-   <text x="100" y="1044" font-size="22" text-anchor="middle" fill="#000000">Storage</text>
-  </g>
-  <g class="Space Undefined">
-   <polygon points="351.0,990.0 351.0,1106.0 448.0,1106.0 448.0,990.0 " fill="#d9d9d9" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2"/>
-   <text x="400" y="1048" font-size="22" text-anchor="middle" fill="#000000">Undefined</text>
-  </g>
-  <g class="Space Bath">
-   <polygon points="462.0,990.0 462.0,1106.0 620.0,1106.0 620.0,990.0 " fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2"/>
-   <text x="541" y="1048" font-size="22" text-anchor="middle" fill="#000000">Bath</text>
-  </g>
-  <g class="Space Kitchen">
-   <polygon points="634.0,990.0 634.0,1148.0 1003.0,1150.0 1003.0,1137.0 1012.0,1136.0 1014.0,992.0 " fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2"/>
-   <text x="883" y="1092" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text>
-  </g>
- </g>
-</svg>
+<?xml version="1.0" ?><svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" width="628" height="637" viewBox="0 0 628 637" version="1.1" id="svg82" sodipodi:docname="model.svg" inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)">
+  <defs id="defs82"/>
+  <sodipodi:namedview id="namedview82" pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:zoom="0.65698587" inkscape:cx="628.62843" inkscape:cy="637" inkscape:window-width="1920" inkscape:window-height="1017" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Model"/>
+  <image xlink:href="F1_scaled.png" x="0" y="0" width="628" height="637" id="image1"/>
+  <g id="Model" class="Model">
+    <g id="Wall" class="Wall">
+      <polygon points="411.40,27.60 411.40,36.40 362.12,36.40 362.12,27.60" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon1"/>
+    </g>
+    <g id="g2" class="Wall">
+      <polygon points="507.50,121.00 603.50,121.00 603.50,129.50 507.50,129.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon2"/>
+    </g>
+    <g id="g3" class="Wall">
+      <polygon points="366.50,254.50 603.50,254.50 603.50,264.50 366.50,264.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon3"/>
+    </g>
+    <g id="g4" class="Wall">
+      <polygon points="507.50,276.50 554.50,276.50 554.50,285.50 507.50,285.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon4"/>
+    </g>
+    <g id="g5" class="Wall">
+      <polygon points="366.50,382.50 515.50,382.50 515.50,388.50 366.50,388.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon5"/>
+    </g>
+    <g id="g7" class="Wall">
+      <polygon points="220.47,419.53 220.47,428.97 80.29,428.97 80.29,419.53" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon7"/>
+    </g>
+    <g id="g8" class="Wall">
+      <polygon points="10.50,464.50 91.50,464.50 91.50,472.50 10.50,472.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon8"/>
+    </g>
+    <g id="g9" class="Wall">
+      <polygon points="232.50,488.50 232.50,494.50 167.74,494.50 167.74,488.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon9"/>
+    </g>
+    <g id="g10" class="Wall">
+      <polygon points="271.00,489.50 318.50,489.50 318.50,494.50 271.00,494.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon10"/>
+    </g>
+    <g id="g11" class="Wall">
+      <polygon points="363.50,489.50 515.50,489.50 515.50,495.50 363.50,495.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon11"/>
+    </g>
+    <g id="g12" class="Wall">
+      <polygon points="604.46,542.55 604.46,551.45 506.55,551.45 506.55,542.55" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon12"/>
+    </g>
+    <g id="g13" class="Wall">
+      <polygon points="169.50,553.50 230.50,553.50 230.50,559.50 169.50,559.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon13"/>
+    </g>
+    <g id="g14" class="Wall">
+      <polygon points="196.36,572.12 196.36,581.38 10.62,581.38 10.62,572.12" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon14"/>
+    </g>
+    <g id="g16" class="Wall">
+      <polygon points="310.00,574.50 367.00,574.50 367.00,582.50 310.00,582.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon16"/>
+    </g>
+    <g id="g17" class="Wall">
+      <polygon points="509.31,575.54 509.31,583.46 460.54,583.46 460.54,575.54" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon17"/>
+    </g>
+    <g id="g19" class="Wall">
+      <polygon points="372.47,79.87 372.47,179.47 365.53,179.47 365.53,79.87" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon19"/>
+    </g>
+    <g id="g20" class="Wall">
+      <polygon points="515.48,178.48 506.02,178.48 506.02,84.41 515.48,84.41" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon20"/>
+    </g>
+    <g id="g21" class="Wall">
+      <polygon points="222.49,84.87 222.49,427.49 212.51,427.49 212.51,84.87" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon21"/>
+    </g>
+    <g id="g22" class="Wall">
+      <polygon points="595.50,121.50 603.50,121.50 603.50,214.50 595.50,214.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon22"/>
+    </g>
+    <g id="g23" class="Wall">
+      <polygon points="506.50,216.50 515.50,216.50 515.50,301.00 506.50,301.00" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon23"/>
+    </g>
+    <g id="g24" class="Wall">
+      <polygon points="366.50,221.00 372.50,221.00 372.50,337.50 366.50,337.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon24"/>
+    </g>
+    <g id="g25" class="Wall">
+      <polygon points="595.50,255.00 603.50,255.00 603.50,284.50 595.50,284.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon25"/>
+    </g>
+    <g id="g26" class="Wall">
+      <polygon points="366.50,379.00 372.50,379.00 372.50,443.50 366.50,443.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon26"/>
+    </g>
+    <g id="g27" class="Wall">
+      <polygon points="507.50,379.50 515.50,379.50 515.50,396.50 507.50,396.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon27"/>
+    </g>
+    <g id="g28" class="Wall">
+      <polygon points="595.50,390.50 602.50,390.50 602.50,413.50 595.50,413.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon28"/>
+    </g>
+    <g id="g29" class="Wall">
+      <polygon points="90.41,418.35 90.41,472.41 81.09,472.41 81.09,418.35" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon29"/>
+    </g>
+    <g id="g30" class="Wall">
+      <polygon points="11.50,464.50 18.50,464.50 18.50,482.50 11.50,482.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon30"/>
+    </g>
+    <g id="g31" class="Wall">
+      <polygon points="507.50,477.00 515.50,477.00 515.50,497.50 507.50,497.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon31"/>
+    </g>
+    <g id="g32" class="Wall">
+      <polygon points="310.50,489.50 316.50,489.50 316.50,582.50 310.50,582.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon32"/>
+    </g>
+    <g id="g33" class="Wall">
+      <polygon points="10.50,535.00 18.50,535.00 18.50,581.50 10.50,581.50" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon33"/>
+    </g>
+    <g id="g34" class="Wall">
+      <polygon points="515.46,540.54 515.46,574.29 507.54,574.29 507.54,540.54" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon34"/>
+    </g>
+    <g id="g35" class="Wall">
+      <polygon points="230.42,553.08 230.42,575.01 224.58,575.01 224.58,553.08" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon35"/>
+    </g>
+    <g id="g36" class="Wall">
+      <polygon points="177.05,580.61 171.23,580.61 171.23,490.42 177.05,490.42" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon36"/>
+    </g>
+    <g id="g43" class="Wall">
+      <polygon points="199.00,85.03 199.00,23.48 240.84,23.48 240.84,85.03" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon43"/>
+    </g>
+    <g id="g44" class="Wall">
+      <polygon points="548.07,24.93 548.07,86.24 507.32,86.24 507.32,24.93" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon44"/>
+    </g>
+    <g id="g47" class="Wall">
+      <polygon points="361.31,29.26 371.86,29.26 371.86,75.73 361.31,75.73" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon47"/>
+    </g>
+    <g id="g48" class="Wall">
+      <polygon points="372.07,75.93 372.07,86.26 355.93,86.26 355.93,75.93" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon48"/>
+    </g>
+    <g id="g51" class="Wall">
+      <polygon points="603.04,550.95 594.83,550.95 594.83,524.39 603.04,524.39" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon51"/>
+    </g>
+    <g id="g56" class="Wall">
+      <polygon points="195.00,624.04 195.00,572.78 259.00,572.78 259.00,624.04" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon56"/>
+    </g>
+    <g id="g59" class="Wall">
+      <polygon points="549.44,574.67 549.44,623.96 509.04,623.96 509.04,574.67" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon59"/>
+    </g>
+    <g id="g62" class="Door">
+      <polygon points="363.60,481.14 363.60,537.10 318.40,537.10 318.40,481.14" fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon62"/>
+    </g>
+    <g id="g63" class="Door">
+      <polygon points="271.22,532.53 230.21,532.53 230.21,479.25 271.22,479.25" fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon63"/>
+    </g>
+    <g id="g66" class="Door">
+      <polygon points="414.39,221.08 414.39,179.42 355.58,179.42 355.58,221.08" fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon66"/>
+    </g>
+    <g id="g67" class="Door">
+      <polygon points="549.82,178.60 500.01,178.60 500.01,215.06 549.82,215.06" fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon67"/>
+    </g>
+    <g id="g68" class="Door">
+      <polygon points="412.61,379.09 412.61,337.41 356.83,337.41 356.83,379.09" fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon68"/>
+    </g>
+    <g id="g69" class="Door">
+      <polygon points="415.63,444.35 358.38,444.35 358.38,484.56 415.63,484.56" fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon69"/>
+    </g>
+    <g id="g71" class="Door">
+      <polygon points="557.63,540.58 557.63,497.42 497.34,497.42 497.34,540.58" fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon71"/>
+    </g>
+    <g class="Space Bedroom" id="g73">
+      <polygon points="373.05,253.95 505.95,253.95 505.55,38.24 373.94,37.64 373.05,253.95" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
+      
+    </g>
+    <g class="Space LivingRoom" id="g74">
+      <polygon points="364.24,85.93 222.58,86.47 222.69,430.39 91.78,430.01 91.00,571.50 168.65,570.65 168.50,488.00 366.00,489.00 364.24,85.93" style="fill:#7dc37d;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
+      
+    </g>
+    <g class="Space Bath" id="g75">
+      <polygon points="516.00,130.00 516.00,254.00 595.00,254.00 595.00,130.00 516.00,130.00" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2" id="polygon75" style="fill:#3dbdbd;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
+      
+    </g>
+    <g class="Space Bedroom" id="g76">
+      <polygon points="373.00,265.00 373.00,382.00 506.00,382.00 506.00,265.00 373.00,265.00" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon76" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
+      
+    </g>
+    <g class="Space Balcony" id="g77">
+      <polygon points="516.00,286.00 516.00,542.00 595.36,540.84 595.00,286.00 516.00,286.00" style="fill:#b5368f;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
+      
+    </g>
+    <g class="Space Bedroom" id="g78">
+      <polygon points="373.00,389.00 373.00,489.00 507.00,489.00 507.00,389.00 373.00,389.00" fill-opacity="0.35" stroke="#d9d9d9" stroke-width="2" id="polygon78" style="fill:#4a90d9;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
+      
+    </g>
+    <g class="Space Entry" id="g79">
+      <polygon points="80.50,571.50 80.50,473.00 19.00,473.00 19.00,571.50 80.50,571.50" fill-opacity="0.35" stroke="#b8a06a" stroke-width="2" id="polygon79" style="fill:#8f5fc6;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
+      
+    </g>
+    <g class="Space Bath" id="g81">
+      <polygon points="309.76,571.07 309.76,495.20 176.45,495.20 177.21,553.57 229.02,553.19 230.96,571.26 309.76,571.07" style="fill:#3dbdbd;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
+      
+    </g>
+    <g class="Space Kitchen" id="g82">
+      <polygon points="317.00,495.00 317.00,574.00 507.95,574.67 507.00,496.00 317.00,495.00" style="fill:#e8843c;fill-opacity:0.4;stroke:#000000;stroke-width:1"/>
+      
+    </g>
+    <g id="g42" class="Wall">
+      <polygon points="200.46,86.21 188.45,86.21 188.45,77.28 200.46,77.28" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon42"/>
+    </g>
+    <g id="g42-5" class="Wall">
+      <polygon points="240.34,76.78 248.09,76.78 248.09,85.86 240.34,85.86" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon42-1"/>
+    </g>
+    <g id="g42-5-1" class="Wall">
+      <polygon points="508.86,36.07 501.11,36.07 501.11,26.99 508.86,26.99" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon42-1-1"/>
+    </g>
+    <g id="g48-2" class="Wall">
+      <polygon points="269.02,573.26 269.02,581.38 252.79,581.38 252.79,573.26" fill="#cc2222" fill-opacity="0.45" stroke="#cc2222" stroke-width="2" id="polygon48-7"/>
+    </g>
+    <polygon points="607.09,255.75 596.62,255.75 596.62,214.64 607.09,214.64" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon39-7-8-2-4"/>
+    <polygon points="607.77,390.15 596.04,390.15 596.04,284.51 607.77,284.51" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon39-7-8-2-4-4"/>
+    <polygon points="595.73,413.10 608.19,413.10 608.19,521.00 595.73,521.00" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon39-7-8-2-4-3"/>
+    <polygon points="516.71,301.63 516.71,376.95 507.81,376.95 507.81,301.63" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon39-7-8-2-4-2"/>
+    <polygon points="516.55,398.21 516.55,476.58 507.66,476.58 507.66,398.21" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon39-7-8-2-4-6"/>
+    <polygon points="458.97,584.61 365.91,584.61 365.91,573.66 458.97,573.66" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon33-8-6-9-0-7-2-4"/>
+    <polygon points="310.08,584.20 270.70,584.20 270.70,572.94 310.08,572.94" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon33-8-6-9-0-7-2-4-7"/>
+    <polygon points="593.99,287.23 556.11,287.23 556.11,275.95 593.99,275.95" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon33-8-6-9-0-7-2-4-1"/>
+    <polygon points="354.12,86.10 248.95,86.10 248.95,75.20 354.12,75.20" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon33-8-6-9-0-7-2-4-9"/>
+    <polygon points="412.40,37.53 412.40,26.55 499.40,26.55 499.40,37.53" fill="#22aa22" fill-opacity="0.6" stroke="#22aa22" stroke-width="2" id="polygon33-8-6-9-0-7-2-4-79"/>
+  </g>
+<g id="RoomLabels"><text x="440" y="146" style="font-family:Arial;font-size:22px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="228" y="329" style="font-family:Arial;font-size:22px;font-weight:bold;text-anchor:middle;fill:#000000">LivingRoom</text><text x="556" y="192" style="font-family:Arial;font-size:22px;font-weight:bold;text-anchor:middle;fill:#000000">Bath</text><text x="440" y="324" style="font-family:Arial;font-size:22px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="556" y="414" style="font-family:Arial;font-size:22px;font-weight:bold;text-anchor:middle;fill:#000000">Balcony</text><text x="440" y="439" style="font-family:Arial;font-size:22px;font-weight:bold;text-anchor:middle;fill:#000000">Bedroom</text><text x="50" y="522" style="font-family:Arial;font-size:22px;font-weight:bold;text-anchor:middle;fill:#000000">Entry</text><text x="243" y="533" style="font-family:Arial;font-size:22px;font-weight:bold;text-anchor:middle;fill:#000000">Bath</text><text x="412" y="535" style="font-family:Arial;font-size:22px;font-weight:bold;text-anchor:middle;fill:#000000">Kitchen</text></g></svg>

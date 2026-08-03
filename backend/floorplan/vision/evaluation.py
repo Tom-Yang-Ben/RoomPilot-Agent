@@ -29,6 +29,19 @@ ROOM_LABEL_ALIASES = {
     "circulation": "entry",
     "dining_room": "living",
     "workspace": "bed",
+    # cody 2026-08-01 起的 10 類 CamelCase 詞彙（6300e9e0）——正常路徑會先經
+    # CODY_ROOM_TYPE_MAP 轉成主線契約詞彙才進到這裡，此組別名是原字彙直達時
+    # 的保險，避免未識別詞彙靜默落入 space。
+    "LivingRoom": "living",
+    "Kitchen": "kitchen",
+    "Bedroom": "bed",
+    "Bath": "bath",
+    "Balcony": "outdoor",
+    "Entry": "entry",
+    "Storage": "storage",
+    "Garage": "garage",
+    "Hallway": "entry",
+    "Stair": "space",
 }
 
 

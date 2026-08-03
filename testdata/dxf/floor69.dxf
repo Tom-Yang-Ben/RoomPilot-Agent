@@ -489,7 +489,11 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461252.6447685184
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+2461252.6447453704
+========
+2461255.5438657408
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   9
 $TDUCREATE
  40
@@ -497,7 +501,11 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461252.6447685184
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+2461252.6447453704
+========
+2461255.5438657408
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   9
 $TDUUPDATE
  40
@@ -549,7 +557,11 @@ $SPLINESEGS
   9
 $HANDSEED
   5
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+58
+========
 62
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   9
 $SURFTAB1
  70
@@ -929,11 +941,19 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{1A4904A4-ED91-4F59-A2CC-28B180884657}
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+{A0AF9961-2FD3-4A9C-88DF-ADC2634525AB}
   9
 $VERSIONGUID
   2
-{C0E4A387-BFF3-4AED-80A2-8B77CBE87797}
+{5CFABB36-603B-4DEE-8EE6-10699C31A5E0}
+========
+{05A26B65-752F-41F8-BD27-CB7493708FD8}
+  9
+$VERSIONGUID
+  2
+{990E349B-7416-4FAC-BE97-CE8B5ADDCBDA}
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   9
 $EXTNAMES
 290
@@ -1749,7 +1769,11 @@ ACAD
   0
 APPID
   5
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+55
+========
 5F
+>>>>>>>> cody:testdata/dxf/floor69.dxf
 330
 3
 100
@@ -1763,7 +1787,11 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+56
+========
 60
+>>>>>>>> cody:testdata/dxf/floor69.dxf
 330
 3
 100
@@ -2089,6 +2117,21 @@ AcDbPolyline
  10
 0.0
  20
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1062.5
+ 10
+1375.0
+ 20
+1062.5
+ 10
+1375.0
+ 20
+1047.5
+ 10
+0.0
+ 20
+1047.5
+========
 845.0
  10
 176.25
@@ -2102,6 +2145,7 @@ AcDbPolyline
 0.0
  20
 830.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -2145,6 +2189,21 @@ SOLID
  10
 0.0
  20
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1062.5
+ 10
+1375.0
+ 20
+1062.5
+ 10
+1375.0
+ 20
+1047.5
+ 10
+0.0
+ 20
+1047.5
+========
 845.0
  10
 176.25
@@ -2158,6 +2217,7 @@ SOLID
 0.0
  20
 830.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -2183,6 +2243,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1093.75
+ 20
+837.5
+ 10
+1236.25
+ 20
+837.5
+ 10
+1236.25
+ 20
+823.75
+ 10
+1093.75
+ 20
+823.75
+========
 298.75
  20
 845.0
@@ -2198,6 +2275,7 @@ AcDbPolyline
 298.75
  20
 830.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -2239,6 +2317,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1093.75
+ 20
+837.5
+ 10
+1236.25
+ 20
+837.5
+ 10
+1236.25
+ 20
+823.75
+ 10
+1093.75
+ 20
+823.75
+========
 298.75
  20
 845.0
@@ -2254,6 +2349,7 @@ SOLID
 298.75
  20
 830.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -2279,6 +2375,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+570.0
+ 10
+172.5
+ 20
+570.0
+ 10
+172.5
+ 20
+556.25
+ 10
+0.0
+ 20
+556.25
+========
 597.5
  20
 845.0
@@ -2294,6 +2407,7 @@ AcDbPolyline
 597.5
  20
 831.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -2335,6 +2449,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+570.0
+ 10
+172.5
+ 20
+570.0
+ 10
+172.5
+ 20
+556.25
+ 10
+0.0
+ 20
+556.25
+========
 597.5
  20
 845.0
@@ -2350,6 +2481,7 @@ SOLID
 597.5
  20
 831.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -2375,6 +2507,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+271.25
+ 20
+570.0
+ 10
+561.25
+ 20
+570.0
+ 10
+561.25
+ 20
+556.25
+ 10
+271.25
+ 20
+556.25
+========
 851.25
  20
 845.0
@@ -2390,6 +2539,7 @@ AcDbPolyline
 851.25
  20
 831.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -2431,6 +2581,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+271.25
+ 20
+570.0
+ 10
+561.25
+ 20
+570.0
+ 10
+561.25
+ 20
+556.25
+ 10
+271.25
+ 20
+556.25
+========
 851.25
  20
 845.0
@@ -2446,6 +2613,7 @@ SOLID
 851.25
  20
 831.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -2471,6 +2639,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+660.0
+ 20
+570.0
+ 10
+1136.25
+ 20
+570.0
+ 10
+1136.25
+ 20
+556.25
+ 10
+660.0
+ 20
+556.25
+========
 0.0
  20
 313.75
@@ -2486,6 +2671,7 @@ AcDbPolyline
 0.0
  20
 298.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -2527,6 +2713,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+660.0
+ 20
+570.0
+ 10
+1136.25
+ 20
+570.0
+ 10
+1136.25
+ 20
+556.25
+ 10
+660.0
+ 20
+556.25
+========
 0.0
  20
 313.75
@@ -2542,6 +2745,7 @@ SOLID
 0.0
  20
 298.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -2567,6 +2771,17 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+12.5
+ 10
+556.25
+ 20
+12.5
+ 10
+556.25
+========
 298.75
  20
 313.75
@@ -2576,10 +2791,15 @@ AcDbPolyline
 313.75
  10
 470.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 298.75
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+========
 298.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 298.75
   0
@@ -2623,6 +2843,17 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+12.5
+ 10
+556.25
+ 20
+12.5
+ 10
+556.25
+========
 298.75
  20
 313.75
@@ -2632,10 +2863,15 @@ SOLID
 313.75
  10
 470.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 298.75
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+========
 298.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 298.75
  97
@@ -2663,7 +2899,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+655.0
+ 20
+12.5
+ 10
+1375.0
+ 20
+12.5
+ 10
+1375.0
+ 20
 0.0
+ 10
+655.0
+========
+0.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 215.0
  10
@@ -2719,7 +2971,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+655.0
+ 20
+12.5
+ 10
+1375.0
+ 20
+12.5
+ 10
+1375.0
+ 20
 0.0
+ 10
+655.0
+========
+0.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 215.0
  10
@@ -2759,6 +3027,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+1062.5
+ 10
+15.0
+ 20
+1062.5
+ 10
+15.0
+ 20
+950.0
+ 10
+0.0
+ 20
+950.0
+========
 543.75
  20
 215.0
@@ -2774,6 +3059,7 @@ AcDbPolyline
 543.75
  20
 200.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -2815,6 +3101,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+1062.5
+ 10
+15.0
+ 20
+1062.5
+ 10
+15.0
+ 20
+950.0
+ 10
+0.0
+ 20
+950.0
+========
 543.75
  20
 215.0
@@ -2830,6 +3133,7 @@ SOLID
 543.75
  20
 200.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -2855,6 +3159,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+387.5
+ 20
+1062.5
+ 10
+401.25
+ 20
+1062.5
+ 10
+401.25
+ 20
+555.0
+ 10
+387.5
+ 20
+555.0
+========
 0.0
  20
 16.25
@@ -2870,6 +3191,7 @@ AcDbPolyline
 0.0
  20
 1.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -2911,6 +3233,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+387.5
+ 20
+1062.5
+ 10
+401.25
+ 20
+1062.5
+ 10
+401.25
+ 20
+555.0
+ 10
+387.5
+ 20
+555.0
+========
 0.0
  20
 16.25
@@ -2926,6 +3265,7 @@ SOLID
 0.0
  20
 1.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -2951,6 +3291,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+962.5
+ 20
+1062.5
+ 10
+976.25
+ 20
+1062.5
+ 10
+976.25
+ 20
+826.25
+ 10
+962.5
+ 20
+826.25
+========
 0.0
  20
 845.0
@@ -2966,6 +3323,7 @@ AcDbPolyline
 0.0
  20
 1.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -3007,6 +3365,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+962.5
+ 20
+1062.5
+ 10
+976.25
+ 20
+1062.5
+ 10
+976.25
+ 20
+826.25
+ 10
+962.5
+ 20
+826.25
+========
 0.0
  20
 845.0
@@ -3022,6 +3397,7 @@ SOLID
 0.0
  20
 1.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -3047,6 +3423,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1091.25
+ 20
+1062.5
+ 10
+1105.0
+ 20
+1062.5
+ 10
+1105.0
+ 20
+823.75
+ 10
+1091.25
+ 20
+823.75
+========
 298.75
  20
 845.0
@@ -3062,6 +3455,7 @@ AcDbPolyline
 298.75
  20
 298.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -3103,6 +3497,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1091.25
+ 20
+1062.5
+ 10
+1105.0
+ 20
+1062.5
+ 10
+1105.0
+ 20
+823.75
+ 10
+1091.25
+ 20
+823.75
+========
 298.75
  20
 845.0
@@ -3118,6 +3529,7 @@ SOLID
 298.75
  20
 298.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -3143,6 +3555,17 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1360.0
+ 20
+1062.5
+ 10
+1375.0
+ 20
+1062.5
+ 10
+1375.0
+========
 598.75
  20
 845.0
@@ -3152,10 +3575,15 @@ AcDbPolyline
 845.0
  10
 613.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 298.75
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1360.0
+========
 598.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 298.75
   0
@@ -3199,6 +3627,17 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1360.0
+ 20
+1062.5
+ 10
+1375.0
+ 20
+1062.5
+ 10
+1375.0
+========
 598.75
  20
 845.0
@@ -3208,10 +3647,15 @@ SOLID
 845.0
  10
 613.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 298.75
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1360.0
+========
 598.75
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 298.75
  97
@@ -3239,6 +3683,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+961.25
+ 20
+825.0
+ 10
+977.5
+ 20
+825.0
+ 10
+977.5
+ 20
+555.0
+ 10
+961.25
+ 20
+555.0
+========
 931.25
  20
 845.0
@@ -3254,6 +3715,7 @@ AcDbPolyline
 931.25
  20
 1.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -3295,6 +3757,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+961.25
+ 20
+825.0
+ 10
+977.5
+ 20
+825.0
+ 10
+977.5
+ 20
+555.0
+ 10
+961.25
+ 20
+555.0
+========
 931.25
  20
 845.0
@@ -3310,6 +3789,7 @@ SOLID
 931.25
  20
 1.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -3335,6 +3815,23 @@ AcDbPolyline
  70
 1
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+683.75
+ 10
+15.0
+ 20
+683.75
+ 10
+15.0
+ 20
+0.0
+ 10
+0.0
+ 20
+0.0
+========
 400.0
  20
 215.0
@@ -3350,6 +3847,7 @@ AcDbPolyline
 400.0
  20
 1.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 HATCH
   5
@@ -3391,6 +3889,23 @@ SOLID
  93
 4
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+683.75
+ 10
+15.0
+ 20
+683.75
+ 10
+15.0
+ 20
+0.0
+ 10
+0.0
+ 20
+0.0
+========
 400.0
  20
 215.0
@@ -3406,6 +3921,7 @@ SOLID
 400.0
  20
 1.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  97
 0
  75
@@ -3427,16 +3943,34 @@ WINDOW
 100
 AcDbLine
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+453.75
+ 20
+426.25
+ 10
+467.5
+ 20
+426.25
+ 10
+467.5
+========
 176.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  20
 845.0
  30
 0.0
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+ 10
+453.75
+ 20
+========
  11
 298.75
  21
 845.0
  31
+>>>>>>>> cody:testdata/dxf/floor69.dxf
 0.0
   0
 LINE
@@ -3462,6 +3996,53 @@ AcDbLine
 840.0
  31
 0.0
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+220
+0.0
+230
+1.0
+  2
+SOLID
+ 70
+1
+ 71
+0
+ 91
+1
+ 92
+3
+ 72
+0
+ 73
+1
+ 93
+4
+ 10
+453.75
+ 20
+426.25
+ 10
+467.5
+ 20
+426.25
+ 10
+467.5
+ 20
+0.0
+ 10
+453.75
+ 20
+0.0
+ 97
+0
+ 75
+1
+ 76
+1
+ 98
+0
+========
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 LINE
   5
@@ -3475,6 +4056,17 @@ WINDOW
 100
 AcDbLine
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+950.0
+ 30
+0.0
+ 11
+0.0
+ 21
+683.75
+========
 176.25
  20
 835.0
@@ -3484,6 +4076,7 @@ AcDbLine
 298.75
  21
 835.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  31
 0.0
   0
@@ -3499,6 +4092,17 @@ WINDOW
 100
 AcDbLine
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+5.0
+ 20
+950.0
+ 30
+0.0
+ 11
+5.0
+ 21
+683.75
+========
 176.25
  20
 830.0
@@ -3508,6 +4112,7 @@ AcDbLine
 298.75
  21
 830.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  31
 0.0
   0
@@ -3523,6 +4128,17 @@ WINDOW
 100
 AcDbLine
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+10.0
+ 20
+950.0
+ 30
+0.0
+ 11
+10.0
+ 21
+683.75
+========
 176.25
  20
 845.0
@@ -3532,6 +4148,7 @@ AcDbLine
 176.25
  21
 830.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  31
 0.0
   0
@@ -3547,6 +4164,17 @@ WINDOW
 100
 AcDbLine
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+15.0
+ 20
+950.0
+ 30
+0.0
+ 11
+15.0
+ 21
+683.75
+========
 298.75
  20
 845.0
@@ -3556,6 +4184,7 @@ AcDbLine
 298.75
  21
 830.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  31
 0.0
   0
@@ -3571,6 +4200,17 @@ WINDOW
 100
 AcDbLine
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+950.0
+ 30
+0.0
+ 11
+15.0
+ 21
+950.0
+========
 475.0
  20
 845.0
@@ -3580,6 +4220,7 @@ AcDbLine
 597.5
  21
 845.0
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  31
 0.0
   0
@@ -3595,6 +4236,17 @@ WINDOW
 100
 AcDbLine
  10
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+0.0
+ 20
+683.75
+ 30
+0.0
+ 11
+15.0
+ 21
+683.75
+========
 475.0
  20
 840.0
@@ -3844,6 +4496,7 @@ AcDbLine
 851.25
  21
 831.25
+>>>>>>>> cody:testdata/dxf/floor69.dxf
  31
 0.0
   0
@@ -4837,7 +5490,11 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+57
+========
 61
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 DICTIONARYVAR
   5
@@ -4849,11 +5506,19 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-07-30T07:28:28.814033+00:00
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1.4.4 @ 2026-07-30T07:28:26.858808+00:00
+  0
+DICTIONARYVAR
+  5
+57
+========
+1.4.4 @ 2026-08-02T05:03:10.486425+00:00
   0
 DICTIONARYVAR
   5
 61
+>>>>>>>> cody:testdata/dxf/floor69.dxf
 330
 2D
 100
@@ -4861,7 +5526,11 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-07-30T07:28:28.816028+00:00
+<<<<<<<< HEAD:testdata/dxf/floor44.dxf
+1.4.4 @ 2026-07-30T07:28:26.860808+00:00
+========
+1.4.4 @ 2026-08-02T05:03:10.488421+00:00
+>>>>>>>> cody:testdata/dxf/floor69.dxf
   0
 ENDSEC
   0

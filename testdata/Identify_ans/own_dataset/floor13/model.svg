@@ -120,11 +120,11 @@
       <polygon id="polygon28" style="fill:#e8843c;fill-opacity:0.35;stroke:#e8843c;stroke-width:2" sodipodi:nodetypes="ccccccc" points="311,13 311,165.382 429.082,164.782 429.56,105.1 553,106 553,13 " fill="#e8843c" fill-opacity="0.35" stroke="#e8843c" stroke-width="2"/>
       
     </g>
-    <g class="Space HallWay" id="g28-8" inkscape:label="g30">
+    <g class="Space Hallway" id="g28-8" inkscape:label="g30">
       <polygon id="polygon28-2" style="fill:#c9a0dc;fill-opacity:0.35;stroke:#c9a0dc;stroke-width:2" inkscape:label="polygon30" sodipodi:nodetypes="ccccccccc" points="73.1189,209.302 309.705,209.302 309.705,164.431 220.985,164.431 221.312,135.64 196.883,135.64 197.046,165.03 73.1189,164.431 " fill="#c9a0dc" fill-opacity="0.35" stroke="#c9a0dc" stroke-width="2"/>
       
     </g>
-    <g class="Space StairWell" id="g28-8-0-9" inkscape:label="g30">
+    <g class="Space Stair" id="g28-8-0-9" inkscape:label="g30">
       <polygon fill="#a89cc8" fill-opacity="0.35" stroke="#a89cc8" stroke-width="2" id="polygon28-2-0-5" style="fill:#a89cc8;fill-opacity:0.35;stroke:#a89cc8;stroke-opacity:1" inkscape:label="polygon30" points="551.394,117.653 440.551,117.653 440.551,153.486 551.394,153.486 "/>
       
     </g>
@@ -170,4 +170,4 @@
       <polygon id="rect2-0" style="display:inline;fill:#3dbdbd;fill-opacity:0.35;stroke:#3dbdbd;stroke-width:1.92253" sodipodi:nodetypes="ccccccc" points="197.254,87.7737 297.934,86.574 299.734,151.767 235.812,151.767 235.47,123.576 197.254,122.376 "/>
     </g>
   </g>
-<g id="Labels" inkscape:label="Labels"><text x="99" y="91" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="83" y="287" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="376" y="87" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text><text x="208" y="192" font-size="22" text-anchor="middle" fill="#000000">HallWay</text><text x="497" y="144" font-size="22" text-anchor="middle" fill="#000000">StairWell</text><text x="38" y="195" font-size="22" text-anchor="middle" fill="#000000">Storage</text><text x="434" y="260" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="234" y="288" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="248" y="51" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="264" y="127" font-size="22" text-anchor="middle" fill="#000000">Bath</text></g></svg>
+<g id="Labels" inkscape:label="Labels"><text x="99" y="91" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="83" y="287" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="376" y="87" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text><text x="208" y="192" font-size="22" text-anchor="middle" fill="#000000">Hallway</text><text x="497" y="144" font-size="22" text-anchor="middle" fill="#000000">Stair</text><text x="38" y="195" font-size="22" text-anchor="middle" fill="#000000">Storage</text><text x="434" y="260" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="234" y="288" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="248" y="51" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="264" y="127" font-size="22" text-anchor="middle" fill="#000000">Bath</text></g></svg>

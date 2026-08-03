@@ -470,7 +470,7 @@ def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations(
 
 
 def test_floor04_visible_swing_arcs_produce_door_candidates() -> None:
-    image_path = Path(__file__).resolve().parents[1] / "testdata" / "png" / "floor04.png"
+    image_path = Path(__file__).resolve().parents[1] / "testdata" / "png" / "ben_swing_case_04.png"  # 原 floor04.png；cody 圖檔集收斂後該編號已重用於他圖，ben 固定樣張改專屬檔名保存
 
     analysis = analyze_floorplan_image(
         image_path.read_bytes(),
@@ -539,7 +539,7 @@ def test_floor04_visible_swing_arcs_produce_door_candidates() -> None:
 
 
 def test_floor04_swing_detector_supplements_a_partial_legacy_result(monkeypatch) -> None:
-    image_path = Path(__file__).resolve().parents[1] / "testdata" / "png" / "floor04.png"
+    image_path = Path(__file__).resolve().parents[1] / "testdata" / "png" / "ben_swing_case_04.png"  # 原 floor04.png；cody 圖檔集收斂後該編號已重用於他圖，ben 固定樣張改專屬檔名保存
     monkeypatch.setattr(
         cody,
         "detect_doors",

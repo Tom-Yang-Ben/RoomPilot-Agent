@@ -112,7 +112,7 @@ def test_semantic_updates_uncertain_icons_but_not_heuristic_types() -> None:
     ]
     applied = apply_floorplan2room_labels(
         rooms,
-        _semantics([{"label": "living", "label_zh": "客廳", "area_m2": 42.0,
+        _semantics([{"label": "LivingRoom", "label_zh": "客廳", "area_m2": 42.0,
                      "bbox": [0, 0, 50, 50]}]),
         image_width=100,
         image_height=100,
@@ -151,7 +151,7 @@ def test_rooms_outside_every_semantic_bbox_are_left_alone() -> None:
     ]
     applied = apply_floorplan2room_labels(
         rooms,
-        _semantics([{"label": "living", "label_zh": "客廳", "area_m2": 42.0,
+        _semantics([{"label": "LivingRoom", "label_zh": "客廳", "area_m2": 42.0,
                      "bbox": [0, 0, 50, 50]}]),
         image_width=100,
         image_height=100,
@@ -169,7 +169,7 @@ def test_semantic_bbox_is_rescaled_when_pipeline_upscaled_the_image() -> None:
     ]
     applied = apply_floorplan2room_labels(
         rooms,
-        _semantics([{"label": "bath", "label_zh": "浴廁", "area_m2": 4.0,
+        _semantics([{"label": "Bath", "label_zh": "浴廁", "area_m2": 4.0,
                      "bbox": [0, 0, 100, 100]}], width=200, height=200),
         image_width=100,
         image_height=100,
@@ -206,7 +206,7 @@ def test_polygon_cm_rooms_are_matched_via_plan_bbox_and_scale() -> None:
     # 質心 (50,50) cm → 像素 (200 + 50, 300 - 50) = (250, 250)
     applied = apply_floorplan2room_labels(
         rooms,
-        _semantics([{"label": "kitchen", "label_zh": "廚房", "area_m2": 8.0,
+        _semantics([{"label": "Kitchen", "label_zh": "廚房", "area_m2": 8.0,
                      "bbox": [200, 200, 300, 300]}], width=400, height=400),
         image_width=400,
         image_height=400,
@@ -227,7 +227,7 @@ def test_polygon_cm_rooms_need_both_plan_bbox_and_scale() -> None:
          "source": "cody_wall_enclosure",
          "polygon_cm": [{"x": 0.0, "y": 0.0}, {"x": 100.0, "y": 100.0}]},
     ]
-    semantics = _semantics([{"label": "kitchen", "label_zh": "廚房", "area_m2": 8.0,
+    semantics = _semantics([{"label": "Kitchen", "label_zh": "廚房", "area_m2": 8.0,
                              "bbox": [0, 0, 400, 400]}], width=400, height=400)
 
     assert apply_floorplan2room_labels(
@@ -287,7 +287,7 @@ def test_area_rule_fallback_must_not_overwrite_a_confident_type() -> None:
     ]
     applied = apply_floorplan2room_labels(
         rooms,
-        _sem_with_source([{"label": "bed", "label_zh": "臥室", "area_m2": 12.0,
+        _sem_with_source([{"label": "Bedroom", "label_zh": "臥室", "area_m2": 12.0,
                            "bbox": [0, 0, 50, 50]}], "area_rules"),
         image_width=100,
         image_height=100,
@@ -306,7 +306,7 @@ def test_area_rule_fallback_still_fills_rooms_with_no_type() -> None:
     ]
     applied = apply_floorplan2room_labels(
         rooms,
-        _sem_with_source([{"label": "bed", "label_zh": "臥室", "area_m2": 12.0,
+        _sem_with_source([{"label": "Bedroom", "label_zh": "臥室", "area_m2": 12.0,
                            "bbox": [0, 0, 50, 50]}], "area_rules"),
         image_width=100,
         image_height=100,
@@ -324,7 +324,7 @@ def test_true_semantics_may_overwrite_a_confident_type() -> None:
     ]
     applied = apply_floorplan2room_labels(
         rooms,
-        _sem_with_source([{"label": "bed", "label_zh": "臥室", "area_m2": 12.0,
+        _sem_with_source([{"label": "Bedroom", "label_zh": "臥室", "area_m2": 12.0,
                            "bbox": [0, 0, 50, 50]}], "dinov2_semantic"),
         image_width=100,
         image_height=100,
