@@ -476,6 +476,84 @@ def test_low_furniture_cannot_block_the_balcony_opening_either():
     assert not in_front_of_opening, f"電視櫃 ({x:.0f},{z:.0f}) 擋住落地窗通行縫"
 
 
+def test_whole_house_final_validation_passes_furniture_in_every_room():
+    """最終確認(進即時寫實)是「無 placement_room_id 的整屋 validate_only」:
+    柵格對格外一律視為阻擋,邊界必須用所有房的聯集 —— 否則最大房以外的
+    家具全數被誤殺,畫面卡在原步驟且配置全亂(使用者實際回報的按鈕災情)。"""
+    from backend.server.scene_service import (
+        _region_boundary_by_id,
+        _regions_boundary,
+        generate_layout,
+    )
+    from backend.agent.place import placement_hints
+
+    two_rooms = {
+        "coordinate_unit": "cm",
+        "width_cm": _TWO_ROOM_W,
+        "depth_cm": _TWO_ROOM_D,
+        **{k: v for k, v in _TWO_ROOM_FLOORPLAN.items() if k != "coordinate_unit"},
+    }
+    room = _rect_room(_TWO_ROOM_W, _TWO_ROOM_D)
+    placed = []
+    for room_id, items in (
+        ("left", [_item("bed", "bed", 160, 200, h=120.0, placement_room_id="left")]),
+        ("right", [
+            _item("sofa", "sofa", 200, 90, h=96.0, placement_room_id="right"),
+            _item("book", "bookcase", 80, 35, h=200.0, placement_room_id="right"),
+        ]),
+    ):
+        boundary = _region_boundary_by_id(two_rooms, room, room_id)
+        placed.extend(generate_layout(
+            _TWO_ROOM_W, _TWO_ROOM_D, items, room=room,
+            regions_boundary=_regions_boundary(two_rooms, room),
+            place_boundary=boundary, floorplan=two_rooms,
+            hints=placement_hints(items),
+        ))
+    assert all(not obj["placement_failed"] for obj in placed)
+
+    locked = [{**obj, "position_locked": True} for obj in placed]
+    validated = generate_layout(
+        _TWO_ROOM_W, _TWO_ROOM_D, locked, room=room,
+        regions_boundary=_regions_boundary(two_rooms, room),
+        place_boundary=_regions_boundary(two_rooms, room),   # 整屋聯集(修正點)
+        floorplan=two_rooms,
+        hints=placement_hints(locked),
+        validate_only=True,
+    )
+    for original, checked in zip(locked, validated):
+        assert not checked["placement_failed"], (
+            f"{checked['furniture_id']} 在整屋最終驗證被誤殺:{checked['placement_reason']}"
+        )
+        assert checked["position_cm"] == original["position_cm"]
+
+
+def test_curtain_may_hang_on_the_balcony_opening_but_sofa_may_not():
+    """窗簾本來就掛在窗上:落地窗的 75cm 通行縫不適用於窗簾,
+    但沙發等家具仍不得擋。"""
+    from backend.agent.place import placement_hints
+    from backend.server.scene_service import generate_layout_by_room as _by_room
+
+    curtain = _item("curtain", "curtain", 140, 12, h=240.0, placement_room_id="living")
+    curtain["position_cm"] = {"x": -115.0, "z": 178.0}   # 貼在下牆偏左開口上
+    curtain["rotation_y_deg"] = 0.0
+    curtain["position_locked"] = True
+    sofa = _item("sofa", "sofa", 200, 90, h=96.0, placement_room_id="living")
+    sofa["position_cm"] = {"x": -115.0, "z": 137.0}
+    sofa["rotation_y_deg"] = 180.0
+    sofa["position_locked"] = True
+    objects = _by_room(
+        450.0, 380.0, [curtain, sofa],
+        room=_rect_room(450.0, 380.0),
+        floorplan=_BALCONY_OPENING_FLOORPLAN,
+    )
+    by_id = {obj["furniture_id"]: obj for obj in objects}
+    assert not by_id["curtain"]["placement_failed"]
+    assert by_id["curtain"]["position_cm"] == {"x": -115.0, "z": 178.0}
+    # 沙發壓開口:鎖定位置不合法 → 被重排離開(或標失敗),不得原地保留
+    sofa_result = by_id["sofa"]
+    assert sofa_result["placement_failed"] or sofa_result["position_cm"] != {"x": -115.0, "z": 137.0}
+
+
 def test_validate_rejects_sofa_on_balcony_opening_but_allows_plain_window():
     from backend.server.scene_service import validate_single_placement
 

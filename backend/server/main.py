@@ -2577,8 +2577,12 @@ async def scene_layout(payload: dict) -> dict:
     placement_variant = str(payload.get("placement_variant") or "A").upper()
     if placement_variant not in {"A", "B"}:
         placement_variant = "A"
+    # 指定房間 → 該房邊界;整屋呼叫(最終確認驗證、全屋鎖定覆核)→ 所有房
+    # 的聯集。柵格對「格外」一律視為阻擋,聯集才不會把最大房以外的家具
+    # 全數誤殺;無房型資料才退回最大區域(手動矩形模式)。
     place_boundary = (
         _region_boundary_by_id(floorplan, room, placement_room_id)
+        or _regions_boundary(floorplan, room)
         or _largest_region_boundary(floorplan, room)
     )
     return {
@@ -2702,8 +2706,12 @@ async def scene_decorate(payload: dict) -> dict:
         room = room_from_payload(floorplan)
 
     placement_room_id = payload.get("placement_room_id")
+    # 指定房間 → 該房邊界;整屋呼叫(最終確認驗證、全屋鎖定覆核)→ 所有房
+    # 的聯集。柵格對「格外」一律視為阻擋,聯集才不會把最大房以外的家具
+    # 全數誤殺;無房型資料才退回最大區域(手動矩形模式)。
     place_boundary = (
         _region_boundary_by_id(floorplan, room, placement_room_id)
+        or _regions_boundary(floorplan, room)
         or _largest_region_boundary(floorplan, room)
     )
     region = next(
