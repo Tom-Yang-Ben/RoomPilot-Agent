@@ -554,6 +554,65 @@ def test_curtain_may_hang_on_the_balcony_opening_but_sofa_may_not():
     assert sofa_result["placement_failed"] or sofa_result["position_cm"] != {"x": -115.0, "z": 137.0}
 
 
+def test_seating_beside_a_plain_window_passes_final_validation():
+    """座椅豁免窗前採光帶:餐椅椅背常 ≥90cm,會誤中「高家具擋光」判準,
+    但椅子不是量體 —— 貼桌餐椅靠窗必須通過最終驗證;高量體(衣櫃)同位
+    仍要擋。座椅擋落地窗出入口也照樣不行。"""
+    window_floorplan = {
+        "coordinate_unit": "cm",
+        "width_cm": 450.0,
+        "depth_cm": 380.0,
+        "room_regions": [{
+            "room_id": "kitchen",
+            "room_type": "kitchen",
+            "exterior": [[-225, -190], [225, -190], [225, 190], [-225, 190]],
+            "holes": [],
+        }],
+        "window_segments": [
+            {
+                "start": {"x": -60, "z": 190},
+                "end": {"x": 60, "z": 190},
+                "window_type": "standard",
+                "sill_height_cm": 90,
+            },
+        ],
+    }
+
+    from backend.server.scene_service import _regions_boundary
+
+    room = _rect_room(450.0, 380.0)
+
+    def _validated(ftype, w, d, h, floorplan):
+        item = _item("probe", ftype, w, d, h=h, placement_room_id="kitchen")
+        item["position_cm"] = {"x": 0.0, "z": 160.0}    # 貼窗牆、壓進 40cm 採光帶
+        item["rotation_y_deg"] = 0.0
+        item["position_locked"] = True
+        boundary = _regions_boundary(floorplan, room)
+        return generate_layout(
+            450.0, 380.0, [item], room=room,
+            regions_boundary=boundary, place_boundary=boundary,
+            floorplan=floorplan, validate_only=True,
+        )[0]
+
+    chair = _validated("dining-chair", 45, 50, 95.0, window_floorplan)
+    assert chair["placement_failed"] is False
+    assert chair["position_cm"] == {"x": 0.0, "z": 160.0}
+    wardrobe = _validated("wardrobe", 100, 60, 200.0, window_floorplan)
+    assert wardrobe["placement_failed"] is True
+    assert "窗前淨空" in wardrobe["placement_reason"] or "門前動線" in wardrobe["placement_reason"]
+
+    access = {
+        **window_floorplan,
+        "window_segments": [{
+            "start": {"x": -60, "z": 190},
+            "end": {"x": 60, "z": 190},
+            "window_type": "floor_to_ceiling",
+        }],
+    }
+    blocked = _validated("dining-chair", 45, 50, 95.0, access)
+    assert blocked["placement_failed"] is True   # 出入口誰都不能擋
+
+
 def test_validate_rejects_sofa_on_balcony_opening_but_allows_plain_window():
     from backend.server.scene_service import validate_single_placement
 

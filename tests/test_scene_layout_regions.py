@@ -38,8 +38,9 @@ def test_window_clearance_rejects_furniture_in_front_of_confirmed_window() -> No
         [],
     )
 
+    # 落地窗是出入動線:即使是座椅(一般窗採光帶已豁免座椅)也不得擋
     assert result["ok"] is False
-    assert "窗戶" in result["reason"]
+    assert "落地窗" in result["reason"]
 
 
 def test_relayout_endpoint_pairs_tv_bench_opposite_the_sofa() -> None:

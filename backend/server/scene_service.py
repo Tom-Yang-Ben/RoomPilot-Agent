@@ -1202,6 +1202,11 @@ def _floorplan_coordinate_scale_cm(floorplan: dict[str, Any] | None) -> float:
 # 若日後窗資料帶窗台高,改依高度判。
 _WINDOW_CLEARANCE_EXEMPT_TYPES = {
     "curtain", "sofa", "fabric-sofa", "leather-sofa", "modular-sofa", "sofa-bed",
+    # 座椅類:椅背常 ≥90cm 會誤中「高家具擋光」判準,但椅子不是量體、
+    # 不擋光,靠窗擺椅是正常設計(feedback:貼桌餐椅被採光帶誤殺)。
+    # 仍受房界、門前動線與落地窗通行縫約束 —— 擋門擋出入口照樣不行。
+    "dining-chair", "office-chair", "gaming-chair", "stool-bench",
+    "armchair", "lounge-chair",
 }
 
 
@@ -1473,7 +1478,8 @@ def _is_access_window(opening: dict[str, Any]) -> bool:
     沙發豁免與矮家具(電視櫃)通行都不適用。無型別資料(DXF 舊圖)一律
     當一般窗,行為與過去相同。
     """
-    if opening.get("window_type") == "floor_to_ceiling":
+    window_type = str(opening.get("window_type") or "").replace("-", "_")
+    if window_type == "floor_to_ceiling":
         return True
     try:
         return float(opening["sill_height_cm"]) <= 15.0
@@ -2189,7 +2195,8 @@ def generate_layout(
             if lenient_boundary is not None:
                 lenient_boundary = lenient_boundary.buffer(12)
             lock_rot = float(item.get("rotation_y_deg") or 0)
-            legal = _inside_boundary(candidate, lenient_boundary) and raster_free(
+            inside_ok = _inside_boundary(candidate, lenient_boundary)
+            raster_ok = inside_ok and raster_free(
                 raster, item_type, width, depth, height,
                 float(item["position_cm"].get("x") or 0),
                 float(item["position_cm"].get("z") or 0),
@@ -2201,8 +2208,11 @@ def generate_layout(
             rotation = lock_rot
             locked = bool(item.get("position_locked"))
             kept_position = True
-            if not legal:
-                failed_reason = "位置超出房間或壓到門窗淨空,請調整後再確認。"
+            # 訊息分流:使用者才知道該把家具「移回房內」還是「讓開門窗」
+            if not inside_ok:
+                failed_reason = "位置超出房間範圍,請移回房內再確認。"
+            elif not raster_ok:
+                failed_reason = "壓到門前動線、陽台出入口或窗前淨空,請讓開後再確認。"
         elif (item.get("position_locked") or preserve_position) and item.get("position_cm"):
             # 使用者手動擺過:位置仍合法就保留,不重排。
             # 驗證用「所有房間聯集」—— 使用者可能把家具拖到別的房間,重排不能把它踢掉
