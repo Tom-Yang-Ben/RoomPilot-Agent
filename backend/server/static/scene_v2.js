@@ -41,7 +41,7 @@ import {
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
-} from "./scene_furniture_retrieval.js?v=sha256-735762d2e6ca";
+} from "./scene_furniture_retrieval.js?v=sha256-222deaca47ed";
 import {
   WHOLE_HOUSE_QUESTIONS,
 } from "./scene_requirements.js?v=sha256-b4b03dbe76aa";
