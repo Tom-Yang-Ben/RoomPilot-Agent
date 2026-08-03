@@ -2,7 +2,8 @@
 """seg_head — 監督式分割頭的語意牆帶（色塊分割線，2026-08-03）。
 
 背景：彩色棄守畫風的「近白暗示牆」暗色/白帶偵測都抓不到（帶級三角度
-量測皆低天花板，見 COLOR_PIPELINE_PLAN）。本模組把 DINOv2 patch 特徵
+量測皆低天花板，見 docs/superpowers/specs/2026-08-03-seg-head-design.md）。
+本模組把 DINOv2 patch 特徵
 ＋線性頭（19 張彩 dev GT 訓練，LOIO patch AUC 0.974）的機率圖轉成
 「低機率脊線＝語意牆帶」，餵給白牆救援 flood——門洞由既有門尺寸縫
 封口機制處理，語意層只補牆證據。

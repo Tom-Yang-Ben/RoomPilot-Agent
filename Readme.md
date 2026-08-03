@@ -60,7 +60,8 @@ kstove/ksink/tub/wc/bed/chair 啟用（逐類 chamfer 門檻
 `CH_THR_BY_KIND`）、basin 以 7 條模板白名單外科啟用、tub 黑名單
 2 條；sofa/wardrobe/dtable P≤0.5 續停。比對為「各自門檻內最佳者
 勝出」。專案核心 5 類（Kitchen/LivingRoom/Bedroom/Storage/Bath＝
-實際進 RAG→AI 設計流程的空間）現況見 `SEG_FAILURE_ANALYSIS.md`。
+實際進 RAG→AI 設計流程的空間）現況見下方 changelog 最新版本節的
+標準口徑表；歷程歸因見 `docs/superpowers/plans/2026-08-01-seg-attribution.md`。
 
 ## 房型詞彙（10 類，2026-08-01 定案）
 
@@ -168,7 +169,8 @@ floor74/76 的走道沿著外牆走卻沒有對外的門。門位取樣沿用
   自 70.2%/76.4% 起，開發保留同步爬升差距 1.4pp 無過擬合。殘餘：
   floor02 圍欄線在細線層缺失、floor13/09 整圖零符號（Hough/細線
   品質）、floor64 中距開口、無證據玄關。
-  詳見 `SEG_FAILURE_ANALYSIS.md` 與 `docs/superpowers/plans/2026-08-01-seg-attribution.md`
+  詳見 `docs/superpowers/plans/2026-08-01-seg-attribution.md`
+  （原 `SEG_FAILURE_ANALYSIS.md` 已隨收尾移除，內容見 git 歷史與 changelog）
 - `Garage` 在答案集中 0 樣本，該類無法量測、線性頭該通道未經訓練
 - ~~color 集 104 個 `Undefined` 待人工逐一標注~~ **2026-08-02 已全數
   人工審定完成**（28 張 214 間 0 Undefined；重複的 color_floor_11 與
