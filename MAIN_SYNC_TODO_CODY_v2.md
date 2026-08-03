@@ -1,4 +1,4 @@
-# MAIN_SYNC_TODO_CODY_v2 — ben 分支配合修改清單（cody-dev 2026-08-03 合併輪）
+# MAIN_SYNC_TODO_CODY_v2 — ben 分支配合修改清單（cody-dev 2026-08-03 終版交付輪）
 
 > 2026-08-03 由 `cody-dev` 分支發起。前一輪（v1）為 2026-07-30 的
 > `MAIN_SYNC_TODO.md`（其成果已由 ben 於 a8f8b1ea／620698b9 吸收）；
@@ -7,11 +7,20 @@
 > （COLOR_PIPELINE_PLAN.md／SEG_FAILURE_ANALYSIS.md）與研發文檔已自 cody
 > 移除，歷程見 cody 分支 git 歷史與 `docs/CODY_PIPELINE_README.md` changelog。
 > 終版交付面的完整檔案清單見第 6 節。
+>
+> **基底更新（2026-08-03 下午）**：ben 於本輪發起後推進 30+ 個產品線
+> commit（帳戶系統/JWT、scene 與路由工廠化重構、死鏈清理、候選集接線），
+> cody-dev 已重建於新基底 `ee2cdd3d`。實測 ben 新變更與辨識交集面**零重疊**
+> （唯一鄰接檔 tests/test_cody4_3d_gate.py 為路徑收斂重構，合併後全綠）；
+> 新增依賴 PyJWT 已入 ben 的 requirements。
 
 ## 這份文件怎麼用
 
-`cody-dev` 是以 `ben`（ffd38968）為基底、疊上 cody v2.33 辨識管線的分支。
-衝突 173 處逐處裁定，準則沿用上輪：**保留 ben 的產品能力、採用 cody 的管線
+`cody-dev` 是以 `ben`（`ee2cdd3d`）為基底、疊上 cody v2.33 終版
+（`4f6c7e47`）辨識管線的分支。合併拓撲＝兩步：先重放前一基底輪的
+173 處衝突裁定（merge `fffa6630`，與 ben 新工作零衝突自動合併），再併
+cody 終版 9 commit（merge `bdca303d`，衝突 9 處全為 training 終版刪除
+與設定檔歸屬）。準則沿用：**保留 ben 的產品能力、採用 cody 的管線
 進展**。所有「已完成／已改」皆為 `cody-dev` 當前提交的實際狀態，可用
 `git diff ben cody-dev` 逐項核對。
 
@@ -113,6 +122,12 @@ python backend/floorplan/eval_windows.py           # 窗評分
 6. **答案集**：28 張彩色 214 間全人工審定（0 Undefined）；灰階答案卷
    標籤修正；圖檔集收斂 44→37 張（無人工答案的圖退場，不參與計分）。
 7. 房型詞彙統一 10 類 CamelCase（6300e9e0，見 3.2）。
+8. **授權衛生（2026-08-03 終版）**：GT 解析器 svg_poly 依 W3C SVG 規格
+   獨立重寫（重寫不讀原函式本體，等價性以全答案卷 63 檔 439 群組新舊
+   逐位元對拍驗證）；CubiCasa5k 第三方 checkout 依賴歸零（回讀驗證改
+   自家 verify_draft）；過時的 CubiCasa 微調權重 GitHub Release
+   （weights-v5，199MB）已刪除。產品與研發鏈均零 CC BY-NC 成分，
+   歷程完整保留於 changelog v2.20/v2.21 與 git 歷史備查。
 
 ## 3. 衝突裁定與 ben 端配套修改（本節全部需 ben 覆核）
 
@@ -200,10 +215,12 @@ Bath/Entry/Storage/Garage/Hallway/Stair/Balcony`＋中性 `room`
 - [ ] **灰階 doors 換源驗收**：json 門位從弧掃描（R 0.17）換成牆縫門位
       （R 0.81），但 zones 路**沒有鉸鏈/開向資訊**（hinge_px 由 ben 端
       swing 後備補）。`scene_service.py` 門渲染與 3D 白模請實測一輪。
-- [ ] **在 ben 環境跑完整測試套件**：cody 環境缺 psycopg2 等產品依賴，
-      本輪在 cody-dev 上驗了辨識相關 tests/ 測試全綠（training/ 已依終版
-      裁定整目錄刪除，其 234 項回歸測試留在 cody 分支繼續看家）。
-      catalog/server/engine 側請 ben 端自跑。
+- [ ] **在 ben 環境跑完整測試套件覆核**：本輪已在同一環境做過全套件
+      A/B——cody-dev 與新基底 ben 同為 101 failed／827 passed，失敗
+      清單**逐項一致**（101 項皆環境性：DB/靜態資產/憑證，ben 端環境
+      才跑得動），合併回歸零。辨識相關 100 測試全綠。training/ 已依
+      終版裁定整目錄刪除，其 226 項回歸留在 cody 分支繼續看家；
+      ben 端請在自己環境把 101 項環境性失敗跑綠做最終覆核。
 - [ ] **torch 依賴決策落地確認**：雙頭與分割頭都吃 torch；缺 torch 時
       房型退面積規則、分割頭停用（皆出聲）。requirements.txt 註記已更新，
       部署程序是否預裝 torch 請 ben 確認。
