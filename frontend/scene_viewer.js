@@ -1644,19 +1644,17 @@ export function createSceneViewer(
         roomGroupRef.add(registerWall(wallMesh));
       };
 
-      const trimMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0xf5f1ea,
-        roughness: 0.62,
-        metalness: 0,
-        clearcoat: 0.08,
-        clearcoatRoughness: 0.68,
-      });
       const addBaseboard = (from, to) => {
         if (to - from < 4) return;
         const center = (from + to) / 2;
+        // 踢腳板跟著牆面材質走，厚度只多 0.2 貼牆；固定色或外凸都會在
+        // 每面牆腳掛出一條異色帶。
+        const trimMaterials = typeof wallMaterial.faceMaterials === "function"
+          ? wallMaterial.faceMaterials(segment, exteriorSideSign)
+          : material.clone();
         const trim = new THREE.Mesh(
-          new THREE.BoxGeometry(to - from, 7.5, wallThickness + 2.2),
-          trimMaterial,
+          new THREE.BoxGeometry(to - from, 7.5, wallThickness + 0.2),
+          trimMaterials || material.clone(),
         );
         trim.position.set(
           Number(start.x) + unitX * center,
@@ -1841,6 +1839,7 @@ export function createSceneViewer(
     wallHeight,
     wallThickness,
     surfaceCatalog = null,
+    floorplan = null,
   ) {
     [
       ...doorSegments.map((opening) => ({ opening, kind: "door" })),
@@ -1886,6 +1885,21 @@ export function createSceneViewer(
       const sillHeight = isWindow
         ? windowMetrics.sillHeightCm
         : 0;
+      // 門楣/窗台補牆要跟兩側的牆同色：能拿到 faceMaterials 就按面解析
+      // （外牆側用固定外牆材質，室內側採樣所屬房間），拿不到才退回單一材質。
+      const openingSectionMaterials = () => {
+        if (typeof wallMaterial?.faceMaterials === "function" && measuredWidth >= 4) {
+          const sign = exteriorWallOutwardSideSign(
+            opening,
+            floorplan || {},
+            dx / measuredWidth,
+            dz / measuredWidth,
+          );
+          const materials = wallMaterial.faceMaterials(opening, sign);
+          if (materials) return materials;
+        }
+        return openingWallMaterial.clone();
+      };
       const addOpeningWallSection = (bottom, height, detail) => {
         if (height < 2.5) return;
         const section = new THREE.Mesh(
@@ -1894,7 +1908,7 @@ export function createSceneViewer(
             height,
             wallThickness,
           ),
-          openingWallMaterial.clone(),
+          openingSectionMaterials(),
         );
         section.position.set(
           (Number(start.x || 0) + Number(end.x || 0)) / 2,
@@ -2391,7 +2405,13 @@ export function createSceneViewer(
   }
 
   function wallMaterialResolver(sceneData, defaultMaterial, exteriorMaterial = defaultMaterial) {
-    const overrides = sceneData.surface_overrides || [];
+    // 問卷自動存檔會讓同一房間出現多筆 surface_overrides，只有最新那筆算數。
+    const canonicalOverrides = new Map();
+    (sceneData.surface_overrides || []).forEach((override) => {
+      const roomId = String(override?.room_id || "").trim();
+      if (roomId) canonicalOverrides.set(roomId, override);
+    });
+    const overrides = [...canonicalOverrides.values()];
     const cache = new Map();
     const firstOverride = overrides[0] || null;
     const usesOneWholeHouseWall = Boolean(firstOverride) && overrides.every((override) => (
@@ -2416,12 +2436,40 @@ export function createSceneViewer(
         point.z - (Number(start.z) + projection * dz),
       );
     };
-    const overrideAtPoint = (point) => overrides.findLast((item) => {
+    const distanceToRoomBoundary = (point, override) => {
+      const polygon = override.room_polygon_cm || [];
+      if (polygon.length >= 3) {
+        return polygon.reduce((nearest, current, index) => {
+          const next = polygon[(index + 1) % polygon.length];
+          const start = ringPointCoordinates(current);
+          const end = ringPointCoordinates(next);
+          return (!start || !end)
+            ? nearest
+            : Math.min(nearest, pointToSegmentDistance(point, start, end));
+        }, Infinity);
+      }
+      const bounds = override.room_bounds_cm;
+      if (!bounds) return Infinity;
+      const nearestX = THREE.MathUtils.clamp(point.x, Number(bounds.minX), Number(bounds.maxX));
+      const nearestZ = THREE.MathUtils.clamp(point.z, Number(bounds.minZ), Number(bounds.maxZ));
+      return Math.hypot(point.x - nearestX, point.z - nearestZ);
+    };
+    const containedOverrideAtPoint = (point) => overrides.findLast((item) => {
       const polygon = item.room_polygon_cm || [];
       return polygon.length >= 3
         ? ringContainsPoint(point, polygon)
         : (item.room_bounds_cm && pointInBounds(point, item.room_bounds_cm, 18));
     });
+    const overrideAtPoint = (point) => {
+      const exact = containedOverrideAtPoint(point);
+      if (exact) return exact;
+      // 牆面就貼在房界上，辨識多邊形又常漂移幾公分；找不到就取最近房界的
+      // 房間，不掉回預設材質——「這面牆顏色跟鄰居不一樣」多半是這個 fallback。
+      const nearest = overrides
+        .map((item) => ({ item, distance: distanceToRoomBoundary(point, item) }))
+        .sort((left, right) => left.distance - right.distance)[0];
+      return nearest && nearest.distance <= 28 ? nearest.item : undefined;
+    };
     const materialForOverride = (override) => {
       if (!override) return defaultMaterial;
       const cacheKey = override.room_id;
@@ -2477,12 +2525,21 @@ export function createSceneViewer(
       const positiveSide = materialForSide(1);
       const negativeSide = materialForSide(-1);
       const interior = resolveWallMaterial(segment);
+      // BoxGeometry 的 slots 0/1 是牆的兩個端帽；留在中點材質會在房角露出
+      // 一條淡色接縫，帶相鄰側面的材質讓連續牆讀起來是同一個面。
       const materials = [
-        interior.clone(), interior.clone(), interior.clone(),
+        positiveSide.clone(), negativeSide.clone(), interior.clone(),
         interior.clone(), positiveSide.clone(), negativeSide.clone(),
       ];
       return materials;
     };
+    // 連續牆體一團會鄰接多個房間，逐三角形採樣時只認「點真的在房間裡」，
+    // 不用 28cm 容錯——側面採樣點在房內 16cm 深，不需要；外牆側則必須
+    // 落空維持全屋預設（外牆固定材質是既有契約）。
+    resolveWallMaterial.materialAtPoint = (point) => materialForOverride(
+      containedOverrideAtPoint(point),
+    );
+    resolveWallMaterial.defaultMaterial = defaultMaterial;
     resolveWallMaterial.exteriorMaterial = exteriorMaterial;
     return resolveWallMaterial;
   }
@@ -2744,12 +2801,58 @@ export function createSceneViewer(
     return shape;
   }
 
+  // 連續牆體是一整團多邊形，同一團會鄰接好幾個房間，套不進 BoxGeometry 的
+  // 六個材質槽。改成逐三角形：側面沿法線外推 16cm 採樣，落在哪個房間就用
+  // 那個房間的牆材質；頂/底蓋與沒採到房間的面（外牆側、團與團之間）維持
+  // 全屋預設。幾何仍是後端開槽的 wall_polys，這裡只決定顯示材質。
+  function assignRoomFacesToWallMass(geometry, materials, resolver) {
+    const positions = geometry.attributes.position;
+    const normals = geometry.attributes.normal;
+    if (!positions || !normals || geometry.index) return;
+    const slotByMaterial = new Map();
+    const triangleCount = Math.floor(positions.count / 3);
+    const slotForTriangle = (triangle) => {
+      const base = triangle * 3;
+      // Extrude 幾何的 shape 平面是 (x, −z)（見 polygonShape），擠出方向
+      // +z 經 rotation.x = −π/2 轉成世界的 +y；側面法線 z 分量為 0，
+      // 頂/底蓋是 ±1。
+      if (Math.abs(normals.getZ(base)) > 0.5) return 0;
+      const centroidX = (positions.getX(base) + positions.getX(base + 1) + positions.getX(base + 2)) / 3;
+      const centroidY = (positions.getY(base) + positions.getY(base + 1) + positions.getY(base + 2)) / 3;
+      const sample = {
+        x: centroidX + normals.getX(base) * 16,
+        z: -(centroidY + normals.getY(base) * 16),
+      };
+      const resolved = resolver.materialAtPoint(sample);
+      if (!resolved || resolved === resolver.defaultMaterial) return 0;
+      if (!slotByMaterial.has(resolved)) {
+        slotByMaterial.set(resolved, materials.length);
+        materials.push(resolved.clone());
+      }
+      return slotByMaterial.get(resolved);
+    };
+    geometry.clearGroups();
+    let runStart = 0;
+    let runSlot = slotForTriangle(0);
+    for (let triangle = 1; triangle < triangleCount; triangle += 1) {
+      const slot = slotForTriangle(triangle);
+      if (slot === runSlot) continue;
+      geometry.addGroup(runStart * 3, (triangle - runStart) * 3, runSlot);
+      runStart = triangle;
+      runSlot = slot;
+    }
+    geometry.addGroup(runStart * 3, (triangleCount - runStart) * 3, runSlot);
+    if (materials.length === 1) geometry.clearGroups();
+  }
+
   function buildWallMass(roomGroupRef, floorplan, material, wallHeight) {
     const wallMassRegions = (floorplan?.wall_polys || []).filter(
       (region) => region?.exterior?.length >= 3,
     );
     if (!wallMassRegions.length) return false;
 
+    const isResolver = typeof material === "function";
+    const baseMaterial = isResolver ? material.defaultMaterial : material;
     wallMassRegions.forEach((region) => {
       const shape = polygonShape(region, true);
       if (!shape) return;
@@ -2759,7 +2862,14 @@ export function createSceneViewer(
         curveSegments: 1,
       });
       geometry.computeVertexNormals();
-      const wallMass = new THREE.Mesh(geometry, material.clone());
+      const materials = [baseMaterial.clone()];
+      if (isResolver && typeof material.materialAtPoint === "function") {
+        assignRoomFacesToWallMass(geometry, materials, material);
+      }
+      const wallMass = new THREE.Mesh(
+        geometry,
+        materials.length > 1 ? materials : materials[0],
+      );
       wallMass.rotation.x = -Math.PI / 2;
       wallMass.userData.roompilotArchitecturalDetail = "continuous-wall-mass";
       wallMass.userData.roompilotWallHeightAxis = "z";
@@ -2962,12 +3072,15 @@ export function createSceneViewer(
     // 擠出連續牆體，開口上下的牆由 door-wall-header／window-wall-* 補回；
     // DXF 的 wall_polys 沒開槽，維持「無開口才走 mass」的舊閘門。
     const wallPolysOpeningsCut = sceneData.floorplan?.wall_polys_openings_cut === true;
+    // 逐房牆材質對三條路徑都要生效：連續牆體、門窗補牆、逐段 fallback。
+    // 只建一次，材質快取（每房一份）才會被共用。
+    const roomWallMaterial = wallMaterialResolver(sceneData, wallMaterial, exteriorWallMaterial);
     const builtWallMass = !singleRoomMode && hasAccurateFloorplan
       && (!hasWallOpenings || wallPolysOpeningsCut)
       ? buildWallMass(
         roomGroup,
         sceneData.floorplan,
-        wallMaterial,
+        roomWallMaterial,
         wallHeight,
       )
       : false;
@@ -2984,16 +3097,17 @@ export function createSceneViewer(
         roomGroup,
         doorSegments,
         windowSegments,
-        wallMaterial,
+        roomWallMaterial,
         wallHeight,
         wallThickness,
         sceneData.surface_catalog,
+        sceneData.floorplan,
       );
     } else if (!builtWallMass && !singleRoomMode && wallSegments.length >= 2) {
       buildSegmentWalls(
         roomGroup,
         wallSegments,
-        wallMaterialResolver(sceneData, wallMaterial, exteriorWallMaterial),
+        roomWallMaterial,
         wallHeight,
         wallThickness,
         doorSegments,
