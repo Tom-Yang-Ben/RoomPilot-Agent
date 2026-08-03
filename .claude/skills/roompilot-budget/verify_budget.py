@@ -66,6 +66,16 @@ def main(argv: list[str]) -> int:
     failures: list[str] = []
     checks: list[str] = []
 
+    # 0. 文件骨架：少了 meta charset，file:// 開啟時中文會變亂碼。
+    #    HTTP 供應時有 content-type header 撐著看不出來，存成檔案交付就現形。
+    lowered = document.lower()
+    if 'charset="utf-8"' in lowered or "charset=utf-8" in lowered:
+        checks.append("文件編碼宣告：meta charset=utf-8 ✓")
+    else:
+        failures.append("缺少 <meta charset=\"utf-8\">，用 file:// 開啟會出現亂碼")
+    if not lowered.lstrip().startswith("<!doctype html>"):
+        failures.append("缺少 <!doctype html>，瀏覽器會進入 quirks mode")
+
     def compare(label: str, expected, actual, formatter=str) -> None:
         if expected is None and actual is None:
             checks.append(f"{label}：兩邊皆無")

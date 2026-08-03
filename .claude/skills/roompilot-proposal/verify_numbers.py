@@ -136,6 +136,12 @@ def main(argv: list[str]) -> int:
         manual.add(value)
     allowed |= manual
 
+    # 文件骨架：少了 meta charset，file:// 開啟時中文會變亂碼。
+    # HTTP 供應時有 content-type header 撐著看不出來，存成檔案交付就現形。
+    lowered = document.lower()
+    encoding_ok = 'charset="utf-8"' in lowered or "charset=utf-8" in lowered
+    doctype_ok = lowered.lstrip().startswith("<!doctype html>")
+
     text = html_to_text(document)
     unbacked: list[tuple[str, str]] = []
     checked = 0
@@ -163,15 +169,26 @@ def main(argv: list[str]) -> int:
     print(f"文件中檢出數字 {checked} 處，相異值 {len(seen_ok) + len({u[0] for u in unbacked})} 個")
     print()
 
-    if unbacked:
-        print(f"[FAIL] {len(unbacked)} 處數字在 ReportPayload 找不到出處：")
-        for token, context in unbacked:
-            print(f"  - {token}    …{context}…")
-        print()
-        print("這些數字不是從資料來的。改成引用 payload 既有欄位，或刪掉。")
+    structure: list[str] = []
+    if not encoding_ok:
+        structure.append('缺少 <meta charset="utf-8">，用 file:// 開啟會出現亂碼')
+    if not doctype_ok:
+        structure.append("缺少 <!doctype html>，瀏覽器會進入 quirks mode")
+
+    if unbacked or structure:
+        if unbacked:
+            print(f"[FAIL] {len(unbacked)} 處數字在 ReportPayload 找不到出處：")
+            for token, context in unbacked:
+                print(f"  - {token}    …{context}…")
+            print("這些數字不是從資料來的。改成引用 payload 既有欄位，或刪掉。")
+            print()
+        if structure:
+            print(f"[FAIL] 文件骨架 {len(structure)} 項缺失：")
+            for item in structure:
+                print(f"  - {item}")
         return 1
 
-    print("[PASS] 文件中每一個數字都能在 ReportPayload 找到出處。")
+    print("[PASS] 文件中每一個數字都能在 ReportPayload 找到出處，且文件骨架完整。")
     return 0
 
 

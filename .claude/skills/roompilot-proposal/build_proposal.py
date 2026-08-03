@@ -39,73 +39,93 @@ CSS = """
 body {
   margin: 0; padding: 0;
   font-family: "PingFang TC", "Noto Sans TC", "Helvetica Neue", sans-serif;
-  color: #23201c; background: #fbf9f6; line-height: 1.75;
+  color: #2b2520; background: #faf6f0; line-height: 1.8;
   -webkit-font-smoothing: antialiased;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
-.page { max-width: 940px; margin: 0 auto; padding: 0 32px 96px; }
-.hero { padding: 88px 0 40px; border-bottom: 1px solid rgba(0,0,0,.08); }
+.page { max-width: 920px; margin: 0 auto; padding: 0 36px 96px; }
+.hero { padding: 72px 0 44px; }
 .eyebrow {
-  font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
-  color: #8a7f70; margin: 0 0 20px;
+  display: inline-block; font-size: 12px; letter-spacing: .22em;
+  color: #9c6b4a; font-weight: 600; margin: 0 0 24px;
+  padding: 7px 16px; border: 1px solid #e2cfbe; border-radius: 999px;
+  background: #fff;
 }
 .hero h1 {
-  font-size: clamp(30px, 5vw, 46px); line-height: 1.25; margin: 0 0 18px;
-  font-weight: 600; letter-spacing: -.01em;
+  font-size: clamp(34px, 5.5vw, 52px); line-height: 1.22; margin: 0 0 20px;
+  font-weight: 700; letter-spacing: -.015em;
 }
-.hero p.sub { font-size: 18px; color: #5d564d; margin: 0; max-width: 34em; }
-.palette { display: flex; gap: 0; margin: 36px 0 0; border-radius: 4px; overflow: hidden; }
-.palette span { flex: 1; height: 56px; }
-.palette-note { font-size: 12px; color: #8a7f70; margin: 10px 0 0; }
-section { padding: 56px 0; border-bottom: 1px solid rgba(0,0,0,.08); }
-section:last-of-type { border-bottom: 0; }
-h2 {
-  font-size: 13px; letter-spacing: .18em; text-transform: uppercase;
-  color: #8a7f70; font-weight: 600; margin: 0 0 24px;
+.hero p.sub { font-size: 19px; color: #6e6257; margin: 0; max-width: 32em; line-height: 1.9; }
+.palette {
+  display: flex; gap: 0; margin: 40px 0 0; border-radius: 10px; overflow: hidden;
+  box-shadow: 0 10px 28px rgba(70, 48, 30, .16);
 }
-h3 { font-size: 24px; margin: 0 0 14px; font-weight: 600; letter-spacing: -.01em; }
+.palette span { flex: 1; height: 64px; }
+.palette-note { font-size: 12.5px; color: #9a8b7c; margin: 12px 0 0; letter-spacing: .04em; }
+section { padding: 52px 0 12px; }
+section + section, footer { border-top: 1px solid #e9dfd2; }
+h2 { font-size: 13px; letter-spacing: .2em; color: #9c6b4a; font-weight: 700; margin: 0 0 22px; }
+h2::after {
+  content: ""; display: block; width: 34px; height: 3px;
+  background: #9c6b4a; border-radius: 2px; margin-top: 10px;
+}
+h3 { font-size: 26px; margin: 0 0 14px; font-weight: 700; letter-spacing: -.012em; }
 p { margin: 0 0 16px; }
 p:last-child { margin-bottom: 0; }
-.lede { font-size: 17px; max-width: 40em; }
-figure { margin: 0 0 24px; }
+.lede { font-size: 17.5px; color: #4a4038; max-width: 38em; }
+figure { margin: 0 0 26px; }
 figure img {
   width: 100%; max-width: 100%; height: auto; display: block;
-  border-radius: 6px; background: #efeae2;
+  border-radius: 10px; background: #efe7db;
+  box-shadow: 0 8px 24px rgba(70, 48, 30, .12);
 }
-figcaption { font-size: 13px; color: #8a7f70; margin-top: 10px; }
-.room { margin-bottom: 64px; }
-.room:last-child { margin-bottom: 0; }
-.facts { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 14px; }
+figcaption { font-size: 13px; color: #9a8b7c; margin-top: 10px; }
+.room { margin: 20px 0 56px; }
+.room:last-child { margin-bottom: 8px; }
+.facts {
+  width: 100%; border-collapse: collapse; margin-top: 26px; font-size: 14.5px;
+  background: #fff; border: 1px solid #eadfcf;
+}
 .facts th, .facts td {
-  text-align: left; padding: 11px 0; border-bottom: 1px solid rgba(0,0,0,.07);
+  text-align: left; padding: 12px 16px; border-bottom: 1px solid #f0e6d8;
   vertical-align: top;
 }
-.facts th { width: 34%; font-weight: 500; color: #6b6259; }
+.facts th { width: 30%; font-weight: 600; color: #9c6b4a; background: #fbf4ea; }
 .facts tr:last-child th, .facts tr:last-child td { border-bottom: 0; }
-.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 28px; }
-.stat .label { font-size: 12px; letter-spacing: .12em; color: #8a7f70; text-transform: uppercase; }
-.stat .value { font-size: 30px; font-weight: 600; margin-top: 6px; letter-spacing: -.02em; }
-.stat .unit { font-size: 14px; font-weight: 400; color: #6b6259; margin-left: 4px; }
+.summary {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 18px; margin: 6px 0 28px;
+}
+.stat {
+  background: #fff; border: 1px solid #eadfcf; border-radius: 12px;
+  padding: 18px 20px; box-shadow: 0 4px 14px rgba(70, 48, 30, .06);
+}
+.stat .label { font-size: 11.5px; letter-spacing: .14em; color: #9a8b7c; font-weight: 600; }
+.stat .value {
+  font-size: 31px; font-weight: 700; margin-top: 8px; letter-spacing: -.02em;
+  color: #9c6b4a; font-variant-numeric: tabular-nums;
+}
+.stat .unit { font-size: 14px; font-weight: 500; color: #8a7f70; margin-left: 4px; }
 ul { margin: 0; padding-left: 1.2em; }
 li { margin-bottom: 8px; }
 .notice {
-  background: #fdf3e3; border: 1px solid #e8d4ae; border-radius: 6px;
-  padding: 16px 18px; font-size: 14px; color: #6b5636; margin-bottom: 28px;
+  background: #fdf3e1; border: 1px solid #ecd7ae; border-left: 4px solid #c98a2b;
+  border-radius: 8px; padding: 16px 18px; font-size: 14px; color: #6b5636;
+  margin-bottom: 28px;
 }
-footer {
-  padding: 40px 0 0; font-size: 12px; color: #9a9084; line-height: 2;
-  border-top: 1px solid rgba(0,0,0,.08);
-}
-footer code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; }
+footer { margin-top: 48px; padding: 28px 0 0; font-size: 12px; color: #a3968a; line-height: 2; }
+footer code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: #8a7f70; }
 .missing { color: #b0a89c; font-style: italic; }
 @media print {
   body { background: #fff; }
-  .page { max-width: none; padding: 0 12mm; }
-  @page { size: A4; margin: 16mm 0; }
-  .hero { padding-top: 0; }
-  section { padding: 24px 0; break-inside: auto; }
-  .room, figure, .facts, .stat { break-inside: avoid; }
+  .page { max-width: none; padding: 0 10mm; }
+  @page { size: A4; margin: 15mm 0; }
+  .hero { padding-top: 6mm; }
+  section { padding: 22px 0 4px; break-inside: auto; }
+  .room, figure, .facts, .stat, .notice { break-inside: avoid; }
   h3 { break-after: avoid; }
-  .notice { border-color: #999; }
+  .palette, figure img, .stat { box-shadow: none; }
+  .notice { border-color: #b08c4f; }
 }
 """
 
@@ -215,9 +235,16 @@ def build(payload: dict, prose: dict, repo_root: Path, base_url: str) -> str:
     project_name = snapshot.get("project_name") or payload.get("project_id") or "專案"
     revision = payload.get("revision") or ""
 
+    # 必須是完整文件而非片段：少了 meta charset，用 file:// 開啟時瀏覽器會猜編碼，
+    # 中文一律變亂碼（HTTP 供應時有 header 撐著，看不出問題，存成檔案就現形）。
     parts: list[str] = []
+    parts.append("<!doctype html>")
+    parts.append('<html lang="zh-Hant"><head>')
+    parts.append('<meta charset="utf-8">')
+    parts.append('<meta name="viewport" content="width=device-width, initial-scale=1">')
     parts.append(f"<title>{esc(project_name)}｜設計提案</title>")
     parts.append(f"<style>{CSS}</style>")
+    parts.append("</head><body>")
     parts.append('<div class="page">')
 
     # Hero
@@ -342,6 +369,7 @@ def build(payload: dict, prose: dict, repo_root: Path, base_url: str) -> str:
     )
     parts.append("</footer>")
     parts.append("</div>")
+    parts.append("</body></html>")
     return "\n".join(parts)
 
 

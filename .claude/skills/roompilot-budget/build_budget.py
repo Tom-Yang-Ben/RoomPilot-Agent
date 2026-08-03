@@ -41,52 +41,84 @@ CSS = """
 * { box-sizing: border-box; }
 body {
   margin: 0; font-family: "PingFang TC", "Noto Sans TC", "Helvetica Neue", sans-serif;
-  color: #1d1d1f; background: #fff; line-height: 1.6; font-size: 14px;
+  color: #1c2430; background: #f2f5f9; line-height: 1.6; font-size: 14px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
-.page { max-width: 1040px; margin: 0 auto; padding: 40px 32px 80px; }
-header { border-bottom: 2px solid #1d1d1f; padding-bottom: 20px; margin-bottom: 8px; }
-h1 { font-size: 24px; margin: 0 0 6px; font-weight: 600; }
-.meta { font-size: 12px; color: #6e6e73; line-height: 1.9; }
-.meta code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; }
-section { margin-top: 36px; }
+.page { max-width: 1080px; margin: 0 auto; padding: 36px 32px 80px; }
+header {
+  background: #1f3a5f; color: #fff; border-radius: 12px;
+  padding: 26px 30px 22px; margin-bottom: 18px;
+}
+h1 { font-size: 25px; margin: 0 0 8px; font-weight: 700; letter-spacing: -.01em; }
+.meta { font-size: 12px; color: #b9c8dc; line-height: 1.9; }
+.meta strong { color: #fff; }
+.meta code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: #dce7f5; }
+.dash {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px; margin: 18px 0 4px;
+}
+.dash .card {
+  background: #fff; border: 1px solid #dde4ee; border-top: 3px solid #1f3a5f;
+  border-radius: 10px; padding: 14px 16px;
+}
+.dash .card .label { font-size: 11px; letter-spacing: .1em; color: #5d6b80; font-weight: 600; }
+.dash .card .value {
+  font-size: 26px; font-weight: 700; margin-top: 6px;
+  font-variant-numeric: tabular-nums; color: #1f3a5f;
+}
+.dash .card .value .unit { font-size: 13px; color: #5d6b80; font-weight: 500; margin-left: 3px; }
+.dash .card.good { border-top-color: #1a7f4e; }
+.dash .card.good .value { color: #1a7f4e; }
+.dash .card.warn { border-top-color: #b45309; }
+.dash .card.warn .value { color: #b45309; }
+section {
+  margin-top: 24px; background: #fff; border: 1px solid #dde4ee;
+  border-radius: 12px; padding: 22px 24px 20px;
+}
 h2 {
-  font-size: 15px; font-weight: 600; margin: 0 0 4px;
-  padding-bottom: 8px; border-bottom: 1px solid #d2d2d7;
+  font-size: 15px; font-weight: 700; margin: 0; color: #1f3a5f;
+  padding-bottom: 10px; border-bottom: 2px solid #1f3a5f;
 }
-.hint { font-size: 12px; color: #6e6e73; margin: 8px 0 14px; }
-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12.5px; }
-th, td { padding: 7px 8px; border-bottom: 1px solid #e5e5ea; text-align: left; vertical-align: top; }
+.hint { font-size: 12px; color: #5d6b80; margin: 10px 0 12px; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12.5px; }
+th, td { padding: 8px 9px; border-bottom: 1px solid #e8edf4; text-align: left; vertical-align: top; }
 thead th {
-  background: #f5f5f7; font-weight: 600; font-size: 11.5px; color: #3a3a3c;
-  border-bottom: 1px solid #c7c7cc; white-space: nowrap;
+  background: #eef3fa; font-weight: 700; font-size: 11.5px; color: #31445e;
+  border-bottom: 2px solid #c3d2e5; white-space: nowrap;
 }
+tbody tr:nth-child(even) td { background: #fafcff; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.amount { font-weight: 700; color: #1a7f4e; }
 tr.group td {
-  background: #fafafa; font-weight: 600; font-size: 12px; color: #3a3a3c;
+  background: #e3ebf6 !important; font-weight: 700; font-size: 12px;
+  color: #1f3a5f; border-left: 3px solid #1f3a5f;
 }
-tfoot td { font-weight: 600; border-top: 2px solid #1d1d1f; border-bottom: 0; padding-top: 10px; }
-.pending { color: #a05a00; font-weight: 600; }
+tfoot td {
+  font-weight: 700; border-top: 3px double #1f3a5f; border-bottom: 0;
+  padding-top: 12px; font-size: 13.5px; color: #1f3a5f; background: #eef3fa;
+}
+.pending { color: #b45309; font-weight: 700; background: #fff7ea !important; }
 .notice {
-  border: 1px solid #d2d2d7; border-left: 3px solid #1d1d1f; background: #fafafa;
-  padding: 12px 14px; font-size: 12.5px; margin: 14px 0; line-height: 1.7;
+  border: 1px solid #dde4ee; border-left: 4px solid #1f3a5f; background: #f7fafd;
+  border-radius: 6px; padding: 13px 15px; font-size: 12.5px; margin: 14px 0 4px;
+  line-height: 1.7;
 }
-.notice.warn { border-left-color: #a05a00; background: #fff9f0; color: #6b4a12; }
-.small { font-size: 11.5px; color: #6e6e73; }
+.notice.warn { border-left-color: #b45309; border-color: #f0dcbb; background: #fff7ea; color: #7c5210; }
+.small { font-size: 11.5px; color: #5d6b80; }
 ul { margin: 8px 0 0; padding-left: 1.3em; }
 li { margin-bottom: 5px; }
-footer {
-  margin-top: 48px; padding-top: 16px; border-top: 1px solid #d2d2d7;
-  font-size: 11px; color: #86868b; line-height: 1.9;
-}
+footer { margin-top: 30px; padding: 16px 6px 0; font-size: 11px; color: #7d8aa0; line-height: 1.9; }
 @media print {
+  body { background: #fff; font-size: 11px; }
   .page { max-width: none; padding: 0; }
-  @page { size: A4; margin: 14mm 10mm; }
-  body { font-size: 11px; }
-  table { font-size: 10px; }
+  @page { size: A4; margin: 12mm 10mm; }
+  header { border-radius: 0; padding: 16px 18px 14px; }
+  section { border: 0; border-radius: 0; padding: 10px 0 4px; break-inside: auto; }
+  table { font-size: 9.5px; }
   thead { display: table-header-group; }
-  tr, .notice { break-inside: avoid; }
+  tr, .notice, .dash .card { break-inside: avoid; }
   h2 { break-after: avoid; }
-  section { break-inside: auto; }
+  .dash { gap: 8px; }
 }
 """
 
@@ -424,9 +456,16 @@ def scope_section(payload: dict) -> str:
 def build(payload: dict, repo_root: Path, market: bool) -> str:
     snapshot = payload.get("snapshot") or {}
     project_name = snapshot.get("project_name") or payload.get("project_id") or "專案"
+    # 必須是完整文件而非片段：少了 meta charset，用 file:// 開啟時瀏覽器會猜編碼，
+    # 中文一律變亂碼（HTTP 供應時有 header 撐著，看不出問題，存成檔案就現形）。
     parts = [
+        "<!doctype html>",
+        '<html lang="zh-Hant"><head>',
+        '<meta charset="utf-8">',
+        '<meta name="viewport" content="width=device-width, initial-scale=1">',
         f"<title>{esc(project_name)}｜工程預算報告</title>",
         f"<style>{CSS}</style>",
+        "</head><body>",
         '<div class="page">',
         "<header>",
         f"<h1>{esc(project_name)}　工程預算報告</h1>",
@@ -444,6 +483,32 @@ def build(payload: dict, repo_root: Path, market: bool) -> str:
             '<div class="notice warn" data-demo="true"><strong>示範資料聲明</strong><br>'
             f'{esc(payload.get("demo_disclaimer") or "示範資料，非正式報價。")}</div>'
         )
+
+    # 總覽卡：把讀者最先要找的四個數字放在最前面，數值皆取自 payload。
+    estimate = payload.get("estimate") or {}
+    schedule = payload.get("schedule") or {}
+    estimate_lines = estimate.get("lines") or []
+    pending_count = estimate.get("pending_quote_count") or 0
+    dash_cards = [
+        ("", "估價工項", f"{len(estimate_lines)}", "項"),
+        ("good", "已知小計 (TWD)", money(estimate.get("known_subtotal")), ""),
+        (
+            "warn" if pending_count else "",
+            "待詢價工項",
+            f"{pending_count}",
+            f"／{len(estimate_lines)} 項",
+        ),
+        ("", "預估總工期", num(schedule.get("estimated_total_days")), "日"),
+    ]
+    parts.append('<div class="dash">')
+    for card_class, label, value, unit in dash_cards:
+        unit_html = f'<span class="unit">{esc(unit)}</span>' if unit else ""
+        parts.append(
+            f'<div class="card {card_class}"><div class="label">{esc(label)}</div>'
+            f'<div class="value">{esc(value)}{unit_html}</div></div>'
+        )
+    parts.append("</div>")
+
     narratives = payload.get("narratives") or {}
     for key in ("construction_summary", "cost_summary", "schedule_summary", "risk_summary"):
         if narratives.get(key):
@@ -462,7 +527,7 @@ def build(payload: dict, repo_root: Path, market: bool) -> str:
         f'資料版本 <code>{esc(payload.get("schema_version"))}</code>　·　'
         "本報告所有數值取自同一份 ReportPayload，與商業提案共用相同的快照雜湊。<br>"
         "本文件為設計與詢價前的初步資料，不是正式施工圖或承攬報價。"
-        "</footer></div>"
+        "</footer></div></body></html>"
     )
     return "\n".join(part for part in parts if part)
 
