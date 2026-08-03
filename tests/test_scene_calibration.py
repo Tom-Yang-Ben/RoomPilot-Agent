@@ -53,6 +53,21 @@ def test_two_image_points_and_known_length_create_scale_calibration() -> None:
     }
 
 
+def test_cody_scale_without_anchor_receives_a_visible_default_baseline() -> None:
+    module_uri = CALIBRATION_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ calibrationPointsFromAnalysis }} from {json.dumps(module_uri)};
+        console.log(JSON.stringify(calibrationPointsFromAnalysis({{
+          image_size_px: {{ width: 1079, height: 1173 }},
+          scale: {{ pixel_distance: 1079, distance_cm: 949.52, cm_per_px: 0.88 }},
+        }})));
+        """
+    )
+
+    assert result == [{"x": 0, "y": 0}, {"x": 1079, "y": 0}]
+
+
 def test_pointer_position_maps_from_displayed_preview_to_original_image_pixels() -> None:
     module_uri = CALIBRATION_MODULE.as_uri()
     result = run_workflow_script(

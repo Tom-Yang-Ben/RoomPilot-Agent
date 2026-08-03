@@ -1380,6 +1380,10 @@ export function createSceneViewer(
 
     function buildConfirmedWallJunctionFills() {
       const junctionToleranceCm = Math.max(36, Number(wallThickness) * 2);
+      const maximumCollinearGapCm = Math.min(
+        junctionToleranceCm,
+        Number(wallThickness) + 4,
+      );
       const endpoints = segments.flatMap((segment, segmentIndex) => (
         ["start", "end"].flatMap((key) => {
           const endpoint = wallSegmentPoint(segment, key);
@@ -1408,6 +1412,22 @@ export function createSceneViewer(
             );
         });
       };
+      const sharesWallAxis = (left, right) => {
+        const leftStart = wallSegmentPoint(left, "start");
+        const leftEnd = wallSegmentPoint(left, "end");
+        const rightStart = wallSegmentPoint(right, "start");
+        const rightEnd = wallSegmentPoint(right, "end");
+        if (!leftStart || !leftEnd || !rightStart || !rightEnd) return false;
+        const leftLength = Math.hypot(leftEnd.x - leftStart.x, leftEnd.z - leftStart.z);
+        const rightLength = Math.hypot(rightEnd.x - rightStart.x, rightEnd.z - rightStart.z);
+        if (leftLength < 0.8 || rightLength < 0.8) return false;
+        const alignment = Math.abs(
+          ((leftEnd.x - leftStart.x) * (rightEnd.x - rightStart.x)
+            + (leftEnd.z - leftStart.z) * (rightEnd.z - rightStart.z))
+            / (leftLength * rightLength),
+        );
+        return alignment >= 0.995;
+      };
 
       endpoints.forEach((endpoint, index) => {
         if (usedEndpoints.has(endpoint.key)) return;
@@ -1425,6 +1445,12 @@ export function createSceneViewer(
             ),
           }))
           .filter(({ distance }) => distance > 0.8 && distance <= junctionToleranceCm)
+          // Only bridge a small collinear OCR seam.  A nearby perpendicular
+          // endpoint is a corner, not missing wall geometry.
+          .filter(({ candidate, distance }) => (
+            distance <= maximumCollinearGapCm
+            && sharesWallAxis(endpoint.segment, candidate.segment)
+          ))
           .sort((left, right) => left.distance - right.distance)[0];
         if (!neighbor) return;
 
@@ -1440,7 +1466,7 @@ export function createSceneViewer(
           ? (wallMaterial.faceMaterials?.(bridgeSegment, 0) || wallMaterial(bridgeSegment))
           : wallMaterial.clone();
         const bridge = new THREE.Mesh(
-          new THREE.BoxGeometry(length + Number(wallThickness), wallHeight, wallThickness),
+          new THREE.BoxGeometry(length, wallHeight, wallThickness),
           bridgeMaterial,
         );
         bridge.position.set(
@@ -1541,19 +1567,15 @@ export function createSceneViewer(
         roomGroupRef.add(registerWall(wallMesh));
       };
 
-      const trimMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0xf5f1ea,
-        roughness: 0.62,
-        metalness: 0,
-        clearcoat: 0.08,
-        clearcoatRoughness: 0.68,
-      });
       const addBaseboard = (from, to) => {
         if (to - from < 4) return;
         const center = (from + to) / 2;
+        const trimMaterials = typeof wallMaterial.faceMaterials === "function"
+          ? wallMaterial.faceMaterials(segment, exteriorSideSign)
+          : material.clone();
         const trim = new THREE.Mesh(
-          new THREE.BoxGeometry(to - from, 7.5, wallThickness + 2.2),
-          trimMaterial,
+          new THREE.BoxGeometry(to - from, 7.5, wallThickness + 0.2),
+          trimMaterials,
         );
         trim.position.set(
           Number(start.x) + unitX * center,
@@ -2500,8 +2522,13 @@ export function createSceneViewer(
         else negativeSide = adjacentInteriorMaterial;
       }
       const interior = resolveWallMaterial(segment);
+      // BoxGeometry uses material slots 0 and 1 for the two wall end caps.
+      // Leaving those on the midpoint/default material exposes pale seams at
+      // room corners when a side face has a room-specific finish.  Carry the
+      // adjacent side finishes onto the caps so a continuous wall reads as one
+      // surface without changing the confirmed wall or opening geometry.
       const materials = [
-        interior.clone(), interior.clone(), interior.clone(),
+        positiveSide.clone(), negativeSide.clone(), interior.clone(),
         interior.clone(), positiveSide.clone(), negativeSide.clone(),
       ];
       return materials;
@@ -3447,7 +3474,13 @@ export function createSceneViewer(
     const visible = viewPresentation(mode).showFurniturePlanLabels;
     furnitureGroup.traverse((object) => {
       if (object.userData.roompilotPlanLabel) object.visible = visible;
-      if (object.userData.roompilotNumberMarker) object.visible = mode !== "walk";
+      if (object.userData.roompilotNumberMarker) {
+        const roomId = String(object.parent?.userData?.sceneObject?.room_id
+          || object.parent?.userData?.sceneObject?.roomId || "");
+        object.visible = showFurnitureNumberMarkers
+          && mode !== "walk"
+          && (!numberMarkerRoomId || roomId === numberMarkerRoomId);
+      }
     });
   }
 
@@ -4120,6 +4153,8 @@ export function createSceneViewer(
   let lastWorldSceneData = null;
   let dragState = null;
   let selectedWrapper = null;
+  let showFurnitureNumberMarkers = false;
+  let numberMarkerRoomId = "";
   let footprintGuide = null;
   let snapHint = null;
   let placementRequest = null;
@@ -4215,7 +4250,7 @@ export function createSceneViewer(
     return inside;
   }
 
-  function walkPositionInsideFloor(position) {
+  function roomFloorContainsPoint(position) {
     const regions = lastWorldSceneData?.floorplan?.room_regions || [];
     if (!regions.length) return true;
     return regions.some((region) => {
@@ -4223,6 +4258,55 @@ export function createSceneViewer(
       if (!pointInRing(position, exterior)) return false;
       return !(region.holes || []).some((hole) => pointInRing(position, hole));
     });
+  }
+
+  function walkDoorwayConnectsRooms(position, doorwayClearanceCm = 26) {
+    return walkDoorOpenings().some((opening) => {
+      const start = opening?.start || {};
+      const end = opening?.end || {};
+      const startX = Number(start.x);
+      const startZ = Number(start.z);
+      const endX = Number(end.x);
+      const endZ = Number(end.z);
+      if (![startX, startZ, endX, endZ].every(Number.isFinite)) return false;
+
+      const dx = endX - startX;
+      const dz = endZ - startZ;
+      const length = Math.hypot(dx, dz);
+      if (length < 24) return false;
+
+      const projection = THREE.MathUtils.clamp(
+        ((position.x - startX) * dx + (position.z - startZ) * dz) / (length * length),
+        0,
+        1,
+      );
+      const nearestX = startX + projection * dx;
+      const nearestZ = startZ + projection * dz;
+      if (Math.hypot(position.x - nearestX, position.z - nearestZ) > doorwayClearanceCm) {
+        return false;
+      }
+
+      // A doorway is walkable only when its normal points into confirmed room
+      // floor space on both sides. This bridges the wall-thickness gap between
+      // adjacent room polygons without allowing a path through exterior walls.
+      const normalX = -dz / length;
+      const normalZ = dx / length;
+      const midpoint = { x: (startX + endX) / 2, z: (startZ + endZ) / 2 };
+      const sampleDistance = Math.max(doorwayClearanceCm + 14, 40);
+      const leftSide = {
+        x: midpoint.x + normalX * sampleDistance,
+        z: midpoint.z + normalZ * sampleDistance,
+      };
+      const rightSide = {
+        x: midpoint.x - normalX * sampleDistance,
+        z: midpoint.z - normalZ * sampleDistance,
+      };
+      return roomFloorContainsPoint(leftSide) && roomFloorContainsPoint(rightSide);
+    });
+  }
+
+  function walkPositionInsideFloor(position) {
+    return roomFloorContainsPoint(position) || walkDoorwayConnectsRooms(position);
   }
 
   function walkDoorOpenings() {
@@ -4250,6 +4334,10 @@ export function createSceneViewer(
   }
 
   function walkPositionBlocked(position, clearanceCm = 20) {
+    // A confirmed internal doorway bridges two room polygons. Its opening must
+    // win over the adjacent wall segments, otherwise the floor check accepts
+    // the portal but the wall collision rejects the same movement a moment later.
+    if (walkDoorwayConnectsRooms(position)) return false;
     return (lastWorldSceneData?.floorplan?.wall_segments || []).some((segment) => {
       const start = segment.start;
       const end = segment.end;
@@ -5554,6 +5642,11 @@ export function createSceneViewer(
     exportGlb,
     focusObject,
     selectObjectByIndex,
+    setFurnitureNumberMarkersVisible(visible, roomId = "") {
+      showFurnitureNumberMarkers = Boolean(visible);
+      numberMarkerRoomId = String(roomId || "");
+      configurePlanLabels(viewMode.mode);
+    },
     getCanvasHost: () => renderer.domElement,
     getSelectedFurnitureId: () => selectedWrapper?.userData?.sceneObject?.furniture_id || null,
     projectFurnitureCenters() {

@@ -30,13 +30,17 @@ def test_replacement_filters_context_and_revalidates_with_engine() -> None:
     assert 'styleId: filterMode === "all" ? "" : style' in load
     assert "rankCatalogFurniture(catalogCandidates, request)" in load
     assert "replacementCandidateFitsRoom" in load
+    assert "replacementCandidateIsSmaller" in load
+    assert "setSmallerReplacementOption(smallerCandidates)" in load
+    assert 'value = "smaller"' in SOURCE
+    assert "目前沒有比這件家具更小" in load
     assert "resolveFurniturePosition(candidate)" in replace
     assert "model_url: catalogItem.model_url" in replace
     assert "state.furniture2d[index] = candidate" in replace
     assert "syncFurnitureInventoryAcrossSchemes()" in replace
 
 
-def test_replacement_preview_uses_the_current_room_and_keeps_database_thumbnail() -> None:
+def test_replacement_preview_uses_the_current_room_and_keeps_candidate_details_concise() -> None:
     preview = SOURCE.split("async function previewReplacementCandidate", 1)[1].split(
         "function renderReplacementCandidates", 1
     )[0]
@@ -46,7 +50,12 @@ def test_replacement_preview_uses_the_current_room_and_keeps_database_thumbnail(
     assert 'replacementViewer.setViewMode("dollhouse")' in preview
     assert "replacementViewer.capturePng()" not in preview
     assert "data-replacement-thumbnail" not in SOURCE
-    assert "replacementCandidateImageUrl(candidate)" in SOURCE
+    replacement_list = SOURCE.split("function renderReplacementCandidates", 1)[1].split(
+        "function replacementCandidateIsSmaller", 1
+    )[0]
+    assert "replacementFurnitureName(candidate)" in replacement_list
+    assert "replacementFurnitureSize(candidate)" in replacement_list
+    assert "rp-replacement-thumb" not in replacement_list
     assert "function buildReplacementRoomPreviewScene" in SOURCE
 
 

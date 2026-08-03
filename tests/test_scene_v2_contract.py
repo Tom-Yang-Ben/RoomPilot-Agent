@@ -1097,7 +1097,7 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "selectedFurniture.filter((item) => item.model_url)" in viewer
     assert "尚未找到可用的資料庫 GLB" in viewer
     assert "selected_furniture_exact: !allowPendingFurniture" in viewer
-    assert "完成需求並建立 2D+3D 配置" in html
+    assert "完成需求，建立配置方案" in html
 
 
 def test_requirement_generation_defers_a_single_failed_room_without_breaking_step_six() -> None:
@@ -1144,6 +1144,14 @@ def test_scale_confirmation_reuses_existing_recognition_without_reuploading_the_
     assert "state.analysis = applyCalibrationToAnalysis(state.analysis, calibration)" in calibration
     assert 'api("/api/floorplan/analyze"' not in calibration
     assert "/floorplan/source" not in calibration
+
+
+def test_cody_scale_without_ocr_anchor_can_continue_to_space_confirmation() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "calibrationPointsFromAnalysis" in source
+    assert "state.calibrationPoints = calibrationPointsFromAnalysis(state.analysis);" in source
+    assert "state.calibrationPoints = calibrationPointsFromAnalysis(" in source
 
 
 def test_step_six_defaults_to_free_rotation_with_grouped_tools() -> None:
@@ -3036,6 +3044,51 @@ def test_step_six_exposes_the_per_room_scheme_selection_workflow() -> None:
         assert f'id="{element_id}"' in html
 
 
+def test_step_six_auto_uses_scheme_a_when_scheme_b_has_no_complete_scene() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function roomHasComparableSchemeB(room)" in source
+    assert "function applyUnavailableRoomSchemeDefaults()" in source
+    assert "function promptRoomSchemeSelection()" in source
+    assert "async function ensureRoomSchemeAlternative()" in source
+    assert 'relayoutFurnitureForScheme(schemeA.furniture, "B")' in source
+    assert 'selectSchemeForRoom(state.designSchemes, room.id, "A")' in source
+    assert "目前沒有完整的方案 B 3D 場景可比較" in source
+    assert 'if (step === "layout_2d") {' in source
+    assert "queueMicrotask(promptRoomSchemeSelection);" in source
+    assert "openRoomSchemeSelectionDialog();" in source
+
+
+def test_step_six_room_scheme_dialog_compares_room_local_2d_and_3d_previews() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert "function roomSchemePreviewKey(schemeId, roomId)" in source
+    assert "function roomSchemePlanMarkup(room, furniture = [])" in source
+    assert "function buildRoomSchemePreviewScene(baseScene, room, furniture = [])" in source
+    assert "roomSchemePreviewCache.get(roomSchemePreviewKey(schemeId, room.id))" in source
+    assert "roomSchemePreviewCache.set(roomSchemePreviewKey(schemeId, room.id)" in source
+    assert "roomSchemePlanMarkup(room, furniture)" in source
+    assert "buildRoomSchemePreviewScene(" in source
+    assert "rp-room-scheme-plan" in css
+    assert "rp-room-scheme-furniture" in css
+
+
+def test_room_scheme_dialog_opens_an_interactive_3d_preview_and_readable_legend() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert 'id="room-scheme-3d-preview-dialog"' in html
+    assert 'id="room-scheme-3d-preview"' in html
+    assert "function roomSchemeFurnitureLegend(furniture = [])" in source
+    assert "async function openRoomScheme3dPreview(schemeId)" in source
+    assert "data-room-scheme-preview-3d" in source
+    assert 'roomSchemePreviewViewer.setViewMode("orbit")' in source
+    assert "rp-room-scheme-legend" in css
+    assert "rp-room-scheme-3d-preview" in css
+
+
 def test_style_card_previews_preserve_the_full_reference_image() -> None:
     css = (STATIC / "site.css").read_text(encoding="utf-8")
     base_rule = css[css.index(".rp-style-card-preview {"):css.index(".rp-style-pack-grid button small {")]
@@ -3307,4 +3360,26 @@ def test_step_seven_accepts_confirmed_room_requirements_after_default_fill() -> 
         "async function prepareAiRender()", 1
     )[0]
     assert "state.proposalReview.roomViews = {};" not in palette_handler
+
+
+def test_room_scheme_preview_keeps_room_geometry_furniture_and_indoor_camera_in_sync() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    preview = source.split("function buildRoomSchemePreviewScene", 1)[1].split(
+        "function applyUnavailableRoomSchemeDefaults", 1
+    )[0]
+    opener = source.split("async function openRoomScheme3dPreview", 1)[1].split(
+        "function setTaskDialogOpen", 1
+    )[0]
+
+    assert "shiftFloorplanRegion(region, offset)" in preview
+    assert "floorplan.room_regions = (floorplan.room_regions || [])" in preview
+    assert "model_url: item.model_url || existing.model_url" in preview
+    assert "catalog_furniture_id: item.catalogFurnitureId" in preview
+    assert "const fallbackSize = {" in preview
+    assert "width: Number(existing.size_cm?.width || fallbackSize.width)" in preview
+    assert "if (Array.isArray(point))" in source
+    assert "function scenePointCoordinates(point = {})" in source
+    assert "const resolvedSchemeId" in opener
+    assert 'setCameraPreset("inside")' in opener
+    palette_handler = source
     assert "將沿用第 7 步鎖定的逐房視角" in palette_handler

@@ -399,6 +399,7 @@ def choose_furniture_items(
     style_id = plan["style_id"]
     chosen: list[dict[str, Any]] = []
     unavailable: list[str] = []
+    # `furniture_id` is the editable Step 6 instance id while
     used_ids: set[str] = set()
     preferred_colors = preferred_colors or []
 
@@ -584,7 +585,9 @@ def selected_furniture_items_from_questionnaire(
         if item.get("furniture_id")
     }
     selected: list[dict[str, Any]] = []
-    used_ids: set[str] = set()
+    # `furniture_id` identifies the editable 2D/3D instance, while
+    # `catalog_furniture_id` identifies its source item in the catalog.
+    used_instance_ids: set[str] = set()
 
     appliance_types = {
         "refrigerator",
@@ -603,8 +606,13 @@ def selected_furniture_items_from_questionnaire(
     for raw in raw_items:
         if not isinstance(raw, dict):
             continue
-        furniture_id = raw.get("furniture_id")
-        if not furniture_id or furniture_id in used_ids:
+        instance_id = str(raw.get("furniture_id") or "")
+        catalog_furniture_id = str(
+            raw.get("catalog_furniture_id")
+            or raw.get("catalogFurnitureId")
+            or instance_id
+        )
+        if not instance_id or instance_id in used_instance_ids:
             continue
 
         raw_type = str(raw.get("normalized_type") or raw.get("type") or "").casefold()
@@ -613,8 +621,10 @@ def selected_furniture_items_from_questionnaire(
             # Appliances remain questionnaire/render context, never 2D/3D objects.
             continue
 
-        catalog_item = catalog_by_id.get(furniture_id, {})
+        catalog_item = catalog_by_id.get(catalog_furniture_id, {})
         merged = {**catalog_item, **raw}
+        merged["furniture_id"] = instance_id
+        merged["catalog_furniture_id"] = catalog_furniture_id
         size = raw.get("size_cm") or raw.get("dimensions") or catalog_item.get("size_cm") or {}
         merged["size_cm"] = {
             "width": size.get("width") or size.get("w"),
@@ -627,7 +637,7 @@ def selected_furniture_items_from_questionnaire(
             or catalog_item.get("name_zh_raw")
             or catalog_item.get("name_zh")
             or catalog_item.get("name_en")
-            or furniture_id
+            or catalog_furniture_id
         )
         merged["normalized_type"] = raw.get("normalized_type") or catalog_item.get("normalized_type")
         merged["model_url"] = raw.get("model_url") or catalog_item.get("model_url")
@@ -650,7 +660,7 @@ def selected_furniture_items_from_questionnaire(
             continue
 
         selected.append(merged)
-        used_ids.add(furniture_id)
+        used_instance_ids.add(instance_id)
 
     return selected
 
@@ -1872,7 +1882,18 @@ def build_agent_generation_handoff(
     final, user-adjusted 2D/3D position which must be preserved in a render.
     """
     test2 = questionnaire.get("test2_questionnaire") or {}
-    requirements = test2.get("room_requirements") or {}
+    raw_requirements = test2.get("room_requirements") or {}
+    if isinstance(raw_requirements, list):
+        requirements = {
+            str(item.get("room_id") or item.get("roomId") or item.get("id")): item
+            for item in raw_requirements
+            if isinstance(item, dict)
+            and (item.get("room_id") or item.get("roomId") or item.get("id"))
+        }
+    elif isinstance(raw_requirements, dict):
+        requirements = raw_requirements
+    else:
+        requirements = {}
     rag_jobs = test2.get("rag_jobs") or {}
     regions = {
         str(region.get("id") or region.get("room_id")): region

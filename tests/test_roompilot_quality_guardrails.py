@@ -307,3 +307,37 @@ def test_agent_generation_handoff_keeps_room_preference_and_final_step6_position
         "size_cm": {"width": 150, "depth": 200},
         "position_locked": True,
     }]
+
+
+def test_agent_generation_handoff_accepts_list_room_requirements():
+    handoff = build_agent_generation_handoff(
+        {
+            "test2_questionnaire": {
+                "room_requirements": [
+                    {
+                        "roomId": "kitchen-1",
+                        "roomType": "kitchen",
+                        "roomLabel": "Kitchen",
+                        "usage": ["cook"],
+                        "furniture": {"preferenceTags": [], "preferenceText": ""},
+                    }
+                ]
+            }
+        },
+        {"room_regions": []},
+        [],
+    )
+
+    assert handoff["rooms"] == [{
+        "room_id": "kitchen-1",
+        "room_type": "kitchen",
+        "room_label": "Kitchen",
+        "geometry": {},
+        "usage": ["cook"],
+        "furniture_preference": {"tags": [], "description": ""},
+        "selected_catalog_furniture": [],
+        "final_step6_furniture": [],
+        "generative_equipment": {},
+        "surfaces": {},
+        "rag": {},
+    }]

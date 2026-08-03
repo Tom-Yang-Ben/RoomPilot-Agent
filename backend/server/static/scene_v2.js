@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-776c7921b747";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-2af33fe35ac8";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -20,7 +20,8 @@ import {
 import {
   buildScaleCalibration,
   calibrationActionState,
-} from "./scene_calibration.js?v=sha256-175dc2c59c64";
+  calibrationPointsFromAnalysis,
+} from "./scene_calibration.js?v=sha256-0247aea142bf";
 import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
@@ -216,8 +217,12 @@ const state = {
   },
   furniture2d: [],
   selectedFurniture2dId: null,
+  // Step 6 uses the same visible numbering as the 2D configuration plan.
+  showFurnitureNumbers: true,
   sceneData: null,
   autoGeneratingWhiteModel: false,
+  requirementsGenerationPending: false,
+  lastWhiteModelGenerationError: "",
   selectedSceneIndex: 0,
   styleHistory: [],
   activeStyleId: "scandinavian",
@@ -240,10 +245,13 @@ let styleApplyRevision = 0;
 const proposalRoomPreviewCache = new Map();
 const roomSchemePreviewCache = new Map();
 let roomSchemePreviewInFlight = null;
+let roomSchemeAlternativeInFlight = null;
 let pendingRenderBriefMode = null;
 let visualCustomSaveTimer = null;
 let questionnaireCatalogRoomId = null;
 let questionnaireCatalogScope = "room";
+let questionnaireCatalogSpace = "";
+let questionnaireCatalogPurpose = "";
 let questionnaireCatalogSearchTimer = null;
 let questionnaireCatalogSelectedFurnitureIds = new Set();
 let questionnaireCatalogSelectedFurniture = new Map();
@@ -357,6 +365,7 @@ const element = {
   requirementsGenerationHelp: $("#requirements-generation-help"),
   requirementsGenerationHelpDetail: $("#requirements-generation-help-detail"),
   randomizeRequirements: $("#randomize-requirements"),
+  randomizeRequirementsSummary: $("#randomize-requirements-summary"),
   confirmRequirements: $("#confirm-requirements"),
   questionnaireStageNav: $("#questionnaire-stage-nav"),
   visualSpaceNav: $("#visual-space-nav"),
@@ -457,6 +466,9 @@ const element = {
   roomSchemeList: $("#room-scheme-list"),
   roomSchemeStatus: $("#room-scheme-status"),
   roomSchemeChoiceGrid: $("#room-scheme-choice-grid"),
+  roomScheme3dPreviewDialog: $("#room-scheme-3d-preview-dialog"),
+  roomScheme3dPreviewTitle: $("#room-scheme-3d-preview-title"),
+  roomScheme3dPreviewStatus: $("#room-scheme-3d-status"),
   roomSchemeWarning: $("#room-scheme-warning"),
   roomSchemeComplete: $("#room-scheme-complete"),
   openSurfaceAdjustment: $("#open-surface-adjustment"),
@@ -474,6 +486,8 @@ const element = {
   glbResults: $("#glb-search-results"),
   questionnaireCatalogControls: $("#questionnaire-catalog-controls"),
   questionnaireCatalogType: $("#questionnaire-catalog-type"),
+  questionnaireCatalogSpaceGroups: $("#questionnaire-catalog-space-groups"),
+  questionnaireCatalogPurposeGroups: $("#questionnaire-catalog-purpose-groups"),
   questionnaireCatalogColor: $("#questionnaire-catalog-color"),
   questionnaireCatalogMaterial: $("#questionnaire-catalog-material"),
   questionnaireCatalogBatch: $("#questionnaire-catalog-batch"),
@@ -547,6 +561,10 @@ const glbThumbnailViewer = createSceneViewer(
   $("#glb-thumbnail-viewer"),
   $("#glb-thumbnail-status"),
 );
+const roomSchemePreviewViewer = createSceneViewer(
+  $("#room-scheme-3d-preview"),
+  element.roomScheme3dPreviewStatus,
+);
 const structurePreview = createStructurePreview($("#structure-3d-preview"));
 const styleFurnitureCache = new Map();
 const glbThumbnailCache = new Map();
@@ -562,6 +580,7 @@ function setStatus(message, kind = "normal") {
 }
 
 function errorMessage(error) {
+  if (typeof error === "string" && error.trim()) return error.trim();
   const detail = error?.detail;
   const message = typeof detail === "string"
     ? detail
@@ -582,8 +601,10 @@ async function api(url, options = {}) {
     : await response.text();
   if (!response.ok) {
     const error = new Error(errorMessage(payload));
-    Object.assign(error, payload);
+    if (payload && typeof payload === "object") Object.assign(error, payload);
     error.status = response.status;
+    error.endpoint = url;
+    error.responseBody = payload;
     throw error;
   }
   return payload;
@@ -845,6 +866,7 @@ async function startQuestionnaireRag(room) {
     state.roomRagJobs[room.id] = { jobId: job.job_id, status: job.status, query };
     // Persist immediately so a reload does not discard a queued room job.
     scheduleSave("requirements");
+    renderVisualSpaceNav();
     setStatus(`${room.label} 的家具偏好已送交 RAG 排序，您可繼續填下一個空間。`);
     const poll = async () => {
       try {
@@ -854,6 +876,7 @@ async function startQuestionnaireRag(room) {
           return;
         }
         state.roomRagJobs[room.id] = { ...state.roomRagJobs[room.id], ...snapshot };
+        renderVisualSpaceNav();
         if (snapshot.status === "completed") {
         const ids = new Set((snapshot.result?.blocks || []).flatMap((block) =>
           (block.hits || []).map((hit) => String(hit.furniture?.item_id || "")),
@@ -972,6 +995,75 @@ function sceneObjectIndexByFurnitureId(furnitureId) {
   });
 }
 
+function setSceneSidebarTab(tab = "plan") {
+  const sidebar = $(".rp-3d-sidebar");
+  if (!sidebar) return;
+  const nextTab = ["plan", "issues", "selection"].includes(tab) ? tab : "plan";
+  sidebar.dataset.sceneSidebarMode = nextTab;
+  $$('[data-scene-sidebar-tab]').forEach((button) => {
+    const selected = button.dataset.sceneSidebarTab === nextTab;
+    button.classList.toggle("is-active", selected);
+    button.setAttribute("aria-selected", String(selected));
+  });
+  const locks = $("#furniture-property-locks");
+  if (locks) locks.hidden = nextTab !== "selection" || !state.selectedFurniture2dId;
+}
+
+function selectedLayoutFurniture() {
+  return state.furniture2d.find(
+    (item) => String(item.id) === String(state.selectedFurniture2dId),
+  ) || null;
+}
+
+function renderSelectedFurnitureWorkspace() {
+  const panel = $("#furniture-property-locks");
+  if (!panel) return;
+  const selected = state.sceneData?.scene_objects?.[state.selectedSceneIndex];
+  const layoutItem = selectedLayoutFurniture();
+  const current = layoutItem || selected;
+  panel.querySelector("[data-selected-furniture-context]")?.remove();
+  if (!current) return;
+
+  const room = state.rooms.find((item) => String(item.id) === String(current.roomId || current.placement_room_id));
+  const name = current.label || current.name_zh || current.name_zh_raw || current.name_en || "家具";
+  const width = Number(current.widthCm || current.size_cm?.width || 0).toFixed(0);
+  const depth = Number(current.depthCm || current.size_cm?.depth || 0).toFixed(0);
+  const context = document.createElement("section");
+  context.className = "rp-selected-furniture-context";
+  context.dataset.selectedFurnitureContext = "true";
+  context.innerHTML = `
+    <div class="rp-selected-furniture-heading">
+      <div>
+        <span class="eyebrow">目前選取</span>
+        <strong>${escapeHtml(name)}</strong>
+        <small>${escapeHtml(room?.label || "目前房間")} · ${width} × ${depth} cm</small>
+      </div>
+      <span class="rp-selected-furniture-state">${selected?.model_locked ? "已鎖定" : "可調整"}</span>
+    </div>
+    <div class="rp-selected-furniture-actions">
+      <button type="button" class="primary-action" data-open-same-type-replacement>更換同類家具</button>
+      <button type="button" class="secondary-action" data-open-all-type-replacement>改選其他類型</button>
+      <button type="button" class="secondary-action" data-lock-current-furniture>${selected?.model_locked ? "解除鎖定" : "鎖定此家具"}</button>
+      <button type="button" class="danger-action" data-delete-current-furniture>刪除</button>
+    </div>
+    <p class="rp-field-hint">替換時會先保留原家具，僅列出可放入此房間的候選；確認後才套用。</p>
+  `;
+  panel.querySelector("h3")?.insertAdjacentElement("afterend", context);
+}
+
+function syncFurnitureNumberVisibility() {
+  const button = $("#toggle-furniture-numbers");
+  if (button) {
+    button.classList.toggle("is-active", state.showFurnitureNumbers);
+    button.setAttribute("aria-pressed", String(state.showFurnitureNumbers));
+    button.textContent = state.showFurnitureNumbers ? "隱藏編號" : "顯示編號";
+  }
+  // Step 6 is a whole-home overview. The walk-room selector must not filter
+  // numbered furniture markers, because its ID can differ from scene objects.
+  whiteViewer?.setFurnitureNumberMarkersVisible?.(state.showFurnitureNumbers);
+  renderConfigurationPlan();
+}
+
 function selectSceneObjectByFurnitureId(furnitureId, {
   viewer = null,
   focus = true,
@@ -1015,6 +1107,10 @@ function syncSceneSelectionTo2dFurniture(sceneObject) {
   state.selectedFurniture2dId = item.id;
   renderLayoutFurniture();
   renderConfigurationPlan();
+  if (state.workflow?.currentStep === "white_model_3d") {
+    setSceneSidebarTab("selection");
+    renderSelectedFurnitureWorkspace();
+  }
   return true;
 }
 
@@ -1414,11 +1510,20 @@ function showStep(step) {
     renderSchemeComparison();
   }
   if (step === "requirements") void prepareQuestionnaireStep();
+  if (step === "layout_2d") {
+    // Step 6 starts by reconfirming the saved per-room A/B plan choices.
+    queueMicrotask(promptRoomSchemeSelection);
+  }
   if (step === "proposal_review") void prepareProposalReview();
   if (step === "ai_render") void prepareAiRender();
   if (step === "white_model_3d") {
     renderWhiteWalkRoomSelector();
     renderConfigurationPlan();
+    setSceneSidebarTab("plan");
+    syncFurnitureNumberVisibility();
+    // Project recovery can generate the white model immediately after layout_2d.
+    // Prompt again here so the required comparison cannot be hidden by that transition.
+    queueMicrotask(promptRoomSchemeSelection);
   }
   const currentPublicStep = publicWorkflowStep(step);
   const currentPublicIndex = PUBLIC_WORKFLOW_STEPS.indexOf(currentPublicStep);
@@ -1657,17 +1762,7 @@ async function confirmUpload() {
     });
     state.analysis = result.analysis;
     state.workflow.complete("recognition", { engine: result.geometry_engine });
-    const scaleEvidence = (state.analysis.evidence || []).find(
-      (item) => Array.isArray(item.start_px) && Array.isArray(item.end_px),
-    );
-    if (scaleEvidence) {
-      state.calibrationPoints = [
-        { x: Number(scaleEvidence.start_px[0]), y: Number(scaleEvidence.start_px[1]) },
-        { x: Number(scaleEvidence.end_px[0]), y: Number(scaleEvidence.end_px[1]) },
-      ];
-    } else {
-      state.calibrationPoints = [];
-    }
+    state.calibrationPoints = calibrationPointsFromAnalysis(state.analysis);
     if (state.sourceExtension === ".dxf") {
       state.sourceUrl = configureDxfPreview(state.analysis);
     }
@@ -3355,12 +3450,58 @@ function schemeStructureMarkup(schemeId) {
 }
 
 function schemeFurnitureForRoom(schemeId, roomId) {
-  const scheme = state.designSchemes.schemes[schemeId];
+  const resolvedSchemeId = String(
+    schemeId
+      || state.designSchemes.room_selections?.[String(roomId)]
+      || state.designSchemes.active_scheme_id
+      || "A",
+  ).toUpperCase();
+  const scheme = state.designSchemes.schemes[resolvedSchemeId] || state.designSchemes.schemes.A;
   return (scheme?.furniture || []).filter((item) => String(item.roomId || item.room_id || "") === String(roomId));
 }
 
 function roomSchemeSelectionRequired() {
   return Boolean(state.designSchemes.schemes.B) && state.rooms.length > 0;
+}
+
+function promptRoomSchemeSelection() {
+  if (!state.rooms.length) return;
+  openRoomSchemeSelectionDialog();
+  void ensureRoomSchemeAlternative();
+}
+
+async function ensureRoomSchemeAlternative() {
+  if (roomSchemeAlternativeInFlight) return roomSchemeAlternativeInFlight;
+  const schemeA = state.designSchemes.schemes.A;
+  const schemeB = ensureSchemeB(state.designSchemes, { reason: "step_six_room_comparison" });
+  if (schemeB.stale || (schemeB.furniture || []).length || !(schemeA?.furniture || []).length) {
+    if (element.roomSchemeDialog?.open) renderRoomSchemeSelectionDialog();
+    return schemeB;
+  }
+  roomSchemeAlternativeInFlight = (async () => {
+    try {
+      const alternativeFurniture = await relayoutFurnitureForScheme(schemeA.furniture, "B");
+      if (!alternativeFurniture?.length) {
+        schemeB.stale = true;
+        schemeB.staleReason = "無法產生不同的家具擺設。";
+        return schemeB;
+      }
+      schemeB.furniture = alternativeFurniture;
+      schemeB.stale = false;
+      schemeB.staleReason = "";
+      roomSchemePreviewCache.clear();
+      scheduleSave("layout_2d");
+      return schemeB;
+    } catch (error) {
+      schemeB.stale = true;
+      schemeB.staleReason = `無法產生替代擺設：${errorMessage(error)}`;
+      return schemeB;
+    } finally {
+      roomSchemeAlternativeInFlight = null;
+      if (element.roomSchemeDialog?.open) renderRoomSchemeSelectionDialog();
+    }
+  })();
+  return roomSchemeAlternativeInFlight;
 }
 
 function configurationSnapshot() {
@@ -3412,19 +3553,186 @@ function renderRoomSchemeGate() {
     element.openRoomSchemeSelection.hidden = true;
     return;
   }
+  const autoSelected = applyUnavailableRoomSchemeDefaults();
   const selectedCount = state.rooms.filter((room) => (
     ["A", "B"].includes(state.designSchemes.room_selections?.[String(room.id)])
   )).length;
   const ready = allRoomsHaveSchemeSelections(state.designSchemes, state.rooms);
   element.roomSchemeGateStatus.textContent = ready
-    ? `已完成 ${selectedCount}/${state.rooms.length} 間房的方案選擇；現在可以微調。`
+    ? `已完成 ${selectedCount}/${state.rooms.length} 間房的方案選擇；${autoSelected ? "沒有完整方案 B 的房間已自動採用方案 A。" : ""}現在可以微調。`
     : `已選 ${selectedCount}/${state.rooms.length} 間。請先完成所有房間的 A/B 選擇，才可微調。`;
   element.openRoomSchemeSelection.hidden = false;
   element.openRoomSchemeSelection.textContent = ready ? "檢視逐房方案選擇" : "逐房比較並選擇方案";
 }
 
+function roomHasComparableSchemeB(room) {
+  const schemeB = state.designSchemes.schemes.B;
+  return Boolean(
+    room
+    && schemeB
+    && !schemeB.stale
+    && schemeFurnitureForRoom("B", room.id).length,
+  );
+}
+
+function roomSchemePreviewKey(schemeId, roomId) {
+  return `${schemeId}:${roomId}`;
+}
+
+function roomSchemeFurnitureLabel(item = {}) {
+  return replacementFurnitureName({
+    ...item,
+    name_zh_raw: item.label || item.name_zh_raw,
+    normalized_type: item.type || item.normalized_type,
+  });
+}
+
+function roomSchemePlanMarkup(room, furniture = []) {
+  const polygon = room?.polygon_cm || [];
+  if (polygon.length < 3) {
+    return '<span class="rp-render-placeholder">沒有可用的房間平面資料</span>';
+  }
+  const center = planCenterCm();
+  const points = polygon.map((point) => ({ x: Number(point.x || 0), y: Number(point.y || 0) }));
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  const padding = 38;
+  const minX = Math.min(...xs) - padding;
+  const maxX = Math.max(...xs) + padding;
+  const minY = Math.min(...ys) - padding;
+  const maxY = Math.max(...ys) + padding;
+  const width = Math.max(1, maxX - minX);
+  const height = Math.max(1, maxY - minY);
+  const project = (point) => ({
+    x: ((point.x - minX) / width) * 440,
+    y: 300 - ((point.y - minY) / height) * 300,
+  });
+  const roomPath = points.map((point, index) => {
+    const projected = project(point);
+    return `${index ? 'L' : 'M'} ${projected.x.toFixed(1)} ${projected.y.toFixed(1)}`;
+  }).join(' ') + ' Z';
+  const furnitureMarkup = furniture.slice(0, 12).map((item) => {
+    const location = project({ x: center.x + Number(item.xCm || 0), y: center.y + Number(item.yCm || 0) });
+    const itemWidth = Math.max(22, (Number(item.widthCm || 60) / width) * 440);
+    const itemHeight = Math.max(18, (Number(item.depthCm || 60) / height) * 300);
+    const label = roomSchemeFurnitureLabel(item);
+    return `<g class="rp-room-scheme-furniture" transform="translate(${location.x.toFixed(1)} ${location.y.toFixed(1)}) rotate(${-Number(item.rotationDeg || 0)})">
+      <rect x="${(-itemWidth / 2).toFixed(1)}" y="${(-itemHeight / 2).toFixed(1)}" width="${itemWidth.toFixed(1)}" height="${itemHeight.toFixed(1)}" rx="3" />
+      ${itemWidth > 62 && itemHeight > 30 ? `<text text-anchor="middle" dominant-baseline="middle">${escapeHtml(label.slice(0, 8))}</text>` : ''}
+    </g>`;
+  }).join('');
+  return `<svg class="rp-room-scheme-plan" viewBox="0 0 440 300" role="img" aria-label="${escapeHtml(room.label || '房間')}的家具平面配置">
+    <path class="rp-room-scheme-outline" d="${roomPath}" />
+    ${furnitureMarkup || '<text class="rp-room-scheme-empty" x="200" y="130" text-anchor="middle">尚未配置家具</text>'}
+  </svg>`;
+}
+
+function roomSchemeFurnitureLegend(furniture = []) {
+  if (!furniture.length) return '<p class="rp-room-scheme-legend-empty">尚未配置家具</p>';
+  return `<ul class="rp-room-scheme-legend">${furniture.slice(0, 6).map((item) => (
+    `<li>${escapeHtml(roomSchemeFurnitureLabel(item))}</li>`
+  )).join('')}</ul>`;
+}
+
+function buildRoomSchemePreviewScene(baseScene, room, furniture = []) {
+  if (!baseScene?.floorplan || !room) return null;
+  const bounds = replacementRoomBounds(room);
+  if (!bounds) return null;
+  const offset = { x: bounds.centerX, z: bounds.centerZ };
+  const scene = JSON.parse(JSON.stringify(baseScene));
+  const floorplan = scene.floorplan || {};
+  [
+    'wall_segments',
+    'door_segments',
+    'door_openings',
+    'window_segments',
+    'beam_segments',
+    'column_segments',
+  ].forEach((key) => {
+    if (!Array.isArray(floorplan[key])) return;
+    floorplan[key] = floorplan[key]
+      .filter((segment) => segmentOverlapsBounds(segment, bounds))
+      .map((segment) => shiftSceneSegment(segment, offset));
+  });
+  if (Array.isArray(floorplan.wall_polys)) {
+    floorplan.wall_polys = floorplan.wall_polys
+      .filter((region) => (region.exterior || region.polygon_cm || []).some((point) => {
+        const coordinates = scenePointCoordinates(point);
+        return (
+          coordinates.x >= bounds.minX - 32
+          && coordinates.x <= bounds.maxX + 32
+          && coordinates.z >= bounds.minZ - 32
+          && coordinates.z <= bounds.maxZ + 32
+        );
+      }))
+      .map((region) => shiftFloorplanRegion(region, offset));
+  }
+  if (Array.isArray(floorplan.columns)) {
+    floorplan.columns = floorplan.columns
+      .filter((column) => segmentOverlapsBounds({ start: column.center, end: column.center }, bounds))
+      .map((column) => ({ ...column, center: shiftScenePoint(column.center, offset) }));
+  }
+  floorplan.room_regions = (floorplan.room_regions || [])
+    .filter((region) => String(region.room_id || region.id || '') === String(room.id))
+    .map((region) => shiftFloorplanRegion(region, offset));
+  if (Array.isArray(floorplan.rooms)) {
+    floorplan.rooms = floorplan.rooms
+      .filter((region) => String(region.room_id || region.id || '') === String(room.id))
+      .map((region) => shiftFloorplanRegion(region, offset));
+  }
+  floorplan.width_cm = Math.max(240, (bounds.maxX - bounds.minX) + 120);
+  floorplan.depth_cm = Math.max(240, (bounds.maxZ - bounds.minZ) + 120);
+  scene.floorplan = floorplan;
+  scene.room_surface_assignments = (scene.room_surface_assignments || [])
+    .filter((assignment) => String(assignment.room_id || '') === String(room.id))
+    .map((assignment) => shiftRoomSurfaceAssignment(assignment, offset));
+  scene.surface_overrides = (scene.surface_overrides || [])
+    .filter((assignment) => String(assignment.room_id || '') === String(room.id))
+    .map((assignment) => shiftRoomSurfaceAssignment(assignment, offset));
+  const sourceObjects = scene.scene_objects || [];
+  scene.scene_objects = furniture.map((item) => {
+    const existing = sourceObjects.find((sceneObject) => sceneObjectMatchesLayoutFurniture(sceneObject, item)) || {};
+    const fallbackSize = {
+      width: Number(item.widthCm || item.size_cm?.width || 60),
+      depth: Number(item.depthCm || item.size_cm?.depth || 60),
+      height: Number(item.heightCm || item.size_cm?.height || 80),
+    };
+    return {
+      ...existing,
+      furniture_id: item.id,
+      catalog_furniture_id: item.catalogFurnitureId || item.catalog_furniture_id || existing.catalog_furniture_id,
+      name_zh_raw: item.label || existing.name_zh_raw,
+      normalized_type: item.type || existing.normalized_type,
+      model_url: item.model_url || existing.model_url,
+      size_cm: {
+        width: Number(existing.size_cm?.width || fallbackSize.width),
+        depth: Number(existing.size_cm?.depth || fallbackSize.depth),
+        height: Number(existing.size_cm?.height || fallbackSize.height),
+      },
+      position_cm: shiftScenePoint({ x: Number(item.xCm || 0), z: Number(item.yCm || 0) }, offset),
+      rotation_y_deg: Number(item.rotationDeg || 0),
+      placement_room_id: room.id,
+      position_locked: true,
+      placement_failed: item.placementFailed === true,
+    };
+  });
+  return { scene, bounds };
+}
+
+function applyUnavailableRoomSchemeDefaults() {
+  if (!roomSchemeSelectionRequired()) return false;
+  let changed = false;
+  state.rooms.forEach((room) => {
+    if (roomHasComparableSchemeB(room)) return;
+    if (state.designSchemes.room_selections?.[String(room.id)] === "A") return;
+    changed = selectSchemeForRoom(state.designSchemes, room.id, "A") || changed;
+  });
+  return changed;
+}
+
 function openRoomSchemeSelectionDialog() {
   if (!element.roomSchemeDialog) return;
+  if (applyUnavailableRoomSchemeDefaults()) scheduleSave("white_model_3d");
   state.selectedRoomSchemeId = state.selectedRoomSchemeId || state.rooms.find((room) => (
     !state.designSchemes.room_selections?.[String(room.id)]
   ))?.id || state.rooms[0]?.id || null;
@@ -3438,6 +3746,42 @@ function closeRoomSchemeSelectionDialog() {
   if (!element.roomSchemeDialog) return;
   if (typeof element.roomSchemeDialog.close === "function") element.roomSchemeDialog.close();
   else element.roomSchemeDialog.removeAttribute("open");
+}
+
+async function openRoomScheme3dPreview(schemeId) {
+  const room = state.rooms.find((item) => String(item.id) === String(state.selectedRoomSchemeId));
+  if (!room) {
+    setStatus("找不到要預覽的房間。", "warning");
+    return;
+  }
+  const resolvedSchemeId = String(
+    schemeId
+      || state.designSchemes.room_selections?.[String(room.id)]
+      || state.designSchemes.active_scheme_id
+      || "A",
+  ).toUpperCase();
+  const scheme = state.designSchemes.schemes[resolvedSchemeId] || state.designSchemes.schemes.A;
+  const baseScene = scheme?.sceneData || state.designSchemes.schemes.A?.sceneData || state.sceneData;
+  const previewScene = buildRoomSchemePreviewScene(
+    baseScene,
+    room,
+    schemeFurnitureForRoom(resolvedSchemeId, room.id),
+  );
+  if (!room || !previewScene) {
+    setStatus("無法建立此房間的 3D 預覽。", "warning");
+    return;
+  }
+  element.roomScheme3dPreviewTitle.textContent = `${room.label || "房間"}・方案 ${resolvedSchemeId}`;
+  setTaskDialogOpen(element.roomScheme3dPreviewDialog, true);
+  try {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await roomSchemePreviewViewer.loadScene(previewScene.scene);
+    roomSchemePreviewViewer.setViewMode("orbit");
+    roomSchemePreviewViewer.setCameraPreset("inside");
+    element.roomScheme3dPreviewStatus.textContent = "拖曳可旋轉，滾輪可縮放。";
+  } catch (error) {
+    element.roomScheme3dPreviewStatus.textContent = `3D 預覽載入失敗：${errorMessage(error)}`;
+  }
 }
 
 function setTaskDialogOpen(dialog, isOpen) {
@@ -3494,34 +3838,44 @@ function closeStepSixTaskDialog(dialog) {
 }
 
 function renderRoomSchemeSelectionDialog() {
+  applyUnavailableRoomSchemeDefaults();
   const room = state.rooms.find((item) => String(item.id) === String(state.selectedRoomSchemeId)) || state.rooms[0];
   if (!room || !element.roomSchemeList) return;
   const selected = selectedSchemeForRoom(state.designSchemes, room.id);
   element.roomSchemeList.innerHTML = state.rooms.map((item) => {
     const selectedScheme = state.designSchemes.room_selections?.[String(item.id)];
+    const isAutoSelected = selectedScheme === "A" && !roomHasComparableSchemeB(item);
     return `<button type="button" data-room-scheme-room="${escapeHtml(item.id)}"
       class="${String(item.id) === String(room.id) ? "is-active" : ""}">
       <strong>${escapeHtml(item.label || "未命名空間")}</strong>
-      <small>${selectedScheme ? `已選方案 ${selectedScheme}` : "尚未選擇"}</small>
+      <small>${isAutoSelected ? "方案 A（無完整 B 可比較）" : (selectedScheme ? `已選方案 ${selectedScheme}` : "尚未選擇")}</small>
     </button>`;
   }).join("");
-  element.roomSchemeStatus.textContent = `${room.label || "此房間"}：比較 2D 家具配置與 3D 場景後，選擇要帶入最終方案的版本。`;
-  element.roomSchemeChoiceGrid.innerHTML = ["A", "B"].map((schemeId) => {
+  const hasComparableB = roomHasComparableSchemeB(room);
+  element.roomSchemeStatus.textContent = hasComparableB
+    ? `${room.label || "此房間"}：比較 2D 家具配置與 3D 場景後，選擇要帶入最終方案的版本。`
+    : `${room.label || "此房間"}：目前沒有完整的方案 B 3D 場景可比較，已先採用方案 A；進入配置後仍可挑選、替換與鎖定家具。`;
+  element.roomSchemeChoiceGrid.innerHTML = ["A", ...(hasComparableB ? ["B"] : [])].map((schemeId) => {
     const scheme = state.designSchemes.schemes[schemeId];
     const furniture = schemeFurnitureForRoom(schemeId, room.id);
     const unavailable = !scheme || scheme.stale;
-    const preview = roomSchemePreviewCache.get(schemeId);
+    const preview = roomSchemePreviewCache.get(roomSchemePreviewKey(schemeId, room.id));
     return `<article class="rp-scheme-choice-card ${selected === schemeId ? "is-selected" : ""}">
       <header><strong>方案 ${schemeId}</strong><span>${unavailable ? "需要重新配置" : `${furniture.length} 件家具`}</span></header>
       <div class="rp-scheme-preview-grid">
-        <div class="rp-scheme-preview"><img src="${escapeHtml(element.configurationPlanImage?.src || element.layoutImage?.src || "")}" alt="方案 ${schemeId} 的 2D 平面參考" /></div>
-        <div class="rp-scheme-preview">${preview
-          ? `<img src="${escapeHtml(preview)}" alt="方案 ${schemeId} 的 3D 配置預覽" />`
-          : `<span class="rp-render-placeholder">${scheme?.sceneData?.scene_objects
-            ? "正在建立 3D 預覽…"
-            : "此方案尚未有可比較的 3D 場景"}</span>`}</div>
+        <section class="rp-scheme-preview">
+          <h4>2D 家具配置</h4>
+          ${roomSchemePlanMarkup(room, furniture)}
+          ${roomSchemeFurnitureLegend(furniture)}
+        </section>
+        <button type="button" class="rp-scheme-preview rp-scheme-preview--interactive" data-room-scheme-preview-3d="${schemeId}" aria-label="查看方案 ${schemeId} 的可旋轉 3D 預覽">
+          <h4>3D 房間預覽 <span>點擊旋轉查看</span></h4>
+          ${preview
+            ? `<img src="${escapeHtml(preview)}" alt="方案 ${schemeId} 的 ${escapeHtml(room.label || "房間")} 3D 預覽" />`
+            : `<span class="rp-render-placeholder">正在建立此房間的 3D 預覽…</span>`}
+        </button>
       </div>
-      <p class="rp-task-dialog-note">${unavailable ? (escapeHtml(scheme?.staleReason || "方案尚未可用") ) : `本房包含 ${furniture.map((item) => escapeHtml(item.label || item.type || "家具")).slice(0, 3).join("、") || "尚無家具"}`}</p>
+      <p class="rp-task-dialog-note">${unavailable ? (escapeHtml(scheme?.staleReason || "方案尚未可用") ) : `本房共 ${furniture.length} 件家具`}</p>
       <button type="button" class="${selected === schemeId ? "secondary-action" : "primary-action"}" data-room-scheme-choice="${schemeId}" ${unavailable ? "disabled" : ""}>${selected === schemeId ? "已選此方案" : `選擇方案 ${schemeId}`}</button>
     </article>`;
   }).join("");
@@ -3536,9 +3890,14 @@ function renderRoomSchemeSelectionDialog() {
 
 async function ensureRoomScheme3dPreviews() {
   if (roomSchemePreviewInFlight || !element.roomSchemeDialog?.open) return roomSchemePreviewInFlight;
+  const room = state.rooms.find((item) => String(item.id) === String(state.selectedRoomSchemeId)) || state.rooms[0];
+  const baseScene = state.designSchemes.schemes.A?.sceneData || state.sceneData;
+  if (!room || !baseScene?.scene_objects) return null;
   const candidates = ["A", "B"].filter((schemeId) => (
-    state.designSchemes.schemes[schemeId]?.sceneData?.scene_objects
-    && !roomSchemePreviewCache.has(schemeId)
+    state.designSchemes.schemes[schemeId]
+    && !state.designSchemes.schemes[schemeId].stale
+    && schemeFurnitureForRoom(schemeId, room.id).length
+    && !roomSchemePreviewCache.has(roomSchemePreviewKey(schemeId, room.id))
   ));
   if (!candidates.length) return null;
   roomSchemePreviewInFlight = (async () => {
@@ -3546,8 +3905,24 @@ async function ensureRoomScheme3dPreviews() {
     const activeCamera = whiteViewer.getCameraState();
     try {
       for (const schemeId of candidates) {
-        await whiteViewer.loadScene(state.designSchemes.schemes[schemeId].sceneData);
-        roomSchemePreviewCache.set(schemeId, whiteViewer.capturePng());
+        const previewScene = buildRoomSchemePreviewScene(
+          baseScene,
+          room,
+          schemeFurnitureForRoom(schemeId, room.id),
+        );
+        if (!previewScene) continue;
+        await whiteViewer.loadScene(previewScene.scene);
+        whiteViewer.setCameraState({
+          camera_type: "perspective",
+          view_mode: "orbit",
+          position_cm: [100, 160, 140],
+          target_cm: [0, 55, 0],
+          up: [0, 1, 0],
+          fov_deg: 58,
+          zoom: 1,
+        });
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        roomSchemePreviewCache.set(roomSchemePreviewKey(schemeId, room.id), whiteViewer.capturePng());
       }
     } catch (error) {
       setStatus(`無法建立候選 3D 預覽：${errorMessage(error)}`, "warning");
@@ -3573,6 +3948,7 @@ function chooseRoomScheme(schemeId) {
 }
 
 async function completeRoomSchemeSelection() {
+  applyUnavailableRoomSchemeDefaults();
   if (!allRoomsHaveSchemeSelections(state.designSchemes, state.rooms)) return;
   const compositeFurniture = composeSelectedRoomFurniture();
   if (!compositeFurniture.length && state.rooms.length) {
@@ -6363,6 +6739,10 @@ function applyRandomRoomRequirement(room, draft) {
   }));
   const axisNotes = randomRoomAxisNote(room);
   requirement.axisAnswers = axisAnswers;
+  requirement.usage = roomUsageOptions(room)
+    .slice(0, 1)
+    .map((option) => option.id)
+    .filter(Boolean);
   requirement.furniture = {
     required: axisNotes,
     optional: [],
@@ -6432,15 +6812,8 @@ async function randomizeRequirementsForTesting() {
   await Promise.all(state.rooms.map((room) => (
     ensureQuestionnaireFurnitureRecommendations(room, { force: true })
   )));
-  const roomsWithoutDefaults = state.rooms.filter((room) => {
-    const program = questionnaireFurnitureProgram(room);
-    return program.required.length > 0
-      && !(roomFurnitureRequirement(room.id)?.selected || []).length;
-  });
-  if (roomsWithoutDefaults.length) {
-    const labels = roomsWithoutDefaults.map((room) => room.label).join("、");
-    throw new Error(`${labels} 找不到可用的資料庫家具，無法自動完成問卷。請改為逐房選擇家具。`);
-  }
+  // A test fill must reach the summary even if a room has no compatible GLB.
+  // The missing-model reason is handled in Step 6 without blocking all rooms.
   state.rooms.forEach((room) => {
     const requirement = state.roomRequirementModel.roomRequirements[room.id];
     if (requirement) requirement.confirmed = true;
@@ -6472,10 +6845,15 @@ async function randomizeRequirementsForTesting() {
 }
 
 async function skipQuestionnaireWithDefaults() {
-  const button = element.randomizeRequirements;
-  if (!button || button.disabled) return;
-  button.disabled = true;
-  button.setAttribute("aria-busy", "true");
+  const buttons = [
+    element.randomizeRequirements,
+    element.randomizeRequirementsSummary,
+  ].filter(Boolean);
+  if (!buttons.length || buttons.some((button) => button.disabled)) return;
+  buttons.forEach((button) => {
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+  });
   element.requirementsError.textContent = "";
   setStatus("正在帶入系統預設需求…");
   try {
@@ -6486,8 +6864,10 @@ async function skipQuestionnaireWithDefaults() {
     element.requirementsError.textContent = message;
     setStatus(message, "error");
   } finally {
-    button.disabled = false;
-    button.removeAttribute("aria-busy");
+    buttons.forEach((button) => {
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+    });
   }
 }
 
@@ -6743,11 +7123,16 @@ function renderVisualSpaceNav() {
   element.visualSpaceNav.innerHTML = state.rooms.map((room) => {
     const progress = roomQuestionnaireSectionProgress(room);
     const furnitureCount = roomFurnitureRequirement(room.id)?.selected?.length || 0;
+    const ragStatus = state.roomRagJobs?.[room.id]?.status || "";
+    const roomState = progress.confirmed
+      ? (ragStatus === "queued" || ragStatus === "running" ? "rag-pending" : "confirmed")
+      : (progress.complete ? "ready" : "draft");
     return `
       <button type="button" data-visual-room="${escapeHtml(room.id)}"
-        class="${room.id === currentRoomId ? "is-active" : ""}"
+        class="${room.id === currentRoomId ? "is-active" : ""} is-${roomState}"
         aria-current="${room.id === currentRoomId ? "true" : "false"}">
         <strong>${escapeHtml(room.label)}</strong>
+        <i class="rp-room-nav-state" aria-hidden="true"></i>
         <small>${progress.confirmed ? "本房需求已確認" : (progress.complete ? "待使用者確認" : `需求填寫中・${furnitureCount} 件家具`)}</small>
       </button>
     `;
@@ -7543,10 +7928,64 @@ function confirmQuestionnaireFinishes() {
   }
 }
 
+const QUESTIONNAIRE_SUMMARY_AIR_CONDITIONING_LABELS = Object.freeze({
+  auto: "依房間條件建議",
+  "wall-split": "壁掛式冷氣",
+  "ceiling-cassette": "嵌入式冷氣",
+  ducted: "隱藏式冷氣",
+  none: "暫不規劃冷氣",
+});
+
+const QUESTIONNAIRE_SUMMARY_CEILING_MATERIAL_LABELS = Object.freeze({
+  "flat-paint": "平光乳膠漆",
+  "mineral-paint": "礦物塗料",
+  "wood-veneer": "木質飾面",
+  "exposed-concrete": "清水混凝土",
+});
+
+function questionnaireSummarySurfaceLabel(kind, materialId) {
+  if (!materialId) return "未選擇";
+  const catalog = state.surfaceCatalog || state.sceneData?.surface_catalog || {};
+  const surface = (catalog.surfaces || []).find(
+    (candidate) => candidate.surface_id === materialId,
+  );
+  if (surface) return userFacingMaterialLabel(surface);
+
+  const fallback = String(materialId)
+    .replace(/^wall_json_ambientcg_wall_paint_/i, "")
+    .replace(/^(?:wood|tile)_ccity_tile_flooring_/i, "")
+    .replace(/_/g, " ")
+    .trim();
+  if (!fallback || fallback === "auto") return kind === "wall" ? "依風格建議" : "依風格建議";
+  return kind === "wall" ? "已選牆面材質" : "已選地板材質";
+}
+
+function questionnaireSummaryFurnitureLabel(item) {
+  const label = questionnaireFurnitureDisplayLabel(item);
+  return label && !/[A-Za-z]/.test(label) ? label : "其他家具";
+}
+
+function questionnaireSummaryRoomUses(room, requirement) {
+  const labels = new Map(roomUsageOptions(room).map((option) => [option.id, option.label]));
+  return (requirement?.usage || [])
+    .map((usage) => labels.get(usage))
+    .filter(Boolean)
+    .join("、") || "尚未設定";
+}
+
 function renderQuestionnaireSummary() {
   const basicRows = WHOLE_HOUSE_QUESTIONS.filter((question) => question.id !== "overallStyle").map((question) =>
-    `<div><span>${escapeHtml(question.label)}</span><strong>${escapeHtml(state.basicAnswers[question.id] || "未填")}</strong></div>`
+    `<article class="rp-questionnaire-summary-card"><span>${escapeHtml(question.label)}</span><strong>${escapeHtml(state.basicAnswers[question.id] || "未填")}</strong></article>`
   ).join("");
+  const wholeHouseNotes = WHOLE_HOUSE_QUESTIONS
+    .filter((question) => question.type === "textarea")
+    .map((question) => ({
+      label: question.label,
+      value: String(state.basicAnswers[question.id] || "").trim(),
+    }))
+    .filter((item) => item.value)
+    .map((item) => `<li><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong></li>`)
+    .join("");
   const roomRows = state.rooms.map((room, index) => {
     const requirement = state.roomRequirementModel.roomRequirements[room.id];
     const axes = Object.entries(requirement?.axisAnswers || {}).map(([questionId, answer]) => {
@@ -7567,28 +8006,56 @@ function renderQuestionnaireSummary() {
     const surfaces = normalizedRoomSurfaces(room, requirement?.surfaces || {});
     const selectedFurniture = requirement?.furniture?.selected || [];
     const deferredFurniture = requirement?.furniture?.deferred || [];
+    const furniturePreference = String(requirement?.furniture?.preferenceText || "").trim();
+    const furnitureTags = (requirement?.furniture?.preferenceTags || [])
+      .map((tag) => String(tag).trim())
+      .filter(Boolean)
+      .join("、");
+    const generationNotes = String(requirement?.generativeEquipment?.generationNotes || "").trim();
+    const wallPreference = String(surfaces.wallPreference || "").trim();
+    const floorPreference = String(surfaces.floorPreference || "").trim();
+    const noteRows = [
+      furniturePreference && ["家具偏好", furniturePreference],
+      furnitureTags && ["偏好標籤", furnitureTags],
+      wallPreference && ["牆面補充", wallPreference],
+      floorPreference && ["地板補充", floorPreference],
+      generationNotes && ["設計與生圖補充", generationNotes],
+    ].filter(Boolean).map(([label, value]) => (
+      `<li><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></li>`
+    )).join("");
     const notices = (requirement?.feasibility || []).map(
       (item) => `<li>${escapeHtml(item.message || item)}</li>`,
     ).join("");
     return `
       <details class="rp-room-summary" ${index === 0 ? "open" : ""}>
-        <summary><strong>${escapeHtml(room.label)}</strong><span>${requirement?.confirmed ? "已確認" : "待確認"}</span></summary>
+        <summary>
+          <span class="rp-room-summary-title"><strong>${escapeHtml(room.label)}</strong></span>
+          <span class="rp-room-summary-status ${requirement?.confirmed ? "is-confirmed" : ""}">${requirement?.confirmed ? "已確認" : "待確認"}</span>
+        </summary>
         <div class="rp-room-summary-body">
-          <section><h4>空間需求</h4><p>本流程不要求生活情境二選一；第 6 步仍可調整家具、材質與配置。</p></section>
-          <section><h4>家具</h4>
-            <p>已選：${escapeHtml(selectedFurniture.map((item) => item.name_zh || item.name_zh_raw || item.normalized_type).join("、") || "由問卷與 RAG 產生")}</p>
-            ${deferredFurniture.length ? `<p>暫不放入：${escapeHtml(deferredFurniture.map((item) => item.label || item.name_zh || item.normalized_type).join("、"))}</p>` : ""}
+          <section class="rp-room-summary-item"><h4>空間用途</h4><p>${escapeHtml(questionnaireSummaryRoomUses(room, requirement))}</p></section>
+          <section class="rp-room-summary-item"><h4>已選家具</h4>
+            <p>${escapeHtml(selectedFurniture.map(questionnaireSummaryFurnitureLabel).join("、") || "將依需求推薦")}</p>
+            ${deferredFurniture.length ? `<p>暫不放入：${escapeHtml(deferredFurniture.map(questionnaireSummaryFurnitureLabel).join("、"))}</p>` : ""}
           </section>
-          <section><h4>設備與天花板</h4><p>冷氣：${escapeHtml(requirement?.climate?.airConditioning || "未填")}</p><p>天花板：${escapeHtml(surfaces.ceiling?.materialId || "未填")}／${escapeHtml(surfaces.ceiling?.styleId || "未填")}／照明 ${escapeHtml(surfaces.ceiling?.lightingId || "未填")}</p></section>
-          <section><h4>牆面與地板</h4><p>牆：${escapeHtml(surfaces.wallDefault?.materialId || "未填")}；逐面指定 ${Object.keys(surfaces.wallOverrides || {}).length} 面</p><p>地板：${escapeHtml(surfaces.floor?.materialId || "未填")}</p></section>
+          <section class="rp-room-summary-item"><h4>冷氣與天花</h4>
+            <p>冷氣：${escapeHtml(QUESTIONNAIRE_SUMMARY_AIR_CONDITIONING_LABELS[requirement?.climate?.airConditioning] || "依房間條件建議")}</p>
+            <p>天花：${escapeHtml(QUESTIONNAIRE_SUMMARY_CEILING_MATERIAL_LABELS[surfaces.ceiling?.materialId] || "已選天花材質")}、${escapeHtml(CEILING_STYLES.find((item) => item.id === surfaces.ceiling?.styleId)?.label || "依風格建議")}、${escapeHtml(LIGHT_STYLES.find((item) => item.id === surfaces.ceiling?.lightingId)?.label || "依風格建議")}</p>
+          </section>
+          <section class="rp-room-summary-item"><h4>牆面與地板</h4><p>牆面：${escapeHtml(questionnaireSummarySurfaceLabel("wall", surfaces.wallDefault?.materialId))}</p><p>地板：${escapeHtml(questionnaireSummarySurfaceLabel("floor", surfaces.floor?.materialId))}</p></section>
+          ${noteRows ? `<section class="rp-room-summary-notes"><h4>文字補充</h4><ul>${noteRows}</ul></section>` : ""}
           ${notices ? `<section class="needs-review"><h4>需要確認</h4><ul>${notices}</ul></section>` : ""}
         </div>
       </details>
     `;
   }).join("");
   element.questionnaireSummary.innerHTML = `
-    <section><h4>全屋共用資料</h4><div class="rp-questionnaire-summary-grid">${basicRows}</div></section>
-    <section><h4>逐房確認</h4>${roomRows}</section>
+    <section class="rp-questionnaire-summary-section rp-questionnaire-summary-overview">
+      <div class="rp-questionnaire-summary-heading"><h3>全屋需求</h3></div>
+      <div class="rp-questionnaire-summary-grid">${basicRows}</div>
+      ${wholeHouseNotes ? `<div class="rp-questionnaire-summary-notes"><h4>文字補充</h4><ul>${wholeHouseNotes}</ul></div>` : ""}
+    </section>
+    <section class="rp-questionnaire-summary-section"><div class="rp-questionnaire-summary-heading"><h3>各房間摘要</h3></div>${roomRows}</section>
   `;
 }
 
@@ -7889,6 +8356,31 @@ async function configurationCatalogReadiness() {
 }
 
 async function confirmRequirements() {
+  if (state.requirementsGenerationPending) {
+    const message = "配置仍在建立中，請稍候。";
+    element.requirementsError.textContent = message;
+    setStatus(message, "warning");
+    return;
+  }
+  state.requirementsGenerationPending = true;
+  state.lastWhiteModelGenerationError = "";
+  element.confirmRequirements?.setAttribute("aria-busy", "true");
+  element.confirmRequirements?.setAttribute("disabled", "disabled");
+  try {
+    await confirmRequirementsInternal();
+  } catch (error) {
+    const message = errorMessage(error);
+    element.requirementsError.textContent = message;
+    showRequirementsGenerationHelp(`建立配置時發生錯誤：${message}`);
+    setStatus(message, "error");
+  } finally {
+    state.requirementsGenerationPending = false;
+    element.confirmRequirements?.removeAttribute("aria-busy");
+    element.confirmRequirements?.removeAttribute("disabled");
+  }
+}
+
+async function confirmRequirementsInternal() {
   element.requirementsError.textContent = "";
   clearRequirementsGenerationHelp();
   setStatus("正在依每個房間的需求搜尋可配置家具…");
@@ -7918,21 +8410,30 @@ async function confirmRequirements() {
   try {
     setStatus("正在檢查空間規則並建立方案 A、B…");
     ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });
-    switchDesignScheme("A");
+    await switchDesignScheme("A");
     await autoLayoutFurniture();
     const schemeAFurniture = state.designSchemes.schemes.A.furniture;
-    const schemeBFurniture = await relayoutFurnitureForScheme(schemeAFurniture, "B");
+    let schemeBFurniture = null;
+    let schemeBError = null;
+    try {
+      schemeBFurniture = await relayoutFurnitureForScheme(schemeAFurniture, "B");
+    } catch (error) {
+      schemeBError = error;
+      console.warn("Unable to create the alternative layout; continuing with scheme A.", error);
+    }
     const schemeB = state.designSchemes.schemes.B;
     if (!schemeBFurniture) {
       schemeB.furniture = [];
       schemeB.stale = true;
-      schemeB.staleReason = "目前格局無法在保留問卷需求下產生方案 B 的合法配置。";
+      schemeB.staleReason = schemeBError
+        ? `方案 B 暫時無法建立：${errorMessage(schemeBError)}`
+        : "目前格局無法在保留問卷需求下產生方案 B 的合法配置。";
     } else {
       schemeB.furniture = schemeBFurniture;
       schemeB.stale = false;
       schemeB.staleReason = "";
     }
-    switchDesignScheme("A");
+    await switchDesignScheme("A");
     state.workflow.complete("requirements", {
       basicConfirmed: true,
       roomsResolved: true,
@@ -7945,11 +8446,11 @@ async function confirmRequirements() {
       returnToRequirementsOnFailure: true,
     });
     if (!generated && !element.requirementsError.textContent.trim()) {
-      element.requirementsError.textContent =
-        "建立 2D+3D 配置未完成。請查看下方原因與處理方式；問卷答案已保留。";
-      showRequirementsGenerationHelp(
-        "建立過程沒有回傳可顯示的具體錯誤。請重新檢查型錄連線；若仍失敗，請將此專案交給管理員查看後端場景產生紀錄。",
-      );
+      const message = state.lastWhiteModelGenerationError
+        || element.layoutError.textContent.trim()
+        || "第 6 步沒有產生場景資料。請重新檢查型錄與平面圖後再試。";
+      element.requirementsError.textContent = message;
+      showRequirementsGenerationHelp(`建立配置未完成：${message}`);
     }
   } catch (error) {
     element.requirementsError.textContent = errorMessage(error);
@@ -8307,6 +8808,14 @@ const QUESTIONNAIRE_FURNITURE_SHORT_LABELS = Object.freeze({
   bed: "床",
   wardrobe: "衣櫃",
   "bedside-table": "床邊桌",
+  chair: "椅子",
+  armchair: "扶手椅",
+  "lounge-chair": "休閒椅",
+  "dining-chair": "餐椅",
+  "office-chair": "辦公椅",
+  "gaming-chair": "電競椅",
+  "kids-chairs-stool": "兒童椅／凳",
+  "stool-bench": "椅凳",
   sofa: "沙發",
   "coffee-table": "茶几",
   "tv-bench": "電視櫃",
@@ -8381,6 +8890,37 @@ function questionnaireBedSizeFamily(offer) {
   return "特大雙人床";
 }
 
+const QUESTIONNAIRE_CATALOG_EXTRA_DISPLAY_LABELS = Object.freeze({
+  "pax-wardrobe": "系統衣櫃",
+  "fabric-sofa": "布沙發",
+  "leather-sofa": "皮沙發",
+  "modular-sofa": "模組沙發",
+  table: "多用途桌",
+  "bar-table": "吧檯桌",
+  "cabinets-cupboard": "收納櫃",
+  "cabinet-cupboard": "收納櫃",
+  "shelving-unit": "層架組",
+  "storage-boxes-basket": "收納盒籃",
+  "storage-solution-system": "收納系統",
+  "wall-shelf": "壁掛層架",
+  "shoe-cabinet": "鞋櫃",
+  "clothes-rack": "衣帽架",
+  "tv-media-furniture": "影音櫃",
+  "chests-of-drawer": "抽屜櫃",
+  mirror: "鏡子",
+  "large-medium-rug": "地毯",
+  "runner-small-rug": "走道地毯",
+  "floor-lamp": "立燈",
+  planter: "植栽盆器",
+  decoration: "裝飾擺件",
+  "pillow-cushion": "抱枕",
+  shelf: "層架",
+  bookcase: "書櫃",
+  "storage-bench": "收納椅凳",
+  "storage-box": "收納盒",
+  lighting: "照明燈具",
+});
+
 function questionnaireFurnitureDisplayLabel(offer) {
   const type = String(offer?.normalized_type || "");
   const width = Number(offer?.size_cm?.width || 0);
@@ -8397,6 +8937,7 @@ function questionnaireFurnitureDisplayLabel(offer) {
     return "大書桌";
   }
   return QUESTIONNAIRE_FURNITURE_SHORT_LABELS[type]
+    || QUESTIONNAIRE_CATALOG_EXTRA_DISPLAY_LABELS[type]
     || REPLACEMENT_TYPE_LABELS[type]
     || type;
 }
@@ -8558,6 +9099,34 @@ const ROOM_USAGE_FURNITURE_SPECS = Object.freeze({
   kids: [["storage-cabinet", "low"]],
 });
 
+// 第 5 步只用用途情境幫使用者快速理解選擇；實際家具仍由既有
+// 型錄、RAG 與第 6 步配置流程決定。用途不使用容易誤導的風格照片，
+// 改以一致的空間用途圖示呈現，讓每個房型都有可辨識的視覺提示。
+const ROOM_USAGE_VISUALS = Object.freeze({
+  sleep: { symbol: "床", tone: "rest", caption: "以睡眠與放鬆為主" },
+  rest: { symbol: "休", tone: "rest", caption: "保留舒適的休息留白" },
+  watch: { symbol: "影", tone: "social", caption: "影音與日常休憩" },
+  host: { symbol: "客", tone: "social", caption: "方便聊天與招待" },
+  read: { symbol: "讀", tone: "focus", caption: "閱讀與安靜停留" },
+  work: { symbol: "桌", tone: "focus", caption: "專注工作與收納" },
+  dressing: { symbol: "衣", tone: "care", caption: "更衣與梳妝收納" },
+  kids: { symbol: "童", tone: "play", caption: "保留安全活動範圍" },
+  cook: { symbol: "爐", tone: "kitchen", caption: "以烹飪動線為主" },
+  prep: { symbol: "檯", tone: "kitchen", caption: "備料與收納更順手" },
+  dine: { symbol: "餐", tone: "social", caption: "規劃日常用餐位置" },
+  shared_dining: { symbol: "餐", tone: "social", caption: "兼顧用餐與交流" },
+  store: { symbol: "櫃", tone: "storage", caption: "提高收納與分類效率" },
+  laundry: { symbol: "洗", tone: "service", caption: "保留洗曬與家事動線" },
+  bathe: { symbol: "浴", tone: "care", caption: "以清潔與安全為主" },
+  arrival: { symbol: "玄", tone: "arrival", caption: "進出、落塵與隨手收納" },
+  passage: { symbol: "路", tone: "service", caption: "保留清楚通行寬度" },
+  flex: { symbol: "多", tone: "flex", caption: "保留可調整的多用途空間" },
+});
+
+function roomUsageVisual(optionId) {
+  return ROOM_USAGE_VISUALS[optionId] || ROOM_USAGE_VISUALS.flex;
+}
+
 function roomUsageOptions(room) {
   return ROOM_USAGE_OPTIONS[room?.type] || ROOM_USAGE_OPTIONS.default;
 }
@@ -8577,13 +9146,24 @@ function ensureRoomUsage(room) {
 function renderQuestionnaireRoomUsage(room = activeQuestionnaireRoom()) {
   if (!room || !element.questionnaireRoomUsageOptions) return;
   const selected = new Set(ensureRoomUsage(room));
-  element.questionnaireRoomUsageOptions.innerHTML = roomUsageOptions(room).map((option) => `
-    <label class="${selected.has(option.id) ? "is-selected" : ""}">
+  const selectedCount = selected.size;
+  element.questionnaireRoomUsageOptions.innerHTML = roomUsageOptions(room).map((option) => {
+    const visual = roomUsageVisual(option.id);
+    const isSelected = selected.has(option.id);
+    const isPrimary = isSelected && [...selected][0] === option.id;
+    return `
+    <label class="rp-room-usage-card ${isSelected ? "is-selected" : ""} ${isPrimary ? "is-primary" : ""}" data-usage-tone="${escapeHtml(visual.tone)}">
       <input type="checkbox" data-questionnaire-room-usage="${escapeHtml(option.id)}"
-        ${selected.has(option.id) ? "checked" : ""}>
-      <span>${escapeHtml(option.label)}</span>
-    </label>
-  `).join("");
+        ${isSelected ? "checked" : ""}>
+      <span class="rp-room-usage-card-media rp-room-usage-card-schematic" aria-hidden="true">
+        <span class="rp-room-usage-card-schematic-grid"><i></i><i></i><i></i><i></i></span>
+        <b>${escapeHtml(visual.symbol)}</b>
+      </span>
+      <span class="rp-room-usage-card-copy"><strong>${escapeHtml(option.label)}</strong><small>${escapeHtml(visual.caption)}</small></span>
+      <span class="rp-room-usage-card-state" aria-hidden="true">${isSelected ? '<span class="rp-room-usage-card-check">✓</span>' : ""}${isPrimary ? '<span class="rp-room-usage-card-label">主要</span>' : ""}</span>
+    </label>`;
+  }).join("");
+  element.questionnaireRoomUsageOptions.dataset.selectionCount = String(selectedCount);
 }
 
 function roomFurnitureRequirement(roomId) {
@@ -8662,11 +9242,7 @@ function questionnaireFurnitureSizeLabel(offer) {
 }
 
 function questionnaireFurnitureGroups(room, offers) {
-  const selectedByType = new Map(
-    (roomFurnitureRequirement(room.id)?.selected || [])
-      .filter((item) => item?.normalized_type)
-      .map((item) => [String(item.normalized_type), item]),
-  );
+  const selectedItems = roomFurnitureRequirement(room.id)?.selected || [];
   const groups = new Map();
   offers.forEach((offer) => {
     const type = String(offer.normalized_type || "other");
@@ -8675,7 +9251,11 @@ function questionnaireFurnitureGroups(room, offers) {
     groups.set(type, group);
   });
   return [...groups.values()].map((group) => {
-    const selected = selectedByType.get(group.type);
+    // The catalog and RAG may use different type labels for the same item.
+    // Preserve the user's choice by the catalog's stable furniture_id instead.
+    const selected = selectedItems.find((item) => group.offers.some(
+      (offer) => String(offer.furniture_id) === String(item?.furniture_id),
+    ));
     const active = group.offers.find((offer) => (
       String(offer.furniture_id) === String(selected?.furniture_id)
     )) || group.offers[0];
@@ -8785,6 +9365,7 @@ function renderQuestionnaireFurnitureRecommendations(room = activeQuestionnaireR
           <input type="checkbox" data-questionnaire-furniture-id="${escapeHtml(furnitureId)}"
             ${selected ? "checked" : ""}>
           <span>
+            ${group.role?.label ? `<small class="rp-questionnaire-furniture-purpose">對應用途：${escapeHtml(group.role.label)}</small>` : ""}
             <strong>${escapeHtml(shortLabel)}</strong>
             <small>${escapeHtml(questionnaireFurnitureSizeLabel(offer))}</small>
             <small class="rp-questionnaire-furniture-reason">${escapeHtml(offer.reason || group.role?.label || "依本房用途與尺寸建議")}</small>
@@ -8967,7 +9548,6 @@ function updateQuestionnaireFurnitureSelection(furnitureId, selected) {
   const requirement = state.roomRequirementModel.roomRequirements[room.id];
   requirement.confirmed = false;
   activeRoomFinishDraft().confirmed = false;
-  renderQuestionnaireFurnitureRecommendations(room);
   invalidateDownstreamFrom(
     "requirements",
     `「${room.label}」的家具需求已修改，第 6 步需要重新產生。`,
@@ -9805,7 +10385,7 @@ function renderConfigurationPlan() {
   const blockingIds = new Set(blocking.map((item) => String(item.id)));
   const modelFailures = configurationModelFailures();
   const scale = configurationPlanPixelsPerCm();
-  if (scale > 0) {
+  if (scale > 0 && state.showFurnitureNumbers) {
     element.configurationPlanLayer.innerHTML = state.furniture2d.map((item, index) => {
       const pixel = configurationFurniturePixelPosition(item);
       const style = furnitureFootprintStyle(item, scale);
@@ -9837,6 +10417,11 @@ function renderConfigurationPlan() {
   }).join("") || "<p class=\"rp-control-hint\">目前沒有家具。</p>";
 
   element.configurationPendingCount.textContent = String(blocking.length);
+  const issueBadge = $("#scene-sidebar-issue-badge");
+  if (issueBadge) {
+    issueBadge.hidden = blocking.length === 0;
+    issueBadge.textContent = String(blocking.length);
+  }
   const blockingRooms = configurationBlockingFurnitureByRoom(blocking);
   const deferredRooms = configurationDeferredFurnitureByRoom();
   const blockingMarkup = blockingRooms.map((group) => {
@@ -10292,6 +10877,26 @@ function replacementCandidateFitsRoom(candidate, room) {
   );
 }
 
+function replacementFurnitureName(item = {}) {
+  const type = item.normalized_type || item.type || "";
+  const rawName = [item.name_zh, item.name_zh_raw, item.label]
+    .filter(Boolean)
+    .join(" ");
+  const chineseNames = rawName.match(/[\u3400-\u9fff]{2,}/g) || [];
+  const nameWithFurnitureNoun = chineseNames.find((name) =>
+    /(床|櫃|桌|椅|凳|沙發|架|鏡|燈|毯|盆|櫥|箱|籃)/.test(name));
+  return nameWithFurnitureNoun
+    || questionnaireFurnitureDisplayLabel({ ...item, normalized_type: type })
+    || REPLACEMENT_TYPE_LABELS[type]
+    || "家具";
+}
+
+function replacementFurnitureSize(item = {}) {
+  const width = Number(item.widthCm || item.size_cm?.width || 0).toFixed(0);
+  const depth = Number(item.depthCm || item.size_cm?.depth || 0).toFixed(0);
+  return `${width} × ${depth} cm`;
+}
+
 function replacementCandidateImageUrl(candidate = {}) {
   const cloudImages = candidate.cloud_image_urls || {};
   return candidate.image_url
@@ -10323,10 +10928,7 @@ function replacementRoomBounds(room) {
 }
 
 function segmentEndpoint(point = {}) {
-  return {
-    x: Number(point.x || 0),
-    z: Number(point.z ?? point.y ?? 0),
-  };
+  return scenePointCoordinates(point);
 }
 
 function segmentOverlapsBounds(segment, bounds, padding = 32) {
@@ -10347,6 +10949,12 @@ function segmentOverlapsBounds(segment, bounds, padding = 32) {
 
 function shiftScenePoint(point = {}, offset) {
   if (!offset) return { ...point };
+  if (Array.isArray(point)) {
+    return [
+      Number(point[0] || 0) - offset.x,
+      Number(point[1] || 0) - offset.z,
+    ];
+  }
   const next = { ...point };
   if ("x" in next) next.x = Number(next.x || 0) - offset.x;
   if ("z" in next) next.z = Number(next.z || 0) - offset.z;
@@ -10380,6 +10988,33 @@ function shiftRoomSurfaceAssignment(assignment, offset) {
   }
   if (Array.isArray(next.room_polygon_cm)) {
     next.room_polygon_cm = next.room_polygon_cm.map((point) => shiftScenePoint(point, offset));
+  }
+  return next;
+}
+
+function scenePointCoordinates(point = {}) {
+  if (Array.isArray(point)) {
+    return {
+      x: Number(point[0] || 0),
+      z: Number(point[1] || 0),
+    };
+  }
+  return {
+    x: Number(point.x || 0),
+    z: Number(point.z ?? point.y ?? 0),
+  };
+}
+
+function shiftFloorplanRegion(region, offset) {
+  if (!region || !offset) return region;
+  const next = { ...region };
+  ["exterior", "polygon_cm", "polygon_m", "room_polygon_cm"].forEach((key) => {
+    if (Array.isArray(next[key])) next[key] = next[key].map((point) => shiftScenePoint(point, offset));
+  });
+  if (Array.isArray(next.holes)) {
+    next.holes = next.holes.map((ring) => (
+      Array.isArray(ring) ? ring.map((point) => shiftScenePoint(point, offset)) : ring
+    ));
   }
   return next;
 }
@@ -10520,35 +11155,54 @@ async function previewReplacementCandidate(candidate) {
   replacementViewer.selectObjectByIndex(previewIndex, { focus: false });
 }
 
-function renderReplacementCandidates(candidates) {
+function renderReplacementCandidates(candidates, emptyMessage = "目前沒有可替換的家具。") {
   element.replacementResults.dataset.items = JSON.stringify(candidates);
-  element.replacementResults.innerHTML = candidates.map((candidate, index) => {
-    const title = candidate.name_zh || candidate.name_zh_raw || candidate.name_en || "家具";
-    const image = replacementCandidateImageUrl(candidate);
-    const materialLabel = candidate.material
-      || (Array.isArray(candidate.materials) ? candidate.materials.join("、") : "")
-      || "材質未標示";
+  element.replacementResults.innerHTML = candidates.map((candidate) => {
+    const title = replacementFurnitureName(candidate);
     return `
       <article>
         <button type="button" class="rp-replacement-candidate" data-preview-replacement="${escapeHtml(candidate.furniture_id)}">
-          <span class="rp-replacement-thumb">
-            <img
-              class="${image ? "" : "rp-fallback-thumbnail"}"
-              src="${escapeHtml(image || "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=")}"
-              alt="${escapeHtml(title)} 預覽圖"
-              loading="lazy"
-            >
-          </span>
-          <span><strong>${escapeHtml(title)}</strong>
-            <small>${Number(candidate.size_cm?.width || 0).toFixed(0)} × ${Number(candidate.size_cm?.depth || 0).toFixed(0)} × ${Number(candidate.size_cm?.height || 0).toFixed(0)} cm</small>
-            <small>${escapeHtml(candidate.primary_style || state.activeStyleId || "符合目前風格")} · ${escapeHtml(materialLabel)}</small>
-          </span>
+          <span><strong>${escapeHtml(title)}</strong><small>${replacementFurnitureSize(candidate)}</small></span>
         </button>
         <button type="button" class="primary-action" data-confirm-replacement="${escapeHtml(candidate.furniture_id)}">以此家具取代</button>
       </article>
     `;
-  }).join("") || "<p>目前沒有同類型、同風格且尺寸放得下的 3D 家具。</p>";
+  }).join("") || `<p>${escapeHtml(emptyMessage)}</p>`;
   if (candidates[0]) previewReplacementCandidate(candidates[0]);
+}
+
+function replacementCandidateIsSmaller(candidate, current) {
+  const candidateSides = [
+    Number(candidate.size_cm?.width || 0),
+    Number(candidate.size_cm?.depth || 0),
+  ].sort((left, right) => left - right);
+  const currentSides = [
+    Number(current.widthCm || 0),
+    Number(current.depthCm || 0),
+  ].sort((left, right) => left - right);
+  if (!candidateSides.every(Boolean) || !currentSides.every(Boolean)) return false;
+  const candidateArea = candidateSides[0] * candidateSides[1];
+  const currentArea = currentSides[0] * currentSides[1];
+  return candidateSides[0] <= currentSides[0]
+    && candidateSides[1] <= currentSides[1]
+    && candidateArea <= currentArea * 0.9;
+}
+
+function setSmallerReplacementOption(smallerCandidates) {
+  const smallerOption = element.replacementSearch.querySelector('option[value="smaller"]');
+  if (smallerCandidates.length) {
+    if (!smallerOption) {
+      const option = document.createElement("option");
+      option.value = "smaller";
+      option.textContent = "建議：更換更小款";
+      element.replacementSearch.insertBefore(option, element.replacementSearch.options[1] || null);
+    }
+    return;
+  }
+  if (element.replacementSearch.value === "smaller") {
+    element.replacementSearch.value = "same-type";
+  }
+  smallerOption?.remove();
 }
 
 async function loadReplacementCandidates() {
@@ -10577,17 +11231,28 @@ async function loadReplacementCandidates() {
     catalogType,
     searchAll: filterMode === "same-style" || filterMode === "all",
   });
-  const candidates = rankCatalogFurniture(catalogCandidates, request)
+  const allCandidates = rankCatalogFurniture(catalogCandidates, request)
     .filter(
       (candidate) => !knownUnavailableCatalogFurnitureIds().has(
         String(candidate.furniture_id),
       ),
     )
-    .filter((candidate) => replacementCandidateFitsRoom(candidate, room))
-    .slice(0, 24);
+    .filter((candidate) => candidate.furniture_id !== current.catalogFurnitureId)
+    .filter((candidate) => replacementCandidateFitsRoom(candidate, room));
+  const smallerCandidates = allCandidates.filter((candidate) =>
+    replacementCandidateIsSmaller(candidate, current),
+  );
+  setSmallerReplacementOption(smallerCandidates);
+  const effectiveFilterMode = element.replacementSearch.value || "same-type";
+  const candidates = (effectiveFilterMode === "smaller" ? smallerCandidates : allCandidates).slice(0, 24);
   element.replacementFilterSummary.textContent =
-    `${room.label} · ${current.label} · ${style || "目前風格"} · 房間內可配置尺寸`;
-  renderReplacementCandidates(candidates);
+    `${replacementFurnitureName(current)} · ${replacementFurnitureSize(current)}`;
+  renderReplacementCandidates(
+    candidates,
+    effectiveFilterMode === "smaller"
+      ? "目前沒有比這件家具更小，且可放入本房的同類 3D 家具。"
+      : "目前沒有同類型、同風格且尺寸放得下的 3D 家具。",
+  );
 }
 
 function renderReplacementTypeOptions(current) {
@@ -10626,7 +11291,7 @@ function setReplacementDrawerOpen(open) {
   }
 }
 
-async function openFurnitureReplacement() {
+async function openFurnitureReplacement({ mode = "same-type" } = {}) {
   if (!state.selectedFurniture2dId) {
     element.layoutError.textContent = "請先選取一件要更換的家具。";
     return;
@@ -10639,6 +11304,7 @@ async function openFurnitureReplacement() {
     return;
   }
   renderReplacementTypeOptions(current);
+  element.replacementSearch.value = mode;
   setReplacementDrawerOpen(true);
   try {
     await loadReplacementCandidates();
@@ -10778,6 +11444,7 @@ function placementResolutionText(report = []) {
 
 async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
   element.layoutError.textContent = "";
+  let generationStage = "檢查家具位置";
   if (
     activeSchemeId() === "B"
     && activeScheme()?.stale
@@ -10808,6 +11475,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
         return;
       }
     }
+    generationStage = "取得資料庫家具模型";
     setStatus(state.furniture2d.length
       ? "正在依問卷、色卡與尺寸載入資料庫 GLB 家具…"
       : "沒有家具需求，正在產生純結構 3D 配置…");
@@ -10855,6 +11523,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       },
     );
     const roomSurfaces = roomSurfaceAssignments();
+    generationStage = "產生 2D+3D 場景";
     const payload = await api("/api/scene/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -10956,6 +11625,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
     });
     state.workflow.goTo("white_model_3d");
     showStep("white_model_3d");
+    generationStage = "載入 3D 預覽";
     await whiteViewer.loadScene(state.sceneData);
     whiteViewer.setViewMode("orbit");
     renderSceneObjectList();
@@ -10977,18 +11647,26 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
     }
     scheduleSave("white_model_3d");
   } catch (error) {
-    element.layoutError.textContent = errorMessage(error);
-    setStatus(errorMessage(error), "error");
+    const message = `${generationStage}失敗：${errorMessage(error)}`;
+    state.lastWhiteModelGenerationError = message;
+    element.layoutError.textContent = message;
+    console.error("2D+3D configuration failed", { generationStage, error });
+    setStatus(message, "error");
   }
 }
 
 async function generateWhiteModelFromRequirements({ returnToRequirementsOnFailure = false } = {}) {
-  if (state.autoGeneratingWhiteModel) return false;
+  if (state.autoGeneratingWhiteModel) {
+    state.lastWhiteModelGenerationError = "配置仍在建立中，請勿重複送出。";
+    return false;
+  }
   state.autoGeneratingWhiteModel = true;
+  state.lastWhiteModelGenerationError = "";
   element.layoutError.textContent = "";
   try {
     if (!state.workflow?.goTo("layout_2d")) {
       const message = firstWorkflowBlocker("layout_2d");
+      state.lastWhiteModelGenerationError = message;
       if (returnToRequirementsOnFailure) element.requirementsError.textContent = message;
       setStatus(message, "error");
       return false;
@@ -11001,6 +11679,7 @@ async function generateWhiteModelFromRequirements({ returnToRequirementsOnFailur
     if (!generatedA) {
       const message = element.layoutError.textContent.trim()
         || "方案 A 無法建立 3D 場景，請檢查問卷需求或資料庫家具模型。";
+      state.lastWhiteModelGenerationError = message;
       if (returnToRequirementsOnFailure) {
         state.workflow.goTo("requirements");
         showStep("requirements");
@@ -11302,23 +11981,269 @@ function questionnaireCatalogGroup(room) {
   }[type] || "storage";
 }
 
-function setCatalogSelectOptions(select, options, value, labelKey = "label", valueKey = "value", emptyLabel = "全部") {
+const QUESTIONNAIRE_CATALOG_SPACES = Object.freeze([
+  { id: "entryway", label: "玄關", group: "storage" },
+  { id: "hallway", label: "走道", group: "storage" },
+  { id: "living_room", label: "客廳", group: "living" },
+  { id: "kitchen", label: "廚房", group: "dining_kitchen" },
+  { id: "bedroom", label: "臥室", group: "bedroom" },
+  { id: "bathroom", label: "浴室", group: "bathroom" },
+  { id: "balcony", label: "陽台", group: "outdoor" },
+  { id: "storage", label: "儲藏室", group: "study" },
+  { id: "garage", label: "車庫", group: "storage" },
+]);
+
+const QUESTIONNAIRE_CATALOG_PURPOSES = Object.freeze({
+  bedroom: [
+    ["sleep", "睡眠", ["bed", "bedside-table"]],
+    ["storage", "收納", ["wardrobe", "storage-cabinet"]],
+    ["dress", "更衣", ["wardrobe", "mirror", "stool-bench"]],
+    ["work", "閱讀工作", ["desk", "office-chair", "armchair", "lounge-chair"]],
+    ["vanity", "梳妝", ["mirror", "desk", "stool-bench"]],
+  ],
+  living_room: [
+    ["rest", "休息聊天", ["sofa", "coffee-table", "lounge-chair"]],
+    ["media", "影音", ["tv-bench", "sofa", "lounge-chair"]],
+    ["dining", "用餐", ["dining-table", "dining-chair", "storage-cabinet"]],
+    ["work", "閱讀工作", ["desk", "office-chair", "armchair", "lounge-chair"]],
+    ["kids", "兒童使用", ["kids-chairs-stool", "storage-cabinet", "stool-bench"]],
+  ],
+  kitchen: [
+    ["dining", "用餐", ["dining-table", "dining-chair"]],
+    ["prep", "備餐收納", ["appliance-cabinet", "storage-cabinet"]],
+    ["kids", "兒童使用", ["kids-chairs-stool", "dining-chair"]],
+  ],
+  storage: [
+    ["storage", "收納整理", ["storage-cabinet", "wardrobe", "shelf"]],
+    ["work", "閱讀工作", ["desk", "office-chair"]],
+    ["kids", "兒童使用", ["kids-chairs-stool", "storage-cabinet"]],
+  ],
+  entryway: [["entry", "出門整理", ["mirror", "storage-cabinet", "stool-bench"]]],
+  hallway: [["passage", "走道收納", ["mirror", "storage-cabinet"]]],
+  bathroom: [["wash", "盥洗收納", ["bathroom-vanity", "mirror-cabinet", "storage-cabinet"]]],
+  balcony: [["relax", "休憩植栽", ["lounge-chair", "flower-pots-planter", "stool-bench"]]],
+  garage: [["garage", "工具收納", ["storage-cabinet", "shelf"]]],
+});
+
+const QUESTIONNAIRE_CATALOG_PURPOSE_TYPES = Object.freeze({
+  "bedroom:sleep": ["bed", "mattress"],
+  "bedroom:storage": ["pax-wardrobe", "wardrobe", "chests-of-drawer"],
+  "bedroom:dress": ["pax-wardrobe", "wardrobe", "mirror", "stool-bench"],
+  "bedroom:work": ["desk", "office-chair", "armchair", "lounge-chair"],
+  "bedroom:vanity": ["mirror", "desk", "stool-bench"],
+  "living_room:rest": ["fabric-sofa", "sofa", "leather-sofa", "modular-sofa", "coffee-table", "armchair"],
+  "living_room:media": ["tv-bench", "tv-media-furniture", "sofa", "armchair"],
+  "living_room:dining": ["dining-table", "dining-chair", "bar-table"],
+  "living_room:work": ["desk", "office-chair", "armchair", "lounge-chair"],
+  "living_room:kids": ["kids-chairs-stool", "storage-boxes-basket", "stool-bench"],
+  "kitchen:dining": ["dining-table", "dining-chair", "bar-table"],
+  "kitchen:prep": ["table", "bar-table", "stool-bench"],
+  "kitchen:kids": ["dining-chair", "kids-chairs-stool", "stool-bench"],
+  "storage:storage": ["cabinet-cupboard", "shelving-unit", "bookcase", "storage-boxes-basket"],
+  "storage:work": ["desk", "office-chair", "gaming-chair"],
+  "storage:kids": ["storage-boxes-basket", "kids-chairs-stool", "stool-bench"],
+  "entryway:entry": ["shoe-cabinet", "mirror", "stool-bench", "clothes-rack"],
+  "hallway:passage": ["wall-shelf", "mirror", "shoe-cabinet"],
+  "bathroom:wash": ["mirror-cabinet", "bathroom-vanity", "storage-cabinet"],
+  "balcony:relax": ["lounge-chair", "flower-pots-planter", "stool-bench"],
+  "garage:garage": ["cabinet-cupboard", "shelving-unit", "storage-solution-system"],
+});
+
+const QUESTIONNAIRE_CATALOG_TYPE_PURPOSE_LABELS = Object.freeze({
+  "office-chair": "閱讀工作", "gaming-chair": "閱讀工作", armchair: "閱讀休憩",
+  "lounge-chair": "閱讀休憩", "dining-chair": "用餐", "stool-bench": "梳妝／臨時座位",
+  "kids-chairs-stool": "兒童使用", bed: "睡眠", wardrobe: "收納更衣", desk: "閱讀工作",
+  "dining-table": "用餐", sofa: "休息聊天", "coffee-table": "客廳置物", "tv-bench": "影音",
+  "storage-cabinet": "收納整理",
+});
+
+const QUESTIONNAIRE_CATALOG_EXTRA_PURPOSE_LABELS = Object.freeze({
+  "pax-wardrobe": "收納更衣",
+  "fabric-sofa": "休息招待",
+  "leather-sofa": "休息招待",
+  "modular-sofa": "休息招待",
+  table: "備餐整理",
+  "bar-table": "用餐備餐",
+  "cabinets-cupboard": "收納整理",
+  "cabinet-cupboard": "收納整理",
+  "shelving-unit": "收納整理",
+  "storage-boxes-basket": "收納整理",
+  "storage-solution-system": "收納整理",
+  "wall-shelf": "走道收納",
+  "shoe-cabinet": "玄關整理",
+  "clothes-rack": "玄關整理",
+  "tv-media-furniture": "影音設備",
+  "chests-of-drawer": "收納整理",
+  mirror: "更衣梳妝",
+  "large-medium-rug": "休息活動區",
+  "runner-small-rug": "走道鋪設",
+  "floor-lamp": "閱讀照明",
+  planter: "陽台休憩",
+  decoration: "空間點綴",
+  "pillow-cushion": "休息舒適",
+  shelf: "收納整理",
+  bookcase: "閱讀工作",
+  "storage-bench": "收納整理",
+  "storage-box": "收納整理",
+  lighting: "照明安全",
+});
+
+function questionnaireCatalogRoomType(room) {
+  return String(room?.visual_space_type || room?.type || room?.room_type || "").toLowerCase();
+}
+
+function questionnaireCatalogActiveSpace(room) {
+  return questionnaireCatalogScope === "room" ? questionnaireCatalogRoomType(room) : questionnaireCatalogSpace;
+}
+
+function questionnaireCatalogPurposeDefinition(room) {
+  const space = questionnaireCatalogActiveSpace(room);
+  const definition = (QUESTIONNAIRE_CATALOG_PURPOSES[space] || [])
+    .find(([id]) => id === questionnaireCatalogPurpose);
+  if (!definition) return null;
+  return [
+    definition[0],
+    definition[1],
+    QUESTIONNAIRE_CATALOG_PURPOSE_TYPES[`${space}:${definition[0]}`] || definition[2],
+  ];
+}
+
+function questionnaireCatalogBrowsePrompt(room, query = "") {
+  if (query) return "";
+  const activeSpace = questionnaireCatalogActiveSpace(room);
+  if (!activeSpace) return "請先選擇要瀏覽的空間，再挑選用途。";
+  if (!questionnaireCatalogPurpose) return "請選擇家具用途，再查看對應的家具選項。";
+  return "";
+}
+
+function renderQuestionnaireCatalogBrowseChoices(room) {
+  if (!room) return;
+  const activeSpace = questionnaireCatalogActiveSpace(room);
+  if (element.questionnaireCatalogSpaceGroups) {
+    element.questionnaireCatalogSpaceGroups.hidden = questionnaireCatalogScope !== "all";
+    element.questionnaireCatalogSpaceGroups.innerHTML = QUESTIONNAIRE_CATALOG_SPACES.map((space) => `
+      <button type="button" data-questionnaire-catalog-space="${escapeHtml(space.id)}"
+        class="${space.id === activeSpace ? "is-active" : ""}" aria-pressed="${space.id === activeSpace}">${escapeHtml(space.label)}</button>
+    `).join("");
+  }
+  if (element.questionnaireCatalogPurposeGroups) {
+    const purposes = QUESTIONNAIRE_CATALOG_PURPOSES[activeSpace] || [];
+    element.questionnaireCatalogPurposeGroups.hidden = !purposes.length;
+    const spaceLabel = QUESTIONNAIRE_CATALOG_SPACES.find((space) => space.id === activeSpace)?.label || room.label;
+    element.questionnaireCatalogPurposeGroups.innerHTML = `
+      <span>${escapeHtml(spaceLabel)}用途</span>
+      ${purposes.map(([id, label]) => `<button type="button" data-questionnaire-catalog-purpose="${escapeHtml(id)}"
+        class="${id === questionnaireCatalogPurpose ? "is-active" : ""}" aria-pressed="${id === questionnaireCatalogPurpose}">${escapeHtml(label)}</button>`).join("")}
+    `;
+  }
+  renderSelectedFurnitureWorkspace();
+}
+
+const CATALOG_FACET_TRADITIONAL_LABELS = Object.freeze({
+  color: Object.freeze({
+    "dark grey": "深灰色",
+    "dark gray": "深灰色",
+    oak: "橡木色",
+    anthracite: "煤灰色",
+    bamboo: "竹色",
+    birch: "樺木色",
+    white: "白色",
+    ivory: "象牙白",
+    cream: "奶油色",
+    beige: "米色",
+    grey: "灰色",
+    gray: "灰色",
+    black: "黑色",
+    brown: "棕色",
+    blue: "藍色",
+    green: "綠色",
+    yellow: "黃色",
+    red: "紅色",
+    natural: "自然原木色",
+    wood: "木色",
+    walnut: "胡桃木色",
+    pine: "松木色",
+  }),
+  material: Object.freeze({
+    "glb材質（未標示）": "模型材質（未標示）",
+    acacia: "相思木",
+    aluminium: "鋁",
+    aluminum: "鋁",
+    wood: "木材",
+    metal: "金屬",
+    steel: "鋼材",
+    "stainless steel": "不鏽鋼",
+    iron: "鐵材",
+    plastic: "塑膠",
+    "polystyrene plastic": "聚苯乙烯塑膠",
+    fabric: "布料",
+    textile: "織物",
+    leather: "皮革",
+    "faux fur": "仿毛皮",
+    sheepskin: "羊皮",
+    glass: "玻璃",
+    rattan: "藤編",
+    bamboo: "竹材",
+    beech: "櫸木",
+    birch: "樺木",
+    brass: "黃銅",
+    chrome: "鍍鉻",
+    cork: "軟木",
+    nickel: "鎳",
+    pine: "松木",
+    foam: "泡棉",
+    cotton: "棉",
+    "pu皮革": "人造皮革",
+    pvc: "聚氯乙烯塑膠",
+    ceramic: "陶瓷",
+    marble: "大理石",
+    stone: "石材",
+    concrete: "混凝土",
+    terracotta: "赤陶",
+    velvet: "絲絨",
+    seagrass: "海草",
+    "water hyacinth": "水葫蘆纖維",
+    plywood: "夾板",
+    veneer: "木皮",
+    "wood veneer": "木皮",
+    "solid wood": "實木",
+    mdf: "密集板",
+    particleboard: "塑合板",
+    walnut: "胡桃木",
+    oak: "橡木",
+  }),
+});
+
+function catalogFacetTraditionalLabel(facet, value) {
+  const source = String(value || "").trim();
+  if (!source) return source;
+  const normalized = source.toLocaleLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  const labels = CATALOG_FACET_TRADITIONAL_LABELS[facet];
+  if (!labels) return source;
+  if (labels[normalized]) return labels[normalized];
+  return source.split(/([、,;/|])/).map((part) => {
+    if (/^[、,;/|]$/.test(part)) return part === "," ? "、" : part;
+    const key = part.trim().toLocaleLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+    return labels[key] || part;
+  }).join("");
+}
+
+function setCatalogSelectOptions(select, options, value, labelKey = "label", valueKey = "value", emptyLabel = "全部", labelFormatter = null) {
   if (!select) return;
   const safeValue = String(value || "");
   select.innerHTML = [`<option value="">${escapeHtml(emptyLabel)}</option>`, ...options.map((option) => {
     const optionValue = String(option[valueKey] || option.type || "");
-    const optionLabel = String(option[labelKey] || option.type_name_zh || optionValue);
+    const sourceLabel = String(option[labelKey] || option.type_name_zh || optionValue);
+    const optionLabel = labelFormatter ? labelFormatter(sourceLabel, option) : sourceLabel;
     return `<option value="${escapeHtml(optionValue)}" ${optionValue === safeValue ? "selected" : ""}>${escapeHtml(optionLabel)}</option>`;
   })].join("");
 }
 
 function renderQuestionnaireCatalogFilters(payload) {
   if (!questionnaireCatalogRoomId) return;
-  const types = payload.type_options || [];
   const facets = payload.filter_options || {};
-  setCatalogSelectOptions(element.questionnaireCatalogType, types, element.questionnaireCatalogType?.value || "", "type_name_zh", "type", "全部類別");
-  setCatalogSelectOptions(element.questionnaireCatalogColor, facets.colors || [], element.questionnaireCatalogColor?.value || "", "label", "value", "全部顏色");
-  setCatalogSelectOptions(element.questionnaireCatalogMaterial, facets.materials || [], element.questionnaireCatalogMaterial?.value || "", "label", "value", "全部材質");
+  setCatalogSelectOptions(element.questionnaireCatalogColor, facets.colors || [], element.questionnaireCatalogColor?.value || "", "label", "value", "全部顏色", (label) => catalogFacetTraditionalLabel("color", label));
+  setCatalogSelectOptions(element.questionnaireCatalogMaterial, facets.materials || [], element.questionnaireCatalogMaterial?.value || "", "label", "value", "全部材質", (label) => catalogFacetTraditionalLabel("material", label));
 }
 
 function renderQuestionnaireCatalogBatch() {
@@ -11378,6 +12303,8 @@ function openQuestionnaireFurnitureCatalog(roomId = activeQuestionnaireRoom()?.i
   element.catalogDrawer.querySelector("h2").textContent = `加入${room.label}的家具`;
   element.catalogDrawer.querySelector("header p").textContent = "先瀏覽適合本房的家具；也可用搜尋、類別、顏色或材質快速篩選。加入後會直接勾選到此房。";
   questionnaireCatalogScope = "room";
+  questionnaireCatalogSpace = "";
+  questionnaireCatalogPurpose = "";
   if (element.questionnaireCatalogControls) element.questionnaireCatalogControls.hidden = false;
   if (element.standardCatalogSearch) element.standardCatalogSearch.hidden = false;
   const catalogSearchButton = $("#search-glb-furniture");
@@ -11387,6 +12314,7 @@ function openQuestionnaireFurnitureCatalog(roomId = activeQuestionnaireRoom()?.i
   if (element.questionnaireCatalogType) element.questionnaireCatalogType.value = "";
   if (element.questionnaireCatalogColor) element.questionnaireCatalogColor.value = "";
   if (element.questionnaireCatalogMaterial) element.questionnaireCatalogMaterial.value = "";
+  renderQuestionnaireCatalogBrowseChoices(room);
   element.glbResults.innerHTML = "<p>正在載入適合本房的家具…</p>";
   renderQuestionnaireCatalogBatch();
   setFurnitureCatalogOpen(true);
@@ -11400,9 +12328,25 @@ async function searchGlbFurniture() {
     const room = state.rooms.find((item) => String(item.id) === String(questionnaireCatalogRoomId));
     const params = new URLSearchParams({ has_model: "true", detail: "scene", page_size: questionnaireCatalogRoomId ? "48" : "24" });
     if (query) params.set("q", query);
-    // 初始清單先依房型收斂；使用者主動搜尋時，必須可跨類別找到明確輸入的家具。
-    if (!query && questionnaireCatalogRoomId && questionnaireCatalogScope === "room") {
-      params.set("group", questionnaireCatalogGroup(room));
+    // 搜尋文字可跨用途找同類家具；未搜尋時才依空間與用途收斂。
+    const activeSpace = questionnaireCatalogActiveSpace(room);
+    const activeSpaceDefinition = QUESTIONNAIRE_CATALOG_SPACES.find((space) => space.id === activeSpace);
+    const activePurpose = questionnaireCatalogPurposeDefinition(room);
+    const browsePrompt = questionnaireCatalogRoomId
+      ? questionnaireCatalogBrowsePrompt(room, query)
+      : "";
+    if (browsePrompt) {
+      element.glbResults.innerHTML = `<p class="rp-catalog-browse-prompt">${escapeHtml(browsePrompt)}</p>`;
+      element.glbResults.dataset.items = "[]";
+      renderQuestionnaireCatalogBatch();
+      return;
+    }
+    if (!query && questionnaireCatalogRoomId && activeSpace) {
+      if (activePurpose?.[2]?.length) {
+        params.set("types", activePurpose[2].join(","));
+      } else {
+        params.set("group", activeSpaceDefinition?.group || questionnaireCatalogGroup(room));
+      }
     }
     if (questionnaireCatalogRoomId) {
       const type = element.questionnaireCatalogType?.value || "";
@@ -11415,7 +12359,14 @@ async function searchGlbFurniture() {
     const payload = await api(`/api/furniture?${params.toString()}`);
     const questionnaireMode = Boolean(questionnaireCatalogRoomId);
     renderQuestionnaireCatalogFilters(payload);
-    element.glbResults.innerHTML = (payload.items || []).map((item) => {
+    const catalogItems = questionnaireMode
+      ? [...new Map((payload.items || []).map((item) => {
+        const normalizedType = item.normalized_type || item.category || item.taxonomy_type || "other";
+        const label = questionnaireFurnitureDisplayLabel({ ...item, normalized_type: normalizedType }) || "其他家具";
+        return [`${normalizedType}:${label}`, item];
+      })).values()].slice(0, 18)
+      : (payload.items || []);
+    element.glbResults.innerHTML = catalogItems.map((item) => {
       const preview = item.image_url
         || item.thumbnail_url
         || item.preview_url
@@ -11423,6 +12374,20 @@ async function searchGlbFurniture() {
         || item.image
         || "";
       const title = item.name_zh || item.name_zh_raw || item.name_en || "GLB 家具";
+      if (questionnaireMode) {
+        const optionLabel = questionnaireFurnitureDisplayLabel(item) || "其他家具";
+        const purposeLabel = QUESTIONNAIRE_CATALOG_TYPE_PURPOSE_LABELS[item.normalized_type]
+          || QUESTIONNAIRE_CATALOG_EXTRA_PURPOSE_LABELS[item.normalized_type]
+          || "可加入配置";
+        return `
+          <article class="rp-glb-result rp-questionnaire-catalog-option">
+            <label class="rp-catalog-select-item">
+              <input type="checkbox" data-questionnaire-catalog-select="${escapeHtml(item.furniture_id)}" ${questionnaireCatalogSelectedFurnitureIds.has(String(item.furniture_id)) ? "checked" : ""} />
+              <span><strong>${escapeHtml(optionLabel)}</strong><small>適合：${escapeHtml(purposeLabel)}</small></span>
+            </label>
+          </article>
+        `;
+      }
       return `
       <article class="rp-glb-result has-preview">
         <div class="rp-glb-thumb">
@@ -11437,22 +12402,20 @@ async function searchGlbFurniture() {
         <strong>${escapeHtml(title)}</strong>
         <span>${Number(item.size_cm?.width || 0).toFixed(0)} x ${Number(item.size_cm?.depth || 0).toFixed(0)} cm</span>
         <div class="rp-inline-actions">
-          ${questionnaireMode
-            ? `<label class="rp-catalog-select-item"><input type="checkbox" data-questionnaire-catalog-select="${escapeHtml(item.furniture_id)}" ${questionnaireCatalogSelectedFurnitureIds.has(String(item.furniture_id)) ? "checked" : ""} /> 勾選加入</label>`
-            : `<button type="button" data-replace-furniture-id="${escapeHtml(item.furniture_id)}">替換選取家具</button>
-              <button type="button" data-add-furniture-id="${escapeHtml(item.furniture_id)}">新增到 3D</button>`}
+          <button type="button" data-replace-furniture-id="${escapeHtml(item.furniture_id)}">替換選取家具</button>
+          <button type="button" data-add-furniture-id="${escapeHtml(item.furniture_id)}">新增到 3D</button>
         </div>
       </article>
     `;
     }).join("") || "<p>找不到適合 GLB 的家具。</p>";
-    element.glbResults.dataset.items = JSON.stringify(payload.items || []);
-    (payload.items || []).forEach((item) => {
+    element.glbResults.dataset.items = JSON.stringify(catalogItems);
+    catalogItems.forEach((item) => {
       if (questionnaireCatalogSelectedFurnitureIds.has(String(item.furniture_id))) {
         questionnaireCatalogSelectedFurniture.set(String(item.furniture_id), item);
       }
     });
     renderQuestionnaireCatalogBatch();
-    const itemsNeedingGeneratedThumbnails = (payload.items || []).filter(
+    const itemsNeedingGeneratedThumbnails = questionnaireMode ? [] : catalogItems.filter(
       (item) => !(item.image_url || item.thumbnail_url || item.preview_url || item.main_image_url || item.image),
     );
     if (itemsNeedingGeneratedThumbnails.length) {
@@ -13464,6 +14427,9 @@ function bindEvents() {
   element.randomizeRequirements?.addEventListener("click", () => {
     void skipQuestionnaireWithDefaults();
   });
+  element.randomizeRequirementsSummary?.addEventListener("click", () => {
+    void skipQuestionnaireWithDefaults();
+  });
   element.questionnaireStageNav?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-questionnaire-stage]");
     if (button && !button.disabled) showQuestionnaireStage(button.dataset.questionnaireStage);
@@ -13599,12 +14565,6 @@ function bindEvents() {
       );
       return;
     }
-    const input = event.target.closest("[data-questionnaire-furniture-id]");
-    if (!input) return;
-    updateQuestionnaireFurnitureSelection(
-      input.dataset.questionnaireFurnitureId,
-      input.checked,
-    );
   });
   element.questionnaireFurnitureOptions?.addEventListener("click", (event) => {
     const quantity = event.target.closest("[data-questionnaire-furniture-quantity]");
@@ -13627,6 +14587,19 @@ function bindEvents() {
     }
   });
   document.addEventListener("click", (event) => {
+    const furnitureInput = event.target.closest(
+      "#questionnaire-furniture-options input[data-questionnaire-furniture-id]",
+    );
+    if (furnitureInput) {
+      // The native input toggles after click dispatch. Persist its settled value.
+      window.setTimeout(() => {
+        updateQuestionnaireFurnitureSelection(
+          furnitureInput.dataset.questionnaireFurnitureId,
+          furnitureInput.checked,
+        );
+      }, 0);
+      return;
+    }
     const button = event.target.closest("[data-open-questionnaire-furniture-catalog]");
     if (button) {
       openQuestionnaireFurnitureCatalog(
@@ -13989,6 +14962,13 @@ function bindEvents() {
       }
     });
   });
+  $("#toggle-furniture-numbers")?.addEventListener("click", () => {
+    state.showFurnitureNumbers = !state.showFurnitureNumbers;
+    syncFurnitureNumberVisibility();
+  });
+  $$('[data-scene-sidebar-tab]').forEach((button) => {
+    button.addEventListener("click", () => setSceneSidebarTab(button.dataset.sceneSidebarTab));
+  });
   element.whiteWalkRoom?.addEventListener("change", () => {
     state.selectedWalkRoomId = element.whiteWalkRoom.value;
     activateWhiteWalkMode();
@@ -14017,9 +14997,7 @@ function bindEvents() {
     if (fromFurnitureList) void openFurnitureReplacement();
     renderLayoutFurniture();
     renderConfigurationPlan();
-    const focused = fromFurnitureList
-      ? syncSelected2dFurnitureToScene({ focus: false })
-      : syncSelected2dFurnitureToScene({ focus: true });
+    const focused = syncSelected2dFurnitureToScene({ focus: false });
     if (fromPlan) {
       const item = state.furniture2d.find(
         (candidate) => candidate.id === state.selectedFurniture2dId,
@@ -14074,6 +15052,34 @@ function bindEvents() {
     if (!collapsed) requestAnimationFrame(renderConfigurationPlan);
   });
   $("#replace-2d-furniture")?.addEventListener("click", openFurnitureReplacement);
+  $("#furniture-property-locks")?.addEventListener("click", (event) => {
+    const sameType = event.target.closest("[data-open-same-type-replacement]");
+    if (sameType) {
+      void openFurnitureReplacement({ mode: "same-type" });
+      return;
+    }
+    const allTypes = event.target.closest("[data-open-all-type-replacement]");
+    if (allTypes) {
+      void openFurnitureReplacement({ mode: "all" });
+      return;
+    }
+    const lockButton = event.target.closest("[data-lock-current-furniture]");
+    if (lockButton) {
+      const selected = state.sceneData?.scene_objects?.[state.selectedSceneIndex];
+      if (!selected) return;
+      selected.model_locked = !selected.model_locked;
+      $("#lock-specified-model").checked = selected.model_locked;
+      scheduleSave("white_model_3d");
+      renderSelectedFurnitureWorkspace();
+      setStatus(selected.model_locked ? "已鎖定此家具，之後切換風格不會替換模型。" : "已解除家具鎖定，之後可隨風格調整。");
+      return;
+    }
+    const deleteButton = event.target.closest("[data-delete-current-furniture]");
+    if (deleteButton) {
+      if (!confirm("要刪除目前選取的家具嗎？")) return;
+      void deleteSelectedSceneFurniture();
+    }
+  });
   $("#close-furniture-replacement")?.addEventListener("click", () => {
     setReplacementDrawerOpen(false);
   });
@@ -14149,11 +15155,20 @@ function bindEvents() {
     if (!button) return;
     state.selectedRoomSchemeId = button.dataset.roomSchemeRoom;
     renderRoomSchemeSelectionDialog();
+    void ensureRoomScheme3dPreviews();
   });
   element.roomSchemeChoiceGrid?.addEventListener("click", (event) => {
+    const preview = event.target.closest("[data-room-scheme-preview-3d]");
+    if (preview) {
+      void openRoomScheme3dPreview(preview.dataset.roomSchemePreview3d);
+      return;
+    }
     const button = event.target.closest("[data-room-scheme-choice]");
     if (!button) return;
     chooseRoomScheme(button.dataset.roomSchemeChoice);
+  });
+  $("#close-room-scheme-3d-preview")?.addEventListener("click", () => {
+    setTaskDialogOpen(element.roomScheme3dPreviewDialog, false);
   });
   element.roomSchemeComplete?.addEventListener("click", () => {
     void completeRoomSchemeSelection();
@@ -14190,12 +15205,32 @@ function bindEvents() {
   });
   element.questionnaireCatalogControls?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-questionnaire-catalog-scope]");
-    if (!button) return;
-    questionnaireCatalogScope = button.dataset.questionnaireCatalogScope;
-    element.questionnaireCatalogControls
-      .querySelectorAll("[data-questionnaire-catalog-scope]")
-      .forEach((item) => item.classList.toggle("is-active", item === button));
-    void searchGlbFurniture();
+    const room = state.rooms.find((item) => String(item.id) === String(questionnaireCatalogRoomId));
+    if (button) {
+      questionnaireCatalogScope = button.dataset.questionnaireCatalogScope;
+      questionnaireCatalogPurpose = "";
+      if (questionnaireCatalogScope === "all") questionnaireCatalogSpace = "";
+      element.questionnaireCatalogControls
+        .querySelectorAll("[data-questionnaire-catalog-scope]")
+        .forEach((item) => item.classList.toggle("is-active", item === button));
+      renderQuestionnaireCatalogBrowseChoices(room);
+      void searchGlbFurniture();
+      return;
+    }
+    const spaceButton = event.target.closest("[data-questionnaire-catalog-space]");
+    if (spaceButton) {
+      questionnaireCatalogSpace = spaceButton.dataset.questionnaireCatalogSpace;
+      questionnaireCatalogPurpose = "";
+      renderQuestionnaireCatalogBrowseChoices(room);
+      void searchGlbFurniture();
+      return;
+    }
+    const purposeButton = event.target.closest("[data-questionnaire-catalog-purpose]");
+    if (purposeButton) {
+      questionnaireCatalogPurpose = purposeButton.dataset.questionnaireCatalogPurpose;
+      renderQuestionnaireCatalogBrowseChoices(room);
+      void searchGlbFurniture();
+    }
   });
   [
     element.questionnaireCatalogType,
@@ -14518,22 +15553,10 @@ async function restoreProject() {
     state.confirmedFloorplan = serverState.confirmed_floorplan || null;
     const savedCalibration = serverState.calibration || state.workflow.data.calibration || null;
     const calibrationGeometry = savedCalibration?.calibration || savedCalibration;
-    if (Array.isArray(calibrationGeometry?.start_px) && Array.isArray(calibrationGeometry?.end_px)) {
-      state.calibrationPoints = [
-        { x: Number(calibrationGeometry.start_px[0]), y: Number(calibrationGeometry.start_px[1]) },
-        { x: Number(calibrationGeometry.end_px[0]), y: Number(calibrationGeometry.end_px[1]) },
-      ];
-    } else {
-      const scaleEvidence = (state.analysis?.evidence || []).find(
-        (item) => Array.isArray(item.start_px) && Array.isArray(item.end_px),
-      );
-      if (scaleEvidence) {
-        state.calibrationPoints = [
-          { x: Number(scaleEvidence.start_px[0]), y: Number(scaleEvidence.start_px[1]) },
-          { x: Number(scaleEvidence.end_px[0]), y: Number(scaleEvidence.end_px[1]) },
-        ];
-      }
-    }
+    state.calibrationPoints = calibrationPointsFromAnalysis(
+      state.analysis,
+      calibrationGeometry,
+    );
     if (Number(savedCalibration?.distanceCm) > 0) {
       element.scaleInput.value = Number(savedCalibration.distanceCm);
     } else if (Number(state.analysis?.scale?.distance_cm) > 0) {

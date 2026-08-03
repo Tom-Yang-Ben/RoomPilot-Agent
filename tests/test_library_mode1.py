@@ -54,6 +54,38 @@ def test_catalog_search_interprets_common_chinese_furniture_terms(monkeypatch) -
     ]
 
 
+def test_catalog_search_expands_chair_terms_and_supports_purpose_types(monkeypatch) -> None:
+    monkeypatch.setattr(
+        main,
+        "_furniture_payload_cache",
+        lambda: (
+            {"furniture_id": "reading-1", "normalized_type": "armchair", "has_model": True},
+            {"furniture_id": "reading-2", "normalized_type": "armchair", "has_model": True},
+            {"furniture_id": "dining-1", "normalized_type": "dining-chair", "has_model": True},
+            {"furniture_id": "office-1", "normalized_type": "office-chair", "has_model": True},
+            {"furniture_id": "vanity-1", "normalized_type": "stool-bench", "has_model": True},
+            {"furniture_id": "bed-1", "normalized_type": "bed", "has_model": True},
+        ),
+    )
+
+    chair_payload = furniture_catalog(
+        style=None, group=None, item_type=None, q="椅子", page=1, page_size=24,
+        has_model=True, detail="scene",
+    )
+    assert {item["furniture_id"] for item in chair_payload["items"]} == {
+        "reading-1", "reading-2", "dining-1", "office-1", "vanity-1",
+    }
+    assert [item["normalized_type"] for item in chair_payload["items"][:4]] == [
+        "armchair", "dining-chair", "office-chair", "stool-bench",
+    ]
+
+    purpose_payload = furniture_catalog(
+        style=None, group=None, item_type=None, item_types="office-chair,stool-bench",
+        q=None, page=1, page_size=24, has_model=True, detail="scene",
+    )
+    assert {item["furniture_id"] for item in purpose_payload["items"]} == {"office-1", "vanity-1"}
+
+
 def test_catalog_can_fetch_exact_furniture_ids_for_rag_hydration(monkeypatch) -> None:
     monkeypatch.setattr(
         main,

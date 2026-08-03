@@ -246,6 +246,20 @@ def test_walk_mode_crosses_rooms_only_through_confirmed_step4_door_openings() ->
     assert "walkDoorOpenings().some" in walk_collision
 
 
+def test_walk_mode_treats_confirmed_internal_doorways_as_room_connectors() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "function roomFloorContainsPoint" in source
+    assert "function walkDoorwayConnectsRooms" in source
+    assert "doorwayClearanceCm" in source
+    assert "roomFloorContainsPoint(leftSide)" in source
+    assert "roomFloorContainsPoint(rightSide)" in source
+    assert "walkDoorwayConnectsRooms(position)" in source
+    assert "if (walkDoorwayConnectsRooms(position)) return false;" in source
+
+
 def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
@@ -274,9 +288,26 @@ def test_confirmed_step4_wall_junctions_fill_only_micro_gaps_outside_openings() 
 
     assert "function buildConfirmedWallJunctionFills" in wall_builder
     assert "const junctionToleranceCm = Math.max(36, Number(wallThickness) * 2);" in wall_builder
+    assert "const maximumCollinearGapCm" in wall_builder
+    assert "const sharesWallAxis" in wall_builder
+    assert "distance <= maximumCollinearGapCm" in wall_builder
+    assert "sharesWallAxis(endpoint.segment, candidate.segment)" in wall_builder
     assert "const bridgeTouchesProtectedOpening" in wall_builder
     assert 'roompilotArchitecturalDetail = "confirmed-wall-junction-fill"' in wall_builder
     assert "buildConfirmedWallJunctionFills();" in wall_builder
+
+
+def test_segment_wall_baseboards_inherit_wall_material_without_overhang() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildStructuralMembers", 1
+    )[0]
+
+    assert "const trimMaterials = typeof wallMaterial.faceMaterials" in wall_builder
+    assert "wallThickness + 0.2" in wall_builder
+    assert "const trimMaterial = new THREE.MeshPhysicalMaterial" not in wall_builder
 
 
 def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
@@ -330,6 +361,7 @@ def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -
     assert "const adjacentInteriorMaterial = materialForSide(-exteriorSideSign);" in resolver
     assert "positiveSide = adjacentInteriorMaterial;" in resolver
     assert "negativeSide = adjacentInteriorMaterial;" in resolver
+    assert "positiveSide.clone(), negativeSide.clone(), interior.clone()," in resolver
     assert "if (exterior && side === exteriorSideSign) return exteriorMaterial;" not in resolver
     assert "return materialForOverride(roomOverrideForInteriorPoint(sample));" in resolver
     assert "resolveWallMaterial.exteriorMaterial" not in resolver
@@ -549,3 +581,12 @@ def test_bed_selection_rejects_wardrobe_and_drawer_models() -> None:
 
     assert chosen == []
     assert unavailable == ["bed"]
+
+
+def test_step_six_furniture_numbers_are_visible_for_the_whole_home() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_v2.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "showFurnitureNumbers: true" in source
+    assert "setFurnitureNumberMarkersVisible?.(state.showFurnitureNumbers);" in source

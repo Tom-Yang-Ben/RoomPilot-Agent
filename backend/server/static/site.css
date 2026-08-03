@@ -6890,6 +6890,51 @@ body.rp-workflow-page .danger-action {
 .rp-questionnaire-catalog-batch { grid-template-columns: 1fr auto; align-items: center; position: sticky; bottom: 0; }
 .rp-catalog-select-item { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; font-weight: 700; }
 
+/* 問卷中的新增家具只提供快速勾選，完整圖片與型錄資訊留在第 6 步。 */
+.rp-glb-results:has(.rp-questionnaire-catalog-option) {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.rp-glb-result.rp-questionnaire-catalog-option {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border-color: #c9c2b8;
+}
+
+.rp-questionnaire-catalog-option .rp-catalog-select-item {
+  display: flex;
+  min-height: 46px;
+  padding: 10px 12px;
+  line-height: 1.35;
+}
+
+.rp-questionnaire-catalog-option .rp-catalog-select-item span {
+  display: grid;
+  gap: 3px;
+  color: #2d3833;
+  font-size: 14px;
+}
+
+.rp-questionnaire-catalog-option .rp-catalog-select-item small {
+  color: #216b59;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rp-catalog-browse-prompt {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed #9daea5;
+  border-radius: 5px;
+  background: #f5faf7;
+  color: #295f4d;
+  font-weight: 700;
+  text-align: center;
+}
+
 /* 第 6 步僅顯示任務入口；控制項會在開啟對話框時移入。 */
 .rp-task-control-origin { display: none; }
 
@@ -7997,27 +8042,131 @@ body.rp-workflow-page .danger-action {
 }
 
 .rp-scheme-preview {
-  min-height: 132px;
+  min-height: 252px;
+  display: grid;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
   border: 1px solid #e1d9d1;
   border-radius: 4px;
-  background: #f5f2ee;
+  background: #fbfcfa;
+}
+
+.rp-scheme-preview h4 {
+  margin: 0;
+  padding: 9px 10px;
+  border-bottom: 1px solid #e1e8e2;
+  color: #285b4d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rp-scheme-preview h4 span {
+  float: right;
+  color: #607a70;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rp-scheme-preview--interactive {
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rp-scheme-preview--interactive:hover,
+.rp-scheme-preview--interactive:focus-visible {
+  border-color: #286f5c;
+  box-shadow: 0 0 0 3px rgba(40, 111, 92, 0.14);
 }
 
 .rp-scheme-preview img {
   display: block;
   width: 100%;
-  height: 132px;
+  height: 206px;
   object-fit: cover;
 }
 
 .rp-scheme-preview .rp-render-placeholder {
   display: grid;
-  min-height: 132px;
+  min-height: 206px;
   place-items: center;
   padding: 12px;
   text-align: center;
   color: #776d64;
+}
+
+.rp-room-scheme-plan {
+  display: block;
+  width: 100%;
+  height: 184px;
+  background: #fbfcfa;
+}
+
+.rp-room-scheme-outline {
+  fill: #edf5f0;
+  stroke: #2d725e;
+  stroke-width: 3;
+}
+
+.rp-room-scheme-furniture rect {
+  fill: #4d8c76;
+  stroke: #1f5a49;
+  stroke-width: 1.5;
+}
+
+.rp-room-scheme-furniture text {
+  fill: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rp-room-scheme-empty {
+  fill: #6e786f;
+  font-size: 14px;
+}
+
+.rp-room-scheme-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  border-top: 1px solid #e1e8e2;
+  background: #fff;
+}
+
+.rp-room-scheme-legend li {
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: #e9f2ed;
+  color: #1f5a49;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rp-room-scheme-legend-empty {
+  margin: 0;
+  padding: 10px;
+  color: #6e786f;
+  font-size: 13px;
+}
+
+.rp-room-scheme-preview-dialog {
+  width: min(860px, calc(100vw - 32px));
+}
+
+.rp-room-scheme-3d-preview {
+  height: min(620px, calc(100vh - 190px));
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid #d8d0c8;
+  background: #f8f4ef;
+}
+
+.rp-room-scheme-3d-preview canvas {
+  display: block;
 }
 
 .rp-task-dialog-warning {
@@ -8155,9 +8304,7 @@ body.rp-workflow-page .danger-action {
 
 .rp-replacement-candidate {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -8171,36 +8318,13 @@ body.rp-workflow-page .danger-action {
   min-width: 0;
 }
 
+.rp-replacement-candidate strong {
+  color: var(--rp-ink);
+  font-size: 15px;
+}
+
 .rp-replacement-candidate small {
   color: var(--rp-muted);
-}
-
-.rp-replacement-thumb {
-  display: grid;
-  place-items: center;
-  width: 72px;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border: 1px solid #ddd8d0;
-  background: #f5f3ef;
-}
-
-.rp-replacement-thumb img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.rp-replacement-thumb img.is-loading {
-  background:
-    linear-gradient(90deg, #efede9 25%, #faf9f6 50%, #efede9 75%);
-  background-size: 200% 100%;
-  animation: rp-thumbnail-loading 1.2s linear infinite;
-}
-
-.rp-replacement-thumb img.rp-fallback-thumbnail {
-  opacity: 0.28;
 }
 
 .rp-three-viewer canvas.rp-scene-selection-flash {
@@ -8208,11 +8332,6 @@ body.rp-workflow-page .danger-action {
   outline-offset: -3px;
 }
 
-@keyframes rp-thumbnail-loading {
-  to {
-    background-position: -200% 0;
-  }
-}
 
 .rp-replacement-preview {
   min-height: 450px;
@@ -8245,6 +8364,160 @@ body.rp-workflow-page .danger-action {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 460px;
   min-height: calc(100vh - 195px);
+}
+
+.rp-scene-sidebar-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  margin: -2px -2px 14px;
+  padding: 2px;
+  border: 1px solid #d5d0c8;
+  border-radius: 6px;
+  background: #edeae5;
+}
+
+.rp-scene-sidebar-tabs button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #625d57;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rp-scene-sidebar-tabs button.is-active {
+  background: #fff;
+  color: #1b5849;
+  box-shadow: 0 1px 3px rgba(56, 47, 38, 0.16);
+}
+
+.rp-tab-count {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #bd4d3b;
+  color: #fff;
+  font-size: 11px;
+}
+
+.rp-toolbar-toggle {
+  min-height: 40px;
+  margin-left: 0;
+  padding: 0 11px;
+  border: 1px solid #cbd8d1;
+  border-radius: 5px;
+  background: #fff;
+  color: #36584a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rp-toolbar-toggle:hover,
+.rp-toolbar-toggle:focus-visible,
+.rp-toolbar-toggle.is-active {
+  border-color: #467564;
+  background: #e5f0ea;
+  color: #24483a;
+}
+
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan > header,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan-sticky,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-furniture-list,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] > .rp-editor-box,
+.rp-3d-sidebar[data-scene-sidebar-mode="selection"] .rp-configuration-plan,
+.rp-3d-sidebar[data-scene-sidebar-mode="selection"] > .rp-editor-box {
+  display: none;
+}
+
+.rp-3d-sidebar[data-scene-sidebar-mode="plan"] .rp-configuration-pending,
+.rp-3d-sidebar[data-scene-sidebar-mode="plan"] #furniture-property-locks,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] #furniture-property-locks {
+  display: none;
+}
+
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan-body {
+  max-height: min(62vh, 620px);
+}
+
+.rp-3d-sidebar[data-scene-sidebar-mode="selection"] #furniture-property-locks {
+  display: grid;
+}
+
+.rp-selected-furniture-context {
+  display: grid;
+  gap: 12px;
+  margin: 2px 0 4px;
+  padding: 14px;
+  border: 1px solid #b9d2c6;
+  border-radius: 8px;
+  background: #f2f8f4;
+}
+
+.rp-selected-furniture-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rp-selected-furniture-heading strong,
+.rp-selected-furniture-heading small {
+  display: block;
+}
+
+.rp-selected-furniture-heading strong {
+  margin-top: 3px;
+  color: #173f31;
+  font-size: 16px;
+}
+
+.rp-selected-furniture-heading small {
+  margin-top: 4px;
+  color: #5d6f66;
+}
+
+.rp-selected-furniture-state {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #dcece2;
+  color: #245842;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rp-selected-furniture-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.rp-selected-furniture-actions button {
+  min-height: 38px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.rp-selected-furniture-actions .danger-action {
+  grid-column: 2;
 }
 
 .rp-configuration-plan {
@@ -8569,28 +8842,34 @@ body.rp-workflow-page .danger-action {
 
 .rp-viewer-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 0 0 10px;
-  color: #fff;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d7e0da;
+  border-bottom: 0;
+  background: #f7faf8;
+  color: #29483d;
 }
 
 .rp-toolbar-group {
   display: inline-flex;
-  align-items: stretch;
+  align-items: center;
+  min-height: 40px;
   min-width: 0;
 }
 
 .rp-toolbar-group-label {
   display: grid;
   place-items: center;
+  min-height: 40px;
   min-width: 48px;
   padding: 0 9px;
-  border: 1px solid #d5d0c8;
+  border: 1px solid #cbd8d1;
   border-right: 0;
-  background: #f6f4f0;
-  color: #675f56;
+  border-radius: 5px 0 0 5px;
+  background: #eaf1ed;
+  color: #36584a;
   font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
@@ -8601,23 +8880,72 @@ body.rp-workflow-page .danger-action {
 }
 
 .rp-viewer-toolbar .rp-segmented {
-  flex: 1 1 280px;
+  flex: 0 0 auto;
   width: auto;
+  min-height: 40px;
+  border-color: #cbd8d1;
+  border-radius: 0 5px 5px 0;
+}
+
+.rp-viewer-toolbar .rp-segmented button {
+  min-height: 40px;
+  padding: 0 13px;
+  border-color: #cbd8d1;
+  background: #fff;
+  color: #36584a;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.rp-viewer-toolbar .rp-segmented button.is-active {
+  background: #467564;
+  color: #fff;
 }
 
 .rp-walk-room-picker {
+  display: inline-flex;
+  flex: 0 1 238px;
+  align-items: center;
+  gap: 0;
+  min-width: 198px;
+  color: #36584a;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.rp-walk-room-picker > span {
   display: grid;
-  flex: 0 1 190px;
-  gap: 4px;
-  min-width: 150px;
-  color: #fff;
-  font-size: 13px;
+  min-height: 40px;
+  padding: 0 9px;
+  place-items: center;
+  border: 1px solid #cbd8d1;
+  border-right: 0;
+  border-radius: 5px 0 0 5px;
+  background: #eaf1ed;
+  white-space: nowrap;
 }
 
 .rp-walk-room-picker select {
-  min-height: 40px;
-  border-color: #aaa59e;
+  flex: 1 1 auto;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 34px 0 11px !important;
+  border-color: #cbd8d1;
+  border-radius: 0 5px 5px 0;
   background: #fff;
+  color: #29483d;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.rp-viewer-toolbar .rp-toolbar-group {
+  order: 1;
+}
+
+.rp-viewer-toolbar .rp-walk-room-picker,
+.rp-viewer-toolbar #open-furniture-catalog {
+  order: 2;
 }
 
 .rp-catalog-results {
@@ -8631,7 +8959,7 @@ body.rp-workflow-page .danger-action {
   min-height: 520px;
   overflow: hidden;
   border: 1px solid #5e6360;
-  background: #f4f2ef;
+  background: #f7f5f1;
 }
 
 .rp-three-viewer canvas {
@@ -12928,27 +13256,71 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-questionnaire-summary {
-  border-top: 1px solid #d8d5ce;
+  display: grid;
+  gap: 16px;
 }
 
 .rp-questionnaire-summary > section {
-  padding: 22px 0;
-  border-bottom: 1px solid #d8d5ce;
+  padding: 28px 34px;
+  border: 1px solid #d7e2dd;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(25, 55, 46, .05);
 }
 
 .rp-questionnaire-summary h4 {
   margin: 0 0 14px;
 }
 
+.rp-questionnaire-summary-heading {
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #dce7e1;
+}
+
+.rp-questionnaire-summary-heading small,
+.rp-room-summary-title small {
+  color: #28765d;
+  font-weight: 700;
+}
+
+.rp-questionnaire-summary-heading h3 {
+  margin: 0;
+  color: #183d32;
+  font-size: 1.45rem;
+}
+
 .rp-questionnaire-summary-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.rp-questionnaire-summary-grid > div {
+.rp-questionnaire-summary-card {
   display: grid;
-  gap: 4px;
-  padding: 12px 16px 12px 0;
+  align-content: center;
+  min-height: 92px;
+  gap: 8px;
+  padding: 18px 20px;
+  border: 1px solid #dfded8;
+  border-radius: 8px;
+  background: #fdfdfc;
+}
+
+.rp-questionnaire-summary-card strong { color: #232522; }
+
+.rp-questionnaire-summary-notes,
+.rp-room-summary-notes {
+  margin-top: 18px;
+  padding: 16px;
+  border-left: 4px solid #78a895;
+  background: #f2f8f5;
+}
+
+.rp-questionnaire-summary-notes h4,
+.rp-room-summary-notes h4 {
+  margin-bottom: 10px;
+  color: #183d32;
 }
 
 .rp-questionnaire-summary-grid span,
@@ -13089,26 +13461,90 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-room-summary {
-  border-bottom: 1px solid #d8d5ce;
+  margin-top: 12px;
+  overflow: hidden;
+  border: 1px solid #cbd8d2;
+  border-radius: 10px;
+  background: #fff;
 }
 
 .rp-room-summary > summary {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 17px 0;
+  padding: 18px 22px;
   cursor: pointer;
+  background: linear-gradient(90deg, #edf5f1, #fafcfb);
+  border-left: 0;
+  list-style: none;
+}
+
+.rp-room-summary > summary::-webkit-details-marker { display: none; }
+
+.rp-room-summary[open] > summary {
+  border-bottom: 1px solid #d7e2dd;
+  background: linear-gradient(90deg, #e5f0eb, #fafcfb);
+}
+
+.rp-room-summary-title {
+  display: grid;
+  gap: 3px;
+}
+
+.rp-room-summary-title strong {
+  color: #183d32;
+  font-size: 1.3rem;
+}
+
+.rp-room-summary-status {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border: 1px solid #c8c5be;
+  color: #716d66;
+  font-size: .875rem;
+}
+
+.rp-room-summary-status.is-confirmed {
+  border-color: #78a895;
+  background: #fff;
+  color: #1f6a52;
+  font-weight: 700;
 }
 
 .rp-room-summary-body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 26px;
-  padding: 0 0 22px;
+  gap: 0;
+  padding: 22px;
 }
 
 .rp-room-summary-body section {
   min-width: 0;
+}
+
+.rp-room-summary-item {
+  min-height: 104px;
+  padding: 10px 24px 18px;
+}
+
+.rp-room-summary-item:nth-child(odd) {
+  border-right: 1px solid #e3e9e6;
+}
+
+.rp-room-summary-item:nth-child(n + 3) {
+  border-top: 1px solid #e3e9e6;
+  padding-top: 20px;
+}
+
+.rp-room-summary-item h4 {
+  margin-bottom: 10px;
+  color: #50615a;
+  font-size: .875rem;
+}
+
+.rp-room-summary-body p {
+  margin: 0 0 8px;
 }
 
 .rp-layout-room-materials {
@@ -13245,6 +13681,817 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   }
 }
 
+/* Give every workflow phase a page-level identity without changing the
+   placement of its existing tools or event targets. */
+body:has(#requirements-step:not([hidden])) .rp-progress {
+  display: grid;
+}
+
+/* 用途卡採抽象空間示意，避免以風格照片冒充實際房間或功能。 */
+#requirements-step .rp-room-usage-card-media.rp-room-usage-card-schematic {
+  position: relative;
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  overflow: hidden;
+  background: #eef3ef;
+}
+
+#requirements-step .rp-room-usage-card-media.rp-room-usage-card-schematic::after {
+  display: none;
+}
+
+#requirements-step .rp-room-usage-card-schematic-grid {
+  position: absolute;
+  inset: 18px 22px;
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  opacity: .9;
+}
+
+#requirements-step .rp-room-usage-card-schematic-grid i {
+  display: block;
+  border: 2px solid #9aafa1;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .66);
+}
+
+#requirements-step .rp-room-usage-card-schematic-grid i:nth-child(2) {
+  border-bottom-right-radius: 22px;
+}
+
+#requirements-step .rp-room-usage-card-schematic-grid i:nth-child(3) {
+  border-top-left-radius: 22px;
+}
+
+#requirements-step .rp-room-usage-card-schematic b {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border: 1px solid #6d8979;
+  border-radius: 50%;
+  background: #fbfdfb;
+  color: #315c49;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(46, 82, 65, .1);
+}
+
+#requirements-step .rp-room-usage-card[data-usage-tone="kitchen"] .rp-room-usage-card-schematic-grid i {
+  border-color: #8fa6a0;
+  background: #e8f0eb;
+}
+
+#requirements-step .rp-room-usage-card[data-usage-tone="care"] .rp-room-usage-card-schematic-grid i {
+  border-color: #a7b3ad;
+  background: #f1f4f1;
+}
+
+#requirements-step .rp-room-usage-card[data-usage-tone="focus"] .rp-room-usage-card-schematic-grid i {
+  border-color: #97a99e;
+  background: #eef3f0;
+}
+
+#requirements-step .rp-room-usage-card.is-selected .rp-room-usage-card-media.rp-room-usage-card-schematic {
+  background: #e8f1eb;
+}
+
+#requirements-step .rp-room-usage-card.is-selected .rp-room-usage-card-schematic b {
+  border-color: #547664;
+  background: #547664;
+  color: #fff;
+}
+
+/* 廚房、浴室與陽台的設備選擇是獨立的生圖需求，不與家具清單混在一起。 */
+#requirements-step .rp-questionnaire-generative-equipment {
+  margin: 34px 0 46px;
+  padding: 24px;
+  border: 1px solid #d5e1da;
+  border-left: 4px solid #6f8d7c;
+  border-radius: 14px;
+  background: #f9fcfa;
+  gap: 20px;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment > .rp-questionnaire-section-heading {
+  margin: 0;
+  padding: 0 0 16px;
+  border-bottom: 1px solid #dce7e0;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment > .rp-questionnaire-section-heading h3 {
+  margin: 4px 0 0;
+  color: #274a3b;
+  font-size: 20px;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment > .rp-questionnaire-section-heading p {
+  max-width: 62ch;
+  margin: 7px 0 0;
+  color: #65736c;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment > label {
+  width: min(360px, 100%);
+  padding: 12px 14px;
+  border: 1px solid #d8e2dc;
+  border-radius: 9px;
+  background: #fff;
+  color: #304b3e;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment > label select {
+  min-height: 40px;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment fieldset {
+  padding: 0;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment legend {
+  width: 100%;
+  margin: 0 0 9px;
+  padding: 0 0 9px;
+  border-bottom: 1px solid #dce7e0;
+  color: #2f4f40;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment fieldset > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment fieldset label {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #dce5df;
+  border-radius: 8px;
+  background: #fff;
+  color: #3a4b42;
+  cursor: pointer;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment fieldset label:hover {
+  border-color: #93aa9d;
+  background: #f2f8f4;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment fieldset label.is-selected {
+  border-color: #789887;
+  background: #eaf4ee;
+  color: #214f3c;
+  font-weight: 700;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment fieldset input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment > textarea {
+  min-height: 94px;
+  margin-top: -10px;
+}
+
+#requirements-step .rp-questionnaire-generative-equipment > .rp-field-hint {
+  margin: -8px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid #8ba394;
+  background: #f1f6f3;
+  color: #52655a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* 家具改成另一張卡，避免和設備描述黏在一起。 */
+#requirements-step .rp-questionnaire-generative-equipment + .rp-questionnaire-furniture {
+  margin-top: 0;
+  padding: 24px;
+  border: 1px solid #d5e1da;
+  border-radius: 14px;
+  background: #fff;
+}
+
+#requirements-step .rp-questionnaire-furniture-purpose {
+  display: block;
+  margin: 0 0 4px;
+  color: #5c7a6a !important;
+  font-size: 11px !important;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+
+@media (max-width: 700px) {
+  #requirements-step .rp-questionnaire-generative-equipment,
+  #requirements-step .rp-questionnaire-generative-equipment + .rp-questionnaire-furniture {
+    padding: 18px 16px;
+  }
+
+  #requirements-step .rp-questionnaire-generative-equipment fieldset > div {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  #requirements-step .rp-room-usage-card-schematic-grid { inset: 14px 18px; }
+  #requirements-step .rp-room-usage-card-schematic b { width: 46px; height: 46px; }
+}
+
+/* Final Step 5 state accents. Kept at the end of the stylesheet so legacy
+   questionnaire styles cannot flatten the intentional selection hierarchy. */
+#requirements-step .rp-visual-space-nav button { position: relative; }
+#requirements-step .rp-room-nav-state { position: absolute; top: 17px; right: 11px; width: 9px; height: 9px; border-radius: 50%; background: #c9bdb2; }
+#requirements-step .rp-visual-space-nav button.is-ready .rp-room-nav-state { background: #d5754c; box-shadow: 0 0 0 3px rgba(213,117,76,.16); }
+#requirements-step .rp-visual-space-nav button.is-rag-pending .rp-room-nav-state { background: #d5754c; box-shadow: 0 0 0 3px rgba(213,117,76,.16); animation: rp-rag-pulse 1.4s ease-in-out infinite; }
+#requirements-step .rp-visual-space-nav button.is-confirmed .rp-room-nav-state { background: #3d8168; box-shadow: 0 0 0 3px rgba(61,129,104,.14); }
+@keyframes rp-rag-pulse { 50% { transform: scale(1.45); opacity: .48; } }
+@media (prefers-reduced-motion: reduce) { #requirements-step .rp-visual-space-nav button.is-rag-pending .rp-room-nav-state { animation: none; } }
+
+/* Step 1 is the project start surface, not a generic centered form. */
+#project-step {
+  padding: clamp(28px, 5vw, 72px) clamp(20px, 5vw, 72px) clamp(56px, 8vw, 108px);
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.36) 1px, transparent 1px) 0 0 / 96px 96px,
+    linear-gradient(rgba(255,255,255,.36) 1px, transparent 1px) 0 0 / 96px 96px,
+    #e9e5de;
+}
+
+#project-step .rp-simple-step {
+  width: min(1320px, 100%);
+  min-height: 550px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.13fr) minmax(360px, .87fr);
+  gap: 0;
+  padding: 0;
+  align-items: stretch;
+  border: 1px solid #cfc5b9;
+  background: #fffdfa;
+  box-shadow: 0 24px 54px rgba(47, 38, 30, .13);
+}
+
+#project-step .rp-simple-copy {
+  position: relative;
+  display: flex;
+  min-height: 550px;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: clamp(36px, 6vw, 84px);
+  overflow: hidden;
+  background: #39342f;
+  color: #fbf7ef;
+}
+
+#project-step .rp-simple-copy::before {
+  content: "ROOM\A PILOT";
+  white-space: pre;
+  position: absolute;
+  top: 30px;
+  right: 34px;
+  color: rgba(255,255,255,.14);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.8rem, 7.2vw, 6.8rem);
+  line-height: .78;
+  letter-spacing: 0;
+  text-align: right;
+}
+
+#project-step .rp-simple-copy > * { position: relative; z-index: 1; }
+
+.rp-project-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: auto;
+  color: #dcd2c3;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.rp-project-kicker span:first-child {
+  color: #fbf7ef;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.2rem;
+}
+
+.rp-project-kicker i {
+  width: 38px;
+  height: 1px;
+  background: #cf9a5b;
+}
+
+#project-step .rp-simple-copy .eyebrow {
+  margin-top: 76px;
+  color: #cf9a5b;
+}
+
+#project-step .rp-simple-copy h2 {
+  max-width: 610px;
+  margin: 12px 0 18px;
+  color: #fffdfa;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 3.35vw, 3.55rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+#project-step .rp-simple-copy > p {
+  max-width: 510px;
+  margin: 0;
+  color: #d8d0c6;
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+#project-step .rp-project-at-a-glance {
+  max-width: 560px;
+  margin-top: 42px;
+  border-color: rgba(255,255,255,.24);
+}
+
+#project-step .rp-project-at-a-glance > div + div { border-color: rgba(255,255,255,.24); }
+#project-step .rp-project-at-a-glance dt { color: #cf9a5b; }
+#project-step .rp-project-at-a-glance dd { color: #fffdfa; }
+
+#project-step .rp-form-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  padding: clamp(36px, 5.5vw, 76px);
+  background: #fffdfa;
+}
+
+.rp-project-form-heading { padding-bottom: 18px; border-bottom: 1px solid #ded5ca; }
+.rp-project-form-heading .eyebrow { color: #287662; }
+.rp-project-form-heading p { max-width: 360px; margin: 8px 0 0; color: #70675e; font-size: 1rem; line-height: 1.65; }
+
+#project-step .rp-form-stack label { display: grid; gap: 9px; color: #332f2b; font-size: .98rem; font-weight: 800; }
+#project-step .rp-form-stack input,
+#project-step .rp-form-stack textarea {
+  border: 1px solid #bfb4a8;
+  border-radius: 0;
+  background: #fff;
+  color: #292521;
+  font: inherit;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+#project-step .rp-form-stack input { min-height: 56px; padding: 0 16px; font-size: 1rem; }
+#project-step .rp-form-stack textarea { min-height: 116px; padding: 14px 16px; font-size: 1rem; resize: vertical; }
+#project-step .rp-form-stack input:focus,
+#project-step .rp-form-stack textarea:focus { outline: 0; border-color: #287662; box-shadow: 0 0 0 3px rgba(40,118,98,.14); }
+#project-step .rp-form-stack .primary-action { min-height: 58px; margin-top: 8px; border-radius: 0; box-shadow: 0 8px 16px rgba(29,83,66,.2); }
+
+/* Furniture choices use a stable two-row pattern so size and quantity never fight for width. */
+.rp-questionnaire-furniture-options > article {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 14px;
+  min-height: 0;
+  padding: 16px;
+  border-radius: 4px;
+}
+.rp-questionnaire-furniture-options > article:has(input[data-questionnaire-furniture-id]:checked) {
+  border-color: #287662;
+  background: #eef7f3;
+  box-shadow: inset 3px 0 0 #287662;
+}
+
+.rp-questionnaire-furniture-select {
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  min-height: 46px;
+  padding: 3px 0;
+}
+
+.rp-questionnaire-furniture-options input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+.rp-questionnaire-furniture-options strong { font-size: 1rem; }
+.rp-questionnaire-furniture-options small { font-size: .82rem; }
+
+.rp-questionnaire-furniture-card-actions {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  justify-items: stretch;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e1d8cd;
+}
+
+.rp-questionnaire-furniture-size {
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 8px;
+  font-size: .84rem;
+  font-weight: 800;
+}
+
+.rp-questionnaire-furniture-size select {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 32px 6px 10px;
+}
+
+.rp-furniture-quantity { align-self: end; }
+.rp-furniture-quantity-limit { grid-column: 2; max-width: none; margin: -7px 0 0; text-align: center; }
+
+@media (max-width: 560px) {
+  .rp-questionnaire-furniture-card-actions { grid-template-columns: 1fr; }
+  .rp-furniture-quantity { justify-self: start; }
+  .rp-furniture-quantity-limit { grid-column: 1; justify-self: start; margin: -6px 0 0; }
+}
+
+@media (max-width: 860px) {
+  #project-step { padding: 24px 16px 48px; background: #e9e5de; }
+  #project-step .rp-simple-step { grid-template-columns: 1fr; min-height: 0; }
+  #project-step .rp-simple-copy { min-height: 380px; padding: 32px 28px; }
+  #project-step .rp-form-stack { padding: 32px 28px 38px; }
+  #project-step .rp-simple-copy h2 { font-size: clamp(2.2rem, 11vw, 3.5rem); }
+}
+
+/* Steps 2–4 share a calibrated plan-board rather than three plain split forms. */
+#upload-step,
+#scale-step,
+#space-step {
+  padding: clamp(24px, 4vw, 52px) clamp(16px, 4vw, 64px) clamp(48px, 6vw, 80px);
+  background: #ece8e1;
+}
+
+#upload-step .rp-split-workspace,
+#scale-step .rp-split-workspace,
+#space-step .rp-split-workspace {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  border: 1px solid #cfc6bb;
+  border-top: 4px solid #287662;
+  background: #fffdfa;
+  box-shadow: 0 18px 38px rgba(52, 43, 34, .10);
+}
+
+#upload-step .rp-plan-pane,
+#scale-step .rp-plan-pane,
+#space-step .rp-plan-pane {
+  position: relative;
+  min-height: 610px;
+  background:
+    linear-gradient(90deg, rgba(40,118,98,.055) 1px, transparent 1px) 0 0 / 42px 42px,
+    linear-gradient(rgba(40,118,98,.055) 1px, transparent 1px) 0 0 / 42px 42px,
+    #f8f6f2;
+}
+
+#upload-step .rp-plan-pane::before,
+#scale-step .rp-plan-pane::before,
+#space-step .rp-plan-pane::before {
+  content: "PLAN BOARD";
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  z-index: 0;
+  color: rgba(53, 48, 42, .10);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .18em;
+}
+
+#upload-step .rp-plan-pane > *,
+#scale-step .rp-plan-pane > *,
+#space-step .rp-plan-pane > * { position: relative; z-index: 1; }
+
+#upload-step .rp-pane-heading,
+#scale-step .rp-pane-heading,
+#space-step .rp-pane-heading {
+  padding: 26px 30px 20px;
+  border-bottom: 1px solid #ddd4c9;
+  background: rgba(255,253,250,.85);
+}
+
+#upload-step .rp-pane-heading .eyebrow,
+#scale-step .rp-pane-heading .eyebrow,
+#space-step .rp-pane-heading .eyebrow { color: #287662; }
+
+#upload-step .rp-pane-heading h2,
+#scale-step .rp-pane-heading h2,
+#space-step .rp-pane-heading h2 {
+  margin-top: 6px;
+  color: #2f2a26;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.45rem, 2.4vw, 2.15rem);
+  letter-spacing: 0;
+}
+
+#upload-step .rp-control-pane,
+#scale-step .rp-control-pane,
+#space-step .rp-control-pane {
+  display: flex;
+  min-height: 610px;
+  flex-direction: column;
+  padding: clamp(28px, 3vw, 48px);
+  background: #fffdfa;
+}
+
+#upload-step .rp-control-pane > h2,
+#scale-step .rp-control-pane > h2,
+#space-step .rp-control-pane h2 {
+  color: #312b26;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.4rem, 2vw, 1.95rem);
+  letter-spacing: 0;
+}
+
+#upload-step .primary-action,
+#scale-step .primary-action { min-height: 52px; margin-top: auto; border-radius: 0; }
+
+#space-step .rp-space-controls { gap: 18px; }
+#space-step .rp-control-pane-intro { padding-bottom: 18px; border-bottom: 1px solid #ddd4c9; }
+#space-step .rp-control-pane-intro h2 { margin: 6px 0; }
+
+@media (max-width: 960px) {
+  #upload-step, #scale-step, #space-step { padding: 20px 16px 42px; }
+  #upload-step .rp-plan-pane, #scale-step .rp-plan-pane, #space-step .rp-plan-pane,
+  #upload-step .rp-control-pane, #scale-step .rp-control-pane, #space-step .rp-control-pane { min-height: 0; }
+}
+
+.rp-step-panel--project,
+.rp-step-panel--upload,
+.rp-step-panel--scale,
+.rp-step-panel--structure,
+.rp-step-panel--requirements,
+.rp-step-panel--layout,
+.rp-step-panel--white-model,
+.rp-step-panel--realistic,
+.rp-step-panel--proposal,
+.rp-step-panel--render {
+  position: relative;
+}
+
+.rp-step-panel--upload .rp-split-workspace,
+.rp-step-panel--scale .rp-split-workspace,
+.rp-step-panel--structure .rp-split-workspace,
+.rp-step-panel--layout .rp-split-workspace,
+.rp-step-panel--white-model .rp-3d-workspace,
+.rp-step-panel--realistic .rp-3d-workspace,
+.rp-step-panel--proposal .rp-3d-workspace,
+.rp-step-panel--render .rp-3d-workspace {
+  border-top: 4px solid var(--rp-accent);
+}
+
+.rp-step-panel--requirements {
+  padding: 26px 0 42px;
+}
+
+.rp-step-panel--requirements .rp-questionnaire-workspace {
+  width: min(1480px, calc(100% - 48px));
+  margin: 0 auto;
+  border: 1px solid var(--rp-border-strong);
+  border-top: 4px solid var(--rp-accent);
+  background: var(--rp-surface);
+  box-shadow: 0 14px 34px rgba(55, 44, 33, 0.07);
+}
+
+.rp-step-panel--requirements .rp-test2-questionnaire {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 32px clamp(22px, 3vw, 44px) 42px;
+  background: transparent;
+}
+
+.rp-step-panel--requirements .rp-questionnaire-heading {
+  align-items: end;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #ddd5cb;
+}
+
+.rp-step-panel--requirements .rp-questionnaire-heading h2 {
+  margin: 6px 0 0;
+  color: var(--rp-ink-strong);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.5rem, 2.3vw, 2.15rem);
+}
+
+.rp-step-panel--requirements .rp-questionnaire-heading > div > p {
+  max-width: 690px;
+  color: #6d655d;
+}
+
+.rp-step-panel--requirements .rp-questionnaire-stage-nav {
+  margin: 24px 0 32px;
+  border: 1px solid #d5ccc1;
+  background: #faf7f1;
+}
+
+.rp-step-panel--requirements .rp-questionnaire-stage-nav button {
+  min-height: 56px;
+  background: transparent;
+}
+
+.rp-step-panel--requirements .rp-questionnaire-stage-nav button.is-active {
+  background: var(--rp-accent-soft);
+  color: #1a5846;
+}
+
+.rp-step-panel--requirements .rp-questionnaire-section-heading {
+  padding: 16px 0;
+  border-bottom: 1px solid #e2dbd2;
+}
+
+.rp-step-panel--requirements .rp-questionnaire-section-heading h3 {
+  color: var(--rp-ink-strong);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.rp-step-panel--requirements .rp-room-questionnaire-layout {
+  gap: 26px;
+}
+
+.rp-step-panel--requirements .rp-room-questionnaire-plan,
+.rp-step-panel--requirements .rp-room-questionnaire-editor {
+  border: 1px solid #d9d0c6;
+  background: #fffdfa;
+}
+
+.rp-step-panel--requirements .rp-room-questionnaire-plan {
+  padding: 16px;
+}
+
+.rp-step-panel--requirements .rp-room-questionnaire-editor {
+  padding: 0 clamp(18px, 2.6vw, 34px) 28px;
+}
+
+.rp-step-panel--requirements .rp-room-finish-editor {
+  background: transparent;
+}
+
+.rp-step-panel--requirements .rp-questionnaire-furniture,
+.rp-step-panel--requirements .rp-questionnaire-room-usage,
+.rp-step-panel--requirements .rp-questionnaire-generative-equipment {
+  margin-top: 24px;
+  padding: 0;
+  border-top: 1px solid #e1d9d0;
+}
+
+.rp-step-panel--layout,
+.rp-step-panel--white-model,
+.rp-step-panel--realistic,
+.rp-step-panel--proposal,
+.rp-step-panel--render {
+  padding-top: 1px;
+}
+
+.rp-scheme-toolbar {
+  width: min(1480px, calc(100% - 48px));
+  min-height: 62px;
+  box-sizing: border-box;
+  margin: 22px auto 0;
+  padding: 10px 16px;
+  border: 1px solid var(--rp-border-strong);
+  background: #fffdfa;
+  box-shadow: 0 6px 18px rgba(55, 44, 33, 0.05);
+}
+
+.rp-scheme-toolbar > span {
+  color: #71675e;
+  font-size: 0.86rem;
+}
+
+.rp-step-panel--white-model .rp-viewer-pane,
+.rp-step-panel--realistic .rp-viewer-pane,
+.rp-step-panel--proposal .rp-viewer-pane,
+.rp-step-panel--render .rp-viewer-pane {
+  background: #272722;
+}
+
+.rp-step-panel--white-model .rp-viewer-toolbar,
+.rp-step-panel--realistic .rp-viewer-toolbar,
+.rp-step-panel--proposal .rp-viewer-toolbar,
+.rp-step-panel--render .rp-viewer-toolbar {
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 1px solid #d7e0da;
+  border-bottom: 0;
+  background: #f7faf8;
+  box-shadow: inset 0 -1px 0 #edf2ee;
+}
+
+.rp-step-panel--white-model .rp-viewer-toolbar .secondary-action,
+.rp-step-panel--realistic .rp-viewer-toolbar .secondary-action,
+.rp-step-panel--proposal .rp-viewer-toolbar .secondary-action,
+.rp-step-panel--render .rp-viewer-toolbar .secondary-action {
+  min-height: 40px;
+  padding: 0 14px;
+  border-color: #467564;
+  border-radius: 5px;
+  background: #fff;
+  color: #2d5b4a;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.rp-step-panel--white-model .rp-viewer-toolbar .secondary-action:hover,
+.rp-step-panel--white-model .rp-viewer-toolbar .secondary-action:focus-visible,
+.rp-step-panel--realistic .rp-viewer-toolbar .secondary-action:hover,
+.rp-step-panel--realistic .rp-viewer-toolbar .secondary-action:focus-visible,
+.rp-step-panel--proposal .rp-viewer-toolbar .secondary-action:hover,
+.rp-step-panel--proposal .rp-viewer-toolbar .secondary-action:focus-visible,
+.rp-step-panel--render .rp-viewer-toolbar .secondary-action:hover,
+.rp-step-panel--render .rp-viewer-toolbar .secondary-action:focus-visible {
+  background: #e5f0ea;
+  color: #24483a;
+}
+
+.rp-step-panel--white-model .rp-viewer-status,
+.rp-step-panel--realistic .rp-viewer-status,
+.rp-step-panel--proposal .rp-viewer-status,
+.rp-step-panel--render .rp-viewer-status {
+  margin: 0;
+  padding: 12px 16px;
+  background: #332f2a;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.rp-step-panel--white-model .rp-control-pane,
+.rp-step-panel--realistic .rp-control-pane,
+.rp-step-panel--proposal .rp-control-pane,
+.rp-step-panel--render .rp-control-pane {
+  background: #f8f5ef;
+}
+
+.rp-step-panel--proposal .rp-control-pane > .eyebrow,
+.rp-step-panel--render .rp-control-pane > .eyebrow,
+.rp-step-panel--realistic .rp-control-pane > .eyebrow {
+  display: inline-block;
+  margin-bottom: 2px;
+  color: var(--rp-accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.rp-step-panel--proposal .rp-review-summary,
+.rp-step-panel--render .rp-render-jobs,
+.rp-step-panel--realistic .rp-editor-box,
+.rp-step-panel--white-model .rp-editor-box {
+  border-color: #d2c8bd;
+  background: #fffdfa;
+}
+
+.rp-step-panel--render .rp-editor-box > h3::first-letter,
+.rp-step-panel--proposal .rp-editor-box > h3::first-letter {
+  color: var(--rp-accent);
+}
+
+@media (max-width: 960px) {
+  .rp-step-panel--requirements .rp-questionnaire-workspace,
+  .rp-scheme-toolbar {
+    width: min(100% - 28px, 920px);
+  }
+}
+
+@media (max-width: 640px) {
+  .rp-step-panel--requirements {
+    padding: 0;
+  }
+
+  .rp-step-panel--requirements .rp-questionnaire-workspace,
+  .rp-scheme-toolbar {
+    width: 100%;
+    margin: 0;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .rp-step-panel--requirements .rp-test2-questionnaire {
+    padding: 24px 16px 32px;
+  }
+
+  .rp-step-panel--requirements .rp-room-questionnaire-editor {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
+
 /* Late cascade for the compact Step 5 room workflow. */
 #requirements-step .rp-test2-questionnaire { width: min(1360px, calc(100% - 40px)); }
 .rp-questionnaire-stage-nav { display: inline-flex; width: auto; margin: 18px 0 28px; border: 1px solid #ddd9d0; border-radius: 8px; overflow: hidden; }
@@ -13276,9 +14523,1739 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 @media (max-width: 980px) { .rp-room-questionnaire-layout { grid-template-columns: 1fr; }.rp-room-questionnaire-plan { position: static; }.rp-room-questionnaire-editor { grid-template-columns: 1fr; }.rp-questionnaire-room-section-nav { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }.rp-room-finish-editor, .rp-questionnaire-room-action-bar { grid-column: 1; } }
 @media (max-width: 640px) { #requirements-step .rp-test2-questionnaire { width: min(100% - 24px, 1360px); }.rp-questionnaire-stage-nav { display: grid; width: 100%; grid-template-columns: 1fr; }.rp-questionnaire-stage-nav button { justify-content: flex-start; border-right: 0; border-bottom: 1px solid #ddd9d0; }.rp-questionnaire-room-section-nav { grid-template-columns: 1fr 1fr; }.rp-room-questionnaire-editor-heading, .rp-questionnaire-room-action-bar { align-items: stretch; flex-direction: column; }.rp-questionnaire-room-action-bar > div { display: grid; grid-template-columns: 1fr 1fr; }.rp-room-review-list button { grid-template-columns: 1fr auto; }.rp-room-review-list button strong { grid-column: 1 / -1; } }
 
+/* Step 5 questionnaire: warm editorial workspace. Scoped deliberately so
+   the planning, 2D and 3D steps keep their existing functional UI. */
+#requirements-step {
+  --rq-ink: #20362e;
+  --rq-muted: #62746b;
+  --rq-line: #d7e5dc;
+  --rq-cream: #fbfdfb;
+  --rq-soft: #edf5f0;
+  --rq-apricot: #d9ebe1;
+  --rq-caramel: #2b725d;
+  --rq-caramel-deep: #174d3e;
+}
+
+#requirements-step .rp-questionnaire-heading {
+  align-items: center;
+  padding: 8px 2px 22px;
+  border-bottom-color: var(--rq-line);
+}
+
+#requirements-step .rp-questionnaire-heading h2,
+#requirements-step .rp-questionnaire-section-heading h3,
+#requirements-step .rp-room-questionnaire-editor-heading h3 {
+  color: var(--rq-ink);
+}
+
+#requirements-step .rp-questionnaire-heading-actions > strong {
+  border-left-color: var(--rq-caramel);
+  color: var(--rq-caramel-deep);
+}
+
+#requirements-step .rp-questionnaire-stage-nav {
+  gap: 4px;
+  padding: 5px;
+  border: 0;
+  border-radius: 999px;
+  background: #f7ede5;
+  box-shadow: inset 0 0 0 1px #eeded2;
+}
+
+#requirements-step .rp-questionnaire-stage-nav button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  color: #806f64;
+}
+
+#requirements-step .rp-questionnaire-stage-nav button b {
+  border-color: #d9bca9;
+}
+
+#requirements-step .rp-questionnaire-stage-nav button.is-active {
+  background: linear-gradient(135deg, #d67a50, var(--rq-caramel-deep));
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(146, 66, 39, .22);
+}
+
+#requirements-step .rp-questionnaire-stage-nav button.is-active b,
+#requirements-step .rp-questionnaire-stage-nav button.is-complete b {
+  border-color: currentColor;
+  background: rgba(255,255,255,.18);
+  color: inherit;
+}
+
+#requirements-step .rp-room-questionnaire-layout {
+  gap: 28px;
+}
+
+#requirements-step .rp-room-questionnaire-plan,
+#requirements-step .rp-room-questionnaire-editor {
+  border-color: var(--rq-line);
+  border-radius: 24px;
+  background: var(--rq-cream);
+  box-shadow: 0 14px 34px rgba(94, 57, 35, .08);
+}
+
+#requirements-step .rp-room-questionnaire-plan {
+  padding: 18px;
+  overflow: hidden;
+}
+
+#requirements-step .rp-questionnaire-plan-stage {
+  border-color: #ead9cd;
+  border-radius: 14px;
+  background: #fff;
+}
+
+#requirements-step .rp-visual-space-nav {
+  gap: 6px;
+  margin-top: 12px;
+  border-top: 0;
+}
+
+#requirements-step .rp-visual-space-nav button {
+  min-height: 52px;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+
+#requirements-step .rp-visual-space-nav button.is-active {
+  padding-left: 13px;
+  border-color: #f0bea3;
+  border-left: 4px solid var(--rq-caramel);
+  background: linear-gradient(90deg, #f7c9ad, #fff0e6);
+  color: #6e311f;
+}
+
+#requirements-step .rp-room-questionnaire-editor {
+  padding-top: 2px;
+}
+
+#requirements-step .rp-room-questionnaire-editor-heading {
+  padding: 20px 0 16px;
+  border-bottom-color: var(--rq-line);
+}
+
+#requirements-step .rp-questionnaire-room-section-nav {
+  gap: 7px;
+  padding: 20px 14px 20px 0;
+  border-right-color: var(--rq-line);
+}
+
+#requirements-step .rp-questionnaire-room-section-nav button {
+  min-height: 62px;
+  padding: 9px;
+  border-radius: 14px;
+  color: var(--rq-muted);
+}
+
+#requirements-step .rp-questionnaire-room-section-nav button.is-active {
+  border-color: #f0bea3;
+  background: #fff0e6;
+  color: #763a25;
+}
+
+#requirements-step .rp-questionnaire-room-section-nav button.is-complete b,
+#requirements-step .rp-questionnaire-room-section-nav button.is-active b {
+  border-color: var(--rq-caramel);
+  background: var(--rq-caramel);
+}
+
+#requirements-step .rp-room-finish-editor {
+  padding-top: 22px;
+}
+
+#requirements-step .rp-questionnaire-room-usage {
+  margin-top: 0;
+  padding: 0;
+  border-top: 0;
+}
+
+#requirements-step .rp-questionnaire-room-usage > .rp-questionnaire-section-heading {
+  margin-bottom: 16px;
+  padding: 0 0 14px;
+}
+
+#requirements-step .rp-questionnaire-room-usage-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+#requirements-step .rp-room-usage-card {
+  position: relative;
+  min-width: 0;
+  min-height: 180px;
+  display: grid;
+  grid-template-rows: 104px minmax(74px, auto);
+  overflow: hidden;
+  border: 1px solid #ead9cd;
+  border-radius: 18px;
+  background: #fff;
+  cursor: pointer;
+  isolation: isolate;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+#requirements-step .rp-room-usage-card:hover {
+  transform: translateY(-2px);
+  border-color: #dfa17f;
+  box-shadow: 0 10px 20px rgba(119, 68, 41, .12);
+}
+
+#requirements-step .rp-room-usage-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#requirements-step .rp-room-usage-card-media {
+  display: block;
+  overflow: hidden;
+  background: #efdacf;
+}
+
+#requirements-step .rp-room-usage-card-media::after {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 104px;
+  content: "";
+  background: linear-gradient(135deg, rgba(64, 37, 25, .05), rgba(64, 37, 25, .38));
+  pointer-events: none;
+}
+
+#requirements-step .rp-room-usage-card-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+#requirements-step .rp-room-usage-card-copy {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  color: var(--rq-ink);
+}
+
+#requirements-step .rp-room-usage-card-copy strong { font-size: 16px; }
+#requirements-step .rp-room-usage-card-copy small { color: var(--rq-muted); font-size: 12px; line-height: 1.45; }
+
+#requirements-step .rp-room-usage-card-state {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  min-width: 34px;
+  min-height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.92);
+  color: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(45, 31, 22, .12);
+}
+
+#requirements-step .rp-room-usage-card-state:empty { display: none; }
+
+#requirements-step .rp-room-usage-card.is-selected {
+  border-color: #e4a47d;
+  background: #fff4ea;
+  box-shadow: inset 0 0 0 1px #e4a47d;
+}
+
+#requirements-step .rp-room-usage-card.is-primary {
+  border-color: var(--rq-caramel);
+  background: linear-gradient(145deg, #d2774f, var(--rq-caramel-deep));
+  box-shadow: 0 12px 24px rgba(135, 63, 38, .23);
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-copy,
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-copy small,
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-state { color: #fff; }
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-state { background: rgba(255,255,255,.18); }
+
+#requirements-step .rp-questionnaire-furniture,
+#requirements-step .rp-questionnaire-material-grid,
+#requirements-step .rp-questionnaire-generative-equipment {
+  border-color: var(--rq-line);
+}
+
+#requirements-step .rp-questionnaire-room-action-bar {
+  border-color: #edc5af;
+  border-radius: 16px;
+  background: rgba(255, 250, 245, .96);
+  box-shadow: 0 -8px 24px rgba(98, 53, 32, .09);
+}
+
+#requirements-step .primary-action {
+  border-color: var(--rq-caramel-deep);
+  background: linear-gradient(135deg, #d5774e, var(--rq-caramel-deep));
+  box-shadow: 0 8px 18px rgba(141, 65, 37, .2);
+}
+
+#requirements-step .secondary-action {
+  border-color: #e4c1ad;
+  background: #fffaf5;
+  color: #814329;
+}
+
+#requirements-step :focus-visible {
+  outline: 3px solid rgba(190, 99, 60, .42);
+  outline-offset: 3px;
+}
+
+@media (max-width: 980px) {
+  #requirements-step .rp-room-questionnaire-layout { grid-template-columns: 1fr; }
+  #requirements-step .rp-room-questionnaire-plan { position: static; }
+  #requirements-step .rp-room-questionnaire-editor { grid-template-columns: 1fr; }
+  #requirements-step .rp-questionnaire-room-section-nav { grid-template-columns: repeat(5, minmax(118px, 1fr)); overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--rq-line); padding: 12px 0; }
+  #requirements-step .rp-room-finish-editor, #requirements-step .rp-questionnaire-room-action-bar { grid-column: 1; }
+}
+
+@media (max-width: 680px) {
+  #requirements-step .rp-questionnaire-stage-nav { display: grid; grid-template-columns: 1fr; border-radius: 18px; }
+  #requirements-step .rp-questionnaire-room-usage-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #requirements-step .rp-room-usage-card { min-height: 166px; grid-template-rows: 94px minmax(70px, auto); border-radius: 14px; }
+  #requirements-step .rp-room-usage-card-media::after { height: 94px; }
+  #requirements-step .rp-questionnaire-room-section-nav { grid-template-columns: repeat(5, minmax(112px, 1fr)); }
+}
+
+/* Step 5 room workspace: the questionnaire behaves like a focused interior
+   planning board. The selectors live at the end to intentionally override
+   older compact-flow rules above. */
+#requirements-step .rp-test2-questionnaire {
+  padding-top: 30px;
+}
+
+#requirements-step .rp-questionnaire-heading {
+  padding: 0 0 24px;
+}
+
+#requirements-step .rp-questionnaire-stage-nav {
+  margin: 20px 0 22px;
+}
+
+#requirements-step .rp-room-questionnaire-layout {
+  grid-template-columns: 276px minmax(0, 1fr);
+  gap: 26px;
+  align-items: stretch;
+}
+
+#requirements-step .rp-room-questionnaire-plan {
+  display: flex;
+  flex-direction: column;
+  min-height: 690px;
+  padding: 18px;
+  border: 0;
+  border-radius: 28px;
+  color: #fffaf4;
+  background:
+    radial-gradient(circle at 72% 13%, rgba(208, 139, 97, .4), transparent 34%),
+    linear-gradient(160deg, #7c4b33 0%, #493329 58%, #2e2622 100%);
+  box-shadow: 0 22px 46px rgba(82, 48, 30, .22);
+}
+
+#requirements-step .rp-questionnaire-plan-stage {
+  padding: 10px;
+  border: 1px solid rgba(255, 239, 222, .36);
+  border-radius: 16px;
+  background: #fffaf3;
+  box-shadow: 0 10px 24px rgba(24, 17, 13, .2);
+}
+
+#requirements-step .rp-visual-space-nav {
+  flex: 1;
+  margin: 18px -4px -4px;
+  gap: 3px;
+}
+
+#requirements-step .rp-visual-space-nav button {
+  min-height: 49px;
+  padding: 10px 38px 10px 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 240, 224, .17);
+  border-radius: 12px;
+  color: rgba(255, 249, 242, .78);
+}
+
+#requirements-step .rp-visual-space-nav button strong,
+#requirements-step .rp-visual-space-nav button small {
+  color: inherit;
+}
+
+#requirements-step .rp-visual-space-nav button small {
+  opacity: .72;
+}
+
+#requirements-step .rp-visual-space-nav button.is-active {
+  padding-left: 13px;
+  border: 1px solid rgba(255, 221, 190, .7);
+  border-left: 4px solid #ffe4ca;
+  background: linear-gradient(100deg, #d5784e, #a74d2f);
+  box-shadow: 0 8px 18px rgba(28, 14, 8, .25);
+  color: #fff;
+}
+
+#requirements-step .rp-visual-space-nav button.is-active::before {
+  content: "填寫中";
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, .18);
+  color: #fff;
+}
+
+#requirements-step .rp-room-questionnaire-editor {
+  grid-template-columns: 148px minmax(0, 1fr);
+  padding: 18px 22px 26px;
+  border: 1px solid rgba(224, 200, 181, .8);
+  border-radius: 28px;
+  background: linear-gradient(145deg, #fffdf9, #fff7ef);
+  box-shadow: 0 18px 44px rgba(102, 59, 35, .09);
+}
+
+#requirements-step .rp-questionnaire-room-section-nav {
+  align-content: start;
+  padding: 88px 16px 24px 0;
+  border-right: 0;
+}
+
+#requirements-step .rp-questionnaire-room-section-nav button {
+  grid-template-columns: 28px minmax(0, 1fr);
+  min-height: 56px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 14px;
+}
+
+#requirements-step .rp-questionnaire-room-section-nav button.is-active {
+  background: #fff0e3;
+  box-shadow: inset 0 0 0 1px #f0c6aa;
+}
+
+#requirements-step .rp-room-finish-editor {
+  padding: 10px 0 96px;
+}
+
+#requirements-step .rp-questionnaire-room-usage {
+  padding: 24px;
+  border: 1px solid #ead7c8;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #fffdfb 0%, #fff6ed 100%);
+}
+
+#requirements-step .rp-questionnaire-room-usage > .rp-questionnaire-section-heading {
+  align-items: end;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #efdccc;
+}
+
+#requirements-step .rp-questionnaire-room-usage-options {
+  grid-template-columns: minmax(210px, 1.2fr) repeat(2, minmax(160px, 1fr));
+  grid-auto-flow: row;
+  gap: 14px;
+}
+
+#requirements-step .rp-room-usage-card {
+  min-height: 184px;
+  grid-template-rows: 106px minmax(78px, auto);
+  border: 1px solid #ecdacf;
+  border-radius: 24px;
+  box-shadow: 0 8px 20px rgba(95, 58, 38, .055);
+}
+
+#requirements-step .rp-room-usage-card.is-primary {
+  grid-row: span 2;
+  min-height: 382px;
+  grid-template-rows: 224px minmax(138px, auto);
+  border: 0;
+  background: linear-gradient(155deg, #d67b50, #9a4428);
+  box-shadow: 0 18px 30px rgba(132, 62, 37, .23);
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-media::after {
+  height: 224px;
+  background: linear-gradient(180deg, transparent 28%, rgba(72, 32, 19, .46));
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-copy {
+  align-content: start;
+  padding: 20px;
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-copy strong {
+  font-size: 22px;
+}
+
+#requirements-step .rp-room-usage-card-media::after {
+  height: 106px;
+}
+
+#requirements-step .rp-room-usage-card-state {
+  top: 14px;
+  right: 14px;
+  min-width: 30px;
+  width: 30px;
+  min-height: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #a45130;
+}
+
+#requirements-step .rp-room-usage-card-check {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+#requirements-step .rp-room-usage-card-label {
+  display: none;
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-state {
+  background: rgba(255, 255, 255, .92);
+  color: #a14a2b;
+}
+
+#requirements-step .rp-room-usage-card:not(.is-selected) .rp-room-usage-card-state {
+  display: none;
+}
+
+@media (max-width: 1080px) {
+  #requirements-step .rp-room-questionnaire-layout { grid-template-columns: 240px minmax(0, 1fr); }
+  #requirements-step .rp-questionnaire-room-usage-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #requirements-step .rp-room-usage-card.is-primary { grid-row: span 1; min-height: 282px; grid-template-rows: 156px minmax(104px, auto); }
+  #requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-media::after { height: 156px; }
+}
+
+@media (max-width: 980px) {
+  #requirements-step .rp-test2-questionnaire { padding-top: 20px; }
+  #requirements-step .rp-room-questionnaire-plan { min-height: auto; }
+  #requirements-step .rp-visual-space-nav { display: flex; overflow-x: auto; padding-bottom: 4px; }
+  #requirements-step .rp-visual-space-nav button { min-width: 150px; }
+  #requirements-step .rp-room-questionnaire-editor { grid-template-columns: 1fr; }
+  #requirements-step .rp-questionnaire-room-section-nav { grid-template-columns: repeat(5, minmax(118px, 1fr)); padding: 12px 0; }
+}
+
+@media (max-width: 680px) {
+  #requirements-step .rp-questionnaire-room-usage { padding: 16px; border-radius: 20px; }
+  #requirements-step .rp-questionnaire-room-usage-options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  #requirements-step .rp-room-usage-card { min-height: 172px; grid-template-rows: 92px minmax(74px, auto); border-radius: 16px; }
+  #requirements-step .rp-room-usage-card-media::after { height: 92px; }
+  #requirements-step .rp-room-usage-card.is-primary { grid-column: 1 / -1; min-height: 240px; grid-template-rows: 132px minmax(96px, auto); }
+  #requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-media::after { height: 132px; }
+}
+
+/* Remove the duplicated global Step 5 heading. The questionnaire heading is
+   the single, contextual entry point so the room workspace begins above the
+   fold, like a planning canvas rather than a stacked form. */
+body:has(#requirements-step:not([hidden])) .rp-guidance-band {
+  display: none;
+}
+
+#requirements-step {
+  padding: 32px 0 64px;
+  background:
+    linear-gradient(rgba(169, 139, 113, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(169, 139, 113, .08) 1px, transparent 1px),
+    #f8f4ee;
+  background-size: 80px 80px;
+}
+
+#requirements-step .rp-test2-questionnaire {
+  width: min(1380px, calc(100% - 56px));
+  margin: 0 auto;
+  padding: 34px clamp(24px, 3vw, 48px) 44px;
+  border: 1px solid #e7d9cc;
+  border-radius: 30px;
+  background: rgba(255, 252, 247, .94);
+  box-shadow: 0 24px 56px rgba(84, 53, 34, .1);
+}
+
+#requirements-step .rp-questionnaire-heading {
+  min-height: 104px;
+  padding: 0 0 22px;
+}
+
+#requirements-step .rp-questionnaire-heading h2 {
+  margin-top: 2px;
+  font-size: clamp(28px, 2.5vw, 39px);
+  line-height: 1.2;
+}
+
+#requirements-step .rp-questionnaire-heading p {
+  max-width: 780px;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+#requirements-step .rp-questionnaire-heading-actions {
+  align-self: center;
+}
+
+#requirements-step .rp-questionnaire-stage-nav {
+  width: min(640px, 100%);
+  margin: 16px 0 34px;
+}
+
+#requirements-step #visual-questionnaire > .rp-questionnaire-section-heading {
+  margin: 0 0 20px;
+  padding-bottom: 18px;
+}
+
+#requirements-step #visual-questionnaire > .rp-questionnaire-section-heading h3 {
+  font-size: 20px;
+}
+
+@media (max-width: 680px) {
+  #requirements-step { padding: 16px 0 36px; background-size: 48px 48px; }
+  #requirements-step .rp-test2-questionnaire { width: min(100% - 20px, 1380px); padding: 22px 14px 30px; border-radius: 20px; }
+  #requirements-step .rp-questionnaire-heading { min-height: auto; }
+  #requirements-step .rp-questionnaire-heading h2 { font-size: 26px; }
+  #requirements-step .rp-questionnaire-stage-nav { width: 100%; margin-bottom: 22px; }
+}
+
+/* Step 5 palette follows the product navigation: forest green for committed
+   choices, sage for secondary context, and warm white only as the canvas. */
+#requirements-step {
+  background:
+    linear-gradient(rgba(77, 123, 100, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(77, 123, 100, .08) 1px, transparent 1px),
+    #f5f8f6;
+}
+
+#requirements-step .rp-test2-questionnaire {
+  border-color: #d6e3db;
+  background: rgba(253, 255, 254, .95);
+  box-shadow: 0 24px 56px rgba(33, 75, 60, .1);
+}
+
+#requirements-step .rp-questionnaire-stage-nav {
+  background: #edf4f0;
+  box-shadow: inset 0 0 0 1px #d3e2d9;
+}
+
+#requirements-step .rp-questionnaire-stage-nav button {
+  color: #587068;
+}
+
+#requirements-step .rp-questionnaire-stage-nav button b {
+  border-color: #b8d2c5;
+}
+
+#requirements-step .rp-questionnaire-stage-nav button.is-active {
+  background: linear-gradient(135deg, #3f8a70, #1c5c4a);
+  box-shadow: 0 7px 18px rgba(24, 77, 62, .22);
+}
+
+#requirements-step .rp-room-questionnaire-plan {
+  background:
+    radial-gradient(circle at 72% 13%, rgba(101, 157, 129, .35), transparent 34%),
+    linear-gradient(160deg, #356d5a 0%, #244c40 58%, #18372f 100%);
+  box-shadow: 0 22px 46px rgba(27, 70, 55, .22);
+}
+
+#requirements-step .rp-questionnaire-plan-stage {
+  border-color: rgba(234, 247, 239, .42);
+  background: #fcfffd;
+}
+
+#requirements-step .rp-visual-space-nav button {
+  border-bottom-color: rgba(237, 255, 245, .18);
+  color: rgba(247, 255, 251, .79);
+}
+
+#requirements-step .rp-visual-space-nav button.is-active {
+  border-color: rgba(212, 239, 222, .72);
+  border-left-color: #e0f4e8;
+  background: linear-gradient(100deg, #3f8a70, #1c5c4a);
+  box-shadow: 0 8px 18px rgba(16, 49, 39, .27);
+}
+
+#requirements-step .rp-room-questionnaire-editor {
+  border-color: #d5e4dc;
+  background: linear-gradient(145deg, #fefffe, #f3f8f5);
+  box-shadow: 0 18px 44px rgba(31, 78, 61, .09);
+}
+
+#requirements-step .rp-questionnaire-room-section-nav button.is-active {
+  background: #e5f1eb;
+  box-shadow: inset 0 0 0 1px #b8d7c6;
+  color: #1d5a47;
+}
+
+#requirements-step .rp-questionnaire-room-usage {
+  border-color: #d7e6dd;
+  background: linear-gradient(135deg, #fefffe 0%, #f1f8f4 100%);
+}
+
+#requirements-step .rp-questionnaire-room-usage > .rp-questionnaire-section-heading {
+  border-bottom-color: #dcebe2;
+}
+
+#requirements-step .rp-room-usage-card {
+  border-color: #d9e7df;
+  box-shadow: 0 8px 20px rgba(35, 80, 63, .06);
+}
+
+#requirements-step .rp-room-usage-card:hover {
+  border-color: #71aa8f;
+  box-shadow: 0 10px 20px rgba(36, 101, 78, .14);
+}
+
+#requirements-step .rp-room-usage-card.is-selected {
+  border-color: #70aa8e;
+  background: #edf8f1;
+  box-shadow: inset 0 0 0 1px #70aa8e;
+}
+
+#requirements-step .rp-room-usage-card.is-primary {
+  background: linear-gradient(155deg, #3f8a70, #1b5948);
+  box-shadow: 0 18px 30px rgba(27, 84, 66, .25);
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-media::after {
+  background: linear-gradient(180deg, transparent 28%, rgba(14, 54, 42, .48));
+}
+
+#requirements-step .rp-room-usage-card-state,
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-state {
+  color: #1e6851;
+}
+
+#requirements-step .rp-questionnaire-room-action-bar {
+  border-color: #bdd9ca;
+  background: rgba(249, 254, 251, .96);
+  box-shadow: 0 -8px 24px rgba(31, 78, 61, .09);
+}
+
+#requirements-step .primary-action {
+  border-color: #174d3e;
+  background: linear-gradient(135deg, #3e8a70, #1a5948);
+  box-shadow: 0 8px 18px rgba(24, 77, 62, .2);
+}
+
+#requirements-step .secondary-action {
+  border-color: #bddacb;
+  background: #fbfefc;
+  color: #1d5a47;
+}
+
+#requirements-step :focus-visible {
+  outline-color: rgba(43, 114, 93, .45);
+}
+
+/* Step 5 density pass: the planning view keeps decisions visible without
+   duplicate introductions, dead columns, or catalogue-sized furniture rows. */
+#requirements-step .rp-questionnaire-heading {
+  display: none;
+}
+
+#requirements-step .rp-questionnaire-stage-nav {
+  margin-top: 0;
+}
+
+#requirements-step .rp-room-questionnaire-layout {
+  align-items: start;
+}
+
+#requirements-step .rp-room-questionnaire-plan {
+  align-self: start;
+  min-height: 0;
+}
+
+#requirements-step .rp-room-questionnaire-editor {
+  display: block;
+  min-width: 0;
+}
+
+#requirements-step .rp-questionnaire-room-section-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 0 16px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--rq-line);
+  scrollbar-width: thin;
+}
+
+#requirements-step .rp-questionnaire-room-section-nav button {
+  flex: 0 0 auto;
+  grid-template-columns: 22px auto;
+  gap: 7px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #d8e6de;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+}
+
+#requirements-step .rp-questionnaire-room-section-nav button b {
+  width: 20px;
+  height: 20px;
+}
+
+#requirements-step .rp-questionnaire-room-section-nav button small {
+  display: none;
+}
+
+/* Step 5 visual balance: use a quiet sage palette and a single, predictable
+   card row so the room decision stays calm and the furniture section arrives
+   without a long coloured column. */
+#requirements-step {
+  --rq-soft: #f0f4f1;
+  --rq-line: #d8e2dc;
+  --rq-caramel: #6f8a7d;
+  --rq-caramel-deep: #526d61;
+}
+
+#requirements-step .rp-questionnaire-stage-nav button.is-active,
+#requirements-step .primary-action {
+  background: linear-gradient(135deg, #789487, #5d786b);
+  box-shadow: 0 7px 16px rgba(62, 91, 78, .16);
+}
+
+#requirements-step .rp-room-questionnaire-plan {
+  background: linear-gradient(160deg, #738d80 0%, #607b6e 54%, #506a5e 100%);
+  box-shadow: 0 16px 34px rgba(56, 82, 70, .17);
+}
+
+#requirements-step .rp-visual-space-nav button.is-active {
+  background: #668274;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3);
+}
+
+#requirements-step .rp-questionnaire-room-usage {
+  background: #fbfcfb;
+  border-color: #dce5df;
+}
+
+#requirements-step .rp-questionnaire-room-usage-options {
+  grid-template-columns: minmax(230px, 1.18fr) repeat(3, minmax(160px, 1fr));
+  grid-auto-flow: row;
+  gap: 12px;
+}
+
+#requirements-step .rp-room-usage-card,
+#requirements-step .rp-room-usage-card.is-primary {
+  grid-row: auto;
+  min-height: 254px;
+  grid-template-rows: 138px minmax(96px, auto);
+  background: #fff;
+  box-shadow: 0 7px 17px rgba(54, 77, 66, .07);
+}
+
+#requirements-step .rp-room-usage-card.is-primary {
+  border-color: #779487;
+  background: #eef4f0;
+  box-shadow: inset 0 0 0 1px #779487, 0 8px 18px rgba(54, 81, 68, .1);
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-media::after {
+  height: 138px;
+  background: linear-gradient(180deg, transparent 30%, rgba(32, 57, 46, .3));
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-copy {
+  align-content: center;
+  padding: 14px;
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-copy,
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-copy small {
+  color: var(--rq-ink);
+}
+
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-copy strong {
+  font-size: 17px;
+}
+
+#requirements-step .rp-room-usage-card-state,
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-state {
+  color: #527362;
+}
+
+#requirements-step .rp-room-usage-card-check,
+#requirements-step .rp-room-usage-card.is-primary .rp-room-usage-card-check {
+  background: #fff;
+  color: #527362;
+}
+
+#requirements-step .rp-room-usage-card-label {
+  background: #6f8a7d;
+  color: #fff;
+}
+
+@media (max-width: 1180px) {
+  #requirements-step .rp-questionnaire-room-usage-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  #requirements-step .rp-questionnaire-room-usage-options {
+    grid-template-columns: 1fr;
+  }
+
+  #requirements-step .rp-room-usage-card,
+  #requirements-step .rp-room-usage-card.is-primary {
+    min-height: 218px;
+    grid-template-rows: 122px minmax(80px, auto);
+  }
+}
+
+/* The right-hand questionnaire is three decisions, not one long form:
+   use and furniture, surfaces, then ceiling systems. */
+#requirements-step .rp-questionnaire-room-usage,
+#requirements-step .rp-questionnaire-furniture,
+#requirements-step #questionnaire-material-pairs,
+#requirements-step .rp-questionnaire-material-grid > fieldset:last-child {
+  position: relative;
+}
+
+#requirements-step .rp-questionnaire-room-usage::before,
+#requirements-step #questionnaire-material-pairs::before,
+#requirements-step .rp-questionnaire-material-grid > fieldset:last-child::before {
+  display: block;
+  width: max-content;
+  margin: 0 0 16px;
+  padding: 6px 10px;
+  border: 1px solid #cddbd3;
+  border-radius: 999px;
+  background: #f5f8f6;
+  color: #557064;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+#requirements-step .rp-questionnaire-room-usage::before {
+  content: "01　空間用途與家具";
+}
+
+#requirements-step #questionnaire-material-pairs {
+  margin-top: 32px;
+  padding: 24px;
+  border: 1px solid #d8e2dc;
+  border-radius: 18px 18px 0 0;
+  background: #fbfcfb;
+}
+
+#requirements-step #questionnaire-material-pairs::before {
+  content: "02　牆面與地板";
+}
+
+#requirements-step #questionnaire-material-pairs .rp-questionnaire-section-heading {
+  margin-bottom: 14px;
+}
+
+#requirements-step .rp-questionnaire-material-grid {
+  gap: 0;
+  padding: 0 24px 24px;
+  border: 1px solid #d8e2dc;
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+  background: #fbfcfb;
+}
+
+#requirements-step .rp-questionnaire-material-grid > fieldset:first-child,
+#requirements-step .rp-questionnaire-material-grid > fieldset:nth-child(2) {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+#requirements-step .rp-questionnaire-material-grid > fieldset:last-child {
+  grid-column: 1 / -1;
+  margin-top: 30px;
+  padding: 24px;
+  border: 1px solid #d8e2dc;
+  border-radius: 18px;
+  background: #f7faf8;
+}
+
+#requirements-step .rp-questionnaire-material-grid > fieldset:last-child::before {
+  content: "03　天花、照明與冷氣";
+}
+
+#requirements-step .rp-questionnaire-material-grid > fieldset:last-child > legend {
+  display: block;
+  margin: 0 0 12px;
+  padding: 0;
+  color: #20362e;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+#requirements-step .rp-questionnaire-furniture {
+  margin-top: -1px;
+  padding: 20px 24px 26px;
+  border: 1px solid #d8e2dc;
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+  background: #fbfcfb;
+}
+
+#requirements-step .rp-questionnaire-room-usage {
+  margin-bottom: 0;
+  padding: 24px 24px 20px;
+  border-radius: 18px 18px 0 0;
+}
+
+#requirements-step .rp-questionnaire-furniture > .rp-questionnaire-section-heading {
+  border-bottom-color: #e0e8e3;
+}
+
+@media (max-width: 680px) {
+  #requirements-step #questionnaire-material-pairs,
+  #requirements-step .rp-questionnaire-material-grid,
+  #requirements-step .rp-questionnaire-furniture,
+  #requirements-step .rp-questionnaire-room-usage {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  #requirements-step .rp-questionnaire-material-grid > fieldset:last-child {
+    padding: 18px 16px;
+  }
+}
+
+/* Keep testing fast without restoring the removed explanatory banner. */
+#requirements-step .rp-test2-questionnaire {
+  position: relative;
+}
+
+#whole-house-questionnaire > .rp-questionnaire-section-heading:first-child {
+  display: none;
+}
+
+#requirements-step .rp-questionnaire-heading {
+  position: absolute;
+  top: 22px;
+  right: 28px;
+  z-index: 2;
+  display: block;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+#requirements-step .rp-questionnaire-heading > div:first-child,
+#requirements-step .rp-questionnaire-heading-actions > #requirements-progress {
+  display: none;
+}
+
+#requirements-step .rp-questionnaire-heading-actions {
+  display: flex;
+}
+
+#requirements-step #randomize-requirements {
+  min-height: 42px;
+  padding: 0 15px;
+  border-color: #b9cec1;
+  background: #f7faf8;
+  color: #466557;
+  box-shadow: none;
+}
+
+#requirements-step #randomize-requirements:hover {
+  border-color: #769284;
+  background: #edf4ef;
+}
+
+@media (max-width: 680px) {
+  #requirements-step .rp-questionnaire-heading {
+    top: 16px;
+    right: 16px;
+  }
+
+  #requirements-step #randomize-requirements {
+    min-height: 38px;
+    padding: 0 11px;
+    font-size: 13px;
+  }
+}
+
+#requirements-step .rp-room-finish-editor {
+  min-width: 0;
+  padding: 0 0 54px;
+}
+
+#requirements-step .rp-questionnaire-furniture > .rp-questionnaire-section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+}
+
+#requirements-step .rp-questionnaire-furniture > .rp-questionnaire-section-heading .eyebrow,
+#requirements-step .rp-questionnaire-furniture > .rp-questionnaire-section-heading p,
+#requirements-step .rp-questionnaire-furniture-preference > .rp-field-hint {
+  display: none;
+}
+
+#requirements-step .rp-questionnaire-furniture > .rp-questionnaire-section-heading h3 {
+  margin: 0;
+  font-size: 21px;
+}
+
+#requirements-step .rp-questionnaire-furniture-preference {
+  margin: 0 0 12px;
+}
+
+#requirements-step .rp-questionnaire-furniture-preference label {
+  font-size: 13px;
+}
+
+#requirements-step .rp-questionnaire-furniture-preference textarea {
+  min-height: 54px;
+  padding: 10px 12px;
+}
+
+#requirements-step .rp-questionnaire-preference-tags {
+  margin-top: 8px;
+  gap: 6px;
+}
+
+#requirements-step .rp-questionnaire-preference-tags button {
+  min-height: 32px;
+  padding: 5px 10px;
+}
+
+#requirements-step .rp-questionnaire-furniture-options {
+  gap: 7px;
+}
+
+#requirements-step .rp-questionnaire-furniture-options > article {
+  grid-template-columns: minmax(0, 1fr) minmax(282px, .9fr);
+  min-height: 76px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+#requirements-step .rp-questionnaire-furniture-options .rp-questionnaire-furniture-select {
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+#requirements-step .rp-questionnaire-furniture-options input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+}
+
+#requirements-step .rp-questionnaire-furniture-options strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+#requirements-step .rp-questionnaire-furniture-options small {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+#requirements-step .rp-questionnaire-furniture-options .rp-questionnaire-furniture-model,
+#requirements-step .rp-questionnaire-furniture-options em,
+#requirements-step .rp-questionnaire-furniture-options .rp-questionnaire-fit-risk {
+  display: none;
+}
+
+#requirements-step .rp-questionnaire-furniture-card-actions {
+  grid-template-columns: minmax(166px, 1fr) auto auto;
+  gap: 6px;
+}
+
+#requirements-step .rp-questionnaire-furniture-size {
+  grid-template-columns: auto minmax(120px, 1fr);
+}
+
+#requirements-step .rp-questionnaire-furniture-size select {
+  min-height: 34px;
+}
+
+#questionnaire-finishes .rp-questionnaire-style-grid.is-fixed-style {
+  display: none !important;
+}
+
+#questionnaire-finishes .rp-questionnaire-material-grid {
+  margin-top: 18px;
+  padding-top: 22px;
+  border-top-color: #d9e7df;
+}
+
+#questionnaire-finishes .rp-questionnaire-material-grid fieldset:last-child {
+  padding: 24px;
+  border: 1px solid #d7e6dd;
+  border-radius: 20px;
+  background: #f7fbf8;
+}
+
+#questionnaire-finishes .rp-questionnaire-material-grid fieldset:last-child > legend {
+  padding: 0;
+  color: #214f42;
+  font-size: 27px;
+  font-weight: 800;
+}
+
+#questionnaire-finishes .rp-questionnaire-ceiling-quick-choices {
+  margin-top: 14px;
+}
+
+#questionnaire-finishes .rp-questionnaire-ceiling-quick-choices > .rp-questionnaire-section-heading {
+  display: block;
+  margin: 0 0 14px;
+  padding: 0 0 10px;
+}
+
+#questionnaire-finishes .rp-questionnaire-ceiling-quick-choices > .rp-questionnaire-section-heading h3 {
+  margin: 0;
+  color: #314e43;
+  font-size: 18px;
+}
+
+#questionnaire-finishes .rp-questionnaire-ceiling-quick-choices > .rp-questionnaire-section-heading p,
+#questionnaire-finishes .rp-ceiling-design-pack small,
+#questionnaire-finishes .rp-ceiling-design-pack em {
+  display: none;
+}
+
+#questionnaire-finishes .rp-ceiling-design-pack {
+  min-height: 152px;
+}
+
+@media (max-width: 980px) {
+  #requirements-step .rp-room-questionnaire-editor { display: block; }
+  #requirements-step .rp-room-finish-editor { padding-bottom: 34px; }
+}
+
+@media (max-width: 680px) {
+  #requirements-step .rp-questionnaire-furniture > .rp-questionnaire-section-heading { grid-template-columns: 1fr; }
+  #requirements-step .rp-questionnaire-furniture-options > article { grid-template-columns: 1fr; min-height: 0; }
+  #requirements-step .rp-questionnaire-furniture-card-actions { grid-template-columns: minmax(0, 1fr) auto auto; }
+  #questionnaire-finishes .rp-questionnaire-material-grid fieldset:last-child { padding: 16px; }
+  #questionnaire-finishes .rp-questionnaire-material-grid fieldset:last-child > legend { font-size: 23px; }
+}
+
 /* Focus the global workflow on Step 5 while this questionnaire is open. */
 body:has(#requirements-step:not([hidden])) .rp-progress {
   display: none;
+}
+
+/* Scene workflow visual system: keep the planning mechanics in place while
+   giving every step the same warm, editorial product language as the public pages. */
+body.rp-workflow-page {
+  --rp-canvas: #f3f0ea;
+  --rp-surface: #fffdf9;
+  --rp-surface-muted: #f8f5ef;
+  --rp-ink-strong: #29231f;
+  --rp-accent: #2b725d;
+  --rp-accent-soft: #e3efe8;
+  --rp-border-strong: #cfc7bc;
+  background: var(--rp-canvas);
+  color: var(--rp-ink-strong);
+}
+
+body.rp-workflow-page .app-topbar {
+  min-height: 76px;
+  height: 76px;
+  padding: 0 clamp(20px, 3vw, 48px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  background: #37302a;
+  box-shadow: 0 3px 18px rgba(38, 30, 24, 0.18);
+}
+
+body.rp-workflow-page .app-brand {
+  min-height: 76px;
+  font-size: 1.48rem;
+}
+
+.rp-project-meta {
+  gap: 14px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+}
+
+.rp-icon-command {
+  width: 38px;
+  height: 38px;
+  border-color: rgba(255, 255, 255, 0.42);
+  border-radius: 0;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.rp-icon-command:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.rp-workflow-shell {
+  min-height: calc(100vh - 76px);
+  background: var(--rp-canvas);
+}
+
+.rp-progress {
+  top: 76px;
+  min-height: 66px;
+  padding: 0 clamp(12px, 2vw, 30px);
+  border-bottom: 1px solid #d7d0c6;
+  background: rgba(255, 253, 249, 0.98);
+  box-shadow: 0 4px 14px rgba(47, 38, 29, 0.06);
+}
+
+.rp-progress button {
+  position: relative;
+  min-height: 66px;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 11px 14px;
+  border-right: 0;
+  background: transparent;
+  color: #736b63;
+  font-size: 0.88rem;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.rp-progress button::after {
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  height: 3px;
+  background: transparent;
+  content: "";
+}
+
+.rp-progress button:hover:not(:disabled) {
+  background: #f4efe8;
+  color: #352c26;
+}
+
+.rp-progress button b {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border-color: #c6bfb6;
+  border-radius: 50%;
+  color: #746c63;
+  font-size: 0.76rem;
+}
+
+.rp-progress button.is-active {
+  background: var(--rp-accent-soft);
+  color: #1b5946;
+}
+
+.rp-progress button.is-active::after {
+  background: var(--rp-accent);
+}
+
+.rp-progress button.is-active b,
+.rp-progress button.is-complete b {
+  border-color: var(--rp-accent);
+  background: var(--rp-accent);
+}
+
+.rp-guidance-band {
+  position: relative;
+  min-height: 108px;
+  padding: 22px clamp(22px, 4vw, 60px);
+  border-bottom: 1px solid #dcd5cb;
+  background: var(--rp-surface);
+}
+
+.rp-guidance-band::before {
+  position: absolute;
+  top: 26px;
+  bottom: 26px;
+  left: clamp(14px, 2vw, 32px);
+  width: 3px;
+  background: var(--rp-accent);
+  content: "";
+}
+
+.rp-guidance-band > div {
+  padding-left: 14px;
+}
+
+.rp-guidance-number,
+.rp-pane-heading > span {
+  color: var(--rp-accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rp-guidance-band h1 {
+  margin-top: 6px;
+  color: var(--rp-ink-strong);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.45rem, 2vw, 2rem);
+  font-weight: 600;
+}
+
+.rp-guidance-band p {
+  max-width: 480px;
+  padding: 12px 0 12px 20px;
+  border-left: 1px solid #d8d0c6;
+  color: #70685f;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.rp-step-panel {
+  min-height: calc(100vh - 250px);
+  background: var(--rp-canvas);
+}
+
+.rp-simple-step {
+  grid-template-columns: minmax(270px, 0.78fr) minmax(400px, 1fr);
+  gap: clamp(40px, 6vw, 96px);
+  width: min(1120px, calc(100% - 64px));
+  padding: clamp(58px, 9vh, 108px) 0;
+}
+
+.rp-simple-copy {
+  align-self: center;
+  padding: 26px 0 26px 28px;
+  border-left: 4px solid var(--rp-accent);
+}
+
+.rp-simple-copy h2,
+.rp-control-pane h2,
+.rp-pane-heading h2 {
+  color: var(--rp-ink-strong);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.35rem, 1.8vw, 1.8rem);
+  font-weight: 600;
+}
+
+.rp-simple-copy p,
+.rp-control-pane > p {
+  max-width: 34rem;
+  color: #6d655d;
+}
+
+.rp-project-at-a-glance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  max-width: 390px;
+  margin: 34px 0 0;
+  border-top: 1px solid #d5cdc2;
+  border-bottom: 1px solid #d5cdc2;
+}
+
+.rp-project-at-a-glance > div {
+  min-width: 0;
+  padding: 15px 12px 15px 0;
+}
+
+.rp-project-at-a-glance > div + div {
+  padding-left: 12px;
+  border-left: 1px solid #d5cdc2;
+}
+
+.rp-project-at-a-glance dt {
+  color: var(--rp-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.rp-project-at-a-glance dd {
+  margin: 6px 0 0;
+  color: #322a24;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.rp-form-stack {
+  gap: 20px;
+  padding: 32px;
+  border: 1px solid var(--rp-border-strong);
+  border-radius: 2px;
+  background: var(--rp-surface);
+  box-shadow: 0 14px 32px rgba(55, 44, 33, 0.08);
+}
+
+body.rp-workflow-page label {
+  color: #453c35;
+  font-size: 0.84rem;
+  letter-spacing: 0.035em;
+}
+
+body.rp-workflow-page input,
+body.rp-workflow-page textarea,
+body.rp-workflow-page select {
+  min-height: 48px;
+  border-color: #c9c0b6;
+  border-radius: 2px;
+  background: #fffefa;
+  color: var(--rp-ink-strong);
+  box-shadow: inset 0 1px 0 rgba(72, 56, 41, 0.04);
+}
+
+body.rp-workflow-page input:hover,
+body.rp-workflow-page textarea:hover,
+body.rp-workflow-page select:hover {
+  border-color: #9f9488;
+}
+
+body.rp-workflow-page input:focus,
+body.rp-workflow-page textarea:focus,
+body.rp-workflow-page select:focus {
+  border-color: var(--rp-accent);
+  outline: 3px solid rgba(43, 114, 93, 0.15);
+}
+
+body.rp-workflow-page .primary-action,
+body.rp-workflow-page .secondary-action,
+body.rp-workflow-page .danger-action {
+  min-height: 46px;
+  border-radius: 2px;
+  letter-spacing: 0.02em;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+body.rp-workflow-page .primary-action {
+  background: var(--rp-accent);
+  box-shadow: 0 4px 10px rgba(32, 87, 69, 0.18);
+}
+
+body.rp-workflow-page .primary-action:hover:not(:disabled) {
+  background: #1f5f4c;
+  transform: translateY(-1px);
+}
+
+body.rp-workflow-page .secondary-action {
+  border-color: #bdb3a9;
+  background: transparent;
+  color: #423932;
+}
+
+body.rp-workflow-page .secondary-action:hover:not(:disabled) {
+  border-color: var(--rp-accent);
+  background: var(--rp-accent-soft);
+  color: #164b3a;
+}
+
+.rp-split-workspace,
+.rp-3d-workspace {
+  width: min(1480px, calc(100% - 48px));
+  min-height: calc(100vh - 274px);
+  margin: 24px auto;
+  border: 1px solid var(--rp-border-strong);
+  background: var(--rp-surface);
+  box-shadow: 0 14px 34px rgba(55, 44, 33, 0.07);
+}
+
+.rp-plan-pane {
+  padding: 26px 30px 30px;
+  border-right-color: #d8d0c6;
+  background: var(--rp-surface);
+}
+
+.rp-control-pane {
+  max-height: calc(100vh - 274px);
+  padding: 30px;
+  border-left: 0;
+  background: var(--rp-surface-muted);
+}
+
+.rp-pane-heading {
+  min-height: 68px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ddd5cb;
+}
+
+.rp-pane-heading h2 {
+  margin-top: 7px;
+  font-size: 1.48rem;
+}
+
+.rp-pane-heading > span {
+  align-self: center;
+  padding: 7px 10px;
+  border: 1px solid #c8dfd3;
+  background: var(--rp-accent-soft);
+  color: #1d644e;
+  letter-spacing: 0.03em;
+}
+
+.rp-decision-divider {
+  height: 1px;
+  margin: 2px 0 4px;
+  background: #ddd4ca;
+}
+
+.rp-control-pane-intro {
+  padding-bottom: 14px;
+  border-bottom: 1px solid #ddd4ca;
+}
+
+.rp-control-pane-intro .eyebrow {
+  color: var(--rp-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.rp-control-pane-intro h2 {
+  margin: 7px 0;
+}
+
+.rp-control-pane-intro p {
+  margin: 0;
+  color: #6d655d;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.rp-drop-zone {
+  min-height: 430px;
+  border: 1px dashed #918579;
+  border-radius: 0;
+  background: #f7f3ec;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.rp-step-panel--upload .rp-plan-pane,
+.rp-step-panel--scale .rp-plan-pane,
+.rp-step-panel--structure .rp-plan-pane {
+  position: relative;
+}
+
+.rp-step-panel--upload .rp-plan-pane::before,
+.rp-step-panel--scale .rp-plan-pane::before,
+.rp-step-panel--structure .rp-plan-pane::before {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  width: 4px;
+  height: 52px;
+  background: var(--rp-accent);
+  content: "";
+}
+
+.rp-step-panel--upload .rp-pane-heading,
+.rp-step-panel--scale .rp-pane-heading,
+.rp-step-panel--structure .rp-pane-heading {
+  padding-left: 12px;
+}
+
+.rp-drop-zone:hover,
+.rp-drop-zone:focus-within {
+  border-color: var(--rp-accent);
+  background: #f0f7f2;
+}
+
+.rp-upload-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: 0;
+  background: var(--rp-accent);
+  color: #fff;
+}
+
+.rp-control-pane .rp-segmented {
+  border-color: #c8beb3;
+  background: #fffdfa;
+}
+
+.rp-control-pane .rp-segmented button.is-active {
+  background: var(--rp-accent);
+}
+
+@media (max-width: 960px) {
+  body.rp-workflow-page .app-topbar {
+    min-height: 66px;
+    height: 66px;
+  }
+
+  .rp-progress {
+    top: 66px;
+  }
+
+  .rp-simple-step {
+    width: min(100% - 40px, 760px);
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .rp-split-workspace,
+  .rp-3d-workspace {
+    width: min(100% - 28px, 920px);
+    margin: 14px auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .rp-guidance-band {
+    padding: 18px 20px 18px 28px;
+  }
+
+  .rp-guidance-band::before {
+    top: 20px;
+    bottom: 20px;
+    left: 14px;
+  }
+
+  .rp-guidance-band p {
+    padding: 0;
+    border-left: 0;
+  }
+
+  .rp-simple-step {
+    width: min(100% - 28px, 620px);
+    padding: 34px 0;
+  }
+
+  .rp-form-stack {
+    padding: 22px;
+  }
+
+  .rp-project-at-a-glance {
+    max-width: none;
+  }
+
+  .rp-split-workspace,
+  .rp-3d-workspace {
+    width: 100%;
+    margin: 0;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .rp-plan-pane,
+  .rp-control-pane {
+    padding: 22px 18px;
+  }
 }
 
 .rp-questionnaire-heading-actions { position: relative; flex-wrap: wrap; justify-content: flex-end; }
@@ -13306,12 +16283,16 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
 .rp-questionnaire-furniture-refresh-note { margin: -4px 0 2px; color: #6d716c; font-size: 12px; line-height: 1.45; }
 .rp-questionnaire-furniture-reason { color: #216b59 !important; line-height: 1.35; }
 
-.rp-questionnaire-catalog-controls { display: grid; grid-template-columns: 172px minmax(220px, 1fr); gap: 14px 16px; align-items: end; }
+.rp-questionnaire-catalog-controls { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: 14px 16px; align-items: end; }
 .rp-questionnaire-catalog-controls .rp-catalog-scope { display: inline-flex; min-height: 42px; overflow: hidden; border: 1px solid #c9c5bd; border-radius: 6px; background: #fff; }
 .rp-catalog-scope button { flex: 1; padding: 8px 10px; border: 0; border-right: 1px solid #d9d5ce; border-radius: 0; background: #fff; color: #4a4b46; font-size: 13px; white-space: nowrap; }
 .rp-catalog-scope button:last-child { border-right: 0; }
 .rp-catalog-scope button.is-active { background: #216b59; color: #fff; }
 .rp-questionnaire-catalog-controls .rp-search-field { margin: 0; }
+.rp-catalog-choice-groups { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rp-catalog-choice-groups > span { width: 100%; color: #5d625d; font-size: 12px; font-weight: 700; }
+.rp-catalog-choice-groups button { min-height: 36px; padding: 7px 12px; border: 1px solid #c9c5bd; border-radius: 5px; background: #fff; color: #34332f; font-weight: 700; }
+.rp-catalog-choice-groups button.is-active { border-color: #216b59; background: #e7f0ec; color: #174d3e; }
 .rp-questionnaire-catalog-filters { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .rp-questionnaire-catalog-filters label { display: grid; gap: 5px; color: #57564f; font-size: 12px; font-weight: 700; }
 .rp-questionnaire-catalog-filters select { min-height: 38px; padding: 7px 30px 7px 9px; border: 1px solid #c9c5bd; border-radius: 5px; background: #fff; color: #34332f; font: inherit; }
@@ -13331,4 +16312,9 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
   body:has(#requirements-step:not([hidden])) .rp-progress { padding: 0 16px; }
   .rp-questionnaire-heading-actions { justify-content: flex-start; }
   .rp-questionnaire-workflow-menu ol { left: 0; right: auto; }
+}
+
+/* The global eight-step progress remains visible inside the questionnaire. */
+body:has(#requirements-step:not([hidden])) .rp-progress {
+  display: grid;
 }

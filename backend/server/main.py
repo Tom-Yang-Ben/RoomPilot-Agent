@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import io
+import asyncio
 import csv
 import json
+import logging
 import os
 import re
 import unicodedata
@@ -84,6 +86,7 @@ from ..catalog.postgres_repository import (
 
 
 BASE_DIR = Path(__file__).resolve().parent
+LOGGER = logging.getLogger(__name__)
 PROJECT_DIR = BASE_DIR.parent.parent
 
 
@@ -1269,6 +1272,9 @@ _FURNITURE_SEARCH_TYPE_INTENTS = {
     "扶手椅": ("armchair",),
     "餐椅": ("dining-chair",),
     "辦公椅": ("office-chair",),
+    "工作椅": ("office-chair", "gaming-chair"),
+    "閱讀椅": ("armchair", "lounge-chair"),
+    "梳妝椅": ("stool-bench", "chair"),
     "電競椅": ("gaming-chair",),
     "椅凳": ("stool-bench",),
 }
@@ -1294,6 +1300,31 @@ def _furniture_query_sort_key(item: dict, query: str, intent_types: tuple[str, .
     if intent_types and item_type in intent_types:
         return (0, intent_types.index(item_type), str(item.get("name_zh") or item.get("name_en") or ""))
     return (1, 0 if query in search_text else 1, str(item.get("name_zh") or item.get("name_en") or ""))
+
+
+def _interleave_furniture_intent_types(items: list[dict], intent_types: tuple[str, ...]) -> list[dict]:
+    """Keep broad customer searches useful on the first catalog page.
+
+    A catalog can have hundreds of armchairs but only a few office chairs.  When
+    a customer searches for "椅子", present one item from each intended chair
+    family before returning to the next item in a family.
+    """
+    if len(intent_types) < 2:
+        return items
+    buckets = {item_type: [] for item_type in intent_types}
+    remaining = []
+    for item in items:
+        item_type = str(item.get("normalized_type") or "")
+        if item_type in buckets:
+            buckets[item_type].append(item)
+        else:
+            remaining.append(item)
+    interleaved = []
+    while any(buckets.values()):
+        for item_type in intent_types:
+            if buckets[item_type]:
+                interleaved.append(buckets[item_type].pop(0))
+    return interleaved + remaining
 
 
 _FURNITURE_FACET_TRANSLATIONS = {
@@ -1375,6 +1406,7 @@ def _filter_furniture_payload(
         items.append(item)
     if query:
         items.sort(key=lambda item: _furniture_query_sort_key(item, query, intent_types))
+        items = _interleave_furniture_intent_types(items, intent_types)
     return items
 
 
@@ -2237,6 +2269,7 @@ def furniture_catalog(
     style: str | None = Query(None),
     group: str | None = Query(None),
     item_type: str | None = Query(None, alias="type"),
+    item_types: str | None = Query(None, alias="types"),
     q: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(24, ge=1, le=80),
@@ -2247,6 +2280,9 @@ def furniture_catalog(
     size: str | None = None,
     ids: str | None = None,
 ) -> dict:
+    requested_types_text = item_types if isinstance(item_types, str) else ""
+    requested_type_order = tuple(value.strip() for value in requested_types_text.split(",") if value.strip())
+    requested_types = set(requested_type_order)
     facet_items = _filter_furniture_payload(
         style=style,
         group=group,
@@ -2264,6 +2300,9 @@ def furniture_catalog(
         material=material,
         size=size,
     )
+    if requested_types:
+        filtered = [item for item in filtered if str(item.get("normalized_type") or "") in requested_types]
+        filtered = _interleave_furniture_intent_types(filtered, requested_type_order)
     if ids:
         requested_ids = {value.strip() for value in ids.split(",") if value.strip()}
         filtered = [item for item in filtered if str(item.get("furniture_id")) in requested_ids]
@@ -2513,53 +2552,64 @@ async def agent_furniture_select(payload: dict) -> dict:
 
 @app.post("/api/scene/generate")
 async def generate_scene(payload: dict) -> dict:
-    site_payload = build_site_payload()
+    try:
+        site_payload = build_site_payload()
 
-    client_brief = payload.get("client_brief") or {}
-    brief_space = client_brief.get("space") or {}
-    brief_style = client_brief.get("style") or {}
-    brief_occupants = client_brief.get("occupants") or {}
-    test2_questionnaire = payload.get("questionnaire") or {}
+        client_brief = payload.get("client_brief") or {}
+        brief_space = client_brief.get("space") or {}
+        brief_style = client_brief.get("style") or {}
+        brief_occupants = client_brief.get("occupants") or {}
+        test2_questionnaire = payload.get("questionnaire") or {}
 
-    questionnaire = {
-        "space_type": payload.get("space_type") or brief_space.get("type") or "living_room",
-        "style_preference": payload.get("style_preference") or (brief_style.get("preferred") or ["auto"])[0],
-        "style_card_id": payload.get("style_card_id"),
-        "required_furniture": payload.get("required_furniture", []),
-        "selected_furniture": payload.get("selected_furniture", []),
-        "selected_furniture_exact": payload.get("selected_furniture_exact") is True,
-        "custom_furniture": payload.get("custom_furniture", []),
-        "preferred_colors": payload.get("preferred_colors") or brief_style.get("colors", []),
-        "custom_colors": payload.get("custom_colors", []),
-        "personal_notes": payload.get("personal_notes", ""),
-        "test2_questionnaire": test2_questionnaire,
-        "keep_window_clear": bool(payload.get("keep_window_clear", "keep_window_clear" in client_brief.get("constraints", []))),
-        "keep_door_clear": bool(payload.get("keep_door_clear", "keep_door_clear" in client_brief.get("constraints", []))),
-        "need_storage": bool(payload.get("need_storage", "storage" in client_brief.get("needs", []))),
-        "prefer_low_saturation": bool(payload.get("prefer_low_saturation", "low_saturation" in brief_style.get("colors", []))),
-        "client_brief": client_brief,
-        "occupants": brief_occupants,
-        "preferred_materials": brief_style.get("materials", []),
-        "floorplan_filename": payload.get("floorplan_filename"),
-        "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
-        "layout_json": payload.get("layout_json"),
-        "floorplan_editor": payload.get("floorplan_editor"),
-        "wall_option": payload.get("wall_option", "auto"),
-        "floor_option": payload.get("floor_option", "auto"),
-        "furniture_random_seed": payload.get("furniture_random_seed"),
-    }
+        questionnaire = {
+            "space_type": payload.get("space_type") or brief_space.get("type") or "living_room",
+            "style_preference": payload.get("style_preference") or (brief_style.get("preferred") or ["auto"])[0],
+            "style_card_id": payload.get("style_card_id"),
+            "required_furniture": payload.get("required_furniture", []),
+            "selected_furniture": payload.get("selected_furniture", []),
+            "selected_furniture_exact": payload.get("selected_furniture_exact") is True,
+            "custom_furniture": payload.get("custom_furniture", []),
+            "preferred_colors": payload.get("preferred_colors") or brief_style.get("colors", []),
+            "custom_colors": payload.get("custom_colors", []),
+            "personal_notes": payload.get("personal_notes", ""),
+            "test2_questionnaire": test2_questionnaire,
+            "keep_window_clear": bool(payload.get("keep_window_clear", "keep_window_clear" in client_brief.get("constraints", []))),
+            "keep_door_clear": bool(payload.get("keep_door_clear", "keep_door_clear" in client_brief.get("constraints", []))),
+            "need_storage": bool(payload.get("need_storage", "storage" in client_brief.get("needs", []))),
+            "prefer_low_saturation": bool(payload.get("prefer_low_saturation", "low_saturation" in brief_style.get("colors", []))),
+            "client_brief": client_brief,
+            "occupants": brief_occupants,
+            "preferred_materials": brief_style.get("materials", []),
+            "floorplan_filename": payload.get("floorplan_filename"),
+            "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
+            "layout_json": payload.get("layout_json"),
+            "floorplan_editor": payload.get("floorplan_editor"),
+            "wall_option": payload.get("wall_option", "auto"),
+            "floor_option": payload.get("floor_option", "auto"),
+            "furniture_random_seed": payload.get("furniture_random_seed"),
+        }
 
-    scene_payload = build_scene_payload(
-        site_payload=site_payload,
-        questionnaire=questionnaire,
-        floorplan_path=payload.get("floorplan_filename"),
-        room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
-        room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
-    )
-    return {
-        **scene_payload,
-        "scene_json": deepcopy(scene_payload),
-    }
+    # Scene construction can perform geometry and catalog work.  Run it off
+    # the async request loop so a slow plan cannot freeze unrelated API calls
+    # or make the questionnaire button appear unresponsive.
+        scene_payload = await asyncio.to_thread(
+            build_scene_payload,
+            site_payload=site_payload,
+            questionnaire=questionnaire,
+            floorplan_path=payload.get("floorplan_filename"),
+            room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
+            room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
+        )
+        return {
+            **scene_payload,
+            "scene_json": deepcopy(scene_payload),
+        }
+    except Exception as exc:
+        LOGGER.exception("Scene generation failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"場景產生失敗：{type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @app.post("/api/scene/layout")
