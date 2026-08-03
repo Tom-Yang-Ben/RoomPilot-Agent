@@ -69,10 +69,10 @@ ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
     "dining-chair": ("kitchen",),
     "desk": ("bedroom", "storage"),
     "office-chair": ("bedroom", "storage"),
-    # 休閒座椅屬起居空間(客廳/臥室/書房閱讀椅);廚衛玄關不選不擺
-    # (feedback:扶手椅被選進廚房)。
-    "armchair": ("living_room", "bedroom", "storage"),
-    "lounge-chair": ("living_room", "bedroom", "storage"),
+    # 休閒座椅只進客廳與書房(儲藏);臥室、廚衛、玄關都不選不擺
+    # (feedback:扶手椅先被選進廚房、後被放進臥室,都不對)。
+    "armchair": ("living_room", "storage"),
+    "lounge-chair": ("living_room", "storage"),
 }
 
 

@@ -409,6 +409,96 @@ def test_sofa_may_back_onto_the_window_wall():
     assert obj["position_cm"]["z"] > 100, f"沙發未靠窗牆,z={obj['position_cm']['z']}"
 
 
+_BALCONY_OPENING_FLOORPLAN = {
+    "coordinate_unit": "cm",
+    "width_cm": 450.0,
+    "depth_cm": 380.0,
+    "room_regions": [{
+        "room_id": "living",
+        "room_type": "living_room",
+        "exterior": [[-225, -190], [225, -190], [225, 190], [-225, 190]],
+        "holes": [],
+    }],
+    # 下牆偏左的落地窗 = 陽台出入口(75cm 通行縫,矮家具與沙發都不得擋)
+    "window_segments": [
+        {
+            "start": {"x": -160, "z": 190},
+            "end": {"x": -70, "z": 190},
+            "window_type": "floor_to_ceiling",
+        },
+    ],
+}
+
+
+def test_sofa_slides_sideways_past_the_balcony_opening():
+    """沙發壓到陽台落地窗時要「往旁邊移一點,盡量在正前方」:同一面牆
+    由中心向外滑位讓開通行縫,而不是跳到別的牆或擋住出入口。"""
+    items = [_item("sofa", "sofa", 200, 90, h=96.0, placement_room_id="living")]
+    objects = generate_layout_by_room(
+        450.0, 380.0, items,
+        room=_rect_room(450.0, 380.0),
+        floorplan=_BALCONY_OPENING_FLOORPLAN,
+    )
+    obj = objects[0]
+    assert not obj["placement_failed"]
+    assert obj["rotation_y_deg"] == 180          # 仍在下牆、面向房內
+    assert obj["position_cm"]["z"] > 100
+    # 讓開出入口:左緣須越過通行縫右界(開口右端 -70 + 75cm 縫 = 5)
+    left_edge = obj["position_cm"]["x"] - obj["footprint_cm"]["width"] / 2
+    assert left_edge >= 4, f"沙發左緣 {left_edge:.0f} 仍壓住陽台出入縫"
+
+
+def test_low_furniture_cannot_block_the_balcony_opening_either():
+    """電視櫃這類矮家具過去只受 40cm 採光帶(高度未達窗台就豁免);
+    落地窗是動線,矮家具也不得擋(feedback:10 號電視櫃擋住陽台門)。"""
+    opening = {
+        "start": {"x": -60, "z": -190},
+        "end": {"x": 60, "z": -190},
+        "window_type": "floor_to_ceiling",
+    }
+    floorplan = {
+        **_BALCONY_OPENING_FLOORPLAN,
+        "window_segments": [opening],
+    }
+    items = [_item("tv", "tv-bench", 120, 40, h=45.0, placement_room_id="living")]
+    objects = generate_layout_by_room(
+        450.0, 380.0, items,
+        room=_rect_room(450.0, 380.0),
+        floorplan=floorplan,
+    )
+    obj = objects[0]
+    assert not obj["placement_failed"]
+    x, z = obj["position_cm"]["x"], obj["position_cm"]["z"]
+    fw, fd = obj["footprint_cm"]["width"], obj["footprint_cm"]["depth"]
+    in_front_of_opening = (
+        z - fd / 2 <= -190 + 75 and x + fw / 2 > -60 - 75 and x - fw / 2 < 60 + 75
+    )
+    assert not in_front_of_opening, f"電視櫃 ({x:.0f},{z:.0f}) 擋住落地窗通行縫"
+
+
+def test_validate_rejects_sofa_on_balcony_opening_but_allows_plain_window():
+    from backend.server.scene_service import validate_single_placement
+
+    sofa = _item("sofa", "sofa", 200, 90, h=96.0)
+    sofa["position_cm"] = {"x": -115.0, "z": 137.0}   # 壓在下牆偏左開口正前
+    sofa["rotation_y_deg"] = 180.0
+    blocked = validate_single_placement(_BALCONY_OPENING_FLOORPLAN, sofa, [])
+    assert blocked["ok"] is False
+    assert "陽台" in blocked["reason"]
+
+    plain = {
+        **_BALCONY_OPENING_FLOORPLAN,
+        "window_segments": [{
+            "start": {"x": -160, "z": 190},
+            "end": {"x": -70, "z": 190},
+            "window_type": "standard",
+            "sill_height_cm": 90,
+        }],
+    }
+    allowed = validate_single_placement(plain, sofa, [])
+    assert allowed["ok"] is True                      # 一般窗:沙發可背窗
+
+
 def test_bedside_table_candidate_faces_into_the_room():
     # 床頭櫃候選位於下牆(+z 側),正面必須朝 -z(房內)= 180;
     # 舊候選寫 0,櫃子臉貼牆、抽屜開不了

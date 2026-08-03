@@ -310,6 +310,42 @@ def test_corridor_keeps_free_seating_out_of_sofa_tv_axis():
     )
 
 
+def test_free_seating_pairs_beside_sofa_front():
+    """客廳休閒椅只准沙發左前/右前(對談 L 型):貼著沙發側緣、位於
+    沙發前緣一帶、面向座位區中線;不再散落牆邊或卡進視聽走廊。"""
+    sofa = _item("sofa", "sofa", 200, 90)
+    tv = _item("tv", "tv-bench", 120, 40)
+    ct = _item("ct", "coffee-table", 100, 50)
+    arm = _item("arm", "armchair", 80, 75)
+    items = [sofa, tv, ct, arm]
+    objs = generate_layout(450, 380, items, hints=placement_hints(items))
+    by_id = {o["furniture_id"]: o for o in objs}
+    assert all(not o["placement_failed"] for o in objs)
+    sofa_obj, arm_obj = by_id["sofa"], by_id["arm"]
+    dx = arm_obj["position_cm"]["x"] - sofa_obj["position_cm"]["x"]
+    dz = arm_obj["position_cm"]["z"] - sofa_obj["position_cm"]["z"]
+    # 側向:貼著沙發左或右緣(沙發半寬 100 + 椅半徑 + 12 間距,±5 容差)
+    assert 130 <= abs(dx) <= 165, f"椅不在沙發側前,dx={dx}"
+    # 縱向(沙發面向 -z):位於沙發中心之前、不超過前緣 + 40 滑位
+    assert -90 <= dz <= -30, f"椅不在沙發前緣帶,dz={dz}"
+    # 面向座位區中線(左側面向 +x = 90,右側面向 -x = 270)
+    expected_rot = 90.0 if dx < 0 else 270.0
+    assert arm_obj["rotation_y_deg"] == expected_rot
+
+
+def test_bed_is_escalated_not_removed_when_nothing_fits():
+    """臥室一定要有床:床連最小款都放不下時只升級回報,絕不靜默移除。"""
+    bigbed = _item("bigbed", "bed-frame", 500, 300)
+    objs = generate_layout(300, 300, [bigbed])
+    assert objs[0]["placement_failed"] is True
+    objs2, final, report = resolve_placements(
+        objs, [bigbed], [bigbed], place_fn=_place(300, 300)
+    )
+    assert [f["furniture_id"] for f in final] == ["bigbed"]   # 保留待處理
+    assert [r["action"] for r in report] == ["escalate"]
+    assert "臥室必須有床" in report[0]["message_zh"]
+
+
 # ---------- 引擎 hints 回歸(能力保留:anchor 只改試放順序) ----------
 
 def test_engine_anchor_hint_prepends_left_wall_candidate():
