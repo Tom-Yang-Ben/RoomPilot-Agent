@@ -53,6 +53,15 @@ def test_hints_prefer_instance_id_and_carry_group():
     assert "group" not in hints["book"]    # 泛用件無成組標籤
 
 
+def test_hints_place_essentials_before_generic_items():
+    """基礎家具(含衣櫃)先卡位,其他物件依它們的位置再配置:
+    衣櫃雖非成組主件,量體大、靠牆需求強,必須排在泛用件(書櫃)之前。"""
+    wardrobe = _item("ward", "pax-wardrobe", 150, 60)
+    bookcase = _item("book", "bookcase", 200, 45)     # 面積更大的泛用件
+    hints = placement_hints([bookcase, wardrobe])
+    assert hints["ward"]["priority"] < hints["book"]["priority"]
+
+
 def test_hints_are_deterministic():
     items = [_item("a", "fabric-sofa", 200, 90), _item("b", "coffee-table", 100, 50)]
     assert placement_hints(items) == placement_hints(list(reversed(items)))
@@ -118,7 +127,8 @@ def test_resolve_replaces_oversized_with_smaller():
 
 
 def test_resolve_removes_when_no_smaller():
-    big = _item("big", "sofa", 500, 200)
+    # 泛用件(書櫃)才可移除;基礎家具(床/沙發/餐桌)只升級,另有測試
+    big = _item("big", "bookcase", 500, 200)
     objs = generate_layout(300, 300, [big])
     objs2, final, report = resolve_placements(objs, [big], [big], place_fn=_place(300, 300))
     assert any(r["action"] == "remove" for r in report)
@@ -127,7 +137,7 @@ def test_resolve_removes_when_no_smaller():
 
 
 def test_resolve_converges_within_max_rounds():
-    items = [_item(f"big{i}", "sofa", 500, 200) for i in range(3)]
+    items = [_item(f"big{i}", "bookcase", 500, 200) for i in range(3)]
     objs = generate_layout(300, 300, items)
     objs2, final, report = resolve_placements(
         objs, items, list(items), place_fn=_place(300, 300), max_rounds=3
@@ -198,14 +208,14 @@ def test_resolve_keeps_unlabeled_companion_without_anchor():
 def test_resolve_default_unbounded_resolves_cascading_failures():
     """連鎖位移:每輪修完一件又擠出下一件。舊預設 max_rounds=3 會提前退出,
     留下 placement_failed 件;預設無上限必須修到全數收斂(或無可動)。"""
-    items = [_item(f"i{n}", "sofa", 200, 90) for n in range(6)]
+    items = [_item(f"i{n}", "bookcase", 200, 90) for n in range(6)]
 
     def cascading_place(working):
         # 模擬引擎:多於一件時,第一件永遠被其他件擠到放不下
         return [
             {
                 "furniture_id": candidate["furniture_id"],
-                "normalized_type": "sofa",
+                "normalized_type": "bookcase",
                 "placement_failed": index == 0 and len(working) > 1,
             }
             for index, candidate in enumerate(working)
@@ -344,6 +354,19 @@ def test_bed_is_escalated_not_removed_when_nothing_fits():
     assert [f["furniture_id"] for f in final] == ["bigbed"]   # 保留待處理
     assert [r["action"] for r in report] == ["escalate"]
     assert "臥室必須有床" in report[0]["message_zh"]
+
+
+def test_all_room_essentials_are_escalated_not_removed():
+    """房型基礎家具(床/沙發/餐桌)一體適用「只升級不移除」護欄。"""
+    for ftype, keyword in (("fabric-sofa", "沙發"), ("dining-table", "餐桌")):
+        big = _item("big", ftype, 500, 300)
+        objs = generate_layout(300, 300, [big])
+        objs2, final, report = resolve_placements(
+            objs, [big], [big], place_fn=_place(300, 300)
+        )
+        assert [f["furniture_id"] for f in final] == ["big"], ftype
+        assert [r["action"] for r in report] == ["escalate"], ftype
+        assert keyword in report[0]["message_zh"]
 
 
 # ---------- 引擎 hints 回歸(能力保留:anchor 只改試放順序) ----------

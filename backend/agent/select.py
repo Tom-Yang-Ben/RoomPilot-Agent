@@ -22,7 +22,9 @@ from .knowledge import (
     COMPANION_OF,
     OUTDOOR_ROOM_TYPES,
     ROOM_AFFINITY,
+    ROOM_ESSENTIALS,
     ROOM_TYPE_ZH,
+    dining_chair_target,
     family_of,
     is_outdoor_item,
     prompt_rules,
@@ -247,51 +249,103 @@ def parse_selections(
             bucket.append(SelectedItem(item=item, count=_clamp_count(entry.get("count"))))
     result: dict[str, list[SelectedItem]] = {}
     for room_id, bucket in picked.items():
+        if not bucket:
+            continue                     # 整房無有效選擇 → 視同未回答,交本機規則
+        room_type = room_type_by_id.get(room_id) or ""
         protected = {
             str(item.get("furniture_id")) for item in preselected.get(room_id) or []
         }
-        kept = _apply_conventions(room_type_by_id.get(room_id) or "", bucket, protected)
+        # 基礎家具保底在潛規則「之前」:先把缺的主件補進來,LLM 漏選沙發時
+        # 茶几/電視櫃才不會因缺主件被整批丟棄。
+        _add_missing_essentials(bucket, room_type, offers.get(room_id) or [])
+        kept = _apply_conventions(room_type, bucket, protected)
         if kept:
             result[room_id] = kept
-    _ensure_bedroom_beds(result, room_type_by_id, offers)
+    _ensure_dining_chair_sets(result, offers)
     if not result:
         raise SelectionParseError("LLM 選件結果驗證後無任何有效項目")
     return result
 
 
-def _ensure_bedroom_beds(
-    result: dict[str, list[SelectedItem]],
-    room_type_by_id: dict[str, str],
-    offers: dict[str, list[dict[str, Any]]],
+def _add_missing_essentials(
+    bucket: list[SelectedItem],
+    room_type: str,
+    room_offers: list[dict[str, Any]],
 ) -> None:
-    """臥室一定要有床:已回答的臥室缺床時,從該房候選補第一張有模型的床。
+    """房型基礎家具保底(ROOM_ESSENTIALS):臥室床/客廳沙發/餐廚餐桌。
 
-    只補「有回答但漏床」的房;沒回答的房仍整間走本機規則(該路徑重新進
-    parse_selections 時同樣受本保證)。候選裡沒有床就無從補,記 log 交由
-    擺位護欄(床不移除只升級)接手。
+    已回答但漏了基礎家具的房,從該房候選補第一件有模型者;候選裡沒有
+    就無從補,記 log 交擺位護欄(基礎家具不移除只升級)接手。
     """
-    for room_id, bucket in result.items():
-        if room_type_by_id.get(room_id) != "bedroom":
-            continue
+    for essential in ROOM_ESSENTIALS.get(room_type, ()):
         if any(
-            family_of(selected.item.get("normalized_type")) == "bed"
+            family_of(selected.item.get("normalized_type")) == essential
             for selected in bucket
         ):
             continue
-        bed = next(
+        offer = next(
             (
-                offer
-                for offer in offers.get(room_id) or []
-                if family_of(offer.get("normalized_type")) == "bed"
-                and offer.get("has_model")
+                candidate
+                for candidate in room_offers
+                if family_of(candidate.get("normalized_type")) == essential
+                and candidate.get("has_model")
             ),
             None,
         )
-        if bed is None:
-            logger.warning("臥室 %s 的候選中沒有床,無法自動補床", room_id)
+        if offer is None:
+            logger.warning("房型 %s 候選缺基礎家具 %s,無法自動補", room_type, essential)
             continue
-        logger.info("臥室 %s 缺床,自動補入 %s", room_id, bed.get("furniture_id"))
-        bucket.append(SelectedItem(item=bed, count=1))
+        logger.info("補入基礎家具 %s(%s)", essential, offer.get("furniture_id"))
+        bucket.append(SelectedItem(item=offer, count=1))
+
+
+def _ensure_dining_chair_sets(
+    result: dict[str, list[SelectedItem]],
+    offers: dict[str, list[dict[str, Any]]],
+) -> None:
+    """有餐桌就要成套餐椅:桌寬 ≥140cm 配 4 張、否則 2 張。
+
+    缺椅從候選補、單椅補足張數 —— 廚房絕不會只有一張椅子。
+    """
+    for room_id, bucket in result.items():
+        table = next(
+            (
+                selected
+                for selected in bucket
+                if family_of(selected.item.get("normalized_type")) == "dining-table"
+            ),
+            None,
+        )
+        if table is None:
+            continue
+        target = dining_chair_target((table.item.get("size_cm") or {}).get("width"))
+        chair_index = next(
+            (
+                index
+                for index, selected in enumerate(bucket)
+                if family_of(selected.item.get("normalized_type")) == "dining-chair"
+            ),
+            None,
+        )
+        if chair_index is not None:
+            selected = bucket[chair_index]
+            if selected.count < target:
+                bucket[chair_index] = SelectedItem(item=selected.item, count=target)
+            continue
+        offer = next(
+            (
+                candidate
+                for candidate in offers.get(room_id) or []
+                if family_of(candidate.get("normalized_type")) == "dining-chair"
+                and candidate.get("has_model")
+            ),
+            None,
+        )
+        if offer is None:
+            logger.warning("空間 %s 有餐桌但候選無餐椅可補", room_id)
+            continue
+        logger.info("空間 %s 依餐桌補入 %d 張餐椅(%s)", room_id, target, offer.get("furniture_id"))
+        bucket.append(SelectedItem(item=offer, count=target))
 
 
 def request_selections(

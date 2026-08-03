@@ -6,11 +6,15 @@
 from backend.agent.knowledge import (
     ANCHOR_FAMILIES,
     COMPANION_OF,
+    ESSENTIAL_FAMILIES,
+    ESSENTIAL_REQUIRED_ZH,
     FAMILY_ZH,
     GROUP_OF,
     ROOM_AFFINITY,
+    ROOM_ESSENTIALS,
     ROOM_TYPE_ZH,
     affinity_permits,
+    dining_chair_target,
     family_of,
     prompt_rules,
 )
@@ -37,6 +41,30 @@ def test_room_affinity_room_types_are_known():
         assert rooms, f"{family} 空房型清單"
         for room_type in rooms:
             assert room_type in _KNOWN_ROOM_TYPES, f"{family} 的房型 {room_type} 未知"
+
+
+def test_room_essentials_are_coherent_with_the_rest_of_the_knowledge():
+    """房型基礎家具是保底+優先+護欄的單一事實源,語彙必須自洽:
+    房型鍵已知、族系有繁中名與升級訊息、且都在擺位優先族系內、
+    房型適配允許基礎家具進自己的房型。"""
+    for room_type, families in ROOM_ESSENTIALS.items():
+        assert room_type in _KNOWN_ROOM_TYPES, room_type
+        assert room_type in ROOM_TYPE_ZH, room_type
+        for family in families:
+            assert family in FAMILY_ZH, f"{family} 缺繁中名"
+            assert family in ESSENTIAL_REQUIRED_ZH, f"{family} 缺升級訊息"
+            assert family in ESSENTIAL_FAMILIES, f"{family} 不在擺位優先族系"
+            assert affinity_permits(family, room_type), f"{family} 進不了 {room_type}"
+    assert set(ANCHOR_FAMILIES) <= set(ESSENTIAL_FAMILIES)
+
+
+def test_dining_chair_target_scales_with_table_width():
+    assert dining_chair_target(None) == 2
+    assert dining_chair_target(120) == 2
+    assert dining_chair_target(139.9) == 2
+    assert dining_chair_target(140) == 4
+    assert dining_chair_target(180) == 4
+    assert dining_chair_target("bad") == 2   # 髒資料退最小保證
 
 
 def test_gaming_chair_folds_into_office_chair_family():
