@@ -11825,7 +11825,9 @@ async function confirmWhiteModel() {
   showStep("realistic_3d");
   // 一次呈現:第一張色卡的材質、逐房軟裝與家具換款全部就緒才載入場景,
   // 進場不再連續自我刷新;其餘 17 張色卡不預先套用,等使用者點選才處理。
+  // 任何一步失敗都「仍然載入場景」並把原因寫進狀態列 —— 絕不白屏卡死。
   beginPlacementBusy("正在準備即時寫實場景（材質、軟裝與家具搭配）…");
+  let realisticEntryError = null;
   try {
     await applyStylePackToScene(preferredPack, { deferReload: true });
     const finishOptions = STYLE_MATERIAL_OPTIONS[preferredPack.styleId] || {};
@@ -11853,14 +11855,28 @@ async function confirmWhiteModel() {
     state.sceneData.design_choices.ceiling_color_hex =
       state.questionnaireFinishes.ceilingColor;
     await evaluateCeilingConflicts();
+  } catch (error) {
+    realisticEntryError = error;
+    console.error("realistic entry pipeline failed", error);
+  }
+  try {
     await realisticViewer.loadScene(state.sceneData);
     realisticViewer.setViewMode("orbit");
+  } catch (error) {
+    realisticEntryError = realisticEntryError || error;
+    console.error("realistic scene load failed", error);
   } finally {
     endPlacementBusy();
   }
-  setStatus(expectedFurnitureCount
-    ? "家具可見性已通過。現在可即時切換 18 個完整 PBR StylePack。"
-    : "純結構配置已確認。現在可即時切換 18 個完整 PBR StylePack。");
+  if (realisticEntryError) {
+    element.realisticStatus.textContent =
+      `部分風格步驟未完成：${errorMessage(realisticEntryError)}；場景已以目前狀態載入。`;
+    setStatus(element.realisticStatus.textContent, "error");
+  } else {
+    setStatus(expectedFurnitureCount
+      ? "家具可見性已通過。現在可即時切換 18 個完整 PBR StylePack。"
+      : "純結構配置已確認。現在可即時切換 18 個完整 PBR StylePack。");
+  }
   scheduleSave("realistic_3d");
 }
 
