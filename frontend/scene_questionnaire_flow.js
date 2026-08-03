@@ -21,12 +21,12 @@ import {
   applyRoomFinishScope,
   evaluateConditionalOption,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-68f14d3fdc6f";
+} from "./scene_room_requirements.js?v=sha256-86b7bbecc47a";
 import {
   CEILING_STYLES,
   LIGHT_STYLES,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-1c8390b903e5";
+} from "./scene_style_packs.js?v=sha256-fd8fa1eb64b1";
 import {
   RENDER_DETAIL_FIELDS,
   firstMeetingCountOptions,
@@ -35,7 +35,7 @@ import {
   roomAllowsIndependentFloor,
   roomKeepsExplicitWallOverride,
   trimAccentWallSurfaces,
-} from "./scene_questionnaire_data.js?v=sha256-dfa9c8235900";
+} from "./scene_questionnaire_data.js?v=sha256-dd94e51b2020";
 
 export function createQuestionnaireFlow({
   state,
@@ -463,8 +463,10 @@ function activeRoomFinishDraft() {
       defaultWallMaterial: surfaces.wallDefault?.materialId || null,
       defaultWallColor: surfaces.wallDefault?.color || null,
       wallOverrides: { ...(surfaces.wallOverrides || {}) },
+      wallPreference: surfaces.wallPreference || "",
       floorMaterial: surfaces.floor?.materialId || null,
       floorColor: surfaces.floor?.color || null,
+      floorPreference: surfaces.floorPreference || "",
       ceilingMaterial: surfaces.ceiling?.materialId || null,
       ceilingStyle: surfaces.ceiling?.styleId || null,
       lightStyle: surfaces.ceiling?.lightingId || null,
@@ -533,6 +535,9 @@ function confirmQuestionnaireFinishes() {
   requirement.surfaces = {
     ...requirement.surfaces,
     paletteId: draft.stylePackId,
+    // 牆地生圖偏好文字：同時進 RAG 查詢與第 8 步生圖需求，不得只留在前端。
+    wallPreference: draft.wallPreference || "",
+    floorPreference: draft.floorPreference || "",
     wallDefault: {
       materialId: draft.defaultWallMaterial || draft.wallMaterial,
       color: draft.defaultWallColor || draft.wallColor,

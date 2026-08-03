@@ -3518,7 +3518,15 @@ export function createSceneViewer(
     const visible = viewPresentation(mode).showFurniturePlanLabels;
     furnitureGroup.traverse((object) => {
       if (object.userData.roompilotPlanLabel) object.visible = visible;
-      if (object.userData.roompilotNumberMarker) object.visible = mode !== "walk";
+      if (object.userData.roompilotNumberMarker) {
+        // 家具編號只給第 6 步選取用：預設關閉，由 setFurnitureNumberMarkersVisible
+        // 逐視圖開啟；第 7 步最終視角的 viewer 從不開啟（bella-test1 23de9dda）。
+        const roomId = String(object.parent?.userData?.sceneObject?.room_id
+          || object.parent?.userData?.sceneObject?.roomId || "");
+        object.visible = showFurnitureNumberMarkers
+          && mode !== "walk"
+          && (!numberMarkerRoomId || roomId === numberMarkerRoomId);
+      }
     });
   }
 
@@ -4177,6 +4185,9 @@ export function createSceneViewer(
   let lastWorldSceneData = null;
   let dragState = null;
   let selectedWrapper = null;
+  // 家具編號僅第 6 步選取用：由 scene_v2 依步驟切換，第 7/8 步 viewer 保持 false。
+  let showFurnitureNumberMarkers = false;
+  let numberMarkerRoomId = "";
   let footprintGuide = null;
   let snapHint = null;
   let placementRequest = null;
@@ -5722,6 +5733,11 @@ export function createSceneViewer(
     exportGlb,
     focusObject,
     selectObjectByIndex,
+    setFurnitureNumberMarkersVisible(visible, roomId = "") {
+      showFurnitureNumberMarkers = Boolean(visible);
+      numberMarkerRoomId = String(roomId || "");
+      configurePlanLabels(viewMode.mode);
+    },
     getCanvasHost: () => renderer.domElement,
     getSelectedFurnitureId: () => selectedWrapper?.userData?.sceneObject?.furniture_id || null,
     projectFurnitureCenters() {

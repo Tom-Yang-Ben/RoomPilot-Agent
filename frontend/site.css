@@ -15628,3 +15628,571 @@ body.is-registering .auth-register-only {
   font-size: 13px;
   line-height: 1.6;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   bella-test1 第 5/6 步 UI 整合移植（fd0cee11…25b83f95＋23de9dda UI 部分）
+   逐房方案 A/B 選擇彈窗、逐房 3D 預覽、材質配對卡、全屋主風格、
+   proposal 色卡、第 6 步側欄分頁與家具編號開關、問卷家具型錄瀏覽。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.rp-task-dialog {
+  width: min(920px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(820px, calc(100vh - 32px));
+  padding: 0;
+  border: 1px solid #c9c1b8;
+  border-radius: 8px;
+  background: #fffdfa;
+  color: #2d2925;
+}
+
+.rp-task-dialog::backdrop {
+  background: rgba(24, 22, 20, 0.58);
+}
+
+.rp-task-dialog-shell {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.rp-task-dialog-header,
+.rp-task-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-task-dialog-header h2,
+.rp-task-dialog-header p {
+  margin: 0;
+}
+
+.rp-task-dialog-header p,
+.rp-task-dialog-note {
+  color: #6d655d;
+  line-height: 1.55;
+}
+
+.rp-room-scheme-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rp-room-scheme-list button {
+  min-width: 118px;
+  text-align: left;
+}
+
+.rp-room-scheme-list button small {
+  display: block;
+  margin-top: 3px;
+  color: #776d64;
+}
+
+.rp-room-scheme-list button.is-active {
+  border-color: #286f5c;
+  background: #e3f0eb;
+  color: #155444;
+}
+
+.rp-scheme-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rp-scheme-choice-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #d8d0c8;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.rp-scheme-choice-card.is-selected {
+  border: 2px solid #286f5c;
+  background: #f1f8f5;
+}
+
+.rp-scheme-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.rp-scheme-preview {
+  min-height: 252px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  border: 1px solid #e1d9d1;
+  border-radius: 4px;
+  background: #fbfcfa;
+}
+
+.rp-scheme-preview h4 {
+  margin: 0;
+  padding: 9px 10px;
+  border-bottom: 1px solid #e1e8e2;
+  color: #285b4d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rp-scheme-preview h4 span {
+  float: right;
+  color: #607a70;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rp-scheme-preview--interactive {
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rp-scheme-preview--interactive:hover,
+.rp-scheme-preview--interactive:focus-visible {
+  border-color: #286f5c;
+  box-shadow: 0 0 0 3px rgba(40, 111, 92, 0.14);
+}
+
+.rp-scheme-preview img {
+  display: block;
+  width: 100%;
+  height: 206px;
+  object-fit: cover;
+}
+
+.rp-scheme-preview .rp-render-placeholder {
+  display: grid;
+  min-height: 206px;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  color: #776d64;
+}
+
+.rp-room-scheme-plan {
+  display: block;
+  width: 100%;
+  height: 184px;
+  background: #fbfcfa;
+}
+
+.rp-room-scheme-outline {
+  fill: #edf5f0;
+  stroke: #2d725e;
+  stroke-width: 3;
+}
+
+.rp-room-scheme-furniture rect {
+  fill: #4d8c76;
+  stroke: #1f5a49;
+  stroke-width: 1.5;
+}
+
+.rp-room-scheme-furniture text {
+  fill: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rp-room-scheme-empty {
+  fill: #6e786f;
+  font-size: 14px;
+}
+
+.rp-room-scheme-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  border-top: 1px solid #e1e8e2;
+  background: #fff;
+}
+
+.rp-room-scheme-legend li {
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: #e9f2ed;
+  color: #1f5a49;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rp-room-scheme-legend-empty {
+  margin: 0;
+  padding: 10px;
+  color: #6e786f;
+  font-size: 13px;
+}
+
+.rp-room-scheme-preview-dialog {
+  width: min(860px, calc(100vw - 32px));
+}
+
+.rp-room-scheme-3d-preview {
+  height: min(620px, calc(100vh - 190px));
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid #d8d0c8;
+  background: #f8f4ef;
+}
+
+.rp-room-scheme-3d-preview canvas {
+  display: block;
+}
+
+.rp-task-dialog-warning {
+  padding: 12px;
+  border-left: 4px solid #b06b25;
+  background: #fff5e6;
+  color: #6f4518;
+}
+
+.rp-task-dialog-warning[hidden] {
+  display: none;
+}
+
+.rp-task-dialog-actions {
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid #e5ded7;
+}
+
+@media (max-width: 760px) {
+  .rp-task-dialog-shell { padding: 16px; }
+  .rp-scheme-choice-grid { grid-template-columns: 1fr; }
+  .rp-task-dialog-header,
+  .rp-task-dialog-actions { align-items: stretch; flex-direction: column; }
+  .rp-task-dialog-actions > * { width: 100%; }
+}
+
+/* ── 第 6 步側欄分頁（同步平面／待處理／選取家具）與家具編號開關 ─────────── */
+
+.rp-scene-sidebar-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  margin: -2px -2px 14px;
+  padding: 2px;
+  border: 1px solid #d5d0c8;
+  border-radius: 6px;
+  background: #edeae5;
+}
+
+.rp-scene-sidebar-tabs button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #625d57;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rp-scene-sidebar-tabs button.is-active {
+  background: #fff;
+  color: #1b5849;
+  box-shadow: 0 1px 3px rgba(56, 47, 38, 0.16);
+}
+
+.rp-tab-count {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #bd4d3b;
+  color: #fff;
+  font-size: 11px;
+}
+
+.rp-toolbar-toggle {
+  min-height: 40px;
+  margin-left: 0;
+  padding: 0 11px;
+  border: 1px solid #cbd8d1;
+  border-radius: 5px;
+  background: #fff;
+  color: #36584a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rp-toolbar-toggle:hover,
+.rp-toolbar-toggle:focus-visible,
+.rp-toolbar-toggle.is-active {
+  border-color: #467564;
+  background: #e5f0ea;
+  color: #24483a;
+}
+
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan > header,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan-sticky,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-furniture-list,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] > .rp-editor-box,
+.rp-3d-sidebar[data-scene-sidebar-mode="selection"] .rp-configuration-plan,
+.rp-3d-sidebar[data-scene-sidebar-mode="selection"] > .rp-editor-box:not(#furniture-property-locks) {
+  display: none;
+}
+
+.rp-3d-sidebar[data-scene-sidebar-mode="plan"] .rp-configuration-pending,
+.rp-3d-sidebar[data-scene-sidebar-mode="plan"] #furniture-property-locks,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] #furniture-property-locks {
+  display: none;
+}
+
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.rp-3d-sidebar[data-scene-sidebar-mode="selection"] #furniture-property-locks {
+  display: grid;
+}
+
+/* ── 第 5 步：本房牆＋地板搭配卡（scene_material_pair_preview.js 立體預覽） ── */
+
+.rp-material-pair-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.rp-material-pair-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #cbc7bf;
+  border-radius: 6px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-material-pair-card.is-active {
+  border-color: #27715d;
+  box-shadow: inset 0 0 0 2px #27715d;
+}
+
+.rp-material-pair-card canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  background: #f1ede6;
+}
+
+.rp-material-pair-card > span {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.rp-material-pair-card strong,
+.rp-material-pair-card small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-material-pair-card small { color: #67615a; }
+
+@media (max-width: 740px) {
+  .rp-material-pair-grid { grid-template-columns: 1fr; }
+}
+
+/* ── 全屋主風格（材質改逐房設定）與第 7 步同風格色卡 ─────────────────────── */
+
+#whole-house-style-grid > button.is-active {
+  border-color: var(--rp-green);
+  box-shadow: inset 0 0 0 1px var(--rp-green);
+  background: #f5faf7;
+}
+
+#whole-house-style-grid > button em,
+#proposal-palette-grid > button em {
+  display: block;
+  margin-top: 4px;
+  color: #2c6b58;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.rp-style-selection-status {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--rp-green);
+  background: #edf6f1;
+  color: #205746;
+  line-height: 1.5;
+}
+
+#proposal-palette-grid > button.is-active {
+  border-color: var(--rp-green);
+  box-shadow: inset 0 0 0 2px var(--rp-green);
+  background: #f5faf7;
+}
+
+.rp-fixed-style-reference {
+  overflow: hidden;
+  border: 1px solid #c9c5bd;
+  background: #fff;
+}
+
+.rp-fixed-style-reference > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.rp-fixed-style-reference strong,
+.rp-fixed-style-reference small {
+  display: block;
+}
+
+.rp-fixed-style-reference small {
+  color: #6a625b;
+  line-height: 1.45;
+}
+
+/* ── 問卷家具型錄瀏覽（空間分類＋用途分類，questionnaire-catalog-space-groups） ── */
+
+.rp-catalog-filter-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #c9c5bd;
+  border-radius: 6px;
+  background: #f8f7f4;
+}
+
+.rp-catalog-filter-controls > label {
+  display: grid;
+  gap: 5px;
+  color: #57564f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rp-catalog-filter-controls select {
+  min-height: 38px;
+  padding: 7px 30px 7px 9px;
+  border: 1px solid #c9c5bd;
+  border-radius: 5px;
+  background: #fff;
+  color: #34332f;
+  font: inherit;
+}
+
+.rp-catalog-scope {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rp-catalog-scope button {
+  min-height: 38px;
+  border: 1px solid #c9c5bd;
+  border-radius: 5px;
+  background: #fff;
+  color: #34332f;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rp-catalog-scope button.is-active {
+  background: var(--rp-green);
+  border-color: var(--rp-green);
+  color: #fff;
+}
+
+.rp-catalog-choice-groups {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rp-catalog-choice-groups > span {
+  width: 100%;
+  color: #5d625d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rp-catalog-choice-groups button {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #c9c5bd;
+  border-radius: 5px;
+  background: #fff;
+  color: #34332f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rp-catalog-choice-groups button.is-active {
+  border-color: #216b59;
+  background: #e7f0ec;
+  color: #174d3e;
+}
+
+/* 問卷中的新增家具只顯示中文名稱、用途與尺寸，完整圖片留在第 6 步。 */
+.rp-glb-result.rp-questionnaire-catalog-option {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px;
+  border-color: #c9c2b8;
+}
+
+.rp-questionnaire-catalog-option > span {
+  display: grid;
+  gap: 3px;
+  color: #2d3833;
+  font-size: 14px;
+}
+
+.rp-questionnaire-catalog-option > span small {
+  color: #216b59;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rp-catalog-browse-prompt {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed #9daea5;
+  border-radius: 5px;
+  background: #f5faf7;
+  color: #295f4d;
+  font-weight: 700;
+  text-align: center;
+}

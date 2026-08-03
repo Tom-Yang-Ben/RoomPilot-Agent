@@ -40,14 +40,30 @@ export function normalizeDesignSchemes(saved = {}, legacy = {}) {
     ? saved.locked_scheme_id
     : null;
   return {
-    schema_version: 1,
+    schema_version: 2,
     active_scheme_id: activeId,
     locked_scheme_id: lockedId,
+    // 逐房方案選擇（room_id → "A" | "B"）與完成合成後的配置快照。
+    // 結構仍是全案共用基準；room_selections 只描述家具方案的取捨。
+    room_selections: validRoomSelections(saved.room_selections),
+    configuration_snapshot: saved.configuration_snapshot
+      && typeof saved.configuration_snapshot === "object"
+      ? clone(saved.configuration_snapshot)
+      : null,
     schemes: {
       A: schemeA,
       ...(schemeB ? { B: schemeB } : {}),
     },
   };
+}
+
+function validRoomSelections(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([roomId, schemeId]) => String(roomId).trim() && ["A", "B"].includes(schemeId))
+      .map(([roomId, schemeId]) => [String(roomId), schemeId]),
+  );
 }
 
 export function compactDesignSchemesForSpace(designSchemes = {}) {
@@ -87,6 +103,12 @@ export function deleteSchemeB(designSchemes) {
   delete designSchemes.schemes.B;
   if (designSchemes.active_scheme_id === "B") designSchemes.active_scheme_id = "A";
   if (designSchemes.locked_scheme_id === "B") designSchemes.locked_scheme_id = null;
+  // 逐房選擇不可指向已刪除的方案。
+  const selections = validRoomSelections(designSchemes.room_selections);
+  Object.entries(selections).forEach(([roomId, schemeId]) => {
+    if (schemeId === "B") selections[roomId] = "A";
+  });
+  designSchemes.room_selections = selections;
 }
 
 export function markSchemeLayoutsStale(designSchemes, reason) {
@@ -146,5 +168,27 @@ export function activateScheme(designSchemes, schemeId) {
   if (!designSchemes.schemes[schemeId]) return null;
   designSchemes.active_scheme_id = schemeId;
   return clone(designSchemes.schemes[schemeId]);
+}
+
+export function selectSchemeForRoom(designSchemes, roomId, schemeId) {
+  if (!designSchemes?.schemes?.[schemeId] || !["A", "B"].includes(schemeId)) return false;
+  const normalizedRoomId = String(roomId || "").trim();
+  if (!normalizedRoomId) return false;
+  designSchemes.room_selections = validRoomSelections(designSchemes.room_selections);
+  designSchemes.room_selections[normalizedRoomId] = schemeId;
+  designSchemes.configuration_snapshot = null;
+  designSchemes.locked_scheme_id = null;
+  return true;
+}
+
+export function allRoomsHaveSchemeSelections(designSchemes, rooms = []) {
+  if (!rooms.length) return false;
+  const selections = validRoomSelections(designSchemes?.room_selections);
+  return rooms.every((room) => ["A", "B"].includes(selections[String(room.id)]));
+}
+
+export function selectedSchemeForRoom(designSchemes, roomId, fallback = "A") {
+  const selected = validRoomSelections(designSchemes?.room_selections)[String(roomId)];
+  return ["A", "B"].includes(selected) ? selected : fallback;
 }
 

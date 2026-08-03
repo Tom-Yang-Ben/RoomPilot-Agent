@@ -9,7 +9,7 @@ import {
 } from "./scene_layout2d.js?v=sha256-4a2749522d19";
 import {
   roomDimensions,
-} from "./scene_plan_geometry.js?v=sha256-2cbf87c33fa5";
+} from "./scene_plan_geometry.js?v=sha256-b77b33d86870";
 import {
   WHOLE_HOUSE_QUESTIONS,
 } from "./scene_requirements.js?v=sha256-097f1470f5a3";
@@ -18,7 +18,7 @@ import {
   LIGHT_STYLES,
   STYLE_MATERIAL_OPTIONS,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-1c8390b903e5";
+} from "./scene_style_packs.js?v=sha256-fd8fa1eb64b1";
 
 const QUESTIONNAIRE_STAGES = Object.freeze([
   "profile",
@@ -190,6 +190,36 @@ function questionnaireMaterialOptionsForPack(kind, pack) {
   return [first, ...rotated]
     .slice(0, QUESTIONNAIRE_MATERIAL_RECOMMENDATION_COUNT)
     .map((option) => materialOptionForPack(option, pack));
+}
+
+// ── 本房牆＋地板搭配推薦（bella-test1 fd0cee11／25b83f95 移植）────────────
+// bella 版以 surface catalog 打分；本機材質選項來自 STYLE_MATERIAL_OPTIONS
+// 精選集，改以標籤／備註文字與房型做同樣語意的計分。分數只影響排序，
+// 材質資料（id、色碼、縮圖）沿用原始選項，不改寫。
+function materialPairScore(kind, option, pack, room) {
+  const text = `${option.label || ""} ${option.note || ""}`.toLowerCase();
+  const roomType = String(room?.type || room?.room_type || "").toLowerCase();
+  let score = 0;
+  const preferredId = kind === "wall" ? pack.wall.surfaceOption : pack.floor.surfaceOption;
+  if (option.id === preferredId) score += 24;
+  if (kind === "wall" && !["kitchen", "bathroom"].includes(roomType) && /磚|tile|brick|馬賽克/.test(text)) score -= 100;
+  if (kind === "wall" && /塗料|漆|plaster|limewash|礦物|抹面|土佐壁/.test(text)) score += 12;
+  if (kind === "floor" && /木|wood|oak|walnut|石|stone|microcement|水泥/.test(text)) score += 10;
+  score += stableStringNumber(`${pack.id}:${kind}:${option.id}`) / 100000;
+  return score;
+}
+
+function questionnaireMaterialPairsForPack(pack, room = null) {
+  const walls = questionnaireMaterialOptionsForPack("wall", pack)
+    .slice(0, 4);
+  const floors = questionnaireMaterialOptionsForPack("floor", pack)
+    .slice(0, 4);
+  return walls.flatMap((wall) => floors.map((floor) => ({
+    wall,
+    floor,
+    score: materialPairScore("wall", wall, pack, room) + materialPairScore("floor", floor, pack, room),
+  }))).sort((left, right) => right.score - left.score)
+    .slice(0, 1);
 }
 
 function randomWholeHouseAnswers() {
@@ -741,6 +771,7 @@ export {
   isFloorPlacedCatalogItem,
   isQuestionnaireFallbackTypeMatch,
   materialOptionForPack,
+  materialPairScore,
   preferenceWeightLabel,
   progressPercent,
   questionnaireBedSizeFamily,
@@ -751,6 +782,7 @@ export {
   questionnaireFurnitureSelectionItem,
   questionnaireFurnitureSizeLabel,
   questionnaireMaterialOptionsForPack,
+  questionnaireMaterialPairsForPack,
   questionnaireOfferMatchesRequestedType,
   questionnaireOffersWithSizeChoices,
   randomItem,

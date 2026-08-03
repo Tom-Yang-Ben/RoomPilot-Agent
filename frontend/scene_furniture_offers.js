@@ -22,16 +22,19 @@ import {
   recommendedFurnitureForRoom,
 } from "./scene_layout2d.js?v=sha256-4a2749522d19";
 import {
+  renderMaterialPairPreviews,
+} from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
+import {
   roomDimensions,
-} from "./scene_plan_geometry.js?v=sha256-2cbf87c33fa5";
+} from "./scene_plan_geometry.js?v=sha256-b77b33d86870";
 import {
   evaluateConditionalOption,
-} from "./scene_room_requirements.js?v=sha256-68f14d3fdc6f";
+} from "./scene_room_requirements.js?v=sha256-86b7bbecc47a";
 import {
   CEILING_STYLES,
   LIGHT_STYLES,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-1c8390b903e5";
+} from "./scene_style_packs.js?v=sha256-fd8fa1eb64b1";
 import {
   CATALOG_RETRIEVAL_ROUTES,
   QUESTIONNAIRE_FALLBACK_CATALOG_RULES,
@@ -49,11 +52,12 @@ import {
   questionnaireFurnitureSelectionItem,
   questionnaireFurnitureSizeLabel,
   questionnaireMaterialOptionsForPack,
+  questionnaireMaterialPairsForPack,
   questionnaireOfferMatchesRequestedType,
   questionnaireOffersWithSizeChoices,
   roomAreaM2,
   roomUsageOptions,
-} from "./scene_questionnaire_data.js?v=sha256-dfa9c8235900";
+} from "./scene_questionnaire_data.js?v=sha256-dd94e51b2020";
 
 // ── 家具候選集（第 5 步問卷送出時由後端 RAG 建立）──────────────────────
 // 候選集把 8,557 筆型錄縮成每房數十筆，選件與擺放都只在這個子集上跑。
@@ -113,6 +117,74 @@ function renderQuestionnaireMaterialOptions(kind, pack) {
       <small>${escapeHtml(option.note)}<em>${escapeHtml(`${pack.name} 推薦`)}</em></small>
     </button>
   `).join("");
+}
+
+// ── 本房牆＋地板搭配卡（bella-test1 fd0cee11／5d92e612／25b83f95 移植）──────
+// 只顯示一組推薦（25b83f95）；若使用者已自選且與推薦不同，改顯示目前選擇。
+function questionnaireMaterialPairCards(pack) {
+  const draft = activeRoomFinishDraft();
+  const room = activeQuestionnaireRoom();
+  const selectedWall = questionnaireMaterialOptionsForPack("wall", pack)
+    .find((option) => option.id === draft.wallMaterial);
+  const selectedFloor = questionnaireMaterialOptionsForPack("floor", pack)
+    .find((option) => option.id === draft.floorMaterial);
+  const recommendations = questionnaireMaterialPairsForPack(pack, room);
+  if (!selectedWall || !selectedFloor) return recommendations;
+  const current = {
+    wall: { ...selectedWall, color: draft.wallColor || selectedWall.color },
+    floor: { ...selectedFloor, color: draft.floorColor || selectedFloor.color },
+    isCurrentSelection: true,
+  };
+  const currentIsRecommended = recommendations.some((pair) => (
+    pair.wall.id === current.wall.id && pair.floor.id === current.floor.id
+  ));
+  if (currentIsRecommended) {
+    return [current, ...recommendations.filter((pair) => (
+      pair.wall.id !== current.wall.id || pair.floor.id !== current.floor.id
+    ))].slice(0, 1);
+  }
+  return [...recommendations, { ...current, isCustomSelection: true }].slice(0, 1);
+}
+
+function renderQuestionnaireMaterialPairs(pack) {
+  const draft = activeRoomFinishDraft();
+  const pairs = questionnaireMaterialPairCards(pack);
+  const host = element.questionnaireMaterialPairs;
+  if (!host) return pairs;
+  host.hidden = false;
+  host.innerHTML = `
+    <div class="rp-questionnaire-section-heading"><div><span class="eyebrow">本房推薦</span><h3>牆與地板搭配</h3></div><p>這是依房型與全屋風格產生的一組預設搭配；需要調整時，再從下方材質庫選擇。</p></div>
+    <div class="rp-material-pair-grid">${pairs.map((pair, index) => `
+      <button type="button" class="rp-material-pair-card ${draft.wallMaterial === pair.wall.id && draft.floorMaterial === pair.floor.id ? "is-active" : ""}"
+        data-questionnaire-material-pair="${index}" aria-pressed="${draft.wallMaterial === pair.wall.id && draft.floorMaterial === pair.floor.id}">
+        <canvas data-material-pair-preview aria-label="${escapeHtml(`${pair.wall.label} 與 ${pair.floor.label} 的立體搭配預覽`)}"></canvas>
+        <span><strong>牆：${escapeHtml(pair.wall.label)}</strong><small>地：${escapeHtml(pair.floor.label)}</small>${pair.isCurrentSelection ? "<em>目前選擇</em>" : ""}${pair.isCustomSelection ? "<em>自訂選擇</em>" : ""}</span>
+      </button>
+    `).join("") || "<p class=\"rp-field-error\">找不到可搭配的牆面與地板材質，可改用下方自訂選擇。</p>"}</div>`;
+  // 小預覽用的 textureUrl 沿用材質卡縮圖（本機材質縮圖即為可平鋪貼圖）。
+  const previewPairs = pairs.map((pair) => ({
+    wall: { ...pair.wall, textureUrl: pair.wall.textureUrl || pair.wall.materialPreview },
+    floor: { ...pair.floor, textureUrl: pair.floor.textureUrl || pair.floor.materialPreview },
+  }));
+  if (pairs.length) requestAnimationFrame(() => renderMaterialPairPreviews(host, previewPairs));
+  return pairs;
+}
+
+function selectQuestionnaireMaterialPair(pair) {
+  const draft = activeRoomFinishDraft();
+  draft.wallMaterial = pair.wall.id;
+  draft.wallColor = pair.wall.color;
+  draft.floorMaterial = pair.floor.id;
+  draft.floorColor = pair.floor.color;
+  if (state.selectedQuestionnaireWallId) {
+    draft.wallOverrides[state.selectedQuestionnaireWallId] = { materialId: draft.wallMaterial, color: draft.wallColor };
+  } else {
+    draft.defaultWallMaterial = draft.wallMaterial;
+    draft.defaultWallColor = draft.wallColor;
+  }
+  draft.confirmed = false;
+  renderQuestionnaireFinishes();
+  scheduleSave("requirements");
 }
 
 function renderQuestionnaireFinishes() {
@@ -176,10 +248,17 @@ function renderQuestionnaireFinishes() {
   const pack = activeQuestionnairePack();
   renderQuestionnaireMaterialOptions("wall", pack);
   renderQuestionnaireMaterialOptions("floor", pack);
+  renderQuestionnaireMaterialPairs(pack);
   element.questionnaireWallColor.value =
     draft.wallColor || pack.wall.color;
   element.questionnaireFloorColor.value =
     draft.floorColor || pack.floor.color;
+  if (element.questionnaireWallPreference) {
+    element.questionnaireWallPreference.value = draft.wallPreference || "";
+  }
+  if (element.questionnaireFloorPreference) {
+    element.questionnaireFloorPreference.value = draft.floorPreference || "";
+  }
   element.questionnaireCeilingMaterial.value =
     draft.ceilingMaterial || "flat-paint";
   element.questionnaireCeilingStyle.innerHTML = CEILING_STYLES.map((item) =>
@@ -219,6 +298,8 @@ function renderQuestionnaireFinishes() {
     element.questionnaireFloorOptions,
     element.questionnaireWallColor,
     element.questionnaireFloorColor,
+    element.questionnaireWallPreference,
+    element.questionnaireFloorPreference,
     element.questionnaireCeilingMaterial,
     element.questionnaireCeilingStyle,
     element.questionnaireLightStyle,
@@ -1104,6 +1185,9 @@ function refreshQuestionnaireFurnitureRecommendations() {
 
   return {
     renderQuestionnaireMaterialOptions,
+    questionnaireMaterialPairCards,
+    renderQuestionnaireMaterialPairs,
+    selectQuestionnaireMaterialPair,
     renderQuestionnaireFinishes,
     renderConditionalFeasibility,
     selectQuestionnaireStylePack,

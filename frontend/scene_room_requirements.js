@@ -100,6 +100,9 @@ function emptyRoomRequirement(room = {}) {
     },
     surfaces: {
       paletteId: null,
+      // 牆地生圖偏好：自由文字，RAG 查詢與最終生圖需求都會帶上。
+      wallPreference: "",
+      floorPreference: "",
       wallDefault: {
         materialId: null,
         color: null,

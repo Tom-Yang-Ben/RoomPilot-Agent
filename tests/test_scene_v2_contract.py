@@ -105,10 +105,11 @@ def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() 
     assert "color: packMaterialColor" not in material_option
     assert "note: option.note" in material_option
     assert "recommendation: pack.name" in material_option
-    assert "background-color:${escapeHtml(option.color)}" in source
     # 佇列 7 第六批（6B）：renderQuestionnaireFinishes 搬到
     # scene_furniture_offers.js 工廠，逐房牆面摘要字串改掃新檔。
+    # bella-test1 24c4f0ca 之後全屋材質卡已移除，材質卡 markup 只在 offers。
     offers = (STATIC_DIR / "scene_furniture_offers.js").read_text(encoding="utf-8")
+    assert "background-color:${escapeHtml(option.color)}" in offers
     assert "全房牆面目前使用：${wallLabel}" in offers
     assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in css
     assert "grid-auto-rows: 86px;" in css
@@ -204,6 +205,9 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert 'id="questionnaire-furniture-preference"' in html
     assert 'id="refresh-questionnaire-furniture"' in html
     assert 'id="questionnaire-room-usage-options"' in html
+    # bella-test1 ac21b492：牆地生圖偏好文字欄位（帶入 RAG 與生圖需求）。
+    assert 'id="questionnaire-wall-preference"' in html
+    assert 'id="questionnaire-floor-preference"' in html
     assert "function ensureQuestionnaireFurnitureRecommendations" in offers
     assert "function renderQuestionnaireFurnitureRecommendations" in offers
     assert "const ROOM_USAGE_OPTIONS" in data
@@ -244,6 +248,29 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert 'model_load_verification: "deferred"' in offers
     assert ".rp-questionnaire-furniture-options" in css
     assert ".rp-questionnaire-room-usage-options" in css
+
+
+def test_questionnaire_renders_room_material_choices_and_pair_recommendations() -> None:
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    # bella-test1 5d92e612／25b83f95：逐房材質選項與「一組」牆地搭配推薦。
+    # 渲染函式在本機屬 scene_furniture_offers.js 工廠；純資料計分在
+    # scene_questionnaire_data.js；three.js 小預覽是獨立模組。
+    offers = (STATIC_DIR / "scene_furniture_offers.js").read_text(encoding="utf-8")
+    data = (STATIC_DIR / "scene_questionnaire_data.js").read_text(encoding="utf-8")
+
+    assert 'id="questionnaire-material-pairs"' in html
+    assert 'id="questionnaire-wall-options"' in html
+    assert 'id="questionnaire-floor-options"' in html
+    assert 'renderQuestionnaireMaterialOptions("wall", pack);' in offers
+    assert 'renderQuestionnaireMaterialOptions("floor", pack);' in offers
+    assert "renderQuestionnaireMaterialPairs(pack);" in offers
+    assert "function questionnaireMaterialPairsForPack" in data
+    assert ".slice(0, 1);" in data
+    assert "renderMaterialPairPreviews" in offers
+    assert (STATIC_DIR / "scene_material_pair_preview.js").exists()
+    preview = (STATIC_DIR / "scene_material_pair_preview.js").read_text(encoding="utf-8")
+    assert "export function renderMaterialPairPreviews" in preview
+    assert "data-material-pair-preview" in preview
 
 
 def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
@@ -1025,13 +1052,17 @@ def test_questionnaire_applies_whole_house_defaults_before_room_furniture() -> N
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
+    # bella-test1 24c4f0ca：全屋只選主風格，材質／天花／冷氣控制改由逐房問卷
+    # 依風格推薦與覆寫；全屋材質欄位已自 scene.html 移除。
     assert 'id="whole-house-style-editor"' in html
-    assert 'id="whole-house-wall-options"' in html
-    assert 'id="whole-house-floor-options"' in html
+    assert 'id="whole-house-style-selection"' in html
+    assert 'id="whole-house-wall-options"' not in html
+    assert 'id="whole-house-floor-options"' not in html
     assert 'data-questionnaire-stage="profile" class="is-active"' in html
     assert 'data-questionnaire-stage="rooms" disabled' in html
-    assert 'id="whole-house-style-all"' in html
-    assert 'id="whole-house-air-conditioning-all"' in html
+    assert "STYLE_FAMILIES.map((family)" in source
+    assert "function applyStyleChangeToRooms(pack)" in source
+    assert "questionnaireMaterialPairsForPack(pack, room)[0]" in source
     assert "function applyWholeHouseFinishes()" in source
     assert "applyWholeHouseFinishes();" in source
     assert 'if (stage === "profile") return true;' in source

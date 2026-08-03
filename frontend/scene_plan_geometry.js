@@ -133,11 +133,23 @@ function roomCenter(room) {
   }), { x: 0, y: 0 });
 }
 
-function segmentEndpoint(point = {}) {
+// 場景座標同時存在兩種形狀：物件 {x, z}（或 {x, y}）與陣列 [x, y]。
+// 單房裁切／平移時兩種都要正確處理，否則陣列點會原地不動（bella 23de9dda）。
+function scenePointCoordinates(point = {}) {
+  if (Array.isArray(point)) {
+    return {
+      x: Number(point[0] || 0),
+      z: Number(point[1] || 0),
+    };
+  }
   return {
     x: Number(point.x || 0),
     z: Number(point.z ?? point.y ?? 0),
   };
+}
+
+function segmentEndpoint(point = {}) {
+  return scenePointCoordinates(point);
 }
 
 function segmentOverlapsBounds(segment, bounds, padding = 32) {
@@ -157,7 +169,13 @@ function segmentOverlapsBounds(segment, bounds, padding = 32) {
 }
 
 function shiftScenePoint(point = {}, offset) {
-  if (!offset) return { ...point };
+  if (!offset) return Array.isArray(point) ? [...point] : { ...point };
+  if (Array.isArray(point)) {
+    return [
+      Number(point[0] || 0) - offset.x,
+      Number(point[1] || 0) - offset.z,
+    ];
+  }
   const next = { ...point };
   if ("x" in next) next.x = Number(next.x || 0) - offset.x;
   if ("z" in next) next.z = Number(next.z || 0) - offset.z;
@@ -175,6 +193,20 @@ function shiftSceneSegment(segment, offset) {
     start: shiftScenePoint(segment.start, offset),
     end: shiftScenePoint(segment.end, offset),
   };
+}
+
+function shiftFloorplanRegion(region, offset) {
+  if (!region || !offset) return region;
+  const next = { ...region };
+  ["exterior", "polygon_cm", "polygon_m", "room_polygon_cm"].forEach((key) => {
+    if (Array.isArray(next[key])) next[key] = next[key].map((point) => shiftScenePoint(point, offset));
+  });
+  if (Array.isArray(next.holes)) {
+    next.holes = next.holes.map((ring) => (
+      Array.isArray(ring) ? ring.map((point) => shiftScenePoint(point, offset)) : ring
+    ));
+  }
+  return next;
 }
 
 function shiftRoomSurfaceAssignment(assignment, offset) {
@@ -206,8 +238,10 @@ export {
   roomCenter,
   roomDimensions,
   roomPolygonsDiffer,
+  scenePointCoordinates,
   segmentEndpoint,
   segmentOverlapsBounds,
+  shiftFloorplanRegion,
   shiftRoomSurfaceAssignment,
   shiftScenePoint,
   shiftSceneSegment,

@@ -292,6 +292,28 @@ export const STYLE_PACKS = Object.freeze(
   ),
 );
 
+// 全屋主風格在第 5 步只選一次；同風格的三張色卡留到第 7 步（proposal-palette-grid）
+// 再選。referenceImage 沿用該風格第一張色卡的參考圖：bella-test1 的
+// style_images/taiwan_residential 整包二進位資產刻意不搬（72.9MB）。
+const STYLE_FAMILY_SELECTION_CUES = Object.freeze({
+  scandinavian: "淺木、留白、自然採光",
+  japanese: "低矮家具、木格柵、和紙燈",
+  modern_minimal: "石材、直線、隱藏收納",
+  cream: "圓弧、柔霧、暖奶白",
+  industrial: "清水模、黑鐵、皮革",
+  american: "線板、胡桃木、經典家具",
+});
+
+export const STYLE_FAMILIES = Object.freeze(
+  STYLE_DEFINITIONS.map((style) => Object.freeze({
+    id: style.id,
+    label: style.label,
+    selectionCue: STYLE_FAMILY_SELECTION_CUES[style.id] || "",
+    referenceImage: style.cards[0].sourceImage,
+    defaultPackId: style.cards[0].id,
+  })),
+);
+
 export const STYLE_MATERIAL_OPTIONS = Object.freeze({
   scandinavian: {
     wall: [

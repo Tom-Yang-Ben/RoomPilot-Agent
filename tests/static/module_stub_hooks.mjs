@@ -3,6 +3,7 @@
 const STUBS = new Map([
   ["scene_viewer.js", "./scene_viewer_stub.mjs"],
   ["scene_structure_preview.js", "./scene_structure_preview_stub.mjs"],
+  ["scene_material_pair_preview.js", "./scene_material_pair_preview_stub.mjs"],
 ]);
 
 export async function resolve(specifier, context, nextResolve) {
