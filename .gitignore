@@ -15,12 +15,9 @@ __pycache__/
 # 編譯後二進位（無原始碼，不進版控）
 *.exe
 
-# training/ 進版控走精簡集（2026-08-03 使用者裁定）：scripts/＋tests/
-# 即為「clone 回來就能續作」的全部——training.zip 換機機制退場。
-# 不入庫的三類：第三方 CubiCasa5k（需要時依 FloorTraining.md 另外
-# clone）、可重生中間產物（room_crops 重訓前必以 extract_room_crops
+# training/ 進版控走精簡集（2026-08-03 使用者裁定）：scripts/＋tests/。
+# 不入庫的兩類：可重生中間產物（room_crops 重訓前必以 extract_room_crops
 # 重生、asset_ckpt 為素材輪斷點快取）、pytest 快取。
-training/CubiCasa5k/
 training/room_crops/
 training/asset_ckpt/
 training/tests/.pytest_cache/

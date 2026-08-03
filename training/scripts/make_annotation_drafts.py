@@ -6,7 +6,7 @@ F1_original.png, model.svg}。FloorplanSVG loader format='txt' 可直接吃，
 junction heatmap 由 House 從 SVG 自動推導；人工用 Inkscape 修正即可。
 
 用法：python make_annotation_drafts.py [--png-dir png] [--out testdata/Identify_ans/own_dataset]
-產出後逐張以 House() 回讀驗證；own_train.txt 43 行 / own_val.txt 5 行。
+產出後逐張以自持 verify_draft 回讀驗證；own_train.txt 43 行 / own_val.txt 5 行。
 """
 import argparse
 import os

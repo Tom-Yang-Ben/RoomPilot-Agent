@@ -94,24 +94,3 @@ def test_space_fill_covers_exactly_the_ten_classes():
     """草稿配色表漏一類就會靜默塗成灰色，人工修正時看不出那是未命名還是走道。"""
     from eval_rooms_cc import CLASSES
     assert set(SPACE_FILL) == set(CLASSES) | {"Undefined"}
-
-
-def test_cubicasa_house_still_cannot_read_new_vocabulary():
-    """釘住「為何不能用 House 驗證」——它對新詞彙會炸，別再把它接回來。
-
-    若哪天這個測試失敗（House 能讀了），代表上游或 vendored checkout 換了，
-    屆時才可以重新考慮。"""
-    sys.path.insert(0, os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        "training/CubiCasa5k"))
-    # CubiCasa5k 是第三方本機 checkout（不入庫，需要時依 FloorTraining.md
-    # 另外 clone）；缺庫明確 skip，不誤報紅。
-    pytest.importorskip("floortrans", reason="training/CubiCasa5k 本機 checkout 不存在")
-    from floortrans.loaders.house import House
-    path = _written([("Hallway",
-                      np.array([[20, 20], [95, 20], [95, 95], [20, 95]]))])
-    try:
-        with pytest.raises(KeyError):
-            House(path, 120, 120)
-    finally:
-        os.unlink(path)

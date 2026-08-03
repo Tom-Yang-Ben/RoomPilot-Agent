@@ -24,7 +24,7 @@ pip install -r requirements.txt   # 版本已釘實際開發環境（2026-08-03 
     的錯誤訓回去；收尾刪除的那批即為 7/29 舊標籤產物）。
   - `training/asset_ckpt/`（素材輪逐類斷點快取）——出貨後即無下游；
     留著反而讓下輪新素材被 checkpoint 靜默跳過（除非 `--redo`）。
-  - 第三方 `training/CubiCasa5k/` → 見第 5 節另外 clone。
+  - 第三方依賴：**無**（CubiCasa5k 已完全脫鉤，見第 5 節）。
 
 ## 1. 量測（改任何共用碼前後必跑）
 
@@ -89,25 +89,18 @@ holdout 只收尾看一次。
    逐模板 `TPL_THR`、白/黑名單——見 `docs/CODY_PIPELINE_README.md` v2.24/v2.33）。
 4. 驗收：既有量尺逐位元不動才算零波及（比對 dev 全集）。
 
-## 5. CubiCasa5k（6.6G 大檔，不進版控——需要時另外下載）
+## 5. 第三方依賴狀態：無（CubiCasa5k 已完全脫鉤）
 
-**何時需要**：只有「答案卷 House 回讀驗證」用到它的 `floortrans` 程式庫
-（make_annotation_drafts 產稿後驗證、sync_room_labels `--no-validate` 以外
-的驗證路、`training/tests/test_annotation_drafts.py` 的 House 案——缺庫時
-importorskip 明確跳過）。**日常量測鏈完全不需要**（GT 解析走自寫的
-svg_poly，2026-08 已與 CubiCasa loader 脫鉤，lmdb 依賴同步移除）。
+2026-08-03 起本研發鏈**不需要任何第三方 checkout**：
 
-本機 checkout 已於 2026-08-03 收尾時整個移除（第三方內容不入庫、
-不隨身帶）。需要 House 回讀驗證時再安裝：
+- GT 解析走自家 `svg_poly`（2026-08 起）；
+- 草稿與標籤同步的回讀驗證走自家 `verify_draft`
+  （make_annotation_drafts／sync_room_labels 共用，2026-08-03 起）；
+- 房型/分割頭訓練用 DINOv2 凍結骨幹（torch.hub 下載）＋自家答案卷。
 
-```bash
-git clone https://github.com/CubiCasa/CubiCasa5k training/CubiCasa5k
-python training/scripts/apply_cubicasa_patches.py   # numpy 2.x 相容補丁，冪等可重跑
-```
-
-（該路徑在 .gitignore 永久封鎖，clone 也不會誤入版控；dataset 圖集
-非必要，驗證只用程式庫，磁碟緊張可只保留 `floortrans/` 目錄。
-缺庫時相關測試 importorskip 明確跳過，不誤報紅。）
+CubiCasa 時期的移除歷程見 `Readme.md` changelog（v2.21 血統移除、
+v2.20 向量模板 A/B 零貢獻剪除）與 git 歷史；答案卷 model.svg 沿用其
+SVG 格式慣例純屬檔案格式相容，無程式依賴。
 
 ## 6. 本次收尾刪除紀錄（2026-08-03，要復活找 git 歷史）
 
@@ -117,11 +110,12 @@ python training/scripts/apply_cubicasa_patches.py   # numpy 2.x 相容補丁，�
 | `probe_band_semantics.py`＋`test_band_semantics.py` | 白牆帶語意判別線負結果收案（AUC 天花板 0.66，原理極限）；結論記於 changelog v2.33 |
 | `extract_symbol_lib.py` | 自宣退役（2026-07-29）：CubiCasa 向量模板 3516 條 A/B 零貢獻已清出庫 |
 | `training/scripts/README.md` | 內容過時（仍寫 18 支腳本/infer_cubicasa/scripts 舊路徑），併入本檔 |
+| `apply_cubicasa_patches.py`＋House 相關測試 2 支 | 第三方脫鉤收尾（2026-08-03）：回讀驗證改自家 verify_draft 後，CubiCasa checkout 再無任何用途，補丁腳本與釘住測試一併退場 |
 
 留下的每一支都有現役用途：量測 6 支（eval_rooms_cc/eval_door_json/
 eval_door_zones/eval_color_walls＋backend 兩支）、GT 工序 7 支
 （make_annotation_drafts/fix_annotation_paths/sync_room_labels/fix_own_floor/
 normalize_answer_svg/rebuild_room_gt/svg_poly）、重訓 3 支
 （extract_room_crops/probe_room_classifier/probe_seg_head）、素材 3 支
-（dxf2png_pieces/extract_asset_lib/probe_symbol_quality）、CubiCasa 補丁 1 支
-（apply_cubicasa_patches）；`training/tests/` 32 支為管線回歸與工具測試。
+（dxf2png_pieces/extract_asset_lib/probe_symbol_quality）——共 19 支，
+零第三方依賴；`training/tests/` 為管線回歸與工具測試。

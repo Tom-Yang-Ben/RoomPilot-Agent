@@ -10,11 +10,11 @@ House 解析器讀的是 class（"Space Bedroom"），文字只是顯示用。�
 用法：
     python scripts/sync_room_labels.py            # 直接改檔（git 可回復）
     python scripts/sync_room_labels.py --dry-run  # 只列出將改什麼
-    python scripts/sync_room_labels.py --no-validate  # 跳過 House 回讀驗證
+    python scripts/sync_room_labels.py --no-validate  # 跳過回讀驗證
 
 改檔方式是對原始文字做「逐 g-id 定點替換」，不重排版——保留 Inkscape
-既有格式，git diff 乾淨。改完後逐張以 House() 回讀驗證（同
-make_annotation_drafts.py 的守門標準）。
+既有格式，git diff 乾淨。改完後逐張自持回讀驗證（同
+make_annotation_drafts.verify_draft 的守門標準，不經任何第三方庫）。
 """
 import argparse
 import glob
@@ -98,15 +98,15 @@ def apply_changes(svg_path, changes):
 
 
 def validate(svg_path):
-    """House 回讀驗證：能解析且有牆像素。"""
+    """自持回讀驗證（2026-08-03 起不經 CubiCasa House——第三方依賴已整個
+    脫鉤）：沿用 make_annotation_drafts.verify_draft 的解析路（自家
+    svg_poly＋詞彙檢查），能解析、有牆、房型都在量尺內即通過。"""
     import cv2
-    import numpy as np
-    from floortrans.loaders.house import House
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from make_annotation_drafts import verify_draft
     png = os.path.join(os.path.dirname(svg_path), "F1_scaled.png")
     h, w = cv2.imread(png).shape[:2]
-    house = House(svg_path, h, w)
-    if int(np.count_nonzero(house.walls == 2)) == 0:
-        raise ValueError("round-trip 無牆像素")
+    verify_draft(svg_path, h, w)
 
 
 def main():
@@ -115,9 +115,6 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-validate", action="store_true")
     a = ap.parse_args()
-
-    _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    sys.path.insert(0, os.path.join(_root, "training/CubiCasa5k"))
 
     n_changed, n_files = 0, 0
     all_unknown, all_unlabeled = [], []
