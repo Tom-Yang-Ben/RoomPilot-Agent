@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """probe_band_semantics.py — 帶級 DINO 語意可分性標定（白牆萃取品質輪，階段 0）。
 
-spec: docs/superpowers/specs/2026-08-02-band-semantics-design.md
+spec: docs/superpowers/specs/2026-08-02-band-semantics-design.md（已隨收尾移除，見 git 歷史）
 
 彩圖白牆帶的真/假判定既有手工特徵五五開（floor_09 收案）。本工具量測
 「帶級 DINO 語意」這個未試過的粒度：19 張彩 dev 的 white_wall_rects

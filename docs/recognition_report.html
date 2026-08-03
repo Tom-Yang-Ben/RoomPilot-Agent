@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RoomPilot 四層級辨識成功率報表（2026-07-25）</title>
+<title>RoomPilot 辨識能力總覽報表（2026-08-03・v2.33 收案版）</title>
 <style>
 :root{
   color-scheme: light;
@@ -65,6 +65,8 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 .flag.good{color:var(--good-text)}
 ol.diag{padding-left:20px}
 ol.diag li{margin-bottom:8px}
+ul.mech{padding-left:20px;font-size:13.5px}
+ul.mech li{margin-bottom:6px}
 .gap{color:var(--muted);font-size:12.5px}
 footer{margin-top:44px;color:var(--muted);font-size:12px;border-top:1px solid var(--grid);padding-top:14px}
 </style>
@@ -72,109 +74,142 @@ footer{margin-top:44px;color:var(--muted);font-size:12px;border-top:1px solid va
 <body>
 <div class="wrap">
 
-<h1>RoomPilot 四層級辨識成功率報表</h1>
-<div class="sub">評測日 2026-07-25（切割/命名層以 v5 微調預設權重＋全題標注修復後 GT 重評；牆窗/門層沿用 2026-07-23 快照）｜輸入：灰階 <b>testdata/png/</b> 38 張、彩色 <b>testdata/color_png/</b> 30 張｜
-答案集：牆窗像素答案 灰 38＋彩 28、門位 GT 26 題、own_eval 保留集 12 題 72 房（永不進訓練，2026-07-25 完成全題標注修復逐張人工驗收）</div>
+<h1>RoomPilot 辨識能力總覽報表</h1>
+<div class="sub">評測日 2026-08-03（v2.33 收案版；前版為 2026-07-25 四層級報表）｜
+答案集全數人工審定：灰階 own_dataset 24 張 153 房＋own_eval 保留集 12 張 72 房、
+彩色 own_dataset_color 19 張 152 房＋own_eval_color 9 張 62 房（0 Undefined）、
+灰門 GT 111 樘、窗像素答案灰彩雙集｜保留集永不進訓練，只在循環收尾量測</div>
 
 <div class="tiles">
-  <div class="tile good"><div class="v">0.99</div><div class="k">灰階牆 F1（像素 ±3px）</div><div class="n">38 題人工答案</div></div>
-  <div class="tile good"><div class="v">96%</div><div class="k">灰階窗 精準率/召回率</div><div class="n">133 中·5 誤·6 漏</div></div>
-  <div class="tile"><div class="v">0.868</div><div class="k">門位召回率（score_fused）</div><div class="n">26 題 GT·zone 提名後</div></div>
-  <div class="tile"><div class="v">76.4%</div><div class="k">空間切割命中率</div><div class="n">own_eval 72 房·IoU≥0.5·標注修復後</div></div>
+  <div class="tile good"><div class="v">88.9%</div><div class="k">灰階空間切割（dev）</div><div class="n">136/153 房·IoU≥0.5</div></div>
+  <div class="tile good"><div class="v">76.3%</div><div class="k">彩色空間切割（dev）</div><div class="n">116/152 房·自 baseline 59.2% 起</div></div>
+  <div class="tile good"><div class="v">.83/.81</div><div class="k">灰階門 P/R（產品 json 路）</div><div class="n">90/111 樘·自 0.38/0.17 重建</div></div>
+  <div class="tile good"><div class="v">98/92</div><div class="k">灰階窗 P/R（%）</div><div class="n">彩窗彩門低於可用線→不生成</div></div>
 </div>
 
-<h2>(1) 牆、窗</h2>
+<h2>(1) 房間指標——版本報表標準口徑（四量尺）</h2>
 <div class="card">
-<div class="legend"><span><b style="background:var(--s1)"></b>我們的管線</span><span><b style="background:var(--s2)"></b>CubiCasa mask（對照）</span></div>
 <table>
-<tr><th>項目（樣本）</th><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th></tr>
-<tr><td>灰階 牆（38 題）</td><td>F1（像素 ±3px）</td><td class="num"><span class="flag good">0.99</span></td>
-  <td class="barcell"><div class="bar" title="我們 0.99"><i style="width:99%"></i></div>
-      <div class="bar" title="CubiCasa 0.89"><i class="ref" style="width:89%"></i></div></td></tr>
-<tr><td>灰階 窗（38 題）</td><td>精準率 / 召回率</td><td class="num">96% / 96%</td>
-  <td class="barcell"><div class="bar" title="精準率 96%"><i style="width:96%"></i></div>
-      <div class="bar" title="召回率 96%"><i style="width:96%"></i></div></td></tr>
-<tr><td>彩色 牆（28 題）</td><td>精準率 / 召回率</td><td class="num">87.7% / 94.9%</td>
-  <td class="barcell"><div class="bar" title="精準率 87.7%"><i style="width:87.7%"></i></div>
-      <div class="bar" title="召回率 94.9%"><i style="width:94.9%"></i></div></td></tr>
-<tr><td>彩色 牆（28 題）</td><td>IoU（像素加權）</td><td class="num">83.8%</td>
-  <td class="barcell"><div class="bar" title="IoU 83.8%"><i style="width:83.8%"></i></div></td></tr>
-<tr><td>彩色 窗（28 題）</td><td>精準率 / 召回率</td><td class="num"><span class="flag crit">62% / 38%</span> ⚠️</td>
-  <td class="barcell"><div class="bar" title="精準率 62%"><i style="width:62%"></i></div>
-      <div class="bar" title="召回率 38%"><i style="width:38%"></i></div></td></tr>
+<tr><th>量尺</th><th>空間切割正確性</th><th class="barcell">0 ─ 100%</th><th>核心5項判讀率（端到端）</th></tr>
+<tr><td>灰階 dev（24 張 153 房）</td><td class="num"><span class="flag good">88.9%</span>（136/153）</td>
+  <td class="barcell"><div class="bar" title="88.9%"><i style="width:88.9%"></i></div></td>
+  <td class="num">91.8%（112/122）</td></tr>
+<tr><td>灰階 holdout（12 張 72 房）</td><td class="num">83.3%（60/72）</td>
+  <td class="barcell"><div class="bar" title="83.3%"><i style="width:83.3%"></i></div></td>
+  <td class="num">75.0%（45/60）</td></tr>
+<tr><td>彩色 dev（19 張 152 房）</td><td class="num"><span class="flag good">76.3%</span>（116/152）</td>
+  <td class="barcell"><div class="bar" title="76.3%"><i style="width:76.3%"></i></div>
+      <div class="bar" title="baseline 59.2%"><i class="ref dim" style="width:59.2%"></i></div></td>
+  <td class="num">74.5%（82/110）</td></tr>
+<tr><td>彩色 holdout（9 張 62 房）</td><td class="num">69.3%（43/62）</td>
+  <td class="barcell"><div class="bar" title="69.3%"><i style="width:69.3%"></i></div>
+      <div class="bar" title="baseline 67.7%"><i class="ref dim" style="width:67.7%"></i></div></td>
+  <td class="num">66.7%（34/51）</td></tr>
 </table>
-<div class="note">灰階牆窗為強項；灰階牆並以 0.99 對 0.89 勝過 CubiCasa 深度學習遮罩。彩色窗為 v2.13 首輪接回，仍在早期（90 個漏檢集中於細窄窗與陽台落地窗）。</div>
+<div class="legend"><span><b style="background:var(--s1)"></b>v2.33 現況</span><span><b style="background:var(--s2)"></b>彩色 baseline（2026-08-01 首量）</span></div>
+<div class="note"><b>口徑定義</b>（2026-08-02 定案）：空間切割正確性＝切對的房間／全部 GT 房間（IoU≥0.5 配對率，不論命名）；
+核心5項判讀率＝切對<b>且</b>叫對的核心五類（Kitchen/LivingRoom/Bedroom/Storage/Bath）／核心五類 GT 總數——端到端口徑。
+彩色三輪調優：baseline 59.2% → 63.8%（分割黏連/陽台雙頭）→ 67.8%（口袋鬆綁）→ 75.0%（災難張三件套）→ 76.3%（分割頭語意牆帶）；
+holdout 端到端全對 26 → 39 間（+50%）。
+<span class="gap">誠實註記：彩 dev 的監督式分割頭訓練見過 dev 圖（比照分域雙頭慣例），無偏數字為 LOIO patch AUC 0.974／IoU 0.876；
+holdout 語意牆帶未觸發，泛化待新樣本回驗。</span></div>
 </div>
 
 <h2>(2) 門</h2>
 <div class="card">
 <table>
 <tr><th>項目</th><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th></tr>
-<tr><td>門誤判成窗的過濾（19 個門樣式）</td><td>過濾率（目標 ≥95%）</td><td class="num"><span class="flag good">100%</span></td>
-  <td class="barcell"><div class="bar" title="過濾率 100%"><i style="width:100%"></i></div></td></tr>
-<tr><td rowspan="2">門位偵測（灰階 26 題 GT，106 門）<br><span class="badge">door_match → zone 提名 → score_fused</span></td>
-  <td>召回率</td><td class="num">0.868</td>
-  <td class="barcell"><div class="bar" title="召回率 0.868"><i style="width:86.8%"></i></div></td></tr>
-<tr><td>精準率</td><td class="num">0.576</td>
-  <td class="barcell"><div class="bar" title="精準率 0.576"><i style="width:57.6%"></i></div></td></tr>
+<tr><td rowspan="2">灰階 門位（產品 json doors，GT 111 樘）<br><span class="badge">牆縫門位 gap_door_zones·2026-08-02 重建</span></td>
+  <td>精準率</td><td class="num"><span class="flag good">0.83</span></td>
+  <td class="barcell"><div class="bar" title="P 0.83"><i style="width:83%"></i></div>
+      <div class="bar" title="舊弧掃描路 P 0.38"><i class="ref dim" style="width:38%"></i></div></td></tr>
+<tr><td>召回率</td><td class="num"><span class="flag good">0.81</span>（90/111）</td>
+  <td class="barcell"><div class="bar" title="R 0.81"><i style="width:81%"></i></div>
+      <div class="bar" title="舊弧掃描路 R 0.17"><i class="ref dim" style="width:17%"></i></div></td></tr>
+<tr><td>門誤判成窗的過濾（門過濾集）</td><td>過濾率</td><td class="num"><span class="flag good">98%</span>（84/86）</td>
+  <td class="barcell"><div class="bar" title="98%"><i style="width:98%"></i></div></td></tr>
+<tr><td>彩色 門（偵測現況）</td><td>精準率 / 召回率</td><td class="num"><span class="flag crit">0.38 / 0.47</span></td>
+  <td class="barcell"><div class="bar" title="P 0.38"><i style="width:38%"></i></div>
+      <div class="bar" title="R 0.47"><i style="width:47%"></i></div></td></tr>
 </table>
-<div class="note">zone 提名將召回率由 0.132 拉至 0.868（92/106），精準率 0.576 為下一個優化點（118 個候選中 50 個誤報）。<span class="gap">彩色管線門位尚無 GT——缺口。</span></div>
+<div class="legend"><span><b style="background:var(--s1)"></b>v2.33 現況</span><span><b style="background:var(--s2)"></b>重建前（弧掃描路）</span></div>
+<div class="note">灰門重建鏈：json doors 改源牆縫門位（<code>gap_door_zones</code> 共用核心，與 DXF 批次路口徑統一）＋範圍擦邊收割
+（FN 逐樘分型後最大桶＝門寬差嚴窗 0.4~5.5cm，JSON 產品路放寬窗 (70-110)+(150-200)，房間層分割維持嚴窗零退化）。
+殘餘 FN 19 樘已逐樘分型收案：seamless 10（牆縫射線原理性搭不到，「尖端對縫」實測 -3 房 revert）、halfgap 6（單邊半縫，合併前提不成立）、deadzone 3（110~150cm）。
+<b>彩色門低於可用線，交付停畫不生成</b>（見第 4 節裁定）；弧掃描偵測保留供比例尺推導、窗誤判抑制與 arch 白模（鉸鏈/開向需弧幾何，另輪）。</div>
 </div>
 
-<h2>(3) 空間切割（own_eval 12 題端對端，72 房）</h2>
+<h2>(3) 窗</h2>
 <div class="card">
 <table>
-<tr><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th><th>解讀</th></tr>
-<tr><td>切割命中率（IoU≥0.5 一對一配對）</td><td class="num">76.4%（55/72）</td>
-  <td class="barcell"><div class="bar" title="命中率 76.4%"><i style="width:76.4%"></i></div></td>
-  <td>全題標注修復後重評</td></tr>
-<tr><td>過切率（預測數/GT 數）</td><td class="num">1.03（74/72）</td>
-  <td class="barcell"><div class="bar" title="過切率 1.03（越接近 1 越好）"><i class="dim" style="width:51.5%"></i></div></td>
-  <td>幾乎一房一塊，無碎切</td></tr>
-<tr><td>命中房間的平均 IoU</td><td class="num">0.875</td>
-  <td class="barcell"><div class="bar" title="平均 IoU 0.875"><i style="width:87.5%"></i></div></td>
-  <td>切中的房間輪廓品質良好</td></tr>
+<tr><th>項目</th><th>指標</th><th class="num">數值</th><th class="barcell">0 ─ 100%</th></tr>
+<tr><td>灰階 窗（eval_windows 答案集）</td><td>精準率 / 召回率</td><td class="num"><span class="flag good">98% / 92%</span></td>
+  <td class="barcell"><div class="bar" title="P 98%"><i style="width:98%"></i></div>
+      <div class="bar" title="R 92%"><i style="width:92%"></i></div></td></tr>
+<tr><td>彩色 窗（偵測現況）</td><td>精準率 / 召回率</td><td class="num"><span class="flag crit">61% / 42%</span></td>
+  <td class="barcell"><div class="bar" title="P 61%"><i style="width:61%"></i></div>
+      <div class="bar" title="R 42%"><i style="width:42%"></i></div></td></tr>
 </table>
-<div class="note">2026-07-23 量尺幾何修正（GT 輪廓 flood fill 重建＋get_polygon 尾空格修復）後為 72.6%；2026-07-25 全題標注修復（牆窗門 id 失配等七大陷阱）後 GT 收斂為 72 房，命中率 76.4%、IoU 0.875。剩餘漏接仍集中 floor60（GT 牆未封閉）與開放式空間黏房兩型。<span class="gap">彩色管線空間切割尚無 GT——缺口。</span></div>
+<div class="note">灰階窗維持強項。彩窗 covered_soft 結構化調整（貫穿覆蓋 0.65、殘墨上限）後 F1 微升仍低於可用線；
+多數 FN 卡在開口枚舉層（牆角塊不在共線分群），三重門檻需按畫風分開校準——列為獨立待辦，<b>現況不生成</b>（見第 4 節裁定）。</div>
 </div>
 
-<h2>(4) 空間命名（own_eval 66 具名房，GT 解耦＝假設切割正確）</h2>
+<h2>(4) 彩色門窗輸出裁定（2026-08-03・emit_openings 閘）</h2>
 <div class="card">
 <table>
-<tr><th>證據源 / 方法</th><th class="num">具名正確率</th><th class="barcell">0 ─ 100%</th><th>備註</th></tr>
-<tr><td>現行管線（CubiCasa v5 微調，預設權重）</td><td class="num"><span class="flag good">0.788</span></td>
-  <td class="barcell"><div class="bar" title="CC v5 0.788"><i style="width:78.8%"></i></div></td>
-  <td>標注 id 失配修復後首訓（25 題），2026-07-25 接管預設</td></tr>
-<tr><td>CubiCasa 基線投票（前預設）</td><td class="num"><span class="flag crit">0.273</span></td>
-  <td class="barcell"><div class="bar" title="CC 基線 0.273"><i class="ref" style="width:27.3%"></i></div></td>
-  <td>保守棄權策略，多判 space；已退役</td></tr>
-<tr><td>DINOv2 裁切分類（131 張訓練）</td><td class="num">0.730</td>
-  <td class="barcell"><div class="bar" title="DINOv2 0.730（舊 GT 63 房快照）"><i class="dim" style="width:73%"></i></div></td>
-  <td>舊 GT 63 房快照，待新 GT 重評；無 CubiCasa 授權包袱</td></tr>
-<tr><td>VLM 零樣本（上限參考）</td><td class="num">0.984</td>
-  <td class="barcell"><div class="bar" title="VLM 0.984（循環性分數，僅供上限參考）"><i class="dim" style="width:98.4%"></i></div></td>
-  <td>※ 分數有循環性（GT 覆核多採其建議），僅證明裁切資訊量上限</td></tr>
+<tr><th>輸出路</th><th>現況</th><th>行為</th></tr>
+<tr><td>灰階 json doors / windows</td><td class="num"><span class="flag good">生成</span></td><td>門 P 0.83/R 0.81、窗 P 98/R 92，正常交付</td></tr>
+<tr><td>彩色 json doors / windows</td><td class="num"><span class="flag crit">不生成</span></td><td><code>emit_openings=false</code> 預設關；json 帶 <code>openings_suppressed</code> 標記供下游識別</td></tr>
+<tr><td>彩色 門窗偵測本身</td><td class="num">照常執行</td><td>結果只供內部使用：窗帶封口、比例尺推導、門縫抑制——不進交付</td></tr>
 </table>
-<div class="note">GT＝2026-07-25 全題標注修復版（72 房，其中 66 具名）。v5 recall：kitchen 0.90／living 1.00／bed 0.80／bath 0.86／entry 0.43，八類無一倒退；殘餘誤命名集中 bed→living、entry→living。歷屆 v1~v4 均敗於標注 id 失配（手畫牆窗門對訓練隱形），資料修復後同配方立即反轉。<span class="gap">彩色管線命名尚無 GT——缺口。</span></div>
+<div class="note"><b>裁定理由</b>：彩門 P 0.38／彩窗 P 61% 低於可用線，錯的門窗畫在圖上比沒有更糟——寧可停畫、由後端/使用者自建。
+彩門證據層四判別器（迴轉區 fence 密度、門弧近鄰、幾何錨定弧、門扇白淨度）全數實測不可分後收案；
+「中央最近牆縫」選拔規則離線 A/B 否決（R 0.47→0.07）。突破繫於彩圖牆縫品質整體提升，屬另立專輪。</div>
 </div>
 
-<h2>診斷結論（瓶頸排序）</h2>
+<h2>(5) 房型命名能力</h2>
+<div class="card">
+<table>
+<tr><th>機制</th><th class="num">數值</th><th>備註</th></tr>
+<tr><td>分域雙頭 DINOv2 線性頭（灰階頭）</td><td class="num">配對房命名 ~95%（dev）</td><td>room_head.npz·答案卷標籤修正後基準 86.1%（own_eval 命名口徑）</td></tr>
+<tr><td>分域雙頭 DINOv2 線性頭（彩色頭）</td><td class="num">83.9%（訓練驗收）</td><td>room_head_color.npz·混訓實測傷灰階（-5.5pp）故分域，依 fence 偵測選頭</td></tr>
+<tr><td>OCR 房名文字證據</td><td class="num">—</td><td>rapidocr·信心優先配對、防重複認領；印刷房名優先序高於語意頭</td></tr>
+<tr><td>符號證據層</td><td class="num">961 條模板</td><td>v225 量測驅動啟用（probe 弱標籤全掃 17TP/0FP@0.8）·TPL_THR 逐模板門檻·白/黑名單</td></tr>
+</table>
+<div class="note">房型詞彙 10 類 CamelCase（2026-08-01 定案）：Kitchen／LivingRoom／Bedroom／Bath／Entry／Storage／Garage／Hallway／Stair／Balcony＋中性 room。
+命名優先序：印刷房名（OCR）＞ DINOv2 語意 ＞ 幾何/面積規則；跨房後處理含單間限額與非門橋合併。</div>
+</div>
+
+<h2>(6) 分割機制清單（v2.25→v2.33 出貨鏈）</h2>
+<div class="card">
+<ul class="mech">
+<li><b>監督式分割頭語意牆帶</b>（seg_head.npz 7KB）：DINOv2 patch＋線性頭機率圖低機率脊線→語意牆帶→白牆救援 flood；近白暗示牆被語意層看見。彩 dev 114→116，灰 dev 逐位元一致；SEG_BANDS=0 可停用、資產缺檔零行為。</li>
+<li><b>白牆救援輪</b>：災難張三型觸發（低覆蓋房少／巨塊黏連／碎裂型 cov&lt;50% 且房數≥20）＋收斂採用閘＋證據刀限定；正常張零接觸。</li>
+<li><b>假帶縫合</b>（_ww_suture_merge）：過切殘塊四道門全過才併回（floor_08 客廳翻盤）。</li>
+<li><b>陽台口袋收割</b>：圍欄補屏障重灌水收殼外封閉口袋（彩 Balcony 端到端 0/28→19 間全對）。</li>
+<li><b>空心雙線牆補抓</b>（hollow_wall_rects）＋<b>假窗物理判別</b>（window_side_gate：真窗恰一側通室外）＋<b>外圈封口</b>（envelope_gap_seals 260~600cm 最後防線）。</li>
+<li><b>符號錨點切分</b>：開放 LDK 的 DINO 讓行鉤子＋符號子群離群剔除；{Entry, LivingRoom} 提案對。</li>
+<li><b>灰階 DINO 種子補位</b>：符號種子跑完後補一輪 DINO 種子合併（floor06/38 全中）。</li>
+</ul>
+<div class="note">全程紀律：每機制 TDD、逐輪 A/B 淨正向才收、失敗假設誠實記錄並 revert（floor52 假廚符污染、floor04 尖端對縫、
+帶級真/假三角度量測低天花板等負結果均入 changelog）；開發只看 dev、保留集只在循環收尾量測。</div>
+</div>
+
+<h2>診斷結論（收案時瓶頸排序）</h2>
 <div class="card">
 <ol class="diag">
-<li><b>命名層破口已收割</b>：v5 微調接管預設，0.273 → 0.788，且已超過 DINOv2 0.730——「DINOv2 接融合層」的優先序待重議（可轉為互補證據源或以新 GT 重評後再比）。剩餘誤命名集中 living 混淆與 storage/outdoor 樣本不足，擴充 own_dataset（彩色 30 題待修）是下一槓桿。</li>
-<li><b>彩色窗召回率 38%</b> 成為各層級中最低的真實破口（首輪接回，早期狀態）。</li>
-<li><b>空間切割 76.4%</b>（標注修復後重評，IoU 0.875）：剩餘問題集中在 GT 牆未封閉的 floor60 與開放式空間黏房，非普遍性失效。</li>
-<li><b>門位精準率 0.576</b> 有優化空間；召回率 0.868 可用。</li>
-<li><b>強項維持</b>：灰階牆 0.99／灰階窗 96%／門過濾 100%。</li>
-<li><span class="gap">註：CubiCasa 域（非目標域）v5 具名 macro-F1 0.797 vs 基線 0.838，storage/garage recall 有退——產品取向已定調 own 風格優先，此為已知取捨。</span></li>
+<li><b>彩色棄守畫風 floor_07/08/09</b>（dev 殘餘最大桶）：近白暗示牆／空心雙線／木紋牆，「用暗色找牆」古典路線原理極限；分割頭已咬回 2 間，其餘留分母如實計分。後路＝色塊分割大工程或按畫風模板先驗（另立案）。</li>
+<li><b>彩窗彩門</b>：低於可用線→不生成（第 4 節）。突破需彩圖牆縫/墨水證據層整體提升，非調參可解。</li>
+<li><b>灰門殘餘 19 樘</b>：seamless/halfgap/deadzone 三型皆原理性收案，工程手段實測淨負已 revert；arch 白模門弧幾何（鉸鏈/開向）另輪。</li>
+<li><b>符號召回</b>：12px 線稿（floor13 型）連同源模板都配不上，解析度天花板收案；美式畫風素材輪已補 961 條後到頂。</li>
+<li><b>強項維持</b>：灰階切割 88.9/83.3、核心五類判讀 91.8、灰窗 98/92、門過濾 98%。</li>
 </ol>
-<div class="note">GT 缺口：彩色管線僅有牆窗答案，門位／切割／命名三層無 GT——可沿用「VLM 盲標＋人工把關」流程低成本建集（本輪 47 筆補名實測約 20 分鐘）。</div>
 </div>
 
 <footer>
-資料來源：eval_windows.py、eval_color_walls.py、score_compare.py、eval_doors.py、eval_door_match.py、eval_rooms_cc.py（--own-eval／--gt-seg）、probe_room_classifier.py｜
-報表快照：json/eval_rooms/report_own*.json（2026-07-25 v5 預設權重＋標注修復後版本；歷程見 git log json/eval_rooms/）｜
-產出：2026-07-25，RoomPilot-Agent cody 分支
+資料來源：eval_rooms_cc.py（--own-dir 四量尺）、eval_door_json.py、eval_doors.py、eval_windows.py、probe_symbol_quality.py｜
+歷程：Readme.md changelog v2.25~v2.33（含各輪 A/B 數字與誠實負結果）；架構總覽另見 docs/png2dxf_pipeline.html｜
+產出：2026-08-03，RoomPilot-Agent cody 分支 v2.33 收案版（前版 2026-07-25 報表見 git 歷史）
 </footer>
 </div>
 </body>
