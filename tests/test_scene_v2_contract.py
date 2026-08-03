@@ -459,6 +459,23 @@ def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
     assert "!sentFurnitureIds.has(String(item.id))" in source
 
 
+def test_proposal_review_caches_the_scene_per_version() -> None:
+    """第 7 步色卡切換要有暫存記憶:同一場景版本只載一次(切色卡不重載、
+    不白屏),真的需要載入(換方案/場景重建)才重載並顯示請稍候;
+    並發載入以 in-flight promise 去重,避免互相清場造成永久空白。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function ensureProposalSceneLoaded" in source
+    assert "proposalSceneVersionLoaded" in source
+    assert "場景還在準備中，請稍候…" in source
+    assert source.count("proposalSceneVersionLoaded = null") >= 2   # 重建/編輯都失效
+    prepare = source.split("async function prepareProposalReview")[1].split(
+        "\nfunction "
+    )[0]
+    assert "ensureProposalSceneLoaded()" in prepare
+    assert "proposalViewer.loadScene(" not in prepare              # 只經快取入口載入
+
+
 def test_realistic_entry_reveals_the_scene_exactly_once() -> None:
     """進即時寫實一次呈現:第一張色卡的材質、軟裝與家具換款全部就緒才
     載入場景(deferReload),進場不再連續自我刷新;其餘色卡等點選才套用,

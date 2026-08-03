@@ -1248,6 +1248,7 @@ async function switchDesignScheme(schemeId) {
 }
 
 function markRealisticSceneEdited() {
+  proposalSceneVersionLoaded = null;   // 場景內容變了,第 7 步快取失效
   if (state.workflow?.completed.includes("realistic_3d")) {
     state.workflow.invalidateFrom("realistic_3d");
     state.proposalReview = {
@@ -10889,6 +10890,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       }),
     });
     state.sceneData = sceneDataFromGenerateResponse(payload);
+    proposalSceneVersionLoaded = null;   // 場景重建,第 7 步快取失效
     pruneRetiredAppliances({ notify: true });
     const generatedInvalid = (state.sceneData.scene_objects || []).filter(
       (item) => item.placement_failed || !item.position_cm,
@@ -12471,11 +12473,31 @@ function renderProposalSummary() {
   `).join("");
 }
 
+// 第 7 步場景快取:同一版本(方案/專案修訂/風格包)只載一次 ——
+// 色卡切換不改場景內容,不得重載(白屏);並發 loadScene 會互相清場
+// 造成永久空白,以 in-flight promise 去重。
+let proposalSceneVersionLoaded = null;
+let proposalSceneLoading = null;
+
+async function ensureProposalSceneLoaded() {
+  const version = currentSceneVersion();
+  if (proposalSceneVersionLoaded === version) return;   // 暫存記憶:直接呼叫出來
+  if (proposalSceneLoading) {
+    await proposalSceneLoading;
+    if (proposalSceneVersionLoaded === currentSceneVersion()) return;
+  }
+  element.masterViewStatus.textContent = "場景還在準備中，請稍候…";
+  proposalSceneLoading = proposalViewer.loadScene(state.sceneData)
+    .then(() => { proposalSceneVersionLoaded = version; })
+    .finally(() => { proposalSceneLoading = null; });
+  await proposalSceneLoading;
+}
+
 async function prepareProposalReview() {
   if (!state.sceneData) return;
   renderProposalSummary();
   renderProposalPaletteSelection();
-  await proposalViewer.loadScene(state.sceneData);
+  await ensureProposalSceneLoaded();
   const saved = state.proposalReview.masterView?.camera;
   if (saved) proposalViewer.setCameraState(saved);
   else {
