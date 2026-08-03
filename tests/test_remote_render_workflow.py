@@ -57,6 +57,19 @@ def test_render_payload_keeps_design_needs_but_removes_identity_fields() -> None
     assert "address" not in bedroom
 
 
+def test_render_payload_removes_identity_fields_from_agent_handoff() -> None:
+    payload = _payload("project-1")
+    payload["agent_generation_handoff"] = {
+        "global_profile": {"name": "Ada", "household_size": "2"},
+        "rooms": [{"room_id": "bedroom-1", "furniture_preference": {"description": "light wood"}}],
+    }
+
+    prepared = prepare_render_payload(payload)
+
+    assert "name" not in prepared["agent_generation_handoff"]["global_profile"]
+    assert prepared["agent_generation_handoff"]["rooms"][0]["room_id"] == "bedroom-1"
+
+
 def test_room_render_requires_each_room_view_to_have_a_locked_camera() -> None:
     payload = _payload("project-1")
     payload["mode"] = "room_final"

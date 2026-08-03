@@ -118,6 +118,9 @@ def prepare_render_payload(payload: dict[str, Any]) -> dict[str, Any]:
     prepared = deepcopy(payload)
     prepared["request_id"] = str(payload.get("request_id") or uuid4().hex)
     prepared["requirements"] = _strip_private_fields(prepared.get("requirements") or {})
+    prepared["agent_generation_handoff"] = _strip_private_fields(
+        prepared.get("agent_generation_handoff") or {}
+    )
     return prepared
 
 

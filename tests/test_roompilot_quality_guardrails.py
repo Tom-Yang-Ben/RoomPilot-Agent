@@ -2,7 +2,10 @@ from pathlib import Path
 
 import backend.server.scene_service as scene_service
 from backend.paths import STATIC_DIR
-from backend.server.scene_service import build_scene_payload
+from backend.server.scene_service import (
+    build_agent_generation_handoff,
+    build_scene_payload,
+)
 from backend.upgrade3d.dxf_parser import parse_dxf_file
 
 
@@ -245,3 +248,79 @@ def test_scene_payload_keeps_user_required_furniture_when_placement_fails(monkey
     assert payload["scene_objects"][0]["furniture_id"] == "required-sofa"
     assert payload["scene_objects"][0]["placement_failed"] is True
     assert payload["placement_resolution_report"][0]["action"] == "escalate"
+
+
+def test_agent_generation_handoff_keeps_room_preference_and_final_step6_position():
+    handoff = build_agent_generation_handoff(
+        {
+            "space_type": "bedroom",
+            "style_card_id": "natural",
+            "rag_jobs": {"bedroom-1": {"status": "completed", "jobId": "rag-1"}},
+            "roomRequirements": {
+                "bedroom-1": {
+                    "roomType": "Bedroom",
+                    "roomLabel": "主臥",
+                    "usage": ["sleep", "work"],
+                    "furniture": {
+                        "preferenceTags": ["淺木色", "圓角"],
+                        "preferenceText": "收納多、靠窗閱讀",
+                        "selected": [{"furniture_id": "bed-1", "count": 1}],
+                    },
+                    "generativeEquipment": {"required": False},
+                    "surfaces": {"paletteId": "natural"},
+                }
+            },
+        },
+        {
+            "coordinate_unit": "cm",
+            "room_regions": [{"id": "bedroom-1", "width_cm": 320, "depth_cm": 300}],
+            "door_segments": [],
+            "window_segments": [],
+            "wall_segments": [],
+        },
+        [{
+            "instance_id": "instance-1",
+            "furniture_id": "bed-1",
+            "placement_room_id": "bedroom-1",
+            "catalog_furniture_id": "bed-1",
+            "normalized_type": "bed",
+            "name_zh_raw": "標準雙人床",
+            "position_cm": {"x": 120, "z": 90},
+            "rotation_y_deg": 180,
+            "size_cm": {"width": 150, "depth": 200},
+            "position_locked": True,
+        }],
+    )
+
+    assert handoff["space_constraints_are_fixed"] is True
+    room = handoff["rooms"][0]
+    assert room["room_type"] == "Bedroom"
+    assert room["geometry"]["width_cm"] == 320
+    assert room["furniture_preference"]["tags"] == ["淺木色", "圓角"]
+    assert room["furniture_preference"]["description"] == "收納多、靠窗閱讀"
+    assert room["rag"]["jobId"] == "rag-1"
+    assert room["final_step6_furniture"] == [{
+        "instance_id": "instance-1",
+        "catalog_item_id": "bed-1",
+        "normalized_type": "bed",
+        "name_zh": "標準雙人床",
+        "position_cm": {"x": 120, "z": 90},
+        "rotation_deg": 180,
+        "size_cm": {"width": 150, "depth": 200},
+        "position_locked": True,
+    }]
+
+
+def test_agent_generation_handoff_accepts_list_shaped_room_requirements():
+    handoff = build_agent_generation_handoff(
+        {
+            "room_requirements": [
+                {"roomId": "living-1", "roomType": "LivingRoom", "usage": ["gathering"]},
+            ],
+        },
+        {"room_regions": []},
+        [],
+    )
+
+    assert handoff["rooms"][0]["room_id"] == "living-1"
+    assert handoff["rooms"][0]["final_step6_furniture"] == []
