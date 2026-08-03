@@ -459,13 +459,18 @@ def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
     assert "!sentFurnitureIds.has(String(item.id))" in source
 
 
-def test_bedroom_layout_always_includes_a_bed_spec() -> None:
-    """臥室一定要有床:不論使用者勾選、agent 選件或尺寸過濾漏掉,
-    2D 佈局規格都要自動補上床(放不下時引擎只升級、不靜默移除)。"""
+def test_room_layout_always_includes_essential_furniture_specs() -> None:
+    """房型基礎家具保底:臥室床/客廳沙發/餐廚餐桌,不論使用者勾選、
+    agent 選件或尺寸過濾漏掉,2D 佈局規格都要自動補上(放不下時引擎
+    只升級、不靜默移除);有餐桌就至少配 2 張餐椅。"""
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert "臥室必備床，已自動補上" in source
-    assert 'room.type === "bedroom"' in source
+    assert "ROOM_ESSENTIAL_SPEC_TYPES" in source
+    assert 'bedroom: "bed"' in source
+    assert 'living_room: "sofa"' in source
+    assert 'kitchen: "dining-table"' in source
+    assert "房型基礎家具，已自動補上" in source
+    assert "餐桌成套餐椅，已自動補上" in source
 
 
 def test_scheme_variants_share_confirmed_architecture() -> None:

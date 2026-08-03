@@ -8975,6 +8975,15 @@ function refreshQuestionnaireFurnitureRecommendations() {
   void ensureQuestionnaireFurnitureRecommendations(room, { force: true });
 }
 
+// 房型基礎家具(與 backend/agent/knowledge.py 的 ROOM_ESSENTIALS 同步):
+// 2D 佈局規格層的最後保底,三條 specs 路徑(使用者勾選/agent 選件/推薦)
+// 匯合後統一檢查。
+const ROOM_ESSENTIAL_SPEC_TYPES = Object.freeze({
+  bedroom: "bed",
+  living_room: "sofa",
+  kitchen: "dining-table",
+});
+
 function specsFromSelectionResponse(room, response, fallbackSpecs) {
   const selectedRoom = (response.rooms || []).find((item) => item.room_id === room.id);
   if (!selectedRoom?.items?.length) return fallbackSpecs;
@@ -9106,13 +9115,23 @@ async function autoLayoutFurniture() {
         specsFromSelectionResponse(room, selection, specs),
       )
       : specs;
-    // 臥室一定要有床:不論使用者勾選、agent 選件或尺寸過濾漏掉,一律補上
-    //(放不下時引擎只升級回報、不會靜默移除)。
-    if (
-      room.type === "bedroom"
-      && !selectedSpecs.some(([type]) => type === "bed" || type === "sofa-bed")
-    ) {
-      selectedSpecs.push(["bed", "standard", "臥室必備床，已自動補上", true]);
+    // 房型基礎家具保底(與後端 knowledge.ROOM_ESSENTIALS 同步):
+    // 臥室=床、客廳=沙發、餐廚=餐桌;不論使用者勾選、agent 選件或尺寸
+    // 過濾漏掉,一律補上(放不下時引擎只升級回報、不會靜默移除)。
+    const essentialType = ROOM_ESSENTIAL_SPEC_TYPES[room.type];
+    const hasEssential = essentialType && selectedSpecs.some(([type]) =>
+      type === essentialType || (essentialType === "bed" && type === "sofa-bed"));
+    if (essentialType && !hasEssential) {
+      selectedSpecs.push([essentialType, "standard", "房型基礎家具，已自動補上", true]);
+    }
+    // 有餐桌就要成套餐椅:前端保底 2 張(桌寬 ≥140 補到 4 由伺服器端處理),
+    // 廚房絕不會只有一張椅子。
+    if (selectedSpecs.some(([type]) => type === "dining-table" || type === "table")) {
+      const chairSpecs = selectedSpecs.filter(([type]) => type === "dining-chair");
+      const chairVariant = chairSpecs[0]?.[1] || "standard";
+      for (let added = chairSpecs.length; added < 2; added += 1) {
+        selectedSpecs.push(["dining-chair", chairVariant, "餐桌成套餐椅，已自動補上", true]);
+      }
     }
     const roomItems = [];
     selectedSpecs.forEach(([type, variant, reason, autoAdded, catalogItem], index) => {
