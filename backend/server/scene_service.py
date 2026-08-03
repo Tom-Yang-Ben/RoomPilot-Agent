@@ -1620,6 +1620,7 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
         "depth_cm": round(depth_cm, 2),
         "room_height_cm": round(float(editor.get("room_height_cm") or 270), 2),
         "source": "user_confirmed",
+        "geometry_rev": FLOORPLAN_GEOMETRY_REV,
         "wall_count": len(wall_segments),
         "door_count": len(door_segments),
         "window_count": len(window_segments),
@@ -1669,6 +1670,11 @@ WIDE_WALK_MARGIN_CM = 20.0
 
 
 SNAP_OPENING_TO_WALL_MAX_CM = 150.0
+
+# 幾何產生規則的版本。修正會改變既有專案輸出幾何時遞增；前端復原時發現
+# 存檔的 floorplan 版本較舊，就以第 4 步確認資料重新產生（rev 2：窗不再
+# 被 clamp 拖離兩段牆之間的缺口）。
+FLOORPLAN_GEOMETRY_REV = 2
 ALIGN_DOOR_TO_WALL_LINE_MAX_CM = 60.0
 
 
@@ -1792,7 +1798,11 @@ def _snap_openings_to_walls(
         except (TypeError, ValueError):
             return None
 
-    def _offset_to_wall(mid: tuple[float, float], wall: dict[str, Any]):
+    def _offset_to_wall(
+        mid: tuple[float, float],
+        wall: dict[str, Any],
+        along_slack_cm: float,
+    ):
         start, end = _point(wall.get("start")), _point(wall.get("end"))
         if start is None or end is None:
             return None
@@ -1801,7 +1811,13 @@ def _snap_openings_to_walls(
         if length_sq <= 0:
             return None
         t = ((mid[0] - start[0]) * dx + (mid[1] - start[1]) * dz) / length_sq
-        t = max(0.0, min(1.0, t))
+        # 投影到牆的「延伸線」，不 clamp 進線段——窗跟門一樣常佔在兩段共線
+        # 牆的缺口裡，夾到端點會把整扇窗沿牆拖走，變成半截在牆上半截懸空
+        # （2026-08-03：window-2 的中心被拖到 wall-12 的端點）。沿牆超出量
+        # 以開口半長加餘裕為限，再遠就是同一條線上不相干的牆。
+        overshoot = max(-t, t - 1.0, 0.0) * math.sqrt(length_sq)
+        if overshoot > along_slack_cm:
+            return None
         foot = (start[0] + t * dx, start[1] + t * dz)
         return foot[0] - mid[0], foot[1] - mid[1]
 
@@ -1813,13 +1829,15 @@ def _snap_openings_to_walls(
             snapped.append(opening)
             continue
         mid = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+        half_length_cm = math.hypot(end[0] - start[0], end[1] - start[1]) / 2
+        along_slack_cm = half_length_cm + 30.0
         host = walls_by_id.get(str(opening.get("host_wall_id")))
         candidates = [host] if host else list(walls)
         best: tuple[float, tuple[float, float]] | None = None
         for wall in candidates:
             if not isinstance(wall, dict):
                 continue
-            offset = _offset_to_wall(mid, wall)
+            offset = _offset_to_wall(mid, wall, along_slack_cm)
             if offset is None:
                 continue
             gap = math.hypot(offset[0], offset[1])
