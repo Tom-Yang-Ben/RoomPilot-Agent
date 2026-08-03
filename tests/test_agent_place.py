@@ -193,6 +193,44 @@ def test_resolve_keeps_unlabeled_companion_without_anchor():
     assert report == []
 
 
+# ---------- resolve_placements:預設無上限,修到收斂 ----------
+
+def test_resolve_default_unbounded_resolves_cascading_failures():
+    """連鎖位移:每輪修完一件又擠出下一件。舊預設 max_rounds=3 會提前退出,
+    留下 placement_failed 件;預設無上限必須修到全數收斂(或無可動)。"""
+    items = [_item(f"i{n}", "sofa", 200, 90) for n in range(6)]
+
+    def cascading_place(working):
+        # 模擬引擎:多於一件時,第一件永遠被其他件擠到放不下
+        return [
+            {
+                "furniture_id": candidate["furniture_id"],
+                "normalized_type": "sofa",
+                "placement_failed": index == 0 and len(working) > 1,
+            }
+            for index, candidate in enumerate(working)
+        ]
+
+    objs = cascading_place(items)
+    objs2, final, report = resolve_placements(objs, items, [], place_fn=cascading_place)
+    assert [f["furniture_id"] for f in final] == ["i5"]
+    assert all(not o["placement_failed"] for o in objs2)
+    assert [r["action"] for r in report] == ["remove"] * 5
+
+
+def test_pick_smaller_skips_outdoor_models():
+    """換小替補不得引入戶外家具(型錄把庭院躺椅歸在室內類型)。"""
+    outdoor = {
+        **_item("patio", "sofa", 120, 70),
+        "name_zh_raw": "全天候戶外露臺沙發",
+        "name_en": "All-weather outdoor patio sofa",
+    }
+    indoor = _item("indoor", "sofa", 150, 80)
+    picked = pick_smaller_model([outdoor, indoor], "sofa", footprint_cap=200 * 90, exclude_ids=set())
+    assert picked["furniture_id"] == "indoor"
+    assert pick_smaller_model([outdoor], "sofa", footprint_cap=200 * 90, exclude_ids=set()) is None
+
+
 # ---------- 引擎成組回歸:提示順序 → 床頭櫃貼床 ----------
 
 def test_nightstand_pair_lands_beside_bed():
@@ -208,6 +246,57 @@ def test_nightstand_pair_lands_beside_bed():
     # 兩個床頭櫃分居床兩側,且緊貼床緣(距床中心 ≤ 床寬/2 + 櫃寬 + 餘裕)
     assert (xs[0] - bed_x) * (xs[1] - bed_x) < 0
     assert all(abs(x - bed_x) <= 160 / 2 + 40 + 15 for x in xs)
+
+
+# ---------- 引擎嚴格成組:副件不再退到泛用候選亂放 ----------
+
+def test_engine_marks_companion_failed_without_anchor_under_hints():
+    """hints 啟用時副件只准貼主件:主件不在 → 引擎層直接標失敗(交修復移除),
+    不再退到泛用候選「成功」落在遠牆(床頭櫃流落遠牆的根因)。"""
+    ns = _item("ns", "bedside-table", 40, 40)
+    objs = generate_layout(400, 400, [ns], hints=placement_hints([ns]))
+    assert objs[0]["placement_failed"] is True
+    assert "床" in objs[0]["placement_reason"]
+
+
+def test_dining_chairs_pair_around_dining_table():
+    table = _item("table", "dining-table", 160, 90, instance_id="t-1")
+    chairs = [
+        _item("chair", "dining-chair", 45, 50, instance_id=f"c-{i}") for i in range(4)
+    ]
+    items = [table, *chairs]
+    objs = generate_layout(400, 360, items, hints=placement_hints(items))
+    by_id = {o["instance_id"]: o for o in objs}
+    assert all(not o["placement_failed"] for o in objs)
+    tx = by_id["t-1"]["position_cm"]["x"]
+    tz = by_id["t-1"]["position_cm"]["z"]
+    sides = set()
+    for i in range(4):
+        chair = by_id[f"c-{i}"]
+        dx = chair["position_cm"]["x"] - tx
+        dz = chair["position_cm"]["z"] - tz
+        assert abs(dx) <= 160 / 2 and abs(dz) <= 90 / 2 + 50 + 10, f"c-{i} 未貼桌"
+        sides.add(dz > 0)
+    assert sides == {True, False}          # 兩長邊都有椅子
+
+
+def test_corridor_keeps_free_seating_out_of_sofa_tv_axis():
+    """沙發→電視櫃的視聽走廊只留給茶几/地毯;躺椅/泛用件不得卡在中間,
+    但側邊有位就要放得下(不是整件消失)。"""
+    sofa = _item("sofa", "sofa", 200, 90)
+    tv = _item("tv", "tv-bench", 120, 40)
+    lounge = _item("lounge", "lounge-chair", 90, 80)
+    items = [sofa, tv, lounge]
+    objs = generate_layout(450, 380, items, hints=placement_hints(items))
+    by_id = {o["furniture_id"]: o for o in objs}
+    assert all(not o["placement_failed"] for o in objs)
+    sofa_x = by_id["sofa"]["position_cm"]["x"]
+    band_left, band_right = sofa_x - 100, sofa_x + 100   # 走廊寬 = 沙發寬
+    lx = by_id["lounge"]["position_cm"]["x"]
+    lw = by_id["lounge"]["footprint_cm"]["width"]
+    assert lx + lw / 2 <= band_left + 3 or lx - lw / 2 >= band_right - 3, (
+        f"躺椅 x={lx} 侵入沙發-電視軸線 [{band_left}, {band_right}]"
+    )
 
 
 # ---------- 引擎 hints 回歸(能力保留:anchor 只改試放順序) ----------

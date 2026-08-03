@@ -134,6 +134,52 @@ def test_frontend_no_longer_maps_questionnaire_appliances_to_an_api() -> None:
     assert "rankCatalogFurniture(catalogCandidates, request)" in source
 
 
+def test_outdoor_named_rows_rank_below_indoor_for_indoor_rooms() -> None:
+    module_uri = (STATIC / "scene_furniture_retrieval.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ rankCatalogFurniture }} from {json.dumps(module_uri)};
+
+        const candidates = [
+          {{
+            furniture_id: "outdoor-chaise",
+            name_en: "All-weather adjustable outdoor patio chaise lounge",
+            name_zh: "全天候戶外露臺躺椅",
+            normalized_type: "armchair",
+            primary_style: "scandinavian",
+            size_cm: {{ width: 90, depth: 80 }},
+            model_url: "/models/outdoor.glb",
+          }},
+          {{
+            furniture_id: "indoor-armchair",
+            name_en: "EKENÄSET armchair",
+            normalized_type: "armchair",
+            size_cm: {{ width: 80, depth: 75 }},
+            model_url: "/models/indoor.glb",
+          }},
+        ];
+        const living = rankCatalogFurniture(candidates, {{
+          type: "armchair", roomType: "living_room", styleId: "scandinavian",
+          widthCm: 90, depthCm: 80,
+        }});
+        const balcony = rankCatalogFurniture(candidates, {{
+          type: "armchair", roomType: "balcony", styleId: "scandinavian",
+          widthCm: 90, depthCm: 80,
+        }});
+
+        console.log(JSON.stringify({{
+          living: living.map((item) => item.furniture_id),
+          balcony: balcony.map((item) => item.furniture_id),
+        }}));
+        """
+    )
+
+    assert result == {
+        "living": ["indoor-armchair", "outdoor-chaise"],
+        "balcony": ["outdoor-chaise", "indoor-armchair"],
+    }
+
+
 def test_semantic_product_name_rejects_wrongly_classified_catalog_rows() -> None:
     module_uri = (STATIC / "scene_furniture_retrieval.js").as_uri()
     result = run_workflow_script(

@@ -81,6 +81,30 @@ def affinity_permits(normalized_type: str | None, room_type: str | None) -> bool
     allowed = ROOM_AFFINITY.get(family_of(normalized_type))
     return not (allowed and room_type and room_type not in allowed)
 
+
+# 戶外家具記號:Kai 型錄把庭院躺椅/露臺沙發/戶外餐椅歸在 sofa、armchair、
+# dining-chair 等室內類型,room_types 也誤標 living_room —— 唯一可靠的訊號是
+# 名稱/分類字串。自動選件與換小替補一律排除戶外品;使用者在 /library 明確
+# 挑選的不在此限(尊重使用者)。
+OUTDOOR_TOKENS: tuple[str, ...] = (
+    "戶外", "露臺", "露台", "庭院", "泳池", "outdoor", "patio", "all-weather",
+)
+
+# 允許戶外家具的房型(問卷 taxonomy 沒有 outdoor,保留給未來資料)。
+OUTDOOR_ROOM_TYPES: tuple[str, ...] = ("balcony", "outdoor")
+
+
+def is_outdoor_item(item: dict) -> bool:
+    """名稱/分類字串含戶外記號即視為戶外家具(型錄類型與 room_types 不可信)。"""
+    text = " ".join(
+        str(item.get(key) or "")
+        for key in (
+            "name_en", "name_zh", "name_zh_raw",
+            "category_label", "normalized_type", "object_type_zh",
+        )
+    ).casefold()
+    return any(token in text for token in OUTDOOR_TOKENS)
+
 # 擺位主件(成組的錨):最先卡好牆位,泛用件次之,副件(COMPANION_OF)最後
 # 擺 —— 引擎的成組候選要有「已就位的主件」才貼得上去。
 ANCHOR_FAMILIES: tuple[str, ...] = ("bed", "sofa", "dining-table", "desk")
