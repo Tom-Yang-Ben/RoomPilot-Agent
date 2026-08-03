@@ -459,6 +459,15 @@ def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
     assert "!sentFurnitureIds.has(String(item.id))" in source
 
 
+def test_room_view_suggestions_use_world_coordinates() -> None:
+    """逐房建議視角必須換算成 three.js 世界座標(世界 z = −場景 z):
+    不取負的話第 7/8 步視角上下鏡像,「廚房視角」會框到對面的房間。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "position_cm: [centerX + width * 0.28, 145, -(centerZ + depth * 0.28)]" in source
+    assert "target_cm: [centerX, 82, -centerZ]" in source
+
+
 def test_proposal_review_caches_the_scene_per_version() -> None:
     """第 7 步色卡切換要有暫存記憶:同一場景版本只載一次(切色卡不重載、
     不白屏),真的需要載入(換方案/場景重建)才重載並顯示請稍候;

@@ -379,3 +379,50 @@ def test_scene_contract_preserves_2d_room_assignment() -> None:
     [placed] = generate_layout(700, 500, [item])
 
     assert placed["placement_room_id"] == "bedroom-1"
+
+
+def test_kitchen_gets_rug_but_no_floor_lamp() -> None:
+    """落地燈屬起居/閱讀情境:餐廚(餐桌)不配落地燈,照明交天花吊燈方案;
+    餐桌下的地毯照舊。"""
+    table = {
+        "furniture_id": "table-existing",
+        "normalized_type": "dining-table",
+        "name_zh_raw": "既有餐桌",
+        "size_cm": {"width": 160, "depth": 90, "height": 75},
+        "position_cm": {"x": 0, "z": 0},
+        "rotation_y_deg": 0,
+        "position_locked": True,
+        "placement_room_id": "kitchen-1",
+    }
+
+    response = client.post(
+        "/api/scene/decorate",
+        json={
+            "style": "scandinavian",
+            "floorplan": {
+                "coordinate_unit": "cm",
+                "width_cm": 700,
+                "depth_cm": 500,
+                "room_regions": [
+                    {
+                        "room_id": "kitchen-1",
+                        "room_type": "kitchen",
+                        "exterior": [[-350, -250], [350, -250], [350, 250], [-350, 250]],
+                        "holes": [],
+                    }
+                ],
+            },
+            "room": {"id": "kitchen-1", "type": "kitchen"},
+            "placement_room_id": "kitchen-1",
+            "scene_objects": [table],
+        },
+    )
+
+    assert response.status_code == 200
+    roles = {
+        item["auto_decor_role"]
+        for item in response.json()["scene_objects"]
+        if item.get("auto_decor_role")
+    }
+    assert "light" not in roles
+    assert "rug" in roles

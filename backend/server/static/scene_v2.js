@@ -12643,12 +12643,16 @@ function roomCameraSuggestion(room) {
   const centerZ = (zs.reduce((sum, value) => sum + value, 0) / Math.max(zs.length, 1)) - planDepth / 2;
   const width = xs.length ? Math.max(...xs) - Math.min(...xs) : 320;
   const depth = zs.length ? Math.max(...zs) - Math.min(...zs) : 280;
+  // setCameraState 吃 three.js 世界座標,而世界 z = −場景 z(scene_viewer
+  // 的 sceneToWorldPosition 慣例):場景座標算好後 z 必須取負,否則逐房
+  // 視角上下鏡像,「廚房視角」會框到對面的房間(feedback:房型上下相反、
+  // 廚房看見別房的落地燈)。
   return {
     camera_type: "perspective",
     view_mode: "orbit",
     preset: "room",
-    position_cm: [centerX + width * 0.28, 145, centerZ + depth * 0.28],
-    target_cm: [centerX, 82, centerZ],
+    position_cm: [centerX + width * 0.28, 145, -(centerZ + depth * 0.28)],
+    target_cm: [centerX, 82, -centerZ],
     up: [0, 1, 0],
     fov_deg: 58,
     zoom: 1,
