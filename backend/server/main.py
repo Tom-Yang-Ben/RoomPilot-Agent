@@ -2585,9 +2585,25 @@ async def scene_layout(payload: dict) -> dict:
         or _regions_boundary(floorplan, room)
         or _largest_region_boundary(floorplan, room)
     )
+    # 單房呼叫不得動別房家具:標了別房 id 的一律原樣通過,不進重排。
+    # 單房柵格對房外一律視為阻擋,整屋清單塞進來會讓別房鎖定件檢查失敗、
+    # 掉進自動重排 —— 無論哪個前端版本怎麼呼叫,伺服器都不再讓這發生。
+    passthrough: list[dict] = []
+    if placement_room_id:
+        target_room_id = str(placement_room_id)
+        active_objects: list[dict] = []
+        for item in objects:
+            assigned = str(
+                item.get("placement_room_id") or item.get("auto_decor_room_id") or ""
+            )
+            if assigned and assigned != target_room_id:
+                passthrough.append(item)
+            else:
+                active_objects.append(item)
+        objects = active_objects
     return {
         "floorplan": floorplan,
-        "scene_objects": generate_layout(
+        "scene_objects": [*passthrough, *generate_layout(
             room.width,
             room.depth,
             objects,
@@ -2604,7 +2620,7 @@ async def scene_layout(payload: dict) -> dict:
             # 最終確認(進入即時寫實)只驗不排:信任已鎖定的配置,座標照舊,
             # 避免嚴格重排把合法家具塌成 (0,0) 並擋住進入下一步。
             validate_only=bool(payload.get("validate_only")),
-        )
+        )]
     }
 
 
@@ -2738,6 +2754,22 @@ async def scene_decorate(payload: dict) -> dict:
         if not item.get("auto_decor_role")
         or str(item.get("auto_decor_room_id") or "default") not in {room_id, "default"}
     ]
+    # 單房呼叫不得動別房家具:非目標房的一律原樣通過,不進重排。單房柵格
+    # 對房外一律視為阻擋,整屋清單塞進來會讓別房鎖定件 preserve 檢查失敗、
+    # 掉進自動重排(擠進本房或標放不下)——進即時寫實整屋亂掉的伺服器側
+    # 根因,前端即使送整屋(舊版 bundle)也不再受害。
+    decor_passthrough: list[dict] = []
+    if placement_room_id:
+        active_existing: list[dict] = []
+        for item in existing:
+            assigned = str(
+                item.get("placement_room_id") or item.get("auto_decor_room_id") or ""
+            )
+            if assigned and assigned != room_id:
+                decor_passthrough.append(item)
+            else:
+                active_existing.append(item)
+        existing = active_existing
     room_items = []
     for item in existing:
         assigned_room_id = item.get("placement_room_id") or item.get("auto_decor_room_id")
@@ -2848,7 +2880,7 @@ async def scene_decorate(payload: dict) -> dict:
         if not (item.get("auto_decor_role") and item.get("placement_failed"))
     ]
     return {
-        "scene_objects": scene_objects,
+        "scene_objects": [*decor_passthrough, *scene_objects],
         "decor_summary": {
             "requested": requested_roles,
             "placed": [
