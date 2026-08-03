@@ -1844,8 +1844,14 @@ def generate_layout(
     preserve_existing_count: int = 0,
     placement_variant: str = "A",
     hints: dict[str, dict[str, Any]] | None = None,
+    validate_only: bool = False,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
+
+    ``validate_only``:進入即時寫實前的最終確認用。信任使用者已鎖定的配置,
+    每件座標一律照舊、**絕不重排**,只回報是否合法(房間邊界 + 門窗淨空;家具間
+    碰撞由前端 config 檢查把關)。避免嚴格重排把合法配置塌成 (0,0) 疊在原點、
+    並把「確認」擋在原步驟(見 scene_v2.confirmWhiteModel)。
 
     類型錨點(_placement_candidates)只提供「視覺上合理」的候選順序;
     合法性由引擎的 check_placement_with_clearance 把關,錨點全數不合法時
@@ -1953,7 +1959,30 @@ def generate_layout(
         kept_position = False
 
         preserve_position = index < preserve_existing_count and item.get("position_cm")
-        if (item.get("position_locked") or preserve_position) and item.get("position_cm"):
+        if validate_only and item.get("position_cm"):
+            # 檢驗專用:座標照舊、絕不重排,只回報合法與否。房間邊界用聯集 + 12cm
+            # 容差(跨房拖曳、換 GLB 尺寸微變不誤殺);家具間碰撞前端已把關,故
+            # check_placed=False —— 嚴格累計碰撞正是把合法配置塌成 (0,0) 的元凶。
+            candidate = _scene_object_to_placed(item, half_w_cm, half_d_cm)
+            lenient_boundary = regions_boundary or boundary
+            if lenient_boundary is not None:
+                lenient_boundary = lenient_boundary.buffer(12)
+            lock_rot = float(item.get("rotation_y_deg") or 0)
+            legal = _inside_boundary(candidate, lenient_boundary) and raster_free(
+                raster, item_type, width, depth, height,
+                float(item["position_cm"].get("x") or 0),
+                float(item["position_cm"].get("z") or 0),
+                lock_rot, half_w_cm, half_d_cm,
+                check_placed=False,
+            )
+            x_cm = float(item["position_cm"].get("x") or 0)
+            z_cm = float(item["position_cm"].get("z") or 0)
+            rotation = lock_rot
+            locked = bool(item.get("position_locked"))
+            kept_position = True
+            if not legal:
+                failed_reason = "位置超出房間或壓到門窗淨空,請調整後再確認。"
+        elif (item.get("position_locked") or preserve_position) and item.get("position_cm"):
             # 使用者手動擺過:位置仍合法就保留,不重排。
             # 驗證用「所有房間聯集」—— 使用者可能把家具拖到別的房間,重排不能把它踢掉
             candidate = _scene_object_to_placed(item, half_w_cm, half_d_cm)

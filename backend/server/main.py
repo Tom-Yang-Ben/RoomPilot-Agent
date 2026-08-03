@@ -2597,6 +2597,9 @@ async def scene_layout(payload: dict) -> dict:
             # 沙發前)與自由座椅後置整條路是死的 —— 首次產生正確,一按
             # 重排就退化(feedback:躺椅回到沙發前、茶几被擠走)。
             hints=placement_hints(objects),
+            # 最終確認(進入即時寫實)只驗不排:信任已鎖定的配置,座標照舊,
+            # 避免嚴格重排把合法家具塌成 (0,0) 並擋住進入下一步。
+            validate_only=bool(payload.get("validate_only")),
         )
     }
 

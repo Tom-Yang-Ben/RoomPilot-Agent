@@ -101,6 +101,25 @@ def test_locked_position_is_kept_verbatim():
     assert objects["sofa"]["position_locked"] is True
 
 
+def test_validate_only_keeps_positions_and_never_collapses():
+    """最終確認(進入即時寫實):validate_only 一律照舊座標、絕不重排。合法件回報
+    合法;越界件回報失敗但位置**仍照舊,不塌成 (0,0)**(原本重排把合法配置塌到
+    原點疊一起、又卡住進不了下一步,正是此測要守的回歸)。"""
+    legal = _item("sofa", "fabric-sofa", 200, 90)
+    legal["position_cm"] = {"x": 0.0, "z": 0.0}
+    legal["rotation_y_deg"] = 0.0
+    outside = _item("desk", "desk", 120, 60)
+    outside["position_cm"] = {"x": 9000.0, "z": 9000.0}
+    outside["rotation_y_deg"] = 0.0
+    objects = _by_id(generate_layout(
+        ROOM_W, ROOM_D, [legal, outside], room=_rect_room(), validate_only=True,
+    ))
+    assert objects["sofa"]["position_cm"] == {"x": 0.0, "z": 0.0}
+    assert objects["sofa"]["placement_failed"] is False
+    assert objects["desk"]["placement_failed"] is True
+    assert objects["desk"]["position_cm"] == {"x": 9000.0, "z": 9000.0}
+
+
 def test_locked_item_is_placed_before_and_pushes_others_away():
     locked = _item("sofa", "fabric-sofa", 200, 90)
     locked["position_locked"] = True
