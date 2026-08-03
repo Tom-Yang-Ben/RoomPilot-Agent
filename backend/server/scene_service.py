@@ -1153,7 +1153,13 @@ def _floorplan_coordinate_scale_cm(floorplan: dict[str, Any] | None) -> float:
     return 1.0 if (floorplan or {}).get("coordinate_unit") == "cm" else 100.0
 
 
-_WINDOW_CLEARANCE_EXEMPT_TYPES = {"curtain"}
+# 窗簾本來就貼窗;沙發族系允許背靠窗牆(常見客廳格局:沙發背窗、電視對面
+# ——feedback 9/10:沙發被窗前帶擋出窗牆,電視櫃的成組候選才落到陽台門側)。
+# ponytail: 落地窗與一般窗在 window_segments 無法區分,沙發一律豁免;
+# 若日後窗資料帶窗台高,改依高度判。
+_WINDOW_CLEARANCE_EXEMPT_TYPES = {
+    "curtain", "sofa", "fabric-sofa", "leather-sofa", "modular-sofa", "sofa-bed",
+}
 
 
 def window_clearance_zones(
@@ -1342,7 +1348,11 @@ def _raster_wall_anchor(
         return None
     from ..engine.rules import anchor_ts, candidate_edges
 
-    mask = ctx.masks.for_height(height)
+    # 與 raster_free 同一豁免:沙發族系可背靠窗牆,掃描後援不得比候選嚴
+    if item_type in _WINDOW_CLEARANCE_EXEMPT_TYPES:
+        mask = ctx.masks.low
+    else:
+        mask = ctx.masks.for_height(height)
     for edge in candidate_edges(ctx.edges, width):
         nx, nz = edge.inward()
         # 場景朝向慣例 rot=0 → +z(見 _facing),面向室內法線 n 的角度 = atan2(nx, nz)

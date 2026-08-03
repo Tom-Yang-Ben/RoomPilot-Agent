@@ -218,6 +218,17 @@ def test_resolve_default_unbounded_resolves_cascading_failures():
     assert [r["action"] for r in report] == ["remove"] * 5
 
 
+def test_resolve_replacement_carries_catalog_traceability():
+    """換小後 catalog_furniture_id 必須跟著換:前端 2D 對帳與 GLB 追溯都認它,
+    掛舊型錄 id 會讓新件對不回資料庫。"""
+    big = _item("big", "sofa", 500, 200)
+    small = _item("small", "sofa", 120, 70)
+    objs = generate_layout(300, 300, [big])
+    _, final, _ = resolve_placements(objs, [big], [big, small], place_fn=_place(300, 300))
+    assert final[0]["furniture_id"] == "small"
+    assert final[0]["catalog_furniture_id"] == "small"
+
+
 def test_pick_smaller_skips_outdoor_models():
     """換小替補不得引入戶外家具(型錄把庭院躺椅歸在室內類型)。"""
     outdoor = {

@@ -567,6 +567,25 @@ def test_catalog_does_not_merge_same_named_bed_and_cabinet_models() -> None:
     assert len(merged) == 2
 
 
+def test_furniture_selection_skips_lounge_seating_for_kitchen() -> None:
+    """扶手椅/躺椅屬起居空間;需求清單夾帶時,廚房選件必須整型別濾掉。"""
+    armchair = {
+        "furniture_id": "indoor-armchair",
+        "name_zh_raw": "布面扶手椅",
+        "name_en": "EKTORP armchair",
+        "normalized_type": "armchair",
+        "has_model": True,
+        "size_cm": {"width": 80, "depth": 75, "height": 80},
+    }
+    chosen, unavailable = choose_furniture_items(
+        {"style_id": "scandinavian", "required_furniture": ["armchair"], "space_type": "kitchen"},
+        [armchair],
+    )
+
+    assert chosen == []
+    assert unavailable == []          # 型別在源頭被濾,不是「缺型號」
+
+
 def test_furniture_selection_rejects_outdoor_models_for_indoor_space() -> None:
     """型錄把庭院躺椅歸在 armchair/sofa 等室內類型;自動選件必須靠名稱記號
     擋下,否則客廳會出現戶外椅。"""

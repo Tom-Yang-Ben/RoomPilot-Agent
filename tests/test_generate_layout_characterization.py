@@ -378,6 +378,37 @@ def test_wall_anchored_furniture_scans_other_walls_when_door_band_blocks_anchors
     assert obj["rotation_y_deg"] in {0.0, 90.0, 180.0, 270.0}
 
 
+def test_sofa_may_back_onto_the_window_wall():
+    """沙發族系豁免窗前採光帶(feedback 9/10):沙發背窗是常見客廳格局,
+    被帶擋出窗牆會讓電視櫃的成組候選落到陽台門那側。高背沙發(≥90cm)
+    也要能貼窗牆;其他高家具仍受帶約束。"""
+    window_floorplan = {
+        "coordinate_unit": "cm",
+        "room_regions": [{
+            "room_id": "living",
+            "room_type": "living_room",
+            "exterior": [[-225, -190], [225, -190], [225, 190], [-225, 190]],
+            "holes": [],
+        }],
+        # 下牆中央的窗:40cm 採光帶涵蓋沙發在下牆的類型錨點
+        "window_segments": [
+            {"start": {"x": -80, "z": 190}, "end": {"x": 80, "z": 190}},
+        ],
+    }
+    # 2D 流程送通用型 "sofa"(scene_layout2d.toSceneFurniture);候選表以它為鍵
+    items = [_item("sofa", "sofa", 200, 90, h=96.0, placement_room_id="living")]
+    objects = generate_layout_by_room(
+        450.0, 380.0, items,
+        room=_rect_room(450.0, 380.0),
+        floorplan=window_floorplan,
+    )
+    obj = objects[0]
+    assert not obj["placement_failed"]
+    # 貼下牆(窗牆):背面貼齊內縮邊界、面向房內
+    assert obj["rotation_y_deg"] == 180
+    assert obj["position_cm"]["z"] > 100, f"沙發未靠窗牆,z={obj['position_cm']['z']}"
+
+
 def test_bedside_table_candidate_faces_into_the_room():
     # 床頭櫃候選位於下牆(+z 側),正面必須朝 -z(房內)= 180;
     # 舊候選寫 0,櫃子臉貼牆、抽屜開不了
