@@ -51,19 +51,20 @@ def _mk(tmp_path, symbols, anchor_living=True):
     det = {"cm": 1.0, "thin": None, "texts": [],
            "symbols": [(k, 10.0, 10.0) for k in symbols]}
     rooms = [{"id": 1, "area_px": 400}, {"id": 2, "area_px": 400}]
-    anchor = {"living": 1.0} if anchor_living else {"bed": 1.0}
+    anchor = {"LivingRoom": 1.0} if anchor_living else {"Bedroom": 1.0}
     return det, labels, rooms, [{}, anchor]
 
 
 def test_asset_symbols_name_rooms(tmp_path):
     for kinds, expect in [
-        (["wc"], "bath"), (["tub", "basin"], "bath"),
-        (["kstove"], "kitchen"), (["dtable", "ksink"], "kitchen"),
-        (["bed"], "bed"), (["wardrobe", "bed"], "bed"),
-        (["sofa"], "living"), (["chair", "sofa"], "living"),
+        (["wc"], "Bath"), (["tub", "basin"], "Bath"),
+        (["kstove"], "Kitchen"), (["dtable", "ksink"], "Kitchen"),
+        # 左欄是家具符號 kind（"bed"＝床的模板），與房型 "Bedroom" 同義不同名
+        (["bed"], "Bedroom"), (["wardrobe", "bed"], "Bedroom"),
+        (["sofa"], "LivingRoom"), (["chair", "sofa"], "LivingRoom"),
     ]:
         det, labels, rooms, probs = _mk(tmp_path, kinds,
-                                          anchor_living=(expect != "living"))
+                                          anchor_living=(expect != "LivingRoom"))
         fp.classify_rooms_dino(det, labels, rooms, probs)
         assert rooms[0]["label"] == expect, (kinds, rooms[0]["label"])
 
@@ -73,4 +74,4 @@ def test_asset_chair_alone_below_threshold(tmp_path):
     det, labels, rooms, probs = _mk(tmp_path, ["chair"],
                                       anchor_living=False)
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] in ("living", "room")
+    assert rooms[0]["label"] in ("LivingRoom", "room")

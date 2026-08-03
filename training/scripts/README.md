@@ -1,6 +1,6 @@
 # scripts/ 腳本說明
 
-本目錄共 21 個 Python 腳本，依功能分為六組。整體工作流：
+本目錄共 18 個 Python 腳本，依功能分為六組。整體工作流：
 
 **主管線**（`backend/floorplan/`）產出 → **eval 系列**守門評分 → **infer 系列**提供 DL 證據融合 → **路線圖 B/C 腳本**建符號庫與微調資料。
 
@@ -17,14 +17,14 @@
 黑白建築平面圖 PNG → DXF 主程式。不描輪廓（會歪），改用「偵測線條後強制建構成純水平/垂直線」的正交策略——H 線兩端共用同一個 y、V 線兩端共用同一個 x。參數全在 `backend/floorplan/config.ini`。
 
 ```bash
-python3 backend/floorplan/floorplan2dxf.py            # 批次 testdata/png/ → testdata/dxf/ + training/chk/gray/
+python3 backend/floorplan/floorplan2dxf.py            # 批次 testdata/png/ → testdata/dxf/ + temp/chk/gray/
 python3 backend/floorplan/floorplan2dxf.py 別的.ini
 ```
 
 **注意：此檔演算法凍結（2026-07-27 經評測驗證的 gmin_win 開口下限修正除外），修改必跑雙評分。**
 
 ### backend/floorplan/floorplan2dxf_color.py（約 1900 行）
-彩色平面圖版本，目前的開發主力。用獨立的 `config_color.ini`，輸出進 `training/chk/color/`、`testdata/dxf/`、`training/json/color/`、`training/json/color_arch/`，與黑白管線（`training/chk/gray/`、`training/json/gray/`、`training/json/arch/`）完全隔離、不互相覆蓋。
+彩色平面圖版本，目前的開發主力。用獨立的 `config_color.ini`，輸出進 `temp/chk/color/`、`testdata/dxf/`、`temp/json/color/`、`temp/json/color_arch/`，與黑白管線（`temp/chk/gray/`、`temp/json/gray/`、`temp/json/arch/`）完全隔離、不互相覆蓋。
 
 ```bash
 python3 backend/floorplan/floorplan2dxf_color.py      # 批次 testdata/color_png/ → testdata/dxf/
@@ -53,7 +53,7 @@ python apply_cubicasa_patches.py [--dir CubiCasa5k]
 ## 評分／驗證（eval 系列）
 
 ### backend/floorplan/eval_windows.py（隨管線同移）
-用 `testdata/Identify_ans/pngans/gray/` 人工答案評 `training/chk/gray/` 的窗戶偵測：兩邊抽綠框互相配對算 TP/FP/FN（交集/較小框 ≥ 0.3 或中心落框內）。**覆蓋 chk/dxf 前必跑的守門腳本。**
+用 `testdata/Identify_ans/pngans/gray/` 人工答案評 `temp/chk/gray/` 的窗戶偵測：兩邊抽綠框互相配對算 TP/FP/FN（交集/較小框 ≥ 0.3 或中心落框內）。**覆蓋 chk/dxf 前必跑的守門腳本。**
 
 ```bash
 python3 backend/floorplan/eval_windows.py [答案目錄] [chk目錄]
@@ -78,14 +78,7 @@ python3 scripts/eval_color_walls.py [名稱 ...] [--vis]
 
 ```bash
 python scripts/eval_rooms_cc.py [--n-test 40] [--n-val 30] [--smoke N] [--thr 0.5] [--gt-seg] [--own-eval]
-# 輸出：training/json/eval_rooms/report[_own][_gtseg].json、training/eval_rooms/chk/<id>_{gt,pred,gtpred}.png
-```
-
-### score_compare.py
-我們的 CV 管線 vs CubiCasa5k 正面對決：在 `testdata/Identify_ans/pngans/` 21 張人工答案上比牆（像素級 P/R/F1，±3px 容差）與窗（綠框配對，同 eval_windows.py 規則）。
-
-```bash
-python scripts/score_compare.py <repo_dir> <cc_out_dir>
+# 輸出：temp/json/eval_rooms/report[_own][_gtseg].json、temp/eval_rooms/chk/<id>_{gt,pred,gtpred}.png
 ```
 
 ---
@@ -127,19 +120,11 @@ python scripts/fix_annotation_paths.py [--check]   # --check 只掃描回報，�
 python scripts/sync_room_labels.py [--dry-run] [--no-validate]
 ```
 
-### pack_finetune_data.py
-打包微調資料 zip：testdata/Identify_ans/own_dataset（人工修正後）＋ hq_arch train 前 300 張（防災難性遺忘），own 樣本 ×3 過採樣混合。own_val.txt 僅作訓練監控，正式驗收永遠走路線 A 的 val/test 評分集。
-
-```bash
-python scripts/pack_finetune_data.py [--n-hq 300] [--oversample 3]
-# 產出：training/finetune_data.zip（本機訓練解壓用；亦可上傳雲端環境）
-```
-
 ---
 
 ## 門偵測增強
 
-四支後處理腳本，全部只讀寫 `training/json/gray`（凍結的主管線零接觸）、可重複執行。背景：弧偵測（detect_doors）在 26 題 own GT 上候選天花板 recall 僅 0.189；`build_rooms` 的門位 zones 實測 R 0.877/P 0.798。融合結果（門檻 0.85）：P 0.361/R 0.132 → **P 0.588/R 0.858**。
+四支後處理腳本，全部只讀寫 `temp/json/gray`（凍結的主管線零接觸）、可重複執行。背景：弧偵測（detect_doors）在 26 題 own GT 上候選天花板 recall 僅 0.189；`build_rooms` 的門位 zones 實測 R 0.877/P 0.798。融合結果（門檻 0.85）：P 0.361/R 0.132 → **P 0.588/R 0.858**。
 
 ### extract_door_lib.py
 `testdata/Asset/door/` 人工剪裁門樣式圖 → `training/door_lib.npz`（48×48、8 向展開去重，與 symbol_lib 同規格；實心牆段 erode-subtract 轉輪廓與查詢側同正規化）。
@@ -152,7 +137,7 @@ python scripts/extract_door_lib.py [--src testdata/Asset/door] [--out door_lib.n
 弧候選鉸鏈四象限窗 × 模板對稱 chamfer 重評分：命中（≤1.5，真門中位 1.02 vs 非門 2.16）把 `score_fused` 保底到 0.90，絕不降分；原 `score` 不動。
 
 ```bash
-python scripts/door_match.py [名 ...]        # 預設掃 training/json/gray 全部
+python scripts/door_match.py [名 ...]        # 預設掃 temp/json/gray 全部
 ```
 
 ### door_propose.py

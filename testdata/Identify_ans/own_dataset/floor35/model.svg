@@ -110,11 +110,11 @@
       <polygon id="polygon27" style="fill:#b8a06a;fill-opacity:0.35;stroke:#b8a06a;stroke-width:2" sodipodi:nodetypes="ccccccc" points="13,230 13,419 112,419 111.272,332.832 131.662,332.595 130.206,230 " fill="#b8a06a" fill-opacity="0.35" stroke="#b8a06a" stroke-width="2"/>
       
     </g>
-    <g class="Space HallWay" id="g27-1" inkscape:label="g35">
+    <g class="Space Hallway" id="g27-1" inkscape:label="g35">
       <polygon fill="#c9a0dc" fill-opacity="0.35" stroke="#c9a0dc" stroke-width="2" id="polygon27-6" inkscape:label="polygon35" points="143.418,229.283 143.418,333.402 231.687,333.402 231.687,229.283 "/>
       
     </g>
-    <g class="Space Outdoor" id="g27-1-6" inkscape:label="g36">
+    <g class="Space Balcony" id="g27-1-6" inkscape:label="g36">
       <polygon fill="#b5368f" fill-opacity="0.35" stroke="#b5368f" stroke-width="2" id="polygon27-6-1" inkscape:label="polygon36" points="164.11,45.3246 164.11,10.7518 86.4783,10.7518 86.4783,45.3246 "/>
       
     </g>
@@ -144,4 +144,4 @@
       <polygon fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon25-4-2-4-2" points="201.112,285.546 270.6,285.546 270.6,323.871 201.112,323.871 "/>
     </g>
   </g>
-<g id="Labels" inkscape:label="Labels"><text x="487" y="147" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="72" y="298" font-size="22" text-anchor="middle" fill="#000000">Storage</text><text x="187" y="290" font-size="22" text-anchor="middle" fill="#000000">HallWay</text><text x="125" y="36" font-size="22" text-anchor="middle" fill="#000000">Outdoor</text><text x="513" y="350" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="321" y="350" font-size="22" text-anchor="middle" fill="#000000">Entry</text><text x="177" y="390" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="123" y="145" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text></g></svg>
+<g id="Labels" inkscape:label="Labels"><text x="487" y="147" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="72" y="298" font-size="22" text-anchor="middle" fill="#000000">Storage</text><text x="187" y="290" font-size="22" text-anchor="middle" fill="#000000">Hallway</text><text x="125" y="36" font-size="22" text-anchor="middle" fill="#000000">Balcony</text><text x="513" y="350" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="321" y="350" font-size="22" text-anchor="middle" fill="#000000">Entry</text><text x="177" y="390" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="123" y="145" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text></g></svg>

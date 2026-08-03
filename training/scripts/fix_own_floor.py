@@ -25,23 +25,31 @@ from fix_annotation_paths import (path_to_points, points_of, rect_points,
                                   parse_transform, mat_mul, is_identity)
 
 # 統一色表（與使用者 2026-07-24 定案；HSL 版見對話記錄/記憶）
-SPACE_FILL = {"Bedroom": "#4a90d9", "Bath": "#3dbdbd", "WashRoom": "#d97a8f",
+# 2026-08-01 起以定案的 10 類詞彙為準；舊寫法（WashRoom/Office/Outdoor/
+# StairWell/HallWay）保留色碼，答案集歸一完成前的檔案仍畫得出來。
+SPACE_FILL = {"Bedroom": "#4a90d9", "Bath": "#3dbdbd",
               "Kitchen": "#e8843c", "LivingRoom": "#7dc37d",
-              "Outdoor": "#b5368f", "Storage": "#b8a06a", "Office": "#c9b458",
-              "StairWell": "#a89cc8", "Entry": "#8f5fc6", "HallWay": "#c9a0dc",
-              "Garage": "#909090", "Undefined": "#d9d9d9", "Dining": "#7dc37d"}
+              "Balcony": "#b5368f", "Storage": "#b8a06a",
+              "Stair": "#a89cc8", "Entry": "#8f5fc6", "Hallway": "#c9a0dc",
+              "Garage": "#909090", "Undefined": "#d9d9d9",
+              # 舊寫法別名
+              "WashRoom": "#3dbdbd", "Office": "#b8a06a",
+              "Outdoor": "#b5368f", "StairWell": "#a89cc8",
+              "HallWay": "#c9a0dc", "Dining": "#7dc37d"}
 STRUCT_FILL = {"Wall": ("#cc2222", "0.45"), "Window": ("#22aa22", "0.6"),
                "Door": ("#ddaa00", "0.6")}
 # 文字標籤 → class（別名正規化；比對時轉小寫去空白）
-ALIAS = {"terrace": "Outdoor", "balcony": "Outdoor", "outdoor": "Outdoor",
-         "study": "Office", "office": "Office", "entrance": "Entry",
-         "entry": "Entry", "washroom": "WashRoom", "toilet": "WashRoom",
+# 值域＝定案的 10 類（2026-08-01）：書房系收進 Storage、浴廁系收進 Bath、
+# 戶外系收進 Balcony、走道系收進 Hallway，標注不再產生別名分歧。
+ALIAS = {"terrace": "Balcony", "balcony": "Balcony", "outdoor": "Balcony",
+         "study": "Storage", "office": "Storage", "entrance": "Entry",
+         "entry": "Entry", "washroom": "Bath", "toilet": "Bath",
          "bath": "Bath", "bathroom": "Bath", "bedroom": "Bedroom",
          "bed": "Bedroom", "kitchen": "Kitchen", "living": "LivingRoom",
          "livingroom": "LivingRoom", "dining": "Kitchen",
          "storage": "Storage", "stor": "Storage", "closet": "Storage",
-         "hallway": "HallWay", "hall": "HallWay", "stair": "StairWell",
-         "stairwell": "StairWell", "garage": "Garage",
+         "hallway": "Hallway", "hall": "Hallway", "stair": "Stair",
+         "stairwell": "Stair", "garage": "Garage",
          "undefined": "Undefined"}
 GEOM = {"d", "points", "x", "y", "width", "height", "rx", "ry", "transform"}
 NUM = re.compile(r"-?\d*\.?\d+(?:[eE][-+]?\d+)?")

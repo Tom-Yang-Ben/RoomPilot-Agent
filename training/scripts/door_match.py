@@ -1,16 +1,16 @@
 """door_match.py — 門候選 × 門樣式模板比對，產生融合分數（後處理，不動凍結檔）。
 
 主管線（floorplan2dxf.py，已凍結）把全部門候選連同弧吻合度 score 交在
-training/json/gray/<名>.json；白模端只收 score ≥ 0.85。本腳本對每個候選在原圖
+temp/json/gray/<名>.json；白模端只收 score ≥ 0.85。本腳本對每個候選在原圖
 裁出鉸鏈四象限窗，與 door_lib.npz 模板做對稱 chamfer 比對：
 
     模板命中（chamfer ≤ CH_STRONG）→ score_fused = max(score, RESCUE)
     未命中                        → score_fused = score（絕不降分）
 
-結果寫回 training/json/gray（新增 tpl_chamfer / tpl_kind / score_fused 欄位，
+結果寫回 temp/json/gray（新增 tpl_chamfer / tpl_kind / score_fused 欄位，
 原 score 不動），前端與白模端可選擇改讀 score_fused。
 
-用法：python scripts/door_match.py [名 ...]     # 預設掃 training/json/gray/*.json
+用法：python scripts/door_match.py [名 ...]     # 預設掃 temp/json/gray/*.json
       --lib door_lib.npz  --png-dir png
 """
 import argparse
@@ -73,7 +73,7 @@ def match_door(ol, cx, cy, w, lib, margin=0.15):
 
 
 def rescore_file(jpath, png_dir, lib):
-    data = json.load(open(jpath))
+    data = json.load(open(jpath, encoding="utf-8"))
     img_file = data["image"]["file"]
     img_path = os.path.join(png_dir, img_file)
     if not os.path.isfile(img_path):
@@ -89,7 +89,7 @@ def rescore_file(jpath, png_dir, lib):
         hit = ch <= CH_STRONG
         d["score_fused"] = round(max(d["score"], RESCUE), 3) if hit else d["score"]
         n_hit += hit
-    with open(jpath, "w") as fp:
+    with open(jpath, "w", encoding="utf-8") as fp:
         json.dump(data, fp, ensure_ascii=False, indent=2)
     return len(data.get("doors", [])), n_hit
 
@@ -99,7 +99,7 @@ def main():
     ap.add_argument("names", nargs="*", help="圖名（不含副檔名）；預設全部")
     ap.add_argument("--lib", default="training/door_lib.npz")
     ap.add_argument("--png-dir", default="testdata/png")
-    ap.add_argument("--json-dir", default="training/json/gray")
+    ap.add_argument("--json-dir", default="temp/json/gray")
     a = ap.parse_args()
 
     lib = _load_lib(a.lib)

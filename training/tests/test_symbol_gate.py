@@ -13,10 +13,55 @@ import symbol_match as sm
 
 # ─────────────────────────── 逐類啟用 ───────────────────────────
 def test_enabled_kinds_is_the_measured_shortlist():
-    """Readme v2.18 §4 逐類品質分級：kstove/ksink 圖案獨特、證據可信；
-    wardrobe 是假陽性大戶（平面圖衣櫃＝長方形＋分隔線，與牆剖面線／樓梯
-    踏步幾何同構，本質不可分辨），chair/basin/sofa/tub 混雜。"""
-    assert set(sm.ENABLED_KINDS) == {"kstove", "ksink"}
+    """2026-08-01 偵測層強化輪：probe_symbol_quality.py 以 GT 房型多邊形
+    當弱標籤逐模板掃描後擴充啟用清單——tub(P0.85@0.8)/wc(P0.86@1.2)/
+    bed/chair(0.8 嚴門檻 0FP) 加入；basin 全類 P=0.33 但以模板白名單
+    ＋1.35 門檻外科啟用（7 條 ~8TP/0FP）；sofa/wardrobe/dtable P≤0.5
+    續停（wardrobe 與牆剖面線／樓梯踏步幾何同構，本質不可分辨）。
+    2026-08-02 美式素材輪（symbol_quality_v225.json）：trashcan 新啟用
+    （0.8 嚴門檻 2TP/0FP，floor09 廚房證據）；basin 白名單補 4 條新模板
+    （1.35 門檻下無 FP）。"""
+    assert set(sm.ENABLED_KINDS) == {"kstove", "ksink", "tub", "wc",
+                                     "bed", "chair", "basin", "trashcan"}
+    assert sm.CH_THR_BY_KIND == {"tub": 0.8, "bed": 0.8, "chair": 0.8,
+                                 "basin": 1.35, "trashcan": 0.8}
+    assert set(sm.TPL_WHITELIST) == {"basin"}
+    assert set(sm.TPL_BLACKLIST) == {"tub"}
+
+
+def test_per_template_threshold_overrides_kind():
+    """TPL_THR（2026-08-02 美式素材輪）：類門檻放行但逐模板門檻更嚴時，
+    該模板不得放行——basin 262 型「Bath TP ≤1.011 / Kitchen FP ≥1.187」
+    只有逐模板 1.1 能全收 TP、全擋 FP（kind 門檻 1.35 動不得，
+    舊白名單 tpl 236 的 floor38 救援 TP 在 1.277）。"""
+    gi = int(sm.load_lib()["gidx"][sm.load_lib()["labels"].index("basin")])
+    old_wl, old_thr = sm.TPL_WHITELIST, sm.TPL_THR
+    try:
+        # 白名單縮到單條，再以「縮後庫」的尺寸閘門植入 → chamfer≈0 必放行
+        #（尺寸閘門是逐 kind 百分位，縮名單會挪動，植入必須照縮後的算）
+        sm.TPL_WHITELIST = {"basin": (gi,)}
+        sm.TPL_THR = dict(old_thr)
+        sm._lib_cache = "unloaded"
+        lib = sm.load_lib()
+        i = lib["labels"].index("basin")
+        det = {"thin": _thin_with_raster(lib["rasters"][i], lib, "basin"),
+               "cm": 1.0}
+        assert "basin" in [k for k, _x, _y in sm.match_symbols(det)]
+        # 對同一條模板設不可能過的逐模板門檻 → 同畫面不得再放行
+        sm.TPL_THR = {**old_thr, gi: -1.0}
+        sm._lib_cache = "unloaded"
+        assert "basin" not in [k for k, _x, _y in sm.match_symbols(det)]
+    finally:
+        sm.TPL_WHITELIST, sm.TPL_THR = old_wl, old_thr
+        sm._lib_cache = "unloaded"
+
+
+def test_tpl_thr_is_the_measured_surgical_set():
+    """v225 probe 全集稽核：257→0.8（floor47 方盤 TP 0.366、floor09 FP
+    1.078）；258/261/262 同族 1.1（262 的 Bath TP 全 ≤1.011、Kitchen FP
+    全 ≥1.187）。259 有 floor07 五連 FP（1.16~1.28），不入白名單。"""
+    assert sm.TPL_THR == {257: 0.8, 258: 1.1, 261: 1.1, 262: 1.1}
+    assert 259 not in sm.TPL_WHITELIST["basin"]
 
 
 def test_lib_exposes_only_enabled_kinds():
@@ -89,6 +134,10 @@ def _thin_with_template(kind, canvas=400):
     lib = sm.load_lib()
     i = lib["labels"].index(kind)
     tpl = lib["rasters"][i]
+    return _thin_with_raster(tpl, lib, kind, canvas)
+
+
+def _thin_with_raster(tpl, lib, kind, canvas=400):
     ys, xs = np.nonzero(tpl)
     content = tpl[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
     ch_, cw_ = content.shape
@@ -104,11 +153,22 @@ def _thin_with_template(kind, canvas=400):
 
 
 def test_match_finds_planted_template():
-    """舊 Hu 閘門下這一定是 0 命中——本測試即「路線 B 不再是死碼」的證據。"""
+    """舊 Hu 閘門下這一定是 0 命中——本測試即「路線 B 不再是死碼」的證據。
+
+    2026-08-01 起逐模板試植：多部件符號（wc＝馬桶碗＋水箱）植入後裂成
+    小輪廓過不了尺寸閘門，「第一條模板必可自我配對」不成立；改為每類
+    至少有一條模板可自我配對（實圖命中證據見 symbol_quality 掃描）。"""
+    lib = sm.load_lib()
     for kind in sm.ENABLED_KINDS:
-        det = {"thin": _thin_with_template(kind), "cm": 1.0}
-        got = [k for k, _x, _y in sm.match_symbols(det)]
-        assert kind in got, (kind, got)
+        idx = [i for i, l in enumerate(lib["labels"]) if l == kind]
+        ok = False
+        for i in idx[:20]:
+            det = {"thin": _thin_with_raster(lib["rasters"][i], lib, kind),
+                   "cm": 1.0}
+            if kind in [k for k, _x, _y in sm.match_symbols(det)]:
+                ok = True
+                break
+        assert ok, f"{kind}: 前 {min(20, len(idx))} 條模板無一可自我配對"
 
 
 def test_no_thin_layer_returns_empty():

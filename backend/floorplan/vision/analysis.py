@@ -55,29 +55,33 @@ ROOM_LABELS = (
 )
 
 # cody floorplan2room 的房型詞彙 → 上面 ROOM_LABELS 的主線契約詞彙。
-# 兩邊字彙不同（cody 用 bed/bath/living，主線下游吃 bedroom/bathroom/living_room），
-# 不對照就會把非契約值寫進 rooms[].type。
+# 兩邊字彙不同（cody 用 Bedroom/Bath/LivingRoom，主線下游吃 bedroom/bathroom/
+# living_room），不對照就會把非契約值寫進 rooms[].type。
+# 2026-08-01 cody 6300e9e0 起詞彙統一為 10 類 CamelCase（answer 集與量尺同步），
+# outdoor 併入 Balcony、新增 Hallway 一類；本表鍵隨之對齊，漏一鍵就會靜默不套用
+# （由 test_vocabulary_map_covers_every_cody_label 釘住集合相等）。
 # "room" 是 cody 對「證據太弱」的中性標記（ROOM_ZH 標「空間」），映射為 None
 # 代表不採用——它不該蓋掉 OCR 或圖示規則已經給出的判斷。
 CODY_ROOM_TYPE_MAP: dict[str, str | None] = {
-    "living": "living_room",
-    "kitchen": "kitchen",
-    "bed": "bedroom",
-    "bath": "bathroom",
-    "balcony": "balcony",
-    # 語意層另會輸出 entry/storage/garage/outdoor 四型；先前未映射會被靜默丟棄，
-    # 玄關與儲藏室永遠落不了地（2026-07 盤點確認）。circulation 與 storage 是
-    # 前端推薦表既有的契約鍵（circulation 刻意零家具，正好避免小空間被硬塞）。
-    "entry": "circulation",
-    "storage": "storage",
-    "outdoor": "balcony",
-    "garage": None,  # 台灣公寓場景罕見且無下游消費者，維持不採用
-    # 2026-07-29 語意層新增 stair 一類（MAIN_SYNC_TODO 第 10 節）。踏板幾何是
-    # 樓梯獨有的圖案，故它立得住；同批曾短暫存在的 office 已撤回併入 storage。
-    # 映射為 None 是刻意的：樓梯區的產品語意是「不可擺設」，主線契約詞彙裡沒有
-    # 對應鍵，硬塞既有鍵（如 circulation）會讓下游把它當可佈置的走道。
-    # 待前端推薦表新增 stair 契約鍵後再改指過去。
-    "stair": None,
+    "LivingRoom": "living_room",
+    "Kitchen": "kitchen",
+    "Bedroom": "bedroom",
+    "Bath": "bathroom",
+    "Balcony": "balcony",
+    # Entry/Storage 先前未映射會被靜默丟棄，玄關與儲藏室永遠落不了地
+    # （2026-07 盤點確認）。circulation 與 storage 是前端推薦表既有的契約鍵
+    # （circulation 刻意零家具，正好避免小空間被硬塞）。
+    "Entry": "circulation",
+    "Storage": "storage",
+    # Hallway 是 2026-08-01 詞彙定案時自 entry 分出的走道類；產品語意與走道
+    # 一致，沿用 circulation（走道跟隨客廳風格、刻意零家具）的既有行為。
+    "Hallway": "circulation",
+    "Garage": None,  # 台灣公寓場景罕見且無下游消費者，維持不採用
+    # 踏板幾何是樓梯獨有的圖案，故 Stair 立得住。映射為 None 是刻意的：
+    # 樓梯區的產品語意是「不可擺設」，主線契約詞彙裡沒有對應鍵，硬塞既有鍵
+    # （如 circulation）會讓下游把它當可佈置的走道。待前端推薦表新增 stair
+    # 契約鍵後再改指過去。
+    "Stair": None,
     "room": None,
 }
 

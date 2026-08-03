@@ -3,7 +3,7 @@
 從 own_dataset（訓練）與 own_eval（測試，永不進訓練）的 model.svg 取每個
 Space 多邊形，以 bbox＋邊距從 F1_scaled.png 裁出房間圖塊，供「裁切分類」
 路線（DINOv2 linear probe / VLM 探測）使用。標籤沿用 eval_rooms_cc 的
-9 類正規化（Undefined→space、Balcony→outdoor…）。
+10 類正規化（Undefined→hallway、HallWay→hallway、Balcony→outdoor…）。
 
 用法：python scripts/extract_room_crops.py [--margin 0.15] [--out training/room_crops]
 輸出：<out>/{train,test}/<floor>_<idx>_<label>.png ＋ <out>/manifest.json
@@ -17,13 +17,19 @@ import cv2
 import numpy as np
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(_ROOT, "training/CubiCasa5k"))
 sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))
+# CubiCasa5k 程式庫已不需要——GT 解析走自家 svg_poly
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # eval_rooms_cc
 
 SETS = [("train", "testdata/Identify_ans/own_dataset", "own_train.txt"),
-        ("test", "testdata/Identify_ans/own_eval", "eval_list.txt")]
+        ("test", "testdata/Identify_ans/own_eval", "eval_list.txt"),
+        # color 答案集（2026-08-02 全數人工審定後加入）：彩圖房型對灰階
+        # 訓的線性頭是 OOD——dev 實測配對到的 Balcony 11 間全叫錯（磚紋
+        # 誤認樓梯踏板 Stair×5）。listfile None＝收目錄下全部含 model.svg
+        # 的子目錄；own_eval_color 只當 test，永不進訓練
+        ("train", "testdata/Identify_ans/own_dataset_color", None),
+        ("test", "testdata/Identify_ans/own_eval_color", None)]
 
 
 def iter_rooms(svg_path):
@@ -32,7 +38,7 @@ def iter_rooms(svg_path):
     標籤走 eval_rooms_cc.gt_label_of（單一真相來源）——含 2026-07-29 新增的
     office/stair 拆分，分類器的類別空間才與量尺、管線三方一致。"""
     from xml.dom import minidom
-    from floortrans.loaders.svg_utils import get_polygon
+    from svg_poly import get_polygon    # 自家抄本，逐位元同 floortrans 原版
     from eval_rooms_cc import gt_label_of
     doc = minidom.parse(svg_path)
     for e in doc.getElementsByTagName("g"):
@@ -71,8 +77,12 @@ def main():
     for split, root, listfile in SETS:
         out_dir = os.path.join(a.out, split)
         os.makedirs(out_dir, exist_ok=True)
-        with open(os.path.join(root, listfile)) as f:
-            ids = [ln.strip().strip("/") for ln in f if ln.strip()]
+        if listfile:
+            with open(os.path.join(root, listfile)) as f:
+                ids = [ln.strip().strip("/") for ln in f if ln.strip()]
+        else:
+            ids = sorted(d for d in os.listdir(root)
+                         if os.path.isfile(os.path.join(root, d, "model.svg")))
         for sid in ids:
             img = cv2.imread(os.path.join(root, sid, "F1_scaled.png"))
             if img is None:

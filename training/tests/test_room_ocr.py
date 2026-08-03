@@ -13,29 +13,31 @@ import floorplan2room as fp
 # ─────────────────────────── 字典映射 ───────────────────────────
 
 def test_ocr_label_exact():
-    assert fp.ocr_room_label("KITCHEN") == "kitchen"
-    assert fp.ocr_room_label("DORMITORY") == "bed"
-    assert fp.ocr_room_label("BEDROOM") == "bed"
-    assert fp.ocr_room_label("BATHROOM") == "bath"
-    assert fp.ocr_room_label("WC") == "bath"
-    assert fp.ocr_room_label("DEPOSIT") == "storage"     # 標注者裁決：storage（GT 同步修正）
-    assert fp.ocr_room_label("CIRCULATION") == "entry"
-    assert fp.ocr_room_label("BALCONY") == "outdoor"
-    assert fp.ocr_room_label("GARAGE") == "garage"
+    assert fp.ocr_room_label("KITCHEN") == "Kitchen"
+    assert fp.ocr_room_label("DORMITORY") == "Bedroom"
+    assert fp.ocr_room_label("BEDROOM") == "Bedroom"
+    assert fp.ocr_room_label("BATHROOM") == "Bath"
+    assert fp.ocr_room_label("WC") == "Bath"
+    assert fp.ocr_room_label("DEPOSIT") == "Storage"     # 標注者裁決：storage（GT 同步修正）
+    assert fp.ocr_room_label("CIRCULATION") == "Hallway"  # 走道系不再算玄關
+    assert fp.ocr_room_label("HALLWAY") == "Hallway"
+    assert fp.ocr_room_label("ENTRY") == "Entry"          # 玄關另有專屬詞彙
+    assert fp.ocr_room_label("BALCONY") == "Balcony"
+    assert fp.ocr_room_label("GARAGE") == "Garage"
 
 
 def test_ocr_label_concat_case_and_phrase():
-    assert fp.ocr_room_label("LIVINGROOM") == "living"   # rapidocr 實測 floor04 連寫
-    assert fp.ocr_room_label("Living Room") == "living"
-    assert fp.ocr_room_label("living") == "living"
-    assert fp.ocr_room_label("MASTER BEDROOM") == "bed"  # 片語含鍵
-    assert fp.ocr_room_label("BEDROOM 2") == "bed"
+    assert fp.ocr_room_label("LIVINGROOM") == "LivingRoom"   # rapidocr 實測 floor04 連寫
+    assert fp.ocr_room_label("Living Room") == "LivingRoom"
+    assert fp.ocr_room_label("living") == "LivingRoom"
+    assert fp.ocr_room_label("MASTER BEDROOM") == "Bedroom"  # 片語含鍵
+    assert fp.ocr_room_label("BEDROOM 2") == "Bedroom"
 
 
 def test_ocr_label_fuzzy_typo():
-    assert fp.ocr_room_label("KITCHEM") == "kitchen"     # OCR 錯一字
-    assert fp.ocr_room_label("BATHR0OM") == "bath"       # O→0
-    assert fp.ocr_room_label("DORMITORV") == "bed"
+    assert fp.ocr_room_label("KITCHEM") == "Kitchen"     # OCR 錯一字
+    assert fp.ocr_room_label("BATHR0OM") == "Bath"       # O→0
+    assert fp.ocr_room_label("DORMITORV") == "Bedroom"
 
 
 def test_ocr_label_rejects_noise():
@@ -62,7 +64,7 @@ def test_detect_room_text_conf_filter_and_mapping(monkeypatch):
         ("3200", 0.99, 50.0, 60.0),         # 非房型詞 → 濾掉
     ]))
     out = fp.detect_room_text("dummy.png")
-    assert out == [("kitchen", 10.0, 20.0, "KITCHEN")]
+    assert out == [("Kitchen", 10.0, 20.0, "KITCHEN")]
 
 
 def test_detect_room_text_engine_missing(monkeypatch):
@@ -85,10 +87,10 @@ def _mk_det_labels(tmp_path, texts=(), probs=None):
 
 def test_classify_ocr_evidence_names_room(tmp_path):
     det, labels, rooms, probs = _mk_det_labels(
-        tmp_path, texts=[("kitchen", 5.0, 10.0, "KITCHEN")])
+        tmp_path, texts=[("Kitchen", 5.0, 10.0, "KITCHEN")])
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "kitchen"                # 文字落在房 1 → 命名
-    assert rooms[0]["ocr_text"] == {"kitchen": ["KITCHEN"]}
+    assert rooms[0]["label"] == "Kitchen"                # 文字落在房 1 → 命名
+    assert rooms[0]["ocr_text"] == {"Kitchen": ["KITCHEN"]}
     assert rooms[1]["label"] == "room"                   # 無任何證據 → 中性
     assert "ocr_text" not in rooms[1]
 
@@ -97,15 +99,15 @@ def test_classify_ocr_weight_beats_weak_semantic(tmp_path):
     # 房 1 語意弱票 living 0.30（floor04 KITCHEN 實案為 0.275）＋文字 KITCHEN → 廚房勝
     det, labels, rooms, probs = _mk_det_labels(
         tmp_path,
-        texts=[("kitchen", 5.0, 10.0, "KITCHEN")],
-        probs=[{"living": 0.30}, {}])
+        texts=[("Kitchen", 5.0, 10.0, "KITCHEN")],
+        probs=[{"LivingRoom": 0.30}, {}])
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "kitchen"                # 0.65 文字 > 0.30 弱語意（不再被放大）
+    assert rooms[0]["label"] == "Kitchen"                # 0.65 文字 > 0.30 弱語意（不再被放大）
 
 
 def test_classify_text_outside_all_rooms_is_ignored(tmp_path):
     det, labels, rooms, probs = _mk_det_labels(
-        tmp_path, texts=[("bath", 999.0, 999.0, "BATHROOM")])
+        tmp_path, texts=[("Bath", 999.0, 999.0, "BATHROOM")])
     fp.classify_rooms_dino(det, labels, rooms, probs)
     assert rooms[0]["label"] == "room"
     assert rooms[1]["label"] == "room"
@@ -138,9 +140,9 @@ def test_singleton_living_keeps_largest(tmp_path):
     det, labels, rooms, probs = _mk_multi(tmp_path, {
         1: {4: 0.9}, 3: {4: 0.6, 5: 0.4}})
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "living"
-    assert rooms[2]["label"] == "bed"
-    assert rooms[2]["relabel_from"] == "living"
+    assert rooms[0]["label"] == "LivingRoom"
+    assert rooms[2]["label"] == "Bedroom"
+    assert rooms[2]["relabel_from"] == "LivingRoom"
 
 
 def test_singleton_kitchen_keeps_largest(tmp_path):
@@ -148,8 +150,8 @@ def test_singleton_kitchen_keeps_largest(tmp_path):
     det, labels, rooms, probs = _mk_multi(tmp_path, {
         1: {4: 0.9}, 2: {3: 0.9}, 3: {3: 0.8, 6: 0.2}})
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[1]["label"] == "kitchen"          # 房2 面積 > 房3
-    assert rooms[2]["label"] == "bath"             # 次高分 bath 0.2 ≥ 0.15
+    assert rooms[1]["label"] == "Kitchen"          # 房2 面積 > 房3
+    assert rooms[2]["label"] == "Bath"             # 次高分 bath 0.2 ≥ 0.15
 
 
 def test_singleton_demote_below_threshold_is_room(tmp_path):
@@ -165,14 +167,14 @@ def test_singleton_demoted_living_never_becomes_kitchen(tmp_path):
     det, labels, rooms, probs = _mk_multi(tmp_path, {
         1: {4: 0.9}, 3: {4: 0.5, 3: 0.3, 5: 0.2}})
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[2]["label"] == "bed"
+    assert rooms[2]["label"] == "Bedroom"
 
 
 def test_singleton_single_instances_untouched(tmp_path):
     det, labels, rooms, probs = _mk_multi(tmp_path, {
         1: {4: 0.9}, 2: {3: 0.9}, 3: {5: 0.9}})
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert [r["label"] for r in rooms] == ["living", "kitchen", "bed"]
+    assert [r["label"] for r in rooms] == ["LivingRoom", "Kitchen", "Bedroom"]
     assert not any("relabel_from" in r for r in rooms)
 
 
@@ -184,9 +186,9 @@ def test_kitchen_without_living_promoted(tmp_path):
     det, labels, rooms, probs = _mk_multi(tmp_path, {
         2: {3: 0.7, 4: 0.2}, 3: {5: 0.9}})
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[1]["label"] == "living"
-    assert rooms[1]["relabel_from"] == "kitchen"
-    assert rooms[2]["label"] == "bed"
+    assert rooms[1]["label"] == "LivingRoom"
+    assert rooms[1]["relabel_from"] == "Kitchen"
+    assert rooms[2]["label"] == "Bedroom"
 
 
 def test_kitchen_with_living_untouched(tmp_path):
@@ -194,16 +196,16 @@ def test_kitchen_with_living_untouched(tmp_path):
     det, labels, rooms, probs = _mk_multi(tmp_path, {
         1: {4: 0.9}, 2: {3: 0.9}})
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[0]["label"] == "living"
-    assert rooms[1]["label"] == "kitchen"
+    assert rooms[0]["label"] == "LivingRoom"
+    assert rooms[1]["label"] == "Kitchen"
 
 
 def test_kitchen_ocr_text_exempt_from_promotion(tmp_path):
     # 圖面文字明寫 KITCHEN（作者親口說）→ 即使無 living 也不改名
     det, labels, rooms, probs = _mk_multi(tmp_path, {2: {3: 0.9}})
-    det["texts"] = [("kitchen", 30.0, 10.0, "KITCHEN")]   # 落在房 2
+    det["texts"] = [("Kitchen", 30.0, 10.0, "KITCHEN")]   # 落在房 2
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[1]["label"] == "kitchen"
+    assert rooms[1]["label"] == "Kitchen"
     assert "relabel_from" not in rooms[1]
 
 
@@ -213,7 +215,7 @@ def test_kitchen_with_zero_living_not_promoted(tmp_path):
     是 DINOv2 路徑 kitchen recall 掉到 0.6 的成因之一（修正後 0.8）。"""
     det, labels, rooms, probs = _mk_multi(tmp_path, {2: {3: 0.9}, 3: {5: 0.9}})
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[1]["label"] == "kitchen"
+    assert rooms[1]["label"] == "Kitchen"
     assert "relabel_from" not in rooms[1]
 
 
@@ -223,9 +225,9 @@ def test_two_kitchens_no_living_dedup_then_promote(tmp_path):
     det, labels, rooms, probs = _mk_multi(tmp_path, {
         2: {3: 0.7, 4: 0.2}, 3: {3: 0.8, 6: 0.2}})
     fp.classify_rooms_dino(det, labels, rooms, probs)
-    assert rooms[1]["label"] == "living"           # 房2 面積大：kitchen→living
-    assert rooms[1]["relabel_from"] == "kitchen"
-    assert rooms[2]["label"] == "bath"             # 房3 讓位降級
+    assert rooms[1]["label"] == "LivingRoom"           # 房2 面積大：kitchen→living
+    assert rooms[1]["relabel_from"] == "Kitchen"
+    assert rooms[2]["label"] == "Bath"             # 房3 讓位降級
 
 
 # ─────────────────────────── 文字框與門位墨水證據 ───────────────────────────

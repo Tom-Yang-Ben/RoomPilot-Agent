@@ -17,10 +17,10 @@ def test_pick_own_samples_twelve_complete():
 
 
 def test_report_path_for_all_modes():
-    assert ev.report_path_for(False, False) == "training/json/eval_rooms/report.json"
-    assert ev.report_path_for(False, True) == "training/json/eval_rooms/report_gtseg.json"
-    assert ev.report_path_for(True, False) == "training/json/eval_rooms/report_own.json"
-    assert ev.report_path_for(True, True) == "training/json/eval_rooms/report_own_gtseg.json"
+    assert ev.report_path_for(False, False) == "temp/json/eval_rooms/report.json"
+    assert ev.report_path_for(False, True) == "temp/json/eval_rooms/report_gtseg.json"
+    assert ev.report_path_for(True, False) == "temp/json/eval_rooms/report_own.json"
+    assert ev.report_path_for(True, True) == "temp/json/eval_rooms/report_own_gtseg.json"
 
 
 def test_transform_baking_matrix_translate_scale():
@@ -100,8 +100,8 @@ def test_crop_labels_share_one_source_of_truth():
     import extract_room_crops as ex
     from eval_rooms_cc import gt_label_of
     assert not hasattr(ex, "norm_label")        # 副本已移除，勿再長回來
-    assert gt_label_of("Office") == "storage"
-    assert gt_label_of("StairWell") == "stair"
+    assert gt_label_of("Office") == "Storage"
+    assert gt_label_of("StairWell") == "Stair"
 
 
 def test_rebuild_split_by_seeds_and_polygon():

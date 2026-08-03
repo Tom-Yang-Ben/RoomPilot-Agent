@@ -108,9 +108,9 @@
       <polygon points="14.0,837.0 14.0,1091.0 467.0,1090.0 467.0,840.0 384.0,840.0 379.0,837.0 " fill="#4a90d9" fill-opacity="0.35" stroke="#4a90d9" stroke-width="2" id="polygon33" style="fill:#4a90d9;fill-opacity:0.35;stroke:#4a90d9;stroke-opacity:1"/>
       
     </g>
-    <g class="Space StairWell" id="g28-7">
+    <g class="Space Stair" id="g28-7">
       <polygon fill="#a89cc8" fill-opacity="0.35" stroke="#a89cc8" stroke-width="2" id="polygon28-6" points="13.1899,824.104 365.823,824.104 365.823,720.516 13.1899,720.516 "/>
       
     </g>
   </g>
-<g id="Labels" inkscape:label="Labels"><text x="130" y="140" font-size="22" text-anchor="middle" fill="#000000">Storage</text><text x="401" y="140" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="697" y="241" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="278" y="499" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="677" y="931" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="165" y="972" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="190" y="780" font-size="22" text-anchor="middle" fill="#000000">StairWell</text></g></svg>
+<g id="Labels" inkscape:label="Labels"><text x="130" y="140" font-size="22" text-anchor="middle" fill="#000000">Storage</text><text x="401" y="140" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="697" y="241" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="278" y="499" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="677" y="931" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="165" y="972" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="190" y="780" font-size="22" text-anchor="middle" fill="#000000">Stair</text></g></svg>

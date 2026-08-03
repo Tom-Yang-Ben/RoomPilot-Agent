@@ -7,7 +7,7 @@
 2026-07-30 CubiCasa 血統整批移除後那兩個常數不再存在，但**失效模式沒有消失，只是
 換了主角**。DINOv2 路徑同樣有兩個由模組位置推導的資產路徑：
 
-* `room_classifier.HEAD_PATH` → `backend/floorplan/room_head.npz`（15KB 線性頭）
+* `room_classifier.HEAD_PATHS["gray"]` → `backend/floorplan/room_head.npz`（15KB 線性頭）
 * `symbol_match.LIB_PATH` → `backend/floorplan/symbol_lib.npz`（943 條模板庫）
 
 兩者的共同危險在於**找不到檔不會報錯**——`_load()` 與 `load_lib()` 都回 None，
@@ -43,18 +43,27 @@ def symbol_match():
 
 
 def test_room_head_anchors_to_the_package_directory(room_classifier) -> None:
-    """線性頭與 room_classifier.py 同層，路徑由模組位置推導而非 cwd。"""
-    head = Path(room_classifier.HEAD_PATH)
+    """線性頭與 room_classifier.py 同層，路徑由模組位置推導而非 cwd。
 
-    assert head.is_absolute(), "HEAD_PATH 預設值必須是絕對路徑"
+    2026-08-02 起為分域雙頭（HEAD_PATHS dict）：灰階/彩圖各一顆，color 頭
+    缺檔時退回灰階頭。路徑錨定契約對兩顆頭都成立。"""
+    head = Path(room_classifier.HEAD_PATHS["gray"])
+
+    assert head.is_absolute(), "灰階頭預設值必須是絕對路徑"
     assert head == PIPELINE_DIR / "room_head.npz"
+
+    color_head = Path(room_classifier.HEAD_PATHS["color"])
+    assert color_head.is_absolute(), "color 頭預設值必須是絕對路徑"
+    assert color_head == PIPELINE_DIR / "room_head_color.npz"
 
 
 def test_room_head_file_actually_exists(room_classifier) -> None:
     """缺檔時 DINOv2 分類靜默停用（只印警告），故以測試釘住檔案真的在版控裡。"""
-    head = Path(room_classifier.HEAD_PATH)
+    head = Path(room_classifier.HEAD_PATHS["gray"])
+    assert head.is_file(), f"灰階線性頭不在 {head}——房型會靜默退回面積規則"
 
-    assert head.is_file(), f"線性頭不在 {head}——房型會靜默退回面積規則"
+    color_head = Path(room_classifier.HEAD_PATHS["color"])
+    assert color_head.is_file(), f"color 線性頭不在 {color_head}——彩圖房型會退回灰階頭"
 
 
 def test_symbol_lib_anchors_to_the_package_directory(symbol_match) -> None:
@@ -87,7 +96,7 @@ def test_defaults_resolve_identically_when_run_from_the_package_directory() -> N
         from backend.floorplan import room_classifier, symbol_match
 
         print(json.dumps({
-            "head": room_classifier.HEAD_PATH,
+            "head": room_classifier.HEAD_PATHS["gray"],
             "lib": symbol_match.LIB_PATH,
         }))
         """
@@ -117,7 +126,7 @@ def test_room_head_environment_override_still_wins(tmp_path: Path) -> None:
         import json
         from backend.floorplan import room_classifier
 
-        print(json.dumps({"head": room_classifier.HEAD_PATH}))
+        print(json.dumps({"head": room_classifier.HEAD_PATHS["gray"]}))
         """
     )
     custom_head = tmp_path / "ab_head.npz"

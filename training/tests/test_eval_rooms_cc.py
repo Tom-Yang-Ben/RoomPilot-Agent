@@ -34,14 +34,14 @@ def test_match_greedy_one_to_one():
 
 
 def test_norm_label():
-    assert norm_label("balcony") == "outdoor"
-    assert norm_label("room") == "space"
-    assert norm_label(None) == "space"
-    assert norm_label("bed") == "bed"
+    assert norm_label("Balcony") == "Balcony"      # 2026-08-01 起不再折成 outdoor
+    assert norm_label("room") == "Hallway"
+    assert norm_label(None) == "Hallway"
+    assert norm_label("Bedroom") == "Bedroom"
 
 
 def test_confusion_counts():
-    pairs = [("bed", "bed"), ("bed", "bath"), ("space", "space")]
+    pairs = [("Bedroom", "Bedroom"), ("Bedroom", "Bath"), ("Hallway", "Hallway")]
     cm = confusion(pairs)
-    assert cm["bed"]["bed"] == 1 and cm["bed"]["bath"] == 1
-    assert cm["space"]["space"] == 1
+    assert cm["Bedroom"]["Bedroom"] == 1 and cm["Bedroom"]["Bath"] == 1
+    assert cm["Hallway"]["Hallway"] == 1

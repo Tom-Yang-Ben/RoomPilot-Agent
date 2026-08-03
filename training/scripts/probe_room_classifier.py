@@ -6,7 +6,7 @@
 --own-eval --gt-seg 同一批 GT 房間，分數可直接對比。
 
 用法：python training/scripts/probe_room_classifier.py [--crops training/room_crops]
-輸出：training/json/eval_rooms/report_own_crops_dinov2.json
+輸出：temp/json/eval_rooms/report_own_crops_dinov2.json（報表＝產出，不落 training/）
 
 `--ink`（預設關閉）：特徵尾端接上墨水密度。**已實測為淨負面，勿當作改進採用**
 ——72 房 90.3%→88.9%。訊號本身有效（把近乎空的 office floor74_04 從 bath 修正
@@ -125,7 +125,7 @@ def main():
     ap.add_argument("--backbone", default="dinov2_vits14",
                     help="dinov2_vits14 / dinov2_vitb14 / dinov2_vitl14")
     ap.add_argument("--report",
-                    default="training/json/eval_rooms/report_own_crops_dinov2.json")
+                    default="temp/json/eval_rooms/report_own_crops_dinov2.json")
     ap.add_argument("--ink", action="store_true",
                     help="特徵接上墨水密度（空房↔滿房訊號；已實測淨負面）")
     ap.add_argument("--area", action="store_true",
@@ -133,9 +133,16 @@ def main():
     ap.add_argument("--save-head", metavar="PATH",
                     help="訓練完把線性頭存檔供推論用（預設 backend/floorplan/"
                          "room_head.npz）。只用 train split 訓練，own_eval 保持乾淨")
+    ap.add_argument("--domain", choices=("gray", "color"), default=None,
+                    help="只用單一畫風子集（floor 名含 color 與否）訓練＋"
+                         "測試。混訓實測傷灰階基準（90.3%%→80.6%%），"
+                         "產品改雙頭：灰階/彩圖各自成頭、依管線路線選用")
     a = ap.parse_args()
 
     manifest = json.load(open(os.path.join(a.crops, "manifest.json")))
+    if a.domain:
+        want = a.domain == "color"
+        manifest = [m for m in manifest if ("color" in m["floor"]) == want]
     train = [m for m in manifest if m["split"] == "train"]
     test = [m for m in manifest if m["split"] == "test"]
     dev = "cuda" if torch.cuda.is_available() else "cpu"

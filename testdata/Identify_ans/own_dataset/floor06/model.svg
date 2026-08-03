@@ -122,13 +122,13 @@
     <g id="Door" class="Door">
       <polygon fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon32-2" points="167.556,337.845 237.573,337.845 237.573,267.173 167.556,267.173 "/>
     </g>
-    <g class="Space Outdoor" id="g47-2">
+    <g class="Space Balcony" id="g47-2">
       <polygon fill="#b5368f" fill-opacity="0.35" stroke="#b5368f" stroke-width="2" id="polygon47-3" points="311.09,648.395 311.09,726.084 475.273,726.084 475.273,648.395 "/>
       
     </g>
-    <g class="Space WashRoom" id="g47">
-      <polygon fill="#d97a8f" fill-opacity="0.35" stroke="#d97a8f" stroke-width="2" id="polygon47" points="245.103,265.306 135.98,265.306 135.98,339.192 245.103,339.192 "/>
+    <g class="Space Bath" id="g47">
+      <polygon fill="#3dbdbd" fill-opacity="0.35" stroke="#3dbdbd" stroke-width="2" id="polygon47" points="245.103,265.306 135.98,265.306 135.98,339.192 245.103,339.192 "/>
       
     </g>
   </g>
-<g id="Labels" inkscape:label="Labels"><text x="146" y="564" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text><text x="101" y="400" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="165" y="160" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="398" y="154" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="391" y="461" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="394" y="695" font-size="22" text-anchor="middle" fill="#000000">Outdoor</text><text x="191" y="310" font-size="22" text-anchor="middle" fill="#000000">WashRoom</text></g></svg>
+<g id="Labels" inkscape:label="Labels"><text x="146" y="564" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text><text x="101" y="400" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="165" y="160" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="398" y="154" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="391" y="461" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="394" y="695" font-size="22" text-anchor="middle" fill="#000000">Balcony</text><text x="191" y="310" font-size="22" text-anchor="middle" fill="#000000">Bath</text></g></svg>

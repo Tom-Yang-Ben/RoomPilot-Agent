@@ -101,3 +101,13 @@ training/tests/.pytest_cache/
 training.zip
 /model_finetuned_*.pkl
 /backend/floorplan/model_finetuned_*.pkl
+
+# ── cody 管線側補充（2026-08-03 cody-dev 合併帶入）──
+# 編譯後二進位（無原始碼，不進版控）
+*.exe
+# 工作流模板個人快取
+VibeCoding_Workflow_Templates/
+# CubiCasa 血統已移除，殘留壓縮包不進版控
+/cubicasa5k.zip
+# macOS Finder 中繼檔
+.DS_Store

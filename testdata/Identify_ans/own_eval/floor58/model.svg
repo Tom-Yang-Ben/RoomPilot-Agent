@@ -91,7 +91,7 @@
       <polygon points="300.0,525.0 300.0,741.0 629.0,741.0 629.0,525.0 " fill="#7dc37d" fill-opacity="0.35" stroke="#7dc37d" stroke-width="2" id="polygon26" style="fill:#7dc37d;fill-opacity:0.35;stroke:#7dc37d;stroke-opacity:1"/>
       
     </g>
-    <g class="Space StairWell" id="g27">
+    <g class="Space Stair" id="g27">
       <polygon fill="#a89cc8" fill-opacity="0.35" stroke="#a89cc8" stroke-width="2" id="polygon27" points="741,317.207 644,317.207 644,681.958 741,681.958 "/>
       
     </g>
@@ -99,4 +99,4 @@
       <polygon fill="#ddaa00" fill-opacity="0.6" stroke="#ddaa00" stroke-width="2" id="polygon17-6" points="852.215,285.673 852.215,348.477 756.206,348.477 756.206,285.673 "/>
     </g>
   </g>
-<g id="Labels" inkscape:label="Labels"><text x="149" y="485" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="87" y="172" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="271" y="115" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="781" y="172" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="464" y="369" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text><text x="838" y="486" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="465" y="641" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="693" y="508" font-size="22" text-anchor="middle" fill="#000000">StairWell</text></g></svg>
+<g id="Labels" inkscape:label="Labels"><text x="149" y="485" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="87" y="172" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="271" y="115" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="781" y="172" font-size="22" text-anchor="middle" fill="#000000">Bedroom</text><text x="464" y="369" font-size="22" text-anchor="middle" fill="#000000">Kitchen</text><text x="838" y="486" font-size="22" text-anchor="middle" fill="#000000">Bath</text><text x="465" y="641" font-size="22" text-anchor="middle" fill="#000000">LivingRoom</text><text x="693" y="508" font-size="22" text-anchor="middle" fill="#000000">Stair</text></g></svg>

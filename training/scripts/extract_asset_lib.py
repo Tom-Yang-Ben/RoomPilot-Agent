@@ -34,12 +34,17 @@ from symbol_match import CANVAS, LIB_PATH, hu_of
 
 # Asset 目錄 → (kind, (短邊lo, 短邊hi, 長邊lo, 長邊hi) cm)
 ASSET_KINDS = [
-    ("bathroom/wc",           ("wc",       (35, 60, 50, 85))),
-    ("bathroom/tub",          ("tub",      (70, 95, 140, 190))),
-    ("bathroom/washbasin",    ("basin",    (30, 60, 40, 95))),
+    ("bath/wc",               ("wc",       (35, 60, 50, 85))),
+    ("bath/tub",              ("tub",      (70, 95, 140, 190))),
+    # basin 上界 2026-08-02 拓寬：美式畫風的方形洗衣盆/龍頭方盤
+    # （floor09/13/47/52，~90-100cm 見方）併入 washbasin，原 (30,60,40,95)
+    # 蓋不住；FP 風險交 probe_symbol_quality 量測把關。
+    ("bath/washbasin",        ("basin",    (30, 100, 40, 115))),
     ("kitchen/cook_stove",    ("kstove",   (50, 75, 55, 95))),
     ("kitchen/sink",          ("ksink",    (40, 70, 45, 120))),
     ("kitchen/dinner_table",  ("dtable",   (70, 120, 90, 220))),
+    # 2026-08-02 新類（使用者裁定歸廚房系）：美式畫風廚房垃圾桶
+    ("kitchen/trashcan",      ("trashcan", (25, 45, 25, 50))),
     ("bedroom/beds",          ("bed",      (90, 180, 180, 225))),
     ("bedroom/wardrobe",      ("wardrobe", (45, 70, 80, 250))),
     ("livingroom/sofas",      ("sofa",     (80, 110, 140, 260))),
