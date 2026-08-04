@@ -1,9 +1,26 @@
+import re
+
 from backend.paths import STATIC_DIR
 
 
 HTML = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 CONTROLLER = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 VIEWER = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+
+
+def aside_blocks(html: str, class_name: str) -> list[str]:
+    """取出 class 含 class_name 的每個 <aside> 內容。
+
+    比對 class 而不是整個開頭標籤，否則面板多一個屬性（例如
+    `data-scene-sidebar-mode`）就會讓斷言失效。
+    """
+    blocks: list[str] = []
+    for opening in re.finditer(r"<aside\b([^>]*)>", html):
+        classes = re.search(r'class="([^"]*)"', opening.group(1))
+        if not classes or class_name not in classes.group(1).split():
+            continue
+        blocks.append(html[opening.end() :].split("</aside>", 1)[0])
+    return blocks
 
 
 def test_white_model_exposes_walk_and_furniture_edit_modes() -> None:
@@ -64,8 +81,7 @@ def test_edit_mode_is_required_before_dragging_furniture() -> None:
 def test_catalog_results_are_opened_on_demand_instead_of_living_in_sidebar() -> None:
     assert 'id="open-furniture-catalog"' in HTML
     assert 'id="furniture-catalog-drawer"' in HTML
-    sidebar = HTML.split('<aside class="rp-control-pane rp-3d-sidebar">', 1)[1].split(
-        "</aside>",
-        1,
-    )[0]
-    assert 'id="glb-search-results"' not in sidebar
+    sidebars = aside_blocks(HTML, "rp-3d-sidebar")
+    assert sidebars, "scene.html 找不到 rp-3d-sidebar 面板"
+    for sidebar in sidebars:
+        assert 'id="glb-search-results"' not in sidebar
