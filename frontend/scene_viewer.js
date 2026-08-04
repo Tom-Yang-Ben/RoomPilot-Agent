@@ -23,7 +23,7 @@ import {
   wallSegmentForOpening,
 } from "./scene_architecture.js?v=sha256-2050441b51ed";
 import { createViewModeState } from "./scene_view_modes.js?v=sha256-13bc85e6a748";
-import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
+import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4eacbec619c5";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {
   clampWalkPosition,

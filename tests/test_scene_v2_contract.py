@@ -409,8 +409,13 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_visual_contracts.js",
         ],
         "scene_structure_preview.js": ["scene_structure_geometry.js"],
-        # polygonArea 去重：room_geometry 不再自帶副本，改消費 plan_geometry 的匯出。
-        "scene_room_geometry.js": ["scene_plan_geometry.js"],
+        # 幾何純函式去重：polygonArea、pointInPolygon、distanceToSegment 原本散在
+        # 五個檔案，現在統一在零依賴的 geometry_core.js。engineering.js 也共用它，
+        # 但走自己的 test_engineering_frontend.py，不在這張 scene 相依表裡。
+        "scene_room_geometry.js": ["geometry_core.js"],
+        "scene_plan_geometry.js": ["geometry_core.js"],
+        "scene_camera.js": ["geometry_core.js"],
+        "scene_structure_geometry.js": ["geometry_core.js"],
     }
 
     for importer_name, dependency_names in dependency_edges.items():

@@ -1,7 +1,7 @@
 // 必須排在其他 import 之前：這個模組會接管 window.fetch 以附加身分並在
 // access token 過期時自動續期，晚載入的話最早幾個請求會漏掉 Authorization。
 import { authorizedObjectUrl, requireSignedIn } from "./auth_client.js?v=sha256-b35a4ff11b37";
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-628d9901d1ba";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-96679945c56c";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
 import {
@@ -10,7 +10,7 @@ import {
 } from "./scene_unit_contracts.js?v=sha256-3f3f1160d1ae";
 import {
   repairLoadedRoomPolygon,
-} from "./scene_room_geometry.js?v=sha256-a9dcd0dd1656";
+} from "./scene_room_geometry.js?v=sha256-7f4dd7c4d6d8";
 import {
   clipPolygonByLine,
   convexHull,
@@ -29,7 +29,7 @@ import {
   shiftRoomSurfaceAssignment,
   shiftScenePoint,
   shiftSceneSegment,
-} from "./scene_plan_geometry.js?v=sha256-b77b33d86870";
+} from "./scene_plan_geometry.js?v=sha256-52ddaf293063";
 import {
   createWorkflow,
   restoreWorkflow,
@@ -92,7 +92,7 @@ import {
 import {
   roomCameraSuggestion as roomCameraSuggestionCm,
   validateRoomCamera,
-} from "./scene_camera.js?v=sha256-830908e2eb4c";
+} from "./scene_camera.js?v=sha256-68a3c55e23d5";
 import {
   buildRoomRequirementsPayload,
   conditionalOptionId,
@@ -122,12 +122,12 @@ import {
   wallBoundarySide,
   windowsOverlap,
 } from "./scene_structure_utils.js?v=sha256-41e8428ea1c8";
-import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-9d866df171b3";
+import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-6f10ad692850";
 import {
   findStructureWallCollision,
   resolveStructureWallCollisions,
   validateColumnDimensionsCm,
-} from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
+} from "./scene_structure_geometry.js?v=sha256-4eacbec619c5";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=sha256-08fa36a03a66";
 import {
   applyWindowTypePreset,
@@ -168,13 +168,13 @@ import {
   surfaceMaterialLabel,
   surfacePhrase,
   uniqueMaterialOptions,
-} from "./scene_questionnaire_data.js?v=sha256-a09bd781fccf";
+} from "./scene_questionnaire_data.js?v=sha256-17c7e0ecc752";
 import {
   createQuestionnaireFlow,
-} from "./scene_questionnaire_flow.js?v=sha256-4820ea53f176";
+} from "./scene_questionnaire_flow.js?v=sha256-f7f1caf89abb";
 import {
   createFurnitureOffers,
-} from "./scene_furniture_offers.js?v=sha256-72aad54f8e06";
+} from "./scene_furniture_offers.js?v=sha256-13ffbc8244c1";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

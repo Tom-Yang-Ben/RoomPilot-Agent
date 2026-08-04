@@ -1,6 +1,5 @@
-// polygonArea 原本在本檔有一份與 scene_plan_geometry.js 逐字元相同的副本。
-// 幾何純函式的匯出點是 scene_plan_geometry.js，這裡只消費不重寫。
-import { polygonArea } from "./scene_plan_geometry.js?v=sha256-b77b33d86870";
+// polygonArea 原本在本檔有一份重複實作，現在共用 geometry_core.js。
+import { polygonArea } from "./geometry_core.js?v=sha256-9f5b24aab5dd";
 
 function orthogonalizeNearAxisEdges(
   points,

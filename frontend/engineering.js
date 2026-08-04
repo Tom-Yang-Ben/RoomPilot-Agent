@@ -4,6 +4,9 @@ import {
   downloadAuthorized,
   requireSignedIn,
 } from "./auth_client.js?v=sha256-b35a4ff11b37";
+// geometry_core.js 零依賴，不屬於 scene 模組鏈——所以成果報告頁共用它不會被綁進
+// scene 的相依圖。這是這裡不自己再寫一份射線法的原因。
+import { pointInPolygon } from "./geometry_core.js?v=sha256-9f5b24aab5dd";
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -74,16 +77,11 @@ function polygonBounds(points) {
   };
 }
 
-function pointInPolygon(point, polygon) {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
-    const xi = polygon[i].x_cm; const yi = polygon[i].y_cm;
-    const xj = polygon[j].x_cm; const yj = polygon[j].y_cm;
-    const intersects = ((yi > point.y_cm) !== (yj > point.y_cm))
-      && (point.x_cm < ((xj - xi) * (point.y_cm - yi)) / ((yj - yi) || 1e-9) + xi);
-    if (intersects) inside = !inside;
-  }
-  return inside;
+// geometry_core 只認 { x, y }。本檔的平面座標一律是 { x_cm, y_cm }——`bounds.points`
+// 會原樣進 payload（見 polygon_cm），欄位名受 AGENTS.md 的公分契約約束不能改，
+// 所以在呼叫邊界轉，不動 schema。
+function planXY(point) {
+  return { x: point.x_cm, y: point.y_cm };
 }
 
 function explicitOpeningAreaM2(structures = {}, roomId, singleRoom) {
@@ -193,7 +191,10 @@ export function buildProjectSnapshot(project, renders = []) {
       x_cm: planCenter.x_cm + finite(position.x),
       y_cm: planCenter.y_cm + finite(position.z ?? position.y),
     };
-    return String(roomPolygons.find((item) => item.bounds && pointInPolygon(planPoint, item.bounds.points))?.room.id || (rooms.length === 1 ? rooms[0].id : ""));
+    const containing = roomPolygons.find((item) => (
+      item.bounds && pointInPolygon(planXY(planPoint), item.bounds.points.map(planXY))
+    ));
+    return String(containing?.room.id || (rooms.length === 1 ? rooms[0].id : ""));
   }
 
   const applianceRequirements = scene.render_context?.appliance_requirements

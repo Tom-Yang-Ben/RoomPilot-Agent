@@ -2,13 +2,13 @@
 // 這裡只收平面幾何純函式——僅依賴參數、彼此與標準庫，不碰 state、element、DOM。
 // 為了維持「純搬家」紀律，函式主體保持原樣，統一在檔尾 export。
 
-function polygonArea(points) {
-  if (!points?.length) return 0;
-  return Math.abs(points.reduce((sum, point, index) => {
-    const next = points[(index + 1) % points.length];
-    return sum + point.x * next.y - next.x * point.y;
-  }, 0) / 2);
-}
+// polygonArea 與射線法都搬進 geometry_core.js——engineering.js 那條獨立頁面鏈
+// 也要用，不能讓它們住在名字綁 scene 的模組裡。pointInPolygonCm 保留為別名：
+// scene 側的多邊形一律是公分，名稱帶著這個單位契約，中立核心刻意不帶。
+import {
+  pointInPolygon as pointInPolygonCm,
+  polygonArea,
+} from "./geometry_core.js?v=sha256-9f5b24aab5dd";
 
 function roomPolygonsDiffer(first, second, toleranceCm = 0.01) {
   if ((first?.length || 0) !== (second?.length || 0)) return true;
@@ -16,25 +16,6 @@ function roomPolygonsDiffer(first, second, toleranceCm = 0.01) {
     Math.abs(Number(point.x) - Number(second[index]?.x)) > toleranceCm
     || Math.abs(Number(point.y) - Number(second[index]?.y)) > toleranceCm
   ));
-}
-
-function pointInPolygonCm(point, polygon) {
-  if (!point || !Array.isArray(polygon) || polygon.length < 3) return false;
-  let inside = false;
-  for (let index = 0, previousIndex = polygon.length - 1; index < polygon.length; previousIndex = index, index += 1) {
-    const current = polygon[index];
-    const previous = polygon[previousIndex];
-    const intersects = (
-      (Number(current.y) > point.y) !== (Number(previous.y) > point.y)
-      && point.x < (
-        ((Number(previous.x) - Number(current.x)) * (point.y - Number(current.y)))
-        / ((Number(previous.y) - Number(current.y)) || 1e-9)
-        + Number(current.x)
-      )
-    );
-    if (intersects) inside = !inside;
-  }
-  return inside;
 }
 
 function convexHull(points) {

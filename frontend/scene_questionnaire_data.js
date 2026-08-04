@@ -9,7 +9,7 @@ import {
 } from "./scene_layout2d.js?v=sha256-23d4de37dcfe";
 import {
   roomDimensions,
-} from "./scene_plan_geometry.js?v=sha256-b77b33d86870";
+} from "./scene_plan_geometry.js?v=sha256-52ddaf293063";
 import {
   WHOLE_HOUSE_QUESTIONS,
 } from "./scene_requirements.js?v=sha256-097f1470f5a3";

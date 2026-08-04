@@ -1,3 +1,7 @@
+// pointToSegmentDistance 原本在本檔有一份與 scene_camera.js 等價的實作，現在共用
+// geometry_core.js。呼叫端名稱保留——本檔的四處用法都在講「點到牆面的距離」。
+import { distanceToSegment as pointToSegmentDistance } from "./geometry_core.js?v=sha256-9f5b24aab5dd";
+
 function segmentLength(item) {
   if (!item?.start || !item?.end) return 0;
   return Math.hypot(
@@ -114,21 +118,6 @@ function structureFootprint(item, kind) {
     );
   }
   return null;
-}
-
-function pointToSegmentDistance(point, start, end) {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const lengthSquared = dx * dx + dy * dy;
-  if (lengthSquared <= 1e-9) return Math.hypot(point.x - start.x, point.y - start.y);
-  const t = Math.max(0, Math.min(
-    1,
-    ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared,
-  ));
-  return Math.hypot(
-    point.x - (start.x + dx * t),
-    point.y - (start.y + dy * t),
-  );
 }
 
 function beamEndpointSupportedByWall(item, wall, wallWidthCm, touchToleranceCm) {

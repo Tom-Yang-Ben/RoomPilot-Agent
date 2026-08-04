@@ -6,6 +6,16 @@
 // 翻面必須在這裡做完。少了這一步，每間房的鏡頭都會落在 x 軸鏡像的位置：廚房視角
 // 照到床、臥室視角照到餐桌，第 8 步的逐房生圖輸入也整批是錯的。
 
+import {
+  distanceToSegment,
+  pointInPolygon,
+} from "./geometry_core.js?v=sha256-9f5b24aab5dd";
+
+// 逐房鏡頭要的是「邊界算室內」：target 落在牆線上不能判成室外，否則貼牆的鏡頭
+// 會整批變成 camera_target_outside_room。中立核心預設是標準射線法（邊界未定義），
+// 所以這裡必須顯式開啟——見 tests/test_scene_room_camera.py 的兩支邊界測試。
+const ROOM_CONTAINMENT = { includeBoundary: true };
+
 const DEFAULT_PLAN_WIDTH_CM = 420;
 const DEFAULT_PLAN_DEPTH_CM = 360;
 const DEFAULT_ROOM_WIDTH_CM = 320;
@@ -25,40 +35,6 @@ function finiteTriplet(value) {
   return Array.isArray(value)
     && value.length === 3
     && value.every((item) => Number.isFinite(Number(item)));
-}
-
-function pointOnSegment(point, start, end, tolerance = 0.01) {
-  const cross = (point.y - start.y) * (end.x - start.x)
-    - (point.x - start.x) * (end.y - start.y);
-  if (Math.abs(cross) > tolerance) return false;
-  const dot = (point.x - start.x) * (end.x - start.x)
-    + (point.y - start.y) * (end.y - start.y);
-  if (dot < -tolerance) return false;
-  const lengthSquared = (end.x - start.x) ** 2 + (end.y - start.y) ** 2;
-  return dot <= lengthSquared + tolerance;
-}
-
-function pointInPolygon(point, polygon) {
-  let inside = false;
-  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
-    const start = polygon[previous];
-    const end = polygon[index];
-    if (pointOnSegment(point, start, end)) return true;
-    const crosses = (end.y > point.y) !== (start.y > point.y)
-      && point.x < ((start.x - end.x) * (point.y - end.y)) / (start.y - end.y) + end.x;
-    if (crosses) inside = !inside;
-  }
-  return inside;
-}
-
-function distanceToSegment(point, start, end) {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const lengthSquared = dx ** 2 + dy ** 2;
-  if (!lengthSquared) return Math.hypot(point.x - start.x, point.y - start.y);
-  const ratio = Math.max(0, Math.min(1,
-    ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared));
-  return Math.hypot(point.x - (start.x + ratio * dx), point.y - (start.y + ratio * dy));
 }
 
 export function validateRoomCamera(camera, room, floorplan = {}) {
@@ -88,10 +64,10 @@ export function validateRoomCamera(camera, room, floorplan = {}) {
   });
   const position = worldToPlan(camera.position_cm);
   const target = worldToPlan(camera.target_cm);
-  if (!pointInPolygon(target, polygon)) {
+  if (!pointInPolygon(target, polygon, ROOM_CONTAINMENT)) {
     return { valid: false, code: "camera_target_outside_room" };
   }
-  if (!pointInPolygon(position, polygon)) {
+  if (!pointInPolygon(position, polygon, ROOM_CONTAINMENT)) {
     return { valid: false, code: "camera_position_outside_room" };
   }
   const wallClearanceCm = Math.min(...polygon.map((start, index) =>
