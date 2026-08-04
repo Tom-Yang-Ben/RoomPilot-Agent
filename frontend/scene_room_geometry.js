@@ -1,10 +1,6 @@
-function polygonArea(points) {
-  if (!points?.length) return 0;
-  return Math.abs(points.reduce((sum, point, index) => {
-    const next = points[(index + 1) % points.length];
-    return sum + point.x * next.y - next.x * point.y;
-  }, 0) / 2);
-}
+// polygonArea 原本在本檔有一份與 scene_plan_geometry.js 逐字元相同的副本。
+// 幾何純函式的匯出點是 scene_plan_geometry.js，這裡只消費不重寫。
+import { polygonArea } from "./scene_plan_geometry.js?v=sha256-b77b33d86870";
 
 function orthogonalizeNearAxisEdges(
   points,

@@ -102,3 +102,90 @@ def test_room_camera_validation_rejects_views_behind_room_walls() -> None:
         "valid": False,
         "code": "camera_position_outside_room",
     }
+
+
+def _validate_targets(targets: dict[str, list[float]]) -> dict:
+    """固定房間與相機，只改 target_cm，回傳每個 target 的驗證結果。"""
+    module_uri = CAMERA_MODULE.as_uri()
+    return run_workflow_script(
+        f"""
+        import {{ validateRoomCamera }} from {json.dumps(module_uri)};
+        const floorplan = {{ width_cm: 400, depth_cm: 400 }};
+        const room = {{ polygon_cm: [
+          {{ x: 100, y: 100 }}, {{ x: 300, y: 100 }},
+          {{ x: 300, y: 300 }}, {{ x: 100, y: 300 }},
+        ] }};
+        const base = {{
+          camera_type: "perspective", position_cm: [0, 145, 0],
+          up: [0, 1, 0], fov_deg: 58, zoom: 1,
+        }};
+        const targets = {json.dumps(targets)};
+        console.log(JSON.stringify(Object.fromEntries(
+          Object.entries(targets).map(([name, target_cm]) => [
+            name, validateRoomCamera({{ ...base, target_cm }}, room, floorplan),
+          ]),
+        )));
+        """
+    )
+
+
+def test_target_exactly_on_a_wall_counts_as_inside_the_room() -> None:
+    """`pointInPolygon` 的 `pointOnSegment` 分支：邊界算室內。
+
+    scene_camera.js 的 pointInPolygon 與 scene_plan_geometry.js 的 pointInPolygonCm
+    是兩份不同實作，差別就在這條分支——後者是標準 ray casting，邊界未定義。將來若
+    要把兩者併成同一個函式，必須保留這個語意（例如帶 includeBoundary 選項），否則
+    target 落在牆線上的逐房鏡頭會整批變成 camera_target_outside_room。
+
+    容差是下在**外積**上的（scene_camera.js 的 pointOnSegment，tolerance 0.01），
+    所以等效的垂距容差會隨邊長縮放：200cm 的牆約為 5e-5 cm。這裡只釘住「牆上算內、
+    0.01cm 外算外」，不釘那個縮放行為——換成以垂距為準的實作也應該通過。
+
+    平面座標換算：world x + 200 = plan x、200 - world z = plan y，房間是 plan
+    (100,100)-(300,300)，所以 world x=100 正好落在 plan x=300 那面牆上。
+    """
+    result = _validate_targets(
+        {
+            "on_wall": [100, 82, 0],
+            "on_corner": [100, 82, 100],
+            "just_inside": [99.99, 82, 0],
+            "just_outside": [100.01, 82, 0],
+            "far_outside": [150, 82, 0],
+        }
+    )
+
+    assert result["on_wall"]["valid"] is True, "target 落在牆線上必須算室內"
+    assert result["on_corner"]["valid"] is True, "target 落在轉角必須算室內"
+    assert result["just_inside"]["valid"] is True
+    assert result["just_outside"] == {
+        "valid": False,
+        "code": "camera_target_outside_room",
+    }
+    assert result["far_outside"]["code"] == "camera_target_outside_room"
+
+
+def test_position_on_a_wall_is_rejected_by_clearance_not_by_containment() -> None:
+    """position 走不到邊界分支——8cm 淨空檢查會先擋下來。
+
+    所以 pointInPolygon 的邊界語意只對 target 有實質影響。釘住這點是為了讓將來
+    評估合併風險的人不必重推：position 那條線怎麼改都不會改變結果。
+    """
+    module_uri = CAMERA_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ validateRoomCamera }} from {json.dumps(module_uri)};
+        const floorplan = {{ width_cm: 400, depth_cm: 400 }};
+        const room = {{ polygon_cm: [
+          {{ x: 100, y: 100 }}, {{ x: 300, y: 100 }},
+          {{ x: 300, y: 300 }}, {{ x: 100, y: 300 }},
+        ] }};
+        console.log(JSON.stringify(validateRoomCamera({{
+          camera_type: "perspective",
+          position_cm: [100, 145, 0],
+          target_cm: [0, 82, 0],
+          up: [0, 1, 0], fov_deg: 58, zoom: 1,
+        }}, room, floorplan)));
+        """
+    )
+
+    assert result == {"valid": False, "code": "camera_too_close_to_wall"}

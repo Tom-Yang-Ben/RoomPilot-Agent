@@ -10,7 +10,7 @@ import {
 } from "./scene_unit_contracts.js?v=sha256-3f3f1160d1ae";
 import {
   repairLoadedRoomPolygon,
-} from "./scene_room_geometry.js?v=sha256-fea08f0d5f34";
+} from "./scene_room_geometry.js?v=sha256-a9dcd0dd1656";
 import {
   clipPolygonByLine,
   convexHull,

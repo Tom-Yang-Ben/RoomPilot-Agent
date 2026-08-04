@@ -409,6 +409,8 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_visual_contracts.js",
         ],
         "scene_structure_preview.js": ["scene_structure_geometry.js"],
+        # polygonArea 去重：room_geometry 不再自帶副本，改消費 plan_geometry 的匯出。
+        "scene_room_geometry.js": ["scene_plan_geometry.js"],
     }
 
     for importer_name, dependency_names in dependency_edges.items():
