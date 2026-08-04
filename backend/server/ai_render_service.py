@@ -6,8 +6,8 @@
 - 本模組是 Bella（`backend/server/`）對 Yen（`backend/agent/` Gen_Pic Agent）的
   adapter：只做「scene_json → agent 文件」的資訊補充與呼叫編排，不重做 agent
   的生圖流程或失敗政策（3 次主模型 → 提示原因 → fallback，均在 GenPicAgent）。
-- 座標一律沿用 engine 既有結果（公分、房間中心原點）；這裡只把中心原點翻成
-  `genpic_info.position_phrase` 需要的角落原點措辭，不產生任何新座標。
+- 座標一律沿用 engine 既有結果；提示詞不含數值與位置措辭（定案），
+  畫面位置由逐房 3D 截圖 img2img 鎖定，這裡不產生任何新座標。
 - 家電只作為生圖畫面 context（`render_context.appliance_requirements`），
   不進家具清單或配置。
 - 未設定 `OPENROUTER_API_KEY` 時明確回報「尚未連接」，不得假成功（第 8 步契約）。
@@ -116,37 +116,20 @@ def _room_dims(scene: dict) -> tuple[float, float]:
     return width, depth
 
 
-def _placed_rows(objects: list[dict], width_cm: float, depth_cm: float) -> list[dict]:
-    """把 engine scene_objects 翻成 genpic_info 需要的欄位（中心原點 → 角落原點）。"""
-    rows: list[dict] = []
-    for obj in objects:
-        pos = obj.get("position_cm") or {}
-        size = obj.get("size_cm") or {}
-        try:
-            x_cm = float(pos.get("x", 0.0))
-            z_cm = float(pos.get("z", 0.0))
-            width = float(size.get("width", 0.0))
-            depth = float(size.get("depth", 0.0))
-            rotation = float(obj.get("rotation_y_deg", 0.0))
-        except (TypeError, ValueError):
-            continue
-        rows.append(
-            {
-                "id": obj.get("id") or obj.get("furniture_id") or "",
-                "name": obj.get("name_zh_raw")
-                or obj.get("name_en")
-                or obj.get("normalized_type")
-                or "家具",
-                "type": obj.get("normalized_type") or "",
-                "width": width,
-                "depth": depth,
-                # engine 座標為房間中心原點；genpic_info 期望角落原點（左下為 0）。
-                "pos_x": x_cm + width_cm / 2,
-                "pos_y": z_cm + depth_cm / 2,
-                "rotation": rotation,
-            }
-        )
-    return rows
+def _placed_rows(objects: list[dict]) -> list[dict]:
+    """取 genpic 畫面描述需要的欄位：名稱、類型與材質（數值與座標不進提示詞）。"""
+    return [
+        {
+            "id": obj.get("id") or obj.get("furniture_id") or "",
+            "name": obj.get("name_zh_raw")
+            or obj.get("name_en")
+            or obj.get("normalized_type")
+            or "家具",
+            "type": obj.get("normalized_type") or "",
+            "material": str(obj.get("material") or "").strip(),
+        }
+        for obj in objects
+    ]
 
 
 def _surface_text(scene: dict, option_key: str) -> str | None:
@@ -236,13 +219,9 @@ def _palette_dict(requirements: RequirementDoc) -> dict | None:
 
 
 def _viewpoint(room: dict, reference_b64: str, requirements: RequirementDoc) -> dict:
-    """逐房視角的資訊補充：房間名、使用者逐房補充、整體補充需求 → genpic 視角備註。"""
-    parts = [str(room.get("room_label") or room.get("room_id") or "").strip()]
-    extra = str(room.get("note") or "").strip()
-    if extra:
-        parts.append(f"使用者補充：{extra}")
-    if requirements.notes:
-        parts.append(f"整體補充需求：{requirements.notes}")
+    """逐房視角備註：逐房補充與整體補充需求原文照列（定案：不加前綴標籤；
+    房間名已在提示詞開頭，不重複）。"""
+    parts = [str(room.get("note") or "").strip(), requirements.notes]
     return {
         "viewpoint_id": str(room.get("room_id") or ""),
         "note": "；".join(part for part in parts if part),
@@ -287,7 +266,7 @@ def generate_room_images(
     for room in rooms:
         room_id = str(room.get("room_id") or "").strip()
         reference_b64 = _strip_data_url(room.get("reference_png_data_url"))
-        rows = _placed_rows(_placed_objects(scene, room_id), width_cm, depth_cm)
+        rows = _placed_rows(_placed_objects(scene, room_id))
         scene_doc = SceneDoc(rooms={room_id: {"placed": rows, "failed": []}})
         layout_room = _layout_room(room, room_id, width_cm, depth_cm)
         viewpoint = _viewpoint(room, reference_b64, requirements)

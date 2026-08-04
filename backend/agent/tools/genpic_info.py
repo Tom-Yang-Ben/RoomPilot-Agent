@@ -5,7 +5,6 @@
 明確告訴模型只能改使用者指定的內容、其餘元素保持不變。
 
 家電只在這裡進入畫面描述（渲染 context），不影響任何配置決策。
-位置措辭是把 engine 算好的座標翻成文字，不是幾何決策。
 """
 from __future__ import annotations
 
@@ -18,39 +17,19 @@ from ..documents import (
 from .base import ToolContract
 from .design_knowledge import style_note
 
-_ROTATION_FACING = {0: "面向上緣", 90: "面向左緣", 180: "面向下緣", 270: "面向右緣"}
-
-
-def position_phrase(pos_x: float, pos_y: float, width_cm: float, depth_cm: float) -> str:
-    """把公分座標翻成構圖用的相對位置措辭（左/中/右 × 前/中/後）。"""
-    third_x = "左側" if pos_x < width_cm / 3 else ("右側" if pos_x > width_cm * 2 / 3 else "中間")
-    third_y = "前段" if pos_y < depth_cm / 3 else ("後段" if pos_y > depth_cm * 2 / 3 else "中段")
-    if third_x == "中間" and third_y == "中段":
-        return "房間中央"
-    return f"房間{third_y}{third_x}"
-
-
-def facing_phrase(rotation: float) -> str:
-    return _ROTATION_FACING.get(int(rotation) % 360, f"旋轉 {rotation:.0f} 度")
-
 
 def furniture_lines(scene: SceneDoc, room: LayoutRoom) -> list[str]:
-    # 尺寸等數值不進提示詞（定案）：位置與朝向用相對措辭，數值只留在座標翻譯的輸入端。
+    # 定案：數值與相對位置措辭都不進提示詞——畫面位置由 img2img 視角
+    # 截圖鎖定，文字只補名稱、類型與材質描述。
     lines = []
     for row in scene.placed_in(room.room_id):
-        lines.append(
-            "{name}（{type}，{pos}，{facing}）".format(
-                name=row.get("name", row.get("id", "家具")),
-                type=row.get("type", ""),
-                pos=position_phrase(
-                    float(row.get("pos_x", 0)),
-                    float(row.get("pos_y", 0)),
-                    room.width_cm,
-                    room.depth_cm,
-                ),
-                facing=facing_phrase(float(row.get("rotation", 0))),
-            )
+        name = str(row.get("name") or row.get("id") or "家具")
+        details = "，".join(
+            str(row.get(key) or "").strip()
+            for key in ("type", "material")
+            if str(row.get(key) or "").strip()
         )
+        lines.append(f"{name}（{details}）" if details else name)
     return lines
 
 

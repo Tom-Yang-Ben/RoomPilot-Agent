@@ -82,6 +82,7 @@ def _scene() -> dict:
                 "furniture_id": "sofa-1",
                 "normalized_type": "sofa",
                 "name_zh_raw": "北歐布沙發",
+                "material": "亞麻布",
                 "position_cm": {"x": -80, "z": 100},
                 "rotation_y_deg": 180,
                 "size_cm": {"width": 210, "depth": 90, "height": 85},
@@ -122,9 +123,10 @@ def test_prompt_supplements_all_collected_info() -> None:
     prompt = gateway.prompts[0]
     # 模板定案：「渲染成寫實風格，房間：{}、…」；數值資訊（尺寸）不提供。
     assert prompt.startswith("渲染成寫實風格，房間：客廳")
-    # 家具鎖定（不含尺寸數值），且 placement_failed 家具不進畫面。
-    assert "北歐布沙發" in prompt
+    # 家具鎖定（不含尺寸與位置措辭，附材質描述），placement_failed 不進畫面。
+    assert "北歐布沙發（sofa，亞麻布）" in prompt
     assert "210x90cm" not in prompt
+    assert "房間中央" not in prompt and "面向" not in prompt
     assert "無法擺放的櫃" not in prompt
     assert "不可增減或移動" in prompt
     # 家電只作為畫面 context。
@@ -132,9 +134,11 @@ def test_prompt_supplements_all_collected_info() -> None:
     # 地板材質、60-30-10 色調。
     assert "地板材質：" in prompt and "橡木地板" in prompt
     assert "色調採(60%, 30%, 10%)：" in prompt and "#F3EBDD" in prompt
-    # 逐房與整體補充需求（額外需求）都補進視角備註。
-    assert "使用者補充：沙發旁要立燈" in prompt
-    assert "整體補充需求：保留閱讀角落" in prompt
+    # 逐房與整體補充需求原文照列，不加前綴標籤。
+    assert "沙發旁要立燈" in prompt
+    assert "保留閱讀角落" in prompt
+    assert "使用者補充" not in prompt
+    assert "整體補充需求" not in prompt
     # 3D 視角截圖當 img2img 參考（不移動擺設的關鍵）。
     assert _png_b64((10, 20, 30)) in gateway.image_inputs[0][0]
 
