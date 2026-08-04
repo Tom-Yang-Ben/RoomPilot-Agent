@@ -526,6 +526,20 @@ def test_scheme_choice_is_fixed_after_entering_step_seven() -> None:
     assert "方案已於第 6 步選定" in source
 
 
+def test_step_eight_render_image_replaces_viewer_and_toggles() -> None:
+    """第 8 步版面:生圖完成後取代左側 3D 場景(圖疊在 viewer 容器上),
+    點圖切回 3D、點「查看生圖」隨時切回,且左側的圖跟著選取房間連動。"""
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    viewer_markup = html.split('id="ai-render-viewer"')[1][:900]
+    assert 'id="ai-render-image-stage"' in viewer_markup       # 圖疊在 3D viewer 內
+    assert 'id="ai-render-image-toggle"' in viewer_markup
+    assert "function updateAiRenderImageStage" in source
+    assert "aiRenderImageVisible = done > 0" in source          # 生圖完成即取代 3D
+    assert source.count("updateAiRenderImageStage()") >= 4      # 生成/選房/雙向切換都同步
+
+
 def test_realistic_entry_reveals_the_scene_exactly_once() -> None:
     """進即時寫實一次呈現:第一張色卡的材質、軟裝與家具換款全部就緒才
     載入場景(deferReload),進場不再連續自我刷新;其餘色卡等點選才套用,

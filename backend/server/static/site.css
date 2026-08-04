@@ -13314,3 +13314,39 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
 @keyframes rp-placement-busy-spin {
   to { transform: rotate(360deg); }
 }
+
+/* 第 8 步:生圖完成後取代左側 3D 場景;點圖回 3D、點「查看生圖」切回 */
+.rp-render-image-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  background: #1c1e1d;
+  cursor: pointer;
+}
+
+.rp-render-image-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.rp-render-image-hint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(24, 28, 26, 0.72);
+  color: #fff;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.rp-render-image-toggle {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 12;
+}
