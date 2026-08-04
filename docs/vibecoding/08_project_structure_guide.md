@@ -64,7 +64,9 @@ RoomPilot-Agent/
 └── uv.lock                       # uv 鎖定檔
 ```
 
-另有未入版控的工作區殘留:`VibeCoding_Workflow_Templates/`(模板原稿)與 `backend/catalog/data/舊有：12種風格與JSON/`(untracked;git 內已有內容幾乎相同的「舊友：12種風格與JSON」目錄,兩者僅 README.md 不同,去留待裁決)。
+另有未入版控的工作區殘留:`VibeCoding_Workflow_Templates/`(模板原稿)。曾記錄的
+`backend/catalog/data/舊有：12種風格與JSON/`(untracked)已不存在,只剩 git 追蹤的
+「舊友：12種風格與JSON」一份(2026-08-04 實測)。
 
 ---
 
@@ -228,7 +230,7 @@ docs/
 - 頂層結構或負責人目錄的變更,必須同步更新 `README.md` 責任目錄表與本文件;正式契約變更走 `docs/contracts/`。
 - 已知待清理項(現況事實,裁決待定):
   - `backend/server/routes/`、`backend/server/storage/` 只剩 `__pycache__`,原始 `.py` 已刪,屬結構搬移殘留。
-  - `backend/catalog/data/` 的「舊有：」「舊友：」近重複目錄(僅 README.md 不同,前者 untracked)。
+  - ~~`backend/catalog/data/` 的「舊有：」「舊友：」近重複目錄~~ 已結案:「舊有：」不復存在(2026-08-04 實測)。
   - `backend/server/main.py` 的 `DATASET_DIR` 指向 repo 根 `dataset/`(不存在),實際資料在 `data/dataset/`;cloudfront 模式下不影響執行。
   - `frontend3d/README.md` 內容過時(寫 port 8000 與舊路徑,與 vite.config.js 實際 proxy 8002 矛盾)。
   - `examples/demo_app/` 自述已退役,README 仍引用已廢除的 ControlNet 計畫。

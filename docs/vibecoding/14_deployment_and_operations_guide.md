@@ -97,7 +97,7 @@ npm run preview
 | `ROOMPILOT_RUNTIME_DIR` | 覆寫 `.runtime` 位置 | repo 根 `/.runtime` | `runtime_paths.py:22` |
 | `ROOMPILOT_MODEL_DELIVERY_MODE` | GLB 交付模式 `local`/`cloudfront` | `cloudfront` | `services/cloud_models.py:49` |
 | `ROOMPILOT_CLOUDFRONT_BASE_URL` | 覆寫 CloudFront base URL | `https://ddgsm1yg3xikc.cloudfront.net` | `services/cloud_models.py:69` |
-| `ROOMPILOT_GLB_MANIFEST_PATH` | 覆寫 manifest CSV 路徑 | `backend/catalog/data/manifests/glb_upload_all_result.csv` | `services/cloud_models.py:74` |
+| `ROOMPILOT_GLB_MANIFEST_PATH` | 覆寫 manifest CSV 路徑 | `JSON/manifests/glb_upload_all_result.csv` | `services/cloud_models.py:74` |
 | `ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS` | local 模式離線 GLB zip/資料夾(Windows 分號、macOS/Linux 冒號分隔) | 空 | `main.py:240` |
 | `ROOMPILOT_RENDER_PROVIDER_URL` | 第 10 步遠端渲染服務端點 | 空(未設定回 503) | `render_service.py:42` |
 | `ROOMPILOT_RENDER_PROVIDER_TOKEN` | 渲染服務 token | 空 | `render_service.py:43` |

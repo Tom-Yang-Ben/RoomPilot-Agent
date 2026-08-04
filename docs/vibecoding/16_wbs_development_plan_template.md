@@ -115,7 +115,7 @@
 | 編號 | 任務 | 負責人 | 工時 | 狀態 | 完成日期 | 依賴 | 依據 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 3.2.1 | 官方雲端型錄整合與加固(9,350 件 + manifest 驗證) | Kai(目錄負責人;commit 提交者為 Bella,git log 實測) | | 已完成 | 2026-07-26 | - | commit 83b3c8a、e48cd67(`git log` 實測);`build_official_catalog` 強制 9,350 件驗證 |
-| 3.2.2 | 重複目錄裁決:「舊有:12種風格與JSON」(untracked)與「舊友:12種風格與JSON」(git 追蹤)僅 README.md 不同,擇一保留 | Kai | | 待議 | | - | `diff -rq` 實測僅 README.md 差異;`main.py:100` `EXTERNAL_IMPORT_PATH` 指向「舊友」版 |
+| 3.2.2 | 重複目錄裁決:「舊有:12種風格與JSON」與「舊友:12種風格與JSON」擇一保留 | Kai | | 已結案 | 2026-08-04 | - | 「舊有:」目錄已不存在,磁碟只剩「舊友:」一份(`git ls-files` 與目錄列舉實測);無需裁決 |
 | 3.2.3 | 表面型錄風格對齊:`surface_catalog.json` 的 `style_surface_profiles` 為 12 個舊風格 key,與家具 6 風格 ID 不一致,查無 profile 時 fallback `scandinavian` | Kai | | 待辦 | | - | 實測 profiles 共 12 key;`main.py:424-428` `_style_surface_profile` fallback 實測 |
 | 3.2.4 | 隔離區治理:1,514 件無法映射舊資料維持隔離,不得進入網頁/Agent/3D | Kai | | 現行維護 | | - | `quarantine/unmatched_cloud_furniture/` 實測 count=1514;`tests/test_cloud_quarantine.py` 守護 |
 | 3.2.5 | AWS 端型錄補齊:`/api/catalog/status` 中 surfaces provider=`local_pending_aws_manifest`、doors provider=`procedural_pending_aws_catalog`(count=0) | Kai | | 待辦 | | - | `main.py:1918,1923` provider 字串實測 |

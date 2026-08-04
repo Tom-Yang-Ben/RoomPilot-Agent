@@ -133,7 +133,7 @@ graph LR
 ### B. 待團隊裁決(支撐事實已查證,決策本身未定)
 
 1. Q-002/D-11:`surface_catalog.json` 12 個舊風格 profile 與 6 風格 ID 的映射是否有意設計——程式事實已全數查證(3 個同名命中、3 個落 fallback `scandinavian`,`main.py:428`),設計意圖待 Kai/Bella 裁決(02、11 D-11、16 3.2.3)。
-2. D-09:「舊有:/舊友:12種風格與JSON」重複目錄去留(diff 僅 README.md 不同、舊友被追蹤且被 `main.py:100` 引用;11、16 3.2.2)。
+2. ~~D-09:「舊有:/舊友:12種風格與JSON」重複目錄去留~~ **已結案(2026-08-04)**:「舊有:」目錄已不存在,無需裁決(11 D-09、16 3.2.2)。
 3. frontend3d 最終定位(除役 vs 保留為 DXF 除錯工具)——程式證據兩面均已核實(docstring 稱 retired vs 路由/測試存活、`npm install` ERESOLVE 失敗),定性屬產品裁決(12 §0、17 §6.5、16 4.2.1)。
 4. pytest-bdd 引入與否(事實前提已證:pyproject/uv.lock 零命中、無 `features/`;03)。
 5. `main.py` 拆 APIRouter、死碼去留(`detect_geometry`、`default_ocr_provider`、`engine/adjustment.py` 鏈)——D-04 死碼是否被 repo 外系統(room_pilot2)使用無從 grep(09、11、16)。

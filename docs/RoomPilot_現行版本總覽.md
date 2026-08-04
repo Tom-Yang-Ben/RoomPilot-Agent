@@ -52,7 +52,7 @@
 
 ## 家具、家電與資料庫
 
-第 6 步優先讀取 Kai PostgreSQL view `roompilot.furniture_catalog_current`。目前正式 view 有 9,349 筆啟用家具，每筆資料包含 GLB、正面/側面/45 度 PNG、房間類型、風格、材質、尺寸與 VLM/RAG 說明。資料庫暫時不可連線時，才使用 repository 內已驗證的 9,350 筆 JSON catalog。
+第 6 步優先讀取 Kai PostgreSQL view `roompilot.furniture_catalog_current`。目前正式 view 有 7,958 筆啟用家具（`furniture_items` 共 8,557 筆，其中 599 筆因品質標記 `is_active = false` 而未進 view），每筆資料包含 GLB、正面/側面/45 度 PNG、房間類型、風格、材質、尺寸與 VLM/RAG 說明。燈具另走 `roompilot.lighting_assets`（793 筆，`lighting_assets_current` 637 筆可用），不在本 view 內。資料庫暫時不可連線時，才使用 repository 內已驗證的 8,557 筆 JSON catalog（`JSON/furniture/furniture_official_catagory.json`）。
 
 冰箱、洗衣機等家電不是第 6 步可自動擺放家具：問卷仍會保存它們，並寫入 `questionnaire.appliance_requirements` 與 `scene_json.render_context`，讓第 8 步生圖能反映使用者需求。
 

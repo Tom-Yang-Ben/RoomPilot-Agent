@@ -16,8 +16,11 @@ Bella 可以讀取並呈現資料；Yen 可以排序與推薦；但三者都不�
 ## 正式資料來源與優先順序
 
 1. PostgreSQL view `roompilot.furniture_catalog_current`：第 6 步與 API 的正式來源。
-2. `backend/catalog/data/furniture_catalog_cloud_9350.json`：PostgreSQL 尚未可用時的唯讀 fallback。
-3. `backend/catalog/data/manifests/glb_upload_all_result.csv` 與 `image_upload_all_result.csv`：模型、三視角圖片的交付憑據。
+2. `JSON/furniture/furniture_official_catagory.json`（8,557 筆）：PostgreSQL 尚未可用時的唯讀 fallback，由 `main.py` 的 `OFFICIAL_FURNITURE_CATALOG_PATH` 載入。
+3. `JSON/manifests/glb_upload_all_result.csv`：GLB 交付憑據，`services/cloud_models.py` 讀取。
+   `backend/catalog/data/manifests/image_upload_all_result.csv`：三視角圖片交付憑據，
+   `services/cloud_images.py` 讀取。兩者列數不同（8,557 對 9,350），差額是燈具剝離前後的快照，
+   詳見 `backend/catalog/data/manifests/README.md`。
 4. `furniture_catalog_6styles_zh.json`：舊的風格與中文 enrichment，不能覆蓋正式 ID、尺寸、模型 URL 或圖片 URL。
 
 禁止再把舊的 10,550 筆資料、測試 CSV 或未驗證的本機 GLB 當成正式來源。
@@ -101,9 +104,13 @@ CloudFront 基底 URL 與 manifest 路徑由下列環境設定指定，不可寫
 
 ```dotenv
 ROOMPILOT_CLOUDFRONT_BASE_URL=https://ddgsm1yg3xikc.cloudfront.net
-ROOMPILOT_GLB_MANIFEST_PATH=backend/catalog/data/manifests/glb_upload_all_result.csv
+ROOMPILOT_GLB_MANIFEST_PATH=JSON/manifests/glb_upload_all_result.csv
 ROOMPILOT_LIGHTING_MANIFEST_PATH=backend/catalog/data/manifests/lighting_assets_manifest.csv
 ```
+
+`ROOMPILOT_GLB_MANIFEST_PATH` 必須指向 `JSON/manifests/`（8,557 筆，燈具已剝離），
+與 `services/cloud_models.py` 的預設值一致。指向 `backend/catalog/data/manifests/`
+會把 793 筆燈具灌回家具 lane，違反燈具獨立表的邊界。
 
 本機 IKEA GLB 備援尚未實作。後續由 Kai 與 Django 共同定義固定備份位置、正式 JSON 對照表、完整性驗證與 API 模式後，才能加入環境變數；在此之前 CloudFront 仍是唯一正式交付來源。
 

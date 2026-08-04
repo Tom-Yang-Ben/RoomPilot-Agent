@@ -322,7 +322,7 @@
   - 329 件雲端家具暫無六風格標籤,風格篩選看不到它們。
   - 1,514 筆舊型錄資料退出對外集合,只存於隔離區供核對。
   - 8.0MB JSON + 9,351 行 CSV 進 git,repo 體積增加。
-  - `backend/catalog/data/` 下「舊有:12種風格與JSON」(untracked)與「舊友:12種風格與JSON」(已追蹤)為近重複目錄(其他 agent diff 實測僅 README.md 不同),去留待裁決。
+  - ~~`backend/catalog/data/` 下「舊有:12種風格與JSON」與「舊友:12種風格與JSON」為近重複目錄~~ 已結案(2026-08-04 實測):「舊有:」不復存在,只剩「舊友:」一份。
 - **影響範圍**: `GET /api/furniture` 全部查詢、Agent 選件候選、3D 模型載入、PostgreSQL 匯入。
 - **重新評估觸發**: 雲端集合增補(件數變動時 `OFFICIAL_CATALOG_COUNT` 與測試需同步改);329 件未分類項目補標籤時。
 
@@ -377,6 +377,7 @@
 ## 4. 後果
 
 - **正面**: 全 manifest 9,350 列現況皆 `uploaded`(csv 實測;2026-07-26 收尾時以 csv.DictReader 複核仍為 9,350 列全 `uploaded`),白名單當下零誤殺;誤跑匯入不再刪資料;`tests/test_official_catalog_sql.py`(+31 行)與 `tests/test_official_cloud_catalog.py`(+24/−1 行)同 commit 補測試。
+- **後續偏離(2026-08-04 實測)**: 上述第 3 點「刪除重複的 `glb_upload_manifest.csv`」已被後續 commit 還原,該檔在兩個 manifest 目錄都存在,且被 `scripts/sql/import_official_catalog_to_postgres.py:22-25`、`tests/test_official_catalog_sql.py`、`tests/test_image_manifest_contract.py` 讀取。它是 `*_all_result.csv` 的欄位子集(20 對 29 欄)與上傳前快照(`upload_status=pending`),不是矛盾來源。要再刪必須先解除這三個讀取點。
 - **負面**: 需要清理資料庫多餘列時,忘了 `--prune-extra` 會殘留舊資料(view `official_furniture_with_glb` 的 9,350 驗證仍會把關,匯入後計數不符即 RuntimeError,`scripts/sql/import_official_catalog_to_postgres.py:341-345` 實測)。
 - **影響範圍**: `backend/catalog/cloud_catalog.py` 的所有載入方(伺服器啟動、測試)、PostgreSQL 匯入流程。
 - **重新評估觸發**: manifest 出現白名單以外的新狀態值時;Postgres 從匯入工具階段接上執行期 API 時(現行伺服器不讀 Postgres)。
