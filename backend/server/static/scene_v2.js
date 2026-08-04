@@ -12519,32 +12519,47 @@ let proposalSceneLoading = null;
 
 async function ensureProposalSceneLoaded() {
   const version = currentSceneVersion();
-  if (proposalSceneVersionLoaded === version) return;   // 暫存記憶:直接呼叫出來
+  if (proposalSceneVersionLoaded === version) return true;   // 暫存記憶:直接呼叫出來
   if (proposalSceneLoading) {
     await proposalSceneLoading;
-    if (proposalSceneVersionLoaded === currentSceneVersion()) return;
+    if (proposalSceneVersionLoaded === currentSceneVersion()) return true;
   }
   // 真的需要載入(6→7 首次進入、換方案、場景重建)才會走到這裡:
   // 全畫面等待遮罩明確告知「還在準備」,載完一次呈現;快取命中不閃遮罩。
   element.masterViewStatus.textContent = "場景還在準備中，請稍候…";
   beginPlacementBusy("正在準備第 7 步 3D 場景，請稍候…");
   proposalSceneLoading = proposalViewer.loadScene(state.sceneData)
-    .then(() => {
+    .then(async () => {
+      // loadScene resolve 時首幀還沒畫出來(寫實材質在首次 render 才編譯
+      // shader),先收遮罩會露出空白 canvas —— 等兩個動畫幀確保已呈現。
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       proposalSceneVersionLoaded = version;
       element.masterViewStatus.textContent = "場景已就緒；請核對方案並鎖定比較視角。";
+      return true;
+    })
+    .catch((error) => {
+      // 絕不靜默空白:載入失敗要明說,並指回可修復的第 6 步。
+      element.masterViewStatus.textContent =
+        `3D 場景載入失敗：${errorMessage(error)}。請返回第 6 步重新確認方案後再進入。`;
+      setStatus("第 7 步 3D 場景載入失敗，請返回第 6 步重新確認。", "error");
+      return false;
     })
     .finally(() => {
       proposalSceneLoading = null;
       endPlacementBusy();
     });
-  await proposalSceneLoading;
+  return proposalSceneLoading;
 }
 
 async function prepareProposalReview() {
-  if (!state.sceneData) return;
+  if (!state.sceneData) {
+    element.masterViewStatus.textContent =
+      "尚未有可用的 3D 場景；請返回第 6 步完成家具配置與即時寫實確認。";
+    return;
+  }
   renderProposalSummary();
   renderProposalPaletteSelection();
-  await ensureProposalSceneLoaded();
+  if (!(await ensureProposalSceneLoaded())) return;
   const saved = state.proposalReview.masterView?.camera;
   if (saved) proposalViewer.setCameraState(saved);
   else {
