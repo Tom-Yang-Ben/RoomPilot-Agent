@@ -35,14 +35,13 @@ def facing_phrase(rotation: float) -> str:
 
 
 def furniture_lines(scene: SceneDoc, room: LayoutRoom) -> list[str]:
+    # 尺寸等數值不進提示詞（定案）：位置與朝向用相對措辭，數值只留在座標翻譯的輸入端。
     lines = []
     for row in scene.placed_in(room.room_id):
         lines.append(
-            "{name}（{type}，{w:.0f}x{d:.0f}cm，{pos}，{facing}）".format(
+            "{name}（{type}，{pos}，{facing}）".format(
                 name=row.get("name", row.get("id", "家具")),
                 type=row.get("type", ""),
-                w=float(row.get("width", 0)),
-                d=float(row.get("depth", 0)),
                 pos=position_phrase(
                     float(row.get("pos_x", 0)),
                     float(row.get("pos_y", 0)),
@@ -90,42 +89,39 @@ class GenPicInfoTool:
         palette: dict | None = None,
         viewpoint: dict | None = None,
     ) -> dict:
-        lines = [
-            "高品質室內設計實景渲染（photorealistic）。",
-            f"房間：{room.name}（{room.width_cm:.0f}x{room.depth_cm:.0f} 公分）。",
-        ]
+        # 提示詞模板（2026-08-04 使用者定案）：
+        # 「渲染成寫實風格，房間：{}、整體風格：{}、風格參考：{}、
+        #   色調採(60%, 30%, 10%)：{}、地板材質：{}、牆壁材質：{}、
+        #   家具配置(位置與數量必須與下列完全一致，不可增減或移動)：{}、
+        #   家電：{}、{額外補充需求}」
+        # 有數值資訊（尺寸/公分）不提供；沒有資料的段落整段省略。
+        segments = [f"渲染成寫實風格，房間：{room.name}"]
         if requirements.styles:
-            lines.append(f"整體風格：{'、'.join(requirements.styles[:2])}。")
+            segments.append(f"整體風格：{'、'.join(requirements.styles[:2])}")
             note = style_note(requirements.styles)
             if note:
-                lines.append(f"{note}。")
+                segments.append(note)   # 已含「風格參考（…）：」前綴
         if palette:
             colors = "、".join(str(c) for c in (palette.get("colors") or [])[:5])
-            lines.append(f"色卡「{palette.get('name', palette.get('palette_id', ''))}」主色：{colors}。")
+            segments.append(f"色調採(60%, 30%, 10%)：{colors}")
         materials = requirements.materials or {}
-        if materials:
-            material_text = "；".join(f"{key}：{value}" for key, value in materials.items())
-            lines.append(f"表面材質：{material_text}。")
+        for key, label in (("地板", "地板材質"), ("牆面", "牆壁材質")):
+            if materials.get(key):
+                segments.append(f"{label}：{materials[key]}")
         furniture = furniture_lines(scene, room)
         if furniture:
-            lines.append("家具配置（位置與數量必須與下列完全一致，不可增減或移動）：")
-            lines.extend(f"- {line}" for line in furniture)
+            segments.append(
+                "家具配置(位置與數量必須與下列完全一致，不可增減或移動)："
+                + "、".join(furniture)
+            )
         appliances = [
             item.text for item in requirements.appliances if item.room_id in (None, room.room_id)
         ]
         if appliances:
-            lines.append(
-                "情境家電（只作為畫面元素呈現，不改變家具配置）："
-                + "、".join(appliances)
-                + "。"
-            )
+            segments.append("家電：" + "、".join(appliances))
         if viewpoint and viewpoint.get("note"):
-            lines.append(f"視角：{viewpoint['note']}。")
-        lines.append(
-            "構圖：嚴格依照附上的視角截圖之相機角度與家具位置生成；"
-            "比例正確、光線自然、材質真實。"
-        )
-        prompt = "\n".join(lines)
+            segments.append(str(viewpoint["note"]))
+        prompt = "、".join(segments)
         manifest = LockManifestDoc(
             room_id=room.room_id,
             palette_id=(palette or {}).get("palette_id"),
