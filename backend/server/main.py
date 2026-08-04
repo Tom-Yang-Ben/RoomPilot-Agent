@@ -64,6 +64,13 @@ from .render_service import (
     render_provider_status,
     submit_render_jobs,
 )
+from .ai_render_service import (
+    AiRenderNotConfigured,
+    GenPicFailure,
+    ai_render_status,
+    edit_room_image,
+    generate_room_images,
+)
 from .style_cards import load_taiwan_style_cards
 from .services.cloud_models import (
     cloud_model_status,
@@ -1969,6 +1976,136 @@ async def create_project_render_jobs(project_id: str, payload: dict) -> dict:
             502,
             {"code": str(exc), "message": "遠端渲染服務拒絕了這次任務。"},
         ) from exc
+
+
+def _looks_like_png_data_url(value: object) -> bool:
+    return str(value or "").startswith("data:image/")
+
+
+@app.get("/api/ai-render/status")
+def get_ai_render_status() -> dict:
+    """第 8 步 AI 生圖服務（OpenRouter nano banana）是否可用；不外洩 token。"""
+    return ai_render_status()
+
+
+@app.post("/api/projects/{project_id}/ai-renders", status_code=201)
+def create_project_ai_renders(project_id: str, payload: dict) -> dict:
+    """逐房視角經 OpenRouter nano banana 生成寫實室內圖（不移動擺設）。
+
+    前端送 ``scene``（state.sceneData）＋逐房 ``rooms``（含第 7 步鎖定視角的 3D
+    截圖）。伺服器補充需求/材質/家電/色卡資訊、逐房呼叫 Gen_Pic Agent，並把每房
+    鎖定清單存進 project workflow，供整批一次改圖使用。未設定金鑰回 503。
+    """
+    _stored_project(project_id)
+    if payload.get("project_id") not in (None, project_id):
+        raise HTTPException(
+            422,
+            {"code": "render_project_mismatch", "message": "生圖資料與目前專案不一致。"},
+        )
+    scene = payload.get("scene")
+    if not isinstance(scene, dict) or not scene.get("scene_objects"):
+        raise HTTPException(
+            422,
+            {"code": "scene_required", "message": "缺少場景資料，請先完成第 6 步配置。"},
+        )
+    rooms = payload.get("rooms")
+    if not isinstance(rooms, list) or not rooms:
+        raise HTTPException(
+            422,
+            {"code": "room_views_required", "message": "缺少逐房視角，請先在第 7 步鎖定視角。"},
+        )
+    for room in rooms:
+        if not isinstance(room, dict) or not str(room.get("room_id") or "").strip():
+            raise HTTPException(
+                422,
+                {"code": "room_id_required", "message": "每個房間視角都需要 room_id。"},
+            )
+        if not _looks_like_png_data_url(room.get("reference_png_data_url")):
+            raise HTTPException(
+                422,
+                {"code": "reference_png_required", "message": "每個房間視角都需要 3D 視角截圖。"},
+            )
+    try:
+        outcome = generate_room_images(scene, rooms)
+    except AiRenderNotConfigured as exc:
+        raise HTTPException(
+            503,
+            {
+                "code": str(exc),
+                "message": "尚未連接 OpenRouter 生圖服務（未設定 OPENROUTER_API_KEY）。",
+            },
+        ) from exc
+    project = PROJECT_STORE.update_workflow(
+        project_id,
+        workflow={"ai_render": {"edit_used": 0, "rooms": outcome["rooms"]}},
+    )
+    return {
+        "results": outcome["results"],
+        "edit_remaining": 1,
+        "revision": project["revision"],
+        "updated_at": project["updated_at"],
+    }
+
+
+@app.post("/api/projects/{project_id}/ai-renders/{room_id}/edit", status_code=201)
+def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict:
+    """整批一次改圖：只改使用者指定內容、其餘鎖定不動；額度用完回 409。"""
+    project = _stored_project(project_id)
+    ai_render = (project.get("workflow") or {}).get("ai_render") or {}
+    # ponytail: 單一使用者流程，read-check-write 的競態可忽略；額度仍由伺服器強制。
+    if int(ai_render.get("edit_used") or 0) >= 1:
+        raise HTTPException(
+            409,
+            {"code": "ai_edit_budget_exhausted", "message": "整批只能修改一次，額度已用完。"},
+        )
+    room_state = next(
+        (
+            row
+            for row in ai_render.get("rooms") or []
+            if str(row.get("room_id")) == room_id
+        ),
+        None,
+    )
+    if not room_state or not room_state.get("lock_manifest"):
+        raise HTTPException(
+            409,
+            {"code": "room_not_generated", "message": "這個房間尚未生圖，無法修改。"},
+        )
+    feedback = str(payload.get("feedback") or "").strip()
+    if not feedback:
+        raise HTTPException(
+            422, {"code": "feedback_required", "message": "請描述想修改的內容。"}
+        )
+    if not _looks_like_png_data_url(payload.get("image_data_url")):
+        raise HTTPException(
+            422, {"code": "base_image_required", "message": "缺少要修改的原圖。"}
+        )
+    try:
+        result = edit_room_image(
+            room_id, feedback, payload["image_data_url"], room_state["lock_manifest"]
+        )
+    except AiRenderNotConfigured as exc:
+        raise HTTPException(
+            503,
+            {
+                "code": str(exc),
+                "message": "尚未連接 OpenRouter 生圖服務（未設定 OPENROUTER_API_KEY）。",
+            },
+        ) from exc
+    except GenPicFailure as exc:
+        raise HTTPException(
+            502,
+            {"code": "ai_edit_failed", "message": "；".join(exc.notices) or "改圖失敗。"},
+        ) from exc
+    project = PROJECT_STORE.update_workflow(
+        project_id, workflow={"ai_render": {"edit_used": 1}}
+    )
+    return {
+        "result": result,
+        "edit_remaining": 0,
+        "revision": project["revision"],
+        "updated_at": project["updated_at"],
+    }
 
 
 def _floorplan_is_confirmed(project: dict) -> bool:

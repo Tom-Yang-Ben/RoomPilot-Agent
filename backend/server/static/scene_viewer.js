@@ -37,6 +37,59 @@ import {
 
 const CM_PER_METER = 100;
 
+// ── GLB 模型快取（頁面級，所有 viewer 共用）──
+// 同一 model_url 只下載＋解析一次；之後每次使用都 clone，幾何與貼圖沿用
+// 快取持有的共用資源。共用資源只在 LRU 淘汰時統一釋放：場景清除時以
+// roompilotCachedAsset 旗標跳過（見 disposeObjectTree），避免弄壞其他
+// clone；淘汰時 dispose 則安全——若仍有 clone 在畫面上，three 會在下一幀
+// 惰性重新上傳，只有一次重傳成本。無上限快取會讓每個 WebGL context 的
+// GPU 記憶體只增不減，最終 context 遺失（Shader Error 1282、白畫面）。
+// ponytail: 以「整棟房子的相異 model_url 數」抓的粗上限；GPU 吃緊再調小
+const GLTF_CACHE_LIMIT = 48;
+const gltfPromiseCache = new Map();
+
+function disposeGltfResources(gltf) {
+  gltf?.scene?.traverse((object) => {
+    object.geometry?.dispose?.();
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    materials.filter(Boolean).forEach((material) => {
+      ["map", "normalMap", "roughnessMap", "metalnessMap", "alphaMap", "aoMap", "emissiveMap", "bumpMap"].forEach((key) => {
+        material[key]?.dispose?.();
+      });
+      material.dispose();
+    });
+  });
+}
+
+function loadGltfCached(loader, url) {
+  if (gltfPromiseCache.has(url)) {
+    const cached = gltfPromiseCache.get(url);
+    gltfPromiseCache.delete(url);   // LRU：重新插入成最新
+    gltfPromiseCache.set(url, cached);
+    return cached;
+  }
+  const promise = loader.loadAsync(url).catch((error) => {
+    gltfPromiseCache.delete(url);   // 失敗不留快取，下次可重試
+    throw error;
+  });
+  gltfPromiseCache.set(url, promise);
+  while (gltfPromiseCache.size > GLTF_CACHE_LIMIT) {
+    const oldestUrl = gltfPromiseCache.keys().next().value;
+    const oldest = gltfPromiseCache.get(oldestUrl);
+    gltfPromiseCache.delete(oldestUrl);
+    oldest.then(disposeGltfResources).catch(() => {});
+  }
+  return promise;
+}
+
+function cloneCachedGltfScene(gltf) {
+  const root = gltf.scene.clone(true);
+  root.traverse((object) => {
+    object.userData = { ...object.userData, roompilotCachedAsset: true };
+  });
+  return root;
+}
+
 function normalizeSceneRotationDeg(rotationDeg = 0) {
   return ((Number(rotationDeg) % 360) + 360) % 360;
 }
@@ -522,25 +575,32 @@ export function createSceneViewer(
     if (typeof onSceneChange === "function") onSceneChange(item, lastSceneData);
   }
 
+  function disposeObjectTree(child) {
+    child.traverse?.((object) => {
+      // 快取 GLB 的幾何/貼圖由頁面級 gltfPromiseCache 持有並跨場景共用，
+      // 不得在此釋放；其餘（房殼、代理框、標記、接觸陰影）照常釋放。
+      if (object.userData?.roompilotCachedAsset) return;
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.filter(Boolean).forEach((material) => {
+        ["map", "normalMap", "roughnessMap", "metalnessMap", "alphaMap", "aoMap", "emissiveMap"].forEach((key) => {
+          if (material[key]) {
+            material[key].dispose();
+          }
+        });
+        material.dispose();
+      });
+    });
+  }
+
   function clearGroup(group) {
     while (group.children.length) {
       const child = group.children.pop();
       if (!child) break;
       group.remove(child);
-      child.traverse?.((object) => {
-        if (object.geometry) {
-          object.geometry.dispose();
-        }
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
-        materials.filter(Boolean).forEach((material) => {
-          ["map", "normalMap", "roughnessMap", "metalnessMap", "alphaMap", "aoMap", "emissiveMap"].forEach((key) => {
-            if (material[key]) {
-              material[key].dispose();
-            }
-          });
-          material.dispose();
-        });
-      });
+      disposeObjectTree(child);
     }
   }
 
@@ -3483,6 +3543,20 @@ export function createSceneViewer(
 
   async function loadScene(sceneData) {
     onResize();
+    // 場景常駐：內容（JSON）未變且上次載入沒有模型 fallback 時，直接沿用
+    // 既有場景，不整包重建——步驟往返、還原重載、同方案重進都命中。
+    // 有 fallback 時仍重載，讓暫時性模型錯誤有機會重試。
+    const sceneKey = JSON.stringify(sceneData);
+    if (
+      sceneKey === lastSceneKey
+      && lastSceneData
+      && lastDiagnostics.fallbackFurnitureCount === 0
+    ) {
+      lastSceneData = sceneData;
+      lastWorldSceneData = sceneDataForWorld(sceneData);
+      return;
+    }
+    lastSceneKey = sceneKey;
     lastSceneData = sceneData;
     lastWorldSceneData = sceneDataForWorld(sceneData);
     dragState = null;
@@ -3491,85 +3565,108 @@ export function createSceneViewer(
     disposeGuide();
     clearGroup(furnitureGroup);
     applyRenderingProfile(sceneData);
-    createRoom(lastWorldSceneData);
+    // 房殼輸入（去除家具後的場景資料）未變時跳過重建，只重灌家具。
+    const shellKey = JSON.stringify({ ...lastWorldSceneData, scene_objects: null });
+    if (shellKey !== lastShellKey) {
+      createRoom(lastWorldSceneData);
+      lastShellKey = shellKey;
+    }
     setStatus("正在生成 3D 場景...");
 
     const objects = sceneData.scene_objects || [];
     const failures = [];
+    await Promise.all(
+      objects.map((item, index) => buildFurnitureWrapper(item, index, sceneData, failures)),
+    );
+    refreshFurnitureDiagnostics();
+
+    if (failures.length) {
+      setStatus(`場景已生成，但部分家具未載入：${failures.join("、")}`);
+    } else {
+      setStatus("場景已生成：拖曳家具可移動（放手時檢查碰撞），點選後按 R 旋轉。");
+    }
+
+    // Keep the source-versus-rendered door result visible after the generic load status.
+    if (container.dataset.roompilotDoorDiagnostics) {
+      container.dispatchEvent(new CustomEvent("roompilot-door-diagnostics", {
+        detail: JSON.parse(container.dataset.roompilotDoorDiagnostics),
+      }));
+    }
+  }
+
+  async function buildFurnitureWrapper(item, index, sceneData, failures = null) {
+    if (item.placement_failed) {
+      failures?.push(`${item.name_zh_raw || item.normalized_type}（空間放不下，未擺入）`);
+      return null;
+    }
+    if (!item.model_url) {
+      failures?.push(`${item.name_zh_raw || item.normalized_type} 無模型`);
+      return createFallbackFurnitureProxy(item, index, "資料庫尚未提供 GLB");
+    }
+
+    try {
+      const gltf = await loadGltfCached(loader, item.model_url);
+      const modelRoot = cloneCachedGltfScene(gltf);
+      applyStyleSkin(modelRoot, sceneData, item);
+      modelRoot.traverse((object) => {
+        if (object.isMesh) {
+          object.castShadow = true;
+          object.receiveShadow = true;
+        }
+      });
+      const wrapper = new THREE.Group();
+      wrapper.add(modelRoot);
+      modelRoot.rotation.y = Math.PI;   // 型錄 GLB 正面朝 +z，補 180° 對齊場景約定(-z)
+      fitToTargetSize(modelRoot, item.size_cm || {});
+      modelRoot.traverse((object) => {
+        if (object.isMesh || object.isSkinnedMesh) {
+          object.raycast = () => {};
+        }
+      });
+      wrapper.userData.sceneIndex = index + 1;
+      wrapper.userData.sceneObject = item;
+
+      const worldPosition = sceneToWorldPosition(item.position_cm || {});
+      wrapper.position.x = worldPosition.x;
+      wrapper.position.z = worldPosition.z;
+      wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
+
+      const size = sizeCentimeters(item);
+      addFurnitureContactShadow(wrapper, item.size_cm || {});
+      addFurniturePickProxy(wrapper, item);
+      if (furnitureAnnotationsEnabled()) {
+        const marker = createNumberMarker(index + 1);
+        marker.userData.roompilotNumberMarker = true;
+        marker.position.set(0, Math.max(size.height + 48, 72), 0);
+        wrapper.add(marker);
+        const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
+        planLabel.position.set(0, Math.max(size.height + 15, 35), 0);
+        wrapper.add(planLabel);
+      }
+      furnitureGroup.add(wrapper);
+      return wrapper;
+    } catch (error) {
+      console.error(error);
+      failures?.push(item.name_zh_raw || item.normalized_type || "未知家具");
+      return createFallbackFurnitureProxy(
+        item,
+        index,
+        "GLB 載入失敗，請更換家具或檢查資料庫模型權限",
+      );
+    }
+  }
+
+  function refreshFurnitureDiagnostics() {
+    const objects = lastSceneData?.scene_objects || [];
     lastDiagnostics = {
       requestedFurnitureCount: objects.length,
       visibleFurnitureCount: 0,
       fallbackFurnitureCount: 0,
       failedFurniture: [],
     };
-
-    await Promise.all(
-      objects.map(async (item, index) => {
-        if (item.placement_failed) {
-          failures.push(`${item.name_zh_raw || item.normalized_type}（空間放不下，未擺入）`);
-          return;
-        }
-        if (!item.model_url) {
-          failures.push(`${item.name_zh_raw || item.normalized_type} 無模型`);
-          createFallbackFurnitureProxy(item, index, "資料庫尚未提供 GLB");
-          return;
-        }
-
-        try {
-          const gltf = await loader.loadAsync(item.model_url);
-          applyStyleSkin(gltf.scene, sceneData, item);
-          gltf.scene.traverse((object) => {
-            if (object.isMesh) {
-              object.castShadow = true;
-              object.receiveShadow = true;
-            }
-          });
-          const wrapper = new THREE.Group();
-          const modelRoot = gltf.scene;
-          wrapper.add(modelRoot);
-          modelRoot.rotation.y = Math.PI;   // 型錄 GLB 正面朝 +z，補 180° 對齊場景約定(-z)
-          fitToTargetSize(modelRoot, item.size_cm || {});
-          modelRoot.traverse((object) => {
-            if (object.isMesh || object.isSkinnedMesh) {
-              object.raycast = () => {};
-            }
-          });
-          wrapper.userData.sceneIndex = index + 1;
-          wrapper.userData.sceneObject = item;
-
-          const worldPosition = sceneToWorldPosition(item.position_cm || {});
-          wrapper.position.x = worldPosition.x;
-          wrapper.position.z = worldPosition.z;
-          wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
-
-          const size = sizeCentimeters(item);
-          addFurnitureContactShadow(wrapper, item.size_cm || {});
-          addFurniturePickProxy(wrapper, item);
-          if (furnitureAnnotationsEnabled()) {
-            const marker = createNumberMarker(index + 1);
-            marker.userData.roompilotNumberMarker = true;
-            marker.position.set(0, Math.max(size.height + 48, 72), 0);
-            wrapper.add(marker);
-            const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-            planLabel.position.set(0, Math.max(size.height + 15, 35), 0);
-            wrapper.add(planLabel);
-          }
-          furnitureGroup.add(wrapper);
-        } catch (error) {
-          console.error(error);
-          failures.push(item.name_zh_raw || item.normalized_type || "未知家具");
-          createFallbackFurnitureProxy(
-            item,
-            index,
-            "GLB 載入失敗，請更換家具或檢查資料庫模型權限",
-          );
-        }
-      })
-    );
-
-    objects.forEach((item, index) => {
+    objects.forEach((item) => {
       const wrapper = furnitureGroup.children.find(
-        (wrapper) => wrapper.userData.sceneObject === item,
+        (candidate) => candidate.userData.sceneObject === item,
       );
       if (wrapper?.userData.modelLoadFailed === true) {
         lastDiagnostics.failedFurniture.push({
@@ -3598,24 +3695,105 @@ export function createSceneViewer(
     lastDiagnostics.fallbackFurnitureCount = furnitureGroup.children.filter(
       (wrapper) => wrapper.userData.fallbackFurniture === true,
     ).length;
+  }
 
-    if (failures.length) {
-      setStatus(`場景已生成，但部分家具未載入：${failures.join("、")}`);
-    } else {
-      setStatus("場景已生成：拖曳家具可移動（放手時檢查碰撞），點選後按 R 旋轉。");
-    }
+  // ── 增量操作：單件家具增/刪/換不動房殼與其他家具，模型走 GLB 快取 ──
 
-    // Keep the source-versus-rendered door result visible after the generic load status.
-    if (container.dataset.roompilotDoorDiagnostics) {
-      container.dispatchEvent(new CustomEvent("roompilot-door-diagnostics", {
-        detail: JSON.parse(container.dataset.roompilotDoorDiagnostics),
-      }));
+  function wrapperForFurnitureId(furnitureId) {
+    const key = String(furnitureId);
+    return furnitureGroup.children.find(
+      (candidate) => String(candidate.userData.sceneObject?.furniture_id || "") === key,
+    ) || null;
+  }
+
+  function detachWrapper(wrapper) {
+    if (selectedWrapper === wrapper) {
+      selectedWrapper = null;
+      selectedControls.hidden = true;
+      dragState = null;
+      disposeGuide();
     }
+    furnitureGroup.remove(wrapper);
+    disposeObjectTree(wrapper);
+  }
+
+  function renumberFurnitureWrappers() {
+    const objects = lastSceneData?.scene_objects || [];
+    furnitureGroup.children.forEach((wrapper) => {
+      const index = objects.indexOf(wrapper.userData.sceneObject);
+      if (index < 0) return;
+      const sceneIndex = index + 1;
+      if (wrapper.userData.sceneIndex === sceneIndex) return;
+      wrapper.userData.sceneIndex = sceneIndex;
+      const marker = wrapper.children.find(
+        (child) => child.userData?.roompilotNumberMarker,
+      );
+      if (marker) {
+        const position = marker.position.clone();
+        wrapper.remove(marker);
+        disposeObjectTree(marker);
+        const replacement = createNumberMarker(sceneIndex);
+        replacement.userData.roompilotNumberMarker = true;
+        replacement.position.copy(position);
+        wrapper.add(replacement);
+      }
+    });
+  }
+
+  async function addObject(item) {
+    if (!lastSceneData || !item) return false;
+    const objects = lastSceneData.scene_objects || [];
+    const index = objects.indexOf(item);
+    await buildFurnitureWrapper(item, index >= 0 ? index : objects.length, lastSceneData);
+    lastSceneKey = JSON.stringify(lastSceneData);
+    refreshFurnitureDiagnostics();
+    return true;
+  }
+
+  function removeObject(furnitureId) {
+    const wrapper = wrapperForFurnitureId(furnitureId);
+    if (!wrapper) return false;
+    detachWrapper(wrapper);
+    renumberFurnitureWrappers();
+    lastSceneKey = JSON.stringify(lastSceneData);
+    refreshFurnitureDiagnostics();
+    return true;
+  }
+
+  async function updateObject(item) {
+    if (!lastSceneData || !item) return false;
+    const wrapper = wrapperForFurnitureId(item.furniture_id);
+    if (wrapper) detachWrapper(wrapper);
+    await addObject(item);
+    renumberFurnitureWrappers();
+    return true;
+  }
+
+  function unloadScene() {
+    // 卸載整包場景並釋放非快取資源（快取資產由 LRU 淘汰統一釋放）。
+    // 給離屏/暫存用途：拍完預覽即卸載，context 不滯留整棟場景的 GPU 記憶體。
+    dragState = null;
+    selectedWrapper = null;
+    selectedControls.hidden = true;
+    disposeGuide();
+    clearGroup(furnitureGroup);
+    clearGroup(roomGroup);
+    clearGroup(ceilingGroup);
+    clearGroup(hangingLightGroup);
+    wallMeshes.length = 0;
+    roomGroup.userData.shellModel = null;
+    lastSceneData = null;
+    lastWorldSceneData = null;
+    lastSceneKey = null;
+    lastShellKey = null;
+    refreshFurnitureDiagnostics();
   }
 
   // ── F6 自由拖曳：前端只負責拖，落點合法性由後端 furniture_engine 驗證 ──
   let lastSceneData = null;
   let lastWorldSceneData = null;
+  let lastSceneKey = null;    // 整包場景 JSON：未變時 loadScene 直接沿用既有場景
+  let lastShellKey = null;    // 房殼輸入 JSON：未變時跳過 createRoom
   let dragState = null;
   let selectedWrapper = null;
   let footprintGuide = null;
@@ -4982,6 +5160,10 @@ export function createSceneViewer(
   window.addEventListener("keyup", (event) => walkKeys.delete(event.key.toLowerCase()));
 
   renderer.setAnimationLoop((time) => {
+    // 隱藏面板與離屏縮圖臺（offsetParent === null）不必每幀渲染——
+    // 七個 renderer 全速跑會把 GPU 撐到 context 遺失；capturePng 走
+    // 顯式渲染不受影響，面板重新可見時自動恢復。
+    if (container.offsetParent === null) return;
     updateWalkMovement();
     controls.update();
     updateWallVisibility();
@@ -5009,6 +5191,10 @@ export function createSceneViewer(
 
   return {
     loadScene,
+    addObject,
+    removeObject,
+    updateObject,
+    unloadScene,
     resetCamera,
     setCameraPreset,
     setViewMode,

@@ -498,6 +498,22 @@ def test_proposal_review_caches_the_scene_per_version() -> None:
     )[0]
     assert "ensureProposalSceneLoaded()" in prepare
     assert "proposalViewer.loadScene(" not in prepare              # 只經快取入口載入
+    # 6→7 真正載入時要有全畫面等待遮罩(快取命中不閃);載完提示就緒
+    ensure = source.split("async function ensureProposalSceneLoaded")[1].split(
+        "\nasync function "
+    )[0]
+    assert "beginPlacementBusy(" in ensure
+    assert "endPlacementBusy(" in ensure
+    assert "正在準備第 7 步 3D 場景" in ensure
+
+
+def test_scheme_choice_is_fixed_after_entering_step_seven() -> None:
+    """流程規範:方案 A/B 於第 6 步選定;第 7 步依選定方案比較三張色卡、
+    第 8 步依選定色卡逐房生圖 —— 進入第 7/8 步後方案切換必須被擋下並說明。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert 'currentStep === "proposal_review" || currentStep === "ai_render"' in source
+    assert "方案已於第 6 步選定" in source
 
 
 def test_realistic_entry_reveals_the_scene_exactly_once() -> None:
