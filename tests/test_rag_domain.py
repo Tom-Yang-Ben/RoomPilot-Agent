@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+from typing import get_args
 
 import pytest
 from pydantic import ValidationError
 
 from backend.spatial_data.rag.anthropic_parser import parse_query as parse_anthropic_query
 from backend.spatial_data.rag.errors import RagDependencyError, RagUpstreamError
-from backend.spatial_data.rag.models import RagQueryItem, RagQueryPlan, RagSearchRequest
+from backend.spatial_data.rag.models import RoomType, RagQueryItem, RagQueryPlan, RagSearchRequest
 from backend.spatial_data.rag.openai_parser import ParsedQuery, parse_query
-from backend.spatial_data.rag.openrouter_parser import parse_query as parse_openrouter_query
+from backend.spatial_data.rag.openrouter_parser import (
+    build_fast_plan,
+    parse_query as parse_openrouter_query,
+)
 from backend.spatial_data.rag.parser import parse_query as parse_configured_query
 from backend.spatial_data.rag.ranking import (
     allocate_budget,
@@ -110,6 +114,27 @@ def test_controlled_schema_preserves_nulls_and_rejects_unknown_values() -> None:
         RagQueryPlan.model_validate(
             {**plan.model_dump(), "needs_clarification": True, "clarify_question": None}
         )
+
+
+def test_rag_room_type_contract_matches_the_ten_confirmed_space_types() -> None:
+    assert set(get_args(RoomType)) == {
+        "hallway",
+        "bathroom",
+        "bedroom",
+        "kitchen",
+        "living_room",
+        "balcony",
+        "entryway",
+        "storage",
+        "stair",
+        "garage",
+    }
+
+
+def test_fast_rag_parser_recognizes_stair_as_a_confirmed_space_type() -> None:
+    parsed = build_fast_plan("樓梯照明與扶手要保留")
+
+    assert parsed.plan.room_type == "stair"
 
 
 @pytest.mark.parametrize(

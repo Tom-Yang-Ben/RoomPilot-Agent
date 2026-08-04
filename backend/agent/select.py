@@ -14,7 +14,14 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
-from .knowledge import COMPANION_OF, ROOM_AFFINITY, ROOM_TYPE_ZH, family_of, prompt_rules
+from .knowledge import (
+    COMPANION_OF,
+    ROOM_AFFINITY,
+    ROOM_TYPE_ZH,
+    family_of,
+    item_allowed_in_room,
+    prompt_rules,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -129,6 +136,13 @@ def _apply_conventions(
     fitting: list[SelectedItem] = []
     for selected in items:
         furniture_id = str(selected.item.get("furniture_id") or "")
+        if not item_allowed_in_room(selected.item, room_type):
+            logger.warning(
+                "Dropping %s because its catalog room_types do not include %s",
+                furniture_id,
+                room_type,
+            )
+            continue
         if furniture_id in protected_ids:
             fitting.append(selected)
             continue

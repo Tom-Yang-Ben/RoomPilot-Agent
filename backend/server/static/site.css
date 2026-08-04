@@ -5440,6 +5440,11 @@ body[data-page="scene"] .scene-canvas {
   margin-top: 10px;
 }
 
+.scene-object-rotate-180 {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
 .scene-object-controls button {
   min-height: 36px;
   border: 1px solid rgba(126, 96, 70, 0.22);
@@ -7980,6 +7985,57 @@ body.rp-workflow-page .danger-action {
   gap: 12px;
 }
 
+.rp-task-dialog-header > div {
+  min-width: 0;
+}
+
+.rp-room-scheme-progress {
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
+  padding: 8px 10px;
+  border: 1px solid #b9d5ca;
+  border-radius: 4px;
+  background: #edf6f1;
+  color: #1c5d4b;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rp-room-scheme-guide {
+  padding: 12px 14px;
+  border: 1px solid #dbe5df;
+  border-radius: 6px;
+  background: #f7faf8;
+}
+
+.rp-room-scheme-guide ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-room-scheme-guide li {
+  display: grid;
+  gap: 3px;
+  padding-left: 11px;
+  border-left: 3px solid #aacdbf;
+}
+
+.rp-room-scheme-guide strong {
+  color: #174c3e;
+  font-size: 14px;
+}
+
+.rp-room-scheme-guide span {
+  color: #625c55;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .rp-task-dialog-header h2,
 .rp-task-dialog-header p {
   margin: 0;
@@ -7996,6 +8052,10 @@ body.rp-workflow-page .danger-action {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  padding: 14px;
+  border: 1px solid #e1e8e2;
+  border-radius: 6px;
+  background: #fff;
 }
 
 .rp-room-scheme-list button {
@@ -8019,6 +8079,7 @@ body.rp-workflow-page .danger-action {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  padding-top: 4px;
 }
 
 .rp-scheme-choice-card {
@@ -8030,9 +8091,32 @@ body.rp-workflow-page .danger-action {
   background: #fff;
 }
 
+.rp-scheme-choice-card > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-scheme-choice-card > header strong {
+  color: #1d453a;
+  font-size: 17px;
+}
+
+.rp-scheme-choice-card > header span {
+  color: #6d655d;
+  font-size: 13px;
+}
+
 .rp-scheme-choice-card.is-selected {
   border: 2px solid #286f5c;
   background: #f1f8f5;
+}
+
+@media (max-width: 720px) {
+  .rp-task-dialog-header { align-items: flex-start; flex-wrap: wrap; }
+  .rp-room-scheme-progress { margin-left: 0; }
+  .rp-room-scheme-guide ol { grid-template-columns: 1fr; }
 }
 
 .rp-scheme-preview-grid {
@@ -8155,6 +8239,24 @@ body.rp-workflow-page .danger-action {
 
 .rp-room-scheme-preview-dialog {
   width: min(860px, calc(100vw - 32px));
+}
+
+.rp-room-scheme-preview-close {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-color: #756d64;
+  background: #fffdfa;
+  color: #302d29;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.rp-room-scheme-preview-close:hover,
+.rp-room-scheme-preview-close:focus-visible {
+  background: #f3eee8;
+  color: #1f5547;
+  transform: none;
 }
 
 .rp-room-scheme-3d-preview {
@@ -9041,6 +9143,72 @@ body.rp-workflow-page .danger-action {
 .rp-ceiling-editor h3 {
   margin: 0;
   font-size: 16px;
+}
+
+.rp-step-six-editor-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0 12px;
+  border-bottom: 1px solid #d2ddd7;
+}
+
+.rp-step-six-editor-heading h3 {
+  margin: 2px 0 0;
+  font-size: 22px;
+  line-height: 1.2;
+  color: #193f35;
+}
+
+.rp-step-six-editor-heading .eyebrow {
+  margin: 0;
+  color: #5f8176;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rp-icon-command {
+  inline-size: 36px;
+  block-size: 36px;
+  min-inline-size: 36px;
+  padding: 0;
+  border: 1px solid #91aaa0;
+  border-radius: 4px;
+  background: #fffdfa;
+  color: #285e50;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.rp-icon-command:hover { background: #e8f0eb; }
+
+.rp-step6-room-summary {
+  margin: 0;
+  padding: 10px 12px;
+  border-inline-start: 3px solid #4c806e;
+  background: #f2f7f4;
+  color: #36564d;
+  font-size: 14px;
+}
+
+.rp-surface-editor select,
+.rp-ceiling-editor select { min-block-size: 42px; }
+
+.rp-surface-editor .rp-material-option-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.rp-surface-editor .rp-material-option { min-block-size: 86px; }
+
+.rp-ceiling-editor .ceiling-design-pack-list {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+@media (max-width: 760px) {
+  .rp-step-six-editor-heading h3 { font-size: 19px; }
+  .rp-surface-editor .rp-material-option-grid,
+  .rp-ceiling-editor .ceiling-design-pack-list { grid-template-columns: 1fr; }
 }
 
 .rp-material-option-grid {
@@ -12823,6 +12991,49 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-ceiling-choice-visual[data-ceiling-style-visual="feature-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="wood-grid"] { background-image: url("/static/questionnaire_images/ceiling-wood-grid-reference.jpg"); }
 
+/* Each construction-and-lighting pack has its own visual. Do not reuse the
+   construction-only photo here: users must be able to see the lighting change. */
+.rp-ceiling-choice-visual[data-ceiling-design-visual="scandinavian-soft"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-downlight"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="soft-cove"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="cream-cove"] {
+  background-image: url("/static/questionnaire_images/ceiling-design-flat-cove-grid.png");
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="scandinavian-soft"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-downlight"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="soft-cove"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="cream-cove"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="linear-soft"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="modern-linear"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-no-main"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-downlight"] {
+  background-image: url("/static/questionnaire_images/ceiling-design-linear-floating-grid.png");
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="linear-soft"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="modern-linear"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-no-main"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-downlight"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="japanese-slat"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="american-slat"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] {
+  background-image: url("/static/questionnaire_images/ceiling-design-slat-exposed-grid.png");
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="japanese-slat"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="american-slat"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="industrial-exposed"] { background-image: url("/static/questionnaire_images/ceiling-exposed-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-track"] { background-image: url("/static/questionnaire_images/ceiling-linear-reference.jpg"); }
+
 .rp-ceiling-choice-card strong,
 .rp-ceiling-choice-card small,
 .rp-ceiling-choice-card em { display: block; padding: 0 10px; }
@@ -13066,11 +13277,38 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 
 .rp-questionnaire-material-options {
   display: grid;
+  gap: 12px;
+}
+
+.rp-material-catalog-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 2px;
+}
+
+.rp-material-catalog-entry > div {
+  display: grid;
+  gap: 3px;
+}
+
+.rp-material-catalog-entry small {
+  color: #6e6962;
+}
+
+.rp-material-catalog-entry .rp-open-material-catalog {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.rp-material-option-list {
+  display: grid;
   gap: 10px;
   grid-auto-rows: 86px;
 }
 
-.rp-questionnaire-material-options button {
+.rp-material-option-list > button {
   min-width: 0;
   display: grid;
   grid-template-columns: 76px minmax(0, 1fr);
@@ -13086,12 +13324,12 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   text-align: left;
 }
 
-.rp-questionnaire-material-options button.is-active {
+.rp-material-option-list > button.is-active {
   border-color: #27715d;
   box-shadow: inset 0 0 0 2px #27715d;
 }
 
-.rp-questionnaire-material-options .rp-material-preview {
+.rp-material-option-list .rp-material-preview {
   grid-row: 1 / 3;
   width: 76px;
   height: 68px;
@@ -13102,14 +13340,14 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   background-size: cover;
 }
 
-.rp-questionnaire-material-options strong {
+.rp-material-option-list strong {
   align-self: end;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.rp-questionnaire-material-options small {
+.rp-material-option-list small {
   color: #6e6962;
   display: flex;
   align-items: baseline;
@@ -13119,14 +13357,21 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   text-overflow: ellipsis;
 }
 
-.rp-questionnaire-material-options small em {
+.rp-material-option-list small em {
   flex: 0 0 auto;
   color: #27715d;
   font-style: normal;
 }
 
-.rp-open-material-catalog {
-  margin: 10px 0 14px;
+@media (max-width: 620px) {
+  .rp-material-catalog-entry {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rp-material-catalog-entry .rp-open-material-catalog {
+    width: 100%;
+  }
 }
 
 .rp-material-pair-recommendations {
@@ -13686,6 +13931,36 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 body:has(#requirements-step:not([hidden])) .rp-progress {
   display: grid;
 }
+
+/* 第 7 步只保留已確認視角後的代表房色卡比較；舊 A/B 控制僅供既有資料相容。 */
+#proposal-review-step [data-design-scheme],
+#proposal-review-step #locked-scheme-label,
+#proposal-review-step #proposal-palette-grid,
+#proposal-review-step #proposal-palette-status,
+#proposal-review-step #proposal-content-confirmed,
+#proposal-review-step #return-to-realistic {
+  display: none !important;
+}
+
+#proposal-review-step .rp-viewer-toolbar .rp-segmented[aria-label="鎖定設計方案"],
+#proposal-review-step .rp-3d-sidebar > .eyebrow,
+#proposal-review-step .rp-3d-sidebar > h2,
+#proposal-review-step .rp-3d-sidebar > p,
+#proposal-review-step .rp-3d-sidebar > .rp-render-view-lock:not(#proposal-room-view-lock) {
+  display: none !important;
+}
+
+#realistic-scene-step [data-design-scheme] { display: none !important; }
+
+.rp-proposal-style-stage { display: grid; gap: 12px; margin-top: 18px; }
+.rp-proposal-context { display: grid; gap: 6px; padding: 12px; border: 1px solid #d7e2dc; background: #f7faf8; color: #385149; font-size: 13px; }
+.rp-proposal-context span { display: block; }
+
+/* 第 8 步由逐房流程接管，靜態舊色卡面板不應再次出現。 */
+#ai-render-step #request-palette-renders,
+#ai-render-step #palette-render-options,
+#ai-render-step #palette-render-results,
+#ai-render-step #confirm-render-palette { display: none !important; }
 
 /* 用途卡採抽象空間示意，避免以風格照片冒充實際房間或功能。 */
 #requirements-step .rp-room-usage-card-media.rp-room-usage-card-schematic {

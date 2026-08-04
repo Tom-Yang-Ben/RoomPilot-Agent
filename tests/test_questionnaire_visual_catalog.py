@@ -58,6 +58,18 @@ def test_visual_catalog_keeps_all_test2_question_pairs() -> None:
     assert all(len(question["options"]) == 2 for question in catalog["questions"])
 
 
+def test_visual_catalog_uses_one_bedroom_contract_without_legacy_room_kinds() -> None:
+    catalog = load_questionnaire_visual_catalog()
+    serialized = json.dumps(catalog, ensure_ascii=False)
+
+    assert "主臥" not in serialized
+    assert "次臥" not in serialized
+    assert "primary_bedroom" not in serialized
+    assert "secondary_bedroom" not in serialized
+    assert '"primary-' not in serialized
+    assert '"secondary-' not in serialized
+
+
 def test_confirmed_room_prefills_only_shared_unanswered_questions() -> None:
     result = _run_questionnaire_helpers(
         """
@@ -218,11 +230,27 @@ def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
 
 def test_ceiling_reference_photos_are_individual_and_cover_all_seven_choices() -> None:
     stylesheet = (ROOT / "backend" / "server" / "static" / "site.css").read_text(encoding="utf-8")
+    javascript = (ROOT / "backend" / "server" / "static" / "scene_v2.js").read_text(encoding="utf-8")
 
     assert 'ceiling-reference-real-homes-v1.png' not in stylesheet
     for style in ("exposed", "flat", "cove", "floating", "linear", "feature-pendant", "wood-grid"):
         assert f'data-ceiling-style-visual="{style}"]' in stylesheet
         assert (ROOT / "backend" / "server" / "static" / "questionnaire_images" / f"ceiling-{style}-reference.jpg").is_file()
+
+    assert 'data-ceiling-design-visual="${escapeHtml(design.id)}"' in javascript
+    for design_id in (
+        "scandinavian-soft", "flat-downlight", "flat-pendant", "flat-track", "soft-cove", "cream-cove",
+        "linear-soft", "modern-linear", "floating-no-main", "floating-downlight",
+        "japanese-slat", "american-slat", "slat-downlight", "exposed-pendant",
+        "floating-pendant", "industrial-exposed",
+    ):
+        assert f'data-ceiling-design-visual="{design_id}"]' in stylesheet
+    for filename in (
+        "ceiling-design-flat-cove-grid.png",
+        "ceiling-design-linear-floating-grid.png",
+        "ceiling-design-slat-exposed-grid.png",
+    ):
+        assert (ROOT / "backend" / "server" / "static" / "questionnaire_images" / filename).is_file()
 
 
 def test_questionnaire_ui_keeps_visual_catalog_for_rag_but_not_as_required_questions() -> None:
@@ -361,6 +389,21 @@ def test_scene_generate_preserves_complete_test2_questionnaire() -> None:
         "catalog_version": "1.0.0",
         "basic": {"household": "一人"},
         "rooms": {"living-1": {"confirmed": True}},
+        # Random questionnaires store per-room answers as a list. Scene generation
+        # and the external Agent handoff must accept that production shape.
+        "room_requirements": [
+            {
+                "roomId": "living-1",
+                "roomType": "living_room",
+                "roomLabel": "客廳",
+                "usage": ["休息聊天"],
+                "furniture": {
+                    "preferenceTags": ["淺木色"],
+                    "preferenceText": "保留採光與走道",
+                    "selected": [],
+                },
+            }
+        ],
         "visual_preferences": [{"question_id": "living-focus", "option_id": "social"}],
         "finishes": {"wallColor": "#ffffff"},
     }
@@ -385,6 +428,9 @@ def test_scene_generate_preserves_complete_test2_questionnaire() -> None:
     assert response.status_code == 200
     assert response.json()["questionnaire"]["test2_questionnaire"] == test2
     assert response.json()["questionnaire"]["occupants"]["adults"] == 1
+    handoff_rooms = response.json()["agent_generation_handoff"]["rooms"]
+    assert handoff_rooms[0]["room_id"] == "living-1"
+    assert handoff_rooms[0]["furniture_preference"]["description"] == "保留採光與走道"
 
 
 def test_questionnaire_summary_localizes_balanced_visual_choice() -> None:
@@ -394,7 +440,7 @@ def test_questionnaire_summary_localizes_balanced_visual_choice() -> None:
             basic: { household: "兩位大人" },
             visualQuestions: [{
               question_id: "q-1",
-              space_type: "primary_bedroom",
+              space_type: "bedroom",
               title_zh: "明亮或沉穩",
               options: [],
             }],

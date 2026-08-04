@@ -21,7 +21,7 @@ import {
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-25568bdd96c1";
+} from "./scene_architecture.js?v=sha256-35a0bec6dcb1";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -1694,6 +1694,7 @@ export function createSceneViewer(
       // The Step 4 wall gap is authoritative for every wall component.  The
       // closed leaf may be shown on it, but must never define a second opening.
       const headerSegment = door?.wall_opening_segment || door?.closed_leaf_segment;
+      if (door?.step4_confirmed === true && !door?.wall_opening_segment) return;
       const start = headerSegment?.start;
       const end = headerSegment?.end;
       const dx = Number(end?.x) - Number(start?.x);
@@ -1742,7 +1743,10 @@ export function createSceneViewer(
         {
           kind: "door",
           id,
-          width: Math.max(Number(door.width_cm || door.width) || width, 60),
+          // The Step 4 opening span owns the physical door width.  Catalog
+          // metadata may describe a wider product, but it must never extend
+          // a leaf beyond the confirmed wall opening.
+          width,
           opening: door,
         },
         {
@@ -1824,8 +1828,13 @@ export function createSceneViewer(
       // inferred leaf line can be slightly offset and must not pull the door
       // out of its actual opening in the Step 6 scene.
       const doorLeafInsetCm = 0.6;
+      const leafWidth = Math.max(interval.width - doorLeafInsetCm, 60);
+      const leafDepth = Math.max(
+        Math.min(Number(anchor.wallThickness || 12) - 1.2, 5),
+        2,
+      );
       const leaf = new THREE.Mesh(
-        new THREE.BoxGeometry(Math.max(interval.width - doorLeafInsetCm, 60), height, 4.5),
+        new THREE.BoxGeometry(leafWidth, height, leafDepth),
         frameMaterial,
       );
       leaf.position.set(0, centerY, 0);
@@ -1862,10 +1871,11 @@ export function createSceneViewer(
       const dz = Number(end.z || 0) - Number(start.z || 0);
       const measuredWidth = Math.hypot(dx, dz);
       if (measuredWidth < 4) return;
-      const openingWidth = Math.max(
-        Number(opening.width_cm || opening.width || measuredWidth),
-        kind === "door" ? 68 : 50,
-      );
+      // A standalone opening has no host-wall interval to clamp against, so
+      // use its detected segment exactly.  This keeps the assembly coplanar
+      // with the recognised wall instead of letting catalog dimensions push
+      // it into a neighbouring wall or across a corner.
+      const openingWidth = measuredWidth;
       const windowMetrics = kind === "window"
         ? windowOpeningMetrics(opening, wallHeight)
         : null;
@@ -2283,10 +2293,6 @@ export function createSceneViewer(
     const split = vertical
       ? Math.max(minX, Math.min(maxX, (Number(line[0].x) + Number(line[1].x)) / 2))
       : Math.max(minZ, Math.min(maxZ, (Number(line[0].y) + Number(line[1].y)) / 2));
-    const palette = sceneData.style_card?.palette_hex || sceneData.style?.palette_hex || [];
-    const materials = [floorMaterial.clone(), floorMaterial.clone()];
-    applySurfaceTint(materials[0], palette[1] || "#c9a77d");
-    applySurfaceTint(materials[1], palette[3] || "#8b684b");
     const parts = vertical
       ? [
           { width: split - minX, depth: maxZ - minZ, x: (minX + split) / 2, z: (minZ + maxZ) / 2 },
@@ -2298,9 +2304,22 @@ export function createSceneViewer(
         ];
     parts.forEach((part, index) => {
       if (part.width < 2 || part.depth < 2) return;
+      const floorOption = index === 0
+        ? boundary.primary_floor_option
+        : boundary.secondary_floor_option;
+      const material = floorOption
+        ? createFloorMaterial(floorOption, sceneData.surface_catalog, {
+            widthCm: part.width,
+            depthCm: part.depth,
+          })
+        : floorMaterial.clone();
+      applySurfaceTint(
+        material,
+        index === 0 ? boundary.primary_floor_color_hex : boundary.secondary_floor_color_hex,
+      );
       const surface = new THREE.Mesh(
         new THREE.PlaneGeometry(part.width, part.depth),
-        materials[index],
+        material,
       );
       surface.rotation.x = -Math.PI / 2;
       surface.position.set(part.x, 0.6 + index * 0.1, part.z);
@@ -2473,7 +2492,10 @@ export function createSceneViewer(
           override.wall_option
             || "auto",
           sceneData.surface_catalog,
-          { tintOnly: false },
+          // A whole-house wall finish comes from the questionnaire's selected
+          // colour. Do not let a catalog texture darken it into a different
+          // apparent paint colour in the 3D scene or room scheme previews.
+          { tintOnly: usesOneWholeHouseWall },
         );
         applySurfaceTint(
           material,
@@ -3065,11 +3087,11 @@ export function createSceneViewer(
         const source = sourceDoorById.get(id);
         const resolved = resolvedDoorById.get(id);
         const rendered = renderedDoors.find((door) => door.id === id);
-        const closedLeaf = resolved?.closed_leaf_segment;
-        const expectedAnchor = closedLeaf?.start && closedLeaf?.end
+        const confirmedOpening = resolved?.wall_opening_segment || resolved?.confirmed_wall_opening;
+        const expectedAnchor = confirmedOpening?.start && confirmedOpening?.end
           ? {
-            x: (Number(closedLeaf.start.x) + Number(closedLeaf.end.x)) / 2,
-            z: (Number(closedLeaf.start.z) + Number(closedLeaf.end.z)) / 2,
+            x: (Number(confirmedOpening.start.x) + Number(confirmedOpening.end.x)) / 2,
+            z: (Number(confirmedOpening.start.z) + Number(confirmedOpening.end.z)) / 2,
           }
           : openingAnchorForWallTopology(resolved, wallSegments, wallThickness);
         const endpointDistance = source && resolved
@@ -3095,7 +3117,9 @@ export function createSceneViewer(
             ? Math.round(anchorDistance * 100) / 100
             : null,
           rendered: Boolean(rendered),
-          status: endpointDistance <= 1 && anchorDistance <= 1 ? "matched" : "mismatch",
+          // Recognition endpoints can be normalised in step 4. Compare the
+          // rendered opening with the resolved wall anchor, not stale source coordinates.
+          status: rendered && (!expectedAnchor || anchorDistance <= 1) ? "matched" : "mismatch",
         };
       });
       const doorDiagnostics = {
@@ -3699,6 +3723,29 @@ export function createSceneViewer(
     return cameraLocked;
   }
 
+  function exitWalkModePreservingCamera() {
+    // Leaving walk mode is a control change, not a camera preset. Keep the
+    // exact position and direction that the user reached while walking.
+    viewMode.setMode("orbit");
+    camera = perspectiveCamera;
+    controls.object = perspectiveCamera;
+    controls.enabled = true;
+    controls.enableRotate = true;
+    controls.enablePan = true;
+    controls.enableZoom = true;
+    controls.screenSpacePanning = true;
+    configureWallsForView("orbit");
+    configurePlanLabels("orbit");
+    configureCirculationForView("orbit");
+    configureOpeningsForView("orbit");
+    renderer.domElement.style.cursor = "";
+    walkKeys.clear();
+    walkDestination = null;
+    walkMarker.visible = false;
+    syncPostProcessingCamera();
+    onResize();
+  }
+
   function setInteractionMode(mode) {
     if (mode === "walk") {
       setViewMode("walk");
@@ -3708,6 +3755,7 @@ export function createSceneViewer(
       return interactionMode;
     }
     if (mode === "edit") {
+      if (viewMode.mode === "walk") exitWalkModePreservingCamera();
       interactionMode = "edit";
       cameraLocked = true;
       walkKeys.clear();
@@ -3723,7 +3771,18 @@ export function createSceneViewer(
     }
     interactionMode = "camera";
     cameraLocked = false;
-    setViewMode(viewMode.mode);
+    if (viewMode.mode === "walk") {
+      exitWalkModePreservingCamera();
+    } else {
+      controls.enabled = true;
+      controls.enableRotate = true;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+      renderer.domElement.style.cursor = "";
+      walkKeys.clear();
+      walkDestination = null;
+      walkMarker.visible = false;
+    }
     return interactionMode;
   }
 
@@ -4190,6 +4249,7 @@ export function createSceneViewer(
       <button type="button" data-object-move="left">左</button>
       <button type="button" data-object-move="back">後</button>
       <button type="button" data-object-move="right">右</button>
+      <button type="button" class="scene-object-rotate-180" data-object-rotate="180" title="旋轉 180 度">旋轉 180°</button>
     </div>
     <button type="button" class="scene-object-lock-button" data-object-lock>鎖定此家具</button>
   `;
@@ -4803,6 +4863,12 @@ export function createSceneViewer(
     return true;
   }
 
+  function markPlacementAccepted(item) {
+    // The server is the placement authority. Clear failures from an old position.
+    item.placement_failed = false;
+    item.placement_reason = "";
+  }
+
   async function validatePlacement(item, positionCm, rotationDeg) {
     if (!lastSceneData) return { ok: false, reason: "場景未載入" };
     try {
@@ -5165,12 +5231,19 @@ export function createSceneViewer(
   }
 
   function snapDragPositionV3(item, x, z) {
-    return constrainTransform(
+    // All draggable furniture follows the same wall/corner snap path before
+    // checking boundaries and collisions. Previously V3 skipped this step.
+    const snapped = snapDragPositionV2(item, x, z);
+    const constrained = constrainTransform(
       item,
-      Math.round(x / DRAG_GRID) * DRAG_GRID,
-      Math.round(z / DRAG_GRID) * DRAG_GRID,
-      sceneToWorldRotationDeg(item.rotation_y_deg || 0)
+      snapped.x,
+      snapped.z,
+      snapped.rotationDeg
     );
+    return {
+      ...constrained,
+      kind: constrained.blocked ? "blocked" : snapped.kind,
+    };
   }
 
   window.addEventListener("pointermove", (event) => {
@@ -5231,6 +5304,7 @@ export function createSceneViewer(
     if (verdict.ok) {
       item.position_cm = newPositionCm;
       item.rotation_y_deg = newRotationDeg;
+      markPlacementAccepted(item);
       const worldPosition = sceneToWorldPosition(item.position_cm || {});
       wrapper.position.x = worldPosition.x;
       wrapper.position.z = worldPosition.z;
@@ -5261,6 +5335,7 @@ export function createSceneViewer(
     const verdict = await validatePlacement(item, item.position_cm || { x: 0, z: 0 }, nextRotation);
     if (verdict.ok) {
       item.rotation_y_deg = nextRotation;
+      markPlacementAccepted(item);
       item.position_locked = true;
       selectedWrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(nextRotation));
       updateFootprintGuide(selectedWrapper);
@@ -5304,6 +5379,7 @@ export function createSceneViewer(
 
     item.rotation_y_deg = nextRotation;
     item.position_cm = currentPositionCm;
+    markPlacementAccepted(item);
     item.position_locked = true;
     selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextWorldRotation);
     updateFootprintGuide(selectedWrapper);
@@ -5365,6 +5441,7 @@ export function createSceneViewer(
 
     selectedWrapper.position.set(candidate.x, selectedWrapper.position.y, candidate.z);
     item.position_cm = nextPositionCm;
+    markPlacementAccepted(item);
     item.position_locked = true;
     updateFootprintGuide(selectedWrapper, candidate.kind);
     notifySceneChange(item);
@@ -5412,6 +5489,7 @@ export function createSceneViewer(
     selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextWorldRotation);
     item.position_cm = nextPositionCm;
     item.rotation_y_deg = nextRotation;
+    markPlacementAccepted(item);
     item.position_locked = true;
     updateFootprintGuide(selectedWrapper, candidate.kind);
     notifySceneChange(item);
@@ -5466,6 +5544,7 @@ export function createSceneViewer(
 
     selectedWrapper.position.set(candidate.x, selectedWrapper.position.y, candidate.z);
     item.position_cm = nextPositionCm;
+    markPlacementAccepted(item);
     item.position_locked = true;
     updateFootprintGuide(selectedWrapper, candidate.kind);
     notifySceneChange(item);
@@ -5508,6 +5587,7 @@ export function createSceneViewer(
     const verdict = await validatePlacement(item, item.position_cm || { x: 0, z: 0 }, nextRotation);
     if (verdict.ok) {
       item.rotation_y_deg = nextRotation;
+      markPlacementAccepted(item);
       item.position_locked = true;
       selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextRotation);
       setStatus(`已旋轉「${label}」至 ${nextRotation}°。`);

@@ -125,8 +125,11 @@ function candidateGapForDoor(segments, opening, wallThickness = 12) {
 }
 
 export function confirmedWallGapForDoor(segments, door, wallThickness = 12) {
-  const closedLeaf = segmentVector({ start: door.start, end: door.swing_end });
-  if (closedLeaf.length < 24) return null;
+  // The recognised door span is the closed position on the floor plan.  The
+  // swing endpoint only describes where the leaf travels after it opens; it
+  // must never be used to select a different wall gap.
+  const closedOpening = segmentVector({ start: door.start, end: door.end });
+  if (closedOpening.length < 24) return null;
 
   // A closed leaf is the only Step 4 coordinate that may select the gap.  Do
   // not include the blue open leaf or nearby parallel walls in this decision:
@@ -135,9 +138,9 @@ export function confirmedWallGapForDoor(segments, door, wallThickness = 12) {
     segments,
     {
       ...door,
-      start: closedLeaf.start,
-      end: closedLeaf.end,
-      width_cm: Number(door.width_cm || door.width) || closedLeaf.length,
+      start: closedOpening.start,
+      end: closedOpening.end,
+      width_cm: Number(door.width_cm || door.width) || closedOpening.length,
     },
     wallThickness,
   );
@@ -185,14 +188,19 @@ export function doorOpeningForWallTopology(
   const closed = closedDoorSegment(door);
   if (leaf.length < 4 || !closed) return door;
 
-  const closedLeaf = segmentVector({ start: leaf.start, end: door.swing_end });
+  // Keep the closing direction for the door leaf, but never use it as the
+  // wall opening. The opening itself is persisted separately after Step 4.
+  const closedLeaf = segmentVector({
+    start: leaf.start,
+    end: door.swing_end,
+  });
   const closedLeafSegment = closedLeaf.length >= 4
     ? { start: { ...closedLeaf.start }, end: { ...closedLeaf.end } }
     : { start: { ...leaf.start }, end: { ...leaf.end } };
 
-  // A Step 4-confirmed door never creates a wall cut.  Its opening is the
-  // natural gap already present between the persisted Step 4 wall segments.
-  // Keep the green closed-leaf segment for the Step 6 mesh only.
+  // A Step 4-confirmed door never creates a wall cut. Its persisted opening
+  // is authoritative; legacy records may fall back only to a gap on this
+  // same recognised door span.
   if (door.step4_confirmed === true) {
     const persistedOpening = segmentVector(door.confirmed_wall_opening || {});
     const wallGap = confirmedWallGapForDoor(segments, door, wallThickness);
@@ -201,7 +209,7 @@ export function doorOpeningForWallTopology(
       : wallGap;
     return {
       ...door,
-      topology_gap: true,
+      topology_gap: Boolean(confirmedOpening),
       step4_skip_wall_cut: true,
       opening_source: persistedOpening.length >= 4
         ? "persisted_step4_wall_gap"

@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+
+from test_scene_workflow import run_workflow_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,6 +13,27 @@ def test_design_scheme_contract_supports_legacy_projects() -> None:
     assert "legacy.furniture" in SOURCE
     assert "legacy.sceneData" in SOURCE
     assert 'active_scheme_id: activeId' in SOURCE
+
+
+def test_normalize_design_schemes_recovers_projects_with_null_furniture() -> None:
+    module_uri = (ROOT / "backend/server/static/scene_design_schemes.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ normalizeDesignSchemes }} from {json.dumps(module_uri)};
+        const result = normalizeDesignSchemes({{
+          schemes: {{
+            A: {{ furniture: null }},
+            B: {{ furniture: null }},
+          }},
+        }});
+        console.log(JSON.stringify({{
+          a: result.schemes.A.furniture,
+          b: result.schemes.B.furniture,
+        }}));
+        """
+    )
+
+    assert result == {"a": [], "b": []}
 
 
 def test_scheme_a_and_b_share_the_same_confirmed_structures() -> None:

@@ -137,7 +137,7 @@ def test_editor_assigns_stable_architecture_ids_when_loading_older_projects() ->
     assert floorplan["door_segments"][0]["id"] == "door-1"
 
 
-def test_auto_decor_uses_verified_floor_lamp_catalog_items() -> None:
+def test_decor_does_not_add_unrequested_soft_furnishings() -> None:
     sofa = {
         "furniture_id": "sofa-existing",
         "normalized_type": "sofa",
@@ -161,21 +161,9 @@ def test_auto_decor_uses_verified_floor_lamp_catalog_items() -> None:
     assert response.status_code == 200
     payload = response.json()
     generated = [item for item in payload["scene_objects"] if item.get("auto_decor_role")]
-    assert {item["auto_decor_role"] for item in generated} == {"curtain", "rug", "plant", "light"}
+    assert generated == []
+    assert payload["decor_summary"]["requested"] == []
     assert payload["decor_summary"]["unavailable"] == []
-    assert all(item["model_url"] for item in generated)
-    assert all(item["placement_engine"] == "furniture_engine" for item in generated)
-    assert all(item["placement_failed"] is False for item in generated)
-    light = next(item for item in generated if item["auto_decor_role"] == "light")
-    assert light["normalized_type"] == "floor-lamp"
-
-    rug = next(item for item in generated if item["auto_decor_role"] == "rug")
-    assert rug["position_cm"] == sofa["position_cm"]
-
-    curtain = next(item for item in generated if item["auto_decor_role"] == "curtain")
-    assert curtain["size_cm"]["width"] == 330
-    assert curtain["position_cm"]["z"] < -200
-    assert curtain["rotation_y_deg"] == 0
 
 
 def test_rug_relation_is_validated_by_the_engine() -> None:
@@ -215,10 +203,10 @@ def test_empty_room_does_not_receive_scattered_decor() -> None:
         for item in response.json()["scene_objects"]
         if item.get("auto_decor_role")
     ]
-    assert {item["auto_decor_role"] for item in generated} == {"curtain"}
+    assert generated == []
 
 
-def test_confirmed_bedroom_type_allows_rug_and_verified_floor_lamp_only() -> None:
+def test_confirmed_bedroom_type_does_not_infer_rug_or_lamp() -> None:
     bed = {
         "furniture_id": "bed-existing",
         "normalized_type": "bed-frame",
@@ -253,7 +241,7 @@ def test_confirmed_bedroom_type_allows_rug_and_verified_floor_lamp_only() -> Non
         for item in response.json()["scene_objects"]
         if item.get("auto_decor_role")
     }
-    assert roles == {"rug", "light"}
+    assert roles == set()
 
 
 def test_decor_does_not_use_furniture_assigned_to_another_room() -> None:
@@ -292,7 +280,7 @@ def test_decor_does_not_use_furniture_assigned_to_another_room() -> None:
         for item in response.json()["scene_objects"]
         if item.get("auto_decor_role")
     }
-    assert roles == {"plant"}
+    assert roles == set()
 
 
 def test_redecorating_replaces_legacy_duplicates_and_uses_unique_models() -> None:
@@ -330,15 +318,7 @@ def test_redecorating_replaces_legacy_duplicates_and_uses_unique_models() -> Non
         for item in response.json()["scene_objects"]
         if item.get("auto_decor_role")
     ]
-    roles = [item["auto_decor_role"] for item in generated]
-    assert len(roles) == len(set(roles))
-    catalog_ids = [
-        item["furniture_id"]
-        for item in generated
-        if item["auto_decor_role"] != "curtain"
-    ]
-    assert len(catalog_ids) == len(set(catalog_ids))
-    assert "duplicated-decor-model" not in catalog_ids
+    assert generated == []
 
 
 def test_large_furniture_uses_a_wall_anchor() -> None:

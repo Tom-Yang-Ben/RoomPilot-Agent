@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from backend.server import main
 from backend.server.project_store import ProjectStore
+from backend.server import render_service
 from backend.server.render_service import _render_timeout_seconds, prepare_render_payload
 
 
@@ -42,6 +43,23 @@ def _payload(project_id: str) -> dict:
         "master_view": {"camera": _camera()},
         "room_views": [],
         "reference_png_data_url": "data:image/png;base64,AA==",
+    }
+
+
+def _configuration_snapshot(*room_ids: str) -> dict:
+    return {
+        "schema_version": 2,
+        "snapshot_id": "project-1:scene-1:1",
+        "scene_version": "scene-1:revision-3:card-1",
+        "fixed_structure": {
+            "walls": [],
+            "doors": [],
+            "windows": [],
+            "beams": [],
+            "columns": [],
+        },
+        "rooms": [{"room_id": room_id} for room_id in room_ids],
+        "furniture": [],
     }
 
 
@@ -96,6 +114,38 @@ def test_room_render_accepts_locked_room_view_cameras() -> None:
     assert prepared["room_views"][0]["room_id"] == "bedroom-1"
 
 
+def test_room_render_rejects_snapshot_when_one_confirmed_room_view_is_missing() -> None:
+    payload = _payload("project-1")
+    payload["mode"] = "room_final"
+    payload["configuration_snapshot"] = _configuration_snapshot("bedroom-1", "living-1")
+    payload["room_views"] = [{"room_id": "bedroom-1", "camera": _camera()}]
+
+    with pytest.raises(ValueError, match="room_views_incomplete"):
+        prepare_render_payload(payload)
+
+
+def test_room_render_accepts_complete_version_two_configuration_snapshot() -> None:
+    payload = _payload("project-1")
+    payload["mode"] = "room_final"
+    payload["configuration_snapshot"] = _configuration_snapshot("bedroom-1")
+    payload["room_views"] = [{"room_id": "bedroom-1", "camera": _camera()}]
+
+    prepared = prepare_render_payload(payload)
+
+    assert prepared["configuration_snapshot"]["schema_version"] == 2
+
+
+def test_room_render_rejects_a_snapshot_from_an_older_scene_version() -> None:
+    payload = _payload("project-1")
+    payload["mode"] = "room_final"
+    payload["configuration_snapshot"] = _configuration_snapshot("bedroom-1")
+    payload["configuration_snapshot"]["scene_version"] = "scene-older"
+    payload["room_views"] = [{"room_id": "bedroom-1", "camera": _camera()}]
+
+    with pytest.raises(ValueError, match="configuration_snapshot_scene_version_mismatch"):
+        prepare_render_payload(payload)
+
+
 def test_invalid_remote_renderer_timeout_uses_safe_default(monkeypatch) -> None:
     monkeypatch.setenv("ROOMPILOT_RENDER_PROVIDER_TIMEOUT_SECONDS", "not-a-number")
 
@@ -106,6 +156,7 @@ def test_unconfigured_remote_renderer_reports_explicit_503(
     tmp_path, monkeypatch
 ) -> None:
     monkeypatch.delenv("ROOMPILOT_RENDER_PROVIDER_URL", raising=False)
+    monkeypatch.setattr(render_service, "_first_nonempty_local_env_value", lambda _name: "")
     monkeypatch.setattr(main, "PROJECT_STORE", ProjectStore(tmp_path / "runtime"))
     client = TestClient(main.app)
     project = client.post("/api/projects", json={"name": "Render test"}).json()["project"]

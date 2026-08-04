@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
-from ..agent.knowledge import family_of
+from ..agent.knowledge import family_of, item_allowed_in_room
 from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
 from .questionnaire_visuals import (
     QuestionnaireVisualStore,
@@ -1988,7 +1988,7 @@ async def create_project_render_jobs(project_id: str, payload: dict) -> dict:
     except ValueError as exc:
         raise HTTPException(
             422,
-            {"code": str(exc), "message": "渲染資料不完整，請回到第 9 步重新確認。"},
+            {"code": str(exc), "message": "渲染資料不完整或已過期，請回到第 6 步重新確認家具與視角。"},
         ) from exc
     except RenderProviderUnavailable as exc:
         raise HTTPException(
@@ -2666,6 +2666,7 @@ _AUTO_DECOR_LABELS = {
 def _auto_decor_catalog_item(
     role: str,
     style_id: str | None,
+    room_type: str,
     excluded_ids: set[str] | None = None,
     max_footprint_cm: tuple[float, float] | None = None,
 ) -> dict:
@@ -2675,6 +2676,7 @@ def _auto_decor_catalog_item(
         item
         for item in _furniture_payload_cache()
         if item.get("normalized_type") in requested_types
+        and item_allowed_in_room(item, room_type)
         and item.get("has_model")
         and item.get("model_url")
         and str(item.get("furniture_id")) not in excluded_ids
@@ -2731,6 +2733,7 @@ def _curtain_catalog_item() -> dict:
         "size_cm": {"width": 240, "depth": 12, "height": 240},
         "model_url": "/static/models/roompilot-curtain.glb",
         "has_model": True,
+        "room_types": ["living_room", "bedroom", "kitchen", "entryway"],
         "auto_decor_role": "curtain",
         "position_locked": False,
     }
@@ -2784,33 +2787,21 @@ async def scene_decorate(payload: dict) -> dict:
             continue
         if scene_object_in_boundary(item, room, place_boundary):
             room_items.append(item)
-    room_types = {
-        str(item.get("normalized_type") or "")
-        for item in room_items
-    }
+    room_types = {str(item.get("normalized_type") or "") for item in room_items}
     rug_anchors = {"sofa", "sofa-bed", "bed", "bed-frame", "dining-table"}
-    companion_anchors = rug_anchors | {"desk", "armchair"}
-    requested_roles = []
-    if room_types & companion_anchors:
-        requested_roles.append("light")
-    if room_types & rug_anchors:
-        requested_roles.append("rug")
-    if room_type == "balcony" or (
-        room_type in {"living_room", "dining_room", "default"}
-        and room_types & companion_anchors
-    ):
-        requested_roles.append("plant")
-    if curtain_window_hint(
-        floorplan,
-        room_width_cm=room.width,
-        room_depth_cm=room.depth,
-        boundary=place_boundary,
-    ) and room_type in {"living_room", "bedroom", "dining_room", "default"}:
-        requested_roles.append("curtain")
+    requested_roles = list(
+        dict.fromkeys(
+            role
+            for role in payload.get("decor_roles", [])
+            if role in {"curtain", "rug", "plant", "light"}
+        )
+    )
 
     additions: list[dict] = []
     if "curtain" in requested_roles:
-        additions.append(_curtain_catalog_item())
+        curtain = _curtain_catalog_item()
+        if item_allowed_in_room(curtain, room_type):
+            additions.append(curtain)
     used_ids = {str(item.get("furniture_id")) for item in existing}
     boundary_width_cm = boundary_depth_cm = 0.0
     if place_boundary is not None:
@@ -2837,6 +2828,7 @@ async def scene_decorate(payload: dict) -> dict:
                 addition = _auto_decor_catalog_item(
                     role,
                     payload.get("style"),
+                    room_type,
                     used_ids,
                     rug_max_footprint if role == "rug" else None,
                 )

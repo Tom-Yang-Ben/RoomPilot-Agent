@@ -106,6 +106,39 @@ ROOM_TYPE_ZH: dict[str, str] = {
     "garage": "車庫",
 }
 
+# Catalog room types are the source of truth for whether an item can enter a
+# room. Keep aliases here so imported catalog vocabulary resolves to the
+# same ten RoomPilot room types.
+ROOM_TYPE_ALIASES: dict[str, str] = {
+    "bath": "bathroom",
+    "entry": "entryway",
+    "foyer": "entryway",
+    "livingroom": "living_room",
+    "storage_room": "storage",
+    "stairs": "stair",
+    "corridor": "hallway",
+    "walkway": "hallway",
+}
+
+
+def canonical_room_type(value: object) -> str:
+    normalized = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    return ROOM_TYPE_ALIASES.get(normalized, normalized)
+
+
+def item_room_types(item: dict[str, object]) -> set[str]:
+    raw_types = item.get("room_types")
+    if isinstance(raw_types, str):
+        raw_types = [raw_types]
+    if not isinstance(raw_types, (list, tuple, set)):
+        return set()
+    return {canonical_room_type(value) for value in raw_types if canonical_room_type(value)}
+
+
+def item_allowed_in_room(item: dict[str, object], room_type: object) -> bool:
+    expected = canonical_room_type(room_type)
+    return bool(expected and expected in item_room_types(item))
+
 
 def _zh(family: str) -> str:
     return FAMILY_ZH.get(family, family)

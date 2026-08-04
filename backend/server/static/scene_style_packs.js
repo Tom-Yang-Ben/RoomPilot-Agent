@@ -425,13 +425,16 @@ export function applyStylePack(sceneState, stylePack) {
 }
 
 export const CEILING_STYLES = Object.freeze([
-  { id: "exposed", label: "裸頂", styles: ["industrial"], dropCm: 0 },
-  { id: "flat", label: "平釘天花", styles: ["scandinavian", "modern_minimal", "cream"], dropCm: 12 },
-  { id: "cove", label: "間接燈槽", styles: ["modern_minimal", "cream", "american"], dropCm: 18 },
-  { id: "floating", label: "懸浮天花", styles: ["modern_minimal", "cream"], dropCm: 20 },
-  { id: "linear", label: "線性燈天花", styles: ["modern_minimal", "industrial"], dropCm: 15 },
-  { id: "feature-pendant", label: "局部造型吊燈", styles: ["cream", "american", "japanese"], dropCm: 18 },
-  { id: "wood-grid", label: "木格柵", styles: ["japanese", "american"], dropCm: 16 },
+  { id: "exposed", label: "裸頂", styles: ["industrial"], dropCm: 0, compatibleLightIds: ["track", "pendant"] },
+  // Ceiling construction and lighting are separate choices. A flat ceiling can
+  // support several fixture types; the final room-height check decides whether
+  // a selected fixture can actually be installed.
+  { id: "flat", label: "平釘天花", styles: ["scandinavian", "modern_minimal", "cream"], dropCm: 12, compatibleLightIds: ["no-main-light", "track", "pendant", "downlight"] },
+  { id: "cove", label: "崁入式間接燈槽", styles: ["modern_minimal", "cream", "american"], dropCm: 18, compatibleLightIds: ["no-main-light", "downlight", "pendant"] },
+  { id: "floating", label: "懸浮天花", styles: ["modern_minimal", "cream"], dropCm: 20, compatibleLightIds: ["no-main-light", "downlight"] },
+  { id: "linear", label: "線性燈天花", styles: ["modern_minimal", "industrial"], dropCm: 15, compatibleLightIds: ["no-main-light", "track"] },
+  { id: "feature-pendant", label: "局部造型天花", styles: ["cream", "american", "japanese"], dropCm: 18, compatibleLightIds: ["pendant", "downlight"] },
+  { id: "wood-grid", label: "木格柵", styles: ["japanese", "american"], dropCm: 16, compatibleLightIds: ["paper", "pendant", "downlight"] },
 ]);
 
 export const LIGHT_STYLES = Object.freeze([
@@ -444,8 +447,10 @@ export const LIGHT_STYLES = Object.freeze([
 
 // These are installable combinations, not independent decoration choices.
 export const CEILING_DESIGN_PACKS = Object.freeze([
-  { id: "scandinavian-soft", label: "明亮平釘", material: "flat-paint", ceilingStyle: "flat", lightStyle: "no-main-light", styles: ["scandinavian", "modern_minimal"], note: "平釘天花配均勻無主燈，保留乾淨高度" },
+  { id: "scandinavian-soft", label: "平釘＋無主燈", material: "flat-paint", ceilingStyle: "flat", lightStyle: "no-main-light", styles: ["scandinavian", "modern_minimal"], note: "以崁燈、燈帶等分散照明維持乾淨天花" },
   { id: "flat-downlight", label: "平釘＋崁燈", material: "flat-paint", ceilingStyle: "flat", lightStyle: "downlight", styles: ["scandinavian", "cream", "modern_minimal"], note: "平釘天花整合崁燈，適合一般住宅基礎照明" },
+  { id: "flat-pendant", label: "平釘＋吊燈", material: "flat-paint", ceilingStyle: "flat", lightStyle: "pendant", styles: ["scandinavian", "cream", "american"], note: "在餐桌、閱讀或床邊以吊燈建立重點光源" },
+  { id: "flat-track", label: "平釘＋軌道燈", material: "flat-paint", ceilingStyle: "flat", lightStyle: "track", styles: ["modern_minimal", "industrial"], note: "軌道燈可調整照射方向，適合展示牆與工作區" },
   { id: "soft-cove", label: "柔光燈槽", material: "mineral-paint", ceilingStyle: "cove", lightStyle: "no-main-light", styles: ["cream", "scandinavian", "japanese"], note: "局部燈槽配無主燈，保留柔和漫射光" },
   { id: "cream-cove", label: "暖光燈槽", material: "mineral-paint", ceilingStyle: "cove", lightStyle: "downlight", styles: ["cream", "modern_minimal", "american"], note: "礦物漆平釘與間接燈槽，光線柔和" },
   { id: "modern-linear", label: "線性照明", material: "flat-paint", ceilingStyle: "linear", lightStyle: "track", styles: ["modern_minimal", "industrial"], note: "平整天花整合線性與軌道照明" },

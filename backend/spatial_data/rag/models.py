@@ -16,6 +16,7 @@ RoomType = Literal[
     "storage",
     "balcony",
     "hallway",
+    "stair",
     "garage",
 ]
 StyleId = Literal[

@@ -16,12 +16,19 @@ function emptyScheme(id, kind) {
   };
 }
 
+function furnitureList(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 export function normalizeDesignSchemes(saved = {}, legacy = {}) {
-  const savedSchemes = saved?.schemes || {};
+  const savedSchemes = saved?.schemes && typeof saved.schemes === "object"
+    ? saved.schemes
+    : {};
   const schemeA = {
     ...emptyScheme("A", "baseline"),
     ...(savedSchemes.A || {}),
   };
+  schemeA.furniture = furnitureList(schemeA.furniture);
   if (!schemeA.furniture.length && Array.isArray(legacy.furniture)) {
     schemeA.furniture = clone(legacy.furniture);
   }
@@ -32,6 +39,7 @@ export function normalizeDesignSchemes(saved = {}, legacy = {}) {
     ? {
         ...emptyScheme("B", "alternative"),
         ...savedSchemes.B,
+        furniture: furnitureList(savedSchemes.B.furniture),
       }
     : null;
   const activeId = saved.active_scheme_id === "B" && schemeB ? "B" : "A";

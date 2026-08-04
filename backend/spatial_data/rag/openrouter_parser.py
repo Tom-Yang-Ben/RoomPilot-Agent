@@ -206,6 +206,7 @@ def _fast_room_type(text: str) -> str | None:
         ("balcony", ("balcony", "outdoor", "\\u967d\\u53f0")),
         ("entryway", ("entryway", "\\u7384\\u95dc")),
         ("hallway", ("hallway", "\\u8d70\\u9053", "\\u52d5\\u7dda")),
+        ("stair", ("stair", "\\u6a13\\u68af")),
         ("garage", ("garage", "\\u8eca\\u5eab")),
     ]
     return next((room for room, hints in rooms if _matches_hints(normalized, hints)), None)

@@ -14,7 +14,28 @@ from backend.agent.select import (
 )
 
 
-def _candidate(fid: str, kind: str, width_cm: float = 100, depth_cm: float = 50) -> dict:
+DEFAULT_ROOM_TYPES = {
+    "bed-frame": ["bedroom"],
+    "bedside-table": ["bedroom"],
+    "pax-wardrobe": ["bedroom"],
+    "fabric-sofa": ["living_room"],
+    "leather-sofa": ["living_room"],
+    "coffee-table": ["living_room"],
+    "tv-bench": ["living_room"],
+    "bookcase": ["living_room"],
+    "sofa-bed": ["bedroom"],
+    "dining-table": ["kitchen"],
+    "dining-chair": ["kitchen"],
+}
+
+
+def _candidate(
+    fid: str,
+    kind: str,
+    width_cm: float = 100,
+    depth_cm: float = 50,
+    room_types: list[str] | None = None,
+) -> dict:
     return {
         "furniture_id": fid,
         "normalized_type": kind,
@@ -23,6 +44,7 @@ def _candidate(fid: str, kind: str, width_cm: float = 100, depth_cm: float = 50)
         "size_cm": {"width": width_cm, "depth": depth_cm, "height": 80},
         "has_model": True,
         "model_url": f"/dataset/{fid}.glb",
+        "room_types": room_types if room_types is not None else DEFAULT_ROOM_TYPES.get(kind, ["living_room"]),
     }
 
 
@@ -122,14 +144,14 @@ def test_parse_applies_room_affinity_and_companion_dependency() -> None:
 
 
 def test_parse_drops_companion_without_anchor_in_non_required_room() -> None:
-    rooms = [{"room_id": "study-1", "room_type": "study"}]
-    offers = {"study-1": [
-        _candidate("chair", "office-chair"),
-        _candidate("bookcase", "bookcase"),
+    rooms = [{"room_id": "hallway-1", "room_type": "hallway"}]
+    offers = {"hallway-1": [
+        _candidate("chair", "office-chair", room_types=["hallway"]),
+        _candidate("bookcase", "bookcase", room_types=["hallway"]),
     ]}
-    raw = {"selections": [_selection("study-1", "chair", "bookcase")]}
+    raw = {"selections": [_selection("hallway-1", "chair", "bookcase")]}
     result = parse_selections(raw, rooms, offers)
-    assert [entry.item["furniture_id"] for entry in result["study-1"]] == ["bookcase"]
+    assert [entry.item["furniture_id"] for entry in result["hallway-1"]] == ["bookcase"]
 
 
 def test_parse_keeps_companions_when_anchor_exists() -> None:
@@ -189,6 +211,30 @@ def test_preselected_item_is_protected_and_takes_family_slot() -> None:
     ids = [entry.item["furniture_id"] for entry in result["bedroom-1"]]
     assert ids[0] == "user-sofa"
     assert {"bed-1", "nightstand-1"}.issubset(ids)
+
+
+def test_preselected_item_must_still_match_its_room_type() -> None:
+    wrong_room_item = _candidate(
+        "living-sofa",
+        "fabric-sofa",
+        190,
+        88,
+        room_types=["living_room"],
+    )
+    offers = _offers()
+    offers["bedroom-1"].append(wrong_room_item)
+    raw = {"selections": [_selection("bedroom-1", "bed-1", "nightstand-1")]}
+
+    result = parse_selections(
+        raw,
+        _bedroom_only(),
+        offers,
+        preselected={"bedroom-1": [wrong_room_item]},
+    )
+
+    assert "living-sofa" not in {
+        entry.item["furniture_id"] for entry in result["bedroom-1"]
+    }
 
 
 def test_preselected_and_required_items_survive_when_llm_omits_room() -> None:

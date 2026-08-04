@@ -915,9 +915,9 @@
       ]
     },
     {
-      "question_id": "primary-bed-circulation",
+      "question_id": "bedroom-bed-circulation",
       "space_type": "bedroom",
-      "title_zh": "主臥要放大床，還是保留更寬走道？",
+      "title_zh": "這間臥室要放大床，還是保留更寬走道？",
       "purpose_zh": "確認床尺寸與三側通行。",
       "selection_rule": "exclusive",
       "allow_both": false,
@@ -927,35 +927,35 @@
         {
           "option_id": "large_bed",
           "label_zh": "大床優先",
-          "visual_brief_zh": "主臥配置加大床，床側走道較緊湊但可通行。",
+          "visual_brief_zh": "這間臥室配置加大床，床側走道較緊湊但可通行。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "king_bed"
           ],
           "engine_effects": {
             "bed_priority": "large"
           },
-          "image_id": "qv-primary-bed-circulation-large_bed",
+          "image_id": "qv-bedroom-bed-circulation-large_bed",
           "generation_status": "planned"
         },
         {
           "option_id": "wide_clearance",
           "label_zh": "寬走道優先",
-          "visual_brief_zh": "主臥使用較精簡床型，床側與床尾保留寬走道。",
+          "visual_brief_zh": "這間臥室使用較精簡床型，床側與床尾保留寬走道。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "wide_bed_clearance"
           ],
           "engine_effects": {
             "bed_priority": "clearance"
           },
-          "image_id": "qv-primary-bed-circulation-wide_clearance",
+          "image_id": "qv-bedroom-bed-circulation-wide_clearance",
           "generation_status": "planned"
         }
       ]
     },
     {
-      "question_id": "primary-wardrobe",
+      "question_id": "bedroom-wardrobe",
       "space_type": "bedroom",
       "title_zh": "衣物採整面衣櫃，還是獨立更衣區？",
       "purpose_zh": "決定衣物收納與分區方式。",
@@ -971,13 +971,13 @@
           "label_zh": "整面衣櫃",
           "visual_brief_zh": "衣櫃沿單側牆連續配置，不另隔更衣室。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "wall_wardrobe"
           ],
           "engine_effects": {
             "wardrobe_type": "wall"
           },
-          "image_id": "qv-primary-wardrobe-wall",
+          "image_id": "qv-bedroom-wardrobe-wall",
           "generation_status": "planned"
         },
         {
@@ -985,19 +985,19 @@
           "label_zh": "獨立更衣區",
           "visual_brief_zh": "以隔間形成可進入更衣區，衣櫃集中在其中。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "walk_in_closet"
           ],
           "engine_effects": {
             "wardrobe_type": "walk_in"
           },
-          "image_id": "qv-primary-wardrobe-walk_in",
+          "image_id": "qv-bedroom-wardrobe-walk_in",
           "generation_status": "planned"
         }
       ]
     },
     {
-      "question_id": "primary-vanity-desk",
+      "question_id": "bedroom-vanity-desk",
       "space_type": "bedroom",
       "title_zh": "房內工作檯偏梳妝，還是偏辦公？",
       "purpose_zh": "選擇桌面深度、收納與照明。",
@@ -1013,13 +1013,13 @@
           "label_zh": "梳妝使用",
           "visual_brief_zh": "床邊配置帶鏡面與化妝收納的梳妝桌。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "vanity"
           ],
           "engine_effects": {
             "bedroom_desk": "vanity"
           },
-          "image_id": "qv-primary-vanity-desk-vanity",
+          "image_id": "qv-bedroom-vanity-desk-vanity",
           "generation_status": "planned"
         },
         {
@@ -1027,19 +1027,19 @@
           "label_zh": "辦公使用",
           "visual_brief_zh": "床邊配置符合筆電與螢幕深度的工作桌及插座。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "workdesk"
           ],
           "engine_effects": {
             "bedroom_desk": "workdesk"
           },
-          "image_id": "qv-primary-vanity-desk-workdesk",
+          "image_id": "qv-bedroom-vanity-desk-workdesk",
           "generation_status": "planned"
         }
       ]
     },
     {
-      "question_id": "primary-bedside",
+      "question_id": "bedroom-bedside",
       "space_type": "bedroom",
       "title_zh": "床兩側要對稱完整，還是集中單側機能？",
       "purpose_zh": "決定床頭櫃、插座和衣櫃衝突。",
@@ -1055,13 +1055,13 @@
           "label_zh": "雙側對稱",
           "visual_brief_zh": "床兩側都有床頭櫃、閱讀燈與等寬通道。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "symmetric_bedside"
           ],
           "engine_effects": {
             "bedside_layout": "symmetric"
           },
-          "image_id": "qv-primary-bedside-symmetric",
+          "image_id": "qv-bedroom-bedside-symmetric",
           "generation_status": "planned"
         },
         {
@@ -1069,21 +1069,21 @@
           "label_zh": "單側集中",
           "visual_brief_zh": "床靠近一側，主要床頭收納與通道集中另一側。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "single_side_bed"
           ],
           "engine_effects": {
             "bedside_layout": "single_side"
           },
-          "image_id": "qv-primary-bedside-single_side",
+          "image_id": "qv-bedroom-bedside-single_side",
           "generation_status": "planned"
         }
       ]
     },
     {
-      "question_id": "primary-relaxation",
+      "question_id": "bedroom-relaxation",
       "space_type": "bedroom",
-      "title_zh": "主臥要保留電視，還是改成閱讀休息角？",
+      "title_zh": "這間臥室要保留電視，還是改成閱讀休息角？",
       "purpose_zh": "確認睡前活動及家具需求。",
       "selection_rule": "exclusive",
       "allow_both": false,
@@ -1097,13 +1097,13 @@
           "label_zh": "臥室電視",
           "visual_brief_zh": "床尾配置電視與必要設備，觀看距離合理。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "bedroom_tv"
           ],
           "engine_effects": {
             "bedroom_relaxation": "tv"
           },
-          "image_id": "qv-primary-relaxation-tv",
+          "image_id": "qv-bedroom-relaxation-tv",
           "generation_status": "planned"
         },
         {
@@ -1111,21 +1111,21 @@
           "label_zh": "閱讀休息角",
           "visual_brief_zh": "取消床尾電視，改設單椅、立燈與小邊几。",
           "rag_tags": [
-            "primary_bedroom",
+            "bedroom",
             "reading_corner"
           ],
           "engine_effects": {
             "bedroom_relaxation": "reading"
           },
-          "image_id": "qv-primary-relaxation-reading",
+          "image_id": "qv-bedroom-relaxation-reading",
           "generation_status": "planned"
         }
       ]
     },
     {
-      "question_id": "secondary-occupancy",
+      "question_id": "bedroom-occupancy",
       "space_type": "bedroom",
-      "title_zh": "次臥是每日居住，還是偶爾留宿？",
+      "title_zh": "這間臥室是每日居住，還是偶爾留宿？",
       "purpose_zh": "決定床、衣櫃與彈性家具。",
       "selection_rule": "exclusive",
       "allow_both": false,
@@ -1135,37 +1135,37 @@
         {
           "option_id": "daily",
           "label_zh": "每日居住",
-          "visual_brief_zh": "次臥有完整床、衣櫃、床邊與每日動線。",
+          "visual_brief_zh": "這間臥室有完整床、衣櫃、床邊與每日動線。",
           "rag_tags": [
-            "secondary_bedroom",
+            "bedroom",
             "daily_occupant"
           ],
           "engine_effects": {
-            "secondary_use": "daily"
+            "bedroom_use": "daily"
           },
-          "image_id": "qv-secondary-occupancy-daily",
+          "image_id": "qv-bedroom-occupancy-daily",
           "generation_status": "planned"
         },
         {
           "option_id": "guest",
           "label_zh": "偶爾留宿",
-          "visual_brief_zh": "次臥使用沙發床或壁床，平日保留其他用途空間。",
+          "visual_brief_zh": "這間臥室使用沙發床或壁床，平日保留其他用途空間。",
           "rag_tags": [
-            "secondary_bedroom",
+            "bedroom",
             "guest_room"
           ],
           "engine_effects": {
-            "secondary_use": "guest"
+            "bedroom_use": "guest"
           },
-          "image_id": "qv-secondary-occupancy-guest",
+          "image_id": "qv-bedroom-occupancy-guest",
           "generation_status": "planned"
         }
       ]
     },
     {
-      "question_id": "secondary-bed-work",
+      "question_id": "bedroom-bed-work",
       "space_type": "bedroom",
-      "title_zh": "次臥偏完整雙人床，還是單人床加書桌？",
+      "title_zh": "這間臥室偏完整雙人床，還是單人床加書桌？",
       "purpose_zh": "決定睡眠與學習工作的比例。",
       "selection_rule": "exclusive",
       "allow_both": false,
@@ -1177,38 +1177,38 @@
         {
           "option_id": "double_bed",
           "label_zh": "完整雙人床",
-          "visual_brief_zh": "次臥以雙人床為主，其他家具精簡。",
+          "visual_brief_zh": "這間臥室以雙人床為主，其他家具精簡。",
           "rag_tags": [
-            "secondary_bedroom",
+            "bedroom",
             "double_bed"
           ],
           "engine_effects": {
-            "secondary_bed": "double"
+            "bedroom_bed": "double"
           },
-          "image_id": "qv-secondary-bed-work-double_bed",
+          "image_id": "qv-bedroom-bed-work-double_bed",
           "generation_status": "planned"
         },
         {
           "option_id": "single_desk",
           "label_zh": "單人床加書桌",
-          "visual_brief_zh": "次臥配置單人床與完整書桌，兩者動線互不衝突。",
+          "visual_brief_zh": "這間臥室配置單人床與完整書桌，兩者動線互不衝突。",
           "rag_tags": [
-            "secondary_bedroom",
+            "bedroom",
             "single_bed",
             "desk"
           ],
           "engine_effects": {
-            "secondary_bed": "single_with_desk"
+            "bedroom_bed": "single_with_desk"
           },
-          "image_id": "qv-secondary-bed-work-single_desk",
+          "image_id": "qv-bedroom-bed-work-single_desk",
           "generation_status": "planned"
         }
       ]
     },
     {
-      "question_id": "secondary-storage",
+      "question_id": "bedroom-storage",
       "space_type": "bedroom",
-      "title_zh": "次臥偏大型衣櫃，還是保留活動空間？",
+      "title_zh": "這間臥室偏大型衣櫃，還是保留活動空間？",
       "purpose_zh": "確認收納與地面淨空。",
       "selection_rule": "weighted",
       "allow_both": true,
@@ -1218,37 +1218,37 @@
         {
           "option_id": "wardrobe",
           "label_zh": "偏重大型衣櫃",
-          "visual_brief_zh": "次臥有完整落地衣櫃，地面活動空間較少。",
+          "visual_brief_zh": "這間臥室有完整落地衣櫃，地面活動空間較少。",
           "rag_tags": [
-            "secondary_bedroom",
+            "bedroom",
             "large_wardrobe"
           ],
           "engine_effects": {
             "secondary_storage": "high"
           },
-          "image_id": "qv-secondary-storage-wardrobe",
+          "image_id": "qv-bedroom-storage-wardrobe",
           "generation_status": "planned"
         },
         {
           "option_id": "open_floor",
           "label_zh": "偏重活動空間",
-          "visual_brief_zh": "次臥衣櫃精簡，保留兒童遊戲、瑜伽或臨時使用地面。",
+          "visual_brief_zh": "這間臥室衣櫃精簡，保留兒童遊戲、瑜伽或臨時使用地面。",
           "rag_tags": [
-            "secondary_bedroom",
+            "bedroom",
             "open_floor"
           ],
           "engine_effects": {
             "secondary_storage": "low"
           },
-          "image_id": "qv-secondary-storage-open_floor",
+          "image_id": "qv-bedroom-storage-open_floor",
           "generation_status": "planned"
         }
       ]
     },
     {
-      "question_id": "secondary-flexibility",
+      "question_id": "bedroom-flexibility",
       "space_type": "bedroom",
-      "title_zh": "次臥維持固定用途，還是能隨家庭變化調整？",
+      "title_zh": "這間臥室維持固定用途，還是能隨家庭變化調整？",
       "purpose_zh": "確認未來用途變更。",
       "selection_rule": "exclusive",
       "allow_both": false,
@@ -1260,13 +1260,13 @@
           "label_zh": "固定專用",
           "visual_brief_zh": "家具依目前使用者完整定製，收納與床位固定。",
           "rag_tags": [
-            "secondary_bedroom",
+            "bedroom",
             "fixed_use"
           ],
           "engine_effects": {
             "secondary_flexibility": "low"
           },
-          "image_id": "qv-secondary-flexibility-fixed",
+          "image_id": "qv-bedroom-flexibility-fixed",
           "generation_status": "planned"
         },
         {
@@ -1274,13 +1274,13 @@
           "label_zh": "可轉換用途",
           "visual_brief_zh": "使用模組家具與可移動配置，可由書房轉為兒童或客房。",
           "rag_tags": [
-            "secondary_bedroom",
+            "bedroom",
             "adaptable_room"
           ],
           "engine_effects": {
             "secondary_flexibility": "high"
           },
-          "image_id": "qv-secondary-flexibility-adaptable",
+          "image_id": "qv-bedroom-flexibility-adaptable",
           "generation_status": "planned"
         }
       ]

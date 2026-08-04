@@ -2,10 +2,30 @@ from __future__ import annotations
 
 import os
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 import httpx
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - the server can still run without dotenv
+    load_dotenv = None
+
+
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+RENDER_ENV_KEYS = (
+    "ROOMPILOT_RENDER_PROVIDER_URL",
+    "ROOMPILOT_RENDER_PROVIDER_TOKEN",
+    "ROOMPILOT_RENDER_PROVIDER_NAME",
+    "ROOMPILOT_RENDER_PROVIDER_TIMEOUT_SECONDS",
+)
+# Capture deployment-provided settings before reading a local .env file.
+DEPLOY_RENDER_ENV = {key: os.getenv(key) for key in RENDER_ENV_KEYS}
+if load_dotenv is not None:
+    # Deployed environment values take precedence over the local development file.
+    load_dotenv(PROJECT_DIR / ".env", override=False)
 
 
 SUPPORTED_RENDER_MODES = {"palette_comparison", "room_final"}
@@ -30,8 +50,41 @@ class RenderProviderRejected(RuntimeError):
     pass
 
 
+def _first_nonempty_local_env_value(name: str) -> str:
+    """Read the first usable local setting when a merged .env repeats a key.
+
+    Environment variables supplied by deployment are handled separately and always
+    win. This fallback only prevents a later blank template value in a local
+    `.env` from disabling an earlier configured render provider.
+    """
+    env_path = PROJECT_DIR / ".env"
+    try:
+        lines = env_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return ""
+    prefix = f"{name}="
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or not stripped.startswith(prefix):
+            continue
+        value = stripped[len(prefix):].strip().strip('"\'')
+        if value:
+            return value
+    return ""
+
+
+def _render_setting(name: str, default: str = "") -> str:
+    deployed = (DEPLOY_RENDER_ENV.get(name) or "").strip()
+    if deployed:
+        return deployed
+    local_value = _first_nonempty_local_env_value(name)
+    if local_value:
+        return local_value
+    return (os.getenv(name) or default).strip()
+
+
 def _render_timeout_seconds() -> float:
-    raw_value = os.getenv("ROOMPILOT_RENDER_PROVIDER_TIMEOUT_SECONDS", "60")
+    raw_value = _render_setting("ROOMPILOT_RENDER_PROVIDER_TIMEOUT_SECONDS", "60")
     try:
         return max(5.0, min(float(raw_value), 180.0))
     except (TypeError, ValueError):
@@ -39,9 +92,9 @@ def _render_timeout_seconds() -> float:
 
 
 def render_provider_status() -> dict[str, Any]:
-    endpoint = os.getenv("ROOMPILOT_RENDER_PROVIDER_URL", "").strip()
-    token = os.getenv("ROOMPILOT_RENDER_PROVIDER_TOKEN", "").strip()
-    provider = os.getenv("ROOMPILOT_RENDER_PROVIDER_NAME", "remote_renderer").strip()
+    endpoint = _render_setting("ROOMPILOT_RENDER_PROVIDER_URL")
+    token = _render_setting("ROOMPILOT_RENDER_PROVIDER_TOKEN")
+    provider = _render_setting("ROOMPILOT_RENDER_PROVIDER_NAME", "remote_renderer")
     return {
         "configured": bool(endpoint),
         "provider": provider or "remote_renderer",
@@ -97,6 +150,44 @@ def _validate_room_views(room_views: Any) -> None:
             raise ValueError("room_view_camera_required")
 
 
+def _validate_configuration_snapshot(payload: dict[str, Any]) -> None:
+    snapshot = payload.get("configuration_snapshot")
+    if snapshot is None:
+        return
+    if not isinstance(snapshot, dict) or not str(snapshot.get("snapshot_id") or "").strip():
+        raise ValueError("configuration_snapshot_required")
+    if snapshot.get("schema_version") != 2:
+        raise ValueError("configuration_snapshot_version_invalid")
+    if str(snapshot.get("scene_version") or "").strip() != str(
+        payload.get("scene_version") or ""
+    ).strip():
+        raise ValueError("configuration_snapshot_scene_version_mismatch")
+    fixed_structure = snapshot.get("fixed_structure")
+    if not isinstance(fixed_structure, dict):
+        raise ValueError("configuration_fixed_structure_required")
+    required_structure_keys = {"walls", "doors", "windows", "beams", "columns"}
+    if not required_structure_keys.issubset(fixed_structure):
+        raise ValueError("configuration_fixed_structure_incomplete")
+    rooms = snapshot.get("rooms")
+    furniture = snapshot.get("furniture")
+    if not isinstance(rooms, list) or not isinstance(furniture, list):
+        raise ValueError("configuration_snapshot_rooms_required")
+    if payload.get("mode") == "room_final":
+        master_snapshot_id = str(
+            (payload.get("master_view") or {}).get("configuration_snapshot_id") or ""
+        ).strip()
+        if master_snapshot_id and master_snapshot_id != str(snapshot["snapshot_id"]):
+            raise ValueError("configuration_snapshot_master_view_mismatch")
+        expected_room_ids = {str(room.get("room_id")) for room in rooms if room.get("room_id")}
+        supplied_room_ids = {
+            str(view.get("room_id"))
+            for view in payload.get("room_views") or []
+            if isinstance(view, dict) and view.get("room_id")
+        }
+        if expected_room_ids and expected_room_ids != supplied_room_ids:
+            raise ValueError("room_views_incomplete")
+
+
 def prepare_render_payload(payload: dict[str, Any]) -> dict[str, Any]:
     mode = str(payload.get("mode") or "")
     if mode not in SUPPORTED_RENDER_MODES:
@@ -112,6 +203,7 @@ def prepare_render_payload(payload: dict[str, Any]) -> dict[str, Any]:
     master_camera = payload.get("master_view", {}).get("camera", {})
     if not _valid_camera(master_camera):
         raise ValueError("locked_master_camera_required")
+    _validate_configuration_snapshot(payload)
     if mode == "room_final":
         _validate_room_views(payload.get("room_views"))
 
@@ -127,7 +219,7 @@ def prepare_render_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
 async def submit_render_jobs(payload: dict[str, Any]) -> dict[str, Any]:
     status = render_provider_status()
-    endpoint = os.getenv("ROOMPILOT_RENDER_PROVIDER_URL", "").strip()
+    endpoint = _render_setting("ROOMPILOT_RENDER_PROVIDER_URL")
     if not status["configured"] or not endpoint:
         raise RenderProviderUnavailable("render_provider_not_configured")
 
@@ -137,7 +229,7 @@ async def submit_render_jobs(payload: dict[str, Any]) -> dict[str, Any]:
         "Idempotency-Key": prepared["request_id"],
         "X-RoomPilot-Scene-Version": prepared["scene_version"],
     }
-    token = os.getenv("ROOMPILOT_RENDER_PROVIDER_TOKEN", "").strip()
+    token = _render_setting("ROOMPILOT_RENDER_PROVIDER_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"
     try:
