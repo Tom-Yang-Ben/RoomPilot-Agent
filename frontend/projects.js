@@ -172,6 +172,14 @@ async function loadProjects() {
         ? "還沒有設計師把專案分享給你。"
         : "還沒有專案。點右上角「建立新專案」開始第一個設計。";
     listElement.append(empty);
+    if (getCurrentUser()?.role !== "client") {
+      const action = document.createElement("button");
+      action.type = "button";
+      action.className = "projects-new";
+      action.textContent = "建立第一個專案";
+      action.addEventListener("click", () => newProjectButton.click());
+      empty.append(action);
+    }
     return;
   }
   projects.forEach((project) => listElement.append(projectCard(project)));

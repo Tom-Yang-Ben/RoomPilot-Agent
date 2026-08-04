@@ -11,6 +11,7 @@ from backend.spatial_data.rag.errors import RagDependencyError, RagUpstreamError
 from backend.spatial_data.rag.models import RagQueryItem, RagQueryPlan, RagSearchRequest
 from backend.spatial_data.rag.openai_parser import ParsedQuery, parse_query
 from backend.spatial_data.rag.parser import parse_query as parse_configured_query
+from backend.spatial_data.rag.preload import EmbeddingPreloader
 from backend.spatial_data.rag.ranking import (
     allocate_budget,
     build_filters,
@@ -131,6 +132,23 @@ def test_settings_select_only_the_configured_rag_parser(
     assert settings.parser_provider == provider
     assert settings.parser_api_key == "selected-secret"
     assert settings.parser_model == model_name
+
+
+def test_preloader_does_not_load_models_when_rag_is_disabled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    embed_calls: list[object] = []
+    runtime = SimpleNamespace(embed=lambda *args: embed_calls.append(args))
+    monkeypatch.setenv("ROOMPILOT_RAG_ENABLED", "false")
+    monkeypatch.setenv("ROOMPILOT_RAG_PRELOAD", "1")
+
+    preloader = EmbeddingPreloader(runtime=runtime)
+    preloader.start(tmp_path)
+
+    assert preloader.status()["status"] == "disabled"
+    assert preloader.status()["semantic_available"] is False
+    assert embed_calls == []
 
 
 def test_budget_filters_and_django_score_formula() -> None:

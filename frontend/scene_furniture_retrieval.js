@@ -1,3 +1,15 @@
+export const FURNITURE_BY_IDS_BATCH_SIZE = 500;
+
+export function chunkUniqueFurnitureItemIds(itemIds = [], batchSize = FURNITURE_BY_IDS_BATCH_SIZE) {
+  const safeBatchSize = Math.max(1, Number(batchSize) || FURNITURE_BY_IDS_BATCH_SIZE);
+  const uniqueIds = [...new Set(itemIds.filter(Boolean).map((itemId) => String(itemId)))];
+  const batches = [];
+  for (let index = 0; index < uniqueIds.length; index += safeBatchSize) {
+    batches.push(uniqueIds.slice(index, index + safeBatchSize));
+  }
+  return batches;
+}
+
 function normalizedTokens(values) {
   return (Array.isArray(values) ? values : [values])
     .flatMap((value) => String(value || "").toLowerCase().split(/[\s,/_-]+/))

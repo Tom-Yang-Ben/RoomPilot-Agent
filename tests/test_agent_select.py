@@ -181,6 +181,25 @@ def test_dining_furniture_belongs_to_the_living_room_and_is_not_forced() -> None
     assert "table-1" in ids
 
 
+def test_dining_furniture_is_kept_in_a_recognized_dining_room() -> None:
+    rooms = [{"room_id": "dining-1", "room_type": "dining_room"}]
+    offers = {"dining-1": [
+        _candidate("table-1", "dining-table", 130, 90),
+        _candidate("chair-1", "dining-chair", 45, 50),
+    ]}
+
+    result = parse_selections(
+        {"selections": [_selection("dining-1", "table-1", "chair-1")]},
+        rooms,
+        offers,
+    )
+
+    assert [entry.item["furniture_id"] for entry in result["dining-1"]] == [
+        "table-1",
+        "chair-1",
+    ]
+
+
 def test_dining_furniture_is_dropped_outside_the_living_room() -> None:
     # 房型不合的選件是丟棄並記錄，不是拋錯——LLM 選錯房間不該中止整份配置。
     offers = _offers()

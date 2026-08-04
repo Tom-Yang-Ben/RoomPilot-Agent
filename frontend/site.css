@@ -16196,3 +16196,125 @@ body.is-registering .auth-register-only {
   font-weight: 700;
   text-align: center;
 }
+
+/* Workflow audit 2026-08-04: keep primary actions and navigation inside the viewport. */
+body.rp-workflow-page,
+body[data-page="projects"] {
+  overflow-x: clip;
+}
+
+.rp-configuration-ledger {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #cfded7;
+  border-radius: 8px;
+  background: #eef6f2;
+  color: #245b49;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.rp-technical-details {
+  margin-top: -8px;
+  color: #6f675f;
+  font-size: 12px;
+}
+
+.rp-technical-details code {
+  display: block;
+  margin-top: 8px;
+  padding: 9px 10px;
+  overflow-wrap: anywhere;
+  border-radius: 6px;
+  background: #f3f0ec;
+}
+
+.projects-empty {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
+@media (max-width: 1280px) {
+  .rp-progress {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+
+  .rp-progress button {
+    min-width: 0;
+    padding-inline: 6px;
+  }
+
+  .rp-progress button span {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+  }
+
+  #project-step .rp-simple-step {
+    grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+    width: calc(100% - 48px);
+  }
+
+  #project-step .rp-simple-copy,
+  #project-step .rp-form-stack {
+    min-width: 0;
+  }
+
+  #project-step .rp-simple-copy h2,
+  #project-step .rp-form-heading h3 {
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="projects"] .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  body[data-page="projects"] .topnav {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  body[data-page="projects"] .topnav a,
+  body[data-page="projects"] .topnav button {
+    padding: 9px 11px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1024px) {
+  #project-step .rp-simple-step {
+    grid-template-columns: 1fr;
+    width: calc(100% - 32px);
+  }
+
+  #project-step .rp-simple-copy {
+    min-height: 280px;
+  }
+
+  .rp-split-workspace,
+  .rp-3d-workspace,
+  #space-step .rp-space-review-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-control-pane,
+  .rp-3d-sidebar,
+  .rp-style-sidebar {
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  body[data-page="projects"] .topbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  body[data-page="projects"] .topnav {
+    width: 100%;
+    justify-self: stretch;
+    overflow-x: auto;
+  }
+}

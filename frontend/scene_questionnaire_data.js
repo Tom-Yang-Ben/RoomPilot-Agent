@@ -6,7 +6,7 @@
 
 import {
   createFurniture2DItem,
-} from "./scene_layout2d.js?v=sha256-4a2749522d19";
+} from "./scene_layout2d.js?v=sha256-e76cb3dd7c1f";
 import {
   roomDimensions,
 } from "./scene_plan_geometry.js?v=sha256-b77b33d86870";

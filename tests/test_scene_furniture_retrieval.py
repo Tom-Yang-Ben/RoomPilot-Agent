@@ -239,6 +239,31 @@ def test_shortlist_fingerprint_changes_with_questionnaire_version() -> None:
     assert v1 != v2  # 問卷改版後不得沿用舊 completed 結果
 
 
+def test_shortlist_lookup_deduplicates_and_batches_large_requests() -> None:
+    module_uri = (STATIC_DIR / "scene_furniture_retrieval.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ chunkUniqueFurnitureItemIds, FURNITURE_BY_IDS_BATCH_SIZE }} from {json.dumps(module_uri)};
+        const ids = Array.from({{ length: 1005 }}, (_, index) => `item-${{index}}`);
+        ids.push("item-1", "item-500");
+        const batches = chunkUniqueFurnitureItemIds(ids);
+        console.log(JSON.stringify({{
+          batchSize: FURNITURE_BY_IDS_BATCH_SIZE,
+          lengths: batches.map((batch) => batch.length),
+          total: batches.flat().length,
+          unique: new Set(batches.flat()).size,
+        }}));
+        """
+    )
+
+    assert result == {
+        "batchSize": 500,
+        "lengths": [500, 500, 5],
+        "total": 1005,
+        "unique": 1005,
+    }
+
+
 def test_shortlist_rooms_carry_terminal_status_and_reason() -> None:
     from backend.spatial_data.rag.shortlist import RoomShortlist, ShortlistItem
 

@@ -87,7 +87,69 @@ def _valid_camera(camera: Any) -> bool:
     return True
 
 
-def _validate_room_views(room_views: Any) -> None:
+def _point_on_segment(
+    point: tuple[float, float],
+    start: tuple[float, float],
+    end: tuple[float, float],
+    tolerance: float = 0.01,
+) -> bool:
+    cross = (point[1] - start[1]) * (end[0] - start[0]) - (
+        point[0] - start[0]
+    ) * (end[1] - start[1])
+    if abs(cross) > tolerance:
+        return False
+    dot = (point[0] - start[0]) * (end[0] - start[0]) + (
+        point[1] - start[1]
+    ) * (end[1] - start[1])
+    if dot < -tolerance:
+        return False
+    length_squared = (end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2
+    return dot <= length_squared + tolerance
+
+
+def _point_in_polygon(
+    point: tuple[float, float], polygon: list[tuple[float, float]]
+) -> bool:
+    inside = False
+    previous = len(polygon) - 1
+    for index, end in enumerate(polygon):
+        start = polygon[previous]
+        if _point_on_segment(point, start, end):
+            return True
+        if (end[1] > point[1]) != (start[1] > point[1]):
+            crossing_x = (start[0] - end[0]) * (point[1] - end[1]) / (
+                start[1] - end[1]
+            ) + end[0]
+            if point[0] < crossing_x:
+                inside = not inside
+        previous = index
+    return inside
+
+
+def _room_view_polygon(
+    scene: Any, room_id: str
+) -> list[tuple[float, float]] | None:
+    floorplan = scene.get("floorplan") if isinstance(scene, dict) else None
+    regions = floorplan.get("room_regions") if isinstance(floorplan, dict) else None
+    for region in regions or []:
+        if str(region.get("room_id") or "") != room_id:
+            continue
+        points: list[tuple[float, float]] = []
+        for point in region.get("exterior") or []:
+            if isinstance(point, list | tuple) and len(point) >= 2:
+                x_value, z_value = point[0], point[1]
+            elif isinstance(point, dict):
+                x_value, z_value = point.get("x"), point.get("z", point.get("y"))
+            else:
+                continue
+            if isinstance(x_value, int | float) and isinstance(z_value, int | float):
+                # room_regions use centered scene z; camera snapshots use world z.
+                points.append((float(x_value), -float(z_value)))
+        return points if len(points) >= 3 else None
+    return None
+
+
+def _validate_room_views(room_views: Any, scene: Any = None) -> None:
     if not isinstance(room_views, list) or not room_views:
         raise ValueError("room_views_required")
     for item in room_views:
@@ -95,6 +157,18 @@ def _validate_room_views(room_views: Any) -> None:
             raise ValueError("room_view_room_id_required")
         if not _valid_camera(item.get("camera")):
             raise ValueError("room_view_camera_required")
+        camera = item["camera"]
+        position = camera["position_cm"]
+        target = camera["target_cm"]
+        if ((position[0] - target[0]) ** 2 + (position[2] - target[2]) ** 2) ** 0.5 < 40:
+            raise ValueError("room_view_camera_distance_invalid")
+        polygon = _room_view_polygon(scene, str(item["room_id"]))
+        if polygon is None:
+            continue
+        if not _point_in_polygon((float(target[0]), float(target[2])), polygon):
+            raise ValueError("room_view_target_outside_room")
+        if not _point_in_polygon((float(position[0]), float(position[2])), polygon):
+            raise ValueError("room_view_camera_outside_room")
 
 
 def prepare_render_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -113,7 +187,7 @@ def prepare_render_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if not _valid_camera(master_camera):
         raise ValueError("locked_master_camera_required")
     if mode == "room_final":
-        _validate_room_views(payload.get("room_views"))
+        _validate_room_views(payload.get("room_views"), payload.get("scene"))
 
     prepared = deepcopy(payload)
     prepared["request_id"] = str(payload.get("request_id") or uuid4().hex)

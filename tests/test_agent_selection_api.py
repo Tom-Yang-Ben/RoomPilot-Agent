@@ -175,3 +175,12 @@ def test_selection_is_enabled_by_default_once_an_api_key_exists(
     monkeypatch.delenv("OPENROUTER_SELECTION_ENABLED", raising=False)
     assert scene_service.selection_enabled() is True
     assert scene_service.get_openrouter_status()["selection_enabled"] is True
+
+
+def test_llm_status_contract_alias_matches_provider_status() -> None:
+    llm_status = client.get("/api/scene/llm-status")
+    provider_status = client.get("/api/scene/provider-status")
+
+    assert llm_status.status_code == 200
+    assert llm_status.json() == provider_status.json()
+    assert "selection_enabled" in llm_status.json()

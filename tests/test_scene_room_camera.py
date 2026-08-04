@@ -76,3 +76,29 @@ def test_missing_polygon_falls_back_without_throwing() -> None:
     assert suggestion["preset"] == "room"
     assert len(suggestion["position_cm"]) == 3
     assert all(isinstance(value, (int, float)) for value in suggestion["target_cm"])
+
+
+def test_room_camera_validation_rejects_views_behind_room_walls() -> None:
+    module_uri = CAMERA_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ roomCameraSuggestion, validateRoomCamera }} from {json.dumps(module_uri)};
+        const floorplan = {{ width_cm: 400, depth_cm: 400 }};
+        const room = {{ polygon_cm: [
+          {{ x: 100, y: 100 }}, {{ x: 300, y: 100 }},
+          {{ x: 300, y: 300 }}, {{ x: 100, y: 300 }},
+        ] }};
+        const suggested = roomCameraSuggestion(room, floorplan);
+        const outside = {{ ...suggested, position_cm: [260, 145, 260] }};
+        console.log(JSON.stringify({{
+          suggested: validateRoomCamera(suggested, room, floorplan),
+          outside: validateRoomCamera(outside, room, floorplan),
+        }}));
+        """
+    )
+
+    assert result["suggested"]["valid"] is True
+    assert result["outside"] == {
+        "valid": False,
+        "code": "camera_position_outside_room",
+    }

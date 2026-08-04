@@ -37,7 +37,7 @@ SHORTLIST_SCHEMA_VERSION = "roompilot.furniture-shortlist.v1"
 # 又不會把 prompt 撐大到讓免費模型截斷。
 DEFAULT_PER_FAMILY = 12
 # 單一房間的候選上限，避免某個房型的族系特別多時把 workflow 撐爆。
-MAX_ITEMS_PER_ROOM = 240
+MAX_ITEMS_PER_ROOM = 96
 
 
 # SPACE_DEFAULTS 的族系名與 Kai 型錄的 category_code 有六處對不上，實測時

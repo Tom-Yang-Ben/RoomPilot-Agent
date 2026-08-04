@@ -10,6 +10,25 @@ catalog readiness 三組斷言對應的功能不在本次移植範圍（來自�
 from backend.paths import STATIC_DIR
 
 
+def test_audit_state_recovery_ledger_and_plain_language_contracts() -> None:
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
+
+    assert "function configurationLedgerSummary(" in source
+    assert "已配置 ${ledger.placed}" in source
+    assert "apiRequestsInFlight" in source
+    assert "confirmRequirementsInFlight" in source
+    assert '!Array.isArray(scene.scene_objects)' in source
+    assert "生成失敗；設定已保留，可直接重試。" in source
+    assert 'id="ai-render-technical-details"' in html
+    assert "REMOTE RENDER" not in html
+    assert "StylePack 即時切換" not in html
+    assert "由系統判斷" in html
+    assert "@media (max-width: 1280px)" in css
+    assert "grid-template-columns: repeat(8, minmax(0, 1fr));" in css
+
+
 def test_step_six_requires_every_room_to_choose_a_scheme_before_micro_adjustment() -> None:
     html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")

@@ -55,9 +55,9 @@ ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
     "sofa": ("living_room",),
     "tv-bench": ("living_room",),
     "coffee-table": ("living_room",),
-    # 第 4 步房名收斂到辨識層的類別集後不再有獨立餐廳，餐桌餐椅改掛客廳（餐客合一）。
-    "dining-table": ("living_room",),
-    "dining-chair": ("living_room",),
+    # 餐客合一時可放在客廳；辨識為獨立餐廳時也必須保留餐桌餐椅。
+    "dining-table": ("living_room", "dining_room"),
+    "dining-chair": ("living_room", "dining_room"),
 }
 
 # 成組擺放的主件優先取得牆位，泛用件其次，COMPANION_OF 副件最後。

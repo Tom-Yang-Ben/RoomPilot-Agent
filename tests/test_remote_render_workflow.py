@@ -89,6 +89,55 @@ def test_room_render_accepts_locked_room_view_cameras() -> None:
     assert prepared["room_views"][0]["room_id"] == "bedroom-1"
 
 
+def test_room_render_camera_uses_world_z_against_centered_scene_region() -> None:
+    payload = _payload("project-1")
+    payload["mode"] = "room_final"
+    payload["scene"]["floorplan"] = {
+        "coordinate_unit": "cm",
+        "width_cm": 200,
+        "depth_cm": 300,
+        "room_regions": [{
+            "room_id": "bedroom-1",
+            "exterior": [[-100, 50], [100, 50], [100, 150], [-100, 150]],
+        }],
+    }
+    payload["room_views"] = [{
+        "room_id": "bedroom-1",
+        "camera": {
+            "position_cm": [60, 145, -70],
+            "target_cm": [0, 82, -100],
+            "fov_deg": 58,
+        },
+    }]
+
+    prepared = prepare_render_payload(payload)
+
+    assert prepared["room_views"][0]["camera"]["target_cm"][2] == -100
+
+
+def test_room_render_rejects_camera_outside_matching_room_region() -> None:
+    payload = _payload("project-1")
+    payload["mode"] = "room_final"
+    payload["scene"]["floorplan"] = {
+        "coordinate_unit": "cm",
+        "room_regions": [{
+            "room_id": "bedroom-1",
+            "exterior": [[-100, -100], [100, -100], [100, 100], [-100, 100]],
+        }],
+    }
+    payload["room_views"] = [{
+        "room_id": "bedroom-1",
+        "camera": {
+            "position_cm": [180, 145, 0],
+            "target_cm": [0, 82, 0],
+            "fov_deg": 58,
+        },
+    }]
+
+    with pytest.raises(ValueError, match="room_view_camera_outside_room"):
+        prepare_render_payload(payload)
+
+
 def test_invalid_remote_renderer_timeout_uses_safe_default(monkeypatch) -> None:
     monkeypatch.setenv("ROOMPILOT_RENDER_PROVIDER_TIMEOUT_SECONDS", "not-a-number")
 

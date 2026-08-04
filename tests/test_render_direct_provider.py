@@ -34,8 +34,10 @@ def _png_data_url() -> str:
     return "data:image/png;base64," + base64.b64encode(_png_bytes()).decode()
 
 
-def _camera() -> dict:
-    return {"position_cm": [420, 165, 380], "target_cm": [210, 120, 190], "fov_deg": 52}
+def _camera(room_id: str = "living-1") -> dict:
+    if room_id == "bedroom-1":
+        return {"position_cm": [300, 165, 100], "target_cm": [200, 120, 0], "fov_deg": 52}
+    return {"position_cm": [-80, 165, 100], "target_cm": [-180, 120, 0], "fov_deg": 52}
 
 
 def _room_regions() -> list[dict]:
@@ -44,13 +46,13 @@ def _room_regions() -> list[dict]:
             "room_id": "living-1",
             "label": "客廳",
             "room_type": "living_room",
-            "exterior": [[0, 0], [400, 0], [400, 300], [0, 300]],
+            "exterior": [[-350, -150], [50, -150], [50, 150], [-350, 150]],
         },
         {
             "room_id": "bedroom-1",
             "label": "主臥",
             "room_type": "bedroom",
-            "exterior": [[400, 0], [700, 0], [700, 300], [400, 300]],
+            "exterior": [[50, -150], [350, -150], [350, 150], [50, 150]],
         },
     ]
 
@@ -67,7 +69,7 @@ def _scene_objects() -> list[dict]:
             "primary_style": "nordic",
             "price_twd": 28900,
             "size_cm": {"width": 210, "depth": 90, "height": 75},
-            "position_cm": {"x": 200, "z": 20},
+            "position_cm": {"x": -150, "z": -130},
             "rotation_y_deg": 0,
             "placement_room_id": "living-1",
         },
@@ -77,7 +79,7 @@ def _scene_objects() -> list[dict]:
             "name_zh_raw": "低檯面電視櫃",
             "normalized_type": "tv-stand",
             "size_cm": {"width": 180, "depth": 40, "height": 45},
-            "position_cm": {"x": 200, "z": 280},
+            "position_cm": {"x": -150, "z": 130},
             "rotation_y_deg": 180,
             "placement_room_id": "living-1",
         },
@@ -87,7 +89,7 @@ def _scene_objects() -> list[dict]:
             "name_zh_raw": "雙人加大床架",
             "normalized_type": "bed",
             "size_cm": {"width": 180, "depth": 210, "height": 40},
-            "position_cm": {"x": 550, "z": 150},
+            "position_cm": {"x": 200, "z": 0},
             "rotation_y_deg": 90,
             "placement_room_id": "bedroom-1",
         },
@@ -178,9 +180,9 @@ def _payload(project_id: str, mode: str = "palette_comparison") -> dict:
     if mode == "room_final":
         payload["style_card_ids"] = ["card-1"]
         payload["room_views"] = [
-            {"room_id": "living-1", "room_label": "客廳", "camera": _camera(),
+            {"room_id": "living-1", "room_label": "客廳", "camera": _camera("living-1"),
              "reference_png_data_url": _png_data_url()},
-            {"room_id": "bedroom-1", "room_label": "主臥", "camera": _camera()},  # 缺參考圖→退用主圖
+            {"room_id": "bedroom-1", "room_label": "主臥", "camera": _camera("bedroom-1")},  # 缺參考圖→退用主圖
         ]
     return payload
 
@@ -270,7 +272,7 @@ def test_prompt_enumerates_furniture_identity_so_model_cannot_hallucinate(
     assert "三人座布沙發" in prompt
     assert "ABO-BED-777" in prompt
     # 位置：精確座標與角度必須附上。
-    assert '"position_cm":{"x":200,"z":20}' in prompt
+    assert '"position_cm":{"x":-150,"z":-130}' in prompt
     assert '"rotation_deg":0' in prompt
     # 數量：明講件數，避免模型補一張椅子。
     assert "共 3 件" in prompt
@@ -306,8 +308,8 @@ def test_locked_furniture_reports_wall_adjacency_from_engine_coordinates() -> No
 
     assert truncated == 0
     hints = {item["name"]: item["wall_hint"] for item in items}
-    assert hints["三人座布沙發"] == "貼北側牆"  # z=20，距 z 最小邊 20cm
-    assert hints["低檯面電視櫃"] == "貼南側牆"  # z=280，距 z 最大邊 20cm
+    assert hints["三人座布沙發"] == "貼北側牆"  # z=-130，距 z 最小邊 20cm
+    assert hints["低檯面電視櫃"] == "貼南側牆"  # z=130，距 z 最大邊 20cm
     bedroom_items, _ = render_providers.locked_furniture(
         prepared, {"room_id": "bedroom-1"}
     )

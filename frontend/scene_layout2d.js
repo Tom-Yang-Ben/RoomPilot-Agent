@@ -147,17 +147,17 @@ export const FURNITURE_2D_LIBRARY = Object.freeze([
     variants: [variant("low", "矮電視櫃", 180, 45, ICONS.cabinet, 55)],
   },
   {
-    type: "refrigerator",
-    label: "冰箱",
-    variants: [
-      variant("single-door", "單門冰箱", 70, 72, ICONS.appliance, 185),
-      variant("multi-door", "多門冰箱", 90, 78, ICONS.appliance, 190),
-    ],
+    type: "armchair",
+    label: "單人椅",
+    variants: [variant("standard", "單人休閒椅", 78, 82, ICONS.chair, 88)],
   },
   {
-    type: "washer",
-    label: "洗衣機",
-    variants: [variant("front-load", "滾筒洗衣機", 60, 65, ICONS.appliance, 85)],
+    type: "bookcase",
+    label: "書櫃",
+    variants: [
+      variant("low", "矮書櫃", 100, 35, ICONS.cabinet, 90),
+      variant("tall", "高書櫃", 90, 35, ICONS.cabinet, 180),
+    ],
   },
   {
     type: "bathtub",
@@ -186,11 +186,9 @@ export function findFurniture2DVariant(type, variantId) {
 
 export function recommendCompanionFurniture(roomType, selectedTypes = []) {
   const selected = new Set(selectedTypes);
-  const retiredApplianceTypes = new Set(["refrigerator", "washer"]);
   if (!selected.size) return [];
   const recommendations = [];
   const add = (type, variantId, reason) => {
-    if (retiredApplianceTypes.has(type)) return;
     if (selected.has(type) || recommendations.some((item) => item.type === type)) return;
     recommendations.push({ type, variantId, reason, autoAdded: true });
   };
@@ -202,10 +200,7 @@ export function recommendCompanionFurniture(roomType, selectedTypes = []) {
     add("flower-pots-planter", "floor", "補上不影響主要動線的軟裝植栽。");
   } else if (roomType === "bedroom" && selected.has("bed")) {
     add("bedside-table", "compact", "依床側使用需求補上床頭收納。");
-  } else if (roomType === "kitchen") {
-    add("refrigerator", "single-door", "依廚房機能補上冰箱。");
   } else if (roomType === "balcony") {
-    add("washer", "front-load", "依陽台家務用途補上洗衣機。");
     add("flower-pots-planter", "floor", "依陽台用途補上植栽。");
   }
   return recommendations;

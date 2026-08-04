@@ -6,7 +6,8 @@ CPU 上第一次載入權重需要約 34 秒。若等到使用者送出問卷才
 過濾（``semantic=false``），需求指紋會標記為過期，模型就緒後下一次送出自動
 補算語意排序。
 
-``ROOMPILOT_RAG_PRELOAD=0`` 可停用；模型常駐約 2–4GB 記憶體，記憶體吃緊的
+只有 ``ROOMPILOT_RAG_ENABLED=true`` 時才會預載；另外也可用
+``ROOMPILOT_RAG_PRELOAD=0`` 單獨停用。模型常駐約 2–4GB 記憶體，記憶體吃緊的
 部署要自行評估。
 """
 
@@ -20,7 +21,7 @@ from time import monotonic
 from typing import Any
 
 from .model_runtime import EMBED_MODEL, MODEL_RUNTIME, RagModelRuntime
-from .settings import load_rag_settings
+from .settings import RagSettings, load_rag_settings
 
 
 @dataclass
@@ -71,7 +72,8 @@ class EmbeddingPreloader:
 
     def start(self, project_dir: Path) -> None:
         """啟動背景載入。重複呼叫安全，載入中或已完成時直接返回。"""
-        if not self.enabled():
+        settings = load_rag_settings(project_dir)
+        if not settings.enabled or not self.enabled():
             with self._lock:
                 self._state = PreloadState(status="disabled")
             return
@@ -81,16 +83,15 @@ class EmbeddingPreloader:
             self._state = PreloadState(status="loading", started_at=monotonic())
             thread = Thread(
                 target=self._run,
-                args=(project_dir,),
+                args=(settings,),
                 name="roompilot-rag-preload",
                 daemon=True,
             )
             self._thread = thread
         thread.start()
 
-    def _run(self, project_dir: Path) -> None:
+    def _run(self, settings: RagSettings) -> None:
         try:
-            settings = load_rag_settings(project_dir)
             # 實際編碼一次而不只是載入權重：第一次 forward 會觸發延遲初始化，
             # 只 load 的話那份成本會落到第一個真實請求上。
             self.runtime.embed(["預載暖機"], settings)

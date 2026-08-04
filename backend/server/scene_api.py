@@ -291,6 +291,7 @@ def build_scene_router(
             "catalog_status": catalog_status_getter(),
         }
 
+    @router.get("/api/scene/llm-status")
     @router.get("/api/scene/provider-status")
     def scene_provider_status() -> dict:
         return get_openrouter_status()

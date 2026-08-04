@@ -14,13 +14,14 @@
 
 import {
   catalogFurnitureOffer,
+  chunkUniqueFurnitureItemIds,
   rankCatalogFurniture,
-} from "./scene_furniture_retrieval.js?v=sha256-3624ecae3813";
+} from "./scene_furniture_retrieval.js?v=sha256-6772c0c167b3";
 import {
   createFurniture2DItem,
   recommendCompanionFurniture,
   recommendedFurnitureForRoom,
-} from "./scene_layout2d.js?v=sha256-4a2749522d19";
+} from "./scene_layout2d.js?v=sha256-e76cb3dd7c1f";
 import {
   renderMaterialPairPreviews,
 } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
@@ -57,7 +58,7 @@ import {
   questionnaireOffersWithSizeChoices,
   roomAreaM2,
   roomUsageOptions,
-} from "./scene_questionnaire_data.js?v=sha256-dd94e51b2020";
+} from "./scene_questionnaire_data.js?v=sha256-0e469e15c215";
 
 // ── 家具候選集（第 5 步問卷送出時由後端 RAG 建立）──────────────────────
 // 候選集把 8,557 筆型錄縮成每房數十筆，選件與擺放都只在這個子集上跑。
@@ -66,6 +67,7 @@ const shortlistState = {
   fingerprint: "",
   byRoom: new Map(),
   loading: null,
+  ensureLoading: null,
   // 家具來源的誠實回報：候選集失效或某些族系退回全型錄時，使用者要看得到，
   // 不能只留 console.warn（QA 2026-08-03：靜默退化會讓人以為在用候選集）。
   active: false,
@@ -503,22 +505,31 @@ async function loadShortlistCandidates() {
     const roomOf = new Map();
     shortlist.rooms.forEach((room) => {
       (room.items || []).forEach((item) => {
-        itemIds.push(item.item_id);
-        if (!roomOf.has(item.item_id)) roomOf.set(item.item_id, []);
-        roomOf.get(item.item_id).push(room.room_id);
+        const itemId = String(item.item_id || "");
+        if (!itemId) return;
+        itemIds.push(itemId);
+        if (!roomOf.has(itemId)) roomOf.set(itemId, []);
+        if (!roomOf.get(itemId).includes(room.room_id)) roomOf.get(itemId).push(room.room_id);
       });
     });
     if (!itemIds.length) return new Map();
     // detail: "scene" 才會帶 placement_surface 等第 6 步需要的欄位，
     // 與 catalogCandidatesForType 走的是同一種 payload。
-    const payload = await api("/api/furniture/by-ids", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ item_ids: itemIds, detail: "scene" }),
-    });
+    const payloads = [];
+    for (const batch of chunkUniqueFurnitureItemIds(itemIds)) {
+      payloads.push(await api("/api/furniture/by-ids", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_ids: batch, detail: "scene" }),
+      }));
+    }
+    const payload = {
+      items: payloads.flatMap((item) => item.items || []),
+      missing: payloads.flatMap((item) => item.missing || []),
+    };
     const byRoom = new Map();
     (payload.items || []).forEach((item) => {
-      const id = item.furniture_id || item.id;
+      const id = String(item.furniture_id || item.id || "");
       (roomOf.get(id) || []).forEach((roomId) => {
         if (!byRoom.has(roomId)) byRoom.set(roomId, []);
         byRoom.get(roomId).push(item);
@@ -543,7 +554,9 @@ function shortlistCandidatesForRoom(roomId) {
 /** 問卷送出時建立候選集。失敗不擋流程，第 6 步會退回既有的全庫路徑。 */
 async function ensureFurnitureShortlist() {
   if (!state.projectId) return false;
-  try {
+  if (shortlistState.ensureLoading) return shortlistState.ensureLoading;
+  shortlistState.ensureLoading = (async () => {
+    try {
     const result = await api(`/api/projects/${state.projectId}/furniture-shortlist`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -568,8 +581,8 @@ async function ensureFurnitureShortlist() {
       shortlistState.notice = "";
     }
     renderFurnitureSourceNotice();
-    return total > 0;
-  } catch (error) {
+      return total > 0;
+    } catch (error) {
     // 模型尚未載入、資料庫不可用或專案還沒確認空間都會走到這裡。
     // 不擋流程，但退化必須可見：全型錄模式載入明顯較慢，使用者要知道原因。
     shortlistState.active = false;
@@ -577,8 +590,12 @@ async function ensureFurnitureShortlist() {
       `候選集建立失敗（${errorMessage(error)}），本次選件改用全型錄搜尋，載入較慢。`;
     renderFurnitureSourceNotice();
     console.warn("候選集建立失敗，改用全型錄搜尋", error);
-    return false;
-  }
+      return false;
+    }
+  })().finally(() => {
+    shortlistState.ensureLoading = null;
+  });
+  return shortlistState.ensureLoading;
 }
 
 async function catalogOffersForSpec(room, spec, index) {

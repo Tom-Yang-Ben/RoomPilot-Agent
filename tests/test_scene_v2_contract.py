@@ -52,7 +52,9 @@ def test_requirements_step_has_first_meeting_demo_shortcut() -> None:
     assert 'goalIds: ["circulation", "storage", "daylight"]' in flow
     assert "likedStylePackIds: packs.slice(0, 2)" in flow
     assert "dislikedStylePackId:" in flow
-    assert 'addEventListener("click", randomizeRequirementsForTesting)' in source
+    assert 'get("demo") === "1"' in source
+    assert 'element.randomizeRequirements.hidden = !demoMode' in source
+    assert "測試範例會覆寫目前尚未確認的面談答案" in source
 
 
 def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
@@ -870,11 +872,14 @@ def test_saved_scene_data_migrates_mixed_floorplan_fields_independently() -> Non
     assert floorplan["columns"][0]["center"] == {"x": 250, "z": 150}
 
 
-def test_scene_generate_response_prefers_scene_json_with_legacy_fallback() -> None:
+def test_scene_generate_response_rejects_incomplete_scene_payloads() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function sceneDataFromGenerateResponse(payload)" in source
-    assert "return payload?.scene_json || payload;" in source
+    assert "const scene = payload?.scene_json || payload;" in source
+    assert "!Array.isArray(scene.scene_objects)" in source
+    assert "系統不會載入半成品" in source
+    assert "return scene;" in source
     assert "state.sceneData = sceneDataFromGenerateResponse(payload);" in source
     assert "state.sceneData = payload;" not in source
 
@@ -1030,7 +1035,7 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "if (missingCatalogModels.length && !allowPendingFurniture)" in viewer
     assert "const sceneFurniture = allowPendingFurniture" in viewer
     assert "selectedFurniture.filter((item) => item.model_url)" in viewer
-    assert "尚未找到可用的資料庫 GLB" in viewer
+    assert "尚未找到可用的資料庫 3D 模型" in viewer
     assert "selected_furniture_exact: !allowPendingFurniture" in viewer
     assert "完成需求並建立 2D+3D 配置" in html
 
@@ -1130,7 +1135,8 @@ def test_upload_step_does_not_offer_the_internal_630_sample_button() -> None:
 def test_scene_sidebar_numbers_match_viewer_markers() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert 'class="rp-object-number">#${index + 1}' in source
+    assert 'class="rp-object-number">#${furnitureNumber}' in source
+    assert "function furnitureLedgerId(" in source
     assert "function configurationFurnitureNumber" in source
     assert "const furnitureNumber = configurationFurnitureNumber(item, index)" in source
     assert "const furnitureNumber = configurationFurnitureNumber(item)" in source
@@ -1639,6 +1645,26 @@ def test_every_room_default_furniture_has_a_2d_icon_variant() -> None:
     ]
     assert missing_variants == []
     assert result["samples"]
+
+
+def test_step_six_library_excludes_appliances_and_supports_catalog_fallback_types() -> None:
+    layout_uri = (STATIC_DIR / "scene_layout2d.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ FURNITURE_2D_LIBRARY, createFurniture2DItem }} from {json.dumps(layout_uri)};
+        const types = FURNITURE_2D_LIBRARY.map((item) => item.type);
+        console.log(JSON.stringify({{
+          types,
+          armchair: createFurniture2DItem("armchair", "standard"),
+          bookcase: createFurniture2DItem("bookcase", "tall"),
+        }}));
+        """
+    )
+
+    assert "refrigerator" not in result["types"]
+    assert "washer" not in result["types"]
+    assert result["armchair"]["type"] == "armchair"
+    assert result["bookcase"]["type"] == "bookcase"
 
 
 def test_2d_form_replacement_preserves_position_and_uses_new_real_size() -> None:
