@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-5e5cd528ede2" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-2b5ebe3c4238" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -823,7 +823,13 @@
               <strong id="ai-render-view-title">色卡比較視角</strong>
               <span id="ai-render-provider-state">尚未連接遠端渲染服務</span>
             </div>
-            <div id="ai-render-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="逐房間渲染視角"></div>
+            <div id="ai-render-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="逐房間渲染視角">
+              <div id="ai-render-image-stage" class="rp-render-image-stage" hidden role="button" tabindex="0" aria-label="點擊切回 3D 場景">
+                <img id="ai-render-image" alt="AI 寫實生圖" />
+                <span class="rp-render-image-hint">點擊切回 3D 場景</span>
+              </div>
+              <button id="ai-render-image-toggle" type="button" class="secondary-action rp-render-image-toggle" hidden>查看生圖</button>
+            </div>
             <p id="ai-render-status" class="rp-viewer-status">先建立色卡比較圖，確認後再逐房間保存視角。</p>
           </div>
           <aside class="rp-control-pane rp-style-sidebar">
@@ -983,6 +989,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-58eeb5739330"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-03080e9f7b91"></script>
   </body>
 </html>

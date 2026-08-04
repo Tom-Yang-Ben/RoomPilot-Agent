@@ -500,6 +500,9 @@ const element = {
   roomRenderSection: $("#room-render-section"),
   renderRoomList: $("#render-room-list"),
   remoteRenderJobs: $("#remote-render-jobs"),
+  aiRenderImageStage: $("#ai-render-image-stage"),
+  aiRenderImage: $("#ai-render-image"),
+  aiRenderImageToggle: $("#ai-render-image-toggle"),
   aiOpenrouterStatus: $("#ai-openrouter-status"),
   aiOpenrouterGenerate: $("#ai-openrouter-generate"),
   aiOpenrouterResults: $("#ai-openrouter-results"),
@@ -12917,6 +12920,7 @@ function selectRenderRoom(roomId) {
     ? "已載入保存視角；可以小幅調整後重新保存。"
     : "已套用房間建議視角；請確認主要家具與布局清楚可見。";
   renderRoomViewList();
+  updateAiRenderImageStage();   // 左側生圖跟著選取房間切換
 }
 
 function saveSelectedRoomView() {
@@ -13072,6 +13076,7 @@ async function runAiOpenrouterRender() {
     element.aiOpenrouterStatus.textContent = failed
       ? `完成 ${done} 房、失敗 ${failed} 房；完成的圖各可用整批唯一一次修改調整。`
       : `已完成 ${done} 個房間的寫實生圖；可用整批唯一一次修改調整。`;
+    aiRenderImageVisible = done > 0;   // 生圖完成即取代左側 3D;點擊可隨時切換
     renderAiOpenrouterResults();
   } catch (error) {
     element.aiOpenrouterStatus.textContent = errorMessage(error);
@@ -13080,7 +13085,38 @@ async function runAiOpenrouterRender() {
   }
 }
 
+// 第 8 步版面:生圖完成後取代左側 3D 場景,點圖回 3D、點「查看生圖」
+// 隨時切回;左側顯示的圖跟著目前選取的房間走,沒有生圖時維持純 3D 操作。
+let aiRenderImageVisible = false;
+
+function currentAiRenderImage() {
+  const results = state.proposalReview.openRouterRenders?.results || [];
+  const completed = results.filter(
+    (row) => row.status === "completed" && row.image_data_url,
+  );
+  if (!completed.length) return null;
+  return completed.find((row) => row.room_id === state.selectedRenderRoomId)
+    || completed[0];
+}
+
+function updateAiRenderImageStage() {
+  if (!element.aiRenderImageStage || !element.aiRenderImageToggle) return;
+  const row = currentAiRenderImage();
+  if (!row) {
+    aiRenderImageVisible = false;
+    element.aiRenderImageStage.hidden = true;
+    element.aiRenderImageToggle.hidden = true;
+    return;
+  }
+  element.aiRenderImage.src = row.image_data_url;
+  element.aiRenderImage.alt = `${row.room_label || row.room_id} 寫實生圖`;
+  element.aiRenderImageToggle.textContent = `查看生圖（${row.room_label || row.room_id}）`;
+  element.aiRenderImageStage.hidden = !aiRenderImageVisible;
+  element.aiRenderImageToggle.hidden = aiRenderImageVisible;
+}
+
 function renderAiOpenrouterResults() {
+  updateAiRenderImageStage();
   const container = element.aiOpenrouterResults;
   if (!container) return;
   container.innerHTML = "";
@@ -14506,6 +14542,20 @@ function bindEvents() {
   $("#save-room-view")?.addEventListener("click", saveSelectedRoomView);
   $("#submit-room-renders")?.addEventListener("click", () => openRenderBriefDialog("room_final"));
   element.aiOpenrouterGenerate?.addEventListener("click", runAiOpenrouterRender);
+  element.aiRenderImageStage?.addEventListener("click", () => {
+    aiRenderImageVisible = false;
+    updateAiRenderImageStage();
+  });
+  element.aiRenderImageStage?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    aiRenderImageVisible = false;
+    updateAiRenderImageStage();
+  });
+  element.aiRenderImageToggle?.addEventListener("click", () => {
+    aiRenderImageVisible = true;
+    updateAiRenderImageStage();
+  });
   $("#ai-openrouter-edit-submit")?.addEventListener("click", submitAiOpenrouterEdit);
   $("#ai-openrouter-edit-cancel")?.addEventListener("click", closeAiOpenrouterEditDialog);
   $("#ai-openrouter-edit-close")?.addEventListener("click", closeAiOpenrouterEditDialog);
