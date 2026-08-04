@@ -13042,14 +13042,18 @@ function lockedRoomViews() {
 }
 
 async function runAiOpenrouterRender() {
-  const views = lockedRoomViews();
-  if (!views.length) {
+  const allViews = lockedRoomViews();
+  if (!allViews.length) {
     element.aiOpenrouterStatus.textContent = "請先在第 7 步鎖定至少一個房間視角。";
     return;
   }
   if (!state.sceneData) return;
+  // ponytail: 測試期間只送第一個房間生圖,控制 OpenRouter 成本;正式上線改回 allViews。
+  const views = allViews.slice(0, 1);
   element.aiOpenrouterGenerate.disabled = true;
-  element.aiOpenrouterStatus.textContent = `正在為 ${views.length} 個房間視角逐一生成寫實圖…`;
+  element.aiOpenrouterStatus.textContent = allViews.length > 1
+    ? `測試模式：先只為「${views[0].room_label || views[0].room_id}」生成 1 張圖（已鎖定 ${allViews.length} 房）。`
+    : `正在為 ${views.length} 個房間視角逐一生成寫實圖…`;
   // 逐房把該視角截圖當 img2img 參考，模型才會保持家具與格局不動。
   const rooms = views.map((view) => {
     aiRenderViewer.setCameraState(view.camera);

@@ -1,6 +1,7 @@
 # RoomPilot 本機 PostgreSQL。啟動前先在專案根目錄 .env 填 DB_PASSWORD。
-# 啟動：docker compose up -d
-# 之後照 scripts/sql/roompilot_postgresql_setup_guide.md 第 7 步起匯入資料。
+# 一鍵安裝（別台電腦）：複製整個 repo → 建 .env 填 DB_PASSWORD → docker compose up -d
+# 首次啟動（空 volume）會自動還原 scripts/sql/roompilot_db_dump.sql.gz，不需再跑匯入腳本。
+# 若要重新載入 dump：docker compose down -v 後再 up（-v 會清掉資料）。
 services:
   postgres:
     # pgvector/pgvector = 官方 postgres 17 + pgvector，schema 會自動啟用 furniture_embeddings
@@ -14,6 +15,8 @@ services:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - roompilot_pgdata:/var/lib/postgresql/data
+      # 首次初始化自動還原完整資料庫（家具 + BGE-M3 向量）。只在空 volume 時執行一次。
+      - ./scripts/sql/roompilot_db_dump.sql.gz:/docker-entrypoint-initdb.d/roompilot_db_dump.sql.gz:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 5s

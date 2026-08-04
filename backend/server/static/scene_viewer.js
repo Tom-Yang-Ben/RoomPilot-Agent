@@ -3310,9 +3310,18 @@ export function createSceneViewer(
   }
 
   function capturePng() {
+    // 截圖會當成生圖模型的 img2img 參考,家具號碼標籤不能入鏡,
+    // 否則模型會把數字圓牌畫進成品。只藏當下可見的標籤,拍完復原。
+    const hiddenMarkers = [];
+    scene.traverse((object) => {
+      if (object.userData?.roompilotNumberMarker && object.visible) hiddenMarkers.push(object);
+    });
+    hiddenMarkers.forEach((marker) => { marker.visible = false; });
     if (composer) composer.render();
     else renderer.render(scene, camera);
-    return renderer.domElement.toDataURL("image/png");
+    const dataUrl = renderer.domElement.toDataURL("image/png");
+    hiddenMarkers.forEach((marker) => { marker.visible = true; });
+    return dataUrl;
   }
 
   function getCameraState() {

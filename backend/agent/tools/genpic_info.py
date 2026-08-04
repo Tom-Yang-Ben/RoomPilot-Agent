@@ -74,9 +74,9 @@ class GenPicInfoTool:
         #   家具配置(位置與數量必須與下列完全一致，不可增減或移動)：{}、
         #   家電：{}、{額外補充需求}」
         # 有數值資訊（尺寸/公分）不提供；沒有資料的段落整段省略。
-        segments = [f"渲染成寫實風格，房間：{room.name}"]
+        segments = [f"你是室內軟裝設計師，以寫實風格呈現。\n房間：{room.name}"]
         if requirements.styles:
-            segments.append(f"整體風格：{'、'.join(requirements.styles[:2])}")
+            segments.append(f"設計風格：{'、'.join(requirements.styles[:2])}")
             note = style_note(requirements.styles)
             if note:
                 segments.append(note)   # 已含「風格參考（…）：」前綴
@@ -84,15 +84,19 @@ class GenPicInfoTool:
             colors = "、".join(str(c) for c in (palette.get("colors") or [])[:5])
             segments.append(f"色調採(60%, 30%, 10%)：{colors}")
         materials = requirements.materials or {}
+        '''
         for key, label in (("地板", "地板材質"), ("牆面", "牆壁材質")):
             if materials.get(key):
                 segments.append(f"{label}：{materials[key]}")
+        '''
         furniture = furniture_lines(scene, room)
+        '''
         if furniture:
             segments.append(
                 "家具配置(位置與數量必須與下列完全一致，不可增減或移動)："
                 + "、".join(furniture)
             )
+        '''
         appliances = [
             item.text for item in requirements.appliances if item.room_id in (None, room.room_id)
         ]
@@ -114,6 +118,7 @@ class GenPicInfoTool:
     @staticmethod
     def edit_instruction(lock_manifest: LockManifestDoc, feedback: str) -> str:
         """把使用者意見與鎖定清單組成「只改這些、其餘不動」的編輯指令。"""
+
         lines = [
             f"請只修改以下內容：{feedback.strip()}。",
             "除上述修改外，畫面其他一切必須與附圖完全一致，特別是：",
