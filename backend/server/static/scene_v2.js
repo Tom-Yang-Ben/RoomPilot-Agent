@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-016d6cc80f74";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-c4f9b4ad04df";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -500,6 +500,13 @@ const element = {
   roomRenderSection: $("#room-render-section"),
   renderRoomList: $("#render-room-list"),
   remoteRenderJobs: $("#remote-render-jobs"),
+  aiOpenrouterStatus: $("#ai-openrouter-status"),
+  aiOpenrouterGenerate: $("#ai-openrouter-generate"),
+  aiOpenrouterResults: $("#ai-openrouter-results"),
+  aiOpenrouterEditDialog: $("#ai-openrouter-edit-dialog"),
+  aiOpenrouterEditRoom: $("#ai-openrouter-edit-room"),
+  aiOpenrouterEditFeedback: $("#ai-openrouter-edit-feedback"),
+  aiOpenrouterEditStatus: $("#ai-openrouter-edit-status"),
 };
 
 const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteStatus, {
@@ -1205,6 +1212,7 @@ function syncFurnitureInventoryAcrossSchemes() {
     scheme.stale = true;
     scheme.staleReason = "共用家具清單已變更，請重新配置此方案。";
   });
+  roomSchemePreviewCache.clear();   // 方案內容已變，舊 3D 預覽作廢
   renderSchemeControls();
 }
 
@@ -3459,21 +3467,29 @@ async function ensureRoomScheme3dPreviews() {
     && !roomSchemePreviewCache.has(schemeId)
   ));
   if (!candidates.length) return null;
+  // 背景建立 A/B 預覽：走離屏縮圖 viewer 的序列佇列，前景 whiteViewer
+  // 的場景與相機完全不動；佇列與 GLB 縮圖共用，避免並發 loadScene 互清。
   roomSchemePreviewInFlight = (async () => {
-    const activeScene = state.sceneData;
-    const activeCamera = whiteViewer.getCameraState();
     try {
       for (const schemeId of candidates) {
-        await whiteViewer.loadScene(state.designSchemes.schemes[schemeId].sceneData);
-        roomSchemePreviewCache.set(schemeId, whiteViewer.capturePng());
+        glbThumbnailSequence = glbThumbnailSequence
+          .catch(() => null)
+          .then(async () => {
+            await glbThumbnailViewer.loadScene(state.designSchemes.schemes[schemeId].sceneData);
+            glbThumbnailViewer.setViewMode("orbit");
+            glbThumbnailViewer.setCameraPreset("corner");
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            roomSchemePreviewCache.set(schemeId, glbThumbnailViewer.capturePng());
+          });
+        await glbThumbnailSequence;
       }
     } catch (error) {
       setStatus(`無法建立候選 3D 預覽：${errorMessage(error)}`, "warning");
     } finally {
-      if (activeScene?.scene_objects) {
-        await whiteViewer.loadScene(activeScene);
-        whiteViewer.setCameraState(activeCamera);
-      }
+      // 拍完即卸載：離屏 context 不留整棟場景的 GPU 記憶體（PNG 已進快取）。
+      glbThumbnailSequence = glbThumbnailSequence
+        .catch(() => null)
+        .then(() => { glbThumbnailViewer.unloadScene(); });
       roomSchemePreviewInFlight = null;
       if (element.roomSchemeDialog?.open) renderRoomSchemeSelectionDialog();
     }
@@ -3516,6 +3532,7 @@ async function completeRoomSchemeSelection() {
       throw new Error("configuration_scene_generation_failed");
     }
     state.designSchemes.configuration_snapshot = configurationSnapshot();
+    roomSchemePreviewCache.clear();   // 已進入下一流程，清除不再需要的比較用預覽場景
     renderRoomSchemeGate();
     closeRoomSchemeSelectionDialog();
     scheduleSave("white_model_3d");
@@ -9903,7 +9920,7 @@ async function reflowSingleConfigurationFurniture(furnitureId) {
     );
     state.selectedFurniture2dId = item.id;
     state.selectedSceneIndex = sceneIndex;
-    await whiteViewer.loadScene(state.sceneData);
+    await whiteViewer.updateObject(sceneObject);   // 只重擺這一件，其餘家具與房殼不動
     whiteViewer.setViewMode("orbit");
     renderLayoutFurniture();
     renderSceneObjectList();
@@ -11276,7 +11293,10 @@ async function deleteSelectedSceneFurniture() {
   renderSceneObjectList();
   loadSelectedSceneAppearance();
   if (state.workflow.currentStep === "white_model_3d") {
-    await reloadWhiteViewerPreservingCamera();
+    // 只拆掉被刪的那一件並重編號；viewer 尚未載入場景時才整包重載。
+    if (!whiteViewer.removeObject(selected.furniture_id)) {
+      await reloadWhiteViewerPreservingCamera();
+    }
     renderConfigurationPlan();
     if (nextSelected) {
       selectSceneObjectByFurnitureId(nextSelected.furniture_id, {
@@ -11287,8 +11307,10 @@ async function deleteSelectedSceneFurniture() {
     }
     scheduleSave("white_model_3d");
   } else {
-    await realisticViewer.loadScene(state.sceneData);
-    realisticViewer.setViewMode("orbit");
+    if (!realisticViewer.removeObject(selected.furniture_id)) {
+      await realisticViewer.loadScene(state.sceneData);
+      realisticViewer.setViewMode("orbit");
+    }
     renderConfigurationPlan();
     scheduleSave("realistic_3d");
   }
@@ -11620,7 +11642,7 @@ async function replaceSceneFurniture(furnitureId) {
   );
   syncFurnitureInventoryAcrossSchemes();
   renderLayoutFurniture();
-  await reloadWhiteViewerPreservingCamera();
+  await whiteViewer.updateObject(current);   // 只換這一件的模型，其餘不動
   renderSceneObjectList();
   loadSelectedSceneAppearance();
   scheduleSave("white_model_3d");
@@ -11709,7 +11731,7 @@ function addSceneFurniture(furnitureId) {
       renderLayoutFurniture();
       state.selectedSceneIndex = state.sceneData.scene_objects.length - 1;
       state.selectedFurniture2dId = candidate.furniture_id;
-      await reloadWhiteViewerPreservingCamera();
+      await whiteViewer.addObject(candidate);   // 只加這一件，場景與其他家具不動
       renderSceneObjectList();
       renderConfigurationPlan();
       loadSelectedSceneAppearance();
@@ -12957,6 +12979,167 @@ async function prepareAiRender() {
   else {
     element.aiRenderViewTitle.textContent = "色卡比較視角";
     element.aiRenderStatus.textContent = "先建立色卡比較任務，確認後再逐房間保存視角。";
+  }
+  void refreshAiOpenrouterStatus();
+  renderAiOpenrouterResults();
+}
+
+// ---- 第 8 步：OpenRouter nano banana 逐房寫實生圖（不移動擺設）＋整批一次改圖 ----
+
+function syncProjectRevision(result) {
+  // AI 生圖端點會 bump 專案 updated_at；同步回來，避免之後 workflow 保存衝突。
+  if (state.project && result?.updated_at) {
+    state.project = { ...state.project, updated_at: result.updated_at, revision: result.revision };
+  }
+}
+
+async function refreshAiOpenrouterStatus() {
+  if (!element.aiOpenrouterStatus) return;
+  element.aiOpenrouterStatus.textContent = "正在檢查 OpenRouter 生圖服務…";
+  try {
+    const status = await api("/api/ai-render/status");
+    element.aiOpenrouterStatus.textContent = status.configured
+      ? `已連接 OpenRouter（${status.model}）。`
+      : "尚未設定 OpenRouter 生圖服務（未設定 OPENROUTER_API_KEY）。";
+    if (element.aiOpenrouterGenerate) element.aiOpenrouterGenerate.disabled = !status.configured;
+  } catch {
+    element.aiOpenrouterStatus.textContent = "無法取得 OpenRouter 生圖服務狀態。";
+  }
+}
+
+function lockedRoomViews() {
+  return state.rooms
+    .map((room) => state.proposalReview.roomViews[room.id])
+    .filter(Boolean);
+}
+
+async function runAiOpenrouterRender() {
+  const views = lockedRoomViews();
+  if (!views.length) {
+    element.aiOpenrouterStatus.textContent = "請先在第 7 步鎖定至少一個房間視角。";
+    return;
+  }
+  if (!state.sceneData) return;
+  element.aiOpenrouterGenerate.disabled = true;
+  element.aiOpenrouterStatus.textContent = `正在為 ${views.length} 個房間視角逐一生成寫實圖…`;
+  // 逐房把該視角截圖當 img2img 參考，模型才會保持家具與格局不動。
+  const rooms = views.map((view) => {
+    aiRenderViewer.setCameraState(view.camera);
+    return {
+      room_id: view.room_id,
+      room_label: view.room_label,
+      camera: view.camera,
+      reference_png_data_url: aiRenderViewer.capturePng(),
+    };
+  });
+  try {
+    const result = await api(`/api/projects/${state.projectId}/ai-renders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id: state.projectId, scene: state.sceneData, rooms }),
+    });
+    syncProjectRevision(result);
+    state.proposalReview.openRouterRenders = {
+      results: result.results,
+      editRemaining: result.edit_remaining,
+    };
+    const done = result.results.filter((row) => row.status === "completed").length;
+    const failed = result.results.length - done;
+    element.aiOpenrouterStatus.textContent = failed
+      ? `完成 ${done} 房、失敗 ${failed} 房；完成的圖各可用整批唯一一次修改調整。`
+      : `已完成 ${done} 個房間的寫實生圖；可用整批唯一一次修改調整。`;
+    renderAiOpenrouterResults();
+  } catch (error) {
+    element.aiOpenrouterStatus.textContent = errorMessage(error);
+  } finally {
+    element.aiOpenrouterGenerate.disabled = false;
+  }
+}
+
+function renderAiOpenrouterResults() {
+  const container = element.aiOpenrouterResults;
+  if (!container) return;
+  container.innerHTML = "";
+  const data = state.proposalReview.openRouterRenders;
+  if (!data || !data.results?.length) return;
+  const editRemaining = data.editRemaining > 0;
+  for (const row of data.results) {
+    const card = document.createElement("div");
+    card.className = "rp-render-result-card";
+    const title = document.createElement("strong");
+    title.textContent = row.room_label || row.room_id;
+    card.appendChild(title);
+    if (row.status === "completed" && row.image_data_url) {
+      const img = document.createElement("img");
+      img.src = row.image_data_url;
+      img.alt = `${row.room_label || row.room_id} 寫實生圖`;
+      img.style.maxWidth = "100%";
+      img.style.display = "block";
+      card.appendChild(img);
+      if (editRemaining) {
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "secondary-action";
+        editButton.textContent = "修改這張（整批僅一次）";
+        editButton.addEventListener("click", () => openAiOpenrouterEditDialog(row));
+        card.appendChild(editButton);
+      }
+    } else {
+      const failed = document.createElement("p");
+      failed.className = "rp-viewer-status";
+      failed.textContent = `生圖失敗：${(row.notices || []).join("；") || "未知原因"}`;
+      card.appendChild(failed);
+    }
+    container.appendChild(card);
+  }
+}
+
+let aiOpenrouterEditTarget = null;
+
+function openAiOpenrouterEditDialog(row) {
+  aiOpenrouterEditTarget = row;
+  element.aiOpenrouterEditRoom.textContent = `房間：${row.room_label || row.room_id}`;
+  element.aiOpenrouterEditFeedback.value = "";
+  element.aiOpenrouterEditStatus.textContent = "";
+  setTaskDialogOpen(element.aiOpenrouterEditDialog, true);
+}
+
+function closeAiOpenrouterEditDialog() {
+  setTaskDialogOpen(element.aiOpenrouterEditDialog, false);
+  aiOpenrouterEditTarget = null;
+}
+
+async function submitAiOpenrouterEdit() {
+  const row = aiOpenrouterEditTarget;
+  if (!row) return;
+  const feedback = element.aiOpenrouterEditFeedback.value.trim();
+  if (!feedback) {
+    element.aiOpenrouterEditStatus.textContent = "請先描述想修改的內容。";
+    return;
+  }
+  element.aiOpenrouterEditStatus.textContent = "正在送出修改…";
+  try {
+    const result = await api(
+      `/api/projects/${state.projectId}/ai-renders/${encodeURIComponent(row.room_id)}/edit`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedback, image_data_url: row.image_data_url }),
+      },
+    );
+    syncProjectRevision(result);
+    const data = state.proposalReview.openRouterRenders;
+    const target = data.results.find((item) => item.room_id === row.room_id);
+    if (target) {
+      target.image_data_url = result.result.image_data_url;
+      target.notices = result.result.notices;
+    }
+    data.editRemaining = result.edit_remaining;
+    renderAiOpenrouterResults();
+    element.aiOpenrouterStatus.textContent = "修改完成（整批唯一一次已用完）。";
+    closeAiOpenrouterEditDialog();
+  } catch (error) {
+    element.aiOpenrouterEditStatus.textContent = errorMessage(error);
   }
 }
 
@@ -14291,6 +14474,10 @@ function bindEvents() {
   });
   $("#save-room-view")?.addEventListener("click", saveSelectedRoomView);
   $("#submit-room-renders")?.addEventListener("click", () => openRenderBriefDialog("room_final"));
+  element.aiOpenrouterGenerate?.addEventListener("click", runAiOpenrouterRender);
+  $("#ai-openrouter-edit-submit")?.addEventListener("click", submitAiOpenrouterEdit);
+  $("#ai-openrouter-edit-cancel")?.addEventListener("click", closeAiOpenrouterEditDialog);
+  $("#ai-openrouter-edit-close")?.addEventListener("click", closeAiOpenrouterEditDialog);
   $("#close-render-brief")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-cancel")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-confirm")?.addEventListener("click", () => {
