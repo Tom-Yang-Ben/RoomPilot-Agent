@@ -78,14 +78,19 @@ def test_engine_places_furniture_inside_rooms(pipeline, layout):
     doc = skill.choose(requirements, candidates, strategy=STRATEGIES["A"])
     scene = skill.place(layout, doc)
 
+    reasons_seen = []
     for room in layout.rooms:
         placed = scene.placed_in(room.room_id)
         assert placed, f"{room.name} 應至少擺入一件家具"
         for row in placed:
             assert row["coordinate_unit"] == "cm"
             assert {"id", "type", "name", "width", "depth", "pos_x", "pos_y"} <= set(row)
+            # 選件理由與擺位意圖必須帶進場景，供設計手冊引用
+            assert {"reason", "hint_note"} <= set(row)
             assert 0 <= row["pos_x"] <= room.width_cm
             assert 0 <= row["pos_y"] <= room.depth_cm
+            reasons_seen.append(row["reason"])
+    assert any(r.strip() for r in reasons_seen), "至少一件家具應帶非空選件理由"
     # 主臥的床是硬需求，必須成功擺入
     bedroom_types = {row["type"] for row in scene.placed_in("bedroom")}
     assert "bed" in bedroom_types

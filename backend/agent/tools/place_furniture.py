@@ -98,6 +98,8 @@ class PlaceFurnitureTool:
                             "clearance": item.clearance,
                             "matched_requirements": list(item.matched_requirements),
                             "hint_method": item.hint.method,
+                            "hint_note": item.hint.note,
+                            "reason": item.reason,
                         }
                     )
                     placed_rows.append(row)
