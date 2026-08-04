@@ -505,13 +505,23 @@ def test_proposal_review_caches_the_scene_per_version() -> None:
     assert "beginPlacementBusy(" in ensure
     assert "endPlacementBusy(" in ensure
     assert "正在準備第 7 步 3D 場景" in ensure
+    # loadScene resolve 時首幀還沒畫出來(shader 首次 render 才編譯)——
+    # 遮罩必須撐到動畫幀真的呈現;失敗與缺場景都要明說,不得靜默空白
+    assert "requestAnimationFrame" in ensure
+    assert "3D 場景載入失敗" in ensure
+    prepare_head = source.split("async function prepareProposalReview")[1]
+    assert "尚未有可用的 3D 場景" in prepare_head.split("\nfunction ")[0]
 
 
 def test_scheme_choice_is_fixed_after_entering_step_seven() -> None:
     """流程規範:方案 A/B 於第 6 步選定;第 7 步依選定方案比較三張色卡、
-    第 8 步依選定色卡逐房生圖 —— 進入第 7/8 步後方案切換必須被擋下並說明。"""
+    第 8 步依選定色卡逐房生圖 —— 第 7 步面板不再出現 A/B 切換鈕,
+    殘餘入口(其他面板的鈕)也必須被擋下並說明。"""
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
+    proposal_panel = html.split('id="proposal-review-step"')[1].split("</section>")[0]
+    assert "data-design-scheme" not in proposal_panel
     assert 'currentStep === "proposal_review" || currentStep === "ai_render"' in source
     assert "方案已於第 6 步選定" in source
 
@@ -3350,8 +3360,9 @@ def test_steps_six_to_nine_expose_scheme_switching_and_render_lock() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert html.count('data-design-scheme="A"') >= 4
-    assert html.count('data-design-scheme="B"') >= 4
+    # A/B 切換只存在第 6 步的三個子面板;第 7 步起不再出現(方案已選定)
+    assert html.count('data-design-scheme="A"') == 3
+    assert html.count('data-design-scheme="B"') == 3
     assert 'id="locked-scheme-label"' in html
     assert "placement_variant: activeSchemeId()" in source
     assert 'placement_variant: schemeId' in source
