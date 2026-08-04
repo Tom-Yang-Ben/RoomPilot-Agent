@@ -157,7 +157,8 @@ def retrieval_tables() -> dict[str, set[str]]:
         "FAMILY_CATALOG_FALLBACKS.values": {
             target for targets in FAMILY_CATALOG_FALLBACKS.values() for target in targets
         },
-        # light 角色刻意不在此列，見 test_auto_decor_light_lane_is_a_known_gap。
+        # light 角色的候選來自燈具表而不是家具型錄，鍵空間不同，由
+        # test_auto_decor_light_lane_draws_from_the_lighting_table 單獨檢查。
         "_AUTO_DECOR_TYPES": {
             item
             for role, types in _AUTO_DECOR_TYPES.items()
@@ -190,24 +191,49 @@ def test_retrieval_tables_only_reference_types_the_catalog_actually_has() -> Non
     assert not offenders, "檢索表引用了型錄沒有的分類：\n" + "\n".join(offenders)
 
 
-def test_auto_decor_light_lane_is_a_known_gap() -> None:
-    """自動裝飾的「燈具」角色在 PostgreSQL 型錄下永遠取不到東西。
+def test_auto_decor_light_lane_draws_from_the_lighting_table() -> None:
+    """自動裝飾的燈具角色不能掃家具型錄——正式型錄一盞燈都沒有。
 
-    ``scene_api`` 會實際請求 light 角色（``requested_roles.append("light")``、
-    ``for role in ("rug", "plant", "light")``），但 ``_auto_decor_catalog_item``
-    是掃 ``_furniture_payload_cache()``，而正式型錄裡一盞燈都沒有——燈具在
-    2026-08-02 搬進獨立的 ``roompilot.lighting_assets_current``（637 筆，
-    ``lighting_type`` 用的是 table／floor／pendant／wall／downlight／track，
-    又是另一套詞彙）。離線 JSON 型錄剛好有 ``lamp``，所以這個洞在預設測試模式下
-    看不出來。
+    燈具 2026-07-30 從 ``furniture_items`` 移走、2026-08-02 以
+    ``roompilot.lighting_assets_current`` 接回，但一直沒有 payload 管道，於是
+    ``scene_api`` 明明會請求 light 角色（``requested_roles.append("light")``、
+    ``for role in ("rug", "plant", "light")``），卻永遠只在
+    ``decor_summary.skipped`` 留下一行。離線 JSON 型錄剛好殘留 ``lamp``，所以
+    預設測試模式下看不出來。
 
-    修法不是改這張表的字串，是把燈具 lane 接進 payload；在那之前先把缺口釘住，
-    免得它繼續假裝是「詞彙沒對齊」。接好之後這條測試會紅，屆時請把 light 角色
-    放回 ``retrieval_tables()`` 一起檢查。
+    這條鎖住三件事：型別名一致、候選確實走燈具表、而且家具型錄裡沒有它。
     """
-    assert _AUTO_DECOR_TYPES["light"] == ("floor-lamp", "lamp")
-    assert not set(_AUTO_DECOR_TYPES["light"]) & USABLE_TYPES, (
-        "燈具已經進得了家具型錄，請把 light 角色放回 retrieval_tables() 的檢查範圍"
+    from backend.catalog.lighting_repository import FLOOR_LAMP_TYPE
+    from backend.server.main import _auto_decor_candidates
+
+    # `lamp` 是離線 JSON 型錄殘留的型別，正式型錄沒有；它只在資料庫不可用時
+    # 頂替，所以刻意不列入 retrieval_tables 的型錄實況檢查。
+    assert _AUTO_DECOR_TYPES["light"] == (FLOOR_LAMP_TYPE, "lamp")
+    assert FLOOR_LAMP_TYPE not in USABLE_TYPES, (
+        "落地燈進了家具型錄，請重新決定 light 角色的候選來源"
+    )
+    assert "lamp" not in USABLE_TYPES, (
+        "家具型錄出現 lamp，請重新檢查燈具到底該由哪張表提供"
+    )
+    assert SNAPSHOT["lighting_types"]["floor"]["with_model"] > 0, (
+        "燈具表沒有可用的落地燈，light 角色會整個落空"
+    )
+
+
+def test_auto_decor_lighting_types_stay_inside_the_lighting_vocabulary() -> None:
+    """燈具表只接落地燈；其餘燈種各有歸屬，不該悄悄被拉進落地擺設。
+
+    table 要桌面宿主（檯面吸附 lane）、pendant／downlight／track／wall 是天花與
+    壁掛，屬於第 8 步的 render_context，不進 2D/3D 落地配置。
+    """
+    from backend.catalog.lighting_repository import (
+        FLOOR_LIGHTING_TYPE,
+        FLOOR_LAMP_TYPE,
+    )
+
+    assert FLOOR_LIGHTING_TYPE in SNAPSHOT["lighting_types"]
+    assert FLOOR_LAMP_TYPE not in SNAPSHOT["lighting_types"], (
+        "FLOOR_LAMP_TYPE 是 payload 用語，不該與燈具表的 lighting_type 混用"
     )
 
 
@@ -376,6 +402,30 @@ def test_manual_only_types_are_not_already_reachable() -> None:
         reachable |= set(catalog_types_for_family(family))
     already = sorted(set(MANUAL_ONLY_TYPES) & reachable)
     assert not already, f"這些型別已經接上選件路徑，請從 MANUAL_ONLY_TYPES 移除：{already}"
+
+
+@pytest.mark.skipif(
+    os.getenv("ROOMPILOT_TEST_POSTGRES_CATALOGS") != "1",
+    reason="需要本機 PostgreSQL 型錄；設 ROOMPILOT_TEST_POSTGRES_CATALOGS=1 才跑",
+)
+def test_light_role_actually_returns_a_lamp_in_postgres_mode() -> None:
+    """接上 lane 之後，正式模式下燈具角色必須真的選得出東西。
+
+    預設測試模式走離線 JSON 型錄，`lamp` 那條退路會讓 light 角色看起來是通的；
+    真正要驗的是 PostgreSQL 模式——那才是先前永遠落空的路徑。
+    """
+    from backend.catalog.lighting_repository import FLOOR_LAMP_TYPE
+    from backend.server.main import _auto_decor_catalog_item
+
+    selected = _auto_decor_catalog_item("light", "scandinavian")
+    assert selected is not None, "PostgreSQL 模式下燈具角色仍然落空"
+    assert selected["normalized_type"] == FLOOR_LAMP_TYPE
+    assert selected["catalog_scope"] == "kai_lighting_assets"
+    assert str(selected["model_url"]).startswith("https://")
+    size = selected["size_cm"]
+    assert all(size[key] for key in ("width", "depth", "height")), (
+        f"落地燈缺尺寸，引擎會算不出佔位：{selected['furniture_id']}"
+    )
 
 
 @pytest.mark.skipif(

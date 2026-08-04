@@ -60,6 +60,23 @@ def collect_vocabulary() -> dict[str, object]:
         # 但沒有任何機制保證它們會一直只差一列。
         types = _counts(cursor, "normalized_type")
         category_codes = _counts(cursor, "category_code")
+        # 燈具在獨立表，用自己的 lighting_type 詞彙。自動裝飾的燈具角色從這裡
+        # 取候選（`backend/catalog/lighting_repository.py`），所以契約也要看得到。
+        cursor.execute(
+            """
+            SELECT lighting_type,
+                   COUNT(*) FILTER (
+                       WHERE glb_url IS NOT NULL AND BTRIM(glb_url) <> ''
+                   ) AS with_model,
+                   COUNT(*) AS total
+            FROM roompilot.lighting_assets_current
+            GROUP BY 1 ORDER BY 1
+            """
+        )
+        lighting_types = {
+            str(lighting_type): {"with_model": int(with_model), "total": int(total)}
+            for lighting_type, with_model, total in cursor.fetchall()
+        }
 
     return {
         "source": "roompilot.furniture_catalog_api_current",
@@ -69,6 +86,8 @@ def collect_vocabulary() -> dict[str, object]:
         ),
         "types": types,
         "category_codes": category_codes,
+        "lighting_source": "roompilot.lighting_assets_current",
+        "lighting_types": lighting_types,
     }
 
 

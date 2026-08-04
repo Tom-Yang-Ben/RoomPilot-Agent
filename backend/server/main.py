@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from ..paths import STATIC_DIR
 from ..catalog.style_db import sanitize_size_cm
 from ..catalog.cloud_catalog import load_official_catalog
+from ..catalog.lighting_repository import FLOOR_LAMP_TYPE, load_floor_lamps
 from ..floorplan.vision.ocr import default_ocr_provider
 from ..upgrade3d.dxf_parser import list_plans, parse_dxf_bytes, parse_dxf_file
 # selection_complete_fn 只被 scene router 的 getter 消費，但測試以
@@ -596,6 +597,19 @@ def _get_merged_furniture_by_id(furniture_id: str) -> dict:
             raise _postgres_catalog_unavailable(exc) from exc
         if item is not None:
             return _normalize_catalog_item(item)
+        # 燈具不在家具型錄，走獨立表。自動裝飾放進場景的落地燈帶的是直連
+        # CloudFront URL，正常路徑不會查到這裡；但舊存檔或任何以 id 反查模型的
+        # 呼叫端不該因為「型錄查無此件」就拿到 404。
+        lamp = next(
+            (
+                item
+                for item in load_floor_lamps(PROJECT_DIR)
+                if str(item.get("furniture_id")) == str(furniture_id)
+            ),
+            None,
+        )
+        if lamp is not None:
+            return lamp
         raise HTTPException(status_code=404, detail="Furniture not found in official catalog.")
     return _get_json_merged_furniture_by_id(furniture_id)
 
@@ -1413,8 +1427,33 @@ _AUTO_DECOR_TYPES = {
         "round-rug",
     ),
     "plant": ("flower-pots-planter",),
-    "light": ("floor-lamp", "lamp"),
+    # 燈具不在家具型錄裡（2026-07-30 型錄切換後移到獨立表），候選來源見
+    # `_auto_decor_candidates`。只收落地燈：檯燈要桌面宿主、天花與壁掛燈具
+    # 不佔地板，都不屬於第 6/7 步的落地擺設。
+    # `lamp` 是離線 JSON 型錄殘留的舊型別名，正式 PostgreSQL 型錄沒有它；
+    # 留著只為了讓資料庫不可用時仍放得出一盞燈。
+    "light": (FLOOR_LAMP_TYPE, "lamp"),
 }
+
+
+def _auto_decor_candidates(role: str) -> tuple[dict, ...]:
+    """該角色的候選來源。
+
+    燈具走 `roompilot.lighting_assets_current`，其餘走家具型錄。先前所有角色都
+    掃家具型錄，而正式型錄一盞燈都沒有——燈具角色因此永遠落空，卻只在
+    `decor_summary.skipped` 留下一行，看起來像「型錄剛好沒貨」。
+
+    燈具表只在 PostgreSQL 模式下存在。切成離線 JSON 型錄時退回家具型錄，用它
+    殘留的 `lamp` 型別頂著；兩邊都沒有才真的略過這個角色。
+    """
+    if role != "light":
+        return _furniture_payload_cache()
+    lamps = load_floor_lamps(PROJECT_DIR)
+    if not lamps:
+        return _furniture_payload_cache()
+    # 走與家具型錄同一道正規化出口：燈具表有 71/128 筆的主次風格會映射到同一個
+    # style_id，不去重就會在 `_auto_decor_catalog_item` 的排序裡重複灌高分。
+    return _normalize_catalog_payload(tuple(lamps))
 
 
 # _auto_decor_catalog_item 被 tests/test_scene_soft_decor.py 以
@@ -1430,7 +1469,7 @@ def _auto_decor_catalog_item(
     excluded_ids = excluded_ids or set()
     candidates = [
         item
-        for item in _furniture_payload_cache()
+        for item in _auto_decor_candidates(role)
         if item.get("normalized_type") in requested_types
         and item.get("has_model")
         and item.get("model_url")

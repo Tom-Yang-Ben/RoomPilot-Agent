@@ -221,6 +221,33 @@
       "with_model": 72
     }
   },
+  "lighting_source": "roompilot.lighting_assets_current",
+  "lighting_types": {
+    "downlight": {
+      "total": 48,
+      "with_model": 48
+    },
+    "floor": {
+      "total": 128,
+      "with_model": 128
+    },
+    "pendant": {
+      "total": 97,
+      "with_model": 97
+    },
+    "table": {
+      "total": 311,
+      "with_model": 311
+    },
+    "track": {
+      "total": 1,
+      "with_model": 1
+    },
+    "wall": {
+      "total": 52,
+      "with_model": 52
+    }
+  },
   "note": "由 scripts/dump_catalog_vocabulary.py 產生，請勿手改。with_model 為 0 的型別無法被第 6 步選用。",
   "source": "roompilot.furniture_catalog_api_current",
   "types": {
