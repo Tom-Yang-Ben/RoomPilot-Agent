@@ -1,0 +1,448 @@
+{
+  "category_codes": {
+    "armchair": {
+      "total": 97,
+      "with_model": 97
+    },
+    "bar-table": {
+      "total": 18,
+      "with_model": 18
+    },
+    "bed": {
+      "total": 110,
+      "with_model": 110
+    },
+    "bedside-table": {
+      "total": 54,
+      "with_model": 54
+    },
+    "bookcase": {
+      "total": 233,
+      "with_model": 233
+    },
+    "cabinet-cupboard": {
+      "total": 146,
+      "with_model": 146
+    },
+    "chair": {
+      "total": 3,
+      "with_model": 3
+    },
+    "chests-of-drawer": {
+      "total": 129,
+      "with_model": 129
+    },
+    "childrens-furniture": {
+      "total": 18,
+      "with_model": 18
+    },
+    "childrens-stools-benche": {
+      "total": 4,
+      "with_model": 4
+    },
+    "childrens-table": {
+      "total": 25,
+      "with_model": 25
+    },
+    "clothes-rack": {
+      "total": 25,
+      "with_model": 25
+    },
+    "coffee-table": {
+      "total": 196,
+      "with_model": 196
+    },
+    "decoration": {
+      "total": 152,
+      "with_model": 152
+    },
+    "desk": {
+      "total": 527,
+      "with_model": 527
+    },
+    "dining-chair": {
+      "total": 411,
+      "with_model": 411
+    },
+    "dining-table": {
+      "total": 133,
+      "with_model": 133
+    },
+    "display-cabinet": {
+      "total": 38,
+      "with_model": 38
+    },
+    "door-mat": {
+      "total": 41,
+      "with_model": 41
+    },
+    "fabric-sofa": {
+      "total": 987,
+      "with_model": 987
+    },
+    "flower-pots-planter": {
+      "total": 235,
+      "with_model": 235
+    },
+    "gaming-chair": {
+      "total": 11,
+      "with_model": 11
+    },
+    "handmade-rug": {
+      "total": 29,
+      "with_model": 29
+    },
+    "kids-chairs-stool": {
+      "total": 40,
+      "with_model": 40
+    },
+    "large-medium-rug": {
+      "total": 677,
+      "with_model": 677
+    },
+    "large-mirror": {
+      "total": 31,
+      "with_model": 31
+    },
+    "leather-sofa": {
+      "total": 213,
+      "with_model": 213
+    },
+    "mattress": {
+      "total": 16,
+      "with_model": 16
+    },
+    "mirror": {
+      "total": 61,
+      "with_model": 61
+    },
+    "mirror-cabinet": {
+      "total": 17,
+      "with_model": 17
+    },
+    "modular-sofa": {
+      "total": 61,
+      "with_model": 61
+    },
+    "office-chair": {
+      "total": 175,
+      "with_model": 175
+    },
+    "outdoor-rug": {
+      "total": 1,
+      "with_model": 1
+    },
+    "pax-wardrobe": {
+      "total": 72,
+      "with_model": 72
+    },
+    "pillow-cushion": {
+      "total": 229,
+      "with_model": 229
+    },
+    "room-divider": {
+      "total": 17,
+      "with_model": 17
+    },
+    "round-rug": {
+      "total": 1,
+      "with_model": 1
+    },
+    "rug": {
+      "total": 156,
+      "with_model": 156
+    },
+    "runner-small-rug": {
+      "total": 127,
+      "with_model": 127
+    },
+    "sheepskins-cowhide": {
+      "total": 2,
+      "with_model": 2
+    },
+    "shelving-unit": {
+      "total": 80,
+      "with_model": 80
+    },
+    "shoe-cabinet": {
+      "total": 5,
+      "with_model": 5
+    },
+    "sideboard": {
+      "total": 43,
+      "with_model": 43
+    },
+    "sofa": {
+      "total": 490,
+      "with_model": 490
+    },
+    "sofa-bed": {
+      "total": 77,
+      "with_model": 77
+    },
+    "stool-bench": {
+      "total": 1365,
+      "with_model": 1365
+    },
+    "storage-boxes-basket": {
+      "total": 71,
+      "with_model": 71
+    },
+    "storage-furniture": {
+      "total": 20,
+      "with_model": 20
+    },
+    "storage-solution-system": {
+      "total": 59,
+      "with_model": 59
+    },
+    "table": {
+      "total": 11,
+      "with_model": 11
+    },
+    "tv-bench": {
+      "total": 56,
+      "with_model": 56
+    },
+    "tv-media-furniture": {
+      "total": 10,
+      "with_model": 10
+    },
+    "vase": {
+      "total": 26,
+      "with_model": 26
+    },
+    "wall-shelf": {
+      "total": 55,
+      "with_model": 55
+    },
+    "wardrobe": {
+      "total": 72,
+      "with_model": 72
+    }
+  },
+  "note": "由 scripts/dump_catalog_vocabulary.py 產生，請勿手改。with_model 為 0 的型別無法被第 6 步選用。",
+  "source": "roompilot.furniture_catalog_api_current",
+  "types": {
+    "armchair": {
+      "total": 97,
+      "with_model": 97
+    },
+    "bar-table": {
+      "total": 18,
+      "with_model": 18
+    },
+    "bed": {
+      "total": 110,
+      "with_model": 110
+    },
+    "bedside-table": {
+      "total": 54,
+      "with_model": 54
+    },
+    "bookcase": {
+      "total": 233,
+      "with_model": 233
+    },
+    "cabinet-cupboard": {
+      "total": 146,
+      "with_model": 146
+    },
+    "chair": {
+      "total": 3,
+      "with_model": 3
+    },
+    "chests-of-drawer": {
+      "total": 129,
+      "with_model": 129
+    },
+    "childrens-furniture": {
+      "total": 18,
+      "with_model": 18
+    },
+    "childrens-stools-benche": {
+      "total": 4,
+      "with_model": 4
+    },
+    "childrens-table": {
+      "total": 25,
+      "with_model": 25
+    },
+    "clothes-rack": {
+      "total": 25,
+      "with_model": 25
+    },
+    "coffee-table": {
+      "total": 196,
+      "with_model": 196
+    },
+    "decoration": {
+      "total": 152,
+      "with_model": 152
+    },
+    "desk": {
+      "total": 527,
+      "with_model": 527
+    },
+    "dining-chair": {
+      "total": 411,
+      "with_model": 411
+    },
+    "dining-table": {
+      "total": 133,
+      "with_model": 133
+    },
+    "display-cabinet": {
+      "total": 38,
+      "with_model": 38
+    },
+    "door-mat": {
+      "total": 41,
+      "with_model": 41
+    },
+    "fabric-sofa": {
+      "total": 987,
+      "with_model": 987
+    },
+    "flower-pots-planter": {
+      "total": 235,
+      "with_model": 235
+    },
+    "gaming-chair": {
+      "total": 11,
+      "with_model": 11
+    },
+    "handmade-rug": {
+      "total": 29,
+      "with_model": 29
+    },
+    "kids-chairs-stool": {
+      "total": 40,
+      "with_model": 40
+    },
+    "large-medium-rug": {
+      "total": 677,
+      "with_model": 677
+    },
+    "large-mirror": {
+      "total": 31,
+      "with_model": 31
+    },
+    "leather-sofa": {
+      "total": 213,
+      "with_model": 213
+    },
+    "mattress": {
+      "total": 16,
+      "with_model": 16
+    },
+    "mirror": {
+      "total": 61,
+      "with_model": 61
+    },
+    "mirror-cabinet": {
+      "total": 17,
+      "with_model": 17
+    },
+    "modular-sofa": {
+      "total": 61,
+      "with_model": 61
+    },
+    "office-chair": {
+      "total": 175,
+      "with_model": 175
+    },
+    "outdoor-rug": {
+      "total": 1,
+      "with_model": 1
+    },
+    "pax-wardrobe": {
+      "total": 72,
+      "with_model": 72
+    },
+    "pillow-cushion": {
+      "total": 229,
+      "with_model": 229
+    },
+    "room-divider": {
+      "total": 17,
+      "with_model": 17
+    },
+    "round-rug": {
+      "total": 1,
+      "with_model": 1
+    },
+    "rug": {
+      "total": 156,
+      "with_model": 156
+    },
+    "runner-small-rug": {
+      "total": 127,
+      "with_model": 127
+    },
+    "sheepskins-cowhide": {
+      "total": 2,
+      "with_model": 2
+    },
+    "shelving-unit": {
+      "total": 80,
+      "with_model": 80
+    },
+    "shoe-cabinet": {
+      "total": 5,
+      "with_model": 5
+    },
+    "sideboard": {
+      "total": 43,
+      "with_model": 43
+    },
+    "sofa": {
+      "total": 490,
+      "with_model": 490
+    },
+    "sofa-bed": {
+      "total": 77,
+      "with_model": 77
+    },
+    "stool-bench": {
+      "total": 1365,
+      "with_model": 1365
+    },
+    "storage-boxes-basket": {
+      "total": 71,
+      "with_model": 71
+    },
+    "storage-furniture": {
+      "total": 20,
+      "with_model": 20
+    },
+    "storage-solution-system": {
+      "total": 59,
+      "with_model": 59
+    },
+    "table": {
+      "total": 11,
+      "with_model": 11
+    },
+    "tv-bench": {
+      "total": 56,
+      "with_model": 56
+    },
+    "tv-media-furniture": {
+      "total": 10,
+      "with_model": 10
+    },
+    "vase": {
+      "total": 26,
+      "with_model": 26
+    },
+    "wall-shelf": {
+      "total": 55,
+      "with_model": 55
+    },
+    "wardrobe": {
+      "total": 72,
+      "with_model": 72
+    }
+  }
+}

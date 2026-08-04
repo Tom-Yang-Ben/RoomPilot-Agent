@@ -497,6 +497,16 @@ def validate_inputs(
     return report, indexes
 
 
+# 來源資料推導出的 slug 與正式 payload 用語對不上的分類。這裡是唯一的改名點：
+# 先前這條改名散在 SQL view 的 CASE、`postgres_repository._TYPE_ID_MAP`、以及
+# `spatial_data/rag/shortlist.FAMILY_CATEGORY_OVERRIDES` 三處，於是
+# `category_code` 與 `normalized_type` 變成兩個鍵空間，逐房候選集與第 6 步選件
+# 各自維護一張後備表、內容重疊卻不能互抄。改名收在匯入層之後兩者恆等。
+CATEGORY_CODE_OVERRIDES: dict[str, str] = {
+    "planter": "flower-pots-planter",
+}
+
+
 def category_code_map(
     items: list[dict[str, Any]], glb_result: dict[str, dict[str, Any]]
 ) -> dict[str, str]:
@@ -511,6 +521,7 @@ def category_code_map(
     for category in sorted(source_types):
         counts = source_types[category]
         base = sorted(counts, key=lambda code: (-counts[code], code))[0]
+        base = CATEGORY_CODE_OVERRIDES.get(base, base)
         code = base
         if code in used:
             suffix = hashlib.sha1(category.encode("utf-8")).hexdigest()[:8]

@@ -19,7 +19,7 @@ RAG 不得決定家具位置、碰撞、淨空、結構或幾何合法性，不�
 ```text
 POST /api/rag/search/jobs
   -> GET /api/rag/search/jobs/{job_id} 輪詢真實執行階段
-  -> selected RAG parser provider (OpenAI Responses or Anthropic Messages)
+  -> selected RAG parser provider (OpenAI Responses, OpenRouter Responses, or Anthropic Messages)
   -> Pydantic Structured Outputs
   -> semantic_query
   -> BAAI/bge-m3 normalized 1024-d vector（多品項批次推論）
@@ -114,12 +114,14 @@ top-50、top-20/12，也不改變評分公式。
 ## 設定與模型
 
 - `ROOMPILOT_RAG_ENABLED=false`（安全預設）
-- `ROOMPILOT_RAG_PARSER_PROVIDER=openai|anthropic`（只控制 RAG parser）
-- `OPENAI_API_KEY`／`ANTHROPIC_API_KEY`（server only；只需填所選 provider）
+- `ROOMPILOT_RAG_PARSER_PROVIDER=openai|openrouter|anthropic`（只控制 RAG parser）
+- `OPENAI_API_KEY`／`OPENROUTER_API_KEY`／`ANTHROPIC_API_KEY`（server only；只需填所選 provider）
 - `ROOMPILOT_RAG_OPENAI_MODEL=gpt-5.6-sol`
+- `ROOMPILOT_RAG_OPENROUTER_MODEL=openai/gpt-5.6-sol`
+- `ROOMPILOT_RAG_OPENROUTER_BASE_URL=https://openrouter.ai/api/v1`
 - `ROOMPILOT_RAG_ANTHROPIC_MODEL=claude-sonnet-4-6`
 - `ROOMPILOT_RAG_PARSER_MODEL=`（選填；覆寫所選 provider 的預設模型）
-- `ROOMPILOT_RAG_REASONING_EFFORT=low`（OpenAI only）
+- `ROOMPILOT_RAG_REASONING_EFFORT=low`（OpenAI/OpenRouter）
 - `ROOMPILOT_RAG_ANTHROPIC_MAX_TOKENS=4096`
 - `ROOMPILOT_RAG_TIMEOUT_SECONDS=30`
 - `ROOMPILOT_RAG_MODEL_CACHE`（可選，repo 外）

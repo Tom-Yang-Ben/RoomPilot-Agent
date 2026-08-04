@@ -35,7 +35,7 @@ import {
   roomAllowsIndependentFloor,
   roomKeepsExplicitWallOverride,
   trimAccentWallSurfaces,
-} from "./scene_questionnaire_data.js?v=sha256-0e469e15c215";
+} from "./scene_questionnaire_data.js?v=sha256-a09bd781fccf";
 
 export function createQuestionnaireFlow({
   state,

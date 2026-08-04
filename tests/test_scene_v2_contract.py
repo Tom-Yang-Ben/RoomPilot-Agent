@@ -1134,6 +1134,7 @@ def test_upload_step_does_not_offer_the_internal_630_sample_button() -> None:
 
 def test_scene_sidebar_numbers_match_viewer_markers() -> None:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer_source = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert 'class="rp-object-number">#${furnitureNumber}' in source
     assert "function furnitureLedgerId(" in source
@@ -1144,6 +1145,18 @@ def test_scene_sidebar_numbers_match_viewer_markers() -> None:
     assert '"floor-lamp": "落地燈"' in source
     assert '"large-medium-rug": "地毯"' in source
     assert "sceneObjectDisplayName(item, index)" in source
+    white_viewer_setup = source.split("const whiteViewer = createSceneViewer", 1)[1].split(
+        "const realisticViewer", 1
+    )[0]
+    assert "showFurnitureNames: false" in white_viewer_setup
+    assert "showFurnitureNames = true" in viewer_source
+    assert "if (showFurnitureNames)" in viewer_source
+    assert "furnitureAnnotationNumber = null" in viewer_source
+    assert "createNumberMarker(furnitureNumberLabel(item, index))" in viewer_source
+    assert "function furnitureInstanceId" in viewer_source
+    assert "id: furnitureInstanceId(item)" in viewer_source
+    assert "function configurationSceneObjectNumber" in source
+    assert "furnitureAnnotationNumber: (item, index) => configurationSceneObjectNumber(item, index)" in source
 
 
 def test_structure_step_explains_pending_manual_door_directions() -> None:
@@ -1227,6 +1240,10 @@ def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
     assert "position: sticky;" in css
     assert ".rp-configuration-pending {\n  order: -1;" in css
     assert ".is-collapsed" in css
+    assert "#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan > header" in css
+    assert "grid-template-columns: minmax(0, 1fr) 34px;" in css
+    assert "#white-model-3d-step .rp-3d-sidebar > .rp-editor-box::before" in css
+    assert "#white-model-3d-step .rp-3d-sidebar #confirm-white-model" in css
 
 
 def test_configuration_markers_focus_3d_and_use_visible_selected_numbers() -> None:
@@ -1327,7 +1344,7 @@ def test_3d_scene_selection_syncs_back_to_2d_furniture_state() -> None:
     assert "onObjectSelect(selectedWrapper?.userData?.sceneObject || null, lastSceneData)" in viewer
     assert "selectWrapper(wrapper, null, { notify: false })" in viewer
     assert "function syncSceneSelectionTo2dFurniture" in controller
-    assert "String(candidate.id) === String(furnitureId)" in controller
+    assert "furniture2dItemForSceneObject(state.furniture2d, sceneObject)" in controller
     assert "state.selectedFurniture2dId = item.id" in controller
     assert "onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item)" in controller
     assert "syncSceneSelectionTo2dFurniture" in object_list_handler
@@ -1338,6 +1355,7 @@ def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects(
     result = run_workflow_script(
         f"""
         import {{
+          furniture2dItemForSceneObject,
           removeFurniture2dBySceneObject,
           upsertFurniture2dFromSceneObject,
         }} from {json.dumps(module_uri)};
@@ -1378,7 +1396,35 @@ def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects(
           placement_reason: "與牆面碰撞",
         }});
         const removed = removeFurniture2dBySceneObject(failed, {{ furniture_id: "chair-1" }});
-        console.log(JSON.stringify({{ moved, added, failed, removed }}));
+        const sharedCatalog = [
+          {{ id: "bed-layout-1", catalogFurnitureId: "bed-catalog", roomId: "bedroom-a", type: "bed-frame", xCm: 10, yCm: 20 }},
+          {{ id: "bed-layout-2", catalogFurnitureId: "bed-catalog", roomId: "bedroom-b", type: "bed-frame", xCm: 210, yCm: 220 }},
+        ];
+        const syncedByLayoutId = upsertFurniture2dFromSceneObject(sharedCatalog, {{
+          furniture_id: "bed-catalog",
+          layout_furniture_id: "bed-layout-2",
+          catalog_furniture_id: "bed-catalog",
+          normalized_type: "bed-frame",
+          placement_room_id: "bedroom-b",
+          position_cm: {{ x: 240, z: 250 }},
+          size_cm: {{ width: 152, depth: 200, height: 90 }},
+        }});
+        const matchedByLayoutId = furniture2dItemForSceneObject(syncedByLayoutId, {{
+          furniture_id: "bed-catalog",
+          layout_furniture_id: "bed-layout-2",
+          catalog_furniture_id: "bed-catalog",
+        }});
+        const matchedByRoomAndCatalog = furniture2dItemForSceneObject(sharedCatalog, {{
+          furniture_id: "bed-catalog",
+          catalog_furniture_id: "bed-catalog",
+          normalized_type: "bed-frame",
+          placement_room_id: "bedroom-a",
+          position_cm: {{ x: 12, z: 18 }},
+        }});
+        console.log(JSON.stringify({{
+          moved, added, failed, removed,
+          syncedByLayoutId, matchedByLayoutId, matchedByRoomAndCatalog,
+        }}));
         """
     )
 
@@ -1394,12 +1440,64 @@ def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects(
     assert result["failed"][1]["placementFailed"] is True
     assert result["failed"][1]["placementReason"] == "與牆面碰撞"
     assert [item["id"] for item in result["removed"]] == ["sofa-1"]
+    assert len(result["syncedByLayoutId"]) == 2
+    assert result["syncedByLayoutId"][1]["id"] == "bed-layout-2"
+    assert result["syncedByLayoutId"][1]["xCm"] == 240
+    assert result["syncedByLayoutId"][1]["yCm"] == 250
+    assert result["matchedByLayoutId"]["id"] == "bed-layout-2"
+    assert result["matchedByRoomAndCatalog"]["id"] == "bed-layout-1"
 
     controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     assert controller.count("upsertFurniture2dFromSceneObject(") >= 4
     assert "removeFurniture2dBySceneObject(" in controller
     assert "furniture2dDefaultsForSceneObject" in controller
     assert "syncFinalValidationToConfiguration" in controller
+    assert "if (!furniture2dItemForSceneObject(state.furniture2d, sceneObject))" in controller
+    scene_index_source = controller.split(
+        "function configurationSceneObjectsByFurnitureId()", 1
+    )[1].split("function configurationFurnitureMissingFromScene", 1)[0]
+    assert "furniture2dItemForSceneObject(state.furniture2d, sceneObject)" in scene_index_source
+    blocking_source = controller.split("function configurationBlockingFurniture()", 1)[1].split(
+        "function configurationBlockingFurnitureByRoom", 1
+    )[0]
+    assert "configurationSceneObjectsByFurnitureId()" in blocking_source
+
+
+def test_furniture_missing_from_scene_objects_is_reported_as_pending() -> None:
+    """2D 有、3D 沒有的家具必須進待處理，不能掛著「合法」。
+
+    3D 只畫 scene_json 的 scene_objects。缺 GLB 的家具會在
+    confirmLayout2d 被濾出 /api/scene/generate，後端修復迴圈也會移除放不下
+    的家具——兩條路都只讓 scene_objects 少一件，furniture2d 不會自己同步。
+    2026-08-04 Ben 實測：電器櫃、浴櫃、收納櫃在右側清單寫「合法」，3D 一件
+    也沒有，且待處理計數為 0，使用者完全看不到發生什麼事。
+    """
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+
+    # 缺 GLB 的標記要用 scene 形狀的 furniture_id；用 item.id 會全部變 "undefined"。
+    missing_flag = controller.split("const missingCatalogModels", 1)[1].split(
+        "const sceneFurniture", 1
+    )[0]
+    missing_ids_expr = missing_flag.split("const missingIds", 1)[1].split(";", 1)[0]
+    assert "String(item.furniture_id || item.id" in missing_ids_expr
+    assert "missingCatalogModels.map((item) => String(item.id))" not in missing_ids_expr
+
+    # 對帳：產生場景後，scene_objects 沒有的家具一律補標 placementFailed。
+    reconcile = controller.split("const missingFromScene = configurationFurnitureMissingFromScene()", 1)
+    assert len(reconcile) >= 2
+    assert "placementFailed: true" in reconcile[1].split("const selectedSceneIndex", 1)[0]
+
+    missing_source = controller.split(
+        "function configurationFurnitureMissingFromScene(", 1
+    )[1].split("function configurationBlockingFurniture()", 1)[0]
+    # 場景還沒產生時不判定缺件，否則第 5 步的 2D 會整批變待處理。
+    assert 'Array.isArray(state.sceneData?.scene_objects)' in missing_source
+    assert "placement_resolution_report" in missing_source
+
+    blocking_source = controller.split("function configurationBlockingFurniture()", 1)[1].split(
+        "function configurationBlockingFurnitureByRoom", 1
+    )[0]
+    assert "missingFromScene.has(String(item.id))" in blocking_source
 
 
 def test_step_six_progress_entry_opens_the_3d_workspace() -> None:
@@ -3000,6 +3098,7 @@ def test_realtime_style_material_choices_are_grouped_by_style_with_previews() ->
     html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
     controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     packs = (STATIC_DIR / "scene_style_packs.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
 
     assert "STYLE_MATERIAL_OPTIONS" in packs
     assert "materialPreview" in packs
@@ -3007,7 +3106,16 @@ def test_realtime_style_material_choices_are_grouped_by_style_with_previews() ->
     assert 'id="floor-material-grouped"' in html
     assert "renderGroupedMaterialOptions" in controller
     assert "data-material-preview" in controller
-    assert "3D 上即時預覽此風格的牆面、地板與燈光" in html
+    assert "選取材質後會立即同步到 3D" in html
+    assert 'class="rp-surface-material-groups"' in html
+    assert 'class="rp-surface-material-group"' in html
+    assert 'class="rp-surface-color-grid"' in html
+    assert 'class="rp-surface-advanced"' in html
+    assert 'class="rp-material-card-copy"' in controller
+    assert 'class="rp-material-badge"' in controller
+    assert 'aria-pressed="${isActive ? "true" : "false"}"' in controller
+    assert "repeat(auto-fit, minmax(164px, 1fr))" in css
+    assert ".rp-material-card-copy > small" in css
 
 
 def test_realtime_style_cards_show_reference_images_and_sync_full_scene_rules() -> None:
@@ -3225,6 +3333,17 @@ def test_step_four_plan_stays_fixed_and_resyncs_overlays_after_panel_changes() -
     assert "align-items: start;" in css.split(
         "#space-step .rp-space-review-workspace", 1
     )[1].split("}", 1)[0]
+    desktop_scroll_rules = css.split(
+        "/* Keep the plan visible while the Step 4 review rail scrolls independently. */",
+        1,
+    )[1].split("#space-step #space-plan-stage", 1)[0]
+    assert (
+        'body.rp-workflow-page[data-workflow-step="space_confirmation"]'
+        in desktop_scroll_rules
+    )
+    assert "grid-template-rows: minmax(0, 1fr) auto;" in desktop_scroll_rules
+    assert "overflow-y: auto;" in desktop_scroll_rules
+    assert "overscroll-behavior-y: contain;" in desktop_scroll_rules
 
 
 def test_primary_bedroom_is_chosen_by_area_not_recognition_order() -> None:
@@ -3310,3 +3429,83 @@ def test_restore_refreshes_stale_floorplan_from_step4_snapshot() -> None:
     assert "{ ...floorplan, ...layout.floorplan }" in refresh
     # 刷新後要觸發保存，下次復原不必再打一次。
     assert "restoredFloorplanRefreshed" in source
+
+
+def test_step_seven_sidebar_is_a_three_stage_guided_flow() -> None:
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+
+    summary = html.index('id="proposal-stage-summary"')
+    palette = html.index('id="proposal-stage-palette"')
+    view = html.index('id="proposal-stage-view"')
+    assert summary < palette < view
+    assert 'class="rp-control-pane rp-3d-sidebar rp-proposal-sidebar"' in html
+    assert 'data-proposal-stage="summary"' in html
+    assert 'data-proposal-stage="palette"' in html
+    assert 'data-proposal-stage="view"' in html
+    assert 'role="radiogroup" aria-label="同風格色卡"' in html
+    assert 'class="rp-check-row rp-proposal-confirmation"' in html
+    assert 'class="rp-proposal-secondary-actions"' in html
+    assert 'id="proposal-room-views-slot"' in html
+
+
+def test_step_seven_palette_cards_and_stage_states_remain_interactive() -> None:
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
+
+    assert "function syncProposalReviewStages()" in source
+    assert 'role="radio" aria-checked="${pack.id === selectedId}"' in source
+    assert "pack.furnitureRules.signature.slice(0, 2)" in source
+    assert 'element.proposalContentConfirmed?.addEventListener("change", syncProposalReviewStages)' in source
+    assert 'const slot = $("#proposal-room-views-slot")' in source
+    assert "slot.append(panel)" in source
+    assert "#proposal-review-step .rp-proposal-sidebar" in css
+    assert ".rp-proposal-stage.is-active" in css
+    assert "#proposal-palette-grid > button.is-active" in css
+    assert ".rp-proposal-secondary-actions #return-to-realistic" in css
+
+
+def test_step_eight_uses_the_ai_render_workbench_without_changing_existing_actions() -> None:
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+
+    workbench = html.split('id="ai-render-step"', 1)[1].split(
+        'id="room-scheme-selection-dialog"', 1
+    )[0]
+    assert "AI 渲染工作台" in workbench
+    assert 'class="rp-ai-render-tabs"' in workbench
+    assert 'data-ai-render-tab="palette"' in workbench
+    assert 'data-ai-render-tab="rooms"' in workbench
+    assert 'data-ai-render-tab="results"' in workbench
+    assert 'data-ai-render-stage="palette"' in workbench
+    assert 'data-ai-render-stage="rooms"' in workbench
+    assert 'data-ai-render-stage="results"' in workbench
+    assert 'id="render-detail-box" class="rp-ai-render-settings"' in workbench
+
+    for control_id in (
+        "request-palette-renders",
+        "confirm-render-palette",
+        "save-room-view",
+        "submit-room-renders",
+        "download-render-view",
+        "save-render-view-png",
+        "saved-renders-list",
+    ):
+        assert f'id="{control_id}"' in workbench
+
+    assert "function setAiRenderWorkbenchStage(stageId, focus = false)" in source
+    assert 'button.setAttribute("aria-pressed"' in source
+    assert 'stage.classList.toggle("is-active", active)' in source
+    assert 'setAiRenderWorkbenchStage("rooms", true)' in source
+
+
+def test_step_eight_palette_options_keep_multi_select_behavior_and_add_visual_swatches() -> None:
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    palette = source.split("function renderPaletteOptions()", 1)[1].split(
+        "function roomCameraSuggestion", 1
+    )[0]
+
+    assert 'type="checkbox"' in palette
+    assert "data-render-style-card" in palette
+    assert 'class="rp-render-palette-option"' in palette
+    assert 'class="rp-render-palette-swatches"' in palette
+    assert "pack.palette.map(escapeHtml).join" in palette

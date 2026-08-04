@@ -36,9 +36,14 @@ def _settings(
         parser_provider=provider,
         openai_api_key=api_key if provider == "openai" else "",
         anthropic_api_key=api_key if provider == "anthropic" else "",
-        parser_model=(
-            "claude-sonnet-4-6" if provider == "anthropic" else "gpt-5.6-sol"
-        ),
+        openrouter_api_key=api_key if provider == "openrouter" else "",
+        openrouter_base_url="https://openrouter.ai/api/v1",
+        openrouter_site_url="https://roompilot.example",
+        openrouter_app_name="roompilot-tests",
+        parser_model={
+            "anthropic": "claude-sonnet-4-6",
+            "openrouter": "openai/gpt-5.6-sol",
+        }.get(provider, "gpt-5.6-sol"),
         parser_reasoning_effort="low",
         parser_timeout_seconds=10,
         anthropic_max_tokens=4096,
@@ -113,6 +118,7 @@ def test_controlled_schema_preserves_nulls_and_rejects_unknown_values() -> None:
     ("provider", "key_name", "model_name"),
     [
         ("openai", "OPENAI_API_KEY", "gpt-5.6-sol"),
+        ("openrouter", "OPENROUTER_API_KEY", "openai/gpt-5.6-sol"),
         ("anthropic", "ANTHROPIC_API_KEY", "claude-sonnet-4-6"),
     ],
 )
@@ -132,6 +138,48 @@ def test_settings_select_only_the_configured_rag_parser(
     assert settings.parser_provider == provider
     assert settings.parser_api_key == "selected-secret"
     assert settings.parser_model == model_name
+
+
+def test_service_status_accepts_openrouter_as_ready_provider(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ROOMPILOT_RAG_ENABLED", "true")
+    monkeypatch.setenv("ROOMPILOT_RAG_PARSER_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "selected-secret")
+
+    models = SimpleNamespace(
+        status=lambda settings: {
+            "packages": {"torch": True, "sentence_transformers": True},
+            "embedding_cached": True,
+            "reranker_cached": True,
+            "cache_dir": str(tmp_path / "models"),
+        }
+    )
+    repository = SimpleNamespace(
+        embedding_status=lambda project_dir: {
+            "provider": "postgresql_pgvector",
+            "current_embeddings": 7_958,
+            "search_function_available": True,
+        }
+    )
+
+    status = FurnitureRagService(
+        tmp_path,
+        model_runtime=models,
+        repository=repository,
+    ).status()
+
+    assert status["ready"] is True
+    assert status["blockers"] == []
+    assert status["parser"] == {
+        "provider": "openrouter",
+        "model": "openai/gpt-5.6-sol",
+        "reasoning_effort": "low",
+        "max_tokens": None,
+        "key_configured": True,
+        "package_available": True,
+    }
 
 
 def test_preloader_does_not_load_models_when_rag_is_disabled(
@@ -231,6 +279,49 @@ def test_openai_parser_uses_structured_outputs_without_fallback(tmp_path: Path) 
         )
 
 
+def test_openrouter_parser_reuses_existing_key_and_openai_sdk(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    response = SimpleNamespace(
+        output_parsed=_plan(),
+        usage=SimpleNamespace(input_tokens=10, output_tokens=20, total_tokens=30),
+    )
+    responses = _FakeResponses(response=response)
+    client_options: dict[str, object] = {}
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs: object) -> None:
+            client_options.update(kwargs)
+            self.responses = responses
+
+    monkeypatch.setattr("openai.OpenAI", FakeOpenAI)
+    settings = _settings(tmp_path, provider="openrouter")
+
+    parsed = parse_configured_query("modern living room sofa", settings)
+
+    assert parsed.plan.room_type == "living_room"
+    assert client_options == {
+        "api_key": "server-secret",
+        "timeout": 10,
+        "base_url": "https://openrouter.ai/api/v1",
+        "default_headers": {
+            "HTTP-Referer": "https://roompilot.example",
+            "X-Title": "roompilot-tests",
+        },
+    }
+    assert responses.kwargs["model"] == "openai/gpt-5.6-sol"
+    assert responses.kwargs["text_format"] is RagQueryPlan
+    assert "server-secret" not in str(responses.kwargs)
+
+    with pytest.raises(RagDependencyError, match="OPENROUTER_API_KEY"):
+        parse_configured_query(
+            "sofa",
+            _settings(tmp_path, api_key="", provider="openrouter"),
+            client=object(),
+        )
+
+
 def test_anthropic_parser_uses_structured_outputs_without_fallback(tmp_path: Path) -> None:
     response = SimpleNamespace(
         parsed_output=_plan(),
@@ -279,7 +370,9 @@ def test_anthropic_parser_uses_structured_outputs_without_fallback(tmp_path: Pat
 def test_configured_parser_rejects_unknown_provider(tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     invalid = RagSettings(**{**settings.__dict__, "parser_provider": "other"})
-    with pytest.raises(RagDependencyError, match="must be openai or anthropic"):
+    with pytest.raises(
+        RagDependencyError, match="must be openai, openrouter, or anthropic"
+    ):
         parse_configured_query("sofa", invalid, client=object())
     with pytest.raises(RagUpstreamError, match="refusal"):
         parse_query(
@@ -514,6 +607,7 @@ def test_service_groups_hydrates_and_deduplicates_results(tmp_path: Path) -> Non
         if isinstance(value, dict):
             assert "embedding" not in value
             assert "openai_api_key" not in value
+            assert "openrouter_api_key" not in value
             for child in value.values():
                 assert_private_fields_absent(child)
         elif isinstance(value, list):

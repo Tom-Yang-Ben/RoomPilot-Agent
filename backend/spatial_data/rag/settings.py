@@ -35,6 +35,10 @@ class RagSettings:
     parser_provider: str
     openai_api_key: str
     anthropic_api_key: str
+    openrouter_api_key: str
+    openrouter_base_url: str
+    openrouter_site_url: str
+    openrouter_app_name: str
     parser_model: str
     parser_reasoning_effort: str
     parser_timeout_seconds: float
@@ -46,6 +50,8 @@ class RagSettings:
     def parser_api_key(self) -> str:
         if self.parser_provider == "anthropic":
             return self.anthropic_api_key
+        if self.parser_provider == "openrouter":
+            return self.openrouter_api_key
         return self.openai_api_key
 
 
@@ -53,11 +59,20 @@ def load_rag_settings(project_dir: Path) -> RagSettings:
     default_cache = Path(os.getenv("HF_HOME") or (Path.home() / ".cache" / "huggingface"))
     cache_setting = _setting(project_dir, "ROOMPILOT_RAG_MODEL_CACHE")
     provider = _setting(project_dir, "ROOMPILOT_RAG_PARSER_PROVIDER", "openai").casefold()
-    default_model = (
-        _setting(project_dir, "ROOMPILOT_RAG_ANTHROPIC_MODEL", "claude-sonnet-4-6")
-        if provider == "anthropic"
-        else _setting(project_dir, "ROOMPILOT_RAG_OPENAI_MODEL", "gpt-5.6-sol")
-    )
+    if provider == "anthropic":
+        default_model = _setting(
+            project_dir, "ROOMPILOT_RAG_ANTHROPIC_MODEL", "claude-sonnet-4-6"
+        )
+    elif provider == "openrouter":
+        default_model = _setting(
+            project_dir,
+            "ROOMPILOT_RAG_OPENROUTER_MODEL",
+            "openai/gpt-5.6-sol",
+        )
+    else:
+        default_model = _setting(
+            project_dir, "ROOMPILOT_RAG_OPENAI_MODEL", "gpt-5.6-sol"
+        )
     timeout_default = _setting(
         project_dir, "ROOMPILOT_RAG_OPENAI_TIMEOUT_SECONDS", "30"
     )
@@ -66,6 +81,17 @@ def load_rag_settings(project_dir: Path) -> RagSettings:
         parser_provider=provider,
         openai_api_key=_setting(project_dir, "OPENAI_API_KEY"),
         anthropic_api_key=_setting(project_dir, "ANTHROPIC_API_KEY"),
+        openrouter_api_key=_setting(project_dir, "OPENROUTER_API_KEY"),
+        openrouter_base_url=(
+            _setting(
+                project_dir,
+                "ROOMPILOT_RAG_OPENROUTER_BASE_URL",
+                "https://openrouter.ai/api/v1",
+            )
+            or "https://openrouter.ai/api/v1"
+        ).rstrip("/"),
+        openrouter_site_url=_setting(project_dir, "OPENROUTER_SITE_URL"),
+        openrouter_app_name=_setting(project_dir, "OPENROUTER_APP_NAME", "roompilot"),
         parser_model=(
             _setting(project_dir, "ROOMPILOT_RAG_PARSER_MODEL", default_model)
             or default_model

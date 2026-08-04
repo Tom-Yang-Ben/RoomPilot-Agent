@@ -176,6 +176,17 @@ export const FURNITURE_2D_LIBRARY = Object.freeze([
   },
 ]);
 
+// 2D 放得下、型錄卻一件模型都沒有的族系。第 6 步會把它們列進
+// `unavailable_types`，3D 永遠缺席——先在型庫標示，不要等到第 6 步才安靜消失。
+// 必須與 `backend/server/catalog_vocabulary.FAMILIES_WITHOUT_CATALOG_MODELS`
+// 逐字一致，由 tests/test_catalog_vocabulary_contract.py 鎖住。
+export const FAMILIES_WITHOUT_CATALOG_MODELS = Object.freeze([
+  "bathtub",
+  "kitchen-island",
+  "plant-shelf",
+  "vanity-table",
+]);
+
 export function findFurniture2DVariant(type, variantId) {
   const category = FURNITURE_2D_LIBRARY.find((item) => item.type === type);
   if (!category) return null;

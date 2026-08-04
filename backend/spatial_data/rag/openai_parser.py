@@ -70,17 +70,33 @@ def parse_query(
     *,
     client: Any | None = None,
 ) -> ParsedQuery:
-    if not settings.openai_api_key:
-        raise RagDependencyError("OPENAI_API_KEY is not configured")
+    key_name = (
+        "OPENROUTER_API_KEY"
+        if settings.parser_provider == "openrouter"
+        else "OPENAI_API_KEY"
+    )
+    if not settings.parser_api_key:
+        raise RagDependencyError(f"{key_name} is not configured")
     if client is None:
         try:
             from openai import OpenAI
         except ImportError as exc:
             raise RagDependencyError("openai package is not installed") from exc
-        client = OpenAI(
-            api_key=settings.openai_api_key,
-            timeout=settings.parser_timeout_seconds,
-        )
+        client_options: dict[str, Any] = {
+            "api_key": settings.parser_api_key,
+            "timeout": settings.parser_timeout_seconds,
+        }
+        if settings.parser_provider == "openrouter":
+            headers = {}
+            if settings.openrouter_site_url:
+                headers["HTTP-Referer"] = settings.openrouter_site_url
+            if settings.openrouter_app_name:
+                headers["X-Title"] = settings.openrouter_app_name
+            client_options.update(
+                base_url=settings.openrouter_base_url,
+                default_headers=headers,
+            )
+        client = OpenAI(**client_options)
 
     try:
         response = client.responses.parse(
@@ -96,13 +112,24 @@ def parse_query(
     except RagDependencyError:
         raise
     except Exception as exc:
-        raise RagUpstreamError("OpenAI query parsing failed") from exc
+        provider_name = (
+            "OpenRouter" if settings.parser_provider == "openrouter" else "OpenAI"
+        )
+        raise RagUpstreamError(f"{provider_name} query parsing failed") from exc
 
     parsed = getattr(response, "output_parsed", None)
     if parsed is None:
-        raise RagUpstreamError("OpenAI returned a refusal or no structured output")
+        provider_name = (
+            "OpenRouter" if settings.parser_provider == "openrouter" else "OpenAI"
+        )
+        raise RagUpstreamError(
+            f"{provider_name} returned a refusal or no structured output"
+        )
     try:
         plan = parsed if isinstance(parsed, RagQueryPlan) else RagQueryPlan.model_validate(parsed)
     except Exception as exc:
-        raise RagUpstreamError("OpenAI returned invalid structured output") from exc
+        provider_name = (
+            "OpenRouter" if settings.parser_provider == "openrouter" else "OpenAI"
+        )
+        raise RagUpstreamError(f"{provider_name} returned invalid structured output") from exc
     return ParsedQuery(plan=plan, usage=_usage(response))

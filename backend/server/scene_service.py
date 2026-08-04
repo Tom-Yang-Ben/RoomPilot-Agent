@@ -26,6 +26,7 @@ from ..engine.placement import (
     place_overlay_on_furniture,
 )
 from ..upgrade3d.dxf_parser import parse_dxf_bytes
+from .catalog_vocabulary import catalog_types_for_family
 from .style_cards import find_taiwan_style_card
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
@@ -175,7 +176,9 @@ FURNITURE_ALIASES = {
     "書櫃": "bookcase",
     "地毯": "large-medium-rug",
     "床": "bed",
-    "床架": "bed-frame",
+    # 型錄沒有 bed-frame／cabinets-cupboard 這兩個分類，別名指過去等於整族落空。
+    # 直接指向型錄實際用語，`FAMILY_OF` 才不必反向替問卷做別名正規化。
+    "床架": "bed",
     "床頭櫃": "bedside-table",
     "書桌": "desk",
     "辦公椅": "office-chair",
@@ -183,7 +186,7 @@ FURNITURE_ALIASES = {
     "餐椅": "dining-chair",
     "邊櫃": "sideboard",
     "壁架": "wall-shelf",
-    "收納櫃": "cabinets-cupboard",
+    "收納櫃": "cabinet-cupboard",
 }
 
 
@@ -548,15 +551,28 @@ def choose_furniture_items(
             + rng.random() * 8
         )
 
-    for index, required_type in enumerate(plan.get("required_furniture", [])):
-        candidates = [
+    def type_candidates(catalog_type: str, requested_type: str) -> list[dict[str, Any]]:
+        return [
             item
             for item in furniture
             if item.get("has_model")
             and item.get("furniture_id") not in used_ids
-            and item.get("normalized_type") == required_type
-            and catalog_item_matches_type_semantics(item, required_type)
+            and item.get("normalized_type") == catalog_type
+            # 語意檢查一律用「使用者要的族系」判定：走後備時也不得放寬，
+            # 否則 bed-frame 退到 bed 會連衣櫃模型都收下。
+            and catalog_item_matches_type_semantics(item, requested_type)
         ]
+
+    for index, required_type in enumerate(plan.get("required_furniture", [])):
+        # 先精準比對族系本身；查無候選才用型錄實際存在的同義分類（例如型錄只有
+        # cabinet-cupboard，沒有 appliance-cabinet／bathroom-vanity／
+        # storage-cabinet）。少了這一步，那些族系會整族落空，2D 有家具、3D 卻
+        # 永遠缺席——QA 2026-08-04 第 6 步的三個櫃子就是這樣消失的。
+        candidates: list[dict[str, Any]] = []
+        for catalog_type in catalog_types_for_family(required_type):
+            candidates = type_candidates(catalog_type, required_type)
+            if candidates:
+                break
 
         if not candidates:
             unavailable.append(required_type)

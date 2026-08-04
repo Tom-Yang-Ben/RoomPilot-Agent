@@ -25,8 +25,8 @@
 ```dotenv
 ROOMPILOT_CATALOG_PROVIDER=postgres
 ROOMPILOT_RAG_ENABLED=true
-ROOMPILOT_RAG_PARSER_PROVIDER=openai
-OPENAI_API_KEY=...
+ROOMPILOT_RAG_PARSER_PROVIDER=openrouter
+OPENROUTER_API_KEY=...
 ```
 
 並安裝 `requirements.txt` 的 RAG 套件。首次執行會下載 `BAAI/bge-m3` 與 `BAAI/bge-reranker-v2-m3` 到 `ROOMPILOT_RAG_MODEL_CACHE` 或 Hugging Face 預設快取。

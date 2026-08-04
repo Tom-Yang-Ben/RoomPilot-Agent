@@ -42,6 +42,9 @@ for _database_style, _api_style in _STYLE_ID_MAP.items():
     _STYLE_CODES_BY_API_ID.setdefault(_api_style, ())
     _STYLE_CODES_BY_API_ID[_api_style] += (_database_style,)
 
+# 尚未套用 planter → flower-pots-planter 改名的舊資料庫用的相容墊片，不是第二套
+# 詞彙。改名的唯一來源是匯入層的 CATEGORY_CODE_OVERRIDES；套用之後
+# category_code 與 normalized_type 恆等，這張表就不會命中。
 _TYPE_ID_MAP = {"planter": "flower-pots-planter"}
 
 _GROUP_NAMES = {
@@ -72,7 +75,8 @@ _GROUP_TYPES = {
     },
     "soft_decor": {
         "large-medium-rug", "runner-small-rug", "rug", "round-rug", "handmade-rug",
-        "sheepskins-cowhide", "outdoor-rug", "planter", "lamp", "table-lamp",
+        "sheepskins-cowhide", "outdoor-rug", "flower-pots-planter", "planter",
+        "lamp", "table-lamp",
         "floor-lamp", "wall-lamp", "ceiling-lamp", "pendant-lamp", "lamp-shades-base",
         "pillow-cushion", "decoration", "vase", "mirror", "large-mirror",
         "standing-mirror", "wall-art", "wall-mirror", "door-mat",

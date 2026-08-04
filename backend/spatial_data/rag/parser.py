@@ -16,10 +16,10 @@ def parse_query(
     *,
     client: Any | None = None,
 ) -> ParsedQuery:
-    if settings.parser_provider == "openai":
+    if settings.parser_provider in {"openai", "openrouter"}:
         return parse_openai_query(text, settings, client=client)
     if settings.parser_provider == "anthropic":
         return parse_anthropic_query(text, settings, client=client)
     raise RagDependencyError(
-        "ROOMPILOT_RAG_PARSER_PROVIDER must be openai or anthropic"
+        "ROOMPILOT_RAG_PARSER_PROVIDER must be openai, openrouter, or anthropic"
     )

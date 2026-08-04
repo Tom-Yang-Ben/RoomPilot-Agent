@@ -213,7 +213,9 @@ MOUNT_HEIGHT_BY_TYPE: dict[str, float] = {
     "bookcase": 120.0,
     "shelving-unit": 120.0,
     # 壁掛花盆掛視線高度，沙發與矮櫃上方可共存。
-    "planter": 120.0,
+    # 鍵是 payload 的 normalized_type；先前寫成型錄的舊 category_code `planter`，
+    # 兩個鍵空間分岔期間這條從未命中過。
+    "flower-pots-planter": 120.0,
     # 壁掛床邊桌對齊床墊面（台灣床架＋床墊約 45–55）。
     "bedside-table": 45.0,
     # 壁掛衣帽架：大衣下襬要離地。

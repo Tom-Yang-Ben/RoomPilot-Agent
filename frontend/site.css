@@ -39,6 +39,64 @@ body.rp-workflow-page #space-step {
   overflow: auto;
 }
 
+/* Keep the plan visible while the Step 4 review rail scrolls independently. */
+@media (min-width: 1025px) {
+  body.rp-workflow-page[data-workflow-step="space_confirmation"] {
+    --rp-step-four-topbar-height: 58px;
+    --rp-step-four-chrome-height: 194px;
+    overflow: hidden;
+  }
+
+  body.rp-workflow-page[data-workflow-step="space_confirmation"] .rp-workflow-shell {
+    height: calc(100dvh - var(--rp-step-four-topbar-height));
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body.rp-workflow-page[data-workflow-step="space_confirmation"] #space-step {
+    height: calc(100dvh - var(--rp-step-four-chrome-height));
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  #space-step .rp-space-review-workspace {
+    grid-template-rows: minmax(0, 1fr) auto;
+    height: 100%;
+    min-height: 0;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  #space-step .rp-space-review-workspace > .rp-plan-pane,
+  #space-step .rp-space-review-workspace > .rp-space-controls {
+    height: 100%;
+  }
+
+  #space-step .rp-space-review-workspace > .rp-space-controls {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+  }
+
+  #space-step #space-plan-stage {
+    height: auto;
+    min-height: 0;
+  }
+
+  #space-step .rp-space-completion-bar {
+    position: static;
+    bottom: auto;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1180px) {
+  body.rp-workflow-page[data-workflow-step="space_confirmation"] {
+    --rp-step-four-topbar-height: 72px;
+    --rp-step-four-chrome-height: 209px;
+  }
+}
+
 #space-step .rp-plan-pane > .rp-pane-heading {
   display: grid;
   /* 第二欄原本是 auto，而 .rp-plan-heading-tools 裡放的是整個房間編輯器（最小寬度
@@ -8784,6 +8842,27 @@ body.rp-workflow-page .danger-action {
   color: var(--rp-muted);
 }
 
+/* 型錄沒有 3D 模型的族系：2D 擺得下，第 6 步一定選不到件。虛線邊框加角標，
+   讓「3D 會缺席」在放下去之前就看得到，而不是等第 6 步安靜消失。 */
+.rp-furniture-library button.is-no-catalog-model {
+  position: relative;
+  border-style: dashed;
+  border-color: #b8a894;
+}
+
+.rp-furniture-library button.is-no-catalog-model::after {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #efe7dc;
+  color: #7a6a55;
+  font-size: 10px;
+  line-height: 1.4;
+  content: "無 3D";
+}
+
 .rp-layout-furniture-list {
   display: grid;
   max-height: 250px;
@@ -9496,44 +9575,270 @@ body.rp-workflow-page .rp-configuration-pending-escape button {
   font-size: 16px;
 }
 
-.rp-material-option-grid {
+#realistic-3d-step .rp-surface-editor {
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #d8d0c6;
+  border-radius: 12px;
+  background: #fffdf9;
+  box-shadow: 0 10px 28px rgba(67, 53, 43, 0.07);
+}
+
+.rp-surface-editor-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 142px;
+  align-items: end;
+  gap: 16px;
+}
+
+.rp-surface-editor-heading .eyebrow {
+  color: var(--rp-green);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.rp-surface-editor-heading h3 {
+  margin-top: 4px;
+  font-size: 19px;
+}
+
+.rp-surface-scope span,
+.rp-surface-material-select span {
+  color: #776b61;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rp-surface-scope select,
+.rp-surface-material-select select {
+  min-height: 36px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+#realistic-3d-step .rp-surface-editor > .rp-control-hint {
+  margin: -4px 0 0;
+  color: #756a60;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.rp-surface-color-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
+}
+
+.rp-surface-color-grid label {
+  grid-template-columns: minmax(0, 1fr) 50px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border: 1px solid #ded7cf;
+  border-radius: 10px;
+  background: #f7f3ed;
+}
+
+.rp-surface-color-grid label > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.rp-surface-color-grid strong {
+  color: #352f2a;
+  font-size: 13px;
+}
+
+.rp-surface-color-grid small {
+  color: #81756a;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+body.rp-workflow-page .rp-surface-color-grid input[type="color"] {
+  width: 50px;
+  min-height: 42px;
+  padding: 3px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.rp-surface-material-groups {
+  display: grid;
+  gap: 12px;
+}
+
+.rp-surface-material-group {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid #ddd5cc;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.rp-surface-material-group > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  align-items: end;
+  gap: 14px;
+}
+
+.rp-surface-material-group > header > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rp-surface-material-group > header > div > strong {
+  color: #2f2a26;
+  font-size: 15px;
+}
+
+.rp-surface-material-group > header > div > small {
+  color: #82766c;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.rp-material-option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(164px, 1fr));
+  gap: 9px;
 }
 
 .rp-material-option-grid button {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  min-height: 74px;
-  padding: 8px;
-  border: 1px solid #c9c3ba;
-  border-radius: 5px;
-  background: #fff;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  min-height: 104px;
+  padding: 9px;
+  border: 1px solid #d6cec5;
+  border-radius: 10px;
+  background: #fffdfa;
   color: #2d2a26;
   text-align: left;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.rp-material-option-grid button:hover {
+  border-color: #9caa9f;
+  box-shadow: 0 7px 18px rgba(51, 61, 54, 0.09);
+  transform: translateY(-1px);
+}
+
+.rp-material-option-grid button:focus-visible {
+  outline: 3px solid rgba(36, 107, 85, 0.2);
+  outline-offset: 2px;
 }
 
 .rp-material-option-grid button.is-active {
   border-color: var(--rp-green);
-  box-shadow: inset 0 0 0 1px var(--rp-green);
+  background: #f1f7f3;
+  box-shadow: inset 0 0 0 1px var(--rp-green), 0 7px 18px rgba(36, 107, 85, 0.1);
 }
 
 .rp-material-preview {
-  width: 54px;
-  height: 54px;
-  border: 1px solid #bdb6ad;
-  border-radius: 4px;
+  width: 62px;
+  height: 82px;
+  border: 1px solid #c7bfb6;
+  border-radius: 7px;
   background-size: cover !important;
   background-position: center !important;
 }
 
-.rp-material-option-grid small {
-  grid-column: 2;
-  color: #6a625b;
+.rp-material-card-copy {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.rp-material-card-title {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rp-material-card-title strong {
+  color: #302a26;
+  font-size: 13px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.rp-material-badge {
+  width: fit-content;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #e3f0e9;
+  color: #1d644d;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.rp-material-card-copy > small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #6a625b;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.rp-surface-apply {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 9px;
+  font-weight: 800;
+}
+
+.rp-surface-advanced {
+  border-top: 1px solid #e2dbd3;
+  color: #504840;
+}
+
+.rp-surface-advanced summary {
+  padding: 13px 2px 2px;
+  color: #4e463f;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rp-surface-advanced[open] {
+  display: grid;
+  gap: 11px;
+}
+
+.rp-surface-advanced > p {
+  margin: 0;
+  color: #7b7066;
+  font-size: 11px;
+}
+
+@media (max-width: 1120px) {
+  .rp-surface-editor-heading,
+  .rp-surface-material-group > header {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .rp-surface-color-grid,
+  .rp-material-option-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .rp-conflict-list {
@@ -15970,6 +16275,149 @@ body.is-registering .auth-register-only {
   display: grid;
 }
 
+/* 第 6 步側欄：讓 2D 對照、處理狀態與操作區共用一致的工作台節奏。 */
+#white-model-3d-step .rp-3d-sidebar {
+  gap: 16px;
+  padding: 20px;
+  background: #f3f1ed;
+  scrollbar-gutter: stable;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-scene-sidebar-tabs {
+  margin: 0;
+  border-color: #d9d3ca;
+  border-radius: 9px;
+  background: #e9e5df;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-scene-sidebar-tabs button {
+  min-height: 40px;
+  border-radius: 7px;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan {
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d7d1c8;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 7px 20px rgba(54, 47, 40, 0.05);
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan > header > div {
+  min-width: 0;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan > header .eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: #6f675f;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan > header h2 {
+  margin: 0;
+  color: #292622;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan > header .rp-icon-command {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  justify-self: end;
+  border-radius: 7px;
+  background: #faf9f7;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan-body {
+  max-height: min(50vh, 500px);
+  padding-right: 6px;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan-sticky {
+  border-radius: 7px;
+  background: #fff;
+}
+
+#white-model-3d-step .rp-3d-sidebar .rp-configuration-plan-stage {
+  border-color: #d7d1c8;
+  border-radius: 8px;
+}
+
+#white-model-3d-step .rp-3d-sidebar > .rp-editor-box {
+  position: relative;
+  gap: 10px;
+  padding: 17px 16px 16px;
+  border-color: #d7d1c8;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 7px 20px rgba(54, 47, 40, 0.04);
+}
+
+#white-model-3d-step .rp-3d-sidebar > .rp-editor-box::before {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  width: 38px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: #27715d;
+  content: "";
+}
+
+#white-model-3d-step .rp-3d-sidebar > .rp-editor-box h3 {
+  color: #292622;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+#white-model-3d-step .rp-3d-sidebar > .rp-editor-box p {
+  margin: 0;
+  color: #665f57;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+#white-model-3d-step .rp-3d-sidebar > .rp-editor-box .secondary-action {
+  min-height: 42px;
+  border-color: #bdb5ab;
+  border-radius: 7px;
+  background: #fff;
+}
+
+#white-model-3d-step .rp-3d-sidebar > .rp-editor-box .secondary-action:hover,
+#white-model-3d-step .rp-3d-sidebar > .rp-editor-box .secondary-action:focus-visible {
+  border-color: #27715d;
+  background: #f2f8f5;
+  color: #1f5a49;
+}
+
+body.rp-workflow-page #white-model-3d-step .rp-3d-sidebar > .rp-white-beam-editor {
+  border-left: 1px solid #d7d1c8;
+}
+
+body.rp-workflow-page #white-model-3d-step .rp-3d-sidebar > .rp-white-beam-editor::before {
+  background: #6b4d8a;
+}
+
+#white-model-3d-step .rp-3d-sidebar #confirm-white-model {
+  min-height: 50px;
+  margin-top: 2px;
+  border-radius: 9px;
+  box-shadow: 0 7px 16px rgba(31, 91, 73, 0.16);
+}
+
 /* ── 第 5 步：本房牆＋地板搭配卡（scene_material_pair_preview.js 立體預覽） ── */
 
 .rp-material-pair-grid {
@@ -16052,6 +16500,409 @@ body.is-registering .auth-register-only {
   border-color: var(--rp-green);
   box-shadow: inset 0 0 0 2px var(--rp-green);
   background: #f5faf7;
+}
+
+/* ── 第 7 步方案鎖定：三階段導引側欄 ─────────────────────────────────── */
+
+#proposal-review-step .rp-proposal-sidebar {
+  gap: 0;
+  padding: 18px;
+  background: #f3f1ed;
+  scrollbar-gutter: stable;
+}
+
+.rp-proposal-sidebar-intro {
+  display: grid;
+  gap: 5px;
+  padding: 2px 2px 16px;
+  border-bottom: 1px solid #d8d2c9;
+}
+
+.rp-proposal-sidebar-intro .eyebrow {
+  color: #27715d;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.rp-proposal-sidebar-intro h2,
+.rp-proposal-sidebar-intro p {
+  margin: 0;
+}
+
+.rp-proposal-sidebar-intro h2 {
+  color: #292622;
+  font-size: 20px;
+}
+
+.rp-proposal-sidebar-intro p {
+  color: #6b645c;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.rp-proposal-flow {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.rp-proposal-stage {
+  position: relative;
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #d5cfc6;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 7px 20px rgba(54, 47, 40, 0.045);
+}
+
+.rp-proposal-stage.is-active {
+  border-color: #27715d;
+  box-shadow: 0 0 0 1px #27715d, 0 9px 22px rgba(39, 113, 93, 0.08);
+}
+
+.rp-proposal-stage.is-complete {
+  border-color: #bfd2c9;
+}
+
+.rp-proposal-stage-heading {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.rp-proposal-stage-heading > div {
+  min-width: 0;
+}
+
+.rp-proposal-stage-number {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid #beb8af;
+  border-radius: 50%;
+  background: #f8f6f2;
+  color: #625b53;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rp-proposal-stage.is-active .rp-proposal-stage-number,
+.rp-proposal-stage.is-complete .rp-proposal-stage-number {
+  border-color: #27715d;
+  background: #27715d;
+  color: #fff;
+}
+
+.rp-proposal-stage-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: #817970;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.rp-proposal-stage-heading h3 {
+  margin: 0;
+  color: #292622;
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.rp-proposal-stage-state {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #edeae5;
+  color: #706960;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rp-proposal-stage.is-active .rp-proposal-stage-state {
+  background: #e8f2ed;
+  color: #1f6854;
+}
+
+.rp-proposal-stage.is-complete .rp-proposal-stage-state {
+  background: #27715d;
+  color: #fff;
+}
+
+.rp-proposal-stage-description {
+  margin: 0;
+  color: #6a625a;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+#proposal-review-step .rp-review-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+#proposal-review-step .rp-review-summary > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid #e0dbd3;
+  border-radius: 7px;
+  background: #faf9f7;
+  font-size: 12px;
+}
+
+#proposal-review-step .rp-review-summary strong {
+  color: #59524a;
+  font-size: 11px;
+}
+
+#proposal-review-step .rp-review-summary span {
+  min-width: 0;
+  overflow: hidden;
+  color: #2f2b27;
+  font-weight: 700;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-proposal-palette-list {
+  display: grid;
+  gap: 8px;
+}
+
+#proposal-palette-grid > button {
+  display: grid;
+  grid-template-columns: 18px 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-width: 0;
+  min-height: 88px;
+  padding: 8px;
+  border: 1px solid #d3cec6;
+  border-radius: 8px;
+  background: #fff;
+  color: #312e2a;
+  text-align: left;
+}
+
+#proposal-palette-grid > button:hover,
+#proposal-palette-grid > button:focus-visible {
+  border-color: #6b9d8f;
+  background: #f7faf8;
+}
+
+#proposal-palette-grid > button.is-active {
+  border-color: #27715d;
+  background: #edf6f2;
+  box-shadow: inset 4px 0 0 #27715d;
+}
+
+.rp-proposal-palette-radio {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #aaa39a;
+  border-radius: 50%;
+  background: #fff;
+}
+
+#proposal-palette-grid > button.is-active .rp-proposal-palette-radio {
+  border: 5px solid #27715d;
+}
+
+#proposal-palette-grid .rp-style-card-preview {
+  width: 112px;
+  height: 72px;
+  aspect-ratio: auto;
+  object-fit: cover;
+  border: 1px solid #d5d0c8;
+  border-radius: 5px;
+  background: #f2f0eb;
+}
+
+.rp-proposal-palette-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.rp-proposal-palette-copy .rp-style-swatches {
+  display: flex;
+  width: 100%;
+  max-width: 108px;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(72, 66, 59, 0.18);
+  border-radius: 999px;
+}
+
+.rp-proposal-palette-copy .rp-style-swatches i {
+  flex: 1;
+}
+
+.rp-proposal-palette-copy strong,
+.rp-proposal-palette-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rp-proposal-palette-copy strong {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.rp-proposal-palette-copy small {
+  color: #706960;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.rp-proposal-inline-status,
+.rp-proposal-view-status {
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 6px;
+  background: #f4f2ee;
+  color: #655e56;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.rp-proposal-stage.is-complete .rp-proposal-inline-status,
+.rp-proposal-stage.is-complete .rp-proposal-view-status {
+  background: #eaf4ef;
+  color: #245f4e;
+}
+
+#proposal-review-step .rp-render-view-lock {
+  margin-top: 0;
+  border-left-width: 1px;
+}
+
+.rp-proposal-suggest-view {
+  min-height: 40px;
+  border-style: dashed;
+  background: #faf9f7;
+}
+
+#proposal-review-step .rp-proposal-confirmation {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 9px;
+  padding: 10px 11px;
+  border-color: #d2cdc5;
+  border-radius: 7px;
+  background: #faf9f7;
+}
+
+#proposal-review-step .rp-proposal-confirmation input {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 1px 0 0;
+  accent-color: #27715d;
+}
+
+#proposal-review-step .rp-proposal-confirmation label {
+  color: #47413b;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.rp-proposal-stage.is-confirmed .rp-proposal-confirmation {
+  border-color: #9fc2b5;
+  background: #edf6f2;
+}
+
+#proposal-review-step .rp-proposal-primary-action {
+  min-height: 48px;
+  border-radius: 8px;
+  background: #27715d;
+  box-shadow: 0 7px 16px rgba(31, 91, 73, 0.16);
+}
+
+.rp-proposal-secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rp-proposal-secondary-actions .secondary-action {
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 9px;
+  border-color: #c5beb5;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 12px;
+}
+
+.rp-proposal-secondary-actions #return-to-realistic {
+  grid-column: 1 / -1;
+}
+
+#proposal-room-views-slot:empty {
+  display: none;
+}
+
+#proposal-room-views-slot .rp-editor-box {
+  margin-top: 2px;
+  padding: 13px 0 0;
+  border: 0;
+  border-top: 1px solid #ddd7ce;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 1180px) and (min-width: 881px) {
+  #proposal-review-step .rp-review-summary {
+    grid-template-columns: 1fr;
+  }
+
+  #proposal-palette-grid > button {
+    grid-template-columns: 18px 88px minmax(0, 1fr);
+  }
+
+  #proposal-palette-grid .rp-style-card-preview {
+    width: 88px;
+    height: 64px;
+  }
+}
+
+@media (max-width: 520px) {
+  #proposal-review-step .rp-review-summary {
+    grid-template-columns: 1fr;
+  }
+
+  #proposal-palette-grid > button {
+    grid-template-columns: 18px 92px minmax(0, 1fr);
+  }
+
+  #proposal-palette-grid .rp-style-card-preview {
+    width: 92px;
+    height: 64px;
+  }
 }
 
 .rp-fixed-style-reference {
@@ -16316,5 +17167,464 @@ body[data-page="projects"] {
     width: 100%;
     justify-self: stretch;
     overflow-x: auto;
+  }
+}
+
+/* Step 8: compact AI rendering workbench, matched to the selected dashboard direction. */
+#ai-render-step .rp-ai-render-sidebar {
+  gap: 12px;
+  padding: 14px;
+  background: #f6f4f0;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
+#ai-render-step .rp-ai-render-heading {
+  display: grid;
+  gap: 7px;
+  padding: 16px 16px 14px;
+  border: 1px solid #d5d0c8;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(48, 41, 34, 0.05);
+}
+
+#ai-render-step .rp-ai-render-heading > div {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#ai-render-step .rp-ai-render-heading .eyebrow {
+  color: #27715d;
+}
+
+#ai-render-step .rp-ai-render-heading h2 {
+  margin: 2px 0 0;
+  color: #27231f;
+  font-size: 21px;
+}
+
+#ai-render-step .rp-ai-render-heading p {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  color: #6e675f;
+  font-size: 12px;
+}
+
+#ai-render-step #ai-render-task-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: #27715d;
+  font-weight: 700;
+}
+
+#ai-render-step #ai-render-task-state::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2d8a6f;
+  content: "";
+}
+
+#ai-render-step .rp-ai-render-settings {
+  overflow: clip;
+  border: 1px solid #d5d0c8;
+  border-radius: 9px;
+  background: #fff;
+}
+
+#ai-render-step .rp-ai-render-settings > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+#ai-render-step .rp-ai-render-settings > summary::-webkit-details-marker {
+  display: none;
+}
+
+#ai-render-step .rp-ai-render-settings > summary > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+#ai-render-step .rp-ai-render-settings > summary strong {
+  color: #302b26;
+  font-size: 14px;
+}
+
+#ai-render-step .rp-ai-render-settings > summary small,
+#ai-render-step .rp-ai-render-settings > summary > span:last-child {
+  color: #81786f;
+  font-size: 11px;
+}
+
+#ai-render-step .rp-ai-render-settings[open] > summary {
+  border-bottom: 1px solid #e1ddd6;
+  background: #faf9f6;
+}
+
+#ai-render-step .rp-ai-render-settings-body {
+  display: grid;
+  gap: 10px;
+  padding: 13px 14px 15px;
+}
+
+#ai-render-step .rp-ai-render-settings-body .rp-field-hint {
+  margin: 0;
+}
+
+#ai-render-step .rp-ai-render-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+#ai-render-step .rp-ai-render-settings-grid label {
+  display: grid;
+  gap: 5px;
+  color: #4d4741;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+#ai-render-step .rp-ai-render-settings-grid select {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 30px 7px 9px;
+  border: 1px solid #ccc6bd;
+  border-radius: 6px;
+  background: #fff;
+  color: #2f2b27;
+  font-size: 12px;
+}
+
+#ai-render-step .rp-ai-render-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 4px;
+  border: 1px solid #d5d0c8;
+  border-radius: 9px;
+  background: rgba(246, 244, 240, 0.96);
+  box-shadow: 0 5px 14px rgba(48, 41, 34, 0.04);
+}
+
+#ai-render-step .rp-ai-render-tabs button {
+  min-height: 36px;
+  padding: 7px 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #625b54;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#ai-render-step .rp-ai-render-tabs button:hover,
+#ai-render-step .rp-ai-render-tabs button:focus-visible {
+  background: #fff;
+  color: #245f4e;
+}
+
+#ai-render-step .rp-ai-render-tabs button[aria-pressed="true"] {
+  border-bottom-color: #27715d;
+  background: #fff;
+  color: #1f6653;
+}
+
+#ai-render-step .rp-ai-render-workflow {
+  display: grid;
+  gap: 10px;
+}
+
+#ai-render-step .rp-ai-render-stage {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  scroll-margin-top: 58px;
+  border: 1px solid #d5d0c8;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 7px 20px rgba(48, 41, 34, 0.035);
+}
+
+#ai-render-step .rp-ai-render-stage:focus {
+  outline: none;
+}
+
+#ai-render-step .rp-ai-render-stage.is-active {
+  border-color: #9cbcaf;
+  box-shadow: 0 0 0 1px rgba(39, 113, 93, 0.07), 0 10px 24px rgba(48, 41, 34, 0.05);
+}
+
+#ai-render-step .rp-ai-render-stage-heading {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+}
+
+#ai-render-step .rp-ai-render-stage-heading > span:first-child {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e6eee9;
+  color: #226650;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+#ai-render-step .rp-ai-render-stage.is-active .rp-ai-render-stage-heading > span:first-child {
+  background: #27715d;
+  color: #fff;
+}
+
+#ai-render-step .rp-ai-render-stage-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+#ai-render-step .rp-ai-render-stage-heading h3 {
+  margin: 1px 0 0;
+  color: #2c2824;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+#ai-render-step .rp-ai-render-stage-heading small {
+  color: #766e66;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+#ai-render-step .rp-ai-render-stage-heading > strong {
+  padding-top: 3px;
+  color: #27715d;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+#ai-render-step .rp-ai-render-stage-body {
+  display: grid;
+  gap: 10px;
+}
+
+#ai-render-step .rp-ai-render-stage[data-ai-render-stage="palette"]:not(.is-active) .rp-ai-render-stage-body {
+  display: none;
+}
+
+#ai-render-step .rp-ai-render-stage[data-ai-render-stage="rooms"]:not(.is-active) .rp-render-room-list,
+#ai-render-step .rp-ai-render-stage[data-ai-render-stage="rooms"]:not(.is-active) .rp-control-hint {
+  display: none;
+}
+
+#ai-render-step .rp-render-option-list {
+  gap: 9px;
+}
+
+#ai-render-step .rp-render-option-list > .rp-render-palette-option {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid #d7d2cb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+#ai-render-step .rp-render-option-list > .rp-render-palette-option:hover {
+  border-color: #99b8ad;
+}
+
+#ai-render-step .rp-render-palette-option:has(input:checked) {
+  border-color: #27715d;
+  background: #f1f7f4;
+  box-shadow: 0 0 0 1px rgba(39, 113, 93, 0.08);
+}
+
+#ai-render-step .rp-render-palette-option > input {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  border: 1px solid #918b84;
+  border-radius: 50%;
+  background: #fff;
+}
+
+#ai-render-step .rp-render-palette-option > input:checked {
+  border-color: #27715d;
+  background: #27715d;
+  box-shadow: inset 0 0 0 4px #fff;
+}
+
+#ai-render-step .rp-render-palette-option > input:focus-visible {
+  outline: 2px solid rgba(39, 113, 93, 0.28);
+  outline-offset: 2px;
+}
+
+#ai-render-step .rp-render-palette-copy {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.7fr) minmax(148px, 1.3fr);
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+#ai-render-step .rp-render-palette-copy strong {
+  color: #302c28;
+  font-size: 13px;
+}
+
+#ai-render-step .rp-render-palette-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px;
+}
+
+#ai-render-step .rp-render-palette-swatches i {
+  height: 32px;
+  border: 1px solid rgba(73, 65, 57, 0.13);
+  border-radius: 3px;
+}
+
+#ai-render-step .rp-render-palette-copy small {
+  grid-column: 1 / -1;
+  color: #716960;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.01em;
+}
+
+#ai-render-step .rp-ai-render-stage .primary-action,
+#ai-render-step .rp-ai-render-stage .secondary-action {
+  min-height: 42px;
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+#ai-render-step .rp-ai-render-stage .primary-action {
+  border-color: #27715d;
+  background: #27715d;
+  color: #fff;
+}
+
+#ai-render-step .rp-ai-render-stage .primary-action:hover:not(:disabled) {
+  background: #205f4e;
+}
+
+#ai-render-step .rp-ai-render-stage .secondary-action {
+  border-color: #aaa39a;
+  background: #fff;
+  color: #302c28;
+}
+
+#ai-render-step .rp-ai-render-stage-actions,
+#ai-render-step .rp-ai-render-result-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#ai-render-step .rp-ai-render-stage[data-ai-render-stage="rooms"]:not(.is-active) .rp-ai-render-stage-actions {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+#ai-render-step .rp-ai-render-stage[data-ai-render-stage="rooms"]:not(.is-active) #submit-room-renders {
+  display: none;
+}
+
+#ai-render-step .rp-render-room-list {
+  max-height: 230px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+#ai-render-step .rp-render-room-list > button {
+  min-height: 42px;
+  border-radius: 6px;
+  color: #3e3934;
+  cursor: pointer;
+}
+
+#ai-render-step .rp-render-room-list > button small {
+  color: #756e66;
+}
+
+#ai-render-step .rp-render-result-grid:empty,
+#ai-render-step #saved-renders-list > .rp-control-hint {
+  min-height: 76px;
+  margin: 0;
+  border: 1px dashed #d6d1ca;
+  border-radius: 7px;
+  background: #fbfaf8;
+}
+
+#ai-render-step #saved-renders-list > .rp-control-hint {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+}
+
+#ai-render-step .rp-render-jobs:not(:empty) {
+  padding: 12px;
+  border: 1px solid #d5d0c8;
+  border-radius: 9px;
+  background: #fff;
+}
+
+@media (max-width: 1180px) and (min-width: 1025px) {
+  #ai-render-step .rp-ai-render-settings-grid,
+  #ai-render-step .rp-ai-render-stage-actions,
+  #ai-render-step .rp-ai-render-result-actions {
+    grid-template-columns: 1fr;
+  }
+
+  #ai-render-step .rp-render-palette-copy {
+    grid-template-columns: 1fr;
+  }
+
+  #ai-render-step .rp-render-palette-copy small {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  #ai-render-step .rp-ai-render-settings-grid,
+  #ai-render-step .rp-ai-render-stage-actions,
+  #ai-render-step .rp-ai-render-result-actions,
+  #ai-render-step .rp-render-palette-copy {
+    grid-template-columns: 1fr;
+  }
+
+  #ai-render-step .rp-render-palette-copy small {
+    grid-column: auto;
+    overflow-wrap: anywhere;
   }
 }

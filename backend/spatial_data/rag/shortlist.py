@@ -40,26 +40,22 @@ DEFAULT_PER_FAMILY = 12
 MAX_ITEMS_PER_ROOM = 96
 
 
-# SPACE_DEFAULTS 的族系名與 Kai 型錄的 category_code 有六處對不上，實測時
-# 這些族系一律查不到候選（廚房的 storage-cabinet 就是整個房間 0 筆）。這裡
-# 補上對照，值取自型錄實際存在的 category_code：
+# SPACE_DEFAULTS 的族系名有幾個不是型錄分類，實測時這些族系一律查不到候選
+# （廚房的 storage-cabinet 就是整個房間 0 筆）。這裡補上對照，值取自型錄實際
+# 存在的 category_code：
 #
 #   storage-cabinet / appliance-cabinet / bathroom-vanity
 #       型錄只有 cabinet-cupboard 一種櫃體，前端 CATALOG_RETRIEVAL_ROUTES
 #       早就這樣繞過，但後端沒有對應的表。
-#   flower-pots-planter → 型錄叫 planter。
-#   FAMILY_OF 的 cabinets-cupboard 是複數，型錄是單數 cabinet-cupboard，
-#       所以那條「櫃體歸到 wardrobe」的映射從未生效。
-#   FAMILY_OF 的 bed-frame 在型錄中不存在（床一律是 bed），保留不影響結果。
+#   lounge-chair → 型錄的休閒椅一律是 armchair。
 #
-# 這是三方詞彙不一致，正解是在 Yen 的 FAMILY_OF 與 Bella 的 SPACE_DEFAULTS
-# 對齊型錄用語；在那之前這張表讓檢索不會整族落空。
+# 先前這裡還有 flower-pots-planter → planter 一條：那是 category_code 與
+# normalized_type 分岔的產物，改名已收進匯入層的 CATEGORY_CODE_OVERRIDES，
+# 兩個鍵空間現在恆等，不需要再對照。
 FAMILY_CATEGORY_OVERRIDES: dict[str, tuple[str, ...]] = {
     "storage-cabinet": ("cabinet-cupboard",),
     "appliance-cabinet": ("cabinet-cupboard",),
     "bathroom-vanity": ("cabinet-cupboard",),
-    "flower-pots-planter": ("planter",),
-    # 問卷會產生 lounge-chair，型錄的休閒椅一律是 armchair。
     "lounge-chair": ("armchair",),
 }
 
@@ -136,8 +132,6 @@ def _family_to_categories() -> dict[str, tuple[str, ...]]:
             mapping[family].append(family)
     for family, extra in FAMILY_CATEGORY_OVERRIDES.items():
         mapping.setdefault(family, [family]).extend(extra)
-    # 修正 FAMILY_OF 的複數錯字：櫃體實際歸到 wardrobe 族系。
-    mapping.setdefault("wardrobe", ["wardrobe"]).append("cabinet-cupboard")
     return {family: tuple(sorted(set(values))) for family, values in mapping.items()}
 
 

@@ -2,6 +2,10 @@ import json
 
 from test_scene_workflow import ROOT, run_workflow_script
 from backend.paths import STATIC_DIR
+from backend.server.catalog_vocabulary import (
+    FAMILY_CATALOG_FALLBACKS,
+    catalog_types_for_family,
+)
 from backend.server.main import _merge_furniture_catalog
 from backend.server.scene_service import (
     catalog_item_matches_type_semantics,
@@ -433,6 +437,99 @@ def test_catalog_does_not_merge_same_named_bed_and_cabinet_models() -> None:
 
     assert {item["normalized_type"] for item in merged} == {"bed", "cabinet-cupboard"}
     assert len(merged) == 2
+
+
+def _cabinet(furniture_id: str = "cabinet-1") -> dict:
+    return {
+        "furniture_id": furniture_id,
+        "name_en": "Cabinet with doors",
+        "name_zh_raw": "雙門櫃",
+        "normalized_type": "cabinet-cupboard",
+        "has_model": True,
+        "size_cm": {"width": 80, "depth": 40, "height": 180},
+    }
+
+
+def test_cabinet_families_fall_back_to_the_only_catalog_cabinet() -> None:
+    """型錄只有 cabinet-cupboard，問卷的三種櫃體不得整族落空。
+
+    QA 2026-08-04：第 6 步的電器櫃、浴櫃、高收納櫃在 2D 有編號、3D 缺席，
+    `placement.failed` 是空的，`unavailable_types` 才是原因——型錄裡這三個
+    normalized_type 都是 0 筆。
+    """
+    for family in ("appliance-cabinet", "bathroom-vanity", "storage-cabinet"):
+        chosen, unavailable = choose_furniture_items(
+            {"style_id": "scandinavian", "required_furniture": [family]},
+            [_cabinet()],
+        )
+
+        assert unavailable == [], family
+        assert [item["furniture_id"] for item in chosen] == ["cabinet-1"], family
+
+
+def test_exact_family_match_wins_over_the_fallback() -> None:
+    """後備只在族系本身查無候選時生效；型錄補進正名品項就要自動回到精準比對。"""
+    exact = {
+        "furniture_id": "storage-1",
+        "name_en": "Storage cabinet",
+        "normalized_type": "storage-cabinet",
+        "has_model": True,
+        "size_cm": {"width": 80, "depth": 40, "height": 180},
+    }
+
+    chosen, unavailable = choose_furniture_items(
+        {"style_id": "scandinavian", "required_furniture": ["storage-cabinet"]},
+        [_cabinet(), exact],
+    )
+
+    assert unavailable == []
+    assert [item["furniture_id"] for item in chosen] == ["storage-1"]
+
+
+def test_family_fallback_keeps_the_requested_type_semantics() -> None:
+    """bed-frame 退到 bed 之後，仍然不能收下衣櫃模型。"""
+    chosen, unavailable = choose_furniture_items(
+        {"style_id": "scandinavian", "required_furniture": ["bed-frame"]},
+        [
+            {
+                "furniture_id": "wrong-wardrobe",
+                "name_en": "Movian Morava 4-Door Wardrobe with Mirrors",
+                "normalized_type": "bed",
+                "has_model": True,
+                "size_cm": {"width": 200, "depth": 200, "height": 212},
+            },
+        ],
+    )
+
+    assert chosen == []
+    assert unavailable == ["bed-frame"]
+
+
+def test_family_fallback_table_never_maps_onto_itself_or_chains() -> None:
+    """後備必須指向型錄實際存在的分類，且不得再需要第二層對照。"""
+    for family, fallbacks in FAMILY_CATALOG_FALLBACKS.items():
+        assert fallbacks, family
+        assert family not in fallbacks, family
+        for fallback in fallbacks:
+            assert fallback not in FAMILY_CATALOG_FALLBACKS, (family, fallback)
+        assert catalog_types_for_family(family)[0] == family
+
+
+def test_step_eight_sidebar_matches_the_selected_compact_dashboard_direction() -> None:
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
+
+    step_eight = css.split(
+        "/* Step 8: compact AI rendering workbench, matched to the selected dashboard direction. */",
+        1,
+    )[1]
+    assert "#ai-render-step .rp-ai-render-sidebar" in step_eight
+    assert "#ai-render-step .rp-ai-render-settings" in step_eight
+    assert "#ai-render-step .rp-ai-render-tabs" in step_eight
+    assert 'button[aria-pressed="true"]' in step_eight
+    assert "#ai-render-step .rp-ai-render-stage.is-active" in step_eight
+    assert "#ai-render-step .rp-render-palette-option:has(input:checked)" in step_eight
+    assert "#ai-render-step .rp-ai-render-result-actions" in step_eight
+    assert "overscroll-behavior-y: contain;" in step_eight
 
 
 def test_bed_selection_rejects_wardrobe_and_drawer_models() -> None:

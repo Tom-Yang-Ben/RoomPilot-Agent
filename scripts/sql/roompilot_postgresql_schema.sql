@@ -535,10 +535,10 @@ WHERE i.is_active;
 CREATE OR REPLACE VIEW roompilot.furniture_catalog_api_current AS
 SELECT
     catalog.*,
-    CASE
-        WHEN catalog.category_code = 'planter' THEN 'flower-pots-planter'
-        ELSE COALESCE(catalog.category_code, catalog.source_type, 'furniture')
-    END AS normalized_type,
+    -- category_code 與 normalized_type 必須是同一套用語。改名一律收在匯入層的
+    -- CATEGORY_CODE_OVERRIDES（scripts/sql/import_official_catalog_to_postgres.py）；
+    -- 這裡再改一次會讓兩個鍵空間分岔，逐房候選集與第 6 步選件就得各自維護後備表。
+    COALESCE(catalog.category_code, catalog.source_type, 'furniture') AS normalized_type,
     CASE
         WHEN catalog.category_code IN (
             'armchair', 'coffee-table', 'fabric-sofa', 'leather-sofa',
@@ -561,7 +561,8 @@ SELECT
         WHEN catalog.category_code IN (
             'ceiling-lamp', 'decoration', 'door-mat', 'floor-lamp', 'handmade-rug',
             'lamp', 'lamp-shades-base', 'large-medium-rug', 'large-mirror', 'mirror',
-            'outdoor-rug', 'pendant-lamp', 'pillow-cushion', 'planter', 'round-rug',
+            'outdoor-rug', 'pendant-lamp', 'pillow-cushion', 'flower-pots-planter',
+            'round-rug',
             'runner-small-rug', 'sheepskins-cowhide', 'standing-mirror', 'table-lamp',
             'vase', 'wall-art', 'wall-lamp', 'wall-mirror'
         ) THEN 'soft_decor'
@@ -595,7 +596,8 @@ SELECT
         WHEN catalog.category_code IN (
             'ceiling-lamp', 'decoration', 'door-mat', 'floor-lamp', 'handmade-rug',
             'lamp', 'lamp-shades-base', 'large-medium-rug', 'large-mirror', 'mirror',
-            'outdoor-rug', 'pendant-lamp', 'pillow-cushion', 'planter', 'round-rug',
+            'outdoor-rug', 'pendant-lamp', 'pillow-cushion', 'flower-pots-planter',
+            'round-rug',
             'runner-small-rug', 'sheepskins-cowhide', 'standing-mirror', 'table-lamp',
             'vase', 'wall-art', 'wall-lamp', 'wall-mirror'
         ) THEN '軟裝與燈飾'

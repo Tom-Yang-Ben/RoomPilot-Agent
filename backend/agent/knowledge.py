@@ -15,14 +15,20 @@ from __future__ import annotations
 
 # 型錄具體類型 → 擺位族系。未列出的類型會直接以原類型作為族系，
 # 讓 Agent 與 server 的候選型錄保持解耦。
+#
+# 鍵一律是型錄真的存在的 ``normalized_type``，由
+# tests/test_catalog_vocabulary_contract.py 對型錄快照鎖住。先前這裡有
+# ``bed-frame`` 與複數的 ``cabinets-cupboard`` 兩把鍵，型錄兩者都沒有——那兩條
+# 摺疊規則從來沒有對任何一件型錄家具生效過。它們之所以看起來是活的，是因為
+# ``FURNITURE_ALIASES`` 把「床架」「收納櫃」指到了這兩個不存在的名字，於是
+# ``family_of()`` 被反向當成問卷別名的正規化器在用。別名已經改成直接指向型錄
+# 用語，這裡只留型錄側的摺疊。
 FAMILY_OF: dict[str, str] = {
     "fabric-sofa": "sofa",
     "leather-sofa": "sofa",
     "modular-sofa": "sofa",
     "sofa-bed": "sofa",
-    "bed-frame": "bed",
     "pax-wardrobe": "wardrobe",
-    "cabinets-cupboard": "wardrobe",
     "storage-solution-system": "wardrobe",
     "chests-of-drawer": "sideboard",
     "tv-media-furniture": "tv-bench",
@@ -31,9 +37,19 @@ FAMILY_OF: dict[str, str] = {
 }
 
 
+# 舊存檔的 ``furniture.required`` 仍可能帶著修正前的別名（``select.py`` 會把那份
+# 清單直接餵給 ``family_of``）。型錄從來沒有這兩個分類，這裡只為既有專案保底，
+# 不是第二套詞彙——新資料不會再產生它們。
+LEGACY_FAMILY_ALIASES: dict[str, str] = {
+    "cabinets-cupboard": "cabinet-cupboard",
+    "bed-frame": "bed",
+}
+
+
 def family_of(normalized_type: str | None) -> str:
     """把型錄類型摺疊成擺位族系；未知類型原樣返回。"""
     key = str(normalized_type or "")
+    key = LEGACY_FAMILY_ALIASES.get(key, key)
     return FAMILY_OF.get(key, key)
 
 

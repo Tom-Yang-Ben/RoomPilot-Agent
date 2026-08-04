@@ -6,7 +6,7 @@
 
 import {
   createFurniture2DItem,
-} from "./scene_layout2d.js?v=sha256-e76cb3dd7c1f";
+} from "./scene_layout2d.js?v=sha256-23d4de37dcfe";
 import {
   roomDimensions,
 } from "./scene_plan_geometry.js?v=sha256-b77b33d86870";
@@ -397,6 +397,9 @@ const CATALOG_RETRIEVAL_ROUTES = {
     type: "mirror-cabinet",
     query: "mirror cabinet",
   },
+  // 型錄的休閒單椅一律是 armchair；沒有這條時主路徑會用 type=lounge-chair 查
+  // 到 0 筆，只剩「找相似」那張關鍵字網把電競椅、兒童椅凳一起撈回來。
+  "lounge-chair": { endpoint: "/api/furniture", type: "armchair" },
 };
 
 const REPLACEMENT_TYPE_LABELS = {
@@ -413,17 +416,52 @@ const REPLACEMENT_TYPE_LABELS = {
   "mirror-cabinet": "鏡櫃",
 };
 
+// 「找相似」的全型錄補搜規則。`types` 缺席時只靠 keywords 過濾，而三條椅子規則
+// 的關鍵字都是 ["chair", "椅"]——辦公椅的補搜會撈回單椅、兒童椅凳與電競椅。
+// 每條都要標明可接受的型錄 normalized_type，keywords 只當第二層過濾。
 const QUESTIONNAIRE_FALLBACK_CATALOG_RULES = Object.freeze({
   bed: { query: "bed frame", types: ["bed"], keywords: ["bed", "床架", "床"] },
-  wardrobe: { query: "wardrobe", types: ["wardrobe"], keywords: ["wardrobe", "衣櫃"] },
-  "bedside-table": { query: "bedside table", keywords: ["bedside", "床頭"] },
+  wardrobe: {
+    query: "wardrobe",
+    types: ["wardrobe", "pax-wardrobe"],
+    keywords: ["wardrobe", "衣櫃"],
+  },
+  "bedside-table": {
+    query: "bedside table",
+    types: ["bedside-table"],
+    keywords: ["bedside", "床頭"],
+  },
   desk: { query: "desk", types: ["desk"], keywords: ["desk", "書桌"] },
-  "office-chair": { query: "office chair", keywords: ["chair", "椅"] },
-  "lounge-chair": { query: "lounge chair", keywords: ["chair", "椅"] },
-  "dining-chair": { query: "dining chair", keywords: ["chair", "椅"] },
-  "dining-table": { query: "dining table", keywords: ["table", "餐桌"] },
-  "tv-bench": { query: "tv stand", keywords: ["tv", "television", "電視"] },
-  "storage-cabinet": { query: "storage cabinet", keywords: ["cabinet", "storage", "收納", "櫃"] },
+  "office-chair": {
+    query: "office chair",
+    types: ["office-chair", "gaming-chair"],
+    keywords: ["chair", "椅"],
+  },
+  "lounge-chair": {
+    query: "lounge chair",
+    types: ["armchair"],
+    keywords: ["chair", "椅"],
+  },
+  "dining-chair": {
+    query: "dining chair",
+    types: ["dining-chair"],
+    keywords: ["chair", "椅"],
+  },
+  "dining-table": {
+    query: "dining table",
+    types: ["dining-table"],
+    keywords: ["table", "餐桌"],
+  },
+  "tv-bench": {
+    query: "tv stand",
+    types: ["tv-bench", "tv-media-furniture"],
+    keywords: ["tv", "television", "電視"],
+  },
+  "storage-cabinet": {
+    query: "storage cabinet",
+    types: ["cabinet-cupboard"],
+    keywords: ["cabinet", "storage", "收納", "櫃"],
+  },
 });
 
 function isQuestionnaireFallbackTypeMatch(candidate, type) {

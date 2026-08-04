@@ -335,6 +335,8 @@ export function createSceneViewer(
     // 編號與名稱標籤是第 6 步白模配置的作業輔助；風格與提案檢視是給人看成果的，
     // 不該掛著標籤。由建立者決定，不要用場景資料判斷。
     showFurnitureAnnotations = true,
+    showFurnitureNames = true,
+    furnitureAnnotationNumber = null,
   } = {},
 ) {
   if ("createImageBitmap" in globalThis) {
@@ -3959,6 +3961,19 @@ export function createSceneViewer(
     return lastWorldSceneData?.design_choices?.catalog_thumbnail_mode !== true;
   }
 
+  function furnitureNumberLabel(item, index) {
+    const supplied = Number(furnitureAnnotationNumber?.(item, index));
+    return Number.isFinite(supplied) && supplied > 0 ? supplied : index + 1;
+  }
+
+  function furnitureInstanceId(item = {}) {
+    return item.layout_furniture_id
+      || item.source_furniture_id
+      || item.id
+      || item.furniture_id
+      || "";
+  }
+
   let lastDiagnostics = {
     requestedFurnitureCount: 0,
     visibleFurnitureCount: 0,
@@ -4048,13 +4063,15 @@ export function createSceneViewer(
     addFurniturePickProxy(wrapper, item);
 
     if (furnitureAnnotationsEnabled()) {
-      const marker = createNumberMarker(index + 1);
+      const marker = createNumberMarker(furnitureNumberLabel(item, index));
       marker.userData.roompilotNumberMarker = true;
       marker.position.set(0, height + 48, 0);
       wrapper.add(marker);
-      const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-      planLabel.position.set(0, height + 15, 0);
-      wrapper.add(planLabel);
+      if (showFurnitureNames) {
+        const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
+        planLabel.position.set(0, height + 15, 0);
+        wrapper.add(planLabel);
+      }
     }
     furnitureGroup.add(wrapper);
     return wrapper;
@@ -4118,13 +4135,15 @@ export function createSceneViewer(
           addFurnitureContactShadow(wrapper, item.size_cm || {});
           addFurniturePickProxy(wrapper, item);
           if (furnitureAnnotationsEnabled()) {
-            const marker = createNumberMarker(index + 1);
+            const marker = createNumberMarker(furnitureNumberLabel(item, index));
             marker.userData.roompilotNumberMarker = true;
             marker.position.set(0, Math.max(size.height + 48, 72), 0);
             wrapper.add(marker);
-            const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
-            planLabel.position.set(0, Math.max(size.height + 15, 35), 0);
-            wrapper.add(planLabel);
+            if (showFurnitureNames) {
+              const planLabel = createFurniturePlanLabel(item.name_zh_raw || item.normalized_type);
+              planLabel.position.set(0, Math.max(size.height + 15, 35), 0);
+              wrapper.add(planLabel);
+            }
           }
           furnitureGroup.add(wrapper);
         } catch (error) {
@@ -4145,7 +4164,7 @@ export function createSceneViewer(
       );
       if (wrapper?.userData.modelLoadFailed === true) {
         lastDiagnostics.failedFurniture.push({
-          id: item.furniture_id,
+          id: furnitureInstanceId(item),
           reason: wrapper.userData.fallbackReason,
         });
         return;
@@ -4153,7 +4172,7 @@ export function createSceneViewer(
       if (wrapper) return;
       if (item.placement_failed) {
         lastDiagnostics.failedFurniture.push({
-          id: item.furniture_id,
+          id: furnitureInstanceId(item),
           reason: item.placement_reason || "家具位置無法通過碰撞與淨空檢查",
         });
         return;
@@ -4162,7 +4181,7 @@ export function createSceneViewer(
           ? "GLB 載入失敗，請檢查資料庫模型權限或網址"
           : "資料庫尚未提供 GLB";
       lastDiagnostics.failedFurniture.push({
-        id: item.furniture_id,
+        id: furnitureInstanceId(item),
         reason,
       });
     });

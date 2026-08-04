@@ -4,7 +4,7 @@
 被丟等多個洞的共同病根。本檔以 `backend.floorplan.vision.analysis.ROOM_LABELS`
 為唯一正典，鎖住四個消費層：
 
-1. 前端「空間用途」下拉（scene_v2.js ROOM_TYPE_OPTIONS）＝正典 ∪ {default}
+1. 前端房型正規化表（scene_v2.js ROOM_TYPE_OPTIONS）＝正典 ∪ {default}
 2. 後端問卷預設家具表（scene_service.SPACE_DEFAULTS）⊇ 正典
 3. 語意層對照表（CODY_ROOM_TYPE_MAP）的值 ⊆ 正典 ∪ {None}
 4. 前端推薦表（scene_layout2d.js）認得正典的每一型
@@ -23,7 +23,7 @@ from backend.server.scene_service import SPACE_DEFAULTS
 CANONICAL = {room_type for room_type, _aliases in ROOM_LABELS}
 
 
-def _scene_v2_dropdown_types() -> set[str]:
+def _scene_v2_supported_types() -> set[str]:
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
     block = source.split("const ROOM_TYPE_OPTIONS = [", 1)[1].split("];", 1)[0]
     return set(re.findall(r'\[\s*"([a-z_]+)"\s*,', block))
@@ -36,8 +36,8 @@ def test_canonical_room_types_are_the_expected_nine() -> None:
     }
 
 
-def test_room_type_dropdown_matches_canonical_vocabulary() -> None:
-    assert _scene_v2_dropdown_types() == CANONICAL | {"default"}
+def test_frontend_room_types_match_canonical_vocabulary() -> None:
+    assert _scene_v2_supported_types() == CANONICAL | {"default"}
 
 
 def test_space_defaults_cover_every_canonical_type() -> None:
@@ -62,13 +62,16 @@ def test_frontend_recommendation_table_knows_every_canonical_type() -> None:
     assert not missing, f"前端推薦表缺型別：{sorted(missing)}"
 
 
-def test_room_type_select_is_wired_in_the_review_card() -> None:
+def test_room_type_select_is_removed_and_room_name_still_writes_the_type() -> None:
     html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
     source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert 'id="room-type"' in html
-    assert 'roomType: $("#room-type")' in source
-    assert "applyRoomTypeSelection" in source
+    assert 'id="room-type"' not in html
+    assert 'id="room-type-source"' not in html
+    assert 'roomType: $("#room-type")' not in source
+    assert "applyRoomTypeSelection" not in source
+    assert "room.type = option.type" in source
+    assert "room.room_type = option.type" in source
     assert "export function roomTypeFromName" in (
         STATIC_DIR / "scene_layout2d.js"
     ).read_text(encoding="utf-8")

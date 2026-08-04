@@ -1,7 +1,7 @@
 // 必須排在其他 import 之前：這個模組會接管 window.fetch 以附加身分並在
 // access token 過期時自動續期，晚載入的話最早幾個請求會漏掉 Authorization。
 import { authorizedObjectUrl, requireSignedIn } from "./auth_client.js?v=sha256-b35a4ff11b37";
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-7093866c43c9";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-628d9901d1ba";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
 import {
@@ -57,6 +57,7 @@ import {
 } from "./scene_tabletop_hosts.js?v=sha256-aac5f0a9d335";
 import {
   createFurniture2DItem,
+  FAMILIES_WITHOUT_CATALOG_MODELS,
   FURNITURE_2D_LIBRARY,
   findFurniture2DVariant,
   furnitureCollisionFootprintCm,
@@ -68,11 +69,12 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-e76cb3dd7c1f";
+} from "./scene_layout2d.js?v=sha256-23d4de37dcfe";
 import {
+  furniture2dItemForSceneObject,
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-39c0d4400e84";
+} from "./scene_configuration_sync.js?v=sha256-579f9d6450b9";
 import {
   rankCatalogFurniture,
 } from "./scene_furniture_retrieval.js?v=sha256-6772c0c167b3";
@@ -166,13 +168,13 @@ import {
   surfaceMaterialLabel,
   surfacePhrase,
   uniqueMaterialOptions,
-} from "./scene_questionnaire_data.js?v=sha256-0e469e15c215";
+} from "./scene_questionnaire_data.js?v=sha256-a09bd781fccf";
 import {
   createQuestionnaireFlow,
-} from "./scene_questionnaire_flow.js?v=sha256-8d7d18bd1b01";
+} from "./scene_questionnaire_flow.js?v=sha256-4820ea53f176";
 import {
   createFurnitureOffers,
-} from "./scene_furniture_offers.js?v=sha256-9c945bedb0a5";
+} from "./scene_furniture_offers.js?v=sha256-72aad54f8e06";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -429,8 +431,6 @@ const element = {
   roomList: $("#room-list"),
   roomEditor: $("#room-editor"),
   roomName: $("#room-name"),
-  roomType: $("#room-type"),
-  roomTypeSource: $("#room-type-source"),
   savedRendersList: $("#saved-renders-list"),
   savedRendersCount: $("#saved-renders-count"),
   roomArea: $("#room-area"),
@@ -584,6 +584,10 @@ const element = {
   proposalReviewError: $("#proposal-review-error"),
   aiRenderViewTitle: $("#ai-render-view-title"),
   aiRenderProviderState: $("#ai-render-provider-state"),
+  aiRenderCurrentRoom: $("#ai-render-current-room"),
+  aiRenderTaskState: $("#ai-render-task-state"),
+  aiRenderRoomProgress: $("#ai-render-room-progress"),
+  aiRenderTabs: $(".rp-ai-render-tabs"),
   paletteRenderOptions: $("#palette-render-options"),
   paletteRenderResults: $("#palette-render-results"),
   confirmRenderPalette: $("#confirm-render-palette"),
@@ -601,9 +605,11 @@ const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteSta
     scheduleSave("white_model_3d");
   },
   onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item),
+  showFurnitureNames: false,
+  furnitureAnnotationNumber: (item, index) => configurationSceneObjectNumber(item, index),
 });
 // 風格、提案、生圖與更換預覽都是給人看成果的，不掛編號與名稱標籤；
-// 只有第 6 步的白模配置需要標籤對應待處理清單。
+// 第 6 步白模只保留編號，名稱由右側清單對照，避免遮住家具與動線。
 const realisticViewer = createSceneViewer($("#realistic-viewer"), element.realisticStatus, {
   onSceneChange: () => markRealisticSceneEdited(),
   onObjectSelect: (item) => syncSceneSelectionTo2dFurniture(item),
@@ -923,11 +929,7 @@ function syncFurnitureNumberVisibility() {
 }
 
 function syncSceneSelectionTo2dFurniture(sceneObject) {
-  const furnitureId = sceneObject?.furniture_id;
-  if (!furnitureId) return false;
-  const item = state.furniture2d.find(
-    (candidate) => String(candidate.id) === String(furnitureId),
-  );
+  const item = furniture2dItemForSceneObject(state.furniture2d, sceneObject);
   if (!item) return false;
   state.selectedFurniture2dId = item.id;
   renderLayoutFurniture();
@@ -939,7 +941,7 @@ function syncSceneSelectionTo2dFurniture(sceneObject) {
 }
 
 function syncMovedSceneFurnitureTo2d(sceneObject) {
-  if (sceneObjectIndexByFurnitureId(sceneObject?.furniture_id) < 0) return false;
+  if (!furniture2dItemForSceneObject(state.furniture2d, sceneObject)) return false;
   state.furniture2d = upsertFurniture2dFromSceneObject(
     state.furniture2d,
     sceneObject,
@@ -5330,9 +5332,9 @@ function selectRoom(roomId) {
   renderSpaceOverlay();
 }
 
-// 空間用途下拉的正式房型清單（2026-07 盤點第 5 項修復）：選項值直接就是
-// 機器房型 room.type，與後端 ROOM_LABELS／SPACE_DEFAULTS 同一套詞彙，
-// 詞彙一致性由 tests/test_room_type_vocabulary.py 契約測試鎖住。
+// 前端房型正規化清單：空間名稱會直接寫入機器房型 room.type，並與後端
+// ROOM_LABELS／SPACE_DEFAULTS 使用同一套詞彙；一致性由
+// tests/test_room_type_vocabulary.py 契約測試鎖住。
 const ROOM_TYPE_OPTIONS = [
   ["living_room", "客廳"],
   ["bedroom", "臥室"],
@@ -5346,13 +5348,6 @@ const ROOM_TYPE_OPTIONS = [
   ["default", "其他／未指定"],
 ];
 const ROOM_TYPE_LABELS = new Map(ROOM_TYPE_OPTIONS);
-const ROOM_TYPE_SOURCE_LABELS = {
-  ocr_room_label: "依圖上印刷房名判定",
-  cody_floorplan2room: "依語意辨識判定",
-  furniture_icon_inference: "依家具圖示推測（待確認）",
-  layout_heuristic: "依格局推測",
-  manual_confirmation: "使用者指定",
-};
 
 function normalizedRoomTypeValue(type) {
   // 舊專案存了 entry／stair／garage，直接查表會落到 default，回頭開啟時用途
@@ -5373,41 +5368,6 @@ function renderRoomNameSelect(room) {
       + `${escapeHtml(option.label)}</option>`,
   ).join("");
   element.roomName.value = current;
-}
-
-function renderRoomTypeSelect(room) {
-  if (!element.roomType) return;
-  const current = normalizedRoomTypeValue(room?.type);
-  element.roomType.innerHTML = ROOM_TYPE_OPTIONS.map(
-    ([value, label]) =>
-      `<option value="${value}" ${value === current ? "selected" : ""}>${label}</option>`,
-  ).join("");
-  if (element.roomTypeSource) {
-    element.roomTypeSource.textContent = current === "default"
-      ? "尚未指定用途；指定後 agent 會依此房型推薦與擺放家具。"
-      : (ROOM_TYPE_SOURCE_LABELS[room?.source] || "自動判定") + "；可直接改選修正。";
-  }
-}
-
-function applyRoomTypeSelection() {
-  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
-  if (!room || !element.roomType) return;
-  const nextType = normalizedRoomTypeValue(element.roomType.value);
-  if (nextType === normalizedRoomTypeValue(room.type)) return;
-  room.type = nextType;
-  room.confirmed = false;
-  room.source = "manual_confirmation";
-  room.confidence = 1;
-  // 名稱還是自動編號時，順手帶入型別中文名，讓清單一眼可讀。
-  if (/^(空間\s*\d+|未命名空間)/.test(String(room.label || "")) && nextType !== "default") {
-    room.label = ROOM_TYPE_LABELS.get(nextType);
-    // 下拉的 value 是選項 id，不是中文標籤；直接塞標籤只會讓選單靜默落回第一項。
-    renderRoomNameSelect(room);
-  }
-  renderRooms();
-  renderSpaceOverlay();
-  invalidateDownstreamFrom("space_confirmation", "空間用途已修改，後續需求、家具與 3D 需要重新確認。");
-  scheduleSave("space_confirmation");
 }
 
 function saveRoom() {
@@ -5432,7 +5392,6 @@ function saveRoom() {
     const derived = roomTypeFromName({ label: option.label });
     if (derived && derived !== "default") room.type = normalizedRoomTypeValue(derived);
   }
-  renderRoomTypeSelect(room);
   element.spaceError.textContent = "";
   renderRooms();
   renderSpaceOverlay();
@@ -6699,7 +6658,10 @@ function knownUnavailableCatalogFurnitureIds() {
   );
   return new Set(
     (state.sceneData?.scene_objects || [])
-      .filter((item) => failedInstanceIds.has(String(item.furniture_id)))
+      .filter((sceneObject) => {
+        const item = furniture2dItemForSceneObject(state.furniture2d, sceneObject);
+        return item && failedInstanceIds.has(String(item.id));
+      })
       .map((item) => String(item.catalog_furniture_id || ""))
       .filter(Boolean),
   );
@@ -7081,13 +7043,20 @@ function renderFurnitureLibrary(filterText = "") {
   ).filter(({ category, variant }) =>
     !term || `${category.label}${variant.label}${category.type}`.toLowerCase().includes(term)
   );
-  element.furnitureLibrary.innerHTML = variants.map(({ category, variant }) => `
-    <button type="button" data-add-furniture-type="${escapeHtml(category.type)}" data-add-furniture-variant="${escapeHtml(variant.id)}">
+  element.furnitureLibrary.innerHTML = variants.map(({ category, variant }) => {
+    // 型錄沒有這族系的模型：2D 放得下，第 6 步一定選不到件、3D 一定缺席。
+    // 標在按鈕上，使用者才不會擺完才發現東西不見了。
+    const noModel = FAMILIES_WITHOUT_CATALOG_MODELS.includes(category.type);
+    return `
+    <button type="button" data-add-furniture-type="${escapeHtml(category.type)}" data-add-furniture-variant="${escapeHtml(variant.id)}"${
+      noModel ? ' class="is-no-catalog-model" title="型錄目前沒有這類 3D 模型，可用於 2D 平面配置，但第 6 步不會產生 3D 家具。"' : ""
+    }>
       <svg viewBox="0 0 48 48" aria-hidden="true"><path d="${escapeHtml(variant.iconPath)}"/></svg>
       <strong>${escapeHtml(variant.label)}</strong>
       <small>${variant.widthCm} × ${variant.depthCm} cm</small>
     </button>
-  `).join("");
+  `;
+  }).join("");
 }
 
 function furniturePixelPosition(item) {
@@ -7226,10 +7195,46 @@ function renderLayoutFurniture() {
   renderSelectedFurnitureEditor();
 }
 
-function configurationBlockingFurniture() {
-  const sceneById = new Map(
-    (state.sceneData?.scene_objects || []).map((item) => [String(item.furniture_id), item]),
+function configurationSceneObjectsByFurnitureId() {
+  const sceneById = new Map();
+  (state.sceneData?.scene_objects || []).forEach((sceneObject) => {
+    const item = furniture2dItemForSceneObject(state.furniture2d, sceneObject);
+    if (item) sceneById.set(String(item.id), sceneObject);
+  });
+  return sceneById;
+}
+
+// 2D 有、3D 沒有的家具。scene_objects 才是 3D 的唯一來源，被後端修復迴圈移除或
+// 因缺 GLB 被濾掉的家具只會從 scene_objects 消失，2D 這側必須自己對帳補標，
+// 否則清單會寫「合法」而 3D 一片空白（QA 2026-08-04 的電器櫃／浴櫃／收納櫃）。
+function configurationFurnitureMissingFromScene(
+  sceneById = configurationSceneObjectsByFurnitureId(),
+) {
+  const missing = new Map();
+  // 場景還沒產生時不能判定缺件，否則第 5 步的 2D 會整批變成待處理。
+  if (!Array.isArray(state.sceneData?.scene_objects)) return missing;
+  const resolutionById = new Map(
+    (state.sceneData?.placement_resolution_report || [])
+      .filter((entry) => entry?.furniture_id)
+      .map((entry) => [String(entry.furniture_id), String(entry.message_zh || "")]),
   );
+  state.furniture2d.forEach((item) => {
+    const key = String(item.id);
+    if (sceneById.has(key)) return;
+    missing.set(
+      key,
+      resolutionById.get(key)
+        || (item.model_url
+          ? "3D 場景沒有這件家具，請重新配置、更換或暫緩。"
+          : "尚未找到可用的資料庫 3D 模型，請替換為可載入的家具。"),
+    );
+  });
+  return missing;
+}
+
+function configurationBlockingFurniture() {
+  const sceneById = configurationSceneObjectsByFurnitureId();
+  const missingFromScene = configurationFurnitureMissingFromScene(sceneById);
   const modelFailureIds = new Set(
     state.workflow?.currentStep === "white_model_3d"
       ? (whiteViewer.getDiagnostics()?.failedFurniture || [])
@@ -7239,6 +7244,7 @@ function configurationBlockingFurniture() {
   return state.furniture2d.filter((item) => {
     const sceneObject = sceneById.get(String(item.id));
     return item.placementFailed === true
+      || missingFromScene.has(String(item.id))
       || sceneObject?.placement_failed === true
       || modelFailureIds.has(String(item.id))
       || itemCollision(item);
@@ -7481,6 +7487,11 @@ function configurationFurnitureNumber(item, fallbackIndex = state.furniture2d.in
   return index >= 0 ? index + 1 : Math.max(0, fallbackIndex) + 1;
 }
 
+function configurationSceneObjectNumber(sceneObject, fallbackIndex = 0) {
+  const item = furniture2dItemForSceneObject(state.furniture2d, sceneObject);
+  return item ? configurationFurnitureNumber(item) : fallbackIndex + 1;
+}
+
 function renderConfigurationPlan() {
   if (!element.configurationPlanImage) return;
   pruneRetiredAppliances();
@@ -7544,9 +7555,11 @@ function renderConfigurationPlan() {
   const ledgerMarkup = `<p class="rp-configuration-ledger" aria-live="polite">
     對帳：已配置 ${ledger.placed} · 待處理 ${ledger.pending} · 已暫緩 ${ledger.deferred} · 已移除 ${ledger.removed} · 合計 ${ledger.total}
   </p>`;
+  const missingFromScene = configurationFurnitureMissingFromScene();
   const blockingMarkup = blockingRooms.map((group) => {
     const placementFailures = group.items.filter(
-      (item) => !modelFailures.has(String(item.id)),
+      (item) => !modelFailures.has(String(item.id))
+        && !missingFromScene.has(String(item.id)),
     );
     // 沒有歸屬房間的家具算不出房間尺寸：重排、換小、擇優三個動作都必然失敗。
     // 照樣把按鈕畫出來只會讓使用者一直按一直失敗（QA 2026-08-01 #6 的死路）。
@@ -7562,9 +7575,12 @@ function renderConfigurationPlan() {
       const reason = unassigned
         ? "這件家具沒有歸屬房間，無法計算可用尺寸；請移除或暫緩後再從房間內重新加入。"
         : modelFailures.get(furnitureKey)
+          || missingFromScene.get(furnitureKey)
           || item.placementReason
           || "家具碰撞、超出房間或淨空不足。";
-      const modelFailed = modelFailures.has(furnitureKey);
+      // 缺 GLB 的家具重排幾次都不會出現在 3D：只給「更換家具」，不給必然失敗的重排。
+      const modelFailed = modelFailures.has(furnitureKey)
+        || (missingFromScene.has(furnitureKey) && !item.model_url);
       // 重排的鎖必須是單件的：用全域 size > 0 會讓任何一件卡住就停掉整份清單的按鈕。
       const reflowing = configurationReflowInFlight.has(furnitureKey);
       const repairAction = unassigned
@@ -8466,9 +8482,7 @@ async function replaceSelectedLayoutFurniture(furnitureId) {
   // 3D 主畫面也能叫出更換抽屜（2026-08-03 起），所以換完必須同步 scene_objects
   // 並重載 viewer——只更新 2D 的話，使用者在 3D 看到的還是舊床架。
   const sceneObjects = state.sceneData?.scene_objects;
-  const sceneIndex = (sceneObjects || []).findIndex(
-    (object) => String(object.furniture_id) === String(current.id),
-  );
+  const sceneIndex = sceneObjectIndexByFurnitureId(current.id);
   if (sceneIndex >= 0) {
     sceneObjects[sceneIndex] = {
       ...sceneObjects[sceneIndex],
@@ -8644,7 +8658,12 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       return;
     }
     if (missingCatalogModels.length) {
-      const missingIds = new Set(missingCatalogModels.map((item) => String(item.id)));
+      // resolveCatalogFurniture 回的是 scene 形狀（toSceneFurniture 把 item.id 寫進
+      // furniture_id），沒有 id 欄位。用 item.id 取鍵會全部變成 "undefined"，
+      // 這裡就一件也標不到，缺 GLB 的家具會頂著「合法」被濾出 3D。
+      const missingIds = new Set(
+        missingCatalogModels.map((item) => String(item.furniture_id || item.id || "")),
+      );
       state.furniture2d = state.furniture2d.map((item) => (
         missingIds.has(String(item.id))
           ? {
@@ -8765,6 +8784,22 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
         sceneObject,
       );
     });
+    // 對帳：3D 只畫 scene_objects。後端修復迴圈換小/移除、或前端缺 GLB 濾掉的家具
+    // 都只會在 scene_objects 消失，furniture2d 這側不會自己少一件。不補標的話
+    // 2D 清單會繼續寫「合法」，使用者看到的是 2D 有、3D 沒有卻沒有任何說明。
+    const missingFromScene = configurationFurnitureMissingFromScene();
+    if (missingFromScene.size) {
+      state.furniture2d = state.furniture2d.map((item) => (
+        missingFromScene.has(String(item.id))
+          ? {
+            ...item,
+            placementFailed: true,
+            placementReason: item.placementReason
+              || missingFromScene.get(String(item.id)),
+          }
+          : item
+      ));
+    }
     const selectedSceneIndex = sceneObjectIndexByFurnitureId(state.selectedFurniture2dId);
     if (selectedSceneIndex >= 0) state.selectedSceneIndex = selectedSceneIndex;
     const generatedScheme = activeScheme();
@@ -9131,61 +9166,77 @@ const QUESTIONNAIRE_CATALOG_SPACES = Object.freeze([
   { id: "garage", label: "車庫", group: "storage" },
 ]);
 
+// 第三欄是 QUESTIONNAIRE_CATALOG_PURPOSE_TYPES 缺項時的後備型別清單，會直接
+// 拿去比對 normalized_type，所以只能放型錄實際存在的分類名（型錄沒有
+// storage-cabinet／appliance-cabinet／bathroom-vanity／lounge-chair／shelf，
+// 一律用 cabinet-cupboard／armchair／shelving-unit）。
 const QUESTIONNAIRE_CATALOG_PURPOSES = Object.freeze({
   bedroom: [
     ["sleep", "睡眠", ["bed", "bedside-table"]],
-    ["storage", "收納", ["wardrobe", "storage-cabinet"]],
+    ["storage", "收納", ["wardrobe", "cabinet-cupboard"]],
     ["dress", "更衣", ["wardrobe", "mirror", "stool-bench"]],
-    ["work", "閱讀工作", ["desk", "office-chair", "armchair", "lounge-chair"]],
+    ["work", "閱讀工作", ["desk", "office-chair", "armchair"]],
     ["vanity", "梳妝", ["mirror", "desk", "stool-bench"]],
   ],
   living_room: [
-    ["rest", "休息聊天", ["sofa", "coffee-table", "lounge-chair"]],
-    ["media", "影音", ["tv-bench", "sofa", "lounge-chair"]],
-    ["dining", "用餐", ["dining-table", "dining-chair", "storage-cabinet"]],
-    ["work", "閱讀工作", ["desk", "office-chair", "armchair", "lounge-chair"]],
-    ["kids", "兒童使用", ["kids-chairs-stool", "storage-cabinet", "stool-bench"]],
+    ["rest", "休息聊天", ["sofa", "coffee-table", "armchair"]],
+    ["media", "影音", ["tv-bench", "sofa", "armchair"]],
+    ["dining", "用餐", ["dining-table", "dining-chair", "cabinet-cupboard"]],
+    ["work", "閱讀工作", ["desk", "office-chair", "armchair"]],
+    ["kids", "兒童使用", ["kids-chairs-stool", "cabinet-cupboard", "stool-bench"]],
   ],
   kitchen: [
     ["dining", "用餐", ["dining-table", "dining-chair"]],
-    ["prep", "備餐收納", ["appliance-cabinet", "storage-cabinet"]],
+    ["prep", "備餐收納", ["cabinet-cupboard", "storage-furniture"]],
     ["kids", "兒童使用", ["kids-chairs-stool", "dining-chair"]],
   ],
   storage: [
-    ["storage", "收納整理", ["storage-cabinet", "wardrobe", "shelf"]],
+    ["storage", "收納整理", ["cabinet-cupboard", "wardrobe", "shelving-unit"]],
     ["work", "閱讀工作", ["desk", "office-chair"]],
-    ["kids", "兒童使用", ["kids-chairs-stool", "storage-cabinet"]],
+    ["kids", "兒童使用", ["kids-chairs-stool", "cabinet-cupboard"]],
   ],
-  entryway: [["entry", "出門整理", ["mirror", "storage-cabinet", "stool-bench"]]],
-  hallway: [["passage", "走道收納", ["mirror", "storage-cabinet"]]],
-  circulation: [["passage", "走道收納", ["mirror", "storage-cabinet"]]],
-  bathroom: [["wash", "盥洗收納", ["bathroom-vanity", "mirror-cabinet", "storage-cabinet"]]],
-  balcony: [["relax", "休憩植栽", ["lounge-chair", "flower-pots-planter", "stool-bench"]]],
-  garage: [["garage", "工具收納", ["storage-cabinet", "shelf"]]],
+  entryway: [["entry", "出門整理", ["mirror", "cabinet-cupboard", "stool-bench"]]],
+  hallway: [["passage", "走道收納", ["mirror", "cabinet-cupboard"]]],
+  circulation: [["passage", "走道收納", ["mirror", "cabinet-cupboard"]]],
+  bathroom: [["wash", "盥洗收納", ["cabinet-cupboard", "mirror-cabinet"]]],
+  balcony: [["relax", "休憩植栽", ["armchair", "flower-pots-planter", "stool-bench"]]],
+  garage: [["garage", "工具收納", ["cabinet-cupboard", "shelving-unit"]]],
 });
 
 const QUESTIONNAIRE_CATALOG_PURPOSE_TYPES = Object.freeze({
   "bedroom:sleep": ["bed", "mattress"],
   "bedroom:storage": ["pax-wardrobe", "wardrobe", "chests-of-drawer"],
   "bedroom:dress": ["pax-wardrobe", "wardrobe", "mirror", "stool-bench"],
-  "bedroom:work": ["desk", "office-chair", "armchair", "lounge-chair"],
+  "bedroom:work": ["desk", "office-chair", "armchair"],
   "bedroom:vanity": ["mirror", "desk", "stool-bench"],
   "living_room:rest": ["fabric-sofa", "sofa", "leather-sofa", "modular-sofa", "coffee-table", "armchair"],
   "living_room:media": ["tv-bench", "tv-media-furniture", "sofa", "armchair"],
   "living_room:dining": ["dining-table", "dining-chair", "bar-table"],
-  "living_room:work": ["desk", "office-chair", "armchair", "lounge-chair"],
-  "living_room:kids": ["kids-chairs-stool", "storage-boxes-basket", "stool-bench"],
+  "living_room:work": ["desk", "office-chair", "armchair"],
+  "living_room:kids": [
+    "kids-chairs-stool", "childrens-table", "childrens-furniture",
+    "childrens-stools-benche", "storage-boxes-basket", "stool-bench",
+  ],
   "kitchen:dining": ["dining-table", "dining-chair", "bar-table"],
   "kitchen:prep": ["table", "bar-table", "stool-bench"],
-  "kitchen:kids": ["dining-chair", "kids-chairs-stool", "stool-bench"],
-  "storage:storage": ["cabinet-cupboard", "shelving-unit", "bookcase", "storage-boxes-basket"],
+  "kitchen:kids": [
+    "dining-chair", "kids-chairs-stool", "childrens-table",
+    "childrens-stools-benche", "stool-bench",
+  ],
+  "storage:storage": [
+    "cabinet-cupboard", "shelving-unit", "bookcase", "display-cabinet",
+    "storage-boxes-basket",
+  ],
   "storage:work": ["desk", "office-chair", "gaming-chair"],
-  "storage:kids": ["storage-boxes-basket", "kids-chairs-stool", "stool-bench"],
+  "storage:kids": [
+    "storage-boxes-basket", "kids-chairs-stool", "childrens-furniture",
+    "childrens-stools-benche", "stool-bench",
+  ],
   "entryway:entry": ["shoe-cabinet", "mirror", "stool-bench", "clothes-rack"],
   "hallway:passage": ["wall-shelf", "mirror", "shoe-cabinet"],
   "circulation:passage": ["wall-shelf", "mirror", "shoe-cabinet"],
-  "bathroom:wash": ["mirror-cabinet", "bathroom-vanity", "storage-cabinet"],
-  "balcony:relax": ["lounge-chair", "flower-pots-planter", "stool-bench"],
+  "bathroom:wash": ["mirror-cabinet", "cabinet-cupboard"],
+  "balcony:relax": ["armchair", "flower-pots-planter", "stool-bench"],
   "garage:garage": ["cabinet-cupboard", "shelving-unit", "storage-solution-system"],
 });
 
@@ -9978,20 +10029,30 @@ function renderGroupedMaterialOptions(activePack) {
     );
     const current = $(`#${kind}-material`)?.value;
     const selectedMaterial = syncSurfaceMaterialSelect(kind, items, current);
-    host.innerHTML = items.map((item) => `
+    host.innerHTML = items.map((item) => {
+      const isActive = item.id === selectedMaterial;
+      const isRecommended = item.id === recommendedId;
+      return `
       <button type="button"
         data-surface-kind="${escapeHtml(kind)}"
         data-surface-material="${escapeHtml(item.id)}"
         data-surface-color="${escapeHtml(item.color || "")}"
         data-material-preview="${escapeHtml(item.materialPreview || "")}"
-        data-style-card-recommended="${item.id === recommendedId ? "true" : "false"}"
+        data-style-card-recommended="${isRecommended ? "true" : "false"}"
+        aria-pressed="${isActive ? "true" : "false"}"
         title="${escapeHtml(surfaceRecommendationReason(item, activePack, kind))}"
-        class="${item.id === selectedMaterial ? "is-active" : ""}">
+        class="${isActive ? "is-active" : ""}">
         <span class="rp-material-preview" style="background:${escapeHtml(item.color || "#ddd")};${item.materialPreview ? `background-image:url('${escapeHtml(item.materialPreview)}')` : ""}"></span>
-        <strong>${escapeHtml(item.label)}${item.id === recommendedId ? " · 此色卡推薦" : ""}</strong>
-        <small>${escapeHtml(surfaceRecommendationReason(item, activePack, kind))}</small>
+        <span class="rp-material-card-copy">
+          <span class="rp-material-card-title">
+            <strong>${escapeHtml(item.label)}</strong>
+            ${isActive || isRecommended ? `<span class="rp-material-badge">${isActive ? "目前選取" : "風格推薦"}</span>` : ""}
+          </span>
+          <small>${escapeHtml(surfaceRecommendationReason(item, activePack, kind))}</small>
+        </span>
       </button>
-    `).join("");
+    `;
+    }).join("");
   };
   render("wall", element.wallMaterialGrouped);
   render("floor", element.floorMaterialGrouped);
@@ -10378,6 +10439,23 @@ function currentSceneVersion() {
 
 // 第 7 步同風格色卡選擇（proposal-palette-grid，bella-test1 fd0cee11 移植）。
 // 只列全屋主風格的三張色卡；選定的色卡與鎖定視角一起交給第 8 步遠端生圖。
+function syncProposalReviewStages() {
+  const paletteStage = $("#proposal-stage-palette");
+  const viewStage = $("#proposal-stage-view");
+  const paletteState = paletteStage?.querySelector(".rp-proposal-stage-state");
+  const viewState = viewStage?.querySelector(".rp-proposal-stage-state");
+  const hasPalette = Boolean(state.proposalReview.confirmedStyleCardId);
+  const hasLockedView = Boolean(state.proposalReview.masterView);
+
+  paletteStage?.classList.toggle("is-active", !hasPalette);
+  paletteStage?.classList.toggle("is-complete", hasPalette);
+  viewStage?.classList.toggle("is-active", hasPalette && !hasLockedView);
+  viewStage?.classList.toggle("is-complete", hasLockedView);
+  viewStage?.classList.toggle("is-confirmed", Boolean(element.proposalContentConfirmed?.checked));
+  if (paletteState) paletteState.textContent = hasPalette ? "已選擇" : "待選擇";
+  if (viewState) viewState.textContent = hasLockedView ? "已鎖定" : "尚未鎖定";
+}
+
 function renderProposalPaletteSelection() {
   if (!element.proposalPaletteGrid) return;
   const activePack = STYLE_PACKS.find((item) => item.id === state.activeStylePackId)
@@ -10387,18 +10465,24 @@ function renderProposalPaletteSelection() {
   element.proposalPaletteGrid.innerHTML = options.map((pack) => `
     <button type="button" data-proposal-style-card="${escapeHtml(pack.id)}"
       class="${pack.id === selectedId ? "is-active" : ""}"
+      role="radio" aria-checked="${pack.id === selectedId}"
       aria-pressed="${pack.id === selectedId}">
+      <span class="rp-proposal-palette-radio" aria-hidden="true"></span>
       <img class="rp-style-card-preview" src="${escapeHtml(pack.sourceImage)}"
         alt="${escapeHtml(`${pack.styleLabel} ${pack.name}色卡預覽`)}" loading="lazy">
-      <span class="rp-style-swatches">${pack.palette
-        .map((color) => `<i style="background:${escapeHtml(color)}"></i>`)
-        .join("")}</span>
-      <strong>${escapeHtml(pack.name)}</strong>
+      <span class="rp-proposal-palette-copy">
+        <span class="rp-style-swatches">${pack.palette
+          .map((color) => `<i style="background:${escapeHtml(color)}"></i>`)
+          .join("")}</span>
+        <strong>${escapeHtml(pack.name)}</strong>
+        <small>${escapeHtml(`${pack.styleLabel} · ${pack.furnitureRules.signature.slice(0, 2).join("、")}`)}</small>
+      </span>
     </button>
   `).join("");
   element.proposalPaletteStatus.textContent = selectedId
     ? `已選「${STYLE_PACKS.find((item) => item.id === selectedId)?.name || "色卡"}」；第 8 步將以這張色卡送往遠端。`
     : "請選擇一張色卡後，再鎖定生圖視角。";
+  syncProposalReviewStages();
 }
 
 function selectProposalPalette(cardId) {
@@ -10451,6 +10535,7 @@ async function prepareProposalReview() {
   element.masterViewStatus.textContent = saved
     ? "已載入上次鎖定視角；調整後請重新鎖定。"
     : "尚未鎖定比較視角。";
+  syncProposalReviewStages();
   if (saved) renderProposalRoomViewPanel();
 }
 
@@ -10526,6 +10611,7 @@ function lockMasterRenderView() {
     return;
   }
   element.masterViewStatus.textContent = "完整方案已鎖定；請繼續逐房選擇渲染視角。";
+  syncProposalReviewStages();
   scheduleSave("proposal_review");
   state.selectedProposalRoomId = state.rooms[0]?.id || null;
   state.selectedProposalRoomCandidateIndex = 0;
@@ -10537,10 +10623,16 @@ function renderPaletteOptions() {
   const activePack = STYLE_PACKS.find((item) => item.id === state.activeStylePackId);
   const options = STYLE_PACKS.filter((item) => item.styleId === activePack?.styleId);
   element.paletteRenderOptions.innerHTML = options.map((pack) => `
-    <label>
+    <label class="rp-render-palette-option">
       <input type="checkbox" value="${escapeHtml(pack.id)}" data-render-style-card
         ${pack.id === state.activeStylePackId ? "checked" : ""} />
-      <span><strong>${escapeHtml(pack.name)}</strong><br><small>${pack.palette.map(escapeHtml).join(" · ")}</small></span>
+      <span class="rp-render-palette-copy">
+        <strong>${escapeHtml(pack.name)}</strong>
+        <span class="rp-render-palette-swatches" aria-hidden="true">${pack.palette
+          .map((color) => `<i style="background:${escapeHtml(color)}"></i>`)
+          .join("")}</span>
+        <small>${pack.palette.map(escapeHtml).join(" · ")}</small>
+      </span>
     </label>
   `).join("");
 }
@@ -10611,8 +10703,8 @@ async function ensureProposalRoomCandidatePreviews(room) {
 function ensureProposalRoomViewPanel() {
   let panel = $("#proposal-room-view-lock");
   if (panel) return panel;
-  const sidebar = $("#proposal-review-step .rp-control-pane");
-  if (!sidebar) return null;
+  const slot = $("#proposal-room-views-slot");
+  if (!slot) return null;
   panel = document.createElement("section");
   panel.id = "proposal-room-view-lock";
   panel.className = "rp-editor-box rp-render-view-lock";
@@ -10626,7 +10718,7 @@ function ensureProposalRoomViewPanel() {
     <button id="confirm-proposal-room-views" type="button" class="primary-action">確認所有房間視角並進入第 8 步</button>
     <p id="proposal-room-view-status" class="rp-field-hint" aria-live="polite"></p>
   `;
-  sidebar.append(panel);
+  slot.append(panel);
   panel.addEventListener("click", (event) => {
     const roomButton = event.target.closest("[data-proposal-room]");
     if (roomButton) selectProposalRoomView(roomButton.dataset.proposalRoom);
@@ -10758,6 +10850,43 @@ function renderRoomViewList() {
       </button>
     `;
   }).join("");
+  syncAiRenderWorkbenchStatus();
+}
+
+function syncAiRenderWorkbenchStatus() {
+  const room = state.rooms.find((item) => item.id === state.selectedRenderRoomId);
+  if (element.aiRenderCurrentRoom) {
+    element.aiRenderCurrentRoom.textContent = room ? roomDisplayLabel(room) : "色卡比較";
+  }
+  if (element.aiRenderRoomProgress) {
+    const saved = state.rooms.filter((item) => state.proposalReview.roomViews?.[item.id]).length;
+    element.aiRenderRoomProgress.textContent = `${saved} / ${state.rooms.length}`;
+  }
+  if (element.aiRenderTaskState) {
+    const jobs = state.proposalReview.jobs || [];
+    const hasActiveJob = jobs.some((job) => ["queued", "running"].includes(String(job.status || "queued")));
+    const hasCompletedJob = jobs.some((job) => String(job.status || "") === "completed");
+    element.aiRenderTaskState.textContent = hasActiveJob
+      ? "任務進行中"
+      : hasCompletedJob
+        ? "已有成果"
+        : "任務就緒";
+  }
+}
+
+function setAiRenderWorkbenchStage(stageId, focus = false) {
+  const activeId = ["palette", "rooms", "results"].includes(stageId) ? stageId : "palette";
+  $$('[data-ai-render-tab]').forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.aiRenderTab === activeId));
+  });
+  $$('[data-ai-render-stage]').forEach((stage) => {
+    const active = stage.dataset.aiRenderStage === activeId;
+    stage.classList.toggle("is-active", active);
+    if (active && focus) {
+      stage.scrollIntoView({ behavior: "smooth", block: "start" });
+      stage.focus({ preventScroll: true });
+    }
+  });
 }
 
 function selectRenderRoom(roomId) {
@@ -10772,6 +10901,7 @@ function selectRenderRoom(roomId) {
     ? "已載入保存視角；可以小幅調整後重新保存。"
     : "已套用房間建議視角；請確認主要家具與布局清楚可見。";
   renderRoomViewList();
+  syncAiRenderWorkbenchStatus();
 }
 
 function saveSelectedRoomView() {
@@ -10944,6 +11074,7 @@ function renderRemoteJobs() {
       </article>
     `;
   }).join("");
+  syncAiRenderWorkbenchStatus();
 }
 
 async function retryRoomRender(roomId) {
@@ -11016,6 +11147,7 @@ function confirmRenderPalette() {
   setRoomRenderSectionLocked(false);
   state.selectedRenderRoomId = state.selectedProposalRoomId || state.rooms[0]?.id || null;
   if (state.selectedRenderRoomId) selectRenderRoom(state.selectedRenderRoomId);
+  setAiRenderWorkbenchStage("rooms", true);
   scheduleSave("ai_render");
   element.aiRenderStatus.textContent = "色卡已確認；將沿用第 7 步鎖定的逐房視角。";
 }
@@ -11047,6 +11179,8 @@ async function prepareAiRender() {
   renderRemoteJobs();
   renderPaletteResults();
   refreshSavedRenders();
+  setAiRenderWorkbenchStage("palette");
+  syncAiRenderWorkbenchStatus();
   setRoomRenderSectionLocked(!state.proposalReview.confirmedStyleCardId);
   await aiRenderViewer.loadScene(state.sceneData);
   aiRenderViewer.setCameraState(state.proposalReview.masterView.camera);
@@ -11361,7 +11495,6 @@ function bindEvents() {
     });
   });
   $("#save-room").addEventListener("click", saveRoom);
-  element.roomType?.addEventListener("change", applyRoomTypeSelection);
   element.spaceOverlay.addEventListener("pointerdown", spacePointerDown);
   element.spaceOverlay.addEventListener("pointermove", spacePointerMove);
   $("#apply-structure-size").addEventListener("click", applySelectedStructureSize);
@@ -12347,6 +12480,7 @@ function bindEvents() {
     const button = event.target.closest("[data-proposal-style-card]");
     if (button) selectProposalPalette(button.dataset.proposalStyleCard);
   });
+  element.proposalContentConfirmed?.addEventListener("change", syncProposalReviewStages);
   $("#search-glb-furniture").addEventListener("click", searchGlbFurniture);
   $("#glb-furniture-search").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -12448,6 +12582,10 @@ function bindEvents() {
   $("#return-to-realistic").addEventListener("click", () => goTo("realistic_3d"));
   $("#request-palette-renders").addEventListener("click", requestPaletteRenders);
   element.confirmRenderPalette.addEventListener("click", confirmRenderPalette);
+  element.aiRenderTabs?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-ai-render-tab]");
+    if (button) setAiRenderWorkbenchStage(button.dataset.aiRenderTab, true);
+  });
   element.renderRoomList.addEventListener("click", (event) => {
     const button = event.target.closest("[data-render-room]");
     if (button) selectRenderRoom(button.dataset.renderRoom);

@@ -64,9 +64,12 @@ class FurnitureRagService:
         # The API reports cache readiness, not the server's local filesystem layout.
         model_status.pop("cache_dir", None)
         provider = settings.parser_provider
-        provider_valid = provider in {"openai", "anthropic"}
+        provider_valid = provider in {"openai", "openrouter", "anthropic"}
+        parser_package_name = "openai" if provider == "openrouter" else provider
         parser_package = (
-            importlib.util.find_spec(provider) is not None if provider_valid else False
+            importlib.util.find_spec(parser_package_name) is not None
+            if provider_valid
+            else False
         )
         blockers: list[str] = []
         if not settings.enabled:
@@ -112,7 +115,9 @@ class FurnitureRagService:
                 "provider": provider,
                 "model": settings.parser_model,
                 "reasoning_effort": (
-                    settings.parser_reasoning_effort if provider == "openai" else None
+                    settings.parser_reasoning_effort
+                    if provider in {"openai", "openrouter"}
+                    else None
                 ),
                 "max_tokens": (
                     settings.anthropic_max_tokens if provider == "anthropic" else None

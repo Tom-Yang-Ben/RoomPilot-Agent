@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-625695364bd8" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-a18229a3370f" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -251,11 +251,6 @@
                       <select id="room-name"></select>
                       <button id="save-room" type="button" class="secondary-action">套用名稱</button>
                     </div>
-                    <label for="room-type">空間用途</label>
-                    <div class="rp-room-name-control">
-                      <select id="room-type" class="rp-room-type-select"></select>
-                    </div>
-                    <p id="room-type-source" class="rp-control-hint"></p>
                     <div id="room-area" class="rp-current-room-metrics"></div>
                   </div>
                   <details class="rp-room-outline-tools">
@@ -851,40 +846,58 @@
             <div id="style-pack-tabs" class="rp-style-tabs"></div>
             <div id="style-pack-grid" class="rp-style-pack-grid"></div>
             <section class="rp-surface-editor">
-              <h3>逐項材質設定</h3>
-              <p class="rp-control-hint">3D 上即時預覽此風格的牆面、地板與燈光。</p>
-              <label><span>套用範圍</span><select id="surface-scope"><option value="room">選取房間</option><option value="house">全屋</option></select></label>
-              <div class="rp-inline-fields">
-                <label><span>牆面</span><input id="wall-color" type="color" value="#f4efe4" /></label>
-                <label><span>地板</span><input id="floor-color" type="color" value="#c9a77d" /></label>
+              <div class="rp-surface-editor-heading">
+                <div>
+                  <span class="eyebrow">材質與色彩</span>
+                  <h3>牆面與地板</h3>
+                </div>
+                <label class="rp-surface-scope"><span>套用範圍</span><select id="surface-scope"><option value="room">選取房間</option><option value="house">全屋</option></select></label>
               </div>
-              <div class="rp-inline-fields">
-                <label><span>牆面材質</span><select id="wall-material">
-                  <option value="warm_white">礦物塗料</option>
-                  <option value="limewash">石灰洗牆</option>
-                  <option value="light_gray">灰色礦物塗料</option>
-                  <option value="charcoal">深色礦物塗料</option>
-                </select></label>
-                <div id="wall-material-grouped" class="rp-material-option-grid"></div>
-                <label><span>地板材質</span><select id="floor-material">
-                  <option value="light_oak">淺色木地板</option>
-                  <option value="walnut">胡桃木地板</option>
-                  <option value="stone_gray">灰石材</option>
-                  <option value="marble">大理石</option>
-                  <option value="microcement">微水泥</option>
-                </select></label>
-                <div id="floor-material-grouped" class="rp-material-option-grid"></div>
+              <p class="rp-control-hint">選取材質後會立即同步到 3D；確認整體搭配後再鎖定。</p>
+              <div class="rp-surface-color-grid" aria-label="牆面與地板色彩">
+                <label><span><strong>牆面色彩</strong><small>影響空間明亮度</small></span><input id="wall-color" type="color" value="#f4efe4" /></label>
+                <label><span><strong>地板色彩</strong><small>決定整體冷暖基調</small></span><input id="floor-color" type="color" value="#c9a77d" /></label>
               </div>
-              <button id="apply-surface-colors" type="button" class="secondary-action">套用並鎖定材質</button>
-              <div class="rp-inline-fields">
-                <label><span>混搭界線方向</span><select id="material-boundary-direction"><option value="vertical">垂直</option><option value="horizontal">水平</option></select></label>
-                <label><span>界線位置</span><input id="material-boundary-position" type="range" min="15" max="85" value="50" /></label>
+              <div class="rp-surface-material-groups">
+                <section class="rp-surface-material-group" aria-labelledby="wall-material-title">
+                  <header>
+                    <div><strong id="wall-material-title">牆面材質</strong><small>控制光澤、肌理與背景份量</small></div>
+                    <label class="rp-surface-material-select"><span>快速選單</span><select id="wall-material">
+                      <option value="warm_white">礦物塗料</option>
+                      <option value="limewash">石灰洗牆</option>
+                      <option value="light_gray">灰色礦物塗料</option>
+                      <option value="charcoal">深色礦物塗料</option>
+                    </select></label>
+                  </header>
+                  <div id="wall-material-grouped" class="rp-material-option-grid"></div>
+                </section>
+                <section class="rp-surface-material-group" aria-labelledby="floor-material-title">
+                  <header>
+                    <div><strong id="floor-material-title">地板材質</strong><small>平衡家具顏色與空間溫度</small></div>
+                    <label class="rp-surface-material-select"><span>快速選單</span><select id="floor-material">
+                      <option value="light_oak">淺色木地板</option>
+                      <option value="walnut">胡桃木地板</option>
+                      <option value="stone_gray">灰石材</option>
+                      <option value="marble">大理石</option>
+                      <option value="microcement">微水泥</option>
+                    </select></label>
+                  </header>
+                  <div id="floor-material-grouped" class="rp-material-option-grid"></div>
+                </section>
               </div>
-              <div class="rp-inline-actions">
-                <button id="draw-material-boundary" type="button" class="secondary-action">建立或更新界線</button>
-                <button id="remove-material-boundary" type="button" class="secondary-action">移除界線</button>
-              </div>
-              <p id="material-boundary-status">尚未建立混搭界線。</p>
+              <button id="apply-surface-colors" type="button" class="primary-action rp-surface-apply">套用並鎖定材質</button>
+              <details class="rp-surface-advanced">
+                <summary>進階：材質混搭界線</summary>
+                <div class="rp-inline-fields">
+                  <label><span>混搭界線方向</span><select id="material-boundary-direction"><option value="vertical">垂直</option><option value="horizontal">水平</option></select></label>
+                  <label><span>界線位置</span><input id="material-boundary-position" type="range" min="15" max="85" value="50" /></label>
+                </div>
+                <div class="rp-inline-actions">
+                  <button id="draw-material-boundary" type="button" class="secondary-action">建立或更新界線</button>
+                  <button id="remove-material-boundary" type="button" class="secondary-action">移除界線</button>
+                </div>
+                <p id="material-boundary-status">尚未建立混搭界線。</p>
+              </details>
             </section>
             <section class="rp-ceiling-editor">
               <h3>天花與風格燈具</h3>
@@ -915,33 +928,66 @@
             <div id="proposal-review-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="方案與渲染比較視角"></div>
             <p id="proposal-review-status" class="rp-viewer-status">先核對方案，最後再調整並鎖定色卡比較視角。</p>
           </div>
-          <aside class="rp-control-pane rp-3d-sidebar">
-            <span class="eyebrow">FINAL REVIEW</span>
-            <h2>確認送往渲染的方案</h2>
-            <p>家具、結構或材質需要修改時請返回第 6 步。鎖定後會建立不可混用的場景版本。</p>
-            <div id="proposal-review-summary" class="rp-review-summary"></div>
-            <section class="rp-editor-box">
-              <h3>選擇同風格色卡</h3>
-              <p>只會顯示全屋主風格的三張色卡；這張色卡會和已確認的問卷、家具、牆地與視角一起交給遠端生圖。</p>
-              <div id="proposal-palette-grid" class="rp-questionnaire-style-grid" role="list"></div>
-              <p id="proposal-palette-status" class="rp-field-hint" aria-live="polite"></p>
-            </section>
-            <div class="rp-check-row">
-              <input id="proposal-content-confirmed" type="checkbox" />
-              <label for="proposal-content-confirmed">我已確認家具、牆、地板、色卡與個人需求</label>
+          <aside class="rp-control-pane rp-3d-sidebar rp-proposal-sidebar" aria-label="方案鎖定流程">
+            <header class="rp-proposal-sidebar-intro">
+              <span class="eyebrow">步驟 7 · FINAL REVIEW</span>
+              <h2>完成方案鎖定</h2>
+              <p>依序核對方案、選擇色卡，再鎖定一個清楚呈現格局的比較視角。</p>
+            </header>
+
+            <div class="rp-proposal-flow">
+              <section id="proposal-stage-summary" class="rp-proposal-stage is-complete" data-proposal-stage="summary">
+                <header class="rp-proposal-stage-heading">
+                  <span class="rp-proposal-stage-number" aria-hidden="true">1</span>
+                  <div>
+                    <span class="rp-proposal-stage-kicker">方案內容</span>
+                    <h3>檢查完整方案</h3>
+                  </div>
+                  <span class="rp-proposal-stage-state">已整理</span>
+                </header>
+                <div id="proposal-review-summary" class="rp-review-summary"></div>
+              </section>
+
+              <section id="proposal-stage-palette" class="rp-proposal-stage is-active" data-proposal-stage="palette">
+                <header class="rp-proposal-stage-heading">
+                  <span class="rp-proposal-stage-number" aria-hidden="true">2</span>
+                  <div>
+                    <span class="rp-proposal-stage-kicker">風格與色彩</span>
+                    <h3>選擇同風格色卡</h3>
+                  </div>
+                  <span class="rp-proposal-stage-state">待選擇</span>
+                </header>
+                <p class="rp-proposal-stage-description">色卡會連同已確認的問卷、家具與牆地材質，作為第 8 步生圖的色彩基準。</p>
+                <div id="proposal-palette-grid" class="rp-proposal-palette-list" role="radiogroup" aria-label="同風格色卡"></div>
+                <p id="proposal-palette-status" class="rp-field-hint rp-proposal-inline-status" aria-live="polite"></p>
+              </section>
+
+              <section id="proposal-stage-view" class="rp-proposal-stage rp-render-view-lock" data-proposal-stage="view">
+                <header class="rp-proposal-stage-heading">
+                  <span class="rp-proposal-stage-number" aria-hidden="true">3</span>
+                  <div>
+                    <span class="rp-proposal-stage-kicker">最後確認</span>
+                    <h3>鎖定比較視角</h3>
+                  </div>
+                  <span class="rp-proposal-stage-state">尚未鎖定</span>
+                </header>
+                <p class="rp-proposal-stage-description">在左側調整能清楚看見主要格局的視角，或先套用系統建議。</p>
+                <button id="suggest-master-view" type="button" class="secondary-action rp-proposal-suggest-view">套用建議視角</button>
+                <div class="rp-check-row rp-proposal-confirmation">
+                  <input id="proposal-content-confirmed" type="checkbox" />
+                  <label for="proposal-content-confirmed">我已確認家具、牆、地板、色卡與個人需求</label>
+                </div>
+                <p id="master-view-status" class="rp-field-hint rp-proposal-view-status" aria-live="polite">尚未鎖定比較視角。</p>
+                <button id="lock-master-view" type="button" class="primary-action rp-proposal-primary-action">鎖定此視角並進入第 8 步</button>
+                <div class="rp-proposal-secondary-actions" aria-label="其他方案操作">
+                  <button id="download-proposal-view" type="button" class="secondary-action">下載 PNG</button>
+                  <button id="save-proposal-view-png" type="button" class="secondary-action">保存到專案</button>
+                  <button id="return-to-realistic" type="button" class="secondary-action">返回第 6 步修改</button>
+                </div>
+                <p id="proposal-review-error" class="rp-field-error" aria-live="polite"></p>
+                <div id="proposal-room-views-slot"></div>
+              </section>
             </div>
-            <button id="return-to-realistic" type="button" class="secondary-action">返回第 6 步修改</button>
-            <section class="rp-editor-box rp-render-view-lock">
-              <span class="eyebrow">最後一步</span>
-              <h3>鎖定色卡比較視角</h3>
-              <p>請先完成上方方案確認，再調整一個能清楚看見主要格局的視角。此視角會用於第 8 步的色卡比較。</p>
-              <button id="suggest-master-view" type="button" class="secondary-action">套用建議視角</button>
-              <button id="lock-master-view" type="button" class="primary-action">鎖定此視角並進入第 8 步</button>
-              <button id="download-proposal-view" type="button" class="secondary-action">下載目前視角 PNG</button>
-              <button id="save-proposal-view-png" type="button" class="secondary-action">保存截圖到專案</button>
-              <p id="proposal-review-error" class="rp-field-error" aria-live="polite"></p>
-              <p id="master-view-status" class="rp-field-hint" aria-live="polite">尚未鎖定比較視角。</p>
-            </section>
           </aside>
         </div>
       </section>
@@ -956,74 +1002,108 @@
             <div id="ai-render-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="逐房間渲染視角"></div>
             <p id="ai-render-status" class="rp-viewer-status">先建立色卡比較圖，確認後再逐房間保存視角。</p>
           </div>
-          <aside class="rp-control-pane rp-style-sidebar">
-            <span class="eyebrow">雲端生圖</span>
-            <h2>色卡比較與逐房渲染</h2>
+          <aside class="rp-control-pane rp-style-sidebar rp-ai-render-sidebar">
+            <header class="rp-ai-render-heading">
+              <div>
+                <span class="eyebrow">成果產生</span>
+                <h2>AI 渲染工作台</h2>
+              </div>
+              <p>目前視角：<strong id="ai-render-current-room">色卡比較</strong><span id="ai-render-task-state">任務就緒</span></p>
+            </header>
             <p id="ai-render-error" class="rp-field-error" aria-live="polite"></p>
             <details id="ai-render-technical-details" class="rp-technical-details" hidden>
               <summary>查看技術資訊</summary>
               <code id="ai-render-technical-error"></code>
             </details>
-            <section id="render-detail-box" class="rp-editor-box">
-              <h3>生圖偏好（可維持自動）</h3>
-              <p class="rp-field-hint">這幾項不會改動 3D 場景，只會提供給生圖服務。維持「由系統判斷」即可不指定。</p>
-              <label><span>間接光</span><select id="render-detail-indirect-light">
-                <option value="">由系統判斷</option>
-                <option value="minimal">維持乾淨，少用間接光</option>
-                <option value="featured">以間接光為主要氛圍</option>
-              </select></label>
-              <label><span>天花分區</span><select id="render-detail-ceiling-zoning">
-                <option value="">由系統判斷</option>
-                <option value="room">每個空間各自造型</option>
-                <option value="continuous">全屋連續同一平面</option>
-              </select></label>
-              <label><span>送風方式</span><select id="render-detail-airflow-strategy">
-                <option value="">由系統判斷</option>
-                <option value="direct">直吹，出風口明顯</option>
-                <option value="indirect">導流，避免直吹人</option>
-              </select></label>
-              <label><span>維修口</span><select id="render-detail-service-visibility">
-                <option value="">由系統判斷</option>
-                <option value="hidden">盡量隱藏</option>
-                <option value="accessible">保留明顯好維修</option>
-              </select></label>
-              <label><span>吊扇</span><select id="render-detail-ceiling-fan">
-                <option value="">由系統判斷</option>
-                <option value="yes">要有吊扇</option>
-                <option value="no">不要吊扇</option>
-              </select></label>
-              <label><span>廚房家電</span><select id="render-detail-appliance-visibility">
-                <option value="">由系統判斷</option>
-                <option value="integrated">嵌入櫃體隱藏</option>
-                <option value="visible">外露看得到</option>
-              </select></label>
-            </section>
-            <section class="rp-editor-box">
-              <h3>1. 色卡比較</h3>
-              <p>固定第 7 步視角、家具與格局，只改指定色卡，產生低解析度比較圖。</p>
-              <div id="palette-render-options" class="rp-render-option-list"></div>
-              <button id="request-palette-renders" type="button" class="primary-action">建立色卡比較任務</button>
-              <div id="palette-render-results" class="rp-render-result-grid"></div>
-              <button id="confirm-render-palette" type="button" class="secondary-action" hidden>確認選取色卡並開始逐房間視角</button>
-            </section>
-            <section id="room-render-section" class="rp-editor-box">
-              <h3>2. 逐房間視角</h3>
-              <p>系統會先定位房間；可小幅調整後保存。每個房間都有獨立任務，可單獨重試。</p>
-              <p id="room-render-lock-hint" class="rp-control-hint">請先在上方選定並確認一張色卡，這一段才會解鎖。</p>
-              <div id="render-room-list" class="rp-render-room-list"></div>
-              <button id="save-room-view" type="button" class="secondary-action">保存目前房間視角</button>
-              <button id="submit-room-renders" type="button" class="primary-action">送出已保存的房間渲染</button>
-            </section>
-            <section class="rp-editor-box">
-              <h3>3. 截圖成果</h3>
-              <p>不需等待遠端渲染——目前視角可直接下載，或保存進專案成果清單。</p>
-              <div class="rp-render-option-list">
-                <button id="download-render-view" type="button" class="secondary-action">下載目前視角 PNG</button>
-                <button id="save-render-view-png" type="button" class="secondary-action">保存截圖到專案</button>
+            <details id="render-detail-box" class="rp-ai-render-settings">
+              <summary>
+                <span><strong>渲染設定</strong><small>6 項偏好，可維持自動</small></span>
+                <span aria-hidden="true">展開</span>
+              </summary>
+              <div class="rp-ai-render-settings-body">
+                <p class="rp-field-hint">只提供給生圖服務，不會改動目前的 3D 場景。</p>
+                <div class="rp-ai-render-settings-grid">
+                  <label><span>間接光</span><select id="render-detail-indirect-light">
+                    <option value="">由系統判斷</option>
+                    <option value="minimal">維持乾淨，少用間接光</option>
+                    <option value="featured">以間接光為主要氛圍</option>
+                  </select></label>
+                  <label><span>天花分區</span><select id="render-detail-ceiling-zoning">
+                    <option value="">由系統判斷</option>
+                    <option value="room">每個空間各自造型</option>
+                    <option value="continuous">全屋連續同一平面</option>
+                  </select></label>
+                  <label><span>送風方式</span><select id="render-detail-airflow-strategy">
+                    <option value="">由系統判斷</option>
+                    <option value="direct">直吹，出風口明顯</option>
+                    <option value="indirect">導流，避免直吹人</option>
+                  </select></label>
+                  <label><span>維修口</span><select id="render-detail-service-visibility">
+                    <option value="">由系統判斷</option>
+                    <option value="hidden">盡量隱藏</option>
+                    <option value="accessible">保留明顯好維修</option>
+                  </select></label>
+                  <label><span>吊扇</span><select id="render-detail-ceiling-fan">
+                    <option value="">由系統判斷</option>
+                    <option value="yes">要有吊扇</option>
+                    <option value="no">不要吊扇</option>
+                  </select></label>
+                  <label><span>廚房家電</span><select id="render-detail-appliance-visibility">
+                    <option value="">由系統判斷</option>
+                    <option value="integrated">嵌入櫃體隱藏</option>
+                    <option value="visible">外露看得到</option>
+                  </select></label>
+                </div>
               </div>
-              <div class="rp-room-queue-heading"><strong>已保存的截圖</strong><span id="saved-renders-count">尚無</span></div>
-              <div id="saved-renders-list" class="rp-render-result-grid" aria-live="polite"></div>
-            </section>
+            </details>
+            <nav class="rp-ai-render-tabs" aria-label="渲染工作區">
+              <button type="button" data-ai-render-tab="palette" aria-pressed="true">色卡比較</button>
+              <button type="button" data-ai-render-tab="rooms" aria-pressed="false">逐房渲染</button>
+              <button type="button" data-ai-render-tab="results" aria-pressed="false">成果</button>
+            </nav>
+            <div class="rp-ai-render-workflow">
+              <section class="rp-ai-render-stage is-active" data-ai-render-stage="palette" tabindex="-1">
+                <header class="rp-ai-render-stage-heading">
+                  <span>1</span>
+                  <div><h3>色卡比較</h3><small>固定場景、家具與視角，只比較色彩氛圍。</small></div>
+                </header>
+                <div class="rp-ai-render-stage-body">
+                  <div id="palette-render-options" class="rp-render-option-list" role="group" aria-label="選擇比較色卡"></div>
+                  <button id="request-palette-renders" type="button" class="primary-action">建立色卡比較任務</button>
+                  <div id="palette-render-results" class="rp-render-result-grid"></div>
+                  <button id="confirm-render-palette" type="button" class="secondary-action" hidden>確認選取色卡並開始逐房間視角</button>
+                </div>
+              </section>
+              <section id="room-render-section" class="rp-ai-render-stage" data-ai-render-stage="rooms" tabindex="-1">
+                <header class="rp-ai-render-stage-heading">
+                  <span>2</span>
+                  <div><h3>逐房渲染</h3><small>保存每個房間的觀看位置，再一次送出。</small></div>
+                  <strong id="ai-render-room-progress">0 / 0</strong>
+                </header>
+                <div class="rp-ai-render-stage-body">
+                  <p id="room-render-lock-hint" class="rp-control-hint">請先在上方選定並確認一張色卡，這一段才會解鎖。</p>
+                  <div id="render-room-list" class="rp-render-room-list"></div>
+                  <div class="rp-ai-render-stage-actions">
+                    <button id="save-room-view" type="button" class="secondary-action">保存目前房間視角</button>
+                    <button id="submit-room-renders" type="button" class="primary-action">送出已保存的房間渲染</button>
+                  </div>
+                </div>
+              </section>
+              <section class="rp-ai-render-stage" data-ai-render-stage="results" tabindex="-1">
+                <header class="rp-ai-render-stage-heading">
+                  <span>3</span>
+                  <div><h3>成果</h3><small>下載目前視角，或保存到專案成果清單。</small></div>
+                  <strong id="saved-renders-count">尚無</strong>
+                </header>
+                <div class="rp-ai-render-stage-body">
+                  <div class="rp-ai-render-result-actions">
+                    <button id="download-render-view" type="button" class="secondary-action">下載目前視角 PNG</button>
+                    <button id="save-render-view-png" type="button" class="secondary-action">保存截圖到專案</button>
+                  </div>
+                  <div id="saved-renders-list" class="rp-render-result-grid" aria-live="polite"></div>
+                </div>
+              </section>
+            </div>
             <div id="remote-render-jobs" class="rp-render-jobs" aria-live="polite"></div>
           </aside>
         </div>
@@ -1146,6 +1226,6 @@
       }
     </script>
   <script type="module" src="/static/engineering_link.js?v=sha256-3d5c1057884c"></script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-a417db1a5465"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-c273235c302e"></script>
   </body>
 </html>
