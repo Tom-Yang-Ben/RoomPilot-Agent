@@ -12524,10 +12524,19 @@ async function ensureProposalSceneLoaded() {
     await proposalSceneLoading;
     if (proposalSceneVersionLoaded === currentSceneVersion()) return;
   }
+  // 真的需要載入(6→7 首次進入、換方案、場景重建)才會走到這裡:
+  // 全畫面等待遮罩明確告知「還在準備」,載完一次呈現;快取命中不閃遮罩。
   element.masterViewStatus.textContent = "場景還在準備中，請稍候…";
+  beginPlacementBusy("正在準備第 7 步 3D 場景，請稍候…");
   proposalSceneLoading = proposalViewer.loadScene(state.sceneData)
-    .then(() => { proposalSceneVersionLoaded = version; })
-    .finally(() => { proposalSceneLoading = null; });
+    .then(() => {
+      proposalSceneVersionLoaded = version;
+      element.masterViewStatus.textContent = "場景已就緒；請核對方案並鎖定比較視角。";
+    })
+    .finally(() => {
+      proposalSceneLoading = null;
+      endPlacementBusy();
+    });
   await proposalSceneLoading;
 }
 
@@ -14056,6 +14065,13 @@ function bindEvents() {
   });
   $$("[data-design-scheme]").forEach((button) => {
     button.addEventListener("click", () => {
+      // 流程規範:方案 A/B 在第 6 步選定;第 7 步只依選定方案比較色卡、
+      // 第 8 步依選定色卡逐房生圖 —— 進入第 7 步後不再切換方案。
+      const currentStep = state.workflow?.currentStep;
+      if (currentStep === "proposal_review" || currentStep === "ai_render") {
+        setStatus("方案已於第 6 步選定；要更換 A/B 請先返回第 6 步。", "error");
+        return;
+      }
       if (!switchDesignScheme(button.dataset.designScheme)) return;
       setStatus(`已切換至方案 ${button.dataset.designScheme}；家具座標與 3D 場景彼此獨立。`);
     });
