@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-eval_doors.py — 用 door/ 的門樣式圖驗證「門不會被誤判成窗」
+eval_doors.py — 用 testdata/Asset/door/ 的門樣式圖驗證「門不會被誤判成窗」
 
-    python3 eval_doors.py [door目錄]        (預設 door/)
+    python3 eval_doors.py [door目錄]        (預設 testdata/Asset/door/)
 
 每張樣式圖直接跑跟主程式相同的偵測管線；只要輸出任何窗框就算「漏過濾」。
 過濾率 = 沒被誤判成窗的樣式數 / 總樣式數，目標 ≥ 95%。
@@ -19,18 +19,15 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import floorplan2dxf as fp
 
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.ini")
-
 
 def detect_on(path):
     """對單張樣式圖執行與 run() 相同的窗偵測流程，回傳 wins。"""
-    cfg = fp.load_config(CONFIG_PATH)
+    cfg = fp.load_config("config.ini")
     cfg.input = path
     gray, _ = fp.load_gray(cfg)
     bw = fp.binarize(gray, cfg)
     bw, _ = fp.remove_solid_blobs(bw)
-    dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
-    T = max(2, int(round(2.0 * float(dt.max()))))
+    T = fp.derive_wall_T(bw)                     # 與 run() 同式（抗離群）
     pick = lambda v, d: (v if v not in (None, 0) else d)
     cfg.solid = pick(cfg.solid, max(3, int(round(0.35 * T))))
     cfg.h_len = pick(cfg.h_len, max(int(round(1.5 * T)), cfg.solid + 2))
@@ -48,7 +45,7 @@ def detect_on(path):
 
 
 def main():
-    door_dir = sys.argv[1] if len(sys.argv) > 1 else "testdata/door"
+    door_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join("testdata", "Asset", "door")
     files = sorted(glob.glob(os.path.join(door_dir, "*.png")))
     if not files:
         sys.exit(f"{door_dir}/ 裡找不到 .png")
@@ -62,13 +59,13 @@ def main():
             continue
         if wins:
             boxes = " ".join(f"(x{int(w[1])}-{int(w[3])},y{int(w[2])}-{int(w[4])})" for w in wins)
-            print(f"{base:<24} [失敗] 誤判成窗 {boxes}")
+            print(f"{base:<24} ✗ 誤判成窗 {boxes}")
         else:
             ok += 1
-            print(f"{base:<24} [通過] 正確過濾")
+            print(f"{base:<24} ✓ 正確過濾")
     rate = ok / len(files) * 100
-    print("-" * 50)
-    print(f"門過濾率: {ok}/{len(files)} = {rate:.0f}%  (目標 >=95%)")
+    print("─" * 50)
+    print(f"門過濾率: {ok}/{len(files)} = {rate:.0f}%  (目標 ≥95%)")
 
 
 if __name__ == "__main__":

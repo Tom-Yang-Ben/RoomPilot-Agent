@@ -316,7 +316,8 @@ Feature: 3D 檢視閘門與自動軟裝
   Scenario: 型錄無可用軟裝 GLB
     Given 型錄中找不到符合尺寸的軟裝模型
     When 我要求自動軟裝
-    Then 我應該收到 409,錯誤碼為 decor_model_missing
+    Then 我仍應收到 200,地毯與植栽照常配置
+    And decor_summary.skipped 應列出 light 與略過原因
 
   @sad-path
   Scenario: 上游確認被修改時下游結果作廢

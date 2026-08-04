@@ -87,10 +87,13 @@ function emptyRoomRequirement(room = {}) {
     roomId,
     roomType: room.type || room.room_type || "other",
     roomLabel: room.name || room.label || "未命名空間",
+    usage: [],
     axisAnswers: {},
     furniture: {
       required: [],
       optional: [],
+      selected: [],
+      deferred: [],
     },
     climate: {
       airConditioning: null,
@@ -158,9 +161,12 @@ export function normalizeRoomRequirements(
       roomId,
       roomType: room.type || room.room_type || restored.roomType || "other",
       roomLabel: room.name || room.label || restored.roomLabel || "未命名空間",
+      usage: clone(restored.usage || []),
       furniture: {
         ...migrated.furniture,
         ...(restored.furniture || {}),
+        selected: clone(restored.furniture?.selected || []),
+        deferred: clone(restored.furniture?.deferred || []),
       },
       climate: {
         ...migrated.climate,

@@ -186,9 +186,11 @@ export function findFurniture2DVariant(type, variantId) {
 
 export function recommendCompanionFurniture(roomType, selectedTypes = []) {
   const selected = new Set(selectedTypes);
+  const retiredApplianceTypes = new Set(["refrigerator", "washer"]);
   if (!selected.size) return [];
   const recommendations = [];
   const add = (type, variantId, reason) => {
+    if (retiredApplianceTypes.has(type)) return;
     if (selected.has(type) || recommendations.some((item) => item.type === type)) return;
     recommendations.push({ type, variantId, reason, autoAdded: true });
   };
@@ -209,7 +211,7 @@ export function recommendCompanionFurniture(roomType, selectedTypes = []) {
   return recommendations;
 }
 
-function roomTypeFromName(room = {}) {
+export function roomTypeFromName(room = {}) {
   const explicitType = String(room.type || room.room_type || "default").toLowerCase();
   if (explicitType && !["default", "unknown", "other"].includes(explicitType)) {
     return explicitType;
@@ -224,20 +226,50 @@ function roomTypeFromName(room = {}) {
     ["dining_room", /dining\s*room|飯廳|餐廳/],
     ["balcony", /balcony|terrace|陽台/],
     ["circulation", /circulation|corridor|hallway|走道|走廊|玄關/],
+    ["workspace", /study|office|den|書房|工作室/],
   ];
   return rules.find(([, pattern]) => pattern.test(label))?.[0] || "default";
 }
 
-export function recommendedFurnitureForRoom(room = {}) {
+/** 用餐人數 → 餐桌型號。座位數決定桌子，不是反過來。 */
+function diningTableVariant(seats) {
+  if (seats >= 6) return "rect-6";
+  return seats > 4 ? "rect-4" : "round-4";
+}
+
+/**
+ * 臥室床型。
+ *
+ * 舊版所有臥室一律雙人床，兒童房也照放——這是 QA 2026-08-01 實測的問題：
+ * 住戶人數與兒童數完全不影響配置。次臥有兒童時給單人床與書桌，主臥依成人
+ * 人數決定單／雙人床。
+ */
+function bedroomFurniture({ adults = 2, children = 0, bedroomRole = "primary" } = {}) {
+  if (bedroomRole === "secondary" && children > 0) {
+    return [["bed", "single"], ["wardrobe", "two-door"], ["desk", "compact"]];
+  }
+  if (bedroomRole === "secondary") {
+    return [["bed", "single"], ["wardrobe", "two-door"]];
+  }
+  return [["bed", adults >= 2 ? "double" : "single"], ["wardrobe", "two-door"]];
+}
+
+export function recommendedFurnitureForRoom(room = {}, occupancy = {}) {
   const roomType = roomTypeFromName(room);
+  // 餐椅數量依用餐人數展開。舊版只放一張，八人份問卷也一樣。
+  const diningSeats = Math.max(2, Math.min(6, Number(occupancy.diningSeats) || 4));
   const recommendations = {
     living_room: [["sofa", "three-seat"], ["coffee-table", "rect"], ["tv-bench", "low"]],
-    bedroom: [["bed", "double"], ["wardrobe", "two-door"]],
-    dining_room: [["dining-table", "round-4"], ["dining-chair", "standard"]],
-    kitchen: [["refrigerator", "single-door"], ["appliance-cabinet", "standard"]],
+    bedroom: bedroomFurniture(occupancy),
+    dining_room: [
+      ["dining-table", diningTableVariant(diningSeats)],
+      ...Array.from({ length: diningSeats }, () => ["dining-chair", "standard"]),
+    ],
+    kitchen: [["appliance-cabinet", "standard"]],
     storage: [["storage-cabinet", "tall"]],
+    workspace: [["desk", "standard"], ["office-chair", "task"]],
     bathroom: [["bathroom-vanity", "standard"], ["mirror-cabinet", "standard"]],
-    balcony: [["washer", "front-load"]],
+    balcony: [["flower-pots-planter", "floor"]],
     circulation: [],
   };
   return recommendations[roomType] || [];
@@ -322,9 +354,17 @@ export function furnitureFootprintStyle(item, pixelsPerCm) {
 
 export function toSceneFurniture(item, { positionLocked = true } = {}) {
   return {
-    furniture_id: item.catalogFurnitureId || item.id,
+    furniture_id: item.id,
+    catalog_furniture_id: item.catalogFurnitureId || null,
     normalized_type: item.type,
     name_zh_raw: item.label,
+    model_url: item.model_url || null,
+    has_model: Boolean(item.model_url),
+    primary_style: item.primaryStyle || null,
+    color: item.catalogColor || null,
+    material: item.catalogMaterial || null,
+    selection_source: item.selectionSource || null,
+    match_reason: item.catalogMatchReason || item.reason || null,
     size_cm: {
       width: item.widthCm,
       depth: item.depthCm,

@@ -56,6 +56,10 @@ class Config:
     win_min_pct: float      # 窗的跨牆寬度需 ≥ 牆厚的(100-此值)%；太薄的不算窗
     door_arc_pct: float     # 門偵測:L形等長線兩端連接弧的吻合度門檻(%)
     door_width_cm: float    # 假設的標準門寬(cm)，用門寬中位數反推每張圖的比例
+    # architecture.json(白模交接)用的立面預設值——2D 平面圖量不到,只能用預設
+    wall_height_cm: float
+    window_height_cm: float
+    sill_height_cm: float
     win_layer: str
     hough_thresh: int
     hough_min_len: int
@@ -68,6 +72,10 @@ class Config:
 
 
 def load_config(path: str) -> Config:
+    if not os.path.isabs(path) and not os.path.isfile(path):
+        _alt = os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+        if os.path.isfile(_alt):
+            path = _alt
     cp = configparser.ConfigParser(inline_comment_prefixes=(";", "#"))
     flat = {}
     text = None
@@ -133,6 +141,9 @@ def load_config(path: str) -> Config:
         win_min_pct=f("win_min_pct", 20.0),
         door_arc_pct=f("door_arc_pct", 50.0),
         door_width_cm=f("door_width_cm", 90.0),
+        wall_height_cm=f("wall_height_cm", 280.0),
+        window_height_cm=f("window_height_cm", 120.0),
+        sill_height_cm=f("sill_height_cm", 90.0),
         win_layer=s("win_layer", "WINDOW"),
         hough_thresh=i("hough_thresh", 50), hough_min_len=i("hough_min_len", 25),
         hough_max_gap=i("hough_max_gap", 5), angle_tol=f("angle_tol", 8.0),
@@ -143,6 +154,9 @@ def load_config(path: str) -> Config:
 
 # ─────────────────────────── 前處理 ───────────────────────────
 def load_gray(cfg: Config):
+    # 不用 cv2.imread：它走 C 層 fopen，Windows 上非 ASCII 路徑（中文檔名／
+    # 使用者目錄）會直接回 None。改由 numpy 讀 bytes 再 imdecode，路徑編碼
+    # 交給 Python 處理。產品端上傳檔名不可控，這條是硬需求。
     try:
         encoded = np.fromfile(cfg.input, dtype=np.uint8)
         img = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED) if encoded.size else None
@@ -287,49 +301,93 @@ def _arc_run(thin, cx, cy, r, ux, vx, uy, vy):
     return mx / len(hits)
 
 
-def _has_door_swing(thin, orient, c, a, b, T, arc_pct):
+def _arc_crisp(thin, cx, cy, r, ux, vx, uy, vy):
+    """弧中段(25°~65°)的墨要「貼在半徑上」：r 有墨、r±max(5,0.2r) 留白的樣本佔比夠高
+    → 孤立細曲線(真門弧)。牆緣蝕刻殘影/家具墨團拼出的假弧內外圈也有墨 → 不算門，
+    避免誤殺剛好被雜墨圈住的窗。"""
+    Himg, Wimg = thin.shape
+
+    def ink(rr, th):
+        px = int(cx + rr * (math.cos(th) * ux + math.sin(th) * vx))
+        py = int(cy + rr * (math.cos(th) * uy + math.sin(th) * vy))
+        tol = max(2, int(r * 0.05))
+        xa, xb = max(0, px - tol), min(Wimg, px + tol + 1)
+        ya, yb = max(0, py - tol), min(Himg, py + tol + 1)
+        return bool(xa < xb and ya < yb and thin[ya:yb, xa:xb].any())
+
+    d = max(5.0, 0.2 * r)
+    hits = clear = 0
+    for deg in range(25, 66, 5):
+        th = math.radians(deg)
+        if ink(r, th):
+            hits += 1
+            if not ink(r - d, th) and not ink(r + d, th):
+                clear += 1
+    return hits >= 5 and clear / hits >= 0.6
+
+
+def _has_door_swing(thin, orient, c, a, b, T, arc_pct, wall_t=None, cross_t=None,
+                    allow_half=True):
     """備援門檢查：門扇畫成閉合狀態(細線橫躺在牆線上)時 detect_doors 的 L 形規則抓不到，
     會被誤認成窗。改拿開口兩端當鉸鏈，直接掃有沒有半徑=開口寬的 90 度弧(開闔動線)。
     orient/c = 牆線方向與中心座標，a~b = 開口在沿牆軸上的範圍。
-    門檻鎖 0.9(比 door_arc_pct 嚴)：實測閉合門扇的弧吻合度≈1.0、真窗多≤0.6，
-    寧可放過不確定的門，也不誤殺窗。"""
+    門尺寸基準 s 用可靠牆厚 wall_t 推(全圖最厚線 T 會被樓梯/實心塊撐大 2~3 倍,
+    把正常寬度的門排除在檢查外——floor13/34/35 的閉合門扇全因此漏抓)。
+    鉸鏈除了開口兩端,再試 c±cross_t/2(門軸釘在牆面,不在牆中線)；
+    半徑除了開口寬,再試 1.2 倍(蝕刻讓開口比門寬窄)。
+    門檻鎖 0.9(比 door_arc_pct 嚴)且弧要通過 _arc_crisp 孤立性檢查，不誤殺窗。
+    allow_half=True 時寬開口(≥4s)再試「一端鉸鏈+半寬弧」= 門+固定扇共用開口；
+    呼叫端在開口畫滿玻璃線(≥2 條貫穿線)時應傳 False,免得殺掉寬窗。"""
     gap = b - a
-    if not (1.5 * T <= gap <= 16.0 * T):     # 尺寸不像門就不檢查，避免誤殺長窗
+    s = float(min(T, max(1.6 * (wall_t or T), 0.6 * T)))   # 門尺寸基準
+    if not (1.5 * s <= gap <= 16.0 * s):     # 尺寸不像門就不檢查，避免誤殺長窗
         return False
     thr = max(0.9, arc_pct / 100.0)
+    perp = [0.0]
+    if cross_t:
+        perp += [-cross_t / 2.0, cross_t / 2.0]
 
     def hinge_arc(end, r):
         leaf = 1 if end == a else -1         # 門扇閉合時沿開口指向另一端
-        for off in (0.0, -0.5 * T, 0.5 * T, 1.0 * T):  # 鉸鏈與蝕刻後的開口端可能有小錯位(內外皆可能)
-            hinge = end - leaf * off
-            for rr in (r, r + off) if off > 0 else (r,):   # 外移時門寬可能連著一起變大
-                for side in (1, -1):         # 房間可能在牆的任一側
-                    if orient == "v":
-                        if _arc_run(thin, c, hinge, rr, 0, side, leaf, 0) >= thr:
-                            return True
-                    else:
-                        if _arc_run(thin, hinge, c, rr, leaf, 0, 0, side) >= thr:
+        for off in (0.0, -0.25 * s, 0.25 * s, -0.5 * s, 0.5 * s, 1.0 * s):
+            hinge = end - leaf * off         # 鉸鏈與蝕刻後的開口端可能有小錯位(內外皆可能)
+            radii = [r, 1.2 * r]
+            if off > 0:
+                radii.append(r + off)        # 外移時門寬可能連著一起變大
+            for rr in radii:
+                for pc in perp:              # 門軸可能在牆中線或兩側牆面
+                    for side in (1, -1):     # 房間可能在牆的任一側
+                        if orient == "v":
+                            args = (c + pc, hinge, rr, 0, side, leaf, 0)
+                        else:
+                            args = (hinge, c + pc, rr, leaf, 0, 0, side)
+                        if _arc_run(thin, *args) >= thr and _arc_crisp(thin, *args):
                             return True
         return False
 
-    if 1.2 * T <= gap <= 8.0 * T and (hinge_arc(a, gap) or hinge_arc(b, gap)):
+    if 1.2 * s <= gap <= 16.0 * s and (hinge_arc(a, gap) or hinge_arc(b, gap)):
         return True                          # 單扇門：一端鉸鏈 + 全寬弧
     half = gap / 2.0
-    if half >= 1.2 * T and hinge_arc(a, half) and hinge_arc(b, half):
-        return True                          # 雙開門：兩端鉸鏈 + 各自的半寬弧
+    if half >= 1.2 * s:
+        if hinge_arc(a, half) and hinge_arc(b, half):
+            return True                      # 雙開門：兩端鉸鏈 + 各自的半寬弧
+        if allow_half and gap >= 4.0 * s and (hinge_arc(a, half) or hinge_arc(b, half)):
+            return True                      # 寬開口的門+固定扇：一端鉸鏈 + 半寬弧
     return False
 
 
 def detect_doors(thin, T: int, arc_pct: float):
     """依規則找門:一條垂直線 + 一條水平線(等長、垂直、共用一個角=鉸鏈)，
-    兩自由端用半徑=門寬的弧連接(門的開闔動線)。回傳 [(cx, cy, width)] 鉸鏈與門寬。
+    兩自由端用半徑=門寬的弧連接(門的開闔動線)。
+    回傳 [(cx, cy, width, score, ux, vy)]:鉸鏈、門寬、弧吻合度、
+    水平/垂直線自由端相對鉸鏈的方向(±1，影像座標)——architecture.json 判開門側用。
     用 HoughLinesP 找實際線段，不靠假設，圓形家具沒有這對等長直線→不會中。"""
     segs = cv2.HoughLinesP(thin, 1, np.pi / 180, threshold=max(15, int(0.9 * T)),
                            minLineLength=int(1.2 * T), maxLineGap=int(0.4 * T))
     if segs is None:
         return []
-    # OpenCV 4 returns (N, 1, 4), while OpenCV 5 may return (1, N, 4).
-    # Treat both as a flat list of four-coordinate segments.
+    # OpenCV 4 回 (N, 1, 4)，OpenCV 5 可能回 (1, N, 4)。攤平成四座標一列的
+    # 平坦清單，兩個大版本都吃得下——鎖 <5 是防線，這裡是安全網。
     segs = np.asarray(segs).reshape(-1, 4)
     Hs, Vs = [], []
     for x1, y1, x2, y2 in segs:
@@ -360,7 +418,7 @@ def detect_doors(thin, T: int, arc_pct: float):
                         r = (hl + vl) / 2.0
                         score = arc_run(cx, cy, r, ux, 0, 0, vy_)
                         if score >= thr:
-                            doors.append((cx, cy, r, score))
+                            doors.append((cx, cy, r, score, ux, vy_))
     uniq = []
     for d in sorted(doors, key=lambda d: -d[3]):
         if not any(math.hypot(d[0] - u[0], d[1] - u[1]) < T for u in uniq):
@@ -474,18 +532,22 @@ def detect_door_swing_arcs(thin, T: int, arc_pct: float, roi=None):
     return unique
 
 
-def _near_door(cx, cy, gap, doors, ends=None, T=0):
+def _near_door(cx, cy, gap, doors, ends=None, T=0, tol_side=0.0):
     """開口是否對應到一扇偵測到的門：鉸鏈必須貼在開口其中一端(不能只是在附近，
     免得窗戶旁邊剛好有門/假門就整個被誤殺)，且門寬要與開口寬相符。
-    只信弧線吻合度很高的門(≥0.85)——家具/淋浴間的曲線拼出來的假門分數較低，不拿來殺窗。"""
-    for door in doors:
-        dx, dy, dw, score = door[:4]
-        if score < 0.85 or not (0.65 * gap <= dw <= 1.4 * gap):
+    只信弧線吻合度高的門(≥0.8)——家具/淋浴間的曲線拼出來的假門分數較低，不拿來殺窗。
+    門寬下限 0.55×開口(門常與固定扇共用開口，弧比開口窄)。
+    ends 前兩點=開口端點(容差寬)，其後=帶側面中點(容差 0.5×tol_side——
+    門橫著閂在開口上時門軸幾乎貼著帶緣，離遠的一律不採信免得誤殺窗)。"""
+    for dx, dy, dw, score, *_ in doors:
+        if score < 0.8 or not (0.55 * gap <= dw <= 1.4 * gap):
             continue
         if ends is not None:
             tol = max(float(T), 0.15 * gap)
-            if any(math.hypot(dx - ex, dy - ey) <= tol for ex, ey in ends):
-                return True
+            for i, (ex, ey) in enumerate(ends):
+                t_i = tol if i < 2 else max(3.0, 0.5 * tol_side)
+                if math.hypot(dx - ex, dy - ey) <= t_i:
+                    return True
         elif math.hypot(dx - cx, dy - cy) <= 1.1 * gap:
             return True
     return False
@@ -526,9 +588,9 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         partial = int(((line_cov >= 0.15) & (line_cov < 0.8)).sum())
         return partial >= 2
 
-    def covered_soft(y0, y1, x0, x1, along_axis, edge_hug=False):
+    def covered_soft(y0, y1, x0, x1, along_axis, edge_hug=False, min_groups=2):
         """orig 上是空的 → 用寬鬆二值化重測。要長得像窗才放行：
-        至少兩「群」分開的線貫穿開口全長(一群=一條實線；單條=家具/檯面邊線)，
+        至少 min_groups「群」分開的線貫穿開口全長(一群=一條實線；單條=家具/檯面邊線)，
         且整塊墨跡比例不能太高(樓梯踏板/斜線填充整片都是墨，玻璃線之間應留白)。
         edge_hug=True 再要求最外側兩條線貼著牆帶兩緣(窗符號的線畫在牆的兩個面上；
         浴缸邊/家具線只會出現在牆帶中間)。"""
@@ -539,13 +601,19 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
             return False
         if (band > 0).mean() > 0.45:
             return False
-        if line_groups(band, along_axis) < 2:
+        if line_groups(band, along_axis) < min_groups:
             return False
         if edge_hug:
             line_cov = (band > 0).mean(axis=along_axis)
             n = len(line_cov)
             idx = [i for i, v in enumerate(line_cov) if v >= 0.8]
-            if not idx or idx[0] > 0.3 * n or idx[-1] < 0.7 * n:
+            # 帶被影像邊界裁到時窗符號的外緣線會缺/位移，貼緣門檻放寬
+            if along_axis == 1:
+                clipped = y0 <= 0 or y1 >= Himg
+            else:
+                clipped = x0 <= 0 or x1 >= Wimg
+            lo_r, hi_r = (0.42, 0.58) if clipped else (0.3, 0.7)
+            if not idx or idx[0] > lo_r * n or idx[-1] < hi_r * n:
                 return False
         return True
     long_th = [min(r[2] - r[0], r[3] - r[1]) for r in rects
@@ -555,6 +623,9 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
     wall_t = float(np.median(src)) if src else float(T)        # 代表性牆厚
     min_w = (1.0 - cfg.win_min_pct / 100.0) * wall_t           # 窗跨牆寬度下限
     gmin, gmax = 0.4 * T, 25.0 * T
+    # 開口下限：窗不可能比牆厚窄。基準用可靠牆厚推(同 _has_door_swing 的 s——
+    # T 會被樓梯/實心塊撐大 2~3 倍,直接用 1.5T 會誤殺薄牆樓層的小窗)。
+    gmin_win = max(gmin, 1.5 * min(float(T), max(1.6 * wall_t, 0.6 * T)))
     horiz = [r for r in rects if (r[2] - r[0]) >= (r[3] - r[1])]
     vert = [r for r in rects if (r[2] - r[0]) < (r[3] - r[1])]
     wins = []
@@ -569,7 +640,7 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
                 g.append([c, [r]])
         return g
 
-    def sub_window(orient, band_lo, band_hi, g_lo, g_hi):
+    def sub_window(orient, band_lo, band_hi, g_lo, g_hi, min_groups=2):
         """整個開口的覆蓋率不夠時，找其中「有線的連續子段」：窗常跟門洞共用同一個
         開口(中間的牆垛被蝕刻掉)，有線的那段是窗、全空的那段留開。回傳 (s0, s1) 或 None。"""
         if soft is None:
@@ -609,6 +680,20 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         p_soft = profile(soft)
         if p_soft is not None and p_soft.any():
             runs += [r for r in find_runs(p_soft) if r not in runs]
+
+        def profile2(img):                   # 每行(列)至少 2 條線才算窗符號區——
+            if orient == "h":                # 閉合門扇/家具的單條線把 runs 橋成一整段
+                bd = img[max(0, int(band_lo)):min(Himg, int(band_hi)),
+                         max(0, int(g_lo)):min(Wimg, int(g_hi))]
+                return ((bd > 0).sum(axis=0) >= 2) if bd.size else None
+            bd = img[max(0, int(g_lo)):min(Himg, int(g_hi)),
+                     max(0, int(band_lo)):min(Wimg, int(band_hi))]
+            return ((bd > 0).sum(axis=1) >= 2) if bd.size else None
+
+        for img_ in (orig_bw, soft):
+            p2 = profile2(img_)
+            if p2 is not None and p2.any():
+                runs += [r for r in find_runs(p2) if r not in runs]
         if not runs:
             return None
         def anchor_count(p0, p1):
@@ -629,31 +714,68 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
 
         for s in sorted(runs, key=lambda r: r[0] - r[1]):    # 由長到短試每個連續段
             s0, s1 = int(g_lo) + s[0], int(g_lo) + s[1]
-            if (s1 - s0) < max(gmin, 1.5 * T) or (s1 - s0) >= 0.9 * (g_hi - g_lo):
-                continue                     # 太短不算；幾乎佔滿整段就不是「子段」情況
-            if anchor_count(s0, s1) < 1:
+            if (s1 - s0) < max(gmin, 1.5 * T):
+                continue                     # 太短不算
+            anc = anchor_count(s0, s1)
+            if anc < 1:
+                continue
+            # 幾乎佔滿整段就不是「子段」情況——但兩端都貼牆垛時是真的小開口窗,放行
+            if (s1 - s0) >= (0.98 if anc >= 2 else 0.9) * (g_hi - g_lo):
                 continue
             # 子段用「貼緣」結構把關：窗線畫在牆的兩個面上(貼牆帶兩緣)，
             # 隔屏/沙發比牆薄,線落在帶中間 → 擋掉
             if orient == "h":
-                ok = covered_soft(int(band_lo), int(band_hi), s0, s1, 1, edge_hug=True)
+                ok = covered_soft(int(band_lo), int(band_hi), s0, s1, 1,
+                                  edge_hug=True, min_groups=min_groups)
             else:
-                ok = covered_soft(s0, s1, int(band_lo), int(band_hi), 0, edge_hug=True)
+                ok = covered_soft(s0, s1, int(band_lo), int(band_hi), 0,
+                                  edge_hug=True, min_groups=min_groups)
             if ok:
                 return (s0, s1)
         return None
 
-    def try_window(orient, x0, y0, x1, y1):
-        """開口通過覆蓋/結構檢查後的最後一關：門過濾(原則3——有弧就是門)。過了就收錄。"""
+    def wall_through(orient, x0, y0, x1, y1):
+        """開口中段是否被垂直向的牆穿過/抵住(T字口)——窗玻璃不可能有牆插在中間，
+        這種開口是被跨線牆分成兩截的門洞/通道，交給 scan_extra 用虛擬夾邊分段
+        重測，這裡整段否決。只看跨進開口內側(避開兩端夾牆)的牆。"""
         if orient == "h":
-            g0, g1, c_ = x0, x1, (y0 + y1) / 2.0
-            ends = ((x0, c_), (x1, c_))
+            lo, hi = x0, x1
+            m = max(0.12 * (hi - lo), T * 0.3)
+            for r in vert:
+                if min(r[2], x1) - max(r[0], x0) > 0 and \
+                        r[1] < (y0 + y1) / 2.0 < r[3] and \
+                        lo + m < (r[0] + r[2]) / 2.0 < hi - m:
+                    return True
         else:
-            g0, g1, c_ = y0, y1, (x0 + x1) / 2.0
-            ends = ((c_, y0), (c_, y1))
-        if _near_door((x0 + x1) / 2.0, (y0 + y1) / 2.0, g1 - g0, doors, ends, T):
-            return                           # 開口處是門(鉸鏈貼端點) → 留開，不畫窗
-        if thin is not None and _has_door_swing(thin, orient, c_, g0, g1, T, cfg.door_arc_pct):
+            lo, hi = y0, y1
+            m = max(0.12 * (hi - lo), T * 0.3)
+            for r in horiz:
+                if min(r[3], y1) - max(r[1], y0) > 0 and \
+                        r[0] < (x0 + x1) / 2.0 < r[2] and \
+                        lo + m < (r[1] + r[3]) / 2.0 < hi - m:
+                    return True
+        return False
+
+    def try_window(orient, x0, y0, x1, y1, groups=None):
+        """開口通過覆蓋/結構檢查後的最後一關：門過濾(原則3——有弧就是門)。過了就收錄。
+        groups=開口帶的貫穿線群數：≥2(窗符號)時不啟用「半寬單鉸鏈弧」殺法——
+        那是給 門+固定扇(帶內只有一條門扇線) 用的,不能拿來殺畫滿玻璃線的寬窗。"""
+        cx_, cy_ = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+        if orient == "h":
+            g0, g1, c_ = x0, x1, cy_
+            ends = ((x0, c_), (x1, c_), (cx_, y0), (cx_, y1))
+            ct = y1 - y0
+        else:
+            g0, g1, c_ = y0, y1, cx_
+            ends = ((c_, y0), (c_, y1), (x0, cy_), (x1, cy_))
+            ct = x1 - x0
+        if wall_through(orient, x0, y0, x1, y1):
+            return                           # 牆插在開口中段 → 不是窗
+        if _near_door(cx_, cy_, g1 - g0, doors, ends, T, tol_side=wall_t):
+            return                           # 開口處是門(鉸鏈貼端點/側面中點) → 留開
+        if thin is not None and _has_door_swing(thin, orient, c_, g0, g1, T,
+                                                cfg.door_arc_pct, wall_t, ct,
+                                                allow_half=(groups is None or groups <= 1)):
             return                           # 端點掃到開闔弧線 → 門，不是窗
         wins.append((orient, float(x0), float(y0), float(x1), float(y1)))
 
@@ -661,7 +783,7 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         grp.sort(key=lambda r: r[0])
         for a, b in zip(grp, grp[1:]):
             gap = b[0] - a[2]
-            if gap < gmin or gap > gmax:
+            if gap < gmin_win or gap > gmax:
                 continue
             x0, x1 = int(a[2]), int(b[0])
             y0, y1 = int(min(a[1], b[1])), int(max(a[3], b[3]))
@@ -670,7 +792,7 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
             pad = max(2, int(round(0.25 * T)))   # 窗符號比蝕刻後的牆塊略寬,帶朝兩側擴一點
             band = orig_bw[max(0, y0 - pad):min(Himg, y1 + pad), max(0, x0):min(Wimg, x1)]
             if covered(band, 1) or covered_soft(y0 - pad, y1 + pad, x0, x1, 1):
-                try_window("h", x0, y0, x1, y1)
+                try_window("h", x0, y0, x1, y1, groups=line_groups(band, 1))
             elif not (band.size and (band.max(axis=0) > 0).mean() >= thr):
                 # 整段覆蓋率真的低(有大片空白)才找子段；覆蓋高但結構不像窗=推拉門/門檻,直接擋
                 s = sub_window("h", y0 - pad, y1 + pad, x0, x1)
@@ -681,7 +803,7 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         grp.sort(key=lambda r: r[1])
         for a, b in zip(grp, grp[1:]):
             gap = b[1] - a[3]
-            if gap < gmin or gap > gmax:
+            if gap < gmin_win or gap > gmax:
                 continue
             y0, y1 = int(a[3]), int(b[1])
             x0, x1 = int(min(a[0], b[0])), int(max(a[2], b[2]))
@@ -690,7 +812,7 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
             pad = max(2, int(round(0.25 * T)))   # 窗符號比蝕刻後的牆塊略寬,帶朝兩側擴一點
             band = orig_bw[max(0, y0):min(Himg, y1), max(0, x0 - pad):min(Wimg, x1 + pad)]
             if covered(band, 0) or covered_soft(y0, y1, x0 - pad, x1 + pad, 0):
-                try_window("v", x0, y0, x1, y1)
+                try_window("v", x0, y0, x1, y1, groups=line_groups(band, 0))
             elif not (band.size and (band.max(axis=1) > 0).mean() >= thr):
                 # 整段覆蓋率真的低(有大片空白)才找子段；覆蓋高但結構不像窗=推拉門/門檻,直接擋
                 s = sub_window("v", x0 - pad, x1 + pad, y0, y1)
@@ -705,22 +827,48 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
         gap = g_hi - g_lo
         if gap < gmin or gap > gmax or t < min_w:
             return None
-        if orient == "h":
-            x0, x1 = int(g_lo), int(g_hi)
-            y0, y1 = int(round(c - t / 2)), int(round(c + t / 2))
-            ax, ends = 1, ((x0, c), (x1, c))
-        else:
-            y0, y1 = int(g_lo), int(g_hi)
-            x0, x1 = int(round(c - t / 2)), int(round(c + t / 2))
-            ax, ends = 0, ((c, y0), (c, y1))
-        if not covered_soft(y0, y1, x0, x1, ax, edge_hug=True):
-            return None
-        if _near_door((x0 + x1) / 2.0, (y0 + y1) / 2.0, gap, doors, ends, T):
-            return None
-        if thin is not None and _has_door_swing(thin, orient, c, g_lo, g_hi, T, cfg.door_arc_pct):
-            return None
-        return (orient, float(max(0, x0)), float(max(0, y0)),
-                float(min(Wimg, x1)), float(min(Himg, y1)))
+        pad = max(2, int(round(0.25 * T)))
+        b_lo0, b_hi0 = int(round(c - t / 2)), int(round(c + t / 2))
+        dim = Himg if orient == "h" else Wimg
+        clipped = b_lo0 - pad <= 0 or b_hi0 + pad >= dim
+        # 原帶要求 2 條貫穿線(邊窗放寬已含在 covered_soft)；加寬帶會撈進鄰近雜線，
+        # 提高到 3 條(真窗符號 3~4 條;衣櫃門板/雙線畫法的牆端只有 2 條)。
+        # 帶被影像邊裁到時窗線本來就會缺,加寬帶維持 2 條。
+        bands = [(b_lo0, b_hi0, 2), (b_lo0 - pad, b_hi0 + pad, 2 if clipped else 3)]
+
+        def gates(lo, hi):                   # 開口(lo,hi)通過門檢查則回傳成品框
+            if orient == "h":
+                x0, x1 = int(lo), int(hi)
+                y0, y1 = b_lo0, b_hi0
+                ends = ((x0, c), (x1, c), ((x0 + x1) / 2.0, y0), ((x0 + x1) / 2.0, y1))
+            else:
+                y0, y1 = int(lo), int(hi)
+                x0, x1 = b_lo0, b_hi0
+                ends = ((c, y0), (c, y1), (x0, (y0 + y1) / 2.0), (x1, (y0 + y1) / 2.0))
+            if _near_door((x0 + x1) / 2.0, (y0 + y1) / 2.0, hi - lo, doors, ends, T,
+                          tol_side=wall_t):
+                return None
+            if thin is not None and _has_door_swing(thin, orient, c, lo, hi, T,
+                                                    cfg.door_arc_pct, wall_t, t,
+                                                    allow_half=False):
+                return None
+            return (orient, float(max(0, x0)), float(max(0, y0)),
+                    float(min(Wimg, x1)), float(min(Himg, y1)))
+
+        for b_lo, b_hi, mg in bands:
+            if orient == "h":
+                full = covered_soft(b_lo, b_hi, int(g_lo), int(g_hi), 1,
+                                    edge_hug=True, min_groups=mg)
+            else:
+                full = covered_soft(int(g_lo), int(g_hi), b_lo, b_hi, 0,
+                                    edge_hug=True, min_groups=mg)
+            if full:
+                return gates(g_lo, g_hi)
+        for b_lo, b_hi, _mg in bands:
+            s = sub_window(orient, b_lo, b_hi, g_lo, g_hi, min_groups=3)
+            if s:                            # 大開口裡只有一段有窗符號 → 收那段
+                return gates(s[0], s[1])
+        return None
 
     def crossing_spans(orient, c, perp):
         """跨過牆線 c 的垂直牆，投影到沿牆軸上的區間(虛擬夾邊)。"""
@@ -769,8 +917,9 @@ def detect_windows(orig_bw, rects, cfg: Config, T: int, doors=None, thin=None, s
     v_centers = [g[0] for g in v_groups]
     for orient, c, lo, hi in _infer_lines(horiz, vert, T):
         known = h_centers if orient == "h" else v_centers
-        if any(abs(c - k) <= T * 0.9 for k in known):
-            continue                         # 這條線已有實體牆塊，上面掃過了
+        if any(abs(c - k) <= max(wall_t, 0.45 * T) * 0.9 for k in known):
+            continue                         # 這條線已有實體牆塊，上面掃過了(容差用可靠
+                                             # 牆厚:T 被實心塊撐大時會把貼邊的細線牆吃掉)
         c = min(max(c, wall_t / 2), (Himg if orient == "h" else Wimg) - wall_t / 2)
         scan_extra(orient, c, wall_t, [], vert if orient == "h" else horiz)
 
@@ -931,7 +1080,7 @@ def derive_door_scale(doors, T_out, cfg: Config):
 
 def write_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info, cfg: Config,
                dxf_scale_path):
-    """前端交接 JSON：cm 座標與 dxf_scale/ 完全一致(原點左下、y 向上)，
+    """前端交接 JSON：cm 座標與 testdata/dxf/ 完全一致(原點左下、y 向上)，
     px 座標為影像座標(原點左上、y 向下)，方便前端疊回原圖。"""
     cm = mm_per_px / 10.0
 
@@ -949,12 +1098,189 @@ def write_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info, cfg: Con
                    "cm": box_cm(x0, y0, x1, y1)} for x0, y0, x1, y1 in rects],
         "windows": [{"orient": o, "px": [int(x0), int(y0), int(x1), int(y1)],
                      "cm": box_cm(x0, y0, x1, y1)} for o, x0, y0, x1, y1 in wins],
-        "doors": [{"px": {"cx": round(door[0], 1), "cy": round(door[1], 1), "width": round(door[2], 1)},
-                   "cm": {"cx": round(door[0] * cm, 2), "cy": round((img_h - door[1]) * cm, 2),
-                          "width": round(door[2] * cm, 2)},
-                   "score": round(door[3], 3)} for door in doors],
-        "dxf": cfg.output, "dxf_scale": dxf_scale_path,
+        "doors": [{"px": {"cx": round(dx, 1), "cy": round(dy, 1), "width": round(dw, 1)},
+                   "cm": {"cx": round(dx * cm, 2), "cy": round((img_h - dy) * cm, 2),
+                          "width": round(dw * cm, 2)},
+                   "score": round(sc, 3)} for dx, dy, dw, sc, *_ in doors],
+        "dxf_scale": dxf_scale_path,
     }
+    with open(path, "w", encoding="utf-8") as fp:
+        json.dump(data, fp, ensure_ascii=False, indent=2)
+
+
+# ──────────────── architecture.json（白模交接格式） ────────────────
+def _nearest_wall(px, py, rects):
+    """點到牆矩形的最短距離，回傳 (最近牆的索引, 距離)。"""
+    best, best_d = None, float("inf")
+    for i, (x0, y0, x1, y1) in enumerate(rects):
+        dx = max(x0 - px, 0.0, px - x1)
+        dy = max(y0 - py, 0.0, py - y1)
+        d = math.hypot(dx, dy)
+        if d < best_d:
+            best, best_d = i, d
+    return best, best_d
+
+
+def _host_wall_for_window(win, rects, T):
+    """窗吸附的牆：同方向、跨牆範圍有重疊、沿牆軸最貼近的那段。
+    窗是牆上的開口，兩側必貼牆——取沿牆軸間距最小者(重疊算負距離)。"""
+    o, x0, y0, x1, y1 = win
+    best, best_d = None, 2.5 * T
+    for i, (wx0, wy0, wx1, wy1) in enumerate(rects):
+        horiz = (wx1 - wx0) >= (wy1 - wy0)
+        if horiz != (o == "h"):
+            continue
+        if horiz:
+            cross = min(y1, wy1) - max(y0, wy0)
+            d = max(wx0 - x1, x0 - wx1)
+        else:
+            cross = min(x1, wx1) - max(x0, wx0)
+            d = max(wy0 - y1, y0 - wy1)
+        if cross > 0 and d < best_d:
+            best, best_d = i, d
+    return best
+
+
+def _door_geometry(door, rects, T):
+    """由鉸鏈位置、L 形兩自由端方向與最近的牆，決定門的沿牆方向與開門側。
+    回傳 (host牆索引|None, 門洞中心, 沿牆方向, 開門側方向)，皆影像座標。"""
+    cx, cy, r, _sc, ux, vy = door
+    idx, d = _nearest_wall(cx, cy, rects)
+    horiz = True
+    if idx is not None:
+        x0, y0, x1, y1 = rects[idx]
+        horiz = (x1 - x0) >= (y1 - y0)
+    if horiz:                                    # 牆水平→門洞沿x、往y側開
+        along, swing = (float(ux), 0.0), (0.0, float(vy))
+    else:
+        along, swing = (0.0, float(vy)), (float(ux), 0.0)
+    center = (cx + r / 2.0 * along[0], cy + r / 2.0 * along[1])
+    host = idx if (idx is not None and d <= 3.0 * T) else None
+    return host, center, along, swing
+
+
+def _room_polygon(rects, wins, doors, img_w, img_h, T, T_out):
+    """房間可用區域外框(px)：牆+窗+門洞畫成實心遮罩 → 膨脹把沒偵測到的門洞封起來 →
+    從影像邊界灌水,灌不進的區域=建物(含牆) → 同核侵蝕還原邊界(膨脹誤差互相抵銷) →
+    最大連通塊再內縮外圍牆厚 = 可用區域內緣。膨脹半徑逐步放大;面積太小或只圈到
+    局部(寬/高涵蓋不足)視為殼漏水,放大重試;仍失敗回傳 None 讓欄位留空。"""
+    if not rects:
+        return None
+    mask = np.zeros((img_h, img_w), np.uint8)
+    for x0, y0, x1, y1 in rects:
+        cv2.rectangle(mask, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for _o, x0, y0, x1, y1 in wins:
+        cv2.rectangle(mask, (int(x0), int(y0)), (int(x1), int(y1)), 255, -1)
+    for d in doors:                              # 偵測到的門洞沿牆補回
+        _h, _c, along, _s = _door_geometry(d, rects, T)
+        cx, cy, r = d[0], d[1], d[2]
+        p2 = (int(round(cx + r * along[0])), int(round(cy + r * along[1])))
+        cv2.line(mask, (int(round(cx)), int(round(cy))), p2, 255, max(2, int(T)))
+    X0 = min(r_[0] for r_ in rects); Y0 = min(r_[1] for r_ in rects)
+    X1 = max(r_[2] for r_ in rects); Y1 = max(r_[3] for r_ in rects)
+    bbox_area = (X1 - X0) * (Y1 - Y0)
+    for g in (1.5, 2.5, 3.5):                    # 膨脹半徑(×T)，可封 2 倍寬的洞
+        k = 2 * max(2, int(round(g * T))) + 1
+        ker = np.ones((k, k), np.uint8)
+        ff = np.pad(cv2.dilate(mask, ker), 1).copy()
+        cv2.floodFill(ff, None, (0, 0), 128)     # 外部自由區→128；封閉孔洞=室內
+        filled = ((ff[1:-1, 1:-1] != 128).astype(np.uint8)) * 255
+        fp = cv2.erode(filled, ker, borderValue=0)
+        ero = 2 * max(2, int(round(T_out))) + 1  # 內縮 T_out → 外牆內緣
+        blk = cv2.erode(fp, np.ones((ero, ero), np.uint8), borderValue=0)
+        # 沒封住的房間會漏到室外、內縮後整塊消失——所以驗收要做在「內縮後的
+        # 最大連通塊」上：面積夠大且寬高涵蓋整個牆 bbox，才代表殼真的封起來了
+        n, lab, stats, _ = cv2.connectedComponentsWithStats(blk)
+        if n < 2:
+            continue
+        i_max = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+        s = stats[i_max]
+        if (s[cv2.CC_STAT_AREA] < 0.25 * bbox_area or
+                s[cv2.CC_STAT_WIDTH] < 0.55 * (X1 - X0) or
+                s[cv2.CC_STAT_HEIGHT] < 0.55 * (Y1 - Y0)):
+            continue                             # 漏水/只圈到局部 → 加大封口再試
+        blk = (lab == i_max).astype(np.uint8) * 255
+        cnts, _ = cv2.findContours(blk, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not cnts:
+            continue
+        c = max(cnts, key=cv2.contourArea)
+        poly = cv2.approxPolyDP(c, max(2.0, 0.4 * T), True)[:, 0, :]
+        if len(poly) >= 4:
+            return poly.astype(float)
+    return None
+
+
+def write_arch_json(path, img_w, img_h, rects, wins, doors, mm_per_px, info,
+                    cfg: Config, T, T_out):
+    """白模交接 architecture.json：units/walls/windows/doors 必填，cm、原點左下 y 向上。
+    2D 平面圖沒有立面資訊——牆高/窗高/窗台高用 config [arch] 預設值。
+    門的 position=門洞中心、rotation=門面法線(指向開門側)、
+    hinge=站在開門側面對門時鉸鏈在左/右。swing_in=開闔弧中點落在可用區域內。"""
+    cm = mm_per_px / 10.0
+
+    def pt(x, y):                                # 影像座標 → cm(y 翻轉)
+        return {"x": round(x * cm, 2), "y": round((img_h - y) * cm, 2)}
+
+    walls = []
+    for i, (x0, y0, x1, y1) in enumerate(rects, 1):
+        w, h = x1 - x0, y1 - y0
+        walls.append({"id": f"wall_{i}",
+                      "position": pt((x0 + x1) / 2.0, (y0 + y1) / 2.0),
+                      "rotation": 0 if w >= h else 90,
+                      "width": round(max(w, h) * cm, 2),
+                      "thickness": round(min(w, h) * cm, 2),
+                      "height": cfg.wall_height_cm})
+
+    windows = []
+    for i, (o, x0, y0, x1, y1) in enumerate(wins, 1):
+        entry = {"id": f"win_{i}",
+                 "position": pt((x0 + x1) / 2.0, (y0 + y1) / 2.0),
+                 "rotation": 0 if o == "h" else 90,
+                 "width": round(((x1 - x0) if o == "h" else (y1 - y0)) * cm, 2),
+                 "height": cfg.window_height_cm,
+                 "sill_height": cfg.sill_height_cm}
+        hw = _host_wall_for_window((o, x0, y0, x1, y1), rects, T)
+        if hw is not None:
+            entry["host_wall"] = f"wall_{hw + 1}"
+        windows.append(entry)
+
+    poly = _room_polygon(rects, wins, doors, img_w, img_h, T, T_out)
+    cnt = poly.reshape(-1, 1, 2).astype(np.float32) if poly is not None else None
+
+    # temp/json/gray/ 保留全部門(帶 score 給前端過濾)；temp/json/arch/ 直接蓋白模：只收高信心門，
+    # 且換算後門寬要合理(50~250cm)——高分小弧多半是櫃門/雙開門的半扇
+    good = [d for d in doors if d[3] >= 0.85 and 50.0 <= d[2] * cm <= 250.0]
+    door_list = []
+    for i, d in enumerate(good, 1):
+        cx, cy, r = d[0], d[1], d[2]
+        host, (mx, my), along, swing = _door_geometry(d, rects, T)
+        nx, ny = swing[0], -swing[1]             # 開門側方向：影像→cm(y 翻轉)
+        rot = int(round(math.degrees(math.atan2(ny, nx)))) % 360
+        fx, fy = -nx, -ny                        # 站在開門側面對門
+        lx, ly = -fy, fx                         # 面向方向逆時針90° = 左手邊
+        vx = cx * cm - mx * cm                   # 門洞中心→鉸鏈(cm，x 分量)
+        vy_cm = (img_h - cy) * cm - (img_h - my) * cm
+        entry = {"id": f"door_{i}", "position": pt(mx, my), "rotation": rot,
+                 "width": round(r * cm, 2),
+                 "hinge": "left" if vx * lx + vy_cm * ly > 0 else "right"}
+        if host is not None:
+            entry["host_wall"] = f"wall_{host + 1}"
+        if cnt is not None:                      # 開闔弧中點在可用區域內=向內開
+            ax = cx + r * 0.7071 * (along[0] + swing[0])
+            ay = cy + r * 0.7071 * (along[1] + swing[1])
+            entry["swing_in"] = bool(
+                cv2.pointPolygonTest(cnt, (float(ax), float(ay)), False) >= 0)
+        door_list.append(entry)
+
+    data = {"units": "cm"}
+    if poly is not None:
+        data["room_polygon"] = [[round(float(x) * cm, 2),
+                                 round((img_h - float(y)) * cm, 2)] for x, y in poly]
+    data.update(walls=walls, windows=windows, doors=door_list,
+                meta={"image": os.path.basename(cfg.input),
+                      "cm_per_px": round(cm, 4),
+                      "scale_method": info.get("method"),
+                      "scale_confidence": info.get("confidence")})
     with open(path, "w", encoding="utf-8") as fp:
         json.dump(data, fp, ensure_ascii=False, indent=2)
 
@@ -988,7 +1314,7 @@ def preview(bgr, H, V, path):
 
 def write_solid_dxf(rects, wins, img_h, scale, cfg: Config, out=None, insunits=4):
     """牆：封閉矩形 + SOLID HATCH。窗：開口矩形 + 4 條玻璃線 + 兩端封口(照正規檔)。
-    out/insunits 給 dxf_scale/ 用：另存一份門寬比例、公分單位(insunits=5)的檔。"""
+    out/insunits 給 testdata/dxf/ 用：另存一份門寬比例、公分單位(insunits=5)的檔。"""
     doc = ezdxf.new("R2010")
     doc.header["$INSUNITS"] = insunits
     msp = doc.modelspace()
@@ -1057,6 +1383,41 @@ def remove_solid_blobs(bw):
     return out, removed
 
 
+def derive_wall_T(bw):
+    """自動牆厚 T＝距離變換 max×2（現行式），加「磨牆害徵」防護。
+    max 會被黏在牆網上的粗塊綁架（remove_solid_blobs 清不掉：與牆同
+    連通塊、或內切圓 <16px）；T 撐爆時 0.35T 的 solid 開運算核超過細
+    隔間牆厚，牆整批被磨掉——floor13 實案：角塊拉到 T=30、隔間僅 8px、
+    下半牆全滅使房間灌通。
+    防護：以「長直段（≥1.5T）且 ≥5px 粗」為牆本體，量 solid 開運算後
+    的牆存活率——≥0.92 為正常（38 張考卷實測其餘皆 ≥0.94），T 原樣回傳
+    行為零改變；<0.92＝正在磨牆，迴退 p99.5×2 穩健值。
+    全域直接改 p99.5 已實測不可行：floor04 的 max 是誠實外牆厚，
+    p99.5 低估 → 窗全滅（P98/R96 → 97/88 大回歸），故只在害徵時介入。"""
+    dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
+    T = max(2, int(round(2.0 * float(dt.max()))))
+    solid = max(3, int(round(0.35 * T)))
+    L = max(9, int(round(1.5 * T)))
+    horiz = cv2.morphologyEx(bw, cv2.MORPH_OPEN,
+                             cv2.getStructuringElement(cv2.MORPH_RECT, (L, 1)))
+    vert = cv2.morphologyEx(bw, cv2.MORPH_OPEN,
+                            cv2.getStructuringElement(cv2.MORPH_RECT, (1, L)))
+    wallish = ((horiz > 0) | (vert > 0)) & (dt >= 2.5)
+    n_wall = int(np.count_nonzero(wallish))
+    if n_wall:
+        ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (solid, solid))
+        bw_open = cv2.morphologyEx(bw, cv2.MORPH_OPEN, ker)
+        surv = float(np.count_nonzero(wallish & (bw_open > 0))) / n_wall
+        if surv < 0.92:
+            on = dt[dt > 0]
+            t_rb = max(2, int(round(2.0 * float(np.percentile(on, 99.5)))))
+            if t_rb < T:
+                print(f"⚠ 牆存活率 {surv:.2f} <0.92（T={T} 遭粗塊撐爆）"
+                      f"→ 穩健牆厚 T={t_rb}")
+                T = t_rb
+    return T
+
+
 def run(cfg: Config):
     scale = (25.4 / cfg.dpi) if cfg.dpi else cfg.mm_per_px
     gray, bgr = load_gray(cfg)
@@ -1068,8 +1429,7 @@ def run(cfg: Config):
     bw, nblob = remove_solid_blobs(bw)           # 去掉大實心填充塊(非牆)
 
     # 自動量牆厚 T(最厚的水平/垂直線寬)，再依 T 推導所有 px 參數(空白者才推)
-    dt = cv2.distanceTransform(bw, cv2.DIST_L2, 5)
-    T = max(2, int(round(2.0 * float(dt.max()))))
+    T = derive_wall_T(bw)
     pick = lambda v, d: (v if v not in (None, 0) else d)
     cfg.solid = pick(cfg.solid, max(3, int(round(0.35 * T))))
     cfg.h_len = pick(cfg.h_len, max(int(round(1.5 * T)), cfg.solid + 2))
@@ -1099,30 +1459,41 @@ def run(cfg: Config):
             else:
                 _, soft = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
             wins = detect_windows(orig, rects, cfg, T, doors, thin, soft)
-        write_solid_dxf(rects, wins, img_h, scale, cfg)
         if cfg.preview:
             preview_solid(bgr, rects, wins, cfg.preview)
 
-        # 門寬推比例(外圍牆厚≥15cm 把關) → 另存公分單位的 dxf_scale/ + 前端交接 json/
+        # 門寬推比例(外圍牆厚≥15cm 把關) → 公分單位的 testdata/dxf/ + 前端交接 temp/json/gray/
         T_out = outer_wall_thickness(rects, T)
         mmpp, sinfo = derive_door_scale(doors, T_out, cfg)
         sinfo["outer_wall_px"] = round(T_out, 1)
-        base = os.path.splitext(os.path.basename(cfg.output))[0]
-        os.makedirs("dxf_scale", exist_ok=True)
-        os.makedirs("json", exist_ok=True)
-        scale_out = os.path.join("dxf_scale", base + ".dxf")
-        json_out = os.path.join("json", base + ".json")
+        base = os.path.splitext(os.path.basename(cfg.input))[0]
+        os.makedirs("temp/json/gray", exist_ok=True)
+        os.makedirs("temp/json/arch", exist_ok=True)
+        if cfg.output:                       # 指令/config 有指定輸出就照用
+            scale_out = cfg.output
+        else:                                # 慣例：DXF(cm) → testdata/dxf/
+            os.makedirs("testdata/dxf", exist_ok=True)
+            scale_out = os.path.join("testdata/dxf", base + ".dxf")
+        json_out = os.path.join("temp/json/gray", base + ".json")
+        arch_out = os.path.join("temp/json/arch", base + ".json")
         write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
         write_json(json_out, img_w, img_h, rects, wins, doors, mmpp, sinfo, cfg, scale_out)
+        write_arch_json(arch_out, img_w, img_h, rects, wins, doors, mmpp, sinfo,
+                        cfg, T, T_out)
 
         print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid")
         print(f"實心牆塊 : {len(rects)} 個   窗 : {len(wins)} 個 (門洞留開)")
         print(f"比例尺 : {mmpp / 10.0:.4f} cm/px  ({sinfo['method']}, 信心 {sinfo['confidence']}, "
               f"高信心門 {sinfo['doors_used']} 扇)")
-        print(f"輸出   : {cfg.output}" + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
-        print(f"         {scale_out} (cm)   {json_out}")
+        print(f"輸出   : {scale_out} (cm)   {json_out}   {arch_out}"
+              + (f"   預覽 {cfg.preview}" if cfg.preview else ""))
         return
     bw = bw_open
+
+    if not cfg.output:                       # 慣例：DXF → testdata/dxf/
+        os.makedirs("testdata/dxf", exist_ok=True)
+        cfg.output = os.path.join(
+            "testdata/dxf", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
 
     H, V = detect_hough(bw, cfg) if cfg.method == "hough" else detect_morph(bw, cfg)
     raw = len(H) + len(V)
@@ -1141,12 +1512,12 @@ IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")
 
 
 def run_batch(in_dir: str, out_dir: str, cfg: Config):
-    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf，每張另存疊圖到 chk/ 供快速檢視。"""
+    """批次：跑 in_dir/*.png|jpg|bmp → out_dir/*.dxf(公分單位)，每張另存疊圖到 temp/chk/gray/ 供快速檢視。"""
     pngs = sorted(p for p in glob.glob(os.path.join(in_dir, "*"))
                   if p.lower().endswith(IMG_EXTS))
     if not pngs:
         sys.exit(f"{in_dir}/ 裡找不到圖檔 ({'/'.join(IMG_EXTS)})")
-    chk_dir = "chk"
+    chk_dir = "temp/chk/gray"
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(chk_dir, exist_ok=True)
     ok = fail = 0
@@ -1164,19 +1535,19 @@ def run_batch(in_dir: str, out_dir: str, cfg: Config):
             print(f"  ✗ 失敗: {e}")
             fail += 1
     print(f"\n批次完成: 成功 {ok} / 失敗 {fail}")
-    print(f"  DXF  → {out_dir}/")
+    print(f"  DXF(cm) → {out_dir}/  (門寬推算比例、公分單位)")
     print(f"  疊圖 → {chk_dir}/  (原圖 + 紅實心牆 + 綠窗，一次翻完抓問題)")
-    print(f"  比例尺DXF → dxf_scale/ (門寬推算、公分單位)   JSON → json/ (前端交接)")
+    print(f"  JSON → temp/json/gray/ (前端交接)   白模 → temp/json/arch/")
 
 
 def main():
     p = argparse.ArgumentParser(
         description="平面圖 PNG/JPG/BMP → DXF。參數見 config.ini；輸入/輸出可用指令覆蓋。\n"
-                    "不帶參數 = 批次跑 png/ 目錄下所有圖檔 → dxf/ + chk/")
+                    "不帶參數 = 批次跑 testdata/png/ 目錄下所有圖檔 → testdata/dxf/ + temp/chk/gray/")
     p.add_argument("input", nargs="?",
                    help="輸入圖檔 png/jpg/bmp(單張)；不給或給目錄則批次")
     p.add_argument("output", nargs="?",
-                   help="輸出 DXF/目錄（不給就自動輸出到 dxf/同檔名.dxf）")
+                   help="輸出 DXF/目錄（不給就自動輸出到 testdata/dxf/同檔名.dxf）")
     p.add_argument("--config", default="config.ini", help="設定檔（預設 config.ini）")
     p.add_argument("--preview", help="疊圖輸出路徑（覆蓋 config）")
     a = p.parse_args()
@@ -1186,10 +1557,10 @@ def main():
     # 批次模式：不帶參數(且 config 沒鎖單張)、第一參數是目錄、或字面 'png'
     if (not a.input and not cfg.input) or \
        (a.input and (os.path.isdir(a.input) or a.input.lower() == "png")):
-        in_dir = a.input if (a.input and os.path.isdir(a.input)) else "png"
+        in_dir = a.input if (a.input and os.path.isdir(a.input)) else "testdata/png"
         if not os.path.isdir(in_dir):
             sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去)")
-        run_batch(in_dir, (a.output or "dxf"), cfg)
+        run_batch(in_dir, (a.output or "testdata/dxf"), cfg)
         return
 
     if a.input:
@@ -1201,18 +1572,15 @@ def main():
 
     if not cfg.input:
         sys.exit("缺輸入：用 floorplan2dxf.py 圖.png，或 floorplan2dxf.py png 批次，或在 config.ini 設 input")
-    # 慣例：輸入放 png/ —— 給的路徑讀不到時自動去 png/ 找
+    # 慣例：輸入放 testdata/png/ —— 給的路徑讀不到時自動去 testdata/png/ 找
     if not os.path.isfile(cfg.input):
-        alt = os.path.join("png", cfg.input)
+        alt = os.path.join("testdata/png", cfg.input)
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]
-    if not cfg.output:                       # 慣例：DXF → dxf/
-        os.makedirs("dxf", exist_ok=True)
-        cfg.output = os.path.join("dxf", base + ".dxf")
-    if not cfg.preview:                      # 慣例：疊圖 → chk/
-        os.makedirs("chk", exist_ok=True)
-        cfg.preview = os.path.join("chk", base + "_chk.png")
+    if not cfg.preview:                      # 慣例：疊圖 → temp/chk/gray/
+        os.makedirs("temp/chk/gray", exist_ok=True)
+        cfg.preview = os.path.join("temp/chk/gray", base + "_chk.png")
     run(cfg)
 
 

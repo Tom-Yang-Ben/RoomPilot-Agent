@@ -1,0 +1,12 @@
+{
+  "name": "roompilot-static-dom-tests",
+  "private": true,
+  "type": "module",
+  "description": "jsdom 行為測試：第 6 步待處理清單的修復動作不得靜默失敗。",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^26.0.0"
+  }
+}

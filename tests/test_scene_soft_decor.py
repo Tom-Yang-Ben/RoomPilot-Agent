@@ -65,6 +65,38 @@ def test_demolition_candidate_is_preserved_without_removing_engine_wall() -> Non
     assert len(room.walls) >= 1
 
 
+def test_editor_door_swing_endpoint_uses_the_same_scene_coordinates_as_its_leaf() -> None:
+    floorplan, _room = floorplan_from_editor_payload(
+        {
+            "coordinate_unit": "cm",
+            "width_cm": 1000,
+            "depth_cm": 800,
+            "structures": {
+                "doors": [
+                    {
+                        "id": "door-1",
+                        "start": {"x": 500, "y": 100},
+                        "end": {"x": 620, "y": 100},
+                        "swing_end": {"x": 500, "y": 220},
+                    }
+                ]
+            },
+        }
+    )
+
+    door = floorplan["door_segments"][0]
+    assert door["start"] == {"x": 0.0, "z": -300.0}
+    assert door["end"] == {"x": 120.0, "z": -300.0}
+    assert door["swing_end"] == {"x": 0.0, "z": -180.0}
+
+
+def _curtain_model_available() -> bool:
+    """布簾模型檔目前不在版控裡；缺檔時 decorate 會把 curtain 列進 skipped 而不是硬塞。"""
+    from backend.server.main import _CURTAIN_MODEL_PATH, STATIC_DIR
+
+    return (STATIC_DIR / _CURTAIN_MODEL_PATH).is_file()
+
+
 def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
     sofa = {
         "furniture_id": "sofa-existing",
@@ -89,12 +121,12 @@ def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
     assert response.status_code == 200
     payload = response.json()
     generated = [item for item in payload["scene_objects"] if item.get("auto_decor_role")]
-    assert {item["auto_decor_role"] for item in generated} == {
-        "curtain",
-        "rug",
-        "plant",
-        "light",
-    }
+    expected_roles = {"rug", "plant", "light"}
+    if _curtain_model_available():
+        expected_roles.add("curtain")
+    else:
+        assert "curtain" in {entry["role"] for entry in payload["decor_summary"]["skipped"]}
+    assert {item["auto_decor_role"] for item in generated} == expected_roles
     assert all(item["model_url"] for item in generated)
     assert all(item["placement_engine"] == "furniture_engine" for item in generated)
     assert all(item["placement_failed"] is False for item in generated)
@@ -102,10 +134,11 @@ def test_auto_decor_adds_four_visible_glbs_through_the_engine() -> None:
     rug = next(item for item in generated if item["auto_decor_role"] == "rug")
     assert rug["position_cm"] == sofa["position_cm"]
 
-    curtain = next(item for item in generated if item["auto_decor_role"] == "curtain")
-    assert curtain["size_cm"]["width"] == 330
-    assert curtain["position_cm"]["z"] < -200
-    assert curtain["rotation_y_deg"] == 0
+    if _curtain_model_available():
+        curtain = next(item for item in generated if item["auto_decor_role"] == "curtain")
+        assert curtain["size_cm"]["width"] == 330
+        assert curtain["position_cm"]["z"] < -200
+        assert curtain["rotation_y_deg"] == 0
 
 
 def test_rug_relation_is_validated_by_the_engine() -> None:
@@ -145,7 +178,9 @@ def test_empty_room_does_not_receive_scattered_decor() -> None:
         for item in response.json()["scene_objects"]
         if item.get("auto_decor_role")
     ]
-    assert {item["auto_decor_role"] for item in generated} == {"curtain"}
+    # 空房間不該被灑軟裝；布簾是唯一與家具無關的角色，缺模型檔時連它也不進場景。
+    expected = {"curtain"} if _curtain_model_available() else set()
+    assert {item["auto_decor_role"] for item in generated} == expected
 
 
 def test_confirmed_bedroom_type_prevents_generic_plant_scatter() -> None:
@@ -309,3 +344,91 @@ def test_scene_contract_preserves_2d_room_assignment() -> None:
     [placed] = generate_layout(700, 500, [item])
 
     assert placed["placement_room_id"] == "bedroom-1"
+
+
+def test_missing_decor_glb_skips_that_role_instead_of_aborting_the_room(monkeypatch) -> None:
+    """QA #7：燈具型錄沒有可用 GLB 時，整間房的軟裝都被 409 中止。
+
+    少一個角色的模型不該讓地毯與植栽一起消失；跳過並在 decor_summary.skipped 說明。
+    """
+    from backend.server import main as server_main
+
+    original = server_main._auto_decor_catalog_item
+
+    def without_lights(role, style_id, excluded_ids=None, max_footprint_cm=None):
+        if role == "light":
+            return None
+        return original(role, style_id, excluded_ids, max_footprint_cm)
+
+    monkeypatch.setattr(server_main, "_auto_decor_catalog_item", without_lights)
+
+    sofa = {
+        "furniture_id": "sofa-existing",
+        "normalized_type": "sofa",
+        "name_zh_raw": "既有沙發",
+        "size_cm": {"width": 210, "depth": 90, "height": 82},
+        "position_cm": {"x": 0, "z": 120},
+        "rotation_y_deg": 180,
+        "position_locked": True,
+    }
+
+    response = client.post(
+        "/api/scene/decorate",
+        json={
+            "style": "scandinavian",
+            "floorplan_editor": _floorplan_editor(),
+            "placement_room_id": "living-1",
+            "scene_objects": [sofa],
+        },
+    )
+
+    assert response.status_code == 200
+    summary = response.json()["decor_summary"]
+    assert "light" in summary["requested"]
+    assert "light" not in summary["placed"]
+    skipped_roles = {entry["role"] for entry in summary["skipped"]}
+    assert "light" in skipped_roles
+    light_entry = next(entry for entry in summary["skipped"] if entry["role"] == "light")
+    assert "燈具" in light_entry["reason"]
+    # 其餘角色照常放進場景，不會被缺件拖累。
+    assert {"rug", "plant"} <= set(summary["placed"])
+
+
+def test_catalog_declares_a_placement_surface_for_every_item() -> None:
+    """QA #7：型錄沒有落地／桌面的分類，18cm 玻璃花瓶被拿去算落地淨空然後放不下。"""
+    from backend.catalog.placement_surface import PLACEMENT_SURFACES, placement_surface_for
+    from backend.server.main import _furniture_payload_cache
+
+    assert placement_surface_for("vase") == "tabletop"
+    assert placement_surface_for("pillow-cushion") == "tabletop"
+    assert placement_surface_for("wall-shelf") == "wall"
+    assert placement_surface_for("large-mirror") == "wall"
+    assert placement_surface_for("large-medium-rug") == "floor_covering"
+    assert placement_surface_for("sofa") == "floor"
+    assert placement_surface_for("bed") == "floor"
+    # 未知型別保守當落地家具，不會靜默從配置中消失。
+    assert placement_surface_for("something-new") == "floor"
+    assert placement_surface_for(None) == "floor"
+
+    items = _furniture_payload_cache()
+    assert items, "型錄是空的，無法驗證擺放面標記"
+    surfaces = {item.get("placement_surface") for item in items}
+    assert surfaces <= set(PLACEMENT_SURFACES)
+    assert None not in surfaces
+
+
+def test_catalog_payload_has_no_duplicate_style_candidates() -> None:
+    """PostgreSQL 路徑不走 _merge_style_candidates，實測有 781 筆帶重複 style_id。"""
+    from backend.server.main import _furniture_payload_cache
+
+    offenders = []
+    for item in _furniture_payload_cache():
+        ids = [
+            candidate.get("style_id")
+            for candidate in item.get("style_candidates") or []
+            if isinstance(candidate, dict)
+        ]
+        if len(ids) != len(set(ids)):
+            offenders.append(item.get("furniture_id"))
+
+    assert not offenders, f"{len(offenders)} 筆型錄品項的 style_candidates 有重複 style_id"

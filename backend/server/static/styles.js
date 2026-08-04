@@ -1,6 +1,18 @@
-import { fetchStylesData, formatList, formatTypeLabel, initBackgroundFx } from "./common.js?v=20260711h";
+import {
+  fetchStylesData,
+  formatList,
+  formatTypeLabel,
+  initBackgroundFx,
+  reportPageBootFailure,
+} from "./common.js?v=20260802a";
 
-const data = await fetchStylesData();
+// 型錄 503 時退回空資料集：畫面會是空的風格牆加一條錯誤橫幅，而不是白畫布。
+let data = {};
+try {
+  data = await fetchStylesData();
+} catch (error) {
+  reportPageBootFailure(error, "風格資料");
+}
 const tabRow = document.getElementById("style-tab-row");
 const taiwanStyleGallery = document.getElementById("taiwan-style-gallery");
 const taiwanStyleCards = data.taiwan_style_cards || [];

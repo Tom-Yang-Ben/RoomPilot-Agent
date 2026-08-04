@@ -1,43 +1,28 @@
+# 私密設定
 .env
-web_fastapi/.env
+
+# Python、Node 與測試快取
 .venv/
-.venv_triposr/
 .uv-cache/
 .pytest_cache/
 .tmp/
 __pycache__/
 *.pyc
 node_modules/
-tmp/
 .runtime/
-web_fastapi/uploads/
-web_fastapi/__pycache__/
-Miniconda3-latest-Windows-x86_64.exe
 
-# Local-only archives / cleanup holding area
+# 僅限本機的封存與清理暫存區
 _local_archive_not_for_push/
 *_local_archive_not_for_push*/
 
-# Old experiments and reference repos, not required by the current FastAPI website
-.agents/
-external/
-TripoSR/
-test_3Dfurniture/
-scripts/*
-!scripts/verify_ikea_offline_backup.py
-!scripts/sql/
-!scripts/sql/**
-scripts/sql/__pycache__/
-scripts/sql/**/*.pyc
+# 僅限本機的資料集與暫存輸出（體積以 GB 計，不進版控）
+# 必須用開頭斜線錨定在倉庫根目錄：未錨定的 data/ 會連 backend/catalog/data/ 一起吞掉。
+/tmp/
+/temp/
+/data/
+/dataset/
 
-# Non-runtime generated/intermediate model artifacts
-dataset/
-
-# Old diagnostic pages not used by the current website flow
-web_fastapi/static/compare.*
-web_fastapi/static/model_probe.*
-
-# Only docs/moodboard_assets is required for the current website.
+# 文件目錄只提交 Markdown、契約與已核准的 moodboard 圖片。
 docs/*
 !docs/*.md
 !docs/backlog/
@@ -46,12 +31,19 @@ docs/*
 !docs/contracts/*.md
 !docs/moodboard_assets/
 !docs/moodboard_assets/**
+!docs/owners/
+!docs/owners/*.md
 !docs/vibecoding/
 !docs/vibecoding/*.md
+!docs/vibecoding-v5/
+!docs/vibecoding-v5/**
 
-# Local/personal generated Markdown, not for bella uploads
+# 個人或工具產生的本機設定與筆記不提交。
 .codex/
-.claude/
+# .claude/ 本身不排除（否則無法再納回子目錄），只排除其下的本機設定；
+# .claude/skills/ 是共用的專案 skill，要進版控。
+.claude/*
+!.claude/skills/
 CLAUDE.md
 PROJECT_CONTEXT.md
 CODEX_PROJECT_RULES.md
@@ -66,7 +58,51 @@ PERSONAL_*.md
 *_personal.md
 docs/MISSING_*_AUDIT_*.md
 
+# AI 協作規則必須版本化。
 AGENTS.md
+!AGENTS.md
+!CLAUDE.md
+!backend/**/AGENTS.md
+!frontend3d/AGENTS.md
+!scripts/AGENTS.md
+!testdata/AGENTS.md
+!tests/AGENTS.md
 
-# 3D 模型屬於本機或外部資產，不從 bella 分支上傳。
+# 大型 3D 模型、原始下載與批次預覽只保留在物件儲存或本機。
+# 已清洗、可在網站直接使用的 PBR 紋理必須提交版本控制。
 *.glb
+*.gltf
+*.bin
+*.ktx2
+*.hdr
+*.exr
+backend/catalog/data/staging/
+backend/catalog/data/quarantine/lighting/
+backend/catalog/assets/
+backend/server/static/lighting_assets/
+backend/server/static/texture_cache/
+
+# 正式 PBR 材質（含 KTX2 壓縮貼圖）是網站執行期資產，必須上傳。
+!backend/server/static/pbr_assets/
+!backend/server/static/pbr_assets/**
+
+# 自 cody 分支併入的忽略規則（僅取安全與大型產物必要項目）。
+# MCP 設定含 API key，是主線先前缺少的安全漏洞，優先補上。
+.mcp.json
+!.mcp.json.*.example
+
+# Windows 下載來源標記檔，由瀏覽器自動產生，不屬於專案內容。
+*Zone.Identifier
+
+# 平面圖訓練材料體積以 GB 計，只留在本機；但研發工具與測試是程式碼，必須進版控。
+# 負向規則不可省：辨識率的驗證鏈（評測腳本＋107 支測試＋報表）全在這幾個子目錄，
+# 少了它們，cody-dev 宣稱的準確度數字在別台機器上無法重跑。
+training/*
+!training/scripts/
+!training/tests/
+!training/json/
+!training/*.npz
+training/tests/.pytest_cache/
+training.zip
+/model_finetuned_*.pkl
+/backend/floorplan/model_finetuned_*.pkl

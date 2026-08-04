@@ -15,8 +15,9 @@ from backend.floorplan.vision import (
     confirm_floorplan_analysis,
     infer_room_requirements,
 )
+from backend.floorplan.vision.image import decode_image, profile_floorplan_image
 from backend.floorplan.vision.units import canonicalize_analysis_cm
-from backend.floorplan.cody_adapter import _clean_door_items
+from backend.floorplan.cody_adapter import _carve_band_openings, _clean_door_items
 
 
 def test_cody_cli_loads_floorplan_from_unicode_path(tmp_path: Path) -> None:
@@ -61,6 +62,36 @@ def _synthetic_floorplan() -> bytes:
     ok, encoded = cv2.imencode(".png", image)
     assert ok
     return encoded.tobytes()
+
+
+def test_image_profile_detects_colored_floorplan_line_art() -> None:
+    image = np.full((160, 220, 3), 255, dtype=np.uint8)
+    cv2.line(image, (20, 30), (200, 30), (255, 0, 0), 3)
+    cv2.line(image, (20, 80), (200, 80), (0, 0, 255), 3)
+    cv2.rectangle(image, (40, 105), (180, 140), (0, 160, 0), 2)
+    ok, encoded = cv2.imencode(".png", image)
+    assert ok
+
+    analysis = analyze_floorplan_image(
+        encoded.tobytes(),
+        calibration_hint={"distance_cm": 220, "start_px": [0, 0], "end_px": [220, 0]},
+        geometry_observations=[
+            {"kind": "wall", "start_px": [20, 30], "end_px": [200, 30]},
+            {"kind": "wall", "start_px": [20, 80], "end_px": [200, 80]},
+        ],
+    )
+
+    assert analysis["image_profile"]["kind"] == "color_line_art"
+    assert analysis["image_profile"]["threshold_route"] == "color_mask_then_otsu"
+    assert analysis["image_profile"]["has_color_signal"] is True
+
+
+def test_image_profile_keeps_black_line_art_on_otsu_route() -> None:
+    profile = profile_floorplan_image(decode_image(_synthetic_floorplan()))
+
+    assert profile["kind"] == "grayscale_line_art"
+    assert profile["threshold_route"] == "otsu"
+    assert profile["has_color_signal"] is False
 
 
 def test_analyze_floorplan_image_calibrates_630_cm_dimension() -> None:
@@ -414,7 +445,9 @@ def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations(
         "balcony": 1,
     }
     assert len(analysis["doors"]) == 7
-    assert len(analysis["windows"]) == 3
+    # 2026-07-28 由 3 改為 2：cody 辨識核心併入後濾掉一扇 12.17 公分寬、
+    # 對應 38 乘 8 像素色塊的假窗，剩下兩扇為 76.09 與 79.13 公分。
+    assert len(analysis["windows"]) == 2
     assert all(70 <= door["width_cm"] <= 120 for door in analysis["doors"])
     assert any(
         wall["bbox_px"][1] >= 700
@@ -563,6 +596,36 @@ def test_cody_door_cleanup_rejects_low_confidence_wide_and_duplicate_candidates(
     assert len(doors) == 1
     assert doors[0]["confidence"] == 0.96
     assert doors[0]["width_m"] == 0.92
+
+
+def test_django_band_carve_cuts_embedded_window_lines_out_of_wall_band() -> None:
+    wall = np.zeros((80, 220), dtype=np.uint8)
+    ink = np.zeros_like(wall)
+    cv2.rectangle(wall, (20, 34), (200, 46), 255, -1)
+    cv2.rectangle(ink, (20, 34), (80, 46), 255, -1)
+    cv2.rectangle(ink, (140, 34), (200, 46), 255, -1)
+    cv2.line(ink, (82, 37), (138, 37), 255, 1)
+    cv2.line(ink, (82, 43), (138, 43), 255, 1)
+
+    carved, log = _carve_band_openings(wall, ink, 12)
+
+    assert log
+    assert log[0]["source"] == "django_band_carve"
+    assert log[0]["axis"] == "h"
+    assert 45 <= log[0]["width_px"] <= 70
+    assert carved[40, 100] == 0
+    assert carved[40, 50] == 255
+    assert carved[40, 170] == 255
+
+
+def test_django_band_carve_keeps_plain_solid_wall_intact() -> None:
+    wall = np.zeros((80, 220), dtype=np.uint8)
+    cv2.rectangle(wall, (20, 34), (200, 46), 255, -1)
+
+    carved, log = _carve_band_openings(wall, wall, 12)
+
+    assert log == []
+    assert np.array_equal(carved, wall)
 
 
 def test_legacy_meter_analysis_is_migrated_to_centimeters_only_once() -> None:

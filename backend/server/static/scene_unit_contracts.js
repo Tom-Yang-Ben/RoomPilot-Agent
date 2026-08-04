@@ -109,6 +109,7 @@ function normalizeSceneSegment(segment = {}, scale = 1) {
   };
   if (segment.start) normalized.start = scenePoint(segment.start, scale);
   if (segment.end) normalized.end = scenePoint(segment.end, scale);
+  if (segment.swing_end) normalized.swing_end = scenePoint(segment.swing_end, scale);
   return normalized;
 }
 

@@ -52,6 +52,56 @@ def test_pending_save_replays_only_against_the_server_version_it_started_from() 
     assert result == {"same": True, "stale": False, "legacy": False, "invalid": False}
 
 
+def test_browser_storage_quota_does_not_block_the_next_workflow_step() -> None:
+    module_uri = WORKFLOW_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ createWorkflow, safeStorageSetItem }} from {json.dumps(module_uri)};
+
+        const quotaStorage = {{
+          getItem() {{ return null; }},
+          setItem() {{
+            const error = new Error("Quota has been exceeded");
+            error.name = "QuotaExceededError";
+            throw error;
+          }},
+          removeItem() {{ throw new Error("storage unavailable"); }},
+        }};
+        const workflow = createWorkflow({{
+          projectId: "quota-project",
+          storage: quotaStorage,
+        }});
+        workflow.complete("project", {{ name: "容量測試" }});
+        workflow.complete("upload", {{ filename: "plan.png" }});
+        workflow.complete("recognition", {{ engine: "cody" }});
+        workflow.complete("calibration", {{ distanceCm: 630 }});
+        workflow.complete("space_confirmation", {{
+          roomsConfirmed: true,
+          structureConfirmed: true,
+          proportionsConfirmed: true,
+        }});
+        const requirementsCompleted = workflow.complete("requirements", {{
+          basicConfirmed: true,
+          roomsResolved: true,
+        }});
+        const enteredLayout = workflow.goTo("layout_2d");
+        console.log(JSON.stringify({{
+          directWrite: safeStorageSetItem(quotaStorage, "large", "payload"),
+          requirementsCompleted,
+          enteredLayout,
+          currentStep: workflow.currentStep,
+          completed: workflow.completed,
+        }}));
+        """
+    )
+
+    assert result["directWrite"] is False
+    assert result["requirementsCompleted"] is True
+    assert result["enteredLayout"] is True
+    assert result["currentStep"] == "layout_2d"
+    assert "requirements" in result["completed"]
+
+
 def test_overlapping_windows_on_the_same_wall_are_deduplicated() -> None:
     module_uri = STRUCTURE_UTILS_MODULE.as_uri()
     result = run_workflow_script(
@@ -297,6 +347,41 @@ def test_beam_drag_geometry_snaps_to_axis_and_nearby_structure_points() -> None:
     }
 
 
+def test_opening_drag_preserves_horizontal_and_vertical_axes() -> None:
+    module_uri = STRUCTURE_UTILS_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ translateOpeningAlongAxis }} from {json.dumps(module_uri)};
+
+        console.log(JSON.stringify({{
+          horizontal: translateOpeningAlongAxis(
+            {{ start: {{ x: 100, y: 200 }}, end: {{ x: 190, y: 200 }} }},
+            {{ x: 75, y: 80 }},
+          ),
+          vertical: translateOpeningAlongAxis(
+            {{ start: {{ x: 300, y: 220 }}, end: {{ x: 300, y: 100 }} }},
+            {{ x: 90, y: -35 }},
+          ),
+        }}));
+        """
+    )
+
+    assert result == {
+        "horizontal": {
+            "start": {"x": 175, "y": 200},
+            "end": {"x": 265, "y": 200},
+            "axis": {"x": 1, "y": 0},
+            "distanceCm": 75,
+        },
+        "vertical": {
+            "start": {"x": 300, "y": 185},
+            "end": {"x": 300, "y": 65},
+            "axis": {"x": 0, "y": -1},
+            "distanceCm": 35,
+        },
+    }
+
+
 def test_confirmed_scale_unlocks_space_confirmation_and_state_can_be_restored() -> None:
     module_uri = WORKFLOW_MODULE.as_uri()
     result = run_workflow_script(
@@ -437,28 +522,28 @@ def test_scene_wizard_exposes_one_panel_for_each_confirmed_step() -> None:
     assert 'id="room-question-nav"' not in html
     assert 'id="furniture-icon-library"' in html
     assert "此空間暫不作答" not in html
-    assert "確認此房需求與材質" in html
-    assert "我已確認是否有指定家具需求" in html
+    assert "確認此房用途與家具" in html
+    assert "我已確認是否有指定家具需求" not in html
+    assert "使用浮動微調面板鎖定或取消指定需求" in html
 
 
-def test_scene_exposes_the_final_ten_step_workflow() -> None:
+def test_scene_exposes_the_final_eight_step_workflow() -> None:
     html = SCENE_HTML.read_text(encoding="utf-8")
+    # 編號在 <b>，名稱在 <span>；兩邊都帶數字會顯示成「① 1 建立專案」。
     labels = [
-        "1 建立專案",
-        "2 上傳平面圖",
-        "3 確定尺寸",
-        "4 空間與結構",
-        "5 需求問卷",
-        "6 2D 家具配置",
-        "7 3D 白模",
-        "8 即時寫實",
-        "9 方案鎖定",
-        "10 AI 渲染",
+        (1, "建立專案"),
+        (2, "上傳平面圖"),
+        (3, "確定尺寸"),
+        (4, "空間與結構"),
+        (5, "需求問卷"),
+        (6, "配置與預覽"),
+        (7, "方案鎖定與視角"),
+        (8, "AI 渲染與成果包"),
     ]
 
-    assert 'data-workflow-count="10"' in html
-    for label in labels:
-        assert label in html
+    assert 'data-workflow-count="8"' in html
+    for number, label in labels:
+        assert f"<b>{number}</b><span>{label}</span>" in html
     assert "進入 RoomPilot" not in html
 
 

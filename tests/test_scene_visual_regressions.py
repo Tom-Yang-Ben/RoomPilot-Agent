@@ -61,17 +61,43 @@ def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
     assert result["leafWidthCm"] == 94
     assert result["leafCenterXCm"] == 47
     assert result["closedRotationYRad"] == 0
-    assert result["swingRotationYRad"] < 0
+    assert result["swingRotationYRad"] == 0
 
 
-def test_3d_wall_snap_commits_the_backend_layout_result() -> None:
+def test_closed_door_leaf_lies_flat_inside_the_doorway() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ doorLeafTransform }} from {json.dumps(VISUAL_MODULE.as_uri())};
+        const transform = doorLeafTransform({{
+          start: {{ x: 100, z: 200 }},
+          end: {{ x: 180, z: 260 }},
+          opening_direction: "right",
+        }});
+        const wallAngle = Math.atan2(-(260 - 200), 180 - 100);
+        const closedAngle = transform.closedRotationYRad + transform.swingRotationYRad;
+        const wall = {{ x: Math.cos(wallAngle), z: -Math.sin(wallAngle) }};
+        const leaf = {{ x: Math.cos(closedAngle), z: -Math.sin(closedAngle) }};
+        console.log(JSON.stringify({{
+          parallelError: Math.abs(wall.x * leaf.z - wall.z * leaf.x),
+          directionDot: wall.x * leaf.x + wall.z * leaf.z,
+          swingDegrees: Math.abs(transform.swingRotationYRad) * 180 / Math.PI,
+        }}));
+        """
+    )
+
+    assert result["parallelError"] < 1e-9
+    assert result["directionDot"] > 0.999999
+    assert result["swingDegrees"] == 0
+
+
+def test_3d_drag_preserves_the_user_position_after_backend_validation() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
 
-    assert 'fetch("/api/scene/layout"' in source
-    assert "placement_hint_cm" in source
-    assert "resolved.position_cm" in source
+    assert 'fetch("/api/scene/validate"' in source
+    assert "item: { ...item, position_cm: positionCm, rotation_y_deg: rotationDeg }" in source
+    assert 'fetch("/api/scene/layout"' not in source
     assert "wallFaceSnapOffset" not in source
 
 
@@ -83,9 +109,12 @@ def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
         encoding="utf-8"
     )
 
-    assert "{ onSceneChange = null } = {}" in viewer
+    # 要守的是兩個回呼仍是建立選項，選項本身可以增加（例如標註開關）。
+    assert "onSceneChange = null," in viewer
+    assert "onObjectSelect = null," in viewer
     assert "notifySceneChange(item)" in viewer
-    assert 'onSceneChange: () => scheduleSave("white_model_3d")' in controller
+    assert "onSceneChange: (item) => {" in controller
+    assert 'scheduleSave("white_model_3d")' in controller
     assert "onSceneChange: () => markRealisticSceneEdited()" in controller
     mark_body = controller.split("function markRealisticSceneEdited()", 1)[1].split(
         "function activePanelName", 1
@@ -112,6 +141,17 @@ def test_upholstered_storage_bed_is_still_a_real_bed() -> None:
             "normalized_type": "bed",
             "name_en": "IDANAS Upholstered storage bed - beige 160x200 cm",
             "size_cm": {"width": 160, "depth": 200, "height": 49},
+        },
+        "bed",
+    ) is True
+
+
+def test_full_size_loft_bed_is_still_a_real_bed() -> None:
+    assert catalog_item_matches_type_semantics(
+        {
+            "normalized_type": "bed",
+            "name_en": "Dcraft Berdine Metal Loft Bed, Full Size",
+            "size_cm": {"width": 199.4, "depth": 200, "height": 200},
         },
         "bed",
     ) is True
@@ -195,6 +235,77 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
     assert "roomGroupRef.add(topCap)" in wall_builder
 
 
+def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildStandaloneOpeningAssemblies", 1
+    )[0]
+    opening_builder = source.split("function buildOpeningAssembly", 1)[1].split(
+        "function buildStandaloneOpeningAssemblies", 1
+    )[0]
+    standalone_builder = source.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
+        "function buildStructuralMembers", 1
+    )[0]
+
+    assert "const frameAllowanceCm = 0.6" in wall_builder
+    assert "Math.max(0, sillHeight - frameAllowanceCm)" in wall_builder
+    assert "wallHeight - openingHeight - frameAllowanceCm" in wall_builder
+    assert "wallThickness" in wall_builder
+    assert "const frameDepth = Math.max(Number(anchor.wallThickness || 12) + 0.4, 4.2)" in opening_builder
+    assert "const faceOffset = 0" in opening_builder
+    assert "glass.position.z = 0" in opening_builder
+    assert "frame.position.set(x, y, faceOffset)" in opening_builder
+    assert 'roompilotArchitecturalDetail = "flush-window-sill"' in opening_builder
+    assert "Math.max(0, sillHeight - frameAllowanceCm)" in standalone_builder
+
+
+def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protrude() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+    resolver = source.split("function wallMaterialResolver", 1)[1].split(
+        "function polygonShape", 1
+    )[0]
+    create_room = source.split("function createRoom", 1)[1].split(
+        "function buildFloorPlanOverlay", 1
+    )[0]
+
+    assert "isExteriorWallSegment(segment, sceneData.floorplan)" in resolver
+    assert "pointInsideAnyFloorplanRoom" in resolver
+    assert "leftInside !== rightInside" in resolver
+    assert "wallEndpointTouchesExteriorBounds" in resolver
+    assert "resolveWallMaterial.exteriorMaterial = exteriorMaterial" in resolver
+    assert "const overrideAtPoint" in resolver
+    assert "resolveWallMaterial.faceMaterials" in resolver
+    assert "const materialForSide = (side)" in resolver
+    assert "roompilotWallSurfaceRole = \"exterior\"" in resolver
+    assert "isExteriorWallSegment(segment, floorplan, wallThickness)" in wall_builder
+    assert "exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)" in wall_builder
+    assert "wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)" in wall_builder
+    assert "wallMaterial.faceMaterials(segment, exteriorSideSign)" in wall_builder
+    assert "interiorWallJunctionInsets(segment, exteriorSegments, wallThickness)" in wall_builder
+    assert "const sectionMin" in wall_builder
+    assert "const sectionMax" in wall_builder
+    assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in wall_builder
+    assert "Number(start.x) + unitX * capCenter" in wall_builder
+    assert "sceneData.floorplan," in create_room
+
+
+def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> None:
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "function findWalkLookTarget" in source
+    assert "const target = findWalkLookTarget(spawn, polygon);" in source
+    assert "walkPositionBlockedByFurniture(point)" in source
+
+
 def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
@@ -224,8 +335,11 @@ def test_dollhouse_keeps_all_walls_visible_and_orbit_controls_enabled() -> None:
     assert "controls.enableRotate = true" in dollhouse
     assert "controls.enablePan = true" in dollhouse
     assert "controls.enableZoom = true" in dollhouse
-    assert "wall.visible = true" in visibility
-    assert "wall.visible = !shouldHide" not in visibility
+    # dollhouse 是俯視娃娃屋，四面牆都要看得到。近牆讓路只在 orbit 生效——第 6 步的
+    # 預設 corner 鏡頭站在房子外面，不讓近牆讓開就只看得到一片牆的外側（QA #4）。
+    assert 'const cullNearWalls = viewMode.mode === "orbit";' in visibility
+    assert 'viewMode.mode === "dollhouse"' not in visibility
+    assert "wall.visible = !culled" in visibility
     assert "wallBlocksRoom" not in visibility
     assert "wallTooClose" not in visibility
 
@@ -291,7 +405,8 @@ def test_view_mode_hint_is_part_of_viewer_and_adjacent_to_canvas() -> None:
     canvas_index = viewer.index('id="white-model-viewer"')
 
     assert hint_index < canvas_index
-    assert canvas_index - hint_index < 900
+    # 工具列保留了依檢視與操作分組的語意結構，仍必須緊鄰主畫布。
+    assert canvas_index - hint_index < 1400
 
 
 def test_catalog_does_not_merge_same_named_bed_and_cabinet_models() -> None:

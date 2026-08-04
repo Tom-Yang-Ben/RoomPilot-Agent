@@ -1,6 +1,6 @@
 function finitePoint(point) {
   const x = Number(point?.x);
-  const y = Number(point?.y);
+  const y = Number(point?.y ?? point?.z);
   return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
 }
 
@@ -76,6 +76,40 @@ function openingWidthCm(item) {
   return Number(item?.width_cm) || (start && end ? Math.hypot(end.x - start.x, end.y - start.y) : 0);
 }
 
+export function translateOpeningAlongAxis(opening, delta = {}) {
+  const start = finitePoint(opening?.start);
+  const end = finitePoint(opening?.end);
+  if (!start || !end) return null;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (length < 0.1) return null;
+
+  let axis;
+  if (Math.abs(dx) >= Math.abs(dy) * 3) {
+    axis = { x: Math.sign(dx) || 1, y: 0 };
+  } else if (Math.abs(dy) >= Math.abs(dx) * 3) {
+    axis = { x: 0, y: Math.sign(dy) || 1 };
+  } else {
+    axis = { x: dx / length, y: dy / length };
+  }
+  const requestedDelta = finitePoint(delta) || { x: 0, y: 0 };
+  const distance = requestedDelta.x * axis.x + requestedDelta.y * axis.y;
+  const translation = { x: axis.x * distance, y: axis.y * distance };
+  return {
+    start: {
+      x: start.x + translation.x,
+      y: start.y + translation.y,
+    },
+    end: {
+      x: end.x + translation.x,
+      y: end.y + translation.y,
+    },
+    axis,
+    distanceCm: distance,
+  };
+}
+
 function windowCandidateScore(item) {
   return (item?.confirmed === true ? 100 : 0)
     + (item?.source === "manual" ? 20 : 0)
@@ -119,12 +153,14 @@ export function doorsOverlap(first, second) {
   const a = openingAxis(first);
   const b = openingAxis(second);
   if (!a || !b || a.orientation !== b.orientation) return false;
-  if (Math.abs(a.constant - b.constant) > 35) return false;
+  // 開啟的門片可能落在平行的相鄰牆旁。只有幾乎落在同一條
+  // 中心線時才視為重複，避免把兩扇真實相鄰門合併掉。
+  if (Math.abs(a.constant - b.constant) > 14) return false;
   const overlap = Math.max(0, Math.min(a.high, b.high) - Math.max(a.low, b.low));
   const centerDistance = Math.abs((a.low + a.high) / 2 - (b.low + b.high) / 2);
   const width = Math.min(a.length, b.length);
-  return overlap / Math.max(1, width) >= 0.35
-    || centerDistance <= Math.max(45, width * 0.75);
+  return overlap / Math.max(1, width) >= 0.75
+    && centerDistance <= Math.max(18, width * 0.16);
 }
 
 export function dedupeWindowCandidates(candidates = []) {

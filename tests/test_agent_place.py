@@ -100,11 +100,16 @@ def test_resolve_removes_item_when_no_smaller_model_exists() -> None:
     assert report[0]["action"] == "remove"
 
 
-def test_resolve_never_replaces_failed_companion_without_its_anchor() -> None:
+def test_resolve_downsizes_a_companion_while_its_anchor_stays() -> None:
+    """主件在場時副件先換小，不整件退場。
+
+    QA 2026-08-01 實測 180cm 電視櫃放不下卻沒換小款：舊規則把「副件不換小獨活」
+    套用到主件還在的情況，使用者平白失去一件明明有小尺寸可選的家具。
+    """
     sofa = _item("sofa", "fabric-sofa", 200, 90)
     large_table = _item("large-table", "coffee-table", 600, 300)
     small_table = _item("small-table", "coffee-table", 90, 50)
-    objects, final, report = resolve_placements(
+    _objects, final, report = resolve_placements(
         [
             {**_failed_object(sofa), "placement_failed": False},
             _failed_object(large_table),
@@ -113,8 +118,26 @@ def test_resolve_never_replaces_failed_companion_without_its_anchor() -> None:
         [sofa, large_table, small_table],
         engine_place_fn=_threshold_engine(300),
     )
-    assert [item["furniture_id"] for item in final] == ["sofa"]
-    assert next(row["action"] for row in report if row["furniture_id"] == "large-table") == "remove"
+    assert [item["furniture_id"] for item in final] == ["sofa", "small-table"]
+    row = next(row for row in report if row["furniture_id"] == "large-table")
+    assert row["action"] == "replace"
+    assert row["to"] == "small-table"
+
+
+def test_resolve_still_removes_a_failed_companion_once_its_anchor_is_gone() -> None:
+    large_sofa = _item("large-sofa", "fabric-sofa", 500, 200)
+    large_table = _item("large-table", "coffee-table", 600, 300)
+    small_table = _item("small-table", "coffee-table", 90, 50)
+    _objects, final, report = resolve_placements(
+        [_failed_object(large_sofa), _failed_object(large_table)],
+        [large_sofa, large_table],
+        [large_sofa, large_table, small_table],
+        engine_place_fn=_threshold_engine(300),
+    )
+    assert final == []
+    assert next(
+        row["action"] for row in report if row["furniture_id"] == "large-table"
+    ) == "remove"
 
 
 def test_resolve_removes_agent_companion_when_anchor_is_absent() -> None:

@@ -123,7 +123,8 @@ def test_room_surfaces_flow_into_2d_3d_and_render_payloads() -> None:
     ).read_text(encoding="utf-8")
     assert "createRoomCeilingOverrides" in VIEWER
     assert "roompilotCeilingOverride" in VIEWER
-    assert "override.wall_overrides?.[surfaceId]" in VIEWER
+    assert "resolveWallMaterial.faceMaterials" in VIEWER
+    assert "const overrideAtPoint" in VIEWER
     apply_style = SCENE.split("async function applyStylePackToScene", 1)[1].split(
         "async function applySurfaceOverrides", 1
     )[0]
@@ -140,3 +141,19 @@ def test_agent_selection_receives_all_rooms_in_one_request() -> None:
     assert "rooms: roomPlans.map" in auto_layout
     assert "questionnaire: requirementsPayload" in auto_layout
     assert "specsAllowedByRoomFeasibility" in auto_layout
+
+
+def test_questionnaire_enters_step_six_when_scheme_b_needs_adjustment() -> None:
+    assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" })' in SCENE
+    # 2026-07-30 方案 B 改逐件降級（盤點第 6 項修復）：不再有「無法產生
+    # 合法配置」的整包死當訊息，放不下的家具列入「暫不放入」後流程繼續。
+    assert "目前格局無法在保留問卷需求下產生方案 B 的合法配置" not in SCENE
+    assert "deferFailedPlacements(schemeBFurniture" in SCENE
+    assert "已列入「暫不放入」" in SCENE
+    generation = SCENE.split("async function generateWhiteModelFromRequirements", 1)[1].split(
+        "async function addWhiteModelBeamFromWorld", 1
+    )[0]
+    assert generation.count("await confirmLayout2d({ allowPendingFurniture: true })") == 2
+    assert 'state.designSchemes.schemes.B.staleReason = message;' in generation
+    assert '方案 A 已建立；方案 B 有待處理家具，請在第 6 步調整。' in generation
+    assert "方案 A、B 的 2D+3D 配置已建立" in generation

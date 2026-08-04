@@ -3,6 +3,39 @@ export async function fetchSiteData() {
   return response.json();
 }
 
+/**
+ * 頁面啟動失敗時把原因說出來。
+ *
+ * home / styles / library 的頂層 await 原本沒有 catch：型錄回 503 時整個
+ * 模組被拒絕，瀏覽器只留一片白畫布，使用者連「為什麼」都看不到。
+ */
+export function reportPageBootFailure(error, what = "頁面資料") {
+  const detail = error?.detail?.message || error?.message || String(error || "");
+  const message = `${what}載入失敗：${detail || "請稍後再試。"}`;
+  console.error(message, error);
+
+  const existing = document.getElementById("page-boot-error");
+  if (existing) {
+    existing.textContent = message;
+    return;
+  }
+  const banner = document.createElement("div");
+  banner.id = "page-boot-error";
+  banner.setAttribute("role", "alert");
+  banner.textContent = message;
+  banner.style.cssText = [
+    "position:sticky",
+    "top:0",
+    "z-index:9999",
+    "padding:12px 16px",
+    "background:#7f1d1d",
+    "color:#fff",
+    "font-size:14px",
+    "line-height:1.5",
+  ].join(";");
+  document.body.prepend(banner);
+}
+
 async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) {

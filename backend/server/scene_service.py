@@ -5,14 +5,16 @@ import math
 import os
 import random
 import uuid
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib import error, request
 
-from shapely.geometry import Point, Polygon, box as shapely_box
+from shapely.geometry import LineString, Point, Polygon, box as shapely_box
 from shapely.ops import unary_union
 
 from ..agent.place import resolve_placements
+from ..catalog.placement_surface import FLOOR_COVERING, WALL, placement_surface_for
 from ..catalog.style_db import catalog_item_from_scene_object
 from ..engine.clearance import check_placement_with_clearance
 from ..engine.dxf_room import build_room_from_dxf
@@ -85,7 +87,61 @@ def get_openrouter_status() -> dict[str, Any]:
         "model_count": len(models),
         "provider": "openrouter" if api_key and models else "fallback",
         "scene_planning_enabled": os.getenv("OPENROUTER_SCENE_PLANNING_ENABLED") == "1",
+        "selection_enabled": selection_enabled(),
     }
+
+
+def selection_enabled() -> bool:
+    """選件 agent 是否可呼叫 LLM。
+
+    與第 1 步問卷規劃相反，選件預設隨 ``OPENROUTER_API_KEY`` 啟用：它的
+    輸出一律經 Yen 的白名單驗證，失敗會退回本地規則，沒有讓 LLM 決定
+    座標的風險。要完全離線時設 ``OPENROUTER_SELECTION_ENABLED=0``。
+    """
+    load_local_env()
+    if not os.getenv("OPENROUTER_API_KEY", "").strip():
+        return False
+    if not get_openrouter_models():
+        return False
+    return os.getenv("OPENROUTER_SELECTION_ENABLED", "1") != "0"
+
+
+def selection_complete_fn() -> Callable[[list[dict[str, str]]], tuple[str, dict[str, Any]] | None] | None:
+    """回傳選件用的 OpenRouter 呼叫器；停用時回 None 讓呼叫端走本地規則。
+
+    依 ``OPENROUTER_MODELS`` 順序重試，任一模型回出可解析的 JSON 物件就
+    採用；全部失敗回 None，由 ``request_selections`` 轉成
+    ``SelectionUnavailableError``。
+    """
+    if not selection_enabled():
+        return None
+
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    models = get_openrouter_models()
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": os.getenv("OPENROUTER_SITE_URL", "http://127.0.0.1:8000"),
+        "X-Title": os.getenv("OPENROUTER_APP_NAME", "RoomPilot furniture selection"),
+    }
+
+    def complete(messages: list[dict[str, str]]) -> tuple[str, dict[str, Any]] | None:
+        for model in models:
+            body = _post_openrouter_chat(
+                {
+                    "model": model,
+                    "messages": messages,
+                    "temperature": 0.2,
+                    "response_format": {"type": "json_object"},
+                },
+                headers,
+            )
+            parsed = _load_json_response(body) if body else None
+            if isinstance(parsed, dict):
+                return model, parsed
+        return None
+
+    return complete
 
 
 STYLE_FALLBACKS = {
@@ -100,6 +156,15 @@ SPACE_DEFAULTS = {
     "workspace": ["desk", "office-chair", "bookcase", "wall-shelf"],
     "dining_room": ["dining-table", "dining-chair", "sideboard"],
     "studio": ["sofa-bed", "coffee-table", "desk", "bookcase"],
+    # 2026-07 盤點第 5 項修復：前端「空間用途」下拉開放後，使用者會真的選到
+    # 廚房／浴廁／儲藏／陽台／走道——這些型別先前不在表內，會一律退成客廳
+    # 家具（浴室被塞沙發）。circulation 刻意零家具（動線空間不自動配置）。
+    # 詞彙一致性由 tests/test_room_type_vocabulary.py 鎖住。
+    "kitchen": ["appliance-cabinet"],
+    "bathroom": ["bathroom-vanity", "mirror-cabinet"],
+    "storage": ["storage-cabinet"],
+    "balcony": ["flower-pots-planter"],
+    "circulation": [],
 }
 
 FURNITURE_ALIASES = {
@@ -199,9 +264,16 @@ def _normalize_openrouter_plan(
     if not normalized_required:
         return None
 
-    layout_rules = raw_plan.get("layout_rules", [])
-    if not isinstance(layout_rules, list):
-        layout_rules = []
+    raw_layout_rules = raw_plan.get("layout_rules", [])
+    if not isinstance(raw_layout_rules, list):
+        raw_layout_rules = []
+    # LLM 常把規則回成字串陣列；下游 must_keep 直接呼叫 rule.get("message")，
+    # 在邊界一律轉成 dict，無法取出訊息的項目直接丟棄。
+    layout_rules = [
+        item if isinstance(item, dict) else {"rule": "llm_rule", "message": item.strip()}
+        for item in raw_layout_rules
+        if isinstance(item, dict) or (isinstance(item, str) and item.strip())
+    ]
 
     preferred_colors = raw_plan.get("preferred_colors", questionnaire.get("preferred_colors", []))
     if not isinstance(preferred_colors, list):
@@ -526,6 +598,9 @@ _BED_CONFLICT_TOKENS = (
 )
 _BED_IDENTITY_TOKENS = (
     "bed frame",
+    "loft bed",
+    "day-bed",
+    "daybed",
     "upholstered bed",
     "storage bed",
     "double bed",
@@ -557,7 +632,8 @@ def catalog_item_matches_type_semantics(item: dict[str, Any], requested_type: st
         height = float(size.get("height") or 0)
     except (TypeError, ValueError):
         height = 0
-    return height <= 150
+    maximum_height = 240 if "loft bed" in name_text else 150
+    return height <= maximum_height
 
 
 def selected_furniture_items_from_questionnaire(
@@ -577,11 +653,31 @@ def selected_furniture_items_from_questionnaire(
     selected: list[dict[str, Any]] = []
     used_ids: set[str] = set()
 
+    appliance_types = {
+        "refrigerator",
+        "washer",
+        "washing-machine",
+        "dishwasher",
+        "dryer",
+        "oven",
+        "microwave",
+        "range-hood",
+        "air-conditioner",
+        "ceiling-cassette",
+        "appliance",
+    }
+
     for raw in raw_items:
         if not isinstance(raw, dict):
             continue
         furniture_id = raw.get("furniture_id")
         if not furniture_id or furniture_id in used_ids:
+            continue
+
+        raw_type = str(raw.get("normalized_type") or raw.get("type") or "").casefold()
+        raw_model_url = str(raw.get("model_url") or raw.get("glb_url") or "").casefold()
+        if raw_type in appliance_types or "/models/ikea/appliance/" in raw_model_url:
+            # Appliances remain questionnaire/render context, never 2D/3D objects.
             continue
 
         catalog_item = catalog_by_id.get(furniture_id, {})
@@ -789,9 +885,20 @@ def _hinted_wall_candidate(
     return min(candidates, key=lambda candidate: math.hypot(candidate[0] - hint_x, candidate[1] - hint_z))
 
 
-# 地毯可與目標家具重疊，但仍須由引擎驗證牆與房間邊界。
-_OVERLAY_TYPES = {"large-medium-rug", "runner-small-rug"}
-_IGNORE_COLLISION_TYPES = {"wall-shelf"}
+# 擺放面分類的單一事實在型錄層(backend/catalog/placement_surface.py),第 6 步
+# 只把它翻成擺放行為,不再自己維護第二份型別名單。
+#
+# 以前這裡硬編碼 2 種地毯與 1 種壁掛,型錄實際宣告 7 種與 4 種——rug、
+# handmade-rug、round-rug、outdoor-rug、door-mat、mirror、large-mirror、
+# mirror-cabinet 全部被當成落地家具去算碰撞與淨空,放不下就卡進待處理清單。
+def _is_overlay_item(item_type: str | None, name: str | None = None) -> bool:
+    """地面覆蓋物:可與目標家具重疊,但仍要通過牆與房間邊界驗證。"""
+    return placement_surface_for(item_type, name) == FLOOR_COVERING
+
+
+def _is_collision_exempt_item(item_type: str | None, name: str | None = None) -> bool:
+    """壁掛品項:佔的是牆面不是地板,不進碰撞與淨空。"""
+    return placement_surface_for(item_type, name) == WALL
 
 
 def curtain_window_hint(
@@ -882,7 +989,14 @@ def _inside_boundary(candidate: PlacedFurniture, boundary: Polygon | None) -> bo
     return boundary.contains(furniture_polygon(candidate))
 
 
-def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
+def _grid_place_in_boundary(
+    catalog,
+    item_id,
+    room,
+    placed,
+    boundary,
+    forbidden_zones: list[PlacementZone] | None = None,
+):
     """非矩形房間的最後防線:沿房間多邊形內部以 50cm 網格搜尋(由質心向外)。
 
     錨點與引擎網格都以 bbox 為座標基準,房間只佔 bbox 一角時全會撲空,
@@ -910,7 +1024,11 @@ def _grid_place_in_boundary(catalog, item_id, room, placed, boundary):
     for rotation in (0, 90, 180, 270):
         for x, y in cands:
             cand = PlacedFurniture(id=item_id, catalog=catalog, pos_x=x, pos_y=y, rotation=rotation)
-            if _inside_boundary(cand, boundary) and check_placement_with_clearance(cand, room, placed) is None:
+            if (
+                _inside_boundary(cand, boundary)
+                and not _placement_intersects_zones(cand, forbidden_zones)
+                and check_placement_with_clearance(cand, room, placed) is None
+            ):
                 return cand
     return None
 
@@ -932,6 +1050,298 @@ def _four_wall_room(width_cm: float, depth_cm: float) -> Room:
 def _floorplan_coordinate_scale_cm(floorplan: dict[str, Any] | None) -> float:
     """Return the scale from stored floorplan coordinates to centimeters."""
     return 1.0 if (floorplan or {}).get("coordinate_unit") == "cm" else 100.0
+
+
+_WINDOW_CLEARANCE_EXEMPT_TYPES = frozenset({"curtain"})
+
+# 一般窗前的判斷帶寬度(公分)。帶內只擋「高過窗台」的家具,矮櫃與臥榻可以進;
+# 問卷的 window_zone 偏好可以把這條帶整個關掉。
+WINDOW_CLEARANCE_DEPTH_CM = 70.0
+# 落地窗前的硬淨空(公分):採光與進出動線,任何高度的家具都不能進,不受偏好影響。
+FLOOR_WINDOW_CLEARANCE_CM = 50.0
+# 窗台離地高的後備值(公分),對齊編輯器 scene_window_types.js 的一般窗預設。
+STANDARD_WINDOW_SILL_FALLBACK_CM = 90.0
+# 窗台低於此高度就當落地窗處理(編輯器落地窗預設 sill_height_cm = 0)。
+FLOOR_WINDOW_SILL_MAX_CM = 30.0
+# 門弧離散化段數:12 段足以讓 90 度扇形的弦誤差小於 1 公分。
+_DOOR_ARC_SEGMENTS = 12
+
+
+@dataclass(frozen=True)
+class PlacementZone:
+    """擺放禁區。
+
+    ``max_height_cm`` 是「這塊區域可以容忍的最大家具高度」:
+    ``None`` 代表任何高度都不准進(落地窗、門弧);有值代表只擋高過它的家具
+    ——一般窗前的矮櫃、臥榻因此仍然合法,這正是窗台高度規則的表達方式。
+    """
+
+    polygon: Polygon
+    kind: str
+    reason: str
+    max_height_cm: float | None = None
+    exempt_types: frozenset[str] = field(default_factory=frozenset)
+
+
+def _opening_line(
+    opening: dict[str, Any],
+    room: Room,
+    scale: float,
+    *,
+    start_key: str = "start",
+    end_key: str = "end",
+) -> LineString | None:
+    """把 payload 的中心原點線段轉成引擎的角落原點線段。"""
+    try:
+        start = opening[start_key]
+        end = opening[end_key]
+    except (KeyError, TypeError):
+        return None
+    try:
+        line = LineString(
+            [
+                (
+                    float(start["x"]) * scale + room.width / 2,
+                    float(start["z"]) * scale + room.depth / 2,
+                ),
+                (
+                    float(end["x"]) * scale + room.width / 2,
+                    float(end["z"]) * scale + room.depth / 2,
+                ),
+            ]
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+    return line if line.length >= 4 else None
+
+
+def _is_floor_to_ceiling(opening: dict[str, Any]) -> bool:
+    """落地窗判定。舊資料寫過 ``floor-to-ceiling``,兩種寫法都要認得。"""
+    raw = opening.get("window_type")
+    return str(raw or "").strip().lower().replace("-", "_") == "floor_to_ceiling"
+
+
+def _window_sill_height_cm(opening: dict[str, Any]) -> float:
+    """窗台離地高。落地窗是 0,一般窗沒填就用編輯器同一個預設值。"""
+    if _is_floor_to_ceiling(opening):
+        return 0.0
+    raw = opening.get("sill_height_cm")
+    if raw is None:
+        return STANDARD_WINDOW_SILL_FALLBACK_CM
+    try:
+        return max(0.0, float(raw))
+    except (TypeError, ValueError):
+        return STANDARD_WINDOW_SILL_FALLBACK_CM
+
+
+def window_clearance_zones(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+    depth_cm: float = WINDOW_CLEARANCE_DEPTH_CM,
+) -> list[PlacementZone]:
+    """窗前禁區:落地窗是硬淨空,一般窗只擋高過窗台的家具。
+
+    ``depth_cm`` 只影響一般窗的判斷帶寬度(問卷 window_zone 偏好可調);
+    落地窗固定 ``FLOOR_WINDOW_CLEARANCE_CM``,那是通行與採光的工程值,
+    不是使用者偏好可以放寬的東西。
+    """
+    scale = _floorplan_coordinate_scale_cm(floorplan)
+    zones: list[PlacementZone] = []
+    for opening in (floorplan or {}).get("window_segments") or []:
+        if not isinstance(opening, dict):
+            continue
+        line = _opening_line(opening, room, scale)
+        if line is None:
+            continue
+        sill_cm = _window_sill_height_cm(opening)
+        if sill_cm <= FLOOR_WINDOW_SILL_MAX_CM:
+            zones.append(
+                PlacementZone(
+                    polygon=line.buffer(FLOOR_WINDOW_CLEARANCE_CM, cap_style=2),
+                    kind="floor_window",
+                    reason=(
+                        f"落地窗前需保留 {FLOOR_WINDOW_CLEARANCE_CM:.0f} 公分淨空,不能擺放家具。"
+                    ),
+                    max_height_cm=None,
+                    exempt_types=_WINDOW_CLEARANCE_EXEMPT_TYPES,
+                )
+            )
+        elif depth_cm > 0:
+            zones.append(
+                PlacementZone(
+                    polygon=line.buffer(depth_cm, cap_style=2),
+                    kind="window",
+                    reason=(
+                        f"窗前家具不可高過窗台({sill_cm:.0f} 公分),會擋住窗戶。"
+                    ),
+                    max_height_cm=sill_cm,
+                    exempt_types=_WINDOW_CLEARANCE_EXEMPT_TYPES,
+                )
+            )
+    return zones
+
+
+def _door_swing_polygon(
+    hinge: tuple[float, float],
+    open_end: tuple[float, float],
+    closed_end: tuple[float, float],
+) -> Polygon | None:
+    """門片從開到關掃過的扇形(圓心 = 鉸鏈,半徑 = 門片長)。
+
+    走兩個端點之間的短弧——門扇是 90 度上下,短弧才是真正掃過的那一邊。
+    """
+    radius = math.dist(hinge, open_end)
+    if radius < 1:
+        return None
+    start_angle = math.atan2(open_end[1] - hinge[1], open_end[0] - hinge[0])
+    end_angle = math.atan2(closed_end[1] - hinge[1], closed_end[0] - hinge[0])
+    sweep = (end_angle - start_angle + math.pi) % (2 * math.pi) - math.pi
+    if abs(sweep) < math.radians(5):
+        return None
+    points = [hinge]
+    for step in range(_DOOR_ARC_SEGMENTS + 1):
+        angle = start_angle + sweep * step / _DOOR_ARC_SEGMENTS
+        points.append((hinge[0] + radius * math.cos(angle), hinge[1] + radius * math.sin(angle)))
+    polygon = Polygon(points)
+    if not polygon.is_valid:
+        polygon = polygon.buffer(0)
+    return polygon if not polygon.is_empty else None
+
+
+def door_swing_zones(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+) -> list[PlacementZone]:
+    """門扇開闔弧掃過的地面禁區——第 4 步畫的那個扇形,任何家具都不能進。
+
+    payload 的 ``start`` 是鉸鏈、``end`` 是打開後的門片端點、``swing_end`` 是
+    關門後的門片端點(``floorplan_from_editor_payload`` 建立)。沒有 ``swing_end``
+    的舊資料與 DXF 匯入門,退回和前端同一條後備規則:門片繞鉸鏈轉 90 度。
+    """
+    scale = _floorplan_coordinate_scale_cm(floorplan)
+    zones: list[PlacementZone] = []
+    for door in (floorplan or {}).get("door_segments") or []:
+        if not isinstance(door, dict):
+            continue
+        line = _opening_line(door, room, scale)
+        if line is None:
+            continue
+        hinge, open_end = line.coords[0], line.coords[-1]
+        swing_line = _opening_line(
+            door, room, scale, start_key="start", end_key="swing_end"
+        )
+        if swing_line is not None:
+            closed_end = swing_line.coords[-1]
+        else:
+            # 前端 scene_v2.js 沒有 swing_end 時畫的也是這個垂直後備,兩邊要一致。
+            closed_end = (
+                hinge[0] + (open_end[1] - hinge[1]),
+                hinge[1] - (open_end[0] - hinge[0]),
+            )
+        polygon = _door_swing_polygon(tuple(hinge), tuple(open_end), tuple(closed_end))
+        if polygon is None:
+            continue
+        zones.append(
+            PlacementZone(
+                polygon=polygon,
+                kind="door_swing",
+                reason="門的開闔範圍必須淨空,不能擺放家具。",
+                max_height_cm=None,
+            )
+        )
+    return zones
+
+
+def placement_forbidden_zones(
+    floorplan: dict[str, Any] | None,
+    room: Room,
+    window_clearance_cm: float = WINDOW_CLEARANCE_DEPTH_CM,
+) -> list[PlacementZone]:
+    """自動配置與拖曳驗證共用的禁區清單,兩邊必須看到同一份規則。"""
+    return door_swing_zones(floorplan, room) + window_clearance_zones(
+        floorplan, room, window_clearance_cm
+    )
+
+
+def _blocking_zone(
+    candidate: PlacedFurniture,
+    zones: list[PlacementZone] | None,
+) -> PlacementZone | None:
+    """回傳第一個擋住這件家具的禁區,沒有就回 None。
+
+    型別與高度都從 ``candidate.catalog`` 取,呼叫端不必再自己判斷豁免——
+    以前豁免寫在呼叫端,窗簾會連門弧一起被放行。
+    """
+    if not zones:
+        return None
+    item_type = candidate.catalog.type
+    height_cm = float(candidate.catalog.height or 0)
+    footprint = furniture_polygon(candidate)
+    for zone in zones:
+        if item_type in zone.exempt_types:
+            continue
+        if zone.max_height_cm is not None and height_cm <= zone.max_height_cm:
+            continue
+        if footprint.intersects(zone.polygon):
+            return zone
+    return None
+
+
+def _placement_intersects_zones(
+    candidate: PlacedFurniture,
+    zones: list[PlacementZone] | None,
+) -> bool:
+    return _blocking_zone(candidate, zones) is not None
+
+
+def _scene_rotation_toward(
+    source: dict[str, float],
+    target: dict[str, float],
+) -> float:
+    dx = float(target.get("x") or 0) - float(source.get("x") or 0)
+    dz = float(target.get("z") or 0) - float(source.get("z") or 0)
+    if math.hypot(dx, dz) < 1:
+        return 0.0
+    return round(math.degrees(math.atan2(dx, dz)) % 360, 2)
+
+
+def orient_layout_toward_targets(
+    scene_objects: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Orient automatically placed seating and work furniture toward useful targets."""
+    target_types = {
+        "office-chair": ("desk",),
+        "dining-chair": ("dining-table",),
+        "armchair": ("coffee-table", "sofa", "sofa-bed"),
+        "sofa": ("tv-bench", "coffee-table"),
+        "sofa-bed": ("tv-bench", "coffee-table"),
+        "desk": ("office-chair",),
+    }
+    valid = [
+        item for item in scene_objects
+        if not item.get("placement_failed") and item.get("position_cm")
+    ]
+    for item in valid:
+        if item.get("position_locked"):
+            continue
+        preferred = target_types.get(item.get("normalized_type"))
+        if not preferred:
+            continue
+        targets = [candidate for candidate in valid if candidate.get("normalized_type") in preferred]
+        if not targets:
+            continue
+        source = item["position_cm"]
+        target = min(
+            targets,
+            key=lambda candidate: (
+                float(candidate["position_cm"].get("x") or 0) - float(source.get("x") or 0)
+            ) ** 2 + (
+                float(candidate["position_cm"].get("z") or 0) - float(source.get("z") or 0)
+            ) ** 2,
+        )
+        item["rotation_y_deg"] = _scene_rotation_toward(source, target["position_cm"])
+        item["facing_target_id"] = target.get("furniture_id")
+    return scene_objects
 
 
 def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
@@ -982,15 +1392,27 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
         }
 
     def segment(item: dict[str, Any]) -> dict[str, Any]:
-        return {
+        converted = {
             **{
                 key: value
                 for key, value in item.items()
-                if key not in {"start", "end"}
+                if key not in {"start", "end", "swing_end"}
             },
             "start": centered_point(item.get("start")),
             "end": centered_point(item.get("end")),
         }
+        # 開合門的 swing_end 與門片端點必須在同一個場景座標系，否則
+        # 第 6 步會把關門洞口推到另一面牆上。
+        if item.get("swing_end"):
+            converted["swing_end"] = centered_point(item.get("swing_end"))
+            # 開合門的 start → end 是打開後的門片；牆洞與關門門片
+            # 必須使用鉸鏈 start 指向弧線另一端 swing_end 的線段。
+            converted["closed_segment"] = {
+                "start": dict(converted["start"]),
+                "end": dict(converted["swing_end"]),
+                "source": "swing_arc",
+            }
+        return converted
 
     wall_segments = [segment(item) for item in structures.get("walls") or []]
     door_segments = [segment(item) for item in structures.get("doors") or []]
@@ -1070,12 +1492,103 @@ def _scene_object_to_placed(obj: dict[str, Any], half_w_cm: float, half_d_cm: fl
     )
 
 
-def _shrunk_boundary(room: Room) -> Polygon | None:
+DEFAULT_WALK_MARGIN_CM = 8.0
+WIDE_WALK_MARGIN_CM = 20.0
+# WINDOW_CLEARANCE_DEPTH_CM 移到禁區常數區(與落地窗、窗台高度的值放在一起)。
+
+
+def door_openings_from_segments(
+    parsed_floorplan: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """門在牆上的開口。
+
+    走動視角靠這份清單豁免門洞；``scene_json`` 少了它，每一扇門在第 7 步都是
+    實牆，人走到門口就被擋住。開合門要用 hinge → swing_end 的
+    ``closed_segment``——``start`` → ``end`` 是打開後的門片，不是牆洞。
+    """
+    openings: list[dict[str, Any]] = []
+    for door in (parsed_floorplan or {}).get("door_segments") or []:
+        if not isinstance(door, dict):
+            continue
+        closed = door.get("closed_segment")
+        hole = closed if isinstance(closed, dict) else door
+        start = hole.get("start") if isinstance(hole.get("start"), dict) else None
+        end = hole.get("end") if isinstance(hole.get("end"), dict) else None
+        if not start or not end:
+            continue
+        try:
+            start_x, start_z = float(start.get("x", 0)), float(start.get("z", 0))
+            end_x, end_z = float(end.get("x", 0)), float(end.get("z", 0))
+        except (TypeError, ValueError):
+            continue
+        measured_cm = math.hypot(end_x - start_x, end_z - start_z)
+        try:
+            declared_cm = float(door.get("width_cm") or 0)
+        except (TypeError, ValueError):
+            declared_cm = 0.0
+        openings.append(
+            {
+                "start": {"x": start_x, "z": start_z},
+                "end": {"x": end_x, "z": end_z},
+                "width_cm": round(declared_cm or measured_cm, 2),
+                "kind": "door",
+            }
+        )
+    return openings
+
+
+def _shrunk_boundary(room: Room, margin_cm: float = DEFAULT_WALK_MARGIN_CM) -> Polygon | None:
     boundary = _room_boundary_polygon(room)
     if boundary is None:
         return None
-    shrunk = boundary.buffer(-8.0)
+    shrunk = boundary.buffer(-abs(margin_cm))
     return boundary if shrunk.is_empty else shrunk
+
+
+# 問卷擺位偏好 → 引擎真的做得到的動作。表以外的 key 一律回報成「未套用」，
+# 不要讓前端以為送出去就會生效（QA 2026-08-01 #10：整條 no-op）。
+PLACEMENT_PREFERENCE_EFFECTS: dict[str, dict[str, str]] = {
+    "circulation_priority": {"wide": "walk_margin", "storage": "walk_margin"},
+    "bed_priority": {"clearance": "walk_margin", "large": "walk_margin"},
+    "window_zone": {"clear": "window_clearance", "seat_storage": "window_clearance"},
+}
+
+
+def resolve_placement_preferences(
+    preferences: dict[str, Any] | None,
+) -> tuple[float, float, list[str], list[str]]:
+    """把問卷偏好翻成引擎參數。
+
+    回傳 ``(走道邊距, 窗前淨空深度, 已套用的 key, 未套用的 key)``。未套用清單
+    會回到 API 回應，讓「送了但沒生效」看得見而不是靜默。
+    """
+    preferences = preferences if isinstance(preferences, dict) else {}
+    walk_margin_cm = DEFAULT_WALK_MARGIN_CM
+    window_clearance_cm = WINDOW_CLEARANCE_DEPTH_CM
+    applied: list[str] = []
+    ignored: list[str] = []
+
+    for key, raw_value in preferences.items():
+        value = raw_value if isinstance(raw_value, str) else str(raw_value).lower()
+        known_values = PLACEMENT_PREFERENCE_EFFECTS.get(str(key))
+        if not known_values or value not in known_values:
+            ignored.append(str(key))
+            continue
+        if key == "circulation_priority":
+            walk_margin_cm = (
+                WIDE_WALK_MARGIN_CM if value == "wide" else DEFAULT_WALK_MARGIN_CM
+            )
+        elif key == "bed_priority":
+            walk_margin_cm = max(
+                walk_margin_cm,
+                WIDE_WALK_MARGIN_CM if value == "clearance" else DEFAULT_WALK_MARGIN_CM,
+            )
+        elif key == "window_zone":
+            # 使用者要窗邊臥榻／收納時，窗前淨空帶就是障礙而不是保護。
+            window_clearance_cm = 0.0 if value == "seat_storage" else WINDOW_CLEARANCE_DEPTH_CM
+        applied.append(str(key))
+
+    return walk_margin_cm, window_clearance_cm, applied, ignored
 
 
 def _regions_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon | None:
@@ -1186,8 +1699,13 @@ def validate_single_placement(
     floorplan: dict[str, Any] | None,
     item: dict[str, Any],
     others: list[dict[str, Any]],
+    placement_preferences: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
+    """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。
+
+    禁區必須跟 ``generate_layout`` 走同一份 ``placement_forbidden_zones``,
+    否則自動配置放得下的位置,使用者手動拖過去會被判違規。
+    """
     room = room_from_payload(floorplan)
     # 拖曳可放進「任何一間房」(聯集);沒有房間資訊才退回最大房間環
     boundary = _regions_boundary(floorplan, room) or _shrunk_boundary(room)
@@ -1198,16 +1716,28 @@ def validate_single_placement(
     if not _inside_boundary(moving, boundary):
         return {"ok": False, "reason": "超出房間範圍(需完整放在某一間房內,不能跨牆)"}
 
-    if item.get("normalized_type") in _OVERLAY_TYPES:
+    # 門弧與窗前禁區對所有型別一律適用——地毯與壁架也不能卡住門扇。
+    _, window_clearance_cm, _applied, _ignored = resolve_placement_preferences(
+        placement_preferences
+    )
+    blocking = _blocking_zone(
+        moving, placement_forbidden_zones(floorplan, room, window_clearance_cm)
+    )
+    if blocking is not None:
+        return {"ok": False, "reason": blocking.reason}
+
+    item_name = item.get("name_zh_raw")
+    if _is_overlay_item(item.get("normalized_type"), item_name):
         reason = check_placement_with_clearance(moving, room, [])
         return {"ok": reason is None, "reason": reason}
-    if item.get("normalized_type") in _IGNORE_COLLISION_TYPES:
+    if _is_collision_exempt_item(item.get("normalized_type"), item_name):
         return {"ok": True, "reason": None}
 
     placed_others = [
         _scene_object_to_placed(o, half_w_cm, half_d_cm)
         for o in others
-        if o.get("normalized_type") not in _IGNORE_COLLISION_TYPES and not o.get("placement_failed")
+        if not _is_collision_exempt_item(o.get("normalized_type"), o.get("name_zh_raw"))
+        and not o.get("placement_failed")
     ]
     reason = check_placement_with_clearance(moving, room, placed_others)
     return {"ok": reason is None, "reason": reason}
@@ -1223,6 +1753,7 @@ def generate_layout(
     floorplan: dict[str, Any] | None = None,
     preserve_existing_count: int = 0,
     placement_variant: str = "A",
+    placement_preferences: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """家具座標一律由 furniture_engine 決定(碰撞 + 淨空,Shapely 驗證)。
 
@@ -1239,7 +1770,22 @@ def generate_layout(
     # 擺放搜尋邊界(內縮 8cm 邊距):DXF 模式傳入最大自由空間;
     # 矩形房由牆環重建(等價於 bbox)。注意 DXF fallback 模式的 Room.walls
     # 是多個獨立環,不能拿去重建多邊形 —— 所以 DXF 一律走傳入的 place_boundary。
-    boundary = place_boundary if place_boundary is not None else _shrunk_boundary(room)
+    walk_margin_cm, window_clearance_cm, _applied, _ignored = resolve_placement_preferences(
+        placement_preferences
+    )
+    if place_boundary is not None:
+        boundary = place_boundary
+        # DXF／多房路徑的邊界由呼叫端算好，這裡只補上偏好要的額外走道寬度。
+        extra_margin_cm = walk_margin_cm - DEFAULT_WALK_MARGIN_CM
+        if extra_margin_cm > 0:
+            widened = place_boundary.buffer(-extra_margin_cm)
+            if not widened.is_empty:
+                boundary = widened
+    else:
+        boundary = _shrunk_boundary(room, walk_margin_cm)
+    # window_clearance_cm = 0(問卷選窗邊臥榻)只關掉一般窗的判斷帶;
+    # 門弧與落地窗淨空是安全與動線,不受偏好影響。
+    forbidden_zones = placement_forbidden_zones(floorplan, room, window_clearance_cm)
 
     room_w_cm = room.width
     room_d_cm = room.depth
@@ -1265,6 +1811,9 @@ def generate_layout(
     for index in order:
         item = items[index]
         item_type = item.get("normalized_type")
+        item_name = item.get("name_zh_raw")
+        is_overlay = _is_overlay_item(item_type, item_name)
+        collision_exempt = _is_collision_exempt_item(item_type, item_name)
         width = _size_cm(item, "width", 120)
         depth = _size_cm(item, "depth", 60)
         height = _size_cm(item, "height", 80)
@@ -1301,26 +1850,26 @@ def generate_layout(
             if locked_boundary is not None:
                 locked_boundary = locked_boundary.buffer(12)
             ok = _inside_boundary(candidate, locked_boundary) and (
-                item_type in _IGNORE_COLLISION_TYPES
+                collision_exempt
                 or (
-                    item_type in _OVERLAY_TYPES
+                    is_overlay
                     and check_placement_with_clearance(candidate, room, []) is None
                 )
                 or check_placement_with_clearance(candidate, room, placed) is None
-            )
+            ) and not _placement_intersects_zones(candidate, forbidden_zones)
             if ok:
                 x_cm = float(item["position_cm"].get("x") or 0)
                 z_cm = float(item["position_cm"].get("z") or 0)
                 rotation = float(item.get("rotation_y_deg") or 0)
                 locked = bool(item.get("position_locked"))
                 kept_position = True
-                if item_type not in _IGNORE_COLLISION_TYPES and item_type not in _OVERLAY_TYPES:
+                if not collision_exempt and not is_overlay:
                     placed.append(candidate)
                     placed_by_type.setdefault(item_type or "furniture", []).append(candidate)
 
         if kept_position:
             pass
-        elif item_type in _OVERLAY_TYPES:
+        elif is_overlay:
             relation = item.get("placement_relation") or {}
             target_types = relation.get("target_types") or ["sofa", "sofa-bed", "bed", "bed-frame"]
             target = next(
@@ -1353,7 +1902,9 @@ def generate_layout(
                     z_cm = engine_item.pos_y - half_d_cm
                     rotation = (-engine_item.rotation) % 360
                 else:
-                    engine_item = _grid_place_in_boundary(catalog, item_id, room, [], boundary)
+                    engine_item = _grid_place_in_boundary(
+                        catalog, item_id, room, [], boundary, forbidden_zones
+                    )
                     if engine_item is not None:
                         x_cm = engine_item.pos_x - half_w_cm
                         z_cm = engine_item.pos_y - half_d_cm
@@ -1384,7 +1935,11 @@ def generate_layout(
                 else {"success": False, "placed": None, "reason": "房間內沒有可依附的主家具"}
             )
             engine_item = adjacent["placed"] if adjacent["success"] else None
-            if engine_item is not None and _inside_boundary(engine_item, boundary):
+            if (
+                engine_item is not None
+                and _inside_boundary(engine_item, boundary)
+                and not _placement_intersects_zones(engine_item, forbidden_zones)
+            ):
                 placed.append(engine_item)
                 placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
                 x_cm = engine_item.pos_x - half_w_cm
@@ -1393,12 +1948,10 @@ def generate_layout(
             else:
                 failed_reason = adjacent["reason"] or "主家具旁沒有合法位置"
                 x_cm, z_cm = 0.0, 0.0
-        elif item_type in _IGNORE_COLLISION_TYPES:
-            if item_type == "wall-shelf":
-                x_cm = -half_w_cm + width / 2 + 15
-                z_cm = -half_d_cm + depth / 2 + 12
-            else:
-                x_cm, z_cm = 0.0, 0.0
+        elif collision_exempt:
+            # 壁掛品項掛在牆上,不是站在房間中央——鏡子、層架一律貼牆角起算。
+            x_cm = -half_w_cm + width / 2 + 15
+            z_cm = -half_d_cm + depth / 2 + 12
             # 非矩形房間:固定點可能落在房間多邊形外(牆體裡),退到多邊形內部代表點
             probe = PlacedFurniture(
                 id=item_id, catalog=catalog,
@@ -1450,6 +2003,7 @@ def generate_layout(
                 )
                 if (
                     _inside_boundary(candidate, boundary)
+                    and not _placement_intersects_zones(candidate, forbidden_zones)
                     and check_placement_with_clearance(candidate, room, placed) is None
                 ):
                     x_cm, z_cm, rotation = cand_x, cand_z, rot
@@ -1461,8 +2015,14 @@ def generate_layout(
                 engine_item = result["placed"] if result["success"] else None
                 if engine_item is not None and not _inside_boundary(engine_item, boundary):
                     engine_item = None
+                if engine_item is not None and _placement_intersects_zones(
+                    engine_item, forbidden_zones
+                ):
+                    engine_item = None
                 if engine_item is None and boundary is not None:
-                    engine_item = _grid_place_in_boundary(catalog, item_id, room, placed, boundary)
+                    engine_item = _grid_place_in_boundary(
+                        catalog, item_id, room, placed, boundary, forbidden_zones
+                    )
                 if engine_item is not None:
                     placed.append(engine_item)
                     placed_by_type.setdefault(item_type or "furniture", []).append(engine_item)
@@ -1476,6 +2036,9 @@ def generate_layout(
         fp_w, fp_d = _rotated_footprint(width, depth, rotation)
         results[index] = {
             "furniture_id": item["furniture_id"],
+            # 多實例家具的身分鍵。擺放紀律用它對位物件與品項，沒有它就只能
+            # 退回 furniture_id，同型號的第二件會被誤認成第一件。
+            "instance_id": item.get("instance_id"),
             "catalog_furniture_id": item.get("catalog_furniture_id"),
             "name_zh_raw": item.get("name_zh_raw"),
             "normalized_type": item_type,
@@ -1493,18 +2056,14 @@ def generate_layout(
             "position_locked": locked,
             "placement_failed": bool(failed_reason),
             "placement_reason": failed_reason,
-            "placement_engine": (
-                "boundary_rule"
-                if item_type in _IGNORE_COLLISION_TYPES
-                else "furniture_engine"
-            ),
+            "placement_engine": "boundary_rule" if collision_exempt else "furniture_engine",
             "auto_decor_role": item.get("auto_decor_role"),
             "auto_decor_room_id": item.get("auto_decor_room_id"),
             "placement_relation": item.get("placement_relation"),
             "placement_room_id": item.get("placement_room_id"),
         }
 
-    return [results[i] for i in range(len(items))]
+    return orient_layout_toward_targets([results[i] for i in range(len(items))])
 
 
 def _flip_parsed_z(parsed: dict[str, Any]) -> dict[str, Any]:
@@ -1681,8 +2240,15 @@ def build_scene_payload(
     parsed_floorplan = None
     engine_room = None
     editor_floorplan = questionnaire.get("floorplan_editor")
+    layout_json = questionnaire.get("layout_json")
     dxf_text = questionnaire.get("floorplan_dxf_text")
-    if isinstance(editor_floorplan, dict) and editor_floorplan:
+    if isinstance(layout_json, dict) and isinstance(layout_json.get("floorplan"), dict):
+        parsed_floorplan = layout_json["floorplan"]
+        engine_room = room_from_payload(parsed_floorplan)
+    elif isinstance(layout_json, dict) and layout_json.get("wall_segments"):
+        parsed_floorplan = layout_json
+        engine_room = room_from_payload(parsed_floorplan)
+    elif isinstance(editor_floorplan, dict) and editor_floorplan:
         parsed_floorplan, engine_room = floorplan_from_editor_payload(editor_floorplan)
     elif dxf_text:
         parsed_floorplan, engine_room = parse_floorplan_with_engine(dxf_text)
@@ -1691,6 +2257,7 @@ def build_scene_payload(
     effective_depth_cm = parsed_floorplan["depth_cm"] if parsed_floorplan else room_depth_cm
 
     llm_mode, plan, llm_model = build_scene_plan(questionnaire, site_payload["styles"])
+    appliance_requirements = questionnaire.get("appliance_requirements") or []
     selected_items, unavailable_types = choose_furniture_items(
         plan,
         site_payload["furniture"],
@@ -1810,6 +2377,7 @@ def build_scene_payload(
             "wall_polys": parsed_floorplan.get("wall_polys", []) if parsed_floorplan else [],
             "plan_segments": parsed_floorplan.get("plan_segments", []) if parsed_floorplan else [],
             "door_segments": parsed_floorplan.get("door_segments", []) if parsed_floorplan else [],
+            "door_openings": door_openings_from_segments(parsed_floorplan),
             "window_segments": parsed_floorplan["window_segments"] if parsed_floorplan else [],
             "beam_segments": parsed_floorplan.get("beam_segments", []) if parsed_floorplan else [],
             "columns": parsed_floorplan.get("columns", []) if parsed_floorplan else [],
@@ -1829,6 +2397,11 @@ def build_scene_payload(
             "floor_option": questionnaire.get("floor_option", "auto"),
             "single_room_mode": not bool(parsed_floorplan),
             "accurate_dxf_mode": bool(parsed_floorplan),
+        },
+        "render_context": {
+            "appliance_requirements": appliance_requirements
+            if isinstance(appliance_requirements, list)
+            else [],
         },
         "surface_catalog": surface_catalog,
         "furniture_candidates": {

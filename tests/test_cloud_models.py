@@ -22,12 +22,10 @@ def _write_manifest(path, rows):
         writer.writerows(rows)
 
 
-def test_default_manifest_path_follows_backend_package_layout():
+def test_default_manifest_path_uses_kai_json_delivery_result():
     assert cloud_models.DEFAULT_MANIFEST_PATH == (
         cloud_models.PROJECT_DIR
-        / "backend"
-        / "catalog"
-        / "data"
+        / "JSON"
         / "manifests"
         / "glb_upload_all_result.csv"
     )
@@ -263,6 +261,6 @@ def test_bundled_kai_aws_manifest_is_the_default_cloud_source(monkeypatch):
         "provider": "aws_cloudfront",
         "manifest_ready": True,
         "manifest_error": None,
-        "verified_model_count": 9350,
+        "verified_model_count": 8557,
         "cloudfront_base_url": "https://ddgsm1yg3xikc.cloudfront.net",
     }

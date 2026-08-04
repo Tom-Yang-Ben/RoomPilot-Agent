@@ -132,3 +132,38 @@ export function furniturePbrProfile(role) {
     ...(FURNITURE_PROFILES[role] || FURNITURE_PROFILES.unknown),
   };
 }
+
+// Keep architectural finishes separate from furniture material roles. Doors,
+// frames and glazing must remain physically consistent when furniture changes.
+const ARCHITECTURAL_PROFILES = Object.freeze({
+  door_leaf: {
+    roughness: 0.46,
+    metalness: 0,
+    clearcoat: 0.14,
+    clearcoatRoughness: 0.58,
+    envMapIntensity: 0.82,
+  },
+  window_frame: {
+    roughness: 0.3,
+    metalness: 0.18,
+    clearcoat: 0.24,
+    clearcoatRoughness: 0.36,
+    envMapIntensity: 1.04,
+  },
+  glass: {
+    roughness: 0.07,
+    metalness: 0,
+    transmission: 0.9,
+    thickness: 1,
+    ior: 1.48,
+    transparent: true,
+    opacity: 0.34,
+    envMapIntensity: 1.38,
+  },
+});
+
+export function architecturalPbrProfile(role) {
+  return {
+    ...(ARCHITECTURAL_PROFILES[role] || ARCHITECTURAL_PROFILES.door_leaf),
+  };
+}

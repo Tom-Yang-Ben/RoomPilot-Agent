@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -35,6 +37,14 @@ class ProjectVersionConflict(RuntimeError):
 
 class WorkflowTooLargeError(ValueError):
     """The canonical workflow would exceed the persistence size budget."""
+
+
+class ProjectStoreUnavailable(RuntimeError):
+    """The configured project persistence provider cannot serve requests."""
+
+
+class ProjectStoreBusy(ProjectStoreUnavailable):
+    """瞬時滿載：連線池排隊逾時。與「provider 不可用」分開才不會誤導。"""
 
 
 _DISPLAY_TEXT_KEYS = {
@@ -77,6 +87,9 @@ def _compact_workflow_value(value):
 class ProjectStore:
     """Small SQLite-backed project store used by the browser workflow."""
 
+    provider = "sqlite"
+    imports_legacy_on_startup = True
+
     def __init__(self, runtime_dir: Path) -> None:
         self.runtime_dir = runtime_dir
         self.upload_dir = runtime_dir / "uploads"
@@ -86,12 +99,20 @@ class ProjectStore:
         self.render_dir.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self):
         connection = sqlite3.connect(self.database_path, timeout=10)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("PRAGMA journal_mode = WAL")
-        return connection
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -559,3 +580,41 @@ class ProjectStore:
                     ),
                 )
         return imported
+
+    def close(self) -> None:
+        """Match the PostgreSQL store lifecycle; SQLite opens per operation."""
+
+
+def _read_project_env(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if not path.is_file():
+        return values
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
+
+
+def project_store_provider(project_dir: Path) -> str:
+    file_values = _read_project_env(project_dir / ".env")
+    raw = os.getenv(
+        "ROOMPILOT_PROJECT_STORE_PROVIDER",
+        file_values.get("ROOMPILOT_PROJECT_STORE_PROVIDER", "sqlite"),
+    ).strip().casefold()
+    if raw in {"postgres", "postgresql", "sql", "database"}:
+        return "postgres"
+    if raw in {"sqlite", "local"}:
+        return "sqlite"
+    raise RuntimeError("invalid_project_store_provider")
+
+
+def build_project_store(project_dir: Path, runtime_dir: Path):
+    """Build the explicitly configured project store without silent fallback."""
+    if project_store_provider(project_dir) == "postgres":
+        from .postgres_project_store import PostgresProjectStore
+
+        return PostgresProjectStore(project_dir=project_dir, runtime_dir=runtime_dir)
+    return ProjectStore(runtime_dir)

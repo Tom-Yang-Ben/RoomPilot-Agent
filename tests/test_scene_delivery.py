@@ -38,7 +38,7 @@ def test_scene_page_exposes_real_viewer_and_delivery_controls_without_image_gene
 
     assert page.status_code == viewer_source.status_code == flow_source.status_code == 200
     assert page.headers["cache-control"] == "no-store"
-    assert all(mode in page.text for mode in ("自由旋轉", "正俯視", "室內透視"))
+    assert all(mode in page.text for mode in ("自由旋轉", "正俯視", "走動", "編輯家具"))
     assert all(label in page.text for label in ("鎖定視角並編輯家具", "保存即時寫實方案"))
     assert "function setViewMode(mode)" in viewer_source.text
     assert "function capturePng()" in viewer_source.text

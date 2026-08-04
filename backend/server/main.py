@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import csv
 import json
 import os
 import re
@@ -8,21 +9,32 @@ import unicodedata
 import urllib.error
 import urllib.request
 import zipfile
+from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
-from ..agent.knowledge import family_of
-from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
+from ..agent.place import resolve_placements
+from ..agent.select import (
+    SelectionParseError,
+    SelectionUnavailableError,
+    local_selection_raw,
+    parse_selections,
+    preselected_from_requirements,
+    request_selections,
+    requirements_from_context,
+)
 from .questionnaire_visuals import (
     QuestionnaireVisualStore,
     load_questionnaire_visual_catalog,
 )
+from ..catalog.placement_surface import FLOOR, placement_surface_for
 from ..catalog.style_db import sanitize_size_cm
 from ..catalog.cloud_catalog import load_official_catalog
 from ..floorplan.vision import (
@@ -30,6 +42,7 @@ from ..floorplan.vision import (
     confirm_floorplan_analysis,
     infer_room_requirements,
 )
+from ..floorplan.vision.ocr import default_ocr_provider
 from ..upgrade3d.dxf_parser import list_plans, parse_dxf_bytes, parse_dxf_file
 from .scene_service import (
     _largest_region_boundary,
@@ -41,16 +54,23 @@ from .scene_service import (
     generate_layout,
     get_openrouter_status,
     parse_floorplan_with_engine,
+    resolve_placement_preferences,
     room_from_payload,
     scene_object_in_boundary,
+    selection_complete_fn,
     validate_single_placement,
 )
 from .intake_service import advance_intake, start_intake
 from .cost_estimation import estimate_project_cost, load_default_cost_catalog
+from .catalog_admin import router as catalog_admin_router
+from .rag_api import router as rag_router
+from .engineering.api import build_engineering_router
 from .project_store import (
-    ProjectStore,
+    ProjectStoreBusy,
+    ProjectStoreUnavailable,
     ProjectVersionConflict,
     WorkflowTooLargeError,
+    build_project_store,
 )
 from .runtime_paths import legacy_runtime_dirs, project_runtime_dir
 from .render_service import (
@@ -59,12 +79,41 @@ from .render_service import (
     render_provider_status,
     submit_render_jobs,
 )
+from .render_providers import (
+    direct_image_provider_available,
+    direct_image_provider_status,
+    run_direct_render_jobs,
+)
 from .style_cards import load_taiwan_style_cards
 from .services.cloud_models import (
     cloud_model_status,
     cloud_model_url,
     cloudfront_required,
     manifest_status,
+)
+from .services.cloud_images import (
+    cloud_image_urls,
+    cloud_primary_image_url,
+    image_manifest_status,
+)
+from ..catalog.postgres_repository import (
+    CatalogPoolTimeout,
+    CatalogQuery,
+    catalog_provider_mode,
+    catalog_provider_status,
+    catalog_summary as postgres_catalog_summary,
+    close_catalog_pools,
+    get_catalog_item as get_postgres_catalog_item,
+    load_catalog as load_postgres_catalog,
+    postgres_catalog_requested,
+    query_catalog_page as query_postgres_catalog,
+)
+from ..catalog.runtime_catalog_repository import (
+    RuntimeCatalogUnavailable,
+    load_runtime_design_styles,
+    load_runtime_external_import_index,
+    load_runtime_surface_catalog,
+    runtime_catalog_status,
 )
 
 
@@ -82,19 +131,19 @@ def _project_path_from_env(name: str, default: Path) -> Path:
 
 STATIC_DIR = BASE_DIR / "static"
 MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
-STYLE_ENRICHMENT_DB_PATH = (
+STYLE_PRESENTATION_DB_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
 )
-CLOUD_CATALOG_PATH = (
-    BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_cloud_9350.json"
+OFFICIAL_FURNITURE_CATALOG_PATH = (
+    PROJECT_DIR / "JSON" / "furniture" / "furniture_official_catagory.json"
+)
+CLOUD_CATALOG_PATH = _project_path_from_env(
+    "ROOMPILOT_CLOUD_CATALOG_PATH",
+    OFFICIAL_FURNITURE_CATALOG_PATH,
 )
 CLOUD_MANIFEST_PATH = _project_path_from_env(
     "ROOMPILOT_GLB_MANIFEST_PATH",
-    BASE_DIR.parent
-    / "catalog"
-    / "data"
-    / "manifests"
-    / "glb_upload_all_result.csv",
+    PROJECT_DIR / "JSON" / "manifests" / "glb_upload_all_result.csv",
 )
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
 EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風格與JSON" / "external_furniture_import_index.json"
@@ -102,14 +151,35 @@ DATASET_DIR = PROJECT_DIR / "dataset"
 PLAN_DIR = PROJECT_DIR / "testdata" / "pic" / "temp"
 SAMPLE_GLB_DIR = PROJECT_DIR / "testdata" / "sample_glb"
 SAMPLE_FLOORPLAN_630 = PROJECT_DIR / "testdata" / "png" / "builder_plan_630.png"
-PROJECT_STORE = ProjectStore(project_runtime_dir(PROJECT_DIR))
-for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
-    PROJECT_STORE.import_runtime(legacy_runtime)
+PROJECT_STORE = build_project_store(
+    PROJECT_DIR,
+    project_runtime_dir(PROJECT_DIR),
+)
+if PROJECT_STORE.imports_legacy_on_startup:
+    for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
+        PROJECT_STORE.import_runtime(legacy_runtime)
 QUESTIONNAIRE_VISUAL_CATALOG = load_questionnaire_visual_catalog()
 QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
 _QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
+
+
+def _floorplan_ocr_provider():
+    """印刷房名與尺寸標註的 OCR 供應者（2026-07 盤點第 3 項「OCR 死碼」接線）。
+
+    paddle 未安裝時回 None，行為與接線前完全一致（比例尺回到手拉）；
+    ROOMPILOT_OCR_DISABLED=1 可在演示現場緊急停用。
+    實例由 ocr.default_ocr_provider 以 lru_cache 共用，不會每請求重建引擎。
+    """
+    if os.environ.get("ROOMPILOT_OCR_DISABLED") == "1":
+        return None
+    return default_ocr_provider()
 MAX_RENDER_BYTES = 20 * 1024 * 1024
+# 平面圖是 DXF 或掃描圖，正常在數 MB 以內。無界 read() 會把整份檔案讀進記憶體，
+# QA 實測 60MB 照收；上限比照最終 PNG，超過就明確回 413 而不是慢慢吃光記憶體。
+MAX_FLOORPLAN_BYTES = 20 * 1024 * 1024
+MAX_PROJECT_NAME_CHARS = 120
+MAX_PROJECT_NOTES_CHARS = 2000
 WORKFLOW_STEPS = {
     "project",
     "upload",
@@ -142,6 +212,58 @@ _DATASET_GLB_ROOTS = [
 ]
 
 app = FastAPI(title="AI 室內風格與家具配置展示系統")
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+app.include_router(catalog_admin_router)
+app.include_router(rag_router)
+app.include_router(
+    build_engineering_router(
+        project_store_getter=lambda: PROJECT_STORE,
+        project_dir=PROJECT_DIR,
+    )
+)
+
+
+@app.exception_handler(ProjectStoreUnavailable)
+async def project_store_unavailable_handler(_request, exc: ProjectStoreUnavailable):
+    busy = isinstance(exc, ProjectStoreBusy)
+    return JSONResponse(
+        status_code=503,
+        headers={"Retry-After": "2"} if busy else None,
+        content={
+            "detail": {
+                "code": "project_store_busy" if busy else "project_store_unavailable",
+                "message": (
+                    "專案資料庫同時處理的請求過多，請稍後再試。"
+                    if busy
+                    else "PostgreSQL 專案保存目前不可用，請檢查資料庫與 Phase 3 schema。"
+                ),
+                "reason": str(exc),
+            }
+        },
+    )
+
+
+@app.exception_handler(RuntimeCatalogUnavailable)
+async def runtime_catalog_unavailable_handler(_request, exc: RuntimeCatalogUnavailable):
+    # 瞬時滿載與「型錄沒匯入」的處置完全不同，訊息不能混為一談：QA 實測
+    # 併發 10 就被導去執行匯入流程，等於把使用者送去修一個沒壞的東西。
+    busy = isinstance(exc.reason, CatalogPoolTimeout)
+    return JSONResponse(
+        status_code=503,
+        headers={"Retry-After": "2"} if busy else None,
+        content={
+            "detail": {
+                "code": "catalog_pool_busy" if busy else "runtime_catalog_unavailable",
+                "catalog": exc.catalog_key,
+                "message": (
+                    "型錄資料庫同時處理的查詢過多，請稍後再試。"
+                    if busy
+                    else "Phase 4 PostgreSQL runtime catalog 目前不可用，請先執行匯入流程。"
+                ),
+                "reason": str(exc.reason),
+            }
+        },
+    )
 
 
 def _questionnaire_visual_store() -> QuestionnaireVisualStore:
@@ -404,23 +526,17 @@ def _model_status(furniture: dict) -> tuple[bool, str]:
 def load_style_database() -> dict:
     return load_official_catalog(
         CLOUD_CATALOG_PATH,
-        STYLE_ENRICHMENT_DB_PATH,
+        STYLE_PRESENTATION_DB_PATH,
         CLOUD_MANIFEST_PATH,
     )
 
 
-@lru_cache(maxsize=1)
 def load_surface_catalog() -> dict:
-    if not SURFACE_DB_PATH.exists():
-        return {"schema_version": "1.0", "surfaces": [], "style_surface_profiles": {}}
-    return json.loads(SURFACE_DB_PATH.read_text(encoding="utf-8"))
+    return load_runtime_surface_catalog(PROJECT_DIR, SURFACE_DB_PATH)
 
 
-@lru_cache(maxsize=1)
 def load_external_import_index() -> dict:
-    if not EXTERNAL_IMPORT_PATH.exists():
-        return {"schema_version": "1.0", "items": [], "archives": []}
-    return json.loads(EXTERNAL_IMPORT_PATH.read_text(encoding="utf-8"))
+    return load_runtime_external_import_index(PROJECT_DIR, EXTERNAL_IMPORT_PATH)
 
 
 def _style_surface_profile(surface_catalog: dict, style_id: str | None) -> dict:
@@ -759,6 +875,13 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         if "has_model" in item
         else _model_status(item)
     )
+    preview_images = cloud_image_urls(item)
+    image_url = (
+        preview_images.get("front")
+        or preview_images.get("angle-45")
+        or preview_images.get("side")
+        or cloud_primary_image_url(item)
+    )
     payload = {
         "furniture_id": item.get("furniture_id"),
         "name_en": item.get("name_en"),
@@ -771,9 +894,22 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         "catalog_scope": item.get("catalog_scope"),
         "normalized_type": item.get("normalized_type"),
         "primary_style": item.get("primary_style"),
+        "style_primary": item.get("style_primary") or item.get("primary_style"),
+        "style_secondary": item.get("style_secondary"),
         "style_candidates": item.get("style_candidates", []),
         "style_confidence": item.get("style_confidence"),
         "style_assignment_source": item.get("style_assignment_source"),
+        "room_types": item.get("room_types", []),
+        "catalog_role": item.get("role"),
+        "visual_weight": item.get("visual_weight"),
+        "height_zone": item.get("height_zone"),
+        "size_class": item.get("size_class"),
+        "description": item.get("description"),
+        "rag_text": item.get("rag_text", []),
+        "mood_tags": item.get("mood_tags", []),
+        "features": item.get("features", []),
+        "search_keywords": item.get("search_keywords", []),
+        "object_type_zh": item.get("object_type_zh"),
         "color": item.get("color"),
         "material": item.get("material"),
         "size_cm": sanitize_size_cm(item),
@@ -781,6 +917,10 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         "can_rotate": item.get("can_rotate"),
         "has_model": has_model,
         "missing_model_reason": None if has_model else model_reason,
+        "image_url": image_url,
+        "thumbnail_url": image_url,
+        "preview_url": image_url,
+        "preview_images": preview_images,
         **_candidate_schema_fields(item, has_model),
     }
     if include_model_url:
@@ -801,19 +941,249 @@ def _furniture_card_payload(item: dict) -> dict:
         "catalog_scope": item.get("catalog_scope"),
         "normalized_type": item.get("normalized_type"),
         "primary_style": item.get("primary_style"),
+        "style_primary": item.get("style_primary") or item.get("primary_style"),
+        "style_secondary": item.get("style_secondary"),
         "style_candidates": item.get("style_candidates", []),
+        "room_types": item.get("room_types", []),
+        "catalog_role": item.get("role"),
+        "description": item.get("description"),
+        "rag_text": item.get("rag_text", []),
+        "mood_tags": item.get("mood_tags", []),
+        "features": item.get("features", []),
+        "search_keywords": item.get("search_keywords", []),
         "color": item.get("color"),
         "material": item.get("material"),
         "size_cm": item.get("size_cm"),
         "has_model": item.get("has_model"),
         "missing_model_reason": item.get("missing_model_reason"),
         "model_url": item.get("model_url"),
+        "image_url": item.get("image_url"),
+        "thumbnail_url": item.get("thumbnail_url"),
+        "preview_url": item.get("preview_url"),
+        "preview_images": item.get("preview_images", {}),
     }
 
 
 @lru_cache(maxsize=1)
-def _furniture_payload_cache() -> tuple[dict, ...]:
+def _json_furniture_payload_cache() -> tuple[dict, ...]:
     return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
+
+
+def _dedupe_style_candidates(candidates: object) -> list[dict]:
+    """同一個 style_id 只留分數最高的一筆。
+
+    JSON 路徑走 _merge_style_candidates 已經去重，PostgreSQL 路徑沒有——實測 7958 筆
+    裡有 781 筆帶著重複的 style_id，排序與信心值都會被灌水（QA 型錄項）。
+    """
+    if not isinstance(candidates, list):
+        return []
+    best: dict[str, dict] = {}
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        style_id = str(candidate.get("style_id") or "").strip()
+        if not style_id:
+            continue
+        current = best.get(style_id)
+        if current is None or _candidate_score(candidate) > _candidate_score(current):
+            best[style_id] = candidate
+    return sorted(best.values(), key=_candidate_score, reverse=True)
+
+
+def _normalize_catalog_payload(items: tuple[dict, ...]) -> tuple[dict, ...]:
+    """PostgreSQL 與離線 JSON 的共同出口，統一補上兩件事。
+
+    1. placement_surface：第 6 步的牆界、碰撞與淨空只對落地家具有意義；花瓶、抱枕、
+       壁掛層架帶著 footprint 進去算就會「放不下」而卡在待處理清單（QA #7）。
+       分類規則由 backend/catalog/placement_surface.py 定義，這裡只負責標記。
+    2. style_candidates 去重，避免同一個 style_id 重複灌高排序。
+    """
+    normalized = []
+    for item in items:
+        entry = dict(item)
+        entry.setdefault(
+            "placement_surface",
+            placement_surface_for(
+                entry.get("normalized_type"),
+                entry.get("name_zh_raw") or entry.get("name_zh") or entry.get("name_en"),
+            ),
+        )
+        if entry.get("style_candidates"):
+            entry["style_candidates"] = _dedupe_style_candidates(entry["style_candidates"])
+        if isinstance(entry.get("style_codes"), list):
+            # 來源 view 有 781 筆 style_codes 內部重複，會讓同一個風格被重複灌高排序。
+            entry["style_codes"] = list(dict.fromkeys(entry["style_codes"]))
+        if _implausible_for_type(entry):
+            # 468cm 寬的「床」其實是斗櫃。留在型錄可查，但不參與自動選件與擺放，
+            # 否則整間臥室會被一件標錯的家具吃掉。
+            entry["size_is_implausible"] = True
+            entry["placement_surface"] = entry.get("placement_surface") or FLOOR
+        normalized.append(entry)
+    return tuple(normalized)
+
+
+async def _read_upload(file: UploadFile, limit_bytes: int, label: str) -> bytes:
+    """多讀一個 byte 就知道有沒有超標，避免先把超大檔整份讀進記憶體。"""
+    content = await file.read(limit_bytes + 1)
+    if len(content) > limit_bytes:
+        raise HTTPException(
+            413,
+            {
+                "code": "upload_too_large",
+                "message": f"{label}不可超過 {limit_bytes // (1024 * 1024)} MB。",
+            },
+        )
+    return content
+
+
+def _payload_number(
+    payload: dict,
+    key: str,
+    default: float | None = None,
+    *,
+    minimum: float | None = None,
+) -> float | None:
+    """把 payload 的數值欄位轉成 float。
+
+    型別錯誤是呼叫端的問題，要回 422 說清楚哪個欄位錯；直接 float() 讓
+    ValueError 冒到 FastAPI 只會變成 500，前端只看得到「操作失敗」。
+    """
+    raw = payload.get(key)
+    if raw is None or raw == "":
+        return default
+    if isinstance(raw, bool) or not isinstance(raw, (int, float, str)):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是數字。")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是數字。") from None
+    if value != value or value in (float("inf"), float("-inf")):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是有限數字。")
+    if minimum is not None and value < minimum:
+        raise HTTPException(status_code=422, detail=f"{key} 不得小於 {minimum:g}。")
+    return value
+
+
+def _payload_mapping(payload: dict, key: str) -> dict:
+    raw = payload.get(key)
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是物件。")
+    return raw
+
+
+def _payload_sequence(payload: dict, key: str) -> list:
+    raw = payload.get(key)
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise HTTPException(status_code=422, detail=f"{key} 必須是陣列。")
+    return raw
+
+
+# 各族系的合理最大邊長（公分）。超過就代表這一列的型別標錯了——QA 實測
+# abo-beds-19 是一個 468cm 寬的六斗櫃，卻被標成 bed。
+_MAX_PLAUSIBLE_WIDTH_CM = {
+    "bed": 260.0,
+    "bed-frame": 260.0,
+    "bedside-table": 120.0,
+    "dining-chair": 90.0,
+    "office-chair": 100.0,
+    "coffee-table": 200.0,
+    "tv-bench": 320.0,
+    "desk": 320.0,
+}
+
+
+def _implausible_for_type(item: dict) -> bool:
+    limit = _MAX_PLAUSIBLE_WIDTH_CM.get(str(item.get("normalized_type") or ""))
+    if limit is None:
+        return False
+    size = item.get("size_cm") or {}
+    try:
+        width = float(size.get("width") or item.get("width_cm") or 0)
+    except (TypeError, ValueError):
+        return False
+    return width > limit
+
+
+def _normalize_catalog_item(item: dict) -> dict:
+    """單筆版的 :func:`_normalize_catalog_payload`。
+
+    單品查詢也必須走同一道正規化，否則第 6 步從清單點進詳情時，同一件家具的
+    placement_surface 與 style_candidates 會前後不一致。
+    """
+    return _normalize_catalog_payload((item,))[0]
+
+
+def _furniture_payload_cache() -> tuple[dict, ...]:
+    """Read SQL every time in formal mode; cache only explicit offline JSON."""
+    if catalog_provider_mode(PROJECT_DIR) == "postgres":
+        try:
+            return _normalize_catalog_payload(load_postgres_catalog(PROJECT_DIR))
+        except RuntimeCatalogUnavailable:
+            raise
+        except Exception as exc:
+            raise RuntimeCatalogUnavailable("furniture_catalog", exc) from exc
+    return _normalize_catalog_payload(_json_furniture_payload_cache())
+
+
+def _clear_furniture_payload_cache() -> None:
+    _json_furniture_payload_cache.cache_clear()
+
+
+_furniture_payload_cache.cache_clear = _clear_furniture_payload_cache  # type: ignore[attr-defined]
+
+
+def _postgres_catalog_unavailable(exc: Exception) -> HTTPException:
+    return HTTPException(
+        status_code=503,
+        detail={
+            "code": "postgres_catalog_unavailable",
+            "message": "正式家具資料庫目前無法使用；請檢查 PostgreSQL 連線與 catalog view。",
+            "reason": type(exc).__name__,
+        },
+    )
+
+
+@lru_cache(maxsize=1)
+def _appliance_payload_cache() -> tuple[dict, ...]:
+    return ()
+    if not COMBINED_CATALOG_PATH.exists():
+        return ()
+    raw = json.loads(COMBINED_CATALOG_PATH.read_text(encoding="utf-8"))
+    items = []
+    manifest = _appliance_manifest_index()
+    for source in raw.get("items", []):
+        if source.get("role_code") != "appliance":
+            continue
+        item = {
+            **source,
+            "furniture_id": source.get("furniture_id") or source.get("id"),
+            "normalized_type": (
+                source.get("normalized_type")
+                or source.get("type_code")
+                or source.get("type")
+            ),
+            "name_zh_raw": source.get("name_zh_raw") or source.get("name_zh"),
+            "category_label": source.get("category_label") or source.get("category"),
+            "taxonomy_group": "appliance",
+            "taxonomy_group_zh": "家電",
+            "catalog_scope": "appliance",
+        }
+        payload = _furniture_payload_item(item)
+        verified_url = manifest.get(str(item["furniture_id"]))
+        if verified_url:
+            payload["has_model"] = True
+            payload["missing_model_reason"] = None
+            payload["model_url"] = verified_url
+            payload["match_reason"] = (
+                f"類型為 {payload.get('normalized_type')}，"
+                "且已有完整 manifest 驗證的 CloudFront GLB。"
+            )
+        items.append(payload)
+    return tuple(items)
 
 
 @lru_cache(maxsize=2048)
@@ -868,13 +1238,25 @@ def _get_external_furniture_by_id(furniture_id: str) -> dict:
     return furniture
 
 
-def _get_merged_furniture_by_id(furniture_id: str) -> dict:
+def _get_json_merged_furniture_by_id(furniture_id: str) -> dict:
     for item in _merged_furniture_catalog_cached():
         aliases = set(item.get("merged_furniture_ids") or [])
         aliases.add(str(item.get("furniture_id")))
         if furniture_id in aliases:
             return item
     raise HTTPException(status_code=404, detail="Furniture not found in merged catalog.")
+
+
+def _get_merged_furniture_by_id(furniture_id: str) -> dict:
+    if postgres_catalog_requested(PROJECT_DIR):
+        try:
+            item = get_postgres_catalog_item(PROJECT_DIR, furniture_id)
+        except Exception as exc:
+            raise _postgres_catalog_unavailable(exc) from exc
+        if item is not None:
+            return _normalize_catalog_item(item)
+        raise HTTPException(status_code=404, detail="Furniture not found in official catalog.")
+    return _get_json_merged_furniture_by_id(furniture_id)
 
 
 def _external_glb_bytes(furniture: dict) -> bytes:
@@ -1007,7 +1389,9 @@ def _image_bytes_from_glb(model_path_text: str, image_index: int) -> tuple[bytes
 
 
 def _style_payloads(raw: dict | None = None, surface_catalog: dict | None = None) -> list[dict]:
-    raw = raw or load_style_database()
+    raw = raw or {
+        "styles": load_runtime_design_styles(PROJECT_DIR, STYLE_PRESENTATION_DB_PATH)
+    }
     surface_catalog = surface_catalog or load_surface_catalog()
     styles = []
     for style in raw.get("styles", []):
@@ -1055,7 +1439,7 @@ def _style_ids_for_count(item: dict) -> set[str]:
 
 
 @lru_cache(maxsize=1)
-def _catalog_count_summary() -> dict:
+def _json_catalog_count_summary() -> dict:
     raw = load_style_database()
     items = list(raw.get("furniture", []))
     style_counts: dict[str, int] = {}
@@ -1084,10 +1468,30 @@ def _catalog_count_summary() -> dict:
     }
 
 
+def _catalog_count_summary() -> dict:
+    if catalog_provider_mode(PROJECT_DIR) == "postgres":
+        try:
+            return postgres_catalog_summary(PROJECT_DIR)
+        except Exception as exc:
+            raise RuntimeCatalogUnavailable("furniture_catalog_summary", exc) from exc
+    return _json_catalog_count_summary()
+
+
+def _clear_catalog_count_summary() -> None:
+    _json_catalog_count_summary.cache_clear()
+
+
+_catalog_count_summary.cache_clear = _clear_catalog_count_summary  # type: ignore[attr-defined]
+
+
 def _furniture_matches_style(item: dict, style_id: str | None) -> bool:
     if not style_id:
         return True
-    if item.get("primary_style") == style_id:
+    if style_id in {
+        item.get("primary_style"),
+        item.get("style_primary"),
+        item.get("style_secondary"),
+    }:
         return True
     for candidate in item.get("style_candidates", []) or []:
         if _candidate_style_id(candidate) == style_id and _candidate_score(candidate) > 0:
@@ -1110,6 +1514,16 @@ def _furniture_search_text(item: dict) -> str:
             item.get("color"),
             item.get("material"),
             item.get("primary_style"),
+            item.get("style_primary"),
+            item.get("style_secondary"),
+            " ".join(item.get("room_types") or []),
+            item.get("role"),
+            item.get("description"),
+            " ".join(item.get("rag_text") or []),
+            " ".join(item.get("mood_tags") or []),
+            " ".join(item.get("features") or []),
+            " ".join(item.get("search_keywords") or []),
+            item.get("object_type_zh"),
         )
     ).casefold()
 
@@ -1286,18 +1700,55 @@ def _category_groups_for(style: str | None = None, has_model: bool | None = None
     ]
 
 
+_FURNITURE_STYLE_FILTER_OPTIONS = (
+    {"style_id": "scandinavian", "style_name_zh": "北歐風"},
+    {"style_id": "japanese", "style_name_zh": "日式"},
+    {"style_id": "modern_minimal", "style_name_zh": "現代簡約"},
+    {"style_id": "cream", "style_name_zh": "奶油風"},
+    {"style_id": "industrial", "style_name_zh": "工業風"},
+    {"style_id": "american", "style_name_zh": "美式"},
+)
+
+
 def _style_filter_options() -> list[dict]:
-    return [
-        {
-            "style_id": style.get("style_id"),
-            "style_name_zh": style.get("style_name_zh"),
+    # The furniture endpoint must not load the full catalog JSON merely to label
+    # the six stable UI filters.  Full style presentation remains /api/styles.
+    return [dict(style) for style in _FURNITURE_STYLE_FILTER_OPTIONS]
+
+
+def build_site_payload(*, include_furniture: bool = True) -> dict:
+    if catalog_provider_mode(PROJECT_DIR) == "postgres":
+        surface_catalog = load_surface_catalog()
+        summary = _catalog_count_summary()
+        furniture_payload = list(_furniture_payload_cache()) if include_furniture else []
+        return {
+            "project": {
+                "title": "AI 室內風格與家具配置展示系統",
+                "subtitle": "以平面圖、風格條件與既有 GLB 家具資料庫，自動配置並展示 3D 室內場景。",
+                "scope": [
+                    "上傳平面圖與需求文字",
+                    "由風格規則與家具資料庫挑選合適模型",
+                    "輸出可在網頁瀏覽的 Three.js 3D 室內場景",
+                ],
+                "not_scope": "本專題不是直接生成全新 3D 家具模型，而是用既有 GLB 資料庫做風格化配置。",
+            },
+            "summary": summary,
+            "styles": _style_payloads(surface_catalog=surface_catalog),
+            "taiwan_style_cards": load_taiwan_style_cards(),
+            "furniture": furniture_payload,
+            "surface_catalog": surface_catalog,
+            "catalog_merge_summary": {
+                "input_item_count": summary.get("total_furniture", 0),
+                "merged_count": len(furniture_payload),
+                "same_item_merged_count": 0,
+            },
+            "featured_models": [
+                item for item in furniture_payload if item["has_model"]
+            ][:24],
+            "missing_model_count": sum(
+                1 for item in furniture_payload if not item["has_model"]
+            ),
         }
-        for style in _style_payloads()
-    ]
-
-
-@lru_cache(maxsize=1)
-def build_site_payload() -> dict:
     raw = load_style_database()
     surface_catalog = load_surface_catalog()
     furniture_items = list(_merged_furniture_catalog_cached())
@@ -1459,8 +1910,10 @@ def _stored_project(project_id: str) -> dict:
         raise HTTPException(
             404,
             {
+                # 產品沒有專案列表頁，也沒有 list/DELETE API。舊訊息把使用者
+                # 指向一個不存在的地方，等於告訴他「去一個沒有的畫面」。
                 "code": "project_not_found",
-                "message": "找不到這個專案，請返回專案列表重新選擇。",
+                "message": "找不到這個專案，可能已被刪除或連結有誤；請回首頁重新開始設計。",
             },
         ) from exc
 
@@ -1490,6 +1943,12 @@ def _stored_floorplan(project_id: str) -> dict:
     return upload
 
 
+# 二進位 DXF 的官方 sentinel（前 18 個位元組即可辨識）。
+_BINARY_DXF_SENTINEL = b"AutoCAD Binary DXF"
+# 文字 DXF 一定含有「群組碼 0 換行 SECTION」的段落開頭；testdata/dxf 全部 30 檔已驗證通過。
+_TEXT_DXF_SECTION_RE = re.compile(r"^[ \t]*0[ \t]*\r?\n[ \t]*SECTION\b", re.MULTILINE)
+
+
 def _validate_floorplan_bytes(extension: str, content: bytes) -> str:
     if not content:
         raise HTTPException(
@@ -1501,6 +1960,25 @@ def _validate_floorplan_bytes(extension: str, content: bytes) -> str:
             },
         )
     if extension == ".dxf":
+        if content.startswith(_BINARY_DXF_SENTINEL):
+            raise HTTPException(
+                415,
+                {
+                    "code": "binary_dxf_unsupported",
+                    "message": "偵測到二進位 DXF；目前僅支援文字（ASCII）DXF，請在 CAD 以 ASCII DXF 另存後重新上傳。",
+                    "focus": "floorplan-file",
+                },
+            )
+        head = content[:65536].decode("utf-8", errors="replace")
+        if not _TEXT_DXF_SECTION_RE.search(head):
+            raise HTTPException(
+                422,
+                {
+                    "code": "invalid_floorplan_dxf",
+                    "message": "檔案副檔名是 .dxf，但內容不是可讀取的文字 DXF（開頭找不到 SECTION 結構）。",
+                    "focus": "floorplan-file",
+                },
+            )
         return "application/dxf"
     try:
         with Image.open(io.BytesIO(content)) as image:
@@ -1517,9 +1995,35 @@ def _validate_floorplan_bytes(extension: str, content: bytes) -> str:
     return "image/png" if extension == ".png" else "image/jpeg"
 
 
+def _project_text(payload: dict, key: str, label: str, *, limit: int) -> str:
+    """專案文字欄位的共同入口。
+
+    舊版直接 ``str()`` 硬轉：送 dict 進來會把 Python repr 存成專案名稱，等於把
+    伺服器內部資料結構回顯給使用者；長度也沒有上限。
+    """
+    raw = payload.get(key)
+    if raw is None:
+        return ""
+    if not isinstance(raw, str):
+        raise HTTPException(
+            422,
+            {"code": f"invalid_project_{key}", "message": f"{label}必須是文字。"},
+        )
+    text = raw.strip()
+    if len(text) > limit:
+        raise HTTPException(
+            422,
+            {
+                "code": f"project_{key}_too_long",
+                "message": f"{label}不可超過 {limit} 個字。",
+            },
+        )
+    return text
+
+
 @app.post("/api/projects", status_code=201)
 def create_project(payload: dict) -> dict:
-    name = str(payload.get("name") or "").strip()
+    name = _project_text(payload, "name", "專案名稱", limit=MAX_PROJECT_NAME_CHARS)
     if not name:
         raise HTTPException(
             422,
@@ -1529,7 +2033,7 @@ def create_project(payload: dict) -> dict:
                 "focus": "project-name",
             },
         )
-    notes = str(payload.get("notes") or "").strip()
+    notes = _project_text(payload, "notes", "備註", limit=MAX_PROJECT_NOTES_CHARS)
     return {"project": PROJECT_STORE.create_project(name=name, notes=notes)}
 
 
@@ -1608,7 +2112,7 @@ async def save_project_floorplan(
                 "allowed_extensions": list(FLOORPLAN_EXTENSIONS),
             },
         )
-    content = await file.read()
+    content = await _read_upload(file, MAX_FLOORPLAN_BYTES, "平面圖")
     mime_type = _validate_floorplan_bytes(extension, content)
     try:
         upload = PROJECT_STORE.save_upload(
@@ -1745,11 +2249,21 @@ def download_project_render(project_id: str, render_id: str) -> FileResponse:
             410,
             {"code": "render_file_missing", "message": "PNG 紀錄存在，但檔案已遺失。"},
         )
-    return FileResponse(path, media_type="image/png", filename=render["filename"])
+    # 產出的 PNG 是不可變的：render_id 換了才會有新內容。沒有 Cache-Control 時
+    # 瀏覽器每次都重抓 1.45MB，QA 實測 load 事件被拖到 24 秒。
+    return FileResponse(
+        path,
+        media_type="image/png",
+        filename=render["filename"],
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @app.get("/api/render-provider/status")
 def get_render_provider_status() -> dict:
+    # 內建生圖供應者（OpenRouter）啟用時如實回報；舊遠端 URL 設定時維持原契約。
+    if direct_image_provider_available():
+        return direct_image_provider_status()
     return render_provider_status()
 
 
@@ -1762,6 +2276,10 @@ async def create_project_render_jobs(project_id: str, payload: dict) -> dict:
             {"code": "render_project_mismatch", "message": "渲染資料與目前專案不一致。"},
         )
     try:
+        if direct_image_provider_available():
+            # 2026-07 盤點第 10 項修復：內建轉接層直接叫生圖 API、回圖入庫、
+            # 回傳 completed＋圖片網址（前端首回即顯示，不需輪詢）。
+            return await run_direct_render_jobs(project_id, payload, PROJECT_STORE)
         return await submit_render_jobs(payload)
     except ValueError as exc:
         raise HTTPException(
@@ -1836,6 +2354,7 @@ def analyze_project_floorplan(project_id: str) -> dict:
             analysis = analyze_floorplan_image(
                 content,
                 filename=upload["filename"],
+                ocr_provider=_floorplan_ocr_provider(),
             )
         except (TypeError, ValueError) as exc:
             raise HTTPException(
@@ -1876,8 +2395,10 @@ def analyze_project_floorplan(project_id: str) -> dict:
             },
         },
     )
+    layout_json = _layout_json_from_analysis(analysis)
     return {
         "analysis": analysis,
+        "layout_json": layout_json,
         "geometry_engine": geometry_engine,
     }
 
@@ -1895,7 +2416,7 @@ def floorplan_sample_630() -> FileResponse:
 
 @app.get("/api/site-data")
 def site_data() -> dict:
-    payload = dict(build_site_payload())
+    payload = dict(build_site_payload(include_furniture=False))
     payload["furniture"] = []
     payload["featured_models"] = []
     payload["catalog_merge_summary"] = {
@@ -1907,15 +2428,85 @@ def site_data() -> dict:
 
 def catalog_status() -> dict:
     """Describe active catalog providers without exposing credentials."""
-    furniture = dict(manifest_status())
-    furniture.pop("mode", None)
-    surfaces = load_surface_catalog().get("surfaces") or []
-    wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
-    floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
+    provider_mode = catalog_provider_mode(PROJECT_DIR)
+    provider_status = catalog_provider_status(PROJECT_DIR)
+    phase4_status = runtime_catalog_status(PROJECT_DIR)
+    if provider_mode == "postgres":
+        assets = provider_status.get("assets") or {}
+        item_count = int(provider_status.get("count") or 0)
+        model_count = int(assets.get("model_count") or 0)
+        complete_image_item_count = int(assets.get("complete_image_item_count") or 0)
+        verified_image_count = sum(
+            int(assets.get(key) or 0)
+            for key in ("front_image_count", "side_image_count", "angle_45_image_count")
+        )
+        cloudfront_base_url = os.getenv(
+            "ROOMPILOT_CLOUDFRONT_BASE_URL",
+            "https://ddgsm1yg3xikc.cloudfront.net",
+        ).strip()
+        furniture = {
+            "provider": "aws_cloudfront",
+            "metadata_provider": "kai_postgresql",
+            "manifest_ready": (
+                bool(provider_status.get("available"))
+                and item_count > 0
+                and model_count == item_count
+            ),
+            "manifest_error": (
+                None
+                if provider_status.get("available") and model_count == item_count
+                else provider_status.get("reason") or "postgres_asset_incomplete"
+            ),
+            "verified_model_count": model_count,
+            "cloudfront_base_url": cloudfront_base_url,
+        }
+        furniture_images = {
+            "metadata_provider": "kai_postgresql",
+            "manifest_ready": (
+                bool(provider_status.get("available"))
+                and item_count > 0
+                and complete_image_item_count == item_count
+            ),
+            "manifest_error": (
+                None
+                if provider_status.get("available")
+                and complete_image_item_count == item_count
+                else provider_status.get("reason") or "postgres_image_asset_incomplete"
+            ),
+            "verified_item_count": complete_image_item_count,
+            "verified_image_count": verified_image_count,
+            "cloudfront_base_url": cloudfront_base_url,
+        }
+        wall_count = int(phase4_status.get("wall_surface_count") or 0)
+        floor_count = int(phase4_status.get("floor_surface_count") or 0)
+        style_card_count = int(phase4_status.get("style_card_count") or 0)
+    else:
+        furniture = dict(manifest_status())
+        furniture.pop("mode", None)
+        furniture_images = image_manifest_status()
+        surfaces = load_surface_catalog().get("surfaces") or []
+        wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
+        floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
+        style_card_count = len(load_taiwan_style_cards())
+    ready = bool(provider_status.get("ready")) and bool(phase4_status.get("ready"))
     return {
+        "ready": ready,
+        "source_of_truth": "postgresql" if provider_mode == "postgres" else "versioned_files",
+        "cache_policy": (
+            "database_read_through_no_runtime_file_cache"
+            if provider_mode == "postgres"
+            else "explicit_offline_file_cache"
+        ),
+        "catalog_provider": provider_status,
+        "runtime_catalogs": phase4_status,
         "furniture": furniture,
+        "furniture_images": furniture_images,
         "surfaces": {
-            "provider": "local_pending_aws_manifest",
+            "provider": (
+                "local_pending_aws_manifest"
+                if provider_mode == "json"
+                else phase4_status["provider"]
+            ),
             "wall_count": wall_count,
             "floor_count": floor_count,
         },
@@ -1924,8 +2515,12 @@ def catalog_status() -> dict:
             "catalog_count": 0,
         },
         "style_cards": {
-            "provider": "local_allowed",
-            "count": len(load_taiwan_style_cards()),
+            "provider": (
+                "local_allowed"
+                if provider_mode == "json"
+                else phase4_status["provider"]
+            ),
+            "count": style_card_count,
         },
     }
 
@@ -1933,6 +2528,46 @@ def catalog_status() -> dict:
 @app.get("/api/catalog/status")
 def catalog_status_api() -> dict:
     return catalog_status()
+
+
+@app.get("/api/health")
+def api_health() -> JSONResponse:
+    catalog = catalog_status()
+    project_provider = str(getattr(PROJECT_STORE, "provider", "unknown"))
+    database = catalog.get("catalog_provider", {}).get("database") or {}
+    project_ready = project_provider == "postgres" and bool(
+        database.get("project_table_ready")
+    )
+    formal = (
+        catalog_provider_mode(PROJECT_DIR) == "postgres"
+        and project_provider == "postgres"
+    )
+    ready = bool(catalog.get("ready")) and project_ready
+    payload = {
+        "status": "ready" if ready else ("unavailable" if formal else "offline"),
+        "ready": ready,
+        "formal": formal,
+        "source_of_truth": catalog.get("source_of_truth"),
+        "catalog": catalog,
+        "project_store": {
+            "provider": project_provider,
+            "ready": project_ready,
+            "table": "roompilot.projects" if project_provider == "postgres" else None,
+        },
+    }
+    return JSONResponse(
+        status_code=200 if ready or not formal else 503,
+        content=payload,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/engineering")
+def engineering_page() -> FileResponse:
+    return FileResponse(
+        STATIC_DIR / "engineering.html",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/api/home-data")
@@ -2015,20 +2650,21 @@ def questionnaire_visual_image_api(image_id: str) -> dict:
         ) from exc
 
 
-@app.get("/api/furniture")
-def furniture_catalog(
-    style: str | None = Query(None),
-    group: str | None = Query(None),
-    item_type: str | None = Query(None, alias="type"),
-    q: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(24, ge=1, le=80),
-    has_model: bool | None = Query(None),
-    detail: str = Query("card"),
-    color: str | None = None,
-    material: str | None = None,
-    size: str | None = None,
+def _json_furniture_catalog_response(
+    *,
+    style: str | None,
+    group: str | None,
+    item_type: str | None,
+    q: str | None,
+    page: int,
+    page_size: int,
+    has_model: bool | None,
+    detail: str,
+    color: str | None,
+    material: str | None,
+    size: str | None,
 ) -> dict:
+    """Explicit/offline JSON implementation kept as a controlled fallback."""
     facet_items = _filter_furniture_payload(
         style=style,
         group=group,
@@ -2068,6 +2704,80 @@ def furniture_catalog(
     }
 
 
+@app.get("/api/furniture")
+def furniture_catalog(
+    style: str | None = Query(None),
+    group: str | None = Query(None),
+    item_type: str | None = Query(None, alias="type"),
+    q: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(24, ge=1, le=80),
+    has_model: bool | None = Query(None),
+    detail: str = Query("card"),
+    color: str | None = None,
+    material: str | None = None,
+    size: str | None = None,
+) -> dict:
+    if postgres_catalog_requested(PROJECT_DIR):
+        try:
+            result = query_postgres_catalog(
+                PROJECT_DIR,
+                CatalogQuery(
+                    style=style,
+                    group=group,
+                    item_type=item_type,
+                    q=q,
+                    page=page,
+                    page_size=page_size,
+                    has_model=has_model,
+                    color=color,
+                    material=material,
+                    size=size,
+                ),
+            )
+        except Exception as exc:
+            raise _postgres_catalog_unavailable(exc) from exc
+        # 這條 REST 路徑原本直接吐 SQL 列，繞過 scene/agent/site 都會走的正規化：
+        # placement_surface 全缺（第 6 步把壁掛與擺飾當落地家具算碰撞），
+        # style_candidates 也沒去重（同一個 style_id 重複灌高排序）。
+        items = list(_normalize_catalog_payload(tuple(result.items)))
+        sample_files = (
+            list(result.model_urls)
+            if cloudfront_required()
+            else _legacy_viewer_models(items)
+        )
+        return {
+            "items": [
+                item if detail == "scene" else _furniture_card_payload(item)
+                for item in items
+            ],
+            "page": result.page,
+            "page_size": result.page_size,
+            "total": result.total,
+            "has_next_page": result.has_next_page,
+            "styles": _style_filter_options(),
+            "type_options": list(result.type_options),
+            "category_groups": list(result.category_groups),
+            "filter_options": result.filter_options,
+            "furniture": sample_files,
+            "catalog_status": catalog_status(),
+        }
+
+    return _json_furniture_catalog_response(
+        style=style,
+        group=group,
+        item_type=item_type,
+        q=q,
+        page=page,
+        page_size=page_size,
+        has_model=has_model,
+        detail=detail,
+        color=color,
+        material=material,
+        size=size,
+    )
+
+
 def _legacy_viewer_models(items: list[dict]) -> list[str]:
     """Feed the retired R3F viewer without advertising blocked local GLBs."""
     if cloudfront_required():
@@ -2086,8 +2796,17 @@ def _legacy_viewer_models(items: list[dict]) -> list[str]:
 
 
 def _furniture_detail_payload(furniture_id: str) -> dict:
-    item = _get_merged_furniture_by_id(furniture_id)
-    payload = _furniture_payload_item(item)
+    if postgres_catalog_requested(PROJECT_DIR):
+        try:
+            item = get_postgres_catalog_item(PROJECT_DIR, furniture_id)
+        except Exception as exc:
+            raise _postgres_catalog_unavailable(exc) from exc
+        if item is None:
+            raise HTTPException(status_code=404, detail="Furniture not found in official catalog.")
+        item = _normalize_catalog_item(item)
+    else:
+        item = _furniture_payload_item(_get_json_merged_furniture_by_id(furniture_id))
+    payload = dict(item)
     payload.update(
         {
             "merged_furniture_ids": item.get("merged_furniture_ids", []),
@@ -2102,10 +2821,17 @@ def _furniture_detail_payload(furniture_id: str) -> dict:
 @app.on_event("startup")
 def warm_catalog_cache() -> None:
     try:
-        _furniture_payload_cache()
-        build_site_payload()
+        if catalog_provider_mode(PROJECT_DIR) == "json":
+            _furniture_payload_cache()
+            build_site_payload()
     except Exception as exc:
         print(f"[RoomPilot] catalog cache warmup skipped: {exc}")
+
+
+@app.on_event("shutdown")
+def close_catalog_connections() -> None:
+    close_catalog_pools()
+    PROJECT_STORE.close()
 
 
 @app.get("/api/scene/provider-status")
@@ -2165,28 +2891,30 @@ def _normalize_selection_offers(raw_offers: object) -> dict[str, list[dict]]:
     return offers
 
 
-def _local_selection_raw(rooms: list[dict], offers: dict[str, list[dict]]) -> dict:
-    selections: list[dict] = []
-    for room in rooms:
-        room_id = str(room.get("room_id") or room.get("id") or "")
-        used_families: set[str] = set()
-        items: list[dict] = []
-        for item in offers.get(room_id, []):
-            family = family_of(item.get("normalized_type"))
-            if family in used_families:
-                continue
-            used_families.add(family)
-            try:
-                count = int(item.get("count") or 1)
-            except (TypeError, ValueError):
-                count = 1
-            items.append({
-                "furniture_id": item.get("furniture_id"),
-                "count": max(1, min(6, count)),
-            })
-        if items:
-            selections.append({"room_id": room_id, "items": items})
-    return {"selections": selections}
+def _without_deferred(room_id: str, items: list[dict], requirements: dict) -> list[dict]:
+    """濾掉使用者在第 4 步按過暫緩的家具。"""
+    requirement = requirements.get(room_id)
+    if requirement is None or not requirement.deferred_furniture_ids:
+        return items
+    return [
+        item
+        for item in items
+        if str(item.get("furniture_id") or "") not in requirement.deferred_furniture_ids
+    ]
+
+
+def _selection_llm_context(context: dict | None) -> dict | None:
+    """只把與選件有關的問卷結論送進提示。
+
+    完整 ``room_requirements`` 含牆面、色票與逐面材質，動輒數十 KB；逐房
+    需求已由 ``requirements_from_context`` 收斂後隨房間送出，這裡再塞一次
+    只會稀釋規則並拖慢呼叫。
+    """
+    if not isinstance(context, dict):
+        return None
+    keep = ("basic_answers", "visual_preferences")
+    trimmed = {key: context[key] for key in keep if context.get(key)}
+    return trimmed or None
 
 
 def _selection_response(
@@ -2241,24 +2969,45 @@ async def agent_furniture_select(payload: dict) -> dict:
     llm_selection = payload.get("llm_selection")
     warnings: list[str] = []
 
-    if isinstance(llm_selection, dict):
+    # 逐房問卷需求是兩條路徑共用的輸入：LLM 走提示，本地規則走確定性挑選。
+    requirements = requirements_from_context(context)
+    preselected = preselected_from_requirements(rooms, offers, requirements)
+
+    # payload 帶 llm_selection 時視為外部已算好的結果，只做驗證；否則由
+    # 伺服器自己呼叫 OpenRouter，前端不需要也不應該持有 API 金鑰。
+    complete = (
+        (lambda _messages: ("payload/llm_selection", llm_selection))
+        if isinstance(llm_selection, dict)
+        else selection_complete_fn()
+    )
+
+    if complete is not None:
         try:
             selected, model = request_selections(
                 rooms,
                 offers,
                 str(style_id) if style_id else None,
-                complete=lambda _messages: ("payload/llm_selection", llm_selection),
-                context=context,
+                complete=complete,
+                preselected=preselected,
+                context=_selection_llm_context(context),
+                requirements=requirements,
             )
             return _selection_response(selected, source="openrouter", model=model)
         except (SelectionParseError, SelectionUnavailableError) as exc:
             warnings.append(f"LLM 選擇未通過規則驗證，已改用本地規則：{exc}")
 
     try:
-        selected = parse_selections(_local_selection_raw(rooms, offers), rooms, offers)
+        selected = parse_selections(
+            local_selection_raw(rooms, offers, requirements),
+            rooms,
+            offers,
+            preselected=preselected,
+            requirements=requirements,
+        )
         return _selection_response(selected, source="local_rules", warnings=warnings)
     except SelectionParseError as exc:
         warnings.append(f"本地規則無法完整驗證候選家具，已保留第一批候選：{exc}")
+        # 連驗證都過不了時仍守住一條線：使用者暫緩的家具在任何路徑都不回填。
         return {
             "source": "local_rules_unvalidated",
             "model": None,
@@ -2272,7 +3021,7 @@ async def agent_furniture_select(payload: dict) -> dict:
                             "count": int(item.get("count") or 1),
                             "selection_source": item.get("selection_source") or "local_rules_unvalidated",
                         }
-                        for item in items[:8]
+                        for item in _without_deferred(room_id, items, requirements)[:8]
                     ],
                 }
                 for room_id, items in offers.items()
@@ -2285,11 +3034,11 @@ async def agent_furniture_select(payload: dict) -> dict:
 async def generate_scene(payload: dict) -> dict:
     site_payload = build_site_payload()
 
-    client_brief = payload.get("client_brief") or {}
-    brief_space = client_brief.get("space") or {}
-    brief_style = client_brief.get("style") or {}
-    brief_occupants = client_brief.get("occupants") or {}
-    test2_questionnaire = payload.get("questionnaire") or {}
+    client_brief = _payload_mapping(payload, "client_brief")
+    brief_space = _payload_mapping(client_brief, "space")
+    brief_style = _payload_mapping(client_brief, "style")
+    brief_occupants = _payload_mapping(client_brief, "occupants")
+    test2_questionnaire = _payload_mapping(payload, "questionnaire")
 
     questionnaire = {
         "space_type": payload.get("space_type") or brief_space.get("type") or "living_room",
@@ -2312,19 +3061,76 @@ async def generate_scene(payload: dict) -> dict:
         "preferred_materials": brief_style.get("materials", []),
         "floorplan_filename": payload.get("floorplan_filename"),
         "floorplan_dxf_text": payload.get("floorplan_dxf_text"),
+        "layout_json": payload.get("layout_json"),
         "floorplan_editor": payload.get("floorplan_editor"),
         "wall_option": payload.get("wall_option", "auto"),
         "floor_option": payload.get("floor_option", "auto"),
         "furniture_random_seed": payload.get("furniture_random_seed"),
     }
 
-    return build_scene_payload(
+    scene_payload = build_scene_payload(
         site_payload=site_payload,
         questionnaire=questionnaire,
         floorplan_path=payload.get("floorplan_filename"),
-        room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
-        room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
+        room_width_cm=(
+            _payload_number(payload, "room_width_cm", minimum=0)
+            or _payload_number(brief_space, "width_cm", minimum=0)
+            or 420
+        ),
+        room_depth_cm=(
+            _payload_number(payload, "room_depth_cm", minimum=0)
+            or _payload_number(brief_space, "depth_cm", minimum=0)
+            or 360
+        ),
     )
+    return {
+        **scene_payload,
+        "scene_json": deepcopy(scene_payload),
+    }
+
+
+def _repair_ready_items(objects: list) -> tuple[list[dict], dict[str, str | None]]:
+    """把前端場景物件轉成擺放紀律看得懂的形狀。
+
+    第 6 步的 scene_objects 用 ``furniture_id`` 當「這一件」的身分，型錄 id 放在
+    ``catalog_furniture_id``；Yen 的 ``resolve_placements`` 反過來——``instance_id``
+    是身分，``furniture_id`` 要能和候選池比對才換得了小款。這裡換過去，修完再換
+    回來，前端拿到的身分才不會在換小款時整個換掉。
+    """
+    original_catalog: dict[str, str | None] = {}
+    items: list[dict] = []
+    for obj in objects:
+        if not isinstance(obj, dict):
+            continue
+        instance_id = str(obj.get("furniture_id") or "")
+        catalog_id = obj.get("catalog_furniture_id")
+        original_catalog[instance_id] = str(catalog_id) if catalog_id else None
+        items.append({
+            **obj,
+            "instance_id": instance_id,
+            "furniture_id": str(catalog_id or instance_id),
+        })
+    return items, original_catalog
+
+
+def _restore_scene_identity(objects: list, original_catalog: dict[str, str | None]) -> list[dict]:
+    """把 instance_id 換回 furniture_id，換過小款的則帶上新的型錄 id。"""
+    restored: list[dict] = []
+    for obj in objects:
+        instance_id = str(obj.get("instance_id") or "")
+        if not instance_id:
+            restored.append(obj)
+            continue
+        catalog_id = str(obj.get("furniture_id") or "")
+        item = dict(obj)
+        item.pop("instance_id", None)
+        item["furniture_id"] = instance_id
+        item["catalog_furniture_id"] = (
+            catalog_id if catalog_id and catalog_id != instance_id
+            else original_catalog.get(instance_id)
+        )
+        restored.append(item)
+    return restored
 
 
 @app.post("/api/scene/layout")
@@ -2333,13 +3139,14 @@ async def scene_layout(payload: dict) -> dict:
 
     傳 floorplan(含 wall_segments)可重建 DXF 房間形狀;
     scene_objects 帶 position_locked 的項目(使用者拖曳過)位置仍合法就不重排。
+    放不下的家具走與 /api/scene/generate 相同的擺放紀律:換小、移除或升級人工。
     """
-    objects = payload.get("scene_objects", [])
+    objects = _payload_sequence(payload, "scene_objects")
     editor_floorplan = payload.get("floorplan_editor")
     if isinstance(editor_floorplan, dict) and editor_floorplan:
         floorplan, room = floorplan_from_editor_payload(editor_floorplan)
     else:
-        floorplan = payload.get("floorplan") or {}
+        floorplan = _payload_mapping(payload, "floorplan")
         room = room_from_payload(floorplan)
     placement_room_id = payload.get("placement_room_id")
     placement_variant = str(payload.get("placement_variant") or "A").upper()
@@ -2349,24 +3156,72 @@ async def scene_layout(payload: dict) -> dict:
         _region_boundary_by_id(floorplan, room, placement_room_id)
         or _largest_region_boundary(floorplan, room)
     )
-    return {
-        "scene_objects": generate_layout(
+    placement_preferences = _payload_mapping(payload, "placement_preferences")
+    _margin, _clearance, applied_preferences, ignored_preferences = (
+        resolve_placement_preferences(placement_preferences)
+    )
+
+    items, original_catalog = _repair_ready_items(objects)
+
+    def place(working_items: list[dict]) -> list[dict]:
+        return generate_layout(
             room.width,
             room.depth,
-            objects,
+            working_items,
             room=room,
             regions_boundary=_regions_boundary(floorplan, room),
             place_boundary=place_boundary,
             floorplan=floorplan,
             placement_variant=placement_variant,
+            placement_preferences=placement_preferences,
         )
+
+    scene_objects = place(items)
+    report: list[dict] = []
+    if any(obj.get("placement_failed") for obj in scene_objects):
+        # 第一次擺放失敗時才付出重算成本。這裡不修的話,第 6 步換上放不下的
+        # 家具只會留下一張紅色待處理卡,永遠等不到自動換小款。
+        protected_ids = {
+            str(item.get("furniture_id"))
+            for item in items
+            if item.get("furniture_id")
+            and (
+                item.get("user_specified")
+                or item.get("user_required")
+                or item.get("position_locked")
+            )
+        }
+        try:
+            pool = [
+                candidate
+                for candidate in _furniture_payload_cache()
+                if not candidate.get("size_is_implausible")
+            ]
+        except RuntimeCatalogUnavailable:
+            # 型錄暫時讀不到就只回報,不要因為換小款失敗而擋掉整次重排。
+            pool = []
+        scene_objects, _items, report = resolve_placements(
+            scene_objects,
+            items,
+            pool,
+            engine_place_fn=place,
+            protected_ids=protected_ids,
+        )
+
+    return {
+        "floorplan": floorplan,
+        "scene_objects": _restore_scene_identity(scene_objects, original_catalog),
+        "placement_resolution_report": report,
+        # 明說哪些偏好真的進了引擎、哪些還沒有對應動作，避免整條 no-op 又沒人發現。
+        "placement_preferences_applied": applied_preferences,
+        "placement_preferences_ignored": ignored_preferences,
     }
 
 
 _AUTO_DECOR_TYPES = {
     "rug": ("large-medium-rug", "runner-small-rug"),
     "plant": ("flower-pots-planter",),
-    "light": ("floor-lamp",),
+    "light": ("floor-lamp", "lamp"),
 }
 
 
@@ -2406,14 +3261,10 @@ def _auto_decor_catalog_item(
                 fitting.append(item)
         if fitting:
             candidates = fitting
+    # 少一個角色的 GLB 不該讓整間房的軟裝一起中止：地毯、植栽照樣放得下就該放。
+    # 回 None 由呼叫端跳過並記進 decor_summary.skipped，前端再據此告知使用者。
     if not candidates:
-        raise HTTPException(
-            409,
-            {
-                "code": "decor_model_missing",
-                "message": f"型錄中找不到可用的{_AUTO_DECOR_LABELS[role]} GLB，已停止自動配置。",
-            },
-        )
+        return None
 
     def score(item: dict) -> tuple[int, float]:
         style_match = item.get("primary_style") == style_id or any(
@@ -2437,13 +3288,25 @@ def _auto_decor_catalog_item(
     return selected
 
 
-def _curtain_catalog_item() -> dict:
+_CURTAIN_MODEL_PATH = "models/roompilot-curtain.glb"
+
+
+def _curtain_catalog_item() -> dict | None:
+    """布簾是固定假想品項，不走型錄查找。
+
+    以前它無條件宣告 model_url 指向 /static/models/roompilot-curtain.glb，但那個檔案
+    不在 repo 裡（static/ 底下沒有任何 .glb），所以每次自動軟裝都保證產生一個 404，
+    3D 只能靠白色替代物兜底。與其硬塞一個壞掉的品項，不如照其他軟裝角色的作法：
+    檔案不存在就回 None，由呼叫端列進 decor_summary.skipped 說明原因。
+    """
+    if not (STATIC_DIR / _CURTAIN_MODEL_PATH).is_file():
+        return None
     return {
         "furniture_id": "roompilot-auto-curtain",
         "normalized_type": "curtain",
         "name_zh_raw": "自動配置布簾",
         "size_cm": {"width": 240, "depth": 12, "height": 240},
-        "model_url": "/static/models/roompilot-curtain.glb",
+        "model_url": f"/static/{_CURTAIN_MODEL_PATH}",
         "has_model": True,
         "auto_decor_role": "curtain",
         "position_locked": False,
@@ -2453,11 +3316,12 @@ def _curtain_catalog_item() -> dict:
 @app.post("/api/scene/decorate")
 async def scene_decorate(payload: dict) -> dict:
     """依風格加入軟裝，所有最終座標仍由家具引擎決定。"""
+    _payload_sequence(payload, "scene_objects")
     editor_floorplan = payload.get("floorplan_editor")
     if isinstance(editor_floorplan, dict) and editor_floorplan:
         floorplan, room = floorplan_from_editor_payload(editor_floorplan)
     else:
-        floorplan = payload.get("floorplan") or {}
+        floorplan = _payload_mapping(payload, "floorplan")
         room = room_from_payload(floorplan)
 
     placement_room_id = payload.get("placement_room_id")
@@ -2523,8 +3387,19 @@ async def scene_decorate(payload: dict) -> dict:
         requested_roles.append("curtain")
 
     additions: list[dict] = []
+    skipped_roles: list[dict] = []
     if "curtain" in requested_roles:
-        additions.append(_curtain_catalog_item())
+        curtain = _curtain_catalog_item()
+        if curtain is None:
+            skipped_roles.append(
+                {
+                    "role": "curtain",
+                    "label": "布簾",
+                    "reason": "布簾模型檔尚未進版控，本次略過（3D 不會出現缺檔的替代方塊）。",
+                }
+            )
+        else:
+            additions.append(curtain)
     used_ids = {str(item.get("furniture_id")) for item in existing}
     boundary_width_cm = boundary_depth_cm = 0.0
     if place_boundary is not None:
@@ -2552,6 +3427,15 @@ async def scene_decorate(payload: dict) -> dict:
                 used_ids,
                 rug_max_footprint if role == "rug" else None,
             )
+            if addition is None:
+                skipped_roles.append(
+                    {
+                        "role": role,
+                        "label": _AUTO_DECOR_LABELS[role],
+                        "reason": f"型錄中沒有可用的{_AUTO_DECOR_LABELS[role]} GLB，本次略過。",
+                    }
+                )
+                continue
             additions.append(addition)
             used_ids.add(str(addition.get("furniture_id")))
     for item in additions:
@@ -2599,6 +3483,7 @@ async def scene_decorate(payload: dict) -> dict:
                 for item in scene_objects
                 if item.get("auto_decor_role") and not item.get("placement_failed")
             ],
+            "skipped": skipped_roles,
             "engine": "furniture_engine",
         },
     }
@@ -2608,19 +3493,24 @@ async def scene_decorate(payload: dict) -> dict:
 async def scene_validate(payload: dict) -> dict:
     """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
     editor_floorplan = payload.get("floorplan_editor")
-    floorplan = payload.get("floorplan")
+    floorplan = _payload_mapping(payload, "floorplan") or None
     if isinstance(editor_floorplan, dict) and editor_floorplan:
         floorplan, _ = floorplan_from_editor_payload(editor_floorplan)
+    # 帶上偏好,拖曳驗證才會和 /api/scene/layout 用同一份禁區規則。
     return validate_single_placement(
         floorplan,
-        payload.get("item") or {},
-        payload.get("others") or [],
+        _payload_mapping(payload, "item"),
+        _payload_sequence(payload, "others"),
+        _payload_mapping(payload, "placement_preferences"),
     )
 
 
 @app.get("/api/furniture/{furniture_id}/model")
 def furniture_model(furniture_id: str):
     furniture = _get_merged_furniture_by_id(furniture_id)
+    direct_url = str(furniture.get("model_url") or "").strip()
+    if direct_url.startswith(("https://", "http://")):
+        return RedirectResponse(direct_url, status_code=307)
     return _model_response_for_merged_furniture(furniture)
 
 
@@ -2686,7 +3576,7 @@ async def upload(
     thickness: float = Query(0.18, gt=0, le=2),
     height: float = Query(2.7, gt=0, le=10),
 ):
-    data = await file.read()
+    data = await _read_upload(file, MAX_FLOORPLAN_BYTES, "平面圖")
     try:
         return parse_dxf_bytes(data, file.filename or "upload.dxf", scale_m, thickness, height)
     except Exception as e:
@@ -2702,6 +3592,13 @@ def _floorplan_json_field(raw: str | None, field: str, default):
         raise HTTPException(422, f"invalid_{field}_json") from exc
 
 
+def _layout_json_from_analysis(analysis: dict) -> dict:
+    floorplan = analysis.get("floorplan")
+    if isinstance(floorplan, dict):
+        return floorplan
+    return analysis
+
+
 @app.post("/api/floorplan/analyze")
 async def floorplan_analyze(
     file: UploadFile = File(...),
@@ -2715,13 +3612,13 @@ async def floorplan_analyze(
     extension = Path(file.filename or "").suffix.lower()
     if extension not in {".png", ".jpg", ".jpeg"}:
         raise HTTPException(415, "floorplan_image_required")
-    data = await file.read()
+    data = await _read_upload(file, MAX_FLOORPLAN_BYTES, "平面圖")
     calibration = _floorplan_json_field(calibration_json, "calibration", None)
     observations = _floorplan_json_field(ocr_json, "ocr", [])
     geometry = _floorplan_json_field(geometry_json, "geometry", [])
     observed_utilities = _floorplan_json_field(observed_utilities_json, "observed_utilities", [])
     brief = _floorplan_json_field(brief_json, "brief", {})
-    provider = None
+    provider = _floorplan_ocr_provider()
     try:
         analysis = analyze_floorplan_image(
             data,
@@ -2735,8 +3632,10 @@ async def floorplan_analyze(
         raise HTTPException(422, str(exc)) from exc
     analysis["observed_utilities"] = observed_utilities
     analysis["requirement_brief"] = brief
+    layout_json = _layout_json_from_analysis(analysis)
     return {
         "analysis": analysis,
+        "layout_json": layout_json,
         "requirements": infer_room_requirements(analysis, brief),
         "geometry_engine": "cody" if not geometry else "manual",
         "ocr_provider": "provided_or_reference_semantics",

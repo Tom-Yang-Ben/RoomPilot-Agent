@@ -269,7 +269,8 @@ npm run preview
 - 換電腦後找不到專案 → project_id 綁本機 .runtime/,資料不跟 git 走(README 明文)
 - 前端存檔回 409 project_revision_conflict → 樂觀鎖版本衝突,前端須以回應附帶的
   最新 project 重新套用;非資料損毀
-- 軟裝回 409 decor_model_missing → 型錄找不到該角色(燈/地毯/植栽)可用 GLB
+- 軟裝的 decor_summary.skipped 有內容 → 型錄找不到該角色(燈/地毯/植栽)可用 GLB;
+  該角色略過、其餘照常配置,不再回 409
   (main.py:2409-2416);窗簾不會 409——它走固定假想品項 /static/models/roompilot-curtain.glb
   (main.py:2446),該檔實際不存在(find static/ 零 .glb,已知缺陷),瀏覽器載入 404 後
   由前端以同尺寸白色替代物顯示(scene_viewer.js:2955-2957),場景不中斷

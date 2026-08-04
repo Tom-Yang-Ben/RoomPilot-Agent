@@ -69,6 +69,7 @@ def test_floorplan_analyze_then_confirm_http_e2e() -> None:
 
     assert response.status_code == 200
     analyzed = response.json()
+    assert analyzed["layout_json"] == analyzed["analysis"]
     assert analyzed["analysis"]["scale"]["cm_per_px"] == 1.0
     assert analyzed["requirements"]["rooms"][0]["room_type"] == "kitchen"
     requirements = analyzed["requirements"]["rooms"][0]["requirements"]
@@ -83,6 +84,7 @@ def test_floorplan_analyze_then_confirm_http_e2e() -> None:
     assert confirmed.status_code == 200
     payload = confirmed.json()
     assert payload["ready_for_design"] is True
+    assert payload["layout_json"] == payload["floorplan"]
     assert payload["floorplan"]["width_cm"] == 600.0
     assert payload["floorplan"]["door_segments"]
     assert payload["floorplan"]["window_segments"]
@@ -193,7 +195,9 @@ def test_builder_plan_630_upload_is_automatically_recognized_without_annotation_
         "balcony": 1,
     }
     assert len(analysis["doors"]) == 7
-    assert len(analysis["windows"]) == 3
+    # 2026-07-28 由 3 改為 2，與 test_floorplan_vision.py 同一原因：cody
+    # 辨識核心濾掉一扇 12.17 公分寬的假窗。
+    assert len(analysis["windows"]) == 2
     assert analysis["spatial_report"]["review_items"] == []
 
 

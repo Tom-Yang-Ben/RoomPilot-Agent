@@ -7,6 +7,10 @@ const ROOM_TO_VISUAL_SPACES = Object.freeze({
   workspace: ["study"],
   balcony: ["balcony"],
   storage: ["storage"],
+  // 第 4 步房名收斂後新增的型別。樓梯與車庫沒有軟裝題目，只讓走道問得到動線題。
+  circulation: ["circulation"],
+  stair: [],
+  garage: [],
 });
 
 export const VISUAL_SPACE_LABELS = Object.freeze({
@@ -24,13 +28,45 @@ export const VISUAL_SPACE_LABELS = Object.freeze({
   all_rooms: "全屋共通",
 });
 
+function roomAreaM2(room = {}) {
+  const polygon = room.polygon_cm || [];
+  if (polygon.length < 3) {
+    return Number(room.area_m2 || room.areaM2 || 0);
+  }
+  let twiceArea = 0;
+  for (let index = 0; index < polygon.length; index += 1) {
+    const current = polygon[index];
+    const next = polygon[(index + 1) % polygon.length];
+    twiceArea += (Number(current.x) * Number(next.y)) - (Number(next.x) * Number(current.y));
+  }
+  return Math.abs(twiceArea) / 2 / 10_000;
+}
+
+// 主臥依面積決定，不是依辨識順序。原本取「第一間臥室」，QA 的案子因此把 7.29 m²
+// 標成主臥，8.04 m² 的真主臥反而變次臥。
+function primaryBedroomId(rooms = []) {
+  const bedrooms = rooms.filter(
+    (room) => room.type === "bedroom"
+      && !["primary_bedroom", "secondary_bedroom"].includes(room.visual_space_type),
+  );
+  if (!bedrooms.length) return null;
+  const largest = bedrooms.reduce(
+    (winner, room) => (roomAreaM2(room) > roomAreaM2(winner) ? room : winner),
+    bedrooms[0],
+  );
+  return largest.id;
+}
+
 export function questionsForRooms(questions = [], rooms = []) {
-  let bedroomIndex = 0;
+  const primaryId = primaryBedroomId(rooms);
   const roomSpaces = new Set();
   rooms.forEach((room) => {
+    if (["primary_bedroom", "secondary_bedroom"].includes(room.visual_space_type)) {
+      roomSpaces.add(room.visual_space_type);
+      return;
+    }
     if (room.type === "bedroom") {
-      roomSpaces.add(bedroomIndex === 0 ? "primary_bedroom" : "secondary_bedroom");
-      bedroomIndex += 1;
+      roomSpaces.add(room.id === primaryId ? "primary_bedroom" : "secondary_bedroom");
       return;
     }
     (ROOM_TO_VISUAL_SPACES[room.type] || []).forEach((space) => roomSpaces.add(space));
@@ -42,18 +78,20 @@ export function questionsForRooms(questions = [], rooms = []) {
   );
 }
 
-function visualSpaceForRoom(room, bedroomIndex = 0) {
+function visualSpaceForRoom(room, primaryId = null) {
+  if (["primary_bedroom", "secondary_bedroom"].includes(room.visual_space_type)) {
+    return room.visual_space_type;
+  }
   if (room.type === "bedroom") {
-    return bedroomIndex === 0 ? "primary_bedroom" : "secondary_bedroom";
+    return room.id === primaryId ? "primary_bedroom" : "secondary_bedroom";
   }
   return ROOM_TO_VISUAL_SPACES[room.type]?.[0] || null;
 }
 
 export function questionsForIndividualRooms(questions = [], rooms = []) {
-  let bedroomIndex = 0;
+  const primaryId = primaryBedroomId(rooms);
   return rooms.flatMap((room) => {
-    const roomSpace = visualSpaceForRoom(room, bedroomIndex);
-    if (room.type === "bedroom") bedroomIndex += 1;
+    const roomSpace = visualSpaceForRoom(room, primaryId);
     const matching = questions.filter((question) =>
       question.space_type === roomSpace || question.space_type === "all_rooms"
     );

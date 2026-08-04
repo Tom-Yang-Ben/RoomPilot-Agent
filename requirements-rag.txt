@@ -1,0 +1,8 @@
+# RoomPilot Django RAG runtime for Windows/Python 3.12.
+# Model weights are downloaded separately and must never be committed.
+-r requirements.txt
+anthropic==0.117.1
+openai==2.50.0
+torch==2.13.0
+sentence-transformers==5.6.1
+huggingface-hub==1.25.1

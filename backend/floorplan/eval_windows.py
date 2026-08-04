@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-eval_windows.py — 用 pngans/ 的人工標準答案評分 chk/ 的窗戶偵測結果
+eval_windows.py — 用 testdata/Identify_ans/pngans/gray/ 的人工標準答案評分 temp/chk/gray/ 的窗戶偵測結果
 
-    python3 eval_windows.py [答案目錄] [chk目錄]     (預設 pngans/ chk/)
+    python3 eval_windows.py [答案目錄] [chk目錄]     (預設 testdata/Identify_ans/pngans/gray/ temp/chk/gray/)
 
 兩邊都抽「綠色框」再互相配對：
   TP = chk 的綠框有對到答案的綠框(抓對)
@@ -21,12 +21,16 @@ import cv2
 import numpy as np
 
 
-def green_boxes(path):
+def green_boxes(path, size=None):
     """抽出圖中所有綠色框的 bbox 清單 [(x0,y0,x1,y1)]。
-    同時吃程式畫的 (0,170,0) 與小畫家綠 (34,177,76)，含反鋸齒容差。"""
+    同時吃程式畫的 (0,170,0) 與小畫家綠 (34,177,76)，含反鋸齒容差。
+    size=(w,h) 時先把圖縮放到該尺寸再抽框——彩色管線可能以 2 倍圖處理，
+    chk 疊圖與答案圖尺寸不同（灰階管線兩邊同尺寸，縮放係數=1 不影響）。"""
     img = cv2.imread(path)
     if img is None:
         sys.exit(f"讀不到 {path}")
+    if size is not None and (img.shape[1], img.shape[0]) != size:
+        img = cv2.resize(img, size, interpolation=cv2.INTER_NEAREST)
     b, g, r = img[:, :, 0].astype(int), img[:, :, 1].astype(int), img[:, :, 2].astype(int)
     mask = ((g >= 110) & (g - b >= 45) & (g - r >= 45)).astype(np.uint8) * 255
     mask = cv2.dilate(mask, np.ones((5, 5), np.uint8))   # 把 2px 框線黏成一塊
@@ -57,8 +61,8 @@ def matched(a, b):
 
 
 def main():
-    ans_dir = sys.argv[1] if len(sys.argv) > 1 else "testdata/pngans"
-    chk_dir = sys.argv[2] if len(sys.argv) > 2 else "testdata/chk"
+    ans_dir = sys.argv[1] if len(sys.argv) > 1 else "testdata/Identify_ans/pngans/gray"
+    chk_dir = sys.argv[2] if len(sys.argv) > 2 else "temp/chk/gray"
     ans_files = sorted(glob.glob(os.path.join(ans_dir, "*_ans.png")))
     if not ans_files:
         sys.exit(f"{ans_dir}/ 裡找不到 *_ans.png")
@@ -72,7 +76,8 @@ def main():
             print(f"{base:<10} (缺 {cp}，跳過)")
             continue
         ans = green_boxes(ap)
-        pred = green_boxes(cp)
+        a_img = cv2.imread(ap)
+        pred = green_boxes(cp, size=(a_img.shape[1], a_img.shape[0]))
         hit_ans = [any(matched(a, p) for p in pred) for a in ans]
         fp_boxes = [p for p in pred if not any(matched(a, p) for a in ans)]
         fn_boxes = [a for a, h in zip(ans, hit_ans) if not h]
