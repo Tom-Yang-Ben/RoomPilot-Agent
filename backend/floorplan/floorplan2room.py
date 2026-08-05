@@ -50,13 +50,22 @@ COLOR_RATIO = 0.08                     # 與 fp_c.color_to_bw 同門檻：彩色
 
 
 # ─────────────────────────── 彩色/黑白判斷 ───────────────────────────
+def _read_image(path, flags=cv2.IMREAD_UNCHANGED):
+    """Read an image without cv2.imread's non-ASCII Windows path limitation."""
+    try:
+        encoded = np.fromfile(path, dtype=np.uint8)
+        return cv2.imdecode(encoded, flags) if encoded.size else None
+    except (OSError, ValueError, cv2.error):
+        return None
+
+
 def probe_color(path):
     """判斷圖是彩色還是黑白。與 fp_c.color_to_bw 用同一準則：
     HSV 飽和度>60 且亮度>60 的像素比例 ≥ 8% = 彩色；檔名含 color 強制彩色。
     alpha 圖層先合成到白底（同 load_gray），避免透明區干擾統計。"""
-    img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    img = _read_image(path)
     if img is None:
-        sys.exit(f"讀不到圖: {path}")
+        raise FileNotFoundError(path)
     if img.ndim == 2:
         return False, 0.0
     if img.shape[2] == 4:
@@ -441,7 +450,7 @@ def detect_room_text(img_path, dst_w=None, dst_h=None):
         return []
     sx = sy = 1.0
     if dst_w and dst_h:
-        img = cv2.imread(img_path)
+        img = _read_image(img_path, cv2.IMREAD_COLOR)
         if img is None:                    # 拿不到原圖尺寸＝縮放未知，寧缺勿錯位
             print("⚠ OCR 原圖尺寸讀取失敗 → 本張文字證據放棄")
             return []
@@ -466,7 +475,7 @@ def detect_text_boxes(img_path, dst_w=None, dst_h=None):
         return []
     sx = sy = 1.0
     if dst_w and dst_h:
-        img = cv2.imread(img_path)
+        img = _read_image(img_path, cv2.IMREAD_COLOR)
         if img is None:
             return []
         h, w = img.shape[:2]

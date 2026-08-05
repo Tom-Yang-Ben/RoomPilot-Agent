@@ -250,7 +250,11 @@ def split_pillars(bw, T):
 
 
 def load_gray(cfg: Config):
-    img = cv2.imread(cfg.input, cv2.IMREAD_UNCHANGED)
+    try:
+        encoded = np.fromfile(cfg.input, dtype=np.uint8)
+        img = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED) if encoded.size else None
+    except (OSError, ValueError, cv2.error):
+        img = None
     if img is None:
         sys.exit(f"讀不到圖: {cfg.input}")
     if img.ndim == 2:

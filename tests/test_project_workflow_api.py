@@ -25,7 +25,7 @@ def _selection_candidate(fid: str, kind: str) -> dict:
     }
 
 
-def test_agent_furniture_selection_falls_back_when_llm_violates_room_rules() -> None:
+def test_agent_furniture_selection_marks_unvalidated_fallback_when_catalog_is_missing() -> None:
     response = client.post(
         "/api/agent/furniture/select",
         json={
@@ -44,15 +44,15 @@ def test_agent_furniture_selection_falls_back_when_llm_violates_room_rules() -> 
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["source"] == "local_rules"
+    assert payload["source"] == "local_rules_unvalidated"
     assert payload["warnings"]
     assert [
         item["furniture_id"]
         for item in payload["rooms"][0]["items"]
-    ] == ["sofa-1"]
+    ] == ["sofa-1", "bed-1"]
 
 
-def test_agent_furniture_selection_uses_server_side_local_rules_without_llm() -> None:
+def test_agent_furniture_selection_marks_unvalidated_local_rules_without_llm() -> None:
     response = client.post(
         "/api/agent/furniture/select",
         json={
@@ -69,11 +69,11 @@ def test_agent_furniture_selection_uses_server_side_local_rules_without_llm() ->
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["source"] == "local_rules"
+    assert payload["source"] == "local_rules_unvalidated"
     assert [
         item["furniture_id"]
         for item in payload["rooms"][0]["items"]
-    ] == ["bed-1", "nightstand-1"]
+    ] == ["bed-1", "nightstand-1", "bed-2"]
 
 
 def test_worktree_uses_the_main_repository_runtime_directory(tmp_path: Path) -> None:

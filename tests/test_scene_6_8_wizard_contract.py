@@ -5,11 +5,11 @@ ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "backend" / "server" / "static"
 
 
-def test_step_six_does_not_gate_the_user_with_retired_room_ab_selection() -> None:
+def test_step_six_requires_room_ab_selection_before_entering_the_editor() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     start = source.index("function roomSchemeSelectionRequired()")
-    assert "return false;" in source[start : start + 160]
+    assert "return Boolean(state.rooms?.length && state.designSchemes?.schemes?.A);" in source[start : start + 500]
     assert "async function prepareProposalReview()" in source
     assert "function openStepSixTaskDialog(kind)" in source
 
