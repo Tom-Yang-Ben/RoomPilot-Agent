@@ -17,6 +17,9 @@ RoomPilot 是 AIPE03 第四組的 AI 室內設計系統。它把平面圖辨識�
 - Git
 - PostgreSQL 17：第 6 步正式家具 catalog 的優先資料來源
 
+在乾淨的新機器上從零佈到「三個 provider 全走 PostgreSQL、RAG 開啟」的完整狀態，
+依照 [換機部署清單](docs/NEW_MACHINE_SETUP.md)；本節只涵蓋最短的啟動路徑。
+
 ### 方式一：Python venv 與 requirements.txt
 
 在 repo 根目錄開啟 PowerShell：

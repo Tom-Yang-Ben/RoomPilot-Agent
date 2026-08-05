@@ -14,10 +14,19 @@ RAG metadata／文字、向量生成、檢索與品質由 Django 負責；Kai �
 | `import_official_catalog_to_postgres.py` | 驗證官方 JSON 與四份 manifest，交易式 UPSERT 家具資料 |
 | `roompilot_furniture_embeddings_schema.sql` | pgvector table、向量來源 view 與搜尋 functions |
 | `import_furniture_embeddings_to_postgres.py` | 驗證文字、hash、模型、維度與向量後 UPSERT |
+| `build_lighting_manifest.py` | 由 catalog 與資產 manifest 產生 `lighting_assets_manifest.csv` |
+| `import_lighting_assets_to_postgres.py` | 以 item_id UPSERT 匯入 `roompilot.lighting_assets` |
 | `PostgreSQL 17.10 安裝與資料匯入指南.md` | Windows 安裝、第一次匯入與驗收方式 |
 | `README.md` | 本流程的快速操作入口 |
 
-目前 `scripts/sql/` 只保留家具 catalog 與家具向量匯入流程；舊版 Phase 3 project migration、Phase 4 runtime catalog 與排除項目 manifest 維護腳本已不在目前的 `scripts/` 工具樹中，請勿沿用舊路徑指令。
+本資料夾負責家具 catalog、家具向量與燈具三條匯入流程。**另有兩條 PostgreSQL 流程不在這裡**，換機或重建資料庫時同樣要跑：
+
+| 流程 | 位置 | 何時需要 |
+|---|---|---|
+| Phase 3 專案儲存 | `scripts/project_store/` | `ROOMPILOT_PROJECT_STORE_PROVIDER=postgres` |
+| Phase 4 runtime catalog | `scripts/runtime_catalog/` | `ROOMPILOT_RUNTIME_CATALOG_PROVIDER=postgres` |
+
+完整的換機順序見 [換機部署清單](../../docs/NEW_MACHINE_SETUP.md)。
 
 ## 正式輸入與數量
 
@@ -160,11 +169,9 @@ DB_APPLICATION_NAME=roompilot_catalog_import
   --embeddings JSON\RAG\furniture_embeddings_bge_m3.jsonl `
   --require-all `
   --dry-run
-.\.venv\Scripts\python.exe -m pytest -q tests\test_furniture_embeddings_sql.py tests\test_official_cloud_catalog.py tests\test_image_manifest_contract.py
+.\.venv\Scripts\python.exe -m pytest -q tests\test_furniture_embeddings_sql.py tests\test_official_cloud_catalog.py tests\test_image_manifest_contract.py tests\test_official_catalog_sql.py
 git diff --check
 git status --short
 ```
-
-目前 `tests/test_official_catalog_sql.py` 仍匯入已不在工具樹中的 `scripts.catalog.remove_excluded_catalog_assets_from_manifests`，會在測試收集階段失敗；在腳本或測試責任重新對齊前，不把它列入可執行的最低驗證。
 
 本流程不建立第二套家具主表，也不把 Chroma、JSON fallback 或 quarantine 資料當成正式家具來源。
