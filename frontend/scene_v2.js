@@ -8578,19 +8578,16 @@ async function resolveCatalogFurniture(item) {
       room || { id: item.roomId },
       [item.type, item.variantId],
     );
-    const params = new URLSearchParams({
-      type: item.type,
-      has_model: "true",
-      detail: "scene",
-      page_size: "80",
-    });
-    if (request.styleId) params.set("style", request.styleId);
-    let payload = await api(`/api/furniture?${params.toString()}`);
-    if (!(payload.items || []).length && request.styleId) {
-      params.delete("style");
-      payload = await api(`/api/furniture?${params.toString()}`);
-    }
-    const candidates = rankCatalogFurniture(payload.items || [], request);
+    // 型錄沒有 storage-cabinet／appliance-cabinet／bathroom-vanity 這三個名字，
+    // 櫃體一律存成 cabinet-cupboard（146 筆）。這裡原本直接把 item.type 丟給
+    // /api/furniture，那三族系一律查到 0 筆 → 沒有 model_url → 標成
+    // placementFailed，於是「2D 放得下、3D 永遠缺席」。更換家具那條路
+    // （renderReplacementTypeOptions）與後端 scene_service 的
+    // catalog_types_for_family 都早就繞過同義分類，只有自動配置這條漏掉。
+    // catalogCandidatesForType 會套用 CATALOG_RETRIEVAL_ROUTES 的同義分類與
+    // 關鍵字，並保留「先帶風格、查不到再拿掉風格重試」的既有行為。
+    const items = await catalogCandidatesForType(item.type, { styleId: request.styleId });
+    const candidates = rankCatalogFurniture(items, request);
     if (!candidates.length) return toSceneFurniture(item);
     return mergeCatalogFurniture(item, candidates[0]);
   } catch (error) {
