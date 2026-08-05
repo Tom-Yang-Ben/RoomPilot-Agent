@@ -80,7 +80,7 @@ UI 八步與內部 11 個 workflow step 不是一對一：
 
 | 項目 | 處置 |
 |---|---|
-| 第 5 步全部題目、題序、面板版面 | 採對方 |
+| 第 5 步全部題目、題序、面板版面 | 採對方（**僅 UI 與題目資料模型；問卷之後的資料鏈見 §4.5，不得替換**） |
 | **初談問卷**（`scene_first_meeting.js` 207 行 + `tests/test_scene_first_meeting.py`） | **移除**。位於第 5 步面板內，依規則隨第 5 步一併替換。連同其模組與測試下架 |
 | 第 5 步「專案進度」「想要的家具或樣式（選填）」區塊 | 移除，隨面板替換 |
 | 第 6 步 2D 位置 | 採對方 `scene_layout2d.js` |
@@ -121,6 +121,32 @@ UI 八步與內部 11 個 workflow step 不是一對一：
 
 **一個端點都不用補。** 對方第 5～7 步用到而我方沒有的兩個端點
 （`/api/cost/estimate`、`/api/questionnaire/visual-catalog`）已分別依 §4.2、§4.3 排除。
+
+### 4.5 問卷資料鏈邊界（2026-08-06 Ben 裁定，證據可複驗）
+
+第 5 步「採對方」的範圍是**題目、題序、面板版面與逐房需求資料模型**（含對方
+設計完整但 UI 死鏈的生圖設備六題——移植時補齊其缺失的 DOM）。**問卷送出之後
+的整條資料鏈保留我方，不得替換**，具體為四件套：
+
+1. `backend/server/shortlist_api.py` ＋ `backend/spatial_data/rag/shortlist.py`
+   ＋ `backend/spatial_data/rag/query_refinement.py`
+   （問卷 → 結構化過濾 → pgvector 語意檢索 → 逐房候選集；含 LLM 前置解析）
+2. `renderRequirementsDigest()` 產出的 `requirements.digest`
+3. 第 8 步送出路徑（`requestPaletteRenders` / `submitRoomRenders` 直綁按鈕，
+   無 render-brief dialog 依賴）
+4. `backend/server/render_providers.py` 的 `build_render_prompt()`
+
+裁定依據：對方同一條鏈實測 12 個斷點（全屋四題 hidden、視覺問卷三重死、
+生圖設備六題無 DOM、RAG 僅重排且預設停用、第 8 步送出為不可達死碼、後端
+無 prompt 組裝）。逐條可複驗指令見
+`docs/backlog/BELLA_TEST1_QUESTIONNAIRE_CHAIN_EVIDENCE.md`——執行整合前請先
+自行跑過，不需採信轉述。
+
+執行時的接縫：對方第 5 步 UI 寫入的 `roomRequirementModel` 欄位名與我方
+一致（同源），`build_needs_from_workflow()` 讀的是 workflow 節點而非 DOM，
+因此替換第 5 步面板不需要動四件套的任何一行；唯生圖設備六題補 DOM 後，
+其欄位要一併進 `free_text`（`shortlist_api.py` 的組字處）與
+`renderRequirementsDigest()`。
 其餘 `/api/catalog/status`、`/api/rag/search/jobs`、`/api/rag/search/jobs/{id}` 我方皆已具備。
 
 `backend/server/intake_service.py`（對方有、我方無，171 行）：移植第 5～7 步時若出現
