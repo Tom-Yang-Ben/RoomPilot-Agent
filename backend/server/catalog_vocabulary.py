@@ -24,6 +24,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Any
+
 
 # 只收「族系在型錄查無任何可用模型、且後備對象語意相同」的對照。實測數量取自
 # 正式 payload（7,958 筆，has_model）：
@@ -64,6 +67,98 @@ FAMILIES_WITHOUT_CATALOG_MODELS: tuple[str, ...] = (
 #   room-divider（17 筆，屏風／隔間櫃）——放在哪個房型、算不算落地家具、要不要
 #       參與動線計算都還沒定案，貿然進自動選件會在開放空間中央長出一道牆。
 MANUAL_ONLY_TYPES: tuple[str, ...] = ("room-divider",)
+
+
+# --------------------------------------------------------------------------
+# 家電邊界
+# --------------------------------------------------------------------------
+# 契約（AGENTS.md）：「冰箱、洗衣機等家電保留為問卷與 AI 生圖上下文，不能進入
+# 2D/3D 自動配置或正式家具 API。」
+#
+# 這張表放在這裡的理由和上面那張一樣：問題出在**用語**，不在邏輯。先前後端唯一
+# 有寫的那條過濾（`selected_furniture_items_from_questionnaire` 內的區域變數）
+# 比對的是 `refrigerator` / `washer` / `range-hood`——型錄從來沒有這三個名字，
+# 實際用語是 `fridge-freezer` / `washing-machine` / `extractor-hood`
+# （`backend/catalog/style_db.py`）。那條過濾之所以看起來有效，是因為正式家具
+# 型錄裡本來就一件家電都沒有，不是因為它擋住了什麼。
+#
+# 值取自 `JSON/furniture/all_furniture_appliance_catalog.json` 中
+# `kind == "appliance"` 的 `type`（245 筆、15 種），扣掉 `decoration` 與 `lamp`
+# ——這兩個同時大量出現在 `kind == "furniture"`（321 / 276 筆），是資料標記重疊
+# 而不是家電；誤收會把擺飾與燈具整族踢出配置。再補上 `microwave` 與 `iron`：
+# 這批快照是 0 筆，但 `style_db._APPLIANCE_HEIGHT_LIMITS` 已經在用這兩個名字。
+CATALOG_APPLIANCE_TYPES: frozenset[str] = frozenset(
+    {
+        "air-conditioner",
+        "air-purifier",
+        "dishwasher",
+        "electric-fan",
+        "extractor-hood",
+        "fridge-freezer",
+        "hair-dryer",
+        "iron",
+        "microwave",
+        "oven",
+        "robot-vacuum",
+        "small-kitchen-appliance",
+        "toaster",
+        "vacuum-cleaner",
+        "washing-machine",
+    }
+)
+
+# 舊 payload 與舊前端仍在用的家電名字。型錄沒有它們，但既有 scene_json 的
+# `selected_furniture` 帶得出來，所以過濾要照收。過濾是「拒絕」的一側，
+# 收成超集是安全的——正式型錄 55 種 `normalized_type` 沒有任何一個是家電，
+# 由 tests/test_appliance_boundary_contract.py 鎖住。
+LEGACY_APPLIANCE_TYPE_ALIASES: frozenset[str] = frozenset(
+    {
+        "appliance",
+        "ceiling-cassette",
+        "dryer",
+        "range-hood",
+        "refrigerator",
+        "washer",
+    }
+)
+
+APPLIANCE_TYPES: frozenset[str] = CATALOG_APPLIANCE_TYPES | LEGACY_APPLIANCE_TYPE_ALIASES
+
+# 型別欄位可能整個缺席（舊 payload、或前端只帶了 model_url），所以交付網址也要
+# 認。三個 marker 與前端 `scene_v2.js` 的 `RETIRED_APPLIANCE_MODEL_MARKERS`
+# 同步，由契約測試綁住。
+APPLIANCE_MODEL_URL_MARKERS: tuple[str, ...] = (
+    "/models/ikea/appliance/",
+    "/fi-fridges-freezers-",
+    "/fi-washing-machines-",
+)
+
+
+def is_appliance_type(value: str | None) -> bool:
+    """這個族系／型別是不是家電。
+
+    比對是精確的：`appliance-cabinet`（電器櫃，櫃體家具）不會被誤判成
+    `appliance`。
+    """
+    return str(value or "").strip().casefold() in APPLIANCE_TYPES
+
+
+def is_appliance_item(item: Mapping[str, Any] | None) -> bool:
+    """型錄品項或 payload 家具是不是家電。
+
+    先看型別欄位，再看交付網址——兩條都認，因為舊 payload 可能只有其中一邊。
+    """
+    if not isinstance(item, Mapping):
+        return False
+
+    for key in ("normalized_type", "type", "catalog_type"):
+        if is_appliance_type(item.get(key)):
+            return True
+
+    model_url = str(item.get("model_url") or item.get("glb_url") or "").casefold()
+    if not model_url:
+        return False
+    return any(marker in model_url for marker in APPLIANCE_MODEL_URL_MARKERS)
 
 
 def catalog_types_for_family(family: str) -> tuple[str, ...]:

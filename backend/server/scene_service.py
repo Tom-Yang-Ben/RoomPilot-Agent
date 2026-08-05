@@ -26,7 +26,11 @@ from ..engine.placement import (
     place_overlay_on_furniture,
 )
 from ..upgrade3d.dxf_parser import parse_dxf_bytes
-from .catalog_vocabulary import catalog_types_for_family
+from .catalog_vocabulary import (
+    catalog_types_for_family,
+    is_appliance_item,
+    is_appliance_type,
+)
 from .style_cards import find_taiwan_style_card
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
@@ -206,6 +210,10 @@ def normalize_required_furniture(raw_items: list[str], space_type: str) -> list[
         if not item:
             continue
         mapped = FURNITURE_ALIASES.get(item, item)
+        # 家電在這裡就攔掉：這是 `required_furniture` 的唯一正規化入口，
+        # LLM 自由輸出與舊存檔都會經過。契約 AGENTS.md：家電不進 2D/3D 自動配置。
+        if is_appliance_type(mapped):
+            continue
         if mapped not in normalized:
             normalized.append(mapped)
 
@@ -558,12 +566,22 @@ def choose_furniture_items(
             if item.get("has_model")
             and item.get("furniture_id") not in used_ids
             and item.get("normalized_type") == catalog_type
+            # 型錄側的保險：家電就算被標成家具型別（或只有交付網址認得出來），
+            # 也不得成為自動配置的候選。
+            and not is_appliance_item(item)
             # 語意檢查一律用「使用者要的族系」判定：走後備時也不得放寬，
             # 否則 bed-frame 退到 bed 會連衣櫃模型都收下。
             and catalog_item_matches_type_semantics(item, requested_type)
         ]
 
     for index, required_type in enumerate(plan.get("required_furniture", [])):
+        # 家電不進自動配置（AGENTS.md）。這裡不記進 `unavailable`——那份清單的語意
+        # 是「型錄找不到可用模型」，會讓人以為補幾個冰箱模型就解決了；家電是刻意
+        # 不進來，不是缺貨。上游 `normalize_required_furniture` 已經攔過一次，這裡
+        # 是給繞過正規化直接組 plan 的呼叫端保底。
+        if is_appliance_type(required_type):
+            continue
+
         # 先精準比對族系本身；查無候選才用型錄實際存在的同義分類（例如型錄只有
         # cabinet-cupboard，沒有 appliance-cabinet／bathroom-vanity／
         # storage-cabinet）。少了這一步，那些族系會整族落空，2D 有家具、3D 卻
@@ -672,20 +690,6 @@ def selected_furniture_items_from_questionnaire(
     # 舊 payload 沒有拆分時兩者同值,fallback 保住既有存檔。
     used_instance_ids: set[str] = set()
 
-    appliance_types = {
-        "refrigerator",
-        "washer",
-        "washing-machine",
-        "dishwasher",
-        "dryer",
-        "oven",
-        "microwave",
-        "range-hood",
-        "air-conditioner",
-        "ceiling-cassette",
-        "appliance",
-    }
-
     for raw in raw_items:
         if not isinstance(raw, dict):
             continue
@@ -698,10 +702,9 @@ def selected_furniture_items_from_questionnaire(
         if not instance_id or instance_id in used_instance_ids:
             continue
 
-        raw_type = str(raw.get("normalized_type") or raw.get("type") or "").casefold()
-        raw_model_url = str(raw.get("model_url") or raw.get("glb_url") or "").casefold()
-        if raw_type in appliance_types or "/models/ikea/appliance/" in raw_model_url:
+        if is_appliance_item(raw):
             # Appliances remain questionnaire/render context, never 2D/3D objects.
+            # 清單與交付網址 marker 一律由 `catalog_vocabulary` 提供，前後端同一份。
             continue
 
         catalog_item = catalog_by_id.get(catalog_furniture_id, {})
@@ -783,15 +786,16 @@ _WALL_ANCHORED_TYPES = {
     "cabinet",
     "desk",
     "mirror-cabinet",
-    "refrigerator",
     "sideboard",
     "sofa",
     "sofa-bed",
     "storage-cabinet",
     "tv-bench",
     "wardrobe",
-    "washer",
 }
+# 註：`appliance-cabinet` 與 `bathroom-vanity` 是櫃體家具（型錄後備到
+# `cabinet-cupboard`），不是家電，刻意留著。先前這裡還有 `refrigerator` 與
+# `washer`，是家電進配置時代的殘留——契約禁止它們進 2D/3D，已移除。
 
 
 def _placement_candidates(
@@ -825,7 +829,7 @@ def _placement_candidates(
         candidates.extend([(right - width / 2 - 30, center_z + 35, -35), (left + width / 2 + 30, center_z + 35, 35)])
     elif item_type in {
         "appliance-cabinet", "bathroom-vanity", "bookcase", "cabinet",
-        "mirror-cabinet", "refrigerator", "storage-cabinet", "wardrobe", "washer",
+        "mirror-cabinet", "storage-cabinet", "wardrobe",
     }:
         candidates.extend([
             (left + depth / 2 + wall_gap, center_z, 90),

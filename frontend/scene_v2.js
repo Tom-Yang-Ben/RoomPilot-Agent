@@ -707,18 +707,32 @@ function sceneDataFromGenerateResponse(payload) {
   return scene;
 }
 
+// 與後端 `backend/server/catalog_vocabulary.py` 的 `APPLIANCE_TYPES` 同一份，
+// 由 tests/test_appliance_boundary_contract.py 綁住。前 15 個是型錄實際用語
+// （`kind == "appliance"` 的 type ＋ style_db 的 microwave/iron），後 6 個是舊
+// payload 仍帶得出來的舊名字。先前這裡只有舊名字那半邊。
 const RETIRED_APPLIANCE_TYPES = new Set([
+  "air-conditioner",
+  "air-purifier",
+  "dishwasher",
+  "electric-fan",
+  "extractor-hood",
+  "fridge-freezer",
+  "hair-dryer",
+  "iron",
+  "microwave",
+  "oven",
+  "robot-vacuum",
+  "small-kitchen-appliance",
+  "toaster",
+  "vacuum-cleaner",
+  "washing-machine",
+  "appliance",
+  "ceiling-cassette",
+  "dryer",
+  "range-hood",
   "refrigerator",
   "washer",
-  "washing-machine",
-  "dishwasher",
-  "dryer",
-  "oven",
-  "microwave",
-  "range-hood",
-  "air-conditioner",
-  "ceiling-cassette",
-  "appliance",
 ]);
 const RETIRED_APPLIANCE_MODEL_MARKERS = [
   "/models/ikea/appliance/",
