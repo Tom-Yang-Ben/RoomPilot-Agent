@@ -1,0 +1,54 @@
+# RoomPilot 本機容器編排。
+#
+#   docker compose up --build
+#   開 http://127.0.0.1:8002
+#
+# PostgreSQL 不在這裡：沿用 Ben 本機 2026-07-31 建好的 17.10 + pgvector 0.8.2
+# （已匯入家具 8,557／資產 34,228／BGE-M3 向量 7,958），容器透過
+# host.docker.internal 連過去，零資料搬遷。改成 compose 內建 DB 的作法見
+# docs/DOCKER.md。
+
+services:
+  app:
+    build: .
+    image: roompilot-app:local
+    ports:
+      - "127.0.0.1:8002:8002"
+
+    # .env 帶進所有 provider 設定與 DB_PASSWORD；下面的 environment 優先覆寫。
+    env_file:
+      - .env
+
+    environment:
+      # 容器裡的 localhost 是容器自己，.env 的 DB_HOST=localhost 會連不到。
+      DB_HOST: host.docker.internal
+      # 路徑改由 volume 決定，繞過 runtime_paths.py 依賴 .git 的 _repository_root()。
+      ROOMPILOT_RUNTIME_DIR: /data/runtime
+
+    # Docker Desktop 以外的環境（Linux daemon）需要這行才解析得到 host.docker.internal。
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      # 執行資料。掉了等於 auth_secret.key 重生（所有 JWT 失效）、
+      # projects.sqlite3 專案不見、uploads 與 renders 成果清空。
+      - roompilot-runtime:/data/runtime
+
+      # 422M 圖片資產唯讀掛入，不進映像；換素材不必重建。
+      - ./frontend/surface_assets:/app/frontend/surface_assets:ro
+      - ./frontend/style_cards:/app/frontend/style_cards:ro
+      - ./frontend/style_images:/app/frontend/style_images:ro
+
+      # PostgreSQL 不可用時的離線 fallback 型錄。實際只讀
+      # JSON/furniture/furniture_official_catagory.json（47M）與
+      # JSON/manifests/glb_upload_all_result.csv（11M）。
+      - ./JSON:/app/JSON:ro
+
+      # 需要第 1 步的範例平面圖與 sample GLB 端點時再打開（116M，唯讀）。
+      # 不掛的話 main.py 的 is_dir() 守衛會讓 sample 清單回空陣列。
+      # - ./testdata:/app/testdata:ro
+
+    restart: unless-stopped
+
+volumes:
+  roompilot-runtime:

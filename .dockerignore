@@ -1,0 +1,44 @@
+# 建置上下文排除清單。刻意寫成白名單思維的反面：預設全帶，逐項剔除大宗與機密。
+# 排掉這些之後 build context 從 ~900M 降到 ~130M。
+
+# 本機環境與版控
+.venv/
+.git/
+.gitattributes
+.pytest_cache/
+**/__pycache__/
+*.pyc
+
+# 機密與本機執行資料。.runtime 內有 auth_secret.key 與 projects.sqlite3，
+# 一律走 volume，絕不燒進映像。
+.env
+.runtime/
+.claude/
+
+# 開發雜物
+.tmp/
+temp/
+*.log
+
+# 測資 116M。backend/server/main.py 的 PLAN_DIR / SAMPLE_GLB_DIR 都有 is_dir()
+# 守衛，缺了只是 sample 清單為空，不影響正式八步流程。
+testdata/
+
+# 前端 422M 圖片資產走唯讀 volume 掛入（見 docker-compose.yml）。
+# 剩下的 frontend/ 程式碼只有 ~2MB，照常進映像。
+frontend/surface_assets/
+frontend/style_cards/
+frontend/style_images/
+
+# JSON/ 是 PostgreSQL 不可用時的離線 fallback 型錄，同樣走唯讀 volume。
+JSON/
+
+# 容器用不到的研發資產
+training/
+rag/
+docs/
+examples/
+tests/
+scripts/
+run_postgres_live_tests.ps1
+dev.ps1

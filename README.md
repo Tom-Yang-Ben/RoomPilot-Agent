@@ -73,6 +73,18 @@ uv sync --extra server --extra vision --extra catalog --extra semantic --group d
 會標示 `area_rules` 而非 `cubicasa_semantic`。torch 會連帶拉進 CUDA 相依套件，
 因此與 OCR 同樣不放進預設環境。
 
+### 方式三：Docker
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }   # 先填 DB_PASSWORD
+docker compose up --build
+```
+
+同樣開 <http://127.0.0.1:8002>。PostgreSQL 不在 compose 內，容器透過
+`host.docker.internal` 連本機那套；映像含 torch CPU 版，房型辨識不退回面積規則。
+體積取捨、與本機環境的行為差異，以及改用 compose 內建 DB 的作法見
+[容器化執行指南](docs/DOCKER.md)。
+
 ## 驗證指令
 
 ```powershell
