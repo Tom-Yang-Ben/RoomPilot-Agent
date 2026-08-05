@@ -3,9 +3,14 @@
 # 與 requirements.txt（團隊 Windows 開發機 baseline）刻意分開，不是重複，理由有二：
 #
 # 1. baseline 同時鎖 opencv-python 與 opencv-python-headless。前者在 slim 容器
-#    缺 libGL.so.1，`import cv2` 當場崩。容器只裝 headless——它提供同一個 cv2
-#    模組，baseline 註解擔心的「torch 生態拉 headless 進來蓋掉 cv2」在這裡不
-#    成立，因為映像裡根本沒有第二份 opencv 可蓋。HoughLinesP 的 <5 鎖照樣有效。
+#    缺 libGL.so.1 與 libxcb.so.1，`import cv2` 當場崩。容器只裝 headless——
+#    它提供同一個 cv2 模組。
+#
+#    ⚠ 「映像裡沒有第二份 opencv 可蓋」不成立（2026-08-05 首次 build 實測）：
+#    rapidocr-onnxruntime 1.4.4 的 metadata 依賴未鎖版本的 opencv-python，pip
+#    會裝進 5.0.0.93 並蓋掉 headless 的 cv2/，HoughLinesP 的 <5 鎖就此失守。
+#    修正在 Dockerfile：裝完後拔掉 GUI build、強制還原 headless，並用一道
+#    建置期 assert 擋主版本 >=5。改動 rapidocr 版本時要重驗這條依賴鏈。
 #
 # 2. selenium / webdriver-manager / tqdm / beautifulsoup4 / requests 是 Kai 的
 #    型錄爬蟲與 AWS metadata 工具。backend/ 與 scripts/ 都沒有 import（2026-08-05

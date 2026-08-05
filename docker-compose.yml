@@ -25,6 +25,12 @@ services:
       # 路徑改由 volume 決定，繞過 runtime_paths.py 依賴 .git 的 _repository_root()。
       ROOMPILOT_RUNTIME_DIR: /data/runtime
 
+      # requirements-container.txt 刻意不裝 sentence-transformers，但 .env 是
+      # true 且會被 env_file 帶進來。不覆寫的話預載執行緒會停在 failed、
+      # /api/rag/search 回 RagDependencyError 而不是乾淨的「已停用」。
+      # 要在容器裡開 RAG：另建一層裝 RAG 套件並掛 ROOMPILOT_RAG_MODEL_CACHE。
+      ROOMPILOT_RAG_ENABLED: "false"
+
     # Docker Desktop 以外的環境（Linux daemon）需要這行才解析得到 host.docker.internal。
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -25,6 +25,21 @@ RUN pip install -r requirements-container.txt
 # 推論，用不到 GPU。版本需與 requirements-rag.txt 的 torch pin 一致。
 RUN pip install --index-url https://download.pytorch.org/whl/cpu torch==2.13.0
 
+# rapidocr-onnxruntime 1.4.4 的 metadata 硬性依賴 opencv-python 且未鎖版本，
+# pip 會解析成 5.0.0.93 裝進來，蓋掉 headless 的 cv2/ 目錄。後果有兩層：
+#   1. GUI build 連結 libGL/libxcb，slim 映像沒有，容器啟動即 ImportError；
+#   2. 就算補上那些 X 函式庫讓它開得起來，跑的也是 OpenCV 5.0——
+#      requirements.txt:22 已寫明 5.0 改了 HoughLinesP 回傳 shape，
+#      門偵測會當場失效。第 2 層不會報錯，比第 1 層危險。
+# 所以裝完後把 GUI build 拔掉，並強制還原 headless 的 cv2/。rapidocr 只做
+# `import cv2`，拿到 headless 同樣能跑；它的 metadata 會顯示未滿足，是預期的。
+RUN pip uninstall -y opencv-python \
+ && pip install --no-deps --force-reinstall opencv-python-headless==4.13.0.92
+
+# 建置期就擋下回歸：cv2 必須 import 得動且主版本 <5。這兩件事任一失守都會在
+# 執行期變成難查的門偵測錯誤，不如在這裡直接讓 build 失敗。
+RUN python -c "import cv2, sys; v=cv2.__version__; print('[check] cv2', v); sys.exit(0 if int(v.split('.')[0]) < 5 else 1)"
+
 # DINOv2 骨幹 88MB 在建置期預抓，執行期就不必連 torch.hub（離線部署前提）。
 # 抓不到不擋建置：backend/floorplan/room_classifier.py 會印警告並把房型判斷
 # 退回面積規則，服務照常起得來，只是 own_eval 72 房準確度從 90.3% 掉下來。
