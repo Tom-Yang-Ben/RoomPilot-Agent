@@ -21,10 +21,17 @@ origin: RoomPilot-Agent 專案原生
 本 skill 補的是**第四種出口**：一份排版完整、可直接列印成 PDF 交給客戶或廠商的預算書，
 外加一個既有管線做不到的東西——**台灣市場行情參考區塊**。
 
-行情資料（`taiwan_renovation_price_seed.json`）早就在 repo 裡，但**沒有任何程式讀它**。
-不接進 `CostService` 是刻意的：依 `PRICE_AND_PRODUCTIVITY_POLICY.md` 的價格優先順序，
-它屬「公開資料參考」，而政策明文「網路文章價格 ≠ 廠商正式報價」。所以它只能**並列參考**，
-不能進小計——這也讓本 skill 完全不必動 `ReportPayload` 契約。
+行情資料（`backend/catalog/data/taiwan_renovation_price_seed.json`）已於 Phase 4 進了
+PostgreSQL——`scripts/runtime_catalog/import_runtime_catalogs_to_postgres.py` 把它寫進
+`roompilot.renovation_cost_sources` 與 `renovation_cost_rates`，對外經
+`roompilot.renovation_cost_catalog_current` 供讀。但**造價資料至今沒有 runtime 消費端**：
+`backend/server/engineering/cost.py` 走的是 `knowledge.price_records()`，完全不碰這組表
+（`tests/test_runtime_catalog_phase4.py` 有註記，重新接上時要恢復該處的 delegate 斷言）。
+
+也就是說，行情數字進得了資料庫，卻到不了任何一份交付文件。本 skill 直接讀 JSON 種子檔補上
+這段落差。不接進成本計算是刻意的：依 `backend/catalog/data/engineering/PRICE_AND_PRODUCTIVITY_POLICY.md`
+的價格優先順序，它屬「公開資料參考」，而政策明文「網路文章價格 ≠ 廠商正式報價」。所以它只能
+**並列參考**，不能進小計——這也讓本 skill 完全不必動 `ReportPayload` 契約。
 
 ## 與商業提案的分工
 

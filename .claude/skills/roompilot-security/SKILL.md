@@ -4,12 +4,12 @@ description: RoomPilot 專屬資安工程 skill — 自我確認、補充、加�
 origin: RoomPilot-Agent 專案原生
 ---
 
-<!-- 繁中：本 skill 是 RoomPilot 目前唯一的資安工程邏輯來源。泛用 OWASP 知識載入 sunnydata-security；本檔提供貼合本 repo 實際程式碼的攻擊面地圖、已知風險基線、自我稽核腳本與本技術棧修補範式。 -->
+<!-- 繁中：本 skill 是 RoomPilot 目前唯一的資安工程邏輯來源，內容自足，不依賴外部資安 skill。本檔提供貼合本 repo 實際程式碼的攻擊面地圖、已知風險基線、自我稽核腳本與本技術棧修補範式。 -->
 
 # RoomPilot Security
 
-> 基線規則：`.claude/rules/security.md`（每次 commit 前必檢）
-> 泛用 OWASP 分類與跨語言清單：載入 `sunnydata-security`
+> 修改邊界與驗證門檻：`AGENTS.md`、`docs/TEAM_AI_OWNERSHIP.md`（動手前必讀）
+> 泛用 OWASP 分類與跨語言清單：本 repo 未內建，需要時走 `/security-review`
 > 本 skill 專責：**RoomPilot 這個 repo 的實際攻擊面**與可執行的補強
 
 ## 這個 skill 存在的理由
@@ -152,7 +152,7 @@ bash .claude/skills/roompilot-security/audit.sh --staged   # 只掃 staged 差�
 
 ## 報告輸出
 
-Full report 依 `.claude/rules/subagent-context.md`，若由 security-infrastructure-auditor 產出則寫入 `.claude/context/security/`。結構：
+Full report 直接輸出給使用者，不寫入 repo（本 repo 沒有 `.claude/context/` 這類落地目錄；`.gitignore` 也只放行 `.claude/skills/`）。結構：
 - 執行摘要（2-3 句：整體姿態 + 最高風險）
 - 依嚴重度分組（Critical → High → Medium → Low），每項：R# / OWASP / 一句影響 / `file:line` / 建議修補
 - 對照基線標示「新風險 / 惡化 / 維持 / 已改善」
