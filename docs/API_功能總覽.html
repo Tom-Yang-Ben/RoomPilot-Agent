@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoomPilot API 功能總覽</title>
+<style>
+  :root { --get:#2f855a; --post:#2b6cb0; --put:#b7791f; }
+  body { font-family: "Segoe UI", "Microsoft JhengHei", sans-serif; margin: 0; background:#f7f8fa; color:#1a202c; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.15rem; margin-top: 2.2em; border-bottom: 2px solid #e2e8f0; padding-bottom: .3em; }
+  .meta { color:#4a5568; font-size:.9rem; }
+  table { width:100%; border-collapse: collapse; background:#fff; font-size:.9rem; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #edf2f7; vertical-align:top; }
+  th { background:#edf2f7; white-space:nowrap; }
+  code { background:#edf2f7; padding:1px 5px; border-radius:4px; font-size:.85em; }
+  td code { background:#f1f5f9; }
+  .m { display:inline-block; min-width:44px; text-align:center; font-weight:600; font-size:.75rem; color:#fff; border-radius:4px; padding:2px 6px; }
+  .GET{background:var(--get)} .POST{background:var(--post)} .PUT{background:var(--put)}
+  .loc { color:#718096; white-space:nowrap; font-size:.82rem; }
+  #q { width:100%; box-sizing:border-box; padding:10px 12px; font-size:1rem; border:1px solid #cbd5e0; border-radius:8px; margin:12px 0 4px; }
+  .flow { background:#fff; padding:12px 14px; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,.06); line-height:1.9; }
+  .flow code { background:#ebf4ff; }
+  ul.notes { font-size:.9rem; color:#2d3748; }
+  tr.hide { display:none; }
+  h2.hide { display:none; }
+  .badge-note { background:#fffaf0; border:1px solid #fbd38d; padding:2px 6px; border-radius:4px; font-size:.78rem; color:#7b341e; }
+</style>
+</head>
+<body>
+<main>
+<h1>RoomPilot API 功能總覽</h1>
+<p class="meta">整理日期：2026-08-01（分支 <code>yen</code>）。所有端點皆定義於 <code>backend/server/main.py</code>，無外部 APIRouter、無 WebSocket。共 <strong>44 個端點</strong>：4 個頁面路由 + 40 個 API。</p>
+
+<ul class="notes">
+  <li><strong>框架</strong>：FastAPI；<code>startup</code> 時執行 <code>warm_catalog_cache()</code> 預熱型錄快取。</li>
+  <li><strong>靜態掛載</strong>：<code>/static</code> → <code>backend/server/static</code>（CSS/JS/HTML/GLB 樣本）；<code>/docs-assets</code> → <code>static/moodboard_assets</code>（moodboard 與色卡圖）。</li>
+  <li><strong>大小限制</strong>：渲染 PNG 上限 20 MB；workflow payload 上限 2 MB。平面圖支援 <code>.dxf</code>/<code>.png</code>/<code>.jpg</code>/<code>.jpeg</code>。</li>
+  <li><strong>單位規則</strong>：跨模組幾何一律公分（<code>_cm</code> 欄位），payload 帶 <code>coordinate_unit: "cm"</code> 與 <code>schema_version</code>；面積用 <code>_m2</code>。</li>
+</ul>
+
+<h2>工作流程步驟（WORKFLOW_STEPS）</h2>
+<p class="flow"><code>project</code> → <code>upload</code> → <code>recognition</code> → <code>calibration</code> → <code>space_confirmation</code> → <code>requirements</code> → <code>layout_2d</code> → <code>white_model_3d</code> → <code>realistic_3d</code> → <code>proposal_review</code> → <code>ai_render</code></p>
+
+<input id="q" type="search" placeholder="篩選：輸入路由、功能關鍵字或方法（如 POST、scene、渲染）…">
+
+<h2>1. 頁面路由</h2>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m GET">GET</span></td><td><code>/</code></td><td class="loc">main.py:1391</td><td>首頁（index.html）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/styles</code></td><td class="loc">main.py:1396</td><td>風格頁</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/library</code></td><td class="loc">main.py:1401</td><td>家具型錄頁</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/scene</code></td><td class="loc">main.py:1406</td><td>3D 場景編輯頁（no-cache）</td></tr>
+</tbody></table>
+
+<h2>2. 專案管理</h2>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects</code>（201）</td><td class="loc">main.py:1476</td><td>建立新專案。Body：<code>{name, notes}</code> → <code>{project}</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}</code></td><td class="loc">main.py:1492</td><td>取得專案資料</td></tr>
+<tr><td><span class="m PUT">PUT</span></td><td><code>/api/projects/{project_id}/workflow</code></td><td class="loc">main.py:1497</td><td>保存工作流程狀態；以 <code>expected_revision</code>、<code>base_updated_at</code> 做樂觀鎖防衝突</td></tr>
+</tbody></table>
+
+<h2>3. 平面圖（專案綁定）</h2>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/floorplan</code>（201）</td><td class="loc">main.py:1558</td><td>上傳平面圖（multipart，DXF/PNG/JPG）+ <code>expected_revision</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/floorplan/source</code></td><td class="loc">main.py:1607</td><td>下載已上傳的平面圖原始檔</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/floorplan/analyze</code></td><td class="loc">main.py:1762</td><td>執行平面圖辨識（Cody 影像引擎或 DXF 引擎）→ <code>{analysis, geometry_engine}</code></td></tr>
+</tbody></table>
+
+<h2>4. 渲染輸出與遠端渲染</h2>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/renders</code>（201）</td><td class="loc">main.py:1625</td><td>上傳最終 PNG 渲染（瀏覽器截圖），附版本欄位 <code>white_model_version</code>、<code>viewpoint_version</code>、<code>style_version</code>、<code>style_card_id</code>、<code>provider</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/renders</code></td><td class="loc">main.py:1688</td><td>列出專案的所有 PNG 輸出</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/renders/{render_id}/png</code></td><td class="loc">main.py:1699</td><td>下載指定 PNG 渲染</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/render-provider/status</code></td><td class="loc">main.py:1716</td><td>查詢遠端渲染服務狀態</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/render-jobs</code>（202）</td><td class="loc">main.py:1721</td><td>提交遠端 AI 渲染任務（色卡對比／正式渲染）→ <code>{jobs}</code>。契約：<code>docs/contracts/REMOTE_RENDER_CONTRACT.md</code></td></tr>
+</tbody></table>
+
+<h2>5. Agent 需求訪談與家具選件</h2>
+<p class="meta">契約：<code>docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md</code></p>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/agent/intake/start</code></td><td class="loc">main.py:2081</td><td>啟動需求訪談。回傳 <code>{session_id, mode, step, question, client_brief, ready_for_confirmation}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/agent/intake/answer</code></td><td class="loc">main.py:2088</td><td>進行一輪訪談（可選 LLM，<code>llm_selection</code>）。回傳新的 <code>step</code>、<code>question</code>、<code>reply</code>、<code>client_brief</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/agent/furniture/select</code></td><td class="loc">main.py:2185</td><td>家具選件與規則驗證（LLM 或本地 fallback）。Body：<code>{rooms, offers, style_id, context, llm_selection}</code> → <code>{source, model, warnings, rooms[{room_id, items}]}</code></td></tr>
+</tbody></table>
+
+<h2>6. 場景生成與配置</h2>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/generate</code></td><td class="loc">main.py:2249</td><td>生成 3D 場景：家具選件 + AN 擺放引擎。回傳 <code>{selected_furniture, scene_objects, placement_resolution_report, placement}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/layout</code></td><td class="loc">main.py:2295</td><td>使用者編輯後重算場景配置 → <code>{scene_objects}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/decorate</code></td><td class="loc">main.py:2414</td><td>依風格自動加入軟裝（地毯／植栽／燈具／布簾）→ <code>{scene_objects, decor_summary}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/validate</code></td><td class="loc">main.py:2568</td><td>驗證單件家具拖曳位置（碰撞／淨空）→ <code>{valid, message, conflicts}</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/scene/provider-status</code></td><td class="loc">main.py:2076</td><td>查詢 OpenRouter／LLM 服務狀態</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/scene/bootstrap</code></td><td class="loc">main.py:1939</td><td>場景編輯初始化資料 → <code>{styles, taiwan_style_cards, surface_catalog, catalog_status}</code></td></tr>
+</tbody></table>
+
+<h2>7. 家具型錄</h2>
+<p class="meta">契約：<code>docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md</code></p>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture</code></td><td class="loc">main.py:1983</td><td>型錄搜尋（分頁／篩選）。Query：<code>style</code>、<code>group</code>、<code>type</code>、<code>q</code>、<code>page</code>、<code>page_size</code>、<code>has_model</code>、<code>detail</code>、<code>color</code>、<code>material</code>、<code>size</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/model</code></td><td class="loc">main.py:2582</td><td>下載家具 GLB（本機直傳或 CloudFront 重定向）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/model.gltf</code></td><td class="loc">main.py:2588</td><td>將 GLB 拆為 glTF JSON + 分離 buffer（本機 GLB 用）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/buffer.bin</code></td><td class="loc">main.py:2597</td><td>下載 GLB binary buffer</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/images/{image_index}</code></td><td class="loc">main.py:2607</td><td>下載 GLB 內嵌貼圖（WebP 自動轉 PNG）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/sample-furniture</code></td><td class="loc">main.py:2732</td><td>列出範例 GLB 檔名</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{name}</code></td><td class="loc">main.py:2748</td><td>下載範例 GLB（<code>.glb</code> 結尾）或家具詳情頁 payload。<span class="badge-note">與上方 {furniture_id} 系列路由共用前綴，靠註冊順序與路徑後綴區分</span></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/catalog/status</code></td><td class="loc">main.py:1898</td><td>型錄提供者狀態（本機／CloudFront／AWS）→ <code>{furniture, surfaces, doors, style_cards}</code></td></tr>
+</tbody></table>
+
+<h2>8. 風格與站點資料</h2>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/home-data</code></td><td class="loc">main.py:1903</td><td>首頁資料（統計／前 6 風格／色卡）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/styles</code></td><td class="loc">main.py:1921</td><td>全風格與統計（含表面型錄、各風格家具數）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/site-data</code></td><td class="loc">main.py:1861</td><td>完整站點資料（不含家具清單）</td></tr>
+</tbody></table>
+
+<h2>9. 問卷圖像系統</h2>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/questionnaire/visual-catalog</code></td><td class="loc">main.py:1949</td><td>問卷視覺型錄（含圖像索引）。Query：<code>space_type</code>、<code>ready_only</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/questionnaire/visual-images/{image_id}</code></td><td class="loc">main.py:1972</td><td>下載單張問卷圖像</td></tr>
+</tbody></table>
+
+<h2>10. 平面圖分析（3D 編輯器用，非專案綁定）</h2>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/plans</code></td><td class="loc">main.py:2622</td><td>列出可用平面圖</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/plan</code></td><td class="loc">main.py:2627</td><td>解析指定 DXF。Query：<code>name</code>、<code>scale_m</code>、<code>thickness</code>、<code>height</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/upload</code></td><td class="loc">main.py:2643</td><td>直接上傳並解析 DXF</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/floorplan/analyze</code></td><td class="loc">main.py:2666</td><td>新版平面圖分析（Cody + 手動修正）。multipart：檔案 + <code>calibration_json</code>、<code>ocr_json</code>、<code>geometry_json</code>、<code>observed_utilities_json</code>、<code>brief_json</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/floorplan/confirm</code></td><td class="loc">main.py:2707</td><td>確認分析結果並套用使用者修正 → <code>{confirmed_floorplan}</code></td></tr>
+</tbody></table>
+
+<h2>11. 其他</h2>
+<table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/cost/estimate</code></td><td class="loc">main.py:2720</td><td>概念工程概算（台灣公開行情）。Body：<code>{items}</code> → <code>{estimate, summary}</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/floorplan/sample/630</code></td><td class="loc">main.py:1850</td><td>下載示範平面圖 PNG</td></tr>
+</tbody></table>
+
+<h2>相關契約文件對照</h2>
+<table><thead><tr><th>契約文件</th><th>涵蓋範圍</th></tr></thead><tbody>
+<tr><td><code>docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md</code></td><td><code>/api/agent/*</code>、<code>/api/scene/generate</code> 欄位與 fallback 規則</td></tr>
+<tr><td><code>docs/contracts/REMOTE_RENDER_CONTRACT.md</code></td><td><code>/api/projects/{id}/render-jobs</code> 遠端渲染</td></tr>
+<tr><td><code>docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md</code></td><td>家具型錄與模型交付</td></tr>
+<tr><td><code>docs/contracts/LAYOUT_EVALUATION_SCHEMA.md</code></td><td>擺放與驗證規則（<code>/api/scene/layout</code>、<code>/api/scene/validate</code>）</td></tr>
+<tr><td><code>docs/contracts/FURNITURE_ENGINEERING_RULES.md</code></td><td>家具工程規則</td></tr>
+<tr><td><code>docs/contracts/STYLEPACK_RENDERING_CONTRACT.md</code></td><td>StylePack 即時渲染</td></tr>
+</tbody></table>
+
+</main>
+<script>
+// ponytail: 純前端關鍵字篩選，隱藏不符列與整段落空的標題
+document.getElementById('q').addEventListener('input', function () {
+  var q = this.value.trim().toLowerCase();
+  document.querySelectorAll('main > table').forEach(function (tbl) {
+    var any = false;
+    tbl.querySelectorAll('tbody tr').forEach(function (tr) {
+      var hit = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      tr.classList.toggle('hide', !hit);
+      if (hit) any = true;
+    });
+    var h = tbl.previousElementSibling;
+    while (h && h.tagName !== 'H2') h = h.previousElementSibling;
+    if (h) h.classList.toggle('hide', !any);
+    tbl.style.display = any ? '' : 'none';
+  });
+});
+</script>
+</body>
+</html>

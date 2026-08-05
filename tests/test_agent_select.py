@@ -142,9 +142,22 @@ def test_parse_drops_bed_in_living_room():
     assert "bed-x" not in ids and "sofa-1" in ids
 
 
-def test_parse_drops_companion_without_anchor():
+def test_parse_adds_missing_essential_and_saves_companions():
+    """客廳基礎家具保底:LLM 漏選沙發 → 自動補第一張有模型的沙發,
+    茶几/電視櫃因此有主件可貼,不再被整批丟棄。"""
     raw = {"selections": [_sel("r-liv", "ct-1", "tv-1", "book-1")]}   # 沒選沙發
     result = parse_selections(raw, _rooms(), _offers())
+    ids = [s.item["furniture_id"] for s in result["r-liv"]]
+    assert "sofa-1" in ids                 # 基礎家具自動補
+    assert {"ct-1", "tv-1", "book-1"} <= set(ids)
+
+
+def test_parse_drops_companion_when_essential_unavailable():
+    """候選裡連沙發都沒有 → 無從補,寧缺勿亂仍然生效:副件整批退場。"""
+    offers = _offers()
+    offers["r-liv"] = [c for c in offers["r-liv"] if "sofa" not in c["furniture_id"]]
+    raw = {"selections": [_sel("r-liv", "ct-1", "tv-1", "book-1")]}
+    result = parse_selections(raw, _rooms(), offers)
     ids = [s.item["furniture_id"] for s in result["r-liv"]]
     assert ids == ["book-1"]               # 茶几/電視櫃缺主件 → 潛規則丟棄
 
@@ -177,6 +190,51 @@ def test_parse_all_invalid_raises():
         parse_selections(raw, _rooms(), _offers())
     with pytest.raises(SelectionParseError):
         parse_selections({"no_selections": True}, _rooms(), _offers())
+
+
+def _kitchen_rooms():
+    return [{"room_id": "r-kit", "room_type": "kitchen", "width_cm": 300, "depth_cm": 280,
+             "required_furniture_ids": []}]
+
+
+def _kitchen_offers(table_width=160):
+    return {
+        "r-kit": [
+            _cand("table-1", "dining-table", table_width, 90),
+            _cand("chair-1", "dining-chair", 45, 50),
+            _cand("side-1", "sideboard", 120, 40),
+        ],
+    }
+
+
+def test_parse_dining_table_gets_a_full_chair_set():
+    """有餐桌就要成套餐椅:漏選餐椅 → 自動補;四人桌(寬 ≥140)配 4 張。"""
+    raw = {"selections": [_sel("r-kit", "table-1", "side-1")]}
+    result = parse_selections(raw, _kitchen_rooms(), _kitchen_offers())
+    by_id = {s.item["furniture_id"]: s.count for s in result["r-kit"]}
+    assert by_id.get("chair-1") == 4
+
+
+def test_parse_single_dining_chair_is_topped_up():
+    """廚房絕不會只有一張椅子:選了 1 張 → 依桌寬補足(小桌至少 2 張)。"""
+    raw = {"selections": [_sel("r-kit", "table-1", {"furniture_id": "chair-1", "count": 1})]}
+    result = parse_selections(raw, _kitchen_rooms(), _kitchen_offers(table_width=120))
+    by_id = {s.item["furniture_id"]: s.count for s in result["r-kit"]}
+    assert by_id.get("chair-1") == 2
+
+
+def test_parse_guarantees_a_bed_for_answered_bedrooms():
+    """臥室一定要有床:LLM 有回答臥室但漏了床 → 從候選自動補第一張床;
+    候選沒有床時無從補,結果維持原樣(交擺位護欄升級)。"""
+    raw = {"selections": [_sel("r-bed", "ward-1")]}
+    result = parse_selections(raw, _rooms(), _offers())
+    ids = [s.item["furniture_id"] for s in result["r-bed"]]
+    assert "bed-1" in ids and "ward-1" in ids
+
+    offers = _offers()
+    offers["r-bed"] = [c for c in offers["r-bed"] if c["furniture_id"] != "bed-1"]
+    result = parse_selections(raw, _rooms(), offers)
+    assert [s.item["furniture_id"] for s in result["r-bed"]] == ["ward-1"]
 
 
 # ---------- request_selections ----------

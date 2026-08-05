@@ -8,6 +8,7 @@ from test_scene_workflow import ROOT, run_workflow_script
 STATIC = ROOT / "backend" / "server" / "static"
 PBR_MODULE = STATIC / "scene_pbr_contracts.js"
 ARCHITECTURE_MODULE = STATIC / "scene_architecture.js"
+SHELL_MODULE = STATIC / "scene_shell_geometry.js"
 VIEWER = STATIC / "scene_viewer.js"
 STYLE_PACKS_MODULE = STATIC / "scene_style_packs.js"
 
@@ -547,15 +548,32 @@ def test_gap_window_has_no_usable_span_inside_the_split_host_wall() -> None:
 
 
 def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
-    viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
-    ).read_text(encoding="utf-8")
+    # 沒有落在任何牆段上的窗(第 4 步切分後的殘段)仍必須出玻璃與補實件:
+    # SceneModel 的開口件一律落在開口自身線段上,不依賴 host 牆。
+    result = run_workflow_script(
+        f"""
+        import {{ buildSceneModel, shellConfig }} from {json.dumps(SHELL_MODULE.as_uri())};
+        const model = buildSceneModel({{
+          walls: [{{ id: "wall-1", start: {{x: -200, z: 0}}, end: {{x: 200, z: 0}} }}],
+          windows: [{{
+            id: "w-detached", sill_height_cm: 90, height_cm: 120,
+            start: {{x: 0, z: 400}}, end: {{x: 150, z: 400}},
+          }}],
+        }}, shellConfig({{}}));
+        console.log(JSON.stringify(model.boxes
+          .filter((box) => box.meta.openingId === "w-detached")
+          .map((box) => box.role)));
+        """
+    )
+    # 縫內(未 hosted)開口除玻璃與補實外,還有自己的頂蓋補齊頂線。
+    assert set(result) == {
+        "window-glass", "window-sill-infill", "window-head-infill", "top-cap",
+    }
 
-    assert "const missingWindows = windowSegments.filter" in viewer
-    assert "const missingDoors = doorSegments.filter((opening) =>" in viewer
-    assert "!renderedOpenings.has(openingId)" in viewer
-    assert "openingWallInterval(segment, opening, wallThickness, 50)" in viewer
-    assert "missingDoors,\n        missingWindows," in viewer
+    viewer = VIEWER.read_text(encoding="utf-8")
+    assert "buildStandaloneOpeningAssemblies(" in viewer
+    assert "const doorSegments = shellModel.openings.doors" in viewer
+    assert "const windowSegments = shellModel.openings.windows" in viewer
 
 
 def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
@@ -583,11 +601,30 @@ def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
 
     assert result == {"openingEdge": True, "realCorner": False}
 
-    viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
-    ).read_text(encoding="utf-8")
+    # 橋接補牆不得跨過開口縫:縫中央有門/窗時 junction-fill 必須讓路。
+    bridge = run_workflow_script(
+        f"""
+        import {{ buildSceneModel, shellConfig }} from {json.dumps(SHELL_MODULE.as_uri())};
+        const cfg = shellConfig({{}});
+        const walls = (doorAtGap) => ({{
+          walls: [
+            {{ id: "wall-a", start: {{x: -300, z: 0}}, end: {{x: -10, z: 0}} }},
+            {{ id: "wall-b", start: {{x: 10, z: 0}}, end: {{x: 300, z: 0}} }},
+          ],
+          doors: doorAtGap
+            ? [{{ id: "door-1", topology_gap: true, start: {{x: -10, z: 0}}, end: {{x: 10, z: 0}} }}]
+            : [],
+        }});
+        const openGap = buildSceneModel(walls(false), cfg);
+        const doorGap = buildSceneModel(walls(true), cfg);
+        const fills = (model) => model.boxes.filter((box) => box.role === "junction-fill").length;
+        console.log(JSON.stringify({{ open: fills(openGap), door: fills(doorGap) }}));
+        """
+    )
+    assert bridge == {"open": 1, "door": 0}
+
+    viewer = VIEWER.read_text(encoding="utf-8")
     assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in viewer
-    assert "new THREE.BoxGeometry(capLength, 2.5, wallThickness)" in viewer
     assert "openingWidth + 1.2" not in viewer
     assert "openingWidth + wallThickness * 2.1" not in viewer
 
@@ -623,11 +660,14 @@ def test_gap_window_uses_its_own_host_wall_for_surface_material() -> None:
     assert result["id"] == "wall-14"
     assert result["material_id"] == "white-wall"
 
-    viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
-    ).read_text(encoding="utf-8")
-    assert "wallSegmentForOpening(segments, opening, wallThickness)" in viewer
-    assert "wallMaterial(hostSegment || segments[0] || {})" in viewer
+    # 開口補實件以 openingId 找回開口線段取材質(resolver 依中點採樣房間),
+    # 不得退回 segments[0] 之類與開口無關的牆。
+    viewer = VIEWER.read_text(encoding="utf-8")
+    shell_boxes = viewer.split("function buildShellBoxes", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+    assert "openingById.get(String(desc.meta?.openingId" in shell_boxes
+    assert "return wallMaterial(source).clone()" in shell_boxes
     assert "wallMaterial(segments[0] || {})" not in viewer
 
 
@@ -647,18 +687,15 @@ def test_gap_window_wall_sections_end_flush_with_the_opening() -> None:
         "internalSeam": {"from": 0, "to": 50.6},
     }
 
-    viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
-    ).read_text(encoding="utf-8")
-    wall_builder = viewer.split("function buildSegmentWalls", 1)[1].split(
-        "function buildOpeningAssembly", 1
-    )[0]
+    # 牆段切分改由純函式層完成:消縫仍走 wallSectionSpan。
+    shell = SHELL_MODULE.read_text(encoding="utf-8")
+    assert "wallSectionSpan(section.from, section.to, frame.length)" in shell
+
+    viewer = VIEWER.read_text(encoding="utf-8")
     standalone = viewer.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
         "function buildStructuralMembers", 1
     )[0]
-
-    assert "const span = wallSectionSpan(from, to, length)" in wall_builder
-    assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in wall_builder
+    assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in viewer
     assert "openingWidth + 1.2" not in standalone
 
 
@@ -723,16 +760,33 @@ def test_realistic_views_hide_planning_circulation_overlay() -> None:
     assert "configureCirculationForView(mode)" in source
 
 
-def test_floor_is_clipped_to_cody_floorplan_exterior() -> None:
-    source = VIEWER.read_text(encoding="utf-8")
+def test_floor_is_a_structure_bbox_slab_from_scene_model() -> None:
+    # 依 docs/3D房屋場景建置流程.md §5.6:基底樓板 = 結構 bbox 各向外擴
+    # floorMarginCm 的薄盒(y ∈ [-厚,0]),門檻/牆底破口由全覆蓋保證;
+    # 逐房材質 override 仍用房間多邊形(createRoomSurfaceOverrides 不變)。
+    result = run_workflow_script(
+        f"""
+        import {{ buildSceneModel, shellConfig }} from {json.dumps(SHELL_MODULE.as_uri())};
+        const model = buildSceneModel({{
+          walls: [
+            {{ id: "wall-1", start: {{x: -200, z: -150}}, end: {{x: 200, z: -150}} }},
+            {{ id: "wall-2", start: {{x: 200, z: -150}}, end: {{x: 200, z: 150}} }},
+          ],
+        }}, shellConfig({{}}));
+        console.log(JSON.stringify(model.floor));
+        """
+    )
+    assert result["kind"] == "floor"
+    assert result["center"] == [0, -2.5, 0]
+    assert result["size"] == [500, 5, 400]
 
-    assert "function createFloorGeometry" in source
-    assert "synchronizedFloorRegions(floorplan, widthCm, depthCm)" in source
-    # 基底樓板外擴 14cm 蓋住牆帶與門檻;逐房材質 override 仍用未外擴的房間環
-    assert "expandedFloorSlabRing(region.exterior, FLOOR_SLAB_BLEED_CM)" in source
-    assert "const FLOOR_SLAB_BLEED_CM = 14" in source
-    assert "new THREE.ShapeGeometry(shapes)" in source
-    assert "createFloorGeometry(sceneData.floorplan, widthCm, depthCm)" in source
+    source = VIEWER.read_text(encoding="utf-8")
+    assert "if (shellModel.floor && !catalogThumbnailMode)" in source
+    assert "shellModel.floor.size[0]" in source
+    assert "shellModel.floor.center[0]" in source
+    assert "createRoomSurfaceOverrides(roomGroup, sceneData)" in source
+    assert "createFloorGeometry" not in source
+    assert "FLOOR_SLAB_BLEED_CM" not in source
 
 
 def test_dxf_wall_mass_is_extruded_before_segment_fallback() -> None:
@@ -740,20 +794,24 @@ def test_dxf_wall_mass_is_extruded_before_segment_fallback() -> None:
 
     assert "function buildWallMass" in source
     assert "new THREE.ExtrudeGeometry" in source
-    assert "floorplan?.wall_polys || []" in source
+    assert "wallPolygons: sceneData.floorplan?.wall_polys || []" in source
     assert "const builtWallMass =" in source
-    assert "? buildWallMass(" in source
-    assert "if (!builtWallMass && !singleRoomMode" in source
+    assert "? buildWallMass(roomGroup, shellModel, wallMaterial)" in source
+    assert "} else if (!builtWallMass && !singleRoomMode" in source
     assert 'roompilotWallHeightAxis = "z"' in source
     assert 'heightAxis === "z"' in source
-    assert '"door-wall-header"' in source
-    assert '"window-wall-sill"' in source
-    assert '"window-wall-header"' in source
     assert "function buildWallMassTopCaps" in source
     assert "new THREE.ShapeGeometry(shape)" in source
     assert '"continuous-wall-mass-top-cap"' in source
     assert "buildWallMassTopCaps(" in source
     assert "buildContinuousWallTopCaps(" not in source
+
+    # 開口補實件的角色移入純函式層(路徑 A 窗台/窗頂、門楣;路徑 B openingInfill)。
+    shell = SHELL_MODULE.read_text(encoding="utf-8")
+    assert '"window-sill-infill"' in shell
+    assert '"window-head-infill"' in shell
+    assert '"door-lintel"' in shell
+    assert '"opening-infill-wall"' in shell
 
 
 def test_orthographic_dollhouse_avoids_gtao_projection_artifacts() -> None:

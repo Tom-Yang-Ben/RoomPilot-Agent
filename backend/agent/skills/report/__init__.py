@@ -16,6 +16,7 @@ from ...documents import (
     ValidationReportDoc,
 )
 from ...llm import LLMGateway
+from ...tools.design_knowledge import selection_digest
 from ...tools.genpic_info import furniture_lines
 from ...tools.read_docs import ReadDocsTool
 from ...tools.render_pdf import RenderPdfTool
@@ -23,6 +24,7 @@ from ..base import ask_llm_json, load_skill_doc
 
 DOC = load_skill_doc(Path(__file__).parent)
 INTRO_SPEC = DOC.spec("intro")
+RATIONALE_SPEC = DOC.spec("rationale")
 
 
 def _looks_like_b64(value: str) -> bool:
@@ -52,6 +54,7 @@ class ReportSkill:
 
         manual = DesignManualDoc(title="RoomPilot 設計手冊")
         manual.sections.append(self._intro_section(requirements, layout, scene))
+        manual.sections.append(self._rationale_section(requirements, layout, scene))
         manual.sections.append(self._layout_section(layout, scene))
         manual.sections.append(self._furniture_section(layout, scene))
         manual.sections.append(self._material_section(requirements, choices))
@@ -120,6 +123,63 @@ class ReportSkill:
             body_lines.append(f"家具總預算參考：{requirements.budget_total:,} 元")
         return ManualSection(heading="一、專案與需求摘要", body="\n".join(body_lines))
 
+    def _rationale_section(
+        self, requirements: RequirementDoc, layout: LayoutDoc, scene: SceneDoc
+    ) -> ManualSection:
+        # 每房收集選件理由（reason／hint.note，由 place_furniture 附進 placed row）。
+        rooms_payload: list[dict] = []
+        reasons_by_room: dict[str, list[str]] = {}
+        for room in layout.rooms:
+            reasons = []
+            for row in scene.placed_in(room.room_id):
+                label = str(row.get("name") or row.get("id") or "家具")
+                detail = (
+                    str(row.get("reason") or "").strip()
+                    or str(row.get("hint_note") or "").strip()
+                )
+                if detail:
+                    reasons.append(f"{label}：{detail}")
+            if reasons:
+                reasons_by_room[room.name] = reasons
+                rooms_payload.append({"name": room.name, "reasons": reasons})
+
+        # deterministic 底稿：每房把選件理由組成一段（LLM 不可用時直接用）。
+        texts = {
+            name: "本空間依焦點、動線、尺度與視覺平衡原則配置——" + "；".join(reasons) + "。"
+            for name, reasons in reasons_by_room.items()
+        }
+        if rooms_payload:
+            llm_out = ask_llm_json(
+                self._gateway,
+                RATIONALE_SPEC,
+                json.dumps(
+                    {
+                        "styles": requirements.styles,
+                        "principles": selection_digest(),
+                        "rooms": rooms_payload,
+                    },
+                    ensure_ascii=False,
+                ),
+                required=("rooms",),
+            )
+            for entry in (llm_out or {}).get("rooms", []):
+                name = str(entry.get("name", "")).strip()
+                text = str(entry.get("text", "")).strip()
+                if name in texts and text:
+                    texts[name] = text
+
+        if not texts:
+            return ManualSection(
+                heading="二、設計理念與亮點",
+                body="本方案家具由 deterministic 規則配置，各空間依焦點、動線、尺度與"
+                "視覺平衡原則擺放。",
+            )
+        lines: list[str] = []
+        for room in layout.rooms:
+            if room.name in texts:
+                lines.extend((room.name, texts[room.name], ""))
+        return ManualSection(heading="二、設計理念與亮點", body="\n".join(lines).rstrip())
+
     def _layout_section(self, layout: LayoutDoc, scene: SceneDoc) -> ManualSection:
         lines: list[str] = []
         for room in layout.rooms:
@@ -132,7 +192,7 @@ class ReportSkill:
                 lines.append("  -（本空間無自動配置家具）")
             lines.append("")
         lines.append("＊座標與合法性由幾何引擎（backend/engine）計算與驗證，單位公分。")
-        return ManualSection(heading="二、空間與平面配置", body="\n".join(lines))
+        return ManualSection(heading="三、空間與平面配置", body="\n".join(lines))
 
     def _furniture_section(self, layout: LayoutDoc, scene: SceneDoc) -> ManualSection:
         lines: list[str] = []
@@ -159,11 +219,14 @@ class ReportSkill:
                         price=price_text,
                     )
                 )
+                reason = str(row.get("reason") or "").strip()
+                if reason:
+                    lines.append(f"    選件理由：{reason}")
             lines.append("")
         if priced_items:
             lines.append(f"已標價家具合計：約 {total_price:,.0f} 元（{priced_items} 件）")
         lines.append("未標價品項依正式報價為準，不予估算。")
-        return ManualSection(heading="三、家具清單與預算參考", body="\n".join(lines))
+        return ManualSection(heading="四、家具清單與預算參考", body="\n".join(lines))
 
     def _material_section(self, requirements: RequirementDoc, choices: dict) -> ManualSection:
         lines = []
@@ -177,7 +240,7 @@ class ReportSkill:
             )
         if not lines:
             lines.append("（問卷未提供材質與色卡資料）")
-        return ManualSection(heading="四、材質與色卡", body="\n".join(lines))
+        return ManualSection(heading="五、材質與色卡", body="\n".join(lines))
 
     def _validation_section(
         self, validation: ValidationReportDoc, choices: dict
@@ -196,7 +259,7 @@ class ReportSkill:
         if feedback_rows:
             lines.append("生圖調整紀錄（改圖僅一次）：")
             lines.extend(f"  - {row}" for row in feedback_rows[:5])
-        return ManualSection(heading="五、驗證與調整紀錄", body="\n".join(lines))
+        return ManualSection(heading="六、驗證與調整紀錄", body="\n".join(lines))
 
     def _render_section(
         self, layout: LayoutDoc, images: ImageLibraryDoc
@@ -219,7 +282,7 @@ class ReportSkill:
         if not lines:
             lines.append("（尚無渲染成果）")
         section = ManualSection(
-            heading="六、渲染成果", body="\n".join(lines), image_ids=image_ids
+            heading="七、渲染成果", body="\n".join(lines), image_ids=image_ids
         )
         return section, images_b64
 
@@ -230,4 +293,4 @@ class ReportSkill:
             "正式模式缺單價或工率時保留 pending_quote／待確認，本手冊不自行補猜總價。\n"
             f"對應設計 revision：{choices.get('design_revision', '（保存時寫入）')}"
         )
-        return ManualSection(heading="七、工程與預算章節", body=body)
+        return ManualSection(heading="八、工程與預算章節", body=body)

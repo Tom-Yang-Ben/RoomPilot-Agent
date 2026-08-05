@@ -31,9 +31,12 @@ from typing import Any, Protocol
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # nano banana / nano banana 2 在 OpenRouter 的預設型號 id；以 .env 覆蓋為準。
+'''
 DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image"
-DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-3-pro-image-preview"
-
+DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-3.1-flash-image"
+'''
+DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image"
+DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-2.5-flash-image"
 
 class LLMError(RuntimeError):
     """LLM 呼叫失敗；``reason`` 是要能拿去「提示使用者失敗原因」的可讀訊息。"""
@@ -236,6 +239,9 @@ class OpenRouterGateway:
     ) -> ImageResult:
         used_model = model or self.image_model
         content: list[dict] = [{"type": "text", "text": prompt}]
+
+        print('remake', prompt)
+
         for image_b64 in images:
             url = image_b64
             if not url.startswith("data:"):

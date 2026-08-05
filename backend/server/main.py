@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
 from ..agent.knowledge import family_of
+from ..agent.place import placement_hints
 from ..agent.select import SelectionParseError, SelectionUnavailableError, parse_selections, request_selections
 from .questionnaire_visuals import (
     QuestionnaireVisualStore,
@@ -62,6 +63,13 @@ from .render_service import (
     RenderProviderUnavailable,
     render_provider_status,
     submit_render_jobs,
+)
+from .ai_render_service import (
+    AiRenderNotConfigured,
+    GenPicFailure,
+    ai_render_status,
+    edit_room_image,
+    generate_room_images,
 )
 from .style_cards import load_taiwan_style_cards
 from .services.cloud_models import (
@@ -1970,6 +1978,136 @@ async def create_project_render_jobs(project_id: str, payload: dict) -> dict:
         ) from exc
 
 
+def _looks_like_png_data_url(value: object) -> bool:
+    return str(value or "").startswith("data:image/")
+
+
+@app.get("/api/ai-render/status")
+def get_ai_render_status() -> dict:
+    """第 8 步 AI 生圖服務（OpenRouter nano banana）是否可用；不外洩 token。"""
+    return ai_render_status()
+
+
+@app.post("/api/projects/{project_id}/ai-renders", status_code=201)
+def create_project_ai_renders(project_id: str, payload: dict) -> dict:
+    """逐房視角經 OpenRouter nano banana 生成寫實室內圖（不移動擺設）。
+
+    前端送 ``scene``（state.sceneData）＋逐房 ``rooms``（含第 7 步鎖定視角的 3D
+    截圖）。伺服器補充需求/材質/家電/色卡資訊、逐房呼叫 Gen_Pic Agent，並把每房
+    鎖定清單存進 project workflow，供整批一次改圖使用。未設定金鑰回 503。
+    """
+    _stored_project(project_id)
+    if payload.get("project_id") not in (None, project_id):
+        raise HTTPException(
+            422,
+            {"code": "render_project_mismatch", "message": "生圖資料與目前專案不一致。"},
+        )
+    scene = payload.get("scene")
+    if not isinstance(scene, dict) or not scene.get("scene_objects"):
+        raise HTTPException(
+            422,
+            {"code": "scene_required", "message": "缺少場景資料，請先完成第 6 步配置。"},
+        )
+    rooms = payload.get("rooms")
+    if not isinstance(rooms, list) or not rooms:
+        raise HTTPException(
+            422,
+            {"code": "room_views_required", "message": "缺少逐房視角，請先在第 7 步鎖定視角。"},
+        )
+    for room in rooms:
+        if not isinstance(room, dict) or not str(room.get("room_id") or "").strip():
+            raise HTTPException(
+                422,
+                {"code": "room_id_required", "message": "每個房間視角都需要 room_id。"},
+            )
+        if not _looks_like_png_data_url(room.get("reference_png_data_url")):
+            raise HTTPException(
+                422,
+                {"code": "reference_png_required", "message": "每個房間視角都需要 3D 視角截圖。"},
+            )
+    try:
+        outcome = generate_room_images(scene, rooms)
+    except AiRenderNotConfigured as exc:
+        raise HTTPException(
+            503,
+            {
+                "code": str(exc),
+                "message": "尚未連接 OpenRouter 生圖服務（未設定 OPENROUTER_API_KEY）。",
+            },
+        ) from exc
+    project = PROJECT_STORE.update_workflow(
+        project_id,
+        workflow={"ai_render": {"edit_used": 0, "rooms": outcome["rooms"]}},
+    )
+    return {
+        "results": outcome["results"],
+        "edit_remaining": 1,
+        "revision": project["revision"],
+        "updated_at": project["updated_at"],
+    }
+
+
+@app.post("/api/projects/{project_id}/ai-renders/{room_id}/edit", status_code=201)
+def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict:
+    """整批一次改圖：只改使用者指定內容、其餘鎖定不動；額度用完回 409。"""
+    project = _stored_project(project_id)
+    ai_render = (project.get("workflow") or {}).get("ai_render") or {}
+    # ponytail: 單一使用者流程，read-check-write 的競態可忽略；額度仍由伺服器強制。
+    if int(ai_render.get("edit_used") or 0) >= 1:
+        raise HTTPException(
+            409,
+            {"code": "ai_edit_budget_exhausted", "message": "整批只能修改一次，額度已用完。"},
+        )
+    room_state = next(
+        (
+            row
+            for row in ai_render.get("rooms") or []
+            if str(row.get("room_id")) == room_id
+        ),
+        None,
+    )
+    if not room_state or not room_state.get("lock_manifest"):
+        raise HTTPException(
+            409,
+            {"code": "room_not_generated", "message": "這個房間尚未生圖，無法修改。"},
+        )
+    feedback = str(payload.get("feedback") or "").strip()
+    if not feedback:
+        raise HTTPException(
+            422, {"code": "feedback_required", "message": "請描述想修改的內容。"}
+        )
+    if not _looks_like_png_data_url(payload.get("image_data_url")):
+        raise HTTPException(
+            422, {"code": "base_image_required", "message": "缺少要修改的原圖。"}
+        )
+    try:
+        result = edit_room_image(
+            room_id, feedback, payload["image_data_url"], room_state["lock_manifest"]
+        )
+    except AiRenderNotConfigured as exc:
+        raise HTTPException(
+            503,
+            {
+                "code": str(exc),
+                "message": "尚未連接 OpenRouter 生圖服務（未設定 OPENROUTER_API_KEY）。",
+            },
+        ) from exc
+    except GenPicFailure as exc:
+        raise HTTPException(
+            502,
+            {"code": "ai_edit_failed", "message": "；".join(exc.notices) or "改圖失敗。"},
+        ) from exc
+    project = PROJECT_STORE.update_workflow(
+        project_id, workflow={"ai_render": {"edit_used": 1}}
+    )
+    return {
+        "result": result,
+        "edit_remaining": 0,
+        "revision": project["revision"],
+        "updated_at": project["updated_at"],
+    }
+
+
 def _floorplan_is_confirmed(project: dict) -> bool:
     confirmation = project.get("workflow", {}).get("floorplan_confirmation", {})
     if confirmation.get("confirmed") is True:
@@ -2576,13 +2714,33 @@ async def scene_layout(payload: dict) -> dict:
     placement_variant = str(payload.get("placement_variant") or "A").upper()
     if placement_variant not in {"A", "B"}:
         placement_variant = "A"
+    # 指定房間 → 該房邊界;整屋呼叫(最終確認驗證、全屋鎖定覆核)→ 所有房
+    # 的聯集。柵格對「格外」一律視為阻擋,聯集才不會把最大房以外的家具
+    # 全數誤殺;無房型資料才退回最大區域(手動矩形模式)。
     place_boundary = (
         _region_boundary_by_id(floorplan, room, placement_room_id)
+        or _regions_boundary(floorplan, room)
         or _largest_region_boundary(floorplan, room)
     )
+    # 單房呼叫不得動別房家具:標了別房 id 的一律原樣通過,不進重排。
+    # 單房柵格對房外一律視為阻擋,整屋清單塞進來會讓別房鎖定件檢查失敗、
+    # 掉進自動重排 —— 無論哪個前端版本怎麼呼叫,伺服器都不再讓這發生。
+    passthrough: list[dict] = []
+    if placement_room_id:
+        target_room_id = str(placement_room_id)
+        active_objects: list[dict] = []
+        for item in objects:
+            assigned = str(
+                item.get("placement_room_id") or item.get("auto_decor_room_id") or ""
+            )
+            if assigned and assigned != target_room_id:
+                passthrough.append(item)
+            else:
+                active_objects.append(item)
+        objects = active_objects
     return {
         "floorplan": floorplan,
-        "scene_objects": generate_layout(
+        "scene_objects": [*passthrough, *generate_layout(
             room.width,
             room.depth,
             objects,
@@ -2591,7 +2749,15 @@ async def scene_layout(payload: dict) -> dict:
             place_boundary=place_boundary,
             floorplan=floorplan,
             placement_variant=placement_variant,
-        )
+            # 重排/替換/新增/逐房操作也要有 agent 擺位紀律:沒有 hints 時
+            # generate_layout 不登記 neighbors,成組配對(電視櫃對面、茶几
+            # 沙發前)與自由座椅後置整條路是死的 —— 首次產生正確,一按
+            # 重排就退化(feedback:躺椅回到沙發前、茶几被擠走)。
+            hints=placement_hints(objects),
+            # 最終確認(進入即時寫實)只驗不排:信任已鎖定的配置,座標照舊,
+            # 避免嚴格重排把合法家具塌成 (0,0) 並擋住進入下一步。
+            validate_only=bool(payload.get("validate_only")),
+        )]
     }
 
 
@@ -2693,8 +2859,12 @@ async def scene_decorate(payload: dict) -> dict:
         room = room_from_payload(floorplan)
 
     placement_room_id = payload.get("placement_room_id")
+    # 指定房間 → 該房邊界;整屋呼叫(最終確認驗證、全屋鎖定覆核)→ 所有房
+    # 的聯集。柵格對「格外」一律視為阻擋,聯集才不會把最大房以外的家具
+    # 全數誤殺;無房型資料才退回最大區域(手動矩形模式)。
     place_boundary = (
         _region_boundary_by_id(floorplan, room, placement_room_id)
+        or _regions_boundary(floorplan, room)
         or _largest_region_boundary(floorplan, room)
     )
     region = next(
@@ -2721,6 +2891,22 @@ async def scene_decorate(payload: dict) -> dict:
         if not item.get("auto_decor_role")
         or str(item.get("auto_decor_room_id") or "default") not in {room_id, "default"}
     ]
+    # 單房呼叫不得動別房家具:非目標房的一律原樣通過,不進重排。單房柵格
+    # 對房外一律視為阻擋,整屋清單塞進來會讓別房鎖定件 preserve 檢查失敗、
+    # 掉進自動重排(擠進本房或標放不下)——進即時寫實整屋亂掉的伺服器側
+    # 根因,前端即使送整屋(舊版 bundle)也不再受害。
+    decor_passthrough: list[dict] = []
+    if placement_room_id:
+        active_existing: list[dict] = []
+        for item in existing:
+            assigned = str(
+                item.get("placement_room_id") or item.get("auto_decor_room_id") or ""
+            )
+            if assigned and assigned != room_id:
+                decor_passthrough.append(item)
+            else:
+                active_existing.append(item)
+        existing = active_existing
     room_items = []
     for item in existing:
         assigned_room_id = item.get("placement_room_id") or item.get("auto_decor_room_id")
@@ -2737,7 +2923,11 @@ async def scene_decorate(payload: dict) -> dict:
     rug_anchors = {"sofa", "sofa-bed", "bed", "bed-frame", "dining-table"}
     companion_anchors = rug_anchors | {"desk", "armchair"}
     requested_roles = []
-    if room_types & companion_anchors:
+    # 落地燈屬起居/閱讀情境;餐廚照明由天花吊燈方案處理,不放落地燈
+    # (feedback:廚房出現落地燈)。
+    if room_types & companion_anchors and room_type in {
+        "living_room", "bedroom", "storage", "default",
+    }:
         requested_roles.append("light")
     if room_types & rug_anchors:
         requested_roles.append("rug")
@@ -2822,6 +3012,7 @@ async def scene_decorate(payload: dict) -> dict:
         place_boundary=place_boundary,
         floorplan=floorplan,
         preserve_existing_count=len(existing),
+        hints=placement_hints([*existing, *additions]),
     )
     # 自動軟裝放不下就不硬塞，也不把失敗標記留在 3D 場景裡。
     scene_objects = [
@@ -2830,7 +3021,7 @@ async def scene_decorate(payload: dict) -> dict:
         if not (item.get("auto_decor_role") and item.get("placement_failed"))
     ]
     return {
-        "scene_objects": scene_objects,
+        "scene_objects": [*decor_passthrough, *scene_objects],
         "decor_summary": {
             "requested": requested_roles,
             "placed": [

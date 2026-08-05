@@ -198,13 +198,24 @@ def test_circulation_style_inherits_living_room_until_user_confirms_override() -
 
 
 def test_interior_walls_butt_against_exterior_inner_face_without_a_visible_gap() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
-
-    junction_helper = source.split("function interiorWallJunctionInsets", 1)[1].split(
-        "function polygonShape", 1
-    )[0]
-    assert "const insetCm = 0;" in junction_helper
-    assert "Number(wallThickness) / 2 + 1" not in junction_helper
+    # 已確認的牆端點即是真實交界:純函式層不得把內牆退縮半個牆厚,
+    # 否則內外牆之間出現白縫。牆段盒必須跨滿整段長度。
+    result = run_workflow_script(
+        f"""
+        import {{ buildSceneModel, shellConfig }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const model = buildSceneModel({{
+          walls: [
+            {{ id: "exterior", start: {{x: -200, z: 0}}, end: {{x: 200, z: 0}} }},
+            {{ id: "interior", start: {{x: 0, z: 0}}, end: {{x: 0, z: 180}} }},
+          ],
+        }}, shellConfig({{}}));
+        const interior = model.boxes.find((box) => (
+          box.role === "wall-section" && box.meta.segmentIndex === 1
+        ));
+        console.log(JSON.stringify(interior.size));
+        """
+    )
+    assert result[0] == 180
 
 
 def test_whole_house_wall_finish_keeps_texture_while_avoiding_lighting_variation() -> None:
@@ -401,6 +412,11 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_structure_geometry.js",
             "scene_window_types.js",
             "scene_visual_contracts.js",
+            "scene_shell_geometry.js",
+        ],
+        "scene_shell_geometry.js": [
+            "scene_architecture.js",
+            "scene_window_types.js",
         ],
         "scene_structure_preview.js": ["scene_structure_geometry.js"],
     }
@@ -413,6 +429,172 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             assert (
                 f'./{dependency_name}?v=sha256-{expected}' in importer
             ), f"{importer_name} has a stale cache key for {dependency_name}"
+
+
+def test_placement_busy_overlay_announces_waiting_during_layout() -> None:
+    """agent 還在擺放時,畫面必須明確顯示「請稍候」並擋住操作;
+    擺完才一次呈現最終結果(不逐步上畫面)。"""
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert 'id="placement-busy"' in html
+    assert 'id="placement-busy-text"' in html
+    assert "AI 正在擺放家具" in html
+    assert "function beginPlacementBusy" in source
+    assert "function endPlacementBusy" in source
+    # 四個擺位入口都要有等待提示:問卷確認、2D 確認生成、重新配置、逐房擇優
+    assert source.count("beginPlacementBusy(") >= 4
+    assert source.count("endPlacementBusy(") >= source.count("beginPlacementBusy(") - 1
+    assert ".rp-placement-busy" in css
+
+
+def test_repair_replaced_or_removed_furniture_leaves_no_2d_ghosts() -> None:
+    """修復迴圈換小(新 furniture_id)或移除後,送出未回來的 2D 條目必須清掉,
+    否則舊件掛在待處理欄、新件又照畫,2D 清單與 3D 對不上(廚房鬼影)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "sentFurnitureIds" in source
+    assert "returnedFurnitureIds" in source
+    assert "!sentFurnitureIds.has(String(item.id))" in source
+
+
+def test_confirm_room_views_self_heals_and_reports_blockers() -> None:
+    """第 7 步「確認所有房間視角並進入第 8 步」不得無聲失敗:復原專案的
+    本機 workflow 缺尾段完成度時,以既有 masterView/逐房視角自我修復;
+    仍被閘門擋下就把原因寫進面板狀態列。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    confirm = source.split("function confirmProposalRoomViews()")[1].split(
+        "\nfunction "
+    )[0]
+
+    assert 'state.workflow.complete("realistic_3d", { confirmed: true })' in confirm
+    assert 'state.workflow.complete("proposal_review"' in confirm
+    assert 'if (!goTo("ai_render"))' in confirm
+    assert "尚不能進入第 8 步" in confirm
+
+
+def test_room_view_suggestions_use_world_coordinates() -> None:
+    """逐房建議視角必須換算成 three.js 世界座標(世界 z = −場景 z):
+    不取負的話第 7/8 步視角上下鏡像,「廚房視角」會框到對面的房間。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "position_cm: [centerX + width * 0.28, 145, -(centerZ + depth * 0.28)]" in source
+    assert "target_cm: [centerX, 82, -centerZ]" in source
+
+
+def test_proposal_review_caches_the_scene_per_version() -> None:
+    """第 7 步色卡切換要有暫存記憶:同一場景版本只載一次(切色卡不重載、
+    不白屏),真的需要載入(換方案/場景重建)才重載並顯示請稍候;
+    並發載入以 in-flight promise 去重,避免互相清場造成永久空白。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function ensureProposalSceneLoaded" in source
+    assert "proposalSceneVersionLoaded" in source
+    assert "場景還在準備中，請稍候…" in source
+    assert source.count("proposalSceneVersionLoaded = null") >= 2   # 重建/編輯都失效
+    prepare = source.split("async function prepareProposalReview")[1].split(
+        "\nfunction "
+    )[0]
+    assert "ensureProposalSceneLoaded()" in prepare
+    assert "proposalViewer.loadScene(" not in prepare              # 只經快取入口載入
+    # 6→7 真正載入時要有全畫面等待遮罩(快取命中不閃);載完提示就緒
+    ensure = source.split("async function ensureProposalSceneLoaded")[1].split(
+        "\nasync function "
+    )[0]
+    assert "beginPlacementBusy(" in ensure
+    assert "endPlacementBusy(" in ensure
+    assert "正在準備第 7 步 3D 場景" in ensure
+    # loadScene resolve 時首幀還沒畫出來(shader 首次 render 才編譯)——
+    # 遮罩必須撐到動畫幀真的呈現;失敗與缺場景都要明說,不得靜默空白
+    assert "requestAnimationFrame" in ensure
+    assert "3D 場景載入失敗" in ensure
+    prepare_head = source.split("async function prepareProposalReview")[1]
+    assert "尚未有可用的 3D 場景" in prepare_head.split("\nfunction ")[0]
+
+
+def test_scheme_choice_is_fixed_after_entering_step_seven() -> None:
+    """流程規範:方案 A/B 於第 6 步選定;第 7 步依選定方案比較三張色卡、
+    第 8 步依選定色卡逐房生圖 —— 第 7 步面板不再出現 A/B 切換鈕,
+    殘餘入口(其他面板的鈕)也必須被擋下並說明。"""
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    proposal_panel = html.split('id="proposal-review-step"')[1].split("</section>")[0]
+    assert "data-design-scheme" not in proposal_panel
+    assert 'currentStep === "proposal_review" || currentStep === "ai_render"' in source
+    assert "方案已於第 6 步選定" in source
+
+
+def test_step_eight_render_image_replaces_viewer_and_toggles() -> None:
+    """第 8 步版面:生圖完成後取代左側 3D 場景(圖疊在 viewer 容器上),
+    點圖切回 3D、點「查看生圖」隨時切回,且左側的圖跟著選取房間連動。"""
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    viewer_markup = html.split('id="ai-render-viewer"')[1][:900]
+    assert 'id="ai-render-image-stage"' in viewer_markup       # 圖疊在 3D viewer 內
+    assert 'id="ai-render-image-toggle"' in viewer_markup
+    assert "function updateAiRenderImageStage" in source
+    assert "aiRenderImageVisible = done > 0" in source          # 生圖完成即取代 3D
+    assert source.count("updateAiRenderImageStage()") >= 4      # 生成/選房/雙向切換都同步
+
+
+def test_realistic_entry_reveals_the_scene_exactly_once() -> None:
+    """進即時寫實一次呈現:第一張色卡的材質、軟裝與家具換款全部就緒才
+    載入場景(deferReload),進場不再連續自我刷新;其餘色卡等點選才套用,
+    期間有等待遮罩。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "applyStylePackToScene(preferredPack, { deferReload: true })" in source
+    assert "applySurfaceOverrides({ reload: false })" in source
+    assert "deferReload = false" in source
+    # 進場管線(confirmWhiteModel 後段)只留一次 loadScene
+    entry = source.split('showStep("realistic_3d");')[1].split("function renderStyleControls")[0]
+    assert entry.count("realisticViewer.loadScene(") == 1
+    assert "beginPlacementBusy" in entry and "endPlacementBusy" in entry
+
+
+def test_soft_decor_calls_send_only_the_target_rooms_furniture() -> None:
+    """進即時寫實的自動軟裝是逐房 /api/scene/decorate:整屋家具塞進單房
+    呼叫會被該房柵格(房外即阻擋)全數誤殺 —— 鎖定家具被擠走、其餘標
+    「放不下」,整屋亂成一團。必須只送目標房的家具,回傳後按房合併。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    decor_body = source.split("async function ensureAutomaticSoftDecor")[1].split("\nasync function ")[0]
+
+    assert "const roomObjects = allObjects.filter" in decor_body
+    assert "scene_objects: roomObjects" in decor_body
+    assert "state.sceneData.scene_objects || []," not in decor_body.split("api(")[1]
+    assert "returnedById" in decor_body
+
+
+def test_set_furniture_shares_one_model_per_room() -> None:
+    """成套家具統一規格:同一空間的餐椅(與成對床頭櫃)必須同款 ——
+    GLB 逐件解析會讓自動補上的件各自找「最接近款」,同桌湊出雜牌椅。
+    統一必須發生在解析之後、缺模型檢查之前;使用者明選/鎖定的不覆寫。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function unifySetFurnitureModels" in source
+    assert '"dining-chair", "bedside-table"' in source
+    assert source.index("unifySetFurnitureModels(selectedFurniture)") \
+        < source.index("selectedFurniture.filter((item) => !item.model_url)")
+    assert "item.user_specified || item.model_locked" in source
+    # 自動補椅從源頭帶同款型錄品項
+    assert "chairCatalogItem" in source
+
+
+def test_room_layout_always_includes_essential_furniture_specs() -> None:
+    """房型基礎家具保底:臥室床/客廳沙發/餐廚餐桌,不論使用者勾選、
+    agent 選件或尺寸過濾漏掉,2D 佈局規格都要自動補上(放不下時引擎
+    只升級、不靜默移除);有餐桌就至少配 2 張餐椅。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "ROOM_ESSENTIAL_SPEC_TYPES" in source
+    assert 'bedroom: "bed"' in source
+    assert 'living_room: "sofa"' in source
+    assert 'kitchen: "dining-table"' in source
+    assert "房型基礎家具，已自動補上" in source
+    assert "餐桌成套餐椅，已自動補上" in source
 
 
 def test_scheme_variants_share_confirmed_architecture() -> None:
@@ -933,6 +1115,7 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
 
 def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() -> None:
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    shell = (STATIC / "scene_shell_geometry.js").read_text(encoding="utf-8")
 
     assert (
         "Persisted Step 4 wall segments already contain true door gaps."
@@ -942,12 +1125,37 @@ def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() 
         "const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !wallSegments.length"
         in viewer
     )
-    assert "buildSegmentWalls(" in viewer
-    assert "buildConfirmedDoorLeaves(" in viewer
-    assert 'roompilotArchitecturalDetail = "door-header-wall"' in viewer
-    assert "const headerHeight = wallHeight - doorHeight;" in viewer
-    assert "        [],\n        windowSegments," in viewer
+    assert "buildShellBoxes(" in viewer
+    assert "buildStandaloneOpeningAssemblies(" in viewer
     assert "const mullionPositions = [0];" in viewer
+    # 牆段只被 hosted 窗切分;門縫由第 4 步牆段自帶,門只補門楣。
+    assert "Step 4 已確認的牆段自帶門縫" in shell
+    assert "const intervals = windows" in shell
+    assert '"door-lintel"' in shell
+
+    # 行為驗證:牆段中間的門不切牆(仍是一整段),門楣件照出。
+    result = run_workflow_script(
+        f"""
+        import {{ buildSceneModel, shellConfig }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const model = buildSceneModel({{
+          walls: [{{ id: "wall-1", start: {{x: -200, z: 0}}, end: {{x: 200, z: 0}} }}],
+          doors: [{{
+            id: "door-1", width_cm: 90, height_cm: 210, host_wall_id: "wall-1",
+            start: {{x: -45, z: 0}}, end: {{x: 45, z: 0}},
+          }}],
+        }}, shellConfig({{}}));
+        const sections = model.boxes.filter((box) => box.role === "wall-section");
+        const lintels = model.boxes.filter((box) => box.role === "door-lintel");
+        console.log(JSON.stringify({{
+          sections: sections.length,
+          fullSpan: sections[0]?.size?.[0] || 0,
+          lintels: lintels.length,
+        }}));
+        """
+    )
+    assert result["sections"] == 1
+    assert result["fullSpan"] == 400
+    assert result["lintels"] == 1
 
 
 def test_ceiling_picker_uses_the_selected_ceiling_photo_not_a_lighting_sprite() -> None:
@@ -966,41 +1174,68 @@ def test_ceiling_picker_uses_the_selected_ceiling_photo_not_a_lighting_sprite() 
 
 
 def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
+    # 門先經 doorOpeningForWallTopology 映射到第 4 步牆縫,再由 Union-Find
+    # 群聚去重;兩者都在純函式層完成,viewer 只消費 shellModel.openings。
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    shell = (STATIC / "scene_shell_geometry.js").read_text(encoding="utf-8")
 
-    assert "function dedupeArchitecturalOpeningsFor3d" in viewer
-    assert "const doorSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
-    assert "doorOpeningForWallTopology(wallSegments, door, wallThickness)" in viewer
-    wall_builder = viewer.split("function buildSegmentWalls", 1)[1].split(
-        "function buildOpeningAssembly", 1
-    )[0]
-    assert "const wallDoorSegments = doorSegments.filter" in wall_builder
-    assert "opening?.topology_gap !== true" in wall_builder
-    assert "const topologyGapDoors = doorSegments.filter" in wall_builder
-    assert "opening?.topology_gap === true" in wall_builder
-    assert "const missingDoors = doorSegments.filter((opening) =>" in wall_builder
-    assert "!renderedOpenings.has(openingId)" in wall_builder
-    assert "[...wallDoorSegments.map" in wall_builder
+    assert "const doorSegments = shellModel.openings.doors" in viewer
+    assert (
+        "doorOpeningForWallTopology(walls, door, cfg.wallThicknessCm)" in shell
+    )
+    assert "clusterOpeningSegments(" in shell
+
+    result = run_workflow_script(
+        f"""
+        import {{ clusterOpeningSegments, DEFAULT_SCENE_CONFIG }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const reps = clusterOpeningSegments([
+          {{ id: "door-1", start: {{x: 0, z: 0}}, end: {{x: 92, z: 0}} }},
+          {{ start: {{x: 2, z: 6}}, end: {{x: 90, z: 6}} }},
+        ], DEFAULT_SCENE_CONFIG, "door");
+        console.log(JSON.stringify(reps.map((rep) => rep.id || null)));
+        """
+    )
+    assert result == ["door-1"]
 
 
 def test_3d_door_openings_merge_overlapping_spans_on_the_same_host_wall() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
-
-    assert "function openingWallCoverage" in viewer
-    assert "function openingsShareWallCoverage" in viewer
-    assert "left.topology_gap_key === right.topology_gap_key" in viewer
-    assert "overlap >= Math.max(24, narrowerWidth * 0.55)" in viewer
-    assert "openingsShareWallCoverage(candidate, opening, wallSegments, wallThickness)" in viewer
-    assert "dedupeArchitecturalOpeningsFor3d(" in viewer
-    assert "      wallSegments,\n      wallThickness," in viewer
+    # 重複辨識可能偏離牆線幾公分,但仍是同一道實體門:無 ID 的重複線
+    # 依「中點距 ≤30cm 且夾角 ≤10°」合併,代表段取較長者。
+    result = run_workflow_script(
+        f"""
+        import {{ clusterOpeningSegments, DEFAULT_SCENE_CONFIG }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const reps = clusterOpeningSegments([
+          {{ id: "door-7", start: {{x: 100, z: 200}}, end: {{x: 192, z: 200}} }},
+          {{ start: {{x: 104, z: 208}}, end: {{x: 188, z: 208}} }},
+          {{ id: "door-8", start: {{x: 320, z: 200}}, end: {{x: 410, z: 200}} }},
+        ], DEFAULT_SCENE_CONFIG, "door");
+        console.log(JSON.stringify(reps.map((rep) => rep.id)));
+        """
+    )
+    assert result == ["door-7", "door-8"]
 
 
 def test_3d_door_openings_keep_each_confirmed_step4_door_id() -> None:
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    shell = (STATIC / "scene_shell_geometry.js").read_text(encoding="utf-8")
 
-    assert 'const openingId = String(opening?.id || "").trim();' in viewer
-    assert "Step 4 owns door identity; Step 6 must never merge distinct doors." in viewer
-    assert "if (openingId && candidateId) return false;" in viewer
+    # 第 4 步擁有門的身份:兩個非空且不同的 ID 永不合併(純函式層群聚守則)。
+    assert "if (leftId && rightId && leftId !== rightId) continue;" in shell
+    assert "第 4 步擁有門窗身份" in shell
+
+    result = run_workflow_script(
+        f"""
+        import {{ clusterOpeningSegments, DEFAULT_SCENE_CONFIG }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
+        const reps = clusterOpeningSegments([
+          {{ id: "door-a", start: {{x: 0, z: 0}}, end: {{x: 90, z: 0}} }},
+          {{ id: "door-b", start: {{x: 0, z: 12}}, end: {{x: 90, z: 12}} }},
+        ], DEFAULT_SCENE_CONFIG, "door");
+        console.log(JSON.stringify(reps.map((rep) => rep.id)));
+        """
+    )
+    assert result == ["door-a", "door-b"]
+
+    # 診斷輸出仍逐 ID 對帳實際渲染的門組件。
     assert "function openingAnchorOnWall" in viewer
     assert "anchorDistance <= 1" in viewer
     assert "mergedDoorIds" in viewer
@@ -1044,7 +1279,9 @@ def test_step6_uses_only_the_confirmed_step4_wall_opening_snapshot() -> None:
     assert "confirmed_wall_opening: confirmedWallOpeningForSnapshot(" in controller
     assert "function hydrateConfirmedStructureSnapshot(" in controller
     assert "persisted_step4_wall_gap" in architecture
-    assert "opening?.step4_skip_wall_cut !== true" in viewer
+    # step4_skip_wall_cut 的開口過濾移入純函式層(activeOpenings)。
+    shell = (STATIC / "scene_shell_geometry.js").read_text(encoding="utf-8")
+    assert "opening.step4_skip_wall_cut !== true" in shell
 
 
 def test_step4_can_lock_a_manually_corrected_door_opening() -> None:
@@ -3137,8 +3374,9 @@ def test_steps_six_to_nine_expose_scheme_switching_and_render_lock() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert html.count('data-design-scheme="A"') >= 4
-    assert html.count('data-design-scheme="B"') >= 4
+    # A/B 切換只存在第 6 步的三個子面板;第 7 步起不再出現(方案已選定)
+    assert html.count('data-design-scheme="A"') == 3
+    assert html.count('data-design-scheme="B"') == 3
     assert 'id="locked-scheme-label"' in html
     assert "placement_variant: activeSchemeId()" in source
     assert 'placement_variant: schemeId' in source

@@ -4,6 +4,7 @@ tool 不呼叫 LLM（語意決策屬於 skills）；幾何一律轉交 backend/e
 檢索一律轉交家具 RAG。每個 tool 的 ``contract`` 可直接餵給 function calling。
 """
 from .base import ToolContract, ToolError
+from .design_knowledge import DesignKnowledgeTool, selection_digest, style_note
 from .engine_validate import EngineValidateTool
 from .fetch_image import FetchImageTool
 from .genpic_info import GenPicInfoTool
@@ -24,8 +25,11 @@ __all__ = [
     "SpatialRagRetriever",
     "PickFurnitureTool",
     "PlaceFurnitureTool",
+    "DesignKnowledgeTool",
     "EngineValidateTool",
     "GenPicInfoTool",
+    "selection_digest",
+    "style_note",
     "FetchImageTool",
     "ReadDocsTool",
     "RenderPdfTool",

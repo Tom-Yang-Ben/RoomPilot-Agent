@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-b0d341647435" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-2b5ebe3c4238" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -783,10 +783,6 @@
                 <button type="button" data-proposal-view-mode="orbit" class="is-active">自由旋轉</button>
                 <button type="button" data-proposal-view-mode="walk">室內透視</button>
               </div>
-              <div class="rp-segmented" role="tablist" aria-label="鎖定設計方案">
-                <button type="button" data-design-scheme="A" class="is-active">方案 A</button>
-                <button type="button" data-design-scheme="B" hidden>方案 B</button>
-              </div>
               <strong id="locked-scheme-label">尚未鎖定方案</strong>
             </div>
             <div id="proposal-review-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="方案與渲染比較視角"></div>
@@ -827,7 +823,13 @@
               <strong id="ai-render-view-title">色卡比較視角</strong>
               <span id="ai-render-provider-state">尚未連接遠端渲染服務</span>
             </div>
-            <div id="ai-render-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="逐房間渲染視角"></div>
+            <div id="ai-render-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="逐房間渲染視角">
+              <div id="ai-render-image-stage" class="rp-render-image-stage" hidden role="button" tabindex="0" aria-label="點擊切回 3D 場景">
+                <img id="ai-render-image" alt="AI 寫實生圖" />
+                <span class="rp-render-image-hint">點擊切回 3D 場景</span>
+              </div>
+              <button id="ai-render-image-toggle" type="button" class="secondary-action rp-render-image-toggle" hidden>查看生圖</button>
+            </div>
             <p id="ai-render-status" class="rp-viewer-status">先建立色卡比較圖，確認後再逐房間保存視角。</p>
           </div>
           <aside class="rp-control-pane rp-style-sidebar">
@@ -849,9 +851,35 @@
               <button id="submit-room-renders" type="button" class="primary-action">送出已保存的房間渲染</button>
             </section>
             <div id="remote-render-jobs" class="rp-render-jobs" aria-live="polite"></div>
+            <section id="ai-openrouter-section" class="rp-editor-box">
+              <span class="eyebrow">OPENROUTER · NANO BANANA</span>
+              <h3>3. AI 寫實生圖（不移動擺設）</h3>
+              <p>彙整家具、地板/牆面、色卡、家電與逐房補充需求，對每個第 7 步已鎖定的視角以 nano banana 生成寫實室內圖；不會增減或移動任何擺設。</p>
+              <p id="ai-openrouter-status" class="rp-viewer-status">尚未檢查 OpenRouter 生圖服務。</p>
+              <button id="ai-openrouter-generate" type="button" class="primary-action">對每個房間視角生成寫實圖</button>
+              <div id="ai-openrouter-results" class="rp-render-result-grid"></div>
+            </section>
           </aside>
         </div>
       </section>
+      <dialog id="ai-openrouter-edit-dialog" class="rp-task-dialog" aria-labelledby="ai-openrouter-edit-title">
+        <div class="rp-task-dialog-shell">
+          <header class="rp-task-dialog-header">
+            <strong id="ai-openrouter-edit-title">修改這張生圖（整批僅一次）</strong>
+            <button id="ai-openrouter-edit-close" type="button" aria-label="關閉">×</button>
+          </header>
+          <div class="rp-task-dialog-body">
+            <p id="ai-openrouter-edit-room" class="rp-viewer-status"></p>
+            <p>描述想新增/移除的元素或色調；系統會鎖定既有家具位置與格局，只改你指定的內容。</p>
+            <textarea id="ai-openrouter-edit-feedback" rows="4" placeholder="例如：把牆面改成淺灰、沙發旁加一盞立燈"></textarea>
+            <p id="ai-openrouter-edit-status" class="rp-viewer-status"></p>
+          </div>
+          <footer class="rp-task-dialog-actions">
+            <button id="ai-openrouter-edit-cancel" type="button" class="secondary-action">取消</button>
+            <button id="ai-openrouter-edit-submit" type="button" class="primary-action">送出修改（用掉唯一一次）</button>
+          </footer>
+        </div>
+      </dialog>
 
       <dialog id="room-scheme-selection-dialog" class="rp-task-dialog" aria-labelledby="room-scheme-dialog-title">
         <div class="rp-task-dialog-shell">
@@ -945,6 +973,14 @@
     <div id="glb-thumbnail-viewer" class="rp-offscreen-thumbnail-viewer" aria-hidden="true"></div>
     <p id="glb-thumbnail-status" hidden aria-hidden="true"></p>
 
+    <div id="placement-busy" class="rp-placement-busy" hidden role="status" aria-live="polite">
+      <div class="rp-placement-busy-card">
+        <span class="rp-placement-busy-spinner" aria-hidden="true"></span>
+        <p id="placement-busy-text">AI 正在擺放家具，請稍候…</p>
+        <small>擺放與驗證完成後會一次顯示最終結果。</small>
+      </div>
+    </div>
+
     <script type="importmap">
       {
         "imports": {
@@ -953,6 +989,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-1f9583de0bb0"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-03080e9f7b91"></script>
   </body>
 </html>

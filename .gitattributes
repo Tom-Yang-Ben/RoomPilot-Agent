@@ -8,3 +8,6 @@ backend/server/static/frontend3d/** -text
 
 # bella-test1 帶入:RAG 向量檔走 Git LFS。
 JSON/RAG/furniture_embeddings_bge_m3.jsonl filter=lfs diff=lfs merge=lfs -text
+
+# PostgreSQL 一鍵還原 dump（約 55MB）走 Git LFS，不進一般 git 歷史。
+*.sql.gz filter=lfs diff=lfs merge=lfs -text

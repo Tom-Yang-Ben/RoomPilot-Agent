@@ -141,6 +141,22 @@ function productNameScore(candidate, requestedType) {
   return (positive ? 90 : 0) - (negative ? 140 : 0);
 }
 
+// 型錄把庭院躺椅/露臺沙發歸在 sofa/armchair 等室內類型,room_types 也誤標
+// living_room;只有名稱記號可靠。室內房型一律重罰,權重壓過所有正向加分。
+const OUTDOOR_NAME_TOKENS = [
+  "戶外", "露臺", "露台", "庭院", "泳池", "outdoor", "patio", "all-weather",
+];
+const OUTDOOR_ROOM_TYPES = new Set(["balcony", "outdoor"]);
+
+function outdoorPenalty(candidate, request) {
+  const text = [
+    candidate.name_en, candidate.name_zh, candidate.name_zh_raw,
+    candidate.category_label, candidate.normalized_type, candidate.object_type_zh,
+  ].map((value) => String(value || "").toLowerCase()).join(" ");
+  if (!OUTDOOR_NAME_TOKENS.some((token) => text.includes(token))) return 0;
+  return OUTDOOR_ROOM_TYPES.has(String(request.roomType || "").toLowerCase()) ? 0 : -400;
+}
+
 export function catalogFurnitureScore(candidate, request = {}) {
   if (!candidate?.model_url) return Number.NEGATIVE_INFINITY;
   const styleScore = request.styleId
@@ -152,7 +168,8 @@ export function catalogFurnitureScore(candidate, request = {}) {
     + materialScore(candidate, request.materials)
     + colorScore(candidate.color, request.palette)
     + sizeScore(candidate, request)
-    + productNameScore(candidate, request.type);
+    + productNameScore(candidate, request.type)
+    + outdoorPenalty(candidate, request);
 }
 
 export function rankCatalogFurniture(candidates, request = {}) {

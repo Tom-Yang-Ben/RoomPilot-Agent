@@ -38,8 +38,41 @@ def test_window_clearance_rejects_furniture_in_front_of_confirmed_window() -> No
         [],
     )
 
+    # 落地窗是出入動線:即使是座椅(一般窗採光帶已豁免座椅)也不得擋
     assert result["ok"] is False
-    assert "窗戶" in result["reason"]
+    assert "落地窗" in result["reason"]
+
+
+def test_relayout_endpoint_pairs_tv_bench_opposite_the_sofa() -> None:
+    """重排端點(替換/移除/逐房操作)也必須有 agent 擺位紀律:
+    原本不帶 hints → neighbors 永遠空、成組配對死,首次產生正確、
+    一按重排就退化(躺椅回到沙發前、電視櫃與沙發呈 L 型)。"""
+    response = client.post(
+        "/api/scene/layout",
+        json={
+            "floorplan": {"coordinate_unit": "cm", "width_cm": 500, "depth_cm": 400},
+            "scene_objects": [
+                {
+                    "furniture_id": "sofa-1",
+                    "normalized_type": "sofa",
+                    "size_cm": {"width": 200, "depth": 90, "height": 80},
+                },
+                {
+                    "furniture_id": "tv-1",
+                    "normalized_type": "tv-bench",
+                    "size_cm": {"width": 120, "depth": 40, "height": 50},
+                },
+            ],
+        },
+    )
+    assert response.status_code == 200
+    objects = response.json()["scene_objects"]
+    sofa = next(item for item in objects if item["normalized_type"] == "sofa")
+    tv = next(item for item in objects if item["normalized_type"] == "tv-bench")
+    assert sofa.get("placement_failed") is not True
+    assert tv.get("placement_failed") is not True
+    # 成組:電視櫃在沙發正面朝向的對面,rotation 相差 180°(面對面)。
+    assert (float(tv["rotation_y_deg"]) - float(sofa["rotation_y_deg"])) % 360 == 180
 
 
 def test_automatic_chair_faces_the_nearest_desk() -> None:
@@ -319,3 +352,51 @@ def test_step6_drag_commits_backend_wall_snap_inside_original_room() -> None:
     assert "placement_room_id: item.roomId" in resolve_position
     assert "placement_hint_cm" in resolve_position
     assert "position_locked: true" in resolve_position
+
+
+def test_single_room_call_passes_other_rooms_furniture_through_verbatim() -> None:
+    """單房呼叫不得動別房家具:進即時寫實的逐房軟裝/重排把整屋清單塞進
+    單房請求時,別房鎖定件曾被該房柵格(房外即阻擋)誤殺、重排進本房或標
+    「放不下」。伺服器一律讓非目標房的件原樣通過。"""
+    floorplan = {
+        "coordinate_unit": "cm",
+        "width_cm": 840,
+        "depth_cm": 400,
+        "room_regions": [
+            {"room_id": "bed", "room_type": "bedroom",
+             "exterior": [[-412, -192], [-8, -192], [-8, 192], [-412, 192]], "holes": []},
+            {"room_id": "liv", "room_type": "living_room",
+             "exterior": [[8, -192], [412, -192], [412, 192], [8, 192]], "holes": []},
+        ],
+    }
+    sofa = {
+        "furniture_id": "sofa-1",
+        "normalized_type": "sofa",
+        "size_cm": {"width": 200, "depth": 90, "height": 96},
+        "position_cm": {"x": 210.0, "z": 137.0},
+        "rotation_y_deg": 180.0,
+        "position_locked": True,
+        "placement_room_id": "liv",
+    }
+    bed = {
+        "furniture_id": "bed-1",
+        "normalized_type": "bed",
+        "size_cm": {"width": 160, "depth": 200, "height": 120},
+        "position_cm": {"x": -210.0, "z": 85.0},
+        "rotation_y_deg": 180.0,
+        "position_locked": True,
+        "placement_room_id": "bed",
+    }
+    response = client.post(
+        "/api/scene/layout",
+        json={
+            "floorplan": floorplan,
+            "placement_room_id": "bed",
+            "scene_objects": [sofa, bed],
+        },
+    )
+    assert response.status_code == 200
+    by_id = {item["furniture_id"]: item for item in response.json()["scene_objects"]}
+    assert by_id["sofa-1"]["position_cm"] == {"x": 210.0, "z": 137.0}   # 原樣通過
+    assert not by_id["sofa-1"].get("placement_failed")
+    assert not by_id["bed-1"]["placement_failed"]

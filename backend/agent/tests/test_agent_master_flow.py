@@ -53,7 +53,7 @@ def test_full_happy_path(master, layout_json, questionnaire):
     assert pause.state == MasterState.DONE
     pdf_path = Path(pause.payload["pdf_path"])
     assert pdf_path.exists() and pdf_path.read_bytes()[:4] == b"%PDF"
-    assert len(pause.payload["sections"]) == 7
+    assert len(pause.payload["sections"]) == 8  # 新增「二、設計理念與亮點」章
 
     # 生圖紀錄：2 色卡 + 2 全房 + 1 改圖
     records = (master.store.get(DocKey.IMAGES) or {}).get("records") or []

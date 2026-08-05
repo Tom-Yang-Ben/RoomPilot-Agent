@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-13570dfbcf52";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-c4f9b4ad04df";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -6,7 +6,7 @@ import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-} from "./scene_unit_contracts.js?v=sha256-66d8d568f445";
+} from "./scene_unit_contracts.js?v=sha256-6a193452d1e5";
 import {
   repairLoadedRoomPolygon,
 } from "./scene_room_geometry.js?v=sha256-d863939b9c06";
@@ -37,11 +37,11 @@ import {
 import {
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-4229260e286c";
+} from "./scene_configuration_sync.js?v=sha256-5d58be033c8a";
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
-} from "./scene_furniture_retrieval.js?v=sha256-735762d2e6ca";
+} from "./scene_furniture_retrieval.js?v=sha256-222deaca47ed";
 import {
   WHOLE_HOUSE_QUESTIONS,
 } from "./scene_requirements.js?v=sha256-b4b03dbe76aa";
@@ -55,10 +55,10 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-e474d1b8c555";
+} from "./scene_questionnaire_test2.js?v=sha256-9feb70ecc7cb";
 import {
   reloadViewerPreservingState,
-} from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
+} from "./scene_viewer_reload.js?v=sha256-4adbd0d35e57";
 import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
@@ -84,7 +84,7 @@ import {
   dedupeWindowCandidates,
   wallBoundarySide,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=sha256-d56a61642343";
+} from "./scene_structure_utils.js?v=sha256-1cbee35fc90f";
 import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-2e7650196b86";
 import {
   findStructureWallCollision,
@@ -111,7 +111,7 @@ import {
   selectSchemeForRoom,
   selectedSchemeForRoom,
   structuresForScheme,
-} from "./scene_design_schemes.js?v=sha256-07e6d0f65dce";
+} from "./scene_design_schemes.js?v=sha256-3bf1ebdf336d";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -355,6 +355,8 @@ const element = {
   requirementsGenerationHelpDetail: $("#requirements-generation-help-detail"),
   randomizeRequirements: $("#randomize-requirements"),
   confirmRequirements: $("#confirm-requirements"),
+  placementBusy: $("#placement-busy"),
+  placementBusyText: $("#placement-busy-text"),
   questionnaireStageNav: $("#questionnaire-stage-nav"),
   visualSpaceNav: $("#visual-space-nav"),
   visualQuestionProgress: $("#visual-question-progress"),
@@ -498,6 +500,16 @@ const element = {
   roomRenderSection: $("#room-render-section"),
   renderRoomList: $("#render-room-list"),
   remoteRenderJobs: $("#remote-render-jobs"),
+  aiRenderImageStage: $("#ai-render-image-stage"),
+  aiRenderImage: $("#ai-render-image"),
+  aiRenderImageToggle: $("#ai-render-image-toggle"),
+  aiOpenrouterStatus: $("#ai-openrouter-status"),
+  aiOpenrouterGenerate: $("#ai-openrouter-generate"),
+  aiOpenrouterResults: $("#ai-openrouter-results"),
+  aiOpenrouterEditDialog: $("#ai-openrouter-edit-dialog"),
+  aiOpenrouterEditRoom: $("#ai-openrouter-edit-room"),
+  aiOpenrouterEditFeedback: $("#ai-openrouter-edit-feedback"),
+  aiOpenrouterEditStatus: $("#ai-openrouter-edit-status"),
 };
 
 const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteStatus, {
@@ -1203,6 +1215,7 @@ function syncFurnitureInventoryAcrossSchemes() {
     scheme.stale = true;
     scheme.staleReason = "共用家具清單已變更，請重新配置此方案。";
   });
+  roomSchemePreviewCache.clear();   // 方案內容已變，舊 3D 預覽作廢
   renderSchemeControls();
 }
 
@@ -1246,6 +1259,7 @@ async function switchDesignScheme(schemeId) {
 }
 
 function markRealisticSceneEdited() {
+  proposalSceneVersionLoaded = null;   // 場景內容變了,第 7 步快取失效
   if (state.workflow?.completed.includes("realistic_3d")) {
     state.workflow.invalidateFrom("realistic_3d");
     state.proposalReview = {
@@ -1262,6 +1276,23 @@ function markRealisticSceneEdited() {
 
 function activePanelName(step) {
   return WORKFLOW_PANEL_BY_STEP[step] || step;
+}
+
+// 擺放/生成期間的全畫面等待提示:agent 還在算就明確告訴使用者要等,
+// 深度計數讓巢狀流程(確認問卷 → 逐房擺位 → 生成 3D)只在全部結束後才收。
+let placementBusyDepth = 0;
+function beginPlacementBusy(text) {
+  placementBusyDepth += 1;
+  if (!element.placementBusy) return;
+  if (text && element.placementBusyText) element.placementBusyText.textContent = text;
+  element.placementBusy.hidden = false;
+}
+
+function endPlacementBusy() {
+  placementBusyDepth = Math.max(0, placementBusyDepth - 1);
+  if (placementBusyDepth === 0 && element.placementBusy) {
+    element.placementBusy.hidden = true;
+  }
 }
 
 function showStep(step) {
@@ -3439,21 +3470,29 @@ async function ensureRoomScheme3dPreviews() {
     && !roomSchemePreviewCache.has(schemeId)
   ));
   if (!candidates.length) return null;
+  // 背景建立 A/B 預覽：走離屏縮圖 viewer 的序列佇列，前景 whiteViewer
+  // 的場景與相機完全不動；佇列與 GLB 縮圖共用，避免並發 loadScene 互清。
   roomSchemePreviewInFlight = (async () => {
-    const activeScene = state.sceneData;
-    const activeCamera = whiteViewer.getCameraState();
     try {
       for (const schemeId of candidates) {
-        await whiteViewer.loadScene(state.designSchemes.schemes[schemeId].sceneData);
-        roomSchemePreviewCache.set(schemeId, whiteViewer.capturePng());
+        glbThumbnailSequence = glbThumbnailSequence
+          .catch(() => null)
+          .then(async () => {
+            await glbThumbnailViewer.loadScene(state.designSchemes.schemes[schemeId].sceneData);
+            glbThumbnailViewer.setViewMode("orbit");
+            glbThumbnailViewer.setCameraPreset("corner");
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            roomSchemePreviewCache.set(schemeId, glbThumbnailViewer.capturePng());
+          });
+        await glbThumbnailSequence;
       }
     } catch (error) {
       setStatus(`無法建立候選 3D 預覽：${errorMessage(error)}`, "warning");
     } finally {
-      if (activeScene?.scene_objects) {
-        await whiteViewer.loadScene(activeScene);
-        whiteViewer.setCameraState(activeCamera);
-      }
+      // 拍完即卸載：離屏 context 不留整棟場景的 GPU 記憶體（PNG 已進快取）。
+      glbThumbnailSequence = glbThumbnailSequence
+        .catch(() => null)
+        .then(() => { glbThumbnailViewer.unloadScene(); });
       roomSchemePreviewInFlight = null;
       if (element.roomSchemeDialog?.open) renderRoomSchemeSelectionDialog();
     }
@@ -3496,6 +3535,7 @@ async function completeRoomSchemeSelection() {
       throw new Error("configuration_scene_generation_failed");
     }
     state.designSchemes.configuration_snapshot = configurationSnapshot();
+    roomSchemePreviewCache.clear();   // 已進入下一流程，清除不再需要的比較用預覽場景
     renderRoomSchemeGate();
     closeRoomSchemeSelectionDialog();
     scheduleSave("white_model_3d");
@@ -7825,6 +7865,7 @@ async function confirmRequirements() {
     setStatus("Kai 家具型錄尚未就緒，已保留問卷答案並停止建立配置。", "error");
     return;
   }
+  beginPlacementBusy("AI 正在為每間房挑選並擺放家具，請稍候…");
   try {
     setStatus("正在檢查空間規則並建立方案 A、B…");
     ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });
@@ -7865,6 +7906,8 @@ async function confirmRequirements() {
     element.requirementsError.textContent = errorMessage(error);
     showRequirementsGenerationHelp(`系統回報：${errorMessage(error)}。`);
     setStatus(errorMessage(error), "error");
+  } finally {
+    endPlacementBusy();
   }
 }
 
@@ -8953,6 +8996,15 @@ function refreshQuestionnaireFurnitureRecommendations() {
   void ensureQuestionnaireFurnitureRecommendations(room, { force: true });
 }
 
+// 房型基礎家具(與 backend/agent/knowledge.py 的 ROOM_ESSENTIALS 同步):
+// 2D 佈局規格層的最後保底,三條 specs 路徑(使用者勾選/agent 選件/推薦)
+// 匯合後統一檢查。
+const ROOM_ESSENTIAL_SPEC_TYPES = Object.freeze({
+  bedroom: "bed",
+  living_room: "sofa",
+  kitchen: "dining-table",
+});
+
 function specsFromSelectionResponse(room, response, fallbackSpecs) {
   const selectedRoom = (response.rooms || []).find((item) => item.room_id === room.id);
   if (!selectedRoom?.items?.length) return fallbackSpecs;
@@ -9084,6 +9136,27 @@ async function autoLayoutFurniture() {
         specsFromSelectionResponse(room, selection, specs),
       )
       : specs;
+    // 房型基礎家具保底(與後端 knowledge.ROOM_ESSENTIALS 同步):
+    // 臥室=床、客廳=沙發、餐廚=餐桌;不論使用者勾選、agent 選件或尺寸
+    // 過濾漏掉,一律補上(放不下時引擎只升級回報、不會靜默移除)。
+    const essentialType = ROOM_ESSENTIAL_SPEC_TYPES[room.type];
+    const hasEssential = essentialType && selectedSpecs.some(([type]) =>
+      type === essentialType || (essentialType === "bed" && type === "sofa-bed"));
+    if (essentialType && !hasEssential) {
+      selectedSpecs.push([essentialType, "standard", "房型基礎家具，已自動補上", true]);
+    }
+    // 有餐桌就要成套餐椅:前端保底 2 張(桌寬 ≥140 補到 4 由伺服器端處理),
+    // 廚房絕不會只有一張椅子。
+    if (selectedSpecs.some(([type]) => type === "dining-table" || type === "table")) {
+      const chairSpecs = selectedSpecs.filter(([type]) => type === "dining-chair");
+      const chairVariant = chairSpecs[0]?.[1] || "standard";
+      const chairCatalogItem = chairSpecs[0]?.[4] || null;   // 同款成套,不湊雜牌
+      for (let added = chairSpecs.length; added < 2; added += 1) {
+        selectedSpecs.push([
+          "dining-chair", chairVariant, "餐桌成套餐椅，已自動補上", true, chairCatalogItem,
+        ]);
+      }
+    }
     const roomItems = [];
     selectedSpecs.forEach(([type, variant, reason, autoAdded, catalogItem], index) => {
       try {
@@ -9360,6 +9433,8 @@ function renderLayoutFurniture() {
     state.selectedFurniture2dId = visibleFurniture[0]?.id || null;
   }
   element.layoutLayer.innerHTML = visibleFurniture.map((item) => {
+    // 擺不下的家具塌在 0,0,不畫進平面圖(只留清單/待處理欄);碰撞件仍畫標紅。
+    if (item.placementFailed === true) return "";
     const pixel = furniturePixelPosition(item);
     const style = furnitureFootprintStyle(item, scale);
     const invalid = item.placementFailed === true || itemCollision(item);
@@ -9699,6 +9774,9 @@ function renderConfigurationPlan() {
   const scale = configurationPlanPixelsPerCm();
   if (scale > 0) {
     element.configurationPlanLayer.innerHTML = state.furniture2d.map((item, index) => {
+      // 擺不下的家具(位置塌到 0,0)不畫進平面圖,只留在右側待處理欄手動擺放;
+      // 碰撞件仍畫(標紅),使用者要能拖它。編號改由 sceneIndex 決定,略過不影響。
+      if (item.placementFailed === true) return "";
       const pixel = configurationFurniturePixelPosition(item);
       const style = furnitureFootprintStyle(item, scale);
       const invalid = blockingIds.has(String(item.id));
@@ -9845,7 +9923,7 @@ async function reflowSingleConfigurationFurniture(furnitureId) {
     );
     state.selectedFurniture2dId = item.id;
     state.selectedSceneIndex = sceneIndex;
-    await whiteViewer.loadScene(state.sceneData);
+    await whiteViewer.updateObject(sceneObject);   // 只重擺這一件，其餘家具與房殼不動
     whiteViewer.setViewMode("orbit");
     renderLayoutFurniture();
     renderSceneObjectList();
@@ -9963,6 +10041,7 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
   );
   let placedObjects = [];
   setStatus(`正在為「${room.label}」擇優配置，會保留優先家具並記錄未放入項目…`);
+  beginPlacementBusy(`AI 正在為「${room.label}」擇優擺放家具，請稍候…`);
   try {
     while (retained.length) {
       const layout = await api("/api/scene/layout", {
@@ -10049,6 +10128,8 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
     );
   } catch (error) {
     setStatus(errorMessage(error), "error");
+  } finally {
+    endPlacementBusy();
   }
 }
 
@@ -10660,6 +10741,45 @@ async function resolveCatalogFurniture(item) {
   }
 }
 
+// 成套家具(餐椅成套、床頭櫃成對)在同一空間必須統一規格:GLB 是逐件
+// 解析的,自動補上的件各自找「最接近款」會湊出雜牌餐椅(feedback:同桌
+// 一白一藍)。以使用者明選(或第一張有模型)的那件為準,其餘同步型錄
+// 欄位;使用者明選/鎖定的件不被覆寫。
+const UNIFIED_SET_TYPES = Object.freeze(["dining-chair", "bedside-table"]);
+
+function unifySetFurnitureModels(items) {
+  UNIFIED_SET_TYPES.forEach((setType) => {
+    const leadByRoom = new Map();
+    items.forEach((item) => {
+      if (item.normalized_type !== setType || !item.model_url) return;
+      const roomKey = String(item.placement_room_id || "");
+      const current = leadByRoom.get(roomKey);
+      const preferred = item.user_specified || item.model_locked;
+      if (!current || (preferred && !(current.user_specified || current.model_locked))) {
+        leadByRoom.set(roomKey, item);
+      }
+    });
+    items.forEach((item, index) => {
+      if (item.normalized_type !== setType) return;
+      const lead = leadByRoom.get(String(item.placement_room_id || ""));
+      if (!lead || lead === item) return;
+      if (item.user_specified || item.model_locked) return;
+      items[index] = {
+        ...item,
+        catalog_furniture_id: lead.catalog_furniture_id,
+        model_url: lead.model_url,
+        has_model: true,
+        name_zh_raw: lead.name_zh_raw,
+        primary_style: lead.primary_style,
+        color: lead.color,
+        material: lead.material,
+        size_cm: { ...(lead.size_cm || {}) },
+        catalog_size_cm: lead.catalog_size_cm,
+      };
+    });
+  });
+}
+
 function placementResolutionText(report = []) {
   if (!report.length) return "";
   return report
@@ -10680,6 +10800,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       activeScheme().staleReason || "方案 B 尚未產生合法家具配置。";
     return;
   }
+  beginPlacementBusy("AI 正在計算家具合法位置並載入 3D 模型，請稍候…");
   try {
     if (state.furniture2d.length) {
       const validation = await api("/api/scene/layout", {
@@ -10706,6 +10827,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
     const applianceRequirements = applianceRequirementsForRendering(state.furniture2d);
     const placeableFurniture = removeRetiredAppliancesFromFurniture(state.furniture2d);
     const selectedFurniture = await Promise.all(placeableFurniture.map(resolveCatalogFurniture));
+    unifySetFurnitureModels(selectedFurniture);
     const missingCatalogModels = selectedFurniture.filter((item) => !item.model_url);
     if (missingCatalogModels.length && !allowPendingFurniture) {
       element.layoutError.textContent =
@@ -10788,6 +10910,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       }),
     });
     state.sceneData = sceneDataFromGenerateResponse(payload);
+    proposalSceneVersionLoaded = null;   // 場景重建,第 7 步快取失效
     pruneRetiredAppliances({ notify: true });
     const generatedInvalid = (state.sceneData.scene_objects || []).filter(
       (item) => item.placement_failed || !item.position_cm,
@@ -10827,6 +10950,20 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       style_id: "white_model",
       palette_hex: ["#f4f1ec", "#e9e6e1", "#d8d3cc", "#bcb4aa"],
     };
+    // 修復迴圈可能把家具換小(furniture_id 變成新型錄款)或整件移除:
+    // 「送出去但沒回來」的 2D 條目要清掉,否則舊件永遠掛在待處理欄、
+    // 新件又照畫,2D 清單與 3D 對不上(feedback:廚房 11/12 鬼影)。
+    // 只清這次有送出的;因缺 GLB 而未送的待處理件不動。
+    const sentFurnitureIds = new Set(
+      sceneFurniture.map((item) => String(item.furniture_id)),
+    );
+    const returnedFurnitureIds = new Set(
+      (state.sceneData.scene_objects || []).map((item) => String(item.furniture_id)),
+    );
+    state.furniture2d = state.furniture2d.filter(
+      (item) => !sentFurnitureIds.has(String(item.id))
+        || returnedFurnitureIds.has(String(item.id)),
+    );
     state.sceneData.scene_objects.forEach((sceneObject) => {
       state.furniture2d = upsertFurniture2dFromSceneObject(
         state.furniture2d,
@@ -10869,6 +11006,8 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
   } catch (error) {
     element.layoutError.textContent = errorMessage(error);
     setStatus(errorMessage(error), "error");
+  } finally {
+    endPlacementBusy();
   }
 }
 
@@ -11157,7 +11296,10 @@ async function deleteSelectedSceneFurniture() {
   renderSceneObjectList();
   loadSelectedSceneAppearance();
   if (state.workflow.currentStep === "white_model_3d") {
-    await reloadWhiteViewerPreservingCamera();
+    // 只拆掉被刪的那一件並重編號；viewer 尚未載入場景時才整包重載。
+    if (!whiteViewer.removeObject(selected.furniture_id)) {
+      await reloadWhiteViewerPreservingCamera();
+    }
     renderConfigurationPlan();
     if (nextSelected) {
       selectSceneObjectByFurnitureId(nextSelected.furniture_id, {
@@ -11168,8 +11310,10 @@ async function deleteSelectedSceneFurniture() {
     }
     scheduleSave("white_model_3d");
   } else {
-    await realisticViewer.loadScene(state.sceneData);
-    realisticViewer.setViewMode("orbit");
+    if (!realisticViewer.removeObject(selected.furniture_id)) {
+      await realisticViewer.loadScene(state.sceneData);
+      realisticViewer.setViewMode("orbit");
+    }
     renderConfigurationPlan();
     scheduleSave("realistic_3d");
   }
@@ -11501,7 +11645,7 @@ async function replaceSceneFurniture(furnitureId) {
   );
   syncFurnitureInventoryAcrossSchemes();
   renderLayoutFurniture();
-  await reloadWhiteViewerPreservingCamera();
+  await whiteViewer.updateObject(current);   // 只換這一件的模型，其餘不動
   renderSceneObjectList();
   loadSelectedSceneAppearance();
   scheduleSave("white_model_3d");
@@ -11590,7 +11734,7 @@ function addSceneFurniture(furnitureId) {
       renderLayoutFurniture();
       state.selectedSceneIndex = state.sceneData.scene_objects.length - 1;
       state.selectedFurniture2dId = candidate.furniture_id;
-      await reloadWhiteViewerPreservingCamera();
+      await whiteViewer.addObject(candidate);   // 只加這一件，場景與其他家具不動
       renderSceneObjectList();
       renderConfigurationPlan();
       loadSelectedSceneAppearance();
@@ -11649,6 +11793,10 @@ async function confirmWhiteModel() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        // 只驗不排:信任使用者已鎖定的配置,座標照舊,只回報是否合法。
+        // 少了這個旗標,伺服器會整場重排,把合法家具塌到 (0,0) 疊在一起,
+        // 又因 invalid 而卡在本步驟進不了即時寫實。
+        validate_only: true,
         floorplan_editor: confirmedFloorplanEditor(),
         scene_objects: (state.sceneData?.scene_objects || []).map((item) => ({
           ...item,
@@ -11700,37 +11848,60 @@ async function confirmWhiteModel() {
   renderStyleControls();
   state.workflow.goTo("realistic_3d");
   showStep("realistic_3d");
-  await realisticViewer.loadScene(state.sceneData);
-  realisticViewer.setViewMode("orbit");
-  await applyStylePackToScene(preferredPack);
-  const finishOptions = STYLE_MATERIAL_OPTIONS[preferredPack.styleId] || {};
-  const wallFinish = finishOptions.wall?.find(
-    (option) => option.id === state.questionnaireFinishes.wallMaterial,
-  );
-  const floorFinish = finishOptions.floor?.find(
-    (option) => option.id === state.questionnaireFinishes.floorMaterial,
-  );
-  $("#wall-color").value =
-    state.questionnaireFinishes.wallColor || wallFinish?.color || preferredPack.wall.color;
-  $("#wall-material").value =
-    state.questionnaireFinishes.wallMaterial || wallFinish?.id || preferredPack.wall.surfaceOption;
-  $("#floor-color").value =
-    state.questionnaireFinishes.floorColor || floorFinish?.color || preferredPack.floor.color;
-  $("#floor-material").value =
-    state.questionnaireFinishes.floorMaterial || floorFinish?.id || preferredPack.floor.surfaceOption;
-  await applySurfaceOverrides();
-  element.ceilingStyle.value =
-    state.questionnaireFinishes.ceilingStyle || element.ceilingStyle.value;
-  element.lightStyle.value =
-    state.questionnaireFinishes.lightStyle || element.lightStyle.value;
-  state.sceneData.design_choices.ceiling_material =
-    state.questionnaireFinishes.ceilingMaterial;
-  state.sceneData.design_choices.ceiling_color_hex =
-    state.questionnaireFinishes.ceilingColor;
-  await evaluateCeilingConflicts();
-  setStatus(expectedFurnitureCount
-    ? "家具可見性已通過。現在可即時切換 18 個完整 PBR StylePack。"
-    : "純結構配置已確認。現在可即時切換 18 個完整 PBR StylePack。");
+  // 一次呈現:第一張色卡的材質、逐房軟裝與家具換款全部就緒才載入場景,
+  // 進場不再連續自我刷新;其餘 17 張色卡不預先套用,等使用者點選才處理。
+  // 任何一步失敗都「仍然載入場景」並把原因寫進狀態列 —— 絕不白屏卡死。
+  beginPlacementBusy("正在準備即時寫實場景（材質、軟裝與家具搭配）…");
+  let realisticEntryError = null;
+  try {
+    await applyStylePackToScene(preferredPack, { deferReload: true });
+    const finishOptions = STYLE_MATERIAL_OPTIONS[preferredPack.styleId] || {};
+    const wallFinish = finishOptions.wall?.find(
+      (option) => option.id === state.questionnaireFinishes.wallMaterial,
+    );
+    const floorFinish = finishOptions.floor?.find(
+      (option) => option.id === state.questionnaireFinishes.floorMaterial,
+    );
+    $("#wall-color").value =
+      state.questionnaireFinishes.wallColor || wallFinish?.color || preferredPack.wall.color;
+    $("#wall-material").value =
+      state.questionnaireFinishes.wallMaterial || wallFinish?.id || preferredPack.wall.surfaceOption;
+    $("#floor-color").value =
+      state.questionnaireFinishes.floorColor || floorFinish?.color || preferredPack.floor.color;
+    $("#floor-material").value =
+      state.questionnaireFinishes.floorMaterial || floorFinish?.id || preferredPack.floor.surfaceOption;
+    await applySurfaceOverrides({ reload: false });
+    element.ceilingStyle.value =
+      state.questionnaireFinishes.ceilingStyle || element.ceilingStyle.value;
+    element.lightStyle.value =
+      state.questionnaireFinishes.lightStyle || element.lightStyle.value;
+    state.sceneData.design_choices.ceiling_material =
+      state.questionnaireFinishes.ceilingMaterial;
+    state.sceneData.design_choices.ceiling_color_hex =
+      state.questionnaireFinishes.ceilingColor;
+    await evaluateCeilingConflicts();
+  } catch (error) {
+    realisticEntryError = error;
+    console.error("realistic entry pipeline failed", error);
+  }
+  try {
+    await realisticViewer.loadScene(state.sceneData);
+    realisticViewer.setViewMode("orbit");
+  } catch (error) {
+    realisticEntryError = realisticEntryError || error;
+    console.error("realistic scene load failed", error);
+  } finally {
+    endPlacementBusy();
+  }
+  if (realisticEntryError) {
+    element.realisticStatus.textContent =
+      `部分風格步驟未完成：${errorMessage(realisticEntryError)}；場景已以目前狀態載入。`;
+    setStatus(element.realisticStatus.textContent, "error");
+  } else {
+    setStatus(expectedFurnitureCount
+      ? "家具可見性已通過。現在可即時切換 18 個完整 PBR StylePack。"
+      : "純結構配置已確認。現在可即時切換 18 個完整 PBR StylePack。");
+  }
   scheduleSave("realistic_3d");
 }
 
@@ -11909,6 +12080,14 @@ async function ensureAutomaticSoftDecor(pack) {
     ? state.rooms
     : [{ id: state.selectedRoomId || "default" }];
   for (const room of targetRooms) {
+    const allObjects = state.sceneData.scene_objects || [];
+    // 只送目標房間的家具:decorate 是「單房」重排呼叫,柵格對房外一律
+    // 視為阻擋 —— 整屋清單塞進去會把其他房的鎖定家具全數誤殺(重排進
+    // 該房或標放不下),迴圈跑完只剩最後一間房的殘件擠成一團,這正是
+    // 進即時寫實整屋亂掉的根因。沒房間標記的(使用者手動加入)不動。
+    const roomObjects = allObjects.filter((item) =>
+      String(item.placement_room_id || item.auto_decor_room_id || "") === String(room.id));
+    if (!roomObjects.length) continue;
     const result = await api("/api/scene/decorate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -11916,10 +12095,20 @@ async function ensureAutomaticSoftDecor(pack) {
         style: pack.styleId,
         floorplan_editor: confirmedFloorplanEditor(),
         placement_room_id: room.id,
-        scene_objects: state.sceneData.scene_objects || [],
+        scene_objects: roomObjects,
       }),
     });
-    state.sceneData.scene_objects = result.scene_objects;
+    const returned = result.scene_objects || [];
+    const returnedById = new Map(
+      returned.map((item) => [String(item.furniture_id), item]),
+    );
+    const knownIds = new Set(allObjects.map((item) => String(item.furniture_id)));
+    const merged = allObjects.map((item) =>
+      returnedById.get(String(item.furniture_id)) || item);
+    returned.forEach((item) => {
+      if (!knownIds.has(String(item.furniture_id))) merged.push(item);   // 新軟裝
+    });
+    state.sceneData.scene_objects = merged;
   }
   const failed = (state.sceneData.scene_objects || []).filter(
     (item) => item.auto_decor_role && item.placement_failed,
@@ -11931,7 +12120,7 @@ async function ensureAutomaticSoftDecor(pack) {
   }
 }
 
-async function applyStylePackToScene(pack) {
+async function applyStylePackToScene(pack, { deferReload = false } = {}) {
   if (!pack || !state.sceneData) return;
   const revision = ++styleApplyRevision;
   const roomSurfaceOverrides = JSON.parse(JSON.stringify(
@@ -12001,12 +12190,10 @@ async function applyStylePackToScene(pack) {
   renderSceneObjectList();
   loadSelectedSceneAppearance();
   renderStyleControls();
-  element.realisticStatus.textContent = `正在套用「${pack.styleLabel}／${pack.name}」的牆面、地板與燈光…`;
-  await realisticViewer.loadScene(state.sceneData);
-  if (revision !== styleApplyRevision) return;
-  realisticViewer.setViewMode("orbit");
-  element.realisticStatus.textContent = `已套用「${pack.styleLabel}／${pack.name}」的牆面、地板、PBR 與燈光；家具搭配更新中。`;
-  scheduleSave("realistic_3d");
+  // 一次呈現:材質、軟裝、換款全部就緒才重載場景 —— 中間不逐段刷新
+  // (feedback:進即時寫實後畫面自己刷新多次)。deferReload 供進場管線
+  // 把唯一一次重載留到呼叫端統一執行。
+  element.realisticStatus.textContent = `正在套用「${pack.styleLabel}／${pack.name}」的牆面、地板、軟裝與家具搭配…`;
 
   try {
     await ensureAutomaticSoftDecor(pack);
@@ -12018,22 +12205,27 @@ async function applyStylePackToScene(pack) {
     applyFurnitureMaterials();
     renderSceneObjectList();
     loadSelectedSceneAppearance();
-    await realisticViewer.loadScene(state.sceneData);
-    if (revision !== styleApplyRevision) return;
-    realisticViewer.setViewMode("orbit");
+    if (!deferReload) {
+      await realisticViewer.loadScene(state.sceneData);
+      if (revision !== styleApplyRevision) return;
+      realisticViewer.setViewMode("orbit");
+    }
   } catch (error) {
     console.warn(error);
     element.realisticStatus.textContent = `牆面、地板與燈光已套用；家具或軟裝更新失敗：${errorMessage(error)}`;
+    if (!deferReload) {
+      await realisticViewer.loadScene(state.sceneData);
+      realisticViewer.setViewMode("orbit");
+    }
     scheduleSave("realistic_3d");
     return;
   }
   await evaluateCeilingConflicts();
-  element.realisticStatus.textContent = `${pack.styleLabel}／${pack.name}：牆、地板、未鎖定家具與環境光已同步；軟裝與擺放規則已載入，新增物件仍須通過家具引擎配置。`;
-  element.realisticStatus.textContent = `已完成「${pack.styleLabel}／${pack.name}」：牆面、地板、PBR、燈光與未鎖定家具均已同步。`;
+  element.realisticStatus.textContent = `已完成「${pack.styleLabel}／${pack.name}」：牆面、地板、PBR、燈光與未鎖定家具均已同步；軟裝與擺放規則已載入。`;
   scheduleSave("realistic_3d");
 }
 
-async function applySurfaceOverrides({ userInitiated = false } = {}) {
+async function applySurfaceOverrides({ userInitiated = false, reload = true } = {}) {
   const scope = $("#surface-scope").value;
   const selectedRoom = state.rooms.find((item) => item.id === state.selectedRoomId) || state.rooms[0];
   if (userInitiated && scope !== "house" && selectedRoom && isCirculationRoom(selectedRoom)
@@ -12116,8 +12308,10 @@ async function applySurfaceOverrides({ userInitiated = false } = {}) {
       override,
     ];
   }
-  await realisticViewer.loadScene(state.sceneData);
-  realisticViewer.setViewMode("orbit");
+  if (reload) {
+    await realisticViewer.loadScene(state.sceneData);
+    realisticViewer.setViewMode("orbit");
+  }
   element.realisticStatus.textContent = `已套用並鎖定${$("#surface-scope option:checked").textContent}的牆面與地板材質。`;
   scheduleSave("realistic_3d");
 }
@@ -12320,11 +12514,55 @@ function renderProposalSummary() {
   `).join("");
 }
 
+// 第 7 步場景快取:同一版本(方案/專案修訂/風格包)只載一次 ——
+// 色卡切換不改場景內容,不得重載(白屏);並發 loadScene 會互相清場
+// 造成永久空白,以 in-flight promise 去重。
+let proposalSceneVersionLoaded = null;
+let proposalSceneLoading = null;
+
+async function ensureProposalSceneLoaded() {
+  const version = currentSceneVersion();
+  if (proposalSceneVersionLoaded === version) return true;   // 暫存記憶:直接呼叫出來
+  if (proposalSceneLoading) {
+    await proposalSceneLoading;
+    if (proposalSceneVersionLoaded === currentSceneVersion()) return true;
+  }
+  // 真的需要載入(6→7 首次進入、換方案、場景重建)才會走到這裡:
+  // 全畫面等待遮罩明確告知「還在準備」,載完一次呈現;快取命中不閃遮罩。
+  element.masterViewStatus.textContent = "場景還在準備中，請稍候…";
+  beginPlacementBusy("正在準備第 7 步 3D 場景，請稍候…");
+  proposalSceneLoading = proposalViewer.loadScene(state.sceneData)
+    .then(async () => {
+      // loadScene resolve 時首幀還沒畫出來(寫實材質在首次 render 才編譯
+      // shader),先收遮罩會露出空白 canvas —— 等兩個動畫幀確保已呈現。
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      proposalSceneVersionLoaded = version;
+      element.masterViewStatus.textContent = "場景已就緒；請核對方案並鎖定比較視角。";
+      return true;
+    })
+    .catch((error) => {
+      // 絕不靜默空白:載入失敗要明說,並指回可修復的第 6 步。
+      element.masterViewStatus.textContent =
+        `3D 場景載入失敗：${errorMessage(error)}。請返回第 6 步重新確認方案後再進入。`;
+      setStatus("第 7 步 3D 場景載入失敗，請返回第 6 步重新確認。", "error");
+      return false;
+    })
+    .finally(() => {
+      proposalSceneLoading = null;
+      endPlacementBusy();
+    });
+  return proposalSceneLoading;
+}
+
 async function prepareProposalReview() {
-  if (!state.sceneData) return;
+  if (!state.sceneData) {
+    element.masterViewStatus.textContent =
+      "尚未有可用的 3D 場景；請返回第 6 步完成家具配置與即時寫實確認。";
+    return;
+  }
   renderProposalSummary();
   renderProposalPaletteSelection();
-  await proposalViewer.loadScene(state.sceneData);
+  if (!(await ensureProposalSceneLoaded())) return;
   const saved = state.proposalReview.masterView?.camera;
   if (saved) proposalViewer.setCameraState(saved);
   else {
@@ -12454,12 +12692,16 @@ function roomCameraSuggestion(room) {
   const centerZ = (zs.reduce((sum, value) => sum + value, 0) / Math.max(zs.length, 1)) - planDepth / 2;
   const width = xs.length ? Math.max(...xs) - Math.min(...xs) : 320;
   const depth = zs.length ? Math.max(...zs) - Math.min(...zs) : 280;
+  // setCameraState 吃 three.js 世界座標,而世界 z = −場景 z(scene_viewer
+  // 的 sceneToWorldPosition 慣例):場景座標算好後 z 必須取負,否則逐房
+  // 視角上下鏡像,「廚房視角」會框到對面的房間(feedback:房型上下相反、
+  // 廚房看見別房的落地燈)。
   return {
     camera_type: "perspective",
     view_mode: "orbit",
     preset: "room",
-    position_cm: [centerX + width * 0.28, 145, centerZ + depth * 0.28],
-    target_cm: [centerX, 82, centerZ],
+    position_cm: [centerX + width * 0.28, 145, -(centerZ + depth * 0.28)],
+    target_cm: [centerX, 82, -centerZ],
     up: [0, 1, 0],
     fov_deg: 58,
     zoom: 1,
@@ -12630,8 +12872,27 @@ function confirmProposalRoomViews() {
     return;
   }
   proposalViewer.lockRenderCamera(true);
+  // 復原的專案(換瀏覽器/清 localStorage)伺服器端有 masterView 與逐房
+  // 視角,但本機 workflow 完成度可能缺尾段 —— goTo 會被閘門默默擋下,
+  // 按鈕看起來沒反應。以既有資料自我修復完成度;仍被擋就把原因寫進
+  // 面板,不再無聲失敗。(realistic 先補,complete 會清下游完成度,
+  // proposal 必須在其後補回。)
+  if (!state.workflow.completed.includes("realistic_3d")) {
+    state.workflow.complete("realistic_3d", { confirmed: true });
+  }
+  if (
+    !state.workflow.completed.includes("proposal_review")
+    && state.proposalReview.masterView
+  ) {
+    state.workflow.complete("proposal_review", {
+      confirmed: true,
+      masterView: state.proposalReview.masterView,
+    });
+  }
   scheduleSave("proposal_review");
-  goTo("ai_render");
+  if (!goTo("ai_render")) {
+    status.textContent = `尚不能進入第 8 步：${firstWorkflowBlocker("ai_render")}`;
+  }
 }
 
 function renderRoomViewList() {
@@ -12659,6 +12920,7 @@ function selectRenderRoom(roomId) {
     ? "已載入保存視角；可以小幅調整後重新保存。"
     : "已套用房間建議視角；請確認主要家具與布局清楚可見。";
   renderRoomViewList();
+  updateAiRenderImageStage();   // 左側生圖跟著選取房間切換
 }
 
 function saveSelectedRoomView() {
@@ -12745,6 +13007,203 @@ async function prepareAiRender() {
   else {
     element.aiRenderViewTitle.textContent = "色卡比較視角";
     element.aiRenderStatus.textContent = "先建立色卡比較任務，確認後再逐房間保存視角。";
+  }
+  void refreshAiOpenrouterStatus();
+  renderAiOpenrouterResults();
+}
+
+// ---- 第 8 步：OpenRouter nano banana 逐房寫實生圖（不移動擺設）＋整批一次改圖 ----
+
+function syncProjectRevision(result) {
+  // AI 生圖端點會 bump 專案 updated_at；同步回來，避免之後 workflow 保存衝突。
+  if (state.project && result?.updated_at) {
+    state.project = { ...state.project, updated_at: result.updated_at, revision: result.revision };
+  }
+}
+
+async function refreshAiOpenrouterStatus() {
+  if (!element.aiOpenrouterStatus) return;
+  element.aiOpenrouterStatus.textContent = "正在檢查 OpenRouter 生圖服務…";
+  try {
+    const status = await api("/api/ai-render/status");
+    element.aiOpenrouterStatus.textContent = status.configured
+      ? `已連接 OpenRouter（${status.model}）。`
+      : "尚未設定 OpenRouter 生圖服務（未設定 OPENROUTER_API_KEY）。";
+    if (element.aiOpenrouterGenerate) element.aiOpenrouterGenerate.disabled = !status.configured;
+  } catch {
+    element.aiOpenrouterStatus.textContent = "無法取得 OpenRouter 生圖服務狀態。";
+  }
+}
+
+function lockedRoomViews() {
+  return state.rooms
+    .map((room) => state.proposalReview.roomViews[room.id])
+    .filter(Boolean);
+}
+
+async function runAiOpenrouterRender() {
+  const allViews = lockedRoomViews();
+  if (!allViews.length) {
+    element.aiOpenrouterStatus.textContent = "請先在第 7 步鎖定至少一個房間視角。";
+    return;
+  }
+  if (!state.sceneData) return;
+  // ponytail: 測試期間只送第一個房間生圖,控制 OpenRouter 成本;正式上線改回 allViews。
+  const views = allViews.slice(0, 1);
+  element.aiOpenrouterGenerate.disabled = true;
+  element.aiOpenrouterStatus.textContent = allViews.length > 1
+    ? `測試模式：先只為「${views[0].room_label || views[0].room_id}」生成 1 張圖（已鎖定 ${allViews.length} 房）。`
+    : `正在為 ${views.length} 個房間視角逐一生成寫實圖…`;
+  // 逐房把該視角截圖當 img2img 參考，模型才會保持家具與格局不動。
+  const rooms = views.map((view) => {
+    aiRenderViewer.setCameraState(view.camera);
+    return {
+      room_id: view.room_id,
+      room_label: view.room_label,
+      camera: view.camera,
+      reference_png_data_url: aiRenderViewer.capturePng(),
+    };
+  });
+  try {
+    const result = await api(`/api/projects/${state.projectId}/ai-renders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id: state.projectId, scene: state.sceneData, rooms }),
+    });
+    syncProjectRevision(result);
+    state.proposalReview.openRouterRenders = {
+      results: result.results,
+      editRemaining: result.edit_remaining,
+    };
+    const done = result.results.filter((row) => row.status === "completed").length;
+    const failed = result.results.length - done;
+    element.aiOpenrouterStatus.textContent = failed
+      ? `完成 ${done} 房、失敗 ${failed} 房；完成的圖各可用整批唯一一次修改調整。`
+      : `已完成 ${done} 個房間的寫實生圖；可用整批唯一一次修改調整。`;
+    aiRenderImageVisible = done > 0;   // 生圖完成即取代左側 3D;點擊可隨時切換
+    renderAiOpenrouterResults();
+  } catch (error) {
+    element.aiOpenrouterStatus.textContent = errorMessage(error);
+  } finally {
+    element.aiOpenrouterGenerate.disabled = false;
+  }
+}
+
+// 第 8 步版面:生圖完成後取代左側 3D 場景,點圖回 3D、點「查看生圖」
+// 隨時切回;左側顯示的圖跟著目前選取的房間走,沒有生圖時維持純 3D 操作。
+let aiRenderImageVisible = false;
+
+function currentAiRenderImage() {
+  const results = state.proposalReview.openRouterRenders?.results || [];
+  const completed = results.filter(
+    (row) => row.status === "completed" && row.image_data_url,
+  );
+  if (!completed.length) return null;
+  return completed.find((row) => row.room_id === state.selectedRenderRoomId)
+    || completed[0];
+}
+
+function updateAiRenderImageStage() {
+  if (!element.aiRenderImageStage || !element.aiRenderImageToggle) return;
+  const row = currentAiRenderImage();
+  if (!row) {
+    aiRenderImageVisible = false;
+    element.aiRenderImageStage.hidden = true;
+    element.aiRenderImageToggle.hidden = true;
+    return;
+  }
+  element.aiRenderImage.src = row.image_data_url;
+  element.aiRenderImage.alt = `${row.room_label || row.room_id} 寫實生圖`;
+  element.aiRenderImageToggle.textContent = `查看生圖（${row.room_label || row.room_id}）`;
+  element.aiRenderImageStage.hidden = !aiRenderImageVisible;
+  element.aiRenderImageToggle.hidden = aiRenderImageVisible;
+}
+
+function renderAiOpenrouterResults() {
+  updateAiRenderImageStage();
+  const container = element.aiOpenrouterResults;
+  if (!container) return;
+  container.innerHTML = "";
+  const data = state.proposalReview.openRouterRenders;
+  if (!data || !data.results?.length) return;
+  const editRemaining = data.editRemaining > 0;
+  for (const row of data.results) {
+    const card = document.createElement("div");
+    card.className = "rp-render-result-card";
+    const title = document.createElement("strong");
+    title.textContent = row.room_label || row.room_id;
+    card.appendChild(title);
+    if (row.status === "completed" && row.image_data_url) {
+      const img = document.createElement("img");
+      img.src = row.image_data_url;
+      img.alt = `${row.room_label || row.room_id} 寫實生圖`;
+      img.style.maxWidth = "100%";
+      img.style.display = "block";
+      card.appendChild(img);
+      if (editRemaining) {
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "secondary-action";
+        editButton.textContent = "修改這張（整批僅一次）";
+        editButton.addEventListener("click", () => openAiOpenrouterEditDialog(row));
+        card.appendChild(editButton);
+      }
+    } else {
+      const failed = document.createElement("p");
+      failed.className = "rp-viewer-status";
+      failed.textContent = `生圖失敗：${(row.notices || []).join("；") || "未知原因"}`;
+      card.appendChild(failed);
+    }
+    container.appendChild(card);
+  }
+}
+
+let aiOpenrouterEditTarget = null;
+
+function openAiOpenrouterEditDialog(row) {
+  aiOpenrouterEditTarget = row;
+  element.aiOpenrouterEditRoom.textContent = `房間：${row.room_label || row.room_id}`;
+  element.aiOpenrouterEditFeedback.value = "";
+  element.aiOpenrouterEditStatus.textContent = "";
+  setTaskDialogOpen(element.aiOpenrouterEditDialog, true);
+}
+
+function closeAiOpenrouterEditDialog() {
+  setTaskDialogOpen(element.aiOpenrouterEditDialog, false);
+  aiOpenrouterEditTarget = null;
+}
+
+async function submitAiOpenrouterEdit() {
+  const row = aiOpenrouterEditTarget;
+  if (!row) return;
+  const feedback = element.aiOpenrouterEditFeedback.value.trim();
+  if (!feedback) {
+    element.aiOpenrouterEditStatus.textContent = "請先描述想修改的內容。";
+    return;
+  }
+  element.aiOpenrouterEditStatus.textContent = "正在送出修改…";
+  try {
+    const result = await api(
+      `/api/projects/${state.projectId}/ai-renders/${encodeURIComponent(row.room_id)}/edit`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedback, image_data_url: row.image_data_url }),
+      },
+    );
+    syncProjectRevision(result);
+    const data = state.proposalReview.openRouterRenders;
+    const target = data.results.find((item) => item.room_id === row.room_id);
+    if (target) {
+      target.image_data_url = result.result.image_data_url;
+      target.notices = result.result.notices;
+    }
+    data.editRemaining = result.edit_remaining;
+    renderAiOpenrouterResults();
+    element.aiOpenrouterStatus.textContent = "修改完成（整批唯一一次已用完）。";
+    closeAiOpenrouterEditDialog();
+  } catch (error) {
+    element.aiOpenrouterEditStatus.textContent = errorMessage(error);
   }
 }
 
@@ -13661,6 +14120,13 @@ function bindEvents() {
   });
   $$("[data-design-scheme]").forEach((button) => {
     button.addEventListener("click", () => {
+      // 流程規範:方案 A/B 在第 6 步選定;第 7 步只依選定方案比較色卡、
+      // 第 8 步依選定色卡逐房生圖 —— 進入第 7 步後不再切換方案。
+      const currentStep = state.workflow?.currentStep;
+      if (currentStep === "proposal_review" || currentStep === "ai_render") {
+        setStatus("方案已於第 6 步選定；要更換 A/B 請先返回第 6 步。", "error");
+        return;
+      }
       if (!switchDesignScheme(button.dataset.designScheme)) return;
       setStatus(`已切換至方案 ${button.dataset.designScheme}；家具座標與 3D 場景彼此獨立。`);
     });
@@ -13702,6 +14168,7 @@ function bindEvents() {
   });
   $("#auto-layout-furniture")?.addEventListener("click", async () => {
     element.layoutError.textContent = "";
+    beginPlacementBusy("AI 正在重新擺放家具，請稍候…");
     try {
       setStatus("正在由家具引擎重新配置合法位置…");
       if (activeSchemeId() === "B" && state.designSchemes.schemes.A.furniture.length) {
@@ -13727,6 +14194,8 @@ function bindEvents() {
     } catch (error) {
       element.layoutError.textContent = errorMessage(error);
       setStatus(errorMessage(error), "error");
+    } finally {
+      endPlacementBusy();
     }
   });
   element.furnitureSearch?.addEventListener("input", () => renderFurnitureLibrary(element.furnitureSearch.value));
@@ -14076,6 +14545,24 @@ function bindEvents() {
   });
   $("#save-room-view")?.addEventListener("click", saveSelectedRoomView);
   $("#submit-room-renders")?.addEventListener("click", () => openRenderBriefDialog("room_final"));
+  element.aiOpenrouterGenerate?.addEventListener("click", runAiOpenrouterRender);
+  element.aiRenderImageStage?.addEventListener("click", () => {
+    aiRenderImageVisible = false;
+    updateAiRenderImageStage();
+  });
+  element.aiRenderImageStage?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    aiRenderImageVisible = false;
+    updateAiRenderImageStage();
+  });
+  element.aiRenderImageToggle?.addEventListener("click", () => {
+    aiRenderImageVisible = true;
+    updateAiRenderImageStage();
+  });
+  $("#ai-openrouter-edit-submit")?.addEventListener("click", submitAiOpenrouterEdit);
+  $("#ai-openrouter-edit-cancel")?.addEventListener("click", closeAiOpenrouterEditDialog);
+  $("#ai-openrouter-edit-close")?.addEventListener("click", closeAiOpenrouterEditDialog);
   $("#close-render-brief")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-cancel")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-confirm")?.addEventListener("click", () => {

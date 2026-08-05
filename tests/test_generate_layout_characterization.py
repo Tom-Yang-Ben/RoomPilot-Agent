@@ -101,6 +101,25 @@ def test_locked_position_is_kept_verbatim():
     assert objects["sofa"]["position_locked"] is True
 
 
+def test_validate_only_keeps_positions_and_never_collapses():
+    """最終確認(進入即時寫實):validate_only 一律照舊座標、絕不重排。合法件回報
+    合法;越界件回報失敗但位置**仍照舊,不塌成 (0,0)**(原本重排把合法配置塌到
+    原點疊一起、又卡住進不了下一步,正是此測要守的回歸)。"""
+    legal = _item("sofa", "fabric-sofa", 200, 90)
+    legal["position_cm"] = {"x": 0.0, "z": 0.0}
+    legal["rotation_y_deg"] = 0.0
+    outside = _item("desk", "desk", 120, 60)
+    outside["position_cm"] = {"x": 9000.0, "z": 9000.0}
+    outside["rotation_y_deg"] = 0.0
+    objects = _by_id(generate_layout(
+        ROOM_W, ROOM_D, [legal, outside], room=_rect_room(), validate_only=True,
+    ))
+    assert objects["sofa"]["position_cm"] == {"x": 0.0, "z": 0.0}
+    assert objects["sofa"]["placement_failed"] is False
+    assert objects["desk"]["placement_failed"] is True
+    assert objects["desk"]["position_cm"] == {"x": 9000.0, "z": 9000.0}
+
+
 def test_locked_item_is_placed_before_and_pushes_others_away():
     locked = _item("sofa", "fabric-sofa", 200, 90)
     locked["position_locked"] = True
@@ -357,6 +376,264 @@ def test_wall_anchored_furniture_scans_other_walls_when_door_band_blocks_anchors
     assert gap <= 15, f"沙發離最近牆 {gap:.1f}cm,未貼牆"
     # 朝向:軸對齊且正面朝房內(rot=0 面向 +z)
     assert obj["rotation_y_deg"] in {0.0, 90.0, 180.0, 270.0}
+
+
+def test_sofa_may_back_onto_the_window_wall():
+    """沙發族系豁免窗前採光帶(feedback 9/10):沙發背窗是常見客廳格局,
+    被帶擋出窗牆會讓電視櫃的成組候選落到陽台門那側。高背沙發(≥90cm)
+    也要能貼窗牆;其他高家具仍受帶約束。"""
+    window_floorplan = {
+        "coordinate_unit": "cm",
+        "room_regions": [{
+            "room_id": "living",
+            "room_type": "living_room",
+            "exterior": [[-225, -190], [225, -190], [225, 190], [-225, 190]],
+            "holes": [],
+        }],
+        # 下牆中央的窗:40cm 採光帶涵蓋沙發在下牆的類型錨點
+        "window_segments": [
+            {"start": {"x": -80, "z": 190}, "end": {"x": 80, "z": 190}},
+        ],
+    }
+    # 2D 流程送通用型 "sofa"(scene_layout2d.toSceneFurniture);候選表以它為鍵
+    items = [_item("sofa", "sofa", 200, 90, h=96.0, placement_room_id="living")]
+    objects = generate_layout_by_room(
+        450.0, 380.0, items,
+        room=_rect_room(450.0, 380.0),
+        floorplan=window_floorplan,
+    )
+    obj = objects[0]
+    assert not obj["placement_failed"]
+    # 貼下牆(窗牆):背面貼齊內縮邊界、面向房內
+    assert obj["rotation_y_deg"] == 180
+    assert obj["position_cm"]["z"] > 100, f"沙發未靠窗牆,z={obj['position_cm']['z']}"
+
+
+_BALCONY_OPENING_FLOORPLAN = {
+    "coordinate_unit": "cm",
+    "width_cm": 450.0,
+    "depth_cm": 380.0,
+    "room_regions": [{
+        "room_id": "living",
+        "room_type": "living_room",
+        "exterior": [[-225, -190], [225, -190], [225, 190], [-225, 190]],
+        "holes": [],
+    }],
+    # 下牆偏左的落地窗 = 陽台出入口(75cm 通行縫,矮家具與沙發都不得擋)
+    "window_segments": [
+        {
+            "start": {"x": -160, "z": 190},
+            "end": {"x": -70, "z": 190},
+            "window_type": "floor_to_ceiling",
+        },
+    ],
+}
+
+
+def test_sofa_slides_sideways_past_the_balcony_opening():
+    """沙發壓到陽台落地窗時要「往旁邊移一點,盡量在正前方」:同一面牆
+    由中心向外滑位讓開通行縫,而不是跳到別的牆或擋住出入口。"""
+    items = [_item("sofa", "sofa", 200, 90, h=96.0, placement_room_id="living")]
+    objects = generate_layout_by_room(
+        450.0, 380.0, items,
+        room=_rect_room(450.0, 380.0),
+        floorplan=_BALCONY_OPENING_FLOORPLAN,
+    )
+    obj = objects[0]
+    assert not obj["placement_failed"]
+    assert obj["rotation_y_deg"] == 180          # 仍在下牆、面向房內
+    assert obj["position_cm"]["z"] > 100
+    # 讓開出入口:左緣須越過通行縫右界(開口右端 -70 + 75cm 縫 = 5)
+    left_edge = obj["position_cm"]["x"] - obj["footprint_cm"]["width"] / 2
+    assert left_edge >= 4, f"沙發左緣 {left_edge:.0f} 仍壓住陽台出入縫"
+
+
+def test_low_furniture_cannot_block_the_balcony_opening_either():
+    """電視櫃這類矮家具過去只受 40cm 採光帶(高度未達窗台就豁免);
+    落地窗是動線,矮家具也不得擋(feedback:10 號電視櫃擋住陽台門)。"""
+    opening = {
+        "start": {"x": -60, "z": -190},
+        "end": {"x": 60, "z": -190},
+        "window_type": "floor_to_ceiling",
+    }
+    floorplan = {
+        **_BALCONY_OPENING_FLOORPLAN,
+        "window_segments": [opening],
+    }
+    items = [_item("tv", "tv-bench", 120, 40, h=45.0, placement_room_id="living")]
+    objects = generate_layout_by_room(
+        450.0, 380.0, items,
+        room=_rect_room(450.0, 380.0),
+        floorplan=floorplan,
+    )
+    obj = objects[0]
+    assert not obj["placement_failed"]
+    x, z = obj["position_cm"]["x"], obj["position_cm"]["z"]
+    fw, fd = obj["footprint_cm"]["width"], obj["footprint_cm"]["depth"]
+    in_front_of_opening = (
+        z - fd / 2 <= -190 + 75 and x + fw / 2 > -60 - 75 and x - fw / 2 < 60 + 75
+    )
+    assert not in_front_of_opening, f"電視櫃 ({x:.0f},{z:.0f}) 擋住落地窗通行縫"
+
+
+def test_whole_house_final_validation_passes_furniture_in_every_room():
+    """最終確認(進即時寫實)是「無 placement_room_id 的整屋 validate_only」:
+    柵格對格外一律視為阻擋,邊界必須用所有房的聯集 —— 否則最大房以外的
+    家具全數被誤殺,畫面卡在原步驟且配置全亂(使用者實際回報的按鈕災情)。"""
+    from backend.server.scene_service import (
+        _region_boundary_by_id,
+        _regions_boundary,
+        generate_layout,
+    )
+    from backend.agent.place import placement_hints
+
+    two_rooms = {
+        "coordinate_unit": "cm",
+        "width_cm": _TWO_ROOM_W,
+        "depth_cm": _TWO_ROOM_D,
+        **{k: v for k, v in _TWO_ROOM_FLOORPLAN.items() if k != "coordinate_unit"},
+    }
+    room = _rect_room(_TWO_ROOM_W, _TWO_ROOM_D)
+    placed = []
+    for room_id, items in (
+        ("left", [_item("bed", "bed", 160, 200, h=120.0, placement_room_id="left")]),
+        ("right", [
+            _item("sofa", "sofa", 200, 90, h=96.0, placement_room_id="right"),
+            _item("book", "bookcase", 80, 35, h=200.0, placement_room_id="right"),
+        ]),
+    ):
+        boundary = _region_boundary_by_id(two_rooms, room, room_id)
+        placed.extend(generate_layout(
+            _TWO_ROOM_W, _TWO_ROOM_D, items, room=room,
+            regions_boundary=_regions_boundary(two_rooms, room),
+            place_boundary=boundary, floorplan=two_rooms,
+            hints=placement_hints(items),
+        ))
+    assert all(not obj["placement_failed"] for obj in placed)
+
+    locked = [{**obj, "position_locked": True} for obj in placed]
+    validated = generate_layout(
+        _TWO_ROOM_W, _TWO_ROOM_D, locked, room=room,
+        regions_boundary=_regions_boundary(two_rooms, room),
+        place_boundary=_regions_boundary(two_rooms, room),   # 整屋聯集(修正點)
+        floorplan=two_rooms,
+        hints=placement_hints(locked),
+        validate_only=True,
+    )
+    for original, checked in zip(locked, validated):
+        assert not checked["placement_failed"], (
+            f"{checked['furniture_id']} 在整屋最終驗證被誤殺:{checked['placement_reason']}"
+        )
+        assert checked["position_cm"] == original["position_cm"]
+
+
+def test_curtain_may_hang_on_the_balcony_opening_but_sofa_may_not():
+    """窗簾本來就掛在窗上:落地窗的 75cm 通行縫不適用於窗簾,
+    但沙發等家具仍不得擋。"""
+    from backend.agent.place import placement_hints
+    from backend.server.scene_service import generate_layout_by_room as _by_room
+
+    curtain = _item("curtain", "curtain", 140, 12, h=240.0, placement_room_id="living")
+    curtain["position_cm"] = {"x": -115.0, "z": 178.0}   # 貼在下牆偏左開口上
+    curtain["rotation_y_deg"] = 0.0
+    curtain["position_locked"] = True
+    sofa = _item("sofa", "sofa", 200, 90, h=96.0, placement_room_id="living")
+    sofa["position_cm"] = {"x": -115.0, "z": 137.0}
+    sofa["rotation_y_deg"] = 180.0
+    sofa["position_locked"] = True
+    objects = _by_room(
+        450.0, 380.0, [curtain, sofa],
+        room=_rect_room(450.0, 380.0),
+        floorplan=_BALCONY_OPENING_FLOORPLAN,
+    )
+    by_id = {obj["furniture_id"]: obj for obj in objects}
+    assert not by_id["curtain"]["placement_failed"]
+    assert by_id["curtain"]["position_cm"] == {"x": -115.0, "z": 178.0}
+    # 沙發壓開口:鎖定位置不合法 → 被重排離開(或標失敗),不得原地保留
+    sofa_result = by_id["sofa"]
+    assert sofa_result["placement_failed"] or sofa_result["position_cm"] != {"x": -115.0, "z": 137.0}
+
+
+def test_seating_beside_a_plain_window_passes_final_validation():
+    """座椅豁免窗前採光帶:餐椅椅背常 ≥90cm,會誤中「高家具擋光」判準,
+    但椅子不是量體 —— 貼桌餐椅靠窗必須通過最終驗證;高量體(衣櫃)同位
+    仍要擋。座椅擋落地窗出入口也照樣不行。"""
+    window_floorplan = {
+        "coordinate_unit": "cm",
+        "width_cm": 450.0,
+        "depth_cm": 380.0,
+        "room_regions": [{
+            "room_id": "kitchen",
+            "room_type": "kitchen",
+            "exterior": [[-225, -190], [225, -190], [225, 190], [-225, 190]],
+            "holes": [],
+        }],
+        "window_segments": [
+            {
+                "start": {"x": -60, "z": 190},
+                "end": {"x": 60, "z": 190},
+                "window_type": "standard",
+                "sill_height_cm": 90,
+            },
+        ],
+    }
+
+    from backend.server.scene_service import _regions_boundary
+
+    room = _rect_room(450.0, 380.0)
+
+    def _validated(ftype, w, d, h, floorplan):
+        item = _item("probe", ftype, w, d, h=h, placement_room_id="kitchen")
+        item["position_cm"] = {"x": 0.0, "z": 160.0}    # 貼窗牆、壓進 40cm 採光帶
+        item["rotation_y_deg"] = 0.0
+        item["position_locked"] = True
+        boundary = _regions_boundary(floorplan, room)
+        return generate_layout(
+            450.0, 380.0, [item], room=room,
+            regions_boundary=boundary, place_boundary=boundary,
+            floorplan=floorplan, validate_only=True,
+        )[0]
+
+    chair = _validated("dining-chair", 45, 50, 95.0, window_floorplan)
+    assert chair["placement_failed"] is False
+    assert chair["position_cm"] == {"x": 0.0, "z": 160.0}
+    wardrobe = _validated("wardrobe", 100, 60, 200.0, window_floorplan)
+    assert wardrobe["placement_failed"] is True
+    assert "窗前淨空" in wardrobe["placement_reason"] or "門前動線" in wardrobe["placement_reason"]
+
+    access = {
+        **window_floorplan,
+        "window_segments": [{
+            "start": {"x": -60, "z": 190},
+            "end": {"x": 60, "z": 190},
+            "window_type": "floor_to_ceiling",
+        }],
+    }
+    blocked = _validated("dining-chair", 45, 50, 95.0, access)
+    assert blocked["placement_failed"] is True   # 出入口誰都不能擋
+
+
+def test_validate_rejects_sofa_on_balcony_opening_but_allows_plain_window():
+    from backend.server.scene_service import validate_single_placement
+
+    sofa = _item("sofa", "sofa", 200, 90, h=96.0)
+    sofa["position_cm"] = {"x": -115.0, "z": 137.0}   # 壓在下牆偏左開口正前
+    sofa["rotation_y_deg"] = 180.0
+    blocked = validate_single_placement(_BALCONY_OPENING_FLOORPLAN, sofa, [])
+    assert blocked["ok"] is False
+    assert "陽台" in blocked["reason"]
+
+    plain = {
+        **_BALCONY_OPENING_FLOORPLAN,
+        "window_segments": [{
+            "start": {"x": -160, "z": 190},
+            "end": {"x": -70, "z": 190},
+            "window_type": "standard",
+            "sill_height_cm": 90,
+        }],
+    }
+    allowed = validate_single_placement(plain, sofa, [])
+    assert allowed["ok"] is True                      # 一般窗:沙發可背窗
 
 
 def test_bedside_table_candidate_faces_into_the_room():

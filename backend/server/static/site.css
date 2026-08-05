@@ -13270,3 +13270,83 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
   .rp-questionnaire-heading-actions { justify-content: flex-start; }
   .rp-questionnaire-workflow-menu ol { left: 0; right: auto; }
 }
+
+/* 擺放中的全畫面等待提示:agent 還在算,擋操作並明說要等 */
+.rp-placement-busy {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  display: grid;
+  place-items: center;
+  background: rgba(24, 28, 26, 0.46);
+  backdrop-filter: blur(2px);
+}
+
+.rp-placement-busy-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 26px 34px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(15, 23, 20, 0.28);
+  max-width: min(420px, 86vw);
+  text-align: center;
+}
+
+.rp-placement-busy-card p {
+  margin: 0;
+  font-weight: 600;
+  color: #1f2a24;
+}
+
+.rp-placement-busy-card small { color: #5f6c64; }
+
+.rp-placement-busy-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 4px solid #dbe4de;
+  border-top-color: #2f6f4f;
+  animation: rp-placement-busy-spin 0.9s linear infinite;
+}
+
+@keyframes rp-placement-busy-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 第 8 步:生圖完成後取代左側 3D 場景;點圖回 3D、點「查看生圖」切回 */
+.rp-render-image-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  background: #1c1e1d;
+  cursor: pointer;
+}
+
+.rp-render-image-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.rp-render-image-hint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(24, 28, 26, 0.72);
+  color: #fff;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.rp-render-image-toggle {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 12;
+}
