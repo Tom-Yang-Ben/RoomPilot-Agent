@@ -1,5 +1,5 @@
 import { createSceneViewer } from "./scene_viewer.js?v=sha256-8f6a0c6d0eaf";
-import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-c34b1ea0a175";
+import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-35a0bec6dcb1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
 import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd27184d7e";
@@ -14633,6 +14633,28 @@ function renderPaletteResults() {
     `;
   }).join("");
   element.confirmRenderPalette.hidden = paletteJobs.length === 0;
+}
+
+function confirmRenderPalette() {
+  const selected = element.paletteRenderResults?.querySelector(
+    "input[name='confirmed-render-style']:checked",
+  ) || $("input[name='confirmed-render-style']:checked");
+  if (!selected?.value) {
+    const message = "請先從 3 張生圖中選擇 1 張色卡。";
+    if (element.aiRenderStatus) element.aiRenderStatus.textContent = message;
+    const status = $("#proposal-style-stage-status");
+    if (status) status.textContent = message;
+    return;
+  }
+
+  state.proposalReview.confirmedStyleCardId = selected.value;
+  state.proposalReview.styleCardLockedAt = new Date().toISOString();
+  state.selectedRenderRoomId = state.proposalReview.representativeRoomId
+    || state.selectedProposalRoomId
+    || state.rooms[0]?.id
+    || null;
+  scheduleSave("ai_render");
+  goTo("ai_render");
 }
 
 function legacyConfirmRenderPaletteV1b() {

@@ -58,6 +58,13 @@ def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
     assert result.returncode == 0, result.stderr
 
 
+def test_palette_confirmation_event_has_a_defined_handler() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function confirmRenderPalette()" in source
+    assert 'element.confirmRenderPalette?.addEventListener("click", confirmRenderPalette);' in source
+
+
 def test_2d_uses_synchronized_3d_placement_as_the_collision_authority() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
