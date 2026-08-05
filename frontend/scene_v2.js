@@ -11697,10 +11697,11 @@ function bindEvents() {
   });
   $("#confirm-dimensioned-plan").addEventListener("click", confirmDimensionedPlan);
   $("#confirm-basic-questionnaire").addEventListener("click", confirmBasicQuestionnaire);
-  const demoMode = new URLSearchParams(window.location.search).get("demo") === "1";
-  element.randomizeRequirements.hidden = !demoMode;
+  // 2026-08-05 Ben 指示常駐：逐題點過去太慢，這顆是日常測試的主要入口。
+  // 原本擋在 ?demo=1 後面（0169abda），實務上等於每次都要手動改網址。
+  // 覆寫風險由下面的 confirm 把關，不再用網址參數當開關。
+  element.randomizeRequirements.hidden = false;
   element.randomizeRequirements.addEventListener("click", () => {
-    if (!demoMode) return;
     if (!window.confirm("測試範例會覆寫目前尚未確認的面談答案，確定要繼續嗎？")) return;
     randomizeRequirementsForTesting();
   });

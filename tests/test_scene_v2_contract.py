@@ -52,8 +52,12 @@ def test_requirements_step_has_first_meeting_demo_shortcut() -> None:
     assert 'goalIds: ["circulation", "storage", "daylight"]' in flow
     assert "likedStylePackIds: packs.slice(0, 2)" in flow
     assert "dislikedStylePackId:" in flow
-    assert 'get("demo") === "1"' in source
-    assert 'element.randomizeRequirements.hidden = !demoMode' in source
+    # 2026-08-05：這顆捷徑改成常駐（原本擋在 ?demo=1 後面）。網址參數當開關等於
+    # 每次測試都要手動改網址；覆寫風險改由 confirm 把關，所以這裡釘的是
+    # 「按鈕不被隱藏」與「confirm 仍在」，不再釘 demo 參數。
+    assert 'element.randomizeRequirements.hidden = false' in source
+    assert 'get("demo") === "1"' not in source
+    assert 'id="randomize-requirements" type="button" class="secondary-action">' in html
     assert "測試範例會覆寫目前尚未確認的面談答案" in source
 
 
