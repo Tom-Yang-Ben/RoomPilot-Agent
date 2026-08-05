@@ -26,7 +26,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 .\.venv\Scripts\python.exe -m uvicorn backend.server.main:app --host 127.0.0.1 --port 8002 --reload
 ```
 
-開啟 <http://127.0.0.1:8002>。
+開啟 [http://127.0.0.1:8002](http://127.0.0.1:8002)。
 
 如果 `8002` 已占用，把指令改成 `--port 8023` 或其他未使用連接埠。
 若既有 `.venv\Scripts\python.exe` 指向已移除的舊 Python 路徑，先把
@@ -66,7 +66,7 @@ uv pip install --python .venv\Scripts\python.exe -r requirements-rag.txt
 在 `.env` 設定 `ROOMPILOT_RAG_ENABLED=true`、
 `ROOMPILOT_RAG_PARSER_PROVIDER=openai|anthropic`，並只填所選 provider 的
 `OPENAI_API_KEY` 或 `ANTHROPIC_API_KEY` 後，開啟
-<http://127.0.0.1:8002/rag>。BGE-M3 與 reranker 約需 4.6 GB 常駐記憶體；
+[http://127.0.0.1:8002/rag](http://127.0.0.1:8002/rag)。BGE-M3 與 reranker 約需 4.6 GB 常駐記憶體；
 伺服器只會 lazy-load 已快取的模型，不會在請求期間自動下載。
 
 OCR 套件較大，且不是啟動網站或執行目前標準測試的必要條件。
@@ -165,15 +165,15 @@ Vector Retrieval。幾何、碰撞、淨空或結構合法性仍只由既有 Eng
 
 ## 團隊責任
 
-| 分支／人員 | 主要路徑 | 功能 |
-|---|---|---|
-| Bella | `backend/server/`, `backend/server/static/` | FastAPI、專案、八步流程、2D/3D UI、整合 |
-| Cody | `backend/floorplan/`, `backend/upgrade3d/` | PNG/DXF、牆門窗房間辨識、`layout_json` |
-| Django | `backend/spatial_data/`, floorplan spatial helpers | 房間尺寸、面積、關係、layout evaluation、RAG 關係 |
-| Kai | `backend/catalog/`, `JSON/`, `scripts/sql/` | 家具型錄、AWS/CloudFront、Manifest、PostgreSQL |
-| Yen | `backend/agent/` | 需求結構化、選件、排序、修復意圖與說明 |
-| Ancai | `backend/engine/` | 家具座標、碰撞、淨空、移動與合法性 |
-| Ben | `testdata/`, evaluation/docs support | 辨識資料 QA、模型評估與版本證據 |
+| 分支／人員 | 主要路徑                                             | 功能                                              |
+| ---------- | ---------------------------------------------------- | ------------------------------------------------- |
+| Bella      | `backend/server/`, `backend/server/static/`      | FastAPI、專案、八步流程、2D/3D UI、整合           |
+| Cody       | `backend/floorplan/`, `backend/upgrade3d/`       | PNG/DXF、牆門窗房間辨識、`layout_json`          |
+| Django     | `backend/spatial_data/`, floorplan spatial helpers | 房間尺寸、面積、關係、layout evaluation、RAG 關係 |
+| Kai        | `backend/catalog/`, `JSON/`, `scripts/sql/`    | 家具型錄、AWS/CloudFront、Manifest、PostgreSQL    |
+| Yen        | `backend/agent/`                                   | 需求結構化、選件、排序、修復意圖與說明            |
+| Ancai      | `backend/engine/`                                  | 家具座標、碰撞、淨空、移動與合法性                |
+| Ben        | `testdata/`, evaluation/docs support               | 辨識資料 QA、模型評估與版本證據                   |
 
 AI 或新成員開始修改前，必須依序閱讀：
 
@@ -189,22 +189,22 @@ AI 或新成員開始修改前，必須依序閱讀：
 
 ## 主要資料夾
 
-| 路徑 | 用途 |
-|---|---|
-| `backend/agent/` | 需求與家具決策 |
-| `backend/catalog/` | 家具、材質與正式雲端 catalog |
-| `backend/engine/` | 幾何擺放與驗證 |
-| `backend/floorplan/` | 平面圖辨識與確認 |
-| `backend/spatial_data/` | 空間關係與 evaluation 的共享邊界 |
-| `backend/server/` | 正式 FastAPI 與 production frontend |
-| `backend/upgrade3d/` | 已確認格局轉 3D 幾何 |
-| `frontend3d/` | 次要 React/R3F 原型 |
-| `JSON/` | Catalog/manifest 交接資料 |
-| `scripts/sql/` | PostgreSQL schema 與匯入 |
-| `testdata/` | 小型辨識測資與 ground truth |
-| `tests/` | 單元、API、契約與視覺回歸測試 |
-| `docs/contracts/` | 跨模組資料契約 |
-| `.agents/skills/roompilot-workflow-max/` | 由 VibeCoding 01–17 與 `.claude` 安全轉換的 RoomPilot Codex 工作流、模板、來源清單與最大平行協作規則 |
+| 路徑                                       | 用途                                                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `backend/agent/`                         | 需求與家具決策                                                                                         |
+| `backend/catalog/`                       | 家具、材質與正式雲端 catalog                                                                           |
+| `backend/engine/`                        | 幾何擺放與驗證                                                                                         |
+| `backend/floorplan/`                     | 平面圖辨識與確認                                                                                       |
+| `backend/spatial_data/`                  | 空間關係與 evaluation 的共享邊界                                                                       |
+| `backend/server/`                        | 正式 FastAPI 與 production frontend                                                                    |
+| `backend/upgrade3d/`                     | 已確認格局轉 3D 幾何                                                                                   |
+| `frontend3d/`                            | 次要 React/R3F 原型                                                                                    |
+| `JSON/`                                  | Catalog/manifest 交接資料                                                                              |
+| `scripts/sql/`                           | PostgreSQL schema 與匯入                                                                               |
+| `testdata/`                              | 小型辨識測資與 ground truth                                                                            |
+| `tests/`                                 | 單元、API、契約與視覺回歸測試                                                                          |
+| `docs/contracts/`                        | 跨模組資料契約                                                                                         |
+| `.agents/skills/roompilot-workflow-max/` | 由 VibeCoding 01–17 與`.claude` 安全轉換的 RoomPilot Codex 工作流、模板、來源清單與最大平行協作規則 |
 
 ## 關鍵資料契約
 
