@@ -28,6 +28,7 @@ from ...catalog.postgres_repository import (
     catalog_dict_cursor,
 )
 from .model_runtime import EMBED_MODEL, MODEL_RUNTIME, RagModelRuntime
+from .query_refinement import RefinedQuery, refine_many
 from .settings import RagSettings, load_rag_settings
 
 
@@ -159,6 +160,10 @@ class RoomNeed:
     required_families: tuple[str, ...] = ()
     style_id: str | None = None
     price_max: int | None = None
+    # 純自由文字（家具偏好、特殊需求），供 LLM 前置解析判斷值不值得花一次
+    # 呼叫。內容是 query_text 的子集，因此刻意不進 fingerprint_payload——
+    # 指紋只看會改變檢索輸入的原始欄位，parser 的抖動不會讓快取失效。
+    free_text: str = ""
 
     def filter_width_cm(self) -> float:
         """家具寬度上限。取房間短邊，因為家具可以轉向擺放。"""
@@ -380,15 +385,31 @@ class FurnitureShortlistService:
                 stats={"rooms": 0, "items": 0},
             )
 
+        # 自由文字夠長的房間先過 LLM 解析：semantic_query 取代斷詞大雜燴
+        # 當嵌入文字，逐品項價格/寬度上限變成硬過濾。失敗一律降級走原路。
+        refinements = refine_many(
+            [need.free_text for need in needs],
+            self.settings(),
+            categories_for_family=categories_for_family,
+        )
         vectors, semantic, embed_error = self._embed_queries(
-            [need.query_text for need in needs]
+            [
+                refined.semantic_text or need.query_text
+                for need, refined in zip(needs, refinements)
+            ]
         )
         rooms: list[RoomShortlist] = []
         with borrow_catalog_connection(self.project_dir) as connection:
             with catalog_dict_cursor(connection) as cursor:
-                for need, vector in zip(needs, vectors):
+                for need, vector, refined in zip(needs, vectors, refinements):
                     rooms.append(
-                        self._build_room(cursor, need, vector, per_family=per_family)
+                        self._build_room(
+                            cursor,
+                            need,
+                            vector,
+                            per_family=per_family,
+                            refined=refined,
+                        )
                     )
 
         stats: dict[str, Any] = {
@@ -397,6 +418,15 @@ class FurnitureShortlistService:
             "rooms_with_missing_families": sum(
                 1 for room in rooms if room.missing_families
             ),
+            "query_parser": {
+                "parsed_rooms": sum(1 for refined in refinements if refined.parsed),
+                "hard_caps": sum(len(refined.caps) for refined in refinements),
+                "skipped": [
+                    refined.reason
+                    for refined in refinements
+                    if not refined.parsed and refined.reason != "below_threshold"
+                ][:4],
+            },
         }
         if embed_error:
             stats["embedding_error"] = embed_error
@@ -443,6 +473,7 @@ class FurnitureShortlistService:
         vector: Sequence[float] | None,
         *,
         per_family: int,
+        refined: RefinedQuery | None = None,
     ) -> RoomShortlist:
         wanted = clean_families(need.required_families)
         categories: list[str] = []
@@ -456,6 +487,7 @@ class FurnitureShortlistService:
             vector,
             categories=categories,
             per_family=per_family,
+            refined=refined,
         )
         items = list(self._to_items(rows))
         still_missing = self._unsatisfied(wanted, items)
@@ -474,6 +506,7 @@ class FurnitureShortlistService:
                 categories=list(dict.fromkeys(relaxed_categories)),
                 per_family=per_family,
                 ignore_room=True,
+                refined=refined,
             )
             seen = {existing.item_id for existing in items}
             for item in self._to_items(extra):
@@ -534,6 +567,7 @@ class FurnitureShortlistService:
         categories: Sequence[str],
         per_family: int,
         ignore_room: bool = False,
+        refined: RefinedQuery | None = None,
     ) -> list[dict[str, Any]]:
         """一次查完整個房間。
 
@@ -588,6 +622,21 @@ class FurnitureShortlistService:
         if need.price_max is not None:
             conditions.append("(c.price_twd IS NULL OR c.price_twd <= %s)")
             params.append(need.price_max)
+
+        # LLM 解析出的逐分類硬上限：只約束該分類，其餘品項不受影響。
+        # 價格沿用既有慣例：price 為 NULL 的品項放行（缺價不等於超價）。
+        for cap in (refined.caps if refined else ()):
+            if cap.price_max is not None:
+                conditions.append(
+                    "(NOT (c.category_code = ANY(%s))"
+                    " OR c.price_twd IS NULL OR c.price_twd <= %s)"
+                )
+                params.extend([list(cap.categories), cap.price_max])
+            if cap.max_width_cm is not None:
+                conditions.append(
+                    "(NOT (c.category_code = ANY(%s)) OR c.width_cm <= %s)"
+                )
+                params.extend([list(cap.categories), cap.max_width_cm])
 
         where = " AND ".join(conditions)
         if vector is not None:

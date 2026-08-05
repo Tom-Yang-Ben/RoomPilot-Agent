@@ -135,6 +135,16 @@ def build_needs_from_workflow(workflow: dict[str, Any]) -> list[RoomNeed]:
         # required 有時混進問卷標籤（"use:保持通行"），clean_families 會濾掉；
         # 那些字串仍留在 query_text 裡當語意線索，只是不當成必要族系。
         required = clean_families(furniture.get("required") or [])
+        # 純自由文字（不含房名與選項字）：夠長才值得讓 LLM 前置解析
+        # （query_refinement）花一次呼叫把硬條件抽出來。
+        free_text = " ".join(
+            part
+            for part in (
+                *_text_items(requirement.get("specialRequests")),
+                str(furniture.get("preferenceText") or ""),
+            )
+            if part
+        ).strip()
         needs.append(
             RoomNeed(
                 room_id=room_id,
@@ -150,6 +160,7 @@ def build_needs_from_workflow(workflow: dict[str, Any]) -> list[RoomNeed]:
                 ).strip(),
                 required_families=required,
                 style_id=global_style,
+                free_text=free_text,
             )
         )
     return needs
