@@ -874,6 +874,21 @@ export function createSceneViewer(
       configureWallsForView("orbit");
     }
     const room = roomGroup.userData.roomSize || { widthCm: 420, depthCm: 360, wallHeight: 270 };
+    // corner 的距離與高度必須跟著戶型跨距與畫布長寬比走：固定 272cm 高是
+    // 單房(420×360)調的，套到整層(約 800cm 跨距)時鏡頭只比牆頂高 2cm，
+    // 開場變成貼地掠射、整片都是地板與最近的一面牆(2026-08-05 floor04 QA)。
+    // 直式畫布的水平視角只有 20 多度，距離不放大整棟一定被裁掉。
+    const cornerSpan = Math.max(room.widthCm, room.depthCm);
+    const cornerAspect = Math.max(container.clientWidth, 1) / Math.max(container.clientHeight, 1);
+    const cornerHalfFov = THREE.MathUtils.degToRad(45 / 2);
+    const cornerNarrowTan = Math.min(Math.tan(cornerHalfFov), Math.tan(cornerHalfFov) * cornerAspect);
+    const cornerDistance = THREE.MathUtils.clamp(
+      (cornerSpan / 2) / cornerNarrowTan * 1.1 + 120,
+      550,
+      1700,
+    );
+    // 與原單房 corner 相同的觀看方向(東南上方)，只是半徑改成可容納整棟。
+    const cornerDirection = { x: 0.53, y: 0.55, z: 0.62 };
     const presets = {
       overview: {
         position: [0, Math.max(room.widthCm, room.depthCm) * 1.12 + 210, 8],
@@ -884,7 +899,11 @@ export function createSceneViewer(
         target: [0, 105, -room.depthCm * 0.16],
       },
       corner: {
-        position: [room.widthCm * 0.55 + 115, 272, room.depthCm * 0.55 + 135],
+        position: [
+          cornerDirection.x * cornerDistance,
+          Math.max(272, cornerDirection.y * cornerDistance),
+          cornerDirection.z * cornerDistance,
+        ],
         target: [0, 85, 0],
       },
       inside: {
