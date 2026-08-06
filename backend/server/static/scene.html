@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-2b5ebe3c4238" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-bd547b9ed96d" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -41,11 +41,23 @@
       <section id="project-step" class="rp-step-panel is-active" data-panel="project">
         <div class="rp-simple-step">
           <div class="rp-simple-copy">
-            <span class="eyebrow">PROJECT</span>
-            <h2>建立這次的空間規劃專案</h2>
-            <p>專案會保存圖面、確認結果、家具與材質調整，重新開啟網址時可接著做。</p>
+            <div class="rp-project-copy-content">
+              <span class="eyebrow">PROJECT</span>
+              <h2>從一張平面圖，<br />開始想像家的樣子</h2>
+              <p>建立專案後，圖面、確認結果、家具與材質調整都會自動保存，重新開啟網址也能接著完成。</p>
+              <div class="rp-project-benefits" aria-label="專案功能">
+                <span>自動保存</span>
+                <span>隨時續作</span>
+                <span>八步完成</span>
+              </div>
+            </div>
           </div>
           <form id="project-form" class="rp-form-stack">
+            <div class="rp-form-heading">
+              <span>開始規劃</span>
+              <h3>先為這個空間取個名字</h3>
+              <p>之後可以在專案頁面快速辨認與繼續編輯。</p>
+            </div>
             <label>
               <span>專案名稱</span>
               <input id="project-name" type="text" autocomplete="off" placeholder="例如：林宅全室規劃" required />
@@ -75,9 +87,10 @@
               />
               <img id="upload-floorplan-preview" alt="剛選擇的平面圖預覽" hidden />
               <span id="upload-floorplan-placeholder" class="rp-upload-placeholder">
-                <span class="rp-upload-mark" aria-hidden="true">↑</span>
-                <strong>選擇 DXF、PNG 或 JPG 平面圖</strong>
-                <span>其他格式會被阻擋並說明原因</span>
+                <span class="rp-upload-format" aria-hidden="true">DXF · PNG · JPG</span>
+                <strong>將平面圖放在這裡</strong>
+                <span>或從電腦中選擇檔案，系統會先替您檢查格式</span>
+                <span class="rp-upload-choose">選擇平面圖</span>
               </span>
             </label>
           </div>
@@ -96,74 +109,71 @@
       </section>
 
       <section id="scale-step" class="rp-step-panel" data-panel="scale" hidden>
-        <div class="rp-split-workspace">
-          <div class="rp-plan-pane">
+        <div class="rp-split-workspace rp-calibration-workspace">
+          <div class="rp-plan-pane rp-calibration-plan-pane">
             <div class="rp-pane-heading">
-              <div><span class="eyebrow">3 確定尺寸</span><h2>在圖上拉出一段已知尺寸</h2></div>
+              <div><span class="eyebrow">3 確定尺寸</span><h2>選一段您確定的長度</h2></div>
               <span id="recognition-summary">等待辨識</span>
             </div>
             <div id="floorplan-calibration-stage" class="rp-plan-stage" role="application" aria-label="拖曳尺寸線的起點與終點">
               <img id="floorplan-calibration-image" alt="等待上傳的平面圖" />
               <svg id="floorplan-calibration-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"></svg>
             </div>
+            <p class="rp-calibration-plan-hint">建議選擇圖面上標示清楚、距離較長的牆面，比例會更準確。</p>
           </div>
-          <aside class="rp-control-pane">
-            <span class="eyebrow">目前要做的事</span>
-            <h2>拖曳兩個端點，再輸入這段的實際公分</h2>
-            <ol class="rp-instruction-list">
-              <li>在左圖點一下起點，再點一下終點。</li>
-              <li>端點可繼續拖曳到尺寸線兩端。</li>
-              <li>右側只輸入一個實際尺寸，單位固定為公分。</li>
+          <aside class="rp-control-pane rp-calibration-panel">
+            <div class="rp-calibration-intro">
+              <span class="eyebrow">STEP 03</span>
+              <h2>標定實際尺寸</h2>
+              <p>拖曳兩個端點，再輸入這段的實際公分；一次完成一個步驟即可。</p>
+            </div>
+            <ol class="rp-calibration-task-flow" aria-label="尺寸標定進度">
+              <li id="calibration-task-points" class="is-active" aria-current="step">
+                <span class="rp-calibration-task-index" aria-hidden="true">1</span>
+                <div>
+                  <strong>選擇起點與終點</strong>
+                  <p id="calibration-readout" class="rp-measure-readout" aria-live="polite">請先在圖面點選起點。</p>
+                </div>
+                <span id="calibration-task-points-status" class="rp-calibration-task-status">進行中</span>
+              </li>
+              <li id="calibration-task-measure" class="is-pending">
+                <span class="rp-calibration-task-index" aria-hidden="true">2</span>
+                <div>
+                  <strong>輸入實際尺寸</strong>
+                  <label for="floorplan-scale-cm">
+                    <span>實際長度（單位固定為公分）</span>
+                    <input id="floorplan-scale-cm" type="number" min="1" step="0.1" inputmode="decimal" placeholder="例如 630" disabled />
+                  </label>
+                  <p id="scale-error" class="rp-field-error" aria-live="polite"></p>
+                </div>
+                <span id="calibration-task-measure-status" class="rp-calibration-task-status">待選點</span>
+              </li>
+              <li id="calibration-task-confirm" class="is-pending">
+                <span class="rp-calibration-task-index" aria-hidden="true">3</span>
+                <div>
+                  <strong>確認比例</strong>
+                  <p>完成前兩步後，即可套用比例並顯示房間。</p>
+                </div>
+                <span id="calibration-task-confirm-status" class="rp-calibration-task-status">待完成</span>
+              </li>
             </ol>
-            <div id="calibration-readout" class="rp-measure-readout">尚未定位兩點</div>
-            <label>
-              <span>這一段的實際尺寸（公分）</span>
-              <input id="floorplan-scale-cm" type="number" min="1" step="0.1" inputmode="decimal" placeholder="例如 630" />
-            </label>
-            <button id="reset-floorplan-calibration" type="button" class="secondary-action">重選兩點</button>
-            <p id="scale-error" class="rp-field-error" aria-live="polite"></p>
-            <button id="apply-floorplan-calibration" type="button" class="primary-action" disabled>確認尺寸並顯示房間</button>
+            <div class="rp-calibration-actions">
+              <button id="reset-floorplan-calibration" type="button" class="secondary-action" hidden>重新選擇端點</button>
+              <button id="apply-floorplan-calibration" type="button" class="primary-action" disabled>確認尺寸並顯示房間</button>
+            </div>
           </aside>
         </div>
       </section>
 
       <section id="space-step" class="rp-step-panel" data-panel="space" hidden>
-        <div id="space-editor-workspace" class="rp-split-workspace">
+        <div id="space-editor-workspace" class="rp-split-workspace rp-space-review-workspace">
           <div class="rp-plan-pane">
             <div class="rp-pane-heading">
               <div><span class="eyebrow">4 空間與結構</span><h2>確認房間，再確認牆、門、窗、樑、柱</h2></div>
               <div class="rp-plan-heading-tools">
                 <button id="show-all-rooms" type="button" class="secondary-action">查看全部空間框選</button>
-                <div id="room-editor" class="rp-editor-box rp-room-toolbar-editor" hidden>
-                  <div class="rp-room-editor-summary">
-                    <label for="room-name">空間名稱</label>
-                    <div class="rp-room-name-control">
-                      <select id="room-name">
-                        <option value="entryway">玄關</option>
-                        <option value="living_room">客廳</option>
-                        <option value="dining_room">餐廳</option>
-                        <option value="kitchen">廚房</option>
-                        <option value="primary_bedroom">主臥</option>
-                        <option value="secondary_bedroom">次臥</option>
-                        <option value="bathroom">浴室</option>
-                        <option value="study">書房／工作區</option>
-                        <option value="balcony">陽台</option>
-                        <option value="storage">儲藏室</option>
-                        <option value="circulation">走道／動線</option>
-                        <option value="multi_purpose">多功能室</option>
-                      </select>
-                      <button id="save-room" type="button" class="secondary-action">套用名稱</button>
-                    </div>
-                    <p id="room-area"></p>
-                  </div>
-                  <div class="rp-room-node-tools">
-                    <button type="button" data-room-node-mode="merge" class="secondary-action">合併節點</button>
-                  <button type="button" data-room-node-mode="split" class="secondary-action">切割邊線新增節點</button>
-                  <button id="apply-node-merge" type="button" class="primary-action" hidden>合併所選兩個節點</button>
-                  <button id="cancel-node-edit" type="button" class="secondary-action" hidden>取消節點編輯</button>
-                </div>
-                  <p id="room-node-guidance" class="rp-control-hint">拖曳左圖紫色節點後，尺寸與面積會自動重新計算。也可合併節點或在邊線新增節點。</p>
-                </div>
+                <!-- 房間編輯器只留 #current-room-review 裡那一份。這裡原本有第二份，
+                     七組 id 重複讓 querySelector 一半接到工具列、一半接到引導卡。 -->
               </div>
               <div id="plan-structure-legend" class="rp-structure-legend rp-plan-structure-legend" aria-label="結構標示說明" hidden>
                 <span><i class="rp-legend-line is-selected"></i>橘黃＝目前選取</span>
@@ -171,6 +181,11 @@
                 <span><i class="rp-legend-line is-window"></i>藍線編號＝窗</span>
                 <span><i class="rp-legend-line is-wall"></i>深灰線＝牆</span>
               </div>
+            </div>
+            <div class="rp-space-canvas-toolbar" aria-label="圖面檢視工具">
+              <span>檢視模式</span>
+              <button id="show-all-rooms-canvas" type="button" class="secondary-action">查看全部空間</button>
+              <p>點選框線即可切換房間；拖曳節點可調整範圍。</p>
             </div>
             <div id="space-plan-stage" class="rp-plan-stage rp-editable-plan" aria-label="空間與結構確認圖">
               <img id="space-plan-image" alt="辨識後的平面圖" />
@@ -202,25 +217,76 @@
             </section>
             <p id="space-plan-caption" class="rp-plan-caption">點房間框或右側名稱可定位；紫色節點可拖曳調整範圍。</p>
           </div>
-          <aside class="rp-control-pane rp-space-controls">
+          <aside class="rp-control-pane rp-space-controls" aria-label="空間與結構確認面板">
             <div class="rp-segmented" role="tablist" aria-label="確認內容">
               <button type="button" data-space-tab="rooms" class="is-active">房間</button>
               <button type="button" data-space-tab="structure">牆門窗樑柱</button>
             </div>
-            <section id="room-confirmation-panel">
-              <div class="rp-room-review-actions">
-                <button id="add-missed-room" type="button" class="secondary-action">＋ 新增漏辨識空間</button>
-                <button id="confirm-all-rooms" type="button" class="primary-action">一鍵確認全部房間</button>
+            <section id="room-confirmation-panel" class="rp-guided-room-review">
+              <header class="rp-room-review-heading">
+                <div>
+                  <span class="eyebrow">STEP 04</span>
+                  <h2>房間確認</h2>
+                  <p>依序檢視每個房間的名稱與範圍，完成後再確認結構。</p>
+                </div>
+                <strong id="room-confirmation-progress">0 / 0</strong>
+              </header>
+              <section id="recognition-review-summary" class="rp-review-summary" aria-live="polite" hidden>
+                <h3>系統標記需人工複核</h3>
+                <p class="rp-review-summary-hint">
+                  下列房間的辨識結果有疑點，請逐一點開確認名稱與範圍；一鍵確認不會涵蓋這些房間。
+                </p>
+                <ul id="recognition-review-list" class="rp-review-summary-list"></ul>
+              </section>
+              <section id="current-room-review" class="rp-current-room-card" aria-live="polite" hidden>
+                <div id="current-room-status" class="rp-current-room-label">目前檢視</div>
+                <div id="room-editor" class="rp-room-review-editor" hidden>
+                  <div class="rp-room-editor-summary">
+                    <label for="room-name">空間名稱</label>
+                    <div class="rp-room-name-control">
+                      <!-- 選項由 scene_v2.js 的 ROOM_NAME_OPTIONS 生成，見 renderRoomNameSelect()。
+                           寫死在這裡會與辨識層的類別集脫鉤。 -->
+                      <select id="room-name"></select>
+                      <button id="save-room" type="button" class="secondary-action">套用名稱</button>
+                    </div>
+                    <div id="room-area" class="rp-current-room-metrics"></div>
+                  </div>
+                  <details class="rp-room-outline-tools">
+                    <summary>編輯房間範圍</summary>
+                    <div class="rp-room-node-tools">
+                      <button type="button" data-room-node-mode="merge" class="secondary-action">合併節點</button>
+                      <button type="button" data-room-node-mode="split" class="secondary-action">在邊線新增節點</button>
+                      <button id="apply-node-merge" type="button" class="primary-action" hidden>合併所選兩個節點</button>
+                      <button id="cancel-node-edit" type="button" class="secondary-action" hidden>取消節點編輯</button>
+                    </div>
+                    <p id="room-node-guidance" class="rp-control-hint">拖曳左圖紫色節點後，尺寸與面積會自動重新計算。也可合併節點或在邊線新增節點。</p>
+                  </details>
+                </div>
+                <div class="rp-current-room-actions">
+                  <button id="skip-current-room" type="button" class="secondary-action">稍後處理</button>
+                  <button id="confirm-current-room" type="button" class="primary-action">確認並查看下一間</button>
+                </div>
+              </section>
+              <div class="rp-room-queue-heading">
+                <strong>其他房間</strong>
+                <span>選取即可查看</span>
               </div>
-              <div class="rp-room-geometry-tools">
-                <button type="button" data-room-geometry-mode="merge" class="secondary-action">合併房間</button>
-                <button type="button" data-room-geometry-mode="split" class="secondary-action">切割房間</button>
-                <button id="apply-room-merge" type="button" class="primary-action" hidden>合併所選兩個房間</button>
-                <button id="cancel-room-geometry" type="button" class="secondary-action" hidden>取消合併／切割</button>
-              </div>
-              <p id="room-geometry-guidance" class="rp-control-hint">先逐一確認右側房間；需要時可合併或以兩點切割。</p>
-              <strong id="room-confirmation-progress">已確認 0 / 0 個房間</strong>
-              <div id="room-list" class="rp-room-list"></div>
+              <div id="room-list" class="rp-room-list rp-room-review-queue"></div>
+              <details id="room-more-actions" class="rp-room-more-actions">
+                <summary>更多操作</summary>
+                <div class="rp-room-review-actions">
+                  <button id="add-missed-room" type="button" class="secondary-action">新增漏辨識空間</button>
+                  <button id="confirm-all-rooms" type="button" class="secondary-action">一鍵確認全部房間</button>
+                  <button id="delete-current-room" type="button" class="danger-action">刪除目前房間</button>
+                </div>
+                <div class="rp-room-geometry-tools">
+                  <button type="button" data-room-geometry-mode="merge" class="secondary-action">合併房間</button>
+                  <button type="button" data-room-geometry-mode="split" class="secondary-action">切割房間</button>
+                  <button id="apply-room-merge" type="button" class="primary-action" hidden>合併所選兩個房間</button>
+                  <button id="cancel-room-geometry" type="button" class="secondary-action" hidden>取消合併／切割</button>
+                </div>
+                <p id="room-geometry-guidance" class="rp-control-hint">需要時可新增、合併或以兩點切割房間。</p>
+              </details>
             </section>
             <section id="structure-confirmation-panel" hidden>
               <div class="rp-structure-kind-tabs" role="tablist" aria-label="結構類別">
@@ -331,9 +397,15 @@
               <div class="rp-check-row"><input id="structure-confirmed" type="checkbox" /><label for="structure-confirmed">已確認牆、門、窗、樑與柱</label></div>
               <div class="rp-check-row rp-warning-check"><input id="estimated-size-ack" type="checkbox" /><label for="estimated-size-ack">我知道未標示的牆、樑、柱尺寸是依圖面估計，可能與現場實際尺寸不同</label></div>
             </section>
-            <p id="space-error" class="rp-field-error" aria-live="polite"></p>
-            <button id="confirm-space" type="button" class="primary-action">完成空間與結構確認</button>
           </aside>
+          <footer class="rp-space-completion-bar">
+            <div>
+              <strong id="space-completion-summary">尚待確認房間</strong>
+              <span id="space-completion-hint">完成所有房間與結構後，即可檢查尺寸標註。</span>
+              <p id="space-error" class="rp-field-error" aria-live="polite"></p>
+            </div>
+            <button id="confirm-space" type="button" class="primary-action" disabled>完成空間與結構確認</button>
+          </footer>
         </div>
         <section id="space-dimension-review" class="rp-space-dimension-review" aria-labelledby="space-dimension-title" hidden>
           <header class="rp-dimension-heading">
@@ -999,6 +1071,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-44f8fd772668"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-dd6dd4878f23"></script>
   </body>
 </html>
