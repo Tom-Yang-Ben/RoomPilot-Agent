@@ -1,0 +1,10 @@
+{
+  "name": "@oai/artifact-tool",
+  "version": "0.0.0-local-compat",
+  "description": "RoomPilot 本機相容層：以 exceljs 實作 workbook_builder.mjs 使用的 artifact-tool API 子集",
+  "type": "module",
+  "main": "./dist/artifact_tool.mjs",
+  "exports": {
+    ".": "./dist/artifact_tool.mjs"
+  }
+}
